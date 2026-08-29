@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import hashlib
+import importlib
 import importlib.util
 import json
+import os
 import pickle
 import random
+import shutil
 import stat
 import subprocess
 import sys
@@ -47,6 +50,683 @@ def _load_script():
 
 def _state_digest(domain: bytes, value: object) -> str:
     return hashlib.sha256(domain + b"\0" + pickle.dumps(value, protocol=5)).hexdigest()
+
+
+def _review3_environment() -> dict[str, object]:
+    return {
+        "python_vv": "Python 3.12.3",
+        "torch": "2.6.0",
+        "torchvision": "0.21.0",
+        "timm": "1.0.0",
+        "numpy": "2.1.3",
+        "cuda": "12.4",
+        "cudnn": "90100",
+        "compile": {"available": "True", "inductor": "registered"},
+        "device_uuid": "GPU-registered",
+        "gpu_inventory": ["H100, GPU-registered, 550.54"],
+        "pyproject_sha256": "1" * 64,
+        "uv_lock_sha256": "2" * 64,
+        "deterministic_execution": {
+            "deterministic_algorithms": True,
+            "cuda_matmul_tf32": False,
+            "cudnn_tf32": False,
+            "cudnn_benchmark": False,
+            "cudnn_deterministic": True,
+            "cublas_workspace_config": ":4096:8",
+        },
+    }
+
+
+def _campaign_authority_fixture(
+    *,
+    config_path: Path,
+    root: Path,
+    stage: str,
+    destinations: dict[str, Path],
+    additional_stages: dict[str, dict[str, Path]] | None = None,
+) -> list[str]:
+    preflight = root / "preflight"
+    preflight.mkdir(parents=True, exist_ok=True)
+    environment_path = preflight / "cuda-environment.json"
+    environment_payload = (
+        json.dumps(_review3_environment(), indent=2, allow_nan=False) + "\n"
+    ).encode()
+    environment_path.write_bytes(environment_payload)
+    budget = {
+        "schema": "unicom-fepf-publication-budget-v1",
+        "publications": [{
+            "name": "cuda-canary:environment",
+            "path": environment_path.resolve().relative_to(root.resolve()).as_posix(),
+            "persistent_bytes": 16 * 1024**2,
+            "temporary_bytes": 16 * 1024**2,
+            "persistent_inodes": 1,
+            "temporary_inodes": 1,
+        }, *[
+            {
+                "name": f"{stage}:{name}",
+                "path": destination.resolve().relative_to(root.resolve()).as_posix(),
+                "persistent_bytes": 16 * 1024**2,
+                "temporary_bytes": 16 * 1024**2,
+                "persistent_inodes": 1,
+                "temporary_inodes": 1,
+            }
+            for name, destination in destinations.items()
+        ], *[
+            {
+                "name": f"{additional_stage}:{name}",
+                "path": destination.resolve().relative_to(root.resolve()).as_posix(),
+                "persistent_bytes": 16 * 1024**2,
+                "temporary_bytes": 16 * 1024**2,
+                "persistent_inodes": 1,
+                "temporary_inodes": 1,
+            }
+            for additional_stage, stage_destinations in (
+                additional_stages or {}
+            ).items()
+            for name, destination in stage_destinations.items()
+        ]],
+    }
+    budget_payload = (json.dumps(budget, indent=2, allow_nan=False) + "\n").encode()
+    budget_path = preflight / "publication-budget.json"
+    budget_path.write_bytes(budget_payload)
+    config_path.write_text(
+        json.dumps(
+            {
+                "artifact_root": str(root),
+                "cuda_canary_environment": {
+                    "path": str(environment_path.resolve()),
+                    "sha256": hashlib.sha256(environment_payload).hexdigest(),
+                    "bytes": len(environment_payload),
+                },
+                "publication_budget": budget,
+                "publication_budget_path": "preflight/publication-budget.json",
+                "publication_budget_sha256": hashlib.sha256(
+                    budget_payload
+                ).hexdigest(),
+            },
+            indent=2,
+            allow_nan=False,
+        )
+        + "\n"
+    )
+    return [
+        "--environment-authority", str(environment_path),
+        "--environment-sha256", hashlib.sha256(environment_payload).hexdigest(),
+        "--publication-budget", str(budget_path),
+        "--publication-budget-sha256", hashlib.sha256(budget_payload).hexdigest(),
+        "--publication-stage", stage,
+        "--campaign-root", str(root),
+    ]
+
+
+def _fixture_stage_publications(
+    output: Path, *, epochs: tuple[int, ...], fresh: bool
+) -> dict[str, Path]:
+    result = {
+        "history": output / "history.json",
+        "run-receipt": output / "run-receipt.json",
+    }
+    if fresh:
+        result["initialization-receipt"] = output / "initialization-receipt.json"
+    for epoch in epochs:
+        stem = f"evaluation-epoch-{epoch:04d}"
+        result.update({
+            f"checkpoint-epoch-{epoch:04d}": output / f"epoch-{epoch:04d}.pt",
+            f"{stem}-query": output / f"{stem}-query.npy",
+            f"{stem}-gallery": output / f"{stem}-gallery.npy",
+            f"{stem}-ranked-prefix": output / f"{stem}-ranked-prefix.json",
+            stem: output / f"{stem}.json",
+        })
+    return result
+
+
+def _use_cpu_fixture_budget_validation(module, monkeypatch: pytest.MonkeyPatch) -> None:
+    strict_loader = module.load_configured_publication_budget
+
+    def load_fixture_budget(config_path, path, expected_sha256, *, external=True):
+        return strict_loader(
+            config_path, path, expected_sha256, external=False
+        )
+
+    monkeypatch.setattr(module, "load_configured_publication_budget", load_fixture_budget)
+
+
+def test_review3_training_binds_external_environment_and_publication_budget(
+    tmp_path: Path,
+) -> None:
+    module = _load_script()
+    environment_path = tmp_path / "environment.json"
+    environment_payload = (
+        json.dumps(_review3_environment(), indent=2, allow_nan=False) + "\n"
+    ).encode()
+    environment_path.write_bytes(environment_payload)
+    environment_sha256 = hashlib.sha256(environment_payload).hexdigest()
+    budget_path = tmp_path / "publication-budget.json"
+    budget = {
+        "schema": "unicom-fepf-publication-budget-v1",
+        "publications": [
+            {
+                "name": "checkpoint-epoch-0004",
+                "path": "epoch-0004.pt",
+                "persistent_bytes": 1024,
+                "temporary_bytes": 1024,
+                "persistent_inodes": 1,
+                "temporary_inodes": 1,
+            }
+        ],
+    }
+    budget_path.write_bytes(
+        (json.dumps(budget, indent=2, allow_nan=False) + "\n").encode()
+    )
+    args = module.parse_args(
+        [
+            "--unicom-checkout", str(tmp_path / "unicom"),
+            "--checkpoint", str(tmp_path / "checkpoint.pt"),
+            "--dataset-root", str(tmp_path / "dataset"),
+            "--output-dir", str(tmp_path / "output"),
+            "--environment-authority", str(environment_path),
+            "--environment-sha256", environment_sha256,
+            "--publication-budget", str(budget_path),
+        ]
+    )
+    authority = module.load_registered_environment_authority(
+        args.environment_authority, args.environment_sha256
+    )
+    assert authority == _review3_environment()
+    assert module.load_publication_budget_authority(args.publication_budget) == budget
+    assert "environment" in module.FEPF_TRAINING_PROTOCOL_KEYS
+    assert "environment_sha256" in module.FEPF_TRAINING_PROTOCOL_KEYS
+
+
+def test_review4_training_authorities_are_config_rooted_and_path_exact(
+    tmp_path: Path,
+) -> None:
+    module = _load_script()
+    environment_path = tmp_path / "environment.json"
+    environment_payload = (
+        json.dumps(_review3_environment(), indent=2, allow_nan=False) + "\n"
+    ).encode()
+    environment_path.write_bytes(environment_payload)
+    environment_sha256 = hashlib.sha256(environment_payload).hexdigest()
+    budget_path = tmp_path / "publication-budget.json"
+    budget = {
+        "schema": "unicom-fepf-publication-budget-v1",
+        "publications": [
+            {
+                "name": "checkpoint-epoch-0004",
+                "path": "epoch-0004.pt",
+                "persistent_bytes": 1024,
+                "temporary_bytes": 1024,
+                "persistent_inodes": 1,
+                "temporary_inodes": 1,
+            }
+        ],
+    }
+    budget_payload = (json.dumps(budget, indent=2, allow_nan=False) + "\n").encode()
+    budget_path.write_bytes(budget_payload)
+    budget_sha256 = hashlib.sha256(budget_payload).hexdigest()
+    config_path = tmp_path / "run-config.json"
+    config_path.write_bytes(
+        (
+            json.dumps(
+                {
+                    "artifact_root": str(tmp_path),
+                    "cuda_canary_environment": {
+                        "path": str(environment_path.resolve()),
+                        "sha256": environment_sha256,
+                        "bytes": len(environment_payload),
+                    },
+                    "publication_budget": budget,
+                    "publication_budget_path": budget_path.name,
+                    "publication_budget_sha256": budget_sha256,
+                },
+                indent=2,
+                allow_nan=False,
+            )
+            + "\n"
+        ).encode()
+    )
+
+    assert module.load_configured_environment_authority(
+        config_path, environment_path, environment_sha256
+    ) == _review3_environment()
+    assert module.load_configured_publication_budget(
+        config_path, budget_path, budget_sha256, external=False
+    ) == budget
+    alternate = tmp_path / "alternate-environment.json"
+    alternate.write_bytes(environment_payload)
+    with pytest.raises(ValueError, match="config|environment"):
+        module.load_configured_environment_authority(
+            config_path, alternate, environment_sha256
+        )
+    with pytest.raises(ValueError, match="config|budget"):
+        module.load_configured_publication_budget(
+            config_path, budget_path, "f" * 64, external=False
+        )
+
+
+def test_review4_publication_budget_reloads_and_matches_named_destination(
+    tmp_path: Path,
+) -> None:
+    module = _load_script()
+    output = tmp_path / "output"
+    output.mkdir()
+    budget_path = output / "publication-budget.json"
+    budget = {
+        "schema": "unicom-fepf-publication-budget-v1",
+        "publications": [
+            {
+                "name": "checkpoint-epoch-0004",
+                "path": "epoch-0004.pt",
+                "persistent_bytes": 1,
+                "temporary_bytes": 1,
+                "persistent_inodes": 1,
+                "temporary_inodes": 1,
+            }
+        ],
+    }
+    payload = (json.dumps(budget, indent=2, allow_nan=False) + "\n").encode()
+    budget_path.write_bytes(payload)
+    budget_sha256 = hashlib.sha256(payload).hexdigest()
+    config_path = tmp_path / "run-config.json"
+    config_path.write_bytes(
+        (
+            json.dumps(
+                {
+                    "artifact_root": str(output),
+                    "publication_budget": budget,
+                    "publication_budget_path": budget_path.name,
+                    "publication_budget_sha256": budget_sha256,
+                },
+                indent=2,
+                allow_nan=False,
+            )
+            + "\n"
+        ).encode()
+    )
+    available = SimpleNamespace(
+        f_bavail=1_000_000,
+        f_frsize=4096,
+        f_favail=1_000_000,
+    )
+
+    module.require_configured_publication_capacity(
+        config_path,
+        budget_path,
+        budget_sha256,
+        "checkpoint-epoch-0004",
+        output / "epoch-0004.pt",
+        output,
+        external=False,
+        statvfs=lambda _path: available,
+    )
+    with pytest.raises(ValueError, match="path|destination"):
+        module.require_configured_publication_capacity(
+            config_path,
+            budget_path,
+            budget_sha256,
+            "checkpoint-epoch-0004",
+            output / "epoch-0008.pt",
+            output,
+            external=False,
+            statvfs=lambda _path: available,
+        )
+    budget_path.write_bytes(payload + b" ")
+    with pytest.raises(ValueError, match="budget"):
+        module.require_configured_publication_capacity(
+            config_path,
+            budget_path,
+            budget_sha256,
+            "checkpoint-epoch-0004",
+            output / "epoch-0004.pt",
+            output,
+            external=False,
+            statvfs=lambda _path: available,
+        )
+
+
+def test_review4_checkpoint_capacity_guard_is_at_publication_boundary(
+    tmp_path: Path,
+) -> None:
+    module = _load_script()
+    path = tmp_path / "epoch-0004.pt"
+    model = torch.nn.Linear(2, 2)
+    classifier = torch.nn.Parameter(torch.ones(2, 2))
+    optimizer = torch.optim.AdamW(model.parameters())
+    generator = torch.Generator().manual_seed(7)
+    observations: list[tuple[str, bool]] = []
+
+    module.save_training_checkpoint(
+        path,
+        epoch=4,
+        raw_model=model,
+        classifier=classifier,
+        optimizer=optimizer,
+        scheduler=None,
+        scaler=None,
+        mask_generator=generator,
+        selection_holdout={"seed": 0, "fraction": 0.2},
+        training_protocol={"registered": True},
+        history=[],
+        publication_guard=lambda _payload: observations.append(
+            ("guard", path.exists() or path.with_name(f"{path.name}.tmp").exists())
+        ),
+    )
+    assert observations == [("guard", False)]
+
+
+def test_review4_history_publication_is_atomic_noreplace(tmp_path: Path) -> None:
+    module = _load_script()
+    path = tmp_path / "history.json"
+    module.write_history_atomic_noreplace([{"epoch": 4}], path)
+    original = path.read_bytes()
+    with pytest.raises(FileExistsError):
+        module.write_history_atomic_noreplace([{"epoch": 8}], path)
+    assert path.read_bytes() == original
+
+
+def _review5_checkpoint_arguments() -> dict[str, object]:
+    model = torch.nn.Linear(2, 2)
+    return {
+        "epoch": 4,
+        "raw_model": model,
+        "classifier": torch.nn.Parameter(torch.ones(2, 2)),
+        "optimizer": torch.optim.AdamW(model.parameters()),
+        "scheduler": None,
+        "scaler": None,
+        "mask_generator": torch.Generator().manual_seed(7),
+        "selection_holdout": {"seed": 0, "fraction": 0.2},
+        "training_protocol": {"registered": True},
+        "history": [],
+    }
+
+
+def test_review5_checkpoint_post_link_failure_cleans_owned_path_and_retries(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = _load_script()
+    path = tmp_path / "epoch-0004.pt"
+    publication = importlib.import_module("sfora.atomic_publication")
+    original = publication._pread_all
+    reads = 0
+
+    def fail_reopened_read(descriptor: int) -> bytes:
+        nonlocal reads
+        reads += 1
+        if reads == 2:
+            raise OSError("post-link verification failed")
+        return original(descriptor)
+
+    monkeypatch.setattr(publication, "_pread_all", fail_reopened_read)
+    with pytest.raises(OSError, match="post-link"):
+        module.save_training_checkpoint(path, **_review5_checkpoint_arguments())
+    assert not path.exists()
+    assert not path.with_name(f"{path.name}.tmp").exists()
+    module.save_training_checkpoint(path, **_review5_checkpoint_arguments())
+    assert path.is_file()
+
+
+def test_review5_checkpoint_temp_cleanup_fsyncs_directory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = _load_script()
+    path = tmp_path / "epoch-0004.pt"
+    publication = importlib.import_module("sfora.atomic_publication")
+    original_fsync = publication.os.fsync
+    directory_syncs = 0
+
+    def observed_fsync(descriptor: int) -> None:
+        nonlocal directory_syncs
+        if stat.S_ISDIR(publication.os.fstat(descriptor).st_mode):
+            directory_syncs += 1
+        original_fsync(descriptor)
+
+    monkeypatch.setattr(publication.os, "fsync", observed_fsync)
+    monkeypatch.setattr(
+        publication,
+        "_link_fd_noreplace",
+        lambda *_args: (_ for _ in ()).throw(OSError("link failed")),
+    )
+    with pytest.raises(OSError, match="link failed"):
+        module.save_training_checkpoint(path, **_review5_checkpoint_arguments())
+    # O_TMPFILE has no directory entry before linkat, so a pre-link failure
+    # requires no directory durability barrier.
+    assert directory_syncs == 0
+    assert not path.exists()
+    assert not path.with_name(f"{path.name}.tmp").exists()
+
+
+def test_review6_live_training_publication_inventory_maps_every_written_path(
+    tmp_path: Path,
+) -> None:
+    module = _load_script()
+    output = tmp_path / "output"
+    output.mkdir()
+    destinations = module.registered_training_publication_destinations(
+        output, epochs=(4, 8, 12, 16)
+    )
+    assert destinations["initialization-receipt"] == output / "initialization-receipt.json"
+    assert destinations["history"] == output / "history.json"
+    assert destinations["run-receipt"] == output / "run-receipt.json"
+    for epoch in (4, 8, 12, 16):
+        assert destinations[f"checkpoint-epoch-{epoch:04d}"] == output / f"epoch-{epoch:04d}.pt"
+        assert destinations[f"evaluation-epoch-{epoch:04d}-query"] == (
+            output / f"evaluation-epoch-{epoch:04d}-query.npy"
+        )
+        assert destinations[f"evaluation-epoch-{epoch:04d}-gallery"] == (
+            output / f"evaluation-epoch-{epoch:04d}-gallery.npy"
+        )
+        assert destinations[f"evaluation-epoch-{epoch:04d}-ranked-prefix"] == (
+            output / f"evaluation-epoch-{epoch:04d}-ranked-prefix.json"
+        )
+        assert destinations[f"evaluation-epoch-{epoch:04d}"] == (
+            output / f"evaluation-epoch-{epoch:04d}.json"
+        )
+
+
+def test_review8_trainer_main_consumes_real_stage_qualified_embedded_budget(
+    tmp_path: Path,
+) -> None:
+    module = _load_script()
+    root = tmp_path / "campaign"
+    stage = root / "exploratory-control-stage4"
+    stage.mkdir(parents=True)
+    environment = tmp_path / "environment.json"
+    environment_value = _review3_environment()
+    environment_payload = json.dumps(environment_value, indent=2).encode() + b"\n"
+    environment.write_bytes(environment_payload)
+    budget = {
+        "schema": "unicom-fepf-publication-budget-v1",
+        "publications": [{
+            "name": "exploratory-control-stage4:initialization-receipt",
+            "path": "exploratory-control-stage4/initialization-receipt.json",
+            "persistent_bytes": 4096,
+            "temporary_bytes": 4096,
+            "persistent_inodes": 1,
+            "temporary_inodes": 1,
+        }],
+    }
+    budget_payload = json.dumps(budget, indent=2).encode() + b"\n"
+    budget_path = root / "preflight/publication-budget.json"
+    budget_path.parent.mkdir()
+    budget_path.write_bytes(budget_payload)
+    config = tmp_path / "config.json"
+    config.write_text(json.dumps({
+        "artifact_root": str(root),
+        "cuda_canary_environment": {
+            "path": str(environment.resolve()),
+            "sha256": hashlib.sha256(environment_payload).hexdigest(),
+            "bytes": len(environment_payload),
+        },
+        "publication_budget": budget,
+        "publication_budget_path": "preflight/publication-budget.json",
+        "publication_budget_sha256": hashlib.sha256(budget_payload).hexdigest(),
+    }, indent=2) + "\n")
+    arguments = [
+        "--unicom-checkout", str(tmp_path / "unicom"),
+        "--checkpoint", str(tmp_path / "checkpoint.pt"),
+        "--dataset-root", str(tmp_path / "dataset"),
+        "--output-dir", str(stage),
+        "--run-config", str(config),
+        "--environment-authority", str(environment),
+        "--environment-sha256", hashlib.sha256(environment_payload).hexdigest(),
+        "--publication-budget", str(budget_path),
+        "--publication-budget-sha256", hashlib.sha256(budget_payload).hexdigest(),
+        "--run-arm", "exploratory-control-stage4",
+        "--publication-stage", "exploratory-control-stage4",
+        "--campaign-root", str(root),
+        "--classifier-init", "imprinted",
+        "--stop-after-epoch", "4",
+        "--authority-preflight-only",
+    ]
+    assert module.main(arguments) == 0
+
+
+def test_review9_normal_initialization_guard_resolves_stage_qualified_row(
+    tmp_path: Path,
+) -> None:
+    module = _load_script()
+    args = SimpleNamespace(
+        publication_stage="exploratory-control-stage4",
+        campaign_root=tmp_path,
+        output_dir=tmp_path / "exploratory-control-stage4",
+        run_config=tmp_path / "config.json",
+        publication_budget=tmp_path / "publication-budget.json",
+        publication_budget_sha256="a" * 64,
+    )
+    seen: list[str] = []
+    module.require_cli_publication_capacity(
+        args,
+        "initialization-receipt",
+        capacity_validator=lambda _config, _budget, _sha, name, destination, root: (
+            seen.append(name),
+            seen.append(destination.relative_to(root).as_posix()),
+        ),
+    )
+    assert seen == [
+        "exploratory-control-stage4:initialization-receipt",
+        "exploratory-control-stage4/initialization-receipt.json",
+    ]
+
+
+def test_review9_checkpoint_validator_rejects_complete_schema_mutation(
+    tmp_path: Path,
+) -> None:
+    module = _load_script()
+    payload = {
+        "epoch": 4,
+        "model": {"weight": torch.ones((2, 2))},
+        "classifier": torch.ones((3, 2)),
+        "ema": None,
+        "optimizer": {"state": {}, "param_groups": []},
+        "scheduler": None,
+        "scaler": None,
+        "mask_generator": torch.Generator().get_state(),
+        "torch_rng_state": torch.get_rng_state(),
+        "cuda_rng_states": None,
+        "selection_holdout": {"seed": 0, "fraction": 0.2},
+        "training_protocol": {"trainer_sha256": "1" * 64},
+        "history": [],
+    }
+    changed = dict(payload)
+    changed.pop("optimizer")
+    with pytest.raises(ValueError, match="checkpoint.*schema|semantic"):
+        module.validate_checkpoint_publication(changed, expected=payload)
+
+
+def test_review10_checkpoint_publication_closes_retained_descriptor(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = _load_script()
+    publication = importlib.import_module("sfora.atomic_publication")
+    original = publication.publish_writer_noreplace
+    retained = []
+
+    def capture(*args, **kwargs):
+        published = original(*args, **kwargs)
+        retained.append(published)
+        return published
+
+    monkeypatch.setattr(module, "publish_writer_noreplace", capture)
+    model = torch.nn.Linear(2, 2)
+    classifier = torch.nn.Parameter(torch.ones((3, 2)))
+    optimizer = torch.optim.AdamW([*model.parameters(), classifier])
+    module.save_training_checkpoint(
+        tmp_path / "epoch-0004.pt",
+        epoch=4,
+        raw_model=model,
+        classifier=classifier,
+        optimizer=optimizer,
+        scheduler=None,
+        scaler=None,
+        mask_generator=torch.Generator(),
+        selection_holdout={"seed": 0, "fraction": 0.2},
+        training_protocol={"trainer_sha256": "1" * 64},
+        history=[],
+    )
+    assert len(retained) == 1
+    assert retained[0].descriptor == -1
+
+
+def test_review10_training_budget_guard_rejects_actual_payload_above_row_bound(
+    tmp_path: Path,
+) -> None:
+    module = _load_script()
+    root = tmp_path / "campaign"
+    stage = root / "exploratory-control-stage4"
+    stage.mkdir(parents=True)
+    budget = {
+        "schema": "unicom-fepf-publication-budget-v1",
+        "publications": [{
+            "name": "exploratory-control-stage4:history",
+            "path": "exploratory-control-stage4/history.json",
+            "persistent_bytes": 4,
+            "temporary_bytes": 4,
+            "persistent_inodes": 1,
+            "temporary_inodes": 1,
+        }],
+    }
+    payload = (json.dumps(budget, indent=2) + "\n").encode()
+    budget_path = root / "preflight/publication-budget.json"
+    budget_path.parent.mkdir()
+    budget_path.write_bytes(payload)
+    config_path = tmp_path / "config.json"
+    config_path.write_text(json.dumps({
+        "artifact_root": str(root),
+        "publication_budget": budget,
+        "publication_budget_path": "preflight/publication-budget.json",
+        "publication_budget_sha256": hashlib.sha256(payload).hexdigest(),
+    }, indent=2) + "\n")
+    with pytest.raises(OSError, match="bytes|budget"):
+        module.require_configured_publication_capacity(
+            config_path,
+            budget_path,
+            hashlib.sha256(payload).hexdigest(),
+            "exploratory-control-stage4:history",
+            stage / "history.json",
+            root,
+            payload=b"12345",
+            external=False,
+        )
+
+
+def test_review6_initialization_receipt_rejects_same_byte_temp_racer(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = _load_script()
+    output = tmp_path / "initialization-receipt.json"
+    receipt = {"schema": "initialization-receipt-v2", "fixture": True}
+    publication = importlib.import_module("sfora.atomic_publication")
+    original_link = publication._link_fd_noreplace
+
+    def substitute(descriptor: int, directory: int, name: str) -> None:
+        output.write_bytes(b"racer")
+        original_link(descriptor, directory, name)
+
+    monkeypatch.setattr(publication, "_link_fd_noreplace", substitute)
+    with pytest.raises(FileExistsError):
+        module.write_initialization_receipt_v2_atomic(receipt, output)
+    assert output.read_bytes() == b"racer"
 
 
 def test_registered_source_commit_comes_from_config_only_parent(tmp_path: Path) -> None:
@@ -524,10 +1204,16 @@ def test_fepf_main_path_publishes_v2_evidence(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     module = _load_script()
-    output = tmp_path / "fepf"
+    campaign_root = tmp_path / "campaign"
+    output = campaign_root / "exploratory-candidate-stage4"
     config = tmp_path / "config.json"
-    config.write_text("{}\n", encoding="utf-8")
     receipt_path = output / "run-receipt.json"
+    authority_args = _campaign_authority_fixture(
+        config_path=config,
+        root=campaign_root,
+        stage="exploratory-candidate-stage4",
+        destinations=_fixture_stage_publications(output, epochs=(4,), fresh=True),
+    )
     initialization_object = {"schema": "initialization-receipt-v2", "fixture": True}
     initialization_sha256 = module.canonical_initialization_receipt_v2_sha256(
         initialization_object
@@ -546,7 +1232,12 @@ def test_fepf_main_path_publishes_v2_evidence(
             _fepf_checkpoint_payload(protocol, 4),
             args.output_dir / "epoch-0004.pt",
         )
-        _write_fepf_evaluations(module, args.output_dir, (4,))
+        _write_fepf_evaluations(
+            module,
+            args.output_dir,
+            (4,),
+            dataset_root=tmp_path / "fixture-dataset-fresh",
+        )
         args._fepf_run_evidence = {
             "initialization_receipt": initialization_object,
             "initialization_receipt_path": initialization,
@@ -559,6 +1250,7 @@ def test_fepf_main_path_publishes_v2_evidence(
 
     monkeypatch.setattr(module, "run", fake_run)
     monkeypatch.setattr(module, "registered_source_commit", lambda _config, _checkout: "a" * 40)
+    _use_cpu_fixture_budget_validation(module, monkeypatch)
     result = module.main(
         _required_cli(tmp_path)
         + [
@@ -567,6 +1259,7 @@ def test_fepf_main_path_publishes_v2_evidence(
             "--stop-after-epoch", "4", "--seed", "7", "--holdout-seed", "20260828",
             "--run-config", str(config), "--run-receipt", str(receipt_path),
         ]
+        + authority_args
     )
     assert result == 0
     persisted = module.strict_json_object(receipt_path.read_bytes())
@@ -578,18 +1271,37 @@ def test_fepf_continuation_main_path_publishes_authenticated_chain(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     module = _load_script()
+    campaign_root = tmp_path / "campaign"
     _child, fixture_child, _initialization_sha256, epoch4 = (
-        _fepf_run_receipt_fixture(module, tmp_path)
+        _fepf_run_receipt_fixture(
+            module,
+            tmp_path,
+            dataset_root=tmp_path / "fixture-dataset-authorities",
+        )
     )
-    parent = fixture_child.parent / "parent"
+    parent = campaign_root / "exploratory-candidate-stage4"
+    shutil.copytree(fixture_child.parent / "parent", parent)
     parent_run = parent / "run-receipt.json"
     initialization = parent / "initialization-receipt.json"
+    epoch4 = parent / "epoch-0004.pt"
     parent_receipt = module.strict_json_object(parent_run.read_bytes())
     protocol = parent_receipt["training_protocol"]
-    output = tmp_path / "published"
+    output = campaign_root / "exploratory-candidate-stage16"
     receipt_path = output / "run-receipt.json"
     config = tmp_path / "config.json"
-    config.write_text("{}\n", encoding="utf-8")
+    authority_args = _campaign_authority_fixture(
+        config_path=config,
+        root=campaign_root,
+        stage="exploratory-candidate-stage16",
+        destinations=_fixture_stage_publications(
+            output, epochs=(8, 12, 16), fresh=False
+        ),
+        additional_stages={
+            "exploratory-candidate-stage4": _fixture_stage_publications(
+                parent, epochs=(4,), fresh=True
+            )
+        },
+    )
 
     def fake_run(args):
         args.output_dir.mkdir()
@@ -598,7 +1310,12 @@ def test_fepf_continuation_main_path_publishes_authenticated_chain(
                 _fepf_checkpoint_payload(protocol, epoch),
                 args.output_dir / f"epoch-{epoch:04d}.pt",
             )
-        _write_fepf_evaluations(module, args.output_dir, (8, 12, 16))
+        _write_fepf_evaluations(
+            module,
+            args.output_dir,
+            (8, 12, 16),
+            dataset_root=tmp_path / "fixture-dataset-continuation",
+        )
         args._fepf_run_evidence = {
             "initialization_receipt_path": initialization,
             "raw_backbone_pre_initialization_sha256": "a" * 64,
@@ -610,6 +1327,7 @@ def test_fepf_continuation_main_path_publishes_authenticated_chain(
 
     monkeypatch.setattr(module, "run", fake_run)
     monkeypatch.setattr(module, "registered_source_commit", lambda _config, _checkout: "a" * 40)
+    _use_cpu_fixture_budget_validation(module, monkeypatch)
     result = module.main(
         _required_cli(tmp_path)
         + [
@@ -621,6 +1339,7 @@ def test_fepf_continuation_main_path_publishes_authenticated_chain(
             "--parent-initialization-receipt", str(initialization),
             "--parent-run-receipt", str(parent_run),
         ]
+        + authority_args
     )
     assert result == 0
     persisted = module.strict_json_object(receipt_path.read_bytes())
@@ -1305,6 +2024,87 @@ def _required_cli(tmp_path: Path) -> list[str]:
         "--output-dir",
         str(tmp_path / "run"),
     ]
+
+
+def test_review11_public_main_validates_campaign_authorities_before_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = _load_script()
+    reached: list[str] = []
+    monkeypatch.setattr(module, "run", lambda _args: reached.append("run") or [])
+    monkeypatch.setattr(module, "registered_source_commit", lambda *_args: "a" * 40)
+    monkeypatch.setattr(module, "write_history_atomic_noreplace", lambda *_a, **_k: None)
+    config_path = tmp_path / "config.json"
+    config_path.write_text("{}\n")
+    arguments = _required_cli(tmp_path) + [
+        "--classifier-init", "fepf_mean",
+        "--epochs", "16",
+        "--evaluation-features", "512",
+        "--stop-after-epoch", "4",
+        "--run-config", str(config_path),
+        "--run-receipt", str(tmp_path / "run/run-receipt.json"),
+        "--publication-stage", "exploratory-candidate-stage4",
+        "--campaign-root", str(tmp_path / "campaign"),
+    ]
+    assert module.main(arguments) == 2
+    assert reached == []
+
+
+def test_review11_direct_library_run_preserves_non_campaign_fixture_boundary(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = _load_script()
+    args = module.parse_args(_required_cli(tmp_path) + [
+        "--classifier-init", "fepf_mean",
+        "--epochs", "16",
+        "--evaluation-features", "512",
+        "--stop-after-epoch", "4",
+    ])
+    monkeypatch.setattr(module, "_git_revision", lambda _path: module.UNICOM_REVISION)
+    monkeypatch.setattr(
+        module, "_sha256_file",
+        lambda path: (
+            module.UNICOM_L14_336_SHA256
+            if path.name == "FP16-ViT-L-14-336px.pt"
+            else module.INSHOP_PARTITION_SHA256
+        ),
+    )
+    monkeypatch.setattr(module.torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(
+        module, "_seed_process",
+        lambda _seed: (_ for _ in ()).throw(RuntimeError("legacy boundary reached")),
+    )
+    with pytest.raises(RuntimeError, match="legacy boundary reached"):
+        module.run(args)
+
+
+def test_review11_configured_budget_rejects_deleted_path_downgrade(
+    tmp_path: Path,
+) -> None:
+    module = _load_script()
+    budget_path = tmp_path / "publication-budget.json"
+    budget = {
+        "schema": "unicom-fepf-publication-budget-v1",
+        "publications": [{
+            "name": "stage:result", "path": "stage/result.json",
+            "persistent_bytes": 1, "temporary_bytes": 1,
+            "persistent_inodes": 1, "temporary_inodes": 1,
+        }],
+    }
+    payload = (json.dumps(budget, indent=2, allow_nan=False) + "\n").encode()
+    budget_path.write_bytes(payload)
+    digest = hashlib.sha256(payload).hexdigest()
+    config_path = tmp_path / "config.json"
+    config_path.write_text(json.dumps({
+        "publication_budget": {
+            "path": str(budget_path), "sha256": digest, "bytes": len(payload)
+        }
+    }, indent=2, allow_nan=False) + "\n")
+
+    with pytest.raises(ValueError, match="publication budget|authority"):
+        module.load_configured_publication_budget(
+            config_path, budget_path, digest, external=False
+        )
 
 
 def test_fepf_cli_freezes_recipe_and_stop_boundary(tmp_path: Path) -> None:
@@ -2556,7 +3356,12 @@ def test_stop_after_epoch_preserves_checkpoint_protocol_and_real_restore(
     initialization.write_text(json.dumps(initialization_object) + "\n", encoding="utf-8")
     parent_history = parent / "history.json"
     parent_history.write_text(json.dumps(history) + "\n", encoding="utf-8")
-    parent_evaluations = _write_fepf_evaluations(module, parent, (4,))
+    parent_evaluations = _write_fepf_evaluations(
+        module,
+        parent,
+        (4,),
+        dataset_root=tmp_path / "fixture-dataset-parent",
+    )
     parent_receipt = module.training_run_receipt_v2(
         output_dir=parent,
         mode="fepf_mean",
@@ -2686,16 +3491,40 @@ def test_stop_after_epoch_preserves_checkpoint_protocol_and_real_restore(
     assert continuation_receipt["stop_after_epoch"] == 16
     assert parent_receipt["training_protocol"] == continuation_receipt["training_protocol"]
 
-    published = tmp_path / "published-continuation"
+    campaign_root = tmp_path / "campaign"
+    campaign_parent = campaign_root / "exploratory-candidate-stage4"
+    shutil.copytree(parent, campaign_parent)
+    parent = campaign_parent
+    initialization = parent / "initialization-receipt.json"
+    parent_run = parent / "run-receipt.json"
+    published = campaign_root / "exploratory-candidate-stage16"
     config = tmp_path / "config.json"
-    config.write_text("{}\n", encoding="utf-8")
+    published_receipt = published / "run-receipt.json"
+    authority_args = _campaign_authority_fixture(
+        config_path=config,
+        root=campaign_root,
+        stage="exploratory-candidate-stage16",
+        destinations=_fixture_stage_publications(
+            published, epochs=(8, 12, 16), fresh=False
+        ),
+        additional_stages={
+            "exploratory-candidate-stage4": _fixture_stage_publications(
+                parent, epochs=(4,), fresh=True
+            )
+        },
+    )
 
     def fake_run(args):
         args.output_dir.mkdir()
         for completed in (8, 12, 16):
             source = continuation / f"epoch-{completed:04d}.pt"
             (args.output_dir / source.name).write_bytes(source.read_bytes())
-        _write_fepf_evaluations(module, args.output_dir, (8, 12, 16))
+        _write_fepf_evaluations(
+            module,
+            args.output_dir,
+            (8, 12, 16),
+            dataset_root=tmp_path / "fixture-dataset-restored",
+        )
         args._fepf_run_evidence = {
             "initialization_receipt_path": initialization,
             "raw_backbone_pre_initialization_sha256": "a" * 64,
@@ -2707,7 +3536,7 @@ def test_stop_after_epoch_preserves_checkpoint_protocol_and_real_restore(
 
     monkeypatch.setattr(module, "run", fake_run)
     monkeypatch.setattr(module, "registered_source_commit", lambda _config, _checkout: "a" * 40)
-    published_receipt = published / "run-receipt.json"
+    _use_cpu_fixture_budget_validation(module, monkeypatch)
     assert module.main(
         _required_cli(tmp_path)
         + [
@@ -2720,6 +3549,7 @@ def test_stop_after_epoch_preserves_checkpoint_protocol_and_real_restore(
             "--parent-initialization-receipt", str(initialization),
             "--parent-run-receipt", str(parent_run),
         ]
+        + authority_args
     ) == 0
     module.validate_training_run_receipt_v2(
         module.strict_json_object(published_receipt.read_bytes()),
@@ -2836,6 +3666,10 @@ def test_cross_arm_inference_rejects_equally_malformed_dtype_size() -> None:
 
 
 def _fepf_protocol(module, initialization_sha256: str) -> dict[str, object]:
+    environment = _review3_environment()
+    environment_sha256 = hashlib.sha256(
+        (json.dumps(environment, indent=2, allow_nan=False) + "\n").encode()
+    ).hexdigest()
     return {
         "protocol": "unicom-inshop-official-single-device-v1",
         "trainer_sha256": hashlib.sha256(SCRIPT.read_bytes()).hexdigest(),
@@ -2867,6 +3701,8 @@ def _fepf_protocol(module, initialization_sha256: str) -> dict[str, object]:
         "ema_decay": 0.999,
         "ema_update": "optimizer-step-post-hook-trainable-parameters-only",
         "initialization_receipt_sha256": initialization_sha256,
+        "environment": environment,
+        "environment_sha256": environment_sha256,
     }
 
 
@@ -2890,8 +3726,15 @@ def _fepf_checkpoint_payload(
     }
 
 
-def _write_fepf_evaluations(module, root: Path, epochs: tuple[int, ...]) -> dict[int, Path]:
-    dataset_root = root / "dataset"
+def _write_fepf_evaluations(
+    module,
+    root: Path,
+    epochs: tuple[int, ...],
+    *,
+    dataset_root: Path | None = None,
+) -> dict[int, Path]:
+    if dataset_root is None:
+        dataset_root = root / "dataset"
     image_root = dataset_root / "Img"
     image_root.mkdir(parents=True)
     query_path = image_root / "query.jpg"
@@ -2949,7 +3792,9 @@ def _fepf_evaluation_descriptor(module) -> torch.Tensor:
     )
 
 
-def _fepf_run_receipt_fixture(module, tmp_path: Path):
+def _fepf_run_receipt_fixture(
+    module, tmp_path: Path, *, dataset_root: Path | None = None
+):
     parent = tmp_path / "parent"
     continuation = tmp_path / "continuation"
     parent.mkdir()
@@ -2969,7 +3814,12 @@ def _fepf_run_receipt_fixture(module, tmp_path: Path):
     protocol = _fepf_protocol(module, initialization_sha256)
     epoch4 = parent / "epoch-0004.pt"
     torch.save(_fepf_checkpoint_payload(protocol, 4), epoch4)
-    parent_evaluations = _write_fepf_evaluations(module, parent, (4,))
+    parent_evaluations = _write_fepf_evaluations(
+        module,
+        parent,
+        (4,),
+        dataset_root=None if dataset_root is None else dataset_root / "parent",
+    )
     parent_history.write_text(
         json.dumps(
             [
@@ -3012,7 +3862,12 @@ def _fepf_run_receipt_fixture(module, tmp_path: Path):
         checkpoints[epoch] = path
     continuation_evaluations = {
         4: parent_evaluations[4],
-        **_write_fepf_evaluations(module, continuation, (8, 12, 16)),
+        **_write_fepf_evaluations(
+            module,
+            continuation,
+            (8, 12, 16),
+            dataset_root=None if dataset_root is None else dataset_root / "continuation",
+        ),
     }
     continuation_history.write_text(
         json.dumps(
@@ -3599,4 +4454,64 @@ def test_main_fails_before_training_when_inputs_are_missing(tmp_path: Path, caps
 
     assert exit_code == 2
     assert "training failed:" in capsys.readouterr().err
+    assert not (tmp_path / "output").exists()
+def test_review12_trainer_reestablishes_complete_deterministic_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = _load_script()
+    enabled: list[bool] = []
+    monkeypatch.setenv("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+    monkeypatch.setattr(
+        module.subprocess,
+        "run",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            stdout="H100, GPU-registered, 550.54\n"
+        ),
+    )
+    fake = SimpleNamespace(
+        __version__="2.6.0",
+        version=SimpleNamespace(cuda="12.4", git_version="registered"),
+        use_deterministic_algorithms=lambda value: enabled.append(value),
+        backends=SimpleNamespace(
+            cuda=SimpleNamespace(matmul=SimpleNamespace(allow_tf32=True)),
+            cudnn=SimpleNamespace(
+                allow_tf32=True, benchmark=True, deterministic=False,
+                version=lambda: 90100,
+            ),
+        ),
+        cuda=SimpleNamespace(
+            get_device_properties=lambda _device: SimpleNamespace(uuid="GPU-registered")
+        ),
+    )
+    environment = module.registered_runtime_environment(
+        SimpleNamespace(type="cuda"), torch_module=fake
+    )
+    assert environment["deterministic_execution"] == _review3_environment()[
+        "deterministic_execution"
+    ]
+    assert enabled == [True]
+
+
+def test_review13_public_trainer_rejects_conflicting_cublas_before_work(
+    tmp_path: Path,
+) -> None:
+    environment = dict(os.environ)
+    environment["CUBLAS_WORKSPACE_CONFIG"] = ":16:8"
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT),
+            "--unicom-checkout", str(tmp_path / "unicom"),
+            "--checkpoint", str(tmp_path / "checkpoint.pt"),
+            "--dataset-root", str(tmp_path / "dataset"),
+            "--output-dir", str(tmp_path / "output"),
+            "--classifier-init", "fepf_mean",
+            "--stop-after-epoch", "4",
+        ],
+        env=environment,
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode == 2
+    assert "CUBLAS deterministic workspace authority differs" in completed.stderr
     assert not (tmp_path / "output").exists()

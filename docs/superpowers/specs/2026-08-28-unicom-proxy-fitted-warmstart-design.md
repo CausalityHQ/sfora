@@ -199,14 +199,21 @@ the following literal protocol before execution:
   Recall@K and per-query AP@R/mAP@R definitions. Classifier and EMA tensors are
   never used for retrieval.
 
-Every evaluation emits an ordered per-query record in exact query-partition
-order containing query path/label, relevant-gallery count, AP@R, and the exact
-ranked prefix through `max(30, relevant_gallery_count)` with gallery indices,
+Every evaluation emits a bounded receipt plus a separately published canonical
+ranked-prefix JSON artifact in exact query-partition order containing query
+path/label, relevant-gallery count, AP@R, and the exact ranked prefix through
+`min(max(30, relevant_gallery_count), gallery_rows)` with gallery indices,
 paths, labels, scores, and correctness flags. It also binds hashes of the
 normalized query plus the complete ordered gallery scores/indices. The strict
-reload recomputes per-query Recall@1/10/20/30 and AP@R from the stored prefix,
+reload authenticates the ranked artifact from the receipt, recomputes per-query
+Recall@1/10/20/30 and AP@R from the stored prefix,
 then recomputes aggregate Recall@K and mAP@R. Gain/loss and sensitivity
 predicates consume these bound records rather than aggregate-only history rows.
+The ranked-prefix publication budget is derived from the complete worst-case
+canonical per-query envelope—including query path/label, relevant count, AP,
+both hashes, JSON framing/indentation, and every bounded ranked entry—not only
+the repeated gallery rows. Evaluators strict-load this separate path/hash/byte
+authority; they do not expect the large rows inline in the bounded receipt.
 
 The runtime smoke may change only compile mode, fused-AdamW selection, and
 whether the unused EMA shadow/hook exists. Every other literal above is fixed.
@@ -297,6 +304,23 @@ explicitly permits this resume form, binds the parent checkpoint and original
 initialization receipt, restores all mutable state/history, and bypasses every
 initializer/cache code path. It never reuses or overwrites the first-stage
 output or receipt.
+
+Here “absent” is the transfer/first-launch contract for a stage destination,
+not a condition that may be reapplied while validating an authenticated
+campaign resume. The campaign root is created by whichever registered
+controller/canary entrypoint runs first; subsequent entrypoints validate and
+reuse its immutable budget and terminal evidence.
+Canary acceptance independently recomputes deterministic fitted science once;
+wall-clock fit/initialization durations and peak-memory values are validated as
+finite nonnegative observations but are excluded from rerun equality. The
+terminal is published only after that validation. Controller restarts memoize
+the terminal/manifest digest during one invocation, and every post-canary child
+receives the canonical cuBLAS workspace before its first Torch import.
+
+The four-argument campaign builder executes in a clean DGX checkout of the
+reviewed source parent, where the registered historical/checkpoint/partition
+preimages exist. Its canonical config is committed as the sole child delta,
+then consumed from a separate detached execution checkout.
 
 After both epoch-4 checkpoints and evaluations exist, pause the controller.
 Close FEPF if candidate-minus-control mAP@R is below `+0.003`. If it passes,

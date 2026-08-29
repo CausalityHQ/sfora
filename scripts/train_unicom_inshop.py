@@ -4,10 +4,10 @@
 from __future__ import annotations
 
 import argparse
-import ctypes
 import errno
 import hashlib
 import importlib
+import io
 import json
 import math
 import os
@@ -19,10 +19,25 @@ import time
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from pathlib import Path
 
+if __name__ == "__main__":
+    _bootstrap_workspace = os.environ.get("CUBLAS_WORKSPACE_CONFIG")
+    if _bootstrap_workspace not in (None, ":4096:8"):
+        print(
+            "training failed: CUBLAS deterministic workspace authority differs",
+            file=sys.stderr,
+        )
+        raise SystemExit(2)
+    os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+
 import torch
 from PIL import Image
 from torch.utils.data import Dataset, Sampler
 
+from sfora.atomic_publication import (
+    BudgetedPublisher,
+    publish_bytes_noreplace,
+    publish_writer_noreplace,
+)
 from sfora.unicom_fepf import (
     FepfExpectedProvenance,
     InitializationRngAudit,
@@ -105,6 +120,12 @@ FEPF_TRAINING_PROTOCOL_KEYS = (
     "evaluation_features", "holdout_seed", "holdout_fraction", "eval_every",
     "checkpoint_every", "max_steps", "bf16", "compile", "fused", "classifier_init",
     "ema_decay", "ema_update", "initialization_receipt_sha256",
+    "environment", "environment_sha256",
+)
+REGISTERED_ENVIRONMENT_KEYS = (
+    "python_vv", "torch", "torchvision", "timm", "numpy", "cuda", "cudnn",
+    "compile", "device_uuid", "gpu_inventory", "pyproject_sha256",
+    "uv_lock_sha256", "deterministic_execution",
 )
 TRAINING_CHECKPOINT_KEYS = (
     "epoch",
@@ -773,6 +794,11 @@ def validate_fepf_training_protocol(
         or type(protocol["fused"]) is not bool
     ):
         raise ValueError("FEPF checkpoint protocol differs")
+    validate_registered_environment_payload(protocol["environment"])
+    if protocol["environment_sha256"] != hashlib.sha256(
+        (json.dumps(protocol["environment"], indent=2, allow_nan=False) + "\n").encode()
+    ).hexdigest():
+        raise ValueError("FEPF checkpoint environment differs")
 
 
 def _load_checkpoint_training_protocol(
@@ -1116,7 +1142,8 @@ def validate_fepf_result(result: object, evidence_root: Path) -> None:
 
 
 def write_training_run_receipt_atomic(
-    receipt: dict[str, object], output: Path, *, evidence_root: Path | None = None
+    receipt: dict[str, object], output: Path, *, evidence_root: Path | None = None,
+    publication_guard: Callable[[bytes], None] = lambda _payload: None,
 ) -> None:
     """Publish one validated run receipt without replacing an existing path."""
 
@@ -1134,57 +1161,18 @@ def write_training_run_receipt_atomic(
     if output.exists() or output.is_symlink():
         raise FileExistsError(output)
     payload = (json.dumps(receipt, indent=2, allow_nan=False) + "\n").encode()
-    directory_descriptor = os.open(output.parent, os.O_RDONLY | os.O_DIRECTORY)
-    descriptor: int | None = None
-    published = False
-    completed = False
-    owned: tuple[int, int] | None = None
-    try:
-        descriptor = os.open(output.parent, os.O_RDWR | os.O_TMPFILE, 0o600)
-        info = os.fstat(descriptor)
-        owned = (info.st_dev, info.st_ino)
-        _write_descriptor(descriptor, payload)
-        os.fsync(descriptor)
-        persisted = _read_descriptor(descriptor)
+    publication_guard(payload)
+    def validate(persisted: bytes) -> None:
         if persisted != payload:
             raise RuntimeError("persisted training run receipt bytes differ")
         persisted_object = strict_json_object(persisted)
         if is_fepf:
-            validate_training_run_receipt_v2(
-                persisted_object, evidence_root=evidence_root
-            )
+            validate_training_run_receipt_v2(persisted_object, evidence_root=evidence_root)
         else:
             validate_training_run_receipt(persisted_object)
-        _link_receipt_fd_noreplace(descriptor, output, directory_descriptor)
-        published = True
-        os.fsync(directory_descriptor)
-        output_info = output.lstat()
-        if (output_info.st_dev, output_info.st_ino) != owned:
-            raise RuntimeError("published training run receipt inode differs")
-        published_payload = output.read_bytes()
-        if published_payload != payload:
-            raise RuntimeError("published training run receipt bytes differ")
-        published_object = strict_json_object(published_payload)
-        if is_fepf:
-            validate_training_run_receipt_v2(
-                published_object, evidence_root=evidence_root
-            )
-        else:
-            validate_training_run_receipt(published_object)
-        completed = True
-    finally:
-        if descriptor is not None:
-            os.close(descriptor)
-        if published and not completed and owned is not None:
-            try:
-                info = output.lstat()
-            except FileNotFoundError:
-                pass
-            else:
-                if (info.st_dev, info.st_ino) == owned:
-                    output.unlink()
-                    os.fsync(directory_descriptor)
-        os.close(directory_descriptor)
+
+    published = publish_bytes_noreplace(output, payload, validator=validate)
+    published.close()
 
 
 def _state_digest(domain: bytes, value: object) -> str:
@@ -1392,48 +1380,472 @@ def strict_json_object(payload: bytes) -> dict[str, object]:
     return value
 
 
-def _link_receipt_fd_noreplace(
-    descriptor: int, destination: Path, directory_descriptor: int
+def validate_registered_environment_payload(value: object) -> None:
+    if (
+        type(value) is not dict
+        or tuple(value) != REGISTERED_ENVIRONMENT_KEYS
+        or any(
+            type(value[key]) is not str or not value[key]
+            for key in (
+                "python_vv", "torch", "torchvision", "timm", "numpy", "cuda",
+                "cudnn", "device_uuid",
+            )
+        )
+        or not value["device_uuid"].startswith("GPU-")
+        or type(value["compile"]) is not dict
+        or tuple(value["compile"]) != ("available", "inductor")
+        or any(type(item) is not str or not item for item in value["compile"].values())
+        or type(value["gpu_inventory"]) is not list
+        or not value["gpu_inventory"]
+        or any(type(item) is not str or not item for item in value["gpu_inventory"])
+        or not _lower_sha256(value["pyproject_sha256"])
+        or not _lower_sha256(value["uv_lock_sha256"])
+        or value["deterministic_execution"]
+        != {
+            "deterministic_algorithms": True,
+            "cuda_matmul_tf32": False,
+            "cudnn_tf32": False,
+            "cudnn_benchmark": False,
+            "cudnn_deterministic": True,
+            "cublas_workspace_config": ":4096:8",
+        }
+    ):
+        raise ValueError("registered training environment differs")
+
+
+def load_registered_environment_authority(
+    path: Path, expected_sha256: str
+) -> dict[str, object]:
+    if path.is_symlink() or not path.is_file() or not _lower_sha256(expected_sha256):
+        raise ValueError("registered training environment authority differs")
+    payload = path.read_bytes()
+    value = strict_json_object(payload)
+    if (
+        payload != (json.dumps(value, indent=2, allow_nan=False) + "\n").encode()
+        or hashlib.sha256(payload).hexdigest() != expected_sha256
+    ):
+        raise ValueError("registered training environment authority differs")
+    validate_registered_environment_payload(value)
+    return value
+
+
+def _configured_file_authority(
+    config_path: Path, key: str, path: Path, expected_sha256: str
+) -> tuple[dict[str, object], bytes]:
+    if (
+        config_path.is_symlink()
+        or not config_path.is_file()
+        or path.is_symlink()
+        or not path.is_file()
+        or not _lower_sha256(expected_sha256)
+    ):
+        raise ValueError(f"configured {key} authority differs")
+    config_payload = config_path.read_bytes()
+    config = strict_json_object(config_payload)
+    payload = path.read_bytes()
+    authority = config.get(key)
+    expected = {
+        "path": str(path.resolve()),
+        "sha256": expected_sha256,
+        "bytes": len(payload),
+    }
+    if (
+        config_payload != (json.dumps(config, indent=2, allow_nan=False) + "\n").encode()
+        or authority != expected
+        or hashlib.sha256(payload).hexdigest() != expected_sha256
+    ):
+        raise ValueError(f"configured {key} authority differs")
+    return config, payload
+
+
+def load_configured_environment_authority(
+    config_path: Path, path: Path, expected_sha256: str
+) -> dict[str, object]:
+    """Load the sole environment named by the authenticated run configuration."""
+
+    config_payload = config_path.read_bytes()
+    config = strict_json_object(config_payload)
+    registered = config.get("cuda_canary_environment")
+    if type(registered) is dict and tuple(registered) == ("path",):
+        if registered["path"] != str(path.resolve()) or not _lower_sha256(
+            expected_sha256
+        ):
+            raise ValueError("configured environment authority differs")
+        payload = path.read_bytes()
+        if hashlib.sha256(payload).hexdigest() != expected_sha256:
+            raise ValueError("configured environment authority differs")
+    else:
+        _config, payload = _configured_file_authority(
+            config_path, "cuda_canary_environment", path, expected_sha256
+        )
+    value = strict_json_object(payload)
+    if payload != (json.dumps(value, indent=2, allow_nan=False) + "\n").encode():
+        raise ValueError("configured environment authority differs")
+    validate_registered_environment_payload(value)
+    return value
+
+
+def establish_registered_deterministic_execution(
+    registered: object, *, torch_module=torch
+) -> dict[str, object]:
+    expected = {
+        "deterministic_algorithms": True,
+        "cuda_matmul_tf32": False,
+        "cudnn_tf32": False,
+        "cudnn_benchmark": False,
+        "cudnn_deterministic": True,
+        "cublas_workspace_config": ":4096:8",
+    }
+    if registered != expected:
+        raise ValueError("registered training deterministic environment differs")
+    current = os.environ.get("CUBLAS_WORKSPACE_CONFIG")
+    if current not in (None, expected["cublas_workspace_config"]):
+        raise ValueError("registered training deterministic environment differs")
+    os.environ["CUBLAS_WORKSPACE_CONFIG"] = expected["cublas_workspace_config"]
+    torch_module.use_deterministic_algorithms(True)
+    torch_module.backends.cuda.matmul.allow_tf32 = False
+    torch_module.backends.cudnn.allow_tf32 = False
+    torch_module.backends.cudnn.benchmark = False
+    torch_module.backends.cudnn.deterministic = True
+    return expected
+
+
+def registered_runtime_environment(
+    device: torch.device, *, torch_module=torch
+) -> dict[str, object]:
+    import numpy as np
+    import timm
+    import torchvision
+
+    repository = Path(__file__).resolve().parents[1]
+    return {
+        "python_vv": subprocess.run(
+            [sys.executable, "-VV"], check=True, capture_output=True, text=True
+        ).stdout.strip(),
+        "torch": str(torch_module.__version__),
+        "torchvision": str(torchvision.__version__),
+        "timm": str(timm.__version__),
+        "numpy": str(np.__version__),
+        "cuda": str(torch_module.version.cuda),
+        "cudnn": str(torch_module.backends.cudnn.version()),
+        "compile": {
+            "available": str(hasattr(torch_module, "compile")),
+            "inductor": str(getattr(torch_module.version, "git_version", "unknown")),
+        },
+        "device_uuid": str(torch_module.cuda.get_device_properties(device).uuid),
+        "gpu_inventory": subprocess.run(
+            [
+                "nvidia-smi", "--query-gpu=name,uuid,driver_version",
+                "--format=csv,noheader",
+            ],
+            check=True, capture_output=True, text=True,
+        ).stdout.splitlines(),
+        "pyproject_sha256": _sha256_file(repository / "pyproject.toml"),
+        "uv_lock_sha256": _sha256_file(repository / "uv.lock"),
+        "deterministic_execution": establish_registered_deterministic_execution(
+            {
+                "deterministic_algorithms": True,
+                "cuda_matmul_tf32": False,
+                "cudnn_tf32": False,
+                "cudnn_benchmark": False,
+                "cudnn_deterministic": True,
+                "cublas_workspace_config": ":4096:8",
+            },
+            torch_module=torch_module,
+        ),
+    }
+
+
+def load_publication_budget_authority(path: Path) -> dict[str, object]:
+    if path.is_symlink() or not path.is_file():
+        raise ValueError("publication budget authority differs")
+    payload = path.read_bytes()
+    value = strict_json_object(payload)
+    if payload != (json.dumps(value, indent=2, allow_nan=False) + "\n").encode():
+        raise ValueError("publication budget authority differs")
+    if (
+        tuple(value) != ("schema", "publications")
+        or value["schema"] != "unicom-fepf-publication-budget-v1"
+        or type(value["publications"]) is not list
+        or not value["publications"]
+    ):
+        raise ValueError("publication budget authority differs")
+    names = []
+    for row in value["publications"]:
+        if (
+            type(row) is not dict
+            or tuple(row) != (
+                "name", "path", "persistent_bytes", "temporary_bytes",
+                "persistent_inodes", "temporary_inodes",
+            )
+            or type(row["name"]) is not str
+            or not row["name"]
+            or type(row["path"]) is not str
+            or not row["path"]
+            or Path(row["path"]).is_absolute()
+            or any(part in {"", ".", ".."} for part in Path(row["path"]).parts)
+            or any(type(row[key]) is not int or row[key] < 0 for key in tuple(row)[2:])
+        ):
+            raise ValueError("publication budget row differs")
+        names.append(row["name"])
+    if len(names) != len(set(names)):
+        raise ValueError("publication budget names differ")
+    return value
+
+
+def load_configured_publication_budget(
+    config_path: Path, path: Path, expected_sha256: str, *, external: bool = True
+) -> dict[str, object]:
+    """Reload the publication inventory rooted by the run configuration."""
+
+    if config_path.is_symlink() or not config_path.is_file():
+        raise ValueError("configured publication budget authority differs")
+    config_payload = config_path.read_bytes()
+    config = strict_json_object(config_payload)
+    if type(config.get("publication_budget_path")) is not str:
+        raise ValueError("configured publication budget authority differs")
+    if external:
+        builder_path = Path(__file__).with_name("build_unicom_fepf_run_config.py")
+        specification = importlib.util.spec_from_file_location(
+            "training_exact_budget_builder", builder_path
+        )
+        if specification is None or specification.loader is None:
+            raise ValueError("configured publication budget validator differs")
+        builder = importlib.util.module_from_spec(specification)
+        specification.loader.exec_module(builder)
+        builder.validate_external_exact_publication_budget(
+            config, config.get("publication_budget")
+        )
+    expected_path = (
+        Path(config["artifact_root"]) / config["publication_budget_path"]
+    ).resolve()
+    if (
+        path.resolve() != expected_path
+        or expected_sha256 != config.get("publication_budget_sha256")
+        or path.is_symlink()
+        or not path.is_file()
+    ):
+        raise ValueError("configured publication budget authority differs")
+    payload = path.read_bytes()
+    if (
+        hashlib.sha256(payload).hexdigest() != expected_sha256
+        or payload
+        != (json.dumps(config["publication_budget"], indent=2, allow_nan=False)
+            + "\n").encode()
+    ):
+        raise ValueError("configured publication budget authority differs")
+    value = strict_json_object(payload)
+    if payload != (json.dumps(value, indent=2, allow_nan=False) + "\n").encode():
+        raise ValueError("configured publication budget authority differs")
+    # Keep the schema validator single-sourced while avoiding a second file read.
+    temporary_value = value
+    if (
+        tuple(temporary_value) != ("schema", "publications")
+        or temporary_value["schema"] != "unicom-fepf-publication-budget-v1"
+        or type(temporary_value["publications"]) is not list
+        or not temporary_value["publications"]
+    ):
+        raise ValueError("publication budget authority differs")
+    names = []
+    for row in temporary_value["publications"]:
+        if (
+            type(row) is not dict
+            or tuple(row)
+            != (
+                "name", "path", "persistent_bytes", "temporary_bytes",
+                "persistent_inodes", "temporary_inodes",
+            )
+            or type(row["name"]) is not str
+            or not row["name"]
+            or type(row["path"]) is not str
+            or not row["path"]
+            or Path(row["path"]).is_absolute()
+            or any(part in {"", ".", ".."} for part in Path(row["path"]).parts)
+            or any(type(row[key]) is not int or row[key] < 0 for key in tuple(row)[2:])
+        ):
+            raise ValueError("publication budget row differs")
+        names.append(row["name"])
+    if len(names) != len(set(names)):
+        raise ValueError("publication budget names differ")
+    return temporary_value
+
+
+def require_named_publication_capacity(
+    budget: Mapping[str, object], name: str, root: Path,
+    *, statvfs: Callable[[Path], object] = os.statvfs,
 ) -> None:
-    linkat = getattr(ctypes.CDLL(None, use_errno=True), "linkat", None)
-    if linkat is None:
-        raise RuntimeError("linkat is required for receipt publication")
-    linkat.argtypes = (
-        ctypes.c_int,
-        ctypes.c_char_p,
-        ctypes.c_int,
-        ctypes.c_char_p,
-        ctypes.c_int,
+    rows = [row for row in budget["publications"] if row["name"] == name]
+    if len(rows) != 1 or root.is_symlink() or not root.is_dir():
+        raise ValueError("named publication capacity differs")
+    row = rows[0]
+    statistics = statvfs(root)
+    required_bytes = row["persistent_bytes"] + row["temporary_bytes"]
+    required_inodes = row["persistent_inodes"] + row["temporary_inodes"]
+    if (
+        statistics.f_bavail * statistics.f_frsize < required_bytes
+        or statistics.f_favail < required_inodes
+    ):
+        raise OSError(errno.ENOSPC, "named publication capacity differs", root)
+
+
+def require_configured_publication_capacity(
+    config_path: Path,
+    budget_path: Path,
+    budget_sha256: str,
+    name: str,
+    destination: Path,
+    root: Path,
+    *,
+    payload: bytes | None = None,
+    external: bool = True,
+    statvfs: Callable[[Path], object] = os.statvfs,
+) -> None:
+    budget = load_configured_publication_budget(
+        config_path, budget_path, budget_sha256, external=external
     )
-    linkat.restype = ctypes.c_int
-    if linkat(descriptor, b"", directory_descriptor, os.fsencode(destination.name), 0x1000):
-        error = ctypes.get_errno()
-        if error == errno.EEXIST:
-            raise FileExistsError(error, os.strerror(error), destination)
-        raise OSError(error, os.strerror(error), destination)
+    rows = [row for row in budget["publications"] if row["name"] == name]
+    try:
+        relative = destination.resolve().relative_to(root.resolve()).as_posix()
+    except ValueError as error:
+        raise ValueError("publication destination path differs") from error
+    if len(rows) != 1 or rows[0]["path"] != relative:
+        raise ValueError("publication destination path differs")
+    if payload is not None and len(payload) > rows[0]["persistent_bytes"]:
+        raise OSError(errno.EFBIG, "publication payload bytes exceed budget", destination)
+    config = strict_json_object(config_path.read_bytes())
+    BudgetedPublisher(
+        campaign_root=root,
+        budget_path=budget_path,
+        budget_sha256=budget_sha256,
+        exact_budget=config["publication_budget"],
+        statvfs=statvfs,
+        physical_admission=external,
+    ).validate_payload(
+        name=name,
+        destination=destination,
+        payload=b"" if payload is None else payload,
+    )
 
 
-def _read_descriptor(descriptor: int) -> bytes:
-    size = os.fstat(descriptor).st_size
-    payload = bytearray()
-    offset = 0
-    while offset < size:
-        chunk = os.pread(descriptor, min(1 << 20, size - offset), offset)
-        if not chunk:
-            raise RuntimeError("receipt descriptor is truncated")
-        payload.extend(chunk)
-        offset += len(chunk)
-    return bytes(payload)
+def registered_training_publication_destinations(
+    output_dir: Path, *, epochs: tuple[int, ...] = (4, 8, 12, 16)
+) -> dict[str, Path]:
+    destinations = {
+        "initialization-receipt": output_dir / "initialization-receipt.json",
+        "history": output_dir / "history.json",
+        "run-receipt": output_dir / "run-receipt.json",
+    }
+    for epoch in epochs:
+        stem = f"evaluation-epoch-{epoch:04d}"
+        destinations[f"checkpoint-epoch-{epoch:04d}"] = (
+            output_dir / f"epoch-{epoch:04d}.pt"
+        )
+        destinations[f"{stem}-query"] = output_dir / f"{stem}-query.npy"
+        destinations[f"{stem}-gallery"] = output_dir / f"{stem}-gallery.npy"
+        destinations[f"{stem}-ranked-prefix"] = (
+            output_dir / f"{stem}-ranked-prefix.json"
+        )
+        destinations[stem] = output_dir / f"{stem}.json"
+    return destinations
 
 
-def _write_descriptor(descriptor: int, payload: bytes) -> None:
-    view = memoryview(payload)
-    offset = 0
-    while offset < len(view):
-        written = os.write(descriptor, view[offset:])
-        if written <= 0:
-            raise RuntimeError("initialization receipt write made no progress")
-        offset += written
+def _require_cli_publication_capacity(
+    args: argparse.Namespace,
+    name: str,
+    *,
+    capacity_validator: Callable[..., None] = require_configured_publication_capacity,
+) -> None:
+    if args.publication_budget is None:
+        return
+    if args.run_config is None or args.publication_budget_sha256 is None:
+        raise ValueError("configured publication budget authority is required")
+    stage = getattr(args, "publication_stage", None)
+    root = getattr(args, "campaign_root", None) or args.output_dir
+    qualified_name = f"{stage}:{name}" if stage else name
+    destinations = registered_training_publication_destinations(args.output_dir)
+    destination = destinations.get(name)
+    if not isinstance(destination, Path):
+        raise ValueError("publication destination path differs")
+    capacity_validator(
+        args.run_config,
+        args.publication_budget,
+        args.publication_budget_sha256,
+        qualified_name,
+        destination,
+        root,
+    )
+
+
+def require_cli_publication_capacity(
+    args: argparse.Namespace,
+    name: str,
+    *,
+    capacity_validator: Callable[..., None] = require_configured_publication_capacity,
+) -> None:
+    _require_cli_publication_capacity(
+        args, name, capacity_validator=capacity_validator
+    )
+
+
+CHECKPOINT_PUBLICATION_KEYS = (
+    "epoch", "model", "classifier", "ema", "optimizer", "scheduler", "scaler",
+    "mask_generator", "torch_rng_state", "cuda_rng_states", "selection_holdout",
+    "training_protocol", "history",
+)
+
+
+def validate_checkpoint_publication(
+    value: object, *, expected: Mapping[str, object]
+) -> None:
+    if type(value) is not dict or tuple(value) != CHECKPOINT_PUBLICATION_KEYS:
+        raise ValueError("checkpoint publication schema differs")
+    if tuple(expected) != CHECKPOINT_PUBLICATION_KEYS:
+        raise ValueError("checkpoint expected semantic schema differs")
+    def exact(observed: object, reference: object) -> bool:
+        if isinstance(reference, torch.Tensor):
+            return (
+                isinstance(observed, torch.Tensor)
+                and observed.dtype == reference.dtype
+                and tuple(observed.shape) == tuple(reference.shape)
+                and torch.equal(observed, reference)
+            )
+        if isinstance(reference, Mapping):
+            return (
+                isinstance(observed, Mapping)
+                and tuple(observed) == tuple(reference)
+                and all(exact(observed[key], reference[key]) for key in reference)
+            )
+        if type(reference) in {list, tuple}:
+            return (
+                type(observed) is type(reference)
+                and len(observed) == len(reference)
+                and all(
+                    exact(left, right)
+                    for left, right in zip(observed, reference, strict=True)
+                )
+            )
+        return type(observed) is type(reference) and observed == reference
+
+    if not all(exact(value[key], expected[key]) for key in CHECKPOINT_PUBLICATION_KEYS):
+        raise ValueError("checkpoint publication semantic differs")
+
+
+def write_history_atomic_noreplace(
+    history: object, output: Path,
+    *, publication_guard: Callable[[bytes], None] = lambda _payload: None,
+) -> None:
+    """Publish canonical history bytes without replacing any existing entry."""
+
+    if output.exists() or output.is_symlink():
+        raise FileExistsError(output)
+    payload = (json.dumps(history, indent=2, allow_nan=False) + "\n").encode()
+    publication_guard(payload)
+    def validate(persisted: bytes) -> None:
+        if persisted != payload:
+            raise RuntimeError("persisted training history bytes differ")
+
+    published = publish_bytes_noreplace(output, payload, validator=validate)
+    published.close()
 
 
 def write_initialization_receipt_atomic(
@@ -1445,53 +1857,20 @@ def write_initialization_receipt_atomic(
     if output.exists() or output.is_symlink():
         raise FileExistsError(output)
     payload = (json.dumps(receipt, indent=2, allow_nan=False) + "\n").encode()
-    directory_descriptor = os.open(output.parent, os.O_RDONLY | os.O_DIRECTORY)
-    descriptor: int | None = None
-    published = False
-    completed = False
-    owned: tuple[int, int] | None = None
-    try:
-        descriptor = os.open(output.parent, os.O_RDWR | os.O_TMPFILE, 0o600)
-        info = os.fstat(descriptor)
-        owned = (info.st_dev, info.st_ino)
-        _write_descriptor(descriptor, payload)
-        os.fsync(descriptor)
-        persisted = _read_descriptor(descriptor)
+    def validate(persisted: bytes) -> None:
         if persisted != payload:
             raise RuntimeError("persisted initialization receipt bytes differ")
         validate_initialization_receipt(
             strict_json_object(persisted), expected_shape=expected_shape
         )
-        _link_receipt_fd_noreplace(descriptor, output, directory_descriptor)
-        published = True
-        os.fsync(directory_descriptor)
-        output_info = output.lstat()
-        if (output_info.st_dev, output_info.st_ino) != owned:
-            raise RuntimeError("published initialization receipt inode differs")
-        published_payload = output.read_bytes()
-        if published_payload != payload:
-            raise RuntimeError("published initialization receipt bytes differ")
-        validate_initialization_receipt(
-            strict_json_object(published_payload), expected_shape=expected_shape
-        )
-        completed = True
-    finally:
-        if descriptor is not None:
-            os.close(descriptor)
-        if published and not completed and owned is not None:
-            try:
-                info = output.lstat()
-            except FileNotFoundError:
-                pass
-            else:
-                if (info.st_dev, info.st_ino) == owned:
-                    output.unlink()
-                    os.fsync(directory_descriptor)
-        os.close(directory_descriptor)
+
+    published = publish_bytes_noreplace(output, payload, validator=validate)
+    published.close()
 
 
 def write_initialization_receipt_v2_atomic(
-    receipt: dict[str, object], output: Path
+    receipt: dict[str, object], output: Path,
+    *, publication_guard: Callable[[bytes], None] = lambda _payload: None,
 ) -> None:
     """Publish immutable Task 1 receipt bytes without re-encoding on resume."""
 
@@ -1502,29 +1881,13 @@ def write_initialization_receipt_v2_atomic(
     if output.exists() or output.is_symlink():
         raise FileExistsError(output)
     payload = (json.dumps(receipt, indent=2, allow_nan=False) + "\n").encode()
-    temporary = output.with_name(f".{output.name}.tmp")
-    if temporary.exists() or temporary.is_symlink():
-        raise FileExistsError(temporary)
-    try:
-        with temporary.open("xb") as handle:
-            handle.write(payload)
-            handle.flush()
-            os.fsync(handle.fileno())
-        if strict_json_object(temporary.read_bytes()) != receipt:
+    publication_guard(payload)
+    def validate(persisted: bytes) -> None:
+        if persisted != payload or strict_json_object(persisted) != receipt:
             raise RuntimeError("persisted FEPF initialization receipt differs")
-        os.link(temporary, output)
-        output_payload = output.read_bytes()
-        if output_payload != payload or strict_json_object(output_payload) != receipt:
-            raise RuntimeError("published FEPF initialization receipt differs")
-        temporary.unlink()
-        directory_descriptor = os.open(output.parent, os.O_RDONLY | os.O_DIRECTORY)
-        try:
-            os.fsync(directory_descriptor)
-        finally:
-            os.close(directory_descriptor)
-    finally:
-        if temporary.exists():
-            temporary.unlink()
+
+    published = publish_bytes_noreplace(output, payload, validator=validate)
+    published.close()
 
 
 def bind_initialization_receipt(
@@ -2347,6 +2710,9 @@ def evaluate_holdout(
     dataset_root: Path | None = None,
     evidence_root: Path | None = None,
     epoch: int | None = None,
+    publication_guard: Callable[[str, Path, bytes], None] = (
+        lambda _component, _destination, _payload: None
+    ),
 ) -> dict[str, float]:
     """Evaluate the identity-disjoint holdout with official deployment geometry."""
 
@@ -2386,6 +2752,7 @@ def evaluate_holdout(
             normalize_before=True,
             epoch=epoch,
             evidence_root=evidence_root,
+            publication_guard=publication_guard,
         )
         return dict(receipt["metrics"])
     result = retrieval_view(
@@ -2434,6 +2801,9 @@ def fit_model(
     training_protocol: dict[str, object],
     history: list[dict[str, object]] | None = None,
     step_ema: StepEMA | None = None,
+    publication_guard: Callable[[str, Path, bytes], None] = (
+        lambda _name, _destination, _payload: None
+    ),
 ) -> list[dict[str, object]]:
     """Fit and persist sparse raw-model checkpoints for later trajectory soups."""
 
@@ -2497,6 +2867,11 @@ def fit_model(
                     selection_holdout=selection_holdout,
                     training_protocol=training_protocol,
                     history=history,
+                    publication_guard=lambda payload, epoch=completed_epoch: publication_guard(
+                        f"checkpoint-epoch-{epoch:04d}",
+                        output_dir / f"epoch-{epoch:04d}.pt",
+                        payload,
+                    ),
                 )
     finally:
         if step_ema is not None:
@@ -2525,6 +2900,7 @@ def save_training_checkpoint(
     training_protocol: dict[str, object],
     history: list[dict[str, object]],
     step_ema: StepEMA | None = None,
+    publication_guard: Callable[[bytes], None] = lambda _payload: None,
 ) -> None:
     """Atomically persist all mutable state needed to resume an epoch boundary."""
 
@@ -2543,18 +2919,22 @@ def save_training_checkpoint(
         "training_protocol": training_protocol,
         "history": history,
     }
-    temporary = path.with_name(f"{path.name}.tmp")
-    if temporary.exists():
-        raise FileExistsError(f"checkpoint temporary already exists: {temporary}")
-    try:
-        with temporary.open("xb") as handle:
+    if path.exists() or path.is_symlink():
+        raise FileExistsError(f"checkpoint already exists: {path}")
+    def writer(descriptor: int) -> None:
+        with os.fdopen(os.dup(descriptor), "wb") as handle:
             torch.save(payload, handle)
             handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(temporary, path)
-    finally:
-        if temporary.exists():
-            temporary.unlink()
+
+    def validate_checkpoint(encoded: bytes) -> None:
+        if not encoded:
+            raise ValueError("checkpoint publication is empty")
+        publication_guard(encoded)
+        restored = torch.load(io.BytesIO(encoded), map_location="cpu", weights_only=False)
+        validate_checkpoint_publication(restored, expected=payload)
+
+    published = publish_writer_noreplace(path, writer, validator=validate_checkpoint)
+    published.close()
 
 
 def restore_training_checkpoint(
@@ -2734,6 +3114,18 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
     fepf_request = _is_fepf_request(args)
     if fepf_request:
         validate_fepf_recipe(args)
+    campaign_authority = bool(
+        getattr(args, "_fepf_campaign_authorities_validated", False)
+    )
+    registered_environment = (
+        args._fepf_registered_environment
+        if fepf_request and campaign_authority
+        else None
+    )
+    if registered_environment is not None:
+        establish_registered_deterministic_execution(
+            registered_environment.get("deterministic_execution")
+        )
     if _git_revision(args.unicom_checkout) != UNICOM_REVISION:
         raise ValueError("UNICOM checkout revision differs")
     if args.checkpoint.name != "FP16-ViT-L-14-336px.pt":
@@ -2745,6 +3137,23 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
         raise ValueError("In-Shop partition SHA-256 differs")
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA is required for UNICOM training")
+    def publication_guard(
+        name: str, destination: Path | None = None, payload: bytes | None = None
+    ) -> None:
+        if fepf_request and campaign_authority:
+            if destination is None:
+                require_cli_publication_capacity(args, name)
+            else:
+                require_configured_publication_capacity(
+                    args.run_config,
+                    args.publication_budget,
+                    args.publication_budget_sha256,
+                    f"{args.publication_stage}:{name}",
+                    destination,
+                    args.campaign_root or args.output_dir,
+                    payload=payload,
+                )
+
     if args.epochs <= 0 or args.batch_size <= 0 or args.workers < 0:
         raise ValueError("epochs/batch must be positive and workers nonnegative")
     if args.eval_every < 0 or args.checkpoint_every <= 0:
@@ -2757,6 +3166,8 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
     )
     _seed_process(args.seed)
     device = torch.device("cuda")
+    if campaign_authority and registered_runtime_environment(device) != registered_environment:
+        raise ValueError("live training environment differs")
     records = parse_inshop_partition(args.dataset_root)
     train_records = tuple(row for row in records if row.split == "train")
     optimization, query, gallery, labels = identity_holdout(
@@ -2803,7 +3214,11 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
         if args.resume is None:
             initialization_receipt_path = args.output_dir / "initialization-receipt.json"
             write_initialization_receipt_v2_atomic(
-                initialization_receipt, initialization_receipt_path
+                initialization_receipt,
+                initialization_receipt_path,
+                publication_guard=lambda payload: publication_guard(
+                    "initialization-receipt", initialization_receipt_path, payload
+                ),
             )
         else:
             initialization_receipt_path = args.parent_initialization_receipt
@@ -2925,6 +3340,8 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
         training_protocol["initialization_receipt_sha256"] = (
             initialization_receipt_sha256
         )
+        training_protocol["environment"] = registered_environment
+        training_protocol["environment_sha256"] = args.environment_sha256
     if args.resume is not None:
         start_epoch, history = restore_training_checkpoint(
             args.resume,
@@ -3004,11 +3421,23 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
             dataset_root=args.dataset_root if fepf_request else None,
             evidence_root=args.output_dir if fepf_request else None,
             epoch=_epoch if fepf_request else None,
+            publication_guard=(
+                (
+                    lambda component, destination, payload: publication_guard(
+                        f"evaluation-epoch-{_epoch:04d}"
+                        + ("" if component == "receipt" else f"-{component}"),
+                        destination,
+                        payload,
+                    )
+                ) if fepf_request
+                else (lambda _component, _destination, _payload: None)
+            ),
         ),
         history=history,
         selection_holdout=selection_holdout,
         training_protocol=training_protocol,
         step_ema=step_ema,
+        publication_guard=publication_guard,
     )
     if args.run_receipt is not None:
         torch.cuda.synchronize()
@@ -3085,8 +3514,15 @@ def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--parent-initialization-receipt", type=Path)
     parser.add_argument("--parent-run-receipt", type=Path)
     parser.add_argument("--run-config", type=Path)
-    parser.add_argument("--run-arm", choices=tuple(FULL_WIDTH_ARM_PROTOCOLS))
+    parser.add_argument("--environment-authority", type=Path)
+    parser.add_argument("--environment-sha256")
+    parser.add_argument("--publication-budget", type=Path)
+    parser.add_argument("--publication-budget-sha256")
+    parser.add_argument("--run-arm")
     parser.add_argument("--run-receipt", type=Path)
+    parser.add_argument("--publication-stage")
+    parser.add_argument("--campaign-root", type=Path)
+    parser.add_argument("--authority-preflight-only", action="store_true")
     return parser.parse_args(arguments)
 
 
@@ -3237,9 +3673,78 @@ def _validate_run_receipt_request(args: argparse.Namespace) -> None:
         raise ValueError("prospective run receipt execution differs")
 
 
+def validate_fepf_cli_campaign_authorities(args: argparse.Namespace) -> None:
+    """Authenticate campaign-owned authorities before public FEPF execution."""
+
+    if not _is_fepf_request(args):
+        return
+    if (
+        args.run_config is None
+        or args.environment_authority is None
+        or args.environment_sha256 is None
+        or args.publication_budget is None
+        or args.publication_budget_sha256 is None
+        or args.publication_stage is None
+        or args.campaign_root is None
+    ):
+        raise ValueError("registered environment/publication authority is required")
+    config = strict_json_object(args.run_config.read_bytes())
+    if Path(config.get("artifact_root", "")).resolve() != args.campaign_root.resolve():
+        raise ValueError("registered campaign root differs")
+    environment = load_configured_environment_authority(
+        args.run_config, args.environment_authority, args.environment_sha256
+    )
+    establish_registered_deterministic_execution(
+        environment["deterministic_execution"]
+    )
+    load_configured_publication_budget(
+        args.run_config,
+        args.publication_budget,
+        args.publication_budget_sha256,
+        external=True,
+    )
+    args._fepf_registered_environment = environment
+    args._fepf_campaign_authorities_validated = True
+
+
 def main(arguments: Sequence[str] | None = None) -> int:
     args = parse_args(arguments)
     try:
+        if args.authority_preflight_only:
+            stage = args.publication_stage or args.run_arm
+            root = args.campaign_root
+            if stage is None or root is None:
+                if args.run_config is None:
+                    raise ValueError("publication stage authority is required")
+                config_value = strict_json_object(args.run_config.read_bytes())
+                root = Path(config_value["artifact_root"])
+            if args.publication_budget is None or args.publication_budget_sha256 is None:
+                raise ValueError("publication budget authority is required")
+            load_configured_publication_budget(
+                args.run_config, args.publication_budget, args.publication_budget_sha256,
+                external=False,
+            )
+            name = f"{stage}:initialization-receipt"
+            destination = root / str(stage) / "initialization-receipt.json"
+            require_configured_publication_capacity(
+                args.run_config,
+                args.publication_budget,
+                args.publication_budget_sha256,
+                name,
+                destination,
+                root,
+                external=False,
+            )
+            if args.environment_authority is None or args.environment_sha256 is None:
+                raise ValueError("environment authority is required")
+            environment = load_configured_environment_authority(
+                args.run_config, args.environment_authority, args.environment_sha256
+            )
+            establish_registered_deterministic_execution(
+                environment["deterministic_execution"]
+            )
+            return 0
+        validate_fepf_cli_campaign_authorities(args)
         _validate_run_receipt_request(args)
         source_commit = None
         if args.run_receipt is not None:
@@ -3251,7 +3756,23 @@ def main(arguments: Sequence[str] | None = None) -> int:
         print(f"training failed: {error}", file=sys.stderr)
         return 2
     summary = args.output_dir / "history.json"
-    summary.write_text(json.dumps(history, indent=2) + "\n", encoding="utf-8")
+    write_history_atomic_noreplace(
+        history,
+        summary,
+        publication_guard=lambda payload: (
+            require_configured_publication_capacity(
+                args.run_config,
+                args.publication_budget,
+                args.publication_budget_sha256,
+                f"{args.publication_stage}:history",
+                summary,
+                args.campaign_root or args.output_dir,
+                payload=payload,
+            )
+            if _is_fepf_request(args)
+            else None
+        ),
+    )
     if args.run_receipt is not None:
         try:
             if _is_fepf_request(args):
@@ -3312,7 +3833,18 @@ def main(arguments: Sequence[str] | None = None) -> int:
                     parent_checkpoint_path=args.resume,
                 )
                 write_training_run_receipt_atomic(
-                    receipt, args.run_receipt, evidence_root=args.output_dir
+                    receipt,
+                    args.run_receipt,
+                    evidence_root=args.output_dir,
+                    publication_guard=lambda payload: require_configured_publication_capacity(
+                        args.run_config,
+                        args.publication_budget,
+                        args.publication_budget_sha256,
+                        f"{args.publication_stage}:run-receipt",
+                        args.run_receipt,
+                        args.campaign_root or args.output_dir,
+                        payload=payload,
+                    ),
                 )
                 print(f"training complete: {summary}")
                 return 0

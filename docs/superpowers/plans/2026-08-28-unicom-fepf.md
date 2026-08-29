@@ -546,7 +546,9 @@ Persist exact contiguous FP32 full-768 query/gallery descriptor arrays and exact
 ordered record inventories beside the receipt. Mutate top-30 labels, relevant
 count, AP@R, indices, scores, descriptor bytes/hashes, record order/paths,
 duplicate paths, and aggregate metrics; `validate_evaluation_evidence` must load
-the descriptor preimages and reject every mutation.
+the descriptor preimages and reject every mutation. The potentially large
+ranked-prefix rows are a separate immutable canonical JSON artifact; the bounded
+receipt binds its path, digest, and byte count rather than duplicating the rows.
 
 - [ ] **Step 2: Run evaluator RED**
 
@@ -557,7 +559,7 @@ Expected: missing API failures.
 - [ ] **Step 3: Implement evidence and strict reload**
 
 ```python
-prefix_length = max(30, relevant_gallery_count)
+prefix_length = min(max(30, relevant_gallery_count), gallery_rows)
 row = {
     "query_path": canonical_logical_record(
         query_records[query_index], dataset_root).image_name,
@@ -772,7 +774,7 @@ git commit -m "feat: add strict UniCOM FEPF evaluator"
   `validate_config_handoff`, `validate_campaign_resume`, command factory, stage
   markers, serial orchestration, resumable terminal-state validation.
 
-- [ ] **Step 1: Write failing config-schema tests**
+- [x] **Step 1: Write failing config-schema tests**
 
 Require literal model/dataset hashes, source commit, runtime order, seed-0 arms,
 five confirmation pairs, paths, expected command vectors, thresholds, norm
@@ -784,7 +786,9 @@ paths. Split the phase contracts:
   built config before its own commit.
 - `validate_config_handoff(config_path, repo)` requires exact committed config
   bytes in a sole-file direct-child commit of `source_commit`, a clean checkout,
-  and (on DGX) detached HEAD at that config commit.
+  and (on DGX) detached HEAD at that config commit. Destination absence is a
+  transfer/first-launch predicate only; committed membership and later resume
+  validation must not reapply it.
 - `validate_campaign_resume(config, run_root)` permits existing paths only when
   each is a strict terminal receipt whose complete parent/hash chain reloads;
   incomplete destinations must remain absent.
@@ -809,7 +813,7 @@ partial/temp checkpoint on resume. Test absent parent, racing root, cross-device
 byte and inode boundaries, ENOSPC during temp write, atomic cleanup, and
 preservation of prior terminal receipts.
 
-- [ ] **Step 2: Run config RED and implement builder**
+- [x] **Step 2: Run config RED and implement builder**
 
 Run: `.venv/bin/pytest -q tests/test_build_unicom_fepf_run_config.py`
 
@@ -822,7 +826,21 @@ commit and rejects every other format field or unresolved brace. Add parser and
 canonical round-trip tests. Post-commit handoff validation is a separate CLI
 mode. Rerun to GREEN.
 
-- [ ] **Step 3: Write failing controller order/kill/resume tests**
+Because the registered checkpoint, partition, and historical seed-2 authority
+are target-local, this exact four-argument build runs on DGX after transferring
+and checking out the clean reviewed source parent. It creates the sole-file
+config child there; only then is that config commit detached-checked-out into
+the distinct execution checkout. No placeholder digest or caller-supplied
+authority override substitutes for those target-local bytes.
+
+The config initially binds the absolute path of the not-yet-created canary
+environment. The first registered controller or canary entrypoint creates the
+campaign root and embedded publication budget; later entrypoints reopen them as
+resume authority. Commands may contain only `{output}` and the post-canary
+`{cuda_environment_sha256}` placeholder, and the controller substitutes the
+latter only after reopening the published environment bytes.
+
+- [x] **Step 3: Write failing controller order/kill/resume tests**
 
 ```python
 def test_controller_stops_before_epoch16_when_epoch4_fails(fake_runner):
@@ -841,7 +859,7 @@ metric result never stops the five-pair confirmation early. Add a test whose
 first four scientific pairs miss and prove that all five still run serially.
 Require periodic status marker updates.
 
-- [ ] **Step 4: Run controller RED and implement orchestration**
+- [x] **Step 4: Run controller RED and implement orchestration**
 
 Run: `.venv/bin/pytest -q tests/test_run_unicom_fepf_campaign.py`
 
@@ -856,7 +874,7 @@ stages whose bytes and decisions strictly reload through
 `validate_campaign_resume`. Test heartbeat updates during a blocked fake child,
 signal propagation, terminal-code preservation, and absence of duplicate PIDs.
 
-- [ ] **Step 5: Add fresh-process CLI integration**
+- [x] **Step 5: Add fresh-process CLI integration**
 
 Create a temporary Git checkout, tiny deterministic CPU model/data fixtures,
 invoke builder/controller/evaluator CLIs without monkeypatching authority or
@@ -864,7 +882,7 @@ publication, and stop before CUDA-only training. Assert build/handoff/resume
 phase separation, command bytes, receipt links, quality-process order/count,
 metric-nontermination, no-clobber races, and failure cleanup.
 
-- [ ] **Step 6: Run Task 6 GREEN and commit**
+- [x] **Step 6: Run Task 6 GREEN and commit**
 
 Run: `.venv/bin/pytest -q tests/test_build_unicom_fepf_run_config.py tests/test_run_unicom_fepf_campaign.py tests/test_run_unicom_fepf_cuda_canary.py`
 
@@ -1032,6 +1050,20 @@ canary-v1 receipt binds status `PASS`, config/source/checkpoint/partition hashes
 environment hash, device UUID, exact 512 steps, initial/final head and diagnostic
 hashes, entry/post-draw/restored RNG hashes, raw-backbone pre/post hashes, finite losses, and
 peak allocated/reserved bytes. It publishes through the same no-replace writer.
+The canary binds a deterministic execution envelope (deterministic algorithms,
+TF32 disabled, deterministic cuDNN, and the registered cuBLAS workspace) and
+installs one observation-first evidence directory transaction. Strict reload
+reconstructs model/cache/input authorities and deterministically reruns the
+fitted scientific projection once before accepting the terminal; measured
+initialization/fit durations and peak-memory observations remain finite,
+nonnegative telemetry rather than byte-equality inputs. The terminal is the
+last publication, after that fitted validation succeeds. Restart adopts only an
+exact registered observation-first prefix and performs at most one fitted
+validation for the same terminal/manifest digest. Post-canary children inherit
+the canonical cuBLAS workspace before importing Torch.
+The CPU-only `authority-preflight`/backend seam is public contract evidence for
+Task 6; it never substitutes for the real target-DGX CUDA run or its science
+receipt.
 The canary derives its one output path solely from the authenticated config's
 absolute `artifact_root` plus relative `preflight/cuda_canary_v1.json` and
 accepts no output override or environment-variable expansion. The controller

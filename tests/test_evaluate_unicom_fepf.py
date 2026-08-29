@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import importlib
 import importlib.util
 import json
 import math
@@ -18,6 +19,61 @@ SPEC = importlib.util.spec_from_file_location("evaluate_unicom_fepf", SCRIPT)
 assert SPEC is not None and SPEC.loader is not None
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
+
+
+@pytest.mark.parametrize("mutation", (None, "path", "hash"))
+def test_review13_public_evaluator_loads_separate_ranked_prefix_authority(
+    tmp_path: Path, mutation: str | None
+) -> None:
+    ranked = [{
+        "query_path": "query/a.jpg",
+        "query_label": "item-a",
+        "relevant_gallery_count": 1,
+        "ap_at_r": 1.0,
+        "query_sha256": "1" * 64,
+        "complete_ranking_sha256": "2" * 64,
+        "ranked_prefix": [{
+            "gallery_index": 0,
+            "gallery_path": "gallery/a.jpg",
+            "gallery_label": "item-a",
+            "score": 0.0,
+            "correct": True,
+        }],
+    }]
+    ranked_path = tmp_path / "evaluation-epoch-0004-ranked-prefix.json"
+    ranked_payload = (json.dumps(ranked, indent=2, allow_nan=False) + "\n").encode()
+    ranked_path.write_bytes(ranked_payload)
+    binding = {
+        "path": ranked_path.name,
+        "sha256": hashlib.sha256(ranked_payload).hexdigest(),
+        "bytes": len(ranked_payload),
+    }
+    if mutation == "path":
+        binding["path"] = "foreign-ranked-prefix.json"
+    elif mutation == "hash":
+        binding["sha256"] = "0" * 64
+    evaluation = {
+        "epoch": 4,
+        "ranked_prefix_evidence": binding,
+        "query_records": [{"image_name": "query/a.jpg", "label": "item-a"}],
+        "gallery_records": [{"image_name": "gallery/a.jpg", "label": "item-a"}],
+        "geometry": {
+            "input_dimension": 768,
+            "coordinates": list(range(512)),
+            "normalize_before": True,
+            "ranking": "ascending_squared_euclidean",
+        },
+    }
+    if mutation is None:
+        observed = MODULE.load_ranked_query_observation(
+            evaluation, evidence_root=tmp_path, expected_epoch=4
+        )
+        assert observed["query_evidence"][0]["top1_correct"] is True
+    else:
+        with pytest.raises(ValueError, match="ranked|query evidence"):
+            MODULE.load_ranked_query_observation(
+                evaluation, evidence_root=tmp_path, expected_epoch=4
+            )
 
 
 def _query_rows(top1: tuple[bool, ...]) -> list[dict[str, object]]:
@@ -74,6 +130,31 @@ def _promoting_exploratory_pair() -> tuple[dict[str, object], dict[str, object]]
         profiled_step_wall=0.8,
     )
     return control, candidate
+
+
+def test_review11_publication_stage_is_required_before_work(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    arguments = [
+        "--phase", "epoch4",
+        "--sources", str(tmp_path / "sources.json"),
+        "--sources-sha256", "1" * 64,
+        "--sources-bytes", "1",
+        "--evidence-root", str(tmp_path),
+        "--output", str(tmp_path / "result.json"),
+        "--temporary", str(tmp_path / ".result.json.tmp"),
+        "--config", str(tmp_path / "config.json"),
+        "--campaign-root", str(tmp_path),
+    ]
+    reached: list[Path] = []
+
+    def forbidden(path: Path) -> object:
+        reached.append(path)
+        raise AssertionError("missing publication stage reached config/work")
+
+    monkeypatch.setattr(MODULE, "_strict_json_file", forbidden)
+    assert MODULE.main(arguments) == 2
+    assert reached == []
 
 
 def test_exploratory_promotes_only_when_every_registered_predicate_passes() -> None:
@@ -706,13 +787,14 @@ def test_atomic_publication_uses_link_no_replace_against_racing_writer(
     )
     output = tmp_path / "result.json"
     temporary = tmp_path / ".result.json.tmp"
-    real_link = os.link
+    publication = importlib.import_module("sfora.atomic_publication")
+    real_link = publication._link_fd_noreplace
 
-    def racing_link(source, destination):
-        Path(destination).write_bytes(b"racing-owner\n")
-        return real_link(source, destination)
+    def racing_link(descriptor: int, directory: int, name: str) -> None:
+        output.write_bytes(b"racing-owner\n")
+        real_link(descriptor, directory, name)
 
-    monkeypatch.setattr(MODULE.os, "link", racing_link)
+    monkeypatch.setattr(publication, "_link_fd_noreplace", racing_link)
     with pytest.raises(FileExistsError):
         MODULE.write_fepf_result_atomic(
             result, output, temporary, tmp_path, sources_authority=sources_authority
@@ -1036,12 +1118,13 @@ def test_atomic_cleanup_preserves_substituted_temp_after_link_failure(
     output = tmp_path / "result.json"
     temporary = tmp_path / ".result.json.tmp"
 
-    def substitute_then_fail(_source, _destination):
-        temporary.unlink()
+    publication = importlib.import_module("sfora.atomic_publication")
+
+    def substitute_then_fail(_descriptor: int, _directory: int, _name: str) -> None:
         temporary.write_bytes(b"racer-temp\n")
         raise OSError("injected link failure")
 
-    monkeypatch.setattr(MODULE.os, "link", substitute_then_fail)
+    monkeypatch.setattr(publication, "_link_fd_noreplace", substitute_then_fail)
     with pytest.raises(OSError, match="injected link failure"):
         MODULE.write_fepf_result_atomic(
             result, output, temporary, tmp_path, sources_authority=sources_authority
@@ -1061,15 +1144,19 @@ def test_atomic_cleanup_preserves_substituted_temp_before_persisted_validation(
     )
     output = tmp_path / "result.json"
     temporary = tmp_path / ".result.json.tmp"
-    real_strict_json = MODULE._strict_json_file
+    publication = importlib.import_module("sfora.atomic_publication")
+    real_read = publication._pread_all
+    reads = 0
 
-    def substitute_before_read(path, *, canonical=True):
-        if path == temporary:
-            temporary.unlink()
+    def substitute_before_read(descriptor: int) -> bytes:
+        nonlocal reads
+        reads += 1
+        if reads == 1:
             temporary.write_bytes(b"racer-before-validation\n")
-        return real_strict_json(path, canonical=canonical)
+            raise ValueError("strict JSON injected failure")
+        return real_read(descriptor)
 
-    monkeypatch.setattr(MODULE, "_strict_json_file", substitute_before_read)
+    monkeypatch.setattr(publication, "_pread_all", substitute_before_read)
     with pytest.raises(ValueError, match="strict JSON"):
         MODULE.write_fepf_result_atomic(
             result, output, temporary, tmp_path, sources_authority=sources_authority
@@ -1089,13 +1176,14 @@ def test_atomic_cleanup_removes_owned_output_when_link_succeeds_then_raises(
     )
     output = tmp_path / "result.json"
     temporary = tmp_path / ".result.json.tmp"
-    real_link = os.link
+    publication = importlib.import_module("sfora.atomic_publication")
+    real_link = publication._link_fd_noreplace
 
-    def link_then_fail(source, destination):
-        real_link(source, destination)
+    def link_then_fail(descriptor: int, directory: int, name: str) -> None:
+        real_link(descriptor, directory, name)
         raise OSError("injected post-link failure")
 
-    monkeypatch.setattr(MODULE.os, "link", link_then_fail)
+    monkeypatch.setattr(publication, "_link_fd_noreplace", link_then_fail)
     with pytest.raises(OSError, match="post-link failure"):
         MODULE.write_fepf_result_atomic(
             result, output, temporary, tmp_path, sources_authority=sources_authority
@@ -1195,6 +1283,25 @@ def test_real_reload_chain_rejects_recursive_authority_rebinding(
         query_descriptor.write_bytes(b"query-descriptor\n")
         gallery_descriptor.write_bytes(b"gallery-descriptor\n")
         evaluation_path = root / "evaluation-epoch-0004.json"
+        ranked_rows = [
+            {
+                "query_path": "query/a.jpg",
+                "query_label": "id-a",
+                "relevant_gallery_count": 1,
+                "ap_at_r": map_at_r,
+                "query_sha256": "1" * 64,
+                "complete_ranking_sha256": "2" * 64,
+                "ranked_prefix": [{
+                    "gallery_index": 0,
+                    "gallery_path": "gallery/a.jpg",
+                    "gallery_label": "id-a",
+                    "score": 0.0,
+                    "correct": True,
+                }],
+            }
+        ]
+        ranked_path = root / "evaluation-epoch-0004-ranked-prefix.json"
+        _write_canonical_json(ranked_path, ranked_rows)
         evaluation = {
             "epoch": 4,
             "geometry": {
@@ -1217,15 +1324,11 @@ def test_real_reload_chain_rejects_recursive_authority_rebinding(
             "gallery_records": [
                 {"image_name": "gallery/a.jpg", "label": "id-a"}
             ],
-            "query_evidence": [
-                {
-                    "query_path": "query/a.jpg",
-                    "query_label": "id-a",
-                    "relevant_gallery_count": 1,
-                    "ap_at_r": map_at_r,
-                    "ranked_prefix": [{"correct": True}],
-                }
-            ],
+            "ranked_prefix_evidence": {
+                "path": ranked_path.name,
+                "sha256": hashlib.sha256(ranked_path.read_bytes()).hexdigest(),
+                "bytes": ranked_path.stat().st_size,
+            },
             "evaluation_signature": {"descriptor_sha256": descriptor_sha256},
         }
         _write_canonical_json(evaluation_path, evaluation)
@@ -1417,4 +1520,67 @@ def test_real_reload_chain_rejects_recursive_authority_rebinding(
             sources=sources,
             sources_authority=observed_authority,
             evidence_root=tmp_path,
+        )
+
+
+def test_review7_evaluator_parser_requires_config_rooted_publication_budget() -> None:
+    with pytest.raises(SystemExit):
+        MODULE.parse_args(
+            [
+                "--phase", "epoch4",
+                "--sources", "/tmp/sources.json",
+                "--sources-sha256", "1" * 64,
+                "--sources-bytes", "1",
+                "--evidence-root", "/tmp/evidence",
+                "--output", "/tmp/result.json",
+                "--temporary", "/tmp/result.tmp",
+            ]
+        )
+
+
+def test_review8_evaluator_main_requires_stage_budget_before_sources(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "campaign"
+    root.mkdir()
+    config = tmp_path / "config.json"
+    config.write_text(json.dumps({
+        "artifact_root": str(root),
+        "publication_budget": {
+            "schema": "unicom-fepf-publication-budget-v1", "publications": []
+        },
+        "publication_budget_sha256": "0" * 64,
+    }, indent=2) + "\n")
+    assert MODULE.main([
+        "--phase", "epoch4",
+        "--sources", str(tmp_path / "absent-sources.json"),
+        "--sources-sha256", "1" * 64,
+        "--sources-bytes", "1",
+        "--evidence-root", str(root),
+        "--output", str(root / "exploratory-epoch4-decision-result.json"),
+        "--temporary", str(root / ".retired.tmp"),
+        "--config", str(config),
+        "--publication-stage", "exploratory-epoch4-decision",
+        "--campaign-root", str(root),
+        "--authority-preflight-only",
+        ]) == 2
+
+
+def test_review9_normal_evaluator_enforces_actual_serialized_byte_bound(
+    tmp_path: Path,
+) -> None:
+    row = {
+        "name": "exploratory-epoch4-decision:result",
+        "path": "exploratory-epoch4-decision-result.json",
+        "persistent_bytes": 1,
+        "temporary_bytes": 1,
+        "persistent_inodes": 1,
+        "temporary_inodes": 1,
+    }
+    with pytest.raises(OSError, match="budget|bytes|capacity"):
+        MODULE.validate_publication_payload_bound(
+            row,
+            destination=tmp_path / row["path"],
+            payload=b"too large",
+            campaign_root=tmp_path,
         )

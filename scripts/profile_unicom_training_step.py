@@ -19,6 +19,8 @@ from typing import Any, NamedTuple
 
 import numpy as np
 
+from sfora.atomic_publication import BudgetedPublisher, publish_bytes_noreplace
+
 WARMUP_STEPS = 20
 MEASURE_STEPS = 50
 PROFILER_STEPS = 10
@@ -120,7 +122,13 @@ PROFILE_V2_KEYS = (
     "peak_reserved_bytes",
     "parameter_schema",
     "optimizer_schema",
+    "environment_sha256",
     "environment",
+)
+REGISTERED_ENVIRONMENT_KEYS = (
+    "python_vv", "torch", "torchvision", "timm", "numpy", "cuda", "cudnn",
+    "compile", "device_uuid", "gpu_inventory", "pyproject_sha256",
+    "uv_lock_sha256", "deterministic_execution",
 )
 INFERENCE_SIGNATURE_KEYS = (
     "schema",
@@ -318,6 +326,83 @@ def _lower_sha256(value: object) -> bool:
         and len(value) == 64
         and all(character in "0123456789abcdef" for character in value)
     )
+
+
+def validate_registered_environment_payload(value: object) -> None:
+    if (
+        type(value) is not dict
+        or tuple(value) != REGISTERED_ENVIRONMENT_KEYS
+        or any(
+            type(value[key]) is not str or not value[key]
+            for key in (
+                "python_vv", "torch", "torchvision", "timm", "numpy", "cuda",
+                "cudnn", "device_uuid",
+            )
+        )
+        or not value["device_uuid"].startswith("GPU-")
+        or type(value["compile"]) is not dict
+        or tuple(value["compile"]) != ("available", "inductor")
+        or any(type(item) is not str or not item for item in value["compile"].values())
+        or type(value["gpu_inventory"]) is not list
+        or not value["gpu_inventory"]
+        or any(type(item) is not str or not item for item in value["gpu_inventory"])
+        or not _lower_sha256(value["pyproject_sha256"])
+        or not _lower_sha256(value["uv_lock_sha256"])
+        or value["deterministic_execution"]
+        != {
+            "deterministic_algorithms": True,
+            "cuda_matmul_tf32": False,
+            "cudnn_tf32": False,
+            "cudnn_benchmark": False,
+            "cudnn_deterministic": True,
+            "cublas_workspace_config": ":4096:8",
+        }
+    ):
+        raise ValueError("registered profile environment differs")
+
+
+def load_registered_environment_authority(
+    path: Path, expected_sha256: str
+) -> dict[str, object]:
+    value, payload = _strict_json_object_payload(path)
+    if (
+        not _lower_sha256(expected_sha256)
+        or hashlib.sha256(payload).hexdigest() != expected_sha256
+    ):
+        raise ValueError("registered profile environment authority differs")
+    validate_registered_environment_payload(value)
+    return value
+
+
+def load_configured_environment_authority(
+    config_path: Path, path: Path, expected_sha256: str
+) -> dict[str, object]:
+    """Load one environment through the immutable authority in the run config."""
+
+    config = _strict_json_object(config_path)
+    value, payload = _strict_json_object_payload(path)
+    expected = {
+        "path": str(path.resolve()),
+        "sha256": expected_sha256,
+        "bytes": len(payload),
+    }
+    registered = config.get("cuda_canary_environment")
+    authority_matches = (
+        registered == expected
+        or (
+            type(registered) is dict
+            and tuple(registered) == ("path",)
+            and registered["path"] == str(path.resolve())
+        )
+    )
+    if (
+        not authority_matches
+        or not _lower_sha256(expected_sha256)
+        or hashlib.sha256(payload).hexdigest() != expected_sha256
+    ):
+        raise ValueError("configured profile environment authority differs")
+    validate_registered_environment_payload(value)
+    return value
 
 
 def _validate_file_authority(value: object, name: str) -> None:
@@ -582,18 +667,13 @@ def _validate_profile_v2(receipt: object, *, expected_kind: str | None = None) -
         or not receipt["parameter_schema"]
         or type(receipt["optimizer_schema"]) is not dict
         or not receipt["optimizer_schema"]
-        or type(receipt["environment"]) is not dict
-        or tuple(receipt["environment"])
-        != (
-            "python_version",
-            "torch_version",
-            "numpy_version",
-            "cuda_version",
-            "device_name",
-        )
-        or any(type(value) is not str or not value for value in receipt["environment"].values())
     ):
         raise ValueError("profile schema or environment differs")
+    validate_registered_environment_payload(receipt["environment"])
+    if receipt["environment_sha256"] != hashlib.sha256(
+        (json.dumps(receipt["environment"], indent=2, allow_nan=False) + "\n").encode()
+    ).hexdigest():
+        raise ValueError("profile environment hash differs")
 
 
 def validate_quality_profile(receipt: object) -> None:
@@ -655,6 +735,94 @@ def _checkpoint_parameter_schema(
     return rows
 
 
+def _rebuild_checkpoint_inference_signature(
+    checkpoint: dict[str, object], external_signature: dict[str, object]
+) -> dict[str, object]:
+    """Rehash the complete checkpoint model inventory under external structure authority."""
+
+    import torch
+
+    _validate_inference_signature(external_signature)
+    model = checkpoint.get("model")
+    if type(model) is not dict:
+        raise ValueError("profile checkpoint inference signature differs")
+    external_rows = external_signature["tensors"]
+    kinds = {row["name"]: row["kind"] for row in external_rows}
+    if set(model) != set(kinds):
+        raise ValueError("profile checkpoint inference inventory differs")
+    aggregate = hashlib.sha256()
+    rows = []
+    total_bytes = 0
+    for name in sorted(model):
+        value = model[name]
+        try:
+            payload = (
+                value.detach()
+                .cpu()
+                .contiguous()
+                .view(torch.uint8)
+                .numpy()
+                .tobytes(order="C")
+            )
+        except Exception as error:
+            raise ValueError("profile checkpoint inference tensor differs") from error
+        row = {
+            "name": name,
+            "kind": kinds[name],
+            "shape": list(value.shape),
+            "dtype": str(value.dtype),
+            "numel": value.numel(),
+            "element_size": value.element_size(),
+            "bytes": len(payload),
+            "sha256": hashlib.sha256(payload).hexdigest(),
+        }
+        metadata = json.dumps(
+            {key: row[key] for key in tuple(row)[:-1]}, separators=(",", ":")
+        ).encode()
+        aggregate.update(len(metadata).to_bytes(8, "big"))
+        aggregate.update(metadata)
+        aggregate.update(len(payload).to_bytes(8, "big"))
+        aggregate.update(payload)
+        rows.append(row)
+        total_bytes += len(payload)
+    return {
+        "schema": "unicom-inference-signature-v1",
+        "tensors": rows,
+        "total_bytes": total_bytes,
+        "aggregate_sha256": aggregate.hexdigest(),
+        "descriptor_dtype": external_signature["descriptor_dtype"],
+        "descriptor_dimension": external_signature["descriptor_dimension"],
+        "descriptor_sha256": external_signature["descriptor_sha256"],
+        "operations": external_signature["operations"],
+    }
+
+
+def _require_quality_signature_structure(
+    current: dict[str, object], historical: dict[str, object]
+) -> None:
+    """Bind current quality values to the registered tensor/operation structure."""
+
+    _validate_inference_signature(current)
+    _validate_inference_signature(historical)
+    structural_keys = (
+        "name", "kind", "shape", "dtype", "numel", "element_size", "bytes"
+    )
+    current_structure = [
+        {key: row[key] for key in structural_keys} for row in current["tensors"]
+    ]
+    historical_structure = [
+        {key: row[key] for key in structural_keys}
+        for row in historical["tensors"]
+    ]
+    if (
+        current_structure != historical_structure
+        or current["operations"] != historical["operations"]
+        or current["descriptor_dtype"] != historical["descriptor_dtype"]
+        or current["descriptor_dimension"] != historical["descriptor_dimension"]
+    ):
+        raise ValueError("quality profile inference structure differs")
+
+
 def _validate_quality_authority_chain(receipt: dict[str, object]) -> None:
     checkpoint_path = _require_persisted_authority(receipt["checkpoint"], "checkpoint")
     run_receipt_path = _require_persisted_authority(receipt["run_receipt"], "run_receipt")
@@ -672,6 +840,17 @@ def _validate_quality_authority_chain(receipt: dict[str, object]) -> None:
     }
     if any(config.get(key) != value for key, value in required_config.items()):
         raise ValueError("quality profile config authority differs")
+    environment_authority = config.get("cuda_canary_environment")
+    if type(environment_authority) is not dict:
+        raise ValueError("quality profile environment config authority differs")
+    environment = load_configured_environment_authority(
+        config_path,
+        Path(environment_authority.get("path", "")),
+        environment_authority.get("sha256"),
+    )
+    historical_signature = config.get("runtime_inference_signature")
+    current_signature = run_receipt.get("inference_signature")
+    _require_quality_signature_structure(current_signature, historical_signature)
     repository = Path(__file__).resolve().parents[1]
     trainer = _load_authenticated_live_trainer(repository, config)
     profiler_source = Path(__file__).resolve()
@@ -711,14 +890,27 @@ def _validate_quality_authority_chain(receipt: dict[str, object]) -> None:
         live_trainer_sha256=receipt["live_trainer_sha256"],
     )
     if (
+        receipt["checkpoint_protocol"].get("environment") != environment
+        or receipt["checkpoint_protocol"].get("environment_sha256")
+        != environment_authority["sha256"]
+        or receipt["environment"] != environment
+        or receipt["environment_sha256"] != environment_authority["sha256"]
+    ):
+        raise ValueError("quality profile environment authority differs")
+    if (
+        receipt["inference_signature"] != current_signature
+        or _rebuild_checkpoint_inference_signature(checkpoint, current_signature)
+        != current_signature
+    ):
+        raise ValueError("quality profile inference authority differs")
+    if (
         checkpoint["epoch"] != 16
         or checkpoint["training_protocol"] != receipt["checkpoint_protocol"]
         or run_receipt.get("training_protocol") != receipt["checkpoint_protocol"]
-        or run_receipt.get("inference_signature") != receipt["inference_signature"]
     ):
         raise ValueError("quality profile checkpoint protocol chain differs")
     expected_parameters = _checkpoint_parameter_schema(
-        checkpoint, receipt["inference_signature"]
+        checkpoint, current_signature
     )
     expected_optimizer = _optimizer_state_dict_schema(checkpoint["optimizer"])
     if (
@@ -736,10 +928,21 @@ def validate_runtime_profile(
     run_receipt: Path,
     config: Path,
     expected_environment: object,
+    expected_environment_sha256: str | None = None,
 ) -> None:
     """Validate one runtime receipt against caller-owned external authorities."""
 
     _validate_profile_v2(receipt, expected_kind="runtime")
+    _validate_runtime_authority_chain(
+        receipt,
+        checkpoint=checkpoint,
+        run_receipt=run_receipt,
+        config=config,
+    )
+    if expected_environment_sha256 is None and type(expected_environment) is dict:
+        expected_environment_sha256 = hashlib.sha256(
+            (json.dumps(expected_environment, indent=2, allow_nan=False) + "\n").encode()
+        ).hexdigest()
     if (
         type(receipt) is not dict
         or expected_mode not in RUNTIME_PROTOCOLS
@@ -749,6 +952,7 @@ def validate_runtime_profile(
         or receipt["config"] != _file_authority(config)
         or type(expected_environment) is not dict
         or receipt["environment"] != expected_environment
+        or receipt["environment_sha256"] != expected_environment_sha256
         or any(
             type(receipt["environment"].get(key)) is not type(value)
             or receipt["environment"].get(key) != value
@@ -756,6 +960,278 @@ def validate_runtime_profile(
         )
     ):
         raise ValueError("runtime profile external authority differs")
+
+
+def _validate_runtime_authority_chain(
+    receipt: dict[str, object], *, checkpoint: Path, run_receipt: Path, config: Path
+) -> None:
+    checkpoint_path = _require_persisted_authority(receipt["checkpoint"], "checkpoint")
+    run_receipt_path = _require_persisted_authority(receipt["run_receipt"], "run_receipt")
+    config_path = _require_persisted_authority(receipt["config"], "config")
+    if (
+        checkpoint_path != checkpoint.resolve()
+        or run_receipt_path != run_receipt.resolve()
+        or config_path != config.resolve()
+    ):
+        raise ValueError("runtime profile external authority differs")
+    config_object = _strict_json_object(config_path)
+    run_object = _strict_json_object(run_receipt_path)
+    repository = Path(__file__).resolve().parents[1]
+    if (
+        config_object.get("parent_trainer_commit") != PARENT_TRAINER_COMMIT
+        or config_object.get("parent_trainer_path") != PARENT_TRAINER_PATH
+        or config_object.get("parent_trainer_sha256") != PARENT_TRAINER_SHA256
+        or config_object.get("profiler_sha256") != receipt["profiler_sha256"]
+        or _sha256_file(Path(__file__).resolve()) != receipt["profiler_sha256"]
+        or hashlib.sha256(
+            _git_blob_bytes(
+                repository,
+                f"{config_object.get('source_commit')}:scripts/profile_unicom_training_step.py",
+            )
+        ).hexdigest()
+        != receipt["profiler_sha256"]
+    ):
+        raise ValueError("runtime profile config/source authority differs")
+    trainer = _load_authenticated_parent_trainer(repository, PARENT_TRAINER_SOURCE)
+    validator = getattr(trainer, "validate_training_run_receipt", None)
+    if not callable(validator):
+        raise ValueError("runtime profile run validator differs")
+    validator(run_object)
+    external_run = reload_normal_legacy_runtime_authority(config_path, run_receipt_path)
+    if external_run != run_object:
+        raise ValueError("legacy runtime receipt authority differs")
+    validate_registered_legacy_runtime_chain(
+        run_object, authority=config_object.get("legacy_runtime_authority")
+    )
+    history_path = Path(run_object["history"]["path"])
+    if _file_authority(history_path) != run_object["history"]:
+        raise ValueError("legacy runtime history authority differs")
+    checkpoints = run_object.get("checkpoints")
+    for row in checkpoints:
+        if _file_authority(Path(row["path"])) != {
+            "path": str(Path(row["path"]).resolve()),
+            "sha256": row["sha256"],
+            "bytes": row["bytes"],
+        }:
+            raise ValueError("legacy runtime checkpoint authority differs")
+    terminal = checkpoints[-1] if type(checkpoints) is list and checkpoints else None
+    if (
+        type(terminal) is not dict
+        or terminal.get("sha256") != receipt["checkpoint"]["sha256"]
+        or terminal.get("bytes") != receipt["checkpoint"]["bytes"]
+        or Path(terminal.get("path", "")).resolve() != checkpoint_path
+    ):
+        raise ValueError("runtime profile checkpoint chain differs")
+    checkpoint_object = _load_checkpoint(checkpoint_path)
+    _validate_checkpoint_authority_for_profile(
+        checkpoint_object,
+        profile_kind="runtime",
+        live_trainer_sha256=receipt["live_trainer_sha256"],
+    )
+    external_signature = config_object.get("runtime_inference_signature")
+    _validate_inference_signature(external_signature)
+    if (
+        receipt["inference_signature"] != external_signature
+        or _rebuild_checkpoint_inference_signature(
+            checkpoint_object, external_signature
+        )
+        != external_signature
+    ):
+        raise ValueError("runtime profile inference authority differs")
+    if (
+        checkpoint_object.get("epoch") != receipt["checkpoint_epoch"]
+        or checkpoint_object.get("training_protocol") != receipt["checkpoint_protocol"]
+        or receipt["parameter_schema"]
+        != _checkpoint_parameter_schema(
+            checkpoint_object, external_signature
+        )
+        or receipt["optimizer_schema"]
+        != _optimizer_state_dict_schema(checkpoint_object.get("optimizer"))
+    ):
+        raise ValueError("runtime profile rebuilt authority differs")
+
+
+def validate_registered_legacy_runtime_chain(
+    receipt: object, *, authority: object | None = None
+) -> None:
+    """Require the exact completed historical seed-2 runtime authority."""
+
+    if (
+        type(receipt) is not dict
+        or receipt.get("seed") != 2
+        or receipt.get("arm") != "sampled_512"
+        or receipt.get("protocol")
+        != {
+            "objective": "official-eight-mask",
+            "selected_features": 512,
+            "evaluation_features": 768,
+        }
+        or receipt.get("exit_status") != 0
+        or [row.get("epoch") for row in receipt.get("checkpoints", [])]
+        != [4, 8, 12, 16]
+        or type(receipt.get("history")) is not dict
+        or "--classifier-init" not in receipt.get("command", [])
+        or receipt["command"][receipt["command"].index("--classifier-init") + 1]
+        != "imprinted"
+    ):
+        raise ValueError("registered legacy seed2 runtime chain differs")
+    if authority is None:
+        return
+    if (
+        type(authority) is not dict
+        or tuple(authority) != ("run_receipt", "config", "history", "checkpoints")
+        or receipt.get("history") != authority.get("history")
+        or receipt.get("checkpoints") != authority.get("checkpoints")
+        or receipt.get("config_path") != authority.get("config", {}).get("path")
+        or receipt.get("config_sha256") != authority.get("config", {}).get("sha256")
+    ):
+        raise ValueError("registered legacy external authority differs")
+    persisted = {}
+    for label, binding in (
+        ("config", authority["config"]),
+        ("history", authority["history"]),
+        *((f"checkpoint-{epoch}", binding) for epoch, binding in zip(
+            (4, 8, 12, 16), authority["checkpoints"], strict=True
+        )),
+    ):
+        path = Path(binding["path"])
+        payload = path.read_bytes()
+        if (
+            path.is_symlink()
+            or hashlib.sha256(payload).hexdigest() != binding["sha256"]
+            or len(payload) != binding["bytes"]
+        ):
+            raise ValueError("registered legacy external authority differs")
+        persisted[label] = payload
+    try:
+        legacy_config = json.loads(persisted["config"])
+        history = json.loads(persisted["history"])
+    except (TypeError, ValueError) as error:
+        raise ValueError("registered legacy semantic authority differs") from error
+    if type(legacy_config) is not dict or type(history) is not list:
+        raise ValueError("registered legacy semantic authority differs")
+    for row in history:
+        if type(row) is not dict or any(
+            key in row and (type(row[key]) not in (int, float) or not math.isfinite(row[key]))
+            for key in ("loss", "map", "rank1")
+        ):
+            raise ValueError("registered legacy history authority differs")
+
+
+def reload_normal_legacy_runtime_authority(
+    config_path: Path, run_receipt_path: Path
+) -> dict[str, object]:
+    config = _strict_json_object(config_path)
+    authority = config.get("legacy_runtime_authority")
+    binding = authority.get("run_receipt") if type(authority) is dict else None
+    _validate_file_authority(binding, "legacy run receipt")
+    receipt, payload = _strict_json_object_payload(run_receipt_path)
+    if (
+        run_receipt_path.is_symlink()
+        or str(run_receipt_path.resolve()) != binding["path"]
+        or hashlib.sha256(payload).hexdigest() != binding["sha256"]
+        or len(payload) != binding["bytes"]
+    ):
+        raise ValueError("legacy run receipt external authority differs")
+    validate_registered_legacy_runtime_chain(receipt, authority=authority)
+    return receipt
+
+
+def validate_live_runtime_inference_authority(
+    checkpoint: dict[str, object], *, model: object, descriptor: object,
+    external: dict[str, object],
+) -> None:
+    import torch
+
+    if type(checkpoint.get("model")) is not dict:
+        raise ValueError("live inference checkpoint differs")
+    parameters = dict(model.named_parameters())
+    buffers = dict(model.named_buffers())
+    state = model.state_dict()
+    if set(state) != set(parameters) | set(buffers):
+        raise ValueError("live inference tensor inventory differs")
+    if set(checkpoint["model"]) != set(state):
+        raise ValueError("live inference checkpoint inventory differs")
+    aggregate = hashlib.sha256()
+    rows = []
+    total_bytes = 0
+    for name in sorted(state):
+        value = state[name]
+        checkpoint_value = checkpoint["model"][name]
+        if not torch.equal(value.detach().cpu(), checkpoint_value.detach().cpu()):
+            raise ValueError("live inference checkpoint tensor differs")
+        payload = (
+            value.detach().cpu().contiguous().view(torch.uint8).numpy().tobytes(order="C")
+        )
+        row = {
+            "name": name,
+            "kind": "parameter" if name in parameters else "buffer",
+            "shape": list(value.shape),
+            "dtype": str(value.dtype),
+            "numel": value.numel(),
+            "element_size": value.element_size(),
+            "bytes": len(payload),
+            "sha256": hashlib.sha256(payload).hexdigest(),
+        }
+        metadata = json.dumps(
+            {key: row[key] for key in tuple(row)[:-1]}, separators=(",", ":")
+        ).encode()
+        aggregate.update(len(metadata).to_bytes(8, "big"))
+        aggregate.update(metadata)
+        aggregate.update(len(payload).to_bytes(8, "big"))
+        aggregate.update(payload)
+        rows.append(row)
+        total_bytes += len(payload)
+    if (
+        not isinstance(descriptor, torch.Tensor)
+        or descriptor.dtype != torch.float32
+        or descriptor.ndim != 2
+        or descriptor.shape[1] != 512
+        or not torch.isfinite(descriptor).all()
+    ):
+        raise ValueError("live inference descriptor differs")
+    descriptor_payload = (
+        descriptor.detach().cpu().contiguous().view(torch.uint8).numpy().tobytes(order="C")
+    )
+    expected = {
+        "schema": "unicom-inference-signature-v1",
+        "tensors": rows,
+        "total_bytes": total_bytes,
+        "aggregate_sha256": aggregate.hexdigest(),
+        "descriptor_dtype": str(descriptor.dtype),
+        "descriptor_dimension": descriptor.shape[1],
+        "descriptor_sha256": hashlib.sha256(descriptor_payload).hexdigest(),
+        "operations": list(INFERENCE_OPERATIONS),
+    }
+    if external != expected:
+        raise ValueError("live inference authority differs")
+
+
+def validate_runtime_descriptor_authority(
+    signature: object, descriptor_path: Path
+) -> None:
+    import io
+
+    if type(signature) is not dict or descriptor_path.is_symlink():
+        raise ValueError("runtime descriptor authority differs")
+    payload = descriptor_path.read_bytes()
+    try:
+        descriptor = np.load(io.BytesIO(payload), allow_pickle=False)
+        canonical = io.BytesIO()
+        np.save(canonical, descriptor, allow_pickle=False)
+    except Exception as error:
+        raise ValueError("runtime descriptor authority differs") from error
+    if (
+        canonical.getvalue() != payload
+        or descriptor.dtype != np.float32
+        or descriptor.shape != (1, 512)
+        or signature.get("descriptor_dtype") != "torch.float32"
+        or signature.get("descriptor_dimension") != 512
+        or signature.get("descriptor_sha256")
+        != hashlib.sha256(descriptor.tobytes(order="C")).hexdigest()
+        or signature.get("operations") != list(INFERENCE_OPERATIONS)
+    ):
+        raise ValueError("runtime descriptor authority differs")
 
 
 def _process_median_wall(receipt: dict[str, object]) -> float:
@@ -808,6 +1284,7 @@ def compare_runtime_smoke(receipts: object) -> str:
             "inference_signature",
             "parameter_schema",
             "optimizer_schema",
+            "environment_sha256",
             "environment",
         )
         authority = tuple(receipts[0][key] for key in shared_keys)
@@ -963,10 +1440,15 @@ def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--profile-kind", required=True, choices=("runtime", "quality"))
     parser.add_argument("--parent-trainer-source", required=True)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--environment-authority", type=Path)
+    parser.add_argument("--environment-sha256")
     parser.add_argument("--warmup-steps", type=int, default=WARMUP_STEPS)
     parser.add_argument("--measure-steps", type=int, default=MEASURE_STEPS)
     parser.add_argument("--profiler-steps", type=int)
     parser.add_argument("--bootstrap-seed", type=int, default=BOOTSTRAP_SEED)
+    parser.add_argument("--publication-stage")
+    parser.add_argument("--campaign-root", type=Path)
+    parser.add_argument("--authority-preflight-only", action="store_true")
     args = parser.parse_args(arguments)
     if args.profiler_steps is None:
         args.profiler_steps = PROFILER_STEPS if args.profile_kind == "runtime" else 0
@@ -1218,6 +1700,7 @@ def _build_replay_state(
     live_trainer_sha256: str,
 ):
     import torch
+    from PIL import Image
 
     from sfora.unicom_inshop import parse_inshop_partition
     from sfora.unicom_training import experiment_stream_seed, identity_holdout
@@ -1249,11 +1732,14 @@ def _build_replay_state(
         fraction=protocol["holdout_fraction"],
         seed=protocol["holdout_seed"],
     )
-    raw_model, _eval_transform = trainer._load_official_model(
+    raw_model, eval_transform = trainer._load_official_model(
         args.unicom_checkout,
         args.initial_checkpoint,
     )
     raw_model = raw_model.to(device)
+    descriptor_record = next((row for row in records if row.split == "query"), None)
+    if descriptor_record is None:
+        raise ValueError("registered runtime descriptor record differs")
     checkpoint_shape = checkpoint["classifier"].shape
     classifier = torch.nn.Parameter(
         torch.empty(checkpoint_shape, device=device, dtype=torch.float32)
@@ -1317,6 +1803,15 @@ def _build_replay_state(
     }
     start_epoch = _restore_checkpoint_payload(checkpoint, state)
     del checkpoint
+    raw_model.eval()
+    with Image.open(descriptor_record.image_path) as image, torch.no_grad():
+        full_descriptor = raw_model(
+            eval_transform(image.convert("RGB")).unsqueeze(0).to(device)
+        ).float()
+        full_descriptor = torch.nn.functional.normalize(full_descriptor, dim=1)
+        state["authority_descriptor"] = (
+            full_descriptor[:, :512].detach().cpu().contiguous()
+        )
     sampler.set_epoch(start_epoch)
     trainer._seed_training_loader(loader, seed=seed, epoch=start_epoch)
     if step_ema is not None:
@@ -1644,7 +2139,7 @@ def _file_authority(path: Path) -> dict[str, object]:
     }
 
 
-def _strict_json_object(path: Path) -> dict[str, object]:
+def _strict_json_object_payload(path: Path) -> tuple[dict[str, object], bytes]:
     if path.is_symlink() or not path.is_file():
         raise ValueError("profile JSON authority differs")
 
@@ -1672,7 +2167,11 @@ def _strict_json_object(path: Path) -> dict[str, object]:
     canonical = (json.dumps(value, indent=2, allow_nan=False) + "\n").encode()
     if payload != canonical:
         raise ValueError("profile JSON authority is noncanonical")
-    return value
+    return value, payload
+
+
+def _strict_json_object(path: Path) -> dict[str, object]:
+    return _strict_json_object_payload(path)[0]
 
 
 def _load_profile_authorities(args: argparse.Namespace) -> tuple[dict, dict, dict]:
@@ -1690,8 +2189,26 @@ def _load_profile_authorities(args: argparse.Namespace) -> tuple[dict, dict, dic
     )
     if observed_parent != expected_parent:
         raise ValueError("profile config parent trainer authority differs")
-    inference_signature = run_receipt.get("inference_signature")
-    _validate_inference_signature(inference_signature)
+    historical_signature = config.get("runtime_inference_signature")
+    _validate_inference_signature(historical_signature)
+    if args.profile_kind == "quality":
+        inference_signature = run_receipt.get("inference_signature")
+        _require_quality_signature_structure(
+            inference_signature, historical_signature
+        )
+    elif args.profile_kind == "runtime":
+        inference_signature = historical_signature
+    else:
+        raise ValueError("profile kind differs")
+    checkpoint = _load_checkpoint(args.run_checkpoint)
+    if (
+        _rebuild_checkpoint_inference_signature(checkpoint, inference_signature)
+        != inference_signature
+    ):
+        raise ValueError("profile config/checkpoint inference authority differs")
+    run_signature = run_receipt.get("inference_signature")
+    if run_signature is not None and run_signature != inference_signature:
+        raise ValueError("profile run receipt inference authority differs")
     checkpoint_authority = _file_authority(args.run_checkpoint)
     checkpoints = run_receipt.get("checkpoints")
     if (
@@ -1830,24 +2347,103 @@ def _optimizer_state_dict_schema(state: object) -> dict[str, object]:
     return {"param_groups": groups, "state": states}
 
 
-def _runtime_environment(torch, device: object) -> dict[str, str]:
+def _establish_registered_deterministic_execution(
+    torch, registered: object
+) -> dict[str, object]:
+    expected = {
+        "deterministic_algorithms": True,
+        "cuda_matmul_tf32": False,
+        "cudnn_tf32": False,
+        "cudnn_benchmark": False,
+        "cudnn_deterministic": True,
+        "cublas_workspace_config": ":4096:8",
+    }
+    if registered != expected:
+        raise ValueError("registered profile deterministic environment differs")
+    current = os.environ.get("CUBLAS_WORKSPACE_CONFIG")
+    if current not in (None, expected["cublas_workspace_config"]):
+        raise ValueError("registered profile deterministic environment differs")
+    os.environ["CUBLAS_WORKSPACE_CONFIG"] = expected["cublas_workspace_config"]
+    torch.use_deterministic_algorithms(True)
+    torch.backends.cuda.matmul.allow_tf32 = False
+    torch.backends.cudnn.allow_tf32 = False
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+    return expected
+
+
+def _runtime_environment(torch, device: object) -> dict[str, object]:
+    import timm
+    import torchvision
+
+    repository = Path(__file__).resolve().parents[1]
     return {
-        "python_version": sys.version.split()[0],
-        "torch_version": str(torch.__version__),
-        "numpy_version": str(np.__version__),
-        "cuda_version": str(torch.version.cuda),
-        "device_name": torch.cuda.get_device_name(device),
+        "python_vv": subprocess.run(
+            [sys.executable, "-VV"], check=True, capture_output=True, text=True
+        ).stdout.strip(),
+        "torch": str(torch.__version__),
+        "torchvision": str(torchvision.__version__),
+        "timm": str(timm.__version__),
+        "numpy": str(np.__version__),
+        "cuda": str(torch.version.cuda),
+        "cudnn": str(torch.backends.cudnn.version()),
+        "compile": {
+            "available": str(hasattr(torch, "compile")),
+            "inductor": str(getattr(torch.version, "git_version", "unknown")),
+        },
+        "device_uuid": str(torch.cuda.get_device_properties(device).uuid),
+        "gpu_inventory": subprocess.run(
+            [
+                "nvidia-smi", "--query-gpu=name,uuid,driver_version",
+                "--format=csv,noheader",
+            ],
+            check=True, capture_output=True, text=True,
+        ).stdout.splitlines(),
+        "pyproject_sha256": _sha256_file(repository / "pyproject.toml"),
+        "uv_lock_sha256": _sha256_file(repository / "uv.lock"),
+        "deterministic_execution": _establish_registered_deterministic_execution(
+            torch,
+            {
+                "deterministic_algorithms": True,
+                "cuda_matmul_tf32": False,
+                "cudnn_tf32": False,
+                "cudnn_benchmark": False,
+                "cudnn_deterministic": True,
+                "cublas_workspace_config": ":4096:8",
+            },
+        ),
     }
 
 
 def replay_profile(args: argparse.Namespace) -> dict[str, object]:
-    import torch
-
     started_unix_ns = time.time_ns()
     _validate_counts(args)
     if args.parent_trainer_source != PARENT_TRAINER_SOURCE:
         raise ValueError("parent trainer source differs")
+    if args.profile_kind == "runtime":
+        reload_normal_legacy_runtime_authority(args.config, args.run_receipt)
     repository = Path(__file__).resolve().parents[1]
+    if args.environment_authority is None or args.environment_sha256 is None:
+        raise ValueError("registered profile environment authority is required")
+    environment = load_configured_environment_authority(
+        args.config, args.environment_authority, args.environment_sha256
+    )
+    deterministic = environment.get("deterministic_execution")
+    if (
+        type(deterministic) is not dict
+        or deterministic.get("cublas_workspace_config") != ":4096:8"
+        or os.environ.get("CUBLAS_WORKSPACE_CONFIG") not in (None, ":4096:8")
+    ):
+        raise ValueError("registered profile deterministic environment differs")
+    os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+    import torch
+
+    _establish_registered_deterministic_execution(
+        torch, deterministic
+    )
+    registered_device = torch.device("cuda")
+    if _runtime_environment(torch, registered_device) != environment:
+        raise ValueError("live profile environment differs")
     run_receipt, config, inference_signature = _load_profile_authorities(args)
     trainer = _load_replay_trainer(
         args,
@@ -1872,6 +2468,12 @@ def replay_profile(args: argparse.Namespace) -> dict[str, object]:
         live_trainer_sha256=live_trainer_sha256,
     )
     state["trainer"] = trainer
+    validate_live_runtime_inference_authority(
+        _load_checkpoint(args.run_checkpoint),
+        model=state["raw_model"],
+        descriptor=state["authority_descriptor"],
+        external=inference_signature,
+    )
     try:
         phase = _execute_profile_phases(state, profile_kind=args.profile_kind)
         torch.cuda.synchronize()
@@ -1923,7 +2525,8 @@ def replay_profile(args: argparse.Namespace) -> dict[str, object]:
         "peak_reserved_bytes": peak_reserved,
         "parameter_schema": _parameter_schema(state["raw_model"], state["classifier"]),
         "optimizer_schema": _optimizer_schema(state["optimizer"]),
-        "environment": _runtime_environment(torch, state["device"]),
+        "environment_sha256": args.environment_sha256,
+        "environment": environment,
     }
     if args.profile_kind == "quality":
         validate_quality_profile(payload)
@@ -1936,26 +2539,129 @@ def write_json_atomic(path: Path, payload: object) -> None:
     if path.exists() or path.is_symlink():
         raise FileExistsError(f"profile output already exists: {path}")
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
-    if temporary.exists() or temporary.is_symlink():
-        raise FileExistsError(f"profile temporary already exists: {temporary}")
     encoded = (json.dumps(payload, indent=2, allow_nan=False) + "\n").encode()
-    try:
-        with temporary.open("xb") as handle:
-            handle.write(encoded)
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.link(temporary, path)
-        temporary.unlink()
-    finally:
-        if temporary.exists():
-            temporary.unlink()
+
+    def validate(persisted: bytes) -> None:
+        if persisted != encoded or json.loads(persisted) != payload:
+            raise RuntimeError("persisted profile bytes differ")
+
+    published = publish_bytes_noreplace(
+        path,
+        encoded,
+        validator=validate,
+    )
+    published.close()
 
 
 def main(arguments: Sequence[str] | None = None) -> int:
     args = parse_args(arguments)
     try:
+        config = _strict_json_object(args.config)
+        if args.environment_authority is None or args.environment_sha256 is None:
+            raise ValueError("registered profile environment authority is required")
+        environment = load_configured_environment_authority(
+            args.config, args.environment_authority, args.environment_sha256
+        )
+        deterministic = environment["deterministic_execution"]
+        if deterministic.get("cublas_workspace_config") != ":4096:8":
+            raise ValueError("registered profile deterministic environment differs")
+        current_workspace = os.environ.get("CUBLAS_WORKSPACE_CONFIG")
+        if current_workspace not in (None, ":4096:8"):
+            raise ValueError("registered profile deterministic environment differs")
+        os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+        builder_path = Path(__file__).with_name("build_unicom_fepf_run_config.py")
+        specification = importlib.util.spec_from_file_location(
+            "profile_exact_budget_builder", builder_path
+        )
+        if specification is None or specification.loader is None:
+            raise ValueError("profile publication budget validator differs")
+        builder = importlib.util.module_from_spec(specification)
+        specification.loader.exec_module(builder)
+        budget_validator = (
+            builder.validate_exact_publication_budget
+            if args.authority_preflight_only
+            else builder.validate_external_exact_publication_budget
+        )
+        budget_validator(config, config.get("publication_budget"))
+        root = Path(config.get("artifact_root", ""))
+        if (
+            args.publication_stage is None
+            or args.campaign_root is None
+            or args.campaign_root.resolve() != root.resolve()
+        ):
+            raise ValueError("profile publication stage authority differs")
+        budget = config.get("publication_budget")
+        budget_payload = (json.dumps(budget, indent=2, allow_nan=False) + "\n").encode()
+        rows = budget.get("publications") if type(budget) is dict else None
+        expected_name = f"{args.publication_stage}:terminal"
+        expected_path = args.output.resolve().relative_to(root.resolve()).as_posix()
+        matching = [
+            row for row in rows or []
+            if row.get("name") == expected_name and row.get("path") == expected_path
+        ]
+        if (
+            hashlib.sha256(budget_payload).hexdigest()
+            != config.get("publication_budget_sha256")
+            or len(matching) != 1
+        ):
+            raise ValueError("profile publication budget authority differs")
+        row = matching[0]
+        publisher = BudgetedPublisher(
+            campaign_root=root,
+            budget_path=root / config["publication_budget_path"],
+            budget_sha256=config["publication_budget_sha256"],
+            exact_budget=config["publication_budget"],
+            physical_admission=not args.authority_preflight_only,
+        )
+        publisher.validate_payload(
+            name=expected_name,
+            destination=args.output,
+            payload=b"",
+        )
+        if not args.authority_preflight_only:
+            available = os.statvfs(root)
+            if (
+                available.f_bavail * available.f_frsize
+                < row["persistent_bytes"] + row["temporary_bytes"]
+                or available.f_favail
+                < row["persistent_inodes"] + row["temporary_inodes"]
+            ):
+                raise OSError("profile publication capacity is insufficient")
+        if args.authority_preflight_only:
+            if args.profile_kind == "runtime":
+                reload_normal_legacy_runtime_authority(args.config, args.run_receipt)
+                signature = config.get("runtime_inference_signature")
+                _validate_inference_signature(signature)
+                checkpoint = _load_checkpoint(args.run_checkpoint)
+                if (
+                    _rebuild_checkpoint_inference_signature(checkpoint, signature)
+                    != signature
+                ):
+                    raise ValueError("profile live inference authority differs")
+            else:
+                run_receipt, loaded_config, signature = _load_profile_authorities(args)
+                trainer = _load_replay_trainer(
+                    args,
+                    repository=Path(__file__).resolve().parents[1],
+                    config=loaded_config,
+                )
+                _validate_quality_replay_inputs(
+                    args,
+                    trainer=trainer,
+                    run_receipt=run_receipt,
+                    config=loaded_config,
+                    inference_signature=signature,
+                )
+            return 0
         payload = replay_profile(args)
+        encoded = (json.dumps(payload, indent=2, allow_nan=False) + "\n").encode()
+        if len(encoded) > row["persistent_bytes"]:
+            raise OSError("profile publication bytes exceed budget")
+        publisher.validate_payload(
+            name=expected_name,
+            destination=args.output,
+            payload=encoded,
+        )
         write_json_atomic(args.output, payload)
     except Exception as error:
         print(f"profiling failed: {error}", file=sys.stderr)

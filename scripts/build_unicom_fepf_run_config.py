@@ -5,8 +5,8 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
-import math
 import os
 import re
 import stat
@@ -15,6 +15,8 @@ import sys
 from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any
+
+from sfora.atomic_publication import publish_bytes_noreplace
 
 UNICOM_REVISION = "d71992ed969e6c271436ac0a0ee1f3ca61474ac0"
 UNICOM_CHECKPOINT_SHA256 = "3916ab5aed3b522fc90345be8b4457fe5dad60801ad2af5a6871c0c096e8d7ea"
@@ -35,6 +37,7 @@ REGISTERED_SOURCE_PATHS = (
     "uv.lock",
     "src/sfora/unicom_fepf.py",
     "src/sfora/unicom_retrieval_audit.py",
+    "src/sfora/atomic_publication.py",
     "scripts/train_unicom_inshop.py",
     "scripts/profile_unicom_training_step.py",
     "scripts/evaluate_unicom_fepf.py",
@@ -56,13 +59,18 @@ CONFIG_KEYS = (
     "live_trainer_sha256",
     "profiler_sha256",
     "fepf_inference_structure",
+    "runtime_inference_signature",
+    "cuda_canary_environment",
+    "publication_budget",
+    "publication_budget_path",
+    "publication_budget_sha256",
+    "legacy_runtime_authority",
     "checkout_root_template",
     "artifact_root",
     "runtime_order",
     "exploratory",
     "confirmation_pairs",
     "thresholds",
-    "artifact_inventory",
     "artifact_budget_inputs",
     "artifact_budget_bytes",
     "artifact_budget_inodes",
@@ -72,6 +80,11 @@ CONFIG_KEYS = (
     "commands",
 )
 _LOWER_COMMIT = re.compile(r"[0-9a-f]{40}").fullmatch
+CANARY_EVIDENCE_ORDER = (
+    "observation.json", "initialization-receipt.json", "cache-inventory.json",
+    "model-inventory.json", "rng-audit.json", "model-modes.json",
+    "environment.json", "manifest.json",
+)
 
 # Frozen conservative sizing authorities. The eightfold multiplier covers the
 # complete checkpoint payload rather than pretending state_dict tensor bytes are
@@ -150,15 +163,11 @@ def _partition_inventory(path: Path) -> dict[str, int]:
 
 def _budget(
     partition: dict[str, int]
-) -> tuple[dict[str, int], int, int, list[dict[str, object]]]:
+) -> tuple[dict[str, int], int, int]:
     required = ("query_rows", "gallery_rows", "maximum_relevant_count", "maximum_path_bytes")
     if tuple(partition) != required or any(type(partition[key]) is not int or partition[key] <= 0
                                             for key in required):
         raise ValueError("artifact partition inventory differs")
-    checkpoint_bound = 8 * (RAW_BACKBONE_STATE_BYTES + CLASSIFIER_STATE_BYTES) + 64 * 1024**2
-    inventory = _artifact_inventory_rows(partition, checkpoint_bound)
-    subtotal = sum(row["count"] * row["bytes_each"] for row in inventory)
-    planned_files = sum(row["inodes"] for row in inventory)
     inputs = {
         "quality_checkpoints": QUALITY_CHECKPOINTS,
         "raw_backbone_state_bytes": RAW_BACKBONE_STATE_BYTES,
@@ -166,47 +175,9 @@ def _budget(
         **partition,
         "descriptor_dimension": 768,
         "atomic_copy_factor": ATOMIC_COPY_FACTOR,
-        "planned_file_inodes": planned_files,
     }
-    return (
-        inputs,
-        math.ceil(1.25 * subtotal),
-        math.ceil(1.25 * planned_files),
-        inventory,
-    )
-
-
-def _artifact_inventory_rows(
-    partition: dict[str, int], checkpoint_bound: int
-) -> list[dict[str, object]]:
-    query_descriptor = partition["query_rows"] * 768 * 4
-    gallery_descriptor = partition["gallery_rows"] * 768 * 4
-    ranked_evidence = (
-        partition["query_rows"] * partition["maximum_relevant_count"]
-        * (2 * partition["maximum_path_bytes"] + 128)
-    )
-    rows = (
-        ("quality_checkpoint", 104, checkpoint_bound, 104),
-        ("query_descriptor", 104, query_descriptor, 104),
-        ("gallery_descriptor", 104, gallery_descriptor, 104),
-        ("ranked_prefix_evidence", 104, ranked_evidence, 104),
-        ("training_terminal_chain", 104, 256 * 1024, 104),
-        ("runtime_profile", 16, 2 * 1024**2, 16),
-        ("quality_profile", 48, 2 * 1024**2, 48),
-        ("evaluation_sources_and_result", 12, 2 * 1024**2, 12),
-        ("canary_and_controller", 4, 2 * 1024**2, 4),
-        ("stage_directories", 48, 0, 48),
-    )
-    return [
-        {"role": role, "count": count, "bytes_each": bytes_each, "inodes": inodes}
-        for role, count, bytes_each, inodes in rows
-    ]
-
-
-def registered_artifact_inventory(config: object) -> tuple[dict[str, object], ...]:
-    value = _strict_shape(config)
-    _validate_config_values(value)
-    return tuple(dict(row) for row in value["artifact_inventory"])
+    # Aggregate capacity is derived later solely from exact publication rows.
+    return inputs, 0, 0
 
 
 def _inputs() -> dict[str, str]:
@@ -222,7 +193,9 @@ def _inputs() -> dict[str, str]:
     }
 
 
-def _commands() -> dict[str, object]:
+def _commands(
+    environment: dict[str, object], budget: dict[str, object]
+) -> dict[str, object]:
     python = ".venv/bin/python"
     inputs = _inputs()
     return {
@@ -235,6 +208,10 @@ def _commands() -> dict[str, object]:
              inputs["unicom_checkout"], "--initial-checkpoint", inputs["checkpoint"],
              "--dataset-root", inputs["dataset_root"], "--parent-trainer-source",
              f"{PARENT_TRAINER_COMMIT}:{PARENT_TRAINER_PATH}",
+             "--environment-authority", environment["path"],
+             "--environment-sha256", environment.get(
+                 "sha256", "{cuda_environment_sha256}"
+             ),
              "--output", "{output}"]
             for mode in RUNTIME_ORDER
         ],
@@ -244,6 +221,12 @@ def _commands() -> dict[str, object]:
             "--checkpoint", inputs["checkpoint"],
             "--dataset-root", inputs["dataset_root"],
             "--run-config", "docs/unicom_fepf_run_config.json",
+            "--environment-authority", environment["path"],
+            "--environment-sha256", environment.get(
+                "sha256", "{cuda_environment_sha256}"
+            ),
+            "--publication-budget", budget["path"],
+            "--publication-budget-sha256", budget["sha256"],
         ],
         "profile_quality": [
             python, "-I", "-B", "scripts/profile_unicom_training_step.py",
@@ -251,8 +234,15 @@ def _commands() -> dict[str, object]:
             "--initial-checkpoint", inputs["checkpoint"], "--dataset-root",
             inputs["dataset_root"], "--parent-trainer-source",
             f"{PARENT_TRAINER_COMMIT}:{PARENT_TRAINER_PATH}",
+            "--environment-authority", environment["path"],
+            "--environment-sha256", environment.get(
+                "sha256", "{cuda_environment_sha256}"
+            ),
         ],
-        "evaluate": [python, "-I", "-B", "scripts/evaluate_unicom_fepf.py"],
+        "evaluate": [
+            python, "-I", "-B", "scripts/evaluate_unicom_fepf.py",
+            "--config", "docs/unicom_fepf_run_config.json",
+        ],
         "quality_profile_order": ["imprinted", "fepf_mean", "fepf_mean", "imprinted"],
     }
 
@@ -300,10 +290,78 @@ def _checkpoint_inference_structure(path: Path) -> dict[str, object]:
     }
 
 
+def _checkpoint_runtime_inference_signature(path: Path) -> dict[str, object]:
+    """Reload the registered signature from the authenticated runtime checkpoint."""
+
+    import torch
+    from PIL import Image
+
+    from sfora.unicom_inshop import parse_inshop_partition
+
+    checkpoint = torch.load(path, map_location="cpu", weights_only=False)
+    if type(checkpoint) is not dict or type(checkpoint.get("model")) is not dict:
+        raise ValueError("registered runtime inference signature is absent")
+    trainer_path = Path(__file__).with_name("train_unicom_inshop.py")
+    spec = importlib.util.spec_from_file_location("fepf_signature_trainer", trainer_path)
+    if spec is None or spec.loader is None:
+        raise ValueError("registered runtime trainer differs")
+    trainer = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(trainer)
+    raw_model, transform = trainer._load_official_model(
+        Path(_inputs()["unicom_checkout"]), Path(_inputs()["checkpoint"])
+    )
+    raw_model.load_state_dict(checkpoint["model"], strict=True)
+    raw_model.eval()
+    records = parse_inshop_partition(Path(_inputs()["dataset_root"]))
+    record = next((row for row in records if row.split == "query"), None)
+    if record is None:
+        raise ValueError("registered runtime descriptor record differs")
+    with Image.open(record.image_path) as image, torch.no_grad():
+        full = raw_model(transform(image.convert("RGB")).unsqueeze(0)).float()
+        full = torch.nn.functional.normalize(full, dim=1)
+        descriptor = full[:, :512].contiguous()
+    return trainer.build_inference_signature(raw_model, descriptor=descriptor)
+
+
+def _file_binding(path: Path) -> dict[str, object]:
+    payload = path.read_bytes()
+    if path.is_symlink() or not path.is_file():
+        raise ValueError("legacy runtime authority differs")
+    return {
+        "path": str(path.resolve()),
+        "sha256": _sha256(payload),
+        "bytes": len(payload),
+    }
+
+
+def _registered_legacy_runtime_authority() -> dict[str, object]:
+    """Bind the historical seed-2 receipt and every externally retained preimage."""
+
+    receipt_path = Path(_inputs()["runtime_run_receipt"])
+    root = receipt_path.parent
+    receipt = json.loads(receipt_path.read_bytes())
+    config_path = Path(receipt["config_path"])
+    history_path = root / receipt["history"]["path"]
+    checkpoints = [
+        {"epoch": epoch, **_file_binding(root / f"epoch-{epoch:04d}.pt")}
+        for epoch in (4, 8, 12, 16)
+    ]
+    return {
+        "run_receipt": _file_binding(receipt_path),
+        "config": _file_binding(config_path),
+        "history": _file_binding(history_path),
+        "checkpoints": checkpoints,
+    }
+
+
 def build_run_config(
     *, repo: Path, checkout_root_template: str, artifact_root: Path,
     inference_structure: dict[str, object], partition_inventory: dict[str, int],
     cuda_canary_authority: dict[str, str],
+    cuda_canary_environment: dict[str, object],
+    publication_budget: dict[str, object],
+    runtime_inference_signature: dict[str, object],
+    legacy_runtime_authority: dict[str, object] | None = None,
 ) -> dict[str, object]:
     repo = _require_absolute_plain(repo.resolve(), "repository")
     artifact_root = _require_absolute_plain(artifact_root, "artifact root")
@@ -314,12 +372,12 @@ def build_run_config(
     source_commit = str(_git(repo, "rev-parse", "HEAD")).strip()
     if _LOWER_COMMIT(source_commit) is None:
         raise ValueError("source commit differs")
-    budget_inputs, budget_bytes, budget_inodes, artifact_inventory = _budget(
+    budget_inputs, budget_bytes, budget_inodes = _budget(
         partition_inventory
     )
     source_files = _source_inventory(repo, source_commit)
     source_hashes = {row["path"]: row["sha256"] for row in source_files}
-    return {
+    config = {
         "schema": "unicom-fepf-run-config-v1",
         "source_commit": source_commit,
         "source_files": source_files,
@@ -341,6 +399,28 @@ def build_run_config(
         "live_trainer_sha256": source_hashes["scripts/train_unicom_inshop.py"],
         "profiler_sha256": source_hashes["scripts/profile_unicom_training_step.py"],
         "fepf_inference_structure": inference_structure,
+        "runtime_inference_signature": runtime_inference_signature,
+        "cuda_canary_environment": dict(cuda_canary_environment),
+        "publication_budget": {},
+        "publication_budget_path": "preflight/publication-budget.json",
+        "publication_budget_sha256": "0" * 64,
+        "legacy_runtime_authority": (
+            dict(legacy_runtime_authority)
+            if legacy_runtime_authority is not None
+            else {
+                "run_receipt": {"path": "/non-authentic/run.json", "sha256": "0" * 64,
+                                "bytes": 1},
+                "config": {"path": "/non-authentic/config.json", "sha256": "0" * 64,
+                           "bytes": 1},
+                "history": {"path": "/non-authentic/history.json", "sha256": "0" * 64,
+                            "bytes": 1},
+                "checkpoints": [
+                    {"epoch": epoch, "path": f"/non-authentic/epoch-{epoch:04d}.pt",
+                     "sha256": "0" * 64, "bytes": 1}
+                    for epoch in (4, 8, 12, 16)
+                ],
+            }
+        ),
         "checkout_root_template": checkout_root_template,
         "artifact_root": str(artifact_root),
         "runtime_order": list(RUNTIME_ORDER),
@@ -361,7 +441,6 @@ def build_run_config(
             "row_norm_rtol": 2e-6,
             "row_norm_atol": 2e-7,
         },
-        "artifact_inventory": artifact_inventory,
         "artifact_budget_inputs": budget_inputs,
         "artifact_budget_bytes": budget_bytes,
         "artifact_budget_inodes": budget_inodes,
@@ -371,8 +450,27 @@ def build_run_config(
             "--config", "docs/unicom_fepf_run_config.json",
         ],
         "cuda_canary_receipt": "preflight/cuda_canary_v1.json",
-        "commands": _commands(),
+        "commands": {},
     }
+    budget = exact_publication_budget(config)
+    config["artifact_budget_bytes"] = sum(
+        row["persistent_bytes"] + row["temporary_bytes"]
+        for row in budget["publications"]
+    )
+    config["artifact_budget_inodes"] = sum(
+        row["persistent_inodes"] + row["temporary_inodes"]
+        for row in budget["publications"]
+    )
+    budget_payload = canonical_json_bytes(budget)
+    config["publication_budget"] = budget
+    config["publication_budget_sha256"] = _sha256(budget_payload)
+    budget_authority = {
+        "path": str((artifact_root / config["publication_budget_path"]).resolve()),
+        "sha256": config["publication_budget_sha256"],
+        "bytes": len(budget_payload),
+    }
+    config["commands"] = _commands(cuda_canary_environment, budget_authority)
+    return config
 
 
 def _strict_shape(config: object) -> dict[str, object]:
@@ -393,6 +491,107 @@ def _validate_config_values(config: dict[str, object]) -> None:
         and structure["operations"]
         == ["official_forward", "full768_l2", "prefix512", "squared_euclidean"]
     )
+    def file_authority(value: object) -> bool:
+        return (
+            type(value) is dict
+            and tuple(value) == ("path", "sha256", "bytes")
+            and type(value["path"]) is str
+            and Path(value["path"]).is_absolute()
+            and re.fullmatch(r"[0-9a-f]{64}", value["sha256"]) is not None
+            and type(value["bytes"]) is int
+            and value["bytes"] > 0
+        )
+
+    legacy = config.get("legacy_runtime_authority")
+    legacy_valid = (
+        type(legacy) is dict
+        and tuple(legacy) == ("run_receipt", "config", "history", "checkpoints")
+        and all(file_authority(legacy.get(name)) for name in (
+            "run_receipt", "config", "history"
+        ))
+        and type(legacy.get("checkpoints")) is list
+        and [row.get("epoch") for row in legacy["checkpoints"]] == [4, 8, 12, 16]
+        and all(
+            type(row) is dict
+            and tuple(row) == ("epoch", "path", "sha256", "bytes")
+            and file_authority({key: row[key] for key in ("path", "sha256", "bytes")})
+            for row in legacy["checkpoints"]
+        )
+    )
+    environment = config.get("cuda_canary_environment")
+    canary_authority = config.get("cuda_canary_authority")
+    pre_canary_environment = (
+        type(environment) is dict
+        and tuple(environment) == ("path",)
+        and type(environment["path"]) is str
+        and Path(environment["path"]).is_absolute()
+        and canary_authority == {}
+    )
+    bound_environment = (
+        file_authority(environment)
+        and type(canary_authority) is dict
+        and tuple(canary_authority) == ("device_uuid", "environment_sha256")
+        and type(canary_authority["device_uuid"]) is str
+        and canary_authority["device_uuid"].startswith("GPU-")
+        and re.fullmatch(r"[0-9a-f]{64}", canary_authority["environment_sha256"])
+        is not None
+        and environment["sha256"] == canary_authority["environment_sha256"]
+    )
+
+    signature = config.get("runtime_inference_signature")
+    def tensor_row_valid(row: object, *, with_hash: bool) -> bool:
+        keys = (
+            "name", "kind", "shape", "dtype", "numel", "element_size", "bytes",
+            *(("sha256",) if with_hash else ()),
+        )
+        return (
+            type(row) is dict
+            and tuple(row) == keys
+            and type(row["name"]) is str and bool(row["name"])
+            and row["kind"] in {"parameter", "buffer"}
+            and type(row["shape"]) is list
+            and all(type(value) is int and value >= 0 for value in row["shape"])
+            and type(row["dtype"]) is str and row["dtype"].startswith("torch.")
+            and type(row["numel"]) is int and row["numel"] >= 0
+            and type(row["element_size"]) is int and row["element_size"] > 0
+            and row["bytes"] == row["numel"] * row["element_size"]
+            and (not with_hash or re.fullmatch(r"[0-9a-f]{64}", row["sha256"]) is not None)
+        )
+
+    signature_valid = (
+        type(signature) is dict
+        and tuple(signature)
+        == (
+            "schema", "tensors", "total_bytes", "aggregate_sha256",
+            "descriptor_dtype", "descriptor_dimension", "descriptor_sha256",
+            "operations",
+        )
+        and signature["schema"] == "unicom-inference-signature-v1"
+        and type(signature["tensors"]) is list
+        and bool(signature["tensors"])
+        and all(tensor_row_valid(row, with_hash=True) for row in signature["tensors"])
+        and type(signature["total_bytes"]) is int
+        and signature["total_bytes"] > 0
+        and re.fullmatch(r"[0-9a-f]{64}", signature["aggregate_sha256"])
+        is not None
+        and signature["descriptor_dtype"] == "torch.float32"
+        and signature["descriptor_dimension"] == 512
+        and re.fullmatch(r"[0-9a-f]{64}", signature["descriptor_sha256"])
+        is not None
+        and signature["operations"]
+        == ["official_forward", "full768_l2", "prefix512", "squared_euclidean"]
+    )
+    if structure_valid:
+        structure_valid = all(
+            tensor_row_valid(row, with_hash=False) for row in structure["tensors"]
+        )
+    if signature_valid and structure_valid:
+        signature_structure = [
+            {key: value for key, value in row.items() if key != "sha256"}
+            for row in signature["tensors"]
+        ]
+        if signature_structure != structure["tensors"]:
+            raise ValueError("runtime inference signature structure differs")
     if (
         config["schema"] != "unicom-fepf-run-config-v1"
         or _LOWER_COMMIT(config["source_commit"]) is None
@@ -421,6 +620,13 @@ def _validate_config_values(config: dict[str, object]) -> None:
             "scripts/profile_unicom_training_step.py"
         )
         or not structure_valid
+        or not signature_valid
+        or not (pre_canary_environment or bound_environment)
+        or type(config.get("publication_budget")) is not dict
+        or config.get("publication_budget_path") != "preflight/publication-budget.json"
+        or re.fullmatch(r"[0-9a-f]{64}", config.get("publication_budget_sha256", ""))
+        is None
+        or not legacy_valid
         or config["runtime_order"] != list(RUNTIME_ORDER)
         or config["confirmation_pairs"] != [list(pair) for pair in CONFIRMATION_PAIRS]
         or type(config["artifact_budget_bytes"]) is not int
@@ -444,30 +650,40 @@ def _validate_config_values(config: dict[str, object]) -> None:
         "training_seed": 0, "holdout_seed": 0, "holdout_fraction": 0.2,
         "arms": ["imprinted", "fepf_mean", "fepf_random"],
         "evaluation_epochs": [4, 8, 12, 16],
-    } or config["commands"] != _commands():
+    } or config["commands"] != _commands(
+        config["cuda_canary_environment"],
+        {
+            "path": str(
+                (Path(config["artifact_root"]) / config["publication_budget_path"]).resolve()
+            ),
+            "sha256": config["publication_budget_sha256"],
+            "bytes": len(canonical_json_bytes(config["publication_budget"])),
+        },
+    ):
         raise ValueError("FEPF config commands differ")
     partition = {
         key: config["artifact_budget_inputs"][key]
         for key in ("query_rows", "gallery_rows", "maximum_relevant_count", "maximum_path_bytes")
     }
-    inputs, budget_bytes, budget_inodes, artifact_inventory = _budget(partition)
+    inputs, _budget_bytes, _budget_inodes = _budget(partition)
+    expected_exact_budget = exact_publication_budget(config)
+    exact_bytes = sum(
+        row["persistent_bytes"] + row["temporary_bytes"]
+        for row in expected_exact_budget["publications"]
+    )
+    exact_inodes = sum(
+        row["persistent_inodes"] + row["temporary_inodes"]
+        for row in expected_exact_budget["publications"]
+    )
     if (
-        config["artifact_inventory"] != artifact_inventory
-        or config["artifact_budget_inputs"] != inputs
-        or config["artifact_budget_bytes"] != budget_bytes
-        or config["artifact_budget_inodes"] != budget_inodes
+        config["artifact_budget_inputs"] != inputs
+        or config["artifact_budget_bytes"] != exact_bytes
+        or config["artifact_budget_inodes"] != exact_inodes
         or config["cuda_canary_command"]
         != [".venv/bin/python", "-I", "-B", "scripts/run_unicom_fepf_cuda_canary.py",
             "--config", "docs/unicom_fepf_run_config.json"]
         or config["cuda_canary_receipt"] != "preflight/cuda_canary_v1.json"
-        or type(config["cuda_canary_authority"]) is not dict
-        or tuple(config["cuda_canary_authority"]) != ("device_uuid", "environment_sha256")
-        or type(config["cuda_canary_authority"]["device_uuid"]) is not str
-        or not config["cuda_canary_authority"]["device_uuid"].startswith("GPU-")
-        or type(config["cuda_canary_authority"]["environment_sha256"]) is not str
-        or re.fullmatch(
-            r"[0-9a-f]{64}", config["cuda_canary_authority"]["environment_sha256"]
-        ) is None
+        or not (pre_canary_environment or bound_environment)
     ):
         raise ValueError("FEPF config budget differs")
     _validate_template(config["checkout_root_template"])
@@ -475,10 +691,11 @@ def _validate_config_values(config: dict[str, object]) -> None:
     checkout = Path(config["checkout_root_template"].replace("{config_commit}", "0" * 40))
     if _paths_nested(artifact, checkout):
         raise ValueError("checkout and artifact roots must be distinct and non-nested")
+    validate_exact_publication_budget(config, config["publication_budget"])
 
 
 def _require_clean(repo: Path) -> None:
-    status_text = str(_git(repo, "status", "--porcelain", "--untracked-files=no"))
+    status_text = str(_git(repo, "status", "--porcelain", "--untracked-files=all"))
     if status_text:
         raise ValueError("source checkout is not clean")
 
@@ -504,6 +721,10 @@ def build_and_write(
     inference_structure: dict[str, object] | None = None,
     partition_inventory: dict[str, int] | None = None,
     cuda_canary_authority: dict[str, str],
+    cuda_canary_environment: dict[str, object],
+    publication_budget: dict[str, object],
+    runtime_inference_signature: dict[str, object],
+    legacy_runtime_authority: dict[str, object] | None = None,
 ) -> dict[str, object]:
     if os.path.lexists(output):
         raise FileExistsError(output)
@@ -521,20 +742,316 @@ def build_and_write(
             else _partition_inventory(Path(_inputs()["partition"]))
         ),
         cuda_canary_authority=cuda_canary_authority,
+        cuda_canary_environment=cuda_canary_environment,
+        publication_budget=publication_budget,
+        runtime_inference_signature=runtime_inference_signature,
+        legacy_runtime_authority=legacy_runtime_authority,
     )
     validate_config_build(config, repo)
+    validate_exact_publication_budget(config, config["publication_budget"])
     output.parent.mkdir(parents=True, exist_ok=True)
-    with output.open("xb") as handle:
-        handle.write(canonical_json_bytes(config))
-        handle.flush()
-        os.fsync(handle.fileno())
+    config_payload = canonical_json_bytes(config)
+    published = publish_bytes_noreplace(
+        output,
+        config_payload,
+        validator=lambda payload: (
+            None
+            if payload == config_payload and json.loads(payload) == config
+            else (_ for _ in ()).throw(ValueError("persisted FEPF config differs"))
+        ),
+    )
+    published.close()
     reloaded = json.loads(output.read_bytes())
     if canonical_json_bytes(reloaded) != output.read_bytes() or reloaded != config:
         raise RuntimeError("persisted FEPF config differs")
     return config
 
 
-def validate_config_handoff(config_path: Path, repo: Path) -> dict[str, str]:
+def exact_publication_budget(config: dict[str, object]) -> dict[str, object]:
+    """Return the canonical, named publication inventory bound by the config."""
+
+    inputs = config["artifact_budget_inputs"]
+    checkpoint_bytes = 8 * (
+        inputs["raw_backbone_state_bytes"] + inputs["classifier_state_bytes"]
+    ) + 64 * 1024**2
+    # NPY v1 carries a magic/version/length prefix and a padded shape/dtype
+    # header. 256 bytes is a conservative format-level bound for these 2-D
+    # fixed-dtype shapes, independent of future payload values.
+    query_bytes = inputs["query_rows"] * 768 * 4 + 256
+    gallery_bytes = inputs["gallery_rows"] * 768 * 4 + 256
+    ranked_count = min(
+        max(30, inputs["maximum_relevant_count"]), inputs["gallery_rows"]
+    )
+    maximum_path = "p" * inputs["maximum_path_bytes"]
+    ranked_entry = {
+        "gallery_index": inputs["gallery_rows"] - 1,
+        "gallery_path": maximum_path,
+        "gallery_label": maximum_path,
+        "score": -1.7976931348623157e308,
+        "correct": False,
+    }
+    query_envelope = {
+        "query_path": maximum_path,
+        "query_label": maximum_path,
+        "relevant_gallery_count": inputs["maximum_relevant_count"],
+        "ap_at_r": -1.7976931348623157e308,
+        "query_sha256": "f" * 64,
+        "complete_ranking_sha256": "f" * 64,
+        "ranked_prefix": [dict(ranked_entry) for _index in range(ranked_count)],
+    }
+    one_query = canonical_json_bytes([query_envelope])
+    two_queries = canonical_json_bytes([query_envelope, query_envelope])
+    ranked_bytes = len(one_query) + (inputs["query_rows"] - 1) * (
+        len(two_queries) - len(one_query)
+    )
+
+    def row(name: str, path: str, persistent: int, temporary: int | None = None):
+        return {
+            "name": name,
+            "path": path,
+            "persistent_bytes": persistent,
+            "temporary_bytes": persistent if temporary is None else temporary,
+            "persistent_inodes": 1,
+            "temporary_inodes": 1 if (temporary is None or temporary > 0) else 0,
+        }
+
+    publications: list[dict[str, object]] = []
+    fresh_stages = (
+        "exploratory-control-stage4", "exploratory-candidate-stage4",
+        "exploratory-random-stage16",
+        *(f"confirmation-{index}-{arm}" for index in range(5)
+          for arm in ("control", "candidate")),
+    )
+    continuation_stages = (
+        "exploratory-control-stage16", "exploratory-candidate-stage16",
+    )
+    for stage in (*fresh_stages, *continuation_stages):
+        epochs = (
+            (4,) if stage.endswith("stage4")
+            else ((8, 12, 16) if stage in continuation_stages else (4, 8, 12, 16))
+        )
+        if stage in fresh_stages:
+            publications.append(row(
+                f"{stage}:initialization-receipt",
+                f"{stage}/initialization-receipt.json", 2 * 1024**2,
+            ))
+        publications.extend((
+            row(f"{stage}:history", f"{stage}/history.json", 2 * 1024**2),
+            row(f"{stage}:run-receipt", f"{stage}/run-receipt.json", 2 * 1024**2),
+        ))
+        for epoch in epochs:
+            stem = f"evaluation-epoch-{epoch:04d}"
+            publications.extend((
+                row(f"{stage}:checkpoint-epoch-{epoch:04d}",
+                    f"{stage}/epoch-{epoch:04d}.pt", checkpoint_bytes),
+                row(f"{stage}:{stem}-query", f"{stage}/{stem}-query.npy", query_bytes),
+                row(f"{stage}:{stem}-gallery", f"{stage}/{stem}-gallery.npy",
+                    gallery_bytes),
+                row(f"{stage}:{stem}-ranked-prefix",
+                    f"{stage}/{stem}-ranked-prefix.json", ranked_bytes),
+                row(f"{stage}:{stem}", f"{stage}/{stem}.json", 4 * 1024**2),
+            ))
+    # Non-training publishers use unique campaign-root paths. They are included
+    # so the controller's global remaining-capacity check covers every writer,
+    # even though only training resolves the reusable local component names.
+    status_temporary = row(
+        "campaign:controller-status-temporary",
+        ".controller-status.json.tmp",
+        0,
+        256 * 1024,
+    )
+    status_temporary["persistent_inodes"] = 0
+    publications.extend((
+        row(
+            "campaign:controller-status", "controller-status.json", 256 * 1024, 0
+        ),
+        status_temporary,
+        row("cuda-canary:environment", "preflight/cuda-environment.json", 2 * 1024**2),
+        row("cuda-canary:manifest", "preflight/canary-evidence/manifest.json",
+            2 * 1024**2),
+        row("cuda-canary:receipt", "preflight/cuda_canary_v1.json", 2 * 1024**2),
+    ))
+    for object_name in (
+        "observation", "initialization-receipt", "cache-inventory", "model-inventory",
+        "rng-audit", "model-modes", "environment",
+    ):
+        publications.append(row(
+            f"cuda-canary:evidence-{object_name}",
+            f"preflight/canary-evidence/{object_name}.json",
+            8 * 1024**2,
+        ))
+        staging_row = row(
+            f"cuda-canary:staging-{object_name}",
+            f"preflight/canary-evidence.staging/{object_name}.json",
+            0,
+            8 * 1024**2,
+        )
+        staging_row["persistent_inodes"] = 0
+        publications.append(staging_row)
+    staging_manifest = row(
+        "cuda-canary:staging-manifest",
+        "preflight/canary-evidence.staging/manifest.json",
+        0,
+        2 * 1024**2,
+    )
+    staging_manifest["persistent_inodes"] = 0
+    publications.append(staging_manifest)
+    for stage in _registered_stage_names():
+        if stage == "cuda-canary":
+            continue
+        if stage.endswith("-decision"):
+            publications.extend((
+                row(f"{stage}:sources", f"{stage}-sources.json", 2 * 1024**2),
+                row(f"{stage}:result", f"{stage}-result.json", 2 * 1024**2),
+            ))
+        elif stage.startswith("runtime-") or "profile" in stage:
+            publications.append(
+                row(f"{stage}:terminal", f"{stage}/terminal.json", 2 * 1024**2)
+            )
+    # Budget every directory entry and anonymous/named transient independently.
+    # The final rows retain a temporary inode allowance because the shared
+    # publisher uses O_TMPFILE. Public CLI temp names are reserved collision
+    # sentinels and are not inventory entries because they are never created.
+    final_paths = [row_value["path"] for row_value in publications]
+    directories = sorted({
+        parent.as_posix()
+        for path in final_paths
+        for parent in Path(path).parents
+        if parent.as_posix() not in {"", "."}
+    })
+    for directory in directories:
+        publications.append(row(
+            f"campaign:directory:{directory.replace('/', ':')}",
+            directory,
+            0,
+            0,
+        ))
+
+    # The budget is itself immutable evidence. Its bound is the least fixed
+    # point of its canonical serialized size, so no caller supplies a second
+    # self-size oracle.
+    self_row = row(
+        "campaign:publication-budget",
+        config.get("publication_budget_path", "preflight/publication-budget.json"),
+        0,
+        0,
+    )
+    self_row["temporary_inodes"] = 1
+    publications.append(self_row)
+    result = {"schema": "unicom-fepf-publication-budget-v1", "publications": publications}
+    for _iteration in range(32):
+        size = len(canonical_json_bytes(result))
+        if self_row["persistent_bytes"] == size:
+            break
+        self_row["persistent_bytes"] = size
+        self_row["temporary_bytes"] = size
+    else:
+        raise RuntimeError("publication budget self-size did not converge")
+    return result
+
+
+def validate_exact_publication_budget(
+    config: dict[str, object], budget: object
+) -> dict[str, object]:
+    expected = exact_publication_budget(config)
+    if budget != expected:
+        raise ValueError("exact publication budget differs")
+    publications = expected["publications"]
+    if (
+        sum(row["persistent_bytes"] + row["temporary_bytes"] for row in publications)
+        != config["artifact_budget_bytes"]
+        or sum(
+            row["persistent_inodes"] + row["temporary_inodes"]
+            for row in publications
+        )
+        != config["artifact_budget_inodes"]
+    ):
+        raise ValueError("exact publication budget exceeds campaign capacity")
+    payload = canonical_json_bytes(expected)
+    if (
+        config["publication_budget_sha256"] != _sha256(payload)
+        or config["publication_budget"] != expected
+    ):
+        raise ValueError("publication budget authority differs")
+    return expected
+
+
+def validate_external_exact_publication_budget(
+    config: dict[str, object], budget: object
+) -> dict[str, object]:
+    """Re-derive partition-dependent budget authority from registered bytes."""
+
+    config = _strict_shape(config)
+    _validate_config_values(config)
+    partition_path = Path(config["inputs"]["partition"])
+    payload = partition_path.read_bytes()
+    if (
+        partition_path.is_symlink()
+        or _sha256(payload) != config["model"]["partition_sha256"]
+    ):
+        raise ValueError("publication budget partition authority differs")
+    observed = _partition_inventory(partition_path)
+    expected_inputs = {
+        key: config["artifact_budget_inputs"][key]
+        for key in (
+            "query_rows", "gallery_rows", "maximum_relevant_count",
+            "maximum_path_bytes",
+        )
+    }
+    if observed != expected_inputs:
+        raise ValueError("publication budget partition inventory differs")
+    return validate_exact_publication_budget(config, budget)
+
+
+def build_and_write_with_authorities(
+    *, repo: Path, checkout_root_template: str, artifact_root: Path, output: Path,
+    inference_structure: dict[str, object],
+    runtime_inference_signature: dict[str, object],
+    partition_inventory: dict[str, int],
+    cuda_canary_authority: dict[str, str],
+) -> tuple[dict[str, object], dict[str, object]]:
+    """Compatibility wrapper returning the now config-embedded budget."""
+
+    if os.path.lexists(output):
+        raise FileExistsError(output)
+
+    environment_path = (artifact_root / "preflight/cuda-environment.json").resolve()
+    config = build_run_config(
+        repo=repo,
+        checkout_root_template=checkout_root_template,
+        artifact_root=artifact_root,
+        inference_structure=inference_structure,
+        partition_inventory=partition_inventory,
+        cuda_canary_authority=cuda_canary_authority,
+        cuda_canary_environment={
+            "path": str(environment_path),
+            "sha256": cuda_canary_authority["environment_sha256"],
+            "bytes": 1,
+        },
+        publication_budget={},
+        runtime_inference_signature=runtime_inference_signature,
+    )
+    validate_config_build(config, repo)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    config_payload = canonical_json_bytes(config)
+    published = publish_bytes_noreplace(
+        output,
+        config_payload,
+        validator=lambda payload: (
+            None
+            if payload == config_payload and json.loads(payload) == config
+            else (_ for _ in ()).throw(ValueError("persisted FEPF config differs"))
+        ),
+    )
+    published.close()
+    if output.read_bytes() != config_payload:
+        raise RuntimeError("persisted FEPF config differs")
+    return config, config["publication_budget"]
+
+
+def _validate_config_handoff(
+    config_path: Path, repo: Path, *, external_budget: bool
+) -> dict[str, str]:
     raw = config_path.read_bytes()
     config = _strict_shape(json.loads(raw))
     if canonical_json_bytes(config) != raw:
@@ -555,19 +1072,82 @@ def validate_config_handoff(config_path: Path, repo: Path) -> dict[str, str]:
         _git(repo, "diff-tree", "--no-commit-id", "--name-only", "-r", head)
     ).splitlines()
     committed = _git(repo, "show", f"{head}:{relative}", binary=True)
-    if (
-        parent != config["source_commit"]
-        or changed != [relative]
-        or committed != raw
-        or config["source_files"] != _source_inventory(repo, parent)
-    ):
-        raise ValueError("config handoff commit differs")
+    if parent != config["source_commit"]:
+        raise ValueError("config handoff parent differs")
+    if changed != [relative]:
+        raise ValueError("config handoff path inventory differs")
+    if committed != raw:
+        raise ValueError("config handoff committed bytes differ")
+    if config["source_files"] != _source_inventory(repo, parent):
+        raise ValueError("config handoff source inventory differs")
+    if external_budget:
+        validate_external_exact_publication_budget(
+            config, config.get("publication_budget")
+        )
     checkout = config["checkout_root_template"].replace("{config_commit}", head)
-    if "{" in checkout or "}" in checkout or os.path.lexists(checkout):
+    if "{" in checkout or "}" in checkout:
         raise ValueError("resolved checkout root differs")
-    if os.path.lexists(config["artifact_root"]):
-        raise FileExistsError(config["artifact_root"])
     return {"config_commit": head, "checkout_root": checkout}
+
+
+def validate_config_handoff(config_path: Path, repo: Path) -> dict[str, str]:
+    return _validate_config_handoff(config_path, repo, external_budget=True)
+
+
+def validate_non_authentic_synthesized_handoff(
+    config_path: Path, repo: Path
+) -> dict[str, str]:
+    """Validate the CPU-only synthetic fixture without claiming target authority."""
+
+    config = _strict_shape(json.loads(config_path.read_bytes()))
+    legacy = config["legacy_runtime_authority"]
+    bindings = [legacy[name] for name in ("run_receipt", "config", "history")]
+    bindings.extend(legacy["checkpoints"])
+    if any(
+        "non-authentic" not in Path(binding["path"]).parts
+        for binding in bindings
+    ):
+        raise ValueError("non-authentic synthesized authority marker differs")
+    return _validate_config_handoff(config_path, repo, external_budget=False)
+
+
+def validate_config_membership(config_path: Path, repo: Path) -> dict[str, str]:
+    """Authenticate committed config bytes and checkout context only."""
+
+    return validate_config_handoff(config_path, repo)
+
+
+def validate_config_document(config: object) -> dict[str, object]:
+    value = _strict_shape(config)
+    _validate_config_values(value)
+    return value
+
+
+def validate_config_membership_document(
+    config: object, repo: Path
+) -> dict[str, object]:
+    value = validate_config_document(config)
+    repo = repo.resolve()
+    _require_clean(repo)
+    head = str(_git(repo, "rev-parse", "HEAD")).strip()
+    if head != value["source_commit"] or value["source_files"] != _source_inventory(repo, head):
+        raise ValueError("config source membership differs")
+    return value
+
+
+def validate_transfer_handoff(config: object, execution_checkout: Path) -> None:
+    validate_config_document(config)
+    if os.path.lexists(execution_checkout):
+        raise FileExistsError(execution_checkout)
+
+
+def validate_first_launch_absence(config: object) -> None:
+    """Require transfer destinations to be absent only for the first launch."""
+
+    value = _strict_shape(config)
+    artifact = Path(value["artifact_root"])
+    if os.path.lexists(artifact):
+        raise FileExistsError("campaign destination already exists")
 
 
 def _available(stat_result: Any) -> tuple[int, int]:
@@ -643,16 +1223,24 @@ def validate_campaign_resume(
     root = run_root.resolve()
     _plain_directory(root, "campaign root")
     inventory = set(registered_stage_inventory(value))
-    allowed_root_files = {"controller-status.json"}
+    allowed_root_files = {"controller-status.json", ".controller-status.json.tmp"}
+    decision_names = {
+        "exploratory-epoch4-decision",
+        "exploratory-decision",
+        "confirmation-decision",
+    }
+    allowed_publications = {
+        f"{name}-{suffix}.json"
+        for name in decision_names
+        for suffix in ("sources", "result")
+    }
     root_file_names = {
         child.name for child in root.iterdir()
         if child.is_file() and not child.is_symlink()
     }
     for name in tuple(root_file_names):
         if name.endswith("-sources.json"):
-            result = f"{name[:-len('-sources.json')]}-result.json"
-            if result not in root_file_names:
-                raise ValueError("campaign resume publication is incomplete")
+            continue
         elif name.endswith("-result.json"):
             sources = f"{name[:-len('-result.json')]}-sources.json"
             if sources not in root_file_names:
@@ -663,15 +1251,49 @@ def validate_campaign_resume(
         if child.is_file():
             if (
                 child.name not in allowed_root_files
-                and not child.name.endswith("-sources.json")
-                and not child.name.endswith("-result.json")
+                and child.name not in allowed_publications
             ):
                 raise ValueError("campaign resume registered path differs")
             continue
         if child.name == "preflight":
-            unexpected = [path for path in child.iterdir() if path.name != "cuda_canary_v1.json"]
+            allowed_preflight = {
+                "cuda_canary_v1.json", "cuda-environment.json", "canary-evidence",
+                "canary-evidence.staging", "publication-budget.json",
+            }
+            unexpected = [path for path in child.iterdir() if path.name not in allowed_preflight]
             if unexpected:
                 raise ValueError("campaign resume registered path differs")
+            evidence = child / "canary-evidence"
+            staging = child / "canary-evidence.staging"
+            if os.path.lexists(evidence) and os.path.lexists(staging):
+                raise ValueError("campaign resume registered path differs")
+            for namespace, complete in ((staging, False), (evidence, True)):
+                if not os.path.lexists(namespace):
+                    continue
+                if namespace.is_symlink() or not namespace.is_dir():
+                    raise ValueError("campaign resume registered path differs")
+                observed_evidence = set()
+                for path in namespace.iterdir():
+                    if path.is_symlink() or not path.is_file():
+                        raise ValueError("campaign resume registered path differs")
+                    payload = path.read_bytes()
+                    try:
+                        document = json.loads(payload)
+                    except Exception as error:
+                        raise ValueError("campaign resume registered path differs") from error
+                    if type(document) is not dict or canonical_json_bytes(document) != payload:
+                        raise ValueError("campaign resume registered path differs")
+                    observed_evidence.add(path.name)
+                valid = (
+                    observed_evidence == set(CANARY_EVIDENCE_ORDER)
+                    if complete
+                    else any(
+                        observed_evidence == set(CANARY_EVIDENCE_ORDER[:length])
+                        for length in range(len(CANARY_EVIDENCE_ORDER) + 1)
+                    )
+                )
+                if not valid:
+                    raise ValueError("campaign resume registered path differs")
             continue
         if child.name not in inventory:
             raise ValueError("campaign resume registered path differs")
@@ -703,6 +1325,10 @@ def validate_campaign_resume(
 
 def registered_stage_inventory(config: object) -> tuple[str, ...]:
     _validate_config_values(_strict_shape(config))
+    return _registered_stage_names()
+
+
+def _registered_stage_names() -> tuple[str, ...]:
     return (
         "cuda-canary", *(f"runtime-{index:02d}" for index in range(8)),
         "exploratory-control-stage4",
@@ -724,9 +1350,8 @@ def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--checkout-root-template", required=True)
     parser.add_argument("--artifact-root", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--cuda-device-uuid")
-    parser.add_argument("--cuda-environment-sha256")
     parser.add_argument("--validate-handoff", action="store_true")
+    parser.add_argument("--non-authentic-synthesized-authorities", action="store_true")
     return parser.parse_args(arguments)
 
 
@@ -734,17 +1359,44 @@ def main(arguments: Sequence[str] | None = None) -> int:
     args = parse_args(arguments)
     try:
         if args.validate_handoff:
+            if args.non_authentic_synthesized_authorities:
+                raise ValueError("non-authentic builder cannot validate handoff")
             validate_config_handoff(args.output, args.repo)
         else:
-            if args.cuda_device_uuid is None or args.cuda_environment_sha256 is None:
-                raise ValueError("CUDA canary external authority is required")
+            legacy_runtime_authority = _registered_legacy_runtime_authority()
+            if args.non_authentic_synthesized_authorities:
+                bindings = [
+                    legacy_runtime_authority[name]
+                    for name in ("run_receipt", "config", "history")
+                ]
+                bindings.extend(legacy_runtime_authority["checkpoints"])
+                if any(
+                    "non-authentic" not in Path(binding["path"]).parts
+                    for binding in bindings
+                ):
+                    raise ValueError(
+                        "non-authentic synthesized authority marker differs"
+                    )
+            runtime_inference_signature = _checkpoint_runtime_inference_signature(
+                Path(_inputs()["runtime_checkpoint"])
+            )
             build_and_write(
                 repo=args.repo, checkout_root_template=args.checkout_root_template,
                 artifact_root=args.artifact_root, output=args.output,
-                cuda_canary_authority={
-                    "device_uuid": args.cuda_device_uuid,
-                    "environment_sha256": args.cuda_environment_sha256,
+                cuda_canary_authority={},
+                cuda_canary_environment={
+                    "path": str(
+                        (
+                            args.artifact_root
+                            / "preflight/cuda-environment.json"
+                        ).resolve()
+                    )
                 },
+                publication_budget={},
+                runtime_inference_signature=runtime_inference_signature,
+                inference_structure=None,
+                partition_inventory=None,
+                legacy_runtime_authority=legacy_runtime_authority,
             )
     except Exception as error:
         print(f"FEPF config failed: {error}", file=sys.stderr)

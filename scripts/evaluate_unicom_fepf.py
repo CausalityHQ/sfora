@@ -16,6 +16,8 @@ from pathlib import Path
 import numpy as np
 import torch
 
+from sfora.atomic_publication import BudgetedPublisher, publish_bytes_noreplace
+
 EVALUATION_EPOCHS = (4, 8, 12, 16)
 EPOCH4_MAP_DELTA_MIN = 0.003
 EXPLORATORY_MAP_DELTA_MIN = 0.010
@@ -1317,16 +1319,18 @@ def _inventory_sha256(domain: bytes, inventory: object) -> str:
     return digest.hexdigest()
 
 
-def _query_observation(evaluation: object, *, expected_epoch: int) -> dict[str, object]:
+def _query_observation_from_rows(
+    evaluation: object, rows: object, *, expected_epoch: int
+) -> dict[str, object]:
     if (
         type(evaluation) is not dict
         or evaluation.get("epoch") != expected_epoch
-        or type(evaluation.get("query_evidence")) is not list
-        or not evaluation["query_evidence"]
+        or type(rows) is not list
+        or not rows
     ):
         raise ValueError("FEPF terminal query evidence differs")
     result = []
-    for row in evaluation["query_evidence"]:
+    for row in rows:
         ranked = row.get("ranked_prefix") if type(row) is dict else None
         if (
             type(row) is not dict
@@ -1389,6 +1393,92 @@ def _query_observation(evaluation: object, *, expected_epoch: int) -> dict[str, 
         ),
         "geometry": dict(geometry),
     }
+
+
+def load_ranked_query_observation(
+    evaluation: object, *, evidence_root: Path, expected_epoch: int
+) -> dict[str, object]:
+    """Strict-load the separate ranked-prefix authority for one evaluation."""
+
+    if (
+        type(evaluation) is not dict
+        or evaluation.get("epoch") != expected_epoch
+        or not isinstance(evidence_root, Path)
+    ):
+        raise ValueError("FEPF terminal query evidence differs")
+    root = evidence_root.resolve()
+    if evidence_root.absolute() != root or not root.is_dir() or root.is_symlink():
+        raise ValueError("FEPF ranked query evidence root differs")
+    binding = evaluation.get("ranked_prefix_evidence")
+    expected_name = f"evaluation-epoch-{expected_epoch:04d}-ranked-prefix.json"
+    path = root / expected_name
+    if (
+        type(binding) is not dict
+        or tuple(binding) != ("path", "sha256", "bytes")
+        or binding["path"] != expected_name
+        or type(binding["sha256"]) is not str
+        or len(binding["sha256"]) != 64
+        or type(binding["bytes"]) is not int
+        or binding["bytes"] <= 0
+        or path.is_symlink()
+        or not path.is_file()
+        or path.resolve().parent != root
+    ):
+        raise ValueError("FEPF ranked query evidence authority differs")
+    payload = path.read_bytes()
+    if (
+        len(payload) != binding["bytes"]
+        or hashlib.sha256(payload).hexdigest() != binding["sha256"]
+    ):
+        raise ValueError("FEPF ranked query evidence authority differs")
+    try:
+        rows = json.loads(payload)
+    except (TypeError, ValueError) as error:
+        raise ValueError("FEPF ranked query evidence authority differs") from error
+    if payload != (json.dumps(rows, indent=2, allow_nan=False) + "\n").encode():
+        raise ValueError("FEPF ranked query evidence is noncanonical")
+    row_keys = (
+        "query_path", "query_label", "relevant_gallery_count", "ap_at_r",
+        "query_sha256", "complete_ranking_sha256", "ranked_prefix",
+    )
+    ranked_keys = (
+        "gallery_index", "gallery_path", "gallery_label", "score", "correct"
+    )
+    if type(rows) is not list or not rows:
+        raise ValueError("FEPF ranked query evidence schema differs")
+    for row in rows:
+        ranked = row.get("ranked_prefix") if type(row) is dict else None
+        if (
+            type(row) is not dict
+            or tuple(row) != row_keys
+            or type(row["query_path"]) is not str
+            or type(row["query_label"]) is not str
+            or type(row["relevant_gallery_count"]) is not int
+            or row["relevant_gallery_count"] <= 0
+            or type(row["ap_at_r"]) is not float
+            or not math.isfinite(row["ap_at_r"])
+            or not _lower_sha256(row["query_sha256"])
+            or not _lower_sha256(row["complete_ranking_sha256"])
+            or type(ranked) is not list
+            or not ranked
+        ):
+            raise ValueError("FEPF ranked query evidence schema differs")
+        if any(
+            type(item) is not dict
+            or tuple(item) != ranked_keys
+            or type(item["gallery_index"]) is not int
+            or item["gallery_index"] < 0
+            or type(item["gallery_path"]) is not str
+            or type(item["gallery_label"]) is not str
+            or type(item["score"]) is not float
+            or not math.isfinite(item["score"])
+            or type(item["correct"]) is not bool
+            for item in ranked
+        ):
+            raise ValueError("FEPF ranked query evidence schema differs")
+    return _query_observation_from_rows(
+        evaluation, rows, expected_epoch=expected_epoch
+    )
 
 
 def _pooled_quality_profile(
@@ -1469,7 +1559,11 @@ def _load_arm_observation(
         name="terminal evaluation",
     )
     evaluation = _strict_json_file(terminal_path)
-    query_unit = _query_observation(evaluation, expected_epoch=stop_after_epoch)
+    query_unit = load_ranked_query_observation(
+        evaluation,
+        evidence_root=terminal_path.parent,
+        expected_epoch=stop_after_epoch,
+    )
     checkpoint_binding = run_receipt["checkpoints"][-1]
     checkpoint_path = _bound_file(
         {key: checkpoint_binding[key] for key in ("root", "path", "sha256", "bytes")},
@@ -2036,62 +2130,16 @@ def write_fepf_result_atomic(
     if _path_lexists(temporary):
         raise FileExistsError(temporary)
     payload = (json.dumps(result, indent=2, allow_nan=False) + "\n").encode()
-    directory_descriptor = os.open(root, os.O_RDONLY | os.O_DIRECTORY)
-    owned: tuple[int, int] | None = None
-    owned_descriptor: int | None = None
-    completed = False
-    try:
-        with temporary.open("xb") as handle:
-            handle.write(payload)
-            handle.flush()
-            os.fsync(handle.fileno())
-            owned_descriptor = os.dup(handle.fileno())
-            information = os.fstat(owned_descriptor)
-            owned = (information.st_dev, information.st_ino)
-        if owned is None or owned_descriptor is None:
-            raise RuntimeError("temporary FEPF result ownership differs")
-        if _inode_identity(temporary) != owned:
-            raise RuntimeError("temporary FEPF result ownership differs")
-        persisted = _strict_json_file(temporary)
-        if _inode_identity(temporary) != owned:
-            raise RuntimeError("temporary FEPF result ownership differs")
-        if not _strict_typed_equal(persisted, result):
+    def validate(persisted_payload: bytes) -> None:
+        persisted = json.loads(persisted_payload)
+        if persisted_payload != payload or not _strict_typed_equal(persisted, result):
             raise RuntimeError("persisted FEPF result bytes differ")
-        validate_fepf_result(
-            persisted, root, sources_authority=sources_authority
-        )
-        if _inode_identity(temporary) != owned:
-            raise RuntimeError("temporary FEPF result ownership differs")
-        os.link(temporary, output)
-        os.fsync(directory_descriptor)
-        if not _unlink_owned(temporary, owned, directory_descriptor):
-            raise RuntimeError("temporary FEPF result ownership differs")
-        published = _strict_json_file(output)
-        output_info = output.stat()
-        if (
-            owned != (output_info.st_dev, output_info.st_ino)
-            or output.read_bytes() != payload
-        ):
-            raise RuntimeError("published FEPF result bytes differ")
-        validate_fepf_result(
-            published, root, sources_authority=sources_authority
-        )
-        completed = True
-        return published
-    finally:
-        if owned is not None:
-            _unlink_owned(temporary, owned, directory_descriptor)
-        if (
-            not completed
-            and owned is not None
-            and _path_lexists(output)
-            and _inode_identity(output) == owned
-        ):
-            output.unlink()
-            os.fsync(directory_descriptor)
-        if owned_descriptor is not None:
-            os.close(owned_descriptor)
-        os.close(directory_descriptor)
+        validate_fepf_result(persisted, root, sources_authority=sources_authority)
+
+    published = publish_bytes_noreplace(output, payload, validator=validate)
+    persisted = json.loads(published.payload)
+    published.close()
+    return persisted
 
 
 def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
@@ -2105,12 +2153,99 @@ def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--evidence-root", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--temporary", type=Path, required=True)
+    parser.add_argument("--config", type=Path, required=True)
+    parser.add_argument("--publication-stage")
+    parser.add_argument("--campaign-root", type=Path)
+    parser.add_argument("--authority-preflight-only", action="store_true")
     return parser.parse_args(arguments)
+
+
+def validate_publication_payload_bound(
+    row: object, *, destination: Path, payload: bytes, campaign_root: Path
+) -> None:
+    if type(row) is not dict:
+        raise ValueError("publication budget row differs")
+    try:
+        relative = destination.resolve().relative_to(campaign_root.resolve()).as_posix()
+    except ValueError as error:
+        raise ValueError("publication budget path differs") from error
+    if row.get("path") != relative:
+        raise ValueError("publication budget path differs")
+    if len(payload) > row.get("persistent_bytes", -1):
+        raise OSError("publication payload bytes exceed budget")
 
 
 def main(arguments: Sequence[str] | None = None) -> int:
     args = parse_args(arguments)
     try:
+        if args.publication_stage is None or args.campaign_root is None:
+            raise ValueError(
+                "evaluation publication stage and campaign root are required"
+            )
+        config = _strict_json_file(args.config)
+        builder_path = Path(__file__).with_name("build_unicom_fepf_run_config.py")
+        specification = importlib.util.spec_from_file_location(
+            "evaluation_exact_budget_builder", builder_path
+        )
+        if specification is None or specification.loader is None:
+            raise ValueError("evaluation publication budget validator differs")
+        builder = importlib.util.module_from_spec(specification)
+        specification.loader.exec_module(builder)
+        budget_validator = (
+            builder.validate_exact_publication_budget
+            if args.authority_preflight_only
+            else builder.validate_external_exact_publication_budget
+        )
+        budget_validator(config, config.get("publication_budget"))
+        budget = config.get("publication_budget")
+        budget_payload = (json.dumps(budget, indent=2, allow_nan=False) + "\n").encode()
+        root = Path(config.get("artifact_root", ""))
+        try:
+            relative_output = args.output.resolve().relative_to(root.resolve()).as_posix()
+        except ValueError as error:
+            raise ValueError("evaluation publication budget path differs") from error
+        rows = budget.get("publications") if type(budget) is dict else None
+        matching = (
+            [row for row in rows if row.get("path") == relative_output]
+            if type(rows) is list
+            else []
+        )
+        if args.publication_stage is not None:
+            if args.campaign_root is None or args.campaign_root.resolve() != root.resolve():
+                raise ValueError("evaluation campaign root differs")
+            expected_name = f"{args.publication_stage}:result"
+            matching = [
+                row for row in matching if row.get("name") == expected_name
+            ]
+        if (
+            hashlib.sha256(budget_payload).hexdigest()
+            != config.get("publication_budget_sha256")
+            or len(matching) != 1
+        ):
+            raise ValueError("evaluation publication budget authority differs")
+        publisher = BudgetedPublisher(
+            campaign_root=root,
+            budget_path=root / config["publication_budget_path"],
+            budget_sha256=config["publication_budget_sha256"],
+            exact_budget=config["publication_budget"],
+            physical_admission=not args.authority_preflight_only,
+        )
+        publisher.validate_payload(
+            name=f"{args.publication_stage}:result",
+            destination=args.output,
+            payload=b"",
+        )
+        if args.authority_preflight_only:
+            return 0
+        available = os.statvfs(root)
+        row = matching[0]
+        if (
+            available.f_bavail * available.f_frsize
+            < row["persistent_bytes"] + row["temporary_bytes"]
+            or available.f_favail
+            < row["persistent_inodes"] + row["temporary_inodes"]
+        ):
+            raise OSError("evaluation publication capacity is insufficient")
         sources = _strict_json_file(args.sources)
         sources_authority = {
             "path": str(args.sources.resolve()),
@@ -2122,6 +2257,18 @@ def main(arguments: Sequence[str] | None = None) -> int:
             sources=sources,
             sources_authority=sources_authority,
             evidence_root=args.evidence_root,
+        )
+        result_payload = (json.dumps(result, indent=2, allow_nan=False) + "\n").encode()
+        validate_publication_payload_bound(
+            row,
+            destination=args.output,
+            payload=result_payload,
+            campaign_root=root,
+        )
+        publisher.validate_payload(
+            name=f"{args.publication_stage}:result",
+            destination=args.output,
+            payload=result_payload,
         )
         write_fepf_result_atomic(
             result,

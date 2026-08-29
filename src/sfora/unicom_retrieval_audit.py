@@ -13,6 +13,7 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 
 import numpy as np
 
+from sfora.atomic_publication import publish_bytes_noreplace
 from sfora.unicom_inshop import InshopRecord
 
 RECALL_AT_K = (1, 10, 20, 30)
@@ -677,23 +678,33 @@ def _validate_evaluation_metrics(value: object) -> None:
         raise ValueError("evaluation aggregate metrics differ")
 
 
-def _write_npy_exclusive(path: Path, values: np.ndarray) -> None:
-    if path.exists() or path.is_symlink():
-        raise FileExistsError(path)
-    with path.open("xb") as handle:
-        np.save(handle, values, allow_pickle=False)
-        handle.flush()
-        os.fsync(handle.fileno())
+def _encode_npy(values: np.ndarray) -> bytes:
+    import io
+
+    output = io.BytesIO()
+    np.save(output, values, allow_pickle=False)
+    return output.getvalue()
 
 
-def _write_json_exclusive(path: Path, value: dict[str, object]) -> None:
+def _write_npy_exclusive(path: Path, values: np.ndarray):
+    return _publish_bytes_retained(path, _encode_npy(values))
+
+
+def _write_json_exclusive(path: Path, value: object):
     payload = (json.dumps(value, indent=2, allow_nan=False) + "\n").encode()
-    if path.exists() or path.is_symlink():
-        raise FileExistsError(path)
-    with path.open("xb") as handle:
-        handle.write(payload)
-        handle.flush()
-        os.fsync(handle.fileno())
+    return _publish_bytes_retained(path, payload)
+
+
+def _publish_bytes_retained(path: Path, payload: bytes):
+    return publish_bytes_noreplace(
+        path,
+        payload,
+        validator=lambda persisted: (
+            None
+            if persisted == payload
+            else (_ for _ in ()).throw(ValueError("evaluation evidence differs"))
+        ),
+    )
 
 
 def write_evaluation_evidence(
@@ -707,6 +718,7 @@ def write_evaluation_evidence(
     normalize_before: bool,
     epoch: int,
     evidence_root: Path,
+    publication_guard=lambda _component, _destination, _payload: None,
 ) -> dict[str, object]:
     """Persist immutable descriptor preimages and their recomputable receipt."""
 
@@ -748,13 +760,35 @@ def write_evaluation_evidence(
     stem = f"evaluation-epoch-{epoch:04d}"
     query_path = resolved_root / f"{stem}-query.npy"
     gallery_path = resolved_root / f"{stem}-gallery.npy"
+    ranked_path = resolved_root / f"{stem}-ranked-prefix.json"
     receipt_path = resolved_root / f"{stem}.json"
-    created: list[Path] = []
+    created = []
     try:
-        _write_npy_exclusive(query_path, np.ascontiguousarray(query_values))
-        created.append(query_path)
-        _write_npy_exclusive(gallery_path, np.ascontiguousarray(gallery_values))
-        created.append(gallery_path)
+        query_payload = _encode_npy(np.ascontiguousarray(query_values))
+        publication_guard("query", query_path, query_payload)
+        published = _write_npy_exclusive(
+            query_path, np.ascontiguousarray(query_values)
+        )
+        if published.payload != query_payload:
+            raise RuntimeError("query publication bytes differ")
+        created.append((query_path, published))
+        gallery_payload = _encode_npy(np.ascontiguousarray(gallery_values))
+        publication_guard("gallery", gallery_path, gallery_payload)
+        published = _write_npy_exclusive(
+            gallery_path, np.ascontiguousarray(gallery_values)
+        )
+        if published.payload != gallery_payload:
+            raise RuntimeError("gallery publication bytes differ")
+        created.append((gallery_path, published))
+        ranked_rows = _json_query_rows(rows)
+        ranked_payload = (
+            json.dumps(ranked_rows, indent=2, allow_nan=False) + "\n"
+        ).encode()
+        publication_guard("ranked-prefix", ranked_path, ranked_payload)
+        published = _write_json_exclusive(ranked_path, ranked_rows)
+        if published.payload != ranked_payload:
+            raise RuntimeError("ranked-prefix publication bytes differ")
+        created.append((ranked_path, published))
         receipt: dict[str, object] = {
             "schema": "unicom-evaluation-evidence-v1",
             "epoch": epoch,
@@ -772,7 +806,11 @@ def write_evaluation_evidence(
             ),
             "query_records": [record.__dict__ for record in logical_query],
             "gallery_records": [record.__dict__ for record in logical_gallery],
-            "query_evidence": _json_query_rows(rows),
+            "ranked_prefix_evidence": {
+                "path": ranked_path.relative_to(resolved_root).as_posix(),
+                "sha256": hashlib.sha256(ranked_payload).hexdigest(),
+                "bytes": len(ranked_payload),
+            },
             "metrics": metrics,
             "evaluation_signature": {
                 "descriptor_dtype": "float32",
@@ -793,14 +831,32 @@ def write_evaluation_evidence(
             },
         }
         validate_evaluation_evidence(receipt, resolved_root)
-        _write_json_exclusive(receipt_path, receipt)
-        created.append(receipt_path)
+        receipt_payload = (json.dumps(receipt, indent=2, allow_nan=False) + "\n").encode()
+        publication_guard("receipt", receipt_path, receipt_payload)
+        published = _write_json_exclusive(receipt_path, receipt)
+        if published.payload != receipt_payload:
+            raise RuntimeError("evaluation receipt publication bytes differ")
+        created.append((receipt_path, published))
         persisted = json.loads(receipt_path.read_bytes())
         validate_evaluation_evidence(persisted, resolved_root)
+        for _path, publication in created:
+            publication.close()
         return receipt
     except Exception:
-        for path in reversed(created):
-            path.unlink(missing_ok=True)
+        directory_descriptor = os.open(resolved_root, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            for path, publication in reversed(created):
+                try:
+                    info = path.lstat()
+                except FileNotFoundError:
+                    publication.close()
+                    continue
+                if (info.st_dev, info.st_ino) == publication.identity:
+                    path.unlink()
+                    os.fsync(directory_descriptor)
+                publication.close()
+        finally:
+            os.close(directory_descriptor)
         raise
 
 
@@ -903,7 +959,7 @@ def validate_evaluation_evidence(receipt: object, evidence_root: Path) -> None:
         "gallery_descriptors",
         "query_records",
         "gallery_records",
-        "query_evidence",
+        "ranked_prefix_evidence",
         "metrics",
         "evaluation_signature",
     )
@@ -991,6 +1047,30 @@ def validate_evaluation_evidence(receipt: object, evidence_root: Path) -> None:
         or receipt["gallery_descriptors"].get("path") != f"{stem}-gallery.npy"
     ):
         raise ValueError("gallery descriptor path differs")
+    ranked_binding = receipt["ranked_prefix_evidence"]
+    ranked_path = resolved_root / f"{stem}-ranked-prefix.json"
+    if (
+        type(ranked_binding) is not dict
+        or tuple(ranked_binding) != ("path", "sha256", "bytes")
+        or ranked_binding["path"] != ranked_path.name
+        or ranked_path.is_symlink()
+        or not ranked_path.is_file()
+    ):
+        raise ValueError("ranked-prefix evidence authority differs")
+    ranked_payload = ranked_path.read_bytes()
+    if (
+        hashlib.sha256(ranked_payload).hexdigest() != ranked_binding["sha256"]
+        or len(ranked_payload) != ranked_binding["bytes"]
+    ):
+        raise ValueError("ranked-prefix evidence authority differs")
+    try:
+        ranked_value = json.loads(ranked_payload)
+    except (TypeError, ValueError) as error:
+        raise ValueError("ranked-prefix evidence authority differs") from error
+    if ranked_payload != (
+        json.dumps(ranked_value, indent=2, allow_nan=False) + "\n"
+    ).encode():
+        raise ValueError("ranked-prefix evidence authority differs")
     query_values = _load_bound_descriptors(
         receipt["query_descriptors"], evidence_root=resolved_root, name="query"
     )
@@ -1015,12 +1095,12 @@ def validate_evaluation_evidence(receipt: object, evidence_root: Path) -> None:
         coordinates=np.arange(512, dtype=np.int64),
         normalize_before=True,
     )
-    supplied_rows = _query_rows_from_json(receipt["query_evidence"])
+    supplied_rows = _query_rows_from_json(ranked_value)
     supplied_metrics = recompute_query_metrics(supplied_rows)
     _validate_evaluation_metrics(receipt["metrics"])
     if not strict_typed_equal(supplied_metrics, receipt["metrics"]):
         raise ValueError("evaluation aggregate metrics differ")
-    if not strict_typed_equal(receipt["query_evidence"], _json_query_rows(rebuilt)):
+    if not strict_typed_equal(ranked_value, _json_query_rows(rebuilt)):
         raise ValueError("per-query evaluation evidence differs")
     metrics = recompute_query_metrics(rebuilt)
     if not strict_typed_equal(receipt["metrics"], metrics):

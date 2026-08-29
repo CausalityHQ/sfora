@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import copy
+import hashlib
+import importlib
 import importlib.util
 import json
 import math
@@ -17,6 +19,31 @@ SPEC = importlib.util.spec_from_file_location("profile_unicom_training_step", MO
 assert SPEC is not None and SPEC.loader is not None
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
+
+
+def _registered_environment() -> dict[str, object]:
+    return {
+        "python_vv": "Python 3.12.3",
+        "torch": "2.6.0",
+        "torchvision": "0.21.0",
+        "timm": "1.0.0",
+        "numpy": "2.1.3",
+        "cuda": "12.4",
+        "cudnn": "90100",
+        "compile": {"available": "True", "inductor": "registered"},
+        "device_uuid": "GPU-registered",
+        "gpu_inventory": ["H100, GPU-registered, 550.54"],
+        "pyproject_sha256": "1" * 64,
+        "uv_lock_sha256": "2" * 64,
+        "deterministic_execution": {
+            "deterministic_algorithms": True,
+            "cuda_matmul_tf32": False,
+            "cudnn_tf32": False,
+            "cudnn_benchmark": False,
+            "cudnn_deterministic": True,
+            "cublas_workspace_config": ":4096:8",
+        },
+    }
 
 
 def _assert_nested_state_equal(left, right) -> None:
@@ -878,16 +905,74 @@ def test_atomic_writer_roundtrips_and_never_clobbers(tmp_path: Path) -> None:
 
 
 def test_main_publishes_one_profile_and_reports_gate(tmp_path: Path, monkeypatch, capsys) -> None:
-    output = tmp_path / "profile.json"
+    root = tmp_path / "campaign"
+    root.mkdir()
+    output = root / "quality-profile/terminal.json"
+    environment_path = root / "preflight/cuda-environment.json"
+    environment_path.parent.mkdir()
+    environment_payload = (
+        json.dumps(_registered_environment(), indent=2, allow_nan=False) + "\n"
+    ).encode()
+    environment_path.write_bytes(environment_payload)
+    budget = {
+        "schema": "unicom-fepf-publication-budget-v1",
+        "publications": [{
+            "name": "quality-profile:terminal",
+            "path": "quality-profile/terminal.json",
+            "persistent_bytes": 4096,
+            "temporary_bytes": 4096,
+            "persistent_inodes": 1,
+            "temporary_inodes": 1,
+        }, {
+            "name": "cuda-canary:environment",
+            "path": "preflight/cuda-environment.json",
+            "persistent_bytes": 4096,
+            "temporary_bytes": 4096,
+            "persistent_inodes": 1,
+            "temporary_inodes": 1,
+        }],
+    }
+    budget_payload = (json.dumps(budget, indent=2, allow_nan=False) + "\n").encode()
+    budget_path = root / "preflight/publication-budget.json"
+    budget_path.write_bytes(budget_payload)
+    config_path = tmp_path / "config.json"
+    config_path.write_text(json.dumps({
+        "artifact_root": str(root),
+        "publication_budget": budget,
+        "publication_budget_path": "preflight/publication-budget.json",
+        "publication_budget_sha256": hashlib.sha256(budget_payload).hexdigest(),
+        "cuda_canary_environment": {
+            "path": str(environment_path.resolve()),
+            "sha256": hashlib.sha256(environment_payload).hexdigest(),
+            "bytes": len(environment_payload),
+        },
+    }, indent=2) + "\n")
     expected = {"profile_kind": "quality", "runtime_mode": "current"}
     monkeypatch.setattr(MODULE, "replay_profile", lambda _args: expected)
+
+    class BudgetLoader:
+        @staticmethod
+        def exec_module(module) -> None:
+            module.validate_external_exact_publication_budget = lambda *_args: budget
+
+    specification = types.SimpleNamespace(loader=BudgetLoader())
+    monkeypatch.setattr(
+        MODULE.importlib.util,
+        "spec_from_file_location",
+        lambda *_args, **_kwargs: specification,
+    )
+    monkeypatch.setattr(
+        MODULE.importlib.util,
+        "module_from_spec",
+        lambda _specification: types.SimpleNamespace(),
+    )
     arguments = [
         "--run-checkpoint",
         str(tmp_path / "epoch-0004.pt"),
         "--run-receipt",
         str(tmp_path / "run-receipt.json"),
         "--config",
-        str(tmp_path / "config.json"),
+        str(config_path),
         "--unicom-checkout",
         str(tmp_path / "unicom"),
         "--initial-checkpoint",
@@ -902,6 +987,14 @@ def test_main_publishes_one_profile_and_reports_gate(tmp_path: Path, monkeypatch
         MODULE.PARENT_TRAINER_SOURCE,
         "--output",
         str(output),
+        "--publication-stage",
+        "quality-profile",
+        "--campaign-root",
+        str(root),
+        "--environment-authority",
+        str(environment_path),
+        "--environment-sha256",
+        hashlib.sha256(environment_payload).hexdigest(),
     ]
 
     assert MODULE.main(arguments) == 0
@@ -956,7 +1049,7 @@ def test_review_quality_profile_rejects_nonexistent_or_nonterminal_authority() -
         MODULE.validate_quality_profile(changed)
 
 
-def test_review_quality_profile_reloads_canonical_live_chain_and_rejects_mutations(
+def test_review4_quality_profile_reloads_canonical_live_chain_and_rejects_mutations(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -970,22 +1063,25 @@ def test_review_quality_profile_reloads_canonical_live_chain_and_rejects_mutatio
     receipt["objective_call_count"] = 0
     receipt["objective_samples"] = []
     live_hash = receipt["live_trainer_sha256"]
-    protocol = {"trainer_sha256": live_hash}
+    protocol = {
+        "trainer_sha256": live_hash,
+        "environment": copy.deepcopy(receipt["environment"]),
+        "environment_sha256": receipt["environment_sha256"],
+    }
     receipt["checkpoint_protocol"] = protocol
-    signature = receipt["inference_signature"]
-    signature["tensors"] = [
-        {
-            "name": "weight",
-            "kind": "parameter",
-            "shape": [2, 2],
-            "dtype": "torch.float32",
-            "numel": 4,
-            "element_size": 4,
-            "bytes": 16,
-            "sha256": "9" * 64,
-        }
-    ]
-    signature["total_bytes"] = 16
+    trainer_path = MODULE_PATH.with_name("train_unicom_inshop.py")
+    trainer_spec = importlib.util.spec_from_file_location(
+        "review4_quality_trainer", trainer_path
+    )
+    assert trainer_spec is not None and trainer_spec.loader is not None
+    trainer_module = importlib.util.module_from_spec(trainer_spec)
+    trainer_spec.loader.exec_module(trainer_module)
+    signature_model = torch.nn.Linear(2, 2, bias=False)
+    torch.nn.init.zeros_(signature_model.weight)
+    signature = trainer_module.build_inference_signature(
+        signature_model, descriptor=torch.zeros((1, 512), dtype=torch.float32)
+    )
+    receipt["inference_signature"] = signature
     evidence_root = tmp_path / "quality"
     evidence_root.mkdir()
     checkpoint_path = evidence_root / "epoch-0016.pt"
@@ -1047,6 +1143,11 @@ def test_review_quality_profile_reloads_canonical_live_chain_and_rejects_mutatio
     profiler_hash = MODULE._sha256_file(MODULE_PATH)
     receipt["profiler_sha256"] = profiler_hash
     config_path = tmp_path / "config.json"
+    environment_path = tmp_path / "environment.json"
+    environment_payload = (
+        json.dumps(receipt["environment"], indent=2, allow_nan=False) + "\n"
+    ).encode()
+    environment_path.write_bytes(environment_payload)
     config = {
         "source_commit": "1" * 40,
         "parent_trainer_commit": MODULE.PARENT_TRAINER_COMMIT,
@@ -1054,6 +1155,12 @@ def test_review_quality_profile_reloads_canonical_live_chain_and_rejects_mutatio
         "parent_trainer_sha256": MODULE.PARENT_TRAINER_SHA256,
         "live_trainer_sha256": live_hash,
         "profiler_sha256": profiler_hash,
+        "cuda_canary_environment": {
+            "path": str(environment_path.resolve()),
+            "sha256": hashlib.sha256(environment_payload).hexdigest(),
+            "bytes": len(environment_payload),
+        },
+        "runtime_inference_signature": signature,
     }
     config_path.write_text(
         json.dumps(config, indent=2, allow_nan=False) + "\n",
@@ -1103,6 +1210,18 @@ def test_review_quality_profile_reloads_canonical_live_chain_and_rejects_mutatio
     run_receipt_path.write_text(json.dumps(run_receipt) + "\n", encoding="utf-8")
     changed["run_receipt"] = MODULE._file_authority(run_receipt_path)
     with pytest.raises(ValueError, match="noncanonical"):
+        MODULE.validate_quality_profile(changed)
+
+    run_receipt_path.write_text(
+        json.dumps(run_receipt, indent=2, allow_nan=False) + "\n",
+        encoding="utf-8",
+    )
+    changed = copy.deepcopy(receipt)
+    changed["environment"]["torch"] = "substituted"
+    changed["environment_sha256"] = hashlib.sha256(
+        (json.dumps(changed["environment"], indent=2) + "\n").encode()
+    ).hexdigest()
+    with pytest.raises(ValueError, match="environment"):
         MODULE.validate_quality_profile(changed)
 
 
@@ -1239,6 +1358,7 @@ def _runtime_smoke_receipt(
     wall: float,
 ) -> dict[str, object]:
     composed = runtime_mode == "composed"
+    environment = _registered_environment()
     inference_signature = {
         "schema": "unicom-inference-signature-v1",
         "tensors": [
@@ -1373,13 +1493,10 @@ def _runtime_smoke_receipt(
                 }
             ],
         },
-        "environment": {
-            "python_version": "3.12.3",
-            "torch_version": "2.6.0",
-            "numpy_version": "2.1.3",
-            "cuda_version": "12.4",
-            "device_name": "NVIDIA H100 80GB HBM3",
-        },
+        "environment_sha256": hashlib.sha256(
+            (json.dumps(environment, indent=2, allow_nan=False) + "\n").encode()
+        ).hexdigest(),
+        "environment": environment,
     }
 
 
@@ -1419,11 +1536,12 @@ def test_review2_public_runtime_validator_reloads_external_authorities(tmp_path:
             "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
             "bytes": path.stat().st_size,
         }
-    MODULE.validate_runtime_profile(
-        receipt, expected_mode="current", checkpoint=checkpoint,
-        run_receipt=run_receipt, config=config,
-        expected_environment=receipt["environment"],
-    )
+    with pytest.raises(ValueError, match="authority"):
+        MODULE.validate_runtime_profile(
+            receipt, expected_mode="current", checkpoint=checkpoint,
+            run_receipt=run_receipt, config=config,
+            expected_environment=receipt["environment"],
+        )
     checkpoint.write_bytes(b"substituted")
     with pytest.raises(ValueError, match="authority"):
         MODULE.validate_runtime_profile(
@@ -1431,6 +1549,1015 @@ def test_review2_public_runtime_validator_reloads_external_authorities(tmp_path:
             run_receipt=run_receipt, config=config,
             expected_environment=receipt["environment"],
         )
+
+
+def test_review3_profile_cli_binds_complete_environment_authority(tmp_path: Path) -> None:
+    environment = _registered_environment()
+    authority = tmp_path / "environment.json"
+    payload = (json.dumps(environment, indent=2, allow_nan=False) + "\n").encode()
+    authority.write_bytes(payload)
+    args = MODULE.parse_args(
+        [
+            "--run-checkpoint", str(tmp_path / "epoch-0016.pt"),
+            "--run-receipt", str(tmp_path / "run-receipt.json"),
+            "--config", str(tmp_path / "config.json"),
+            "--unicom-checkout", str(tmp_path / "unicom"),
+            "--initial-checkpoint", str(tmp_path / "initial.pt"),
+            "--dataset-root", str(tmp_path / "dataset"),
+            "--runtime-mode", "current",
+            "--profile-kind", "runtime",
+            "--parent-trainer-source", MODULE.PARENT_TRAINER_SOURCE,
+            "--environment-authority", str(authority),
+            "--environment-sha256", hashlib.sha256(payload).hexdigest(),
+            "--output", str(tmp_path / "profile.json"),
+        ]
+    )
+    assert MODULE.load_registered_environment_authority(
+        args.environment_authority, args.environment_sha256
+    ) == environment
+
+
+def test_review3_profile_publication_rejects_destination_inode_substitution(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    destination = tmp_path / "profile.json"
+    publication = importlib.import_module("sfora.atomic_publication")
+    original = publication._link_fd_noreplace
+
+    def substitute(descriptor: int, directory_descriptor: int, name: str) -> None:
+        original(descriptor, directory_descriptor, name)
+        payload = destination.read_bytes()
+        destination.unlink()
+        destination.write_bytes(payload)
+
+    monkeypatch.setattr(publication, "_link_fd_noreplace", substitute)
+    with pytest.raises(RuntimeError, match="inode"):
+        MODULE.write_json_atomic(destination, {"registered": True})
+    assert destination.read_bytes() == b'{\n  "registered": true\n}\n'
+
+
+def test_review4_synthesized_runtime_roots_minimal_run_and_partial_checkpoint_protocol(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import torch
+
+    trainer_path = MODULE_PATH.with_name("train_unicom_inshop.py")
+    spec = importlib.util.spec_from_file_location("review4_trainer", trainer_path)
+    assert spec is not None and spec.loader is not None
+    trainer = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(trainer)
+    model = torch.nn.Linear(2, 2, bias=False)
+    descriptor = torch.zeros((1, 512), dtype=torch.float32)
+    optimizer = torch.optim.AdamW(model.parameters())
+    parameter = next(model.parameters())
+    parameter.grad = torch.ones_like(parameter)
+    optimizer.step()
+    signature = trainer.build_inference_signature(model, descriptor=descriptor)
+    checkpoint_protocol = {"trainer_sha256": MODULE.PARENT_TRAINER_SHA256}
+    checkpoint_paths = []
+    for epoch in (4, 8, 12, 16):
+        path = tmp_path / f"epoch-{epoch:04d}.pt"
+        torch.save(
+            {
+                "epoch": epoch,
+                "model": dict(model.state_dict()),
+                "classifier": torch.zeros((4, 2)),
+                "ema": {},
+                "optimizer": optimizer.state_dict(),
+                "scheduler": {},
+                "scaler": None,
+                "mask_generator": torch.Generator().get_state(),
+                "torch_rng_state": torch.get_rng_state(),
+                "cuda_rng_states": [torch.Generator().get_state()],
+                "selection_holdout": {"seed": 0, "fraction": 0.2},
+                "training_protocol": checkpoint_protocol,
+                "history": [],
+            },
+            path,
+        )
+        checkpoint_paths.append(path)
+    history = tmp_path / "history.json"
+    history.write_text("[]\n")
+    legacy_config_path = tmp_path / "legacy-config.json"
+    profiler_hash = MODULE._sha256_file(MODULE_PATH)
+    legacy_config = {
+        "source_commit": "1" * 40,
+        "parent_trainer_commit": MODULE.PARENT_TRAINER_COMMIT,
+        "parent_trainer_path": MODULE.PARENT_TRAINER_PATH,
+        "parent_trainer_sha256": MODULE.PARENT_TRAINER_SHA256,
+        "profiler_sha256": profiler_hash,
+        "runtime_inference_signature": signature,
+    }
+    legacy_config_path.write_text(json.dumps(legacy_config, indent=2) + "\n")
+    run_object = trainer.training_run_receipt(
+        source_commit="1" * 40,
+        config_path=str(legacy_config_path),
+        config_sha256=hashlib.sha256(legacy_config_path.read_bytes()).hexdigest(),
+        seed=2,
+        arm="sampled_512",
+        objective="official-eight-mask",
+        selected_features=512,
+        evaluation_features=768,
+        command=["python", "trainer.py", "--classifier-init", "imprinted"],
+        started_unix_ns=1,
+        finished_unix_ns=2,
+        elapsed_seconds=1.0,
+        peak_allocated_bytes=1,
+        peak_reserved_bytes=2,
+        exit_status=0,
+        history_path=history,
+        checkpoint_paths=tuple(checkpoint_paths),
+        runtime={"python": "3.12", "torch": "2.6", "cuda": "12.4"},
+    )
+    run_path = tmp_path / "run-receipt.json"
+    run_path.write_text(json.dumps(run_object, indent=2) + "\n")
+
+    def authority(path: Path) -> dict[str, object]:
+        payload = path.read_bytes()
+        return {
+            "path": str(path.resolve()),
+            "sha256": hashlib.sha256(payload).hexdigest(),
+            "bytes": len(payload),
+        }
+
+    config_path = tmp_path / "config.json"
+    config = {
+        **legacy_config,
+        "legacy_runtime_authority": {
+            "run_receipt": authority(run_path),
+            "config": authority(legacy_config_path),
+            "history": authority(history),
+            "checkpoints": [
+                {"epoch": epoch, **authority(path)}
+                for epoch, path in zip((4, 8, 12, 16), checkpoint_paths, strict=True)
+            ],
+        },
+    }
+    config_path.write_text(json.dumps(config, indent=2) + "\n")
+    receipt = _runtime_smoke_receipt("current", started_unix_ns=10, wall=1.2)
+    receipt["profiler_sha256"] = profiler_hash
+    receipt["checkpoint_protocol"] = checkpoint_protocol
+    receipt["inference_signature"] = signature
+    receipt["checkpoint"] = MODULE._file_authority(checkpoint_paths[-1])
+    receipt["run_receipt"] = MODULE._file_authority(run_path)
+    receipt["config"] = MODULE._file_authority(config_path)
+    checkpoint = MODULE._load_checkpoint(checkpoint_paths[-1])
+    receipt["parameter_schema"] = MODULE._checkpoint_parameter_schema(
+        checkpoint, signature
+    )
+    receipt["optimizer_schema"] = MODULE._optimizer_state_dict_schema(
+        checkpoint["optimizer"]
+    )
+    monkeypatch.setattr(MODULE, "_git_blob_bytes", lambda *_args: MODULE_PATH.read_bytes())
+    monkeypatch.setattr(
+        MODULE,
+        "_load_authenticated_parent_trainer",
+        lambda *_args: trainer,
+    )
+    MODULE.validate_runtime_profile(
+        receipt,
+        expected_mode="current",
+        checkpoint=checkpoint_paths[-1],
+        run_receipt=run_path,
+        config=config_path,
+        expected_environment=receipt["environment"],
+        expected_environment_sha256=receipt["environment_sha256"],
+    )
+    forged = copy.deepcopy(receipt)
+    forged["inference_signature"]["tensors"][0]["sha256"] = "f" * 64
+    with pytest.raises(ValueError, match="inference"):
+        MODULE.validate_runtime_profile(
+            forged,
+            expected_mode="current",
+            checkpoint=checkpoint_paths[-1],
+            run_receipt=run_path,
+            config=config_path,
+            expected_environment=receipt["environment"],
+            expected_environment_sha256=receipt["environment_sha256"],
+        )
+
+
+def test_review4_environment_loader_is_one_read_and_config_rooted(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    environment = _runtime_smoke_receipt(
+        "current", started_unix_ns=1, wall=1.0
+    )["environment"]
+    path = tmp_path / "environment.json"
+    first = (json.dumps(environment, indent=2) + "\n").encode()
+    substituted = {**environment, "torch": "substituted"}
+    second = (json.dumps(substituted, indent=2) + "\n").encode()
+    path.write_bytes(first)
+    config_path = tmp_path / "config.json"
+    authority = {
+        "path": str(path.resolve()),
+        "sha256": hashlib.sha256(first).hexdigest(),
+        "bytes": len(first),
+    }
+    config_path.write_text(
+        json.dumps({"cuda_canary_environment": authority}, indent=2) + "\n"
+    )
+    reads = iter((first, second))
+    original = Path.read_bytes
+
+    def swapping_read(candidate: Path) -> bytes:
+        if candidate == path:
+            return next(reads)
+        return original(candidate)
+
+    monkeypatch.setattr(Path, "read_bytes", swapping_read)
+    assert MODULE.load_configured_environment_authority(
+        config_path, path, authority["sha256"]
+    ) == environment
+    assert next(reads) == second
+
+
+def test_review4_profile_publication_rechecks_destination_after_reopen(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    destination = tmp_path / "profile.json"
+    publication = importlib.import_module("sfora.atomic_publication")
+    original = publication._pread_all
+    reads = 0
+
+    def substitute_after_reopen(descriptor: int) -> bytes:
+        nonlocal reads
+        payload = original(descriptor)
+        reads += 1
+        if reads == 2:
+            destination.unlink()
+            destination.write_bytes(payload)
+        return payload
+
+    monkeypatch.setattr(publication, "_pread_all", substitute_after_reopen)
+    with pytest.raises(RuntimeError, match="inode"):
+        MODULE.write_json_atomic(destination, {"registered": True})
+    assert destination.is_file()
+
+
+def test_review8_non_authentic_synthesized_legacy_runtime_uses_external_root(
+    tmp_path: Path,
+) -> None:
+    import torch
+
+    trainer_path = MODULE_PATH.with_name("train_unicom_inshop.py")
+    spec = importlib.util.spec_from_file_location("review5_legacy_trainer", trainer_path)
+    assert spec is not None and spec.loader is not None
+    trainer = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(trainer)
+    model = torch.nn.Linear(2, 2, bias=False)
+    signature = trainer.build_inference_signature(
+        model, descriptor=torch.zeros((1, 512), dtype=torch.float32)
+    )
+    optimizer = torch.optim.AdamW(model.parameters())
+    checkpoints = []
+    for epoch in (4, 8, 12, 16):
+        path = tmp_path / f"epoch-{epoch:04d}.pt"
+        torch.save(
+            {
+                "epoch": epoch,
+                "model": dict(model.state_dict()),
+                "classifier": torch.zeros((4, 2)),
+                "ema": {},
+                "optimizer": optimizer.state_dict(),
+                "scheduler": {},
+                "scaler": None,
+                "mask_generator": torch.Generator().get_state(),
+                "torch_rng_state": torch.get_rng_state(),
+                "cuda_rng_states": [torch.Generator().get_state()],
+                "selection_holdout": {"seed": 0, "fraction": 0.2},
+                "training_protocol": {
+                    "trainer_sha256": MODULE.PARENT_TRAINER_SHA256
+                },
+                "history": [],
+            },
+            path,
+        )
+        checkpoints.append(path)
+    config_path = tmp_path / "config.json"
+    config_path.write_text(
+        json.dumps(
+            {
+                "parent_trainer_commit": MODULE.PARENT_TRAINER_COMMIT,
+                "parent_trainer_path": MODULE.PARENT_TRAINER_PATH,
+                "parent_trainer_sha256": MODULE.PARENT_TRAINER_SHA256,
+                "runtime_inference_signature": signature,
+            },
+            indent=2,
+        )
+        + "\n"
+    )
+    history = tmp_path / "history.json"
+    history.write_text("[]\n")
+    legacy = trainer.training_run_receipt(
+        source_commit="1" * 40,
+        config_path=str(config_path),
+        config_sha256=hashlib.sha256(config_path.read_bytes()).hexdigest(),
+        seed=2,
+        arm="sampled_512",
+        objective="official-eight-mask",
+        selected_features=512,
+        evaluation_features=768,
+        command=["python", "trainer.py", "--classifier-init", "imprinted"],
+        started_unix_ns=1,
+        finished_unix_ns=2,
+        elapsed_seconds=1.0,
+        peak_allocated_bytes=1,
+        peak_reserved_bytes=2,
+        exit_status=0,
+        history_path=history,
+        checkpoint_paths=tuple(checkpoints),
+        runtime={"python": "3.12", "torch": "2.6", "cuda": "12.4"},
+    )
+    run_receipt = tmp_path / "run-receipt.json"
+    run_receipt.write_text(json.dumps(legacy, indent=2) + "\n")
+    _run, _config, loaded = MODULE._load_profile_authorities(
+        types.SimpleNamespace(
+            run_receipt=run_receipt,
+            config=config_path,
+            run_checkpoint=checkpoints[-1],
+            profile_kind="runtime",
+        )
+    )
+    assert loaded == signature
+
+    def authority(path: Path) -> dict[str, object]:
+        payload = path.read_bytes()
+        return {
+            "path": str(path.resolve()),
+            "sha256": hashlib.sha256(payload).hexdigest(),
+            "bytes": len(payload),
+        }
+
+    environment = tmp_path / "environment.json"
+    environment_value = _registered_environment()
+    environment.write_text(json.dumps(environment_value, indent=2) + "\n")
+    campaign_root = tmp_path / "campaign"
+    output = campaign_root / "runtime-00/terminal.json"
+    output.parent.mkdir(parents=True)
+    budget = {
+        "schema": "unicom-fepf-publication-budget-v1",
+        "publications": [{
+            "name": "runtime-00:terminal",
+            "path": "runtime-00/terminal.json",
+            "persistent_bytes": 1 << 20,
+            "temporary_bytes": 1 << 20,
+            "persistent_inodes": 1,
+            "temporary_inodes": 1,
+        }],
+    }
+    budget_payload = (json.dumps(budget, indent=2) + "\n").encode()
+    budget_path = campaign_root / "preflight/publication-budget.json"
+    budget_path.parent.mkdir()
+    budget_path.write_bytes(budget_payload)
+    fepf_config = tmp_path / "fepf-config.json"
+    fepf_config_value = {
+        "artifact_root": str(campaign_root),
+        "runtime_inference_signature": signature,
+        "cuda_canary_environment": {
+            "path": str(environment.resolve()),
+            "sha256": hashlib.sha256(environment.read_bytes()).hexdigest(),
+            "bytes": len(environment.read_bytes()),
+        },
+        "publication_budget_path": "preflight/publication-budget.json",
+        "artifact_budget_inputs": {
+            "raw_backbone_state_bytes": 16,
+            "classifier_state_bytes": 16,
+            "query_rows": 2,
+            "gallery_rows": 2,
+            "maximum_relevant_count": 1,
+            "maximum_path_bytes": 64,
+        },
+        "legacy_runtime_authority": {
+            "run_receipt": authority(run_receipt),
+            "config": authority(config_path),
+            "history": authority(history),
+            "checkpoints": [
+                {"epoch": epoch, **authority(path)}
+                for epoch, path in zip((4, 8, 12, 16), checkpoints, strict=True)
+            ],
+        },
+    }
+    builder_spec = importlib.util.spec_from_file_location(
+        "review8_exact_budget_builder",
+        MODULE_PATH.with_name("build_unicom_fepf_run_config.py"),
+    )
+    assert builder_spec is not None and builder_spec.loader is not None
+    builder = importlib.util.module_from_spec(builder_spec)
+    builder_spec.loader.exec_module(builder)
+    exact_budget = builder.exact_publication_budget(fepf_config_value)
+    fepf_config_value["publication_budget"] = exact_budget
+    fepf_config_value["publication_budget_sha256"] = hashlib.sha256(
+        builder.canonical_json_bytes(exact_budget)
+    ).hexdigest()
+    fepf_config_value["artifact_budget_bytes"] = sum(
+        row["persistent_bytes"] + row["temporary_bytes"]
+        for row in exact_budget["publications"]
+    )
+    fepf_config_value["artifact_budget_inodes"] = sum(
+        row["persistent_inodes"] + row["temporary_inodes"]
+        for row in exact_budget["publications"]
+    )
+    budget_path.write_bytes(builder.canonical_json_bytes(exact_budget))
+    fepf_config.write_text(json.dumps(fepf_config_value, indent=2) + "\n")
+    assert MODULE.main([
+        "--run-checkpoint", str(checkpoints[-1]),
+        "--run-receipt", str(run_receipt),
+        "--config", str(fepf_config),
+        "--unicom-checkout", str(tmp_path / "unicom"),
+        "--initial-checkpoint", str(tmp_path / "initial.pt"),
+        "--dataset-root", str(tmp_path / "dataset"),
+        "--runtime-mode", "current",
+        "--profile-kind", "runtime",
+        "--parent-trainer-source", MODULE.PARENT_TRAINER_SOURCE,
+        "--output", str(output),
+        "--environment-authority", str(environment),
+        "--environment-sha256", hashlib.sha256(environment.read_bytes()).hexdigest(),
+        "--publication-stage", "runtime-00",
+        "--campaign-root", str(campaign_root),
+        "--authority-preflight-only",
+    ]) == 0
+
+
+def test_review6_live_environment_is_checked_before_any_fepf_authority_read(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen: list[str] = []
+    monkeypatch.setattr(MODULE, "_validate_counts", lambda _args: None)
+    monkeypatch.setattr(
+        MODULE,
+        "load_registered_environment_authority",
+        lambda *_args: {"unrooted": True},
+    )
+
+    def configured(*_args):
+        seen.append("environment")
+        raise ValueError("environment first")
+
+    def artifacts(*_args):
+        seen.append("artifacts")
+        raise ValueError("artifacts read")
+
+    monkeypatch.setattr(
+        MODULE,
+        "reload_normal_legacy_runtime_authority",
+        lambda *_args: seen.append("legacy") or {},
+    )
+    monkeypatch.setattr(MODULE, "load_configured_environment_authority", configured)
+    monkeypatch.setattr(MODULE, "_load_profile_authorities", artifacts)
+    args = types.SimpleNamespace(
+        parent_trainer_source=MODULE.PARENT_TRAINER_SOURCE,
+        environment_authority=tmp_path / "environment.json",
+        environment_sha256="1" * 64,
+        config=tmp_path / "config.json",
+        run_receipt=tmp_path / "non-authentic-run-receipt.json",
+        profile_kind="runtime",
+    )
+    with pytest.raises(ValueError, match="environment first"):
+        MODULE.replay_profile(args)
+    assert seen == ["legacy", "environment"]
+
+
+def test_review6_legacy_runtime_chain_is_exact_and_descriptor_is_recomputed(
+    tmp_path: Path,
+) -> None:
+    legacy = {
+        "seed": 2,
+        "arm": "sampled_512",
+        "protocol": {
+            "objective": "official-eight-mask",
+            "selected_features": 512,
+            "evaluation_features": 768,
+        },
+        "exit_status": 0,
+        "checkpoints": [{"epoch": epoch} for epoch in (4, 8, 12, 16)],
+        "history": {"path": "/registered/history.json"},
+        "command": ["python", "trainer.py", "--classifier-init", "imprinted"],
+    }
+    MODULE.validate_registered_legacy_runtime_chain(legacy)
+    changed = copy.deepcopy(legacy)
+    changed["seed"] = 3
+    with pytest.raises(ValueError, match="seed|legacy"):
+        MODULE.validate_registered_legacy_runtime_chain(changed)
+
+    descriptor = np.zeros((1, 512), dtype=np.float32)
+    path = tmp_path / "runtime-descriptor.npy"
+    np.save(path, descriptor, allow_pickle=False)
+    signature = {
+        "descriptor_dtype": "torch.float32",
+        "descriptor_dimension": 512,
+        "descriptor_sha256": hashlib.sha256(descriptor.tobytes()).hexdigest(),
+        "operations": list(MODULE.INFERENCE_OPERATIONS),
+    }
+    MODULE.validate_runtime_descriptor_authority(signature, path)
+    path.write_bytes(path.read_bytes() + b" ")
+    with pytest.raises(ValueError, match="descriptor"):
+        MODULE.validate_runtime_descriptor_authority(signature, path)
+
+
+def test_review7_legacy_chain_is_rooted_outside_historical_receipt(
+    tmp_path: Path,
+) -> None:
+    historical_config = tmp_path / "historical-config.json"
+    history = tmp_path / "history.json"
+    historical_config.write_text("{}\n")
+    history.write_text("[]\n")
+    checkpoints = []
+    for epoch in (4, 8, 12, 16):
+        path = tmp_path / f"epoch-{epoch:04d}.pt"
+        path.write_bytes(f"checkpoint-{epoch}\n".encode())
+        checkpoints.append({"epoch": epoch, **MODULE._file_authority(path)})
+    receipt = {
+        "seed": 2,
+        "arm": "sampled_512",
+        "protocol": {
+            "objective": "official-eight-mask",
+            "selected_features": 512,
+            "evaluation_features": 768,
+        },
+        "exit_status": 0,
+        "checkpoints": checkpoints,
+        "history": MODULE._file_authority(history),
+        "config_path": str(historical_config.resolve()),
+        "config_sha256": MODULE._sha256_file(historical_config),
+        "command": ["python", "trainer.py", "--classifier-init", "imprinted"],
+    }
+    authority = {
+        "run_receipt": {"path": "/external/run.json", "sha256": "1" * 64, "bytes": 1},
+        "config": MODULE._file_authority(historical_config),
+        "history": MODULE._file_authority(history),
+        "checkpoints": checkpoints,
+    }
+    MODULE.validate_registered_legacy_runtime_chain(receipt, authority=authority)
+    changed = copy.deepcopy(authority)
+    changed["checkpoints"][0]["sha256"] = "0" * 64
+    with pytest.raises(ValueError, match="legacy|external"):
+        MODULE.validate_registered_legacy_runtime_chain(receipt, authority=changed)
+
+
+def test_review8_profile_main_guards_budget_and_derives_live_tensor_semantics(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    config = tmp_path / "config.json"
+    config.write_text(json.dumps({
+        "publication_budget": {
+            "schema": "unicom-fepf-publication-budget-v1", "publications": []
+        },
+        "runtime_inference_signature": {
+            "tensors": [{"name": "running_mean", "kind": "parameter"}],
+            "descriptor_dimension": 511,
+        },
+    }, indent=2) + "\n")
+    reached_replay = False
+
+    def forbidden(_args) -> object:
+        nonlocal reached_replay
+        reached_replay = True
+        return {}
+
+    monkeypatch.setattr(MODULE, "replay_profile", forbidden)
+    result = MODULE.main([
+        "--run-checkpoint", str(tmp_path / "epoch-0016.pt"),
+        "--run-receipt", str(tmp_path / "run-receipt.json"),
+        "--config", str(config),
+        "--unicom-checkout", str(tmp_path / "unicom"),
+        "--initial-checkpoint", str(tmp_path / "initial.pt"),
+        "--dataset-root", str(tmp_path / "dataset"),
+        "--runtime-mode", "current",
+        "--profile-kind", "runtime",
+        "--parent-trainer-source", MODULE.PARENT_TRAINER_SOURCE,
+        "--output", str(tmp_path / "profile.json"),
+        "--environment-authority", str(tmp_path / "environment.json"),
+        "--environment-sha256", "1" * 64,
+        "--authority-preflight-only",
+    ])
+    assert result == 2
+    assert reached_replay is False
+
+
+def test_review9_normal_runtime_replay_consumes_external_legacy_authority(
+    tmp_path: Path,
+) -> None:
+    def authority(path: Path) -> dict[str, object]:
+        payload = path.read_bytes()
+        return {
+            "path": str(path.resolve()),
+            "sha256": hashlib.sha256(payload).hexdigest(),
+            "bytes": len(payload),
+        }
+
+    legacy_config = tmp_path / "non-authentic-legacy-config.json"
+    legacy_config.write_text('{"fixture":"non-authentic"}\n')
+    history = tmp_path / "non-authentic-history.json"
+    history.write_text("[]\n")
+    checkpoints: list[dict[str, object]] = []
+    for epoch in (4, 8, 12, 16):
+        checkpoint = tmp_path / f"non-authentic-epoch-{epoch:04d}.pt"
+        checkpoint.write_bytes(f"non-authentic checkpoint {epoch}\n".encode())
+        checkpoints.append({"epoch": epoch, **authority(checkpoint)})
+    receipt_object = {
+        "seed": 2,
+        "arm": "sampled_512",
+        "protocol": {
+            "objective": "official-eight-mask",
+            "selected_features": 512,
+            "evaluation_features": 768,
+        },
+        "command": [
+            "python", "trainer.py", "--classifier-init", "imprinted"
+        ],
+        "exit_status": 0,
+        "config_path": str(legacy_config.resolve()),
+        "config_sha256": authority(legacy_config)["sha256"],
+        "history": authority(history),
+        "checkpoints": checkpoints,
+    }
+    receipt = tmp_path / "non-authentic-run-receipt.json"
+    receipt.write_text(json.dumps(receipt_object, indent=2) + "\n")
+    config = tmp_path / "config.json"
+    config.write_text(json.dumps({
+        "legacy_runtime_authority": {
+            "run_receipt": authority(receipt),
+            "config": authority(legacy_config),
+            "history": authority(history),
+            "checkpoints": checkpoints,
+        }
+    }, indent=2) + "\n")
+    observed = MODULE.reload_normal_legacy_runtime_authority(config, receipt)
+    assert observed["seed"] == 2
+
+
+def test_review10_public_runtime_replay_rejects_legacy_drift_before_model_or_cuda(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen: list[str] = []
+    environment = _registered_environment()
+    monkeypatch.setattr(MODULE, "_validate_counts", lambda _args: None)
+    monkeypatch.setattr(
+        MODULE, "load_configured_environment_authority", lambda *_args: environment
+    )
+    monkeypatch.setattr(MODULE, "_runtime_environment", lambda *_args: environment)
+    def reject_legacy(_config: Path, _receipt: Path) -> object:
+        seen.append("legacy")
+        raise ValueError("legacy external root differs")
+
+    def forbidden_profile_read(_args) -> object:
+        seen.append("model")
+        raise AssertionError("model/checkpoint read preceded legacy validation")
+
+    monkeypatch.setattr(
+        MODULE, "reload_normal_legacy_runtime_authority", reject_legacy
+    )
+    monkeypatch.setattr(MODULE, "_load_profile_authorities", forbidden_profile_read)
+    args = types.SimpleNamespace(
+        parent_trainer_source=MODULE.PARENT_TRAINER_SOURCE,
+        environment_authority=tmp_path / "environment.json",
+        environment_sha256="1" * 64,
+        config=tmp_path / "config.json",
+        run_receipt=tmp_path / "legacy-run-receipt.json",
+        profile_kind="runtime",
+    )
+    with pytest.raises(ValueError, match="legacy external root differs"):
+        MODULE.replay_profile(args)
+    assert seen == ["legacy"]
+
+
+def test_review12_quality_replay_uses_v2_arm_not_legacy_seed2(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    environment = _registered_environment()
+    reached: list[str] = []
+    monkeypatch.setattr(MODULE, "_validate_counts", lambda _args: None)
+    monkeypatch.setattr(
+        MODULE, "reload_normal_legacy_runtime_authority",
+        lambda *_args: (_ for _ in ()).throw(AssertionError("quality touched legacy")),
+    )
+    monkeypatch.setattr(
+        MODULE, "load_configured_environment_authority", lambda *_args: environment
+    )
+    monkeypatch.setattr(MODULE, "_runtime_environment", lambda *_args: environment)
+    monkeypatch.setattr(
+        MODULE, "_load_profile_authorities",
+        lambda _args: (
+            {"schema": "unicom-training-run-receipt-v2", "arm": "candidate"},
+            {"live_trainer_sha256": "a" * 64},
+            {"schema": "unicom-inference-signature-v1"},
+        ),
+    )
+    monkeypatch.setattr(MODULE, "_load_replay_trainer", lambda *_a, **_k: object())
+
+    def reached_quality(*_args, **_kwargs):
+        reached.append("quality-v2")
+        raise RuntimeError("quality boundary reached")
+
+    monkeypatch.setattr(MODULE, "_validate_quality_replay_inputs", reached_quality)
+    args = types.SimpleNamespace(
+        parent_trainer_source=MODULE.PARENT_TRAINER_SOURCE,
+        environment_authority=tmp_path / "environment.json",
+        environment_sha256="1" * 64,
+        config=tmp_path / "config.json",
+        run_receipt=tmp_path / "candidate-run-receipt.json",
+        profile_kind="quality",
+    )
+    with pytest.raises(RuntimeError, match="quality boundary reached"):
+        MODULE.replay_profile(args)
+    assert reached == ["quality-v2"]
+
+
+@pytest.mark.parametrize("mutate_current", (False, True))
+def test_review13_quality_authority_uses_own_v2_signature_not_historical_seed2(
+    tmp_path: Path, mutate_current: bool
+) -> None:
+    import copy
+
+    import torch
+
+    checkpoint = {
+        "epoch": 16,
+        "model": {
+            "weight": torch.arange(4, dtype=torch.float32).reshape(2, 2)
+        },
+        "classifier": torch.ones((2, 2), dtype=torch.float32),
+        "ema": {},
+        "optimizer": {"state": {}, "param_groups": []},
+        "scheduler": {},
+        "scaler": None,
+        "mask_generator": torch.Generator().manual_seed(17).get_state(),
+        "torch_rng_state": torch.get_rng_state(),
+        "cuda_rng_states": [],
+        "selection_holdout": {"seed": 0, "fraction": 0.2},
+        "training_protocol": {
+            "trainer_sha256": MODULE.PARENT_TRAINER_SHA256,
+            "environment": _registered_environment(),
+        },
+        "history": [],
+    }
+    checkpoint_path = tmp_path / "epoch-0016.pt"
+    torch.save(checkpoint, checkpoint_path)
+    seed_signature = {
+        "schema": "unicom-inference-signature-v1",
+        "tensors": [{
+            "name": "weight", "kind": "parameter", "shape": [2, 2],
+            "dtype": "torch.float32", "numel": 4, "element_size": 4,
+            "bytes": 16, "sha256": "1" * 64,
+        }],
+        "total_bytes": 16,
+        "aggregate_sha256": "2" * 64,
+        "descriptor_dtype": "torch.float32",
+        "descriptor_dimension": 512,
+        "descriptor_sha256": "3" * 64,
+        "operations": list(MODULE.INFERENCE_OPERATIONS),
+    }
+    current = MODULE._rebuild_checkpoint_inference_signature(
+        checkpoint, seed_signature
+    )
+    historical = copy.deepcopy(current)
+    historical["tensors"][0]["sha256"] = "4" * 64
+    historical["aggregate_sha256"] = "5" * 64
+    run_signature = copy.deepcopy(current)
+    if mutate_current:
+        run_signature["tensors"][0]["sha256"] = "6" * 64
+        run_signature["aggregate_sha256"] = "7" * 64
+    run_receipt_path = tmp_path / "run-receipt.json"
+    run_receipt_path.write_text(json.dumps({
+        "inference_signature": run_signature,
+        "checkpoints": [{"epoch": 16, **MODULE._file_authority(checkpoint_path)}],
+    }, indent=2) + "\n")
+    config_path = tmp_path / "config.json"
+    config_path.write_text(json.dumps({
+        "parent_trainer_commit": MODULE.PARENT_TRAINER_COMMIT,
+        "parent_trainer_path": MODULE.PARENT_TRAINER_PATH,
+        "parent_trainer_sha256": MODULE.PARENT_TRAINER_SHA256,
+        "runtime_inference_signature": historical,
+    }, indent=2) + "\n")
+    args = types.SimpleNamespace(
+        profile_kind="quality",
+        run_receipt=run_receipt_path,
+        run_checkpoint=checkpoint_path,
+        config=config_path,
+    )
+    if mutate_current:
+        with pytest.raises(ValueError, match="quality|inference|signature"):
+            MODULE._load_profile_authorities(args)
+    else:
+        _receipt, _config, observed = MODULE._load_profile_authorities(args)
+        assert observed == current
+        assert observed != historical
+
+
+def test_review12_profile_reestablishes_complete_deterministic_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    enabled: list[bool] = []
+    monkeypatch.setenv("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+    monkeypatch.setattr(
+        MODULE.subprocess,
+        "run",
+        lambda *_args, **_kwargs: types.SimpleNamespace(
+            stdout="H100, GPU-registered, 550.54\n"
+        ),
+    )
+    fake = types.SimpleNamespace(
+        __version__="2.6.0",
+        version=types.SimpleNamespace(cuda="12.4", git_version="registered"),
+        use_deterministic_algorithms=lambda value: enabled.append(value),
+        backends=types.SimpleNamespace(
+            cuda=types.SimpleNamespace(matmul=types.SimpleNamespace(allow_tf32=True)),
+            cudnn=types.SimpleNamespace(
+                allow_tf32=True, benchmark=True, deterministic=False,
+                version=lambda: 90100,
+            ),
+        ),
+        cuda=types.SimpleNamespace(
+            get_device_properties=lambda _device: types.SimpleNamespace(
+                uuid="GPU-registered"
+            )
+        ),
+    )
+    environment = MODULE._runtime_environment(
+        fake, types.SimpleNamespace(type="cuda")
+    )
+    assert environment["deterministic_execution"] == _registered_environment()[
+        "deterministic_execution"
+    ]
+    assert enabled == [True]
+
+
+def test_review12_runtime_legacy_chain_semantics_reject_before_model(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    legacy_config = tmp_path / "legacy-config.json"
+    legacy_config.write_text('{"registered":true}\n')
+    history = tmp_path / "history.json"
+    history.write_text("[]\n")
+    checkpoints = []
+    for epoch in (4, 8, 12, 16):
+        path = tmp_path / f"epoch-{epoch:04d}.pt"
+        path.write_bytes(f"checkpoint-{epoch}\n".encode())
+        checkpoints.append({"epoch": epoch, **MODULE._file_authority(path)})
+    receipt = {
+        "seed": 2, "arm": "sampled_512",
+        "protocol": {
+            "objective": "official-eight-mask", "selected_features": 512,
+            "evaluation_features": 768,
+        },
+        "command": ["python", "trainer.py", "--classifier-init", "imprinted"],
+        "exit_status": 0,
+        "config_path": str(legacy_config.resolve()),
+        "config_sha256": MODULE._sha256_file(legacy_config),
+        "history": MODULE._file_authority(history),
+        "checkpoints": checkpoints,
+    }
+    receipt_path = tmp_path / "run-receipt.json"
+    receipt_path.write_text(json.dumps(receipt, indent=2) + "\n")
+    config_path = tmp_path / "config.json"
+    config_path.write_text(json.dumps({
+        "legacy_runtime_authority": {
+            "run_receipt": MODULE._file_authority(receipt_path),
+            "config": MODULE._file_authority(legacy_config),
+            "history": MODULE._file_authority(history),
+            "checkpoints": checkpoints,
+        }
+    }, indent=2) + "\n")
+    history.write_text('[{"loss":"semantically-invalid"}]\n')
+    receipt["history"] = MODULE._file_authority(history)
+    receipt_path.write_text(json.dumps(receipt, indent=2) + "\n")
+    config_object = json.loads(config_path.read_bytes())
+    config_object["legacy_runtime_authority"]["run_receipt"] = (
+        MODULE._file_authority(receipt_path)
+    )
+    config_object["legacy_runtime_authority"]["history"] = MODULE._file_authority(
+        history
+    )
+    config_path.write_text(json.dumps(config_object, indent=2) + "\n")
+    reached_model = False
+
+    def forbidden(*_args, **_kwargs):
+        nonlocal reached_model
+        reached_model = True
+        raise AssertionError("model reached")
+
+    monkeypatch.setattr(MODULE, "_load_profile_authorities", forbidden)
+    monkeypatch.setattr(
+        MODULE,
+        "load_configured_environment_authority",
+        lambda *_args: (_ for _ in ()).throw(AssertionError("environment reached")),
+    )
+    args = types.SimpleNamespace(
+        parent_trainer_source=MODULE.PARENT_TRAINER_SOURCE,
+        config=config_path, run_receipt=receipt_path, profile_kind="runtime",
+        environment_authority=tmp_path / "environment.json",
+        environment_sha256="1" * 64,
+        warmup_steps=MODULE.WARMUP_STEPS,
+        measure_steps=MODULE.MEASURE_STEPS,
+        profiler_steps=MODULE.PROFILER_STEPS,
+        bootstrap_seed=MODULE.BOOTSTRAP_SEED,
+    )
+    with pytest.raises(ValueError, match="legacy|history|authority"):
+        MODULE.replay_profile(args)
+    assert reached_model is False
+
+
+def test_review9_live_kinds_and_descriptor_are_rebuilt_not_copied(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import torch
+
+    model = torch.nn.Linear(2, 2)
+    checkpoint = {
+        "epoch": 16,
+        "model": dict(model.state_dict()),
+        "classifier": torch.ones((3, 2)),
+        "ema": {},
+        "optimizer": {"state": {}, "param_groups": []},
+        "scheduler": {},
+        "scaler": None,
+        "mask_generator": torch.Generator().get_state(),
+        "torch_rng_state": torch.get_rng_state(),
+        "cuda_rng_states": [torch.Generator().get_state()],
+        "selection_holdout": {"seed": 0, "fraction": 0.2},
+        "training_protocol": {"trainer_sha256": "1" * 64},
+        "history": [],
+    }
+    checkpoint_path = tmp_path / "checkpoint.pt"
+    torch.save(checkpoint, checkpoint_path)
+    external = {
+        "schema": "unicom-inference-signature-v1",
+        "tensors": [
+            {
+                "name": name,
+                "kind": "buffer",
+                "shape": list(value.shape),
+                "dtype": str(value.dtype),
+                "numel": value.numel(),
+                "element_size": value.element_size(),
+                "bytes": value.numel() * value.element_size(),
+                "sha256": hashlib.sha256(
+                    value.detach().cpu().contiguous().numpy().tobytes(order="C")
+                ).hexdigest(),
+            }
+            for name, value in checkpoint["model"].items()
+        ],
+        "total_bytes": sum(value.numel() * value.element_size()
+                           for value in checkpoint["model"].values()),
+        "aggregate_sha256": "1" * 64,
+        "descriptor_dtype": "torch.float32",
+        "descriptor_dimension": 512,
+        "descriptor_sha256": "2" * 64,
+        "operations": list(MODULE.INFERENCE_OPERATIONS),
+    }
+    environment = _registered_environment()
+    monkeypatch.setenv("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+    monkeypatch.setattr(MODULE, "_validate_counts", lambda _args: None)
+    monkeypatch.setattr(
+        MODULE, "load_configured_environment_authority", lambda *_args: environment
+    )
+    monkeypatch.setattr(MODULE, "_runtime_environment", lambda *_args: environment)
+    config_path = tmp_path / "config.json"
+    run_receipt_path = tmp_path / "run-receipt.json"
+    config_path.write_text(json.dumps({}, indent=2) + "\n")
+    run_receipt_path.write_text(json.dumps({}, indent=2) + "\n")
+    monkeypatch.setattr(
+        MODULE, "reload_normal_legacy_runtime_authority", lambda *_args: {}
+    )
+    monkeypatch.setattr(
+        MODULE,
+        "_load_profile_authorities",
+        lambda _args: ({}, {"live_trainer_sha256": MODULE._sha256_file(
+            MODULE_PATH.with_name("train_unicom_inshop.py")
+        )}, external),
+    )
+    monkeypatch.setattr(MODULE, "_load_replay_trainer", lambda *_args, **_kwargs: object())
+    monkeypatch.setattr(
+        MODULE,
+        "_build_replay_state",
+        lambda *_args, **_kwargs: {
+            "raw_model": model,
+            "classifier": torch.nn.Parameter(torch.ones((3, 2))),
+            "authority_descriptor": torch.zeros((1, 512), dtype=torch.float32),
+            "step_ema": None,
+            "device": torch.device("cpu"),
+        },
+    )
+    monkeypatch.setattr(
+        MODULE,
+        "_execute_profile_phases",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("normal replay advanced past live authority validation")
+        ),
+    )
+    args = types.SimpleNamespace(
+        parent_trainer_source=MODULE.PARENT_TRAINER_SOURCE,
+        environment_authority=tmp_path / "environment.json",
+        environment_sha256="3" * 64,
+        config=config_path,
+        run_receipt=run_receipt_path,
+        run_checkpoint=checkpoint_path,
+        profile_kind="runtime",
+        runtime_mode="current",
+    )
+    with pytest.raises(ValueError, match="kind|descriptor|live"):
+        MODULE.replay_profile(args)
 
 
 @pytest.mark.parametrize(
