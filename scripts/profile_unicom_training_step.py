@@ -1666,6 +1666,69 @@ def _load_checkpoint(path: Path) -> dict[str, Any]:
     return payload
 
 
+def _restore_optimizer_state_for_runtime(
+    optimizer,
+    state: object,
+    *,
+    runtime_mode: str,
+) -> None:
+    """Restore moments while preserving the registered fused-mode override."""
+
+    if runtime_mode not in RUNTIME_PROTOCOLS:
+        raise ValueError("runtime override differs")
+    if type(state) is not dict:
+        raise ValueError("optimizer state differs")
+    saved_groups = state.get("param_groups")
+    if (
+        type(saved_groups) is not list
+        or not saved_groups
+        or any(type(group) is not dict for group in saved_groups)
+    ):
+        raise ValueError("optimizer parameter groups differ")
+    fused = RUNTIME_PROTOCOLS[runtime_mode].fused
+    if runtime_mode == "current" and any(
+        group.get("fused") is not fused for group in saved_groups
+    ):
+        raise ValueError("historical optimizer mode differs")
+    restored_state = dict(state)
+    restored_state["param_groups"] = [dict(group, fused=fused) for group in saved_groups]
+    optimizer.load_state_dict(restored_state)
+    groups = getattr(optimizer, "param_groups", None)
+    if type(groups) is not list or not groups or any(type(group) is not dict for group in groups):
+        raise ValueError("optimizer parameter groups differ")
+    if any(group.get("fused") is not fused for group in groups):
+        raise ValueError("runtime optimizer override differs")
+
+
+def _validate_runtime_optimizer_state(optimizer, *, runtime_mode: str) -> None:
+    """Observe the registered optimizer mode and fused step placement."""
+
+    import torch
+
+    if runtime_mode not in RUNTIME_PROTOCOLS:
+        raise ValueError("runtime override differs")
+    groups = getattr(optimizer, "param_groups", None)
+    state = getattr(optimizer, "state", None)
+    if type(groups) is not list or not groups or state is None:
+        raise ValueError("optimizer parameter groups differ")
+    fused = RUNTIME_PROTOCOLS[runtime_mode].fused
+    for group in groups:
+        if type(group) is not dict or group.get("fused") is not fused:
+            raise ValueError("runtime optimizer override differs")
+        parameters = group.get("params")
+        if type(parameters) is not list:
+            raise ValueError("optimizer parameter groups differ")
+        if not fused:
+            continue
+        for parameter in parameters:
+            parameter_state = state.get(parameter)
+            if not parameter_state or "step" not in parameter_state:
+                continue
+            step = parameter_state["step"]
+            if not isinstance(step, torch.Tensor) or step.device != parameter.device:
+                raise ValueError("optimizer step device differs")
+
+
 def _restore_checkpoint_payload(payload: dict[str, Any], state: dict[str, Any]) -> int:
     import torch
 
@@ -1692,7 +1755,11 @@ def _restore_checkpoint_payload(payload: dict[str, Any], state: dict[str, Any]) 
             raise ValueError("training checkpoint EMA differs")
     else:
         step_ema.load_state_dict(payload["ema"])
-    optimizer.load_state_dict(payload["optimizer"])
+    _restore_optimizer_state_for_runtime(
+        optimizer,
+        payload["optimizer"],
+        runtime_mode=state["runtime_mode"],
+    )
     scheduler.load_state_dict(payload["scheduler"])
     if scaler is None:
         if payload["scaler"] is not None:
@@ -1821,10 +1888,12 @@ def _build_replay_state(
         "scaler": scaler,
         "device": device,
         "protocol": protocol,
+        "runtime_mode": args.runtime_mode,
         "holdout": holdout,
         "trainable_parameters": tuple(raw_model.parameters()) + (classifier,),
     }
     start_epoch = _restore_checkpoint_payload(checkpoint, state)
+    _validate_runtime_optimizer_state(optimizer, runtime_mode=args.runtime_mode)
     del checkpoint
     state["authority_descriptor"] = authority_descriptor
     sampler.set_epoch(start_epoch)
@@ -2520,6 +2589,10 @@ def replay_profile(args: argparse.Namespace) -> dict[str, object]:
     finally:
         if state["step_ema"] is not None:
             state["step_ema"].release_step_hook()
+    _validate_runtime_optimizer_state(
+        state["optimizer"],
+        runtime_mode=args.runtime_mode,
+    )
     finished_unix_ns = time.time_ns()
     runtime = RUNTIME_PROTOCOLS[args.runtime_mode]
     payload = {

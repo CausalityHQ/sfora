@@ -154,6 +154,112 @@ def test_runtime_override_builds_only_registered_training_substrate(monkeypatch)
     assert compile_calls == [(raw_model, "reduce-overhead")]
 
 
+@pytest.mark.parametrize(
+    ("runtime_mode", "expected_fused"),
+    (("current", False), ("composed", True)),
+)
+def test_runtime_override_survives_historical_optimizer_state_restore(
+    runtime_mode: str,
+    expected_fused: bool,
+) -> None:
+    class Optimizer:
+        def __init__(self) -> None:
+            self.param_groups = [{"fused": expected_fused}]
+
+        def load_state_dict(self, state) -> None:
+            self.param_groups = [dict(group) for group in state["param_groups"]]
+
+    optimizer = Optimizer()
+    MODULE._restore_optimizer_state_for_runtime(
+        optimizer,
+        {"param_groups": [{"fused": False}]},
+        runtime_mode=runtime_mode,
+    )
+
+    assert optimizer.param_groups == [{"fused": expected_fused}]
+
+
+def test_current_runtime_rejects_checkpoint_fused_mode_drift() -> None:
+    class Optimizer:
+        def __init__(self) -> None:
+            self.param_groups = [{"fused": False}]
+            self.loaded = False
+
+        def load_state_dict(self, state) -> None:
+            self.loaded = True
+
+    optimizer = Optimizer()
+    with pytest.raises(ValueError, match="historical optimizer mode differs"):
+        MODULE._restore_optimizer_state_for_runtime(
+            optimizer,
+            {"param_groups": [{"fused": True}]},
+            runtime_mode="current",
+        )
+
+    assert optimizer.loaded is False
+
+
+def test_composed_restore_moves_populated_step_to_parameter_device() -> None:
+    import torch
+
+    historical_parameter = torch.nn.Parameter(torch.tensor(1.0))
+    historical = torch.optim.AdamW((historical_parameter,), fused=False)
+    historical_parameter.square().backward()
+    historical.step()
+    assert historical.state[historical_parameter]["step"].device.type == "cpu"
+
+    composed_parameter = torch.nn.Parameter(torch.empty((), device="meta"))
+    composed = torch.optim.AdamW((composed_parameter,), fused=True)
+    MODULE._restore_optimizer_state_for_runtime(
+        composed,
+        historical.state_dict(),
+        runtime_mode="composed",
+    )
+
+    restored = composed.state[composed_parameter]
+    assert composed.param_groups[0]["fused"] is True
+    assert restored["step"].device.type == "meta"
+    assert restored["exp_avg"].device.type == "meta"
+
+
+def test_runtime_optimizer_observation_rejects_fused_step_off_parameter_device() -> None:
+    import torch
+
+    parameter = torch.nn.Parameter(torch.empty((), device="meta"))
+    optimizer = torch.optim.AdamW((parameter,), fused=True)
+    optimizer.state[parameter]["step"] = torch.tensor(1.0)
+
+    with pytest.raises(ValueError, match="optimizer step device differs"):
+        MODULE._validate_runtime_optimizer_state(optimizer, runtime_mode="composed")
+
+
+def test_composed_fused_optimizer_accepts_grad_scaler_after_state_restore() -> None:
+    import torch
+
+    if not torch.cuda.is_available():
+        pytest.skip("requires CUDA fused AdamW")
+    historical_parameter = torch.nn.Parameter(torch.tensor(1.0))
+    historical = torch.optim.AdamW((historical_parameter,), fused=False)
+    historical_parameter.square().backward()
+    historical.step()
+    parameter = torch.nn.Parameter(torch.tensor(1.0, device="cuda"))
+    composed = torch.optim.AdamW((parameter,), fused=True)
+    MODULE._restore_optimizer_state_for_runtime(
+        composed,
+        historical.state_dict(),
+        runtime_mode="composed",
+    )
+    scaler = torch.amp.GradScaler("cuda")
+    scaler.scale(parameter.square()).backward()
+    scaler.unscale_(composed)
+    scaler.step(composed)
+    scaler.update()
+
+    assert composed.param_groups[0]["fused"] is True
+    assert composed.state[parameter]["step"].device.type == "cuda"
+    assert parameter.item() < 1.0
+
+
 def test_runtime_override_parent_trainer_loads_registered_git_blob_then_unlinks() -> None:
     trainer = MODULE._load_authenticated_parent_trainer(
         MODULE_PATH.parents[1], MODULE.PARENT_TRAINER_SOURCE
@@ -282,6 +388,7 @@ def test_review_runtime_seed2_full_registered_shape_restores_all_mutable_state(
             {"params": (source_classifier,), "lr": 1e-4},
         ),
         weight_decay=0.0,
+        fused=False,
     )
     source_scheduler = torch.optim.lr_scheduler.OneCycleLR(
         source_optimizer,
@@ -372,6 +479,7 @@ def test_review_runtime_seed2_full_registered_shape_restores_all_mutable_state(
         loaded,
         {
             "protocol": protocol,
+            "runtime_mode": "current",
             "raw_model": restored_model,
             "classifier": restored_classifier,
             "step_ema": restored_ema,
