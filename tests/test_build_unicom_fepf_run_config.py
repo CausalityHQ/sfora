@@ -300,6 +300,16 @@ def test_review10_target_builder_uses_actual_registered_checkpoint_and_normal_cl
     )
     assert completed.returncode == 0, completed.stderr
     assert output.is_file()
+    config = json.loads(output.read_bytes())
+    assert config["artifact_budget_inputs"]["raw_backbone_state_bytes"] == (
+        signature["total_bytes"]
+    )
+    checkpoint_bound = next(
+        row["persistent_bytes"]
+        for row in config["publication_budget"]["publications"]
+        if row["name"] == "exploratory-control-stage4:checkpoint-epoch-0004"
+    )
+    assert checkpoint_bound > checkpoint.stat().st_size
 
 
 def test_review10_budget_is_recomputed_not_accepted_from_coherent_config_mutation(
@@ -324,6 +334,41 @@ def test_review10_budget_is_recomputed_not_accepted_from_coherent_config_mutatio
         },
     )
     with pytest.raises(ValueError, match="exact publication budget"):
+        MODULE.validate_config_document(changed)
+
+
+def test_budget_rejects_coherent_signature_total_and_inventory_shrink(
+    source_repo: Path, tmp_path: Path
+) -> None:
+    config = _build(source_repo, tmp_path)
+    changed = json.loads(json.dumps(config))
+    changed["runtime_inference_signature"]["total_bytes"] = 1
+    changed["artifact_budget_inputs"]["raw_backbone_state_bytes"] = 1
+    changed["publication_budget"] = MODULE.exact_publication_budget(changed)
+    rows = changed["publication_budget"]["publications"]
+    changed["artifact_budget_bytes"] = sum(
+        row["persistent_bytes"] + row["temporary_bytes"] for row in rows
+    )
+    changed["artifact_budget_inodes"] = sum(
+        row["persistent_inodes"] + row["temporary_inodes"] for row in rows
+    )
+    budget_payload = MODULE.canonical_json_bytes(changed["publication_budget"])
+    changed["publication_budget_sha256"] = MODULE._sha256(budget_payload)
+    changed["commands"] = MODULE._commands(
+        changed["cuda_canary_environment"],
+        {
+            "path": str(
+                (
+                    Path(changed["artifact_root"])
+                    / changed["publication_budget_path"]
+                ).resolve()
+            ),
+            "sha256": changed["publication_budget_sha256"],
+            "bytes": len(budget_payload),
+        },
+    )
+
+    with pytest.raises(ValueError, match="protocol differs"):
         MODULE.validate_config_document(changed)
 
 
@@ -362,6 +407,35 @@ def test_review10_budget_inventory_covers_exact_paths_and_serialization_bounds(
         for row in rows
         if not row["name"].startswith("campaign:directory:")
         and row["name"] != "campaign:controller-status"
+    )
+
+
+def test_budget_uses_authenticated_backbone_bytes_and_load_bearing_inputs(
+    source_repo: Path, tmp_path: Path
+) -> None:
+    config = _build(source_repo, tmp_path)
+    inputs = config["artifact_budget_inputs"]
+    rows = config["publication_budget"]["publications"]
+    checkpoints = [row for row in rows if ":checkpoint-epoch-" in row["name"]]
+
+    assert inputs["raw_backbone_state_bytes"] == (
+        config["runtime_inference_signature"]["total_bytes"]
+    )
+    assert len(checkpoints) == inputs["quality_checkpoints"]
+    assert checkpoints[0]["persistent_bytes"] == (
+        8
+        * (
+            inputs["raw_backbone_state_bytes"]
+            + inputs["classifier_state_bytes"]
+        )
+        + 64 * 1024**2
+    )
+    query = next(row for row in rows if row["name"].endswith("-query"))
+    assert query["persistent_bytes"] == (
+        inputs["query_rows"] * inputs["descriptor_dimension"] * 4 + 256
+    )
+    assert checkpoints[0]["temporary_bytes"] == (
+        checkpoints[0]["persistent_bytes"] * (inputs["atomic_copy_factor"] - 1)
     )
 
 

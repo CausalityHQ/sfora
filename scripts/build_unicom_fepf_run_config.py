@@ -87,10 +87,10 @@ CANARY_EVIDENCE_ORDER = (
     "environment.json", "manifest.json",
 )
 
-# Frozen conservative sizing authorities. The eightfold multiplier covers the
-# complete checkpoint payload rather than pretending state_dict tensor bytes are
-# the serialized checkpoint size.
-RAW_BACKBONE_STATE_BYTES = 1_218_000_000
+# Frozen conservative sizing authorities. The authenticated raw-backbone byte
+# count is supplied by the runtime checkpoint signature; the eightfold
+# multiplier covers the complete checkpoint payload rather than pretending
+# state_dict tensor bytes are the serialized checkpoint size.
 CLASSIFIER_STATE_BYTES = 3_997 * 768 * 4
 QUALITY_CHECKPOINTS = 13 * 4
 ATOMIC_COPY_FACTOR = 2
@@ -163,17 +163,21 @@ def _partition_inventory(path: Path) -> dict[str, int]:
 
 
 def _budget(
-    partition: dict[str, int]
+    partition: dict[str, int], raw_backbone_state_bytes: int
 ) -> tuple[dict[str, int], int, int]:
     required = ("query_rows", "gallery_rows", "maximum_relevant_count", "maximum_path_bytes")
     if tuple(partition) != required or any(type(partition[key]) is not int or partition[key] <= 0
                                             for key in required):
         raise ValueError("artifact partition inventory differs")
+    if type(raw_backbone_state_bytes) is not int or raw_backbone_state_bytes <= 0:
+        raise ValueError("artifact backbone inventory differs")
     inputs = {
         "quality_checkpoints": QUALITY_CHECKPOINTS,
-        "raw_backbone_state_bytes": RAW_BACKBONE_STATE_BYTES,
+        "raw_backbone_state_bytes": raw_backbone_state_bytes,
         "classifier_state_bytes": CLASSIFIER_STATE_BYTES,
         **partition,
+        # Published evaluation arrays retain the full 768-wide descriptor;
+        # runtime_inference_signature binds the deployed 512-wide prefix.
         "descriptor_dimension": 768,
         "atomic_copy_factor": ATOMIC_COPY_FACTOR,
     }
@@ -415,7 +419,7 @@ def build_run_config(
     if _LOWER_COMMIT(source_commit) is None:
         raise ValueError("source commit differs")
     budget_inputs, budget_bytes, budget_inodes = _budget(
-        partition_inventory
+        partition_inventory, runtime_inference_signature["total_bytes"]
     )
     source_files = _source_inventory(repo, source_commit)
     source_hashes = {row["path"]: row["sha256"] for row in source_files}
@@ -621,6 +625,8 @@ def _validate_config_values(config: dict[str, object]) -> None:
         and all(tensor_row_valid(row, with_hash=True) for row in signature["tensors"])
         and type(signature["total_bytes"]) is int
         and signature["total_bytes"] > 0
+        and signature["total_bytes"]
+        == sum(row["bytes"] for row in signature["tensors"])
         and re.fullmatch(r"[0-9a-f]{64}", signature["aggregate_sha256"])
         is not None
         and signature["descriptor_dtype"] == "torch.float32"
@@ -714,7 +720,9 @@ def _validate_config_values(config: dict[str, object]) -> None:
         key: config["artifact_budget_inputs"][key]
         for key in ("query_rows", "gallery_rows", "maximum_relevant_count", "maximum_path_bytes")
     }
-    inputs, _budget_bytes, _budget_inodes = _budget(partition)
+    inputs, _budget_bytes, _budget_inodes = _budget(
+        partition, config["runtime_inference_signature"]["total_bytes"]
+    )
     expected_exact_budget = exact_publication_budget(config)
     exact_bytes = sum(
         row["persistent_bytes"] + row["temporary_bytes"]
@@ -826,8 +834,12 @@ def exact_publication_budget(config: dict[str, object]) -> dict[str, object]:
     # NPY v1 carries a magic/version/length prefix and a padded shape/dtype
     # header. 256 bytes is a conservative format-level bound for these 2-D
     # fixed-dtype shapes, independent of future payload values.
-    query_bytes = inputs["query_rows"] * 768 * 4 + 256
-    gallery_bytes = inputs["gallery_rows"] * 768 * 4 + 256
+    query_bytes = (
+        inputs["query_rows"] * inputs["descriptor_dimension"] * 4 + 256
+    )
+    gallery_bytes = (
+        inputs["gallery_rows"] * inputs["descriptor_dimension"] * 4 + 256
+    )
     ranked_count = min(
         max(30, inputs["maximum_relevant_count"]), inputs["gallery_rows"]
     )
@@ -859,7 +871,11 @@ def exact_publication_budget(config: dict[str, object]) -> dict[str, object]:
             "name": name,
             "path": path,
             "persistent_bytes": persistent,
-            "temporary_bytes": persistent if temporary is None else temporary,
+            "temporary_bytes": (
+                persistent * (inputs["atomic_copy_factor"] - 1)
+                if temporary is None
+                else temporary
+            ),
             "persistent_inodes": 1,
             "temporary_inodes": 1 if (temporary is None or temporary > 0) else 0,
         }
@@ -900,6 +916,10 @@ def exact_publication_budget(config: dict[str, object]) -> dict[str, object]:
                     f"{stage}/{stem}-ranked-prefix.json", ranked_bytes),
                 row(f"{stage}:{stem}", f"{stage}/{stem}.json", 4 * 1024**2),
             ))
+    if sum(":checkpoint-epoch-" in row_value["name"] for row_value in publications) != (
+        inputs["quality_checkpoints"]
+    ):
+        raise ValueError("quality checkpoint inventory differs")
     # Non-training publishers use unique campaign-root paths. They are included
     # so the controller's global remaining-capacity check covers every writer,
     # even though only training resolves the reusable local component names.
