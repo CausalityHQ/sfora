@@ -3591,7 +3591,45 @@ def test_inference_signature_authenticity_and_cross_arm_structure() -> None:
     module.validate_inference_signature(signature_a, raw_model=first, descriptor=descriptor_a)
     module.require_cross_arm_inference_equality(signature_a, signature_b)
     with pytest.raises(ValueError, match="authenticity differs"):
-        module.validate_inference_signature(signature_a, raw_model=second, descriptor=descriptor_b)
+        module.validate_inference_signature(
+            signature_a,
+            raw_model=second,
+            descriptor=descriptor_b,
+        )
+
+
+def test_runtime_authority_descriptor_uses_restored_cpu_execution(
+    tmp_path: Path,
+) -> None:
+    from sfora.unicom_runtime_authority import build_runtime_authority_descriptor
+
+    class DescriptorModel(torch.nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.scale = torch.nn.Parameter(torch.tensor(2.0))
+
+        def forward(self, value: torch.Tensor) -> torch.Tensor:
+            assert value.device.type == "cpu"
+            return self.scale * torch.arange(768, dtype=torch.float32).reshape(1, -1)
+
+    image_path = tmp_path / "query.jpg"
+    Image.new("RGB", (1, 1), color=(1, 2, 3)).save(image_path)
+    model = DescriptorModel()
+
+    descriptor = build_runtime_authority_descriptor(
+        model,
+        lambda _image: torch.ones((3, 1, 1), dtype=torch.float32),
+        image_path,
+    )
+
+    expected = torch.nn.functional.normalize(
+        2.0 * torch.arange(768, dtype=torch.float32).reshape(1, -1), dim=1
+    )[:, :512]
+    assert descriptor.device.type == "cpu"
+    assert descriptor.dtype == torch.float32
+    assert descriptor.shape == (1, 512)
+    assert descriptor.is_contiguous()
+    torch.testing.assert_close(descriptor, expected, rtol=0.0, atol=0.0)
 
 
 def test_inference_signature_binds_zero_dimensional_buffer_bytes() -> None:

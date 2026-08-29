@@ -2378,6 +2378,38 @@ def test_profile_signature_accepts_ordered_state_with_scalar_buffer() -> None:
     )
 
 
+def test_runtime_authority_descriptor_is_built_from_restored_cpu_model(
+    tmp_path: Path,
+) -> None:
+    import torch
+    from PIL import Image
+
+    class Model(torch.nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.weight = torch.nn.Parameter(torch.tensor(0.0))
+
+        def forward(self, value: torch.Tensor) -> torch.Tensor:
+            assert value.device.type == "cpu"
+            return self.weight * torch.arange(768, dtype=torch.float32).reshape(1, -1)
+
+    image_path = tmp_path / "query.jpg"
+    Image.new("RGB", (1, 1), color=(1, 2, 3)).save(image_path)
+    model = Model()
+    descriptor = MODULE._restore_cpu_model_and_build_authority_descriptor(
+        model,
+        {"model": {"weight": torch.tensor(2.0)}},
+        eval_transform=lambda _image: torch.ones((3, 1, 1), dtype=torch.float32),
+        descriptor_path=image_path,
+    )
+
+    assert model.weight.item() == 2.0
+    expected = torch.nn.functional.normalize(
+        2.0 * torch.arange(768, dtype=torch.float32).reshape(1, -1), dim=1
+    )[:, :512]
+    torch.testing.assert_close(descriptor, expected, rtol=0.0, atol=0.0)
+
+
 def test_review12_profile_reestablishes_complete_deterministic_environment(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

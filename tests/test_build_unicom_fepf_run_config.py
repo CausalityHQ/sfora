@@ -787,6 +787,10 @@ def test_review16_source_inventory_binds_partition_parser() -> None:
     assert "src/sfora/unicom_inshop.py" in MODULE.REGISTERED_SOURCE_PATHS
 
 
+def test_runtime_descriptor_operation_is_in_registered_source_inventory() -> None:
+    assert "src/sfora/unicom_runtime_authority.py" in MODULE.REGISTERED_SOURCE_PATHS
+
+
 def test_prepare_artifact_root_checks_capacity_then_atomically_creates(
     tmp_path: Path
 ) -> None:

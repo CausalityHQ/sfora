@@ -38,6 +38,7 @@ REGISTERED_SOURCE_PATHS = (
     "src/sfora/unicom_inshop.py",
     "src/sfora/unicom_fepf.py",
     "src/sfora/unicom_retrieval_audit.py",
+    "src/sfora/unicom_runtime_authority.py",
     "src/sfora/atomic_publication.py",
     "src/sfora/cuda_authority.py",
     "scripts/train_unicom_inshop.py",
@@ -306,9 +307,9 @@ def _checkpoint_runtime_inference_signature(path: Path) -> dict[str, object]:
     """Reload the registered signature from the authenticated runtime checkpoint."""
 
     import torch
-    from PIL import Image
 
     from sfora.unicom_inshop import parse_inshop_partition
+    from sfora.unicom_runtime_authority import build_runtime_authority_descriptor
 
     checkpoint = torch.load(path, map_location="cpu", weights_only=False)
     if type(checkpoint) is not dict or not isinstance(checkpoint.get("model"), dict):
@@ -322,16 +323,16 @@ def _checkpoint_runtime_inference_signature(path: Path) -> dict[str, object]:
     raw_model, transform = trainer._load_official_model(
         Path(_inputs()["unicom_checkout"]), Path(_inputs()["checkpoint"])
     )
-    raw_model.load_state_dict(checkpoint["model"], strict=True)
-    raw_model.eval()
     records = parse_inshop_partition(Path(_inputs()["dataset_root"]))
     record = next((row for row in records if row.split == "query"), None)
     if record is None:
         raise ValueError("registered runtime descriptor record differs")
-    with Image.open(record.image_path) as image, torch.no_grad():
-        full = raw_model(transform(image.convert("RGB")).unsqueeze(0)).float()
-        full = torch.nn.functional.normalize(full, dim=1)
-        descriptor = full[:, :512].contiguous()
+    raw_model.load_state_dict(checkpoint["model"], strict=True)
+    descriptor = build_runtime_authority_descriptor(
+        raw_model,
+        transform,
+        record.image_path,
+    )
     return trainer.build_inference_signature(raw_model, descriptor=descriptor)
 
 

@@ -1718,7 +1718,6 @@ def _build_replay_state(
     live_trainer_sha256: str,
 ):
     import torch
-    from PIL import Image
 
     from sfora.unicom_inshop import parse_inshop_partition
     from sfora.unicom_training import experiment_stream_seed, identity_holdout
@@ -1754,10 +1753,16 @@ def _build_replay_state(
         args.unicom_checkout,
         args.initial_checkpoint,
     )
-    raw_model = raw_model.to(device)
     descriptor_record = next((row for row in records if row.split == "query"), None)
     if descriptor_record is None:
         raise ValueError("registered runtime descriptor record differs")
+    authority_descriptor = _restore_cpu_model_and_build_authority_descriptor(
+        raw_model,
+        checkpoint,
+        eval_transform=eval_transform,
+        descriptor_path=descriptor_record.image_path,
+    )
+    raw_model = raw_model.to(device)
     checkpoint_shape = checkpoint["classifier"].shape
     classifier = torch.nn.Parameter(
         torch.empty(checkpoint_shape, device=device, dtype=torch.float32)
@@ -1821,15 +1826,7 @@ def _build_replay_state(
     }
     start_epoch = _restore_checkpoint_payload(checkpoint, state)
     del checkpoint
-    raw_model.eval()
-    with Image.open(descriptor_record.image_path) as image, torch.no_grad():
-        full_descriptor = raw_model(
-            eval_transform(image.convert("RGB")).unsqueeze(0).to(device)
-        ).float()
-        full_descriptor = torch.nn.functional.normalize(full_descriptor, dim=1)
-        state["authority_descriptor"] = (
-            full_descriptor[:, :512].detach().cpu().contiguous()
-        )
+    state["authority_descriptor"] = authority_descriptor
     sampler.set_epoch(start_epoch)
     trainer._seed_training_loader(loader, seed=seed, epoch=start_epoch)
     if step_ema is not None:
@@ -1837,6 +1834,27 @@ def _build_replay_state(
     raw_model.train()
     state["checkpoint_epoch"] = start_epoch
     return state
+
+
+def _restore_cpu_model_and_build_authority_descriptor(
+    raw_model,
+    checkpoint: object,
+    *,
+    eval_transform,
+    descriptor_path: Path,
+):
+    """Restore and evaluate the exact authority descriptor before CUDA transfer."""
+
+    from sfora.unicom_runtime_authority import build_runtime_authority_descriptor
+
+    if type(checkpoint) is not dict or not isinstance(checkpoint.get("model"), dict):
+        raise ValueError("runtime authority checkpoint differs")
+    raw_model.load_state_dict(checkpoint["model"], strict=True)
+    return build_runtime_authority_descriptor(
+        raw_model,
+        eval_transform,
+        descriptor_path,
+    )
 
 
 def _next_batch(iterator, loader):
