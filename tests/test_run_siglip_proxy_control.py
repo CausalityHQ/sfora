@@ -268,6 +268,58 @@ def test_memory_smoke_records_cuda_oom_and_descends_to_next_rung(
     assert receipt.selected_microbatch_size == 60
 
 
+def test_real_smoke_rung_uses_only_optimization_examples_and_exactly_three_steps(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    bands = _MODULE.load_control_examples(loader=lambda **_kwargs: _control_examples())
+    calls: list[dict[str, object]] = []
+
+    class FakeTower(torch.nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.weight = torch.nn.Parameter(torch.ones(()))
+
+        def forward(self, pixels: torch.Tensor) -> torch.Tensor:
+            return torch.ones(pixels.shape[0], 1152) * self.weight
+
+    monkeypatch.setattr(
+        _MODULE,
+        "load_siglip_control_components",
+        lambda **_kwargs: (FakeTower(), object()),
+    )
+
+    def fake_train(**kwargs: object) -> Any:
+        calls.append(kwargs)
+        return _MODULE.EpochTrainingEvidence(
+            epoch=0,
+            optimizer_steps=3,
+            losses=(3.0, 2.0, 1.0),
+            maximum_score_disagreement=1.0e-6,
+            sampler_state=_MODULE.SamplerState.initial(),
+        )
+
+    monkeypatch.setattr(_MODULE, "train_control_epoch", fake_train)
+    monkeypatch.setattr(_MODULE, "_memory_psi_full_avg10", lambda: 0.0)
+    monkeypatch.setattr(_MODULE, "_swap_used_bytes", lambda: 0)
+
+    observation = _MODULE.run_control_smoke_rung(
+        config=SiglipProxyControlConfig(),
+        optimization_examples=bands.optimization,
+        microbatch_size=30,
+        steps_per_epoch=7,
+        device=torch.device("cpu"),
+    )
+
+    assert len(calls) == 1
+    assert calls[0]["examples"] is bands.optimization
+    assert calls[0]["maximum_steps"] == 3
+    assert calls[0]["steps_per_epoch"] == 7
+    assert observation.steps_completed == 3
+    assert observation.final_loss == 1.0
+    assert observation.maximum_score_disagreement == 1.0e-6
+    assert observation.failure_reason is None
+
+
 def test_checkpoint_publication_rotates_only_after_new_authority_is_complete(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -853,7 +905,7 @@ def test_control_seed_lifecycle_evaluates_only_initial_and_final_and_checkpoints
     }
 
 
-def test_control_aggregate_authenticates_exact_three_seed_receipts() -> None:
+def test_control_aggregate_authenticates_exact_three_seed_receipts(tmp_path: Path) -> None:
     def seed_receipt(seed: int, initial: float, final: float, ratio: float | None) -> bytes:
         def band(recall: float) -> dict[str, dict[str, float]]:
             return {
@@ -904,3 +956,91 @@ def test_control_aggregate_authenticates_exact_three_seed_receipts() -> None:
     assert payload["mean_memorization_to_transfer_ratio"] is None
     with pytest.raises(ValueError, match="exact seeds"):
         _MODULE.control_aggregate_receipt_bytes(receipts[::-1])
+
+    paths: list[Path] = []
+    for seed, raw in zip((17, 29, 43), receipts, strict=True):
+        path = tmp_path / f"{seed}.json"
+        path.write_bytes(raw)
+        paths.append(path)
+    output = tmp_path / "aggregate.json"
+    arguments = ["aggregate", "--output", str(output)]
+    for path in paths:
+        arguments.extend(("--seed-receipt", str(path)))
+    _MODULE.main(arguments)
+    assert output.read_bytes() == _MODULE.control_aggregate_receipt_bytes(receipts)
+
+
+def test_smoke_rung_cli_publishes_one_canonical_observation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    bands = _MODULE.load_control_examples(loader=lambda **_kwargs: _control_examples())
+    monkeypatch.setattr(_MODULE, "load_control_examples", lambda: bands)
+    monkeypatch.setattr(
+        _MODULE,
+        "run_control_smoke_rung",
+        lambda **_kwargs: _passing_smoke_observation(30),
+    )
+    output = tmp_path / "rung.json"
+
+    _MODULE.main(
+        [
+            "smoke-rung",
+            "--output",
+            str(output),
+            "--microbatch-size",
+            "30",
+            "--steps-per-epoch",
+            "7",
+        ]
+    )
+
+    assert _MODULE._read_smoke_rung_result(output) == _passing_smoke_observation(30)
+
+
+def test_control_cli_has_separate_smoke_train_and_aggregate_capabilities() -> None:
+    smoke = _MODULE.parse_control_args(
+        [
+            "smoke",
+            "--output",
+            "/tmp/smoke.json",
+            "--source-revision",
+            "2" * 40,
+            "--source-tree-digest",
+            "3" * 64,
+        ]
+    )
+    assert smoke.command == "smoke"
+    train = _MODULE.parse_control_args(
+        [
+            "train",
+            "--output-dir",
+            "/tmp/control",
+            "--smoke",
+            "/tmp/smoke.json",
+            "--seed",
+            "17",
+            "--source-revision",
+            "2" * 40,
+            "--source-tree-digest",
+            "3" * 64,
+        ]
+    )
+    assert train.command == "train" and train.seed == 17
+    aggregate = _MODULE.parse_control_args(
+        [
+            "aggregate",
+            "--output",
+            "/tmp/aggregate.json",
+            "--seed-receipt",
+            "17.json",
+            "--seed-receipt",
+            "29.json",
+            "--seed-receipt",
+            "43.json",
+        ]
+    )
+    assert aggregate.command == "aggregate"
+    assert aggregate.seed_receipt == [Path("17.json"), Path("29.json"), Path("43.json")]
+    with pytest.raises(SystemExit):
+        _MODULE.parse_control_args(["train", "--seed", "98"])

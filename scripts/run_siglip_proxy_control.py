@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import argparse
+import gc
 import hashlib
 import json
 import math
@@ -10,6 +12,9 @@ import os
 import resource
 import shutil
 import stat
+import subprocess
+import sys
+import tempfile
 import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
@@ -800,6 +805,7 @@ def train_control_epoch(
     config: SiglipProxyControlConfig,
     device: torch.device,
     materialize: Callable[[object], object] = materialize_image,
+    maximum_steps: int | None = None,
 ) -> EpochTrainingEvidence:
     """Execute one frozen epoch using exact logical-batch score replay."""
 
@@ -809,6 +815,11 @@ def train_control_epoch(
         raise ValueError("training epoch differs from the frozen epoch range")
     if type(steps_per_epoch) is not int or steps_per_epoch < 1:
         raise ValueError("steps per epoch must be positive")
+    if maximum_steps is not None and (
+        type(maximum_steps) is not int or not 1 <= maximum_steps <= steps_per_epoch
+    ):
+        raise ValueError("maximum steps must lie within the resolved epoch")
+    executed_steps = steps_per_epoch if maximum_steps is None else maximum_steps
     example_ids = tuple(example.example_id for example in examples)
     labels = torch.tensor([example.label for example in examples], dtype=torch.int64)
     batches, next_sampler_state = _build_epoch_batches(
@@ -816,7 +827,7 @@ def train_control_epoch(
         labels=labels,
         seed=seed,
         epoch=epoch,
-        steps_per_epoch=steps_per_epoch,
+        steps_per_epoch=executed_steps,
         state=sampler_state,
     )
     model.train()
@@ -872,6 +883,113 @@ def train_control_epoch(
         maximum_score_disagreement=maximum_disagreement,
         sampler_state=next_sampler_state,
     )
+
+
+def _memory_psi_full_avg10() -> float:
+    for line in Path("/proc/pressure/memory").read_text().splitlines():
+        fields = line.split()
+        if fields and fields[0] == "full":
+            for field in fields[1:]:
+                if field.startswith("avg10="):
+                    return float(field.removeprefix("avg10="))
+    raise RuntimeError("memory PSI full avg10 is unavailable")
+
+
+def _swap_used_bytes() -> int:
+    values: dict[str, int] = {}
+    for line in Path("/proc/meminfo").read_text().splitlines():
+        key, _, value = line.partition(":")
+        if key in {"SwapTotal", "SwapFree"}:
+            values[key] = int(value.split()[0]) * 1024
+    if set(values) != {"SwapTotal", "SwapFree"}:
+        raise RuntimeError("swap authority is unavailable")
+    return values["SwapTotal"] - values["SwapFree"]
+
+
+def run_control_smoke_rung(
+    *,
+    config: SiglipProxyControlConfig,
+    optimization_examples: tuple[ImageExample, ...],
+    microbatch_size: int,
+    steps_per_epoch: int,
+    device: torch.device,
+) -> SmokeObservation:
+    """Run one fresh-process, optimization-only three-step smoke rung."""
+
+    require_control_determinism(device)
+    if microbatch_size not in config.smoke_microbatch_ladder:
+        raise ValueError("smoke microbatch is outside the frozen ladder")
+    labels = torch.tensor([example.label for example in optimization_examples])
+    validate_control_partition(
+        optimization_labels=labels,
+        clean_validation_labels=torch.tensor(
+            [label for label in sorted(F1_VALIDATION_CLASSES) for _ in range(2)]
+        ),
+        burned_diagnostic_labels=torch.tensor(
+            [label for label in sorted(SUBSTRATE_F0_CLASSES) for _ in range(2)]
+        ),
+    )
+    psi_before = _memory_psi_full_avg10()
+    swap_before = _swap_used_bytes()
+    if device.type == "cuda":
+        if not torch.cuda.is_available() or not torch.cuda.is_bf16_supported():
+            raise RuntimeError("the pooled-control smoke requires CUDA bf16")
+        torch.cuda.empty_cache()
+        torch.cuda.reset_peak_memory_stats(device)
+    tower, _processor = load_siglip_control_components(config=config)
+    torch.manual_seed(config.seeds[0])
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(config.seeds[0])
+    model = PooledProxyAnchorModel(
+        tower=tower,
+        input_dimensions=config.input_dimensions,
+        embedding_dimensions=config.embedding_dimensions,
+        class_count=len(F1_TRAIN_CLASSES),
+    ).to(device)
+    optimizer = torch.optim.AdamW(_optimizer_groups(model, config))
+    started_at = time.monotonic()
+    evidence = train_control_epoch(
+        model=model,
+        optimizer=optimizer,
+        examples=optimization_examples,
+        transform=build_control_train_transform(),
+        seed=config.seeds[0],
+        epoch=0,
+        steps_per_epoch=steps_per_epoch,
+        sampler_state=SamplerState.initial(),
+        microbatch_size=microbatch_size,
+        config=config,
+        device=device,
+        maximum_steps=3,
+    )
+    elapsed = max(time.monotonic() - started_at, 1.0e-12)
+    complete_gradients = all(
+        parameter.grad is not None and bool(torch.isfinite(parameter.grad).all())
+        for parameter in model.tower.parameters()
+        if parameter.requires_grad
+    )
+    observation = SmokeObservation(
+        microbatch_size=microbatch_size,
+        steps_completed=evidence.optimizer_steps,
+        peak_process_rss_bytes=int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss) * 1024,
+        peak_cuda_allocated_bytes=(
+            int(torch.cuda.max_memory_allocated(device)) if device.type == "cuda" else 0
+        ),
+        peak_cuda_reserved_bytes=(
+            int(torch.cuda.max_memory_reserved(device)) if device.type == "cuda" else 0
+        ),
+        memory_psi_growth=max(0.0, _memory_psi_full_avg10() - psi_before),
+        swap_growth_bytes=max(0, _swap_used_bytes() - swap_before),
+        examples_per_second=(evidence.optimizer_steps * config.logical_batch_size) / elapsed,
+        final_loss=evidence.losses[-1],
+        complete_tower_gradient_coverage=complete_gradients,
+        maximum_score_disagreement=evidence.maximum_score_disagreement,
+    )
+    del optimizer, model, tower
+    gc.collect()
+    if device.type == "cuda":
+        torch.cuda.empty_cache()
+    return observation
 
 
 def _evaluate_control_snapshot(
@@ -1310,6 +1428,119 @@ def control_aggregate_receipt_bytes(seed_receipts: tuple[bytes, ...]) -> bytes:
             "mean_memorization_to_transfer_ratio": mean_ratio,
         }
     )
+
+
+def _smoke_observation_payload(observation: SmokeObservation) -> dict[str, object]:
+    payload = _json_compatible(vars(observation))
+    if type(payload) is not dict:
+        raise TypeError("smoke observation did not produce an object")
+    return cast(dict[str, object], payload)
+
+
+def _smoke_receipt_bytes(
+    receipt: SmokeReceipt,
+    *,
+    config: SiglipProxyControlConfig,
+    source_revision: str,
+    source_tree_digest: str,
+    manifest_sha256: str,
+    steps_per_epoch: int,
+) -> bytes:
+    _require_lower_hex(source_revision, length=40, name="source revision")
+    _require_lower_hex(source_tree_digest, length=64, name="source tree digest")
+    _require_lower_hex(manifest_sha256, length=64, name="manifest SHA-256")
+    return _canonical_bytes(
+        {
+            "schema": "sfora-siglip-proxy-control-smoke-v1",
+            "claim_eligible": False,
+            "source_revision": source_revision,
+            "source_tree_digest": source_tree_digest,
+            "manifest_sha256": manifest_sha256,
+            "config_sha256": _config_sha256(config),
+            "steps_per_epoch": steps_per_epoch,
+            "observations": [
+                _smoke_observation_payload(observation) for observation in receipt.observations
+            ],
+            "selected_microbatch_size": receipt.selected_microbatch_size,
+            "projected_seed_seconds": receipt.projected_seed_seconds,
+        }
+    )
+
+
+def _read_smoke_receipt(
+    path: Path,
+    *,
+    config: SiglipProxyControlConfig,
+    source_revision: str,
+    source_tree_digest: str,
+    manifest_sha256: str,
+    steps_per_epoch: int,
+) -> tuple[SmokeReceipt, bytes]:
+    raw = path.read_bytes()
+    try:
+        payload = json.loads(raw)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError("smoke receipt is not valid JSON") from error
+    if type(payload) is not dict or raw != _canonical_bytes(cast(dict[str, Any], payload)):
+        raise ValueError("smoke receipt is not canonical")
+    expected_keys = {
+        "schema",
+        "claim_eligible",
+        "source_revision",
+        "source_tree_digest",
+        "manifest_sha256",
+        "config_sha256",
+        "steps_per_epoch",
+        "observations",
+        "selected_microbatch_size",
+        "projected_seed_seconds",
+    }
+    if (
+        set(payload) != expected_keys
+        or payload["schema"] != "sfora-siglip-proxy-control-smoke-v1"
+        or payload["claim_eligible"] is not False
+        or payload["source_revision"] != source_revision
+        or payload["source_tree_digest"] != source_tree_digest
+        or payload["manifest_sha256"] != manifest_sha256
+        or payload["config_sha256"] != _config_sha256(config)
+        or payload["steps_per_epoch"] != steps_per_epoch
+        or type(payload["observations"]) is not list
+    ):
+        raise ValueError("smoke receipt authority differs")
+    observations: list[SmokeObservation] = []
+    for row in payload["observations"]:
+        if type(row) is not dict:
+            raise ValueError("smoke observation schema differs")
+        try:
+            observations.append(SmokeObservation(**row))
+        except (TypeError, ValueError) as error:
+            raise ValueError("smoke observation schema differs") from error
+    receipt = SmokeReceipt(
+        observations=tuple(observations),
+        selected_microbatch_size=payload["selected_microbatch_size"],
+        projected_seed_seconds=payload["projected_seed_seconds"],
+    )
+    expected_bytes = _smoke_receipt_bytes(
+        receipt,
+        config=config,
+        source_revision=source_revision,
+        source_tree_digest=source_tree_digest,
+        manifest_sha256=manifest_sha256,
+        steps_per_epoch=steps_per_epoch,
+    )
+    if raw != expected_bytes or not receipt.observations:
+        raise ValueError("smoke receipt evidence differs")
+    selected = receipt.observations[-1]
+    if (
+        selected.microbatch_size != receipt.selected_microbatch_size
+        or not _smoke_observation_passes(
+            selected,
+            config=config,
+            steps_per_epoch=steps_per_epoch,
+        )
+    ):
+        raise ValueError("smoke receipt lacks a passing selected rung")
+    return receipt, raw
 
 
 def _checkpoint_basename(*, seed: int, epoch: int) -> str:
@@ -1763,3 +1994,231 @@ def _optimizer_groups(
     if duplicated or incomplete:
         raise RuntimeError("optimizer groups do not partition trainable parameters exactly once")
     return groups
+
+
+def parse_control_args(arguments: list[str] | None = None) -> argparse.Namespace:
+    """Parse the three capability-separated pooled-control phases."""
+
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    smoke = subparsers.add_parser("smoke")
+    smoke.add_argument("--output", type=Path, required=True)
+    smoke.add_argument("--source-revision", required=True)
+    smoke.add_argument("--source-tree-digest", required=True)
+
+    rung = subparsers.add_parser("smoke-rung", help=argparse.SUPPRESS)
+    rung.add_argument("--output", type=Path, required=True)
+    rung.add_argument("--microbatch-size", type=int, required=True)
+    rung.add_argument("--steps-per-epoch", type=int, required=True)
+
+    train = subparsers.add_parser("train")
+    train.add_argument("--output-dir", type=Path, required=True)
+    train.add_argument("--smoke", type=Path, required=True)
+    train.add_argument("--seed", type=int, choices=_CONTROL_SEEDS, required=True)
+    train.add_argument("--source-revision", required=True)
+    train.add_argument("--source-tree-digest", required=True)
+    train.add_argument("--maximum-checkpoint-bytes", type=int, default=8 * 1024**3)
+    train.add_argument("--evaluation-batch-size", type=int, default=32)
+    train.add_argument("--query-block", type=int, default=128)
+
+    aggregate = subparsers.add_parser("aggregate")
+    aggregate.add_argument("--output", type=Path, required=True)
+    aggregate.add_argument(
+        "--seed-receipt",
+        type=Path,
+        action="append",
+        required=True,
+    )
+    return parser.parse_args(arguments)
+
+
+def _current_run_authority(
+    *,
+    source_revision: str,
+    source_tree_digest: str,
+    bands: ControlExampleBands,
+    microbatch_size: int,
+    steps_per_epoch: int,
+    device: torch.device,
+) -> ControlRunAuthority:
+    import torchvision
+    import transformers
+
+    return ControlRunAuthority(
+        source_revision=source_revision,
+        source_tree_digest=source_tree_digest,
+        manifest_sha256=control_manifest_sha256(bands.ordered_manifest),
+        torch_version=str(torch.__version__),
+        transformers_version=str(transformers.__version__),
+        torchvision_version=str(torchvision.__version__),
+        cuda_runtime=torch.version.cuda,
+        device_name=(torch.cuda.get_device_name(device) if device.type == "cuda" else "cpu"),
+        microbatch_size=microbatch_size,
+        steps_per_epoch=steps_per_epoch,
+    )
+
+
+def _smoke_rung_result_bytes(observation: SmokeObservation) -> bytes:
+    return _canonical_bytes(
+        {
+            "schema": "sfora-siglip-proxy-control-smoke-rung-v1",
+            "claim_eligible": False,
+            "observation": _smoke_observation_payload(observation),
+        }
+    )
+
+
+def _read_smoke_rung_result(path: Path) -> SmokeObservation:
+    raw = path.read_bytes()
+    try:
+        payload = json.loads(raw)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError("smoke rung result is not valid JSON") from error
+    if (
+        type(payload) is not dict
+        or set(payload) != {"schema", "claim_eligible", "observation"}
+        or payload["schema"] != "sfora-siglip-proxy-control-smoke-rung-v1"
+        or payload["claim_eligible"] is not False
+        or type(payload["observation"]) is not dict
+        or raw != _canonical_bytes(cast(dict[str, Any], payload))
+    ):
+        raise ValueError("smoke rung result authority differs")
+    try:
+        return SmokeObservation(**payload["observation"])
+    except (TypeError, ValueError) as error:
+        raise ValueError("smoke rung observation differs") from error
+
+
+def _oom_smoke_observation(microbatch_size: int) -> SmokeObservation:
+    return SmokeObservation(
+        microbatch_size=microbatch_size,
+        steps_completed=0,
+        peak_process_rss_bytes=0,
+        peak_cuda_allocated_bytes=0,
+        peak_cuda_reserved_bytes=0,
+        memory_psi_growth=0.0,
+        swap_growth_bytes=0,
+        examples_per_second=0.0,
+        final_loss=0.0,
+        complete_tower_gradient_coverage=False,
+        maximum_score_disagreement=0.0,
+        failure_reason="cuda-out-of-memory",
+    )
+
+
+def _run_smoke_subprocess(microbatch_size: int, *, steps_per_epoch: int) -> SmokeObservation:
+    with tempfile.TemporaryDirectory(prefix="sfora-proxy-smoke-") as temporary:
+        output = Path(temporary) / "rung.json"
+        subprocess.run(
+            [
+                sys.executable,
+                str(Path(__file__).resolve()),
+                "smoke-rung",
+                "--output",
+                str(output),
+                "--microbatch-size",
+                str(microbatch_size),
+                "--steps-per-epoch",
+                str(steps_per_epoch),
+            ],
+            check=True,
+        )
+        return _read_smoke_rung_result(output)
+
+
+def main(arguments: list[str] | None = None) -> None:
+    """Execute one capability-separated pooled-control phase."""
+
+    args = parse_control_args(arguments)
+    config = SiglipProxyControlConfig()
+    if args.command == "aggregate":
+        receipts = tuple(path.read_bytes() for path in args.seed_receipt)
+        _write_new(args.output, control_aggregate_receipt_bytes(receipts))
+        return
+
+    device = torch.device("cuda")
+    if args.command == "smoke-rung":
+        bands = load_control_examples()
+        try:
+            observation = run_control_smoke_rung(
+                config=config,
+                optimization_examples=bands.optimization,
+                microbatch_size=args.microbatch_size,
+                steps_per_epoch=args.steps_per_epoch,
+                device=device,
+            )
+        except torch.cuda.OutOfMemoryError:
+            observation = _oom_smoke_observation(args.microbatch_size)
+        _write_new(args.output, _smoke_rung_result_bytes(observation))
+        return
+
+    bands = load_control_examples()
+    steps_per_epoch = config.steps_per_epoch(len(bands.optimization))
+    manifest_sha256 = control_manifest_sha256(bands.ordered_manifest)
+    if args.command == "smoke":
+        smoke_result = run_memory_smoke(
+            config=config,
+            steps_per_epoch=steps_per_epoch,
+            run_rung=partial(_run_smoke_subprocess, steps_per_epoch=steps_per_epoch),
+        )
+        _write_new(
+            args.output,
+            _smoke_receipt_bytes(
+                smoke_result,
+                config=config,
+                source_revision=args.source_revision,
+                source_tree_digest=args.source_tree_digest,
+                manifest_sha256=manifest_sha256,
+                steps_per_epoch=steps_per_epoch,
+            ),
+        )
+        return
+
+    if args.command != "train":
+        raise RuntimeError("unreachable pooled-control command")
+    smoke_receipt, smoke_bytes = _read_smoke_receipt(
+        args.smoke,
+        config=config,
+        source_revision=args.source_revision,
+        source_tree_digest=args.source_tree_digest,
+        manifest_sha256=manifest_sha256,
+        steps_per_epoch=steps_per_epoch,
+    )
+    run_authority = _current_run_authority(
+        source_revision=args.source_revision,
+        source_tree_digest=args.source_tree_digest,
+        bands=bands,
+        microbatch_size=smoke_receipt.selected_microbatch_size,
+        steps_per_epoch=steps_per_epoch,
+        device=device,
+    )
+    result = run_control_seed(
+        config=config,
+        seed=args.seed,
+        bands=bands,
+        checkpoint_directory=args.output_dir / f"seed-{args.seed:03d}" / "checkpoints",
+        maximum_checkpoint_bytes=args.maximum_checkpoint_bytes,
+        microbatch_size=smoke_receipt.selected_microbatch_size,
+        evaluation_batch_size=args.evaluation_batch_size,
+        query_block=args.query_block,
+        device=device,
+        smoke_receipt=smoke_receipt,
+        run_authority=run_authority,
+    )
+    seed_receipt_bytes = control_seed_receipt_bytes(
+        result=result,
+        config=config,
+        bands=bands,
+        smoke_receipt=smoke_receipt,
+        smoke_sha256=hashlib.sha256(smoke_bytes).hexdigest(),
+        run_authority=run_authority,
+    )
+    _write_new(
+        args.output_dir / f"seed-{args.seed:03d}.receipt.json",
+        seed_receipt_bytes,
+    )
+
+
+if __name__ == "__main__":
+    main()
