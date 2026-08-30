@@ -25,3 +25,6 @@ def test_probe_pins_dinov2_and_never_reads_test_split() -> None:
     assert "torch.backends.cudnn.allow_tf32 = False" in source
     assert 'len(holdout) != _EXPECTED_QUERIES' in source
     assert '"last_hidden_state_cls"' in source
+    assert '"google/siglip2-so400m-patch14-384"' in source
+    assert '"e8e487298228002f3d8a82e0cd5c8ea9c567f57f"' in source
+    assert '"vision_pooler_output"' in source

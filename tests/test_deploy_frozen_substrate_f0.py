@@ -12,3 +12,15 @@ def test_deploy_is_revision_scoped_and_runs_only_train_band() -> None:
     assert "facebook/dinov2-large" in run
     assert "PREFLIGHT_ONLY" in run
     assert "split=\"test\"" not in deploy + run
+
+
+def test_siglip2_successor_is_revision_scoped_and_offline() -> None:
+    root = Path(__file__).parents[1]
+    deploy = (root / "scripts/deploy_frozen_substrate_f0_siglip2_v1.sh").read_text()
+    run = (root / "scripts/run_frozen_substrate_f0_siglip2_v1.sh").read_text()
+    assert "origin/devbox/emafactorial" in deploy
+    assert "git diff --quiet" in deploy
+    assert "SOURCE_MANIFEST.sha256" in deploy
+    assert "--offline --locked" in deploy + run
+    assert "google/siglip2-so400m-patch14-384" in run
+    assert "split=\"test\"" not in deploy + run

@@ -10030,7 +10030,7 @@ MaxSim reader, their cross-image maxima are noise-dominated and even a small
 residual weight damages a strong pooled descriptor. This rejects TSPA's reader
 and proxy-training premise, not all training-time uses of spatial evidence.
 
-## Pass207 — Frozen substrate headroom screen: READY at F0
+## Pass207 — Frozen substrate headroom screen: DINOv2-L failed; SigLIP2 pending
 
 Independent review rejected the proposed same-SigLIP 224→384 screen before
 execution: it was a FixRes tolerance experiment that confounded pixel evidence,
@@ -10044,3 +10044,10 @@ leave-one-out cosine R@1. The only scientific gate is at least 1,265/1,345
 correct (0.94). This claim-ineligible screen decides whether the frozen
 representation has enough headroom to justify the HFRO method screen; it cannot
 establish a Cars196 test result or a final method claim.
+
+The first cell ran once from source `afd1d77ef3bef37c6b244c77e77f1713cf83137c`.
+DINOv2-L reached only 1,196/1,345 (`0.8892193309`) R@1 and failed the absolute
+headroom gate; receipt SHA-256 is
+`8d01a2aa7cb122e9db0786e40a397a4dfe64ccec9430f6346a80d3b6a3b973a1`.
+The preregistered SigLIP2-so400m cell is next. No loss or head training is
+authorized until a frozen substrate passes.

@@ -8,7 +8,7 @@ import hashlib
 import json
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 import torch
 
@@ -19,8 +19,25 @@ from sfora.substrate_screen import (
     validate_substrate_holdout,
 )
 
-_MODEL_NAME = "facebook/dinov2-large"
-_MODEL_REVISION = "47b73eefe95e8d44ec3623f8890bd894b6ea2d6c"
+
+class RegisteredSubstrate(NamedTuple):
+    model_name: str
+    model_revision: str
+    readout: str
+
+
+_SUBSTRATES = {
+    "dinov2-large": RegisteredSubstrate(
+        "facebook/dinov2-large",
+        "47b73eefe95e8d44ec3623f8890bd894b6ea2d6c",
+        "last_hidden_state_cls",
+    ),
+    "siglip2-so400m": RegisteredSubstrate(
+        "google/siglip2-so400m-patch14-384",
+        "e8e487298228002f3d8a82e0cd5c8ea9c567f57f",
+        "vision_pooler_output",
+    ),
+}
 _DATASET_REVISION = "9abf6cf7d6dfa7b95152a0d6e791ea9435b47a40"
 _EXPECTED_QUERIES = 1345
 _RECALL_MINIMUM = 0.94
@@ -53,6 +70,7 @@ def _encode(
     *,
     model_name: str,
     model_revision: str,
+    readout: str,
     batch_size: int,
     device: torch.device,
 ) -> tuple[torch.Tensor, tuple[int, int]]:
@@ -78,8 +96,14 @@ def _encode(
                 observed_shape = shape
             elif shape != observed_shape:
                 raise RuntimeError("processor emitted inconsistent image shapes")
-            output = model(pixel_values=pixel_values.to(device))
-            descriptor = output.last_hidden_state[:, 0, :].float()
+            if readout == "last_hidden_state_cls":
+                output = model(pixel_values=pixel_values.to(device))
+                descriptor = output.last_hidden_state[:, 0, :].float()
+            elif readout == "vision_pooler_output":
+                output = model.vision_model(pixel_values=pixel_values.to(device))
+                descriptor = output.pooler_output.float()
+            else:
+                raise RuntimeError("unregistered substrate readout")
             rows.append(torch.nn.functional.normalize(descriptor, dim=-1).cpu())
     if observed_shape is None:
         raise RuntimeError("the holdout is empty")
@@ -92,12 +116,19 @@ def main() -> None:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--source-revision", required=True)
     parser.add_argument("--source-tree-digest", required=True)
-    parser.add_argument("--model-name", default=_MODEL_NAME)
-    parser.add_argument("--model-revision", default=_MODEL_REVISION)
+    parser.add_argument("--cell", choices=sorted(_SUBSTRATES), default="dinov2-large")
+    parser.add_argument("--model-name")
+    parser.add_argument("--model-revision")
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--query-block", type=int, default=32)
     args = parser.parse_args()
-    if (args.model_name, args.model_revision) != (_MODEL_NAME, _MODEL_REVISION):
+    substrate = _SUBSTRATES[args.cell]
+    model_name = args.model_name or substrate.model_name
+    model_revision = args.model_revision or substrate.model_revision
+    if (model_name, model_revision) != (
+        substrate.model_name,
+        substrate.model_revision,
+    ):
         raise ValueError("model authority differs from the registered substrate cell")
     if re.fullmatch(r"[0-9a-f]{40}", args.source_revision) is None:
         raise ValueError("source revision must be an exact 40-character commit")
@@ -127,8 +158,9 @@ def main() -> None:
     validate_substrate_holdout(split="train", labels=labels)
     descriptors, image_shape = _encode(
         holdout,
-        model_name=args.model_name,
-        model_revision=args.model_revision,
+        model_name=model_name,
+        model_revision=model_revision,
+        readout=substrate.readout,
         batch_size=args.batch_size,
         device=torch.device("cuda"),
     )
@@ -145,9 +177,10 @@ def main() -> None:
         "dataset_examples_sha256": dataset_examples_sha256,
         "split": "train",
         "holdout_classes": sorted(SUBSTRATE_F0_CLASSES),
-        "model_name": args.model_name,
-        "model_revision": args.model_revision,
-        "readout": "last_hidden_state_cls",
+        "cell": args.cell,
+        "model_name": model_name,
+        "model_revision": model_revision,
+        "readout": substrate.readout,
         "compute_dtype": "float32",
         "processor_image_shape": list(image_shape),
         "descriptors_validated": True,

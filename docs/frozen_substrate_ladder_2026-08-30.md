@@ -34,3 +34,13 @@ advances, without tuning on this class band, first to pinned
 execution errors are infrastructure failures and produce no scientific
 receipt. A pass allows the HFRO method screen to be implemented on separate
 training folds, but does not establish the final 97.4 claim.
+
+## First-cell result
+
+The DINOv2-L cell ran once from source revision
+`afd1d77ef3bef37c6b244c77e77f1713cf83137c`. It achieved 1,196/1,345 correct
+(`0.8892193308550186` R@1), failing the absolute headroom gate. The canonical
+receipt SHA-256 is
+`8d01a2aa7cb122e9db0786e40a397a4dfe64ccec9430f6346a80d3b6a3b973a1`.
+This is a scientific substrate failure, not an execution failure. No Cars test
+data was read. The next sealed cell is SigLIP2-so400m as ordered above.
