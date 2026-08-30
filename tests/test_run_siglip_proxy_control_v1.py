@@ -16,6 +16,7 @@ def test_wrapper_is_source_bound_offline_smoke_first_and_fixed_three_seed() -> N
     assert "SOURCE_REVISION" in text and "SOURCE_MANIFEST" in text
     assert "sha256sum --check --strict" in text
     assert "HF_HUB_OFFLINE=1" in text and "TRANSFORMERS_OFFLINE=1" in text
+    assert "PYTHONDONTWRITEBYTECODE=1" in text
     assert "CUBLAS_WORKSPACE_CONFIG=:4096:8" in text
     smoke_position = text.index("run_siglip_proxy_control.py smoke")
     train_position = text.index("run_siglip_proxy_control.py train")
@@ -25,5 +26,6 @@ def test_wrapper_is_source_bound_offline_smoke_first_and_fixed_three_seed() -> N
     assert "--maximum-checkpoint-bytes" in text
     assert "--evaluation-batch-size 32" in text
     assert "--query-block 128" in text
+    assert 'payload["campaign_authority"]' in text
     assert 'dataset_name="cars", split="test"' not in text
     assert "rm -rf" not in text

@@ -11,6 +11,7 @@ import math
 import os
 import resource
 import shutil
+import signal
 import stat
 import subprocess
 import sys
@@ -257,6 +258,8 @@ class ControlRunAuthority:
     device_name: str
     microbatch_size: int
     steps_per_epoch: int
+    evaluation_batch_size: int
+    query_block: int
 
     def __post_init__(self) -> None:
         _require_lower_hex(self.source_revision, length=40, name="source revision")
@@ -283,6 +286,10 @@ class ControlRunAuthority:
             raise ValueError("authority microbatch must divide 120")
         if type(self.steps_per_epoch) is not int or self.steps_per_epoch < 1:
             raise ValueError("authority steps per epoch must be positive")
+        if type(self.evaluation_batch_size) is not int or self.evaluation_batch_size < 1:
+            raise ValueError("authority evaluation batch size must be positive")
+        if type(self.query_block) is not int or self.query_block < 1:
+            raise ValueError("authority query block must be positive")
 
 
 class SiglipPooledTower(nn.Module):
@@ -1081,6 +1088,8 @@ def run_control_seed(
     if (
         run_authority.microbatch_size != microbatch_size
         or run_authority.steps_per_epoch != steps_per_epoch
+        or run_authority.evaluation_batch_size != evaluation_batch_size
+        or run_authority.query_block != query_block
         or run_authority.manifest_sha256 != control_manifest_sha256(bands.ordered_manifest)
         or run_authority.torch_version != torch.__version__
         or run_authority.cuda_runtime != torch.version.cuda
@@ -1313,7 +1322,7 @@ def control_seed_receipt_bytes(
             "clean_margin_change": clean_margin_change,
             "burned_margin_change": burned_change,
             "memorization_to_transfer_ratio": ratio,
-            "transfer_mechanism_conclusion_supported": ratio is not None,
+            "transfer_mechanism_conclusion_supported": False,
         },
         "training": {
             "optimizer_steps": result.optimizer_steps,
@@ -1383,6 +1392,58 @@ def control_aggregate_receipt_bytes(seed_receipts: tuple[bytes, ...]) -> bytes:
     seeds = tuple(value["seed"] for value in parsed)
     if seeds != (17, 29, 43) or any(type(seed) is not int for seed in seeds):
         raise ValueError("aggregate requires the exact seeds 17, 29, and 43")
+
+    shared_authorities: list[bytes] = []
+    for value in parsed:
+        model = value["model"]
+        training = value["training"]
+        if type(model) is not dict or type(training) is not dict:
+            raise ValueError("seed receipt shared authority differs")
+        shared_authorities.append(
+            _canonical_bytes(
+                {
+                    "source": value["source"],
+                    "dataset": value["dataset"],
+                    "model": {
+                        key: item
+                        for key, item in model.items()
+                        if key != "initial_state_sha256"
+                    },
+                    "config": value["config"],
+                    "config_sha256": value["config_sha256"],
+                    "smoke": value["smoke"],
+                    "training": {
+                        key: item
+                        for key, item in training.items()
+                        if key not in {"final_objective", "maximum_score_disagreement"}
+                    },
+                    "environment": value["environment"],
+                }
+            )
+        )
+    if len(set(shared_authorities)) != 1:
+        raise ValueError("seed receipt shared authority differs")
+
+    source = parsed[0]["source"]
+    dataset = parsed[0]["dataset"]
+    smoke = parsed[0]["smoke"]
+    if type(source) is not dict or type(dataset) is not dict or type(smoke) is not dict:
+        raise ValueError("seed receipt campaign authority differs")
+    source_revision = source.get("revision")
+    source_tree_digest = source.get("tree_digest")
+    dataset_manifest_sha256 = dataset.get("manifest_sha256")
+    config_sha256 = parsed[0]["config_sha256"]
+    smoke_sha256 = smoke.get("sha256")
+    _require_lower_hex(source_revision, length=40, name="aggregate source revision")
+    _require_lower_hex(source_tree_digest, length=64, name="aggregate source tree digest")
+    _require_lower_hex(
+        dataset_manifest_sha256,
+        length=64,
+        name="aggregate dataset manifest SHA-256",
+    )
+    _require_lower_hex(config_sha256, length=64, name="aggregate config SHA-256")
+    _require_lower_hex(smoke_sha256, length=64, name="aggregate smoke SHA-256")
+
     initial_recalls: list[float] = []
     final_recalls: list[float] = []
     ratios: list[float | None] = []
@@ -1406,13 +1467,18 @@ def control_aggregate_receipt_bytes(seed_receipts: tuple[bytes, ...]) -> bytes:
         initial_recalls.append(initial)
         final_recalls.append(final)
         ratios.append(ratio)
-    all_ratios_defined = all(ratio is not None for ratio in ratios)
-    mean_ratio = sum(cast(float, ratio) for ratio in ratios) / 3.0 if all_ratios_defined else None
     return _canonical_bytes(
         {
             "schema": "sfora-siglip-proxy-control-aggregate-v1",
             "claim_eligible": False,
             "seeds": list(seeds),
+            "campaign_authority": {
+                "source_revision": source_revision,
+                "source_tree_digest": source_tree_digest,
+                "dataset_manifest_sha256": dataset_manifest_sha256,
+                "config_sha256": config_sha256,
+                "smoke_sha256": smoke_sha256,
+            },
             "seed_receipts": [
                 {"seed": seed, "sha256": hashlib.sha256(raw).hexdigest()}
                 for seed, raw in zip(seeds, seed_receipts, strict=True)
@@ -1425,7 +1491,8 @@ def control_aggregate_receipt_bytes(seed_receipts: tuple[bytes, ...]) -> bytes:
             )
             / 3.0,
             "memorization_to_transfer_ratios": ratios,
-            "mean_memorization_to_transfer_ratio": mean_ratio,
+            "mean_memorization_to_transfer_ratio": None,
+            "transfer_mechanism_conclusion_supported": False,
         }
     )
 
@@ -2040,6 +2107,8 @@ def _current_run_authority(
     bands: ControlExampleBands,
     microbatch_size: int,
     steps_per_epoch: int,
+    evaluation_batch_size: int,
+    query_block: int,
     device: torch.device,
 ) -> ControlRunAuthority:
     import torchvision
@@ -2056,6 +2125,8 @@ def _current_run_authority(
         device_name=(torch.cuda.get_device_name(device) if device.type == "cuda" else "cpu"),
         microbatch_size=microbatch_size,
         steps_per_epoch=steps_per_epoch,
+        evaluation_batch_size=evaluation_batch_size,
+        query_block=query_block,
     )
 
 
@@ -2110,20 +2181,36 @@ def _oom_smoke_observation(microbatch_size: int) -> SmokeObservation:
 def _run_smoke_subprocess(microbatch_size: int, *, steps_per_epoch: int) -> SmokeObservation:
     with tempfile.TemporaryDirectory(prefix="sfora-proxy-smoke-") as temporary:
         output = Path(temporary) / "rung.json"
-        subprocess.run(
-            [
-                sys.executable,
-                str(Path(__file__).resolve()),
-                "smoke-rung",
-                "--output",
-                str(output),
-                "--microbatch-size",
-                str(microbatch_size),
-                "--steps-per-epoch",
-                str(steps_per_epoch),
-            ],
-            check=True,
-        )
+        command = [
+            sys.executable,
+            str(Path(__file__).resolve()),
+            "smoke-rung",
+            "--output",
+            str(output),
+            "--microbatch-size",
+            str(microbatch_size),
+            "--steps-per-epoch",
+            str(steps_per_epoch),
+        ]
+        try:
+            subprocess.run(command, check=True)
+        except subprocess.CalledProcessError as error:
+            if error.returncode != -signal.SIGKILL:
+                raise
+            return SmokeObservation(
+                microbatch_size=microbatch_size,
+                steps_completed=0,
+                peak_process_rss_bytes=0,
+                peak_cuda_allocated_bytes=0,
+                peak_cuda_reserved_bytes=0,
+                memory_psi_growth=0.0,
+                swap_growth_bytes=0,
+                examples_per_second=0.0,
+                final_loss=0.0,
+                complete_tower_gradient_coverage=False,
+                maximum_score_disagreement=0.0,
+                failure_reason="process-sigkill",
+            )
         return _read_smoke_rung_result(output)
 
 
@@ -2191,6 +2278,8 @@ def main(arguments: list[str] | None = None) -> None:
         bands=bands,
         microbatch_size=smoke_receipt.selected_microbatch_size,
         steps_per_epoch=steps_per_epoch,
+        evaluation_batch_size=args.evaluation_batch_size,
+        query_block=args.query_block,
         device=device,
     )
     result = run_control_seed(

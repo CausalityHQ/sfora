@@ -6,6 +6,8 @@ import importlib.util
 import json
 import math
 import shutil
+import signal
+import subprocess
 import sys
 from collections import UserDict
 from dataclasses import replace
@@ -268,6 +270,25 @@ def test_memory_smoke_records_cuda_oom_and_descends_to_next_rung(
     assert receipt.selected_microbatch_size == 60
 
 
+def test_smoke_subprocess_records_sigkill_but_propagates_other_failures(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def sigkill(*args: object, **_kwargs: object) -> None:
+        raise subprocess.CalledProcessError(-signal.SIGKILL, cast(Any, args[0]))
+
+    monkeypatch.setattr(_MODULE.subprocess, "run", sigkill)
+    observation = _MODULE._run_smoke_subprocess(120, steps_per_epoch=2)
+    assert observation.microbatch_size == 120
+    assert observation.failure_reason == "process-sigkill"
+
+    def ordinary_failure(*args: object, **_kwargs: object) -> None:
+        raise subprocess.CalledProcessError(2, cast(Any, args[0]))
+
+    monkeypatch.setattr(_MODULE.subprocess, "run", ordinary_failure)
+    with pytest.raises(subprocess.CalledProcessError):
+        _MODULE._run_smoke_subprocess(60, steps_per_epoch=2)
+
+
 def test_real_smoke_rung_uses_only_optimization_examples_and_exactly_three_steps(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -422,6 +443,8 @@ def _run_authority(*, manifest_sha256: str = "1" * 64) -> Any:
         device_name="cpu",
         microbatch_size=30,
         steps_per_epoch=1,
+        evaluation_batch_size=64,
+        query_block=64,
     )
 
 
@@ -843,6 +866,10 @@ def test_control_seed_lifecycle_evaluates_only_initial_and_final_and_checkpoints
     monkeypatch.setattr(_MODULE, "publish_epoch_checkpoint", fake_publish)
     monkeypatch.setattr(_MODULE, "latest_authenticated_checkpoint", lambda *_args, **_kwargs: None)
 
+    authority = replace(
+        _run_authority(),
+        manifest_sha256=_MODULE.control_manifest_sha256(bands.ordered_manifest),
+    )
     result = _MODULE.run_control_seed(
         config=SiglipProxyControlConfig(),
         seed=17,
@@ -858,10 +885,7 @@ def test_control_seed_lifecycle_evaluates_only_initial_and_final_and_checkpoints
             selected_microbatch_size=30,
             projected_seed_seconds=1.0,
         ),
-        run_authority=replace(
-            _run_authority(),
-            manifest_sha256=_MODULE.control_manifest_sha256(bands.ordered_manifest),
-        ),
+        run_authority=authority,
     )
 
     assert events[:3] == [("embed", 0), ("embed", 49), ("embed", 82)]
@@ -872,14 +896,28 @@ def test_control_seed_lifecycle_evaluates_only_initial_and_final_and_checkpoints
     assert result.optimizer_steps == 60
     assert result.final_checkpoint.epoch == 60
     assert result.seed_evidence.seed == 17
+    with pytest.raises(ValueError, match="run authority"):
+        _MODULE.run_control_seed(
+            config=SiglipProxyControlConfig(),
+            seed=17,
+            bands=bands,
+            checkpoint_directory=tmp_path,
+            maximum_checkpoint_bytes=1_000_000,
+            microbatch_size=30,
+            evaluation_batch_size=64,
+            query_block=64,
+            device=torch.device("cpu"),
+            smoke_receipt=_MODULE.SmokeReceipt(
+                observations=(_passing_smoke_observation(30),),
+                selected_microbatch_size=30,
+                projected_seed_seconds=1.0,
+            ),
+            run_authority=replace(authority, query_block=32),
+        )
     smoke = _MODULE.SmokeReceipt(
         observations=(_passing_smoke_observation(30),),
         selected_microbatch_size=30,
         projected_seed_seconds=1.0,
-    )
-    authority = replace(
-        _run_authority(),
-        manifest_sha256=_MODULE.control_manifest_sha256(bands.ordered_manifest),
     )
     receipt_bytes = _MODULE.control_seed_receipt_bytes(
         result=result,
@@ -896,6 +934,8 @@ def test_control_seed_lifecycle_evaluates_only_initial_and_final_and_checkpoints
     assert receipt["seed"] == 17
     assert receipt["dataset"]["manifest_sha256"] == authority.manifest_sha256
     assert receipt["training"]["optimizer_steps"] == 60
+    assert receipt["environment"]["evaluation_batch_size"] == 64
+    assert receipt["environment"]["query_block"] == 64
     assert receipt["checkpoint"]["epoch"] == 60
     assert set(receipt["evaluation"]) == {"initial", "final"}
     assert set(receipt["evaluation"]["initial"]) == {
@@ -903,6 +943,25 @@ def test_control_seed_lifecycle_evaluates_only_initial_and_final_and_checkpoints
         "clean_validation",
         "burned_diagnostic",
     }
+    tiny_train_change = replace(
+        result,
+        seed_evidence=replace(
+            result.seed_evidence,
+            train_final_margin=result.seed_evidence.train_initial_margin + 1.0e-9,
+        ),
+    )
+    tiny_change_receipt = json.loads(
+        _MODULE.control_seed_receipt_bytes(
+            result=tiny_train_change,
+            config=SiglipProxyControlConfig(),
+            bands=bands,
+            smoke_receipt=smoke,
+            smoke_sha256="6" * 64,
+            run_authority=authority,
+        )
+    )
+    assert tiny_change_receipt["changes"]["memorization_to_transfer_ratio"] is not None
+    assert tiny_change_receipt["changes"]["transfer_mechanism_conclusion_supported"] is False
 
 
 def test_control_aggregate_authenticates_exact_three_seed_receipts(tmp_path: Path) -> None:
@@ -920,18 +979,33 @@ def test_control_aggregate_authenticates_exact_three_seed_receipts(tmp_path: Pat
                     "schema": "sfora-siglip-proxy-control-seed-v1",
                     "claim_eligible": False,
                     "seed": seed,
-                    "source": {},
-                    "dataset": {},
-                    "model": {},
+                    "source": {
+                        "revision": "1" * 40,
+                        "tree_digest": "2" * 64,
+                        "dirty": False,
+                    },
+                    "dataset": {"manifest_sha256": "3" * 64},
+                    "model": {
+                        "name": "fixture-model",
+                        "revision": "4" * 40,
+                        "resolved_revision": "4" * 40,
+                        "initial_state_sha256": f"{seed:064x}",
+                    },
                     "config": {},
-                    "config_sha256": "0" * 64,
-                    "smoke": {},
+                    "config_sha256": "5" * 64,
+                    "smoke": {"sha256": "6" * 64},
                     "evaluation": {
                         "initial": {"clean_validation": band(initial)},
                         "final": {"clean_validation": band(final)},
                     },
                     "changes": {"memorization_to_transfer_ratio": ratio},
-                    "training": {},
+                    "training": {
+                        "optimizer_steps": 60,
+                        "steps_per_epoch": 1,
+                        "microbatch_size": 30,
+                        "final_objective": float(seed),
+                        "maximum_score_disagreement": float(seed) / 1_000_000.0,
+                    },
                     "checkpoint": {},
                     "resources": {},
                     "environment": {},
@@ -949,13 +1023,37 @@ def test_control_aggregate_authenticates_exact_three_seed_receipts(tmp_path: Pat
     assert payload["schema"] == "sfora-siglip-proxy-control-aggregate-v1"
     assert payload["claim_eligible"] is False
     assert payload["seeds"] == [17, 29, 43]
+    assert payload["campaign_authority"] == {
+        "source_revision": "1" * 40,
+        "source_tree_digest": "2" * 64,
+        "dataset_manifest_sha256": "3" * 64,
+        "config_sha256": "5" * 64,
+        "smoke_sha256": "6" * 64,
+    }
     assert payload["mean_clean_initial_recall_at_1"] == pytest.approx(0.45)
     assert payload["mean_clean_final_recall_at_1"] == pytest.approx(0.60)
     assert payload["mean_clean_recall_change"] == pytest.approx(0.15)
     assert payload["memorization_to_transfer_ratios"] == [0.20, 0.30, None]
     assert payload["mean_memorization_to_transfer_ratio"] is None
+    assert payload["transfer_mechanism_conclusion_supported"] is False
+
+    all_defined = (
+        seed_receipt(17, 0.50, 0.60, 1.0e9),
+        seed_receipt(29, 0.40, 0.55, 0.30),
+        seed_receipt(43, 0.45, 0.65, 0.40),
+    )
+    all_defined_payload = json.loads(_MODULE.control_aggregate_receipt_bytes(all_defined))
+    assert all_defined_payload["memorization_to_transfer_ratios"] == [1.0e9, 0.30, 0.40]
+    assert all_defined_payload["mean_memorization_to_transfer_ratio"] is None
+    assert all_defined_payload["transfer_mechanism_conclusion_supported"] is False
     with pytest.raises(ValueError, match="exact seeds"):
         _MODULE.control_aggregate_receipt_bytes(receipts[::-1])
+
+    drifted = json.loads(receipts[2])
+    drifted["source"]["revision"] = "7" * 40
+    drifted_receipt = _MODULE._canonical_bytes(drifted)
+    with pytest.raises(ValueError, match="shared authority"):
+        _MODULE.control_aggregate_receipt_bytes((*receipts[:2], drifted_receipt))
 
     paths: list[Path] = []
     for seed, raw in zip((17, 29, 43), receipts, strict=True):

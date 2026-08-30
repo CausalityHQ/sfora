@@ -3,6 +3,7 @@ set -euo pipefail
 
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$repo"
+export PYTHONDONTWRITEBYTECODE=1
 
 source_revision=${SOURCE_REVISION:?SOURCE_REVISION must be the deployed 40-character commit}
 source_manifest=${SOURCE_MANIFEST:?SOURCE_MANIFEST must be the deployed SHA-256 manifest}
@@ -122,6 +123,9 @@ payload = json.loads(path.read_bytes())
 assert payload["schema"] == "sfora-siglip-proxy-control-aggregate-v1"
 assert payload["claim_eligible"] is False
 assert payload["seeds"] == [17, 29, 43]
+authority = payload["campaign_authority"]
+assert authority["source_revision"] == sys.argv[2]
+assert authority["source_tree_digest"] == sys.argv[3]
 assert path.read_bytes().endswith(b"\n") and not path.read_bytes().endswith(b"\n\n")
 print(json.dumps({"output": str(path), "sha256": __import__("hashlib").sha256(path.read_bytes()).hexdigest()}, sort_keys=True))
 PY

@@ -112,6 +112,11 @@ or failure of every rung stops the campaign. The smoke
 publishes a receipt, destroys its mutated model, and scientific seeds reload the
 pinned pretrained bytes independently.
 
+Each rung executes in a child process. A child terminated by `SIGKILL` publishes
+no child receipt; the parent records that rung as `process-sigkill`, treats it as
+nonpassing, and continues to the next registered smaller microbatch. Any other
+nonzero child exit is an authority or implementation failure and stops the smoke.
+
 ## Training and evaluation
 
 Each seed starts from identical pinned pretrained weights and seed-specific
@@ -155,7 +160,10 @@ margin. Per seed and band, report the initial/final means and changes for all
 three quantities. The explicitly named memorization-to-transfer ratio is
 `burned_margin_change / train_margin_change` when `train_margin_change > 0`;
 otherwise it is undefined and the receipt cannot support a transfer-mechanism
-conclusion. Clean validation also reports initial-to-final Recall@1 change so an
+conclusion. A finite per-seed ratio remains descriptive and never sets a
+mechanism-conclusion support flag; no unregistered numerical threshold is
+inferred from a small positive denominator. Clean validation also reports
+initial-to-final Recall@1 change so an
 accidentally degraded baseline cannot become an artificially easy denominator.
 
 ## Artifact contract
@@ -165,10 +173,16 @@ dataset/model identities, exact ordered example manifest, initial model digest,
 config, seed, smoke receipt, initial/final validation Recall@1, full margin
 summaries, memorization-to-transfer ratio, final objective, checkpoint digest,
 peak memory, resolved optimizer-step count, wall time, examples/second, torch and
-transformers versions, CUDA runtime, and device identity. It has
+transformers versions, CUDA runtime, device identity, evaluation batch size, and
+query block. It has
 `claim_eligible=false`. The aggregate receipt requires exactly three seeds and
-reports their mean clean-validation Recall@1/change and transfer ratios. It makes
-no `97.4` claim.
+requires byte-identical shared source, dataset, model, config, smoke, training,
+and environment authority across them before reporting their mean
+clean-validation Recall@1/change and the three descriptive per-seed transfer
+ratios. It never averages those potentially unstable ratios, emits the aggregate
+mean as null, and keeps mechanism-conclusion support false. It carries the
+shared source revision/tree, manifest, config, and smoke digests. It makes no
+`97.4` claim.
 
 Each completed epoch first publishes a create-new checkpoint containing model,
 optimizer, scheduler, sampler, and CPU/CUDA RNG state plus an authority digest.
