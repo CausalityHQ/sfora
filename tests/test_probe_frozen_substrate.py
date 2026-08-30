@@ -3,6 +3,8 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
+from PIL import Image
+
 _SCRIPT = Path(__file__).parents[1] / "scripts" / "probe_frozen_substrate.py"
 _SPEC = importlib.util.spec_from_file_location("probe_frozen_substrate", _SCRIPT)
 assert _SPEC is not None and _SPEC.loader is not None
@@ -28,3 +30,10 @@ def test_probe_pins_dinov2_and_never_reads_test_split() -> None:
     assert '"google/siglip2-so400m-patch14-384"' in source
     assert '"e8e487298228002f3d8a82e0cd5c8ea9c567f57f"' in source
     assert '"vision_pooler_output"' in source
+
+
+def test_probe_materializes_grayscale_as_rgb() -> None:
+    grayscale = Image.new("L", (7, 5), color=127)
+    converted = _MODULE._materialize_rgb(grayscale)
+    assert converted.mode == "RGB"
+    assert converted.size == (7, 5)

@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any, NamedTuple
 
 import torch
+from PIL import Image
 
 from sfora.data import _HF_DATASET_REVISIONS, load_image_retrieval_examples, materialize_image
 from sfora.substrate_screen import (
@@ -54,6 +55,16 @@ def _canonical_bytes(value: dict[str, Any]) -> bytes:
     return (json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n").encode()
 
 
+def _materialize_rgb(image: Any) -> Image.Image:
+    materialized = materialize_image(image)
+    if not isinstance(materialized, Image.Image):
+        raise TypeError("image materialization did not produce a PIL image")
+    converted = materialized.convert("RGB")
+    if converted.mode != "RGB":
+        raise RuntimeError("image materialization did not produce RGB")
+    return converted
+
+
 def _write_new(path: Path, payload: bytes) -> None:
     if path.exists():
         raise FileExistsError(f"refusing to overwrite {path}")
@@ -89,7 +100,7 @@ def _encode(
     torch.backends.cudnn.allow_tf32 = False
     with torch.inference_mode():
         for start in range(0, len(examples), batch_size):
-            images = [materialize_image(row.image) for row in examples[start : start + batch_size]]
+            images = [_materialize_rgb(row.image) for row in examples[start : start + batch_size]]
             pixel_values = processor(images=images, return_tensors="pt")["pixel_values"]
             shape = (int(pixel_values.shape[-2]), int(pixel_values.shape[-1]))
             if observed_shape is None:
