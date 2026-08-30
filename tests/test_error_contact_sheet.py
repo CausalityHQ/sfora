@@ -16,6 +16,9 @@ def _manifest() -> dict[str, object]:
         "dataset": "cars",
         "split": "train",
         "holdout_classes": list(range(82, 98)),
+        "class_names": [
+            {"id": index, "name": f"class-{index}"} for index in range(82, 98)
+        ],
         "cell": "siglip-so400m",
         "error_count": 2,
         "errors": [
@@ -122,6 +125,33 @@ def test_renderer_rejects_example_identity_drift_before_writing(tmp_path: Path) 
             pairs_per_sheet=2,
         )
     assert list(tmp_path.iterdir()) == []
+
+
+def test_renderer_rejects_class_names_that_differ_from_manifest_authority(
+    tmp_path: Path,
+) -> None:
+    class_names = [f"class-{index}" for index in range(196)]
+    class_names[82] = "wrong"
+    with pytest.raises(ValueError, match="class name authority"):
+        render_error_contact_sheets(
+            manifest=_manifest(),
+            examples=_examples(),
+            class_names=class_names,
+            output_dir=tmp_path,
+            pairs_per_sheet=2,
+        )
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_renderer_reports_incomplete_class_name_authority(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="class name authority is incomplete"):
+        render_error_contact_sheets(
+            manifest=_manifest(),
+            examples=_examples(),
+            class_names=["too-short"],
+            output_dir=tmp_path,
+            pairs_per_sheet=2,
+        )
 
 
 def test_renderer_refuses_to_overwrite_any_sheet(tmp_path: Path) -> None:

@@ -8,6 +8,7 @@ import hashlib
 import json
 import os
 import re
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any, NamedTuple
 
@@ -156,7 +157,10 @@ def _build_error_manifest(
     cell: str,
     model_name: str,
     model_revision: str,
+    class_names: Sequence[str],
 ) -> dict[str, Any]:
+    if len(class_names) != 196:
+        raise ValueError("Cars class-name authority is incomplete")
     rows: list[dict[str, Any]] = []
     previous = -1
     for error in errors:
@@ -194,6 +198,10 @@ def _build_error_manifest(
         "query_block": query_block,
         "split": "train",
         "holdout_classes": sorted(SUBSTRATE_F0_CLASSES),
+        "class_names": [
+            {"id": label, "name": class_names[label]}
+            for label in sorted(SUBSTRATE_F0_CLASSES)
+        ],
         "cell": cell,
         "model_name": model_name,
         "model_revision": model_revision,
@@ -246,6 +254,23 @@ def _encode(
         raise RuntimeError("the holdout is empty")
     del model
     return torch.cat(rows), observed_shape
+
+
+def _load_cars_class_names() -> tuple[str, ...]:
+    from datasets import load_dataset
+
+    dataset = load_dataset(
+        "tanganke/stanford_cars",
+        split="train",
+        revision=_DATASET_REVISION,
+    )
+    label_feature = dataset.features.get("label")
+    names = getattr(label_feature, "names", None)
+    if not isinstance(names, list) or not all(
+        isinstance(name, str) and name for name in names
+    ):
+        raise RuntimeError("Cars class-name authority is unavailable")
+    return tuple(names)
 
 
 def main() -> None:
@@ -327,6 +352,7 @@ def main() -> None:
     error_manifest_sha256: str | None = None
     error_payload: bytes | None = None
     if args.error_manifest is not None:
+        class_names = _load_cars_class_names()
         if metrics.correct != args.expected_correct:
             raise RuntimeError("sealed substrate correct count did not reproduce")
         if len(evidence.errors) != metrics.queries - metrics.correct:
@@ -343,6 +369,7 @@ def main() -> None:
             cell=args.cell,
             model_name=model_name,
             model_revision=model_revision,
+            class_names=class_names,
         )
         error_payload = _canonical_bytes(error_manifest)
         error_manifest_sha256 = hashlib.sha256(error_payload).hexdigest()

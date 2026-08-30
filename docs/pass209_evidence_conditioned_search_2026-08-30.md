@@ -89,6 +89,10 @@ manifest does not exist until this authenticated reproducing run succeeds. Then
 render and classify all 103 errors. The taxonomy may choose the next hypothesis
 family but may not tune a loss, threshold, schedule, or checkpoint. The exact
 renderer is `sfora.error_contact_sheet.render_error_contact_sheets`.
+The outcome-blind two-rater codebook, reliability gates, and broad-family
+decision map are frozen in
+`docs/pass209_error_taxonomy_protocol_2026-08-30.md`. It supersedes the earlier
+CGTM-specific F-1 sketch before any M2 error image has been rendered or viewed.
 
 ### M3 — Cars transfer gap
 

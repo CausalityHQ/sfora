@@ -39,6 +39,10 @@ def test_probe_pins_dinov2_and_never_reads_test_split() -> None:
     assert '"vision_pooler_output"' in source
     assert '"google/siglip-so400m-patch14-384"' in source
     assert '"9fdffc58afc957d1a03a25b10dba0329ab15c2a3"' in source
+    assert (
+        'if args.error_manifest is not None:\n        class_names = _load_cars_class_names()'
+        in source
+    )
 
 
 def test_probe_materializes_grayscale_as_rgb() -> None:
@@ -65,12 +69,16 @@ def test_error_manifest_binds_positions_to_example_identities() -> None:
         cell="siglip-so400m",
         model_name="google/siglip-so400m-patch14-384",
         model_revision="9fdffc58afc957d1a03a25b10dba0329ab15c2a3",
+        class_names=tuple(f"class-{index}" for index in range(196)),
     )
     assert manifest["schema"] == "sfora-frozen-substrate-errors-v1"
     assert manifest["error_count"] == 1
     assert manifest["descriptor_sha256"] == "4" * 64
     assert manifest["batch_size"] == 8
     assert manifest["query_block"] == 32
+    assert manifest["class_names"] == [
+        {"id": index, "name": f"class-{index}"} for index in range(82, 98)
+    ]
     assert manifest["errors"] == [
         {
             "query_position": 0,
@@ -81,6 +89,22 @@ def test_error_manifest_binds_positions_to_example_identities() -> None:
             "nearest_label": 83,
         }
     ]
+
+    with pytest.raises(ValueError, match="class-name authority"):
+        _MODULE._build_error_manifest(
+            examples=examples,
+            errors=(SubstrateRetrievalError(0, 1, 82, 83),),
+            source_revision="1" * 40,
+            source_tree_digest="2" * 64,
+            dataset_examples_sha256="3" * 64,
+            descriptor_sha256="4" * 64,
+            batch_size=8,
+            query_block=32,
+            cell="siglip-so400m",
+            model_name="google/siglip-so400m-patch14-384",
+            model_revision="9fdffc58afc957d1a03a25b10dba0329ab15c2a3",
+            class_names=tuple(f"class-{index}" for index in range(98)),
+        )
 
 
 def test_probe_refuses_any_existing_output_before_writing(tmp_path: Path) -> None:

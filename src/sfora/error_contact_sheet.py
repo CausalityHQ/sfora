@@ -32,6 +32,14 @@ def _validated_rows(
         or manifest.get("holdout_classes") != list(range(82, 98))
     ):
         raise ValueError("error manifest authority differs")
+    if len(class_names) <= 97:
+        raise ValueError("class name authority is incomplete")
+    manifest_class_names = manifest.get("class_names")
+    expected_class_names = [
+        {"id": label, "name": class_names[label]} for label in range(82, 98)
+    ]
+    if manifest_class_names != expected_class_names:
+        raise ValueError("class name authority differs from error manifest")
     raw_rows = manifest.get("errors")
     if not isinstance(raw_rows, list):
         raise ValueError("errors must be a list")

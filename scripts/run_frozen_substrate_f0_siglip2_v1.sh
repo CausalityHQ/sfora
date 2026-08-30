@@ -20,9 +20,16 @@ case $cell in
 esac
 output=${OUTPUT:-reports/generated/cars-frozen-substrate-$cell-f0-2026-08-30.json}
 partial=$(dirname -- "$output")/.$(basename -- "$output").partial
+error_manifest=${ERROR_MANIFEST:-}
+expected_correct=${EXPECTED_CORRECT:-}
 [[ $source_revision =~ ^[0-9a-f]{40}$ && -f $source_manifest ]]
 [[ $uv_environment = /* && $uv_environment != "$repo" && $uv_environment != "$repo/"* ]]
 [[ ! -e $output && ! -e $partial ]]
+if [[ -n $error_manifest || -n $expected_correct ]]; then
+  [[ -n $error_manifest && -n $expected_correct ]]
+  [[ $cell == siglip-so400m && $expected_correct == 1242 ]]
+  [[ ! -e $error_manifest ]]
+fi
 
 /usr/bin/python3 -I -S - "$source_manifest" "$source_revision" <<'PY'
 import pathlib, re, sys
@@ -50,15 +57,30 @@ import sys
 assert torch.cuda.is_available()
 snapshot_download(sys.argv[1], revision=sys.argv[2], local_files_only=True)
 PY
-HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 uv run --offline --locked python scripts/probe_frozen_substrate.py \
-  --output "$output" --source-revision "$source_revision" --source-tree-digest "$tree" \
-  --cell "$cell" --batch-size 8 --query-block 32
-uv run --offline --locked python - "$output" "$source_revision" "$tree" "$cell" <<'PY'
+probe_args=(
+  --output "$output"
+  --source-revision "$source_revision"
+  --source-tree-digest "$tree"
+  --cell "$cell"
+  --batch-size 8
+  --query-block 32
+)
+if [[ -n $error_manifest ]]; then
+  probe_args+=(--error-manifest "$error_manifest" --expected-correct "$expected_correct")
+fi
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 uv run --offline --locked python scripts/probe_frozen_substrate.py "${probe_args[@]}"
+uv run --offline --locked python - "$output" "$source_revision" "$tree" "$cell" "$error_manifest" <<'PY'
 import json, pathlib, sys
 p = json.loads(pathlib.Path(sys.argv[1]).read_text())
-assert p["schema"] == "sfora-frozen-substrate-screen-v1" and p["claim_eligible"] is False
+assert p["schema"] == ("sfora-frozen-substrate-screen-v2" if sys.argv[5] else "sfora-frozen-substrate-screen-v1")
+assert p["claim_eligible"] is False
 assert p["source_revision"] == sys.argv[2] and p["source_tree_digest"] == sys.argv[3]
 assert p["cell"] == sys.argv[4] and p["metrics"]["queries"] == 1345
 assert p["gates"] == {"expected_queries": 1345, "recall_at_1_minimum": 0.94}
+if sys.argv[5]:
+    assert p["metrics"]["correct"] == 1242
 print(json.dumps({"output": sys.argv[1], "passed": p["passed"]}, sort_keys=True))
 PY
+if [[ -n $error_manifest ]]; then
+  uv run --offline --locked python scripts/validate_pass209_m2_artifacts.py --receipt "$output" --error-manifest "$error_manifest"
+fi
