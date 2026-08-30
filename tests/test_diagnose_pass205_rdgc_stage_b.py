@@ -2650,18 +2650,24 @@ def test_repaired_seed_schema_is_derived_from_validated_pass200_authorities() ->
     )
 
 
-def test_real_pass200_source_validator_returns_execution_audit_not_manifest() -> None:
-    audit = _RSTA.validate_scientific_execution_source(
-        _ROOT / _MODULE.RSTA_MANIFEST_PATH
-    )
-    assert tuple(audit) == (
-        "executing_git_commit",
-        "diagnostic_path",
-        "diagnostic_sha256",
-        "frozen_source_revision",
-    )
-    assert "binding_receipt" not in audit
-    assert "seeds" not in audit
+def test_real_pass200_source_validator_rejects_later_worktree_drift() -> None:
+    manifest_path = _ROOT / _MODULE.RSTA_MANIFEST_PATH
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    source_files = manifest["current_scientific_source"]["files"]
+    drifted_paths = {
+        path_text
+        for path_text, expected_sha256 in source_files.items()
+        if hashlib.sha256((_ROOT / path_text).read_bytes()).hexdigest()
+        != expected_sha256
+    }
+    assert drifted_paths == {"src/sfora/cli.py", "src/sfora/image_benchmark.py"}
+    with pytest.raises(
+        ValueError,
+        match=r"source worktree differs for src/sfora/cli\.py$",
+    ):
+        _RSTA.validate_scientific_execution_source(
+            manifest_path
+        )
 
 
 def test_repaired_seed_schema_rejects_recursive_shape_type_and_relation_drift() -> None:

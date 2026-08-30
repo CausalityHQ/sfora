@@ -19,6 +19,7 @@ from sfora.token_set_proxy_anchor import proxy_anchor_loss
 from sfora.token_set_screen import F1_TRAIN_CLASSES, F1_VALIDATION_CLASSES
 
 _SMOKE_MICROBATCH_LADDER = (120, 60, 40, 30, 24, 20, 15, 12, 10, 8, 6, 5, 4, 3, 2, 1)
+_REFERENCE_INITIALIZATION = "kaiming_normal_fan_out"
 
 
 def _concrete_equal(actual: object, expected: object) -> bool:
@@ -49,6 +50,8 @@ class SiglipProxyControlConfig:
     classes_per_batch: int = 30
     proxy_anchor_alpha: float = 32.0
     proxy_anchor_delta: float = 0.1
+    projection_initialization: str = _REFERENCE_INITIALIZATION
+    proxy_initialization: str = _REFERENCE_INITIALIZATION
     tower_learning_rate: float = 1.0e-5
     projection_learning_rate: float = 1.0e-4
     proxy_learning_rate: float = 1.0e-2
@@ -77,6 +80,8 @@ class SiglipProxyControlConfig:
             "classes_per_batch": 30,
             "proxy_anchor_alpha": 32.0,
             "proxy_anchor_delta": 0.1,
+            "projection_initialization": _REFERENCE_INITIALIZATION,
+            "proxy_initialization": _REFERENCE_INITIALIZATION,
             "tower_learning_rate": 1.0e-5,
             "projection_learning_rate": 1.0e-4,
             "proxy_learning_rate": 1.0e-2,
@@ -125,6 +130,8 @@ class PooledProxyAnchorModel(nn.Module):
         input_dimensions: int,
         embedding_dimensions: int,
         class_count: int,
+        projection_initialization: str = _REFERENCE_INITIALIZATION,
+        proxy_initialization: str = _REFERENCE_INITIALIZATION,
     ) -> None:
         super().__init__()
         if type(input_dimensions) is not int or input_dimensions < 1:
@@ -133,11 +140,15 @@ class PooledProxyAnchorModel(nn.Module):
             raise ValueError("embedding_dimensions must be a positive concrete integer")
         if type(class_count) is not int or class_count < 2:
             raise ValueError("class_count must be a concrete integer of at least two")
+        if projection_initialization != _REFERENCE_INITIALIZATION:
+            raise ValueError("projection initialization differs from the reference recipe")
+        if proxy_initialization != _REFERENCE_INITIALIZATION:
+            raise ValueError("proxy initialization differs from the reference recipe")
         self.tower = tower
         self.projection = nn.Linear(input_dimensions, embedding_dimensions, bias=False)
         self.proxies = nn.Parameter(torch.empty(class_count, embedding_dimensions))
-        nn.init.xavier_uniform_(self.projection.weight)
-        nn.init.normal_(self.proxies, std=0.01)
+        nn.init.kaiming_normal_(self.projection.weight, mode="fan_out")
+        nn.init.kaiming_normal_(self.proxies, mode="fan_out")
 
     @property
     def class_count(self) -> int:

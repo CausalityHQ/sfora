@@ -30,6 +30,12 @@ similarities and the objective is Proxy Anchor with `alpha=32`, `delta=0.1`.
 Deployment remains one 512-dimensional pooled descriptor, one image view, and
 cosine retrieval with no reranking.
 
+The projection weight and raw proxy parameters both use the corrected reference
+Proxy Anchor initialization, `torch.nn.init.kaiming_normal_(..., mode="fan_out")`.
+Proxies are normalized only in the forward cosine calculation; their raw
+initial norm is not projected to one. The exact initialization names are frozen
+in the configuration and therefore in every config/checkpoint/receipt digest.
+
 The optimizer is AdamW with three learning-rate families: vision tower `1e-5`,
 pooled projection `1e-4`, proxies `1e-2`; weight decay is `1e-4` except for
 proxies and normalization/bias parameters. The tower rate is deliberately 10x
@@ -89,7 +95,11 @@ nonzero float attributes named `dropout`, `attention_dropout`, or `drop_path`
 anywhere in the replayed module. Every trainable tower parameter must receive a
 finite non-`None` gradient and the aggregate tower gradient norm must be
 positive. A scalar one-pass oracle mutation-locks loss, all parameter gradients,
-and one optimizer update against the replay operator. The DGX smoke additionally
+and one optimizer update against the replay operator. Parameter-gradient
+comparison uses `rtol=5e-6, atol=1e-6`: fp32 proxy gradients are accumulated once
+per replay slice and therefore have a different reduction order from the
+one-pass oracle. Tower and projection gradients retain `rtol=1e-6, atol=1e-7`;
+the optimizer update is checked separately at the same bound. The DGX smoke additionally
 checks the real bf16-autocast, nonreentrant-checkpointed path against a full fp32
 micro-fixture.
 

@@ -952,6 +952,8 @@ def run_control_smoke_rung(
         input_dimensions=config.input_dimensions,
         embedding_dimensions=config.embedding_dimensions,
         class_count=len(F1_TRAIN_CLASSES),
+        projection_initialization=config.projection_initialization,
+        proxy_initialization=config.proxy_initialization,
     ).to(device)
     optimizer = torch.optim.AdamW(_optimizer_groups(model, config))
     started_at = time.monotonic()
@@ -1112,6 +1114,8 @@ def run_control_seed(
         input_dimensions=config.input_dimensions,
         embedding_dimensions=config.embedding_dimensions,
         class_count=len(F1_TRAIN_CLASSES),
+        projection_initialization=config.projection_initialization,
+        proxy_initialization=config.proxy_initialization,
     ).to(device)
     initial_model_sha256 = _model_state_sha256(model)
     optimizer = torch.optim.AdamW(_optimizer_groups(model, config))

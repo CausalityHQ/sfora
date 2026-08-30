@@ -128,6 +128,8 @@ def test_control_config_is_the_frozen_reviewed_contract() -> None:
     assert config.classes_per_batch == 30
     assert config.proxy_anchor_alpha == 32.0
     assert config.proxy_anchor_delta == 0.1
+    assert config.projection_initialization == "kaiming_normal_fan_out"
+    assert config.proxy_initialization == "kaiming_normal_fan_out"
     assert config.tower_learning_rate == 1.0e-5
     assert config.projection_learning_rate == 1.0e-4
     assert config.proxy_learning_rate == 1.0e-2
@@ -179,6 +181,8 @@ def test_control_config_is_the_frozen_reviewed_contract() -> None:
         ("classes_per_batch", 29),
         ("proxy_anchor_alpha", 31.0),
         ("proxy_anchor_delta", 0.2),
+        ("projection_initialization", "xavier_uniform"),
+        ("proxy_initialization", "normal_0.01"),
         ("tower_learning_rate", 2.0e-5),
         ("projection_learning_rate", 2.0e-4),
         ("proxy_learning_rate", 2.0e-2),
@@ -226,6 +230,50 @@ def _toy_control() -> PooledProxyAnchorModel:
         embedding_dimensions=3,
         class_count=3,
     ).double()
+
+
+def test_control_uses_reference_kaiming_fan_out_head_and_proxy_initialization() -> None:
+    config = SiglipProxyControlConfig()
+    torch.manual_seed(20260830)
+    model = PooledProxyAnchorModel(
+        tower=nn.Identity(),
+        input_dimensions=4,
+        embedding_dimensions=3,
+        class_count=5,
+        projection_initialization=config.projection_initialization,
+        proxy_initialization=config.proxy_initialization,
+    )
+
+    torch.manual_seed(20260830)
+    expected_projection = nn.Linear(4, 3, bias=False)
+    nn.init.kaiming_normal_(expected_projection.weight, mode="fan_out")
+    expected_proxies = torch.empty(5, 3)
+    nn.init.kaiming_normal_(expected_proxies, mode="fan_out")
+
+    torch.testing.assert_close(model.projection.weight, expected_projection.weight)
+    torch.testing.assert_close(model.proxies, expected_proxies)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("projection_initialization", "xavier_uniform"),
+        ("proxy_initialization", "normal_0.01"),
+    ],
+)
+def test_control_rejects_initialization_outside_the_config_authority(
+    field: str,
+    value: str,
+) -> None:
+    arguments = {
+        "tower": nn.Identity(),
+        "input_dimensions": 4,
+        "embedding_dimensions": 3,
+        "class_count": 5,
+        field: value,
+    }
+    with pytest.raises(ValueError, match="initialization differs"):
+        PooledProxyAnchorModel(**arguments)
 
 
 @pytest.mark.parametrize("microbatch_size", [1, 2, 4])
@@ -285,11 +333,16 @@ def test_recomputed_proxy_anchor_matches_one_pass_chain_rule(
     assert evidence.maximum_score_disagreement <= 1.0e-12
     assert replay_gradients.keys() == oracle_gradients.keys()
     for name in oracle_gradients:
+        rtol, atol = (5.0e-6, 1.0e-6) if name == "proxies" else (1.0e-6, 1.0e-7)
         torch.testing.assert_close(
             replay_gradients[name],
             oracle_gradients[name],
-            rtol=1.0e-6,
-            atol=1.0e-7,
+            # Proxy gradients are accumulated by fp32 autograd once per replay
+            # slice, so their reduction order differs from the one-pass oracle.
+            # The tower and projection remain effectively bit-exact; this bound
+            # covers only the observed fp32 summation envelope.
+            rtol=rtol,
+            atol=atol,
         )
 
     oracle_optimizer.step()
