@@ -6,6 +6,14 @@ import torch
 from sfora.kernels.set_maxsim import fused_set_maxsim, symmetric_set_maxsim_reference
 
 
+def test_triton_dot_refuses_tf32_input_precision() -> None:
+    import inspect
+
+    import sfora.kernels.set_maxsim as module
+
+    assert 'input_precision="ieee"' in inspect.getsource(module)
+
+
 def test_symmetric_set_maxsim_matches_hand_computation() -> None:
     query = torch.tensor([[[1.0, 0.0], [0.0, 1.0]]])
     gallery = torch.tensor(

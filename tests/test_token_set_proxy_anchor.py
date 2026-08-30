@@ -100,6 +100,27 @@ def test_token_set_proxy_anchor_head_produces_normalized_trainable_state() -> No
     assert not torch.equal(output.class_scores, rescored.class_scores)
 
 
+def test_token_set_proxy_anchor_encode_matches_forward_embeddings() -> None:
+    head = TokenSetProxyAnchorHead(
+        input_dimensions=4,
+        global_dimensions=3,
+        token_dimensions=2,
+        classes=2,
+        token_proxies_per_class=2,
+        set_weight=0.25,
+    )
+    global_features = torch.randn(3, 4)
+    token_features = torch.randn(3, 2, 4)
+    attention = torch.full((3, 2), 0.5)
+
+    encoded = head.encode(global_features, token_features, attention)
+    output = head(global_features, token_features, attention)
+
+    torch.testing.assert_close(encoded[0], output.global_embeddings)
+    torch.testing.assert_close(encoded[1], output.token_embeddings)
+    torch.testing.assert_close(encoded[2], output.token_weights)
+
+
 def test_token_proxy_diversity_detects_collapsed_proxy_sets() -> None:
     collapsed = torch.tensor([[[1.0, 0.0], [1.0, 0.0]]])
     diverse = torch.tensor([[[1.0, 0.0], [0.0, 1.0]]])

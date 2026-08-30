@@ -270,14 +270,14 @@ class TokenSetProxyAnchorHead(nn.Module):
         nn.init.normal_(self.global_proxies, std=0.02)
         nn.init.normal_(self.token_proxies, std=0.02)
 
-    def forward(
+    def encode(
         self,
         global_features: torch.Tensor,
         token_features: torch.Tensor,
         pretrained_attention: torch.Tensor,
         *,
         validate_values: bool = False,
-    ) -> TokenSetProxyAnchorOutput:
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         if global_features.ndim != 2 or token_features.ndim != 3:
             raise ValueError("global and token features must be rank two and three")
         if global_features.shape[0] != token_features.shape[0]:
@@ -309,6 +309,22 @@ class TokenSetProxyAnchorHead(nn.Module):
         token_weights = torch.softmax(
             pretrained_attention.clamp_min(1.0e-12).log() + residual_logits,
             dim=1,
+        )
+        return global_embeddings, token_embeddings, token_weights
+
+    def forward(
+        self,
+        global_features: torch.Tensor,
+        token_features: torch.Tensor,
+        pretrained_attention: torch.Tensor,
+        *,
+        validate_values: bool = False,
+    ) -> TokenSetProxyAnchorOutput:
+        global_embeddings, token_embeddings, token_weights = self.encode(
+            global_features,
+            token_features,
+            pretrained_attention,
+            validate_values=validate_values,
         )
         class_scores = token_set_class_scores(
             global_embeddings,

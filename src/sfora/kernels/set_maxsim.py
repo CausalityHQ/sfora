@@ -135,7 +135,12 @@ if triton is not None:
             mask=gallery_mask[:, None] & dimension_mask[None, :],
             other=0.0,
         )
-        interactions = tl.dot(query_values, tl.trans(gallery_values), out_dtype=tl.float32)
+        interactions = tl.dot(
+            query_values,
+            tl.trans(gallery_values),
+            out_dtype=tl.float32,
+            input_precision="ieee",
+        )
         interactions = tl.where(
             query_mask[:, None] & gallery_mask[None, :],
             interactions,

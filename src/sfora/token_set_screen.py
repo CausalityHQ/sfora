@@ -7,8 +7,8 @@ from torch.nn import functional as F
 
 from sfora.kernels.set_maxsim import fused_set_maxsim
 
-_F1_TRAIN_CLASSES = frozenset(range(49))
-_F1_VALIDATION_CLASSES = frozenset(range(49, 82))
+F1_TRAIN_CLASSES = frozenset(range(49))
+F1_VALIDATION_CLASSES = frozenset(range(49, 82))
 
 
 def _observed_classes(labels: torch.Tensor, *, name: str) -> frozenset[int]:
@@ -26,9 +26,9 @@ def validate_f1_class_partition(
 ) -> None:
     """Require the exact disjoint Cars train-class bands frozen for F1."""
 
-    if _observed_classes(train_labels, name="training") != _F1_TRAIN_CLASSES:
+    if _observed_classes(train_labels, name="training") != F1_TRAIN_CLASSES:
         raise ValueError("F1 training must contain exactly Cars classes 0 through 48")
-    if _observed_classes(validation_labels, name="validation") != _F1_VALIDATION_CLASSES:
+    if _observed_classes(validation_labels, name="validation") != F1_VALIDATION_CLASSES:
         raise ValueError("F1 validation must contain exactly Cars classes 49 through 81")
     train_counts = torch.bincount(train_labels.to(torch.int64), minlength=82)[:49]
     validation_counts = torch.bincount(validation_labels.to(torch.int64), minlength=82)[49:82]

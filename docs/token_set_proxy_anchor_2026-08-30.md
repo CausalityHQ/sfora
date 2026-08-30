@@ -134,8 +134,25 @@ Validation is never shuffled. This keeps the token branch shape and work
 identical while removing class-consistent local evidence; permutation within one
 unordered token set or a coherent class-to-class relabeling would be vacuous.
 
+The paired seeds are 17, 29, and 43. Each arm trains its frozen-feature head for
+40 epochs with batch size 128 and AdamW (`lr=3e-4`, weight decay `1e-4`), using
+the exact official Proxy Anchor `alpha=32`, `delta=0.1`; TSPA additionally uses
+the fixed diversity coefficient 0.1, margin 0.5, and collapse threshold 0.95.
+Global/token projection dimensions remain 512/128 with 16 token proxies per
+class. Frozen token features are retained in float32. There is no checkpoint
+selection: only the final epoch is evaluated. CUDA execution requires
+`CUBLAS_WORKSPACE_CONFIG=:4096:8`, TF32-disabled PyTorch matmuls, and IEEE-input
+Triton dot products.
+
+Proxy Anchor is the query-to-class proxy surrogate; it does not directly
+optimize the symmetric image-to-image MaxSim expression. F1 therefore supports
+the mechanism only through final retrieval plus the paired token-shuffle
+contrast, not by claiming that the deployment score itself was a pair loss.
+
 Proceed only if TSPA exceeds pooled control by at least 0.5 point on average,
 exceeds token-shuffled by at least 0.5 point, and token proxies do not collapse.
+Both paired gains must also be nonnegative at every seed; the receipt records
+the three paired deltas and their population standard deviations.
 All hyperparameters and the final source digest are then sealed.
 
 ### F2: one final Cars qualification
