@@ -44,3 +44,10 @@ receipt SHA-256 is
 `8d01a2aa7cb122e9db0786e40a397a4dfe64ccec9430f6346a80d3b6a3b973a1`.
 This is a scientific substrate failure, not an execution failure. No Cars test
 data was read. The next sealed cell is SigLIP2-so400m as ordered above.
+
+SigLIP2-so400m then ran once from source revision
+`071ea3130f2a0347d4f3edd5406d0cafc417e926`. It achieved 1,227/1,345 correct
+(`0.912267657992565` R@1), also failing the absolute headroom gate. Its canonical
+receipt SHA-256 is
+`55c66314017aac208dd76c542f0b2be5f969b18a4ca422e56a15ef14b15b7f9e`.
+No Cars test data was read. The final sealed ladder cell is SigLIP-so400m.

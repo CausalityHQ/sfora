@@ -23,4 +23,6 @@ def test_siglip2_successor_is_revision_scoped_and_offline() -> None:
     assert "SOURCE_MANIFEST.sha256" in deploy
     assert "--offline --locked" in deploy + run
     assert "google/siglip2-so400m-patch14-384" in run
+    assert "google/siglip-so400m-patch14-384" in run
+    assert "CELL" in deploy + run
     assert "split=\"test\"" not in deploy + run

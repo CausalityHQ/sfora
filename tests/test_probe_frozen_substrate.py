@@ -30,6 +30,8 @@ def test_probe_pins_dinov2_and_never_reads_test_split() -> None:
     assert '"google/siglip2-so400m-patch14-384"' in source
     assert '"e8e487298228002f3d8a82e0cd5c8ea9c567f57f"' in source
     assert '"vision_pooler_output"' in source
+    assert '"google/siglip-so400m-patch14-384"' in source
+    assert '"9fdffc58afc957d1a03a25b10dba0329ab15c2a3"' in source
 
 
 def test_probe_materializes_grayscale_as_rgb() -> None:

@@ -38,6 +38,11 @@ _SUBSTRATES = {
         "e8e487298228002f3d8a82e0cd5c8ea9c567f57f",
         "vision_pooler_output",
     ),
+    "siglip-so400m": RegisteredSubstrate(
+        "google/siglip-so400m-patch14-384",
+        "9fdffc58afc957d1a03a25b10dba0329ab15c2a3",
+        "vision_pooler_output",
+    ),
 }
 _DATASET_REVISION = "9abf6cf7d6dfa7b95152a0d6e791ea9435b47a40"
 _EXPECTED_QUERIES = 1345

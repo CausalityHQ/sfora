@@ -10051,3 +10051,10 @@ headroom gate; receipt SHA-256 is
 `8d01a2aa7cb122e9db0786e40a397a4dfe64ccec9430f6346a80d3b6a3b973a1`.
 The preregistered SigLIP2-so400m cell is next. No loss or head training is
 authorized until a frozen substrate passes.
+
+SigLIP2-so400m subsequently reached 1,227/1,345 (`0.9122676580`) R@1 from
+source `071ea3130f2a0347d4f3edd5406d0cafc417e926`, also failing; canonical
+receipt SHA-256 is
+`55c66314017aac208dd76c542f0b2be5f969b18a4ca422e56a15ef14b15b7f9e`.
+The final preregistered SigLIP-so400m cell remains before the substrate ladder
+closes.
