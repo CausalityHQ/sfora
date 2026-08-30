@@ -684,6 +684,16 @@ def load_siglip_control_components(
     return SiglipPooledTower(vision_model), processor
 
 
+def _convert_control_training_image(image: object) -> object:
+    convert = getattr(image, "convert", None)
+    if not callable(convert):
+        raise TypeError("Cars training image lacks RGB conversion")
+    converted = convert("RGB")
+    if getattr(converted, "mode", None) != "RGB":
+        raise ValueError("Cars training image did not convert to RGB")
+    return converted
+
+
 def build_control_train_transform() -> Any:
     """Construct the prospectively frozen Cars optimization augmentation."""
 
@@ -692,6 +702,7 @@ def build_control_train_transform() -> Any:
 
     return transforms.Compose(
         [
+            transforms.Lambda(_convert_control_training_image),
             transforms.RandomResizedCrop(
                 384,
                 scale=(0.16, 1.0),

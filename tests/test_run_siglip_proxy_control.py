@@ -590,8 +590,15 @@ def test_control_preprocessing_is_the_frozen_train_and_processor_eval_path() -> 
 
     train = _MODULE.build_control_train_transform()
     names = [transform.__class__.__name__ for transform in train.transforms]
-    assert names == ["RandomResizedCrop", "RandomHorizontalFlip", "ToTensor", "Normalize"]
-    crop, flip, _, normalize = train.transforms
+    assert names == [
+        "Lambda",
+        "RandomResizedCrop",
+        "RandomHorizontalFlip",
+        "ToTensor",
+        "Normalize",
+    ]
+    rgb, crop, flip, _, normalize = train.transforms
+    assert rgb.lambd is _MODULE._convert_control_training_image
     assert crop.size == (384, 384)
     assert crop.scale == (0.16, 1.0)
     assert crop.interpolation is InterpolationMode.BICUBIC
@@ -624,6 +631,17 @@ def test_control_evaluation_accepts_the_processor_mapping_contract() -> None:
 
     pixels = _MODULE.preprocess_control_evaluation(FakeProcessor(), [object()])
     assert pixels.shape == (1, 3, 384, 384)
+
+
+def test_control_train_transform_converts_grayscale_to_three_channels() -> None:
+    from PIL import Image
+
+    transform = _MODULE.build_control_train_transform()
+    pixels = transform(Image.new("L", (32, 24), color=127))
+
+    assert pixels.shape == (3, 384, 384)
+    assert pixels.dtype == torch.float32
+    assert bool(torch.isfinite(pixels).all())
 
 
 def test_batch_materialization_augments_each_selected_image_exactly_once() -> None:
