@@ -17,8 +17,14 @@ from typing import Any, cast
 import torch
 from torch import nn
 
-from sfora.siglip_proxy_control import PooledProxyAnchorModel, SiglipProxyControlConfig
-from sfora.token_set_screen import F1_TRAIN_CLASSES
+from sfora.data import ImageExample, load_image_retrieval_examples
+from sfora.siglip_proxy_control import (
+    PooledProxyAnchorModel,
+    SiglipProxyControlConfig,
+    validate_control_partition,
+)
+from sfora.substrate_screen import SUBSTRATE_F0_CLASSES
+from sfora.token_set_screen import F1_TRAIN_CLASSES, F1_VALIDATION_CLASSES
 
 
 def _validate_json_value(value: object) -> None:
@@ -147,8 +153,158 @@ class CheckpointAuthority:
     bytes: int
 
 
+@dataclass(frozen=True)
+class ControlExampleBands:
+    """The three Cars-train evidence bands and their ordered manifest."""
+
+    optimization: tuple[ImageExample, ...]
+    clean_validation: tuple[ImageExample, ...]
+    burned_diagnostic: tuple[ImageExample, ...]
+    ordered_manifest: tuple[ImageExample, ...]
+
+
+class SiglipPooledTower(nn.Module):
+    """Expose only the pinned SigLIP vision pooler output."""
+
+    def __init__(self, vision_model: nn.Module) -> None:
+        super().__init__()
+        self.vision_model = vision_model
+
+    def forward(self, pixel_values: torch.Tensor) -> torch.Tensor:
+        with torch.autocast(
+            device_type="cuda",
+            dtype=torch.bfloat16,
+            enabled=pixel_values.device.type == "cuda",
+        ):
+            output = self.vision_model(pixel_values=pixel_values, return_dict=True)
+        pooled = getattr(output, "pooler_output", None)
+        if not isinstance(pooled, torch.Tensor) or pooled.ndim != 2:
+            raise ValueError("SigLIP vision output lacks a rank-two pooler output")
+        return pooled.float()
+
+
 _CHECKPOINT_SCHEMA = "sfora-siglip-proxy-checkpoint-v1"
 _CONTROL_SEEDS = (17, 29, 43)
+
+
+def load_control_examples(
+    *,
+    loader: Callable[..., list[ImageExample]] = load_image_retrieval_examples,
+) -> ControlExampleBands:
+    """Load Cars train once and partition it without exposing official test classes."""
+
+    examples = loader(dataset_name="cars", split="train")
+    if type(examples) is not list or not examples:
+        raise ValueError("Cars train loader must return a nonempty concrete list")
+    if any(type(example) is not ImageExample for example in examples):
+        raise TypeError("Cars train loader returned a non-ImageExample value")
+    labels = [example.label for example in examples]
+    if any(type(label) is not int for label in labels):
+        raise TypeError("Cars labels must be concrete integers")
+    if any(label >= 98 or label < 0 for label in labels):
+        raise ValueError("official test classes must never enter the control boundary")
+    example_ids = [example.example_id for example in examples]
+    if any(type(example_id) is not str or not example_id for example_id in example_ids):
+        raise ValueError("Cars example IDs must be nonempty concrete strings")
+    if len(example_ids) != len(set(example_ids)):
+        raise ValueError("Cars example IDs must be unique")
+    ordered = tuple(sorted(examples, key=lambda example: example.example_id))
+    optimization = tuple(example for example in ordered if example.label in F1_TRAIN_CLASSES)
+    clean = tuple(example for example in ordered if example.label in F1_VALIDATION_CLASSES)
+    burned = tuple(example for example in ordered if example.label in SUBSTRATE_F0_CLASSES)
+    validate_control_partition(
+        optimization_labels=torch.tensor(
+            [example.label for example in optimization], dtype=torch.int64
+        ),
+        clean_validation_labels=torch.tensor(
+            [example.label for example in clean], dtype=torch.int64
+        ),
+        burned_diagnostic_labels=torch.tensor(
+            [example.label for example in burned], dtype=torch.int64
+        ),
+    )
+    return ControlExampleBands(
+        optimization=optimization,
+        clean_validation=clean,
+        burned_diagnostic=burned,
+        ordered_manifest=ordered,
+    )
+
+
+def load_siglip_control_components(
+    *,
+    config: SiglipProxyControlConfig,
+    vision_model_cls: Any | None = None,
+    processor_cls: Any | None = None,
+) -> tuple[SiglipPooledTower, Any]:
+    """Load the pinned local-only eager SigLIP vision tower and processor."""
+
+    if vision_model_cls is None or processor_cls is None:
+        from transformers import AutoImageProcessor, SiglipVisionModel
+
+        vision_model_cls = SiglipVisionModel if vision_model_cls is None else vision_model_cls
+        processor_cls = AutoImageProcessor if processor_cls is None else processor_cls
+    vision_model = vision_model_cls.from_pretrained(
+        config.model_name,
+        revision=config.model_revision,
+        local_files_only=True,
+        attn_implementation="eager",
+    )
+    if not isinstance(vision_model, nn.Module):
+        raise TypeError("SigLIP vision loader must return a torch module")
+    attention = getattr(getattr(vision_model, "config", None), "_attn_implementation", None)
+    if attention != "eager":
+        raise ValueError("SigLIP attention implementation differs from eager authority")
+    checkpointing = getattr(vision_model, "gradient_checkpointing_enable", None)
+    if not callable(checkpointing):
+        raise TypeError("SigLIP vision tower lacks gradient checkpointing")
+    checkpointing(gradient_checkpointing_kwargs={"use_reentrant": False})
+    processor = processor_cls.from_pretrained(
+        config.model_name,
+        revision=config.model_revision,
+        local_files_only=True,
+    )
+    return SiglipPooledTower(vision_model), processor
+
+
+def build_control_train_transform() -> Any:
+    """Construct the prospectively frozen Cars optimization augmentation."""
+
+    from torchvision import transforms
+    from torchvision.transforms import InterpolationMode
+
+    return transforms.Compose(
+        [
+            transforms.RandomResizedCrop(
+                384,
+                scale=(0.16, 1.0),
+                interpolation=InterpolationMode.BICUBIC,
+            ),
+            transforms.RandomHorizontalFlip(0.5),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)),
+        ]
+    )
+
+
+def preprocess_control_evaluation(processor: Any, images: list[object]) -> torch.Tensor:
+    """Use only the pinned processor's deterministic evaluation preprocessing."""
+
+    if type(images) is not list or not images:
+        raise ValueError("evaluation images must be a nonempty concrete list")
+    encoded = processor(images=images, return_tensors="pt")
+    if type(encoded) is not dict or "pixel_values" not in encoded:
+        raise ValueError("SigLIP processor did not return pixel values")
+    pixel_values = encoded["pixel_values"]
+    if (
+        not isinstance(pixel_values, torch.Tensor)
+        or pixel_values.ndim != 4
+        or pixel_values.shape != (len(images), 3, 384, 384)
+        or not pixel_values.is_floating_point()
+        or not bool(torch.isfinite(pixel_values).all())
+    ):
+        raise ValueError("SigLIP evaluation pixels differ from the frozen input contract")
+    return pixel_values.float()
 
 
 def _checkpoint_basename(*, seed: int, epoch: int) -> str:

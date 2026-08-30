@@ -13,6 +13,7 @@ from typing import Any, cast
 import pytest
 import torch
 
+from sfora.data import ImageExample
 from sfora.siglip_proxy_control import PooledProxyAnchorModel, SiglipProxyControlConfig
 
 _SCRIPT = Path(__file__).parents[1] / "scripts" / "run_siglip_proxy_control.py"
@@ -277,3 +278,114 @@ def test_checkpoint_resume_rejects_corruption_and_free_space_shortfall(
             maximum_checkpoint_bytes=100,
         )
     assert not list(empty.iterdir())
+
+
+def _control_examples() -> list[ImageExample]:
+    minimums = {**{label: 4 for label in range(49)}, **{label: 2 for label in range(49, 98)}}
+    return [
+        ImageExample(
+            example_id=f"cars-{label:03d}-{position:03d}",
+            image=object(),
+            label=label,
+        )
+        for label, count in minimums.items()
+        for position in range(count)
+    ]
+
+
+def test_control_data_boundary_loads_only_cars_train_and_never_test_classes() -> None:
+    calls: list[tuple[str, str]] = []
+
+    def loader(*, dataset_name: str, split: str) -> list[ImageExample]:
+        calls.append((dataset_name, split))
+        return _control_examples()
+
+    bands = _MODULE.load_control_examples(loader=loader)
+
+    assert calls == [("cars", "train")]
+    assert {example.label for example in bands.optimization} == set(range(49))
+    assert {example.label for example in bands.clean_validation} == set(range(49, 82))
+    assert {example.label for example in bands.burned_diagnostic} == set(range(82, 98))
+    assert max(example.label for example in bands.ordered_manifest) == 97
+    with pytest.raises(ValueError, match="official test"):
+        _MODULE.load_control_examples(
+            loader=lambda **_kwargs: (
+                _control_examples()
+                + [ImageExample(example_id="forbidden", image=object(), label=98)]
+            )
+        )
+
+
+def test_siglip_component_boundary_is_pinned_local_eager_and_nonreentrant() -> None:
+    calls: dict[str, Any] = {}
+
+    class FakeVision(torch.nn.Module):
+        config = SimpleNamespace(_attn_implementation="eager")
+
+        @classmethod
+        def from_pretrained(cls, model_name: str, **kwargs: object) -> FakeVision:
+            calls["vision"] = (model_name, kwargs)
+            return cls()
+
+        def gradient_checkpointing_enable(self, **kwargs: object) -> None:
+            calls["checkpointing"] = kwargs
+
+        def forward(self, *, pixel_values: torch.Tensor, return_dict: bool) -> object:
+            assert return_dict is True
+            return SimpleNamespace(pooler_output=pixel_values.mean(dim=(-2, -1)))
+
+    class FakeProcessor:
+        @classmethod
+        def from_pretrained(cls, model_name: str, **kwargs: object) -> FakeProcessor:
+            calls["processor"] = (model_name, kwargs)
+            return cls()
+
+    config = SiglipProxyControlConfig()
+    tower, processor = _MODULE.load_siglip_control_components(
+        config=config,
+        vision_model_cls=FakeVision,
+        processor_cls=FakeProcessor,
+    )
+
+    expected_load = {
+        "revision": config.model_revision,
+        "local_files_only": True,
+        "attn_implementation": "eager",
+    }
+    assert calls["vision"] == (config.model_name, expected_load)
+    assert calls["processor"] == (
+        config.model_name,
+        {"revision": config.model_revision, "local_files_only": True},
+    )
+    assert calls["checkpointing"] == {"gradient_checkpointing_kwargs": {"use_reentrant": False}}
+    assert processor.__class__ is FakeProcessor
+    pixels = torch.arange(24, dtype=torch.float32).reshape(2, 3, 2, 2)
+    assert torch.equal(tower(pixels), pixels.mean(dim=(-2, -1)))
+
+
+def test_control_preprocessing_is_the_frozen_train_and_processor_eval_path() -> None:
+    from torchvision.transforms import InterpolationMode
+
+    train = _MODULE.build_control_train_transform()
+    names = [transform.__class__.__name__ for transform in train.transforms]
+    assert names == ["RandomResizedCrop", "RandomHorizontalFlip", "ToTensor", "Normalize"]
+    crop, flip, _, normalize = train.transforms
+    assert crop.size == (384, 384)
+    assert crop.scale == (0.16, 1.0)
+    assert crop.interpolation is InterpolationMode.BICUBIC
+    assert flip.p == 0.5
+    assert tuple(normalize.mean) == (0.5, 0.5, 0.5)
+    assert tuple(normalize.std) == (0.5, 0.5, 0.5)
+
+    calls: list[tuple[list[object], str]] = []
+
+    class FakeProcessor:
+        def __call__(self, *, images: list[object], return_tensors: str) -> dict[str, object]:
+            calls.append((images, return_tensors))
+            return {"pixel_values": torch.ones(len(images), 3, 384, 384)}
+
+    images = [object(), object()]
+    pixels = _MODULE.preprocess_control_evaluation(FakeProcessor(), images)
+    assert calls == [(images, "pt")]
+    assert pixels.shape == (2, 3, 384, 384)
+    assert pixels.dtype == torch.float32
