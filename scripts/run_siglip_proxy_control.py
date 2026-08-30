@@ -7,8 +7,10 @@ import hashlib
 import json
 import math
 import os
+import resource
 import shutil
 import stat
+import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from functools import partial
@@ -228,6 +230,12 @@ class ControlSeedRunResult:
     optimizer_steps: int
     maximum_score_disagreement: float
     final_checkpoint: CheckpointAuthority
+    initial_model_sha256: str
+    wall_seconds: float
+    examples_per_second: float
+    peak_process_rss_bytes: int
+    peak_cuda_allocated_bytes: int
+    peak_cuda_reserved_bytes: int
 
 
 @dataclass(frozen=True)
@@ -371,20 +379,41 @@ def _band_scalar_payload(evidence: ControlBandEvidence) -> dict[str, object]:
     }
 
 
-def _snapshot_sha256(snapshot: ControlEvaluationSnapshot) -> str:
+def _snapshot_scalar_payload(snapshot: ControlEvaluationSnapshot) -> dict[str, object]:
     bands = {
         "optimization": snapshot.optimization,
         "clean_validation": snapshot.clean_validation,
         "burned_diagnostic": snapshot.burned_diagnostic,
     }
-    payload = {
+    return {
         role: {
             "raw": _band_scalar_payload(evidence.raw),
             "projected": _band_scalar_payload(evidence.projected),
         }
         for role, evidence in bands.items()
     }
-    return hashlib.sha256(_canonical_bytes(payload)).hexdigest()
+
+
+def _snapshot_sha256(snapshot: ControlEvaluationSnapshot) -> str:
+    return hashlib.sha256(_canonical_bytes(_snapshot_scalar_payload(snapshot))).hexdigest()
+
+
+def _model_state_sha256(model: nn.Module) -> str:
+    digest = hashlib.sha256()
+    for name, tensor in sorted(model.state_dict().items()):
+        metadata = _canonical_bytes(
+            {
+                "dtype": str(tensor.dtype),
+                "name": name,
+                "shape": list(tensor.shape),
+            }
+        )
+        digest.update(len(metadata).to_bytes(8, "little"))
+        digest.update(metadata)
+        raw = tensor.detach().cpu().contiguous().reshape(-1).view(torch.uint8).numpy().tobytes()
+        digest.update(len(raw).to_bytes(8, "little"))
+        digest.update(raw)
+    return digest.hexdigest()
 
 
 def write_control_checkpoint(
@@ -896,6 +925,7 @@ def run_control_seed(
 ) -> ControlSeedRunResult:
     """Run or resume one frozen seed without intermediate evaluation."""
 
+    started_at = time.monotonic()
     require_control_determinism(device)
     if type(seed) is not int or seed not in config.seeds:
         raise ValueError("seed differs from the frozen control seeds")
@@ -945,6 +975,7 @@ def run_control_seed(
             raise RuntimeError("the pooled control requires CUDA bf16 support")
         if os.environ.get("CUBLAS_WORKSPACE_CONFIG") != ":4096:8":
             raise RuntimeError("CUBLAS_WORKSPACE_CONFIG must be :4096:8")
+        torch.cuda.reset_peak_memory_stats(device)
     tower, processor = load_siglip_control_components(config=config)
     torch.manual_seed(seed)
     if torch.cuda.is_available():
@@ -955,6 +986,7 @@ def run_control_seed(
         embedding_dimensions=config.embedding_dimensions,
         class_count=len(F1_TRAIN_CLASSES),
     ).to(device)
+    initial_model_sha256 = _model_state_sha256(model)
     optimizer = torch.optim.AdamW(_optimizer_groups(model, config))
 
     initial = _evaluate_control_snapshot(
@@ -995,6 +1027,7 @@ def run_control_seed(
         final_checkpoint = previous
 
     transform = build_control_train_transform()
+    training_started_at = time.monotonic()
     for epoch in range(start_epoch, config.train_epochs):
         epoch_evidence = train_control_epoch(
             model=model,
@@ -1058,6 +1091,12 @@ def run_control_seed(
         burned_initial_margin=initial.burned_diagnostic.projected.margins.mean_margin,
         burned_final_margin=final.burned_diagnostic.projected.margins.mean_margin,
     )
+    wall_seconds = time.monotonic() - started_at
+    training_seconds = max(time.monotonic() - training_started_at, 1.0e-12)
+    trained_examples = (
+        (config.train_epochs - start_epoch) * steps_per_epoch * config.logical_batch_size
+    )
+    peak_rss_bytes = int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss) * 1024
     return ControlSeedRunResult(
         seed=seed,
         initial=initial,
@@ -1067,6 +1106,209 @@ def run_control_seed(
         optimizer_steps=config.train_epochs * steps_per_epoch,
         maximum_score_disagreement=maximum_disagreement,
         final_checkpoint=final_checkpoint,
+        initial_model_sha256=initial_model_sha256,
+        wall_seconds=wall_seconds,
+        examples_per_second=trained_examples / training_seconds,
+        peak_process_rss_bytes=peak_rss_bytes,
+        peak_cuda_allocated_bytes=(
+            int(torch.cuda.max_memory_allocated(device)) if device.type == "cuda" else 0
+        ),
+        peak_cuda_reserved_bytes=(
+            int(torch.cuda.max_memory_reserved(device)) if device.type == "cuda" else 0
+        ),
+    )
+
+
+def control_seed_receipt_bytes(
+    *,
+    result: ControlSeedRunResult,
+    config: SiglipProxyControlConfig,
+    bands: ControlExampleBands,
+    smoke_receipt: SmokeReceipt,
+    smoke_sha256: str,
+    run_authority: ControlRunAuthority,
+) -> bytes:
+    """Serialize one strict claim-ineligible scientific seed receipt."""
+
+    _require_lower_hex(smoke_sha256, length=64, name="smoke SHA-256")
+    if result.seed not in config.seeds or result.final_checkpoint.epoch != config.train_epochs:
+        raise ValueError("seed result differs from the frozen terminal authority")
+    if result.final_checkpoint.seed != result.seed:
+        raise ValueError("seed result and checkpoint identities differ")
+    if run_authority.manifest_sha256 != control_manifest_sha256(bands.ordered_manifest):
+        raise ValueError("receipt manifest authority differs")
+    seed_evidence = result.seed_evidence
+    if seed_evidence.seed != result.seed:
+        raise ValueError("seed evidence identity differs")
+    train_change = seed_evidence.train_final_margin - seed_evidence.train_initial_margin
+    clean_recall_change = (
+        seed_evidence.clean_final_recall_at_1 - seed_evidence.clean_initial_recall_at_1
+    )
+    clean_margin_change = seed_evidence.clean_final_margin - seed_evidence.clean_initial_margin
+    burned_change = seed_evidence.burned_final_margin - seed_evidence.burned_initial_margin
+    ratio = burned_change / train_change if train_change > 0.0 else None
+    config_payload = _json_compatible(vars(config))
+    if type(config_payload) is not dict:
+        raise TypeError("control config did not produce an object")
+    smoke_payload = {
+        "observations": [
+            cast(dict[str, object], _json_compatible(vars(observation)))
+            for observation in smoke_receipt.observations
+        ],
+        "projected_seed_seconds": smoke_receipt.projected_seed_seconds,
+        "selected_microbatch_size": smoke_receipt.selected_microbatch_size,
+        "sha256": smoke_sha256,
+    }
+    payload: dict[str, Any] = {
+        "schema": "sfora-siglip-proxy-control-seed-v1",
+        "claim_eligible": False,
+        "seed": result.seed,
+        "source": {
+            "revision": run_authority.source_revision,
+            "tree_digest": run_authority.source_tree_digest,
+            "dirty": False,
+        },
+        "dataset": {
+            "name": config.dataset_name,
+            "revision": config.dataset_revision,
+            "manifest_sha256": run_authority.manifest_sha256,
+            "optimization_examples": len(bands.optimization),
+            "clean_validation_examples": len(bands.clean_validation),
+            "burned_diagnostic_examples": len(bands.burned_diagnostic),
+        },
+        "model": {
+            "name": config.model_name,
+            "revision": config.model_revision,
+            "resolved_revision": config.model_revision,
+            "initial_state_sha256": result.initial_model_sha256,
+        },
+        "config": config_payload,
+        "config_sha256": _config_sha256(config),
+        "smoke": smoke_payload,
+        "evaluation": {
+            "initial": _snapshot_scalar_payload(result.initial),
+            "final": _snapshot_scalar_payload(result.final),
+        },
+        "changes": {
+            "train_margin_change": train_change,
+            "clean_recall_change": clean_recall_change,
+            "clean_margin_change": clean_margin_change,
+            "burned_margin_change": burned_change,
+            "memorization_to_transfer_ratio": ratio,
+            "transfer_mechanism_conclusion_supported": ratio is not None,
+        },
+        "training": {
+            "optimizer_steps": result.optimizer_steps,
+            "steps_per_epoch": run_authority.steps_per_epoch,
+            "microbatch_size": run_authority.microbatch_size,
+            "final_objective": result.final_objective,
+            "maximum_score_disagreement": result.maximum_score_disagreement,
+        },
+        "checkpoint": {
+            "basename": result.final_checkpoint.path.name,
+            "receipt_basename": result.final_checkpoint.receipt_path.name,
+            "sha256": result.final_checkpoint.sha256,
+            "bytes": result.final_checkpoint.bytes,
+            "epoch": result.final_checkpoint.epoch,
+        },
+        "resources": {
+            "wall_seconds": result.wall_seconds,
+            "examples_per_second": result.examples_per_second,
+            "peak_process_rss_bytes": result.peak_process_rss_bytes,
+            "peak_cuda_allocated_bytes": result.peak_cuda_allocated_bytes,
+            "peak_cuda_reserved_bytes": result.peak_cuda_reserved_bytes,
+        },
+        "environment": cast(dict[str, object], _json_compatible(vars(run_authority))),
+    }
+    return _canonical_bytes(payload)
+
+
+def control_aggregate_receipt_bytes(seed_receipts: tuple[bytes, ...]) -> bytes:
+    """Authenticate and aggregate the exact three terminal seed receipts."""
+
+    if type(seed_receipts) is not tuple or len(seed_receipts) != 3:
+        raise ValueError("aggregate requires the exact seeds 17, 29, and 43")
+    expected_keys = {
+        "schema",
+        "claim_eligible",
+        "seed",
+        "source",
+        "dataset",
+        "model",
+        "config",
+        "config_sha256",
+        "smoke",
+        "evaluation",
+        "changes",
+        "training",
+        "checkpoint",
+        "resources",
+        "environment",
+    }
+    parsed: list[dict[str, Any]] = []
+    for raw in seed_receipts:
+        if type(raw) is not bytes:
+            raise TypeError("seed receipts must be concrete bytes")
+        try:
+            value = json.loads(raw)
+        except (UnicodeDecodeError, json.JSONDecodeError) as error:
+            raise ValueError("seed receipt is not valid JSON") from error
+        if (
+            type(value) is not dict
+            or set(value) != expected_keys
+            or value.get("schema") != "sfora-siglip-proxy-control-seed-v1"
+            or value.get("claim_eligible") is not False
+            or raw != _canonical_bytes(cast(dict[str, Any], value))
+        ):
+            raise ValueError("seed receipt authority differs")
+        parsed.append(cast(dict[str, Any], value))
+    seeds = tuple(value["seed"] for value in parsed)
+    if seeds != (17, 29, 43) or any(type(seed) is not int for seed in seeds):
+        raise ValueError("aggregate requires the exact seeds 17, 29, and 43")
+    initial_recalls: list[float] = []
+    final_recalls: list[float] = []
+    ratios: list[float | None] = []
+    for value in parsed:
+        try:
+            initial = value["evaluation"]["initial"]["clean_validation"]["projected"]["recall_at_1"]
+            final = value["evaluation"]["final"]["clean_validation"]["projected"]["recall_at_1"]
+            ratio = value["changes"]["memorization_to_transfer_ratio"]
+        except (KeyError, TypeError) as error:
+            raise ValueError("seed receipt evidence schema differs") from error
+        if (
+            type(initial) is not float
+            or type(final) is not float
+            or not math.isfinite(initial)
+            or not math.isfinite(final)
+            or not 0.0 <= initial <= 1.0
+            or not 0.0 <= final <= 1.0
+            or (ratio is not None and (type(ratio) is not float or not math.isfinite(ratio)))
+        ):
+            raise ValueError("seed receipt aggregate evidence differs")
+        initial_recalls.append(initial)
+        final_recalls.append(final)
+        ratios.append(ratio)
+    all_ratios_defined = all(ratio is not None for ratio in ratios)
+    mean_ratio = sum(cast(float, ratio) for ratio in ratios) / 3.0 if all_ratios_defined else None
+    return _canonical_bytes(
+        {
+            "schema": "sfora-siglip-proxy-control-aggregate-v1",
+            "claim_eligible": False,
+            "seeds": list(seeds),
+            "seed_receipts": [
+                {"seed": seed, "sha256": hashlib.sha256(raw).hexdigest()}
+                for seed, raw in zip(seeds, seed_receipts, strict=True)
+            ],
+            "mean_clean_initial_recall_at_1": sum(initial_recalls) / 3.0,
+            "mean_clean_final_recall_at_1": sum(final_recalls) / 3.0,
+            "mean_clean_recall_change": sum(
+                final - initial
+                for initial, final in zip(initial_recalls, final_recalls, strict=True)
+            )
+            / 3.0,
+            "memorization_to_transfer_ratios": ratios,
+            "mean_memorization_to_transfer_ratio": mean_ratio,
+        }
     )
 
 

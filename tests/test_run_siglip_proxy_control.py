@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import math
 import shutil
 import sys
@@ -819,3 +820,87 @@ def test_control_seed_lifecycle_evaluates_only_initial_and_final_and_checkpoints
     assert result.optimizer_steps == 60
     assert result.final_checkpoint.epoch == 60
     assert result.seed_evidence.seed == 17
+    smoke = _MODULE.SmokeReceipt(
+        observations=(_passing_smoke_observation(30),),
+        selected_microbatch_size=30,
+        projected_seed_seconds=1.0,
+    )
+    authority = replace(
+        _run_authority(),
+        manifest_sha256=_MODULE.control_manifest_sha256(bands.ordered_manifest),
+    )
+    receipt_bytes = _MODULE.control_seed_receipt_bytes(
+        result=result,
+        config=SiglipProxyControlConfig(),
+        bands=bands,
+        smoke_receipt=smoke,
+        smoke_sha256="6" * 64,
+        run_authority=authority,
+    )
+    receipt = json.loads(receipt_bytes)
+    assert receipt_bytes.endswith(b"\n") and not receipt_bytes.endswith(b"\n\n")
+    assert receipt["schema"] == "sfora-siglip-proxy-control-seed-v1"
+    assert receipt["claim_eligible"] is False
+    assert receipt["seed"] == 17
+    assert receipt["dataset"]["manifest_sha256"] == authority.manifest_sha256
+    assert receipt["training"]["optimizer_steps"] == 60
+    assert receipt["checkpoint"]["epoch"] == 60
+    assert set(receipt["evaluation"]) == {"initial", "final"}
+    assert set(receipt["evaluation"]["initial"]) == {
+        "optimization",
+        "clean_validation",
+        "burned_diagnostic",
+    }
+
+
+def test_control_aggregate_authenticates_exact_three_seed_receipts() -> None:
+    def seed_receipt(seed: int, initial: float, final: float, ratio: float | None) -> bytes:
+        def band(recall: float) -> dict[str, dict[str, float]]:
+            return {
+                "raw": {"recall_at_1": recall},
+                "projected": {"recall_at_1": recall},
+            }
+
+        return cast(
+            bytes,
+            _MODULE._canonical_bytes(
+                {
+                    "schema": "sfora-siglip-proxy-control-seed-v1",
+                    "claim_eligible": False,
+                    "seed": seed,
+                    "source": {},
+                    "dataset": {},
+                    "model": {},
+                    "config": {},
+                    "config_sha256": "0" * 64,
+                    "smoke": {},
+                    "evaluation": {
+                        "initial": {"clean_validation": band(initial)},
+                        "final": {"clean_validation": band(final)},
+                    },
+                    "changes": {"memorization_to_transfer_ratio": ratio},
+                    "training": {},
+                    "checkpoint": {},
+                    "resources": {},
+                    "environment": {},
+                }
+            ),
+        )
+
+    receipts = (
+        seed_receipt(17, 0.50, 0.60, 0.20),
+        seed_receipt(29, 0.40, 0.55, 0.30),
+        seed_receipt(43, 0.45, 0.65, None),
+    )
+    payload = json.loads(_MODULE.control_aggregate_receipt_bytes(receipts))
+
+    assert payload["schema"] == "sfora-siglip-proxy-control-aggregate-v1"
+    assert payload["claim_eligible"] is False
+    assert payload["seeds"] == [17, 29, 43]
+    assert payload["mean_clean_initial_recall_at_1"] == pytest.approx(0.45)
+    assert payload["mean_clean_final_recall_at_1"] == pytest.approx(0.60)
+    assert payload["mean_clean_recall_change"] == pytest.approx(0.15)
+    assert payload["memorization_to_transfer_ratios"] == [0.20, 0.30, None]
+    assert payload["mean_memorization_to_transfer_ratio"] is None
+    with pytest.raises(ValueError, match="exact seeds"):
+        _MODULE.control_aggregate_receipt_bytes(receipts[::-1])
