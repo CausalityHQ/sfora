@@ -10030,7 +10030,7 @@ MaxSim reader, their cross-image maxima are noise-dominated and even a small
 residual weight damages a strong pooled descriptor. This rejects TSPA's reader
 and proxy-training premise, not all training-time uses of spatial evidence.
 
-## Pass207 — Frozen substrate headroom screen: DINOv2-L failed; SigLIP2 pending
+## Pass207 — Frozen substrate headroom screen: DEAD
 
 Independent review rejected the proposed same-SigLIP 224→384 screen before
 execution: it was a FixRes tolerance experiment that confounded pixel evidence,
@@ -10058,3 +10058,11 @@ receipt SHA-256 is
 `55c66314017aac208dd76c542f0b2be5f969b18a4ca422e56a15ef14b15b7f9e`.
 The final preregistered SigLIP-so400m cell remains before the substrate ladder
 closes.
+
+SigLIP-so400m finally reached 1,242/1,345 (`0.9234200743`) R@1 from source
+`7d7f400680464b1885046ef632efa254a356f6a6`; receipt SHA-256 is
+`ba2d0fc795fa3ba5819a0a273f7cb254eb659a265cd8173e0cc883ce253a802d`.
+All three frozen substrates failed the 0.94 gate. Pass207 is **DEAD** and no
+HFRO/frozen-head training is authorized. The useful causal result is that the
+97.4 target requires changing the trainable representation, not another loss
+or head over the tested fixed descriptors.

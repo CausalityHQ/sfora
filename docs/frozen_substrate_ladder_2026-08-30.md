@@ -51,3 +51,13 @@ SigLIP2-so400m then ran once from source revision
 receipt SHA-256 is
 `55c66314017aac208dd76c542f0b2be5f969b18a4ca422e56a15ef14b15b7f9e`.
 No Cars test data was read. The final sealed ladder cell is SigLIP-so400m.
+
+SigLIP-so400m finally ran once from source revision
+`7d7f400680464b1885046ef632efa254a356f6a6`. It achieved 1,242/1,345 correct
+(`0.9234200743494424` R@1), failing the same absolute gate. Its canonical
+receipt SHA-256 is
+`ba2d0fc795fa3ba5819a0a273f7cb254eb659a265cd8173e0cc883ce253a802d`.
+No Cars test data was read. The ladder is closed: none of the three frozen
+substrates demonstrated the registered headroom, so HFRO on a fixed backbone is
+not authorized. The next method search must change the trainable representation
+rather than optimize another head over these frozen descriptors.
