@@ -11,6 +11,8 @@ from collections import Counter
 from pathlib import Path
 from typing import Any, NamedTuple
 
+import numpy as np
+
 _TOP_LEVEL_KEYS = {
     "schema",
     "claim_eligible",
@@ -92,6 +94,17 @@ _PRIMARY_ACCOUNTS = {
     "unexplained-global",
     "cannot-judge",
 }
+_PRIMARY_ACCOUNT_ORDER = (
+    "duplicate",
+    "suspected-label-integrity",
+    "semantic-overlap",
+    "degraded-observation",
+    "visually-indistinguishable",
+    "localized-cue-visible",
+    "global-shape-overridden",
+    "unexplained-global",
+    "cannot-judge",
+)
 _CANNOT_JUDGE_REASONS = {
     "image-quality",
     "knowledge",
@@ -152,6 +165,18 @@ class AdjudicatedRow(NamedTuple):
     primary_account: str
     judgeable: bool
     original_accounts: tuple[str, str]
+
+
+class BootstrapEvidence(NamedTuple):
+    """One registered query-class clustered-bootstrap distribution summary."""
+
+    resamples: int
+    observed_share: float
+    mean: float
+    p025: float
+    p10: float
+    p975: float
+    values_little_endian_f64_sha256: str
 
 
 def _is_int(value: object) -> bool:
@@ -468,3 +493,197 @@ def taxonomy_eligibility(
     return (
         primary_kappa >= 0.60 or primary_raw_agreement >= 0.80
     ) and unjudgeable_count <= 15
+
+
+def _bootstrap_metric(
+    class_rows: dict[int, tuple[AdjudicatedRow, ...]],
+    numerator_accounts: frozenset[str],
+    sampled_classes: tuple[tuple[int, ...], ...],
+) -> BootstrapEvidence:
+    class_denominators = {
+        label: sum(row.judgeable for row in rows) for label, rows in class_rows.items()
+    }
+    class_numerators = {
+        label: sum(
+            row.judgeable and row.primary_account in numerator_accounts for row in rows
+        )
+        for label, rows in class_rows.items()
+    }
+    total_denominator = sum(class_denominators.values())
+    observed = (
+        sum(class_numerators.values()) / total_denominator
+        if total_denominator
+        else 0.0
+    )
+    values = []
+    for sample in sampled_classes:
+        denominator = sum(class_denominators[label] for label in sample)
+        values.append(
+            sum(class_numerators[label] for label in sample) / denominator
+            if denominator
+            else 0.0
+        )
+    array = np.asarray(values, dtype="<f8")
+    percentiles = np.percentile(array, [2.5, 10.0, 97.5], method="inverted_cdf")
+    return BootstrapEvidence(
+        resamples=10_000,
+        observed_share=observed,
+        mean=float(array.mean()),
+        p025=float(percentiles[0]),
+        p10=float(percentiles[1]),
+        p975=float(percentiles[2]),
+        values_little_endian_f64_sha256=hashlib.sha256(array.tobytes()).hexdigest(),
+    )
+
+
+def bootstrap_primary_shares(
+    rows: tuple[AdjudicatedRow, ...],
+) -> dict[str, BootstrapEvidence]:
+    """Bootstrap registered primary-account shares by whole query class."""
+
+    if any(row.query_label not in range(82, 98) for row in rows):
+        raise ValueError("Pass209 M2 bootstrap query class differs")
+    class_rows = {
+        label: tuple(row for row in rows if row.query_label == label)
+        for label in range(82, 98)
+    }
+    seed = int.from_bytes(
+        hashlib.sha256(b"pass209-m2-bootstrap-v1").digest()[:16], "big"
+    )
+    generator = np.random.Generator(np.random.PCG64(seed))
+    sampled_classes = tuple(
+        tuple(int(index) + 82 for index in generator.integers(0, 16, size=16))
+        for _ in range(10_000)
+    )
+    account_sets: dict[str, frozenset[str]] = {
+        account: frozenset({account}) for account in _PRIMARY_ACCOUNT_ORDER
+    }
+    account_sets.update(
+        {
+            "data_sum": frozenset(
+                {"duplicate", "suspected-label-integrity", "semantic-overlap"}
+            ),
+            "ceiling_sum": frozenset(
+                {
+                    "duplicate",
+                    "suspected-label-integrity",
+                    "semantic-overlap",
+                    "visually-indistinguishable",
+                }
+            ),
+            "localized_cue_visible": frozenset({"localized-cue-visible"}),
+            "global_shape_overridden": frozenset({"global-shape-overridden"}),
+        }
+    )
+    return {
+        name: _bootstrap_metric(class_rows, accounts, sampled_classes)
+        for name, accounts in account_sets.items()
+    }
+
+
+_SAME_LINE_PAIRS = {
+    (82, 83),
+    (85, 86),
+    (89, 90),
+    (93, 94),
+    (95, 96),
+}
+_BODY_GROUP = {
+    82: "Wagon",
+    83: "Wagon",
+    84: "Van",
+    85: "Cab",
+    86: "Cab",
+    87: "Van",
+    88: "SUV",
+    89: "Cab",
+    90: "Cab",
+    91: "Wagon",
+    92: "SRT8",
+    93: "SUV",
+    94: "SUV",
+    95: "Sedan",
+    96: "SRT8",
+    97: "Hatchback",
+}
+
+
+def _semantic_relation(query_label: int, nearest_label: int) -> str:
+    pair = tuple(sorted((query_label, nearest_label)))
+    if (
+        query_label == nearest_label
+        or query_label not in _BODY_GROUP
+        or nearest_label not in _BODY_GROUP
+    ):
+        raise ValueError("Pass209 M2 semantic relation labels differ")
+    if pair in _SAME_LINE_PAIRS:
+        return "same-line"
+    if 97 in pair:
+        return "cross-make"
+    if _BODY_GROUP[query_label] == _BODY_GROUP[nearest_label]:
+        return "same-make-same-body"
+    return "same-make-cross-body"
+
+
+def manifest_error_tables(manifest: dict[str, Any]) -> dict[str, object]:
+    """Compute deterministic non-visual error and gallery-pathology tables."""
+
+    errors = manifest.get("errors")
+    if not isinstance(errors, list) or len(errors) != 103:
+        raise ValueError("Pass209 M2 manifest table cardinality differs")
+    query_counts: Counter[int] = Counter()
+    directed_counts: Counter[tuple[int, int]] = Counter()
+    unordered_counts: Counter[tuple[int, int]] = Counter()
+    relation_counts: Counter[str] = Counter()
+    nearest_counts: Counter[str] = Counter()
+    for row in errors:
+        if not isinstance(row, dict):
+            raise ValueError("Pass209 M2 manifest table row differs")
+        query_label = row["query_label"]
+        nearest_label = row["nearest_label"]
+        nearest_id = row["nearest_example_id"]
+        if (
+            not _is_int(query_label)
+            or not _is_int(nearest_label)
+            or not isinstance(nearest_id, str)
+            or not nearest_id
+        ):
+            raise ValueError("Pass209 M2 manifest table value differs")
+        query_counts[query_label] += 1
+        directed_counts[(query_label, nearest_label)] += 1
+        unordered_counts[tuple(sorted((query_label, nearest_label)))] += 1
+        relation_counts[_semantic_relation(query_label, nearest_label)] += 1
+        nearest_counts[nearest_id] += 1
+    multiplicity = [
+        {"nearest_example_id": example_id, "count": count}
+        for example_id, count in sorted(
+            nearest_counts.items(), key=lambda item: (-item[1], item[0])
+        )
+    ]
+    maximum = max(nearest_counts.values())
+    return {
+        "query_class_counts": [
+            {"query_label": label, "count": query_counts[label]}
+            for label in range(82, 98)
+        ],
+        "directed_pair_counts": [
+            {"query_label": pair[0], "nearest_label": pair[1], "count": count}
+            for pair, count in sorted(directed_counts.items())
+        ],
+        "unordered_pair_counts": [
+            {"labels": [pair[0], pair[1]], "count": count}
+            for pair, count in sorted(unordered_counts.items())
+        ],
+        "semantic_relation_counts": [
+            {"relation": relation, "count": relation_counts[relation]}
+            for relation in (
+                "cross-make",
+                "same-line",
+                "same-make-cross-body",
+                "same-make-same-body",
+            )
+        ],
+        "nearest_example_multiplicity": multiplicity,
+        "maximum_nearest_example_multiplicity": maximum,
+        "gallery_pathology": maximum >= 16,
+    }

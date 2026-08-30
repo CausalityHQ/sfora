@@ -414,3 +414,138 @@ def test_taxonomy_eligibility_mutation_locks_registered_thresholds() -> None:
     assert _MODULE.taxonomy_eligibility(math.nextafter(0.80, 0.0), 0.0, 15) is False
     assert _MODULE.taxonomy_eligibility(0.0, math.nextafter(0.60, 0.0), 15) is False
     assert _MODULE.taxonomy_eligibility(0.80, 0.60, 16) is False
+
+
+def test_bootstrap_primary_shares_uses_query_class_clusters_and_frozen_rng() -> None:
+    rows = tuple(
+        _MODULE.AdjudicatedRow(
+            error_ordinal=ordinal,
+            query_label=82 + ordinal,
+            primary_account=(
+                "localized-cue-visible" if ordinal < 8 else "global-shape-overridden"
+            ),
+            judgeable=True,
+            original_accounts=(
+                "localized-cue-visible" if ordinal < 8 else "global-shape-overridden",
+            )
+            * 2,
+        )
+        for ordinal in range(16)
+    )
+
+    evidence = _MODULE.bootstrap_primary_shares(rows)
+
+    localized = evidence["localized-cue-visible"]
+    assert localized.resamples == 10_000
+    assert localized.observed_share == 0.5
+    assert localized.mean == 0.49995625
+    assert localized.p025 == 0.25
+    assert localized.p10 == 0.3125
+    assert localized.p975 == 0.75
+    assert localized.values_little_endian_f64_sha256 == (
+        "0c55fa0110b8ee2ab4e645a18194e2a090ae80550df84e0c81d84bba3ba7cfba"
+    )
+    assert evidence["data_sum"].observed_share == 0.0
+    assert evidence["ceiling_sum"].observed_share == 0.0
+    assert evidence["global_shape_overridden"] == evidence[
+        "global-shape-overridden"
+    ]
+
+
+def test_bootstrap_primary_shares_records_zero_when_no_pair_is_judgeable() -> None:
+    rows = tuple(
+        _MODULE.AdjudicatedRow(
+            error_ordinal=ordinal,
+            query_label=82 + ordinal,
+            primary_account="cannot-judge",
+            judgeable=False,
+            original_accounts=("cannot-judge", "cannot-judge"),
+        )
+        for ordinal in range(16)
+    )
+
+    evidence = _MODULE.bootstrap_primary_shares(rows)
+
+    for value in evidence.values():
+        assert value.observed_share == 0.0
+        assert value.mean == 0.0
+        assert value.p025 == 0.0
+        assert value.p10 == 0.0
+        assert value.p975 == 0.0
+
+
+def test_manifest_error_tables_publish_fixed_relations_and_multiplicity(
+    tmp_path: Path,
+) -> None:
+    _, _, manifest = _m2_artifacts(tmp_path)
+
+    tables = _MODULE.manifest_error_tables(manifest)
+
+    assert tables["query_class_counts"][0] == {"query_label": 82, "count": 7}
+    assert tables["query_class_counts"][-1] == {"query_label": 97, "count": 6}
+    assert sum(row["count"] for row in tables["directed_pair_counts"]) == 103
+    assert sum(row["count"] for row in tables["unordered_pair_counts"]) == 103
+    assert tables["semantic_relation_counts"] == [
+        {"relation": "cross-make", "count": 12},
+        {"relation": "same-line", "count": 32},
+        {"relation": "same-make-cross-body", "count": 59},
+        {"relation": "same-make-same-body", "count": 0},
+    ]
+    assert tables["maximum_nearest_example_multiplicity"] == 1
+    assert tables["gallery_pathology"] is False
+
+    repeated = deepcopy(manifest)
+    for row in repeated["errors"][:16]:
+        row["nearest_example_id"] = "one-repeated-gallery-example"
+    repeated_tables = _MODULE.manifest_error_tables(repeated)
+    assert repeated_tables["maximum_nearest_example_multiplicity"] == 16
+    assert repeated_tables["gallery_pathology"] is True
+
+
+def test_bootstrap_is_repeatable_and_query_class_membership_changes_digest() -> None:
+    rows = tuple(
+        _MODULE.AdjudicatedRow(
+            error_ordinal=ordinal,
+            query_label=82 + ordinal,
+            primary_account=(
+                "localized-cue-visible" if ordinal < 8 else "global-shape-overridden"
+            ),
+            judgeable=True,
+            original_accounts=(
+                "localized-cue-visible" if ordinal < 8 else "global-shape-overridden",
+            )
+            * 2,
+        )
+        for ordinal in range(16)
+    )
+    first = _MODULE.bootstrap_primary_shares(rows)
+    second = _MODULE.bootstrap_primary_shares(rows)
+    changed = list(rows)
+    changed[0] = changed[0]._replace(query_label=83)
+
+    assert first == second
+    assert (
+        _MODULE.bootstrap_primary_shares(tuple(changed))["localized-cue-visible"]
+        .values_little_endian_f64_sha256
+        != first["localized-cue-visible"].values_little_endian_f64_sha256
+    )
+
+
+def test_loader_rejects_reordered_manifest_before_statistics(tmp_path: Path) -> None:
+    receipt_path, manifest_path, paths, _ = _coherent_inputs(tmp_path)
+    receipt = json.loads(receipt_path.read_bytes())
+    manifest = json.loads(manifest_path.read_bytes())
+    manifest["errors"][0], manifest["errors"][1] = (
+        manifest["errors"][1],
+        manifest["errors"][0],
+    )
+    manifest_path.write_bytes(_canonical(manifest))
+    receipt["error_manifest_sha256"] = hashlib.sha256(
+        manifest_path.read_bytes()
+    ).hexdigest()
+    receipt_path.write_bytes(_canonical(receipt))
+
+    with pytest.raises(ValueError, match="error row authority"):
+        _MODULE.load_taxonomy_inputs(
+            receipt_path, manifest_path, (paths[0], paths[1])
+        )
