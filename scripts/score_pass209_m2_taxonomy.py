@@ -6,6 +6,8 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import math
+from collections import Counter
 from pathlib import Path
 from typing import Any, NamedTuple
 
@@ -122,6 +124,34 @@ class TaxonomyInputs(NamedTuple):
     raw_submission_sha256: tuple[str, str]
     order_sequences: tuple[tuple[int, ...], tuple[int, ...]]
     rows: tuple[AlignedRow, ...]
+
+
+class AxisAgreement(NamedTuple):
+    """Agreement statistics and each rater's categorical prevalence."""
+
+    total: int
+    matches: int
+    raw_agreement: float
+    kappa: float
+    pabak: float
+    rater_prevalence: tuple[dict[str, int], dict[str, int]]
+
+
+class AgreementEvidence(NamedTuple):
+    """Primary-account and observable-checklist agreement."""
+
+    primary: AxisAgreement
+    checklist: dict[str, AxisAgreement]
+
+
+class AdjudicatedRow(NamedTuple):
+    """A no-third-rater primary-account outcome."""
+
+    error_ordinal: int
+    query_label: int
+    primary_account: str
+    judgeable: bool
+    original_accounts: tuple[str, str]
 
 
 def _is_int(value: object) -> bool:
@@ -323,3 +353,118 @@ def load_taxonomy_inputs(
         order_sequences=(order_sequences[0], order_sequences[1]),
         rows=aligned,
     )
+
+
+def _category_name(value: str | bool) -> str:
+    return str(value).lower() if isinstance(value, bool) else value
+
+
+def _axis_agreement(
+    rater_one: list[str | bool], rater_two: list[str | bool]
+) -> AxisAgreement:
+    if not rater_one or len(rater_one) != len(rater_two):
+        raise ValueError("Pass209 M2 agreement vectors differ")
+    total = len(rater_one)
+    matches = sum(left == right for left, right in zip(rater_one, rater_two, strict=True))
+    first = Counter(_category_name(value) for value in rater_one)
+    second = Counter(_category_name(value) for value in rater_two)
+    observed = matches / total
+    expected = sum(
+        first[category] * second[category] / (total * total)
+        for category in set(first) | set(second)
+    )
+    if expected == 1.0:
+        if observed != 1.0:
+            raise ValueError("Pass209 M2 agreement table is impossible")
+        kappa = 1.0
+    else:
+        kappa = (observed - expected) / (1.0 - expected)
+    return AxisAgreement(
+        total=total,
+        matches=matches,
+        raw_agreement=observed,
+        kappa=kappa,
+        pabak=2.0 * observed - 1.0,
+        rater_prevalence=(dict(sorted(first.items())), dict(sorted(second.items()))),
+    )
+
+
+def score_agreement(inputs: TaxonomyInputs) -> AgreementEvidence:
+    """Compute registered agreement evidence from aligned raw submissions."""
+
+    primary_values: tuple[list[str | bool], list[str | bool]] = ([], [])
+    checklist_values: dict[str, tuple[list[str | bool], list[str | bool]]] = {
+        name: ([], [])
+        for name in (
+            "viewpoint",
+            "dominant_color",
+            "background",
+            "badge_text",
+            *_DEGRADATION_KEYS,
+        )
+    }
+    for aligned in inputs.rows:
+        for rater_index, rating in enumerate(aligned.ratings):
+            row = rating.value
+            primary_values[rater_index].append(row["primary_account"])
+            for image_role in ("query_image", "nearest_image"):
+                image = row[image_role]
+                for name in ("viewpoint", "dominant_color", "background", "badge_text"):
+                    checklist_values[name][rater_index].append(image[name])
+                for name in _DEGRADATION_KEYS:
+                    checklist_values[name][rater_index].append(
+                        image["degradation"][name]
+                    )
+    checklist = {
+        name: _axis_agreement(values[0], values[1])
+        for name, values in sorted(checklist_values.items())
+    }
+    return AgreementEvidence(
+        primary=_axis_agreement(primary_values[0], primary_values[1]),
+        checklist=checklist,
+    )
+
+
+def adjudicate_without_override(
+    inputs: TaxonomyInputs,
+) -> tuple[AdjudicatedRow, ...]:
+    """Keep matching accounts and mark every disagreement unresolved."""
+
+    outcomes = []
+    for aligned in inputs.rows:
+        accounts = (
+            aligned.ratings[0].value["primary_account"],
+            aligned.ratings[1].value["primary_account"],
+        )
+        account = accounts[0] if accounts[0] == accounts[1] else "unresolved"
+        outcomes.append(
+            AdjudicatedRow(
+                error_ordinal=aligned.error_ordinal,
+                query_label=aligned.manifest_error["query_label"],
+                primary_account=account,
+                judgeable=account not in {"cannot-judge", "unresolved"},
+                original_accounts=accounts,
+            )
+        )
+    return tuple(outcomes)
+
+
+def taxonomy_eligibility(
+    primary_raw_agreement: float,
+    primary_kappa: float,
+    unjudgeable_count: int,
+) -> bool:
+    """Apply the frozen reliability and unresolved-cardinality gates."""
+
+    if (
+        type(primary_raw_agreement) is not float
+        or type(primary_kappa) is not float
+        or not math.isfinite(primary_raw_agreement)
+        or not math.isfinite(primary_kappa)
+        or not _is_int(unjudgeable_count)
+        or not 0 <= unjudgeable_count <= 103
+    ):
+        raise ValueError("Pass209 M2 eligibility inputs differ")
+    return (
+        primary_kappa >= 0.60 or primary_raw_agreement >= 0.80
+    ) and unjudgeable_count <= 15

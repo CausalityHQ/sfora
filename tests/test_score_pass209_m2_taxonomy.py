@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import math
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
@@ -319,3 +320,97 @@ def test_load_taxonomy_inputs_rejects_submission_authority_drift(
         _MODULE.load_taxonomy_inputs(
             receipt_path, manifest_path, (paths[0], paths[1])
         )
+
+
+def _row_for_ordinal(submission: dict[str, Any], ordinal: int) -> dict[str, Any]:
+    return next(row for row in submission["rows"] if row["error_ordinal"] == ordinal)
+
+
+def test_score_agreement_matches_hand_derived_primary_and_checklist_tables(
+    tmp_path: Path,
+) -> None:
+    receipt_path, manifest_path, paths, submissions = _coherent_inputs(tmp_path)
+    rater_two = deepcopy(submissions[1])
+    for ordinal in range(23):
+        row = _row_for_ordinal(rater_two, ordinal)
+        row.update(primary_account="semantic-overlap", localized_region=None)
+    _row_for_ordinal(rater_two, 0)["query_image"]["viewpoint"] = "side"
+    paths[1].write_bytes(_canonical(rater_two))
+    inputs = _MODULE.load_taxonomy_inputs(
+        receipt_path, manifest_path, (paths[0], paths[1])
+    )
+
+    evidence = _MODULE.score_agreement(inputs)
+
+    assert evidence.primary.total == 103
+    assert evidence.primary.matches == 80
+    assert evidence.primary.raw_agreement == 80 / 103
+    assert evidence.primary.kappa == 0.0
+    assert evidence.primary.pabak == 2 * (80 / 103) - 1
+    assert evidence.primary.rater_prevalence == (
+        {"localized-cue-visible": 103},
+        {"localized-cue-visible": 80, "semantic-overlap": 23},
+    )
+    assert set(evidence.checklist) == {
+        "viewpoint",
+        "dominant_color",
+        "background",
+        "badge_text",
+        "vehicle_crop",
+        "occlusion_above_25_percent",
+        "strong_blur",
+        "watermark_over_vehicle",
+        "rendering_not_photo",
+        "multiple_vehicles",
+    }
+    assert evidence.checklist["viewpoint"].total == 206
+    assert evidence.checklist["viewpoint"].matches == 205
+    assert evidence.checklist["viewpoint"].raw_agreement == 205 / 206
+    assert evidence.checklist["viewpoint"].kappa == 0.0
+    assert evidence.checklist["viewpoint"].pabak == 2 * (205 / 206) - 1
+    assert evidence.checklist["dominant_color"].kappa == 1.0
+
+
+def test_adjudication_preserves_matches_and_marks_disagreements_unresolved(
+    tmp_path: Path,
+) -> None:
+    receipt_path, manifest_path, paths, submissions = _coherent_inputs(tmp_path)
+    rater_one = deepcopy(submissions[0])
+    rater_two = deepcopy(submissions[1])
+    rater_two_row = _row_for_ordinal(rater_two, 0)
+    rater_two_row.update(primary_account="semantic-overlap", localized_region=None)
+    for submission in (rater_one, rater_two):
+        row = _row_for_ordinal(submission, 1)
+        row.update(
+            primary_account="cannot-judge",
+            localized_region=None,
+            cannot_judge_reason_kind="knowledge",
+            visible_evidence="The visible details do not resolve the model year.",
+        )
+    paths[0].write_bytes(_canonical(rater_one))
+    paths[1].write_bytes(_canonical(rater_two))
+    inputs = _MODULE.load_taxonomy_inputs(
+        receipt_path, manifest_path, (paths[0], paths[1])
+    )
+
+    rows = _MODULE.adjudicate_without_override(inputs)
+
+    assert len(rows) == 103
+    assert rows[0].primary_account == "unresolved"
+    assert rows[0].judgeable is False
+    assert rows[0].original_accounts == (
+        "localized-cue-visible",
+        "semantic-overlap",
+    )
+    assert rows[1].primary_account == "cannot-judge"
+    assert rows[1].judgeable is False
+    assert rows[2].primary_account == "localized-cue-visible"
+    assert rows[2].judgeable is True
+
+
+def test_taxonomy_eligibility_mutation_locks_registered_thresholds() -> None:
+    assert _MODULE.taxonomy_eligibility(0.80, 0.0, 15) is True
+    assert _MODULE.taxonomy_eligibility(0.0, 0.60, 15) is True
+    assert _MODULE.taxonomy_eligibility(math.nextafter(0.80, 0.0), 0.0, 15) is False
+    assert _MODULE.taxonomy_eligibility(0.0, math.nextafter(0.60, 0.0), 15) is False
+    assert _MODULE.taxonomy_eligibility(0.80, 0.60, 16) is False
