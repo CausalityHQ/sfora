@@ -471,13 +471,18 @@ def test_control_data_boundary_loads_only_cars_train_and_never_test_classes() ->
         )
 
 
-def test_siglip_component_boundary_is_pinned_local_eager_and_nonreentrant() -> None:
+def test_siglip_component_boundary_is_pinned_local_eager_and_nonreentrant(
+    tmp_path: Path,
+) -> None:
     calls: dict[str, Any] = {}
+    config = SiglipProxyControlConfig()
+    snapshot = tmp_path / config.model_revision
+    snapshot.mkdir()
 
     class FakeVision(torch.nn.Module):
         config = SimpleNamespace(
             _attn_implementation="eager",
-            _commit_hash=SiglipProxyControlConfig().model_revision,
+            _commit_hash=None,
         )
 
         @classmethod
@@ -498,22 +503,28 @@ def test_siglip_component_boundary_is_pinned_local_eager_and_nonreentrant() -> N
             calls["processor"] = (model_name, kwargs)
             return cls()
 
-    config = SiglipProxyControlConfig()
+    def resolve_snapshot(model_name: str, **kwargs: object) -> str:
+        calls["snapshot"] = (model_name, kwargs)
+        return str(snapshot)
+
     tower, processor = _MODULE.load_siglip_control_components(
         config=config,
         vision_model_cls=FakeVision,
         processor_cls=FakeProcessor,
+        snapshot_resolver=resolve_snapshot,
     )
 
-    expected_load = {
-        "revision": config.model_revision,
-        "local_files_only": True,
-        "attn_implementation": "eager",
-    }
-    assert calls["vision"] == (config.model_name, expected_load)
-    assert calls["processor"] == (
+    assert calls["snapshot"] == (
         config.model_name,
         {"revision": config.model_revision, "local_files_only": True},
+    )
+    assert calls["vision"] == (
+        str(snapshot),
+        {"local_files_only": True, "attn_implementation": "eager"},
+    )
+    assert calls["processor"] == (
+        str(snapshot),
+        {"local_files_only": True},
     )
     assert calls["checkpointing"] == {"gradient_checkpointing_kwargs": {"use_reentrant": False}}
     assert processor.__class__ is FakeProcessor
@@ -523,6 +534,7 @@ def test_siglip_component_boundary_is_pinned_local_eager_and_nonreentrant() -> N
 
 def test_control_loaders_reject_resolved_dataset_and_model_revision_drift(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
 ) -> None:
     config = SiglipProxyControlConfig()
     monkeypatch.setitem(_MODULE._HF_DATASET_REVISIONS, config.dataset_name, "0" * 40)
@@ -530,7 +542,7 @@ def test_control_loaders_reject_resolved_dataset_and_model_revision_drift(
         _MODULE.load_control_examples(loader=lambda **_kwargs: _control_examples())
 
     class DriftedVision(torch.nn.Module):
-        config = SimpleNamespace(_attn_implementation="eager", _commit_hash="0" * 40)
+        config = SimpleNamespace(_attn_implementation="eager", _commit_hash=None)
 
         @classmethod
         def from_pretrained(cls, *_args: object, **_kwargs: object) -> DriftedVision:
@@ -544,11 +556,14 @@ def test_control_loaders_reject_resolved_dataset_and_model_revision_drift(
         def from_pretrained(cls, *_args: object, **_kwargs: object) -> FakeProcessor:
             return cls()
 
+    drifted_snapshot = tmp_path / ("0" * 40)
+    drifted_snapshot.mkdir()
     with pytest.raises(ValueError, match="resolved model revision"):
         _MODULE.load_siglip_control_components(
             config=config,
             vision_model_cls=DriftedVision,
             processor_cls=FakeProcessor,
+            snapshot_resolver=lambda *_args, **_kwargs: str(drifted_snapshot),
         )
 
 

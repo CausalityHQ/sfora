@@ -640,17 +640,31 @@ def load_siglip_control_components(
     config: SiglipProxyControlConfig,
     vision_model_cls: Any | None = None,
     processor_cls: Any | None = None,
+    snapshot_resolver: Callable[..., str] | None = None,
 ) -> tuple[SiglipPooledTower, Any]:
     """Load the pinned local-only eager SigLIP vision tower and processor."""
 
+    if snapshot_resolver is None:
+        from huggingface_hub import snapshot_download
+
+        snapshot_resolver = snapshot_download
     if vision_model_cls is None or processor_cls is None:
         from transformers import AutoImageProcessor, SiglipVisionModel
 
         vision_model_cls = SiglipVisionModel if vision_model_cls is None else vision_model_cls
         processor_cls = AutoImageProcessor if processor_cls is None else processor_cls
-    vision_model = vision_model_cls.from_pretrained(
+    snapshot = snapshot_resolver(
         config.model_name,
         revision=config.model_revision,
+        local_files_only=True,
+    )
+    if type(snapshot) is not str:
+        raise TypeError("SigLIP snapshot resolver must return a concrete path string")
+    resolved_snapshot = Path(snapshot).resolve(strict=True)
+    if not resolved_snapshot.is_dir() or resolved_snapshot.name != config.model_revision:
+        raise ValueError("SigLIP resolved model revision differs from authority")
+    vision_model = vision_model_cls.from_pretrained(
+        str(resolved_snapshot),
         local_files_only=True,
         attn_implementation="eager",
     )
@@ -659,16 +673,12 @@ def load_siglip_control_components(
     attention = getattr(getattr(vision_model, "config", None), "_attn_implementation", None)
     if attention != "eager":
         raise ValueError("SigLIP attention implementation differs from eager authority")
-    resolved_revision = getattr(getattr(vision_model, "config", None), "_commit_hash", None)
-    if resolved_revision != config.model_revision:
-        raise ValueError("SigLIP resolved model revision differs from authority")
     checkpointing = getattr(vision_model, "gradient_checkpointing_enable", None)
     if not callable(checkpointing):
         raise TypeError("SigLIP vision tower lacks gradient checkpointing")
     checkpointing(gradient_checkpointing_kwargs={"use_reentrant": False})
     processor = processor_cls.from_pretrained(
-        config.model_name,
-        revision=config.model_revision,
+        str(resolved_snapshot),
         local_files_only=True,
     )
     return SiglipPooledTower(vision_model), processor
