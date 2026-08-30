@@ -124,6 +124,16 @@ Precompute pinned tokens for Cars train classes only. F0 has burned classes
 3. token-shuffled TSPA, preserving parameters and kernel work while destroying
    part identity.
 
+For the shuffled arm, each seed freezes one individually mixed bijection over the
+F1 training examples such that every image receives the complete token set and
+pretrained attention weights of an image from a different class. A fixed 64N
+sequence of seeded, validity-preserving swaps mixes the initial derangement, and
+each Cars training class must receive tokens from at least eight distinct source
+classes. Global features and labels remain attached to the original image.
+Validation is never shuffled. This keeps the token branch shape and work
+identical while removing class-consistent local evidence; permutation within one
+unordered token set or a coherent class-to-class relabeling would be vacuous.
+
 Proceed only if TSPA exceeds pooled control by at least 0.5 point on average,
 exceeds token-shuffled by at least 0.5 point, and token proxies do not collapse.
 All hyperparameters and the final source digest are then sealed.
