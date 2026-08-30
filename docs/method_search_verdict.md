@@ -10089,3 +10089,29 @@ mutual-nearest same-class patch positives and Pass127's cross-instance cycle
 gate. The F-1 taxonomy remains useful only to choose a genuinely different
 hypothesis; it cannot revive CGTM. No CGTM preflight, code, or GPU training is
 authorized. Full rejection: `docs/cgtm_gate2_dossier_2026-08-30.md`.
+
+## Pass209 — evidence-conditioned cross-field search: NONE before GPU
+
+A new search deliberately excluded correspondence/token matching, EMA or teacher
+filtering, positive mining, proxy variants, distillation, reranking, and
+augmentation-policy changes. Five candidates were screened: Gallery-Extrapolant
+Tail Supervision, Interventional Class-Coarsening, Superposition-Decodable
+Embeddings, trainable HFRO, and Native-Geometry Anchored Fine-tuning. Their
+executable objects are, respectively, an occupied tail-risk-plus-listwise
+composition, artificial multi-label or coarsened proxies, synthetic
+relation/virtual classes, cross-fold gradient alignment, and ordinary
+fine-tuning plus frozen-self distillation. None supplies a new supervision
+object, so none is admitted.
+
+The absence of a same-backbone fine-tuned control is now the limiting scientific
+fact. Before another method is funded, the project requires: (1) a three-seed
+pooled Proxy Anchor control on pinned SigLIP-so400m using train classes `0..48`
+and final-epoch clean validation on `49..81`, preceded by a GB10 smoke; (2) an
+authenticated reproducing run that emits and then renders the 103 burned-band
+errors absent from the original aggregate receipt; and (3) a per-seed Cars
+transfer-gap measurement on burned classes `82..97`. These burned measurements
+may choose a hypothesis family but may not select parameters. The official test
+classes `98..195` are already historically burned, so a later sealed result on
+them is comparative and claim-ineligible rather than fresh confirmation. Full
+closeout and decision rule:
+`docs/pass209_evidence_conditioned_search_2026-08-30.md`.
