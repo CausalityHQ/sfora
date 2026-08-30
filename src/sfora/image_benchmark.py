@@ -46,6 +46,7 @@ class ImageBenchmarkConfig(BaseModel):
         "openai/clip-vit-base-patch32",
         "google/siglip-base-patch16-224",
     )
+    model_revision: str | None = Field(default=None, pattern=r"^[0-9a-f]{40}$")
     objectives: tuple[ImageObjective, ...] = (
         "triplet",
         "batch_hard_triplet",
@@ -179,7 +180,18 @@ def run_image_benchmark(
 ) -> ImageBenchmarkResult:
     """Compare frozen image backbones and projection-head objectives on retrieval."""
     resolved_config = config or ImageBenchmarkConfig()
-    factory = encoder_factory or _load_transformers_image_encoder
+    if resolved_config.model_revision is not None and len(resolved_config.model_names) != 1:
+        raise ValueError("model_revision requires exactly one model")
+    factory: Callable[[str], FrozenImageEncoder]
+    if encoder_factory is None:
+
+        def factory(model_name: str) -> FrozenImageEncoder:
+            return _load_transformers_image_encoder(
+                model_name,
+                revision=resolved_config.model_revision,
+            )
+    else:
+        factory = encoder_factory
     train_labels = np.asarray([example.label for example in train_examples], dtype=np.int64)
     test_labels = np.asarray([example.label for example in test_examples], dtype=np.int64)
     gallery_labels = (
@@ -664,6 +676,7 @@ def _encode_examples_with_cache(
         dataset_name=config.dataset_name,
         split_name=split_name,
         model_name=model_name,
+        model_revision=config.model_revision,
         normalize_embeddings=config.normalize_embeddings,
         examples=examples,
     )
@@ -689,6 +702,7 @@ def _embedding_cache_path(
     dataset_name: str,
     split_name: str,
     model_name: str,
+    model_revision: str | None,
     normalize_embeddings: bool,
     examples: list[ImageExample],
 ) -> Path | None:
@@ -698,6 +712,7 @@ def _embedding_cache_path(
         "dataset_name": dataset_name,
         "split_name": split_name,
         "model_name": model_name,
+        "model_revision": model_revision,
         "normalize_embeddings": normalize_embeddings,
         "examples": [(example.example_id, example.label) for example in examples],
     }
@@ -1026,12 +1041,16 @@ def _subset_indices_from_labels(
     return np.asarray(sorted(selected), dtype=np.int64)
 
 
-def _load_transformers_image_encoder(model_name: str) -> FrozenImageEncoder:
-    return _TransformersImageEncoder(model_name)
+def _load_transformers_image_encoder(
+    model_name: str,
+    *,
+    revision: str | None = None,
+) -> FrozenImageEncoder:
+    return _TransformersImageEncoder(model_name, revision=revision)
 
 
 class _TransformersImageEncoder:
-    def __init__(self, model_name: str) -> None:
+    def __init__(self, model_name: str, *, revision: str | None = None) -> None:
         try:
             import torch
             from transformers import AutoImageProcessor, AutoModel
@@ -1044,8 +1063,8 @@ class _TransformersImageEncoder:
         self._torch: Any = torch
         processor_cls: Any = AutoImageProcessor
         model_cls: Any = AutoModel
-        self._processor: Any = processor_cls.from_pretrained(model_name)
-        self._model: Any = model_cls.from_pretrained(model_name)
+        self._processor: Any = processor_cls.from_pretrained(model_name, revision=revision)
+        self._model: Any = model_cls.from_pretrained(model_name, revision=revision)
         self._device: Any = self._torch.device("cuda" if self._torch.cuda.is_available() else "cpu")
         self._model.to(self._device)
         self._model.eval()

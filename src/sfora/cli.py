@@ -1041,6 +1041,10 @@ def image_benchmark(
         str,
         typer.Option(help="Comma-separated image backbone names."),
     ] = "facebook/dinov2-small,openai/clip-vit-base-patch32,google/siglip-base-patch16-224",
+    model_revision: Annotated[
+        str | None,
+        typer.Option(help="Exact 40-character model commit for a single backbone."),
+    ] = None,
     objectives: Annotated[
         str,
         typer.Option(help="Comma-separated projection objectives."),
@@ -1155,6 +1159,7 @@ def image_benchmark(
             config=ImageBenchmarkConfig(
                 dataset_name=image_dataset,
                 model_names=_parse_str_tuple(model_names),
+                model_revision=model_revision,
                 objectives=parsed_objectives,
                 group_size=group_size,
                 batch_size=batch_size,

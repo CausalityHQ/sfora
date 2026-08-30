@@ -2,7 +2,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 from types import SimpleNamespace
-from typing import cast
+from typing import Any, cast
 
 import numpy as np
 import pytest
@@ -420,6 +420,59 @@ def test_run_image_benchmark_reuses_cached_frozen_embeddings(tmp_path: Path) -> 
     result_cache_files = list(tmp_path.glob("*.npz"))
     assert result_cache_files
     assert len(result_cache_files) == 2
+
+
+def test_run_image_benchmark_binds_single_model_revision_and_cache(
+    tmp_path: Path,
+    monkeypatch: Any,
+) -> None:
+    revisions: list[tuple[str, str | None]] = []
+
+    def load_encoder(model_name: str, *, revision: str | None = None) -> FakeImageEncoder:
+        revisions.append((model_name, revision))
+        return FakeImageEncoder(model_name)
+
+    monkeypatch.setattr(
+        "sfora.image_benchmark._load_transformers_image_encoder",
+        load_encoder,
+    )
+    common = dict(
+        dataset_name="cub",
+        model_names=("fake-siglip",),
+        objectives=(),
+        group_size=2,
+        batch_size=8,
+        train_steps=1,
+        embedding_cache_dir=tmp_path,
+        seed=5,
+    )
+
+    for revision in ("a" * 40, "b" * 40):
+        run_image_benchmark(
+            train_examples=_image_examples("train", (0, 1)),
+            test_examples=_image_examples("test", (0, 1)),
+            config=ImageBenchmarkConfig(model_revision=revision, **common),
+        )
+
+    assert revisions == [
+        ("fake-siglip", "a" * 40),
+        ("fake-siglip", "b" * 40),
+    ]
+    assert len(list(tmp_path.glob("*.npz"))) == 4
+
+
+def test_run_image_benchmark_rejects_revision_for_multiple_models() -> None:
+    with pytest.raises(ValueError, match="exactly one model"):
+        run_image_benchmark(
+            train_examples=_image_examples("train", (0, 1)),
+            test_examples=_image_examples("test", (0, 1)),
+            config=ImageBenchmarkConfig(
+                model_names=("fake-a", "fake-b"),
+                model_revision="a" * 40,
+                objectives=(),
+            ),
+            encoder_factory=_factory,
+        )
 
 
 def test_projection_training_subset_keeps_two_group_sized_class_blocks() -> None:

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Export and independently score an explicitly final Cars196 PFML checkpoint."""
+"""Export and independently score an explicitly final Cars196 checkpoint."""
 
 from __future__ import annotations
 
@@ -175,13 +175,18 @@ def independent_leave_one_out_recall_at_1(
     return correct / len(vectors)
 
 
-def reported_final_recall_at_1(report: dict[str, Any], expected_steps: int) -> float:
+def reported_final_recall_at_1(
+    report: dict[str, Any],
+    expected_steps: int,
+    *,
+    expected_objective: str = "pfml",
+) -> float:
     methods = report.get("methods")
     if not isinstance(methods, dict) or len(methods) != 1:
-        raise ValueError("Cars196 PFML report must contain exactly one method")
+        raise ValueError("Cars196 report must contain exactly one method")
     metrics = next(iter(methods.values()))
-    if metrics.get("objective") != "pfml":
-        raise ValueError("Cars196 report method is not PFML")
+    if metrics.get("objective") != expected_objective:
+        raise ValueError(f"Cars196 report method is not {expected_objective}")
     if metrics.get("executed_train_steps") != expected_steps:
         raise ValueError("Cars196 report did not execute the resolved final training step")
     value = float(metrics.get("recall_at_1", float("nan")))
@@ -190,12 +195,30 @@ def reported_final_recall_at_1(report: dict[str, Any], expected_steps: int) -> f
     return value
 
 
+def validate_export_recipe(
+    config: Any,
+    *,
+    expected_recipe_id: str,
+    expected_recipe_digest: str,
+) -> None:
+    if getattr(config, "recipe_id", None) != expected_recipe_id:
+        raise ValueError("Cars196 export recipe ID differs")
+    if (
+        len(expected_recipe_digest) != 64
+        or any(character not in "0123456789abcdef" for character in expected_recipe_digest)
+        or getattr(config, "recipe_digest", None) != expected_recipe_digest
+    ):
+        raise ValueError("Cars196 export recipe digest differs")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--checkpoint", type=Path, required=True)
     parser.add_argument("--report", type=Path, required=True)
     parser.add_argument("--split", choices=("train", "test"), required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--expected-recipe-id", required=True)
+    parser.add_argument("--expected-recipe-digest", required=True)
     parser.add_argument("--batch-size", type=int, default=128)
     parser.add_argument("--num-workers", type=int, default=4)
     args = parser.parse_args()
@@ -205,15 +228,23 @@ def main() -> None:
 
     report = json.loads(args.report.read_text(encoding="utf-8"))
     config = ImageEndToEndConfig.model_validate(report["config"])
-    if config.dataset_name != "cars" or config.objectives != ("pfml",):
-        raise ValueError("exporter requires a single-objective Cars196 PFML report")
+    if config.dataset_name != "cars" or len(config.objectives) != 1:
+        raise ValueError("exporter requires a single-objective Cars196 report")
+    objective = config.objectives[0]
+    if objective not in {"pfml", "proxy_anchor"}:
+        raise ValueError("exporter supports only Cars196 PFML or Proxy Anchor")
+    validate_export_recipe(
+        config,
+        expected_recipe_id=args.expected_recipe_id,
+        expected_recipe_digest=args.expected_recipe_digest,
+    )
     if config.checkpoint_selection_interval != 0:
         raise ValueError("final-state exporter refuses checkpoint-selected training")
     checkpoint = torch.load(args.checkpoint, map_location="cpu")
     if checkpoint.get("artifact_selection") != "final_training_state":
         raise ValueError("checkpoint is not explicitly labeled as a final training state")
     if checkpoint.get("evaluation_model_source") != "student":
-        raise ValueError("Cars196 PFML checkpoint is not the trained student")
+        raise ValueError("Cars196 checkpoint is not the trained student")
     expected_arch = {
         "backbone_name": config.backbone_name,
         "pretrained_weights": config.pretrained_weights,
@@ -244,7 +275,9 @@ def main() -> None:
             "checkpoint training step differs from the resolved official training schedule: "
             f"{checkpoint.get('training_step')} != {resolved_steps}"
         )
-    reported_final_recall = reported_final_recall_at_1(report, resolved_steps)
+    reported_final_recall = reported_final_recall_at_1(
+        report, resolved_steps, expected_objective=objective
+    )
 
     examples = train_examples if args.split == "train" else test_examples
     transform = _default_transform_factory(config, False)
@@ -268,14 +301,10 @@ def main() -> None:
     if not np.all(np.isfinite(embeddings)):
         raise ValueError("exported Cars196 embeddings contain non-finite values")
     independent_recall = (
-        independent_leave_one_out_recall_at_1(embeddings, labels)
-        if args.split == "test"
-        else None
+        independent_leave_one_out_recall_at_1(embeddings, labels) if args.split == "test" else None
     )
     stable_full_order_recall = (
-        independent_leave_one_out_recall_at_1(
-            embeddings, labels, use_partial_top_k=False
-        )
+        independent_leave_one_out_recall_at_1(embeddings, labels, use_partial_top_k=False)
         if args.split == "test"
         else None
     )
@@ -295,18 +324,14 @@ def main() -> None:
     if independent_recall is not None:
         if production_rescore is None:
             raise RuntimeError("test export did not produce a production-scorer result")
-        if not np.isclose(
-            independent_recall, reported_final_recall, rtol=0.0, atol=1.0e-12
-        ):
+        if not np.isclose(independent_recall, reported_final_recall, rtol=0.0, atol=1.0e-12):
             raise ValueError(
                 "independently exported final R@1 disagrees with the report: "
                 f"independent={independent_recall}, production_rescore={production_rescore}, "
                 f"stable_full_order={stable_full_order_recall}, "
                 f"report={reported_final_recall}"
             )
-        if not np.isclose(
-            independent_recall, production_rescore, rtol=0.0, atol=1.0e-12
-        ):
+        if not np.isclose(independent_recall, production_rescore, rtol=0.0, atol=1.0e-12):
             raise ValueError(
                 "independent and production scorers disagree on the same exported embeddings: "
                 f"{independent_recall} != {production_rescore}"

@@ -160,3 +160,51 @@ def test_reported_final_recall_requires_one_completed_pfml_method() -> None:
     report["methods"]["pfml_end_to_end:resnet50"]["executed_train_steps"] = 16_199
     with pytest.raises(ValueError, match="resolved final training step"):
         _module.reported_final_recall_at_1(report, 16_200)
+
+
+def test_reported_final_recall_accepts_exact_proxy_anchor_objective() -> None:
+    report = {
+        "methods": {
+            "proxy_anchor_end_to_end:resnet50": {
+                "objective": "proxy_anchor",
+                "executed_train_steps": 4_080,
+                "recall_at_1": 0.876,
+            }
+        }
+    }
+    assert (
+        _module.reported_final_recall_at_1(report, 4_080, expected_objective="proxy_anchor")
+        == 0.876
+    )
+    with pytest.raises(ValueError, match="not proxy_anchor"):
+        _module.reported_final_recall_at_1(
+            {
+                "methods": {
+                    "wrong": {
+                        "objective": "pfml",
+                        "executed_train_steps": 4_080,
+                        "recall_at_1": 0.9,
+                    }
+                }
+            },
+            4_080,
+            expected_objective="proxy_anchor",
+        )
+
+
+def test_validate_export_recipe_requires_exact_id_and_digest() -> None:
+    config = SimpleNamespace(
+        recipe_id="proxy_anchor.cars.official-51db570",
+        recipe_digest="d55241a64a5afe9ea81be02e74fa13a6fec87e15c66e95918ad10d90337cc02a",
+    )
+    _module.validate_export_recipe(
+        config,
+        expected_recipe_id="proxy_anchor.cars.official-51db570",
+        expected_recipe_digest="d55241a64a5afe9ea81be02e74fa13a6fec87e15c66e95918ad10d90337cc02a",
+    )
+    with pytest.raises(ValueError, match="recipe digest"):
+        _module.validate_export_recipe(
+            config,
+            expected_recipe_id="proxy_anchor.cars.official-51db570",
+            expected_recipe_digest="0" * 64,
+        )

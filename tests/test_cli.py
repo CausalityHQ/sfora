@@ -539,7 +539,7 @@ def test_image_benchmark_command_writes_report(
     monkeypatch.setattr("sfora.cli.load_image_retrieval_examples", fake_loader)
     monkeypatch.setattr(
         "sfora.image_benchmark._load_transformers_image_encoder",
-        lambda model_name: FakeCliImageEncoder(model_name),
+        lambda model_name, *, revision=None: FakeCliImageEncoder(model_name),
     )
 
     result = CliRunner().invoke(
@@ -660,7 +660,7 @@ def test_image_benchmark_defaults_to_two_groups_per_class_for_group_objectives(
     monkeypatch.setattr("sfora.cli.load_image_retrieval_examples", fake_loader)
     monkeypatch.setattr(
         "sfora.image_benchmark._load_transformers_image_encoder",
-        lambda model_name: FakeCliImageEncoder(model_name),
+        lambda model_name, *, revision=None: FakeCliImageEncoder(model_name),
     )
 
     result = CliRunner().invoke(
@@ -673,6 +673,8 @@ def test_image_benchmark_defaults_to_two_groups_per_class_for_group_objectives(
             "sop",
             "--model-names",
             "fake-dino",
+            "--model-revision",
+            "a" * 40,
             "--objectives",
             "hybrid_xbm",
             "--group-size",
@@ -696,6 +698,7 @@ def test_image_benchmark_defaults_to_two_groups_per_class_for_group_objectives(
     assert payload["config"]["min_per_class"] == 8
     assert payload["config"]["limit_per_class"] is None
     assert payload["config"]["max_classes"] is None
+    assert payload["config"]["model_revision"] == "a" * 40
 
 
 def test_image_dataset_preflight_reports_query_gallery_topology(
