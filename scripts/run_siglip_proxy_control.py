@@ -7,6 +7,8 @@ import hashlib
 import json
 import math
 import os
+import shutil
+import stat
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -133,15 +135,238 @@ class SmokeReceipt:
     projected_seed_seconds: float
 
 
+@dataclass(frozen=True)
+class CheckpointAuthority:
+    """Authenticated local checkpoint and its canonical receipt."""
+
+    seed: int
+    epoch: int
+    path: Path
+    receipt_path: Path
+    sha256: str
+    bytes: int
+
+
+_CHECKPOINT_SCHEMA = "sfora-siglip-proxy-checkpoint-v1"
+_CONTROL_SEEDS = (17, 29, 43)
+
+
+def _checkpoint_basename(*, seed: int, epoch: int) -> str:
+    return f"seed-{seed:03d}-epoch-{epoch:03d}.pt"
+
+
+def _checkpoint_receipt_basename(*, seed: int, epoch: int) -> str:
+    return f"seed-{seed:03d}-epoch-{epoch:03d}.checkpoint.json"
+
+
+def _validate_checkpoint_coordinates(*, seed: int, epoch: int) -> None:
+    if type(seed) is not int or seed not in _CONTROL_SEEDS:
+        raise ValueError("checkpoint seed differs from the registered seeds")
+    if type(epoch) is not int or not 1 <= epoch <= 60:
+        raise ValueError("checkpoint epoch must be in [1, 60]")
+
+
+def _sha256_file(path: Path) -> tuple[str, int]:
+    digest = hashlib.sha256()
+    size = 0
+    with path.open("rb") as stream:
+        while chunk := stream.read(1024 * 1024):
+            digest.update(chunk)
+            size += len(chunk)
+    return digest.hexdigest(), size
+
+
+def _fsync_directory(path: Path) -> None:
+    descriptor = os.open(path, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
+def _checkpoint_authority_from_receipt(
+    receipt_path: Path,
+    *,
+    directory: Path,
+    expected_seed: int,
+) -> CheckpointAuthority:
+    if receipt_path.is_symlink() or not stat.S_ISREG(receipt_path.lstat().st_mode):
+        raise ValueError("checkpoint receipt must be a regular file")
+    raw = receipt_path.read_bytes()
+    try:
+        payload = json.loads(raw)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError("checkpoint receipt is not valid JSON") from error
+    if type(payload) is not dict or raw != _canonical_bytes(cast(dict[str, Any], payload)):
+        raise ValueError("checkpoint receipt is not canonical")
+    expected_keys = {
+        "bytes",
+        "checkpoint",
+        "claim_eligible",
+        "epoch",
+        "schema",
+        "seed",
+        "sha256",
+    }
+    if set(payload) != expected_keys:
+        raise ValueError("checkpoint receipt schema differs")
+    seed = payload["seed"]
+    epoch = payload["epoch"]
+    size = payload["bytes"]
+    checksum = payload["sha256"]
+    checkpoint = payload["checkpoint"]
+    if (
+        type(seed) is not int
+        or type(epoch) is not int
+        or type(size) is not int
+        or type(checksum) is not str
+        or type(checkpoint) is not str
+        or payload["schema"] != _CHECKPOINT_SCHEMA
+        or payload["claim_eligible"] is not False
+    ):
+        raise ValueError("checkpoint receipt types differ")
+    _validate_checkpoint_coordinates(seed=seed, epoch=epoch)
+    if seed != expected_seed or size < 1:
+        raise ValueError("checkpoint receipt authority differs")
+    expected_checkpoint = _checkpoint_basename(seed=seed, epoch=epoch)
+    expected_receipt = _checkpoint_receipt_basename(seed=seed, epoch=epoch)
+    if checkpoint != expected_checkpoint or receipt_path.name != expected_receipt:
+        raise ValueError("checkpoint path binding differs")
+    if len(checksum) != 64 or any(character not in "0123456789abcdef" for character in checksum):
+        raise ValueError("checkpoint digest encoding differs")
+    path = directory / checkpoint
+    if path.is_symlink() or not path.exists() or not stat.S_ISREG(path.lstat().st_mode):
+        raise ValueError("checkpoint must be a regular file")
+    observed_checksum, observed_size = _sha256_file(path)
+    if observed_size != size or observed_checksum != checksum:
+        raise ValueError("checkpoint digest or length differs")
+    return CheckpointAuthority(
+        seed=seed,
+        epoch=epoch,
+        path=path,
+        receipt_path=receipt_path,
+        sha256=checksum,
+        bytes=size,
+    )
+
+
+def latest_authenticated_checkpoint(
+    directory: Path,
+    *,
+    seed: int,
+) -> CheckpointAuthority | None:
+    """Return the newest fully authenticated rolling checkpoint for one seed."""
+
+    _validate_checkpoint_coordinates(seed=seed, epoch=1)
+    if directory.is_symlink() or not directory.is_dir():
+        raise ValueError("checkpoint directory must be a real directory")
+    authorities = [
+        _checkpoint_authority_from_receipt(
+            receipt,
+            directory=directory,
+            expected_seed=seed,
+        )
+        for receipt in sorted(directory.glob(f"seed-{seed:03d}-epoch-*.checkpoint.json"))
+    ]
+    if not authorities:
+        return None
+    epochs = [authority.epoch for authority in authorities]
+    if len(epochs) != len(set(epochs)):
+        raise ValueError("checkpoint epochs are duplicated")
+    return max(authorities, key=lambda authority: authority.epoch)
+
+
+def publish_epoch_checkpoint(
+    *,
+    directory: Path,
+    seed: int,
+    epoch: int,
+    write_checkpoint: Callable[[Path], object],
+    maximum_checkpoint_bytes: int,
+) -> CheckpointAuthority:
+    """Stream, authenticate, and rotate one rolling epoch checkpoint."""
+
+    _validate_checkpoint_coordinates(seed=seed, epoch=epoch)
+    if type(maximum_checkpoint_bytes) is not int or maximum_checkpoint_bytes < 1:
+        raise ValueError("maximum checkpoint bytes must be positive")
+    if not callable(write_checkpoint):
+        raise TypeError("checkpoint writer must be callable")
+    directory.mkdir(parents=True, exist_ok=True)
+    if directory.is_symlink() or not directory.is_dir():
+        raise ValueError("checkpoint directory must be a real directory")
+    previous = latest_authenticated_checkpoint(directory, seed=seed)
+    if previous is not None and epoch <= previous.epoch:
+        raise ValueError("checkpoint epoch must advance")
+    retained_bytes = 0 if previous is None else previous.bytes
+    required_free = retained_bytes + math.ceil(maximum_checkpoint_bytes * 1.2)
+    if shutil.disk_usage(directory).free < required_free:
+        raise OSError("insufficient free space for checkpoint publication")
+
+    basename = _checkpoint_basename(seed=seed, epoch=epoch)
+    receipt_basename = _checkpoint_receipt_basename(seed=seed, epoch=epoch)
+    path = directory / basename
+    receipt_path = directory / receipt_basename
+    partial = directory / f"{basename}.partial"
+    publication_paths = (path, receipt_path, partial)
+    if any(candidate.exists() or candidate.is_symlink() for candidate in publication_paths):
+        raise FileExistsError(path)
+    published_checkpoint = False
+    try:
+        write_checkpoint(partial)
+        if (
+            partial.is_symlink()
+            or not partial.exists()
+            or not stat.S_ISREG(partial.lstat().st_mode)
+        ):
+            raise ValueError("checkpoint writer must create one regular file")
+        with partial.open("rb") as stream:
+            os.fsync(stream.fileno())
+        checksum, size = _sha256_file(partial)
+        if size < 1 or size > maximum_checkpoint_bytes:
+            raise ValueError("checkpoint length differs from the registered envelope")
+        os.link(partial, path, follow_symlinks=False)
+        published_checkpoint = True
+        _fsync_directory(directory)
+        receipt_payload = _canonical_bytes(
+            {
+                "bytes": size,
+                "checkpoint": basename,
+                "claim_eligible": False,
+                "epoch": epoch,
+                "schema": _CHECKPOINT_SCHEMA,
+                "seed": seed,
+                "sha256": checksum,
+            }
+        )
+        _write_new(receipt_path, receipt_payload)
+        _fsync_directory(directory)
+        authority = _checkpoint_authority_from_receipt(
+            receipt_path,
+            directory=directory,
+            expected_seed=seed,
+        )
+    except BaseException:
+        receipt_path.unlink(missing_ok=True)
+        if published_checkpoint:
+            path.unlink(missing_ok=True)
+        raise
+    finally:
+        partial.unlink(missing_ok=True)
+
+    if previous is not None:
+        previous.receipt_path.unlink()
+        previous.path.unlink()
+        _fsync_directory(directory)
+    return authority
+
+
 def _smoke_projection_seconds(
     observation: SmokeObservation,
     *,
     config: SiglipProxyControlConfig,
     steps_per_epoch: int,
 ) -> float:
-    if observation.examples_per_second <= 0.0 or not math.isfinite(
-        observation.examples_per_second
-    ):
+    if observation.examples_per_second <= 0.0 or not math.isfinite(observation.examples_per_second):
         return math.inf
     examples = config.train_epochs * steps_per_epoch * config.logical_batch_size
     return examples / observation.examples_per_second
@@ -171,9 +396,7 @@ def _smoke_observation_passes(
     )
     if any(type(value) is not float or not math.isfinite(value) for value in float_values):
         return False
-    combined_memory = (
-        observation.peak_process_rss_bytes + observation.peak_cuda_reserved_bytes
-    )
+    combined_memory = observation.peak_process_rss_bytes + observation.peak_cuda_reserved_bytes
     projected_seconds = _smoke_projection_seconds(
         observation,
         config=config,
@@ -311,9 +534,7 @@ def _optimizer_groups(
         elif name.startswith("tower."):
             learning_rate = config.tower_learning_rate
             decay = (
-                0.0
-                if name.endswith(".bias") or ".norm." in name.lower()
-                else config.weight_decay
+                0.0 if name.endswith(".bias") or ".norm." in name.lower() else config.weight_decay
             )
         else:
             raise ValueError(f"unclassified trainable parameter: {name}")

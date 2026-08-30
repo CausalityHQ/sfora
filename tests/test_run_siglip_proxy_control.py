@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import importlib.util
+import shutil
 import sys
 from dataclasses import replace
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, cast
 
 import pytest
@@ -50,9 +52,7 @@ def test_schedule_is_warmup_inclusive_and_epoch_bound() -> None:
 
 def _sampler_fixture() -> tuple[tuple[str, ...], torch.Tensor]:
     example_ids = tuple(
-        f"cars-{label:02d}-{position:02d}"
-        for label in range(49)
-        for position in range(7)
+        f"cars-{label:02d}-{position:02d}" for label in range(49) for position in range(7)
     )
     labels = torch.tensor(
         [label for label in range(49) for _ in range(7)],
@@ -205,3 +205,75 @@ def test_memory_smoke_fails_closed_when_no_rung_passes() -> None:
             steps_per_epoch=2,
             run_rung=run_rung,
         )
+
+
+def test_checkpoint_publication_rotates_only_after_new_authority_is_complete(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        shutil,
+        "disk_usage",
+        lambda _path: SimpleNamespace(total=10_000, used=1_000, free=9_000),
+    )
+    first = _MODULE.publish_epoch_checkpoint(
+        directory=tmp_path,
+        seed=17,
+        epoch=1,
+        write_checkpoint=lambda path: path.write_bytes(b"checkpoint-one"),
+        maximum_checkpoint_bytes=100,
+    )
+    assert first.path.read_bytes() == b"checkpoint-one"
+    assert first.receipt_path.is_file()
+    assert _MODULE.latest_authenticated_checkpoint(tmp_path, seed=17) == first
+
+    second = _MODULE.publish_epoch_checkpoint(
+        directory=tmp_path,
+        seed=17,
+        epoch=2,
+        write_checkpoint=lambda path: path.write_bytes(b"checkpoint-two"),
+        maximum_checkpoint_bytes=100,
+    )
+    assert not first.path.exists()
+    assert not first.receipt_path.exists()
+    assert second.path.read_bytes() == b"checkpoint-two"
+    assert _MODULE.latest_authenticated_checkpoint(tmp_path, seed=17) == second
+    assert not list(tmp_path.glob("*.partial"))
+
+
+def test_checkpoint_resume_rejects_corruption_and_free_space_shortfall(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        shutil,
+        "disk_usage",
+        lambda _path: SimpleNamespace(total=10_000, used=1_000, free=9_000),
+    )
+    authority = _MODULE.publish_epoch_checkpoint(
+        directory=tmp_path,
+        seed=29,
+        epoch=7,
+        write_checkpoint=lambda path: path.write_bytes(b"authenticated-state"),
+        maximum_checkpoint_bytes=100,
+    )
+    authority.path.write_bytes(b"corrupted-state")
+    with pytest.raises(ValueError, match="checkpoint digest"):
+        _MODULE.latest_authenticated_checkpoint(tmp_path, seed=29)
+
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    monkeypatch.setattr(
+        shutil,
+        "disk_usage",
+        lambda _path: SimpleNamespace(total=100, used=99, free=1),
+    )
+    with pytest.raises(OSError, match="free space"):
+        _MODULE.publish_epoch_checkpoint(
+            directory=empty,
+            seed=43,
+            epoch=1,
+            write_checkpoint=lambda path: path.write_bytes(b"state"),
+            maximum_checkpoint_bytes=100,
+        )
+    assert not list(empty.iterdir())
