@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from typing import Any, cast
 
@@ -9,7 +10,11 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from sfora.substrate_screen import SUBSTRATE_F0_CLASSES
+from sfora.substrate_screen import (
+    SUBSTRATE_F0_CLASSES,
+    SubstrateScreenMetrics,
+    score_frozen_substrate,
+)
 from sfora.token_set_proxy_anchor import proxy_anchor_loss
 from sfora.token_set_screen import F1_TRAIN_CLASSES, F1_VALIDATION_CLASSES
 
@@ -175,6 +180,53 @@ class ReplayBackwardEvidence:
     maximum_score_disagreement: float
 
 
+@dataclass(frozen=True)
+class NearestClassMargins:
+    """Per-query nearest class similarities and their mean margin evidence."""
+
+    nearest_positive_cosine: torch.Tensor
+    nearest_negative_cosine: torch.Tensor
+    margin: torch.Tensor
+    mean_nearest_positive_cosine: float
+    mean_nearest_negative_cosine: float
+    mean_margin: float
+
+
+@dataclass(frozen=True)
+class ControlBandEvidence:
+    """One band's authoritative Recall@1 and separate margin evidence."""
+
+    retrieval: SubstrateScreenMetrics
+    margins: NearestClassMargins
+
+
+@dataclass(frozen=True)
+class SeedControlEvidence:
+    """Initial/final scalar evidence required to summarize one scientific seed."""
+
+    seed: int
+    train_initial_margin: float
+    train_final_margin: float
+    clean_initial_recall_at_1: float
+    clean_final_recall_at_1: float
+    clean_initial_margin: float
+    clean_final_margin: float
+    burned_initial_margin: float
+    burned_final_margin: float
+
+
+@dataclass(frozen=True)
+class SeedControlSummary:
+    """Derived per-seed transfer changes without checkpoint selection."""
+
+    seed: int
+    train_margin_change: float
+    clean_recall_change: float
+    clean_margin_change: float
+    burned_margin_change: float
+    memorization_to_transfer_ratio: float | None
+
+
 def _validate_replay_module(model: PooledProxyAnchorModel) -> None:
     for module in model.modules():
         if isinstance(module, nn.modules.batchnorm._BatchNorm) and module.training:
@@ -262,6 +314,120 @@ def recomputed_proxy_anchor_backward(
         score_gradients=score_gradients.detach(),
         maximum_score_disagreement=maximum_disagreement,
     )
+
+
+def nearest_class_margins(
+    embeddings: torch.Tensor,
+    labels: torch.Tensor,
+    *,
+    query_block: int,
+) -> NearestClassMargins:
+    """Compute exact fp32 nearest-positive and nearest-negative cosine margins."""
+
+    if type(query_block) is not int or query_block < 1:
+        raise ValueError("query_block must be a positive concrete integer")
+    if embeddings.ndim != 2 or labels.shape != (embeddings.shape[0],):
+        raise ValueError("embedding and label shapes differ")
+    if labels.dtype not in (torch.int32, torch.int64):
+        raise ValueError("labels must use an integer dtype")
+    if embeddings.shape[0] < 2 or not bool(torch.isfinite(embeddings).all()):
+        raise ValueError("embeddings must be finite and contain at least two rows")
+    embeddings_fp32 = embeddings.float()
+    norms = torch.linalg.vector_norm(embeddings_fp32, dim=1)
+    if not torch.allclose(norms, torch.ones_like(norms), atol=1.0e-6, rtol=0.0):
+        raise ValueError("incoming descriptors must have unit norm")
+    labels_device = labels.to(device=embeddings.device, dtype=torch.int64)
+    unique, counts = torch.unique(labels_device, return_counts=True)
+    if unique.numel() < 2 or bool((counts < 2).any()):
+        raise ValueError("margin evidence requires two classes and two examples per class")
+
+    positives: list[torch.Tensor] = []
+    negatives: list[torch.Tensor] = []
+    count = int(labels.numel())
+    for start in range(0, count, query_block):
+        stop = min(start + query_block, count)
+        scores = embeddings_fp32[start:stop] @ embeddings_fp32.T
+        same_class = labels_device[start:stop, None] == labels_device[None, :]
+        rows = torch.arange(stop - start, device=embeddings.device)
+        same_class[rows, torch.arange(start, stop, device=embeddings.device)] = False
+        positive_scores = scores.masked_fill(~same_class, -torch.inf)
+        negative_scores = scores.masked_fill(same_class, -torch.inf)
+        negative_scores[rows, torch.arange(start, stop, device=embeddings.device)] = -torch.inf
+        positives.append(positive_scores.max(dim=1).values)
+        negatives.append(negative_scores.max(dim=1).values)
+    nearest_positive = torch.cat(positives)
+    nearest_negative = torch.cat(negatives)
+    margin = nearest_positive - nearest_negative
+    if not bool(torch.isfinite(nearest_positive).all()):
+        raise RuntimeError("nearest-positive evidence is incomplete")
+    if not bool(torch.isfinite(nearest_negative).all()):
+        raise RuntimeError("nearest-negative evidence is incomplete")
+    return NearestClassMargins(
+        nearest_positive_cosine=nearest_positive,
+        nearest_negative_cosine=nearest_negative,
+        margin=margin,
+        mean_nearest_positive_cosine=float(nearest_positive.mean()),
+        mean_nearest_negative_cosine=float(nearest_negative.mean()),
+        mean_margin=float(margin.mean()),
+    )
+
+
+def evaluate_control_band(
+    embeddings: torch.Tensor,
+    labels: torch.Tensor,
+    *,
+    query_block: int,
+) -> ControlBandEvidence:
+    """Evaluate one isolated gallery through the existing Recall@1 authority."""
+
+    retrieval = score_frozen_substrate(embeddings, labels, query_block=query_block)
+    margins = nearest_class_margins(embeddings, labels, query_block=query_block)
+    return ControlBandEvidence(retrieval=retrieval, margins=margins)
+
+
+def summarize_control_seeds(
+    evidence: tuple[SeedControlEvidence, ...],
+) -> tuple[SeedControlSummary, ...]:
+    """Derive the frozen three-seed clean and memorization-to-transfer changes."""
+
+    if type(evidence) is not tuple or tuple(item.seed for item in evidence) != (17, 29, 43):
+        raise ValueError("control evidence must contain the exact seeds 17, 29, and 43")
+    summaries: list[SeedControlSummary] = []
+    for item in evidence:
+        values = (
+            item.train_initial_margin,
+            item.train_final_margin,
+            item.clean_initial_recall_at_1,
+            item.clean_final_recall_at_1,
+            item.clean_initial_margin,
+            item.clean_final_margin,
+            item.burned_initial_margin,
+            item.burned_final_margin,
+        )
+        if any(type(value) is not float or not math.isfinite(value) for value in values):
+            raise ValueError("control seed evidence must contain concrete finite floats")
+        if (
+            not 0.0 <= item.clean_initial_recall_at_1 <= 1.0
+            or not 0.0 <= item.clean_final_recall_at_1 <= 1.0
+        ):
+            raise ValueError("control seed recalls must lie in [0, 1]")
+        train_change = item.train_final_margin - item.train_initial_margin
+        burned_change = item.burned_final_margin - item.burned_initial_margin
+        summaries.append(
+            SeedControlSummary(
+                seed=item.seed,
+                train_margin_change=train_change,
+                clean_recall_change=(
+                    item.clean_final_recall_at_1 - item.clean_initial_recall_at_1
+                ),
+                clean_margin_change=item.clean_final_margin - item.clean_initial_margin,
+                burned_margin_change=burned_change,
+                memorization_to_transfer_ratio=(
+                    burned_change / train_change if train_change > 0.0 else None
+                ),
+            )
+        )
+    return tuple(summaries)
 
 
 def _validate_labels(labels: Any, *, role: str) -> torch.Tensor:

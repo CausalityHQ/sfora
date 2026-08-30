@@ -13,11 +13,15 @@ from torch.nn import functional as F
 
 from sfora.siglip_proxy_control import (
     PooledProxyAnchorModel,
+    SeedControlEvidence,
     SiglipProxyControlConfig,
+    evaluate_control_band,
+    nearest_class_margins,
     recomputed_proxy_anchor_backward,
+    summarize_control_seeds,
     validate_control_partition,
 )
-from sfora.substrate_screen import SUBSTRATE_F0_CLASSES
+from sfora.substrate_screen import SUBSTRATE_F0_CLASSES, SubstrateScreenMetrics
 from sfora.token_set_proxy_anchor import proxy_anchor_loss
 from sfora.token_set_screen import F1_TRAIN_CLASSES, F1_VALIDATION_CLASSES
 
@@ -423,4 +427,111 @@ def test_recomputed_backward_refuses_stochastic_or_batch_dependent_towers(
             alpha=32.0,
             delta=0.1,
             score_tolerance=2.0e-5,
+        )
+
+
+def _margin_fixture() -> tuple[torch.Tensor, torch.Tensor]:
+    return (
+        torch.tensor(
+            [[1.0, 0.0], [0.8, 0.6], [-1.0, 0.0], [-0.8, 0.6]],
+            dtype=torch.float32,
+        ),
+        torch.tensor([0, 0, 1, 1], dtype=torch.int64),
+    )
+
+
+def test_nearest_class_margins_are_blockwise_and_exact() -> None:
+    embeddings, labels = _margin_fixture()
+
+    evidence = nearest_class_margins(embeddings, labels, query_block=1)
+
+    torch.testing.assert_close(
+        evidence.nearest_positive_cosine,
+        torch.tensor([0.8, 0.8, 0.8, 0.8]),
+    )
+    torch.testing.assert_close(
+        evidence.nearest_negative_cosine,
+        torch.tensor([-0.8, -0.28, -0.8, -0.28]),
+    )
+    torch.testing.assert_close(evidence.margin, torch.tensor([1.6, 1.08, 1.6, 1.08]))
+    assert evidence.mean_nearest_positive_cosine == pytest.approx(0.8)
+    assert evidence.mean_nearest_negative_cosine == pytest.approx(-0.54)
+    assert evidence.mean_margin == pytest.approx(1.34)
+
+
+def test_control_band_calls_the_existing_recall_authority(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    embeddings, labels = _margin_fixture()
+    expected = SubstrateScreenMetrics(correct=3, queries=4, recall_at_1=0.75)
+    calls: list[tuple[torch.Tensor, torch.Tensor, int]] = []
+
+    def fake_score(
+        incoming_embeddings: torch.Tensor,
+        incoming_labels: torch.Tensor,
+        *,
+        query_block: int,
+    ) -> SubstrateScreenMetrics:
+        calls.append((incoming_embeddings, incoming_labels, query_block))
+        return expected
+
+    monkeypatch.setattr("sfora.siglip_proxy_control.score_frozen_substrate", fake_score)
+
+    evidence = evaluate_control_band(embeddings, labels, query_block=2)
+
+    assert evidence.retrieval is expected
+    assert calls == [(embeddings, labels, 2)]
+    assert evidence.margins.mean_margin == pytest.approx(1.34)
+
+
+def _seed_evidence(seed: int, *, train_change: float) -> SeedControlEvidence:
+    return SeedControlEvidence(
+        seed=seed,
+        train_initial_margin=0.1,
+        train_final_margin=0.1 + train_change,
+        clean_initial_recall_at_1=0.4,
+        clean_final_recall_at_1=0.55,
+        clean_initial_margin=0.2,
+        clean_final_margin=0.27,
+        burned_initial_margin=0.3,
+        burned_final_margin=0.34,
+    )
+
+
+def test_control_seed_summary_computes_registered_changes_and_ratios() -> None:
+    summaries = summarize_control_seeds(
+        (
+            _seed_evidence(17, train_change=0.2),
+            _seed_evidence(29, train_change=0.1),
+            _seed_evidence(43, train_change=0.0),
+        )
+    )
+
+    assert tuple(summary.seed for summary in summaries) == (17, 29, 43)
+    assert summaries[0].clean_recall_change == pytest.approx(0.15)
+    assert summaries[0].clean_margin_change == pytest.approx(0.07)
+    assert summaries[0].burned_margin_change == pytest.approx(0.04)
+    assert summaries[0].memorization_to_transfer_ratio == pytest.approx(0.2)
+    assert summaries[1].memorization_to_transfer_ratio == pytest.approx(0.4)
+    assert summaries[2].memorization_to_transfer_ratio is None
+
+
+def test_control_seed_summary_rejects_cardinality_order_and_nonfinite_drift() -> None:
+    with pytest.raises(ValueError, match="exact seeds"):
+        summarize_control_seeds((_seed_evidence(17, train_change=0.2),))
+    with pytest.raises(ValueError, match="exact seeds"):
+        summarize_control_seeds(
+            (
+                _seed_evidence(29, train_change=0.2),
+                _seed_evidence(17, train_change=0.2),
+                _seed_evidence(43, train_change=0.2),
+            )
+        )
+    with pytest.raises(ValueError, match="finite"):
+        summarize_control_seeds(
+            (
+                _seed_evidence(17, train_change=0.2),
+                replace(_seed_evidence(29, train_change=0.2), clean_final_margin=float("nan")),
+                _seed_evidence(43, train_change=0.2),
+            )
         )
