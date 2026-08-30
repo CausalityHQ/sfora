@@ -10066,3 +10066,20 @@ All three frozen substrates failed the 0.94 gate. Pass207 is **DEAD** and no
 HFRO/frozen-head training is authorized. The useful causal result is that the
 97.4 target requires changing the trainable representation, not another loss
 or head over the tested fixed descriptors.
+
+## Pass208 — Correspondence-Gated Token-Maxima: READY at F-1 only
+
+Deep cross-provider synthesis ranked CGTM as the best surviving trainable-
+backbone direction. It acts directly on Pass206's measured failure object:
+ungated token maxima lost 7.29 R@1 points, so a stop-gradient EMA teacher admits
+only cyclically consistent same-class token correspondences and the student
+trains admitted maxima above unmatched maxima. Deployment remains a single
+pooled descriptor.
+
+No implementation or training is authorized yet. The zero-GPU F-1 taxonomy of
+the final substrate cell's 103 errors must first show at least 50 same-make/twin
+errors; viewpoint plurality redirects to a pair-comparator, while at least 40
+mislabel/indeterminate errors closes the 97.4 target as unfunded. A Gate-2
+literature dossier then has to distinguish CGTM's train-up-versus-suppress
+decision from occupied dense/token alignment methods. Full preregistration:
+`docs/cgtm_method_2026-08-30.md`.
