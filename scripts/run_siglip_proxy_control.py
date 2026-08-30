@@ -9,8 +9,9 @@ import math
 import os
 import shutil
 import stat
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
+from functools import partial
 from pathlib import Path
 from typing import Any, cast
 
@@ -18,10 +19,18 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from sfora.data import ImageExample, load_image_retrieval_examples, materialize_image
+from sfora.data import (
+    _HF_DATASET_REVISIONS,
+    ImageExample,
+    load_image_retrieval_examples,
+    materialize_image,
+)
 from sfora.siglip_proxy_control import (
+    ControlBandEvidence,
     PooledProxyAnchorModel,
+    SeedControlEvidence,
     SiglipProxyControlConfig,
+    evaluate_control_band,
     recomputed_proxy_anchor_backward,
     validate_control_partition,
 )
@@ -77,6 +86,7 @@ def _write_new(path: Path, payload: bytes) -> None:
             stream.flush()
             os.fsync(stream.fileno())
         os.link(partial, path, follow_symlinks=False)
+        _fsync_directory(path.parent)
     finally:
         partial.unlink(missing_ok=True)
 
@@ -95,8 +105,8 @@ def _learning_rate_multiplier(
         raise ValueError("steps_per_epoch must be a positive concrete integer")
     warmup_steps = config.warmup_epochs * steps_per_epoch
     warmup = min(1.0, (step + 1) / warmup_steps)
-    completed_epoch = step // steps_per_epoch
-    decays = sum(completed_epoch >= epoch for epoch in config.decay_epochs)
+    current_epoch = step // steps_per_epoch + 1
+    decays = sum(current_epoch >= epoch for epoch in config.decay_epochs)
     return warmup * config.decay_gamma**decays
 
 
@@ -132,6 +142,7 @@ class SmokeObservation:
     final_loss: float
     complete_tower_gradient_coverage: bool
     maximum_score_disagreement: float
+    failure_reason: str | None = None
 
 
 @dataclass(frozen=True)
@@ -183,6 +194,82 @@ class RestoredControlCheckpoint:
     seed: int
     completed_epoch: int
     sampler_state: SamplerState
+    final_objective: float
+    maximum_score_disagreement: float
+    initial_snapshot_sha256: str
+
+
+@dataclass(frozen=True)
+class BandRepresentationEvidence:
+    """Raw-pooler and projected evidence for one isolated class band."""
+
+    raw: ControlBandEvidence
+    projected: ControlBandEvidence
+
+
+@dataclass(frozen=True)
+class ControlEvaluationSnapshot:
+    """One permitted initial or final evaluation over all three class bands."""
+
+    optimization: BandRepresentationEvidence
+    clean_validation: BandRepresentationEvidence
+    burned_diagnostic: BandRepresentationEvidence
+
+
+@dataclass(frozen=True)
+class ControlSeedRunResult:
+    """Authenticated in-memory result of one complete scientific seed."""
+
+    seed: int
+    initial: ControlEvaluationSnapshot
+    final: ControlEvaluationSnapshot
+    seed_evidence: SeedControlEvidence
+    final_objective: float
+    optimizer_steps: int
+    maximum_score_disagreement: float
+    final_checkpoint: CheckpointAuthority
+
+
+@dataclass(frozen=True)
+class ControlRunAuthority:
+    """Source, data ordering, environment, and resolved execution authority."""
+
+    source_revision: str
+    source_tree_digest: str
+    manifest_sha256: str
+    torch_version: str
+    transformers_version: str
+    torchvision_version: str
+    cuda_runtime: str | None
+    device_name: str
+    microbatch_size: int
+    steps_per_epoch: int
+
+    def __post_init__(self) -> None:
+        _require_lower_hex(self.source_revision, length=40, name="source revision")
+        _require_lower_hex(self.source_tree_digest, length=64, name="source tree digest")
+        _require_lower_hex(self.manifest_sha256, length=64, name="manifest SHA-256")
+        for name in (
+            "torch_version",
+            "transformers_version",
+            "torchvision_version",
+            "device_name",
+        ):
+            value = getattr(self, name)
+            if type(value) is not str or not value:
+                raise ValueError(f"{name} must be a nonempty concrete string")
+        if self.cuda_runtime is not None and (
+            type(self.cuda_runtime) is not str or not self.cuda_runtime
+        ):
+            raise ValueError("CUDA runtime must be null or a nonempty concrete string")
+        if (
+            type(self.microbatch_size) is not int
+            or self.microbatch_size < 1
+            or 120 % self.microbatch_size != 0
+        ):
+            raise ValueError("authority microbatch must divide 120")
+        if type(self.steps_per_epoch) is not int or self.steps_per_epoch < 1:
+            raise ValueError("authority steps per epoch must be positive")
 
 
 class SiglipPooledTower(nn.Module):
@@ -210,6 +297,38 @@ _CHECKPOINT_PAYLOAD_SCHEMA = "sfora-siglip-proxy-checkpoint-payload-v1"
 _CONTROL_SEEDS = (17, 29, 43)
 
 
+def _require_lower_hex(value: object, *, length: int, name: str) -> None:
+    if (
+        type(value) is not str
+        or len(value) != length
+        or any(character not in "0123456789abcdef" for character in value)
+    ):
+        raise ValueError(f"{name} must be exactly {length} lowercase hexadecimal characters")
+
+
+def require_control_determinism(device: torch.device) -> None:
+    """Enable and verify the exact deterministic torch execution envelope."""
+
+    if device.type not in {"cpu", "cuda"}:
+        raise ValueError("control device must be CPU or CUDA")
+    if device.type == "cuda" and os.environ.get("CUBLAS_WORKSPACE_CONFIG") != ":4096:8":
+        raise RuntimeError("CUBLAS_WORKSPACE_CONFIG must be :4096:8")
+    torch.use_deterministic_algorithms(True)
+    torch.set_deterministic_debug_mode("error")
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cuda.matmul.allow_tf32 = False
+    torch.backends.cudnn.allow_tf32 = False
+    if (
+        not torch.are_deterministic_algorithms_enabled()
+        or torch.backends.cudnn.benchmark
+        or not torch.backends.cudnn.deterministic
+        or torch.backends.cuda.matmul.allow_tf32
+        or torch.backends.cudnn.allow_tf32
+    ):
+        raise RuntimeError("torch refused the frozen deterministic execution envelope")
+
+
 def _json_compatible(value: object) -> object:
     if isinstance(value, tuple):
         return [_json_compatible(item) for item in value]
@@ -225,6 +344,49 @@ def _config_sha256(config: SiglipProxyControlConfig) -> str:
     return hashlib.sha256(_canonical_bytes(cast(dict[str, Any], payload))).hexdigest()
 
 
+def _run_authority_sha256(authority: ControlRunAuthority) -> str:
+    payload = _json_compatible(vars(authority))
+    if type(payload) is not dict:
+        raise TypeError("run authority did not produce an object")
+    return hashlib.sha256(_canonical_bytes(cast(dict[str, Any], payload))).hexdigest()
+
+
+def control_manifest_sha256(examples: tuple[ImageExample, ...]) -> str:
+    """Hash the exact ordered example-ID/label manifest used by the sampler."""
+
+    if type(examples) is not tuple or not examples:
+        raise ValueError("control manifest must be a nonempty concrete tuple")
+    rows = [{"example_id": example.example_id, "label": example.label} for example in examples]
+    return hashlib.sha256(_canonical_bytes({"examples": rows})).hexdigest()
+
+
+def _band_scalar_payload(evidence: ControlBandEvidence) -> dict[str, object]:
+    return {
+        "correct": evidence.retrieval.correct,
+        "queries": evidence.retrieval.queries,
+        "recall_at_1": evidence.retrieval.recall_at_1,
+        "mean_nearest_positive_cosine": evidence.margins.mean_nearest_positive_cosine,
+        "mean_nearest_negative_cosine": evidence.margins.mean_nearest_negative_cosine,
+        "mean_margin": evidence.margins.mean_margin,
+    }
+
+
+def _snapshot_sha256(snapshot: ControlEvaluationSnapshot) -> str:
+    bands = {
+        "optimization": snapshot.optimization,
+        "clean_validation": snapshot.clean_validation,
+        "burned_diagnostic": snapshot.burned_diagnostic,
+    }
+    payload = {
+        role: {
+            "raw": _band_scalar_payload(evidence.raw),
+            "projected": _band_scalar_payload(evidence.projected),
+        }
+        for role, evidence in bands.items()
+    }
+    return hashlib.sha256(_canonical_bytes(payload)).hexdigest()
+
+
 def write_control_checkpoint(
     path: Path,
     *,
@@ -234,12 +396,29 @@ def write_control_checkpoint(
     seed: int,
     completed_epoch: int,
     sampler_state: SamplerState,
+    final_objective: float,
+    maximum_score_disagreement: float,
+    run_authority: ControlRunAuthority,
+    initial_snapshot_sha256: str,
 ) -> None:
     """Write one create-new checkpoint payload for authenticated publication."""
 
     _validate_checkpoint_coordinates(seed=seed, epoch=completed_epoch)
     if len(sampler_state.cycles) != 49 or len(sampler_state.positions) != 49:
         raise ValueError("checkpoint sampler state must bind all optimization classes")
+    if type(final_objective) is not float or not math.isfinite(final_objective):
+        raise ValueError("checkpoint objective must be a concrete finite float")
+    if (
+        type(maximum_score_disagreement) is not float
+        or not math.isfinite(maximum_score_disagreement)
+        or not 0.0 <= maximum_score_disagreement <= config.replay_score_tolerance
+    ):
+        raise ValueError("checkpoint replay disagreement differs from authority")
+    _require_lower_hex(
+        initial_snapshot_sha256,
+        length=64,
+        name="initial snapshot SHA-256",
+    )
     if path.exists() or path.is_symlink():
         raise FileExistsError(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -251,8 +430,12 @@ def write_control_checkpoint(
         "cuda_rng_states": tuple(torch.cuda.get_rng_state_all())
         if torch.cuda.is_available()
         else (),
+        "final_objective": final_objective,
+        "initial_snapshot_sha256": initial_snapshot_sha256,
+        "maximum_score_disagreement": maximum_score_disagreement,
         "model_state": model.state_dict(),
         "optimizer_state": optimizer.state_dict(),
+        "run_authority_sha256": _run_authority_sha256(run_authority),
         "sampler_cycles": sampler_state.cycles,
         "sampler_positions": sampler_state.positions,
         "schema": _CHECKPOINT_PAYLOAD_SCHEMA,
@@ -271,6 +454,7 @@ def restore_control_checkpoint(
     optimizer: torch.optim.Optimizer,
     config: SiglipProxyControlConfig,
     expected_seed: int,
+    expected_run_authority: ControlRunAuthority,
 ) -> RestoredControlCheckpoint:
     """Restore only a strict same-config, same-environment checkpoint payload."""
 
@@ -283,8 +467,12 @@ def restore_control_checkpoint(
         "config_sha256",
         "cpu_rng_state",
         "cuda_rng_states",
+        "final_objective",
+        "initial_snapshot_sha256",
+        "maximum_score_disagreement",
         "model_state",
         "optimizer_state",
+        "run_authority_sha256",
         "sampler_cycles",
         "sampler_positions",
         "schema",
@@ -296,16 +484,32 @@ def restore_control_checkpoint(
     completed_epoch = payload["completed_epoch"]
     cycles = payload["sampler_cycles"]
     positions = payload["sampler_positions"]
+    final_objective = payload["final_objective"]
+    initial_snapshot_sha256 = payload["initial_snapshot_sha256"]
+    maximum_score_disagreement = payload["maximum_score_disagreement"]
     if (
         type(seed) is not int
         or type(completed_epoch) is not int
         or type(cycles) is not tuple
         or type(positions) is not tuple
+        or type(final_objective) is not float
+        or not math.isfinite(final_objective)
+        or type(maximum_score_disagreement) is not float
+        or not math.isfinite(maximum_score_disagreement)
+        or not 0.0 <= maximum_score_disagreement <= config.replay_score_tolerance
+        or type(initial_snapshot_sha256) is not str
         or payload["claim_eligible"] is not False
         or payload["schema"] != _CHECKPOINT_PAYLOAD_SCHEMA
         or payload["config_sha256"] != _config_sha256(config)
     ):
         raise ValueError("control checkpoint authority differs")
+    _require_lower_hex(
+        initial_snapshot_sha256,
+        length=64,
+        name="initial snapshot SHA-256",
+    )
+    if payload["run_authority_sha256"] != _run_authority_sha256(expected_run_authority):
+        raise ValueError("control checkpoint run authority differs")
     _validate_checkpoint_coordinates(seed=seed, epoch=completed_epoch)
     if seed != expected_seed:
         raise ValueError("control checkpoint seed differs")
@@ -336,6 +540,9 @@ def restore_control_checkpoint(
         seed=seed,
         completed_epoch=completed_epoch,
         sampler_state=sampler_state,
+        final_objective=final_objective,
+        maximum_score_disagreement=maximum_score_disagreement,
+        initial_snapshot_sha256=initial_snapshot_sha256,
     )
 
 
@@ -345,6 +552,9 @@ def load_control_examples(
 ) -> ControlExampleBands:
     """Load Cars train once and partition it without exposing official test classes."""
 
+    config = SiglipProxyControlConfig()
+    if _HF_DATASET_REVISIONS.get(config.dataset_name) != config.dataset_revision:
+        raise RuntimeError("Cars dataset revision differs from the frozen control authority")
     examples = loader(dataset_name="cars", split="train")
     if type(examples) is not list or not examples:
         raise ValueError("Cars train loader must return a nonempty concrete list")
@@ -353,7 +563,8 @@ def load_control_examples(
     labels = [example.label for example in examples]
     if any(type(label) is not int for label in labels):
         raise TypeError("Cars labels must be concrete integers")
-    if any(label >= 98 or label < 0 for label in labels):
+    allowed_classes = F1_TRAIN_CLASSES | F1_VALIDATION_CLASSES | SUBSTRATE_F0_CLASSES
+    if any(label not in allowed_classes for label in labels):
         raise ValueError("official test classes must never enter the control boundary")
     example_ids = [example.example_id for example in examples]
     if any(type(example_id) is not str or not example_id for example_id in example_ids):
@@ -407,6 +618,9 @@ def load_siglip_control_components(
     attention = getattr(getattr(vision_model, "config", None), "_attn_implementation", None)
     if attention != "eager":
         raise ValueError("SigLIP attention implementation differs from eager authority")
+    resolved_revision = getattr(getattr(vision_model, "config", None), "_commit_hash", None)
+    if resolved_revision != config.model_revision:
+        raise ValueError("SigLIP resolved model revision differs from authority")
     checkpointing = getattr(vision_model, "gradient_checkpointing_enable", None)
     if not callable(checkpointing):
         raise TypeError("SigLIP vision tower lacks gradient checkpointing")
@@ -445,7 +659,7 @@ def preprocess_control_evaluation(processor: Any, images: list[object]) -> torch
     if type(images) is not list or not images:
         raise ValueError("evaluation images must be a nonempty concrete list")
     encoded = processor(images=images, return_tensors="pt")
-    if type(encoded) is not dict or "pixel_values" not in encoded:
+    if not isinstance(encoded, Mapping) or "pixel_values" not in encoded:
         raise ValueError("SigLIP processor did not return pixel values")
     pixel_values = encoded["pixel_values"]
     if (
@@ -631,6 +845,231 @@ def train_control_epoch(
     )
 
 
+def _evaluate_control_snapshot(
+    *,
+    model: PooledProxyAnchorModel,
+    bands: ControlExampleBands,
+    processor: Any,
+    device: torch.device,
+    batch_size: int,
+    query_block: int,
+) -> ControlEvaluationSnapshot:
+    evidence: list[BandRepresentationEvidence] = []
+    for examples in (
+        bands.optimization,
+        bands.clean_validation,
+        bands.burned_diagnostic,
+    ):
+        raw, projected, labels = embed_control_examples(
+            model=model,
+            examples=examples,
+            processor=processor,
+            device=device,
+            batch_size=batch_size,
+        )
+        evidence.append(
+            BandRepresentationEvidence(
+                raw=evaluate_control_band(raw, labels, query_block=query_block),
+                projected=evaluate_control_band(projected, labels, query_block=query_block),
+            )
+        )
+    return ControlEvaluationSnapshot(
+        optimization=evidence[0],
+        clean_validation=evidence[1],
+        burned_diagnostic=evidence[2],
+    )
+
+
+def run_control_seed(
+    *,
+    config: SiglipProxyControlConfig,
+    seed: int,
+    bands: ControlExampleBands,
+    checkpoint_directory: Path,
+    maximum_checkpoint_bytes: int,
+    microbatch_size: int,
+    evaluation_batch_size: int,
+    query_block: int,
+    device: torch.device,
+    smoke_receipt: SmokeReceipt,
+    run_authority: ControlRunAuthority,
+) -> ControlSeedRunResult:
+    """Run or resume one frozen seed without intermediate evaluation."""
+
+    require_control_determinism(device)
+    if type(seed) is not int or seed not in config.seeds:
+        raise ValueError("seed differs from the frozen control seeds")
+    if type(microbatch_size) is not int or config.logical_batch_size % microbatch_size != 0:
+        raise ValueError("microbatch size must divide the frozen logical batch")
+    if type(evaluation_batch_size) is not int or evaluation_batch_size < 1:
+        raise ValueError("evaluation batch size must be positive")
+    if type(query_block) is not int or query_block < 1:
+        raise ValueError("query block must be positive")
+    if (
+        smoke_receipt.selected_microbatch_size != microbatch_size
+        or not smoke_receipt.observations
+        or smoke_receipt.observations[-1].microbatch_size != microbatch_size
+        or not _smoke_observation_passes(
+            smoke_receipt.observations[-1],
+            config=config,
+            steps_per_epoch=run_authority.steps_per_epoch,
+        )
+    ):
+        raise ValueError("scientific microbatch lacks a passing smoke authority")
+    validate_control_partition(
+        optimization_labels=torch.tensor(
+            [example.label for example in bands.optimization], dtype=torch.int64
+        ),
+        clean_validation_labels=torch.tensor(
+            [example.label for example in bands.clean_validation], dtype=torch.int64
+        ),
+        burned_diagnostic_labels=torch.tensor(
+            [example.label for example in bands.burned_diagnostic], dtype=torch.int64
+        ),
+    )
+    steps_per_epoch = config.steps_per_epoch(len(bands.optimization))
+    if steps_per_epoch < 1:
+        raise ValueError("optimization split does not resolve one logical step")
+    if (
+        run_authority.microbatch_size != microbatch_size
+        or run_authority.steps_per_epoch != steps_per_epoch
+        or run_authority.manifest_sha256 != control_manifest_sha256(bands.ordered_manifest)
+        or run_authority.torch_version != torch.__version__
+        or run_authority.cuda_runtime != torch.version.cuda
+        or run_authority.device_name
+        != (torch.cuda.get_device_name(device) if device.type == "cuda" else "cpu")
+    ):
+        raise ValueError("run authority differs from the resolved execution")
+    if device.type == "cuda":
+        if not torch.cuda.is_available() or not torch.cuda.is_bf16_supported():
+            raise RuntimeError("the pooled control requires CUDA bf16 support")
+        if os.environ.get("CUBLAS_WORKSPACE_CONFIG") != ":4096:8":
+            raise RuntimeError("CUBLAS_WORKSPACE_CONFIG must be :4096:8")
+    tower, processor = load_siglip_control_components(config=config)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+    model = PooledProxyAnchorModel(
+        tower=tower,
+        input_dimensions=config.input_dimensions,
+        embedding_dimensions=config.embedding_dimensions,
+        class_count=len(F1_TRAIN_CLASSES),
+    ).to(device)
+    optimizer = torch.optim.AdamW(_optimizer_groups(model, config))
+
+    initial = _evaluate_control_snapshot(
+        model=model,
+        bands=bands,
+        processor=processor,
+        device=device,
+        batch_size=evaluation_batch_size,
+        query_block=query_block,
+    )
+    initial_snapshot_sha256 = _snapshot_sha256(initial)
+    checkpoint_directory.mkdir(parents=True, exist_ok=True)
+    _reap_orphan_checkpoints(checkpoint_directory, seed=seed)
+    previous = latest_authenticated_checkpoint(checkpoint_directory, seed=seed)
+    if previous is None:
+        start_epoch = 0
+        sampler_state = SamplerState.initial()
+        final_objective = math.nan
+        maximum_disagreement = 0.0
+        final_checkpoint: CheckpointAuthority | None = None
+    else:
+        restored = restore_control_checkpoint(
+            previous.path,
+            model=model,
+            optimizer=optimizer,
+            config=config,
+            expected_seed=seed,
+            expected_run_authority=run_authority,
+        )
+        if restored.completed_epoch != previous.epoch:
+            raise ValueError("checkpoint receipt and payload epochs differ")
+        if restored.initial_snapshot_sha256 != initial_snapshot_sha256:
+            raise ValueError("checkpoint initial snapshot authority differs")
+        start_epoch = restored.completed_epoch
+        sampler_state = restored.sampler_state
+        final_objective = restored.final_objective
+        maximum_disagreement = restored.maximum_score_disagreement
+        final_checkpoint = previous
+
+    transform = build_control_train_transform()
+    for epoch in range(start_epoch, config.train_epochs):
+        epoch_evidence = train_control_epoch(
+            model=model,
+            optimizer=optimizer,
+            examples=bands.optimization,
+            transform=transform,
+            seed=seed,
+            epoch=epoch,
+            steps_per_epoch=steps_per_epoch,
+            sampler_state=sampler_state,
+            microbatch_size=microbatch_size,
+            config=config,
+            device=device,
+        )
+        sampler_state = epoch_evidence.sampler_state
+        final_objective = epoch_evidence.losses[-1]
+        maximum_disagreement = max(
+            maximum_disagreement,
+            epoch_evidence.maximum_score_disagreement,
+        )
+
+        write_checkpoint = partial(
+            write_control_checkpoint,
+            model=model,
+            optimizer=optimizer,
+            config=config,
+            seed=seed,
+            completed_epoch=epoch + 1,
+            sampler_state=sampler_state,
+            final_objective=final_objective,
+            maximum_score_disagreement=maximum_disagreement,
+            run_authority=run_authority,
+            initial_snapshot_sha256=initial_snapshot_sha256,
+        )
+        final_checkpoint = publish_epoch_checkpoint(
+            directory=checkpoint_directory,
+            seed=seed,
+            epoch=epoch + 1,
+            write_checkpoint=write_checkpoint,
+            maximum_checkpoint_bytes=maximum_checkpoint_bytes,
+        )
+    if final_checkpoint is None or final_checkpoint.epoch != config.train_epochs:
+        raise RuntimeError("control seed lacks its final authenticated checkpoint")
+
+    final = _evaluate_control_snapshot(
+        model=model,
+        bands=bands,
+        processor=processor,
+        device=device,
+        batch_size=evaluation_batch_size,
+        query_block=query_block,
+    )
+    seed_evidence = SeedControlEvidence(
+        seed=seed,
+        train_initial_margin=initial.optimization.projected.margins.mean_margin,
+        train_final_margin=final.optimization.projected.margins.mean_margin,
+        clean_initial_recall_at_1=initial.clean_validation.projected.retrieval.recall_at_1,
+        clean_final_recall_at_1=final.clean_validation.projected.retrieval.recall_at_1,
+        clean_initial_margin=initial.clean_validation.projected.margins.mean_margin,
+        clean_final_margin=final.clean_validation.projected.margins.mean_margin,
+        burned_initial_margin=initial.burned_diagnostic.projected.margins.mean_margin,
+        burned_final_margin=final.burned_diagnostic.projected.margins.mean_margin,
+    )
+    return ControlSeedRunResult(
+        seed=seed,
+        initial=initial,
+        final=final,
+        seed_evidence=seed_evidence,
+        final_objective=final_objective,
+        optimizer_steps=config.train_epochs * steps_per_epoch,
+        maximum_score_disagreement=maximum_disagreement,
+        final_checkpoint=final_checkpoint,
+    )
+
+
 def _checkpoint_basename(*, seed: int, epoch: int) -> str:
     return f"seed-{seed:03d}-epoch-{epoch:03d}.pt"
 
@@ -662,6 +1101,31 @@ def _fsync_directory(path: Path) -> None:
         os.fsync(descriptor)
     finally:
         os.close(descriptor)
+
+
+def _reap_orphan_checkpoints(directory: Path, *, seed: int) -> None:
+    """Remove only never-authenticated interrupted publications for one seed."""
+
+    _validate_checkpoint_coordinates(seed=seed, epoch=1)
+    if directory.is_symlink() or not directory.is_dir():
+        raise ValueError("checkpoint directory must be a real directory")
+    changed = False
+    prefix = f"seed-{seed:03d}-epoch-"
+    for partial_path in directory.glob(f"{prefix}*.pt.partial"):
+        partial_path.unlink()
+        changed = True
+    for checkpoint in directory.glob(f"{prefix}*.pt"):
+        receipt = checkpoint.with_name(f"{checkpoint.name.removesuffix('.pt')}.checkpoint.json")
+        if not receipt.exists() and not receipt.is_symlink():
+            checkpoint.unlink()
+            changed = True
+    for receipt in directory.glob(f"{prefix}*.checkpoint.json"):
+        checkpoint = receipt.with_name(f"{receipt.name.removesuffix('.checkpoint.json')}.pt")
+        if not checkpoint.exists() and not checkpoint.is_symlink():
+            receipt.unlink()
+            changed = True
+    if changed:
+        _fsync_directory(directory)
 
 
 def _checkpoint_authority_from_receipt(
@@ -774,6 +1238,7 @@ def publish_epoch_checkpoint(
     directory.mkdir(parents=True, exist_ok=True)
     if directory.is_symlink() or not directory.is_dir():
         raise ValueError("checkpoint directory must be a real directory")
+    _reap_orphan_checkpoints(directory, seed=seed)
     previous = latest_authenticated_checkpoint(directory, seed=seed)
     if previous is not None and epoch <= previous.epoch:
         raise ValueError("checkpoint epoch must advance")
@@ -858,6 +1323,8 @@ def _smoke_observation_passes(
     config: SiglipProxyControlConfig,
     steps_per_epoch: int,
 ) -> bool:
+    if observation.failure_reason is not None:
+        return False
     integer_values = (
         observation.microbatch_size,
         observation.steps_completed,
@@ -906,7 +1373,24 @@ def run_memory_smoke(
         raise ValueError("steps_per_epoch must be a positive concrete integer")
     observations: list[SmokeObservation] = []
     for microbatch_size in config.smoke_microbatch_ladder:
-        observation = run_rung(microbatch_size)
+        try:
+            observation = run_rung(microbatch_size)
+        except torch.cuda.OutOfMemoryError:
+            observation = SmokeObservation(
+                microbatch_size=microbatch_size,
+                steps_completed=0,
+                peak_process_rss_bytes=0,
+                peak_cuda_allocated_bytes=0,
+                peak_cuda_reserved_bytes=0,
+                memory_psi_growth=0.0,
+                swap_growth_bytes=0,
+                examples_per_second=0.0,
+                final_loss=0.0,
+                complete_tower_gradient_coverage=False,
+                maximum_score_disagreement=0.0,
+                failure_reason="cuda-out-of-memory",
+            )
+            torch.cuda.empty_cache()
         if observation.microbatch_size != microbatch_size:
             raise ValueError("smoke observation microbatch differs from the requested rung")
         observations.append(observation)

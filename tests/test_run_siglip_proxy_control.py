@@ -6,6 +6,7 @@ import importlib.util
 import math
 import shutil
 import sys
+from collections import UserDict
 from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
@@ -44,7 +45,9 @@ def test_schedule_is_warmup_inclusive_and_epoch_bound() -> None:
 
     assert _MODULE._learning_rate_multiplier(config, step=0, steps_per_epoch=2) == 0.1
     assert _MODULE._learning_rate_multiplier(config, step=9, steps_per_epoch=2) == 1.0
-    assert _MODULE._learning_rate_multiplier(config, step=19, steps_per_epoch=2) == 1.0
+    assert _MODULE._learning_rate_multiplier(config, step=17, steps_per_epoch=2) == 1.0
+    assert _MODULE._learning_rate_multiplier(config, step=18, steps_per_epoch=2) == 0.5
+    assert _MODULE._learning_rate_multiplier(config, step=19, steps_per_epoch=2) == 0.5
     assert _MODULE._learning_rate_multiplier(config, step=20, steps_per_epoch=2) == 0.5
     assert _MODULE._learning_rate_multiplier(config, step=40, steps_per_epoch=2) == 0.25
     assert _MODULE._learning_rate_multiplier(config, step=120, steps_per_epoch=2) == 0.03125
@@ -238,6 +241,32 @@ def test_memory_smoke_fails_closed_when_no_rung_passes() -> None:
         )
 
 
+def test_memory_smoke_records_cuda_oom_and_descends_to_next_rung(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[int] = []
+    cache_clears: list[None] = []
+    monkeypatch.setattr(torch.cuda, "empty_cache", lambda: cache_clears.append(None))
+
+    def run_rung(microbatch_size: int) -> Any:
+        calls.append(microbatch_size)
+        if microbatch_size == 120:
+            raise torch.cuda.OutOfMemoryError("registered smoke OOM")
+        return _passing_smoke_observation(microbatch_size)
+
+    receipt = _MODULE.run_memory_smoke(
+        config=SiglipProxyControlConfig(),
+        steps_per_epoch=2,
+        run_rung=run_rung,
+    )
+
+    assert calls == [120, 60]
+    assert cache_clears == [None]
+    assert receipt.observations[0].microbatch_size == 120
+    assert receipt.observations[0].failure_reason == "cuda-out-of-memory"
+    assert receipt.selected_microbatch_size == 60
+
+
 def test_checkpoint_publication_rotates_only_after_new_authority_is_complete(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -257,6 +286,11 @@ def test_checkpoint_publication_rotates_only_after_new_authority_is_complete(
     assert first.path.read_bytes() == b"checkpoint-one"
     assert first.receipt_path.is_file()
     assert _MODULE.latest_authenticated_checkpoint(tmp_path, seed=17) == first
+
+    orphan = tmp_path / "seed-017-epoch-002.pt"
+    orphan.write_bytes(b"interrupted-before-receipt")
+    partial = tmp_path / "seed-017-epoch-002.pt.partial"
+    partial.write_bytes(b"interrupted-write")
 
     second = _MODULE.publish_epoch_checkpoint(
         directory=tmp_path,
@@ -323,6 +357,21 @@ def _control_examples() -> list[ImageExample]:
     ]
 
 
+def _run_authority(*, manifest_sha256: str = "1" * 64) -> Any:
+    return _MODULE.ControlRunAuthority(
+        source_revision="2" * 40,
+        source_tree_digest="3" * 64,
+        manifest_sha256=manifest_sha256,
+        torch_version=str(torch.__version__),
+        transformers_version="4.test",
+        torchvision_version="0.test",
+        cuda_runtime=torch.version.cuda,
+        device_name="cpu",
+        microbatch_size=30,
+        steps_per_epoch=1,
+    )
+
+
 def test_control_data_boundary_loads_only_cars_train_and_never_test_classes() -> None:
     calls: list[tuple[str, str]] = []
 
@@ -350,7 +399,10 @@ def test_siglip_component_boundary_is_pinned_local_eager_and_nonreentrant() -> N
     calls: dict[str, Any] = {}
 
     class FakeVision(torch.nn.Module):
-        config = SimpleNamespace(_attn_implementation="eager")
+        config = SimpleNamespace(
+            _attn_implementation="eager",
+            _commit_hash=SiglipProxyControlConfig().model_revision,
+        )
 
         @classmethod
         def from_pretrained(cls, model_name: str, **kwargs: object) -> FakeVision:
@@ -393,6 +445,55 @@ def test_siglip_component_boundary_is_pinned_local_eager_and_nonreentrant() -> N
     assert torch.equal(tower(pixels), pixels.mean(dim=(-2, -1)))
 
 
+def test_control_loaders_reject_resolved_dataset_and_model_revision_drift(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config = SiglipProxyControlConfig()
+    monkeypatch.setitem(_MODULE._HF_DATASET_REVISIONS, config.dataset_name, "0" * 40)
+    with pytest.raises(RuntimeError, match="dataset revision"):
+        _MODULE.load_control_examples(loader=lambda **_kwargs: _control_examples())
+
+    class DriftedVision(torch.nn.Module):
+        config = SimpleNamespace(_attn_implementation="eager", _commit_hash="0" * 40)
+
+        @classmethod
+        def from_pretrained(cls, *_args: object, **_kwargs: object) -> DriftedVision:
+            return cls()
+
+        def gradient_checkpointing_enable(self, **_kwargs: object) -> None:
+            return None
+
+    class FakeProcessor:
+        @classmethod
+        def from_pretrained(cls, *_args: object, **_kwargs: object) -> FakeProcessor:
+            return cls()
+
+    with pytest.raises(ValueError, match="resolved model revision"):
+        _MODULE.load_siglip_control_components(
+            config=config,
+            vision_model_cls=DriftedVision,
+            processor_cls=FakeProcessor,
+        )
+
+
+def test_determinism_boundary_sets_and_verifies_every_torch_switch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+    torch.backends.cudnn.benchmark = True
+    torch.backends.cudnn.deterministic = False
+    torch.backends.cuda.matmul.allow_tf32 = True
+    torch.backends.cudnn.allow_tf32 = True
+
+    _MODULE.require_control_determinism(torch.device("cpu"))
+
+    assert torch.are_deterministic_algorithms_enabled()
+    assert torch.backends.cudnn.benchmark is False
+    assert torch.backends.cudnn.deterministic is True
+    assert torch.backends.cuda.matmul.allow_tf32 is False
+    assert torch.backends.cudnn.allow_tf32 is False
+
+
 def test_control_preprocessing_is_the_frozen_train_and_processor_eval_path() -> None:
     from torchvision.transforms import InterpolationMode
 
@@ -419,6 +520,19 @@ def test_control_preprocessing_is_the_frozen_train_and_processor_eval_path() -> 
     assert calls == [(images, "pt")]
     assert pixels.shape == (2, 3, 384, 384)
     assert pixels.dtype == torch.float32
+
+
+def test_control_evaluation_accepts_the_processor_mapping_contract() -> None:
+    class BatchFeatureLike(UserDict[str, object]):
+        pass
+
+    class FakeProcessor:
+        def __call__(self, *, images: list[object], return_tensors: str) -> object:
+            assert return_tensors == "pt"
+            return BatchFeatureLike({"pixel_values": torch.ones(len(images), 3, 384, 384)})
+
+    pixels = _MODULE.preprocess_control_evaluation(FakeProcessor(), [object()])
+    assert pixels.shape == (1, 3, 384, 384)
 
 
 def test_batch_materialization_augments_each_selected_image_exactly_once() -> None:
@@ -574,6 +688,7 @@ def test_control_checkpoint_restores_model_optimizer_sampler_and_rng(tmp_path: P
         positions=tuple(index % 4 for index in range(49)),
     )
     path = tmp_path / "state.pt"
+    run_authority = _run_authority()
     _MODULE.write_control_checkpoint(
         path,
         model=model,
@@ -582,6 +697,10 @@ def test_control_checkpoint_restores_model_optimizer_sampler_and_rng(tmp_path: P
         seed=17,
         completed_epoch=4,
         sampler_state=sampler,
+        final_objective=0.25,
+        maximum_score_disagreement=1.0e-6,
+        run_authority=run_authority,
+        initial_snapshot_sha256="4" * 64,
     )
 
     with torch.no_grad():
@@ -594,10 +713,109 @@ def test_control_checkpoint_restores_model_optimizer_sampler_and_rng(tmp_path: P
         optimizer=optimizer,
         config=config,
         expected_seed=17,
+        expected_run_authority=run_authority,
     )
 
     assert restored.completed_epoch == 4
+    assert restored.final_objective == 0.25
+    assert restored.maximum_score_disagreement == 1.0e-6
+    assert restored.initial_snapshot_sha256 == "4" * 64
     assert restored.sampler_state == sampler
     assert torch.equal(torch.random.get_rng_state(), expected_rng)
     for name, tensor in model.state_dict().items():
         torch.testing.assert_close(tensor, expected_model[name])
+
+    with pytest.raises(ValueError, match="run authority"):
+        _MODULE.restore_control_checkpoint(
+            path,
+            model=model,
+            optimizer=optimizer,
+            config=config,
+            expected_seed=17,
+            expected_run_authority=replace(run_authority, manifest_sha256="5" * 64),
+        )
+
+
+def test_control_seed_lifecycle_evaluates_only_initial_and_final_and_checkpoints_epochs(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    bands = _MODULE.load_control_examples(loader=lambda **_kwargs: _control_examples())
+    events: list[tuple[str, int]] = []
+
+    class FakeTower(torch.nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.scale = torch.nn.Parameter(torch.ones(()))
+
+        def forward(self, pixels: torch.Tensor) -> torch.Tensor:
+            return torch.ones(pixels.shape[0], 1152) * self.scale
+
+    monkeypatch.setattr(
+        _MODULE,
+        "load_siglip_control_components",
+        lambda **_kwargs: (FakeTower(), object()),
+    )
+
+    def fake_embed(*, examples: tuple[ImageExample, ...], **_kwargs: object) -> Any:
+        events.append(("embed", min(example.label for example in examples)))
+        labels = torch.tensor([example.label for example in examples])
+        angles = labels.float() * 0.03125
+        embeddings = torch.stack((torch.cos(angles), torch.sin(angles)), dim=1)
+        return embeddings, embeddings, labels
+
+    def fake_train(*, epoch: int, sampler_state: Any, **_kwargs: object) -> Any:
+        events.append(("train", epoch))
+        return _MODULE.EpochTrainingEvidence(
+            epoch=epoch,
+            optimizer_steps=1,
+            losses=(1.0 / (epoch + 1),),
+            maximum_score_disagreement=0.0,
+            sampler_state=sampler_state,
+        )
+
+    def fake_publish(*, seed: int, epoch: int, directory: Path, **_kwargs: object) -> Any:
+        events.append(("checkpoint", epoch))
+        return _MODULE.CheckpointAuthority(
+            seed=seed,
+            epoch=epoch,
+            path=directory / f"epoch-{epoch}.pt",
+            receipt_path=directory / f"epoch-{epoch}.json",
+            sha256="0" * 64,
+            bytes=1,
+        )
+
+    monkeypatch.setattr(_MODULE, "embed_control_examples", fake_embed)
+    monkeypatch.setattr(_MODULE, "train_control_epoch", fake_train)
+    monkeypatch.setattr(_MODULE, "publish_epoch_checkpoint", fake_publish)
+    monkeypatch.setattr(_MODULE, "latest_authenticated_checkpoint", lambda *_args, **_kwargs: None)
+
+    result = _MODULE.run_control_seed(
+        config=SiglipProxyControlConfig(),
+        seed=17,
+        bands=bands,
+        checkpoint_directory=tmp_path,
+        maximum_checkpoint_bytes=1_000_000,
+        microbatch_size=30,
+        evaluation_batch_size=64,
+        query_block=64,
+        device=torch.device("cpu"),
+        smoke_receipt=_MODULE.SmokeReceipt(
+            observations=(_passing_smoke_observation(30),),
+            selected_microbatch_size=30,
+            projected_seed_seconds=1.0,
+        ),
+        run_authority=replace(
+            _run_authority(),
+            manifest_sha256=_MODULE.control_manifest_sha256(bands.ordered_manifest),
+        ),
+    )
+
+    assert events[:3] == [("embed", 0), ("embed", 49), ("embed", 82)]
+    assert events[-3:] == [("embed", 0), ("embed", 49), ("embed", 82)]
+    assert [value for kind, value in events if kind == "train"] == list(range(60))
+    assert [value for kind, value in events if kind == "checkpoint"] == list(range(1, 61))
+    assert sum(kind == "embed" for kind, _ in events) == 6
+    assert result.optimizer_steps == 60
+    assert result.final_checkpoint.epoch == 60
+    assert result.seed_evidence.seed == 17
