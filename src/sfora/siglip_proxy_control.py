@@ -6,8 +6,11 @@ from dataclasses import dataclass
 from typing import Any, cast
 
 import torch
+from torch import nn
+from torch.nn import functional as F
 
 from sfora.substrate_screen import SUBSTRATE_F0_CLASSES
+from sfora.token_set_proxy_anchor import proxy_anchor_loss
 from sfora.token_set_screen import F1_TRAIN_CLASSES, F1_VALIDATION_CLASSES
 
 _SMOKE_MICROBATCH_LADDER = (120, 60, 40, 30, 24, 20, 15, 12, 10, 8, 6, 5, 4, 3, 2, 1)
@@ -105,6 +108,160 @@ class ControlSplit:
     optimization_examples: int
     clean_validation_examples: int
     burned_diagnostic_examples: int
+
+
+class PooledProxyAnchorModel(nn.Module):
+    """A vision tower, bias-free pooled projection, and normalized class proxies."""
+
+    def __init__(
+        self,
+        *,
+        tower: nn.Module,
+        input_dimensions: int,
+        embedding_dimensions: int,
+        class_count: int,
+    ) -> None:
+        super().__init__()
+        if type(input_dimensions) is not int or input_dimensions < 1:
+            raise ValueError("input_dimensions must be a positive concrete integer")
+        if type(embedding_dimensions) is not int or embedding_dimensions < 1:
+            raise ValueError("embedding_dimensions must be a positive concrete integer")
+        if type(class_count) is not int or class_count < 2:
+            raise ValueError("class_count must be a concrete integer of at least two")
+        self.tower = tower
+        self.projection = nn.Linear(input_dimensions, embedding_dimensions, bias=False)
+        self.proxies = nn.Parameter(torch.empty(class_count, embedding_dimensions))
+        nn.init.xavier_uniform_(self.projection.weight)
+        nn.init.normal_(self.proxies, std=0.01)
+
+    @property
+    def class_count(self) -> int:
+        """Return the number of trainable class proxies."""
+
+        return int(self.proxies.shape[0])
+
+    def encode(self, inputs: torch.Tensor) -> torch.Tensor:
+        """Produce the registered unit-normalized fp32 pooled descriptor."""
+
+        pooled = self.tower(inputs)
+        if pooled.ndim != 2 or pooled.shape[1] != self.projection.in_features:
+            raise ValueError("tower output differs from the registered pooled shape")
+        projected = self.projection(pooled).float()
+        if not bool(torch.isfinite(projected).all()):
+            raise ValueError("projected descriptors must be finite")
+        if bool((torch.linalg.vector_norm(projected, dim=1) <= 0).any()):
+            raise ValueError("projected descriptors must have nonzero norm")
+        return F.normalize(projected, dim=1)
+
+    def class_scores(self, inputs: torch.Tensor) -> torch.Tensor:
+        """Return fp32 cosine scores against every normalized proxy."""
+
+        embeddings = self.encode(inputs)
+        proxies = self.proxies.float()
+        if not bool(torch.isfinite(proxies).all()):
+            raise ValueError("class proxies must be finite")
+        if bool((torch.linalg.vector_norm(proxies, dim=1) <= 0).any()):
+            raise ValueError("class proxies must have nonzero norm")
+        return embeddings @ F.normalize(proxies, dim=1).T
+
+
+@dataclass(frozen=True)
+class ReplayBackwardEvidence:
+    """Exact full-batch score cotangents and replay-consistency evidence."""
+
+    loss: torch.Tensor
+    scores: torch.Tensor
+    score_gradients: torch.Tensor
+    maximum_score_disagreement: float
+
+
+def _validate_replay_module(model: PooledProxyAnchorModel) -> None:
+    for module in model.modules():
+        if isinstance(module, nn.modules.batchnorm._BatchNorm) and module.training:
+            raise ValueError("recomputed replay refuses training batch normalization")
+        if isinstance(module, nn.Dropout) and module.training and module.p > 0.0:
+            raise ValueError("recomputed replay refuses active dropout")
+        for attribute in ("dropout", "attention_dropout", "drop_path"):
+            value = getattr(module, attribute, 0.0)
+            if isinstance(value, float) and value != 0.0:
+                raise ValueError(f"recomputed replay refuses nonzero {attribute}")
+
+
+def recomputed_proxy_anchor_backward(
+    model: PooledProxyAnchorModel,
+    inputs: torch.Tensor,
+    labels: torch.Tensor,
+    *,
+    microbatch_size: int,
+    alpha: float,
+    delta: float,
+    score_tolerance: float,
+) -> ReplayBackwardEvidence:
+    """Backpropagate one exact logical-batch Proxy Anchor score cotangent by replay."""
+
+    if not isinstance(inputs, torch.Tensor) or not inputs.is_floating_point() or inputs.ndim < 2:
+        raise ValueError("logical-batch inputs must be a floating tensor")
+    batch_size = int(inputs.shape[0])
+    if batch_size < 1 or labels.shape != (batch_size,):
+        raise ValueError("logical-batch inputs and labels are misaligned")
+    if labels.dtype not in (torch.int32, torch.int64):
+        raise ValueError("logical-batch labels must use an integer dtype")
+    if bool((labels < 0).any()) or bool((labels >= model.class_count).any()):
+        raise ValueError("logical-batch labels exceed the proxy classes")
+    if (
+        type(microbatch_size) is not int
+        or microbatch_size < 1
+        or microbatch_size > batch_size
+        or batch_size % microbatch_size != 0
+    ):
+        raise ValueError("microbatch size must be a positive divisor of the logical batch")
+    if type(score_tolerance) is not float or score_tolerance < 0.0:
+        raise ValueError("score tolerance must be a nonnegative concrete float")
+    if any(parameter.grad is not None for parameter in model.parameters()):
+        raise ValueError("recomputed replay requires cleared parameter gradients")
+    if not bool(torch.isfinite(inputs).all()):
+        raise ValueError("logical-batch inputs must be finite")
+    _validate_replay_module(model)
+
+    score_chunks: list[torch.Tensor] = []
+    with torch.no_grad():
+        for start in range(0, batch_size, microbatch_size):
+            score_chunks.append(model.class_scores(inputs[start : start + microbatch_size]))
+    scores = torch.cat(score_chunks, dim=0)
+    if not bool(torch.isfinite(scores).all()):
+        raise ValueError("logical-batch scores must be finite")
+    score_leaf = scores.detach().requires_grad_(True)
+    loss = proxy_anchor_loss(score_leaf, labels, alpha=alpha, delta=delta)
+    (score_gradients,) = torch.autograd.grad(loss, score_leaf)
+    if not bool(torch.isfinite(loss)) or not bool(torch.isfinite(score_gradients).all()):
+        raise ValueError("Proxy Anchor loss and score gradients must be finite")
+
+    maximum_disagreement = 0.0
+    for start in range(0, batch_size, microbatch_size):
+        stop = start + microbatch_size
+        replay_scores = model.class_scores(inputs[start:stop])
+        disagreement = float((replay_scores.detach() - scores[start:stop]).abs().max())
+        maximum_disagreement = max(maximum_disagreement, disagreement)
+        if disagreement > score_tolerance:
+            raise RuntimeError("recomputed score disagreement exceeds the registered tolerance")
+        torch.autograd.backward(replay_scores, score_gradients[start:stop])
+
+    tower_gradient_norm = 0.0
+    for parameter in model.tower.parameters():
+        if not parameter.requires_grad:
+            continue
+        if parameter.grad is None or not bool(torch.isfinite(parameter.grad).all()):
+            raise RuntimeError("every trainable tower parameter must receive a finite gradient")
+        tower_gradient_norm += float(torch.sum(parameter.grad.detach().float().square()))
+    if tower_gradient_norm <= 0.0:
+        raise RuntimeError("aggregate tower gradient norm must be positive")
+
+    return ReplayBackwardEvidence(
+        loss=loss.detach(),
+        scores=scores.detach(),
+        score_gradients=score_gradients.detach(),
+        maximum_score_disagreement=maximum_disagreement,
+    )
 
 
 def _validate_labels(labels: Any, *, role: str) -> torch.Tensor:
