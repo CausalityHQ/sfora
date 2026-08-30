@@ -1,6 +1,6 @@
 # Token-Set Proxy Anchor: preregistered SFORA method search
 
-Status: **F0 implementation in progress; Cars test split remains fenced.**
+Status: **Rejected at F0; F1/F2 were not run and the Cars test split remained fenced.**
 
 ## Target and evidence boundary
 
@@ -112,6 +112,25 @@ reference rather than silently claiming a fused training path.
   hybrid.
 - Pass gates: pooled R@1 >= 82%; pure set R@1 >= pooled - 1 point; hybrid R@1
   >= pooled. Failure rejects TSPA before training.
+
+#### F0 result (2026-08-30)
+
+The exact source revision
+`240da34be501866cae3ac71e60eefa2d86464113` ran on the DGX after the pinned
+Cars196 dataset and SigLIP model snapshots were authenticated into the offline
+cache. The canonical receipt has SHA-256
+`34ef6dc094f9b52dcb2aa0d77222ab5d1e131bd9a26271a3e988c65d7049225c`.
+It evaluated 1,345 images from the 16 registered train-only classes and reported:
+
+- pooled cosine R@1: `0.9278810408921933`;
+- pure symmetric token MaxSim R@1: `0.8550185873605948`;
+- fixed-weight hybrid R@1: `0.9226765799256506`.
+
+Pure token retrieval lost `7.2862` R@1 points and the hybrid lost `0.5204`
+point relative to pooling. The pure-set and hybrid gates both failed. This is
+a scientific rejection of TSPA's frozen local-evidence premise, not an
+infrastructure failure. Per the preregistration, no TSPA head training, F1
+mechanism screen, or F2 Cars test evaluation is permitted.
 
 ### F1: mechanism screen
 

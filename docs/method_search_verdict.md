@@ -10008,3 +10008,39 @@ source, data flow, or proxy-update decision point.  Theoretical added work is
 obvious state-space repair is an occupied proxy-calibration family.  A future
 candidate must exploit a different measured object rather than rename the
 centroid estimator.
+
+## Pass206 — Token-Set Proxy Anchor: DEAD at F0
+
+Token-Set Proxy Anchor tested whether the pinned SigLIP attention-token set
+contained fine-grained Cars evidence that global pooling discarded. The
+preregistered, train-only F0 used classes 82--97, 1,345 images, 32 attention
+tokens, exact symmetric MaxSim, and a fixed 0.25 pooled/set hybrid. The source
+revision was `240da34be501866cae3ac71e60eefa2d86464113`; the canonical receipt
+SHA-256 is
+`34ef6dc094f9b52dcb2aa0d77222ab5d1e131bd9a26271a3e988c65d7049225c`.
+
+Pooled cosine reached `0.9278810409` R@1. Pure token MaxSim reached only
+`0.8550185874` (−7.2862 points), and the fixed hybrid reached `0.9226765799`
+(−0.5204 point). Both registered token gates failed. F1 head training and F2
+Cars test evaluation were not run.
+
+**Mechanism lesson:** localized tokens are not automatically useful retrieval
+evidence. Under the exact pinned attention selection and permutation-invariant
+MaxSim reader, their cross-image maxima are noise-dominated and even a small
+residual weight damages a strong pooled descriptor. This rejects TSPA's reader
+and proxy-training premise, not all training-time uses of spatial evidence.
+
+## Pass207 — Frozen substrate headroom screen: READY at F0
+
+Independent review rejected the proposed same-SigLIP 224→384 screen before
+execution: it was a FixRes tolerance experiment that confounded pixel evidence,
+token count, and interpolated positional embeddings, rather than the requested
+substrate test. No resolution result was produced.
+
+The replacement F0 is the first cell of a frozen-substrate ladder. It evaluates
+the exact pinned `facebook/dinov2-large` final-layer CLS descriptor on the
+already-burned Cars train classes 82--97 using fp32 inference and exact
+leave-one-out cosine R@1. The only scientific gate is at least 1,265/1,345
+correct (0.94). This claim-ineligible screen decides whether the frozen
+representation has enough headroom to justify the HFRO method screen; it cannot
+establish a Cars196 test result or a final method claim.
