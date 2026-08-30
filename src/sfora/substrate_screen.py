@@ -19,6 +19,24 @@ class SubstrateScreenMetrics:
     recall_at_1: float
 
 
+@dataclass(frozen=True)
+class SubstrateRetrievalError:
+    """One exact leave-one-out nearest-neighbour classification error."""
+
+    query_position: int
+    nearest_position: int
+    query_label: int
+    nearest_label: int
+
+
+@dataclass(frozen=True)
+class SubstrateScreenEvidence:
+    """Metrics plus ordered query-level errors from the same score pass."""
+
+    metrics: SubstrateScreenMetrics
+    errors: tuple[SubstrateRetrievalError, ...]
+
+
 def validate_substrate_holdout(*, split: str, labels: torch.Tensor) -> None:
     """Require the exact burned Cars train-class band used for substrate selection."""
 
@@ -41,6 +59,21 @@ def score_frozen_substrate(
 ) -> SubstrateScreenMetrics:
     """Compute exact fp32 leave-one-out cosine Recall@1 with lowest-index ties."""
 
+    return score_frozen_substrate_evidence(
+        embeddings,
+        labels,
+        query_block=query_block,
+    ).metrics
+
+
+def score_frozen_substrate_evidence(
+    embeddings: torch.Tensor,
+    labels: torch.Tensor,
+    *,
+    query_block: int,
+) -> SubstrateScreenEvidence:
+    """Compute metrics and preserve every incorrect nearest-neighbour identity."""
+
     if query_block < 1:
         raise ValueError("query_block must be positive")
     if embeddings.ndim != 2 or labels.shape != (embeddings.shape[0],):
@@ -55,16 +88,35 @@ def score_frozen_substrate(
         raise ValueError("incoming descriptors must have unit norm")
     normalized = F.normalize(embeddings, dim=-1)
     count = int(labels.numel())
-    correct = 0
+    labels_cpu = labels.detach().cpu()
+    errors: list[SubstrateRetrievalError] = []
     for start in range(0, count, query_block):
         stop = min(start + query_block, count)
         scores = normalized[start:stop] @ normalized.T
         rows = torch.arange(stop - start, device=scores.device)
         scores[rows, torch.arange(start, stop, device=scores.device)] = -torch.inf
-        nearest = scores.argmax(dim=1)
-        correct += int((labels[nearest] == labels[start:stop]).sum())
-    return SubstrateScreenMetrics(
-        correct=correct,
-        queries=count,
-        recall_at_1=correct / count,
+        nearest_cpu = scores.argmax(dim=1).detach().cpu().tolist()
+        for offset, nearest_position in enumerate(nearest_cpu):
+            query_position = start + offset
+            if nearest_position == query_position:
+                raise RuntimeError("leave-one-out scoring selected the query itself")
+            query_label = int(labels_cpu[query_position])
+            nearest_label = int(labels_cpu[nearest_position])
+            if query_label != nearest_label:
+                errors.append(
+                    SubstrateRetrievalError(
+                        query_position=query_position,
+                        nearest_position=int(nearest_position),
+                        query_label=query_label,
+                        nearest_label=nearest_label,
+                    )
+                )
+    correct = count - len(errors)
+    return SubstrateScreenEvidence(
+        metrics=SubstrateScreenMetrics(
+            correct=correct,
+            queries=count,
+            recall_at_1=correct / count,
+        ),
+        errors=tuple(errors),
     )

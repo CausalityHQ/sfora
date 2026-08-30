@@ -3,7 +3,12 @@ from __future__ import annotations
 import pytest
 import torch
 
-from sfora.substrate_screen import score_frozen_substrate, validate_substrate_holdout
+from sfora.substrate_screen import (
+    SubstrateRetrievalError,
+    score_frozen_substrate,
+    score_frozen_substrate_evidence,
+    validate_substrate_holdout,
+)
 
 
 def test_frozen_substrate_scoring_is_exact_leave_one_out() -> None:
@@ -42,3 +47,19 @@ def test_holdout_rejects_any_nonregistered_surface() -> None:
         validate_substrate_holdout(split="test", labels=labels)
     with pytest.raises(ValueError, match="exactly Cars train classes"):
         validate_substrate_holdout(split="train", labels=labels[:-2])
+
+
+def test_error_evidence_preserves_exact_lowest_index_neighbours() -> None:
+    embeddings = torch.tensor(
+        [[1.0, 0.0], [0.0, 1.0], [0.0, 1.0], [-1.0, 0.0]]
+    )
+    labels = torch.tensor([82, 83, 84, 85])
+    evidence = score_frozen_substrate_evidence(embeddings, labels, query_block=3)
+    assert evidence.metrics.correct == 0
+    assert evidence.metrics.queries == 4
+    assert evidence.errors == (
+        SubstrateRetrievalError(0, 1, 82, 83),
+        SubstrateRetrievalError(1, 2, 83, 84),
+        SubstrateRetrievalError(2, 1, 84, 83),
+        SubstrateRetrievalError(3, 1, 85, 83),
+    )
