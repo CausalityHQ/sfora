@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 import sys
+from dataclasses import replace
 from pathlib import Path
 from typing import Any, cast
 
@@ -143,3 +144,64 @@ def test_optimizer_groups_cover_every_parameter_exactly_once() -> None:
 def test_canonical_bytes_rejects_type_and_value_drift(payload: dict[str, Any]) -> None:
     with pytest.raises((TypeError, ValueError)):
         _MODULE._canonical_bytes(payload)
+
+
+def _passing_smoke_observation(microbatch_size: int) -> Any:
+    return _MODULE.SmokeObservation(
+        microbatch_size=microbatch_size,
+        steps_completed=3,
+        peak_process_rss_bytes=8 * 1024**3,
+        peak_cuda_allocated_bytes=16 * 1024**3,
+        peak_cuda_reserved_bytes=20 * 1024**3,
+        memory_psi_growth=0.0,
+        swap_growth_bytes=0,
+        examples_per_second=10.0,
+        final_loss=2.5,
+        complete_tower_gradient_coverage=True,
+        maximum_score_disagreement=1.0e-6,
+    )
+
+
+def test_memory_smoke_selects_first_rung_passing_every_registered_gate() -> None:
+    calls: list[int] = []
+
+    def run_rung(microbatch_size: int) -> Any:
+        calls.append(microbatch_size)
+        observation = _passing_smoke_observation(microbatch_size)
+        if microbatch_size == 120:
+            return replace(
+                observation,
+                peak_process_rss_bytes=60 * 1024**3,
+                peak_cuda_reserved_bytes=40 * 1024**3,
+            )
+        if microbatch_size == 60:
+            return replace(observation, maximum_score_disagreement=3.0e-5)
+        if microbatch_size == 40:
+            return replace(observation, examples_per_second=0.01)
+        return observation
+
+    receipt = _MODULE.run_memory_smoke(
+        config=SiglipProxyControlConfig(),
+        steps_per_epoch=2,
+        run_rung=run_rung,
+    )
+
+    assert calls == [120, 60, 40, 30]
+    assert receipt.selected_microbatch_size == 30
+    assert tuple(row.microbatch_size for row in receipt.observations) == (120, 60, 40, 30)
+    assert receipt.projected_seed_seconds == pytest.approx(60 * 2 * 120 / 10.0)
+
+
+def test_memory_smoke_fails_closed_when_no_rung_passes() -> None:
+    def run_rung(microbatch_size: int) -> Any:
+        return replace(
+            _passing_smoke_observation(microbatch_size),
+            complete_tower_gradient_coverage=False,
+        )
+
+    with pytest.raises(RuntimeError, match="no smoke microbatch"):
+        _MODULE.run_memory_smoke(
+            config=SiglipProxyControlConfig(),
+            steps_per_epoch=2,
+            run_rung=run_rung,
+        )

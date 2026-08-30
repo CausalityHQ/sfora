@@ -7,6 +7,7 @@ import hashlib
 import json
 import math
 import os
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
@@ -104,6 +105,123 @@ class SamplerState:
     @classmethod
     def initial(cls) -> SamplerState:
         return cls(cycles=(0,) * 49, positions=(0,) * 49)
+
+
+@dataclass(frozen=True)
+class SmokeObservation:
+    """One isolated three-step smoke-rung observation."""
+
+    microbatch_size: int
+    steps_completed: int
+    peak_process_rss_bytes: int
+    peak_cuda_allocated_bytes: int
+    peak_cuda_reserved_bytes: int
+    memory_psi_growth: float
+    swap_growth_bytes: int
+    examples_per_second: float
+    final_loss: float
+    complete_tower_gradient_coverage: bool
+    maximum_score_disagreement: float
+
+
+@dataclass(frozen=True)
+class SmokeReceipt:
+    """Ordered rung evidence and the first passing microbatch."""
+
+    observations: tuple[SmokeObservation, ...]
+    selected_microbatch_size: int
+    projected_seed_seconds: float
+
+
+def _smoke_projection_seconds(
+    observation: SmokeObservation,
+    *,
+    config: SiglipProxyControlConfig,
+    steps_per_epoch: int,
+) -> float:
+    if observation.examples_per_second <= 0.0 or not math.isfinite(
+        observation.examples_per_second
+    ):
+        return math.inf
+    examples = config.train_epochs * steps_per_epoch * config.logical_batch_size
+    return examples / observation.examples_per_second
+
+
+def _smoke_observation_passes(
+    observation: SmokeObservation,
+    *,
+    config: SiglipProxyControlConfig,
+    steps_per_epoch: int,
+) -> bool:
+    integer_values = (
+        observation.microbatch_size,
+        observation.steps_completed,
+        observation.peak_process_rss_bytes,
+        observation.peak_cuda_allocated_bytes,
+        observation.peak_cuda_reserved_bytes,
+        observation.swap_growth_bytes,
+    )
+    if any(type(value) is not int or value < 0 for value in integer_values):
+        return False
+    float_values = (
+        observation.memory_psi_growth,
+        observation.examples_per_second,
+        observation.final_loss,
+        observation.maximum_score_disagreement,
+    )
+    if any(type(value) is not float or not math.isfinite(value) for value in float_values):
+        return False
+    combined_memory = (
+        observation.peak_process_rss_bytes + observation.peak_cuda_reserved_bytes
+    )
+    projected_seconds = _smoke_projection_seconds(
+        observation,
+        config=config,
+        steps_per_epoch=steps_per_epoch,
+    )
+    return (
+        observation.steps_completed == 3
+        and combined_memory < config.combined_memory_limit_bytes
+        and observation.memory_psi_growth <= 0.0
+        and observation.swap_growth_bytes <= 0
+        and observation.examples_per_second > 0.0
+        and projected_seconds <= config.maximum_projected_seed_hours * 3600.0
+        and observation.complete_tower_gradient_coverage is True
+        and observation.maximum_score_disagreement <= config.replay_score_tolerance
+    )
+
+
+def run_memory_smoke(
+    *,
+    config: SiglipProxyControlConfig,
+    steps_per_epoch: int,
+    run_rung: Callable[[int], SmokeObservation],
+) -> SmokeReceipt:
+    """Select the first isolated rung satisfying every preregistered smoke gate."""
+
+    if type(steps_per_epoch) is not int or steps_per_epoch < 1:
+        raise ValueError("steps_per_epoch must be a positive concrete integer")
+    observations: list[SmokeObservation] = []
+    for microbatch_size in config.smoke_microbatch_ladder:
+        observation = run_rung(microbatch_size)
+        if observation.microbatch_size != microbatch_size:
+            raise ValueError("smoke observation microbatch differs from the requested rung")
+        observations.append(observation)
+        if _smoke_observation_passes(
+            observation,
+            config=config,
+            steps_per_epoch=steps_per_epoch,
+        ):
+            return SmokeReceipt(
+                observations=tuple(observations),
+                selected_microbatch_size=microbatch_size,
+                projected_seed_seconds=_smoke_projection_seconds(
+                    observation,
+                    config=config,
+                    steps_per_epoch=steps_per_epoch,
+                ),
+            )
+    raise RuntimeError("no smoke microbatch passed every registered gate")
 
 
 def _permutation(values: list[int], *, seed: int) -> list[int]:
