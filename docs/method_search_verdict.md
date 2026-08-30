@@ -10067,7 +10067,7 @@ HFRO/frozen-head training is authorized. The useful causal result is that the
 97.4 target requires changing the trainable representation, not another loss
 or head over the tested fixed descriptors.
 
-## Pass208 — Correspondence-Gated Token-Maxima: READY at F-1 only
+## Pass208 — Correspondence-Gated Token-Maxima: DEAD at Gate 2
 
 Deep cross-provider synthesis ranked CGTM as the best surviving trainable-
 backbone direction. It acts directly on Pass206's measured failure object:
@@ -10076,10 +10076,16 @@ only cyclically consistent same-class token correspondences and the student
 trains admitted maxima above unmatched maxima. Deployment remains a single
 pooled descriptor.
 
-No implementation or training is authorized yet. The zero-GPU F-1 taxonomy of
-the final substrate cell's 103 errors must first show at least 50 same-make/twin
-errors; viewpoint plurality redirects to a pair-comparator, while at least 40
-mislabel/indeterminate errors closes the 97.4 target as unfunded. A Gate-2
-literature dossier then has to distinguish CGTM's train-up-versus-suppress
-decision from occupied dense/token alignment methods. Full preregistration:
-`docs/cgtm_method_2026-08-30.md`.
+The Gate-2 review rejected the candidate before implementation. DIML and CFCD
+already occupy cross-image local matching as supervision for a compact/global
+retrieval descriptor. Probabilistic Warp Consistency occupies cross-view-stable
+same-category pseudo-correspondence, while SuperGlue/LoFTR-style matching
+objectives already raise admitted entries relative to competing row/column
+entries. Their conjunction is an application of established correspondence
+estimation, not a new supervision object.
+
+CGTM also recapitulated two local rejections: Candidate 6's detached
+mutual-nearest same-class patch positives and Pass127's cross-instance cycle
+gate. The F-1 taxonomy remains useful only to choose a genuinely different
+hypothesis; it cannot revive CGTM. No CGTM preflight, code, or GPU training is
+authorized. Full rejection: `docs/cgtm_gate2_dossier_2026-08-30.md`.
