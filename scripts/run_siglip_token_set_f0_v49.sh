@@ -5,30 +5,61 @@ repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$repo"
 
 source_revision=${SOURCE_REVISION:?SOURCE_REVISION must be the deployed 40-character commit}
+source_manifest=${SOURCE_MANIFEST:?SOURCE_MANIFEST must be the deployed SHA-256 manifest}
+uv_environment=${UV_PROJECT_ENVIRONMENT:?UV_PROJECT_ENVIRONMENT must be outside the deployed tree}
 output=${OUTPUT:-reports/generated/cars-token-set-f0-2026-08-30.json}
 model_revision=7fd15f0689c79d79e38b1c2e2e2370a7bf2761ed
 partial=$(dirname -- "$output")/.$(basename -- "$output").partial
 
 [[ $source_revision =~ ^[0-9a-f]{40}$ ]]
+[[ -f $source_manifest ]]
+[[ $uv_environment = /* && $uv_environment != "$repo" && $uv_environment != "$repo/"* ]]
 [[ ! -e $output ]]
 [[ ! -e $partial ]]
 
-authority_paths=(
-  scripts/probe_siglip_token_set.py
-  src/sfora/data.py
-  src/sfora/kernels/__init__.py
-  src/sfora/kernels/set_maxsim.py
-  src/sfora/token_set_proxy_anchor.py
-  uv.lock
+/usr/bin/python3 -I -S - "$source_manifest" "$source_revision" <<'PY'
+import pathlib
+import re
+import sys
+
+manifest_path = pathlib.Path(sys.argv[1]).resolve()
+manifest = manifest_path.read_text().splitlines()
+source_revision = sys.argv[2]
+required = {
+    "SOURCE_REVISION",
+    "scripts/probe_siglip_token_set.py",
+    "src/sfora/data.py",
+    "src/sfora/kernels/__init__.py",
+    "src/sfora/kernels/set_maxsim.py",
+    "src/sfora/token_set_proxy_anchor.py",
+    "uv.lock",
+}
+paths = []
+for line in manifest:
+    if re.fullmatch(r"[0-9a-f]{64}  [^\n]+", line) is None:
+        raise SystemExit("source manifest has an invalid line")
+    path = line[66:]
+    candidate = pathlib.PurePosixPath(path)
+    if candidate.is_absolute() or ".." in candidate.parts or str(candidate) != path:
+        raise SystemExit("source manifest path is not normalized and relative")
+    paths.append(path)
+if paths != sorted(set(paths)) or not required.issubset(paths):
+    raise SystemExit("source manifest paths differ or omit F0 authority")
+if pathlib.Path("SOURCE_REVISION").read_text() != f"{source_revision}\n":
+    raise SystemExit("source revision differs from the manifest-bound revision")
+
+observed = sorted(
+    str(path.relative_to(pathlib.Path.cwd()))
+    for path in pathlib.Path.cwd().rglob("*")
+    if (path.is_file() or path.is_symlink()) and path.absolute() != manifest_path
 )
-git ls-files --error-unmatch -- "${authority_paths[@]}" >/dev/null
-[[ $(git rev-parse HEAD) == "$source_revision" ]]
-[[ -z $(git status --porcelain) ]]
+if observed != paths:
+    raise SystemExit("deployed source tree contains unmanifested or missing files")
+PY
+sha256sum --check --strict "$source_manifest" >/dev/null
 
 source_tree_digest=$(
-  git ls-tree -r --full-tree "$source_revision" \
-    | sha256sum \
-    | awk '{print $1}'
+  sha256sum "$source_manifest" | awk '{print $1}'
 )
 
 uv run --offline --locked python - <<'PY'
