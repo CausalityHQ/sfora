@@ -16,11 +16,13 @@ from typing import Any, cast
 
 import torch
 from torch import nn
+from torch.nn import functional as F
 
-from sfora.data import ImageExample, load_image_retrieval_examples
+from sfora.data import ImageExample, load_image_retrieval_examples, materialize_image
 from sfora.siglip_proxy_control import (
     PooledProxyAnchorModel,
     SiglipProxyControlConfig,
+    recomputed_proxy_anchor_backward,
     validate_control_partition,
 )
 from sfora.substrate_screen import SUBSTRATE_F0_CLASSES
@@ -163,6 +165,26 @@ class ControlExampleBands:
     ordered_manifest: tuple[ImageExample, ...]
 
 
+@dataclass(frozen=True)
+class EpochTrainingEvidence:
+    """One epoch's exact optimizer and replay evidence."""
+
+    epoch: int
+    optimizer_steps: int
+    losses: tuple[float, ...]
+    maximum_score_disagreement: float
+    sampler_state: SamplerState
+
+
+@dataclass(frozen=True)
+class RestoredControlCheckpoint:
+    """Resume coordinates recovered from an authenticated checkpoint payload."""
+
+    seed: int
+    completed_epoch: int
+    sampler_state: SamplerState
+
+
 class SiglipPooledTower(nn.Module):
     """Expose only the pinned SigLIP vision pooler output."""
 
@@ -184,7 +206,137 @@ class SiglipPooledTower(nn.Module):
 
 
 _CHECKPOINT_SCHEMA = "sfora-siglip-proxy-checkpoint-v1"
+_CHECKPOINT_PAYLOAD_SCHEMA = "sfora-siglip-proxy-checkpoint-payload-v1"
 _CONTROL_SEEDS = (17, 29, 43)
+
+
+def _json_compatible(value: object) -> object:
+    if isinstance(value, tuple):
+        return [_json_compatible(item) for item in value]
+    if isinstance(value, dict):
+        return {str(key): _json_compatible(item) for key, item in value.items()}
+    return value
+
+
+def _config_sha256(config: SiglipProxyControlConfig) -> str:
+    payload = _json_compatible(vars(config))
+    if type(payload) is not dict:
+        raise TypeError("control config did not produce an object authority")
+    return hashlib.sha256(_canonical_bytes(cast(dict[str, Any], payload))).hexdigest()
+
+
+def write_control_checkpoint(
+    path: Path,
+    *,
+    model: PooledProxyAnchorModel,
+    optimizer: torch.optim.Optimizer,
+    config: SiglipProxyControlConfig,
+    seed: int,
+    completed_epoch: int,
+    sampler_state: SamplerState,
+) -> None:
+    """Write one create-new checkpoint payload for authenticated publication."""
+
+    _validate_checkpoint_coordinates(seed=seed, epoch=completed_epoch)
+    if len(sampler_state.cycles) != 49 or len(sampler_state.positions) != 49:
+        raise ValueError("checkpoint sampler state must bind all optimization classes")
+    if path.exists() or path.is_symlink():
+        raise FileExistsError(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "claim_eligible": False,
+        "completed_epoch": completed_epoch,
+        "config_sha256": _config_sha256(config),
+        "cpu_rng_state": torch.random.get_rng_state(),
+        "cuda_rng_states": tuple(torch.cuda.get_rng_state_all())
+        if torch.cuda.is_available()
+        else (),
+        "model_state": model.state_dict(),
+        "optimizer_state": optimizer.state_dict(),
+        "sampler_cycles": sampler_state.cycles,
+        "sampler_positions": sampler_state.positions,
+        "schema": _CHECKPOINT_PAYLOAD_SCHEMA,
+        "seed": seed,
+    }
+    with path.open("xb") as stream:
+        torch.save(payload, stream)
+        stream.flush()
+        os.fsync(stream.fileno())
+
+
+def restore_control_checkpoint(
+    path: Path,
+    *,
+    model: PooledProxyAnchorModel,
+    optimizer: torch.optim.Optimizer,
+    config: SiglipProxyControlConfig,
+    expected_seed: int,
+) -> RestoredControlCheckpoint:
+    """Restore only a strict same-config, same-environment checkpoint payload."""
+
+    if path.is_symlink() or not path.exists() or not stat.S_ISREG(path.lstat().st_mode):
+        raise ValueError("control checkpoint must be a regular file")
+    payload = torch.load(path, map_location="cpu", weights_only=True)
+    expected_keys = {
+        "claim_eligible",
+        "completed_epoch",
+        "config_sha256",
+        "cpu_rng_state",
+        "cuda_rng_states",
+        "model_state",
+        "optimizer_state",
+        "sampler_cycles",
+        "sampler_positions",
+        "schema",
+        "seed",
+    }
+    if type(payload) is not dict or set(payload) != expected_keys:
+        raise ValueError("control checkpoint payload schema differs")
+    seed = payload["seed"]
+    completed_epoch = payload["completed_epoch"]
+    cycles = payload["sampler_cycles"]
+    positions = payload["sampler_positions"]
+    if (
+        type(seed) is not int
+        or type(completed_epoch) is not int
+        or type(cycles) is not tuple
+        or type(positions) is not tuple
+        or payload["claim_eligible"] is not False
+        or payload["schema"] != _CHECKPOINT_PAYLOAD_SCHEMA
+        or payload["config_sha256"] != _config_sha256(config)
+    ):
+        raise ValueError("control checkpoint authority differs")
+    _validate_checkpoint_coordinates(seed=seed, epoch=completed_epoch)
+    if seed != expected_seed:
+        raise ValueError("control checkpoint seed differs")
+    if (
+        len(cycles) != 49
+        or len(positions) != 49
+        or any(type(value) is not int or value < 0 for value in cycles + positions)
+    ):
+        raise ValueError("control checkpoint sampler state differs")
+    cpu_rng_state = payload["cpu_rng_state"]
+    cuda_rng_states = payload["cuda_rng_states"]
+    if (
+        not isinstance(cpu_rng_state, torch.Tensor)
+        or cpu_rng_state.dtype != torch.uint8
+        or type(cuda_rng_states) is not tuple
+        or any(not isinstance(state, torch.Tensor) for state in cuda_rng_states)
+    ):
+        raise ValueError("control checkpoint RNG state differs")
+    if torch.cuda.is_available() != bool(cuda_rng_states):
+        raise ValueError("control checkpoint CUDA environment differs")
+    model.load_state_dict(payload["model_state"], strict=True)
+    optimizer.load_state_dict(payload["optimizer_state"])
+    torch.random.set_rng_state(cpu_rng_state)
+    if cuda_rng_states:
+        torch.cuda.set_rng_state_all(list(cuda_rng_states))
+    sampler_state = SamplerState(cycles=cycles, positions=positions)
+    return RestoredControlCheckpoint(
+        seed=seed,
+        completed_epoch=completed_epoch,
+        sampler_state=sampler_state,
+    )
 
 
 def load_control_examples(
@@ -305,6 +457,178 @@ def preprocess_control_evaluation(processor: Any, images: list[object]) -> torch
     ):
         raise ValueError("SigLIP evaluation pixels differ from the frozen input contract")
     return pixel_values.float()
+
+
+def materialize_control_training_batch(
+    *,
+    examples: tuple[ImageExample, ...],
+    positions: tuple[int, ...],
+    transform: Callable[[object], torch.Tensor],
+    materialize: Callable[[object], object] = materialize_image,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Materialize and augment every selected image exactly once in fixed order."""
+
+    if type(examples) is not tuple or not examples:
+        raise ValueError("training examples must be a nonempty concrete tuple")
+    if type(positions) is not tuple or not positions:
+        raise ValueError("training positions must be a nonempty concrete tuple")
+    if any(
+        type(position) is not int or not 0 <= position < len(examples) for position in positions
+    ):
+        raise ValueError("training positions exceed the optimization manifest")
+    if len(set(positions)) != len(positions):
+        raise ValueError("a logical batch may not repeat an image")
+    tensors: list[torch.Tensor] = []
+    labels: list[int] = []
+    expected_shape: tuple[int, ...] | None = None
+    for position in positions:
+        example = examples[position]
+        tensor = transform(materialize(example.image))
+        if (
+            not isinstance(tensor, torch.Tensor)
+            or tensor.ndim != 3
+            or not tensor.is_floating_point()
+            or not bool(torch.isfinite(tensor).all())
+        ):
+            raise ValueError("training transform must return one finite floating image tensor")
+        shape = tuple(int(dimension) for dimension in tensor.shape)
+        if expected_shape is None:
+            expected_shape = shape
+        elif shape != expected_shape:
+            raise ValueError("training transform returned inconsistent image shapes")
+        tensors.append(tensor)
+        labels.append(example.label)
+    return torch.stack(tensors), torch.tensor(labels, dtype=torch.int64)
+
+
+def embed_control_examples(
+    *,
+    model: PooledProxyAnchorModel,
+    examples: tuple[ImageExample, ...],
+    processor: Any,
+    device: torch.device,
+    batch_size: int,
+    materialize: Callable[[object], object] = materialize_image,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Embed one isolated band through raw pooler and projected descriptor paths."""
+
+    if type(examples) is not tuple or not examples:
+        raise ValueError("embedding examples must be a nonempty concrete tuple")
+    if type(batch_size) is not int or batch_size < 1:
+        raise ValueError("embedding batch size must be positive")
+    model.eval()
+    raw_batches: list[torch.Tensor] = []
+    projected_batches: list[torch.Tensor] = []
+    with torch.inference_mode():
+        for start in range(0, len(examples), batch_size):
+            batch = examples[start : start + batch_size]
+            images = [materialize(example.image) for example in batch]
+            pixels = preprocess_control_evaluation(processor, images).to(device)
+            pooled = model.tower(pixels).float()
+            if (
+                pooled.ndim != 2
+                or pooled.shape[1] != model.projection.in_features
+                or not bool(torch.isfinite(pooled).all())
+                or bool((torch.linalg.vector_norm(pooled, dim=1) <= 0).any())
+            ):
+                raise ValueError("raw SigLIP pooler descriptors differ from authority")
+            projected = model.projection(pooled).float()
+            if not bool(torch.isfinite(projected).all()) or bool(
+                (torch.linalg.vector_norm(projected, dim=1) <= 0).any()
+            ):
+                raise ValueError("projected control descriptors differ from authority")
+            raw_batches.append(F.normalize(pooled, dim=1).cpu())
+            projected_batches.append(F.normalize(projected, dim=1).cpu())
+    labels = torch.tensor([example.label for example in examples], dtype=torch.int64)
+    return torch.cat(raw_batches), torch.cat(projected_batches), labels
+
+
+def train_control_epoch(
+    *,
+    model: PooledProxyAnchorModel,
+    optimizer: torch.optim.Optimizer,
+    examples: tuple[ImageExample, ...],
+    transform: Callable[[object], torch.Tensor],
+    seed: int,
+    epoch: int,
+    steps_per_epoch: int,
+    sampler_state: SamplerState,
+    microbatch_size: int,
+    config: SiglipProxyControlConfig,
+    device: torch.device,
+    materialize: Callable[[object], object] = materialize_image,
+) -> EpochTrainingEvidence:
+    """Execute one frozen epoch using exact logical-batch score replay."""
+
+    if type(seed) is not int or seed not in config.seeds:
+        raise ValueError("training seed differs from the frozen control seeds")
+    if type(epoch) is not int or not 0 <= epoch < config.train_epochs:
+        raise ValueError("training epoch differs from the frozen epoch range")
+    if type(steps_per_epoch) is not int or steps_per_epoch < 1:
+        raise ValueError("steps per epoch must be positive")
+    example_ids = tuple(example.example_id for example in examples)
+    labels = torch.tensor([example.label for example in examples], dtype=torch.int64)
+    batches, next_sampler_state = _build_epoch_batches(
+        example_ids=example_ids,
+        labels=labels,
+        seed=seed,
+        epoch=epoch,
+        steps_per_epoch=steps_per_epoch,
+        state=sampler_state,
+    )
+    model.train()
+    losses: list[float] = []
+    maximum_disagreement = 0.0
+    for step, positions in enumerate(batches):
+        multiplier = _learning_rate_multiplier(
+            config,
+            step=epoch * steps_per_epoch + step,
+            steps_per_epoch=steps_per_epoch,
+        )
+        for group in optimizer.param_groups:
+            base_learning_rate = group.get("initial_lr")
+            if type(base_learning_rate) is not float or base_learning_rate <= 0.0:
+                raise ValueError("optimizer group lacks its frozen initial learning rate")
+            group["lr"] = base_learning_rate * multiplier
+        pixels, batch_labels = materialize_control_training_batch(
+            examples=examples,
+            positions=positions,
+            transform=transform,
+            materialize=materialize,
+        )
+        optimizer.zero_grad(set_to_none=True)
+        replay = recomputed_proxy_anchor_backward(
+            model,
+            pixels.to(device),
+            batch_labels.to(device),
+            microbatch_size=microbatch_size,
+            alpha=config.proxy_anchor_alpha,
+            delta=config.proxy_anchor_delta,
+            score_tolerance=config.replay_score_tolerance,
+        )
+        gradient_norm = torch.nn.utils.clip_grad_norm_(
+            model.parameters(),
+            config.gradient_clip_norm,
+            error_if_nonfinite=True,
+        )
+        if not bool(torch.isfinite(gradient_norm)):
+            raise RuntimeError("control gradient norm must remain finite")
+        optimizer.step()
+        loss = float(replay.loss)
+        if not math.isfinite(loss):
+            raise RuntimeError("control loss must remain finite")
+        losses.append(loss)
+        maximum_disagreement = max(
+            maximum_disagreement,
+            replay.maximum_score_disagreement,
+        )
+    return EpochTrainingEvidence(
+        epoch=epoch,
+        optimizer_steps=len(batches),
+        losses=tuple(losses),
+        maximum_score_disagreement=maximum_disagreement,
+        sampler_state=next_sampler_state,
+    )
 
 
 def _checkpoint_basename(*, seed: int, epoch: int) -> str:
@@ -678,25 +1002,32 @@ def _optimizer_groups(
     """Partition every trainable parameter once by family and decay authority."""
 
     grouped: dict[tuple[float, float], list[nn.Parameter]] = {}
+    modules = dict(model.named_modules())
     for name, parameter in model.named_parameters():
         if not parameter.requires_grad:
             continue
+        owner_name, _, parameter_name = name.rpartition(".")
+        owner = modules.get(owner_name)
+        exclude_decay = parameter_name == "bias" or isinstance(owner, nn.LayerNorm)
         if name == "proxies":
             learning_rate = config.proxy_learning_rate
             decay = 0.0
         elif name.startswith("projection."):
             learning_rate = config.projection_learning_rate
-            decay = 0.0 if name.endswith(".bias") else config.weight_decay
+            decay = 0.0 if exclude_decay else config.weight_decay
         elif name.startswith("tower."):
             learning_rate = config.tower_learning_rate
-            decay = (
-                0.0 if name.endswith(".bias") or ".norm." in name.lower() else config.weight_decay
-            )
+            decay = 0.0 if exclude_decay else config.weight_decay
         else:
             raise ValueError(f"unclassified trainable parameter: {name}")
         grouped.setdefault((learning_rate, decay), []).append(parameter)
     groups: list[dict[str, Any]] = [
-        {"params": parameters, "lr": learning_rate, "weight_decay": decay}
+        {
+            "params": parameters,
+            "lr": learning_rate,
+            "initial_lr": learning_rate,
+            "weight_decay": decay,
+        }
         for (learning_rate, decay), parameters in sorted(grouped.items())
     ]
     parameter_ids = [id(parameter) for group in groups for parameter in group["params"]]

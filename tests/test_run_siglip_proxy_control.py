@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import math
 import shutil
 import sys
 from dataclasses import replace
@@ -132,6 +133,35 @@ def test_optimizer_groups_cover_every_parameter_exactly_once() -> None:
     proxy_group = next(group for group in groups if float(group["lr"]) == 1.0e-2)
     assert float(proxy_group["weight_decay"]) == 0.0
     assert any(float(group["weight_decay"]) == 1.0e-4 for group in groups)
+
+
+def test_optimizer_decay_excludes_layer_norm_by_module_type_not_name_spelling() -> None:
+    class LayerNormSpellingTower(torch.nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.linear = torch.nn.Linear(5, 4)
+            self.layer_norm1 = torch.nn.LayerNorm(4)
+
+        def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+            return cast(torch.Tensor, self.layer_norm1(self.linear(inputs)))
+
+    tower = LayerNormSpellingTower()
+    model = PooledProxyAnchorModel(
+        tower=tower,
+        input_dimensions=4,
+        embedding_dimensions=3,
+        class_count=49,
+    )
+    groups = _MODULE._optimizer_groups(model, SiglipProxyControlConfig())
+    decay_by_parameter = {
+        id(parameter): float(group["weight_decay"])
+        for group in groups
+        for parameter in group["params"]
+    }
+
+    assert decay_by_parameter[id(tower.layer_norm1.weight)] == 0.0
+    assert decay_by_parameter[id(tower.layer_norm1.bias)] == 0.0
+    assert decay_by_parameter[id(tower.linear.weight)] == 1.0e-4
 
 
 @pytest.mark.parametrize(
@@ -389,3 +419,185 @@ def test_control_preprocessing_is_the_frozen_train_and_processor_eval_path() -> 
     assert calls == [(images, "pt")]
     assert pixels.shape == (2, 3, 384, 384)
     assert pixels.dtype == torch.float32
+
+
+def test_batch_materialization_augments_each_selected_image_exactly_once() -> None:
+    examples = tuple(
+        ImageExample(example_id=f"id-{index}", image=index, label=index % 2) for index in range(4)
+    )
+    calls: list[int] = []
+
+    def transform(image: object) -> torch.Tensor:
+        assert type(image) is int
+        calls.append(image)
+        return torch.full((3, 2, 2), float(image))
+
+    pixels, labels = _MODULE.materialize_control_training_batch(
+        examples=examples,
+        positions=(3, 1, 2),
+        transform=transform,
+        materialize=lambda image: image,
+    )
+
+    assert calls == [3, 1, 2]
+    assert pixels.shape == (3, 3, 2, 2)
+    assert pixels[:, 0, 0, 0].tolist() == [3.0, 1.0, 2.0]
+    assert labels.tolist() == [1, 1, 0]
+
+
+def test_control_embedding_reports_raw_and_projected_normalized_fp32() -> None:
+    class TinyTower(torch.nn.Module):
+        def forward(self, pixels: torch.Tensor) -> torch.Tensor:
+            return pixels[:, :2, 0, 0]
+
+    model = PooledProxyAnchorModel(
+        tower=TinyTower(),
+        input_dimensions=2,
+        embedding_dimensions=2,
+        class_count=2,
+    )
+    with torch.no_grad():
+        model.projection.weight.copy_(torch.tensor([[2.0, 0.0], [0.0, 0.5]]))
+    examples = tuple(
+        ImageExample(example_id=f"id-{index}", image=index, label=index // 2) for index in range(4)
+    )
+
+    class FakeProcessor:
+        def __call__(self, *, images: list[object], return_tensors: str) -> dict[str, object]:
+            assert return_tensors == "pt"
+            pixels = torch.zeros(len(images), 3, 384, 384)
+            for row, image in enumerate(images):
+                assert type(image) is int
+                pixels[row, 0] = float(image + 1)
+                pixels[row, 1] = 1.0
+            return {"pixel_values": pixels}
+
+    raw, projected, labels = _MODULE.embed_control_examples(
+        model=model,
+        examples=examples,
+        processor=FakeProcessor(),
+        device=torch.device("cpu"),
+        batch_size=3,
+        materialize=lambda image: image,
+    )
+
+    assert raw.dtype == projected.dtype == torch.float32
+    assert raw.shape == projected.shape == (4, 2)
+    torch.testing.assert_close(torch.linalg.vector_norm(raw, dim=1), torch.ones(4))
+    torch.testing.assert_close(torch.linalg.vector_norm(projected, dim=1), torch.ones(4))
+    assert labels.tolist() == [0, 0, 1, 1]
+    assert model.training is False
+    assert all(parameter.grad is None for parameter in model.parameters())
+
+
+def test_train_control_epoch_uses_exact_sampler_replay_schedule_and_one_step() -> None:
+    class FlatTower(torch.nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.linear = torch.nn.Linear(5, 4)
+
+        def forward(self, pixels: torch.Tensor) -> torch.Tensor:
+            return cast(torch.Tensor, self.linear(pixels.flatten(1)))
+
+    examples = tuple(
+        ImageExample(
+            example_id=f"cars-{label:02d}-{position:02d}",
+            image=torch.tensor(
+                [[[label / 49.0, position / 4.0, 0.25, 0.5, 1.0]]],
+                dtype=torch.float32,
+            ),
+            label=label,
+        )
+        for label in range(49)
+        for position in range(4)
+    )
+    torch.manual_seed(7)
+    model = PooledProxyAnchorModel(
+        tower=FlatTower(),
+        input_dimensions=4,
+        embedding_dimensions=3,
+        class_count=49,
+    )
+    config = SiglipProxyControlConfig()
+    optimizer = torch.optim.AdamW(_MODULE._optimizer_groups(model, config))
+    before = {name: parameter.detach().clone() for name, parameter in model.named_parameters()}
+
+    evidence = _MODULE.train_control_epoch(
+        model=model,
+        optimizer=optimizer,
+        examples=examples,
+        transform=lambda image: cast(torch.Tensor, image).clone(),
+        seed=17,
+        epoch=0,
+        steps_per_epoch=1,
+        sampler_state=_MODULE.SamplerState.initial(),
+        microbatch_size=30,
+        config=config,
+        device=torch.device("cpu"),
+        materialize=lambda image: image,
+    )
+
+    assert evidence.optimizer_steps == 1
+    assert len(evidence.losses) == 1
+    assert evidence.maximum_score_disagreement <= config.replay_score_tolerance
+    assert evidence.sampler_state != _MODULE.SamplerState.initial()
+    assert all(math.isfinite(loss) for loss in evidence.losses)
+    assert any(
+        not torch.equal(before[name], parameter) for name, parameter in model.named_parameters()
+    )
+    expected_multiplier = 1.0 / config.warmup_epochs
+    assert {float(group["lr"]) for group in optimizer.param_groups} == {
+        config.tower_learning_rate * expected_multiplier,
+        config.projection_learning_rate * expected_multiplier,
+        config.proxy_learning_rate * expected_multiplier,
+    }
+
+
+def test_control_checkpoint_restores_model_optimizer_sampler_and_rng(tmp_path: Path) -> None:
+    torch.manual_seed(123)
+    model = PooledProxyAnchorModel(
+        tower=_TinyTower(),
+        input_dimensions=4,
+        embedding_dimensions=3,
+        class_count=49,
+    )
+    config = SiglipProxyControlConfig()
+    optimizer = torch.optim.AdamW(_MODULE._optimizer_groups(model, config))
+    for parameter in model.parameters():
+        parameter.grad = torch.ones_like(parameter)
+    optimizer.step()
+    optimizer.zero_grad(set_to_none=True)
+    expected_model = {name: tensor.detach().clone() for name, tensor in model.state_dict().items()}
+    expected_rng = torch.random.get_rng_state().clone()
+    sampler = _MODULE.SamplerState(
+        cycles=tuple(index % 3 for index in range(49)),
+        positions=tuple(index % 4 for index in range(49)),
+    )
+    path = tmp_path / "state.pt"
+    _MODULE.write_control_checkpoint(
+        path,
+        model=model,
+        optimizer=optimizer,
+        config=config,
+        seed=17,
+        completed_epoch=4,
+        sampler_state=sampler,
+    )
+
+    with torch.no_grad():
+        for parameter in model.parameters():
+            parameter.add_(10.0)
+    torch.manual_seed(999)
+    restored = _MODULE.restore_control_checkpoint(
+        path,
+        model=model,
+        optimizer=optimizer,
+        config=config,
+        expected_seed=17,
+    )
+
+    assert restored.completed_epoch == 4
+    assert restored.sampler_state == sampler
+    assert torch.equal(torch.random.get_rng_state(), expected_rng)
+    for name, tensor in model.state_dict().items():
+        torch.testing.assert_close(tensor, expected_model[name])
