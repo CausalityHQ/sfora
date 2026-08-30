@@ -18,6 +18,7 @@ authority_paths=(
   src/sfora/data.py
   src/sfora/kernels/__init__.py
   src/sfora/kernels/set_maxsim.py
+  src/sfora/token_set_proxy_anchor.py
   uv.lock
 )
 git ls-files --error-unmatch -- "${authority_paths[@]}" >/dev/null

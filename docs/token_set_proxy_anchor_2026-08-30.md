@@ -48,7 +48,8 @@ s(x,c) = (1-lambda) <g_x, gamma_c>
 
 Proxy Anchor acts on this score with its fixed official `alpha=32` and
 `delta=0.1`. A diversity hinge penalizes token-proxy pairs whose cosine exceeds
-0.5. Mean within-class token-proxy cosine above 0.95 is a preregistered collapse:
+0.5. The diversity hinge enters the total objective with fixed coefficient 0.1.
+Mean within-class token-proxy cosine above 0.95 is a preregistered collapse:
 even a high headline then cannot support a TSPA mechanism claim.
 
 At evaluation, each image keeps one global vector and its 32-token set. The

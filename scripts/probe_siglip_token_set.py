@@ -14,33 +14,12 @@ import torch
 
 from sfora.data import _HF_DATASET_REVISIONS, load_image_retrieval_examples, materialize_image
 from sfora.kernels.set_maxsim import fused_set_maxsim
+from sfora.token_set_proxy_anchor import select_attention_tokens
 
 _MODEL_NAME = "google/siglip-base-patch16-224"
 _MODEL_REVISION = "7fd15f0689c79d79e38b1c2e2e2370a7bf2761ed"
 _DATASET_REVISION = "9abf6cf7d6dfa7b95152a0d6e791ea9435b47a40"
 _HOLDOUT_CLASSES = tuple(range(82, 98))
-
-
-def select_attention_tokens(
-    tokens: torch.Tensor,
-    attention: torch.Tensor,
-    *,
-    top_k: int,
-) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    """Select highest-attention tokens with a deterministic lowest-index tie break."""
-
-    if tokens.ndim != 3 or attention.shape != tokens.shape[:2]:
-        raise ValueError("attention must provide one score per token")
-    if not 1 <= top_k <= tokens.shape[1]:
-        raise ValueError("top_k must fit the token count")
-    if not torch.isfinite(tokens).all() or not torch.isfinite(attention).all():
-        raise ValueError("tokens and attention must be finite")
-    # Stable descending sort retains the original (lowest-index) order for ties.
-    indices = torch.argsort(attention, dim=1, descending=True, stable=True)[:, :top_k]
-    selected = torch.gather(tokens, 1, indices[:, :, None].expand(-1, -1, tokens.shape[2]))
-    selected_attention = torch.gather(attention, 1, indices)
-    weights = selected_attention / selected_attention.sum(dim=1, keepdim=True).clamp_min(1e-12)
-    return selected, weights, indices
 
 
 def validate_train_holdout(*, split: str, labels: torch.Tensor) -> None:

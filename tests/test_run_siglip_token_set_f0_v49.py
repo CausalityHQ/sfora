@@ -10,6 +10,7 @@ def test_f0_launcher_freezes_train_only_protocol_and_authority() -> None:
     assert "git ls-files --error-unmatch" in text
     assert "git status --porcelain" in text
     assert 'git ls-tree -r --full-tree "$source_revision"' in text
+    assert "src/sfora/token_set_proxy_anchor.py" in text
     assert "7fd15f0689c79d79e38b1c2e2e2370a7bf2761ed" in text
     assert "--top-k 32" in text
     assert "--set-weight 0.25" in text
