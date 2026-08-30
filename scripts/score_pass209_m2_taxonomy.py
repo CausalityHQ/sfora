@@ -3,10 +3,12 @@
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import importlib.util
 import json
 import math
+import os
 from collections import Counter
 from pathlib import Path
 from typing import Any, NamedTuple
@@ -134,6 +136,7 @@ class TaxonomyInputs(NamedTuple):
     receipt_sha256: str
     manifest_sha256: str
     manifest: dict[str, Any]
+    submissions: tuple[dict[str, Any], dict[str, Any]]
     raw_submission_sha256: tuple[str, str]
     order_sequences: tuple[tuple[int, ...], tuple[int, ...]]
     rows: tuple[AlignedRow, ...]
@@ -144,6 +147,7 @@ class AxisAgreement(NamedTuple):
 
     total: int
     matches: int
+    category_count: int
     raw_agreement: float
     kappa: float
     pabak: float
@@ -165,6 +169,23 @@ class AdjudicatedRow(NamedTuple):
     primary_account: str
     judgeable: bool
     original_accounts: tuple[str, str]
+    invoked_rule: str | None = None
+    changed_from_raw: bool = False
+
+
+class ConsensusOutcome(NamedTuple):
+    """One sealed two-rater outcome for a raw primary-account disagreement."""
+
+    primary_account: str
+    invoked_rule: str | None
+
+
+class ConsensusRecord(NamedTuple):
+    """Authenticated post-sealing consensus evidence."""
+
+    raw_sha256: str
+    value: dict[str, Any]
+    outcomes: dict[int, ConsensusOutcome]
 
 
 class BootstrapEvidence(NamedTuple):
@@ -352,6 +373,7 @@ def load_taxonomy_inputs(
     manifest_raw, manifest = _read_json_object(manifest_path)
     manifest_sha256 = hashlib.sha256(manifest_raw).hexdigest()
     submission_sha256: list[str] = []
+    submissions: list[dict[str, Any]] = []
     order_sequences: list[tuple[int, ...]] = []
     rating_maps: list[dict[int, Rating]] = []
     for rater_number, path in enumerate(rater_paths, start=1):
@@ -360,6 +382,7 @@ def load_taxonomy_inputs(
             value, raw, manifest, manifest_sha256, rater_number
         )
         submission_sha256.append(digest)
+        submissions.append(value)
         order_sequences.append(order)
         rating_maps.append(ratings)
     aligned = tuple(
@@ -374,6 +397,7 @@ def load_taxonomy_inputs(
         receipt_sha256=hashlib.sha256(receipt_raw).hexdigest(),
         manifest_sha256=manifest_sha256,
         manifest=manifest,
+        submissions=(submissions[0], submissions[1]),
         raw_submission_sha256=(submission_sha256[0], submission_sha256[1]),
         order_sequences=(order_sequences[0], order_sequences[1]),
         rows=aligned,
@@ -385,9 +409,11 @@ def _category_name(value: str | bool) -> str:
 
 
 def _axis_agreement(
-    rater_one: list[str | bool], rater_two: list[str | bool]
+    rater_one: list[str | bool],
+    rater_two: list[str | bool],
+    category_count: int,
 ) -> AxisAgreement:
-    if not rater_one or len(rater_one) != len(rater_two):
+    if not rater_one or len(rater_one) != len(rater_two) or category_count < 2:
         raise ValueError("Pass209 M2 agreement vectors differ")
     total = len(rater_one)
     matches = sum(left == right for left, right in zip(rater_one, rater_two, strict=True))
@@ -407,9 +433,10 @@ def _axis_agreement(
     return AxisAgreement(
         total=total,
         matches=matches,
+        category_count=category_count,
         raw_agreement=observed,
         kappa=kappa,
-        pabak=2.0 * observed - 1.0,
+        pabak=(category_count * observed - 1.0) / (category_count - 1.0),
         rater_prevalence=(dict(sorted(first.items())), dict(sorted(second.items()))),
     )
 
@@ -441,19 +468,99 @@ def score_agreement(inputs: TaxonomyInputs) -> AgreementEvidence:
                         image["degradation"][name]
                     )
     checklist = {
-        name: _axis_agreement(values[0], values[1])
+        name: _axis_agreement(
+            values[0],
+            values[1],
+            {
+                "viewpoint": len(_VIEWPOINTS),
+                "dominant_color": len(_COLORS),
+                "background": len(_BACKGROUNDS),
+                "badge_text": len(_BADGE_TEXT),
+            }.get(name, 2),
+        )
         for name, values in sorted(checklist_values.items())
     }
     return AgreementEvidence(
-        primary=_axis_agreement(primary_values[0], primary_values[1]),
+        primary=_axis_agreement(
+            primary_values[0], primary_values[1], len(_PRIMARY_ACCOUNTS)
+        ),
         checklist=checklist,
     )
 
 
-def adjudicate_without_override(
-    inputs: TaxonomyInputs,
+def load_consensus_record(
+    inputs: TaxonomyInputs, consensus_path: Path
+) -> ConsensusRecord:
+    """Authenticate an exact two-rater consensus record for every disagreement."""
+
+    raw, value = _read_json_object(consensus_path)
+    if raw != _canonical_json_bytes(value):
+        raise ValueError("Pass209 M2 consensus record is not canonical")
+    expected_keys = {
+        "schema",
+        "claim_eligible",
+        "error_manifest_sha256",
+        "rater_submission_sha256",
+        "rows",
+    }
+    if set(value) != expected_keys:
+        raise ValueError("Pass209 M2 consensus schema differs")
+    if (
+        value["schema"] != "sfora-pass209-m2-consensus-v1"
+        or value["claim_eligible"] is not False
+        or value["error_manifest_sha256"] != inputs.manifest_sha256
+        or value["rater_submission_sha256"] != list(inputs.raw_submission_sha256)
+    ):
+        raise ValueError("Pass209 M2 consensus binding differs")
+    disagreements = {
+        row.error_ordinal: (
+            row.ratings[0].value["primary_account"],
+            row.ratings[1].value["primary_account"],
+        )
+        for row in inputs.rows
+        if row.ratings[0].value["primary_account"]
+        != row.ratings[1].value["primary_account"]
+    }
+    rows = value["rows"]
+    if not isinstance(rows, list) or len(rows) != len(disagreements):
+        raise ValueError("Pass209 M2 consensus cardinality differs")
+    outcomes: dict[int, ConsensusOutcome] = {}
+    previous = -1
+    for row in rows:
+        if not isinstance(row, dict) or set(row) != {
+            "error_ordinal",
+            "primary_account",
+            "invoked_rule",
+        }:
+            raise ValueError("Pass209 M2 consensus row schema differs")
+        ordinal = row["error_ordinal"]
+        account = row["primary_account"]
+        invoked_rule = row["invoked_rule"]
+        if (
+            not _is_int(ordinal)
+            or ordinal <= previous
+            or ordinal not in disagreements
+            or not isinstance(account, str)
+        ):
+            raise ValueError("Pass209 M2 consensus row authority differs")
+        if account == "unresolved":
+            if invoked_rule is not None:
+                raise ValueError("Pass209 M2 unresolved consensus rule differs")
+        elif account not in disagreements[ordinal]:
+            raise ValueError("Pass209 M2 consensus cannot introduce a third label")
+        else:
+            _nonempty_string(invoked_rule, "consensus invoked rule")
+        outcomes[ordinal] = ConsensusOutcome(account, invoked_rule)
+        previous = ordinal
+    if set(outcomes) != set(disagreements):
+        raise ValueError("Pass209 M2 consensus coverage differs")
+    return ConsensusRecord(hashlib.sha256(raw).hexdigest(), value, outcomes)
+
+
+def adjudicate_with_consensus(
+    inputs: TaxonomyInputs, consensus: ConsensusRecord
 ) -> tuple[AdjudicatedRow, ...]:
-    """Keep matching accounts and mark every disagreement unresolved."""
+    """Apply matching raw labels and the sealed two-rater consensus outcomes."""
 
     outcomes = []
     for aligned in inputs.rows:
@@ -461,7 +568,17 @@ def adjudicate_without_override(
             aligned.ratings[0].value["primary_account"],
             aligned.ratings[1].value["primary_account"],
         )
-        account = accounts[0] if accounts[0] == accounts[1] else "unresolved"
+        if accounts[0] == accounts[1]:
+            account = accounts[0]
+            invoked_rule = None
+            changed = False
+        else:
+            outcome = consensus.outcomes.get(aligned.error_ordinal)
+            if outcome is None:
+                raise ValueError("Pass209 M2 consensus omits a disagreement")
+            account = outcome.primary_account
+            invoked_rule = outcome.invoked_rule
+            changed = True
         outcomes.append(
             AdjudicatedRow(
                 error_ordinal=aligned.error_ordinal,
@@ -469,6 +586,8 @@ def adjudicate_without_override(
                 primary_account=account,
                 judgeable=account not in {"cannot-judge", "unresolved"},
                 original_accounts=accounts,
+                invoked_rule=invoked_rule,
+                changed_from_raw=changed,
             )
         )
     return tuple(outcomes)
@@ -687,3 +806,258 @@ def manifest_error_tables(manifest: dict[str, Any]) -> dict[str, object]:
         "maximum_nearest_example_multiplicity": maximum,
         "gallery_pathology": maximum >= 16,
     }
+
+
+def _axis_value(evidence: AxisAgreement) -> dict[str, object]:
+    return {
+        "total": evidence.total,
+        "matches": evidence.matches,
+        "category_count": evidence.category_count,
+        "raw_agreement": evidence.raw_agreement,
+        "kappa": evidence.kappa,
+        "pabak": evidence.pabak,
+        "rater_prevalence": [
+            evidence.rater_prevalence[0],
+            evidence.rater_prevalence[1],
+        ],
+    }
+
+
+def _agreement_value(evidence: AgreementEvidence) -> dict[str, object]:
+    return {
+        "primary": _axis_value(evidence.primary),
+        "checklist": {
+            name: _axis_value(axis) for name, axis in sorted(evidence.checklist.items())
+        },
+    }
+
+
+def _bootstrap_value(evidence: BootstrapEvidence) -> dict[str, object]:
+    return {
+        "resamples": evidence.resamples,
+        "observed_share": evidence.observed_share,
+        "mean": evidence.mean,
+        "p025": evidence.p025,
+        "p10": evidence.p10,
+        "p975": evidence.p975,
+        "values_little_endian_f64_sha256": (
+            evidence.values_little_endian_f64_sha256
+        ),
+    }
+
+
+def _adjudicated_value(row: AdjudicatedRow) -> dict[str, object]:
+    return {
+        "error_ordinal": row.error_ordinal,
+        "query_label": row.query_label,
+        "primary_account": row.primary_account,
+        "judgeable": row.judgeable,
+        "original_accounts": list(row.original_accounts),
+        "invoked_rule": row.invoked_rule,
+        "changed_from_raw": row.changed_from_raw,
+    }
+
+
+def _derived_taxonomy_values(
+    inputs: TaxonomyInputs, consensus: ConsensusRecord
+) -> tuple[
+    dict[str, object],
+    list[dict[str, object]],
+    dict[str, dict[str, object]],
+    dict[str, object],
+    dict[str, object],
+    str,
+]:
+    agreement = score_agreement(inputs)
+    adjudicated = adjudicate_with_consensus(inputs, consensus)
+    bootstrap = bootstrap_primary_shares(adjudicated)
+    unjudgeable = sum(not row.judgeable for row in adjudicated)
+    eligible = taxonomy_eligibility(
+        agreement.primary.raw_agreement,
+        agreement.primary.kappa,
+        unjudgeable,
+    )
+    eligibility: dict[str, object] = {
+        "eligible": eligible,
+        "primary_kappa_minimum": 0.60,
+        "primary_raw_agreement_minimum": 0.80,
+        "maximum_cannot_judge_or_unresolved": 15,
+        "cannot_judge_or_unresolved": unjudgeable,
+    }
+    return (
+        _agreement_value(agreement),
+        [_adjudicated_value(row) for row in adjudicated],
+        {name: _bootstrap_value(value) for name, value in sorted(bootstrap.items())},
+        manifest_error_tables(inputs.manifest),
+        eligibility,
+        "pending-m3" if eligible else "F-NONE",
+    )
+
+
+def _taxonomy_receipt_value(
+    inputs: TaxonomyInputs, consensus: ConsensusRecord
+) -> dict[str, object]:
+    agreement, adjudicated, bootstrap, tables, eligibility, decision = (
+        _derived_taxonomy_values(inputs, consensus)
+    )
+    receipt: dict[str, object] = {
+        "schema": "sfora-pass209-m2-taxonomy-v1",
+        "claim_eligible": False,
+        "source": {
+            "receipt_sha256": inputs.receipt_sha256,
+            "manifest_sha256": inputs.manifest_sha256,
+            "rater_submission_sha256": list(inputs.raw_submission_sha256),
+            "consensus_sha256": consensus.raw_sha256,
+        },
+        "source_manifest": inputs.manifest,
+        "raw_submissions": list(inputs.submissions),
+        "agreement": agreement,
+        "manifest_tables": tables,
+        "eligibility": eligibility,
+        "family_decision": decision,
+    }
+    if eligibility["eligible"] is True:
+        receipt.update(
+            raw_consensus=consensus.value,
+            adjudicated_rows=adjudicated,
+            bootstrap=bootstrap,
+        )
+    return receipt
+
+
+def _canonical_json_bytes(value: dict[str, object]) -> bytes:
+    try:
+        text = json.dumps(
+            value,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+            allow_nan=False,
+        )
+    except (TypeError, ValueError) as error:
+        raise ValueError("Pass209 M2 taxonomy contains a noncanonical value") from error
+    return (text + "\n").encode()
+
+
+def taxonomy_receipt_bytes(
+    inputs: TaxonomyInputs, consensus: ConsensusRecord
+) -> bytes:
+    """Return the canonical, claim-ineligible M2 taxonomy receipt."""
+
+    return _canonical_json_bytes(_taxonomy_receipt_value(inputs, consensus))
+
+
+def validate_taxonomy_receipt_bytes(
+    raw: bytes, inputs: TaxonomyInputs, consensus: ConsensusRecord
+) -> dict[str, Any]:
+    """Independently rederive and validate a canonical taxonomy receipt."""
+
+    try:
+        value = json.loads(raw, object_pairs_hook=_object_without_duplicate_keys)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError("Pass209 M2 taxonomy receipt is not JSON") from error
+    if not isinstance(value, dict) or raw != _canonical_json_bytes(value):
+        raise ValueError("Pass209 M2 taxonomy receipt is not canonical")
+    agreement, adjudicated, bootstrap, tables, eligibility, decision = (
+        _derived_taxonomy_values(inputs, consensus)
+    )
+    expected_keys = {
+        "schema",
+        "claim_eligible",
+        "source",
+        "source_manifest",
+        "raw_submissions",
+        "agreement",
+        "manifest_tables",
+        "eligibility",
+        "family_decision",
+    }
+    if eligibility["eligible"] is True:
+        expected_keys.update({"raw_consensus", "adjudicated_rows", "bootstrap"})
+    if set(value) != expected_keys:
+        raise ValueError("Pass209 M2 taxonomy receipt schema differs")
+    if value["schema"] != "sfora-pass209-m2-taxonomy-v1" or value[
+        "claim_eligible"
+    ] is not False:
+        raise ValueError("Pass209 M2 taxonomy receipt authority differs")
+    expected_source = {
+        "receipt_sha256": inputs.receipt_sha256,
+        "manifest_sha256": inputs.manifest_sha256,
+        "rater_submission_sha256": list(inputs.raw_submission_sha256),
+        "consensus_sha256": consensus.raw_sha256,
+    }
+    if (
+        value["source"] != expected_source
+        or value["source_manifest"] != inputs.manifest
+        or value["raw_submissions"] != list(inputs.submissions)
+    ):
+        raise ValueError("Pass209 M2 taxonomy source binding differs")
+    if eligibility["eligible"] is True and value["raw_consensus"] != consensus.value:
+        raise ValueError("Pass209 M2 taxonomy consensus binding differs")
+    derived: list[tuple[str, object]] = [
+        ("agreement", agreement),
+        ("manifest_tables", tables),
+        ("eligibility", eligibility),
+        ("family_decision", decision),
+    ]
+    if eligibility["eligible"] is True:
+        derived.extend(
+            [("adjudicated_rows", adjudicated), ("bootstrap", bootstrap)]
+        )
+    for key, expected in derived:
+        if value[key] != expected:
+            raise ValueError(f"Pass209 M2 taxonomy {key} differs")
+    return value
+
+
+def publish_create_new(output: Path, raw: bytes) -> None:
+    """Atomically publish bytes without replacing any existing path."""
+
+    if output.exists():
+        raise FileExistsError(f"refusing to replace {output}")
+    partial = output.with_name(f".{output.name}.partial")
+    descriptor: int | None = None
+    owned_partial = False
+    try:
+        descriptor = os.open(partial, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+        owned_partial = True
+        with os.fdopen(descriptor, "wb", closefd=True) as stream:
+            descriptor = None
+            stream.write(raw)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.link(partial, output)
+        directory_descriptor = os.open(output.parent, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(directory_descriptor)
+        finally:
+            os.close(directory_descriptor)
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
+        if owned_partial and partial.exists():
+            partial.unlink()
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--receipt", type=Path, required=True)
+    parser.add_argument("--error-manifest", type=Path, required=True)
+    parser.add_argument("--rater-one", type=Path, required=True)
+    parser.add_argument("--rater-two", type=Path, required=True)
+    parser.add_argument("--consensus", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    arguments = parser.parse_args()
+    inputs = load_taxonomy_inputs(
+        arguments.receipt,
+        arguments.error_manifest,
+        (arguments.rater_one, arguments.rater_two),
+    )
+    consensus = load_consensus_record(inputs, arguments.consensus)
+    raw = taxonomy_receipt_bytes(inputs, consensus)
+    validate_taxonomy_receipt_bytes(raw, inputs, consensus)
+    publish_create_new(arguments.output, raw)
+
+
+if __name__ == "__main__":
+    main()

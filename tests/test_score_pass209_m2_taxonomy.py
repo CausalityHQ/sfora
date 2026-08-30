@@ -4,6 +4,8 @@ import hashlib
 import importlib.util
 import json
 import math
+import subprocess
+import sys
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
@@ -326,6 +328,29 @@ def _row_for_ordinal(submission: dict[str, Any], ordinal: int) -> dict[str, Any]
     return next(row for row in submission["rows"] if row["error_ordinal"] == ordinal)
 
 
+def _consensus_value(
+    inputs: Any, rows: list[dict[str, Any]]
+) -> dict[str, Any]:
+    return {
+        "schema": "sfora-pass209-m2-consensus-v1",
+        "claim_eligible": False,
+        "error_manifest_sha256": inputs.manifest_sha256,
+        "rater_submission_sha256": list(inputs.raw_submission_sha256),
+        "rows": rows,
+    }
+
+
+def _write_consensus(
+    tmp_path: Path,
+    inputs: Any,
+    rows: list[dict[str, Any]] | None = None,
+    name: str = "consensus.json",
+) -> tuple[Path, Any]:
+    path = tmp_path / name
+    path.write_bytes(_canonical(_consensus_value(inputs, rows or [])))
+    return path, _MODULE.load_consensus_record(inputs, path)
+
+
 def test_score_agreement_matches_hand_derived_primary_and_checklist_tables(
     tmp_path: Path,
 ) -> None:
@@ -346,7 +371,8 @@ def test_score_agreement_matches_hand_derived_primary_and_checklist_tables(
     assert evidence.primary.matches == 80
     assert evidence.primary.raw_agreement == 80 / 103
     assert evidence.primary.kappa == 0.0
-    assert evidence.primary.pabak == 2 * (80 / 103) - 1
+    assert evidence.primary.category_count == 9
+    assert evidence.primary.pabak == (9 * (80 / 103) - 1) / 8
     assert evidence.primary.rater_prevalence == (
         {"localized-cue-visible": 103},
         {"localized-cue-visible": 80, "semantic-overlap": 23},
@@ -367,11 +393,13 @@ def test_score_agreement_matches_hand_derived_primary_and_checklist_tables(
     assert evidence.checklist["viewpoint"].matches == 205
     assert evidence.checklist["viewpoint"].raw_agreement == 205 / 206
     assert evidence.checklist["viewpoint"].kappa == 0.0
-    assert evidence.checklist["viewpoint"].pabak == 2 * (205 / 206) - 1
+    assert evidence.checklist["viewpoint"].category_count == 7
+    assert evidence.checklist["viewpoint"].pabak == (7 * (205 / 206) - 1) / 6
+    assert evidence.checklist["vehicle_crop"].category_count == 2
     assert evidence.checklist["dominant_color"].kappa == 1.0
 
 
-def test_adjudication_preserves_matches_and_marks_disagreements_unresolved(
+def test_explicit_unresolved_consensus_preserves_matches_and_cannot_judge(
     tmp_path: Path,
 ) -> None:
     receipt_path, manifest_path, paths, submissions = _coherent_inputs(tmp_path)
@@ -393,7 +421,18 @@ def test_adjudication_preserves_matches_and_marks_disagreements_unresolved(
         receipt_path, manifest_path, (paths[0], paths[1])
     )
 
-    rows = _MODULE.adjudicate_without_override(inputs)
+    _, consensus = _write_consensus(
+        tmp_path,
+        inputs,
+        [
+            {
+                "error_ordinal": 0,
+                "primary_account": "unresolved",
+                "invoked_rule": None,
+            }
+        ],
+    )
+    rows = _MODULE.adjudicate_with_consensus(inputs, consensus)
 
     assert len(rows) == 103
     assert rows[0].primary_account == "unresolved"
@@ -406,6 +445,128 @@ def test_adjudication_preserves_matches_and_marks_disagreements_unresolved(
     assert rows[1].judgeable is False
     assert rows[2].primary_account == "localized-cue-visible"
     assert rows[2].judgeable is True
+
+
+def test_consensus_record_resolves_only_disagreements_to_an_original_label(
+    tmp_path: Path,
+) -> None:
+    receipt_path, manifest_path, paths, submissions = _coherent_inputs(tmp_path)
+    rater_two = deepcopy(submissions[1])
+    row = _row_for_ordinal(rater_two, 0)
+    row.update(primary_account="semantic-overlap", localized_region=None)
+    paths[1].write_bytes(_canonical(rater_two))
+    inputs = _MODULE.load_taxonomy_inputs(
+        receipt_path, manifest_path, (paths[0], paths[1])
+    )
+    consensus_path = tmp_path / "consensus.json"
+    consensus_path.write_bytes(
+        _canonical(
+            _consensus_value(
+                inputs,
+                [
+                    {
+                        "error_ordinal": 0,
+                        "primary_account": "semantic-overlap",
+                        "invoked_rule": (
+                            "rule 3: adjacent year designs materially indistinguishable"
+                        ),
+                    }
+                ],
+            )
+        )
+    )
+
+    consensus = _MODULE.load_consensus_record(inputs, consensus_path)
+    adjudicated = _MODULE.adjudicate_with_consensus(inputs, consensus)
+
+    assert consensus.raw_sha256 == hashlib.sha256(
+        consensus_path.read_bytes()
+    ).hexdigest()
+    assert adjudicated[0].primary_account == "semantic-overlap"
+    assert adjudicated[0].judgeable is True
+    assert adjudicated[0].changed_from_raw is True
+    assert adjudicated[0].invoked_rule == (
+        "rule 3: adjacent year designs materially indistinguishable"
+    )
+    assert adjudicated[1].changed_from_raw is False
+    assert adjudicated[1].invoked_rule is None
+
+
+def _mutate_consensus_record(value: dict[str, Any], case: str) -> None:
+    if case == "extra-key":
+        value["extra"] = None
+    elif case == "manifest-binding":
+        value["error_manifest_sha256"] = "0" * 64
+    elif case == "rater-binding":
+        value["rater_submission_sha256"].reverse()
+    elif case == "missing-disagreement":
+        value["rows"] = []
+    elif case == "matched-ordinal":
+        value["rows"][0]["error_ordinal"] = 1
+    elif case == "third-label":
+        value["rows"][0]["primary_account"] = "duplicate"
+    elif case == "empty-rule":
+        value["rows"][0]["invoked_rule"] = ""
+    elif case == "unresolved-with-rule":
+        value["rows"][0].update(
+            primary_account="unresolved", invoked_rule="rule 3"
+        )
+    else:
+        raise AssertionError(case)
+
+
+@pytest.mark.parametrize(
+    "case",
+    [
+        "extra-key",
+        "manifest-binding",
+        "rater-binding",
+        "missing-disagreement",
+        "matched-ordinal",
+        "third-label",
+        "empty-rule",
+        "unresolved-with-rule",
+    ],
+)
+def test_consensus_record_rejects_binding_coverage_and_third_label_drift(
+    tmp_path: Path, case: str
+) -> None:
+    receipt_path, manifest_path, paths, submissions = _coherent_inputs(tmp_path)
+    rater_two = deepcopy(submissions[1])
+    row = _row_for_ordinal(rater_two, 0)
+    row.update(primary_account="semantic-overlap", localized_region=None)
+    paths[1].write_bytes(_canonical(rater_two))
+    inputs = _MODULE.load_taxonomy_inputs(
+        receipt_path, manifest_path, (paths[0], paths[1])
+    )
+    value = _consensus_value(
+        inputs,
+        [
+            {
+                "error_ordinal": 0,
+                "primary_account": "semantic-overlap",
+                "invoked_rule": "rule 3",
+            }
+        ],
+    )
+    _mutate_consensus_record(value, case)
+    path = tmp_path / "mutated-consensus.json"
+    path.write_bytes(_canonical(value))
+
+    with pytest.raises(ValueError):
+        _MODULE.load_consensus_record(inputs, path)
+
+
+def test_consensus_record_requires_canonical_bytes(tmp_path: Path) -> None:
+    receipt_path, manifest_path, paths, _ = _coherent_inputs(tmp_path)
+    inputs = _MODULE.load_taxonomy_inputs(
+        receipt_path, manifest_path, (paths[0], paths[1])
+    )
+    path = tmp_path / "pretty-consensus.json"
+    path.write_text(json.dumps(_consensus_value(inputs, []), indent=2) + "\n")
+
+    with pytest.raises(ValueError, match="not canonical"):
+        _MODULE.load_consensus_record(inputs, path)
 
 
 def test_taxonomy_eligibility_mutation_locks_registered_thresholds() -> None:
@@ -549,3 +710,199 @@ def test_loader_rejects_reordered_manifest_before_statistics(tmp_path: Path) -> 
         _MODULE.load_taxonomy_inputs(
             receipt_path, manifest_path, (paths[0], paths[1])
         )
+
+
+def test_taxonomy_receipt_is_canonical_self_consistent_and_pending_m3(
+    tmp_path: Path,
+) -> None:
+    receipt_path, manifest_path, paths, _ = _coherent_inputs(tmp_path)
+    inputs = _MODULE.load_taxonomy_inputs(
+        receipt_path, manifest_path, (paths[0], paths[1])
+    )
+    _, consensus = _write_consensus(tmp_path, inputs)
+
+    raw = _MODULE.taxonomy_receipt_bytes(inputs, consensus)
+    value = json.loads(raw)
+
+    assert raw == _canonical(value)
+    assert raw.endswith(b"\n") and not raw.endswith(b"\n\n")
+    assert value["schema"] == "sfora-pass209-m2-taxonomy-v1"
+    assert value["claim_eligible"] is False
+    assert value["source"]["receipt_sha256"] == inputs.receipt_sha256
+    assert value["source"]["manifest_sha256"] == inputs.manifest_sha256
+    assert value["source"]["rater_submission_sha256"] == list(
+        inputs.raw_submission_sha256
+    )
+    assert value["source"]["consensus_sha256"] == consensus.raw_sha256
+    assert value["raw_submissions"] == list(inputs.submissions)
+    assert value["raw_consensus"] == consensus.value
+    assert len(value["adjudicated_rows"]) == 103
+    assert value["bootstrap"]["localized-cue-visible"]["resamples"] == 10_000
+    assert value["eligibility"] == {
+        "eligible": True,
+        "maximum_cannot_judge_or_unresolved": 15,
+        "primary_kappa_minimum": 0.60,
+        "primary_raw_agreement_minimum": 0.80,
+        "cannot_judge_or_unresolved": 0,
+    }
+    assert value["family_decision"] == "pending-m3"
+    assert _MODULE.validate_taxonomy_receipt_bytes(raw, inputs, consensus) == value
+
+
+def test_taxonomy_cli_publishes_create_new_and_never_overwrites(
+    tmp_path: Path,
+) -> None:
+    receipt_path, manifest_path, paths, _ = _coherent_inputs(tmp_path)
+    inputs = _MODULE.load_taxonomy_inputs(
+        receipt_path, manifest_path, (paths[0], paths[1])
+    )
+    consensus_path, _ = _write_consensus(tmp_path, inputs)
+    output = tmp_path / "taxonomy.json"
+    command = [
+        sys.executable,
+        str(_SCRIPT),
+        "--receipt",
+        str(receipt_path),
+        "--error-manifest",
+        str(manifest_path),
+        "--rater-one",
+        str(paths[0]),
+        "--rater-two",
+        str(paths[1]),
+        "--consensus",
+        str(consensus_path),
+        "--output",
+        str(output),
+    ]
+
+    completed = subprocess.run(command, check=False, capture_output=True, text=True)
+
+    assert completed.returncode == 0, completed.stderr
+    published = output.read_bytes()
+    assert published.endswith(b"\n") and json.loads(published)
+
+    again = subprocess.run(command, check=False, capture_output=True, text=True)
+    assert again.returncode != 0
+    assert output.read_bytes() == published
+
+    blocked_output = tmp_path / "blocked.json"
+    blocked_partial = blocked_output.with_name(f".{blocked_output.name}.partial")
+    blocked_partial.write_bytes(b"preserve-me")
+    blocked_command = [*command[:-1], str(blocked_output)]
+    blocked = subprocess.run(
+        blocked_command, check=False, capture_output=True, text=True
+    )
+    assert blocked.returncode != 0
+    assert not blocked_output.exists()
+    assert blocked_partial.read_bytes() == b"preserve-me"
+
+
+def _mutate_taxonomy_receipt(value: dict[str, Any], case: str) -> None:
+    if case == "claim-type":
+        value["claim_eligible"] = 0
+    elif case == "source-digest":
+        value["source"]["manifest_sha256"] = "0" * 64
+    elif case == "source-manifest":
+        value["source_manifest"]["batch_size"] = 9
+    elif case == "raw-submission":
+        value["raw_submissions"][0]["rater"]["identity"] = "changed"
+    elif case == "agreement":
+        value["agreement"]["primary"]["matches"] -= 1
+    elif case == "adjudicated":
+        value["adjudicated_rows"][0]["judgeable"] = False
+    elif case == "bootstrap-percentile":
+        value["bootstrap"]["localized-cue-visible"]["p10"] = 0.25
+    elif case == "bootstrap-digest":
+        value["bootstrap"]["localized-cue-visible"][
+            "values_little_endian_f64_sha256"
+        ] = "0" * 64
+    elif case == "manifest-table":
+        value["manifest_tables"]["query_class_counts"][0]["count"] -= 1
+    elif case == "eligibility":
+        value["eligibility"]["eligible"] = False
+    elif case == "family":
+        value["family_decision"] = "F-CAPACITY"
+    else:
+        raise AssertionError(case)
+
+
+@pytest.mark.parametrize(
+    "case",
+    [
+        "claim-type",
+        "source-digest",
+        "source-manifest",
+        "raw-submission",
+        "agreement",
+        "adjudicated",
+        "bootstrap-percentile",
+        "bootstrap-digest",
+        "manifest-table",
+        "eligibility",
+        "family",
+    ],
+)
+def test_taxonomy_receipt_validator_rejects_derived_and_binding_drift(
+    tmp_path: Path, case: str
+) -> None:
+    receipt_path, manifest_path, paths, _ = _coherent_inputs(tmp_path)
+    inputs = _MODULE.load_taxonomy_inputs(
+        receipt_path, manifest_path, (paths[0], paths[1])
+    )
+    _, consensus = _write_consensus(tmp_path, inputs)
+    value = json.loads(_MODULE.taxonomy_receipt_bytes(inputs, consensus))
+    _mutate_taxonomy_receipt(value, case)
+
+    with pytest.raises(ValueError):
+        _MODULE.validate_taxonomy_receipt_bytes(_canonical(value), inputs, consensus)
+
+
+def test_taxonomy_receipt_selects_f_none_when_reliability_is_ineligible(
+    tmp_path: Path,
+) -> None:
+    receipt_path, manifest_path, paths, submissions = _coherent_inputs(tmp_path)
+    rater_two = deepcopy(submissions[1])
+    for ordinal in range(23):
+        row = _row_for_ordinal(rater_two, ordinal)
+        row.update(primary_account="semantic-overlap", localized_region=None)
+    paths[1].write_bytes(_canonical(rater_two))
+    inputs = _MODULE.load_taxonomy_inputs(
+        receipt_path, manifest_path, (paths[0], paths[1])
+    )
+    consensus_rows = [
+        {
+            "error_ordinal": ordinal,
+            "primary_account": "unresolved",
+            "invoked_rule": None,
+        }
+        for ordinal in range(23)
+    ]
+    _, consensus = _write_consensus(tmp_path, inputs, consensus_rows)
+
+    value = json.loads(_MODULE.taxonomy_receipt_bytes(inputs, consensus))
+
+    assert value["eligibility"]["eligible"] is False
+    assert value["family_decision"] == "F-NONE"
+    assert "raw_consensus" not in value
+    assert "adjudicated_rows" not in value
+    assert "bootstrap" not in value
+    assert (
+        _MODULE.validate_taxonomy_receipt_bytes(_canonical(value), inputs, consensus)
+        == value
+    )
+
+
+def test_taxonomy_receipt_validator_rejects_nonfinite_json_number(
+    tmp_path: Path,
+) -> None:
+    receipt_path, manifest_path, paths, _ = _coherent_inputs(tmp_path)
+    inputs = _MODULE.load_taxonomy_inputs(
+        receipt_path, manifest_path, (paths[0], paths[1])
+    )
+    _, consensus = _write_consensus(tmp_path, inputs)
+    value = json.loads(_MODULE.taxonomy_receipt_bytes(inputs, consensus))
+    value["agreement"]["primary"]["kappa"] = float("nan")
+    raw = (json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n").encode()
+
+    with pytest.raises(ValueError, match="noncanonical"):
+        _MODULE.validate_taxonomy_receipt_bytes(raw, inputs, consensus)

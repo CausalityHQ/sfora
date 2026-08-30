@@ -15,7 +15,7 @@
 - Operate only in `/home/rb/worktrees/sfora-emafactorial`; do not touch Borsuk.
 - Cars classes `98..195`, model scores, rank lists, and non-pair images are unavailable.
 - Inputs are the exact authenticated 103-error M2 manifest and two complete independent submissions in the frozen SHA-derived orders.
-- Primary disagreements remain `unresolved`; this scorer performs no third-rater override or visual adjudication.
+- Primary disagreements require a separately sealed two-rater consensus record bound to both raw submission digests. A consensus may select only one of the two original labels and must cite the invoked rule; otherwise it records `unresolved`. No third-rater label is permitted.
 - Bootstrap exactly 10,000 query-class cluster resamples using `numpy.random.Generator(numpy.random.PCG64(seed))`, where `seed = int.from_bytes(SHA256(b"pass209-m2-bootstrap-v1").digest()[:16], "big")`.
 - Percentiles use NumPy `method="inverted_cdf"`; each sampled-value vector is SHA-256 bound as consecutive little-endian float64 values.
 - The output is canonical sorted compact JSON with one trailing LF, `claim_eligible=false`, and create-new semantics.
@@ -66,7 +66,7 @@
 - [ ] **Step 5: Run the focused file and require green.**
 - [ ] **Step 6: Commit only Task 1 files.**
 
-### Task 2: Agreement and no-third-rater adjudication
+### Task 2: Agreement and sealed two-rater consensus adjudication
 
 **Files:**
 - Modify: `scripts/score_pass209_m2_taxonomy.py`
@@ -74,12 +74,12 @@
 
 **Interfaces:**
 - Consumes: aligned `TaxonomyInputs` from Task 1.
-- Produces: `score_agreement(inputs: TaxonomyInputs) -> AgreementEvidence` and `adjudicate_without_override(inputs: TaxonomyInputs) -> tuple[AdjudicatedRow, ...]`.
+- Produces: `score_agreement(inputs: TaxonomyInputs) -> AgreementEvidence`, `load_consensus_record(inputs, path) -> ConsensusRecord`, and `adjudicate_with_consensus(inputs, consensus) -> tuple[AdjudicatedRow, ...]`.
 
 - [ ] **Step 1: Write failing literal-table tests.** Use known categorical pairs to require raw agreement, Cohen's kappa from observed and marginal probabilities, and PABAK `2 * agreement - 1`. Cover primary accounts over 103 pairs and every checklist axis over the ordered query/nearest image observations.
 - [ ] **Step 2: Run the focused nodes and verify missing-interface failures.**
-- [ ] **Step 3: Implement deterministic scoring.** Cohen's kappa is `(p_o - p_e) / (1 - p_e)`; when `p_e == 1`, return `1.0` only if `p_o == 1`, otherwise reject the impossible table. Record category prevalence for both raters. Score degradation booleans as six separate axes.
-- [ ] **Step 4: Implement no-third-rater adjudication.** Matching primary labels survive unchanged; every disagreement becomes `unresolved`; matching `cannot-judge` remains `cannot-judge`. A row is judgeable only when the adjudicated account is neither value. Preserve both original rows in output evidence.
+- [ ] **Step 3: Implement deterministic scoring.** Cohen's kappa is `(p_o - p_e) / (1 - p_e)`; when `p_e == 1`, return `1.0` only if `p_o == 1`, otherwise reject the impossible table. Record category prevalence for both raters. Publish generalized fixed-vocabulary PABAK `(k*p_o - 1)/(k - 1)`, with frozen `k=9/7/13/6/3/2` as applicable. Score degradation booleans as six separate axes.
+- [ ] **Step 4: Implement sealed consensus adjudication.** The canonical consensus object is bound to the manifest and both raw submission digests and contains exactly every disagreement ordinal. A consensus label must equal one of the two originals and cite a nonempty invoked rule; otherwise it is `unresolved` with no rule. Matching primary labels survive unchanged; matching `cannot-judge` remains `cannot-judge`. A row is judgeable only when the adjudicated account is neither value. Preserve both originals, invoked rule, and every changed row in output evidence.
 - [ ] **Step 5: Add eligibility tests.** Require decision eligibility only when `(primary_kappa >= 0.60 or primary_raw_agreement >= 0.80)` and `cannot_judge + unresolved <= 15`; mutation-lock threshold equality and both failure branches.
 - [ ] **Step 6: Run the focused file and require green.**
 - [ ] **Step 7: Commit the agreement slice.**
@@ -110,10 +110,10 @@
 **Interfaces:**
 - Produces: `taxonomy_receipt_bytes(inputs: TaxonomyInputs) -> bytes`, create-new publication, and CLI `main`.
 
-- [ ] **Step 1: Write failing end-to-end tests.** Invoke the real CLI with coherent synthetic receipt/manifest/submissions and require exact source digests, raw submissions, agreement, adjudicated rows, bootstrap vectors, manifest tables, eligibility, and one trailing LF. Require `family_decision="pending-m3"` exactly when eligible and `family_decision="F-NONE"` when ineligible. Assert an existing output or partial is never replaced.
+- [ ] **Step 1: Write failing end-to-end tests.** Invoke the real CLI with coherent synthetic receipt/manifest/submissions/consensus and require exact source digests, raw submissions, sealed consensus, agreement, adjudicated rows, bootstrap vectors, manifest tables, eligibility, and one trailing LF. Require `family_decision="pending-m3"` exactly when eligible and `family_decision="F-NONE"` when ineligible. Assert an existing output or partial is never replaced.
 - [ ] **Step 2: Run the CLI node and verify the missing publication boundary.**
 - [ ] **Step 3: Implement canonical output.** Revalidate every derived scalar before serialization, reject nonfinite floats and non-concrete JSON values, write to a new partial with exclusive creation, fsync, hard-link to the absent destination, fsync the directory, and unlink only the owned partial after success/failure.
-- [ ] **Step 4: Add receipt mutation tests.** Reparse and independently recompute agreement, eligibility, and every bootstrap percentile/digest; reject any changed count, scalar type, row, digest, threshold, or premature family decision.
+- [ ] **Step 4: Add receipt mutation tests.** Reparse and rederive agreement, eligibility, and every bootstrap percentile/digest from the already-tested primitives; reject any changed count, scalar type, row, digest, threshold, or premature family decision. The hand-derived test tables remain the independent numerical oracle.
 - [ ] **Step 5: Run the complete focused test file and static checks.**
 
   ```bash
@@ -132,7 +132,7 @@
 **Files:**
 - Create only ignored generated evidence under `reports/generated/`.
 
-- [ ] **Step 1: Revalidate the M2 receipt/error manifest and both completed rater submissions.** Never inspect or use a partial rater file.
+- [ ] **Step 1: Revalidate the M2 receipt/error manifest and both completed rater submissions.** Never inspect or use a partial rater file. Reveal only disagreement rationales after both submissions are sealed, run the bounded two-rater rules discussion, and publish the canonical consensus record bound to both submission digests.
 - [ ] **Step 2: Run the scorer once to a new output path.** Record input/output SHA-256 and exact byte length; do not overwrite or rerun after a scientific terminal.
 - [ ] **Step 3: Independently verify canonical JSON, all 103 rows, bootstrap cardinality/digests, eligibility, and the protocol-consistent decision (`pending-m3` if eligible, otherwise `F-NONE`).**
 - [ ] **Step 4: Wait for all three M1/M3 seed receipts.** Only a separately reviewed decision adapter may combine the frozen taxonomy with M3 and admit one broad family; this scorer may never do so by itself.
