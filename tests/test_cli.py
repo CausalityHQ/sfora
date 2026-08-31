@@ -890,7 +890,7 @@ def test_image_end_to_end_exposes_deterministic_execution_flag(
         protocol_name="cars196-official",
     )
     captured: dict[str, Any] = {}
-    monkeypatch.setattr("sfora.cli.load_image_retrieval_bundle", lambda **kwargs: bundle)
+    monkeypatch.setattr("sfora.cli._load_cli_image_retrieval_bundle", lambda **kwargs: bundle)
 
     def fake_run(**kwargs: Any) -> Any:
         captured["config"] = kwargs["config"]
@@ -947,12 +947,12 @@ def test_image_end_to_end_auto_recipe_accepts_recall_at_k_surrogate(
             for index in range(2)
         ],
         gallery=[],
-        protocol="same_split",
+        protocol="self",
         protocol_name="cars196-official",
     )
     captured: dict[str, Any] = {}
 
-    monkeypatch.setattr("sfora.cli.load_image_retrieval_bundle", lambda **kwargs: bundle)
+    monkeypatch.setattr("sfora.cli._load_cli_image_retrieval_bundle", lambda **kwargs: bundle)
 
     def fake_run(**kwargs: Any) -> Any:
         captured["config"] = kwargs["config"]
