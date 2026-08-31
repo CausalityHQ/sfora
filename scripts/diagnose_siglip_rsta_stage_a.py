@@ -4,20 +4,27 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import hashlib
 import io
 import json
 import math
 import os
 import random
+import resource
 import struct
 import sys
+import threading
+import time
 from collections import OrderedDict
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING
+
+import torch
+from torch import nn
 
 if TYPE_CHECKING:
     from sfora.siglip_rsta_stage_a import (
@@ -28,6 +35,45 @@ if TYPE_CHECKING:
         RstaReceiverEvidence,
         RstaRolePanel,
     )
+
+
+class StageASiglipPooledTower(nn.Module):
+    """Pinned SigLIP pooler with observed, tower-local CUDA autocast evidence."""
+
+    def __init__(self, vision_model: nn.Module) -> None:
+        super().__init__()
+        if not isinstance(vision_model, nn.Module):
+            raise TypeError("RSTA SigLIP vision model must be a torch module")
+        self.vision_model = vision_model
+        self._rsta_autocast_observations: set[tuple[str, str, bool]] = set()
+
+    def forward(self, pixel_values: torch.Tensor) -> torch.Tensor:
+        enabled = pixel_values.device.type == "cuda"
+        with torch.autocast(
+            device_type=pixel_values.device.type,
+            dtype=torch.bfloat16,
+            enabled=enabled,
+        ):
+            observed = torch.is_autocast_enabled(pixel_values.device.type)
+            self._rsta_autocast_observations.add(
+                (
+                    pixel_values.device.type,
+                    "bfloat16" if observed else "float32",
+                    observed,
+                )
+            )
+            output = self.vision_model(pixel_values=pixel_values, return_dict=True)
+        pooled = getattr(output, "pooler_output", None)
+        if not isinstance(pooled, torch.Tensor) or pooled.ndim != 2:
+            raise ValueError("SigLIP vision output lacks a rank-two pooler output")
+        return pooled.float()
+
+    def rsta_autocast_evidence(self) -> tuple[str, str, bool]:
+        """Return the one observed tower arithmetic policy, failing on drift."""
+
+        if len(self._rsta_autocast_observations) != 1:
+            raise ValueError("RSTA SigLIP tower autocast observations differ")
+        return next(iter(self._rsta_autocast_observations))
 
 
 def _lower_sha256(value: str) -> str:
@@ -106,6 +152,14 @@ class StageATensorCache:
 
 class PreScienceInvalid(ValueError):
     """A registered authority failure before any scientific receiver row opens."""
+
+    def __init__(self, clause: str, message: str) -> None:
+        if type(clause) is not str or clause not in _INVALID_CLAUSES:
+            raise ValueError("RSTA pre-science INVALID clause differs from authority")
+        if type(message) is not str or not message:
+            raise ValueError("RSTA pre-science INVALID message differs from authority")
+        self.clause = clause
+        super().__init__(message)
 
 
 class PostScienceFailure(RuntimeError):
@@ -209,6 +263,13 @@ class StageAModelPreflight:
     fixture_sha256: str
     parameter_names: tuple[str, ...]
     parameter_numels: tuple[int, ...]
+    logical_batch_replay_ns: int
+    receiver_action_ns: int
+    support_forward_ns: int
+    projected_science_elapsed_ns: int
+    model_load_ns: int
+    preflight_elapsed_ns: int
+    projected_attempt_elapsed_ns: int
 
 
 @dataclass(frozen=True)
@@ -230,6 +291,97 @@ class StageAModelCampaign:
     completed: CompletedStageAScience
     preflights: tuple[StageAModelPreflight, ...]
     determinism: StageADeterminismEvidence
+
+
+@dataclass(frozen=True)
+class StageASiglipRuntime:
+    """Pinned local-only component factory and checkpointing controls."""
+
+    processor: object
+    model_factory: Callable[[], object]
+    checkpointing_enabled: Callable[[object], bool]
+    disable_checkpointing: Callable[[object], None]
+
+
+def load_stage_a_siglip_runtime(
+    *,
+    snapshot_resolver: Callable[..., str] | None = None,
+    vision_model_cls: object | None = None,
+    processor_cls: object | None = None,
+) -> StageASiglipRuntime:
+    """Resolve the pinned local snapshot and expose no network-capable handle."""
+
+    from sfora.siglip_proxy_control import PooledProxyAnchorModel, SiglipProxyControlConfig
+    from sfora.token_set_screen import F1_TRAIN_CLASSES
+
+    config = SiglipProxyControlConfig()
+    if snapshot_resolver is None:
+        from huggingface_hub import snapshot_download
+
+        snapshot_resolver = snapshot_download
+    if vision_model_cls is None or processor_cls is None:
+        from transformers import AutoImageProcessor, SiglipVisionModel
+
+        vision_model_cls = SiglipVisionModel if vision_model_cls is None else vision_model_cls
+        processor_cls = AutoImageProcessor if processor_cls is None else processor_cls
+    snapshot = snapshot_resolver(
+        config.model_name,
+        revision=config.model_revision,
+        local_files_only=True,
+    )
+    if type(snapshot) is not str:
+        raise TypeError("RSTA SigLIP snapshot resolver returned the wrong concrete type")
+    resolved = Path(snapshot).resolve(strict=True)
+    if not resolved.is_dir() or resolved.name != config.model_revision:
+        raise ValueError("RSTA SigLIP snapshot revision differs from authority")
+    processor = processor_cls.from_pretrained(str(resolved), local_files_only=True)
+
+    def model_factory() -> object:
+        vision_model = vision_model_cls.from_pretrained(
+            str(resolved),
+            local_files_only=True,
+            attn_implementation="eager",
+        )
+        if not isinstance(vision_model, nn.Module):
+            raise TypeError("RSTA SigLIP vision loader returned the wrong type")
+        if getattr(getattr(vision_model, "config", None), "_attn_implementation", None) != "eager":
+            raise ValueError("RSTA SigLIP attention implementation differs")
+        enable = getattr(vision_model, "gradient_checkpointing_enable", None)
+        if not callable(enable):
+            raise TypeError("RSTA SigLIP vision model lacks checkpointing control")
+        enable(gradient_checkpointing_kwargs={"use_reentrant": False})
+        return PooledProxyAnchorModel(
+            tower=StageASiglipPooledTower(vision_model),
+            input_dimensions=config.input_dimensions,
+            embedding_dimensions=config.embedding_dimensions,
+            class_count=len(F1_TRAIN_CLASSES),
+            projection_initialization=config.projection_initialization,
+            proxy_initialization=config.proxy_initialization,
+        )
+
+    def vision_model(model: object) -> object:
+        if (
+            type(model) is not PooledProxyAnchorModel
+            or type(model.tower) is not StageASiglipPooledTower
+        ):
+            raise ValueError("RSTA SigLIP runtime model differs from authority")
+        return model.tower.vision_model
+
+    def checkpointing_enabled(model: object) -> bool:
+        return bool(getattr(vision_model(model), "is_gradient_checkpointing", False))
+
+    def disable_checkpointing(model: object) -> None:
+        disable = getattr(vision_model(model), "gradient_checkpointing_disable", None)
+        if not callable(disable):
+            raise TypeError("RSTA SigLIP vision model lacks checkpointing control")
+        disable()
+
+    return StageASiglipRuntime(
+        processor=processor,
+        model_factory=model_factory,
+        checkpointing_enabled=checkpointing_enabled,
+        disable_checkpointing=disable_checkpointing,
+    )
 
 
 def configure_stage_a_determinism() -> StageADeterminismEvidence:
@@ -709,6 +861,7 @@ def preflight_stage_a_model(
         RstaControlBinding,
         contextual_rsta_direction,
         preflight_rsta_jvp_backend,
+        receiver_rsta_fields,
     )
 
     if (
@@ -725,6 +878,12 @@ def preflight_stage_a_model(
         raise ValueError("RSTA checkpointing preflight authority differs")
     parameters = tuple(model.parameters())
     device = parameters[0].device
+
+    def synchronized_time_ns() -> int:
+        if device.type == "cuda":
+            torch.cuda.synchronize(device)
+        return time.monotonic_ns()
+
     elements = math.prod(input_shape)
     columns = torch.arange(elements, dtype=torch.int64, device=device).unsqueeze(0)
     rows = torch.arange(120, dtype=torch.int64, device=device).unsqueeze(1)
@@ -741,6 +900,7 @@ def preflight_stage_a_model(
     disable_checkpointing()
     if checkpointing_enabled() is not False:
         raise ValueError("RSTA checkpointing preflight did not disable checkpointing")
+    replay_started = synchronized_time_ns()
     disabled_direction = contextual_rsta_direction(
         model,
         fixture,
@@ -749,6 +909,7 @@ def preflight_stage_a_model(
         alpha=32.0,
         delta=0.1,
     )
+    logical_batch_replay_ns = max(1, synchronized_time_ns() - replay_started)
     if enabled_direction.parameter_names != disabled_direction.parameter_names:
         raise ValueError("RSTA checkpointing preflight parameter order differs")
 
@@ -779,6 +940,27 @@ def preflight_stage_a_model(
         parameter_names=disabled_direction.parameter_names,
         parameter_direction=disabled_direction.parameter_direction,
     )
+    receiver_started = synchronized_time_ns()
+    receiver_rsta_fields(
+        model,
+        fixture[0:1],
+        disabled_direction.dbar[0],
+        parameter_names=disabled_direction.parameter_names,
+        parameter_direction=disabled_direction.parameter_direction,
+        backend=backend.backend,
+    )
+    receiver_action_ns = max(1, synchronized_time_ns() - receiver_started)
+    support_started = synchronized_time_ns()
+    model.eval()
+    with torch.no_grad():
+        support_descriptors = model.encode(fixture[:98])
+    support_forward_ns = max(1, synchronized_time_ns() - support_started)
+    model.train()
+    if support_descriptors.shape[0] != 98 or not bool(torch.isfinite(support_descriptors).all()):
+        raise ValueError("RSTA support throughput fixture differs")
+    projected_science_elapsed_ns = (
+        6 * logical_batch_replay_ns + 474 * receiver_action_ns + 2 * support_forward_ns
+    )
     digest = hashlib.sha256()
     for value in (fixture, labels):
         array = np.ascontiguousarray(value.detach().cpu().numpy())
@@ -799,6 +981,13 @@ def preflight_stage_a_model(
         fixture_sha256=digest.hexdigest(),
         parameter_names=disabled_direction.parameter_names,
         parameter_numels=parameter_numels,
+        logical_batch_replay_ns=logical_batch_replay_ns,
+        receiver_action_ns=receiver_action_ns,
+        support_forward_ns=support_forward_ns,
+        projected_science_elapsed_ns=projected_science_elapsed_ns,
+        model_load_ns=0,
+        preflight_elapsed_ns=0,
+        projected_attempt_elapsed_ns=0,
     )
 
 
@@ -1128,9 +1317,11 @@ def execute_stage_a_scientific_loop(
         or tuple(checkpoint.seed for checkpoint in authority.binding.checkpoints) != config.seeds
         or not callable(seed_runner)
     ):
-        raise PreScienceInvalid("RSTA scientific authority or seed runner differs")
+        raise PreScienceInvalid(
+            "authority-mismatch", "RSTA scientific authority or seed runner differs"
+        )
     if type(backend) is not RstaJvpBackendEvidence:
-        raise PreScienceInvalid("RSTA sealed backend authority differs")
+        raise PreScienceInvalid("backend-unavailable", "RSTA sealed backend authority differs")
     if backend.backend == "forward-mode":
         backend_valid = (
             backend.comparison_available is True
@@ -1148,11 +1339,13 @@ def execute_stage_a_scientific_loop(
             and bool(backend.forward_error)
         )
     if not backend_valid:
-        raise PreScienceInvalid("RSTA sealed backend authority differs")
+        raise PreScienceInvalid("backend-unavailable", "RSTA sealed backend authority differs")
     try:
         panel = select_rsta_roles(tuple(zip(authority.example_ids, authority.labels, strict=True)))
     except ValueError as error:
-        raise PreScienceInvalid("RSTA role panel authority differs") from error
+        raise PreScienceInvalid(
+            "authority-mismatch", "RSTA role panel authority differs"
+        ) from error
     required_tensor_ids = stage_a_tensor_example_ids(panel)
     if (
         type(tensor_cache) is not StageATensorCache
@@ -1168,7 +1361,7 @@ def execute_stage_a_scientific_loop(
             for example_id, digest in tensor_cache.tensor_sha256.items()
         )
     ):
-        raise PreScienceInvalid("RSTA tensor digest authority differs")
+        raise PreScienceInvalid("authority-mismatch", "RSTA tensor digest authority differs")
     expected_receivers = tuple((row.label, row.example_id) for row in panel.receivers)
     first_receiver = panel.receivers[0]
     expected_batch_replays = len(panel.primary_batches) + len(panel.alternate_batches) + 2
@@ -1285,15 +1478,14 @@ def execute_stage_a_model_campaign(
         or not callable(checkpointing_enabled)
         or not callable(disable_checkpointing)
     ):
-        raise PreScienceInvalid("RSTA model campaign authority differs")
-    determinism = configure_stage_a_determinism()
+        raise PreScienceInvalid("authority-mismatch", "RSTA model campaign authority differs")
+    try:
+        determinism = configure_stage_a_determinism()
+    except Exception as error:
+        raise PreScienceInvalid(
+            "determinism-failure", "RSTA deterministic execution policy failed"
+        ) from error
     preflights: list[StageAModelPreflight] = []
-    first_checkpoint = authority.checkpoints[0]
-    first_model = load_stage_a_checkpoint_model(
-        first_checkpoint,
-        model_factory=model_factory,
-        device=device,
-    )
 
     def preflight(model: object) -> StageAModelPreflight:
         evidence = preflight_stage_a_model(
@@ -1309,26 +1501,84 @@ def execute_stage_a_model_campaign(
             or evidence.parameter_numels != preflights[0].parameter_numels
             or evidence.fixture_sha256 != preflights[0].fixture_sha256
         ):
-            raise PreScienceInvalid("RSTA model preflight differs between seeds")
+            raise PreScienceInvalid("fixture-failure", "RSTA model preflight differs between seeds")
         preflights.append(evidence)
         return evidence
 
-    first_preflight = preflight(first_model)
-    pending_first_model: list[object] = [first_model]
-
-    def fixed_runner(checkpoint, panel, binding, cache, backend):
-        if checkpoint.seed == first_checkpoint.seed:
-            if not pending_first_model:
-                raise ValueError("RSTA first seed model was reused")
-            model = pending_first_model.pop()
-            evidence = first_preflight
-        else:
+    for checkpoint in authority.checkpoints:
+        preflight_started = time.monotonic_ns()
+        load_started = preflight_started
+        try:
             model = load_stage_a_checkpoint_model(
                 checkpoint,
                 model_factory=model_factory,
                 device=device,
             )
+        except Exception as error:
+            raise PreScienceInvalid(
+                "authority-mismatch", "RSTA checkpoint model authority failed"
+            ) from error
+        if device.type == "cuda":
+            torch.cuda.synchronize(device)
+        model_load_ns = max(1, time.monotonic_ns() - load_started)
+        try:
             evidence = preflight(model)
+        except PreScienceInvalid:
+            raise
+        except NotImplementedError as error:
+            raise PreScienceInvalid(
+                "backend-unavailable", "RSTA pinned-module JVP backend is unavailable"
+            ) from error
+        except ValueError as error:
+            if str(error) == "RSTA JVP backends disagree above the registered tolerance":
+                raise PreScienceInvalid(
+                    "backend-unavailable", "RSTA pinned-module JVP backends disagree"
+                ) from error
+            raise PreScienceInvalid(
+                "fixture-failure", "RSTA pinned-module preflight fixture failed"
+            ) from error
+        except Exception as error:
+            raise PreScienceInvalid(
+                "fixture-failure", "RSTA pinned-module preflight fixture failed"
+            ) from error
+        if device.type == "cuda":
+            torch.cuda.synchronize(device)
+        preflight_elapsed_ns = max(1, time.monotonic_ns() - preflight_started)
+        evidence = replace(
+            evidence,
+            model_load_ns=model_load_ns,
+            preflight_elapsed_ns=preflight_elapsed_ns,
+            projected_attempt_elapsed_ns=(
+                preflight_elapsed_ns + 2 * model_load_ns + evidence.projected_science_elapsed_ns
+            ),
+        )
+        preflights[-1] = evidence
+        del model
+        if device.type == "cuda":
+            torch.cuda.empty_cache()
+    if sum(value.projected_attempt_elapsed_ns for value in preflights) > 3_600_000_000_000:
+        raise PreScienceInvalid("throughput-budget", "RSTA projected science exceeds one DGX hour")
+    first_preflight = preflights[0]
+    preflight_by_seed = dict(
+        zip(
+            (checkpoint.seed for checkpoint in authority.checkpoints),
+            preflights,
+            strict=True,
+        )
+    )
+
+    def fixed_runner(checkpoint, panel, binding, cache, backend):
+        model = load_stage_a_checkpoint_model(
+            checkpoint,
+            model_factory=model_factory,
+            device=device,
+        )
+        evidence = preflight_by_seed[checkpoint.seed]
+        if checkpointing_enabled(model) is not True:
+            raise ValueError("RSTA seed checkpointing state differs before execution")
+        disable_checkpointing(model)
+        if checkpointing_enabled(model) is not False:
+            raise ValueError("RSTA seed checkpointing state differs after execution disable")
         if evidence.backend.backend != backend.backend:
             raise ValueError("RSTA seed backend differs from sealed backend")
         execution = run_stage_a_seed_model(
@@ -1438,7 +1688,7 @@ def _validate_execution_audit(audit: StageAExecutionAudit) -> None:
         or audit.cuda_matmul_allow_tf32 is not False
         or audit.cudnn_allow_tf32 is not False
         or type(audit.elapsed_ns) is not int
-        or audit.elapsed_ns <= 0
+        or not 0 < audit.elapsed_ns <= 3_600_000_000_000
         or type(audit.peak_rss_bytes) is not int
         or audit.peak_rss_bytes <= 0
         or type(audit.peak_cuda_bytes) is not int
@@ -1474,7 +1724,9 @@ def build_stage_a_execution_audit(
     audit = StageAExecutionAudit(
         parameter_names=preflight.parameter_names,
         parameter_numels=preflight.parameter_numels,
-        checkpointing_max_relative_disagreement=(preflight.checkpointing_max_relative_disagreement),
+        checkpointing_max_relative_disagreement=max(
+            value.checkpointing_max_relative_disagreement for value in campaign.preflights
+        ),
         fixture_sha256=preflight.fixture_sha256,
         module_training=execution.module_training,
         gradient_checkpointing_enabled=execution.gradient_checkpointing_enabled,
@@ -1527,19 +1779,70 @@ def stage_a_scientific_result_bytes(
         cudnn_allow_tf32=audit.cudnn_allow_tf32,
     ):
         raise ValueError("RSTA model campaign determinism differs from audit")
+
+    def backend_valid(value: RstaJvpBackendEvidence) -> bool:
+        if type(value) is not RstaJvpBackendEvidence:
+            return False
+        if value.backend == "forward-mode":
+            return (
+                value.comparison_available is True
+                and type(value.maximum_relative_disagreement) is float
+                and math.isfinite(value.maximum_relative_disagreement)
+                and 0.0 <= value.maximum_relative_disagreement <= 1.0e-5
+                and value.forward_error is None
+            )
+        return (
+            value.backend == "double-backward"
+            and value.comparison_available is False
+            and value.maximum_relative_disagreement == 0.0
+            and type(value.forward_error) is str
+            and bool(value.forward_error)
+        )
+
     if (
         type(campaign.preflights) is not tuple
         or len(campaign.preflights) != len(completed.authority.checkpoints)
         or any(type(value) is not StageAModelPreflight for value in campaign.preflights)
+        or completed.backend != campaign.preflights[0].backend
         or any(
-            value.backend != completed.backend
+            not backend_valid(value.backend)
+            or value.backend.backend != completed.backend.backend
             or value.parameter_names != audit.parameter_names
             or value.parameter_numels != audit.parameter_numels
             or value.fixture_sha256 != audit.fixture_sha256
-            or value.checkpointing_max_relative_disagreement
-            != audit.checkpointing_max_relative_disagreement
+            or type(value.checkpointing_max_relative_disagreement) is not float
+            or not math.isfinite(value.checkpointing_max_relative_disagreement)
+            or not 0.0 <= value.checkpointing_max_relative_disagreement <= 1.0e-5
+            or any(
+                type(duration) is not int or duration <= 0
+                for duration in (
+                    value.logical_batch_replay_ns,
+                    value.receiver_action_ns,
+                    value.support_forward_ns,
+                    value.projected_science_elapsed_ns,
+                    value.model_load_ns,
+                    value.preflight_elapsed_ns,
+                    value.projected_attempt_elapsed_ns,
+                )
+            )
+            or value.projected_science_elapsed_ns
+            != (
+                6 * value.logical_batch_replay_ns
+                + 474 * value.receiver_action_ns
+                + 2 * value.support_forward_ns
+            )
+            or value.projected_attempt_elapsed_ns
+            != (
+                value.preflight_elapsed_ns
+                + 2 * value.model_load_ns
+                + value.projected_science_elapsed_ns
+            )
             for value in campaign.preflights
         )
+        or sum(value.projected_attempt_elapsed_ns for value in campaign.preflights)
+        > 3_600_000_000_000
+        or audit.checkpointing_max_relative_disagreement
+        != max(value.checkpointing_max_relative_disagreement for value in campaign.preflights)
     ):
         raise ValueError("RSTA model campaign preflight differs from audit")
     recomputed_panel = select_rsta_roles(
@@ -1695,12 +1998,42 @@ def stage_a_scientific_result_bytes(
         "backend_preflight": {
             "backend": backend.backend,
             "comparison_available": backend.comparison_available,
-            "maximum_relative_disagreement": backend.maximum_relative_disagreement,
+            "maximum_relative_disagreement": max(
+                value.backend.maximum_relative_disagreement for value in campaign.preflights
+            ),
             "forward_error": backend.forward_error,
             "checkpointing_max_relative_disagreement": (
                 audit.checkpointing_max_relative_disagreement
             ),
             "fixture_sha256": audit.fixture_sha256,
+            "one_dgx_hour_budget_ns": 3_600_000_000_000,
+            "projected_science_elapsed_ns": sum(
+                value.projected_science_elapsed_ns for value in campaign.preflights
+            ),
+            "projected_attempt_elapsed_ns": sum(
+                value.projected_attempt_elapsed_ns for value in campaign.preflights
+            ),
+            "seed_timings": [
+                {
+                    "seed": checkpoint.seed,
+                    "backend_maximum_relative_disagreement": (
+                        value.backend.maximum_relative_disagreement
+                    ),
+                    "checkpointing_max_relative_disagreement": (
+                        value.checkpointing_max_relative_disagreement
+                    ),
+                    "logical_batch_replay_ns": value.logical_batch_replay_ns,
+                    "receiver_action_ns": value.receiver_action_ns,
+                    "support_forward_ns": value.support_forward_ns,
+                    "projected_science_elapsed_ns": value.projected_science_elapsed_ns,
+                    "model_load_ns": value.model_load_ns,
+                    "preflight_elapsed_ns": value.preflight_elapsed_ns,
+                    "projected_attempt_elapsed_ns": value.projected_attempt_elapsed_ns,
+                }
+                for checkpoint, value in zip(
+                    completed.authority.checkpoints, campaign.preflights, strict=True
+                )
+            ],
         },
         "execution": {
             "module_training": audit.module_training,
@@ -1742,11 +2075,243 @@ def stage_a_scientific_result_bytes(
     return _canonical_json(payload)
 
 
-def main(argv: Sequence[str] | None = None) -> int:
-    """Validate arguments; scientific execution is added behind this boundary."""
+def _stage_a_transforms(
+    processor: object,
+) -> tuple[Callable[[object], object], Callable[[object], object]]:
+    from torchvision import transforms
+    from torchvision.transforms import InterpolationMode
 
-    parse_stage_a_args(argv)
-    raise RuntimeError("SigLIP RSTA Stage-A scientific runner is not implemented")
+    def convert(source: object) -> object:
+        method = getattr(source, "convert", None)
+        if not callable(method):
+            raise TypeError("RSTA image lacks RGB conversion")
+        value = method("RGB")
+        if getattr(value, "mode", None) != "RGB":
+            raise ValueError("RSTA image did not convert to RGB")
+        return value
+
+    graph = transforms.Compose(
+        [
+            transforms.Lambda(convert),
+            transforms.RandomResizedCrop(
+                384,
+                scale=(0.16, 1.0),
+                interpolation=InterpolationMode.BICUBIC,
+            ),
+            transforms.RandomHorizontalFlip(0.5),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)),
+        ]
+    )
+
+    def evaluation(source: object) -> object:
+        encoded = processor(images=[convert(source)], return_tensors="pt")
+        if not isinstance(encoded, Mapping) or "pixel_values" not in encoded:
+            raise ValueError("RSTA processor did not return pixel values")
+        values = encoded["pixel_values"]
+        if (
+            not isinstance(values, torch.Tensor)
+            or values.shape != (1, 3, 384, 384)
+            or not values.is_floating_point()
+            or not bool(torch.isfinite(values).all())
+        ):
+            raise ValueError("RSTA evaluation pixels differ from authority")
+        return values[0].float()
+
+    return graph, evaluation
+
+
+def _memory_psi_full_avg10() -> float:
+    for line in Path("/proc/pressure/memory").read_text().splitlines():
+        fields = line.split()
+        if fields and fields[0] == "full":
+            for field in fields[1:]:
+                if field.startswith("avg10="):
+                    return float(field.split("=", 1)[1])
+    raise RuntimeError("memory PSI full line is unavailable")
+
+
+def _swap_used_bytes() -> int:
+    values: dict[str, int] = {}
+    for line in Path("/proc/meminfo").read_text().splitlines():
+        name, raw = line.split(":", 1)
+        if name in {"SwapTotal", "SwapFree"}:
+            values[name] = int(raw.split()[0]) * 1024
+    if set(values) != {"SwapTotal", "SwapFree"}:
+        raise RuntimeError("swap authority is unavailable")
+    return values["SwapTotal"] - values["SwapFree"]
+
+
+@dataclass(frozen=True)
+class StageAResourceObservation:
+    """Peak resource growth observed across a scientific process lifetime."""
+
+    memory_psi_growth_ppm: int
+    swap_growth_bytes: int
+
+
+class StageAResourceMonitor:
+    """Accumulate pressure and swap peaks instead of trusting one endpoint sample."""
+
+    def __init__(self, sampler: Callable[[], tuple[float, int]]) -> None:
+        if not callable(sampler):
+            raise TypeError("RSTA resource sampler must be callable")
+        self._sampler = sampler
+        baseline_psi, baseline_swap = sampler()
+        self._baseline_psi = float(baseline_psi)
+        self._baseline_swap = int(baseline_swap)
+        self._current_psi_growth = 0.0
+        self._current_swap_growth = 0
+        self._lock = threading.Lock()
+        self._stop = threading.Event()
+        self._thread: threading.Thread | None = None
+        self._error: Exception | None = None
+
+    def observe(self) -> None:
+        """Record one resource sample as the current endpoint observation."""
+
+        psi, swap = self._sampler()
+        with self._lock:
+            self._current_psi_growth = float(psi) - self._baseline_psi
+            self._current_swap_growth = int(swap) - self._baseline_swap
+
+    def start(self, *, interval_seconds: float = 1.0) -> None:
+        """Start one bounded sampler thread for the scientific lifetime."""
+
+        if (
+            type(interval_seconds) is not float
+            or not math.isfinite(interval_seconds)
+            or interval_seconds <= 0.0
+            or self._thread is not None
+        ):
+            raise ValueError("RSTA resource monitor interval differs from authority")
+
+        def sample_until_stopped() -> None:
+            try:
+                while not self._stop.wait(interval_seconds):
+                    self.observe()
+            except Exception as error:
+                self._error = error
+                self._stop.set()
+
+        self._thread = threading.Thread(
+            target=sample_until_stopped,
+            name="rsta-stage-a-resource-monitor",
+            daemon=True,
+        )
+        self._thread.start()
+
+    def finish(self) -> StageAResourceObservation:
+        """Return the accumulated nonnegative growth evidence."""
+
+        if self._thread is not None:
+            self._stop.set()
+            self._thread.join()
+            self._thread = None
+        if self._error is not None:
+            raise RuntimeError("RSTA resource monitor failed") from self._error
+        with self._lock:
+            return StageAResourceObservation(
+                memory_psi_growth_ppm=max(0, round(self._current_psi_growth * 1_000_000)),
+                swap_growth_bytes=max(0, self._current_swap_growth),
+            )
+
+
+def run_stage_a_cli(arguments: argparse.Namespace) -> bytes:
+    """Execute the fixed local-only SigLIP campaign and return one complete receipt."""
+
+    from PIL import Image
+
+    from sfora.siglip_rsta_stage_a import select_rsta_roles
+
+    try:
+        authority = load_stage_a_authority(arguments)
+        panel = select_rsta_roles(tuple(zip(authority.example_ids, authority.labels, strict=True)))
+        runtime = load_stage_a_siglip_runtime()
+        graph_transform, evaluation_transform = _stage_a_transforms(runtime.processor)
+
+        def materialize(path: Path) -> object:
+            with Image.open(path) as image:
+                image.load()
+                return image.copy()
+
+        tensor_cache = cache_stage_a_tensors(
+            authority,
+            panel,
+            graph_transform=graph_transform,
+            evaluation_transform=evaluation_transform,
+            materialize=materialize,
+        )
+    except Exception as error:
+        raise PreScienceInvalid(
+            "authority-mismatch", "RSTA local scientific authority failed"
+        ) from error
+    if not torch.cuda.is_available() or not torch.cuda.is_bf16_supported():
+        raise PreScienceInvalid(
+            "backend-unavailable", "RSTA Stage-A requires CUDA bf16 tower support"
+        )
+    try:
+        device = torch.device("cuda")
+        torch.cuda.empty_cache()
+        torch.cuda.reset_peak_memory_stats(device)
+        resource_monitor = StageAResourceMonitor(
+            lambda: (_memory_psi_full_avg10(), _swap_used_bytes())
+        )
+        resource_monitor.start()
+    except Exception as error:
+        raise PreScienceInvalid(
+            "authority-mismatch", "RSTA resource execution authority failed"
+        ) from error
+    started = time.monotonic_ns()
+    try:
+        campaign = execute_stage_a_model_campaign(
+            authority,
+            tensor_cache=tensor_cache,
+            model_factory=runtime.model_factory,
+            device=device,
+            input_shape=(3, 384, 384),
+            checkpointing_enabled=runtime.checkpointing_enabled,
+            disable_checkpointing=runtime.disable_checkpointing,
+        )
+    except BaseException:
+        with contextlib.suppress(Exception):
+            resource_monitor.finish()
+        raise
+    elapsed_ns = time.monotonic_ns() - started
+    try:
+        resource_monitor.observe()
+    except Exception as error:
+        with contextlib.suppress(Exception):
+            resource_monitor.finish()
+        raise PostScienceFailure("RSTA resource monitor failed after science") from error
+    try:
+        resources = resource_monitor.finish()
+    except Exception as error:
+        raise PostScienceFailure("RSTA resource monitor failed after science") from error
+    if resources.memory_psi_growth_ppm != 0 or resources.swap_growth_bytes != 0:
+        raise PostScienceFailure("RSTA resource growth exceeded the registered zero envelope")
+    audit = build_stage_a_execution_audit(
+        campaign,
+        elapsed_ns=elapsed_ns,
+        peak_rss_bytes=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024,
+        peak_cuda_bytes=torch.cuda.max_memory_reserved(device),
+        memory_psi_growth_ppm=resources.memory_psi_growth_ppm,
+        swap_growth_bytes=resources.swap_growth_bytes,
+    )
+    return stage_a_scientific_result_bytes(campaign, audit)
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """Run the authenticated local diagnostic and write only its complete result."""
+
+    try:
+        result = run_stage_a_cli(parse_stage_a_args(argv))
+    except PreScienceInvalid as error:
+        result = pre_science_invalid_result_bytes(error.clause)
+    if type(result) is not bytes or not result.endswith(b"\n"):
+        raise RuntimeError("SigLIP RSTA Stage-A runner returned invalid bytes")
+    sys.stdout.buffer.write(result)
+    return 0
 
 
 if __name__ == "__main__":

@@ -8,6 +8,7 @@ import json
 import math
 import random
 import sys
+import threading
 from collections import OrderedDict
 from dataclasses import replace
 from pathlib import Path
@@ -35,6 +36,117 @@ assert _SPEC is not None and _SPEC.loader is not None
 _MODULE = importlib.util.module_from_spec(_SPEC)
 sys.modules[_SPEC.name] = _MODULE
 _SPEC.loader.exec_module(_MODULE)
+
+
+def test_observed_siglip_tower_confines_autocast_and_reports_policy() -> None:
+    class FakeVision(nn.Module):
+        def forward(self, *, pixel_values: torch.Tensor, return_dict: bool):
+            assert return_dict is True
+            return type("VisionOutput", (), {"pooler_output": pixel_values[:, :2]})()
+
+    tower = _MODULE.StageASiglipPooledTower(FakeVision())
+    output = tower(torch.ones(3, 4, dtype=torch.float32))
+
+    assert output.dtype == torch.float32
+    assert tower.rsta_autocast_evidence() == ("cpu", "float32", False)
+
+
+def test_siglip_runtime_loads_only_pinned_local_eager_components(tmp_path: Path) -> None:
+    from sfora.siglip_proxy_control import SiglipProxyControlConfig
+
+    config = SiglipProxyControlConfig()
+    snapshot = tmp_path / config.model_revision
+    snapshot.mkdir()
+    calls: list[tuple[str, str, object]] = []
+
+    class FakeVision(nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.config = type("Config", (), {"_attn_implementation": "eager"})()
+            self.is_gradient_checkpointing = False
+
+        @classmethod
+        def from_pretrained(cls, path: str, **kwargs):
+            calls.append(("vision", path, kwargs))
+            return cls()
+
+        def gradient_checkpointing_enable(self, *, gradient_checkpointing_kwargs):
+            assert gradient_checkpointing_kwargs == {"use_reentrant": False}
+            self.is_gradient_checkpointing = True
+
+        def gradient_checkpointing_disable(self):
+            self.is_gradient_checkpointing = False
+
+    class FakeProcessor:
+        @classmethod
+        def from_pretrained(cls, path: str, **kwargs):
+            calls.append(("processor", path, kwargs))
+            return cls()
+
+    runtime = _MODULE.load_stage_a_siglip_runtime(
+        snapshot_resolver=lambda *_args, **_kwargs: str(snapshot),
+        vision_model_cls=FakeVision,
+        processor_cls=FakeProcessor,
+    )
+    model = runtime.model_factory()
+
+    assert type(model) is PooledProxyAnchorModel
+    assert model.tower.vision_model.is_gradient_checkpointing is True
+    assert runtime.checkpointing_enabled(model) is True
+    runtime.disable_checkpointing(model)
+    assert runtime.checkpointing_enabled(model) is False
+    assert calls == [
+        ("processor", str(snapshot), {"local_files_only": True}),
+        (
+            "vision",
+            str(snapshot),
+            {"local_files_only": True, "attn_implementation": "eager"},
+        ),
+    ]
+
+
+def test_resource_sampling_parses_named_psi_field_and_returns_endpoint_growth(monkeypatch) -> None:
+    monkeypatch.setattr(
+        Path,
+        "read_text",
+        lambda _path: (
+            "some avg10=0.00 avg60=0.00 total=0\nfull avg60=0.10 avg10=0.25 avg300=0.05 total=10\n"
+        ),
+    )
+    assert _MODULE._memory_psi_full_avg10() == 0.25
+
+    samples = iter([(0.0, 100), (0.25, 110), (0.0, 105)])
+    monitor = _MODULE.StageAResourceMonitor(lambda: next(samples))
+    monitor.observe()
+    monitor.observe()
+    observation = monitor.finish()
+
+    assert observation.memory_psi_growth_ppm == 0
+    assert observation.swap_growth_bytes == 5
+
+
+def test_resource_monitor_samples_during_science_until_explicit_finish() -> None:
+    reached_peak = threading.Event()
+    calls = 0
+
+    def sample() -> tuple[float, int]:
+        nonlocal calls
+        calls += 1
+        if calls >= 2:
+            reached_peak.set()
+            return 0.5, 256
+        return 0.0, 0
+
+    monitor = _MODULE.StageAResourceMonitor(sample)
+    monitor.start(interval_seconds=0.001)
+    assert reached_peak.wait(1.0)
+    observation = monitor.finish()
+
+    assert observation.memory_psi_growth_ppm == 500_000
+    assert observation.swap_growth_bytes == 256
+    observed_calls = calls
+    assert reached_peak.wait(0.01)
+    assert calls == observed_calls
 
 
 def _valid_argv() -> list[str]:
@@ -116,6 +228,297 @@ def test_parser_accepts_only_complete_local_authority() -> None:
     assert parsed.optimization_manifest == Path("/authority/optimization.json")
     assert parsed.image_root == Path("/authority/images")
     assert parsed.execute_stage_a is True
+
+
+def test_main_writes_only_complete_canonical_cli_result(monkeypatch, capsys) -> None:
+    observed = []
+
+    def run(arguments):
+        observed.append(arguments)
+        return b'{"claim_eligible":false}\n'
+
+    monkeypatch.setattr(_MODULE, "run_stage_a_cli", run, raising=False)
+    assert _MODULE.main(_valid_argv()) == 0
+    captured = capsys.readouterr()
+    assert captured.out == '{"claim_eligible":false}\n'
+    assert captured.err == ""
+    assert len(observed) == 1
+    assert observed[0].execute_stage_a is True
+
+
+@pytest.mark.parametrize(
+    "clause",
+    [
+        "authority-mismatch",
+        "backend-unavailable",
+        "fixture-failure",
+        "throughput-budget",
+        "determinism-failure",
+    ],
+)
+def test_main_emits_registered_invalid_receipt_for_pre_science_failure(
+    clause: str, monkeypatch, capsys
+) -> None:
+    def fail(_arguments):
+        raise _MODULE.PreScienceInvalid(clause, "registered pre-science failure")
+
+    monkeypatch.setattr(_MODULE, "run_stage_a_cli", fail)
+
+    assert _MODULE.main(_valid_argv()) == 0
+    captured = capsys.readouterr()
+    value = json.loads(captured.out)
+    assert captured.out.encode() == canonical_json_bytes(value)
+    assert value == {
+        "claim_eligible": False,
+        "first_decisive_clause": clause,
+        "schema": "siglip-rsta-stage-a-result-v1",
+        "verdict": "INVALID",
+    }
+    assert captured.err == ""
+
+
+def test_main_never_converts_post_science_failure_into_candidate_result(
+    monkeypatch, capsys
+) -> None:
+    def fail(_arguments):
+        raise _MODULE.PostScienceFailure("scientific row failed")
+
+    monkeypatch.setattr(_MODULE, "run_stage_a_cli", fail)
+
+    with pytest.raises(_MODULE.PostScienceFailure, match="scientific row failed"):
+        _MODULE.main(_valid_argv())
+    captured = capsys.readouterr()
+    assert captured.out == ""
+
+
+def test_main_classifies_local_authority_failure_before_runtime_construction(capsys) -> None:
+    assert _MODULE.main(_valid_argv()) == 0
+    captured = capsys.readouterr()
+    value = json.loads(captured.out)
+    assert captured.out.encode() == canonical_json_bytes(value)
+    assert value["verdict"] == "INVALID"
+    assert value["first_decisive_clause"] == "authority-mismatch"
+    assert captured.err == ""
+
+
+def test_run_cli_executes_fixed_cuda_campaign_and_binds_measured_resources(
+    tmp_path: Path, monkeypatch
+) -> None:
+    authority = _scientific_authority(tmp_path / "authority")
+    campaign = _campaign(tmp_path / "campaign")
+    tensor_cache = _tensor_cache(authority)
+    captured: dict[str, object] = {}
+
+    class FakeMonitor:
+        def __init__(self, sampler) -> None:
+            assert callable(sampler)
+            self.started = False
+
+        def start(self) -> None:
+            self.started = True
+
+        def observe(self) -> None:
+            assert self.started is True
+
+        def finish(self):
+            assert self.started is True
+            return _MODULE.StageAResourceObservation(0, 0)
+
+    runtime = _MODULE.StageASiglipRuntime(
+        processor=object(),
+        model_factory=lambda: object(),
+        checkpointing_enabled=lambda _model: True,
+        disable_checkpointing=lambda _model: None,
+    )
+    monkeypatch.setattr(_MODULE, "load_stage_a_authority", lambda _arguments: authority)
+    monkeypatch.setattr(_MODULE, "load_stage_a_siglip_runtime", lambda: runtime)
+    monkeypatch.setattr(_MODULE, "_stage_a_transforms", lambda _processor: (object(), object()))
+    monkeypatch.setattr(_MODULE, "cache_stage_a_tensors", lambda *_args, **_kwargs: tensor_cache)
+    monkeypatch.setattr(_MODULE, "StageAResourceMonitor", FakeMonitor)
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.cuda, "is_bf16_supported", lambda: True)
+    monkeypatch.setattr(torch.cuda, "empty_cache", lambda: None)
+    monkeypatch.setattr(torch.cuda, "reset_peak_memory_stats", lambda _device: None)
+    monkeypatch.setattr(torch.cuda, "max_memory_reserved", lambda _device: 2_000_000)
+
+    def execute(observed_authority, **kwargs):
+        captured["authority"] = observed_authority
+        captured["campaign_kwargs"] = kwargs
+        return campaign
+
+    def build(observed_campaign, **kwargs):
+        captured["audit_campaign"] = observed_campaign
+        captured["audit_kwargs"] = kwargs
+        return _execution_audit()
+
+    monkeypatch.setattr(_MODULE, "execute_stage_a_model_campaign", execute)
+    monkeypatch.setattr(_MODULE, "build_stage_a_execution_audit", build)
+    monkeypatch.setattr(
+        _MODULE,
+        "stage_a_scientific_result_bytes",
+        lambda observed_campaign, audit: (
+            b'{"claim_eligible":false}\n'
+            if observed_campaign is campaign and audit == _execution_audit()
+            else pytest.fail("scientific result inputs differ")
+        ),
+    )
+
+    result = _MODULE.run_stage_a_cli(_MODULE.parse_stage_a_args(_valid_argv()))
+
+    assert result == b'{"claim_eligible":false}\n'
+    assert captured["authority"] is authority
+    assert captured["audit_campaign"] is campaign
+    assert captured["campaign_kwargs"]["tensor_cache"] is tensor_cache
+    assert captured["campaign_kwargs"]["device"] == torch.device("cuda")
+    assert captured["campaign_kwargs"]["input_shape"] == (3, 384, 384)
+    assert captured["audit_kwargs"]["peak_cuda_bytes"] == 2_000_000
+    assert captured["audit_kwargs"]["memory_psi_growth_ppm"] == 0
+    assert captured["audit_kwargs"]["swap_growth_bytes"] == 0
+
+
+def test_run_cli_classifies_resource_monitor_setup_failure_before_science(
+    tmp_path: Path, monkeypatch
+) -> None:
+    authority = _scientific_authority(tmp_path)
+    tensor_cache = _tensor_cache(authority)
+    runtime = _MODULE.StageASiglipRuntime(
+        processor=object(),
+        model_factory=lambda: object(),
+        checkpointing_enabled=lambda _model: True,
+        disable_checkpointing=lambda _model: None,
+    )
+    monkeypatch.setattr(_MODULE, "load_stage_a_authority", lambda _arguments: authority)
+    monkeypatch.setattr(_MODULE, "load_stage_a_siglip_runtime", lambda: runtime)
+    monkeypatch.setattr(_MODULE, "_stage_a_transforms", lambda _processor: (object(), object()))
+    monkeypatch.setattr(
+        _MODULE,
+        "cache_stage_a_tensors",
+        lambda *_args, **_kwargs: tensor_cache,
+    )
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.cuda, "is_bf16_supported", lambda: True)
+    monkeypatch.setattr(torch.cuda, "empty_cache", lambda: None)
+    monkeypatch.setattr(torch.cuda, "reset_peak_memory_stats", lambda _device: None)
+    monkeypatch.setattr(
+        _MODULE,
+        "StageAResourceMonitor",
+        lambda _sampler: (_ for _ in ()).throw(RuntimeError("PSI unavailable")),
+    )
+
+    with pytest.raises(_MODULE.PreScienceInvalid) as captured:
+        _MODULE.run_stage_a_cli(_MODULE.parse_stage_a_args(_valid_argv()))
+    assert captured.value.clause == "authority-mismatch"
+    assert isinstance(captured.value.__cause__, RuntimeError)
+    assert str(captured.value.__cause__) == "PSI unavailable"
+
+
+def test_run_cli_classifies_resource_monitor_failure_after_science(
+    tmp_path: Path, monkeypatch
+) -> None:
+    authority = _scientific_authority(tmp_path / "authority")
+    tensor_cache = _tensor_cache(authority)
+    campaign = _campaign(tmp_path / "campaign")
+    state = {"finished": 0}
+
+    class FakeMonitor:
+        def __init__(self, sampler) -> None:
+            assert callable(sampler)
+
+        def start(self) -> None:
+            pass
+
+        def observe(self) -> None:
+            raise RuntimeError("PSI read failed")
+
+        def finish(self):
+            state["finished"] += 1
+            return _MODULE.StageAResourceObservation(0, 0)
+
+    runtime = _MODULE.StageASiglipRuntime(
+        processor=object(),
+        model_factory=lambda: object(),
+        checkpointing_enabled=lambda _model: True,
+        disable_checkpointing=lambda _model: None,
+    )
+    monkeypatch.setattr(_MODULE, "load_stage_a_authority", lambda _arguments: authority)
+    monkeypatch.setattr(_MODULE, "load_stage_a_siglip_runtime", lambda: runtime)
+    monkeypatch.setattr(_MODULE, "_stage_a_transforms", lambda _processor: (object(), object()))
+    monkeypatch.setattr(
+        _MODULE,
+        "cache_stage_a_tensors",
+        lambda *_args, **_kwargs: tensor_cache,
+    )
+    monkeypatch.setattr(_MODULE, "StageAResourceMonitor", FakeMonitor)
+    monkeypatch.setattr(
+        _MODULE, "execute_stage_a_model_campaign", lambda *_args, **_kwargs: campaign
+    )
+    monkeypatch.setattr(
+        _MODULE,
+        "build_stage_a_execution_audit",
+        lambda *_args, **_kwargs: pytest.fail("post-science monitor failure reached audit"),
+    )
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.cuda, "is_bf16_supported", lambda: True)
+    monkeypatch.setattr(torch.cuda, "empty_cache", lambda: None)
+    monkeypatch.setattr(torch.cuda, "reset_peak_memory_stats", lambda _device: None)
+
+    with pytest.raises(_MODULE.PostScienceFailure) as captured:
+        _MODULE.run_stage_a_cli(_MODULE.parse_stage_a_args(_valid_argv()))
+    assert isinstance(captured.value.__cause__, RuntimeError)
+    assert str(captured.value.__cause__) == "PSI read failed"
+    assert state["finished"] == 1
+
+
+def test_run_cli_rejects_nonzero_endpoint_resource_growth_after_science(
+    tmp_path: Path, monkeypatch
+) -> None:
+    authority = _scientific_authority(tmp_path / "authority")
+    tensor_cache = _tensor_cache(authority)
+    campaign = _campaign(tmp_path / "campaign")
+
+    class FakeMonitor:
+        def __init__(self, sampler) -> None:
+            assert callable(sampler)
+
+        def start(self) -> None:
+            pass
+
+        def observe(self) -> None:
+            pass
+
+        def finish(self):
+            return _MODULE.StageAResourceObservation(1, 0)
+
+    runtime = _MODULE.StageASiglipRuntime(
+        processor=object(),
+        model_factory=lambda: object(),
+        checkpointing_enabled=lambda _model: True,
+        disable_checkpointing=lambda _model: None,
+    )
+    monkeypatch.setattr(_MODULE, "load_stage_a_authority", lambda _arguments: authority)
+    monkeypatch.setattr(_MODULE, "load_stage_a_siglip_runtime", lambda: runtime)
+    monkeypatch.setattr(_MODULE, "_stage_a_transforms", lambda _processor: (object(), object()))
+    monkeypatch.setattr(
+        _MODULE,
+        "cache_stage_a_tensors",
+        lambda *_args, **_kwargs: tensor_cache,
+    )
+    monkeypatch.setattr(_MODULE, "StageAResourceMonitor", FakeMonitor)
+    monkeypatch.setattr(
+        _MODULE, "execute_stage_a_model_campaign", lambda *_args, **_kwargs: campaign
+    )
+    monkeypatch.setattr(
+        _MODULE,
+        "build_stage_a_execution_audit",
+        lambda *_args, **_kwargs: pytest.fail("resource growth reached audit"),
+    )
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.cuda, "is_bf16_supported", lambda: True)
+    monkeypatch.setattr(torch.cuda, "empty_cache", lambda: None)
+    monkeypatch.setattr(torch.cuda, "reset_peak_memory_stats", lambda _device: None)
+
+    with pytest.raises(_MODULE.PostScienceFailure, match="resource growth"):
+        _MODULE.run_stage_a_cli(_MODULE.parse_stage_a_args(_valid_argv()))
 
 
 @pytest.mark.parametrize(
@@ -766,7 +1169,7 @@ def _execution_audit():
     return _MODULE.StageAExecutionAudit(
         parameter_names=("projection.weight", "tower.weight"),
         parameter_numels=(16, 64),
-        checkpointing_max_relative_disagreement=0.0,
+        checkpointing_max_relative_disagreement=4.0e-7,
         fixture_sha256="a1" * 32,
         module_training=True,
         gradient_checkpointing_enabled=False,
@@ -794,14 +1197,31 @@ def _campaign(tmp_path: Path):
     audit = _execution_audit()
     preflight = _MODULE.StageAModelPreflight(
         backend=completed.backend,
-        checkpointing_max_relative_disagreement=(audit.checkpointing_max_relative_disagreement),
+        checkpointing_max_relative_disagreement=0.0,
         fixture_sha256=audit.fixture_sha256,
         parameter_names=audit.parameter_names,
         parameter_numels=audit.parameter_numels,
+        logical_batch_replay_ns=100,
+        receiver_action_ns=10,
+        support_forward_ns=20,
+        projected_science_elapsed_ns=5_380,
+        model_load_ns=50,
+        preflight_elapsed_ns=1_000,
+        projected_attempt_elapsed_ns=6_480,
+    )
+    second = replace(
+        preflight,
+        backend=replace(preflight.backend, maximum_relative_disagreement=1.0e-7),
+        checkpointing_max_relative_disagreement=3.0e-7,
+    )
+    third = replace(
+        preflight,
+        backend=replace(preflight.backend, maximum_relative_disagreement=2.0e-7),
+        checkpointing_max_relative_disagreement=4.0e-7,
     )
     return _MODULE.StageAModelCampaign(
         completed=completed,
-        preflights=(preflight, preflight, preflight),
+        preflights=(preflight, second, third),
         determinism=_MODULE.StageADeterminismEvidence(
             cublas_workspace_config=audit.cublas_workspace_config,
             deterministic_algorithms_enabled=audit.deterministic_algorithms_enabled,
@@ -870,6 +1290,12 @@ def test_scientific_result_envelope_binds_authority_panel_tensors_backend_and_re
     assert value["parameter_authority"]["parameter_count"] == 2
     assert value["parameter_authority"]["parameter_numel"] == 80
     assert value["backend_preflight"]["backend"] == "forward-mode"
+    assert value["backend_preflight"]["maximum_relative_disagreement"] == 2.0e-7
+    assert value["backend_preflight"]["checkpointing_max_relative_disagreement"] == 4.0e-7
+    assert value["backend_preflight"]["one_dgx_hour_budget_ns"] == 3_600_000_000_000
+    assert value["backend_preflight"]["projected_science_elapsed_ns"] == 16_140
+    assert value["backend_preflight"]["projected_attempt_elapsed_ns"] == 19_440
+    assert [row["seed"] for row in value["backend_preflight"]["seed_timings"]] == [17, 29, 43]
     assert value["execution"]["logical_batch_replays"] == 18
     assert value["execution"]["receiver_actions"] == 1422
     assert value["execution"]["receiver_vjps"] == 1422
@@ -896,6 +1322,7 @@ def test_scientific_result_envelope_binds_authority_panel_tensors_backend_and_re
         lambda value: replace(value, deterministic_algorithms_enabled=False),
         lambda value: replace(value, cublas_workspace_config=":16:8"),
         lambda value: replace(value, elapsed_ns=0),
+        lambda value: replace(value, elapsed_ns=3_600_000_000_001),
         lambda value: replace(value, peak_rss_bytes=0),
         lambda value: replace(value, memory_psi_growth_ppm=1),
         lambda value: replace(value, swap_growth_bytes=1),
@@ -1168,8 +1595,10 @@ def test_checkpoint_model_loader_strictly_restores_state_and_preserves_rng() -> 
 
 
 def test_model_preflight_disables_checkpointing_and_seals_backend_before_science(
-    tmp_path: Path,
+    tmp_path: Path, monkeypatch
 ) -> None:
+    import sfora.siglip_rsta_stage_a as rsta_stage_a
+
     _arguments, binding = _write_authority_bundle(tmp_path)
     torch.manual_seed(901)
     model = PooledProxyAnchorModel(
@@ -1179,6 +1608,14 @@ def test_model_preflight_disables_checkpointing_and_seals_backend_before_science
         class_count=49,
     ).train()
     state = {"enabled": True}
+    receiver_backends: list[str] = []
+    original_receiver_rsta_fields = rsta_stage_a.receiver_rsta_fields
+
+    def observed_receiver_rsta_fields(*args, backend: str, **kwargs):
+        receiver_backends.append(backend)
+        return original_receiver_rsta_fields(*args, backend=backend, **kwargs)
+
+    monkeypatch.setattr(rsta_stage_a, "receiver_rsta_fields", observed_receiver_rsta_fields)
 
     evidence = _MODULE.preflight_stage_a_model(
         model,
@@ -1190,10 +1627,23 @@ def test_model_preflight_disables_checkpointing_and_seals_backend_before_science
 
     assert state["enabled"] is False
     assert evidence.backend.backend in {"forward-mode", "double-backward"}
+    assert receiver_backends == [
+        "forward-mode",
+        "double-backward",
+        evidence.backend.backend,
+    ]
     assert evidence.checkpointing_max_relative_disagreement <= 1.0e-5
     assert len(evidence.fixture_sha256) == 64
     assert evidence.parameter_names == tuple(sorted(evidence.parameter_names))
     assert len(evidence.parameter_numels) == len(evidence.parameter_names)
+    assert evidence.logical_batch_replay_ns > 0
+    assert evidence.receiver_action_ns > 0
+    assert evidence.support_forward_ns > 0
+    assert evidence.projected_science_elapsed_ns == (
+        6 * evidence.logical_batch_replay_ns
+        + 474 * evidence.receiver_action_ns
+        + 2 * evidence.support_forward_ns
+    )
     assert all(parameter.grad is None for parameter in model.parameters())
 
     with pytest.raises(ValueError, match="checkpointing preflight"):
@@ -1255,6 +1705,7 @@ def test_model_campaign_loads_preflights_and_executes_each_bound_seed(
     authority = replace(authority, checkpoints=tuple(states))
     created: list[PooledProxyAnchorModel] = []
     checkpointing: dict[int, bool] = {}
+    events: list[str] = []
 
     def factory() -> PooledProxyAnchorModel:
         model = PooledProxyAnchorModel(
@@ -1267,6 +1718,20 @@ def test_model_campaign_loads_preflights_and_executes_each_bound_seed(
         checkpointing[id(model)] = True
         return model
 
+    real_preflight = _MODULE.preflight_stage_a_model
+    real_seed_runner = _MODULE.run_stage_a_seed_model
+
+    def observed_preflight(*args, **kwargs):
+        events.append("preflight")
+        return real_preflight(*args, **kwargs)
+
+    def observed_seed_runner(checkpoint, *args, **kwargs):
+        events.append(f"science-{checkpoint.seed}")
+        return real_seed_runner(checkpoint, *args, **kwargs)
+
+    monkeypatch.setattr(_MODULE, "preflight_stage_a_model", observed_preflight)
+    monkeypatch.setattr(_MODULE, "run_stage_a_seed_model", observed_seed_runner)
+
     monkeypatch.setenv("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
     observed = _MODULE.execute_stage_a_model_campaign(
         authority,
@@ -1278,7 +1743,15 @@ def test_model_campaign_loads_preflights_and_executes_each_bound_seed(
         disable_checkpointing=lambda model: checkpointing.__setitem__(id(model), False),
     )
 
-    assert len(created) == 3
+    assert len(created) == 6
+    assert events == [
+        "preflight",
+        "preflight",
+        "preflight",
+        "science-17",
+        "science-29",
+        "science-43",
+    ]
     assert tuple(item.seed for item in observed.completed.authority.checkpoints) == (17, 29, 43)
     assert (
         tuple(item.backend.backend for item in observed.preflights)
@@ -1286,3 +1759,136 @@ def test_model_campaign_loads_preflights_and_executes_each_bound_seed(
     )
     assert all(checkpointing[id(model)] is False for model in created)
     assert observed.determinism.deterministic_algorithms_enabled is True
+
+
+@pytest.mark.parametrize(
+    ("failing_boundary", "error", "clause"),
+    [
+        ("determinism", RuntimeError("determinism unavailable"), "determinism-failure"),
+        ("checkpoint", ValueError("checkpoint differs"), "authority-mismatch"),
+        ("preflight", NotImplementedError("no JVP backend"), "backend-unavailable"),
+        (
+            "preflight",
+            ValueError("RSTA JVP backends disagree above the registered tolerance"),
+            "backend-unavailable",
+        ),
+        ("preflight", ValueError("fixture differs"), "fixture-failure"),
+    ],
+)
+def test_model_campaign_classifies_every_pre_science_boundary(
+    tmp_path: Path,
+    monkeypatch,
+    failing_boundary: str,
+    error: Exception,
+    clause: str,
+) -> None:
+    authority = _scientific_authority(tmp_path)
+
+    if failing_boundary == "determinism":
+        monkeypatch.setattr(
+            _MODULE,
+            "configure_stage_a_determinism",
+            lambda: (_ for _ in ()).throw(error),
+        )
+    else:
+        monkeypatch.setattr(
+            _MODULE,
+            "configure_stage_a_determinism",
+            lambda: _MODULE.StageADeterminismEvidence(
+                cublas_workspace_config=":4096:8",
+                deterministic_algorithms_enabled=True,
+                deterministic_algorithms_warn_only=False,
+                cudnn_benchmark=False,
+                cuda_matmul_allow_tf32=False,
+                cudnn_allow_tf32=False,
+            ),
+        )
+        if failing_boundary == "checkpoint":
+            monkeypatch.setattr(
+                _MODULE,
+                "load_stage_a_checkpoint_model",
+                lambda *_args, **_kwargs: (_ for _ in ()).throw(error),
+            )
+        else:
+            monkeypatch.setattr(
+                _MODULE,
+                "load_stage_a_checkpoint_model",
+                lambda *_args, **_kwargs: object(),
+            )
+            monkeypatch.setattr(
+                _MODULE,
+                "preflight_stage_a_model",
+                lambda *_args, **_kwargs: (_ for _ in ()).throw(error),
+            )
+
+    with pytest.raises(_MODULE.PreScienceInvalid) as captured:
+        _MODULE.execute_stage_a_model_campaign(
+            authority,
+            tensor_cache=_tensor_cache(authority),
+            model_factory=lambda: object(),
+            device=torch.device("cpu"),
+            input_shape=(4,),
+            checkpointing_enabled=lambda _model: True,
+            disable_checkpointing=lambda _model: None,
+        )
+    assert captured.value.clause == clause
+
+
+def test_model_campaign_rejects_projected_runtime_above_one_dgx_hour_before_science(
+    tmp_path: Path, monkeypatch
+) -> None:
+    authority = _scientific_authority(tmp_path)
+    backend = RstaJvpBackendEvidence("forward-mode", True, 0.0, None)
+    preflight = _MODULE.StageAModelPreflight(
+        backend=backend,
+        checkpointing_max_relative_disagreement=0.0,
+        fixture_sha256="a1" * 32,
+        parameter_names=("projection.weight", "tower.weight"),
+        parameter_numels=(16, 64),
+        logical_batch_replay_ns=1,
+        receiver_action_ns=1,
+        support_forward_ns=1,
+        projected_science_elapsed_ns=1_200_000_000_001,
+        model_load_ns=1,
+        preflight_elapsed_ns=1,
+        projected_attempt_elapsed_ns=1_200_000_000_004,
+    )
+    monkeypatch.setattr(
+        _MODULE,
+        "configure_stage_a_determinism",
+        lambda: _MODULE.StageADeterminismEvidence(
+            cublas_workspace_config=":4096:8",
+            deterministic_algorithms_enabled=True,
+            deterministic_algorithms_warn_only=False,
+            cudnn_benchmark=False,
+            cuda_matmul_allow_tf32=False,
+            cudnn_allow_tf32=False,
+        ),
+    )
+    monkeypatch.setattr(
+        _MODULE,
+        "load_stage_a_checkpoint_model",
+        lambda *_args, **_kwargs: object(),
+    )
+    monkeypatch.setattr(
+        _MODULE,
+        "preflight_stage_a_model",
+        lambda *_args, **_kwargs: preflight,
+    )
+    monkeypatch.setattr(
+        _MODULE,
+        "execute_stage_a_scientific_loop",
+        lambda *_args, **_kwargs: pytest.fail("science opened above the runtime budget"),
+    )
+
+    with pytest.raises(_MODULE.PreScienceInvalid) as captured:
+        _MODULE.execute_stage_a_model_campaign(
+            authority,
+            tensor_cache=_tensor_cache(authority),
+            model_factory=lambda: object(),
+            device=torch.device("cpu"),
+            input_shape=(4,),
+            checkpointing_enabled=lambda _model: True,
+            disable_checkpointing=lambda _model: None,
+        )
+    assert captured.value.clause == "throughput-budget"
