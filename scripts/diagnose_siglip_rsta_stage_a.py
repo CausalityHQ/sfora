@@ -87,6 +87,13 @@ def _canonical_json(value: dict[str, object]) -> bytes:
     return canonical_json_bytes(value)
 
 
+def _image_basename(example_id: str) -> str:
+    digest = hashlib.sha256(
+        b"rsta-siglip-a-v1|image-path|\0" + example_id.encode("utf-8")
+    ).hexdigest()
+    return f"{digest}.image"
+
+
 def _parse_control_binding(raw: bytes) -> RstaControlBinding:
     from sfora.siglip_rsta_stage_a import RstaCheckpointBinding, RstaControlBinding
 
@@ -269,22 +276,19 @@ def _load_optimization_manifest(
     example_ids: list[str] = []
     labels: list[int] = []
     image_paths: list[Path] = []
+    expected_basenames: set[str] = set()
     for row in value["examples"]:
         if (
             type(row) is not dict
-            or set(row) != {"example_id", "label", "relative_path"}
+            or set(row) != {"example_id", "label"}
             or type(row["example_id"]) is not str
             or not row["example_id"]
             or type(row["label"]) is not int
             or not 0 <= row["label"] < 49
-            or type(row["relative_path"]) is not str
-            or not row["relative_path"]
         ):
             raise ValueError("RSTA optimization manifest row differs")
-        relative = Path(row["relative_path"])
-        if relative.is_absolute() or ".." in relative.parts:
-            raise ValueError("RSTA optimization image path escapes authority")
-        image_path = image_root / relative
+        basename = _image_basename(row["example_id"])
+        image_path = image_root / basename
         try:
             resolved_image = image_path.resolve(strict=True)
         except OSError as error:
@@ -296,8 +300,12 @@ def _load_optimization_manifest(
         example_ids.append(row["example_id"])
         labels.append(row["label"])
         image_paths.append(image_path)
+        expected_basenames.add(basename)
     if len(set(example_ids)) != len(example_ids):
         raise ValueError("RSTA optimization example identities are duplicated")
+    observed_basenames = {path.name for path in image_root.iterdir()}
+    if observed_basenames != expected_basenames:
+        raise ValueError("RSTA image namespace differs from optimization authority")
     return tuple(example_ids), tuple(labels), tuple(image_paths)
 
 

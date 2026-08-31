@@ -52,6 +52,13 @@ def _valid_argv() -> list[str]:
     ]
 
 
+def _fixture_image_basename(example_id: str = "optimization-000") -> str:
+    return (
+        hashlib.sha256(b"rsta-siglip-a-v1|image-path|\0" + example_id.encode("utf-8")).hexdigest()
+        + ".image"
+    )
+
+
 def test_parser_accepts_only_complete_local_authority() -> None:
     parsed = _MODULE.parse_stage_a_args(_valid_argv())
 
@@ -164,7 +171,6 @@ def _write_authority_bundle(tmp_path: Path):
                 {
                     "example_id": "optimization-000",
                     "label": 0,
-                    "relative_path": "class-000/image.jpg",
                 }
             ],
         }
@@ -189,8 +195,9 @@ def _write_authority_bundle(tmp_path: Path):
     binding_path = tmp_path / "control-binding.json"
     binding_path.write_bytes(binding_bytes)
     image_root = tmp_path / "images"
-    (image_root / "class-000").mkdir(parents=True)
-    (image_root / "class-000/image.jpg").write_bytes(b"fixture-image")
+    image_root.mkdir(parents=True)
+    image_basename = _fixture_image_basename()
+    (image_root / image_basename).write_bytes(b"fixture-image")
     argv = [
         "--control-binding",
         str(binding_path),
@@ -238,7 +245,7 @@ def test_authority_loader_returns_only_bound_model_states_and_preserves_rng(
     assert all(not hasattr(item, "maximum_score_disagreement") for item in loaded.checkpoints)
     assert loaded.example_ids == ("optimization-000",)
     assert loaded.labels == (0,)
-    assert loaded.image_paths == (tmp_path / "images/class-000/image.jpg",)
+    assert loaded.image_paths == (tmp_path / "images" / _fixture_image_basename(),)
     assert random.getstate() == python_state
     observed_numpy = np.random.get_state()
     assert observed_numpy[0] == numpy_state[0]
@@ -290,13 +297,13 @@ def test_authority_loader_rejects_intermediate_image_symlink_escape(
     tmp_path: Path,
 ) -> None:
     arguments, _binding = _write_authority_bundle(tmp_path)
-    image_parent = arguments.image_root / "class-000"
-    (image_parent / "image.jpg").unlink()
-    image_parent.rmdir()
+    image_path = next(arguments.image_root.iterdir())
+    image_path.unlink()
     forbidden = tmp_path / "clean-validation"
     forbidden.mkdir()
-    (forbidden / "image.jpg").write_bytes(b"forbidden-image")
-    image_parent.symlink_to(forbidden, target_is_directory=True)
+    forbidden_image = forbidden / "image.jpg"
+    forbidden_image.write_bytes(b"forbidden-image")
+    image_path.symlink_to(forbidden_image)
 
     with pytest.raises(ValueError, match="image path escapes authority"):
         _MODULE.load_stage_a_authority(arguments)
@@ -360,7 +367,7 @@ def test_authority_loader_rejects_rebound_checkpoint_semantic_drift(
         _MODULE.load_stage_a_authority(arguments)
 
 
-@pytest.mark.parametrize("mutation", ["forbidden-role", "escape", "bool-label"])
+@pytest.mark.parametrize("mutation", ["forbidden-role", "path-field", "bool-label"])
 def test_authority_loader_rejects_rebound_manifest_semantic_drift(
     tmp_path: Path, mutation: str
 ) -> None:
@@ -368,7 +375,7 @@ def test_authority_loader_rejects_rebound_manifest_semantic_drift(
     manifest = json.loads(arguments.optimization_manifest.read_bytes())
     if mutation == "forbidden-role":
         manifest["clean_validation"] = []
-    elif mutation == "escape":
+    elif mutation == "path-field":
         manifest["examples"][0]["relative_path"] = "../clean/image.jpg"
     else:
         manifest["examples"][0]["label"] = False

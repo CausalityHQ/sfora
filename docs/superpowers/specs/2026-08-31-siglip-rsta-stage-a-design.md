@@ -27,6 +27,11 @@ rows. The core RSTA module defines and validates its own immutable
 `RstaControlBinding`; it does not import a script-private control authority type.
 The scientific child receives only this binding, the three authenticated checkpoint
 byte streams, the optimization-only manifest, and optimization-band pixels.
+Inside the child's read-only image namespace, each optimization pixel object is a
+flat file named
+`SHA256("rsta-siglip-a-v1|image-path|" || NUL || example_id) + ".image"`.
+The child requires that exact filename set and derives it from the manifest; paths
+are never fields in the optimization manifest, and extra pixel objects are invalid.
 
 ## Current evidence and novelty boundary
 
