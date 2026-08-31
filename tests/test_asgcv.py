@@ -23,6 +23,7 @@ from sfora.asgcv import (
     srht_signs_and_rows,
     validate_e0_result_bytes,
     validate_e0_result_inputs,
+    validate_gradient_sample_bundle,
     validate_gradient_sample_bytes,
     validate_gradient_sample_context,
     validate_gradient_sample_inputs,
@@ -681,6 +682,17 @@ def test_gradient_sample_context_cross_binds_refill_pair_group_and_protocol() ->
         eligible_schedule=eligible,
         candidate_schedule=candidates,
         completion_groups=tuple(groups),
+    )["sample_sha256"] == validate_gradient_sample_bytes(raw)["sample_sha256"]
+    assert validate_gradient_sample_bundle(
+        raw,
+        patch_tokens=tokens,
+        exact_gradient=gradient,
+        protocol=protocol,
+        eligible_schedule=eligible,
+        candidate_schedule=candidates,
+        completion_groups=tuple(groups),
+        example_ids=example_ids,
+        labels=labels,
     )["sample_sha256"] == validate_gradient_sample_bytes(raw)["sample_sha256"]
 
     with pytest.raises(ValueError, match="context"):

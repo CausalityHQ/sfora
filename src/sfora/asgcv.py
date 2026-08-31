@@ -12,8 +12,10 @@ from numpy.typing import NDArray
 
 from sfora.asgcv_protocol import (
     AsgcvCompletionGroup,
+    AsgcvCompletionProtocol,
     AsgcvEligibleSchedule,
     AsgcvPairSchedule,
+    validate_asgcv_protocol_bundle,
 )
 
 Float64Array = NDArray[np.float64]
@@ -1117,6 +1119,46 @@ def validate_gradient_sample_context(
         or value["relation_sign"] != pair.relation_sign
     ):
         raise ValueError("ASG-CV gradient sample context differs")
+    return value
+
+
+def validate_gradient_sample_bundle(
+    raw: bytes,
+    *,
+    patch_tokens: object,
+    exact_gradient: object,
+    protocol: AsgcvCompletionProtocol,
+    eligible_schedule: AsgcvEligibleSchedule,
+    candidate_schedule: AsgcvPairSchedule,
+    completion_groups: tuple[AsgcvCompletionGroup, ...],
+    example_ids: tuple[str, ...],
+    labels: tuple[int, ...],
+) -> dict[str, object]:
+    """Reopen one gradient sample and every semantic object it depends on."""
+
+    validate_asgcv_protocol_bundle(
+        protocol,
+        candidate_schedule,
+        completion_groups,
+        eligible_schedule,
+        example_ids=example_ids,
+        labels=labels,
+    )
+    value = validate_gradient_sample_inputs(
+        raw,
+        patch_tokens=patch_tokens,
+        exact_gradient=exact_gradient,
+    )
+    if (
+        validate_gradient_sample_context(
+            raw,
+            eligible_schedule=eligible_schedule,
+            candidate_schedule=candidate_schedule,
+            completion_groups=completion_groups,
+        )
+        != value
+    ):
+        raise ValueError("ASG-CV gradient sample bundle differs")
     return value
 
 
