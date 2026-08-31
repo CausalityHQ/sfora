@@ -111,6 +111,20 @@ def test_torch_srht_matches_scalar_authority_and_backpropagates() -> None:
     observed.square().sum().backward()
     assert field.grad is not None and bool(torch.isfinite(field.grad).all())
 
+    padded_authority = AsgcvSrhtAuthority(
+        input_dimensions=3,
+        padded_dimensions=4,
+        output_dimensions=3,
+        seed_sha256="12" * 32,
+    ).validated()
+    padded_field = torch.tensor([[1.0, -2.0, 3.0]], dtype=torch.float64)
+    torch.testing.assert_close(
+        torch_srht_gradient_sketch(padded_field, padded_authority),
+        torch.from_numpy(srht_gradient_sketch(padded_field.numpy(), padded_authority)),
+        rtol=0.0,
+        atol=1e-15,
+    )
+
 
 def test_predictor_training_loss_has_exact_dense_and_srht_controls() -> None:
     authority = AsgcvSrhtAuthority(
