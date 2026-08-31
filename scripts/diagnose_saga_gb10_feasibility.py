@@ -171,6 +171,8 @@ class PatchGradientTarget:
     patch_tokens: torch.Tensor
     exact_gradient: torch.Tensor
     replay_branch_count: int
+    attention_kl: float
+    teacher_gradient_parameters: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -547,11 +549,24 @@ class QwenSagaAdapter:
         pair: object,
         completion_ids: tuple[tuple[int, ...], ...],
         advantages: tuple[float, ...],
+        *,
+        correct_rollouts: tuple[bool, ...],
+        attention_layer: int,
     ) -> PatchGradientTarget:
-        """Capture the exact semantic gradient at Qwen's merged patch-token boundary."""
+        """Capture combined GRPO and attention-KL gradient at the vision boundary."""
 
-        if type(pair) is not PreparedPair or len(completion_ids) != len(advantages):
+        if (
+            type(pair) is not PreparedPair
+            or len(completion_ids) != len(advantages)
+            or type(correct_rollouts) is not tuple
+            or len(correct_rollouts) != len(completion_ids)
+            or any(type(value) is not bool for value in correct_rollouts)
+            or type(attention_layer) is not int
+            or attention_layer != 26
+        ):
             raise ValueError("SAGA patch gradient replay authority differs")
+        if not any(correct_rollouts):
+            raise ValueError("SAGA correct rollout authority differs")
         model = getattr(self._model, "model", None)
         visual = getattr(model, "visual", None)
         merger = getattr(visual, "merger", None)
@@ -571,12 +586,49 @@ class QwenSagaAdapter:
 
         handle = merger.register_forward_hook(capture_output)
         try:
-            replay = self.replay(
-                pair,
+            losses: list[torch.Tensor] = []
+            teacher_maps: list[torch.Tensor] = []
+            generated_tokens = 0
+            head_count: int | None = None
+            for completion, advantage, correct in zip(
                 completion_ids,
                 advantages,
-                output_attentions=False,
-            )
+                correct_rollouts,
+                strict=True,
+            ):
+                inputs = self._completed_inputs(pair, completion)
+                outputs = self._model.forward(
+                    **inputs,
+                    output_attentions=True,
+                    use_cache=False,
+                )
+                logits = outputs.logits
+                start = pair.input_length - 1
+                completion_logits = logits[:, start : start + len(completion), :].float()
+                target = torch.tensor(
+                    [completion],
+                    dtype=torch.long,
+                    device=completion_logits.device,
+                )
+                token_log_probabilities = (
+                    torch_functional.log_softmax(completion_logits, dim=-1)
+                    .gather(-1, target.unsqueeze(-1))
+                    .squeeze(-1)
+                )
+                losses.append(-float(advantage) * token_log_probabilities.mean())
+                generated_tokens += len(completion)
+                if correct:
+                    teacher_map, completion_head_count = self._completion_teacher_map(
+                        pair,
+                        outputs.attentions,
+                        layer=attention_layer,
+                        completion_length=len(completion),
+                    )
+                    if head_count is None:
+                        head_count = completion_head_count
+                    elif head_count != completion_head_count:
+                        raise ValueError("SAGA attention head authority differs")
+                    teacher_maps.append(teacher_map)
             if len(captured) != len(completion_ids) or not captured:
                 raise ValueError("SAGA patch gradient replay count differs")
             expected_rows = 2 * pair.patch_tokens_per_image
@@ -586,6 +638,29 @@ class QwenSagaAdapter:
             reference = captured[0].detach()
             if any(not torch.equal(value.detach(), reference) for value in captured[1:]):
                 raise ValueError("SAGA repeated patch token values differ")
+            target_shape = (2, pair.patch_tokens_per_image, shape[1])
+            live_patch_tokens = captured[0].reshape(target_shape)
+            teacher = torch.stack(teacher_maps).mean(dim=0).detach()
+            _, pooler_weights = self.pooler(live_patch_tokens)
+            if teacher.shape != pooler_weights.shape or head_count is None:
+                raise ValueError("SAGA attention/feature alignment differs")
+            epsilon = torch.finfo(pooler_weights.dtype).tiny
+            attention_kl = (
+                (
+                    teacher
+                    * (
+                        teacher.clamp_min(epsilon).log()
+                        - pooler_weights.clamp_min(epsilon).log()
+                    )
+                )
+                .sum(dim=-1)
+                .mean()
+            )
+            grpo_loss = torch.stack(losses).mean()
+            combined_loss = grpo_loss + attention_kl
+            if not bool(torch.isfinite(combined_loss)):
+                raise ValueError("SAGA semantic patch loss differs")
+            combined_loss.backward()
             gradients = [value.grad for value in captured]
             if any(value is None for value in gradients):
                 raise ValueError("SAGA merged patch gradient is absent")
@@ -597,16 +672,50 @@ class QwenSagaAdapter:
                 torch.isfinite(exact_gradient).all()
             ):
                 raise ValueError("SAGA merged patch gradient is non-finite")
-            target_shape = (2, pair.patch_tokens_per_image, shape[1])
             return PatchGradientTarget(
-                replay=replay,
+                replay=ReplayOutput(
+                    loss=float(grpo_loss.detach()),
+                    generated_tokens=generated_tokens,
+                ),
                 patch_tokens=patch_tokens.reshape(target_shape).detach(),
                 exact_gradient=exact_gradient.reshape(target_shape).detach(),
                 replay_branch_count=len(captured),
+                attention_kl=float(attention_kl.detach()),
+                teacher_gradient_parameters=int(teacher.grad is not None),
             )
         finally:
             handle.remove()
             self.clear_graphs()
+
+    @staticmethod
+    def _completion_teacher_map(
+        pair: PreparedPair,
+        attentions: object,
+        *,
+        layer: int,
+        completion_length: int,
+    ) -> tuple[torch.Tensor, int]:
+        if type(attentions) not in {tuple, list} or len(attentions) <= layer:
+            raise AttentionUnavailable("layer-26-attention-unavailable")
+        attention = attentions[layer]
+        if type(attention) is not torch.Tensor or attention.ndim != 4:
+            raise AttentionUnavailable("layer-26-attention-unavailable")
+        span_start, span_end = pair.attribute_token_span
+        if type(completion_length) is not int or span_end > completion_length:
+            raise ValueError("SAGA attribute token span differs")
+        query_start = pair.input_length + span_start
+        query_end = pair.input_length + span_end
+        query_attention = attention[0, :, query_start:query_end, :].mean(dim=(0, 1))
+        teacher_rows = []
+        for start, end in pair.image_token_ranges:
+            row = query_attention[start:end].float()
+            if row.numel() == 0 or not bool(torch.isfinite(row).all()):
+                raise ValueError("SAGA attention patch authority differs")
+            row_sum = row.sum()
+            if not bool(torch.isfinite(row_sum)) or float(row_sum) <= 0.0:
+                raise ValueError("SAGA attention patch authority differs")
+            teacher_rows.append(row / row_sum)
+        return torch.stack(teacher_rows), attention.shape[1]
 
     def _image_features(
         self, pixel_values: torch.Tensor, image_grid_thw: torch.Tensor
@@ -630,34 +739,22 @@ class QwenSagaAdapter:
             raise ValueError("SAGA attention authority differs")
         if len(completion_ids) != 8:
             raise ValueError("SAGA attention completion authority differs")
-        span_start, span_end = pair.attribute_token_span
         completion_maps: list[torch.Tensor] = []
         head_count: int | None = None
         for completion in completion_ids:
-            if span_end > len(completion):
-                raise ValueError("SAGA attribute token span differs")
             inputs = self._completed_inputs(pair, completion)
             outputs = self._model.forward(**inputs, output_attentions=True, use_cache=False)
-            attentions = outputs.attentions
-            if type(attentions) not in {tuple, list} or len(attentions) <= layer:
-                raise AttentionUnavailable("layer-26-attention-unavailable")
-            attention = attentions[layer]
-            if type(attention) is not torch.Tensor or attention.ndim != 4:
-                raise AttentionUnavailable("layer-26-attention-unavailable")
+            teacher_map, completion_head_count = self._completion_teacher_map(
+                pair,
+                outputs.attentions,
+                layer=layer,
+                completion_length=len(completion),
+            )
             if head_count is None:
-                head_count = attention.shape[1]
-            elif attention.shape[1] != head_count:
+                head_count = completion_head_count
+            elif completion_head_count != head_count:
                 raise ValueError("SAGA attention head authority differs")
-            query_start = pair.input_length + span_start
-            query_end = pair.input_length + span_end
-            query_attention = attention[0, :, query_start:query_end, :].mean(dim=(0, 1))
-            teacher_rows = []
-            for start, end in pair.image_token_ranges:
-                row = query_attention[start:end].float()
-                if row.numel() == 0 or not bool(torch.isfinite(row).all()):
-                    raise ValueError("SAGA attention patch authority differs")
-                teacher_rows.append(row / row.sum())
-            completion_maps.append(torch.stack(teacher_rows).detach())
+            completion_maps.append(teacher_map.detach())
         teacher_maps = torch.stack(completion_maps).mean(dim=0)
         features = self._image_features(pair.inputs["pixel_values"], pair.inputs["image_grid_thw"])
         if len(features) != 2 or features[0].shape != features[1].shape:

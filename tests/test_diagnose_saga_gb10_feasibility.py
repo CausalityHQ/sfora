@@ -750,6 +750,8 @@ def test_qwen_replay_captures_exact_merged_patch_gradient_target(tmp_path: Path)
         pair,
         rollouts.completion_ids,
         _MODULE.group_normalized_advantages(authority.fixture.synthetic_rewards),
+        correct_rollouts=tuple(bool(value) for value in authority.fixture.synthetic_rewards),
+        attention_layer=authority.fixture.attention_layer,
     )
 
     assert target.patch_tokens.shape == (2, 2, 16)
@@ -767,6 +769,8 @@ def test_qwen_replay_captures_exact_merged_patch_gradient_target(tmp_path: Path)
         rtol=1e-6,
     )
     assert target.replay.generated_tokens == sum(rollouts.token_counts)
+    assert target.attention_kl > 0.0
+    assert target.teacher_gradient_parameters == 0
     assert target.replay_branch_count == authority.fixture.group_size
     assert all(parameter.grad is None for parameter in adapter._vision_parameters)
 
@@ -783,6 +787,24 @@ def test_qwen_replay_patch_gradient_rejects_missing_merger(tmp_path: Path) -> No
             pair,
             rollouts.completion_ids,
             _MODULE.group_normalized_advantages(authority.fixture.synthetic_rewards),
+            correct_rollouts=tuple(bool(value) for value in authority.fixture.synthetic_rewards),
+            attention_layer=authority.fixture.attention_layer,
+        )
+
+
+def test_qwen_replay_patch_gradient_requires_a_correct_attention_teacher(tmp_path: Path) -> None:
+    authority = _hf_authority(tmp_path)
+    adapter = _MODULE.load_qwen_adapter(authority, factory=_HfLikeFactory())
+    pair = adapter.prepare_pair(authority.fixture)
+    rollouts = _MODULE.run_rollout_phase(adapter, authority.fixture)
+
+    with pytest.raises(ValueError, match="correct rollout authority"):
+        adapter.replay_patch_gradient(
+            pair,
+            rollouts.completion_ids,
+            _MODULE.group_normalized_advantages(authority.fixture.synthetic_rewards),
+            correct_rollouts=(False,) * authority.fixture.group_size,
+            attention_layer=authority.fixture.attention_layer,
         )
 
 

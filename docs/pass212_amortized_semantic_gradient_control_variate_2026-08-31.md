@@ -59,11 +59,16 @@ vision `merger` module used by the full language replay, before it is split into
 the two image-token spans. The eight sealed completions execute eight distinct
 autograd branches through that same deterministic module. E0 retains each
 branch output, requires byte-identical stopped patch values and the registered
-`2 x 49 x D` shape, and sums the eight branch-output gradients after the
-mean-over-rollouts loss backward. For deterministic vision replay, this sum is
-the exact field whose Jacobian product reproduces the semantic contribution to
-the vision-parameter gradient. A separately recomputed attention-only feature
-forward is not a valid substitute because it is outside the GRPO replay graph.
+`2 x 49 x D` shape, derives the detached layer-26 teacher map only from
+registered correct completions, applies the pooler attention KL to the first
+live branch's identical patch tensor, and performs one backward through the sum
+of mean GRPO and KL. It then sums all eight branch-output gradients; the first
+contains both GRPO and KL contributions and the remaining branches contain their
+GRPO contributions. For deterministic vision replay, this sum is the exact
+field whose Jacobian product reproduces the semantic contribution to the
+vision-parameter gradient. A separately recomputed attention-only feature
+forward is not a valid substitute because it is outside the combined replay
+graph.
 
 The scalar predictor consumes stopped fp32 patch tokens with shape
 `batch x 2 x patches x channels` plus an exact `-1/+1` relation sign. It uses
