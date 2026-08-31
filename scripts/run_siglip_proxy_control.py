@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import gc
 import hashlib
+import io
 import json
 import math
 import os
@@ -378,6 +379,99 @@ def control_manifest_sha256(examples: tuple[ImageExample, ...]) -> str:
         raise ValueError("control manifest must be a nonempty concrete tuple")
     rows = [{"example_id": example.example_id, "label": example.label} for example in examples]
     return hashlib.sha256(_canonical_bytes({"examples": rows})).hexdigest()
+
+
+def control_manifest_artifact_bytes(bands: ControlExampleBands) -> bytes:
+    """Serialize the complete image-free control manifest for later causal diagnostics."""
+
+    if type(bands) is not ControlExampleBands or not bands.ordered_manifest:
+        raise ValueError("control manifest bands differ")
+    rows = bands.ordered_manifest
+    partitions = (
+        (bands.optimization, F1_TRAIN_CLASSES),
+        (bands.clean_validation, F1_VALIDATION_CLASSES),
+        (bands.burned_diagnostic, SUBSTRATE_F0_CLASSES),
+    )
+    if (
+        any(type(values) is not tuple or not values for values, _classes in partitions)
+        or any(
+            type(example) is not ImageExample or example.label not in classes
+            for values, classes in partitions
+            for example in values
+        )
+        or tuple(
+            sorted(
+                (example for values, _classes in partitions for example in values),
+                key=lambda example: example.example_id,
+            )
+        )
+        != rows
+    ):
+        raise ValueError("control manifest bands differ")
+    if (
+        any(type(example) is not ImageExample for example in rows)
+        or tuple(sorted(rows, key=lambda example: example.example_id)) != rows
+        or len({example.example_id for example in rows}) != len(rows)
+        or any(
+            type(example.example_id) is not str
+            or not example.example_id
+            or type(example.label) is not int
+            or example.label not in F1_TRAIN_CLASSES | F1_VALIDATION_CLASSES | SUBSTRATE_F0_CLASSES
+            for example in rows
+        )
+    ):
+        raise ValueError("control manifest rows differ")
+    config = SiglipProxyControlConfig()
+    return _canonical_bytes(
+        {
+            "schema": "sfora-siglip-proxy-control-manifest-v1",
+            "claim_eligible": False,
+            "dataset_id": config.dataset_name,
+            "dataset_revision": config.dataset_revision,
+            "examples": [
+                {"example_id": example.example_id, "label": example.label} for example in rows
+            ],
+        }
+    )
+
+
+def _rsta_optimization_image_basename(example_id: str) -> str:
+    if type(example_id) is not str or not example_id:
+        raise ValueError("RSTA optimization image identity differs")
+    return (
+        hashlib.sha256(b"rsta-siglip-a-v1|image-path|\0" + example_id.encode("utf-8")).hexdigest()
+        + ".image"
+    )
+
+
+def write_control_manifest_artifacts(
+    *,
+    output: Path,
+    optimization_image_root: Path,
+    bands: ControlExampleBands,
+) -> None:
+    """Publish one full manifest and an optimization-only flat pixel namespace."""
+
+    if any(not isinstance(path, Path) for path in (output, optimization_image_root)):
+        raise TypeError("control manifest artifact paths differ")
+    if optimization_image_root.exists() or optimization_image_root.is_symlink():
+        raise FileExistsError(optimization_image_root)
+    optimization_image_root.mkdir(parents=True)
+    try:
+        for example in bands.optimization:
+            save = getattr(example.image, "save", None)
+            if not callable(save):
+                raise TypeError("control optimization image is not encodable")
+            stream = io.BytesIO()
+            save(stream, format="PNG", optimize=False, compress_level=9)
+            _write_new(
+                optimization_image_root / _rsta_optimization_image_basename(example.example_id),
+                stream.getvalue(),
+            )
+        _write_new(output, control_manifest_artifact_bytes(bands))
+    except BaseException:
+        shutil.rmtree(optimization_image_root)
+        raise
 
 
 def _band_scalar_payload(evidence: ControlBandEvidence) -> dict[str, object]:
@@ -1430,9 +1524,7 @@ def control_aggregate_receipt_bytes(seed_receipts: tuple[bytes, ...]) -> bytes:
                     "source": value["source"],
                     "dataset": value["dataset"],
                     "model": {
-                        key: item
-                        for key, item in model.items()
-                        if key != "initial_state_sha256"
+                        key: item for key, item in model.items() if key != "initial_state_sha256"
                     },
                     "config": value["config"],
                     "config_sha256": value["config_sha256"],
@@ -2122,6 +2214,9 @@ def parse_control_args(arguments: list[str] | None = None) -> argparse.Namespace
         action="append",
         required=True,
     )
+    manifest = subparsers.add_parser("manifest")
+    manifest.add_argument("--output", type=Path, required=True)
+    manifest.add_argument("--optimization-image-root", type=Path, required=True)
     return parser.parse_args(arguments)
 
 
@@ -2247,6 +2342,13 @@ def main(arguments: list[str] | None = None) -> None:
     if args.command == "aggregate":
         receipts = tuple(path.read_bytes() for path in args.seed_receipt)
         _write_new(args.output, control_aggregate_receipt_bytes(receipts))
+        return
+    if args.command == "manifest":
+        write_control_manifest_artifacts(
+            output=args.output,
+            optimization_image_root=args.optimization_image_root,
+            bands=load_control_examples(),
+        )
         return
 
     device = torch.device("cuda")

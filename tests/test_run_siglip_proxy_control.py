@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 import math
@@ -17,6 +18,7 @@ from typing import Any, cast
 
 import pytest
 import torch
+from PIL import Image
 
 from sfora.data import ImageExample
 from sfora.siglip_proxy_control import PooledProxyAnchorModel, SiglipProxyControlConfig
@@ -1173,5 +1175,97 @@ def test_control_cli_has_separate_smoke_train_and_aggregate_capabilities() -> No
     )
     assert aggregate.command == "aggregate"
     assert aggregate.seed_receipt == [Path("17.json"), Path("29.json"), Path("43.json")]
+    manifest = _MODULE.parse_control_args(
+        [
+            "manifest",
+            "--output",
+            "/tmp/control-manifest.json",
+            "--optimization-image-root",
+            "/tmp/optimization-images",
+        ]
+    )
+    assert manifest.command == "manifest"
+    assert manifest.output == Path("/tmp/control-manifest.json")
+    assert manifest.optimization_image_root == Path("/tmp/optimization-images")
     with pytest.raises(SystemExit):
         _MODULE.parse_control_args(["train", "--seed", "98"])
+
+
+def test_control_manifest_cli_emits_authenticated_image_free_ordered_rows(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    rows = tuple(
+        _MODULE.ImageExample(
+            example_id=example_id,
+            image=Image.new("RGB", (2, 2), color=color),
+            label=label,
+        )
+        for example_id, label, color in (
+            ("opt", 0, (1, 2, 3)),
+            ("clean", 49, (4, 5, 6)),
+            ("burned", 82, (7, 8, 9)),
+        )
+    )
+    bands = _MODULE.ControlExampleBands(
+        optimization=(rows[0],),
+        clean_validation=(rows[1],),
+        burned_diagnostic=(rows[2],),
+        ordered_manifest=tuple(sorted(rows, key=lambda row: row.example_id)),
+    )
+    monkeypatch.setattr(_MODULE, "load_control_examples", lambda: bands)
+    output = tmp_path / "control-manifest.json"
+    image_root = tmp_path / "optimization-images"
+
+    _MODULE.main(
+        [
+            "manifest",
+            "--output",
+            str(output),
+            "--optimization-image-root",
+            str(image_root),
+        ]
+    )
+
+    payload = json.loads(output.read_bytes())
+    config = _MODULE.SiglipProxyControlConfig()
+    assert payload == {
+        "claim_eligible": False,
+        "dataset_id": config.dataset_name,
+        "dataset_revision": config.dataset_revision,
+        "examples": [
+            {"example_id": "burned", "label": 82},
+            {"example_id": "clean", "label": 49},
+            {"example_id": "opt", "label": 0},
+        ],
+        "schema": "sfora-siglip-proxy-control-manifest-v1",
+    }
+    assert output.read_bytes() == _MODULE._canonical_bytes(payload)
+    assert (
+        _MODULE.control_manifest_sha256(bands.ordered_manifest)
+        == hashlib.sha256(_MODULE._canonical_bytes({"examples": payload["examples"]})).hexdigest()
+    )
+    assert b"image" not in output.read_bytes()
+    expected_image = hashlib.sha256(b"rsta-siglip-a-v1|image-path|\0opt").hexdigest() + ".image"
+    assert [path.name for path in image_root.iterdir()] == [expected_image]
+    with Image.open(image_root / expected_image) as observed:
+        assert observed.convert("RGB").getpixel((0, 0)) == (1, 2, 3)
+
+
+def test_control_manifest_rejects_incoherent_band_partition() -> None:
+    rows = tuple(
+        _MODULE.ImageExample(
+            example_id=example_id,
+            image=Image.new("RGB", (1, 1)),
+            label=label,
+        )
+        for example_id, label in (("burned", 82), ("clean", 49), ("opt", 0))
+    )
+    bands = _MODULE.ControlExampleBands(
+        optimization=(rows[1],),
+        clean_validation=(rows[2],),
+        burned_diagnostic=(rows[0],),
+        ordered_manifest=rows,
+    )
+
+    with pytest.raises(ValueError, match="bands"):
+        _MODULE.control_manifest_artifact_bytes(bands)
