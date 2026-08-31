@@ -5,6 +5,7 @@ import pytest
 from sfora.asgcv_protocol import (
     AsgcvCompletionProtocol,
     AsgcvPairSchedule,
+    assemble_asgcv_eligible_schedule,
     build_asgcv_pair_schedule,
     classify_asgcv_completion,
     classify_asgcv_completion_group,
@@ -105,6 +106,7 @@ def test_completion_group_derives_variance_eligibility_and_exact_teacher_spans()
     assert group.nonzero_reward_variance is True
     assert len(group.sha256()) == 64
     assert classify_asgcv_completion_group(completions, 1, protocol) == group
+    assert type(group).from_mapping(group.to_mapping()) == group
 
     all_correct = tuple((11, 12, 30 + index, 99) for index in range(8))
     assert classify_asgcv_completion_group(
@@ -113,6 +115,55 @@ def test_completion_group_derives_variance_eligibility_and_exact_teacher_spans()
 
     with pytest.raises(ValueError):
         classify_asgcv_completion_group(completions[:7], 1, protocol)
+
+
+def test_eligible_schedule_refills_before_gradients_and_preserves_relation_balance() -> None:
+    protocol = _protocol()
+    example_ids = tuple(f"cars-{index:02d}" for index in range(32))
+    labels = tuple(index // 4 for index in range(32))
+    candidates = build_asgcv_pair_schedule(
+        example_ids,
+        labels,
+        schedule_seed_sha256="ab" * 32,
+        pair_count=16,
+    )
+    groups = []
+    eligible_seen = {-1: 0, 1: 0}
+    for pair in candidates.pairs:
+        eligible = eligible_seen[pair.relation_sign] < 4
+        if eligible:
+            eligible_seen[pair.relation_sign] += 1
+        correct_prefix = (11, 12) if pair.relation_sign == 1 else (21, 22, 23)
+        wrong_prefix = (21, 22, 23) if pair.relation_sign == 1 else (11, 12)
+        completions = tuple(
+            (*correct_prefix, 30 + index, 99)
+            if eligible and index < 4
+            else (*wrong_prefix, 50 + index, 0)
+            for index in range(8)
+        )
+        groups.append(
+            classify_asgcv_completion_group(completions, pair.relation_sign, protocol)
+        )
+
+    selected = assemble_asgcv_eligible_schedule(
+        candidates,
+        tuple(groups),
+        target_pair_count=8,
+    )
+    assert selected.target_pair_count == 8
+    assert len(selected.candidate_ordinals) == 8
+    assert len(set(selected.candidate_ordinals)) == 8
+    signs = [candidates.pairs[index].relation_sign for index in selected.candidate_ordinals]
+    assert signs.count(1) == signs.count(-1) == 4
+    assert type(selected).from_mapping(selected.to_mapping()) == selected
+    assert len(selected.sha256()) == 64
+
+    with pytest.raises(ValueError, match="eligible pair capacity"):
+        assemble_asgcv_eligible_schedule(
+            candidates,
+            tuple(groups),
+            target_pair_count=16,
+        )
 
 
 def test_pair_schedule_is_balanced_disjoint_stratified_and_replayable() -> None:

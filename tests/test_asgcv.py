@@ -543,8 +543,9 @@ def _gradient_sample_bytes() -> bytes:
         fixture_sha256="3" * 64,
         completion_group_sha256="4" * 64,
         completion_protocol_sha256="6" * 64,
-        pair_schedule_sha256="7" * 64,
-        schedule_pair_ordinal=5,
+        eligible_schedule_sha256="7" * 64,
+        eligible_pair_ordinal=5,
+        candidate_pair_ordinal=11,
         pair_ordinals=(17, 29),
         relation_sign=-1,
         grpo_loss=0.125,
@@ -564,7 +565,8 @@ def test_gradient_sample_is_canonical_and_reopens_exact_fp32_arrays() -> None:
     assert value["schema"] == "sfora-asgcv-gradient-sample-v1"
     assert value["claim_eligible"] is False
     assert value["pair_ordinals"] == [17, 29]
-    assert value["schedule_pair_ordinal"] == 5
+    assert value["eligible_pair_ordinal"] == 5
+    assert value["candidate_pair_ordinal"] == 11
     assert value["relation_sign"] == -1
     assert value["replay_branch_count"] == 8
     assert value["losses"] == {"attention_kl": 0.375, "grpo": 0.125, "semantic": 0.5}
@@ -584,7 +586,7 @@ def test_gradient_sample_rejects_identity_type_shape_and_array_drift() -> None:
     for path, replacement in (
         (("claim_eligible",), True),
         (("pair_ordinals",), [17, 17]),
-        (("schedule_pair_ordinal",), True),
+        (("eligible_pair_ordinal",), True),
         (("relation_sign",), 0),
         (("replay_branch_count",), 7),
         (("generated_tokens",), True),

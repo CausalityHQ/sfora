@@ -824,8 +824,9 @@ def canonical_gradient_sample_bytes(
     fixture_sha256: object,
     completion_group_sha256: object,
     completion_protocol_sha256: object,
-    pair_schedule_sha256: object,
-    schedule_pair_ordinal: object,
+    eligible_schedule_sha256: object,
+    eligible_pair_ordinal: object,
+    candidate_pair_ordinal: object,
     pair_ordinals: object,
     relation_sign: object,
     grpo_loss: object,
@@ -847,12 +848,14 @@ def canonical_gradient_sample_bytes(
         completion_protocol_sha256,
         name="completion protocol digest",
     ).hex()
-    schedule_digest = _sha256_bytes(
-        pair_schedule_sha256,
-        name="pair schedule digest",
+    eligible_schedule_digest = _sha256_bytes(
+        eligible_schedule_sha256,
+        name="eligible schedule digest",
     ).hex()
-    if type(schedule_pair_ordinal) is not int or schedule_pair_ordinal < 0:
-        raise ValueError("ASG-CV gradient sample schedule pair ordinal differs")
+    if type(eligible_pair_ordinal) is not int or eligible_pair_ordinal < 0:
+        raise ValueError("ASG-CV gradient sample eligible pair ordinal differs")
+    if type(candidate_pair_ordinal) is not int or candidate_pair_ordinal < 0:
+        raise ValueError("ASG-CV gradient sample candidate pair ordinal differs")
     if (
         type(pair_ordinals) is not tuple
         or len(pair_ordinals) != 2
@@ -896,8 +899,9 @@ def canonical_gradient_sample_bytes(
         "fixture_sha256": fixture_digest,
         "completion_group_sha256": completion_digest,
         "completion_protocol_sha256": protocol_digest,
-        "pair_schedule_sha256": schedule_digest,
-        "schedule_pair_ordinal": schedule_pair_ordinal,
+        "eligible_schedule_sha256": eligible_schedule_digest,
+        "eligible_pair_ordinal": eligible_pair_ordinal,
+        "candidate_pair_ordinal": candidate_pair_ordinal,
         "pair_ordinals": list(pair_ordinals),
         "relation_sign": relation_sign,
         "replay_branch_count": ASGCV_STRATUM_SIZE,
@@ -947,8 +951,9 @@ def validate_gradient_sample_bytes(raw: bytes) -> dict[str, object]:
         "fixture_sha256",
         "completion_group_sha256",
         "completion_protocol_sha256",
-        "pair_schedule_sha256",
-        "schedule_pair_ordinal",
+        "eligible_schedule_sha256",
+        "eligible_pair_ordinal",
+        "candidate_pair_ordinal",
         "pair_ordinals",
         "relation_sign",
         "replay_branch_count",
@@ -970,9 +975,11 @@ def validate_gradient_sample_bytes(raw: bytes) -> dict[str, object]:
     _sha256_bytes(value["fixture_sha256"], name="fixture digest")
     _sha256_bytes(value["completion_group_sha256"], name="completion group digest")
     _sha256_bytes(value["completion_protocol_sha256"], name="completion protocol digest")
-    _sha256_bytes(value["pair_schedule_sha256"], name="pair schedule digest")
-    if type(value["schedule_pair_ordinal"]) is not int or value["schedule_pair_ordinal"] < 0:
-        raise ValueError("ASG-CV gradient sample schedule pair ordinal differs")
+    _sha256_bytes(value["eligible_schedule_sha256"], name="eligible schedule digest")
+    if type(value["eligible_pair_ordinal"]) is not int or value["eligible_pair_ordinal"] < 0:
+        raise ValueError("ASG-CV gradient sample eligible pair ordinal differs")
+    if type(value["candidate_pair_ordinal"]) is not int or value["candidate_pair_ordinal"] < 0:
+        raise ValueError("ASG-CV gradient sample candidate pair ordinal differs")
     pair_ordinals = value["pair_ordinals"]
     if (
         type(pair_ordinals) is not list
@@ -1041,8 +1048,9 @@ def validate_gradient_sample_inputs(
         fixture_sha256=value["fixture_sha256"],
         completion_group_sha256=value["completion_group_sha256"],
         completion_protocol_sha256=value["completion_protocol_sha256"],
-        pair_schedule_sha256=value["pair_schedule_sha256"],
-        schedule_pair_ordinal=value["schedule_pair_ordinal"],
+        eligible_schedule_sha256=value["eligible_schedule_sha256"],
+        eligible_pair_ordinal=value["eligible_pair_ordinal"],
+        candidate_pair_ordinal=value["candidate_pair_ordinal"],
         pair_ordinals=tuple(pair_ordinals),
         relation_sign=value["relation_sign"],
         grpo_loss=losses["grpo"],

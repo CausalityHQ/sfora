@@ -12,6 +12,8 @@ ASGCV_PAIR_SCHEDULE_SCHEMA = "sfora-asgcv-pair-schedule-v1"
 ASGCV_PAIR_SCHEDULE_DOMAIN = b"sfora-asgcv-pair-schedule-v1\0"
 ASGCV_COMPLETION_GROUP_SCHEMA = "sfora-asgcv-completion-group-v1"
 ASGCV_COMPLETION_GROUP_DOMAIN = b"sfora-asgcv-completion-group-v1\0"
+ASGCV_ELIGIBLE_SCHEDULE_SCHEMA = "sfora-asgcv-eligible-schedule-v1"
+ASGCV_ELIGIBLE_SCHEDULE_DOMAIN = b"sfora-asgcv-eligible-schedule-v1\0"
 ASGCV_STRATUM_SIZE = 8
 
 
@@ -110,8 +112,52 @@ class AsgcvCompletionGroup:
     attribute_spans: tuple[tuple[int, int] | None, ...]
     nonzero_reward_variance: bool
 
-    def sha256(self) -> str:
-        payload: dict[str, object] = {
+    def validated(self) -> AsgcvCompletionGroup:
+        if (
+            type(self.completion_ids) is not tuple
+            or len(self.completion_ids) != ASGCV_STRATUM_SIZE
+            or type(self.expected_relation_sign) is not int
+            or self.expected_relation_sign not in {-1, 1}
+            or type(self.rewards) is not tuple
+            or len(self.rewards) != ASGCV_STRATUM_SIZE
+            or any(type(value) is not int or value not in {0, 1} for value in self.rewards)
+            or type(self.correct_rollouts) is not tuple
+            or len(self.correct_rollouts) != ASGCV_STRATUM_SIZE
+            or any(type(value) is not bool for value in self.correct_rollouts)
+            or self.correct_rollouts != tuple(value == 1 for value in self.rewards)
+            or type(self.attribute_spans) is not tuple
+            or len(self.attribute_spans) != ASGCV_STRATUM_SIZE
+        ):
+            raise ValueError("ASG-CV completion group authority differs")
+        _sha256_seed(self.protocol_sha256, name="completion protocol digest")
+        for completion, correct, span in zip(
+            self.completion_ids,
+            self.correct_rollouts,
+            self.attribute_spans,
+            strict=True,
+        ):
+            _token_tuple(completion, name="completion token IDs")
+            if correct:
+                if (
+                    type(span) is not tuple
+                    or len(span) != 2
+                    or any(type(value) is not int for value in span)
+                    or not 0 <= span[0] < span[1] <= len(completion)
+                ):
+                    raise ValueError("ASG-CV completion group attribute span differs")
+            elif span is not None:
+                raise ValueError("ASG-CV completion group teacher span differs")
+        expected_variance = 0 < sum(self.rewards) < ASGCV_STRATUM_SIZE
+        if (
+            type(self.nonzero_reward_variance) is not bool
+            or self.nonzero_reward_variance is not expected_variance
+        ):
+            raise ValueError("ASG-CV completion group variance differs")
+        return self
+
+    def to_mapping(self) -> dict[str, object]:
+        self.validated()
+        return {
             "schema": ASGCV_COMPLETION_GROUP_SCHEMA,
             "completion_ids": [list(completion) for completion in self.completion_ids],
             "expected_relation_sign": self.expected_relation_sign,
@@ -123,8 +169,47 @@ class AsgcvCompletionGroup:
             ],
             "nonzero_reward_variance": self.nonzero_reward_variance,
         }
+
+    @classmethod
+    def from_mapping(cls, value: object) -> AsgcvCompletionGroup:
+        expected = {
+            "schema",
+            "completion_ids",
+            "expected_relation_sign",
+            "protocol_sha256",
+            "rewards",
+            "correct_rollouts",
+            "attribute_spans",
+            "nonzero_reward_variance",
+        }
+        if type(value) is not dict or set(value) != expected:
+            raise ValueError("ASG-CV completion group schema differs")
+        if value["schema"] != ASGCV_COMPLETION_GROUP_SCHEMA:
+            raise ValueError("ASG-CV completion group authority differs")
+        raw_completions = value["completion_ids"]
+        raw_rewards = value["rewards"]
+        raw_correct = value["correct_rollouts"]
+        raw_spans = value["attribute_spans"]
+        rows = (raw_completions, raw_rewards, raw_correct, raw_spans)
+        if any(type(raw) is not list for raw in rows):
+            raise ValueError("ASG-CV completion group rows differ")
+        completions = tuple(tuple(row) if type(row) is list else () for row in raw_completions)
+        spans = tuple(
+            tuple(span) if type(span) is list else None for span in raw_spans
+        )
+        return cls(
+            completion_ids=completions,
+            expected_relation_sign=value["expected_relation_sign"],
+            protocol_sha256=value["protocol_sha256"],
+            rewards=tuple(raw_rewards),
+            correct_rollouts=tuple(raw_correct),
+            attribute_spans=spans,
+            nonzero_reward_variance=value["nonzero_reward_variance"],
+        ).validated()
+
+    def sha256(self) -> str:
         return hashlib.sha256(
-            ASGCV_COMPLETION_GROUP_DOMAIN + _canonical_json_bytes(payload)
+            ASGCV_COMPLETION_GROUP_DOMAIN + _canonical_json_bytes(self.to_mapping())
         ).hexdigest()
 
 
@@ -241,6 +326,110 @@ class AsgcvPairSchedule:
         return hashlib.sha256(
             ASGCV_PAIR_SCHEDULE_DOMAIN + _canonical_json_bytes(self.to_mapping())
         ).hexdigest()
+
+
+@dataclass(frozen=True, slots=True)
+class AsgcvEligibleSchedule:
+    """First eligible candidate rows sealed before exact-gradient replay."""
+
+    candidate_schedule_sha256: str
+    target_pair_count: int
+    candidate_ordinals: tuple[int, ...]
+
+    def validated(self) -> AsgcvEligibleSchedule:
+        _sha256_seed(self.candidate_schedule_sha256, name="candidate schedule digest")
+        if (
+            type(self.target_pair_count) is not int
+            or self.target_pair_count <= 0
+            or self.target_pair_count % ASGCV_STRATUM_SIZE != 0
+            or type(self.candidate_ordinals) is not tuple
+            or len(self.candidate_ordinals) != self.target_pair_count
+            or any(type(value) is not int or value < 0 for value in self.candidate_ordinals)
+            or len(set(self.candidate_ordinals)) != len(self.candidate_ordinals)
+        ):
+            raise ValueError("ASG-CV eligible schedule authority differs")
+        return self
+
+    def to_mapping(self) -> dict[str, object]:
+        self.validated()
+        return {
+            "schema": ASGCV_ELIGIBLE_SCHEDULE_SCHEMA,
+            "candidate_schedule_sha256": self.candidate_schedule_sha256,
+            "target_pair_count": self.target_pair_count,
+            "candidate_ordinals": list(self.candidate_ordinals),
+        }
+
+    @classmethod
+    def from_mapping(cls, value: object) -> AsgcvEligibleSchedule:
+        if type(value) is not dict or set(value) != {
+            "schema",
+            "candidate_schedule_sha256",
+            "target_pair_count",
+            "candidate_ordinals",
+        }:
+            raise ValueError("ASG-CV eligible schedule schema differs")
+        if value["schema"] != ASGCV_ELIGIBLE_SCHEDULE_SCHEMA:
+            raise ValueError("ASG-CV eligible schedule authority differs")
+        ordinals = value["candidate_ordinals"]
+        if type(ordinals) is not list:
+            raise ValueError("ASG-CV eligible schedule rows differ")
+        return cls(
+            candidate_schedule_sha256=value["candidate_schedule_sha256"],
+            target_pair_count=value["target_pair_count"],
+            candidate_ordinals=tuple(ordinals),
+        ).validated()
+
+    def sha256(self) -> str:
+        return hashlib.sha256(
+            ASGCV_ELIGIBLE_SCHEDULE_DOMAIN + _canonical_json_bytes(self.to_mapping())
+        ).hexdigest()
+
+
+def assemble_asgcv_eligible_schedule(
+    candidates: AsgcvPairSchedule,
+    groups: tuple[AsgcvCompletionGroup, ...],
+    *,
+    target_pair_count: int,
+) -> AsgcvEligibleSchedule:
+    """Take first variance-eligible rows per relation before opening gradients."""
+
+    if type(candidates) is not AsgcvPairSchedule:
+        raise ValueError("ASG-CV candidate schedule differs")
+    candidates.validated()
+    if type(groups) is not tuple or len(groups) != candidates.pair_count:
+        raise ValueError("ASG-CV candidate completion groups differ")
+    if (
+        type(target_pair_count) is not int
+        or target_pair_count <= 0
+        or target_pair_count % ASGCV_STRATUM_SIZE != 0
+        or target_pair_count > candidates.pair_count
+    ):
+        raise ValueError("ASG-CV eligible target count differs")
+    eligible: dict[int, list[int]] = {-1: [], 1: []}
+    for pair, group in zip(candidates.pairs, groups, strict=True):
+        if type(group) is not AsgcvCompletionGroup:
+            raise ValueError("ASG-CV candidate completion group differs")
+        group.validated()
+        if group.expected_relation_sign != pair.relation_sign:
+            raise ValueError("ASG-CV candidate relation binding differs")
+        if group.nonzero_reward_variance:
+            eligible[pair.relation_sign].append(pair.ordinal)
+    needed_per_relation = target_pair_count // 2
+    if any(len(eligible[sign]) < needed_per_relation for sign in (-1, 1)):
+        raise ValueError("ASG-CV eligible pair capacity differs")
+    selected: list[int] = []
+    relations_per_stratum = ASGCV_STRATUM_SIZE // 2
+    for offset in range(0, needed_per_relation, relations_per_stratum):
+        block = (
+            eligible[1][offset : offset + relations_per_stratum]
+            + eligible[-1][offset : offset + relations_per_stratum]
+        )
+        selected.extend(sorted(block))
+    return AsgcvEligibleSchedule(
+        candidate_schedule_sha256=candidates.sha256(),
+        target_pair_count=target_pair_count,
+        candidate_ordinals=tuple(selected),
+    ).validated()
 
 
 def _sha256_seed(value: object, *, name: str) -> bytes:
@@ -474,4 +663,4 @@ def classify_asgcv_completion_group(
         correct_rollouts=correct,
         attribute_spans=spans,
         nonzero_reward_variance=0 < correct_count < ASGCV_STRATUM_SIZE,
-    )
+    ).validated()

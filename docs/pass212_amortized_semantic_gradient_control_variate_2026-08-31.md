@@ -211,16 +211,25 @@ count, and thresholds.
 Split sealed exact-gradient pairs by source-image identity so no image appears
 in both predictor training and validation. On the validation partition require:
 
-The pair schedule is created before any completion or gradient is opened. It
-consumes only the authenticated ordered example-ID/label manifest and a sealed
-SHA-256 seed. Each scheduled image appears once, each eight-pair stratum contains
-exactly four same-class and four different-class pairs, and all example, pair,
-orientation, and stratum ordering uses domain-separated hashes with deterministic
-ID/index ties. Positive pairs are formed within labels; negative pairs are
-formed across labels. The complete schedule and source manifest are
-content-addressed. Predictor training and validation use disjoint Cars training
-class bands, which also guarantees disjoint image identities; official Cars
-test classes remain inaccessible.
+The candidate-pair schedule is created before any completion or gradient is
+opened. It consumes only the authenticated ordered example-ID/label manifest
+and a sealed SHA-256 seed. Each candidate image appears once, candidate blocks
+contain exactly four same-class and four different-class pairs, and all example,
+pair, orientation, and block ordering uses domain-separated hashes with
+deterministic ID/index ties. Positive pairs are formed within labels; negative
+pairs are formed across labels. The complete candidate schedule and source
+manifest are content-addressed.
+
+DAPO eligibility is resolved in a separate forward-only phase. Candidate
+completions are generated and classified in schedule order, without backward or
+predictor access. The first four nonzero-reward-variance candidates of each
+relation form each final eight-pair stratum; zero-variance candidates remain
+sealed negative evidence but are skipped. The resulting candidate ordinals and
+their candidate-schedule digest are sealed before exact-gradient replay and
+before the ASG-CV selection schedule is revealed. Insufficient eligible capacity
+is a terminal rather than an adaptive resample. Predictor training and
+validation use disjoint Cars training class bands, which also guarantees
+disjoint image identities; official Cars test classes remain inaccessible.
 
 - median dense gradient cosine at least `0.85`;
 - median SRHT-projected gradient cosine at least `0.90`;
