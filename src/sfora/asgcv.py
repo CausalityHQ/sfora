@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass
 
 import numpy as np
@@ -19,12 +20,81 @@ ASGCV_PROJECTED_COSINE_GATE_PPM = 900_000
 ASGCV_PATCH_SPEARMAN_GATE_PPM = 800_000
 ASGCV_RESIDUAL_ENERGY_GATE_PPM = 350_000
 ASGCV_VARIANCE_RATIO_GATE_PPM = 600_000
+ASGCV_SELECTION_DOMAIN = b"sfora-asgcv-selection-v1\0"
+ASGCV_SCHEDULE_DOMAIN = b"sfora-asgcv-schedule-v1\0"
+ASGCV_MAX_SCHEDULE_SELECTIONS = 10_000_000
 
 
 def _require_exact_positive_integer(value: object, *, expected: int, name: str) -> int:
     if type(value) is not int or value != expected:
         raise ValueError(f"ASG-CV {name} differs")
     return value
+
+
+def _selection_seed_bytes(value: object) -> bytes:
+    if (
+        type(value) is not str
+        or len(value) != 64
+        or any(character not in "0123456789abcdef" for character in value)
+    ):
+        raise ValueError("ASG-CV selection seed differs")
+    return bytes.fromhex(value)
+
+
+def _u64(value: object, *, name: str) -> int:
+    if type(value) is not int or not 0 <= value < 2**64:
+        raise ValueError(f"ASG-CV {name} differs")
+    return value
+
+
+def select_stratum_index(
+    selection_seed: object,
+    *,
+    optimizer_step: int,
+    stratum_ordinal: int,
+) -> int:
+    """Select one of eight pairs from a source-bound independent stream."""
+
+    seed = _selection_seed_bytes(selection_seed)
+    step = _u64(optimizer_step, name="optimizer step")
+    ordinal = _u64(stratum_ordinal, name="stratum ordinal")
+    digest = hashlib.sha256(
+        ASGCV_SELECTION_DOMAIN + seed + step.to_bytes(8, "big") + ordinal.to_bytes(8, "big")
+    ).digest()
+    return int.from_bytes(digest[:8], "big") % ASGCV_STRATUM_SIZE
+
+
+def selection_schedule_sha256(
+    selection_seed: object,
+    *,
+    optimizer_steps: int,
+    strata_per_step: int,
+) -> str:
+    """Digest the exact step-major ASG-CV pair-selection schedule."""
+
+    seed = _selection_seed_bytes(selection_seed)
+    steps = _u64(optimizer_steps, name="optimizer step count")
+    strata = _u64(strata_per_step, name="strata per step")
+    if steps <= 0 or strata <= 0 or steps * strata > ASGCV_MAX_SCHEDULE_SELECTIONS:
+        raise ValueError("ASG-CV selection schedule size differs")
+    selections = bytearray()
+    for step in range(steps):
+        for ordinal in range(strata):
+            selections.append(
+                select_stratum_index(
+                    selection_seed,
+                    optimizer_step=step,
+                    stratum_ordinal=ordinal,
+                )
+            )
+    payload = (
+        ASGCV_SCHEDULE_DOMAIN
+        + seed
+        + steps.to_bytes(8, "big")
+        + strata.to_bytes(8, "big")
+        + selections
+    )
+    return hashlib.sha256(payload).hexdigest()
 
 
 def _require_float64_array(

@@ -10,6 +10,8 @@ from sfora.asgcv import (
     exhaustive_selection_mean,
     low_rank_gradient_field,
     normalized_residual_energy,
+    select_stratum_index,
+    selection_schedule_sha256,
     selection_variance_ratio,
 )
 
@@ -164,3 +166,31 @@ def test_e0_rejects_projection_batch_and_degenerate_salience_drift() -> None:
     constant_patch_norms = np.ones((2, 8, 3, 4), dtype=np.float64)
     with pytest.raises(ValueError):
         evaluate_e0(constant_patch_norms, constant_patch_norms.copy(), projection)
+
+
+def test_selection_stream_is_source_bound_exact_and_independent_of_gradients() -> None:
+    assert select_stratum_index("00" * 32, optimizer_step=0, stratum_ordinal=0) == 3
+    assert select_stratum_index("00" * 32, optimizer_step=1, stratum_ordinal=0) == 1
+    assert select_stratum_index("00" * 32, optimizer_step=1, stratum_ordinal=1) == 2
+    assert select_stratum_index("ff" * 32, optimizer_step=2**32, stratum_ordinal=17) == 1
+    assert select_stratum_index("12" * 32, optimizer_step=99, stratum_ordinal=1234) == 4
+
+    assert (
+        selection_schedule_sha256("00" * 32, optimizer_steps=3, strata_per_step=4)
+        == "677eb50e03a6e697f3c4d28782c800582eaf1842244dcbf323c950e33901fe5d"
+    )
+
+    for seed, step, ordinal in (
+        ("0" * 63, 0, 0),
+        ("gg" * 32, 0, 0),
+        ("00" * 32, True, 0),
+        ("00" * 32, -1, 0),
+        ("00" * 32, 0, True),
+        ("00" * 32, 0, -1),
+        ("00" * 32, 2**64, 0),
+    ):
+        with pytest.raises(ValueError):
+            select_stratum_index(seed, optimizer_step=step, stratum_ordinal=ordinal)
+
+    with pytest.raises(ValueError):
+        selection_schedule_sha256("00" * 32, optimizer_steps=0, strata_per_step=4)
