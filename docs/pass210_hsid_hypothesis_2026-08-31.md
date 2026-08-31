@@ -1,7 +1,10 @@
 # Pass 210 — Hadamard Semantic Influence Distillation hypothesis
 
 Date: 2026-08-31
-Status: **HYPOTHESIS ONLY — no source, model acquisition, or GPU execution authorized**
+Status: **REVISE at primary-source audit — no source, model acquisition, or GPU
+execution authorized.** The subsequent audit in
+`docs/pass210_hsid_primary_audit_2026-08-31.md` closes the broad causal-distillation
+novelty claim and retains only a claim-ineligible amortization diagnostic.
 
 ## Why this lane exists
 
