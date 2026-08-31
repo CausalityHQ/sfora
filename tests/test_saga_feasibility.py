@@ -13,6 +13,7 @@ from sfora.saga_feasibility import (
     ObjectAuthority,
     PhaseMeasurement,
     ResourceEnvelope,
+    ScientificEvidence,
     canonical_feasibility_result_bytes,
     load_fixture_authority,
     load_snapshot_authority,
@@ -72,6 +73,32 @@ def coherent_feasibility_evidence() -> FeasibilityEvidence:
         label_reads=0,
         evaluation_reads=0,
         optimizer_steps=0,
+        pooler_sha256="1" * 64,
+        scientific=ScientificEvidence(
+            pooler_sha256="1" * 64,
+            rollout_group_size=8,
+            rollout_token_counts=(2,) * 8,
+            rollout_completion_sha256=tuple("2" * 64 for _ in range(8)),
+            replay_loss_f64_bits="3ff0000000000000",
+            replay_generated_tokens=16,
+            replay_vision_nonzero_gradient_parameters=2,
+            replay_language_gradient_parameters=0,
+            replay_gradient_sha256="3" * 64,
+            attention_layer=26,
+            attention_head_count=16,
+            attention_teacher_shape=(2, 4),
+            attention_patch_token_shape=(2, 4, 16),
+            attention_kl_f64_bits="3fe0000000000000",
+            attention_teacher_unit_mass=True,
+            attention_teacher_gradient_parameters=0,
+            attention_pooler_nonzero_gradient_parameters=3,
+            dml_batch_size=64,
+            dml_embedding_shape=(64, 4096),
+            dml_loss_f64_bits="3ff0000000000000",
+            dml_maximum_norm_delta_ppm=0,
+            dml_vision_nonzero_gradient_parameters=3,
+            dml_language_gradient_parameters=0,
+        ),
     )
 
 
@@ -108,6 +135,8 @@ def test_result_recomputes_outcome_and_rejects_incomplete_phase() -> None:
     assert value["quality_metrics"] == []
     assert value["outcome"] == FeasibilityOutcome.FITS.value
     assert value["best_case_step_ns"] == 730
+    assert value["pooler_sha256"] == "1" * 64
+    assert value["scientific_evidence"]["attention"]["layer"] == 26
     assert len(value["result_sha256"]) == 64
 
     with pytest.raises(ValueError, match="phase evidence"):
@@ -120,13 +149,18 @@ def test_result_validator_rejects_self_digest_and_schema_drift() -> None:
     raw = canonical_feasibility_result_bytes(coherent_feasibility_evidence())
     assert validate_feasibility_result_bytes(raw)["outcome"] == "FITS"
     value = parse_canonical_object(raw, role="result")
+    scientific = dict(value["scientific_evidence"])
+    replay = dict(scientific["replay"])
+    replay["language_gradient_parameters"] = 1
+    scientific["replay"] = replay
     for mutation in (
         {**value, "result_sha256": "0" * 64},
         {**value, "extra": 1},
         {**value, "claim_eligible": 0},
         {**value, "quality_metrics": [1]},
+        {**value, "scientific_evidence": scientific},
     ):
-        with pytest.raises(ValueError, match="result"):
+        with pytest.raises(ValueError, match="result|scientific"):
             validate_feasibility_result_bytes(canonical_json_bytes(mutation))
 
 
@@ -324,6 +358,8 @@ def _write_fixture(tmp_path: Path) -> Path:
                 "generation_seeds": list(range(8)),
                 "synthetic_rewards": [0, 1, 0, 1, 0, 1, 0, 1],
                 "attention_layer": 26,
+                "attribute_token_span": [0, 1],
+                "patch_tokens_per_image": 2,
                 "pseudo_labels": [ordinal % 2 for ordinal in range(64)],
             }
         )
@@ -336,6 +372,8 @@ def test_fixture_loader_reconstructs_source_bound_images(tmp_path: Path) -> None
     assert loaded.group_size == 8
     assert loaded.image_count == 64
     assert loaded.attention_layer == 26
+    assert loaded.attribute_token_span == (0, 1)
+    assert loaded.patch_tokens_per_image == 2
     assert loaded.generation_seeds == tuple(range(8))
     assert loaded.prompt_utf8 == "List the visible car attributes and relations."
     assert loaded.pair_ordinals == (0, 1)
@@ -349,6 +387,8 @@ def test_fixture_loader_reconstructs_source_bound_images(tmp_path: Path) -> None
     [
         ("image_width", 223),
         ("group_size", True),
+        ("attribute_token_span", [1, 1]),
+        ("patch_tokens_per_image", 0),
         ("generation_seeds", list(range(7))),
         ("synthetic_rewards", [0] * 8),
         ("attention_layer", 25),

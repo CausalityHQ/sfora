@@ -14,6 +14,7 @@ from sfora.pass209_m4 import canonical_json_bytes
 
 _SHA256_RE = re.compile(r"[0-9a-f]{64}")
 _COMMIT_RE = re.compile(r"[0-9a-f]{40}")
+_F64_BITS_RE = re.compile(r"[0-9a-f]{16}")
 _PHASE_NAMES = ("load", "rollout", "replay", "attention", "dml")
 
 
@@ -159,6 +160,205 @@ class PhaseMeasurement:
 
 
 @dataclass(frozen=True, slots=True)
+class ScientificEvidence:
+    """Exact scientific facts supporting a complete feasibility result."""
+
+    pooler_sha256: str
+    rollout_group_size: int
+    rollout_token_counts: tuple[int, ...]
+    rollout_completion_sha256: tuple[str, ...]
+    replay_loss_f64_bits: str
+    replay_generated_tokens: int
+    replay_vision_nonzero_gradient_parameters: int
+    replay_language_gradient_parameters: int
+    replay_gradient_sha256: str
+    attention_layer: int
+    attention_head_count: int
+    attention_teacher_shape: tuple[int, int]
+    attention_patch_token_shape: tuple[int, int, int]
+    attention_kl_f64_bits: str
+    attention_teacher_unit_mass: bool
+    attention_teacher_gradient_parameters: int
+    attention_pooler_nonzero_gradient_parameters: int
+    dml_batch_size: int
+    dml_embedding_shape: tuple[int, int]
+    dml_loss_f64_bits: str
+    dml_maximum_norm_delta_ppm: int
+    dml_vision_nonzero_gradient_parameters: int
+    dml_language_gradient_parameters: int
+
+    @staticmethod
+    def _f64_bits(value: object, *, name: str) -> str:
+        if type(value) is not str or _F64_BITS_RE.fullmatch(value) is None:
+            raise ValueError(f"SAGA scientific {name} authority differs")
+        return value
+
+    def validated(self) -> ScientificEvidence:
+        _require_sha256(self.pooler_sha256, name="scientific pooler digest")
+        if self.rollout_group_size != 8:
+            raise ValueError("SAGA scientific rollout authority differs")
+        if (
+            type(self.rollout_token_counts) is not tuple
+            or len(self.rollout_token_counts) != 8
+            or any(type(value) is not int or value <= 0 for value in self.rollout_token_counts)
+            or type(self.rollout_completion_sha256) is not tuple
+            or len(self.rollout_completion_sha256) != 8
+        ):
+            raise ValueError("SAGA scientific rollout authority differs")
+        for digest in self.rollout_completion_sha256:
+            _require_sha256(digest, name="scientific completion digest")
+        self._f64_bits(self.replay_loss_f64_bits, name="replay loss")
+        if (
+            self.replay_generated_tokens != sum(self.rollout_token_counts)
+            or type(self.replay_vision_nonzero_gradient_parameters) is not int
+            or self.replay_vision_nonzero_gradient_parameters <= 0
+            or self.replay_language_gradient_parameters != 0
+        ):
+            raise ValueError("SAGA scientific replay authority differs")
+        _require_sha256(self.replay_gradient_sha256, name="scientific gradient digest")
+        self._f64_bits(self.attention_kl_f64_bits, name="attention KL")
+        if (
+            self.attention_layer != 26
+            or type(self.attention_head_count) is not int
+            or self.attention_head_count <= 0
+            or self.attention_teacher_shape[:1] != (2,)
+            or self.attention_patch_token_shape[:2] != self.attention_teacher_shape
+            or self.attention_patch_token_shape[2] <= 0
+            or self.attention_teacher_unit_mass is not True
+            or self.attention_teacher_gradient_parameters != 0
+            or type(self.attention_pooler_nonzero_gradient_parameters) is not int
+            or self.attention_pooler_nonzero_gradient_parameters <= 0
+        ):
+            raise ValueError("SAGA scientific attention authority differs")
+        self._f64_bits(self.dml_loss_f64_bits, name="DML loss")
+        if (
+            self.dml_batch_size != 64
+            or self.dml_embedding_shape != (64, 4096)
+            or type(self.dml_maximum_norm_delta_ppm) is not int
+            or not 0 <= self.dml_maximum_norm_delta_ppm <= 10
+            or type(self.dml_vision_nonzero_gradient_parameters) is not int
+            or self.dml_vision_nonzero_gradient_parameters <= 0
+            or self.dml_language_gradient_parameters != 0
+        ):
+            raise ValueError("SAGA scientific DML authority differs")
+        return self
+
+    def to_mapping(self) -> dict[str, object]:
+        self.validated()
+        return {
+            "pooler_sha256": self.pooler_sha256,
+            "rollout": {
+                "group_size": self.rollout_group_size,
+                "token_counts": list(self.rollout_token_counts),
+                "completion_sha256": list(self.rollout_completion_sha256),
+            },
+            "replay": {
+                "loss_f64_bits": self.replay_loss_f64_bits,
+                "generated_tokens": self.replay_generated_tokens,
+                "vision_nonzero_gradient_parameters": (
+                    self.replay_vision_nonzero_gradient_parameters
+                ),
+                "language_gradient_parameters": self.replay_language_gradient_parameters,
+                "gradient_sha256": self.replay_gradient_sha256,
+            },
+            "attention": {
+                "layer": self.attention_layer,
+                "head_count": self.attention_head_count,
+                "teacher_shape": list(self.attention_teacher_shape),
+                "patch_token_shape": list(self.attention_patch_token_shape),
+                "kl_f64_bits": self.attention_kl_f64_bits,
+                "teacher_unit_mass": self.attention_teacher_unit_mass,
+                "teacher_gradient_parameters": self.attention_teacher_gradient_parameters,
+                "pooler_nonzero_gradient_parameters": (
+                    self.attention_pooler_nonzero_gradient_parameters
+                ),
+            },
+            "dml": {
+                "batch_size": self.dml_batch_size,
+                "embedding_shape": list(self.dml_embedding_shape),
+                "loss_f64_bits": self.dml_loss_f64_bits,
+                "maximum_norm_delta_ppm": self.dml_maximum_norm_delta_ppm,
+                "vision_nonzero_gradient_parameters": self.dml_vision_nonzero_gradient_parameters,
+                "language_gradient_parameters": self.dml_language_gradient_parameters,
+            },
+        }
+
+    @classmethod
+    def from_mapping(cls, value: object) -> ScientificEvidence:
+        if type(value) is not dict or set(value) != {
+            "pooler_sha256", "rollout", "replay", "attention", "dml"
+        }:
+            raise ValueError("SAGA scientific evidence schema differs")
+        rollout, replay = value["rollout"], value["replay"]
+        attention, dml = value["attention"], value["dml"]
+        if (
+            type(rollout) is not dict
+            or set(rollout) != {"group_size", "token_counts", "completion_sha256"}
+            or type(replay) is not dict
+            or set(replay)
+            != {
+                "loss_f64_bits",
+                "generated_tokens",
+                "vision_nonzero_gradient_parameters",
+                "language_gradient_parameters",
+                "gradient_sha256",
+            }
+            or type(attention) is not dict
+            or set(attention)
+            != {
+                "layer",
+                "head_count",
+                "teacher_shape",
+                "patch_token_shape",
+                "kl_f64_bits",
+                "teacher_unit_mass",
+                "teacher_gradient_parameters",
+                "pooler_nonzero_gradient_parameters",
+            }
+            or type(dml) is not dict
+            or set(dml)
+            != {
+                "batch_size",
+                "embedding_shape",
+                "loss_f64_bits",
+                "maximum_norm_delta_ppm",
+                "vision_nonzero_gradient_parameters",
+                "language_gradient_parameters",
+            }
+        ):
+            raise ValueError("SAGA scientific evidence schema differs")
+        try:
+            evidence = cls(
+                pooler_sha256=value["pooler_sha256"],
+                rollout_group_size=rollout["group_size"],
+                rollout_token_counts=tuple(rollout["token_counts"]),
+                rollout_completion_sha256=tuple(rollout["completion_sha256"]),
+                replay_loss_f64_bits=replay["loss_f64_bits"],
+                replay_generated_tokens=replay["generated_tokens"],
+                replay_vision_nonzero_gradient_parameters=replay["vision_nonzero_gradient_parameters"],
+                replay_language_gradient_parameters=replay["language_gradient_parameters"],
+                replay_gradient_sha256=replay["gradient_sha256"],
+                attention_layer=attention["layer"],
+                attention_head_count=attention["head_count"],
+                attention_teacher_shape=tuple(attention["teacher_shape"]),
+                attention_patch_token_shape=tuple(attention["patch_token_shape"]),
+                attention_kl_f64_bits=attention["kl_f64_bits"],
+                attention_teacher_unit_mass=attention["teacher_unit_mass"],
+                attention_teacher_gradient_parameters=attention["teacher_gradient_parameters"],
+                attention_pooler_nonzero_gradient_parameters=attention["pooler_nonzero_gradient_parameters"],
+                dml_batch_size=dml["batch_size"],
+                dml_embedding_shape=tuple(dml["embedding_shape"]),
+                dml_loss_f64_bits=dml["loss_f64_bits"],
+                dml_maximum_norm_delta_ppm=dml["maximum_norm_delta_ppm"],
+                dml_vision_nonzero_gradient_parameters=dml["vision_nonzero_gradient_parameters"],
+                dml_language_gradient_parameters=dml["language_gradient_parameters"],
+            )
+        except (KeyError, TypeError) as error:
+            raise ValueError("SAGA scientific evidence schema differs") from error
+        return evidence.validated()
+
+
+@dataclass(frozen=True, slots=True)
 class FeasibilityEvidence:
     """Pure evidence consumed by the canonical feasibility serializer."""
 
@@ -185,6 +385,8 @@ class FeasibilityEvidence:
     label_reads: int
     evaluation_reads: int
     optimizer_steps: int
+    pooler_sha256: str | None = None
+    scientific: ScientificEvidence | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -217,6 +419,8 @@ class FixtureAuthority:
     generation_seeds: tuple[int, ...]
     synthetic_rewards: tuple[int, ...]
     attention_layer: int
+    attribute_token_span: tuple[int, int]
+    patch_tokens_per_image: int
     prompt_sha256: str
     message_serialization_sha256: str
     prompt_utf8: str
@@ -425,6 +629,8 @@ def load_fixture_authority(path: Path) -> FixtureAuthority:
         "generation_seeds",
         "synthetic_rewards",
         "attention_layer",
+        "attribute_token_span",
+        "patch_tokens_per_image",
         "pseudo_labels",
     }
     if set(manifest) != keys or manifest["schema"] != "sfora-saga-synthetic-fixture-v1":
@@ -498,6 +704,14 @@ def load_fixture_authority(path: Path) -> FixtureAuthority:
     )
     if pseudo_labels.count(0) != 32 or pseudo_labels.count(1) != 32:
         raise ValueError("SAGA fixture pseudo-label balance differs")
+    attribute_token_span = _require_exact_integer_list(
+        manifest["attribute_token_span"],
+        expected=[0, 1],
+        name="attribute token span",
+    )
+    patch_tokens_per_image = _require_positive_integer(
+        manifest["patch_tokens_per_image"], name="fixture patch tokens per image"
+    )
     return FixtureAuthority(
         source_commit=source_commit,
         model_revision=model_revision,
@@ -509,6 +723,8 @@ def load_fixture_authority(path: Path) -> FixtureAuthority:
         generation_seeds=generation_seeds,
         synthetic_rewards=synthetic_rewards,
         attention_layer=26,
+        attribute_token_span=(attribute_token_span[0], attribute_token_span[1]),
+        patch_tokens_per_image=patch_tokens_per_image,
         prompt_sha256=prompt_sha256,
         message_serialization_sha256=message_serialization_sha256,
         prompt_utf8=prompt,
@@ -579,6 +795,12 @@ def canonical_feasibility_result_bytes(evidence: FeasibilityEvidence) -> bytes:
     if any(completion[index] and not completion[index - 1] for index in range(1, 5)):
         raise ValueError("SAGA phase evidence differs")
     if all(completion):
+        _require_sha256(evidence.pooler_sha256, name="pooler digest")
+        if type(evidence.scientific) is not ScientificEvidence:
+            raise ValueError("SAGA scientific evidence schema differs")
+        scientific_evidence = evidence.scientific.to_mapping()
+        if evidence.scientific.pooler_sha256 != evidence.pooler_sha256:
+            raise ValueError("SAGA scientific pooler authority differs")
         best_case_step_ns: int | None = project_best_case_step_ns(
             dml_microbatch_ns=evidence.dml.elapsed_ns,
             rollout_group_ns=evidence.rollout.elapsed_ns,
@@ -588,6 +810,11 @@ def canonical_feasibility_result_bytes(evidence: FeasibilityEvidence) -> bytes:
         if not math.isfinite(float(best_case_step_ns)):
             raise ValueError("SAGA projection differs")
     else:
+        if evidence.pooler_sha256 is not None:
+            _require_sha256(evidence.pooler_sha256, name="pooler digest")
+        if evidence.scientific is not None:
+            raise ValueError("SAGA scientific partial evidence differs")
+        scientific_evidence = None
         best_case_step_ns = None
 
     payload: dict[str, object] = {
@@ -608,6 +835,8 @@ def canonical_feasibility_result_bytes(evidence: FeasibilityEvidence) -> bytes:
         "label_reads": evidence.label_reads,
         "evaluation_reads": evidence.evaluation_reads,
         "optimizer_steps": evidence.optimizer_steps,
+        "pooler_sha256": evidence.pooler_sha256,
+        "scientific_evidence": scientific_evidence,
         "quality_metrics": [],
     }
     payload["result_sha256"] = hashlib.sha256(
@@ -638,6 +867,8 @@ def validate_feasibility_result_bytes(raw: bytes) -> dict[str, object]:
         "label_reads",
         "evaluation_reads",
         "optimizer_steps",
+        "pooler_sha256",
+        "scientific_evidence",
         "quality_metrics",
         "result_sha256",
     }
@@ -708,6 +939,17 @@ def validate_feasibility_result_bytes(raw: bytes) -> dict[str, object]:
             raise ValueError("SAGA feasibility result phase evidence differs")
     if any(completed[index] and not completed[index - 1] for index in range(1, 5)):
         raise ValueError("SAGA feasibility result phase evidence differs")
+
+    if all(completed):
+        _require_sha256(value["pooler_sha256"], name="result pooler digest")
+        science = ScientificEvidence.from_mapping(value["scientific_evidence"])
+        if science.pooler_sha256 != value["pooler_sha256"]:
+            raise ValueError("SAGA scientific pooler authority differs")
+    else:
+        if value["pooler_sha256"] is not None:
+            _require_sha256(value["pooler_sha256"], name="result pooler digest")
+        if value["scientific_evidence"] is not None:
+            raise ValueError("SAGA scientific partial evidence differs")
 
     outcome = value["outcome"]
     clauses = {

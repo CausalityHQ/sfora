@@ -8,6 +8,7 @@ import hashlib
 import math
 import os
 import resource
+import struct
 import sys
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -27,6 +28,7 @@ from sfora.saga_feasibility import (
     ObjectAuthority,
     PhaseMeasurement,
     ResourceEnvelope,
+    ScientificEvidence,
     SnapshotAuthority,
     canonical_feasibility_result_bytes,
     generated_fixture_image_bytes,
@@ -198,6 +200,8 @@ class AttentionEvidence:
 
     layer: int
     head_count: int
+    teacher_shape: tuple[int, int]
+    patch_token_shape: tuple[int, int, int]
     elapsed_ns: int
     kl: float
     teacher_unit_mass: bool
@@ -225,6 +229,8 @@ class PreparedPair:
     inputs: dict[str, torch.Tensor]
     input_length: int
     image_token_ranges: tuple[tuple[int, int], tuple[int, int]]
+    attribute_token_span: tuple[int, int]
+    patch_tokens_per_image: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -259,6 +265,40 @@ class SingleQueryPooler(torch.nn.Module):
         return torch_functional.normalize(self.output(pooled), dim=-1), weights
 
 
+def pooler_state_sha256(pooler: SingleQueryPooler) -> str:
+    """Hash the exact initialized pooler tensors in stable name order."""
+
+    if type(pooler) is not SingleQueryPooler:
+        raise ValueError("SAGA pooler authority differs")
+    digest = hashlib.sha256()
+    for name, tensor in sorted(pooler.state_dict().items()):
+        contiguous = tensor.detach().cpu().contiguous()
+        digest.update(name.encode("utf-8") + b"\0")
+        digest.update(str(contiguous.dtype).encode("ascii") + b"\0")
+        digest.update(canonical_json_bytes(list(contiguous.shape)))
+        digest.update(contiguous.numpy().tobytes())
+    return digest.hexdigest()
+
+
+def _source_bound_pooler(
+    *, token_dim: int, source_commit: str, model_revision: str
+) -> SingleQueryPooler:
+    seed_material = canonical_json_bytes(
+        {
+            "model_revision": model_revision,
+            "role": "single-query-pooler-v1",
+            "source_commit": source_commit,
+        }
+    )
+    seed = int.from_bytes(hashlib.sha256(seed_material).digest()[:8], "big")
+    cpu_rng_state = torch.random.get_rng_state()
+    try:
+        torch.random.default_generator.manual_seed(seed)
+        return SingleQueryPooler(token_dim=token_dim)
+    finally:
+        torch.random.set_rng_state(cpu_rng_state)
+
+
 class QwenSagaAdapter:
     """Validated Qwen model/processor pair with frozen gradient roles."""
 
@@ -271,6 +311,8 @@ class QwenSagaAdapter:
         language_parameters: tuple[object, ...],
         token_dim: int,
         load_measurement: PhaseMeasurement,
+        source_commit: str,
+        model_revision: str,
     ) -> None:
         self._model = model
         self._processor = processor
@@ -287,7 +329,12 @@ class QwenSagaAdapter:
             ),
             torch.device("cpu"),
         )
-        self.pooler = SingleQueryPooler(token_dim=token_dim).to(operational_device)
+        self.pooler = _source_bound_pooler(
+            token_dim=token_dim,
+            source_commit=source_commit,
+            model_revision=model_revision,
+        ).to(operational_device)
+        self.pooler_sha256 = pooler_state_sha256(self.pooler)
 
     def trainable_parameter_roles(self) -> tuple[str, ...]:
         return ("vision",)
@@ -381,10 +428,14 @@ class QwenSagaAdapter:
         groups.append((start, previous + 1))
         if len(groups) != 2:
             raise ValueError("SAGA image token ranges differ")
+        if any(end - start != fixture.patch_tokens_per_image for start, end in groups):
+            raise ValueError("SAGA image patch span authority differs")
         return PreparedPair(
             inputs=inputs,
             input_length=input_ids.shape[1],
             image_token_ranges=(groups[0], groups[1]),
+            attribute_token_span=fixture.attribute_token_span,
+            patch_tokens_per_image=fixture.patch_tokens_per_image,
         )
 
     def prepare_microbatch(self, fixture: FixtureAuthority) -> PreparedMicrobatch:
@@ -513,37 +564,55 @@ class QwenSagaAdapter:
     ) -> AttentionOutput:
         if type(pair) is not PreparedPair or layer != 26:
             raise ValueError("SAGA attention authority differs")
-        inputs = self._completed_inputs(pair, completion_ids[0])
-        outputs = self._model.forward(
-            **inputs, output_attentions=True, use_cache=False
-        )
-        attentions = outputs.attentions
-        if type(attentions) not in {tuple, list} or len(attentions) <= layer:
-            raise AttentionUnavailable("layer-26-attention-unavailable")
-        attention = attentions[layer]
-        if type(attention) is not torch.Tensor or attention.ndim != 4:
-            raise AttentionUnavailable("layer-26-attention-unavailable")
-        query_start = pair.input_length
-        query_attention = attention[0, :, query_start:, :].mean(dim=(0, 1))
-        teacher_rows = []
-        for start, end in pair.image_token_ranges:
-            row = query_attention[start:end].float()
-            if row.numel() == 0 or not bool(torch.isfinite(row).all()):
-                raise ValueError("SAGA attention patch authority differs")
-            teacher_rows.append(row / row.sum())
+        if len(completion_ids) != 8:
+            raise ValueError("SAGA attention completion authority differs")
+        span_start, span_end = pair.attribute_token_span
+        completion_maps: list[torch.Tensor] = []
+        head_count: int | None = None
+        for completion in completion_ids:
+            if span_end > len(completion):
+                raise ValueError("SAGA attribute token span differs")
+            inputs = self._completed_inputs(pair, completion)
+            outputs = self._model.forward(
+                **inputs, output_attentions=True, use_cache=False
+            )
+            attentions = outputs.attentions
+            if type(attentions) not in {tuple, list} or len(attentions) <= layer:
+                raise AttentionUnavailable("layer-26-attention-unavailable")
+            attention = attentions[layer]
+            if type(attention) is not torch.Tensor or attention.ndim != 4:
+                raise AttentionUnavailable("layer-26-attention-unavailable")
+            if head_count is None:
+                head_count = attention.shape[1]
+            elif attention.shape[1] != head_count:
+                raise ValueError("SAGA attention head authority differs")
+            query_start = pair.input_length + span_start
+            query_end = pair.input_length + span_end
+            query_attention = attention[0, :, query_start:query_end, :].mean(
+                dim=(0, 1)
+            )
+            teacher_rows = []
+            for start, end in pair.image_token_ranges:
+                row = query_attention[start:end].float()
+                if row.numel() == 0 or not bool(torch.isfinite(row).all()):
+                    raise ValueError("SAGA attention patch authority differs")
+                teacher_rows.append(row / row.sum())
+            completion_maps.append(torch.stack(teacher_rows).detach())
+        teacher_maps = torch.stack(completion_maps).mean(dim=0)
         features = self._image_features(
             pair.inputs["pixel_values"], pair.inputs["image_grid_thw"]
         )
         if len(features) != 2 or features[0].shape != features[1].shape:
             raise ValueError("SAGA pair vision feature authority differs")
         patch_tokens = torch.stack(features)
-        teacher_maps = torch.stack(teacher_rows)
+        if patch_tokens.shape[1] != pair.patch_tokens_per_image:
+            raise ValueError("SAGA vision patch span authority differs")
         if teacher_maps.shape[:2] != patch_tokens.shape[:2]:
             raise ValueError("SAGA attention/feature alignment differs")
         return AttentionOutput(
             teacher_maps=teacher_maps,
             patch_tokens=patch_tokens,
-            head_count=attention.shape[1],
+            head_count=head_count or 0,
         )
 
     def vision_pool(self, microbatch: object) -> torch.Tensor:
@@ -682,6 +751,8 @@ def load_qwen_adapter(
         language_parameters=language_parameters,
         token_dim=token_dim,
         load_measurement=load_measurement,
+        source_commit=fixture.source_commit,
+        model_revision=fixture.model_revision,
     )
 
 
@@ -891,6 +962,8 @@ def run_attention_phase(
         return AttentionEvidence(
             layer=26,
             head_count=output.head_count,
+            teacher_shape=(teacher.shape[0], teacher.shape[1]),
+            patch_token_shape=(tokens.shape[0], tokens.shape[1], tokens.shape[2]),
             elapsed_ns=elapsed_ns,
             kl=float(kl.detach()),
             teacher_unit_mass=True,
@@ -1089,6 +1162,8 @@ def _repeatability_signature(run: _ScientificRun) -> tuple[object, ...]:
         run.replay.gradient_sha256,
         run.attention.layer,
         run.attention.head_count,
+        run.attention.teacher_shape,
+        run.attention.patch_token_shape,
         run.attention.kl,
         run.attention.teacher_unit_mass,
         run.attention.teacher_gradient_parameters,
@@ -1099,6 +1174,48 @@ def _repeatability_signature(run: _ScientificRun) -> tuple[object, ...]:
         run.dml.vision_nonzero_gradient_parameters,
         run.dml.language_gradient_parameters,
     )
+
+
+def _f64_bits(value: float) -> str:
+    return struct.pack(">d", value).hex()
+
+
+def _scientific_evidence(
+    run: _ScientificRun, *, pooler_sha256: str
+) -> ScientificEvidence:
+    return ScientificEvidence(
+        pooler_sha256=pooler_sha256,
+        rollout_group_size=run.rollout.group_size,
+        rollout_token_counts=run.rollout.token_counts,
+        rollout_completion_sha256=run.rollout.completion_sha256,
+        replay_loss_f64_bits=_f64_bits(run.replay.loss),
+        replay_generated_tokens=run.replay.generated_tokens,
+        replay_vision_nonzero_gradient_parameters=(
+            run.replay.vision_nonzero_gradient_parameters
+        ),
+        replay_language_gradient_parameters=run.replay.language_gradient_parameters,
+        replay_gradient_sha256=run.replay.gradient_sha256,
+        attention_layer=run.attention.layer,
+        attention_head_count=run.attention.head_count,
+        attention_teacher_shape=run.attention.teacher_shape,
+        attention_patch_token_shape=run.attention.patch_token_shape,
+        attention_kl_f64_bits=_f64_bits(run.attention.kl),
+        attention_teacher_unit_mass=run.attention.teacher_unit_mass,
+        attention_teacher_gradient_parameters=(
+            run.attention.teacher_gradient_parameters
+        ),
+        attention_pooler_nonzero_gradient_parameters=(
+            run.attention.pooler_nonzero_gradient_parameters
+        ),
+        dml_batch_size=run.dml.batch_size,
+        dml_embedding_shape=run.dml.embedding_shape,
+        dml_loss_f64_bits=_f64_bits(run.dml.loss),
+        dml_maximum_norm_delta_ppm=run.dml.maximum_norm_delta_ppm,
+        dml_vision_nonzero_gradient_parameters=(
+            run.dml.vision_nonzero_gradient_parameters
+        ),
+        dml_language_gradient_parameters=run.dml.language_gradient_parameters,
+    ).validated()
 
 
 def _failure_flags(outcome: FeasibilityOutcome) -> dict[str, bool]:
@@ -1156,6 +1273,8 @@ def run_feasibility(
         for name in ("load", "rollout", "replay", "attention", "dml")
     }
     outcome = FeasibilityOutcome.FITS
+    pooler_sha256: str | None = None
+    scientific: ScientificEvidence | None = None
     try:
         _, validation_measurement = _measure_runtime(
             "load", lambda: adapter.validate_structure(authority)
@@ -1172,9 +1291,11 @@ def run_feasibility(
         pooler = getattr(adapter, "pooler", None)
         if type(pooler) is not SingleQueryPooler:
             pooler = SingleQueryPooler(token_dim=token_dim)
+        pooler_sha256 = pooler_state_sha256(pooler)
         first = _run_scientific_phases(
             authority, adapter, pooler, measurements, progress
         )
+        scientific = _scientific_evidence(first, pooler_sha256=pooler_sha256)
         second = _run_scientific_phases(authority, adapter, pooler, None)
         if _repeatability_signature(first) != _repeatability_signature(second):
             raise FeasibilityFailure(
@@ -1206,6 +1327,8 @@ def run_feasibility(
         label_reads=0,
         evaluation_reads=0,
         optimizer_steps=0,
+        pooler_sha256=pooler_sha256,
+        scientific=scientific,
         **flags,
     )
     return canonical_feasibility_result_bytes(evidence)

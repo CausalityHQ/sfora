@@ -12,6 +12,7 @@ from sfora.saga_feasibility import (
     ObjectAuthority,
     PhaseMeasurement,
     ResourceEnvelope,
+    ScientificEvidence,
     canonical_feasibility_result_bytes,
 )
 
@@ -61,6 +62,32 @@ def _result_bytes() -> bytes:
             label_reads=0,
             evaluation_reads=0,
             optimizer_steps=0,
+            pooler_sha256="1" * 64,
+            scientific=ScientificEvidence(
+                pooler_sha256="1" * 64,
+                rollout_group_size=8,
+                rollout_token_counts=(2,) * 8,
+                rollout_completion_sha256=tuple("2" * 64 for _ in range(8)),
+                replay_loss_f64_bits="3ff0000000000000",
+                replay_generated_tokens=16,
+                replay_vision_nonzero_gradient_parameters=2,
+                replay_language_gradient_parameters=0,
+                replay_gradient_sha256="3" * 64,
+                attention_layer=26,
+                attention_head_count=16,
+                attention_teacher_shape=(2, 4),
+                attention_patch_token_shape=(2, 4, 16),
+                attention_kl_f64_bits="3fe0000000000000",
+                attention_teacher_unit_mass=True,
+                attention_teacher_gradient_parameters=0,
+                attention_pooler_nonzero_gradient_parameters=3,
+                dml_batch_size=64,
+                dml_embedding_shape=(64, 4096),
+                dml_loss_f64_bits="3ff0000000000000",
+                dml_maximum_norm_delta_ppm=0,
+                dml_vision_nonzero_gradient_parameters=3,
+                dml_language_gradient_parameters=0,
+            ),
         )
     )
 

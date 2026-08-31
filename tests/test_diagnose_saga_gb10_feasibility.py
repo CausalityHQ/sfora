@@ -3,7 +3,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -168,6 +168,8 @@ def _loaded_authority(tmp_path: Path) -> object:
         generation_seeds=tuple(range(8)),
         synthetic_rewards=(0, 1, 0, 1, 0, 1, 0, 1),
         attention_layer=26,
+        attribute_token_span=(0, 1),
+        patch_tokens_per_image=4,
         prompt_sha256="8" * 64,
         message_serialization_sha256="9" * 64,
         prompt_utf8="List the visible car attributes and relations.",
@@ -238,6 +240,8 @@ def _fixture_authority() -> FixtureAuthority:
         generation_seeds=tuple(range(8)),
         synthetic_rewards=(0, 1, 0, 1, 0, 1, 0, 1),
         attention_layer=26,
+        attribute_token_span=(0, 1),
+        patch_tokens_per_image=4,
         prompt_sha256="8" * 64,
         message_serialization_sha256="9" * 64,
         prompt_utf8="List the visible car attributes and relations.",
@@ -664,6 +668,7 @@ class _HfLikeProcessor:
 class _HfLikeModel(torch.nn.Module):
     def __init__(self) -> None:
         super().__init__()
+        self.forward_calls = 0
         self.device = "cuda"
         self.dtype = "bfloat16"
         visual = torch.nn.Linear(1, 16, bias=False)
@@ -686,6 +691,7 @@ class _HfLikeModel(torch.nn.Module):
         return torch.cat((input_ids, generated), dim=1)
 
     def forward(self, **inputs: object) -> object:
+        self.forward_calls += 1
         input_ids = inputs["input_ids"]
         assert isinstance(input_ids, torch.Tensor)
         sequence = input_ids.shape[1]
@@ -721,10 +727,18 @@ class _HfLikeFactory:
         return _HfLikeProcessor()
 
 
+def _hf_authority(tmp_path: Path) -> object:
+    authority = _complete_authority(tmp_path)
+    return replace(
+        authority,
+        fixture=replace(authority.fixture, patch_tokens_per_image=2),
+    )
+
+
 def test_hf_shaped_qwen_adapter_executes_every_scientific_protocol(
     tmp_path: Path,
 ) -> None:
-    authority = _complete_authority(tmp_path)
+    authority = _hf_authority(tmp_path)
     adapter = _MODULE.load_qwen_adapter(authority, factory=_HfLikeFactory())
     adapter.validate_structure(authority)
     rollouts = _MODULE.run_rollout_phase(adapter, authority.fixture)
@@ -737,12 +751,13 @@ def test_hf_shaped_qwen_adapter_executes_every_scientific_protocol(
     assert replay.language_gradient_parameters == 0
     assert attention.layer == 26
     assert dml.embedding_shape == (64, 4096)
+    assert adapter._model.forward_calls == 16
 
 
 def test_complete_run_reuses_one_pooler_for_attention_and_dml(
     tmp_path: Path,
 ) -> None:
-    authority = _complete_authority(tmp_path)
+    authority = _hf_authority(tmp_path)
     adapter = _MODULE.load_qwen_adapter(authority, factory=_HfLikeFactory())
     calls = 0
 
@@ -762,7 +777,7 @@ def test_complete_run_reuses_one_pooler_for_attention_and_dml(
 def test_complete_run_records_load_and_phase_resource_measurements(
     tmp_path: Path,
 ) -> None:
-    authority = _complete_authority(tmp_path)
+    authority = _hf_authority(tmp_path)
     adapter = _MODULE.load_qwen_adapter(authority, factory=_HfLikeFactory())
 
     result = json.loads(_MODULE.run_feasibility(authority, adapter))
@@ -780,3 +795,30 @@ def test_complete_run_records_load_and_phase_resource_measurements(
     assert all(
         phase["peak_cuda_reserved_bytes"] >= 0 for phase in result["phases"]
     )
+    scientific = result["scientific_evidence"]
+    assert scientific["pooler_sha256"] == result["pooler_sha256"]
+    assert scientific["rollout"]["token_counts"] == [2] * 8
+    assert scientific["replay"]["generated_tokens"] == 16
+    assert scientific["attention"]["teacher_shape"] == [2, 2]
+    assert scientific["attention"]["patch_token_shape"] == [2, 2, 16]
+    assert scientific["dml"]["embedding_shape"] == [64, 4096]
+
+
+def test_qwen_pooler_initialization_is_source_bound_not_rng_bound(
+    tmp_path: Path,
+) -> None:
+    authority = _hf_authority(tmp_path)
+    torch.manual_seed(11)
+    first = _MODULE.load_qwen_adapter(authority, factory=_HfLikeFactory())
+    torch.manual_seed(29)
+    second = _MODULE.load_qwen_adapter(authority, factory=_HfLikeFactory())
+
+    assert first.pooler_sha256 == second.pooler_sha256
+    assert first.pooler_sha256 == _MODULE.pooler_state_sha256(first.pooler)
+
+    changed = replace(
+        authority,
+        fixture=replace(authority.fixture, source_commit="b" * 40),
+    )
+    third = _MODULE.load_qwen_adapter(changed, factory=_HfLikeFactory())
+    assert third.pooler_sha256 != first.pooler_sha256
