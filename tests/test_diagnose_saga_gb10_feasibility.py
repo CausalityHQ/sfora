@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
+import torch
 
 from sfora.saga_feasibility import FixtureAuthority, SnapshotAuthority
 
@@ -335,4 +336,103 @@ def test_replay_rejects_gradient_role_drift(
         _MODULE.run_replay_phase(
             adapter, _FIXTURE, _MODULE.run_rollout_phase(adapter, _FIXTURE)
         )
+    assert adapter.cleared == 1
+
+
+class _AttentionDmlAdapter(_RecordingAdapter):
+    def __init__(self) -> None:
+        super().__init__()
+        self.teacher = torch.tensor(
+            [[0.4, 0.3, 0.2, 0.1], [0.1, 0.2, 0.3, 0.4]],
+            dtype=torch.float32,
+            requires_grad=True,
+        )
+        self.patch_tokens = torch.arange(
+            2 * 4 * 16, dtype=torch.float32
+        ).reshape(2, 4, 16)
+        self.patch_tokens.requires_grad_(True)
+        self.microbatch_embeddings: torch.Tensor | None = None
+
+    def attention_observation(
+        self,
+        pair: object,
+        completion_ids: tuple[tuple[int, ...], ...],
+        *,
+        layer: int,
+    ) -> object:
+        assert pair == "prepared-pair"
+        assert len(completion_ids) == 8
+        assert layer == 26
+        return _MODULE.AttentionOutput(
+            teacher_maps=self.teacher,
+            patch_tokens=self.patch_tokens,
+            head_count=16,
+        )
+
+    def prepare_microbatch(self, fixture: FixtureAuthority) -> object:
+        assert fixture is _FIXTURE
+        return "prepared-microbatch"
+
+    def vision_pool(self, microbatch: object) -> torch.Tensor:
+        assert microbatch == "prepared-microbatch"
+        embeddings = torch.eye(64, 4096, dtype=torch.float32)
+        embeddings.requires_grad_(True)
+        self.microbatch_embeddings = embeddings
+        return embeddings
+
+
+def test_attention_phase_detaches_teacher_and_updates_only_pooler() -> None:
+    adapter = _AttentionDmlAdapter()
+    pooler = _MODULE.SingleQueryPooler(token_dim=16, embedding_dim=4096)
+    rollouts = _MODULE.run_rollout_phase(adapter, _FIXTURE)
+    evidence = _MODULE.run_attention_phase(adapter, pooler, _FIXTURE, rollouts)
+    assert evidence.layer == 26
+    assert evidence.teacher_unit_mass is True
+    assert evidence.teacher_gradient_parameters == 0
+    assert evidence.pooler_nonzero_gradient_parameters > 0
+    assert adapter.teacher.grad is None
+    assert adapter.patch_tokens.grad is None
+    assert adapter.cleared == 1
+
+
+def test_attention_phase_rejects_nonunit_or_nonfinite_teacher() -> None:
+    for teacher in (
+        torch.tensor([[0.4, 0.3, 0.2, 0.2], [0.1, 0.2, 0.3, 0.4]]),
+        torch.tensor([[float("nan"), 0.3, 0.2, 0.5], [0.1, 0.2, 0.3, 0.4]]),
+    ):
+        adapter = _AttentionDmlAdapter()
+        adapter.teacher = teacher
+        with pytest.raises(ValueError, match="teacher attention"):
+            _MODULE.run_attention_phase(
+                adapter,
+                _MODULE.SingleQueryPooler(token_dim=16),
+                _FIXTURE,
+                _MODULE.run_rollout_phase(adapter, _FIXTURE),
+            )
+        assert adapter.cleared == 1
+
+
+def test_dml_floor_emits_64_unit_4096d_embeddings() -> None:
+    adapter = _AttentionDmlAdapter()
+    evidence = _MODULE.run_dml_floor_phase(adapter, _FIXTURE)
+    assert evidence.batch_size == 64
+    assert evidence.embedding_shape == (64, 4096)
+    assert evidence.maximum_norm_delta_ppm <= 10
+    assert evidence.vision_nonzero_gradient_parameters == 2
+    assert adapter.microbatch_embeddings is not None
+    assert adapter.microbatch_embeddings.grad is not None
+    assert adapter.cleared == 1
+
+
+def test_dml_floor_rejects_embedding_shape_and_norm_drift() -> None:
+    adapter = _AttentionDmlAdapter()
+    adapter.vision_pool = lambda _microbatch: torch.ones(64, 4095)  # type: ignore[method-assign]
+    with pytest.raises(ValueError, match="embedding shape"):
+        _MODULE.run_dml_floor_phase(adapter, _FIXTURE)
+    assert adapter.cleared == 1
+
+    adapter = _AttentionDmlAdapter()
+    adapter.vision_pool = lambda _microbatch: torch.ones(64, 4096)  # type: ignore[method-assign]
+    with pytest.raises(ValueError, match="embedding norms"):
+        _MODULE.run_dml_floor_phase(adapter, _FIXTURE)
     assert adapter.cleared == 1

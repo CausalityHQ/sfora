@@ -11,6 +11,9 @@ from pathlib import Path
 from time import perf_counter_ns
 from typing import Protocol
 
+import torch
+import torch.nn.functional as torch_functional
+
 from sfora.pass209_m4 import canonical_json_bytes
 from sfora.saga_feasibility import FixtureAuthority, SnapshotAuthority
 
@@ -59,6 +62,18 @@ class SagaModelAdapter(Protocol):
 
     def clear_graphs(self) -> None: ...
 
+    def attention_observation(
+        self,
+        pair: object,
+        completion_ids: tuple[tuple[int, ...], ...],
+        *,
+        layer: int,
+    ) -> AttentionOutput: ...
+
+    def prepare_microbatch(self, fixture: FixtureAuthority) -> object: ...
+
+    def vision_pool(self, microbatch: object) -> torch.Tensor: ...
+
 
 @dataclass(frozen=True, slots=True)
 class SealedRollouts:
@@ -102,6 +117,65 @@ class ReplayEvidence:
     vision_nonzero_gradient_parameters: int
     language_gradient_parameters: int
     gradient_sha256: str
+
+
+@dataclass(frozen=True, slots=True)
+class AttentionOutput:
+    """Exact layer attention and patch tokens returned by the adapter."""
+
+    teacher_maps: torch.Tensor
+    patch_tokens: torch.Tensor
+    head_count: int
+
+
+@dataclass(frozen=True, slots=True)
+class AttentionEvidence:
+    """Validated detached-teacher KL evidence."""
+
+    layer: int
+    head_count: int
+    elapsed_ns: int
+    kl: float
+    teacher_unit_mass: bool
+    teacher_gradient_parameters: int
+    pooler_nonzero_gradient_parameters: int
+
+
+@dataclass(frozen=True, slots=True)
+class DmlFloorEvidence:
+    """Validated 64-image vision/pooler activation-floor evidence."""
+
+    batch_size: int
+    embedding_shape: tuple[int, int]
+    elapsed_ns: int
+    loss: float
+    maximum_norm_delta_ppm: int
+    vision_nonzero_gradient_parameters: int
+    language_gradient_parameters: int
+
+
+class SingleQueryPooler(torch.nn.Module):
+    """One learned query attention pooler with a 4096-dimensional output."""
+
+    def __init__(self, token_dim: int, embedding_dim: int = 4096) -> None:
+        super().__init__()
+        if type(token_dim) is not int or token_dim <= 0:
+            raise ValueError("SAGA pooler token dimension differs")
+        if type(embedding_dim) is not int or embedding_dim != 4096:
+            raise ValueError("SAGA pooler embedding dimension differs")
+        self.query = torch.nn.Parameter(torch.zeros(token_dim))
+        self.key = torch.nn.Linear(token_dim, token_dim, bias=False)
+        self.output = torch.nn.Linear(token_dim, embedding_dim, bias=False)
+
+    def forward(self, tokens: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        if tokens.ndim != 3 or tokens.shape[-1] != self.query.numel():
+            raise ValueError("SAGA pooler token shape differs")
+        logits = torch.einsum("d,bpd->bp", self.query, self.key(tokens)) / math.sqrt(
+            tokens.shape[-1]
+        )
+        weights = logits.softmax(dim=-1)
+        pooled = torch.einsum("bp,bpd->bd", weights, tokens)
+        return torch_functional.normalize(self.output(pooled), dim=-1), weights
 
 
 class QwenSagaAdapter:
@@ -300,6 +374,155 @@ def run_replay_phase(
             ),
             language_gradient_parameters=gradient.language_gradient_parameters,
             gradient_sha256=gradient.gradient_sha256,
+        )
+    finally:
+        adapter.clear_graphs()
+
+
+def _nonzero_finite_gradient_count(parameters: object) -> int:
+    count = 0
+    for parameter in parameters:
+        gradient = parameter.grad
+        if gradient is None:
+            continue
+        if not bool(torch.isfinite(gradient).all()):
+            raise ValueError("SAGA finite pooler gradient evidence differs")
+        if bool(torch.count_nonzero(gradient)):
+            count += 1
+    return count
+
+
+def run_attention_phase(
+    adapter: SagaModelAdapter,
+    pooler: SingleQueryPooler,
+    fixture: FixtureAuthority,
+    rollouts: SealedRollouts,
+) -> AttentionEvidence:
+    """Measure exact layer-26 detached-teacher attention/pooler KL."""
+
+    if fixture.attention_layer != 26 or rollouts.group_size != fixture.group_size:
+        raise ValueError("SAGA attention authority differs")
+    pair = adapter.prepare_pair(fixture)
+    started = perf_counter_ns()
+    try:
+        output = adapter.attention_observation(
+            pair,
+            rollouts.completion_ids,
+            layer=fixture.attention_layer,
+        )
+        if type(output) is not AttentionOutput:
+            raise ValueError("SAGA attention output differs")
+        teacher = output.teacher_maps
+        tokens = output.patch_tokens
+        if (
+            teacher.ndim != 2
+            or tokens.ndim != 3
+            or teacher.shape != tokens.shape[:2]
+            or type(output.head_count) is not int
+            or output.head_count <= 0
+        ):
+            raise ValueError("SAGA teacher attention shape differs")
+        if (
+            not bool(torch.isfinite(teacher).all())
+            or bool((teacher < 0).any())
+            or not torch.allclose(
+                teacher.sum(dim=-1),
+                torch.ones(teacher.shape[0], device=teacher.device),
+                atol=1e-6,
+                rtol=0.0,
+            )
+        ):
+            raise ValueError("SAGA teacher attention differs")
+        if not bool(torch.isfinite(tokens).all()):
+            raise ValueError("SAGA patch token evidence differs")
+        detached_teacher = teacher.detach()
+        detached_tokens = tokens.detach()
+        _, pooler_weights = pooler(detached_tokens)
+        epsilon = torch.finfo(pooler_weights.dtype).tiny
+        kl = (
+            detached_teacher
+            * (
+                detached_teacher.clamp_min(epsilon).log()
+                - pooler_weights.clamp_min(epsilon).log()
+            )
+        ).sum(dim=-1).mean()
+        if not bool(torch.isfinite(kl)):
+            raise ValueError("SAGA attention KL differs")
+        kl.backward()
+        pooler_gradient_count = _nonzero_finite_gradient_count(pooler.parameters())
+        if pooler_gradient_count <= 0:
+            raise ValueError("SAGA pooler gradient evidence differs")
+        elapsed_ns = max(1, perf_counter_ns() - started)
+        return AttentionEvidence(
+            layer=26,
+            head_count=output.head_count,
+            elapsed_ns=elapsed_ns,
+            kl=float(kl.detach()),
+            teacher_unit_mass=True,
+            teacher_gradient_parameters=int(teacher.grad is not None)
+            + int(tokens.grad is not None),
+            pooler_nonzero_gradient_parameters=pooler_gradient_count,
+        )
+    finally:
+        adapter.clear_graphs()
+        pooler.zero_grad(set_to_none=True)
+
+
+def fixture_pairwise_loss(
+    embeddings: torch.Tensor, labels: torch.Tensor
+) -> torch.Tensor:
+    """Backend-independent pairwise activation-floor loss."""
+
+    distances = torch.cdist(embeddings.float(), embeddings.float()).square()
+    same = labels[:, None].eq(labels[None, :])
+    eye = torch.eye(labels.numel(), dtype=torch.bool, device=labels.device)
+    positive = distances[same & ~eye]
+    negative = distances[~same]
+    if positive.numel() == 0 or negative.numel() == 0:
+        raise ValueError("SAGA DML pseudo-label evidence differs")
+    return positive.mean() + torch_functional.relu(1.0 - negative).mean()
+
+
+def run_dml_floor_phase(
+    adapter: SagaModelAdapter, fixture: FixtureAuthority
+) -> DmlFloorEvidence:
+    """Measure the 64-image, 4096-dimensional activation and gradient floor."""
+
+    if fixture.image_count != 64:
+        raise ValueError("SAGA DML fixture authority differs")
+    started = perf_counter_ns()
+    try:
+        embeddings = adapter.vision_pool(adapter.prepare_microbatch(fixture))
+        if type(embeddings) is not torch.Tensor or tuple(embeddings.shape) != (64, 4096):
+            raise ValueError("SAGA DML embedding shape differs")
+        if not bool(torch.isfinite(embeddings).all()):
+            raise ValueError("SAGA DML embeddings are not finite")
+        norm_delta = (embeddings.float().norm(dim=-1) - 1.0).abs()
+        maximum_norm_delta_ppm = int(
+            math.ceil(float(norm_delta.max().detach()) * 1_000_000)
+        )
+        if maximum_norm_delta_ppm > 10:
+            raise ValueError("SAGA DML embedding norms differ")
+        labels = torch.tensor(
+            [ordinal % 2 for ordinal in range(64)], device=embeddings.device
+        )
+        loss = fixture_pairwise_loss(embeddings, labels)
+        if not bool(torch.isfinite(loss)):
+            raise ValueError("SAGA DML loss differs")
+        loss.backward()
+        gradient = adapter.assert_gradient_roles()
+        _validate_gradient_evidence(gradient)
+        elapsed_ns = max(1, perf_counter_ns() - started)
+        return DmlFloorEvidence(
+            batch_size=64,
+            embedding_shape=(64, 4096),
+            elapsed_ns=elapsed_ns,
+            loss=float(loss.detach()),
+            maximum_norm_delta_ppm=maximum_norm_delta_ppm,
+            vision_nonzero_gradient_parameters=(
+                gradient.vision_nonzero_gradient_parameters
+            ),
+            language_gradient_parameters=gradient.language_gradient_parameters,
         )
     finally:
         adapter.clear_graphs()
