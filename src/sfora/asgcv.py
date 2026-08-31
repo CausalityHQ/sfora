@@ -823,6 +823,7 @@ def canonical_gradient_sample_bytes(
     model_revision: object,
     fixture_sha256: object,
     completion_group_sha256: object,
+    completion_protocol_sha256: object,
     pair_ordinals: object,
     relation_sign: object,
     grpo_loss: object,
@@ -839,6 +840,10 @@ def canonical_gradient_sample_bytes(
     completion_digest = _sha256_bytes(
         completion_group_sha256,
         name="completion group digest",
+    ).hex()
+    protocol_digest = _sha256_bytes(
+        completion_protocol_sha256,
+        name="completion protocol digest",
     ).hex()
     if (
         type(pair_ordinals) is not tuple
@@ -882,6 +887,7 @@ def canonical_gradient_sample_bytes(
         "model_revision": revision,
         "fixture_sha256": fixture_digest,
         "completion_group_sha256": completion_digest,
+        "completion_protocol_sha256": protocol_digest,
         "pair_ordinals": list(pair_ordinals),
         "relation_sign": relation_sign,
         "replay_branch_count": ASGCV_STRATUM_SIZE,
@@ -930,6 +936,7 @@ def validate_gradient_sample_bytes(raw: bytes) -> dict[str, object]:
         "model_revision",
         "fixture_sha256",
         "completion_group_sha256",
+        "completion_protocol_sha256",
         "pair_ordinals",
         "relation_sign",
         "replay_branch_count",
@@ -950,6 +957,7 @@ def validate_gradient_sample_bytes(raw: bytes) -> dict[str, object]:
     _source_commit(value["model_revision"])
     _sha256_bytes(value["fixture_sha256"], name="fixture digest")
     _sha256_bytes(value["completion_group_sha256"], name="completion group digest")
+    _sha256_bytes(value["completion_protocol_sha256"], name="completion protocol digest")
     pair_ordinals = value["pair_ordinals"]
     if (
         type(pair_ordinals) is not list
@@ -1017,6 +1025,7 @@ def validate_gradient_sample_inputs(
         model_revision=value["model_revision"],
         fixture_sha256=value["fixture_sha256"],
         completion_group_sha256=value["completion_group_sha256"],
+        completion_protocol_sha256=value["completion_protocol_sha256"],
         pair_ordinals=tuple(pair_ordinals),
         relation_sign=value["relation_sign"],
         grpo_loss=losses["grpo"],

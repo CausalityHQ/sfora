@@ -70,6 +70,18 @@ vision-parameter gradient. A separately recomputed attention-only feature
 forward is not a valid substitute because it is outside the combined replay
 graph.
 
+Completion parsing is fixed at the tokenizer-ID level before generation. The
+registered prompt requires either one exact `SAME` prefix or one exact
+`DIFFERENT` prefix followed by at least one attribute token. Their token-ID
+sequences, the sorted terminal-token set, and the exact tokenizer revision form
+a content-addressed protocol. Classification never decodes text or applies a
+regex: it strips only registered trailing terminal IDs, matches exactly one
+non-overlapping prefix, and takes the remaining half-open token interval as the
+attribute span. A valid verdict earns binary reward one exactly when it matches
+the pair relation; wrong or malformed completions earn zero, and only correct
+valid completions contribute detached attention teachers. Every captured sample
+binds the completion-protocol digest as well as the completion-group digest.
+
 The scalar predictor consumes stopped fp32 patch tokens with shape
 `batch x 2 x patches x channels` plus an exact `-1/+1` relation sign. It uses
 one shared token LayerNorm and one shared local rank projection. For each image,

@@ -542,6 +542,7 @@ def _gradient_sample_bytes() -> bytes:
         model_revision="2" * 40,
         fixture_sha256="3" * 64,
         completion_group_sha256="4" * 64,
+        completion_protocol_sha256="6" * 64,
         pair_ordinals=(17, 29),
         relation_sign=-1,
         grpo_loss=0.125,
