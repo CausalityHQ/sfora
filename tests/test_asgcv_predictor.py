@@ -3,9 +3,12 @@ from __future__ import annotations
 import pytest
 import torch
 
+from sfora.asgcv import AsgcvSrhtAuthority, srht_gradient_sketch
 from sfora.asgcv_predictor import (
     AsgcvPatchGradientPredictor,
     predictor_state_sha256,
+    predictor_training_loss,
+    torch_srht_gradient_sketch,
 )
 
 
@@ -89,3 +92,67 @@ def test_predictor_state_digest_is_deterministic_and_mutation_sensitive() -> Non
 
     predictor.train()
     assert predictor_state_sha256(predictor) == predictor_state_sha256(predictor.eval())
+
+
+def test_torch_srht_matches_scalar_authority_and_backpropagates() -> None:
+    authority = AsgcvSrhtAuthority(
+        input_dimensions=4,
+        padded_dimensions=4,
+        output_dimensions=2,
+        seed_sha256="00" * 32,
+    ).validated()
+    field = torch.tensor([[1.0, 2.0, 3.0, 4.0]], dtype=torch.float64, requires_grad=True)
+
+    observed = torch_srht_gradient_sketch(field, authority)
+    expected = srht_gradient_sketch(field.detach().numpy(), authority)
+    torch.testing.assert_close(observed, torch.from_numpy(expected), rtol=0.0, atol=1e-15)
+    observed.square().sum().backward()
+    assert field.grad is not None and bool(torch.isfinite(field.grad).all())
+
+
+def test_predictor_training_loss_has_exact_dense_and_srht_controls() -> None:
+    authority = AsgcvSrhtAuthority(
+        input_dimensions=4,
+        padded_dimensions=4,
+        output_dimensions=2,
+        seed_sha256="00" * 32,
+    ).validated()
+    exact = torch.arange(1, 1 + 2 * 2 * 3 * 4, dtype=torch.float32).reshape(2, 2, 3, 4)
+    perfect = exact.clone().requires_grad_(True)
+    assert predictor_training_loss(perfect, exact, authority).item() == pytest.approx(0.0)
+
+    zero = torch.zeros_like(exact, requires_grad=True)
+    loss = predictor_training_loss(zero, exact, authority)
+    assert loss.item() == pytest.approx(2.0, abs=1e-6)
+    loss.backward()
+    assert zero.grad is not None and bool(torch.isfinite(zero.grad).all())
+
+    scaled_loss = predictor_training_loss(
+        torch.zeros_like(exact),
+        exact * 7.0,
+        authority,
+    )
+    assert scaled_loss.item() == pytest.approx(loss.item(), abs=1e-6)
+
+
+def test_predictor_training_loss_rejects_teacher_and_tensor_authority_drift() -> None:
+    authority = AsgcvSrhtAuthority(
+        input_dimensions=4,
+        padded_dimensions=4,
+        output_dimensions=2,
+        seed_sha256="12" * 32,
+    ).validated()
+    exact = torch.randn(1, 2, 3, 4)
+    predicted = torch.randn_like(exact, requires_grad=True)
+
+    with pytest.raises(ValueError):
+        predictor_training_loss(predicted, exact.requires_grad_(True), authority)
+    exact = exact.detach()
+    with pytest.raises(ValueError):
+        predictor_training_loss(predicted[:, :, :, :3], exact, authority)
+    with pytest.raises(ValueError):
+        predictor_training_loss(predicted.double(), exact.double(), authority)
+    nonfinite = predicted.detach().clone()
+    nonfinite[0, 0, 0, 0] = torch.inf
+    with pytest.raises(ValueError):
+        predictor_training_loss(nonfinite, exact, authority)

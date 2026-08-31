@@ -8,7 +8,11 @@ import numpy as np
 import torch
 from torch import nn
 
-from sfora.asgcv import ASGCV_PREDICTOR_RANK
+from sfora.asgcv import (
+    ASGCV_PREDICTOR_RANK,
+    AsgcvSrhtAuthority,
+    srht_signs_and_rows,
+)
 
 _STATE_DOMAIN = b"sfora-asgcv-predictor-state-v1\0"
 
@@ -115,3 +119,92 @@ def predictor_state_sha256(predictor: object) -> str:
         array = tensor.detach().cpu().contiguous().numpy().astype(np.dtype("<f4"), copy=False)
         frame.extend(array.tobytes(order="C"))
     return hashlib.sha256(frame).hexdigest()
+
+
+def torch_srht_gradient_sketch(
+    field: object,
+    authority: AsgcvSrhtAuthority,
+) -> torch.Tensor:
+    """Apply the differentiable fixed-order SRHT on the final tensor dimension."""
+
+    if (
+        type(field) is not torch.Tensor
+        or field.dtype not in (torch.float32, torch.float64)
+        or field.ndim < 2
+        or not bool(torch.isfinite(field).all())
+    ):
+        raise ValueError("ASG-CV torch SRHT field authority differs")
+    if type(authority) is not AsgcvSrhtAuthority:
+        raise ValueError("ASG-CV torch SRHT authority differs")
+    authority.validated()
+    field_tensor: torch.Tensor = field
+    if field_tensor.shape[-1] != authority.input_dimensions:
+        raise ValueError("ASG-CV torch SRHT shape differs")
+
+    numpy_signs, numpy_rows = srht_signs_and_rows(authority)
+    signs = torch.from_numpy(numpy_signs).to(
+        device=field_tensor.device,
+        dtype=field_tensor.dtype,
+    )
+    rows = torch.from_numpy(numpy_rows).to(device=field_tensor.device)
+    work = torch.nn.functional.pad(
+        field_tensor * signs[: authority.input_dimensions],
+        (0, authority.padded_dimensions - authority.input_dimensions),
+    )
+    width = 1
+    while width < authority.padded_dimensions:
+        groups = work.reshape(*work.shape[:-1], -1, width * 2)
+        left = groups[..., :width]
+        right = groups[..., width:]
+        work = torch.cat((left + right, left - right), dim=-1).reshape(*work.shape)
+        width *= 2
+    work = work / float(authority.padded_dimensions) ** 0.5
+    selected: torch.Tensor = torch.index_select(work, dim=-1, index=rows)
+    result: torch.Tensor = (
+        selected * (float(authority.padded_dimensions) / authority.output_dimensions) ** 0.5
+    )
+    if not bool(torch.isfinite(result).all()):
+        raise ValueError("ASG-CV torch SRHT result is not finite")
+    return result
+
+
+def predictor_training_loss(
+    predicted: object,
+    exact: object,
+    authority: AsgcvSrhtAuthority,
+) -> torch.Tensor:
+    """Return the fixed dense-plus-SRHT normalized predictor objective."""
+
+    if (
+        type(predicted) is not torch.Tensor
+        or type(exact) is not torch.Tensor
+        or predicted.dtype != torch.float32
+        or exact.dtype != torch.float32
+        or predicted.ndim != 4
+        or predicted.shape != exact.shape
+        or predicted.shape[1] != 2
+        or exact.requires_grad
+        or not bool(torch.isfinite(predicted).all())
+        or not bool(torch.isfinite(exact).all())
+    ):
+        raise ValueError("ASG-CV predictor training tensor authority differs")
+    if type(authority) is not AsgcvSrhtAuthority:
+        raise ValueError("ASG-CV predictor training SRHT authority differs")
+    authority.validated()
+    if predicted.shape[-1] != authority.input_dimensions:
+        raise ValueError("ASG-CV predictor training shape differs")
+
+    exact_energy = exact.square().sum()
+    if not bool(torch.isfinite(exact_energy)) or float(exact_energy) <= 0.0:
+        raise ValueError("ASG-CV predictor exact gradient energy differs")
+    dense_loss = (predicted - exact).square().sum() / exact_energy
+    projected_exact = torch_srht_gradient_sketch(exact, authority)
+    projected_predicted = torch_srht_gradient_sketch(predicted, authority)
+    projected_energy = projected_exact.square().sum()
+    if not bool(torch.isfinite(projected_energy)) or float(projected_energy) <= 0.0:
+        raise ValueError("ASG-CV predictor projected gradient energy differs")
+    projected_loss = (projected_predicted - projected_exact).square().sum() / projected_energy
+    result = dense_loss + projected_loss
+    if not bool(torch.isfinite(result)):
+        raise ValueError("ASG-CV predictor training loss is not finite")
+    return result

@@ -67,6 +67,20 @@ tokens that still require vision autograd; student injection uses an explicitly
 detached output. Every named fp32 state tensor is framed by name and shape and
 sealed with SHA-256 before E0 evaluation.
 
+Predictor fitting uses one fixed, dimensionless objective with no learned or
+retrieval-tuned weights:
+
+```text
+L_predictor = ||q - g||^2 / ||g||^2
+            + ||S(q) - S(g)||^2 / ||S(g)||^2,
+```
+
+where `S` is the sealed SRHT operator. Both terms have unit coefficient. The
+teacher field and patch tokens are stopped; only predictor state receives this
+loss. The differentiable torch SRHT reference uses the same signs, selected
+rows, butterfly order, and normalization as the fp64 scalar authority. Zero
+teacher or projected energy and every non-finite intermediate fail closed.
+
 ## Unbiased stratified estimator
 
 Each class-balanced minibatch is divided deterministically into strata of eight
