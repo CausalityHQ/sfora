@@ -1240,6 +1240,37 @@ def _failure_flags(outcome: FeasibilityOutcome) -> dict[str, bool]:
     return flags
 
 
+def _canonical_preflight_failure(
+    identity: RunIdentity, outcome: FeasibilityOutcome
+) -> bytes:
+    measurements = {
+        name: _phase_measurement(name)
+        for name in ("load", "rollout", "replay", "attention", "dml")
+    }
+    return canonical_feasibility_result_bytes(
+        FeasibilityEvidence(
+            source_commit=identity.source_commit,
+            controller_commit=identity.controller_commit,
+            binary_sha256=identity.binary_sha256,
+            environment_sha256=identity.environment_sha256,
+            host=identity.host,
+            model=identity.model_object,
+            fixture=identity.fixture_object,
+            envelope=identity.envelope,
+            load=measurements["load"],
+            rollout=measurements["rollout"],
+            replay=measurements["replay"],
+            attention=measurements["attention"],
+            dml=measurements["dml"],
+            dataset_reads=0,
+            label_reads=0,
+            evaluation_reads=0,
+            optimizer_steps=0,
+            **_failure_flags(outcome),
+        )
+    )
+
+
 def _validate_run_identity(authority: LoadedAuthority) -> RunIdentity:
     identity = authority.result_identity
     if type(identity) is not RunIdentity:
@@ -1456,13 +1487,19 @@ def main(argv: list[str] | None = None) -> int:
         fixture=fixture,
         result_identity=identity,
     )
-    adapter = load_qwen_adapter(authority, factory=TransformersFactory())
     progress = (
         (lambda phase: _write_progress(args.progress_output, phase))
         if args.progress_output is not None
         else None
     )
-    raw = run_feasibility(authority, adapter, progress=progress)
+    try:
+        adapter = load_qwen_adapter(authority, factory=TransformersFactory())
+    except torch.OutOfMemoryError:
+        raw = _canonical_preflight_failure(identity, FeasibilityOutcome.MEMORY_FAIL)
+    except ValueError:
+        raw = _canonical_preflight_failure(identity, FeasibilityOutcome.BACKEND_INVALID)
+    else:
+        raw = run_feasibility(authority, adapter, progress=progress)
     _write_new(args.result_output, raw)
     sys.stdout.buffer.write(raw)
     sys.stdout.buffer.flush()

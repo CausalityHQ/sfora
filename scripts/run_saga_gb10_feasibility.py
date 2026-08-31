@@ -424,33 +424,50 @@ class FeasibilityController:
         self.paths.scratch_root.mkdir(mode=0o700)
         child_result = self.paths.scratch_root / "scientific-result.json"
         progress_output = self.paths.scratch_root / "phase-progress.json"
-        process = runner.spawn(
-            self._child_argv(child_result, progress_output),
-            self._environment(),
-            child_result,
-        )
+        try:
+            process = runner.spawn(
+                self._child_argv(child_result, progress_output),
+                self._environment(),
+                child_result,
+            )
+        except (OSError, RuntimeError, ValueError):
+            self._cleanup_scratch(child_result, progress_output)
+            outcome = "BACKEND_INVALID"
+            reason = "controller-spawn-failed"
+            _write_new(
+                self.paths.terminal_output,
+                self._terminal_bytes(outcome=outcome, reason=reason),
+            )
+            return ControllerTerminal(
+                outcome=outcome,
+                reason=reason,
+                result_published=False,
+                restart_count=0,
+                process_cleared=True,
+                scratch_cleared=True,
+            )
         sustained_psi = 0
         stop: tuple[str, str] | None = None
-        while True:
-            observation = runner.observe(process).validated()
-            sustained_psi = (
-                sustained_psi + 1
-                if observation.psi_full_avg10_ppm >= PSI_SUSTAINED_PPM
-                else 0
-            )
-            stop = self._stop_reason(observation, sustained_psi)
-            if stop is not None:
-                runner.terminate(process)
-                break
-            if not observation.process_alive:
-                break
-        exit_code = runner.wait(process)
-        if runner.is_alive(process):
-            raise RuntimeError("SAGA controller process did not clear")
-
         result_published = False
-        if stop is None and exit_code == 0:
-            try:
+        try:
+            while True:
+                observation = runner.observe(process).validated()
+                sustained_psi = (
+                    sustained_psi + 1
+                    if observation.psi_full_avg10_ppm >= PSI_SUSTAINED_PPM
+                    else 0
+                )
+                stop = self._stop_reason(observation, sustained_psi)
+                if stop is not None:
+                    runner.terminate(process)
+                    break
+                if not observation.process_alive:
+                    break
+            exit_code = runner.wait(process)
+            if runner.is_alive(process):
+                raise RuntimeError("SAGA controller process did not clear")
+
+            if stop is None and exit_code == 0:
                 raw = child_result.read_bytes()
                 value = validate_feasibility_result_bytes(raw)
                 outcome = value["outcome"]
@@ -459,14 +476,17 @@ class FeasibilityController:
                 _write_new(self.paths.result_output, raw)
                 result_published = True
                 reason = "scientific-result"
-            except (OSError, KeyError, ValueError):
+            elif stop is not None:
+                outcome, reason = stop
+            else:
                 outcome = "BACKEND_INVALID"
-                reason = "scientific-result-invalid"
-        elif stop is not None:
-            outcome, reason = stop
-        else:
+                reason = "scientific-child-exit"
+        except (OSError, KeyError, RuntimeError, ValueError):
             outcome = "BACKEND_INVALID"
-            reason = "scientific-child-exit"
+            reason = "controller-exception"
+            if runner.is_alive(process):
+                runner.terminate(process)
+            runner.wait(process)
 
         self._cleanup_scratch(child_result, progress_output)
         if not result_published:

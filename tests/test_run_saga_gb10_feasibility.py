@@ -322,3 +322,39 @@ def test_controller_rejects_child_or_result_failure(
     assert terminal.result_published is False
     assert not (tmp_path / "result.json").exists()
     assert not (tmp_path / "scratch").exists()
+
+
+def test_controller_fail_closes_and_cleans_when_resource_sampling_raises(
+    tmp_path: Path,
+) -> None:
+    runner = _FakeRunner([_observation()], child_result=_result_bytes())
+
+    def raise_sampling(_process: object) -> object:
+        raise RuntimeError("sampler-failed")
+
+    runner.observe = raise_sampling  # type: ignore[method-assign]
+    terminal = _controller(tmp_path).run(runner=runner)
+    assert terminal.outcome == "BACKEND_INVALID"
+    assert terminal.reason == "controller-exception"
+    assert runner.terminate_count == 1
+    assert not (tmp_path / "result.json").exists()
+    assert not (tmp_path / "scratch").exists()
+
+
+def test_controller_fail_closes_and_cleans_when_child_spawn_raises(
+    tmp_path: Path,
+) -> None:
+    runner = _FakeRunner([_observation()], child_result=_result_bytes())
+
+    def raise_spawn(
+        _argv: tuple[str, ...],
+        _environment: dict[str, str],
+        _child_result_path: Path,
+    ) -> object:
+        raise OSError("spawn-failed")
+
+    runner.spawn = raise_spawn  # type: ignore[method-assign]
+    terminal = _controller(tmp_path).run(runner=runner)
+    assert terminal.outcome == "BACKEND_INVALID"
+    assert terminal.reason == "controller-spawn-failed"
+    assert not (tmp_path / "scratch").exists()

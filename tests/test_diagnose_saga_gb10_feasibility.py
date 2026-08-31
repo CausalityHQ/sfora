@@ -632,6 +632,52 @@ def test_direct_script_main_writes_one_exclusive_canonical_result(
         _MODULE.main(argv)
 
 
+def test_direct_script_classifies_model_load_oom(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    loaded = _complete_authority(tmp_path)
+    monkeypatch.setattr(
+        _MODULE, "load_snapshot_authority", lambda **_kwargs: loaded.snapshot
+    )
+    monkeypatch.setattr(
+        _MODULE, "load_fixture_authority", lambda _path: loaded.fixture
+    )
+    monkeypatch.setattr(_MODULE, "TransformersFactory", lambda: object())
+
+    def raise_oom(_authority: object, *, factory: object) -> object:
+        del factory
+        raise torch.OutOfMemoryError("model-load-oom")
+
+    monkeypatch.setattr(_MODULE, "load_qwen_adapter", raise_oom)
+    assert _MODULE.main(_valid_cli_args(tmp_path)) == 0
+    result = json.loads((tmp_path / "result.json").read_bytes())
+    assert result["outcome"] == "MEMORY_FAIL"
+    assert result["phases"][0]["completed"] is False
+    assert result["scientific_evidence"] is None
+
+
+def test_direct_script_classifies_model_load_structure_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    loaded = _complete_authority(tmp_path)
+    monkeypatch.setattr(
+        _MODULE, "load_snapshot_authority", lambda **_kwargs: loaded.snapshot
+    )
+    monkeypatch.setattr(
+        _MODULE, "load_fixture_authority", lambda _path: loaded.fixture
+    )
+    monkeypatch.setattr(_MODULE, "TransformersFactory", lambda: object())
+
+    def raise_invalid(_authority: object, *, factory: object) -> object:
+        del factory
+        raise ValueError("model-load-structure")
+
+    monkeypatch.setattr(_MODULE, "load_qwen_adapter", raise_invalid)
+    assert _MODULE.main(_valid_cli_args(tmp_path)) == 0
+    result = json.loads((tmp_path / "result.json").read_bytes())
+    assert result["outcome"] == "BACKEND_INVALID"
+
+
 class _HfLikeProcessor:
     model_input_names = (
         "input_ids",
