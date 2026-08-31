@@ -7,6 +7,7 @@ from sfora.asgcv_protocol import (
     AsgcvPairSchedule,
     build_asgcv_pair_schedule,
     classify_asgcv_completion,
+    classify_asgcv_completion_group,
 )
 
 
@@ -88,6 +89,30 @@ def test_completion_classification_rejects_empty_attributes_and_input_drift() ->
         classify_asgcv_completion((11, True, 31), 1, protocol)
     with pytest.raises(ValueError):
         classify_asgcv_completion((11, 12, 31), 0, protocol)
+
+
+def test_completion_group_derives_variance_eligibility_and_exact_teacher_spans() -> None:
+    protocol = _protocol()
+    completions = tuple(
+        (11, 12, 30 + index, 99) if index < 4 else (21, 22, 23, 40 + index, 0)
+        for index in range(8)
+    )
+    group = classify_asgcv_completion_group(completions, 1, protocol)
+
+    assert group.rewards == (1, 1, 1, 1, 0, 0, 0, 0)
+    assert group.correct_rollouts == (True, True, True, True, False, False, False, False)
+    assert group.attribute_spans == ((2, 3), (2, 3), (2, 3), (2, 3), None, None, None, None)
+    assert group.nonzero_reward_variance is True
+    assert len(group.sha256()) == 64
+    assert classify_asgcv_completion_group(completions, 1, protocol) == group
+
+    all_correct = tuple((11, 12, 30 + index, 99) for index in range(8))
+    assert classify_asgcv_completion_group(
+        all_correct, 1, protocol
+    ).nonzero_reward_variance is False
+
+    with pytest.raises(ValueError):
+        classify_asgcv_completion_group(completions[:7], 1, protocol)
 
 
 def test_pair_schedule_is_balanced_disjoint_stratified_and_replayable() -> None:

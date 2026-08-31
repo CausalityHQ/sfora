@@ -816,6 +816,16 @@ def test_qwen_replay_patch_gradient_requires_a_correct_attention_teacher(tmp_pat
             attention_layer=authority.fixture.attention_layer,
         )
 
+    with pytest.raises(ValueError, match="reward variance authority"):
+        adapter.replay_patch_gradient(
+            pair,
+            rollouts.completion_ids,
+            (0.0,) * authority.fixture.group_size,
+            correct_rollouts=(True,) * authority.fixture.group_size,
+            attribute_spans=(pair.attribute_token_span,) * authority.fixture.group_size,
+            attention_layer=authority.fixture.attention_layer,
+        )
+
 
 class _HfLikeFactory:
     def __init__(self) -> None:

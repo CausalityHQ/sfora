@@ -81,6 +81,11 @@ attribute span. A valid verdict earns binary reward one exactly when it matches
 the pair relation; wrong or malformed completions earn zero, and only correct
 valid completions contribute detached attention teachers. Every captured sample
 binds the completion-protocol digest as well as the completion-group digest.
+The group classifier operates on exactly eight completions and derives rewards,
+correct-rollout flags, and teacher spans together. A group is semantically
+eligible only when it contains at least one correct and one incorrect verdict;
+all-correct and all-incorrect groups have zero reward variance and contribute
+neither GRPO nor attention KL, matching the registered DAPO refill rule.
 
 The scalar predictor consumes stopped fp32 patch tokens with shape
 `batch x 2 x patches x channels` plus an exact `-1/+1` relation sign. It uses

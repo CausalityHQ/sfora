@@ -570,6 +570,8 @@ class QwenSagaAdapter:
             raise ValueError("SAGA patch gradient replay authority differs")
         if not any(correct_rollouts):
             raise ValueError("SAGA correct rollout authority differs")
+        if all(correct_rollouts):
+            raise ValueError("SAGA reward variance authority differs")
         for correct, span in zip(correct_rollouts, attribute_spans, strict=True):
             if span is not None and (
                 type(span) is not tuple

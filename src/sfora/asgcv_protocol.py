@@ -10,6 +10,8 @@ ASGCV_COMPLETION_PROTOCOL_SCHEMA = "sfora-asgcv-completion-protocol-v1"
 ASGCV_COMPLETION_PROTOCOL_DOMAIN = b"sfora-asgcv-completion-protocol-v1\0"
 ASGCV_PAIR_SCHEDULE_SCHEMA = "sfora-asgcv-pair-schedule-v1"
 ASGCV_PAIR_SCHEDULE_DOMAIN = b"sfora-asgcv-pair-schedule-v1\0"
+ASGCV_COMPLETION_GROUP_SCHEMA = "sfora-asgcv-completion-group-v1"
+ASGCV_COMPLETION_GROUP_DOMAIN = b"sfora-asgcv-completion-group-v1\0"
 ASGCV_STRATUM_SIZE = 8
 
 
@@ -94,6 +96,36 @@ class AsgcvCompletionClassification:
     verdict_relation_sign: int | None
     reward: int
     attribute_span: tuple[int, int] | None
+
+
+@dataclass(frozen=True, slots=True)
+class AsgcvCompletionGroup:
+    """Eight classified completions and their exact semantic eligibility."""
+
+    completion_ids: tuple[tuple[int, ...], ...]
+    expected_relation_sign: int
+    protocol_sha256: str
+    rewards: tuple[int, ...]
+    correct_rollouts: tuple[bool, ...]
+    attribute_spans: tuple[tuple[int, int] | None, ...]
+    nonzero_reward_variance: bool
+
+    def sha256(self) -> str:
+        payload: dict[str, object] = {
+            "schema": ASGCV_COMPLETION_GROUP_SCHEMA,
+            "completion_ids": [list(completion) for completion in self.completion_ids],
+            "expected_relation_sign": self.expected_relation_sign,
+            "protocol_sha256": self.protocol_sha256,
+            "rewards": list(self.rewards),
+            "correct_rollouts": list(self.correct_rollouts),
+            "attribute_spans": [
+                None if span is None else list(span) for span in self.attribute_spans
+            ],
+            "nonzero_reward_variance": self.nonzero_reward_variance,
+        }
+        return hashlib.sha256(
+            ASGCV_COMPLETION_GROUP_DOMAIN + _canonical_json_bytes(payload)
+        ).hexdigest()
 
 
 @dataclass(frozen=True, slots=True)
@@ -412,4 +444,34 @@ def classify_asgcv_completion(
         verdict_relation_sign=verdict,
         reward=int(verdict == expected_relation_sign),
         attribute_span=(prefix_length, end),
+    )
+
+
+def classify_asgcv_completion_group(
+    completion_ids: tuple[tuple[int, ...], ...],
+    expected_relation_sign: int,
+    protocol: AsgcvCompletionProtocol,
+) -> AsgcvCompletionGroup:
+    """Classify one exact eight-rollout group and derive DAPO eligibility."""
+
+    if type(completion_ids) is not tuple or len(completion_ids) != ASGCV_STRATUM_SIZE:
+        raise ValueError("ASG-CV completion group size differs")
+    classifications = tuple(
+        classify_asgcv_completion(completion, expected_relation_sign, protocol)
+        for completion in completion_ids
+    )
+    rewards = tuple(value.reward for value in classifications)
+    correct = tuple(value.reward == 1 for value in classifications)
+    spans = tuple(
+        value.attribute_span if value.reward == 1 else None for value in classifications
+    )
+    correct_count = sum(rewards)
+    return AsgcvCompletionGroup(
+        completion_ids=completion_ids,
+        expected_relation_sign=expected_relation_sign,
+        protocol_sha256=protocol.sha256(),
+        rewards=rewards,
+        correct_rollouts=correct,
+        attribute_spans=spans,
+        nonzero_reward_variance=0 < correct_count < ASGCV_STRATUM_SIZE,
     )
