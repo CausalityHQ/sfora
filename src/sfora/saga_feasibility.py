@@ -181,6 +181,7 @@ class FeasibilityEvidence:
 class SnapshotAuthority:
     """Authenticated immutable local model snapshot."""
 
+    root: Path
     repository_id: str
     model_revision: str
     processor_revision: str
@@ -341,6 +342,7 @@ def load_snapshot_authority(*, root: Path, manifest_path: Path) -> SnapshotAutho
     if dtype != "bfloat16" or attention_backend not in {"eager", "sdpa"}:
         raise ValueError("SAGA snapshot backend authority differs")
     return SnapshotAuthority(
+        root=root,
         repository_id=repository_id,
         model_revision=model_revision,
         processor_revision=processor_revision,
