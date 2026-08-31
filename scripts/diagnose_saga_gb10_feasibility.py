@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import math
 import os
+import resource
 import sys
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -269,6 +270,7 @@ class QwenSagaAdapter:
         vision_parameters: tuple[object, ...],
         language_parameters: tuple[object, ...],
         token_dim: int,
+        load_measurement: PhaseMeasurement,
     ) -> None:
         self._model = model
         self._processor = processor
@@ -276,6 +278,7 @@ class QwenSagaAdapter:
         self._language_parameters = language_parameters
         self.architecture = "Qwen3VLForConditionalGeneration"
         self.pooler_token_dim = token_dim
+        self.load_measurement = load_measurement
         operational_device = next(
             (
                 parameter.device
@@ -599,6 +602,7 @@ def load_qwen_adapter(
     fixture = authority.fixture
     if fixture.model_revision != snapshot.model_revision:
         raise ValueError("SAGA model authority differs")
+    load_started = _begin_runtime_measurement()
     model = factory.load_model(
         snapshot.root,
         local_files_only=True,
@@ -670,12 +674,14 @@ def load_qwen_adapter(
         parameter.requires_grad = True
     for parameter in language_parameters:
         parameter.requires_grad = False
+    load_measurement = _end_runtime_measurement("load", load_started)
     return QwenSagaAdapter(
         model,
         processor,
         vision_parameters=vision_parameters,
         language_parameters=language_parameters,
         token_dim=token_dim,
+        load_measurement=load_measurement,
     )
 
 
@@ -965,6 +971,59 @@ class _ScientificRun:
     dml: DmlFloorEvidence
 
 
+def _process_peak_rss_bytes() -> int:
+    peak_kib = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    return max(1, int(peak_kib) * 1024)
+
+
+def _begin_runtime_measurement() -> int:
+    if torch.cuda.is_available():
+        torch.cuda.synchronize()
+        torch.cuda.reset_peak_memory_stats()
+    return perf_counter_ns()
+
+
+def _end_runtime_measurement(name: str, started_ns: int) -> PhaseMeasurement:
+    peak_cuda_reserved_bytes = 0
+    if torch.cuda.is_available():
+        torch.cuda.synchronize()
+        peak_cuda_reserved_bytes = int(torch.cuda.max_memory_reserved())
+    return PhaseMeasurement(
+        name=name,
+        completed=True,
+        elapsed_ns=max(1, perf_counter_ns() - started_ns),
+        peak_cuda_reserved_bytes=peak_cuda_reserved_bytes,
+        peak_rss_bytes=_process_peak_rss_bytes(),
+    )
+
+
+def _measure_runtime[MeasuredValue](
+    name: str, operation: Callable[[], MeasuredValue]
+) -> tuple[MeasuredValue, PhaseMeasurement]:
+    started_ns = _begin_runtime_measurement()
+    value = operation()
+    return value, _end_runtime_measurement(name, started_ns)
+
+
+def _combine_measurements(
+    name: str, *measurements: PhaseMeasurement
+) -> PhaseMeasurement:
+    if not measurements or any(
+        measurement.name != name or not measurement.completed
+        for measurement in measurements
+    ):
+        raise ValueError("SAGA runtime measurement differs")
+    return PhaseMeasurement(
+        name=name,
+        completed=True,
+        elapsed_ns=sum(measurement.elapsed_ns for measurement in measurements),
+        peak_cuda_reserved_bytes=max(
+            measurement.peak_cuda_reserved_bytes for measurement in measurements
+        ),
+        peak_rss_bytes=max(measurement.peak_rss_bytes for measurement in measurements),
+    )
+
+
 def _phase_measurement(name: str, elapsed_ns: int = 0) -> PhaseMeasurement:
     return PhaseMeasurement(
         name=name,
@@ -982,26 +1041,33 @@ def _run_scientific_phases(
     measurements: dict[str, PhaseMeasurement] | None,
     progress: Callable[[str], None] | None = None,
 ) -> _ScientificRun:
-    rollout = run_rollout_phase(adapter, authority.fixture)
+    rollout, rollout_measurement = _measure_runtime(
+        "rollout", lambda: run_rollout_phase(adapter, authority.fixture)
+    )
     if measurements is not None:
-        measurements["rollout"] = _phase_measurement("rollout", rollout.elapsed_ns)
+        measurements["rollout"] = rollout_measurement
         if progress is not None:
             progress("rollout")
-    replay = run_replay_phase(adapter, authority.fixture, rollout)
+    replay, replay_measurement = _measure_runtime(
+        "replay", lambda: run_replay_phase(adapter, authority.fixture, rollout)
+    )
     if measurements is not None:
-        measurements["replay"] = _phase_measurement("replay", replay.elapsed_ns)
+        measurements["replay"] = replay_measurement
         if progress is not None:
             progress("replay")
-    attention = run_attention_phase(adapter, pooler, authority.fixture, rollout)
+    attention, attention_measurement = _measure_runtime(
+        "attention",
+        lambda: run_attention_phase(adapter, pooler, authority.fixture, rollout),
+    )
     if measurements is not None:
-        measurements["attention"] = _phase_measurement(
-            "attention", attention.elapsed_ns
-        )
+        measurements["attention"] = attention_measurement
         if progress is not None:
             progress("attention")
-    dml = run_dml_floor_phase(adapter, authority.fixture)
+    dml, dml_measurement = _measure_runtime(
+        "dml", lambda: run_dml_floor_phase(adapter, authority.fixture)
+    )
     if measurements is not None:
-        measurements["dml"] = _phase_measurement("dml", dml.elapsed_ns)
+        measurements["dml"] = dml_measurement
         if progress is not None:
             progress("dml")
     return _ScientificRun(
@@ -1091,10 +1157,14 @@ def run_feasibility(
     }
     outcome = FeasibilityOutcome.FITS
     try:
-        started = perf_counter_ns()
-        adapter.validate_structure(authority)
-        measurements["load"] = _phase_measurement(
-            "load", max(1, perf_counter_ns() - started)
+        _, validation_measurement = _measure_runtime(
+            "load", lambda: adapter.validate_structure(authority)
+        )
+        load_measurement = getattr(adapter, "load_measurement", None)
+        measurements["load"] = (
+            _combine_measurements("load", load_measurement, validation_measurement)
+            if type(load_measurement) is PhaseMeasurement
+            else validation_measurement
         )
         if progress is not None:
             progress("load")

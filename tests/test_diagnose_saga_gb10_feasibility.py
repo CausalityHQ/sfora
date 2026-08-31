@@ -757,3 +757,26 @@ def test_complete_run_reuses_one_pooler_for_attention_and_dml(
         handle.remove()
     assert json.loads(raw)["outcome"] == "FITS"
     assert calls == 4
+
+
+def test_complete_run_records_load_and_phase_resource_measurements(
+    tmp_path: Path,
+) -> None:
+    authority = _complete_authority(tmp_path)
+    adapter = _MODULE.load_qwen_adapter(authority, factory=_HfLikeFactory())
+
+    result = json.loads(_MODULE.run_feasibility(authority, adapter))
+
+    assert result["outcome"] == "FITS"
+    assert [phase["name"] for phase in result["phases"]] == [
+        "load",
+        "rollout",
+        "replay",
+        "attention",
+        "dml",
+    ]
+    assert all(phase["elapsed_ns"] > 0 for phase in result["phases"])
+    assert all(phase["peak_rss_bytes"] > 0 for phase in result["phases"])
+    assert all(
+        phase["peak_cuda_reserved_bytes"] >= 0 for phase in result["phases"]
+    )
