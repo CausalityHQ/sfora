@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import platform
 import re
 import struct
 from dataclasses import asdict, dataclass
@@ -13,12 +14,63 @@ from typing import Any
 
 import numpy as np
 import torch
+import transformers
+from PIL import __version__ as pillow_version
+from PIL import features as pillow_features
 
 DESCRIPTOR_MAGIC = b"SFORA-M4-F32-V1\n"
 _HEADER_LENGTH = struct.Struct("<Q")
 _NORM_TOLERANCE = 1.0e-6
 _SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 _REVISION = re.compile(r"[0-9a-f]{40}\Z")
+_SCORER_CONFIGURED = False
+
+
+@dataclass(frozen=True)
+class M4Example:
+    """Identity and label authority for one descriptor row."""
+
+    position: int
+    example_id: str
+    label: int
+
+
+@dataclass(frozen=True)
+class QueryEvidence:
+    """Exact row-level retrieval evidence emitted by the reference scorer."""
+
+    query_position: int
+    query_example_id: str
+    query_label: int
+    nearest_position: int
+    nearest_example_id: str
+    nearest_label: int
+    nearest_score_bits: int
+    best_same_position: int
+    best_same_score_bits: int
+    best_different_position: int
+    best_different_score_bits: int
+    margin_bits: int
+    correct: bool
+
+
+@dataclass(frozen=True)
+class ScorerEnvironment:
+    """Pinned software and CPU authority for reference retrieval scoring."""
+
+    schema: str
+    torch_version: str
+    torch_build_config: str
+    cpu_architecture: str
+    cpu_capability: str
+    cpu_isa_flags: tuple[str, ...]
+    intraop_threads: int
+    interop_threads: int
+    deterministic_algorithms: bool
+    uv_lock_sha256: str
+    pillow_version: str
+    libjpeg_version: str
+    transformers_version: str
 
 
 @dataclass(frozen=True)
@@ -235,3 +287,157 @@ def publish_new_outputs(outputs: tuple[tuple[Path, bytes], ...]) -> None:
             partial.unlink(missing_ok=True)
         _fsync_directories(paths)
         raise
+
+
+def _configure_reference_scorer() -> None:
+    global _SCORER_CONFIGURED  # noqa: PLW0603
+    if _SCORER_CONFIGURED:
+        return
+    torch.set_num_threads(1)
+    try:
+        torch.set_num_interop_threads(1)
+    except RuntimeError as error:
+        if torch.get_num_interop_threads() != 1:
+            raise ValueError("reference scorer requires one interop thread") from error
+    torch.use_deterministic_algorithms(True)
+    if torch.get_num_threads() != 1 or torch.get_num_interop_threads() != 1:
+        raise ValueError("reference scorer thread authority differs")
+    _SCORER_CONFIGURED = True
+
+
+def _cpu_isa_flags() -> tuple[str, ...]:
+    cpuinfo = Path("/proc/cpuinfo")
+    if not cpuinfo.is_file():
+        return ()
+    for line in cpuinfo.read_text(errors="strict").splitlines():
+        key, separator, value = line.partition(":")
+        if separator and key.strip().lower() in {"flags", "features"}:
+            return tuple(sorted(set(value.split())))
+    return ()
+
+
+def configure_reference_scorer(uv_lock_path: Path) -> ScorerEnvironment:
+    """Configure scoring and return its complete environment authority."""
+
+    _configure_reference_scorer()
+    lock_bytes = uv_lock_path.read_bytes()
+    jpeg_version = pillow_features.version("jpg")
+    return ScorerEnvironment(
+        schema="sfora-pass209-m4-scorer-environment-v1",
+        torch_version=str(torch.__version__),
+        torch_build_config=torch.__config__.show(),
+        cpu_architecture=platform.machine(),
+        cpu_capability=torch.backends.cpu.get_cpu_capability(),
+        cpu_isa_flags=_cpu_isa_flags(),
+        intraop_threads=torch.get_num_threads(),
+        interop_threads=torch.get_num_interop_threads(),
+        deterministic_algorithms=torch.are_deterministic_algorithms_enabled(),
+        uv_lock_sha256=hashlib.sha256(lock_bytes).hexdigest(),
+        pillow_version=pillow_version,
+        libjpeg_version="unavailable" if jpeg_version is None else jpeg_version,
+        transformers_version=str(transformers.__version__),
+    )
+
+
+def _validate_examples(examples: tuple[M4Example, ...], rows: int) -> None:
+    if len(examples) != rows:
+        raise ValueError("example authority cardinality differs from descriptors")
+    seen_ids: set[str] = set()
+    label_counts: dict[int, int] = {}
+    for position, example in enumerate(examples):
+        if type(example.position) is not int or example.position != position:
+            raise ValueError("example authority position differs")
+        if type(example.example_id) is not str or not example.example_id:
+            raise ValueError("example authority ID differs")
+        if example.example_id in seen_ids:
+            raise ValueError("example authority IDs must be unique")
+        if type(example.label) is not int or example.label < 0:
+            raise ValueError("example authority label differs")
+        seen_ids.add(example.example_id)
+        label_counts[example.label] = label_counts.get(example.label, 0) + 1
+    if any(count < 2 for count in label_counts.values()):
+        raise ValueError("every query label requires another gallery row")
+
+
+def _float32_bits(value: torch.Tensor) -> int:
+    if value.dtype != torch.float32 or value.numel() != 1:
+        raise ValueError("score must be one float32 value")
+    return int(struct.unpack("<I", struct.pack("<f", float(value.item())))[0])
+
+
+def _first_argmax(scores: torch.Tensor) -> int:
+    if scores.ndim != 1 or not bool(torch.isfinite(scores).any()):
+        raise ValueError("retrieval candidate scores are empty")
+    # torch.argmax returns the first maximal ordinal, which is the registered tie rule.
+    return int(torch.argmax(scores).item())
+
+
+def score_descriptor_plane(
+    descriptors: torch.Tensor,
+    examples: tuple[M4Example, ...],
+    *,
+    block_size: int = 32,
+) -> tuple[QueryEvidence, ...]:
+    """Score one authenticated descriptor plane using the CPU fp32 authority."""
+
+    _configure_reference_scorer()
+    if descriptors.device.type != "cpu" or descriptors.dtype != torch.float32:
+        raise ValueError("reference scorer requires CPU float32 descriptors")
+    if type(block_size) is not int or block_size <= 0:
+        raise ValueError("reference scorer block size must be positive")
+    canonical = descriptors.detach().contiguous()
+    _descriptor_payload(canonical)
+    _validate_examples(examples, int(canonical.shape[0]))
+    labels = torch.tensor([example.label for example in examples], dtype=torch.int64)
+    rows: list[QueryEvidence] = []
+    with torch.inference_mode(), torch.autocast(device_type="cpu", enabled=False):
+        for start in range(0, len(examples), block_size):
+            stop = min(start + block_size, len(examples))
+            scores = canonical[start:stop] @ canonical.T
+            if scores.dtype != torch.float32 or not bool(torch.isfinite(scores).all()):
+                raise ValueError("reference scorer produced invalid scores")
+            for offset, query_position in enumerate(range(start, stop)):
+                row = scores[offset].clone()
+                row[query_position] = -torch.inf
+                nearest_position = _first_argmax(row)
+                same_scores = row.masked_fill(labels != labels[query_position], -torch.inf)
+                different_scores = row.masked_fill(labels == labels[query_position], -torch.inf)
+                best_same_position = _first_argmax(same_scores)
+                best_different_position = _first_argmax(different_scores)
+                margin = same_scores[best_same_position] - different_scores[best_different_position]
+                query = examples[query_position]
+                nearest = examples[nearest_position]
+                rows.append(
+                    QueryEvidence(
+                        query_position=query_position,
+                        query_example_id=query.example_id,
+                        query_label=query.label,
+                        nearest_position=nearest_position,
+                        nearest_example_id=nearest.example_id,
+                        nearest_label=nearest.label,
+                        nearest_score_bits=_float32_bits(row[nearest_position]),
+                        best_same_position=best_same_position,
+                        best_same_score_bits=_float32_bits(same_scores[best_same_position]),
+                        best_different_position=best_different_position,
+                        best_different_score_bits=_float32_bits(
+                            different_scores[best_different_position]
+                        ),
+                        margin_bits=_float32_bits(margin),
+                        correct=query.label == nearest.label,
+                    )
+                )
+    return tuple(rows)
+
+
+def validate_query_evidence(
+    evidence: tuple[QueryEvidence, ...],
+    descriptors: torch.Tensor,
+    examples: tuple[M4Example, ...],
+    *,
+    block_size: int = 32,
+) -> None:
+    """Recompute and require exact query-evidence identity."""
+
+    expected = score_descriptor_plane(descriptors, examples, block_size=block_size)
+    if evidence != expected:
+        raise ValueError("query evidence differs from descriptor authority")

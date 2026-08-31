@@ -13,9 +13,14 @@ import torch
 from sfora.pass209_m4 import (
     DESCRIPTOR_MAGIC,
     M4DescriptorHeader,
+    M4Example,
+    QueryEvidence,
+    configure_reference_scorer,
     decode_descriptor_file,
     encode_descriptor_file,
     publish_new_outputs,
+    score_descriptor_plane,
+    validate_query_evidence,
 )
 
 
@@ -168,3 +173,73 @@ def test_publication_rolls_back_if_second_link_fails(
     assert not second.exists()
     assert not first.with_name(".first.bin.partial").exists()
     assert not second.with_name(".second.bin.partial").exists()
+
+
+def _score_fixture() -> tuple[torch.Tensor, tuple[M4Example, ...]]:
+    descriptors = torch.tensor(
+        [
+            [1.0, 0.0],
+            [0.0, 1.0],
+            [0.0, 1.0],
+            [-1.0, 0.0],
+        ],
+        dtype=torch.float32,
+    )
+    examples = (
+        M4Example(position=0, example_id="q0", label=82),
+        M4Example(position=1, example_id="q1", label=82),
+        M4Example(position=2, example_id="q2", label=83),
+        M4Example(position=3, example_id="q3", label=83),
+    )
+    return descriptors, examples
+
+
+def test_reference_scorer_uses_exact_scores_lowest_ties_and_ragged_block() -> None:
+    descriptors, examples = _score_fixture()
+    rows = score_descriptor_plane(descriptors, examples, block_size=3)
+
+    assert tuple(row.query_position for row in rows) == (0, 1, 2, 3)
+    assert tuple(row.nearest_position for row in rows) == (1, 2, 1, 1)
+    assert tuple(row.correct for row in rows) == (True, False, False, False)
+    assert rows[0].nearest_score_bits == 0x00000000
+    assert rows[0].best_same_position == 1
+    assert rows[0].best_different_position == 2
+    assert rows[0].margin_bits == 0x00000000
+    assert rows[1].nearest_score_bits == 0x3F800000
+    assert rows[1].best_same_position == 0
+    assert rows[1].best_different_position == 2
+    assert rows[1].margin_bits == 0xBF800000
+    validate_query_evidence(rows, descriptors, examples, block_size=3)
+
+
+def test_query_evidence_validator_rejects_score_identity_and_order_drift() -> None:
+    descriptors, examples = _score_fixture()
+    rows = score_descriptor_plane(descriptors, examples, block_size=3)
+
+    mutations: tuple[tuple[QueryEvidence, ...], ...] = (
+        (replace(rows[0], nearest_score_bits=rows[0].nearest_score_bits ^ 1), *rows[1:]),
+        (replace(rows[0], nearest_position=2), *rows[1:]),
+        (replace(rows[0], query_example_id="wrong"), *rows[1:]),
+        rows[::-1],
+        rows[:-1],
+    )
+    for mutation in mutations:
+        with pytest.raises(ValueError, match="query evidence"):
+            validate_query_evidence(mutation, descriptors, examples, block_size=3)
+
+
+def test_reference_scorer_environment_binds_runtime_and_lock(tmp_path: Path) -> None:
+    lock = tmp_path / "uv.lock"
+    lock.write_bytes(b"fixture-lock\n")
+    environment = configure_reference_scorer(lock)
+    assert environment.schema == "sfora-pass209-m4-scorer-environment-v1"
+    assert environment.intraop_threads == 1
+    assert environment.interop_threads == 1
+    assert environment.uv_lock_sha256 == hashlib.sha256(b"fixture-lock\n").hexdigest()
+    assert environment.torch_version == torch.__version__
+    assert environment.torch_build_config
+    assert environment.cpu_architecture
+    assert environment.cpu_capability
+    assert environment.pillow_version
+    assert environment.libjpeg_version
+    assert environment.transformers_version
