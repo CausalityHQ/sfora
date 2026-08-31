@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+from dataclasses import dataclass
 
 import numpy as np
 import torch
@@ -10,11 +11,24 @@ from torch import nn
 
 from sfora.asgcv import (
     ASGCV_PREDICTOR_RANK,
+    ASGCV_STRATUM_SIZE,
     AsgcvSrhtAuthority,
+    select_stratum_index,
     srht_signs_and_rows,
 )
 
 _STATE_DOMAIN = b"sfora-asgcv-predictor-state-v1\0"
+_PREDICTION_DOMAIN = b"sfora-asgcv-prediction-v1\0"
+
+
+@dataclass(frozen=True, slots=True)
+class PreparedAsgcvStratum:
+    """Detached predictor output sealed before one registered selection."""
+
+    predicted: torch.Tensor
+    selected_index: int
+    predictor_state_sha256: str
+    prediction_sha256: str
 
 
 class AsgcvPatchGradientPredictor(nn.Module):
@@ -119,6 +133,81 @@ def predictor_state_sha256(predictor: object) -> str:
         array = tensor.detach().cpu().contiguous().numpy().astype(np.dtype("<f4"), copy=False)
         frame.extend(array.tobytes(order="C"))
     return hashlib.sha256(frame).hexdigest()
+
+
+def _prediction_sha256(value: torch.Tensor) -> str:
+    if value.dtype != torch.float32 or value.ndim != 4 or not bool(torch.isfinite(value).all()):
+        raise ValueError("ASG-CV prediction authority differs")
+    frame = bytearray(_PREDICTION_DOMAIN)
+    for size in value.shape:
+        frame.extend(int(size).to_bytes(8, "big"))
+    array = value.detach().cpu().contiguous().numpy().astype(np.dtype("<f4"), copy=False)
+    frame.extend(array.tobytes(order="C"))
+    return hashlib.sha256(frame).hexdigest()
+
+
+def prepare_asgcv_stratum(
+    predictor: object,
+    tokens: object,
+    relation_signs: object,
+    *,
+    selection_seed: object,
+    optimizer_step: int,
+    stratum_ordinal: int,
+) -> PreparedAsgcvStratum:
+    """Freeze predictor output before revealing the registered selected pair."""
+
+    if type(predictor) is not AsgcvPatchGradientPredictor:
+        raise ValueError("ASG-CV prepared predictor authority differs")
+    if type(tokens) is not torch.Tensor or tokens.shape[0] != ASGCV_STRATUM_SIZE:
+        raise ValueError("ASG-CV prepared stratum shape differs")
+    state_digest = predictor_state_sha256(predictor)
+    predicted = predictor.predict_detached(tokens, relation_signs)
+    if predictor_state_sha256(predictor) != state_digest:
+        raise ValueError("ASG-CV predictor changed during preparation")
+    selected_index = select_stratum_index(
+        selection_seed,
+        optimizer_step=optimizer_step,
+        stratum_ordinal=stratum_ordinal,
+    )
+    return PreparedAsgcvStratum(
+        predicted=predicted,
+        selected_index=selected_index,
+        predictor_state_sha256=state_digest,
+        prediction_sha256=_prediction_sha256(predicted),
+    )
+
+
+def torch_asgcv_stratum_gradient(
+    prepared: object,
+    exact_selected: object,
+    *,
+    predictor: object,
+) -> torch.Tensor:
+    """Form the torch estimator only while the prepared predictor state is unchanged."""
+
+    if type(prepared) is not PreparedAsgcvStratum:
+        raise ValueError("ASG-CV prepared stratum authority differs")
+    if type(predictor) is not AsgcvPatchGradientPredictor:
+        raise ValueError("ASG-CV prepared predictor authority differs")
+    if predictor_state_sha256(predictor) != prepared.predictor_state_sha256:
+        raise ValueError("ASG-CV predictor changed before estimator formation")
+    predicted = prepared.predicted
+    if _prediction_sha256(predicted) != prepared.prediction_sha256:
+        raise ValueError("ASG-CV prepared prediction changed")
+    if (
+        type(exact_selected) is not torch.Tensor
+        or exact_selected.dtype != torch.float32
+        or exact_selected.shape != predicted.shape[1:]
+        or exact_selected.device != predicted.device
+        or exact_selected.requires_grad
+        or not bool(torch.isfinite(exact_selected).all())
+    ):
+        raise ValueError("ASG-CV selected exact gradient authority differs")
+    result = predicted.mean(dim=0) + exact_selected - predicted[prepared.selected_index]
+    if not bool(torch.isfinite(result).all()):
+        raise ValueError("ASG-CV torch stratum gradient is not finite")
+    return result
 
 
 def torch_srht_gradient_sketch(

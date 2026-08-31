@@ -8,6 +8,8 @@ from sfora.asgcv_predictor import (
     AsgcvPatchGradientPredictor,
     predictor_state_sha256,
     predictor_training_loss,
+    prepare_asgcv_stratum,
+    torch_asgcv_stratum_gradient,
     torch_srht_gradient_sketch,
 )
 
@@ -156,3 +158,68 @@ def test_predictor_training_loss_rejects_teacher_and_tensor_authority_drift() ->
     nonfinite[0, 0, 0, 0] = torch.inf
     with pytest.raises(ValueError):
         predictor_training_loss(nonfinite, exact, authority)
+
+
+def test_prepared_stratum_seals_predictor_before_selection_and_estimator() -> None:
+    predictor = _predictor()
+    tokens = torch.randn(8, 2, 5, 32)
+    signs = torch.tensor([1, -1, 1, -1, 1, -1, 1, -1], dtype=torch.int8)
+
+    prepared = prepare_asgcv_stratum(
+        predictor,
+        tokens,
+        signs,
+        selection_seed="00" * 32,
+        optimizer_step=1,
+        stratum_ordinal=0,
+    )
+    assert prepared.selected_index == 1
+    assert prepared.predictor_state_sha256 == predictor_state_sha256(predictor)
+    assert prepared.predicted.requires_grad is False
+    assert prepared.predicted.shape == tokens.shape
+
+    exact_selected = prepared.predicted[prepared.selected_index] + 0.25
+    observed = torch_asgcv_stratum_gradient(prepared, exact_selected, predictor=predictor)
+    expected = (
+        prepared.predicted.mean(dim=0)
+        + exact_selected
+        - prepared.predicted[prepared.selected_index]
+    )
+    torch.testing.assert_close(observed, expected, rtol=0.0, atol=0.0)
+
+
+def test_prepared_stratum_rejects_same_step_predictor_update_and_input_drift() -> None:
+    predictor = _predictor()
+    tokens = torch.randn(8, 2, 5, 32)
+    signs = torch.ones(8, dtype=torch.int8)
+    prepared = prepare_asgcv_stratum(
+        predictor,
+        tokens,
+        signs,
+        selection_seed="12" * 32,
+        optimizer_step=4,
+        stratum_ordinal=3,
+    )
+    exact_selected = prepared.predicted[prepared.selected_index].clone()
+
+    with torch.no_grad():
+        next(predictor.parameters()).view(-1)[0].add_(1.0)
+    with pytest.raises(ValueError):
+        torch_asgcv_stratum_gradient(prepared, exact_selected, predictor=predictor)
+
+    clean_predictor = _predictor()
+    with pytest.raises(ValueError):
+        prepare_asgcv_stratum(
+            clean_predictor,
+            tokens[:7],
+            signs[:7],
+            selection_seed="12" * 32,
+            optimizer_step=4,
+            stratum_ordinal=3,
+        )
+    with pytest.raises(ValueError):
+        torch_asgcv_stratum_gradient(
+            prepared,
+            exact_selected.requires_grad_(True),
+            predictor=predictor,
+        )
