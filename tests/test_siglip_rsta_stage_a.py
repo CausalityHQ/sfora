@@ -18,6 +18,8 @@ from sfora.siglip_rsta_stage_a import (
     RstaRolePanel,
     RstaStageAConfig,
     contextual_rsta_direction,
+    preflight_rsta_jvp_backend,
+    receiver_rsta_fields,
     rsta_control_binding_bytes,
     rsta_stage_a_result_bytes,
     select_rsta_roles,
@@ -500,4 +502,189 @@ class TestContextualRstaDirection:
                 alpha=alpha,
                 delta=delta,
                 score_tolerance=0.0,
+            )
+
+
+class TestReceiverRstaFields:
+    @pytest.mark.parametrize("backend", ["forward-mode", "double-backward"])
+    def test_matrix_free_fields_match_explicit_dense_jacobian(
+        self, backend: str
+    ) -> None:
+        torch.manual_seed(47)
+        model = PooledProxyAnchorModel(
+            tower=nn.Sequential(nn.Linear(2, 3, bias=False), nn.Tanh()),
+            input_dimensions=3,
+            embedding_dimensions=2,
+            class_count=2,
+        ).float()
+        receiver = torch.tensor([[0.4, -0.7]], dtype=torch.float32)
+        dbar = torch.tensor([0.3, -0.5], dtype=torch.float32)
+        selected = tuple(
+            sorted(
+                (
+                    (name, parameter)
+                    for name, parameter in model.named_parameters()
+                    if name.startswith("tower.") or name.startswith("projection.")
+                ),
+                key=lambda item: item[0],
+            )
+        )
+        direction = tuple(
+            torch.linspace(-0.2, 0.3, parameter.numel()).reshape_as(parameter)
+            for _, parameter in selected
+        )
+        flat = torch.cat([parameter.detach().reshape(-1) for _, parameter in selected])
+        flat_direction = torch.cat([value.reshape(-1) for value in direction])
+        projection_count = model.projection.weight.numel()
+
+        def manual_encode(values: torch.Tensor) -> torch.Tensor:
+            projection = values[:projection_count].reshape_as(model.projection.weight)
+            tower = values[projection_count:].reshape_as(model.tower[0].weight)
+            pooled = torch.tanh(F.linear(receiver.squeeze(0), tower))
+            return F.normalize(F.linear(pooled, projection), dim=0)
+
+        jacobian = torch.autograd.functional.jacobian(manual_encode, flat)
+        expected_batch = jacobian @ flat_direction
+        expected_self = jacobian @ jacobian.T @ dbar
+
+        fields = receiver_rsta_fields(
+            model,
+            receiver,
+            dbar,
+            parameter_names=tuple(name for name, _ in selected),
+            parameter_direction=direction,
+            backend=backend,
+        )
+
+        torch.testing.assert_close(fields.descriptor, manual_encode(flat))
+        torch.testing.assert_close(fields.batch_motion, expected_batch)
+        torch.testing.assert_close(fields.self_motion, expected_self)
+        assert abs(float(fields.descriptor @ fields.batch_motion)) <= 2.0e-6
+        assert abs(float(fields.descriptor @ fields.self_motion)) <= 2.0e-6
+        assert fields.backend == backend
+
+    def test_rejects_projection_only_selected_parameter_tuple(self) -> None:
+        model = PooledProxyAnchorModel(
+            tower=nn.Identity(),
+            input_dimensions=2,
+            embedding_dimensions=2,
+            class_count=2,
+        )
+        names = ("projection.weight",)
+        direction = (torch.ones_like(model.projection.weight),)
+
+        with pytest.raises(ValueError, match="complete trainable tower"):
+            receiver_rsta_fields(
+                model,
+                torch.tensor([[0.2, 0.8]]),
+                torch.tensor([0.1, -0.3]),
+                parameter_names=names,
+                parameter_direction=direction,
+                backend="forward-mode",
+            )
+
+    def test_preflight_selects_forward_mode_after_dense_agreement(self) -> None:
+        model = PooledProxyAnchorModel(
+            tower=nn.Linear(2, 3, bias=False),
+            input_dimensions=3,
+            embedding_dimensions=2,
+            class_count=2,
+        )
+        selected = tuple(
+            sorted(
+                (
+                    (name, parameter)
+                    for name, parameter in model.named_parameters()
+                    if name.startswith("tower.") or name.startswith("projection.")
+                ),
+                key=lambda item: item[0],
+            )
+        )
+        evidence = preflight_rsta_jvp_backend(
+            model,
+            torch.tensor([[0.2, 0.8]]),
+            torch.tensor([0.1, -0.3]),
+            parameter_names=tuple(name for name, _ in selected),
+            parameter_direction=tuple(
+                torch.ones_like(parameter) for _, parameter in selected
+            ),
+        )
+
+        assert evidence.backend == "forward-mode"
+        assert evidence.comparison_available is True
+        assert evidence.maximum_relative_disagreement <= 1.0e-5
+
+    def test_preflight_selects_registered_fallback_only_on_coverage_failure(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        model = PooledProxyAnchorModel(
+            tower=nn.Linear(2, 3, bias=False),
+            input_dimensions=3,
+            embedding_dimensions=2,
+            class_count=2,
+        )
+        selected = tuple(
+            sorted(
+                (
+                    (name, parameter)
+                    for name, parameter in model.named_parameters()
+                    if name.startswith("tower.") or name.startswith("projection.")
+                ),
+                key=lambda item: item[0],
+            )
+        )
+
+        def unsupported(*args, **kwargs):
+            raise NotImplementedError("fixture forward AD coverage failure")
+
+        monkeypatch.setattr(torch.func, "jvp", unsupported)
+        evidence = preflight_rsta_jvp_backend(
+            model,
+            torch.tensor([[0.2, 0.8]]),
+            torch.tensor([0.1, -0.3]),
+            parameter_names=tuple(name for name, _ in selected),
+            parameter_direction=tuple(
+                torch.ones_like(parameter) for _, parameter in selected
+            ),
+        )
+
+        assert evidence.backend == "double-backward"
+        assert evidence.comparison_available is False
+        assert evidence.forward_error == "NotImplementedError"
+
+    def test_preflight_rejects_backend_disagreement(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        model = PooledProxyAnchorModel(
+            tower=nn.Linear(2, 3, bias=False),
+            input_dimensions=3,
+            embedding_dimensions=2,
+            class_count=2,
+        )
+        selected = tuple(
+            sorted(
+                (
+                    (name, parameter)
+                    for name, parameter in model.named_parameters()
+                    if name.startswith("tower.") or name.startswith("projection.")
+                ),
+                key=lambda item: item[0],
+            )
+        )
+        original_jvp = torch.func.jvp
+
+        def distorted(*args, **kwargs):
+            output, tangent = original_jvp(*args, **kwargs)
+            return output, tangent + 0.1
+
+        monkeypatch.setattr(torch.func, "jvp", distorted)
+        with pytest.raises(ValueError, match="backends disagree"):
+            preflight_rsta_jvp_backend(
+                model,
+                torch.tensor([[0.2, 0.8]]),
+                torch.tensor([0.1, -0.3]),
+                parameter_names=tuple(name for name, _ in selected),
+                parameter_direction=tuple(
+                    torch.ones_like(parameter) for _, parameter in selected
+                ),
             )

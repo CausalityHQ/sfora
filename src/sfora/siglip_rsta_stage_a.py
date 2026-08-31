@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import math
+import warnings
 from collections.abc import Sequence
 from dataclasses import dataclass
 
@@ -214,6 +215,26 @@ class ContextualDirectionEvidence:
     parameter_names: tuple[str, ...]
     parameter_direction: tuple[torch.Tensor, ...]
     maximum_score_disagreement: float
+
+
+@dataclass(frozen=True)
+class RstaReceiverFields:
+    """Matrix-free contextual and self motion in one receiver output space."""
+
+    descriptor: torch.Tensor
+    batch_motion: torch.Tensor
+    self_motion: torch.Tensor
+    backend: str
+
+
+@dataclass(frozen=True)
+class RstaJvpBackendEvidence:
+    """Outcome-blind backend preflight decision."""
+
+    backend: str
+    comparison_available: bool
+    maximum_relative_disagreement: float
+    forward_error: str | None
 
 
 @dataclass(frozen=True)
@@ -716,3 +737,226 @@ def contextual_rsta_direction(
     finally:
         for parameter in model.parameters():
             parameter.grad = None
+
+
+def receiver_rsta_fields(
+    model: PooledProxyAnchorModel,
+    receiver_input: torch.Tensor,
+    dbar: torch.Tensor,
+    *,
+    parameter_names: tuple[str, ...],
+    parameter_direction: tuple[torch.Tensor, ...],
+    backend: str,
+) -> RstaReceiverFields:
+    """Compute ``Jg`` and ``JJ^T dbar`` without materializing a Jacobian."""
+
+    if type(model) is not PooledProxyAnchorModel:
+        raise ValueError("RSTA fields require the registered pooled model")
+    if backend not in ("forward-mode", "double-backward"):
+        raise ValueError("RSTA fields require the preflight-selected backend")
+    if (
+        not isinstance(receiver_input, torch.Tensor)
+        or not receiver_input.is_floating_point()
+        or receiver_input.ndim < 2
+        or receiver_input.shape[0] != 1
+        or not bool(torch.isfinite(receiver_input).all())
+    ):
+        raise ValueError("RSTA receiver input must be one finite floating row")
+    if (
+        not isinstance(dbar, torch.Tensor)
+        or not dbar.is_floating_point()
+        or dbar.ndim != 1
+        or not bool(torch.isfinite(dbar).all())
+    ):
+        raise ValueError("RSTA receiver cotangent must be one finite vector")
+
+    selected = tuple(
+        sorted(
+            (
+                (name, parameter)
+                for name, parameter in model.named_parameters()
+                if name.startswith("tower.") or name.startswith("projection.")
+            ),
+            key=lambda item: item[0],
+        )
+    )
+    expected_names = tuple(name for name, _ in selected)
+    if not any(name.startswith("tower.") for name in expected_names) or not any(
+        name.startswith("projection.") for name in expected_names
+    ):
+        raise ValueError("RSTA requires the complete trainable tower and projection")
+    if (
+        type(parameter_names) is not tuple
+        or parameter_names != expected_names
+        or type(parameter_direction) is not tuple
+        or len(parameter_direction) != len(selected)
+    ):
+        raise ValueError("RSTA selected parameter tuple differs from authority")
+    primals = tuple(
+        parameter.detach().requires_grad_(backend == "double-backward")
+        for _, parameter in selected
+    )
+    for tangent, primal in zip(parameter_direction, primals, strict=True):
+        if (
+            type(tangent) is not torch.Tensor
+            or tangent.shape != primal.shape
+            or tangent.dtype != primal.dtype
+            or tangent.device != primal.device
+            or not bool(torch.isfinite(tangent).all())
+        ):
+            raise ValueError("RSTA parameter direction differs from authority")
+
+    tower_buffers = dict(model.tower.named_buffers())
+    projection_buffers = dict(model.projection.named_buffers())
+
+    def encode(values: tuple[torch.Tensor, ...]) -> torch.Tensor:
+        value_by_name = dict(zip(expected_names, values, strict=True))
+        tower_state = {
+            name: value_by_name[f"tower.{name}"]
+            for name, _ in model.tower.named_parameters()
+        }
+        tower_state.update(tower_buffers)
+        projection_state = {
+            name: value_by_name[f"projection.{name}"]
+            for name, _ in model.projection.named_parameters()
+        }
+        projection_state.update(projection_buffers)
+        pooled = torch.func.functional_call(model.tower, tower_state, (receiver_input,))
+        projected = torch.func.functional_call(
+            model.projection, projection_state, (pooled,)
+        ).float()
+        return F.normalize(projected, dim=1).squeeze(0)
+
+    if backend == "forward-mode":
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                message=r"`torch\.jit\.script` is deprecated\..*",
+                category=DeprecationWarning,
+                module=r"torch\.jit\._script",
+            )
+            descriptor, batch_motion = torch.func.jvp(
+                encode,
+                (primals,),
+                (parameter_direction,),
+            )
+        vjp_descriptor, pullback = torch.func.vjp(encode, primals)
+        if not torch.equal(descriptor, vjp_descriptor):
+            raise ValueError("RSTA receiver descriptor replay differs")
+        (self_parameter_direction,) = pullback(dbar.to(descriptor))
+        _, self_motion = torch.func.jvp(
+            encode,
+            (primals,),
+            (self_parameter_direction,),
+        )
+    else:
+        descriptor = encode(primals)
+
+        def double_backward_jvp(
+            tangent_values: tuple[torch.Tensor, ...],
+        ) -> torch.Tensor:
+            output = encode(primals)
+            output_cotangent = torch.zeros_like(output, requires_grad=True)
+            transposed = torch.autograd.grad(
+                output,
+                primals,
+                grad_outputs=output_cotangent,
+                create_graph=True,
+            )
+            pairing = sum(
+                (left * right).sum()
+                for left, right in zip(transposed, tangent_values, strict=True)
+            )
+            return torch.autograd.grad(pairing, output_cotangent)[0]
+
+        batch_motion = double_backward_jvp(parameter_direction)
+        self_parameter_direction = torch.autograd.grad(
+            descriptor,
+            primals,
+            grad_outputs=dbar.to(descriptor),
+        )
+        self_motion = double_backward_jvp(self_parameter_direction)
+
+    def tangent(field: torch.Tensor) -> torch.Tensor:
+        return field - descriptor * torch.dot(descriptor, field)
+
+    batch_motion = tangent(batch_motion)
+    self_motion = tangent(self_motion)
+    if not all(
+        bool(torch.isfinite(value).all())
+        for value in (descriptor, batch_motion, self_motion)
+    ):
+        raise ValueError("RSTA receiver fields must be finite")
+    return RstaReceiverFields(
+        descriptor=descriptor.detach(),
+        batch_motion=batch_motion.detach(),
+        self_motion=self_motion.detach(),
+        backend=backend,
+    )
+
+
+def preflight_rsta_jvp_backend(
+    model: PooledProxyAnchorModel,
+    receiver_input: torch.Tensor,
+    dbar: torch.Tensor,
+    *,
+    parameter_names: tuple[str, ...],
+    parameter_direction: tuple[torch.Tensor, ...],
+) -> RstaJvpBackendEvidence:
+    """Select the registered JVP backend before scientific rows are opened."""
+
+    try:
+        forward = receiver_rsta_fields(
+            model,
+            receiver_input,
+            dbar,
+            parameter_names=parameter_names,
+            parameter_direction=parameter_direction,
+            backend="forward-mode",
+        )
+    except NotImplementedError as error:
+        receiver_rsta_fields(
+            model,
+            receiver_input,
+            dbar,
+            parameter_names=parameter_names,
+            parameter_direction=parameter_direction,
+            backend="double-backward",
+        )
+        return RstaJvpBackendEvidence(
+            backend="double-backward",
+            comparison_available=False,
+            maximum_relative_disagreement=0.0,
+            forward_error=type(error).__name__,
+        )
+
+    fallback = receiver_rsta_fields(
+        model,
+        receiver_input,
+        dbar,
+        parameter_names=parameter_names,
+        parameter_direction=parameter_direction,
+        backend="double-backward",
+    )
+
+    def relative(left: torch.Tensor, right: torch.Tensor) -> float:
+        denominator = max(
+            float(torch.linalg.vector_norm(left)),
+            float(torch.linalg.vector_norm(right)),
+            1.0e-12,
+        )
+        return float(torch.linalg.vector_norm(left - right)) / denominator
+
+    maximum = max(
+        relative(forward.descriptor, fallback.descriptor),
+        relative(forward.batch_motion, fallback.batch_motion),
+        relative(forward.self_motion, fallback.self_motion),
+    )
+    if not math.isfinite(maximum) or maximum > 1.0e-5:
+        raise ValueError("RSTA JVP backends disagree above the registered tolerance")
+    return RstaJvpBackendEvidence(
+        backend="forward-mode",
+        comparison_available=True,
+        maximum_relative_disagreement=maximum,
+        forward_error=None,
+    )
