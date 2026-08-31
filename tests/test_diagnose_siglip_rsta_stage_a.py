@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import math
 import random
 import sys
 from collections import OrderedDict
@@ -19,6 +20,9 @@ from sfora.pass209_m4 import canonical_json_bytes
 from sfora.siglip_rsta_stage_a import (
     RstaCheckpointBinding,
     RstaControlBinding,
+    RstaJvpBackendEvidence,
+    RstaReceiverEvidence,
+    RstaReceiverScore,
     rsta_control_binding_bytes,
 )
 
@@ -56,6 +60,46 @@ def _fixture_image_basename(example_id: str = "optimization-000") -> str:
     return (
         hashlib.sha256(b"rsta-siglip-a-v1|image-path|\0" + example_id.encode("utf-8")).hexdigest()
         + ".image"
+    )
+
+
+def _scientific_examples() -> tuple[tuple[str, int], ...]:
+    return tuple(
+        (f"class-{label:02d}-row-{row:02d}", label) for label in range(49) for row in range(15)
+    )
+
+
+def _scientific_score(delta: float) -> RstaReceiverScore:
+    rho = 0.3
+    cosine = math.sqrt(1.0 - rho * rho)
+    norm_b = math.exp(0.2)
+    cross_norm = math.sqrt(norm_b**2 + 1.0 - 2.0 * norm_b * cosine)
+    return RstaReceiverScore(
+        a_self=delta,
+        a_batch=0.0,
+        delta=delta,
+        a_desc=delta - 0.02,
+        self_minus_desc=0.02,
+        cos_batch_self=cosine,
+        rho=rho,
+        log_ratio=0.2,
+        cross_contribution=-delta / cross_norm,
+        random_a_self=0.0,
+        random_a_batch=0.0,
+        random_delta=0.0,
+        deranged_a_self=0.0,
+        deranged_a_batch=0.0,
+        deranged_delta=0.0,
+        norm_z=1.0,
+        norm_dbar=1.0,
+        norm_b=norm_b,
+        norm_s=1.0,
+        norm_q=1.0,
+        norm_random_target=1.0,
+        norm_deranged_target=1.0,
+        batch_radial_fraction=0.0,
+        self_radial_fraction=0.0,
+        dbar_radial_fraction=0.0,
     )
 
 
@@ -391,3 +435,224 @@ def test_authority_loader_rejects_rebound_manifest_semantic_drift(
 
     with pytest.raises(ValueError, match=r"optimization (manifest|image)"):
         _MODULE.load_stage_a_authority(arguments)
+
+
+def _scientific_authority(tmp_path: Path):
+    arguments, binding = _write_authority_bundle(tmp_path)
+    examples = _scientific_examples()
+    for path in arguments.image_root.iterdir():
+        path.unlink()
+    for example_id, _label in examples:
+        (arguments.image_root / _fixture_image_basename(example_id)).write_bytes(b"fixture-image")
+    manifest = canonical_json_bytes(
+        {
+            "schema": "rsta-optimization-manifest-v1",
+            "claim_eligible": False,
+            "dataset_id": binding.dataset_id,
+            "dataset_revision": binding.dataset_revision,
+            "examples": [
+                {"example_id": example_id, "label": label} for example_id, label in examples
+            ],
+        }
+    )
+    manifest_sha256 = hashlib.sha256(manifest).hexdigest()
+    arguments.optimization_manifest.write_bytes(manifest)
+    arguments.optimization_manifest_sha256 = manifest_sha256
+    rebound = replace(binding, optimization_manifest_sha256=manifest_sha256)
+    rebound_bytes = rsta_control_binding_bytes(rebound)
+    arguments.control_binding.write_bytes(rebound_bytes)
+    arguments.control_binding_sha256 = hashlib.sha256(rebound_bytes).hexdigest()
+    return _MODULE.load_stage_a_authority(arguments)
+
+
+def _seed_execution(checkpoint, panel):
+    rows = tuple(
+        RstaReceiverEvidence(
+            seed=checkpoint.seed,
+            label=receiver.label,
+            receiver_id=receiver.example_id,
+            primary=_scientific_score(0.05),
+            alternate=_scientific_score(0.02),
+        )
+        for receiver in panel.receivers
+    )
+    return _MODULE.StageASeedExecution(
+        receiver_evidence=rows,
+        first_receiver_first_sha256="91" * 32,
+        first_receiver_repeat_sha256="91" * 32,
+    )
+
+
+def _forward_backend() -> RstaJvpBackendEvidence:
+    return RstaJvpBackendEvidence(
+        backend="forward-mode",
+        comparison_available=True,
+        maximum_relative_disagreement=0.0,
+        forward_error=None,
+    )
+
+
+def _tensor_digests(authority) -> dict[str, str]:
+    return {
+        example_id: hashlib.sha256(example_id.encode()).hexdigest()
+        for example_id in authority.example_ids
+    }
+
+
+def test_reduced_scientific_loop_runs_exact_seed_panel_order_and_aggregates(
+    tmp_path: Path,
+) -> None:
+    authority = _scientific_authority(tmp_path)
+    calls: list[int] = []
+
+    def runner(checkpoint, panel, binding, image_paths, backend):
+        calls.append(checkpoint.seed)
+        assert binding is authority.binding
+        assert tuple(image_paths) == authority.example_ids
+        assert backend is sealed_backend
+        return _seed_execution(checkpoint, panel)
+
+    sealed_backend = _forward_backend()
+    completed = _MODULE.execute_stage_a_scientific_loop(
+        authority,
+        backend=sealed_backend,
+        tensor_sha256_by_id=_tensor_digests(authority),
+        seed_runner=runner,
+    )
+
+    assert calls == [17, 29, 43]
+    assert completed.aggregate.receiver_count == 3 * 49 * 3
+    assert completed.aggregate.verdict == "PASS_ONWARD"
+    assert completed.backend is sealed_backend
+    assert completed.authority is authority
+    assert completed.aggregate_bytes.endswith(b"\n")
+
+
+@pytest.mark.parametrize("mutation", ["short", "duplicate", "reordered", "repeat"])
+def test_reduced_scientific_loop_rejects_partial_duplicate_order_and_repeatability_drift(
+    tmp_path: Path, mutation: str
+) -> None:
+    authority = _scientific_authority(tmp_path)
+
+    calls: list[int] = []
+
+    def runner(checkpoint, panel, _binding, _image_paths, _backend):
+        calls.append(checkpoint.seed)
+        execution = _seed_execution(checkpoint, panel)
+        rows = execution.receiver_evidence
+        if mutation == "short":
+            rows = rows[:-1]
+        elif mutation == "duplicate":
+            rows = (rows[0], rows[0], *rows[2:])
+        elif mutation == "reordered":
+            rows = (rows[1], rows[0], *rows[2:])
+        elif mutation == "repeat":
+            return replace(
+                execution,
+                first_receiver_repeat_sha256="92" * 32,
+            )
+        return replace(execution, receiver_evidence=tuple(rows))
+
+    with pytest.raises(_MODULE.PostScienceFailure, match="seed execution"):
+        _MODULE.execute_stage_a_scientific_loop(
+            authority,
+            backend=_forward_backend(),
+            tensor_sha256_by_id=_tensor_digests(authority),
+            seed_runner=runner,
+        )
+    if mutation in {"short", "duplicate", "reordered", "repeat"}:
+        assert calls == [17]
+
+
+@pytest.mark.parametrize("mutation", ["seed-order", "image-count", "tensor-digest", "backend"])
+def test_reduced_scientific_loop_rejects_pre_science_authority_drift(
+    tmp_path: Path, mutation: str
+) -> None:
+    authority = _scientific_authority(tmp_path)
+    backend = _forward_backend()
+    digests = _tensor_digests(authority)
+    if mutation == "seed-order":
+        authority = replace(authority, checkpoints=tuple(reversed(authority.checkpoints)))
+    elif mutation == "image-count":
+        authority = replace(authority, image_paths=authority.image_paths[:-1])
+    elif mutation == "tensor-digest":
+        digests.pop(next(iter(digests)))
+    else:
+        backend = RstaJvpBackendEvidence(
+            backend="double-backward",
+            comparison_available=False,
+            maximum_relative_disagreement=1.0e-6,
+            forward_error="NotImplementedError",
+        )
+
+    with pytest.raises(_MODULE.PreScienceInvalid):
+        _MODULE.execute_stage_a_scientific_loop(
+            authority,
+            backend=backend,
+            tensor_sha256_by_id=digests,
+            seed_runner=_seed_execution,
+        )
+
+
+def test_reduced_scientific_loop_stops_after_first_mid_campaign_failure(
+    tmp_path: Path,
+) -> None:
+    authority = _scientific_authority(tmp_path)
+    calls: list[int] = []
+
+    def runner(checkpoint, panel, _binding, _image_paths, _backend):
+        calls.append(checkpoint.seed)
+        if checkpoint.seed == 29:
+            raise RuntimeError("interrupted receiver row")
+        return _seed_execution(checkpoint, panel)
+
+    with pytest.raises(_MODULE.PostScienceFailure):
+        _MODULE.execute_stage_a_scientific_loop(
+            authority,
+            backend=_forward_backend(),
+            tensor_sha256_by_id=_tensor_digests(authority),
+            seed_runner=runner,
+        )
+    assert calls == [17, 29]
+
+
+@pytest.mark.parametrize(
+    "backend",
+    [
+        RstaJvpBackendEvidence("unknown", True, 0.0, None),
+        RstaJvpBackendEvidence("forward-mode", False, 0.0, None),
+        RstaJvpBackendEvidence("forward-mode", True, 1.1e-5, None),
+        RstaJvpBackendEvidence("forward-mode", True, 0.0, "RuntimeError"),
+        RstaJvpBackendEvidence("double-backward", False, 0.0, None),
+        RstaJvpBackendEvidence("double-backward", False, 1.0e-12, "NotImplementedError"),
+    ],
+)
+def test_reduced_scientific_loop_rejects_every_unsealed_backend_shape(
+    tmp_path: Path, backend: RstaJvpBackendEvidence
+) -> None:
+    authority = _scientific_authority(tmp_path)
+    with pytest.raises(_MODULE.PreScienceInvalid):
+        _MODULE.execute_stage_a_scientific_loop(
+            authority,
+            backend=backend,
+            tensor_sha256_by_id=_tensor_digests(authority),
+            seed_runner=_seed_execution,
+        )
+
+
+def test_pre_science_invalid_result_is_canonical_and_has_no_scientific_evidence() -> None:
+    raw = _MODULE.pre_science_invalid_result_bytes("backend-unavailable")
+    value = json.loads(raw)
+
+    assert raw == canonical_json_bytes(value)
+    assert value == {
+        "schema": "siglip-rsta-stage-a-result-v1",
+        "claim_eligible": False,
+        "verdict": "INVALID",
+        "first_decisive_clause": "backend-unavailable",
+    }
+    assert "metrics" not in value
+    assert "receiver_evidence" not in value
+
+    with pytest.raises(ValueError, match="INVALID clause"):
+        _MODULE.pre_science_invalid_result_bytes("adaptive-retry")

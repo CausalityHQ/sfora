@@ -12,14 +12,21 @@ import os
 import random
 import sys
 from collections import OrderedDict
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from sfora.siglip_rsta_stage_a import RstaCheckpointBinding, RstaControlBinding
+    from sfora.siglip_rsta_stage_a import (
+        RstaAggregate,
+        RstaCheckpointBinding,
+        RstaControlBinding,
+        RstaJvpBackendEvidence,
+        RstaReceiverEvidence,
+        RstaRolePanel,
+    )
 
 
 def _lower_sha256(value: str) -> str:
@@ -73,6 +80,62 @@ class LoadedStageAAuthority:
     example_ids: tuple[str, ...]
     labels: tuple[int, ...]
     image_paths: tuple[Path, ...]
+
+
+class PreScienceInvalid(ValueError):
+    """A registered authority failure before any scientific receiver row opens."""
+
+
+class PostScienceFailure(RuntimeError):
+    """A terminal scientific failure for which no candidate result may be emitted."""
+
+
+_INVALID_CLAUSES = frozenset(
+    {
+        "authority-mismatch",
+        "backend-unavailable",
+        "fixture-failure",
+        "throughput-budget",
+        "determinism-failure",
+    }
+)
+
+
+def pre_science_invalid_result_bytes(clause: str) -> bytes:
+    """Serialize the only candidate result allowed before scientific rows open."""
+
+    if type(clause) is not str or clause not in _INVALID_CLAUSES:
+        raise ValueError("RSTA pre-science INVALID clause differs from authority")
+    return _canonical_json(
+        {
+            "schema": "siglip-rsta-stage-a-result-v1",
+            "claim_eligible": False,
+            "verdict": "INVALID",
+            "first_decisive_clause": clause,
+        }
+    )
+
+
+@dataclass(frozen=True)
+class StageASeedExecution:
+    """One complete seed execution plus its bitwise repeatability witness."""
+
+    receiver_evidence: tuple[RstaReceiverEvidence, ...]
+    first_receiver_first_sha256: str
+    first_receiver_repeat_sha256: str
+
+
+@dataclass(frozen=True)
+class CompletedStageAScience:
+    """Complete in-memory Stage-A evidence; no partial result is representable."""
+
+    authority: LoadedStageAAuthority
+    panel: RstaRolePanel
+    tensor_sha256_by_id: Mapping[str, str]
+    backend: RstaJvpBackendEvidence
+    seeds: tuple[StageASeedExecution, ...]
+    aggregate: RstaAggregate
+    aggregate_bytes: bytes
 
 
 def _read_regular(path: Path, *, role: str) -> bytes:
@@ -343,6 +406,136 @@ def load_stage_a_authority(arguments: argparse.Namespace) -> LoadedStageAAuthori
         example_ids=example_ids,
         labels=labels,
         image_paths=image_paths,
+    )
+
+
+def execute_stage_a_scientific_loop(
+    authority: LoadedStageAAuthority,
+    *,
+    backend: RstaJvpBackendEvidence,
+    tensor_sha256_by_id: Mapping[str, str],
+    seed_runner: Callable[
+        [
+            LoadedStageACheckpoint,
+            RstaRolePanel,
+            RstaControlBinding,
+            Mapping[str, Path],
+            RstaJvpBackendEvidence,
+        ],
+        StageASeedExecution,
+    ],
+) -> CompletedStageAScience:
+    """Run the three sealed seeds in registered order and publish only complete evidence."""
+
+    from sfora.siglip_rsta_stage_a import (
+        RstaJvpBackendEvidence,
+        RstaReceiverEvidence,
+        RstaStageAConfig,
+        rsta_stage_a_result_bytes,
+        select_rsta_roles,
+        summarize_rsta_stage_a,
+    )
+
+    config = RstaStageAConfig()
+    if (
+        type(authority) is not LoadedStageAAuthority
+        or type(authority.example_ids) is not tuple
+        or type(authority.labels) is not tuple
+        or type(authority.image_paths) is not tuple
+        or not (len(authority.example_ids) == len(authority.labels) == len(authority.image_paths))
+        or len(set(authority.example_ids)) != len(authority.example_ids)
+        or len(set(authority.image_paths)) != len(authority.image_paths)
+        or tuple(checkpoint.seed for checkpoint in authority.checkpoints) != config.seeds
+        or tuple(checkpoint.seed for checkpoint in authority.binding.checkpoints) != config.seeds
+        or not callable(seed_runner)
+    ):
+        raise PreScienceInvalid("RSTA scientific authority or seed runner differs")
+    if type(backend) is not RstaJvpBackendEvidence:
+        raise PreScienceInvalid("RSTA sealed backend authority differs")
+    if backend.backend == "forward-mode":
+        backend_valid = (
+            backend.comparison_available is True
+            and type(backend.maximum_relative_disagreement) is float
+            and math.isfinite(backend.maximum_relative_disagreement)
+            and 0.0 <= backend.maximum_relative_disagreement <= 1.0e-5
+            and backend.forward_error is None
+        )
+    else:
+        backend_valid = (
+            backend.backend == "double-backward"
+            and backend.comparison_available is False
+            and backend.maximum_relative_disagreement == 0.0
+            and type(backend.forward_error) is str
+            and bool(backend.forward_error)
+        )
+    if not backend_valid:
+        raise PreScienceInvalid("RSTA sealed backend authority differs")
+    if (
+        not isinstance(tensor_sha256_by_id, Mapping)
+        or set(tensor_sha256_by_id) != set(authority.example_ids)
+        or any(
+            type(example_id) is not str
+            or type(digest) is not str
+            or len(digest) != 64
+            or any(character not in "0123456789abcdef" for character in digest)
+            for example_id, digest in tensor_sha256_by_id.items()
+        )
+    ):
+        raise PreScienceInvalid("RSTA tensor digest authority differs")
+    try:
+        panel = select_rsta_roles(tuple(zip(authority.example_ids, authority.labels, strict=True)))
+    except ValueError as error:
+        raise PreScienceInvalid("RSTA role panel authority differs") from error
+    image_paths = MappingProxyType(
+        dict(zip(authority.example_ids, authority.image_paths, strict=True))
+    )
+    expected_receivers = tuple((row.label, row.example_id) for row in panel.receivers)
+    executions: list[StageASeedExecution] = []
+    all_rows: list[RstaReceiverEvidence] = []
+    for checkpoint in authority.checkpoints:
+        try:
+            execution = seed_runner(
+                checkpoint,
+                panel,
+                authority.binding,
+                image_paths,
+                backend,
+            )
+        except Exception as error:
+            raise PostScienceFailure("RSTA seed execution failed") from error
+        if type(execution) is not StageASeedExecution:
+            raise PostScienceFailure("RSTA seed execution has the wrong concrete type")
+        rows = execution.receiver_evidence
+        if (
+            type(rows) is not tuple
+            or len(rows) != len(expected_receivers)
+            or any(type(row) is not RstaReceiverEvidence for row in rows)
+            or tuple((row.label, row.receiver_id) for row in rows) != expected_receivers
+            or any(row.seed != checkpoint.seed for row in rows)
+            or type(execution.first_receiver_first_sha256) is not str
+            or len(execution.first_receiver_first_sha256) != 64
+            or any(
+                character not in "0123456789abcdef"
+                for character in execution.first_receiver_first_sha256
+            )
+            or execution.first_receiver_repeat_sha256 != execution.first_receiver_first_sha256
+        ):
+            raise PostScienceFailure("RSTA seed execution row or repeatability authority differs")
+        executions.append(execution)
+        all_rows.extend(rows)
+    try:
+        aggregate = summarize_rsta_stage_a(tuple(all_rows), config)
+        aggregate_bytes = rsta_stage_a_result_bytes(aggregate)
+    except ValueError as error:
+        raise PostScienceFailure("RSTA seed execution evidence differs") from error
+    return CompletedStageAScience(
+        authority=authority,
+        panel=panel,
+        tensor_sha256_by_id=MappingProxyType(dict(tensor_sha256_by_id)),
+        backend=backend,
+        seeds=tuple(executions),
+        aggregate=aggregate,
+        aggregate_bytes=aggregate_bytes,
     )
 
 
