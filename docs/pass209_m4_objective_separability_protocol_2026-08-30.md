@@ -3,6 +3,13 @@
 Status: **prospectively frozen before any new descriptor or cross-substrate
 error-overlap set is computed**.
 
+Correction frozen on 2026-08-31 before any M4 execution: repository review of
+the historical launchers established that DINOv2-L used batch 32, whereas both
+SigLIP cells used batch 8, and that the historical aggregate/error population
+was scored by the CUDA substrate scorer rather than the new CPU reference
+scorer. The corrected protocol below preserves those two authorities
+separately. No M4 descriptor or result was observed before this correction.
+
 ## Purpose and scope
 
 The blinded M2 taxonomy is terminally ineligible: its two strict submissions
@@ -33,7 +40,8 @@ added or promoted after descriptor outcomes are visible.
   `9abf6cf7d6dfa7b95152a0d6e791ea9435b47a40`
 - examples: exactly the 1,345 rows whose labels are `82..97`, in the existing
   authenticated loader order
-- dataset example-sequence SHA-256:
+- legacy order-insensitive full Cars train-split example-set SHA-256 (not the
+  1,345-row holdout order):
   `83a7800ee948a816e2fb9a2c9163027d9e90f167abc90052bf220619fa32240f`
 - source error manifest SHA-256:
   `64d491607d4dac144b31edac3a182130e6f94f994a272f612c195a7a72d55611`
@@ -56,12 +64,16 @@ and SigLIP2-so400m are non-selecting rescue devices. The previously observed
 SigLIP-base pooled count is excluded because it came from a different fp16
 token-screen pipeline and was added only after all aggregate counts were known.
 
-Every cell uses offline, revision-pinned model and dataset loads, batch size 8,
+Every cell uses offline, revision-pinned model and dataset loads; DINOv2-L uses
+its historical batch size 32 and both SigLIP cells use their historical batch
+size 8. Every cell uses
 query block 32, full fp32 tower/readout/scoring, deterministic PyTorch
 algorithms, TF32 disabled, and the registered readout. A mismatch in model,
 receipt, source, example ID/label sequence, row count, descriptor dimension,
-finite/unit-norm validation, processor shape, or expected aggregate correct
-count terminates that cell without analysis.
+finite/unit-norm validation, or processor shape terminates that cell without
+analysis. A historical CUDA reproduction mismatch publishes claim-ineligible
+diagnostic artifacts and a failed receipt, then terminates without rescue
+analysis; it does not discard the completed descriptor measurement.
 
 Descriptor inference is CUDA-only on the registered DGX; retrieval scoring is
 CPU-only as specified below. Each cell receipt binds GPU product name, UUID,
@@ -73,10 +85,11 @@ The SigLIP-so400m v2 prerequisite receipt contains the legacy descriptor
 SHA-256 computed as the canonical sorted compact shape/dtype header
 `{"dtype":"float32-le","shape":[rows,dimensions]}\n` followed by the exact
 row-major little-endian f32 plane. M4 recomputes and requires that digest before
-scoring, then requires the CPU scorer's complete incorrect-query position set
-to equal the frozen manifest's 103 query positions. A manifest query must remain
-incorrect, but its nearest incorrect row may differ because CPU and CUDA GEMM
-use different fp32 reduction orders. Publish every such nearest-row divergence
+scoring. M4 first reruns the historical CUDA scorer, including its second
+normalization, and requires that scorer's complete incorrect-query position set
+to equal the frozen manifest's 103 query positions. The separate CPU reference
+table is not required to reproduce CUDA counts or positions. Publish every
+CPU/CUDA nearest-row divergence
 with both row identities, score bit patterns, and same-minus-different margin;
 it is descriptive and cannot redefine the fixed source-manifest pair. This
 anchors the CPU reference scorer to the CUDA scoring event that defined the
@@ -85,7 +98,8 @@ rescue population without falsely requiring backend-identical argmax rows.
 The older DINOv2-L and SigLIP2-so400m v1 prerequisite receipts did not publish
 descriptor digests or row-level rankings. M4 must not invent them. Those cells
 are bound by their exact receipt bytes, source/model/data/readout authority,
-new create-once descriptor digest, and exact aggregate-count reproduction.
+new create-once descriptor digest, and exact aggregate-count reproduction by
+the historical CUDA scorer.
 Their rescue rows are therefore newly generated M4 evidence under the common
 CPU scorer, while the SigLIP-so400m population-defining rows are an exact
 historical reproduction. This asymmetry is disclosed in the final receipt.
@@ -109,7 +123,8 @@ The descriptor file is exactly:
 4. exactly `rows * dimensions * 4` row-major little-endian float32 bytes.
 
 The header binds schema, source revision/tree, dataset/revision, exact example
-sequence digest, cell/model/revision/readout, `[rows, dimensions]`, payload byte
+legacy set digest, a new ordered `(example_id,label)` digest,
+split/holdout/dtype, cell/model/revision/readout, `[rows, dimensions]`, payload byte
 count, and payload SHA-256. The receipt additionally binds the full descriptor
 file SHA-256 and query-table SHA-256. No length, padding, extra byte, NaN,
 infinity, zero-norm row, or norm error above `1e-6` is accepted.

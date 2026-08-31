@@ -110,6 +110,10 @@ class M4DescriptorHeader:
     dataset: str
     dataset_revision: str
     dataset_examples_sha256: str
+    dataset_examples_ordered_sha256: str
+    split: str
+    holdout_classes: tuple[int, ...]
+    compute_dtype: str
     cell: str
     model_name: str
     model_revision: str
@@ -123,6 +127,74 @@ class M4DescriptorHeader:
         """Return the concrete JSON object in the registered schema."""
 
         return asdict(self)
+
+
+@dataclass(frozen=True)
+class M4CellSpec:
+    """Frozen identity and reproduction gates for one original fp32 cell."""
+
+    cell: str
+    model_name: str
+    model_revision: str
+    readout: str
+    batch_size: int
+    processor_image_shape: tuple[int, int]
+    descriptor_dimensions: int
+    expected_correct: int
+    prerequisite_sha256: str
+    prerequisite_schema: str
+    legacy_descriptor_sha256: str | None
+
+
+REGISTERED_M4_CELLS: dict[str, M4CellSpec] = {
+    "dinov2-large": M4CellSpec(
+        cell="dinov2-large",
+        model_name="facebook/dinov2-large",
+        model_revision="47b73eefe95e8d44ec3623f8890bd894b6ea2d6c",
+        readout="last_hidden_state_cls",
+        batch_size=32,
+        processor_image_shape=(224, 224),
+        descriptor_dimensions=1024,
+        expected_correct=1196,
+        prerequisite_sha256=(
+            "8d01a2aa7cb122e9db0786e40a397a4dfe64ccec9430f6346a80d3b6a3b973a1"
+        ),
+        prerequisite_schema="sfora-frozen-substrate-screen-v1",
+        legacy_descriptor_sha256=None,
+    ),
+    "siglip2-so400m": M4CellSpec(
+        cell="siglip2-so400m",
+        model_name="google/siglip2-so400m-patch14-384",
+        model_revision="e8e487298228002f3d8a82e0cd5c8ea9c567f57f",
+        readout="vision_pooler_output",
+        batch_size=8,
+        processor_image_shape=(384, 384),
+        descriptor_dimensions=1152,
+        expected_correct=1227,
+        prerequisite_sha256=(
+            "55c66314017aac208dd76c542f0b2be5f969b18a4ca422e56a15ef14b15b7f9e"
+        ),
+        prerequisite_schema="sfora-frozen-substrate-screen-v1",
+        legacy_descriptor_sha256=None,
+    ),
+    "siglip-so400m": M4CellSpec(
+        cell="siglip-so400m",
+        model_name="google/siglip-so400m-patch14-384",
+        model_revision="9fdffc58afc957d1a03a25b10dba0329ab15c2a3",
+        readout="vision_pooler_output",
+        batch_size=8,
+        processor_image_shape=(384, 384),
+        descriptor_dimensions=1152,
+        expected_correct=1242,
+        prerequisite_sha256=(
+            "c95088621cdacea5286f1e4634f580ee83d9bed183284f23fc1be9b93bff5089"
+        ),
+        prerequisite_schema="sfora-frozen-substrate-screen-v2",
+        legacy_descriptor_sha256=(
+            "4031dc2da90588dcc39005eab92c6c519f3058c581222421ca917501dd3df071"
+        ),
+    ),
+}
 
 
 _HEADER_KEYS = frozenset(M4DescriptorHeader.__dataclass_fields__)
@@ -161,10 +233,17 @@ def _validate_header(header: M4DescriptorHeader) -> None:
     for name in (
         "source_tree_digest",
         "dataset_examples_sha256",
+        "dataset_examples_ordered_sha256",
         "payload_sha256",
     ):
         if _SHA256.fullmatch(_require_string(getattr(header, name), name)) is None:
             raise ValueError(f"descriptor header {name} is not a SHA-256 digest")
+    if header.split != "train":
+        raise ValueError("descriptor header split differs")
+    if header.holdout_classes != tuple(range(82, 98)):
+        raise ValueError("descriptor header holdout classes differ")
+    if header.compute_dtype != "float32":
+        raise ValueError("descriptor header compute dtype differs")
     rows = _require_integer(header.rows, "rows")
     dimensions = _require_integer(header.dimensions, "dimensions")
     payload_bytes = _require_integer(header.payload_bytes, "payload_bytes")
@@ -229,6 +308,10 @@ def _parse_header(payload: bytes) -> M4DescriptorHeader:
         raise ValueError("descriptor header key set differs")
     if canonical_json_bytes(value) != payload:
         raise ValueError("descriptor header bytes are not canonical")
+    holdout_classes = value.get("holdout_classes")
+    if type(holdout_classes) is not list:
+        raise ValueError("descriptor header holdout classes differ")
+    value["holdout_classes"] = tuple(holdout_classes)
     try:
         header = M4DescriptorHeader(**value)
     except TypeError as error:
