@@ -196,3 +196,143 @@ def test_model_load_rejects_structural_drift(
     setattr(factory.model, attribute, value)
     with pytest.raises(ValueError, match="model authority"):
         _MODULE.load_qwen_adapter(_loaded_authority(tmp_path), factory=factory)
+
+
+def _fixture_authority() -> FixtureAuthority:
+    return FixtureAuthority(
+        source_commit="5" * 40,
+        model_revision="1" * 40,
+        binary_sha256="6" * 64,
+        environment_sha256="7" * 64,
+        host="spark-fixture",
+        group_size=8,
+        image_count=64,
+        generation_seeds=tuple(range(8)),
+        synthetic_rewards=(0, 1, 0, 1, 0, 1, 0, 1),
+        attention_layer=26,
+        prompt_sha256="8" * 64,
+        message_serialization_sha256="9" * 64,
+    )
+
+
+class _RecordingAdapter:
+    def __init__(self) -> None:
+        self.generation_calls: list[tuple[int, float, float, int]] = []
+        self.replay_calls: list[tuple[tuple[float, ...], bool]] = []
+        self.cleared = 0
+
+    def prepare_pair(self, fixture: FixtureAuthority) -> object:
+        assert fixture is _FIXTURE
+        return "prepared-pair"
+
+    def generate(
+        self,
+        pair: object,
+        seed: int,
+        *,
+        temperature: float,
+        top_p: float,
+        max_new_tokens: int,
+    ) -> tuple[int, ...]:
+        assert pair == "prepared-pair"
+        self.generation_calls.append((seed, temperature, top_p, max_new_tokens))
+        return (seed + 10, seed + 20)
+
+    def replay(
+        self,
+        pair: object,
+        completion_ids: tuple[tuple[int, ...], ...],
+        advantages: tuple[float, ...],
+        *,
+        output_attentions: bool,
+    ) -> object:
+        assert pair == "prepared-pair"
+        assert len(completion_ids) == 8
+        self.replay_calls.append((advantages, output_attentions))
+        return _MODULE.ReplayOutput(loss=0.25, generated_tokens=16)
+
+    def assert_gradient_roles(self) -> object:
+        return _MODULE.GradientEvidence(
+            vision_nonzero_gradient_parameters=2,
+            language_gradient_parameters=0,
+            finite=True,
+            gradient_sha256="a" * 64,
+        )
+
+    def clear_graphs(self) -> None:
+        self.cleared += 1
+
+
+_FIXTURE = _fixture_authority()
+
+
+def test_rollout_uses_exact_group_sampling_and_distinct_generators() -> None:
+    adapter = _RecordingAdapter()
+    evidence = _MODULE.run_rollout_phase(adapter, _FIXTURE)
+    assert adapter.generation_calls == [
+        (seed, 0.7, 0.95, 1024) for seed in _FIXTURE.generation_seeds
+    ]
+    assert evidence.group_size == 8
+    assert evidence.token_counts == (2,) * 8
+    assert len(set(evidence.completion_sha256)) == 8
+
+
+def test_group_normalized_advantages_are_zero_mean_and_unit_scale() -> None:
+    advantages = _MODULE.group_normalized_advantages(_FIXTURE.synthetic_rewards)
+    assert advantages == (-1.0, 1.0, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0)
+
+
+def test_replay_reaches_vision_and_never_language_parameters() -> None:
+    adapter = _RecordingAdapter()
+    rollouts = _MODULE.run_rollout_phase(adapter, _FIXTURE)
+    evidence = _MODULE.run_replay_phase(adapter, _FIXTURE, rollouts)
+    assert evidence.vision_nonzero_gradient_parameters == 2
+    assert evidence.language_gradient_parameters == 0
+    assert evidence.generated_tokens == sum(rollouts.token_counts)
+    assert adapter.replay_calls == [
+        ((-1.0, 1.0, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0), False)
+    ]
+    assert adapter.cleared == 1
+
+
+@pytest.mark.parametrize(
+    ("gradient", "message"),
+    [
+        (
+            {
+                "vision_nonzero_gradient_parameters": 0,
+                "language_gradient_parameters": 0,
+                "finite": True,
+            },
+            "vision gradient",
+        ),
+        (
+            {
+                "vision_nonzero_gradient_parameters": 1,
+                "language_gradient_parameters": 1,
+                "finite": True,
+            },
+            "language gradient",
+        ),
+        (
+            {
+                "vision_nonzero_gradient_parameters": 1,
+                "language_gradient_parameters": 0,
+                "finite": False,
+            },
+            "finite gradient",
+        ),
+    ],
+)
+def test_replay_rejects_gradient_role_drift(
+    gradient: dict[str, object], message: str
+) -> None:
+    adapter = _RecordingAdapter()
+    adapter.assert_gradient_roles = lambda: _MODULE.GradientEvidence(  # type: ignore[method-assign]
+        gradient_sha256="a" * 64, **gradient
+    )
+    with pytest.raises(ValueError, match=message):
+        _MODULE.run_replay_phase(
+            adapter, _FIXTURE, _MODULE.run_rollout_phase(adapter, _FIXTURE)
+        )
+    assert adapter.cleared == 1
