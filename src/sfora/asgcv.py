@@ -10,6 +10,12 @@ from dataclasses import dataclass
 import numpy as np
 from numpy.typing import NDArray
 
+from sfora.asgcv_protocol import (
+    AsgcvCompletionGroup,
+    AsgcvEligibleSchedule,
+    AsgcvPairSchedule,
+)
+
 Float64Array = NDArray[np.float64]
 Float32Array = NDArray[np.float32]
 
@@ -1061,6 +1067,56 @@ def validate_gradient_sample_inputs(
     )
     if rebuilt != raw:
         raise ValueError("ASG-CV gradient sample reopened inputs differ")
+    return value
+
+
+def validate_gradient_sample_context(
+    raw: bytes,
+    *,
+    eligible_schedule: AsgcvEligibleSchedule,
+    candidate_schedule: AsgcvPairSchedule,
+    completion_groups: tuple[AsgcvCompletionGroup, ...],
+) -> dict[str, object]:
+    """Cross-bind one sample to its eligible row, candidate pair, and completions."""
+
+    value = validate_gradient_sample_bytes(raw)
+    if (
+        type(eligible_schedule) is not AsgcvEligibleSchedule
+        or type(candidate_schedule) is not AsgcvPairSchedule
+        or type(completion_groups) is not tuple
+    ):
+        raise ValueError("ASG-CV gradient sample context differs")
+    eligible_schedule.validated()
+    candidate_schedule.validated()
+    if (
+        eligible_schedule.candidate_schedule_sha256 != candidate_schedule.sha256()
+        or value["eligible_schedule_sha256"] != eligible_schedule.sha256()
+        or len(completion_groups) != candidate_schedule.pair_count
+    ):
+        raise ValueError("ASG-CV gradient sample context differs")
+    eligible_index = value["eligible_pair_ordinal"]
+    candidate_index = value["candidate_pair_ordinal"]
+    if (
+        type(eligible_index) is not int
+        or not 0 <= eligible_index < eligible_schedule.target_pair_count
+        or type(candidate_index) is not int
+        or candidate_index != eligible_schedule.candidate_ordinals[eligible_index]
+    ):
+        raise ValueError("ASG-CV gradient sample context differs")
+    pair = candidate_schedule.pairs[candidate_index]
+    group = completion_groups[candidate_index]
+    if type(group) is not AsgcvCompletionGroup:
+        raise ValueError("ASG-CV gradient sample context differs")
+    group.validated()
+    if (
+        group.nonzero_reward_variance is not True
+        or group.expected_relation_sign != pair.relation_sign
+        or value["completion_group_sha256"] != group.sha256()
+        or value["completion_protocol_sha256"] != group.protocol_sha256
+        or value["pair_ordinals"] != [pair.left_index, pair.right_index]
+        or value["relation_sign"] != pair.relation_sign
+    ):
+        raise ValueError("ASG-CV gradient sample context differs")
     return value
 
 

@@ -24,7 +24,14 @@ from sfora.asgcv import (
     validate_e0_result_bytes,
     validate_e0_result_inputs,
     validate_gradient_sample_bytes,
+    validate_gradient_sample_context,
     validate_gradient_sample_inputs,
+)
+from sfora.asgcv_protocol import (
+    AsgcvCompletionProtocol,
+    assemble_asgcv_eligible_schedule,
+    build_asgcv_pair_schedule,
+    classify_asgcv_completion_group,
 )
 
 
@@ -613,4 +620,73 @@ def test_gradient_sample_rejects_identity_type_shape_and_array_drift() -> None:
             raw,
             patch_tokens=tokens,
             exact_gradient=changed,
+        )
+
+
+def test_gradient_sample_context_cross_binds_refill_pair_group_and_protocol() -> None:
+    protocol = AsgcvCompletionProtocol(
+        same_prefix_ids=(11,),
+        different_prefix_ids=(21,),
+        terminal_token_ids=(99,),
+    ).validated()
+    example_ids = tuple(f"cars-{index:02d}" for index in range(32))
+    labels = tuple(index // 4 for index in range(32))
+    candidates = build_asgcv_pair_schedule(
+        example_ids,
+        labels,
+        schedule_seed_sha256="ab" * 32,
+        pair_count=16,
+    )
+    groups = []
+    for pair in candidates.pairs:
+        correct = (11,) if pair.relation_sign == 1 else (21,)
+        wrong = (21,) if pair.relation_sign == 1 else (11,)
+        completions = tuple(
+            (*correct, 30 + index, 99) if index < 4 else (*wrong, 50 + index, 99)
+            for index in range(8)
+        )
+        groups.append(
+            classify_asgcv_completion_group(completions, pair.relation_sign, protocol)
+        )
+    eligible = assemble_asgcv_eligible_schedule(
+        candidates,
+        tuple(groups),
+        target_pair_count=8,
+    )
+    eligible_index = 0
+    candidate_index = eligible.candidate_ordinals[eligible_index]
+    pair = candidates.pairs[candidate_index]
+    group = groups[candidate_index]
+    tokens, gradient = _gradient_sample_arrays()
+    raw = canonical_gradient_sample_bytes(
+        source_commit="1" * 40,
+        model_revision="2" * 40,
+        fixture_sha256="3" * 64,
+        completion_group_sha256=group.sha256(),
+        completion_protocol_sha256=protocol.sha256(),
+        eligible_schedule_sha256=eligible.sha256(),
+        eligible_pair_ordinal=eligible_index,
+        candidate_pair_ordinal=candidate_index,
+        pair_ordinals=(pair.left_index, pair.right_index),
+        relation_sign=pair.relation_sign,
+        grpo_loss=0.125,
+        attention_kl=0.375,
+        generated_tokens=64,
+        patch_tokens=tokens,
+        exact_gradient=gradient,
+    )
+
+    assert validate_gradient_sample_context(
+        raw,
+        eligible_schedule=eligible,
+        candidate_schedule=candidates,
+        completion_groups=tuple(groups),
+    )["sample_sha256"] == validate_gradient_sample_bytes(raw)["sample_sha256"]
+
+    with pytest.raises(ValueError, match="context"):
+        validate_gradient_sample_context(
+            raw,
+            eligible_schedule=eligible,
+            candidate_schedule=candidates,
+            completion_groups=tuple(reversed(groups)),
         )
