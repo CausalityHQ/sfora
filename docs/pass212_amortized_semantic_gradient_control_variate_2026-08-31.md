@@ -54,6 +54,19 @@ sketch provides a second, independently reproducible target for predictor
 training and detects a low-rank model that matches norms while rotating the
 teacher field.
 
+The scalar predictor consumes stopped fp32 patch tokens with shape
+`batch x 2 x patches x channels` plus an exact `-1/+1` relation sign. It uses
+one shared token LayerNorm and one shared local rank projection. For each image,
+the context is the ordered tuple of its mean token, the other image's mean
+token, their signed difference, their Hadamard product, and the relation sign.
+A shared context projection emits a patch-factor bias and a bounded modulation
+of one shared channel basis. Swapping the two images therefore swaps the two
+predicted gradient fields without changing their values, and every per-image
+field remains a product of `P x 16` and `D x 16` factors. The predictor refuses
+tokens that still require vision autograd; student injection uses an explicitly
+detached output. Every named fp32 state tensor is framed by name and shape and
+sealed with SHA-256 before E0 evaluation.
+
 ## Unbiased stratified estimator
 
 Each class-balanced minibatch is divided deterministically into strata of eight
