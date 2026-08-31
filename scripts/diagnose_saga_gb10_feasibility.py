@@ -20,6 +20,7 @@ import numpy as np
 import torch
 import torch.nn.functional as torch_functional
 
+from sfora.asgcv_protocol import AsgcvCompletionGroup
 from sfora.pass209_m4 import canonical_json_bytes
 from sfora.saga_feasibility import (
     FeasibilityEvidence,
@@ -941,6 +942,34 @@ def group_normalized_advantages(rewards: tuple[int, ...]) -> tuple[float, ...]:
         raise ValueError("SAGA synthetic rewards have zero group variance")
     scale = math.sqrt(variance)
     return tuple((reward - mean) / scale for reward in rewards)
+
+
+def capture_asgcv_patch_gradient(
+    adapter: QwenSagaAdapter,
+    pair: PreparedPair,
+    group: AsgcvCompletionGroup,
+    *,
+    attention_layer: int,
+) -> PatchGradientTarget:
+    """Capture one exact gradient from a sealed eligible completion group."""
+
+    if (
+        type(adapter) is not QwenSagaAdapter
+        or type(pair) is not PreparedPair
+        or type(group) is not AsgcvCompletionGroup
+    ):
+        raise ValueError("ASG-CV patch gradient context differs")
+    group.validated()
+    if group.nonzero_reward_variance is not True:
+        raise ValueError("ASG-CV patch gradient eligibility differs")
+    return adapter.replay_patch_gradient(
+        pair,
+        group.completion_ids,
+        group_normalized_advantages(group.rewards),
+        correct_rollouts=group.correct_rollouts,
+        attribute_spans=group.attribute_spans,
+        attention_layer=attention_layer,
+    )
 
 
 def _completion_digest(token_ids: tuple[int, ...]) -> str:

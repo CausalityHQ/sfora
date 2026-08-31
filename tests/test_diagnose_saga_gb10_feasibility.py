@@ -746,15 +746,21 @@ def test_qwen_replay_captures_exact_merged_patch_gradient_target(tmp_path: Path)
 
     adapter.clear_graphs = record_then_clear  # type: ignore[method-assign]
 
-    target = adapter.replay_patch_gradient(
+    rewards = tuple(int(value) for value in authority.fixture.synthetic_rewards)
+    group = _MODULE.AsgcvCompletionGroup(
+        completion_ids=rollouts.completion_ids,
+        expected_relation_sign=1,
+        protocol_sha256="a" * 64,
+        rewards=rewards,
+        correct_rollouts=tuple(bool(value) for value in rewards),
+        attribute_spans=tuple(pair.attribute_token_span if value else None for value in rewards),
+        nonzero_reward_variance=True,
+    ).validated()
+
+    target = _MODULE.capture_asgcv_patch_gradient(
+        adapter,
         pair,
-        rollouts.completion_ids,
-        _MODULE.group_normalized_advantages(authority.fixture.synthetic_rewards),
-        correct_rollouts=tuple(bool(value) for value in authority.fixture.synthetic_rewards),
-        attribute_spans=tuple(
-            pair.attribute_token_span if value else None
-            for value in authority.fixture.synthetic_rewards
-        ),
+        group,
         attention_layer=authority.fixture.attention_layer,
     )
 
