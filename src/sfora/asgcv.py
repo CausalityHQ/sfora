@@ -661,7 +661,7 @@ def _ratio_ppm(value: float) -> int:
 def evaluate_e0(
     exact: object,
     predicted: object,
-    projection: object,
+    srht_authority: AsgcvSrhtAuthority,
     *,
     exact_preclip_norms: object,
     asgcv_preclip_norms: object,
@@ -679,11 +679,6 @@ def evaluate_e0(
         predicted,
         name="E0 predicted gradient batch",
         dimensions=4,
-    )
-    projection_array = _require_float64_array(
-        projection,
-        name="E0 projection",
-        dimensions=2,
     )
     exact_norms = _require_float64_array(
         exact_preclip_norms,
@@ -704,10 +699,11 @@ def evaluate_e0(
     ) // exact_semantic_wall_ns
     if exact_array.shape != predicted_array.shape or exact_array.shape[1] != ASGCV_STRATUM_SIZE:
         raise ValueError("ASG-CV E0 gradient batch shape differs")
-    if projection_array.shape[1] != exact_array.shape[-1]:
-        raise ValueError("ASG-CV E0 projection shape differs")
-    if bool((np.linalg.norm(projection_array, axis=1) <= 0.0).any()):
-        raise ValueError("ASG-CV E0 projection row differs")
+    if type(srht_authority) is not AsgcvSrhtAuthority:
+        raise ValueError("ASG-CV E0 SRHT authority differs")
+    srht_authority.validated()
+    if srht_authority.input_dimensions != exact_array.shape[-1]:
+        raise ValueError("ASG-CV E0 SRHT shape differs")
     if (
         exact_norms.shape != asgcv_norms.shape
         or bool((exact_norms < 0.0).any())
@@ -734,20 +730,14 @@ def evaluate_e0(
         )
     )
 
-    projected_exact = np.einsum(
-        "sijd,kd->sijk",
-        exact_array,
-        projection_array,
-        dtype=np.float64,
-        optimize=False,
-    )
-    projected_predicted = np.einsum(
-        "sijd,kd->sijk",
-        predicted_array,
-        projection_array,
-        dtype=np.float64,
-        optimize=False,
-    )
+    projected_exact = srht_gradient_sketch(
+        exact_array.reshape(-1, exact_array.shape[-1]),
+        srht_authority,
+    ).reshape(*exact_array.shape[:-1], srht_authority.output_dimensions)
+    projected_predicted = srht_gradient_sketch(
+        predicted_array.reshape(-1, predicted_array.shape[-1]),
+        srht_authority,
+    ).reshape(*predicted_array.shape[:-1], srht_authority.output_dimensions)
     residual_energy = float(
         np.square(exact_array - predicted_array).sum(dtype=np.float64)
         / np.square(exact_array).sum(dtype=np.float64)
@@ -808,11 +798,12 @@ def canonical_e0_result_bytes(
     *,
     source_commit: object,
     dataset_manifest_sha256: object,
+    partition_manifest_sha256: object,
     predictor_state_sha256: object,
     selection_schedule_sha256: object,
     exact: object,
     predicted: object,
-    projection: object,
+    srht_authority: AsgcvSrhtAuthority,
     exact_preclip_norms: object,
     asgcv_preclip_norms: object,
     exact_semantic_wall_ns: int,
@@ -825,6 +816,10 @@ def canonical_e0_result_bytes(
         dataset_manifest_sha256,
         name="dataset manifest digest",
     ).hex()
+    partition_digest = _sha256_bytes(
+        partition_manifest_sha256,
+        name="partition manifest digest",
+    ).hex()
     predictor_digest = _sha256_bytes(
         predictor_state_sha256,
         name="predictor state digest",
@@ -836,7 +831,7 @@ def canonical_e0_result_bytes(
     metrics = evaluate_e0(
         exact,
         predicted,
-        projection,
+        srht_authority,
         exact_preclip_norms=exact_preclip_norms,
         asgcv_preclip_norms=asgcv_preclip_norms,
         exact_semantic_wall_ns=exact_semantic_wall_ns,
@@ -847,8 +842,10 @@ def canonical_e0_result_bytes(
         "claim_eligible": False,
         "source_commit": commit,
         "dataset_manifest_sha256": dataset_digest,
+        "partition_manifest_sha256": partition_digest,
         "predictor_state_sha256": predictor_digest,
         "selection_schedule_sha256": selection_digest,
+        "srht_authority": srht_authority.to_mapping(),
         "arrays": {
             "exact_gradients": _array_authority(
                 exact,
@@ -859,11 +856,6 @@ def canonical_e0_result_bytes(
                 predicted,
                 role="predicted-gradients",
                 dimensions=4,
-            ),
-            "projection": _array_authority(
-                projection,
-                role="projection",
-                dimensions=2,
             ),
             "exact_preclip_norms": _array_authority(
                 exact_preclip_norms,
@@ -914,8 +906,10 @@ def validate_e0_result_bytes(raw: bytes) -> dict[str, object]:
         "claim_eligible",
         "source_commit",
         "dataset_manifest_sha256",
+        "partition_manifest_sha256",
         "predictor_state_sha256",
         "selection_schedule_sha256",
+        "srht_authority",
         "arrays",
         "semantic_wall_ns",
         "metrics",
@@ -936,6 +930,7 @@ def validate_e0_result_bytes(raw: bytes) -> dict[str, object]:
     _source_commit(value["source_commit"])
     for name in (
         "dataset_manifest_sha256",
+        "partition_manifest_sha256",
         "predictor_state_sha256",
         "selection_schedule_sha256",
     ):
@@ -945,7 +940,6 @@ def validate_e0_result_bytes(raw: bytes) -> dict[str, object]:
     array_roles = {
         "exact_gradients": 4,
         "predicted_gradients": 4,
-        "projection": 2,
         "exact_preclip_norms": 1,
         "asgcv_preclip_norms": 1,
     }
@@ -956,10 +950,11 @@ def validate_e0_result_bytes(raw: bytes) -> dict[str, object]:
         for role, dimensions in array_roles.items()
     }
     exact_shape = shapes["exact_gradients"]
+    srht = AsgcvSrhtAuthority.from_mapping(value["srht_authority"])
     if (
         shapes["predicted_gradients"] != exact_shape
         or exact_shape[1] != ASGCV_STRATUM_SIZE
-        or shapes["projection"][1] != exact_shape[-1]
+        or srht.input_dimensions != exact_shape[-1]
         or shapes["exact_preclip_norms"] != shapes["asgcv_preclip_norms"]
     ):
         raise ValueError("ASG-CV E0 array relation differs")
