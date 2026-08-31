@@ -6,6 +6,7 @@ import pytest
 from sfora.asgcv import (
     AsgcvAuthority,
     asgcv_stratum_gradient,
+    evaluate_e0,
     exhaustive_selection_mean,
     low_rank_gradient_field,
     normalized_residual_energy,
@@ -103,3 +104,63 @@ def test_low_rank_field_uses_registered_orientation_and_float64_accumulation() -
         low_rank_gradient_field(patch_factors, channel_factors[:, :1], predictor_rank=2)
     with pytest.raises(ValueError):
         low_rank_gradient_field(patch_factors, channel_factors, predictor_rank=True)
+
+
+def test_e0_metrics_pass_only_when_every_registered_gate_passes() -> None:
+    exact, _ = _fields()
+    exact_batch = np.stack((exact, exact * 1.25))
+    projection = np.eye(4, dtype=np.float64)
+
+    perfect = evaluate_e0(exact_batch, exact_batch.copy(), projection)
+    assert perfect.passed is True
+    assert perfect.to_mapping() == {
+        "schema": "sfora-asgcv-e0-metrics-v1",
+        "pair_count": 16,
+        "dense_gradient_cosine_ppm": 1_000_000,
+        "projected_gradient_cosine_ppm": 1_000_000,
+        "patch_salience_spearman_ppm": 1_000_000,
+        "normalized_residual_energy_ppm": 0,
+        "selection_variance_ratio_ppm": 0,
+        "passed": True,
+    }
+    assert type(perfect).from_mapping(perfect.to_mapping()) == perfect
+
+    for mutation in (
+        {**perfect.to_mapping(), "pair_count": True},
+        {**perfect.to_mapping(), "pair_count": 15},
+        {**perfect.to_mapping(), "dense_gradient_cosine_ppm": 1_000_001},
+        {**perfect.to_mapping(), "normalized_residual_energy_ppm": -1},
+        {**perfect.to_mapping(), "selection_variance_ratio_ppm": -1},
+        {**perfect.to_mapping(), "passed": False},
+        {**perfect.to_mapping(), "extra": 1},
+    ):
+        with pytest.raises(ValueError):
+            type(perfect).from_mapping(mutation)
+
+    reversed_prediction = evaluate_e0(exact_batch, -exact_batch, projection)
+    assert reversed_prediction.passed is False
+    assert reversed_prediction.dense_gradient_cosine_ppm == -1_000_000
+    assert reversed_prediction.normalized_residual_energy_ppm == 4_000_000
+
+
+def test_e0_rejects_projection_batch_and_degenerate_salience_drift() -> None:
+    exact, _ = _fields()
+    exact_batch = np.stack((exact, exact * 1.25))
+    projection = np.eye(4, dtype=np.float64)
+
+    with pytest.raises(ValueError):
+        evaluate_e0(exact_batch.astype(np.float32), exact_batch, projection)
+    with pytest.raises(ValueError):
+        evaluate_e0(exact_batch, exact_batch[:, :, :, :3], projection)
+    with pytest.raises(ValueError):
+        evaluate_e0(exact_batch, exact_batch, projection.astype(np.float32))
+    with pytest.raises(ValueError):
+        evaluate_e0(exact_batch, exact_batch, projection[:, :3])
+    nonfinite = projection.copy()
+    nonfinite[0, 0] = np.inf
+    with pytest.raises(ValueError):
+        evaluate_e0(exact_batch, exact_batch, nonfinite)
+
+    constant_patch_norms = np.ones((2, 8, 3, 4), dtype=np.float64)
+    with pytest.raises(ValueError):
+        evaluate_e0(constant_patch_norms, constant_patch_norms.copy(), projection)
