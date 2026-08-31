@@ -9,6 +9,7 @@ from sfora.asgcv_predictor import (
     predictor_state_sha256,
     predictor_training_loss,
     prepare_asgcv_stratum,
+    source_bound_predictor,
     torch_asgcv_stratum_gradient,
     torch_srht_gradient_sketch,
 )
@@ -94,6 +95,23 @@ def test_predictor_state_digest_is_deterministic_and_mutation_sensitive() -> Non
 
     predictor.train()
     assert predictor_state_sha256(predictor) == predictor_state_sha256(predictor.eval())
+
+
+def test_source_bound_predictor_is_replayable_without_mutating_global_rng() -> None:
+    torch.manual_seed(987)
+    rng_before = torch.random.get_rng_state().clone()
+    first = source_bound_predictor(channel_dimensions=32, seed_sha256="ab" * 32)
+    rng_after = torch.random.get_rng_state()
+    second = source_bound_predictor(channel_dimensions=32, seed_sha256="ab" * 32)
+    different = source_bound_predictor(channel_dimensions=32, seed_sha256="cd" * 32)
+
+    torch.testing.assert_close(rng_after, rng_before, rtol=0.0, atol=0.0)
+    assert predictor_state_sha256(first) == predictor_state_sha256(second)
+    assert predictor_state_sha256(first) != predictor_state_sha256(different)
+
+    for seed in ("0" * 63, "gg" * 32, True):
+        with pytest.raises(ValueError):
+            source_bound_predictor(channel_dimensions=32, seed_sha256=seed)
 
 
 def test_torch_srht_matches_scalar_authority_and_backpropagates() -> None:

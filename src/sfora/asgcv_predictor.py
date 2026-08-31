@@ -19,6 +19,7 @@ from sfora.asgcv import (
 
 _STATE_DOMAIN = b"sfora-asgcv-predictor-state-v1\0"
 _PREDICTION_DOMAIN = b"sfora-asgcv-prediction-v1\0"
+_INITIALIZATION_DOMAIN = b"sfora-asgcv-predictor-initialization-v1\0"
 
 
 @dataclass(frozen=True, slots=True)
@@ -111,6 +112,29 @@ class AsgcvPatchGradientPredictor(nn.Module):
 
         with torch.no_grad():
             return self.forward(tokens, relation_signs).detach()
+
+
+def source_bound_predictor(
+    *,
+    channel_dimensions: int,
+    seed_sha256: object,
+) -> AsgcvPatchGradientPredictor:
+    """Initialize a replayable predictor without changing caller RNG state."""
+
+    if (
+        type(seed_sha256) is not str
+        or len(seed_sha256) != 64
+        or any(character not in "0123456789abcdef" for character in seed_sha256)
+    ):
+        raise ValueError("ASG-CV predictor initialization seed differs")
+    material = hashlib.sha256(_INITIALIZATION_DOMAIN + bytes.fromhex(seed_sha256)).digest()
+    seed = int.from_bytes(material[:8], "big") & (2**63 - 1)
+    with torch.random.fork_rng(devices=[]):
+        torch.default_generator.manual_seed(seed)
+        return AsgcvPatchGradientPredictor(
+            channel_dimensions=channel_dimensions,
+            predictor_rank=ASGCV_PREDICTOR_RANK,
+        )
 
 
 def predictor_state_sha256(predictor: object) -> str:

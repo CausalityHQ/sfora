@@ -65,7 +65,10 @@ predicted gradient fields without changing their values, and every per-image
 field remains a product of `P x 16` and `D x 16` factors. The predictor refuses
 tokens that still require vision autograd; student injection uses an explicitly
 detached output. Every named fp32 state tensor is framed by name and shape and
-sealed with SHA-256 before E0 evaluation.
+sealed with SHA-256 before E0 evaluation. Initialization uses a domain-separated
+SHA-256 seed through an isolated CPU generator scope, producing byte-identical
+state without consuming or reseeding the retrieval trainer's CPU or CUDA RNG
+streams.
 
 Predictor fitting uses one fixed, dimensionless objective with no learned or
 retrieval-tuned weights:
