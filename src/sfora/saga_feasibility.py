@@ -65,15 +65,11 @@ class ObjectAuthority:
 
     def validated(self) -> ObjectAuthority:
         _require_nonempty_string(self.role, name="object authority role")
-        path = _require_nonempty_string(
-            self.relative_path, name="object authority relative path"
-        )
+        path = _require_nonempty_string(self.relative_path, name="object authority relative path")
         parsed = PurePosixPath(path)
         if parsed.is_absolute() or ".." in parsed.parts or str(parsed) != path:
             raise ValueError("SAGA object authority relative path differs")
-        _require_positive_integer(
-            self.byte_length, name="object authority byte length"
-        )
+        _require_positive_integer(self.byte_length, name="object authority byte length")
         _require_sha256(self.sha256, name="object authority digest")
         return self
 
@@ -87,10 +83,10 @@ class ObjectAuthority:
         }:
             raise ValueError("SAGA object authority schema differs")
         authority = cls(
-            role=value["role"],  # type: ignore[arg-type]
-            relative_path=value["relative_path"],  # type: ignore[arg-type]
-            byte_length=value["byte_length"],  # type: ignore[arg-type]
-            sha256=value["sha256"],  # type: ignore[arg-type]
+            role=value["role"],
+            relative_path=value["relative_path"],
+            byte_length=value["byte_length"],
+            sha256=value["sha256"],
         )
         return authority.validated()
 
@@ -116,10 +112,7 @@ class ResourceEnvelope:
     def to_mapping(self) -> dict[str, object]:
         for name in self.__dataclass_fields__:
             _require_positive_integer(getattr(self, name), name=f"resource {name}")
-        return {
-            name: getattr(self, name)
-            for name in self.__dataclass_fields__
-        }
+        return {name: getattr(self, name) for name in self.__dataclass_fields__}
 
 
 @dataclass(frozen=True, slots=True)
@@ -132,9 +125,7 @@ class PhaseMeasurement:
     peak_cuda_reserved_bytes: int
     peak_rss_bytes: int
 
-    def to_mapping(
-        self, *, expected_name: str, require_completed: bool
-    ) -> dict[str, object]:
+    def to_mapping(self, *, expected_name: str, require_completed: bool) -> dict[str, object]:
         if self.name != expected_name or type(self.completed) is not bool:
             raise ValueError("SAGA phase evidence differs")
         if require_completed and not self.completed:
@@ -286,7 +277,11 @@ class ScientificEvidence:
     @classmethod
     def from_mapping(cls, value: object) -> ScientificEvidence:
         if type(value) is not dict or set(value) != {
-            "pooler_sha256", "rollout", "replay", "attention", "dml"
+            "pooler_sha256",
+            "rollout",
+            "replay",
+            "attention",
+            "dml",
         }:
             raise ValueError("SAGA scientific evidence schema differs")
         rollout, replay = value["rollout"], value["replay"]
@@ -335,7 +330,9 @@ class ScientificEvidence:
                 rollout_completion_sha256=tuple(rollout["completion_sha256"]),
                 replay_loss_f64_bits=replay["loss_f64_bits"],
                 replay_generated_tokens=replay["generated_tokens"],
-                replay_vision_nonzero_gradient_parameters=replay["vision_nonzero_gradient_parameters"],
+                replay_vision_nonzero_gradient_parameters=replay[
+                    "vision_nonzero_gradient_parameters"
+                ],
                 replay_language_gradient_parameters=replay["language_gradient_parameters"],
                 replay_gradient_sha256=replay["gradient_sha256"],
                 attention_layer=attention["layer"],
@@ -345,7 +342,9 @@ class ScientificEvidence:
                 attention_kl_f64_bits=attention["kl_f64_bits"],
                 attention_teacher_unit_mass=attention["teacher_unit_mass"],
                 attention_teacher_gradient_parameters=attention["teacher_gradient_parameters"],
-                attention_pooler_nonzero_gradient_parameters=attention["pooler_nonzero_gradient_parameters"],
+                attention_pooler_nonzero_gradient_parameters=attention[
+                    "pooler_nonzero_gradient_parameters"
+                ],
                 dml_batch_size=dml["batch_size"],
                 dml_embedding_shape=tuple(dml["embedding_shape"]),
                 dml_loss_f64_bits=dml["loss_f64_bits"],
@@ -460,9 +459,7 @@ def project_best_case_step_ns(
     )
     if any(type(value) is not int or value <= 0 for value in values):
         raise ValueError("SAGA feasibility timing authority differs")
-    return dml_microbatch_ns + 8 * (
-        rollout_group_ns + replay_pair_ns + attention_pair_ns
-    )
+    return dml_microbatch_ns + 8 * (rollout_group_ns + replay_pair_ns + attention_pair_ns)
 
 
 def _observe_regular_file(root: Path, authority: ObjectAuthority) -> ObjectAuthority:
@@ -485,9 +482,7 @@ def load_snapshot_authority(*, root: Path, manifest_path: Path) -> SnapshotAutho
     root = root.resolve(strict=True)
     if not root.is_dir() or manifest_path.is_symlink():
         raise ValueError("SAGA snapshot root authority differs")
-    manifest = parse_canonical_object(
-        manifest_path.read_bytes(), role="SAGA snapshot manifest"
-    )
+    manifest = parse_canonical_object(manifest_path.read_bytes(), role="SAGA snapshot manifest")
     keys = {
         "schema",
         "repository_id",
@@ -535,22 +530,14 @@ def load_snapshot_authority(*, root: Path, manifest_path: Path) -> SnapshotAutho
     if manifest["snapshot_tree_sha256"] != tree_sha256:
         raise ValueError("SAGA snapshot tree digest differs")
 
-    repository_id = _require_nonempty_string(
-        manifest["repository_id"], name="snapshot repository"
-    )
+    repository_id = _require_nonempty_string(manifest["repository_id"], name="snapshot repository")
     model_revision = _require_commit(manifest["model_revision"], name="model revision")
-    processor_revision = _require_commit(
-        manifest["processor_revision"], name="processor revision"
-    )
-    tokenizer_revision = _require_commit(
-        manifest["tokenizer_revision"], name="tokenizer revision"
-    )
+    processor_revision = _require_commit(manifest["processor_revision"], name="processor revision")
+    tokenizer_revision = _require_commit(manifest["tokenizer_revision"], name="tokenizer revision")
     snapshot_tree_sha256 = _require_sha256(
         manifest["snapshot_tree_sha256"], name="snapshot tree digest"
     )
-    architecture = _require_nonempty_string(
-        manifest["architecture"], name="snapshot architecture"
-    )
+    architecture = _require_nonempty_string(manifest["architecture"], name="snapshot architecture")
     dtype = _require_nonempty_string(manifest["dtype"], name="snapshot dtype")
     attention_backend = _require_nonempty_string(
         manifest["attention_backend"], name="snapshot attention backend"
@@ -592,15 +579,13 @@ def generated_fixture_image_bytes(source_commit: str, ordinal: int) -> bytes:
     return bytes(output[: 224 * 224 * 3])
 
 
-def fixture_message_serialization_sha256(
-    prompt_utf8: str, pair_ordinals: tuple[int, ...]
-) -> str:
+def fixture_message_serialization_sha256(prompt_utf8: str, pair_ordinals: tuple[int, ...]) -> str:
     """Hash the exact logical multimodal message consumed by the processor."""
 
     _require_nonempty_string(prompt_utf8, name="fixture prompt")
     if pair_ordinals != (0, 1):
         raise ValueError("SAGA fixture pair ordinals differ")
-    payload = {
+    payload: dict[str, object] = {
         "role": "user",
         "content": [
             {"type": "image", "image_ordinal": pair_ordinals[0]},
@@ -657,15 +642,9 @@ def load_fixture_authority(path: Path) -> FixtureAuthority:
     if set(manifest) != keys or manifest["schema"] != "sfora-saga-synthetic-fixture-v1":
         raise ValueError("SAGA fixture schema differs")
     source_commit = _require_commit(manifest["source_commit"], name="fixture source")
-    controller_commit = _require_commit(
-        manifest["controller_commit"], name="fixture controller"
-    )
-    model_revision = _require_commit(
-        manifest["model_revision"], name="fixture model revision"
-    )
-    binary_sha256 = _require_sha256(
-        manifest["binary_sha256"], name="fixture binary digest"
-    )
+    controller_commit = _require_commit(manifest["controller_commit"], name="fixture controller")
+    model_revision = _require_commit(manifest["model_revision"], name="fixture model revision")
+    binary_sha256 = _require_sha256(manifest["binary_sha256"], name="fixture binary digest")
     environment_sha256 = _require_sha256(
         manifest["environment_sha256"], name="fixture environment digest"
     )
@@ -694,16 +673,12 @@ def load_fixture_authority(path: Path) -> FixtureAuthority:
     prompt = _require_nonempty_string(manifest["prompt_utf8"], name="fixture prompt")
     if manifest["prompt_sha256"] != hashlib.sha256(prompt.encode()).hexdigest():
         raise ValueError("SAGA fixture prompt digest differs")
-    prompt_sha256 = _require_sha256(
-        manifest["prompt_sha256"], name="fixture prompt digest"
-    )
+    prompt_sha256 = _require_sha256(manifest["prompt_sha256"], name="fixture prompt digest")
     message_serialization_sha256 = _require_sha256(
         manifest["message_serialization_sha256"],
         name="fixture message serialization digest",
     )
-    if message_serialization_sha256 != fixture_message_serialization_sha256(
-        prompt, pair_ordinals
-    ):
+    if message_serialization_sha256 != fixture_message_serialization_sha256(prompt, pair_ordinals):
         raise ValueError("SAGA fixture message serialization digest differs")
     fixed_integer_fields = {
         "group_size": 8,
@@ -830,14 +805,15 @@ def canonical_feasibility_result_bytes(evidence: FeasibilityEvidence) -> bytes:
         scientific_evidence = evidence.scientific.to_mapping()
         if evidence.scientific.pooler_sha256 != evidence.pooler_sha256:
             raise ValueError("SAGA scientific pooler authority differs")
-        best_case_step_ns: int | None = project_best_case_step_ns(
+        projected_step_ns = project_best_case_step_ns(
             dml_microbatch_ns=evidence.dml.elapsed_ns,
             rollout_group_ns=evidence.rollout.elapsed_ns,
             replay_pair_ns=evidence.replay.elapsed_ns,
             attention_pair_ns=evidence.attention.elapsed_ns,
         )
-        if not math.isfinite(float(best_case_step_ns)):
+        if not math.isfinite(float(projected_step_ns)):
             raise ValueError("SAGA projection differs")
+        best_case_step_ns: int | None = projected_step_ns
     else:
         if evidence.pooler_sha256 is not None:
             _require_sha256(evidence.pooler_sha256, name="pooler digest")
@@ -868,9 +844,7 @@ def canonical_feasibility_result_bytes(evidence: FeasibilityEvidence) -> bytes:
         "scientific_evidence": scientific_evidence,
         "quality_metrics": [],
     }
-    payload["result_sha256"] = hashlib.sha256(
-        canonical_json_bytes(payload)
-    ).hexdigest()
+    payload["result_sha256"] = hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
     return canonical_json_bytes(payload)
 
 

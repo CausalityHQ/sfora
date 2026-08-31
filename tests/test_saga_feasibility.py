@@ -176,9 +176,7 @@ def test_result_recomputes_outcome_precedence() -> None:
         (replace(evidence, authority_valid=False), "AUTHORITY_INVALID"),
     )
     for mutated, expected in cases:
-        value = parse_canonical_object(
-            canonical_feasibility_result_bytes(mutated), role="result"
-        )
+        value = parse_canonical_object(canonical_feasibility_result_bytes(mutated), role="result")
         assert value["outcome"] == expected
 
 
@@ -290,9 +288,7 @@ def test_snapshot_loader_authenticates_every_registered_regular_file(
     "mutation",
     ["mutable-revision", "symlink", "extra-file", "wrong-length", "wrong-digest"],
 )
-def test_snapshot_loader_rejects_authority_drift(
-    tmp_path: Path, mutation: str
-) -> None:
+def test_snapshot_loader_rejects_authority_drift(tmp_path: Path, mutation: str) -> None:
     root, manifest = _write_snapshot_fixture(tmp_path)
     value = parse_canonical_object(manifest.read_bytes(), role="snapshot")
     if mutation == "mutable-revision":
@@ -330,8 +326,7 @@ def _image_bytes(source_commit: str, ordinal: int) -> bytes:
 def _write_fixture(tmp_path: Path) -> Path:
     source_commit = "4" * 40
     image_sha256 = [
-        hashlib.sha256(_image_bytes(source_commit, ordinal)).hexdigest()
-        for ordinal in range(64)
+        hashlib.sha256(_image_bytes(source_commit, ordinal)).hexdigest() for ordinal in range(64)
     ]
     prompt = b"List the visible car attributes and relations."
     path = tmp_path / "fixture.json"

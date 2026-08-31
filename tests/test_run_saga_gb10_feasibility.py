@@ -16,11 +16,7 @@ from sfora.saga_feasibility import (
     canonical_feasibility_result_bytes,
 )
 
-_SCRIPT = (
-    Path(__file__).resolve().parents[1]
-    / "scripts"
-    / "run_saga_gb10_feasibility.py"
-)
+_SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "run_saga_gb10_feasibility.py"
 _SPEC = importlib.util.spec_from_file_location("run_saga_gb10_feasibility", _SCRIPT)
 assert _SPEC is not None and _SPEC.loader is not None
 _MODULE = importlib.util.module_from_spec(_SPEC)
@@ -186,9 +182,7 @@ def test_controller_launches_one_offline_process_group_and_publishes_result(
     tmp_path: Path,
 ) -> None:
     result = _result_bytes()
-    runner = _FakeRunner(
-        [_observation(), _observation(process_alive=False)], child_result=result
-    )
+    runner = _FakeRunner([_observation(), _observation(process_alive=False)], child_result=result)
     terminal = _controller(tmp_path).run(runner=runner)
     assert terminal.outcome == "FITS"
     assert terminal.result_published is True
@@ -246,9 +240,7 @@ def test_controller_cli_is_strict_and_local_only(tmp_path: Path) -> None:
     assert args.model_root == tmp_path / "model"
     for forbidden in ("--dataset", "--aws-profile", "--model-uri", "--train"):
         with pytest.raises(SystemExit):
-            _MODULE.parse_controller_args(
-                [*_controller_argv(tmp_path), forbidden, "x"]
-            )
+            _MODULE.parse_controller_args([*_controller_argv(tmp_path), forbidden, "x"])
 
 
 @pytest.mark.parametrize(
@@ -298,18 +290,12 @@ def test_controller_stops_on_sustained_psi_only_after_three_samples(
     assert runner.terminate_count == 1
 
 
-@pytest.mark.parametrize(
-    "fault", ["child-exit", "noncanonical-result", "canonical-forged-result"]
-)
-def test_controller_rejects_child_or_result_failure(
-    tmp_path: Path, fault: str
-) -> None:
+@pytest.mark.parametrize("fault", ["child-exit", "noncanonical-result", "canonical-forged-result"])
+def test_controller_rejects_child_or_result_failure(tmp_path: Path, fault: str) -> None:
     if fault == "noncanonical-result":
         child_result = b'{"claim_eligible": false, "outcome": "FITS"}\n'
     elif fault == "canonical-forged-result":
-        child_result = canonical_json_bytes(
-            {"outcome": "FITS", "claim_eligible": False}
-        )
+        child_result = canonical_json_bytes({"outcome": "FITS", "claim_eligible": False})
     else:
         child_result = _result_bytes()
     runner = _FakeRunner(

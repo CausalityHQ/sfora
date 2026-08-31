@@ -275,7 +275,7 @@ def pooler_state_sha256(pooler: SingleQueryPooler) -> str:
         contiguous = tensor.detach().cpu().contiguous()
         digest.update(name.encode("utf-8") + b"\0")
         digest.update(str(contiguous.dtype).encode("ascii") + b"\0")
-        digest.update(canonical_json_bytes(list(contiguous.shape)))
+        digest.update(canonical_json_bytes({"shape": list(contiguous.shape)}))
         digest.update(contiguous.numpy().tobytes())
     return digest.hexdigest()
 
@@ -344,18 +344,12 @@ class QwenSagaAdapter:
 
     def validate_structure(self, authority: LoadedAuthority) -> None:
         if authority.snapshot.architecture != self.architecture:
-            raise FeasibilityFailure(
-                FeasibilityOutcome.BACKEND_INVALID, "model-architecture"
-            )
+            raise FeasibilityFailure(FeasibilityOutcome.BACKEND_INVALID, "model-architecture")
         if not self._vision_parameters or not self._language_parameters:
-            raise FeasibilityFailure(
-                FeasibilityOutcome.BACKEND_INVALID, "parameter-roles"
-            )
+            raise FeasibilityFailure(FeasibilityOutcome.BACKEND_INVALID, "parameter-roles")
 
     @staticmethod
-    def _images(
-        fixture: FixtureAuthority, ordinals: tuple[int, ...]
-    ) -> list[np.ndarray]:
+    def _images(fixture: FixtureAuthority, ordinals: tuple[int, ...]) -> list[np.ndarray]:
         return [
             np.frombuffer(
                 generated_fixture_image_bytes(fixture.source_commit, ordinal),
@@ -406,9 +400,7 @@ class QwenSagaAdapter:
             raise ValueError("SAGA processor output authority differs")
         if any(type(value) is not torch.Tensor for value in raw.values()):
             raise ValueError("SAGA processor tensor authority differs")
-        inputs = {
-            name: value.to(self._operational_device()) for name, value in raw.items()
-        }
+        inputs = {name: value.to(self._operational_device()) for name, value in raw.items()}
         input_ids = inputs["input_ids"]
         token_types = inputs["mm_token_type_ids"]
         if input_ids.shape[0] != 1 or token_types.shape != input_ids.shape:
@@ -495,13 +487,9 @@ class QwenSagaAdapter:
         device = pair.inputs["input_ids"].device
         completion_tensor = torch.tensor([completion], dtype=torch.long, device=device)
         inputs = dict(pair.inputs)
-        inputs["input_ids"] = torch.cat(
-            (pair.inputs["input_ids"], completion_tensor), dim=1
-        )
+        inputs["input_ids"] = torch.cat((pair.inputs["input_ids"], completion_tensor), dim=1)
         extension = torch.ones_like(completion_tensor)
-        inputs["attention_mask"] = torch.cat(
-            (pair.inputs["attention_mask"], extension), dim=1
-        )
+        inputs["attention_mask"] = torch.cat((pair.inputs["attention_mask"], extension), dim=1)
         inputs["mm_token_type_ids"] = torch.cat(
             (pair.inputs["mm_token_type_ids"], torch.zeros_like(completion_tensor)),
             dim=1,
@@ -530,12 +518,12 @@ class QwenSagaAdapter:
             logits = outputs.logits
             start = pair.input_length - 1
             completion_logits = logits[:, start : start + len(completion), :].float()
-            target = torch.tensor(
-                [completion], dtype=torch.long, device=completion_logits.device
+            target = torch.tensor([completion], dtype=torch.long, device=completion_logits.device)
+            token_log_probabilities = (
+                torch_functional.log_softmax(completion_logits, dim=-1)
+                .gather(-1, target.unsqueeze(-1))
+                .squeeze(-1)
             )
-            token_log_probabilities = torch_functional.log_softmax(
-                completion_logits, dim=-1
-            ).gather(-1, target.unsqueeze(-1)).squeeze(-1)
             losses.append(-float(advantage) * token_log_probabilities.mean())
             generated_tokens += len(completion)
         loss = torch.stack(losses).mean()
@@ -573,9 +561,7 @@ class QwenSagaAdapter:
             if span_end > len(completion):
                 raise ValueError("SAGA attribute token span differs")
             inputs = self._completed_inputs(pair, completion)
-            outputs = self._model.forward(
-                **inputs, output_attentions=True, use_cache=False
-            )
+            outputs = self._model.forward(**inputs, output_attentions=True, use_cache=False)
             attentions = outputs.attentions
             if type(attentions) not in {tuple, list} or len(attentions) <= layer:
                 raise AttentionUnavailable("layer-26-attention-unavailable")
@@ -588,9 +574,7 @@ class QwenSagaAdapter:
                 raise ValueError("SAGA attention head authority differs")
             query_start = pair.input_length + span_start
             query_end = pair.input_length + span_end
-            query_attention = attention[0, :, query_start:query_end, :].mean(
-                dim=(0, 1)
-            )
+            query_attention = attention[0, :, query_start:query_end, :].mean(dim=(0, 1))
             teacher_rows = []
             for start, end in pair.image_token_ranges:
                 row = query_attention[start:end].float()
@@ -599,9 +583,7 @@ class QwenSagaAdapter:
                 teacher_rows.append(row / row.sum())
             completion_maps.append(torch.stack(teacher_rows).detach())
         teacher_maps = torch.stack(completion_maps).mean(dim=0)
-        features = self._image_features(
-            pair.inputs["pixel_values"], pair.inputs["image_grid_thw"]
-        )
+        features = self._image_features(pair.inputs["pixel_values"], pair.inputs["image_grid_thw"])
         if len(features) != 2 or features[0].shape != features[1].shape:
             raise ValueError("SAGA pair vision feature authority differs")
         patch_tokens = torch.stack(features)
@@ -618,9 +600,7 @@ class QwenSagaAdapter:
     def vision_pool(self, microbatch: object) -> torch.Tensor:
         if type(microbatch) is not PreparedMicrobatch:
             raise ValueError("SAGA DML microbatch authority differs")
-        features = self._image_features(
-            microbatch.pixel_values, microbatch.image_grid_thw
-        )
+        features = self._image_features(microbatch.pixel_values, microbatch.image_grid_thw)
         if len(features) != 64 or any(feature.shape != features[0].shape for feature in features):
             raise ValueError("SAGA DML vision feature shape differs")
         embeddings, _ = self.pooler(torch.stack(features))
@@ -660,9 +640,7 @@ def _model_attribute(model: object, name: str) -> object:
         raise ValueError("SAGA model authority differs") from error
 
 
-def load_qwen_adapter(
-    authority: LoadedAuthority, *, factory: ModelFactory
-) -> QwenSagaAdapter:
+def load_qwen_adapter(authority: LoadedAuthority, *, factory: ModelFactory) -> QwenSagaAdapter:
     """Load one registered local model and freeze exact parameter roles."""
 
     if type(authority) is not LoadedAuthority:
@@ -700,9 +678,7 @@ def load_qwen_adapter(
         visual = model.model.visual
         language_model = model.model.language_model
         vision_parameters = tuple(visual.parameters())
-        language_parameters = tuple(language_model.parameters()) + tuple(
-            model.lm_head.parameters()
-        )
+        language_parameters = tuple(language_model.parameters()) + tuple(model.lm_head.parameters())
         processor_keys = tuple(getattr(processor, "model_input_names", ()))
     else:
         architecture = _model_attribute(model, "architecture")
@@ -776,14 +752,10 @@ def group_normalized_advantages(rewards: tuple[int, ...]) -> tuple[float, ...]:
 def _completion_digest(token_ids: tuple[int, ...]) -> str:
     if not token_ids or any(type(token) is not int or token < 0 for token in token_ids):
         raise ValueError("SAGA completion token authority differs")
-    return hashlib.sha256(
-        canonical_json_bytes({"token_ids": list(token_ids)})
-    ).hexdigest()
+    return hashlib.sha256(canonical_json_bytes({"token_ids": list(token_ids)})).hexdigest()
 
 
-def run_rollout_phase(
-    adapter: SagaModelAdapter, fixture: FixtureAuthority
-) -> SealedRollouts:
+def run_rollout_phase(adapter: SagaModelAdapter, fixture: FixtureAuthority) -> SealedRollouts:
     """Generate and seal one exact eight-completion rollout group."""
 
     if fixture.group_size != 8 or fixture.generation_seeds != tuple(range(8)):
@@ -871,9 +843,7 @@ def run_replay_phase(
             elapsed_ns=elapsed_ns,
             loss=output.loss,
             generated_tokens=output.generated_tokens,
-            vision_nonzero_gradient_parameters=(
-                gradient.vision_nonzero_gradient_parameters
-            ),
+            vision_nonzero_gradient_parameters=(gradient.vision_nonzero_gradient_parameters),
             language_gradient_parameters=gradient.language_gradient_parameters,
             gradient_sha256=gradient.gradient_sha256,
         )
@@ -946,12 +916,16 @@ def run_attention_phase(
         _, pooler_weights = pooler(detached_tokens)
         epsilon = torch.finfo(pooler_weights.dtype).tiny
         kl = (
-            detached_teacher
-            * (
-                detached_teacher.clamp_min(epsilon).log()
-                - pooler_weights.clamp_min(epsilon).log()
+            (
+                detached_teacher
+                * (
+                    detached_teacher.clamp_min(epsilon).log()
+                    - pooler_weights.clamp_min(epsilon).log()
+                )
             )
-        ).sum(dim=-1).mean()
+            .sum(dim=-1)
+            .mean()
+        )
         if not bool(torch.isfinite(kl)):
             raise ValueError("SAGA attention KL differs")
         kl.backward()
@@ -976,9 +950,7 @@ def run_attention_phase(
         pooler.zero_grad(set_to_none=True)
 
 
-def fixture_pairwise_loss(
-    embeddings: torch.Tensor, labels: torch.Tensor
-) -> torch.Tensor:
+def fixture_pairwise_loss(embeddings: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
     """Backend-independent pairwise activation-floor loss."""
 
     distances = torch.cdist(embeddings.float(), embeddings.float()).square()
@@ -991,9 +963,7 @@ def fixture_pairwise_loss(
     return positive.mean() + torch_functional.relu(1.0 - negative).mean()
 
 
-def run_dml_floor_phase(
-    adapter: SagaModelAdapter, fixture: FixtureAuthority
-) -> DmlFloorEvidence:
+def run_dml_floor_phase(adapter: SagaModelAdapter, fixture: FixtureAuthority) -> DmlFloorEvidence:
     """Measure the 64-image, 4096-dimensional activation and gradient floor."""
 
     if fixture.image_count != 64:
@@ -1006,14 +976,10 @@ def run_dml_floor_phase(
         if not bool(torch.isfinite(embeddings).all()):
             raise ValueError("SAGA DML embeddings are not finite")
         norm_delta = (embeddings.float().norm(dim=-1) - 1.0).abs()
-        maximum_norm_delta_ppm = int(
-            math.ceil(float(norm_delta.max().detach()) * 1_000_000)
-        )
+        maximum_norm_delta_ppm = int(math.ceil(float(norm_delta.max().detach()) * 1_000_000))
         if maximum_norm_delta_ppm > 10:
             raise ValueError("SAGA DML embedding norms differ")
-        labels = torch.tensor(
-            [ordinal % 2 for ordinal in range(64)], device=embeddings.device
-        )
+        labels = torch.tensor([ordinal % 2 for ordinal in range(64)], device=embeddings.device)
         loss = fixture_pairwise_loss(embeddings, labels)
         if not bool(torch.isfinite(loss)):
             raise ValueError("SAGA DML loss differs")
@@ -1027,9 +993,7 @@ def run_dml_floor_phase(
             elapsed_ns=elapsed_ns,
             loss=float(loss.detach()),
             maximum_norm_delta_ppm=maximum_norm_delta_ppm,
-            vision_nonzero_gradient_parameters=(
-                gradient.vision_nonzero_gradient_parameters
-            ),
+            vision_nonzero_gradient_parameters=(gradient.vision_nonzero_gradient_parameters),
             language_gradient_parameters=gradient.language_gradient_parameters,
         )
     finally:
@@ -1078,12 +1042,9 @@ def _measure_runtime[MeasuredValue](
     return value, _end_runtime_measurement(name, started_ns)
 
 
-def _combine_measurements(
-    name: str, *measurements: PhaseMeasurement
-) -> PhaseMeasurement:
+def _combine_measurements(name: str, *measurements: PhaseMeasurement) -> PhaseMeasurement:
     if not measurements or any(
-        measurement.name != name or not measurement.completed
-        for measurement in measurements
+        measurement.name != name or not measurement.completed for measurement in measurements
     ):
         raise ValueError("SAGA runtime measurement differs")
     return PhaseMeasurement(
@@ -1180,9 +1141,7 @@ def _f64_bits(value: float) -> str:
     return struct.pack(">d", value).hex()
 
 
-def _scientific_evidence(
-    run: _ScientificRun, *, pooler_sha256: str
-) -> ScientificEvidence:
+def _scientific_evidence(run: _ScientificRun, *, pooler_sha256: str) -> ScientificEvidence:
     return ScientificEvidence(
         pooler_sha256=pooler_sha256,
         rollout_group_size=run.rollout.group_size,
@@ -1190,9 +1149,7 @@ def _scientific_evidence(
         rollout_completion_sha256=run.rollout.completion_sha256,
         replay_loss_f64_bits=_f64_bits(run.replay.loss),
         replay_generated_tokens=run.replay.generated_tokens,
-        replay_vision_nonzero_gradient_parameters=(
-            run.replay.vision_nonzero_gradient_parameters
-        ),
+        replay_vision_nonzero_gradient_parameters=(run.replay.vision_nonzero_gradient_parameters),
         replay_language_gradient_parameters=run.replay.language_gradient_parameters,
         replay_gradient_sha256=run.replay.gradient_sha256,
         attention_layer=run.attention.layer,
@@ -1201,9 +1158,7 @@ def _scientific_evidence(
         attention_patch_token_shape=run.attention.patch_token_shape,
         attention_kl_f64_bits=_f64_bits(run.attention.kl),
         attention_teacher_unit_mass=run.attention.teacher_unit_mass,
-        attention_teacher_gradient_parameters=(
-            run.attention.teacher_gradient_parameters
-        ),
+        attention_teacher_gradient_parameters=(run.attention.teacher_gradient_parameters),
         attention_pooler_nonzero_gradient_parameters=(
             run.attention.pooler_nonzero_gradient_parameters
         ),
@@ -1211,9 +1166,7 @@ def _scientific_evidence(
         dml_embedding_shape=run.dml.embedding_shape,
         dml_loss_f64_bits=_f64_bits(run.dml.loss),
         dml_maximum_norm_delta_ppm=run.dml.maximum_norm_delta_ppm,
-        dml_vision_nonzero_gradient_parameters=(
-            run.dml.vision_nonzero_gradient_parameters
-        ),
+        dml_vision_nonzero_gradient_parameters=(run.dml.vision_nonzero_gradient_parameters),
         dml_language_gradient_parameters=run.dml.language_gradient_parameters,
     ).validated()
 
@@ -1240,12 +1193,9 @@ def _failure_flags(outcome: FeasibilityOutcome) -> dict[str, bool]:
     return flags
 
 
-def _canonical_preflight_failure(
-    identity: RunIdentity, outcome: FeasibilityOutcome
-) -> bytes:
+def _canonical_preflight_failure(identity: RunIdentity, outcome: FeasibilityOutcome) -> bytes:
     measurements = {
-        name: _phase_measurement(name)
-        for name in ("load", "rollout", "replay", "attention", "dml")
+        name: _phase_measurement(name) for name in ("load", "rollout", "replay", "attention", "dml")
     }
     return canonical_feasibility_result_bytes(
         FeasibilityEvidence(
@@ -1301,8 +1251,7 @@ def run_feasibility(
 
     identity = _validate_run_identity(authority)
     measurements = {
-        name: _phase_measurement(name)
-        for name in ("load", "rollout", "replay", "attention", "dml")
+        name: _phase_measurement(name) for name in ("load", "rollout", "replay", "attention", "dml")
     }
     outcome = FeasibilityOutcome.FITS
     pooler_sha256: str | None = None
@@ -1324,15 +1273,11 @@ def run_feasibility(
         if type(pooler) is not SingleQueryPooler:
             pooler = SingleQueryPooler(token_dim=token_dim)
         pooler_sha256 = pooler_state_sha256(pooler)
-        first = _run_scientific_phases(
-            authority, adapter, pooler, measurements, progress
-        )
+        first = _run_scientific_phases(authority, adapter, pooler, measurements, progress)
         scientific = _scientific_evidence(first, pooler_sha256=pooler_sha256)
         second = _run_scientific_phases(authority, adapter, pooler, None)
         if _repeatability_signature(first) != _repeatability_signature(second):
-            raise FeasibilityFailure(
-                FeasibilityOutcome.DETERMINISM_FAIL, "repeatability"
-            )
+            raise FeasibilityFailure(FeasibilityOutcome.DETERMINISM_FAIL, "repeatability")
     except FeasibilityFailure as failure:
         outcome = failure.outcome
     except AttentionUnavailable:
@@ -1393,15 +1338,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parsed = parser.parse_args(values)
     for name in ("source_commit", "controller_commit"):
         value = getattr(parsed, name)
-        if len(value) != 40 or any(
-            character not in "0123456789abcdef" for character in value
-        ):
+        if len(value) != 40 or any(character not in "0123456789abcdef" for character in value):
             parser.error(f"{name.replace('_', ' ')} must be 40 lowercase hex")
     for name in ("binary_sha256", "environment_sha256"):
         value = getattr(parsed, name)
-        if len(value) != 64 or any(
-            character not in "0123456789abcdef" for character in value
-        ):
+        if len(value) != 64 or any(character not in "0123456789abcdef" for character in value):
             parser.error(f"{name.replace('_', ' ')} must be 64 lowercase hex")
     if not parsed.host:
         parser.error("host must be nonempty")
@@ -1462,9 +1403,7 @@ def main(argv: list[str] | None = None) -> int:
     """Authenticate local inputs, execute once, and publish canonical evidence."""
 
     args = parse_args(argv)
-    snapshot = load_snapshot_authority(
-        root=args.model_root, manifest_path=args.snapshot_manifest
-    )
+    snapshot = load_snapshot_authority(root=args.model_root, manifest_path=args.snapshot_manifest)
     fixture = load_fixture_authority(args.fixture)
     identity = RunIdentity(
         source_commit=args.source_commit,
@@ -1472,9 +1411,7 @@ def main(argv: list[str] | None = None) -> int:
         binary_sha256=args.binary_sha256,
         environment_sha256=args.environment_sha256,
         host=args.host,
-        model_object=_path_authority(
-            args.snapshot_manifest, role="model-snapshot-manifest"
-        ),
+        model_object=_path_authority(args.snapshot_manifest, role="model-snapshot-manifest"),
         fixture_object=_path_authority(args.fixture, role="synthetic-fixture"),
         envelope=ResourceEnvelope(
             cuda_reserved_limit_bytes=103_079_215_104,

@@ -21,9 +21,7 @@ _PROMPT = "List the visible car attributes and relations."
 
 
 def _lower_hex(value: str, width: int) -> bool:
-    return len(value) == width and all(
-        character in "0123456789abcdef" for character in value
-    )
+    return len(value) == width and all(character in "0123456789abcdef" for character in value)
 
 
 def _write_new(path: Path, payload: bytes) -> None:
@@ -111,9 +109,7 @@ def prepare_inputs(
             shutil.rmtree(metadata)
         rows = _snapshot_rows(model_root)
         row_mappings = [row.to_mapping() for row in rows]
-        tree_sha256 = hashlib.sha256(
-            canonical_json_bytes({"files": row_mappings})
-        ).hexdigest()
+        tree_sha256 = hashlib.sha256(canonical_json_bytes({"files": row_mappings})).hexdigest()
         _write_new(
             partial / "snapshot.json",
             canonical_json_bytes(
@@ -133,9 +129,7 @@ def prepare_inputs(
             ),
         )
         image_sha256 = [
-            hashlib.sha256(
-                generated_fixture_image_bytes(source_commit, ordinal)
-            ).hexdigest()
+            hashlib.sha256(generated_fixture_image_bytes(source_commit, ordinal)).hexdigest()
             for ordinal in range(64)
         ]
         _write_new(

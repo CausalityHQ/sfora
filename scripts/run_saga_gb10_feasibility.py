@@ -278,9 +278,7 @@ def _write_new(path: Path, payload: bytes) -> None:
 
 
 def _lower_hex(value: str, width: int) -> bool:
-    return len(value) == width and all(
-        character in "0123456789abcdef" for character in value
-    )
+    return len(value) == width and all(character in "0123456789abcdef" for character in value)
 
 
 class FeasibilityController:
@@ -334,9 +332,7 @@ class FeasibilityController:
             "hugging_face_hub_token",
         }
         environment = {
-            key: value
-            for key, value in os.environ.items()
-            if key.lower() not in forbidden
+            key: value for key, value in os.environ.items() if key.lower() not in forbidden
         }
         environment.update(
             {
@@ -347,9 +343,7 @@ class FeasibilityController:
         )
         return environment
 
-    def _child_argv(
-        self, child_result: Path, progress_output: Path
-    ) -> tuple[str, ...]:
+    def _child_argv(self, child_result: Path, progress_output: Path) -> tuple[str, ...]:
         return (
             sys.executable,
             str(self.paths.scientific_cli),
@@ -406,9 +400,7 @@ class FeasibilityController:
             "process_cleared": True,
             "scratch_cleared": True,
         }
-        payload["terminal_sha256"] = hashlib.sha256(
-            canonical_json_bytes(payload)
-        ).hexdigest()
+        payload["terminal_sha256"] = hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
         return canonical_json_bytes(payload)
 
     def _cleanup_scratch(self, *paths: Path) -> None:
@@ -453,9 +445,7 @@ class FeasibilityController:
             while True:
                 observation = runner.observe(process).validated()
                 sustained_psi = (
-                    sustained_psi + 1
-                    if observation.psi_full_avg10_ppm >= PSI_SUSTAINED_PPM
-                    else 0
+                    sustained_psi + 1 if observation.psi_full_avg10_ppm >= PSI_SUSTAINED_PPM else 0
                 )
                 stop = self._stop_reason(observation, sustained_psi)
                 if stop is not None:
@@ -470,9 +460,10 @@ class FeasibilityController:
             if stop is None and exit_code == 0:
                 raw = child_result.read_bytes()
                 value = validate_feasibility_result_bytes(raw)
-                outcome = value["outcome"]
-                if type(outcome) is not str:
+                observed_outcome = value["outcome"]
+                if type(observed_outcome) is not str:
                     raise ValueError("SAGA scientific outcome differs")
+                outcome = observed_outcome
                 _write_new(self.paths.result_output, raw)
                 result_published = True
                 reason = "scientific-result"
@@ -561,9 +552,7 @@ def main(argv: list[str] | None = None) -> int:
         ),
     )
     terminal = controller.run(runner=NativeProcessRunner())
-    published = (
-        args.result_output if terminal.result_published else args.terminal_output
-    )
+    published = args.result_output if terminal.result_published else args.terminal_output
     sys.stdout.buffer.write(published.read_bytes())
     sys.stdout.buffer.flush()
     return 0

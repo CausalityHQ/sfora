@@ -18,14 +18,8 @@ from sfora.saga_feasibility import (
     SnapshotAuthority,
 )
 
-_SCRIPT = (
-    Path(__file__).resolve().parents[1]
-    / "scripts"
-    / "diagnose_saga_gb10_feasibility.py"
-)
-_SPEC = importlib.util.spec_from_file_location(
-    "diagnose_saga_gb10_feasibility", _SCRIPT
-)
+_SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "diagnose_saga_gb10_feasibility.py"
+_SPEC = importlib.util.spec_from_file_location("diagnose_saga_gb10_feasibility", _SCRIPT)
 assert _SPEC is not None and _SPEC.loader is not None
 _MODULE = importlib.util.module_from_spec(_SPEC)
 sys.modules[_SPEC.name] = _MODULE
@@ -81,9 +75,7 @@ def test_cli_accepts_only_local_scientific_capabilities(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize("missing_index", range(0, 12, 2))
-def test_cli_rejects_missing_required_flags(
-    tmp_path: Path, missing_index: int
-) -> None:
+def test_cli_rejects_missing_required_flags(tmp_path: Path, missing_index: int) -> None:
     argv = _valid_cli_args(tmp_path)
     del argv[missing_index : missing_index + 2]
     with pytest.raises(SystemExit):
@@ -190,13 +182,9 @@ def test_model_load_freezes_language_and_leaves_only_vision_trainable(
     assert adapter.architecture == "Qwen3VLForConditionalGeneration"
     assert adapter.trainable_parameter_roles() == ("vision",)
     assert adapter.frozen_parameter_roles() == ("language",)
+    assert all(parameter.requires_grad for parameter in factory.model.parameters_by_role["vision"])
     assert all(
-        parameter.requires_grad
-        for parameter in factory.model.parameters_by_role["vision"]
-    )
-    assert all(
-        not parameter.requires_grad
-        for parameter in factory.model.parameters_by_role["language"]
+        not parameter.requires_grad for parameter in factory.model.parameters_by_role["language"]
     )
     assert factory.model_kwargs == {
         "local_files_only": True,
@@ -220,9 +208,7 @@ def test_model_load_freezes_language_and_leaves_only_vision_trainable(
         ("layer_count", 26),
     ],
 )
-def test_model_load_rejects_structural_drift(
-    tmp_path: Path, attribute: str, value: object
-) -> None:
+def test_model_load_rejects_structural_drift(tmp_path: Path, attribute: str, value: object) -> None:
     factory = _FakeFactory()
     setattr(factory.model, attribute, value)
     with pytest.raises(ValueError, match="model authority"):
@@ -328,9 +314,7 @@ def test_replay_reaches_vision_and_never_language_parameters() -> None:
     assert evidence.vision_nonzero_gradient_parameters == 2
     assert evidence.language_gradient_parameters == 0
     assert evidence.generated_tokens == sum(rollouts.token_counts)
-    assert adapter.replay_calls == [
-        ((-1.0, 1.0, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0), False)
-    ]
+    assert adapter.replay_calls == [((-1.0, 1.0, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0), False)]
     assert adapter.cleared == 1
 
 
@@ -363,17 +347,13 @@ def test_replay_reaches_vision_and_never_language_parameters() -> None:
         ),
     ],
 )
-def test_replay_rejects_gradient_role_drift(
-    gradient: dict[str, object], message: str
-) -> None:
+def test_replay_rejects_gradient_role_drift(gradient: dict[str, object], message: str) -> None:
     adapter = _RecordingAdapter()
     adapter.assert_gradient_roles = lambda: _MODULE.GradientEvidence(  # type: ignore[method-assign]
         gradient_sha256="a" * 64, **gradient
     )
     with pytest.raises(ValueError, match=message):
-        _MODULE.run_replay_phase(
-            adapter, _FIXTURE, _MODULE.run_rollout_phase(adapter, _FIXTURE)
-        )
+        _MODULE.run_replay_phase(adapter, _FIXTURE, _MODULE.run_rollout_phase(adapter, _FIXTURE))
     assert adapter.cleared == 1
 
 
@@ -385,9 +365,7 @@ class _AttentionDmlAdapter(_RecordingAdapter):
             dtype=torch.float32,
             requires_grad=True,
         )
-        self.patch_tokens = torch.arange(
-            2 * 4 * 16, dtype=torch.float32
-        ).reshape(2, 4, 16)
+        self.patch_tokens = torch.arange(2 * 4 * 16, dtype=torch.float32).reshape(2, 4, 16)
         self.patch_tokens.requires_grad_(True)
         self.microbatch_embeddings: torch.Tensor | None = None
 
@@ -542,13 +520,9 @@ class _FaultingAdapter(_AttentionDmlAdapter):
                 FeasibilityOutcome.AUTHORITY_INVALID, "fixture-authority"
             )
         if self.fault == "backend":
-            raise _MODULE.FeasibilityFailure(
-                FeasibilityOutcome.BACKEND_INVALID, "model-backend"
-            )
+            raise _MODULE.FeasibilityFailure(FeasibilityOutcome.BACKEND_INVALID, "model-backend")
         if self.fault == "timeout":
-            raise _MODULE.FeasibilityFailure(
-                FeasibilityOutcome.TIME_BUDGET_FAIL, "phase-progress"
-            )
+            raise _MODULE.FeasibilityFailure(FeasibilityOutcome.TIME_BUDGET_FAIL, "phase-progress")
 
     def generate(
         self,
@@ -599,12 +573,8 @@ class _FaultingAdapter(_AttentionDmlAdapter):
         ("timeout", "TIME_BUDGET_FAIL"),
     ],
 )
-def test_failure_precedence_is_exhaustive(
-    tmp_path: Path, fault: str, outcome: str
-) -> None:
-    raw = _MODULE.run_feasibility(
-        _complete_authority(tmp_path), _FaultingAdapter(fault)
-    )
+def test_failure_precedence_is_exhaustive(tmp_path: Path, fault: str, outcome: str) -> None:
+    raw = _MODULE.run_feasibility(_complete_authority(tmp_path), _FaultingAdapter(fault))
     assert json.loads(raw)["outcome"] == outcome
 
 
@@ -613,16 +583,10 @@ def test_direct_script_main_writes_one_exclusive_canonical_result(
 ) -> None:
     loaded = _complete_authority(tmp_path)
     adapter = _AttentionDmlAdapter()
-    monkeypatch.setattr(
-        _MODULE, "load_snapshot_authority", lambda **_kwargs: loaded.snapshot
-    )
-    monkeypatch.setattr(
-        _MODULE, "load_fixture_authority", lambda _path: loaded.fixture
-    )
+    monkeypatch.setattr(_MODULE, "load_snapshot_authority", lambda **_kwargs: loaded.snapshot)
+    monkeypatch.setattr(_MODULE, "load_fixture_authority", lambda _path: loaded.fixture)
     monkeypatch.setattr(_MODULE, "TransformersFactory", lambda: object())
-    monkeypatch.setattr(
-        _MODULE, "load_qwen_adapter", lambda _authority, factory: adapter
-    )
+    monkeypatch.setattr(_MODULE, "load_qwen_adapter", lambda _authority, factory: adapter)
     argv = _valid_cli_args(tmp_path)
     assert _MODULE.main(argv) == 0
     output = tmp_path / "result.json"
@@ -638,12 +602,8 @@ def test_direct_script_classifies_model_load_oom(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     loaded = _complete_authority(tmp_path)
-    monkeypatch.setattr(
-        _MODULE, "load_snapshot_authority", lambda **_kwargs: loaded.snapshot
-    )
-    monkeypatch.setattr(
-        _MODULE, "load_fixture_authority", lambda _path: loaded.fixture
-    )
+    monkeypatch.setattr(_MODULE, "load_snapshot_authority", lambda **_kwargs: loaded.snapshot)
+    monkeypatch.setattr(_MODULE, "load_fixture_authority", lambda _path: loaded.fixture)
     monkeypatch.setattr(_MODULE, "TransformersFactory", lambda: object())
 
     def raise_oom(_authority: object, *, factory: object) -> object:
@@ -662,12 +622,8 @@ def test_direct_script_classifies_model_load_structure_failure(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     loaded = _complete_authority(tmp_path)
-    monkeypatch.setattr(
-        _MODULE, "load_snapshot_authority", lambda **_kwargs: loaded.snapshot
-    )
-    monkeypatch.setattr(
-        _MODULE, "load_fixture_authority", lambda _path: loaded.fixture
-    )
+    monkeypatch.setattr(_MODULE, "load_snapshot_authority", lambda **_kwargs: loaded.snapshot)
+    monkeypatch.setattr(_MODULE, "load_fixture_authority", lambda _path: loaded.fixture)
     monkeypatch.setattr(_MODULE, "TransformersFactory", lambda: object())
 
     def raise_invalid(_authority: object, *, factory: object) -> object:
@@ -791,9 +747,7 @@ def test_hf_shaped_qwen_adapter_executes_every_scientific_protocol(
     adapter.validate_structure(authority)
     rollouts = _MODULE.run_rollout_phase(adapter, authority.fixture)
     replay = _MODULE.run_replay_phase(adapter, authority.fixture, rollouts)
-    attention = _MODULE.run_attention_phase(
-        adapter, adapter.pooler, authority.fixture, rollouts
-    )
+    attention = _MODULE.run_attention_phase(adapter, adapter.pooler, authority.fixture, rollouts)
     dml = _MODULE.run_dml_floor_phase(adapter, authority.fixture)
     assert replay.vision_nonzero_gradient_parameters > 0
     assert replay.language_gradient_parameters == 0
@@ -840,9 +794,7 @@ def test_complete_run_records_load_and_phase_resource_measurements(
     ]
     assert all(phase["elapsed_ns"] > 0 for phase in result["phases"])
     assert all(phase["peak_rss_bytes"] > 0 for phase in result["phases"])
-    assert all(
-        phase["peak_cuda_reserved_bytes"] >= 0 for phase in result["phases"]
-    )
+    assert all(phase["peak_cuda_reserved_bytes"] >= 0 for phase in result["phases"])
     scientific = result["scientific_evidence"]
     assert scientific["pooler_sha256"] == result["pooler_sha256"]
     assert scientific["rollout"]["token_counts"] == [2] * 8
