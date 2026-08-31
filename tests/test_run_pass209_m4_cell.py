@@ -342,3 +342,18 @@ def test_fake_cell_run_publishes_three_cross_bound_outputs(
     assert mismatch_receipt["historical_count_passed"] is False
     assert mismatch_args.descriptor_output.is_file()
     assert mismatch_args.query_output.is_file()
+
+    for prefix, encoded, message in (
+        ("shape", (descriptors, (225, 224)), "image-shape"),
+        ("count", (descriptors[:3], (224, 224)), "descriptor shape"),
+    ):
+        monkeypatch.setattr(_MODULE, "_encode", lambda *_args, _value=encoded, **_kwargs: _value)
+        failed_args = _MODULE.parse_args(_argv(tmp_path))
+        failed_args.receipt_output = tmp_path / f"{prefix}-receipt.json"
+        failed_args.descriptor_output = tmp_path / f"{prefix}-descriptors.bin"
+        failed_args.query_output = tmp_path / f"{prefix}-queries.json"
+        with pytest.raises(RuntimeError, match=message):
+            _MODULE._run(failed_args)
+        assert not failed_args.receipt_output.exists()
+        assert not failed_args.descriptor_output.exists()
+        assert not failed_args.query_output.exists()
