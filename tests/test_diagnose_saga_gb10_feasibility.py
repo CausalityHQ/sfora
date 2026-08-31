@@ -159,6 +159,7 @@ def _loaded_authority(tmp_path: Path) -> object:
     )
     fixture = FixtureAuthority(
         source_commit="5" * 40,
+        controller_commit="b" * 40,
         model_revision="1" * 40,
         binary_sha256="6" * 64,
         environment_sha256="7" * 64,
@@ -231,6 +232,7 @@ def test_model_load_rejects_structural_drift(
 def _fixture_authority() -> FixtureAuthority:
     return FixtureAuthority(
         source_commit="5" * 40,
+        controller_commit="b" * 40,
         model_revision="1" * 40,
         binary_sha256="6" * 64,
         environment_sha256="7" * 64,

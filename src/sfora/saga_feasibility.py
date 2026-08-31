@@ -410,6 +410,7 @@ class FixtureAuthority:
     """Authenticated quality-blind synthetic compute fixture."""
 
     source_commit: str
+    controller_commit: str
     model_revision: str
     binary_sha256: str
     environment_sha256: str
@@ -591,6 +592,25 @@ def generated_fixture_image_bytes(source_commit: str, ordinal: int) -> bytes:
     return bytes(output[: 224 * 224 * 3])
 
 
+def fixture_message_serialization_sha256(
+    prompt_utf8: str, pair_ordinals: tuple[int, ...]
+) -> str:
+    """Hash the exact logical multimodal message consumed by the processor."""
+
+    _require_nonempty_string(prompt_utf8, name="fixture prompt")
+    if pair_ordinals != (0, 1):
+        raise ValueError("SAGA fixture pair ordinals differ")
+    payload = {
+        "role": "user",
+        "content": [
+            {"type": "image", "image_ordinal": pair_ordinals[0]},
+            {"type": "image", "image_ordinal": pair_ordinals[1]},
+            {"type": "text", "text": prompt_utf8},
+        ],
+    }
+    return hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
+
+
 def _require_exact_integer_list(
     value: object, *, expected: list[int], name: str
 ) -> tuple[int, ...]:
@@ -610,6 +630,7 @@ def load_fixture_authority(path: Path) -> FixtureAuthority:
     keys = {
         "schema",
         "source_commit",
+        "controller_commit",
         "model_revision",
         "binary_sha256",
         "environment_sha256",
@@ -636,6 +657,9 @@ def load_fixture_authority(path: Path) -> FixtureAuthority:
     if set(manifest) != keys or manifest["schema"] != "sfora-saga-synthetic-fixture-v1":
         raise ValueError("SAGA fixture schema differs")
     source_commit = _require_commit(manifest["source_commit"], name="fixture source")
+    controller_commit = _require_commit(
+        manifest["controller_commit"], name="fixture controller"
+    )
     model_revision = _require_commit(
         manifest["model_revision"], name="fixture model revision"
     )
@@ -677,6 +701,10 @@ def load_fixture_authority(path: Path) -> FixtureAuthority:
         manifest["message_serialization_sha256"],
         name="fixture message serialization digest",
     )
+    if message_serialization_sha256 != fixture_message_serialization_sha256(
+        prompt, pair_ordinals
+    ):
+        raise ValueError("SAGA fixture message serialization digest differs")
     fixed_integer_fields = {
         "group_size": 8,
         "temperature_ppm": 700_000,
@@ -714,6 +742,7 @@ def load_fixture_authority(path: Path) -> FixtureAuthority:
     )
     return FixtureAuthority(
         source_commit=source_commit,
+        controller_commit=controller_commit,
         model_revision=model_revision,
         binary_sha256=binary_sha256,
         environment_sha256=environment_sha256,

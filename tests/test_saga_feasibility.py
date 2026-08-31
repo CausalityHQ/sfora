@@ -15,6 +15,7 @@ from sfora.saga_feasibility import (
     ResourceEnvelope,
     ScientificEvidence,
     canonical_feasibility_result_bytes,
+    fixture_message_serialization_sha256,
     load_fixture_authority,
     load_snapshot_authority,
     parse_canonical_object,
@@ -339,6 +340,7 @@ def _write_fixture(tmp_path: Path) -> Path:
             {
                 "schema": "sfora-saga-synthetic-fixture-v1",
                 "source_commit": source_commit,
+                "controller_commit": "3" * 40,
                 "model_revision": "1" * 40,
                 "binary_sha256": "5" * 64,
                 "environment_sha256": "6" * 64,
@@ -350,7 +352,9 @@ def _write_fixture(tmp_path: Path) -> Path:
                 "microbatch_ordinals": list(range(64)),
                 "prompt_utf8": prompt.decode(),
                 "prompt_sha256": hashlib.sha256(prompt).hexdigest(),
-                "message_serialization_sha256": "7" * 64,
+                "message_serialization_sha256": (
+                    fixture_message_serialization_sha256(prompt.decode(), (0, 1))
+                ),
                 "group_size": 8,
                 "temperature_ppm": 700_000,
                 "top_p_ppm": 950_000,
@@ -370,6 +374,7 @@ def _write_fixture(tmp_path: Path) -> Path:
 def test_fixture_loader_reconstructs_source_bound_images(tmp_path: Path) -> None:
     loaded = load_fixture_authority(_write_fixture(tmp_path))
     assert loaded.group_size == 8
+    assert loaded.controller_commit == "3" * 40
     assert loaded.image_count == 64
     assert loaded.attention_layer == 26
     assert loaded.attribute_token_span == (0, 1)
@@ -392,6 +397,7 @@ def test_fixture_loader_reconstructs_source_bound_images(tmp_path: Path) -> None
         ("generation_seeds", list(range(7))),
         ("synthetic_rewards", [0] * 8),
         ("attention_layer", 25),
+        ("message_serialization_sha256", "0" * 64),
         ("pseudo_labels", [0] * 64),
     ],
 )

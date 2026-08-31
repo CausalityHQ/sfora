@@ -1278,6 +1278,7 @@ def _validate_run_identity(authority: LoadedAuthority) -> RunIdentity:
     fixture = authority.fixture
     if (
         identity.source_commit != fixture.source_commit
+        or identity.controller_commit != fixture.controller_commit
         or identity.binary_sha256 != fixture.binary_sha256
         or identity.environment_sha256 != fixture.environment_sha256
         or identity.host != fixture.host
