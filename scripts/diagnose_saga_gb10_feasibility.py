@@ -8,6 +8,7 @@ import hashlib
 import math
 import os
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from time import perf_counter_ns
@@ -611,21 +612,30 @@ def _run_scientific_phases(
     adapter: SagaModelAdapter,
     pooler: SingleQueryPooler,
     measurements: dict[str, PhaseMeasurement] | None,
+    progress: Callable[[str], None] | None = None,
 ) -> _ScientificRun:
     rollout = run_rollout_phase(adapter, authority.fixture)
     if measurements is not None:
         measurements["rollout"] = _phase_measurement("rollout", rollout.elapsed_ns)
+        if progress is not None:
+            progress("rollout")
     replay = run_replay_phase(adapter, authority.fixture, rollout)
     if measurements is not None:
         measurements["replay"] = _phase_measurement("replay", replay.elapsed_ns)
+        if progress is not None:
+            progress("replay")
     attention = run_attention_phase(adapter, pooler, authority.fixture, rollout)
     if measurements is not None:
         measurements["attention"] = _phase_measurement(
             "attention", attention.elapsed_ns
         )
+        if progress is not None:
+            progress("attention")
     dml = run_dml_floor_phase(adapter, authority.fixture)
     if measurements is not None:
         measurements["dml"] = _phase_measurement("dml", dml.elapsed_ns)
+        if progress is not None:
+            progress("dml")
     return _ScientificRun(
         rollout=rollout,
         replay=replay,
@@ -699,7 +709,10 @@ def _validate_run_identity(authority: LoadedAuthority) -> RunIdentity:
 
 
 def run_feasibility(
-    authority: LoadedAuthority, adapter: SagaModelAdapter
+    authority: LoadedAuthority,
+    adapter: SagaModelAdapter,
+    *,
+    progress: Callable[[str], None] | None = None,
 ) -> bytes:
     """Run one complete repeatability diagnostic and emit canonical evidence."""
 
@@ -715,9 +728,13 @@ def run_feasibility(
         measurements["load"] = _phase_measurement(
             "load", max(1, perf_counter_ns() - started)
         )
+        if progress is not None:
+            progress("load")
         token_dim = getattr(adapter, "pooler_token_dim", 16)
         pooler = SingleQueryPooler(token_dim=token_dim)
-        first = _run_scientific_phases(authority, adapter, pooler, measurements)
+        first = _run_scientific_phases(
+            authority, adapter, pooler, measurements, progress
+        )
         second = _run_scientific_phases(authority, adapter, pooler, None)
         if _repeatability_signature(first) != _repeatability_signature(second):
             raise FeasibilityFailure(
@@ -771,6 +788,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--snapshot-manifest", required=True, type=Path)
     parser.add_argument("--fixture", required=True, type=Path)
     parser.add_argument("--result-output", required=True, type=Path)
+    parser.add_argument("--progress-output", type=Path)
     parser.add_argument("--source-commit", required=True)
     parser.add_argument("--controller-commit", required=True)
     parser.add_argument("--binary-sha256", required=True)
@@ -799,6 +817,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             parser.error(f"{name.replace('_', ' ')} must be an existing file")
     if parsed.result_output.exists():
         parser.error("result output must not already exist")
+    if parsed.progress_output is not None and parsed.progress_output.exists():
+        parser.error("progress output must not already exist")
     return parsed
 
 
@@ -817,6 +837,23 @@ def _path_authority(path: Path, *, role: str) -> ObjectAuthority:
 def _write_new(path: Path, payload: bytes) -> None:
     path.parent.resolve(strict=True)
     descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    try:
+        with os.fdopen(descriptor, "wb", closefd=False) as stream:
+            stream.write(payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+    finally:
+        os.close(descriptor)
+
+
+def _write_progress(path: Path, phase: str) -> None:
+    payload = canonical_json_bytes(
+        {
+            "schema": "sfora-saga-gb10-feasibility-progress-v1",
+            "completed_phase": phase,
+        }
+    )
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     try:
         with os.fdopen(descriptor, "wb", closefd=False) as stream:
             stream.write(payload)
@@ -857,7 +894,12 @@ def main(argv: list[str] | None = None) -> int:
         result_identity=identity,
     )
     adapter = load_qwen_adapter(authority, factory=TransformersFactory())
-    raw = run_feasibility(authority, adapter)
+    progress = (
+        (lambda phase: _write_progress(args.progress_output, phase))
+        if args.progress_output is not None
+        else None
+    )
+    raw = run_feasibility(authority, adapter, progress=progress)
     _write_new(args.result_output, raw)
     sys.stdout.buffer.write(raw)
     sys.stdout.buffer.flush()
