@@ -217,9 +217,27 @@ def test_prepared_stratum_rejects_same_step_predictor_update_and_input_drift() -
             optimizer_step=4,
             stratum_ordinal=3,
         )
+
+    clean_prepared = prepare_asgcv_stratum(
+        clean_predictor,
+        tokens,
+        signs,
+        selection_seed="12" * 32,
+        optimizer_step=4,
+        stratum_ordinal=3,
+    )
     with pytest.raises(ValueError):
         torch_asgcv_stratum_gradient(
-            prepared,
+            clean_prepared,
             exact_selected.requires_grad_(True),
-            predictor=predictor,
+            predictor=clean_predictor,
+        )
+
+    with torch.no_grad():
+        clean_prepared.predicted[0, 0, 0, 0].add_(1.0)
+    with pytest.raises(ValueError):
+        torch_asgcv_stratum_gradient(
+            clean_prepared,
+            exact_selected.detach(),
+            predictor=clean_predictor,
         )
