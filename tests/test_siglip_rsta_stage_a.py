@@ -6,18 +6,24 @@ import random
 from dataclasses import replace
 
 import pytest
+import torch
+from torch import nn
+from torch.nn import functional as F
 
+from sfora.siglip_proxy_control import PooledProxyAnchorModel
 from sfora.siglip_rsta_stage_a import (
     RstaCheckpointBinding,
     RstaControlBinding,
     RstaReceiverEvidence,
     RstaRolePanel,
     RstaStageAConfig,
+    contextual_rsta_direction,
     rsta_control_binding_bytes,
     rsta_stage_a_result_bytes,
     select_rsta_roles,
     summarize_rsta_stage_a,
 )
+from sfora.token_set_proxy_anchor import proxy_anchor_loss
 
 PRIMARY_CLASS_ORDER = (
     43,
@@ -405,3 +411,93 @@ class TestRstaGates:
 
         with pytest.raises(ValueError, match="147 receiver rows per seed"):
             summarize_rsta_stage_a(_evidence()[:-1], RstaStageAConfig())
+
+
+class TestContextualRstaDirection:
+    def test_matches_direct_descriptor_cotangent_and_unclipped_gradient(self) -> None:
+        torch.manual_seed(31)
+        model = PooledProxyAnchorModel(
+            tower=nn.Linear(3, 4, bias=False),
+            input_dimensions=4,
+            embedding_dimensions=2,
+            class_count=3,
+        ).double()
+        inputs = torch.tensor(
+            [
+                [0.2, -0.3, 0.5],
+                [0.7, 0.1, -0.2],
+                [-0.4, 0.9, 0.3],
+                [0.6, -0.8, 0.2],
+                [-0.1, 0.4, 0.8],
+                [0.3, 0.5, -0.7],
+            ],
+            dtype=torch.float64,
+        )
+        labels = torch.tensor([0, 1, 2, 0, 1, 2], dtype=torch.int64)
+
+        descriptors = model.encode(inputs)
+        normalized_proxies = F.normalize(model.proxies.float(), dim=1)
+        scores = descriptors @ normalized_proxies.T
+        loss = proxy_anchor_loss(scores, labels, alpha=32.0, delta=0.1)
+        expected_dbar = -torch.autograd.grad(loss, descriptors, retain_graph=True)[0]
+        selected = tuple(
+            sorted(
+                (
+                    (name, parameter)
+                    for name, parameter in model.named_parameters()
+                    if not name.startswith("proxies")
+                ),
+                key=lambda item: item[0],
+            )
+        )
+        expected_gradients = torch.autograd.grad(
+            loss,
+            tuple(parameter for _, parameter in selected),
+        )
+        model.zero_grad(set_to_none=True)
+
+        evidence = contextual_rsta_direction(
+            model,
+            inputs,
+            labels,
+            microbatch_size=2,
+            alpha=32.0,
+            delta=0.1,
+            score_tolerance=1.0e-12,
+        )
+
+        torch.testing.assert_close(evidence.dbar, expected_dbar)
+        assert evidence.parameter_names == tuple(name for name, _ in selected)
+        for actual, gradient in zip(
+            evidence.parameter_direction, expected_gradients, strict=True
+        ):
+            torch.testing.assert_close(actual, -gradient)
+        assert all(parameter.grad is None for parameter in model.parameters())
+        assert "proxies" not in " ".join(evidence.parameter_names)
+        assert evidence.maximum_score_disagreement <= 1.0e-12
+
+    @pytest.mark.parametrize(
+        ("alpha", "delta"),
+        [(31.0, 0.1), (32.0, 0.2), (32, 0.1), (32.0, True)],
+    )
+    def test_rejects_proxy_anchor_operator_drift(
+        self,
+        alpha: object,
+        delta: object,
+    ) -> None:
+        model = PooledProxyAnchorModel(
+            tower=nn.Linear(2, 3, bias=False),
+            input_dimensions=3,
+            embedding_dimensions=2,
+            class_count=2,
+        )
+        with pytest.raises(ValueError, match="frozen Proxy Anchor operator"):
+            contextual_rsta_direction(
+                model,
+                torch.ones((2, 2)),
+                torch.tensor([0, 1]),
+                microbatch_size=1,
+                alpha=alpha,
+                delta=delta,
+                score_tolerance=0.0,
+            )

@@ -8,8 +8,14 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 import numpy as np
+import torch
+from torch.nn import functional as F
 
 from sfora.pass209_m4 import canonical_json_bytes
+from sfora.siglip_proxy_control import (
+    PooledProxyAnchorModel,
+    recomputed_proxy_anchor_backward,
+)
 
 _LABELS = tuple(range(49))
 _PRIMARY_CLASS_DOMAIN = "rsta-siglip-a-v1|class|"
@@ -198,6 +204,16 @@ class RstaAggregate:
     receiver_count: int
     config: RstaStageAConfig
     receiver_evidence: tuple[RstaReceiverEvidence, ...]
+
+
+@dataclass(frozen=True)
+class ContextualDirectionEvidence:
+    """Exact contextual cotangents and selected parameter-space descent direction."""
+
+    dbar: torch.Tensor
+    parameter_names: tuple[str, ...]
+    parameter_direction: tuple[torch.Tensor, ...]
+    maximum_score_disagreement: float
 
 
 @dataclass(frozen=True)
@@ -639,3 +655,64 @@ def rsta_stage_a_result_bytes(result: RstaAggregate) -> bytes:
         ],
     }
     return canonical_json_bytes(payload)
+
+
+def contextual_rsta_direction(
+    model: PooledProxyAnchorModel,
+    inputs: torch.Tensor,
+    labels: torch.Tensor,
+    *,
+    microbatch_size: int,
+    alpha: float,
+    delta: float,
+    score_tolerance: float,
+) -> ContextualDirectionEvidence:
+    """Replay Proxy Anchor and return exact output and parameter descent directions."""
+
+    if type(alpha) is not float or alpha != 32.0 or type(delta) is not float or delta != 0.1:
+        raise ValueError("RSTA requires the frozen Proxy Anchor operator")
+    if type(model) is not PooledProxyAnchorModel:
+        raise ValueError("RSTA direction requires the registered pooled model")
+    selected = tuple(
+        sorted(
+            (
+                (name, parameter)
+                for name, parameter in model.named_parameters()
+                if name.startswith("tower.") or name.startswith("projection.")
+            ),
+            key=lambda item: item[0],
+        )
+    )
+    if not selected or any(not parameter.requires_grad for _, parameter in selected):
+        raise ValueError("RSTA selected parameter authority differs")
+    if any(parameter.grad is not None for parameter in model.parameters()):
+        raise ValueError("RSTA direction requires cleared gradients")
+
+    try:
+        replay = recomputed_proxy_anchor_backward(
+            model,
+            inputs,
+            labels,
+            microbatch_size=microbatch_size,
+            alpha=alpha,
+            delta=delta,
+            score_tolerance=score_tolerance,
+        )
+        normalized_proxies = F.normalize(model.proxies.detach().float(), dim=1)
+        dbar = -(replay.score_gradients @ normalized_proxies)
+        if not bool(torch.isfinite(dbar).all()):
+            raise ValueError("RSTA contextual cotangent must be finite")
+        direction: list[torch.Tensor] = []
+        for _, parameter in selected:
+            if parameter.grad is None or not bool(torch.isfinite(parameter.grad).all()):
+                raise ValueError("RSTA selected parameter gradient is missing or nonfinite")
+            direction.append(-parameter.grad.detach().clone())
+        return ContextualDirectionEvidence(
+            dbar=dbar.detach().clone(),
+            parameter_names=tuple(name for name, _ in selected),
+            parameter_direction=tuple(direction),
+            maximum_score_disagreement=replay.maximum_score_disagreement,
+        )
+    finally:
+        for parameter in model.parameters():
+            parameter.grad = None
