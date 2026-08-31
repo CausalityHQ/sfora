@@ -39,6 +39,8 @@ def _argv(tmp_path: Path, *, cell: str = "dinov2-large") -> list[str]:
         str(tmp_path / "descriptors.bin"),
         "--query-output",
         str(tmp_path / "queries.json"),
+        "--checkpoint-dir",
+        str(tmp_path / "checkpoint"),
         "--source-revision",
         "1" * 40,
         "--source-tree-digest",
@@ -47,6 +49,42 @@ def _argv(tmp_path: Path, *, cell: str = "dinov2-large") -> list[str]:
         str(tmp_path / "uv.lock"),
         "--execute",
     ]
+
+
+def test_encoding_checkpoint_is_authenticated_and_resumable(tmp_path: Path) -> None:
+    spec = replace(
+        REGISTERED_M4_CELLS["dinov2-large"],
+        expected_rows=4,
+        descriptor_dimensions=2,
+        batch_size=2,
+    )
+    prefix = torch.tensor([[1.0, 0.0], [0.0, 1.0]], dtype=torch.float32)
+    checkpoint_dir = tmp_path / "checkpoint"
+    _MODULE._publish_encoding_checkpoint(
+        checkpoint_dir,
+        spec=spec,
+        source_revision="1" * 40,
+        source_tree_digest="2" * 64,
+        dataset_examples_ordered_sha256="3" * 64,
+        descriptors=prefix,
+    )
+
+    loaded = _MODULE._load_encoding_checkpoint(
+        checkpoint_dir,
+        spec=spec,
+        source_revision="1" * 40,
+        source_tree_digest="2" * 64,
+        dataset_examples_ordered_sha256="3" * 64,
+    )
+    torch.testing.assert_close(loaded, prefix, rtol=0.0, atol=0.0)
+    with pytest.raises(ValueError, match="source"):
+        _MODULE._load_encoding_checkpoint(
+            checkpoint_dir,
+            spec=spec,
+            source_revision="4" * 40,
+            source_tree_digest="2" * 64,
+            dataset_examples_ordered_sha256="3" * 64,
+        )
 
 
 def test_registered_m4_cells_are_exact_original_fp32_ladder() -> None:
@@ -61,6 +99,7 @@ def test_registered_m4_cells_are_exact_original_fp32_ladder() -> None:
         1242,
     )
     assert tuple(cell.batch_size for cell in REGISTERED_M4_CELLS.values()) == (32, 8, 8)
+    assert {cell.expected_rows for cell in REGISTERED_M4_CELLS.values()} == {1345}
     assert REGISTERED_M4_CELLS["siglip-so400m"].legacy_descriptor_sha256 == (
         "4031dc2da90588dcc39005eab92c6c519f3058c581222421ca917501dd3df071"
     )
@@ -138,9 +177,7 @@ def test_gpu_environment_binds_nvidia_smi_to_torch_visible_uuid(
 
     def run_identity(command: list[str], **_: object) -> SimpleNamespace:
         calls.append(command)
-        return SimpleNamespace(
-            stdout="GPU-12345678-1234-1234-1234-123456789abc, 999.1\n"
-        )
+        return SimpleNamespace(stdout="GPU-12345678-1234-1234-1234-123456789abc, 999.1\n")
 
     monkeypatch.setattr(_MODULE.subprocess, "run", run_identity)
     environment = _MODULE._gpu_environment(torch.device("cuda"))
@@ -233,7 +270,9 @@ def test_fake_cell_run_publishes_three_cross_bound_outputs(
     spec = replace(
         REGISTERED_M4_CELLS["dinov2-large"],
         descriptor_dimensions=2,
+        expected_rows=4,
         expected_correct=1,
+        batch_size=2,
     )
     prerequisite = _v1_receipt()
     prerequisite["dataset_examples_sha256"] = examples_digest
@@ -283,7 +322,6 @@ def test_fake_cell_run_publishes_three_cross_bound_outputs(
         return examples
 
     monkeypatch.setitem(_MODULE.REGISTERED_M4_CELLS, "dinov2-large", spec)
-    monkeypatch.setattr(_MODULE, "_EXPECTED_ROWS", 4)
     monkeypatch.setattr(_MODULE, "_EXAMPLES_SHA256", examples_digest)
     monkeypatch.setattr(
         _MODULE,
@@ -296,13 +334,46 @@ def test_fake_cell_run_publishes_three_cross_bound_outputs(
     monkeypatch.setattr(_MODULE, "configure_reference_scorer", lambda _: environment)
     monkeypatch.setattr(_MODULE.torch.cuda, "is_available", lambda: True)
     monkeypatch.setattr(_MODULE, "_gpu_environment", lambda _: {"schema": "fixture-gpu"})
-    monkeypatch.setattr(_MODULE, "_encode", lambda *_args, **_kwargs: (descriptors, (224, 224)))
+    checkpoint_dir = tmp_path / "checkpoint"
+    ordered_digest = _MODULE._ordered_examples_sha256(examples)
+    _MODULE._publish_encoding_checkpoint(
+        checkpoint_dir,
+        spec=spec,
+        source_revision="1" * 40,
+        source_tree_digest="2" * 64,
+        dataset_examples_ordered_sha256=ordered_digest,
+        descriptors=descriptors[:2],
+    )
+    encode_starts: list[int] = []
+
+    def encode_fixture(
+        *_args: object,
+        existing_descriptors: torch.Tensor,
+        checkpoint_callback: object,
+        **_kwargs: object,
+    ) -> tuple[torch.Tensor, tuple[int, int]]:
+        encode_starts.append(int(existing_descriptors.shape[0]))
+        assert callable(checkpoint_callback)
+        checkpoint_sha256 = checkpoint_callback(descriptors[:2])
+        assert isinstance(checkpoint_sha256, str) and len(checkpoint_sha256) == 64
+        return descriptors, (224, 224)
+
+    monkeypatch.setattr(_MODULE, "_encode", encode_fixture)
     historical = score_frozen_substrate_evidence(
         descriptors,
         torch.tensor([82, 82, 83, 83], dtype=torch.int64),
         query_block=32,
     )
+    cuda_queries = _MODULE.score_descriptor_plane(
+        descriptors,
+        tuple(
+            _MODULE.M4Example(index, str(row.example_id), int(row.label))
+            for index, row in enumerate(examples)
+        ),
+        block_size=32,
+    )
     monkeypatch.setattr(_MODULE, "_historical_cuda_evidence", lambda *_: historical)
+    monkeypatch.setattr(_MODULE, "_historical_cuda_queries", lambda *_: cuda_queries)
 
     args = _MODULE.parse_args(_argv(tmp_path))
     result = _MODULE._run(args)
@@ -319,6 +390,8 @@ def test_fake_cell_run_publishes_three_cross_bound_outputs(
     assert receipt["query_evidence_sha256"] == hashlib.sha256(query_payload).hexdigest()
     assert receipt["descriptor_file_sha256"] == hashlib.sha256(descriptor_payload).hexdigest()
     assert header.rows == 4
+    assert encode_starts == [2]
+    assert not checkpoint_dir.exists()
     assert dataset_calls == [{"dataset_name": "cars", "split": "train"}]
     torch.testing.assert_close(decoded, descriptors, rtol=0.0, atol=0.0)
     assert not tuple(tmp_path.glob(".*.partial"))
@@ -326,11 +399,54 @@ def test_fake_cell_run_publishes_three_cross_bound_outputs(
     with pytest.raises(FileExistsError, match="overwrite"):
         _MODULE._run(args)
 
+    inconsistent_cuda = (
+        replace(cuda_queries[0], correct=not cuda_queries[0].correct),
+        *cuda_queries[1:],
+    )
+    monkeypatch.setattr(_MODULE, "_historical_cuda_queries", lambda *_: inconsistent_cuda)
+    inconsistent_args = _MODULE.parse_args(_argv(tmp_path))
+    inconsistent_args.receipt_output = tmp_path / "inconsistent-receipt.json"
+    inconsistent_args.descriptor_output = tmp_path / "inconsistent-descriptors.bin"
+    inconsistent_args.query_output = tmp_path / "inconsistent-queries.json"
+    with pytest.raises(RuntimeError, match="CUDA query evidence"):
+        _MODULE._run(inconsistent_args)
+    assert not inconsistent_args.receipt_output.exists()
+    monkeypatch.setattr(_MODULE, "_historical_cuda_queries", lambda *_: cuda_queries)
+
+    correct_index = next(index for index, row in enumerate(cuda_queries) if row.correct)
+    different_index = next(
+        index
+        for index, row in enumerate(cuda_queries)
+        if row.query_label != cuda_queries[correct_index].query_label
+    )
+    mismatch_row = replace(
+        cuda_queries[correct_index],
+        nearest_position=different_index,
+        nearest_example_id=cuda_queries[different_index].query_example_id,
+        nearest_label=cuda_queries[different_index].query_label,
+        correct=False,
+    )
+    mismatch_cuda = list(cuda_queries)
+    mismatch_cuda[correct_index] = mismatch_row
+    mismatch_cuda_tuple = tuple(mismatch_cuda)
+    error_type = type(historical.errors[0])
+    mismatch_errors = tuple(
+        error_type(
+            query_position=row.query_position,
+            nearest_position=row.nearest_position,
+            query_label=row.query_label,
+            nearest_label=row.nearest_label,
+        )
+        for row in mismatch_cuda_tuple
+        if not row.correct
+    )
     mismatch = replace(
         historical,
         metrics=replace(historical.metrics, correct=0, recall_at_1=0.0),
+        errors=mismatch_errors,
     )
     monkeypatch.setattr(_MODULE, "_historical_cuda_evidence", lambda *_: mismatch)
+    monkeypatch.setattr(_MODULE, "_historical_cuda_queries", lambda *_: mismatch_cuda_tuple)
     mismatch_args = _MODULE.parse_args(_argv(tmp_path))
     mismatch_args.receipt_output = tmp_path / "mismatch-receipt.json"
     mismatch_args.descriptor_output = tmp_path / "mismatch-descriptors.bin"

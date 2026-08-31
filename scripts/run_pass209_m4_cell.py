@@ -10,7 +10,7 @@ import os
 import re
 import subprocess
 import sys
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import asdict
 from pathlib import Path
 
@@ -28,11 +28,14 @@ from sfora.pass209_m4 import (
     M4CellSpec,
     M4DescriptorHeader,
     M4Example,
+    QueryEvidence,
     canonical_json_bytes,
     configure_reference_scorer,
+    decode_descriptor_file,
     encode_descriptor_file,
     publish_new_outputs,
     score_descriptor_plane,
+    score_descriptor_plane_cuda,
 )
 from sfora.substrate_screen import (
     SUBSTRATE_F0_CLASSES,
@@ -44,7 +47,6 @@ from sfora.substrate_screen import (
 _DATASET_REVISION = "9abf6cf7d6dfa7b95152a0d6e791ea9435b47a40"
 _EXAMPLES_SHA256 = "83a7800ee948a816e2fb9a2c9163027d9e90f167abc90052bf220619fa32240f"
 _ERROR_MANIFEST_SHA256 = "64d491607d4dac144b31edac3a182130e6f94f994a272f612c195a7a72d55611"
-_EXPECTED_ROWS = 1345
 _QUERY_BLOCK = 32
 _V1_KEYS = frozenset(
     {
@@ -103,6 +105,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--receipt-output", type=Path, required=True)
     parser.add_argument("--descriptor-output", type=Path, required=True)
     parser.add_argument("--query-output", type=Path, required=True)
+    parser.add_argument("--checkpoint-dir", type=Path, required=True)
     parser.add_argument("--source-revision", type=_revision, required=True)
     parser.add_argument("--source-tree-digest", type=_sha256, required=True)
     parser.add_argument("--uv-lock", type=Path, required=True)
@@ -122,14 +125,12 @@ def _concrete_equal(actual: object, expected: object) -> bool:
     if isinstance(expected, dict):
         assert isinstance(actual, dict)
         return set(actual) == set(expected) and all(
-            _concrete_equal(actual[key], value)
-            for key, value in expected.items()
+            _concrete_equal(actual[key], value) for key, value in expected.items()
         )
     if isinstance(expected, list):
         assert isinstance(actual, list)
         return len(actual) == len(expected) and all(
-            _concrete_equal(left, right)
-            for left, right in zip(actual, expected, strict=True)
+            _concrete_equal(left, right) for left, right in zip(actual, expected, strict=True)
         )
     return actual == expected
 
@@ -181,14 +182,13 @@ def load_prerequisite(path: Path, spec: M4CellSpec) -> dict[str, object]:
         if not _concrete_equal(value.get(key), expected_value):
             raise ValueError(f"prerequisite receipt {key} differs")
     source_revision = value.get("source_revision")
-    if type(source_revision) is not str or re.fullmatch(
-        r"[0-9a-f]{40}", source_revision
-    ) is None:
+    if type(source_revision) is not str or re.fullmatch(r"[0-9a-f]{40}", source_revision) is None:
         raise ValueError("prerequisite receipt source revision differs")
     source_tree_digest = value.get("source_tree_digest")
-    if type(source_tree_digest) is not str or re.fullmatch(
-        r"[0-9a-f]{64}", source_tree_digest
-    ) is None:
+    if (
+        type(source_tree_digest) is not str
+        or re.fullmatch(r"[0-9a-f]{64}", source_tree_digest) is None
+    ):
         raise ValueError("prerequisite receipt source tree differs")
     if "cell" in value and value["cell"] != spec.cell:
         raise ValueError("prerequisite receipt cell differs")
@@ -216,6 +216,125 @@ def _require_new_outputs(paths: tuple[Path, ...]) -> None:
         partial = path.with_name(f".{path.name}.partial")
         if partial.exists():
             raise FileExistsError(f"refusing pre-existing partial {partial}")
+
+
+def _checkpoint_header(
+    *,
+    spec: M4CellSpec,
+    source_revision: str,
+    source_tree_digest: str,
+    dataset_examples_ordered_sha256: str,
+    descriptors: torch.Tensor,
+) -> M4DescriptorHeader:
+    raw = descriptors.numpy().astype("<f4", copy=False).tobytes(order="C")
+    return M4DescriptorHeader(
+        schema="sfora-pass209-m4-descriptor-v1",
+        source_revision=source_revision,
+        source_tree_digest=source_tree_digest,
+        dataset="cars",
+        dataset_revision=_DATASET_REVISION,
+        dataset_examples_sha256=_EXAMPLES_SHA256,
+        dataset_examples_ordered_sha256=dataset_examples_ordered_sha256,
+        split="train",
+        holdout_classes=tuple(range(82, 98)),
+        compute_dtype="float32",
+        cell=spec.cell,
+        model_name=spec.model_name,
+        model_revision=spec.model_revision,
+        readout=spec.readout,
+        rows=int(descriptors.shape[0]),
+        dimensions=spec.descriptor_dimensions,
+        payload_bytes=len(raw),
+        payload_sha256=hashlib.sha256(raw).hexdigest(),
+    )
+
+
+def _publish_encoding_checkpoint(
+    directory: Path,
+    *,
+    spec: M4CellSpec,
+    source_revision: str,
+    source_tree_digest: str,
+    dataset_examples_ordered_sha256: str,
+    descriptors: torch.Tensor,
+) -> str:
+    values = descriptors.detach().to(device="cpu", dtype=torch.float32).contiguous()
+    rows = int(values.shape[0])
+    if (
+        values.shape != (rows, spec.descriptor_dimensions)
+        or not 0 < rows < spec.expected_rows
+        or rows % spec.batch_size != 0
+    ):
+        raise ValueError("M4 checkpoint descriptor shape differs")
+    header = _checkpoint_header(
+        spec=spec,
+        source_revision=source_revision,
+        source_tree_digest=source_tree_digest,
+        dataset_examples_ordered_sha256=dataset_examples_ordered_sha256,
+        descriptors=values,
+    )
+    payload = encode_descriptor_file(header, values)
+    path = directory / f"checkpoint-{rows:04d}.bin"
+    if path.exists():
+        if path.read_bytes() != payload:
+            raise ValueError("M4 checkpoint bytes differ")
+        return hashlib.sha256(payload).hexdigest()
+    previous = tuple(directory.glob("checkpoint-*.bin")) if directory.is_dir() else ()
+    publish_new_outputs(((path, payload),))
+    for old in previous:
+        if old != path:
+            old.unlink()
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _load_encoding_checkpoint(
+    directory: Path,
+    *,
+    spec: M4CellSpec,
+    source_revision: str,
+    source_tree_digest: str,
+    dataset_examples_ordered_sha256: str,
+) -> torch.Tensor:
+    if not directory.exists():
+        return torch.empty((0, spec.descriptor_dimensions), dtype=torch.float32)
+    if not directory.is_dir():
+        raise ValueError("M4 checkpoint directory differs")
+    paths = tuple(sorted(directory.iterdir()))
+    if not paths:
+        return torch.empty((0, spec.descriptor_dimensions), dtype=torch.float32)
+    candidates: list[tuple[int, torch.Tensor]] = []
+    for path in paths:
+        match = re.fullmatch(r"checkpoint-([0-9]{4})\.bin", path.name)
+        if match is None or not path.is_file():
+            raise ValueError("M4 checkpoint namespace differs")
+        header, descriptors = decode_descriptor_file(path.read_bytes())
+        rows = int(match.group(1))
+        expected = _checkpoint_header(
+            spec=spec,
+            source_revision=source_revision,
+            source_tree_digest=source_tree_digest,
+            dataset_examples_ordered_sha256=dataset_examples_ordered_sha256,
+            descriptors=descriptors,
+        )
+        if (
+            header != expected
+            or rows != header.rows
+            or not 0 < rows < spec.expected_rows
+            or rows % spec.batch_size != 0
+        ):
+            raise ValueError("M4 checkpoint source authority differs")
+        candidates.append((rows, descriptors))
+    return max(candidates, key=lambda item: item[0])[1]
+
+
+def _clear_encoding_checkpoints(directory: Path) -> None:
+    if not directory.exists():
+        return
+    for path in tuple(directory.iterdir()):
+        if re.fullmatch(r"checkpoint-[0-9]{4}\.bin", path.name) is None:
+            raise ValueError("M4 checkpoint namespace differs")
+        path.unlink()
+    directory.rmdir()
 
 
 def _read_error_manifest(path: Path) -> dict[str, object]:
@@ -313,7 +432,14 @@ def _gpu_environment(device: torch.device) -> dict[str, object]:
 
 
 def _encode(
-    examples: Sequence[ImageExample], spec: M4CellSpec, *, device: torch.device
+    examples: Sequence[ImageExample],
+    spec: M4CellSpec,
+    *,
+    device: torch.device,
+    existing_descriptors: torch.Tensor,
+    checkpoint_callback: Callable[[torch.Tensor], str],
+    source_revision: str,
+    source_tree_digest: str,
 ) -> tuple[torch.Tensor, tuple[int, int]]:
     from transformers import AutoImageProcessor, AutoModel
 
@@ -322,19 +448,28 @@ def _encode(
         revision=spec.model_revision,
         local_files_only=True,
     )
-    model = AutoModel.from_pretrained(
-        spec.model_name,
-        revision=spec.model_revision,
-        local_files_only=True,
-        torch_dtype=torch.float32,
-    ).eval().to(device=device, dtype=torch.float32)
-    rows: list[torch.Tensor] = []
+    model = (
+        AutoModel.from_pretrained(
+            spec.model_name,
+            revision=spec.model_revision,
+            local_files_only=True,
+            torch_dtype=torch.float32,
+        )
+        .eval()
+        .to(device=device, dtype=torch.float32)
+    )
+    existing_rows = int(existing_descriptors.shape[0])
+    if existing_descriptors.shape != (existing_rows, spec.descriptor_dimensions) or not (
+        0 <= existing_rows <= len(examples)
+    ):
+        raise RuntimeError("M4 resumed descriptor shape differs")
+    rows: list[torch.Tensor] = [existing_descriptors] if existing_rows else []
     observed_shape: tuple[int, int] | None = None
     torch.use_deterministic_algorithms(True)
     torch.backends.cuda.matmul.allow_tf32 = False
     torch.backends.cudnn.allow_tf32 = False
     with torch.inference_mode():
-        for start in range(0, len(examples), spec.batch_size):
+        for start in range(existing_rows, len(examples), spec.batch_size):
             stop = min(start + spec.batch_size, len(examples))
             images = [_materialize_rgb(row.image) for row in examples[start:stop]]
             pixel_values = processor(images=images, return_tensors="pt")["pixel_values"]
@@ -354,19 +489,25 @@ def _encode(
             else:
                 raise RuntimeError("M4 cell readout is unregistered")
             rows.append(torch.nn.functional.normalize(descriptor.float(), dim=-1).cpu())
-            print(
-                json.dumps(
-                    {
-                        "schema": "sfora-pass209-m4-progress-v1",
-                        "cell": spec.cell,
-                        "rows": stop,
-                    },
-                    sort_keys=True,
-                    separators=(",", ":"),
-                ),
-                file=sys.stderr,
-                flush=True,
-            )
+            if stop < len(examples):
+                checkpoint_sha256 = checkpoint_callback(torch.cat(rows))
+                print(
+                    json.dumps(
+                        {
+                            "schema": "sfora-pass209-m4-progress-v1",
+                            "cell": spec.cell,
+                            "checkpoint_sha256": checkpoint_sha256,
+                            "cuda_peak_reserved_bytes": int(torch.cuda.max_memory_reserved(device)),
+                            "rows": stop,
+                            "source_revision": source_revision,
+                            "source_tree_digest": source_tree_digest,
+                        },
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    ),
+                    file=sys.stderr,
+                    flush=True,
+                )
     del model
     torch.cuda.empty_cache()
     if observed_shape is None:
@@ -381,6 +522,17 @@ def _historical_cuda_evidence(
         descriptors.cuda(),
         labels.cuda(),
         query_block=_QUERY_BLOCK,
+    )
+
+
+def _historical_cuda_queries(
+    descriptors: torch.Tensor,
+    examples: tuple[M4Example, ...],
+) -> tuple[QueryEvidence, ...]:
+    return score_descriptor_plane_cuda(
+        descriptors.cuda(),
+        examples,
+        block_size=_QUERY_BLOCK,
     )
 
 
@@ -399,7 +551,7 @@ def _run(args: argparse.Namespace) -> dict[str, object]:
     if _dataset_examples_sha256(all_examples) != _EXAMPLES_SHA256:
         raise RuntimeError("Cars example-sequence authority differs")
     holdout = [row for row in all_examples if int(row.label) in SUBSTRATE_F0_CLASSES]
-    if len(holdout) != _EXPECTED_ROWS:
+    if len(holdout) != spec.expected_rows:
         raise RuntimeError("M4 holdout cardinality differs")
     labels = torch.tensor([int(row.label) for row in holdout], dtype=torch.int64)
     validate_substrate_holdout(split="train", labels=labels)
@@ -408,22 +560,61 @@ def _run(args: argparse.Namespace) -> dict[str, object]:
         for index, row in enumerate(holdout)
     )
     ordered_examples_sha256 = _ordered_examples_sha256(holdout)
+    existing_descriptors = _load_encoding_checkpoint(
+        args.checkpoint_dir,
+        spec=spec,
+        source_revision=args.source_revision,
+        source_tree_digest=args.source_tree_digest,
+        dataset_examples_ordered_sha256=ordered_examples_sha256,
+    )
+
+    def checkpoint_callback(values: torch.Tensor) -> str:
+        return _publish_encoding_checkpoint(
+            args.checkpoint_dir,
+            spec=spec,
+            source_revision=args.source_revision,
+            source_tree_digest=args.source_tree_digest,
+            dataset_examples_ordered_sha256=ordered_examples_sha256,
+            descriptors=values,
+        )
+
     device = torch.device("cuda")
     cuda_environment = _gpu_environment(device)
-    descriptors, image_shape = _encode(holdout, spec, device=device)
+    descriptors, image_shape = _encode(
+        holdout,
+        spec,
+        device=device,
+        existing_descriptors=existing_descriptors,
+        checkpoint_callback=checkpoint_callback,
+        source_revision=args.source_revision,
+        source_tree_digest=args.source_tree_digest,
+    )
     if image_shape != spec.processor_image_shape:
         raise RuntimeError("M4 processor image-shape authority differs")
-    if tuple(descriptors.shape) != (_EXPECTED_ROWS, spec.descriptor_dimensions):
+    if tuple(descriptors.shape) != (spec.expected_rows, spec.descriptor_dimensions):
         raise RuntimeError("M4 descriptor shape authority differs")
     legacy_digest = _legacy_descriptor_sha256(descriptors)
     legacy_descriptor_passed = (
-        spec.legacy_descriptor_sha256 is None
-        or legacy_digest == spec.legacy_descriptor_sha256
+        spec.legacy_descriptor_sha256 is None or legacy_digest == spec.legacy_descriptor_sha256
     )
     historical = _historical_cuda_evidence(descriptors, labels)
-    historical_error_positions = {
-        row.query_position for row in historical.errors
-    }
+    cuda_queries = _historical_cuda_queries(descriptors, examples)
+    cuda_errors = [
+        {
+            "query_position": row.query_position,
+            "nearest_position": row.nearest_position,
+            "query_label": row.query_label,
+            "nearest_label": row.nearest_label,
+        }
+        for row in cuda_queries
+        if not row.correct
+    ]
+    if (
+        cuda_errors != [asdict(row) for row in historical.errors]
+        or sum(row.correct for row in cuda_queries) != historical.metrics.correct
+    ):
+        raise RuntimeError("historical CUDA query evidence differs from aggregate scorer")
+    historical_error_positions = {row.query_position for row in historical.errors}
     historical_count_passed = historical.metrics.correct == spec.expected_correct
     historical_errors_passed = True
     if spec.cell == "siglip-so400m":
@@ -432,9 +623,7 @@ def _run(args: argparse.Namespace) -> dict[str, object]:
         expected_errors = {row["query_position"] for row in manifest_errors}
         historical_errors_passed = historical_error_positions == expected_errors
     reproduction_passed = (
-        legacy_descriptor_passed
-        and historical_count_passed
-        and historical_errors_passed
+        legacy_descriptor_passed and historical_count_passed and historical_errors_passed
     )
     scorer_environment = configure_reference_scorer(args.uv_lock)
     queries = score_descriptor_plane(descriptors, examples, block_size=_QUERY_BLOCK)
@@ -456,7 +645,7 @@ def _run(args: argparse.Namespace) -> dict[str, object]:
         model_name=spec.model_name,
         model_revision=spec.model_revision,
         readout=spec.readout,
-        rows=_EXPECTED_ROWS,
+        rows=spec.expected_rows,
         dimensions=spec.descriptor_dimensions,
         payload_bytes=len(raw_descriptor),
         payload_sha256=hashlib.sha256(raw_descriptor).hexdigest(),
@@ -471,6 +660,7 @@ def _run(args: argparse.Namespace) -> dict[str, object]:
         "descriptor_file_sha256": hashlib.sha256(descriptor_payload).hexdigest(),
         "query_block": _QUERY_BLOCK,
         "rows": [asdict(row) for row in queries],
+        "historical_cuda_rows": [asdict(row) for row in cuda_queries],
     }
     query_payload = canonical_json_bytes(query_value)
     receipt: dict[str, object] = {
@@ -521,6 +711,7 @@ def _run(args: argparse.Namespace) -> dict[str, object]:
             (args.query_output, query_payload),
         )
     )
+    _clear_encoding_checkpoints(args.checkpoint_dir)
     return {
         "receipt_sha256": hashlib.sha256(receipt_payload).hexdigest(),
         "descriptor_sha256": hashlib.sha256(descriptor_payload).hexdigest(),

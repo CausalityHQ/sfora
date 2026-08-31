@@ -69,9 +69,10 @@ def test_descriptor_codec_has_exact_framing_and_round_trips() -> None:
     header_start = len(DESCRIPTOR_MAGIC) + 8
     header_bytes = encoded[header_start : header_start + header_length]
     assert header_bytes.endswith(b"\n")
-    assert header_bytes == (
-        json.dumps(header.to_dict(), sort_keys=True, separators=(",", ":")) + "\n"
-    ).encode()
+    assert (
+        header_bytes
+        == (json.dumps(header.to_dict(), sort_keys=True, separators=(",", ":")) + "\n").encode()
+    )
     assert encoded[header_start + header_length :] == struct.pack("<4f", 1.0, 0.0, 0.0, -1.0)
 
     decoded_header, decoded = decode_descriptor_file(encoded)
@@ -307,17 +308,14 @@ def test_pair_cluster_bootstrap_is_repeatable_and_keeps_directions_together() ->
     assert first.observed_share == pytest.approx(60 / 103)
     assert first.sample_count == 10_000
     assert first.bootstrap_mean == pytest.approx(0.5744815611034056)
-    assert (first.p2_5, first.p10, first.p97_5) == pytest.approx(
-        (0.5, 0.5, 0.6349206349206349)
-    )
+    assert (first.p2_5, first.p10, first.p97_5) == pytest.approx((0.5, 0.5, 0.6349206349206349))
     assert first.samples_sha256 == (
         "5a969668a5c559a5d97c22ebc93520438ebaf9b035db70ea60245abf5c59161e"
     )
 
     # Reversing query/nearest direction leaves the unordered-pair partition unchanged.
     reversed_rows = tuple(
-        replace(row, query_label=row.nearest_label, nearest_label=row.query_label)
-        for row in rows
+        replace(row, query_label=row.nearest_label, nearest_label=row.query_label) for row in rows
     )
     assert bootstrap_reachable(reversed_rows) == first
 
