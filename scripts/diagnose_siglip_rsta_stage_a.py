@@ -82,6 +82,27 @@ class LoadedStageAAuthority:
     image_paths: tuple[Path, ...]
 
 
+@dataclass(frozen=True)
+class StageATensorCache:
+    """Exactly-once deterministic tensors for every selected scientific role."""
+
+    example_ids: tuple[str, ...]
+    tensors: Mapping[str, object]
+    tensor_sha256: Mapping[str, str]
+
+    def batch(self, example_ids: tuple[str, ...]):
+        import torch
+
+        if (
+            type(example_ids) is not tuple
+            or not example_ids
+            or len(set(example_ids)) != len(example_ids)
+            or any(example_id not in self.tensors for example_id in example_ids)
+        ):
+            raise ValueError("RSTA tensor-cache batch authority differs")
+        return torch.stack([self.tensors[example_id] for example_id in example_ids])
+
+
 class PreScienceInvalid(ValueError):
     """A registered authority failure before any scientific receiver row opens."""
 
@@ -409,6 +430,113 @@ def load_stage_a_authority(arguments: argparse.Namespace) -> LoadedStageAAuthori
     )
 
 
+def stage_a_tensor_example_ids(panel: RstaRolePanel) -> tuple[str, ...]:
+    """Return the exact selected support/graph tensor identities in frozen order."""
+
+    from sfora.siglip_rsta_stage_a import RstaRolePanel
+
+    if type(panel) is not RstaRolePanel:
+        raise ValueError("RSTA tensor roles require one registered panel")
+    ordered: list[str] = []
+    seen: set[str] = set()
+
+    def append(example_id: str) -> None:
+        if example_id not in seen:
+            seen.add(example_id)
+            ordered.append(example_id)
+
+    for support_pair in panel.support_ids_by_label:
+        for example_id in support_pair:
+            append(example_id)
+    for batch in (*panel.primary_batches, *panel.alternate_batches):
+        for row in batch.rows:
+            append(row.example_id)
+    return tuple(ordered)
+
+
+def _scientific_tensor_sha256(tensor: object) -> str:
+    import torch
+
+    if not isinstance(tensor, torch.Tensor):
+        raise ValueError("RSTA transform must return one torch tensor")
+    array = tensor.detach().cpu().contiguous().numpy()
+    digest = hashlib.sha256()
+    digest.update(str(tensor.dtype).encode("ascii") + b"\0")
+    digest.update(str(tuple(int(value) for value in tensor.shape)).encode("ascii") + b"\0")
+    digest.update(array.tobytes(order="C"))
+    return digest.hexdigest()
+
+
+def cache_stage_a_tensors(
+    authority: LoadedStageAAuthority,
+    panel: RstaRolePanel,
+    *,
+    graph_transform: Callable[[object], object],
+    evaluation_transform: Callable[[object], object],
+    materialize: Callable[[Path], object],
+) -> StageATensorCache:
+    """Apply each role transform once under ID-derived isolated RNG states."""
+
+    import numpy as np
+    import torch
+
+    if type(authority) is not LoadedStageAAuthority:
+        raise ValueError("RSTA tensor cache authority differs")
+    paths = dict(zip(authority.example_ids, authority.image_paths, strict=True))
+    required_ids = stage_a_tensor_example_ids(panel)
+    if any(example_id not in paths for example_id in required_ids):
+        raise ValueError("RSTA tensor role is absent from image authority")
+    support_ids = {example_id for pair in panel.support_ids_by_label for example_id in pair}
+    tensors: dict[str, torch.Tensor] = {}
+    digests: dict[str, str] = {}
+    for example_id in required_ids:
+        source = materialize(paths[example_id])
+        python_state = random.getstate()
+        numpy_state = np.random.get_state()
+        torch_state = torch.random.get_rng_state().clone()
+        try:
+            random.seed(
+                int.from_bytes(
+                    hashlib.sha256(b"augment-python\0" + example_id.encode()).digest()[:8],
+                    "big",
+                )
+            )
+            np.random.seed(
+                int.from_bytes(
+                    hashlib.sha256(b"augment-numpy\0" + example_id.encode()).digest()[:8],
+                    "big",
+                )
+                % (2**32)
+            )
+            torch.manual_seed(
+                int.from_bytes(
+                    hashlib.sha256(b"augment-torch\0" + example_id.encode()).digest()[:8],
+                    "big",
+                )
+            )
+            transform = evaluation_transform if example_id in support_ids else graph_transform
+            value = transform(source)
+        finally:
+            random.setstate(python_state)
+            np.random.set_state(numpy_state)
+            torch.random.set_rng_state(torch_state)
+        if (
+            not isinstance(value, torch.Tensor)
+            or not value.is_floating_point()
+            or value.numel() == 0
+            or not bool(torch.isfinite(value).all())
+        ):
+            raise ValueError("RSTA transform returned an invalid tensor")
+        cached = value.detach().cpu().contiguous().clone()
+        tensors[example_id] = cached
+        digests[example_id] = _scientific_tensor_sha256(cached)
+    return StageATensorCache(
+        example_ids=required_ids,
+        tensors=MappingProxyType(tensors),
+        tensor_sha256=MappingProxyType(digests),
+    )
+
+
 def execute_stage_a_scientific_loop(
     authority: LoadedStageAAuthority,
     *,
@@ -470,9 +598,14 @@ def execute_stage_a_scientific_loop(
         )
     if not backend_valid:
         raise PreScienceInvalid("RSTA sealed backend authority differs")
+    try:
+        panel = select_rsta_roles(tuple(zip(authority.example_ids, authority.labels, strict=True)))
+    except ValueError as error:
+        raise PreScienceInvalid("RSTA role panel authority differs") from error
+    required_tensor_ids = stage_a_tensor_example_ids(panel)
     if (
         not isinstance(tensor_sha256_by_id, Mapping)
-        or set(tensor_sha256_by_id) != set(authority.example_ids)
+        or set(tensor_sha256_by_id) != set(required_tensor_ids)
         or any(
             type(example_id) is not str
             or type(digest) is not str
@@ -482,10 +615,6 @@ def execute_stage_a_scientific_loop(
         )
     ):
         raise PreScienceInvalid("RSTA tensor digest authority differs")
-    try:
-        panel = select_rsta_roles(tuple(zip(authority.example_ids, authority.labels, strict=True)))
-    except ValueError as error:
-        raise PreScienceInvalid("RSTA role panel authority differs") from error
     image_paths = MappingProxyType(
         dict(zip(authority.example_ids, authority.image_paths, strict=True))
     )

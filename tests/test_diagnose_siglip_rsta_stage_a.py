@@ -493,9 +493,12 @@ def _forward_backend() -> RstaJvpBackendEvidence:
 
 
 def _tensor_digests(authority) -> dict[str, str]:
+    from sfora.siglip_rsta_stage_a import select_rsta_roles
+
+    panel = select_rsta_roles(tuple(zip(authority.example_ids, authority.labels, strict=True)))
     return {
         example_id: hashlib.sha256(example_id.encode()).hexdigest()
-        for example_id in authority.example_ids
+        for example_id in _MODULE.stage_a_tensor_example_ids(panel)
     }
 
 
@@ -656,3 +659,63 @@ def test_pre_science_invalid_result_is_canonical_and_has_no_scientific_evidence(
 
     with pytest.raises(ValueError, match="INVALID clause"):
         _MODULE.pre_science_invalid_result_bytes("adaptive-retry")
+
+
+def test_tensor_cache_materializes_each_selected_role_once_and_preserves_rng(
+    tmp_path: Path,
+) -> None:
+    authority = _scientific_authority(tmp_path)
+    from sfora.siglip_rsta_stage_a import select_rsta_roles
+
+    panel = select_rsta_roles(tuple(zip(authority.example_ids, authority.labels, strict=True)))
+    support_ids = {example_id for pair in panel.support_ids_by_label for example_id in pair}
+    calls: list[tuple[str, str]] = []
+
+    def materialize(path: Path) -> str:
+        return path.name
+
+    def transform(role: str):
+        def apply(source: str) -> torch.Tensor:
+            calls.append((role, source))
+            return torch.tensor(
+                [random.random(), float(np.random.random()), float(torch.rand(()))],
+                dtype=torch.float32,
+            )
+
+        return apply
+
+    random.seed(501)
+    np.random.seed(502)
+    torch.manual_seed(503)
+    python_state = random.getstate()
+    numpy_state = np.random.get_state()
+    torch_state = torch.random.get_rng_state().clone()
+
+    cache = _MODULE.cache_stage_a_tensors(
+        authority,
+        panel,
+        graph_transform=transform("graph"),
+        evaluation_transform=transform("evaluation"),
+        materialize=materialize,
+    )
+
+    required_ids = _MODULE.stage_a_tensor_example_ids(panel)
+    assert cache.example_ids == required_ids
+    assert set(cache.tensors) == set(required_ids)
+    assert set(cache.tensor_sha256) == set(required_ids)
+    assert len(calls) == len(required_ids)
+    assert len({source for _role, source in calls}) == len(calls)
+    assert all(
+        role == ("evaluation" if example_id in support_ids else "graph")
+        for (role, _source), example_id in zip(calls, required_ids, strict=True)
+    )
+    assert random.getstate() == python_state
+    observed_numpy = np.random.get_state()
+    assert observed_numpy[0] == numpy_state[0]
+    np.testing.assert_array_equal(observed_numpy[1], numpy_state[1])
+    assert observed_numpy[2:] == numpy_state[2:]
+    assert torch.equal(torch.random.get_rng_state(), torch_state)
+
+    first_receiver = panel.receivers[0].example_id
+    assert sum(source == _fixture_image_basename(first_receiver) for _role, source in calls) == 1
+    assert torch.equal(cache.batch((first_receiver,))[0], cache.tensors[first_receiver])
