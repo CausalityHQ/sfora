@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import hashlib
+import json
+
 import numpy as np
 import pytest
 
@@ -7,6 +10,7 @@ from sfora.asgcv import (
     AsgcvAuthority,
     AsgcvSrhtAuthority,
     asgcv_stratum_gradient,
+    canonical_e0_result_bytes,
     evaluate_e0,
     exhaustive_selection_mean,
     low_rank_gradient_field,
@@ -16,6 +20,7 @@ from sfora.asgcv import (
     selection_variance_ratio,
     srht_gradient_sketch,
     srht_signs_and_rows,
+    validate_e0_result_bytes,
 )
 
 
@@ -398,3 +403,85 @@ def test_srht_rejects_authority_shape_dtype_and_nonfinite_drift() -> None:
     nonfinite[0, 0] = np.nan
     with pytest.raises(ValueError):
         srht_gradient_sketch(nonfinite, authority)
+
+
+def _canonical_json_bytes(value: dict[str, object]) -> bytes:
+    return (
+        json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\n"
+    ).encode()
+
+
+def _e0_result_bytes() -> bytes:
+    exact, _ = _fields()
+    exact_batch = np.stack((exact, exact * 1.25))
+    norms = np.asarray([0.5, 0.75, 1.25, 1.5], dtype=np.float64)
+    return canonical_e0_result_bytes(
+        source_commit="1" * 40,
+        dataset_manifest_sha256="2" * 64,
+        predictor_state_sha256="3" * 64,
+        selection_schedule_sha256="4" * 64,
+        exact=exact_batch,
+        predicted=exact_batch.copy(),
+        projection=np.eye(4, dtype=np.float64),
+        exact_preclip_norms=norms,
+        asgcv_preclip_norms=norms.copy(),
+        exact_semantic_wall_ns=1_000,
+        asgcv_semantic_wall_ns=350,
+    )
+
+
+def test_e0_result_is_canonical_claim_ineligible_and_binds_every_array() -> None:
+    raw = _e0_result_bytes()
+    assert raw.endswith(b"\n") and not raw.endswith(b"\n\n")
+    result = validate_e0_result_bytes(raw)
+
+    assert result["schema"] == "sfora-asgcv-e0-result-v1"
+    assert result["claim_eligible"] is False
+    assert result["source_commit"] == "1" * 40
+    assert result["semantic_wall_ns"] == {"asgcv": 350, "exact": 1_000}
+    assert result["metrics"]["semantic_wall_ratio_ppm"] == 350_000
+    assert result["metrics"]["passed"] is True
+    assert set(result["arrays"]) == {
+        "asgcv_preclip_norms",
+        "exact_gradients",
+        "exact_preclip_norms",
+        "predicted_gradients",
+        "projection",
+    }
+    assert result["arrays"]["exact_gradients"]["shape"] == [2, 8, 3, 4]
+    assert result["arrays"]["exact_gradients"]["dtype"] == "float64-le"
+    assert len(result["arrays"]["exact_gradients"]["sha256"]) == 64
+
+
+def test_e0_result_rejects_semantic_rehash_and_byte_authority_drift() -> None:
+    raw = _e0_result_bytes()
+    baseline = json.loads(raw)
+
+    mutations: list[dict[str, object]] = []
+    claim = json.loads(raw)
+    claim["claim_eligible"] = True
+    mutations.append(claim)
+    time_drift = json.loads(raw)
+    time_drift["semantic_wall_ns"]["asgcv"] = 351
+    mutations.append(time_drift)
+    metric_drift = json.loads(raw)
+    metric_drift["metrics"]["semantic_wall_ratio_ppm"] = 349_999
+    mutations.append(metric_drift)
+    shape_drift = json.loads(raw)
+    shape_drift["arrays"]["exact_gradients"]["shape"][0] = True
+    mutations.append(shape_drift)
+
+    for mutation in mutations:
+        unsigned = dict(mutation)
+        unsigned.pop("result_sha256", None)
+        mutation["result_sha256"] = hashlib.sha256(_canonical_json_bytes(unsigned)).hexdigest()
+        with pytest.raises(ValueError):
+            validate_e0_result_bytes(_canonical_json_bytes(mutation))
+
+    noncanonical = json.dumps(baseline, sort_keys=False).encode() + b"\n"
+    with pytest.raises(ValueError):
+        validate_e0_result_bytes(noncanonical)
+
+    baseline["result_sha256"] = "0" * 64
+    with pytest.raises(ValueError):
+        validate_e0_result_bytes(_canonical_json_bytes(baseline))

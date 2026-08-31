@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from dataclasses import dataclass
 
 import numpy as np
@@ -15,6 +16,8 @@ ASGCV_STRATUM_SIZE = 8
 ASGCV_PREDICTOR_RANK = 16
 ASGCV_SELECTION_POLICY = "one-uniform-index-per-eight-pair-stratum-v1"
 ASGCV_E0_SCHEMA = "sfora-asgcv-e0-metrics-v1"
+ASGCV_E0_RESULT_SCHEMA = "sfora-asgcv-e0-result-v1"
+ASGCV_E0_ARRAY_DOMAIN = b"sfora-asgcv-e0-array-v1\0"
 ASGCV_DENSE_COSINE_GATE_PPM = 850_000
 ASGCV_PROJECTED_COSINE_GATE_PPM = 900_000
 ASGCV_PATCH_SPEARMAN_GATE_PPM = 800_000
@@ -47,6 +50,22 @@ def _sha256_bytes(value: object, *, name: str) -> bytes:
     ):
         raise ValueError(f"ASG-CV {name} differs")
     return bytes.fromhex(value)
+
+
+def _source_commit(value: object) -> str:
+    if (
+        type(value) is not str
+        or len(value) != 40
+        or any(character not in "0123456789abcdef" for character in value)
+    ):
+        raise ValueError("ASG-CV source commit differs")
+    return value
+
+
+def _canonical_json_bytes(value: dict[str, object]) -> bytes:
+    return (
+        json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\n"
+    ).encode("utf-8")
 
 
 def _selection_seed_bytes(value: object) -> bytes:
@@ -765,6 +784,209 @@ def evaluate_e0(
         and metrics_without_pass["semantic_wall_ratio_ppm"] <= ASGCV_SEMANTIC_WALL_RATIO_GATE_PPM
     )
     return AsgcvE0Metrics(**metrics_without_pass, passed=passed).validated()
+
+
+def _array_authority(value: object, *, role: str, dimensions: int) -> dict[str, object]:
+    array = _require_float64_array(value, name=f"E0 {role}", dimensions=dimensions)
+    role_bytes = role.encode("ascii")
+    shape = tuple(int(size) for size in array.shape)
+    frame = bytearray(ASGCV_E0_ARRAY_DOMAIN)
+    frame.extend(len(role_bytes).to_bytes(8, "big"))
+    frame.extend(role_bytes)
+    frame.extend(len(shape).to_bytes(8, "big"))
+    for size in shape:
+        frame.extend(size.to_bytes(8, "big"))
+    frame.extend(np.ascontiguousarray(array, dtype="<f8").tobytes(order="C"))
+    return {
+        "dtype": "float64-le",
+        "shape": list(shape),
+        "sha256": hashlib.sha256(frame).hexdigest(),
+    }
+
+
+def canonical_e0_result_bytes(
+    *,
+    source_commit: object,
+    dataset_manifest_sha256: object,
+    predictor_state_sha256: object,
+    selection_schedule_sha256: object,
+    exact: object,
+    predicted: object,
+    projection: object,
+    exact_preclip_norms: object,
+    asgcv_preclip_norms: object,
+    exact_semantic_wall_ns: int,
+    asgcv_semantic_wall_ns: int,
+) -> bytes:
+    """Build one canonical claim-ineligible ASG-CV E0 result."""
+
+    commit = _source_commit(source_commit)
+    dataset_digest = _sha256_bytes(
+        dataset_manifest_sha256,
+        name="dataset manifest digest",
+    ).hex()
+    predictor_digest = _sha256_bytes(
+        predictor_state_sha256,
+        name="predictor state digest",
+    ).hex()
+    selection_digest = _sha256_bytes(
+        selection_schedule_sha256,
+        name="selection schedule digest",
+    ).hex()
+    metrics = evaluate_e0(
+        exact,
+        predicted,
+        projection,
+        exact_preclip_norms=exact_preclip_norms,
+        asgcv_preclip_norms=asgcv_preclip_norms,
+        exact_semantic_wall_ns=exact_semantic_wall_ns,
+        asgcv_semantic_wall_ns=asgcv_semantic_wall_ns,
+    )
+    payload: dict[str, object] = {
+        "schema": ASGCV_E0_RESULT_SCHEMA,
+        "claim_eligible": False,
+        "source_commit": commit,
+        "dataset_manifest_sha256": dataset_digest,
+        "predictor_state_sha256": predictor_digest,
+        "selection_schedule_sha256": selection_digest,
+        "arrays": {
+            "exact_gradients": _array_authority(
+                exact,
+                role="exact-gradients",
+                dimensions=4,
+            ),
+            "predicted_gradients": _array_authority(
+                predicted,
+                role="predicted-gradients",
+                dimensions=4,
+            ),
+            "projection": _array_authority(
+                projection,
+                role="projection",
+                dimensions=2,
+            ),
+            "exact_preclip_norms": _array_authority(
+                exact_preclip_norms,
+                role="exact-preclip-norms",
+                dimensions=1,
+            ),
+            "asgcv_preclip_norms": _array_authority(
+                asgcv_preclip_norms,
+                role="asgcv-preclip-norms",
+                dimensions=1,
+            ),
+        },
+        "semantic_wall_ns": {
+            "exact": exact_semantic_wall_ns,
+            "asgcv": asgcv_semantic_wall_ns,
+        },
+        "metrics": metrics.to_mapping(),
+    }
+    payload["result_sha256"] = hashlib.sha256(_canonical_json_bytes(payload)).hexdigest()
+    return _canonical_json_bytes(payload)
+
+
+def _validate_array_authority(value: object, *, dimensions: int) -> tuple[int, ...]:
+    if type(value) is not dict or set(value) != {"dtype", "shape", "sha256"}:
+        raise ValueError("ASG-CV E0 array authority schema differs")
+    if type(value["dtype"]) is not str or value["dtype"] != "float64-le":
+        raise ValueError("ASG-CV E0 array dtype differs")
+    shape = value["shape"]
+    if (
+        type(shape) is not list
+        or len(shape) != dimensions
+        or any(type(size) is not int or size <= 0 for size in shape)
+    ):
+        raise ValueError("ASG-CV E0 array shape differs")
+    _sha256_bytes(value["sha256"], name="E0 array digest")
+    return tuple(shape)
+
+
+def validate_e0_result_bytes(raw: bytes) -> dict[str, object]:
+    """Validate canonical E0 receipt authority and all derivable relations."""
+
+    try:
+        value = json.loads(raw)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError("ASG-CV E0 result is not canonical JSON") from error
+    expected_keys = {
+        "schema",
+        "claim_eligible",
+        "source_commit",
+        "dataset_manifest_sha256",
+        "predictor_state_sha256",
+        "selection_schedule_sha256",
+        "arrays",
+        "semantic_wall_ns",
+        "metrics",
+        "result_sha256",
+    }
+    if (
+        type(value) is not dict
+        or set(value) != expected_keys
+        or _canonical_json_bytes(value) != raw
+    ):
+        raise ValueError("ASG-CV E0 result is not canonical JSON")
+    if (
+        type(value["schema"]) is not str
+        or value["schema"] != ASGCV_E0_RESULT_SCHEMA
+        or value["claim_eligible"] is not False
+    ):
+        raise ValueError("ASG-CV E0 result authority differs")
+    _source_commit(value["source_commit"])
+    for name in (
+        "dataset_manifest_sha256",
+        "predictor_state_sha256",
+        "selection_schedule_sha256",
+    ):
+        _sha256_bytes(value[name], name=f"E0 {name}")
+
+    arrays = value["arrays"]
+    array_roles = {
+        "exact_gradients": 4,
+        "predicted_gradients": 4,
+        "projection": 2,
+        "exact_preclip_norms": 1,
+        "asgcv_preclip_norms": 1,
+    }
+    if type(arrays) is not dict or set(arrays) != set(array_roles):
+        raise ValueError("ASG-CV E0 array authority schema differs")
+    shapes = {
+        role: _validate_array_authority(arrays[role], dimensions=dimensions)
+        for role, dimensions in array_roles.items()
+    }
+    exact_shape = shapes["exact_gradients"]
+    if (
+        shapes["predicted_gradients"] != exact_shape
+        or exact_shape[1] != ASGCV_STRATUM_SIZE
+        or shapes["projection"][1] != exact_shape[-1]
+        or shapes["exact_preclip_norms"] != shapes["asgcv_preclip_norms"]
+    ):
+        raise ValueError("ASG-CV E0 array relation differs")
+
+    wall = value["semantic_wall_ns"]
+    if type(wall) is not dict or set(wall) != {"exact", "asgcv"}:
+        raise ValueError("ASG-CV E0 wall-time schema differs")
+    exact_wall = wall["exact"]
+    asgcv_wall = wall["asgcv"]
+    if type(exact_wall) is not int or exact_wall <= 0:
+        raise ValueError("ASG-CV E0 exact semantic wall time differs")
+    if type(asgcv_wall) is not int or asgcv_wall <= 0:
+        raise ValueError("ASG-CV E0 semantic wall time differs")
+
+    metrics = AsgcvE0Metrics.from_mapping(value["metrics"])
+    if metrics.pair_count != exact_shape[0] * exact_shape[1]:
+        raise ValueError("ASG-CV E0 pair count relation differs")
+    expected_wall_ratio = (asgcv_wall * 1_000_000 + exact_wall - 1) // exact_wall
+    if metrics.semantic_wall_ratio_ppm != expected_wall_ratio:
+        raise ValueError("ASG-CV E0 wall-time relation differs")
+
+    result_digest = _sha256_bytes(value["result_sha256"], name="E0 result digest").hex()
+    unsigned = dict(value)
+    del unsigned["result_sha256"]
+    if hashlib.sha256(_canonical_json_bytes(unsigned)).hexdigest() != result_digest:
+        raise ValueError("ASG-CV E0 result digest differs")
+    return value
 
 
 def low_rank_gradient_field(
