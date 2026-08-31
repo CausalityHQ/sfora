@@ -134,7 +134,7 @@ Let `H(domain,text)` be SHA-256 of ASCII `domain`, one zero byte, and UTF-8 `tex
 Digest-derived integers use the first eight bytes as unsigned big-endian values;
 integers in text are unsigned canonical base-10 ASCII.
 
-All 49 optimization classes must have at least 14 distinct examples. Within each
+All 49 optimization classes must have at least 15 distinct examples. Within each
 class, order IDs by `(H("rsta-siglip-a-v1|role|", example_id), example_id)`:
 
 - ranks 0 and 1 are clean eval-mode supports and never enter a PA graph;
@@ -155,12 +155,16 @@ The alternate panel orders classes using domain
 `rsta-siglip-a-v1|alternate-class|`, retains the same receiver pixels, and uses
 fresh, nonoverlapping refill/distractor rows chosen by domain
 `rsta-siglip-a-v1|alternate-distractor|`. For every class, alternate candidates
-exclude ranks 0--5 and every row used as a primary refill; select the first four
-remaining rows by `(H("rsta-siglip-a-v1|alternate-distractor|", example_id),
-example_id)`. Every receiver has a same-class peer in both contexts. No support
-enters either graph. The minimum 14 rows per class guarantees four alternate rows
-remain after ranks 0--5 and the possible four primary refills. The receipt binds
-every ID, label, role, row order, and tensor digest.
+exclude ranks 0--5 and every row used as a primary refill. Select the first
+candidate as the alternate same-class peer. For a class also used as an alternate
+refill, select the next four candidates as its refill rows, ordered by
+`(H("rsta-siglip-a-v1|alternate-distractor|", example_id), example_id)`. No row is
+selected as a peer or refill in more than one graph; only the registered receiver
+rows are deliberately shared between primary and alternate panels. Every receiver
+has a distinct same-class peer in both contexts, and no support enters either
+graph. The minimum 15 rows per class covers six fixed roles, the possible four
+primary refills, one alternate peer, and the possible four alternate refills. The
+receipt binds every ID, label, role, row order, and tensor digest.
 
 For each receiver, the alternate batch's foreign-class set must differ from its
 primary foreign-class set. Because both panels draw 30-class batches from the same

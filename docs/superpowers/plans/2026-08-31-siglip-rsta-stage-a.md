@@ -37,7 +37,7 @@
 
 - [ ] **Step 1: Write failing role-selection tests**
 
-  Cover exact 49-class ordering, ranks 0--13, two 120-row primary batches,
+  Cover exact 49-class ordering, ranks 0--14, two 120-row primary batches,
   alternate nonoverlap, including exclusion of ranks 0--5 and all primary refills,
   147 receivers, duplicate IDs, insufficient class size, forbidden labels, and
   deterministic replay. Mutation-lock every hash domain.
@@ -51,7 +51,7 @@
 - [ ] **Step 3: Implement immutable config and role selection**
 
   Use concrete-type validation. Return frozen tuples; do not return mutable source
-  dictionaries. Require labels exactly `0..48` and at least 14 unique examples per
+  dictionaries. Require labels exactly `0..48` and at least 15 unique examples per
   label.
 
 - [ ] **Step 4: Write failing gate/receipt mutation tests**
