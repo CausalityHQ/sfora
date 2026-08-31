@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from dataclasses import dataclass
 
 import numpy as np
 from numpy.typing import NDArray
 
 Float64Array = NDArray[np.float64]
+Float32Array = NDArray[np.float32]
 
 ASGCV_SCHEMA = "sfora-asgcv-authority-v1"
 ASGCV_STRATUM_SIZE = 8
@@ -18,6 +20,8 @@ ASGCV_SELECTION_POLICY = "one-uniform-index-per-eight-pair-stratum-v1"
 ASGCV_E0_SCHEMA = "sfora-asgcv-e0-metrics-v1"
 ASGCV_E0_RESULT_SCHEMA = "sfora-asgcv-e0-result-v1"
 ASGCV_E0_ARRAY_DOMAIN = b"sfora-asgcv-e0-array-v1\0"
+ASGCV_GRADIENT_SAMPLE_SCHEMA = "sfora-asgcv-gradient-sample-v1"
+ASGCV_GRADIENT_SAMPLE_ARRAY_DOMAIN = b"sfora-asgcv-gradient-sample-array-v1\0"
 ASGCV_DENSE_COSINE_GATE_PPM = 850_000
 ASGCV_PROJECTED_COSINE_GATE_PPM = 900_000
 ASGCV_PATCH_SPEARMAN_GATE_PPM = 800_000
@@ -137,6 +141,21 @@ def _require_float64_array(
     if type(value) is not np.ndarray:
         raise ValueError(f"ASG-CV {name} differs")
     if value.dtype != np.dtype(np.float64) or value.ndim != dimensions:
+        raise ValueError(f"ASG-CV {name} differs")
+    if any(size <= 0 for size in value.shape) or not bool(np.isfinite(value).all()):
+        raise ValueError(f"ASG-CV {name} differs")
+    return value
+
+
+def _require_float32_array(
+    value: object,
+    *,
+    name: str,
+    dimensions: int,
+) -> Float32Array:
+    if type(value) is not np.ndarray:
+        raise ValueError(f"ASG-CV {name} differs")
+    if value.dtype != np.dtype(np.float32) or value.ndim != dimensions:
         raise ValueError(f"ASG-CV {name} differs")
     if any(size <= 0 for size in value.shape) or not bool(np.isfinite(value).all()):
         raise ValueError(f"ASG-CV {name} differs")
@@ -774,6 +793,213 @@ def evaluate_e0(
         and metrics_without_pass["semantic_wall_ratio_ppm"] <= ASGCV_SEMANTIC_WALL_RATIO_GATE_PPM
     )
     return AsgcvE0Metrics(**metrics_without_pass, passed=passed).validated()
+
+
+def _gradient_sample_array_authority(
+    value: object,
+    *,
+    role: str,
+) -> dict[str, object]:
+    array = _require_float32_array(value, name=f"gradient sample {role}", dimensions=3)
+    role_bytes = role.encode("ascii")
+    shape = tuple(int(size) for size in array.shape)
+    frame = bytearray(ASGCV_GRADIENT_SAMPLE_ARRAY_DOMAIN)
+    frame.extend(len(role_bytes).to_bytes(8, "big"))
+    frame.extend(role_bytes)
+    frame.extend(len(shape).to_bytes(8, "big"))
+    for size in shape:
+        frame.extend(size.to_bytes(8, "big"))
+    frame.extend(np.ascontiguousarray(array, dtype="<f4").tobytes(order="C"))
+    return {
+        "dtype": "float32-le",
+        "shape": list(shape),
+        "sha256": hashlib.sha256(frame).hexdigest(),
+    }
+
+
+def canonical_gradient_sample_bytes(
+    *,
+    source_commit: object,
+    model_revision: object,
+    fixture_sha256: object,
+    completion_group_sha256: object,
+    pair_ordinals: object,
+    relation_sign: object,
+    replay_loss: object,
+    generated_tokens: object,
+    patch_tokens: object,
+    exact_gradient: object,
+) -> bytes:
+    """Seal one exact Qwen replay-gradient target before predictor fitting."""
+
+    commit = _source_commit(source_commit)
+    revision = _source_commit(model_revision)
+    fixture_digest = _sha256_bytes(fixture_sha256, name="fixture digest").hex()
+    completion_digest = _sha256_bytes(
+        completion_group_sha256,
+        name="completion group digest",
+    ).hex()
+    if (
+        type(pair_ordinals) is not tuple
+        or len(pair_ordinals) != 2
+        or any(type(value) is not int or value < 0 for value in pair_ordinals)
+        or pair_ordinals[0] == pair_ordinals[1]
+    ):
+        raise ValueError("ASG-CV gradient sample pair ordinals differ")
+    if type(relation_sign) is not int or relation_sign not in {-1, 1}:
+        raise ValueError("ASG-CV gradient sample relation sign differs")
+    if type(replay_loss) is not float or not math.isfinite(replay_loss):
+        raise ValueError("ASG-CV gradient sample replay loss differs")
+    if type(generated_tokens) is not int or generated_tokens <= 0:
+        raise ValueError("ASG-CV gradient sample generated tokens differ")
+    token_array = _require_float32_array(
+        patch_tokens,
+        name="gradient sample patch-tokens",
+        dimensions=3,
+    )
+    gradient_array = _require_float32_array(
+        exact_gradient,
+        name="gradient sample exact-gradient",
+        dimensions=3,
+    )
+    if token_array.shape != gradient_array.shape or token_array.shape[0] != 2:
+        raise ValueError("ASG-CV gradient sample array relation differs")
+    token_authority = _gradient_sample_array_authority(token_array, role="patch-tokens")
+    gradient_authority = _gradient_sample_array_authority(
+        gradient_array,
+        role="exact-gradient",
+    )
+    payload: dict[str, object] = {
+        "schema": ASGCV_GRADIENT_SAMPLE_SCHEMA,
+        "claim_eligible": False,
+        "source_commit": commit,
+        "model_revision": revision,
+        "fixture_sha256": fixture_digest,
+        "completion_group_sha256": completion_digest,
+        "pair_ordinals": list(pair_ordinals),
+        "relation_sign": relation_sign,
+        "replay_branch_count": ASGCV_STRATUM_SIZE,
+        "replay_loss": replay_loss,
+        "generated_tokens": generated_tokens,
+        "arrays": {
+            "patch_tokens": token_authority,
+            "exact_gradient": gradient_authority,
+        },
+    }
+    payload["sample_sha256"] = hashlib.sha256(_canonical_json_bytes(payload)).hexdigest()
+    return _canonical_json_bytes(payload)
+
+
+def _validate_gradient_sample_array_authority(value: object) -> tuple[int, int, int]:
+    if type(value) is not dict or set(value) != {"dtype", "shape", "sha256"}:
+        raise ValueError("ASG-CV gradient sample array schema differs")
+    if value["dtype"] != "float32-le":
+        raise ValueError("ASG-CV gradient sample array dtype differs")
+    shape = value["shape"]
+    if (
+        type(shape) is not list
+        or len(shape) != 3
+        or any(type(size) is not int or size <= 0 for size in shape)
+    ):
+        raise ValueError("ASG-CV gradient sample array shape differs")
+    _sha256_bytes(value["sha256"], name="gradient sample array digest")
+    return shape[0], shape[1], shape[2]
+
+
+def validate_gradient_sample_bytes(raw: bytes) -> dict[str, object]:
+    """Validate one canonical captured-gradient receipt and its relations."""
+
+    try:
+        value = json.loads(raw)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError("ASG-CV gradient sample is not canonical JSON") from error
+    expected_keys = {
+        "schema",
+        "claim_eligible",
+        "source_commit",
+        "model_revision",
+        "fixture_sha256",
+        "completion_group_sha256",
+        "pair_ordinals",
+        "relation_sign",
+        "replay_branch_count",
+        "replay_loss",
+        "generated_tokens",
+        "arrays",
+        "sample_sha256",
+    }
+    if (
+        type(value) is not dict
+        or set(value) != expected_keys
+        or _canonical_json_bytes(value) != raw
+        or value["schema"] != ASGCV_GRADIENT_SAMPLE_SCHEMA
+        or value["claim_eligible"] is not False
+    ):
+        raise ValueError("ASG-CV gradient sample authority differs")
+    _source_commit(value["source_commit"])
+    _source_commit(value["model_revision"])
+    _sha256_bytes(value["fixture_sha256"], name="fixture digest")
+    _sha256_bytes(value["completion_group_sha256"], name="completion group digest")
+    pair_ordinals = value["pair_ordinals"]
+    if (
+        type(pair_ordinals) is not list
+        or len(pair_ordinals) != 2
+        or any(type(ordinal) is not int or ordinal < 0 for ordinal in pair_ordinals)
+        or pair_ordinals[0] == pair_ordinals[1]
+    ):
+        raise ValueError("ASG-CV gradient sample pair ordinals differ")
+    if type(value["relation_sign"]) is not int or value["relation_sign"] not in {-1, 1}:
+        raise ValueError("ASG-CV gradient sample relation sign differs")
+    if value["replay_branch_count"] != ASGCV_STRATUM_SIZE or type(
+        value["replay_branch_count"]
+    ) is not int:
+        raise ValueError("ASG-CV gradient sample replay count differs")
+    if type(value["replay_loss"]) is not float or not math.isfinite(value["replay_loss"]):
+        raise ValueError("ASG-CV gradient sample replay loss differs")
+    if type(value["generated_tokens"]) is not int or value["generated_tokens"] <= 0:
+        raise ValueError("ASG-CV gradient sample generated tokens differ")
+    arrays = value["arrays"]
+    if type(arrays) is not dict or set(arrays) != {"patch_tokens", "exact_gradient"}:
+        raise ValueError("ASG-CV gradient sample array schema differs")
+    token_shape = _validate_gradient_sample_array_authority(arrays["patch_tokens"])
+    gradient_shape = _validate_gradient_sample_array_authority(arrays["exact_gradient"])
+    if token_shape != gradient_shape or token_shape[0] != 2:
+        raise ValueError("ASG-CV gradient sample array relation differs")
+    digest = _sha256_bytes(value["sample_sha256"], name="gradient sample digest").hex()
+    unsigned = dict(value)
+    del unsigned["sample_sha256"]
+    if hashlib.sha256(_canonical_json_bytes(unsigned)).hexdigest() != digest:
+        raise ValueError("ASG-CV gradient sample digest differs")
+    return value
+
+
+def validate_gradient_sample_inputs(
+    raw: bytes,
+    *,
+    patch_tokens: object,
+    exact_gradient: object,
+) -> dict[str, object]:
+    """Reopen both dense sample arrays and require byte-identical authority."""
+
+    value = validate_gradient_sample_bytes(raw)
+    pair_ordinals = value["pair_ordinals"]
+    if type(pair_ordinals) is not list:
+        raise ValueError("ASG-CV gradient sample pair ordinals differ")
+    rebuilt = canonical_gradient_sample_bytes(
+        source_commit=value["source_commit"],
+        model_revision=value["model_revision"],
+        fixture_sha256=value["fixture_sha256"],
+        completion_group_sha256=value["completion_group_sha256"],
+        pair_ordinals=tuple(pair_ordinals),
+        relation_sign=value["relation_sign"],
+        replay_loss=value["replay_loss"],
+        generated_tokens=value["generated_tokens"],
+        patch_tokens=patch_tokens,
+        exact_gradient=exact_gradient,
+    )
+    if rebuilt != raw:
+        raise ValueError("ASG-CV gradient sample reopened inputs differ")
+    return value
 
 
 def _array_authority(value: object, *, role: str, dimensions: int) -> dict[str, object]:

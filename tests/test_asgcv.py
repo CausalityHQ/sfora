@@ -11,6 +11,7 @@ from sfora.asgcv import (
     AsgcvSrhtAuthority,
     asgcv_stratum_gradient,
     canonical_e0_result_bytes,
+    canonical_gradient_sample_bytes,
     evaluate_e0,
     exhaustive_selection_mean,
     low_rank_gradient_field,
@@ -22,6 +23,8 @@ from sfora.asgcv import (
     srht_signs_and_rows,
     validate_e0_result_bytes,
     validate_e0_result_inputs,
+    validate_gradient_sample_bytes,
+    validate_gradient_sample_inputs,
 )
 
 
@@ -523,4 +526,81 @@ def test_e0_result_reopens_every_bound_input_before_acceptance() -> None:
             predicted=exact_batch.copy(),
             exact_preclip_norms=norms,
             asgcv_preclip_norms=norms.copy(),
+        )
+
+
+def _gradient_sample_arrays() -> tuple[np.ndarray, np.ndarray]:
+    tokens = np.arange(2 * 3 * 4, dtype=np.float32).reshape(2, 3, 4) / 7.0
+    gradient = np.flip(tokens, axis=-1).copy() / 11.0
+    return tokens, gradient
+
+
+def _gradient_sample_bytes() -> bytes:
+    tokens, gradient = _gradient_sample_arrays()
+    return canonical_gradient_sample_bytes(
+        source_commit="1" * 40,
+        model_revision="2" * 40,
+        fixture_sha256="3" * 64,
+        completion_group_sha256="4" * 64,
+        pair_ordinals=(17, 29),
+        relation_sign=-1,
+        replay_loss=0.125,
+        generated_tokens=64,
+        patch_tokens=tokens,
+        exact_gradient=gradient,
+    )
+
+
+def test_gradient_sample_is_canonical_and_reopens_exact_fp32_arrays() -> None:
+    raw = _gradient_sample_bytes()
+    value = validate_gradient_sample_bytes(raw)
+    tokens, gradient = _gradient_sample_arrays()
+
+    assert raw.endswith(b"\n") and not raw.endswith(b"\n\n")
+    assert value["schema"] == "sfora-asgcv-gradient-sample-v1"
+    assert value["claim_eligible"] is False
+    assert value["pair_ordinals"] == [17, 29]
+    assert value["relation_sign"] == -1
+    assert value["replay_branch_count"] == 8
+    assert value["arrays"]["patch_tokens"]["shape"] == [2, 3, 4]
+    assert value["arrays"]["patch_tokens"]["dtype"] == "float32-le"
+    assert validate_gradient_sample_inputs(
+        raw,
+        patch_tokens=tokens,
+        exact_gradient=gradient,
+    )["sample_sha256"] == value["sample_sha256"]
+
+
+def test_gradient_sample_rejects_identity_type_shape_and_array_drift() -> None:
+    raw = _gradient_sample_bytes()
+    tokens, gradient = _gradient_sample_arrays()
+    mutations = []
+    for path, replacement in (
+        (("claim_eligible",), True),
+        (("pair_ordinals",), [17, 17]),
+        (("relation_sign",), 0),
+        (("replay_branch_count",), 7),
+        (("generated_tokens",), True),
+        (("arrays", "exact_gradient", "shape"), [2, 4, 3]),
+    ):
+        value = json.loads(raw)
+        target = value
+        for key in path[:-1]:
+            target = target[key]
+        target[path[-1]] = replacement
+        unsigned = dict(value)
+        unsigned.pop("sample_sha256")
+        value["sample_sha256"] = hashlib.sha256(_canonical_json_bytes(unsigned)).hexdigest()
+        mutations.append(value)
+    for value in mutations:
+        with pytest.raises(ValueError):
+            validate_gradient_sample_bytes(_canonical_json_bytes(value))
+
+    changed = gradient.copy()
+    changed[0, 0, 0] = np.nextafter(changed[0, 0, 0], np.float32(np.inf))
+    with pytest.raises(ValueError):
+        validate_gradient_sample_inputs(
+            raw,
+            patch_tokens=tokens,
+            exact_gradient=changed,
         )
