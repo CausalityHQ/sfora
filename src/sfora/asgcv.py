@@ -22,6 +22,7 @@ ASGCV_RESIDUAL_ENERGY_GATE_PPM = 350_000
 ASGCV_VARIANCE_RATIO_GATE_PPM = 600_000
 ASGCV_PRECLIP_P99_RATIO_GATE_PPM = 2_000_000
 ASGCV_CLIP_RATE_DELTA_GATE_PPM = 50_000
+ASGCV_SEMANTIC_WALL_RATIO_GATE_PPM = 350_000
 ASGCV_GLOBAL_CLIP_NORM = 1.0
 ASGCV_SELECTION_DOMAIN = b"sfora-asgcv-selection-v1\0"
 ASGCV_SCHEDULE_DOMAIN = b"sfora-asgcv-schedule-v1\0"
@@ -433,6 +434,7 @@ class AsgcvE0Metrics:
     exact_clip_rate_ppm: int
     asgcv_clip_rate_ppm: int
     clip_rate_delta_ppm: int
+    semantic_wall_ratio_ppm: int
     passed: bool
 
     def validated(self) -> AsgcvE0Metrics:
@@ -452,6 +454,7 @@ class AsgcvE0Metrics:
             "selection_variance_ratio_ppm",
             "preclip_p99_ratio_ppm",
             "clip_rate_delta_ppm",
+            "semantic_wall_ratio_ppm",
         )
         for name in similarity_names + ratio_names:
             if type(getattr(self, name)) is not int:
@@ -472,6 +475,7 @@ class AsgcvE0Metrics:
             and self.selection_variance_ratio_ppm <= ASGCV_VARIANCE_RATIO_GATE_PPM
             and self.preclip_p99_ratio_ppm <= ASGCV_PRECLIP_P99_RATIO_GATE_PPM
             and self.clip_rate_delta_ppm <= ASGCV_CLIP_RATE_DELTA_GATE_PPM
+            and self.semantic_wall_ratio_ppm <= ASGCV_SEMANTIC_WALL_RATIO_GATE_PPM
         )
         if type(self.passed) is not bool or self.passed is not expected_pass:
             raise ValueError("ASG-CV E0 pass gate differs")
@@ -491,6 +495,7 @@ class AsgcvE0Metrics:
             "exact_clip_rate_ppm": self.exact_clip_rate_ppm,
             "asgcv_clip_rate_ppm": self.asgcv_clip_rate_ppm,
             "clip_rate_delta_ppm": self.clip_rate_delta_ppm,
+            "semantic_wall_ratio_ppm": self.semantic_wall_ratio_ppm,
             "passed": self.passed,
         }
 
@@ -508,6 +513,7 @@ class AsgcvE0Metrics:
             "exact_clip_rate_ppm",
             "asgcv_clip_rate_ppm",
             "clip_rate_delta_ppm",
+            "semantic_wall_ratio_ppm",
             "passed",
         }:
             raise ValueError("ASG-CV E0 metrics schema differs")
@@ -524,6 +530,7 @@ class AsgcvE0Metrics:
             exact_clip_rate_ppm=value["exact_clip_rate_ppm"],
             asgcv_clip_rate_ppm=value["asgcv_clip_rate_ppm"],
             clip_rate_delta_ppm=value["clip_rate_delta_ppm"],
+            semantic_wall_ratio_ppm=value["semantic_wall_ratio_ppm"],
             passed=value["passed"],
         ).validated()
 
@@ -639,6 +646,8 @@ def evaluate_e0(
     *,
     exact_preclip_norms: object,
     asgcv_preclip_norms: object,
+    exact_semantic_wall_ns: int,
+    asgcv_semantic_wall_ns: int,
 ) -> AsgcvE0Metrics:
     """Recompute the registered E0 fidelity and variance evidence."""
 
@@ -667,6 +676,13 @@ def evaluate_e0(
         name="E0 ASG-CV pre-clip norms",
         dimensions=1,
     )
+    if type(exact_semantic_wall_ns) is not int or exact_semantic_wall_ns <= 0:
+        raise ValueError("ASG-CV E0 exact semantic wall time differs")
+    if type(asgcv_semantic_wall_ns) is not int or asgcv_semantic_wall_ns <= 0:
+        raise ValueError("ASG-CV E0 semantic wall time differs")
+    semantic_wall_ratio_ppm = (
+        asgcv_semantic_wall_ns * 1_000_000 + exact_semantic_wall_ns - 1
+    ) // exact_semantic_wall_ns
     if exact_array.shape != predicted_array.shape or exact_array.shape[1] != ASGCV_STRATUM_SIZE:
         raise ValueError("ASG-CV E0 gradient batch shape differs")
     if projection_array.shape[1] != exact_array.shape[-1]:
@@ -736,6 +752,7 @@ def evaluate_e0(
         "exact_clip_rate_ppm": exact_clip_rate_ppm,
         "asgcv_clip_rate_ppm": asgcv_clip_rate_ppm,
         "clip_rate_delta_ppm": max(0, asgcv_clip_rate_ppm - exact_clip_rate_ppm),
+        "semantic_wall_ratio_ppm": semantic_wall_ratio_ppm,
     }
     passed = (
         metrics_without_pass["dense_gradient_cosine_ppm"] >= ASGCV_DENSE_COSINE_GATE_PPM
@@ -745,6 +762,7 @@ def evaluate_e0(
         and metrics_without_pass["selection_variance_ratio_ppm"] <= ASGCV_VARIANCE_RATIO_GATE_PPM
         and metrics_without_pass["preclip_p99_ratio_ppm"] <= ASGCV_PRECLIP_P99_RATIO_GATE_PPM
         and metrics_without_pass["clip_rate_delta_ppm"] <= ASGCV_CLIP_RATE_DELTA_GATE_PPM
+        and metrics_without_pass["semantic_wall_ratio_ppm"] <= ASGCV_SEMANTIC_WALL_RATIO_GATE_PPM
     )
     return AsgcvE0Metrics(**metrics_without_pass, passed=passed).validated()
 

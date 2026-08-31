@@ -123,6 +123,8 @@ def test_e0_metrics_pass_only_when_every_registered_gate_passes() -> None:
         projection,
         exact_preclip_norms=exact_preclip_norms,
         asgcv_preclip_norms=exact_preclip_norms.copy(),
+        exact_semantic_wall_ns=1_000,
+        asgcv_semantic_wall_ns=350,
     )
     assert perfect.passed is True
     assert perfect.to_mapping() == {
@@ -137,6 +139,7 @@ def test_e0_metrics_pass_only_when_every_registered_gate_passes() -> None:
         "exact_clip_rate_ppm": 500_000,
         "asgcv_clip_rate_ppm": 500_000,
         "clip_rate_delta_ppm": 0,
+        "semantic_wall_ratio_ppm": 350_000,
         "passed": True,
     }
     assert type(perfect).from_mapping(perfect.to_mapping()) == perfect
@@ -150,6 +153,7 @@ def test_e0_metrics_pass_only_when_every_registered_gate_passes() -> None:
         {**perfect.to_mapping(), "preclip_p99_ratio_ppm": -1},
         {**perfect.to_mapping(), "exact_clip_rate_ppm": 1_000_001},
         {**perfect.to_mapping(), "clip_rate_delta_ppm": -1},
+        {**perfect.to_mapping(), "semantic_wall_ratio_ppm": 350_001},
         {**perfect.to_mapping(), "passed": False},
         {**perfect.to_mapping(), "extra": 1},
     ):
@@ -162,6 +166,8 @@ def test_e0_metrics_pass_only_when_every_registered_gate_passes() -> None:
         projection,
         exact_preclip_norms=exact_preclip_norms,
         asgcv_preclip_norms=exact_preclip_norms.copy(),
+        exact_semantic_wall_ns=1_000,
+        asgcv_semantic_wall_ns=350,
     )
     assert reversed_prediction.passed is False
     assert reversed_prediction.dense_gradient_cosine_ppm == -1_000_000
@@ -181,6 +187,8 @@ def test_e0_rejects_projection_batch_and_degenerate_salience_drift() -> None:
             projection,
             exact_preclip_norms=norms,
             asgcv_preclip_norms=norms,
+            exact_semantic_wall_ns=1_000,
+            asgcv_semantic_wall_ns=350,
         )
     with pytest.raises(ValueError):
         evaluate_e0(
@@ -189,6 +197,8 @@ def test_e0_rejects_projection_batch_and_degenerate_salience_drift() -> None:
             projection,
             exact_preclip_norms=norms,
             asgcv_preclip_norms=norms,
+            exact_semantic_wall_ns=1_000,
+            asgcv_semantic_wall_ns=350,
         )
     with pytest.raises(ValueError):
         evaluate_e0(
@@ -197,6 +207,8 @@ def test_e0_rejects_projection_batch_and_degenerate_salience_drift() -> None:
             projection.astype(np.float32),
             exact_preclip_norms=norms,
             asgcv_preclip_norms=norms,
+            exact_semantic_wall_ns=1_000,
+            asgcv_semantic_wall_ns=350,
         )
     with pytest.raises(ValueError):
         evaluate_e0(
@@ -205,6 +217,8 @@ def test_e0_rejects_projection_batch_and_degenerate_salience_drift() -> None:
             projection[:, :3],
             exact_preclip_norms=norms,
             asgcv_preclip_norms=norms,
+            exact_semantic_wall_ns=1_000,
+            asgcv_semantic_wall_ns=350,
         )
     nonfinite = projection.copy()
     nonfinite[0, 0] = np.inf
@@ -215,6 +229,8 @@ def test_e0_rejects_projection_batch_and_degenerate_salience_drift() -> None:
             nonfinite,
             exact_preclip_norms=norms,
             asgcv_preclip_norms=norms,
+            exact_semantic_wall_ns=1_000,
+            asgcv_semantic_wall_ns=350,
         )
 
     constant_patch_norms = np.ones((2, 8, 3, 4), dtype=np.float64)
@@ -225,6 +241,8 @@ def test_e0_rejects_projection_batch_and_degenerate_salience_drift() -> None:
             projection,
             exact_preclip_norms=norms,
             asgcv_preclip_norms=norms,
+            exact_semantic_wall_ns=1_000,
+            asgcv_semantic_wall_ns=350,
         )
 
     with pytest.raises(ValueError):
@@ -234,6 +252,8 @@ def test_e0_rejects_projection_batch_and_degenerate_salience_drift() -> None:
             projection,
             exact_preclip_norms=norms.astype(np.float32),
             asgcv_preclip_norms=norms,
+            exact_semantic_wall_ns=1_000,
+            asgcv_semantic_wall_ns=350,
         )
 
 
@@ -250,12 +270,45 @@ def test_e0_fails_closed_when_control_variate_increases_clipping() -> None:
         projection,
         exact_preclip_norms=exact_norms,
         asgcv_preclip_norms=asgcv_norms,
+        exact_semantic_wall_ns=1_000,
+        asgcv_semantic_wall_ns=350,
     )
     assert metrics.preclip_p99_ratio_ppm == 6_000_000
     assert metrics.exact_clip_rate_ppm == 0
     assert metrics.asgcv_clip_rate_ppm == 1_000_000
     assert metrics.clip_rate_delta_ppm == 1_000_000
     assert metrics.passed is False
+
+
+def test_e0_fails_closed_when_semantic_wall_ratio_exceeds_gate() -> None:
+    exact, _ = _fields()
+    exact_batch = np.stack((exact, exact * 1.25))
+    projection = np.eye(4, dtype=np.float64)
+    norms = np.asarray([0.5, 0.75, 1.25, 1.5], dtype=np.float64)
+
+    metrics = evaluate_e0(
+        exact_batch,
+        exact_batch.copy(),
+        projection,
+        exact_preclip_norms=norms,
+        asgcv_preclip_norms=norms.copy(),
+        exact_semantic_wall_ns=1_000,
+        asgcv_semantic_wall_ns=351,
+    )
+    assert metrics.semantic_wall_ratio_ppm == 351_000
+    assert metrics.passed is False
+
+    for exact_wall, asgcv_wall in ((True, 350), (1_000, True), (0, 1), (1_000, 0)):
+        with pytest.raises(ValueError):
+            evaluate_e0(
+                exact_batch,
+                exact_batch.copy(),
+                projection,
+                exact_preclip_norms=norms,
+                asgcv_preclip_norms=norms.copy(),
+                exact_semantic_wall_ns=exact_wall,
+                asgcv_semantic_wall_ns=asgcv_wall,
+            )
 
 
 def test_selection_stream_is_source_bound_exact_and_independent_of_gradients() -> None:
