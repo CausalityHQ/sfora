@@ -825,7 +825,8 @@ def canonical_gradient_sample_bytes(
     completion_group_sha256: object,
     pair_ordinals: object,
     relation_sign: object,
-    replay_loss: object,
+    grpo_loss: object,
+    attention_kl: object,
     generated_tokens: object,
     patch_tokens: object,
     exact_gradient: object,
@@ -848,8 +849,13 @@ def canonical_gradient_sample_bytes(
         raise ValueError("ASG-CV gradient sample pair ordinals differ")
     if type(relation_sign) is not int or relation_sign not in {-1, 1}:
         raise ValueError("ASG-CV gradient sample relation sign differs")
-    if type(replay_loss) is not float or not math.isfinite(replay_loss):
-        raise ValueError("ASG-CV gradient sample replay loss differs")
+    if type(grpo_loss) is not float or not math.isfinite(grpo_loss):
+        raise ValueError("ASG-CV gradient sample GRPO loss differs")
+    if type(attention_kl) is not float or not math.isfinite(attention_kl) or attention_kl < 0.0:
+        raise ValueError("ASG-CV gradient sample attention KL differs")
+    semantic_loss = grpo_loss + attention_kl
+    if not math.isfinite(semantic_loss):
+        raise ValueError("ASG-CV gradient sample semantic loss differs")
     if type(generated_tokens) is not int or generated_tokens <= 0:
         raise ValueError("ASG-CV gradient sample generated tokens differ")
     token_array = _require_float32_array(
@@ -879,7 +885,11 @@ def canonical_gradient_sample_bytes(
         "pair_ordinals": list(pair_ordinals),
         "relation_sign": relation_sign,
         "replay_branch_count": ASGCV_STRATUM_SIZE,
-        "replay_loss": replay_loss,
+        "losses": {
+            "grpo": grpo_loss,
+            "attention_kl": attention_kl,
+            "semantic": semantic_loss,
+        },
         "generated_tokens": generated_tokens,
         "arrays": {
             "patch_tokens": token_authority,
@@ -923,7 +933,7 @@ def validate_gradient_sample_bytes(raw: bytes) -> dict[str, object]:
         "pair_ordinals",
         "relation_sign",
         "replay_branch_count",
-        "replay_loss",
+        "losses",
         "generated_tokens",
         "arrays",
         "sample_sha256",
@@ -954,8 +964,22 @@ def validate_gradient_sample_bytes(raw: bytes) -> dict[str, object]:
         value["replay_branch_count"]
     ) is not int:
         raise ValueError("ASG-CV gradient sample replay count differs")
-    if type(value["replay_loss"]) is not float or not math.isfinite(value["replay_loss"]):
-        raise ValueError("ASG-CV gradient sample replay loss differs")
+    losses = value["losses"]
+    if type(losses) is not dict or set(losses) != {"grpo", "attention_kl", "semantic"}:
+        raise ValueError("ASG-CV gradient sample loss schema differs")
+    grpo_loss = losses["grpo"]
+    attention_kl = losses["attention_kl"]
+    semantic_loss = losses["semantic"]
+    if type(grpo_loss) is not float or not math.isfinite(grpo_loss):
+        raise ValueError("ASG-CV gradient sample GRPO loss differs")
+    if type(attention_kl) is not float or not math.isfinite(attention_kl) or attention_kl < 0.0:
+        raise ValueError("ASG-CV gradient sample attention KL differs")
+    if (
+        type(semantic_loss) is not float
+        or not math.isfinite(semantic_loss)
+        or semantic_loss != grpo_loss + attention_kl
+    ):
+        raise ValueError("ASG-CV gradient sample semantic loss differs")
     if type(value["generated_tokens"]) is not int or value["generated_tokens"] <= 0:
         raise ValueError("ASG-CV gradient sample generated tokens differ")
     arrays = value["arrays"]
@@ -985,6 +1009,9 @@ def validate_gradient_sample_inputs(
     pair_ordinals = value["pair_ordinals"]
     if type(pair_ordinals) is not list:
         raise ValueError("ASG-CV gradient sample pair ordinals differ")
+    losses = value["losses"]
+    if type(losses) is not dict:
+        raise ValueError("ASG-CV gradient sample loss schema differs")
     rebuilt = canonical_gradient_sample_bytes(
         source_commit=value["source_commit"],
         model_revision=value["model_revision"],
@@ -992,7 +1019,8 @@ def validate_gradient_sample_inputs(
         completion_group_sha256=value["completion_group_sha256"],
         pair_ordinals=tuple(pair_ordinals),
         relation_sign=value["relation_sign"],
-        replay_loss=value["replay_loss"],
+        grpo_loss=losses["grpo"],
+        attention_kl=losses["attention_kl"],
         generated_tokens=value["generated_tokens"],
         patch_tokens=patch_tokens,
         exact_gradient=exact_gradient,

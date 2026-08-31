@@ -544,7 +544,8 @@ def _gradient_sample_bytes() -> bytes:
         completion_group_sha256="4" * 64,
         pair_ordinals=(17, 29),
         relation_sign=-1,
-        replay_loss=0.125,
+        grpo_loss=0.125,
+        attention_kl=0.375,
         generated_tokens=64,
         patch_tokens=tokens,
         exact_gradient=gradient,
@@ -562,6 +563,7 @@ def test_gradient_sample_is_canonical_and_reopens_exact_fp32_arrays() -> None:
     assert value["pair_ordinals"] == [17, 29]
     assert value["relation_sign"] == -1
     assert value["replay_branch_count"] == 8
+    assert value["losses"] == {"attention_kl": 0.375, "grpo": 0.125, "semantic": 0.5}
     assert value["arrays"]["patch_tokens"]["shape"] == [2, 3, 4]
     assert value["arrays"]["patch_tokens"]["dtype"] == "float32-le"
     assert validate_gradient_sample_inputs(
@@ -581,6 +583,7 @@ def test_gradient_sample_rejects_identity_type_shape_and_array_drift() -> None:
         (("relation_sign",), 0),
         (("replay_branch_count",), 7),
         (("generated_tokens",), True),
+        (("losses", "semantic"), 0.49),
         (("arrays", "exact_gradient", "shape"), [2, 4, 3]),
     ):
         value = json.loads(raw)
