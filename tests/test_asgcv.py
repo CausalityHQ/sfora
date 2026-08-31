@@ -5,6 +5,7 @@ import pytest
 
 from sfora.asgcv import (
     AsgcvAuthority,
+    AsgcvSrhtAuthority,
     asgcv_stratum_gradient,
     evaluate_e0,
     exhaustive_selection_mean,
@@ -13,6 +14,8 @@ from sfora.asgcv import (
     select_stratum_index,
     selection_schedule_sha256,
     selection_variance_ratio,
+    srht_gradient_sketch,
+    srht_signs_and_rows,
 )
 
 
@@ -281,3 +284,64 @@ def test_selection_stream_is_source_bound_exact_and_independent_of_gradients() -
 
     with pytest.raises(ValueError):
         selection_schedule_sha256("00" * 32, optimizer_steps=0, strata_per_step=4)
+
+
+def test_srht_authority_locks_padding_signs_rows_and_scaling() -> None:
+    authority = AsgcvSrhtAuthority(
+        input_dimensions=4,
+        padded_dimensions=4,
+        output_dimensions=2,
+        seed_sha256="00" * 32,
+    ).validated()
+    assert authority.to_mapping() == {
+        "schema": "sfora-asgcv-srht-authority-v1",
+        "input_dimensions": 4,
+        "padded_dimensions": 4,
+        "output_dimensions": 2,
+        "seed_sha256": "00" * 32,
+        "accumulator_dtype": "float64",
+        "normalization": "orthonormal-hadamard-times-sqrt-padded-over-output-v1",
+    }
+    assert AsgcvSrhtAuthority.from_mapping(authority.to_mapping()) == authority
+    signs, rows = srht_signs_and_rows(authority)
+    np.testing.assert_array_equal(signs, np.asarray([1.0, -1.0, 1.0, -1.0]))
+    np.testing.assert_array_equal(rows, np.asarray([3, 0], dtype=np.int64))
+
+    field = np.asarray([[1.0, 2.0, 3.0, 4.0]], dtype=np.float64)
+    observed = srht_gradient_sketch(field, authority)
+    np.testing.assert_allclose(
+        observed,
+        np.asarray([[-2.0 * np.sqrt(2.0), -np.sqrt(2.0)]], dtype=np.float64),
+        rtol=0.0,
+        atol=1e-15,
+    )
+
+
+def test_srht_rejects_authority_shape_dtype_and_nonfinite_drift() -> None:
+    authority = AsgcvSrhtAuthority(
+        input_dimensions=3,
+        padded_dimensions=4,
+        output_dimensions=2,
+        seed_sha256="12" * 32,
+    ).validated()
+    field = np.arange(6, dtype=np.float64).reshape(2, 3)
+    assert srht_gradient_sketch(field, authority).shape == (2, 2)
+
+    for mutation in (
+        {**authority.to_mapping(), "input_dimensions": True},
+        {**authority.to_mapping(), "padded_dimensions": 8},
+        {**authority.to_mapping(), "output_dimensions": 5},
+        {**authority.to_mapping(), "seed_sha256": "0" * 63},
+        {**authority.to_mapping(), "normalization": "none"},
+    ):
+        with pytest.raises(ValueError):
+            AsgcvSrhtAuthority.from_mapping(mutation)
+
+    with pytest.raises(ValueError):
+        srht_gradient_sketch(field.astype(np.float32), authority)
+    with pytest.raises(ValueError):
+        srht_gradient_sketch(field[:, :2], authority)
+    nonfinite = field.copy()
+    nonfinite[0, 0] = np.nan
+    with pytest.raises(ValueError):
+        srht_gradient_sketch(nonfinite, authority)

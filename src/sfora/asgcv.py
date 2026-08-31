@@ -26,6 +26,10 @@ ASGCV_GLOBAL_CLIP_NORM = 1.0
 ASGCV_SELECTION_DOMAIN = b"sfora-asgcv-selection-v1\0"
 ASGCV_SCHEDULE_DOMAIN = b"sfora-asgcv-schedule-v1\0"
 ASGCV_MAX_SCHEDULE_SELECTIONS = 10_000_000
+ASGCV_SRHT_SCHEMA = "sfora-asgcv-srht-authority-v1"
+ASGCV_SRHT_SIGN_DOMAIN = b"sfora-asgcv-srht-sign-v1\0"
+ASGCV_SRHT_ROW_DOMAIN = b"sfora-asgcv-srht-row-v1\0"
+ASGCV_SRHT_NORMALIZATION = "orthonormal-hadamard-times-sqrt-padded-over-output-v1"
 
 
 def _require_exact_positive_integer(value: object, *, expected: int, name: str) -> int:
@@ -34,14 +38,18 @@ def _require_exact_positive_integer(value: object, *, expected: int, name: str) 
     return value
 
 
-def _selection_seed_bytes(value: object) -> bytes:
+def _sha256_bytes(value: object, *, name: str) -> bytes:
     if (
         type(value) is not str
         or len(value) != 64
         or any(character not in "0123456789abcdef" for character in value)
     ):
-        raise ValueError("ASG-CV selection seed differs")
+        raise ValueError(f"ASG-CV {name} differs")
     return bytes.fromhex(value)
+
+
+def _selection_seed_bytes(value: object) -> bytes:
+    return _sha256_bytes(value, name="selection seed")
 
 
 def _u64(value: object, *, name: str) -> int:
@@ -169,6 +177,135 @@ class AsgcvAuthority:
             predictor_rank=value["predictor_rank"],
         )
         return authority.validated()
+
+
+@dataclass(frozen=True, slots=True)
+class AsgcvSrhtAuthority:
+    """Frozen CPU-reference authority for the ASG-CV gradient sketch."""
+
+    input_dimensions: int
+    padded_dimensions: int
+    output_dimensions: int
+    seed_sha256: str
+
+    def validated(self) -> AsgcvSrhtAuthority:
+        for name in ("input_dimensions", "padded_dimensions", "output_dimensions"):
+            if type(getattr(self, name)) is not int or getattr(self, name) <= 0:
+                raise ValueError("ASG-CV SRHT dimension differs")
+        expected_padded = 1 << (self.input_dimensions - 1).bit_length()
+        if self.padded_dimensions != expected_padded:
+            raise ValueError("ASG-CV SRHT padded dimension differs")
+        if self.output_dimensions > self.padded_dimensions:
+            raise ValueError("ASG-CV SRHT output dimension differs")
+        _sha256_bytes(self.seed_sha256, name="SRHT seed")
+        return self
+
+    def to_mapping(self) -> dict[str, object]:
+        self.validated()
+        return {
+            "schema": ASGCV_SRHT_SCHEMA,
+            "input_dimensions": self.input_dimensions,
+            "padded_dimensions": self.padded_dimensions,
+            "output_dimensions": self.output_dimensions,
+            "seed_sha256": self.seed_sha256,
+            "accumulator_dtype": "float64",
+            "normalization": ASGCV_SRHT_NORMALIZATION,
+        }
+
+    @classmethod
+    def from_mapping(cls, value: object) -> AsgcvSrhtAuthority:
+        if type(value) is not dict or set(value) != {
+            "schema",
+            "input_dimensions",
+            "padded_dimensions",
+            "output_dimensions",
+            "seed_sha256",
+            "accumulator_dtype",
+            "normalization",
+        }:
+            raise ValueError("ASG-CV SRHT authority schema differs")
+        if (
+            type(value["schema"]) is not str
+            or value["schema"] != ASGCV_SRHT_SCHEMA
+            or type(value["accumulator_dtype"]) is not str
+            or value["accumulator_dtype"] != "float64"
+            or type(value["normalization"]) is not str
+            or value["normalization"] != ASGCV_SRHT_NORMALIZATION
+        ):
+            raise ValueError("ASG-CV SRHT authority differs")
+        return cls(
+            input_dimensions=value["input_dimensions"],
+            padded_dimensions=value["padded_dimensions"],
+            output_dimensions=value["output_dimensions"],
+            seed_sha256=value["seed_sha256"],
+        ).validated()
+
+
+def srht_signs_and_rows(
+    authority: AsgcvSrhtAuthority,
+) -> tuple[Float64Array, NDArray[np.int64]]:
+    """Materialize source-bound signs and row ordinals for audit evidence."""
+
+    if type(authority) is not AsgcvSrhtAuthority:
+        raise ValueError("ASG-CV SRHT authority differs")
+    authority.validated()
+    seed = _sha256_bytes(authority.seed_sha256, name="SRHT seed")
+    signs = np.empty(authority.padded_dimensions, dtype=np.float64)
+    row_scores: list[tuple[bytes, int]] = []
+    for index in range(authority.padded_dimensions):
+        encoded_index = index.to_bytes(8, "big")
+        sign_digest = hashlib.sha256(ASGCV_SRHT_SIGN_DOMAIN + seed + encoded_index).digest()
+        signs[index] = 1.0 if sign_digest[0] & 1 == 0 else -1.0
+        row_scores.append(
+            (
+                hashlib.sha256(ASGCV_SRHT_ROW_DOMAIN + seed + encoded_index).digest(),
+                index,
+            )
+        )
+    rows = np.asarray(
+        [index for _, index in sorted(row_scores)[: authority.output_dimensions]],
+        dtype=np.int64,
+    )
+    return signs, rows
+
+
+def srht_gradient_sketch(
+    field: object,
+    authority: AsgcvSrhtAuthority,
+) -> Float64Array:
+    """Apply the fixed-order fp64 SRHT scalar reference to one patch field."""
+
+    if type(authority) is not AsgcvSrhtAuthority:
+        raise ValueError("ASG-CV SRHT authority differs")
+    authority.validated()
+    field_array = _require_float64_array(
+        field,
+        name="SRHT gradient field",
+        dimensions=2,
+    )
+    if field_array.shape[1] != authority.input_dimensions:
+        raise ValueError("ASG-CV SRHT gradient shape differs")
+    signs, rows = srht_signs_and_rows(authority)
+    work = np.zeros(
+        (field_array.shape[0], authority.padded_dimensions),
+        dtype=np.float64,
+    )
+    work[:, : authority.input_dimensions] = field_array * signs[: authority.input_dimensions]
+    width = 1
+    while width < authority.padded_dimensions:
+        for start in range(0, authority.padded_dimensions, width * 2):
+            left = work[:, start : start + width].copy()
+            right = work[:, start + width : start + 2 * width].copy()
+            work[:, start : start + width] = left + right
+            work[:, start + width : start + 2 * width] = left - right
+        width *= 2
+    work /= np.sqrt(float(authority.padded_dimensions))
+    result = work[:, rows] * np.sqrt(
+        float(authority.padded_dimensions) / authority.output_dimensions
+    )
+    if not bool(np.isfinite(result).all()):
+        raise ValueError("ASG-CV SRHT result is not finite")
+    return np.asarray(result, dtype=np.float64)
 
 
 def _validated_stratum_pair(
