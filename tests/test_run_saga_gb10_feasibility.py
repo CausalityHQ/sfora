@@ -7,6 +7,13 @@ from pathlib import Path
 import pytest
 
 from sfora.pass209_m4 import canonical_json_bytes
+from sfora.saga_feasibility import (
+    FeasibilityEvidence,
+    ObjectAuthority,
+    PhaseMeasurement,
+    ResourceEnvelope,
+    canonical_feasibility_result_bytes,
+)
 
 _SCRIPT = (
     Path(__file__).resolve().parents[1]
@@ -18,6 +25,44 @@ assert _SPEC is not None and _SPEC.loader is not None
 _MODULE = importlib.util.module_from_spec(_SPEC)
 sys.modules[_SPEC.name] = _MODULE
 _SPEC.loader.exec_module(_MODULE)
+
+
+def _result_bytes() -> bytes:
+    def phase(name: str, elapsed_ns: int) -> PhaseMeasurement:
+        return PhaseMeasurement(name, True, elapsed_ns, 1, 1)
+
+    return canonical_feasibility_result_bytes(
+        FeasibilityEvidence(
+            source_commit="a" * 40,
+            controller_commit="b" * 40,
+            binary_sha256="c" * 64,
+            environment_sha256="d" * 64,
+            host="spark-fixture",
+            model=ObjectAuthority("model", "snapshot.json", 1, "e" * 64),
+            fixture=ObjectAuthority("fixture", "fixture.json", 1, "f" * 64),
+            envelope=ResourceEnvelope(
+                103_079_215_104,
+                118_111_600_640,
+                7_200_000_000_000,
+                300_000_000_000,
+            ),
+            load=phase("load", 1),
+            rollout=phase("rollout", 2),
+            replay=phase("replay", 3),
+            attention=phase("attention", 4),
+            dml=phase("dml", 5),
+            deterministic=True,
+            attention_available=True,
+            backend_valid=True,
+            authority_valid=True,
+            memory_within_envelope=True,
+            time_within_envelope=True,
+            dataset_reads=0,
+            label_reads=0,
+            evaluation_reads=0,
+            optimizer_steps=0,
+        )
+    )
 
 
 class _FakeRunner:
@@ -113,7 +158,7 @@ def _controller(tmp_path: Path) -> object:
 def test_controller_launches_one_offline_process_group_and_publishes_result(
     tmp_path: Path,
 ) -> None:
-    result = canonical_json_bytes({"outcome": "FITS", "claim_eligible": False})
+    result = _result_bytes()
     runner = _FakeRunner(
         [_observation(), _observation(process_alive=False)], child_result=result
     )
@@ -196,9 +241,7 @@ def test_controller_stops_once_preserves_terminal_and_cleans(
     del fault
     runner = _FakeRunner(
         [_observation(**updates)],
-        child_result=canonical_json_bytes(
-            {"outcome": "FITS", "claim_eligible": False}
-        ),
+        child_result=_result_bytes(),
     )
     terminal = _controller(tmp_path).run(runner=runner)
     assert terminal.outcome == expected
@@ -221,24 +264,27 @@ def test_controller_stops_on_sustained_psi_only_after_three_samples(
             _observation(psi_full_avg10_ppm=500_000),
             _observation(psi_full_avg10_ppm=500_000),
         ],
-        child_result=canonical_json_bytes(
-            {"outcome": "FITS", "claim_eligible": False}
-        ),
+        child_result=_result_bytes(),
     )
     terminal = _controller(tmp_path).run(runner=runner)
     assert terminal.outcome == "MEMORY_FAIL"
     assert runner.terminate_count == 1
 
 
-@pytest.mark.parametrize("fault", ["child-exit", "noncanonical-result"])
+@pytest.mark.parametrize(
+    "fault", ["child-exit", "noncanonical-result", "canonical-forged-result"]
+)
 def test_controller_rejects_child_or_result_failure(
     tmp_path: Path, fault: str
 ) -> None:
-    child_result = (
-        b'{"claim_eligible": false, "outcome": "FITS"}\n'
-        if fault == "noncanonical-result"
-        else canonical_json_bytes({"outcome": "FITS", "claim_eligible": False})
-    )
+    if fault == "noncanonical-result":
+        child_result = b'{"claim_eligible": false, "outcome": "FITS"}\n'
+    elif fault == "canonical-forged-result":
+        child_result = canonical_json_bytes(
+            {"outcome": "FITS", "claim_eligible": False}
+        )
+    else:
+        child_result = _result_bytes()
     runner = _FakeRunner(
         [_observation(process_alive=False)],
         child_result=child_result,

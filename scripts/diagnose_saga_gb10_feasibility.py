@@ -14,6 +14,7 @@ from pathlib import Path
 from time import perf_counter_ns
 from typing import Protocol
 
+import numpy as np
 import torch
 import torch.nn.functional as torch_functional
 
@@ -27,6 +28,7 @@ from sfora.saga_feasibility import (
     ResourceEnvelope,
     SnapshotAuthority,
     canonical_feasibility_result_bytes,
+    generated_fixture_image_bytes,
     load_fixture_authority,
     load_snapshot_authority,
 )
@@ -215,6 +217,23 @@ class DmlFloorEvidence:
     language_gradient_parameters: int
 
 
+@dataclass(frozen=True, slots=True)
+class PreparedPair:
+    """Processor-authenticated two-image model inputs."""
+
+    inputs: dict[str, torch.Tensor]
+    input_length: int
+    image_token_ranges: tuple[tuple[int, int], tuple[int, int]]
+
+
+@dataclass(frozen=True, slots=True)
+class PreparedMicrobatch:
+    """Processor-authenticated 64-image vision inputs."""
+
+    pixel_values: torch.Tensor
+    image_grid_thw: torch.Tensor
+
+
 class SingleQueryPooler(torch.nn.Module):
     """One learned query attention pooler with a 4096-dimensional output."""
 
@@ -242,16 +261,324 @@ class SingleQueryPooler(torch.nn.Module):
 class QwenSagaAdapter:
     """Validated Qwen model/processor pair with frozen gradient roles."""
 
-    def __init__(self, model: object, processor: object) -> None:
+    def __init__(
+        self,
+        model: object,
+        processor: object,
+        *,
+        vision_parameters: tuple[object, ...],
+        language_parameters: tuple[object, ...],
+        token_dim: int,
+    ) -> None:
         self._model = model
         self._processor = processor
+        self._vision_parameters = vision_parameters
+        self._language_parameters = language_parameters
         self.architecture = "Qwen3VLForConditionalGeneration"
+        self.pooler_token_dim = token_dim
+        operational_device = next(
+            (
+                parameter.device
+                for parameter in vision_parameters
+                if isinstance(parameter, torch.Tensor)
+            ),
+            torch.device("cpu"),
+        )
+        self.pooler = SingleQueryPooler(token_dim=token_dim).to(operational_device)
 
     def trainable_parameter_roles(self) -> tuple[str, ...]:
         return ("vision",)
 
     def frozen_parameter_roles(self) -> tuple[str, ...]:
         return ("language",)
+
+    def validate_structure(self, authority: LoadedAuthority) -> None:
+        if authority.snapshot.architecture != self.architecture:
+            raise FeasibilityFailure(
+                FeasibilityOutcome.BACKEND_INVALID, "model-architecture"
+            )
+        if not self._vision_parameters or not self._language_parameters:
+            raise FeasibilityFailure(
+                FeasibilityOutcome.BACKEND_INVALID, "parameter-roles"
+            )
+
+    @staticmethod
+    def _images(
+        fixture: FixtureAuthority, ordinals: tuple[int, ...]
+    ) -> list[np.ndarray]:
+        return [
+            np.frombuffer(
+                generated_fixture_image_bytes(fixture.source_commit, ordinal),
+                dtype=np.uint8,
+            )
+            .reshape(224, 224, 3)
+            .copy()
+            for ordinal in ordinals
+        ]
+
+    @staticmethod
+    def _tensor_device(inputs: dict[str, torch.Tensor]) -> torch.device:
+        return inputs["input_ids"].device
+
+    def _operational_device(self) -> torch.device:
+        for parameter in self._vision_parameters:
+            if isinstance(parameter, torch.Tensor):
+                return parameter.device
+        return torch.device("cpu")
+
+    def prepare_pair(self, fixture: FixtureAuthority) -> PreparedPair:
+        images = self._images(fixture, fixture.pair_ordinals)
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "image", "image": images[0]},
+                    {"type": "image", "image": images[1]},
+                    {"type": "text", "text": fixture.prompt_utf8},
+                ],
+            }
+        ]
+        raw = self._processor.apply_chat_template(
+            messages,
+            tokenize=True,
+            add_generation_prompt=True,
+            return_dict=True,
+            return_tensors="pt",
+        )
+        expected = {
+            "input_ids",
+            "attention_mask",
+            "pixel_values",
+            "image_grid_thw",
+            "mm_token_type_ids",
+        }
+        if type(raw) is not dict or set(raw) != expected:
+            raise ValueError("SAGA processor output authority differs")
+        if any(type(value) is not torch.Tensor for value in raw.values()):
+            raise ValueError("SAGA processor tensor authority differs")
+        inputs = {
+            name: value.to(self._operational_device()) for name, value in raw.items()
+        }
+        input_ids = inputs["input_ids"]
+        token_types = inputs["mm_token_type_ids"]
+        if input_ids.shape[0] != 1 or token_types.shape != input_ids.shape:
+            raise ValueError("SAGA processor sequence authority differs")
+        image_positions = torch.nonzero(token_types[0] == 1, as_tuple=False).flatten()
+        if image_positions.numel() == 0:
+            raise ValueError("SAGA image token authority differs")
+        groups: list[tuple[int, int]] = []
+        start = int(image_positions[0])
+        previous = start
+        for position_tensor in image_positions[1:]:
+            position = int(position_tensor)
+            if position != previous + 1:
+                groups.append((start, previous + 1))
+                start = position
+            previous = position
+        groups.append((start, previous + 1))
+        if len(groups) != 2:
+            raise ValueError("SAGA image token ranges differ")
+        return PreparedPair(
+            inputs=inputs,
+            input_length=input_ids.shape[1],
+            image_token_ranges=(groups[0], groups[1]),
+        )
+
+    def prepare_microbatch(self, fixture: FixtureAuthority) -> PreparedMicrobatch:
+        images = self._images(fixture, fixture.microbatch_ordinals)
+        raw = self._processor.image_processor(images=images, return_tensors="pt")
+        if type(raw) is not dict or set(raw) != {"pixel_values", "image_grid_thw"}:
+            raise ValueError("SAGA microbatch processor authority differs")
+        pixel_values = raw["pixel_values"]
+        image_grid_thw = raw["image_grid_thw"]
+        if type(pixel_values) is not torch.Tensor or type(image_grid_thw) is not torch.Tensor:
+            raise ValueError("SAGA microbatch tensor authority differs")
+        if tuple(image_grid_thw.shape) != (64, 3):
+            raise ValueError("SAGA microbatch grid authority differs")
+        device = self._operational_device()
+        return PreparedMicrobatch(
+            pixel_values=pixel_values.to(device),
+            image_grid_thw=image_grid_thw.to(device),
+        )
+
+    def generate(
+        self,
+        pair: object,
+        seed: int,
+        *,
+        temperature: float,
+        top_p: float,
+        max_new_tokens: int,
+    ) -> tuple[int, ...]:
+        if type(pair) is not PreparedPair or type(seed) is not int:
+            raise ValueError("SAGA generation authority differs")
+        device = self._tensor_device(pair.inputs)
+        cuda_devices = [device.index or 0] if device.type == "cuda" else []
+        with torch.random.fork_rng(devices=cuda_devices):
+            torch.manual_seed(seed)
+            if device.type == "cuda":
+                torch.cuda.manual_seed_all(seed)
+            with torch.no_grad():
+                generated = self._model.generate(
+                    **pair.inputs,
+                    do_sample=True,
+                    temperature=temperature,
+                    top_p=top_p,
+                    max_new_tokens=max_new_tokens,
+                    use_cache=True,
+                )
+        if type(generated) is not torch.Tensor or generated.shape[0] != 1:
+            raise ValueError("SAGA generated token authority differs")
+        completion = generated[0, pair.input_length :].detach().cpu().tolist()
+        if not completion:
+            raise ValueError("SAGA generated completion is empty")
+        return tuple(int(token) for token in completion)
+
+    @staticmethod
+    def _completed_inputs(
+        pair: PreparedPair, completion: tuple[int, ...]
+    ) -> dict[str, torch.Tensor]:
+        device = pair.inputs["input_ids"].device
+        completion_tensor = torch.tensor([completion], dtype=torch.long, device=device)
+        inputs = dict(pair.inputs)
+        inputs["input_ids"] = torch.cat(
+            (pair.inputs["input_ids"], completion_tensor), dim=1
+        )
+        extension = torch.ones_like(completion_tensor)
+        inputs["attention_mask"] = torch.cat(
+            (pair.inputs["attention_mask"], extension), dim=1
+        )
+        inputs["mm_token_type_ids"] = torch.cat(
+            (pair.inputs["mm_token_type_ids"], torch.zeros_like(completion_tensor)),
+            dim=1,
+        )
+        return inputs
+
+    def replay(
+        self,
+        pair: object,
+        completion_ids: tuple[tuple[int, ...], ...],
+        advantages: tuple[float, ...],
+        *,
+        output_attentions: bool,
+    ) -> ReplayOutput:
+        if type(pair) is not PreparedPair or len(completion_ids) != 8:
+            raise ValueError("SAGA replay authority differs")
+        losses: list[torch.Tensor] = []
+        generated_tokens = 0
+        for completion, advantage in zip(completion_ids, advantages, strict=True):
+            inputs = self._completed_inputs(pair, completion)
+            outputs = self._model.forward(
+                **inputs,
+                output_attentions=output_attentions,
+                use_cache=False,
+            )
+            logits = outputs.logits
+            start = pair.input_length - 1
+            completion_logits = logits[:, start : start + len(completion), :].float()
+            target = torch.tensor(
+                [completion], dtype=torch.long, device=completion_logits.device
+            )
+            token_log_probabilities = torch_functional.log_softmax(
+                completion_logits, dim=-1
+            ).gather(-1, target.unsqueeze(-1)).squeeze(-1)
+            losses.append(-float(advantage) * token_log_probabilities.mean())
+            generated_tokens += len(completion)
+        loss = torch.stack(losses).mean()
+        if not bool(torch.isfinite(loss)):
+            raise ValueError("SAGA replay loss differs")
+        loss.backward()
+        return ReplayOutput(loss=float(loss.detach()), generated_tokens=generated_tokens)
+
+    def _image_features(
+        self, pixel_values: torch.Tensor, image_grid_thw: torch.Tensor
+    ) -> tuple[torch.Tensor, ...]:
+        output = self._model.get_image_features(pixel_values, image_grid_thw)
+        features = output.pooler_output
+        if type(features) not in {tuple, list} or not features:
+            raise ValueError("SAGA vision feature authority differs")
+        if any(type(feature) is not torch.Tensor for feature in features):
+            raise ValueError("SAGA vision feature authority differs")
+        return tuple(features)
+
+    def attention_observation(
+        self,
+        pair: object,
+        completion_ids: tuple[tuple[int, ...], ...],
+        *,
+        layer: int,
+    ) -> AttentionOutput:
+        if type(pair) is not PreparedPair or layer != 26:
+            raise ValueError("SAGA attention authority differs")
+        inputs = self._completed_inputs(pair, completion_ids[0])
+        outputs = self._model.forward(
+            **inputs, output_attentions=True, use_cache=False
+        )
+        attentions = outputs.attentions
+        if type(attentions) not in {tuple, list} or len(attentions) <= layer:
+            raise AttentionUnavailable("layer-26-attention-unavailable")
+        attention = attentions[layer]
+        if type(attention) is not torch.Tensor or attention.ndim != 4:
+            raise AttentionUnavailable("layer-26-attention-unavailable")
+        query_start = pair.input_length
+        query_attention = attention[0, :, query_start:, :].mean(dim=(0, 1))
+        teacher_rows = []
+        for start, end in pair.image_token_ranges:
+            row = query_attention[start:end].float()
+            if row.numel() == 0 or not bool(torch.isfinite(row).all()):
+                raise ValueError("SAGA attention patch authority differs")
+            teacher_rows.append(row / row.sum())
+        features = self._image_features(
+            pair.inputs["pixel_values"], pair.inputs["image_grid_thw"]
+        )
+        if len(features) != 2 or features[0].shape != features[1].shape:
+            raise ValueError("SAGA pair vision feature authority differs")
+        patch_tokens = torch.stack(features)
+        teacher_maps = torch.stack(teacher_rows)
+        if teacher_maps.shape[:2] != patch_tokens.shape[:2]:
+            raise ValueError("SAGA attention/feature alignment differs")
+        return AttentionOutput(
+            teacher_maps=teacher_maps,
+            patch_tokens=patch_tokens,
+            head_count=attention.shape[1],
+        )
+
+    def vision_pool(self, microbatch: object) -> torch.Tensor:
+        if type(microbatch) is not PreparedMicrobatch:
+            raise ValueError("SAGA DML microbatch authority differs")
+        features = self._image_features(
+            microbatch.pixel_values, microbatch.image_grid_thw
+        )
+        if len(features) != 64 or any(feature.shape != features[0].shape for feature in features):
+            raise ValueError("SAGA DML vision feature shape differs")
+        embeddings, _ = self.pooler(torch.stack(features))
+        return embeddings
+
+    def assert_gradient_roles(self) -> GradientEvidence:
+        vision_gradients = []
+        for parameter in (*self._vision_parameters, *tuple(self.pooler.parameters())):
+            gradient = getattr(parameter, "grad", None)
+            if gradient is not None and bool(torch.count_nonzero(gradient)):
+                vision_gradients.append(gradient)
+        language_gradient_parameters = sum(
+            int(getattr(parameter, "grad", None) is not None)
+            for parameter in self._language_parameters
+        )
+        finite = all(bool(torch.isfinite(gradient).all()) for gradient in vision_gradients)
+        digest = hashlib.sha256()
+        for gradient in vision_gradients[:4]:
+            digest.update(gradient.detach().float().flatten()[:256].cpu().numpy().tobytes())
+        return GradientEvidence(
+            vision_nonzero_gradient_parameters=len(vision_gradients),
+            language_gradient_parameters=language_gradient_parameters,
+            finite=finite,
+            gradient_sha256=digest.hexdigest(),
+        )
+
+    def clear_graphs(self) -> None:
+        for parameter in (*self._vision_parameters, *self._language_parameters):
+            parameter.grad = None
+        self.pooler.zero_grad(set_to_none=True)
 
 
 def _model_attribute(model: object, name: str) -> object:
@@ -284,35 +611,72 @@ def load_qwen_adapter(
         local_files_only=True,
         trust_remote_code=False,
     )
-    expected = {
-        "architecture": snapshot.architecture,
-        "dtype": snapshot.dtype,
-        "device": "cuda",
-        "attention_backend": snapshot.attention_backend,
-    }
-    if any(_model_attribute(model, name) != value for name, value in expected.items()):
+    if hasattr(model, "config"):
+        config = model.config
+        architectures = getattr(config, "architectures", None)
+        architecture = (
+            architectures[0]
+            if type(architectures) is list and len(architectures) == 1
+            else type(model).__name__
+        )
+        dtype = str(getattr(model, "dtype", "")).removeprefix("torch.")
+        device = str(getattr(model, "device", ""))
+        attention_backend = getattr(config, "_attn_implementation", None)
+        layer_count = getattr(config.text_config, "num_hidden_layers", None)
+        token_dim = getattr(config.vision_config, "out_hidden_size", None)
+        visual = model.model.visual
+        language_model = model.model.language_model
+        vision_parameters = tuple(visual.parameters())
+        language_parameters = tuple(language_model.parameters()) + tuple(
+            model.lm_head.parameters()
+        )
+        processor_keys = tuple(getattr(processor, "model_input_names", ()))
+    else:
+        architecture = _model_attribute(model, "architecture")
+        dtype = _model_attribute(model, "dtype")
+        device = _model_attribute(model, "device")
+        attention_backend = _model_attribute(model, "attention_backend")
+        layer_count = _model_attribute(model, "layer_count")
+        token_dim = 16
+        roles = _model_attribute(model, "parameters_by_role")
+        if type(roles) is not dict or set(roles) != {"vision", "language"}:
+            raise ValueError("SAGA model authority differs")
+        vision_parameters = tuple(roles["vision"])
+        language_parameters = tuple(roles["language"])
+        processor_keys = tuple(_model_attribute(processor, "output_keys"))
+    if (
+        architecture != snapshot.architecture
+        or dtype != snapshot.dtype
+        or device != "cuda"
+        or attention_backend != snapshot.attention_backend
+    ):
         raise ValueError("SAGA model authority differs")
-    layer_count = _model_attribute(model, "layer_count")
     if type(layer_count) is not int or layer_count <= fixture.attention_layer:
         raise ValueError("SAGA model authority differs")
-    output_keys = _model_attribute(processor, "output_keys")
-    if output_keys != (
+    if type(token_dim) is not int or token_dim <= 0:
+        raise ValueError("SAGA model authority differs")
+    expected_processor_keys = (
         "attention_mask",
         "image_grid_thw",
         "input_ids",
+        "mm_token_type_ids",
         "pixel_values",
-    ):
+    )
+    if tuple(sorted(processor_keys)) != expected_processor_keys:
         raise ValueError("SAGA model authority differs")
-    roles = _model_attribute(model, "parameters_by_role")
-    if type(roles) is not dict or set(roles) != {"vision", "language"}:
+    if not vision_parameters or not language_parameters:
         raise ValueError("SAGA model authority differs")
-    if any(type(parameters) is not list or not parameters for parameters in roles.values()):
-        raise ValueError("SAGA model authority differs")
-    for parameter in roles["vision"]:
+    for parameter in vision_parameters:
         parameter.requires_grad = True
-    for parameter in roles["language"]:
+    for parameter in language_parameters:
         parameter.requires_grad = False
-    return QwenSagaAdapter(model, processor)
+    return QwenSagaAdapter(
+        model,
+        processor,
+        vision_parameters=vision_parameters,
+        language_parameters=language_parameters,
+        token_dim=token_dim,
+    )
 
 
 def group_normalized_advantages(rewards: tuple[int, ...]) -> tuple[float, ...]:
@@ -496,6 +860,10 @@ def run_attention_phase(
             raise ValueError("SAGA teacher attention differs")
         if not bool(torch.isfinite(tokens).all()):
             raise ValueError("SAGA patch token evidence differs")
+        if teacher.requires_grad:
+            teacher.retain_grad()
+        if tokens.requires_grad:
+            tokens.retain_grad()
         detached_teacher = teacher.detach()
         detached_tokens = tokens.detach()
         _, pooler_weights = pooler(detached_tokens)
@@ -731,7 +1099,9 @@ def run_feasibility(
         if progress is not None:
             progress("load")
         token_dim = getattr(adapter, "pooler_token_dim", 16)
-        pooler = SingleQueryPooler(token_dim=token_dim)
+        pooler = getattr(adapter, "pooler", None)
+        if type(pooler) is not SingleQueryPooler:
+            pooler = SingleQueryPooler(token_dim=token_dim)
         first = _run_scientific_phases(
             authority, adapter, pooler, measurements, progress
         )

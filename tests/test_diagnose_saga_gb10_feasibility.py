@@ -5,6 +5,7 @@ import json
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 import torch
@@ -115,7 +116,13 @@ class _FakeModel:
 
 
 class _FakeProcessor:
-    output_keys = ("attention_mask", "image_grid_thw", "input_ids", "pixel_values")
+    output_keys = (
+        "attention_mask",
+        "image_grid_thw",
+        "input_ids",
+        "mm_token_type_ids",
+        "pixel_values",
+    )
 
 
 class _FakeFactory:
@@ -163,6 +170,11 @@ def _loaded_authority(tmp_path: Path) -> object:
         attention_layer=26,
         prompt_sha256="8" * 64,
         message_serialization_sha256="9" * 64,
+        prompt_utf8="List the visible car attributes and relations.",
+        image_sha256=tuple("a" * 64 for _ in range(64)),
+        pair_ordinals=(0, 1),
+        microbatch_ordinals=tuple(range(64)),
+        pseudo_labels=tuple(ordinal % 2 for ordinal in range(64)),
     )
     return _MODULE.LoadedAuthority(snapshot=snapshot, fixture=fixture)
 
@@ -228,6 +240,11 @@ def _fixture_authority() -> FixtureAuthority:
         attention_layer=26,
         prompt_sha256="8" * 64,
         message_serialization_sha256="9" * 64,
+        prompt_utf8="List the visible car attributes and relations.",
+        image_sha256=tuple("a" * 64 for _ in range(64)),
+        pair_ordinals=(0, 1),
+        microbatch_ordinals=tuple(range(64)),
+        pseudo_labels=tuple(ordinal % 2 for ordinal in range(64)),
     )
 
 
@@ -609,3 +626,134 @@ def test_direct_script_main_writes_one_exclusive_canonical_result(
     assert json.loads(raw)["outcome"] == "FITS"
     with pytest.raises(SystemExit):
         _MODULE.main(argv)
+
+
+class _HfLikeProcessor:
+    model_input_names = (
+        "input_ids",
+        "attention_mask",
+        "pixel_values",
+        "image_grid_thw",
+        "mm_token_type_ids",
+    )
+
+    def apply_chat_template(self, _messages: object, **kwargs: object) -> dict[str, torch.Tensor]:
+        assert kwargs == {
+            "tokenize": True,
+            "add_generation_prompt": True,
+            "return_dict": True,
+            "return_tensors": "pt",
+        }
+        return {
+            "input_ids": torch.tensor([[1, 99, 99, 2, 99, 99, 3, 4, 5, 6]]),
+            "attention_mask": torch.ones(1, 10, dtype=torch.long),
+            "mm_token_type_ids": torch.tensor([[0, 1, 1, 0, 1, 1, 0, 0, 0, 0]]),
+            "pixel_values": torch.ones(16, 1),
+            "image_grid_thw": torch.tensor([[1, 2, 4], [1, 2, 4]]),
+        }
+
+    def image_processor(self, *, images: object, return_tensors: str) -> dict[str, torch.Tensor]:
+        assert len(images) == 64
+        assert return_tensors == "pt"
+        return {
+            "pixel_values": torch.ones(64 * 8, 1),
+            "image_grid_thw": torch.tensor([[1, 2, 4]] * 64),
+        }
+
+
+class _HfLikeModel(torch.nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.device = "cuda"
+        self.dtype = "bfloat16"
+        visual = torch.nn.Linear(1, 16, bias=False)
+        language = torch.nn.Linear(1, 1, bias=False)
+        self.model = SimpleNamespace(visual=visual, language_model=language)
+        self.lm_head = torch.nn.Linear(1, 128, bias=False)
+        self.config = SimpleNamespace(
+            architectures=["Qwen3VLForConditionalGeneration"],
+            _attn_implementation="eager",
+            image_token_id=99,
+            text_config=SimpleNamespace(num_hidden_layers=32),
+            vision_config=SimpleNamespace(out_hidden_size=16, spatial_merge_size=2),
+        )
+
+    def generate(self, **inputs: object) -> torch.Tensor:
+        input_ids = inputs["input_ids"]
+        assert isinstance(input_ids, torch.Tensor)
+        assert inputs["do_sample"] is True
+        generated = torch.randint(10, 90, (1, 2), device=input_ids.device)
+        return torch.cat((input_ids, generated), dim=1)
+
+    def forward(self, **inputs: object) -> object:
+        input_ids = inputs["input_ids"]
+        assert isinstance(input_ids, torch.Tensor)
+        sequence = input_ids.shape[1]
+        scale = self.model.visual.weight[:, 0].mean()
+        vocabulary = torch.arange(128, dtype=scale.dtype, device=scale.device)
+        logits = scale * vocabulary.view(1, 1, -1).expand(1, sequence, -1)
+        positions = torch.arange(sequence, dtype=scale.dtype, device=scale.device)
+        attention = positions.view(1, 1, 1, -1).expand(1, 2, sequence, -1) + 1
+        attentions = tuple(attention for _ in range(32))
+        return SimpleNamespace(logits=logits, attentions=attentions)
+
+    def get_image_features(
+        self, pixel_values: torch.Tensor, image_grid_thw: torch.Tensor
+    ) -> object:
+        del pixel_values
+        token = self.model.visual.weight[:, 0]
+        features = []
+        for ordinal in range(image_grid_thw.shape[0]):
+            class_offset = torch.zeros_like(token)
+            class_offset[ordinal % 2] = 0.01
+            features.append((token + class_offset).expand(2, -1))
+        return SimpleNamespace(pooler_output=features)
+
+
+class _HfLikeFactory:
+    def __init__(self) -> None:
+        self.model = _HfLikeModel()
+
+    def load_model(self, _root: Path, **_kwargs: object) -> _HfLikeModel:
+        return self.model
+
+    def load_processor(self, _root: Path, **_kwargs: object) -> _HfLikeProcessor:
+        return _HfLikeProcessor()
+
+
+def test_hf_shaped_qwen_adapter_executes_every_scientific_protocol(
+    tmp_path: Path,
+) -> None:
+    authority = _complete_authority(tmp_path)
+    adapter = _MODULE.load_qwen_adapter(authority, factory=_HfLikeFactory())
+    adapter.validate_structure(authority)
+    rollouts = _MODULE.run_rollout_phase(adapter, authority.fixture)
+    replay = _MODULE.run_replay_phase(adapter, authority.fixture, rollouts)
+    attention = _MODULE.run_attention_phase(
+        adapter, adapter.pooler, authority.fixture, rollouts
+    )
+    dml = _MODULE.run_dml_floor_phase(adapter, authority.fixture)
+    assert replay.vision_nonzero_gradient_parameters > 0
+    assert replay.language_gradient_parameters == 0
+    assert attention.layer == 26
+    assert dml.embedding_shape == (64, 4096)
+
+
+def test_complete_run_reuses_one_pooler_for_attention_and_dml(
+    tmp_path: Path,
+) -> None:
+    authority = _complete_authority(tmp_path)
+    adapter = _MODULE.load_qwen_adapter(authority, factory=_HfLikeFactory())
+    calls = 0
+
+    def count_calls(_module: object, _inputs: object, _output: object) -> None:
+        nonlocal calls
+        calls += 1
+
+    handle = adapter.pooler.register_forward_hook(count_calls)
+    try:
+        raw = _MODULE.run_feasibility(authority, adapter)
+    finally:
+        handle.remove()
+    assert json.loads(raw)["outcome"] == "FITS"
+    assert calls == 4

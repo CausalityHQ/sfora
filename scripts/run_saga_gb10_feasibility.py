@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Protocol
 
 from sfora.pass209_m4 import canonical_json_bytes
-from sfora.saga_feasibility import parse_canonical_object
+from sfora.saga_feasibility import validate_feasibility_result_bytes
 
 CUDA_LIMIT_BYTES = 103_079_215_104
 RSS_LIMIT_BYTES = 118_111_600_640
@@ -452,7 +452,7 @@ class FeasibilityController:
         if stop is None and exit_code == 0:
             try:
                 raw = child_result.read_bytes()
-                value = parse_canonical_object(raw, role="SAGA scientific result")
+                value = validate_feasibility_result_bytes(raw)
                 outcome = value["outcome"]
                 if type(outcome) is not str:
                     raise ValueError("SAGA scientific outcome differs")

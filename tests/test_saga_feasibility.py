@@ -18,6 +18,7 @@ from sfora.saga_feasibility import (
     load_snapshot_authority,
     parse_canonical_object,
     project_best_case_step_ns,
+    validate_feasibility_result_bytes,
 )
 
 
@@ -113,6 +114,20 @@ def test_result_recomputes_outcome_and_rejects_incomplete_phase() -> None:
         canonical_feasibility_result_bytes(
             replace(evidence, replay=replace(evidence.replay, completed=False))
         )
+
+
+def test_result_validator_rejects_self_digest_and_schema_drift() -> None:
+    raw = canonical_feasibility_result_bytes(coherent_feasibility_evidence())
+    assert validate_feasibility_result_bytes(raw)["outcome"] == "FITS"
+    value = parse_canonical_object(raw, role="result")
+    for mutation in (
+        {**value, "result_sha256": "0" * 64},
+        {**value, "extra": 1},
+        {**value, "claim_eligible": 0},
+        {**value, "quality_metrics": [1]},
+    ):
+        with pytest.raises(ValueError, match="result"):
+            validate_feasibility_result_bytes(canonical_json_bytes(mutation))
 
 
 def test_result_recomputes_outcome_precedence() -> None:
@@ -322,6 +337,11 @@ def test_fixture_loader_reconstructs_source_bound_images(tmp_path: Path) -> None
     assert loaded.image_count == 64
     assert loaded.attention_layer == 26
     assert loaded.generation_seeds == tuple(range(8))
+    assert loaded.prompt_utf8 == "List the visible car attributes and relations."
+    assert loaded.pair_ordinals == (0, 1)
+    assert loaded.microbatch_ordinals == tuple(range(64))
+    assert loaded.pseudo_labels == tuple(ordinal % 2 for ordinal in range(64))
+    assert len(loaded.image_sha256) == 64
 
 
 @pytest.mark.parametrize(

@@ -219,6 +219,11 @@ class FixtureAuthority:
     attention_layer: int
     prompt_sha256: str
     message_serialization_sha256: str
+    prompt_utf8: str
+    image_sha256: tuple[str, ...]
+    pair_ordinals: tuple[int, ...]
+    microbatch_ordinals: tuple[int, ...]
+    pseudo_labels: tuple[int, ...]
 
 
 def parse_canonical_object(raw: bytes, *, role: str) -> dict[str, object]:
@@ -365,7 +370,9 @@ def load_snapshot_authority(*, root: Path, manifest_path: Path) -> SnapshotAutho
     )
 
 
-def _generated_image_bytes(source_commit: str, ordinal: int) -> bytes:
+def generated_fixture_image_bytes(source_commit: str, ordinal: int) -> bytes:
+    """Reconstruct one source-bound 224x224 RGB compute-fixture image."""
+
     output = bytearray()
     counter = 0
     while len(output) < 224 * 224 * 3:
@@ -441,15 +448,15 @@ def load_fixture_authority(path: Path) -> FixtureAuthority:
     if type(image_sha256) is not list or len(image_sha256) != 64:
         raise ValueError("SAGA fixture image digests differ")
     expected_image_sha256 = [
-        hashlib.sha256(_generated_image_bytes(source_commit, ordinal)).hexdigest()
+        hashlib.sha256(generated_fixture_image_bytes(source_commit, ordinal)).hexdigest()
         for ordinal in range(64)
     ]
     if image_sha256 != expected_image_sha256:
         raise ValueError("SAGA fixture image digests differ")
-    _require_exact_integer_list(
+    pair_ordinals = _require_exact_integer_list(
         manifest["pair_ordinals"], expected=[0, 1], name="pair ordinals"
     )
-    _require_exact_integer_list(
+    microbatch_ordinals = _require_exact_integer_list(
         manifest["microbatch_ordinals"],
         expected=list(range(64)),
         name="microbatch ordinals",
@@ -504,6 +511,11 @@ def load_fixture_authority(path: Path) -> FixtureAuthority:
         attention_layer=26,
         prompt_sha256=prompt_sha256,
         message_serialization_sha256=message_serialization_sha256,
+        prompt_utf8=prompt,
+        image_sha256=tuple(image_sha256),
+        pair_ordinals=pair_ordinals,
+        microbatch_ordinals=microbatch_ordinals,
+        pseudo_labels=pseudo_labels,
     )
 
 
@@ -602,3 +614,131 @@ def canonical_feasibility_result_bytes(evidence: FeasibilityEvidence) -> bytes:
         canonical_json_bytes(payload)
     ).hexdigest()
     return canonical_json_bytes(payload)
+
+
+def validate_feasibility_result_bytes(raw: bytes) -> dict[str, object]:
+    """Validate exact canonical result authority, arithmetic, and self-digest."""
+
+    value = parse_canonical_object(raw, role="SAGA feasibility result")
+    expected_keys = {
+        "schema",
+        "claim_eligible",
+        "outcome",
+        "decisive_clause",
+        "source_commit",
+        "controller_commit",
+        "binary_sha256",
+        "environment_sha256",
+        "host",
+        "objects",
+        "resource_envelope",
+        "phases",
+        "best_case_step_ns",
+        "dataset_reads",
+        "label_reads",
+        "evaluation_reads",
+        "optimizer_steps",
+        "quality_metrics",
+        "result_sha256",
+    }
+    if set(value) != expected_keys:
+        raise ValueError("SAGA feasibility result schema differs")
+    if value["schema"] != "sfora-saga-gb10-feasibility-result-v1":
+        raise ValueError("SAGA feasibility result schema differs")
+    if value["claim_eligible"] is not False or value["quality_metrics"] != []:
+        raise ValueError("SAGA feasibility result claim authority differs")
+    for name in (
+        "dataset_reads",
+        "label_reads",
+        "evaluation_reads",
+        "optimizer_steps",
+    ):
+        if type(value[name]) is not int or value[name] != 0:
+            raise ValueError("SAGA feasibility result capability counters differ")
+    _require_commit(value["source_commit"], name="result source commit")
+    _require_commit(value["controller_commit"], name="result controller commit")
+    _require_sha256(value["binary_sha256"], name="result binary digest")
+    _require_sha256(value["environment_sha256"], name="result environment digest")
+    _require_nonempty_string(value["host"], name="result host")
+    objects = value["objects"]
+    if type(objects) is not list or len(objects) != 2:
+        raise ValueError("SAGA feasibility result object authority differs")
+    tuple(ObjectAuthority.from_mapping(item) for item in objects)
+    envelope = value["resource_envelope"]
+    envelope_keys = {
+        "cuda_reserved_limit_bytes",
+        "rss_limit_bytes",
+        "wall_limit_ns",
+        "progress_limit_ns",
+    }
+    if type(envelope) is not dict or set(envelope) != envelope_keys:
+        raise ValueError("SAGA feasibility result resource envelope differs")
+    for item in envelope.values():
+        if type(item) is not int or item <= 0:
+            raise ValueError("SAGA feasibility result resource envelope differs")
+
+    phases = value["phases"]
+    if type(phases) is not list or len(phases) != len(_PHASE_NAMES):
+        raise ValueError("SAGA feasibility result phase evidence differs")
+    phase_keys = {
+        "name",
+        "completed",
+        "elapsed_ns",
+        "peak_cuda_reserved_bytes",
+        "peak_rss_bytes",
+    }
+    completed: list[bool] = []
+    for expected_name, phase in zip(_PHASE_NAMES, phases, strict=True):
+        if type(phase) is not dict or set(phase) != phase_keys:
+            raise ValueError("SAGA feasibility result phase evidence differs")
+        if phase["name"] != expected_name or type(phase["completed"]) is not bool:
+            raise ValueError("SAGA feasibility result phase evidence differs")
+        is_complete = phase["completed"]
+        completed.append(is_complete)
+        measurements = (
+            phase["elapsed_ns"],
+            phase["peak_cuda_reserved_bytes"],
+            phase["peak_rss_bytes"],
+        )
+        if any(type(item) is not int or item < 0 for item in measurements):
+            raise ValueError("SAGA feasibility result phase evidence differs")
+        if is_complete and phase["elapsed_ns"] <= 0:
+            raise ValueError("SAGA feasibility result phase evidence differs")
+        if not is_complete and any(measurements):
+            raise ValueError("SAGA feasibility result phase evidence differs")
+    if any(completed[index] and not completed[index - 1] for index in range(1, 5)):
+        raise ValueError("SAGA feasibility result phase evidence differs")
+
+    outcome = value["outcome"]
+    clauses = {
+        FeasibilityOutcome.FITS.value: "all-feasibility-gates",
+        FeasibilityOutcome.AUTHORITY_INVALID.value: "authority",
+        FeasibilityOutcome.BACKEND_INVALID.value: "backend",
+        FeasibilityOutcome.DETERMINISM_FAIL.value: "determinism",
+        FeasibilityOutcome.MEMORY_FAIL.value: "memory",
+        FeasibilityOutcome.ATTENTION_UNAVAILABLE.value: "attention",
+        FeasibilityOutcome.TIME_BUDGET_FAIL.value: "time-budget",
+    }
+    if type(outcome) is not str or clauses.get(outcome) != value["decisive_clause"]:
+        raise ValueError("SAGA feasibility result outcome differs")
+    if outcome == FeasibilityOutcome.FITS.value and not all(completed):
+        raise ValueError("SAGA feasibility result phase evidence differs")
+    if all(completed):
+        expected_projection = project_best_case_step_ns(
+            dml_microbatch_ns=phases[4]["elapsed_ns"],
+            rollout_group_ns=phases[1]["elapsed_ns"],
+            replay_pair_ns=phases[2]["elapsed_ns"],
+            attention_pair_ns=phases[3]["elapsed_ns"],
+        )
+        if value["best_case_step_ns"] != expected_projection:
+            raise ValueError("SAGA feasibility result projection differs")
+    elif value["best_case_step_ns"] is not None:
+        raise ValueError("SAGA feasibility result projection differs")
+
+    result_sha256 = value["result_sha256"]
+    _require_sha256(result_sha256, name="result self digest")
+    unsigned = dict(value)
+    del unsigned["result_sha256"]
+    if hashlib.sha256(canonical_json_bytes(unsigned)).hexdigest() != result_sha256:
+        raise ValueError("SAGA feasibility result self digest differs")
+    return value
