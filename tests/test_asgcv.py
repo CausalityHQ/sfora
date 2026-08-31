@@ -21,6 +21,7 @@ from sfora.asgcv import (
     srht_gradient_sketch,
     srht_signs_and_rows,
     validate_e0_result_bytes,
+    validate_e0_result_inputs,
 )
 
 
@@ -494,3 +495,32 @@ def test_e0_result_rejects_semantic_rehash_and_byte_authority_drift() -> None:
     baseline["result_sha256"] = "0" * 64
     with pytest.raises(ValueError):
         validate_e0_result_bytes(_canonical_json_bytes(baseline))
+
+
+def test_e0_result_reopens_every_bound_input_before_acceptance() -> None:
+    raw = _e0_result_bytes()
+    exact, _ = _fields()
+    exact_batch = np.stack((exact, exact * 1.25))
+    norms = np.asarray([0.5, 0.75, 1.25, 1.5], dtype=np.float64)
+
+    assert (
+        validate_e0_result_inputs(
+            raw,
+            exact=exact_batch,
+            predicted=exact_batch.copy(),
+            exact_preclip_norms=norms,
+            asgcv_preclip_norms=norms.copy(),
+        )["result_sha256"]
+        == validate_e0_result_bytes(raw)["result_sha256"]
+    )
+
+    mutated = exact_batch.copy()
+    mutated[0, 0, 0, 0] = np.nextafter(mutated[0, 0, 0, 0], np.inf)
+    with pytest.raises(ValueError):
+        validate_e0_result_inputs(
+            raw,
+            exact=mutated,
+            predicted=exact_batch.copy(),
+            exact_preclip_norms=norms,
+            asgcv_preclip_norms=norms.copy(),
+        )

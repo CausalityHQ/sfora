@@ -984,6 +984,39 @@ def validate_e0_result_bytes(raw: bytes) -> dict[str, object]:
     return value
 
 
+def validate_e0_result_inputs(
+    raw: bytes,
+    *,
+    exact: object,
+    predicted: object,
+    exact_preclip_norms: object,
+    asgcv_preclip_norms: object,
+) -> dict[str, object]:
+    """Reopen every E0 numeric input and require the same canonical result."""
+
+    value = validate_e0_result_bytes(raw)
+    wall = value["semantic_wall_ns"]
+    if type(wall) is not dict:
+        raise ValueError("ASG-CV E0 wall-time schema differs")
+    rebuilt = canonical_e0_result_bytes(
+        source_commit=value["source_commit"],
+        dataset_manifest_sha256=value["dataset_manifest_sha256"],
+        partition_manifest_sha256=value["partition_manifest_sha256"],
+        predictor_state_sha256=value["predictor_state_sha256"],
+        selection_schedule_sha256=value["selection_schedule_sha256"],
+        exact=exact,
+        predicted=predicted,
+        srht_authority=AsgcvSrhtAuthority.from_mapping(value["srht_authority"]),
+        exact_preclip_norms=exact_preclip_norms,
+        asgcv_preclip_norms=asgcv_preclip_norms,
+        exact_semantic_wall_ns=wall["exact"],
+        asgcv_semantic_wall_ns=wall["asgcv"],
+    )
+    if rebuilt != raw:
+        raise ValueError("ASG-CV E0 reopened inputs differ")
+    return value
+
+
 def low_rank_gradient_field(
     patch_factors: object,
     channel_factors: object,
