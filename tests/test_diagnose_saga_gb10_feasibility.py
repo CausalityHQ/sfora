@@ -751,6 +751,10 @@ def test_qwen_replay_captures_exact_merged_patch_gradient_target(tmp_path: Path)
         rollouts.completion_ids,
         _MODULE.group_normalized_advantages(authority.fixture.synthetic_rewards),
         correct_rollouts=tuple(bool(value) for value in authority.fixture.synthetic_rewards),
+        attribute_spans=tuple(
+            pair.attribute_token_span if value else None
+            for value in authority.fixture.synthetic_rewards
+        ),
         attention_layer=authority.fixture.attention_layer,
     )
 
@@ -788,6 +792,10 @@ def test_qwen_replay_patch_gradient_rejects_missing_merger(tmp_path: Path) -> No
             rollouts.completion_ids,
             _MODULE.group_normalized_advantages(authority.fixture.synthetic_rewards),
             correct_rollouts=tuple(bool(value) for value in authority.fixture.synthetic_rewards),
+            attribute_spans=tuple(
+                pair.attribute_token_span if value else None
+                for value in authority.fixture.synthetic_rewards
+            ),
             attention_layer=authority.fixture.attention_layer,
         )
 
@@ -804,6 +812,7 @@ def test_qwen_replay_patch_gradient_requires_a_correct_attention_teacher(tmp_pat
             rollouts.completion_ids,
             _MODULE.group_normalized_advantages(authority.fixture.synthetic_rewards),
             correct_rollouts=(False,) * authority.fixture.group_size,
+            attribute_spans=(None,) * authority.fixture.group_size,
             attention_layer=authority.fixture.attention_layer,
         )
 

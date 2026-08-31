@@ -551,6 +551,7 @@ class QwenSagaAdapter:
         advantages: tuple[float, ...],
         *,
         correct_rollouts: tuple[bool, ...],
+        attribute_spans: tuple[tuple[int, int] | None, ...],
         attention_layer: int,
     ) -> PatchGradientTarget:
         """Capture combined GRPO and attention-KL gradient at the vision boundary."""
@@ -561,12 +562,24 @@ class QwenSagaAdapter:
             or type(correct_rollouts) is not tuple
             or len(correct_rollouts) != len(completion_ids)
             or any(type(value) is not bool for value in correct_rollouts)
+            or type(attribute_spans) is not tuple
+            or len(attribute_spans) != len(completion_ids)
             or type(attention_layer) is not int
             or attention_layer != 26
         ):
             raise ValueError("SAGA patch gradient replay authority differs")
         if not any(correct_rollouts):
             raise ValueError("SAGA correct rollout authority differs")
+        for correct, span in zip(correct_rollouts, attribute_spans, strict=True):
+            if span is not None and (
+                type(span) is not tuple
+                or len(span) != 2
+                or any(type(value) is not int for value in span)
+                or not 0 <= span[0] < span[1]
+            ):
+                raise ValueError("SAGA attribute token span differs")
+            if correct and span is None:
+                raise ValueError("SAGA correct rollout attribute span differs")
         model = getattr(self._model, "model", None)
         visual = getattr(model, "visual", None)
         merger = getattr(visual, "merger", None)
@@ -590,10 +603,11 @@ class QwenSagaAdapter:
             teacher_maps: list[torch.Tensor] = []
             generated_tokens = 0
             head_count: int | None = None
-            for completion, advantage, correct in zip(
+            for completion, advantage, correct, attribute_span in zip(
                 completion_ids,
                 advantages,
                 correct_rollouts,
+                attribute_spans,
                 strict=True,
             ):
                 inputs = self._completed_inputs(pair, completion)
@@ -618,11 +632,14 @@ class QwenSagaAdapter:
                 losses.append(-float(advantage) * token_log_probabilities.mean())
                 generated_tokens += len(completion)
                 if correct:
+                    if attribute_span is None:
+                        raise ValueError("SAGA correct rollout attribute span differs")
                     teacher_map, completion_head_count = self._completion_teacher_map(
                         pair,
                         outputs.attentions,
                         layer=attention_layer,
                         completion_length=len(completion),
+                        attribute_span=attribute_span,
                     )
                     if head_count is None:
                         head_count = completion_head_count
@@ -694,13 +711,14 @@ class QwenSagaAdapter:
         *,
         layer: int,
         completion_length: int,
+        attribute_span: tuple[int, int],
     ) -> tuple[torch.Tensor, int]:
         if type(attentions) not in {tuple, list} or len(attentions) <= layer:
             raise AttentionUnavailable("layer-26-attention-unavailable")
         attention = attentions[layer]
         if type(attention) is not torch.Tensor or attention.ndim != 4:
             raise AttentionUnavailable("layer-26-attention-unavailable")
-        span_start, span_end = pair.attribute_token_span
+        span_start, span_end = attribute_span
         if type(completion_length) is not int or span_end > completion_length:
             raise ValueError("SAGA attribute token span differs")
         query_start = pair.input_length + span_start
@@ -749,6 +767,7 @@ class QwenSagaAdapter:
                 outputs.attentions,
                 layer=layer,
                 completion_length=len(completion),
+                attribute_span=pair.attribute_token_span,
             )
             if head_count is None:
                 head_count = completion_head_count
