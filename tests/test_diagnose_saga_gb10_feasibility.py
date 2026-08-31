@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -8,7 +9,13 @@ from pathlib import Path
 import pytest
 import torch
 
-from sfora.saga_feasibility import FixtureAuthority, SnapshotAuthority
+from sfora.saga_feasibility import (
+    FeasibilityOutcome,
+    FixtureAuthority,
+    ObjectAuthority,
+    ResourceEnvelope,
+    SnapshotAuthority,
+)
 
 _SCRIPT = (
     Path(__file__).resolve().parents[1]
@@ -29,8 +36,8 @@ def _valid_cli_args(tmp_path: Path) -> list[str]:
     model_root.mkdir(exist_ok=True)
     snapshot = tmp_path / "snapshot.json"
     fixture = tmp_path / "fixture.json"
-    snapshot.touch()
-    fixture.touch()
+    snapshot.write_bytes(b"{}\n")
+    fixture.write_bytes(b"{}\n")
     return [
         "--model-root",
         str(model_root),
@@ -41,7 +48,15 @@ def _valid_cli_args(tmp_path: Path) -> list[str]:
         "--result-output",
         str(tmp_path / "result.json"),
         "--source-commit",
-        "a" * 40,
+        "5" * 40,
+        "--controller-commit",
+        "b" * 40,
+        "--binary-sha256",
+        "6" * 64,
+        "--environment-sha256",
+        "7" * 64,
+        "--host",
+        "spark-fixture",
         "--execute-feasibility",
     ]
 
@@ -223,7 +238,7 @@ class _RecordingAdapter:
         self.cleared = 0
 
     def prepare_pair(self, fixture: FixtureAuthority) -> object:
-        assert fixture is _FIXTURE
+        assert fixture == _FIXTURE
         return "prepared-pair"
 
     def generate(
@@ -353,6 +368,9 @@ class _AttentionDmlAdapter(_RecordingAdapter):
         self.patch_tokens.requires_grad_(True)
         self.microbatch_embeddings: torch.Tensor | None = None
 
+    def validate_structure(self, _authority: object) -> None:
+        return None
+
     def attention_observation(
         self,
         pair: object,
@@ -370,7 +388,7 @@ class _AttentionDmlAdapter(_RecordingAdapter):
         )
 
     def prepare_microbatch(self, fixture: FixtureAuthority) -> object:
-        assert fixture is _FIXTURE
+        assert fixture == _FIXTURE
         return "prepared-microbatch"
 
     def vision_pool(self, microbatch: object) -> torch.Tensor:
@@ -436,3 +454,158 @@ def test_dml_floor_rejects_embedding_shape_and_norm_drift() -> None:
     with pytest.raises(ValueError, match="embedding norms"):
         _MODULE.run_dml_floor_phase(adapter, _FIXTURE)
     assert adapter.cleared == 1
+
+
+def _complete_authority(tmp_path: Path) -> object:
+    authority = _loaded_authority(tmp_path)
+    return _MODULE.LoadedAuthority(
+        snapshot=authority.snapshot,
+        fixture=authority.fixture,
+        result_identity=_MODULE.RunIdentity(
+            source_commit="5" * 40,
+            controller_commit="b" * 40,
+            binary_sha256="6" * 64,
+            environment_sha256="7" * 64,
+            host="spark-fixture",
+            model_object=ObjectAuthority(
+                role="model-snapshot-manifest",
+                relative_path="snapshot.json",
+                byte_length=10,
+                sha256="e" * 64,
+            ),
+            fixture_object=ObjectAuthority(
+                role="synthetic-fixture",
+                relative_path="fixture.json",
+                byte_length=20,
+                sha256="f" * 64,
+            ),
+            envelope=ResourceEnvelope(
+                cuda_reserved_limit_bytes=103_079_215_104,
+                rss_limit_bytes=118_111_600_640,
+                wall_limit_ns=7_200_000_000_000,
+                progress_limit_ns=300_000_000_000,
+            ),
+        ),
+    )
+
+
+def test_complete_fake_run_emits_one_claim_ineligible_fits_result(
+    tmp_path: Path,
+) -> None:
+    raw = _MODULE.run_feasibility(_complete_authority(tmp_path), _AttentionDmlAdapter())
+    value = json.loads(raw)
+    assert value["outcome"] == "FITS"
+    assert value["dataset_reads"] == 0
+    assert value["optimizer_steps"] == 0
+    assert value["quality_metrics"] == []
+    assert [phase["name"] for phase in value["phases"]] == [
+        "load",
+        "rollout",
+        "replay",
+        "attention",
+        "dml",
+    ]
+
+
+class _FaultingAdapter(_AttentionDmlAdapter):
+    def __init__(self, fault: str) -> None:
+        super().__init__()
+        self.fault = fault
+        self.generation_count = 0
+
+    def validate_structure(self, _authority: object) -> None:
+        if self.fault == "authority":
+            raise _MODULE.FeasibilityFailure(
+                FeasibilityOutcome.AUTHORITY_INVALID, "fixture-authority"
+            )
+        if self.fault == "backend":
+            raise _MODULE.FeasibilityFailure(
+                FeasibilityOutcome.BACKEND_INVALID, "model-backend"
+            )
+        if self.fault == "timeout":
+            raise _MODULE.FeasibilityFailure(
+                FeasibilityOutcome.TIME_BUDGET_FAIL, "phase-progress"
+            )
+
+    def generate(
+        self,
+        pair: object,
+        seed: int,
+        *,
+        temperature: float,
+        top_p: float,
+        max_new_tokens: int,
+    ) -> tuple[int, ...]:
+        tokens = super().generate(
+            pair,
+            seed,
+            temperature=temperature,
+            top_p=top_p,
+            max_new_tokens=max_new_tokens,
+        )
+        self.generation_count += 1
+        if self.fault == "repeat" and self.generation_count > 8:
+            return (tokens[0] + 999, tokens[1])
+        return tokens
+
+    def attention_observation(
+        self,
+        pair: object,
+        completion_ids: tuple[tuple[int, ...], ...],
+        *,
+        layer: int,
+    ) -> object:
+        if self.fault == "attention":
+            raise _MODULE.AttentionUnavailable("layer-26-unavailable")
+        return super().attention_observation(pair, completion_ids, layer=layer)
+
+    def vision_pool(self, microbatch: object) -> torch.Tensor:
+        if self.fault == "oom":
+            raise torch.OutOfMemoryError("fixture OOM")
+        return super().vision_pool(microbatch)
+
+
+@pytest.mark.parametrize(
+    ("fault", "outcome"),
+    [
+        ("authority", "AUTHORITY_INVALID"),
+        ("backend", "BACKEND_INVALID"),
+        ("repeat", "DETERMINISM_FAIL"),
+        ("oom", "MEMORY_FAIL"),
+        ("attention", "ATTENTION_UNAVAILABLE"),
+        ("timeout", "TIME_BUDGET_FAIL"),
+    ],
+)
+def test_failure_precedence_is_exhaustive(
+    tmp_path: Path, fault: str, outcome: str
+) -> None:
+    raw = _MODULE.run_feasibility(
+        _complete_authority(tmp_path), _FaultingAdapter(fault)
+    )
+    assert json.loads(raw)["outcome"] == outcome
+
+
+def test_direct_script_main_writes_one_exclusive_canonical_result(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    loaded = _complete_authority(tmp_path)
+    adapter = _AttentionDmlAdapter()
+    monkeypatch.setattr(
+        _MODULE, "load_snapshot_authority", lambda **_kwargs: loaded.snapshot
+    )
+    monkeypatch.setattr(
+        _MODULE, "load_fixture_authority", lambda _path: loaded.fixture
+    )
+    monkeypatch.setattr(_MODULE, "TransformersFactory", lambda: object())
+    monkeypatch.setattr(
+        _MODULE, "load_qwen_adapter", lambda _authority, factory: adapter
+    )
+    argv = _valid_cli_args(tmp_path)
+    assert _MODULE.main(argv) == 0
+    output = tmp_path / "result.json"
+    raw = output.read_bytes()
+    assert capsys.readouterr().out.encode() == raw
+    assert raw.endswith(b"\n")
+    assert json.loads(raw)["outcome"] == "FITS"
+    with pytest.raises(SystemExit):
+        _MODULE.main(argv)

@@ -6,6 +6,8 @@ from __future__ import annotations
 import argparse
 import hashlib
 import math
+import os
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from time import perf_counter_ns
@@ -15,7 +17,45 @@ import torch
 import torch.nn.functional as torch_functional
 
 from sfora.pass209_m4 import canonical_json_bytes
-from sfora.saga_feasibility import FixtureAuthority, SnapshotAuthority
+from sfora.saga_feasibility import (
+    FeasibilityEvidence,
+    FeasibilityOutcome,
+    FixtureAuthority,
+    ObjectAuthority,
+    PhaseMeasurement,
+    ResourceEnvelope,
+    SnapshotAuthority,
+    canonical_feasibility_result_bytes,
+    load_fixture_authority,
+    load_snapshot_authority,
+)
+
+
+class FeasibilityFailure(Exception):
+    """Expected, canonically classifiable diagnostic failure."""
+
+    def __init__(self, outcome: FeasibilityOutcome, clause: str) -> None:
+        super().__init__(clause)
+        self.outcome = outcome
+        self.clause = clause
+
+
+class AttentionUnavailable(Exception):
+    """The sealed backend cannot expose exact layer attention."""
+
+
+@dataclass(frozen=True, slots=True)
+class RunIdentity:
+    """Result identities and controller envelope unavailable from model state."""
+
+    source_commit: str
+    controller_commit: str
+    binary_sha256: str
+    environment_sha256: str
+    host: str
+    model_object: ObjectAuthority
+    fixture_object: ObjectAuthority
+    envelope: ResourceEnvelope
 
 
 @dataclass(frozen=True, slots=True)
@@ -24,6 +64,7 @@ class LoadedAuthority:
 
     snapshot: SnapshotAuthority
     fixture: FixtureAuthority
+    result_identity: RunIdentity | None = None
 
 
 class ModelFactory(Protocol):
@@ -32,6 +73,23 @@ class ModelFactory(Protocol):
     def load_model(self, root: Path, **kwargs: object) -> object: ...
 
     def load_processor(self, root: Path, **kwargs: object) -> object: ...
+
+
+class TransformersFactory:
+    """Lazy local-only Transformers construction boundary."""
+
+    def load_model(self, root: Path, **kwargs: object) -> object:
+        from transformers import Qwen3VLForConditionalGeneration
+
+        values = dict(kwargs)
+        if values.get("dtype") == "bfloat16":
+            values["dtype"] = torch.bfloat16
+        return Qwen3VLForConditionalGeneration.from_pretrained(root, **values)
+
+    def load_processor(self, root: Path, **kwargs: object) -> object:
+        from transformers import AutoProcessor
+
+        return AutoProcessor.from_pretrained(root, **kwargs)
 
 
 class SagaModelAdapter(Protocol):
@@ -73,6 +131,8 @@ class SagaModelAdapter(Protocol):
     def prepare_microbatch(self, fixture: FixtureAuthority) -> object: ...
 
     def vision_pool(self, microbatch: object) -> torch.Tensor: ...
+
+    def validate_structure(self, authority: LoadedAuthority) -> None: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -528,6 +588,172 @@ def run_dml_floor_phase(
         adapter.clear_graphs()
 
 
+@dataclass(frozen=True, slots=True)
+class _ScientificRun:
+    rollout: SealedRollouts
+    replay: ReplayEvidence
+    attention: AttentionEvidence
+    dml: DmlFloorEvidence
+
+
+def _phase_measurement(name: str, elapsed_ns: int = 0) -> PhaseMeasurement:
+    return PhaseMeasurement(
+        name=name,
+        completed=elapsed_ns > 0,
+        elapsed_ns=elapsed_ns,
+        peak_cuda_reserved_bytes=0,
+        peak_rss_bytes=0,
+    )
+
+
+def _run_scientific_phases(
+    authority: LoadedAuthority,
+    adapter: SagaModelAdapter,
+    pooler: SingleQueryPooler,
+    measurements: dict[str, PhaseMeasurement] | None,
+) -> _ScientificRun:
+    rollout = run_rollout_phase(adapter, authority.fixture)
+    if measurements is not None:
+        measurements["rollout"] = _phase_measurement("rollout", rollout.elapsed_ns)
+    replay = run_replay_phase(adapter, authority.fixture, rollout)
+    if measurements is not None:
+        measurements["replay"] = _phase_measurement("replay", replay.elapsed_ns)
+    attention = run_attention_phase(adapter, pooler, authority.fixture, rollout)
+    if measurements is not None:
+        measurements["attention"] = _phase_measurement(
+            "attention", attention.elapsed_ns
+        )
+    dml = run_dml_floor_phase(adapter, authority.fixture)
+    if measurements is not None:
+        measurements["dml"] = _phase_measurement("dml", dml.elapsed_ns)
+    return _ScientificRun(
+        rollout=rollout,
+        replay=replay,
+        attention=attention,
+        dml=dml,
+    )
+
+
+def _repeatability_signature(run: _ScientificRun) -> tuple[object, ...]:
+    return (
+        run.rollout.token_counts,
+        run.rollout.completion_sha256,
+        run.replay.loss,
+        run.replay.generated_tokens,
+        run.replay.vision_nonzero_gradient_parameters,
+        run.replay.language_gradient_parameters,
+        run.replay.gradient_sha256,
+        run.attention.layer,
+        run.attention.head_count,
+        run.attention.kl,
+        run.attention.teacher_unit_mass,
+        run.attention.teacher_gradient_parameters,
+        run.attention.pooler_nonzero_gradient_parameters,
+        run.dml.embedding_shape,
+        run.dml.loss,
+        run.dml.maximum_norm_delta_ppm,
+        run.dml.vision_nonzero_gradient_parameters,
+        run.dml.language_gradient_parameters,
+    )
+
+
+def _failure_flags(outcome: FeasibilityOutcome) -> dict[str, bool]:
+    flags = {
+        "authority_valid": True,
+        "backend_valid": True,
+        "deterministic": True,
+        "memory_within_envelope": True,
+        "attention_available": True,
+        "time_within_envelope": True,
+    }
+    field = {
+        FeasibilityOutcome.AUTHORITY_INVALID: "authority_valid",
+        FeasibilityOutcome.BACKEND_INVALID: "backend_valid",
+        FeasibilityOutcome.DETERMINISM_FAIL: "deterministic",
+        FeasibilityOutcome.MEMORY_FAIL: "memory_within_envelope",
+        FeasibilityOutcome.ATTENTION_UNAVAILABLE: "attention_available",
+        FeasibilityOutcome.TIME_BUDGET_FAIL: "time_within_envelope",
+    }.get(outcome)
+    if field is not None:
+        flags[field] = False
+    return flags
+
+
+def _validate_run_identity(authority: LoadedAuthority) -> RunIdentity:
+    identity = authority.result_identity
+    if type(identity) is not RunIdentity:
+        raise ValueError("SAGA result identity differs")
+    fixture = authority.fixture
+    if (
+        identity.source_commit != fixture.source_commit
+        or identity.binary_sha256 != fixture.binary_sha256
+        or identity.environment_sha256 != fixture.environment_sha256
+        or identity.host != fixture.host
+        or authority.snapshot.model_revision != fixture.model_revision
+    ):
+        raise ValueError("SAGA result identity differs")
+    identity.model_object.validated()
+    identity.fixture_object.validated()
+    identity.envelope.to_mapping()
+    return identity
+
+
+def run_feasibility(
+    authority: LoadedAuthority, adapter: SagaModelAdapter
+) -> bytes:
+    """Run one complete repeatability diagnostic and emit canonical evidence."""
+
+    identity = _validate_run_identity(authority)
+    measurements = {
+        name: _phase_measurement(name)
+        for name in ("load", "rollout", "replay", "attention", "dml")
+    }
+    outcome = FeasibilityOutcome.FITS
+    try:
+        started = perf_counter_ns()
+        adapter.validate_structure(authority)
+        measurements["load"] = _phase_measurement(
+            "load", max(1, perf_counter_ns() - started)
+        )
+        token_dim = getattr(adapter, "pooler_token_dim", 16)
+        pooler = SingleQueryPooler(token_dim=token_dim)
+        first = _run_scientific_phases(authority, adapter, pooler, measurements)
+        second = _run_scientific_phases(authority, adapter, pooler, None)
+        if _repeatability_signature(first) != _repeatability_signature(second):
+            raise FeasibilityFailure(
+                FeasibilityOutcome.DETERMINISM_FAIL, "repeatability"
+            )
+    except FeasibilityFailure as failure:
+        outcome = failure.outcome
+    except AttentionUnavailable:
+        outcome = FeasibilityOutcome.ATTENTION_UNAVAILABLE
+    except torch.OutOfMemoryError:
+        outcome = FeasibilityOutcome.MEMORY_FAIL
+
+    flags = _failure_flags(outcome)
+    evidence = FeasibilityEvidence(
+        source_commit=identity.source_commit,
+        controller_commit=identity.controller_commit,
+        binary_sha256=identity.binary_sha256,
+        environment_sha256=identity.environment_sha256,
+        host=identity.host,
+        model=identity.model_object,
+        fixture=identity.fixture_object,
+        envelope=identity.envelope,
+        load=measurements["load"],
+        rollout=measurements["rollout"],
+        replay=measurements["replay"],
+        attention=measurements["attention"],
+        dml=measurements["dml"],
+        dataset_reads=0,
+        label_reads=0,
+        evaluation_reads=0,
+        optimizer_steps=0,
+        **flags,
+    )
+    return canonical_feasibility_result_bytes(evidence)
+
+
 def _reject_duplicate_options(argv: list[str]) -> None:
     options = [token for token in argv if token.startswith("--")]
     if len(options) != len(set(options)):
@@ -546,12 +772,26 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--fixture", required=True, type=Path)
     parser.add_argument("--result-output", required=True, type=Path)
     parser.add_argument("--source-commit", required=True)
+    parser.add_argument("--controller-commit", required=True)
+    parser.add_argument("--binary-sha256", required=True)
+    parser.add_argument("--environment-sha256", required=True)
+    parser.add_argument("--host", required=True)
     parser.add_argument("--execute-feasibility", required=True, action="store_true")
     parsed = parser.parse_args(values)
-    if len(parsed.source_commit) != 40 or any(
-        character not in "0123456789abcdef" for character in parsed.source_commit
-    ):
-        parser.error("source commit must be 40 lowercase hexadecimal characters")
+    for name in ("source_commit", "controller_commit"):
+        value = getattr(parsed, name)
+        if len(value) != 40 or any(
+            character not in "0123456789abcdef" for character in value
+        ):
+            parser.error(f"{name.replace('_', ' ')} must be 40 lowercase hex")
+    for name in ("binary_sha256", "environment_sha256"):
+        value = getattr(parsed, name)
+        if len(value) != 64 or any(
+            character not in "0123456789abcdef" for character in value
+        ):
+            parser.error(f"{name.replace('_', ' ')} must be 64 lowercase hex")
+    if not parsed.host:
+        parser.error("host must be nonempty")
     if not parsed.model_root.is_dir():
         parser.error("model root must be an existing directory")
     for name in ("snapshot_manifest", "fixture"):
@@ -562,11 +802,66 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parsed
 
 
-def main(argv: list[str] | None = None) -> int:
-    """Parse the dedicated boundary; later tasks add the scientific runner."""
+def _path_authority(path: Path, *, role: str) -> ObjectAuthority:
+    if path.is_symlink() or not path.is_file():
+        raise ValueError(f"SAGA {role} path authority differs")
+    payload = path.read_bytes()
+    return ObjectAuthority(
+        role=role,
+        relative_path=path.name,
+        byte_length=len(payload),
+        sha256=hashlib.sha256(payload).hexdigest(),
+    ).validated()
 
-    parse_args(argv)
-    raise RuntimeError("SAGA feasibility scientific runner is not implemented")
+
+def _write_new(path: Path, payload: bytes) -> None:
+    path.parent.resolve(strict=True)
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    try:
+        with os.fdopen(descriptor, "wb", closefd=False) as stream:
+            stream.write(payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+    finally:
+        os.close(descriptor)
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Authenticate local inputs, execute once, and publish canonical evidence."""
+
+    args = parse_args(argv)
+    snapshot = load_snapshot_authority(
+        root=args.model_root, manifest_path=args.snapshot_manifest
+    )
+    fixture = load_fixture_authority(args.fixture)
+    identity = RunIdentity(
+        source_commit=args.source_commit,
+        controller_commit=args.controller_commit,
+        binary_sha256=args.binary_sha256,
+        environment_sha256=args.environment_sha256,
+        host=args.host,
+        model_object=_path_authority(
+            args.snapshot_manifest, role="model-snapshot-manifest"
+        ),
+        fixture_object=_path_authority(args.fixture, role="synthetic-fixture"),
+        envelope=ResourceEnvelope(
+            cuda_reserved_limit_bytes=103_079_215_104,
+            rss_limit_bytes=118_111_600_640,
+            wall_limit_ns=7_200_000_000_000,
+            progress_limit_ns=300_000_000_000,
+        ),
+    )
+    authority = LoadedAuthority(
+        snapshot=snapshot,
+        fixture=fixture,
+        result_identity=identity,
+    )
+    adapter = load_qwen_adapter(authority, factory=TransformersFactory())
+    raw = run_feasibility(authority, adapter)
+    _write_new(args.result_output, raw)
+    sys.stdout.buffer.write(raw)
+    sys.stdout.buffer.flush()
+    return 0
 
 
 if __name__ == "__main__":

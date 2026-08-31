@@ -131,14 +131,24 @@ class PhaseMeasurement:
     peak_cuda_reserved_bytes: int
     peak_rss_bytes: int
 
-    def to_mapping(self, *, expected_name: str) -> dict[str, object]:
-        if self.name != expected_name or self.completed is not True:
+    def to_mapping(
+        self, *, expected_name: str, require_completed: bool
+    ) -> dict[str, object]:
+        if self.name != expected_name or type(self.completed) is not bool:
             raise ValueError("SAGA phase evidence differs")
-        _require_positive_integer(self.elapsed_ns, name="phase elapsed time")
-        for name in ("peak_cuda_reserved_bytes", "peak_rss_bytes"):
-            value = getattr(self, name)
-            if type(value) is not int or value < 0:
+        if require_completed and not self.completed:
+            raise ValueError("SAGA phase evidence differs")
+        values = (
+            self.elapsed_ns,
+            self.peak_cuda_reserved_bytes,
+            self.peak_rss_bytes,
+        )
+        if self.completed:
+            _require_positive_integer(self.elapsed_ns, name="phase elapsed time")
+            if any(type(value) is not int or value < 0 for value in values[1:]):
                 raise ValueError("SAGA phase evidence differs")
+        elif any(type(value) is not int or value != 0 for value in values):
+            raise ValueError("SAGA phase evidence differs")
         return {
             "name": self.name,
             "completed": self.completed,
@@ -546,18 +556,27 @@ def canonical_feasibility_result_bytes(evidence: FeasibilityEvidence) -> bytes:
     if any(type(value) is not int or value != 0 for value in counters):
         raise ValueError("SAGA capability counters differ")
 
-    phases = tuple(
-        getattr(evidence, name).to_mapping(expected_name=name) for name in _PHASE_NAMES
-    )
     outcome, decisive_clause = _outcome(evidence)
-    best_case_step_ns = project_best_case_step_ns(
-        dml_microbatch_ns=evidence.dml.elapsed_ns,
-        rollout_group_ns=evidence.rollout.elapsed_ns,
-        replay_pair_ns=evidence.replay.elapsed_ns,
-        attention_pair_ns=evidence.attention.elapsed_ns,
+    phases = tuple(
+        getattr(evidence, name).to_mapping(
+            expected_name=name, require_completed=outcome is FeasibilityOutcome.FITS
+        )
+        for name in _PHASE_NAMES
     )
-    if not math.isfinite(float(best_case_step_ns)):
-        raise ValueError("SAGA projection differs")
+    completion = tuple(phase["completed"] for phase in phases)
+    if any(completion[index] and not completion[index - 1] for index in range(1, 5)):
+        raise ValueError("SAGA phase evidence differs")
+    if all(completion):
+        best_case_step_ns: int | None = project_best_case_step_ns(
+            dml_microbatch_ns=evidence.dml.elapsed_ns,
+            rollout_group_ns=evidence.rollout.elapsed_ns,
+            replay_pair_ns=evidence.replay.elapsed_ns,
+            attention_pair_ns=evidence.attention.elapsed_ns,
+        )
+        if not math.isfinite(float(best_case_step_ns)):
+            raise ValueError("SAGA projection differs")
+    else:
+        best_case_step_ns = None
 
     payload: dict[str, object] = {
         "schema": "sfora-saga-gb10-feasibility-result-v1",
