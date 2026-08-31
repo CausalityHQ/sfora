@@ -112,8 +112,15 @@ def test_e0_metrics_pass_only_when_every_registered_gate_passes() -> None:
     exact, _ = _fields()
     exact_batch = np.stack((exact, exact * 1.25))
     projection = np.eye(4, dtype=np.float64)
+    exact_preclip_norms = np.asarray([0.5, 0.75, 1.25, 1.5], dtype=np.float64)
 
-    perfect = evaluate_e0(exact_batch, exact_batch.copy(), projection)
+    perfect = evaluate_e0(
+        exact_batch,
+        exact_batch.copy(),
+        projection,
+        exact_preclip_norms=exact_preclip_norms,
+        asgcv_preclip_norms=exact_preclip_norms.copy(),
+    )
     assert perfect.passed is True
     assert perfect.to_mapping() == {
         "schema": "sfora-asgcv-e0-metrics-v1",
@@ -123,6 +130,10 @@ def test_e0_metrics_pass_only_when_every_registered_gate_passes() -> None:
         "patch_salience_spearman_ppm": 1_000_000,
         "normalized_residual_energy_ppm": 0,
         "selection_variance_ratio_ppm": 0,
+        "preclip_p99_ratio_ppm": 1_000_000,
+        "exact_clip_rate_ppm": 500_000,
+        "asgcv_clip_rate_ppm": 500_000,
+        "clip_rate_delta_ppm": 0,
         "passed": True,
     }
     assert type(perfect).from_mapping(perfect.to_mapping()) == perfect
@@ -133,13 +144,22 @@ def test_e0_metrics_pass_only_when_every_registered_gate_passes() -> None:
         {**perfect.to_mapping(), "dense_gradient_cosine_ppm": 1_000_001},
         {**perfect.to_mapping(), "normalized_residual_energy_ppm": -1},
         {**perfect.to_mapping(), "selection_variance_ratio_ppm": -1},
+        {**perfect.to_mapping(), "preclip_p99_ratio_ppm": -1},
+        {**perfect.to_mapping(), "exact_clip_rate_ppm": 1_000_001},
+        {**perfect.to_mapping(), "clip_rate_delta_ppm": -1},
         {**perfect.to_mapping(), "passed": False},
         {**perfect.to_mapping(), "extra": 1},
     ):
         with pytest.raises(ValueError):
             type(perfect).from_mapping(mutation)
 
-    reversed_prediction = evaluate_e0(exact_batch, -exact_batch, projection)
+    reversed_prediction = evaluate_e0(
+        exact_batch,
+        -exact_batch,
+        projection,
+        exact_preclip_norms=exact_preclip_norms,
+        asgcv_preclip_norms=exact_preclip_norms.copy(),
+    )
     assert reversed_prediction.passed is False
     assert reversed_prediction.dense_gradient_cosine_ppm == -1_000_000
     assert reversed_prediction.normalized_residual_energy_ppm == 4_000_000
@@ -149,23 +169,90 @@ def test_e0_rejects_projection_batch_and_degenerate_salience_drift() -> None:
     exact, _ = _fields()
     exact_batch = np.stack((exact, exact * 1.25))
     projection = np.eye(4, dtype=np.float64)
+    norms = np.asarray([0.5, 0.75, 1.25, 1.5], dtype=np.float64)
 
     with pytest.raises(ValueError):
-        evaluate_e0(exact_batch.astype(np.float32), exact_batch, projection)
+        evaluate_e0(
+            exact_batch.astype(np.float32),
+            exact_batch,
+            projection,
+            exact_preclip_norms=norms,
+            asgcv_preclip_norms=norms,
+        )
     with pytest.raises(ValueError):
-        evaluate_e0(exact_batch, exact_batch[:, :, :, :3], projection)
+        evaluate_e0(
+            exact_batch,
+            exact_batch[:, :, :, :3],
+            projection,
+            exact_preclip_norms=norms,
+            asgcv_preclip_norms=norms,
+        )
     with pytest.raises(ValueError):
-        evaluate_e0(exact_batch, exact_batch, projection.astype(np.float32))
+        evaluate_e0(
+            exact_batch,
+            exact_batch,
+            projection.astype(np.float32),
+            exact_preclip_norms=norms,
+            asgcv_preclip_norms=norms,
+        )
     with pytest.raises(ValueError):
-        evaluate_e0(exact_batch, exact_batch, projection[:, :3])
+        evaluate_e0(
+            exact_batch,
+            exact_batch,
+            projection[:, :3],
+            exact_preclip_norms=norms,
+            asgcv_preclip_norms=norms,
+        )
     nonfinite = projection.copy()
     nonfinite[0, 0] = np.inf
     with pytest.raises(ValueError):
-        evaluate_e0(exact_batch, exact_batch, nonfinite)
+        evaluate_e0(
+            exact_batch,
+            exact_batch,
+            nonfinite,
+            exact_preclip_norms=norms,
+            asgcv_preclip_norms=norms,
+        )
 
     constant_patch_norms = np.ones((2, 8, 3, 4), dtype=np.float64)
     with pytest.raises(ValueError):
-        evaluate_e0(constant_patch_norms, constant_patch_norms.copy(), projection)
+        evaluate_e0(
+            constant_patch_norms,
+            constant_patch_norms.copy(),
+            projection,
+            exact_preclip_norms=norms,
+            asgcv_preclip_norms=norms,
+        )
+
+    with pytest.raises(ValueError):
+        evaluate_e0(
+            exact_batch,
+            exact_batch,
+            projection,
+            exact_preclip_norms=norms.astype(np.float32),
+            asgcv_preclip_norms=norms,
+        )
+
+
+def test_e0_fails_closed_when_control_variate_increases_clipping() -> None:
+    exact, _ = _fields()
+    exact_batch = np.stack((exact, exact * 1.25))
+    projection = np.eye(4, dtype=np.float64)
+    exact_norms = np.full(20, 0.5, dtype=np.float64)
+    asgcv_norms = np.full(20, 3.0, dtype=np.float64)
+
+    metrics = evaluate_e0(
+        exact_batch,
+        exact_batch.copy(),
+        projection,
+        exact_preclip_norms=exact_norms,
+        asgcv_preclip_norms=asgcv_norms,
+    )
+    assert metrics.preclip_p99_ratio_ppm == 6_000_000
+    assert metrics.exact_clip_rate_ppm == 0
+    assert metrics.asgcv_clip_rate_ppm == 1_000_000
+    assert metrics.clip_rate_delta_ppm == 1_000_000
+    assert metrics.passed is False
 
 
 def test_selection_stream_is_source_bound_exact_and_independent_of_gradients() -> None:

@@ -20,6 +20,9 @@ ASGCV_PROJECTED_COSINE_GATE_PPM = 900_000
 ASGCV_PATCH_SPEARMAN_GATE_PPM = 800_000
 ASGCV_RESIDUAL_ENERGY_GATE_PPM = 350_000
 ASGCV_VARIANCE_RATIO_GATE_PPM = 600_000
+ASGCV_PRECLIP_P99_RATIO_GATE_PPM = 2_000_000
+ASGCV_CLIP_RATE_DELTA_GATE_PPM = 50_000
+ASGCV_GLOBAL_CLIP_NORM = 1.0
 ASGCV_SELECTION_DOMAIN = b"sfora-asgcv-selection-v1\0"
 ASGCV_SCHEDULE_DOMAIN = b"sfora-asgcv-schedule-v1\0"
 ASGCV_MAX_SCHEDULE_SELECTIONS = 10_000_000
@@ -289,6 +292,10 @@ class AsgcvE0Metrics:
     patch_salience_spearman_ppm: int
     normalized_residual_energy_ppm: int
     selection_variance_ratio_ppm: int
+    preclip_p99_ratio_ppm: int
+    exact_clip_rate_ppm: int
+    asgcv_clip_rate_ppm: int
+    clip_rate_delta_ppm: int
     passed: bool
 
     def validated(self) -> AsgcvE0Metrics:
@@ -306,6 +313,8 @@ class AsgcvE0Metrics:
         ratio_names = (
             "normalized_residual_energy_ppm",
             "selection_variance_ratio_ppm",
+            "preclip_p99_ratio_ppm",
+            "clip_rate_delta_ppm",
         )
         for name in similarity_names + ratio_names:
             if type(getattr(self, name)) is not int:
@@ -314,12 +323,18 @@ class AsgcvE0Metrics:
             raise ValueError("ASG-CV E0 similarity metric differs")
         if any(getattr(self, name) < 0 for name in ratio_names):
             raise ValueError("ASG-CV E0 ratio metric differs")
+        for name in ("exact_clip_rate_ppm", "asgcv_clip_rate_ppm"):
+            value = getattr(self, name)
+            if type(value) is not int or not 0 <= value <= 1_000_000:
+                raise ValueError("ASG-CV E0 clip rate differs")
         expected_pass = (
             self.dense_gradient_cosine_ppm >= ASGCV_DENSE_COSINE_GATE_PPM
             and self.projected_gradient_cosine_ppm >= ASGCV_PROJECTED_COSINE_GATE_PPM
             and self.patch_salience_spearman_ppm >= ASGCV_PATCH_SPEARMAN_GATE_PPM
             and self.normalized_residual_energy_ppm <= ASGCV_RESIDUAL_ENERGY_GATE_PPM
             and self.selection_variance_ratio_ppm <= ASGCV_VARIANCE_RATIO_GATE_PPM
+            and self.preclip_p99_ratio_ppm <= ASGCV_PRECLIP_P99_RATIO_GATE_PPM
+            and self.clip_rate_delta_ppm <= ASGCV_CLIP_RATE_DELTA_GATE_PPM
         )
         if type(self.passed) is not bool or self.passed is not expected_pass:
             raise ValueError("ASG-CV E0 pass gate differs")
@@ -335,6 +350,10 @@ class AsgcvE0Metrics:
             "patch_salience_spearman_ppm": self.patch_salience_spearman_ppm,
             "normalized_residual_energy_ppm": self.normalized_residual_energy_ppm,
             "selection_variance_ratio_ppm": self.selection_variance_ratio_ppm,
+            "preclip_p99_ratio_ppm": self.preclip_p99_ratio_ppm,
+            "exact_clip_rate_ppm": self.exact_clip_rate_ppm,
+            "asgcv_clip_rate_ppm": self.asgcv_clip_rate_ppm,
+            "clip_rate_delta_ppm": self.clip_rate_delta_ppm,
             "passed": self.passed,
         }
 
@@ -348,6 +367,10 @@ class AsgcvE0Metrics:
             "patch_salience_spearman_ppm",
             "normalized_residual_energy_ppm",
             "selection_variance_ratio_ppm",
+            "preclip_p99_ratio_ppm",
+            "exact_clip_rate_ppm",
+            "asgcv_clip_rate_ppm",
+            "clip_rate_delta_ppm",
             "passed",
         }:
             raise ValueError("ASG-CV E0 metrics schema differs")
@@ -360,6 +383,10 @@ class AsgcvE0Metrics:
             patch_salience_spearman_ppm=value["patch_salience_spearman_ppm"],
             normalized_residual_energy_ppm=value["normalized_residual_energy_ppm"],
             selection_variance_ratio_ppm=value["selection_variance_ratio_ppm"],
+            preclip_p99_ratio_ppm=value["preclip_p99_ratio_ppm"],
+            exact_clip_rate_ppm=value["exact_clip_rate_ppm"],
+            asgcv_clip_rate_ppm=value["asgcv_clip_rate_ppm"],
+            clip_rate_delta_ppm=value["clip_rate_delta_ppm"],
             passed=value["passed"],
         ).validated()
 
@@ -472,6 +499,9 @@ def evaluate_e0(
     exact: object,
     predicted: object,
     projection: object,
+    *,
+    exact_preclip_norms: object,
+    asgcv_preclip_norms: object,
 ) -> AsgcvE0Metrics:
     """Recompute the registered E0 fidelity and variance evidence."""
 
@@ -490,12 +520,47 @@ def evaluate_e0(
         name="E0 projection",
         dimensions=2,
     )
+    exact_norms = _require_float64_array(
+        exact_preclip_norms,
+        name="E0 exact pre-clip norms",
+        dimensions=1,
+    )
+    asgcv_norms = _require_float64_array(
+        asgcv_preclip_norms,
+        name="E0 ASG-CV pre-clip norms",
+        dimensions=1,
+    )
     if exact_array.shape != predicted_array.shape or exact_array.shape[1] != ASGCV_STRATUM_SIZE:
         raise ValueError("ASG-CV E0 gradient batch shape differs")
     if projection_array.shape[1] != exact_array.shape[-1]:
         raise ValueError("ASG-CV E0 projection shape differs")
     if bool((np.linalg.norm(projection_array, axis=1) <= 0.0).any()):
         raise ValueError("ASG-CV E0 projection row differs")
+    if (
+        exact_norms.shape != asgcv_norms.shape
+        or bool((exact_norms < 0.0).any())
+        or bool((asgcv_norms < 0.0).any())
+    ):
+        raise ValueError("ASG-CV E0 pre-clip norm shape differs")
+
+    exact_p99 = float(np.quantile(exact_norms, 0.99, method="higher"))
+    asgcv_p99 = float(np.quantile(asgcv_norms, 0.99, method="higher"))
+    if not np.isfinite(exact_p99) or exact_p99 <= 0.0 or not np.isfinite(asgcv_p99):
+        raise ValueError("ASG-CV E0 pre-clip p99 differs")
+    exact_clip_rate_ppm = int(
+        round(
+            float(np.count_nonzero(exact_norms > ASGCV_GLOBAL_CLIP_NORM))
+            / len(exact_norms)
+            * 1_000_000
+        )
+    )
+    asgcv_clip_rate_ppm = int(
+        round(
+            float(np.count_nonzero(asgcv_norms > ASGCV_GLOBAL_CLIP_NORM))
+            / len(asgcv_norms)
+            * 1_000_000
+        )
+    )
 
     projected_exact = np.einsum(
         "sijd,kd->sijk",
@@ -530,6 +595,10 @@ def evaluate_e0(
         "selection_variance_ratio_ppm": _ratio_ppm(
             _batch_selection_variance_ratio(exact_array, predicted_array)
         ),
+        "preclip_p99_ratio_ppm": _ratio_ppm(asgcv_p99 / exact_p99),
+        "exact_clip_rate_ppm": exact_clip_rate_ppm,
+        "asgcv_clip_rate_ppm": asgcv_clip_rate_ppm,
+        "clip_rate_delta_ppm": max(0, asgcv_clip_rate_ppm - exact_clip_rate_ppm),
     }
     passed = (
         metrics_without_pass["dense_gradient_cosine_ppm"] >= ASGCV_DENSE_COSINE_GATE_PPM
@@ -537,6 +606,8 @@ def evaluate_e0(
         and metrics_without_pass["patch_salience_spearman_ppm"] >= ASGCV_PATCH_SPEARMAN_GATE_PPM
         and metrics_without_pass["normalized_residual_energy_ppm"] <= ASGCV_RESIDUAL_ENERGY_GATE_PPM
         and metrics_without_pass["selection_variance_ratio_ppm"] <= ASGCV_VARIANCE_RATIO_GATE_PPM
+        and metrics_without_pass["preclip_p99_ratio_ppm"] <= ASGCV_PRECLIP_P99_RATIO_GATE_PPM
+        and metrics_without_pass["clip_rate_delta_ppm"] <= ASGCV_CLIP_RATE_DELTA_GATE_PPM
     )
     return AsgcvE0Metrics(**metrics_without_pass, passed=passed).validated()
 

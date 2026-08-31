@@ -16,9 +16,11 @@ The proposed method, **Amortized Semantic Gradient Control Variate (ASG-CV)**,
 does not replace that gradient with an uncorrected student prediction. It learns
 a cheap pair-conditioned gradient predictor and adds an independently sampled,
 inverse-probability-weighted exact residual. The resulting minibatch estimator
-has the same expectation as the registered SAGA semantic gradient. If the
-predictor explains most of its conditional variation, ASG-CV can spend the same
-compute on more distinct pairs with lower gradient variance.
+has the same expectation as the registered SAGA semantic gradient *before the
+nonlinear global-gradient clip and optimizer transform*. If the predictor
+explains most of its conditional variation, ASG-CV can spend the same compute on
+more distinct pairs with lower gradient variance without relying on a biased
+surrogate.
 
 This is a prospective mechanism, not a SOTA claim. The exact SAGA feasibility
 receipt and a primary-source collision audit remain prerequisites for training.
@@ -76,9 +78,26 @@ predictor output and its training optimizer are detached from the retrieval
 optimizer before gradient injection. Predictor training uses only previously
 sealed exact `(X, g)` pairs from the training partition.
 
+The update order is load-bearing. At step `t`, freeze `phi_t` before pair
+stratification and before revealing the source-bound selected index. Compute the
+student estimator entirely with `q_phi_t`, apply the student update, and only
+then allow the sealed exact pair to update the predictor for step `t+1`. Updating
+the predictor with the selected residual before forming `g_hat_s` would correlate
+the control variate with the selection event and is forbidden. Strata and the
+selection schedule are committed before any exact semantic gradient is opened.
+
 If a stratum cannot produce its exact residual, the optimizer step is discarded;
 it never silently falls back to the predictor-only gradient. A non-finite or
 overflowing correction is a fail-closed scientific terminal.
+
+SAGA's declared global gradient clipping at `1.0` is applied only after the
+complete DML and semantic gradient is assembled. Because clipping is nonlinear,
+the expected *clipped update* is not generally unbiased even when `g_hat_s` is.
+E0 and E1 must therefore record pre-clip total norms and clip activation for the
+exact and ASG-CV estimators. ASG-CV is ineligible if its clip-activation rate is
+more than `5` percentage points above the matched exact estimator or if its
+pre-clip norm p99 exceeds `2.0x` the exact p99. No residual clipping or
+winsorization is allowed to repair this gate.
 
 ## Why quality could improve
 
@@ -109,12 +128,15 @@ REBAR already establish learned or relaxed control variates for unbiased policy
 and discrete-variable gradients
 ([arXiv:1611.02247](https://arxiv.org/abs/1611.02247),
 [arXiv:1711.00123](https://arxiv.org/abs/1711.00123),
-[arXiv:1703.07370](https://arxiv.org/abs/1703.07370)). Therefore neither
-gradient prediction nor learned control variates are claimed as new. ASG-CV's
-proposed load-bearing combination is the exact stratified residual correction
-around an amortized frozen-MLLM semantic patch-gradient field for deep metric
-learning. That narrower novelty claim remains provisional until the collision
-audit is complete.
+[arXiv:1703.07370](https://arxiv.org/abs/1703.07370)). vOPD applies a detached
+control-variate baseline specifically to on-policy language-model distillation
+([arXiv:2605.07865](https://arxiv.org/abs/2605.07865)). Therefore neither gradient
+prediction, unbiased learned control variates, nor their use around language-model
+policy gradients are claimed as new. ASG-CV's proposed load-bearing combination
+is the exact stratified residual correction around an amortized frozen-MLLM
+semantic *patch-gradient field* for deep metric learning, with that corrected
+field injected through a trainable vision encoder. That narrower novelty claim
+remains provisional until the collision audit is complete.
 
 ## Falsifier E0 — predictor and variance viability
 
@@ -133,6 +155,8 @@ in both predictor training and validation. On the validation partition require:
   `sum ||g-q||^2 / sum ||g||^2 <= 0.35`;
 - empirical variance of the registered one-of-eight estimator at most `0.60`
   times the variance of one exact pair gradient at equal stratum scale;
+- pre-clip total-gradient p99 at most `2.0x` the exact estimator and clip
+  activation no more than `5` percentage points higher;
 - exact empirical mean agreement within a preregistered bootstrap confidence
   interval and no systematic class or relation-sign bias;
 - projected semantic wall time at most `0.35` times the measured SAGA semantic
