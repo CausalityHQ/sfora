@@ -772,6 +772,37 @@ def rsta_stage_a_result_bytes(result: RstaAggregate) -> bytes:
             "median_abs_log_ratio": result.median_abs_log_ratio,
             "pooled_deranged_delta": result.pooled_deranged_delta,
         },
+        "gates": {
+            "fail_pooled_delta_nonpositive": result.pooled_delta <= 0.0,
+            "fail_all_seed_deltas_nonpositive": all(value <= 0.0 for value in result.seed_deltas),
+            "fail_median_rho_below_floor": result.median_rho < result.config.fail_rho,
+            "fail_alternate_pooled_delta_nonpositive": result.alternate_pooled_delta <= 0.0,
+            "fail_all_alternate_seed_deltas_nonpositive": all(
+                value <= 0.0 for value in result.alternate_seed_deltas
+            ),
+            "pass_pooled_delta_at_least_threshold": (
+                result.pooled_delta >= result.config.pass_delta
+            ),
+            "pass_bootstrap_delta_lower_positive": result.bootstrap_delta_95_lower > 0.0,
+            "pass_all_seed_deltas_at_least_threshold": all(
+                value >= result.config.pass_seed_delta for value in result.seed_deltas
+            ),
+            "pass_pooled_self_minus_desc_positive": result.pooled_self_minus_desc > 0.0,
+            "pass_bootstrap_self_minus_desc_lower_positive": (
+                result.bootstrap_self_minus_desc_95_lower > 0.0
+            ),
+            "pass_median_rho_at_least_threshold": (result.median_rho >= result.config.pass_rho),
+            "pass_median_abs_log_ratio_at_least_threshold": (
+                result.median_abs_log_ratio >= result.config.pass_abs_log_ratio
+            ),
+            "pass_deranged_delta_within_threshold": (
+                abs(result.pooled_deranged_delta) <= result.config.max_abs_deranged_delta
+            ),
+            "pass_alternate_pooled_delta_positive": result.alternate_pooled_delta > 0.0,
+            "pass_all_alternate_seed_deltas_positive": all(
+                value > 0.0 for value in result.alternate_seed_deltas
+            ),
+        },
         "bootstrap": {
             "delta_distribution_sha256": result.bootstrap_delta_sha256,
             "self_minus_desc_distribution_sha256": (result.bootstrap_self_minus_desc_sha256),

@@ -11,12 +11,15 @@ import sys
 from collections import OrderedDict
 from dataclasses import replace
 from pathlib import Path
+from types import MappingProxyType
 
 import numpy as np
 import pytest
 import torch
+from torch import nn
 
 from sfora.pass209_m4 import canonical_json_bytes
+from sfora.siglip_proxy_control import PooledProxyAnchorModel
 from sfora.siglip_rsta_stage_a import (
     RstaCheckpointBinding,
     RstaControlBinding,
@@ -480,6 +483,18 @@ def _seed_execution(checkpoint, panel):
         receiver_evidence=rows,
         first_receiver_first_sha256="91" * 32,
         first_receiver_repeat_sha256="91" * 32,
+        parameter_names=("projection.weight", "tower.weight"),
+        parameter_numels=(16, 64),
+        logical_batch_replays=6,
+        receiver_actions=474,
+        autocast_device_type="cuda",
+        autocast_dtype="bfloat16",
+        autocast_enabled=True,
+        support_replays=2,
+        module_training=True,
+        gradient_checkpointing_enabled=False,
+        torch_compile_enabled=False,
+        attention_implementation="eager",
     )
 
 
@@ -492,14 +507,22 @@ def _forward_backend() -> RstaJvpBackendEvidence:
     )
 
 
-def _tensor_digests(authority) -> dict[str, str]:
+def _tensor_cache(authority):
     from sfora.siglip_rsta_stage_a import select_rsta_roles
 
     panel = select_rsta_roles(tuple(zip(authority.example_ids, authority.labels, strict=True)))
-    return {
-        example_id: hashlib.sha256(example_id.encode()).hexdigest()
-        for example_id in _MODULE.stage_a_tensor_example_ids(panel)
-    }
+
+    def transform(source: str) -> torch.Tensor:
+        raw = hashlib.sha256(source.encode()).digest()
+        return torch.tensor([(raw[index] - 127.5) / 127.5 for index in range(4)])
+
+    return _MODULE.cache_stage_a_tensors(
+        authority,
+        panel,
+        graph_transform=transform,
+        evaluation_transform=transform,
+        materialize=lambda path: path.name,
+    )
 
 
 def test_reduced_scientific_loop_runs_exact_seed_panel_order_and_aggregates(
@@ -508,10 +531,12 @@ def test_reduced_scientific_loop_runs_exact_seed_panel_order_and_aggregates(
     authority = _scientific_authority(tmp_path)
     calls: list[int] = []
 
-    def runner(checkpoint, panel, binding, image_paths, backend):
+    cache = _tensor_cache(authority)
+
+    def runner(checkpoint, panel, binding, observed_cache, backend):
         calls.append(checkpoint.seed)
         assert binding is authority.binding
-        assert tuple(image_paths) == authority.example_ids
+        assert observed_cache is cache
         assert backend is sealed_backend
         return _seed_execution(checkpoint, panel)
 
@@ -519,7 +544,7 @@ def test_reduced_scientific_loop_runs_exact_seed_panel_order_and_aggregates(
     completed = _MODULE.execute_stage_a_scientific_loop(
         authority,
         backend=sealed_backend,
-        tensor_sha256_by_id=_tensor_digests(authority),
+        tensor_cache=cache,
         seed_runner=runner,
     )
 
@@ -539,7 +564,7 @@ def test_reduced_scientific_loop_rejects_partial_duplicate_order_and_repeatabili
 
     calls: list[int] = []
 
-    def runner(checkpoint, panel, _binding, _image_paths, _backend):
+    def runner(checkpoint, panel, _binding, _cache, _backend):
         calls.append(checkpoint.seed)
         execution = _seed_execution(checkpoint, panel)
         rows = execution.receiver_evidence
@@ -560,7 +585,7 @@ def test_reduced_scientific_loop_rejects_partial_duplicate_order_and_repeatabili
         _MODULE.execute_stage_a_scientific_loop(
             authority,
             backend=_forward_backend(),
-            tensor_sha256_by_id=_tensor_digests(authority),
+            tensor_cache=_tensor_cache(authority),
             seed_runner=runner,
         )
     if mutation in {"short", "duplicate", "reordered", "repeat"}:
@@ -573,13 +598,15 @@ def test_reduced_scientific_loop_rejects_pre_science_authority_drift(
 ) -> None:
     authority = _scientific_authority(tmp_path)
     backend = _forward_backend()
-    digests = _tensor_digests(authority)
+    cache = _tensor_cache(authority)
     if mutation == "seed-order":
         authority = replace(authority, checkpoints=tuple(reversed(authority.checkpoints)))
     elif mutation == "image-count":
         authority = replace(authority, image_paths=authority.image_paths[:-1])
     elif mutation == "tensor-digest":
-        digests.pop(next(iter(digests)))
+        values = dict(cache.tensor_sha256)
+        values.pop(next(iter(values)))
+        cache = replace(cache, tensor_sha256=values)
     else:
         backend = RstaJvpBackendEvidence(
             backend="double-backward",
@@ -592,7 +619,7 @@ def test_reduced_scientific_loop_rejects_pre_science_authority_drift(
         _MODULE.execute_stage_a_scientific_loop(
             authority,
             backend=backend,
-            tensor_sha256_by_id=digests,
+            tensor_cache=cache,
             seed_runner=_seed_execution,
         )
 
@@ -603,7 +630,7 @@ def test_reduced_scientific_loop_stops_after_first_mid_campaign_failure(
     authority = _scientific_authority(tmp_path)
     calls: list[int] = []
 
-    def runner(checkpoint, panel, _binding, _image_paths, _backend):
+    def runner(checkpoint, panel, _binding, _cache, _backend):
         calls.append(checkpoint.seed)
         if checkpoint.seed == 29:
             raise RuntimeError("interrupted receiver row")
@@ -613,7 +640,7 @@ def test_reduced_scientific_loop_stops_after_first_mid_campaign_failure(
         _MODULE.execute_stage_a_scientific_loop(
             authority,
             backend=_forward_backend(),
-            tensor_sha256_by_id=_tensor_digests(authority),
+            tensor_cache=_tensor_cache(authority),
             seed_runner=runner,
         )
     assert calls == [17, 29]
@@ -638,7 +665,7 @@ def test_reduced_scientific_loop_rejects_every_unsealed_backend_shape(
         _MODULE.execute_stage_a_scientific_loop(
             authority,
             backend=backend,
-            tensor_sha256_by_id=_tensor_digests(authority),
+            tensor_cache=_tensor_cache(authority),
             seed_runner=_seed_execution,
         )
 
@@ -719,3 +746,543 @@ def test_tensor_cache_materializes_each_selected_role_once_and_preserves_rng(
     first_receiver = panel.receivers[0].example_id
     assert sum(source == _fixture_image_basename(first_receiver) for _role, source in calls) == 1
     assert torch.equal(cache.batch((first_receiver,))[0], cache.tensors[first_receiver])
+
+
+def _completed_science(tmp_path: Path):
+    authority = _scientific_authority(tmp_path)
+
+    def runner(checkpoint, panel, _binding, _cache, _backend):
+        return _seed_execution(checkpoint, panel)
+
+    return _MODULE.execute_stage_a_scientific_loop(
+        authority,
+        backend=_forward_backend(),
+        tensor_cache=_tensor_cache(authority),
+        seed_runner=runner,
+    )
+
+
+def _execution_audit():
+    return _MODULE.StageAExecutionAudit(
+        parameter_names=("projection.weight", "tower.weight"),
+        parameter_numels=(16, 64),
+        checkpointing_max_relative_disagreement=0.0,
+        fixture_sha256="a1" * 32,
+        module_training=True,
+        gradient_checkpointing_enabled=False,
+        torch_compile_enabled=False,
+        attention_implementation="eager",
+        autocast_device_type="cuda",
+        autocast_dtype="bfloat16",
+        autocast_enabled=True,
+        cublas_workspace_config=":4096:8",
+        deterministic_algorithms_enabled=True,
+        deterministic_algorithms_warn_only=False,
+        cudnn_benchmark=False,
+        cuda_matmul_allow_tf32=False,
+        cudnn_allow_tf32=False,
+        elapsed_ns=123_456,
+        peak_rss_bytes=1_000_000,
+        peak_cuda_bytes=2_000_000,
+        memory_psi_growth_ppm=0,
+        swap_growth_bytes=0,
+    )
+
+
+def _campaign(tmp_path: Path):
+    completed = _completed_science(tmp_path)
+    audit = _execution_audit()
+    preflight = _MODULE.StageAModelPreflight(
+        backend=completed.backend,
+        checkpointing_max_relative_disagreement=(audit.checkpointing_max_relative_disagreement),
+        fixture_sha256=audit.fixture_sha256,
+        parameter_names=audit.parameter_names,
+        parameter_numels=audit.parameter_numels,
+    )
+    return _MODULE.StageAModelCampaign(
+        completed=completed,
+        preflights=(preflight, preflight, preflight),
+        determinism=_MODULE.StageADeterminismEvidence(
+            cublas_workspace_config=audit.cublas_workspace_config,
+            deterministic_algorithms_enabled=audit.deterministic_algorithms_enabled,
+            deterministic_algorithms_warn_only=audit.deterministic_algorithms_warn_only,
+            cudnn_benchmark=audit.cudnn_benchmark,
+            cuda_matmul_allow_tf32=audit.cuda_matmul_allow_tf32,
+            cudnn_allow_tf32=audit.cudnn_allow_tf32,
+        ),
+    )
+
+
+def test_scientific_result_requires_observed_model_campaign(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="model campaign"):
+        _MODULE.stage_a_scientific_result_bytes(
+            _completed_science(tmp_path),
+            _execution_audit(),
+        )
+
+
+def test_execution_audit_is_derived_from_campaign_observations(tmp_path: Path) -> None:
+    campaign = _campaign(tmp_path)
+    audit = _MODULE.build_stage_a_execution_audit(
+        campaign,
+        elapsed_ns=123_456,
+        peak_rss_bytes=1_000_000,
+        peak_cuda_bytes=2_000_000,
+        memory_psi_growth_ppm=0,
+        swap_growth_bytes=0,
+    )
+
+    assert audit == _execution_audit()
+
+
+def test_scientific_result_envelope_binds_authority_panel_tensors_backend_and_resources(
+    tmp_path: Path,
+) -> None:
+    campaign = _campaign(tmp_path)
+    completed = campaign.completed
+    raw = _MODULE.stage_a_scientific_result_bytes(campaign, _execution_audit())
+    value = json.loads(raw)
+
+    assert raw == canonical_json_bytes(value)
+    assert set(value) == {
+        "schema",
+        "claim_eligible",
+        "authority",
+        "role_panel",
+        "tensor_sha256_by_id",
+        "parameter_authority",
+        "backend_preflight",
+        "execution",
+        "repeatability",
+        "result",
+    }
+    assert value["schema"] == "siglip-rsta-stage-a-scientific-result-v1"
+    assert value["claim_eligible"] is False
+    assert (
+        value["authority"]["control_binding_sha256"]
+        == hashlib.sha256(rsta_control_binding_bytes(completed.authority.binding)).hexdigest()
+    )
+    assert value["authority"]["selected_microbatch_size"] == 120
+    assert value["role_panel"]["receiver_count"] == 147
+    assert len(value["tensor_sha256_by_id"]) == len(
+        _MODULE.stage_a_tensor_example_ids(completed.panel)
+    )
+    assert value["parameter_authority"]["parameter_count"] == 2
+    assert value["parameter_authority"]["parameter_numel"] == 80
+    assert value["backend_preflight"]["backend"] == "forward-mode"
+    assert value["execution"]["logical_batch_replays"] == 18
+    assert value["execution"]["receiver_actions"] == 1422
+    assert value["execution"]["receiver_vjps"] == 1422
+    assert value["execution"]["receiver_jvps"] == 2844
+    assert value["execution"]["cublas_workspace_config"] == ":4096:8"
+    assert value["execution"]["deterministic_algorithms_enabled"] is True
+    assert value["execution"]["deterministic_algorithms_warn_only"] is False
+    assert value["execution"]["cudnn_benchmark"] is False
+    assert value["execution"]["cuda_matmul_allow_tf32"] is False
+    assert value["execution"]["cudnn_allow_tf32"] is False
+    assert value["result"] == json.loads(completed.aggregate_bytes)
+    assert len(value["repeatability"]) == 3
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        lambda value: replace(value, parameter_names=("projection.weight",)),
+        lambda value: replace(value, checkpointing_max_relative_disagreement=1.1e-5),
+        lambda value: replace(value, gradient_checkpointing_enabled=True),
+        lambda value: replace(value, torch_compile_enabled=True),
+        lambda value: replace(value, attention_implementation="sdpa"),
+        lambda value: replace(value, autocast_enabled=False),
+        lambda value: replace(value, deterministic_algorithms_enabled=False),
+        lambda value: replace(value, cublas_workspace_config=":16:8"),
+        lambda value: replace(value, elapsed_ns=0),
+        lambda value: replace(value, peak_rss_bytes=0),
+        lambda value: replace(value, memory_psi_growth_ppm=1),
+        lambda value: replace(value, swap_growth_bytes=1),
+    ],
+)
+def test_scientific_result_envelope_rejects_execution_authority_drift(
+    tmp_path: Path, mutation
+) -> None:
+    campaign = _campaign(tmp_path)
+    with pytest.raises(ValueError, match="execution audit"):
+        _MODULE.stage_a_scientific_result_bytes(campaign, mutation(_execution_audit()))
+
+
+@pytest.mark.parametrize(
+    "mutation", ["tensor", "backend", "repeat", "parameters", "roles", "aggregate"]
+)
+def test_scientific_result_envelope_revalidates_completed_science(
+    tmp_path: Path, mutation: str
+) -> None:
+    campaign = _campaign(tmp_path)
+    completed = campaign.completed
+    if mutation == "tensor":
+        values = dict(completed.tensor_sha256_by_id)
+        values[next(iter(values))] = "not-a-digest"
+        completed = replace(completed, tensor_sha256_by_id=values)
+    elif mutation == "backend":
+        completed = replace(
+            completed,
+            backend=RstaJvpBackendEvidence("unknown", True, 0.0, None),
+        )
+    elif mutation == "repeat":
+        seeds = list(completed.seeds)
+        seeds[0] = replace(seeds[0], first_receiver_repeat_sha256="93" * 32)
+        completed = replace(completed, seeds=tuple(seeds))
+    elif mutation == "parameters":
+        seeds = list(completed.seeds)
+        seeds[0] = replace(seeds[0], parameter_names=("projection.weight",))
+        completed = replace(completed, seeds=tuple(seeds))
+    elif mutation == "roles":
+        seeds = list(completed.seeds)
+        rows = list(seeds[0].receiver_evidence)
+        rows[0] = replace(rows[0], receiver_id="unregistered-receiver")
+        seeds[0] = replace(seeds[0], receiver_evidence=tuple(rows))
+        completed = replace(completed, seeds=tuple(seeds))
+    else:
+        completed = replace(completed, aggregate_bytes=completed.aggregate_bytes + b" ")
+
+    campaign = replace(campaign, completed=completed)
+    with pytest.raises(ValueError, match=r"RSTA (completed|model campaign)"):
+        _MODULE.stage_a_scientific_result_bytes(campaign, _execution_audit())
+
+
+def test_real_toy_seed_runner_executes_both_panels_and_repeats_first_receiver(
+    tmp_path: Path,
+) -> None:
+    authority = _scientific_authority(tmp_path)
+    from sfora.siglip_rsta_stage_a import select_rsta_roles
+
+    panel = select_rsta_roles(tuple(zip(authority.example_ids, authority.labels, strict=True)))
+
+    def toy_transform(source: str) -> torch.Tensor:
+        raw = hashlib.sha256(source.encode()).digest()
+        return torch.tensor(
+            [(raw[index] - 127.5) / 127.5 for index in range(4)], dtype=torch.float32
+        )
+
+    cache = _MODULE.cache_stage_a_tensors(
+        authority,
+        panel,
+        graph_transform=toy_transform,
+        evaluation_transform=toy_transform,
+        materialize=lambda path: path.name,
+    )
+    torch.manual_seed(730)
+    model = PooledProxyAnchorModel(
+        tower=nn.Sequential(nn.Linear(4, 6), nn.Tanh()),
+        input_dimensions=6,
+        embedding_dimensions=4,
+        class_count=49,
+    ).train()
+    checkpoint = replace(
+        authority.checkpoints[0],
+        model_state=MappingProxyType(
+            {name: value.detach().clone() for name, value in model.state_dict().items()}
+        ),
+    )
+    backend = RstaJvpBackendEvidence(
+        backend="double-backward",
+        comparison_available=False,
+        maximum_relative_disagreement=0.0,
+        forward_error="NotImplementedError",
+    )
+
+    execution = _MODULE.run_stage_a_seed_model(
+        checkpoint,
+        panel,
+        authority.binding,
+        cache,
+        backend,
+        model,
+    )
+
+    assert len(execution.receiver_evidence) == 147
+    assert tuple(row.receiver_id for row in execution.receiver_evidence) == tuple(
+        row.example_id for row in panel.receivers
+    )
+    assert all(row.seed == 17 for row in execution.receiver_evidence)
+    assert execution.first_receiver_first_sha256 == execution.first_receiver_repeat_sha256
+    assert execution.parameter_names == tuple(sorted(execution.parameter_names))
+    assert execution.parameter_names == (
+        "projection.weight",
+        "tower.0.bias",
+        "tower.0.weight",
+    )
+    assert execution.parameter_numels == (24, 6, 24)
+    assert execution.logical_batch_replays == 6
+    assert execution.receiver_actions == 474
+    assert execution.autocast_device_type == "cpu"
+    assert execution.autocast_dtype == "float32"
+    assert execution.autocast_enabled is False
+    assert execution.support_replays == 2
+    assert execution.module_training is True
+    assert execution.gradient_checkpointing_enabled is False
+    assert execution.torch_compile_enabled is False
+    assert execution.attention_implementation == "eager"
+    assert all(parameter.grad is None for parameter in model.parameters())
+
+
+def test_real_seed_runner_rejects_model_not_loaded_from_bound_checkpoint(
+    tmp_path: Path,
+) -> None:
+    authority = _scientific_authority(tmp_path)
+    from sfora.siglip_rsta_stage_a import select_rsta_roles
+
+    panel = select_rsta_roles(tuple(zip(authority.example_ids, authority.labels, strict=True)))
+    cache = _tensor_cache(authority)
+    torch.manual_seed(731)
+    model = PooledProxyAnchorModel(
+        tower=nn.Sequential(nn.Linear(4, 6), nn.Tanh()),
+        input_dimensions=6,
+        embedding_dimensions=4,
+        class_count=49,
+    ).train()
+
+    with pytest.raises(ValueError, match="checkpoint model state"):
+        _MODULE.run_stage_a_seed_model(
+            authority.checkpoints[0],
+            panel,
+            authority.binding,
+            cache,
+            RstaJvpBackendEvidence(
+                backend="double-backward",
+                comparison_available=False,
+                maximum_relative_disagreement=0.0,
+                forward_error="NotImplementedError",
+            ),
+            model,
+        )
+
+
+def test_real_seed_runner_repeat_reexecutes_support_forward(tmp_path: Path) -> None:
+    authority = _scientific_authority(tmp_path)
+    from sfora.siglip_rsta_stage_a import select_rsta_roles
+
+    class DriftingEvalTower(nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.linear = nn.Linear(4, 6)
+            self.eval_calls = 0
+
+        def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+            values = self.linear(inputs)
+            if not self.training:
+                self.eval_calls += 1
+                values = values + float(self.eval_calls - 1)
+            return torch.tanh(values)
+
+    panel = select_rsta_roles(tuple(zip(authority.example_ids, authority.labels, strict=True)))
+    cache = _tensor_cache(authority)
+    torch.manual_seed(732)
+    model = PooledProxyAnchorModel(
+        tower=DriftingEvalTower(),
+        input_dimensions=6,
+        embedding_dimensions=4,
+        class_count=49,
+    ).train()
+    checkpoint = replace(
+        authority.checkpoints[0],
+        model_state=MappingProxyType(
+            {name: value.detach().clone() for name, value in model.state_dict().items()}
+        ),
+    )
+
+    with pytest.raises(ValueError, match="repeat"):
+        _MODULE.run_stage_a_seed_model(
+            checkpoint,
+            panel,
+            authority.binding,
+            cache,
+            RstaJvpBackendEvidence(
+                backend="double-backward",
+                comparison_available=False,
+                maximum_relative_disagreement=0.0,
+                forward_error="NotImplementedError",
+            ),
+            model,
+        )
+
+
+def test_checkpoint_model_loader_strictly_restores_state_and_preserves_rng() -> None:
+    torch.manual_seed(811)
+    source = PooledProxyAnchorModel(
+        tower=nn.Sequential(nn.Linear(4, 6), nn.Tanh()),
+        input_dimensions=6,
+        embedding_dimensions=4,
+        class_count=49,
+    )
+    checkpoint = _MODULE.LoadedStageACheckpoint(
+        seed=17,
+        model_state=MappingProxyType(
+            {name: value.detach().clone() for name, value in source.state_dict().items()}
+        ),
+    )
+
+    def factory() -> PooledProxyAnchorModel:
+        return PooledProxyAnchorModel(
+            tower=nn.Sequential(nn.Linear(4, 6), nn.Tanh()),
+            input_dimensions=6,
+            embedding_dimensions=4,
+            class_count=49,
+        )
+
+    random.seed(812)
+    np.random.seed(813)
+    torch.manual_seed(814)
+    python_state = random.getstate()
+    numpy_state = np.random.get_state()
+    torch_state = torch.random.get_rng_state().clone()
+
+    loaded = _MODULE.load_stage_a_checkpoint_model(
+        checkpoint,
+        model_factory=factory,
+        device=torch.device("cpu"),
+    )
+
+    assert loaded.training is True
+    assert all(parameter.grad is None for parameter in loaded.parameters())
+    assert set(loaded.state_dict()) == set(checkpoint.model_state)
+    assert all(
+        torch.equal(loaded.state_dict()[name], value)
+        for name, value in checkpoint.model_state.items()
+    )
+    assert random.getstate() == python_state
+    observed_numpy = np.random.get_state()
+    assert observed_numpy[0] == numpy_state[0]
+    np.testing.assert_array_equal(observed_numpy[1], numpy_state[1])
+    assert observed_numpy[2:] == numpy_state[2:]
+    assert torch.equal(torch.random.get_rng_state(), torch_state)
+
+    broken = replace(
+        checkpoint,
+        model_state=MappingProxyType(dict(list(checkpoint.model_state.items())[1:])),
+    )
+    with pytest.raises(ValueError, match="model state"):
+        _MODULE.load_stage_a_checkpoint_model(
+            broken,
+            model_factory=factory,
+            device=torch.device("cpu"),
+        )
+
+
+def test_model_preflight_disables_checkpointing_and_seals_backend_before_science(
+    tmp_path: Path,
+) -> None:
+    _arguments, binding = _write_authority_bundle(tmp_path)
+    torch.manual_seed(901)
+    model = PooledProxyAnchorModel(
+        tower=nn.Sequential(nn.Linear(4, 6), nn.Tanh()),
+        input_dimensions=6,
+        embedding_dimensions=4,
+        class_count=49,
+    ).train()
+    state = {"enabled": True}
+
+    evidence = _MODULE.preflight_stage_a_model(
+        model,
+        binding,
+        input_shape=(4,),
+        checkpointing_enabled=lambda: state["enabled"],
+        disable_checkpointing=lambda: state.__setitem__("enabled", False),
+    )
+
+    assert state["enabled"] is False
+    assert evidence.backend.backend in {"forward-mode", "double-backward"}
+    assert evidence.checkpointing_max_relative_disagreement <= 1.0e-5
+    assert len(evidence.fixture_sha256) == 64
+    assert evidence.parameter_names == tuple(sorted(evidence.parameter_names))
+    assert len(evidence.parameter_numels) == len(evidence.parameter_names)
+    assert all(parameter.grad is None for parameter in model.parameters())
+
+    with pytest.raises(ValueError, match="checkpointing preflight"):
+        _MODULE.preflight_stage_a_model(
+            model,
+            binding,
+            input_shape=(4,),
+            checkpointing_enabled=lambda: False,
+            disable_checkpointing=lambda: None,
+        )
+
+
+def test_determinism_policy_is_established_and_observed(monkeypatch) -> None:
+    monkeypatch.setenv("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+    prior_deterministic = torch.are_deterministic_algorithms_enabled()
+    prior_warn_only = torch.is_deterministic_algorithms_warn_only_enabled()
+    prior_benchmark = torch.backends.cudnn.benchmark
+    prior_matmul_tf32 = torch.backends.cuda.matmul.allow_tf32
+    prior_cudnn_tf32 = torch.backends.cudnn.allow_tf32
+    try:
+        evidence = _MODULE.configure_stage_a_determinism()
+        assert evidence.cublas_workspace_config == ":4096:8"
+        assert evidence.deterministic_algorithms_enabled is True
+        assert evidence.deterministic_algorithms_warn_only is False
+        assert evidence.cudnn_benchmark is False
+        assert evidence.cuda_matmul_allow_tf32 is False
+        assert evidence.cudnn_allow_tf32 is False
+    finally:
+        torch.use_deterministic_algorithms(
+            prior_deterministic,
+            warn_only=prior_warn_only,
+        )
+        torch.backends.cudnn.benchmark = prior_benchmark
+        torch.backends.cuda.matmul.allow_tf32 = prior_matmul_tf32
+        torch.backends.cudnn.allow_tf32 = prior_cudnn_tf32
+
+
+def test_model_campaign_loads_preflights_and_executes_each_bound_seed(
+    tmp_path: Path, monkeypatch
+) -> None:
+    authority = _scientific_authority(tmp_path)
+    states = []
+    for seed in (17, 29, 43):
+        torch.manual_seed(seed)
+        source = PooledProxyAnchorModel(
+            tower=nn.Sequential(nn.Linear(4, 6), nn.Tanh()),
+            input_dimensions=6,
+            embedding_dimensions=4,
+            class_count=49,
+        )
+        states.append(
+            _MODULE.LoadedStageACheckpoint(
+                seed=seed,
+                model_state=MappingProxyType(
+                    {name: value.detach().clone() for name, value in source.state_dict().items()}
+                ),
+            )
+        )
+    authority = replace(authority, checkpoints=tuple(states))
+    created: list[PooledProxyAnchorModel] = []
+    checkpointing: dict[int, bool] = {}
+
+    def factory() -> PooledProxyAnchorModel:
+        model = PooledProxyAnchorModel(
+            tower=nn.Sequential(nn.Linear(4, 6), nn.Tanh()),
+            input_dimensions=6,
+            embedding_dimensions=4,
+            class_count=49,
+        )
+        created.append(model)
+        checkpointing[id(model)] = True
+        return model
+
+    monkeypatch.setenv("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+    observed = _MODULE.execute_stage_a_model_campaign(
+        authority,
+        tensor_cache=_tensor_cache(authority),
+        model_factory=factory,
+        device=torch.device("cpu"),
+        input_shape=(4,),
+        checkpointing_enabled=lambda model: checkpointing[id(model)],
+        disable_checkpointing=lambda model: checkpointing.__setitem__(id(model), False),
+    )
+
+    assert len(created) == 3
+    assert tuple(item.seed for item in observed.completed.authority.checkpoints) == (17, 29, 43)
+    assert (
+        tuple(item.backend.backend for item in observed.preflights)
+        == (observed.completed.backend.backend,) * 3
+    )
+    assert all(checkpointing[id(model)] is False for model in created)
+    assert observed.determinism.deterministic_algorithms_enabled is True

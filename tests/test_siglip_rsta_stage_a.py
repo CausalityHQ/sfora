@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import math
 import random
 from dataclasses import replace
@@ -429,6 +430,24 @@ class TestRstaGates:
         assert b'"claim_eligible":false' in encoded
         assert b'"schema":"siglip-rsta-stage-a-result-v1"' in encoded
         assert b'"verdict":"PASS_ONWARD"' in encoded
+        value = json.loads(encoded)
+        assert value["gates"] == {
+            "fail_all_alternate_seed_deltas_nonpositive": False,
+            "fail_all_seed_deltas_nonpositive": False,
+            "fail_alternate_pooled_delta_nonpositive": False,
+            "fail_median_rho_below_floor": False,
+            "fail_pooled_delta_nonpositive": False,
+            "pass_all_alternate_seed_deltas_positive": True,
+            "pass_all_seed_deltas_at_least_threshold": True,
+            "pass_alternate_pooled_delta_positive": True,
+            "pass_bootstrap_delta_lower_positive": True,
+            "pass_bootstrap_self_minus_desc_lower_positive": True,
+            "pass_deranged_delta_within_threshold": True,
+            "pass_median_abs_log_ratio_at_least_threshold": True,
+            "pass_median_rho_at_least_threshold": True,
+            "pass_pooled_delta_at_least_threshold": True,
+            "pass_pooled_self_minus_desc_positive": True,
+        }
 
         with pytest.raises(ValueError, match="recomputed evidence"):
             rsta_stage_a_result_bytes(replace(result, verdict="FAIL"))
