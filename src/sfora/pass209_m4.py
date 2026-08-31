@@ -15,6 +15,7 @@ from typing import Any
 import numpy as np
 import torch
 import transformers
+from PIL import Image
 from PIL import __version__ as pillow_version
 from PIL import features as pillow_features
 
@@ -71,6 +72,32 @@ class ScorerEnvironment:
     pillow_version: str
     libjpeg_version: str
     transformers_version: str
+
+
+@dataclass(frozen=True)
+class RescueRow:
+    """One frozen source error and its derived cross-device reachability."""
+
+    error_ordinal: int
+    query_label: int
+    nearest_label: int
+    reachable: bool
+
+
+@dataclass(frozen=True)
+class BootstrapEvidence:
+    """Canonical summary of the unordered-pair clustered reachable bootstrap."""
+
+    schema: str
+    seed: int
+    cluster_count: int
+    sample_count: int
+    observed_share: float
+    bootstrap_mean: float
+    p2_5: float
+    p10: float
+    p97_5: float
+    samples_sha256: str
 
 
 @dataclass(frozen=True)
@@ -441,3 +468,90 @@ def validate_query_evidence(
     expected = score_descriptor_plane(descriptors, examples, block_size=block_size)
     if evidence != expected:
         raise ValueError("query evidence differs from descriptor authority")
+
+
+def rgb_record_sha256(image: Image.Image) -> str:
+    """Hash the exact registered RGB record for gallery duplicate detection."""
+
+    if not isinstance(image, Image.Image) or image.mode != "RGB":
+        raise ValueError("duplicate authority requires a materialized RGB image")
+    width, height = image.size
+    if not 0 < width <= 0xFFFF_FFFF or not 0 < height <= 0xFFFF_FFFF:
+        raise ValueError("RGB image dimensions are outside u32 authority")
+    rgb = image.tobytes("raw", "RGB")
+    if len(rgb) != width * height * 3:
+        raise ValueError("RGB image byte count differs from dimensions")
+    framed = b"SFORA-M4-RGB-V1\n" + struct.pack("<II", width, height) + rgb
+    return hashlib.sha256(framed).hexdigest()
+
+
+def dominant_pair_rescuable(*, rescued: int, count: int) -> bool:
+    """Apply the descriptive materiality floor to the exact 63-row census."""
+
+    if type(rescued) is not int or type(count) is not int:
+        raise ValueError("dominant-pair counts must be concrete integers")
+    if count != 63:
+        raise ValueError("dominant-pair census must contain exactly 63 rows")
+    if not 0 <= rescued <= count:
+        raise ValueError("dominant-pair rescued count is outside the census")
+    return rescued / count >= 0.25
+
+
+def _validate_rescue_rows(rows: tuple[RescueRow, ...]) -> None:
+    if not rows:
+        raise ValueError("reachable bootstrap requires source-error rows")
+    for ordinal, row in enumerate(rows):
+        if type(row.error_ordinal) is not int or row.error_ordinal != ordinal:
+            raise ValueError("source-error ordinal authority differs")
+        if type(row.query_label) is not int or type(row.nearest_label) is not int:
+            raise ValueError("source-error labels must be concrete integers")
+        if row.query_label < 0 or row.nearest_label < 0:
+            raise ValueError("source-error labels must be nonnegative")
+        if row.query_label == row.nearest_label:
+            raise ValueError("source-error pair labels must be distinct")
+        if type(row.reachable) is not bool:
+            raise ValueError("source-error reachable flag must be a concrete boolean")
+
+
+def bootstrap_reachable(rows: tuple[RescueRow, ...]) -> BootstrapEvidence:
+    """Bootstrap global reachability over whole unordered confusion-pair blocks."""
+
+    _validate_rescue_rows(rows)
+    grouped: dict[tuple[int, int], list[bool]] = {}
+    for row in rows:
+        pair = (
+            min(row.query_label, row.nearest_label),
+            max(row.query_label, row.nearest_label),
+        )
+        grouped.setdefault(pair, []).append(row.reachable)
+    blocks = tuple(grouped[pair] for pair in sorted(grouped))
+    counts = np.asarray([len(block) for block in blocks], dtype=np.int64)
+    successes = np.asarray([sum(block) for block in blocks], dtype=np.int64)
+    if bool(np.any(counts <= 0)):
+        raise ValueError("reachable bootstrap contains an empty pair block")
+
+    seed = int.from_bytes(
+        hashlib.sha256(b"pass209-m4-objective-bootstrap-v3").digest()[:16], "big"
+    )
+    generator = np.random.Generator(np.random.PCG64(seed))
+    samples = np.empty(10_000, dtype=np.float64)
+    for index in range(samples.size):
+        selected = generator.integers(0, len(blocks), size=len(blocks))
+        denominator = int(counts[selected].sum())
+        if denominator <= 0:
+            raise ValueError("reachable bootstrap replicate denominator is empty")
+        samples[index] = float(successes[selected].sum()) / denominator
+    percentiles = np.percentile(samples, (2.5, 10.0, 97.5), method="inverted_cdf")
+    sample_bytes = samples.astype("<f8", copy=False).tobytes(order="C")
+    return BootstrapEvidence(
+        schema="sfora-pass209-m4-pair-bootstrap-v1",
+        seed=seed,
+        cluster_count=len(blocks),
+        sample_count=int(samples.size),
+        observed_share=sum(row.reachable for row in rows) / len(rows),
+        bootstrap_mean=float(samples.mean()),
+        p2_5=float(percentiles[0]),
+        p10=float(percentiles[1]),
+        p97_5=float(percentiles[2]),
+        samples_sha256=hashlib.sha256(sample_bytes).hexdigest(),
+    )

@@ -9,16 +9,21 @@ from pathlib import Path
 
 import pytest
 import torch
+from PIL import Image
 
 from sfora.pass209_m4 import (
     DESCRIPTOR_MAGIC,
     M4DescriptorHeader,
     M4Example,
     QueryEvidence,
+    RescueRow,
+    bootstrap_reachable,
     configure_reference_scorer,
     decode_descriptor_file,
+    dominant_pair_rescuable,
     encode_descriptor_file,
     publish_new_outputs,
+    rgb_record_sha256,
     score_descriptor_plane,
     validate_query_evidence,
 )
@@ -243,3 +248,84 @@ def test_reference_scorer_environment_binds_runtime_and_lock(tmp_path: Path) -> 
     assert environment.pillow_version
     assert environment.libjpeg_version
     assert environment.transformers_version
+
+
+def test_rgb_record_digest_binds_magic_dimensions_and_exact_rgb_bytes() -> None:
+    image = Image.new("RGB", (2, 1))
+    image.putdata([(1, 2, 3), (4, 5, 6)])
+    expected = hashlib.sha256(
+        b"SFORA-M4-RGB-V1\n" + struct.pack("<II", 2, 1) + bytes((1, 2, 3, 4, 5, 6))
+    ).hexdigest()
+    assert rgb_record_sha256(image) == expected
+
+    with pytest.raises(ValueError, match="RGB"):
+        rgb_record_sha256(image.convert("L"))
+
+
+def test_dominant_pair_uses_exact_census_materiality_floor() -> None:
+    assert not dominant_pair_rescuable(rescued=15, count=63)
+    assert dominant_pair_rescuable(rescued=16, count=63)
+    assert dominant_pair_rescuable(rescued=63, count=63)
+    with pytest.raises(ValueError, match="63"):
+        dominant_pair_rescuable(rescued=16, count=62)
+    with pytest.raises(ValueError, match="concrete"):
+        dominant_pair_rescuable(rescued=True, count=63)
+
+
+def test_pair_cluster_bootstrap_is_repeatable_and_keeps_directions_together() -> None:
+    rows = tuple(
+        [
+            RescueRow(error_ordinal=i, query_label=82, nearest_label=83, reachable=True)
+            for i in range(40)
+        ]
+        + [
+            RescueRow(
+                error_ordinal=40 + i,
+                query_label=83,
+                nearest_label=82,
+                reachable=False,
+            )
+            for i in range(23)
+        ]
+        + [
+            RescueRow(
+                error_ordinal=63 + i,
+                query_label=85,
+                nearest_label=86,
+                reachable=(i % 2 == 0),
+            )
+            for i in range(40)
+        ]
+    )
+    first = bootstrap_reachable(rows)
+    second = bootstrap_reachable(rows)
+    assert first == second
+    assert first.observed_share == pytest.approx(60 / 103)
+    assert first.sample_count == 10_000
+    assert first.bootstrap_mean == pytest.approx(0.5744815611034056)
+    assert (first.p2_5, first.p10, first.p97_5) == pytest.approx(
+        (0.5, 0.5, 0.6349206349206349)
+    )
+    assert first.samples_sha256 == (
+        "5a969668a5c559a5d97c22ebc93520438ebaf9b035db70ea60245abf5c59161e"
+    )
+
+    # Reversing query/nearest direction leaves the unordered-pair partition unchanged.
+    reversed_rows = tuple(
+        replace(row, query_label=row.nearest_label, nearest_label=row.query_label)
+        for row in rows
+    )
+    assert bootstrap_reachable(reversed_rows) == first
+
+
+def test_pair_cluster_bootstrap_rejects_noncanonical_rows() -> None:
+    rows = (
+        RescueRow(error_ordinal=0, query_label=82, nearest_label=83, reachable=True),
+        RescueRow(error_ordinal=2, query_label=83, nearest_label=82, reachable=False),
+    )
+    with pytest.raises(ValueError, match="ordinal"):
+        bootstrap_reachable(rows)
+    with pytest.raises(ValueError, match="distinct"):
+        bootstrap_reachable(
+            (RescueRow(error_ordinal=0, query_label=82, nearest_label=82, reachable=True),)
+        )
