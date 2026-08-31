@@ -4,6 +4,8 @@ import pytest
 
 from sfora.asgcv_protocol import (
     AsgcvCompletionProtocol,
+    AsgcvPairSchedule,
+    build_asgcv_pair_schedule,
     classify_asgcv_completion,
 )
 
@@ -87,3 +89,82 @@ def test_completion_classification_rejects_empty_attributes_and_input_drift() ->
     with pytest.raises(ValueError):
         classify_asgcv_completion((11, 12, 31), 0, protocol)
 
+
+def test_pair_schedule_is_balanced_disjoint_stratified_and_replayable() -> None:
+    example_ids = tuple(f"cars-{index:02d}" for index in range(32))
+    labels = tuple(index // 4 for index in range(32))
+    first = build_asgcv_pair_schedule(
+        example_ids,
+        labels,
+        schedule_seed_sha256="ab" * 32,
+        pair_count=16,
+    )
+    second = build_asgcv_pair_schedule(
+        example_ids,
+        labels,
+        schedule_seed_sha256="ab" * 32,
+        pair_count=16,
+    )
+
+    assert first == second
+    assert type(first).from_mapping(first.to_mapping()) == first
+    assert first.pair_count == 16
+    assert len(first.pairs) == 16
+    assert len(first.sha256()) == 64
+    assert [pair.ordinal for pair in first.pairs] == list(range(16))
+    assert [pair.relation_sign for pair in first.pairs].count(1) == 8
+    assert [pair.relation_sign for pair in first.pairs].count(-1) == 8
+    for offset in range(0, first.pair_count, 8):
+        signs = [pair.relation_sign for pair in first.pairs[offset : offset + 8]]
+        assert signs.count(1) == signs.count(-1) == 4
+    used = [index for pair in first.pairs for index in (pair.left_index, pair.right_index)]
+    assert sorted(used) == list(range(32))
+    for pair in first.pairs:
+        same = labels[pair.left_index] == labels[pair.right_index]
+        assert same is (pair.relation_sign == 1)
+
+    changed = build_asgcv_pair_schedule(
+        example_ids,
+        labels,
+        schedule_seed_sha256="cd" * 32,
+        pair_count=16,
+    )
+    assert changed.sha256() != first.sha256()
+
+
+def test_pair_schedule_rejects_identity_label_capacity_and_count_drift() -> None:
+    example_ids = tuple(f"cars-{index:02d}" for index in range(16))
+    labels = tuple(index // 4 for index in range(16))
+    mutations = (
+        (example_ids[:-1] + (example_ids[0],), labels, 8),
+        (example_ids, labels[:-1] + (True,), 8),
+        (example_ids, (0,) * 16, 8),
+        (example_ids, labels, 7),
+        (example_ids[:8], labels[:8], 8),
+    )
+    for ids, values, count in mutations:
+        with pytest.raises(ValueError):
+            build_asgcv_pair_schedule(
+                ids,
+                values,
+                schedule_seed_sha256="ab" * 32,
+                pair_count=count,
+            )
+
+    baseline = build_asgcv_pair_schedule(
+        tuple(f"cars-{index:02d}" for index in range(32)),
+        tuple(index // 4 for index in range(32)),
+        schedule_seed_sha256="ab" * 32,
+        pair_count=16,
+    ).to_mapping()
+    for mutation in (
+        {**baseline, "extra": 1},
+        {**baseline, "example_manifest_sha256": True},
+        {**baseline, "pairs": baseline["pairs"][:-1]},
+        {
+            **baseline,
+            "pairs": [{**baseline["pairs"][0], "left_index": True}, *baseline["pairs"][1:]],
+        },
+    ):
+        with pytest.raises(ValueError):
+            AsgcvPairSchedule.from_mapping(mutation)
