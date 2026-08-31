@@ -54,6 +54,17 @@ sketch provides a second, independently reproducible target for predictor
 training and detects a low-rank model that matches norms while rotating the
 teacher field.
 
+For the registered Qwen3-VL implementation, `X` is the output of the single
+vision `merger` module used by the full language replay, before it is split into
+the two image-token spans. The eight sealed completions execute eight distinct
+autograd branches through that same deterministic module. E0 retains each
+branch output, requires byte-identical stopped patch values and the registered
+`2 x 49 x D` shape, and sums the eight branch-output gradients after the
+mean-over-rollouts loss backward. For deterministic vision replay, this sum is
+the exact field whose Jacobian product reproduces the semantic contribution to
+the vision-parameter gradient. A separately recomputed attention-only feature
+forward is not a valid substitute because it is outside the GRPO replay graph.
+
 The scalar predictor consumes stopped fp32 patch tokens with shape
 `batch x 2 x patches x channels` plus an exact `-1/+1` relation sign. It uses
 one shared token LayerNorm and one shared local rank projection. For each image,

@@ -164,6 +164,16 @@ class ReplayOutput:
 
 
 @dataclass(frozen=True, slots=True)
+class PatchGradientTarget:
+    """Stopped merged vision tokens and their exact eight-branch replay gradient."""
+
+    replay: ReplayOutput
+    patch_tokens: torch.Tensor
+    exact_gradient: torch.Tensor
+    replay_branch_count: int
+
+
+@dataclass(frozen=True, slots=True)
 class GradientEvidence:
     """Exact trainable/frozen gradient-role evidence."""
 
@@ -531,6 +541,72 @@ class QwenSagaAdapter:
             raise ValueError("SAGA replay loss differs")
         loss.backward()
         return ReplayOutput(loss=float(loss.detach()), generated_tokens=generated_tokens)
+
+    def replay_patch_gradient(
+        self,
+        pair: object,
+        completion_ids: tuple[tuple[int, ...], ...],
+        advantages: tuple[float, ...],
+    ) -> PatchGradientTarget:
+        """Capture the exact semantic gradient at Qwen's merged patch-token boundary."""
+
+        if type(pair) is not PreparedPair or len(completion_ids) != len(advantages):
+            raise ValueError("SAGA patch gradient replay authority differs")
+        model = getattr(self._model, "model", None)
+        visual = getattr(model, "visual", None)
+        merger = getattr(visual, "merger", None)
+        if not isinstance(merger, torch.nn.Module):
+            raise ValueError("SAGA vision merger authority differs")
+        captured: list[torch.Tensor] = []
+
+        def capture_output(
+            _module: torch.nn.Module,
+            _inputs: tuple[object, ...],
+            output: object,
+        ) -> None:
+            if type(output) is not torch.Tensor or output.ndim != 2:
+                raise ValueError("SAGA merged patch token authority differs")
+            output.retain_grad()
+            captured.append(output)
+
+        handle = merger.register_forward_hook(capture_output)
+        try:
+            replay = self.replay(
+                pair,
+                completion_ids,
+                advantages,
+                output_attentions=False,
+            )
+            if len(captured) != len(completion_ids) or not captured:
+                raise ValueError("SAGA patch gradient replay count differs")
+            expected_rows = 2 * pair.patch_tokens_per_image
+            shape = captured[0].shape
+            if shape[0] != expected_rows or any(value.shape != shape for value in captured):
+                raise ValueError("SAGA merged patch token shape differs")
+            reference = captured[0].detach()
+            if any(not torch.equal(value.detach(), reference) for value in captured[1:]):
+                raise ValueError("SAGA repeated patch token values differ")
+            gradients = [value.grad for value in captured]
+            if any(value is None for value in gradients):
+                raise ValueError("SAGA merged patch gradient is absent")
+            exact_gradient = torch.stack(
+                [value.detach().float() for value in gradients if value is not None]
+            ).sum(dim=0)
+            patch_tokens = reference.float()
+            if not bool(torch.isfinite(patch_tokens).all()) or not bool(
+                torch.isfinite(exact_gradient).all()
+            ):
+                raise ValueError("SAGA merged patch gradient is non-finite")
+            target_shape = (2, pair.patch_tokens_per_image, shape[1])
+            return PatchGradientTarget(
+                replay=replay,
+                patch_tokens=patch_tokens.reshape(target_shape).detach(),
+                exact_gradient=exact_gradient.reshape(target_shape).detach(),
+                replay_branch_count=len(captured),
+            )
+        finally:
+            handle.remove()
+            self.clear_graphs()
 
     def _image_features(
         self, pixel_values: torch.Tensor, image_grid_thw: torch.Tensor

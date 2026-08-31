@@ -669,13 +669,22 @@ class _HfLikeProcessor:
         }
 
 
+class _HfLikeVisual(torch.nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.merger = torch.nn.Linear(1, 16, bias=False)
+
+    def forward(self, values: torch.Tensor) -> torch.Tensor:
+        return self.merger(values)
+
+
 class _HfLikeModel(torch.nn.Module):
     def __init__(self) -> None:
         super().__init__()
         self.forward_calls = 0
         self.device = "cuda"
         self.dtype = "bfloat16"
-        visual = torch.nn.Linear(1, 16, bias=False)
+        visual = _HfLikeVisual()
         language = torch.nn.Linear(1, 1, bias=False)
         self.model = SimpleNamespace(visual=visual, language_model=language)
         self.lm_head = torch.nn.Linear(1, 128, bias=False)
@@ -699,7 +708,8 @@ class _HfLikeModel(torch.nn.Module):
         input_ids = inputs["input_ids"]
         assert isinstance(input_ids, torch.Tensor)
         sequence = input_ids.shape[1]
-        scale = self.model.visual.weight[:, 0].mean()
+        patch_tokens = self.model.visual(torch.ones(4, 1))
+        scale = patch_tokens.mean()
         vocabulary = torch.arange(128, dtype=scale.dtype, device=scale.device)
         logits = scale * vocabulary.view(1, 1, -1).expand(1, sequence, -1)
         positions = torch.arange(sequence, dtype=scale.dtype, device=scale.device)
@@ -711,13 +721,69 @@ class _HfLikeModel(torch.nn.Module):
         self, pixel_values: torch.Tensor, image_grid_thw: torch.Tensor
     ) -> object:
         del pixel_values
-        token = self.model.visual.weight[:, 0]
+        token = self.model.visual.merger.weight[:, 0]
         features = []
         for ordinal in range(image_grid_thw.shape[0]):
             class_offset = torch.zeros_like(token)
             class_offset[ordinal % 2] = 0.01
             features.append((token + class_offset).expand(2, -1))
         return SimpleNamespace(pooler_output=features)
+
+
+def test_qwen_replay_captures_exact_merged_patch_gradient_target(tmp_path: Path) -> None:
+    authority = _hf_authority(tmp_path)
+    adapter = _MODULE.load_qwen_adapter(authority, factory=_HfLikeFactory())
+    pair = adapter.prepare_pair(authority.fixture)
+    rollouts = _MODULE.run_rollout_phase(adapter, authority.fixture)
+    cleared_merger_gradient: list[torch.Tensor] = []
+    original_clear_graphs = adapter.clear_graphs
+
+    def record_then_clear() -> None:
+        gradient = adapter._model.model.visual.merger.weight.grad
+        assert gradient is not None
+        cleared_merger_gradient.append(gradient.detach().float().clone())
+        original_clear_graphs()
+
+    adapter.clear_graphs = record_then_clear  # type: ignore[method-assign]
+
+    target = adapter.replay_patch_gradient(
+        pair,
+        rollouts.completion_ids,
+        _MODULE.group_normalized_advantages(authority.fixture.synthetic_rewards),
+    )
+
+    assert target.patch_tokens.shape == (2, 2, 16)
+    assert target.exact_gradient.shape == target.patch_tokens.shape
+    assert target.patch_tokens.dtype == torch.float32
+    assert target.exact_gradient.dtype == torch.float32
+    assert torch.isfinite(target.patch_tokens).all()
+    assert torch.isfinite(target.exact_gradient).all()
+    assert torch.count_nonzero(target.exact_gradient) > 0
+    assert len(cleared_merger_gradient) == 1
+    assert torch.allclose(
+        target.exact_gradient.sum(dim=(0, 1)),
+        cleared_merger_gradient[0][:, 0],
+        atol=1e-6,
+        rtol=1e-6,
+    )
+    assert target.replay.generated_tokens == sum(rollouts.token_counts)
+    assert target.replay_branch_count == authority.fixture.group_size
+    assert all(parameter.grad is None for parameter in adapter._vision_parameters)
+
+
+def test_qwen_replay_patch_gradient_rejects_missing_merger(tmp_path: Path) -> None:
+    authority = _hf_authority(tmp_path)
+    adapter = _MODULE.load_qwen_adapter(authority, factory=_HfLikeFactory())
+    pair = adapter.prepare_pair(authority.fixture)
+    rollouts = _MODULE.run_rollout_phase(adapter, authority.fixture)
+    adapter._model.model.visual = SimpleNamespace()
+
+    with pytest.raises(ValueError, match="vision merger authority"):
+        adapter.replay_patch_gradient(
+            pair,
+            rollouts.completion_ids,
+            _MODULE.group_normalized_advantages(authority.fixture.synthetic_rewards),
+        )
 
 
 class _HfLikeFactory:
