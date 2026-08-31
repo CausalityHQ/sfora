@@ -432,6 +432,57 @@ def assemble_asgcv_eligible_schedule(
     ).validated()
 
 
+def validate_asgcv_protocol_bundle(
+    protocol: AsgcvCompletionProtocol,
+    candidates: AsgcvPairSchedule,
+    groups: tuple[AsgcvCompletionGroup, ...],
+    eligible: AsgcvEligibleSchedule,
+    *,
+    example_ids: tuple[str, ...],
+    labels: tuple[int, ...],
+) -> None:
+    """Rebuild every semantic protocol relation from its primitive authority."""
+
+    if (
+        type(protocol) is not AsgcvCompletionProtocol
+        or type(candidates) is not AsgcvPairSchedule
+        or type(groups) is not tuple
+        or type(eligible) is not AsgcvEligibleSchedule
+    ):
+        raise ValueError("ASG-CV protocol bundle differs")
+    protocol.validated()
+    candidates.validated()
+    eligible.validated()
+    rebuilt_candidates = build_asgcv_pair_schedule(
+        example_ids,
+        labels,
+        schedule_seed_sha256=candidates.schedule_seed_sha256,
+        pair_count=candidates.pair_count,
+    )
+    if rebuilt_candidates != candidates:
+        raise ValueError("ASG-CV candidate schedule reconstruction differs")
+    if len(groups) != candidates.pair_count:
+        raise ValueError("ASG-CV completion group count differs")
+    for pair, group in zip(candidates.pairs, groups, strict=True):
+        if type(group) is not AsgcvCompletionGroup:
+            raise ValueError("ASG-CV completion group differs")
+        group.validated()
+        rebuilt_group = classify_asgcv_completion_group(
+            group.completion_ids,
+            pair.relation_sign,
+            protocol,
+        )
+        if rebuilt_group != group:
+            raise ValueError("ASG-CV completion group reconstruction differs")
+    rebuilt_eligible = assemble_asgcv_eligible_schedule(
+        candidates,
+        groups,
+        target_pair_count=eligible.target_pair_count,
+    )
+    if rebuilt_eligible != eligible:
+        raise ValueError("ASG-CV eligible schedule reconstruction differs")
+
+
 def _sha256_seed(value: object, *, name: str) -> bytes:
     if (
         type(value) is not str

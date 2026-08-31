@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pytest
 
 from sfora.asgcv_protocol import (
@@ -9,6 +11,7 @@ from sfora.asgcv_protocol import (
     build_asgcv_pair_schedule,
     classify_asgcv_completion,
     classify_asgcv_completion_group,
+    validate_asgcv_protocol_bundle,
 )
 
 
@@ -164,6 +167,85 @@ def test_eligible_schedule_refills_before_gradients_and_preserves_relation_balan
             tuple(groups),
             target_pair_count=16,
         )
+
+
+def test_protocol_bundle_rebuilds_schedule_groups_and_eligibility() -> None:
+    protocol = _protocol()
+    example_ids = tuple(f"cars-{index:02d}" for index in range(32))
+    labels = tuple(index // 4 for index in range(32))
+    candidates = build_asgcv_pair_schedule(
+        example_ids,
+        labels,
+        schedule_seed_sha256="ab" * 32,
+        pair_count=16,
+    )
+    groups = tuple(
+        classify_asgcv_completion_group(
+            tuple(
+                (
+                    *((11, 12) if index < 4 else (21, 22, 23)),
+                    30 + index,
+                    99,
+                )
+                if pair.relation_sign == 1
+                else (
+                    *((21, 22, 23) if index < 4 else (11, 12)),
+                    30 + index,
+                    99,
+                )
+                for index in range(8)
+            ),
+            pair.relation_sign,
+            protocol,
+        )
+        for pair in candidates.pairs
+    )
+    eligible = assemble_asgcv_eligible_schedule(candidates, groups, target_pair_count=8)
+
+    validate_asgcv_protocol_bundle(
+        protocol,
+        candidates,
+        groups,
+        eligible,
+        example_ids=example_ids,
+        labels=labels,
+    )
+
+    first = groups[0]
+    forged_group = replace(
+        first,
+        completion_ids=tuple((77, 30 + index, 99) for index in range(8)),
+        rewards=(0,) * 8,
+        correct_rollouts=(False,) * 8,
+        attribute_spans=(None,) * 8,
+        nonzero_reward_variance=False,
+    ).validated()
+    mutations = (
+        (candidates, (forged_group, *groups[1:]), eligible),
+        (
+            replace(candidates, example_manifest_sha256="cd" * 32).validated(),
+            groups,
+            eligible,
+        ),
+        (
+            candidates,
+            groups,
+            replace(
+                eligible,
+                candidate_ordinals=tuple(reversed(eligible.candidate_ordinals)),
+            ).validated(),
+        ),
+    )
+    for mutated_candidates, mutated_groups, mutated_eligible in mutations:
+        with pytest.raises(ValueError):
+            validate_asgcv_protocol_bundle(
+                protocol,
+                mutated_candidates,
+                mutated_groups,
+                mutated_eligible,
+                example_ids=example_ids,
+                labels=labels,
+            )
 
 
 def test_pair_schedule_is_balanced_disjoint_stratified_and_replayable() -> None:
