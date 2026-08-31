@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import random
 from dataclasses import replace
 
@@ -15,13 +16,17 @@ from sfora.siglip_rsta_stage_a import (
     RstaCheckpointBinding,
     RstaControlBinding,
     RstaReceiverEvidence,
+    RstaReceiverFields,
     RstaRolePanel,
     RstaStageAConfig,
     contextual_rsta_direction,
     preflight_rsta_jvp_backend,
+    proxy_free_margin_direction,
     receiver_rsta_fields,
     rsta_control_binding_bytes,
+    rsta_control_directions,
     rsta_stage_a_result_bytes,
+    score_rsta_receiver,
     select_rsta_roles,
     summarize_rsta_stage_a,
 )
@@ -561,7 +566,47 @@ class TestReceiverRstaFields:
         torch.testing.assert_close(fields.self_motion, expected_self)
         assert abs(float(fields.descriptor @ fields.batch_motion)) <= 2.0e-6
         assert abs(float(fields.descriptor @ fields.self_motion)) <= 2.0e-6
+        assert fields.batch_radial_fraction <= 1.0e-3
+        assert fields.self_radial_fraction <= 1.0e-3
         assert fields.backend == backend
+
+    def test_rejects_jvp_radial_residual_before_projection(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        model = PooledProxyAnchorModel(
+            tower=nn.Linear(2, 3, bias=False),
+            input_dimensions=3,
+            embedding_dimensions=2,
+            class_count=2,
+        )
+        selected = tuple(
+            sorted(
+                (
+                    (name, parameter)
+                    for name, parameter in model.named_parameters()
+                    if name.startswith("tower.") or name.startswith("projection.")
+                ),
+                key=lambda item: item[0],
+            )
+        )
+        original_jvp = torch.func.jvp
+
+        def radial_jvp(*args, **kwargs):
+            output, tangent = original_jvp(*args, **kwargs)
+            return output, tangent + 0.01 * output
+
+        monkeypatch.setattr(torch.func, "jvp", radial_jvp)
+        with pytest.raises(ValueError, match="radial fraction"):
+            receiver_rsta_fields(
+                model,
+                torch.tensor([[0.2, 0.8]]),
+                torch.tensor([0.1, -0.3]),
+                parameter_names=tuple(name for name, _ in selected),
+                parameter_direction=tuple(
+                    torch.ones_like(parameter) for _, parameter in selected
+                ),
+                backend="forward-mode",
+            )
 
     def test_rejects_projection_only_selected_parameter_tuple(self) -> None:
         model = PooledProxyAnchorModel(
@@ -675,7 +720,8 @@ class TestReceiverRstaFields:
 
         def distorted(*args, **kwargs):
             output, tangent = original_jvp(*args, **kwargs)
-            return output, tangent + 0.1
+            perpendicular = torch.stack((-output[1], output[0]))
+            return output, tangent + 0.1 * perpendicular
 
         monkeypatch.setattr(torch.func, "jvp", distorted)
         with pytest.raises(ValueError, match="backends disagree"):
@@ -687,4 +733,256 @@ class TestReceiverRstaFields:
                 parameter_direction=tuple(
                     torch.ones_like(parameter) for _, parameter in selected
                 ),
+            )
+
+
+class TestRstaOutcomeDirection:
+    def test_top32_proxy_free_margin_direction_matches_autograd(self) -> None:
+        descriptor = torch.tensor([1.0, 0.0, 0.0], dtype=torch.float64)
+        positives = F.normalize(
+            torch.tensor([[0.9, 0.3, 0.0], [0.8, -0.2, 0.1]], dtype=torch.float64),
+            dim=1,
+        )
+        cosines = torch.linspace(-0.8, 0.8, 40, dtype=torch.float64)
+        foreign = torch.stack(
+            (
+                cosines,
+                torch.sqrt(1.0 - cosines.square()),
+                torch.zeros_like(cosines),
+            ),
+            dim=1,
+        )
+        example_ids = tuple(f"foreign-{index:02d}" for index in range(40))
+        role_digests = tuple(f"{index:064x}" for index in range(40))
+
+        evidence = proxy_free_margin_direction(
+            descriptor,
+            positives,
+            foreign,
+            foreign_example_ids=example_ids,
+            foreign_role_digests=role_digests,
+        )
+
+        expected_indices = tuple(range(39, 7, -1))
+        variable = descriptor.detach().clone().requires_grad_(True)
+        positive_scores = positives @ variable
+        negative_scores = foreign[list(expected_indices)] @ variable
+        expected_margin = 0.05 * (
+            torch.logsumexp(positive_scores / 0.05, dim=0) - math.log(2.0)
+        ) - 0.05 * (
+            torch.logsumexp(negative_scores / 0.05, dim=0) - math.log(32.0)
+        )
+        (gradient,) = torch.autograd.grad(expected_margin, variable)
+        expected_direction = gradient - descriptor * torch.dot(descriptor, gradient)
+        expected_direction = F.normalize(expected_direction, dim=0)
+
+        assert evidence.selected_foreign_indices == expected_indices
+        assert evidence.selected_foreign_ids == tuple(
+            example_ids[index] for index in expected_indices
+        )
+        assert evidence.margin == pytest.approx(float(expected_margin.detach()))
+        torch.testing.assert_close(evidence.direction, expected_direction)
+        assert abs(float(descriptor @ evidence.direction)) <= 1.0e-12
+
+    def test_receiver_scoring_matches_hand_derived_metrics(self) -> None:
+        descriptor = torch.tensor([1.0, 0.0, 0.0])
+        batch = torch.tensor([0.0, 3.0, 4.0])
+        self_motion = torch.tensor([0.0, 4.0, 3.0])
+        dbar = torch.tensor([0.0, 1.0, 1.0])
+        outcome = F.normalize(torch.tensor([0.0, 2.0, 1.0]), dim=0)
+        random_target = F.normalize(torch.tensor([0.0, -1.0, 2.0]), dim=0)
+        deranged = F.normalize(torch.tensor([0.0, 1.0, -2.0]), dim=0)
+
+        fields = RstaReceiverFields(
+            descriptor=descriptor,
+            batch_motion=batch,
+            self_motion=self_motion,
+            batch_radial_fraction=2.0e-4,
+            self_radial_fraction=3.0e-4,
+            backend="forward-mode",
+        )
+        score = score_rsta_receiver(
+            fields=fields,
+            dbar=dbar,
+            outcome_direction=outcome,
+            random_target=random_target,
+            deranged_direction=deranged,
+        )
+
+        def cosine(left: torch.Tensor, right: torch.Tensor) -> float:
+            return float(F.cosine_similarity(left, right, dim=0))
+        expected_self = cosine(self_motion, outcome)
+        expected_batch = cosine(batch, outcome)
+        expected_desc = cosine(dbar, outcome)
+        expected_bs = cosine(batch, self_motion)
+        assert score.a_self == pytest.approx(expected_self)
+        assert score.a_batch == pytest.approx(expected_batch)
+        assert score.delta == pytest.approx(expected_self - expected_batch, abs=3.0e-7)
+        assert score.a_desc == pytest.approx(expected_desc)
+        assert score.self_minus_desc == pytest.approx(
+            expected_self - expected_desc, abs=3.0e-7
+        )
+        assert score.cos_batch_self == pytest.approx(expected_bs)
+        assert score.rho == pytest.approx(math.sqrt(max(0.0, 1.0 - expected_bs**2)))
+        assert score.log_ratio == pytest.approx(0.0)
+        assert score.cross_contribution == pytest.approx(
+            cosine(batch - self_motion, outcome)
+        )
+        assert score.random_delta == pytest.approx(
+            cosine(self_motion, random_target) - cosine(batch, random_target)
+        )
+        assert score.deranged_delta == pytest.approx(
+            cosine(self_motion, deranged) - cosine(batch, deranged)
+        )
+        assert score.batch_radial_fraction == pytest.approx(2.0e-4)
+        assert score.self_radial_fraction == pytest.approx(3.0e-4)
+        assert score.dbar_radial_fraction == pytest.approx(0.0)
+
+    def test_foreign_ties_use_role_digest_then_example_id(self) -> None:
+        descriptor = torch.tensor([1.0, 0.0, 0.0], dtype=torch.float64)
+        positives = F.normalize(
+            torch.tensor([[0.8, 0.6, 0.0], [0.8, 0.0, 0.6]], dtype=torch.float64),
+            dim=1,
+        )
+        foreign = F.normalize(
+            torch.tensor([[0.5, -0.8, 0.2]], dtype=torch.float64), dim=1
+        ).repeat(34, 1)
+        example_ids = tuple(f"tied-{index:02d}" for index in range(34))
+        role_digests = tuple(f"{33 - index:064x}" for index in range(34))
+
+        evidence = proxy_free_margin_direction(
+            descriptor,
+            positives,
+            foreign,
+            foreign_example_ids=example_ids,
+            foreign_role_digests=role_digests,
+        )
+
+        assert evidence.selected_foreign_indices == tuple(range(33, 1, -1))
+
+    def test_rejects_rotation_residual_and_zero_projected_outcome(self) -> None:
+        descriptor = torch.tensor([1.0, 0.0, 0.0])
+        valid_fields = RstaReceiverFields(
+            descriptor=descriptor,
+            batch_motion=torch.tensor([0.0, 2.0, 0.0]),
+            self_motion=torch.tensor([0.0, 0.0, 1.0]),
+            batch_radial_fraction=1.0e-4,
+            self_radial_fraction=2.0e-4,
+            backend="forward-mode",
+        )
+        with pytest.raises(ValueError, match="tangent residual"):
+            score_rsta_receiver(
+                fields=replace(
+                    valid_fields, batch_motion=torch.tensor([0.01, 2.0, 0.0])
+                ),
+                dbar=torch.tensor([4.0, 1.0, 1.0]),
+                outcome_direction=F.normalize(
+                    torch.tensor([0.0, 1.0, 1.0]), dim=0
+                ),
+                random_target=torch.tensor([0.0, 1.0, 0.0]),
+                deranged_direction=torch.tensor([0.0, 0.0, 1.0]),
+            )
+
+        foreign = torch.tensor([[0.0, 1.0, 0.0]]).repeat(32, 1)
+        with pytest.raises(ValueError, match="zero projected norm"):
+            proxy_free_margin_direction(
+                descriptor,
+                foreign[:2],
+                foreign,
+                foreign_example_ids=tuple(f"foreign-{index}" for index in range(32)),
+                foreign_role_digests=tuple(f"{index:064x}" for index in range(32)),
+            )
+
+    def test_scoring_records_expected_dbar_radial_and_rejects_zero_cross(self) -> None:
+        descriptor = torch.tensor([1.0, 0.0, 0.0])
+        fields = RstaReceiverFields(
+            descriptor=descriptor,
+            batch_motion=torch.tensor([0.0, 2.0, 0.0]),
+            self_motion=torch.tensor([0.0, 0.0, 1.0]),
+            batch_radial_fraction=1.0e-4,
+            self_radial_fraction=2.0e-4,
+            backend="forward-mode",
+        )
+        score = score_rsta_receiver(
+            fields=fields,
+            dbar=torch.tensor([4.0, 1.0, 1.0]),
+            outcome_direction=F.normalize(torch.tensor([0.0, 1.0, 1.0]), dim=0),
+            random_target=torch.tensor([0.0, 1.0, 0.0]),
+            deranged_direction=torch.tensor([0.0, 0.0, 1.0]),
+        )
+
+        assert score.dbar_radial_fraction == pytest.approx(4.0 / math.sqrt(18.0))
+        assert score.a_desc == pytest.approx(1.0)
+        assert score.self_minus_desc == pytest.approx(1.0 / math.sqrt(2.0) - 1.0)
+        assert score.log_ratio == pytest.approx(math.log(2.0))
+
+        identical = replace(fields, self_motion=fields.batch_motion)
+        with pytest.raises(ValueError, match="zero norm"):
+            score_rsta_receiver(
+                fields=identical,
+                dbar=torch.tensor([4.0, 1.0, 1.0]),
+                outcome_direction=F.normalize(
+                    torch.tensor([0.0, 1.0, 1.0]), dim=0
+                ),
+                random_target=torch.tensor([0.0, 1.0, 0.0]),
+                deranged_direction=torch.tensor([0.0, 0.0, 1.0]),
+            )
+
+    def test_control_directions_are_id_seeded_tangent_and_cyclic(self) -> None:
+        descriptors = torch.eye(4, dtype=torch.float32)[:3]
+        outcomes = F.normalize(
+            torch.tensor(
+                [
+                    [0.0, 1.0, 1.0, 0.0],
+                    [1.0, 0.0, 0.0, 1.0],
+                    [1.0, 1.0, 0.0, 0.0],
+                ]
+            ),
+            dim=1,
+        )
+
+        controls = rsta_control_directions(
+            descriptors,
+            outcomes,
+            receiver_ids=("r0", "r1", "r2"),
+        )
+
+        torch.testing.assert_close(
+            controls.random_targets[0],
+            torch.tensor([0.0, 0.57018137, -0.4013722, 0.71679395]),
+        )
+        assert torch.allclose(
+            torch.linalg.vector_norm(controls.random_targets, dim=1),
+            torch.ones(3),
+        )
+        assert torch.allclose(
+            (descriptors * controls.random_targets).sum(dim=1), torch.zeros(3)
+        )
+        expected_first_deranged = outcomes[1] - descriptors[0] * torch.dot(
+            descriptors[0], outcomes[1]
+        )
+        expected_first_deranged = F.normalize(expected_first_deranged, dim=0)
+        torch.testing.assert_close(
+            controls.deranged_directions[0], expected_first_deranged
+        )
+        expected_last_deranged = outcomes[0] - descriptors[-1] * torch.dot(
+            descriptors[-1], outcomes[0]
+        )
+        expected_last_deranged = F.normalize(expected_last_deranged, dim=0)
+        torch.testing.assert_close(
+            controls.deranged_directions[-1], expected_last_deranged
+        )
+        replayed = rsta_control_directions(
+            descriptors,
+            outcomes,
+            receiver_ids=("r0", "r1", "r2"),
+        )
+        assert torch.equal(replayed.random_targets, controls.random_targets)
+        assert torch.equal(replayed.deranged_directions, controls.deranged_directions)
+
+        with pytest.raises(ValueError, match="outcome directions"):
+            rsta_control_directions(
+                descriptors,
+                torch.cat((descriptors[:1], outcomes[1:])),
+                receiver_ids=("r0", "r1", "r2"),
             )

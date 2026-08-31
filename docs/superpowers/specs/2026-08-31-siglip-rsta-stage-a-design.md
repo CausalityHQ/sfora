@@ -216,7 +216,15 @@ For every receiver record:
 Project `b`, `s`, and `dbar` once into the descriptor tangent and record the removed
 radial fraction. Controls are a deterministic PCG64 tangent-random target and a
 cyclic `+1` derangement of `q` within each batch, each projected and renormalized.
-A zero projected norm is invalid.
+For receiver ID `r`, the random seed is the first eight bytes of
+`H("rsta-siglip-a-v1|random-target|", r)` interpreted as unsigned big-endian;
+PCG64 draws one float64 standard-normal vector, which is cast to the descriptor
+dtype before projection. The derangement uses registered batch-row receiver order
+and wraps the last receiver to the first. A zero projected norm is invalid.
+The `1e-3` radial gate applies to the analytically tangent raw `b` and `s` fields
+before their single projection, and to the residual of unit outcome/control
+directions. The raw `dbar` cotangent is not analytically tangent: project it once
+and record its radial fraction without applying that gate.
 
 Aggregate receiver means within class, class means within seed, then average the
 three seed means equally. Jointly bootstrap all 49 class labels across seeds with
@@ -256,8 +264,8 @@ source is permitted afterward.
 
 Any authority mismatch, forbidden class access, duplicate/missing ID, insufficient
 class cardinality, nonfinite tensor, missing parameter gradient, norm `<=1e-12`,
-unit-row error `>2e-5`, radial fraction `>1e-3`, or disagreement with a registered
-fixture is `INVALID`, not a candidate result.
+unit-row error `>2e-5`, gated tangent radial fraction `>1e-3`, or disagreement with
+a registered fixture is `INVALID`, not a candidate result.
 
 Run in a fresh process with `CUBLAS_WORKSPACE_CONFIG=:4096:8` set before CUDA init,
 deterministic algorithms enabled without warn-only, cuDNN benchmark disabled, and

@@ -224,6 +224,8 @@ class RstaReceiverFields:
     descriptor: torch.Tensor
     batch_motion: torch.Tensor
     self_motion: torch.Tensor
+    batch_radial_fraction: float
+    self_radial_fraction: float
     backend: str
 
 
@@ -235,6 +237,44 @@ class RstaJvpBackendEvidence:
     comparison_available: bool
     maximum_relative_disagreement: float
     forward_error: str | None
+
+
+@dataclass(frozen=True)
+class RstaOutcomeDirection:
+    """Proxy-free tangent outcome direction for one receiver."""
+
+    margin: float
+    direction: torch.Tensor
+    selected_foreign_indices: tuple[int, ...]
+    selected_foreign_ids: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class RstaReceiverScore:
+    """All registered causal statistics and controls for one receiver."""
+
+    a_self: float
+    a_batch: float
+    delta: float
+    a_desc: float
+    self_minus_desc: float
+    cos_batch_self: float
+    rho: float
+    log_ratio: float
+    cross_contribution: float
+    random_delta: float
+    deranged_delta: float
+    batch_radial_fraction: float
+    self_radial_fraction: float
+    dbar_radial_fraction: float
+
+
+@dataclass(frozen=True)
+class RstaControlDirections:
+    """Deterministic tangent controls for one registered receiver batch."""
+
+    random_targets: torch.Tensor
+    deranged_directions: torch.Tensor
 
 
 @dataclass(frozen=True)
@@ -877,11 +917,20 @@ def receiver_rsta_fields(
         )
         self_motion = double_backward_jvp(self_parameter_direction)
 
-    def tangent(field: torch.Tensor) -> torch.Tensor:
-        return field - descriptor * torch.dot(descriptor, field)
+    def tangent(field: torch.Tensor) -> tuple[torch.Tensor, float]:
+        field_norm = torch.linalg.vector_norm(field)
+        if not bool(torch.isfinite(field_norm)) or float(field_norm) <= 1.0e-12:
+            raise ValueError("RSTA receiver field has zero norm")
+        radial = descriptor * torch.dot(descriptor, field)
+        radial_fraction = float(
+            (torch.linalg.vector_norm(radial) / field_norm).detach()
+        )
+        if radial_fraction > 1.0e-3:
+            raise ValueError("RSTA receiver field radial fraction exceeds authority")
+        return field - radial, radial_fraction
 
-    batch_motion = tangent(batch_motion)
-    self_motion = tangent(self_motion)
+    batch_motion, batch_radial_fraction = tangent(batch_motion)
+    self_motion, self_radial_fraction = tangent(self_motion)
     if not all(
         bool(torch.isfinite(value).all())
         for value in (descriptor, batch_motion, self_motion)
@@ -891,6 +940,8 @@ def receiver_rsta_fields(
         descriptor=descriptor.detach(),
         batch_motion=batch_motion.detach(),
         self_motion=self_motion.detach(),
+        batch_radial_fraction=batch_radial_fraction,
+        self_radial_fraction=self_radial_fraction,
         backend=backend,
     )
 
@@ -959,4 +1010,275 @@ def preflight_rsta_jvp_backend(
         comparison_available=True,
         maximum_relative_disagreement=maximum,
         forward_error=None,
+    )
+
+
+def proxy_free_margin_direction(
+    descriptor: torch.Tensor,
+    positive_descriptors: torch.Tensor,
+    foreign_descriptors: torch.Tensor,
+    *,
+    foreign_example_ids: tuple[str, ...],
+    foreign_role_digests: tuple[str, ...],
+) -> RstaOutcomeDirection:
+    """Construct the frozen proxy-free margin-ascent tangent direction."""
+
+    if (
+        not isinstance(descriptor, torch.Tensor)
+        or not descriptor.is_floating_point()
+        or descriptor.ndim != 1
+        or not bool(torch.isfinite(descriptor).all())
+    ):
+        raise ValueError("RSTA outcome descriptor must be one finite vector")
+    dimensions = int(descriptor.shape[0])
+    if (
+        not isinstance(positive_descriptors, torch.Tensor)
+        or positive_descriptors.shape != (2, dimensions)
+        or positive_descriptors.dtype != descriptor.dtype
+        or positive_descriptors.device != descriptor.device
+        or not bool(torch.isfinite(positive_descriptors).all())
+    ):
+        raise ValueError("RSTA outcome requires exactly two finite positive descriptors")
+    if (
+        not isinstance(foreign_descriptors, torch.Tensor)
+        or foreign_descriptors.ndim != 2
+        or foreign_descriptors.shape[0] < 32
+        or foreign_descriptors.shape[1] != dimensions
+        or foreign_descriptors.dtype != descriptor.dtype
+        or foreign_descriptors.device != descriptor.device
+        or not bool(torch.isfinite(foreign_descriptors).all())
+    ):
+        raise ValueError("RSTA outcome foreign descriptor authority differs")
+    foreign_count = int(foreign_descriptors.shape[0])
+    if (
+        type(foreign_example_ids) is not tuple
+        or len(foreign_example_ids) != foreign_count
+        or len(set(foreign_example_ids)) != foreign_count
+        or any(type(value) is not str or not value for value in foreign_example_ids)
+        or type(foreign_role_digests) is not tuple
+        or len(foreign_role_digests) != foreign_count
+        or any(not _is_lower_hex(value, 64) for value in foreign_role_digests)
+    ):
+        raise ValueError("RSTA outcome foreign identity authority differs")
+    all_rows = torch.cat(
+        (descriptor.unsqueeze(0), positive_descriptors, foreign_descriptors), dim=0
+    )
+    norm_errors = (torch.linalg.vector_norm(all_rows, dim=1) - 1.0).abs()
+    if bool((norm_errors > 2.0e-5).any()):
+        raise ValueError("RSTA outcome descriptors must be unit rows")
+
+    foreign_scores = foreign_descriptors @ descriptor
+    selected = tuple(
+        sorted(
+            range(foreign_count),
+            key=lambda index: (
+                -float(foreign_scores[index]),
+                foreign_role_digests[index],
+                foreign_example_ids[index],
+            ),
+        )[:32]
+    )
+    selected_foreign = foreign_descriptors[list(selected)]
+    positive_scores = positive_descriptors @ descriptor
+    selected_scores = selected_foreign @ descriptor
+    tau = 0.05
+    positive_logmeanexp = torch.logsumexp(positive_scores / tau, dim=0) - math.log(2.0)
+    negative_logmeanexp = torch.logsumexp(selected_scores / tau, dim=0) - math.log(32.0)
+    margin = tau * (positive_logmeanexp - negative_logmeanexp)
+    positive_weights = torch.softmax(positive_scores / tau, dim=0)
+    negative_weights = torch.softmax(selected_scores / tau, dim=0)
+    gradient = positive_weights @ positive_descriptors - negative_weights @ selected_foreign
+    tangent = gradient - descriptor * torch.dot(descriptor, gradient)
+    tangent_norm = torch.linalg.vector_norm(tangent)
+    if not bool(torch.isfinite(tangent_norm)) or float(tangent_norm) <= 1.0e-12:
+        raise ValueError("RSTA outcome direction has zero projected norm")
+    direction = tangent / tangent_norm
+    return RstaOutcomeDirection(
+        margin=float(margin),
+        direction=direction.detach(),
+        selected_foreign_indices=selected,
+        selected_foreign_ids=tuple(foreign_example_ids[index] for index in selected),
+    )
+
+
+def score_rsta_receiver(
+    *,
+    fields: RstaReceiverFields,
+    dbar: torch.Tensor,
+    outcome_direction: torch.Tensor,
+    random_target: torch.Tensor,
+    deranged_direction: torch.Tensor,
+) -> RstaReceiverScore:
+    """Project once and compute the complete frozen receiver statistic family."""
+
+    if not isinstance(fields, RstaReceiverFields):
+        raise ValueError("RSTA receiver fields differ from authority")
+    descriptor = fields.descriptor
+    batch_motion = fields.batch_motion
+    self_motion = fields.self_motion
+    values = (
+        descriptor,
+        batch_motion,
+        self_motion,
+        dbar,
+        outcome_direction,
+        random_target,
+        deranged_direction,
+    )
+    if (
+        any(not isinstance(value, torch.Tensor) for value in values)
+        or descriptor.ndim != 1
+        or any(value.shape != descriptor.shape for value in values)
+        or any(value.dtype != descriptor.dtype for value in values)
+        or any(value.device != descriptor.device for value in values)
+        or any(not bool(torch.isfinite(value).all()) for value in values)
+    ):
+        raise ValueError("RSTA receiver score tensors differ from authority")
+    descriptor_norm = torch.linalg.vector_norm(descriptor)
+    if abs(float(descriptor_norm) - 1.0) > 2.0e-5:
+        raise ValueError("RSTA receiver descriptor must be unit normalized")
+    if (
+        fields.backend not in ("forward-mode", "double-backward")
+        or type(fields.batch_radial_fraction) is not float
+        or not math.isfinite(fields.batch_radial_fraction)
+        or not 0.0 <= fields.batch_radial_fraction <= 1.0e-3
+        or type(fields.self_radial_fraction) is not float
+        or not math.isfinite(fields.self_radial_fraction)
+        or not 0.0 <= fields.self_radial_fraction <= 1.0e-3
+    ):
+        raise ValueError("RSTA receiver field evidence differs from authority")
+
+    def project_cotangent(value: torch.Tensor) -> tuple[torch.Tensor, float]:
+        original_norm = torch.linalg.vector_norm(value)
+        if float(original_norm) <= 1.0e-12:
+            raise ValueError("RSTA receiver score has zero input norm")
+        radial = descriptor * torch.dot(descriptor, value)
+        projected = value - radial
+        projected_norm = torch.linalg.vector_norm(projected)
+        if float(projected_norm) <= 1.0e-12:
+            raise ValueError("RSTA receiver score has zero projected norm")
+        radial_fraction = float(torch.linalg.vector_norm(radial) / original_norm)
+        return projected, radial_fraction
+
+    def validate_tangent(value: torch.Tensor, *, unit: bool) -> torch.Tensor:
+        value_norm = torch.linalg.vector_norm(value)
+        if float(value_norm) <= 1.0e-12:
+            raise ValueError("RSTA receiver score has zero norm")
+        radial_fraction = float(torch.abs(torch.dot(descriptor, value)) / value_norm)
+        if radial_fraction > 1.0e-3:
+            raise ValueError("RSTA receiver score tangent residual exceeds authority")
+        if unit and abs(float(value_norm) - 1.0) > 2.0e-5:
+            raise ValueError("RSTA receiver score control must be unit normalized")
+        return value
+
+    batch = validate_tangent(batch_motion, unit=False)
+    self_value = validate_tangent(self_motion, unit=False)
+    descriptor_cotangent, dbar_radial = project_cotangent(dbar)
+    outcome = validate_tangent(outcome_direction, unit=True)
+    random_value = validate_tangent(random_target, unit=True)
+    deranged_value = validate_tangent(deranged_direction, unit=True)
+
+    def cosine(left: torch.Tensor, right: torch.Tensor) -> float:
+        denominator = torch.linalg.vector_norm(left) * torch.linalg.vector_norm(right)
+        if not bool(torch.isfinite(denominator)) or float(denominator) <= 1.0e-12:
+            raise ValueError("RSTA receiver score has zero norm")
+        return float(torch.dot(left, right) / denominator)
+
+    a_self = cosine(self_value, outcome)
+    a_batch = cosine(batch, outcome)
+    a_desc = cosine(descriptor_cotangent, outcome)
+    cos_batch_self = max(-1.0, min(1.0, cosine(batch, self_value)))
+    batch_norm = float(torch.linalg.vector_norm(batch))
+    self_norm = float(torch.linalg.vector_norm(self_value))
+    return RstaReceiverScore(
+        a_self=a_self,
+        a_batch=a_batch,
+        delta=a_self - a_batch,
+        a_desc=a_desc,
+        self_minus_desc=a_self - a_desc,
+        cos_batch_self=cos_batch_self,
+        rho=math.sqrt(max(0.0, 1.0 - cos_batch_self * cos_batch_self)),
+        log_ratio=math.log((batch_norm + 1.0e-12) / (self_norm + 1.0e-12)),
+        cross_contribution=cosine(batch - self_value, outcome),
+        random_delta=cosine(self_value, random_value) - cosine(batch, random_value),
+        deranged_delta=cosine(self_value, deranged_value)
+        - cosine(batch, deranged_value),
+        batch_radial_fraction=fields.batch_radial_fraction,
+        self_radial_fraction=fields.self_radial_fraction,
+        dbar_radial_fraction=dbar_radial,
+    )
+
+
+def rsta_control_directions(
+    descriptors: torch.Tensor,
+    outcome_directions: torch.Tensor,
+    *,
+    receiver_ids: tuple[str, ...],
+) -> RstaControlDirections:
+    """Construct ID-seeded random and cyclic-derangement tangent controls."""
+
+    if (
+        not isinstance(descriptors, torch.Tensor)
+        or not descriptors.is_floating_point()
+        or descriptors.ndim != 2
+        or descriptors.shape[0] < 2
+        or not isinstance(outcome_directions, torch.Tensor)
+        or outcome_directions.shape != descriptors.shape
+        or outcome_directions.dtype != descriptors.dtype
+        or outcome_directions.device != descriptors.device
+        or not bool(torch.isfinite(descriptors).all())
+        or not bool(torch.isfinite(outcome_directions).all())
+    ):
+        raise ValueError("RSTA control direction tensors differ from authority")
+    receiver_count, dimensions = descriptors.shape
+    if (
+        type(receiver_ids) is not tuple
+        or len(receiver_ids) != receiver_count
+        or len(set(receiver_ids)) != receiver_count
+        or any(type(value) is not str or not value for value in receiver_ids)
+    ):
+        raise ValueError("RSTA control receiver identity authority differs")
+    if bool(
+        ((torch.linalg.vector_norm(descriptors, dim=1) - 1.0).abs() > 2.0e-5).any()
+    ):
+        raise ValueError("RSTA control descriptors must be unit rows")
+    outcome_norms = torch.linalg.vector_norm(outcome_directions, dim=1)
+    outcome_radial = (descriptors * outcome_directions).sum(dim=1).abs()
+    if bool((outcome_norms <= 1.0e-12).any()) or bool(
+        ((outcome_norms - 1.0).abs() > 2.0e-5).any()
+    ) or bool((outcome_radial / outcome_norms > 1.0e-3).any()):
+        raise ValueError("RSTA control outcome directions differ from authority")
+
+    def project_and_normalize(
+        vectors: torch.Tensor, *, error: str
+    ) -> torch.Tensor:
+        projected = vectors - descriptors * (descriptors * vectors).sum(
+            dim=1, keepdim=True
+        )
+        norms = torch.linalg.vector_norm(projected, dim=1, keepdim=True)
+        if not bool(torch.isfinite(norms).all()) or bool((norms <= 1.0e-12).any()):
+            raise ValueError(error)
+        return projected / norms
+
+    random_rows = []
+    for receiver_id in receiver_ids:
+        seed = int.from_bytes(
+            _hash("rsta-siglip-a-v1|random-target|", receiver_id)[:8], "big"
+        )
+        values = np.random.Generator(np.random.PCG64(seed)).standard_normal(
+            dimensions
+        )
+        random_rows.append(
+            torch.as_tensor(values, dtype=descriptors.dtype, device=descriptors.device)
+        )
+    random_targets = project_and_normalize(
+        torch.stack(random_rows), error="RSTA random control has zero projected norm"
+    )
+    deranged = torch.roll(outcome_directions, shifts=-1, dims=0)
+    deranged_directions = project_and_normalize(
+        deranged, error="RSTA deranged control has zero projected norm"
+    )
+    return RstaControlDirections(
+        random_targets=random_targets,
+        deranged_directions=deranged_directions,
     )
