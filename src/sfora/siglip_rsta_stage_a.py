@@ -67,6 +67,7 @@ class RstaControlBinding:
     dataset_revision: str
     environment_sha256: str
     optimization_manifest_sha256: str
+    selected_microbatch_size: int
     checkpoints: tuple[RstaCheckpointBinding, ...]
 
     def __post_init__(self) -> None:
@@ -85,6 +86,9 @@ class RstaControlBinding:
             and _is_lower_hex(self.dataset_revision, 40)
             and _is_lower_hex(self.environment_sha256, 64)
             and _is_lower_hex(self.optimization_manifest_sha256, 64)
+            and type(self.selected_microbatch_size) is int
+            and self.selected_microbatch_size > 0
+            and 120 % self.selected_microbatch_size == 0
             and type(self.checkpoints) is tuple
             and len(self.checkpoints) == 3
             and all(type(item) is RstaCheckpointBinding for item in self.checkpoints)
@@ -112,6 +116,7 @@ def rsta_control_binding_bytes(binding: RstaControlBinding) -> bytes:
             "dataset_revision": binding.dataset_revision,
             "environment_sha256": binding.environment_sha256,
             "optimization_manifest_sha256": binding.optimization_manifest_sha256,
+            "selected_microbatch_size": binding.selected_microbatch_size,
             "checkpoints": [
                 {
                     "seed": item.seed,
@@ -151,8 +156,7 @@ class RstaStageAConfig:
             ("max_abs_deranged_delta", 0.01),
         )
         if any(
-            type(getattr(self, name)) is not type(value)
-            or getattr(self, name) != value
+            type(getattr(self, name)) is not type(value) or getattr(self, name) != value
             for name, value in expected
         ):
             raise ValueError("RSTA Stage-A config differs from the frozen contract")
@@ -165,12 +169,8 @@ class RstaReceiverEvidence:
     seed: int
     label: int
     receiver_id: str
-    delta: float
-    self_minus_desc: float
-    rho: float
-    abs_log_ratio: float
-    deranged_delta: float
-    alternate_delta: float
+    primary: RstaReceiverScore
+    alternate: RstaReceiverScore
 
 
 @dataclass(frozen=True)
@@ -262,8 +262,19 @@ class RstaReceiverScore:
     rho: float
     log_ratio: float
     cross_contribution: float
+    random_a_self: float
+    random_a_batch: float
     random_delta: float
+    deranged_a_self: float
+    deranged_a_batch: float
     deranged_delta: float
+    norm_z: float
+    norm_dbar: float
+    norm_b: float
+    norm_s: float
+    norm_q: float
+    norm_random_target: float
+    norm_deranged_target: float
     batch_radial_fraction: float
     self_radial_fraction: float
     dbar_radial_fraction: float
@@ -325,9 +336,7 @@ class RstaRolePanel:
 
 
 def _hash(domain: str, text: str | int) -> bytes:
-    return hashlib.sha256(
-        domain.encode("ascii") + b"\0" + str(text).encode("utf-8")
-    ).digest()
+    return hashlib.sha256(domain.encode("ascii") + b"\0" + str(text).encode("utf-8")).digest()
 
 
 def _ordered_classes(domain: str) -> tuple[int, ...]:
@@ -388,22 +397,16 @@ def _panel_batches(
         rows: list[RstaBatchRow] = []
         for label in main_labels:
             rows.extend(
-                RstaBatchRow(example_id, label, "receiver")
-                for example_id in ranked[label][2:5]
+                RstaBatchRow(example_id, label, "receiver") for example_id in ranked[label][2:5]
             )
             peer = ranked[label][5] if alternate_roles is None else alternate_roles[label][0]
             rows.append(RstaBatchRow(peer, label, "peer"))
         if batch_index == 1:
             for label in class_order[:11]:
                 refill = (
-                    ranked[label][6:10]
-                    if alternate_roles is None
-                    else alternate_roles[label][1]
+                    ranked[label][6:10] if alternate_roles is None else alternate_roles[label][1]
                 )
-                rows.extend(
-                    RstaBatchRow(example_id, label, "refill")
-                    for example_id in refill
-                )
+                rows.extend(RstaBatchRow(example_id, label, "refill") for example_id in refill)
         if len(rows) != 120:
             raise ValueError("RSTA logical batch does not contain 120 rows")
         batches.append(_ordered_batch(batch_index, rows))
@@ -500,6 +503,79 @@ def select_rsta_roles(examples: Sequence[tuple[str, int]]) -> RstaRolePanel:
     )
 
 
+def _validated_receiver_score(score: RstaReceiverScore) -> tuple[float, ...]:
+    if type(score) is not RstaReceiverScore:
+        raise ValueError("RSTA receiver primitive evidence has the wrong concrete type")
+    values = tuple(vars(score).values())
+    if any(type(value) is not float or not math.isfinite(value) for value in values):
+        raise ValueError("RSTA receiver primitive evidence must contain finite floats")
+    cosine_names = (
+        "a_self",
+        "a_batch",
+        "a_desc",
+        "cos_batch_self",
+        "cross_contribution",
+        "random_a_self",
+        "random_a_batch",
+        "deranged_a_self",
+        "deranged_a_batch",
+    )
+    if any(abs(getattr(score, name)) > 1.0 + 1.0e-12 for name in cosine_names):
+        raise ValueError("RSTA receiver primitive cosine lies outside authority")
+    norm_names = (
+        "norm_z",
+        "norm_dbar",
+        "norm_b",
+        "norm_s",
+        "norm_q",
+        "norm_random_target",
+        "norm_deranged_target",
+    )
+    if any(getattr(score, name) <= 1.0e-12 for name in norm_names):
+        raise ValueError("RSTA receiver primitive norm is nonpositive")
+    if any(
+        abs(getattr(score, name) - 1.0) > 2.0e-5
+        for name in ("norm_z", "norm_q", "norm_random_target", "norm_deranged_target")
+    ):
+        raise ValueError("RSTA receiver primitive unit norm differs from authority")
+    if not (
+        0.0 <= score.batch_radial_fraction <= 1.0e-3
+        and 0.0 <= score.self_radial_fraction <= 1.0e-3
+        and 0.0 <= score.dbar_radial_fraction <= 1.0 + 1.0e-12
+    ):
+        raise ValueError("RSTA receiver primitive radial evidence differs from authority")
+    expected = {
+        "delta": score.a_self - score.a_batch,
+        "self_minus_desc": score.a_self - score.a_desc,
+        "rho": math.sqrt(max(0.0, 1.0 - score.cos_batch_self**2)),
+        "log_ratio": math.log((score.norm_b + 1.0e-12) / (score.norm_s + 1.0e-12)),
+        "random_delta": score.random_a_self - score.random_a_batch,
+        "deranged_delta": score.deranged_a_self - score.deranged_a_batch,
+    }
+    cross_norm = math.sqrt(
+        max(
+            0.0,
+            score.norm_b**2
+            + score.norm_s**2
+            - 2.0 * score.norm_b * score.norm_s * score.cos_batch_self,
+        )
+    )
+    if cross_norm <= 1.0e-12:
+        raise ValueError("RSTA receiver primitive cross contribution has zero norm")
+    expected_cross = (score.a_batch * score.norm_b - score.a_self * score.norm_s) / cross_norm
+    if any(abs(getattr(score, name) - value) > 1.0e-12 for name, value in expected.items()):
+        raise ValueError("RSTA receiver primitive and derived evidence differ")
+    if abs(score.cross_contribution - expected_cross) > 2.0e-5:
+        raise ValueError("RSTA receiver primitive cross contribution differs")
+    return (
+        expected["delta"],
+        expected["self_minus_desc"],
+        expected["rho"],
+        abs(expected["log_ratio"]),
+        expected["deranged_delta"],
+    )
+
+
 def _class_balanced_matrices(
     rows: Sequence[RstaReceiverEvidence],
     config: RstaStageAConfig,
@@ -521,34 +597,26 @@ def _class_balanced_matrices(
         if key in receiver_keys:
             raise ValueError("duplicate receiver evidence")
         receiver_keys.add(key)
-        values = (
-            row.delta,
-            row.self_minus_desc,
-            row.rho,
-            row.abs_log_ratio,
-            row.deranged_delta,
-            row.alternate_delta,
-        )
-        if any(type(value) is not float or not math.isfinite(value) for value in values):
-            raise ValueError("receiver metrics must be concrete finite floats")
-        if not 0.0 <= row.rho <= 1.0 or row.abs_log_ratio < 0.0:
-            raise ValueError("receiver rho or absolute log ratio is outside authority")
+        _validated_receiver_score(row.primary)
+        _validated_receiver_score(row.alternate)
         by_cell.setdefault((row.seed, row.label), []).append(row)
-    expected_cells = {
-        (seed, label) for seed in config.seeds for label in _LABELS
-    }
-    if set(by_cell) != expected_cells or any(
-        len(cell_rows) != 3 for cell_rows in by_cell.values()
-    ):
+    expected_cells = {(seed, label) for seed in config.seeds for label in _LABELS}
+    if set(by_cell) != expected_cells or any(len(cell_rows) != 3 for cell_rows in by_cell.values()):
         raise ValueError("RSTA requires exactly three receiver rows per seed/class")
 
     matrices: list[np.ndarray] = []
-    for field in ("delta", "self_minus_desc", "alternate_delta"):
+    for value_index in (0, 1, 5):
         matrices.append(
             np.asarray(
                 [
                     [
-                        math.fsum(getattr(row, field) for row in by_cell[(seed, label)])
+                        math.fsum(
+                            (
+                                *_validated_receiver_score(row.primary),
+                                _validated_receiver_score(row.alternate)[0],
+                            )[value_index]
+                            for row in by_cell[(seed, label)]
+                        )
                         / 3.0
                         for label in _LABELS
                     ]
@@ -582,9 +650,7 @@ def summarize_rsta_stage_a(
 
     if type(config) is not RstaStageAConfig:
         raise ValueError("RSTA config has the wrong concrete type")
-    delta_matrix, self_desc_matrix, alternate_matrix = _class_balanced_matrices(
-        rows, config
-    )
+    delta_matrix, self_desc_matrix, alternate_matrix = _class_balanced_matrices(rows, config)
     seed_deltas = tuple(float(value) for value in delta_matrix.mean(axis=1))
     self_desc_seed = tuple(float(value) for value in self_desc_matrix.mean(axis=1))
     alternate_seed = tuple(float(value) for value in alternate_matrix.mean(axis=1))
@@ -596,12 +662,24 @@ def summarize_rsta_stage_a(
     delta_lower = float(np.quantile(delta_bootstrap, 0.025))
     self_desc_lower = float(np.quantile(self_desc_bootstrap, 0.025))
     median_rho = float(
-        np.median(np.asarray([row.rho for row in rows], dtype=np.float64))
+        np.median(
+            np.asarray(
+                [_validated_receiver_score(row.primary)[2] for row in rows],
+                dtype=np.float64,
+            )
+        )
     )
     median_log_ratio = float(
-        np.median(np.asarray([row.abs_log_ratio for row in rows], dtype=np.float64))
+        np.median(
+            np.asarray(
+                [_validated_receiver_score(row.primary)[3] for row in rows],
+                dtype=np.float64,
+            )
+        )
     )
-    pooled_deranged = math.fsum(row.deranged_delta for row in rows) / len(rows)
+    pooled_deranged = math.fsum(_validated_receiver_score(row.primary)[4] for row in rows) / len(
+        rows
+    )
 
     if pooled_delta <= 0.0:
         verdict, clause = "FAIL", "pooled-delta-nonpositive"
@@ -642,9 +720,7 @@ def summarize_rsta_stage_a(
         median_rho=median_rho,
         median_abs_log_ratio=median_log_ratio,
         pooled_deranged_delta=pooled_deranged,
-        bootstrap_delta_sha256=hashlib.sha256(
-            delta_bootstrap.tobytes(order="C")
-        ).hexdigest(),
+        bootstrap_delta_sha256=hashlib.sha256(delta_bootstrap.tobytes(order="C")).hexdigest(),
         bootstrap_self_minus_desc_sha256=hashlib.sha256(
             self_desc_bootstrap.tobytes(order="C")
         ).hexdigest(),
@@ -662,6 +738,11 @@ def rsta_stage_a_result_bytes(result: RstaAggregate) -> bytes:
         raise ValueError("RSTA result has the wrong concrete type")
     if summarize_rsta_stage_a(result.receiver_evidence, result.config) != result:
         raise ValueError("RSTA result differs from recomputed evidence")
+
+    def score_payload(score: RstaReceiverScore) -> dict[str, float]:
+        _validated_receiver_score(score)
+        return {name: float(value) for name, value in vars(score).items()}
+
     payload: dict[str, object] = {
         "schema": "siglip-rsta-stage-a-result-v1",
         "claim_eligible": False,
@@ -683,9 +764,7 @@ def rsta_stage_a_result_bytes(result: RstaAggregate) -> bytes:
             "pooled_delta": result.pooled_delta,
             "bootstrap_delta_95_lower": result.bootstrap_delta_95_lower,
             "pooled_self_minus_desc": result.pooled_self_minus_desc,
-            "bootstrap_self_minus_desc_95_lower": (
-                result.bootstrap_self_minus_desc_95_lower
-            ),
+            "bootstrap_self_minus_desc_95_lower": (result.bootstrap_self_minus_desc_95_lower),
             "seed_deltas": result.seed_deltas,
             "alternate_pooled_delta": result.alternate_pooled_delta,
             "alternate_seed_deltas": result.alternate_seed_deltas,
@@ -695,9 +774,7 @@ def rsta_stage_a_result_bytes(result: RstaAggregate) -> bytes:
         },
         "bootstrap": {
             "delta_distribution_sha256": result.bootstrap_delta_sha256,
-            "self_minus_desc_distribution_sha256": (
-                result.bootstrap_self_minus_desc_sha256
-            ),
+            "self_minus_desc_distribution_sha256": (result.bootstrap_self_minus_desc_sha256),
             "numpy_version": result.numpy_version,
         },
         "receiver_evidence": [
@@ -705,12 +782,8 @@ def rsta_stage_a_result_bytes(result: RstaAggregate) -> bytes:
                 "seed": row.seed,
                 "label": row.label,
                 "receiver_id": row.receiver_id,
-                "delta": row.delta,
-                "self_minus_desc": row.self_minus_desc,
-                "rho": row.rho,
-                "abs_log_ratio": row.abs_log_ratio,
-                "deranged_delta": row.deranged_delta,
-                "alternate_delta": row.alternate_delta,
+                "primary": score_payload(row.primary),
+                "alternate": score_payload(row.alternate),
             }
             for row in result.receiver_evidence
         ],
@@ -723,15 +796,16 @@ def contextual_rsta_direction(
     inputs: torch.Tensor,
     labels: torch.Tensor,
     *,
-    microbatch_size: int,
+    binding: RstaControlBinding,
     alpha: float,
     delta: float,
-    score_tolerance: float,
 ) -> ContextualDirectionEvidence:
     """Replay Proxy Anchor and return exact output and parameter descent directions."""
 
     if type(alpha) is not float or alpha != 32.0 or type(delta) is not float or delta != 0.1:
         raise ValueError("RSTA requires the frozen Proxy Anchor operator")
+    if type(binding) is not RstaControlBinding:
+        raise ValueError("RSTA contextual replay requires the bound control authority")
     if type(model) is not PooledProxyAnchorModel:
         raise ValueError("RSTA direction requires the registered pooled model")
     selected = tuple(
@@ -754,10 +828,10 @@ def contextual_rsta_direction(
             model,
             inputs,
             labels,
-            microbatch_size=microbatch_size,
+            microbatch_size=binding.selected_microbatch_size,
             alpha=alpha,
             delta=delta,
-            score_tolerance=score_tolerance,
+            score_tolerance=2.0e-5,
         )
         normalized_proxies = F.normalize(model.proxies.detach().float(), dim=1)
         dbar = -(replay.score_gradients @ normalized_proxies)
@@ -833,8 +907,7 @@ def receiver_rsta_fields(
     ):
         raise ValueError("RSTA selected parameter tuple differs from authority")
     primals = tuple(
-        parameter.detach().requires_grad_(backend == "double-backward")
-        for _, parameter in selected
+        parameter.detach().requires_grad_(backend == "double-backward") for _, parameter in selected
     )
     for tangent, primal in zip(parameter_direction, primals, strict=True):
         if (
@@ -852,8 +925,7 @@ def receiver_rsta_fields(
     def encode(values: tuple[torch.Tensor, ...]) -> torch.Tensor:
         value_by_name = dict(zip(expected_names, values, strict=True))
         tower_state = {
-            name: value_by_name[f"tower.{name}"]
-            for name, _ in model.tower.named_parameters()
+            name: value_by_name[f"tower.{name}"] for name, _ in model.tower.named_parameters()
         }
         tower_state.update(tower_buffers)
         projection_state = {
@@ -881,7 +953,15 @@ def receiver_rsta_fields(
                 (parameter_direction,),
             )
         vjp_descriptor, pullback = torch.func.vjp(encode, primals)
-        if not torch.equal(descriptor, vjp_descriptor):
+        descriptor_scale = max(
+            float(torch.linalg.vector_norm(descriptor)),
+            float(torch.linalg.vector_norm(vjp_descriptor)),
+            1.0e-12,
+        )
+        descriptor_disagreement = (
+            float(torch.linalg.vector_norm(descriptor - vjp_descriptor)) / descriptor_scale
+        )
+        if not math.isfinite(descriptor_disagreement) or descriptor_disagreement > 1.0e-5:
             raise ValueError("RSTA receiver descriptor replay differs")
         (self_parameter_direction,) = pullback(dbar.to(descriptor))
         _, self_motion = torch.func.jvp(
@@ -904,8 +984,7 @@ def receiver_rsta_fields(
                 create_graph=True,
             )
             pairing = sum(
-                (left * right).sum()
-                for left, right in zip(transposed, tangent_values, strict=True)
+                (left * right).sum() for left, right in zip(transposed, tangent_values, strict=True)
             )
             return torch.autograd.grad(pairing, output_cotangent)[0]
 
@@ -922,9 +1001,7 @@ def receiver_rsta_fields(
         if not bool(torch.isfinite(field_norm)) or float(field_norm) <= 1.0e-12:
             raise ValueError("RSTA receiver field has zero norm")
         radial = descriptor * torch.dot(descriptor, field)
-        radial_fraction = float(
-            (torch.linalg.vector_norm(radial) / field_norm).detach()
-        )
+        radial_fraction = float((torch.linalg.vector_norm(radial) / field_norm).detach())
         if radial_fraction > 1.0e-3:
             raise ValueError("RSTA receiver field radial fraction exceeds authority")
         return field - radial, radial_fraction
@@ -932,8 +1009,7 @@ def receiver_rsta_fields(
     batch_motion, batch_radial_fraction = tangent(batch_motion)
     self_motion, self_radial_fraction = tangent(self_motion)
     if not all(
-        bool(torch.isfinite(value).all())
-        for value in (descriptor, batch_motion, self_motion)
+        bool(torch.isfinite(value).all()) for value in (descriptor, batch_motion, self_motion)
     ):
         raise ValueError("RSTA receiver fields must be finite")
     return RstaReceiverFields(
@@ -956,6 +1032,7 @@ def preflight_rsta_jvp_backend(
 ) -> RstaJvpBackendEvidence:
     """Select the registered JVP backend before scientific rows are opened."""
 
+    forward_error: Exception | None = None
     try:
         forward = receiver_rsta_fields(
             model,
@@ -966,6 +1043,16 @@ def preflight_rsta_jvp_backend(
             backend="forward-mode",
         )
     except NotImplementedError as error:
+        forward_error = error
+    except RuntimeError as error:
+        message = str(error).lower()
+        forward_ad = "forward ad" in message or "forward-mode ad" in message
+        unsupported = "not implemented" in message or "does not support" in message
+        if not (forward_ad and unsupported):
+            raise
+        forward_error = error
+
+    if forward_error is not None:
         receiver_rsta_fields(
             model,
             receiver_input,
@@ -978,7 +1065,7 @@ def preflight_rsta_jvp_backend(
             backend="double-backward",
             comparison_available=False,
             maximum_relative_disagreement=0.0,
-            forward_error=type(error).__name__,
+            forward_error=type(forward_error).__name__,
         )
 
     fallback = receiver_rsta_fields(
@@ -1190,6 +1277,10 @@ def score_rsta_receiver(
     cos_batch_self = max(-1.0, min(1.0, cosine(batch, self_value)))
     batch_norm = float(torch.linalg.vector_norm(batch))
     self_norm = float(torch.linalg.vector_norm(self_value))
+    random_a_self = cosine(self_value, random_value)
+    random_a_batch = cosine(batch, random_value)
+    deranged_a_self = cosine(self_value, deranged_value)
+    deranged_a_batch = cosine(batch, deranged_value)
     return RstaReceiverScore(
         a_self=a_self,
         a_batch=a_batch,
@@ -1200,9 +1291,19 @@ def score_rsta_receiver(
         rho=math.sqrt(max(0.0, 1.0 - cos_batch_self * cos_batch_self)),
         log_ratio=math.log((batch_norm + 1.0e-12) / (self_norm + 1.0e-12)),
         cross_contribution=cosine(batch - self_value, outcome),
-        random_delta=cosine(self_value, random_value) - cosine(batch, random_value),
-        deranged_delta=cosine(self_value, deranged_value)
-        - cosine(batch, deranged_value),
+        random_a_self=random_a_self,
+        random_a_batch=random_a_batch,
+        random_delta=random_a_self - random_a_batch,
+        deranged_a_self=deranged_a_self,
+        deranged_a_batch=deranged_a_batch,
+        deranged_delta=deranged_a_self - deranged_a_batch,
+        norm_z=float(descriptor_norm),
+        norm_dbar=float(torch.linalg.vector_norm(dbar)),
+        norm_b=batch_norm,
+        norm_s=self_norm,
+        norm_q=float(torch.linalg.vector_norm(outcome)),
+        norm_random_target=float(torch.linalg.vector_norm(random_value)),
+        norm_deranged_target=float(torch.linalg.vector_norm(deranged_value)),
         batch_radial_fraction=fields.batch_radial_fraction,
         self_radial_fraction=fields.self_radial_fraction,
         dbar_radial_fraction=dbar_radial,
@@ -1238,23 +1339,19 @@ def rsta_control_directions(
         or any(type(value) is not str or not value for value in receiver_ids)
     ):
         raise ValueError("RSTA control receiver identity authority differs")
-    if bool(
-        ((torch.linalg.vector_norm(descriptors, dim=1) - 1.0).abs() > 2.0e-5).any()
-    ):
+    if bool(((torch.linalg.vector_norm(descriptors, dim=1) - 1.0).abs() > 2.0e-5).any()):
         raise ValueError("RSTA control descriptors must be unit rows")
     outcome_norms = torch.linalg.vector_norm(outcome_directions, dim=1)
     outcome_radial = (descriptors * outcome_directions).sum(dim=1).abs()
-    if bool((outcome_norms <= 1.0e-12).any()) or bool(
-        ((outcome_norms - 1.0).abs() > 2.0e-5).any()
-    ) or bool((outcome_radial / outcome_norms > 1.0e-3).any()):
+    if (
+        bool((outcome_norms <= 1.0e-12).any())
+        or bool(((outcome_norms - 1.0).abs() > 2.0e-5).any())
+        or bool((outcome_radial / outcome_norms > 1.0e-3).any())
+    ):
         raise ValueError("RSTA control outcome directions differ from authority")
 
-    def project_and_normalize(
-        vectors: torch.Tensor, *, error: str
-    ) -> torch.Tensor:
-        projected = vectors - descriptors * (descriptors * vectors).sum(
-            dim=1, keepdim=True
-        )
+    def project_and_normalize(vectors: torch.Tensor, *, error: str) -> torch.Tensor:
+        projected = vectors - descriptors * (descriptors * vectors).sum(dim=1, keepdim=True)
         norms = torch.linalg.vector_norm(projected, dim=1, keepdim=True)
         if not bool(torch.isfinite(norms).all()) or bool((norms <= 1.0e-12).any()):
             raise ValueError(error)
@@ -1262,12 +1359,8 @@ def rsta_control_directions(
 
     random_rows = []
     for receiver_id in receiver_ids:
-        seed = int.from_bytes(
-            _hash("rsta-siglip-a-v1|random-target|", receiver_id)[:8], "big"
-        )
-        values = np.random.Generator(np.random.PCG64(seed)).standard_normal(
-            dimensions
-        )
+        seed = int.from_bytes(_hash("rsta-siglip-a-v1|random-target|", receiver_id)[:8], "big")
+        values = np.random.Generator(np.random.PCG64(seed)).standard_normal(dimensions)
         random_rows.append(
             torch.as_tensor(values, dtype=descriptors.dtype, device=descriptors.device)
         )

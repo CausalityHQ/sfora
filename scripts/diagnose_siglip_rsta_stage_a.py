@@ -112,6 +112,7 @@ def _parse_control_binding(raw: bytes) -> RstaControlBinding:
         "dataset_revision",
         "environment_sha256",
         "optimization_manifest_sha256",
+        "selected_microbatch_size",
         "checkpoints",
     }
     if type(value) is not dict or set(value) != expected or raw != _canonical_json(value):
@@ -134,6 +135,7 @@ def _parse_control_binding(raw: bytes) -> RstaControlBinding:
             dataset_revision=value["dataset_revision"],
             environment_sha256=value["environment_sha256"],
             optimization_manifest_sha256=value["optimization_manifest_sha256"],
+            selected_microbatch_size=value["selected_microbatch_size"],
             checkpoints=tuple(
                 RstaCheckpointBinding(
                     seed=item["seed"],

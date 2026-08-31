@@ -17,6 +17,7 @@ from sfora.siglip_rsta_stage_a import (
     RstaControlBinding,
     RstaReceiverEvidence,
     RstaReceiverFields,
+    RstaReceiverScore,
     RstaRolePanel,
     RstaStageAConfig,
     contextual_rsta_direction,
@@ -176,16 +177,10 @@ class TestRstaRoles:
         assert len(panel.receivers) == 147
 
         receiver_ids = {receiver.example_id for receiver in panel.receivers}
-        primary_ids = {
-            row.example_id for batch in panel.primary_batches for row in batch.rows
-        }
-        alternate_ids = {
-            row.example_id for batch in panel.alternate_batches for row in batch.rows
-        }
+        primary_ids = {row.example_id for batch in panel.primary_batches for row in batch.rows}
+        alternate_ids = {row.example_id for batch in panel.alternate_batches for row in batch.rows}
         support_ids = {
-            example_id
-            for support_pair in panel.support_ids_by_label
-            for example_id in support_pair
+            example_id for support_pair in panel.support_ids_by_label for example_id in support_pair
         }
 
         assert len(primary_ids) == 240
@@ -193,15 +188,11 @@ class TestRstaRoles:
         assert primary_ids & alternate_ids == receiver_ids
         assert not support_ids & (primary_ids | alternate_ids)
         assert all(
-            receiver.primary_peer_id != receiver.alternate_peer_id
-            for receiver in panel.receivers
+            receiver.primary_peer_id != receiver.alternate_peer_id for receiver in panel.receivers
         )
         assert all(
             receiver.primary_foreign_labels != receiver.alternate_foreign_labels
-            and len(
-                set(receiver.primary_foreign_labels)
-                & set(receiver.alternate_foreign_labels)
-            )
+            and len(set(receiver.primary_foreign_labels) & set(receiver.alternate_foreign_labels))
             <= 22
             for receiver in panel.receivers
         )
@@ -245,6 +236,7 @@ def _binding() -> RstaControlBinding:
         dataset_revision="d" * 40,
         environment_sha256="e" * 64,
         optimization_manifest_sha256="f" * 64,
+        selected_microbatch_size=120,
         checkpoints=tuple(
             RstaCheckpointBinding(seed=seed, sha256=str(index) * 64, byte_length=1_000)
             for index, seed in enumerate((17, 29, 43), start=1)
@@ -261,6 +253,7 @@ class TestRstaControlBinding:
         assert b'"claim_eligible":false' in encoded
         assert b'"control_complete":true' in encoded
         assert b'"optimization_manifest_sha256":"' in encoded
+        assert b'"selected_microbatch_size":120' in encoded
         for forbidden in (b"accuracy", b"loss", b"threshold", b"verdict"):
             assert forbidden not in encoded
 
@@ -272,6 +265,8 @@ class TestRstaControlBinding:
             lambda value: replace(value, control_complete=1),
             lambda value: replace(value, source_commit="a" * 39),
             lambda value: replace(value, optimization_manifest_sha256="f" * 63),
+            lambda value: replace(value, selected_microbatch_size=True),
+            lambda value: replace(value, selected_microbatch_size=7),
             lambda value: replace(value, checkpoints=value.checkpoints[:2]),
             lambda value: replace(
                 value,
@@ -303,6 +298,44 @@ def _evidence(
     deranged_delta: float = 0.0,
     alternate_deltas: tuple[float, float, float] = (0.02, 0.02, 0.02),
 ) -> tuple[RstaReceiverEvidence, ...]:
+    def score(
+        *, delta: float, self_desc: float, rho_value: float, log_ratio: float, deranged: float
+    ) -> RstaReceiverScore:
+        a_self = delta
+        a_batch = 0.0
+        a_desc = a_self - self_desc
+        cos_batch_self = math.sqrt(max(0.0, 1.0 - rho_value * rho_value))
+        norm_b = math.exp(log_ratio)
+        cross_norm = math.sqrt(norm_b**2 + 1.0 - 2.0 * norm_b * cos_batch_self)
+        cross_contribution = (a_batch * norm_b - a_self) / cross_norm
+        return RstaReceiverScore(
+            a_self=a_self,
+            a_batch=a_batch,
+            delta=delta,
+            a_desc=a_desc,
+            self_minus_desc=self_desc,
+            cos_batch_self=cos_batch_self,
+            rho=rho_value,
+            log_ratio=log_ratio,
+            cross_contribution=cross_contribution,
+            random_a_self=0.0,
+            random_a_batch=0.0,
+            random_delta=0.0,
+            deranged_a_self=deranged,
+            deranged_a_batch=0.0,
+            deranged_delta=deranged,
+            norm_z=1.0,
+            norm_dbar=1.0,
+            norm_b=norm_b,
+            norm_s=1.0,
+            norm_q=1.0,
+            norm_random_target=1.0,
+            norm_deranged_target=1.0,
+            batch_radial_fraction=0.0,
+            self_radial_fraction=0.0,
+            dbar_radial_fraction=0.0,
+        )
+
     rows = []
     for seed_index, seed in enumerate((17, 29, 43)):
         for label in range(49):
@@ -312,12 +345,20 @@ def _evidence(
                         seed=seed,
                         label=label,
                         receiver_id=f"s{seed}-c{label}-r{receiver_rank}",
-                        delta=seed_deltas[seed_index],
-                        self_minus_desc=self_minus_desc,
-                        rho=rho,
-                        abs_log_ratio=abs_log_ratio,
-                        deranged_delta=deranged_delta,
-                        alternate_delta=alternate_deltas[seed_index],
+                        primary=score(
+                            delta=seed_deltas[seed_index],
+                            self_desc=self_minus_desc,
+                            rho_value=rho,
+                            log_ratio=abs_log_ratio,
+                            deranged=deranged_delta,
+                        ),
+                        alternate=score(
+                            delta=alternate_deltas[seed_index],
+                            self_desc=0.0,
+                            rho_value=rho,
+                            log_ratio=abs_log_ratio,
+                            deranged=0.0,
+                        ),
                     )
                 )
     return tuple(rows)
@@ -412,12 +453,43 @@ class TestRstaGates:
 
     def test_rejects_nonfinite_or_incomplete_receiver_evidence(self) -> None:
         rows = list(_evidence())
-        rows[0] = RstaReceiverEvidence(**{**rows[0].__dict__, "rho": float("nan")})
-        with pytest.raises(ValueError, match="finite"):
+        rows[0] = replace(rows[0], primary=replace(rows[0].primary, cos_batch_self=float("nan")))
+        with pytest.raises(ValueError, match="primitive"):
             summarize_rsta_stage_a(tuple(rows), RstaStageAConfig())
 
         with pytest.raises(ValueError, match="147 receiver rows per seed"):
             summarize_rsta_stage_a(_evidence()[:-1], RstaStageAConfig())
+
+    def test_rejects_receiver_derived_statistic_drift(self) -> None:
+        rows = list(_evidence())
+        rows[0] = replace(
+            rows[0], primary=replace(rows[0].primary, delta=rows[0].primary.delta + 0.1)
+        )
+
+        with pytest.raises(ValueError, match="primitive"):
+            summarize_rsta_stage_a(tuple(rows), RstaStageAConfig())
+
+    def test_accepts_cotangent_radial_roundoff_above_one(self) -> None:
+        rows = list(_evidence())
+        rows[0] = replace(
+            rows[0],
+            primary=replace(rows[0].primary, dbar_radial_fraction=1.0 + 5.0e-13),
+        )
+
+        summarize_rsta_stage_a(tuple(rows), RstaStageAConfig())
+
+    def test_rejects_cross_contribution_drift_from_primitive_geometry(self) -> None:
+        rows = list(_evidence())
+        rows[0] = replace(
+            rows[0],
+            primary=replace(
+                rows[0].primary,
+                cross_contribution=rows[0].primary.cross_contribution + 1.0e-3,
+            ),
+        )
+
+        with pytest.raises(ValueError, match="primitive"):
+            summarize_rsta_stage_a(tuple(rows), RstaStageAConfig())
 
 
 class TestContextualRstaDirection:
@@ -467,17 +539,14 @@ class TestContextualRstaDirection:
             model,
             inputs,
             labels,
-            microbatch_size=2,
+            binding=replace(_binding(), selected_microbatch_size=2),
             alpha=32.0,
             delta=0.1,
-            score_tolerance=1.0e-12,
         )
 
         torch.testing.assert_close(evidence.dbar, expected_dbar)
         assert evidence.parameter_names == tuple(name for name, _ in selected)
-        for actual, gradient in zip(
-            evidence.parameter_direction, expected_gradients, strict=True
-        ):
+        for actual, gradient in zip(evidence.parameter_direction, expected_gradients, strict=True):
             torch.testing.assert_close(actual, -gradient)
         assert all(parameter.grad is None for parameter in model.parameters())
         assert "proxies" not in " ".join(evidence.parameter_names)
@@ -503,18 +572,46 @@ class TestContextualRstaDirection:
                 model,
                 torch.ones((2, 2)),
                 torch.tensor([0, 1]),
-                microbatch_size=1,
+                binding=replace(_binding(), selected_microbatch_size=1),
                 alpha=alpha,
                 delta=delta,
-                score_tolerance=0.0,
             )
+
+    def test_replay_execution_uses_only_bound_microbatch_and_frozen_tolerance(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import sfora.siglip_rsta_stage_a as subject
+
+        model = PooledProxyAnchorModel(
+            tower=nn.Linear(2, 3, bias=False),
+            input_dimensions=3,
+            embedding_dimensions=2,
+            class_count=2,
+        )
+        observed: dict[str, object] = {}
+        original = subject.recomputed_proxy_anchor_backward
+
+        def observe(*args, **kwargs):
+            observed.update(kwargs)
+            return original(*args, **kwargs)
+
+        monkeypatch.setattr(subject, "recomputed_proxy_anchor_backward", observe)
+        contextual_rsta_direction(
+            model,
+            torch.tensor([[0.2, 0.8], [0.8, 0.2]]),
+            torch.tensor([0, 1]),
+            binding=replace(_binding(), selected_microbatch_size=1),
+            alpha=32.0,
+            delta=0.1,
+        )
+
+        assert observed["microbatch_size"] == 1
+        assert observed["score_tolerance"] == 2.0e-5
 
 
 class TestReceiverRstaFields:
     @pytest.mark.parametrize("backend", ["forward-mode", "double-backward"])
-    def test_matrix_free_fields_match_explicit_dense_jacobian(
-        self, backend: str
-    ) -> None:
+    def test_matrix_free_fields_match_explicit_dense_jacobian(self, backend: str) -> None:
         torch.manual_seed(47)
         model = PooledProxyAnchorModel(
             tower=nn.Sequential(nn.Linear(2, 3, bias=False), nn.Tanh()),
@@ -602,9 +699,7 @@ class TestReceiverRstaFields:
                 torch.tensor([[0.2, 0.8]]),
                 torch.tensor([0.1, -0.3]),
                 parameter_names=tuple(name for name, _ in selected),
-                parameter_direction=tuple(
-                    torch.ones_like(parameter) for _, parameter in selected
-                ),
+                parameter_direction=tuple(torch.ones_like(parameter) for _, parameter in selected),
                 backend="forward-mode",
             )
 
@@ -650,9 +745,7 @@ class TestReceiverRstaFields:
             torch.tensor([[0.2, 0.8]]),
             torch.tensor([0.1, -0.3]),
             parameter_names=tuple(name for name, _ in selected),
-            parameter_direction=tuple(
-                torch.ones_like(parameter) for _, parameter in selected
-            ),
+            parameter_direction=tuple(torch.ones_like(parameter) for _, parameter in selected),
         )
 
         assert evidence.backend == "forward-mode"
@@ -688,18 +781,86 @@ class TestReceiverRstaFields:
             torch.tensor([[0.2, 0.8]]),
             torch.tensor([0.1, -0.3]),
             parameter_names=tuple(name for name, _ in selected),
-            parameter_direction=tuple(
-                torch.ones_like(parameter) for _, parameter in selected
-            ),
+            parameter_direction=tuple(torch.ones_like(parameter) for _, parameter in selected),
         )
 
         assert evidence.backend == "double-backward"
         assert evidence.comparison_available is False
         assert evidence.forward_error == "NotImplementedError"
 
-    def test_preflight_rejects_backend_disagreement(
+    def test_preflight_accepts_runtime_forward_ad_coverage_failure(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        model = PooledProxyAnchorModel(
+            tower=nn.Linear(2, 3, bias=False),
+            input_dimensions=3,
+            embedding_dimensions=2,
+            class_count=2,
+        )
+        selected = tuple(
+            sorted(
+                (
+                    (name, parameter)
+                    for name, parameter in model.named_parameters()
+                    if name.startswith("tower.") or name.startswith("projection.")
+                ),
+                key=lambda item: item[0],
+            )
+        )
+
+        def unsupported(*args, **kwargs):
+            raise RuntimeError("forward-mode AD not implemented for fixture operator")
+
+        monkeypatch.setattr(torch.func, "jvp", unsupported)
+        evidence = preflight_rsta_jvp_backend(
+            model,
+            torch.tensor([[0.2, 0.8]]),
+            torch.tensor([0.1, -0.3]),
+            parameter_names=tuple(name for name, _ in selected),
+            parameter_direction=tuple(torch.ones_like(parameter) for _, parameter in selected),
+        )
+
+        assert evidence.backend == "double-backward"
+        assert evidence.forward_error == "RuntimeError"
+
+    def test_receiver_fields_allow_registered_descriptor_transform_tolerance(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        model = PooledProxyAnchorModel(
+            tower=nn.Linear(2, 3, bias=False),
+            input_dimensions=3,
+            embedding_dimensions=2,
+            class_count=2,
+        )
+        selected = tuple(
+            sorted(
+                (
+                    (name, parameter)
+                    for name, parameter in model.named_parameters()
+                    if name.startswith("tower.") or name.startswith("projection.")
+                ),
+                key=lambda item: item[0],
+            )
+        )
+        original_vjp = torch.func.vjp
+
+        def within_tolerance(*args, **kwargs):
+            descriptor, pullback = original_vjp(*args, **kwargs)
+            return descriptor + torch.tensor([0.0, 1.0e-7]), pullback
+
+        monkeypatch.setattr(torch.func, "vjp", within_tolerance)
+        fields = receiver_rsta_fields(
+            model,
+            torch.tensor([[0.2, 0.8]]),
+            torch.tensor([0.1, -0.3]),
+            parameter_names=tuple(name for name, _ in selected),
+            parameter_direction=tuple(torch.ones_like(parameter) for _, parameter in selected),
+            backend="forward-mode",
+        )
+
+        assert fields.backend == "forward-mode"
+
+    def test_preflight_rejects_backend_disagreement(self, monkeypatch: pytest.MonkeyPatch) -> None:
         model = PooledProxyAnchorModel(
             tower=nn.Linear(2, 3, bias=False),
             input_dimensions=3,
@@ -730,9 +891,7 @@ class TestReceiverRstaFields:
                 torch.tensor([[0.2, 0.8]]),
                 torch.tensor([0.1, -0.3]),
                 parameter_names=tuple(name for name, _ in selected),
-                parameter_direction=tuple(
-                    torch.ones_like(parameter) for _, parameter in selected
-                ),
+                parameter_direction=tuple(torch.ones_like(parameter) for _, parameter in selected),
             )
 
 
@@ -769,9 +928,7 @@ class TestRstaOutcomeDirection:
         negative_scores = foreign[list(expected_indices)] @ variable
         expected_margin = 0.05 * (
             torch.logsumexp(positive_scores / 0.05, dim=0) - math.log(2.0)
-        ) - 0.05 * (
-            torch.logsumexp(negative_scores / 0.05, dim=0) - math.log(32.0)
-        )
+        ) - 0.05 * (torch.logsumexp(negative_scores / 0.05, dim=0) - math.log(32.0))
         (gradient,) = torch.autograd.grad(expected_margin, variable)
         expected_direction = gradient - descriptor * torch.dot(descriptor, gradient)
         expected_direction = F.normalize(expected_direction, dim=0)
@@ -811,6 +968,7 @@ class TestRstaOutcomeDirection:
 
         def cosine(left: torch.Tensor, right: torch.Tensor) -> float:
             return float(F.cosine_similarity(left, right, dim=0))
+
         expected_self = cosine(self_motion, outcome)
         expected_batch = cosine(batch, outcome)
         expected_desc = cosine(dbar, outcome)
@@ -819,21 +977,28 @@ class TestRstaOutcomeDirection:
         assert score.a_batch == pytest.approx(expected_batch)
         assert score.delta == pytest.approx(expected_self - expected_batch, abs=3.0e-7)
         assert score.a_desc == pytest.approx(expected_desc)
-        assert score.self_minus_desc == pytest.approx(
-            expected_self - expected_desc, abs=3.0e-7
-        )
+        assert score.self_minus_desc == pytest.approx(expected_self - expected_desc, abs=3.0e-7)
         assert score.cos_batch_self == pytest.approx(expected_bs)
         assert score.rho == pytest.approx(math.sqrt(max(0.0, 1.0 - expected_bs**2)))
         assert score.log_ratio == pytest.approx(0.0)
-        assert score.cross_contribution == pytest.approx(
-            cosine(batch - self_motion, outcome)
-        )
+        assert score.cross_contribution == pytest.approx(cosine(batch - self_motion, outcome))
         assert score.random_delta == pytest.approx(
             cosine(self_motion, random_target) - cosine(batch, random_target)
         )
+        assert score.random_a_self == pytest.approx(cosine(self_motion, random_target))
+        assert score.random_a_batch == pytest.approx(cosine(batch, random_target))
         assert score.deranged_delta == pytest.approx(
             cosine(self_motion, deranged) - cosine(batch, deranged)
         )
+        assert score.deranged_a_self == pytest.approx(cosine(self_motion, deranged))
+        assert score.deranged_a_batch == pytest.approx(cosine(batch, deranged))
+        assert score.norm_z == pytest.approx(1.0)
+        assert score.norm_dbar == pytest.approx(math.sqrt(2.0))
+        assert score.norm_b == pytest.approx(5.0)
+        assert score.norm_s == pytest.approx(5.0)
+        assert score.norm_q == pytest.approx(1.0)
+        assert score.norm_random_target == pytest.approx(1.0)
+        assert score.norm_deranged_target == pytest.approx(1.0)
         assert score.batch_radial_fraction == pytest.approx(2.0e-4)
         assert score.self_radial_fraction == pytest.approx(3.0e-4)
         assert score.dbar_radial_fraction == pytest.approx(0.0)
@@ -844,9 +1009,9 @@ class TestRstaOutcomeDirection:
             torch.tensor([[0.8, 0.6, 0.0], [0.8, 0.0, 0.6]], dtype=torch.float64),
             dim=1,
         )
-        foreign = F.normalize(
-            torch.tensor([[0.5, -0.8, 0.2]], dtype=torch.float64), dim=1
-        ).repeat(34, 1)
+        foreign = F.normalize(torch.tensor([[0.5, -0.8, 0.2]], dtype=torch.float64), dim=1).repeat(
+            34, 1
+        )
         example_ids = tuple(f"tied-{index:02d}" for index in range(34))
         role_digests = tuple(f"{33 - index:064x}" for index in range(34))
 
@@ -872,13 +1037,9 @@ class TestRstaOutcomeDirection:
         )
         with pytest.raises(ValueError, match="tangent residual"):
             score_rsta_receiver(
-                fields=replace(
-                    valid_fields, batch_motion=torch.tensor([0.01, 2.0, 0.0])
-                ),
+                fields=replace(valid_fields, batch_motion=torch.tensor([0.01, 2.0, 0.0])),
                 dbar=torch.tensor([4.0, 1.0, 1.0]),
-                outcome_direction=F.normalize(
-                    torch.tensor([0.0, 1.0, 1.0]), dim=0
-                ),
+                outcome_direction=F.normalize(torch.tensor([0.0, 1.0, 1.0]), dim=0),
                 random_target=torch.tensor([0.0, 1.0, 0.0]),
                 deranged_direction=torch.tensor([0.0, 0.0, 1.0]),
             )
@@ -921,9 +1082,7 @@ class TestRstaOutcomeDirection:
             score_rsta_receiver(
                 fields=identical,
                 dbar=torch.tensor([4.0, 1.0, 1.0]),
-                outcome_direction=F.normalize(
-                    torch.tensor([0.0, 1.0, 1.0]), dim=0
-                ),
+                outcome_direction=F.normalize(torch.tensor([0.0, 1.0, 1.0]), dim=0),
                 random_target=torch.tensor([0.0, 1.0, 0.0]),
                 deranged_direction=torch.tensor([0.0, 0.0, 1.0]),
             )
@@ -955,23 +1114,17 @@ class TestRstaOutcomeDirection:
             torch.linalg.vector_norm(controls.random_targets, dim=1),
             torch.ones(3),
         )
-        assert torch.allclose(
-            (descriptors * controls.random_targets).sum(dim=1), torch.zeros(3)
-        )
+        assert torch.allclose((descriptors * controls.random_targets).sum(dim=1), torch.zeros(3))
         expected_first_deranged = outcomes[1] - descriptors[0] * torch.dot(
             descriptors[0], outcomes[1]
         )
         expected_first_deranged = F.normalize(expected_first_deranged, dim=0)
-        torch.testing.assert_close(
-            controls.deranged_directions[0], expected_first_deranged
-        )
+        torch.testing.assert_close(controls.deranged_directions[0], expected_first_deranged)
         expected_last_deranged = outcomes[0] - descriptors[-1] * torch.dot(
             descriptors[-1], outcomes[0]
         )
         expected_last_deranged = F.normalize(expected_last_deranged, dim=0)
-        torch.testing.assert_close(
-            controls.deranged_directions[-1], expected_last_deranged
-        )
+        torch.testing.assert_close(controls.deranged_directions[-1], expected_last_deranged)
         replayed = rsta_control_directions(
             descriptors,
             outcomes,

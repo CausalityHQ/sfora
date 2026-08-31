@@ -17,8 +17,19 @@ Before the scientific child is created, an authority-only controller authenticat
 the complete final seed receipts, aggregate receipt, checkpoints, source, config,
 dataset, and environment using the existing control implementation. It emits a
 canonical `rsta-control-binding-v1` projection containing only source/config/dataset/
-environment identities, the three checkpoint identities, and one
-`optimization_manifest_sha256` field. The projection is
+environment identities, the three checkpoint identities, one
+`optimization_manifest_sha256` field, and the selected control
+`microbatch_size`. The microbatch size is structural execution authority: the
+controller requires the same authenticated `ControlRunAuthority` value for all
+three seeds and the value must divide the fixed 120-row logical batch. It is not
+selected or overridden by the scientific child. The child passes the binding to
+the contextual replay, which uses only this bound value and the frozen control
+score-disagreement tolerance `2e-5`; neither is a scientific CLI parameter.
+`environment_sha256` is SHA-256 of canonical JSON over the outcome-blind
+`ControlRunAuthority` environment projection: torch, transformers, and torchvision
+versions, CUDA runtime, device name, steps per epoch, evaluation batch size, and
+query block. The full-manifest digest is excluded from that environment preimage.
+The projection is
 outcome-blind: it contains no accuracy, loss, threshold, pass/fail, clean, burned,
 or test evidence. After authenticating the control's complete image-free ordered
 manifest, the authority phase also derives and binds a separate canonical
@@ -310,6 +321,16 @@ digest, environment, class/row/tensor role, parameter tuple, backend preflight,
 fixture, receiver row, control, aggregate, bootstrap hash, threshold Boolean, cost,
 peak resource value, and first decisive clause. It always has
 `claim_eligible=false`.
+
+Receiver evidence stores the primitive per-panel cosines, motion/cotangent/control
+norms, log norm ratio, and radial fractions. Serialization re-derives every Delta,
+self-minus-descriptor value, rho, absolute log ratio, random-control Delta,
+deranged-control Delta, alternate-panel Delta, aggregate, gate Boolean, verdict,
+and first decisive clause; derived receiver statistics are never trusted inputs.
+An authority or pre-science failure emits a canonical `INVALID` result with one
+registered clause and no scientific metrics or receiver rows. A failure after the
+first scientific row emits only the controller's terminal failure receipt and no
+candidate result.
 
 `PASS_ONWARD` authorizes only a separately preregistered virtual-update Stage B with
 matched raw-cotangent and recent per-sample-harm controls. `FAIL`, `UNRESOLVED`, or

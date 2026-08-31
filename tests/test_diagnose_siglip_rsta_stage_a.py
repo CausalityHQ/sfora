@@ -189,6 +189,7 @@ def _write_authority_bundle(tmp_path: Path):
         dataset_revision="66" * 20,
         environment_sha256="88" * 32,
         optimization_manifest_sha256=manifest_sha256,
+        selected_microbatch_size=120,
         checkpoints=tuple(checkpoint_authorities),
     )
     binding_bytes = rsta_control_binding_bytes(binding)

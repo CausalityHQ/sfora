@@ -207,11 +207,24 @@
   `model_state` without constructing an optimizer. Snapshot and restore all Python,
   NumPy, torch CPU, and torch CUDA RNG states around each load.
 
+  Bind the authenticated control-selected microbatch size as an outcome-blind
+  `RstaControlBinding` field. Require an exact concrete divisor of 120 and reject
+  any child override; Task 6 must project one identical value from all three seed
+  run authorities without exposing their metric-bearing receipts. Pass the binding
+  itself into contextual replay, and pin replay score tolerance to the frozen
+  control value `2e-5` inside the core API.
+
 - [ ] **Step 3: Write reduced-shape end-to-end tests**
 
   Run three tiny sealed checkpoints through both panels, backend preflight,
   aggregation, and canonical output. Include authority, forbidden-class, interrupted
   row, duplicate, nondeterminism, and no-partial-result mutations.
+
+  Mutation-lock a primitive receiver evidence schema: per-panel self/batch/
+  descriptor/control cosines, raw norms, log ratio, and radial fractions. Require
+  the serializer to recompute every derived receiver statistic, aggregate, gate
+  Boolean, verdict, and first clause. Add a pre-science canonical `INVALID` shape
+  with metrics and receiver rows absent.
 
 - [ ] **Step 4: Implement the scientific loop**
 
@@ -244,7 +257,13 @@
   Separate authority projection, backend preflight, and scientific execution. The
   authority phase alone reads complete final seed/aggregate receipts through the
   existing authenticated control loader and emits `rsta-control-binding-v1` with no
-  metric or verdict fields. It authenticates the full image-free control manifest,
+  metric or verdict fields. It requires the same selected microbatch size in all
+  three authenticated seed run authorities and projects that structural value into
+  the binding. Recompute the existing canonical aggregate from all three complete
+  seed receipts and require byte equality with the sealed aggregate instead of
+  hand-comparing selected fields. Define `environment_sha256` from the canonical
+  outcome-blind environment projection, excluding the full-manifest digest. It
+  authenticates the full image-free control manifest,
   derives a canonical optimization-only manifest/digest, and includes only that
   digest in the binding. The scientific child receives only that binding, the
   authenticated checkpoints, the optimization-only ID/label manifest, and
