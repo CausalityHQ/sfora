@@ -12,9 +12,11 @@ from sfora.asgcv_protocol import (
     assemble_asgcv_eligible_schedule,
     assemble_asgcv_marginal_schedule,
     build_asgcv_pair_schedule,
+    canonical_asgcv_completion_group_bytes,
     classify_asgcv_completion,
     classify_asgcv_completion_group,
     derive_asgcv_rollout_seeds,
+    validate_asgcv_completion_group_bytes,
     validate_asgcv_marginal_protocol_bundle,
     validate_asgcv_partition_bundle,
     validate_asgcv_protocol_bundle,
@@ -274,6 +276,28 @@ def test_completion_group_derives_variance_eligibility_and_exact_teacher_spans()
             rollout_authority=rollout,
             candidate_pair_ordinal=7,
         )
+
+
+def test_completion_group_canonical_bytes_round_trip_and_reject_semantic_drift() -> None:
+    protocol = _protocol()
+    rollout = _rollout_authority()
+    completions = tuple(
+        (*((11, 12) if ordinal < 4 else (21, 22, 23)), 30 + ordinal, 99) for ordinal in range(8)
+    )
+    group = classify_asgcv_completion_group(
+        completions,
+        1,
+        protocol,
+        rollout_authority=rollout,
+        candidate_pair_ordinal=7,
+    )
+    raw = canonical_asgcv_completion_group_bytes(group)
+    assert raw.endswith(b"\n")
+    assert validate_asgcv_completion_group_bytes(raw) == group
+
+    mutated = raw.replace(b'"rewards":[1', b'"rewards":[0', 1)
+    with pytest.raises(ValueError):
+        validate_asgcv_completion_group_bytes(mutated)
 
 
 def test_collapsed_marginal_schedule_zeros_groups_without_both_valid_verdicts() -> None:

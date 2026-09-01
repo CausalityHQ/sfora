@@ -317,11 +317,16 @@ For every candidate P32 seals all completion validity flags, verdict signs,
 rewards, attribute spans, generated-token counts, teacher-forced completion
 scores, and synchronized phase timings. When both verdicts are present it
 computes a lowest-seed-ordinal correct/incorrect branch pair. When at least two
-valid completions of each verdict are present it also computes the corresponding
-highest-seed-ordinal pair and records normalized branch-exchange energy. The
+byte-distinct valid completions of each verdict are present it also computes the
+corresponding highest-seed-ordinal pair and records normalized branch-exchange
+energy. Duplicate lowest/highest completions are ineligible rather than
+zero-energy evidence. The
 first four schedule-ordered nonzero-variance candidates additionally run the
 registered eight-branch exact replay for a latency baseline and an ungated
 field diagnostic. No candidate is chosen for favorable agreement or runtime.
+The independently replayed branch scores must agree with the selection pass to
+an absolute tolerance of `1e-6`, and the derived backend coefficient to `2` ppm;
+this admits bounded floating-point replay drift without allowing branch changes.
 
 P32 passes only if all of the following preregistered gates pass:
 
@@ -332,8 +337,8 @@ P32 passes only if all of the following preregistered gates pass:
 - both-verdict branch yield is at least `500,000` ppm overall and `375,000`
   ppm within each relation sign;
 - median collapsed coefficient is at least `200,000` ppm and median absolute
-  teacher-score-probability versus empirical rollout-probability error is at
-  most `250,000` ppm;
+  teacher-score-probability versus empirical correct-verdict probability,
+  conditioned only on protocol-valid completions, is at most `250,000` ppm;
 - at least `750,000` ppm of the `256` completions are protocol-valid;
 - the p90-projected collapsed semantic-step wall ratio is at most `250,000`
   ppm, peak CUDA reserved memory is at most `96 GiB`, and candidate p90 wall
@@ -348,11 +353,18 @@ For a stratum of eight pairs, the collapsed step ratio is
 (8*(t_prepare + t_generate + t_eight_branch))`; the factor eight is the
 registered SAGA baseline's eight exact semantic pairs, not a timing-unit
 conversion. Both median and p90 ratios are published, and the p90 ratio owns
-the gate.
+the gate. The result also publishes the exact candidate counts contributing to
+the coefficient, calibration, dispersion, collapsed-timing, and exact-timing
+populations so differently conditioned summaries cannot be mistaken for one
+common sample.
 Collapsed-versus-exact cosine on four rows is reported but is not a gate: one
 eight-rollout draw cannot separate Rao-Blackwell shrinkage from field error.
 
-P32 failure is terminal for the implicated route. Branch-exchange or dispersion
+Every candidate and terminal binds the launch-authority digest and predictor
+initialization seed. An execution or result-assembly failure writes a canonical
+failure receipt and exits nonzero; a completed scientific result, including a
+valid `passed=false` result, exits zero. P32 failure is terminal for the
+implicated route. Branch-exchange or dispersion
 failure rejects the two-branch collapse and returns to measured eight-branch
 replay. Yield, coefficient, calibration, or validity failure rejects the frozen
 model's ASG-CV semantic-signal premise. Runtime or resource failure rejects GB10

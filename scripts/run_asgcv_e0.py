@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import os
 from collections.abc import Callable
 from pathlib import Path
@@ -17,12 +19,22 @@ from sfora.asgcv_marginal import (
     validate_marginal_gradient_sample_context,
     validate_marginal_gradient_sample_inputs,
 )
+from sfora.asgcv_pilot import (
+    ASGCV_P32_PAIR_COUNT,
+    AsgcvP32Candidate,
+    canonical_asgcv_p32_candidate_bytes,
+    canonical_asgcv_p32_result_bytes,
+    validate_asgcv_p32_candidate_context,
+    validate_asgcv_p32_pilot_schedule,
+    validate_asgcv_p32_result_bundle,
+)
 from sfora.asgcv_protocol import (
     AsgcvCompletionGroup,
     AsgcvCompletionProtocol,
     AsgcvEligibleSchedule,
     AsgcvMarginalSchedule,
     AsgcvPairSchedule,
+    AsgcvPartitionAuthority,
     AsgcvRolloutAuthority,
     assemble_asgcv_eligible_schedule,
     assemble_asgcv_marginal_schedule,
@@ -34,6 +46,9 @@ from sfora.asgcv_protocol import (
 
 ASGCV_CAPTURE_IMAGES = 2
 ASGCV_CAPTURE_PATCHES = 49
+ASGCV_P32_EXACT_DIAGNOSTIC_COUNT = 4
+ASGCV_P32_ROW_SCHEMA = "sfora-asgcv-p32-row-v1"
+ASGCV_P32_FAILURE_SCHEMA = "sfora-asgcv-p32-failure-v1"
 
 
 class EligibilityAdapter(Protocol):
@@ -111,9 +126,7 @@ def _marginal_capture_array(
     return np.ascontiguousarray(value)
 
 
-def _load_marginal_array(
-    path: Path, *, name: str, cut: AsgcvVisionCutAuthority
-) -> np.ndarray:
+def _load_marginal_array(path: Path, *, name: str, cut: AsgcvVisionCutAuthority) -> np.ndarray:
     try:
         with path.open("rb") as stream:
             value = np.load(stream, allow_pickle=False)
@@ -176,6 +189,477 @@ def _write_array(path: Path, value: np.ndarray) -> None:
         np.save(stream, value, allow_pickle=False)
         stream.flush()
         os.fsync(stream.fileno())
+
+
+def _write_atomic_bytes(path: Path, payload: bytes) -> None:
+    if type(payload) is not bytes or path.exists():
+        raise ValueError("ASG-CV P32 output differs")
+    partial = path.with_name(path.name + ".partial")
+    if partial.exists():
+        raise ValueError("ASG-CV P32 partial output differs")
+    try:
+        _write_bytes(partial, payload)
+        os.replace(partial, path)
+        directory_fd = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
+    finally:
+        if partial.exists():
+            partial.unlink()
+
+
+def _p32_path(directory: Path, ordinal: int) -> Path:
+    if (
+        not isinstance(directory, Path)
+        or not directory.is_dir()
+        or type(ordinal) is not int
+        or not 0 <= ordinal < ASGCV_P32_PAIR_COUNT
+    ):
+        raise ValueError("ASG-CV P32 campaign path differs")
+    return directory / f"candidate-{ordinal:06d}.json"
+
+
+def _canonical_p32_row_bytes(
+    group: AsgcvCompletionGroup,
+    candidate: AsgcvP32Candidate,
+) -> bytes:
+    group.validated()
+    candidate.validated()
+    return (
+        json.dumps(
+            {
+                "candidate": candidate.to_mapping(),
+                "completion_group": group.to_mapping(),
+                "schema": ASGCV_P32_ROW_SCHEMA,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+        + "\n"
+    ).encode("utf-8")
+
+
+def _validate_p32_row_bytes(
+    raw: bytes,
+) -> tuple[AsgcvCompletionGroup, AsgcvP32Candidate, bytes]:
+    try:
+        value = json.loads(raw)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError("ASG-CV P32 row is not canonical JSON") from error
+    if (
+        type(value) is not dict
+        or set(value)
+        != {
+            "candidate",
+            "completion_group",
+            "schema",
+        }
+        or value["schema"] != ASGCV_P32_ROW_SCHEMA
+    ):
+        raise ValueError("ASG-CV P32 row schema differs")
+    group = AsgcvCompletionGroup.from_mapping(value["completion_group"])
+    candidate = AsgcvP32Candidate.from_mapping(value["candidate"])
+    if _canonical_p32_row_bytes(group, candidate) != raw:
+        raise ValueError("ASG-CV P32 row bytes differ")
+    return group, candidate, canonical_asgcv_p32_candidate_bytes(candidate)
+
+
+def _canonical_p32_failure_bytes(
+    *,
+    source_commit: str,
+    model_revision: str,
+    launch_authority_sha256: str,
+    predictor_initialization_seed_sha256: str,
+    partition_authority_sha256: str,
+    pilot_schedule_sha256: str,
+    rollout_authority_sha256: str,
+    failed_candidate_ordinal: int,
+    completed_candidate_sha256s: tuple[str, ...],
+    failure_kind: str,
+    failure_phase: str,
+    error: Exception,
+) -> bytes:
+    if (
+        type(failed_candidate_ordinal) is not int
+        or not 0 <= failed_candidate_ordinal <= ASGCV_P32_PAIR_COUNT
+        or failed_candidate_ordinal != len(completed_candidate_sha256s)
+        or failure_kind not in {"memory-error", "authority-error", "backend-error"}
+        or failure_phase not in {"candidate-execution", "result-assembly"}
+        or not isinstance(error, Exception)
+    ):
+        raise ValueError("ASG-CV P32 failure evidence differs")
+    error_identity = f"{type(error).__module__}.{type(error).__qualname__}:{error}".encode()
+    value: dict[str, object] = {
+        "schema": ASGCV_P32_FAILURE_SCHEMA,
+        "claim_eligible": False,
+        "official_test_access": False,
+        "source_commit": source_commit,
+        "model_revision": model_revision,
+        "launch_authority_sha256": launch_authority_sha256,
+        "predictor_initialization_seed_sha256": predictor_initialization_seed_sha256,
+        "partition_authority_sha256": partition_authority_sha256,
+        "pilot_schedule_sha256": pilot_schedule_sha256,
+        "rollout_authority_sha256": rollout_authority_sha256,
+        "failed_candidate_ordinal": failed_candidate_ordinal,
+        "completed_candidate_sha256s": list(completed_candidate_sha256s),
+        "failure_phase": failure_phase,
+        "failure_kind": failure_kind,
+        "error_sha256": hashlib.sha256(error_identity).hexdigest(),
+    }
+    value["failure_sha256"] = hashlib.sha256(
+        (json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\n").encode()
+    ).hexdigest()
+    return (json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n").encode()
+
+
+def _validate_p32_failure_bytes(raw: bytes) -> dict[str, object]:
+    try:
+        value = json.loads(raw)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError("ASG-CV P32 failure is not canonical JSON") from error
+    expected = {
+        "schema",
+        "claim_eligible",
+        "official_test_access",
+        "source_commit",
+        "model_revision",
+        "launch_authority_sha256",
+        "predictor_initialization_seed_sha256",
+        "partition_authority_sha256",
+        "pilot_schedule_sha256",
+        "rollout_authority_sha256",
+        "failed_candidate_ordinal",
+        "completed_candidate_sha256s",
+        "failure_phase",
+        "failure_kind",
+        "error_sha256",
+        "failure_sha256",
+    }
+    if (
+        type(value) is not dict
+        or set(value) != expected
+        or value["schema"] != ASGCV_P32_FAILURE_SCHEMA
+        or value["claim_eligible"] is not False
+        or value["official_test_access"] is not False
+        or value["failure_phase"] not in {"candidate-execution", "result-assembly"}
+        or value["failure_kind"] not in {"memory-error", "authority-error", "backend-error"}
+        or type(value["failed_candidate_ordinal"]) is not int
+        or not 0 <= value["failed_candidate_ordinal"] <= ASGCV_P32_PAIR_COUNT
+        or type(value["completed_candidate_sha256s"]) is not list
+        or len(value["completed_candidate_sha256s"]) != value["failed_candidate_ordinal"]
+        or (value["failure_phase"] == "result-assembly")
+        != (value["failed_candidate_ordinal"] == ASGCV_P32_PAIR_COUNT)
+    ):
+        raise ValueError("ASG-CV P32 failure schema differs")
+    for name, length in (("source_commit", 40), ("model_revision", 40)):
+        field = value[name]
+        if (
+            type(field) is not str
+            or len(field) != length
+            or any(c not in "0123456789abcdef" for c in field)
+        ):
+            raise ValueError("ASG-CV P32 failure identity differs")
+    for name in (
+        "partition_authority_sha256",
+        "launch_authority_sha256",
+        "predictor_initialization_seed_sha256",
+        "pilot_schedule_sha256",
+        "rollout_authority_sha256",
+        "error_sha256",
+        "failure_sha256",
+    ):
+        field = value[name]
+        if (
+            type(field) is not str
+            or len(field) != 64
+            or any(c not in "0123456789abcdef" for c in field)
+        ):
+            raise ValueError("ASG-CV P32 failure identity differs")
+    completed = value["completed_candidate_sha256s"]
+    if any(
+        type(item) is not str or len(item) != 64 or any(c not in "0123456789abcdef" for c in item)
+        for item in completed
+    ):
+        raise ValueError("ASG-CV P32 failure prefix differs")
+    claimed = value["failure_sha256"]
+    identity = dict(value)
+    del identity["failure_sha256"]
+    expected_digest = hashlib.sha256(
+        (
+            json.dumps(identity, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\n"
+        ).encode()
+    ).hexdigest()
+    if (
+        claimed != expected_digest
+        or raw
+        != (
+            json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\n"
+        ).encode()
+    ):
+        raise ValueError("ASG-CV P32 failure bytes differ")
+    return value
+
+
+def _validated_p32_prefix(
+    directory: Path,
+    *,
+    rollout_authority: AsgcvRolloutAuthority,
+    pilot_schedule: AsgcvPairSchedule,
+    partition_authority: AsgcvPartitionAuthority,
+    source_commit: str,
+    predictor_train: object,
+    e0_validation: object,
+    e1_optimization: object,
+) -> tuple[
+    tuple[AsgcvCompletionGroup, ...],
+    tuple[AsgcvP32Candidate, ...],
+    tuple[bytes, ...],
+]:
+    if (
+        not isinstance(directory, Path)
+        or not directory.is_dir()
+        or type(rollout_authority) is not AsgcvRolloutAuthority
+        or type(pilot_schedule) is not AsgcvPairSchedule
+        or type(partition_authority) is not AsgcvPartitionAuthority
+    ):
+        raise ValueError("ASG-CV P32 campaign authority differs")
+    rollout_authority.validated()
+    validate_asgcv_p32_pilot_schedule(
+        pilot_schedule,
+        partition_authority=partition_authority,
+        source_commit=source_commit,
+        predictor_train=predictor_train,
+        e0_validation=e0_validation,
+        e1_optimization=e1_optimization,
+    )
+    if pilot_schedule.pair_count != ASGCV_P32_PAIR_COUNT:
+        raise ValueError("ASG-CV P32 campaign schedule differs")
+    if tuple(directory.glob("*.partial")):
+        raise ValueError("ASG-CV P32 partial output differs")
+    if tuple(directory.glob("group-*.json")):
+        raise ValueError("ASG-CV P32 partial campaign differs")
+
+    groups: list[AsgcvCompletionGroup] = []
+    candidates: list[AsgcvP32Candidate] = []
+    candidate_receipts: list[bytes] = []
+    missing = False
+    exact_count = 0
+    for ordinal in range(ASGCV_P32_PAIR_COUNT):
+        candidate_path = _p32_path(directory, ordinal)
+        if not candidate_path.exists():
+            missing = True
+            continue
+        if missing:
+            raise ValueError("ASG-CV P32 partial campaign differs")
+        group, candidate, candidate_raw = _validate_p32_row_bytes(candidate_path.read_bytes())
+        validate_asgcv_p32_candidate_context(
+            candidate,
+            completion_group=group,
+            rollout_authority=rollout_authority,
+            pilot_schedule=pilot_schedule,
+        )
+        if (
+            candidate.partition_authority_sha256 != partition_authority.sha256()
+            or candidate.source_commit != source_commit
+        ):
+            raise ValueError("ASG-CV P32 partition context differs")
+        expected_exact = (
+            group.nonzero_reward_variance and exact_count < ASGCV_P32_EXACT_DIAGNOSTIC_COUNT
+        )
+        if candidate.exact_diagnostic is not expected_exact:
+            raise ValueError("ASG-CV P32 exact diagnostic schedule differs")
+        exact_count += int(candidate.exact_diagnostic)
+        groups.append(group)
+        candidates.append(candidate)
+        candidate_receipts.append(candidate_raw)
+    if (directory / "result.json").exists() and len(candidates) != ASGCV_P32_PAIR_COUNT:
+        raise ValueError("ASG-CV P32 partial result differs")
+    return tuple(groups), tuple(candidates), tuple(candidate_receipts)
+
+
+def run_p32_campaign(
+    directory: Path,
+    *,
+    rollout_authority: AsgcvRolloutAuthority,
+    pilot_schedule: AsgcvPairSchedule,
+    partition_authority: AsgcvPartitionAuthority,
+    source_commit: str,
+    predictor_train: object,
+    e0_validation: object,
+    e1_optimization: object,
+    execute_one: Callable[[int, bool], tuple[AsgcvCompletionGroup, AsgcvP32Candidate]],
+) -> bytes:
+    """Run or resume exactly one candidate-ordered P32 campaign."""
+
+    if not callable(execute_one):
+        raise ValueError("ASG-CV P32 executor differs")
+    groups, candidates, candidate_receipts = _validated_p32_prefix(
+        directory,
+        rollout_authority=rollout_authority,
+        pilot_schedule=pilot_schedule,
+        partition_authority=partition_authority,
+        source_commit=source_commit,
+        predictor_train=predictor_train,
+        e0_validation=e0_validation,
+        e1_optimization=e1_optimization,
+    )
+    group_rows = list(groups)
+    candidate_rows = list(candidates)
+    receipt_rows = list(candidate_receipts)
+    exact_count = sum(candidate.exact_diagnostic for candidate in candidate_rows)
+    for ordinal in range(len(candidate_rows), ASGCV_P32_PAIR_COUNT):
+        diagnostic_available = exact_count < ASGCV_P32_EXACT_DIAGNOSTIC_COUNT
+        executed = execute_one(ordinal, diagnostic_available)
+        if (
+            type(executed) is not tuple
+            or len(executed) != 2
+            or type(executed[0]) is not AsgcvCompletionGroup
+            or type(executed[1]) is not AsgcvP32Candidate
+        ):
+            raise ValueError("ASG-CV P32 executor result differs")
+        group, candidate = executed
+        validate_asgcv_p32_candidate_context(
+            candidate,
+            completion_group=group,
+            rollout_authority=rollout_authority,
+            pilot_schedule=pilot_schedule,
+        )
+        if (
+            candidate.partition_authority_sha256 != partition_authority.sha256()
+            or candidate.source_commit != source_commit
+        ):
+            raise ValueError("ASG-CV P32 partition context differs")
+        expected_exact = group.nonzero_reward_variance and diagnostic_available
+        if candidate.exact_diagnostic is not expected_exact:
+            raise ValueError("ASG-CV P32 exact diagnostic schedule differs")
+        candidate_raw = canonical_asgcv_p32_candidate_bytes(candidate)
+        candidate_path = _p32_path(directory, ordinal)
+        _write_atomic_bytes(candidate_path, _canonical_p32_row_bytes(group, candidate))
+        group_rows.append(group)
+        candidate_rows.append(candidate)
+        receipt_rows.append(candidate_raw)
+        exact_count += int(candidate.exact_diagnostic)
+
+    result_raw = canonical_asgcv_p32_result_bytes(tuple(candidate_rows))
+    result_path = directory / "result.json"
+    if result_path.exists():
+        if result_path.read_bytes() != result_raw:
+            raise ValueError("ASG-CV P32 existing result differs")
+    else:
+        _write_atomic_bytes(result_path, result_raw)
+    validate_asgcv_p32_result_bundle(
+        result_raw,
+        candidate_receipts=tuple(receipt_rows),
+        completion_groups=tuple(group_rows),
+        rollout_authority=rollout_authority,
+        pilot_schedule=pilot_schedule,
+    )
+    return result_raw
+
+
+def run_p32_campaign_with_failure_terminal(
+    directory: Path,
+    *,
+    rollout_authority: AsgcvRolloutAuthority,
+    pilot_schedule: AsgcvPairSchedule,
+    partition_authority: AsgcvPartitionAuthority,
+    source_commit: str,
+    launch_authority_sha256: str,
+    predictor_initialization_seed_sha256: str,
+    predictor_train: object,
+    e0_validation: object,
+    e1_optimization: object,
+    execute_one: Callable[[int, bool], tuple[AsgcvCompletionGroup, AsgcvP32Candidate]],
+) -> bytes:
+    """Run P32 once and atomically preserve a canonical execution failure."""
+
+    failure_path = directory / "failure.json"
+    if failure_path.exists():
+        failure = _validate_p32_failure_bytes(failure_path.read_bytes())
+        _, candidates, _ = _validated_p32_prefix(
+            directory,
+            rollout_authority=rollout_authority,
+            pilot_schedule=pilot_schedule,
+            partition_authority=partition_authority,
+            source_commit=source_commit,
+            predictor_train=predictor_train,
+            e0_validation=e0_validation,
+            e1_optimization=e1_optimization,
+        )
+        if (
+            failure["source_commit"] != source_commit
+            or failure["model_revision"] != rollout_authority.model_revision
+            or failure["launch_authority_sha256"] != launch_authority_sha256
+            or failure["predictor_initialization_seed_sha256"]
+            != predictor_initialization_seed_sha256
+            or failure["partition_authority_sha256"] != partition_authority.sha256()
+            or failure["pilot_schedule_sha256"] != pilot_schedule.sha256()
+            or failure["rollout_authority_sha256"] != rollout_authority.sha256()
+            or failure["completed_candidate_sha256s"]
+            != [candidate.sha256() for candidate in candidates]
+        ):
+            raise ValueError("ASG-CV P32 failure terminal context differs")
+        raise ValueError("ASG-CV P32 failure terminal already exists")
+    try:
+        return run_p32_campaign(
+            directory,
+            rollout_authority=rollout_authority,
+            pilot_schedule=pilot_schedule,
+            partition_authority=partition_authority,
+            source_commit=source_commit,
+            predictor_train=predictor_train,
+            e0_validation=e0_validation,
+            e1_optimization=e1_optimization,
+            execute_one=execute_one,
+        )
+    except Exception as error:
+        if (
+            type(rollout_authority) is not AsgcvRolloutAuthority
+            or type(pilot_schedule) is not AsgcvPairSchedule
+            or type(partition_authority) is not AsgcvPartitionAuthority
+            or type(source_commit) is not str
+        ):
+            raise
+        _, candidates, _ = _validated_p32_prefix(
+            directory,
+            rollout_authority=rollout_authority,
+            pilot_schedule=pilot_schedule,
+            partition_authority=partition_authority,
+            source_commit=source_commit,
+            predictor_train=predictor_train,
+            e0_validation=e0_validation,
+            e1_optimization=e1_optimization,
+        )
+        kind = (
+            "memory-error"
+            if isinstance(error, MemoryError) or type(error).__name__ == "OutOfMemoryError"
+            else "authority-error"
+            if isinstance(error, ValueError)
+            else "backend-error"
+        )
+        raw = _canonical_p32_failure_bytes(
+            source_commit=source_commit,
+            model_revision=rollout_authority.model_revision,
+            launch_authority_sha256=launch_authority_sha256,
+            predictor_initialization_seed_sha256=predictor_initialization_seed_sha256,
+            partition_authority_sha256=partition_authority.sha256(),
+            pilot_schedule_sha256=pilot_schedule.sha256(),
+            rollout_authority_sha256=rollout_authority.sha256(),
+            failed_candidate_ordinal=len(candidates),
+            completed_candidate_sha256s=tuple(candidate.sha256() for candidate in candidates),
+            failure_kind=kind,
+            failure_phase=(
+                "result-assembly"
+                if len(candidates) == ASGCV_P32_PAIR_COUNT
+                else "candidate-execution"
+            ),
+            error=error,
+        )
+        _write_atomic_bytes(failure_path, raw)
+        return raw
 
 
 def write_capture_triple(

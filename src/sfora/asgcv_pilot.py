@@ -9,11 +9,16 @@ import statistics
 from dataclasses import dataclass, fields
 from typing import Any, cast
 
+import numpy as np
+
 from sfora.asgcv_protocol import (
     AsgcvCompletionGroup,
     AsgcvPairSchedule,
+    AsgcvPartitionAuthority,
     AsgcvRolloutAuthority,
+    build_asgcv_pair_schedule,
     derive_asgcv_rollout_seeds,
+    validate_asgcv_partition_bundle,
 )
 from sfora.asgcv_verdict_marginal import (
     collapsed_verdict_coefficient,
@@ -37,6 +42,11 @@ ASGCV_P32_STEP_WALL_RATIO_GATE_PPM = 250_000
 ASGCV_P32_EXCHANGE_EVALUABLE_MINIMUM = 8
 ASGCV_P32_PEAK_CUDA_GATE_BYTES = 96 * 1024**3
 ASGCV_P32_CANDIDATE_P90_GATE_NS = 300_000_000_000
+ASGCV_P32_BOUNDARY_NAMES = ("merger", "deepstack-0", "deepstack-1", "deepstack-2")
+ASGCV_P32_FIELD_DOMAIN = b"sfora-asgcv-p32-field-v1\0"
+ASGCV_P32_SCHEDULE_DOMAIN = b"sfora-asgcv-p32-pilot-schedule-v1\0"
+ASGCV_P32_BRANCH_SCORE_ABS_TOLERANCE = 1e-6
+ASGCV_P32_COEFFICIENT_TOLERANCE_PPM = 2
 
 
 def _canonical_json_bytes(value: dict[str, object]) -> bytes:
@@ -71,6 +81,20 @@ def _finite(value: object, *, name: str, positive: bool = False) -> float:
     return value
 
 
+def _nonnegative_finite(value: object, *, name: str) -> float:
+    result = _finite(value, name=name)
+    if result < 0.0:
+        raise ValueError(f"ASG-CV P32 {name} differs")
+    return result
+
+
+def _branch_scores_match(actual: tuple[float, float], expected: tuple[float, float]) -> bool:
+    return all(
+        abs(observed - authority) <= ASGCV_P32_BRANCH_SCORE_ABS_TOLERANCE
+        for observed, authority in zip(actual, expected, strict=True)
+    )
+
+
 def _ppm(value: float) -> int:
     return int(round(value * 1_000_000.0))
 
@@ -92,6 +116,123 @@ def _p90(values: tuple[int, ...]) -> int:
     return ordered[math.ceil(0.9 * len(ordered)) - 1]
 
 
+def _p32_field(value: object, *, name: str) -> np.ndarray:
+    if (
+        type(value) is not np.ndarray
+        or value.dtype != np.dtype(np.float32)
+        or value.size == 0
+        or not bool(np.isfinite(value).all())
+    ):
+        raise ValueError(f"ASG-CV P32 {name} field differs")
+    return np.ascontiguousarray(value)
+
+
+def asgcv_p32_field_authority(value: object, *, role: str) -> tuple[str, float]:
+    """Return one shape-bound fp32 field digest and fp64 Euclidean norm."""
+
+    if type(role) is not str or not role:
+        raise ValueError("ASG-CV P32 field role differs")
+    array = _p32_field(value, name=role)
+    metadata = _canonical_json_bytes({"dtype": "float32", "role": role, "shape": list(array.shape)})
+    digest = hashlib.sha256(ASGCV_P32_FIELD_DOMAIN + metadata + array.tobytes()).hexdigest()
+    norm = float(np.sqrt(np.square(array.astype(np.float64)).sum(dtype=np.float64)))
+    if not math.isfinite(norm):
+        raise ValueError("ASG-CV P32 field norm differs")
+    return digest, norm
+
+
+def asgcv_p32_branch_exchange_energy_ppm(lowest: object, highest: object) -> int:
+    """Measure symmetric normalized energy changed by branch exchange."""
+
+    low: np.ndarray = _p32_field(lowest, name="lowest branch").astype(np.float64)
+    high: np.ndarray = _p32_field(highest, name="highest branch").astype(np.float64)
+    if low.shape != high.shape:
+        raise ValueError("ASG-CV P32 branch exchange shape differs")
+    denominator = float(
+        np.square(low).sum(dtype=np.float64) + np.square(high).sum(dtype=np.float64)
+    )
+    if denominator <= 0.0 or not math.isfinite(denominator):
+        return 1_000_000
+    ratio = float(np.square(high - low).sum(dtype=np.float64)) / denominator
+    if not math.isfinite(ratio) or ratio < 0.0:
+        raise ValueError("ASG-CV P32 branch exchange energy differs")
+    return min(1_000_000, _ppm(ratio))
+
+
+def asgcv_p32_collapsed_exact_cosine(collapsed: object, exact: object) -> float:
+    """Measure fp64 cosine between same-shaped collapsed and exact fields."""
+
+    left: np.ndarray = _p32_field(collapsed, name="collapsed cosine").astype(np.float64)
+    right: np.ndarray = _p32_field(exact, name="exact cosine").astype(np.float64)
+    if left.shape != right.shape:
+        raise ValueError("ASG-CV P32 field cosine shape differs")
+    denominator = float(np.linalg.norm(left) * np.linalg.norm(right))
+    if denominator <= 0.0 or not math.isfinite(denominator):
+        raise ValueError("ASG-CV P32 field cosine denominator differs")
+    cosine = float(np.sum(left * right, dtype=np.float64)) / denominator
+    if not math.isfinite(cosine):
+        raise ValueError("ASG-CV P32 field cosine differs")
+    return max(-1.0, min(1.0, cosine))
+
+
+def derive_asgcv_p32_schedule_seed(
+    *,
+    partition_authority: AsgcvPartitionAuthority,
+    source_commit: str,
+) -> str:
+    """Derive the P32-only pair seed from frozen source and partition authority."""
+
+    if type(partition_authority) is not AsgcvPartitionAuthority:
+        raise ValueError("ASG-CV P32 partition authority differs")
+    partition_authority.validated()
+    source = _commit(source_commit, name="schedule source commit")
+    return hashlib.sha256(
+        ASGCV_P32_SCHEDULE_DOMAIN
+        + bytes.fromhex(partition_authority.sha256())
+        + bytes.fromhex(source)
+    ).hexdigest()
+
+
+def validate_asgcv_p32_pilot_schedule(
+    schedule: AsgcvPairSchedule,
+    *,
+    partition_authority: AsgcvPartitionAuthority,
+    source_commit: str,
+    predictor_train: object,
+    e0_validation: object,
+    e1_optimization: object,
+) -> None:
+    """Bind P32 pairs to the isolated predictor-training partition."""
+
+    if type(schedule) is not AsgcvPairSchedule:
+        raise ValueError("ASG-CV P32 pilot schedule differs")
+    validate_asgcv_partition_bundle(
+        partition_authority,
+        predictor_train=predictor_train,
+        e0_validation=e0_validation,
+        e1_optimization=e1_optimization,
+    )
+    if (
+        type(predictor_train) is not tuple
+        or len(predictor_train) != 2
+        or type(predictor_train[0]) is not tuple
+        or type(predictor_train[1]) is not tuple
+    ):
+        raise ValueError("ASG-CV P32 predictor partition differs")
+    expected_seed = derive_asgcv_p32_schedule_seed(
+        partition_authority=partition_authority,
+        source_commit=source_commit,
+    )
+    rebuilt = build_asgcv_pair_schedule(
+        predictor_train[0],
+        predictor_train[1],
+        schedule_seed_sha256=expected_seed,
+        pair_count=ASGCV_P32_PAIR_COUNT,
+    )
+    if schedule != rebuilt:
+        raise ValueError("ASG-CV P32 pilot schedule reconstruction differs")
+
+
 @dataclass(frozen=True, slots=True)
 class AsgcvP32Candidate:
     """One digest-only P32 candidate with derivable semantic and runtime evidence."""
@@ -99,6 +240,8 @@ class AsgcvP32Candidate:
     source_commit: str
     model_revision: str
     fixture_sha256: str
+    launch_authority_sha256: str
+    predictor_initialization_seed_sha256: str
     partition_authority_sha256: str
     pilot_schedule_sha256: str
     completion_protocol_sha256: str
@@ -117,11 +260,17 @@ class AsgcvP32Candidate:
     completion_scores: tuple[float, ...]
     lowest_branch_indices: tuple[int, int] | None
     highest_branch_indices: tuple[int, int] | None
+    branch_exchange_distinct: bool
+    collapsed_branch_scores: tuple[float, float] | None
+    collapsed_backend_coefficient_ppm: int | None
+    highest_branch_scores: tuple[float, float] | None
+    highest_backend_coefficient_ppm: int | None
     lowest_gradient_sha256: str | None
     highest_gradient_sha256: str | None
     lowest_gradient_norm: float | None
     highest_gradient_norm: float | None
     branch_exchange_energy_ppm: int | None
+    boundary_names: tuple[str, ...]
     boundary_norms: tuple[float, ...] | None
     exact_gradient_sha256: str | None
     exact_gradient_norm: float | None
@@ -158,7 +307,11 @@ class AsgcvP32Candidate:
 
     @property
     def exchange_evaluable(self) -> bool:
-        return self.valid_correct_count >= 2 and self.valid_incorrect_count >= 2
+        return (
+            self.valid_correct_count >= 2
+            and self.valid_incorrect_count >= 2
+            and self.branch_exchange_distinct
+        )
 
     @property
     def nonzero_reward_variance(self) -> bool:
@@ -197,9 +350,11 @@ class AsgcvP32Candidate:
         if self.lowest_branch_indices is None:
             return None
         correct_ordinal, incorrect_ordinal = self.lowest_branch_indices
-        return collapsed_verdict_probability(
-            self.completion_scores[correct_ordinal],
-            self.completion_scores[incorrect_ordinal],
+        return float(
+            collapsed_verdict_probability(
+                self.completion_scores[correct_ordinal],
+                self.completion_scores[incorrect_ordinal],
+            )
         )
 
     @property
@@ -247,6 +402,8 @@ class AsgcvP32Candidate:
         _commit(self.model_revision, name="model revision")
         for name in (
             "fixture_sha256",
+            "launch_authority_sha256",
+            "predictor_initialization_seed_sha256",
             "partition_authority_sha256",
             "pilot_schedule_sha256",
             "completion_protocol_sha256",
@@ -255,6 +412,8 @@ class AsgcvP32Candidate:
             "pooler_state_sha256",
         ):
             _sha256(getattr(self, name), name=name)
+        if type(self.branch_exchange_distinct) is not bool:
+            raise ValueError("ASG-CV P32 branch distinctness differs")
         if (
             type(self.candidate_pair_ordinal) is not int
             or not 0 <= self.candidate_pair_ordinal < ASGCV_P32_PAIR_COUNT
@@ -266,6 +425,8 @@ class AsgcvP32Candidate:
             or self.relation_sign not in {-1, 1}
         ):
             raise ValueError("ASG-CV P32 candidate relation differs")
+        if self.boundary_names != ASGCV_P32_BOUNDARY_NAMES:
+            raise ValueError("ASG-CV P32 boundary authority differs")
         sequences = (
             self.generation_seeds,
             self.rewards,
@@ -323,13 +484,41 @@ class AsgcvP32Candidate:
         )
         expected_lowest = (correct[0], incorrect[0]) if correct and incorrect else None
         expected_highest = (
-            (correct[-1], incorrect[-1]) if len(correct) >= 2 and len(incorrect) >= 2 else None
+            (correct[-1], incorrect[-1])
+            if len(correct) >= 2 and len(incorrect) >= 2 and self.branch_exchange_distinct
+            else None
         )
         if (
             self.lowest_branch_indices != expected_lowest
             or self.highest_branch_indices != expected_highest
         ):
             raise ValueError("ASG-CV P32 branch selection differs")
+        if self.both_verdicts_valid:
+            expected_lowest_scores = (
+                self.completion_scores[cast(tuple[int, int], expected_lowest)[0]],
+                self.completion_scores[cast(tuple[int, int], expected_lowest)[1]],
+            )
+            if (
+                type(self.collapsed_branch_scores) is not tuple
+                or len(self.collapsed_branch_scores) != 2
+                or any(
+                    type(value) is not float or not math.isfinite(value)
+                    for value in self.collapsed_branch_scores
+                )
+                or not _branch_scores_match(
+                    self.collapsed_branch_scores,
+                    expected_lowest_scores,
+                )
+                or type(self.collapsed_backend_coefficient_ppm) is not int
+                or abs(self.collapsed_backend_coefficient_ppm - cast(int, self.coefficient_ppm))
+                > ASGCV_P32_COEFFICIENT_TOLERANCE_PPM
+            ):
+                raise ValueError("ASG-CV P32 collapsed backend evidence differs")
+        elif (
+            self.collapsed_branch_scores is not None
+            or self.collapsed_backend_coefficient_ppm is not None
+        ):
+            raise ValueError("ASG-CV P32 collapsed backend eligibility differs")
         lowest_values = (
             self.lowest_gradient_sha256,
             self.lowest_gradient_norm,
@@ -337,12 +526,12 @@ class AsgcvP32Candidate:
         )
         if self.both_verdicts_valid:
             _sha256(self.lowest_gradient_sha256, name="lowest gradient digest")
-            _finite(self.lowest_gradient_norm, name="lowest gradient norm", positive=True)
+            _nonnegative_finite(self.lowest_gradient_norm, name="lowest gradient norm")
             if (
                 type(self.boundary_norms) is not tuple
                 or len(self.boundary_norms) != 4
                 or any(
-                    type(value) is not float or not math.isfinite(value) or value <= 0.0
+                    type(value) is not float or not math.isfinite(value) or value < 0.0
                     for value in self.boundary_norms
                 )
             ):
@@ -351,9 +540,27 @@ class AsgcvP32Candidate:
             raise ValueError("ASG-CV P32 lowest branch evidence differs")
         if self.exchange_evaluable:
             _sha256(self.highest_gradient_sha256, name="highest gradient digest")
-            _finite(self.highest_gradient_norm, name="highest gradient norm", positive=True)
+            _nonnegative_finite(self.highest_gradient_norm, name="highest gradient norm")
+            highest = cast(tuple[int, int], expected_highest)
+            expected_highest_scores = (
+                self.completion_scores[highest[0]],
+                self.completion_scores[highest[1]],
+            )
+            expected_highest_coefficient = _ppm(
+                collapsed_verdict_coefficient(
+                    collapsed_verdict_probability(*expected_highest_scores)
+                )
+            )
             if (
-                type(self.branch_exchange_energy_ppm) is not int
+                type(self.highest_branch_scores) is not tuple
+                or not _branch_scores_match(
+                    self.highest_branch_scores,
+                    expected_highest_scores,
+                )
+                or type(self.highest_backend_coefficient_ppm) is not int
+                or abs(self.highest_backend_coefficient_ppm - expected_highest_coefficient)
+                > ASGCV_P32_COEFFICIENT_TOLERANCE_PPM
+                or type(self.branch_exchange_energy_ppm) is not int
                 or not 0 <= self.branch_exchange_energy_ppm <= 1_000_000
                 or type(self.branch_exchange_replay_elapsed_ns) is not int
                 or self.branch_exchange_replay_elapsed_ns <= 0
@@ -365,6 +572,8 @@ class AsgcvP32Candidate:
                 for value in (
                     self.highest_gradient_sha256,
                     self.highest_gradient_norm,
+                    self.highest_branch_scores,
+                    self.highest_backend_coefficient_ppm,
                     self.branch_exchange_energy_ppm,
                 )
             )
@@ -379,16 +588,27 @@ class AsgcvP32Candidate:
         )
         if self.exact_diagnostic:
             _sha256(self.exact_gradient_sha256, name="exact gradient digest")
-            _finite(self.exact_gradient_norm, name="exact gradient norm", positive=True)
+            _nonnegative_finite(self.exact_gradient_norm, name="exact gradient norm")
             if (
                 type(self.exact_replay_generated_tokens) is not int
-                or self.exact_replay_generated_tokens <= 0
-                or type(self.collapsed_exact_cosine) is not float
-                or not math.isfinite(self.collapsed_exact_cosine)
-                or not -1.0 <= self.collapsed_exact_cosine <= 1.0
+                or self.exact_replay_generated_tokens != sum(self.generated_token_counts)
                 or type(self.exact_replay_elapsed_ns) is not int
                 or self.exact_replay_elapsed_ns <= 0
             ):
+                raise ValueError("ASG-CV P32 exact diagnostic differs")
+            comparable = (
+                self.both_verdicts_valid
+                and cast(float, self.lowest_gradient_norm) > 0.0
+                and cast(float, self.exact_gradient_norm) > 0.0
+            )
+            if comparable:
+                if (
+                    type(self.collapsed_exact_cosine) is not float
+                    or not math.isfinite(self.collapsed_exact_cosine)
+                    or not -1.0 <= self.collapsed_exact_cosine <= 1.0
+                ):
+                    raise ValueError("ASG-CV P32 exact diagnostic differs")
+            elif self.collapsed_exact_cosine is not None:
                 raise ValueError("ASG-CV P32 exact diagnostic differs")
         elif any(value is not None for value in exact_values) or self.exact_replay_elapsed_ns != 0:
             raise ValueError("ASG-CV P32 exact diagnostic eligibility differs")
@@ -396,14 +616,31 @@ class AsgcvP32Candidate:
             self.prepare_elapsed_ns,
             self.generate_elapsed_ns,
             self.score_elapsed_ns,
-            self.predictor_forward_elapsed_ns,
             self.candidate_total_elapsed_ns,
         )
-        if any(type(value) is not int or value <= 0 for value in positive_timings):
+        optional_timings = (
+            self.collapsed_replay_elapsed_ns,
+            self.branch_exchange_replay_elapsed_ns,
+            self.exact_replay_elapsed_ns,
+            self.predictor_forward_elapsed_ns,
+        )
+        if any(type(value) is not int or value <= 0 for value in positive_timings) or any(
+            type(value) is not int or value < 0 for value in optional_timings
+        ):
             raise ValueError("ASG-CV P32 timing evidence differs")
+        measured_phase_total = (
+            self.prepare_elapsed_ns
+            + self.generate_elapsed_ns
+            + self.score_elapsed_ns
+            + self.collapsed_replay_elapsed_ns
+            + self.branch_exchange_replay_elapsed_ns
+            + self.exact_replay_elapsed_ns
+            + self.predictor_forward_elapsed_ns
+        )
+        if self.candidate_total_elapsed_ns < measured_phase_total:
+            raise ValueError("ASG-CV P32 candidate total timing differs")
         if (
-            type(self.collapsed_replay_elapsed_ns) is not int
-            or type(self.peak_cuda_reserved_bytes) is not int
+            type(self.peak_cuda_reserved_bytes) is not int
             or self.peak_cuda_reserved_bytes <= 0
             or type(self.peak_rss_bytes) is not int
             or self.peak_rss_bytes <= 0
@@ -411,6 +648,8 @@ class AsgcvP32Candidate:
             raise ValueError("ASG-CV P32 resource evidence differs")
         if self.both_verdicts_valid != (self.collapsed_replay_elapsed_ns > 0):
             raise ValueError("ASG-CV P32 collapsed timing differs")
+        if self.both_verdicts_valid != (self.predictor_forward_elapsed_ns > 0):
+            raise ValueError("ASG-CV P32 predictor timing differs")
         return self
 
     def _base_mapping(self) -> dict[str, object]:
@@ -494,6 +733,9 @@ class AsgcvP32Candidate:
             "completion_scores",
             "lowest_branch_indices",
             "highest_branch_indices",
+            "collapsed_branch_scores",
+            "highest_branch_scores",
+            "boundary_names",
             "boundary_norms",
         }
         arguments: dict[str, object] = {}
@@ -554,6 +796,28 @@ def validate_asgcv_p32_candidate_context(
     expected_spans = tuple(
         0 if span is None else span[1] - span[0] for span in completion_group.attribute_spans
     )
+    correct = tuple(
+        index
+        for index, (valid, verdict) in enumerate(
+            zip(completion_group.valid_flags, completion_group.verdict_relation_signs, strict=True)
+        )
+        if valid and verdict == pair.relation_sign
+    )
+    incorrect = tuple(
+        index
+        for index, (valid, verdict) in enumerate(
+            zip(completion_group.valid_flags, completion_group.verdict_relation_signs, strict=True)
+        )
+        if valid and verdict == -pair.relation_sign
+    )
+    expected_exchange_distinct = (
+        len(correct) >= 2
+        and len(incorrect) >= 2
+        and completion_group.completion_ids[correct[0]]
+        != completion_group.completion_ids[correct[-1]]
+        and completion_group.completion_ids[incorrect[0]]
+        != completion_group.completion_ids[incorrect[-1]]
+    )
     if (
         pilot_schedule.pair_count != ASGCV_P32_PAIR_COUNT
         or candidate.pilot_schedule_sha256 != pilot_schedule.sha256()
@@ -578,6 +842,7 @@ def validate_asgcv_p32_candidate_context(
         or candidate.attribute_span_lengths != expected_spans
         or candidate.generated_token_counts
         != tuple(len(completion) for completion in completion_group.completion_ids)
+        or candidate.branch_exchange_distinct is not expected_exchange_distinct
     ):
         raise ValueError("ASG-CV P32 candidate context differs")
 
@@ -586,6 +851,16 @@ def validate_asgcv_p32_candidate_context(
 class AsgcvP32Result:
     """Aggregate P32 evidence with every gate recomputed from sealed counts."""
 
+    source_commit: str
+    model_revision: str
+    fixture_sha256: str
+    launch_authority_sha256: str
+    predictor_initialization_seed_sha256: str
+    partition_authority_sha256: str
+    pilot_schedule_sha256: str
+    completion_protocol_sha256: str
+    rollout_authority_sha256: str
+    pooler_state_sha256: str
     candidate_sha256s: tuple[str, ...]
     branch_eligible_count: int
     positive_branch_eligible_count: int
@@ -593,6 +868,11 @@ class AsgcvP32Result:
     variance_eligible_count: int
     valid_completion_count: int
     exchange_evaluable_candidates: int
+    coefficient_evaluable_candidates: int
+    calibration_evaluable_candidates: int
+    dispersion_evaluable_candidates: int
+    collapsed_timing_candidates: int
+    exact_timing_candidates: int
     branch_yield_ppm: int
     positive_branch_yield_ppm: int
     negative_branch_yield_ppm: int
@@ -638,6 +918,24 @@ class AsgcvP32Result:
             range(ASGCV_P32_PAIR_COUNT)
         ):
             raise ValueError("ASG-CV P32 candidate order differs")
+        identity_names = (
+            "source_commit",
+            "model_revision",
+            "fixture_sha256",
+            "launch_authority_sha256",
+            "predictor_initialization_seed_sha256",
+            "partition_authority_sha256",
+            "pilot_schedule_sha256",
+            "completion_protocol_sha256",
+            "rollout_authority_sha256",
+            "pooler_state_sha256",
+        )
+        identity = tuple(getattr(candidates[0], name) for name in identity_names)
+        if any(
+            tuple(getattr(candidate, name) for name in identity_names) != identity
+            for candidate in candidates[1:]
+        ):
+            raise ValueError("ASG-CV P32 campaign identity differs")
         branch = sum(candidate.both_verdicts_valid for candidate in candidates)
         positive_rows = tuple(candidate for candidate in candidates if candidate.relation_sign == 1)
         negative_rows = tuple(
@@ -690,13 +988,14 @@ class AsgcvP32Result:
             for candidate in candidates
             if candidate.both_verdicts_valid
         )
-        predictor = _median(
-            tuple(candidate.predictor_forward_elapsed_ns for candidate in candidates)
-        )
-        predictor_p90 = _p90(
-            tuple(candidate.predictor_forward_elapsed_ns for candidate in candidates)
+        predictor_timings = tuple(
+            candidate.predictor_forward_elapsed_ns
+            for candidate in candidates
+            if candidate.both_verdicts_valid
         )
         if collapsed_timings and exact_rows:
+            predictor = _median(predictor_timings)
+            predictor_p90 = _p90(predictor_timings)
             collapsed = _median(collapsed_timings)
             exact = _median(tuple(candidate.exact_replay_elapsed_ns for candidate in exact_rows))
             collapsed_p90 = _p90(collapsed_timings)
@@ -754,6 +1053,16 @@ class AsgcvP32Result:
             <= ASGCV_P32_CANDIDATE_P90_GATE_NS,
         }
         return cls(
+            source_commit=candidates[0].source_commit,
+            model_revision=candidates[0].model_revision,
+            fixture_sha256=candidates[0].fixture_sha256,
+            launch_authority_sha256=candidates[0].launch_authority_sha256,
+            predictor_initialization_seed_sha256=candidates[0].predictor_initialization_seed_sha256,
+            partition_authority_sha256=candidates[0].partition_authority_sha256,
+            pilot_schedule_sha256=candidates[0].pilot_schedule_sha256,
+            completion_protocol_sha256=candidates[0].completion_protocol_sha256,
+            rollout_authority_sha256=candidates[0].rollout_authority_sha256,
+            pooler_state_sha256=candidates[0].pooler_state_sha256,
             candidate_sha256s=tuple(candidate.sha256() for candidate in candidates),
             branch_eligible_count=branch,
             positive_branch_eligible_count=positive_branch,
@@ -761,6 +1070,11 @@ class AsgcvP32Result:
             variance_eligible_count=variance,
             valid_completion_count=valid,
             exchange_evaluable_candidates=len(exchanges),
+            coefficient_evaluable_candidates=len(coefficients),
+            calibration_evaluable_candidates=len(calibrations),
+            dispersion_evaluable_candidates=len(dispersions),
+            collapsed_timing_candidates=len(collapsed_timings),
+            exact_timing_candidates=len(exact_rows),
             branch_yield_ppm=branch_yield,
             positive_branch_yield_ppm=positive_yield,
             negative_branch_yield_ppm=negative_yield,
@@ -800,6 +1114,19 @@ class AsgcvP32Result:
         ).validated()
 
     def validated(self) -> AsgcvP32Result:
+        _commit(self.source_commit, name="result source commit")
+        _commit(self.model_revision, name="result model revision")
+        for name in (
+            "fixture_sha256",
+            "launch_authority_sha256",
+            "predictor_initialization_seed_sha256",
+            "partition_authority_sha256",
+            "pilot_schedule_sha256",
+            "completion_protocol_sha256",
+            "rollout_authority_sha256",
+            "pooler_state_sha256",
+        ):
+            _sha256(getattr(self, name), name=f"result {name}")
         if (
             type(self.candidate_sha256s) is not tuple
             or len(self.candidate_sha256s) != ASGCV_P32_PAIR_COUNT
@@ -813,6 +1140,16 @@ class AsgcvP32Result:
             for field in fields(self)
             if field.name
             not in {
+                "source_commit",
+                "model_revision",
+                "fixture_sha256",
+                "launch_authority_sha256",
+                "predictor_initialization_seed_sha256",
+                "partition_authority_sha256",
+                "pilot_schedule_sha256",
+                "completion_protocol_sha256",
+                "rollout_authority_sha256",
+                "pooler_state_sha256",
                 "candidate_sha256s",
                 "exact_diagnostic_ordinals",
                 "median_branch_exchange_energy_ppm",
@@ -846,6 +1183,11 @@ class AsgcvP32Result:
                 self.valid_completion_count,
                 ASGCV_P32_PAIR_COUNT * ASGCV_P32_GROUP_SIZE,
             )
+            or self.coefficient_evaluable_candidates != self.branch_eligible_count
+            or self.calibration_evaluable_candidates != self.branch_eligible_count
+            or self.dispersion_evaluable_candidates != self.exchange_evaluable_candidates
+            or self.collapsed_timing_candidates != self.branch_eligible_count
+            or self.exact_timing_candidates != len(self.exact_diagnostic_ordinals)
         ):
             raise ValueError("ASG-CV P32 result rate differs")
         expected_gates = (

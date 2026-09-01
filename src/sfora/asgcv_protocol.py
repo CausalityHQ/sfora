@@ -536,6 +536,29 @@ class AsgcvCompletionGroup:
         ).hexdigest()
 
 
+def canonical_asgcv_completion_group_bytes(group: AsgcvCompletionGroup) -> bytes:
+    """Serialize one completion group for durable campaign resume."""
+
+    if type(group) is not AsgcvCompletionGroup:
+        raise ValueError("ASG-CV completion group differs")
+    return _canonical_json_bytes(group.to_mapping())
+
+
+def validate_asgcv_completion_group_bytes(raw: bytes) -> AsgcvCompletionGroup:
+    """Reopen only exact canonical completion-group bytes."""
+
+    if type(raw) is not bytes:
+        raise ValueError("ASG-CV completion group bytes differ")
+    try:
+        value = json.loads(raw)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError("ASG-CV completion group is not canonical JSON") from error
+    group = AsgcvCompletionGroup.from_mapping(value)
+    if canonical_asgcv_completion_group_bytes(group) != raw:
+        raise ValueError("ASG-CV completion group bytes differ")
+    return group
+
+
 @dataclass(frozen=True, slots=True)
 class AsgcvPair:
     """One immutable image-disjoint semantic pair."""
