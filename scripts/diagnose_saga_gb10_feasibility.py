@@ -386,13 +386,51 @@ class QwenSagaAdapter:
 
     def prepare_pair(self, fixture: FixtureAuthority) -> PreparedPair:
         images = self._images(fixture, fixture.pair_ordinals)
+        return self.prepare_image_pair(
+            tuple(images),
+            fixture.prompt_utf8,
+            fixture.attribute_token_span,
+            fixture.patch_tokens_per_image,
+        )
+
+    def prepare_image_pair(
+        self,
+        images: object,
+        prompt_utf8: object,
+        attribute_token_span: object,
+        patch_tokens_per_image: object,
+    ) -> PreparedPair:
+        """Prepare two authenticated RGB arrays without accepting split or label data."""
+
+        if (
+            type(images) is not tuple
+            or len(images) != 2
+            or any(
+                type(image) is not np.ndarray
+                or image.dtype != np.dtype(np.uint8)
+                or image.ndim != 3
+                or image.shape[-1] != 3
+                or any(size <= 0 for size in image.shape)
+                for image in images
+            )
+            or type(prompt_utf8) is not str
+            or not prompt_utf8
+            or type(attribute_token_span) is not tuple
+            or len(attribute_token_span) != 2
+            or any(type(value) is not int for value in attribute_token_span)
+            or not 0 <= attribute_token_span[0] < attribute_token_span[1]
+            or type(patch_tokens_per_image) is not int
+            or patch_tokens_per_image <= 0
+        ):
+            raise ValueError("SAGA image-pair authority differs")
+        copied_images = [image.copy(order="C") for image in images]
         messages = [
             {
                 "role": "user",
                 "content": [
-                    {"type": "image", "image": images[0]},
-                    {"type": "image", "image": images[1]},
-                    {"type": "text", "text": fixture.prompt_utf8},
+                    {"type": "image", "image": copied_images[0]},
+                    {"type": "image", "image": copied_images[1]},
+                    {"type": "text", "text": prompt_utf8},
                 ],
             }
         ]
@@ -434,14 +472,14 @@ class QwenSagaAdapter:
         groups.append((start, previous + 1))
         if len(groups) != 2:
             raise ValueError("SAGA image token ranges differ")
-        if any(end - start != fixture.patch_tokens_per_image for start, end in groups):
+        if any(end - start != patch_tokens_per_image for start, end in groups):
             raise ValueError("SAGA image patch span authority differs")
         return PreparedPair(
             inputs=inputs,
             input_length=input_ids.shape[1],
             image_token_ranges=(groups[0], groups[1]),
-            attribute_token_span=fixture.attribute_token_span,
-            patch_tokens_per_image=fixture.patch_tokens_per_image,
+            attribute_token_span=attribute_token_span,
+            patch_tokens_per_image=patch_tokens_per_image,
         )
 
     def prepare_microbatch(self, fixture: FixtureAuthority) -> PreparedMicrobatch:
@@ -669,10 +707,7 @@ class QwenSagaAdapter:
             attention_kl = (
                 (
                     teacher
-                    * (
-                        teacher.clamp_min(epsilon).log()
-                        - pooler_weights.clamp_min(epsilon).log()
-                    )
+                    * (teacher.clamp_min(epsilon).log() - pooler_weights.clamp_min(epsilon).log())
                 )
                 .sum(dim=-1)
                 .mean()
