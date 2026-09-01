@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import sys
 from pathlib import Path
+
+import pytest
 
 from sfora.saga_feasibility import load_fixture_authority, load_snapshot_authority
 
@@ -12,6 +15,27 @@ assert _SPEC is not None and _SPEC.loader is not None
 _MODULE = importlib.util.module_from_spec(_SPEC)
 sys.modules[_SPEC.name] = _MODULE
 _SPEC.loader.exec_module(_MODULE)
+
+
+def test_snapshot_rows_streams_files_without_whole_file_reads(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    payload = (b"bounded-snapshot-chunk" * 131_073) + b"terminal"
+    model_file = tmp_path / "model.safetensors"
+    model_file.write_bytes(payload)
+
+    def reject_read_bytes(_path: Path) -> bytes:
+        raise AssertionError("snapshot hashing must not read a whole model file")
+
+    monkeypatch.setattr(Path, "read_bytes", reject_read_bytes)
+    monkeypatch.setattr(_MODULE, "_HASH_CHUNK_BYTES", 65_536)
+
+    rows = _MODULE._snapshot_rows(tmp_path)
+
+    assert len(rows) == 1
+    assert rows[0].relative_path == "model.safetensors"
+    assert rows[0].byte_length == len(payload)
+    assert rows[0].sha256 == hashlib.sha256(payload).hexdigest()
 
 
 def test_prepare_seals_immutable_snapshot_and_source_bound_fixture(

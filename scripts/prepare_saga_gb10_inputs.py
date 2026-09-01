@@ -18,6 +18,7 @@ from sfora.saga_feasibility import (
 
 _ARCHITECTURE = "Qwen3VLForConditionalGeneration"
 _PROMPT = "List the visible car attributes and relations."
+_HASH_CHUNK_BYTES = 8 * 1024 * 1024
 
 
 def _lower_hex(value: str, width: int) -> bool:
@@ -30,6 +31,16 @@ def _write_new(path: Path, payload: bytes) -> None:
     path.write_bytes(payload)
 
 
+def _stream_sha256(path: Path) -> tuple[int, str]:
+    digest = hashlib.sha256()
+    byte_length = 0
+    with path.open("rb") as stream:
+        while chunk := stream.read(_HASH_CHUNK_BYTES):
+            byte_length += len(chunk)
+            digest.update(chunk)
+    return byte_length, digest.hexdigest()
+
+
 def _snapshot_rows(model_root: Path) -> tuple[ObjectAuthority, ...]:
     rows = []
     for path in sorted(model_root.rglob("*")):
@@ -39,13 +50,13 @@ def _snapshot_rows(model_root: Path) -> tuple[ObjectAuthority, ...]:
             continue
         if not path.is_file():
             raise ValueError("SAGA prepared snapshot contains a special file")
-        payload = path.read_bytes()
+        byte_length, sha256 = _stream_sha256(path)
         rows.append(
             ObjectAuthority(
                 role="model-file",
                 relative_path=path.relative_to(model_root).as_posix(),
-                byte_length=len(payload),
-                sha256=hashlib.sha256(payload).hexdigest(),
+                byte_length=byte_length,
+                sha256=sha256,
             ).validated()
         )
     if not rows:
