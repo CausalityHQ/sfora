@@ -44,6 +44,14 @@ collapsed score is `1,330 / 1,345 = 98.8848%`, but that is an easier task with
 `11` equivalence classes instead of the original `16`; it is not an improved
 strict-retrieval result.
 
+A static execution trace narrows the `1,242`-versus-`1,240` discrepancy to
+arithmetic/execution authority rather than dataset or model revision: the
+control embeds through an eager `SiglipVisionModel` under CUDA bfloat16
+autocast with evaluation batches of `32`, whereas the frozen substrate uses
+`AutoModel.vision_model` in full float32 with batches of `8`. The common-protocol
+audit must measure these variants before assigning causality; the code trace
+alone does not establish which difference flips the two nearest-neighbor ties.
+
 The defensible inference is therefore narrow: one model-year pair dominates
 the frozen SigLIP-so400m error manifest. This may reflect missing
 configuration evidence, label ambiguity, or both. Existing human review did
