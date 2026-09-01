@@ -8,6 +8,10 @@ source_manifest=${SOURCE_MANIFEST:?SOURCE_MANIFEST is required}
 uv_environment=${UV_PROJECT_ENVIRONMENT:?UV_PROJECT_ENVIRONMENT is required}
 cell=${CELL:-siglip2-so400m}
 case $cell in
+  dinov2-large)
+    model=facebook/dinov2-large
+    revision=47b73eefe95e8d44ec3623f8890bd894b6ea2d6c
+    ;;
   siglip2-so400m)
     model=google/siglip2-so400m-patch14-384
     revision=e8e487298228002f3d8a82e0cd5c8ea9c567f57f
@@ -18,6 +22,10 @@ case $cell in
     ;;
   *) printf 'unregistered substrate cell: %s\n' "$cell" >&2; exit 2 ;;
 esac
+case $cell in
+  dinov2-large) batch_size=32 ;;
+  siglip2-so400m|siglip-so400m) batch_size=8 ;;
+esac
 output=${OUTPUT:-reports/generated/cars-frozen-substrate-$cell-f0-2026-08-30.json}
 partial=$(dirname -- "$output")/.$(basename -- "$output").partial
 error_manifest=${ERROR_MANIFEST:-}
@@ -27,7 +35,10 @@ expected_correct=${EXPECTED_CORRECT:-}
 [[ ! -e $output && ! -e $partial ]]
 if [[ -n $error_manifest || -n $expected_correct ]]; then
   [[ -n $error_manifest && -n $expected_correct ]]
-  [[ $cell == siglip-so400m && $expected_correct == 1242 ]]
+  case $cell:$expected_correct in
+    dinov2-large:1196|siglip2-so400m:1227|siglip-so400m:1242) ;;
+    *) printf 'unregistered substrate correctness authority\n' >&2; exit 2 ;;
+  esac
   [[ ! -e $error_manifest ]]
 fi
 
@@ -62,14 +73,14 @@ probe_args=(
   --source-revision "$source_revision"
   --source-tree-digest "$tree"
   --cell "$cell"
-  --batch-size 8
+  --batch-size "$batch_size"
   --query-block 32
 )
 if [[ -n $error_manifest ]]; then
   probe_args+=(--error-manifest "$error_manifest" --expected-correct "$expected_correct")
 fi
 HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 uv run --offline --locked python scripts/probe_frozen_substrate.py "${probe_args[@]}"
-uv run --offline --locked python - "$output" "$source_revision" "$tree" "$cell" "$error_manifest" <<'PY'
+uv run --offline --locked python - "$output" "$source_revision" "$tree" "$cell" "$error_manifest" "$expected_correct" <<'PY'
 import json, pathlib, sys
 p = json.loads(pathlib.Path(sys.argv[1]).read_text())
 assert p["schema"] == ("sfora-frozen-substrate-screen-v2" if sys.argv[5] else "sfora-frozen-substrate-screen-v1")
@@ -78,9 +89,9 @@ assert p["source_revision"] == sys.argv[2] and p["source_tree_digest"] == sys.ar
 assert p["cell"] == sys.argv[4] and p["metrics"]["queries"] == 1345
 assert p["gates"] == {"expected_queries": 1345, "recall_at_1_minimum": 0.94}
 if sys.argv[5]:
-    assert p["metrics"]["correct"] == 1242
+    assert p["metrics"]["correct"] == int(sys.argv[6])
 print(json.dumps({"output": sys.argv[1], "passed": p["passed"]}, sort_keys=True))
 PY
-if [[ -n $error_manifest ]]; then
+if [[ -n $error_manifest && $cell == siglip-so400m ]]; then
   uv run --offline --locked python scripts/validate_pass209_m2_artifacts.py --receipt "$output" --error-manifest "$error_manifest"
 fi
