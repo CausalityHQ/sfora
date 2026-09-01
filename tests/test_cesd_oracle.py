@@ -41,19 +41,54 @@ def _burned_fixture() -> tuple[torch.Tensor, torch.Tensor]:
 def test_cesd_oracle_counts_only_literal_query_shrinkage_rescues() -> None:
     descriptors, labels = _burned_fixture()
 
-    evidence = score_cesd_query_shrinkage_oracle(
-        descriptors,
-        labels,
-        query_block=7,
+    observed = tuple(
+        score_cesd_query_shrinkage_oracle(
+            descriptors,
+            labels,
+            query_block=query_block,
+        )
+        for query_block in (1, 7, 64)
     )
+    assert observed[1:] == observed[:1] * 2
+    evidence = observed[0]
 
     assert evidence.query_count == 32
     assert evidence.baseline_hits == 24
     assert evidence.shrinkage_hits == 10
     assert evidence.oracle_hits == 26
     assert evidence.rescued_query_rows == (0, 3)
-    assert evidence.alpha_zero_query_rows == (0, 3)
+    assert evidence.oracle_selected_shrinkage_rows == (0, 3)
+    assert evidence.broken_query_rows == (
+        8,
+        9,
+        10,
+        11,
+        14,
+        15,
+        16,
+        17,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+    )
     assert evidence.baseline_recall_ppm == 750_000
     assert evidence.oracle_recall_ppm == 812_500
     assert evidence.gain_ppm == 62_500
-    assert evidence.passed
+    assert evidence.gain_gate_met
+
+
+def test_cesd_oracle_gain_gate_stays_closed_without_a_rescue() -> None:
+    descriptors = torch.eye(16, dtype=torch.float32).repeat_interleave(2, dim=0)
+    labels = torch.arange(82, 98, dtype=torch.int64).repeat_interleave(2)
+
+    evidence = score_cesd_query_shrinkage_oracle(descriptors, labels, query_block=32)
+
+    assert evidence.baseline_hits == 32
+    assert evidence.rescued_query_rows == ()
+    assert evidence.gain_ppm == 0
+    assert not evidence.gain_gate_met

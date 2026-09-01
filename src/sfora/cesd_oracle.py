@@ -1,4 +1,8 @@
-"""Claim-ineligible query-shrinkage ceiling for CESD representation triage."""
+"""Claim-ineligible binary endpoint diagnostic for CESD exploration.
+
+This is not a ceiling for continuous interpolation or for a learned CESD
+configuration subspace. A met gain gate funds only a bounded follow-up.
+"""
 
 from __future__ import annotations
 
@@ -13,23 +17,25 @@ from sfora.siglip_band_audit import (
 )
 from sfora.substrate_screen import SUBSTRATE_F0_CLASSES
 
+# Fable's preregistered exploratory funding floor: +1.5 percentage points.
 _GAIN_GATE_PPM = 15_000
 
 
 @dataclass(frozen=True)
 class CesdOracleEvidence:
-    """Exact frozen-gallery evidence from a binary query-side shrinkage oracle."""
+    """Exact frozen-gallery evidence from a label-leaking binary diagnostic."""
 
     query_count: int
     baseline_hits: int
     shrinkage_hits: int
     oracle_hits: int
     rescued_query_rows: tuple[int, ...]
-    alpha_zero_query_rows: tuple[int, ...]
+    oracle_selected_shrinkage_rows: tuple[int, ...]
+    broken_query_rows: tuple[int, ...]
     baseline_recall_ppm: int
     oracle_recall_ppm: int
     gain_ppm: int
-    passed: bool
+    gain_gate_met: bool
 
 
 def _ppm(hits: int, queries: int) -> int:
@@ -76,7 +82,7 @@ def _leave_one_out_nameplate_directions(
         rows = torch.nonzero(representatives == representative, as_tuple=False).flatten()
         group_sum = descriptors[rows].sum(dim=0)
         leave_one_out = group_sum.unsqueeze(0) - descriptors[rows]
-        if bool((torch.linalg.vector_norm(leave_one_out, dim=1) == 0).any()):
+        if bool((torch.linalg.vector_norm(leave_one_out, dim=1) < 1.0e-6).any()):
             raise ValueError("CESD leave-one-out nameplate direction is zero")
         directions[rows] = F.normalize(leave_one_out, dim=1)
     return directions
@@ -88,6 +94,10 @@ def _nearest_rows(
     *,
     query_block: int,
 ) -> tuple[int, ...]:
+    """Return leave-one-out neighbors with the frozen lowest-row tie rule."""
+
+    if queries.shape != gallery.shape or queries.ndim != 2:
+        raise ValueError("CESD query and gallery shapes differ")
     nearest: list[torch.Tensor] = []
     count = int(queries.shape[0])
     for start in range(0, count, query_block):
@@ -106,7 +116,12 @@ def score_cesd_query_shrinkage_oracle(
     *,
     query_block: int,
 ) -> CesdOracleEvidence:
-    """Score an optimistic binary query-side nameplate-shrinkage upper bound."""
+    """Score an optimistic binary query-side nameplate-shrinkage diagnostic.
+
+    Both the nameplate direction and endpoint choice use ground-truth labels.
+    The result cannot establish achievability and cannot reject continuous-alpha
+    or subspace CESD variants.
+    """
 
     if isinstance(query_block, bool) or not isinstance(query_block, int) or query_block < 1:
         raise ValueError("CESD query block must be a positive integer")
@@ -118,6 +133,7 @@ def score_cesd_query_shrinkage_oracle(
     baseline_hits = 0
     shrinkage_hits = 0
     rescued: list[int] = []
+    broken: list[int] = []
     for query_row, (baseline_row, shrinkage_row) in enumerate(
         zip(baseline_rows, shrinkage_rows, strict=True)
     ):
@@ -128,18 +144,23 @@ def score_cesd_query_shrinkage_oracle(
         shrinkage_hits += shrinkage_correct
         if not baseline_correct and shrinkage_correct:
             rescued.append(query_row)
+        if baseline_correct and not shrinkage_correct:
+            broken.append(query_row)
     query_count = int(labels.numel())
     oracle_hits = baseline_hits + len(rescued)
-    gain_ppm = _ppm(len(rescued), query_count)
+    baseline_recall_ppm = _ppm(baseline_hits, query_count)
+    oracle_recall_ppm = _ppm(oracle_hits, query_count)
+    gain_ppm = oracle_recall_ppm - baseline_recall_ppm
     return CesdOracleEvidence(
         query_count=query_count,
         baseline_hits=baseline_hits,
         shrinkage_hits=shrinkage_hits,
         oracle_hits=oracle_hits,
         rescued_query_rows=tuple(rescued),
-        alpha_zero_query_rows=tuple(rescued),
-        baseline_recall_ppm=_ppm(baseline_hits, query_count),
-        oracle_recall_ppm=_ppm(oracle_hits, query_count),
+        oracle_selected_shrinkage_rows=tuple(rescued),
+        broken_query_rows=tuple(broken),
+        baseline_recall_ppm=baseline_recall_ppm,
+        oracle_recall_ppm=oracle_recall_ppm,
         gain_ppm=gain_ppm,
-        passed=len(rescued) * 1_000_000 >= _GAIN_GATE_PPM * query_count,
+        gain_gate_met=len(rescued) * 1_000_000 >= _GAIN_GATE_PPM * query_count,
     )
