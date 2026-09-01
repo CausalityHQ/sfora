@@ -312,6 +312,28 @@ def _matched_gradients(
     )
 
 
+def _clip_parameter_groups(
+    projection: torch.nn.Parameter,
+    proxies: torch.nn.Parameter,
+    *,
+    maximum_norm: float,
+) -> None:
+    """Clip projection and proxy gradients independently to preserve arm matching."""
+
+    if (
+        type(projection) is not torch.nn.Parameter
+        or type(proxies) is not torch.nn.Parameter
+        or projection.grad is None
+        or proxies.grad is None
+        or type(maximum_norm) is not float
+        or not math.isfinite(maximum_norm)
+        or maximum_norm <= 0.0
+    ):
+        raise ValueError("CDGA clipping authority differs")
+    torch.nn.utils.clip_grad_norm_((projection,), maximum_norm, error_if_nonfinite=True)
+    torch.nn.utils.clip_grad_norm_((proxies,), maximum_norm, error_if_nonfinite=True)
+
+
 def _hex_digest(value: object) -> str:
     if (
         type(value) is not str
@@ -629,10 +651,11 @@ def train_cdga_fold(
             comparator.projection.weight
         )
         comparator.proxies.grad = comparator_reduced.proxy.reshape_as(comparator.proxies)
-        torch.nn.utils.clip_grad_norm_(
-            (comparator.projection.weight,), 10.0, error_if_nonfinite=True
+        _clip_parameter_groups(
+            comparator.projection.weight,
+            comparator.proxies,
+            maximum_norm=10.0,
         )
-        torch.nn.utils.clip_grad_norm_((comparator.proxies,), 10.0, error_if_nonfinite=True)
         comparator_optimizer.step()
 
         cdga_optimizer.zero_grad(set_to_none=True)
@@ -663,8 +686,11 @@ def train_cdga_fold(
             cdga.projection.weight
         )
         cdga.proxies.grad = cdga_reduced.proxy.reshape_as(cdga.proxies)
-        torch.nn.utils.clip_grad_norm_((cdga.projection.weight,), 10.0, error_if_nonfinite=True)
-        torch.nn.utils.clip_grad_norm_((cdga.proxies,), 10.0, error_if_nonfinite=True)
+        _clip_parameter_groups(
+            cdga.projection.weight,
+            cdga.proxies,
+            maximum_norm=10.0,
+        )
         cdga_optimizer.step()
         conflict_count += int(cdga_reduced.conflict)
         cosines.append(cdga_reduced.pre_projection_cosine)
@@ -787,7 +813,7 @@ def run_cdga_fold_diagnostic(
 ) -> bytes:
     """Train matched arms on fold complements and score held optimization classes."""
 
-    if type(split_authority) is not FeatureSplitAuthority or device not in {"cpu", "cuda"}:
+    if type(split_authority) is not FeatureSplitAuthority or device != "cpu":
         raise ValueError("CDGA diagnostic authority differs")
     split_authority.validated(features=features)
     feature_cache_manifest_sha256 = _hex_digest(feature_cache_manifest_sha256)

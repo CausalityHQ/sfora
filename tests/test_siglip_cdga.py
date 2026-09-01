@@ -12,6 +12,7 @@ import sfora.siglip_cdga as cdga_module
 from sfora.siglip_cdga import (
     CDGAGradientProjection,
     _batch_schedule,
+    _clip_parameter_groups,
     _matched_gradients,
     build_cdga_domain_split,
     run_cdga_fold_diagnostic,
@@ -52,6 +53,19 @@ class TestCDGAPrimitiveTests:
         assert rotated.domain_a_labels == (1, 3, 5)
         assert rotated.domain_b_labels == (0, 2, 4)
         assert rotated.sha256 != first.sha256
+
+    def test_parameter_group_clipping_cannot_rescale_the_other_group(self) -> None:
+        """A large proxy gradient must not shrink the projection update."""
+
+        projection = torch.nn.Parameter(torch.zeros(2, dtype=torch.float32))
+        proxies = torch.nn.Parameter(torch.zeros(2, dtype=torch.float32))
+        projection.grad = torch.tensor([0.6, 0.8], dtype=torch.float32)
+        proxies.grad = torch.tensor([12.0, 16.0], dtype=torch.float32)
+
+        _clip_parameter_groups(projection, proxies, maximum_norm=10.0)
+
+        assert torch.equal(projection.grad, torch.tensor([0.6, 0.8]))
+        assert torch.allclose(proxies.grad, torch.tensor([6.0, 8.0]), atol=1.0e-6, rtol=0.0)
 
     @pytest.mark.parametrize(
         ("fit_labels", "validation_labels", "seed"),
@@ -314,6 +328,7 @@ class TestCDGATrainingTests:
             for rows in pair
             for row in rows
         )
+        assert all(set(left).isdisjoint(right) for left, right in schedule)
 
         def identity_projection(
             left: torch.Tensor, right: torch.Tensor, *, epsilon: float
@@ -339,6 +354,22 @@ class TestCDGATrainingTests:
         )
         assert trained.conflict_count == 0
         assert torch.equal(trained.comparator_weight, trained.cdga_weight)
+
+    def test_public_diagnostic_rejects_unimplemented_cuda_capability(self) -> None:
+        features, labels = _cached_fixture()
+        with pytest.raises(ValueError, match="CDGA diagnostic authority differs"):
+            run_cdga_fold_diagnostic(
+                features,
+                labels,
+                split_authority=_authority(features),
+                feature_cache_manifest_sha256="3" * 64,
+                master_seed_sha256="2" * 64,
+                output_dimensions=4,
+                fold_count=4,
+                train_steps=2,
+                examples_per_class=2,
+                device="cuda",
+            )
 
 
 class TestCDGAResultTests:

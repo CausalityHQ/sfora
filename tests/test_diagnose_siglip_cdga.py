@@ -6,6 +6,7 @@ import hashlib
 import importlib.util
 import json
 import sys
+from dataclasses import replace
 from pathlib import Path
 from typing import cast
 
@@ -204,3 +205,31 @@ def test_cdga_cli_rejects_manifest_source_and_optimization_band_drift(tmp_path: 
     (tmp_path / "optimization-train.npy").unlink()
     with pytest.raises(ValueError, match="feature matrix path"):
         _MODULE.main(base)
+
+
+@pytest.mark.parametrize("field", ["input_dimensions", "output_dimensions"])
+def test_cdga_cli_rejects_result_dimension_binding_drift(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, field: str
+) -> None:
+    manifest = _write_fixture(tmp_path)
+    original = _MODULE.validate_cdga_result_bytes
+
+    def drifted(raw: bytes):
+        result = original(raw)
+        return replace(result, **{field: getattr(result, field) + 1})
+
+    monkeypatch.setattr(_MODULE, "validate_cdga_result_bytes", drifted)
+    with pytest.raises(ValueError, match="CDGA result binding differs"):
+        _MODULE.main(
+            [
+                "--feature-manifest",
+                str(manifest),
+                "--feature-manifest-sha256",
+                hashlib.sha256(manifest.read_bytes()).hexdigest(),
+                "--feature-source-commit",
+                "3" * 40,
+                "--result",
+                str(tmp_path / "cdga.json"),
+                "--execute-cdga-folds",
+            ]
+        )
