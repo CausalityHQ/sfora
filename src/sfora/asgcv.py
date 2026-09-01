@@ -25,9 +25,9 @@ ASGCV_SCHEMA = "sfora-asgcv-authority-v1"
 ASGCV_STRATUM_SIZE = 8
 ASGCV_PREDICTOR_RANK = 16
 ASGCV_SELECTION_POLICY = "one-uniform-index-per-eight-pair-stratum-v1"
-ASGCV_E0_SCHEMA = "sfora-asgcv-e0-metrics-v1"
+ASGCV_E0_SCHEMA = "sfora-asgcv-e0-metrics-v2"
 ASGCV_E0_CAPACITY_FLOOR_SCHEMA = "sfora-asgcv-e0-capacity-floor-v1"
-ASGCV_E0_RESULT_SCHEMA = "sfora-asgcv-e0-result-v1"
+ASGCV_E0_RESULT_SCHEMA = "sfora-asgcv-e0-result-v2"
 ASGCV_E0_ARRAY_DOMAIN = b"sfora-asgcv-e0-array-v1\0"
 ASGCV_GRADIENT_SAMPLE_SCHEMA = "sfora-asgcv-gradient-sample-v2"
 ASGCV_GRADIENT_SAMPLE_ARRAY_DOMAIN = b"sfora-asgcv-gradient-sample-array-v1\0"
@@ -40,6 +40,8 @@ ASGCV_PRECLIP_P99_RATIO_GATE_PPM = 2_000_000
 ASGCV_CLIP_RATE_DELTA_GATE_PPM = 50_000
 ASGCV_SEMANTIC_WALL_RATIO_GATE_PPM = 350_000
 ASGCV_GLOBAL_CLIP_NORM = 1.0
+ASGCV_PEAK_CUDA_RESERVED_GATE_BYTES = 96 * 1024**3
+ASGCV_E0_MINIMUM_PAIRS = 512
 ASGCV_E0_CAPACITY_MINIMUM_PAIRS = 64
 ASGCV_SELECTION_DOMAIN = b"sfora-asgcv-selection-v1\0"
 ASGCV_SCHEDULE_DOMAIN = b"sfora-asgcv-schedule-v1\0"
@@ -487,12 +489,13 @@ class AsgcvE0Metrics:
     asgcv_clip_rate_ppm: int
     clip_rate_delta_ppm: int
     semantic_wall_ratio_ppm: int
+    peak_cuda_reserved_bytes: int
     passed: bool
 
     def validated(self) -> AsgcvE0Metrics:
         if (
             type(self.pair_count) is not int
-            or self.pair_count <= 0
+            or self.pair_count < ASGCV_E0_MINIMUM_PAIRS
             or self.pair_count % ASGCV_STRATUM_SIZE != 0
         ):
             raise ValueError("ASG-CV E0 pair count differs")
@@ -519,6 +522,8 @@ class AsgcvE0Metrics:
             value = getattr(self, name)
             if type(value) is not int or not 0 <= value <= 1_000_000:
                 raise ValueError("ASG-CV E0 clip rate differs")
+        if type(self.peak_cuda_reserved_bytes) is not int or self.peak_cuda_reserved_bytes <= 0:
+            raise ValueError("ASG-CV E0 peak CUDA memory differs")
         expected_pass = (
             self.dense_gradient_cosine_ppm >= ASGCV_DENSE_COSINE_GATE_PPM
             and self.projected_gradient_cosine_ppm >= ASGCV_PROJECTED_COSINE_GATE_PPM
@@ -528,6 +533,7 @@ class AsgcvE0Metrics:
             and self.preclip_p99_ratio_ppm <= ASGCV_PRECLIP_P99_RATIO_GATE_PPM
             and self.clip_rate_delta_ppm <= ASGCV_CLIP_RATE_DELTA_GATE_PPM
             and self.semantic_wall_ratio_ppm <= ASGCV_SEMANTIC_WALL_RATIO_GATE_PPM
+            and self.peak_cuda_reserved_bytes <= ASGCV_PEAK_CUDA_RESERVED_GATE_BYTES
         )
         if type(self.passed) is not bool or self.passed is not expected_pass:
             raise ValueError("ASG-CV E0 pass gate differs")
@@ -548,6 +554,7 @@ class AsgcvE0Metrics:
             "asgcv_clip_rate_ppm": self.asgcv_clip_rate_ppm,
             "clip_rate_delta_ppm": self.clip_rate_delta_ppm,
             "semantic_wall_ratio_ppm": self.semantic_wall_ratio_ppm,
+            "peak_cuda_reserved_bytes": self.peak_cuda_reserved_bytes,
             "passed": self.passed,
         }
 
@@ -566,6 +573,7 @@ class AsgcvE0Metrics:
             "asgcv_clip_rate_ppm",
             "clip_rate_delta_ppm",
             "semantic_wall_ratio_ppm",
+            "peak_cuda_reserved_bytes",
             "passed",
         }:
             raise ValueError("ASG-CV E0 metrics schema differs")
@@ -583,6 +591,7 @@ class AsgcvE0Metrics:
             asgcv_clip_rate_ppm=value["asgcv_clip_rate_ppm"],
             clip_rate_delta_ppm=value["clip_rate_delta_ppm"],
             semantic_wall_ratio_ppm=value["semantic_wall_ratio_ppm"],
+            peak_cuda_reserved_bytes=value["peak_cuda_reserved_bytes"],
             passed=value["passed"],
         ).validated()
 
@@ -836,6 +845,7 @@ def evaluate_e0(
     *,
     exact_preclip_norms: object,
     asgcv_preclip_norms: object,
+    peak_cuda_reserved_bytes: int,
     exact_semantic_wall_ns: int,
     asgcv_semantic_wall_ns: int,
 ) -> AsgcvE0Metrics:
@@ -865,6 +875,8 @@ def evaluate_e0(
         raise ValueError("ASG-CV E0 exact semantic wall time differs")
     if type(asgcv_semantic_wall_ns) is not int or asgcv_semantic_wall_ns <= 0:
         raise ValueError("ASG-CV E0 semantic wall time differs")
+    if type(peak_cuda_reserved_bytes) is not int or peak_cuda_reserved_bytes <= 0:
+        raise ValueError("ASG-CV E0 peak CUDA memory differs")
     semantic_wall_ratio_ppm = (
         asgcv_semantic_wall_ns * 1_000_000 + exact_semantic_wall_ns - 1
     ) // exact_semantic_wall_ns
@@ -937,6 +949,7 @@ def evaluate_e0(
         "asgcv_clip_rate_ppm": asgcv_clip_rate_ppm,
         "clip_rate_delta_ppm": max(0, asgcv_clip_rate_ppm - exact_clip_rate_ppm),
         "semantic_wall_ratio_ppm": semantic_wall_ratio_ppm,
+        "peak_cuda_reserved_bytes": peak_cuda_reserved_bytes,
     }
     passed = (
         metrics_without_pass["dense_gradient_cosine_ppm"] >= ASGCV_DENSE_COSINE_GATE_PPM
@@ -947,6 +960,7 @@ def evaluate_e0(
         and metrics_without_pass["preclip_p99_ratio_ppm"] <= ASGCV_PRECLIP_P99_RATIO_GATE_PPM
         and metrics_without_pass["clip_rate_delta_ppm"] <= ASGCV_CLIP_RATE_DELTA_GATE_PPM
         and metrics_without_pass["semantic_wall_ratio_ppm"] <= ASGCV_SEMANTIC_WALL_RATIO_GATE_PPM
+        and peak_cuda_reserved_bytes <= ASGCV_PEAK_CUDA_RESERVED_GATE_BYTES
     )
     return AsgcvE0Metrics(**metrics_without_pass, passed=passed).validated()
 
@@ -1349,6 +1363,7 @@ def canonical_e0_result_bytes(
     srht_authority: AsgcvSrhtAuthority,
     exact_preclip_norms: object,
     asgcv_preclip_norms: object,
+    peak_cuda_reserved_bytes: int,
     exact_semantic_wall_ns: int,
     asgcv_semantic_wall_ns: int,
 ) -> bytes:
@@ -1377,6 +1392,7 @@ def canonical_e0_result_bytes(
         srht_authority,
         exact_preclip_norms=exact_preclip_norms,
         asgcv_preclip_norms=asgcv_preclip_norms,
+        peak_cuda_reserved_bytes=peak_cuda_reserved_bytes,
         exact_semantic_wall_ns=exact_semantic_wall_ns,
         asgcv_semantic_wall_ns=asgcv_semantic_wall_ns,
     )
@@ -1553,6 +1569,7 @@ def validate_e0_result_inputs(
         srht_authority=AsgcvSrhtAuthority.from_mapping(value["srht_authority"]),
         exact_preclip_norms=exact_preclip_norms,
         asgcv_preclip_norms=asgcv_preclip_norms,
+        peak_cuda_reserved_bytes=AsgcvE0Metrics.from_mapping(value["metrics"]).peak_cuda_reserved_bytes,
         exact_semantic_wall_ns=wall["exact"],
         asgcv_semantic_wall_ns=wall["asgcv"],
     )
