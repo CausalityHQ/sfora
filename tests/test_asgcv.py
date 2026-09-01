@@ -39,8 +39,8 @@ from sfora.asgcv_protocol import (
 
 
 def _fields() -> tuple[np.ndarray, np.ndarray]:
-    exact = np.arange(8 * 3 * 4, dtype=np.float64).reshape(8, 3, 4) / 10.0
-    offsets = np.linspace(-0.35, 0.35, num=8, dtype=np.float64)[:, None, None]
+    exact = np.arange(8 * 2 * 3 * 4, dtype=np.float64).reshape(8, 2, 3, 4) / 10.0
+    offsets = np.linspace(-0.35, 0.35, num=8, dtype=np.float64)[:, None, None, None]
     predicted = exact + offsets
     return exact, predicted
 
@@ -99,7 +99,7 @@ def test_estimator_rejects_shape_dtype_index_and_finiteness_drift() -> None:
     with pytest.raises(ValueError):
         asgcv_stratum_gradient(predicted[:7], exact[0], selected_index=0)
     with pytest.raises(ValueError):
-        asgcv_stratum_gradient(predicted, exact[0, :, :3], selected_index=0)
+        asgcv_stratum_gradient(predicted, exact[0, :, :, :3], selected_index=0)
     with pytest.raises(ValueError):
         asgcv_stratum_gradient(predicted, exact[0], selected_index=True)
     with pytest.raises(ValueError):
@@ -288,7 +288,7 @@ def test_e0_rejects_srht_batch_and_degenerate_salience_drift() -> None:
     with pytest.raises(ValueError):
         evaluate_e0(
             exact_batch,
-            exact_batch[:, :, :, :3],
+            exact_batch[..., :3],
             srht,
             exact_preclip_norms=norms,
             asgcv_preclip_norms=norms,
@@ -320,7 +320,7 @@ def test_e0_rejects_srht_batch_and_degenerate_salience_drift() -> None:
             exact_semantic_wall_ns=1_000,
             asgcv_semantic_wall_ns=350,
         )
-    constant_patch_norms = np.ones((2, 8, 3, 4), dtype=np.float64)
+    constant_patch_norms = np.ones((2, 8, 2, 3, 4), dtype=np.float64)
     with pytest.raises(ValueError):
         evaluate_e0(
             constant_patch_norms,
@@ -532,7 +532,7 @@ def test_e0_result_is_canonical_claim_ineligible_and_binds_every_array() -> None
         "predicted_gradients",
     }
     assert result["srht_authority"] == _e0_srht().to_mapping()
-    assert result["arrays"]["exact_gradients"]["shape"] == [2, 8, 3, 4]
+    assert result["arrays"]["exact_gradients"]["shape"] == [2, 8, 2, 3, 4]
     assert result["arrays"]["exact_gradients"]["dtype"] == "float64-le"
     assert len(result["arrays"]["exact_gradients"]["sha256"]) == 64
 

@@ -364,14 +364,18 @@ def _validated_stratum_pair(
     exact_array = _require_float64_array(
         exact,
         name="exact gradient stratum",
-        dimensions=3,
+        dimensions=4,
     )
     predicted_array = _require_float64_array(
         predicted,
         name="predicted gradient stratum",
-        dimensions=3,
+        dimensions=4,
     )
-    if exact_array.shape != predicted_array.shape or exact_array.shape[0] != ASGCV_STRATUM_SIZE:
+    if (
+        exact_array.shape != predicted_array.shape
+        or exact_array.shape[0] != ASGCV_STRATUM_SIZE
+        or exact_array.shape[1] != 2
+    ):
         raise ValueError("ASG-CV gradient stratum shape differs")
     return exact_array, predicted_array
 
@@ -387,14 +391,14 @@ def asgcv_stratum_gradient(
     predicted_array = _require_float64_array(
         predicted,
         name="predicted gradient stratum",
-        dimensions=3,
+        dimensions=4,
     )
     exact_array = _require_float64_array(
         exact_selected,
         name="selected exact gradient",
-        dimensions=2,
+        dimensions=3,
     )
-    if predicted_array.shape[0] != ASGCV_STRATUM_SIZE:
+    if predicted_array.shape[0] != ASGCV_STRATUM_SIZE or predicted_array.shape[1] != 2:
         raise ValueError("ASG-CV gradient stratum shape differs")
     if exact_array.shape != predicted_array.shape[1:]:
         raise ValueError("ASG-CV selected gradient shape differs")
@@ -840,12 +844,12 @@ def evaluate_e0(
     exact_array = _require_float64_array(
         exact,
         name="E0 exact gradient batch",
-        dimensions=4,
+        dimensions=5,
     )
     predicted_array = _require_float64_array(
         predicted,
         name="E0 predicted gradient batch",
-        dimensions=4,
+        dimensions=5,
     )
     exact_norms = _require_float64_array(
         exact_preclip_norms,
@@ -864,7 +868,11 @@ def evaluate_e0(
     semantic_wall_ratio_ppm = (
         asgcv_semantic_wall_ns * 1_000_000 + exact_semantic_wall_ns - 1
     ) // exact_semantic_wall_ns
-    if exact_array.shape != predicted_array.shape or exact_array.shape[1] != ASGCV_STRATUM_SIZE:
+    if (
+        exact_array.shape != predicted_array.shape
+        or exact_array.shape[1] != ASGCV_STRATUM_SIZE
+        or exact_array.shape[2] != 2
+    ):
         raise ValueError("ASG-CV E0 gradient batch shape differs")
     if type(srht_authority) is not AsgcvSrhtAuthority:
         raise ValueError("ASG-CV E0 SRHT authority differs")
@@ -1385,12 +1393,12 @@ def canonical_e0_result_bytes(
             "exact_gradients": _array_authority(
                 exact,
                 role="exact-gradients",
-                dimensions=4,
+                dimensions=5,
             ),
             "predicted_gradients": _array_authority(
                 predicted,
                 role="predicted-gradients",
-                dimensions=4,
+                dimensions=5,
             ),
             "exact_preclip_norms": _array_authority(
                 exact_preclip_norms,
@@ -1473,8 +1481,8 @@ def validate_e0_result_bytes(raw: bytes) -> dict[str, object]:
 
     arrays = value["arrays"]
     array_roles = {
-        "exact_gradients": 4,
-        "predicted_gradients": 4,
+        "exact_gradients": 5,
+        "predicted_gradients": 5,
         "exact_preclip_norms": 1,
         "asgcv_preclip_norms": 1,
     }
@@ -1489,6 +1497,7 @@ def validate_e0_result_bytes(raw: bytes) -> dict[str, object]:
     if (
         shapes["predicted_gradients"] != exact_shape
         or exact_shape[1] != ASGCV_STRATUM_SIZE
+        or exact_shape[2] != 2
         or srht.input_dimensions != exact_shape[-1]
         or shapes["exact_preclip_norms"] != shapes["asgcv_preclip_norms"]
     ):
