@@ -1053,6 +1053,9 @@ def test_control_aggregate_authenticates_exact_three_seed_receipts(tmp_path: Pat
         seed_receipt(29, 0.40, 0.55, 0.30),
         seed_receipt(43, 0.45, 0.65, None),
     )
+    assert _MODULE.read_control_seed_receipt(receipts[0])["seed"] == 17
+    with pytest.raises(ValueError, match="seed receipt authority"):
+        _MODULE.read_control_seed_receipt(receipts[0].replace(b'"seed":17', b'"seed": 17'))
     payload = json.loads(_MODULE.control_aggregate_receipt_bytes(receipts))
 
     assert payload["schema"] == "sfora-siglip-proxy-control-aggregate-v1"

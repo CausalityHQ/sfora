@@ -1469,11 +1469,9 @@ def control_seed_receipt_bytes(
     return _canonical_bytes(payload)
 
 
-def control_aggregate_receipt_bytes(seed_receipts: tuple[bytes, ...]) -> bytes:
-    """Authenticate and aggregate the exact three terminal seed receipts."""
+def read_control_seed_receipt(raw: bytes) -> dict[str, Any]:
+    """Parse one canonical top-level terminal seed receipt authority."""
 
-    if type(seed_receipts) is not tuple or len(seed_receipts) != 3:
-        raise ValueError("aggregate requires the exact seeds 17, 29, and 43")
     expected_keys = {
         "schema",
         "claim_eligible",
@@ -1491,23 +1489,29 @@ def control_aggregate_receipt_bytes(seed_receipts: tuple[bytes, ...]) -> bytes:
         "resources",
         "environment",
     }
-    parsed: list[dict[str, Any]] = []
-    for raw in seed_receipts:
-        if type(raw) is not bytes:
-            raise TypeError("seed receipts must be concrete bytes")
-        try:
-            value = json.loads(raw)
-        except (UnicodeDecodeError, json.JSONDecodeError) as error:
-            raise ValueError("seed receipt is not valid JSON") from error
-        if (
-            type(value) is not dict
-            or set(value) != expected_keys
-            or value.get("schema") != "sfora-siglip-proxy-control-seed-v1"
-            or value.get("claim_eligible") is not False
-            or raw != _canonical_bytes(cast(dict[str, Any], value))
-        ):
-            raise ValueError("seed receipt authority differs")
-        parsed.append(cast(dict[str, Any], value))
+    if type(raw) is not bytes:
+        raise TypeError("seed receipts must be concrete bytes")
+    try:
+        value = json.loads(raw)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError("seed receipt is not valid JSON") from error
+    if (
+        type(value) is not dict
+        or set(value) != expected_keys
+        or value.get("schema") != "sfora-siglip-proxy-control-seed-v1"
+        or value.get("claim_eligible") is not False
+        or raw != _canonical_bytes(cast(dict[str, Any], value))
+    ):
+        raise ValueError("seed receipt authority differs")
+    return cast(dict[str, Any], value)
+
+
+def control_aggregate_receipt_bytes(seed_receipts: tuple[bytes, ...]) -> bytes:
+    """Authenticate and aggregate the exact three terminal seed receipts."""
+
+    if type(seed_receipts) is not tuple or len(seed_receipts) != 3:
+        raise ValueError("aggregate requires the exact seeds 17, 29, and 43")
+    parsed = [read_control_seed_receipt(raw) for raw in seed_receipts]
     seeds = tuple(value["seed"] for value in parsed)
     if seeds != (17, 29, 43) or any(type(seed) is not int for seed in seeds):
         raise ValueError("aggregate requires the exact seeds 17, 29, and 43")

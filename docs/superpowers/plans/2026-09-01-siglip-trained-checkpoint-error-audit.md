@@ -71,21 +71,21 @@ Expected: all commands exit zero.
 - Consumes: three canonical seed receipt byte strings, their canonical aggregate bytes, selected seed `17`, one checkpoint directory, and the existing strict checkpoint receipt/payload authority.
 - Produces: `read_authenticated_control_campaign(...) -> AuthenticatedControlCampaign` and `restore_audit_model(...) -> tuple[PooledProxyAnchorModel, object]`.
 
-- [ ] **Step 1: Write failing campaign-authentication tests**
+- [x] **Step 1: Write failing campaign-authentication tests**
 
 Use the existing synthetic control seed fixtures to construct canonical receipts `(17,29,43)` and aggregate bytes. Require exact aggregate reproduction, selected-seed membership, exact final checkpoint metadata, config/source/dataset/model/environment equality, and epoch `60`. Mutate receipt order, aggregate bytes, source, model, config, environment, checkpoint name/digest/bytes/epoch, and concrete numeric types.
 
-- [ ] **Step 2: Run the campaign RED**
+- [x] **Step 2: Run the campaign RED**
 
 Run: `uv run --offline --locked pytest -q -p no:cacheprovider tests/test_audit_siglip_control_checkpoint.py -k campaign`
 
 Expected: failure at missing campaign reader.
 
-- [ ] **Step 3: Factor one strict seed-receipt reader and implement campaign authentication**
+- [x] **Step 3: Factor one strict seed-receipt reader and implement campaign authentication**
 
 Extract the existing per-seed canonical/schema validation from `control_aggregate_receipt_bytes` into `read_control_seed_receipt(raw: bytes) -> dict[str, Any]`; preserve aggregate output byte-for-byte. In the new runner, recompute aggregate bytes from the three exact receipts, compare them to the supplied aggregate, choose seed `17`, reconstruct `SiglipProxyControlConfig` and `ControlRunAuthority`, and authenticate the checkpoint through `_checkpoint_authority_from_receipt`.
 
-- [ ] **Step 4: Run regression and campaign GREEN**
+- [x] **Step 4: Run regression and campaign GREEN**
 
 Run:
 
