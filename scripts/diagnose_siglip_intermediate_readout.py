@@ -68,8 +68,7 @@ def stream_intermediate_descriptor_planes(
 
     tower = getattr(model, "tower", None)
     vision_model = getattr(tower, "vision_model", None)
-    transformer = getattr(vision_model, "vision_model", None)
-    post_layernorm = getattr(transformer, "post_layernorm", None)
+    post_layernorm = getattr(vision_model, "post_layernorm", None)
     projection = getattr(model, "projection", None)
     if (
         not isinstance(vision_model, torch.nn.Module)

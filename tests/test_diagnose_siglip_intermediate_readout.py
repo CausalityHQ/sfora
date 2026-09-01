@@ -11,6 +11,7 @@ import pytest
 import torch
 from torch import nn
 from torch.nn import functional as F
+from transformers import SiglipVisionConfig, SiglipVisionModel
 
 _SCRIPT = (
     Path(__file__).resolve().parents[1] / "scripts" / "diagnose_siglip_intermediate_readout.py"
@@ -24,16 +25,10 @@ sys.modules[_SPEC.name] = _MODULE
 _SPEC.loader.exec_module(_MODULE)
 
 
-class _TinyTransformer(nn.Module):
-    def __init__(self) -> None:
-        super().__init__()
-        self.post_layernorm = nn.LayerNorm(4)
-
-
 class _TinyVisionModel(nn.Module):
     def __init__(self) -> None:
         super().__init__()
-        self.vision_model = _TinyTransformer()
+        self.post_layernorm = nn.LayerNorm(4)
         self.calls = 0
 
     def forward(self, *, pixel_values, output_hidden_states, return_dict):
@@ -78,12 +73,56 @@ def test_streamed_readout_uses_one_forward_post_ln_mean_projection_and_no_token_
     )
     first_hidden = batches[0].flatten(1).unsqueeze(1) + 1.0
     expected = F.normalize(
-        model.projection(
-            model.tower.vision_model.vision_model.post_layernorm(first_hidden).mean(dim=1)
-        ),
+        model.projection(model.tower.vision_model.post_layernorm(first_hidden).mean(dim=1)),
         dim=1,
     )
     assert torch.allclose(planes[0][0], expected[0])
+
+
+def test_streamed_readout_matches_real_three_block_siglip_hidden_state_contract() -> None:
+    torch.manual_seed(7)
+    config = SiglipVisionConfig(
+        hidden_size=4,
+        intermediate_size=8,
+        num_hidden_layers=3,
+        num_attention_heads=2,
+        image_size=4,
+        patch_size=2,
+        vision_use_head=False,
+    )
+    vision_model = SiglipVisionModel(config).eval()
+    control = nn.Module()
+    control.tower = nn.Module()
+    control.tower.vision_model = vision_model
+    control.projection = nn.Linear(4, 2, bias=False)
+    pixels = torch.randn(2, 3, 4, 4)
+
+    planes = _MODULE.stream_intermediate_descriptor_planes(
+        control,
+        (pixels,),
+        expected_depth_count=3,
+        tower_width=4,
+        output_dimensions=2,
+        device=torch.device("cpu"),
+    )
+    output = vision_model(
+        pixel_values=pixels,
+        output_hidden_states=True,
+        return_dict=True,
+    )
+    expected = tuple(
+        F.normalize(
+            control.projection(vision_model.post_layernorm(hidden).mean(dim=1)),
+            dim=1,
+        )
+        for hidden in output.hidden_states[1:]
+    )
+
+    assert len(planes) == 3
+    assert all(
+        torch.allclose(observed, reference)
+        for observed, reference in zip(planes, expected, strict=True)
+    )
 
 
 @pytest.mark.parametrize(
