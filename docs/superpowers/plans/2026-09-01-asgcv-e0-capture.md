@@ -319,14 +319,24 @@ Preserve all three seed receipts and the original aggregate. Do not stop or over
 
 Use the existing bounded diagnostic to measure actual GB10 replay memory/time. If it fails authority, attention, memory, determinism, or time, stop ASG-CV before the 512-pair capture.
 
-- [ ] **Step 3: Run a bounded 64-pair capacity pilot**
+- [ ] **Step 3: Run the preregistered P32 training-only pilot**
+
+Run exactly 32 predictor-training candidates from the domain-separated P32
+schedule. Seal per-completion validity, verdict, reward, score, synchronized
+timing, memory, lowest/highest-seed branch evidence, and the first four
+schedule-ordered exact-replay diagnostics. Recompute all P32 metrics and gates
+from canonical candidate receipts. No dense gradients, retrieval test data,
+threshold changes, or automatic restart are allowed. A failure stops the
+implicated collapsed, semantic-signal, or GB10 route before capacity capture.
+
+- [ ] **Step 4: Run a bounded 64-pair capacity pilot**
 
 Only a passing capacity-floor receipt permits predictor fitting and E0 capture.
 
-- [ ] **Step 4: Execute the four E0 phases once**
+- [ ] **Step 5: Execute the four E0 phases once**
 
 No adaptive rank, sample count, threshold, or architecture change is allowed after exact gradients open. Preserve the original terminal and never auto-restart.
 
-- [ ] **Step 5: Classify and report**
+- [ ] **Step 6: Classify and report**
 
 Report actual wall time, peak resources, each gate, custody status, bias evidence, and whether E0 passes. A pass authorizes E1 design only; it is not a retrieval or SOTA claim.

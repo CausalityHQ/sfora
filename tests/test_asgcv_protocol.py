@@ -218,6 +218,8 @@ def test_completion_group_derives_variance_eligibility_and_exact_teacher_spans()
     )
 
     assert group.rewards == (1, 1, 1, 1, 0, 0, 0, 0)
+    assert group.valid_flags == (True,) * 8
+    assert group.verdict_relation_signs == (1, 1, 1, 1, -1, -1, -1, -1)
     assert group.correct_rollouts == (True, True, True, True, False, False, False, False)
     assert group.attribute_spans == ((2, 3), (2, 3), (2, 3), (2, 3), None, None, None, None)
     assert group.nonzero_reward_variance is True
@@ -243,6 +245,11 @@ def test_completion_group_derives_variance_eligibility_and_exact_teacher_spans()
         {**group.to_mapping(), "candidate_pair_ordinal": True},
         {**group.to_mapping(), "rollout_authority_sha256": True},
         {**group.to_mapping(), "generation_seeds": [True, *group.generation_seeds[1:]]},
+        {**group.to_mapping(), "valid_flags": [False, *group.valid_flags[1:]]},
+        {
+            **group.to_mapping(),
+            "verdict_relation_signs": [None, *group.verdict_relation_signs[1:]],
+        },
     ):
         with pytest.raises(ValueError):
             type(group).from_mapping(mutation)
@@ -267,6 +274,38 @@ def test_completion_group_derives_variance_eligibility_and_exact_teacher_spans()
             rollout_authority=rollout,
             candidate_pair_ordinal=7,
         )
+
+
+def test_collapsed_marginal_schedule_zeros_groups_without_both_valid_verdicts() -> None:
+    protocol = _protocol()
+    rollout = _rollout_authority()
+    example_ids = tuple(f"cars-{index:02d}" for index in range(16))
+    labels = tuple(index // 2 for index in range(16))
+    candidates = build_asgcv_pair_schedule(
+        example_ids,
+        labels,
+        schedule_seed_sha256="ab" * 32,
+        pair_count=8,
+    )
+    groups = tuple(
+        classify_asgcv_completion_group(
+            (
+                (
+                    *((11, 12) if pair.relation_sign == 1 else (21, 22, 23)),
+                    30,
+                    99,
+                ),
+                *((77, 30 + index, 99) for index in range(1, 8)),
+            ),
+            pair.relation_sign,
+            protocol,
+            rollout_authority=rollout,
+            candidate_pair_ordinal=pair.ordinal,
+        )
+        for pair in candidates.pairs
+    )
+    assert all(group.nonzero_reward_variance for group in groups)
+    assert assemble_asgcv_marginal_schedule(candidates, groups).zero_target_flags == (True,) * 8
 
 
 def test_eligible_schedule_refills_before_gradients_and_preserves_relation_balance() -> None:
@@ -453,6 +492,8 @@ def test_protocol_bundle_rebuilds_schedule_groups_and_eligibility() -> None:
         first,
         completion_ids=tuple((77, 30 + index, 99) for index in range(8)),
         rewards=(0,) * 8,
+        valid_flags=(False,) * 8,
+        verdict_relation_signs=(None,) * 8,
         correct_rollouts=(False,) * 8,
         attribute_spans=(None,) * 8,
         nonzero_reward_variance=False,

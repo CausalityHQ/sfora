@@ -278,9 +278,14 @@ pairs are formed across labels. The complete candidate schedule and source
 manifest are content-addressed.
 
 The E0 capture phase generates and classifies candidate completions in schedule
-order, without predictor or selection-stream access. Nonzero-variance groups
-receive exact four-boundary replay targets; zero-variance groups receive the
-exact zero target. Both remain in their original four-positive/four-negative
+order, without predictor or selection-stream access. Under the collapsed route,
+groups with at least one valid completion of each verdict receive exact
+four-boundary two-branch targets using the lowest seed ordinal of each verdict;
+all other groups receive the exact zero target. A canonical nonzero collapsed
+receipt therefore has replay branch count `2`, zero generated tokens, and the
+two branch completion ordinals. Exact eight-branch receipts are a different
+capture mode and cannot be mixed into the same marginal schedule. All rows
+remain in their original four-positive/four-negative
 candidate strata. The complete candidate ordinals and candidate-schedule digest
 are sealed before exact-gradient replay and before the ASG-CV selection schedule
 is revealed; no outcome-conditioned refill exists. Predictor training and
@@ -299,7 +304,61 @@ eight distinct 64-bit seeds from that authority. Completion-group receipts bind
 the authority digest, candidate ordinal, and exact seed block; bundle validation
 reconstructs all three before accepting rewards or eligibility.
 
-Before predictor fitting, a sealed capacity pilot uses `64` candidate pairs and
+Before any capacity pilot or gradient corpus is opened, a sealed training-only
+P32 pilot uses exactly `32` candidate pairs from the predictor-training class
+band, balanced `16/16` by relation sign, with eight registered rollouts per
+pair. P32 uses a domain-separated schedule that cannot become an E0 row, reads
+no retrieval test data, persists no dense gradient arrays, and is always
+`claim_eligible=false`. It measures the assumptions introduced by the analytic
+two-branch collapsed-verdict field rather than treating that field as an
+implementation-equivalent replacement for eight-branch replay.
+
+For every candidate P32 seals all completion validity flags, verdict signs,
+rewards, attribute spans, generated-token counts, teacher-forced completion
+scores, and synchronized phase timings. When both verdicts are present it
+computes a lowest-seed-ordinal correct/incorrect branch pair. When at least two
+valid completions of each verdict are present it also computes the corresponding
+highest-seed-ordinal pair and records normalized branch-exchange energy. The
+first four schedule-ordered nonzero-variance candidates additionally run the
+registered eight-branch exact replay for a latency baseline and an ungated
+field diagnostic. No candidate is chosen for favorable agreement or runtime.
+
+P32 passes only if all of the following preregistered gates pass:
+
+- median normalized branch-exchange energy is at most `350,000` ppm and is
+  evaluable on at least `8/32` candidates;
+- median and p90 within-verdict score-dispersion ratios are at most `250,000`
+  and `500,000` ppm;
+- both-verdict branch yield is at least `500,000` ppm overall and `375,000`
+  ppm within each relation sign;
+- median collapsed coefficient is at least `200,000` ppm and median absolute
+  teacher-score-probability versus empirical rollout-probability error is at
+  most `250,000` ppm;
+- at least `750,000` ppm of the `256` completions are protocol-valid;
+- the p90-projected collapsed semantic-step wall ratio is at most `250,000`
+  ppm, peak CUDA reserved memory is at most `96 GiB`, and candidate p90 wall
+  time is at most `300` seconds.
+
+The projected ratio uses measured synchronized medians and p90s for pair
+preparation, generation, eight-completion scoring, two-branch replay,
+eight-branch replay, and predictor forward. The full `1024`-row capture estimate
+separately multiplies replay work by measured branch and variance yields.
+For a stratum of eight pairs, the collapsed step ratio is
+`(t_prepare + t_generate + t_score + t_two_branch + 8*t_predictor) /
+(8*(t_prepare + t_generate + t_eight_branch))`; the factor eight is the
+registered SAGA baseline's eight exact semantic pairs, not a timing-unit
+conversion. Both median and p90 ratios are published, and the p90 ratio owns
+the gate.
+Collapsed-versus-exact cosine on four rows is reported but is not a gate: one
+eight-rollout draw cannot separate Rao-Blackwell shrinkage from field error.
+
+P32 failure is terminal for the implicated route. Branch-exchange or dispersion
+failure rejects the two-branch collapse and returns to measured eight-branch
+replay. Yield, coefficient, calibration, or validity failure rejects the frozen
+model's ASG-CV semantic-signal premise. Runtime or resource failure rejects GB10
+execution. Thresholds cannot move after the first candidate receipt is written.
+
+Only after P32 passes, a sealed capacity pilot uses `64` candidate pairs and
 two independently derived rollout-seed blocks per pair. Three lower bounds are
 computed from the exact `[pair, image, patch, channel]` gradient fields:
 

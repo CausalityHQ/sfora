@@ -20,7 +20,7 @@ import numpy as np
 import torch
 import torch.nn.functional as torch_functional
 
-from sfora.asgcv_protocol import AsgcvCompletionGroup
+from sfora.asgcv_protocol import ASGCV_STRATUM_SIZE, AsgcvCompletionGroup
 from sfora.asgcv_verdict_marginal import (
     collapsed_verdict_coefficient,
     collapsed_verdict_probability,
@@ -572,6 +572,55 @@ class QwenSagaAdapter:
         )
         return inputs
 
+    def score_completions(
+        self,
+        pair: object,
+        completion_ids: tuple[tuple[int, ...], ...],
+    ) -> tuple[float, ...]:
+        """Return finite teacher-forced mean-token scores without retaining graphs."""
+
+        if (
+            type(pair) is not PreparedPair
+            or type(completion_ids) is not tuple
+            or len(completion_ids) != ASGCV_STRATUM_SIZE
+            or any(
+                type(completion) is not tuple
+                or not completion
+                or any(type(token) is not int or token < 0 for token in completion)
+                for completion in completion_ids
+            )
+        ):
+            raise ValueError("SAGA completion score authority differs")
+        scores: list[float] = []
+        with torch.no_grad():
+            for completion in completion_ids:
+                inputs = self._completed_inputs(pair, completion)
+                outputs = self._model.forward(
+                    **inputs,
+                    output_attentions=False,
+                    use_cache=False,
+                )
+                logits = outputs.logits
+                start = pair.input_length - 1
+                completion_logits = logits[:, start : start + len(completion), :].float()
+                if completion_logits.shape[1] != len(completion):
+                    raise ValueError("SAGA completion score logit extent differs")
+                target = torch.tensor(
+                    [completion],
+                    dtype=torch.long,
+                    device=completion_logits.device,
+                )
+                score = (
+                    torch_functional.log_softmax(completion_logits, dim=-1)
+                    .gather(-1, target.unsqueeze(-1))
+                    .squeeze(-1)
+                    .mean()
+                )
+                if not bool(torch.isfinite(score)):
+                    raise ValueError("SAGA completion score is non-finite")
+                scores.append(float(score))
+        return tuple(scores)
+
     def replay(
         self,
         pair: object,
@@ -819,14 +868,11 @@ class QwenSagaAdapter:
         """Capture a two-branch Rao-Blackwellized verdict control field."""
 
         completions = (correct_completion_ids, incorrect_completion_ids)
-        if (
-            type(pair) is not PreparedPair
-            or any(
-                type(completion) is not tuple
-                or not completion
-                or any(type(token) is not int or token < 0 for token in completion)
-                for completion in completions
-            )
+        if type(pair) is not PreparedPair or any(
+            type(completion) is not tuple
+            or not completion
+            or any(type(token) is not int or token < 0 for token in completion)
+            for completion in completions
         ):
             raise ValueError("SAGA collapsed verdict completion authority differs")
         if correct_completion_ids == incorrect_completion_ids:
@@ -942,9 +988,7 @@ class QwenSagaAdapter:
                 ),
                 boundary_names=boundary_names,
                 boundary_patch_tokens=boundary_tokens.reshape(4, *target_shape).detach(),
-                boundary_predicted_gradient=boundary_gradient.reshape(
-                    4, *target_shape
-                ).detach(),
+                boundary_predicted_gradient=boundary_gradient.reshape(4, *target_shape).detach(),
                 correct_probability=probability,
                 coefficient=coefficient,
                 branch_scores=(float(scores[0].detach()), float(scores[1].detach())),

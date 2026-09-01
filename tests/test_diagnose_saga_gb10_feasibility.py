@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import math
 import sys
 from dataclasses import dataclass, replace
 from pathlib import Path
@@ -804,6 +805,8 @@ def test_qwen_replay_captures_exact_merged_patch_gradient_target(tmp_path: Path)
         candidate_pair_ordinal=0,
         generation_seeds=tuple(range(8)),
         rewards=rewards,
+        valid_flags=(True,) * 8,
+        verdict_relation_signs=tuple(1 if value else -1 for value in rewards),
         correct_rollouts=tuple(bool(value) for value in rewards),
         attribute_spans=tuple(pair.attribute_token_span if value else None for value in rewards),
         nonzero_reward_variance=True,
@@ -906,6 +909,22 @@ def test_qwen_collapsed_verdict_control_uses_two_forced_branches_without_generat
             correct_completion_ids=(10, 11, 12),
             incorrect_completion_ids=(10, 11, 12),
         )
+
+
+def test_qwen_scores_all_pilot_completions_without_backward_or_generation(tmp_path: Path) -> None:
+    authority = _hf_authority(tmp_path)
+    factory = _HfLikeFactory()
+    adapter = _MODULE.load_qwen_adapter(authority, factory=factory)
+    pair = adapter.prepare_pair(authority.fixture)
+    completions = tuple((10,) * (index + 1) for index in range(8))
+
+    scores = adapter.score_completions(pair, completions)
+
+    assert len(scores) == 8
+    assert all(type(score) is float and math.isfinite(score) for score in scores)
+    assert scores == pytest.approx((scores[0],) * 8)
+    assert factory.model.forward_calls == 8
+    assert all(parameter.grad is None for parameter in adapter._vision_parameters)
 
 
 def test_qwen_replay_patch_gradient_rejects_missing_merger(tmp_path: Path) -> None:

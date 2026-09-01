@@ -6,6 +6,7 @@ import hashlib
 import json
 import math
 from dataclasses import dataclass
+from typing import cast
 
 import numpy as np
 
@@ -159,6 +160,8 @@ def canonical_marginal_gradient_sample_bytes(
     pair_ordinals: object,
     relation_sign: object,
     zero_semantic_target: object,
+    replay_branch_count: object,
+    branch_completion_indices: object,
     grpo_loss: object,
     attention_kl: object,
     generated_tokens: object,
@@ -195,13 +198,37 @@ def canonical_marginal_gradient_sample_bytes(
         or not math.isfinite(attention_kl)
         or attention_kl < 0.0
         or type(generated_tokens) is not int
+        or type(replay_branch_count) is not int
     ):
         raise ValueError("ASG-CV marginal replay evidence differs")
     if zero_semantic_target:
-        if grpo_loss != 0.0 or attention_kl != 0.0 or generated_tokens != 0:
+        if (
+            replay_branch_count != 0
+            or grpo_loss != 0.0
+            or attention_kl != 0.0
+            or generated_tokens != 0
+        ):
             raise ValueError("ASG-CV marginal zero-target evidence differs")
-    elif generated_tokens <= 0:
-        raise ValueError("ASG-CV marginal generated-token evidence differs")
+    elif replay_branch_count == 2:
+        if (
+            generated_tokens != 0
+            or type(branch_completion_indices) is not tuple
+            or len(branch_completion_indices) != 2
+            or any(
+                type(ordinal) is not int or not 0 <= ordinal < ASGCV_REPLAY_BRANCH_COUNT
+                for ordinal in branch_completion_indices
+            )
+            or branch_completion_indices[0] == branch_completion_indices[1]
+        ):
+            raise ValueError("ASG-CV marginal collapsed replay evidence differs")
+    elif (
+        replay_branch_count != ASGCV_REPLAY_BRANCH_COUNT
+        or generated_tokens <= 0
+        or branch_completion_indices is not None
+    ):
+        raise ValueError("ASG-CV marginal exact replay evidence differs")
+    if replay_branch_count == 0 and branch_completion_indices is not None:
+        raise ValueError("ASG-CV marginal zero-target branch evidence differs")
     payload: dict[str, object] = {
         "schema": ASGCV_MARGINAL_GRADIENT_SAMPLE_SCHEMA,
         "claim_eligible": False,
@@ -220,7 +247,10 @@ def canonical_marginal_gradient_sample_bytes(
         "pair_ordinals": list(pair_ordinals),
         "relation_sign": relation_sign,
         "zero_semantic_target": zero_semantic_target,
-        "replay_branch_count": 0 if zero_semantic_target else ASGCV_REPLAY_BRANCH_COUNT,
+        "replay_branch_count": replay_branch_count,
+        "branch_completion_indices": None
+        if branch_completion_indices is None
+        else list(cast(tuple[int, int], branch_completion_indices)),
         "losses": {
             "grpo": grpo_loss,
             "attention_kl": attention_kl,
@@ -259,6 +289,7 @@ def validate_marginal_gradient_sample_bytes(raw: bytes) -> dict[str, object]:
         "relation_sign",
         "zero_semantic_target",
         "replay_branch_count",
+        "branch_completion_indices",
         "losses",
         "generated_tokens",
         "vision_cut_authority",
@@ -297,10 +328,27 @@ def validate_marginal_gradient_sample_bytes(raw: bytes) -> dict[str, object]:
     ):
         raise ValueError("ASG-CV marginal sample relation differs")
     zero = value["zero_semantic_target"]
-    if type(value["replay_branch_count"]) is not int or value["replay_branch_count"] != (
-        0 if zero else ASGCV_REPLAY_BRANCH_COUNT
-    ):
+    replay_branches = value["replay_branch_count"]
+    if type(replay_branches) is not int or replay_branches not in {
+        0,
+        2,
+        ASGCV_REPLAY_BRANCH_COUNT,
+    }:
         raise ValueError("ASG-CV marginal replay count differs")
+    raw_branch_indices = value["branch_completion_indices"]
+    if replay_branches == 2:
+        if (
+            type(raw_branch_indices) is not list
+            or len(raw_branch_indices) != 2
+            or any(
+                type(ordinal) is not int or not 0 <= ordinal < ASGCV_REPLAY_BRANCH_COUNT
+                for ordinal in raw_branch_indices
+            )
+            or raw_branch_indices[0] == raw_branch_indices[1]
+        ):
+            raise ValueError("ASG-CV marginal branch indices differ")
+    elif raw_branch_indices is not None:
+        raise ValueError("ASG-CV marginal branch indices differ")
     losses = value["losses"]
     if type(losses) is not dict or set(losses) != {"grpo", "attention_kl", "semantic"}:
         raise ValueError("ASG-CV marginal loss schema differs")
@@ -318,8 +366,10 @@ def validate_marginal_gradient_sample_bytes(raw: bytes) -> dict[str, object]:
         or not math.isfinite(semantic)
         or semantic != grpo + attention
         or type(generated) is not int
-        or (zero and (grpo != 0.0 or attention != 0.0 or generated != 0))
-        or (not zero and generated <= 0)
+        or (zero and (replay_branches != 0 or grpo != 0.0 or attention != 0.0 or generated != 0))
+        or (not zero and replay_branches == 2 and generated != 0)
+        or (not zero and replay_branches == ASGCV_REPLAY_BRANCH_COUNT and generated <= 0)
+        or (not zero and replay_branches == 0)
     ):
         raise ValueError("ASG-CV marginal replay evidence differs")
     cut = AsgcvVisionCutAuthority.from_mapping(value["vision_cut_authority"])
@@ -373,6 +423,10 @@ def validate_marginal_gradient_sample_inputs(
         pair_ordinals=tuple(pair_ordinals),
         relation_sign=value["relation_sign"],
         zero_semantic_target=value["zero_semantic_target"],
+        replay_branch_count=value["replay_branch_count"],
+        branch_completion_indices=None
+        if value["branch_completion_indices"] is None
+        else tuple(cast(list[int], value["branch_completion_indices"])),
         grpo_loss=losses["grpo"],
         attention_kl=losses["attention_kl"],
         generated_tokens=value["generated_tokens"],
@@ -421,6 +475,23 @@ def validate_marginal_gradient_sample_context(
     if type(group) is not AsgcvCompletionGroup:
         raise ValueError("ASG-CV marginal sample completion context differs")
     group.validated()
+    correct = tuple(
+        index
+        for index, (valid, verdict) in enumerate(
+            zip(group.valid_flags, group.verdict_relation_signs, strict=True)
+        )
+        if valid and verdict == pair.relation_sign
+    )
+    incorrect = tuple(
+        index
+        for index, (valid, verdict) in enumerate(
+            zip(group.valid_flags, group.verdict_relation_signs, strict=True)
+        )
+        if valid and verdict == -pair.relation_sign
+    )
+    expected_zero = not group.both_verdicts_valid
+    expected_branches = 0 if expected_zero else 2
+    expected_indices = None if expected_zero else [correct[0], incorrect[0]]
     if (
         group.candidate_pair_ordinal != candidate_ordinal
         or group.expected_relation_sign != pair.relation_sign
@@ -430,7 +501,9 @@ def validate_marginal_gradient_sample_context(
         or value["relation_sign"] != pair.relation_sign
         or value["zero_semantic_target"]
         is not marginal_schedule.zero_target_flags[candidate_ordinal]
-        or value["zero_semantic_target"] is group.nonzero_reward_variance
+        or value["zero_semantic_target"] is group.both_verdicts_valid
+        or value["replay_branch_count"] != expected_branches
+        or value["branch_completion_indices"] != expected_indices
     ):
         raise ValueError("ASG-CV marginal sample context differs")
     return value

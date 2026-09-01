@@ -48,6 +48,8 @@ def test_marginal_gradient_sample_binds_complete_cut_and_zero_semantics(zero: bo
         pair_ordinals=(17, 29),
         relation_sign=-1,
         zero_semantic_target=zero,
+        replay_branch_count=0 if zero else 8,
+        branch_completion_indices=None,
         grpo_loss=0.0 if zero else 0.125,
         attention_kl=0.0 if zero else 0.375,
         generated_tokens=0 if zero else 64,
@@ -74,6 +76,47 @@ def test_marginal_gradient_sample_binds_complete_cut_and_zero_semantics(zero: bo
             patch_tokens=tokens,
             exact_gradient=wrong,
         )
+
+
+def test_marginal_gradient_sample_seals_two_branch_collapsed_replay_without_generation() -> None:
+    tokens, gradient = _arrays(zero=False)
+    arguments: dict[str, object] = {
+        "source_commit": "1" * 40,
+        "model_revision": "2" * 40,
+        "fixture_sha256": "3" * 64,
+        "completion_group_sha256": "4" * 64,
+        "completion_protocol_sha256": "5" * 64,
+        "marginal_schedule_sha256": "6" * 64,
+        "pooler_state_sha256": "7" * 64,
+        "candidate_pair_ordinal": 5,
+        "pair_ordinals": (17, 29),
+        "relation_sign": -1,
+        "zero_semantic_target": False,
+        "replay_branch_count": 2,
+        "branch_completion_indices": (0, 4),
+        "grpo_loss": 0.125,
+        "attention_kl": 0.375,
+        "generated_tokens": 0,
+        "vision_cut_authority": _cut(),
+        "patch_tokens": tokens,
+        "exact_gradient": gradient,
+    }
+    raw = canonical_marginal_gradient_sample_bytes(**arguments)
+    value = validate_marginal_gradient_sample_inputs(
+        raw,
+        patch_tokens=tokens,
+        exact_gradient=gradient,
+    )
+    assert value["replay_branch_count"] == 2
+    assert value["generated_tokens"] == 0
+    for mutation in (
+        {**arguments, "replay_branch_count": 0},
+        {**arguments, "generated_tokens": 1},
+        {**arguments, "branch_completion_indices": None},
+        {**arguments, "branch_completion_indices": (0, 0)},
+    ):
+        with pytest.raises(ValueError):
+            canonical_marginal_gradient_sample_bytes(**mutation)
 
 
 def test_vision_cut_refuses_missing_reordered_or_shape_drift() -> None:
@@ -116,7 +159,11 @@ def test_marginal_sample_context_binds_candidate_and_zero_outcome() -> None:
         classify_asgcv_completion_group(
             tuple(
                 (
-                    *((11,) if pair.relation_sign == 1 else (21,)),
+                    *(
+                        ((11,) if pair.relation_sign == 1 else (21,))
+                        if rollout_ordinal == 0
+                        else (77,)
+                    ),
                     30 + rollout_ordinal,
                     99,
                 )
@@ -144,6 +191,8 @@ def test_marginal_sample_context_binds_candidate_and_zero_outcome() -> None:
         pair_ordinals=(pair.left_index, pair.right_index),
         relation_sign=pair.relation_sign,
         zero_semantic_target=True,
+        replay_branch_count=0,
+        branch_completion_indices=None,
         grpo_loss=0.0,
         attention_kl=0.0,
         generated_tokens=0,
@@ -151,12 +200,15 @@ def test_marginal_sample_context_binds_candidate_and_zero_outcome() -> None:
         patch_tokens=tokens,
         exact_gradient=gradient,
     )
-    assert validate_marginal_gradient_sample_context(
-        raw,
-        marginal_schedule=schedule,
-        candidate_schedule=candidates,
-        completion_groups=groups,
-    )["candidate_pair_ordinal"] == 0
+    assert (
+        validate_marginal_gradient_sample_context(
+            raw,
+            marginal_schedule=schedule,
+            candidate_schedule=candidates,
+            completion_groups=groups,
+        )["candidate_pair_ordinal"]
+        == 0
+    )
 
     with pytest.raises(ValueError):
         validate_marginal_gradient_sample_context(

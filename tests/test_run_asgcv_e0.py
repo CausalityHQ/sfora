@@ -88,9 +88,11 @@ def _marginal_sample(
         pair_ordinals=(pair.left_index, pair.right_index),
         relation_sign=pair.relation_sign,
         zero_semantic_target=zero,
+        replay_branch_count=0 if zero else 2,
+        branch_completion_indices=None if zero else (0, 4),
         grpo_loss=0.0,
         attention_kl=0.0,
-        generated_tokens=0 if zero else 8,
+        generated_tokens=0,
         vision_cut_authority=cut,
         patch_tokens=patch,
         exact_gradient=gradient,
@@ -410,21 +412,27 @@ def test_marginal_capture_triples_store_complete_cut_and_resume_zero_targets(
     )
     assert candidates.pairs[0].relation_sign == 1
     assert marginal.zero_target_flags[0] is True
-    assert _MODULE.write_marginal_capture_triple(
-        tmp_path,
-        ordinal=0,
-        receipt=receipt,
-        patch_tokens=patch,
-        exact_gradient=gradient,
-    ) == "written"
+    assert (
+        _MODULE.write_marginal_capture_triple(
+            tmp_path,
+            ordinal=0,
+            receipt=receipt,
+            patch_tokens=patch,
+            exact_gradient=gradient,
+        )
+        == "written"
+    )
     assert _MODULE.validated_marginal_capture_prefix(tmp_path, expected_count=16) == 1
-    assert _MODULE.write_marginal_capture_triple(
-        tmp_path,
-        ordinal=0,
-        receipt=receipt,
-        patch_tokens=patch,
-        exact_gradient=gradient,
-    ) == "reused"
+    assert (
+        _MODULE.write_marginal_capture_triple(
+            tmp_path,
+            ordinal=0,
+            receipt=receipt,
+            patch_tokens=patch,
+            exact_gradient=gradient,
+        )
+        == "reused"
+    )
     with pytest.raises(ValueError, match="complete-cut"):
         _MODULE.write_marginal_capture_triple(
             tmp_path,
@@ -476,26 +484,32 @@ def test_marginal_capture_schedule_preserves_candidate_order_and_zero_semantics(
             marginal_schedule=marginal,
         )
 
-    assert _MODULE.capture_marginal_schedule(
-        tmp_path,
-        protocol=protocol,
-        rollout_authority=rollout,
-        candidate_schedule=candidates,
-        completion_groups=groups,
-        marginal_schedule=marginal,
-        example_ids=example_ids,
-        labels=labels,
-        capture_one=capture_one,
-    ) == 16
+    assert (
+        _MODULE.capture_marginal_schedule(
+            tmp_path,
+            protocol=protocol,
+            rollout_authority=rollout,
+            candidate_schedule=candidates,
+            completion_groups=groups,
+            marginal_schedule=marginal,
+            example_ids=example_ids,
+            labels=labels,
+            capture_one=capture_one,
+        )
+        == 16
+    )
     assert calls == list(enumerate(marginal.zero_target_flags))
-    assert _MODULE.capture_marginal_schedule(
-        tmp_path,
-        protocol=protocol,
-        rollout_authority=rollout,
-        candidate_schedule=candidates,
-        completion_groups=groups,
-        marginal_schedule=marginal,
-        example_ids=example_ids,
-        labels=labels,
-        capture_one=lambda *_: pytest.fail("authenticated prefix must not recapture"),
-    ) == 16
+    assert (
+        _MODULE.capture_marginal_schedule(
+            tmp_path,
+            protocol=protocol,
+            rollout_authority=rollout,
+            candidate_schedule=candidates,
+            completion_groups=groups,
+            marginal_schedule=marginal,
+            example_ids=example_ids,
+            labels=labels,
+            capture_one=lambda *_: pytest.fail("authenticated prefix must not recapture"),
+        )
+        == 16
+    )

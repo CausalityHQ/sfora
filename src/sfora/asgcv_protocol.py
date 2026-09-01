@@ -10,8 +10,8 @@ ASGCV_COMPLETION_PROTOCOL_SCHEMA = "sfora-asgcv-completion-protocol-v1"
 ASGCV_COMPLETION_PROTOCOL_DOMAIN = b"sfora-asgcv-completion-protocol-v1\0"
 ASGCV_PAIR_SCHEDULE_SCHEMA = "sfora-asgcv-pair-schedule-v1"
 ASGCV_PAIR_SCHEDULE_DOMAIN = b"sfora-asgcv-pair-schedule-v1\0"
-ASGCV_COMPLETION_GROUP_SCHEMA = "sfora-asgcv-completion-group-v2"
-ASGCV_COMPLETION_GROUP_DOMAIN = b"sfora-asgcv-completion-group-v1\0"
+ASGCV_COMPLETION_GROUP_SCHEMA = "sfora-asgcv-completion-group-v3"
+ASGCV_COMPLETION_GROUP_DOMAIN = b"sfora-asgcv-completion-group-v3\0"
 ASGCV_ELIGIBLE_SCHEDULE_SCHEMA = "sfora-asgcv-eligible-schedule-v1"
 ASGCV_ELIGIBLE_SCHEDULE_DOMAIN = b"sfora-asgcv-eligible-schedule-v1\0"
 ASGCV_MARGINAL_SCHEDULE_SCHEMA = "sfora-asgcv-marginal-schedule-v1"
@@ -363,9 +363,26 @@ class AsgcvCompletionGroup:
     candidate_pair_ordinal: int
     generation_seeds: tuple[int, ...]
     rewards: tuple[int, ...]
+    valid_flags: tuple[bool, ...]
+    verdict_relation_signs: tuple[int | None, ...]
     correct_rollouts: tuple[bool, ...]
     attribute_spans: tuple[tuple[int, int] | None, ...]
     nonzero_reward_variance: bool
+
+    @property
+    def both_verdicts_valid(self) -> bool:
+        """Return whether a two-branch correct/incorrect replay is defined."""
+
+        verdicts = {
+            verdict
+            for valid, verdict in zip(
+                self.valid_flags,
+                self.verdict_relation_signs,
+                strict=True,
+            )
+            if valid
+        }
+        return self.expected_relation_sign in verdicts and -self.expected_relation_sign in verdicts
 
     def validated(self) -> AsgcvCompletionGroup:
         if (
@@ -382,6 +399,26 @@ class AsgcvCompletionGroup:
             or type(self.rewards) is not tuple
             or len(self.rewards) != ASGCV_STRATUM_SIZE
             or any(type(value) is not int or value not in {0, 1} for value in self.rewards)
+            or type(self.valid_flags) is not tuple
+            or len(self.valid_flags) != ASGCV_STRATUM_SIZE
+            or any(type(value) is not bool for value in self.valid_flags)
+            or type(self.verdict_relation_signs) is not tuple
+            or len(self.verdict_relation_signs) != ASGCV_STRATUM_SIZE
+            or any(
+                value is not None and type(value) is not int
+                for value in self.verdict_relation_signs
+            )
+            or any(value not in {-1, 1, None} for value in self.verdict_relation_signs)
+            or self.valid_flags != tuple(value is not None for value in self.verdict_relation_signs)
+            or self.rewards
+            != tuple(
+                int(valid and verdict == self.expected_relation_sign)
+                for valid, verdict in zip(
+                    self.valid_flags,
+                    self.verdict_relation_signs,
+                    strict=True,
+                )
+            )
             or type(self.correct_rollouts) is not tuple
             or len(self.correct_rollouts) != ASGCV_STRATUM_SIZE
             or any(type(value) is not bool for value in self.correct_rollouts)
@@ -428,6 +465,8 @@ class AsgcvCompletionGroup:
             "candidate_pair_ordinal": self.candidate_pair_ordinal,
             "generation_seeds": list(self.generation_seeds),
             "rewards": list(self.rewards),
+            "valid_flags": list(self.valid_flags),
+            "verdict_relation_signs": list(self.verdict_relation_signs),
             "correct_rollouts": list(self.correct_rollouts),
             "attribute_spans": [
                 None if span is None else list(span) for span in self.attribute_spans
@@ -446,6 +485,8 @@ class AsgcvCompletionGroup:
             "candidate_pair_ordinal",
             "generation_seeds",
             "rewards",
+            "valid_flags",
+            "verdict_relation_signs",
             "correct_rollouts",
             "attribute_spans",
             "nonzero_reward_variance",
@@ -456,10 +497,20 @@ class AsgcvCompletionGroup:
             raise ValueError("ASG-CV completion group authority differs")
         raw_completions = value["completion_ids"]
         raw_rewards = value["rewards"]
+        raw_valid = value["valid_flags"]
+        raw_verdicts = value["verdict_relation_signs"]
         raw_correct = value["correct_rollouts"]
         raw_spans = value["attribute_spans"]
         raw_seeds = value["generation_seeds"]
-        rows = (raw_completions, raw_rewards, raw_correct, raw_spans, raw_seeds)
+        rows = (
+            raw_completions,
+            raw_rewards,
+            raw_valid,
+            raw_verdicts,
+            raw_correct,
+            raw_spans,
+            raw_seeds,
+        )
         if any(type(raw) is not list for raw in rows):
             raise ValueError("ASG-CV completion group rows differ")
         completions = tuple(tuple(row) if type(row) is list else () for row in raw_completions)
@@ -472,6 +523,8 @@ class AsgcvCompletionGroup:
             candidate_pair_ordinal=value["candidate_pair_ordinal"],
             generation_seeds=tuple(raw_seeds),
             rewards=tuple(raw_rewards),
+            valid_flags=tuple(raw_valid),
+            verdict_relation_signs=tuple(raw_verdicts),
             correct_rollouts=tuple(raw_correct),
             attribute_spans=spans,
             nonzero_reward_variance=value["nonzero_reward_variance"],
@@ -739,7 +792,7 @@ def assemble_asgcv_marginal_schedule(
             or group.expected_relation_sign != pair.relation_sign
         ):
             raise ValueError("ASG-CV candidate relation binding differs")
-        flags.append(not group.nonzero_reward_variance)
+        flags.append(not group.both_verdicts_valid)
     return AsgcvMarginalSchedule(
         candidate_schedule_sha256=candidates.sha256(),
         target_pair_count=candidates.pair_count,
@@ -1130,6 +1183,8 @@ def classify_asgcv_completion_group(
         for completion in completion_ids
     )
     rewards = tuple(value.reward for value in classifications)
+    valid_flags = tuple(value.valid for value in classifications)
+    verdict_relation_signs = tuple(value.verdict_relation_sign for value in classifications)
     correct = tuple(value.reward == 1 for value in classifications)
     spans = tuple(value.attribute_span if value.reward == 1 else None for value in classifications)
     correct_count = sum(rewards)
@@ -1141,6 +1196,8 @@ def classify_asgcv_completion_group(
         candidate_pair_ordinal=candidate_pair_ordinal,
         generation_seeds=generation_seeds,
         rewards=rewards,
+        valid_flags=valid_flags,
+        verdict_relation_signs=verdict_relation_signs,
         correct_rollouts=correct,
         attribute_spans=spans,
         nonzero_reward_variance=0 < correct_count < ASGCV_STRATUM_SIZE,
