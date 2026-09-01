@@ -156,8 +156,10 @@ overflowing correction is a fail-closed scientific terminal.
 SAGA's declared global gradient clipping at `1.0` is applied only after the
 complete DML and semantic gradient is assembled. Because clipping is nonlinear,
 the expected *clipped update* is not generally unbiased even when `g_hat_s` is.
-E0 and E1 must therefore record pre-clip total norms and clip activation for the
-exact and ASG-CV estimators. ASG-CV is ineligible if its clip-activation rate is
+E0 derives the pre-clip semantic-field estimator norms and clip activation from
+the bound exact and predicted fields plus the source-bound selection seed; it
+does not accept self-reported norm arrays. E1 must likewise derive these values
+at its registered optimizer boundary. ASG-CV is ineligible if its clip-activation rate is
 more than `5` percentage points above the matched exact estimator or if its
 pre-clip norm p99 exceeds `2.0x` the exact p99. No residual clipping or
 winsorization is allowed to repair this gate.
@@ -260,7 +262,7 @@ adapted after observing the pilot.
   `sum ||g-q||^2 / sum ||g||^2 <= 0.35`;
 - empirical variance of the registered one-of-eight estimator at most `0.60`
   times the variance of one exact pair gradient at equal stratum scale;
-- pre-clip total-gradient p99 at most `2.0x` the exact estimator and clip
+- pre-clip semantic-field estimator p99 at most `2.0x` the exact estimator and clip
   activation no more than `5` percentage points higher;
 - exact empirical mean agreement within a preregistered bootstrap confidence
   interval and no systematic class or relation-sign bias;

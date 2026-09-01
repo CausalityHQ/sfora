@@ -216,21 +216,19 @@ def test_low_rank_field_uses_registered_orientation_and_float64_accumulation() -
 def test_e0_metrics_pass_only_when_every_registered_gate_passes() -> None:
     exact_batch = _e0_batch()
     srht = _e0_srht()
-    exact_preclip_norms = np.asarray([0.5, 0.75, 1.25, 1.5], dtype=np.float64)
 
     perfect = evaluate_e0(
         exact_batch,
         exact_batch.copy(),
         srht,
-        exact_preclip_norms=exact_preclip_norms,
-        asgcv_preclip_norms=exact_preclip_norms.copy(),
+        selection_seed_sha256="ab" * 32,
         peak_cuda_reserved_bytes=1_000_000,
         exact_semantic_wall_ns=1_000,
         asgcv_semantic_wall_ns=350,
     )
     assert perfect.passed is True
     assert perfect.to_mapping() == {
-        "schema": "sfora-asgcv-e0-metrics-v2",
+        "schema": "sfora-asgcv-e0-metrics-v3",
         "pair_count": 512,
         "dense_gradient_cosine_ppm": 1_000_000,
         "projected_gradient_cosine_ppm": 1_000_000,
@@ -238,8 +236,8 @@ def test_e0_metrics_pass_only_when_every_registered_gate_passes() -> None:
         "normalized_residual_energy_ppm": 0,
         "selection_variance_ratio_ppm": 0,
         "preclip_p99_ratio_ppm": 1_000_000,
-        "exact_clip_rate_ppm": 500_000,
-        "asgcv_clip_rate_ppm": 500_000,
+        "exact_clip_rate_ppm": 1_000_000,
+        "asgcv_clip_rate_ppm": 1_000_000,
         "clip_rate_delta_ppm": 0,
         "semantic_wall_ratio_ppm": 350_000,
         "peak_cuda_reserved_bytes": 1_000_000,
@@ -270,8 +268,7 @@ def test_e0_metrics_pass_only_when_every_registered_gate_passes() -> None:
         exact_batch,
         -exact_batch,
         srht,
-        exact_preclip_norms=exact_preclip_norms,
-        asgcv_preclip_norms=exact_preclip_norms.copy(),
+        selection_seed_sha256="ab" * 32,
         peak_cuda_reserved_bytes=1_000_000,
         exact_semantic_wall_ns=1_000,
         asgcv_semantic_wall_ns=350,
@@ -284,15 +281,12 @@ def test_e0_metrics_pass_only_when_every_registered_gate_passes() -> None:
 def test_e0_rejects_srht_batch_and_degenerate_salience_drift() -> None:
     exact_batch = _e0_batch()
     srht = _e0_srht()
-    norms = np.asarray([0.5, 0.75, 1.25, 1.5], dtype=np.float64)
-
     with pytest.raises(ValueError):
         evaluate_e0(
             exact_batch.astype(np.float32),
             exact_batch,
             srht,
-            exact_preclip_norms=norms,
-            asgcv_preclip_norms=norms,
+            selection_seed_sha256="ab" * 32,
             peak_cuda_reserved_bytes=1_000_000,
             exact_semantic_wall_ns=1_000,
             asgcv_semantic_wall_ns=350,
@@ -302,8 +296,7 @@ def test_e0_rejects_srht_batch_and_degenerate_salience_drift() -> None:
             exact_batch,
             exact_batch[..., :3],
             srht,
-            exact_preclip_norms=norms,
-            asgcv_preclip_norms=norms,
+            selection_seed_sha256="ab" * 32,
             peak_cuda_reserved_bytes=1_000_000,
             exact_semantic_wall_ns=1_000,
             asgcv_semantic_wall_ns=350,
@@ -313,8 +306,7 @@ def test_e0_rejects_srht_batch_and_degenerate_salience_drift() -> None:
             exact_batch,
             exact_batch,
             np.eye(4, dtype=np.float64),
-            exact_preclip_norms=norms,
-            asgcv_preclip_norms=norms,
+            selection_seed_sha256="ab" * 32,
             peak_cuda_reserved_bytes=1_000_000,
             exact_semantic_wall_ns=1_000,
             asgcv_semantic_wall_ns=350,
@@ -329,8 +321,7 @@ def test_e0_rejects_srht_batch_and_degenerate_salience_drift() -> None:
                 output_dimensions=2,
                 seed_sha256="56" * 32,
             ).validated(),
-            exact_preclip_norms=norms,
-            asgcv_preclip_norms=norms,
+            selection_seed_sha256="ab" * 32,
             peak_cuda_reserved_bytes=1_000_000,
             exact_semantic_wall_ns=1_000,
             asgcv_semantic_wall_ns=350,
@@ -341,8 +332,7 @@ def test_e0_rejects_srht_batch_and_degenerate_salience_drift() -> None:
             constant_patch_norms,
             constant_patch_norms.copy(),
             srht,
-            exact_preclip_norms=norms,
-            asgcv_preclip_norms=norms,
+            selection_seed_sha256="ab" * 32,
             peak_cuda_reserved_bytes=1_000_000,
             exact_semantic_wall_ns=1_000,
             asgcv_semantic_wall_ns=350,
@@ -353,8 +343,7 @@ def test_e0_rejects_srht_batch_and_degenerate_salience_drift() -> None:
             exact_batch,
             exact_batch,
             srht,
-            exact_preclip_norms=norms.astype(np.float32),
-            asgcv_preclip_norms=norms,
+            selection_seed_sha256=True,
             peak_cuda_reserved_bytes=1_000_000,
             exact_semantic_wall_ns=1_000,
             asgcv_semantic_wall_ns=350,
@@ -362,22 +351,33 @@ def test_e0_rejects_srht_batch_and_degenerate_salience_drift() -> None:
 
 
 def test_e0_fails_closed_when_control_variate_increases_clipping() -> None:
-    exact_batch = _e0_batch()
+    predicted_batch = _e0_batch()
+    exact_batch = predicted_batch.copy()
     srht = _e0_srht()
-    exact_norms = np.full(20, 0.5, dtype=np.float64)
-    asgcv_norms = np.full(20, 3.0, dtype=np.float64)
+    exact_means = np.mean(exact_batch, axis=1, dtype=np.float64)
+    scale = 0.1 / float(
+        np.max(np.linalg.norm(exact_means.reshape(exact_means.shape[0], -1), axis=1))
+    )
+    exact_batch *= scale
+    predicted_batch *= scale
+    for stratum_ordinal in range(exact_batch.shape[0]):
+        selected = select_stratum_index(
+            "ab" * 32,
+            optimizer_step=0,
+            stratum_ordinal=stratum_ordinal,
+        )
+        exact_batch[stratum_ordinal, selected] += 0.5
 
     metrics = evaluate_e0(
         exact_batch,
-        exact_batch.copy(),
+        predicted_batch,
         srht,
-        exact_preclip_norms=exact_norms,
-        asgcv_preclip_norms=asgcv_norms,
+        selection_seed_sha256="ab" * 32,
         peak_cuda_reserved_bytes=1_000_000,
         exact_semantic_wall_ns=1_000,
         asgcv_semantic_wall_ns=350,
     )
-    assert metrics.preclip_p99_ratio_ppm == 6_000_000
+    assert metrics.preclip_p99_ratio_ppm > 2_000_000
     assert metrics.exact_clip_rate_ppm == 0
     assert metrics.asgcv_clip_rate_ppm == 1_000_000
     assert metrics.clip_rate_delta_ppm == 1_000_000
@@ -387,14 +387,11 @@ def test_e0_fails_closed_when_control_variate_increases_clipping() -> None:
 def test_e0_fails_closed_when_semantic_wall_ratio_exceeds_gate() -> None:
     exact_batch = _e0_batch()
     srht = _e0_srht()
-    norms = np.asarray([0.5, 0.75, 1.25, 1.5], dtype=np.float64)
-
     metrics = evaluate_e0(
         exact_batch,
         exact_batch.copy(),
         srht,
-        exact_preclip_norms=norms,
-        asgcv_preclip_norms=norms.copy(),
+        selection_seed_sha256="ab" * 32,
         peak_cuda_reserved_bytes=1_000_000,
         exact_semantic_wall_ns=1_000,
         asgcv_semantic_wall_ns=351,
@@ -406,8 +403,7 @@ def test_e0_fails_closed_when_semantic_wall_ratio_exceeds_gate() -> None:
         exact_batch,
         exact_batch.copy(),
         srht,
-        exact_preclip_norms=norms,
-        asgcv_preclip_norms=norms.copy(),
+        selection_seed_sha256="ab" * 32,
         peak_cuda_reserved_bytes=96 * 1024**3 + 1,
         exact_semantic_wall_ns=1_000,
         asgcv_semantic_wall_ns=350,
@@ -420,8 +416,7 @@ def test_e0_fails_closed_when_semantic_wall_ratio_exceeds_gate() -> None:
                 exact_batch,
                 exact_batch.copy(),
                 srht,
-                exact_preclip_norms=norms,
-                asgcv_preclip_norms=norms.copy(),
+                selection_seed_sha256="ab" * 32,
                 peak_cuda_reserved_bytes=1_000_000,
                 exact_semantic_wall_ns=exact_wall,
                 asgcv_semantic_wall_ns=asgcv_wall,
@@ -432,8 +427,7 @@ def test_e0_fails_closed_when_semantic_wall_ratio_exceeds_gate() -> None:
                 exact_batch,
                 exact_batch.copy(),
                 srht,
-                exact_preclip_norms=norms,
-                asgcv_preclip_norms=norms.copy(),
+                selection_seed_sha256="ab" * 32,
                 peak_cuda_reserved_bytes=peak_memory,
                 exact_semantic_wall_ns=1_000,
                 asgcv_semantic_wall_ns=350,
@@ -537,18 +531,15 @@ def _canonical_json_bytes(value: dict[str, object]) -> bytes:
 
 def _e0_result_bytes() -> bytes:
     exact_batch = _e0_batch()
-    norms = np.asarray([0.5, 0.75, 1.25, 1.5], dtype=np.float64)
     return canonical_e0_result_bytes(
         source_commit="1" * 40,
         dataset_manifest_sha256="2" * 64,
         partition_manifest_sha256="5" * 64,
         predictor_state_sha256="3" * 64,
-        selection_schedule_sha256="4" * 64,
+        selection_seed_sha256="ab" * 32,
         exact=exact_batch,
         predicted=exact_batch.copy(),
         srht_authority=_e0_srht(),
-        exact_preclip_norms=norms,
-        asgcv_preclip_norms=norms.copy(),
         peak_cuda_reserved_bytes=1_000_000,
         exact_semantic_wall_ns=1_000,
         asgcv_semantic_wall_ns=350,
@@ -560,19 +551,20 @@ def test_e0_result_is_canonical_claim_ineligible_and_binds_every_array() -> None
     assert raw.endswith(b"\n") and not raw.endswith(b"\n\n")
     result = validate_e0_result_bytes(raw)
 
-    assert result["schema"] == "sfora-asgcv-e0-result-v2"
+    assert result["schema"] == "sfora-asgcv-e0-result-v3"
     assert result["claim_eligible"] is False
     assert result["source_commit"] == "1" * 40
     assert result["partition_manifest_sha256"] == "5" * 64
     assert result["semantic_wall_ns"] == {"asgcv": 350, "exact": 1_000}
     assert result["metrics"]["semantic_wall_ratio_ppm"] == 350_000
     assert result["metrics"]["passed"] is True
-    assert set(result["arrays"]) == {
-        "asgcv_preclip_norms",
-        "exact_gradients",
-        "exact_preclip_norms",
-        "predicted_gradients",
-    }
+    assert set(result["arrays"]) == {"exact_gradients", "predicted_gradients"}
+    assert result["selection_seed_sha256"] == "ab" * 32
+    assert result["selection_schedule_sha256"] == selection_schedule_sha256(
+        "ab" * 32,
+        optimizer_steps=1,
+        strata_per_step=64,
+    )
     assert result["srht_authority"] == _e0_srht().to_mapping()
     assert result["arrays"]["exact_gradients"]["shape"] == [64, 8, 2, 3, 4]
     assert result["arrays"]["exact_gradients"]["dtype"] == "float64-le"
@@ -602,6 +594,9 @@ def test_e0_result_rejects_semantic_rehash_and_byte_authority_drift() -> None:
     partition_drift = json.loads(raw)
     partition_drift["partition_manifest_sha256"] = True
     mutations.append(partition_drift)
+    selection_drift = json.loads(raw)
+    selection_drift["selection_schedule_sha256"] = "4" * 64
+    mutations.append(selection_drift)
 
     for mutation in mutations:
         unsigned = dict(mutation)
@@ -622,15 +617,12 @@ def test_e0_result_rejects_semantic_rehash_and_byte_authority_drift() -> None:
 def test_e0_result_reopens_every_bound_input_before_acceptance() -> None:
     raw = _e0_result_bytes()
     exact_batch = _e0_batch()
-    norms = np.asarray([0.5, 0.75, 1.25, 1.5], dtype=np.float64)
 
     assert (
         validate_e0_result_inputs(
             raw,
             exact=exact_batch,
             predicted=exact_batch.copy(),
-            exact_preclip_norms=norms,
-            asgcv_preclip_norms=norms.copy(),
         )["result_sha256"]
         == validate_e0_result_bytes(raw)["result_sha256"]
     )
@@ -642,8 +634,6 @@ def test_e0_result_reopens_every_bound_input_before_acceptance() -> None:
             raw,
             exact=mutated,
             predicted=exact_batch.copy(),
-            exact_preclip_norms=norms,
-            asgcv_preclip_norms=norms.copy(),
         )
 
 

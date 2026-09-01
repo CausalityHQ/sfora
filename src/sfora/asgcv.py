@@ -26,9 +26,9 @@ ASGCV_SCHEMA = "sfora-asgcv-authority-v1"
 ASGCV_STRATUM_SIZE = 8
 ASGCV_PREDICTOR_RANK = 16
 ASGCV_SELECTION_POLICY = "one-uniform-index-per-eight-pair-stratum-v1"
-ASGCV_E0_SCHEMA = "sfora-asgcv-e0-metrics-v2"
+ASGCV_E0_SCHEMA = "sfora-asgcv-e0-metrics-v3"
 ASGCV_E0_CAPACITY_FLOOR_SCHEMA = "sfora-asgcv-e0-capacity-floor-v1"
-ASGCV_E0_RESULT_SCHEMA = "sfora-asgcv-e0-result-v2"
+ASGCV_E0_RESULT_SCHEMA = "sfora-asgcv-e0-result-v3"
 ASGCV_E0_ARRAY_DOMAIN = b"sfora-asgcv-e0-array-v1\0"
 ASGCV_GRADIENT_SAMPLE_SCHEMA = "sfora-asgcv-gradient-sample-v2"
 ASGCV_GRADIENT_SAMPLE_ARRAY_DOMAIN = b"sfora-asgcv-gradient-sample-array-v1\0"
@@ -844,8 +844,7 @@ def evaluate_e0(
     predicted: object,
     srht_authority: AsgcvSrhtAuthority,
     *,
-    exact_preclip_norms: object,
-    asgcv_preclip_norms: object,
+    selection_seed_sha256: object,
     peak_cuda_reserved_bytes: int,
     exact_semantic_wall_ns: int,
     asgcv_semantic_wall_ns: int,
@@ -862,16 +861,7 @@ def evaluate_e0(
         name="E0 predicted gradient batch",
         dimensions=5,
     )
-    exact_norms = _require_float64_array(
-        exact_preclip_norms,
-        name="E0 exact pre-clip norms",
-        dimensions=1,
-    )
-    asgcv_norms = _require_float64_array(
-        asgcv_preclip_norms,
-        name="E0 ASG-CV pre-clip norms",
-        dimensions=1,
-    )
+    selection_seed = _selection_seed_bytes(selection_seed_sha256)
     if type(exact_semantic_wall_ns) is not int or exact_semantic_wall_ns <= 0:
         raise ValueError("ASG-CV E0 exact semantic wall time differs")
     if type(asgcv_semantic_wall_ns) is not int or asgcv_semantic_wall_ns <= 0:
@@ -892,12 +882,27 @@ def evaluate_e0(
     srht_authority.validated()
     if srht_authority.input_dimensions != exact_array.shape[-1]:
         raise ValueError("ASG-CV E0 SRHT shape differs")
-    if (
-        exact_norms.shape != asgcv_norms.shape
-        or bool((exact_norms < 0.0).any())
-        or bool((asgcv_norms < 0.0).any())
-    ):
-        raise ValueError("ASG-CV E0 pre-clip norm shape differs")
+    exact_estimates = np.mean(exact_array, axis=1, dtype=np.float64)
+    selected_indices = tuple(
+        select_stratum_index(
+            selection_seed.hex(),
+            optimizer_step=0,
+            stratum_ordinal=stratum_ordinal,
+        )
+        for stratum_ordinal in range(exact_array.shape[0])
+    )
+    asgcv_estimates = np.stack(
+        [
+            asgcv_stratum_gradient(
+                predicted_array[stratum_ordinal],
+                exact_array[stratum_ordinal, selected_index],
+                selected_index=selected_index,
+            )
+            for stratum_ordinal, selected_index in enumerate(selected_indices)
+        ]
+    )
+    exact_norms = np.linalg.norm(exact_estimates.reshape(exact_estimates.shape[0], -1), axis=1)
+    asgcv_norms = np.linalg.norm(asgcv_estimates.reshape(asgcv_estimates.shape[0], -1), axis=1)
 
     exact_p99 = float(np.quantile(exact_norms, 0.99, method="higher"))
     asgcv_p99 = float(np.quantile(asgcv_norms, 0.99, method="higher"))
@@ -1361,12 +1366,10 @@ def canonical_e0_result_bytes(
     dataset_manifest_sha256: object,
     partition_manifest_sha256: object,
     predictor_state_sha256: object,
-    selection_schedule_sha256: object,
+    selection_seed_sha256: object,
     exact: object,
     predicted: object,
     srht_authority: AsgcvSrhtAuthority,
-    exact_preclip_norms: object,
-    asgcv_preclip_norms: object,
     peak_cuda_reserved_bytes: int,
     exact_semantic_wall_ns: int,
     asgcv_semantic_wall_ns: int,
@@ -1386,19 +1389,20 @@ def canonical_e0_result_bytes(
         predictor_state_sha256,
         name="predictor state digest",
     ).hex()
-    selection_digest = _sha256_bytes(
-        selection_schedule_sha256,
-        name="selection schedule digest",
-    ).hex()
     metrics = evaluate_e0(
         exact,
         predicted,
         srht_authority,
-        exact_preclip_norms=exact_preclip_norms,
-        asgcv_preclip_norms=asgcv_preclip_norms,
+        selection_seed_sha256=selection_seed_sha256,
         peak_cuda_reserved_bytes=peak_cuda_reserved_bytes,
         exact_semantic_wall_ns=exact_semantic_wall_ns,
         asgcv_semantic_wall_ns=asgcv_semantic_wall_ns,
+    )
+    selection_seed = _selection_seed_bytes(selection_seed_sha256).hex()
+    selection_digest = selection_schedule_sha256(
+        selection_seed,
+        optimizer_steps=1,
+        strata_per_step=metrics.pair_count // ASGCV_STRATUM_SIZE,
     )
     payload: dict[str, object] = {
         "schema": ASGCV_E0_RESULT_SCHEMA,
@@ -1407,6 +1411,7 @@ def canonical_e0_result_bytes(
         "dataset_manifest_sha256": dataset_digest,
         "partition_manifest_sha256": partition_digest,
         "predictor_state_sha256": predictor_digest,
+        "selection_seed_sha256": selection_seed,
         "selection_schedule_sha256": selection_digest,
         "srht_authority": srht_authority.to_mapping(),
         "arrays": {
@@ -1419,16 +1424,6 @@ def canonical_e0_result_bytes(
                 predicted,
                 role="predicted-gradients",
                 dimensions=5,
-            ),
-            "exact_preclip_norms": _array_authority(
-                exact_preclip_norms,
-                role="exact-preclip-norms",
-                dimensions=1,
-            ),
-            "asgcv_preclip_norms": _array_authority(
-                asgcv_preclip_norms,
-                role="asgcv-preclip-norms",
-                dimensions=1,
             ),
         },
         "semantic_wall_ns": {
@@ -1471,6 +1466,7 @@ def validate_e0_result_bytes(raw: bytes) -> dict[str, object]:
         "dataset_manifest_sha256",
         "partition_manifest_sha256",
         "predictor_state_sha256",
+        "selection_seed_sha256",
         "selection_schedule_sha256",
         "srht_authority",
         "arrays",
@@ -1495,6 +1491,7 @@ def validate_e0_result_bytes(raw: bytes) -> dict[str, object]:
         "dataset_manifest_sha256",
         "partition_manifest_sha256",
         "predictor_state_sha256",
+        "selection_seed_sha256",
         "selection_schedule_sha256",
     ):
         _sha256_bytes(value[name], name=f"E0 {name}")
@@ -1503,8 +1500,6 @@ def validate_e0_result_bytes(raw: bytes) -> dict[str, object]:
     array_roles = {
         "exact_gradients": 5,
         "predicted_gradients": 5,
-        "exact_preclip_norms": 1,
-        "asgcv_preclip_norms": 1,
     }
     if type(arrays) is not dict or set(arrays) != set(array_roles):
         raise ValueError("ASG-CV E0 array authority schema differs")
@@ -1519,7 +1514,6 @@ def validate_e0_result_bytes(raw: bytes) -> dict[str, object]:
         or exact_shape[1] != ASGCV_STRATUM_SIZE
         or exact_shape[2] != 2
         or srht.input_dimensions != exact_shape[-1]
-        or shapes["exact_preclip_norms"] != shapes["asgcv_preclip_norms"]
     ):
         raise ValueError("ASG-CV E0 array relation differs")
 
@@ -1536,6 +1530,13 @@ def validate_e0_result_bytes(raw: bytes) -> dict[str, object]:
     metrics = AsgcvE0Metrics.from_mapping(value["metrics"])
     if metrics.pair_count != exact_shape[0] * exact_shape[1]:
         raise ValueError("ASG-CV E0 pair count relation differs")
+    expected_selection_schedule = selection_schedule_sha256(
+        value["selection_seed_sha256"],
+        optimizer_steps=1,
+        strata_per_step=exact_shape[0],
+    )
+    if value["selection_schedule_sha256"] != expected_selection_schedule:
+        raise ValueError("ASG-CV E0 selection schedule relation differs")
     expected_wall_ratio = (asgcv_wall * 1_000_000 + exact_wall - 1) // exact_wall
     if metrics.semantic_wall_ratio_ppm != expected_wall_ratio:
         raise ValueError("ASG-CV E0 wall-time relation differs")
@@ -1553,8 +1554,6 @@ def validate_e0_result_inputs(
     *,
     exact: object,
     predicted: object,
-    exact_preclip_norms: object,
-    asgcv_preclip_norms: object,
 ) -> dict[str, object]:
     """Reopen every E0 numeric input and require the same canonical result."""
 
@@ -1567,12 +1566,10 @@ def validate_e0_result_inputs(
         dataset_manifest_sha256=value["dataset_manifest_sha256"],
         partition_manifest_sha256=value["partition_manifest_sha256"],
         predictor_state_sha256=value["predictor_state_sha256"],
-        selection_schedule_sha256=value["selection_schedule_sha256"],
+        selection_seed_sha256=value["selection_seed_sha256"],
         exact=exact,
         predicted=predicted,
         srht_authority=AsgcvSrhtAuthority.from_mapping(value["srht_authority"]),
-        exact_preclip_norms=exact_preclip_norms,
-        asgcv_preclip_norms=asgcv_preclip_norms,
         peak_cuda_reserved_bytes=AsgcvE0Metrics.from_mapping(value["metrics"]).peak_cuda_reserved_bytes,
         exact_semantic_wall_ns=wall["exact"],
         asgcv_semantic_wall_ns=wall["asgcv"],
