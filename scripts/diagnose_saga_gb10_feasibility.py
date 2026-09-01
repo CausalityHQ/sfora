@@ -166,11 +166,14 @@ class ReplayOutput:
 
 @dataclass(frozen=True, slots=True)
 class PatchGradientTarget:
-    """Stopped merged vision tokens and their exact eight-branch replay gradient."""
+    """Stopped complete vision cut and its exact eight-branch replay gradient."""
 
     replay: ReplayOutput
     patch_tokens: torch.Tensor
     exact_gradient: torch.Tensor
+    boundary_names: tuple[str, ...]
+    boundary_patch_tokens: torch.Tensor
+    boundary_exact_gradient: torch.Tensor
     replay_branch_count: int
     attention_kl: float
     teacher_gradient_parameters: int
@@ -625,21 +628,38 @@ class QwenSagaAdapter:
         model = getattr(self._model, "model", None)
         visual = getattr(model, "visual", None)
         merger = getattr(visual, "merger", None)
+        deepstack_mergers = getattr(visual, "deepstack_merger_list", None)
         if not isinstance(merger, torch.nn.Module):
             raise ValueError("SAGA vision merger authority differs")
-        captured: list[torch.Tensor] = []
+        if (
+            not isinstance(deepstack_mergers, torch.nn.ModuleList)
+            or len(deepstack_mergers) != 3
+            or any(not isinstance(module, torch.nn.Module) for module in deepstack_mergers)
+        ):
+            raise ValueError("SAGA DeepStack merger authority differs")
+        boundary_names = ("merger", "deepstack-0", "deepstack-1", "deepstack-2")
+        boundary_modules = (merger, *tuple(deepstack_mergers))
+        captured: dict[str, list[torch.Tensor]] = {name: [] for name in boundary_names}
 
-        def capture_output(
-            _module: torch.nn.Module,
-            _inputs: tuple[object, ...],
-            output: object,
-        ) -> None:
-            if type(output) is not torch.Tensor or output.ndim != 2:
-                raise ValueError("SAGA merged patch token authority differs")
-            output.retain_grad()
-            captured.append(output)
+        def capture_output_for(
+            name: str,
+        ) -> Callable[[torch.nn.Module, tuple[object, ...], object], None]:
+            def capture_output(
+                _module: torch.nn.Module,
+                _inputs: tuple[object, ...],
+                output: object,
+            ) -> None:
+                if type(output) is not torch.Tensor or output.ndim != 2:
+                    raise ValueError("SAGA merged patch token authority differs")
+                output.retain_grad()
+                captured[name].append(output)
 
-        handle = merger.register_forward_hook(capture_output)
+            return capture_output
+
+        handles = tuple(
+            module.register_forward_hook(capture_output_for(name))
+            for name, module in zip(boundary_names, boundary_modules, strict=True)
+        )
         try:
             losses: list[torch.Tensor] = []
             teacher_maps: list[torch.Tensor] = []
@@ -688,17 +708,23 @@ class QwenSagaAdapter:
                     elif head_count != completion_head_count:
                         raise ValueError("SAGA attention head authority differs")
                     teacher_maps.append(teacher_map)
-            if len(captured) != len(completion_ids) or not captured:
+            if any(len(captured[name]) != len(completion_ids) for name in boundary_names):
                 raise ValueError("SAGA patch gradient replay count differs")
             expected_rows = 2 * pair.patch_tokens_per_image
-            shape = captured[0].shape
-            if shape[0] != expected_rows or any(value.shape != shape for value in captured):
+            shape = captured["merger"][0].shape
+            if shape[0] != expected_rows or any(
+                value.shape != shape for values in captured.values() for value in values
+            ):
                 raise ValueError("SAGA merged patch token shape differs")
-            reference = captured[0].detach()
-            if any(not torch.equal(value.detach(), reference) for value in captured[1:]):
+            references = tuple(captured[name][0].detach() for name in boundary_names)
+            if any(
+                not torch.equal(value.detach(), references[boundary_ordinal])
+                for boundary_ordinal, name in enumerate(boundary_names)
+                for value in captured[name][1:]
+            ):
                 raise ValueError("SAGA repeated patch token values differ")
             target_shape = (2, pair.patch_tokens_per_image, shape[1])
-            live_patch_tokens = captured[0].reshape(target_shape)
+            live_patch_tokens = captured["merger"][0].reshape(target_shape)
             teacher = torch.stack(teacher_maps).mean(dim=0).detach()
             _, pooler_weights = self.pooler(live_patch_tokens)
             if teacher.shape != pooler_weights.shape or head_count is None:
@@ -717,15 +743,20 @@ class QwenSagaAdapter:
             if not bool(torch.isfinite(combined_loss)):
                 raise ValueError("SAGA semantic patch loss differs")
             combined_loss.backward()
-            gradients = [value.grad for value in captured]
-            if any(value is None for value in gradients):
+            gradients = {name: [value.grad for value in captured[name]] for name in boundary_names}
+            if any(value is None for values in gradients.values() for value in values):
                 raise ValueError("SAGA merged patch gradient is absent")
-            exact_gradient = torch.stack(
-                [value.detach().float() for value in gradients if value is not None]
-            ).sum(dim=0)
-            patch_tokens = reference.float()
-            if not bool(torch.isfinite(patch_tokens).all()) or not bool(
-                torch.isfinite(exact_gradient).all()
+            boundary_exact = torch.stack(
+                [
+                    torch.stack(
+                        [value.detach().float() for value in gradients[name] if value is not None]
+                    ).sum(dim=0)
+                    for name in boundary_names
+                ]
+            )
+            boundary_tokens = torch.stack([value.float() for value in references])
+            if not bool(torch.isfinite(boundary_tokens).all()) or not bool(
+                torch.isfinite(boundary_exact).all()
             ):
                 raise ValueError("SAGA merged patch gradient is non-finite")
             return PatchGradientTarget(
@@ -733,14 +764,18 @@ class QwenSagaAdapter:
                     loss=float(grpo_loss.detach()),
                     generated_tokens=generated_tokens,
                 ),
-                patch_tokens=patch_tokens.reshape(target_shape).detach(),
-                exact_gradient=exact_gradient.reshape(target_shape).detach(),
-                replay_branch_count=len(captured),
+                patch_tokens=boundary_tokens[0].reshape(target_shape).detach(),
+                exact_gradient=boundary_exact[0].reshape(target_shape).detach(),
+                boundary_names=boundary_names,
+                boundary_patch_tokens=boundary_tokens.reshape(4, *target_shape).detach(),
+                boundary_exact_gradient=boundary_exact.reshape(4, *target_shape).detach(),
+                replay_branch_count=len(captured["merger"]),
                 attention_kl=float(attention_kl.detach()),
                 teacher_gradient_parameters=int(teacher.grad is not None),
             )
         finally:
-            handle.remove()
+            for handle in handles:
+                handle.remove()
             self.clear_graphs()
 
     @staticmethod

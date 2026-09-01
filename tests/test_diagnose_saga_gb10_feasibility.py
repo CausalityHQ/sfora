@@ -433,9 +433,7 @@ def test_source_bound_pooler_sends_attention_kl_gradient_to_patch_tokens() -> No
     )
 
     _, student = pooler(patch_tokens)
-    attention_kl = torch.sum(
-        teacher * (teacher.log() - student.log()), dim=-1
-    ).mean()
+    attention_kl = torch.sum(teacher * (teacher.log() - student.log()), dim=-1).mean()
     attention_kl.backward()
 
     assert attention_kl.item() > 0.0
@@ -702,10 +700,17 @@ class _HfLikeProcessor:
 class _HfLikeVisual(torch.nn.Module):
     def __init__(self) -> None:
         super().__init__()
+        self.stem = torch.nn.Linear(1, 1, bias=False)
         self.merger = torch.nn.Linear(1, 16, bias=False)
+        self.deepstack_merger_list = torch.nn.ModuleList(
+            torch.nn.Linear(1, 16, bias=False) for _ in range(3)
+        )
 
     def forward(self, values: torch.Tensor) -> torch.Tensor:
-        return self.merger(values)
+        return self.merger(self.stem(values))
+
+    def deepstack(self, values: torch.Tensor) -> tuple[torch.Tensor, ...]:
+        return tuple(module(self.stem(values)) for module in self.deepstack_merger_list)
 
 
 class _HfLikeModel(torch.nn.Module):
@@ -738,8 +743,10 @@ class _HfLikeModel(torch.nn.Module):
         input_ids = inputs["input_ids"]
         assert isinstance(input_ids, torch.Tensor)
         sequence = input_ids.shape[1]
-        patch_tokens = self.model.visual(torch.ones(4, 1))
-        scale = patch_tokens.mean()
+        visual_input = torch.ones(4, 1)
+        patch_tokens = self.model.visual(visual_input)
+        deepstack_tokens = self.model.visual.deepstack(visual_input)
+        scale = patch_tokens.mean() + sum(value.mean() for value in deepstack_tokens)
         vocabulary = torch.arange(128, dtype=scale.dtype, device=scale.device)
         logits = scale * vocabulary.view(1, 1, -1).expand(1, sequence, -1)
         positions = torch.arange(sequence, dtype=scale.dtype, device=scale.device)
@@ -765,13 +772,25 @@ def test_qwen_replay_captures_exact_merged_patch_gradient_target(tmp_path: Path)
     adapter = _MODULE.load_qwen_adapter(authority, factory=_HfLikeFactory())
     pair = adapter.prepare_pair(authority.fixture)
     rollouts = _MODULE.run_rollout_phase(adapter, authority.fixture)
-    cleared_merger_gradient: list[torch.Tensor] = []
+    cleared_boundary_gradients: list[tuple[torch.Tensor, ...]] = []
+    cleared_stem_gradients: list[torch.Tensor] = []
     original_clear_graphs = adapter.clear_graphs
 
     def record_then_clear() -> None:
-        gradient = adapter._model.model.visual.merger.weight.grad
-        assert gradient is not None
-        cleared_merger_gradient.append(gradient.detach().float().clone())
+        modules = (
+            adapter._model.model.visual.merger,
+            *tuple(adapter._model.model.visual.deepstack_merger_list),
+        )
+        gradients = tuple(module.weight.grad for module in modules)
+        assert all(gradient is not None for gradient in gradients)
+        stem_gradient = adapter._model.model.visual.stem.weight.grad
+        assert stem_gradient is not None
+        cleared_stem_gradients.append(stem_gradient.detach().float().clone())
+        cleared_boundary_gradients.append(
+            tuple(
+                gradient.detach().float().clone() for gradient in gradients if gradient is not None
+            )
+        )
         original_clear_graphs()
 
     adapter.clear_graphs = record_then_clear  # type: ignore[method-assign]
@@ -799,18 +818,42 @@ def test_qwen_replay_captures_exact_merged_patch_gradient_target(tmp_path: Path)
 
     assert target.patch_tokens.shape == (2, 2, 16)
     assert target.exact_gradient.shape == target.patch_tokens.shape
+    assert target.boundary_names == ("merger", "deepstack-0", "deepstack-1", "deepstack-2")
+    assert target.boundary_patch_tokens.shape == (4, 2, 2, 16)
+    assert target.boundary_exact_gradient.shape == target.boundary_patch_tokens.shape
+    torch.testing.assert_close(target.boundary_patch_tokens[0], target.patch_tokens)
+    torch.testing.assert_close(target.boundary_exact_gradient[0], target.exact_gradient)
     assert target.patch_tokens.dtype == torch.float32
     assert target.exact_gradient.dtype == torch.float32
     assert torch.isfinite(target.patch_tokens).all()
     assert torch.isfinite(target.exact_gradient).all()
     assert torch.count_nonzero(target.exact_gradient) > 0
-    assert len(cleared_merger_gradient) == 1
-    assert torch.allclose(
-        target.exact_gradient.sum(dim=(0, 1)),
-        cleared_merger_gradient[0][:, 0],
-        atol=1e-6,
-        rtol=1e-6,
+    assert len(cleared_boundary_gradients) == 1
+    visual = adapter._model.model.visual
+    recomputed = (
+        visual.merger(visual.stem(torch.ones(4, 1))),
+        *(module(visual.stem(torch.ones(4, 1))) for module in visual.deepstack_merger_list),
     )
+    torch.autograd.backward(
+        recomputed,
+        tuple(target.boundary_exact_gradient[index].reshape(4, 16) for index in range(4)),
+    )
+    torch.testing.assert_close(
+        visual.stem.weight.grad,
+        cleared_stem_gradients[0],
+        rtol=1e-6,
+        atol=1e-6,
+    )
+    for boundary_ordinal, module in enumerate(
+        (visual.merger, *tuple(visual.deepstack_merger_list))
+    ):
+        torch.testing.assert_close(
+            module.weight.grad,
+            cleared_boundary_gradients[0][boundary_ordinal],
+            rtol=1e-6,
+            atol=1e-6,
+        )
+    original_clear_graphs()
     assert target.replay.generated_tokens == sum(rollouts.token_counts)
     assert target.attention_kl > 0.0
     assert target.teacher_gradient_parameters == 0
@@ -826,6 +869,29 @@ def test_qwen_replay_patch_gradient_rejects_missing_merger(tmp_path: Path) -> No
     adapter._model.model.visual = SimpleNamespace()
 
     with pytest.raises(ValueError, match="vision merger authority"):
+        adapter.replay_patch_gradient(
+            pair,
+            rollouts.completion_ids,
+            _MODULE.group_normalized_advantages(authority.fixture.synthetic_rewards),
+            correct_rollouts=tuple(bool(value) for value in authority.fixture.synthetic_rewards),
+            attribute_spans=tuple(
+                pair.attribute_token_span if value else None
+                for value in authority.fixture.synthetic_rewards
+            ),
+            attention_layer=authority.fixture.attention_layer,
+        )
+
+
+def test_qwen_replay_patch_gradient_rejects_incomplete_deepstack_cut(tmp_path: Path) -> None:
+    authority = _hf_authority(tmp_path)
+    adapter = _MODULE.load_qwen_adapter(authority, factory=_HfLikeFactory())
+    pair = adapter.prepare_pair(authority.fixture)
+    rollouts = _MODULE.run_rollout_phase(adapter, authority.fixture)
+    adapter._model.model.visual.deepstack_merger_list = torch.nn.ModuleList(
+        tuple(adapter._model.model.visual.deepstack_merger_list)[:2]
+    )
+
+    with pytest.raises(ValueError, match="DeepStack merger authority"):
         adapter.replay_patch_gradient(
             pair,
             rollouts.completion_ids,

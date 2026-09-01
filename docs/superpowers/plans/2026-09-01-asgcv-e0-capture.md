@@ -14,12 +14,13 @@
 
 - Cars official test examples and labels remain inaccessible through E0.
 - Predictor-train, E0-validation, and E1-optimization classes and image IDs are disjoint and bound by `AsgcvPartitionAuthority`.
-- Candidate schedules, rollout seeds, completion groups, and eligible schedules are sealed before exact gradient replay.
-- Every accepted exact field has shape `2 x 49 x D`, dtype fp32, finite values, and one canonical gradient-sample receipt.
+- Candidate schedules, rollout seeds, and completion groups are sealed before exact gradient replay; candidate order is retained without outcome-conditioned refill.
+- Every accepted exact field has the complete Qwen cut shape `4 x 2 x 49 x D` ordered as final merger then three DeepStack mergers, dtype fp32, finite values, and one canonical gradient-sample receipt. Zero-variance groups bind an exact zero field.
 - Predictor fitting and E0 validation each contain exactly 64 strata of eight pairs (512 pair rows), from disjoint class bands; predictor rank is exactly 16.
 - The one-of-eight selected index is derived after predictor output is sealed.
 - No E0 artifact is claim eligible and no retrieval metric is read or emitted.
 - The running three-seed control is never modified, restarted, or overlapped by this pipeline.
+- A one-pair direct-backward versus four-boundary VJP equivalence gate must pass before any real capture; final-merger-only evidence is invalid.
 
 ---
 
@@ -88,7 +89,7 @@ git commit -m "feat: add ASG-CV E0 capture authority"
 
 - [ ] **Step 1: Write the failing pair-preparation test**
 
-Use a fake processor returning the exact five-tensor schema. Require two image token ranges, 49 patches per image, no label argument, and identical output to `prepare_pair` for the existing generated fixture images.
+Use a fake processor returning the exact five-tensor schema. Require two image token ranges, 49 patches per image, no label argument, and identical output to `prepare_pair` for the existing generated fixture images. The replay fake must expose one final merger plus exactly three DeepStack mergers and prove that applying the captured four-field VJP reproduces every direct vision-parameter gradient; deleting any boundary fails.
 
 - [ ] **Step 2: Run the RED**
 
@@ -128,7 +129,7 @@ git commit -m "feat: prepare authenticated ASG-CV image pairs"
 
 - [ ] **Step 1: Write a fake-adapter RED**
 
-The fake generates eight token-ID completions and returns fp32 `2 x 49 x D` tensors. Assert candidate schedule order, source-derived rollout seeds, exact token-level classification, four same/four different refill per stratum, separate training/validation bands, one write per eligible ordinal, atomic temporary-to-final rename, refusal to overwrite mismatched content, and resume only after revalidating every existing triple with `validate_gradient_sample_bundle`.
+The fake generates eight token-ID completions and returns fp32 `4 x 2 x 49 x D` tensors. Assert candidate schedule order, source-derived rollout seeds, exact token-level classification, four same/four different pairs per stratum with no refill, exact zero targets for all-correct/all-incorrect groups, separate training/validation bands, one write per candidate ordinal, atomic temporary-to-final rename, refusal to overwrite mismatched content, and resume only after revalidating every existing triple with `validate_gradient_sample_bundle`.
 
 - [ ] **Step 2: Run the RED**
 
@@ -138,7 +139,7 @@ Expected: missing `eligibility` and `capture` phases.
 
 - [ ] **Step 3: Implement bounded capture**
 
-Eligibility loads one pair at a time, runs the exact eight source-derived completions without autograd, classifies them with `classify_asgcv_completion_group`, and seals the final refill schedule before capture begins. Capture then calls the existing `capture_asgcv_patch_gradient`, synchronously copies only the two fp32 arrays to CPU, emits the canonical receipt, clears model graphs, records exact elapsed ns and CUDA peaks, and advances the durable ordinal. Neither phase can access predictor state or the selection seed.
+Eligibility loads one pair at a time, runs the exact eight source-derived completions without autograd, and classifies them with `classify_asgcv_completion_group` without requiring distinct completion bytes. Capture retains candidate order, writes canonical zero targets for zero-variance groups, and otherwise calls the four-boundary `capture_asgcv_patch_gradient`; it synchronously copies only stopped fp32 evidence to CPU, emits the canonical receipt, clears model graphs, records exact elapsed ns and CUDA peaks, and advances the durable ordinal. Neither phase can access predictor state or the selection seed.
 
 - [ ] **Step 4: Add interruption and corruption tests**
 

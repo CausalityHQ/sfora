@@ -54,21 +54,22 @@ sketch provides a second, independently reproducible target for predictor
 training and detects a low-rank model that matches norms while rotating the
 teacher field.
 
-For the registered Qwen3-VL implementation, `X` is the output of the single
-vision `merger` module used by the full language replay, before it is split into
-the two image-token spans. The eight sealed completions execute eight distinct
-autograd branches through that same deterministic module. E0 retains each
-branch output, requires byte-identical stopped patch values and the registered
-`2 x 49 x D` shape, derives the detached layer-26 teacher map only from
-registered correct completions, applies the pooler attention KL to the first
-live branch's identical patch tensor, and performs one backward through the sum
-of mean GRPO and KL. It then sums all eight branch-output gradients; the first
-contains both GRPO and KL contributions and the remaining branches contain their
-GRPO contributions. For deterministic vision replay, this sum is the exact
-field whose Jacobian product reproduces the semantic contribution to the
-vision-parameter gradient. A separately recomputed attention-only feature
-forward is not a valid substitute because it is outside the combined replay
-graph.
+For the registered Qwen3-VL implementation, the complete vision-gradient cut is
+the ordered tuple `(merger, deepstack-0, deepstack-1, deepstack-2)`. Qwen3-VL
+injects the three DeepStack merger outputs into early language layers, so the
+final merger alone is not a complete vision-gradient interface. The eight
+sealed completions execute eight distinct autograd branches through all four
+deterministic modules. E0 retains every branch output, requires byte-identical
+stopped values within each boundary and the registered `4 x 2 x 49 x D` shape,
+derives the detached layer-26 teacher map only from registered correct
+completions, applies the pooler attention KL to the first live final-merger
+tensor, and performs one backward through the sum of mean GRPO and KL. It then
+sums all eight gradients separately at each boundary. A hard one-pair
+equivalence gate recomputes the vision graph and applies the captured four-field
+VJP: every trainable vision-parameter gradient must match direct combined-loss
+backward within the sealed fp32 tolerance. Missing a DeepStack boundary is an
+authority failure. A separately recomputed attention-only feature forward is
+not a valid substitute because it is outside the combined replay graph.
 
 Completion parsing is fixed at the tokenizer-ID level before generation. The
 registered prompt requires either one exact `SAME` prefix or one exact
@@ -82,10 +83,12 @@ the pair relation; wrong or malformed completions earn zero, and only correct
 valid completions contribute detached attention teachers. Every captured sample
 binds the completion-protocol digest as well as the completion-group digest.
 The group classifier operates on exactly eight completions and derives rewards,
-correct-rollout flags, and teacher spans together. A group is semantically
-eligible only when it contains at least one correct and one incorrect verdict;
-all-correct and all-incorrect groups have zero reward variance and contribute
-neither GRPO nor attention KL, matching the registered DAPO refill rule.
+correct-rollout flags, and teacher spans together. A group has nonzero reward
+variance only when it contains at least one correct and one incorrect verdict.
+All-correct and all-incorrect groups have the exact semantic target `g=0`,
+matching DAPO; they remain in candidate-schedule order rather than being
+discarded or refilled. Duplicate completion token sequences are valid evidence
+when their independently derived generation seeds differ.
 
 The scalar predictor consumes stopped fp32 patch tokens with shape
 `batch x 2 x patches x channels` plus an exact `-1/+1` relation sign. It uses
@@ -141,7 +144,10 @@ campaign uses 512 training rows, batches of 4, and 32 complete epochs (4,096
 updates), with single-tensor fp32 AdamW, learning rate `3/10,000`, weight decay
 `1/10,000`, betas `9/10` and `999/1,000`, and epsilon `1/100,000,000`. There is
 no tail batch. Epoch order is a deterministic SHA-256 ordering derived from the
-sealed sample-order seed, epoch, and candidate ordinal. The initialization and
+sealed sample-order seed, epoch, and candidate ordinal. The full campaign uses
+the manifest-bound `cuda-deterministic-v1` execution backend; reduced CPU
+controls use `cpu-one-thread-deterministic-v1`, and neither may silently fall
+back to the other. The initialization and
 ordering seed domains must differ. Optimizer settings cannot be changed after
 capture or in response to E0 validation evidence; a different coherent
 manifest is a different claim-ineligible experiment, not a retry.
@@ -178,8 +184,9 @@ the predictor with the selected residual before forming `g_hat_s` would correlat
 the control variate with the selection event and is forbidden. Strata and the
 selection schedule are committed before any exact semantic gradient is opened.
 
-If a stratum cannot produce its exact residual, the optimizer step is discarded;
-it never silently falls back to the predictor-only gradient. A non-finite or
+If the selected pair has zero reward variance, its exact residual is the
+registered zero field; the optimizer step is not conditioned on an eligibility
+outcome and is never discarded. A missing replay, non-finite value, or
 overflowing correction is a fail-closed scientific terminal.
 
 SAGA's declared global gradient clipping at `1.0` is applied only after the
@@ -204,8 +211,9 @@ the optimizer boundary and cannot inherit the proxy as product evidence.
 The estimator does not promise quality merely by being cheaper. It has three
 testable advantages at fixed wall-clock budget:
 
-1. it replaces seven of eight expensive pair replays with a learned conditional
-   mean while preserving the exact expected gradient;
+1. it replaces generation and replay for seven of eight candidate pairs with a
+   learned eligibility-marginal conditional mean while preserving the exact
+   expected gradient;
 2. it permits more distinct class-balanced pairs per optimizer step, increasing
    attribute coverage rather than resampling eight descriptions of one pair;
 3. when the predictor explains conditional gradient structure, the exact
@@ -257,14 +265,13 @@ deterministic ID/index ties. Positive pairs are formed within labels; negative
 pairs are formed across labels. The complete candidate schedule and source
 manifest are content-addressed.
 
-DAPO eligibility is resolved in a separate forward-only phase. Candidate
-completions are generated and classified in schedule order, without backward or
-predictor access. The first four nonzero-reward-variance candidates of each
-relation form each final eight-pair stratum; zero-variance candidates remain
-sealed negative evidence but are skipped. The resulting candidate ordinals and
-their candidate-schedule digest are sealed before exact-gradient replay and
-before the ASG-CV selection schedule is revealed. Insufficient eligible capacity
-is a terminal rather than an adaptive resample. Predictor training and
+The E0 capture phase generates and classifies candidate completions in schedule
+order, without predictor or selection-stream access. Nonzero-variance groups
+receive exact four-boundary replay targets; zero-variance groups receive the
+exact zero target. Both remain in their original four-positive/four-negative
+candidate strata. The complete candidate ordinals and candidate-schedule digest
+are sealed before exact-gradient replay and before the ASG-CV selection schedule
+is revealed; no outcome-conditioned refill exists. Predictor training and
 validation use disjoint Cars training class bands, which also guarantees
 disjoint image identities; official Cars test classes remain inaccessible. One
 content-addressed partition authority binds the source example manifest,
@@ -280,7 +287,7 @@ eight distinct 64-bit seeds from that authority. Completion-group receipts bind
 the authority digest, candidate ordinal, and exact seed block; bundle validation
 reconstructs all three before accepting rewards or eligibility.
 
-Before predictor fitting, a sealed capacity pilot uses `64` eligible pairs and
+Before predictor fitting, a sealed capacity pilot uses `64` candidate pairs and
 two independently derived rollout-seed blocks per pair. Three lower bounds are
 computed from the exact `[pair, image, patch, channel]` gradient fields:
 
@@ -291,15 +298,18 @@ computed from the exact `[pair, image, patch, channel]` gradient fields:
 - the residual energy outside the best rank-16 matrix approximation of each
   captured pair field, aggregated by gradient energy.
 
-Each lower bound must be at most `0.35`. A failure closes this predictor family
-before fitting or retrieval; the rank, sample count, and seed blocks are not
-adapted after observing the pilot.
+The noise floor remains a capacity gate at `0.35`. Predictor error is evaluated
+with the two-seed noise-debiased numerator
+`0.5*(||g-q||^2+||g'-q||^2)-0.5*||g-g'||^2`, normalized by the positive aggregate
+cross-seed signal energy `sum <g,g'>`; raw realized-gradient cosines are reported
+but are not capacity gates. A failure closes this predictor family before fitting
+or retrieval; the rank, sample count, and seed blocks are not adapted after
+observing the pilot.
 
-- median dense gradient cosine at least `0.85`;
-- median SRHT-projected gradient cosine at least `0.90`;
+- median dense and SRHT-projected realized-gradient cosines, reported only as
+  seed-noise-confounded diagnostics;
 - patch-salience Spearman correlation at least `0.80`;
-- normalized residual energy
-  `sum ||g-q||^2 / sum ||g||^2 <= 0.35`;
+- cross-seed noise-debiased normalized residual energy at most `0.35`;
 - empirical variance of the registered one-of-eight estimator at most `0.60`
   times the variance of one exact pair gradient at equal stratum scale;
 - the source-seed-derived, one-sided `95%` stratum-bootstrap upper bound on the
@@ -321,16 +331,19 @@ adapted after observing the pilot.
   residual-mean contrast between signs. These are claim-ineligible diagnostics,
   not post-hoc pass thresholds; class-stratified evidence additionally requires
   the sealed eligible schedule join;
-- projected semantic wall time at most `0.35` times the measured SAGA semantic
-  wall time, with peak memory inside the GB10 envelope.
+- measured semantic wall time, including generation, vision forwarding, replay,
+  and synchronization on both arms, at most `0.35` times the measured SAGA
+  semantic wall time, with peak memory inside the GB10 envelope.
 
 Failure closes ASG-CV without a retrieval run. Thresholds are not retuned on E0.
 
 ## Falsifier E1 — matched one-seed retrieval
 
 Only if E0 passes, compare the following on a clean optimization band with the
-same backbone, metric loss, pair schedule, optimizer-step count, and retrieval
-evaluation protocol:
+same backbone, metric loss, retrieval evaluation protocol, and sealed total
+semantic wall-clock budget. Pair count is an outcome of that budget rather than
+an equality constraint, because increased candidate-pair coverage is the
+method's quality mechanism:
 
 1. the capacity-matched SAGA reproduction;
 2. ASG-CV with the frozen one-of-eight estimator;
