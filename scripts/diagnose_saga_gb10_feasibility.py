@@ -263,7 +263,8 @@ class SingleQueryPooler(torch.nn.Module):
             raise ValueError("SAGA pooler token dimension differs")
         if type(embedding_dim) is not int or embedding_dim != 4096:
             raise ValueError("SAGA pooler embedding dimension differs")
-        self.query = torch.nn.Parameter(torch.zeros(token_dim))
+        self.query = torch.nn.Parameter(torch.empty(token_dim))
+        torch.nn.init.normal_(self.query, mean=0.0, std=token_dim**-0.5)
         self.key = torch.nn.Linear(token_dim, token_dim, bias=False)
         self.output = torch.nn.Linear(token_dim, embedding_dim, bias=False)
 

@@ -414,6 +414,36 @@ def test_attention_phase_detaches_teacher_and_updates_only_pooler() -> None:
     assert adapter.cleared == 1
 
 
+def test_source_bound_pooler_sends_attention_kl_gradient_to_patch_tokens() -> None:
+    pooler = _MODULE._source_bound_pooler(
+        token_dim=16,
+        source_commit="a" * 40,
+        model_revision="b" * 40,
+    )
+    patch_tokens = torch.linspace(
+        -1.0,
+        1.0,
+        steps=2 * 4 * 16,
+        dtype=torch.float32,
+    ).reshape(2, 4, 16)
+    patch_tokens.requires_grad_(True)
+    teacher = torch.tensor(
+        [[0.55, 0.25, 0.15, 0.05], [0.05, 0.15, 0.25, 0.55]],
+        dtype=torch.float32,
+    )
+
+    _, student = pooler(patch_tokens)
+    attention_kl = torch.sum(
+        teacher * (teacher.log() - student.log()), dim=-1
+    ).mean()
+    attention_kl.backward()
+
+    assert attention_kl.item() > 0.0
+    assert patch_tokens.grad is not None
+    assert torch.isfinite(patch_tokens.grad).all()
+    assert torch.count_nonzero(patch_tokens.grad).item() > 0
+
+
 def test_attention_phase_rejects_nonunit_or_nonfinite_teacher() -> None:
     for teacher in (
         torch.tensor([[0.4, 0.3, 0.2, 0.2], [0.1, 0.2, 0.3, 0.4]]),
