@@ -389,8 +389,17 @@ class PrismMeasurementAuthority:
     scoring_manifest_sha256: str
     completion_bundle_sha256: str
 
+@dataclass(frozen=True, slots=True)
+class PrismMeasurementEvidence:
+    authority: PrismMeasurementAuthority
+    observations: tuple[PrismObservation, ...]
+    scoring_rows: tuple[PrismScoringRow, ...]
+    protocol: PrismTokenProtocol
+    bootstrap_seed: bytes
+    source_identity: str
+
 def canonical_prism_cue_result_bytes(
-    authority: PrismMeasurementAuthority,
+    evidence: PrismMeasurementEvidence,
     calibrations: tuple[PrismChannelCalibration, ...],
     result: PrismCueResult,
 ) -> bytes: ...
@@ -398,12 +407,18 @@ def canonical_prism_cue_result_bytes(
 def validate_prism_cue_result_bytes(
     raw: bytes,
     *,
-    expected: PrismMeasurementAuthority,
+    expected: PrismMeasurementEvidence,
 ) -> tuple[tuple[PrismChannelCalibration, ...], PrismCueResult]: ...
 ~~~
 
 - CLI accepts local observation, scoring, protocol, completion, authority, and absent output paths only.
 - CLI has no model, image-root, dataset-root, network, DGX, clean, test, or training flag.
+- The authority file supplies the opaque source identity and nonempty bootstrap
+  seed. The scorer authenticates and parses observation, protocol, and
+  completion bytes before opening scoring truth. Result validation receives
+  the authenticated primitive evidence and recomputes calibration, bootstrap
+  evidence, gates, and classification; an identity-only receipt is
+  insufficient to validate coherently rewritten scientific metrics.
 
 - [ ] **Step 1: Write canonical and CLI RED tests**
 

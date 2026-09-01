@@ -15,18 +15,22 @@ from sfora.prism_measurement import (
     PrismChannelCalibration,
     PrismCueResult,
     PrismExample,
+    PrismMeasurementAuthority,
+    PrismMeasurementEvidence,
     PrismObservation,
     PrismObservationRow,
     PrismScoringRow,
     PrismTokenProtocol,
     build_prism_schedules,
     calibrate_prism_channels,
+    canonical_prism_cue_result_bytes,
     invalid_prism_observation,
     parse_prism_completion,
     prism_calibration_receipt_sha256,
     release_prism_observation_capability,
     score_prism_cue_panel,
     validate_prism_cue_result,
+    validate_prism_cue_result_bytes,
     validate_prism_observation,
     validate_prism_schedules,
 )
@@ -1197,3 +1201,118 @@ def test_prism_schedule_rejects_invalid_capability_inputs() -> None:
             caliber,
             source_identity="",
         )
+
+
+def _measurement_authority() -> PrismMeasurementAuthority:
+    return PrismMeasurementAuthority(
+        source_commit="1" * 40,
+        source_tree_sha256="2" * 64,
+        dataset_revision="dataset-revision",
+        dataset_manifest_sha256="3" * 64,
+        model_revision="model-revision",
+        processor_revision="processor-revision",
+        tokenizer_revision="tokenizer-revision",
+        prompt_bundle_sha256="4" * 64,
+        token_protocol_sha256="5" * 64,
+        observation_manifest_sha256="6" * 64,
+        scoring_manifest_sha256="7" * 64,
+        completion_bundle_sha256="8" * 64,
+    )
+
+
+def test_prism_canonical_result_recomputes_authenticated_primitive_evidence() -> None:
+    source_identity = "canonical-panel-source"
+    bootstrap_seed = b"canonical-panel-bootstrap"
+    observations, scoring = _perfect_panel(source_identity=source_identity)
+    calibrations = calibrate_prism_channels(
+        observations,
+        scoring,
+        source_identity=source_identity,
+    )
+    protocol = _token_protocol()
+    calibration_receipt = prism_calibration_receipt_sha256(calibrations, protocol)
+    result = score_prism_cue_panel(
+        calibrations,
+        observations,
+        scoring,
+        bootstrap_seed=bootstrap_seed,
+        source_identity=source_identity,
+        calibration_receipt_sha256=calibration_receipt,
+        protocol=protocol,
+    )
+    evidence = PrismMeasurementEvidence(
+        authority=_measurement_authority(),
+        observations=observations,
+        scoring_rows=scoring,
+        protocol=protocol,
+        bootstrap_seed=bootstrap_seed,
+        source_identity=source_identity,
+    )
+
+    raw = canonical_prism_cue_result_bytes(evidence, calibrations, result)
+    with pytest.raises(ValueError, match="calibration derivation"):
+        canonical_prism_cue_result_bytes(evidence, calibrations[:-1], result)
+    with pytest.raises(ValueError, match="result derivation"):
+        canonical_prism_cue_result_bytes(
+            evidence,
+            calibrations,
+            replace(result, passed=not result.passed),
+        )
+    assert raw.endswith(b"\n")
+    assert not raw.endswith(b"\n\n")
+    assert json.dumps(
+        json.loads(raw),
+        allow_nan=False,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode() + b"\n" == raw
+    restored_calibrations, restored_result = validate_prism_cue_result_bytes(
+        raw,
+        expected=evidence,
+    )
+    assert restored_calibrations == calibrations
+    assert restored_result == result
+
+    payload = json.loads(raw)
+    payload["result"]["mean_log_loss_improvement_lower_95"] = 0.123
+    mutated = (
+        json.dumps(payload, allow_nan=False, separators=(",", ":"), sort_keys=True).encode()
+        + b"\n"
+    )
+    with pytest.raises(ValueError, match="artifact differs"):
+        validate_prism_cue_result_bytes(mutated, expected=evidence)
+
+    with pytest.raises(ValueError, match="authority"):
+        validate_prism_cue_result_bytes(
+            raw,
+            expected=replace(
+                evidence,
+                authority=replace(evidence.authority, source_commit="9" * 40),
+            ),
+        )
+
+    for invalid_authority in (
+        replace(evidence.authority, source_commit="1" * 39),
+        replace(evidence.authority, source_tree_sha256=True),
+        replace(evidence.authority, dataset_revision=""),
+    ):
+        with pytest.raises((TypeError, ValueError), match="authority"):
+            validate_prism_cue_result_bytes(
+                raw,
+                expected=replace(evidence, authority=invalid_authority),
+            )
+
+    wrong_schema = json.loads(raw)
+    wrong_schema["schema"] = "wrong-schema"
+    missing_calibration = json.loads(raw)
+    missing_calibration["calibrations"].pop()
+    wrong_truth = json.loads(raw)
+    wrong_truth["result"]["pair_truth"][0] ^= 1
+    for changed in (wrong_schema, missing_calibration, wrong_truth):
+        changed_raw = (
+            json.dumps(changed, allow_nan=False, separators=(",", ":"), sort_keys=True).encode()
+            + b"\n"
+        )
+        with pytest.raises(ValueError, match="artifact differs"):
+            validate_prism_cue_result_bytes(changed_raw, expected=evidence)

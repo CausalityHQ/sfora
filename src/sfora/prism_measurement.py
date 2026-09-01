@@ -154,6 +154,36 @@ class PrismCueResult:
     passed: bool
 
 
+@dataclass(frozen=True, slots=True)
+class PrismMeasurementAuthority:
+    """Immutable identities for one offline PRISM measurement."""
+
+    source_commit: str
+    source_tree_sha256: str
+    dataset_revision: str
+    dataset_manifest_sha256: str
+    model_revision: str
+    processor_revision: str
+    tokenizer_revision: str
+    prompt_bundle_sha256: str
+    token_protocol_sha256: str
+    observation_manifest_sha256: str
+    scoring_manifest_sha256: str
+    completion_bundle_sha256: str
+
+
+@dataclass(frozen=True, slots=True)
+class PrismMeasurementEvidence:
+    """Authenticated primitive evidence required to recompute a cue result."""
+
+    authority: PrismMeasurementAuthority
+    observations: tuple[PrismObservation, ...]
+    scoring_rows: tuple[PrismScoringRow, ...]
+    protocol: PrismTokenProtocol
+    bootstrap_seed: bytes
+    source_identity: str
+
+
 def _rank(source_identity: str, domain: str, *values: object) -> bytes:
     digest = hashlib.sha256()
     for value in ("sfora-prism-schedule-v1", source_identity, domain, *values):
@@ -1592,3 +1622,149 @@ def validate_prism_cue_result(
     )
     if result != expected:
         raise ValueError("PRISM cue result derivation differs")
+
+
+def _validate_prism_measurement_authority(
+    authority: PrismMeasurementAuthority,
+) -> None:
+    if type(authority) is not PrismMeasurementAuthority:
+        raise TypeError("PRISM measurement authority has the wrong concrete type")
+    if (
+        type(authority.source_commit) is not str
+        or re.fullmatch(r"[0-9a-f]{40}", authority.source_commit) is None
+    ):
+        raise ValueError("PRISM measurement source commit authority differs")
+    digest_fields = (
+        authority.source_tree_sha256,
+        authority.dataset_manifest_sha256,
+        authority.prompt_bundle_sha256,
+        authority.token_protocol_sha256,
+        authority.observation_manifest_sha256,
+        authority.scoring_manifest_sha256,
+        authority.completion_bundle_sha256,
+    )
+    if any(type(value) is not str or _SHA256.fullmatch(value) is None for value in digest_fields):
+        raise ValueError("PRISM measurement digest authority differs")
+    revision_fields = (
+        authority.dataset_revision,
+        authority.model_revision,
+        authority.processor_revision,
+        authority.tokenizer_revision,
+    )
+    if any(type(value) is not str or not value for value in revision_fields):
+        raise ValueError("PRISM measurement revision authority differs")
+
+
+def _recompute_prism_measurement(
+    evidence: PrismMeasurementEvidence,
+) -> tuple[tuple[PrismChannelCalibration, ...], PrismCueResult]:
+    if type(evidence) is not PrismMeasurementEvidence:
+        raise TypeError("PRISM measurement evidence has the wrong concrete type")
+    _validate_prism_measurement_authority(evidence.authority)
+    if (
+        type(evidence.observations) is not tuple
+        or any(type(row) is not PrismObservation for row in evidence.observations)
+        or type(evidence.scoring_rows) is not tuple
+        or any(type(row) is not PrismScoringRow for row in evidence.scoring_rows)
+        or type(evidence.protocol) is not PrismTokenProtocol
+        or type(evidence.bootstrap_seed) is not bytes
+        or not evidence.bootstrap_seed
+        or type(evidence.source_identity) is not str
+        or not evidence.source_identity
+    ):
+        raise ValueError("PRISM measurement primitive evidence differs")
+    calibrations = calibrate_prism_channels(
+        evidence.observations,
+        evidence.scoring_rows,
+        source_identity=evidence.source_identity,
+    )
+    calibration_receipt = prism_calibration_receipt_sha256(
+        calibrations,
+        evidence.protocol,
+    )
+    result = score_prism_cue_panel(
+        calibrations,
+        evidence.observations,
+        evidence.scoring_rows,
+        bootstrap_seed=evidence.bootstrap_seed,
+        source_identity=evidence.source_identity,
+        calibration_receipt_sha256=calibration_receipt,
+        protocol=evidence.protocol,
+    )
+    return calibrations, result
+
+
+def _canonical_prism_json_bytes(value: object) -> bytes:
+    return (
+        json.dumps(
+            value,
+            allow_nan=False,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode("utf-8")
+        + b"\n"
+    )
+
+
+def canonical_prism_cue_result_bytes(
+    evidence: PrismMeasurementEvidence,
+    calibrations: tuple[PrismChannelCalibration, ...],
+    result: PrismCueResult,
+) -> bytes:
+    """Serialize a result only after recomputing it from primitive evidence."""
+
+    expected_calibrations, expected_result = _recompute_prism_measurement(evidence)
+    if calibrations != expected_calibrations:
+        raise ValueError("PRISM measurement calibration derivation differs")
+    if result != expected_result:
+        raise ValueError("PRISM measurement result derivation differs")
+    return _canonical_prism_json_bytes(
+        {
+            "authority": asdict(evidence.authority),
+            "calibrations": [asdict(row) for row in calibrations],
+            "result": asdict(result),
+            "schema": "sfora-prism-cue-result-artifact-v1",
+        }
+    )
+
+
+def _strict_prism_json(raw: bytes) -> object:
+    def object_pairs(pairs: list[tuple[str, object]]) -> dict[str, object]:
+        value: dict[str, object] = {}
+        for key, item in pairs:
+            if key in value:
+                raise ValueError("PRISM result JSON has duplicate keys")
+            value[key] = item
+        return value
+
+    try:
+        return json.loads(raw, object_pairs_hook=object_pairs)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError("PRISM result JSON is invalid") from error
+
+
+def validate_prism_cue_result_bytes(
+    raw: bytes,
+    *,
+    expected: PrismMeasurementEvidence,
+) -> tuple[tuple[PrismChannelCalibration, ...], PrismCueResult]:
+    """Authenticate canonical bytes and recompute every result from primitives."""
+
+    if type(raw) is not bytes:
+        raise TypeError("PRISM result bytes have the wrong concrete type")
+    value = _strict_prism_json(raw)
+    expected_calibrations, expected_result = _recompute_prism_measurement(expected)
+    if type(value) is not dict or value.get("authority") != asdict(expected.authority):
+        raise ValueError("PRISM result authority differs")
+    expected_raw = _canonical_prism_json_bytes(
+        {
+            "authority": asdict(expected.authority),
+            "calibrations": [asdict(row) for row in expected_calibrations],
+            "result": asdict(expected_result),
+            "schema": "sfora-prism-cue-result-artifact-v1",
+        }
+    )
+    if raw != expected_raw:
+        raise ValueError("PRISM result artifact differs")
+    return expected_calibrations, expected_result
