@@ -106,6 +106,17 @@ and the independently sealed nondegenerate attention-pooler state, preventing
 E1 replay targets from being evaluated against a different learned control
 variate or KL query.
 
+E0 additionally emits one custody artifact over every validation row. It
+requires strictly increasing unique candidate ordinals, unique completion
+groups, globally disjoint source-pair ordinals, and exactly four positive plus
+four negative relations in every eight-row stratum. All sample receipts share
+the same source commit, model revision, fixture, pooler, predictor, completion
+protocol, and eligible schedule. The custody artifact binds the exact fp32
+gradient digest and patch-token digest for every row, requires the E0 fp64 exact
+field to be a lossless fp32 widening, and binds the predicted field back to the
+E0 result so it can be recomputed from the sealed patch tokens and predictor
+state before acceptance.
+
 Predictor fitting uses one fixed, dimensionless objective with no learned or
 retrieval-tuned weights:
 
@@ -166,6 +177,12 @@ at its registered optimizer boundary. ASG-CV is ineligible if its clip-activatio
 more than `5` percentage points above the matched exact estimator or if its
 pre-clip norm p99 exceeds `2.0x` the exact p99. No residual clipping or
 winsorization is allowed to repair this gate.
+
+The E0 `1.0` threshold is explicitly a semantic patch-field proxy, not the
+assembled parameter-gradient clip itself. Its registered role is to reject an
+estimator whose semantic correction has a materially worse tail before E1;
+E1 must measure the actual assembled DML-plus-semantic parameter gradient at
+the optimizer boundary and cannot inherit the proxy as product evidence.
 
 ## Why quality could improve
 
@@ -270,10 +287,20 @@ adapted after observing the pilot.
   `sum ||g-q||^2 / sum ||g||^2 <= 0.35`;
 - empirical variance of the registered one-of-eight estimator at most `0.60`
   times the variance of one exact pair gradient at equal stratum scale;
+- the source-seed-derived, one-sided `95%` stratum-bootstrap upper bound on the
+  realized estimator mean error, normalized by RMS exact-stratum-mean energy,
+  at most `0.15` (`150,000` ppm), using exactly `10,000` deterministic draws;
 - pre-clip semantic-field estimator p99 at most `2.0x` the exact estimator and clip
   activation no more than `5` percentage points higher;
-- exact empirical mean agreement within a preregistered bootstrap confidence
-  interval and no systematic class or relation-sign bias;
+- auxiliary selection-independence evidence from a source-bound signed
+  patch/channel sketch, reported as an exact `10,000`-draw randomization
+  p-value and a diagonal-free U-statistic z score. These two scale-invariant
+  quantities audit accidental alignment between the registered selection
+  stream and the predictor errors; they are not substitutes for the powered
+  mean-agreement gate and are not adaptive pass thresholds;
+- no systematic class or relation-sign bias, evaluated only after exact
+  receipt custody joins every eligible row to its sealed class/relation
+  authority;
 - projected semantic wall time at most `0.35` times the measured SAGA semantic
   wall time, with peak memory inside the GB10 envelope.
 

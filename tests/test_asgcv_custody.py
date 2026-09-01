@@ -17,6 +17,37 @@ from sfora.asgcv_custody import (
 )
 
 
+def _gradient_receipt(
+    exact32: np.ndarray,
+    ordinal: int,
+    *,
+    model_revision: str = "7" * 40,
+    pooler_state_sha256: str = "b" * 64,
+    completion_group_sha256: str | None = None,
+) -> bytes:
+    return canonical_gradient_sample_bytes(
+        source_commit="1" * 40,
+        model_revision=model_revision,
+        fixture_sha256="8" * 64,
+        completion_group_sha256=(
+            f"{ordinal + 1:064x}" if completion_group_sha256 is None else completion_group_sha256
+        ),
+        completion_protocol_sha256="9" * 64,
+        eligible_schedule_sha256="a" * 64,
+        pooler_state_sha256=pooler_state_sha256,
+        predictor_state_sha256="4" * 64,
+        eligible_pair_ordinal=ordinal,
+        candidate_pair_ordinal=ordinal,
+        pair_ordinals=(ordinal * 2, ordinal * 2 + 1),
+        relation_sign=1 if ordinal % 2 == 0 else -1,
+        grpo_loss=0.0,
+        attention_kl=0.0,
+        generated_tokens=1,
+        patch_tokens=np.ones((2, 3, 4), dtype=np.float32),
+        exact_gradient=exact32.reshape(-1, 2, 3, 4)[ordinal],
+    )
+
+
 def _fixture() -> tuple[bytes, np.ndarray, tuple[bytes, ...]]:
     exact32 = np.arange(64 * 8 * 2 * 3 * 4, dtype=np.float32).reshape(64, 8, 2, 3, 4)
     exact = exact32.astype(np.float64)
@@ -38,29 +69,7 @@ def _fixture() -> tuple[bytes, np.ndarray, tuple[bytes, ...]]:
         exact_semantic_wall_ns=10,
         asgcv_semantic_wall_ns=1,
     )
-    patch_tokens = np.ones((2, 3, 4), dtype=np.float32)
-    receipts = tuple(
-        canonical_gradient_sample_bytes(
-            source_commit="1" * 40,
-            model_revision="7" * 40,
-            fixture_sha256="8" * 64,
-            completion_group_sha256=f"{ordinal + 1:064x}",
-            completion_protocol_sha256="9" * 64,
-            eligible_schedule_sha256="a" * 64,
-            pooler_state_sha256="b" * 64,
-            predictor_state_sha256="4" * 64,
-            eligible_pair_ordinal=ordinal,
-            candidate_pair_ordinal=ordinal,
-            pair_ordinals=(ordinal * 2, ordinal * 2 + 1),
-            relation_sign=1 if ordinal % 2 == 0 else -1,
-            grpo_loss=0.0,
-            attention_kl=0.0,
-            generated_tokens=1,
-            patch_tokens=patch_tokens,
-            exact_gradient=exact32.reshape(512, 2, 3, 4)[ordinal],
-        )
-        for ordinal in range(512)
-    )
+    receipts = tuple(_gradient_receipt(exact32, ordinal) for ordinal in range(512))
     return e0, exact, receipts
 
 
@@ -69,11 +78,12 @@ def test_e0_custody_binds_every_receipt_and_exact_widened_fp32_row() -> None:
     raw = canonical_e0_custody_bytes(
         e0_result=e0,
         exact=exact,
+        predicted=exact.copy(),
         sample_receipts=receipts,
     )
     value = validate_e0_custody_bytes(raw)
 
-    assert value["schema"] == "sfora-asgcv-e0-custody-v1"
+    assert value["schema"] == "sfora-asgcv-e0-custody-v2"
     assert value["claim_eligible"] is False
     assert value["sample_count"] == 512
     sample_digests = value["sample_sha256"]
@@ -83,12 +93,16 @@ def test_e0_custody_binds_every_receipt_and_exact_widened_fp32_row() -> None:
     assert value["model_revision"] == "7" * 40
     assert value["fixture_sha256"] == "8" * 64
     assert value["predictor_state_sha256"] == "4" * 64
-    assert validate_e0_custody_bundle(
-        raw,
-        e0_result=e0,
-        exact=exact,
-        sample_receipts=receipts,
-    ) == value
+    assert (
+        validate_e0_custody_bundle(
+            raw,
+            e0_result=e0,
+            exact=exact,
+            predicted=exact.copy(),
+            sample_receipts=receipts,
+        )
+        == value
+    )
 
 
 def test_e0_custody_rejects_order_identity_and_gradient_drift() -> None:
@@ -96,52 +110,93 @@ def test_e0_custody_rejects_order_identity_and_gradient_drift() -> None:
     raw = canonical_e0_custody_bytes(
         e0_result=e0,
         exact=exact,
+        predicted=exact.copy(),
         sample_receipts=receipts,
     )
 
     swapped = list(receipts)
     swapped[0], swapped[1] = swapped[1], swapped[0]
     with pytest.raises(ValueError):
-        canonical_e0_custody_bytes(e0_result=e0, exact=exact, sample_receipts=tuple(swapped))
+        canonical_e0_custody_bytes(
+            e0_result=e0,
+            exact=exact,
+            predicted=exact.copy(),
+            sample_receipts=tuple(swapped),
+        )
 
     changed_identity = list(receipts)
-    changed_identity[0] = canonical_gradient_sample_bytes(
-        source_commit="1" * 40,
+    changed_identity[0] = _gradient_receipt(
+        exact.astype(np.float32),
+        0,
         model_revision="c" * 40,
-        fixture_sha256="8" * 64,
-        completion_group_sha256="1".zfill(64),
-        completion_protocol_sha256="9" * 64,
-        eligible_schedule_sha256="a" * 64,
-        pooler_state_sha256="b" * 64,
-        predictor_state_sha256="4" * 64,
-        eligible_pair_ordinal=0,
-        candidate_pair_ordinal=0,
-        pair_ordinals=(0, 1),
-        relation_sign=1,
-        grpo_loss=0.0,
-        attention_kl=0.0,
-        generated_tokens=1,
-        patch_tokens=np.ones((2, 3, 4), dtype=np.float32),
-        exact_gradient=exact.astype(np.float32).reshape(512, 2, 3, 4)[0],
     )
     with pytest.raises(ValueError, match="identity"):
         canonical_e0_custody_bytes(
             e0_result=e0,
             exact=exact,
+            predicted=exact.copy(),
             sample_receipts=tuple(changed_identity),
+        )
+
+    changed_pooler = list(receipts)
+    changed_pooler[0] = _gradient_receipt(
+        exact.astype(np.float32),
+        0,
+        pooler_state_sha256="c" * 64,
+    )
+    with pytest.raises(ValueError, match="identity"):
+        canonical_e0_custody_bytes(
+            e0_result=e0,
+            exact=exact,
+            predicted=exact.copy(),
+            sample_receipts=tuple(changed_pooler),
+        )
+
+    duplicate_group = list(receipts)
+    duplicate_group[1] = _gradient_receipt(
+        exact.astype(np.float32),
+        1,
+        completion_group_sha256="1".zfill(64),
+    )
+    with pytest.raises(ValueError, match="schedule"):
+        canonical_e0_custody_bytes(
+            e0_result=e0,
+            exact=exact,
+            predicted=exact.copy(),
+            sample_receipts=tuple(duplicate_group),
+        )
+
+    predicted_drift = exact.copy()
+    predicted_drift[0, 0, 0, 0, 0] += 1.0
+    with pytest.raises(ValueError, match="authority"):
+        canonical_e0_custody_bytes(
+            e0_result=e0,
+            exact=exact,
+            predicted=predicted_drift,
+            sample_receipts=receipts,
         )
 
     drifted = exact.copy()
     drifted[0, 0, 0, 0, 0] = np.nextafter(drifted[0, 0, 0, 0, 0], np.inf)
     with pytest.raises(ValueError):
-        canonical_e0_custody_bytes(e0_result=e0, exact=drifted, sample_receipts=receipts)
+        canonical_e0_custody_bytes(
+            e0_result=e0,
+            exact=drifted,
+            predicted=exact.copy(),
+            sample_receipts=receipts,
+        )
 
     value = json.loads(receipts[0])
     value["predictor_state_sha256"] = "c" * 64
     changed = list(receipts)
     changed[0] = json.dumps(value, sort_keys=True, separators=(",", ":")).encode() + b"\n"
     with pytest.raises(ValueError):
-        canonical_e0_custody_bytes(e0_result=e0, exact=exact, sample_receipts=tuple(changed))
+        canonical_e0_custody_bytes(
+            e0_result=e0,
+            exact=exact,
+            predicted=exact.copy(),
+            sample_receipts=tuple(changed),
+        )
 
     receipt_value = json.loads(raw)
     receipt_value["sample_count"] = 511

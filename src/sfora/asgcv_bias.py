@@ -3,17 +3,34 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import math
 
 import numpy as np
 from numpy.typing import NDArray
 
-from sfora.asgcv import AsgcvSrhtAuthority, select_stratum_index, srht_gradient_sketch
+from sfora.asgcv import (
+    ASGCV_E0_MINIMUM_PAIRS,
+    ASGCV_STRATUM_SIZE,
+    AsgcvSrhtAuthority,
+    select_stratum_index,
+    srht_gradient_sketch,
+    validate_e0_result_inputs,
+)
 
 ASGCV_MEAN_NULL_DOMAIN = b"sfora-asgcv-e0-mean-null-v1\0"
 ASGCV_MEAN_RANDOMIZATION_DRAWS = 10_000
 ASGCV_MAX_BIAS_STRATA = 512
 ASGCV_RANDOMIZATION_BLOCK_DRAWS = 256
+ASGCV_PATCH_SIGN_DOMAIN = b"sfora-asgcv-e0-patch-sign-v1\0"
+ASGCV_NULL_SEED_DOMAIN = b"sfora-asgcv-e0-mean-null-seed-v1\0"
+ASGCV_SELECTION_AUDIT_SCHEMA = "sfora-asgcv-e0-selection-audit-v1"
+
+
+def _canonical_json_bytes(value: dict[str, object]) -> bytes:
+    return (
+        json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\n"
+    ).encode("utf-8")
 
 
 def _seed_bytes(value: object) -> bytes:
@@ -48,10 +65,7 @@ def randomization_selection_indices(
         offset = 0
         for block in range(blocks_per_draw):
             digest = hashlib.sha256(
-                ASGCV_MEAN_NULL_DOMAIN
-                + seed
-                + draw.to_bytes(8, "big")
-                + block.to_bytes(8, "big")
+                ASGCV_MEAN_NULL_DOMAIN + seed + draw.to_bytes(8, "big") + block.to_bytes(8, "big")
             ).digest()
             width = min(len(digest), stratum_count - offset)
             output[draw, offset : offset + width] = np.frombuffer(
@@ -141,14 +155,29 @@ def projected_mean_error_potentials(
         residual.reshape(-1, residual.shape[-1]),
         srht_authority,
     ).reshape(*residual.shape[:-1], srht_authority.output_dimensions)
-    reduced = np.sum(projected, axis=(2, 3), dtype=np.float64)
+    patch_signs = np.empty(residual.shape[2:4], dtype=np.float64)
+    seed = bytes.fromhex(srht_authority.seed_sha256)
+    for image_ordinal in range(residual.shape[2]):
+        for patch_ordinal in range(residual.shape[3]):
+            digest = hashlib.sha256(
+                ASGCV_PATCH_SIGN_DOMAIN
+                + seed
+                + image_ordinal.to_bytes(8, "big")
+                + patch_ordinal.to_bytes(8, "big")
+            ).digest()
+            patch_signs[image_ordinal, patch_ordinal] = 1.0 if digest[0] & 1 else -1.0
+    reduced = np.sum(
+        projected * patch_signs[None, None, :, :, None],
+        axis=(2, 3),
+        dtype=np.float64,
+    ) / math.sqrt(float(residual.shape[2] * residual.shape[3]))
     return np.asarray(
         reduced - np.mean(reduced, axis=1, keepdims=True, dtype=np.float64),
         dtype=np.float64,
     )
 
 
-def projected_mean_agreement_p_value_ppm(
+def _projected_selection_independence_p_value_ppm(
     exact: object,
     predicted: object,
     srht_authority: object,
@@ -156,9 +185,11 @@ def projected_mean_agreement_p_value_ppm(
     selection_seed_sha256: object,
     null_seed_sha256: object,
 ) -> int:
-    """Derive the projected E0 agreement diagnostic from authenticated authority."""
+    """Audit whether the realized selection stream aligns with projected errors."""
 
     potentials = projected_mean_error_potentials(exact, predicted, srht_authority)
+    if potentials.shape[0] < ASGCV_E0_MINIMUM_PAIRS // ASGCV_STRATUM_SIZE:
+        raise ValueError("ASG-CV selection-independence sample count differs")
     observed_indices = np.fromiter(
         (
             select_stratum_index(
@@ -181,3 +212,163 @@ def projected_mean_agreement_p_value_ppm(
         observed_indices,
         null_indices,
     )
+
+
+def _projected_selection_bias_z_ppm(
+    exact: object,
+    predicted: object,
+    srht_authority: object,
+    *,
+    selection_seed_sha256: object,
+) -> int:
+    """Return the diagonal-free selected-error U statistic in z-score ppm."""
+
+    potentials = projected_mean_error_potentials(exact, predicted, srht_authority)
+    stratum_count = potentials.shape[0]
+    if stratum_count < ASGCV_E0_MINIMUM_PAIRS // ASGCV_STRATUM_SIZE:
+        raise ValueError("ASG-CV projected selection-bias sample count differs")
+    observed_indices = np.fromiter(
+        (
+            select_stratum_index(
+                selection_seed_sha256,
+                optimizer_step=0,
+                stratum_ordinal=ordinal,
+            )
+            for ordinal in range(stratum_count)
+        ),
+        dtype=np.uint8,
+        count=stratum_count,
+    )
+    selected = potentials[np.arange(stratum_count), observed_indices]
+    selected_sum = np.sum(selected, axis=0, dtype=np.float64)
+    observed_u = float(
+        np.dot(selected_sum, selected_sum)
+        - np.einsum("ij,ij->", selected, selected, dtype=np.float64)
+    )
+    covariance = (
+        np.einsum(
+            "sip,siq->spq",
+            potentials,
+            potentials,
+            dtype=np.float64,
+        )
+        / 8.0
+    )
+    accumulated = np.zeros_like(covariance[0])
+    cross_variance = 0.0
+    for stratum_covariance in covariance:
+        cross_variance += float(np.sum(accumulated * stratum_covariance, dtype=np.float64))
+        accumulated += stratum_covariance
+    variance = 4.0 * cross_variance
+    if not math.isfinite(observed_u) or not math.isfinite(variance) or variance < 0.0:
+        raise ValueError("ASG-CV projected selection-bias statistic differs")
+    if variance == 0.0:
+        if observed_u != 0.0:
+            raise ValueError("ASG-CV projected selection-bias variance differs")
+        return 0
+    z_ppm = int(round(abs(observed_u) / math.sqrt(variance) * 1_000_000))
+    if not 0 <= z_ppm < 2**63:
+        raise ValueError("ASG-CV projected selection-bias z-score differs")
+    return z_ppm
+
+
+def canonical_e0_selection_audit_bytes(
+    e0_result: bytes,
+    *,
+    exact: object,
+    predicted: object,
+) -> bytes:
+    """Bind the auxiliary selection-independence audit to one complete E0 result."""
+
+    result = validate_e0_result_inputs(e0_result, exact=exact, predicted=predicted)
+    metrics = result["metrics"]
+    arrays = result["arrays"]
+    if type(metrics) is not dict or type(arrays) is not dict:
+        raise ValueError("ASG-CV selection audit E0 authority differs")
+    pair_count = metrics["pair_count"]
+    exact_shape = arrays["exact_gradients"]["shape"]
+    if (
+        type(pair_count) is not int
+        or type(exact_shape) is not list
+        or len(exact_shape) != 5
+        or pair_count != exact_shape[0] * ASGCV_STRATUM_SIZE
+        or exact_shape[0] < ASGCV_E0_MINIMUM_PAIRS // ASGCV_STRATUM_SIZE
+    ):
+        raise ValueError("ASG-CV selection audit sample authority differs")
+    srht = AsgcvSrhtAuthority.from_mapping(result["srht_authority"])
+    result_digest = result["result_sha256"]
+    if type(result_digest) is not str:
+        raise ValueError("ASG-CV selection audit result digest differs")
+    null_seed = hashlib.sha256(ASGCV_NULL_SEED_DOMAIN + bytes.fromhex(result_digest)).hexdigest()
+    selection_seed = result["selection_seed_sha256"]
+    payload: dict[str, object] = {
+        "schema": ASGCV_SELECTION_AUDIT_SCHEMA,
+        "claim_eligible": False,
+        "e0_result_sha256": result_digest,
+        "selection_seed_sha256": selection_seed,
+        "null_seed_sha256": null_seed,
+        "randomization_draws": ASGCV_MEAN_RANDOMIZATION_DRAWS,
+        "selection_independence_p_value_ppm": (
+            _projected_selection_independence_p_value_ppm(
+                exact,
+                predicted,
+                srht,
+                selection_seed_sha256=selection_seed,
+                null_seed_sha256=null_seed,
+            )
+        ),
+        "selection_independence_z_ppm": _projected_selection_bias_z_ppm(
+            exact,
+            predicted,
+            srht,
+            selection_seed_sha256=selection_seed,
+        ),
+    }
+    payload["audit_sha256"] = hashlib.sha256(_canonical_json_bytes(payload)).hexdigest()
+    return _canonical_json_bytes(payload)
+
+
+def validate_e0_selection_audit_bytes(raw: bytes) -> dict[str, object]:
+    """Validate one canonical, claim-ineligible selection-independence audit."""
+
+    try:
+        value = json.loads(raw)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError("ASG-CV selection audit is not canonical JSON") from error
+    expected = {
+        "schema",
+        "claim_eligible",
+        "e0_result_sha256",
+        "selection_seed_sha256",
+        "null_seed_sha256",
+        "randomization_draws",
+        "selection_independence_p_value_ppm",
+        "selection_independence_z_ppm",
+        "audit_sha256",
+    }
+    if (
+        type(value) is not dict
+        or set(value) != expected
+        or _canonical_json_bytes(value) != raw
+        or value["schema"] != ASGCV_SELECTION_AUDIT_SCHEMA
+        or value["claim_eligible"] is not False
+        or type(value["randomization_draws"]) is not int
+        or value["randomization_draws"] != ASGCV_MEAN_RANDOMIZATION_DRAWS
+        or type(value["selection_independence_p_value_ppm"]) is not int
+        or not 0 <= value["selection_independence_p_value_ppm"] <= 1_000_000
+        or type(value["selection_independence_z_ppm"]) is not int
+        or value["selection_independence_z_ppm"] < 0
+    ):
+        raise ValueError("ASG-CV selection audit authority differs")
+    for name in (
+        "e0_result_sha256",
+        "selection_seed_sha256",
+        "null_seed_sha256",
+        "audit_sha256",
+    ):
+        _seed_bytes(value[name])
+    unsigned = dict(value)
+    digest = unsigned.pop("audit_sha256")
+    if hashlib.sha256(_canonical_json_bytes(unsigned)).hexdigest() != digest:
+        raise ValueError("ASG-CV selection audit digest differs")
+    return value

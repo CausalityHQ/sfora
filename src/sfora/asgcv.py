@@ -27,9 +27,9 @@ ASGCV_SCHEMA = "sfora-asgcv-authority-v1"
 ASGCV_STRATUM_SIZE = 8
 ASGCV_PREDICTOR_RANK = 16
 ASGCV_SELECTION_POLICY = "one-uniform-index-per-eight-pair-stratum-v1"
-ASGCV_E0_SCHEMA = "sfora-asgcv-e0-metrics-v3"
+ASGCV_E0_SCHEMA = "sfora-asgcv-e0-metrics-v4"
 ASGCV_E0_CAPACITY_FLOOR_SCHEMA = "sfora-asgcv-e0-capacity-floor-v1"
-ASGCV_E0_RESULT_SCHEMA = "sfora-asgcv-e0-result-v3"
+ASGCV_E0_RESULT_SCHEMA = "sfora-asgcv-e0-result-v4"
 ASGCV_E0_ARRAY_DOMAIN = b"sfora-asgcv-e0-array-v1\0"
 ASGCV_GRADIENT_SAMPLE_SCHEMA = "sfora-asgcv-gradient-sample-v3"
 ASGCV_GRADIENT_SAMPLE_ARRAY_DOMAIN = b"sfora-asgcv-gradient-sample-array-v1\0"
@@ -41,6 +41,7 @@ ASGCV_VARIANCE_RATIO_GATE_PPM = 600_000
 ASGCV_PRECLIP_P99_RATIO_GATE_PPM = 2_000_000
 ASGCV_CLIP_RATE_DELTA_GATE_PPM = 50_000
 ASGCV_SEMANTIC_WALL_RATIO_GATE_PPM = 350_000
+ASGCV_MEAN_AGREEMENT_GATE_PPM = 150_000
 ASGCV_GLOBAL_CLIP_NORM = 1.0
 ASGCV_PEAK_CUDA_RESERVED_GATE_BYTES = 96 * 1024**3
 ASGCV_E0_MINIMUM_PAIRS = 512
@@ -52,6 +53,8 @@ ASGCV_SRHT_SCHEMA = "sfora-asgcv-srht-authority-v1"
 ASGCV_SRHT_SIGN_DOMAIN = b"sfora-asgcv-srht-sign-v1\0"
 ASGCV_SRHT_ROW_DOMAIN = b"sfora-asgcv-srht-row-v1\0"
 ASGCV_SRHT_NORMALIZATION = "orthonormal-hadamard-times-sqrt-padded-over-output-v1"
+ASGCV_MEAN_BOOTSTRAP_DOMAIN = b"sfora-asgcv-e0-mean-bootstrap-v1\0"
+ASGCV_MEAN_BOOTSTRAP_DRAWS = 10_000
 
 
 def _require_exact_positive_integer(value: object, *, expected: int, name: str) -> int:
@@ -486,6 +489,7 @@ class AsgcvE0Metrics:
     patch_salience_spearman_ppm: int
     normalized_residual_energy_ppm: int
     selection_variance_ratio_ppm: int
+    mean_agreement_upper_ppm: int
     preclip_p99_ratio_ppm: int
     exact_clip_rate_ppm: int
     asgcv_clip_rate_ppm: int
@@ -509,6 +513,7 @@ class AsgcvE0Metrics:
         ratio_names = (
             "normalized_residual_energy_ppm",
             "selection_variance_ratio_ppm",
+            "mean_agreement_upper_ppm",
             "preclip_p99_ratio_ppm",
             "clip_rate_delta_ppm",
             "semantic_wall_ratio_ppm",
@@ -532,6 +537,7 @@ class AsgcvE0Metrics:
             and self.patch_salience_spearman_ppm >= ASGCV_PATCH_SPEARMAN_GATE_PPM
             and self.normalized_residual_energy_ppm <= ASGCV_RESIDUAL_ENERGY_GATE_PPM
             and self.selection_variance_ratio_ppm <= ASGCV_VARIANCE_RATIO_GATE_PPM
+            and self.mean_agreement_upper_ppm <= ASGCV_MEAN_AGREEMENT_GATE_PPM
             and self.preclip_p99_ratio_ppm <= ASGCV_PRECLIP_P99_RATIO_GATE_PPM
             and self.clip_rate_delta_ppm <= ASGCV_CLIP_RATE_DELTA_GATE_PPM
             and self.semantic_wall_ratio_ppm <= ASGCV_SEMANTIC_WALL_RATIO_GATE_PPM
@@ -551,6 +557,7 @@ class AsgcvE0Metrics:
             "patch_salience_spearman_ppm": self.patch_salience_spearman_ppm,
             "normalized_residual_energy_ppm": self.normalized_residual_energy_ppm,
             "selection_variance_ratio_ppm": self.selection_variance_ratio_ppm,
+            "mean_agreement_upper_ppm": self.mean_agreement_upper_ppm,
             "preclip_p99_ratio_ppm": self.preclip_p99_ratio_ppm,
             "exact_clip_rate_ppm": self.exact_clip_rate_ppm,
             "asgcv_clip_rate_ppm": self.asgcv_clip_rate_ppm,
@@ -570,6 +577,7 @@ class AsgcvE0Metrics:
             "patch_salience_spearman_ppm",
             "normalized_residual_energy_ppm",
             "selection_variance_ratio_ppm",
+            "mean_agreement_upper_ppm",
             "preclip_p99_ratio_ppm",
             "exact_clip_rate_ppm",
             "asgcv_clip_rate_ppm",
@@ -588,6 +596,7 @@ class AsgcvE0Metrics:
             patch_salience_spearman_ppm=value["patch_salience_spearman_ppm"],
             normalized_residual_energy_ppm=value["normalized_residual_energy_ppm"],
             selection_variance_ratio_ppm=value["selection_variance_ratio_ppm"],
+            mean_agreement_upper_ppm=value["mean_agreement_upper_ppm"],
             preclip_p99_ratio_ppm=value["preclip_p99_ratio_ppm"],
             exact_clip_rate_ppm=value["exact_clip_rate_ppm"],
             asgcv_clip_rate_ppm=value["asgcv_clip_rate_ppm"],
@@ -621,8 +630,7 @@ class AsgcvE0CapacityFloor:
             "per_sample_rank_residual_floor_ppm",
         )
         if any(
-            type(getattr(self, name)) is not int or getattr(self, name) < 0
-            for name in metric_names
+            type(getattr(self, name)) is not int or getattr(self, name) < 0 for name in metric_names
         ):
             raise ValueError("ASG-CV E0 capacity metric differs")
         expected_pass = all(
@@ -664,9 +672,7 @@ class AsgcvE0CapacityFloor:
             pair_count=value["pair_count"],
             conditional_variance_floor_ppm=value["conditional_variance_floor_ppm"],
             fixed_channel_residual_floor_ppm=value["fixed_channel_residual_floor_ppm"],
-            per_sample_rank_residual_floor_ppm=value[
-                "per_sample_rank_residual_floor_ppm"
-            ],
+            per_sample_rank_residual_floor_ppm=value["per_sample_rank_residual_floor_ppm"],
             passed=value["passed"],
         ).validated()
 
@@ -698,17 +704,13 @@ def evaluate_e0_capacity_floor(
     total_energy = first_energy + second_energy
     if not math.isfinite(total_energy) or total_energy <= 0.0:
         raise ValueError("ASG-CV E0 capacity energy differs")
-    conditional_floor = float(
-        np.square(first - second).sum(dtype=np.float64) / total_energy
-    )
+    conditional_floor = float(np.square(first - second).sum(dtype=np.float64) / total_energy)
 
     combined = np.concatenate((first, second), axis=0)
     channel_matrix = combined.reshape(-1, combined.shape[-1])
     channel_singular_values = np.linalg.svd(channel_matrix, compute_uv=False)
     fixed_residual_energy = float(
-        np.square(channel_singular_values[ASGCV_PREDICTOR_RANK :]).sum(
-            dtype=np.float64
-        )
+        np.square(channel_singular_values[ASGCV_PREDICTOR_RANK:]).sum(dtype=np.float64)
     )
     fixed_floor = fixed_residual_energy / total_energy
 
@@ -719,7 +721,7 @@ def evaluate_e0_capacity_floor(
             compute_uv=False,
         )
         per_sample_residual_energy += float(
-            np.square(singular_values[ASGCV_PREDICTOR_RANK :]).sum(dtype=np.float64)
+            np.square(singular_values[ASGCV_PREDICTOR_RANK:]).sum(dtype=np.float64)
         )
     per_sample_floor = per_sample_residual_energy / total_energy
     metrics = {
@@ -840,6 +842,66 @@ def _ratio_ppm(value: float) -> int:
     return int(np.ceil(value * 1_000_000))
 
 
+def _mean_bootstrap_indices(seed: bytes, *, strata: int) -> NDArray[np.uint16]:
+    if strata < ASGCV_E0_MINIMUM_PAIRS // ASGCV_STRATUM_SIZE or strata > 256:
+        raise ValueError("ASG-CV E0 mean bootstrap shape differs")
+    limit = 256 - (256 % strata)
+    output = np.empty((ASGCV_MEAN_BOOTSTRAP_DRAWS, strata), dtype=np.uint16)
+    for draw in range(ASGCV_MEAN_BOOTSTRAP_DRAWS):
+        filled = 0
+        block = 0
+        while filled < strata:
+            digest = hashlib.sha256(
+                ASGCV_MEAN_BOOTSTRAP_DOMAIN
+                + seed
+                + draw.to_bytes(8, "big")
+                + block.to_bytes(8, "big")
+            ).digest()
+            for byte in digest:
+                if byte < limit:
+                    output[draw, filled] = byte % strata
+                    filled += 1
+                    if filled == strata:
+                        break
+            block += 1
+    return output
+
+
+def _mean_agreement_upper_ppm(
+    exact_estimates: Float64Array,
+    estimator_deltas: Float64Array,
+    *,
+    selection_seed: bytes,
+) -> int:
+    deltas = np.ascontiguousarray(
+        estimator_deltas.reshape(exact_estimates.shape[0], -1),
+        dtype=np.float64,
+    )
+    targets = exact_estimates.reshape(exact_estimates.shape[0], -1)
+    scale_energy = float(np.mean(np.einsum("ij,ij->i", targets, targets, dtype=np.float64)))
+    if not math.isfinite(scale_energy) or scale_energy <= 0.0:
+        raise ValueError("ASG-CV E0 mean agreement scale differs")
+    gram = deltas @ deltas.T
+    if not bool(np.isfinite(gram).all()):
+        raise ValueError("ASG-CV E0 mean agreement Gram differs")
+    if not bool(np.count_nonzero(gram)):
+        return 0
+    indices = _mean_bootstrap_indices(selection_seed, strata=deltas.shape[0])
+    weights = np.zeros((indices.shape[0], deltas.shape[0]), dtype=np.float64)
+    rows = np.repeat(np.arange(indices.shape[0]), indices.shape[1])
+    np.add.at(weights, (rows, indices.reshape(-1)), 1.0)
+    squared = np.einsum("bi,ij,bj->b", weights, gram, weights, dtype=np.float64)
+    squared /= float(deltas.shape[0] ** 2)
+    tolerance = (
+        np.finfo(np.float64).eps * max(1.0, float(np.max(np.abs(squared)))) * deltas.shape[0]
+    )
+    if not bool(np.isfinite(squared).all()) or float(np.min(squared)) < -tolerance:
+        raise ValueError("ASG-CV E0 mean agreement bootstrap differs")
+    squared = np.maximum(squared, 0.0)
+    upper = float(np.quantile(squared, 0.95, method="higher"))
+    return _ratio_ppm(math.sqrt(upper / scale_energy))
+
+
 def evaluate_e0(
     exact: object,
     predicted: object,
@@ -902,6 +964,14 @@ def evaluate_e0(
             for stratum_ordinal, selected_index in enumerate(selected_indices)
         ]
     )
+    residuals = exact_array - predicted_array
+    estimator_deltas = np.stack(
+        [
+            residuals[stratum_ordinal, selected_index]
+            - np.mean(residuals[stratum_ordinal], axis=0, dtype=np.float64)
+            for stratum_ordinal, selected_index in enumerate(selected_indices)
+        ]
+    )
     exact_norms = np.linalg.norm(exact_estimates.reshape(exact_estimates.shape[0], -1), axis=1)
     asgcv_norms = np.linalg.norm(asgcv_estimates.reshape(asgcv_estimates.shape[0], -1), axis=1)
 
@@ -951,6 +1021,11 @@ def evaluate_e0(
         "selection_variance_ratio_ppm": _ratio_ppm(
             _batch_selection_variance_ratio(exact_array, predicted_array)
         ),
+        "mean_agreement_upper_ppm": _mean_agreement_upper_ppm(
+            exact_estimates,
+            estimator_deltas,
+            selection_seed=selection_seed,
+        ),
         "preclip_p99_ratio_ppm": _ratio_ppm(asgcv_p99 / exact_p99),
         "exact_clip_rate_ppm": exact_clip_rate_ppm,
         "asgcv_clip_rate_ppm": asgcv_clip_rate_ppm,
@@ -964,6 +1039,7 @@ def evaluate_e0(
         and metrics_without_pass["patch_salience_spearman_ppm"] >= ASGCV_PATCH_SPEARMAN_GATE_PPM
         and metrics_without_pass["normalized_residual_energy_ppm"] <= ASGCV_RESIDUAL_ENERGY_GATE_PPM
         and metrics_without_pass["selection_variance_ratio_ppm"] <= ASGCV_VARIANCE_RATIO_GATE_PPM
+        and metrics_without_pass["mean_agreement_upper_ppm"] <= ASGCV_MEAN_AGREEMENT_GATE_PPM
         and metrics_without_pass["preclip_p99_ratio_ppm"] <= ASGCV_PRECLIP_P99_RATIO_GATE_PPM
         and metrics_without_pass["clip_rate_delta_ppm"] <= ASGCV_CLIP_RATE_DELTA_GATE_PPM
         and metrics_without_pass["semantic_wall_ratio_ppm"] <= ASGCV_SEMANTIC_WALL_RATIO_GATE_PPM
@@ -1183,9 +1259,10 @@ def validate_gradient_sample_bytes(raw: bytes) -> dict[str, object]:
         raise ValueError("ASG-CV gradient sample pair ordinals differ")
     if type(value["relation_sign"]) is not int or value["relation_sign"] not in {-1, 1}:
         raise ValueError("ASG-CV gradient sample relation sign differs")
-    if value["replay_branch_count"] != ASGCV_STRATUM_SIZE or type(
-        value["replay_branch_count"]
-    ) is not int:
+    if (
+        value["replay_branch_count"] != ASGCV_STRATUM_SIZE
+        or type(value["replay_branch_count"]) is not int
+    ):
         raise ValueError("ASG-CV gradient sample replay count differs")
     losses = value["losses"]
     if type(losses) is not dict or set(losses) != {"grpo", "attention_kl", "semantic"}:
@@ -1580,7 +1657,9 @@ def validate_e0_result_inputs(
         exact=exact,
         predicted=predicted,
         srht_authority=AsgcvSrhtAuthority.from_mapping(value["srht_authority"]),
-        peak_cuda_reserved_bytes=AsgcvE0Metrics.from_mapping(value["metrics"]).peak_cuda_reserved_bytes,
+        peak_cuda_reserved_bytes=AsgcvE0Metrics.from_mapping(
+            value["metrics"]
+        ).peak_cuda_reserved_bytes,
         exact_semantic_wall_ns=wall["exact"],
         asgcv_semantic_wall_ns=wall["asgcv"],
     )

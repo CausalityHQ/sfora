@@ -136,17 +136,18 @@ def test_residual_energy_and_selection_variance_have_exact_controls() -> None:
 
 def test_e0_capacity_floor_closes_impossible_predictor_families() -> None:
     low_rank = np.zeros((64, 2, 3, 17), dtype=np.float64)
-    low_rank[:, :, :, 0] = (
-        np.arange(64 * 2 * 3, dtype=np.float64).reshape(64, 2, 3) + 1.0
-    )
+    low_rank[:, :, :, 0] = np.arange(64 * 2 * 3, dtype=np.float64).reshape(64, 2, 3) + 1.0
     viable = evaluate_e0_capacity_floor(low_rank, low_rank.copy())
-    assert viable == AsgcvE0CapacityFloor(
-        pair_count=64,
-        conditional_variance_floor_ppm=0,
-        fixed_channel_residual_floor_ppm=0,
-        per_sample_rank_residual_floor_ppm=0,
-        passed=True,
-    ).validated()
+    assert (
+        viable
+        == AsgcvE0CapacityFloor(
+            pair_count=64,
+            conditional_variance_floor_ppm=0,
+            fixed_channel_residual_floor_ppm=0,
+            per_sample_rank_residual_floor_ppm=0,
+            passed=True,
+        ).validated()
+    )
     assert type(viable).from_mapping(viable.to_mapping()) == viable
 
     noisy = evaluate_e0_capacity_floor(low_rank, -low_rank)
@@ -231,13 +232,14 @@ def test_e0_metrics_pass_only_when_every_registered_gate_passes() -> None:
     )
     assert perfect.passed is True
     assert perfect.to_mapping() == {
-        "schema": "sfora-asgcv-e0-metrics-v3",
+        "schema": "sfora-asgcv-e0-metrics-v4",
         "pair_count": 512,
         "dense_gradient_cosine_ppm": 1_000_000,
         "projected_gradient_cosine_ppm": 1_000_000,
         "patch_salience_spearman_ppm": 1_000_000,
         "normalized_residual_energy_ppm": 0,
         "selection_variance_ratio_ppm": 0,
+        "mean_agreement_upper_ppm": 0,
         "preclip_p99_ratio_ppm": 1_000_000,
         "exact_clip_rate_ppm": 1_000_000,
         "asgcv_clip_rate_ppm": 1_000_000,
@@ -255,6 +257,7 @@ def test_e0_metrics_pass_only_when_every_registered_gate_passes() -> None:
         {**perfect.to_mapping(), "dense_gradient_cosine_ppm": 1_000_001},
         {**perfect.to_mapping(), "normalized_residual_energy_ppm": -1},
         {**perfect.to_mapping(), "selection_variance_ratio_ppm": -1},
+        {**perfect.to_mapping(), "mean_agreement_upper_ppm": -1},
         {**perfect.to_mapping(), "preclip_p99_ratio_ppm": -1},
         {**perfect.to_mapping(), "exact_clip_rate_ppm": 1_000_001},
         {**perfect.to_mapping(), "clip_rate_delta_ppm": -1},
@@ -279,6 +282,29 @@ def test_e0_metrics_pass_only_when_every_registered_gate_passes() -> None:
     assert reversed_prediction.passed is False
     assert reversed_prediction.dense_gradient_cosine_ppm == -1_000_000
     assert reversed_prediction.normalized_residual_energy_ppm == 4_000_000
+
+
+def test_e0_mean_agreement_gate_detects_selection_aligned_error() -> None:
+    exact = _e0_batch()
+    predicted = exact.copy()
+    for stratum_ordinal in range(exact.shape[0]):
+        selected = select_stratum_index(
+            "ab" * 32,
+            optimizer_step=0,
+            stratum_ordinal=stratum_ordinal,
+        )
+        predicted[stratum_ordinal, selected] += 10.0
+    metrics = evaluate_e0(
+        exact,
+        predicted,
+        _e0_srht(),
+        selection_seed_sha256="ab" * 32,
+        peak_cuda_reserved_bytes=1_000_000,
+        exact_semantic_wall_ns=1_000,
+        asgcv_semantic_wall_ns=350,
+    )
+    assert metrics.mean_agreement_upper_ppm > 150_000
+    assert metrics.passed is False
 
 
 def test_e0_rejects_srht_batch_and_degenerate_salience_drift() -> None:
@@ -564,7 +590,7 @@ def test_e0_result_is_canonical_claim_ineligible_and_binds_every_array() -> None
     assert raw.endswith(b"\n") and not raw.endswith(b"\n\n")
     result = validate_e0_result_bytes(raw)
 
-    assert result["schema"] == "sfora-asgcv-e0-result-v3"
+    assert result["schema"] == "sfora-asgcv-e0-result-v4"
     assert result["claim_eligible"] is False
     assert result["source_commit"] == "1" * 40
     assert result["partition_manifest_sha256"] == _e0_partition().sha256()
@@ -586,11 +612,14 @@ def test_e0_result_is_canonical_claim_ineligible_and_binds_every_array() -> None
 
 def test_e0_result_context_binds_partition_and_predictor_state() -> None:
     raw = _e0_result_bytes()
-    assert validate_e0_result_context(
-        raw,
-        partition_authority=_e0_partition(),
-        predictor_state_sha256="3" * 64,
-    )["result_sha256"] == validate_e0_result_bytes(raw)["result_sha256"]
+    assert (
+        validate_e0_result_context(
+            raw,
+            partition_authority=_e0_partition(),
+            predictor_state_sha256="3" * 64,
+        )["result_sha256"]
+        == validate_e0_result_bytes(raw)["result_sha256"]
+    )
 
     with pytest.raises(ValueError):
         validate_e0_result_context(
@@ -722,11 +751,14 @@ def test_gradient_sample_is_canonical_and_reopens_exact_fp32_arrays() -> None:
     assert value["losses"] == {"attention_kl": 0.375, "grpo": 0.125, "semantic": 0.5}
     assert value["arrays"]["patch_tokens"]["shape"] == [2, 3, 4]
     assert value["arrays"]["patch_tokens"]["dtype"] == "float32-le"
-    assert validate_gradient_sample_inputs(
-        raw,
-        patch_tokens=tokens,
-        exact_gradient=gradient,
-    )["sample_sha256"] == value["sample_sha256"]
+    assert (
+        validate_gradient_sample_inputs(
+            raw,
+            patch_tokens=tokens,
+            exact_gradient=gradient,
+        )["sample_sha256"]
+        == value["sample_sha256"]
+    )
 
 
 def test_gradient_sample_rejects_identity_type_shape_and_array_drift() -> None:
@@ -836,24 +868,30 @@ def test_gradient_sample_context_cross_binds_refill_pair_group_and_protocol() ->
         exact_gradient=gradient,
     )
 
-    assert validate_gradient_sample_context(
-        raw,
-        eligible_schedule=eligible,
-        candidate_schedule=candidates,
-        completion_groups=tuple(groups),
-    )["sample_sha256"] == validate_gradient_sample_bytes(raw)["sample_sha256"]
-    assert validate_gradient_sample_bundle(
-        raw,
-        patch_tokens=tokens,
-        exact_gradient=gradient,
-        protocol=protocol,
-        rollout_authority=rollout,
-        eligible_schedule=eligible,
-        candidate_schedule=candidates,
-        completion_groups=tuple(groups),
-        example_ids=example_ids,
-        labels=labels,
-    )["sample_sha256"] == validate_gradient_sample_bytes(raw)["sample_sha256"]
+    assert (
+        validate_gradient_sample_context(
+            raw,
+            eligible_schedule=eligible,
+            candidate_schedule=candidates,
+            completion_groups=tuple(groups),
+        )["sample_sha256"]
+        == validate_gradient_sample_bytes(raw)["sample_sha256"]
+    )
+    assert (
+        validate_gradient_sample_bundle(
+            raw,
+            patch_tokens=tokens,
+            exact_gradient=gradient,
+            protocol=protocol,
+            rollout_authority=rollout,
+            eligible_schedule=eligible,
+            candidate_schedule=candidates,
+            completion_groups=tuple(groups),
+            example_ids=example_ids,
+            labels=labels,
+        )["sample_sha256"]
+        == validate_gradient_sample_bytes(raw)["sample_sha256"]
+    )
 
     with pytest.raises(ValueError, match="context"):
         validate_gradient_sample_context(
