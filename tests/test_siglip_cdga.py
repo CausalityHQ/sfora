@@ -67,6 +67,37 @@ class TestCDGAPrimitiveTests:
         assert torch.equal(projection.grad, torch.tensor([0.6, 0.8]))
         assert torch.allclose(proxies.grad, torch.tensor([6.0, 8.0]), atol=1.0e-6, rtol=0.0)
 
+        projection.grad = torch.tensor([12.0, 16.0], dtype=torch.float32)
+        proxies.grad = torch.tensor([0.6, 0.8], dtype=torch.float32)
+        _clip_parameter_groups(projection, proxies, maximum_norm=10.0)
+        assert torch.allclose(projection.grad, torch.tensor([6.0, 8.0]), atol=1.0e-6, rtol=0.0)
+        assert torch.equal(proxies.grad, torch.tensor([0.6, 0.8]))
+
+    @pytest.mark.parametrize("maximum_norm", [True, 0.0, -1.0, float("nan")])
+    def test_parameter_group_clipping_rejects_invalid_authority(self, maximum_norm) -> None:
+        projection = torch.nn.Parameter(torch.zeros(2, dtype=torch.float32))
+        proxies = torch.nn.Parameter(torch.zeros(2, dtype=torch.float32))
+        projection.grad = torch.ones(2)
+        proxies.grad = torch.ones(2)
+        with pytest.raises(ValueError, match="CDGA clipping authority differs"):
+            _clip_parameter_groups(projection, proxies, maximum_norm=maximum_norm)
+
+        if maximum_norm is True:
+            projection.grad = None
+            with pytest.raises(ValueError, match="CDGA clipping authority differs"):
+                _clip_parameter_groups(projection, proxies, maximum_norm=10.0)
+            projection.grad = torch.ones(2)
+            with pytest.raises(ValueError, match="CDGA clipping authority differs"):
+                _clip_parameter_groups(projection.detach(), proxies, maximum_norm=10.0)
+
+    def test_parameter_group_clipping_rejects_nonfinite_gradients(self) -> None:
+        projection = torch.nn.Parameter(torch.zeros(2, dtype=torch.float32))
+        proxies = torch.nn.Parameter(torch.zeros(2, dtype=torch.float32))
+        projection.grad = torch.tensor([float("inf"), 0.0])
+        proxies.grad = torch.ones(2)
+        with pytest.raises(RuntimeError, match="non-finite"):
+            _clip_parameter_groups(projection, proxies, maximum_norm=10.0)
+
     @pytest.mark.parametrize(
         ("fit_labels", "validation_labels", "seed"),
         [
@@ -301,6 +332,38 @@ class TestCDGATrainingTests:
         assert torch.equal(original.initial_weight, changed.initial_weight)
         assert torch.equal(original.comparator_weight, changed.comparator_weight)
         assert torch.equal(original.cdga_weight, changed.cdga_weight)
+
+    def test_each_training_arm_uses_the_separate_group_clipping_boundary(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        features, labels = _cached_fixture()
+        authority = _authority(features)
+        fold = build_sfq_fold_schedule(features, labels, authority, fold_count=4).folds[0]
+        calls: list[tuple[tuple[int, ...], tuple[int, ...], float]] = []
+        original = cdga_module._clip_parameter_groups
+
+        def observed(projection, proxies, *, maximum_norm):
+            calls.append((tuple(projection.shape), tuple(proxies.shape), maximum_norm))
+            original(projection, proxies, maximum_norm=maximum_norm)
+
+        monkeypatch.setattr(cdga_module, "_clip_parameter_groups", observed)
+        train_cdga_fold(
+            features,
+            labels,
+            fold=fold,
+            master_seed_sha256="2" * 64,
+            output_dimensions=4,
+            train_steps=2,
+            examples_per_class=2,
+            projection_learning_rate=1.0e-3,
+            proxy_learning_rate=1.0e-2,
+            weight_decay=1.0e-4,
+            alpha=32.0,
+            delta=0.1,
+            device=torch.device("cpu"),
+        )
+
+        assert calls == [((4, 8), (6, 4), 10.0)] * 4
 
     def test_batches_use_only_fit_rows_and_identity_reducer_keeps_arms_equal(
         self, monkeypatch: pytest.MonkeyPatch
