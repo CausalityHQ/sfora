@@ -60,8 +60,9 @@ flattened projection gradients from the two pseudo-domain losses. If
 `g'_b = g_b - dot(g_a,g_b) / max(||g_a||^2, eps) g_a`.
 
 Otherwise retain both gradients. The installed projection gradient is
-`(g'_a + g'_b) / 2`. Proxy rows are class-local and receive their ordinary
-loss gradient. The fixed epsilon is `1e-12`. Nonfinite losses, gradients,
+`(g'_a + g'_b) / 2`. Proxy parameters receive the ordinary mean of the two
+domain-loss gradients; only the shared projection gradient is projected. The
+fixed epsilon is `1e-12`. Nonfinite losses, gradients,
 denominators, or parameters fail closed. The result records conflict count,
 mean pre-projection cosine, and projection digests.
 

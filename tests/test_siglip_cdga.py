@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import math
 
 import pytest
@@ -9,8 +10,13 @@ import torch
 
 from sfora.siglip_cdga import (
     build_cdga_domain_split,
+    run_cdga_fold_diagnostic,
     symmetric_conflict_projection,
+    train_cdga_fold,
+    validate_cdga_result_bytes,
 )
+from sfora.siglip_head_screen import build_feature_split_authority
+from sfora.siglip_sfq import build_sfq_fold_schedule
 
 
 class TestCDGAPrimitiveTests:
@@ -111,3 +117,172 @@ class TestCDGAPrimitiveTests:
         for left, right, epsilon in bad_cases:
             with pytest.raises(ValueError, match="CDGA gradient authority differs"):
                 symmetric_conflict_projection(left, right, epsilon=epsilon)
+
+
+def _cached_fixture() -> tuple[torch.Tensor, torch.Tensor]:
+    rows = []
+    labels = []
+    for label in range(8):
+        for instance in range(4):
+            row = torch.zeros(8, dtype=torch.float32)
+            row[label] = 2.0
+            row[(label + 1) % 8] = 0.03 * (instance - 1.5)
+            row[(label + 3) % 8] = 0.01 * (instance + 1)
+            rows.append(row)
+            labels.append(label)
+    return torch.stack(rows), torch.tensor(labels, dtype=torch.int64)
+
+
+def _authority(features: torch.Tensor):
+    return build_feature_split_authority(
+        source_manifest_sha256="1" * 64,
+        role="optimization-train",
+        official_test_access=False,
+        ordered_example_ids=tuple(f"row-{index:03d}" for index in range(features.shape[0])),
+        features=features,
+    )
+
+
+class TestCDGATrainingTests:
+    """The matched arms must differ only at the projection-gradient reducer."""
+
+    def test_fold_training_is_deterministic_and_excludes_validation_labels(self) -> None:
+        features, labels = _cached_fixture()
+        authority = _authority(features)
+        fold = build_sfq_fold_schedule(features, labels, authority, fold_count=4).folds[0]
+
+        first = train_cdga_fold(
+            features,
+            labels,
+            fold=fold,
+            master_seed_sha256="2" * 64,
+            output_dimensions=4,
+            train_steps=3,
+            examples_per_class=2,
+            projection_learning_rate=1.0e-3,
+            proxy_learning_rate=1.0e-2,
+            weight_decay=1.0e-4,
+            alpha=32.0,
+            delta=0.1,
+            device=torch.device("cpu"),
+        )
+        repeated = train_cdga_fold(
+            features,
+            labels,
+            fold=fold,
+            master_seed_sha256="2" * 64,
+            output_dimensions=4,
+            train_steps=3,
+            examples_per_class=2,
+            projection_learning_rate=1.0e-3,
+            proxy_learning_rate=1.0e-2,
+            weight_decay=1.0e-4,
+            alpha=32.0,
+            delta=0.1,
+            device=torch.device("cpu"),
+        )
+
+        assert first.fit_labels == fold.fit_labels
+        assert first.validation_labels == fold.validation_labels
+        assert set(first.fit_labels).isdisjoint(first.validation_labels)
+        assert first.trained_example_count == 24
+        assert first.train_steps == 3
+        assert first.examples_per_class == 2
+        assert first.batch_schedule_sha256 == repeated.batch_schedule_sha256
+        assert torch.equal(first.initial_weight, repeated.initial_weight)
+        assert torch.equal(first.comparator_weight, repeated.comparator_weight)
+        assert torch.equal(first.cdga_weight, repeated.cdga_weight)
+        assert math.isfinite(first.mean_pre_projection_cosine)
+        assert 0 <= first.conflict_count <= first.train_steps
+        assert first.comparator_final_loss <= first.comparator_initial_loss
+        assert first.cdga_final_loss <= first.cdga_initial_loss
+
+    def test_fold_training_rejects_validation_or_hyperparameter_drift(self) -> None:
+        features, labels = _cached_fixture()
+        authority = _authority(features)
+        fold = build_sfq_fold_schedule(features, labels, authority, fold_count=4).folds[0]
+        for mutation in (
+            {"train_steps": 0},
+            {"examples_per_class": True},
+            {"projection_learning_rate": 0.0},
+            {"device": torch.device("meta")},
+        ):
+            arguments = {
+                "fold": fold,
+                "master_seed_sha256": "2" * 64,
+                "output_dimensions": 4,
+                "train_steps": 2,
+                "examples_per_class": 2,
+                "projection_learning_rate": 1.0e-3,
+                "proxy_learning_rate": 1.0e-2,
+                "weight_decay": 1.0e-4,
+                "alpha": 32.0,
+                "delta": 0.1,
+                "device": torch.device("cpu"),
+            }
+            arguments.update(mutation)
+            with pytest.raises(ValueError, match="CDGA training authority differs"):
+                train_cdga_fold(features, labels, **arguments)
+
+
+class TestCDGAResultTests:
+    """Canonical evidence must be reconstructed from integer fold primitives."""
+
+    def test_result_recomputes_fold_counts_gates_and_canonical_bytes(self) -> None:
+        features, labels = _cached_fixture()
+        raw = run_cdga_fold_diagnostic(
+            features,
+            labels,
+            split_authority=_authority(features),
+            feature_cache_manifest_sha256="3" * 64,
+            master_seed_sha256="2" * 64,
+            output_dimensions=4,
+            fold_count=4,
+            train_steps=2,
+            examples_per_class=2,
+            device="cpu",
+        )
+        result = validate_cdga_result_bytes(raw)
+
+        assert raw.endswith(b"\n") and not raw.endswith(b"\n\n")
+        assert result.schema == "sfora-siglip-cdga-fold-diagnostic-v1"
+        assert result.claim_eligible is False
+        assert result.official_test_access is False
+        assert result.query_count == 32
+        assert len(result.folds) == 4
+        assert result.raw_hits == sum(fold.raw_hits for fold in result.folds)
+        assert result.comparator_hits == sum(fold.comparator_hits for fold in result.folds)
+        assert result.cdga_hits == sum(fold.cdga_hits for fold in result.folds)
+        assert result.cdga_minus_comparator_ppm == (
+            result.cdga_recall_ppm - result.comparator_recall_ppm
+        )
+        assert result.passed is (
+            result.valid
+            and result.cdga_minus_comparator_ppm >= 2_000
+            and result.cdga_hits >= result.spectral_hits
+            and all(fold.cdga_minus_comparator_ppm >= -10_000 for fold in result.folds)
+        )
+
+    @pytest.mark.parametrize("field", ["query_count", "cdga_hits", "passed", "fold_count"])
+    def test_result_rejects_aggregate_and_gate_mutations(self, field: str) -> None:
+        features, labels = _cached_fixture()
+        raw = run_cdga_fold_diagnostic(
+            features,
+            labels,
+            split_authority=_authority(features),
+            feature_cache_manifest_sha256="3" * 64,
+            master_seed_sha256="2" * 64,
+            output_dimensions=4,
+            fold_count=4,
+            train_steps=1,
+            examples_per_class=2,
+            device="cpu",
+        )
+        value = json.loads(raw)
+        if field == "passed":
+            value[field] = not value[field]
+        else:
+            value[field] += 1
+        mutated = (json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n").encode()
+        with pytest.raises(ValueError):
+            validate_cdga_result_bytes(mutated)
