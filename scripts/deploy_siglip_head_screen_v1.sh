@@ -36,8 +36,16 @@ printf '%s\n' "$source_revision" >"$revision_file"
 printf '%s  SOURCE_REVISION\n' "$(sha256sum "$revision_file" | awk '{print $1}')" >>"$manifest"
 LC_ALL=C sort -k2 -o "$manifest" "$manifest"
 
-ssh -o BatchMode=yes "$remote_host" \
-  "test ! -e '$remote_source' && test ! -e '$remote_output' && mkdir -p '$remote_source'"
+ssh -o BatchMode=yes "$remote_host" bash -s -- "$remote_source" "$remote_output" <<'PREFLIGHT'
+set -euo pipefail
+if pgrep -f '[r]un_siglip_proxy_control.py' >/dev/null; then
+  echo 'control process is still active' >&2
+  exit 75
+fi
+test ! -e "$1"
+test ! -e "$2"
+mkdir -p "$1"
+PREFLIGHT
 rsync -a --from0 --files-from="$paths" ./ "$remote_host:$remote_source/"
 rsync -a -- "$revision_file" "$remote_host:$remote_source/SOURCE_REVISION"
 rsync -a -- "$manifest" "$remote_host:$remote_source/SOURCE_MANIFEST.sha256"
