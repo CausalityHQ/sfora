@@ -816,13 +816,19 @@ def test_qwen_replay_captures_exact_merged_patch_gradient_target(tmp_path: Path)
         attention_layer=authority.fixture.attention_layer,
     )
 
-    assert target.patch_tokens.shape == (2, 2, 16)
+    assert target.patch_tokens.shape == (2, 8, 16)
     assert target.exact_gradient.shape == target.patch_tokens.shape
     assert target.boundary_names == ("merger", "deepstack-0", "deepstack-1", "deepstack-2")
     assert target.boundary_patch_tokens.shape == (4, 2, 2, 16)
     assert target.boundary_exact_gradient.shape == target.boundary_patch_tokens.shape
-    torch.testing.assert_close(target.boundary_patch_tokens[0], target.patch_tokens)
-    torch.testing.assert_close(target.boundary_exact_gradient[0], target.exact_gradient)
+    torch.testing.assert_close(
+        target.boundary_patch_tokens.permute(1, 0, 2, 3).reshape(2, 8, 16),
+        target.patch_tokens,
+    )
+    torch.testing.assert_close(
+        target.boundary_exact_gradient.permute(1, 0, 2, 3).reshape(2, 8, 16),
+        target.exact_gradient,
+    )
     assert target.patch_tokens.dtype == torch.float32
     assert target.exact_gradient.dtype == torch.float32
     assert torch.isfinite(target.patch_tokens).all()

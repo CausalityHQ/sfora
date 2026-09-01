@@ -764,8 +764,18 @@ class QwenSagaAdapter:
                     loss=float(grpo_loss.detach()),
                     generated_tokens=generated_tokens,
                 ),
-                patch_tokens=boundary_tokens[0].reshape(target_shape).detach(),
-                exact_gradient=boundary_exact[0].reshape(target_shape).detach(),
+                patch_tokens=(
+                    boundary_tokens.reshape(4, *target_shape)
+                    .permute(1, 0, 2, 3)
+                    .reshape(2, 4 * pair.patch_tokens_per_image, shape[1])
+                    .detach()
+                ),
+                exact_gradient=(
+                    boundary_exact.reshape(4, *target_shape)
+                    .permute(1, 0, 2, 3)
+                    .reshape(2, 4 * pair.patch_tokens_per_image, shape[1])
+                    .detach()
+                ),
                 boundary_names=boundary_names,
                 boundary_patch_tokens=boundary_tokens.reshape(4, *target_shape).detach(),
                 boundary_exact_gradient=boundary_exact.reshape(4, *target_shape).detach(),
