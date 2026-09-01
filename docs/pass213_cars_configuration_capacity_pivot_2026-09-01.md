@@ -137,6 +137,34 @@ handled by the existing ASG-CV path only when the feasibility receipt identifies
 that cost as load-bearing. No gallery fitting, transductive reranking,
 official-test tuning, or generated evaluation labels are introduced.
 
+## Rejected semantic-regression shortcut
+
+Do not add a separate `CLEAR` branch that regresses PRISM channel
+log-likelihood ratios directly onto cue-block inner products. The calibrated
+contribution is `log P(observation|different) - log
+P(observation|same)`, so its unmodified sign is opposite to similarity.
+Negating it does not repair the construction: the resulting arbitrary pairwise
+target matrix is not guaranteed positive semidefinite and therefore need not
+be realizable by a cosine descriptor. Channel whitening would also mix an
+abstaining channel with active channels, while treating abstention as a zero
+inner-product target creates an image-quality/norm side channel. The calibrated
+magnitudes contain no pair-specific information beyond the already registered
+ternary cue relation, so this branch is dominated by PRISM's routed hinge and
+does not earn a GPU run.
+
+Equal fixed norms for all eight cue blocks and the residual are not adopted as
+an automatic repair. They make full-vector cosine a fixed weighted sum, but
+also impose a hard similarity contribution when many visual attributes are
+shared across different model-year identities. That is especially unsafe for
+the dominant Caliber pair. The existing PRISM student remains unchanged until
+F1 produces authenticated optimization-calibration records. Any later norm or
+weight amendment must be one globally shared, query-independent rule frozen
+before Caliber/F2 acquisition; bind the exact block partition, weights,
+ordinary-loss coupling, cue-loss coefficient, and support gates into the
+calibration receipt. Its zero-GPU support estimate must use the joint
+determinate, both-visible fold-1--3 pair rows rather than multiplying marginal
+channel probabilities.
+
 ## ETA and stops
 
 - Remaining serialized SigLIP control: approximately `20–24` hours from the
