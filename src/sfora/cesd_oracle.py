@@ -7,7 +7,10 @@ from dataclasses import dataclass
 import torch
 from torch.nn import functional as F
 
-from sfora.siglip_band_audit import nameplate_variant_representative
+from sfora.siglip_band_audit import (
+    SIGLIP_AUDIT_VARIANT_GROUPS,
+    nameplate_variant_representative,
+)
 from sfora.substrate_screen import SUBSTRATE_F0_CLASSES
 
 _GAIN_GATE_PPM = 15_000
@@ -65,8 +68,11 @@ def _leave_one_out_nameplate_directions(
         device=descriptors.device,
         dtype=torch.int64,
     )
-    directions = torch.empty_like(descriptors)
+    directions = descriptors.clone()
+    eligible_representatives = frozenset(group[0] for group in SIGLIP_AUDIT_VARIANT_GROUPS)
     for representative in torch.unique(representatives, sorted=True):
+        if int(representative) not in eligible_representatives:
+            continue
         rows = torch.nonzero(representatives == representative, as_tuple=False).flatten()
         group_sum = descriptors[rows].sum(dim=0)
         leave_one_out = group_sum.unsqueeze(0) - descriptors[rows]

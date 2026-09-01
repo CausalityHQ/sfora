@@ -18,7 +18,18 @@ def _burned_fixture() -> tuple[torch.Tensor, torch.Tensor]:
         vector[:2] = row
         descriptors.append(vector)
         labels.append(label)
-    for dimension, label in enumerate(range(84, 98), start=2):
+    singleton_confusion = torch.tensor(
+        [[1.0, 0.0], [0.0, 1.0], [0.995, 0.1], [-0.8, 0.6]],
+        dtype=torch.float32,
+    )
+    singleton_confusion = torch.nn.functional.normalize(singleton_confusion, dim=1)
+    for row, label in zip(singleton_confusion, (84, 84, 87, 87), strict=True):
+        vector = torch.zeros(16, dtype=torch.float32)
+        vector[2:4] = row
+        descriptors.append(vector)
+        labels.append(label)
+    remaining_labels = (85, 86, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97)
+    for dimension, label in enumerate(remaining_labels, start=4):
         for _ in range(2):
             vector = torch.zeros(16, dtype=torch.float32)
             vector[dimension] = 1.0
@@ -37,12 +48,12 @@ def test_cesd_oracle_counts_only_literal_query_shrinkage_rescues() -> None:
     )
 
     assert evidence.query_count == 32
-    assert evidence.baseline_hits == 28
-    assert evidence.shrinkage_hits == 14
-    assert evidence.oracle_hits == 30
+    assert evidence.baseline_hits == 24
+    assert evidence.shrinkage_hits == 10
+    assert evidence.oracle_hits == 26
     assert evidence.rescued_query_rows == (0, 3)
     assert evidence.alpha_zero_query_rows == (0, 3)
-    assert evidence.baseline_recall_ppm == 875_000
-    assert evidence.oracle_recall_ppm == 937_500
+    assert evidence.baseline_recall_ppm == 750_000
+    assert evidence.oracle_recall_ppm == 812_500
     assert evidence.gain_ppm == 62_500
     assert evidence.passed
