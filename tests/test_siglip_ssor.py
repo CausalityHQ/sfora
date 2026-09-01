@@ -1,5 +1,11 @@
 from __future__ import annotations
 
+import hashlib
+import io
+import json
+from dataclasses import replace
+
+import numpy as np
 import pytest
 import torch
 from torch.nn import functional as F
@@ -8,12 +14,17 @@ from sfora.siglip_head_screen import build_feature_split_authority
 from sfora.siglip_ssor import (
     SSOR_BETA_GRID,
     SSORDiagnosticEvidence,
+    SSORInnerFoldEvidence,
+    SSOROuterFoldEvidence,
     SSORProjectorEvidence,
+    canonical_ssor_result_bytes,
     compose_restored_head,
     restore_descriptors,
     run_ssor_nested_diagnostic,
     seen_class_projector,
+    ssor_float_tensor_sha256,
     ssor_recall_at_one_hits,
+    validate_ssor_result_bytes,
 )
 
 
@@ -254,4 +265,466 @@ def test_nested_ssor_is_class_disjoint_deterministic_and_uses_registered_ties() 
             labels,
             ordered_example_ids=tuple(mutated_ids),
             split_authority=authority,
+        )
+
+
+def _nested_result_fixture() -> tuple[bytes, dict[str, object]]:
+    descriptors, labels = _nested_fixture()
+    ordered_ids = tuple(f"ssor-row-{row:04d}" for row in range(labels.numel()))
+    authority = build_feature_split_authority(
+        source_manifest_sha256="3" * 64,
+        role="optimization-train",
+        official_test_access=False,
+        ordered_example_ids=ordered_ids,
+        features=descriptors,
+    )
+    evidence = run_ssor_nested_diagnostic(
+        descriptors,
+        labels,
+        ordered_example_ids=ordered_ids,
+        split_authority=authority,
+    )
+    control_head = torch.eye(descriptors.shape[1], dtype=torch.float32).contiguous()
+    raw = canonical_ssor_result_bytes(
+        evidence,
+        source_manifest_sha256=authority.source_manifest_sha256,
+        feature_cache_manifest_sha256="4" * 64,
+        ordered_example_ids_sha256=authority.ordered_example_ids_sha256,
+        feature_matrix_sha256=authority.feature_matrix_sha256,
+        label_vector_sha256="5" * 64,
+        control_head_weight=control_head,
+        deployment_projector=None,
+        deployment_head_artifact=None,
+    )
+    payload = json.loads(raw)
+    identities: dict[str, object] = {
+        "expected_source_manifest_sha256": authority.source_manifest_sha256,
+        "expected_feature_cache_manifest_sha256": "4" * 64,
+        "expected_ordered_example_ids_sha256": authority.ordered_example_ids_sha256,
+        "expected_feature_matrix_sha256": authority.feature_matrix_sha256,
+        "expected_label_vector_sha256": "5" * 64,
+        "expected_control_head_sha256": payload["control_head_sha256"],
+        "expected_deployment_projector_sha256": None,
+        "expected_deployment_head_sha256": None,
+        "expected_deployment_head_file_sha256": None,
+    }
+    return raw, identities
+
+
+def _npy_bytes(tensor: torch.Tensor) -> bytes:
+    stream = io.BytesIO()
+    np.save(stream, tensor.numpy().astype("<f4", copy=False), allow_pickle=False)
+    return stream.getvalue()
+
+
+def _passing_evidence_fixture() -> tuple[
+    SSORDiagnosticEvidence, SSORProjectorEvidence, torch.Tensor, bytes
+]:
+    descriptors, labels = _nested_fixture()
+    projector = seen_class_projector(
+        descriptors,
+        labels,
+        fit_labels=tuple(range(12)),
+    )
+    control_head = torch.eye(descriptors.shape[1], dtype=torch.float32).contiguous()
+    beta_hits = (10, 10, 10, 10, 12, 11)
+    all_beta_hits = (15, 16, 16, 16, 18, 17)
+    folds: list[SSOROuterFoldEvidence] = []
+    for ordinal in range(4):
+        validation_labels = tuple(range(ordinal * 3, ordinal * 3 + 3))
+        fit_labels = tuple(label for label in range(12) if label not in validation_labels)
+        inner_folds: list[SSORInnerFoldEvidence] = []
+        for inner_ordinal in range(3):
+            inner_validation = fit_labels[inner_ordinal * 3 : inner_ordinal * 3 + 3]
+            inner_fit = tuple(label for label in fit_labels if label not in inner_validation)
+            inner_folds.append(
+                SSORInnerFoldEvidence(
+                    ordinal=inner_ordinal,
+                    fit_labels=inner_fit,
+                    validation_labels=inner_validation,
+                    projector_rank=len(inner_fit),
+                    mean_complement_energy=0.25,
+                    query_count=20,
+                    beta_hits=beta_hits,
+                )
+            )
+        folds.append(
+            SSOROuterFoldEvidence(
+                ordinal=ordinal,
+                fit_labels=fit_labels,
+                validation_labels=validation_labels,
+                projector_rank=len(fit_labels),
+                mean_complement_energy=0.25,
+                selected_beta=1.5,
+                query_count=30,
+                identity_hits=15,
+                scalar_identity_hits=15,
+                ssor_hits=18,
+                scalar_ssor_hits=18,
+                all_beta_hits=all_beta_hits,
+                inner_fold_schedule_sha256=f"{ordinal + 1:x}" * 64,
+                inner_folds=tuple(inner_folds),
+            )
+        )
+    evidence = SSORDiagnosticEvidence(
+        beta_grid=SSOR_BETA_GRID,
+        fold_schedule_sha256="a" * 64,
+        folds=tuple(folds),
+        selected_betas=(1.5, 1.5, 1.5, 1.5),
+        deployment_beta=1.5,
+        consensus_count=4,
+        deployment_projector_rank=projector.rank,
+        deployment_mean_complement_energy=projector.mean_complement_energy,
+        query_count=120,
+        identity_hits=60,
+        identity_errors=60,
+        materiality_eligible=True,
+        ssor_hits=72,
+        identity_recall_ppm=500_000,
+        ssor_recall_ppm=600_000,
+        delta_ppm=100_000,
+        fold_wins=4,
+        minimum_fold_delta_ppm=100_000,
+        valid=True,
+        passed=True,
+    )
+    deployed = compose_restored_head(control_head, projector, beta=1.5)
+    artifact = _npy_bytes(deployed)
+    return evidence, projector, control_head, artifact
+
+
+def _passing_result_fixture() -> tuple[bytes, bytes, dict[str, object]]:
+    evidence, projector, control_head, artifact = _passing_evidence_fixture()
+    raw = canonical_ssor_result_bytes(
+        evidence,
+        source_manifest_sha256="3" * 64,
+        feature_cache_manifest_sha256="4" * 64,
+        ordered_example_ids_sha256="5" * 64,
+        feature_matrix_sha256="6" * 64,
+        label_vector_sha256="7" * 64,
+        control_head_weight=control_head,
+        deployment_projector=projector,
+        deployment_head_artifact=artifact,
+    )
+    payload = json.loads(raw)
+    identities: dict[str, object] = {
+        "expected_source_manifest_sha256": "3" * 64,
+        "expected_feature_cache_manifest_sha256": "4" * 64,
+        "expected_ordered_example_ids_sha256": "5" * 64,
+        "expected_feature_matrix_sha256": "6" * 64,
+        "expected_label_vector_sha256": "7" * 64,
+        "expected_control_head_sha256": payload["control_head_sha256"],
+        "expected_deployment_projector_sha256": payload["deployment_projector_sha256"],
+        "expected_deployment_head_sha256": payload["deployment_head_sha256"],
+        "expected_deployment_head_file_sha256": hashlib.sha256(artifact).hexdigest(),
+    }
+    return raw, artifact, identities
+
+
+def test_ssor_passing_result_binds_nonidentity_beta_and_exact_head_artifact() -> None:
+    raw, artifact, identities = _passing_result_fixture()
+
+    result = validate_ssor_result_bytes(raw, **identities)
+
+    assert result["passed"] is True
+    assert result["deployment_beta"] == 1.5
+    assert result["deployment_head_file_sha256"] == hashlib.sha256(artifact).hexdigest()
+    deployed = torch.from_numpy(np.load(io.BytesIO(artifact), allow_pickle=False)).contiguous()
+    assert result["deployment_head_sha256"] == ssor_float_tensor_sha256("deployment-head", deployed)
+    assert result["ssor_hits"] == 72
+
+    stale_artifact = artifact[:-1] + bytes([artifact[-1] ^ 1])
+    evidence, projector, control_head, _artifact = _passing_evidence_fixture()
+    with pytest.raises(ValueError, match="deployment artifact"):
+        canonical_ssor_result_bytes(
+            evidence,
+            source_manifest_sha256="3" * 64,
+            feature_cache_manifest_sha256="4" * 64,
+            ordered_example_ids_sha256="5" * 64,
+            feature_matrix_sha256="6" * 64,
+            label_vector_sha256="7" * 64,
+            control_head_weight=control_head,
+            deployment_projector=projector,
+            deployment_head_artifact=stale_artifact,
+        )
+
+
+def test_ssor_result_accepts_signed_fold_tolerance_and_negative_null_delta() -> None:
+    evidence, projector, control_head, _artifact = _passing_evidence_fixture()
+    tolerated_folds: list[SSOROuterFoldEvidence] = []
+    for ordinal, fold in enumerate(evidence.folds):
+        deployed_hits = 149 if ordinal == 3 else 190
+        tolerated_folds.append(
+            replace(
+                fold,
+                query_count=300,
+                identity_hits=150,
+                scalar_identity_hits=150,
+                ssor_hits=deployed_hits,
+                scalar_ssor_hits=deployed_hits,
+                all_beta_hits=(150, 160, 160, 160, deployed_hits, 170),
+            )
+        )
+    tolerated = replace(
+        evidence,
+        folds=tuple(tolerated_folds),
+        query_count=1_200,
+        identity_hits=600,
+        identity_errors=600,
+        ssor_hits=719,
+        identity_recall_ppm=500_000,
+        ssor_recall_ppm=599_166,
+        delta_ppm=99_166,
+        fold_wins=3,
+        minimum_fold_delta_ppm=-3_334,
+    )
+    tolerated_artifact = _npy_bytes(compose_restored_head(control_head, projector, beta=1.5))
+    tolerated_raw = canonical_ssor_result_bytes(
+        tolerated,
+        source_manifest_sha256="3" * 64,
+        feature_cache_manifest_sha256="4" * 64,
+        ordered_example_ids_sha256="5" * 64,
+        feature_matrix_sha256="6" * 64,
+        label_vector_sha256="7" * 64,
+        control_head_weight=control_head,
+        deployment_projector=projector,
+        deployment_head_artifact=tolerated_artifact,
+    )
+    assert json.loads(tolerated_raw)["minimum_fold_delta_ppm"] == -3_334
+
+    null_folds = tuple(
+        replace(
+            fold,
+            identity_hits=20,
+            scalar_identity_hits=20,
+            ssor_hits=17,
+            scalar_ssor_hits=17,
+            all_beta_hits=(20, 19, 19, 19, 17, 18),
+        )
+        for fold in evidence.folds
+    )
+    null = replace(
+        evidence,
+        folds=null_folds,
+        identity_hits=80,
+        identity_errors=40,
+        ssor_hits=68,
+        identity_recall_ppm=666_666,
+        ssor_recall_ppm=566_666,
+        delta_ppm=-100_000,
+        fold_wins=0,
+        minimum_fold_delta_ppm=-100_000,
+        passed=False,
+    )
+    null_raw = canonical_ssor_result_bytes(
+        null,
+        source_manifest_sha256="3" * 64,
+        feature_cache_manifest_sha256="4" * 64,
+        ordered_example_ids_sha256="5" * 64,
+        feature_matrix_sha256="6" * 64,
+        label_vector_sha256="7" * 64,
+        control_head_weight=control_head,
+        deployment_projector=None,
+        deployment_head_artifact=None,
+    )
+    assert json.loads(null_raw)["delta_ppm"] == -100_000
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ("deployed-hit", "deployment-beta", "logical-digest", "file-digest"),
+)
+def test_ssor_nonidentity_result_rejects_deployment_mutations(mutation: str) -> None:
+    raw, _artifact, identities = _passing_result_fixture()
+    payload = json.loads(raw)
+    mutated_identities = identities.copy()
+    if mutation == "deployed-hit":
+        payload["folds"][0]["all_beta_hits"][4] -= 1
+    elif mutation == "deployment-beta":
+        payload["deployment_beta"] = 1.0
+    elif mutation == "logical-digest":
+        mutated_identities["expected_deployment_head_sha256"] = "0" * 64
+    elif mutation == "file-digest":
+        mutated_identities["expected_deployment_head_file_sha256"] = "0" * 64
+    else:  # pragma: no cover
+        raise AssertionError(mutation)
+    if mutation in {"deployed-hit", "deployment-beta"}:
+        unsigned = {key: value for key, value in payload.items() if key != "result_sha256"}
+        payload["result_sha256"] = hashlib.sha256(
+            json.dumps(unsigned, sort_keys=True, separators=(",", ":")).encode() + b"\n"
+        ).hexdigest()
+        raw = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode() + b"\n"
+
+    with pytest.raises(ValueError, match="SSOR result"):
+        validate_ssor_result_bytes(raw, **mutated_identities)
+
+
+def test_ssor_result_is_canonical_and_validator_reconstructs_every_gate() -> None:
+    raw, identities = _nested_result_fixture()
+
+    result = validate_ssor_result_bytes(raw, **identities)
+
+    assert raw.endswith(b"\n") and not raw.endswith(b"\n\n")
+    assert json.dumps(result, sort_keys=True, separators=(",", ":")).encode() + b"\n" == raw
+    assert result["schema"] == "sfora-siglip-ssor-v1"
+    assert result["claim_eligible"] is False
+    assert result["official_test_access"] is False
+    assert (
+        result["result_sha256"]
+        == __import__("hashlib")
+        .sha256(
+            json.dumps(
+                {key: value for key, value in result.items() if key != "result_sha256"},
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode()
+            + b"\n"
+        )
+        .hexdigest()
+    )
+
+
+@pytest.mark.parametrize(
+    ("mutation", "value"),
+    [
+        ("schema", "sfora-siglip-ssor-v2"),
+        ("claim_eligible", 0),
+        ("query_count", 1),
+        ("identity_errors", 999),
+        ("deployment_beta", 2.0),
+        ("passed", True),
+        ("result_sha256", "0" * 64),
+    ],
+)
+def test_ssor_result_rejects_schema_type_identity_and_gate_drift(
+    mutation: str, value: object
+) -> None:
+    raw, identities = _nested_result_fixture()
+    payload = json.loads(raw)
+    payload[mutation] = value
+    if mutation != "result_sha256":
+        unsigned = {key: item for key, item in payload.items() if key != "result_sha256"}
+        payload["result_sha256"] = (
+            __import__("hashlib")
+            .sha256(json.dumps(unsigned, sort_keys=True, separators=(",", ":")).encode() + b"\n")
+            .hexdigest()
+        )
+    mutated = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode() + b"\n"
+    with pytest.raises(ValueError, match="SSOR result"):
+        validate_ssor_result_bytes(mutated, **identities)
+
+
+def test_ssor_result_rejects_fold_and_inner_selection_drift() -> None:
+    raw, identities = _nested_result_fixture()
+    payload = json.loads(raw)
+    payload["folds"][0]["inner_folds"][0]["beta_hits"][1] ^= 1
+    unsigned = {key: value for key, value in payload.items() if key != "result_sha256"}
+    payload["result_sha256"] = (
+        __import__("hashlib")
+        .sha256(json.dumps(unsigned, sort_keys=True, separators=(",", ":")).encode() + b"\n")
+        .hexdigest()
+    )
+    mutated = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode() + b"\n"
+    with pytest.raises(ValueError, match="SSOR result"):
+        validate_ssor_result_bytes(mutated, **identities)
+
+
+@pytest.mark.parametrize(
+    ("path", "value"),
+    [
+        (("valid",), 1),
+        (("materiality_eligible",), 1),
+        (("query_count",), 48.0),
+        (("deployment_projector_rank",), 12.0),
+        (("beta_grid",), [1, 0.5, 0.75, 1.25, 1.5, 2]),
+        (("folds", 0, "ordinal"), 0.0),
+        (("folds", 0, "identity_hits"), 11.0),
+    ],
+)
+def test_ssor_result_rejects_concrete_type_drift(path: tuple[object, ...], value: object) -> None:
+    raw, identities = _nested_result_fixture()
+    payload = json.loads(raw)
+    target = payload
+    for key in path[:-1]:
+        target = target[key]
+    target[path[-1]] = value
+    unsigned = {key: item for key, item in payload.items() if key != "result_sha256"}
+    payload["result_sha256"] = (
+        __import__("hashlib")
+        .sha256(json.dumps(unsigned, sort_keys=True, separators=(",", ":")).encode() + b"\n")
+        .hexdigest()
+    )
+    mutated = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode() + b"\n"
+    with pytest.raises(ValueError, match="SSOR result"):
+        validate_ssor_result_bytes(mutated, **identities)
+
+
+def test_ssor_result_rejects_impossible_inner_partitions() -> None:
+    raw, identities = _nested_result_fixture()
+    payload = json.loads(raw)
+    inner = payload["folds"][0]["inner_folds"][0]
+    inner["validation_labels"] = sorted([*inner["fit_labels"], *inner["validation_labels"]])
+    inner["fit_labels"] = []
+    inner["projector_rank"] = 0
+    unsigned = {key: item for key, item in payload.items() if key != "result_sha256"}
+    payload["result_sha256"] = (
+        __import__("hashlib")
+        .sha256(json.dumps(unsigned, sort_keys=True, separators=(",", ":")).encode() + b"\n")
+        .hexdigest()
+    )
+    mutated = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode() + b"\n"
+    with pytest.raises(ValueError, match="SSOR result inner partition"):
+        validate_ssor_result_bytes(mutated, **identities)
+
+
+def test_ssor_result_rejects_noncanonical_schema_and_identity_bytes() -> None:
+    raw, identities = _nested_result_fixture()
+    payload = json.loads(raw)
+    for mutated in (
+        json.dumps(payload, sort_keys=False, indent=1).encode() + b"\n",
+        raw.replace(b'"schema":', b'"extra":0,"schema":', 1),
+    ):
+        with pytest.raises(ValueError, match="SSOR result"):
+            validate_ssor_result_bytes(mutated, **identities)
+
+    payload["source_manifest_sha256"] = "9" * 64
+    unsigned = {key: item for key, item in payload.items() if key != "result_sha256"}
+    payload["result_sha256"] = (
+        __import__("hashlib")
+        .sha256(json.dumps(unsigned, sort_keys=True, separators=(",", ":")).encode() + b"\n")
+        .hexdigest()
+    )
+    mutated = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode() + b"\n"
+    with pytest.raises(ValueError, match="SSOR result identity"):
+        validate_ssor_result_bytes(mutated, **identities)
+
+
+def test_ssor_result_requires_derived_deployment_artifacts_for_a_pass() -> None:
+    descriptors, labels = _nested_fixture()
+    ordered_ids = tuple(f"ssor-row-{row:04d}" for row in range(labels.numel()))
+    authority = build_feature_split_authority(
+        source_manifest_sha256="3" * 64,
+        role="optimization-train",
+        official_test_access=False,
+        ordered_example_ids=ordered_ids,
+        features=descriptors,
+    )
+    evidence = run_ssor_nested_diagnostic(
+        descriptors,
+        labels,
+        ordered_example_ids=ordered_ids,
+        split_authority=authority,
+    )
+    forged = replace(evidence, passed=True)
+    with pytest.raises(ValueError, match="deployment identity"):
+        canonical_ssor_result_bytes(
+            forged,
+            source_manifest_sha256=authority.source_manifest_sha256,
+            feature_cache_manifest_sha256="4" * 64,
+            ordered_example_ids_sha256=authority.ordered_example_ids_sha256,
+            feature_matrix_sha256=authority.feature_matrix_sha256,
+            label_vector_sha256="5" * 64,
+            control_head_weight=torch.eye(descriptors.shape[1], dtype=torch.float32),
+            deployment_projector=None,
+            deployment_head_artifact=None,
         )

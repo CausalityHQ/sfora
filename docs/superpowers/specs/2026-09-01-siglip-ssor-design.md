@@ -110,8 +110,11 @@ fit on increasing class counts. The experiment treats this as the standard neste
 fit-size extrapolation, not as an equality of subspaces. It therefore seals the
 complete outer-fold score curve for every registered beta, requires three-fold
 agreement on one beta, and records inner, outer, and all-class projector ranks and
-complement energies. These are the preregistered transfer checks; no post-result
-beta adjustment is permitted.
+complement energies. The canonical result binds both the logical framed tensor
+digest and exact deterministic NPY-file digest of the independently recomputed
+deployment head; a consumer must authenticate both the result and paired head
+bytes, so a stale or mismatched deployment artifact is invalid. These are the
+preregistered transfer checks; no post-result beta adjustment is permitted.
 
 ## Decision
 

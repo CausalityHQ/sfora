@@ -78,7 +78,8 @@ post-control actions.
 
 - [ ] Write a RED mutation table over every schema key, concrete type, digest,
   projector rank/energy, fold partition, beta selection, hit/query relation,
-  deployment beta/head digest, scalar replay, validity, and pass flag.
+  non-identity deployment beta, logical head digest, exact NPY-file digest,
+  scalar replay, validity, and pass flag.
 - [ ] Implement sorted compact JSON plus one LF. The validator must independently
   reconstruct all derivable counts, selections, gates, and precedence without
   trusting reported aggregate fields.
