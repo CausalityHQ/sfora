@@ -32,6 +32,7 @@ from sfora.asgcv import (
 )
 from sfora.asgcv_protocol import (
     AsgcvCompletionProtocol,
+    AsgcvRolloutAuthority,
     assemble_asgcv_eligible_schedule,
     build_asgcv_pair_schedule,
     classify_asgcv_completion_group,
@@ -742,6 +743,13 @@ def test_gradient_sample_context_cross_binds_refill_pair_group_and_protocol() ->
         different_prefix_ids=(21,),
         terminal_token_ids=(99,),
     ).validated()
+    rollout = AsgcvRolloutAuthority(
+        master_seed_sha256="12" * 32,
+        model_revision="3" * 40,
+        temperature=0.7,
+        top_p=0.9,
+        max_new_tokens=1024,
+    ).validated()
     example_ids = tuple(f"cars-{index:02d}" for index in range(32))
     labels = tuple(index // 4 for index in range(32))
     candidates = build_asgcv_pair_schedule(
@@ -759,7 +767,13 @@ def test_gradient_sample_context_cross_binds_refill_pair_group_and_protocol() ->
             for index in range(8)
         )
         groups.append(
-            classify_asgcv_completion_group(completions, pair.relation_sign, protocol)
+            classify_asgcv_completion_group(
+                completions,
+                pair.relation_sign,
+                protocol,
+                rollout_authority=rollout,
+                candidate_pair_ordinal=pair.ordinal,
+            )
         )
     eligible = assemble_asgcv_eligible_schedule(
         candidates,
@@ -801,6 +815,7 @@ def test_gradient_sample_context_cross_binds_refill_pair_group_and_protocol() ->
         patch_tokens=tokens,
         exact_gradient=gradient,
         protocol=protocol,
+        rollout_authority=rollout,
         eligible_schedule=eligible,
         candidate_schedule=candidates,
         completion_groups=tuple(groups),

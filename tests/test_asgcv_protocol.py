@@ -7,10 +7,12 @@ import pytest
 from sfora.asgcv_protocol import (
     AsgcvCompletionProtocol,
     AsgcvPairSchedule,
+    AsgcvRolloutAuthority,
     assemble_asgcv_eligible_schedule,
     build_asgcv_pair_schedule,
     classify_asgcv_completion,
     classify_asgcv_completion_group,
+    derive_asgcv_rollout_seeds,
     validate_asgcv_protocol_bundle,
 )
 
@@ -20,6 +22,16 @@ def _protocol() -> AsgcvCompletionProtocol:
         same_prefix_ids=(11, 12),
         different_prefix_ids=(21, 22, 23),
         terminal_token_ids=(0, 99),
+    ).validated()
+
+
+def _rollout_authority() -> AsgcvRolloutAuthority:
+    return AsgcvRolloutAuthority(
+        master_seed_sha256="12" * 32,
+        model_revision="3" * 40,
+        temperature=0.7,
+        top_p=0.9,
+        max_new_tokens=1024,
     ).validated()
 
 
@@ -34,6 +46,38 @@ def test_completion_protocol_is_exact_and_content_addressed() -> None:
     assert AsgcvCompletionProtocol.from_mapping(protocol.to_mapping()) == protocol
     assert len(protocol.sha256()) == 64
     assert AsgcvCompletionProtocol.from_mapping(protocol.to_mapping()).sha256() == protocol.sha256()
+
+
+def test_rollout_authority_binds_sampler_and_derives_pair_unique_seed_blocks() -> None:
+    authority = _rollout_authority()
+    assert authority.to_mapping() == {
+        "schema": "sfora-asgcv-rollout-authority-v1",
+        "master_seed_sha256": "12" * 32,
+        "model_revision": "3" * 40,
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "max_new_tokens": 1024,
+        "rollouts_per_pair": 8,
+    }
+    assert type(authority).from_mapping(authority.to_mapping()) == authority
+    first = derive_asgcv_rollout_seeds(authority, candidate_pair_ordinal=5)
+    assert len(first) == len(set(first)) == 8
+    assert first == derive_asgcv_rollout_seeds(authority, candidate_pair_ordinal=5)
+    assert first != derive_asgcv_rollout_seeds(authority, candidate_pair_ordinal=6)
+    changed = replace(authority, model_revision="4" * 40).validated()
+    assert first != derive_asgcv_rollout_seeds(changed, candidate_pair_ordinal=5)
+
+    for mutation in (
+        {**authority.to_mapping(), "temperature": True},
+        {**authority.to_mapping(), "top_p": 0.0},
+        {**authority.to_mapping(), "max_new_tokens": True},
+        {**authority.to_mapping(), "rollouts_per_pair": 7},
+        {**authority.to_mapping(), "extra": 1},
+    ):
+        with pytest.raises(ValueError):
+            type(authority).from_mapping(mutation)
+    with pytest.raises(ValueError):
+        derive_asgcv_rollout_seeds(authority, candidate_pair_ordinal=True)
 
 
 def test_completion_classification_binds_reward_verdict_and_attribute_span() -> None:
@@ -101,27 +145,67 @@ def test_completion_group_derives_variance_eligibility_and_exact_teacher_spans()
         (11, 12, 30 + index, 99) if index < 4 else (21, 22, 23, 40 + index, 0)
         for index in range(8)
     )
-    group = classify_asgcv_completion_group(completions, 1, protocol)
+    rollout = _rollout_authority()
+    group = classify_asgcv_completion_group(
+        completions,
+        1,
+        protocol,
+        rollout_authority=rollout,
+        candidate_pair_ordinal=7,
+    )
 
     assert group.rewards == (1, 1, 1, 1, 0, 0, 0, 0)
     assert group.correct_rollouts == (True, True, True, True, False, False, False, False)
     assert group.attribute_spans == ((2, 3), (2, 3), (2, 3), (2, 3), None, None, None, None)
     assert group.nonzero_reward_variance is True
+    assert group.candidate_pair_ordinal == 7
+    assert group.rollout_authority_sha256 == rollout.sha256()
+    assert group.generation_seeds == derive_asgcv_rollout_seeds(
+        rollout,
+        candidate_pair_ordinal=7,
+    )
     assert len(group.sha256()) == 64
-    assert classify_asgcv_completion_group(completions, 1, protocol) == group
+    assert (
+        classify_asgcv_completion_group(
+            completions,
+            1,
+            protocol,
+            rollout_authority=rollout,
+            candidate_pair_ordinal=7,
+        )
+        == group
+    )
     assert type(group).from_mapping(group.to_mapping()) == group
+    for mutation in (
+        {**group.to_mapping(), "candidate_pair_ordinal": True},
+        {**group.to_mapping(), "rollout_authority_sha256": True},
+        {**group.to_mapping(), "generation_seeds": [True, *group.generation_seeds[1:]]},
+    ):
+        with pytest.raises(ValueError):
+            type(group).from_mapping(mutation)
 
     all_correct = tuple((11, 12, 30 + index, 99) for index in range(8))
     assert classify_asgcv_completion_group(
-        all_correct, 1, protocol
+        all_correct,
+        1,
+        protocol,
+        rollout_authority=rollout,
+        candidate_pair_ordinal=7,
     ).nonzero_reward_variance is False
 
     with pytest.raises(ValueError):
-        classify_asgcv_completion_group(completions[:7], 1, protocol)
+        classify_asgcv_completion_group(
+            completions[:7],
+            1,
+            protocol,
+            rollout_authority=rollout,
+            candidate_pair_ordinal=7,
+        )
 
 
 def test_eligible_schedule_refills_before_gradients_and_preserves_relation_balance() -> None:
     protocol = _protocol()
+    rollout = _rollout_authority()
     example_ids = tuple(f"cars-{index:02d}" for index in range(32))
     labels = tuple(index // 4 for index in range(32))
     candidates = build_asgcv_pair_schedule(
@@ -145,7 +229,13 @@ def test_eligible_schedule_refills_before_gradients_and_preserves_relation_balan
             for index in range(8)
         )
         groups.append(
-            classify_asgcv_completion_group(completions, pair.relation_sign, protocol)
+            classify_asgcv_completion_group(
+                completions,
+                pair.relation_sign,
+                protocol,
+                rollout_authority=rollout,
+                candidate_pair_ordinal=pair.ordinal,
+            )
         )
 
     selected = assemble_asgcv_eligible_schedule(
@@ -171,6 +261,7 @@ def test_eligible_schedule_refills_before_gradients_and_preserves_relation_balan
 
 def test_protocol_bundle_rebuilds_schedule_groups_and_eligibility() -> None:
     protocol = _protocol()
+    rollout = _rollout_authority()
     example_ids = tuple(f"cars-{index:02d}" for index in range(32))
     labels = tuple(index // 4 for index in range(32))
     candidates = build_asgcv_pair_schedule(
@@ -197,6 +288,8 @@ def test_protocol_bundle_rebuilds_schedule_groups_and_eligibility() -> None:
             ),
             pair.relation_sign,
             protocol,
+            rollout_authority=rollout,
+            candidate_pair_ordinal=pair.ordinal,
         )
         for pair in candidates.pairs
     )
@@ -204,12 +297,23 @@ def test_protocol_bundle_rebuilds_schedule_groups_and_eligibility() -> None:
 
     validate_asgcv_protocol_bundle(
         protocol,
+        rollout,
         candidates,
         groups,
         eligible,
         example_ids=example_ids,
         labels=labels,
     )
+    with pytest.raises(ValueError):
+        validate_asgcv_protocol_bundle(
+            protocol,
+            replace(rollout, model_revision="4" * 40).validated(),
+            candidates,
+            groups,
+            eligible,
+            example_ids=example_ids,
+            labels=labels,
+        )
 
     first = groups[0]
     forged_group = replace(
@@ -240,6 +344,7 @@ def test_protocol_bundle_rebuilds_schedule_groups_and_eligibility() -> None:
         with pytest.raises(ValueError):
             validate_asgcv_protocol_bundle(
                 protocol,
+                rollout,
                 mutated_candidates,
                 mutated_groups,
                 mutated_eligible,

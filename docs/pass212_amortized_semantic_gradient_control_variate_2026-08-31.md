@@ -231,6 +231,13 @@ is a terminal rather than an adaptive resample. Predictor training and
 validation use disjoint Cars training class bands, which also guarantees
 disjoint image identities; official Cars test classes remain inaccessible.
 
+Generation is bound to one content-addressed rollout authority containing the
+model revision, master seed, temperature, top-p, maximum generated tokens, and
+the fixed eight-rollout count. Each candidate ordinal deterministically derives
+eight distinct 64-bit seeds from that authority. Completion-group receipts bind
+the authority digest, candidate ordinal, and exact seed block; bundle validation
+reconstructs all three before accepting rewards or eligibility.
+
 Before predictor fitting, a sealed capacity pilot uses `64` eligible pairs and
 two independently derived rollout-seed blocks per pair. Three lower bounds are
 computed from the exact `[pair, image, patch, channel]` gradient fields:

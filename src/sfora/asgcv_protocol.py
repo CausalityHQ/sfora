@@ -10,10 +10,13 @@ ASGCV_COMPLETION_PROTOCOL_SCHEMA = "sfora-asgcv-completion-protocol-v1"
 ASGCV_COMPLETION_PROTOCOL_DOMAIN = b"sfora-asgcv-completion-protocol-v1\0"
 ASGCV_PAIR_SCHEDULE_SCHEMA = "sfora-asgcv-pair-schedule-v1"
 ASGCV_PAIR_SCHEDULE_DOMAIN = b"sfora-asgcv-pair-schedule-v1\0"
-ASGCV_COMPLETION_GROUP_SCHEMA = "sfora-asgcv-completion-group-v1"
+ASGCV_COMPLETION_GROUP_SCHEMA = "sfora-asgcv-completion-group-v2"
 ASGCV_COMPLETION_GROUP_DOMAIN = b"sfora-asgcv-completion-group-v1\0"
 ASGCV_ELIGIBLE_SCHEDULE_SCHEMA = "sfora-asgcv-eligible-schedule-v1"
 ASGCV_ELIGIBLE_SCHEDULE_DOMAIN = b"sfora-asgcv-eligible-schedule-v1\0"
+ASGCV_ROLLOUT_AUTHORITY_SCHEMA = "sfora-asgcv-rollout-authority-v1"
+ASGCV_ROLLOUT_AUTHORITY_DOMAIN = b"sfora-asgcv-rollout-authority-v1\0"
+ASGCV_ROLLOUT_SEED_DOMAIN = b"sfora-asgcv-rollout-seed-v1\0"
 ASGCV_STRATUM_SIZE = 8
 
 
@@ -101,12 +104,122 @@ class AsgcvCompletionClassification:
 
 
 @dataclass(frozen=True, slots=True)
+class AsgcvRolloutAuthority:
+    """Source-bound sampler configuration for all candidate completion groups."""
+
+    master_seed_sha256: str
+    model_revision: str
+    temperature: float
+    top_p: float
+    max_new_tokens: int
+
+    def validated(self) -> AsgcvRolloutAuthority:
+        _sha256_seed(self.master_seed_sha256, name="rollout master seed")
+        if (
+            type(self.model_revision) is not str
+            or len(self.model_revision) != 40
+            or any(character not in "0123456789abcdef" for character in self.model_revision)
+        ):
+            raise ValueError("ASG-CV rollout model revision differs")
+        if (
+            type(self.temperature) is not float
+            or not 0.0 < self.temperature <= 2.0
+            or type(self.top_p) is not float
+            or not 0.0 < self.top_p <= 1.0
+            or type(self.max_new_tokens) is not int
+            or not 0 < self.max_new_tokens <= 4096
+        ):
+            raise ValueError("ASG-CV rollout sampler differs")
+        return self
+
+    def to_mapping(self) -> dict[str, object]:
+        self.validated()
+        return {
+            "schema": ASGCV_ROLLOUT_AUTHORITY_SCHEMA,
+            "master_seed_sha256": self.master_seed_sha256,
+            "model_revision": self.model_revision,
+            "temperature": self.temperature,
+            "top_p": self.top_p,
+            "max_new_tokens": self.max_new_tokens,
+            "rollouts_per_pair": ASGCV_STRATUM_SIZE,
+        }
+
+    @classmethod
+    def from_mapping(cls, value: object) -> AsgcvRolloutAuthority:
+        expected = {
+            "schema",
+            "master_seed_sha256",
+            "model_revision",
+            "temperature",
+            "top_p",
+            "max_new_tokens",
+            "rollouts_per_pair",
+        }
+        if (
+            type(value) is not dict
+            or set(value) != expected
+            or value["schema"] != ASGCV_ROLLOUT_AUTHORITY_SCHEMA
+            or value["rollouts_per_pair"] != ASGCV_STRATUM_SIZE
+            or type(value["rollouts_per_pair"]) is not int
+        ):
+            raise ValueError("ASG-CV rollout authority schema differs")
+        return cls(
+            master_seed_sha256=value["master_seed_sha256"],
+            model_revision=value["model_revision"],
+            temperature=value["temperature"],
+            top_p=value["top_p"],
+            max_new_tokens=value["max_new_tokens"],
+        ).validated()
+
+    def sha256(self) -> str:
+        return hashlib.sha256(
+            ASGCV_ROLLOUT_AUTHORITY_DOMAIN + _canonical_json_bytes(self.to_mapping())
+        ).hexdigest()
+
+
+def derive_asgcv_rollout_seeds(
+    authority: object,
+    *,
+    candidate_pair_ordinal: int,
+) -> tuple[int, ...]:
+    """Derive eight pair-unique generation seeds without consulting outcomes."""
+
+    if type(authority) is not AsgcvRolloutAuthority:
+        raise ValueError("ASG-CV rollout authority differs")
+    authority.validated()
+    if (
+        type(candidate_pair_ordinal) is not int
+        or not 0 <= candidate_pair_ordinal < 2**64
+    ):
+        raise ValueError("ASG-CV rollout candidate ordinal differs")
+    authority_digest = bytes.fromhex(authority.sha256())
+    seeds = tuple(
+        int.from_bytes(
+            hashlib.sha256(
+                ASGCV_ROLLOUT_SEED_DOMAIN
+                + authority_digest
+                + candidate_pair_ordinal.to_bytes(8, "big")
+                + rollout_ordinal.to_bytes(8, "big")
+            ).digest()[:8],
+            "big",
+        )
+        for rollout_ordinal in range(ASGCV_STRATUM_SIZE)
+    )
+    if len(set(seeds)) != ASGCV_STRATUM_SIZE:
+        raise ValueError("ASG-CV rollout seed collision")
+    return seeds
+
+
+@dataclass(frozen=True, slots=True)
 class AsgcvCompletionGroup:
     """Eight classified completions and their exact semantic eligibility."""
 
     completion_ids: tuple[tuple[int, ...], ...]
     expected_relation_sign: int
     protocol_sha256: str
+    rollout_authority_sha256: str
+    candidate_pair_ordinal: int
+    generation_seeds: tuple[int, ...]
     rewards: tuple[int, ...]
     correct_rollouts: tuple[bool, ...]
     attribute_spans: tuple[tuple[int, int] | None, ...]
@@ -118,6 +231,12 @@ class AsgcvCompletionGroup:
             or len(self.completion_ids) != ASGCV_STRATUM_SIZE
             or type(self.expected_relation_sign) is not int
             or self.expected_relation_sign not in {-1, 1}
+            or type(self.candidate_pair_ordinal) is not int
+            or not 0 <= self.candidate_pair_ordinal < 2**64
+            or type(self.generation_seeds) is not tuple
+            or len(self.generation_seeds) != ASGCV_STRATUM_SIZE
+            or any(type(seed) is not int or not 0 <= seed < 2**64 for seed in self.generation_seeds)
+            or len(set(self.generation_seeds)) != ASGCV_STRATUM_SIZE
             or type(self.rewards) is not tuple
             or len(self.rewards) != ASGCV_STRATUM_SIZE
             or any(type(value) is not int or value not in {0, 1} for value in self.rewards)
@@ -130,6 +249,7 @@ class AsgcvCompletionGroup:
         ):
             raise ValueError("ASG-CV completion group authority differs")
         _sha256_seed(self.protocol_sha256, name="completion protocol digest")
+        _sha256_seed(self.rollout_authority_sha256, name="rollout authority digest")
         for completion, correct, span in zip(
             self.completion_ids,
             self.correct_rollouts,
@@ -162,6 +282,9 @@ class AsgcvCompletionGroup:
             "completion_ids": [list(completion) for completion in self.completion_ids],
             "expected_relation_sign": self.expected_relation_sign,
             "protocol_sha256": self.protocol_sha256,
+            "rollout_authority_sha256": self.rollout_authority_sha256,
+            "candidate_pair_ordinal": self.candidate_pair_ordinal,
+            "generation_seeds": list(self.generation_seeds),
             "rewards": list(self.rewards),
             "correct_rollouts": list(self.correct_rollouts),
             "attribute_spans": [
@@ -177,6 +300,9 @@ class AsgcvCompletionGroup:
             "completion_ids",
             "expected_relation_sign",
             "protocol_sha256",
+            "rollout_authority_sha256",
+            "candidate_pair_ordinal",
+            "generation_seeds",
             "rewards",
             "correct_rollouts",
             "attribute_spans",
@@ -190,7 +316,8 @@ class AsgcvCompletionGroup:
         raw_rewards = value["rewards"]
         raw_correct = value["correct_rollouts"]
         raw_spans = value["attribute_spans"]
-        rows = (raw_completions, raw_rewards, raw_correct, raw_spans)
+        raw_seeds = value["generation_seeds"]
+        rows = (raw_completions, raw_rewards, raw_correct, raw_spans, raw_seeds)
         if any(type(raw) is not list for raw in rows):
             raise ValueError("ASG-CV completion group rows differ")
         completions = tuple(tuple(row) if type(row) is list else () for row in raw_completions)
@@ -201,6 +328,9 @@ class AsgcvCompletionGroup:
             completion_ids=completions,
             expected_relation_sign=value["expected_relation_sign"],
             protocol_sha256=value["protocol_sha256"],
+            rollout_authority_sha256=value["rollout_authority_sha256"],
+            candidate_pair_ordinal=value["candidate_pair_ordinal"],
+            generation_seeds=tuple(raw_seeds),
             rewards=tuple(raw_rewards),
             correct_rollouts=tuple(raw_correct),
             attribute_spans=spans,
@@ -434,6 +564,7 @@ def assemble_asgcv_eligible_schedule(
 
 def validate_asgcv_protocol_bundle(
     protocol: AsgcvCompletionProtocol,
+    rollout_authority: AsgcvRolloutAuthority,
     candidates: AsgcvPairSchedule,
     groups: tuple[AsgcvCompletionGroup, ...],
     eligible: AsgcvEligibleSchedule,
@@ -445,12 +576,14 @@ def validate_asgcv_protocol_bundle(
 
     if (
         type(protocol) is not AsgcvCompletionProtocol
+        or type(rollout_authority) is not AsgcvRolloutAuthority
         or type(candidates) is not AsgcvPairSchedule
         or type(groups) is not tuple
         or type(eligible) is not AsgcvEligibleSchedule
     ):
         raise ValueError("ASG-CV protocol bundle differs")
     protocol.validated()
+    rollout_authority.validated()
     candidates.validated()
     eligible.validated()
     rebuilt_candidates = build_asgcv_pair_schedule(
@@ -471,6 +604,8 @@ def validate_asgcv_protocol_bundle(
             group.completion_ids,
             pair.relation_sign,
             protocol,
+            rollout_authority=rollout_authority,
+            candidate_pair_ordinal=pair.ordinal,
         )
         if rebuilt_group != group:
             raise ValueError("ASG-CV completion group reconstruction differs")
@@ -691,11 +826,21 @@ def classify_asgcv_completion_group(
     completion_ids: tuple[tuple[int, ...], ...],
     expected_relation_sign: int,
     protocol: AsgcvCompletionProtocol,
+    *,
+    rollout_authority: AsgcvRolloutAuthority,
+    candidate_pair_ordinal: int,
 ) -> AsgcvCompletionGroup:
     """Classify one exact eight-rollout group and derive DAPO eligibility."""
 
     if type(completion_ids) is not tuple or len(completion_ids) != ASGCV_STRATUM_SIZE:
         raise ValueError("ASG-CV completion group size differs")
+    if type(rollout_authority) is not AsgcvRolloutAuthority:
+        raise ValueError("ASG-CV rollout authority differs")
+    rollout_authority.validated()
+    generation_seeds = derive_asgcv_rollout_seeds(
+        rollout_authority,
+        candidate_pair_ordinal=candidate_pair_ordinal,
+    )
     classifications = tuple(
         classify_asgcv_completion(completion, expected_relation_sign, protocol)
         for completion in completion_ids
@@ -710,6 +855,9 @@ def classify_asgcv_completion_group(
         completion_ids=completion_ids,
         expected_relation_sign=expected_relation_sign,
         protocol_sha256=protocol.sha256(),
+        rollout_authority_sha256=rollout_authority.sha256(),
+        candidate_pair_ordinal=candidate_pair_ordinal,
+        generation_seeds=generation_seeds,
         rewards=rewards,
         correct_rollouts=correct,
         attribute_spans=spans,

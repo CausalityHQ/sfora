@@ -15,6 +15,7 @@ from sfora.asgcv_protocol import (
     AsgcvCompletionProtocol,
     AsgcvEligibleSchedule,
     AsgcvPairSchedule,
+    AsgcvRolloutAuthority,
     validate_asgcv_protocol_bundle,
 )
 
@@ -1283,6 +1284,7 @@ def validate_gradient_sample_context(
     group.validated()
     if (
         group.nonzero_reward_variance is not True
+        or group.candidate_pair_ordinal != candidate_index
         or group.expected_relation_sign != pair.relation_sign
         or value["completion_group_sha256"] != group.sha256()
         or value["completion_protocol_sha256"] != group.protocol_sha256
@@ -1299,6 +1301,7 @@ def validate_gradient_sample_bundle(
     patch_tokens: object,
     exact_gradient: object,
     protocol: AsgcvCompletionProtocol,
+    rollout_authority: AsgcvRolloutAuthority,
     eligible_schedule: AsgcvEligibleSchedule,
     candidate_schedule: AsgcvPairSchedule,
     completion_groups: tuple[AsgcvCompletionGroup, ...],
@@ -1309,6 +1312,7 @@ def validate_gradient_sample_bundle(
 
     validate_asgcv_protocol_bundle(
         protocol,
+        rollout_authority,
         candidate_schedule,
         completion_groups,
         eligible_schedule,
