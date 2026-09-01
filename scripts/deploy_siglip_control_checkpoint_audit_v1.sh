@@ -2,7 +2,7 @@
 set -euo pipefail
 
 remote_host=${REMOTE_HOST:-riomus@100.104.199.68}
-remote_root=${REMOTE_ROOT:-/home/riomus/sfora-revisions}
+remote_root=${REMOTE_ROOT:-/home/riomus/sfora-control-audit-revisions}
 remote_control=${REMOTE_CONTROL:-/home/riomus/sfora-pass209-control-034e66407c5de6e2ff1acf3d18455b10760d3509}
 remote_output_root=${REMOTE_OUTPUT_ROOT:-/home/riomus/sfora-control-checkpoint-audits}
 source_revision=$(git rev-parse HEAD)
@@ -38,8 +38,10 @@ git bundle create "$bundle" HEAD
 remote_bundle=/tmp/sfora-control-audit-source-$source_revision.bundle
 
 ssh -o BatchMode=yes "$remote_host" bash -s -- \
-  "$remote_source" "$remote_output" "$remote_control" "$remote_bundle" <<'PREFLIGHT'
+  "$remote_source" "$remote_output" "$remote_control" "$remote_bundle" \
+  "$remote_root" <<'PREFLIGHT'
 set -euo pipefail
+mkdir -p "$5"
 if pgrep -f '[r]un_siglip_proxy_control.py|[r]un_native_twin_probe.py' >/dev/null; then
   echo 'control or native probe is still active' >&2
   exit 75
@@ -65,13 +67,15 @@ PREFLIGHT
 rsync -a -- "$bundle" "$remote_host:$remote_bundle"
 
 ssh -o BatchMode=yes "$remote_host" bash -s -- \
-  "$remote_source" "$remote_output" "$remote_control" "$source_revision" "$remote_bundle" <<'REMOTE'
+  "$remote_source" "$remote_output" "$remote_control" "$source_revision" \
+  "$remote_bundle" "$remote_root" <<'REMOTE'
 set -euo pipefail
 source_dir=$1
 output=$2
 control=$3
 revision=$4
 bundle=$5
+root=$6
 python=/home/riomus/group-learning/.venv/bin/python3
 staging=$output.partial
 launcher=$output.launcher.partial
@@ -88,7 +92,7 @@ cleanup_remote() {
   test ! -e "$staging" || rm -rf -- "$staging"
   if [[ $completed != true ]]; then
     case "$source_dir" in
-      /home/riomus/sfora-revisions/"$revision")
+      "$root/$revision")
         test ! -e "$source_dir" || rm -rf -- "$source_dir"
         ;;
       *) exit 99 ;;

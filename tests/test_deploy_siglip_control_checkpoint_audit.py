@@ -16,6 +16,8 @@ _SCRIPT = (
 def test_deployment_binds_terminal_control_and_all_six_audit_artifacts() -> None:
     source = _SCRIPT.read_text()
     assert os.access(_SCRIPT, os.X_OK)
+    assert "/home/riomus/sfora-control-audit-revisions" in source
+    assert '"$remote_root"' in source
     assert "git diff --quiet HEAD --" in source
     assert "git diff --cached --quiet" in source
     assert "git bundle create" in source
