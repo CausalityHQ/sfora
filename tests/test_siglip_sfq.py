@@ -2,12 +2,18 @@
 
 from __future__ import annotations
 
+import json
 import math
 
 import torch
 
 from sfora.siglip_head_screen import build_feature_split_authority
-from sfora.siglip_sfq import build_sfq_fold_schedule, fit_sfq_projection
+from sfora.siglip_sfq import (
+    build_sfq_fold_schedule,
+    fit_sfq_projection,
+    run_sfq_fold_diagnostic,
+    validate_sfq_result_bytes,
+)
 
 
 def _four_pair_features() -> tuple[torch.Tensor, torch.Tensor]:
@@ -151,10 +157,7 @@ def test_sfq_projection_is_finite_deterministic_and_has_exact_shape() -> None:
     ):
         assert sample_spike == retained_spike
         theta = (
-            retained_spike
-            - 1.0
-            - 1.0
-            + math.sqrt((retained_spike - 1.0 - 1.0) ** 2 - 4.0)
+            retained_spike - 1.0 - 1.0 + math.sqrt((retained_spike - 1.0 - 1.0) ** 2 - 4.0)
         ) / 2.0
         alignment = (1.0 - 1.0 / theta**2) / (1.0 + 1.0 / theta)
         assert math.isclose(gain, alignment * theta, rel_tol=1e-12, abs_tol=1e-12)
@@ -178,3 +181,63 @@ def test_sfq_projection_rejects_zero_reliable_rank_and_invalid_dimensions() -> N
         pass
     else:
         raise AssertionError("SFQ accepted an output wider than its feature space")
+
+
+def _valid_result_bytes() -> bytes:
+    features, labels = _spiked_features()
+    return run_sfq_fold_diagnostic(
+        features,
+        labels,
+        split_authority=_authority(features),
+        output_dimensions=3,
+        fold_count=4,
+    )
+
+
+def test_sfq_fold_result_recomputes_counts_gates_and_canonical_bytes() -> None:
+    """Dropping one fold or deriving recall from floats must invalidate the receipt."""
+
+    features, _labels = _spiked_features()
+    raw = _valid_result_bytes()
+
+    result = validate_sfq_result_bytes(raw)
+
+    assert raw.endswith(b"\n") and not raw.endswith(b"\n\n")
+    assert result.schema == "sfora-siglip-sfq-fold-diagnostic-v1"
+    assert result.claim_eligible is False
+    assert result.official_test_access is False
+    assert result.source_manifest_sha256 == "1" * 64
+    assert result.input_dimensions == features.shape[1]
+    assert result.output_dimensions == 3
+    assert result.fold_count == 4 == len(result.folds)
+    assert result.query_count == features.shape[0]
+    assert result.sfq_hits == sum(fold.sfq_hits for fold in result.folds)
+    assert result.whitening_hits == sum(fold.whitening_hits for fold in result.folds)
+    assert result.raw_hits == sum(fold.raw_hits for fold in result.folds)
+    assert result.spectral_hits == sum(fold.spectral_hits for fold in result.folds)
+    assert result.sfq_recall_ppm == result.sfq_hits * 1_000_000 // result.query_count
+    assert result.passed is (
+        result.sfq_recall_ppm - result.whitening_recall_ppm >= 2_000
+        and result.sfq_hits >= result.raw_hits
+        and result.sfq_hits >= result.spectral_hits
+    )
+
+
+def test_sfq_result_rejects_derived_and_identity_drift() -> None:
+    """Trusting serialized totals, gates, or schedule identity must fail this mutation test."""
+
+    for field, mutate in (
+        ("query_count", lambda value: value + 1),
+        ("sfq_hits", lambda value: value - 1),
+        ("passed", lambda value: not value),
+        ("fold_schedule_sha256", lambda _value: "f" * 64),
+    ):
+        value = json.loads(_valid_result_bytes())
+        value[field] = mutate(value[field])
+        mutated = (json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n").encode()
+        try:
+            validate_sfq_result_bytes(mutated)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError(f"SFQ result accepted mutated {field}")
