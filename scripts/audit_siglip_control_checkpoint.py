@@ -3,12 +3,26 @@
 
 from __future__ import annotations
 
+import argparse
 import hashlib
+import json
+import os
 import stat
 import sys
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
+
+import torch
+
+from sfora.siglip_checkpoint_audit import (
+    SiglipCheckpointAuditAuthority,
+    build_siglip_checkpoint_audit,
+    canonical_siglip_checkpoint_audit_bytes,
+)
+from sfora.substrate_screen import SubstrateScreenEvidence, score_frozen_substrate_evidence
+from sfora.token_set_screen import F1_TRAIN_CLASSES
 
 _SCRIPT_DIRECTORY = Path(__file__).resolve().parent
 if str(_SCRIPT_DIRECTORY) not in sys.path:
@@ -17,12 +31,18 @@ if str(_SCRIPT_DIRECTORY) not in sys.path:
 from run_siglip_proxy_control import (  # noqa: E402
     CheckpointAuthority,
     ControlRunAuthority,
+    PooledProxyAnchorModel,
     SiglipProxyControlConfig,
     _checkpoint_authority_from_receipt,
     _config_sha256,
     _json_compatible,
+    _optimizer_groups,
     control_aggregate_receipt_bytes,
+    embed_control_examples,
+    load_control_examples,
+    load_siglip_control_components,
     read_control_seed_receipt,
+    restore_control_checkpoint,
 )
 
 _SELECTED_SEED = 17
@@ -240,3 +260,235 @@ def read_authenticated_control_campaign(
         checkpoint=checkpoint,
         final_burned_correct=final_burned_correct,
     )
+
+
+def _canonical(value: object) -> bytes:
+    return (json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n").encode()
+
+
+def _identity_sha256(role: str, values: Sequence[object]) -> str:
+    return hashlib.sha256(_canonical({role: list(values)})).hexdigest()
+
+
+def audit_authority(
+    campaign: AuthenticatedControlCampaign,
+    burned_examples: Sequence[object],
+) -> SiglipCheckpointAuditAuthority:
+    """Derive the pure result authority from authenticated campaign inputs."""
+
+    if type(campaign) is not AuthenticatedControlCampaign:
+        raise TypeError("checkpoint audit campaign has the wrong concrete type")
+    example_ids = tuple(getattr(example, "example_id", None) for example in burned_examples)
+    labels = tuple(getattr(example, "label", None) for example in burned_examples)
+    dataset = cast(dict[str, Any], campaign.seed_receipt["dataset"])
+    model = cast(dict[str, Any], campaign.seed_receipt["model"])
+    return SiglipCheckpointAuditAuthority(
+        source_revision=campaign.run_authority.source_revision,
+        source_tree_digest=campaign.run_authority.source_tree_digest,
+        aggregate_sha256=campaign.aggregate_sha256,
+        seed_receipt_sha256=campaign.seed_receipt_sha256,
+        dataset_revision=dataset["revision"],
+        dataset_manifest_sha256=dataset["manifest_sha256"],
+        model_name=model["name"],
+        model_revision=model["revision"],
+        config_sha256=campaign.seed_receipt["config_sha256"],
+        seed=campaign.seed,
+        checkpoint_sha256=campaign.checkpoint.sha256,
+        checkpoint_bytes=campaign.checkpoint.bytes,
+        checkpoint_epoch=campaign.checkpoint.epoch,
+        evaluation_batch_size=campaign.run_authority.evaluation_batch_size,
+        query_block=campaign.run_authority.query_block,
+        ordered_example_ids_sha256=_identity_sha256("example_ids", example_ids),
+        label_vector_sha256=_identity_sha256("labels", labels),
+    )
+
+
+def restore_audit_model(
+    *,
+    campaign: AuthenticatedControlCampaign,
+    device: torch.device,
+) -> tuple[PooledProxyAnchorModel, object]:
+    """Restore the exact final checkpoint through the existing strict loader."""
+
+    config = SiglipProxyControlConfig()
+    tower, processor = load_siglip_control_components(config=config)
+    torch.manual_seed(campaign.seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(campaign.seed)
+    model = PooledProxyAnchorModel(
+        tower=tower,
+        input_dimensions=config.input_dimensions,
+        embedding_dimensions=config.embedding_dimensions,
+        class_count=len(F1_TRAIN_CLASSES),
+        projection_initialization=config.projection_initialization,
+        proxy_initialization=config.proxy_initialization,
+    ).to(device)
+    optimizer = torch.optim.AdamW(_optimizer_groups(model, config))
+    restored = restore_control_checkpoint(
+        campaign.checkpoint.path,
+        model=model,
+        optimizer=optimizer,
+        config=config,
+        expected_seed=campaign.seed,
+        expected_run_authority=campaign.run_authority,
+    )
+    if restored.seed != campaign.seed or restored.completed_epoch != _FINAL_EPOCH:
+        raise ValueError("restored checkpoint terminal authority differs")
+    return model.eval(), processor
+
+
+def run_checkpoint_error_audit(
+    *,
+    campaign: AuthenticatedControlCampaign,
+    burned_examples: tuple[object, ...],
+    device: torch.device,
+    restore_model: Callable[..., tuple[object, object]] = restore_audit_model,
+    embed_examples: Callable[..., tuple[torch.Tensor, torch.Tensor, torch.Tensor]] = (
+        embed_control_examples
+    ),
+    score_descriptors: Callable[..., SubstrateScreenEvidence] = score_frozen_substrate_evidence,
+) -> bytes:
+    """Restore once, score two descriptor planes, and serialize no clean identities."""
+
+    if type(campaign) is not AuthenticatedControlCampaign or type(burned_examples) is not tuple:
+        raise TypeError("checkpoint audit inputs have the wrong concrete type")
+    model, processor = restore_model(campaign=campaign, device=device)
+    raw_descriptors, projected_descriptors, labels = embed_examples(
+        model=model,
+        examples=burned_examples,
+        processor=processor,
+        device=device,
+        batch_size=campaign.run_authority.evaluation_batch_size,
+    )
+    expected_labels = torch.tensor(
+        [getattr(example, "label", None) for example in burned_examples], dtype=torch.int64
+    )
+    if (
+        not isinstance(raw_descriptors, torch.Tensor)
+        or not isinstance(projected_descriptors, torch.Tensor)
+        or not isinstance(labels, torch.Tensor)
+        or raw_descriptors.ndim != 2
+        or projected_descriptors.ndim != 2
+        or raw_descriptors.shape[0] != len(burned_examples)
+        or projected_descriptors.shape[0] != len(burned_examples)
+        or labels.device.type != "cpu"
+        or labels.dtype != torch.int64
+        or not torch.equal(labels, expected_labels)
+    ):
+        raise ValueError("checkpoint audit embedding authority differs")
+    raw_evidence = score_descriptors(
+        raw_descriptors.to(device),
+        labels.to(device),
+        query_block=campaign.run_authority.query_block,
+    )
+    projected_evidence = score_descriptors(
+        projected_descriptors.to(device),
+        labels.to(device),
+        query_block=campaign.run_authority.query_block,
+    )
+    if {
+        "raw": raw_evidence.metrics.correct,
+        "projected": projected_evidence.metrics.correct,
+    } != campaign.final_burned_correct:
+        raise ValueError("recomputed checkpoint terminal metrics differ")
+    authority = audit_authority(campaign, burned_examples)
+    evidence = build_siglip_checkpoint_audit(
+        authority=authority,
+        examples=burned_examples,
+        raw=raw_evidence,
+        projected=projected_evidence,
+    )
+    return canonical_siglip_checkpoint_audit_bytes(
+        evidence,
+        authority=authority,
+        expected_example_ids=tuple(example.example_id for example in burned_examples),
+        expected_labels=tuple(example.label for example in burned_examples),
+    )
+
+
+def publish_new_result(path: Path, payload: bytes) -> None:
+    """Publish one create-new result and remove its partial on every failure."""
+
+    if not isinstance(path, Path) or type(payload) is not bytes or not payload:
+        raise TypeError("checkpoint audit publication inputs differ")
+    if path.exists() or path.is_symlink():
+        raise FileExistsError(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    partial = path.with_name(f".{path.name}.partial")
+    if partial.exists() or partial.is_symlink():
+        raise FileExistsError(partial)
+    try:
+        with partial.open("xb") as stream:
+            stream.write(payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.link(partial, path)
+        partial.unlink()
+    except BaseException:
+        partial.unlink(missing_ok=True)
+        raise
+
+
+def _absolute_path(value: str) -> Path:
+    path = Path(value)
+    if not path.is_absolute() or ".." in path.parts or os.path.normpath(value) != value:
+        raise argparse.ArgumentTypeError("paths must be normalized absolute paths")
+    return path
+
+
+def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
+    """Parse the exact local-only terminal checkpoint audit capability."""
+
+    parser = argparse.ArgumentParser(allow_abbrev=False, description=__doc__)
+    parser.add_argument("--aggregate", required=True, type=_absolute_path)
+    parser.add_argument("--seed-receipt", action="append", required=True, type=_absolute_path)
+    parser.add_argument("--checkpoint-directory", required=True, type=_absolute_path)
+    parser.add_argument("--selected-seed", required=True, type=int, choices=(_SELECTED_SEED,))
+    parser.add_argument("--output", required=True, type=_absolute_path)
+    parser.add_argument("--execute-checkpoint-audit", required=True, action="store_true")
+    effective = list(sys.argv[1:] if argv is None else argv)
+    flags = [value.split("=", 1)[0] for value in effective if value.startswith("--")]
+    duplicates = sorted(
+        {flag for flag in flags if flag != "--seed-receipt" and flags.count(flag) > 1}
+    )
+    if duplicates:
+        parser.error(f"duplicate arguments are forbidden: {duplicates!r}")
+    parsed = parser.parse_args(effective)
+    if len(parsed.seed_receipt) != 3:
+        parser.error("exactly three seed receipts are required")
+    return parsed
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """Authenticate, execute once, and publish one canonical error audit."""
+
+    arguments = parse_args(argv)
+    campaign = read_authenticated_control_campaign(
+        aggregate=arguments.aggregate,
+        seed_receipts=tuple(arguments.seed_receipt),
+        checkpoint_directory=arguments.checkpoint_directory,
+        selected_seed=arguments.selected_seed,
+    )
+    bands = load_control_examples()
+    payload = run_checkpoint_error_audit(
+        campaign=campaign,
+        burned_examples=cast(tuple[object, ...], bands.burned_diagnostic),
+        device=torch.device("cuda"),
+    )
+    publish_new_result(arguments.output, payload)
+    sys.stdout.write(
+        json.dumps(
+            {
+                "output": str(arguments.output),
+                "sha256": hashlib.sha256(payload).hexdigest(),
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        + "\n"
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

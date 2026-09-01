@@ -105,21 +105,21 @@ Expected: all selected tests pass and existing aggregate fixture bytes remain un
 - Consumes: authenticated campaign, final checkpoint, registered burned examples, CUDA device, batch `32`, and query block `128` from the selected run authority.
 - Produces: one canonical `sfora-siglip-checkpoint-error-audit-v1` result.
 
-- [ ] **Step 1: Write failing fake-model integration tests**
+- [x] **Step 1: Write failing fake-model integration tests**
 
 Patch the model/processor loader, checkpoint restore, example loader, and embedder. Require the runner to restore once, embed only `burned_diagnostic`, score raw and projected once each, compare both exact terminal counts to the selected seed receipt, call no clean/optimization embedder, and publish one self-validating result. Add failures for metric mismatch, nonterminal checkpoint, output existence/symlink, duplicate paths, and restore/embedding exceptions; assert partial cleanup.
 
-- [ ] **Step 2: Run the integration RED**
+- [x] **Step 2: Run the integration RED**
 
 Run: `uv run --offline --locked pytest -q -p no:cacheprovider tests/test_audit_siglip_control_checkpoint.py -k 'runner or publication'`
 
 Expected: failure at missing runner implementation.
 
-- [ ] **Step 3: Implement restore, recomputation, and atomic publication**
+- [x] **Step 3: Implement restore, recomputation, and atomic publication**
 
 Instantiate the exact frozen tower/model and AdamW parameter groups, restore via `restore_control_checkpoint`, require returned seed/epoch and receipt checkpoint equality, embed the burned examples through `embed_control_examples`, score both descriptor planes with `score_frozen_substrate_evidence`, require exact terminal metric equality, construct the pure evidence object, serialize/revalidate, write one `.<name>.partial`, fsync, and replace.
 
-- [ ] **Step 4: Run complete focused GREEN**
+- [x] **Step 4: Run complete focused GREEN**
 
 Run:
 

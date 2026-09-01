@@ -11,6 +11,13 @@ from typing import Any, cast
 import pytest
 import torch
 
+from sfora.siglip_checkpoint_audit import validate_siglip_checkpoint_audit_bytes
+from sfora.substrate_screen import (
+    SubstrateRetrievalError,
+    SubstrateScreenEvidence,
+    SubstrateScreenMetrics,
+)
+
 _ROOT = Path(__file__).parents[1]
 _CONTROL_SCRIPT = _ROOT / "scripts" / "run_siglip_proxy_control.py"
 _CONTROL_SPEC = importlib.util.spec_from_file_location(
@@ -246,3 +253,186 @@ def test_campaign_rejects_checkpoint_and_concrete_type_drift(tmp_path: Path) -> 
             checkpoint_directory=cast(Path, fixture["checkpoint_directory"]),
             selected_seed=17,
         )
+
+
+def _burned_examples() -> tuple[Any, ...]:
+    return tuple(
+        _CONTROL.ImageExample(
+            example_id=f"cars-burned-{position:04d}",
+            image=object(),
+            label=82 + position % 16,
+        )
+        for position in range(1_345)
+    )
+
+
+def _terminal_screen(correct: int) -> SubstrateScreenEvidence:
+    error_count = 1_345 - correct
+    errors = tuple(
+        SubstrateRetrievalError(
+            query_position=position,
+            nearest_position=position + 1,
+            query_label=82 + position % 16,
+            nearest_label=82 + (position + 1) % 16,
+        )
+        for position in range(error_count)
+    )
+    return SubstrateScreenEvidence(
+        metrics=SubstrateScreenMetrics(
+            correct=correct,
+            queries=1_345,
+            recall_at_1=correct / 1_345,
+        ),
+        errors=errors,
+    )
+
+
+def test_runner_restores_once_scores_only_burned_and_self_validates(tmp_path: Path) -> None:
+    fixture = _campaign_fixture(tmp_path)
+    campaign = _MODULE.read_authenticated_control_campaign(
+        aggregate=fixture["aggregate"],
+        seed_receipts=fixture["receipt_paths"],
+        checkpoint_directory=fixture["checkpoint_directory"],
+        selected_seed=17,
+    )
+    examples = _burned_examples()
+    calls: list[object] = []
+    raw_descriptors = torch.tensor([[1.0, 0.0]]).repeat(1_345, 1)
+    projected_descriptors = torch.tensor([[0.0, 1.0]]).repeat(1_345, 1)
+    labels = torch.tensor([example.label for example in examples], dtype=torch.int64)
+
+    def restore(**kwargs: object) -> tuple[object, object]:
+        calls.append(("restore", kwargs["campaign"]))
+        return object(), object()
+
+    def embed(**kwargs: object) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        observed = cast(tuple[Any, ...], kwargs["examples"])
+        calls.append(("embed", tuple(row.label for row in observed)))
+        return raw_descriptors, projected_descriptors, labels
+
+    def score(descriptors: torch.Tensor, _labels: torch.Tensor, **_kwargs: object) -> Any:
+        calls.append(("score", descriptors))
+        return _terminal_screen(1_258)
+
+    result = _MODULE.run_checkpoint_error_audit(
+        campaign=campaign,
+        burned_examples=examples,
+        device=torch.device("cpu"),
+        restore_model=restore,
+        embed_examples=embed,
+        score_descriptors=score,
+    )
+
+    assert [call[0] for call in calls] == ["restore", "embed", "score", "score"]
+    assert all(82 <= label <= 97 for label in cast(tuple[int, ...], calls[1][1]))
+    assert calls[2][1] is raw_descriptors
+    assert calls[3][1] is projected_descriptors
+    example_ids = tuple(row.example_id for row in examples)
+    example_labels = tuple(row.label for row in examples)
+    validate_siglip_checkpoint_audit_bytes(
+        result,
+        expected_authority=_MODULE.audit_authority(campaign, examples),
+        expected_example_ids=example_ids,
+        expected_labels=example_labels,
+    )
+    assert b"clean_validation" not in result
+    assert b"optimization" not in result
+
+
+def test_runner_rejects_terminal_metric_mismatch_and_cleans_publication(
+    tmp_path: Path,
+) -> None:
+    fixture = _campaign_fixture(tmp_path)
+    campaign = _MODULE.read_authenticated_control_campaign(
+        aggregate=fixture["aggregate"],
+        seed_receipts=fixture["receipt_paths"],
+        checkpoint_directory=fixture["checkpoint_directory"],
+        selected_seed=17,
+    )
+    examples = _burned_examples()
+    labels = torch.tensor([example.label for example in examples], dtype=torch.int64)
+
+    with pytest.raises(ValueError, match="terminal metrics"):
+        _MODULE.run_checkpoint_error_audit(
+            campaign=campaign,
+            burned_examples=examples,
+            device=torch.device("cpu"),
+            restore_model=lambda **_kwargs: (object(), object()),
+            embed_examples=lambda **_kwargs: (
+                torch.ones(1_345, 2),
+                torch.ones(1_345, 2),
+                labels,
+            ),
+            score_descriptors=lambda *_args, **_kwargs: _terminal_screen(1_257),
+        )
+
+    output = tmp_path / "result.json"
+    payload = b'{"sealed":true}\n'
+    _MODULE.publish_new_result(output, payload)
+    assert output.read_bytes() == payload
+    with pytest.raises(FileExistsError):
+        _MODULE.publish_new_result(output, payload)
+    assert not output.with_name(f".{output.name}.partial").exists()
+
+
+def test_cli_requires_exact_local_capability_and_main_publishes_once(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    fixture = _campaign_fixture(tmp_path)
+    output = tmp_path / "result.json"
+    receipt_paths = cast(tuple[Path, ...], fixture["receipt_paths"])
+    arguments = [
+        "--aggregate",
+        str(fixture["aggregate"]),
+        "--checkpoint-directory",
+        str(fixture["checkpoint_directory"]),
+        "--selected-seed",
+        "17",
+        "--output",
+        str(output),
+    ]
+    for path in receipt_paths:
+        arguments.extend(("--seed-receipt", str(path)))
+    arguments.append("--execute-checkpoint-audit")
+
+    parsed = _MODULE.parse_args(arguments)
+    assert parsed.seed_receipt == list(receipt_paths)
+    assert parsed.selected_seed == 17
+    with pytest.raises(SystemExit):
+        _MODULE.parse_args(arguments + ["--output", str(tmp_path / "other.json")])
+    with pytest.raises(SystemExit):
+        _MODULE.parse_args(arguments[:-3] + ["--execute-checkpoint-audit"])
+    with pytest.raises(SystemExit):
+        _MODULE.parse_args(arguments + ["--clean-errors", str(tmp_path / "forbidden.json")])
+
+    campaign = _MODULE.read_authenticated_control_campaign(
+        aggregate=fixture["aggregate"],
+        seed_receipts=fixture["receipt_paths"],
+        checkpoint_directory=fixture["checkpoint_directory"],
+        selected_seed=17,
+    )
+    examples = _burned_examples()
+    monkeypatch.setattr(_MODULE, "read_authenticated_control_campaign", lambda **_kwargs: campaign)
+    monkeypatch.setattr(
+        _MODULE,
+        "load_control_examples",
+        lambda: cast(Any, type("Bands", (), {"burned_diagnostic": examples})()),
+    )
+    payload = b'{"claim_eligible":false,"sealed":true}\n'
+    calls: list[tuple[object, ...]] = []
+
+    def run(**kwargs: object) -> bytes:
+        calls.append((kwargs["campaign"], kwargs["burned_examples"], kwargs["device"]))
+        return payload
+
+    monkeypatch.setattr(_MODULE, "run_checkpoint_error_audit", run)
+    assert _MODULE.main(arguments) == 0
+    assert output.read_bytes() == payload
+    assert calls == [(campaign, examples, torch.device("cuda"))]
+    terminal = json.loads(capsys.readouterr().out)
+    assert terminal == {
+        "output": str(output),
+        "sha256": hashlib.sha256(payload).hexdigest(),
+    }
