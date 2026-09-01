@@ -6,6 +6,7 @@ from __future__ import annotations
 import os
 from collections.abc import Callable
 from pathlib import Path
+from typing import Protocol
 
 import numpy as np
 
@@ -16,11 +17,36 @@ from sfora.asgcv_protocol import (
     AsgcvEligibleSchedule,
     AsgcvPairSchedule,
     AsgcvRolloutAuthority,
+    assemble_asgcv_eligible_schedule,
+    classify_asgcv_completion_group,
+    derive_asgcv_rollout_seeds,
     validate_asgcv_protocol_bundle,
 )
 
 ASGCV_CAPTURE_IMAGES = 2
 ASGCV_CAPTURE_PATCHES = 49
+
+
+class EligibilityAdapter(Protocol):
+    """Minimal generation-only capability available to the eligibility phase."""
+
+    def prepare_image_pair(
+        self,
+        images: object,
+        prompt_utf8: object,
+        attribute_token_span: object,
+        patch_tokens_per_image: object,
+    ) -> object: ...
+
+    def generate(
+        self,
+        pair: object,
+        seed: int,
+        *,
+        temperature: float,
+        top_p: float,
+        max_new_tokens: int,
+    ) -> tuple[int, ...]: ...
 
 
 def _capture_paths(directory: Path, ordinal: int) -> tuple[Path, Path, Path]:
@@ -252,3 +278,81 @@ def capture_schedule(
             exact_gradient=gradient,
         )
     return validated_capture_prefix(directory, expected_count=expected)
+
+
+def build_eligibility_schedule(
+    adapter: EligibilityAdapter,
+    *,
+    images: tuple[np.ndarray, ...],
+    prompt_utf8: str,
+    attribute_token_span: tuple[int, int],
+    patch_tokens_per_image: int,
+    protocol: AsgcvCompletionProtocol,
+    rollout_authority: AsgcvRolloutAuthority,
+    candidate_schedule: AsgcvPairSchedule,
+    target_pair_count: int,
+    example_ids: tuple[str, ...],
+    labels: tuple[int, ...],
+) -> tuple[tuple[AsgcvCompletionGroup, ...], AsgcvEligibleSchedule]:
+    """Generate and seal all completion groups before any gradient capability exists."""
+
+    if (
+        type(images) is not tuple
+        or len(images) != len(example_ids)
+        or len(labels) != len(example_ids)
+        or any(
+            type(image) is not np.ndarray
+            or image.dtype != np.dtype(np.uint8)
+            or image.ndim != 3
+            or image.shape[-1] != 3
+            or any(size <= 0 for size in image.shape)
+            for image in images
+        )
+    ):
+        raise ValueError("ASG-CV eligibility image authority differs")
+    groups: list[AsgcvCompletionGroup] = []
+    for pair in candidate_schedule.pairs:
+        prepared = adapter.prepare_image_pair(
+            (images[pair.left_index], images[pair.right_index]),
+            prompt_utf8,
+            attribute_token_span,
+            patch_tokens_per_image,
+        )
+        completions = tuple(
+            adapter.generate(
+                prepared,
+                seed,
+                temperature=rollout_authority.temperature,
+                top_p=rollout_authority.top_p,
+                max_new_tokens=rollout_authority.max_new_tokens,
+            )
+            for seed in derive_asgcv_rollout_seeds(
+                rollout_authority,
+                candidate_pair_ordinal=pair.ordinal,
+            )
+        )
+        groups.append(
+            classify_asgcv_completion_group(
+                completions,
+                pair.relation_sign,
+                protocol,
+                rollout_authority=rollout_authority,
+                candidate_pair_ordinal=pair.ordinal,
+            )
+        )
+    sealed_groups = tuple(groups)
+    eligible = assemble_asgcv_eligible_schedule(
+        candidate_schedule,
+        sealed_groups,
+        target_pair_count=target_pair_count,
+    )
+    validate_asgcv_protocol_bundle(
+        protocol,
+        rollout_authority,
+        candidate_schedule,
+        sealed_groups,
+        eligible,
+        example_ids=example_ids,
+        labels=labels,
+    )
+    return sealed_groups, eligible

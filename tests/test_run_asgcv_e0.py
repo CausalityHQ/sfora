@@ -14,6 +14,7 @@ from sfora.asgcv_protocol import (
     assemble_asgcv_eligible_schedule,
     build_asgcv_pair_schedule,
     classify_asgcv_completion_group,
+    derive_asgcv_rollout_seeds,
 )
 
 _SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "run_asgcv_e0.py"
@@ -225,3 +226,55 @@ def test_capture_schedule_validates_context_and_skips_authenticated_prefix(tmp_p
         )
         == 8
     )
+
+
+def test_eligibility_generates_exact_source_seeded_groups_before_capture() -> None:
+    protocol, rollout, example_ids, labels, candidates, _, _ = _protocol_bundle()
+
+    class Adapter:
+        def __init__(self) -> None:
+            self.group = -1
+            self.calls: list[int] = []
+
+        def prepare_image_pair(self, images: object, *args: object) -> int:
+            assert isinstance(images, tuple) and len(images) == 2
+            assert all(isinstance(image, np.ndarray) for image in images)
+            self.group += 1
+            return self.group
+
+        def generate(self, pair: int, seed: int, **kwargs: object) -> tuple[int, ...]:
+            assert kwargs == {"temperature": 0.7, "top_p": 0.9, "max_new_tokens": 128}
+            self.calls.append(seed)
+            relation = candidates.pairs[pair].relation_sign
+            local = len(self.calls) % 8
+            correct = local in {1, 2, 3, 4}
+            verdict = relation if correct else -relation
+            prefix = (11, 12) if verdict == 1 else (21, 22)
+            return (*prefix, 77, 99)
+
+    adapter = Adapter()
+    images = tuple(np.full((8, 8, 3), index, dtype=np.uint8) for index in range(32))
+    groups, eligible = _MODULE.build_eligibility_schedule(
+        adapter,
+        images=images,
+        prompt_utf8="Describe the relation.",
+        attribute_token_span=(2, 3),
+        patch_tokens_per_image=4,
+        protocol=protocol,
+        rollout_authority=rollout,
+        candidate_schedule=candidates,
+        target_pair_count=8,
+        example_ids=example_ids,
+        labels=labels,
+    )
+    assert len(groups) == 16
+    assert eligible.target_pair_count == 8
+    assert all(group.nonzero_reward_variance for group in groups)
+    assert adapter.calls == [
+        seed
+        for pair in candidates.pairs
+        for seed in derive_asgcv_rollout_seeds(
+            rollout,
+            candidate_pair_ordinal=pair.ordinal,
+        )
+    ]
