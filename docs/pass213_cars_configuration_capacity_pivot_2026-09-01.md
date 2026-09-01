@@ -165,6 +165,36 @@ calibration receipt. Its zero-GPU support estimate must use the joint
 determinate, both-visible fold-1--3 pair rows rather than multiplying marginal
 channel probabilities.
 
+## Rejected data-ceiling and shared-year shortcuts
+
+Do not turn a Qwen `indeterminate` response on a single image into a retrieval
+error lower bound. Model abstention measures the chosen instrument, not Bayes
+error, and `0.5 * count` is not a valid class-imbalanced lower bound. Exact
+cross-class duplicates cannot simply be added to that quantity because the
+sets may overlap and leave-one-out tie behavior depends on duplicate-group
+composition. A calibrated PRISM `cue-fail` remains a stop for the tested
+instrument, not proof that the pixels or labels make strict retrieval
+impossible. It therefore may not be compared to the non-matched `34`-error
+quantity implied by the external `97.4%` anchor.
+
+Do not add a `Shared Refresh Subspace` branch learned from only the Audi S4 and
+Bentley Continental GT 2012/2007 optimization pairs. Two nameplate contrasts
+cannot identify a rank-4--8 shared subspace or select its rank without reading
+the burned Caliber population. Calendar year is also confounded with Cars class
+identity and need not define a common visual direction across brands. The
+already committed seven-plane leave-one-out shrinkage-LDA reachability gate is
+a strictly cheaper and more direct test of whether the Caliber descriptor
+population contains a usable linear cue. A failure closes this restricted
+linear family; a pass routes to the existing bounded PRISM realization rather
+than a second underidentified projection.
+
+Finally, fixing the frozen Caliber pair alone cannot reach the strict
+`34`-error quantity: `103 - 63 = 40`. This arithmetic does not establish a
+global ceiling, because the external target is not protocol matched and the
+trained seed-17 error composition is still unknown. It does require any later
+method hypothesis to address the complete confusion distribution rather than
+only the disclosed dominant pair.
+
 ## ETA and stops
 
 - Remaining serialized SigLIP control: approximately `20–24` hours from the
