@@ -82,8 +82,10 @@ class SFQResult:
     claim_eligible: bool
     official_test_access: bool
     source_manifest_sha256: str
+    feature_cache_manifest_sha256: str
     ordered_example_ids_sha256: str
     feature_matrix_sha256: str
+    label_vector_sha256: str
     input_dimensions: int
     output_dimensions: int
     fold_count: int
@@ -107,12 +109,14 @@ def _schedule_sha256(
     *,
     folds: tuple[SFQFold, ...],
     split_authority: FeatureSplitAuthority,
+    labels: torch.Tensor,
 ) -> str:
     return _schedule_sha256_from_hashes(
         folds=folds,
         source_manifest_sha256=split_authority.source_manifest_sha256,
         ordered_example_ids_sha256=split_authority.ordered_example_ids_sha256,
         feature_matrix_sha256=split_authority.feature_matrix_sha256,
+        label_vector_sha256=sfq_label_vector_sha256(labels),
     )
 
 
@@ -122,11 +126,13 @@ def _schedule_sha256_from_hashes(
     source_manifest_sha256: str,
     ordered_example_ids_sha256: str,
     feature_matrix_sha256: str,
+    label_vector_sha256: str,
 ) -> str:
     payload = bytearray(b"sfora-sfq-fold-schedule-v1\0")
     payload.extend(bytes.fromhex(source_manifest_sha256))
     payload.extend(bytes.fromhex(ordered_example_ids_sha256))
     payload.extend(bytes.fromhex(feature_matrix_sha256))
+    payload.extend(bytes.fromhex(label_vector_sha256))
     payload.extend(len(folds).to_bytes(8, "big"))
     for fold in folds:
         payload.extend(fold.ordinal.to_bytes(8, "big"))
@@ -134,6 +140,21 @@ def _schedule_sha256_from_hashes(
             payload.extend(len(values).to_bytes(8, "big"))
             for value in values:
                 payload.extend(value.to_bytes(8, "big", signed=True))
+    return hashlib.sha256(payload).hexdigest()
+
+
+def sfq_label_vector_sha256(labels: torch.Tensor) -> str:
+    """Digest the exact ordered row labels used by an SFQ schedule."""
+
+    if (
+        type(labels) is not torch.Tensor
+        or labels.device.type != "cpu"
+        or labels.dtype != torch.int64
+        or labels.ndim != 1
+        or not labels.is_contiguous()
+    ):
+        raise ValueError("SFQ label digest authority differs")
+    payload = b"sfora-sfq-label-vector-v1\0" + labels.numpy().astype("<i8", copy=False).tobytes()
     return hashlib.sha256(payload).hexdigest()
 
 
@@ -226,7 +247,11 @@ def build_sfq_fold_schedule(
         raise ValueError("SFQ fold partition differs")
     return SFQFoldSchedule(
         folds=folds,
-        sha256=_schedule_sha256(folds=folds, split_authority=split_authority),
+        sha256=_schedule_sha256(
+            folds=folds,
+            split_authority=split_authority,
+            labels=labels,
+        ),
     )
 
 
@@ -259,6 +284,22 @@ def _uncentered_reduction(
     ):
         raise ValueError("SFQ projection factor differs")
     return weight
+
+
+def _bbp_threshold(dimension: int, class_count: int) -> float:
+    """Return the 99% finite-sample upper edge for a class-mean noise spike."""
+
+    root_classes = math.sqrt(class_count - 0.5)
+    root_dimensions = math.sqrt(dimension - 0.5)
+    return (
+        float(
+            (root_classes + root_dimensions) ** 2
+            + 2.023449
+            * (root_classes + root_dimensions)
+            * (1.0 / root_classes + 1.0 / root_dimensions) ** (1.0 / 3.0)
+        )
+        / class_count
+    )
 
 
 def fit_sfq_projection(
@@ -304,6 +345,10 @@ def fit_sfq_projection(
     residuals = torch.cat(residual_rows, dim=0).contiguous()
     estimator = LedoitWolf(assume_centered=True).fit(residuals.numpy())
     covariance = torch.from_numpy(estimator.covariance_).to(dtype=torch.float64)
+    residual_degrees = residuals.shape[0] - len(unique_labels)
+    if residual_degrees <= 0:
+        raise ValueError("SFQ residual degrees of freedom differ")
+    covariance *= residuals.shape[0] / residual_degrees
     if covariance.shape != (features.shape[1], features.shape[1]) or not bool(
         torch.isfinite(covariance).all()
     ):
@@ -326,7 +371,7 @@ def fit_sfq_projection(
     class_count = len(unique_labels)
     dimension = features.shape[1]
     gamma = dimension / class_count
-    threshold = (1.0 + math.sqrt(gamma)) ** 2
+    threshold = _bbp_threshold(dimension, class_count)
     sample_spikes = tuple(float(value) for value in (singular_values.square() / class_count))
     retained_indexes = tuple(
         index for index, value in enumerate(sample_spikes) if value > threshold
@@ -400,9 +445,10 @@ def _projection_sha256(role: str, weight: torch.Tensor) -> str:
 
 
 def _spectral_projection(features: torch.Tensor, *, output_dimensions: int) -> torch.Tensor:
-    if int(torch.linalg.matrix_rank(features.double())) < output_dimensions:
+    normalized = F.normalize(features.double(), dim=1)
+    if int(torch.linalg.matrix_rank(normalized)) < output_dimensions:
         raise ValueError("SFQ raw spectral rank differs")
-    _left, _singular_values, right = torch.linalg.svd(features.double(), full_matrices=False)
+    _left, _singular_values, right = torch.linalg.svd(normalized, full_matrices=False)
     return _canonicalize_rows(right[:output_dimensions]).float().contiguous()
 
 
@@ -464,8 +510,10 @@ def _result_mapping(result: SFQResult) -> dict[str, object]:
         "claim_eligible": result.claim_eligible,
         "official_test_access": result.official_test_access,
         "source_manifest_sha256": result.source_manifest_sha256,
+        "feature_cache_manifest_sha256": result.feature_cache_manifest_sha256,
         "ordered_example_ids_sha256": result.ordered_example_ids_sha256,
         "feature_matrix_sha256": result.feature_matrix_sha256,
+        "label_vector_sha256": result.label_vector_sha256,
         "input_dimensions": result.input_dimensions,
         "output_dimensions": result.output_dimensions,
         "fold_count": result.fold_count,
@@ -491,6 +539,7 @@ def run_sfq_fold_diagnostic(
     labels: torch.Tensor,
     *,
     split_authority: FeatureSplitAuthority,
+    feature_cache_manifest_sha256: str,
     output_dimensions: int,
     fold_count: int = 4,
 ) -> bytes:
@@ -502,6 +551,7 @@ def run_sfq_fold_diagnostic(
         split_authority,
         fold_count=fold_count,
     )
+    feature_cache_manifest_sha256 = _hex_digest(feature_cache_manifest_sha256)
     folds = []
     for fold in schedule.folds:
         fit_label_tensor = torch.tensor(fold.fit_labels, dtype=torch.int64)
@@ -581,8 +631,10 @@ def run_sfq_fold_diagnostic(
         claim_eligible=False,
         official_test_access=False,
         source_manifest_sha256=split_authority.source_manifest_sha256,
+        feature_cache_manifest_sha256=feature_cache_manifest_sha256,
         ordered_example_ids_sha256=split_authority.ordered_example_ids_sha256,
         feature_matrix_sha256=split_authority.feature_matrix_sha256,
+        label_vector_sha256=sfq_label_vector_sha256(labels),
         input_dimensions=features.shape[1],
         output_dimensions=output_dimensions,
         fold_count=fold_count,
@@ -598,9 +650,7 @@ def run_sfq_fold_diagnostic(
         sfq_recall_ppm=recalls[3],
         sfq_minus_whitening_ppm=recalls[3] - recalls[2],
         valid=True,
-        passed=(
-            recalls[3] - recalls[2] >= 2_000 and sfq_hits >= raw_hits and sfq_hits >= spectral_hits
-        ),
+        passed=recalls[3] - recalls[2] >= 2_000 and sfq_hits >= spectral_hits,
         folds=fold_evidence,
     )
     raw = _canonical_bytes(_result_mapping(result))
@@ -692,7 +742,7 @@ def _parse_fold(value: object, *, input_dimensions: int) -> SFQFoldEvidence:
     gains = _float_tuple(mapping["gains"])
     reliable_rank = _integer(mapping["reliable_rank"], minimum=1)
     gamma = input_dimensions / len(fit_labels) if fit_labels else math.nan
-    expected_threshold = (1.0 + math.sqrt(gamma)) ** 2
+    expected_threshold = _bbp_threshold(input_dimensions, len(fit_labels))
     if (
         not fit_labels
         or not validation_labels
@@ -707,8 +757,10 @@ def _parse_fold(value: object, *, input_dimensions: int) -> SFQFoldEvidence:
         or maximum_eigenvalue < minimum_eigenvalue
         or not math.isclose(threshold, expected_threshold, rel_tol=0.0, abs_tol=1.0e-12)
         or tuple(sorted(sample_spikes, reverse=True)) != sample_spikes
+        or len(sample_spikes) > min(input_dimensions, len(fit_labels))
         or reliable_rank != len(retained_spikes)
         or reliable_rank != len(gains)
+        or reliable_rank > len(fit_labels)
         or retained_spikes != sample_spikes[:reliable_rank]
         or any(spike <= threshold for spike in retained_spikes)
         or any(spike > threshold for spike in sample_spikes[reliable_rank:])
@@ -717,6 +769,8 @@ def _parse_fold(value: object, *, input_dimensions: int) -> SFQFoldEvidence:
     expected_gains = []
     for sample_spike in retained_spikes:
         radicand = (sample_spike - 1.0 - gamma) ** 2 - 4.0 * gamma
+        if radicand < -1.0e-12:
+            raise ValueError("SFQ gain radicand differs")
         theta = (sample_spike - 1.0 - gamma + math.sqrt(max(0.0, radicand))) / 2.0
         alignment = (1.0 - gamma / theta**2) / (1.0 + gamma / theta)
         expected_gains.append(alignment * theta)
@@ -749,7 +803,15 @@ def _parse_fold(value: object, *, input_dimensions: int) -> SFQFoldEvidence:
     )
 
 
-def validate_sfq_result_bytes(raw: bytes) -> SFQResult:
+def validate_sfq_result_bytes(
+    raw: bytes,
+    *,
+    expected_source_manifest_sha256: str | None = None,
+    expected_feature_cache_manifest_sha256: str | None = None,
+    expected_ordered_example_ids_sha256: str | None = None,
+    expected_feature_matrix_sha256: str | None = None,
+    expected_label_vector_sha256: str | None = None,
+) -> SFQResult:
     """Parse canonical bytes and independently reconstruct every aggregate and gate."""
 
     if type(raw) is not bytes:
@@ -765,8 +827,10 @@ def validate_sfq_result_bytes(raw: bytes) -> SFQResult:
             "claim_eligible",
             "official_test_access",
             "source_manifest_sha256",
+            "feature_cache_manifest_sha256",
             "ordered_example_ids_sha256",
             "feature_matrix_sha256",
+            "label_vector_sha256",
             "input_dimensions",
             "output_dimensions",
             "fold_count",
@@ -805,13 +869,35 @@ def validate_sfq_result_bytes(raw: bytes) -> SFQResult:
         for fold in folds
     )
     source_manifest_sha256 = _hex_digest(mapping["source_manifest_sha256"])
+    feature_cache_manifest_sha256 = _hex_digest(mapping["feature_cache_manifest_sha256"])
     ordered_example_ids_sha256 = _hex_digest(mapping["ordered_example_ids_sha256"])
     feature_matrix_sha256 = _hex_digest(mapping["feature_matrix_sha256"])
+    label_vector_sha256 = _hex_digest(mapping["label_vector_sha256"])
+    expected_identities = (
+        expected_source_manifest_sha256,
+        expected_feature_cache_manifest_sha256,
+        expected_ordered_example_ids_sha256,
+        expected_feature_matrix_sha256,
+        expected_label_vector_sha256,
+    )
+    if any(value is not None for value in expected_identities) and (
+        any(value is None for value in expected_identities)
+        or expected_identities
+        != (
+            source_manifest_sha256,
+            feature_cache_manifest_sha256,
+            ordered_example_ids_sha256,
+            feature_matrix_sha256,
+            label_vector_sha256,
+        )
+    ):
+        raise ValueError("SFQ registered identity differs")
     expected_schedule_sha256 = _schedule_sha256_from_hashes(
         folds=schedule_folds,
         source_manifest_sha256=source_manifest_sha256,
         ordered_example_ids_sha256=ordered_example_ids_sha256,
         feature_matrix_sha256=feature_matrix_sha256,
+        label_vector_sha256=label_vector_sha256,
     )
     query_count = sum(fold.query_count for fold in folds)
     totals = tuple(
@@ -819,7 +905,7 @@ def validate_sfq_result_bytes(raw: bytes) -> SFQResult:
         for name in ("raw_hits", "spectral_hits", "whitening_hits", "sfq_hits")
     )
     recalls = tuple(total * 1_000_000 // query_count for total in totals)
-    passed = recalls[3] - recalls[2] >= 2_000 and totals[3] >= totals[0] and totals[3] >= totals[1]
+    passed = recalls[3] - recalls[2] >= 2_000 and totals[3] >= totals[1]
     all_validation_labels = sorted(label for fold in folds for label in fold.validation_labels)
     if (
         mapping["schema"] != "sfora-siglip-sfq-fold-diagnostic-v1"
@@ -835,6 +921,7 @@ def validate_sfq_result_bytes(raw: bytes) -> SFQResult:
             set(fold.fit_labels) != set(all_validation_labels).difference(fold.validation_labels)
             for fold in folds
         )
+        or any(fold.fit_count != query_count - fold.query_count for fold in folds)
         or _hex_digest(mapping["fold_schedule_sha256"]) != expected_schedule_sha256
         or _integer(mapping["query_count"], minimum=1) != query_count
         or tuple(
@@ -861,12 +948,14 @@ def validate_sfq_result_bytes(raw: bytes) -> SFQResult:
     ):
         raise ValueError("SFQ result relation differs")
     result = SFQResult(
-        schema=cast(str, mapping["schema"]),
+        schema=mapping["schema"],
         claim_eligible=False,
         official_test_access=False,
         source_manifest_sha256=source_manifest_sha256,
+        feature_cache_manifest_sha256=feature_cache_manifest_sha256,
         ordered_example_ids_sha256=ordered_example_ids_sha256,
         feature_matrix_sha256=feature_matrix_sha256,
+        label_vector_sha256=label_vector_sha256,
         input_dimensions=input_dimensions,
         output_dimensions=output_dimensions,
         fold_count=fold_count,

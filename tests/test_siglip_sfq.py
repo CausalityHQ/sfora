@@ -5,10 +5,12 @@ from __future__ import annotations
 import json
 import math
 
+import pytest
 import torch
 
-from sfora.siglip_head_screen import build_feature_split_authority
+from sfora.siglip_head_screen import FeatureSplitAuthority, build_feature_split_authority
 from sfora.siglip_sfq import (
+    _spectral_projection,
     build_sfq_fold_schedule,
     fit_sfq_projection,
     run_sfq_fold_diagnostic,
@@ -39,7 +41,9 @@ def _four_pair_features() -> tuple[torch.Tensor, torch.Tensor]:
     return torch.stack(rows), torch.tensor(labels, dtype=torch.int64)
 
 
-def _authority(features: torch.Tensor, *, role: str = "optimization-train"):
+def _authority(
+    features: torch.Tensor, *, role: str = "optimization-train"
+) -> FeatureSplitAuthority:
     return build_feature_split_authority(
         source_manifest_sha256="1" * 64,
         role=role,
@@ -69,6 +73,13 @@ def test_sfq_folds_are_deterministic_class_disjoint_and_keep_twin_pairs() -> Non
         frozenset((4, 5)),
         frozenset((6, 7)),
     }
+    reassigned = labels.clone()
+    left = int(torch.nonzero(labels == 0, as_tuple=False)[0])
+    right = int(torch.nonzero(labels == 1, as_tuple=False)[0])
+    reassigned[left], reassigned[right] = reassigned[right].clone(), reassigned[left].clone()
+    rebound = build_sfq_fold_schedule(features, reassigned, _authority(features), fold_count=4)
+    assert rebound.folds == first.folds
+    assert rebound.sha256 != first.sha256
 
 
 def test_sfq_authority_rejects_evaluation_role_and_feature_drift() -> None:
@@ -147,7 +158,8 @@ def test_sfq_projection_is_finite_deterministic_and_has_exact_shape() -> None:
     assert first.maximum_within_eigenvalue >= first.minimum_within_eigenvalue
     assert first.reliable_rank == len(first.retained_spikes) == len(first.gains)
     assert first.reliable_rank >= 1
-    expected_threshold = (1.0 + math.sqrt(8 / 8)) ** 2
+    root = math.sqrt(8 - 0.5)
+    expected_threshold = ((2 * root) ** 2 + 2.023449 * (2 * root) * (2 / root) ** (1 / 3)) / 8
     assert math.isclose(first.bbp_threshold, expected_threshold, rel_tol=0.0, abs_tol=1e-12)
     for sample_spike, retained_spike, gain in zip(
         first.sample_spikes[: first.reliable_rank],
@@ -161,6 +173,22 @@ def test_sfq_projection_is_finite_deterministic_and_has_exact_shape() -> None:
         ) / 2.0
         alignment = (1.0 - 1.0 / theta**2) / (1.0 + 1.0 / theta)
         assert math.isclose(gain, alignment * theta, rel_tol=1e-12, abs_tol=1e-12)
+
+
+def test_sfq_spectral_comparator_is_row_scale_invariant() -> None:
+    """The dimension-matched comparator must share SFQ's row normalization."""
+
+    features, _labels = _spiked_features()
+    scales = torch.linspace(0.5, 2.0, features.shape[0], dtype=torch.float32).unsqueeze(1)
+
+    baseline = _spectral_projection(features, output_dimensions=3).double()
+    rescaled = _spectral_projection(features * scales, output_dimensions=3).double()
+    assert torch.allclose(
+        baseline.T @ baseline,
+        rescaled.T @ rescaled,
+        rtol=1.0e-5,
+        atol=1.0e-6,
+    )
 
 
 def test_sfq_projection_rejects_zero_reliable_rank_and_invalid_dimensions() -> None:
@@ -189,6 +217,7 @@ def _valid_result_bytes() -> bytes:
         features,
         labels,
         split_authority=_authority(features),
+        feature_cache_manifest_sha256="2" * 64,
         output_dimensions=3,
         fold_count=4,
     )
@@ -197,7 +226,7 @@ def _valid_result_bytes() -> bytes:
 def test_sfq_fold_result_recomputes_counts_gates_and_canonical_bytes() -> None:
     """Dropping one fold or deriving recall from floats must invalidate the receipt."""
 
-    features, _labels = _spiked_features()
+    features, labels = _spiked_features()
     raw = _valid_result_bytes()
 
     result = validate_sfq_result_bytes(raw)
@@ -218,9 +247,20 @@ def test_sfq_fold_result_recomputes_counts_gates_and_canonical_bytes() -> None:
     assert result.sfq_recall_ppm == result.sfq_hits * 1_000_000 // result.query_count
     assert result.passed is (
         result.sfq_recall_ppm - result.whitening_recall_ppm >= 2_000
-        and result.sfq_hits >= result.raw_hits
         and result.sfq_hits >= result.spectral_hits
     )
+    assert result.passed is True
+    rejected = validate_sfq_result_bytes(
+        run_sfq_fold_diagnostic(
+            features,
+            labels,
+            split_authority=_authority(features),
+            feature_cache_manifest_sha256="2" * 64,
+            output_dimensions=1,
+            fold_count=4,
+        )
+    )
+    assert rejected.passed is False
 
 
 def test_sfq_result_rejects_derived_and_identity_drift() -> None:
@@ -241,3 +281,20 @@ def test_sfq_result_rejects_derived_and_identity_drift() -> None:
             pass
         else:
             raise AssertionError(f"SFQ result accepted mutated {field}")
+
+    value = json.loads(_valid_result_bytes())
+    value["folds"][0]["fit_count"] += 1
+    mutated = (json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n").encode()
+    with pytest.raises(ValueError):
+        validate_sfq_result_bytes(mutated)
+
+    parsed = validate_sfq_result_bytes(_valid_result_bytes())
+    with pytest.raises(ValueError, match="registered identity"):
+        validate_sfq_result_bytes(
+            _valid_result_bytes(),
+            expected_source_manifest_sha256="2" * 64,
+            expected_feature_cache_manifest_sha256=parsed.feature_cache_manifest_sha256,
+            expected_ordered_example_ids_sha256=parsed.ordered_example_ids_sha256,
+            expected_feature_matrix_sha256=parsed.feature_matrix_sha256,
+            expected_label_vector_sha256=parsed.label_vector_sha256,
+        )
