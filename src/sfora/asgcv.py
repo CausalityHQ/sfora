@@ -26,6 +26,7 @@ ASGCV_STRATUM_SIZE = 8
 ASGCV_PREDICTOR_RANK = 16
 ASGCV_SELECTION_POLICY = "one-uniform-index-per-eight-pair-stratum-v1"
 ASGCV_E0_SCHEMA = "sfora-asgcv-e0-metrics-v1"
+ASGCV_E0_CAPACITY_FLOOR_SCHEMA = "sfora-asgcv-e0-capacity-floor-v1"
 ASGCV_E0_RESULT_SCHEMA = "sfora-asgcv-e0-result-v1"
 ASGCV_E0_ARRAY_DOMAIN = b"sfora-asgcv-e0-array-v1\0"
 ASGCV_GRADIENT_SAMPLE_SCHEMA = "sfora-asgcv-gradient-sample-v2"
@@ -39,6 +40,7 @@ ASGCV_PRECLIP_P99_RATIO_GATE_PPM = 2_000_000
 ASGCV_CLIP_RATE_DELTA_GATE_PPM = 50_000
 ASGCV_SEMANTIC_WALL_RATIO_GATE_PPM = 350_000
 ASGCV_GLOBAL_CLIP_NORM = 1.0
+ASGCV_E0_CAPACITY_MINIMUM_PAIRS = 64
 ASGCV_SELECTION_DOMAIN = b"sfora-asgcv-selection-v1\0"
 ASGCV_SCHEDULE_DOMAIN = b"sfora-asgcv-schedule-v1\0"
 ASGCV_MAX_SCHEDULE_SELECTIONS = 10_000_000
@@ -579,6 +581,144 @@ class AsgcvE0Metrics:
             semantic_wall_ratio_ppm=value["semantic_wall_ratio_ppm"],
             passed=value["passed"],
         ).validated()
+
+
+@dataclass(frozen=True, slots=True)
+class AsgcvE0CapacityFloor:
+    """Query-independent lower bounds on achievable predictor residual energy."""
+
+    pair_count: int
+    conditional_variance_floor_ppm: int
+    fixed_channel_residual_floor_ppm: int
+    per_sample_rank_residual_floor_ppm: int
+    passed: bool
+
+    def validated(self) -> AsgcvE0CapacityFloor:
+        if (
+            type(self.pair_count) is not int
+            or self.pair_count < ASGCV_E0_CAPACITY_MINIMUM_PAIRS
+            or self.pair_count % ASGCV_STRATUM_SIZE != 0
+        ):
+            raise ValueError("ASG-CV E0 capacity pair count differs")
+        metric_names = (
+            "conditional_variance_floor_ppm",
+            "fixed_channel_residual_floor_ppm",
+            "per_sample_rank_residual_floor_ppm",
+        )
+        if any(
+            type(getattr(self, name)) is not int or getattr(self, name) < 0
+            for name in metric_names
+        ):
+            raise ValueError("ASG-CV E0 capacity metric differs")
+        expected_pass = all(
+            getattr(self, name) <= ASGCV_RESIDUAL_ENERGY_GATE_PPM for name in metric_names
+        )
+        if type(self.passed) is not bool or self.passed is not expected_pass:
+            raise ValueError("ASG-CV E0 capacity pass gate differs")
+        return self
+
+    def to_mapping(self) -> dict[str, object]:
+        self.validated()
+        return {
+            "schema": ASGCV_E0_CAPACITY_FLOOR_SCHEMA,
+            "pair_count": self.pair_count,
+            "conditional_variance_floor_ppm": self.conditional_variance_floor_ppm,
+            "fixed_channel_residual_floor_ppm": self.fixed_channel_residual_floor_ppm,
+            "per_sample_rank_residual_floor_ppm": self.per_sample_rank_residual_floor_ppm,
+            "passed": self.passed,
+        }
+
+    @classmethod
+    def from_mapping(cls, value: object) -> AsgcvE0CapacityFloor:
+        expected_keys = {
+            "schema",
+            "pair_count",
+            "conditional_variance_floor_ppm",
+            "fixed_channel_residual_floor_ppm",
+            "per_sample_rank_residual_floor_ppm",
+            "passed",
+        }
+        if (
+            type(value) is not dict
+            or set(value) != expected_keys
+            or value["schema"] != ASGCV_E0_CAPACITY_FLOOR_SCHEMA
+            or type(value["schema"]) is not str
+        ):
+            raise ValueError("ASG-CV E0 capacity schema differs")
+        return cls(
+            pair_count=value["pair_count"],
+            conditional_variance_floor_ppm=value["conditional_variance_floor_ppm"],
+            fixed_channel_residual_floor_ppm=value["fixed_channel_residual_floor_ppm"],
+            per_sample_rank_residual_floor_ppm=value[
+                "per_sample_rank_residual_floor_ppm"
+            ],
+            passed=value["passed"],
+        ).validated()
+
+
+def evaluate_e0_capacity_floor(
+    first_seed_gradients: object,
+    second_seed_gradients: object,
+) -> AsgcvE0CapacityFloor:
+    """Measure variance and rank floors before fitting the ASG-CV predictor."""
+
+    first = _require_float64_array(
+        first_seed_gradients,
+        name="E0 first-seed gradient batch",
+        dimensions=4,
+    )
+    second = _require_float64_array(
+        second_seed_gradients,
+        name="E0 second-seed gradient batch",
+        dimensions=4,
+    )
+    if (
+        first.shape != second.shape
+        or first.shape[0] < ASGCV_E0_CAPACITY_MINIMUM_PAIRS
+        or first.shape[1] != 2
+    ):
+        raise ValueError("ASG-CV E0 capacity batch shape differs")
+    first_energy = float(np.square(first).sum(dtype=np.float64))
+    second_energy = float(np.square(second).sum(dtype=np.float64))
+    total_energy = first_energy + second_energy
+    if not math.isfinite(total_energy) or total_energy <= 0.0:
+        raise ValueError("ASG-CV E0 capacity energy differs")
+    conditional_floor = float(
+        np.square(first - second).sum(dtype=np.float64) / total_energy
+    )
+
+    combined = np.concatenate((first, second), axis=0)
+    channel_matrix = combined.reshape(-1, combined.shape[-1])
+    channel_singular_values = np.linalg.svd(channel_matrix, compute_uv=False)
+    fixed_residual_energy = float(
+        np.square(channel_singular_values[ASGCV_PREDICTOR_RANK :]).sum(
+            dtype=np.float64
+        )
+    )
+    fixed_floor = fixed_residual_energy / total_energy
+
+    per_sample_residual_energy = 0.0
+    for sample in combined:
+        singular_values = np.linalg.svd(
+            sample.reshape(-1, sample.shape[-1]),
+            compute_uv=False,
+        )
+        per_sample_residual_energy += float(
+            np.square(singular_values[ASGCV_PREDICTOR_RANK :]).sum(dtype=np.float64)
+        )
+    per_sample_floor = per_sample_residual_energy / total_energy
+    metrics = {
+        "pair_count": first.shape[0],
+        "conditional_variance_floor_ppm": _ratio_ppm(conditional_floor),
+        "fixed_channel_residual_floor_ppm": _ratio_ppm(fixed_floor),
+        "per_sample_rank_residual_floor_ppm": _ratio_ppm(per_sample_floor),
+    }
+    passed = all(
+        value <= ASGCV_RESIDUAL_ENERGY_GATE_PPM
+        for name, value in metrics.items()
+        if name != "pair_count"
+    )
+    return AsgcvE0CapacityFloor(**metrics, passed=passed).validated()
 
 
 def _median_cosine(exact: Float64Array, predicted: Float64Array) -> float:

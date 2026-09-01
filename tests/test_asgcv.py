@@ -8,11 +8,13 @@ import pytest
 
 from sfora.asgcv import (
     AsgcvAuthority,
+    AsgcvE0CapacityFloor,
     AsgcvSrhtAuthority,
     asgcv_stratum_gradient,
     canonical_e0_result_bytes,
     canonical_gradient_sample_bytes,
     evaluate_e0,
+    evaluate_e0_capacity_floor,
     exhaustive_selection_mean,
     low_rank_gradient_field,
     normalized_residual_energy,
@@ -120,6 +122,73 @@ def test_residual_energy_and_selection_variance_have_exact_controls() -> None:
         normalized_residual_energy(np.zeros_like(exact), np.zeros_like(exact))
     with pytest.raises(ValueError):
         selection_variance_ratio(np.ones_like(exact), np.ones_like(exact))
+
+
+def test_e0_capacity_floor_closes_impossible_predictor_families() -> None:
+    low_rank = np.zeros((64, 2, 3, 17), dtype=np.float64)
+    low_rank[:, :, :, 0] = (
+        np.arange(64 * 2 * 3, dtype=np.float64).reshape(64, 2, 3) + 1.0
+    )
+    viable = evaluate_e0_capacity_floor(low_rank, low_rank.copy())
+    assert viable == AsgcvE0CapacityFloor(
+        pair_count=64,
+        conditional_variance_floor_ppm=0,
+        fixed_channel_residual_floor_ppm=0,
+        per_sample_rank_residual_floor_ppm=0,
+        passed=True,
+    ).validated()
+    assert type(viable).from_mapping(viable.to_mapping()) == viable
+
+    noisy = evaluate_e0_capacity_floor(low_rank, -low_rank)
+    assert noisy.conditional_variance_floor_ppm == 2_000_000
+    assert noisy.passed is False
+
+    rotating_channels = np.zeros((64, 2, 1, 32), dtype=np.float64)
+    for pair_index in range(64):
+        rotating_channels[pair_index, :, 0, pair_index % 32] = 1.0
+    fixed_only = evaluate_e0_capacity_floor(
+        rotating_channels,
+        rotating_channels.copy(),
+    )
+    assert 500_000 <= fixed_only.fixed_channel_residual_floor_ppm <= 500_001
+    assert fixed_only.per_sample_rank_residual_floor_ppm == 0
+    assert fixed_only.passed is False
+
+    identity = np.broadcast_to(
+        np.eye(32, dtype=np.float64),
+        (64, 2, 32, 32),
+    ).copy()
+    rank_limited = evaluate_e0_capacity_floor(identity, identity.copy())
+    assert 500_000 <= rank_limited.fixed_channel_residual_floor_ppm <= 500_001
+    assert 500_000 <= rank_limited.per_sample_rank_residual_floor_ppm <= 500_001
+    assert rank_limited.passed is False
+
+    for mutation in (
+        {**viable.to_mapping(), "pair_count": 63},
+        {**viable.to_mapping(), "pair_count": 65},
+        {**viable.to_mapping(), "conditional_variance_floor_ppm": -1},
+        {**viable.to_mapping(), "fixed_channel_residual_floor_ppm": True},
+        {**viable.to_mapping(), "passed": False},
+        {**viable.to_mapping(), "extra": 1},
+    ):
+        with pytest.raises(ValueError):
+            type(viable).from_mapping(mutation)
+
+
+def test_e0_capacity_floor_rejects_dtype_shape_finiteness_and_zero_energy() -> None:
+    gradients = np.ones((64, 2, 2, 17), dtype=np.float64)
+    for first, second in (
+        (gradients.astype(np.float32), gradients),
+        (gradients, gradients[:, :, :, :-1]),
+        (gradients[:, :1], gradients[:, :1]),
+        (np.zeros_like(gradients), np.zeros_like(gradients)),
+    ):
+        with pytest.raises(ValueError):
+            evaluate_e0_capacity_floor(first, second)
+    nonfinite = gradients.copy()
+    nonfinite[0, 0, 0] = np.nan
+    with pytest.raises(ValueError):
+        evaluate_e0_capacity_floor(nonfinite, gradients)
 
 
 def test_low_rank_field_uses_registered_orientation_and_float64_accumulation() -> None:

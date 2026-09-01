@@ -231,6 +231,21 @@ is a terminal rather than an adaptive resample. Predictor training and
 validation use disjoint Cars training class bands, which also guarantees
 disjoint image identities; official Cars test classes remain inaccessible.
 
+Before predictor fitting, a sealed capacity pilot uses `64` eligible pairs and
+two independently derived rollout-seed blocks per pair. Three lower bounds are
+computed from the exact `[pair, image, patch, channel]` gradient fields:
+
+- the paired-seed conditional-variance floor
+  `sum ||g-g'||^2 / sum (||g||^2+||g'||^2)`;
+- the residual energy outside the best fixed rank-16 channel subspace over all
+  captured fields;
+- the residual energy outside the best rank-16 matrix approximation of each
+  captured pair field, aggregated by gradient energy.
+
+Each lower bound must be at most `0.35`. A failure closes this predictor family
+before fitting or retrieval; the rank, sample count, and seed blocks are not
+adapted after observing the pilot.
+
 - median dense gradient cosine at least `0.85`;
 - median SRHT-projected gradient cosine at least `0.90`;
 - patch-salience Spearman correlation at least `0.80`;
