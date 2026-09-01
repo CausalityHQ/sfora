@@ -9,13 +9,16 @@ import pytest
 from sfora.asgcv import (
     AsgcvSrhtAuthority,
     canonical_e0_result_bytes,
+    canonical_gradient_sample_bytes,
     select_stratum_index,
 )
 from sfora.asgcv_bias import (
+    canonical_e0_relation_audit_bytes,
     canonical_e0_selection_audit_bytes,
     projected_mean_error_potentials,
     randomization_mean_p_value_ppm,
     randomization_selection_indices,
+    validate_e0_relation_audit_bytes,
     validate_e0_selection_audit_bytes,
 )
 
@@ -230,3 +233,88 @@ def test_projected_selection_bias_z_matches_diagonal_free_closed_form() -> None:
         canonical_e0_selection_audit_bytes(result, exact=exact, predicted=predicted)
     )
     assert audit["selection_independence_z_ppm"] == expected
+
+
+def _relation_receipts(exact: np.ndarray) -> tuple[bytes, ...]:
+    flat = exact.astype(np.float32).reshape(-1, *exact.shape[2:])
+    return tuple(
+        canonical_gradient_sample_bytes(
+            source_commit="1" * 40,
+            model_revision="7" * 40,
+            fixture_sha256="8" * 64,
+            completion_group_sha256=f"{ordinal + 1:064x}",
+            completion_protocol_sha256="9" * 64,
+            eligible_schedule_sha256="a" * 64,
+            pooler_state_sha256="b" * 64,
+            predictor_state_sha256="4" * 64,
+            eligible_pair_ordinal=ordinal,
+            candidate_pair_ordinal=ordinal,
+            pair_ordinals=(ordinal * 2, ordinal * 2 + 1),
+            relation_sign=1 if ordinal % 2 == 0 else -1,
+            grpo_loss=0.0,
+            attention_kl=0.0,
+            generated_tokens=1,
+            patch_tokens=np.ones(exact.shape[2:], dtype=np.float32),
+            exact_gradient=flat[ordinal],
+        )
+        for ordinal in range(flat.shape[0])
+    )
+
+
+def test_relation_audit_binds_custody_and_detects_relation_specific_bias() -> None:
+    exact32 = np.arange(64 * 8 * 2 * 3 * 4, dtype=np.float32).reshape(64, 8, 2, 3, 4) / np.float32(
+        17.0
+    )
+    exact = exact32.astype(np.float64)
+    srht = AsgcvSrhtAuthority(
+        input_dimensions=4,
+        padded_dimensions=4,
+        output_dimensions=2,
+        seed_sha256="78" * 32,
+    ).validated()
+    receipts = _relation_receipts(exact)
+    perfect_result = _selection_audit_result(exact, exact.copy(), srht)
+    perfect = validate_e0_relation_audit_bytes(
+        canonical_e0_relation_audit_bytes(
+            perfect_result,
+            exact=exact,
+            predicted=exact.copy(),
+            sample_receipts=receipts,
+        )
+    )
+    assert perfect["positive_selection_p_value_ppm"] == 1_000_000
+    assert perfect["negative_selection_p_value_ppm"] == 1_000_000
+    assert perfect["relation_residual_contrast_ppm"] == 0
+    assert perfect["positive_selected_count"] + perfect["negative_selected_count"] == 64
+
+    predicted = exact.copy()
+    for stratum in range(64):
+        selected = select_stratum_index(
+            "ab" * 32,
+            optimizer_step=0,
+            stratum_ordinal=stratum,
+        )
+        if selected % 2 == 0:
+            predicted[stratum, selected, 0, 0, 0] += 10.0
+        predicted[stratum, 0::2, 0, 0, 0] += 1.0
+    result = _selection_audit_result(exact, predicted, srht)
+    observed = validate_e0_relation_audit_bytes(
+        canonical_e0_relation_audit_bytes(
+            result,
+            exact=exact,
+            predicted=predicted,
+            sample_receipts=receipts,
+        )
+    )
+    assert observed["positive_selection_p_value_ppm"] < 20_000
+    assert observed["relation_residual_contrast_ppm"] > 0
+
+    changed = list(receipts)
+    changed[0], changed[1] = changed[1], changed[0]
+    with pytest.raises(ValueError):
+        canonical_e0_relation_audit_bytes(
+            result,
+            exact=exact,
+            predicted=predicted,
+            sample_receipts=tuple(changed),
+        )

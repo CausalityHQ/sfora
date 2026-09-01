@@ -16,7 +16,9 @@ from sfora.asgcv import (
     select_stratum_index,
     srht_gradient_sketch,
     validate_e0_result_inputs,
+    validate_gradient_sample_bytes,
 )
+from sfora.asgcv_custody import canonical_e0_custody_bytes, validate_e0_custody_bytes
 
 ASGCV_MEAN_NULL_DOMAIN = b"sfora-asgcv-e0-mean-null-v1\0"
 ASGCV_MEAN_RANDOMIZATION_DRAWS = 10_000
@@ -25,6 +27,9 @@ ASGCV_RANDOMIZATION_BLOCK_DRAWS = 256
 ASGCV_PATCH_SIGN_DOMAIN = b"sfora-asgcv-e0-patch-sign-v1\0"
 ASGCV_NULL_SEED_DOMAIN = b"sfora-asgcv-e0-mean-null-seed-v1\0"
 ASGCV_SELECTION_AUDIT_SCHEMA = "sfora-asgcv-e0-selection-audit-v1"
+ASGCV_RELATION_AUDIT_SCHEMA = "sfora-asgcv-e0-relation-audit-v1"
+ASGCV_RELATION_NULL_SEED_DOMAIN = b"sfora-asgcv-e0-relation-null-seed-v1\0"
+ASGCV_RELATION_MINIMUM_SELECTED_STRATA = 16
 
 
 def _canonical_json_bytes(value: dict[str, object]) -> bytes:
@@ -89,7 +94,7 @@ def randomization_mean_p_value_ppm(
         or potential_errors.ndim != 3
         or potential_errors.shape[0] <= 0
         or potential_errors.shape[0] > ASGCV_MAX_BIAS_STRATA
-        or potential_errors.shape[1] != 8
+        or potential_errors.shape[1] not in {4, 8}
         or potential_errors.shape[2] <= 0
         or not bool(np.isfinite(potential_errors).all())
     ):
@@ -99,13 +104,13 @@ def randomization_mean_p_value_ppm(
         type(observed_indices) is not np.ndarray
         or observed_indices.dtype != np.dtype(np.uint8)
         or observed_indices.shape != (stratum_count,)
-        or bool((observed_indices >= 8).any())
+        or bool((observed_indices >= potential_errors.shape[1]).any())
         or type(null_indices) is not np.ndarray
         or null_indices.dtype != np.dtype(np.uint8)
         or null_indices.ndim != 2
         or null_indices.shape[0] <= 0
         or null_indices.shape[1] != stratum_count
-        or bool((null_indices >= 8).any())
+        or bool((null_indices >= potential_errors.shape[1]).any())
     ):
         raise ValueError("ASG-CV bias selection indices differ")
     centered = potential_errors - np.mean(potential_errors, axis=1, keepdims=True)
@@ -371,4 +376,191 @@ def validate_e0_selection_audit_bytes(raw: bytes) -> dict[str, object]:
     digest = unsigned.pop("audit_sha256")
     if hashlib.sha256(_canonical_json_bytes(unsigned)).hexdigest() != digest:
         raise ValueError("ASG-CV selection audit digest differs")
+    return value
+
+
+def _relation_sign_p_value_ppm(
+    potentials: NDArray[np.float64],
+    signs: NDArray[np.int8],
+    observed_indices: NDArray[np.uint8],
+    *,
+    relation_sign: int,
+    null_seed_sha256: str,
+) -> tuple[int, int]:
+    selected_signs = signs[np.arange(signs.shape[0]), observed_indices]
+    selected_strata = np.flatnonzero(selected_signs == relation_sign)
+    if selected_strata.size < ASGCV_RELATION_MINIMUM_SELECTED_STRATA:
+        raise ValueError("ASG-CV relation audit selected-stratum count differs")
+    relation_potentials = np.stack(
+        [potentials[stratum, signs[stratum] == relation_sign] for stratum in selected_strata]
+    )
+    local_observed = np.fromiter(
+        (
+            int(
+                np.flatnonzero(
+                    np.flatnonzero(signs[stratum] == relation_sign) == observed_indices[stratum]
+                )[0]
+            )
+            for stratum in selected_strata
+        ),
+        dtype=np.uint8,
+        count=selected_strata.size,
+    )
+    null_indices = randomization_selection_indices(
+        null_seed_sha256,
+        draw_count=ASGCV_MEAN_RANDOMIZATION_DRAWS,
+        stratum_count=selected_strata.size,
+    ) & np.uint8(3)
+    return (
+        int(selected_strata.size),
+        randomization_mean_p_value_ppm(
+            relation_potentials,
+            local_observed,
+            null_indices,
+        ),
+    )
+
+
+def canonical_e0_relation_audit_bytes(
+    e0_result: bytes,
+    *,
+    exact: object,
+    predicted: object,
+    sample_receipts: object,
+) -> bytes:
+    """Bind relation-conditioned finite-sample bias evidence to E0 custody."""
+
+    result = validate_e0_result_inputs(e0_result, exact=exact, predicted=predicted)
+    custody_raw = canonical_e0_custody_bytes(
+        e0_result=e0_result,
+        exact=exact,
+        predicted=predicted,
+        sample_receipts=sample_receipts,
+    )
+    custody = validate_e0_custody_bytes(custody_raw)
+    if type(sample_receipts) is not tuple:
+        raise ValueError("ASG-CV relation audit sample receipts differ")
+    receipt_values = [validate_gradient_sample_bytes(raw) for raw in sample_receipts]
+    exact_array = np.asarray(exact)
+    predicted_array = np.asarray(predicted)
+    strata = exact_array.shape[0]
+    signs = np.asarray(
+        [value["relation_sign"] for value in receipt_values],
+        dtype=np.int8,
+    ).reshape(strata, ASGCV_STRATUM_SIZE)
+    srht = AsgcvSrhtAuthority.from_mapping(result["srht_authority"])
+    potentials = projected_mean_error_potentials(exact_array, predicted_array, srht)
+    selection_seed = result["selection_seed_sha256"]
+    result_digest = result["result_sha256"]
+    if type(selection_seed) is not str or type(result_digest) is not str:
+        raise ValueError("ASG-CV relation audit result authority differs")
+    observed_indices = np.fromiter(
+        (
+            select_stratum_index(
+                selection_seed,
+                optimizer_step=0,
+                stratum_ordinal=ordinal,
+            )
+            for ordinal in range(strata)
+        ),
+        dtype=np.uint8,
+        count=strata,
+    )
+    null_seed = hashlib.sha256(
+        ASGCV_RELATION_NULL_SEED_DOMAIN + bytes.fromhex(result_digest)
+    ).hexdigest()
+    positive_count, positive_p = _relation_sign_p_value_ppm(
+        potentials,
+        signs,
+        observed_indices,
+        relation_sign=1,
+        null_seed_sha256=null_seed,
+    )
+    negative_count, negative_p = _relation_sign_p_value_ppm(
+        potentials,
+        signs,
+        observed_indices,
+        relation_sign=-1,
+        null_seed_sha256=null_seed,
+    )
+    positive_mean = np.mean(potentials[signs == 1], axis=0, dtype=np.float64)
+    negative_mean = np.mean(potentials[signs == -1], axis=0, dtype=np.float64)
+    contrast = float(np.linalg.norm(positive_mean - negative_mean))
+    exact_estimates = np.mean(exact_array, axis=1, dtype=np.float64).reshape(strata, -1)
+    scale = math.sqrt(float(np.mean(np.einsum("ij,ij->i", exact_estimates, exact_estimates))))
+    if not math.isfinite(contrast) or not math.isfinite(scale) or scale <= 0.0:
+        raise ValueError("ASG-CV relation audit contrast differs")
+    contrast_ppm = int(math.ceil(contrast / scale * 1_000_000))
+    payload: dict[str, object] = {
+        "schema": ASGCV_RELATION_AUDIT_SCHEMA,
+        "claim_eligible": False,
+        "e0_result_sha256": result_digest,
+        "custody_sha256": custody["custody_sha256"],
+        "null_seed_sha256": null_seed,
+        "randomization_draws": ASGCV_MEAN_RANDOMIZATION_DRAWS,
+        "positive_selected_count": positive_count,
+        "negative_selected_count": negative_count,
+        "positive_selection_p_value_ppm": positive_p,
+        "negative_selection_p_value_ppm": negative_p,
+        "relation_residual_contrast_ppm": contrast_ppm,
+    }
+    payload["audit_sha256"] = hashlib.sha256(_canonical_json_bytes(payload)).hexdigest()
+    return _canonical_json_bytes(payload)
+
+
+def validate_e0_relation_audit_bytes(raw: bytes) -> dict[str, object]:
+    """Validate a canonical relation-conditioned E0 audit receipt."""
+
+    try:
+        value = json.loads(raw)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError("ASG-CV relation audit is not canonical JSON") from error
+    expected = {
+        "schema",
+        "claim_eligible",
+        "e0_result_sha256",
+        "custody_sha256",
+        "null_seed_sha256",
+        "randomization_draws",
+        "positive_selected_count",
+        "negative_selected_count",
+        "positive_selection_p_value_ppm",
+        "negative_selection_p_value_ppm",
+        "relation_residual_contrast_ppm",
+        "audit_sha256",
+    }
+    if (
+        type(value) is not dict
+        or set(value) != expected
+        or _canonical_json_bytes(value) != raw
+        or value["schema"] != ASGCV_RELATION_AUDIT_SCHEMA
+        or value["claim_eligible"] is not False
+        or value["randomization_draws"] != ASGCV_MEAN_RANDOMIZATION_DRAWS
+        or type(value["randomization_draws"]) is not int
+        or any(
+            type(value[name]) is not int or value[name] < ASGCV_RELATION_MINIMUM_SELECTED_STRATA
+            for name in ("positive_selected_count", "negative_selected_count")
+        )
+        or any(
+            type(value[name]) is not int or not 0 <= value[name] <= 1_000_000
+            for name in (
+                "positive_selection_p_value_ppm",
+                "negative_selection_p_value_ppm",
+            )
+        )
+        or type(value["relation_residual_contrast_ppm"]) is not int
+        or value["relation_residual_contrast_ppm"] < 0
+    ):
+        raise ValueError("ASG-CV relation audit authority differs")
+    for name in (
+        "e0_result_sha256",
+        "custody_sha256",
+        "null_seed_sha256",
+        "audit_sha256",
+    ):
+        _seed_bytes(value[name])
+    unsigned = dict(value)
+    digest = unsigned.pop("audit_sha256")
+    if hashlib.sha256(_canonical_json_bytes(unsigned)).hexdigest() != digest:
+        raise ValueError("ASG-CV relation audit digest differs")
     return value

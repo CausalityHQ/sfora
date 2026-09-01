@@ -300,7 +300,12 @@ adapted after observing the pilot.
   mean-agreement gate and are not adaptive pass thresholds;
 - no systematic class or relation-sign bias, evaluated only after exact
   receipt custody joins every eligible row to its sealed class/relation
-  authority;
+  authority. The relation audit binds the complete custody digest, reports
+  separate source-derived `10,000`-draw within-sign selection p-values for the
+  realized positive and negative subsets, and reports the normalized projected
+  residual-mean contrast between signs. These are claim-ineligible diagnostics,
+  not post-hoc pass thresholds; class-stratified evidence additionally requires
+  the sealed eligible schedule join;
 - projected semantic wall time at most `0.35` times the measured SAGA semantic
   wall time, with peak memory inside the GB10 envelope.
 
