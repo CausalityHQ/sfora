@@ -21,6 +21,11 @@ import torch
 import torch.nn.functional as torch_functional
 
 from sfora.asgcv_protocol import AsgcvCompletionGroup
+from sfora.asgcv_verdict_marginal import (
+    collapsed_verdict_coefficient,
+    collapsed_verdict_probability,
+    torch_collapsed_grpo_verdict_loss,
+)
 from sfora.pass209_m4 import canonical_json_bytes
 from sfora.saga_feasibility import (
     FeasibilityEvidence,
@@ -177,6 +182,22 @@ class PatchGradientTarget:
     replay_branch_count: int
     attention_kl: float
     teacher_gradient_parameters: int
+
+
+@dataclass(frozen=True, slots=True)
+class VerdictMarginalTarget:
+    """Two-branch collapsed-verdict complete-cut control field."""
+
+    patch_tokens: torch.Tensor
+    predicted_gradient: torch.Tensor
+    boundary_names: tuple[str, ...]
+    boundary_patch_tokens: torch.Tensor
+    boundary_predicted_gradient: torch.Tensor
+    correct_probability: float
+    coefficient: float
+    branch_scores: tuple[float, float]
+    branch_count: int
+    generated_tokens: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -782,6 +803,153 @@ class QwenSagaAdapter:
                 replay_branch_count=len(captured["merger"]),
                 attention_kl=float(attention_kl.detach()),
                 teacher_gradient_parameters=int(teacher.grad is not None),
+            )
+        finally:
+            for handle in handles:
+                handle.remove()
+            self.clear_graphs()
+
+    def collapsed_verdict_patch_gradient(
+        self,
+        pair: object,
+        *,
+        correct_completion_ids: tuple[int, ...],
+        incorrect_completion_ids: tuple[int, ...],
+    ) -> VerdictMarginalTarget:
+        """Capture a two-branch Rao-Blackwellized verdict control field."""
+
+        completions = (correct_completion_ids, incorrect_completion_ids)
+        if (
+            type(pair) is not PreparedPair
+            or any(
+                type(completion) is not tuple
+                or not completion
+                or any(type(token) is not int or token < 0 for token in completion)
+                for completion in completions
+            )
+        ):
+            raise ValueError("SAGA collapsed verdict completion authority differs")
+        if correct_completion_ids == incorrect_completion_ids:
+            raise ValueError("SAGA collapsed verdict branch authority differs")
+        model = getattr(self._model, "model", None)
+        visual = getattr(model, "visual", None)
+        merger = getattr(visual, "merger", None)
+        deepstack_mergers = getattr(visual, "deepstack_merger_list", None)
+        if not isinstance(merger, torch.nn.Module):
+            raise ValueError("SAGA vision merger authority differs")
+        if (
+            not isinstance(deepstack_mergers, torch.nn.ModuleList)
+            or len(deepstack_mergers) != 3
+            or any(not isinstance(module, torch.nn.Module) for module in deepstack_mergers)
+        ):
+            raise ValueError("SAGA DeepStack merger authority differs")
+        boundary_names = ("merger", "deepstack-0", "deepstack-1", "deepstack-2")
+        boundary_modules = (merger, *tuple(deepstack_mergers))
+        captured: dict[str, list[torch.Tensor]] = {name: [] for name in boundary_names}
+
+        def capture_output_for(
+            name: str,
+        ) -> Callable[[torch.nn.Module, tuple[object, ...], object], None]:
+            def capture_output(
+                _module: torch.nn.Module,
+                _inputs: tuple[object, ...],
+                output: object,
+            ) -> None:
+                if type(output) is not torch.Tensor or output.ndim != 2:
+                    raise ValueError("SAGA merged patch token authority differs")
+                output.retain_grad()
+                captured[name].append(output)
+
+            return capture_output
+
+        handles = tuple(
+            module.register_forward_hook(capture_output_for(name))
+            for name, module in zip(boundary_names, boundary_modules, strict=True)
+        )
+        try:
+            scores: list[torch.Tensor] = []
+            for completion in completions:
+                inputs = self._completed_inputs(pair, completion)
+                outputs = self._model.forward(
+                    **inputs,
+                    output_attentions=False,
+                    use_cache=False,
+                )
+                logits = outputs.logits
+                start = pair.input_length - 1
+                completion_logits = logits[:, start : start + len(completion), :].float()
+                target = torch.tensor(
+                    [completion],
+                    dtype=torch.long,
+                    device=completion_logits.device,
+                )
+                scores.append(
+                    torch_functional.log_softmax(completion_logits, dim=-1)
+                    .gather(-1, target.unsqueeze(-1))
+                    .squeeze(-1)
+                    .mean()
+                )
+            if any(len(captured[name]) != 2 for name in boundary_names):
+                raise ValueError("SAGA collapsed verdict branch count differs")
+            expected_rows = 2 * pair.patch_tokens_per_image
+            shape = captured["merger"][0].shape
+            if shape[0] != expected_rows or any(
+                value.shape != shape for values in captured.values() for value in values
+            ):
+                raise ValueError("SAGA merged patch token shape differs")
+            references = tuple(captured[name][0].detach() for name in boundary_names)
+            if any(
+                not torch.equal(captured[name][1].detach(), references[boundary_ordinal])
+                for boundary_ordinal, name in enumerate(boundary_names)
+            ):
+                raise ValueError("SAGA repeated patch token values differ")
+            loss = torch_collapsed_grpo_verdict_loss(scores[0], scores[1])
+            probability = collapsed_verdict_probability(
+                float(scores[0].detach()),
+                float(scores[1].detach()),
+            )
+            coefficient = collapsed_verdict_coefficient(probability)
+            loss.backward()
+            gradients = {name: [value.grad for value in captured[name]] for name in boundary_names}
+            if any(value is None for values in gradients.values() for value in values):
+                raise ValueError("SAGA merged patch gradient is absent")
+            boundary_gradient = torch.stack(
+                [
+                    torch.stack(
+                        [value.detach().float() for value in gradients[name] if value is not None]
+                    ).sum(dim=0)
+                    for name in boundary_names
+                ]
+            )
+            boundary_tokens = torch.stack([value.float() for value in references])
+            target_shape = (2, pair.patch_tokens_per_image, shape[1])
+            if not bool(torch.isfinite(boundary_tokens).all()) or not bool(
+                torch.isfinite(boundary_gradient).all()
+            ):
+                raise ValueError("SAGA collapsed verdict gradient is non-finite")
+            return VerdictMarginalTarget(
+                patch_tokens=(
+                    boundary_tokens.reshape(4, *target_shape)
+                    .permute(1, 0, 2, 3)
+                    .reshape(2, 4 * pair.patch_tokens_per_image, shape[1])
+                    .detach()
+                ),
+                predicted_gradient=(
+                    boundary_gradient.reshape(4, *target_shape)
+                    .permute(1, 0, 2, 3)
+                    .reshape(2, 4 * pair.patch_tokens_per_image, shape[1])
+                    .detach()
+                ),
+                boundary_names=boundary_names,
+                boundary_patch_tokens=boundary_tokens.reshape(4, *target_shape).detach(),
+                boundary_predicted_gradient=boundary_gradient.reshape(
+                    4, *target_shape
+                ).detach(),
+                correct_probability=probability,
+                coefficient=coefficient,
+                branch_scores=(float(scores[0].detach()), float(scores[1].detach())),
+                branch_count=2,
+                generated_tokens=0,
             )
         finally:
             for handle in handles:

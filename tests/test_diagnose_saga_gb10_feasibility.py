@@ -867,6 +867,47 @@ def test_qwen_replay_captures_exact_merged_patch_gradient_target(tmp_path: Path)
     assert all(parameter.grad is None for parameter in adapter._vision_parameters)
 
 
+def test_qwen_collapsed_verdict_control_uses_two_forced_branches_without_generation(
+    tmp_path: Path,
+) -> None:
+    authority = _hf_authority(tmp_path)
+    factory = _HfLikeFactory()
+    adapter = _MODULE.load_qwen_adapter(authority, factory=factory)
+    pair = adapter.prepare_pair(authority.fixture)
+    target = adapter.collapsed_verdict_patch_gradient(
+        pair,
+        correct_completion_ids=(10, 11, 12),
+        incorrect_completion_ids=(20, 21, 22),
+    )
+
+    assert factory.model.forward_calls == 2
+    assert target.branch_count == 2
+    assert target.generated_tokens == 0
+    assert target.boundary_names == ("merger", "deepstack-0", "deepstack-1", "deepstack-2")
+    assert target.patch_tokens.shape == (2, 8, 16)
+    assert target.predicted_gradient.shape == target.patch_tokens.shape
+    assert target.boundary_patch_tokens.shape == (4, 2, 2, 16)
+    assert target.boundary_predicted_gradient.shape == target.boundary_patch_tokens.shape
+    assert 0.0 < target.correct_probability < 1.0
+    assert target.coefficient > 0.0
+    assert torch.isfinite(target.predicted_gradient).all()
+    assert torch.count_nonzero(target.predicted_gradient) > 0
+    assert all(parameter.grad is None for parameter in adapter._vision_parameters)
+
+    with pytest.raises(ValueError, match="completion"):
+        adapter.collapsed_verdict_patch_gradient(
+            pair,
+            correct_completion_ids=(),
+            incorrect_completion_ids=(20, 21, 22),
+        )
+    with pytest.raises(ValueError, match="branch"):
+        adapter.collapsed_verdict_patch_gradient(
+            pair,
+            correct_completion_ids=(10, 11, 12),
+            incorrect_completion_ids=(10, 11, 12),
+        )
+
+
 def test_qwen_replay_patch_gradient_rejects_missing_merger(tmp_path: Path) -> None:
     authority = _hf_authority(tmp_path)
     adapter = _MODULE.load_qwen_adapter(authority, factory=_HfLikeFactory())
