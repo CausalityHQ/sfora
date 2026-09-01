@@ -9,6 +9,12 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from sfora.asgcv_protocol import (
+    AsgcvCompletionGroup,
+    AsgcvMarginalSchedule,
+    AsgcvPairSchedule,
+)
+
 ASGCV_MARGINAL_GRADIENT_SAMPLE_SCHEMA = "sfora-asgcv-marginal-gradient-sample-v1"
 ASGCV_VISION_CUT_SCHEMA = "sfora-asgcv-vision-cut-v1"
 ASGCV_VISION_BOUNDARIES = ("merger", "deepstack-0", "deepstack-1", "deepstack-2")
@@ -376,4 +382,55 @@ def validate_marginal_gradient_sample_inputs(
     )
     if rebuilt != raw:
         raise ValueError("ASG-CV marginal sample reopened inputs differ")
+    return value
+
+
+def validate_marginal_gradient_sample_context(
+    raw: bytes,
+    *,
+    marginal_schedule: AsgcvMarginalSchedule,
+    candidate_schedule: AsgcvPairSchedule,
+    completion_groups: tuple[AsgcvCompletionGroup, ...],
+) -> dict[str, object]:
+    """Cross-bind one marginal sample to its candidate pair and completion outcome."""
+
+    value = validate_marginal_gradient_sample_bytes(raw)
+    if (
+        type(marginal_schedule) is not AsgcvMarginalSchedule
+        or type(candidate_schedule) is not AsgcvPairSchedule
+        or type(completion_groups) is not tuple
+    ):
+        raise ValueError("ASG-CV marginal sample context differs")
+    marginal_schedule.validated()
+    candidate_schedule.validated()
+    if (
+        marginal_schedule.candidate_schedule_sha256 != candidate_schedule.sha256()
+        or value["marginal_schedule_sha256"] != marginal_schedule.sha256()
+        or len(completion_groups) != candidate_schedule.pair_count
+    ):
+        raise ValueError("ASG-CV marginal sample context differs")
+    candidate_ordinal = value["candidate_pair_ordinal"]
+    if (
+        type(candidate_ordinal) is not int
+        or not 0 <= candidate_ordinal < marginal_schedule.target_pair_count
+        or marginal_schedule.candidate_ordinals[candidate_ordinal] != candidate_ordinal
+    ):
+        raise ValueError("ASG-CV marginal sample candidate context differs")
+    pair = candidate_schedule.pairs[candidate_ordinal]
+    group = completion_groups[candidate_ordinal]
+    if type(group) is not AsgcvCompletionGroup:
+        raise ValueError("ASG-CV marginal sample completion context differs")
+    group.validated()
+    if (
+        group.candidate_pair_ordinal != candidate_ordinal
+        or group.expected_relation_sign != pair.relation_sign
+        or value["completion_group_sha256"] != group.sha256()
+        or value["completion_protocol_sha256"] != group.protocol_sha256
+        or value["pair_ordinals"] != [pair.left_index, pair.right_index]
+        or value["relation_sign"] != pair.relation_sign
+        or value["zero_semantic_target"]
+        is not marginal_schedule.zero_target_flags[candidate_ordinal]
+        or value["zero_semantic_target"] is group.nonzero_reward_variance
+    ):
+        raise ValueError("ASG-CV marginal sample context differs")
     return value
