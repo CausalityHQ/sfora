@@ -11,6 +11,12 @@ from typing import Protocol
 import numpy as np
 
 from sfora.asgcv import validate_gradient_sample_bundle, validate_gradient_sample_inputs
+from sfora.asgcv_marginal import (
+    AsgcvVisionCutAuthority,
+    validate_marginal_gradient_sample_bytes,
+    validate_marginal_gradient_sample_context,
+    validate_marginal_gradient_sample_inputs,
+)
 from sfora.asgcv_protocol import (
     AsgcvCompletionGroup,
     AsgcvCompletionProtocol,
@@ -87,6 +93,35 @@ def _load_array(path: Path, *, name: str) -> np.ndarray:
     return _capture_array(value, name=name)
 
 
+def _marginal_capture_array(
+    value: object, *, name: str, cut: AsgcvVisionCutAuthority
+) -> np.ndarray:
+    expected_shape = (
+        cut.images,
+        len(cut.boundary_names) * cut.patches_per_boundary,
+        cut.channel_dimensions,
+    )
+    if (
+        type(value) is not np.ndarray
+        or value.dtype != np.dtype(np.float32)
+        or value.shape != expected_shape
+        or not bool(np.isfinite(value).all())
+    ):
+        raise ValueError(f"ASG-CV marginal complete-cut {name} shape differs")
+    return np.ascontiguousarray(value)
+
+
+def _load_marginal_array(
+    path: Path, *, name: str, cut: AsgcvVisionCutAuthority
+) -> np.ndarray:
+    try:
+        with path.open("rb") as stream:
+            value = np.load(stream, allow_pickle=False)
+    except (OSError, ValueError) as error:
+        raise ValueError(f"ASG-CV marginal capture {name} file differs") from error
+    return _marginal_capture_array(value, name=name, cut=cut)
+
+
 def _validate_triple(
     receipt_path: Path,
     patch_path: Path,
@@ -104,6 +139,28 @@ def _validate_triple(
     )
     if value["eligible_pair_ordinal"] != ordinal:
         raise ValueError("ASG-CV capture receipt ordinal differs")
+    return receipt, patch, gradient
+
+
+def _validate_marginal_triple(
+    receipt_path: Path,
+    patch_path: Path,
+    gradient_path: Path,
+    *,
+    ordinal: int,
+) -> tuple[bytes, np.ndarray, np.ndarray]:
+    receipt = receipt_path.read_bytes()
+    value = validate_marginal_gradient_sample_bytes(receipt)
+    cut = AsgcvVisionCutAuthority.from_mapping(value["vision_cut_authority"])
+    patch = _load_marginal_array(patch_path, name="patch-token", cut=cut)
+    gradient = _load_marginal_array(gradient_path, name="gradient", cut=cut)
+    validate_marginal_gradient_sample_inputs(
+        receipt,
+        patch_tokens=patch,
+        exact_gradient=gradient,
+    )
+    if value["candidate_pair_ordinal"] != ordinal:
+        raise ValueError("ASG-CV marginal capture receipt ordinal differs")
     return receipt, patch, gradient
 
 
@@ -186,6 +243,73 @@ def write_capture_triple(
     return "written"
 
 
+def write_marginal_capture_triple(
+    directory: Path,
+    *,
+    ordinal: int,
+    receipt: bytes,
+    patch_tokens: object,
+    exact_gradient: object,
+) -> str:
+    """Publish one complete-cut candidate-marginal sample atomically."""
+
+    receipt_path, patch_path, gradient_path = _capture_paths(directory, ordinal)
+    if type(receipt) is not bytes:
+        raise ValueError("ASG-CV marginal capture receipt differs")
+    receipt_value = validate_marginal_gradient_sample_bytes(receipt)
+    cut = AsgcvVisionCutAuthority.from_mapping(receipt_value["vision_cut_authority"])
+    patch = _marginal_capture_array(patch_tokens, name="patch-token", cut=cut)
+    gradient = _marginal_capture_array(exact_gradient, name="gradient", cut=cut)
+    validate_marginal_gradient_sample_inputs(
+        receipt,
+        patch_tokens=patch,
+        exact_gradient=gradient,
+    )
+    if receipt_value["candidate_pair_ordinal"] != ordinal:
+        raise ValueError("ASG-CV marginal capture receipt ordinal differs")
+    existing = tuple(path.exists() for path in (receipt_path, patch_path, gradient_path))
+    if all(existing):
+        old_receipt, old_patch, old_gradient = _validate_marginal_triple(
+            receipt_path,
+            patch_path,
+            gradient_path,
+            ordinal=ordinal,
+        )
+        if (
+            old_receipt != receipt
+            or not np.array_equal(old_patch, patch)
+            or not np.array_equal(old_gradient, gradient)
+        ):
+            raise ValueError("ASG-CV marginal capture existing triple differs")
+        return "reused"
+    if any(existing):
+        raise ValueError("ASG-CV marginal capture partial triple differs")
+
+    partials = tuple(
+        path.with_name(path.name + ".partial") for path in (receipt_path, patch_path, gradient_path)
+    )
+    if any(path.exists() for path in partials):
+        raise ValueError("ASG-CV marginal capture partial file differs")
+    try:
+        _write_array(partials[1], patch)
+        _write_array(partials[2], gradient)
+        _write_bytes(partials[0], receipt)
+        os.replace(partials[1], patch_path)
+        os.replace(partials[2], gradient_path)
+        os.replace(partials[0], receipt_path)
+    finally:
+        for partial in partials:
+            if partial.exists():
+                partial.unlink()
+    _validate_marginal_triple(
+        receipt_path,
+        patch_path,
+        gradient_path,
+        ordinal=ordinal,
+    )
+    return "written"
+
+
 def validated_capture_prefix(directory: Path, *, expected_count: int) -> int:
     """Reopen the contiguous committed prefix and return its first absent ordinal."""
 
@@ -204,6 +328,28 @@ def validated_capture_prefix(directory: Path, *, expected_count: int) -> int:
         for later in range(ordinal + 1, expected_count):
             if any(path.exists() for path in _capture_paths(directory, later)):
                 raise ValueError("ASG-CV capture ordinal gap differs")
+        return ordinal
+    return expected_count
+
+
+def validated_marginal_capture_prefix(directory: Path, *, expected_count: int) -> int:
+    """Reopen a contiguous candidate-marginal prefix without legacy shape assumptions."""
+
+    if type(expected_count) is not int or expected_count <= 0:
+        raise ValueError("ASG-CV marginal capture expected count differs")
+    if tuple(directory.glob("*.partial")):
+        raise ValueError("ASG-CV marginal capture partial file differs")
+    for ordinal in range(expected_count):
+        paths = _capture_paths(directory, ordinal)
+        existing = tuple(path.exists() for path in paths)
+        if all(existing):
+            _validate_marginal_triple(*paths, ordinal=ordinal)
+            continue
+        if any(existing):
+            raise ValueError("ASG-CV marginal capture partial triple differs")
+        for later in range(ordinal + 1, expected_count):
+            if any(path.exists() for path in _capture_paths(directory, later)):
+                raise ValueError("ASG-CV marginal capture ordinal gap differs")
         return ordinal
     return expected_count
 
@@ -281,6 +427,77 @@ def capture_schedule(
             exact_gradient=gradient,
         )
     return validated_capture_prefix(directory, expected_count=expected)
+
+
+def capture_marginal_schedule(
+    directory: Path,
+    *,
+    protocol: AsgcvCompletionProtocol,
+    rollout_authority: AsgcvRolloutAuthority,
+    candidate_schedule: AsgcvPairSchedule,
+    completion_groups: tuple[AsgcvCompletionGroup, ...],
+    marginal_schedule: AsgcvMarginalSchedule,
+    example_ids: tuple[str, ...],
+    labels: tuple[int, ...],
+    capture_one: Callable[[int, bool], tuple[bytes, np.ndarray, np.ndarray]],
+) -> int:
+    """Capture every candidate marginal, including exact zero-semantic rows."""
+
+    if not callable(capture_one):
+        raise ValueError("ASG-CV marginal capture callback differs")
+    validate_asgcv_marginal_protocol_bundle(
+        protocol,
+        rollout_authority,
+        candidate_schedule,
+        completion_groups,
+        marginal_schedule,
+        example_ids=example_ids,
+        labels=labels,
+    )
+    expected = marginal_schedule.target_pair_count
+    prefix = validated_marginal_capture_prefix(directory, expected_count=expected)
+    for candidate_ordinal in range(prefix):
+        paths = _capture_paths(directory, candidate_ordinal)
+        receipt, patch, gradient = _validate_marginal_triple(
+            *paths,
+            ordinal=candidate_ordinal,
+        )
+        validate_marginal_gradient_sample_inputs(
+            receipt,
+            patch_tokens=patch,
+            exact_gradient=gradient,
+        )
+        validate_marginal_gradient_sample_context(
+            receipt,
+            marginal_schedule=marginal_schedule,
+            candidate_schedule=candidate_schedule,
+            completion_groups=completion_groups,
+        )
+    for candidate_ordinal in range(prefix, expected):
+        zero = marginal_schedule.zero_target_flags[candidate_ordinal]
+        captured = capture_one(candidate_ordinal, zero)
+        if type(captured) is not tuple or len(captured) != 3 or type(captured[0]) is not bytes:
+            raise ValueError("ASG-CV marginal capture callback result differs")
+        receipt, patch, gradient = captured
+        validate_marginal_gradient_sample_inputs(
+            receipt,
+            patch_tokens=patch,
+            exact_gradient=gradient,
+        )
+        validate_marginal_gradient_sample_context(
+            receipt,
+            marginal_schedule=marginal_schedule,
+            candidate_schedule=candidate_schedule,
+            completion_groups=completion_groups,
+        )
+        write_marginal_capture_triple(
+            directory,
+            ordinal=candidate_ordinal,
+            receipt=receipt,
+            patch_tokens=patch,
+            exact_gradient=gradient,
+        )
+    return validated_marginal_capture_prefix(directory, expected_count=expected)
 
 
 def _build_completion_groups(

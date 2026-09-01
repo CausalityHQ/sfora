@@ -8,10 +8,19 @@ import numpy as np
 import pytest
 
 from sfora.asgcv import canonical_gradient_sample_bytes
+from sfora.asgcv_marginal import (
+    ASGCV_VISION_BOUNDARIES,
+    AsgcvVisionCutAuthority,
+    canonical_marginal_gradient_sample_bytes,
+)
 from sfora.asgcv_protocol import (
+    AsgcvCompletionGroup,
     AsgcvCompletionProtocol,
+    AsgcvMarginalSchedule,
+    AsgcvPairSchedule,
     AsgcvRolloutAuthority,
     assemble_asgcv_eligible_schedule,
+    assemble_asgcv_marginal_schedule,
     build_asgcv_pair_schedule,
     classify_asgcv_completion_group,
     derive_asgcv_rollout_seeds,
@@ -43,6 +52,46 @@ def _sample(ordinal: int) -> tuple[bytes, np.ndarray, np.ndarray]:
         grpo_loss=0.0,
         attention_kl=0.0,
         generated_tokens=8,
+        patch_tokens=patch,
+        exact_gradient=gradient,
+    )
+    return receipt, patch, gradient
+
+
+def _marginal_sample(
+    *,
+    candidate_ordinal: int,
+    candidate_schedule: AsgcvPairSchedule,
+    completion_groups: tuple[AsgcvCompletionGroup, ...],
+    marginal_schedule: AsgcvMarginalSchedule,
+) -> tuple[bytes, np.ndarray, np.ndarray]:
+    pair = candidate_schedule.pairs[candidate_ordinal]
+    group = completion_groups[candidate_ordinal]
+    cut = AsgcvVisionCutAuthority(
+        boundary_names=ASGCV_VISION_BOUNDARIES,
+        images=2,
+        patches_per_boundary=49,
+        channel_dimensions=4,
+    ).validated()
+    patch = np.full((2, 196, 4), candidate_ordinal + 1, dtype=np.float32)
+    zero = marginal_schedule.zero_target_flags[candidate_ordinal]
+    gradient = np.zeros_like(patch) if zero else patch * np.float32(0.25)
+    receipt = canonical_marginal_gradient_sample_bytes(
+        source_commit="1" * 40,
+        model_revision="2" * 40,
+        fixture_sha256="3" * 64,
+        completion_group_sha256=group.sha256(),
+        completion_protocol_sha256=group.protocol_sha256,
+        marginal_schedule_sha256=marginal_schedule.sha256(),
+        pooler_state_sha256="6" * 64,
+        candidate_pair_ordinal=candidate_ordinal,
+        pair_ordinals=(pair.left_index, pair.right_index),
+        relation_sign=pair.relation_sign,
+        zero_semantic_target=zero,
+        grpo_loss=0.0,
+        attention_kl=0.0,
+        generated_tokens=0 if zero else 8,
+        vision_cut_authority=cut,
         patch_tokens=patch,
         exact_gradient=gradient,
     )
@@ -324,3 +373,129 @@ def test_marginal_schedule_keeps_zero_variance_and_duplicate_completion_groups()
     )
     assert schedule.zero_target_flags[0] is True
     assert len(set(groups[0].completion_ids)) == 1
+
+
+def test_marginal_capture_triples_store_complete_cut_and_resume_zero_targets(
+    tmp_path: Path,
+) -> None:
+    protocol, rollout, example_ids, labels, candidates, _, _ = _protocol_bundle()
+
+    class Adapter:
+        def prepare_image_pair(self, images: object, *args: object) -> int:
+            assert isinstance(images, tuple) and len(images) == 2
+            return 0
+
+        def generate(self, pair: int, seed: int, **kwargs: object) -> tuple[int, ...]:
+            del pair, seed, kwargs
+            return 11, 12, 77, 99
+
+    images = tuple(np.full((8, 8, 3), index, dtype=np.uint8) for index in range(32))
+    groups, marginal = _MODULE.build_marginal_schedule(
+        Adapter(),
+        images=images,
+        prompt_utf8="Describe the relation.",
+        attribute_token_span=(2, 3),
+        patch_tokens_per_image=4,
+        protocol=protocol,
+        rollout_authority=rollout,
+        candidate_schedule=candidates,
+        example_ids=example_ids,
+        labels=labels,
+    )
+    receipt, patch, gradient = _marginal_sample(
+        candidate_ordinal=0,
+        candidate_schedule=candidates,
+        completion_groups=groups,
+        marginal_schedule=marginal,
+    )
+    assert candidates.pairs[0].relation_sign == 1
+    assert marginal.zero_target_flags[0] is True
+    assert _MODULE.write_marginal_capture_triple(
+        tmp_path,
+        ordinal=0,
+        receipt=receipt,
+        patch_tokens=patch,
+        exact_gradient=gradient,
+    ) == "written"
+    assert _MODULE.validated_marginal_capture_prefix(tmp_path, expected_count=16) == 1
+    assert _MODULE.write_marginal_capture_triple(
+        tmp_path,
+        ordinal=0,
+        receipt=receipt,
+        patch_tokens=patch,
+        exact_gradient=gradient,
+    ) == "reused"
+    with pytest.raises(ValueError, match="complete-cut"):
+        _MODULE.write_marginal_capture_triple(
+            tmp_path,
+            ordinal=1,
+            receipt=receipt,
+            patch_tokens=patch[:, :49],
+            exact_gradient=gradient[:, :49],
+        )
+
+
+def test_marginal_capture_schedule_preserves_candidate_order_and_zero_semantics(
+    tmp_path: Path,
+) -> None:
+    protocol, rollout, example_ids, labels, candidates, _, _ = _protocol_bundle()
+    groups = tuple(
+        classify_asgcv_completion_group(
+            tuple(
+                (
+                    *((11, 12) if pair.relation_sign == 1 else (21, 22)),
+                    30 + rollout_ordinal,
+                    99,
+                )
+                if pair.ordinal % 2 == 0 or rollout_ordinal < 4
+                else (
+                    *((21, 22) if pair.relation_sign == 1 else (11, 12)),
+                    30 + rollout_ordinal,
+                    99,
+                )
+                for rollout_ordinal in range(8)
+            ),
+            pair.relation_sign,
+            protocol,
+            rollout_authority=rollout,
+            candidate_pair_ordinal=pair.ordinal,
+        )
+        for pair in candidates.pairs
+    )
+    marginal = assemble_asgcv_marginal_schedule(candidates, groups)
+    calls: list[tuple[int, bool]] = []
+
+    def capture_one(
+        candidate_ordinal: int, zero_semantic_target: bool
+    ) -> tuple[bytes, np.ndarray, np.ndarray]:
+        calls.append((candidate_ordinal, zero_semantic_target))
+        return _marginal_sample(
+            candidate_ordinal=candidate_ordinal,
+            candidate_schedule=candidates,
+            completion_groups=groups,
+            marginal_schedule=marginal,
+        )
+
+    assert _MODULE.capture_marginal_schedule(
+        tmp_path,
+        protocol=protocol,
+        rollout_authority=rollout,
+        candidate_schedule=candidates,
+        completion_groups=groups,
+        marginal_schedule=marginal,
+        example_ids=example_ids,
+        labels=labels,
+        capture_one=capture_one,
+    ) == 16
+    assert calls == list(enumerate(marginal.zero_target_flags))
+    assert _MODULE.capture_marginal_schedule(
+        tmp_path,
+        protocol=protocol,
+        rollout_authority=rollout,
+        candidate_schedule=candidates,
+        completion_groups=groups,
+        marginal_schedule=marginal,
+        example_ids=example_ids,
+        labels=labels,
+        capture_one=lambda *_: pytest.fail("authenticated prefix must not recapture"),
+    ) == 16
