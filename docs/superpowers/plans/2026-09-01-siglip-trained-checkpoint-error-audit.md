@@ -2,9 +2,19 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Restore one authenticated terminal SigLIP control checkpoint and publish ordered raw/projected burned-band error evidence on the exact existing retrieval protocol without exposing clean-band per-query outcomes.
+**Goal:** Reconstruct the authenticated seed-17 initial control state, restore
+its terminal checkpoint, and atomically publish separate ordered raw/projected
+burned-band error evidence for both states on the exact control protocol without
+exposing clean-band per-query outcomes.
 
-**Architecture:** A pure library module owns concrete evidence types, recomputation, canonical serialization, and mutation-safe validation. A local-only Python runner authenticates the three seed receipts through the existing aggregate authority, authenticates the selected checkpoint receipt and payload, restores the exact model, embeds only the burned band, requires exact equality with the selected seed receipt's terminal metrics, and atomically publishes one claim-ineligible result.
+**Architecture:** Pure library modules own concrete initial and checkpoint
+evidence types, recomputation, canonical serialization, and mutation-safe
+validation. A local-only Python runner authenticates the three seed receipts
+through the existing aggregate authority, reconstructs and digest-checks the
+selected seed's exact initial state, authenticates and restores its terminal
+checkpoint, embeds only the burned band for each state, requires exact equality
+with the corresponding receipt metrics, and atomically publishes both
+claim-ineligible results with the existing twin artifacts.
 
 **Tech Stack:** Python 3.12, PyTorch, existing SFORA SigLIP control and frozen-substrate scorers, pytest, Ruff.
 
@@ -98,12 +108,19 @@ Expected: all selected tests pass and existing aggregate fixture bytes remain un
 ### Task 3: Single-Execution Scientific Runner
 
 **Files:**
+- Create: `src/sfora/siglip_initial_control_audit.py`
+- Create: `tests/test_siglip_initial_control_audit.py`
 - Modify: `scripts/audit_siglip_control_checkpoint.py`
 - Modify: `tests/test_audit_siglip_control_checkpoint.py`
 
 **Interfaces:**
-- Consumes: authenticated campaign, final checkpoint, registered burned examples, CUDA device, batch `32`, and query block `128` from the selected run authority.
-- Produces: one canonical `sfora-siglip-checkpoint-error-audit-v1` result.
+- Consumes: authenticated campaign, registered seeded initial state, final
+  checkpoint, registered burned examples, CUDA device, batch `32`, and query
+  block `128` from the selected run authority.
+- Produces: one canonical
+  `sfora-siglip-initial-control-error-audit-v1`, one canonical
+  `sfora-siglip-checkpoint-error-audit-v1`, and the existing trained twin
+  artifacts as one atomic create-new publication set.
 
 - [x] **Step 1: Write failing fake-model integration tests**
 
@@ -117,16 +134,23 @@ Expected: failure at missing runner implementation.
 
 - [x] **Step 3: Implement restore, recomputation, and atomic publication**
 
-Instantiate the exact frozen tower/model and AdamW parameter groups, restore via `restore_control_checkpoint`, require returned seed/epoch and receipt checkpoint equality, embed the burned examples through `embed_control_examples`, score both descriptor planes with `score_frozen_substrate_evidence`, require exact terminal metric equality, construct the pure evidence object, serialize/revalidate, write one `.<name>.partial`, fsync, and replace.
+Instantiate the exact frozen tower/model twice under the registered seed. First
+require its initial state digest and initial receipt metrics, then restore via
+`restore_control_checkpoint` and require returned seed/epoch, checkpoint, and
+terminal metrics. Embed only the burned examples through
+`embed_control_examples`, score both descriptor planes with
+`score_frozen_substrate_evidence`, serialize/revalidate both pure evidence
+objects, write every `.<name>.partial`, fsync, and publish the complete set only
+after all computations succeed.
 
 - [x] **Step 4: Run complete focused GREEN**
 
 Run:
 
 ```bash
-uv run --offline --locked pytest -q -p no:cacheprovider tests/test_siglip_checkpoint_audit.py tests/test_audit_siglip_control_checkpoint.py tests/test_run_siglip_proxy_control.py
-uv run --offline --locked ruff check src/sfora/siglip_checkpoint_audit.py scripts/audit_siglip_control_checkpoint.py tests/test_siglip_checkpoint_audit.py tests/test_audit_siglip_control_checkpoint.py scripts/run_siglip_proxy_control.py tests/test_run_siglip_proxy_control.py
-uv run --offline --locked python -m py_compile src/sfora/siglip_checkpoint_audit.py scripts/audit_siglip_control_checkpoint.py tests/test_siglip_checkpoint_audit.py tests/test_audit_siglip_control_checkpoint.py
+uv run --offline --locked python -m pytest -q -p no:cacheprovider tests/test_siglip_initial_control_audit.py tests/test_siglip_checkpoint_audit.py tests/test_audit_siglip_control_checkpoint.py tests/test_run_siglip_proxy_control.py
+uv run --offline --locked ruff check src/sfora/siglip_initial_control_audit.py src/sfora/siglip_checkpoint_audit.py scripts/audit_siglip_control_checkpoint.py tests/test_siglip_initial_control_audit.py tests/test_siglip_checkpoint_audit.py tests/test_audit_siglip_control_checkpoint.py scripts/run_siglip_proxy_control.py tests/test_run_siglip_proxy_control.py
+uv run --offline --locked python -m py_compile src/sfora/siglip_initial_control_audit.py src/sfora/siglip_checkpoint_audit.py scripts/audit_siglip_control_checkpoint.py tests/test_siglip_initial_control_audit.py tests/test_siglip_checkpoint_audit.py tests/test_audit_siglip_control_checkpoint.py
 git diff --check
 ```
 

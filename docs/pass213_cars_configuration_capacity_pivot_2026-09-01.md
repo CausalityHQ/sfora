@@ -74,36 +74,42 @@ terminates:
 
 1. Authenticate all three seed receipts and the aggregate terminal. Preserve
    raw and projected results as separate metrics.
-2. Run the committed frozen band audit once. It evaluates the complete Cars
+2. Reconstruct the exact seed-17 initial control state under its registered
+   eager CUDA-bfloat16, batch-32 execution and publish ordered raw/projected
+   burned errors in a separate claim-ineligible artifact. Cross-bind its state
+   digest and exact aggregate metrics to the authenticated seed receipt. This
+   directly measures the `1,242`-versus-`1,240` discrepancy without weakening
+   the epoch-60 checkpoint artifact or exposing clean identities.
+3. Run the committed frozen band audit once. It evaluates the complete Cars
    training examples for labels `0..97` under the same conceptual isolated-band
    leave-one-out protocol. Before using it, require exact descriptor/count
    reconciliation with the control's raw initial evidence. The current
    `1,242`-versus-`1,240` burned discrepancy is an authority issue to explain,
    not a quantity to average away. Once reconciled, the audit provides an
    internally comparable three-band geometry table.
-3. Reproduce error manifests for frozen DINOv2-large, SigLIP2-so400m, and
+4. Reproduce error manifests for frozen DINOv2-large, SigLIP2-so400m, and
    SigLIP-so400m on the identical burned protocol, then produce the seed-17
    trained-checkpoint manifest with exactly the same preprocessing and tie
    rules. Record the Caliber `82↔83` contribution and the complete confusion
    distribution. A substrate-invariant Caliber failure raises the data/taxonomy
    posterior; a substrate-sensitive failure supports a representation pivot.
    Clean per-query errors remain unread.
-4. Resolve the already committed optimization-only 27-depth
+5. Resolve the already committed optimization-only 27-depth
    intermediate-readout screen and RSTA Stage A. Together they have a hard
    budget of two DGX hours. A failed gate permanently closes its mechanism. A
    passing intermediate depth earns only the clean read specified by its
    existing sealed protocol.
-5. Only after the control receipts, RSTA gate, repository assurance, and source
+6. Only after the control receipts, RSTA gate, repository assurance, and source
    identities are authenticated, prepare the SAGA GB10 feasibility inputs. The
    Qwen weights currently exist only in the DGX Hugging Face cache; they are not
    yet an immutable authenticated snapshot. Seal and hash them before use.
-6. Run the existing SAGA feasibility diagnostic with synthetic images only and
+7. Run the existing SAGA feasibility diagnostic with synthetic images only and
    preserve its exact outcome: `FITS`, `MEMORY_FAIL`,
    `ATTENTION_UNAVAILABLE`, `TIME_BUDGET_FAIL`, `DETERMINISM_FAIL`,
    `BACKEND_INVALID`, or `AUTHORITY_INVALID`. ASG-CV is relevant only to a
    measured rollout/replay time bottleneck. It cannot repair missing attention,
    invalid authority, determinism failure, or an unfittable memory footprint.
-7. `FITS` authorizes one Qwen seed with the already specified
+8. `FITS` authorizes one Qwen seed with the already specified
    SFORA-substituted SAGA-style objective as a capacity diagnostic, trained only
    on classes `0..48`. The receipt must enumerate every substitution because
    the published Potential-Field objective is not sufficiently disclosed for
@@ -111,7 +117,7 @@ terminates:
    capacity evidence, not a new-method result. Next reproduce one matched SAGA
    seed. Any new method must then beat the matched same-backbone SAGA baseline,
    not the SigLIP control.
-8. A final clean-band difference must include paired per-query discordant counts
+9. A final clean-band difference must include paired per-query discordant counts
    and an exact McNemar/binomial test. A point estimate of `+0.5` alone is not a
    gate. A configuration that fails its one sealed clean read is not retuned on
    clean; later variants are exploratory until a fresh holdout is frozen.

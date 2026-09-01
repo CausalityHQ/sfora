@@ -22,6 +22,11 @@ from sfora.siglip_checkpoint_audit import (
     build_siglip_checkpoint_audit,
     canonical_siglip_checkpoint_audit_bytes,
 )
+from sfora.siglip_initial_control_audit import (
+    SiglipInitialControlAuditAuthority,
+    build_siglip_initial_control_audit,
+    canonical_siglip_initial_control_audit_bytes,
+)
 from sfora.substrate_screen import SubstrateScreenEvidence, score_frozen_substrate_evidence
 from sfora.token_set_screen import F1_TRAIN_CLASSES
 from sfora.twin_reachability import (
@@ -45,6 +50,7 @@ from run_siglip_proxy_control import (  # noqa: E402
     _checkpoint_authority_from_receipt,
     _config_sha256,
     _json_compatible,
+    _model_state_sha256,
     _optimizer_groups,
     control_aggregate_receipt_bytes,
     control_manifest_sha256,
@@ -71,6 +77,8 @@ class AuthenticatedControlCampaign:
     aggregate_sha256: str
     run_authority: ControlRunAuthority
     checkpoint: CheckpointAuthority
+    initial_state_sha256: str
+    initial_burned_correct: dict[str, int]
     final_burned_correct: dict[str, int]
 
 
@@ -89,17 +97,19 @@ def _require_keys(value: object, expected: set[str], *, role: str) -> dict[str, 
     return cast(dict[str, Any], value)
 
 
-def _burned_correct(seed_receipt: dict[str, Any]) -> dict[str, int]:
+def _burned_correct(seed_receipt: dict[str, Any], *, state: str) -> dict[str, int]:
     evaluation = _require_keys(
         seed_receipt.get("evaluation"), {"initial", "final"}, role="evaluation"
     )
-    final = _require_keys(
-        evaluation["final"],
+    if state not in {"initial", "final"}:
+        raise ValueError("evaluation state differs")
+    snapshot = _require_keys(
+        evaluation[state],
         {"optimization", "clean_validation", "burned_diagnostic"},
-        role="final evaluation",
+        role=f"{state} evaluation",
     )
     burned = _require_keys(
-        final["burned_diagnostic"], {"raw", "projected"}, role="burned evaluation"
+        snapshot["burned_diagnostic"], {"raw", "projected"}, role="burned evaluation"
     )
     result: dict[str, int] = {}
     scalar_keys = {
@@ -130,7 +140,7 @@ def _burned_correct(seed_receipt: dict[str, Any]) -> dict[str, int]:
 
 def _validate_selected_seed_receipt(
     value: dict[str, Any],
-) -> tuple[ControlRunAuthority, dict[str, int]]:
+) -> tuple[ControlRunAuthority, dict[str, int], dict[str, int]]:
     config = SiglipProxyControlConfig()
     source = _require_keys(value.get("source"), {"revision", "tree_digest", "dirty"}, role="source")
     dataset = _require_keys(
@@ -201,7 +211,18 @@ def _validate_selected_seed_receipt(
         or training["microbatch_size"] != run_authority.microbatch_size
     ):
         raise ValueError("selected seed run authority differs")
-    return run_authority, _burned_correct(value)
+    initial_state_sha256 = model["initial_state_sha256"]
+    if (
+        type(initial_state_sha256) is not str
+        or len(initial_state_sha256) != 64
+        or any(character not in "0123456789abcdef" for character in initial_state_sha256)
+    ):
+        raise ValueError("selected seed initial-state authority differs")
+    return (
+        run_authority,
+        _burned_correct(value, state="initial"),
+        _burned_correct(value, state="final"),
+    )
 
 
 def read_authenticated_control_campaign(
@@ -242,7 +263,11 @@ def read_authenticated_control_campaign(
     if selected_entry is None:
         raise ValueError("selected seed receipt is absent")
     selected, selected_raw = selected_entry
-    run_authority, final_burned_correct = _validate_selected_seed_receipt(selected)
+    (
+        run_authority,
+        initial_burned_correct,
+        final_burned_correct,
+    ) = _validate_selected_seed_receipt(selected)
     checkpoint_value = _require_keys(
         selected.get("checkpoint"),
         {"basename", "receipt_basename", "sha256", "bytes", "epoch"},
@@ -277,6 +302,10 @@ def read_authenticated_control_campaign(
         aggregate_sha256=hashlib.sha256(aggregate_raw).hexdigest(),
         run_authority=run_authority,
         checkpoint=checkpoint,
+        initial_state_sha256=cast(dict[str, Any], selected["model"])[
+            "initial_state_sha256"
+        ],
+        initial_burned_correct=initial_burned_correct,
         final_burned_correct=final_burned_correct,
     )
 
@@ -320,6 +349,61 @@ def audit_authority(
         ordered_example_ids_sha256=_identity_sha256("example_ids", example_ids),
         label_vector_sha256=_identity_sha256("labels", labels),
     )
+
+
+def initial_audit_authority(
+    campaign: AuthenticatedControlCampaign,
+    burned_examples: Sequence[object],
+) -> SiglipInitialControlAuditAuthority:
+    """Derive the initial-state result authority from the authenticated seed receipt."""
+
+    if type(campaign) is not AuthenticatedControlCampaign:
+        raise TypeError("initial-control audit campaign has the wrong concrete type")
+    example_ids = tuple(getattr(example, "example_id", None) for example in burned_examples)
+    labels = tuple(getattr(example, "label", None) for example in burned_examples)
+    dataset = cast(dict[str, Any], campaign.seed_receipt["dataset"])
+    model = cast(dict[str, Any], campaign.seed_receipt["model"])
+    return SiglipInitialControlAuditAuthority(
+        source_revision=campaign.run_authority.source_revision,
+        source_tree_digest=campaign.run_authority.source_tree_digest,
+        seed_receipt_sha256=campaign.seed_receipt_sha256,
+        dataset_revision=dataset["revision"],
+        dataset_manifest_sha256=dataset["manifest_sha256"],
+        model_name=model["name"],
+        model_revision=model["revision"],
+        config_sha256=campaign.seed_receipt["config_sha256"],
+        seed=campaign.seed,
+        initial_state_sha256=campaign.initial_state_sha256,
+        evaluation_batch_size=campaign.run_authority.evaluation_batch_size,
+        query_block=campaign.run_authority.query_block,
+        ordered_example_ids_sha256=_identity_sha256("example_ids", example_ids),
+        label_vector_sha256=_identity_sha256("labels", labels),
+    )
+
+
+def initialize_audit_model(
+    *,
+    campaign: AuthenticatedControlCampaign,
+    device: torch.device,
+) -> tuple[PooledProxyAnchorModel, object]:
+    """Reconstruct and authenticate the exact seeded untrained control state."""
+
+    config = SiglipProxyControlConfig()
+    tower, processor = load_siglip_control_components(config=config)
+    torch.manual_seed(campaign.seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(campaign.seed)
+    model = PooledProxyAnchorModel(
+        tower=tower,
+        input_dimensions=config.input_dimensions,
+        embedding_dimensions=config.embedding_dimensions,
+        class_count=len(F1_TRAIN_CLASSES),
+        projection_initialization=config.projection_initialization,
+        proxy_initialization=config.proxy_initialization,
+    ).to(device)
+    if _model_state_sha256(model) != campaign.initial_state_sha256:
+        raise ValueError("reconstructed initial-control state differs")
+    return model.eval(), processor
 
 
 def restore_audit_model(
@@ -441,6 +525,87 @@ def _build_checkpoint_twin_artifacts(
             )
         )
     return artifacts[0], artifacts[1], inference_artifacts[0], inference_artifacts[1]
+
+
+def run_initial_control_error_audit(
+    *,
+    campaign: AuthenticatedControlCampaign,
+    burned_examples: tuple[object, ...],
+    device: torch.device,
+    initialize_model: Callable[..., tuple[object, object]] = initialize_audit_model,
+    embed_examples: Callable[..., tuple[torch.Tensor, torch.Tensor, torch.Tensor]] = (
+        embed_control_examples
+    ),
+    score_descriptors: Callable[..., SubstrateScreenEvidence] = score_frozen_substrate_evidence,
+) -> bytes:
+    """Reconstruct once, score two initial planes, and serialize no clean identities."""
+
+    if type(campaign) is not AuthenticatedControlCampaign or type(burned_examples) is not tuple:
+        raise TypeError("initial-control audit inputs have the wrong concrete type")
+    if (
+        len(burned_examples) != _BURNED_QUERIES
+        or any(
+            type(getattr(example, "example_id", None)) is not str
+            or not example.example_id
+            or type(getattr(example, "label", None)) is not int
+            or not 82 <= example.label <= 97
+            for example in burned_examples
+        )
+        or len({example.example_id for example in burned_examples}) != _BURNED_QUERIES
+    ):
+        raise ValueError("initial-control audit burned example authority differs")
+    model, processor = initialize_model(campaign=campaign, device=device)
+    raw_descriptors, projected_descriptors, labels = embed_examples(
+        model=model,
+        examples=burned_examples,
+        processor=processor,
+        device=device,
+        batch_size=campaign.run_authority.evaluation_batch_size,
+    )
+    expected_labels = torch.tensor(
+        [getattr(example, "label", None) for example in burned_examples], dtype=torch.int64
+    )
+    if (
+        not isinstance(raw_descriptors, torch.Tensor)
+        or not isinstance(projected_descriptors, torch.Tensor)
+        or not isinstance(labels, torch.Tensor)
+        or raw_descriptors.ndim != 2
+        or projected_descriptors.ndim != 2
+        or raw_descriptors.shape[0] != len(burned_examples)
+        or projected_descriptors.shape[0] != len(burned_examples)
+        or labels.device.type != "cpu"
+        or labels.dtype != torch.int64
+        or not torch.equal(labels, expected_labels)
+    ):
+        raise ValueError("initial-control audit embedding authority differs")
+    raw_evidence = score_descriptors(
+        raw_descriptors,
+        labels,
+        query_block=campaign.run_authority.query_block,
+    )
+    projected_evidence = score_descriptors(
+        projected_descriptors,
+        labels,
+        query_block=campaign.run_authority.query_block,
+    )
+    if {
+        "raw": raw_evidence.metrics.correct,
+        "projected": projected_evidence.metrics.correct,
+    } != campaign.initial_burned_correct:
+        raise ValueError("recomputed initial metrics differ")
+    authority = initial_audit_authority(campaign, burned_examples)
+    evidence = build_siglip_initial_control_audit(
+        authority=authority,
+        examples=burned_examples,
+        raw=raw_evidence,
+        projected=projected_evidence,
+    )
+    return canonical_siglip_initial_control_audit_bytes(
+        evidence,
+        authority=authority,
+        expected_example_ids=tuple(example.example_id for example in burned_examples),
+        expected_labels=tuple(example.label for example in burned_examples),
+    )
 
 
 def run_checkpoint_error_audit(
@@ -627,6 +792,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--seed-receipt", action="append", required=True, type=_absolute_path)
     parser.add_argument("--checkpoint-directory", required=True, type=_absolute_path)
     parser.add_argument("--selected-seed", required=True, type=int, choices=(_SELECTED_SEED,))
+    parser.add_argument("--initial-output", required=True, type=_absolute_path)
     parser.add_argument("--output", required=True, type=_absolute_path)
     parser.add_argument("--raw-twin-output", required=True, type=_absolute_path)
     parser.add_argument("--projected-twin-output", required=True, type=_absolute_path)
@@ -652,6 +818,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     arguments = parse_args(argv)
     require_new_result_paths(
         (
+            arguments.initial_output,
             arguments.output,
             arguments.raw_twin_output,
             arguments.projected_twin_output,
@@ -674,6 +841,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         raise ValueError("checkpoint audit dataset manifest authority differs")
     device = torch.device("cuda")
     require_control_determinism(device)
+    initial_payload = run_initial_control_error_audit(
+        campaign=campaign,
+        burned_examples=cast(tuple[object, ...], bands.burned_diagnostic),
+        device=device,
+    )
     twins: list[tuple[bytes, bytes, bytes, bytes]] = []
     payload = run_checkpoint_error_audit(
         campaign=campaign,
@@ -688,6 +860,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     raw_twin, projected_twin, raw_twin_inference, projected_twin_inference = twins[0]
     publish_new_results(
         (
+            (arguments.initial_output, initial_payload),
             (arguments.output, payload),
             (arguments.raw_twin_output, raw_twin),
             (arguments.projected_twin_output, projected_twin),
@@ -698,6 +871,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     sys.stdout.write(
         json.dumps(
             {
+                "initial_output": str(arguments.initial_output),
+                "initial_sha256": hashlib.sha256(initial_payload).hexdigest(),
                 "output": str(arguments.output),
                 "sha256": hashlib.sha256(payload).hexdigest(),
                 "raw_twin_output": str(arguments.raw_twin_output),
