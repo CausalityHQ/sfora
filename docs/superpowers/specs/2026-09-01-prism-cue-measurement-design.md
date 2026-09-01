@@ -123,12 +123,22 @@ holdout.
 
 Observation and scoring are capability-separated. The observation process
 receives only anonymous raw image bytes, one channel prompt, and one generation
-seed. It receives no labels, class names, relation truth, filenames,
+seed. Pair identity is an opaque source-bound capability handle; neither a fold
+nor an ordinal from which the fold can be recovered is released. It receives no
+labels, class names, relation truth, filenames,
 name-bearing directory paths, SigLIP descriptor, nearest-neighbour error flag,
 clean result, official-test image, or PRISM student output. Its receipt binds
 the exact prompt bytes and rendered image payload digests. A later scoring
 process receives only the typed observations plus the pair relation and class
 identity needed to score them; it has no model or image capability.
+
+The calibration receipt binds both the exact calibrated channel table and the
+exact token protocol digest. Diagnostic capability requires the authenticated
+source-bound schedule, all 256 fold-0 channel rows, primitive completion token
+IDs, and their reparsed observations; an empty or truncated pilot cannot pass
+the 75% validity gate. The final cue result carries this calibration receipt
+digest so a later scorer cannot silently substitute calibration evidence or a
+more permissive protocol.
 
 ## Calibration and score
 
@@ -150,8 +160,13 @@ log-loss improvement at least 0.02 nats over the fixed balanced-prior predictor
 are eligible, and the improvement must be positive in each of the three
 class-stratified calibration folds. The null relation probability is exactly
 0.5 and its per-pair log loss is `ln(2)` by schedule construction; it is not
-estimated from any fold. Contributions are summed with coefficient one. There
-are no fitted channel weights and no threshold tuning on the diagnostic fold.
+estimated from any fold. Because the eight prompts share one model and image
+pair, their likelihood
+ratios are dependent and must not be multiplied as independent evidence. The
+diagnostic score is the arithmetic mean of eligible-channel log-likelihood
+ratios, equivalently the log of their geometric-mean Bayes factor;
+protocol-invalid rows contribute zero. There are no fitted channel weights and
+no threshold tuning on the diagnostic fold.
 
 The raw-image cue gate passes only if all conditions hold on the 32-row
 diagnostic fold:
@@ -167,7 +182,17 @@ diagnostic fold:
 Both lower bounds use exactly 10,000 source-seeded diagnostic-pair bootstrap
 draws. Images are unique across pairs, so the pair is the bootstrap unit. The
 result also reports conditional pairwise agreement among channel
-log-likelihood contributions as a non-gating dependence diagnostic.
+log-likelihood contributions as a non-gating dependence diagnostic. Each row
+includes its jointly non-abstaining support count and uses an absent value,
+not zero agreement, when support is zero.
+
+The result records the log-loss, AUC, channel, and orientation gates
+separately. `cue-pass` means all pass. `rank-cue-only` means AUC, channel, and
+orientation gates pass while transferred log-loss calibration fails; it is
+positive evidence that a visual ranking cue exists and must never be routed to
+the data-impossibility branch. `probability-cue-only` is the converse mismatch.
+Only `cue-fail`, after the structural gates are valid, is a negative raw-cue
+result for the tested instrument.
 
 These gates measure the panel, not the ultimate retrieval target.
 
@@ -186,7 +211,8 @@ The committed descriptor audit and the raw-image panel are interpreted as:
 | pass | any | cue exists in the tested descriptor; cosine geometry is deficient for this pair | train a bounded cue-conditioned projection |
 | frozen fail, trained pass | pass | training creates the cue but deployed geometry discards it for this pair | distill cue blocks into the deployed descriptor |
 | both fail | pass | raw evidence exists but the tested SigLIP representation misses it | test Qwen student substrate, not another SigLIP loss |
-| both fail | fail | no tested system establishes reliable visible evidence for this pair | stop method tuning; perform data/taxonomy forensic review |
+| both fail | rank-cue-only | raw ranking evidence exists but cross-class probability calibration does not transfer | test native-resolution pair verification with rank-only gates |
+| both fail | cue-fail | no tested system establishes reliable visible evidence for this pair | stop tested-route tuning; perform data/taxonomy forensic review |
 
 A raw-panel failure is not an information-theoretic impossibility proof. It is
 a stop for the tested SigLIP/Qwen route. A data-limit conclusion requires the
@@ -241,7 +267,9 @@ retrieval quality.
 After sealing the Qwen snapshot and obtaining a SAGA feasibility `FITS`
 receipt, run the optimization validity/calibration panel and then the 32-pair
 Caliber panel once with the fixed channels, parser, schedules, and gates above.
-Failure stops PRISM training.
+`cue-fail` stops PRISM training. `rank-cue-only` stops probability-calibrated
+PRISM training but authorizes the preregistered native-resolution rank-verifier
+screen; it does not justify a data-limit conclusion.
 
 ### F2: frozen realization
 

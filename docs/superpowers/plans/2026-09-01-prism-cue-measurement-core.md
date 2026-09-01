@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - SFORA only; never modify Borsuk or protected operator files.
-- Observation capability contains anonymous payload digests, channel prompt authority, and generation seeds only.
+- Observation capability contains an opaque source-bound pair handle, anonymous payload digests, channel prompt authority, and generation seeds only; it exposes no fold or recoverable ordinal.
 - Scoring capability contains typed observations and truth but no images or model.
 - Exactly eight ordered cue channels.
 - Four image-disjoint 32-pair optimization folds; fold 0 is validity-only and folds 1--3 calibrate reliability.
@@ -172,6 +172,17 @@ Expected: missing sfora.prism_measurement.
 
 Use length-framed SHA-256 ordering over source identity, fold, relation stratum, labels, and IDs. Select images without replacement before pairing. Counterbalance orientation per fold/stratum. Derive generation seeds with a separate domain and reject collision. Canonical validators reconstruct all counts and cross-bind observation/scoring rows by pair ordinal.
 
+Diagnostic capability remains sealed until the caller supplies the exact
+content digest of a validated calibration receipt plus every fold-0 completion
+ID tuple, the fixed token protocol, and its reparsed observation. Recompute the
+aggregate protocol-valid rate from those primitive completions and require at
+least 75%; never trust a caller-provided validity boolean or a merely
+well-formed receipt digest. Validate the complete source-bound observation and
+scoring schedules before selecting a phase, require exactly 256 fold-0 channel
+rows, and reject an empty/truncated pilot. The calibration receipt binds the
+token-protocol digest as well as the channel table. Release only opaque
+source-bound pair handles; the authority retains the handle-to-ordinal map.
+
 - [ ] **Step 4: Run GREEN and static checks**
 
 Run the full new test file, Ruff, py_compile, and git diff --check.
@@ -209,6 +220,11 @@ class PrismObservation:
     pair_ordinal: int
     fold: int
     channel: str
+    left_first: bool
+    left_payload_sha256: str
+    right_payload_sha256: str
+    generation_seed: int
+    protocol_valid: bool
     left_visible: bool
     right_visible: bool
     relation: str
@@ -273,6 +289,7 @@ class PrismChannelCalibration:
 
 @dataclass(frozen=True, slots=True)
 class PrismCueResult:
+    calibration_receipt_sha256: str
     pair_scores: tuple[float, ...]
     pair_truth: tuple[int, ...]
     mean_log_loss_improvement: float
@@ -282,12 +299,19 @@ class PrismCueResult:
     valid_orientation_ppm: tuple[int, int]
     orientation_auc_gap: float
     eligible_channels: tuple[str, ...]
-    conditional_agreement: tuple[tuple[str, str, float], ...]
+    conditional_agreement: tuple[tuple[str, str, str, int, float | None], ...]
+    log_loss_gate_passed: bool
+    auc_gate_passed: bool
+    channel_gate_passed: bool
+    orientation_gate_passed: bool
+    cue_classification: str
     passed: bool
 
 def calibrate_prism_channels(
     observations: tuple[PrismObservation, ...],
     scoring_rows: tuple[PrismScoringRow, ...],
+    *,
+    source_identity: str,
 ) -> tuple[PrismChannelCalibration, ...]: ...
 
 def score_prism_cue_panel(
@@ -296,6 +320,9 @@ def score_prism_cue_panel(
     scoring_rows: tuple[PrismScoringRow, ...],
     *,
     bootstrap_seed: bytes,
+    source_identity: str,
+    calibration_receipt_sha256: str,
+    protocol: PrismTokenProtocol,
 ) -> PrismCueResult: ...
 ~~~
 
@@ -313,7 +340,15 @@ uv run --offline --locked \
 
 - [ ] **Step 3: Implement float64 calibration and bootstrap**
 
-Use fixed 0.5 prior and Jeffreys 1/2 counts. Sum eligible-channel log likelihood ratios with coefficient one. Resample all 32 image-disjoint diagnostic pairs for exactly 10,000 draws; stable-sort and take index floor(.05 * 9999). Recompute passed only from literal spec gates. Report conditional channel-sign agreement by truth stratum as non-gating evidence.
+Use fixed 0.5 prior and Jeffreys 1/2 counts. Average eligible-channel log
+likelihood ratios so correlated prompts form a geometric-mean Bayes factor
+rather than an overconfident independence product. Resample all 32
+image-disjoint diagnostic pairs for exactly 10,000 draws; stable-sort and take
+index floor(.05 * 9999). Recompute each literal gate and the exhaustive
+`cue-pass`/`rank-cue-only`/`probability-cue-only`/`cue-fail` classification.
+Report conditional channel-sign agreement by truth stratum with a support count
+and absent value at zero jointly non-abstaining support. Recompute source-bound
+generation seeds before any orientation statistic.
 
 - [ ] **Step 4: Run whole-file GREEN and static checks**
 

@@ -2,19 +2,31 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import struct
 from dataclasses import asdict, replace
 
+import numpy as np
 import pytest
 
+from sfora import prism_measurement as prism
 from sfora.prism_measurement import (
     PRISM_CHANNELS,
+    PrismChannelCalibration,
+    PrismCueResult,
     PrismExample,
     PrismObservation,
+    PrismObservationRow,
+    PrismScoringRow,
     PrismTokenProtocol,
     build_prism_schedules,
+    calibrate_prism_channels,
+    invalid_prism_observation,
     parse_prism_completion,
+    prism_calibration_receipt_sha256,
     release_prism_observation_capability,
+    score_prism_cue_panel,
+    validate_prism_cue_result,
     validate_prism_observation,
     validate_prism_schedules,
 )
@@ -60,6 +72,67 @@ def _token_protocol() -> PrismTokenProtocol:
     )
 
 
+def _score_panel(
+    calibrations: tuple[PrismChannelCalibration, ...],
+    observations: tuple[PrismObservation, ...],
+    scoring: tuple[PrismScoringRow, ...],
+    *,
+    bootstrap_seed: bytes,
+    source_identity: str,
+) -> PrismCueResult:
+    protocol = _token_protocol()
+    return score_prism_cue_panel(
+        calibrations,
+        observations,
+        scoring,
+        bootstrap_seed=bootstrap_seed,
+        source_identity=source_identity,
+        calibration_receipt_sha256=prism_calibration_receipt_sha256(
+            calibrations, protocol
+        ),
+        protocol=protocol,
+    )
+
+
+def _validate_panel_result(
+    result: PrismCueResult,
+    calibrations: tuple[PrismChannelCalibration, ...],
+    observations: tuple[PrismObservation, ...],
+    scoring: tuple[PrismScoringRow, ...],
+    *,
+    bootstrap_seed: bytes,
+    source_identity: str,
+) -> None:
+    protocol = _token_protocol()
+    validate_prism_cue_result(
+        result,
+        calibrations,
+        observations,
+        scoring,
+        bootstrap_seed=bootstrap_seed,
+        source_identity=source_identity,
+        calibration_receipt_sha256=prism_calibration_receipt_sha256(
+            calibrations, protocol
+        ),
+        protocol=protocol,
+    )
+
+
+def _completion_for(row: PrismObservationRow, relation: str) -> tuple[int, ...]:
+    channel = row.channel
+    return (
+        100 + PRISM_CHANNELS.index(channel),
+        200,
+        300 if relation == "same" else 301,
+        402,
+        9,
+        500,
+        10,
+        600,
+        601,
+    )
+
+
 def test_prism_token_protocol_parses_exact_ids_and_rejects_ambiguity() -> None:
     observations, _scoring = build_prism_schedules(
         _optimization_examples(),
@@ -86,6 +159,11 @@ def test_prism_token_protocol_parses_exact_ids_and_rejects_ambiguity() -> None:
     assert parsed.pair_ordinal == row.pair_ordinal
     assert parsed.fold == row.fold
     assert parsed.channel == row.channel
+    assert parsed.left_first is row.left_first
+    assert parsed.left_payload_sha256 == row.left_payload_sha256
+    assert parsed.right_payload_sha256 == row.right_payload_sha256
+    assert parsed.generation_seed == row.generation_seed
+    assert parsed.protocol_valid is True
     assert parsed.left_visible is True
     assert parsed.right_visible is True
     assert parsed.relation == "different"
@@ -140,6 +218,643 @@ def test_prism_token_protocol_parses_exact_ids_and_rejects_ambiguity() -> None:
             completion,
             _token_protocol(),
         )
+    invalid = invalid_prism_observation(row, (999,))
+    assert invalid.protocol_valid is False
+    assert invalid.left_first is row.left_first
+    assert invalid.relation == "indeterminate"
+    assert invalid.evidence_left_token_ids == ()
+    assert invalid.evidence_right_token_ids == ()
+    validate_prism_observation(invalid, row, (999,), _token_protocol())
+    empty_invalid = invalid_prism_observation(row, ())
+    validate_prism_observation(empty_invalid, row, (), _token_protocol())
+
+    with pytest.raises(ValueError, match="protocol"):
+        validate_prism_observation(
+            invalid,
+            row,
+            (999,),
+            replace(_token_protocol(), terminal_tokens=(-1,)),
+        )
+    with pytest.raises(ValueError, match="row"):
+        validate_prism_observation(
+            invalid,
+            replace(row, left_payload_sha256="not-a-digest"),
+            (999,),
+            _token_protocol(),
+        )
+
+
+def _perfect_panel(*, source_identity: str = "panel-source") -> tuple[
+    tuple[PrismObservation, ...],
+    tuple[object, ...],
+]:
+    schedule, scoring = build_prism_schedules(
+        _optimization_examples(),
+        _caliber_examples(),
+        source_identity=source_identity,
+    )
+    observations = tuple(
+        parse_prism_completion(
+            row,
+            _completion_for(row, scoring[row.pair_ordinal].relation),
+            _token_protocol(),
+        )
+        for row in schedule
+    )
+    return observations, scoring
+
+
+def _invalid_observation(observation: PrismObservation) -> PrismObservation:
+    return replace(
+        observation,
+        protocol_valid=False,
+        left_visible=False,
+        right_visible=False,
+        relation="indeterminate",
+        confidence="low",
+        evidence_left_token_ids=(),
+        evidence_right_token_ids=(),
+    )
+
+
+def _bootstrap_lowers(result: PrismCueResult, seed: bytes) -> tuple[float, float, float]:
+    scores = np.asarray(result.pair_scores, dtype=np.float64)
+    truth = np.asarray(result.pair_truth, dtype=np.int64)
+    probabilities = np.asarray(
+        [
+            1.0 / (1.0 + math.exp(-score))
+            if score >= 0.0
+            else math.exp(score) / (1.0 + math.exp(score))
+            for score in scores
+        ]
+    )
+    clipped = np.clip(probabilities, 1e-15, 1.0 - 1e-15)
+    losses = -np.log(np.where(truth == 1, clipped, 1.0 - clipped))
+    material = b"sfora-prism-cue-bootstrap-v1\0" + len(seed).to_bytes(8, "little") + seed
+    generator = np.random.Generator(
+        np.random.PCG64(int.from_bytes(hashlib.sha256(material).digest()[:16], "little"))
+    )
+    improvements: list[float] = []
+    aucs: list[float] = []
+    while len(improvements) < 10_000:
+        indexes = generator.integers(0, 32, size=32)
+        labels = truth[indexes]
+        if set(labels.tolist()) != {0, 1}:
+            continue
+        sampled_scores = scores[indexes]
+        positive = sampled_scores[labels == 1]
+        negative = sampled_scores[labels == 0]
+        comparisons = positive[:, None] - negative[None, :]
+        improvements.append(math.log(2.0) - float(losses[indexes].mean()))
+        aucs.append(
+            (
+                np.count_nonzero(comparisons > 0)
+                + 0.5 * np.count_nonzero(comparisons == 0)
+            )
+            / comparisons.size
+        )
+    improvements.sort()
+    aucs.sort()
+    return improvements[499], aucs[499], improvements[0]
+
+
+def test_prism_calibration_and_cue_result_use_fixed_jeffreys_arithmetic() -> None:
+    observations, scoring = _perfect_panel()
+    calibrations = calibrate_prism_channels(
+        observations, scoring, source_identity="panel-source"
+    )
+    assert len(calibrations) == len(PRISM_CHANNELS)
+    assert all(isinstance(row, PrismChannelCalibration) for row in calibrations)
+    for channel, calibration in zip(PRISM_CHANNELS, calibrations, strict=True):
+        assert calibration.channel == channel
+        assert calibration.counts == ((48, 0), (0, 48), (0, 0))
+        assert calibration.visibility_ppm == 1_000_000
+        assert calibration.loo_log_loss_improvement > 0.02
+        assert all(value > 0.0 for value in calibration.fold_log_loss_improvements)
+        assert calibration.eligible is True
+
+    result = _score_panel(
+        calibrations,
+        observations,
+        scoring,
+        bootstrap_seed=b"fixed-panel-bootstrap",
+        source_identity="panel-source",
+    )
+    assert isinstance(result, PrismCueResult)
+    assert result.calibration_receipt_sha256 == prism_calibration_receipt_sha256(
+        calibrations, _token_protocol()
+    )
+    assert len(result.pair_scores) == 32
+    assert result.pair_truth == tuple(
+        int(row.relation == "different") for row in scoring[128:160]
+    )
+    assert result.pair_truth.count(0) == 16
+    assert result.pair_truth.count(1) == 16
+    assert result.mean_log_loss_improvement_lower_95 >= 0.05
+    assert result.auc == 1.0
+    assert result.auc_lower_95 >= 0.80
+    assert result.valid_orientation_ppm == (1_000_000, 1_000_000)
+    assert result.orientation_auc_gap == 0.0
+    assert result.eligible_channels == PRISM_CHANNELS
+    assert result.log_loss_gate_passed is True
+    assert result.auc_gate_passed is True
+    assert result.channel_gate_passed is True
+    assert result.orientation_gate_passed is True
+    assert result.cue_classification == "cue-pass"
+    assert result.passed is True
+    same_probability = (0.5 / 49.5) / ((47.5 / 48.5) + (0.5 / 49.5))
+    expected_loo = math.log(2.0) + math.log1p(-same_probability)
+    assert calibrations[0].loo_log_loss_improvement == pytest.approx(
+        expected_loo, abs=1e-15
+    )
+
+    invalid_calibration_ordinal = next(
+        index
+        for index, observation in enumerate(observations)
+        if observation.fold == 1 and observation.channel == PRISM_CHANNELS[0]
+    )
+    one_invalid_calibration = tuple(
+        _invalid_observation(observation) if index == invalid_calibration_ordinal else observation
+        for index, observation in enumerate(observations)
+    )
+    invalid_calibration = calibrate_prism_channels(
+        one_invalid_calibration, scoring, source_identity="panel-source"
+    )[0]
+    channel_rows = [
+        observation
+        for observation in one_invalid_calibration
+        if observation.fold in {1, 2, 3} and observation.channel == PRISM_CHANNELS[0]
+    ]
+    relation_indexes = {"same": 0, "different": 1, "indeterminate": 2}
+    manual_counts = np.zeros((3, 2), dtype=np.int64)
+    for observation in channel_rows:
+        if observation.protocol_valid:
+            truth = int(scoring[observation.pair_ordinal].relation == "different")
+            manual_counts[relation_indexes[observation.relation], truth] += 1
+    manual_losses: list[float] = []
+    for observation in channel_rows:
+        truth = int(scoring[observation.pair_ordinal].relation == "different")
+        if not observation.protocol_valid:
+            probability = 0.5
+        else:
+            remaining = manual_counts.copy()
+            relation_index = relation_indexes[observation.relation]
+            remaining[relation_index, truth] -= 1
+            likelihood_same = (remaining[relation_index, 0] + 0.5) / (
+                float(remaining[:, 0].sum()) + 1.5
+            )
+            likelihood_different = (remaining[relation_index, 1] + 0.5) / (
+                float(remaining[:, 1].sum()) + 1.5
+            )
+            probability = likelihood_different / (likelihood_same + likelihood_different)
+        manual_losses.append(
+            -math.log(probability if truth else 1.0 - probability)
+        )
+    assert invalid_calibration.loo_log_loss_improvement == pytest.approx(
+        math.log(2.0) - math.fsum(manual_losses) / len(manual_losses),
+        abs=1e-15,
+    )
+    _validate_panel_result(
+        result,
+        calibrations,
+        observations,
+        scoring,
+        bootstrap_seed=b"fixed-panel-bootstrap",
+        source_identity="panel-source",
+    )
+
+    forged = replace(result, passed=False)
+    with pytest.raises(ValueError, match="derivation"):
+        _validate_panel_result(
+            forged,
+            calibrations,
+            observations,
+            scoring,
+            bootstrap_seed=b"fixed-panel-bootstrap",
+            source_identity="panel-source",
+        )
+    forged_receipt = replace(result, calibration_receipt_sha256="0" * 64)
+    with pytest.raises(ValueError, match="derivation"):
+        _validate_panel_result(
+            forged_receipt,
+            calibrations,
+            observations,
+            scoring,
+            bootstrap_seed=b"fixed-panel-bootstrap",
+            source_identity="panel-source",
+        )
+    changed_protocol = replace(_token_protocol(), max_evidence_tokens=9)
+    with pytest.raises(ValueError, match="receipt"):
+        score_prism_cue_panel(
+            calibrations,
+            observations,
+            scoring,
+            bootstrap_seed=b"fixed-panel-bootstrap",
+            source_identity="panel-source",
+            calibration_receipt_sha256=prism_calibration_receipt_sha256(
+                calibrations, _token_protocol()
+            ),
+            protocol=changed_protocol,
+        )
+    insufficient_observations = tuple(
+        _invalid_observation(observation)
+        if observation.fold in {1, 2, 3} and observation.channel not in PRISM_CHANNELS[:3]
+        else observation
+        for observation in observations
+    )
+    insufficient = calibrate_prism_channels(
+        insufficient_observations, scoring, source_identity="panel-source"
+    )
+    failed = _score_panel(
+        insufficient,
+        insufficient_observations,
+        scoring,
+        bootstrap_seed=b"fixed-panel-bootstrap",
+        source_identity="panel-source",
+    )
+    assert failed.passed is False
+
+    no_anchor_observations = tuple(
+        _invalid_observation(observation)
+        if observation.fold in {1, 2, 3}
+        and observation.channel in {PRISM_CHANNELS[0], PRISM_CHANNELS[1], PRISM_CHANNELS[7]}
+        else observation
+        for observation in observations
+    )
+    no_anchor_calibrations = calibrate_prism_channels(
+        no_anchor_observations, scoring, source_identity="panel-source"
+    )
+    no_anchor = _score_panel(
+        no_anchor_calibrations,
+        no_anchor_observations,
+        scoring,
+        bootstrap_seed=b"fixed-panel-bootstrap",
+        source_identity="panel-source",
+    )
+    assert len(no_anchor.eligible_channels) == 5
+    assert no_anchor.auc_lower_95 >= 0.80
+    assert no_anchor.mean_log_loss_improvement_lower_95 >= 0.05
+    assert no_anchor.passed is False
+
+    diagnostic_inverted = tuple(
+        replace(
+            observation,
+            relation=("different" if observation.relation == "same" else "same"),
+        )
+        if observation.fold == 4
+        else observation
+        for observation in observations
+    )
+    inverted_result = _score_panel(
+        calibrations,
+        diagnostic_inverted,
+        scoring,
+        bootstrap_seed=b"fixed-panel-bootstrap",
+        source_identity="panel-source",
+    )
+    assert inverted_result.auc == 0.0
+    assert inverted_result.passed is False
+
+    one_error_observations = tuple(
+        replace(
+            observation,
+            relation=("different" if observation.relation == "same" else "same"),
+        )
+        if observation.pair_ordinal == 128
+        else observation
+        for observation in observations
+    )
+    one_error_result = _score_panel(
+        calibrations,
+        one_error_observations,
+        scoring,
+        bootstrap_seed=b"fixed-panel-bootstrap",
+        source_identity="panel-source",
+    )
+    expected_improvement_lower, expected_auc_lower, bootstrap_minimum = _bootstrap_lowers(
+        one_error_result, b"fixed-panel-bootstrap"
+    )
+    assert one_error_result.mean_log_loss_improvement_lower_95 == pytest.approx(
+        expected_improvement_lower, abs=1e-15
+    )
+    assert one_error_result.auc_lower_95 == pytest.approx(expected_auc_lower, abs=1e-15)
+    assert one_error_result.mean_log_loss_improvement_lower_95 > bootstrap_minimum
+    assert one_error_result.auc_gate_passed is True
+    assert one_error_result.log_loss_gate_passed is True
+    assert one_error_result.cue_classification == "cue-pass"
+    assert one_error_result.passed is True
+
+    rank_cue_observations = tuple(
+        replace(
+            observation,
+            relation=("different" if observation.relation == "same" else "same"),
+        )
+        if observation.pair_ordinal in {128, 129, 130}
+        else observation
+        for observation in observations
+    )
+    rank_cue_result = _score_panel(
+        calibrations,
+        rank_cue_observations,
+        scoring,
+        bootstrap_seed=b"fixed-panel-bootstrap",
+        source_identity="panel-source",
+    )
+    assert rank_cue_result.auc_gate_passed is True
+    assert rank_cue_result.log_loss_gate_passed is False
+    assert rank_cue_result.cue_classification == "rank-cue-only"
+    assert rank_cue_result.passed is False
+
+    diagnostic_ties = tuple(
+        replace(observation, relation="indeterminate")
+        if observation.fold == 4
+        else observation
+        for observation in observations
+    )
+    tie_result = _score_panel(
+        calibrations,
+        diagnostic_ties,
+        scoring,
+        bootstrap_seed=b"fixed-panel-bootstrap",
+        source_identity="panel-source",
+    )
+    assert tie_result.auc == 0.5
+    assert tie_result.mean_log_loss_improvement == 0.0
+    assert tie_result.passed is False
+
+    one_orientation_inverted = tuple(
+        replace(
+            observation,
+            relation=("different" if observation.relation == "same" else "same"),
+        )
+        if observation.fold == 4 and observation.left_first is False
+        else observation
+        for observation in observations
+    )
+    orientation_result = _score_panel(
+        calibrations,
+        one_orientation_inverted,
+        scoring,
+        bootstrap_seed=b"fixed-panel-bootstrap",
+        source_identity="panel-source",
+    )
+    assert orientation_result.orientation_auc_gap == 1.0
+    assert orientation_result.passed is False
+
+    invalid_false_ordinals = {
+        observation.pair_ordinal
+        for observation in observations
+        if observation.fold == 4
+        and observation.left_first is False
+        and observation.channel == PRISM_CHANNELS[0]
+    }
+    invalid_false_ordinals = set(sorted(invalid_false_ordinals)[:5])
+    low_validity = tuple(
+        _invalid_observation(observation)
+        if observation.fold == 4
+        and observation.left_first is False
+        and observation.pair_ordinal in invalid_false_ordinals
+        else observation
+        for observation in observations
+    )
+    low_validity_result = _score_panel(
+        calibrations,
+        low_validity,
+        scoring,
+        bootstrap_seed=b"fixed-panel-bootstrap",
+        source_identity="panel-source",
+    )
+    assert min(low_validity_result.valid_orientation_ppm) < 750_000
+    assert low_validity_result.passed is False
+
+    diagnostic_abstention = tuple(
+        _invalid_observation(observation)
+        if observation.fold == 4 and observation.channel in PRISM_CHANNELS[:2]
+        else observation
+        for observation in observations
+    )
+    abstention_result = _score_panel(
+        calibrations,
+        diagnostic_abstention,
+        scoring,
+        bootstrap_seed=b"fixed-panel-bootstrap",
+        source_identity="panel-source",
+    )
+    first_agreement = next(
+        row
+        for row in abstention_result.conditional_agreement
+        if row[:2] == PRISM_CHANNELS[:2] and row[2] == "same"
+    )
+    assert first_agreement[3:] == (0, None)
+
+    asymmetric_calibration_observations = tuple(
+        replace(observation, relation="indeterminate")
+        if observation.fold in {1, 2, 3}
+        and observation.channel == PRISM_CHANNELS[0]
+        and scoring[observation.pair_ordinal].relation == "same"
+        else _invalid_observation(observation)
+        if observation.fold == 4 and observation.channel == PRISM_CHANNELS[0]
+        else observation
+        for observation in observations
+    )
+    asymmetric_calibrations = calibrate_prism_channels(
+        asymmetric_calibration_observations,
+        scoring,
+        source_identity="panel-source",
+    )
+    assert asymmetric_calibrations[0].eligible is True
+    neutral_invalid_result = _score_panel(
+        asymmetric_calibrations,
+        asymmetric_calibration_observations,
+        scoring,
+        bootstrap_seed=b"fixed-panel-bootstrap",
+        source_identity="panel-source",
+    )
+    expected_magnitude = 7.0 * math.log(97.0) / 8.0
+    for pair_score, pair_truth in zip(
+        neutral_invalid_result.pair_scores,
+        neutral_invalid_result.pair_truth,
+        strict=True,
+    ):
+        assert pair_score == pytest.approx(
+            expected_magnitude if pair_truth else -expected_magnitude,
+            abs=1e-12,
+        )
+
+    with pytest.raises(ValueError, match="cardinality"):
+        calibrate_prism_channels(
+            observations[:-1], scoring, source_identity="panel-source"
+        )
+    duplicated = (*observations[:-1], observations[0])
+    with pytest.raises(ValueError, match="order"):
+        calibrate_prism_channels(duplicated, scoring, source_identity="panel-source")
+    stale_orientation = tuple(
+        replace(observation, left_first=not observation.left_first)
+        if observation.fold == 4
+        else observation
+        for observation in observations
+    )
+    with pytest.raises(ValueError, match="seed authority"):
+        calibrate_prism_channels(
+            stale_orientation, scoring, source_identity="panel-source"
+        )
+    unbalanced_orientation = tuple(
+        replace(
+            observation,
+            left_first=True,
+            generation_seed=prism._generation_seed(
+                "panel-source",
+                observation.pair_ordinal,
+                observation.channel,
+                observation.left_payload_sha256,
+                observation.right_payload_sha256,
+                True,
+            ),
+        )
+        if observation.fold == 4
+        else observation
+        for observation in observations
+    )
+    with pytest.raises(ValueError, match="orientation balance"):
+        calibrate_prism_channels(
+            unbalanced_orientation, scoring, source_identity="panel-source"
+        )
+    with pytest.raises(ValueError, match="payload binding"):
+        calibrate_prism_channels(
+            (replace(observations[0], left_payload_sha256="f" * 64), *observations[1:]),
+            scoring,
+            source_identity="panel-source",
+        )
+    with pytest.raises(ValueError, match="seed"):
+        calibrate_prism_channels(
+            (
+                observations[0],
+                replace(
+                    observations[1], generation_seed=observations[0].generation_seed
+                ),
+                *observations[2:],
+            ),
+            scoring,
+            source_identity="panel-source",
+        )
+    with pytest.raises(ValueError, match="seed authority"):
+        calibrate_prism_channels(
+            observations,
+            scoring,
+            source_identity="wrong-panel-source",
+        )
+    for changed in (
+        (replace(calibrations[0], counts=((True, 0), (0, 48), (0, 0))), *calibrations[1:]),
+        (replace(calibrations[0], loo_log_loss_improvement=float("nan")), *calibrations[1:]),
+        (calibrations[1], calibrations[0], *calibrations[2:]),
+    ):
+        with pytest.raises(ValueError, match="calibration"):
+            _score_panel(
+                tuple(changed),
+                observations,
+                scoring,
+                bootstrap_seed=b"fixed-panel-bootstrap",
+                source_identity="panel-source",
+            )
+
+    invisible = tuple(
+        replace(observation, left_visible=False)
+        if observation.fold in {1, 2, 3} and observation.channel == PRISM_CHANNELS[0]
+        else observation
+        for observation in observations
+    )
+    assert (
+        calibrate_prism_channels(
+            invisible, scoring, source_identity="panel-source"
+        )[0].eligible
+        is False
+    )
+    one_bad_fold = tuple(
+        replace(
+            observation,
+            relation=("different" if observation.relation == "same" else "same"),
+        )
+        if observation.fold == 1 and observation.channel == PRISM_CHANNELS[0]
+        else observation
+        for observation in observations
+    )
+    one_bad = calibrate_prism_channels(
+        one_bad_fold, scoring, source_identity="panel-source"
+    )[0]
+    assert one_bad.loo_log_loss_improvement > 0.02
+    assert one_bad.fold_log_loss_improvements[0] < 0.0
+    assert one_bad.eligible is False
+
+    failed_pilot = tuple(
+        _invalid_observation(observation)
+        if observation.fold == 0 and observation.left_first is False
+        else observation
+        for observation in observations
+    )
+    with pytest.raises(ValueError, match="pilot"):
+        _score_panel(
+            calibrations,
+            failed_pilot,
+            scoring,
+            bootstrap_seed=b"fixed-panel-bootstrap",
+            source_identity="panel-source",
+        )
+
+    false_pilot_ordinals = sorted(
+        {
+            observation.pair_ordinal
+            for observation in observations
+            if observation.fold == 0
+            and observation.left_first is False
+            and observation.channel == PRISM_CHANNELS[0]
+        }
+    )[:8]
+    boundary_pilot = tuple(
+        _invalid_observation(observation)
+        if observation.fold == 0
+        and observation.pair_ordinal in false_pilot_ordinals
+        else observation
+        for observation in observations
+    )
+    assert (
+        _score_panel(
+            calibrations,
+            boundary_pilot,
+            scoring,
+            bootstrap_seed=b"fixed-panel-bootstrap",
+            source_identity="panel-source",
+        ).passed
+        is True
+    )
+
+
+def test_prism_cue_gate_requires_every_literal_threshold() -> None:
+    passing = dict(
+        improvement_lower=0.05,
+        auc_lower=0.80,
+        eligible_channels=PRISM_CHANNELS[:4],
+        valid_orientation_ppm=(750_000, 750_000),
+        orientation_gap=0.10,
+    )
+    assert prism._passes_prism_cue_gates(**passing) is True
+    failures = (
+        {**passing, "improvement_lower": math.nextafter(0.05, 0.0)},
+        {**passing, "auc_lower": math.nextafter(0.80, 0.0)},
+        {**passing, "eligible_channels": PRISM_CHANNELS[:3]},
+        {
+            **passing,
+            "eligible_channels": (
+                PRISM_CHANNELS[0],
+                PRISM_CHANNELS[2],
+                PRISM_CHANNELS[3],
+                PRISM_CHANNELS[4],
+            ),
+        },
+        {**passing, "valid_orientation_ppm": (749_999, 1_000_000)},
+        {**passing, "orientation_gap": math.nextafter(0.10, 1.0)},
+    )
+    for changed in failures:
+        assert prism._passes_prism_cue_gates(**changed) is False
 
 
 def test_prism_schedules_are_balanced_anonymous_disjoint_and_source_bound() -> None:
@@ -206,11 +921,15 @@ def test_prism_schedules_are_balanced_anonymous_disjoint_and_source_bound() -> N
 
     calibration_capability = release_prism_observation_capability(
         observations,
+        scoring,
         phase="calibration",
+        source_identity="source-a",
     )
     assert len(calibration_capability) == 128 * len(PRISM_CHANNELS)
-    assert max(row.pair_ordinal for row in calibration_capability) == 127
+    assert all(len(row.pair_handle) == 64 for row in calibration_capability)
+    assert len({row.pair_handle for row in calibration_capability}) == 128
     assert all("fold" not in asdict(row) for row in calibration_capability)
+    assert all("ordinal" not in asdict(row) for row in calibration_capability)
     anonymous = json.dumps([asdict(row) for row in calibration_capability], sort_keys=True)
     for forbidden in (
         "label",
@@ -224,15 +943,114 @@ def test_prism_schedules_are_balanced_anonymous_disjoint_and_source_bound() -> N
     ):
         assert forbidden not in anonymous
     with pytest.raises(ValueError, match="receipt"):
-        release_prism_observation_capability(observations, phase="diagnostic")
+        release_prism_observation_capability(
+            observations,
+            scoring,
+            phase="diagnostic",
+            source_identity="source-a",
+        )
+    with pytest.raises(ValueError, match="schedule"):
+        release_prism_observation_capability(
+            tuple(row for row in observations if row.fold != 0),
+            scoring,
+            phase="diagnostic",
+            source_identity="source-a",
+            calibration_receipt_sha256="0" * 64,
+            calibrations=(),
+            pilot_observations=(),
+            pilot_completion_ids=(),
+            protocol=_token_protocol(),
+        )
+    panel_observations, panel_scoring = _perfect_panel(source_identity="source-a")
+    panel_calibrations = calibrate_prism_channels(
+        panel_observations,
+        panel_scoring,
+        source_identity="source-a",
+    )
+    calibration_receipt = prism_calibration_receipt_sha256(
+        panel_calibrations, _token_protocol()
+    )
+    pilot_schedule_rows = tuple(row for row in observations if row.fold == 0)
+    pilot_observations = tuple(row for row in panel_observations if row.fold == 0)
+    pilot_completion_ids = tuple(
+        _completion_for(row, panel_scoring[row.pair_ordinal].relation)
+        for row in pilot_schedule_rows
+    )
+    with pytest.raises(ValueError, match="pilot"):
+        release_prism_observation_capability(
+            observations,
+            scoring,
+            phase="diagnostic",
+            source_identity="source-a",
+            calibration_receipt_sha256=calibration_receipt,
+            calibrations=panel_calibrations,
+            protocol=_token_protocol(),
+        )
     diagnostic_capability = release_prism_observation_capability(
         observations,
+        scoring,
         phase="diagnostic",
-        calibration_receipt_sha256="f" * 64,
+        source_identity="source-a",
+        calibration_receipt_sha256=calibration_receipt,
+        calibrations=panel_calibrations,
+        pilot_observations=pilot_observations,
+        pilot_completion_ids=pilot_completion_ids,
+        protocol=_token_protocol(),
     )
     assert len(diagnostic_capability) == 32 * len(PRISM_CHANNELS)
-    assert min(row.pair_ordinal for row in diagnostic_capability) == 128
+    assert all(len(row.pair_handle) == 64 for row in diagnostic_capability)
+    assert len({row.pair_handle for row in diagnostic_capability}) == 32
     assert all("fold" not in asdict(row) for row in diagnostic_capability)
+    assert all("ordinal" not in asdict(row) for row in diagnostic_capability)
+    failed_pilot = tuple(
+        invalid_prism_observation(schedule_row, ()) if index < 65 else observed
+        for index, (schedule_row, observed) in enumerate(
+            zip(pilot_schedule_rows, pilot_observations, strict=True)
+        )
+    )
+    failed_pilot_completion_ids = tuple(
+        () if index < 65 else completion_ids
+        for index, completion_ids in enumerate(pilot_completion_ids)
+    )
+    with pytest.raises(ValueError, match="pilot"):
+        release_prism_observation_capability(
+            observations,
+            scoring,
+            phase="diagnostic",
+            source_identity="source-a",
+            calibration_receipt_sha256=calibration_receipt,
+            calibrations=panel_calibrations,
+            pilot_observations=failed_pilot,
+            pilot_completion_ids=failed_pilot_completion_ids,
+            protocol=_token_protocol(),
+        )
+    with pytest.raises(ValueError, match="digest"):
+        release_prism_observation_capability(
+            observations,
+            scoring,
+            phase="diagnostic",
+            source_identity="source-a",
+            calibration_receipt_sha256=calibration_receipt,
+            calibrations=panel_calibrations,
+            pilot_observations=(
+                replace(pilot_observations[0], completion_sha256="0" * 64),
+                *pilot_observations[1:],
+            ),
+            pilot_completion_ids=pilot_completion_ids,
+            protocol=_token_protocol(),
+        )
+    with pytest.raises(ValueError, match="receipt"):
+        release_prism_observation_capability(
+            observations,
+            scoring,
+            phase="diagnostic",
+            source_identity="source-a",
+            calibration_receipt_sha256="0" * 64,
+            calibrations=panel_calibrations,
+            pilot_observations=pilot_observations,
+            pilot_completion_ids=pilot_completion_ids,
+            protocol=_token_protocol(),
+        )
 
     reordered = build_prism_schedules(
         tuple(reversed(optimization)),
