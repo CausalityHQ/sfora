@@ -79,6 +79,35 @@ class PrismObservationCapabilityRow:
     generation_seed: int
 
 
+@dataclass(frozen=True, slots=True)
+class PrismTokenProtocol:
+    """Exact token sequences for one tokenizer- and prompt-bound completion."""
+
+    channel_prefixes: tuple[tuple[int, ...], ...]
+    visibility_prefixes: tuple[tuple[int, ...], ...]
+    relation_prefixes: tuple[tuple[int, ...], ...]
+    confidence_prefixes: tuple[tuple[int, ...], ...]
+    evidence_separator: tuple[int, ...]
+    terminal_tokens: tuple[int, ...]
+    max_evidence_tokens: int
+
+
+@dataclass(frozen=True, slots=True)
+class PrismObservation:
+    """One typed completion, without decoded text or scoring truth."""
+
+    pair_ordinal: int
+    fold: int
+    channel: str
+    left_visible: bool
+    right_visible: bool
+    relation: str
+    confidence: str
+    evidence_left_token_ids: tuple[int, ...]
+    evidence_right_token_ids: tuple[int, ...]
+    completion_sha256: str
+
+
 def _rank(source_identity: str, domain: str, *values: object) -> bytes:
     digest = hashlib.sha256()
     for value in ("sfora-prism-schedule-v1", source_identity, domain, *values):
@@ -480,6 +509,153 @@ def release_prism_observation_capability(
         )
         for row in selected
     )
+
+
+def _validate_token_sequence(sequence: tuple[int, ...], field: str) -> None:
+    if (
+        type(sequence) is not tuple
+        or not sequence
+        or any(type(token) is not int or not 0 <= token <= 0xFFFF_FFFF for token in sequence)
+    ):
+        raise ValueError(f"PRISM token protocol {field} differs")
+
+
+def _validate_token_protocol(protocol: PrismTokenProtocol) -> None:
+    if type(protocol) is not PrismTokenProtocol:
+        raise TypeError("PRISM token protocol has the wrong concrete type")
+    groups = (
+        ("channel", protocol.channel_prefixes, len(PRISM_CHANNELS)),
+        ("visibility", protocol.visibility_prefixes, 4),
+        ("relation", protocol.relation_prefixes, 3),
+        ("confidence", protocol.confidence_prefixes, 3),
+    )
+    for name, sequences, cardinality in groups:
+        if type(sequences) is not tuple or len(sequences) != cardinality:
+            raise ValueError(f"PRISM token protocol {name} cardinality differs")
+        for sequence in sequences:
+            _validate_token_sequence(sequence, name)
+        for left_index, left in enumerate(sequences):
+            for right in sequences[left_index + 1 :]:
+                shared = min(len(left), len(right))
+                if left[:shared] == right[:shared]:
+                    raise ValueError(f"PRISM token protocol {name} overlap differs")
+    _validate_token_sequence(protocol.evidence_separator, "separator")
+    _validate_token_sequence(protocol.terminal_tokens, "terminal")
+    if type(protocol.max_evidence_tokens) is not int or protocol.max_evidence_tokens < 0:
+        raise ValueError("PRISM token protocol evidence bound differs")
+
+
+def _match_prefix(
+    completion: tuple[int, ...],
+    cursor: int,
+    sequences: tuple[tuple[int, ...], ...],
+    field: str,
+) -> tuple[int, int]:
+    matches = [
+        (index, sequence)
+        for index, sequence in enumerate(sequences)
+        if completion[cursor : cursor + len(sequence)] == sequence
+    ]
+    if len(matches) != 1:
+        raise ValueError(f"PRISM completion {field} differs")
+    index, sequence = matches[0]
+    return index, cursor + len(sequence)
+
+
+def _completion_sha256(completion_ids: tuple[int, ...]) -> str:
+    digest = hashlib.sha256()
+    digest.update(len(completion_ids).to_bytes(8, "little"))
+    for token in completion_ids:
+        digest.update(token.to_bytes(4, "little"))
+    return digest.hexdigest()
+
+
+def parse_prism_completion(
+    row: PrismObservationRow,
+    completion_ids: tuple[int, ...],
+    protocol: PrismTokenProtocol,
+) -> PrismObservation:
+    """Parse one completion by exact token IDs without decoding text."""
+
+    if (
+        type(row) is not PrismObservationRow
+        or row.channel not in PRISM_CHANNELS
+        or type(row.pair_ordinal) is not int
+        or type(row.fold) is not int
+        or _SHA256.fullmatch(row.left_payload_sha256) is None
+        or _SHA256.fullmatch(row.right_payload_sha256) is None
+        or type(row.left_first) is not bool
+        or type(row.generation_seed) is not int
+    ):
+        raise ValueError("PRISM observation row authority differs")
+    _validate_token_protocol(protocol)
+    if (
+        type(completion_ids) is not tuple
+        or not completion_ids
+        or any(type(token) is not int or not 0 <= token <= 0xFFFF_FFFF for token in completion_ids)
+    ):
+        raise ValueError("PRISM completion token authority differs")
+    terminal = protocol.terminal_tokens
+    if len(completion_ids) <= len(terminal) or completion_ids[-len(terminal) :] != terminal:
+        raise ValueError("PRISM completion terminal differs")
+    body = completion_ids[: -len(terminal)]
+    cursor = 0
+    channel_index, cursor = _match_prefix(body, cursor, protocol.channel_prefixes, "channel")
+    if PRISM_CHANNELS[channel_index] != row.channel:
+        raise ValueError("PRISM completion channel differs")
+    visibility_index, cursor = _match_prefix(
+        body, cursor, protocol.visibility_prefixes, "visibility"
+    )
+    relation_index, cursor = _match_prefix(body, cursor, protocol.relation_prefixes, "relation")
+    confidence_index, cursor = _match_prefix(
+        body, cursor, protocol.confidence_prefixes, "confidence"
+    )
+    separator = protocol.evidence_separator
+    separator_positions = [
+        position
+        for position in range(cursor, len(body) - len(separator) + 1)
+        if body[position : position + len(separator)] == separator
+    ]
+    if len(separator_positions) != 1:
+        raise ValueError("PRISM completion separator differs")
+    separator_position = separator_positions[0]
+    left_evidence = body[cursor:separator_position]
+    right_evidence = body[separator_position + len(separator) :]
+    if (
+        len(left_evidence) > protocol.max_evidence_tokens
+        or len(right_evidence) > protocol.max_evidence_tokens
+    ):
+        raise ValueError("PRISM completion evidence differs")
+    visibility = ((True, True), (True, False), (False, True), (False, False))[visibility_index]
+    return PrismObservation(
+        pair_ordinal=row.pair_ordinal,
+        fold=row.fold,
+        channel=row.channel,
+        left_visible=visibility[0],
+        right_visible=visibility[1],
+        relation=("same", "different", "indeterminate")[relation_index],
+        confidence=("low", "medium", "high")[confidence_index],
+        evidence_left_token_ids=left_evidence,
+        evidence_right_token_ids=right_evidence,
+        completion_sha256=_completion_sha256(completion_ids),
+    )
+
+
+def validate_prism_observation(
+    observation: PrismObservation,
+    row: PrismObservationRow,
+    completion_ids: tuple[int, ...],
+    protocol: PrismTokenProtocol,
+) -> None:
+    """Reparse exact completion IDs and reject any observation-field drift."""
+
+    if type(observation) is not PrismObservation:
+        raise TypeError("PRISM observation has the wrong concrete type")
+    expected = parse_prism_completion(row, completion_ids, protocol)
+    if observation.completion_sha256 != expected.completion_sha256:
+        raise ValueError("PRISM observation completion digest differs")
+    if observation != expected:
+        raise ValueError("PRISM observation derivation differs")
 
 
 def validate_prism_schedules(

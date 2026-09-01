@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import hashlib
 import json
+import struct
 from dataclasses import asdict, replace
 
 import pytest
@@ -8,8 +10,12 @@ import pytest
 from sfora.prism_measurement import (
     PRISM_CHANNELS,
     PrismExample,
+    PrismObservation,
+    PrismTokenProtocol,
     build_prism_schedules,
+    parse_prism_completion,
     release_prism_observation_capability,
+    validate_prism_observation,
     validate_prism_schedules,
 )
 
@@ -40,6 +46,100 @@ def _caliber_examples() -> tuple[PrismExample, ...]:
         for label in (82, 83)
         for ordinal in range(32)
     )
+
+
+def _token_protocol() -> PrismTokenProtocol:
+    return PrismTokenProtocol(
+        channel_prefixes=tuple((100 + index,) for index in range(8)),
+        visibility_prefixes=((200,), (201,), (202,), (203,)),
+        relation_prefixes=((300,), (301,), (302,)),
+        confidence_prefixes=((400,), (401,), (402,)),
+        evidence_separator=(500,),
+        terminal_tokens=(600, 601),
+        max_evidence_tokens=4,
+    )
+
+
+def test_prism_token_protocol_parses_exact_ids_and_rejects_ambiguity() -> None:
+    observations, _scoring = build_prism_schedules(
+        _optimization_examples(),
+        _caliber_examples(),
+        source_identity="token-source",
+    )
+    row = observations[0]
+    channel_index = PRISM_CHANNELS.index(row.channel)
+    completion = (
+        100 + channel_index,
+        200,
+        301,
+        402,
+        300,
+        9,
+        500,
+        10,
+        11,
+        600,
+        601,
+    )
+    parsed = parse_prism_completion(row, completion, _token_protocol())
+    assert isinstance(parsed, PrismObservation)
+    assert parsed.pair_ordinal == row.pair_ordinal
+    assert parsed.fold == row.fold
+    assert parsed.channel == row.channel
+    assert parsed.left_visible is True
+    assert parsed.right_visible is True
+    assert parsed.relation == "different"
+    assert parsed.confidence == "high"
+    assert parsed.evidence_left_token_ids == (300, 9)
+    assert parsed.evidence_right_token_ids == (10, 11)
+    expected_digest = hashlib.sha256(
+        struct.pack("<Q", len(completion))
+        + b"".join(struct.pack("<I", token) for token in completion)
+    ).hexdigest()
+    assert parsed.completion_sha256 == expected_digest
+    validate_prism_observation(parsed, row, completion, _token_protocol())
+    with pytest.raises(ValueError, match="digest"):
+        validate_prism_observation(
+            replace(parsed, completion_sha256="0" * 64),
+            row,
+            completion,
+            _token_protocol(),
+        )
+
+    malformed = (
+        ((), "token"),
+        (completion[:0] + (101,) + completion[1:], "channel"),
+        (completion[:6] + completion[7:], "separator"),
+        (completion[:7] + (500,) + completion[7:], "separator"),
+        (completion + (999,), "terminal"),
+        (completion[:4] + (1, 2, 3, 4, 5) + completion[6:], "evidence"),
+        (completion[:-2], "terminal"),
+        (completion[:4] + (True,) + completion[5:], "token"),
+        (completion[:4] + (-1,) + completion[5:], "token"),
+    )
+    for changed, message in malformed:
+        with pytest.raises((TypeError, ValueError), match=message):
+            parse_prism_completion(row, changed, _token_protocol())
+
+    overlapping = replace(
+        _token_protocol(),
+        channel_prefixes=((100,), (100, 1), *((102 + index,) for index in range(6))),
+    )
+    with pytest.raises(ValueError, match="overlap"):
+        parse_prism_completion(row, completion, overlapping)
+    for changed_protocol in (
+        replace(_token_protocol(), evidence_separator=(True,)),
+        replace(_token_protocol(), terminal_tokens=(-1,)),
+        replace(_token_protocol(), max_evidence_tokens=True),
+    ):
+        with pytest.raises(ValueError, match="protocol"):
+            parse_prism_completion(row, completion, changed_protocol)
+    with pytest.raises(ValueError, match="row"):
+        parse_prism_completion(
+            replace(row, generation_seed=True),
+            completion,
+            _token_protocol(),
+        )
 
 
 def test_prism_schedules_are_balanced_anonymous_disjoint_and_source_bound() -> None:
