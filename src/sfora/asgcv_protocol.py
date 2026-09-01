@@ -17,6 +17,8 @@ ASGCV_ELIGIBLE_SCHEDULE_DOMAIN = b"sfora-asgcv-eligible-schedule-v1\0"
 ASGCV_ROLLOUT_AUTHORITY_SCHEMA = "sfora-asgcv-rollout-authority-v1"
 ASGCV_ROLLOUT_AUTHORITY_DOMAIN = b"sfora-asgcv-rollout-authority-v1\0"
 ASGCV_ROLLOUT_SEED_DOMAIN = b"sfora-asgcv-rollout-seed-v1\0"
+ASGCV_PARTITION_AUTHORITY_SCHEMA = "sfora-asgcv-partition-authority-v1"
+ASGCV_PARTITION_AUTHORITY_DOMAIN = b"sfora-asgcv-partition-authority-v1\0"
 ASGCV_STRATUM_SIZE = 8
 
 
@@ -175,6 +177,147 @@ class AsgcvRolloutAuthority:
         return hashlib.sha256(
             ASGCV_ROLLOUT_AUTHORITY_DOMAIN + _canonical_json_bytes(self.to_mapping())
         ).hexdigest()
+
+
+def _class_band(value: object, *, name: str) -> tuple[int, ...]:
+    if (
+        type(value) is not tuple
+        or not value
+        or any(type(class_id) is not int or class_id < 0 for class_id in value)
+        or value != tuple(sorted(set(value)))
+    ):
+        raise ValueError(f"ASG-CV {name} class band differs")
+    return value
+
+
+@dataclass(frozen=True, slots=True)
+class AsgcvPartitionAuthority:
+    """Sealed, disjoint class bands for every ASG-CV scientific phase."""
+
+    source_manifest_sha256: str
+    partition_seed_sha256: str
+    predictor_train_class_ids: tuple[int, ...]
+    e0_validation_class_ids: tuple[int, ...]
+    e1_optimization_class_ids: tuple[int, ...]
+
+    def validated(self) -> AsgcvPartitionAuthority:
+        _sha256_seed(self.source_manifest_sha256, name="source manifest digest")
+        _sha256_seed(self.partition_seed_sha256, name="partition seed")
+        bands = (
+            _class_band(self.predictor_train_class_ids, name="predictor training"),
+            _class_band(self.e0_validation_class_ids, name="E0 validation"),
+            _class_band(self.e1_optimization_class_ids, name="E1 optimization"),
+        )
+        flattened = tuple(class_id for band in bands for class_id in band)
+        if len(flattened) != len(set(flattened)):
+            raise ValueError("ASG-CV partition class bands overlap")
+        return self
+
+    def to_mapping(self) -> dict[str, object]:
+        self.validated()
+        return {
+            "schema": ASGCV_PARTITION_AUTHORITY_SCHEMA,
+            "source_manifest_sha256": self.source_manifest_sha256,
+            "partition_seed_sha256": self.partition_seed_sha256,
+            "predictor_train_class_ids": list(self.predictor_train_class_ids),
+            "e0_validation_class_ids": list(self.e0_validation_class_ids),
+            "e1_optimization_class_ids": list(self.e1_optimization_class_ids),
+            "official_test_accessible": False,
+        }
+
+    @classmethod
+    def from_mapping(cls, value: object) -> AsgcvPartitionAuthority:
+        expected = {
+            "schema",
+            "source_manifest_sha256",
+            "partition_seed_sha256",
+            "predictor_train_class_ids",
+            "e0_validation_class_ids",
+            "e1_optimization_class_ids",
+            "official_test_accessible",
+        }
+        if (
+            type(value) is not dict
+            or set(value) != expected
+            or value["schema"] != ASGCV_PARTITION_AUTHORITY_SCHEMA
+            or value["official_test_accessible"] is not False
+        ):
+            raise ValueError("ASG-CV partition authority schema differs")
+        raw_bands = (
+            value["predictor_train_class_ids"],
+            value["e0_validation_class_ids"],
+            value["e1_optimization_class_ids"],
+        )
+        if any(type(band) is not list for band in raw_bands):
+            raise ValueError("ASG-CV partition class bands differ")
+        return cls(
+            source_manifest_sha256=value["source_manifest_sha256"],
+            partition_seed_sha256=value["partition_seed_sha256"],
+            predictor_train_class_ids=tuple(raw_bands[0]),
+            e0_validation_class_ids=tuple(raw_bands[1]),
+            e1_optimization_class_ids=tuple(raw_bands[2]),
+        ).validated()
+
+    def sha256(self) -> str:
+        return hashlib.sha256(
+            ASGCV_PARTITION_AUTHORITY_DOMAIN + _canonical_json_bytes(self.to_mapping())
+        ).hexdigest()
+
+
+def _partition_rows(
+    value: object,
+    *,
+    name: str,
+    allowed_classes: tuple[int, ...],
+) -> tuple[str, ...]:
+    if type(value) is not tuple or len(value) != 2:
+        raise ValueError(f"ASG-CV {name} partition differs")
+    example_ids, labels = value
+    if (
+        type(example_ids) is not tuple
+        or not example_ids
+        or any(type(example_id) is not str or not example_id for example_id in example_ids)
+        or len(set(example_ids)) != len(example_ids)
+        or type(labels) is not tuple
+        or len(labels) != len(example_ids)
+        or any(type(label) is not int or label not in allowed_classes for label in labels)
+    ):
+        raise ValueError(f"ASG-CV {name} partition differs")
+    return example_ids
+
+
+def validate_asgcv_partition_bundle(
+    authority: object,
+    *,
+    predictor_train: object,
+    e0_validation: object,
+    e1_optimization: object,
+) -> None:
+    """Require phase class bands and source-image identities to be disjoint."""
+
+    if type(authority) is not AsgcvPartitionAuthority:
+        raise ValueError("ASG-CV partition authority differs")
+    authority.validated()
+    phase_ids = (
+        _partition_rows(
+            predictor_train,
+            name="predictor training",
+            allowed_classes=authority.predictor_train_class_ids,
+        ),
+        _partition_rows(
+            e0_validation,
+            name="E0 validation",
+            allowed_classes=authority.e0_validation_class_ids,
+        ),
+        _partition_rows(
+            e1_optimization,
+            name="E1 optimization",
+            allowed_classes=authority.e1_optimization_class_ids,
+        ),
+    )
+    flattened = tuple(example_id for ids in phase_ids for example_id in ids)
+    if len(flattened) != len(set(flattened)):
+        raise ValueError("ASG-CV partition image identities overlap")
 
 
 def derive_asgcv_rollout_seeds(

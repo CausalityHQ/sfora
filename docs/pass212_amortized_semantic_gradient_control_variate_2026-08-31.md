@@ -231,7 +231,12 @@ their candidate-schedule digest are sealed before exact-gradient replay and
 before the ASG-CV selection schedule is revealed. Insufficient eligible capacity
 is a terminal rather than an adaptive resample. Predictor training and
 validation use disjoint Cars training class bands, which also guarantees
-disjoint image identities; official Cars test classes remain inaccessible.
+disjoint image identities; official Cars test classes remain inaccessible. One
+content-addressed partition authority binds the source example manifest,
+partition seed, and exact sorted predictor-training, E0-validation, and
+E1-optimization class-ID bands. Bundle validation rejects any class overlap,
+source-image ID reused across phases, row outside its registered band, or
+authority that exposes the official test partition.
 
 Generation is bound to one content-addressed rollout authority containing the
 model revision, master seed, temperature, top-p, maximum generated tokens, and

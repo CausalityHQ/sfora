@@ -7,12 +7,14 @@ import pytest
 from sfora.asgcv_protocol import (
     AsgcvCompletionProtocol,
     AsgcvPairSchedule,
+    AsgcvPartitionAuthority,
     AsgcvRolloutAuthority,
     assemble_asgcv_eligible_schedule,
     build_asgcv_pair_schedule,
     classify_asgcv_completion,
     classify_asgcv_completion_group,
     derive_asgcv_rollout_seeds,
+    validate_asgcv_partition_bundle,
     validate_asgcv_protocol_bundle,
 )
 
@@ -33,6 +35,66 @@ def _rollout_authority() -> AsgcvRolloutAuthority:
         top_p=0.9,
         max_new_tokens=1024,
     ).validated()
+
+
+def _partition_authority() -> AsgcvPartitionAuthority:
+    return AsgcvPartitionAuthority(
+        source_manifest_sha256="9a" * 32,
+        partition_seed_sha256="bc" * 32,
+        predictor_train_class_ids=(0, 1),
+        e0_validation_class_ids=(2, 3),
+        e1_optimization_class_ids=(4, 5),
+    ).validated()
+
+
+def test_partition_authority_seals_disjoint_class_bands_and_image_identities() -> None:
+    authority = _partition_authority()
+    assert authority.to_mapping() == {
+        "schema": "sfora-asgcv-partition-authority-v1",
+        "source_manifest_sha256": "9a" * 32,
+        "partition_seed_sha256": "bc" * 32,
+        "predictor_train_class_ids": [0, 1],
+        "e0_validation_class_ids": [2, 3],
+        "e1_optimization_class_ids": [4, 5],
+        "official_test_accessible": False,
+    }
+    assert type(authority).from_mapping(authority.to_mapping()) == authority
+    assert len(authority.sha256()) == 64
+
+    validate_asgcv_partition_bundle(
+        authority,
+        predictor_train=(('train-a', 'train-b'), (0, 1)),
+        e0_validation=(('valid-a', 'valid-b'), (2, 3)),
+        e1_optimization=(('optim-a', 'optim-b'), (4, 5)),
+    )
+
+    with pytest.raises(ValueError):
+        validate_asgcv_partition_bundle(
+            authority,
+            predictor_train=(('shared', 'train-b'), (0, 1)),
+            e0_validation=(('valid-a', 'shared'), (2, 3)),
+            e1_optimization=(('optim-a', 'optim-b'), (4, 5)),
+        )
+
+
+def test_partition_authority_rejects_class_overlap_schema_and_role_drift() -> None:
+    authority = _partition_authority()
+    for mutation in (
+        {**authority.to_mapping(), "official_test_accessible": True},
+        {**authority.to_mapping(), "e0_validation_class_ids": [2, True]},
+        {**authority.to_mapping(), "e1_optimization_class_ids": [3, 5]},
+        {**authority.to_mapping(), "extra": 1},
+    ):
+        with pytest.raises(ValueError):
+            type(authority).from_mapping(mutation)
+
+    with pytest.raises(ValueError):
+        validate_asgcv_partition_bundle(
+            authority,
+            predictor_train=(('train-a', 'train-b'), (0, 2)),
+            e0_validation=(('valid-a', 'valid-b'), (2, 3)),
+            e1_optimization=(('optim-a', 'optim-b'), (4, 5)),
+        )
 
 
 def test_completion_protocol_is_exact_and_content_addressed() -> None:
