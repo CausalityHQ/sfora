@@ -20,6 +20,16 @@ for required in \
   git ls-files --error-unmatch -- "$required" >/dev/null
 done
 
+# Every evidence location is an explicit remote authority and must exist before upload.
+: "${DGX_ERROR_MANIFEST:?DGX_ERROR_MANIFEST is required}"
+: "${DGX_DINOV2_PREREQUISITE:?DGX_DINOV2_PREREQUISITE is required}"
+: "${DGX_SIGLIP2_PREREQUISITE:?DGX_SIGLIP2_PREREQUISITE is required}"
+: "${DGX_SELECTING_PREREQUISITE:?DGX_SELECTING_PREREQUISITE is required}"
+: "${DGX_M3_SEED_017:?DGX_M3_SEED_017 is required}"
+: "${DGX_M3_SEED_029:?DGX_M3_SEED_029 is required}"
+: "${DGX_M3_SEED_043:?DGX_M3_SEED_043 is required}"
+: "${DGX_M3_AGGREGATE:?DGX_M3_AGGREGATE is required}"
+
 scratch=$(mktemp -d /tmp/sfora-m4-deploy.XXXXXX)
 archive=$scratch/source.tar
 manifest=$scratch/SOURCE_MANIFEST.sha256
@@ -42,55 +52,159 @@ archive_sha256=$(sha256sum "$archive" | awk '{print $1}')
 remote_archive="$remote_root/$archive_sha256.tar"
 remote_source="$remote_root/$archive_sha256"
 
-ssh "$remote" "set -euo pipefail
-mkdir -p '$remote_root'
-[[ ! -e '$remote_source' && ! -e '$remote_archive' ]] || {
-  echo 'refusing existing content-addressed M4 source' >&2
-  exit 73
-}"
-scp "$archive" "$remote:$remote_archive"
-
-ssh "$remote" "set -euo pipefail
-[[ \$(sha256sum '$remote_archive' | awk '{print \$1}') == '$archive_sha256' ]]
-mkdir '$remote_source'
-tar --extract --file='$remote_archive' --directory='$remote_source'
-cd '$remote_source'
-[[ \$(<SOURCE_REVISION) == '$source_revision' ]]
-sha256sum --check --strict SOURCE_MANIFEST.sha256 >/dev/null
-if pgrep -f 'run_siglip_proxy_control.py (train|aggregate)' >/dev/null; then
-  echo 'active M1/M3 control has not released the DGX' >&2
+{
+  printf 'root=%q\n' "$remote_root"
+  printf 'source_dir=%q\n' "$remote_source"
+  printf 'archive=%q\n' "$remote_archive"
+  printf 'output=%q\n' "$remote_output"
+  printf 'uv_environment=%q\n' "$remote_uv"
+  printf 'prerequisites=('
+  for prerequisite in \
+    "$DGX_ERROR_MANIFEST" "$DGX_DINOV2_PREREQUISITE" \
+    "$DGX_SIGLIP2_PREREQUISITE" "$DGX_SELECTING_PREREQUISITE" \
+    "$DGX_M3_SEED_017" "$DGX_M3_SEED_029" "$DGX_M3_SEED_043" \
+    "$DGX_M3_AGGREGATE"; do
+    printf ' %q' "$prerequisite"
+  done
+  printf ' )\n'
+  cat <<'PREFLIGHT'
+set -euo pipefail
+set -- "${prerequisites[@]}"
+mkdir -p "$root"
+if pgrep -f '[r]un_siglip_proxy_control.py|[r]un_native_twin_probe.py|[a]udit_siglip_control_checkpoint.py|[p]robe_frozen_substrate.py|[r]un_siglip_rsta_stage_a.py|[d]iagnose_siglip_(rsta_stage_a|intermediate_readout|head_screen|sfq).py' >/dev/null; then
+  echo 'active GPU campaign has not released the DGX' >&2
   exit 75
 fi
-if pgrep -f 'run_pass209_m4_(cell|objective_rescue)' >/dev/null || [[ -e '$remote_output' ]]; then
+if pgrep -f '[r]un_pass209_m4_(cell|objective_rescue)' >/dev/null; then
   echo 'refusing to duplicate a live M4 campaign' >&2
   exit 73
 fi
-"
+[[ ! -e $source_dir && ! -e $archive ]] || {
+  echo 'refusing existing content-addressed M4 source' >&2
+  exit 73
+}
+[[ ! -e $output && ! -e $output.launch.log ]] || {
+  echo 'refusing existing M4 output' >&2
+  exit 73
+}
+output_parent=${output%/*}
+[[ -d $output_parent && -w $output_parent ]] || {
+  echo "unusable M4 output parent: $output_parent" >&2
+  exit 76
+}
+[[ -d $uv_environment ]] || {
+  echo "missing uv environment: $uv_environment" >&2
+  exit 76
+}
+for prerequisite in "$@"; do
+  [[ -f $prerequisite ]] || {
+    echo "missing M4 prerequisite: $prerequisite" >&2
+    exit 76
+  }
+done
+PREFLIGHT
+} | ssh -o BatchMode=yes "$remote" bash -s
+scp -o BatchMode=yes "$archive" "$remote:$remote_archive"
 
-# The four evidence locations are explicit operator-provided remote authorities.
-: "${DGX_ERROR_MANIFEST:?DGX_ERROR_MANIFEST is required}"
-: "${DGX_DINOV2_PREREQUISITE:?DGX_DINOV2_PREREQUISITE is required}"
-: "${DGX_SIGLIP2_PREREQUISITE:?DGX_SIGLIP2_PREREQUISITE is required}"
-: "${DGX_SELECTING_PREREQUISITE:?DGX_SELECTING_PREREQUISITE is required}"
-: "${DGX_M3_SEED_017:?DGX_M3_SEED_017 is required}"
-: "${DGX_M3_SEED_029:?DGX_M3_SEED_029 is required}"
-: "${DGX_M3_SEED_043:?DGX_M3_SEED_043 is required}"
-: "${DGX_M3_AGGREGATE:?DGX_M3_AGGREGATE is required}"
+{
+  printf 'root=%q\n' "$remote_root"
+  printf 'source_dir=%q\n' "$remote_source"
+  printf 'archive=%q\n' "$remote_archive"
+  printf 'archive_sha256=%q\n' "$archive_sha256"
+  printf 'source_revision=%q\n' "$source_revision"
+  printf 'output=%q\n' "$remote_output"
+  cat <<'REMOTE'
+set -euo pipefail
+committed=false
+cleanup_remote() {
+  if [[ $committed != true ]]; then
+    test ! -e "$archive" || unlink "$archive"
+    case "$source_dir" in
+      "$root"/*) test ! -e "$source_dir" || rm -rf -- "$source_dir" ;;
+      *) exit 99 ;;
+    esac
+  fi
+}
+trap cleanup_remote EXIT INT TERM
+[[ $(sha256sum "$archive" | awk '{print $1}') == "$archive_sha256" ]]
+mkdir "$source_dir"
+tar --extract --file="$archive" --directory="$source_dir"
+cd "$source_dir"
+[[ $(<SOURCE_REVISION) == "$source_revision" ]]
+sha256sum --check --strict SOURCE_MANIFEST.sha256 >/dev/null
+if pgrep -f '[r]un_siglip_proxy_control.py|[r]un_native_twin_probe.py|[a]udit_siglip_control_checkpoint.py|[p]robe_frozen_substrate.py|[r]un_siglip_rsta_stage_a.py|[d]iagnose_siglip_(rsta_stage_a|intermediate_readout|head_screen|sfq).py' >/dev/null; then
+  echo 'active GPU campaign has not released the DGX' >&2
+  exit 75
+fi
+if pgrep -f '[r]un_pass209_m4_(cell|objective_rescue)' >/dev/null || [[ -e $output ]]; then
+  echo 'refusing to duplicate a live M4 campaign' >&2
+  exit 73
+fi
+test ! -e "$archive" || unlink "$archive"
+committed=true
+trap - EXIT INT TERM
+REMOTE
+} | ssh -o BatchMode=yes "$remote" bash -s
 
-ssh "$remote" "cd '$remote_source' &&
+{
+  printf 'root=%q\n' "$remote_root"
+  printf 'source_dir=%q\n' "$remote_source"
+  printf 'source_revision=%q\n' "$source_revision"
+  printf 'uv_environment=%q\n' "$remote_uv"
+  printf 'output=%q\n' "$remote_output"
+  printf 'error_manifest=%q\n' "$DGX_ERROR_MANIFEST"
+  printf 'dinov2_prerequisite=%q\n' "$DGX_DINOV2_PREREQUISITE"
+  printf 'siglip2_prerequisite=%q\n' "$DGX_SIGLIP2_PREREQUISITE"
+  printf 'selecting_prerequisite=%q\n' "$DGX_SELECTING_PREREQUISITE"
+  printf 'm3_seed_017=%q\n' "$DGX_M3_SEED_017"
+  printf 'm3_seed_029=%q\n' "$DGX_M3_SEED_029"
+  printf 'm3_seed_043=%q\n' "$DGX_M3_SEED_043"
+  printf 'm3_aggregate=%q\n' "$DGX_M3_AGGREGATE"
+  cat <<'LAUNCH'
+set -euo pipefail
+launch_committed=false
+cleanup_failed_launch() {
+  if [[ $launch_committed != true && ! -e $output ]]; then
+    test ! -e "$output.launch.log" || unlink "$output.launch.log"
+    case "$source_dir" in
+      "$root"/*) test ! -e "$source_dir" || rm -rf -- "$source_dir" ;;
+      *) exit 99 ;;
+    esac
+  fi
+}
+trap cleanup_failed_launch EXIT INT TERM
+cd "$source_dir"
+if pgrep -f '[r]un_siglip_proxy_control.py|[r]un_native_twin_probe.py|[a]udit_siglip_control_checkpoint.py|[p]robe_frozen_substrate.py|[r]un_siglip_rsta_stage_a.py|[d]iagnose_siglip_(rsta_stage_a|intermediate_readout|head_screen|sfq).py' >/dev/null; then
+  echo 'active GPU campaign has not released the DGX' >&2
+  exit 75
+fi
+if pgrep -f '[r]un_pass209_m4_(cell|objective_rescue)' >/dev/null || [[ -e $output || -e $output.launch.log ]]; then
+  echo 'refusing to duplicate a live M4 campaign' >&2
+  exit 73
+fi
 nohup setsid env \
-  SOURCE_REVISION='$source_revision' \
-  SOURCE_MANIFEST='$remote_source/SOURCE_MANIFEST.sha256' \
-  UV_PROJECT_ENVIRONMENT='$remote_uv' \
-  OUTPUT_DIR='$remote_output' \
-  ERROR_MANIFEST='$DGX_ERROR_MANIFEST' \
-  DINOV2_PREREQUISITE='$DGX_DINOV2_PREREQUISITE' \
-  SIGLIP2_PREREQUISITE='$DGX_SIGLIP2_PREREQUISITE' \
-  SELECTING_PREREQUISITE='$DGX_SELECTING_PREREQUISITE' \
-  M3_SEED_017='$DGX_M3_SEED_017' \
-  M3_SEED_029='$DGX_M3_SEED_029' \
-  M3_SEED_043='$DGX_M3_SEED_043' \
-  M3_AGGREGATE='$DGX_M3_AGGREGATE' \
+  SOURCE_REVISION="$source_revision" \
+  SOURCE_MANIFEST="$source_dir/SOURCE_MANIFEST.sha256" \
+  UV_PROJECT_ENVIRONMENT="$uv_environment" \
+  OUTPUT_DIR="$output" \
+  ERROR_MANIFEST="$error_manifest" \
+  DINOV2_PREREQUISITE="$dinov2_prerequisite" \
+  SIGLIP2_PREREQUISITE="$siglip2_prerequisite" \
+  SELECTING_PREREQUISITE="$selecting_prerequisite" \
+  M3_SEED_017="$m3_seed_017" \
+  M3_SEED_029="$m3_seed_029" \
+  M3_SEED_043="$m3_seed_043" \
+  M3_AGGREGATE="$m3_aggregate" \
   bash scripts/run_pass209_m4_objective_rescue_v1.sh \
-  >'$remote_output.launch.log' 2>&1 </dev/null &
-printf '%s\n' \$!"
+  >"$output.launch.log" 2>&1 </dev/null &
+pid=$!
+sleep 2
+kill -0 "$pid" 2>/dev/null || {
+  echo 'M4 launch did not survive' >&2
+  exit 70
+}
+launch_committed=true
+trap - EXIT INT TERM
+printf '%s\n' "$pid"
+LAUNCH
+} | ssh -o BatchMode=yes "$remote" bash -s

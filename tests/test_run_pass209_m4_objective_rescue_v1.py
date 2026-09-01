@@ -31,6 +31,13 @@ def test_runner_is_source_bound_offline_and_serializes_all_science() -> None:
     analyzer = text.index("analyze_pass209_m4.py")
     assert scorer < dinov2 < siglip2 < selecting < analyzer
     assert "wait_for_control_release" in text
+    for process in (
+        "[r]un_siglip_proxy_control.py",
+        "[r]un_native_twin_probe.py",
+        "[a]udit_siglip_control_checkpoint.py",
+        "[p]robe_frozen_substrate.py",
+    ):
+        assert process in text
     assert "refusing to duplicate a live M4 campaign" in text
     assert "combined_resource_bytes" in text
     assert "68719476736" in text

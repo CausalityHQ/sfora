@@ -28,8 +28,52 @@ def test_deployer_uses_content_addressed_create_new_remote_source() -> None:
     assert "SOURCE_MANIFEST" in text
     assert "sha256sum --check --strict" in text
     assert "run_pass209_m4_objective_rescue_v1.sh" in text
-    assert "run_siglip_proxy_control.py (train|aggregate)" in text
+    assert "[r]un_siglip_proxy_control.py" in text
     assert "refusing to duplicate a live M4 campaign" in text
     assert "nohup" in text and "setsid" in text
-    assert "rm -rf" not in text
+    assert 'case "$source_dir" in' in text
+    assert 'rm -rf -- "$source_dir"' in text
     assert "git push" not in text
+
+
+def test_deployer_preflights_every_dependency_and_gpu_stage_before_upload() -> None:
+    text = _DEPLOY.read_text()
+
+    scp_index = text.index('scp -o BatchMode=yes "$archive"')
+    for variable in (
+        "DGX_ERROR_MANIFEST",
+        "DGX_DINOV2_PREREQUISITE",
+        "DGX_SIGLIP2_PREREQUISITE",
+        "DGX_SELECTING_PREREQUISITE",
+        "DGX_M3_SEED_017",
+        "DGX_M3_SEED_029",
+        "DGX_M3_SEED_043",
+        "DGX_M3_AGGREGATE",
+    ):
+        assert text.index(f'${{{variable}:?') < scp_index
+    assert "for prerequisite in \"$@\"" in text
+    assert "missing M4 prerequisite:" in text
+    for process in (
+        "[r]un_siglip_proxy_control.py",
+        "[r]un_native_twin_probe.py",
+        "[a]udit_siglip_control_checkpoint.py",
+        "[p]robe_frozen_substrate.py",
+        "[r]un_pass209_m4_(cell|objective_rescue)",
+    ):
+        assert process in text
+        assert text.index(process) < scp_index
+    assert "active GPU campaign has not released the DGX" in text
+    assert "missing uv environment:" in text
+    assert "unusable M4 output parent:" in text
+    assert "M4 launch did not survive" in text
+    assert 'kill -0 "$pid"' in text
+    assert text.count("-o BatchMode=yes") >= 3
+    assert "printf 'root=%q\\n'" in text
+    assert "printf 'prerequisites=(" in text
+    assert 'case "$source_dir" in' in text
+    assert '"$root"/*)' in text
+    assert 'rm -rf -- "$source_dir"' in text
+    assert 'test ! -e "$archive" || unlink "$archive"' in text
+    assert "launch_committed=false" in text
+    assert "cleanup_failed_launch()" in text
+    assert 'test ! -e "$output.launch.log" || unlink "$output.launch.log"' in text

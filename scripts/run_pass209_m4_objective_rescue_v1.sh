@@ -64,8 +64,8 @@ export TRANSFORMERS_OFFLINE=1
 export TOKENIZERS_PARALLELISM=false
 
 wait_for_control_release() {
-  if pgrep -f 'run_siglip_proxy_control.py (train|aggregate)' >/dev/null; then
-    echo 'active M1/M3 control has not released the DGX' >&2
+  if pgrep -f '[r]un_siglip_proxy_control.py|[r]un_native_twin_probe.py|[a]udit_siglip_control_checkpoint.py|[p]robe_frozen_substrate.py|[r]un_siglip_rsta_stage_a.py|[d]iagnose_siglip_(rsta_stage_a|intermediate_readout|head_screen|sfq).py' >/dev/null; then
+    echo 'active control has not released the DGX' >&2
     return 75
   fi
 }
