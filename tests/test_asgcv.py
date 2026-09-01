@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from dataclasses import replace
 
 import numpy as np
 import pytest
@@ -24,6 +25,7 @@ from sfora.asgcv import (
     srht_gradient_sketch,
     srht_signs_and_rows,
     validate_e0_result_bytes,
+    validate_e0_result_context,
     validate_e0_result_inputs,
     validate_gradient_sample_bundle,
     validate_gradient_sample_bytes,
@@ -32,6 +34,7 @@ from sfora.asgcv import (
 )
 from sfora.asgcv_protocol import (
     AsgcvCompletionProtocol,
+    AsgcvPartitionAuthority,
     AsgcvRolloutAuthority,
     assemble_asgcv_eligible_schedule,
     build_asgcv_pair_schedule,
@@ -529,12 +532,22 @@ def _canonical_json_bytes(value: dict[str, object]) -> bytes:
     ).encode()
 
 
+def _e0_partition() -> AsgcvPartitionAuthority:
+    return AsgcvPartitionAuthority(
+        source_manifest_sha256="9a" * 32,
+        partition_seed_sha256="bc" * 32,
+        predictor_train_class_ids=(0, 1),
+        e0_validation_class_ids=(2, 3),
+        e1_optimization_class_ids=(4, 5),
+    ).validated()
+
+
 def _e0_result_bytes() -> bytes:
     exact_batch = _e0_batch()
     return canonical_e0_result_bytes(
         source_commit="1" * 40,
         dataset_manifest_sha256="2" * 64,
-        partition_manifest_sha256="5" * 64,
+        partition_manifest_sha256=_e0_partition().sha256(),
         predictor_state_sha256="3" * 64,
         selection_seed_sha256="ab" * 32,
         exact=exact_batch,
@@ -554,7 +567,7 @@ def test_e0_result_is_canonical_claim_ineligible_and_binds_every_array() -> None
     assert result["schema"] == "sfora-asgcv-e0-result-v3"
     assert result["claim_eligible"] is False
     assert result["source_commit"] == "1" * 40
-    assert result["partition_manifest_sha256"] == "5" * 64
+    assert result["partition_manifest_sha256"] == _e0_partition().sha256()
     assert result["semantic_wall_ns"] == {"asgcv": 350, "exact": 1_000}
     assert result["metrics"]["semantic_wall_ratio_ppm"] == 350_000
     assert result["metrics"]["passed"] is True
@@ -569,6 +582,31 @@ def test_e0_result_is_canonical_claim_ineligible_and_binds_every_array() -> None
     assert result["arrays"]["exact_gradients"]["shape"] == [64, 8, 2, 3, 4]
     assert result["arrays"]["exact_gradients"]["dtype"] == "float64-le"
     assert len(result["arrays"]["exact_gradients"]["sha256"]) == 64
+
+
+def test_e0_result_context_binds_partition_and_predictor_state() -> None:
+    raw = _e0_result_bytes()
+    assert validate_e0_result_context(
+        raw,
+        partition_authority=_e0_partition(),
+        predictor_state_sha256="3" * 64,
+    )["result_sha256"] == validate_e0_result_bytes(raw)["result_sha256"]
+
+    with pytest.raises(ValueError):
+        validate_e0_result_context(
+            raw,
+            partition_authority=replace(
+                _e0_partition(),
+                partition_seed_sha256="cd" * 32,
+            ).validated(),
+            predictor_state_sha256="3" * 64,
+        )
+    with pytest.raises(ValueError):
+        validate_e0_result_context(
+            raw,
+            partition_authority=_e0_partition(),
+            predictor_state_sha256="4" * 64,
+        )
 
 
 def test_e0_result_rejects_semantic_rehash_and_byte_authority_drift() -> None:

@@ -15,6 +15,7 @@ from sfora.asgcv_protocol import (
     AsgcvCompletionProtocol,
     AsgcvEligibleSchedule,
     AsgcvPairSchedule,
+    AsgcvPartitionAuthority,
     AsgcvRolloutAuthority,
     validate_asgcv_protocol_bundle,
 )
@@ -1585,6 +1586,29 @@ def validate_e0_result_inputs(
     )
     if rebuilt != raw:
         raise ValueError("ASG-CV E0 reopened inputs differ")
+    return value
+
+
+def validate_e0_result_context(
+    raw: bytes,
+    *,
+    partition_authority: object,
+    predictor_state_sha256: object,
+) -> dict[str, object]:
+    """Cross-bind an E0 result to its sealed partition and predictor state."""
+
+    value = validate_e0_result_bytes(raw)
+    if type(partition_authority) is not AsgcvPartitionAuthority:
+        raise ValueError("ASG-CV E0 partition authority differs")
+    partition_authority.validated()
+    if value["partition_manifest_sha256"] != partition_authority.sha256():
+        raise ValueError("ASG-CV E0 partition binding differs")
+    predictor_digest = _sha256_bytes(
+        predictor_state_sha256,
+        name="predictor state digest",
+    ).hex()
+    if value["predictor_state_sha256"] != predictor_digest:
+        raise ValueError("ASG-CV E0 predictor state binding differs")
     return value
 
 
