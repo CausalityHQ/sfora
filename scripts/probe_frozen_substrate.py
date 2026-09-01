@@ -54,6 +54,11 @@ _NORM_TOLERANCE = 1.0e-6
 _F1_BATCH_SIZE = 8
 _F1_QUERY_BLOCK = 32
 _F1_EXPECTED_CORRECT = 1242
+_ERROR_EVIDENCE_AUTHORITIES = {
+    "dinov2-large": (32, _F1_QUERY_BLOCK, 1196),
+    "siglip2-so400m": (_F1_BATCH_SIZE, _F1_QUERY_BLOCK, 1227),
+    "siglip-so400m": (_F1_BATCH_SIZE, _F1_QUERY_BLOCK, _F1_EXPECTED_CORRECT),
+}
 
 
 def substrate_passed(*, correct: int) -> bool:
@@ -126,13 +131,12 @@ def _publish_new_outputs(outputs: tuple[tuple[Path, bytes], ...]) -> None:
 def _validate_error_evidence_request(
     *, cell: str, batch_size: int, query_block: int, expected_correct: int
 ) -> None:
-    if (
-        cell != "siglip-so400m"
-        or batch_size != _F1_BATCH_SIZE
-        or query_block != _F1_QUERY_BLOCK
-        or expected_correct != _F1_EXPECTED_CORRECT
+    if _ERROR_EVIDENCE_AUTHORITIES.get(cell) != (
+        batch_size,
+        query_block,
+        expected_correct,
     ):
-        raise ValueError("request differs from the sealed F-1 execution authority")
+        raise ValueError("request differs from the registered substrate execution authority")
 
 
 def _descriptor_sha256(descriptors: torch.Tensor) -> str:
@@ -302,8 +306,6 @@ def main() -> None:
         raise ValueError("batch and query block sizes must be positive")
     if (args.error_manifest is None) != (args.expected_correct is None):
         raise ValueError("error manifest and expected correct count must be specified together")
-    if args.error_manifest is not None and args.cell != "siglip-so400m":
-        raise ValueError("F-1 error evidence is restricted to the final sealed substrate cell")
     if args.error_manifest is not None:
         assert args.expected_correct is not None
         _validate_error_evidence_request(

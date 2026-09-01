@@ -43,6 +43,7 @@ def test_probe_pins_dinov2_and_never_reads_test_split() -> None:
         'if args.error_manifest is not None:\n        class_names = _load_cars_class_names()'
         in source
     )
+    assert 'args.cell != "siglip-so400m"' not in source
 
 
 def test_probe_materializes_grayscale_as_rgb() -> None:
@@ -125,14 +126,34 @@ def test_probe_rejects_aliasing_output_paths(tmp_path: Path) -> None:
         _MODULE._require_new_outputs((result, manifest))
 
 
-def test_error_evidence_request_is_exactly_the_sealed_final_cell() -> None:
-    _MODULE._validate_error_evidence_request(
-        cell="siglip-so400m", batch_size=8, query_block=32, expected_correct=1242
+def test_error_evidence_request_is_exactly_the_registered_substrate_ladder() -> None:
+    registered = (
+        ("dinov2-large", 32, 1196),
+        ("siglip2-so400m", 8, 1227),
+        ("siglip-so400m", 8, 1242),
     )
-    with pytest.raises(ValueError, match="sealed F-1 execution authority"):
+    for cell, batch_size, expected_correct in registered:
         _MODULE._validate_error_evidence_request(
-            cell="siglip-so400m", batch_size=32, query_block=32, expected_correct=1242
+            cell=cell,
+            batch_size=batch_size,
+            query_block=32,
+            expected_correct=expected_correct,
         )
+
+    mutations = (
+        ("unknown", 8, 32, 1242),
+        ("siglip-so400m", 32, 32, 1242),
+        ("siglip-so400m", 8, 64, 1242),
+        ("siglip-so400m", 8, 32, 1241),
+    )
+    for cell, batch_size, query_block, expected_correct in mutations:
+        with pytest.raises(ValueError, match="registered substrate execution authority"):
+            _MODULE._validate_error_evidence_request(
+                cell=cell,
+                batch_size=batch_size,
+                query_block=query_block,
+                expected_correct=expected_correct,
+            )
 
 
 def test_descriptor_digest_binds_shape_dtype_and_exact_values() -> None:
