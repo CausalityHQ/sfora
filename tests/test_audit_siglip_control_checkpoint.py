@@ -20,6 +20,7 @@ from sfora.substrate_screen import (
 from sfora.twin_reachability import (
     TwinReachabilityAuthority,
     validate_twin_reachability_artifact_bytes,
+    validate_twin_reachability_inference_artifact_bytes,
 )
 
 _ROOT = Path(__file__).parents[1]
@@ -307,7 +308,7 @@ def test_runner_restores_once_scores_only_burned_and_self_validates(tmp_path: Pa
     raw_descriptors = torch.tensor([[1.0, 0.0]]).repeat(1_345, 1)
     projected_descriptors = torch.tensor([[0.0, 1.0]]).repeat(1_345, 1)
     labels = torch.tensor([example.label for example in examples], dtype=torch.int64)
-    twins: list[tuple[bytes, bytes]] = []
+    twins: list[tuple[bytes, bytes, bytes, bytes]] = []
 
     def restore(**kwargs: object) -> tuple[object, object]:
         calls.append(("restore", kwargs["campaign"]))
@@ -329,7 +330,9 @@ def test_runner_restores_once_scores_only_burned_and_self_validates(tmp_path: Pa
         restore_model=restore,
         embed_examples=embed,
         score_descriptors=score,
-        twin_sink=lambda raw, projected: twins.append((raw, projected)),
+        twin_sink=lambda raw, projected, raw_inference, projected_inference: twins.append(
+            (raw, projected, raw_inference, projected_inference)
+        ),
     )
 
     assert [call[0] for call in calls] == ["restore", "embed", "score", "score"]
@@ -351,9 +354,21 @@ def test_runner_restores_once_scores_only_burned_and_self_validates(tmp_path: Pa
     assert b"clean_validation" not in result
     assert b"optimization" not in result
     assert len(twins) == 1
-    for expected_plane, twin in zip(("trained-raw", "trained-projected"), twins[0], strict=True):
+    for expected_plane, twin, inference_raw in zip(
+        ("trained-raw", "trained-projected"),
+        twins[0][:2],
+        twins[0][2:],
+        strict=True,
+    ):
         authority = TwinReachabilityAuthority(**json.loads(twin)["authority"])
         evidence = validate_twin_reachability_artifact_bytes(twin, expected=authority)
+        inference_evidence, inference = validate_twin_reachability_inference_artifact_bytes(
+            inference_raw,
+            expected=authority,
+        )
+        assert inference_evidence == evidence
+        assert inference.bootstrap_draws == 10_000
+        assert inference.permutation_draws == 64
         assert evidence.plane == expected_plane
         assert evidence.source_count == 169
         assert authority.producer_kind == "trained-checkpoint"
@@ -519,6 +534,8 @@ def test_cli_requires_exact_local_capability_and_main_publishes_once(
     output = tmp_path / "result.json"
     raw_twin_output = tmp_path / "raw-twin.json"
     projected_twin_output = tmp_path / "projected-twin.json"
+    raw_twin_inference_output = tmp_path / "raw-twin-inference.json"
+    projected_twin_inference_output = tmp_path / "projected-twin-inference.json"
     receipt_paths = cast(tuple[Path, ...], fixture["receipt_paths"])
     arguments = [
         "--aggregate",
@@ -533,6 +550,10 @@ def test_cli_requires_exact_local_capability_and_main_publishes_once(
         str(raw_twin_output),
         "--projected-twin-output",
         str(projected_twin_output),
+        "--raw-twin-inference-output",
+        str(raw_twin_inference_output),
+        "--projected-twin-inference-output",
+        str(projected_twin_inference_output),
     ]
     for path in receipt_paths:
         arguments.extend(("--seed-receipt", str(path)))
@@ -575,6 +596,8 @@ def test_cli_requires_exact_local_capability_and_main_publishes_once(
     payload = b'{"claim_eligible":false,"sealed":true}\n'
     raw_twin = b'{"plane":"trained-raw"}\n'
     projected_twin = b'{"plane":"trained-projected"}\n'
+    raw_twin_inference = b'{"plane":"trained-raw","inference":true}\n'
+    projected_twin_inference = b'{"plane":"trained-projected","inference":true}\n'
     calls: list[tuple[object, ...] | str] = []
 
     def deterministic(device: torch.device) -> None:
@@ -583,7 +606,12 @@ def test_cli_requires_exact_local_capability_and_main_publishes_once(
 
     def run(**kwargs: object) -> bytes:
         calls.append((kwargs["campaign"], kwargs["burned_examples"], kwargs["device"]))
-        cast(Any, kwargs["twin_sink"])(raw_twin, projected_twin)
+        cast(Any, kwargs["twin_sink"])(
+            raw_twin,
+            projected_twin,
+            raw_twin_inference,
+            projected_twin_inference,
+        )
         return payload
 
     monkeypatch.setattr(_MODULE, "require_control_determinism", deterministic)
@@ -592,6 +620,8 @@ def test_cli_requires_exact_local_capability_and_main_publishes_once(
     assert output.read_bytes() == payload
     assert raw_twin_output.read_bytes() == raw_twin
     assert projected_twin_output.read_bytes() == projected_twin
+    assert raw_twin_inference_output.read_bytes() == raw_twin_inference
+    assert projected_twin_inference_output.read_bytes() == projected_twin_inference
     assert calls == ["deterministic", (campaign, examples, torch.device("cuda"))]
     terminal = json.loads(capsys.readouterr().out)
     assert terminal == {
@@ -601,11 +631,19 @@ def test_cli_requires_exact_local_capability_and_main_publishes_once(
         "raw_twin_sha256": hashlib.sha256(raw_twin).hexdigest(),
         "projected_twin_output": str(projected_twin_output),
         "projected_twin_sha256": hashlib.sha256(projected_twin).hexdigest(),
+        "raw_twin_inference_output": str(raw_twin_inference_output),
+        "raw_twin_inference_sha256": hashlib.sha256(raw_twin_inference).hexdigest(),
+        "projected_twin_inference_output": str(projected_twin_inference_output),
+        "projected_twin_inference_sha256": hashlib.sha256(
+            projected_twin_inference
+        ).hexdigest(),
     }
 
     output.unlink()
     raw_twin_output.unlink()
     projected_twin_output.unlink()
+    raw_twin_inference_output.unlink()
+    projected_twin_inference_output.unlink()
     bands.burned_diagnostic = examples[:-1]
     with pytest.raises(ValueError, match="manifest"):
         _MODULE.main(arguments)

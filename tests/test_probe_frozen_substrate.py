@@ -16,6 +16,7 @@ from sfora.substrate_screen import SubstrateRetrievalError
 from sfora.twin_reachability import (
     TwinReachabilityAuthority,
     validate_twin_reachability_artifact_bytes,
+    validate_twin_reachability_inference_artifact_bytes,
 )
 
 _SCRIPT = Path(__file__).parents[1] / "scripts" / "probe_frozen_substrate.py"
@@ -51,7 +52,7 @@ def test_probe_pins_dinov2_and_never_reads_test_split() -> None:
     )
     assert 'args.cell != "siglip-so400m"' not in source
     assert source.count("descriptors, image_shape = _encode(") == 1
-    assert "twin_payload = _build_twin_reachability_artifact(" in source
+    assert "twin_payload, twin_inference_payload = _build_twin_reachability_artifacts(" in source
 
 
 def test_probe_materializes_grayscale_as_rgb() -> None:
@@ -193,7 +194,7 @@ def test_frozen_twin_artifact_reuses_in_memory_descriptors_and_binds_authority()
         )
     )
 
-    raw = _MODULE._build_twin_reachability_artifact(
+    raw, inference_raw = _MODULE._build_twin_reachability_artifacts(
         examples=examples,
         descriptors=descriptors,
         source_revision="1" * 40,
@@ -205,6 +206,13 @@ def test_frozen_twin_artifact_reuses_in_memory_descriptors_and_binds_authority()
 
     authority = TwinReachabilityAuthority(**json.loads(raw)["authority"])
     evidence = validate_twin_reachability_artifact_bytes(raw, expected=authority)
+    inference_evidence, inference = validate_twin_reachability_inference_artifact_bytes(
+        inference_raw,
+        expected=authority,
+    )
+    assert inference_evidence == evidence
+    assert inference.bootstrap_draws == 10_000
+    assert inference.permutation_draws == 64
     assert evidence.plane == "frozen-pooled"
     assert evidence.labels == (82,) * 20 + (83,) * 20
     assert evidence.cue_present is True
@@ -224,7 +232,7 @@ def test_frozen_twin_artifact_reuses_in_memory_descriptors_and_binds_authority()
     duplicated = [*examples]
     duplicated[1] = SimpleNamespace(example_id=examples[0].example_id, label=82)
     with pytest.raises(ValueError, match="example"):
-        _MODULE._build_twin_reachability_artifact(
+        _MODULE._build_twin_reachability_artifacts(
             examples=duplicated,
             descriptors=descriptors,
             source_revision="1" * 40,
@@ -235,7 +243,7 @@ def test_frozen_twin_artifact_reuses_in_memory_descriptors_and_binds_authority()
         )
 
     with pytest.raises((TypeError, ValueError), match="row"):
-        _MODULE._build_twin_reachability_artifact(
+        _MODULE._build_twin_reachability_artifacts(
             examples=examples,
             descriptors=descriptors[:-1],
             source_revision="1" * 40,

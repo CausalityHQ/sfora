@@ -10,11 +10,16 @@ import pytest
 from sfora.twin_reachability import (
     TwinReachabilityAuthority,
     TwinReachabilityEvidence,
+    TwinReachabilityInference,
     build_twin_reachability,
+    build_twin_reachability_inference,
     canonical_twin_reachability_artifact_bytes,
     canonical_twin_reachability_bytes,
+    canonical_twin_reachability_inference_artifact_bytes,
+    twin_reachability_inference_seeds,
     validate_twin_reachability_artifact_bytes,
     validate_twin_reachability_bytes,
+    validate_twin_reachability_inference_artifact_bytes,
 )
 
 
@@ -41,6 +46,124 @@ def _authority() -> TwinReachabilityAuthority:
         label_vector_sha256="8" * 64,
         descriptor_sha256="9" * 64,
     )
+
+
+def test_twin_inference_refits_permutations_and_binds_derived_gate() -> None:
+    """A missing/refit-free null or caller-forged pass must fail this contract."""
+
+    descriptors, labels = _separable()
+    evidence = build_twin_reachability("trained-raw", descriptors, labels)
+    authority = _authority()
+    bootstrap_seed, permutation_seed = twin_reachability_inference_seeds(authority)
+
+    inference = build_twin_reachability_inference(
+        "trained-raw",
+        descriptors,
+        labels,
+        bootstrap_seed=bootstrap_seed,
+        permutation_seed=permutation_seed,
+        expected_evidence=evidence,
+    )
+
+    assert isinstance(inference, TwinReachabilityInference)
+    assert inference.bootstrap_draws == 10_000
+    assert inference.permutation_draws == 64
+    assert inference.permutation_p_value == (
+        inference.permutation_extreme_count + 1
+    ) / 65
+    assert inference.lda_auc_lower_95 > 0.50
+    assert inference.passed == (
+        evidence.lda_full_auc >= 0.80
+        and inference.lda_auc_lower_95 > 0.50
+        and inference.permutation_p_value <= 0.05
+    )
+
+    raw = canonical_twin_reachability_inference_artifact_bytes(
+        authority,
+        evidence,
+        inference,
+    )
+    assert raw.endswith(b"\n") and not raw.endswith(b"\n\n")
+    assert validate_twin_reachability_inference_artifact_bytes(
+        raw,
+        expected=authority,
+    ) == (evidence, inference)
+
+    payload = json.loads(raw)
+    for field, value in (
+        ("bootstrap_draws", True),
+        ("permutation_draws", 63),
+        ("lda_auc_lower_95", float("nan")),
+        ("permutation_extreme_count", 64),
+        ("passed", not inference.passed),
+    ):
+        changed = copy.deepcopy(payload)
+        changed["inference"][field] = value
+        changed_raw = (
+            json.dumps(changed, sort_keys=True, separators=(",", ":")) + "\n"
+        ).encode()
+        with pytest.raises((TypeError, ValueError)):
+            validate_twin_reachability_inference_artifact_bytes(
+                changed_raw,
+                expected=authority,
+            )
+
+    reordered = copy.deepcopy(payload)
+    reordered["evidence"]["labels"] = list(reversed(reordered["evidence"]["labels"]))
+    reordered_raw = (
+        json.dumps(reordered, sort_keys=True, separators=(",", ":")) + "\n"
+    ).encode()
+    with pytest.raises(ValueError):
+        validate_twin_reachability_inference_artifact_bytes(
+            reordered_raw,
+            expected=authority,
+        )
+    with pytest.raises(ValueError, match="authority"):
+        validate_twin_reachability_inference_artifact_bytes(
+            raw,
+            expected=replace(authority, descriptor_sha256="0" * 64),
+        )
+
+    forged = json.loads(raw)
+    forged["inference"]["lda_auc_lower_95"] = 0.51
+    forged["inference"]["passed"] = (
+        evidence.lda_full_auc >= 0.80
+        and inference.permutation_p_value <= 0.05
+    )
+    forged_raw = (
+        json.dumps(forged, sort_keys=True, separators=(",", ":")) + "\n"
+    ).encode()
+    with pytest.raises(ValueError, match="bootstrap"):
+        validate_twin_reachability_inference_artifact_bytes(
+            forged_raw,
+            expected=authority,
+        )
+
+    forged = json.loads(raw)
+    forged["inference"]["bootstrap_seed_sha256"] = "0" * 64
+    forged_raw = (
+        json.dumps(forged, sort_keys=True, separators=(",", ":")) + "\n"
+    ).encode()
+    with pytest.raises(ValueError, match="seed"):
+        validate_twin_reachability_inference_artifact_bytes(
+            forged_raw,
+            expected=authority,
+        )
+
+    wrong_evidence = build_twin_reachability(
+        "trained-raw",
+        descriptors,
+        labels[::-1].copy(),
+    )
+    with pytest.raises(ValueError, match="evidence"):
+        build_twin_reachability_inference(
+            "trained-raw",
+            descriptors,
+            labels,
+            bootstrap_seed=bootstrap_seed,
+            permutation_seed=permutation_seed,
+            expected_evidence=wrong_evidence,
+        )
 
 
 def test_global_twin_cue_is_exact_scale_invariant_and_deterministic() -> None:

@@ -27,7 +27,10 @@ from sfora.token_set_screen import F1_TRAIN_CLASSES
 from sfora.twin_reachability import (
     TwinReachabilityAuthority,
     build_twin_reachability,
+    build_twin_reachability_inference,
     canonical_twin_reachability_artifact_bytes,
+    canonical_twin_reachability_inference_artifact_bytes,
+    twin_reachability_inference_seeds,
 )
 
 _SCRIPT_DIRECTORY = Path(__file__).resolve().parent
@@ -369,7 +372,7 @@ def _build_checkpoint_twin_artifacts(
     raw_descriptors: torch.Tensor,
     projected_descriptors: torch.Tensor,
     labels: torch.Tensor,
-) -> tuple[bytes, bytes]:
+) -> tuple[bytes, bytes, bytes, bytes]:
     positions = [
         index
         for index, example in enumerate(burned_examples)
@@ -390,6 +393,7 @@ def _build_checkpoint_twin_artifacts(
     dataset = cast(dict[str, Any], campaign.seed_receipt["dataset"])
     model = cast(dict[str, Any], campaign.seed_receipt["model"])
     artifacts: list[bytes] = []
+    inference_artifacts: list[bytes] = []
     for plane, descriptors in (
         ("trained-raw", raw_descriptors),
         ("trained-projected", projected_descriptors),
@@ -420,7 +424,23 @@ def _build_checkpoint_twin_artifacts(
             descriptor_sha256=_descriptor_sha256(selected),
         )
         artifacts.append(canonical_twin_reachability_artifact_bytes(authority, evidence))
-    return artifacts[0], artifacts[1]
+        bootstrap_seed, permutation_seed = twin_reachability_inference_seeds(authority)
+        inference = build_twin_reachability_inference(
+            plane,
+            selected.numpy().astype(np.float32, copy=False),
+            np.asarray(selected_labels, dtype=np.int64),
+            bootstrap_seed=bootstrap_seed,
+            permutation_seed=permutation_seed,
+            expected_evidence=evidence,
+        )
+        inference_artifacts.append(
+            canonical_twin_reachability_inference_artifact_bytes(
+                authority,
+                evidence,
+                inference,
+            )
+        )
+    return artifacts[0], artifacts[1], inference_artifacts[0], inference_artifacts[1]
 
 
 def run_checkpoint_error_audit(
@@ -433,7 +453,7 @@ def run_checkpoint_error_audit(
         embed_control_examples
     ),
     score_descriptors: Callable[..., SubstrateScreenEvidence] = score_frozen_substrate_evidence,
-    twin_sink: Callable[[bytes, bytes], None] | None = None,
+    twin_sink: Callable[[bytes, bytes, bytes, bytes], None] | None = None,
 ) -> bytes:
     """Restore once, score two descriptor planes, and serialize no clean identities."""
 
@@ -610,6 +630,8 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--output", required=True, type=_absolute_path)
     parser.add_argument("--raw-twin-output", required=True, type=_absolute_path)
     parser.add_argument("--projected-twin-output", required=True, type=_absolute_path)
+    parser.add_argument("--raw-twin-inference-output", required=True, type=_absolute_path)
+    parser.add_argument("--projected-twin-inference-output", required=True, type=_absolute_path)
     parser.add_argument("--execute-checkpoint-audit", required=True, action="store_true")
     effective = list(sys.argv[1:] if argv is None else argv)
     flags = [value.split("=", 1)[0] for value in effective if value.startswith("--")]
@@ -633,6 +655,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             arguments.output,
             arguments.raw_twin_output,
             arguments.projected_twin_output,
+            arguments.raw_twin_inference_output,
+            arguments.projected_twin_inference_output,
         )
     )
     campaign = read_authenticated_control_campaign(
@@ -650,21 +674,25 @@ def main(argv: Sequence[str] | None = None) -> int:
         raise ValueError("checkpoint audit dataset manifest authority differs")
     device = torch.device("cuda")
     require_control_determinism(device)
-    twins: list[tuple[bytes, bytes]] = []
+    twins: list[tuple[bytes, bytes, bytes, bytes]] = []
     payload = run_checkpoint_error_audit(
         campaign=campaign,
         burned_examples=cast(tuple[object, ...], bands.burned_diagnostic),
         device=device,
-        twin_sink=lambda raw, projected: twins.append((raw, projected)),
+        twin_sink=lambda raw, projected, raw_inference, projected_inference: twins.append(
+            (raw, projected, raw_inference, projected_inference)
+        ),
     )
     if len(twins) != 1:
         raise RuntimeError("checkpoint twin artifacts were not produced exactly once")
-    raw_twin, projected_twin = twins[0]
+    raw_twin, projected_twin, raw_twin_inference, projected_twin_inference = twins[0]
     publish_new_results(
         (
             (arguments.output, payload),
             (arguments.raw_twin_output, raw_twin),
             (arguments.projected_twin_output, projected_twin),
+            (arguments.raw_twin_inference_output, raw_twin_inference),
+            (arguments.projected_twin_inference_output, projected_twin_inference),
         )
     )
     sys.stdout.write(
@@ -676,6 +704,16 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "raw_twin_sha256": hashlib.sha256(raw_twin).hexdigest(),
                 "projected_twin_output": str(arguments.projected_twin_output),
                 "projected_twin_sha256": hashlib.sha256(projected_twin).hexdigest(),
+                "raw_twin_inference_output": str(arguments.raw_twin_inference_output),
+                "raw_twin_inference_sha256": hashlib.sha256(
+                    raw_twin_inference
+                ).hexdigest(),
+                "projected_twin_inference_output": str(
+                    arguments.projected_twin_inference_output
+                ),
+                "projected_twin_inference_sha256": hashlib.sha256(
+                    projected_twin_inference
+                ).hexdigest(),
             },
             sort_keys=True,
             separators=(",", ":"),

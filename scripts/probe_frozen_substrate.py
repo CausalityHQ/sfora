@@ -26,7 +26,10 @@ from sfora.substrate_screen import (
 from sfora.twin_reachability import (
     TwinReachabilityAuthority,
     build_twin_reachability,
+    build_twin_reachability_inference,
     canonical_twin_reachability_artifact_bytes,
+    canonical_twin_reachability_inference_artifact_bytes,
+    twin_reachability_inference_seeds,
 )
 
 
@@ -154,7 +157,7 @@ def _descriptor_sha256(descriptors: torch.Tensor) -> str:
     return hashlib.sha256(header + values).hexdigest()
 
 
-def _build_twin_reachability_artifact(
+def _build_twin_reachability_artifacts(
     *,
     examples: Sequence[Any],
     descriptors: torch.Tensor,
@@ -163,7 +166,7 @@ def _build_twin_reachability_artifact(
     dataset_examples_sha256: str,
     model_name: str,
     model_revision: str,
-) -> bytes:
+) -> tuple[bytes, bytes]:
     if (
         not isinstance(descriptors, torch.Tensor)
         or descriptors.ndim != 2
@@ -210,7 +213,23 @@ def _build_twin_reachability_artifact(
         ).hexdigest(),
         descriptor_sha256=_descriptor_sha256(selected),
     )
-    return canonical_twin_reachability_artifact_bytes(authority, evidence)
+    bootstrap_seed, permutation_seed = twin_reachability_inference_seeds(authority)
+    inference = build_twin_reachability_inference(
+        "frozen-pooled",
+        selected.numpy().astype(np.float32, copy=False),
+        np.asarray(labels, dtype=np.int64),
+        bootstrap_seed=bootstrap_seed,
+        permutation_seed=permutation_seed,
+        expected_evidence=evidence,
+    )
+    return (
+        canonical_twin_reachability_artifact_bytes(authority, evidence),
+        canonical_twin_reachability_inference_artifact_bytes(
+            authority,
+            evidence,
+            inference,
+        ),
+    )
 
 
 def _build_error_manifest(
@@ -354,6 +373,7 @@ def main() -> None:
     parser.add_argument("--query-block", type=int, default=32)
     parser.add_argument("--error-manifest", type=Path)
     parser.add_argument("--twin-reachability", type=Path)
+    parser.add_argument("--twin-reachability-inference", type=Path)
     parser.add_argument("--expected-correct", type=int)
     args = parser.parse_args()
     substrate = _SUBSTRATES[args.cell]
@@ -372,6 +392,8 @@ def main() -> None:
         raise ValueError("batch and query block sizes must be positive")
     if (args.error_manifest is None) != (args.expected_correct is None):
         raise ValueError("error manifest and expected correct count must be specified together")
+    if (args.twin_reachability is None) != (args.twin_reachability_inference is None):
+        raise ValueError("twin reachability outputs must be specified together")
     if args.twin_reachability is not None and args.error_manifest is None:
         raise ValueError("twin reachability requires the registered error-manifest execution")
     if args.error_manifest is not None:
@@ -386,7 +408,7 @@ def main() -> None:
     if args.error_manifest is not None:
         outputs += (args.error_manifest,)
     if args.twin_reachability is not None:
-        outputs += (args.twin_reachability,)
+        outputs += (args.twin_reachability, args.twin_reachability_inference)
     _require_new_outputs(outputs)
     if not torch.cuda.is_available():
         raise RuntimeError("the substrate screen requires CUDA")
@@ -424,6 +446,7 @@ def main() -> None:
     error_manifest_sha256: str | None = None
     error_payload: bytes | None = None
     twin_payload: bytes | None = None
+    twin_inference_payload: bytes | None = None
     if args.error_manifest is not None:
         class_names = _load_cars_class_names()
         if metrics.correct != args.expected_correct:
@@ -447,7 +470,7 @@ def main() -> None:
         error_payload = _canonical_bytes(error_manifest)
         error_manifest_sha256 = hashlib.sha256(error_payload).hexdigest()
         if args.twin_reachability is not None:
-            twin_payload = _build_twin_reachability_artifact(
+            twin_payload, twin_inference_payload = _build_twin_reachability_artifacts(
                 examples=holdout,
                 descriptors=descriptors,
                 source_revision=args.source_revision,
@@ -501,6 +524,10 @@ def main() -> None:
         )
         if twin_payload is not None:
             result["twin_reachability_sha256"] = hashlib.sha256(twin_payload).hexdigest()
+            assert twin_inference_payload is not None
+            result["twin_reachability_inference_sha256"] = hashlib.sha256(
+                twin_inference_payload
+            ).hexdigest()
     payload = _canonical_bytes(result)
     if args.error_manifest is None:
         _write_new(args.output, payload)
@@ -509,7 +536,11 @@ def main() -> None:
         publication: list[tuple[Path, bytes]] = [(args.error_manifest, error_payload)]
         if args.twin_reachability is not None:
             assert twin_payload is not None
+            assert twin_inference_payload is not None
             publication.append((args.twin_reachability, twin_payload))
+            publication.append(
+                (args.twin_reachability_inference, twin_inference_payload)
+            )
         publication.append((args.output, payload))
         _publish_new_outputs(tuple(publication))
     summary = {

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import re
@@ -20,6 +21,18 @@ _HIGH_AUC_GATE = 0.80
 _VARIANCE_FLOOR = 1e-8
 _EM_ITERATIONS = 128
 _MIN_CLASS_COUNT = 20
+_BOOTSTRAP_DRAWS = 10_000
+_PERMUTATION_DRAWS = 64
+_INFERENCE_KEYS = {
+    "bootstrap_draws",
+    "permutation_draws",
+    "bootstrap_seed_sha256",
+    "permutation_seed_sha256",
+    "lda_auc_lower_95",
+    "permutation_extreme_count",
+    "permutation_p_value",
+    "passed",
+}
 _COMMIT = re.compile(r"[0-9a-f]{40}")
 _SHA256 = re.compile(r"[0-9a-f]{64}")
 
@@ -63,6 +76,20 @@ class TwinReachabilityEvidence:
     lda_signed_scores: tuple[float, ...]
     lda_full_auc: float
     cue_present: bool
+
+
+@dataclass(frozen=True, slots=True)
+class TwinReachabilityInference:
+    """Uncertainty and refitted-null evidence for one reachability plane."""
+
+    bootstrap_draws: int
+    permutation_draws: int
+    bootstrap_seed_sha256: str
+    permutation_seed_sha256: str
+    lda_auc_lower_95: float
+    permutation_extreme_count: int
+    permutation_p_value: float
+    passed: bool
 
 
 def _auc(scores: np.ndarray, labels: np.ndarray) -> float:
@@ -313,6 +340,88 @@ def build_twin_reachability(
     return _evidence_from_scores(plane, scores, concrete_labels, lda_scores)
 
 
+def _seeded_generator(domain: bytes, seed: bytes) -> np.random.Generator:
+    if type(seed) is not bytes or not seed:
+        raise TypeError("twin inference seed must be nonempty bytes")
+    framed = domain + len(seed).to_bytes(8, "little") + seed
+    integer = int.from_bytes(hashlib.sha256(framed).digest()[:16], "little")
+    return np.random.Generator(np.random.PCG64(integer))
+
+
+def twin_reachability_inference_seeds(
+    authority: TwinReachabilityAuthority,
+) -> tuple[bytes, bytes]:
+    """Derive both inference seeds from one canonical source authority."""
+
+    _validate_authority(authority)
+    canonical = (
+        json.dumps(asdict(authority), sort_keys=True, separators=(",", ":")) + "\n"
+    ).encode()
+    return b"bootstrap\0" + canonical, b"permutation\0" + canonical
+
+
+def _bootstrap_auc_lower(
+    evidence: TwinReachabilityEvidence,
+    bootstrap_seed: bytes,
+) -> float:
+    labels = np.asarray(evidence.labels, dtype=np.int64)
+    scores = np.asarray(evidence.lda_signed_scores, dtype=np.float64)
+    bootstrap = _seeded_generator(b"prism-twin-bootstrap-v1\0", bootstrap_seed)
+    aucs = np.empty(_BOOTSTRAP_DRAWS, dtype=np.float64)
+    completed = 0
+    while completed < _BOOTSTRAP_DRAWS:
+        indexes = bootstrap.integers(0, labels.size, size=labels.size)
+        sampled_labels = labels[indexes]
+        if set(sampled_labels.tolist()) != {_LABEL_82, _LABEL_83}:
+            continue
+        aucs[completed] = _auc(scores[indexes], sampled_labels)
+        completed += 1
+    aucs.sort(kind="stable")
+    return float(aucs[math.floor(0.05 * (_BOOTSTRAP_DRAWS - 1))])
+
+
+def build_twin_reachability_inference(
+    plane: str,
+    descriptors: np.ndarray,
+    labels: np.ndarray,
+    *,
+    bootstrap_seed: bytes,
+    permutation_seed: bytes,
+    expected_evidence: TwinReachabilityEvidence,
+) -> TwinReachabilityInference:
+    """Compute the fixed bootstrap bound and a fully refitted permutation null."""
+
+    evidence = build_twin_reachability(plane, descriptors, labels)
+    if evidence != expected_evidence:
+        raise ValueError("twin inference evidence differs")
+    concrete_labels = labels.astype(np.int64, copy=False)
+    lower = _bootstrap_auc_lower(evidence, bootstrap_seed)
+
+    permutation = _seeded_generator(
+        b"prism-twin-permutation-v1\0", permutation_seed
+    )
+    extreme = 0
+    for _draw in range(_PERMUTATION_DRAWS):
+        shuffled = permutation.permutation(concrete_labels)
+        permuted = build_twin_reachability(plane, descriptors, shuffled)
+        extreme += int(permuted.lda_full_auc >= evidence.lda_full_auc)
+    p_value = (extreme + 1) / float(_PERMUTATION_DRAWS + 1)
+    return TwinReachabilityInference(
+        bootstrap_draws=_BOOTSTRAP_DRAWS,
+        permutation_draws=_PERMUTATION_DRAWS,
+        bootstrap_seed_sha256=hashlib.sha256(bootstrap_seed).hexdigest(),
+        permutation_seed_sha256=hashlib.sha256(permutation_seed).hexdigest(),
+        lda_auc_lower_95=lower,
+        permutation_extreme_count=extreme,
+        permutation_p_value=p_value,
+        passed=(
+            evidence.lda_full_auc >= _AUC_GATE
+            and lower > 0.50
+            and p_value <= 0.05
+        ),
+    )
+
+
 def _require_evidence_types(evidence: TwinReachabilityEvidence) -> None:
     if type(evidence) is not TwinReachabilityEvidence:
         raise TypeError("twin evidence has the wrong concrete type")
@@ -445,6 +554,133 @@ def validate_twin_reachability_artifact_bytes(
     if raw != canonical:
         raise ValueError("twin artifact is not canonical")
     return evidence
+
+
+def _validate_inference(
+    inference: TwinReachabilityInference,
+    evidence: TwinReachabilityEvidence,
+    authority: TwinReachabilityAuthority,
+) -> None:
+    if type(inference) is not TwinReachabilityInference:
+        raise TypeError("twin inference has the wrong concrete type")
+    if (
+        type(inference.bootstrap_draws) is not int
+        or inference.bootstrap_draws != _BOOTSTRAP_DRAWS
+        or type(inference.permutation_draws) is not int
+        or inference.permutation_draws != _PERMUTATION_DRAWS
+        or _SHA256.fullmatch(inference.bootstrap_seed_sha256) is None
+        or _SHA256.fullmatch(inference.permutation_seed_sha256) is None
+        or type(inference.lda_auc_lower_95) is not float
+        or not math.isfinite(inference.lda_auc_lower_95)
+        or not 0.0 <= inference.lda_auc_lower_95 <= 1.0
+        or type(inference.permutation_extreme_count) is not int
+        or not 0 <= inference.permutation_extreme_count <= _PERMUTATION_DRAWS
+        or type(inference.permutation_p_value) is not float
+        or not math.isfinite(inference.permutation_p_value)
+        or type(inference.passed) is not bool
+    ):
+        raise ValueError("twin inference authority differs")
+    expected_p = (inference.permutation_extreme_count + 1) / float(
+        _PERMUTATION_DRAWS + 1
+    )
+    bootstrap_seed, permutation_seed = twin_reachability_inference_seeds(authority)
+    if (
+        inference.bootstrap_seed_sha256 != hashlib.sha256(bootstrap_seed).hexdigest()
+        or inference.permutation_seed_sha256
+        != hashlib.sha256(permutation_seed).hexdigest()
+    ):
+        raise ValueError("twin inference seed authority differs")
+    if inference.lda_auc_lower_95 != _bootstrap_auc_lower(evidence, bootstrap_seed):
+        raise ValueError("twin inference bootstrap derivation differs")
+    expected_passed = (
+        evidence.lda_full_auc >= _AUC_GATE
+        and inference.lda_auc_lower_95 > 0.50
+        and expected_p <= 0.05
+    )
+    if inference.permutation_p_value != expected_p or inference.passed is not expected_passed:
+        raise ValueError("twin inference derivation differs")
+
+
+def canonical_twin_reachability_inference_artifact_bytes(
+    authority: TwinReachabilityAuthority,
+    evidence: TwinReachabilityEvidence,
+    inference: TwinReachabilityInference,
+) -> bytes:
+    """Bind uncertainty evidence to the exact descriptor and v1 evidence."""
+
+    _validate_authority(authority)
+    if authority.plane != evidence.plane:
+        raise ValueError("twin inference plane authority differs")
+    canonical_twin_reachability_bytes(evidence)
+    _validate_inference(inference, evidence, authority)
+    value = {
+        "schema": "sfora-cars-twin-reachability-inference-artifact-v1",
+        "claim_eligible": False,
+        "authority": asdict(authority),
+        "evidence": _payload(evidence),
+        "inference": asdict(inference),
+    }
+    raw = (json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n").encode()
+    if validate_twin_reachability_inference_artifact_bytes(
+        raw,
+        expected=authority,
+    ) != (evidence, inference):
+        raise ValueError("twin inference artifact failed canonical self-validation")
+    return raw
+
+
+def validate_twin_reachability_inference_artifact_bytes(
+    raw: bytes,
+    *,
+    expected: TwinReachabilityAuthority,
+) -> tuple[TwinReachabilityEvidence, TwinReachabilityInference]:
+    """Validate canonical uncertainty evidence against independent authority."""
+
+    _validate_authority(expected)
+    if type(raw) is not bytes or not raw.endswith(b"\n") or raw.endswith(b"\n\n"):
+        raise ValueError("twin inference artifact bytes differ")
+    try:
+        value = json.loads(raw)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError("twin inference artifact JSON differs") from error
+    if type(value) is not dict or set(value) != {
+        "schema",
+        "claim_eligible",
+        "authority",
+        "evidence",
+        "inference",
+    }:
+        raise ValueError("twin inference artifact schema differs")
+    if (
+        value["schema"] != "sfora-cars-twin-reachability-inference-artifact-v1"
+        or value["claim_eligible"] is not False
+        or type(value["authority"]) is not dict
+        or set(value["authority"]) != set(asdict(expected))
+        or type(value["evidence"]) is not dict
+        or type(value["inference"]) is not dict
+        or set(value["inference"]) != _INFERENCE_KEYS
+    ):
+        raise ValueError("twin inference artifact schema differs")
+    try:
+        observed = TwinReachabilityAuthority(**value["authority"])
+        inference = TwinReachabilityInference(**value["inference"])
+    except TypeError as error:
+        raise ValueError("twin inference artifact concrete types differ") from error
+    _validate_authority(observed)
+    if observed != expected:
+        raise ValueError("twin inference artifact authority differs")
+    evidence_raw = (
+        json.dumps(value["evidence"], sort_keys=True, separators=(",", ":")) + "\n"
+    ).encode()
+    evidence = validate_twin_reachability_bytes(
+        evidence_raw,
+        expected_plane=expected.plane,
+    )
+    _validate_inference(inference, evidence, expected)
+    canonical = (json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n").encode()
+    if canonical != raw:
+        raise ValueError("twin inference artifact is not canonical")
+    return evidence, inference
 
 
 def canonical_twin_reachability_bytes(evidence: TwinReachabilityEvidence) -> bytes:
