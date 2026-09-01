@@ -30,7 +30,7 @@ ASGCV_E0_SCHEMA = "sfora-asgcv-e0-metrics-v3"
 ASGCV_E0_CAPACITY_FLOOR_SCHEMA = "sfora-asgcv-e0-capacity-floor-v1"
 ASGCV_E0_RESULT_SCHEMA = "sfora-asgcv-e0-result-v3"
 ASGCV_E0_ARRAY_DOMAIN = b"sfora-asgcv-e0-array-v1\0"
-ASGCV_GRADIENT_SAMPLE_SCHEMA = "sfora-asgcv-gradient-sample-v2"
+ASGCV_GRADIENT_SAMPLE_SCHEMA = "sfora-asgcv-gradient-sample-v3"
 ASGCV_GRADIENT_SAMPLE_ARRAY_DOMAIN = b"sfora-asgcv-gradient-sample-array-v1\0"
 ASGCV_DENSE_COSINE_GATE_PPM = 850_000
 ASGCV_PROJECTED_COSINE_GATE_PPM = 900_000
@@ -1002,6 +1002,7 @@ def canonical_gradient_sample_bytes(
     completion_protocol_sha256: object,
     eligible_schedule_sha256: object,
     pooler_state_sha256: object,
+    predictor_state_sha256: object,
     eligible_pair_ordinal: object,
     candidate_pair_ordinal: object,
     pair_ordinals: object,
@@ -1032,6 +1033,10 @@ def canonical_gradient_sample_bytes(
     pooler_state_digest = _sha256_bytes(
         pooler_state_sha256,
         name="pooler state digest",
+    ).hex()
+    predictor_state_digest = _sha256_bytes(
+        predictor_state_sha256,
+        name="predictor state digest",
     ).hex()
     if type(eligible_pair_ordinal) is not int or eligible_pair_ordinal < 0:
         raise ValueError("ASG-CV gradient sample eligible pair ordinal differs")
@@ -1082,6 +1087,7 @@ def canonical_gradient_sample_bytes(
         "completion_protocol_sha256": protocol_digest,
         "eligible_schedule_sha256": eligible_schedule_digest,
         "pooler_state_sha256": pooler_state_digest,
+        "predictor_state_sha256": predictor_state_digest,
         "eligible_pair_ordinal": eligible_pair_ordinal,
         "candidate_pair_ordinal": candidate_pair_ordinal,
         "pair_ordinals": list(pair_ordinals),
@@ -1135,6 +1141,7 @@ def validate_gradient_sample_bytes(raw: bytes) -> dict[str, object]:
         "completion_protocol_sha256",
         "eligible_schedule_sha256",
         "pooler_state_sha256",
+        "predictor_state_sha256",
         "eligible_pair_ordinal",
         "candidate_pair_ordinal",
         "pair_ordinals",
@@ -1160,6 +1167,7 @@ def validate_gradient_sample_bytes(raw: bytes) -> dict[str, object]:
     _sha256_bytes(value["completion_protocol_sha256"], name="completion protocol digest")
     _sha256_bytes(value["eligible_schedule_sha256"], name="eligible schedule digest")
     _sha256_bytes(value["pooler_state_sha256"], name="pooler state digest")
+    _sha256_bytes(value["predictor_state_sha256"], name="predictor state digest")
     if type(value["eligible_pair_ordinal"]) is not int or value["eligible_pair_ordinal"] < 0:
         raise ValueError("ASG-CV gradient sample eligible pair ordinal differs")
     if type(value["candidate_pair_ordinal"]) is not int or value["candidate_pair_ordinal"] < 0:
@@ -1234,6 +1242,7 @@ def validate_gradient_sample_inputs(
         completion_protocol_sha256=value["completion_protocol_sha256"],
         eligible_schedule_sha256=value["eligible_schedule_sha256"],
         pooler_state_sha256=value["pooler_state_sha256"],
+        predictor_state_sha256=value["predictor_state_sha256"],
         eligible_pair_ordinal=value["eligible_pair_ordinal"],
         candidate_pair_ordinal=value["candidate_pair_ordinal"],
         pair_ordinals=tuple(pair_ordinals),

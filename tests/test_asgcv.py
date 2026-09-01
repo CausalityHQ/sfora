@@ -653,6 +653,7 @@ def _gradient_sample_bytes() -> bytes:
         completion_protocol_sha256="6" * 64,
         eligible_schedule_sha256="7" * 64,
         pooler_state_sha256="8" * 64,
+        predictor_state_sha256="9" * 64,
         eligible_pair_ordinal=5,
         candidate_pair_ordinal=11,
         pair_ordinals=(17, 29),
@@ -671,13 +672,14 @@ def test_gradient_sample_is_canonical_and_reopens_exact_fp32_arrays() -> None:
     tokens, gradient = _gradient_sample_arrays()
 
     assert raw.endswith(b"\n") and not raw.endswith(b"\n\n")
-    assert value["schema"] == "sfora-asgcv-gradient-sample-v2"
+    assert value["schema"] == "sfora-asgcv-gradient-sample-v3"
     assert value["claim_eligible"] is False
     assert value["pair_ordinals"] == [17, 29]
     assert value["eligible_pair_ordinal"] == 5
     assert value["candidate_pair_ordinal"] == 11
     assert value["relation_sign"] == -1
     assert value["pooler_state_sha256"] == "8" * 64
+    assert value["predictor_state_sha256"] == "9" * 64
     assert value["replay_branch_count"] == 8
     assert value["losses"] == {"attention_kl": 0.375, "grpo": 0.125, "semantic": 0.5}
     assert value["arrays"]["patch_tokens"]["shape"] == [2, 3, 4]
@@ -696,6 +698,7 @@ def test_gradient_sample_rejects_identity_type_shape_and_array_drift() -> None:
     for path, replacement in (
         (("claim_eligible",), True),
         (("pooler_state_sha256",), True),
+        (("predictor_state_sha256",), True),
         (("pair_ordinals",), [17, 17]),
         (("eligible_pair_ordinal",), True),
         (("relation_sign",), 0),
@@ -783,6 +786,7 @@ def test_gradient_sample_context_cross_binds_refill_pair_group_and_protocol() ->
         completion_protocol_sha256=protocol.sha256(),
         eligible_schedule_sha256=eligible.sha256(),
         pooler_state_sha256="8" * 64,
+        predictor_state_sha256="9" * 64,
         eligible_pair_ordinal=eligible_index,
         candidate_pair_ordinal=candidate_index,
         pair_ordinals=(pair.left_index, pair.right_index),

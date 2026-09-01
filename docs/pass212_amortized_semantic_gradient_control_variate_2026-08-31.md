@@ -101,7 +101,10 @@ detached output. Every named fp32 state tensor is framed by name and shape and
 sealed with SHA-256 before E0 evaluation. Initialization uses a domain-separated
 SHA-256 seed through an isolated CPU generator scope, producing byte-identical
 state without consuming or reseeding the retrieval trainer's CPU or CUDA RNG
-streams.
+streams. Each captured-gradient receipt binds both that predictor-state digest
+and the independently sealed nondegenerate attention-pooler state, preventing
+E1 replay targets from being evaluated against a different learned control
+variate or KL query.
 
 Predictor fitting uses one fixed, dimensionless objective with no learned or
 retrieval-tuned weights:
