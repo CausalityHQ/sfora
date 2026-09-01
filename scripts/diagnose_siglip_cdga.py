@@ -8,6 +8,8 @@ import hashlib
 import sys
 from pathlib import Path
 
+import torch
+
 from sfora.siglip_cdga import run_cdga_fold_diagnostic, validate_cdga_result_bytes
 from sfora.siglip_head_screen import build_feature_split_authority
 from sfora.siglip_sfq import sfq_label_vector_sha256
@@ -64,6 +66,8 @@ def main(argv: list[str] | None = None) -> int:
         ordered_example_ids=optimization.example_ids,
         features=optimization.features,
     )
+    torch.set_num_threads(1)
+    torch.use_deterministic_algorithms(True)
     raw = run_cdga_fold_diagnostic(
         optimization.features,
         optimization.labels,
@@ -87,6 +91,8 @@ def main(argv: list[str] | None = None) -> int:
         "fold_count": _FOLD_COUNT,
         "train_steps": _TRAIN_STEPS,
         "examples_per_class": _EXAMPLES_PER_CLASS,
+        "input_dimensions": optimization.features.shape[1],
+        "output_dimensions": min(512, *optimization.features.shape),
     }
     if any(getattr(result, field) != value for field, value in expected.items()):
         raise ValueError("CDGA result binding differs")

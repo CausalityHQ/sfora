@@ -14,7 +14,7 @@
 
 - Never fit or select on clean-validation, burned-diagnostic, or official-test rows.
 - Use exactly four existing SFQ class-disjoint folds and a 512-dimensional bias-free projection.
-- Use symmetric projection-gradient conflict removal with epsilon `1e-12` and no second-order gradients.
+- Use symmetric projection-gradient conflict removal with epsilon `1e-12`, separate norm-10 projection/proxy clipping, and no second-order gradients.
 - Keep comparator and CDGA initialization, batches, losses, optimizer constants, and step count identical.
 - Pass gates are +2,000 ppm aggregate over comparator, not below spectral, and no fold worse by more than 10,000 ppm.
 - Do not start a scientific GPU job while the three-seed control is active.

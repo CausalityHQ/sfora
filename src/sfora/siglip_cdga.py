@@ -14,7 +14,12 @@ from torch import nn
 from torch.nn import functional as F
 
 from sfora.siglip_head_screen import FeatureSplitAuthority
-from sfora.siglip_sfq import SFQFold, build_sfq_fold_schedule, sfq_label_vector_sha256
+from sfora.siglip_sfq import (
+    SFQFold,
+    _schedule_sha256_from_hashes,
+    build_sfq_fold_schedule,
+    sfq_label_vector_sha256,
+)
 from sfora.token_set_proxy_anchor import proxy_anchor_loss
 
 
@@ -36,6 +41,17 @@ class CDGAGradientProjection:
 
     left: torch.Tensor
     right: torch.Tensor
+    conflict: bool
+    pre_projection_cosine: float
+
+
+@dataclass(frozen=True)
+class CDGAMatchedGradients:
+    """Matched ordinary/CDGA gradients derived from the same domain gradients."""
+
+    comparator_projection: torch.Tensor
+    cdga_projection: torch.Tensor
+    proxy: torch.Tensor
     conflict: bool
     pre_projection_cosine: float
 
@@ -166,15 +182,13 @@ def build_cdga_domain_split(
         or not _label_tuple(validation_labels)
         or len(fit_labels) < 4
         or not set(fit_labels).isdisjoint(validation_labels)
-        or type(master_seed_sha256) is not str
-        or len(master_seed_sha256) != 64
-        or master_seed_sha256.lower() != master_seed_sha256
     ):
         raise ValueError("CDGA domain authority differs")
     try:
-        seed_value = int(master_seed_sha256, 16)
+        master_seed_sha256 = _hex_digest(master_seed_sha256)
     except ValueError as error:
         raise ValueError("CDGA domain authority differs") from error
+    seed_value = int(master_seed_sha256, 16)
     offset = seed_value % len(fit_labels)
     rotated = fit_labels[offset:] + fit_labels[:offset]
     domain_a_labels = tuple(sorted(rotated[::2]))
@@ -250,6 +264,51 @@ def symmetric_conflict_projection(
         right=projected_right,
         conflict=conflict,
         pre_projection_cosine=cosine,
+    )
+
+
+def _matched_gradients(
+    left_projection: torch.Tensor,
+    right_projection: torch.Tensor,
+    left_proxy: torch.Tensor,
+    right_proxy: torch.Tensor,
+    *,
+    epsilon: float,
+) -> CDGAMatchedGradients:
+    """Construct both arm gradients from the same two domain-gradient pairs."""
+
+    if (
+        type(left_proxy) is not torch.Tensor
+        or type(right_proxy) is not torch.Tensor
+        or left_proxy.shape != right_proxy.shape
+        or left_proxy.dtype != torch.float32
+        or right_proxy.dtype != torch.float32
+        or left_proxy.device != right_proxy.device
+        or left_proxy.device != left_projection.device
+        or not bool(torch.isfinite(left_proxy).all())
+        or not bool(torch.isfinite(right_proxy).all())
+    ):
+        raise ValueError("CDGA proxy gradient authority differs")
+    projected = symmetric_conflict_projection(
+        left_projection,
+        right_projection,
+        epsilon=epsilon,
+    )
+    comparator_projection = (left_projection + right_projection) / 2.0
+    cdga_projection = (projected.left + projected.right) / 2.0
+    proxy = (left_proxy + right_proxy) / 2.0
+    if (
+        not bool(torch.isfinite(comparator_projection).all())
+        or not bool(torch.isfinite(cdga_projection).all())
+        or not bool(torch.isfinite(proxy).all())
+    ):
+        raise ValueError("CDGA matched gradient became nonfinite")
+    return CDGAMatchedGradients(
+        comparator_projection=comparator_projection,
+        cdga_projection=cdga_projection,
+        proxy=proxy,
+        conflict=projected.conflict,
+        pre_projection_cosine=projected.pre_projection_cosine,
     )
 
 
@@ -372,8 +431,6 @@ def _batch_schedule(
         )
         for step in range(train_steps)
     )
-    if any(set(left).intersection(right) for left, right in schedule):
-        raise ValueError("CDGA domain batch overlap differs")
     return schedule
 
 
@@ -477,8 +534,7 @@ def train_cdga_fold(
         or alpha <= 0.0
         or not 0.0 <= delta < 1.0
         or type(device) is not torch.device
-        or device.type not in {"cpu", "cuda"}
-        or (device.type == "cuda" and not torch.cuda.is_available())
+        or device.type != "cpu"
     ):
         raise ValueError("CDGA training authority differs")
     master_seed_sha256 = _hex_digest(master_seed_sha256)
@@ -544,16 +600,39 @@ def train_cdga_fold(
         right = torch.tensor(right_rows, dtype=torch.int64, device=device)
 
         comparator_optimizer.zero_grad(set_to_none=True)
-        comparator_loss = (
-            comparator.loss(
-                execution_features[left], execution_labels[left], alpha=alpha, delta=delta
-            )
-            + comparator.loss(
-                execution_features[right], execution_labels[right], alpha=alpha, delta=delta
-            )
-        ) / 2.0
-        comparator_loss.backward()
-        torch.nn.utils.clip_grad_norm_(comparator.parameters(), 10.0)
+        comparator_left_loss = comparator.loss(
+            execution_features[left], execution_labels[left], alpha=alpha, delta=delta
+        )
+        comparator_left_gradients = torch.autograd.grad(
+            comparator_left_loss,
+            (comparator.projection.weight, comparator.proxies),
+        )
+        comparator_right_loss = comparator.loss(
+            execution_features[right], execution_labels[right], alpha=alpha, delta=delta
+        )
+        if not bool(torch.isfinite(comparator_left_loss)) or not bool(
+            torch.isfinite(comparator_right_loss)
+        ):
+            raise RuntimeError("CDGA comparator loss became nonfinite")
+        comparator_right_gradients = torch.autograd.grad(
+            comparator_right_loss,
+            (comparator.projection.weight, comparator.proxies),
+        )
+        comparator_reduced = _matched_gradients(
+            comparator_left_gradients[0].reshape(-1),
+            comparator_right_gradients[0].reshape(-1),
+            comparator_left_gradients[1].reshape(-1),
+            comparator_right_gradients[1].reshape(-1),
+            epsilon=1.0e-12,
+        )
+        comparator.projection.weight.grad = comparator_reduced.comparator_projection.reshape_as(
+            comparator.projection.weight
+        )
+        comparator.proxies.grad = comparator_reduced.proxy.reshape_as(comparator.proxies)
+        torch.nn.utils.clip_grad_norm_(
+            (comparator.projection.weight,), 10.0, error_if_nonfinite=True
+        )
+        torch.nn.utils.clip_grad_norm_((comparator.proxies,), 10.0, error_if_nonfinite=True)
         comparator_optimizer.step()
 
         cdga_optimizer.zero_grad(set_to_none=True)
@@ -567,23 +646,28 @@ def train_cdga_fold(
         right_loss = cdga.loss(
             execution_features[right], execution_labels[right], alpha=alpha, delta=delta
         )
+        if not bool(torch.isfinite(left_loss)) or not bool(torch.isfinite(right_loss)):
+            raise RuntimeError("CDGA loss became nonfinite")
         right_gradients = torch.autograd.grad(
             right_loss,
             (cdga.projection.weight, cdga.proxies),
         )
-        projected = symmetric_conflict_projection(
+        cdga_reduced = _matched_gradients(
             left_gradients[0].reshape(-1),
             right_gradients[0].reshape(-1),
+            left_gradients[1].reshape(-1),
+            right_gradients[1].reshape(-1),
             epsilon=1.0e-12,
         )
-        cdga.projection.weight.grad = ((projected.left + projected.right) / 2.0).reshape_as(
+        cdga.projection.weight.grad = cdga_reduced.cdga_projection.reshape_as(
             cdga.projection.weight
         )
-        cdga.proxies.grad = (left_gradients[1] + right_gradients[1]) / 2.0
-        torch.nn.utils.clip_grad_norm_(cdga.parameters(), 10.0)
+        cdga.proxies.grad = cdga_reduced.proxy.reshape_as(cdga.proxies)
+        torch.nn.utils.clip_grad_norm_((cdga.projection.weight,), 10.0, error_if_nonfinite=True)
+        torch.nn.utils.clip_grad_norm_((cdga.proxies,), 10.0, error_if_nonfinite=True)
         cdga_optimizer.step()
-        conflict_count += int(projected.conflict)
-        cosines.append(projected.pre_projection_cosine)
+        conflict_count += int(cdga_reduced.conflict)
+        cosines.append(cdga_reduced.pre_projection_cosine)
 
     with torch.no_grad():
         comparator_final_loss = float(full_loss(comparator))
@@ -791,8 +875,8 @@ def run_cdga_fold_diagnostic(
     conflict_count = sum(fold.conflict_count for fold in folds)
     valid = (
         conflict_count > 0
-        and all(fold.comparator_final_loss <= fold.comparator_initial_loss for fold in folds)
-        and all(fold.cdga_final_loss <= fold.cdga_initial_loss for fold in folds)
+        and all(fold.comparator_final_loss < fold.comparator_initial_loss for fold in folds)
+        and all(fold.cdga_final_loss < fold.cdga_initial_loss for fold in folds)
         and all(fold.comparator_fit_hits >= fold.spectral_fit_hits for fold in folds)
     )
     passed = (
@@ -1017,6 +1101,36 @@ def validate_cdga_result_bytes(raw: bytes) -> CDGAResult:
     validation_labels = sorted(label for fold in folds for label in fold.validation_labels)
     if len(validation_labels) != len(set(validation_labels)):
         raise ValueError("CDGA validation fold overlap differs")
+    universe = set(validation_labels)
+    if any(set(fold.fit_labels).union(fold.validation_labels) != universe for fold in folds):
+        raise ValueError("CDGA fold partition differs")
+    master_seed_sha256 = _hex_digest(mapping["master_seed_sha256"])
+    if any(
+        fold.domain_split_sha256
+        != build_cdga_domain_split(
+            fit_labels=fold.fit_labels,
+            validation_labels=fold.validation_labels,
+            master_seed_sha256=master_seed_sha256,
+        ).sha256
+        for fold in folds
+    ):
+        raise ValueError("CDGA domain split evidence differs")
+    expected_schedule_sha256 = _schedule_sha256_from_hashes(
+        folds=tuple(
+            SFQFold(
+                ordinal=fold.ordinal,
+                fit_labels=fold.fit_labels,
+                validation_labels=fold.validation_labels,
+            )
+            for fold in folds
+        ),
+        source_manifest_sha256=_hex_digest(mapping["source_manifest_sha256"]),
+        ordered_example_ids_sha256=_hex_digest(mapping["ordered_example_ids_sha256"]),
+        feature_matrix_sha256=_hex_digest(mapping["feature_matrix_sha256"]),
+        label_vector_sha256=_hex_digest(mapping["label_vector_sha256"]),
+    )
+    if mapping["fold_schedule_sha256"] != expected_schedule_sha256:
+        raise ValueError("CDGA fold schedule evidence differs")
     query_count = sum(fold.query_count for fold in folds)
     hits = tuple(
         sum(getattr(fold, name) for fold in folds)
@@ -1024,10 +1138,16 @@ def validate_cdga_result_bytes(raw: bytes) -> CDGAResult:
     )
     recalls = tuple(count * 1_000_000 // query_count for count in hits)
     conflict_count = sum(fold.conflict_count for fold in folds)
+    train_steps = _integer(mapping["train_steps"], minimum=1)
+    if any(
+        fold.conflict_count > train_steps or not -1.0 <= fold.mean_pre_projection_cosine <= 1.0
+        for fold in folds
+    ):
+        raise ValueError("CDGA conflict evidence differs")
     valid = (
         conflict_count > 0
-        and all(fold.comparator_final_loss <= fold.comparator_initial_loss for fold in folds)
-        and all(fold.cdga_final_loss <= fold.cdga_initial_loss for fold in folds)
+        and all(fold.comparator_final_loss < fold.comparator_initial_loss for fold in folds)
+        and all(fold.cdga_final_loss < fold.cdga_initial_loss for fold in folds)
         and all(fold.comparator_fit_hits >= fold.spectral_fit_hits for fold in folds)
     )
     passed = (
@@ -1065,12 +1185,12 @@ def validate_cdga_result_bytes(raw: bytes) -> CDGAResult:
         ordered_example_ids_sha256=_hex_digest(mapping["ordered_example_ids_sha256"]),
         feature_matrix_sha256=_hex_digest(mapping["feature_matrix_sha256"]),
         label_vector_sha256=_hex_digest(mapping["label_vector_sha256"]),
-        master_seed_sha256=_hex_digest(mapping["master_seed_sha256"]),
+        master_seed_sha256=master_seed_sha256,
         input_dimensions=_integer(mapping["input_dimensions"], minimum=2),
         output_dimensions=_integer(mapping["output_dimensions"], minimum=1),
         fold_count=fold_count,
         fold_schedule_sha256=_hex_digest(mapping["fold_schedule_sha256"]),
-        train_steps=_integer(mapping["train_steps"], minimum=1),
+        train_steps=train_steps,
         examples_per_class=_integer(mapping["examples_per_class"], minimum=1),
         query_count=query_count,
         raw_hits=hits[0],

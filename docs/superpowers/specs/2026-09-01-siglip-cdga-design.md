@@ -41,15 +41,16 @@ three folds; Recall@1 uses only the held classes.
 Within a fit partition, sort labels and deterministically split them into two
 pseudo-domains by alternating labels after a seed-derived cyclic rotation.
 Each training step draws one registered class-balanced batch from each
-pseudo-domain using the existing stateful sampler. Every example selected for a
+pseudo-domain using a seed-bound SHA-256 cyclic-offset schedule. Every example selected for a
 batch must have a fit label; no validation label may enter an optimizer step.
 
 ## Comparator and CDGA update
 
 Both arms start from the same deterministic uncentered 512-dimensional spectral
 projection and the same class proxies. Both use the existing Proxy Anchor loss,
-AdamW hyperparameters, step count, batches, and proxy updates. The comparator
-sums the two pseudo-domain losses and performs the ordinary update.
+AdamW hyperparameters, step count, batches, and proxy updates. Both construct
+the two domain gradients separately. The comparator averages them; CDGA changes
+only the projection-gradient reducer.
 
 CDGA changes only the shared projection gradient. Let `g_a` and `g_b` be the
 flattened projection gradients from the two pseudo-domain losses. If
@@ -65,6 +66,11 @@ domain-loss gradients; only the shared projection gradient is projected. The
 fixed epsilon is `1e-12`. Nonfinite losses, gradients,
 denominators, or parameters fail closed. The result records conflict count,
 mean pre-projection cosine, and projection digests.
+
+Before each optimizer step, projection and proxy gradients are clipped as two
+separate parameter groups at norm 10 in both arms. Conflict removal can alter
+only the projection group's clip coefficient; it cannot rescale proxy updates.
+The authoritative CLI uses one deterministic CPU thread.
 
 This is deliberately a first-order conflict-removal diagnostic, not MAML. It
 tests whether a class-generic direction exists without adding a second-order

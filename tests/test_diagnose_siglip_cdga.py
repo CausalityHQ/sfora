@@ -180,3 +180,27 @@ def test_cdga_cli_never_opens_evaluation_feature_rows(tmp_path: Path) -> None:
         )
         == 0
     )
+
+
+def test_cdga_cli_rejects_manifest_source_and_optimization_band_drift(tmp_path: Path) -> None:
+    manifest = _write_fixture(tmp_path)
+    digest = hashlib.sha256(manifest.read_bytes()).hexdigest()
+    base = [
+        "--feature-manifest",
+        str(manifest),
+        "--feature-manifest-sha256",
+        digest,
+        "--feature-source-commit",
+        "3" * 40,
+        "--result",
+        str(tmp_path / "cdga.json"),
+        "--execute-cdga-folds",
+    ]
+    with pytest.raises(ValueError, match="manifest digest"):
+        _MODULE.main([*base[:3], "4" * 64, *base[4:]])
+    with pytest.raises(ValueError, match="source revision"):
+        _MODULE.main([*base[:5], "4" * 40, *base[6:]])
+
+    (tmp_path / "optimization-train.npy").unlink()
+    with pytest.raises(ValueError, match="feature matrix path"):
+        _MODULE.main(base)
