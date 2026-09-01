@@ -4,6 +4,7 @@ import torch
 from torch import nn
 
 from sfora.siglip_head_screen import (
+    CachedHeadTrainingEvidence,
     CotangentRankEvidence,
     FeatureSplitAuthority,
     build_feature_split_authority,
@@ -12,6 +13,7 @@ from sfora.siglip_head_screen import (
     initialize_spectral_projection_,
     principal_angles_degrees,
     subclass_proxy_anchor_loss,
+    train_cached_subclass_head,
     uncentered_spectral_projection,
 )
 
@@ -330,3 +332,108 @@ def test_subclass_assignment_rejects_degenerate_empty_clusters() -> None:
         pass
     else:
         raise AssertionError("degenerate subclass assignments accepted")
+
+
+def _separable_cached_features() -> tuple[torch.Tensor, torch.Tensor]:
+    rows: list[list[float]] = []
+    labels: list[int] = []
+    for label, center in enumerate(((1.0, 0.0, 0.0), (0.0, 1.0, 0.0))):
+        for offset in (-0.06, -0.02, 0.02, 0.06):
+            rows.append([center[0] + offset, center[1] - offset, 0.2 + offset])
+            labels.append(label)
+    return torch.tensor(rows, dtype=torch.float32), torch.tensor(labels, dtype=torch.int64)
+
+
+def test_cached_subclass_head_is_deterministic_and_train_only() -> None:
+    features, labels = _separable_cached_features()
+    authority = _train_authority(features, digest="5" * 64)
+    initial_weight = uncentered_spectral_projection(
+        features, output_dimensions=2, split_authority=authority
+    )
+    batches = (tuple(range(8)),) * 8
+
+    first = train_cached_subclass_head(
+        features,
+        labels,
+        split_authority=authority,
+        initial_projection_weight=initial_weight,
+        batches=batches,
+        master_seed_sha256="6" * 64,
+        output_dimensions=2,
+        subclasses_per_class=2,
+        cluster_iterations=3,
+        train_steps=8,
+        projection_learning_rate=1.0e-2,
+        proxy_learning_rate=2.0e-2,
+        weight_decay=0.0,
+        alpha=16.0,
+        delta=0.1,
+    )
+    second = train_cached_subclass_head(
+        features,
+        labels,
+        split_authority=authority,
+        initial_projection_weight=initial_weight,
+        batches=batches,
+        master_seed_sha256="6" * 64,
+        output_dimensions=2,
+        subclasses_per_class=2,
+        cluster_iterations=3,
+        train_steps=8,
+        projection_learning_rate=1.0e-2,
+        proxy_learning_rate=2.0e-2,
+        weight_decay=0.0,
+        alpha=16.0,
+        delta=0.1,
+    )
+
+    assert isinstance(first, CachedHeadTrainingEvidence)
+    assert first.split_authority == authority
+    assert first.subclass_assignments.sha256 == second.subclass_assignments.sha256
+    assert first.initial_loss > first.final_loss
+    assert first.logical_batch_size == 8
+    assert len(first.loss_trajectory) == 9
+    assert torch.equal(first.initial_projection_weight, initial_weight)
+    assert torch.equal(first.projection_weight, second.projection_weight)
+    assert torch.equal(first.subclass_proxies, second.subclass_proxies)
+    assert first.projection_weight.device.type == "cpu"
+    assert first.subclass_proxies.device.type == "cpu"
+    assert first.projection_weight.dtype == torch.float32
+    assert first.subclass_proxies.dtype == torch.float32
+
+
+def test_cached_subclass_head_rejects_evaluation_authority_and_float_labels() -> None:
+    features, labels = _separable_cached_features()
+    leaked = build_feature_split_authority(
+        source_manifest_sha256="7" * 64,
+        role="clean-validation",
+        official_test_access=False,
+        ordered_example_ids=tuple(f"clean-{row}" for row in range(features.shape[0])),
+        features=features,
+    )
+    for authority, candidate_labels in (
+        (leaked, labels),
+        (_train_authority(features), labels.float()),
+    ):
+        try:
+            train_cached_subclass_head(
+                features,
+                candidate_labels,
+                split_authority=authority,
+                initial_projection_weight=torch.eye(2, 3),
+                batches=(tuple(range(8)),) * 2,
+                master_seed_sha256="8" * 64,
+                output_dimensions=2,
+                subclasses_per_class=2,
+                cluster_iterations=3,
+                train_steps=2,
+                projection_learning_rate=1.0e-2,
+                proxy_learning_rate=2.0e-2,
+                weight_decay=0.0,
+                alpha=16.0,
+                delta=0.1,
+            )
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("invalid cached-head authority accepted")

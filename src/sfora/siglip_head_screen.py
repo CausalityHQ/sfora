@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import math
 from dataclasses import dataclass
 from typing import cast
 
@@ -23,6 +24,16 @@ class CotangentRankEvidence:
     maximum_projection_gradient_rank: int
     per_example_tower_fraction: float
     projection_gradient_fraction: float
+
+
+@dataclass(frozen=True, slots=True)
+class SpectralProjectionEvidence:
+    """One uncentered spectral projection and its rank-cut stability evidence."""
+
+    weight: torch.Tensor
+    retained_singular_value: float
+    discarded_singular_value: float | None
+    cut_ratio: float | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -123,6 +134,22 @@ class SubclassAssignments:
     sha256: str
 
 
+@dataclass(frozen=True, slots=True)
+class CachedHeadTrainingEvidence:
+    """Deterministic train-only state for one frozen-tower head screen."""
+
+    split_authority: FeatureSplitAuthority
+    subclass_assignments: SubclassAssignments
+    initial_projection_weight: torch.Tensor
+    projection_weight: torch.Tensor
+    subclass_proxies: torch.Tensor
+    initial_loss: float
+    final_loss: float
+    train_steps: int
+    logical_batch_size: int
+    loss_trajectory: tuple[float, ...]
+
+
 def _subclass_assignment_sha256(
     assignments: torch.Tensor,
     parents: tuple[int, ...],
@@ -180,13 +207,13 @@ def cotangent_rank_evidence(
     )
 
 
-def uncentered_spectral_projection(
+def uncentered_spectral_projection_evidence(
     features: torch.Tensor,
     *,
     output_dimensions: int,
     split_authority: FeatureSplitAuthority,
-) -> torch.Tensor:
-    """Return sign-canonical top right singular vectors without centering."""
+) -> SpectralProjectionEvidence:
+    """Return sign-canonical directions and the observed spectral-cut ratio."""
 
     if (
         type(features) is not torch.Tensor
@@ -223,7 +250,34 @@ def uncentered_spectral_projection(
     result = cast(torch.Tensor, weight.to(dtype=torch.float32))
     if not bool(torch.isfinite(result).all()):
         raise ValueError("spectral projection result differs")
-    return result
+    retained = float(singular_values[output_dimensions - 1])
+    discarded = (
+        float(singular_values[output_dimensions])
+        if output_dimensions < singular_values.shape[0]
+        else None
+    )
+    ratio = retained / discarded if discarded is not None and discarded > 0.0 else None
+    return SpectralProjectionEvidence(
+        weight=result,
+        retained_singular_value=retained,
+        discarded_singular_value=discarded,
+        cut_ratio=ratio,
+    )
+
+
+def uncentered_spectral_projection(
+    features: torch.Tensor,
+    *,
+    output_dimensions: int,
+    split_authority: FeatureSplitAuthority,
+) -> torch.Tensor:
+    """Return sign-canonical top right singular vectors without centering."""
+
+    return uncentered_spectral_projection_evidence(
+        features,
+        output_dimensions=output_dimensions,
+        split_authority=split_authority,
+    ).weight
 
 
 def initialize_spectral_projection_(
@@ -406,6 +460,181 @@ def cosine_subclass_assignments(
             iterations=iterations,
             split_authority=split_authority,
         ),
+    )
+
+
+def train_cached_subclass_head(
+    features: torch.Tensor,
+    labels: torch.Tensor,
+    *,
+    split_authority: FeatureSplitAuthority,
+    initial_projection_weight: torch.Tensor,
+    batches: tuple[tuple[int, ...], ...],
+    master_seed_sha256: str,
+    output_dimensions: int,
+    subclasses_per_class: int,
+    cluster_iterations: int,
+    train_steps: int,
+    projection_learning_rate: float,
+    proxy_learning_rate: float,
+    weight_decay: float,
+    alpha: float,
+    delta: float,
+    device: torch.device | None = None,
+) -> CachedHeadTrainingEvidence:
+    """Train only a spectral projection and subclass proxies on cached features."""
+
+    if (
+        type(features) is not torch.Tensor
+        or features.ndim != 2
+        or features.device.type != "cpu"
+        or features.dtype != torch.float32
+        or labels.shape != (features.shape[0],)
+        or labels.device.type != "cpu"
+        or labels.dtype != torch.int64
+        or type(split_authority) is not FeatureSplitAuthority
+        or type(initial_projection_weight) is not torch.Tensor
+        or initial_projection_weight.device.type != "cpu"
+        or initial_projection_weight.dtype != torch.float32
+        or initial_projection_weight.shape != (output_dimensions, features.shape[1])
+        or not bool(torch.isfinite(initial_projection_weight).all())
+        or type(batches) is not tuple
+        or len(batches) != train_steps
+        or not batches
+        or type(output_dimensions) is not int
+        or not 1 <= output_dimensions <= min(features.shape)
+        or type(train_steps) is not int
+        or train_steps < 1
+        or type(projection_learning_rate) is not float
+        or projection_learning_rate <= 0.0
+        or type(proxy_learning_rate) is not float
+        or proxy_learning_rate <= 0.0
+        or type(weight_decay) is not float
+        or weight_decay < 0.0
+        or type(alpha) is not float
+        or alpha <= 0.0
+        or type(delta) is not float
+        or not 0.0 <= delta < 1.0
+        or not bool(torch.isfinite(features).all())
+    ):
+        raise ValueError("cached subclass head authority differs")
+    split_authority.validated(features=features)
+    logical_batch_size = len(batches[0])
+    if logical_batch_size < 2 or any(
+        type(batch) is not tuple
+        or len(batch) != logical_batch_size
+        or len(set(batch)) != len(batch)
+        or any(type(row) is not int or not 0 <= row < features.shape[0] for row in batch)
+        for batch in batches
+    ):
+        raise ValueError("cached subclass batch authority differs")
+    gram = initial_projection_weight.double() @ initial_projection_weight.double().T
+    if not torch.allclose(
+        gram,
+        torch.eye(output_dimensions, dtype=torch.float64),
+        rtol=0.0,
+        atol=1.0e-5,
+    ):
+        raise ValueError("cached subclass spectral initialization differs")
+    if bool((torch.linalg.vector_norm(features.double(), dim=1) <= 0).any()):
+        raise ValueError("cached subclass feature norm differs")
+    assignments = cosine_subclass_assignments(
+        features,
+        labels,
+        subclasses_per_class=subclasses_per_class,
+        master_seed_sha256=master_seed_sha256,
+        iterations=cluster_iterations,
+        split_authority=split_authority,
+    )
+    execution_device = torch.device("cpu") if device is None else device
+    if type(execution_device) is not torch.device or execution_device.type not in {"cpu", "cuda"}:
+        raise ValueError("cached subclass execution device differs")
+    projection = nn.Linear(features.shape[1], output_dimensions, bias=False, dtype=torch.float32)
+    with torch.no_grad():
+        projection.weight.copy_(initial_projection_weight)
+    projection = projection.to(execution_device)
+    training_features = features.to(execution_device)
+    training_labels = labels.to(execution_device)
+    training_assignments = assignments.assignments.to(execution_device)
+    parents = torch.tensor(assignments.parents, dtype=torch.int64, device=execution_device)
+
+    with torch.no_grad():
+        initial_embeddings = F.normalize(projection(training_features), dim=1)
+        proxy_rows = []
+        for subclass in range(len(assignments.parents)):
+            members = initial_embeddings[training_assignments == subclass]
+            if members.shape[0] == 0:
+                raise ValueError("cached subclass proxy population differs")
+            center = members.mean(dim=0)
+            norm = torch.linalg.vector_norm(center)
+            if not bool(torch.isfinite(norm)) or float(norm) <= 0.0:
+                raise ValueError("cached subclass proxy norm differs")
+            proxy_rows.append(center / norm)
+        proxies = nn.Parameter(torch.stack(proxy_rows))
+
+    optimizer = torch.optim.AdamW(
+        [
+            {
+                "params": [projection.weight],
+                "lr": projection_learning_rate,
+                "weight_decay": weight_decay,
+            },
+            {
+                "params": [proxies],
+                "lr": proxy_learning_rate,
+                "weight_decay": weight_decay,
+            },
+        ]
+    )
+
+    def loss_value(rows: torch.Tensor | None = None) -> torch.Tensor:
+        selected_features = training_features if rows is None else training_features[rows]
+        selected_labels = training_labels if rows is None else training_labels[rows]
+        selected_assignments = training_assignments if rows is None else training_assignments[rows]
+        embeddings = F.normalize(projection(selected_features), dim=1)
+        scores = embeddings @ F.normalize(proxies, dim=1).T
+        return subclass_proxy_anchor_loss(
+            scores,
+            selected_labels,
+            selected_assignments,
+            parents,
+            alpha=alpha,
+            delta=delta,
+        )
+
+    with torch.no_grad():
+        initial_loss = float(loss_value())
+    trajectory = [initial_loss]
+    trajectory_interval = max(1, train_steps // 10)
+    for step, batch in enumerate(batches):
+        optimizer.zero_grad(set_to_none=True)
+        rows = torch.tensor(batch, dtype=torch.int64, device=execution_device)
+        loss = loss_value(rows)
+        if not bool(torch.isfinite(loss)):
+            raise RuntimeError("cached subclass head loss became nonfinite")
+        torch.autograd.backward(loss)
+        gradient_norm = torch.nn.utils.clip_grad_norm_((projection.weight, proxies), 10.0)
+        if not bool(torch.isfinite(gradient_norm)):
+            raise RuntimeError("cached subclass head gradient became nonfinite")
+        optimizer.step()
+        if (step + 1) % trajectory_interval == 0 or step + 1 == train_steps:
+            with torch.no_grad():
+                trajectory.append(float(loss_value()))
+    with torch.no_grad():
+        final_loss = float(loss_value())
+    if not math.isfinite(initial_loss) or not math.isfinite(final_loss):
+        raise RuntimeError("cached subclass head evidence became nonfinite")
+    return CachedHeadTrainingEvidence(
+        split_authority=split_authority,
+        subclass_assignments=assignments,
+        initial_projection_weight=initial_projection_weight.detach().clone().contiguous(),
+        projection_weight=projection.weight.detach().float().cpu().contiguous(),
+        subclass_proxies=proxies.detach().float().cpu().contiguous(),
+        initial_loss=initial_loss,
+        final_loss=final_loss,
+        train_steps=train_steps,
+        logical_batch_size=logical_batch_size,
+        loss_trajectory=tuple(trajectory),
     )
 
 
