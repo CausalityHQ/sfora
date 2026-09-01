@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import math
 from dataclasses import dataclass
 
 import numpy as np
@@ -20,6 +21,7 @@ from sfora.asgcv import (
 _STATE_DOMAIN = b"sfora-asgcv-predictor-state-v1\0"
 _PREDICTION_DOMAIN = b"sfora-asgcv-prediction-v1\0"
 _INITIALIZATION_DOMAIN = b"sfora-asgcv-predictor-initialization-v1\0"
+ASGCV_EXCHANGE_MAX_ABS_ERROR_GATE_PPM = 1
 
 
 @dataclass(frozen=True, slots=True)
@@ -30,6 +32,29 @@ class PreparedAsgcvStratum:
     selected_index: int
     predictor_state_sha256: str
     prediction_sha256: str
+
+
+@dataclass(frozen=True, slots=True)
+class AsgcvRelationControls:
+    """Deterministic exchange-equivariance and relation-liveness evidence."""
+
+    exchange_max_abs_error_ppm: int
+    relation_response_energy_ppm: int
+
+    def validated(self) -> AsgcvRelationControls:
+        if (
+            type(self.exchange_max_abs_error_ppm) is not int
+            or not 0
+            <= self.exchange_max_abs_error_ppm
+            <= ASGCV_EXCHANGE_MAX_ABS_ERROR_GATE_PPM
+        ):
+            raise ValueError("ASG-CV predictor exchange-equivariance differs")
+        if (
+            type(self.relation_response_energy_ppm) is not int
+            or self.relation_response_energy_ppm <= 0
+        ):
+            raise ValueError("ASG-CV predictor relation liveness differs")
+        return self
 
 
 class AsgcvPatchGradientPredictor(nn.Module):
@@ -112,6 +137,54 @@ class AsgcvPatchGradientPredictor(nn.Module):
 
         with torch.no_grad():
             return self.forward(tokens, relation_signs).detach()
+
+
+def evaluate_predictor_relation_controls(
+    predictor: object,
+    tokens: object,
+) -> AsgcvRelationControls:
+    """Measure exact pair-swap behavior and nonzero relation conditioning."""
+
+    if (
+        type(predictor) is not AsgcvPatchGradientPredictor
+        or type(tokens) is not torch.Tensor
+        or tokens.ndim != 4
+        or tokens.shape[0] <= 0
+    ):
+        raise ValueError("ASG-CV predictor relation-control authority differs")
+    signs = torch.ones(tokens.shape[0], dtype=torch.int8, device=tokens.device)
+    positive = predictor.predict_detached(tokens, signs)
+    negative = predictor.predict_detached(tokens, -signs)
+    swapped = predictor.predict_detached(tokens[:, [1, 0]], signs)
+    positive64 = positive.detach().cpu().double()
+    negative64 = negative.detach().cpu().double()
+    exchange_error = float(
+        torch.max(torch.abs(swapped.detach().cpu().double() - positive64[:, [1, 0]]))
+    )
+    exchange_scale = float(torch.max(torch.abs(positive64)))
+    if not math.isfinite(exchange_error) or not math.isfinite(exchange_scale):
+        raise ValueError("ASG-CV predictor relation-control finiteness differs")
+    exchange_ppm = (
+        0
+        if exchange_error == 0.0
+        else math.ceil(exchange_error / max(exchange_scale, np.finfo(np.float64).tiny) * 1_000_000)
+    )
+    response_energy = float(torch.sum((positive64 - negative64).square()))
+    reference_energy = float(
+        0.5 * torch.sum(positive64.square() + negative64.square())
+    )
+    if (
+        not math.isfinite(response_energy)
+        or not math.isfinite(reference_energy)
+        or response_energy <= 0.0
+        or reference_energy <= 0.0
+    ):
+        raise ValueError("ASG-CV predictor relation liveness differs")
+    relation_ppm = math.ceil(response_energy / reference_energy * 1_000_000)
+    return AsgcvRelationControls(
+        exchange_max_abs_error_ppm=exchange_ppm,
+        relation_response_energy_ppm=relation_ppm,
+    ).validated()
 
 
 def source_bound_predictor(

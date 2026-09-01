@@ -6,6 +6,7 @@ import torch
 from sfora.asgcv import AsgcvSrhtAuthority, srht_gradient_sketch
 from sfora.asgcv_predictor import (
     AsgcvPatchGradientPredictor,
+    evaluate_predictor_relation_controls,
     predictor_state_sha256,
     predictor_training_loss,
     prepare_asgcv_stratum,
@@ -34,6 +35,23 @@ def test_predictor_is_pair_exchange_equivariant_and_rank_bounded() -> None:
     for image_ordinal in range(2):
         singular_values = torch.linalg.svdvals(observed[0, image_ordinal].double())
         assert singular_values[16] <= singular_values[0] * 1e-6
+
+
+def test_predictor_relation_controls_measure_equivariance_and_liveness() -> None:
+    predictor = _predictor()
+    tokens = torch.linspace(-1.0, 1.0, 4 * 2 * 5 * 32).reshape(4, 2, 5, 32)
+    evidence = evaluate_predictor_relation_controls(predictor, tokens)
+
+    assert evidence.exchange_max_abs_error_ppm <= 1
+    assert evidence.relation_response_energy_ppm > 0
+    assert evidence.validated() == evidence
+
+    with torch.no_grad():
+        predictor.context_projection.weight[:, -1].zero_()
+    with pytest.raises(ValueError, match="liveness"):
+        evaluate_predictor_relation_controls(predictor, tokens)
+    with pytest.raises(ValueError, match="authority"):
+        evaluate_predictor_relation_controls(_predictor(), torch.tensor(1.0))
 
 
 def test_predictor_trains_itself_but_never_backpropagates_into_stopped_tokens() -> None:
