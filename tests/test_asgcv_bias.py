@@ -7,6 +7,7 @@ import pytest
 
 from sfora.asgcv import AsgcvSrhtAuthority, srht_gradient_sketch
 from sfora.asgcv_bias import (
+    projected_mean_agreement_p_value_ppm,
     projected_mean_error_potentials,
     randomization_mean_p_value_ppm,
     randomization_selection_indices,
@@ -50,7 +51,7 @@ def test_randomization_selection_stream_rejects_unbounded_or_concrete_type_input
         (True, 3, 64),
         ("12" * 32, True, 64),
         ("12" * 32, 0, 64),
-        ("12" * 32, 200_001, 64),
+        ("12" * 32, 10_001, 64),
         ("12" * 32, 3, True),
         ("12" * 32, 3, 0),
         ("12" * 32, 3, 513),
@@ -120,3 +121,38 @@ def test_projected_mean_error_potentials_center_every_stratum_exactly() -> None:
         projected_mean_error_potentials(exact.astype(np.float32), predicted, srht)
     with pytest.raises(ValueError):
         projected_mean_error_potentials(exact, predicted[..., :3], srht)
+
+
+def test_projected_mean_agreement_derives_indices_and_potentials_from_authority() -> None:
+    exact = np.arange(64 * 8 * 2 * 3 * 4, dtype=np.float64).reshape(64, 8, 2, 3, 4) / 17.0
+    predicted = exact + np.linspace(-0.4, 0.3, 8, dtype=np.float64)[None, :, None, None, None]
+    srht = AsgcvSrhtAuthority(
+        input_dimensions=4,
+        padded_dimensions=4,
+        output_dimensions=2,
+        seed_sha256="78" * 32,
+    ).validated()
+    assert projected_mean_agreement_p_value_ppm(
+        exact,
+        exact.copy(),
+        srht,
+        selection_seed_sha256="ab" * 32,
+        null_seed_sha256="cd" * 32,
+    ) == 1_000_000
+    observed = projected_mean_agreement_p_value_ppm(
+        exact,
+        predicted,
+        srht,
+        selection_seed_sha256="ab" * 32,
+        null_seed_sha256="cd" * 32,
+    )
+    assert 0 <= observed <= 1_000_000
+
+    with pytest.raises(ValueError):
+        projected_mean_agreement_p_value_ppm(
+            exact,
+            predicted,
+            srht,
+            selection_seed_sha256=True,
+            null_seed_sha256="cd" * 32,
+        )

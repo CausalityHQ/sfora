@@ -8,10 +8,10 @@ import math
 import numpy as np
 from numpy.typing import NDArray
 
-from sfora.asgcv import AsgcvSrhtAuthority, srht_gradient_sketch
+from sfora.asgcv import AsgcvSrhtAuthority, select_stratum_index, srht_gradient_sketch
 
 ASGCV_MEAN_NULL_DOMAIN = b"sfora-asgcv-e0-mean-null-v1\0"
-ASGCV_MEAN_RANDOMIZATION_DRAWS = 200_000
+ASGCV_MEAN_RANDOMIZATION_DRAWS = 10_000
 ASGCV_MAX_BIAS_STRATA = 512
 ASGCV_RANDOMIZATION_BLOCK_DRAWS = 256
 
@@ -145,4 +145,39 @@ def projected_mean_error_potentials(
     return np.asarray(
         reduced - np.mean(reduced, axis=1, keepdims=True, dtype=np.float64),
         dtype=np.float64,
+    )
+
+
+def projected_mean_agreement_p_value_ppm(
+    exact: object,
+    predicted: object,
+    srht_authority: object,
+    *,
+    selection_seed_sha256: object,
+    null_seed_sha256: object,
+) -> int:
+    """Derive the projected E0 agreement diagnostic from authenticated authority."""
+
+    potentials = projected_mean_error_potentials(exact, predicted, srht_authority)
+    observed_indices = np.fromiter(
+        (
+            select_stratum_index(
+                selection_seed_sha256,
+                optimizer_step=0,
+                stratum_ordinal=ordinal,
+            )
+            for ordinal in range(potentials.shape[0])
+        ),
+        dtype=np.uint8,
+        count=potentials.shape[0],
+    )
+    null_indices = randomization_selection_indices(
+        null_seed_sha256,
+        draw_count=ASGCV_MEAN_RANDOMIZATION_DRAWS,
+        stratum_count=potentials.shape[0],
+    )
+    return randomization_mean_p_value_ppm(
+        potentials,
+        observed_indices,
+        null_indices,
     )
