@@ -98,6 +98,30 @@ def test_p32_local_authority_authenticates_train_only_arrays_and_rebuilds_schedu
                 "label": ordinal // 4,
             }
         )
+
+    def sealed_rows(role: str, start_label: int) -> list[dict[str, object]]:
+        rows = []
+        for index in range(16):
+            image_path = tmp_path / f"{role}-{index:03d}.npy"
+            with image_path.open("wb") as stream:
+                np.save(
+                    stream,
+                    np.full((2, 3, 3), index, dtype=np.uint8),
+                    allow_pickle=False,
+                )
+            payload = image_path.read_bytes()
+            rows.append(
+                {
+                    "array_path": image_path.name,
+                    "array_sha256": hashlib.sha256(payload).hexdigest(),
+                    "example_id": f"{role}-{index:03d}",
+                    "label": start_label + index // 4,
+                }
+            )
+        return rows
+
+    validation_rows = sealed_rows("valid", 16)
+    optimization_rows = sealed_rows("optim", 20)
     train_manifest_path = tmp_path / "train.json"
     manifest_raw = _write_json(
         train_manifest_path,
@@ -105,14 +129,8 @@ def test_p32_local_authority_authenticates_train_only_arrays_and_rebuilds_schedu
             "schema": "sfora-cars-train-p32-manifest-v1",
             "official_test_access": False,
             "predictor_train": predictor_rows,
-            "e0_validation": [
-                {"example_id": f"valid-{index:03d}", "label": 16 + index // 4}
-                for index in range(16)
-            ],
-            "e1_optimization": [
-                {"example_id": f"optim-{index:03d}", "label": 20 + index // 4}
-                for index in range(16)
-            ],
+            "e0_validation": validation_rows,
+            "e1_optimization": optimization_rows,
         },
     )
     partition = AsgcvPartitionAuthority(
@@ -227,7 +245,7 @@ def test_p32_main_wires_one_local_model_and_one_campaign(
         rollout_authority=rollout,
         pilot_schedule=schedule,
         prompt_utf8="compare",
-        attribute_token_span=(0, 1),
+        attribute_token_span=(2, 3),
         patch_tokens_per_image=1,
         predictor_initialization_seed_sha256="7" * 64,
         authority_sha256="8" * 64,
@@ -246,6 +264,12 @@ def test_p32_main_wires_one_local_model_and_one_campaign(
         pooler=type("Pooler", (), {"parameters": lambda self: iter(())})(),
     )
     monkeypatch.setattr(_MODULE, "load_p32_local_authority", lambda *_args, **_kwargs: local)
+    monkeypatch.setattr(
+        _MODULE,
+        "_authenticated_source_commit",
+        lambda _root: "1" * 40,
+        raising=False,
+    )
     monkeypatch.setattr(_MODULE, "load_snapshot_authority", lambda **_kwargs: object())
     monkeypatch.setattr(_MODULE, "load_fixture_authority", lambda _path: fixture)
     monkeypatch.setattr(_MODULE, "load_qwen_adapter", lambda *_args, **_kwargs: adapter)
@@ -289,6 +313,15 @@ def test_p32_main_wires_one_local_model_and_one_campaign(
     )
     assert _MODULE.main(argv) == 3
     assert capsysbinary.readouterr().out == b'{"schema":"sfora-asgcv-p32-failure-v1"}\n'
+
+    monkeypatch.setattr(_MODULE, "_authenticated_source_commit", lambda _root: "2" * 40)
+    monkeypatch.setattr(
+        _MODULE,
+        "load_p32_local_authority",
+        lambda *_args, **_kwargs: pytest.fail("inputs must remain unread"),
+    )
+    with pytest.raises(ValueError, match="executing source commit"):
+        _MODULE.main(argv)
 
 
 @dataclass(frozen=True)

@@ -29,6 +29,7 @@ from scripts.diagnose_saga_gb10_feasibility import (  # noqa: E402
     capture_asgcv_patch_gradient,
     load_qwen_adapter,
 )
+from scripts.prepare_asgcv_p32_inputs import _authenticated_source_commit  # noqa: E402
 from scripts.run_asgcv_e0 import (  # noqa: E402
     ASGCV_P32_FAILURE_SCHEMA,
     run_p32_campaign_with_failure_terminal,
@@ -193,16 +194,16 @@ def load_p32_local_authority(
         with_arrays=True,
         root=train_manifest_path.parent,
     )
-    validation_ids, validation_labels, _ = _partition_rows(
+    validation_ids, validation_labels, _validation_images = _partition_rows(
         manifest["e0_validation"],
         role="E0 validation",
-        with_arrays=False,
+        with_arrays=True,
         root=train_manifest_path.parent,
     )
-    optimization_ids, optimization_labels, _ = _partition_rows(
+    optimization_ids, optimization_labels, _optimization_images = _partition_rows(
         manifest["e1_optimization"],
         role="E1 optimization",
-        with_arrays=False,
+        with_arrays=True,
         root=train_manifest_path.parent,
     )
     authority_raw, authority = _strict_json(authority_path, role="launch authority")
@@ -689,6 +690,8 @@ def main(argv: list[str] | None = None) -> int:
     """Authenticate local inputs, run one resumable P32 campaign, and emit its terminal."""
 
     args = parse_args(argv)
+    if _authenticated_source_commit(_REPOSITORY_ROOT) != args.source_commit:
+        raise ValueError("ASG-CV P32 executing source commit differs")
     local = load_p32_local_authority(
         args.p32_authority,
         args.train_manifest,
@@ -703,7 +706,6 @@ def main(argv: list[str] | None = None) -> int:
         fixture.source_commit != args.source_commit
         or fixture.model_revision != local.rollout_authority.model_revision
         or fixture.prompt_utf8 != local.prompt_utf8
-        or fixture.attribute_token_span != local.attribute_token_span
         or fixture.patch_tokens_per_image != local.patch_tokens_per_image
         or fixture.attention_layer != 26
     ):

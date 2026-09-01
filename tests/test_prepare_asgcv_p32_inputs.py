@@ -2,14 +2,17 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import subprocess
 import sys
 from pathlib import Path
 
 import numpy as np
 import pytest
 import torch
+from transformers.feature_extraction_utils import BatchFeature
 
 from sfora.data import ImageExample
+from sfora.saga_feasibility import load_fixture_authority
 
 _SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "prepare_asgcv_p32_inputs.py"
 _SPEC = importlib.util.spec_from_file_location("prepare_asgcv_p32_inputs_subject", _SCRIPT)
@@ -46,7 +49,7 @@ class _Tokenizer:
 class _Processor:
     tokenizer = _Tokenizer()
 
-    def apply_chat_template(self, messages: object, **kwargs: object) -> dict[str, torch.Tensor]:
+    def apply_chat_template(self, messages: object, **kwargs: object) -> BatchFeature:
         assert kwargs == {
             "tokenize": True,
             "add_generation_prompt": True,
@@ -56,10 +59,12 @@ class _Processor:
         assert isinstance(messages, list)
         content = messages[0]["content"]
         assert content[2]["text"] == _MODULE.P32_PROMPT
-        return {
-            "input_ids": torch.tensor([[90, 91, 31, 32, 33, 34, 92, 93]]),
-            "mm_token_type_ids": torch.tensor([[1, 1, 0, 0, 0, 0, 1, 1]]),
-        }
+        return BatchFeature(
+            {
+                "input_ids": torch.tensor([[90, 91, 31, 32, 33, 34, 92, 93]]),
+                "mm_token_type_ids": torch.tensor([[1, 1, 0, 0, 0, 0, 1, 1]]),
+            }
+        )
 
 
 def test_prompt_resolver_derives_token_and_fixed_image_boundaries() -> None:
@@ -74,6 +79,20 @@ def test_prompt_resolver_derives_token_and_fixed_image_boundaries() -> None:
         attribute_token_span=(2, 6),
         patch_tokens_per_image=2,
     )
+
+
+def test_prompt_resolver_rejects_batch_feature_missing_required_key() -> None:
+    class MissingTokenTypesProcessor(_Processor):
+        def apply_chat_template(self, messages: object, **kwargs: object) -> BatchFeature:
+            result = super().apply_chat_template(messages, **kwargs)
+            return BatchFeature({"input_ids": result["input_ids"]})
+
+    resolver = _MODULE.TransformersPromptResolver(
+        processor_loader=lambda _root: MissingTokenTypesProcessor()
+    )
+
+    with pytest.raises(ValueError, match="processor output authority"):
+        resolver.resolve(Path("/model"), _MODULE.P32_PROMPT)
 
 
 def _cars_train_examples() -> list[ImageExample]:
@@ -120,7 +139,11 @@ def test_preparer_seals_train_only_arrays_partition_schedule_and_prompt(tmp_path
         max(row["label"] for role in manifest.values() if isinstance(role, list) for row in role)
         < 98
     )
-    assert all((output / row["array_path"]).is_file() for row in manifest["predictor_train"])
+    assert all(
+        (output / row["array_path"]).is_file()
+        for role in ("predictor_train", "e0_validation", "e1_optimization")
+        for row in manifest[role]
+    )
     first = np.load(output / manifest["predictor_train"][0]["array_path"])
     assert first.shape == (224, 224, 3)
     assert first.dtype == np.uint8
@@ -133,6 +156,8 @@ def test_preparer_seals_train_only_arrays_partition_schedule_and_prompt(tmp_path
     assert authority["completion_protocol"]["different_prefix_ids"] == [22]
     assert len(authority["pilot_schedule"]["pairs"]) == 32
     assert result.fixture.is_file()
+    fixture = load_fixture_authority(result.fixture)
+    assert fixture.attribute_token_span == (0, 1)
     assert result.fixture.read_bytes().endswith(b"\n")
     assert all(
         path.read_bytes().endswith(b"\n")
@@ -163,6 +188,20 @@ def test_preparer_rejects_official_test_rows_and_existing_outputs(tmp_path: Path
     with np.testing.assert_raises(ValueError):
         _MODULE.prepare_p32_inputs(output_root=existing, examples=examples, **common)
 
+    interrupted = tmp_path / "interrupted"
+    original_write = _MODULE._write_array
+    _MODULE._write_array = lambda *_args: (_ for _ in ()).throw(KeyboardInterrupt())
+    try:
+        with pytest.raises(KeyboardInterrupt):
+            _MODULE.prepare_p32_inputs(
+                output_root=interrupted,
+                examples=examples,
+                **common,
+            )
+    finally:
+        _MODULE._write_array = original_write
+    assert not interrupted.with_name("interrupted.partial").exists()
+
 
 def test_cli_authenticates_snapshot_and_loads_cars_train_only(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -191,6 +230,12 @@ def test_cli_authenticates_snapshot_and_loads_cars_train_only(
         _MODULE,
         "TransformersPromptResolver",
         lambda: _PromptResolver(),
+    )
+    monkeypatch.setattr(
+        _MODULE,
+        "_current_clean_source_commit",
+        lambda: "1" * 40,
+        raising=False,
     )
 
     assert (
@@ -256,3 +301,101 @@ def test_cli_requires_explicit_execution_and_rejects_unknown_flags() -> None:
         _MODULE.parse_args([*common, "--execute-preparation", "--dataset-split", "test"])
     with pytest.raises(SystemExit):
         _MODULE.parse_args([*common, "--output-root", "/different", "--execute-preparation"])
+
+
+def test_cli_rejects_source_commit_that_is_not_the_clean_checkout(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(_MODULE, "_current_clean_source_commit", lambda: "a" * 40, raising=False)
+    monkeypatch.setattr(
+        _MODULE,
+        "load_snapshot_authority",
+        lambda **_kwargs: pytest.fail("snapshot must remain unread"),
+        raising=False,
+    )
+    with pytest.raises(ValueError, match="source commit"):
+        _MODULE.main(
+            [
+                "--output-root",
+                str(tmp_path / "out"),
+                "--model-root",
+                str(tmp_path / "model"),
+                "--snapshot-manifest",
+                str(tmp_path / "snapshot"),
+                "--model-revision",
+                "2" * 40,
+                "--source-commit",
+                "1" * 40,
+                "--partition-seed-sha256",
+                "3" * 64,
+                "--rollout-seed-sha256",
+                "4" * 64,
+                "--predictor-initialization-seed-sha256",
+                "5" * 64,
+                "--execute-preparation",
+            ]
+        )
+
+
+def test_frozen_source_revision_authenticates_every_manifest_entry(tmp_path: Path) -> None:
+    (tmp_path / "SOURCE_REVISION").write_text("a" * 40 + "\n", encoding="ascii")
+    (tmp_path / "subject.py").write_bytes(b"registered source\n")
+    entries = []
+    for relative in ("SOURCE_REVISION", "subject.py"):
+        payload = (tmp_path / relative).read_bytes()
+        entries.append(f"{_MODULE.hashlib.sha256(payload).hexdigest()}  {relative}\n")
+    (tmp_path / "SOURCE_MANIFEST.sha256").write_text("".join(entries), encoding="ascii")
+
+    assert _MODULE._authenticated_source_commit(tmp_path) == "a" * 40
+
+    (tmp_path / "subject.py").write_bytes(b"mutated source\n")
+    with pytest.raises(ValueError, match="source manifest"):
+        _MODULE._authenticated_source_commit(tmp_path)
+
+    (tmp_path / "subject.py").write_bytes(b"registered source\n")
+    (tmp_path / "injected.py").write_bytes(b"raise RuntimeError\n")
+    with pytest.raises(ValueError, match="unregistered source"):
+        _MODULE._authenticated_source_commit(tmp_path)
+
+    (tmp_path / "injected.py").unlink()
+    bytecode = tmp_path / "__pycache__" / "subject.cpython-312.pyc"
+    bytecode.parent.mkdir()
+    bytecode.write_bytes(b"executable bytecode")
+    with pytest.raises(ValueError, match="unregistered source"):
+        _MODULE._authenticated_source_commit(tmp_path)
+
+
+def test_git_source_revision_rejects_untracked_executable_source(tmp_path: Path) -> None:
+    repository = tmp_path / "repository"
+    repository.mkdir()
+    subprocess.run(("git", "init", "-q"), cwd=repository, check=True)
+    source = repository / "src" / "sfora"
+    source.mkdir(parents=True)
+    (source / "registered.py").write_bytes(b"VALUE = 1\n")
+    subprocess.run(("git", "add", "src/sfora/registered.py"), cwd=repository, check=True)
+    subprocess.run(
+        (
+            "git",
+            "-c",
+            "user.name=Fixture",
+            "-c",
+            "user.email=fixture@example.invalid",
+            "commit",
+            "-qm",
+            "fixture",
+        ),
+        cwd=repository,
+        check=True,
+    )
+    commit = subprocess.run(
+        ("git", "rev-parse", "HEAD"),
+        cwd=repository,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    assert _MODULE._authenticated_source_commit(repository) == commit
+
+    (source / "injected.py").write_bytes(b"raise RuntimeError\n")
+    with pytest.raises(ValueError, match="unregistered source"):
+        _MODULE._authenticated_source_commit(repository)

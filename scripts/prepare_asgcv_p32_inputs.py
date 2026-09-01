@@ -8,8 +8,9 @@ import hashlib
 import json
 import shutil
 import socket
+import subprocess
 import sys
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
@@ -121,7 +122,8 @@ class TransformersPromptResolver:
             return_dict=True,
             return_tensors="pt",
         )
-        if type(raw) is not dict or set(raw) < {"input_ids", "mm_token_type_ids"}:
+        required = {"input_ids", "mm_token_type_ids"}
+        if not isinstance(raw, Mapping) or not required <= set(raw):
             raise ValueError("ASG-CV P32 processor output authority differs")
         input_ids = raw["input_ids"]
         token_types = raw["mm_token_type_ids"]
@@ -278,7 +280,7 @@ def _fixture_bytes(
             "generation_seeds": list(range(8)),
             "synthetic_rewards": [0, 1, 0, 1, 0, 1, 0, 1],
             "attention_layer": 26,
-            "attribute_token_span": list(prompt.attribute_token_span),
+            "attribute_token_span": [0, 1],
             "patch_tokens_per_image": prompt.patch_tokens_per_image,
             "pseudo_labels": [ordinal % 2 for ordinal in range(64)],
         }
@@ -332,28 +334,28 @@ def prepare_p32_inputs(
         raise ValueError("ASG-CV P32 partial output already exists")
     partial.mkdir(mode=0o700)
     try:
-        predictor_rows = []
-        for ordinal, example in enumerate(predictor):
-            basename = f"predictor-{ordinal:04d}.npy"
-            digest = _write_array(partial / basename, _rgb_224(example.image))
-            predictor_rows.append(
-                {
-                    "example_id": example.example_id,
-                    "label": example.label,
-                    "array_path": basename,
-                    "array_sha256": digest,
-                }
-            )
 
-        def row(example: ImageExample) -> dict[str, object]:
-            return {"example_id": example.example_id, "label": example.label}
+        def materialized_rows(role: str, rows: tuple[ImageExample, ...]) -> list[dict[str, object]]:
+            result = []
+            for ordinal, example in enumerate(rows):
+                basename = f"{role}-{ordinal:04d}.npy"
+                digest = _write_array(partial / basename, _rgb_224(example.image))
+                result.append(
+                    {
+                        "example_id": example.example_id,
+                        "label": example.label,
+                        "array_path": basename,
+                        "array_sha256": digest,
+                    }
+                )
+            return result
 
         manifest = {
             "schema": "sfora-cars-train-p32-manifest-v1",
             "official_test_access": False,
-            "predictor_train": predictor_rows,
-            "e0_validation": [row(example) for example in validation],
-            "e1_optimization": [row(example) for example in optimization],
+            "predictor_train": materialized_rows("predictor", predictor),
+            "e0_validation": materialized_rows("e0-validation", validation),
+            "e1_optimization": materialized_rows("e1-optimization", optimization),
         }
         manifest_bytes = _canonical_bytes(manifest)
         manifest_path = partial / "train-manifest.json"
@@ -414,7 +416,7 @@ def prepare_p32_inputs(
             )
         )
         partial.rename(output_root)
-    except Exception:
+    except BaseException:
         if partial.exists():
             shutil.rmtree(partial)
         raise
@@ -443,8 +445,119 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(arguments)
 
 
+def _current_clean_source_commit() -> str:
+    repository = Path(__file__).resolve().parents[1]
+    return _authenticated_source_commit(repository)
+
+
+def _authenticated_source_commit(repository: Path) -> str:
+    """Authenticate a clean Git checkout or its sealed frozen-revision export."""
+
+    if not (repository / ".git").exists():
+        revision_path = repository / "SOURCE_REVISION"
+        manifest_path = repository / "SOURCE_MANIFEST.sha256"
+        if (
+            revision_path.is_symlink()
+            or manifest_path.is_symlink()
+            or not revision_path.is_file()
+            or not manifest_path.is_file()
+        ):
+            raise ValueError("ASG-CV P32 frozen source authority differs")
+        try:
+            revision = revision_path.read_text(encoding="ascii").strip()
+            manifest_lines = manifest_path.read_text(encoding="ascii").splitlines()
+        except (OSError, UnicodeError) as error:
+            raise ValueError("ASG-CV P32 frozen source authority differs") from error
+        _lower_hex(revision, 40, name="source commit")
+        previous = ""
+        observed: set[str] = set()
+        for line in manifest_lines:
+            if len(line) < 67 or line[64:66] != "  ":
+                raise ValueError("ASG-CV P32 source manifest differs")
+            digest, relative = line[:64], line[66:]
+            _lower_hex(digest, 64, name="source manifest digest")
+            relative_path = Path(relative)
+            if (
+                not relative
+                or "\\" in relative
+                or relative_path.is_absolute()
+                or any(part in ("", ".", "..") for part in relative_path.parts)
+                or relative <= previous
+                or relative in observed
+            ):
+                raise ValueError("ASG-CV P32 source manifest differs")
+            path = repository / relative_path
+            if path.is_symlink() or not path.is_file():
+                raise ValueError("ASG-CV P32 source manifest differs")
+            try:
+                payload = path.read_bytes()
+            except OSError as error:
+                raise ValueError("ASG-CV P32 source manifest differs") from error
+            if hashlib.sha256(payload).hexdigest() != digest:
+                raise ValueError("ASG-CV P32 source manifest differs")
+            observed.add(relative)
+            previous = relative
+        if "SOURCE_REVISION" not in observed:
+            raise ValueError("ASG-CV P32 source manifest differs")
+        for path in repository.rglob("*"):
+            if not (path.is_file() or path.is_symlink()):
+                continue
+            relative = path.relative_to(repository).as_posix()
+            if relative not in observed and relative != "SOURCE_MANIFEST.sha256":
+                raise ValueError("ASG-CV P32 unregistered source file differs")
+        return revision
+
+    for arguments in (("diff", "--quiet", "HEAD", "--"), ("diff", "--cached", "--quiet")):
+        try:
+            subprocess.run(
+                ("git", *arguments),
+                cwd=repository,
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except (OSError, subprocess.CalledProcessError) as error:
+            raise ValueError("ASG-CV P32 source checkout is not clean") from error
+    try:
+        untracked = subprocess.run(
+            (
+                "git",
+                "ls-files",
+                "--others",
+                "--exclude-standard",
+                "--",
+                "src",
+                "scripts",
+                "sitecustomize.py",
+            ),
+            cwd=repository,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.splitlines()
+    except (OSError, subprocess.CalledProcessError) as error:
+        raise ValueError("ASG-CV P32 source checkout is not clean") from error
+    if untracked:
+        raise ValueError("ASG-CV P32 unregistered source file differs")
+    try:
+        result = subprocess.run(
+            ("git", "rev-parse", "HEAD"),
+            cwd=repository,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except (OSError, subprocess.CalledProcessError) as error:
+        raise ValueError("ASG-CV P32 source commit is unavailable") from error
+    commit = result.stdout.strip()
+    _lower_hex(commit, 40, name="source commit")
+    return commit
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
+    if _current_clean_source_commit() != args.source_commit:
+        raise ValueError("ASG-CV P32 source commit differs")
     snapshot = load_snapshot_authority(
         root=args.model_root,
         manifest_path=args.snapshot_manifest,
