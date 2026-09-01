@@ -4,11 +4,20 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Callable
 from pathlib import Path
 
 import numpy as np
 
-from sfora.asgcv import validate_gradient_sample_inputs
+from sfora.asgcv import validate_gradient_sample_bundle, validate_gradient_sample_inputs
+from sfora.asgcv_protocol import (
+    AsgcvCompletionGroup,
+    AsgcvCompletionProtocol,
+    AsgcvEligibleSchedule,
+    AsgcvPairSchedule,
+    AsgcvRolloutAuthority,
+    validate_asgcv_protocol_bundle,
+)
 
 ASGCV_CAPTURE_IMAGES = 2
 ASGCV_CAPTURE_PATCHES = 49
@@ -168,3 +177,78 @@ def validated_capture_prefix(directory: Path, *, expected_count: int) -> int:
                 raise ValueError("ASG-CV capture ordinal gap differs")
         return ordinal
     return expected_count
+
+
+def capture_schedule(
+    directory: Path,
+    *,
+    protocol: AsgcvCompletionProtocol,
+    rollout_authority: AsgcvRolloutAuthority,
+    candidate_schedule: AsgcvPairSchedule,
+    completion_groups: tuple[AsgcvCompletionGroup, ...],
+    eligible_schedule: AsgcvEligibleSchedule,
+    example_ids: tuple[str, ...],
+    labels: tuple[int, ...],
+    capture_one: Callable[[int, int], tuple[bytes, np.ndarray, np.ndarray]],
+) -> int:
+    """Capture the first absent eligible row after reopening all sealed context."""
+
+    if not callable(capture_one):
+        raise ValueError("ASG-CV capture callback differs")
+    validate_asgcv_protocol_bundle(
+        protocol,
+        rollout_authority,
+        candidate_schedule,
+        completion_groups,
+        eligible_schedule,
+        example_ids=example_ids,
+        labels=labels,
+    )
+    expected = eligible_schedule.target_pair_count
+    prefix = validated_capture_prefix(directory, expected_count=expected)
+    for eligible_ordinal in range(prefix):
+        receipt_path, patch_path, gradient_path = _capture_paths(directory, eligible_ordinal)
+        receipt, patch, gradient = _validate_triple(
+            receipt_path,
+            patch_path,
+            gradient_path,
+            ordinal=eligible_ordinal,
+        )
+        validate_gradient_sample_bundle(
+            receipt,
+            patch_tokens=patch,
+            exact_gradient=gradient,
+            protocol=protocol,
+            rollout_authority=rollout_authority,
+            eligible_schedule=eligible_schedule,
+            candidate_schedule=candidate_schedule,
+            completion_groups=completion_groups,
+            example_ids=example_ids,
+            labels=labels,
+        )
+    for eligible_ordinal in range(prefix, expected):
+        candidate_ordinal = eligible_schedule.candidate_ordinals[eligible_ordinal]
+        captured = capture_one(eligible_ordinal, candidate_ordinal)
+        if type(captured) is not tuple or len(captured) != 3 or type(captured[0]) is not bytes:
+            raise ValueError("ASG-CV capture callback result differs")
+        receipt, patch, gradient = captured
+        validate_gradient_sample_bundle(
+            receipt,
+            patch_tokens=patch,
+            exact_gradient=gradient,
+            protocol=protocol,
+            rollout_authority=rollout_authority,
+            eligible_schedule=eligible_schedule,
+            candidate_schedule=candidate_schedule,
+            completion_groups=completion_groups,
+            example_ids=example_ids,
+            labels=labels,
+        )
+        write_capture_triple(
+            directory,
+            ordinal=eligible_ordinal,
+            receipt=receipt,
+            patch_tokens=patch,
+            exact_gradient=gradient,
+        )
+    return validated_capture_prefix(directory, expected_count=expected)

@@ -246,7 +246,6 @@ def _relation_receipts(exact: np.ndarray) -> tuple[bytes, ...]:
             completion_protocol_sha256="9" * 64,
             eligible_schedule_sha256="a" * 64,
             pooler_state_sha256="b" * 64,
-            predictor_state_sha256="4" * 64,
             eligible_pair_ordinal=ordinal,
             candidate_pair_ordinal=ordinal,
             pair_ordinals=(ordinal * 2, ordinal * 2 + 1),

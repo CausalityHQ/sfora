@@ -19,7 +19,7 @@ from sfora.asgcv import (
     validate_gradient_sample_bytes,
 )
 
-ASGCV_E0_CUSTODY_SCHEMA = "sfora-asgcv-e0-custody-v2"
+ASGCV_E0_CUSTODY_SCHEMA = "sfora-asgcv-e0-custody-v3"
 
 
 def canonical_e0_custody_bytes(
@@ -73,7 +73,6 @@ def canonical_e0_custody_bytes(
         if (
             value["eligible_pair_ordinal"] != ordinal
             or value["source_commit"] != source_commit
-            or value["predictor_state_sha256"] != predictor_state
             or type(sample_arrays) is not dict
             or sample_arrays["exact_gradient"]
             != _gradient_sample_array_authority(flat[ordinal], role="exact-gradient")
@@ -87,7 +86,6 @@ def canonical_e0_custody_bytes(
         "model_revision",
         "fixture_sha256",
         "pooler_state_sha256",
-        "predictor_state_sha256",
         "completion_protocol_sha256",
         "eligible_schedule_sha256",
     )
@@ -118,7 +116,7 @@ def canonical_e0_custody_bytes(
         "model_revision": first["model_revision"],
         "fixture_sha256": first["fixture_sha256"],
         "pooler_state_sha256": first["pooler_state_sha256"],
-        "predictor_state_sha256": first["predictor_state_sha256"],
+        "predictor_state_sha256": predictor_state,
         "completion_protocol_sha256": first["completion_protocol_sha256"],
         "eligible_schedule_sha256": first["eligible_schedule_sha256"],
         "sample_count": len(values),

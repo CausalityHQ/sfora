@@ -101,21 +101,23 @@ detached output. Every named fp32 state tensor is framed by name and shape and
 sealed with SHA-256 before E0 evaluation. Initialization uses a domain-separated
 SHA-256 seed through an isolated CPU generator scope, producing byte-identical
 state without consuming or reseeding the retrieval trainer's CPU or CUDA RNG
-streams. Each captured-gradient receipt binds both that predictor-state digest
-and the independently sealed nondegenerate attention-pooler state, preventing
-E1 replay targets from being evaluated against a different learned control
-variate or KL query.
+streams. Captured-gradient receipts bind the independently sealed nondegenerate
+attention-pooler state but deliberately contain no predictor-state identity:
+capture precedes fitting and has no predictor capability. The later E0 result
+binds the sealed predictor-state digest and predicted field, preventing E1
+replay targets from being evaluated against a different learned control variate
+or KL query without introducing a circular pre-fit authority.
 
 E0 additionally emits one custody artifact over every validation row. It
 requires strictly increasing unique candidate ordinals, unique completion
 groups, globally disjoint source-pair ordinals, and exactly four positive plus
 four negative relations in every eight-row stratum. All sample receipts share
-the same source commit, model revision, fixture, pooler, predictor, completion
-protocol, and eligible schedule. The custody artifact binds the exact fp32
-gradient digest and patch-token digest for every row, requires the E0 fp64 exact
-field to be a lossless fp32 widening, and binds the predicted field back to the
-E0 result so it can be recomputed from the sealed patch tokens and predictor
-state before acceptance.
+the same source commit, model revision, fixture, pooler, completion protocol,
+and eligible schedule. The custody artifact binds the exact fp32 gradient
+digest and patch-token digest for every row, requires the E0 fp64 exact field to
+be a lossless fp32 widening, and obtains the predictor identity only from the E0
+result while binding that result's predicted field back to the sealed patch
+tokens and predictor state.
 
 Predictor fitting uses one fixed, dimensionless objective with no learned or
 retrieval-tuned weights:

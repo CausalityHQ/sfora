@@ -35,7 +35,6 @@ def _gradient_receipt(
         completion_protocol_sha256="9" * 64,
         eligible_schedule_sha256="a" * 64,
         pooler_state_sha256=pooler_state_sha256,
-        predictor_state_sha256="4" * 64,
         eligible_pair_ordinal=ordinal,
         candidate_pair_ordinal=ordinal,
         pair_ordinals=(ordinal * 2, ordinal * 2 + 1),
@@ -83,7 +82,7 @@ def test_e0_custody_binds_every_receipt_and_exact_widened_fp32_row() -> None:
     )
     value = validate_e0_custody_bytes(raw)
 
-    assert value["schema"] == "sfora-asgcv-e0-custody-v2"
+    assert value["schema"] == "sfora-asgcv-e0-custody-v3"
     assert value["claim_eligible"] is False
     assert value["sample_count"] == 512
     sample_digests = value["sample_sha256"]
