@@ -171,11 +171,12 @@ setsid timeout --foreground --signal=TERM --kill-after=30s 3600s \
 child=$!
 stop_reason=
 while kill -0 "$child" 2>/dev/null; do
-  rss=$(ps -o rss= -g "$child" | awk '{s+=$1}END{printf "%.0f",s*1024}')
+  rss=$(ps -o rss= -g "$child" 2>/dev/null | awk '{s+=$1}END{printf "%.0f",s*1024}' || true)
+  test -n "$rss" || rss=0
   psi=$(awk '/^full /{sub("avg10=","",$2);print $2}' /proc/pressure/memory)
   swap=$(awk '/SwapTotal/{t=$2}/SwapFree/{f=$2}END{print t-f}' /proc/meminfo)
   ((rss <= 17179869184)) || stop_reason=rss-cap
-  awk -v x="$psi" 'BEGIN{exit !(x>=0.50)}' || stop_reason=psi
+  awk -v x="$psi" 'BEGIN{exit !(x>=0.50)}' && stop_reason=psi || true
   ((swap-swap0 <= 131072)) || stop_reason=swap-delta
   if [[ -n $stop_reason ]]; then
     kill -TERM -- "-$child" 2>/dev/null || true
@@ -201,9 +202,12 @@ import json
 import pathlib
 import sys
 
+from sfora.siglip_intermediate_readout import validate_intermediate_readout_result_bytes
+
 path = pathlib.Path(sys.argv[1])
 raw = path.read_bytes()
 value = json.loads(raw)
+validated = validate_intermediate_readout_result_bytes(raw)
 assert raw == (json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n").encode()
 assert value["schema"] == "sfora-siglip-intermediate-readout-v1"
 assert value["claim_eligible"] is False
@@ -213,10 +217,11 @@ assert value["expected_depth_count"] == 27
 assert value["output_dimensions"] == 512
 assert value["fold_count"] == 4
 assert isinstance(value["passed"], bool)
+assert validated.passed is value["passed"]
 print(hashlib.sha256(raw).hexdigest())
 PY
 
-rm -rf -- "$images" "$staging/authority"
+rm -rf -- "$images"
 unlink "$staging/control-manifest.json"
 mv "$staging" "$output"
 trap - EXIT INT TERM

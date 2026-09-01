@@ -40,9 +40,14 @@ def test_deployment_has_offline_single_process_pressure_and_cleanup_fences() -> 
     assert "pgrep -f '[d]iagnose_siglip_intermediate_readout.py'" in source
     assert "intermediate process is already active" in source
     assert 'kill -TERM -- "-$child"' in source
+    assert "'BEGIN{exit !(x>=0.50)}' && stop_reason=psi || true" in source
+    assert 'ps -o rss= -g "$child" 2>/dev/null' in source
+    assert "|| true)" in source
     assert 'test ! -e "$output"' in source
     assert 'test ! -e "$staging"' in source
-    assert 'rm -rf -- "$images" "$staging/authority"' in source
+    assert 'rm -rf -- "$images"' in source
+    assert 'rm -rf -- "$images" "$staging/authority"' not in source
+    assert "validate_intermediate_readout_result_bytes" in source
     assert 'rsync -a -- "$remote_host:$remote_output/result.json" "$local_output"' in source
     for forbidden in ("clean-validation", "burned-diagnostic", "official-test", "aws s3"):
         assert forbidden not in source

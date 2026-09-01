@@ -36,7 +36,7 @@ class _TinyVisionModel(nn.Module):
         self.calls += 1
         base = pixel_values.flatten(1).unsqueeze(1)
         hidden_states = (base, base + 1.0, base + 2.0, base + 3.0)
-        return SimpleNamespace(hidden_states=hidden_states)
+        return SimpleNamespace(hidden_states=hidden_states, pooler_output=base.mean(dim=1))
 
 
 class _TinyControl(nn.Module):
@@ -65,6 +65,7 @@ def test_streamed_readout_uses_one_forward_post_ln_mean_projection_and_no_token_
     )
 
     assert model.tower.vision_model.calls == len(batches)
+    assert planes.pooler_descriptors.shape == (2, 2)
     assert len(planes) == 3
     assert all(value.shape == (2, 2) for value in planes)
     assert all(value.device.type == "cpu" and value.dtype == torch.float32 for value in planes)
@@ -88,7 +89,7 @@ def test_streamed_readout_matches_real_three_block_siglip_hidden_state_contract(
         num_attention_heads=2,
         image_size=4,
         patch_size=2,
-        vision_use_head=False,
+        vision_use_head=True,
     )
     vision_model = SiglipVisionModel(config).eval()
     control = nn.Module()
@@ -119,6 +120,8 @@ def test_streamed_readout_matches_real_three_block_siglip_hidden_state_contract(
     )
 
     assert len(planes) == 3
+    expected_pooler = F.normalize(control.projection(output.pooler_output.float()), dim=1)
+    assert torch.allclose(planes.pooler_descriptors, expected_pooler)
     assert all(
         torch.allclose(observed, reference)
         for observed, reference in zip(planes, expected, strict=True)
@@ -185,3 +188,10 @@ def test_cli_requires_local_optimization_authority_and_refuses_evaluation_capabi
     ):
         with pytest.raises(SystemExit):
             _MODULE.parse_args([*base, forbidden, "/forbidden"])
+
+
+def test_cuda_stream_uses_device_type_and_fp32_post_layernorm_contract() -> None:
+    source = _SCRIPT.read_text()
+    assert "hidden.device.type != device.type" in source
+    assert "post_layernorm(hidden.float()).float()" in source
+    assert 'device = torch.device("cuda")' in source

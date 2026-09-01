@@ -8,6 +8,7 @@ import pytest
 import torch
 from torch.nn import functional as F
 
+import sfora.siglip_intermediate_readout as intermediate_module
 from sfora.siglip_head_screen import build_feature_split_authority
 from sfora.siglip_intermediate_readout import (
     score_intermediate_readout_depths,
@@ -62,6 +63,8 @@ def test_depth_selection_uses_integer_folds_lowest_ties_and_registered_gates() -
     assert result.selected_depth == 2
     assert result.selected_hits == 32
     assert result.final_depth_hits == 28
+    assert result.context_hits == 32
+    assert result.context_recall_ppm == 1_000_000
     assert result.selected_minus_final_ppm == 125_000
     assert result.fold_wins == 4
     assert result.replay_equal is True
@@ -88,6 +91,8 @@ def test_depth_selection_uses_integer_folds_lowest_ties_and_registered_gates() -
         lambda value: value.update(selected_hits=value["selected_hits"] - 1),
         lambda value: value.update(fold_wins=3),
         lambda value: value.update(passed=False),
+        lambda value: value.update(context_hits=value["context_hits"] - 1),
+        lambda value: value.update(context_recall_ppm=0),
         lambda value: value["depths"].pop(),
         lambda value: value["depths"][0].update(replay_hits=0),
     ],
@@ -154,4 +159,43 @@ def test_descriptor_authority_rejects_topology_norm_nonfinite_and_evaluation_rol
             expected_depth_count=3,
             output_dimensions=8,
             fold_count=4,
+        )
+
+
+def test_producer_rejects_scalar_replay_disagreement(monkeypatch: pytest.MonkeyPatch) -> None:
+    source, labels, planes = _fixture()
+    original = intermediate_module._recall_hits
+
+    def drifted(descriptors, observed_labels):
+        hits, queries = original(descriptors, observed_labels)
+        return max(0, hits - 1), queries
+
+    monkeypatch.setattr(intermediate_module, "_recall_hits", drifted)
+    with pytest.raises(ValueError, match="intermediate scalar replay differs"):
+        score_intermediate_readout_depths(
+            source,
+            labels,
+            planes,
+            split_authority=_authority(source),
+            checkpoint_sha256="2" * 64,
+            feature_manifest_sha256="3" * 64,
+            expected_depth_count=3,
+            output_dimensions=8,
+            fold_count=4,
+        )
+
+
+def test_producer_refuses_nonregistered_fold_count() -> None:
+    source, labels, planes = _fixture()
+    with pytest.raises(ValueError, match="intermediate descriptor authority differs"):
+        score_intermediate_readout_depths(
+            source,
+            labels,
+            planes,
+            split_authority=_authority(source),
+            checkpoint_sha256="2" * 64,
+            feature_manifest_sha256="3" * 64,
+            expected_depth_count=3,
+            output_dimensions=8,
+            fold_count=3,
         )

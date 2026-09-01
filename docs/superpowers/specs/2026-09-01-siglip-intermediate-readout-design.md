@@ -41,19 +41,23 @@ For each image, request encoder hidden states once. For depths 1 through 27:
 
 Depth 27 under the same post-LN/mean/projection operator is the primary
 comparator. The existing attention-pooler descriptor is recorded as context but
-is not the operator-matched selection baseline. A secondary no-post-LN table is
-recorded to expose normalization artifacts and cannot select a depth.
+is not the operator-matched selection baseline. Its optimization descriptors
+provide the already-deployed, depth-independent geometry used to construct the
+four registered class folds; no candidate depth can influence its own fold
+allocation.
 
 Hidden states are consumed batch-by-batch. The implementation stores only the
-27 final 512-dimensional descriptors per optimization image, never the full
-token cache. Peak persistent descriptor storage is below 0.5 GiB.
+27 final 512-dimensional descriptors and one attention-pooler context descriptor
+per optimization image, never the full token cache. Peak persistent descriptor
+storage is below 0.5 GiB.
 
 ## Folds, selection, and gates
 
-Reuse the exact four-fold `build_sfq_fold_schedule` on optimization classes.
+Reuse the exact four-fold `build_sfq_fold_schedule` on optimization classes,
+constructed once from the sealed attention-pooler context descriptors.
 For every depth and fold, compute integer Recall@1 among that fold's held
-classes using the existing `score_frozen_substrate` authority with lowest-row
-ties. Aggregate from summed hits.
+classes using the existing SFQ float64 cosine authority with lowest-row ties.
+Aggregate from summed hits and independently replay them with a scalar loop.
 
 Select the unique depth by `(aggregate_hits descending, depth ascending)`.
 The diagnostic passes only when:

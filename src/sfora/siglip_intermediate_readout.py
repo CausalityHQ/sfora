@@ -46,6 +46,9 @@ class IntermediateReadoutResult:
     output_dimensions: int
     fold_count: int
     query_count: int
+    context_fold_hits: tuple[int, ...]
+    context_hits: int
+    context_recall_ppm: int
     selected_depth: int
     selected_hits: int
     final_depth_hits: int
@@ -94,6 +97,27 @@ def _recall_hits(descriptors: torch.Tensor, labels: torch.Tensor) -> tuple[int, 
     return int((labels[nearest] == labels).sum()), labels.numel()
 
 
+def _scalar_recall_hits(descriptors: torch.Tensor, labels: torch.Tensor) -> tuple[int, int]:
+    """Independently replay leave-one-out cosine scoring with lowest-row ties."""
+
+    normalized = F.normalize(descriptors.double(), dim=1)
+    hits = 0
+    for query in range(normalized.shape[0]):
+        best_row = -1
+        best_score = -float("inf")
+        for candidate in range(normalized.shape[0]):
+            if candidate == query:
+                continue
+            score = float(torch.dot(normalized[query], normalized[candidate]))
+            if score > best_score:
+                best_score = score
+                best_row = candidate
+        if best_row < 0:
+            raise ValueError("intermediate scalar replay has no candidate")
+        hits += int(labels[best_row] == labels[query])
+    return hits, labels.numel()
+
+
 def _depth_mapping(depth: IntermediateReadoutDepthEvidence) -> dict[str, object]:
     return {
         "depth": depth.depth,
@@ -123,6 +147,9 @@ def _result_mapping(result: IntermediateReadoutResult) -> dict[str, object]:
         "output_dimensions": result.output_dimensions,
         "fold_count": result.fold_count,
         "query_count": result.query_count,
+        "context_fold_hits": list(result.context_fold_hits),
+        "context_hits": result.context_hits,
+        "context_recall_ppm": result.context_recall_ppm,
         "selected_depth": result.selected_depth,
         "selected_hits": result.selected_hits,
         "final_depth_hits": result.final_depth_hits,
@@ -170,7 +197,7 @@ def score_intermediate_readout_depths(
         or type(output_dimensions) is not int
         or output_dimensions < 2
         or type(fold_count) is not int
-        or fold_count < 2
+        or fold_count != 4
     ):
         raise ValueError("intermediate descriptor authority differs")
     if type(split_authority) is not FeatureSplitAuthority:
@@ -202,6 +229,13 @@ def score_intermediate_readout_depths(
         split_authority,
         fold_count=fold_count,
     )
+    context_fold_hits = []
+    context_fold_queries = []
+    for fold in schedule.folds:
+        mask = torch.isin(labels, torch.tensor(fold.validation_labels, dtype=torch.int64))
+        hits, queries = _recall_hits(source_features[mask].contiguous(), labels[mask].contiguous())
+        context_fold_hits.append(hits)
+        context_fold_queries.append(queries)
     depth_evidence = []
     for ordinal, descriptors in enumerate(descriptor_planes, start=1):
         fold_hits = []
@@ -214,7 +248,7 @@ def score_intermediate_readout_depths(
         hits = sum(fold_hits)
         queries = sum(fold_queries)
         replay_hits = sum(
-            _recall_hits(
+            _scalar_recall_hits(
                 descriptors[
                     torch.isin(
                         labels,
@@ -251,6 +285,8 @@ def score_intermediate_readout_depths(
     )
     selected_minus_final_ppm = (selected.hits - final.hits) * 1_000_000 // selected.query_count
     replay_equal = all(depth.hits == depth.replay_hits for depth in depths)
+    if not replay_equal:
+        raise ValueError("intermediate scalar replay differs")
     result = IntermediateReadoutResult(
         schema="sfora-siglip-intermediate-readout-v1",
         claim_eligible=False,
@@ -266,6 +302,9 @@ def score_intermediate_readout_depths(
         output_dimensions=output_dimensions,
         fold_count=fold_count,
         query_count=selected.query_count,
+        context_fold_hits=tuple(context_fold_hits),
+        context_hits=sum(context_fold_hits),
+        context_recall_ppm=sum(context_fold_hits) * 1_000_000 // sum(context_fold_queries),
         selected_depth=selected.depth,
         selected_hits=selected.hits,
         final_depth_hits=final.hits,
@@ -355,6 +394,9 @@ def validate_intermediate_readout_result_bytes(raw: bytes) -> IntermediateReadou
             "output_dimensions",
             "fold_count",
             "query_count",
+            "context_fold_hits",
+            "context_hits",
+            "context_recall_ppm",
             "selected_depth",
             "selected_hits",
             "final_depth_hits",
@@ -369,21 +411,34 @@ def validate_intermediate_readout_result_bytes(raw: bytes) -> IntermediateReadou
     expected_depth_count = _integer(mapping["expected_depth_count"], minimum=1)
     output_dimensions = _integer(mapping["output_dimensions"], minimum=2)
     fold_count = _integer(mapping["fold_count"], minimum=2)
+    if fold_count != 4:
+        raise ValueError("intermediate fold authority differs")
     if type(mapping["depths"]) is not list:
         raise ValueError("intermediate depth bundle differs")
     depths = tuple(
         _parse_depth(depth, fold_count=fold_count)
         for depth in cast(list[object], mapping["depths"])
     )
+    if type(mapping["context_fold_hits"]) is not list:
+        raise ValueError("intermediate context evidence differs")
+    context_fold_hits = tuple(
+        _integer(value) for value in cast(list[object], mapping["context_fold_hits"])
+    )
     if (
         len(depths) != expected_depth_count
         or tuple(depth.depth for depth in depths) != tuple(range(1, expected_depth_count + 1))
-        or len({depth.descriptor_sha256 for depth in depths}) < 1
         or any(depth.query_count != depths[0].query_count for depth in depths)
     ):
         raise ValueError("intermediate depth bundle differs")
     selected = min(depths, key=lambda depth: (-depth.hits, depth.depth))
     final = depths[-1]
+    if len(context_fold_hits) != fold_count or any(
+        hits > queries
+        for hits, queries in zip(context_fold_hits, selected.fold_query_counts, strict=True)
+    ):
+        raise ValueError("intermediate context evidence differs")
+    context_hits = sum(context_fold_hits)
+    context_recall_ppm = context_hits * 1_000_000 // selected.query_count
     fold_wins = sum(
         left > right for left, right in zip(selected.fold_hits, final.fold_hits, strict=True)
     )
@@ -395,6 +450,8 @@ def validate_intermediate_readout_result_bytes(raw: bytes) -> IntermediateReadou
         or mapping["claim_eligible"] is not False
         or mapping["official_test_access"] is not False
         or _integer(mapping["query_count"], minimum=2) != selected.query_count
+        or _integer(mapping["context_hits"]) != context_hits
+        or _integer(mapping["context_recall_ppm"]) != context_recall_ppm
         or _integer(mapping["selected_depth"], minimum=1) != selected.depth
         or _integer(mapping["selected_hits"]) != selected.hits
         or _integer(mapping["final_depth_hits"]) != final.hits
@@ -420,6 +477,9 @@ def validate_intermediate_readout_result_bytes(raw: bytes) -> IntermediateReadou
         output_dimensions=output_dimensions,
         fold_count=fold_count,
         query_count=selected.query_count,
+        context_fold_hits=context_fold_hits,
+        context_hits=context_hits,
+        context_recall_ppm=context_recall_ppm,
         selected_depth=selected.depth,
         selected_hits=selected.hits,
         final_depth_hits=final.hits,

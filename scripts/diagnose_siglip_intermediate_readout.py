@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import sys
 from collections.abc import Iterable
+from dataclasses import dataclass
 from pathlib import Path
 
 import torch
@@ -20,6 +21,23 @@ _DEPTH_COUNT = 27
 _TOWER_WIDTH = 1152
 _OUTPUT_DIMENSIONS = 512
 _BATCH_SIZE = 8
+
+
+@dataclass(frozen=True, slots=True)
+class StreamedIntermediateReadout:
+    """Projected per-depth planes plus the deployed attention-pooler context."""
+
+    post_ln_planes: tuple[torch.Tensor, ...]
+    pooler_descriptors: torch.Tensor
+
+    def __len__(self) -> int:
+        return len(self.post_ln_planes)
+
+    def __iter__(self):
+        return iter(self.post_ln_planes)
+
+    def __getitem__(self, index: int) -> torch.Tensor:
+        return self.post_ln_planes[index]
 
 
 def _absolute_path(value: str) -> Path:
@@ -63,7 +81,7 @@ def stream_intermediate_descriptor_planes(
     tower_width: int,
     output_dimensions: int,
     device: torch.device,
-) -> tuple[torch.Tensor, ...]:
+) -> StreamedIntermediateReadout:
     """Consume hidden states batchwise and retain only projected descriptor planes."""
 
     tower = getattr(model, "tower", None)
@@ -88,6 +106,7 @@ def stream_intermediate_descriptor_planes(
     ):
         raise ValueError("intermediate model authority differs")
     batches = tuple([] for _ in range(expected_depth_count))
+    pooler_batches: list[torch.Tensor] = []
     batch_count = 0
     with torch.inference_mode():
         for pixels in pixel_batches:
@@ -110,11 +129,22 @@ def stream_intermediate_descriptor_planes(
                     return_dict=True,
                 )
             hidden_states = getattr(output, "hidden_states", None)
+            pooler_output = getattr(output, "pooler_output", None)
             if (
                 type(hidden_states) not in {tuple, list}
                 or len(hidden_states) != expected_depth_count + 1
+                or type(pooler_output) is not torch.Tensor
+                or pooler_output.shape != (pixels.shape[0], tower_width)
+                or pooler_output.device.type != device.type
+                or not bool(torch.isfinite(pooler_output).all())
             ):
                 raise ValueError("intermediate hidden-state authority differs")
+            pooler_descriptors = F.normalize(projection(pooler_output.float()).float(), dim=1)
+            if not bool(torch.isfinite(pooler_descriptors).all()) or bool(
+                (torch.linalg.vector_norm(pooler_descriptors, dim=1) <= 0.0).any()
+            ):
+                raise ValueError("intermediate pooler context differs")
+            pooler_batches.append(pooler_descriptors.cpu())
             for depth, hidden in enumerate(hidden_states[1:]):
                 if (
                     type(hidden) is not torch.Tensor
@@ -122,12 +152,12 @@ def stream_intermediate_descriptor_planes(
                     or hidden.shape[0] != pixels.shape[0]
                     or hidden.shape[1] < 1
                     or hidden.shape[2] != tower_width
-                    or hidden.device != device
+                    or hidden.device.type != device.type
                     or not hidden.is_floating_point()
                     or not bool(torch.isfinite(hidden).all())
                 ):
                     raise ValueError("intermediate hidden-state authority differs")
-                normalized = post_layernorm(hidden).float()
+                normalized = post_layernorm(hidden.float()).float()
                 pooled = normalized.mean(dim=1)
                 descriptors = F.normalize(projection(pooled).float(), dim=1)
                 if (
@@ -140,7 +170,10 @@ def stream_intermediate_descriptor_planes(
             batch_count += 1
     if batch_count < 1 or any(not values for values in batches):
         raise ValueError("intermediate descriptor stream is empty")
-    return tuple(torch.cat(values, dim=0).contiguous() for values in batches)
+    return StreamedIntermediateReadout(
+        post_ln_planes=tuple(torch.cat(values, dim=0).contiguous() for values in batches),
+        pooler_descriptors=torch.cat(pooler_batches, dim=0).contiguous(),
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -214,7 +247,7 @@ def main(argv: list[str] | None = None) -> int:
                 tensors.append(tensor)
             yield torch.stack(tensors)
 
-    planes = stream_intermediate_descriptor_planes(
+    streamed = stream_intermediate_descriptor_planes(
         model,
         pixel_batches(),
         expected_depth_count=_DEPTH_COUNT,
@@ -228,12 +261,12 @@ def main(argv: list[str] | None = None) -> int:
         role="optimization-train",
         official_test_access=False,
         ordered_example_ids=example_ids,
-        features=planes[-1],
+        features=streamed.pooler_descriptors,
     )
     raw = score_intermediate_readout_depths(
-        planes[-1],
+        streamed.pooler_descriptors,
         labels,
-        planes,
+        streamed.post_ln_planes,
         split_authority=split_authority,
         checkpoint_sha256=seed17_authority.sha256,
         feature_manifest_sha256=arguments.optimization_manifest_sha256,

@@ -4,7 +4,7 @@
 
 **Goal:** Build a sealed optimization-only screen over all 27 SigLIP encoder depths using the existing post-LN, mean pooling, trained 512-D projection, and exact cosine retrieval.
 
-**Architecture:** A pure evidence module validates per-depth descriptor planes, scores the existing four class folds, selects one depth, and emits canonical evidence. A guarded script restores the completed control checkpoint, streams hidden states, and exposes no evaluation or network capability.
+**Architecture:** A pure evidence module validates per-depth descriptor planes, builds the existing four class folds from the sealed attention-pooler context, selects one depth, and emits canonical evidence. A guarded script restores the completed control checkpoint, streams hidden states, and exposes no evaluation or network capability.
 
 **Tech Stack:** Python 3.12, PyTorch, Transformers, existing SFORA control/checkpoint/fold authorities.
 
@@ -14,6 +14,7 @@
 
 - Exactly 27 depths, width 1152, output width 512, post-LN mean pooling, and the sealed seed-17 projection.
 - Exactly four optimization-only SFQ folds; no clean, burned, or official-test capability.
+- Fold geometry and recorded context hits come only from the deployed attention pooler, never a candidate depth.
 - Select by aggregate integer hits descending then depth ascending.
 - Require +10,000 ppm and wins on at least three folds relative to operator-matched depth 27.
 - Do not start science before the active three-seed control is terminal.
