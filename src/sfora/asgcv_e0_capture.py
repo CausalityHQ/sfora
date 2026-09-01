@@ -16,6 +16,10 @@ ASGCV_E0_FIT_AUTHORITY_SCHEMA = "sfora-asgcv-e0-fit-authority-v1"
 ASGCV_E0_PHASE_RECEIPT_SCHEMA = "sfora-asgcv-e0-phase-receipt-v1"
 ASGCV_E0_PHASES = ("eligibility", "capture", "fit", "evaluate")
 ASGCV_E0_OPTIMIZER_ALGORITHM = "torch-adamw-fp32-single-tensor-v1"
+ASGCV_E0_EXECUTION_BACKENDS = (
+    "cpu-one-thread-deterministic-v1",
+    "cuda-deterministic-v1",
+)
 
 
 def _canonical_json_bytes(value: dict[str, object]) -> bytes:
@@ -91,6 +95,7 @@ class AsgcvE0FitAuthority:
     batch_size: int
     epochs: int
     optimizer_algorithm: str
+    execution_backend: str
     learning_rate_numerator: int
     learning_rate_denominator: int
     weight_decay_numerator: int
@@ -126,6 +131,11 @@ class AsgcvE0FitAuthority:
             or self.optimizer_algorithm != ASGCV_E0_OPTIMIZER_ALGORITHM
         ):
             raise ValueError("ASG-CV E0 fit optimizer algorithm differs")
+        if (
+            type(self.execution_backend) is not str
+            or self.execution_backend not in ASGCV_E0_EXECUTION_BACKENDS
+        ):
+            raise ValueError("ASG-CV E0 fit execution backend differs")
         _rational(
             self.learning_rate_numerator,
             self.learning_rate_denominator,
@@ -172,6 +182,7 @@ class AsgcvE0FitAuthority:
             "epochs": self.epochs,
             "optimizer_updates": self.optimizer_updates,
             "optimizer_algorithm": self.optimizer_algorithm,
+            "execution_backend": self.execution_backend,
             "learning_rate_numerator": self.learning_rate_numerator,
             "learning_rate_denominator": self.learning_rate_denominator,
             "weight_decay_numerator": self.weight_decay_numerator,
@@ -197,6 +208,7 @@ class AsgcvE0FitAuthority:
             "epochs",
             "optimizer_updates",
             "optimizer_algorithm",
+            "execution_backend",
             "learning_rate_numerator",
             "learning_rate_denominator",
             "weight_decay_numerator",
@@ -223,6 +235,7 @@ class AsgcvE0FitAuthority:
             batch_size=value["batch_size"],
             epochs=value["epochs"],
             optimizer_algorithm=value["optimizer_algorithm"],
+            execution_backend=value["execution_backend"],
             learning_rate_numerator=value["learning_rate_numerator"],
             learning_rate_denominator=value["learning_rate_denominator"],
             weight_decay_numerator=value["weight_decay_numerator"],

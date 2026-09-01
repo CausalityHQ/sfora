@@ -60,6 +60,7 @@ def _fit_authority() -> AsgcvE0FitAuthority:
         batch_size=4,
         epochs=32,
         optimizer_algorithm="torch-adamw-fp32-single-tensor-v1",
+        execution_backend="cpu-one-thread-deterministic-v1",
         learning_rate_numerator=3,
         learning_rate_denominator=10_000,
         weight_decay_numerator=1,
@@ -137,6 +138,7 @@ def test_fit_authority_freezes_optimizer_updates_order_and_srht() -> None:
         ("optimizer_updates", 4_095),
         ("learning_rate_denominator", 0),
         ("optimizer_algorithm", "adamw"),
+        ("execution_backend", "cuda"),
         ("sample_order_seed_sha256", "g" * 64),
     ):
         mutation = dict(mapping)

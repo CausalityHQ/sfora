@@ -6,7 +6,9 @@ import torch
 from sfora.asgcv import AsgcvSrhtAuthority, srht_gradient_sketch
 from sfora.asgcv_predictor import (
     AsgcvPatchGradientPredictor,
+    canonical_predictor_state_bytes,
     evaluate_predictor_relation_controls,
+    predictor_from_state_bytes,
     predictor_state_sha256,
     predictor_training_loss,
     prepare_asgcv_stratum,
@@ -130,6 +132,24 @@ def test_source_bound_predictor_is_replayable_without_mutating_global_rng() -> N
     for seed in ("0" * 63, "gg" * 32, True):
         with pytest.raises(ValueError):
             source_bound_predictor(channel_dimensions=32, seed_sha256=seed)
+
+
+def test_predictor_state_bytes_round_trip_exactly_and_reject_drift() -> None:
+    predictor = source_bound_predictor(channel_dimensions=32, seed_sha256="ab" * 32)
+    raw = canonical_predictor_state_bytes(predictor)
+    restored = predictor_from_state_bytes(raw, channel_dimensions=32)
+    assert canonical_predictor_state_bytes(restored) == raw
+    assert predictor_state_sha256(restored) == predictor_state_sha256(predictor)
+
+    for mutation in (
+        raw[:-1],
+        raw + b"\x00",
+        raw[:24] + bytes([raw[24] ^ 1]) + raw[25:],
+    ):
+        with pytest.raises(ValueError):
+            predictor_from_state_bytes(mutation, channel_dimensions=32)
+    with pytest.raises(ValueError):
+        predictor_from_state_bytes(raw, channel_dimensions=31)
 
 
 def test_torch_srht_matches_scalar_authority_and_backpropagates() -> None:

@@ -44,9 +44,7 @@ class AsgcvRelationControls:
     def validated(self) -> AsgcvRelationControls:
         if (
             type(self.exchange_max_abs_error_ppm) is not int
-            or not 0
-            <= self.exchange_max_abs_error_ppm
-            <= ASGCV_EXCHANGE_MAX_ABS_ERROR_GATE_PPM
+            or not 0 <= self.exchange_max_abs_error_ppm <= ASGCV_EXCHANGE_MAX_ABS_ERROR_GATE_PPM
         ):
             raise ValueError("ASG-CV predictor exchange-equivariance differs")
         if (
@@ -170,9 +168,7 @@ def evaluate_predictor_relation_controls(
         else math.ceil(exchange_error / max(exchange_scale, np.finfo(np.float64).tiny) * 1_000_000)
     )
     response_energy = float(torch.sum((positive64 - negative64).square()))
-    reference_energy = float(
-        0.5 * torch.sum(positive64.square() + negative64.square())
-    )
+    reference_energy = float(0.5 * torch.sum(positive64.square() + negative64.square()))
     if (
         not math.isfinite(response_energy)
         or not math.isfinite(reference_energy)
@@ -210,8 +206,8 @@ def source_bound_predictor(
         )
 
 
-def predictor_state_sha256(predictor: object) -> str:
-    """Hash every named predictor tensor with exact shape and little-endian fp32 bytes."""
+def canonical_predictor_state_bytes(predictor: object) -> bytes:
+    """Serialize every named state tensor with exact framing and fp32 bytes."""
 
     if type(predictor) is not AsgcvPatchGradientPredictor:
         raise ValueError("ASG-CV predictor state authority differs")
@@ -229,7 +225,76 @@ def predictor_state_sha256(predictor: object) -> str:
             frame.extend(int(size).to_bytes(8, "big"))
         array = tensor.detach().cpu().contiguous().numpy().astype(np.dtype("<f4"), copy=False)
         frame.extend(array.tobytes(order="C"))
-    return hashlib.sha256(frame).hexdigest()
+    return bytes(frame)
+
+
+def predictor_state_sha256(predictor: object) -> str:
+    """Hash the canonical predictor state bytes."""
+
+    return hashlib.sha256(canonical_predictor_state_bytes(predictor)).hexdigest()
+
+
+def predictor_from_state_bytes(
+    raw: object,
+    *,
+    channel_dimensions: int,
+) -> AsgcvPatchGradientPredictor:
+    """Restore one canonical predictor state without mutating caller RNG state."""
+
+    if type(raw) is not bytes or not raw.startswith(_STATE_DOMAIN):
+        raise ValueError("ASG-CV predictor state bytes differ")
+    seed = hashlib.sha256(raw).hexdigest()
+    predictor = source_bound_predictor(
+        channel_dimensions=channel_dimensions,
+        seed_sha256=seed,
+    )
+    expected_state = predictor.state_dict()
+    offset = len(_STATE_DOMAIN)
+    restored: dict[str, torch.Tensor] = {}
+
+    def read_u64() -> int:
+        nonlocal offset
+        if offset + 8 > len(raw):
+            raise ValueError("ASG-CV predictor state frame differs")
+        value = int.from_bytes(raw[offset : offset + 8], "big")
+        offset += 8
+        return value
+
+    while offset < len(raw):
+        name_length = read_u64()
+        if name_length <= 0 or offset + name_length > len(raw):
+            raise ValueError("ASG-CV predictor state name differs")
+        try:
+            name = raw[offset : offset + name_length].decode("utf-8")
+        except UnicodeDecodeError as error:
+            raise ValueError("ASG-CV predictor state name differs") from error
+        offset += name_length
+        if name not in expected_state or name in restored:
+            raise ValueError("ASG-CV predictor state name differs")
+        if restored and name <= max(restored):
+            raise ValueError("ASG-CV predictor state order differs")
+        dimensions = read_u64()
+        expected_shape = tuple(int(size) for size in expected_state[name].shape)
+        if dimensions != len(expected_shape):
+            raise ValueError("ASG-CV predictor state shape differs")
+        shape = tuple(read_u64() for _ in range(dimensions))
+        if shape != expected_shape:
+            raise ValueError("ASG-CV predictor state shape differs")
+        count = math.prod(shape)
+        byte_count = count * np.dtype("<f4").itemsize
+        if offset + byte_count > len(raw):
+            raise ValueError("ASG-CV predictor state payload differs")
+        array = np.frombuffer(raw, dtype=np.dtype("<f4"), count=count, offset=offset).copy()
+        offset += byte_count
+        if not bool(np.isfinite(array).all()):
+            raise ValueError("ASG-CV predictor state tensor differs")
+        restored[name] = torch.from_numpy(array.reshape(shape))
+    if offset != len(raw) or set(restored) != set(expected_state):
+        raise ValueError("ASG-CV predictor state frame differs")
+    predictor.load_state_dict(restored, strict=True)
+    if canonical_predictor_state_bytes(predictor) != raw:
+        raise ValueError("ASG-CV predictor state canonicalization differs")
+    return predictor
 
 
 def _prediction_sha256(value: torch.Tensor) -> str:
