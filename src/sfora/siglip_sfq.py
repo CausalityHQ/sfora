@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import hashlib
+import math
 from dataclasses import dataclass
 
 import torch
+from sklearn.covariance import LedoitWolf
 from torch.nn import functional as F
 
 from sfora.siglip_head_screen import FeatureSplitAuthority
@@ -26,6 +28,22 @@ class SFQFoldSchedule:
 
     folds: tuple[SFQFold, ...]
     sha256: str
+
+
+@dataclass(frozen=True, slots=True)
+class SFQProjectionEvidence:
+    """One robust Fisher quotient and its whitening-only comparator."""
+
+    weight: torch.Tensor
+    whitening_weight: torch.Tensor
+    ledoit_wolf_shrinkage: float
+    minimum_within_eigenvalue: float
+    maximum_within_eigenvalue: float
+    bbp_threshold: float
+    sample_spikes: tuple[float, ...]
+    retained_spikes: tuple[float, ...]
+    gains: tuple[float, ...]
+    reliable_rank: int
 
 
 def _schedule_sha256(
@@ -139,4 +157,152 @@ def build_sfq_fold_schedule(
     return SFQFoldSchedule(
         folds=folds,
         sha256=_schedule_sha256(folds=folds, split_authority=split_authority),
+    )
+
+
+def _canonicalize_rows(matrix: torch.Tensor) -> torch.Tensor:
+    canonical = matrix.clone()
+    for row in range(canonical.shape[0]):
+        pivot = int(torch.argmax(torch.abs(canonical[row])))
+        value = canonical[row, pivot]
+        if not bool(torch.isfinite(value)) or float(torch.abs(value)) == 0.0:
+            raise ValueError("SFQ projection direction differs")
+        if float(value) < 0.0:
+            canonical[row].neg_()
+    return canonical
+
+
+def _uncentered_reduction(
+    normalized_features: torch.Tensor,
+    factor: torch.Tensor,
+    *,
+    output_dimensions: int,
+) -> torch.Tensor:
+    transformed = normalized_features @ factor.T
+    if int(torch.linalg.matrix_rank(transformed)) < output_dimensions:
+        raise ValueError("SFQ projection rank differs")
+    _left, _singular_values, right = torch.linalg.svd(transformed, full_matrices=False)
+    projection = _canonicalize_rows(right[:output_dimensions])
+    weight = projection @ factor
+    if weight.shape != (output_dimensions, normalized_features.shape[1]) or not bool(
+        torch.isfinite(weight).all()
+    ):
+        raise ValueError("SFQ projection factor differs")
+    return weight
+
+
+def fit_sfq_projection(
+    features: torch.Tensor,
+    labels: torch.Tensor,
+    *,
+    output_dimensions: int,
+) -> SFQProjectionEvidence:
+    """Fit a parameter-free robust Fisher metric on one fit-only class set."""
+
+    if (
+        type(features) is not torch.Tensor
+        or features.ndim != 2
+        or features.device.type != "cpu"
+        or features.dtype != torch.float32
+        or features.shape[0] < 2
+        or features.shape[1] < 2
+        or not bool(torch.isfinite(features).all())
+        or type(labels) is not torch.Tensor
+        or labels.shape != (features.shape[0],)
+        or labels.device.type != "cpu"
+        or labels.dtype != torch.int64
+        or type(output_dimensions) is not int
+        or not 1 <= output_dimensions <= min(features.shape)
+    ):
+        raise ValueError("SFQ projection authority differs")
+    unique_labels = tuple(sorted(int(value) for value in torch.unique(labels).tolist()))
+    if len(unique_labels) < 4 or any(int((labels == label).sum()) < 2 for label in unique_labels):
+        raise ValueError("SFQ projection class authority differs")
+
+    normalized = F.normalize(features.double(), dim=1)
+    if bool((torch.linalg.vector_norm(normalized, dim=1) <= 0).any()):
+        raise ValueError("SFQ normalized feature authority differs")
+    means = []
+    residual_rows = []
+    counts = []
+    for label in unique_labels:
+        members = normalized[labels == label]
+        mean = members.mean(dim=0)
+        means.append(mean)
+        residual_rows.append(members - mean)
+        counts.append(members.shape[0])
+    residuals = torch.cat(residual_rows, dim=0).contiguous()
+    estimator = LedoitWolf(assume_centered=True).fit(residuals.numpy())
+    covariance = torch.from_numpy(estimator.covariance_).to(dtype=torch.float64)
+    if covariance.shape != (features.shape[1], features.shape[1]) or not bool(
+        torch.isfinite(covariance).all()
+    ):
+        raise ValueError("SFQ within covariance differs")
+    eigenvalues, eigenvectors = torch.linalg.eigh(covariance)
+    minimum_eigenvalue = float(eigenvalues[0])
+    maximum_eigenvalue = float(eigenvalues[-1])
+    if minimum_eigenvalue <= 0.0 or not math.isfinite(maximum_eigenvalue):
+        raise ValueError("SFQ within covariance is not positive definite")
+    whitening = (eigenvectors * torch.rsqrt(eigenvalues).unsqueeze(0)) @ eigenvectors.T
+
+    global_mean = normalized.mean(dim=0)
+    whitened_means = torch.stack(
+        [
+            math.sqrt(count) * ((mean - global_mean) @ whitening)
+            for mean, count in zip(means, counts, strict=True)
+        ]
+    )
+    _left, singular_values, right = torch.linalg.svd(whitened_means, full_matrices=False)
+    class_count = len(unique_labels)
+    dimension = features.shape[1]
+    gamma = dimension / class_count
+    threshold = (1.0 + math.sqrt(gamma)) ** 2
+    sample_spikes = tuple(float(value) for value in (singular_values.square() / class_count))
+    retained_indexes = tuple(
+        index for index, value in enumerate(sample_spikes) if value > threshold
+    )
+    if not retained_indexes:
+        raise ValueError("SFQ reliable rank is zero")
+    retained_spikes = tuple(sample_spikes[index] for index in retained_indexes)
+    gains = []
+    for sample_spike in retained_spikes:
+        radicand = (sample_spike - 1.0 - gamma) ** 2 - 4.0 * gamma
+        if radicand < -1.0e-12:
+            raise ValueError("SFQ population spike radicand differs")
+        theta = (sample_spike - 1.0 - gamma + math.sqrt(max(0.0, radicand))) / 2.0
+        if theta <= 0.0 or not math.isfinite(theta):
+            raise ValueError("SFQ population spike differs")
+        alignment = (1.0 - gamma / theta**2) / (1.0 + gamma / theta)
+        gain = alignment * theta
+        if alignment <= 0.0 or gain <= 0.0 or not math.isfinite(gain):
+            raise ValueError("SFQ nonlinear gain differs")
+        gains.append(gain)
+    retained_directions = right[list(retained_indexes)]
+    metric = torch.eye(dimension, dtype=torch.float64) + (
+        retained_directions.T
+        @ torch.diag(torch.tensor(gains, dtype=torch.float64))
+        @ retained_directions
+    )
+    factor = metric @ whitening
+    weight = _uncentered_reduction(
+        normalized,
+        factor,
+        output_dimensions=output_dimensions,
+    )
+    whitening_weight = _uncentered_reduction(
+        normalized,
+        whitening,
+        output_dimensions=output_dimensions,
+    )
+    return SFQProjectionEvidence(
+        weight=weight.to(dtype=torch.float32).contiguous(),
+        whitening_weight=whitening_weight.to(dtype=torch.float32).contiguous(),
+        ledoit_wolf_shrinkage=float(estimator.shrinkage_),
+        minimum_within_eigenvalue=minimum_eigenvalue,
+        maximum_within_eigenvalue=maximum_eigenvalue,
+        bbp_threshold=threshold,
+        sample_spikes=sample_spikes,
+        retained_spikes=retained_spikes,
+        gains=tuple(gains),
+        reliable_rank=len(retained_indexes),
     )
