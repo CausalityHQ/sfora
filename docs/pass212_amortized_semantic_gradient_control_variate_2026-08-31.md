@@ -133,6 +133,19 @@ loss. The differentiable torch SRHT reference uses the same signs, selected
 rows, butterfly order, and normalization as the fp64 scalar authority. Zero
 teacher or projected energy and every non-finite intermediate fail closed.
 
+Before any captured gradient is opened, the capture manifest also freezes the
+entire fit authority: SRHT dimensions/rows/seed, rank, training-row count,
+minibatch size, epoch and derived update counts, optimizer algorithm and exact
+rational hyperparameters, initialization seed, and sample-order seed. The E0
+campaign uses 512 training rows, batches of 4, and 32 complete epochs (4,096
+updates), with single-tensor fp32 AdamW, learning rate `3/10,000`, weight decay
+`1/10,000`, betas `9/10` and `999/1,000`, and epsilon `1/100,000,000`. There is
+no tail batch. Epoch order is a deterministic SHA-256 ordering derived from the
+sealed sample-order seed, epoch, and candidate ordinal. The initialization and
+ordering seed domains must differ. Optimizer settings cannot be changed after
+capture or in response to E0 validation evidence; a different coherent
+manifest is a different claim-ineligible experiment, not a retry.
+
 ## Unbiased stratified estimator
 
 Each class-balanced minibatch is divided deterministically into strata of eight

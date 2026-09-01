@@ -170,6 +170,14 @@ git commit -m "feat: capture resumable ASG-CV gradients"
 
 Require source-bound initialization, fixed rank 16, fixed dense-plus-SRHT loss, fixed optimizer/update count from the manifest, deterministic sample order, uniform receipt identities, and byte-identical state digests across repeated CPU controls.
 
+The registered full-shape authority is 512 rows, batch size 4, 32 epochs and
+4,096 updates of single-tensor fp32 AdamW with exact rational parameters
+`lr=3/10,000`, `weight_decay=1/10,000`, `betas=(9/10,999/1,000)`, and
+`eps=1/100,000,000`. The manifest binds the SRHT authority and distinct
+initialization/sample-order seeds before capture; tests may use a separately
+marked reduced shape but may not relax concrete-type, divisibility, or derived
+update-count checks.
+
 - [ ] **Step 2: Implement fit phase**
 
 Load one bounded minibatch of fp32 patch/gradient pairs at a time. Detach teachers/tokens, update only predictor parameters, reject zero/nonfinite teacher energies, and seal `predictor_state_sha256` before E0 inputs or selection authority become available.

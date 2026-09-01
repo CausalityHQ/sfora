@@ -5,7 +5,9 @@ import json
 
 import pytest
 
+from sfora.asgcv import AsgcvSrhtAuthority
 from sfora.asgcv_e0_capture import (
+    AsgcvE0FitAuthority,
     canonical_capture_manifest_bytes,
     canonical_phase_receipt_bytes,
     validate_capture_manifest_bytes,
@@ -45,6 +47,34 @@ def _rollout() -> AsgcvRolloutAuthority:
     ).validated()
 
 
+def _fit_authority() -> AsgcvE0FitAuthority:
+    return AsgcvE0FitAuthority(
+        srht_authority=AsgcvSrhtAuthority(
+            input_dimensions=32,
+            padded_dimensions=32,
+            output_dimensions=16,
+            seed_sha256="13" * 32,
+        ),
+        predictor_rank=16,
+        training_sample_count=512,
+        batch_size=4,
+        epochs=32,
+        optimizer_algorithm="torch-adamw-fp32-single-tensor-v1",
+        learning_rate_numerator=3,
+        learning_rate_denominator=10_000,
+        weight_decay_numerator=1,
+        weight_decay_denominator=10_000,
+        beta1_numerator=9,
+        beta1_denominator=10,
+        beta2_numerator=999,
+        beta2_denominator=1_000,
+        epsilon_numerator=1,
+        epsilon_denominator=100_000_000,
+        initialization_seed_sha256="14" * 32,
+        sample_order_seed_sha256="15" * 32,
+    ).validated()
+
+
 def _manifest() -> bytes:
     return canonical_capture_manifest_bytes(
         source_commit="1" * 40,
@@ -58,6 +88,7 @@ def _manifest() -> bytes:
         model_revision="5" * 40,
         fixture_sha256="8" * 64,
         pooler_state_sha256="9" * 64,
+        fit_authority=_fit_authority(),
         official_test_access=False,
     )
 
@@ -69,6 +100,7 @@ def test_capture_manifest_binds_disjoint_phase_inputs_and_forbids_test_access() 
     assert value["official_test_access"] is False
     assert value["partition_authority"] == _partition().to_mapping()
     assert value["rollout_authority"] == _rollout().to_mapping()
+    assert value["fit_authority"] == _fit_authority().to_mapping()
     assert raw.endswith(b"\n") and not raw.endswith(b"\n\n")
 
     for name, replacement in (
@@ -76,6 +108,7 @@ def test_capture_manifest_binds_disjoint_phase_inputs_and_forbids_test_access() 
         ("claim_eligible", 0),
         ("model_revision", True),
         ("pooler_state_sha256", True),
+        ("fit_authority", True),
     ):
         mutation = json.loads(raw)
         mutation[name] = replacement
@@ -91,6 +124,30 @@ def test_capture_manifest_binds_disjoint_phase_inputs_and_forbids_test_access() 
     model_drift["model_revision"] = "f" * 40
     with pytest.raises(ValueError, match="model binding"):
         validate_capture_manifest_bytes(_rehash(_canonical(model_drift), "manifest_sha256"))
+
+
+def test_fit_authority_freezes_optimizer_updates_order_and_srht() -> None:
+    authority = _fit_authority()
+    assert authority.optimizer_updates == 4_096
+    assert authority.to_mapping()["optimizer_updates"] == 4_096
+
+    mapping = authority.to_mapping()
+    for name, replacement in (
+        ("batch_size", True),
+        ("optimizer_updates", 4_095),
+        ("learning_rate_denominator", 0),
+        ("optimizer_algorithm", "adamw"),
+        ("sample_order_seed_sha256", "g" * 64),
+    ):
+        mutation = dict(mapping)
+        mutation[name] = replacement
+        with pytest.raises(ValueError):
+            AsgcvE0FitAuthority.from_mapping(mutation)
+
+    srht_drift = dict(mapping)
+    srht_drift["srht_authority"] = dict(mapping["srht_authority"])
+    srht_drift["srht_authority"]["output_dimensions"] = 8
+    assert AsgcvE0FitAuthority.from_mapping(srht_drift).to_mapping() != mapping
 
 
 def test_phase_receipts_require_exact_monotone_transition_chain() -> None:
