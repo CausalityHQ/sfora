@@ -111,16 +111,24 @@ binds the sealed predictor-state digest and predicted field, preventing E1
 replay targets from being evaluated against a different learned control variate
 or KL query without introducing a circular pre-fit authority.
 
-E0 additionally emits one custody artifact over every validation row. It
-requires strictly increasing unique candidate ordinals, unique completion
-groups, globally disjoint source-pair ordinals, and exactly four positive plus
-four negative relations in every eight-row stratum. All sample receipts share
-the same source commit, model revision, fixture, pooler, completion protocol,
-and eligible schedule. The custody artifact binds the exact fp32 gradient
-digest and patch-token digest for every row, requires the E0 fp64 exact field to
-be a lossless fp32 widening, and obtains the predictor identity only from the E0
-result while binding that result's predicted field back to the sealed patch
-tokens and predictor state.
+E0 additionally emits one custody artifact over every validation row in each of
+the two exact rollout-seed blocks. Each block requires strictly increasing
+unique candidate ordinals, unique completion groups, globally disjoint
+source-pair ordinals, and exactly four positive plus four negative relations in
+every eight-row stratum. Corresponding rows must bind the same candidate,
+source pair, and relation, while the two blocks must bind disjoint completion
+group digests. Numeric distance is not used as proof of independent capture:
+distinct registered rollout seeds may legitimately produce equal or nearly
+equal gradients. All sample receipts share the same source commit, model
+revision, fixture, pooler, completion protocol, and eligible schedule.
+Corresponding rows must bind the same patch-token authority because rollout sampling cannot change
+the frozen image-pair representation. The
+custody artifact binds both exact fp32 gradient digests and both patch-token
+digests for every row, requires both E0 fp64 exact fields to be lossless fp32
+widenings, and obtains the predictor identity only from the E0 result. The
+custody receipt co-binds that sealed identity, the captured patch-token
+authorities, and the content-addressed predicted field; it does not claim to
+replay the predictor from those inputs.
 
 Predictor fitting uses one fixed, dimensionless objective with no learned or
 retrieval-tuned weights:
@@ -193,16 +201,20 @@ SAGA's declared global gradient clipping at `1.0` is applied only after the
 complete DML and semantic gradient is assembled. Because clipping is nonlinear,
 the expected *clipped update* is not generally unbiased even when `g_hat_s` is.
 E0 derives the pre-clip semantic-field estimator norms and clip activation from
-the bound exact and predicted fields plus the source-bound selection seed; it
-does not accept self-reported norm arrays. E1 must likewise derive these values
+each bound exact seed block, predicted fields, and the source-bound selection
+seed, then forms one combined two-block norm distribution. E0 does not accept
+self-reported norm arrays. E1 must likewise derive these values
 at its registered optimizer boundary. ASG-CV is ineligible if its clip-activation rate is
 more than `5` percentage points above the matched exact estimator or if its
 pre-clip norm p99 exceeds `2.0x` the exact p99. No residual clipping or
 winsorization is allowed to repair this gate.
 
-The E0 `1.0` threshold is explicitly a semantic patch-field proxy, not the
-assembled parameter-gradient clip itself. Its registered role is to reject an
-estimator whose semantic correction has a materially worse tail before E1;
+The E0 semantic patch-field proxy threshold is the higher-method p90 norm of the
+combined two-block exact-seed stratum means. A relative fp64 comparison tolerance prevents exact
+ties from changing sides under uniform rescaling. This makes the `5`-percentage-point comparison invariant
+to uniform rescaling of the cut field; it is not the assembled parameter-gradient
+clip itself. Its registered role is to reject an estimator whose semantic
+correction has a materially worse tail before E1;
 E1 must measure the actual assembled DML-plus-semantic parameter gradient at
 the optimizer boundary and cannot inherit the proxy as product evidence.
 
@@ -298,18 +310,25 @@ computed from the exact `[pair, image, patch, channel]` gradient fields:
 - the residual energy outside the best rank-16 matrix approximation of each
   captured pair field, aggregated by gradient energy.
 
-The noise floor remains a capacity gate at `0.35`. Predictor error is evaluated
-with the two-seed noise-debiased numerator
-`0.5*(||g-q||^2+||g'-q||^2)-0.5*||g-g'||^2`, normalized by the positive aggregate
-cross-seed signal energy `sum <g,g'>`; raw realized-gradient cosines are reported
-but are not capacity gates. A failure closes this predictor family before fitting
-or retrieval; the rank, sample count, and seed blocks are not adapted after
-observing the pilot.
+The noise floor remains a capacity gate at `0.35`. After fitting, predictor
+error is evaluated conservatively on both protocol-separated validation
+blocks: the registered residual is the larger of the two per-block normalized
+residual energies; every higher-is-better statistic records the smaller block
+value, every remaining lower-is-better statistic records the larger block value,
+and p99/clip statistics use the combined two-block norm distribution. Auxiliary
+randomization audits likewise record the smaller p-value and larger magnitude
+across blocks. Block order therefore cannot select a favorable gate, and no
+negative point estimate is treated as a scientific terminal. Exact-block array
+authority has a deterministic content order, with receipt identity breaking the
+tie when numeric blocks are equal. Both exact blocks and the predicted block are
+content-bound into the E0 result, and both exact blocks are reopened row by row
+against disjoint captured-gradient receipt sets. A failure closes this predictor family before retrieval; the rank,
+sample count, and seed blocks are not adapted after observing validation.
 
-- median dense and SRHT-projected realized-gradient cosines, reported only as
-  seed-noise-confounded diagnostics;
+- worst-block median dense gradient cosine at least `0.85` and worst-block
+  median SRHT-projected gradient cosine at least `0.90`;
 - patch-salience Spearman correlation at least `0.80`;
-- cross-seed noise-debiased normalized residual energy at most `0.35`;
+- worst-block normalized residual energy at most `0.35`;
 - empirical variance of the registered one-of-eight estimator at most `0.60`
   times the variance of one exact pair gradient at equal stratum scale;
 - the source-seed-derived, one-sided `95%` stratum-bootstrap upper bound on the

@@ -23,6 +23,12 @@ from sfora.asgcv_bias import (
 )
 
 
+def _independent_exact(first: np.ndarray) -> np.ndarray:
+    second = first.copy()
+    second.reshape(-1)[0] = np.nextafter(second.reshape(-1)[0], np.inf)
+    return second
+
+
 def _manual_draw(seed: str, draw: int, strata: int) -> tuple[int, ...]:
     values: list[int] = []
     block = 0
@@ -140,6 +146,8 @@ def _selection_audit_result(
     exact: np.ndarray,
     predicted: np.ndarray,
     srht: AsgcvSrhtAuthority,
+    *,
+    second_exact: np.ndarray | None = None,
 ) -> bytes:
     return canonical_e0_result_bytes(
         source_commit="1" * 40,
@@ -147,7 +155,8 @@ def _selection_audit_result(
         partition_manifest_sha256="3" * 64,
         predictor_state_sha256="4" * 64,
         selection_seed_sha256="ab" * 32,
-        exact=exact,
+        first_exact=exact,
+        second_exact=_independent_exact(exact) if second_exact is None else second_exact,
         predicted=predicted,
         srht_authority=srht,
         peak_cuda_reserved_bytes=1,
@@ -167,7 +176,12 @@ def test_selection_audit_derives_seeds_indices_and_potentials_from_e0() -> None:
     ).validated()
     perfect_result = _selection_audit_result(exact, exact.copy(), srht)
     perfect = validate_e0_selection_audit_bytes(
-        canonical_e0_selection_audit_bytes(perfect_result, exact=exact, predicted=exact.copy())
+        canonical_e0_selection_audit_bytes(
+            perfect_result,
+            first_exact=exact,
+            second_exact=_independent_exact(exact),
+            predicted=exact.copy(),
+        )
     )
     assert perfect["selection_independence_p_value_ppm"] == 1_000_000
     assert perfect["selection_independence_z_ppm"] == 0
@@ -180,8 +194,30 @@ def test_selection_audit_derives_seeds_indices_and_potentials_from_e0() -> None:
             stratum_ordinal=ordinal,
         )
         predicted[ordinal, selected] += 10.0
-    result = _selection_audit_result(exact, predicted, srht)
-    raw = canonical_e0_selection_audit_bytes(result, exact=exact, predicted=predicted)
+    second = _independent_exact(exact)
+    result = _selection_audit_result(exact, predicted, srht, second_exact=second)
+    raw = canonical_e0_selection_audit_bytes(
+        result,
+        first_exact=exact,
+        second_exact=second,
+        predicted=predicted,
+    )
+    reverse_result = _selection_audit_result(
+        second,
+        predicted,
+        srht,
+        second_exact=exact,
+    )
+    assert reverse_result == result
+    assert (
+        canonical_e0_selection_audit_bytes(
+            reverse_result,
+            first_exact=second,
+            second_exact=exact,
+            predicted=predicted,
+        )
+        == raw
+    )
     observed = validate_e0_selection_audit_bytes(raw)
     assert observed["selection_independence_p_value_ppm"] < 20_000
     expected_null_seed = hashlib.sha256(
@@ -192,7 +228,8 @@ def test_selection_audit_derives_seeds_indices_and_potentials_from_e0() -> None:
     with pytest.raises(ValueError):
         canonical_e0_selection_audit_bytes(
             result,
-            exact=exact[:63],
+            first_exact=exact[:63],
+            second_exact=_independent_exact(exact[:63]),
             predicted=predicted[:63],
         )
 
@@ -230,19 +267,28 @@ def test_projected_selection_bias_z_matches_diagonal_free_closed_form() -> None:
 
     result = _selection_audit_result(exact, predicted, srht)
     audit = validate_e0_selection_audit_bytes(
-        canonical_e0_selection_audit_bytes(result, exact=exact, predicted=predicted)
+        canonical_e0_selection_audit_bytes(
+            result,
+            first_exact=exact,
+            second_exact=_independent_exact(exact),
+            predicted=predicted,
+        )
     )
     assert audit["selection_independence_z_ppm"] == expected
 
 
-def _relation_receipts(exact: np.ndarray) -> tuple[bytes, ...]:
+def _relation_receipts(
+    exact: np.ndarray,
+    *,
+    completion_group_offset: int,
+) -> tuple[bytes, ...]:
     flat = exact.astype(np.float32).reshape(-1, *exact.shape[2:])
     return tuple(
         canonical_gradient_sample_bytes(
             source_commit="1" * 40,
             model_revision="7" * 40,
             fixture_sha256="8" * 64,
-            completion_group_sha256=f"{ordinal + 1:064x}",
+            completion_group_sha256=f"{ordinal + completion_group_offset + 1:064x}",
             completion_protocol_sha256="9" * 64,
             eligible_schedule_sha256="a" * 64,
             pooler_state_sha256="b" * 64,
@@ -271,14 +317,24 @@ def test_relation_audit_binds_custody_and_detects_relation_specific_bias() -> No
         output_dimensions=2,
         seed_sha256="78" * 32,
     ).validated()
-    receipts = _relation_receipts(exact)
-    perfect_result = _selection_audit_result(exact, exact.copy(), srht)
+    second = exact.copy()
+    first_receipts = _relation_receipts(exact, completion_group_offset=0)
+    second_receipts = _relation_receipts(second, completion_group_offset=512)
+    perfect_prediction = 0.5 * (exact + second)
+    perfect_result = _selection_audit_result(
+        exact,
+        perfect_prediction,
+        srht,
+        second_exact=second,
+    )
     perfect = validate_e0_relation_audit_bytes(
         canonical_e0_relation_audit_bytes(
             perfect_result,
-            exact=exact,
-            predicted=exact.copy(),
-            sample_receipts=receipts,
+            first_exact=exact,
+            second_exact=second,
+            predicted=perfect_prediction,
+            first_sample_receipts=first_receipts,
+            second_sample_receipts=second_receipts,
         )
     )
     assert perfect["positive_selection_p_value_ppm"] == 1_000_000
@@ -296,24 +352,40 @@ def test_relation_audit_binds_custody_and_detects_relation_specific_bias() -> No
         if selected % 2 == 0:
             predicted[stratum, selected, 0, 0, 0] += 10.0
         predicted[stratum, 0::2, 0, 0, 0] += 1.0
-    result = _selection_audit_result(exact, predicted, srht)
-    observed = validate_e0_relation_audit_bytes(
+    result = _selection_audit_result(exact, predicted, srht, second_exact=second)
+    raw = canonical_e0_relation_audit_bytes(
+        result,
+        first_exact=exact,
+        second_exact=second,
+        predicted=predicted,
+        first_sample_receipts=first_receipts,
+        second_sample_receipts=second_receipts,
+    )
+    observed = validate_e0_relation_audit_bytes(raw)
+    reverse_result = _selection_audit_result(second, predicted, srht, second_exact=exact)
+    assert reverse_result == result
+    assert (
         canonical_e0_relation_audit_bytes(
-            result,
-            exact=exact,
+            reverse_result,
+            first_exact=second,
+            second_exact=exact,
             predicted=predicted,
-            sample_receipts=receipts,
+            first_sample_receipts=second_receipts,
+            second_sample_receipts=first_receipts,
         )
+        == raw
     )
     assert observed["positive_selection_p_value_ppm"] < 20_000
     assert observed["relation_residual_contrast_ppm"] > 0
 
-    changed = list(receipts)
+    changed = list(first_receipts)
     changed[0], changed[1] = changed[1], changed[0]
     with pytest.raises(ValueError):
         canonical_e0_relation_audit_bytes(
             result,
-            exact=exact,
+            first_exact=exact,
+            second_exact=second,
             predicted=predicted,
-            sample_receipts=tuple(changed),
+            first_sample_receipts=tuple(changed),
+            second_sample_receipts=second_receipts,
         )

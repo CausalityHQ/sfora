@@ -27,9 +27,9 @@ ASGCV_SCHEMA = "sfora-asgcv-authority-v1"
 ASGCV_STRATUM_SIZE = 8
 ASGCV_PREDICTOR_RANK = 16
 ASGCV_SELECTION_POLICY = "one-uniform-index-per-eight-pair-stratum-v1"
-ASGCV_E0_SCHEMA = "sfora-asgcv-e0-metrics-v4"
+ASGCV_E0_SCHEMA = "sfora-asgcv-e0-metrics-v5"
 ASGCV_E0_CAPACITY_FLOOR_SCHEMA = "sfora-asgcv-e0-capacity-floor-v1"
-ASGCV_E0_RESULT_SCHEMA = "sfora-asgcv-e0-result-v4"
+ASGCV_E0_RESULT_SCHEMA = "sfora-asgcv-e0-result-v5"
 ASGCV_E0_ARRAY_DOMAIN = b"sfora-asgcv-e0-array-v1\0"
 ASGCV_GRADIENT_SAMPLE_SCHEMA = "sfora-asgcv-gradient-sample-v4"
 ASGCV_GRADIENT_SAMPLE_ARRAY_DOMAIN = b"sfora-asgcv-gradient-sample-array-v1\0"
@@ -40,9 +40,9 @@ ASGCV_RESIDUAL_ENERGY_GATE_PPM = 350_000
 ASGCV_VARIANCE_RATIO_GATE_PPM = 600_000
 ASGCV_PRECLIP_P99_RATIO_GATE_PPM = 2_000_000
 ASGCV_CLIP_RATE_DELTA_GATE_PPM = 50_000
+ASGCV_CLIP_REFERENCE_QUANTILE = 0.90
 ASGCV_SEMANTIC_WALL_RATIO_GATE_PPM = 350_000
 ASGCV_MEAN_AGREEMENT_GATE_PPM = 150_000
-ASGCV_GLOBAL_CLIP_NORM = 1.0
 ASGCV_PEAK_CUDA_RESERVED_GATE_BYTES = 96 * 1024**3
 ASGCV_E0_MINIMUM_PAIRS = 512
 ASGCV_E0_CAPACITY_MINIMUM_PAIRS = 64
@@ -447,6 +447,19 @@ def normalized_residual_energy(exact: object, predicted: object) -> float:
     if not np.isfinite(ratio) or ratio < 0.0:
         raise ValueError("ASG-CV residual energy differs")
     return ratio
+
+
+def _batch_normalized_residual_energy(exact: Float64Array, predicted: Float64Array) -> float:
+    numerator = float(np.square(exact - predicted).sum(dtype=np.float64))
+    denominator = float(np.square(exact).sum(dtype=np.float64))
+    if (
+        not math.isfinite(numerator)
+        or numerator < 0.0
+        or not math.isfinite(denominator)
+        or denominator <= 0.0
+    ):
+        raise ValueError("ASG-CV E0 normalized residual energy differs")
+    return numerator / denominator
 
 
 def selection_variance_ratio(exact: object, predicted: object) -> float:
@@ -902,11 +915,62 @@ def _mean_agreement_upper_ppm(
     return _ratio_ppm(math.sqrt(upper / scale_energy))
 
 
+@dataclass(frozen=True, slots=True)
+class _E0BlockStatistics:
+    patch_salience_spearman: float
+    selection_variance_ratio: float
+    mean_agreement_upper_ppm: int
+    exact_norms: Float64Array
+    asgcv_norms: Float64Array
+
+
+def _e0_block_statistics(
+    exact: Float64Array,
+    predicted: Float64Array,
+    *,
+    selected_indices: tuple[int, ...],
+    selection_seed: bytes,
+) -> _E0BlockStatistics:
+    exact_estimates = np.mean(exact, axis=1, dtype=np.float64)
+    asgcv_estimates = np.stack(
+        [
+            asgcv_stratum_gradient(
+                predicted[stratum_ordinal],
+                exact[stratum_ordinal, selected_index],
+                selected_index=selected_index,
+            )
+            for stratum_ordinal, selected_index in enumerate(selected_indices)
+        ]
+    )
+    residuals = exact - predicted
+    estimator_deltas = np.stack(
+        [
+            residuals[stratum_ordinal, selected_index]
+            - np.mean(residuals[stratum_ordinal], axis=0, dtype=np.float64)
+            for stratum_ordinal, selected_index in enumerate(selected_indices)
+        ]
+    )
+    exact_norms = np.linalg.norm(exact_estimates.reshape(exact_estimates.shape[0], -1), axis=1)
+    asgcv_norms = np.linalg.norm(asgcv_estimates.reshape(asgcv_estimates.shape[0], -1), axis=1)
+    return _E0BlockStatistics(
+        patch_salience_spearman=_median_patch_salience_spearman(exact, predicted),
+        selection_variance_ratio=_batch_selection_variance_ratio(exact, predicted),
+        mean_agreement_upper_ppm=_mean_agreement_upper_ppm(
+            exact_estimates,
+            estimator_deltas,
+            selection_seed=selection_seed,
+        ),
+        exact_norms=exact_norms,
+        asgcv_norms=asgcv_norms,
+    )
+
+
 def evaluate_e0(
     exact: object,
     predicted: object,
     srht_authority: AsgcvSrhtAuthority,
     *,
+    second_exact: object,
     selection_seed_sha256: object,
     peak_cuda_reserved_bytes: int,
     exact_semantic_wall_ns: int,
@@ -924,6 +988,11 @@ def evaluate_e0(
         name="E0 predicted gradient batch",
         dimensions=5,
     )
+    second_exact_array = _require_float64_array(
+        second_exact,
+        name="E0 second exact gradient batch",
+        dimensions=5,
+    )
     selection_seed = _selection_seed_bytes(selection_seed_sha256)
     if type(exact_semantic_wall_ns) is not int or exact_semantic_wall_ns <= 0:
         raise ValueError("ASG-CV E0 exact semantic wall time differs")
@@ -936,6 +1005,7 @@ def evaluate_e0(
     ) // exact_semantic_wall_ns
     if (
         exact_array.shape != predicted_array.shape
+        or exact_array.shape != second_exact_array.shape
         or exact_array.shape[1] != ASGCV_STRATUM_SIZE
         or exact_array.shape[2] != 2
     ):
@@ -945,7 +1015,6 @@ def evaluate_e0(
     srht_authority.validated()
     if srht_authority.input_dimensions != exact_array.shape[-1]:
         raise ValueError("ASG-CV E0 SRHT shape differs")
-    exact_estimates = np.mean(exact_array, axis=1, dtype=np.float64)
     selected_indices = tuple(
         select_stratum_index(
             selection_seed.hex(),
@@ -954,45 +1023,52 @@ def evaluate_e0(
         )
         for stratum_ordinal in range(exact_array.shape[0])
     )
-    asgcv_estimates = np.stack(
-        [
-            asgcv_stratum_gradient(
-                predicted_array[stratum_ordinal],
-                exact_array[stratum_ordinal, selected_index],
-                selected_index=selected_index,
-            )
-            for stratum_ordinal, selected_index in enumerate(selected_indices)
-        ]
+    first_statistics = _e0_block_statistics(
+        exact_array,
+        predicted_array,
+        selected_indices=selected_indices,
+        selection_seed=selection_seed,
     )
-    residuals = exact_array - predicted_array
-    estimator_deltas = np.stack(
-        [
-            residuals[stratum_ordinal, selected_index]
-            - np.mean(residuals[stratum_ordinal], axis=0, dtype=np.float64)
-            for stratum_ordinal, selected_index in enumerate(selected_indices)
-        ]
+    second_statistics = _e0_block_statistics(
+        second_exact_array,
+        predicted_array,
+        selected_indices=selected_indices,
+        selection_seed=selection_seed,
     )
-    exact_norms = np.linalg.norm(exact_estimates.reshape(exact_estimates.shape[0], -1), axis=1)
-    asgcv_norms = np.linalg.norm(asgcv_estimates.reshape(asgcv_estimates.shape[0], -1), axis=1)
+    combined_exact_norms = np.concatenate(
+        (first_statistics.exact_norms, second_statistics.exact_norms)
+    )
+    combined_asgcv_norms = np.concatenate(
+        (first_statistics.asgcv_norms, second_statistics.asgcv_norms)
+    )
+    exact_p99 = float(np.quantile(combined_exact_norms, 0.99, method="higher"))
+    asgcv_p99 = float(np.quantile(combined_asgcv_norms, 0.99, method="higher"))
+    clip_reference = float(
+        np.quantile(combined_exact_norms, ASGCV_CLIP_REFERENCE_QUANTILE, method="higher")
+    )
+    if (
+        not np.isfinite(exact_p99)
+        or exact_p99 <= 0.0
+        or not np.isfinite(asgcv_p99)
+        or not np.isfinite(clip_reference)
+        or clip_reference <= 0.0
+    ):
+        raise ValueError("ASG-CV E0 combined norm authority differs")
+    clip_comparison_tolerance = (
+        64.0 * np.finfo(np.float64).eps * max(clip_reference, np.finfo(np.float64).tiny)
+    )
 
-    exact_p99 = float(np.quantile(exact_norms, 0.99, method="higher"))
-    asgcv_p99 = float(np.quantile(asgcv_norms, 0.99, method="higher"))
-    if not np.isfinite(exact_p99) or exact_p99 <= 0.0 or not np.isfinite(asgcv_p99):
-        raise ValueError("ASG-CV E0 pre-clip p99 differs")
-    exact_clip_rate_ppm = int(
-        round(
-            float(np.count_nonzero(exact_norms > ASGCV_GLOBAL_CLIP_NORM))
-            / len(exact_norms)
-            * 1_000_000
+    def combined_clip_rate(values: Float64Array) -> int:
+        return int(
+            round(
+                float(np.count_nonzero(values > clip_reference + clip_comparison_tolerance))
+                / len(values)
+                * 1_000_000
+            )
         )
-    )
-    asgcv_clip_rate_ppm = int(
-        round(
-            float(np.count_nonzero(asgcv_norms > ASGCV_GLOBAL_CLIP_NORM))
-            / len(asgcv_norms)
-            * 1_000_000
-        )
-    )
+
+    exact_clip_rate_ppm = combined_clip_rate(combined_exact_norms)
+    asgcv_clip_rate_ppm = combined_clip_rate(combined_asgcv_norms)
 
     projected_exact = srht_gradient_sketch(
         exact_array.reshape(-1, exact_array.shape[-1]),
@@ -1002,29 +1078,44 @@ def evaluate_e0(
         predicted_array.reshape(-1, predicted_array.shape[-1]),
         srht_authority,
     ).reshape(*predicted_array.shape[:-1], srht_authority.output_dimensions)
-    residual_energy = float(
-        np.square(exact_array - predicted_array).sum(dtype=np.float64)
-        / np.square(exact_array).sum(dtype=np.float64)
+    projected_second_exact = srht_gradient_sketch(
+        second_exact_array.reshape(-1, second_exact_array.shape[-1]),
+        srht_authority,
+    ).reshape(*second_exact_array.shape[:-1], srht_authority.output_dimensions)
+    residual_energy = max(
+        _batch_normalized_residual_energy(exact_array, predicted_array),
+        _batch_normalized_residual_energy(second_exact_array, predicted_array),
     )
-    if not np.isfinite(residual_energy) or residual_energy < 0.0:
-        raise ValueError("ASG-CV E0 residual energy differs")
     metrics_without_pass = {
         "pair_count": exact_array.shape[0] * exact_array.shape[1],
-        "dense_gradient_cosine_ppm": _similarity_ppm(_median_cosine(exact_array, predicted_array)),
+        "dense_gradient_cosine_ppm": _similarity_ppm(
+            min(
+                _median_cosine(exact_array, predicted_array),
+                _median_cosine(second_exact_array, predicted_array),
+            )
+        ),
         "projected_gradient_cosine_ppm": _similarity_ppm(
-            _median_cosine(projected_exact, projected_predicted)
+            min(
+                _median_cosine(projected_exact, projected_predicted),
+                _median_cosine(projected_second_exact, projected_predicted),
+            )
         ),
         "patch_salience_spearman_ppm": _similarity_ppm(
-            _median_patch_salience_spearman(exact_array, predicted_array)
+            min(
+                first_statistics.patch_salience_spearman,
+                second_statistics.patch_salience_spearman,
+            )
         ),
         "normalized_residual_energy_ppm": _ratio_ppm(residual_energy),
         "selection_variance_ratio_ppm": _ratio_ppm(
-            _batch_selection_variance_ratio(exact_array, predicted_array)
+            max(
+                first_statistics.selection_variance_ratio,
+                second_statistics.selection_variance_ratio,
+            )
         ),
-        "mean_agreement_upper_ppm": _mean_agreement_upper_ppm(
-            exact_estimates,
-            estimator_deltas,
-            selection_seed=selection_seed,
+        "mean_agreement_upper_ppm": max(
+            first_statistics.mean_agreement_upper_ppm,
+            second_statistics.mean_agreement_upper_ppm,
         ),
         "preclip_p99_ratio_ppm": _ratio_ppm(asgcv_p99 / exact_p99),
         "exact_clip_rate_ppm": exact_clip_rate_ppm,
@@ -1438,6 +1529,29 @@ def _array_authority(value: object, *, role: str, dimensions: int) -> dict[str, 
     }
 
 
+def _canonical_exact_block_order(
+    first_exact: object,
+    second_exact: object,
+) -> tuple[Float64Array, Float64Array, bool]:
+    first = _require_float64_array(
+        first_exact,
+        name="E0 first exact gradient batch",
+        dimensions=5,
+    )
+    second = _require_float64_array(
+        second_exact,
+        name="E0 second exact gradient batch",
+        dimensions=5,
+    )
+    if first.shape != second.shape:
+        raise ValueError("ASG-CV E0 exact block shape differs")
+    first_digest = hashlib.sha256(np.ascontiguousarray(first, dtype="<f8").tobytes()).digest()
+    second_digest = hashlib.sha256(np.ascontiguousarray(second, dtype="<f8").tobytes()).digest()
+    if second_digest < first_digest:
+        return second, first, True
+    return first, second, False
+
+
 def canonical_e0_result_bytes(
     *,
     source_commit: object,
@@ -1445,7 +1559,8 @@ def canonical_e0_result_bytes(
     partition_manifest_sha256: object,
     predictor_state_sha256: object,
     selection_seed_sha256: object,
-    exact: object,
+    first_exact: object,
+    second_exact: object,
     predicted: object,
     srht_authority: AsgcvSrhtAuthority,
     peak_cuda_reserved_bytes: int,
@@ -1467,10 +1582,12 @@ def canonical_e0_result_bytes(
         predictor_state_sha256,
         name="predictor state digest",
     ).hex()
+    ordered_first, ordered_second, _ = _canonical_exact_block_order(first_exact, second_exact)
     metrics = evaluate_e0(
-        exact,
+        ordered_first,
         predicted,
         srht_authority,
+        second_exact=ordered_second,
         selection_seed_sha256=selection_seed_sha256,
         peak_cuda_reserved_bytes=peak_cuda_reserved_bytes,
         exact_semantic_wall_ns=exact_semantic_wall_ns,
@@ -1493,9 +1610,14 @@ def canonical_e0_result_bytes(
         "selection_schedule_sha256": selection_digest,
         "srht_authority": srht_authority.to_mapping(),
         "arrays": {
-            "exact_gradients": _array_authority(
-                exact,
-                role="exact-gradients",
+            "first_exact_gradients": _array_authority(
+                ordered_first,
+                role="first-exact-gradients",
+                dimensions=5,
+            ),
+            "second_exact_gradients": _array_authority(
+                ordered_second,
+                role="second-exact-gradients",
                 dimensions=5,
             ),
             "predicted_gradients": _array_authority(
@@ -1576,7 +1698,8 @@ def validate_e0_result_bytes(raw: bytes) -> dict[str, object]:
 
     arrays = value["arrays"]
     array_roles = {
-        "exact_gradients": 5,
+        "first_exact_gradients": 5,
+        "second_exact_gradients": 5,
         "predicted_gradients": 5,
     }
     if type(arrays) is not dict or set(arrays) != set(array_roles):
@@ -1585,10 +1708,11 @@ def validate_e0_result_bytes(raw: bytes) -> dict[str, object]:
         role: _validate_array_authority(arrays[role], dimensions=dimensions)
         for role, dimensions in array_roles.items()
     }
-    exact_shape = shapes["exact_gradients"]
+    exact_shape = shapes["first_exact_gradients"]
     srht = AsgcvSrhtAuthority.from_mapping(value["srht_authority"])
     if (
-        shapes["predicted_gradients"] != exact_shape
+        shapes["second_exact_gradients"] != exact_shape
+        or shapes["predicted_gradients"] != exact_shape
         or exact_shape[1] != ASGCV_STRATUM_SIZE
         or exact_shape[2] != 2
         or srht.input_dimensions != exact_shape[-1]
@@ -1630,7 +1754,8 @@ def validate_e0_result_bytes(raw: bytes) -> dict[str, object]:
 def validate_e0_result_inputs(
     raw: bytes,
     *,
-    exact: object,
+    first_exact: object,
+    second_exact: object,
     predicted: object,
 ) -> dict[str, object]:
     """Reopen every E0 numeric input and require the same canonical result."""
@@ -1645,7 +1770,8 @@ def validate_e0_result_inputs(
         partition_manifest_sha256=value["partition_manifest_sha256"],
         predictor_state_sha256=value["predictor_state_sha256"],
         selection_seed_sha256=value["selection_seed_sha256"],
-        exact=exact,
+        first_exact=first_exact,
+        second_exact=second_exact,
         predicted=predicted,
         srht_authority=AsgcvSrhtAuthority.from_mapping(value["srht_authority"]),
         peak_cuda_reserved_bytes=AsgcvE0Metrics.from_mapping(

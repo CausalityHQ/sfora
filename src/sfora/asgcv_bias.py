@@ -280,18 +280,24 @@ def _projected_selection_bias_z_ppm(
 def canonical_e0_selection_audit_bytes(
     e0_result: bytes,
     *,
-    exact: object,
+    first_exact: object,
+    second_exact: object,
     predicted: object,
 ) -> bytes:
     """Bind the auxiliary selection-independence audit to one complete E0 result."""
 
-    result = validate_e0_result_inputs(e0_result, exact=exact, predicted=predicted)
+    result = validate_e0_result_inputs(
+        e0_result,
+        first_exact=first_exact,
+        second_exact=second_exact,
+        predicted=predicted,
+    )
     metrics = result["metrics"]
     arrays = result["arrays"]
     if type(metrics) is not dict or type(arrays) is not dict:
         raise ValueError("ASG-CV selection audit E0 authority differs")
     pair_count = metrics["pair_count"]
-    exact_shape = arrays["exact_gradients"]["shape"]
+    exact_shape = arrays["first_exact_gradients"]["shape"]
     if (
         type(pair_count) is not int
         or type(exact_shape) is not list
@@ -306,6 +312,25 @@ def canonical_e0_selection_audit_bytes(
         raise ValueError("ASG-CV selection audit result digest differs")
     null_seed = hashlib.sha256(ASGCV_NULL_SEED_DOMAIN + bytes.fromhex(result_digest)).hexdigest()
     selection_seed = result["selection_seed_sha256"]
+    selection_p_values = (
+        _projected_selection_independence_p_value_ppm(
+            exact_block,
+            predicted,
+            srht,
+            selection_seed_sha256=selection_seed,
+            null_seed_sha256=null_seed,
+        )
+        for exact_block in (first_exact, second_exact)
+    )
+    selection_z_values = (
+        _projected_selection_bias_z_ppm(
+            exact_block,
+            predicted,
+            srht,
+            selection_seed_sha256=selection_seed,
+        )
+        for exact_block in (first_exact, second_exact)
+    )
     payload: dict[str, object] = {
         "schema": ASGCV_SELECTION_AUDIT_SCHEMA,
         "claim_eligible": False,
@@ -313,21 +338,8 @@ def canonical_e0_selection_audit_bytes(
         "selection_seed_sha256": selection_seed,
         "null_seed_sha256": null_seed,
         "randomization_draws": ASGCV_MEAN_RANDOMIZATION_DRAWS,
-        "selection_independence_p_value_ppm": (
-            _projected_selection_independence_p_value_ppm(
-                exact,
-                predicted,
-                srht,
-                selection_seed_sha256=selection_seed,
-                null_seed_sha256=null_seed,
-            )
-        ),
-        "selection_independence_z_ppm": _projected_selection_bias_z_ppm(
-            exact,
-            predicted,
-            srht,
-            selection_seed_sha256=selection_seed,
-        ),
+        "selection_independence_p_value_ppm": min(selection_p_values),
+        "selection_independence_z_ppm": max(selection_z_values),
     }
     payload["audit_sha256"] = hashlib.sha256(_canonical_json_bytes(payload)).hexdigest()
     return _canonical_json_bytes(payload)
@@ -424,36 +436,38 @@ def _relation_sign_p_value_ppm(
 def canonical_e0_relation_audit_bytes(
     e0_result: bytes,
     *,
-    exact: object,
+    first_exact: object,
+    second_exact: object,
     predicted: object,
-    sample_receipts: object,
+    first_sample_receipts: object,
+    second_sample_receipts: object,
 ) -> bytes:
     """Bind relation-conditioned finite-sample bias evidence to E0 custody."""
 
-    result = validate_e0_result_inputs(e0_result, exact=exact, predicted=predicted)
+    result = validate_e0_result_inputs(
+        e0_result,
+        first_exact=first_exact,
+        second_exact=second_exact,
+        predicted=predicted,
+    )
     custody_raw = canonical_e0_custody_bytes(
         e0_result=e0_result,
-        exact=exact,
+        first_exact=first_exact,
+        second_exact=second_exact,
         predicted=predicted,
-        sample_receipts=sample_receipts,
+        first_sample_receipts=first_sample_receipts,
+        second_sample_receipts=second_sample_receipts,
     )
     custody = validate_e0_custody_bytes(custody_raw)
-    if type(sample_receipts) is not tuple:
+    if type(first_sample_receipts) is not tuple or type(second_sample_receipts) is not tuple:
         raise ValueError("ASG-CV relation audit sample receipts differ")
-    receipt_values = [validate_gradient_sample_bytes(raw) for raw in sample_receipts]
-    exact_array = np.asarray(exact)
     predicted_array = np.asarray(predicted)
-    strata = exact_array.shape[0]
-    signs = np.asarray(
-        [value["relation_sign"] for value in receipt_values],
-        dtype=np.int8,
-    ).reshape(strata, ASGCV_STRATUM_SIZE)
     srht = AsgcvSrhtAuthority.from_mapping(result["srht_authority"])
-    potentials = projected_mean_error_potentials(exact_array, predicted_array, srht)
     selection_seed = result["selection_seed_sha256"]
     result_digest = result["result_sha256"]
     if type(selection_seed) is not str or type(result_digest) is not str:
         raise ValueError("ASG-CV relation audit result authority differs")
+    strata = np.asarray(first_exact).shape[0]
     observed_indices = np.fromiter(
         (
             select_stratum_index(
@@ -469,28 +483,51 @@ def canonical_e0_relation_audit_bytes(
     null_seed = hashlib.sha256(
         ASGCV_RELATION_NULL_SEED_DOMAIN + bytes.fromhex(result_digest)
     ).hexdigest()
-    positive_count, positive_p = _relation_sign_p_value_ppm(
-        potentials,
-        signs,
-        observed_indices,
-        relation_sign=1,
-        null_seed_sha256=null_seed,
-    )
-    negative_count, negative_p = _relation_sign_p_value_ppm(
-        potentials,
-        signs,
-        observed_indices,
-        relation_sign=-1,
-        null_seed_sha256=null_seed,
-    )
-    positive_mean = np.mean(potentials[signs == 1], axis=0, dtype=np.float64)
-    negative_mean = np.mean(potentials[signs == -1], axis=0, dtype=np.float64)
-    contrast = float(np.linalg.norm(positive_mean - negative_mean))
-    exact_estimates = np.mean(exact_array, axis=1, dtype=np.float64).reshape(strata, -1)
-    scale = math.sqrt(float(np.mean(np.einsum("ij,ij->i", exact_estimates, exact_estimates))))
-    if not math.isfinite(contrast) or not math.isfinite(scale) or scale <= 0.0:
-        raise ValueError("ASG-CV relation audit contrast differs")
-    contrast_ppm = int(math.ceil(contrast / scale * 1_000_000))
+
+    def block_statistics(
+        exact_block: object,
+        receipt_block: tuple[bytes, ...],
+    ) -> tuple[int, int, int, int, int]:
+        receipt_values = [validate_gradient_sample_bytes(raw) for raw in receipt_block]
+        exact_array = np.asarray(exact_block)
+        signs = np.asarray(
+            [value["relation_sign"] for value in receipt_values],
+            dtype=np.int8,
+        ).reshape(strata, ASGCV_STRATUM_SIZE)
+        potentials = projected_mean_error_potentials(exact_array, predicted_array, srht)
+        positive_count, positive_p = _relation_sign_p_value_ppm(
+            potentials,
+            signs,
+            observed_indices,
+            relation_sign=1,
+            null_seed_sha256=null_seed,
+        )
+        negative_count, negative_p = _relation_sign_p_value_ppm(
+            potentials,
+            signs,
+            observed_indices,
+            relation_sign=-1,
+            null_seed_sha256=null_seed,
+        )
+        positive_mean = np.mean(potentials[signs == 1], axis=0, dtype=np.float64)
+        negative_mean = np.mean(potentials[signs == -1], axis=0, dtype=np.float64)
+        contrast = float(np.linalg.norm(positive_mean - negative_mean))
+        exact_estimates = np.mean(exact_array, axis=1, dtype=np.float64).reshape(strata, -1)
+        scale = math.sqrt(float(np.mean(np.einsum("ij,ij->i", exact_estimates, exact_estimates))))
+        if not math.isfinite(contrast) or not math.isfinite(scale) or scale <= 0.0:
+            raise ValueError("ASG-CV relation audit contrast differs")
+        return (
+            positive_count,
+            negative_count,
+            positive_p,
+            negative_p,
+            int(math.ceil(contrast / scale * 1_000_000)),
+        )
+
+    first_statistics = block_statistics(first_exact, first_sample_receipts)
+    second_statistics = block_statistics(second_exact, second_sample_receipts)
+    if first_statistics[:2] != second_statistics[:2]:
+        raise ValueError("ASG-CV relation audit seed-block counts differ")
     payload: dict[str, object] = {
         "schema": ASGCV_RELATION_AUDIT_SCHEMA,
         "claim_eligible": False,
@@ -498,11 +535,11 @@ def canonical_e0_relation_audit_bytes(
         "custody_sha256": custody["custody_sha256"],
         "null_seed_sha256": null_seed,
         "randomization_draws": ASGCV_MEAN_RANDOMIZATION_DRAWS,
-        "positive_selected_count": positive_count,
-        "negative_selected_count": negative_count,
-        "positive_selection_p_value_ppm": positive_p,
-        "negative_selection_p_value_ppm": negative_p,
-        "relation_residual_contrast_ppm": contrast_ppm,
+        "positive_selected_count": first_statistics[0],
+        "negative_selected_count": first_statistics[1],
+        "positive_selection_p_value_ppm": min(first_statistics[2], second_statistics[2]),
+        "negative_selection_p_value_ppm": min(first_statistics[3], second_statistics[3]),
+        "relation_residual_contrast_ppm": max(first_statistics[4], second_statistics[4]),
     }
     payload["audit_sha256"] = hashlib.sha256(_canonical_json_bytes(payload)).hexdigest()
     return _canonical_json_bytes(payload)
