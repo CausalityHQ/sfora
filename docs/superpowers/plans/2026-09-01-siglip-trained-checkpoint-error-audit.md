@@ -170,13 +170,13 @@ Expected: all commands exit zero.
 Run:
 
 ```bash
-uv run --offline --locked pytest -q -p no:cacheprovider
+uv run --offline --locked .venv/bin/python -m pytest -q -p no:cacheprovider
 uv run --offline --locked ruff check src scripts tests
 uv run --offline --locked python -m compileall -q src scripts tests
 git diff --check
 ```
 
-Observed: the dependency-complete suite passed with `2816 passed, 2 skipped`.
+Observed: the dependency-complete suite passed with `2874 passed, 2 skipped`.
 Changed-file Ruff, Python compilation, and `git diff --check` passed. The
 repository-wide Ruff command remains red on pre-existing unrelated lint debt;
 the audit slice introduces no Ruff finding.
@@ -185,9 +185,13 @@ the audit slice introduces no Ruff finding.
 
 Ask the opposite provider to inspect authority cross-binding, forbidden clean leakage, checkpoint restoration, exact metric recomputation, atomic publication, and mutation coverage. Apply only independently verified findings and rerun the narrow failing layer before one final complete gate.
 
-- [ ] **Step 3: Commit and push exact scope**
+- [x] **Step 3: Commit and push exact scope**
 
 Force-add this ignored plan plus the exact implementation/test files; never use `git add .`. Commit with configured operator identity and no attribution, push `HEAD:devbox/emafactorial`, verify `HEAD == git ls-remote origin refs/heads/devbox/emafactorial`, and require status to contain only the protected untracked files.
+
+Observed: exact six-file slice committed and pushed as
+`1d9519eae81e8f55f4dc8ac6fa7d96a586f1abd3`; remote equality passed and
+status contained only the protected untracked files.
 
 - [ ] **Step 4: Keep scientific execution fenced**
 
