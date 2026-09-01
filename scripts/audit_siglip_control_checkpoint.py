@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
 
+import numpy as np
 import torch
 
 from sfora.siglip_checkpoint_audit import (
@@ -23,6 +24,11 @@ from sfora.siglip_checkpoint_audit import (
 )
 from sfora.substrate_screen import SubstrateScreenEvidence, score_frozen_substrate_evidence
 from sfora.token_set_screen import F1_TRAIN_CLASSES
+from sfora.twin_reachability import (
+    TwinReachabilityAuthority,
+    build_twin_reachability,
+    canonical_twin_reachability_artifact_bytes,
+)
 
 _SCRIPT_DIRECTORY = Path(__file__).resolve().parent
 if str(_SCRIPT_DIRECTORY) not in sys.path:
@@ -347,6 +353,76 @@ def restore_audit_model(
     return model.eval(), processor
 
 
+def _descriptor_sha256(descriptors: torch.Tensor) -> str:
+    canonical = descriptors.detach().to(device="cpu", dtype=torch.float32).contiguous()
+    header = _canonical(
+        {"dtype": "float32-le", "shape": [int(size) for size in canonical.shape]}
+    )
+    values = canonical.numpy().astype("<f4", copy=False).tobytes(order="C")
+    return hashlib.sha256(header + values).hexdigest()
+
+
+def _build_checkpoint_twin_artifacts(
+    *,
+    campaign: AuthenticatedControlCampaign,
+    burned_examples: tuple[object, ...],
+    raw_descriptors: torch.Tensor,
+    projected_descriptors: torch.Tensor,
+    labels: torch.Tensor,
+) -> tuple[bytes, bytes]:
+    positions = [
+        index
+        for index, example in enumerate(burned_examples)
+        if getattr(example, "label", None) in {82, 83}
+    ]
+    example_ids = tuple(getattr(burned_examples[index], "example_id", None) for index in positions)
+    selected_labels = tuple(getattr(burned_examples[index], "label", None) for index in positions)
+    if (
+        len(positions) < 40
+        or min(selected_labels.count(82), selected_labels.count(83)) < 20
+        or len(set(example_ids)) != len(example_ids)
+        or any(type(value) is not str or not value for value in example_ids)
+        or set(selected_labels) != {82, 83}
+        or any(type(value) is not int for value in selected_labels)
+        or not torch.equal(labels[positions], torch.tensor(selected_labels, dtype=torch.int64))
+    ):
+        raise ValueError("checkpoint twin example authority differs")
+    dataset = cast(dict[str, Any], campaign.seed_receipt["dataset"])
+    model = cast(dict[str, Any], campaign.seed_receipt["model"])
+    artifacts: list[bytes] = []
+    for plane, descriptors in (
+        ("trained-raw", raw_descriptors),
+        ("trained-projected", projected_descriptors),
+    ):
+        selected = (
+            descriptors[positions]
+            .detach()
+            .to(device="cpu", dtype=torch.float32)
+            .contiguous()
+        )
+        evidence = build_twin_reachability(
+            plane,
+            selected.numpy().astype(np.float32, copy=False),
+            np.asarray(selected_labels, dtype=np.int64),
+        )
+        authority = TwinReachabilityAuthority(
+            plane=plane,
+            source_revision=campaign.run_authority.source_revision,
+            source_tree_digest=campaign.run_authority.source_tree_digest,
+            dataset_revision=dataset["revision"],
+            dataset_manifest_sha256=dataset["manifest_sha256"],
+            model_name=model["name"],
+            model_revision=model["revision"],
+            producer_kind="trained-checkpoint",
+            producer_identity=campaign.checkpoint.sha256,
+            ordered_example_ids_sha256=_identity_sha256("example_ids", example_ids),
+            label_vector_sha256=_identity_sha256("labels", selected_labels),
+            descriptor_sha256=_descriptor_sha256(selected),
+        )
+        artifacts.append(canonical_twin_reachability_artifact_bytes(authority, evidence))
+    return artifacts[0], artifacts[1]
+
+
 def run_checkpoint_error_audit(
     *,
     campaign: AuthenticatedControlCampaign,
@@ -357,6 +433,7 @@ def run_checkpoint_error_audit(
         embed_control_examples
     ),
     score_descriptors: Callable[..., SubstrateScreenEvidence] = score_frozen_substrate_evidence,
+    twin_sink: Callable[[bytes, bytes], None] | None = None,
 ) -> bytes:
     """Restore once, score two descriptor planes, and serialize no clean identities."""
 
@@ -420,6 +497,18 @@ def run_checkpoint_error_audit(
         raw=raw_evidence,
         projected=projected_evidence,
     )
+    if twin_sink is not None:
+        if not callable(twin_sink):
+            raise TypeError("checkpoint twin sink differs")
+        twin_sink(
+            *_build_checkpoint_twin_artifacts(
+                campaign=campaign,
+                burned_examples=burned_examples,
+                raw_descriptors=raw_descriptors,
+                projected_descriptors=projected_descriptors,
+                labels=labels,
+            )
+        )
     return canonical_siglip_checkpoint_audit_bytes(
         evidence,
         authority=authority,
@@ -451,6 +540,58 @@ def publish_new_result(path: Path, payload: bytes) -> None:
         raise
 
 
+def require_new_result_paths(paths: tuple[Path, ...]) -> None:
+    """Fail before model work unless every distinct result path is create-new."""
+
+    if (
+        type(paths) is not tuple
+        or not paths
+        or any(not isinstance(path, Path) for path in paths)
+        or len({path.resolve() for path in paths}) != len(paths)
+    ):
+        raise TypeError("checkpoint audit result paths differ")
+    for path in paths:
+        partial = path.with_name(f".{path.name}.partial")
+        if path.exists() or path.is_symlink() or partial.exists() or partial.is_symlink():
+            raise FileExistsError(path)
+
+
+def publish_new_results(outputs: tuple[tuple[Path, bytes], ...]) -> None:
+    """Atomically publish a distinct create-new result set or roll it all back."""
+
+    if (
+        type(outputs) is not tuple
+        or not outputs
+        or any(
+            not isinstance(path, Path) or type(payload) is not bytes or not payload
+            for path, payload in outputs
+        )
+    ):
+        raise TypeError("checkpoint audit publication set differs")
+    require_new_result_paths(tuple(path for path, _payload in outputs))
+    partials: list[Path] = []
+    published: list[Path] = []
+    try:
+        for path, payload in outputs:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            partial = path.with_name(f".{path.name}.partial")
+            with partial.open("xb") as stream:
+                stream.write(payload)
+                stream.flush()
+                os.fsync(stream.fileno())
+            partials.append(partial)
+        for (path, _payload), partial in zip(outputs, partials, strict=True):
+            os.link(partial, path)
+            published.append(path)
+            partial.unlink()
+    except BaseException:
+        for path in reversed(published):
+            path.unlink(missing_ok=True)
+        for partial in partials:
+            partial.unlink(missing_ok=True)
+        raise
+
+
 def _absolute_path(value: str) -> Path:
     path = Path(value)
     if not path.is_absolute() or ".." in path.parts or os.path.normpath(value) != value:
@@ -467,6 +608,8 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--checkpoint-directory", required=True, type=_absolute_path)
     parser.add_argument("--selected-seed", required=True, type=int, choices=(_SELECTED_SEED,))
     parser.add_argument("--output", required=True, type=_absolute_path)
+    parser.add_argument("--raw-twin-output", required=True, type=_absolute_path)
+    parser.add_argument("--projected-twin-output", required=True, type=_absolute_path)
     parser.add_argument("--execute-checkpoint-audit", required=True, action="store_true")
     effective = list(sys.argv[1:] if argv is None else argv)
     flags = [value.split("=", 1)[0] for value in effective if value.startswith("--")]
@@ -485,6 +628,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     """Authenticate, execute once, and publish one canonical error audit."""
 
     arguments = parse_args(argv)
+    require_new_result_paths(
+        (
+            arguments.output,
+            arguments.raw_twin_output,
+            arguments.projected_twin_output,
+        )
+    )
     campaign = read_authenticated_control_campaign(
         aggregate=arguments.aggregate,
         seed_receipts=tuple(arguments.seed_receipt),
@@ -500,17 +650,32 @@ def main(argv: Sequence[str] | None = None) -> int:
         raise ValueError("checkpoint audit dataset manifest authority differs")
     device = torch.device("cuda")
     require_control_determinism(device)
+    twins: list[tuple[bytes, bytes]] = []
     payload = run_checkpoint_error_audit(
         campaign=campaign,
         burned_examples=cast(tuple[object, ...], bands.burned_diagnostic),
         device=device,
+        twin_sink=lambda raw, projected: twins.append((raw, projected)),
     )
-    publish_new_result(arguments.output, payload)
+    if len(twins) != 1:
+        raise RuntimeError("checkpoint twin artifacts were not produced exactly once")
+    raw_twin, projected_twin = twins[0]
+    publish_new_results(
+        (
+            (arguments.output, payload),
+            (arguments.raw_twin_output, raw_twin),
+            (arguments.projected_twin_output, projected_twin),
+        )
+    )
     sys.stdout.write(
         json.dumps(
             {
                 "output": str(arguments.output),
                 "sha256": hashlib.sha256(payload).hexdigest(),
+                "raw_twin_output": str(arguments.raw_twin_output),
+                "raw_twin_sha256": hashlib.sha256(raw_twin).hexdigest(),
+                "projected_twin_output": str(arguments.projected_twin_output),
+                "projected_twin_sha256": hashlib.sha256(projected_twin).hexdigest(),
             },
             sort_keys=True,
             separators=(",", ":"),

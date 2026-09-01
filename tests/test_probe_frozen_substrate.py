@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
+import json
 import struct
+from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -11,6 +13,10 @@ import torch
 from PIL import Image
 
 from sfora.substrate_screen import SubstrateRetrievalError
+from sfora.twin_reachability import (
+    TwinReachabilityAuthority,
+    validate_twin_reachability_artifact_bytes,
+)
 
 _SCRIPT = Path(__file__).parents[1] / "scripts" / "probe_frozen_substrate.py"
 _SPEC = importlib.util.spec_from_file_location("probe_frozen_substrate", _SCRIPT)
@@ -44,6 +50,8 @@ def test_probe_pins_dinov2_and_never_reads_test_split() -> None:
         in source
     )
     assert 'args.cell != "siglip-so400m"' not in source
+    assert source.count("descriptors, image_shape = _encode(") == 1
+    assert "twin_payload = _build_twin_reachability_artifact(" in source
 
 
 def test_probe_materializes_grayscale_as_rgb() -> None:
@@ -163,6 +171,79 @@ def test_descriptor_digest_binds_shape_dtype_and_exact_values() -> None:
         + struct.pack("<4f", 1.0, 0.0, 0.25, -0.5)
     ).hexdigest()
     assert _MODULE._descriptor_sha256(descriptors) == expected
+
+
+def test_frozen_twin_artifact_reuses_in_memory_descriptors_and_binds_authority() -> None:
+    examples = [
+        *(
+            SimpleNamespace(example_id=f"cars/train/82-{index}.jpg", label=82)
+            for index in range(20)
+        ),
+        *(
+            SimpleNamespace(example_id=f"cars/train/83-{index}.jpg", label=83)
+            for index in range(20)
+        ),
+        SimpleNamespace(example_id="cars/train/ignored.jpg", label=84),
+    ]
+    descriptors = torch.cat(
+        (
+            torch.tensor([[1.0, 0.0]]).repeat(20, 1),
+            torch.tensor([[0.0, 1.0]]).repeat(20, 1),
+            torch.tensor([[1.0, 1.0]]),
+        )
+    )
+
+    raw = _MODULE._build_twin_reachability_artifact(
+        examples=examples,
+        descriptors=descriptors,
+        source_revision="1" * 40,
+        source_tree_digest="2" * 64,
+        dataset_examples_sha256="3" * 64,
+        model_name="google/siglip-so400m-patch14-384",
+        model_revision="9fdffc58afc957d1a03a25b10dba0329ab15c2a3",
+    )
+
+    authority = TwinReachabilityAuthority(**json.loads(raw)["authority"])
+    evidence = validate_twin_reachability_artifact_bytes(raw, expected=authority)
+    assert evidence.plane == "frozen-pooled"
+    assert evidence.labels == (82,) * 20 + (83,) * 20
+    assert evidence.cue_present is True
+    assert authority.producer_kind == "frozen-model"
+    assert authority.producer_identity == authority.model_revision
+    selected = descriptors[:40].contiguous()
+    header = b'{"dtype":"float32-le","shape":[40,2]}\n'
+    assert authority.descriptor_sha256 == hashlib.sha256(
+        header + selected.numpy().astype("<f4", copy=False).tobytes(order="C")
+    ).hexdigest()
+    with pytest.raises(ValueError, match="authority"):
+        validate_twin_reachability_artifact_bytes(
+            raw,
+            expected=replace(authority, descriptor_sha256="0" * 64),
+        )
+
+    duplicated = [*examples]
+    duplicated[1] = SimpleNamespace(example_id=examples[0].example_id, label=82)
+    with pytest.raises(ValueError, match="example"):
+        _MODULE._build_twin_reachability_artifact(
+            examples=duplicated,
+            descriptors=descriptors,
+            source_revision="1" * 40,
+            source_tree_digest="2" * 64,
+            dataset_examples_sha256="3" * 64,
+            model_name="google/siglip-so400m-patch14-384",
+            model_revision="9fdffc58afc957d1a03a25b10dba0329ab15c2a3",
+        )
+
+    with pytest.raises((TypeError, ValueError), match="row"):
+        _MODULE._build_twin_reachability_artifact(
+            examples=examples,
+            descriptors=descriptors[:-1],
+            source_revision="1" * 40,
+            source_tree_digest="2" * 64,
+            dataset_examples_sha256="3" * 64,
+            model_name="google/siglip-so400m-patch14-384",
+            model_revision="9fdffc58afc957d1a03a25b10dba0329ab15c2a3",
+        )
 
 
 def test_two_output_publication_rolls_back_on_second_publish_failure(

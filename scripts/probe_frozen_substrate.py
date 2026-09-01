@@ -12,6 +12,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any, NamedTuple
 
+import numpy as np
 import torch
 from PIL import Image
 
@@ -21,6 +22,11 @@ from sfora.substrate_screen import (
     SubstrateRetrievalError,
     score_frozen_substrate_evidence,
     validate_substrate_holdout,
+)
+from sfora.twin_reachability import (
+    TwinReachabilityAuthority,
+    build_twin_reachability,
+    canonical_twin_reachability_artifact_bytes,
 )
 
 
@@ -146,6 +152,65 @@ def _descriptor_sha256(descriptors: torch.Tensor) -> str:
     )
     values = canonical.numpy().astype("<f4", copy=False).tobytes(order="C")
     return hashlib.sha256(header + values).hexdigest()
+
+
+def _build_twin_reachability_artifact(
+    *,
+    examples: Sequence[Any],
+    descriptors: torch.Tensor,
+    source_revision: str,
+    source_tree_digest: str,
+    dataset_examples_sha256: str,
+    model_name: str,
+    model_revision: str,
+) -> bytes:
+    if (
+        not isinstance(descriptors, torch.Tensor)
+        or descriptors.ndim != 2
+        or descriptors.shape[0] != len(examples)
+    ):
+        raise TypeError("twin descriptor row authority differs")
+    positions = [
+        index
+        for index, example in enumerate(examples)
+        if getattr(example, "label", None) in {82, 83}
+    ]
+    example_ids = tuple(getattr(examples[index], "example_id", None) for index in positions)
+    labels = tuple(getattr(examples[index], "label", None) for index in positions)
+    if (
+        len(positions) < 40
+        or min(labels.count(82), labels.count(83)) < 20
+        or len(set(example_ids)) != len(example_ids)
+        or any(type(value) is not str or not value for value in example_ids)
+        or set(labels) != {82, 83}
+        or any(type(value) is not int for value in labels)
+    ):
+        raise ValueError("twin example authority differs")
+    selected = descriptors[positions].detach().to(device="cpu", dtype=torch.float32).contiguous()
+    evidence = build_twin_reachability(
+        "frozen-pooled",
+        selected.numpy().astype(np.float32, copy=False),
+        np.asarray(labels, dtype=np.int64),
+    )
+    authority = TwinReachabilityAuthority(
+        plane="frozen-pooled",
+        source_revision=source_revision,
+        source_tree_digest=source_tree_digest,
+        dataset_revision=_DATASET_REVISION,
+        dataset_manifest_sha256=dataset_examples_sha256,
+        model_name=model_name,
+        model_revision=model_revision,
+        producer_kind="frozen-model",
+        producer_identity=model_revision,
+        ordered_example_ids_sha256=hashlib.sha256(
+            _canonical_bytes({"example_ids": list(example_ids)})
+        ).hexdigest(),
+        label_vector_sha256=hashlib.sha256(
+            _canonical_bytes({"labels": list(labels)})
+        ).hexdigest(),
+        descriptor_sha256=_descriptor_sha256(selected),
+    )
+    return canonical_twin_reachability_artifact_bytes(authority, evidence)
 
 
 def _build_error_manifest(
@@ -288,6 +353,7 @@ def main() -> None:
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--query-block", type=int, default=32)
     parser.add_argument("--error-manifest", type=Path)
+    parser.add_argument("--twin-reachability", type=Path)
     parser.add_argument("--expected-correct", type=int)
     args = parser.parse_args()
     substrate = _SUBSTRATES[args.cell]
@@ -306,6 +372,8 @@ def main() -> None:
         raise ValueError("batch and query block sizes must be positive")
     if (args.error_manifest is None) != (args.expected_correct is None):
         raise ValueError("error manifest and expected correct count must be specified together")
+    if args.twin_reachability is not None and args.error_manifest is None:
+        raise ValueError("twin reachability requires the registered error-manifest execution")
     if args.error_manifest is not None:
         assert args.expected_correct is not None
         _validate_error_evidence_request(
@@ -317,6 +385,8 @@ def main() -> None:
     outputs: tuple[Path, ...] = (args.output,)
     if args.error_manifest is not None:
         outputs += (args.error_manifest,)
+    if args.twin_reachability is not None:
+        outputs += (args.twin_reachability,)
     _require_new_outputs(outputs)
     if not torch.cuda.is_available():
         raise RuntimeError("the substrate screen requires CUDA")
@@ -353,6 +423,7 @@ def main() -> None:
     descriptor_sha256 = _descriptor_sha256(descriptors)
     error_manifest_sha256: str | None = None
     error_payload: bytes | None = None
+    twin_payload: bytes | None = None
     if args.error_manifest is not None:
         class_names = _load_cars_class_names()
         if metrics.correct != args.expected_correct:
@@ -375,6 +446,16 @@ def main() -> None:
         )
         error_payload = _canonical_bytes(error_manifest)
         error_manifest_sha256 = hashlib.sha256(error_payload).hexdigest()
+        if args.twin_reachability is not None:
+            twin_payload = _build_twin_reachability_artifact(
+                examples=holdout,
+                descriptors=descriptors,
+                source_revision=args.source_revision,
+                source_tree_digest=args.source_tree_digest,
+                dataset_examples_sha256=dataset_examples_sha256,
+                model_name=model_name,
+                model_revision=model_revision,
+            )
     result = {
         "schema": (
             "sfora-frozen-substrate-screen-v2"
@@ -418,14 +499,19 @@ def main() -> None:
                 "error_manifest_sha256": error_manifest_sha256,
             }
         )
+        if twin_payload is not None:
+            result["twin_reachability_sha256"] = hashlib.sha256(twin_payload).hexdigest()
     payload = _canonical_bytes(result)
     if args.error_manifest is None:
         _write_new(args.output, payload)
     else:
         assert error_payload is not None
-        _publish_new_outputs(
-            ((args.error_manifest, error_payload), (args.output, payload))
-        )
+        publication: list[tuple[Path, bytes]] = [(args.error_manifest, error_payload)]
+        if args.twin_reachability is not None:
+            assert twin_payload is not None
+            publication.append((args.twin_reachability, twin_payload))
+        publication.append((args.output, payload))
+        _publish_new_outputs(tuple(publication))
     summary = {
         "output": str(args.output),
         "sha256": hashlib.sha256(payload).hexdigest(),

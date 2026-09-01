@@ -17,6 +17,10 @@ from sfora.substrate_screen import (
     SubstrateScreenEvidence,
     SubstrateScreenMetrics,
 )
+from sfora.twin_reachability import (
+    TwinReachabilityAuthority,
+    validate_twin_reachability_artifact_bytes,
+)
 
 _ROOT = Path(__file__).parents[1]
 _CONTROL_SCRIPT = _ROOT / "scripts" / "run_siglip_proxy_control.py"
@@ -303,6 +307,7 @@ def test_runner_restores_once_scores_only_burned_and_self_validates(tmp_path: Pa
     raw_descriptors = torch.tensor([[1.0, 0.0]]).repeat(1_345, 1)
     projected_descriptors = torch.tensor([[0.0, 1.0]]).repeat(1_345, 1)
     labels = torch.tensor([example.label for example in examples], dtype=torch.int64)
+    twins: list[tuple[bytes, bytes]] = []
 
     def restore(**kwargs: object) -> tuple[object, object]:
         calls.append(("restore", kwargs["campaign"]))
@@ -324,6 +329,7 @@ def test_runner_restores_once_scores_only_burned_and_self_validates(tmp_path: Pa
         restore_model=restore,
         embed_examples=embed,
         score_descriptors=score,
+        twin_sink=lambda raw, projected: twins.append((raw, projected)),
     )
 
     assert [call[0] for call in calls] == ["restore", "embed", "score", "score"]
@@ -344,6 +350,22 @@ def test_runner_restores_once_scores_only_burned_and_self_validates(tmp_path: Pa
     )
     assert b"clean_validation" not in result
     assert b"optimization" not in result
+    assert len(twins) == 1
+    for expected_plane, twin in zip(("trained-raw", "trained-projected"), twins[0], strict=True):
+        authority = TwinReachabilityAuthority(**json.loads(twin)["authority"])
+        evidence = validate_twin_reachability_artifact_bytes(twin, expected=authority)
+        assert evidence.plane == expected_plane
+        assert evidence.source_count == 169
+        assert authority.producer_kind == "trained-checkpoint"
+        assert authority.producer_identity == campaign.checkpoint.sha256
+        selected_descriptors = (
+            raw_descriptors if expected_plane == "trained-raw" else projected_descriptors
+        )[[index for index, example in enumerate(examples) if example.label in {82, 83}]]
+        descriptor_header = b'{"dtype":"float32-le","shape":[169,2]}\n'
+        assert authority.descriptor_sha256 == hashlib.sha256(
+            descriptor_header
+            + selected_descriptors.numpy().astype("<f4", copy=False).tobytes(order="C")
+        ).hexdigest()
 
 
 def test_runner_rejects_terminal_metric_mismatch_and_cleans_publication(
@@ -380,6 +402,35 @@ def test_runner_rejects_terminal_metric_mismatch_and_cleans_publication(
     with pytest.raises(FileExistsError):
         _MODULE.publish_new_result(output, payload)
     assert not output.with_name(f".{output.name}.partial").exists()
+
+
+def test_multi_result_publication_rolls_back_and_preflight_rejects_existing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    first = tmp_path / "first.json"
+    second = tmp_path / "second.json"
+    third = tmp_path / "third.json"
+    original_link = _MODULE.os.link
+    calls = 0
+
+    def fail_second(source: Path, target: Path) -> None:
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise OSError("injected multi-result failure")
+        original_link(source, target)
+
+    monkeypatch.setattr(_MODULE.os, "link", fail_second)
+    with pytest.raises(OSError, match="injected"):
+        _MODULE.publish_new_results(
+            ((first, b"first\n"), (second, b"second\n"), (third, b"third\n"))
+        )
+    assert not first.exists() and not second.exists() and not third.exists()
+    assert not any(tmp_path.glob(".*.partial"))
+
+    first.write_bytes(b"sealed\n")
+    with pytest.raises(FileExistsError):
+        _MODULE.require_new_result_paths((first, second, third))
 
 
 def test_runner_rejects_wrong_band_before_restore(tmp_path: Path) -> None:
@@ -466,6 +517,8 @@ def test_cli_requires_exact_local_capability_and_main_publishes_once(
 ) -> None:
     fixture = _campaign_fixture(tmp_path)
     output = tmp_path / "result.json"
+    raw_twin_output = tmp_path / "raw-twin.json"
+    projected_twin_output = tmp_path / "projected-twin.json"
     receipt_paths = cast(tuple[Path, ...], fixture["receipt_paths"])
     arguments = [
         "--aggregate",
@@ -476,6 +529,10 @@ def test_cli_requires_exact_local_capability_and_main_publishes_once(
         "17",
         "--output",
         str(output),
+        "--raw-twin-output",
+        str(raw_twin_output),
+        "--projected-twin-output",
+        str(projected_twin_output),
     ]
     for path in receipt_paths:
         arguments.extend(("--seed-receipt", str(path)))
@@ -490,6 +547,9 @@ def test_cli_requires_exact_local_capability_and_main_publishes_once(
         _MODULE.parse_args(arguments[:-3] + ["--execute-checkpoint-audit"])
     with pytest.raises(SystemExit):
         _MODULE.parse_args(arguments + ["--clean-errors", str(tmp_path / "forbidden.json")])
+    projected_flag = arguments.index("--projected-twin-output")
+    with pytest.raises(SystemExit):
+        _MODULE.parse_args(arguments[:projected_flag] + arguments[projected_flag + 2 :])
 
     campaign = _MODULE.read_authenticated_control_campaign(
         aggregate=fixture["aggregate"],
@@ -513,6 +573,8 @@ def test_cli_requires_exact_local_capability_and_main_publishes_once(
     monkeypatch.setattr(_MODULE, "load_control_examples", lambda: bands)
     monkeypatch.setattr(_MODULE, "control_manifest_sha256", lambda _rows: "3" * 64)
     payload = b'{"claim_eligible":false,"sealed":true}\n'
+    raw_twin = b'{"plane":"trained-raw"}\n'
+    projected_twin = b'{"plane":"trained-projected"}\n'
     calls: list[tuple[object, ...] | str] = []
 
     def deterministic(device: torch.device) -> None:
@@ -521,20 +583,29 @@ def test_cli_requires_exact_local_capability_and_main_publishes_once(
 
     def run(**kwargs: object) -> bytes:
         calls.append((kwargs["campaign"], kwargs["burned_examples"], kwargs["device"]))
+        cast(Any, kwargs["twin_sink"])(raw_twin, projected_twin)
         return payload
 
     monkeypatch.setattr(_MODULE, "require_control_determinism", deterministic)
     monkeypatch.setattr(_MODULE, "run_checkpoint_error_audit", run)
     assert _MODULE.main(arguments) == 0
     assert output.read_bytes() == payload
+    assert raw_twin_output.read_bytes() == raw_twin
+    assert projected_twin_output.read_bytes() == projected_twin
     assert calls == ["deterministic", (campaign, examples, torch.device("cuda"))]
     terminal = json.loads(capsys.readouterr().out)
     assert terminal == {
         "output": str(output),
         "sha256": hashlib.sha256(payload).hexdigest(),
+        "raw_twin_output": str(raw_twin_output),
+        "raw_twin_sha256": hashlib.sha256(raw_twin).hexdigest(),
+        "projected_twin_output": str(projected_twin_output),
+        "projected_twin_sha256": hashlib.sha256(projected_twin).hexdigest(),
     }
 
     output.unlink()
+    raw_twin_output.unlink()
+    projected_twin_output.unlink()
     bands.burned_diagnostic = examples[:-1]
     with pytest.raises(ValueError, match="manifest"):
         _MODULE.main(arguments)
