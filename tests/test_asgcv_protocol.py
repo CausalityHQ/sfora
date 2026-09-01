@@ -10,10 +10,12 @@ from sfora.asgcv_protocol import (
     AsgcvPartitionAuthority,
     AsgcvRolloutAuthority,
     assemble_asgcv_eligible_schedule,
+    assemble_asgcv_marginal_schedule,
     build_asgcv_pair_schedule,
     classify_asgcv_completion,
     classify_asgcv_completion_group,
     derive_asgcv_rollout_seeds,
+    validate_asgcv_marginal_protocol_bundle,
     validate_asgcv_partition_bundle,
     validate_asgcv_protocol_bundle,
 )
@@ -63,17 +65,17 @@ def test_partition_authority_seals_disjoint_class_bands_and_image_identities() -
 
     validate_asgcv_partition_bundle(
         authority,
-        predictor_train=(('train-a', 'train-b'), (0, 1)),
-        e0_validation=(('valid-a', 'valid-b'), (2, 3)),
-        e1_optimization=(('optim-a', 'optim-b'), (4, 5)),
+        predictor_train=(("train-a", "train-b"), (0, 1)),
+        e0_validation=(("valid-a", "valid-b"), (2, 3)),
+        e1_optimization=(("optim-a", "optim-b"), (4, 5)),
     )
 
     with pytest.raises(ValueError):
         validate_asgcv_partition_bundle(
             authority,
-            predictor_train=(('shared', 'train-b'), (0, 1)),
-            e0_validation=(('valid-a', 'shared'), (2, 3)),
-            e1_optimization=(('optim-a', 'optim-b'), (4, 5)),
+            predictor_train=(("shared", "train-b"), (0, 1)),
+            e0_validation=(("valid-a", "shared"), (2, 3)),
+            e1_optimization=(("optim-a", "optim-b"), (4, 5)),
         )
 
 
@@ -91,9 +93,9 @@ def test_partition_authority_rejects_class_overlap_schema_and_role_drift() -> No
     with pytest.raises(ValueError):
         validate_asgcv_partition_bundle(
             authority,
-            predictor_train=(('train-a', 'train-b'), (0, 2)),
-            e0_validation=(('valid-a', 'valid-b'), (2, 3)),
-            e1_optimization=(('optim-a', 'optim-b'), (4, 5)),
+            predictor_train=(("train-a", "train-b"), (0, 2)),
+            e0_validation=(("valid-a", "valid-b"), (2, 3)),
+            e1_optimization=(("optim-a", "optim-b"), (4, 5)),
         )
 
 
@@ -204,8 +206,7 @@ def test_completion_classification_rejects_empty_attributes_and_input_drift() ->
 def test_completion_group_derives_variance_eligibility_and_exact_teacher_spans() -> None:
     protocol = _protocol()
     completions = tuple(
-        (11, 12, 30 + index, 99) if index < 4 else (21, 22, 23, 40 + index, 0)
-        for index in range(8)
+        (11, 12, 30 + index, 99) if index < 4 else (21, 22, 23, 40 + index, 0) for index in range(8)
     )
     rollout = _rollout_authority()
     group = classify_asgcv_completion_group(
@@ -247,13 +248,16 @@ def test_completion_group_derives_variance_eligibility_and_exact_teacher_spans()
             type(group).from_mapping(mutation)
 
     all_correct = tuple((11, 12, 30 + index, 99) for index in range(8))
-    assert classify_asgcv_completion_group(
-        all_correct,
-        1,
-        protocol,
-        rollout_authority=rollout,
-        candidate_pair_ordinal=7,
-    ).nonzero_reward_variance is False
+    assert (
+        classify_asgcv_completion_group(
+            all_correct,
+            1,
+            protocol,
+            rollout_authority=rollout,
+            candidate_pair_ordinal=7,
+        ).nonzero_reward_variance
+        is False
+    )
 
     with pytest.raises(ValueError):
         classify_asgcv_completion_group(
@@ -318,6 +322,73 @@ def test_eligible_schedule_refills_before_gradients_and_preserves_relation_balan
             candidates,
             tuple(groups),
             target_pair_count=16,
+        )
+
+
+def test_marginal_schedule_preserves_candidates_and_seals_exact_zero_targets() -> None:
+    protocol = _protocol()
+    rollout = _rollout_authority()
+    example_ids = tuple(f"cars-{index:02d}" for index in range(32))
+    labels = tuple(index // 4 for index in range(32))
+    candidates = build_asgcv_pair_schedule(
+        example_ids,
+        labels,
+        schedule_seed_sha256="ab" * 32,
+        pair_count=16,
+    )
+    groups = tuple(
+        classify_asgcv_completion_group(
+            tuple(
+                (
+                    *((11, 12) if pair.relation_sign == 1 else (21, 22, 23)),
+                    30 + index,
+                    99,
+                )
+                if pair.ordinal % 3 or index < 4
+                else (
+                    *((21, 22, 23) if pair.relation_sign == 1 else (11, 12)),
+                    30 + index,
+                    99,
+                )
+                for index in range(8)
+            ),
+            pair.relation_sign,
+            protocol,
+            rollout_authority=rollout,
+            candidate_pair_ordinal=pair.ordinal,
+        )
+        for pair in candidates.pairs
+    )
+    schedule = assemble_asgcv_marginal_schedule(candidates, groups)
+    assert schedule.candidate_ordinals == tuple(range(16))
+    assert schedule.zero_target_flags == tuple(
+        not group.nonzero_reward_variance for group in groups
+    )
+    assert any(schedule.zero_target_flags) and not all(schedule.zero_target_flags)
+    assert type(schedule).from_mapping(schedule.to_mapping()) == schedule
+    validate_asgcv_marginal_protocol_bundle(
+        protocol,
+        rollout,
+        candidates,
+        groups,
+        schedule,
+        example_ids=example_ids,
+        labels=labels,
+    )
+
+    drift = replace(
+        schedule,
+        zero_target_flags=(not schedule.zero_target_flags[0], *schedule.zero_target_flags[1:]),
+    )
+    with pytest.raises(ValueError, match="reconstruction"):
+        validate_asgcv_marginal_protocol_bundle(
+            protocol,
+            rollout,
+            candidates,
+            groups,
+            drift,
+            example_ids=example_ids,
+            labels=labels,
         )
 
 

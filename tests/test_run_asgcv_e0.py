@@ -278,3 +278,49 @@ def test_eligibility_generates_exact_source_seeded_groups_before_capture() -> No
             candidate_pair_ordinal=pair.ordinal,
         )
     ]
+
+
+def test_marginal_schedule_keeps_zero_variance_and_duplicate_completion_groups() -> None:
+    protocol, rollout, example_ids, labels, candidates, _, _ = _protocol_bundle()
+
+    class Adapter:
+        def __init__(self) -> None:
+            self.group = -1
+
+        def prepare_image_pair(self, images: object, *args: object) -> int:
+            assert isinstance(images, tuple) and len(images) == 2
+            self.group += 1
+            return self.group
+
+        def generate(self, pair: int, seed: int, **kwargs: object) -> tuple[int, ...]:
+            del seed, kwargs
+            relation = candidates.pairs[pair].relation_sign
+            if pair % 2 == 0:
+                prefix = (11, 12) if relation == 1 else (21, 22)
+                return (*prefix, 77, 99)
+            rollout = getattr(self, "rollout", 0)
+            self.rollout = rollout + 1
+            correct = rollout % 8 < 4
+            verdict = relation if correct else -relation
+            prefix = (11, 12) if verdict == 1 else (21, 22)
+            return (*prefix, 77 + rollout % 8, 99)
+
+    images = tuple(np.full((8, 8, 3), index, dtype=np.uint8) for index in range(32))
+    groups, schedule = _MODULE.build_marginal_schedule(
+        Adapter(),
+        images=images,
+        prompt_utf8="Describe the relation.",
+        attribute_token_span=(2, 3),
+        patch_tokens_per_image=4,
+        protocol=protocol,
+        rollout_authority=rollout,
+        candidate_schedule=candidates,
+        example_ids=example_ids,
+        labels=labels,
+    )
+    assert schedule.candidate_ordinals == tuple(range(candidates.pair_count))
+    assert schedule.zero_target_flags == tuple(
+        not group.nonzero_reward_variance for group in groups
+    )
+    assert schedule.zero_target_flags[0] is True
+    assert len(set(groups[0].completion_ids)) == 1

@@ -14,6 +14,8 @@ ASGCV_COMPLETION_GROUP_SCHEMA = "sfora-asgcv-completion-group-v2"
 ASGCV_COMPLETION_GROUP_DOMAIN = b"sfora-asgcv-completion-group-v1\0"
 ASGCV_ELIGIBLE_SCHEDULE_SCHEMA = "sfora-asgcv-eligible-schedule-v1"
 ASGCV_ELIGIBLE_SCHEDULE_DOMAIN = b"sfora-asgcv-eligible-schedule-v1\0"
+ASGCV_MARGINAL_SCHEDULE_SCHEMA = "sfora-asgcv-marginal-schedule-v1"
+ASGCV_MARGINAL_SCHEDULE_DOMAIN = b"sfora-asgcv-marginal-schedule-v1\0"
 ASGCV_ROLLOUT_AUTHORITY_SCHEMA = "sfora-asgcv-rollout-authority-v1"
 ASGCV_ROLLOUT_AUTHORITY_DOMAIN = b"sfora-asgcv-rollout-authority-v1\0"
 ASGCV_ROLLOUT_SEED_DOMAIN = b"sfora-asgcv-rollout-seed-v1\0"
@@ -330,10 +332,7 @@ def derive_asgcv_rollout_seeds(
     if type(authority) is not AsgcvRolloutAuthority:
         raise ValueError("ASG-CV rollout authority differs")
     authority.validated()
-    if (
-        type(candidate_pair_ordinal) is not int
-        or not 0 <= candidate_pair_ordinal < 2**64
-    ):
+    if type(candidate_pair_ordinal) is not int or not 0 <= candidate_pair_ordinal < 2**64:
         raise ValueError("ASG-CV rollout candidate ordinal differs")
     authority_digest = bytes.fromhex(authority.sha256())
     seeds = tuple(
@@ -464,9 +463,7 @@ class AsgcvCompletionGroup:
         if any(type(raw) is not list for raw in rows):
             raise ValueError("ASG-CV completion group rows differ")
         completions = tuple(tuple(row) if type(row) is list else () for row in raw_completions)
-        spans = tuple(
-            tuple(span) if type(span) is list else None for span in raw_spans
-        )
+        spans = tuple(tuple(span) if type(span) is list else None for span in raw_spans)
         return cls(
             completion_ids=completions,
             expected_relation_sign=value["expected_relation_sign"],
@@ -658,6 +655,99 @@ class AsgcvEligibleSchedule:
         ).hexdigest()
 
 
+@dataclass(frozen=True, slots=True)
+class AsgcvMarginalSchedule:
+    """Candidate-ordered marginal targets, including exact DAPO zero fields."""
+
+    candidate_schedule_sha256: str
+    target_pair_count: int
+    candidate_ordinals: tuple[int, ...]
+    zero_target_flags: tuple[bool, ...]
+
+    def validated(self) -> AsgcvMarginalSchedule:
+        _sha256_seed(self.candidate_schedule_sha256, name="candidate schedule digest")
+        if (
+            type(self.target_pair_count) is not int
+            or self.target_pair_count <= 0
+            or self.target_pair_count % ASGCV_STRATUM_SIZE != 0
+            or type(self.candidate_ordinals) is not tuple
+            or self.candidate_ordinals != tuple(range(self.target_pair_count))
+            or type(self.zero_target_flags) is not tuple
+            or len(self.zero_target_flags) != self.target_pair_count
+            or any(type(value) is not bool for value in self.zero_target_flags)
+        ):
+            raise ValueError("ASG-CV marginal schedule authority differs")
+        return self
+
+    def to_mapping(self) -> dict[str, object]:
+        self.validated()
+        return {
+            "schema": ASGCV_MARGINAL_SCHEDULE_SCHEMA,
+            "candidate_schedule_sha256": self.candidate_schedule_sha256,
+            "target_pair_count": self.target_pair_count,
+            "candidate_ordinals": list(self.candidate_ordinals),
+            "zero_target_flags": list(self.zero_target_flags),
+        }
+
+    @classmethod
+    def from_mapping(cls, value: object) -> AsgcvMarginalSchedule:
+        if type(value) is not dict or set(value) != {
+            "schema",
+            "candidate_schedule_sha256",
+            "target_pair_count",
+            "candidate_ordinals",
+            "zero_target_flags",
+        }:
+            raise ValueError("ASG-CV marginal schedule schema differs")
+        if value["schema"] != ASGCV_MARGINAL_SCHEDULE_SCHEMA:
+            raise ValueError("ASG-CV marginal schedule authority differs")
+        ordinals = value["candidate_ordinals"]
+        flags = value["zero_target_flags"]
+        if type(ordinals) is not list or type(flags) is not list:
+            raise ValueError("ASG-CV marginal schedule rows differ")
+        return cls(
+            candidate_schedule_sha256=value["candidate_schedule_sha256"],
+            target_pair_count=value["target_pair_count"],
+            candidate_ordinals=tuple(ordinals),
+            zero_target_flags=tuple(flags),
+        ).validated()
+
+    def sha256(self) -> str:
+        return hashlib.sha256(
+            ASGCV_MARGINAL_SCHEDULE_DOMAIN + _canonical_json_bytes(self.to_mapping())
+        ).hexdigest()
+
+
+def assemble_asgcv_marginal_schedule(
+    candidates: AsgcvPairSchedule,
+    groups: tuple[AsgcvCompletionGroup, ...],
+) -> AsgcvMarginalSchedule:
+    """Retain every candidate and bind zero targets without outcome-conditioned refill."""
+
+    if type(candidates) is not AsgcvPairSchedule:
+        raise ValueError("ASG-CV candidate schedule differs")
+    candidates.validated()
+    if type(groups) is not tuple or len(groups) != candidates.pair_count:
+        raise ValueError("ASG-CV candidate completion groups differ")
+    flags: list[bool] = []
+    for pair, group in zip(candidates.pairs, groups, strict=True):
+        if type(group) is not AsgcvCompletionGroup:
+            raise ValueError("ASG-CV candidate completion group differs")
+        group.validated()
+        if (
+            group.candidate_pair_ordinal != pair.ordinal
+            or group.expected_relation_sign != pair.relation_sign
+        ):
+            raise ValueError("ASG-CV candidate relation binding differs")
+        flags.append(not group.nonzero_reward_variance)
+    return AsgcvMarginalSchedule(
+        candidate_schedule_sha256=candidates.sha256(),
+        target_pair_count=candidates.pair_count,
+        candidate_ordinals=tuple(range(candidates.pair_count)),
+        zero_target_flags=tuple(flags),
+    ).validated()
+
+
 def assemble_asgcv_eligible_schedule(
     candidates: AsgcvPairSchedule,
     groups: tuple[AsgcvCompletionGroup, ...],
@@ -761,6 +851,58 @@ def validate_asgcv_protocol_bundle(
         raise ValueError("ASG-CV eligible schedule reconstruction differs")
 
 
+def validate_asgcv_marginal_protocol_bundle(
+    protocol: AsgcvCompletionProtocol,
+    rollout_authority: AsgcvRolloutAuthority,
+    candidates: AsgcvPairSchedule,
+    groups: tuple[AsgcvCompletionGroup, ...],
+    marginal: AsgcvMarginalSchedule,
+    *,
+    example_ids: tuple[str, ...],
+    labels: tuple[int, ...],
+) -> None:
+    """Rebuild candidate-marginal targets without an outcome-conditioned refill."""
+
+    if (
+        type(protocol) is not AsgcvCompletionProtocol
+        or type(rollout_authority) is not AsgcvRolloutAuthority
+        or type(candidates) is not AsgcvPairSchedule
+        or type(groups) is not tuple
+        or type(marginal) is not AsgcvMarginalSchedule
+    ):
+        raise ValueError("ASG-CV marginal protocol bundle differs")
+    protocol.validated()
+    rollout_authority.validated()
+    candidates.validated()
+    marginal.validated()
+    rebuilt_candidates = build_asgcv_pair_schedule(
+        example_ids,
+        labels,
+        schedule_seed_sha256=candidates.schedule_seed_sha256,
+        pair_count=candidates.pair_count,
+    )
+    if rebuilt_candidates != candidates:
+        raise ValueError("ASG-CV marginal candidate schedule reconstruction differs")
+    if len(groups) != candidates.pair_count:
+        raise ValueError("ASG-CV marginal completion group count differs")
+    for pair, group in zip(candidates.pairs, groups, strict=True):
+        if type(group) is not AsgcvCompletionGroup:
+            raise ValueError("ASG-CV marginal completion group differs")
+        group.validated()
+        rebuilt_group = classify_asgcv_completion_group(
+            group.completion_ids,
+            pair.relation_sign,
+            protocol,
+            rollout_authority=rollout_authority,
+            candidate_pair_ordinal=pair.ordinal,
+        )
+        if rebuilt_group != group:
+            raise ValueError("ASG-CV marginal completion group reconstruction differs")
+    rebuilt_marginal = assemble_asgcv_marginal_schedule(candidates, groups)
+    if rebuilt_marginal != marginal:
+        raise ValueError("ASG-CV marginal schedule reconstruction differs")
+
+
 def _sha256_seed(value: object, *, name: str) -> bytes:
     if (
         type(value) is not str
@@ -825,8 +967,7 @@ def build_asgcv_pair_schedule(
             ),
         )
         positive_candidates.extend(
-            (ranked[offset], ranked[offset + 1])
-            for offset in range(0, len(ranked) - 1, 2)
+            (ranked[offset], ranked[offset + 1]) for offset in range(0, len(ranked) - 1, 2)
         )
     positive_candidates.sort(
         key=lambda pair: (
@@ -990,9 +1131,7 @@ def classify_asgcv_completion_group(
     )
     rewards = tuple(value.reward for value in classifications)
     correct = tuple(value.reward == 1 for value in classifications)
-    spans = tuple(
-        value.attribute_span if value.reward == 1 else None for value in classifications
-    )
+    spans = tuple(value.attribute_span if value.reward == 1 else None for value in classifications)
     correct_count = sum(rewards)
     return AsgcvCompletionGroup(
         completion_ids=completion_ids,

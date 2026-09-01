@@ -15,11 +15,14 @@ from sfora.asgcv_protocol import (
     AsgcvCompletionGroup,
     AsgcvCompletionProtocol,
     AsgcvEligibleSchedule,
+    AsgcvMarginalSchedule,
     AsgcvPairSchedule,
     AsgcvRolloutAuthority,
     assemble_asgcv_eligible_schedule,
+    assemble_asgcv_marginal_schedule,
     classify_asgcv_completion_group,
     derive_asgcv_rollout_seeds,
+    validate_asgcv_marginal_protocol_bundle,
     validate_asgcv_protocol_bundle,
 )
 
@@ -280,7 +283,7 @@ def capture_schedule(
     return validated_capture_prefix(directory, expected_count=expected)
 
 
-def build_eligibility_schedule(
+def _build_completion_groups(
     adapter: EligibilityAdapter,
     *,
     images: tuple[np.ndarray, ...],
@@ -290,11 +293,10 @@ def build_eligibility_schedule(
     protocol: AsgcvCompletionProtocol,
     rollout_authority: AsgcvRolloutAuthority,
     candidate_schedule: AsgcvPairSchedule,
-    target_pair_count: int,
     example_ids: tuple[str, ...],
     labels: tuple[int, ...],
-) -> tuple[tuple[AsgcvCompletionGroup, ...], AsgcvEligibleSchedule]:
-    """Generate and seal all completion groups before any gradient capability exists."""
+) -> tuple[AsgcvCompletionGroup, ...]:
+    """Generate all source-seeded completion groups without gradient capability."""
 
     if (
         type(images) is not tuple
@@ -341,10 +343,39 @@ def build_eligibility_schedule(
             )
         )
     sealed_groups = tuple(groups)
+    return sealed_groups
+
+
+def build_eligibility_schedule(
+    adapter: EligibilityAdapter,
+    *,
+    images: tuple[np.ndarray, ...],
+    prompt_utf8: str,
+    attribute_token_span: tuple[int, int],
+    patch_tokens_per_image: int,
+    protocol: AsgcvCompletionProtocol,
+    rollout_authority: AsgcvRolloutAuthority,
+    candidate_schedule: AsgcvPairSchedule,
+    target_pair_count: int,
+    example_ids: tuple[str, ...],
+    labels: tuple[int, ...],
+) -> tuple[tuple[AsgcvCompletionGroup, ...], AsgcvEligibleSchedule]:
+    """Build the historical eligible-only refill schedule."""
+
+    sealed_groups = _build_completion_groups(
+        adapter,
+        images=images,
+        prompt_utf8=prompt_utf8,
+        attribute_token_span=attribute_token_span,
+        patch_tokens_per_image=patch_tokens_per_image,
+        protocol=protocol,
+        rollout_authority=rollout_authority,
+        candidate_schedule=candidate_schedule,
+        example_ids=example_ids,
+        labels=labels,
+    )
     eligible = assemble_asgcv_eligible_schedule(
-        candidate_schedule,
-        sealed_groups,
-        target_pair_count=target_pair_count,
+        candidate_schedule, sealed_groups, target_pair_count=target_pair_count
     )
     validate_asgcv_protocol_bundle(
         protocol,
@@ -356,3 +387,43 @@ def build_eligibility_schedule(
         labels=labels,
     )
     return sealed_groups, eligible
+
+
+def build_marginal_schedule(
+    adapter: EligibilityAdapter,
+    *,
+    images: tuple[np.ndarray, ...],
+    prompt_utf8: str,
+    attribute_token_span: tuple[int, int],
+    patch_tokens_per_image: int,
+    protocol: AsgcvCompletionProtocol,
+    rollout_authority: AsgcvRolloutAuthority,
+    candidate_schedule: AsgcvPairSchedule,
+    example_ids: tuple[str, ...],
+    labels: tuple[int, ...],
+) -> tuple[tuple[AsgcvCompletionGroup, ...], AsgcvMarginalSchedule]:
+    """Seal candidate-marginal targets without outcome-conditioned refill."""
+
+    sealed_groups = _build_completion_groups(
+        adapter,
+        images=images,
+        prompt_utf8=prompt_utf8,
+        attribute_token_span=attribute_token_span,
+        patch_tokens_per_image=patch_tokens_per_image,
+        protocol=protocol,
+        rollout_authority=rollout_authority,
+        candidate_schedule=candidate_schedule,
+        example_ids=example_ids,
+        labels=labels,
+    )
+    marginal = assemble_asgcv_marginal_schedule(candidate_schedule, sealed_groups)
+    validate_asgcv_marginal_protocol_bundle(
+        protocol,
+        rollout_authority,
+        candidate_schedule,
+        sealed_groups,
+        marginal,
+        example_ids=example_ids,
+        labels=labels,
+    )
+    return sealed_groups, marginal
