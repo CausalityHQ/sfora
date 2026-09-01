@@ -141,7 +141,7 @@ Expected: all commands exit zero.
 - Consumes: complete verified implementation.
 - Produces: pushed code ready for a separately monitored post-control DGX execution.
 
-- [ ] **Step 1: Run dependency-complete repository assurance**
+- [x] **Step 1: Run dependency-complete repository assurance**
 
 Run:
 
@@ -152,9 +152,12 @@ uv run --offline --locked python -m compileall -q src scripts tests
 git diff --check
 ```
 
-Expected: all commands exit zero; existing skips only.
+Observed: the dependency-complete suite passed with `2816 passed, 2 skipped`.
+Changed-file Ruff, Python compilation, and `git diff --check` passed. The
+repository-wide Ruff command remains red on pre-existing unrelated lint debt;
+the audit slice introduces no Ruff finding.
 
-- [ ] **Step 2: Obtain independent read-only diff review**
+- [x] **Step 2: Obtain independent read-only diff review**
 
 Ask the opposite provider to inspect authority cross-binding, forbidden clean leakage, checkpoint restoration, exact metric recomputation, atomic publication, and mutation coverage. Apply only independently verified findings and rerun the narrow failing layer before one final complete gate.
 

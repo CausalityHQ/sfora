@@ -197,6 +197,9 @@ def test_campaign_authenticates_aggregate_selected_seed_and_checkpoint(tmp_path:
     assert campaign.aggregate_sha256 == hashlib.sha256(
         cast(Path, fixture["aggregate"]).read_bytes()
     ).hexdigest()
+    assert campaign.seed_receipt_sha256 == hashlib.sha256(
+        cast(tuple[Path, ...], fixture["receipt_paths"])[0].read_bytes()
+    ).hexdigest()
 
 
 def test_campaign_rejects_stale_aggregate_and_semantic_authority_drift(
@@ -310,14 +313,14 @@ def test_runner_restores_once_scores_only_burned_and_self_validates(tmp_path: Pa
         calls.append(("embed", tuple(row.label for row in observed)))
         return raw_descriptors, projected_descriptors, labels
 
-    def score(descriptors: torch.Tensor, _labels: torch.Tensor, **_kwargs: object) -> Any:
-        calls.append(("score", descriptors))
+    def score(descriptors: torch.Tensor, observed_labels: torch.Tensor, **_kwargs: object) -> Any:
+        calls.append(("score", descriptors, observed_labels))
         return _terminal_screen(1_258)
 
     result = _MODULE.run_checkpoint_error_audit(
         campaign=campaign,
         burned_examples=examples,
-        device=torch.device("cpu"),
+        device=torch.device("cuda"),
         restore_model=restore,
         embed_examples=embed,
         score_descriptors=score,
@@ -327,6 +330,10 @@ def test_runner_restores_once_scores_only_burned_and_self_validates(tmp_path: Pa
     assert all(82 <= label <= 97 for label in cast(tuple[int, ...], calls[1][1]))
     assert calls[2][1] is raw_descriptors
     assert calls[3][1] is projected_descriptors
+    assert calls[2][2] is labels
+    assert calls[3][2] is labels
+    assert cast(torch.Tensor, calls[2][1]).device.type == "cpu"
+    assert cast(torch.Tensor, calls[2][2]).device.type == "cpu"
     example_ids = tuple(row.example_id for row in examples)
     example_labels = tuple(row.label for row in examples)
     validate_siglip_checkpoint_audit_bytes(
@@ -375,6 +382,83 @@ def test_runner_rejects_terminal_metric_mismatch_and_cleans_publication(
     assert not output.with_name(f".{output.name}.partial").exists()
 
 
+def test_runner_rejects_wrong_band_before_restore(tmp_path: Path) -> None:
+    fixture = _campaign_fixture(tmp_path)
+    campaign = _MODULE.read_authenticated_control_campaign(
+        aggregate=fixture["aggregate"],
+        seed_receipts=fixture["receipt_paths"],
+        checkpoint_directory=fixture["checkpoint_directory"],
+        selected_seed=17,
+    )
+    examples = list(_burned_examples())
+    examples[0] = _CONTROL.ImageExample(
+        example_id="cars-clean-forbidden",
+        image=object(),
+        label=81,
+    )
+    called = False
+
+    def restore(**_kwargs: object) -> tuple[object, object]:
+        nonlocal called
+        called = True
+        return object(), object()
+
+    with pytest.raises(ValueError, match="burned"):
+        _MODULE.run_checkpoint_error_audit(
+            campaign=campaign,
+            burned_examples=tuple(examples),
+            device=torch.device("cpu"),
+            restore_model=restore,
+        )
+    assert not called
+
+
+@pytest.mark.parametrize("mutation", ("short", "long", "duplicate-id"))
+def test_runner_rejects_burned_cardinality_and_identity_drift_before_restore(
+    tmp_path: Path,
+    mutation: str,
+) -> None:
+    fixture = _campaign_fixture(tmp_path)
+    campaign = _MODULE.read_authenticated_control_campaign(
+        aggregate=fixture["aggregate"],
+        seed_receipts=fixture["receipt_paths"],
+        checkpoint_directory=fixture["checkpoint_directory"],
+        selected_seed=17,
+    )
+    examples = list(_burned_examples())
+    if mutation == "short":
+        examples.pop()
+    elif mutation == "long":
+        examples.append(
+            _CONTROL.ImageExample(
+                example_id="cars-burned-extra",
+                image=object(),
+                label=82,
+            )
+        )
+    else:
+        examples[1] = _CONTROL.ImageExample(
+            example_id=examples[0].example_id,
+            image=object(),
+            label=examples[1].label,
+        )
+    called = False
+
+    def restore(**_kwargs: object) -> tuple[object, object]:
+        nonlocal called
+        called = True
+        return object(), object()
+
+    with pytest.raises(ValueError, match="burned"):
+        _MODULE.run_checkpoint_error_audit(
+            campaign=campaign,
+            burned_examples=tuple(examples),
+            device=torch.device("cpu"),
+            restore_model=restore,
+        )
+    assert not called
+
+
 def test_cli_requires_exact_local_capability_and_main_publishes_once(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -414,25 +498,49 @@ def test_cli_requires_exact_local_capability_and_main_publishes_once(
         selected_seed=17,
     )
     examples = _burned_examples()
-    monkeypatch.setattr(_MODULE, "read_authenticated_control_campaign", lambda **_kwargs: campaign)
-    monkeypatch.setattr(
-        _MODULE,
-        "load_control_examples",
-        lambda: cast(Any, type("Bands", (), {"burned_diagnostic": examples})()),
+    bands = cast(
+        Any,
+        type(
+            "Bands",
+            (),
+            {
+                "burned_diagnostic": examples,
+                "ordered_manifest": examples,
+            },
+        )(),
     )
+    monkeypatch.setattr(_MODULE, "read_authenticated_control_campaign", lambda **_kwargs: campaign)
+    monkeypatch.setattr(_MODULE, "load_control_examples", lambda: bands)
+    monkeypatch.setattr(_MODULE, "control_manifest_sha256", lambda _rows: "3" * 64)
     payload = b'{"claim_eligible":false,"sealed":true}\n'
-    calls: list[tuple[object, ...]] = []
+    calls: list[tuple[object, ...] | str] = []
+
+    def deterministic(device: torch.device) -> None:
+        assert device == torch.device("cuda")
+        calls.append("deterministic")
 
     def run(**kwargs: object) -> bytes:
         calls.append((kwargs["campaign"], kwargs["burned_examples"], kwargs["device"]))
         return payload
 
+    monkeypatch.setattr(_MODULE, "require_control_determinism", deterministic)
     monkeypatch.setattr(_MODULE, "run_checkpoint_error_audit", run)
     assert _MODULE.main(arguments) == 0
     assert output.read_bytes() == payload
-    assert calls == [(campaign, examples, torch.device("cuda"))]
+    assert calls == ["deterministic", (campaign, examples, torch.device("cuda"))]
     terminal = json.loads(capsys.readouterr().out)
     assert terminal == {
         "output": str(output),
         "sha256": hashlib.sha256(payload).hexdigest(),
     }
+
+    output.unlink()
+    bands.burned_diagnostic = examples[:-1]
+    with pytest.raises(ValueError, match="manifest"):
+        _MODULE.main(arguments)
+    assert calls == ["deterministic", (campaign, examples, torch.device("cuda"))]
+
+    bands.burned_diagnostic = examples
+    monkeypatch.setattr(_MODULE, "control_manifest_sha256", lambda _rows: "0" * 64)
+    with pytest.raises(ValueError, match="manifest"):
+        _MODULE.main(arguments)

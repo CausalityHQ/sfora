@@ -38,10 +38,12 @@ from run_siglip_proxy_control import (  # noqa: E402
     _json_compatible,
     _optimizer_groups,
     control_aggregate_receipt_bytes,
+    control_manifest_sha256,
     embed_control_examples,
     load_control_examples,
     load_siglip_control_components,
     read_control_seed_receipt,
+    require_control_determinism,
     restore_control_checkpoint,
 )
 
@@ -220,9 +222,17 @@ def read_authenticated_control_campaign(
     if aggregate_raw != expected_aggregate:
         raise ValueError("control aggregate authority differs")
     parsed = tuple(read_control_seed_receipt(raw) for raw in receipt_raws)
-    selected = next((value for value in parsed if value.get("seed") == selected_seed), None)
-    if selected is None:
+    selected_entry = next(
+        (
+            (value, raw)
+            for value, raw in zip(parsed, receipt_raws, strict=True)
+            if value.get("seed") == selected_seed
+        ),
+        None,
+    )
+    if selected_entry is None:
         raise ValueError("selected seed receipt is absent")
+    selected, selected_raw = selected_entry
     run_authority, final_burned_correct = _validate_selected_seed_receipt(selected)
     checkpoint_value = _require_keys(
         selected.get("checkpoint"),
@@ -254,7 +264,7 @@ def read_authenticated_control_campaign(
     return AuthenticatedControlCampaign(
         seed=selected_seed,
         seed_receipt=selected,
-        seed_receipt_sha256=hashlib.sha256(receipt_raws[0]).hexdigest(),
+        seed_receipt_sha256=hashlib.sha256(selected_raw).hexdigest(),
         aggregate_sha256=hashlib.sha256(aggregate_raw).hexdigest(),
         run_authority=run_authority,
         checkpoint=checkpoint,
@@ -352,6 +362,18 @@ def run_checkpoint_error_audit(
 
     if type(campaign) is not AuthenticatedControlCampaign or type(burned_examples) is not tuple:
         raise TypeError("checkpoint audit inputs have the wrong concrete type")
+    if (
+        len(burned_examples) != _BURNED_QUERIES
+        or any(
+            type(getattr(example, "example_id", None)) is not str
+            or not example.example_id
+            or type(getattr(example, "label", None)) is not int
+            or not 82 <= example.label <= 97
+            for example in burned_examples
+        )
+        or len({example.example_id for example in burned_examples}) != _BURNED_QUERIES
+    ):
+        raise ValueError("checkpoint audit burned example authority differs")
     model, processor = restore_model(campaign=campaign, device=device)
     raw_descriptors, projected_descriptors, labels = embed_examples(
         model=model,
@@ -377,13 +399,13 @@ def run_checkpoint_error_audit(
     ):
         raise ValueError("checkpoint audit embedding authority differs")
     raw_evidence = score_descriptors(
-        raw_descriptors.to(device),
-        labels.to(device),
+        raw_descriptors,
+        labels,
         query_block=campaign.run_authority.query_block,
     )
     projected_evidence = score_descriptors(
-        projected_descriptors.to(device),
-        labels.to(device),
+        projected_descriptors,
+        labels,
         query_block=campaign.run_authority.query_block,
     )
     if {
@@ -470,10 +492,18 @@ def main(argv: Sequence[str] | None = None) -> int:
         selected_seed=arguments.selected_seed,
     )
     bands = load_control_examples()
+    if (
+        control_manifest_sha256(bands.ordered_manifest)
+        != campaign.run_authority.manifest_sha256
+        or len(bands.burned_diagnostic) != _BURNED_QUERIES
+    ):
+        raise ValueError("checkpoint audit dataset manifest authority differs")
+    device = torch.device("cuda")
+    require_control_determinism(device)
     payload = run_checkpoint_error_audit(
         campaign=campaign,
         burned_examples=cast(tuple[object, ...], bands.burned_diagnostic),
-        device=torch.device("cuda"),
+        device=device,
     )
     publish_new_result(arguments.output, payload)
     sys.stdout.write(
