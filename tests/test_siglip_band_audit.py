@@ -12,16 +12,16 @@ from torch.nn import functional as F
 
 from sfora.siglip_band_audit import (
     SIGLIP_AUDIT_BANDS,
-    SIGLIP_AUDIT_TWIN_GROUPS,
+    SIGLIP_AUDIT_VARIANT_GROUPS,
     SiglipAuditBand,
     SiglipBandAuditAuthority,
     SiglipBandAuditEvidence,
     SiglipBandConfusion,
     SiglipBandEvidence,
     canonical_siglip_band_audit_bytes,
+    nameplate_variant_representative,
     score_siglip_frozen_bands,
     siglip_band_nearest_rows,
-    twin_representative,
     validate_siglip_band_audit_bytes,
     validate_siglip_band_definition,
     validate_siglip_band_inputs,
@@ -39,16 +39,18 @@ def _valid_inputs() -> tuple[torch.Tensor, torch.Tensor, tuple[str, ...]]:
     return descriptors, labels, class_names
 
 
-def test_siglip_band_and_twin_authority_is_exact_and_disjoint() -> None:
+def test_siglip_band_and_nameplate_variant_authority_is_exact_and_disjoint() -> None:
     assert (
         SiglipAuditBand("optimization", 0, 48),
         SiglipAuditBand("clean", 49, 81),
         SiglipAuditBand("burned", 82, 97),
     ) == SIGLIP_AUDIT_BANDS
-    assert SIGLIP_AUDIT_TWIN_GROUPS == (
+    assert SIGLIP_AUDIT_VARIANT_GROUPS == (
+        (2, 3),
         (7, 8),
         (9, 10),
         (16, 17),
+        (18, 24),
         (20, 21),
         (22, 23),
         (26, 27),
@@ -65,23 +67,23 @@ def test_siglip_band_and_twin_authority_is_exact_and_disjoint() -> None:
         (93, 94),
         (95, 96),
     )
-    assert twin_representative(68) == 53
-    assert twin_representative(96) == 95
-    assert twin_representative(0) == 0
+    assert nameplate_variant_representative(68) == 53
+    assert nameplate_variant_representative(96) == 95
+    assert nameplate_variant_representative(0) == 0
 
-    validate_siglip_band_definition(SIGLIP_AUDIT_BANDS, SIGLIP_AUDIT_TWIN_GROUPS)
+    validate_siglip_band_definition(SIGLIP_AUDIT_BANDS, SIGLIP_AUDIT_VARIANT_GROUPS)
 
     with pytest.raises(ValueError, match="overlap"):
         validate_siglip_band_definition(
             SIGLIP_AUDIT_BANDS,
-            SIGLIP_AUDIT_TWIN_GROUPS + ((8, 11),),
+            SIGLIP_AUDIT_VARIANT_GROUPS + ((8, 11),),
         )
     with pytest.raises(ValueError, match="one band"):
         validate_siglip_band_definition(SIGLIP_AUDIT_BANDS, ((48, 49),))
     with pytest.raises(ValueError, match="partition"):
         validate_siglip_band_definition(
             (replace(SIGLIP_AUDIT_BANDS[0], last_label=47),) + SIGLIP_AUDIT_BANDS[1:],
-            SIGLIP_AUDIT_TWIN_GROUPS,
+            SIGLIP_AUDIT_VARIANT_GROUPS,
         )
 
 
@@ -115,7 +117,7 @@ def test_siglip_band_inputs_require_complete_finite_unit_train_authority() -> No
 
     for bad_label in (-1, 98, True):
         with pytest.raises((TypeError, ValueError), match="label"):
-            twin_representative(bad_label)  # type: ignore[arg-type]
+            nameplate_variant_representative(bad_label)  # type: ignore[arg-type]
 
 
 def _hand_derived_scoring_inputs() -> tuple[torch.Tensor, torch.Tensor, tuple[str, ...]]:
@@ -153,7 +155,7 @@ def _scalar_nearest_rows(
     return tuple(nearest)
 
 
-def test_siglip_band_scorer_records_strict_twin_and_confusion_evidence() -> None:
+def test_siglip_band_scorer_records_strict_variant_and_confusion_evidence() -> None:
     descriptors, labels, class_names = _hand_derived_scoring_inputs()
 
     evidence = score_siglip_frozen_bands(
@@ -170,11 +172,13 @@ def test_siglip_band_scorer_records_strict_twin_and_confusion_evidence() -> None
                 first_label=0,
                 last_label=48,
                 query_count=98,
+                variant_class_count=22,
+                variant_query_count=44,
                 strict_hits=96,
                 strict_recall_ppm=979_591,
-                twin_hits=97,
-                twin_recall_ppm=989_795,
-                twin_rescued_errors=1,
+                variant_hits=97,
+                variant_recall_ppm=989_795,
+                variant_rescued_errors=1,
                 confusions=(
                     SiglipBandConfusion(query_label=0, nearest_label=2, count=1),
                     SiglipBandConfusion(query_label=7, nearest_label=8, count=1),
@@ -185,11 +189,13 @@ def test_siglip_band_scorer_records_strict_twin_and_confusion_evidence() -> None
                 first_label=49,
                 last_label=81,
                 query_count=66,
+                variant_class_count=12,
+                variant_query_count=24,
                 strict_hits=66,
                 strict_recall_ppm=1_000_000,
-                twin_hits=66,
-                twin_recall_ppm=1_000_000,
-                twin_rescued_errors=0,
+                variant_hits=66,
+                variant_recall_ppm=1_000_000,
+                variant_rescued_errors=0,
                 confusions=(),
             ),
             SiglipBandEvidence(
@@ -197,20 +203,25 @@ def test_siglip_band_scorer_records_strict_twin_and_confusion_evidence() -> None
                 first_label=82,
                 last_label=97,
                 query_count=32,
+                variant_class_count=10,
+                variant_query_count=20,
                 strict_hits=32,
                 strict_recall_ppm=1_000_000,
-                twin_hits=32,
-                twin_recall_ppm=1_000_000,
-                twin_rescued_errors=0,
+                variant_hits=32,
+                variant_recall_ppm=1_000_000,
+                variant_rescued_errors=0,
                 confusions=(),
             ),
         ),
         query_count=196,
+        class_query_counts=(2,) * 98,
+        variant_class_count=44,
+        variant_query_count=88,
         strict_hits=194,
         strict_recall_ppm=989_795,
-        twin_hits=195,
-        twin_recall_ppm=994_897,
-        twin_rescued_errors=1,
+        variant_hits=195,
+        variant_recall_ppm=994_897,
+        variant_rescued_errors=1,
     )
 
 
@@ -250,6 +261,7 @@ def _authority() -> SiglipBandAuditAuthority:
         split="train",
         batch_size=8,
         query_block=32,
+        cublas_workspace_config=":4096:8",
     )
 
 
@@ -279,12 +291,14 @@ def test_siglip_band_result_is_canonical_claim_ineligible_and_recomputable() -> 
 
     assert raw.endswith(b"\n") and not raw.endswith(b"\n\n")
     assert json.dumps(parsed, sort_keys=True, separators=(",", ":")).encode() + b"\n" == raw
-    assert parsed["schema"] == "sfora-siglip-band-audit-v1"
+    assert parsed["schema"] == "sfora-siglip-band-audit-v2"
     assert parsed["claim_eligible"] is False
     assert parsed["official_test_access"] is False
     assert "passed" not in parsed
     assert parsed["bands"][0]["strict_hits"] == 96
-    assert parsed["twin_rescued_errors"] == 1
+    assert parsed["variant_rescued_errors"] == 1
+    assert parsed["bands"][2]["variant_class_count"] == 10
+    assert parsed["bands"][2]["variant_query_count"] == 20
 
 
 def test_siglip_band_result_rejects_schema_authority_and_metric_mutations() -> None:
@@ -304,9 +318,24 @@ def test_siglip_band_result_rejects_schema_authority_and_metric_mutations() -> N
     authority_drift = json.loads(json.dumps(baseline))
     authority_drift["authority"]["descriptor_sha256"] = "7" * 64
     mutations.append(("authority", authority_drift))
+    cublas = json.loads(json.dumps(baseline))
+    cublas["authority"]["cublas_workspace_config"] = ":16:8"
+    mutations.append(("authority", cublas))
     hits = json.loads(json.dumps(baseline))
     hits["bands"][0]["strict_hits"] -= 1
     mutations.append(("band", hits))
+    coverage = json.loads(json.dumps(baseline))
+    coverage["bands"][0]["variant_class_count"] -= 1
+    mutations.append(("band", coverage))
+    variant_queries = json.loads(json.dumps(baseline))
+    variant_queries["bands"][0]["variant_query_count"] -= 1
+    variant_queries["variant_query_count"] -= 1
+    mutations.append(("metric", variant_queries))
+    class_queries = json.loads(json.dumps(baseline))
+    class_queries["class_query_counts"][0] += 1
+    class_queries["bands"][0]["query_count"] += 1
+    class_queries["query_count"] += 1
+    mutations.append(("metric", class_queries))
     confusion = json.loads(json.dumps(baseline))
     confusion["bands"][0]["confusions"][0]["count"] += 1
     mutations.append(("confusion", confusion))

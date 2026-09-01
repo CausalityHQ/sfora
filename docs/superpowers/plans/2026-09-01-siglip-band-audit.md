@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a leakage-safe diagnostic that measures raw frozen SigLIP retrieval separately on the optimization, clean, and burned Cars class bands, with a fixed twin-collapsed explanatory score.
+**Goal:** Build a leakage-safe diagnostic that measures raw frozen SigLIP retrieval separately on the optimization, clean, and burned Cars class bands, with a fixed nameplate-variant-collapsed explanatory score.
 
-**Architecture:** A pure Torch module validates the frozen class partition, computes exact blocked leave-one-out neighbours, derives strict/twin evidence, and owns canonical result validation. A separate local-only script authenticates the pinned dataset/model inputs, encodes the complete Cars training split once, and publishes one durable canonical receipt. The existing historical frozen-substrate probe remains unchanged.
+**Architecture:** A pure Torch module validates the frozen class partition, computes exact blocked leave-one-out neighbours, derives strict/nameplate-variant evidence, and owns canonical result validation. A separate local-only script authenticates the pinned dataset/model inputs, encodes the complete Cars training split once, and publishes one durable canonical receipt. The existing historical frozen-substrate probe remains unchanged.
 
 **Tech Stack:** Python 3.12, PyTorch, Transformers, Hugging Face Datasets, pytest, Ruff.
 
@@ -16,25 +16,26 @@
 - Model: `google/siglip-so400m-patch14-384` revision `9fdffc58afc957d1a03a25b10dba0329ab15c2a3`.
 - Bands are exactly 0–48, 49–81, and 82–97 and every class has at least two examples.
 - The complete 196-name vocabulary digest is `9da9ec6333105a7a2f0d50d7a5a6afe18b1ec3ede7dd8f1df298e59eb859ce35`.
-- Twin groups, query ties, output schema, and interpretation are exactly those in the spec.
+- Nameplate-variant groups, query ties, output schema, and interpretation are exactly those in the spec.
+- `CUBLAS_WORKSPACE_CONFIG` is exactly `:4096:8`, is required before any CUDA use, and is recorded in authority.
 - No official-test, trained-checkpoint, trained-head, clean-result, burned-result, network-write, or publication capability.
 - Scientific execution is serialized behind the active three-seed DGX control.
 
 ---
 
-### Task 1: Pure partition and twin authority
+### Task 1: Pure partition and nameplate-variant authority
 
 **Files:**
 - Create: `src/sfora/siglip_band_audit.py`
 - Create: `tests/test_siglip_band_audit.py`
 
 **Interfaces:**
-- Produces: `SIGLIP_AUDIT_BANDS`, `SIGLIP_AUDIT_TWIN_GROUPS`, `validate_siglip_band_inputs(descriptors, labels, class_names)` and `twin_representative(label)`.
+- Produces: `SIGLIP_AUDIT_BANDS`, `SIGLIP_AUDIT_VARIANT_GROUPS`, `validate_siglip_band_inputs(descriptors, labels, class_names)` and `nameplate_variant_representative(label)`.
 
-- [ ] Write failing tests with all 98 labels represented twice and literal assertions for the three bands and each twin representative.
-- [ ] Add mutation cases for missing/extra labels, a singleton class, wrong label dtype, nonfinite/nonunit descriptors, wrong class-name count/digest, overlapping/cross-band twin groups, and mismatched row counts.
+- [ ] Write failing tests with all 98 labels represented twice and literal assertions for the three bands and each nameplate-variant representative.
+- [ ] Add mutation cases for missing/extra labels, a singleton class, wrong label dtype, nonfinite/nonunit descriptors, wrong class-name count/digest, overlapping/cross-band variant groups, and mismatched row counts.
 - [ ] Run `uv run --offline --locked pytest -q -p no:cacheprovider tests/test_siglip_band_audit.py` and verify failure is missing imports.
-- [ ] Implement immutable band/twin constants and strict input validation without consulting result data.
+- [ ] Implement immutable band/variant constants and strict input validation without consulting result data.
 - [ ] Rerun the focused file and require all Task-1 cases to pass.
 
 ### Task 2: Exact blocked scorer and independent scalar oracle
@@ -46,7 +47,7 @@
 **Interfaces:**
 - Produces: `SiglipBandEvidence`, `SiglipBandAuditEvidence`, and `score_siglip_frozen_bands(descriptors, labels, class_names, query_block)`.
 
-- [ ] Write a failing hand-derived fixture whose nearest rows include exact hits, twin-rescued errors, unrelated errors, and exact similarity ties.
+- [ ] Write a failing hand-derived fixture whose nearest rows include exact hits, variant-rescued errors, unrelated errors, and exact similarity ties.
 - [ ] Implement a test-only scalar oracle using fixed row-order loops and assert exact selected-neighbour equality with the production blocked scorer for random finite descriptors and query blocks 1, 2, and the full band.
 - [ ] Mutation-lock query-block zero, self-selection, nondeterministic tie changes, band leakage, wrong ppm arithmetic, and unordered confusion pairs.
 - [ ] Implement blocked float32 cosine scoring, diagonal exclusion, lowest-row ties, per-band evidence, weighted aggregate evidence, and ordered `(query_label, nearest_label, count)` confusions.
@@ -63,9 +64,9 @@
   `canonical_siglip_band_audit_bytes(evidence, *, authority)` and
   `validate_siglip_band_audit_bytes(raw, *, expected_authority)`.
 
-- [ ] Write a RED mutation matrix covering every key, concrete bool/integer type, all authority digests, band ranges, hits/queries/ppm, twin rescue, confusion sums/order, aggregate recomputation, claim eligibility, and official-test access.
+- [ ] Write a RED mutation matrix covering every key, concrete bool/integer type, all authority digests, band ranges, hits/queries/ppm, variant rescue and coverage denominators, confusion sums/order, aggregate recomputation, claim eligibility, and official-test access.
 - [ ] Implement sorted compact JSON plus one LF and an independent validator that recomputes every derivable metric and exact aggregate.
-- [ ] Require `schema=sfora-siglip-band-audit-v1`, `claim_eligible=false`, and `official_test_access=false`; expose no pass flag.
+- [ ] Require `schema=sfora-siglip-band-audit-v2`, `claim_eligible=false`, and `official_test_access=false`; expose no pass flag.
 - [ ] Run the focused file, Ruff format/check, `py_compile`, and `git diff --check`.
 
 ### Task 4: Strict local encoder and durable output boundary
@@ -80,7 +81,7 @@
 
 - [ ] Write RED parser tests for missing, duplicate, unknown, and malformed flags and explicit refusal of `test`, checkpoint/head, prior-result, upload, AWS, and arbitrary model/revision options.
 - [ ] Write a real small-tensor publication test that exercises exclusive partial write, file and directory fsync, exact readback, `result_file_sha256`, overwrite/symlink/stale-partial refusal, and rollback on post-write corruption.
-- [ ] Implement pinned local-only dataset/model loading, RGB materialization, frozen pooler encoding, authority digests, canonical publication, and fail-closed cleanup. Network use must be disabled and the model/revisions must not be configurable.
+- [ ] Implement pinned local-only dataset/model loading, pre-CUDA `CUBLAS_WORKSPACE_CONFIG=:4096:8` enforcement, RGB materialization, frozen pooler encoding, authority digests, canonical publication, and fail-closed cleanup. Network use must be disabled and the model/revisions must not be configurable.
 - [ ] Add direct-script `--help` coverage proving package resolution and absence of forbidden capability flags.
 - [ ] Run `uv run --offline --locked pytest -q -p no:cacheprovider tests/test_audit_siglip_frozen_bands.py` and the combined core/CLI files.
 

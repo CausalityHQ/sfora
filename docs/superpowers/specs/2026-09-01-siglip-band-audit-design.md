@@ -31,19 +31,22 @@ The three disjoint training-class bands are fixed:
 Every class must occur at least twice. The audit scores each band independently;
 an example from one band can never be a gallery candidate for another band.
 
-## Twin equivalence
+## Nameplate-variant equivalence
 
-Strict Recall@1 treats every model-year label as distinct. A second diagnostic
-metric collapses only these preregistered visually near-identical label groups:
+Strict Recall@1 treats every fine-grained Cars label as distinct. A second
+diagnostic metric collapses only these preregistered same-nameplate or visually
+near-identical body-style, trim, cab, and model-year variant groups:
 
-- optimization: `(7,8)`, `(9,10)`, `(16,17)`, `(20,21)`, `(22,23)`,
-  `(26,27)`, `(28,29)`, `(41,42)`, `(44,45)`;
+- optimization: `(2,3)`, `(7,8)`, `(9,10)`, `(16,17)`, `(18,24)`,
+  `(20,21)`, `(22,23)`, `(26,27)`, `(28,29)`, `(41,42)`, `(44,45)`;
 - clean: `(53,68,69,73,74)`, `(54,55,56)`, `(63,70)`, `(66,72)`;
 - burned: `(82,83)`, `(85,86)`, `(89,90)`, `(93,94)`, `(95,96)`.
 
-All other labels are singleton equivalence classes. Groups are disjoint and
-contained within one registered band. Twin-collapsed recall is explanatory
-only: it cannot pass a method, tune a model, or replace strict benchmark recall.
+Only four groups are strictly model-year pairs; the remainder are broader
+nameplate/body-style/trim/cab relations. All other labels are singleton
+equivalence classes. Groups are disjoint and contained within one registered
+band. Nameplate-variant-collapsed recall is explanatory only: it cannot pass a
+method, tune a model, or replace strict benchmark recall.
 
 ## Scoring contract
 
@@ -52,14 +55,21 @@ pooler, converts output to contiguous float32, verifies finiteness and nonzero
 norm, and L2-normalizes once. The scorer computes exact leave-one-out cosine
 nearest neighbours within each band in fixed query blocks. The query diagonal is
 set to negative infinity and `torch.argmax`'s lowest-row tie is authoritative.
+Before any CUDA access, the runner requires and records
+`CUBLAS_WORKSPACE_CONFIG=:4096:8`; missing or different configuration fails
+closed before dataset or model loading.
 Focused tests compare every selected neighbour against an independent scalar
 oracle over random, tied, and nonfinite fixtures; the scientific run does not
 duplicate the full quadratic score pass.
 
-For each band the result records query count, strict hits and ppm, twin-collapsed
-hits and ppm, twin-rescued error count, and ordered confusion counts. It also
-records aggregate values over all three bands, but no aggregate can hide an
-individual band.
+For each band the result records query count, the number of covered variant
+classes and queries, strict hits and ppm, nameplate-variant-collapsed hits and
+ppm, variant-rescued error count, and ordered confusion counts. Coverage is
+uneven by construction and therefore explicit rather than implied. The result
+also records aggregate values over all three bands, but no aggregate can hide an
+individual band. The complete 98-entry per-class query-count vector is retained
+so the validator independently recomputes every band and variant-query
+denominator.
 
 ## Interpretation
 
@@ -69,11 +79,11 @@ The audit has no pass flag. Its outcome selects the next causal branch:
    weak, training damages transferable geometry. Prioritize frozen-feature
    distillation, representation-preserving regularization, and transfer-aware
    stopping before changing the backbone.
-2. If frozen strict recall is weak but twin collapse recovers most errors, the
-   split is dominated by model-year ambiguity. Continue to report strict recall,
-   but use manufacturer/twin-aware training objectives and hard-negative
-   supervision.
-3. If both frozen strict and twin-collapsed recall are weak, the 512-D frozen
+2. If frozen strict recall is weak but nameplate-variant collapse recovers most
+   errors, the representation separates broad nameplates better than
+   fine-grained configurations. Continue to report strict recall, but use
+   configuration-aware supervision and hard negatives.
+3. If both frozen strict and nameplate-variant-collapsed recall are weak, the 512-D frozen
    substrate lacks the necessary information. Stop tuning heads and move to a
    capacity-matched tower such as the Qwen/SAGA family.
 
@@ -86,12 +96,13 @@ own preregistered clean gate and untouched official-test boundary.
 construction, and independent validation. `scripts/audit_siglip_frozen_bands.py`
 owns the strict local encoder and atomic output boundary. The runner has no
 checkpoint, trained-head, official-test, network-write, or benchmark-publication
-option. The canonical result uses schema `sfora-siglip-band-audit-v1`, sorted
+option. The canonical result uses schema `sfora-siglip-band-audit-v2`, sorted
 compact JSON plus one LF, `claim_eligible=false`, and
 `official_test_access=false`.
 
 Descriptor, label, ordered-example-ID, class-name, source-tree, model revision,
-and result-file digests are independently authenticated. Output is written via a
+cuBLAS workspace configuration, and result-file digests are independently
+authenticated. Output is written via a
 new partial file, fsynced, atomically renamed, directory-fsynced, read back, and
 byte-compared. A failure publishes no result.
 
