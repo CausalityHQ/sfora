@@ -199,6 +199,15 @@ def test_model_load_freezes_language_and_leaves_only_vision_trainable(
     }
 
 
+def test_loaded_adapter_exposes_the_exact_generation_processor(tmp_path: Path) -> None:
+    factory = _FakeFactory()
+
+    adapter = _MODULE.load_qwen_adapter(_loaded_authority(tmp_path), factory=factory)
+
+    assert adapter.processor is not None
+    assert type(adapter.processor) is _FakeProcessor
+
+
 @pytest.mark.parametrize(
     ("attribute", "value"),
     [

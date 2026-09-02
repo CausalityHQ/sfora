@@ -10,11 +10,16 @@ from sfora.pass209_m4 import canonical_json_bytes
 from sfora.prism_measurement import PRISM_CHANNELS
 from sfora.prism_observer import (
     PrismChannelPrompt,
+    PrismCompletionBundle,
+    PrismCompletionRow,
     PrismObserverAuthority,
     PrismPayloadAuthority,
     PrismPromptBundle,
+    canonical_prism_completion_bundle_bytes,
     canonical_prism_observer_authority_bytes,
     canonical_prism_prompt_bundle_bytes,
+    derive_prism_token_protocol,
+    validate_prism_completion_bundle_bytes,
     validate_prism_observer_authority_bytes,
     validate_prism_prompt_bundle_bytes,
 )
@@ -224,3 +229,137 @@ def test_observer_authority_rejects_type_digest_and_schema_drift(
 
     with pytest.raises(ValueError):
         validate_prism_observer_authority_bytes(canonical_json_bytes(mutation(value)))  # type: ignore[operator]
+
+
+def _protocol_literals() -> tuple[str, ...]:
+    return (
+        *(f"channel={channel};" for channel in PRISM_CHANNELS),
+        "left_visible=yes;right_visible=yes;",
+        "left_visible=yes;right_visible=no;",
+        "left_visible=no;right_visible=yes;",
+        "left_visible=no;right_visible=no;",
+        "relation=same;",
+        "relation=different;",
+        "relation=indeterminate;",
+        "confidence=low;evidence_left=",
+        "confidence=medium;evidence_left=",
+        "confidence=high;evidence_left=",
+        ";evidence_right=",
+        "<PRISM_END>",
+    )
+
+
+class _Tokenizer:
+    def __init__(self) -> None:
+        self.mapping = {
+            literal: (100 + index,) for index, literal in enumerate(_protocol_literals())
+        }
+        self.all_special_ids: tuple[int, ...] = ()
+        self.decode_drift = False
+
+    def encode(self, text: str, *, add_special_tokens: bool) -> list[int]:
+        assert add_special_tokens is False
+        return list(self.mapping[text])
+
+    def decode(self, token_ids: list[int], **_: object) -> str:
+        if self.decode_drift:
+            return "drift"
+        target = tuple(token_ids)
+        return next(text for text, ids in self.mapping.items() if ids == target)
+
+
+class _Processor:
+    def __init__(self, tokenizer: _Tokenizer) -> None:
+        self.tokenizer = tokenizer
+
+
+def test_token_protocol_is_derived_from_exact_literal_encodings() -> None:
+    tokenizer = _Tokenizer()
+
+    protocol = derive_prism_token_protocol(_Processor(tokenizer), _bundle())
+
+    assert protocol.channel_prefixes == tuple((100 + index,) for index in range(8))
+    assert protocol.visibility_prefixes == tuple((108 + index,) for index in range(4))
+    assert protocol.relation_prefixes == tuple((112 + index,) for index in range(3))
+    assert protocol.confidence_prefixes == tuple((115 + index,) for index in range(3))
+    assert protocol.evidence_separator == (118,)
+    assert protocol.terminal_tokens == (119,)
+    assert protocol.max_evidence_tokens == 64
+
+
+@pytest.mark.parametrize(
+    "mutation", ("alias", "prefix", "empty", "negative", "bool", "special", "roundtrip")
+)
+def test_token_protocol_rejects_ambiguous_or_noncanonical_ids(mutation: str) -> None:
+    tokenizer = _Tokenizer()
+    literals = _protocol_literals()
+    if mutation == "alias":
+        tokenizer.mapping[literals[1]] = tokenizer.mapping[literals[0]]
+    elif mutation == "prefix":
+        tokenizer.mapping[literals[0]] = (700,)
+        tokenizer.mapping[literals[1]] = (700, 701)
+    elif mutation == "empty":
+        tokenizer.mapping[literals[0]] = ()
+    elif mutation == "negative":
+        tokenizer.mapping[literals[0]] = (-1,)
+    elif mutation == "bool":
+        tokenizer.mapping[literals[0]] = (True,)
+    elif mutation == "special":
+        tokenizer.mapping[literals[0]] = (999,)
+        tokenizer.all_special_ids = (999,)
+    elif mutation == "roundtrip":
+        tokenizer.decode_drift = True
+
+    with pytest.raises(ValueError):
+        derive_prism_token_protocol(_Processor(tokenizer), _bundle())
+
+
+def _completion_bundle() -> PrismCompletionBundle:
+    return PrismCompletionBundle(
+        schema="sfora-prism-completion-bundle-v1",
+        phase="calibration",
+        observer_authority_sha256="1" * 64,
+        token_protocol_sha256="2" * 64,
+        rows=(
+            PrismCompletionRow(
+                pair_handle="3" * 64,
+                channel=PRISM_CHANNELS[0],
+                completion_ids=(101, 102, 103),
+            ),
+            PrismCompletionRow(
+                pair_handle="4" * 64,
+                channel=PRISM_CHANNELS[1],
+                completion_ids=(201, 202),
+            ),
+        ),
+    )
+
+
+def test_completion_bundle_round_trips_without_decoded_text() -> None:
+    bundle = _completion_bundle()
+
+    raw = canonical_prism_completion_bundle_bytes(bundle)
+
+    assert validate_prism_completion_bundle_bytes(raw) == bundle
+    assert b"text" not in raw and b"evidence" not in raw and b"label" not in raw
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    (
+        lambda value: {**value, "decoded_text": "forbidden"},
+        lambda value: {**value, "phase": "unknown"},
+        lambda value: {
+            **value,
+            "rows": [{**value["rows"][0], "completion_ids": [True]}, *value["rows"][1:]],
+        },
+        lambda value: {**value, "rows": [value["rows"][0], value["rows"][0]]},
+    ),
+)
+def test_completion_bundle_rejects_text_type_phase_and_duplicate_drift(
+    mutation: object,
+) -> None:
+    value = json.loads(canonical_prism_completion_bundle_bytes(_completion_bundle()))
+
+    with pytest.raises(ValueError):
+        validate_prism_completion_bundle_bytes(canonical_json_bytes(mutation(value)))  # type: ignore[operator]

@@ -374,6 +374,12 @@ class QwenSagaAdapter:
         ).to(operational_device)
         self.pooler_sha256 = pooler_state_sha256(self.pooler)
 
+    @property
+    def processor(self) -> object:
+        """Return the exact processor already bound to generation."""
+
+        return self._processor
+
     def trainable_parameter_roles(self) -> tuple[str, ...]:
         return ("vision",)
 

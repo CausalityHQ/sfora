@@ -8,7 +8,7 @@ import re
 from dataclasses import asdict, dataclass
 
 from sfora.pass209_m4 import canonical_json_bytes
-from sfora.prism_measurement import PRISM_CHANNELS
+from sfora.prism_measurement import PRISM_CHANNELS, PrismTokenProtocol
 
 _SHA256 = re.compile(r"[0-9a-f]{64}")
 _COMMIT = re.compile(r"[0-9a-f]{40}")
@@ -49,6 +49,10 @@ _AUTHORITY_KEYS = frozenset(
         "row_count",
     )
 )
+_COMPLETION_BUNDLE_KEYS = frozenset(
+    ("schema", "phase", "observer_authority_sha256", "token_protocol_sha256", "rows")
+)
+_COMPLETION_ROW_KEYS = frozenset(("pair_handle", "channel", "completion_ids"))
 
 
 @dataclass(frozen=True, slots=True)
@@ -97,6 +101,26 @@ class PrismObserverAuthority:
     prompt_bundle_sha256: str
     payload_manifest_sha256: str
     row_count: int
+
+
+@dataclass(frozen=True, slots=True)
+class PrismCompletionRow:
+    """One ID-only observer completion with no decoded semantic material."""
+
+    pair_handle: str
+    channel: str
+    completion_ids: tuple[int, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class PrismCompletionBundle:
+    """One phase's complete ordered ID-only observer output."""
+
+    schema: str
+    phase: str
+    observer_authority_sha256: str
+    token_protocol_sha256: str
+    rows: tuple[PrismCompletionRow, ...]
 
 
 def _reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
@@ -227,3 +251,162 @@ def validate_prism_observer_authority_bytes(raw: bytes) -> PrismObserverAuthorit
     authority = PrismObserverAuthority(**value)
     _validate_observer_authority(authority)
     return authority
+
+
+def _protocol_literals() -> tuple[str, ...]:
+    return (
+        *(f"channel={channel};" for channel in PRISM_CHANNELS),
+        "left_visible=yes;right_visible=yes;",
+        "left_visible=yes;right_visible=no;",
+        "left_visible=no;right_visible=yes;",
+        "left_visible=no;right_visible=no;",
+        "relation=same;",
+        "relation=different;",
+        "relation=indeterminate;",
+        "confidence=low;evidence_left=",
+        "confidence=medium;evidence_left=",
+        "confidence=high;evidence_left=",
+        ";evidence_right=",
+        "<PRISM_END>",
+    )
+
+
+def _encode_protocol_literal(tokenizer: object, literal: str) -> tuple[int, ...]:
+    encode = getattr(tokenizer, "encode", None)
+    decode = getattr(tokenizer, "decode", None)
+    if not callable(encode) or not callable(decode):
+        raise ValueError("PRISM tokenizer interface differs")
+    encoded = encode(literal, add_special_tokens=False)
+    if type(encoded) is not list or any(
+        type(token) is not int or not 0 <= token <= 0xFFFF_FFFF for token in encoded
+    ):
+        raise ValueError("PRISM tokenizer token IDs differ")
+    sequence = tuple(encoded)
+    if not sequence:
+        raise ValueError("PRISM tokenizer emitted an empty sequence")
+    special_ids = getattr(tokenizer, "all_special_ids", ())
+    if type(special_ids) not in (tuple, list) or any(
+        type(token) is not int for token in special_ids
+    ):
+        raise ValueError("PRISM tokenizer special-token authority differs")
+    if set(sequence).intersection(special_ids):
+        raise ValueError("PRISM tokenizer inserted a special token")
+    decoded = decode(
+        list(sequence),
+        skip_special_tokens=False,
+        clean_up_tokenization_spaces=False,
+    )
+    if type(decoded) is not str or decoded != literal:
+        raise ValueError("PRISM tokenizer decode round trip differs")
+    if tuple(encode(decoded, add_special_tokens=False)) != sequence:
+        raise ValueError("PRISM tokenizer encode round trip differs")
+    return sequence
+
+
+def derive_prism_token_protocol(
+    processor: object,
+    bundle: PrismPromptBundle,
+) -> PrismTokenProtocol:
+    """Derive the exact ID-only PRISM grammar from one sealed tokenizer."""
+
+    _validate_prompt_bundle(bundle)
+    tokenizer = getattr(processor, "tokenizer", None)
+    if tokenizer is None:
+        raise ValueError("PRISM processor tokenizer differs")
+    sequences = tuple(
+        _encode_protocol_literal(tokenizer, literal) for literal in _protocol_literals()
+    )
+    for left_index, left in enumerate(sequences):
+        for right in sequences[left_index + 1 :]:
+            shared = min(len(left), len(right))
+            if left[:shared] == right[:shared]:
+                raise ValueError("PRISM tokenizer protocol is not prefix-free")
+    return PrismTokenProtocol(
+        channel_prefixes=sequences[:8],
+        visibility_prefixes=sequences[8:12],
+        relation_prefixes=sequences[12:15],
+        confidence_prefixes=sequences[15:18],
+        evidence_separator=sequences[18],
+        terminal_tokens=sequences[19],
+        max_evidence_tokens=64,
+    )
+
+
+def _validate_completion_bundle(bundle: PrismCompletionBundle) -> None:
+    if bundle.schema != "sfora-prism-completion-bundle-v1":
+        raise ValueError("PRISM completion bundle schema differs")
+    if bundle.phase not in ("calibration", "diagnostic"):
+        raise ValueError("PRISM completion bundle phase differs")
+    for name in ("observer_authority_sha256", "token_protocol_sha256"):
+        value = getattr(bundle, name)
+        if type(value) is not str or _SHA256.fullmatch(value) is None:
+            raise ValueError(f"PRISM completion bundle {name} differs")
+    if type(bundle.rows) is not tuple or not bundle.rows:
+        raise ValueError("PRISM completion bundle rows differ")
+    identities: set[tuple[str, str]] = set()
+    for row in bundle.rows:
+        if (
+            type(row) is not PrismCompletionRow
+            or type(row.pair_handle) is not str
+            or _SHA256.fullmatch(row.pair_handle) is None
+            or row.channel not in PRISM_CHANNELS
+            or type(row.completion_ids) is not tuple
+            or not row.completion_ids
+            or any(
+                type(token) is not int or not 0 <= token <= 0xFFFF_FFFF
+                for token in row.completion_ids
+            )
+        ):
+            raise ValueError("PRISM completion row authority differs")
+        identity = (row.pair_handle, row.channel)
+        if identity in identities:
+            raise ValueError("PRISM completion bundle contains a duplicate row")
+        identities.add(identity)
+
+
+def canonical_prism_completion_bundle_bytes(bundle: PrismCompletionBundle) -> bytes:
+    """Validate and encode an ID-only completion bundle."""
+
+    _validate_completion_bundle(bundle)
+    return canonical_json_bytes(asdict(bundle))
+
+
+def validate_prism_completion_bundle_bytes(raw: bytes) -> PrismCompletionBundle:
+    """Authenticate canonical completion bytes without decoding any token IDs."""
+
+    if type(raw) is not bytes:
+        raise ValueError("PRISM completion bytes must be concrete bytes")
+    try:
+        value = json.loads(raw, object_pairs_hook=_reject_duplicate_keys)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError("PRISM completion bundle is not valid UTF-8 JSON") from error
+    if type(value) is not dict or frozenset(value) != _COMPLETION_BUNDLE_KEYS:
+        raise ValueError("PRISM completion bundle schema keys differ")
+    if raw != canonical_json_bytes(value):
+        raise ValueError("PRISM completion bundle bytes are not canonical")
+    row_values = value["rows"]
+    if type(row_values) is not list:
+        raise ValueError("PRISM completion rows schema differs")
+    rows: list[PrismCompletionRow] = []
+    for row_value in row_values:
+        if type(row_value) is not dict or frozenset(row_value) != _COMPLETION_ROW_KEYS:
+            raise ValueError("PRISM completion row schema differs")
+        completion_ids = row_value["completion_ids"]
+        if type(completion_ids) is not list:
+            raise ValueError("PRISM completion token schema differs")
+        rows.append(
+            PrismCompletionRow(
+                pair_handle=row_value["pair_handle"],
+                channel=row_value["channel"],
+                completion_ids=tuple(completion_ids),
+            )
+        )
+    bundle = PrismCompletionBundle(
+        schema=value["schema"],
+        phase=value["phase"],
+        observer_authority_sha256=value["observer_authority_sha256"],
+        token_protocol_sha256=value["token_protocol_sha256"],
+        rows=tuple(rows),
+    )
+    _validate_completion_bundle(bundle)
+    return bundle
