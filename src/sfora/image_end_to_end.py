@@ -24,6 +24,7 @@ from sfora.image_benchmark import (
     image_self_retrieval_score,
 )
 from sfora.ipsr import build_ipsr_preferences
+from sfora.pfml import pfml_potential_loss
 
 if TYPE_CHECKING:
     import torch
@@ -4915,67 +4916,17 @@ def _pfml_potential_loss(
     alpha: float,
     torch_module: Any,
 ) -> Any:
-    """Faithful PFML total potential energy (arXiv 2405.18560, CVPR 2025).
+    """Compatibility wrapper for the shared faithful PFML implementation."""
 
-    Formulation verified against the arXiv HTML version on 2026-07-04:
-
-    - Eq. 1 attractive kernel: ``psi_att(r, z) = -1/delta^alpha`` when
-      ``||r - z|| < delta``, else ``-1/||r - z||^alpha`` — attraction decays
-      with distance and saturates (zero force) inside the ``delta`` margin.
-    - Eq. 2 repulsive kernel: ``psi_rep(r, z) = 1/||r - z||^alpha`` when
-      ``||r - z|| < delta``, else ``1/delta^alpha`` — repulsion only exerts
-      force inside the ``delta`` margin.
-    - Eq. 3-5 class field ``Psi_j(r)``: attractive contributions from
-      same-class batch embeddings AND the M proxies of class j; repulsive
-      contributions from different-class batch embeddings AND every other
-      class's proxies.
-    - Eq. 6 total energy ``U = sum_i Psi_{y_i}(z_i) + sum_{j,k} Psi_j(p_jk)``:
-      every unordered pair among {batch embeddings} + {all proxies} interacts
-      once per direction, so U equals the all-pairs potential on the combined
-      set — sample<->sample, sample<->proxy AND proxy<->proxy pairs.
-    - Paper protocol: M = 15 proxies per class (CUB, Cars) and M = 2 (SOP);
-      proxy learning rate x100; delta cross-validated in [0.1, 0.3]; alpha
-      cross-validated in {0..6}; Adam at 5e-4 for 200 epochs; embeddings
-      l2-normalized. Here ``delta``/``alpha`` map to ``potential_delta`` and
-      ``potential_alpha``.
-
-    Deliberate deviations:
-    - Self-interactions (distance 0, always the constant kernel branch) are
-      excluded; they only shift the loss by a constant.
-    - Distances are clamped below at 1e-4 for numerical stability of the
-      singular repulsive kernel.
-    - Proxies are l2-normalized before computing distances, matching how every
-      other proxy-based term in this module consumes ``metric_proxies`` (the
-      paper does not specify proxy normalization).
-    """
-    if proxy_embeddings is None or proxy_labels is None:
-        raise ValueError("the pfml objective requires class proxies (proxy_count_per_class > 0)")
-    points = torch_module.cat(
-        [embeddings, _normalize(proxy_embeddings, torch_module)],
-        dim=0,
+    return pfml_potential_loss(
+        embeddings,
+        labels,
+        proxy_embeddings=proxy_embeddings,
+        proxy_labels=proxy_labels,
+        delta=delta,
+        alpha=alpha,
+        torch_module=torch_module,
     )
-    point_labels = torch_module.cat([labels, proxy_labels], dim=0)
-    if points.shape[0] < 2:
-        return embeddings.sum() * 0.0
-    distances = torch_module.cdist(points, points, p=2).clamp_min(1.0e-4)
-    same_label = point_labels[:, None].eq(point_labels[None, :])
-    off_diagonal = ~torch_module.eye(
-        points.shape[0],
-        dtype=torch_module.bool,
-        device=points.device,
-    )
-    inside_margin = distances < float(delta)
-    inverse_power = distances.pow(-float(alpha))
-    saturation = torch_module.full_like(distances, float(delta) ** -float(alpha))
-    attraction = -torch_module.where(inside_margin, saturation, inverse_power)
-    repulsion = torch_module.where(inside_margin, inverse_power, saturation)
-    potentials = torch_module.where(same_label, attraction, repulsion)
-    # Eq. 6 is a raw total potential, not a pair mean.  This scale is
-    # load-bearing under Adam's *coupled* weight decay: averaging millions of
-    # sample/proxy terms shrinks only the data gradient while leaving the
-    # weight-decay gradient unchanged, so it is not the harmless uniform
-    # rescaling previously claimed here.
-    return potentials[off_diagonal].sum()
 
 
 def _symmetric_potential_loss(
