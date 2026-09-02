@@ -1144,6 +1144,7 @@ def load_qwen_adapter(authority: LoadedAuthority, *, factory: ModelFactory) -> Q
         trust_remote_code=False,
         dtype="bfloat16",
         attn_implementation=snapshot.attention_backend,
+        device_map="cuda",
     )
     processor = factory.load_processor(
         snapshot.root,

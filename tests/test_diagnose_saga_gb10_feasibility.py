@@ -192,6 +192,7 @@ def test_model_load_freezes_language_and_leaves_only_vision_trainable(
         "trust_remote_code": False,
         "dtype": "bfloat16",
         "attn_implementation": "eager",
+        "device_map": "cuda",
     }
     assert factory.processor_kwargs == {
         "local_files_only": True,
