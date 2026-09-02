@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import hashlib
 import io
+import json
 import math
 import random
 import stat
@@ -24,6 +25,7 @@ from scripts.run_siglip_proxy_control import (
     _run_authority_sha256,
     read_control_seed_receipt,
 )
+from sfora.substrate_screen import SUBSTRATE_F0_CLASSES
 from sfora.weight_space_transfer import model_state_sha256
 
 
@@ -80,6 +82,27 @@ class EndpointReplayEvidence:
     maximum_float_disagreement: float
 
 
+@dataclass(frozen=True)
+class BurnedInputRow:
+    """One authenticated burned input and its local content path."""
+
+    source_ordinal: int
+    example_id: str
+    label: int
+    image_sha256: str
+    byte_length: int
+    path: Path
+
+
+@dataclass(frozen=True)
+class LoadedBurnedInputs:
+    """The exact 1,345-row burned capability."""
+
+    manifest_sha256: str
+    source_manifest_sha256: str
+    rows: tuple[BurnedInputRow, ...]
+
+
 def _read_regular(path: Path, *, role: str) -> bytes:
     if not isinstance(path, Path) or path.is_symlink() or not path.exists():
         raise ValueError(f"{role} must be one regular file")
@@ -87,6 +110,12 @@ def _read_regular(path: Path, *, role: str) -> bytes:
     if not stat.S_ISREG(metadata.st_mode):
         raise ValueError(f"{role} must be one regular file")
     return path.read_bytes()
+
+
+def _canonical_json(value: dict[str, object]) -> bytes:
+    return (
+        json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(",", ":")) + "\n"
+    ).encode()
 
 
 def _lower_hex(value: object, *, role: str) -> str:
@@ -142,6 +171,107 @@ def _endpoint_metric(value: object, *, queries: int, role: str) -> EndpointMetri
         mean_nearest_positive_cosine=row["mean_nearest_positive_cosine"],
         mean_nearest_negative_cosine=row["mean_nearest_negative_cosine"],
         mean_margin=row["mean_margin"],
+    )
+
+
+def load_burned_inputs(
+    *,
+    manifest_path: Path,
+    expected_sha256: str,
+    expected_bytes: int,
+    expected_source_manifest_sha256: str,
+    image_root: Path,
+) -> LoadedBurnedInputs:
+    """Authenticate the complete burned manifest and exact flat namespace."""
+
+    _lower_hex(expected_sha256, role="burned manifest")
+    _lower_hex(expected_source_manifest_sha256, role="source manifest")
+    if type(expected_bytes) is not int or expected_bytes <= 0:
+        raise ValueError("burned manifest byte length differs")
+    raw = _read_regular(manifest_path, role="burned manifest")
+    if len(raw) != expected_bytes or hashlib.sha256(raw).hexdigest() != expected_sha256:
+        raise ValueError("burned manifest identity differs")
+    try:
+        value = json.loads(raw)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError("burned manifest is not valid JSON") from error
+    if (
+        type(value) is not dict
+        or set(value) != {"claim_eligible", "examples", "schema", "source_manifest_sha256"}
+        or raw != _canonical_json(value)
+        or value["claim_eligible"] is not False
+        or value["schema"] != "sfora-weight-space-transfer-burned-input-v1"
+        or value["source_manifest_sha256"] != expected_source_manifest_sha256
+        or type(value["examples"]) is not list
+        or len(value["examples"]) != 1_345
+    ):
+        raise ValueError("burned manifest schema differs")
+    if not isinstance(image_root, Path) or image_root.is_symlink() or not image_root.is_dir():
+        raise ValueError("burned image namespace differs")
+
+    rows: list[BurnedInputRow] = []
+    basenames: set[str] = set()
+    for item in value["examples"]:
+        row = _object(
+            item,
+            {
+                "basename",
+                "byte_length",
+                "example_id",
+                "image_sha256",
+                "label",
+                "source_ordinal",
+            },
+            role="burned row",
+        )
+        digest = _lower_hex(row["image_sha256"], role="burned image")
+        if (
+            type(row["basename"]) is not str
+            or row["basename"] != f"{digest}.png"
+            or type(row["byte_length"]) is not int
+            or row["byte_length"] <= 0
+            or type(row["example_id"]) is not str
+            or not row["example_id"]
+            or type(row["label"]) is not int
+            or row["label"] not in SUBSTRATE_F0_CLASSES
+            or type(row["source_ordinal"]) is not int
+            or row["source_ordinal"] < 0
+        ):
+            raise ValueError("burned row authority differs")
+        path = image_root / row["basename"]
+        payload = _read_regular(path, role="burned image")
+        if len(payload) != row["byte_length"] or hashlib.sha256(payload).hexdigest() != digest:
+            raise ValueError("burned image identity differs")
+        basenames.add(row["basename"])
+        rows.append(
+            BurnedInputRow(
+                source_ordinal=row["source_ordinal"],
+                example_id=row["example_id"],
+                label=row["label"],
+                image_sha256=digest,
+                byte_length=row["byte_length"],
+                path=path,
+            )
+        )
+    if (
+        tuple(row.source_ordinal for row in rows)
+        != tuple(sorted(row.source_ordinal for row in rows))
+        or len({row.source_ordinal for row in rows}) != len(rows)
+        or len({row.example_id for row in rows}) != len(rows)
+        or {row.label for row in rows} != SUBSTRATE_F0_CLASSES
+        or any(sum(row.label == label for row in rows) < 2 for label in SUBSTRATE_F0_CLASSES)
+    ):
+        raise ValueError("burned population authority differs")
+    entries = tuple(image_root.iterdir())
+    if (
+        any(path.is_symlink() or not path.is_file() for path in entries)
+        or {path.name for path in entries} != basenames
+    ):
+        raise ValueError("burned image namespace differs")
+    return LoadedBurnedInputs(
+        manifest_sha256=expected_sha256,
+        source_manifest_sha256=expected_source_manifest_sha256,
+        rows=tuple(rows),
     )
 
 

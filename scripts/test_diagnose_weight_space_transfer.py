@@ -1,5 +1,6 @@
 import hashlib
 import io
+import json
 import tempfile
 import unittest
 from collections import OrderedDict
@@ -9,9 +10,11 @@ import torch
 
 from scripts.diagnose_weight_space_transfer import (
     EndpointReplayEvidence,
+    LoadedBurnedInputs,
     LoadedTransferCheckpoint,
     ReconstructedInitialModel,
     SeedEndpointAuthority,
+    load_burned_inputs,
     load_seed_endpoint_authority,
     load_transfer_checkpoint,
     reconstruct_initial_model,
@@ -165,7 +168,75 @@ def _checkpoint(seed: int, run: ControlRunAuthority) -> bytes:
     return stream.getvalue()
 
 
+def _burned_input_fixture(root: Path) -> tuple[Path, Path, bytes]:
+    images = root / "images"
+    images.mkdir()
+    payload = b"fixture-image-bytes"
+    digest = hashlib.sha256(payload).hexdigest()
+    (images / f"{digest}.png").write_bytes(payload)
+    rows = [
+        {
+            "basename": f"{digest}.png",
+            "byte_length": len(payload),
+            "example_id": f"cars/burned/{index:04d}",
+            "image_sha256": digest,
+            "label": 82 + index % 16,
+            "source_ordinal": index,
+        }
+        for index in range(1_345)
+    ]
+    raw = _canonical_bytes(
+        {
+            "claim_eligible": False,
+            "examples": rows,
+            "schema": "sfora-weight-space-transfer-burned-input-v1",
+            "source_manifest_sha256": "3" * 64,
+        }
+    )
+    manifest = root / "burned.json"
+    manifest.write_bytes(raw)
+    return manifest, images, raw
+
+
 class EndpointAuthorityTests(unittest.TestCase):
+    def test_burned_loader_authenticates_exact_population_and_namespace(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            manifest, images, raw = _burned_input_fixture(Path(directory))
+            loaded = load_burned_inputs(
+                manifest_path=manifest,
+                expected_sha256=hashlib.sha256(raw).hexdigest(),
+                expected_bytes=len(raw),
+                expected_source_manifest_sha256="3" * 64,
+                image_root=images,
+            )
+            self.assertIs(type(loaded), LoadedBurnedInputs)
+            self.assertEqual(len(loaded.rows), 1_345)
+            self.assertEqual(loaded.rows[0].label, 82)
+            self.assertEqual(loaded.rows[-1].label, 82 + 1_344 % 16)
+            self.assertEqual({row.label for row in loaded.rows}, set(range(82, 98)))
+
+            (images / "extra.png").write_bytes(b"extra")
+            with self.assertRaisesRegex(ValueError, "namespace"):
+                load_burned_inputs(
+                    manifest_path=manifest,
+                    expected_sha256=hashlib.sha256(raw).hexdigest(),
+                    expected_bytes=len(raw),
+                    expected_source_manifest_sha256="3" * 64,
+                    image_root=images,
+                )
+            (images / "extra.png").unlink()
+            value = json.loads(raw)
+            value["examples"][0]["label"] = 49
+            changed = _canonical_bytes(value)
+            manifest.write_bytes(changed)
+            with self.assertRaisesRegex(ValueError, "row"):
+                load_burned_inputs(
+                    manifest_path=manifest,
+                    expected_sha256=hashlib.sha256(changed).hexdigest(),
+                    expected_bytes=len(changed),
+                    expected_source_manifest_sha256="3" * 64,
+                    image_root=images,
+                )
     def test_seed_result_authenticates_and_normalizes_only_endpoint_evidence(self) -> None:
         raw, _run = _seed_result()
         with tempfile.TemporaryDirectory() as directory:
