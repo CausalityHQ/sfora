@@ -19,7 +19,8 @@ training classes without sampled rollouts at student-training time.
   registered relation sign.  This is exact because the binary collapsed-GRPO
   coefficient is symmetric under exchanging the two branches.
 - Persist each pair as canonical receipt plus non-pickle float32 NPY patch-token
-  and relation-correct-gradient arrays.  Shape is exactly `[2,196,2048]` and
+  and relation-correct-gradient arrays.  Shape is exactly `[2,256,2048]`
+  (four authenticated 64-patch Qwen boundaries per image) and
   every receipt binds both array digests.
 - Train `AsgcvPatchGradientPredictor(rank=16)` for exactly 20 epochs in ordinal
   order with batch size one, AdamW learning rate `1e-3`, weight decay `1e-4`,

@@ -39,6 +39,10 @@ def _arrays() -> tuple[np.ndarray, np.ndarray]:
     return patches, gradient
 
 
+def test_forced_distill_shape_matches_authenticated_four_by_sixty_four_cut() -> None:
+    assert ASGCV_FORCED_DISTILL_SHAPE == (2, 256, 2048)
+
+
 def _capture() -> ForcedDistillCapture:
     patches, gradient = _arrays()
     return ForcedDistillCapture(
