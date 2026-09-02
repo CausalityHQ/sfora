@@ -9,11 +9,15 @@ from pathlib import Path
 import torch
 
 from scripts.diagnose_weight_space_transfer import (
+    EndpointMetrics,
     EndpointReplayEvidence,
     LoadedBurnedInputs,
     LoadedTransferCheckpoint,
+    ModelBandEvaluation,
     ReconstructedInitialModel,
+    SeedCurveExecution,
     SeedEndpointAuthority,
+    evaluate_transfer_seed_curve,
     load_burned_inputs,
     load_seed_endpoint_authority,
     load_transfer_checkpoint,
@@ -423,6 +427,90 @@ class EndpointAuthorityTests(unittest.TestCase):
                 trained_raw=authority.trained_raw,
                 trained_projected=wrong_count,
             )
+
+    def test_seed_curve_replays_endpoints_then_runs_five_fresh_folds(self) -> None:
+        class Tower(torch.nn.Module):
+            def __init__(self, value: float) -> None:
+                super().__init__()
+                self.weight = torch.nn.Parameter(torch.tensor([value]))
+
+        class Model(torch.nn.Module):
+            def __init__(self, tower_value: float, projection_value: float) -> None:
+                super().__init__()
+                self.tower = Tower(tower_value)
+                self.projection = torch.nn.Linear(1, 1, bias=False)
+                self.projection.weight.data.fill_(projection_value)
+                self.proxies = torch.nn.Parameter(torch.tensor([[projection_value]]))
+
+        def metric(correct: int) -> EndpointMetrics:
+            return EndpointMetrics(
+                correct=correct,
+                queries=1_000,
+                recall_at_1=correct / 1_000,
+                mean_nearest_positive_cosine=0.9,
+                mean_nearest_negative_cosine=0.8,
+                mean_margin=correct / 10_000,
+            )
+
+        def evaluate(model: torch.nn.Module) -> ModelBandEvaluation:
+            tower = float(model.tower.weight.item())  # type: ignore[attr-defined]
+            projection = float(model.projection.weight.item())  # type: ignore[attr-defined]
+            correct = 880 + round(20 * projection) + round(16 * (1 - abs(tower - 0.75)))
+            row = metric(correct)
+            return ModelBandEvaluation(
+                raw=row,
+                projected=row,
+                projected_correctness=(True,) * correct + (False,) * (1_000 - correct),
+            )
+
+        initial_model = Model(0.0, 0.0)
+        trained_model = Model(1.0, 1.0)
+        initial_eval = evaluate(initial_model)
+        trained_eval = evaluate(trained_model)
+        initial_state = OrderedDict(initial_model.state_dict())
+        trained_state = OrderedDict(trained_model.state_dict())
+        authority = SeedEndpointAuthority(
+            seed=17,
+            initial_state_sha256=model_state_sha256(initial_state),
+            initial_raw=initial_eval.raw,
+            initial_projected=initial_eval.projected,
+            trained_raw=trained_eval.raw,
+            trained_projected=trained_eval.projected,
+            checkpoint_basename="seed-017-epoch-060.pt",
+            checkpoint_sha256="5" * 64,
+            checkpoint_bytes=1,
+            config_sha256="6" * 64,
+            run_authority_sha256="7" * 64,
+        )
+        checkpoint = LoadedTransferCheckpoint(
+            seed=17,
+            initial_snapshot_sha256="8" * 64,
+            model_state=trained_state,
+        )
+        disabled: list[torch.nn.Module] = []
+
+        execution = evaluate_transfer_seed_curve(
+            authority=authority,
+            initial=ReconstructedInitialModel(
+                model=initial_model,
+                sha256=authority.initial_state_sha256,
+            ),
+            checkpoint=checkpoint,
+            model_factory=lambda: Model(-1.0, -1.0),
+            disable_checkpointing=disabled.append,
+            evaluate_model=evaluate,
+        )
+        self.assertIs(type(execution), SeedCurveExecution)
+        self.assertEqual(
+            tuple(row.alpha for row in execution.curve.rows),
+            (0.0, 0.25, 0.5, 0.75, 1.0),
+        )
+        self.assertGreater(
+            execution.curve.rows[3].correct,
+            execution.curve.rows[-1].correct,
+        )
+        self.assertEqual(len(disabled), 7)
+        self.assertEqual(execution.endpoint_replay.maximum_float_disagreement, 0.0)
 
 
 if __name__ == "__main__":

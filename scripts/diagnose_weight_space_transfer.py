@@ -26,7 +26,13 @@ from scripts.run_siglip_proxy_control import (
     read_control_seed_receipt,
 )
 from sfora.substrate_screen import SUBSTRATE_F0_CLASSES
-from sfora.weight_space_transfer import model_state_sha256
+from sfora.weight_space_transfer import (
+    INTERPOLATION_ALPHAS,
+    AlphaEvaluation,
+    SeedInterpolationCurve,
+    interpolate_inference_state,
+    model_state_sha256,
+)
 
 
 @dataclass(frozen=True)
@@ -101,6 +107,35 @@ class LoadedBurnedInputs:
     manifest_sha256: str
     source_manifest_sha256: str
     rows: tuple[BurnedInputRow, ...]
+
+
+@dataclass(frozen=True)
+class ModelBandEvaluation:
+    """Raw/projected metrics and paired projected correctness for one model."""
+
+    raw: EndpointMetrics
+    projected: EndpointMetrics
+    projected_correctness: tuple[bool, ...]
+
+    def __post_init__(self) -> None:
+        if (
+            type(self.raw) is not EndpointMetrics
+            or type(self.projected) is not EndpointMetrics
+            or self.raw.queries != self.projected.queries
+            or type(self.projected_correctness) is not tuple
+            or len(self.projected_correctness) != self.projected.queries
+            or any(type(value) is not bool for value in self.projected_correctness)
+            or sum(self.projected_correctness) != self.projected.correct
+        ):
+            raise ValueError("model band evaluation differs")
+
+
+@dataclass(frozen=True)
+class SeedCurveExecution:
+    """One endpoint-validated five-alpha seed execution."""
+
+    endpoint_replay: EndpointReplayEvidence
+    curve: SeedInterpolationCurve
 
 
 def _read_regular(path: Path, *, role: str) -> bytes:
@@ -606,3 +641,112 @@ def validate_endpoint_replay(
     if maximum > 2.0e-5:
         raise ValueError("endpoint replay float disagreement exceeds authority")
     return EndpointReplayEvidence(maximum_float_disagreement=maximum)
+
+
+def _prepare_evaluation_model(
+    model: object,
+    *,
+    disable_checkpointing: Callable[[torch.nn.Module], None],
+) -> torch.nn.Module:
+    if not isinstance(model, torch.nn.Module):
+        raise ValueError("transfer model factory returned the wrong type")
+    model.eval()
+    disable_checkpointing(model)
+    for parameter in model.parameters():
+        parameter.grad = None
+    return model
+
+
+def evaluate_transfer_seed_curve(
+    *,
+    authority: SeedEndpointAuthority,
+    initial: ReconstructedInitialModel,
+    checkpoint: LoadedTransferCheckpoint,
+    model_factory: Callable[[], torch.nn.Module],
+    disable_checkpointing: Callable[[torch.nn.Module], None],
+    evaluate_model: Callable[[torch.nn.Module], ModelBandEvaluation],
+) -> SeedCurveExecution:
+    """Replay both endpoints, then evaluate all five fresh tower folds."""
+
+    if (
+        type(authority) is not SeedEndpointAuthority
+        or type(initial) is not ReconstructedInitialModel
+        or type(checkpoint) is not LoadedTransferCheckpoint
+        or authority.seed != checkpoint.seed
+        or initial.sha256 != authority.initial_state_sha256
+        or not callable(model_factory)
+        or not callable(disable_checkpointing)
+        or not callable(evaluate_model)
+    ):
+        raise ValueError("transfer seed execution authority differs")
+    initial_state = OrderedDict(initial.model.state_dict())
+    if model_state_sha256(initial_state) != initial.sha256:
+        raise ValueError("initial model changed after reconstruction")
+    trained_state = OrderedDict(
+        (name, tensor.detach().cpu().clone()) for name, tensor in checkpoint.model_state.items()
+    )
+
+    initial_model = _prepare_evaluation_model(
+        initial.model,
+        disable_checkpointing=disable_checkpointing,
+    )
+    trained_model = _prepare_evaluation_model(
+        model_factory(),
+        disable_checkpointing=disable_checkpointing,
+    )
+    try:
+        trained_model.load_state_dict(trained_state, strict=True)
+    except RuntimeError as error:
+        raise ValueError("trained endpoint model state differs") from error
+    with torch.inference_mode():
+        initial_evaluation = evaluate_model(initial_model)
+        trained_evaluation = evaluate_model(trained_model)
+    if (
+        type(initial_evaluation) is not ModelBandEvaluation
+        or type(trained_evaluation) is not ModelBandEvaluation
+    ):
+        raise ValueError("endpoint evaluator returned the wrong type")
+    replay = validate_endpoint_replay(
+        authority=authority,
+        initial_raw=initial_evaluation.raw,
+        initial_projected=initial_evaluation.projected,
+        trained_raw=trained_evaluation.raw,
+        trained_projected=trained_evaluation.projected,
+    )
+
+    rows: list[AlphaEvaluation] = []
+    for alpha in INTERPOLATION_ALPHAS:
+        folded = interpolate_inference_state(initial_state, trained_state, alpha=alpha)
+        model = _prepare_evaluation_model(
+            model_factory(),
+            disable_checkpointing=disable_checkpointing,
+        )
+        try:
+            model.load_state_dict(folded.state, strict=True)
+        except RuntimeError as error:
+            raise ValueError("folded model state differs") from error
+        with torch.inference_mode():
+            evaluation = evaluate_model(model)
+        if type(evaluation) is not ModelBandEvaluation:
+            raise ValueError("fold evaluator returned the wrong type")
+        rows.append(
+            AlphaEvaluation(
+                seed=authority.seed,
+                alpha=alpha,
+                correct=evaluation.projected.correct,
+                queries=evaluation.projected.queries,
+                recall_ppm=(
+                    evaluation.projected.correct
+                    * 1_000_000
+                    // evaluation.projected.queries
+                ),
+                mean_margin=evaluation.projected.mean_margin,
+                correctness=evaluation.projected_correctness,
+                folded_state_sha256=folded.sha256,
+                tower_squared_displacement=folded.tower_squared_displacement,
+            )
+        )
+    return SeedCurveExecution(
+        endpoint_replay=replay,
+        curve=SeedInterpolationCurve(seed=authority.seed, rows=tuple(rows)),
+    )
