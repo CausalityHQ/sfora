@@ -273,7 +273,7 @@ def run_capture_phase(
     if (
         not isinstance(directory, Path)
         or not directory.is_dir()
-        or role not in {"train", "validation"}
+        or role not in {"train", "validation", "optimization"}
         or not callable(execute_one)
         or (maximum_new_rows is not None and maximum_new_rows <= 0)
         or tuple(directory.glob("*.partial"))
@@ -314,7 +314,7 @@ def validated_capture_prefix(
     if (
         not isinstance(directory, Path)
         or not directory.is_dir()
-        or role not in {"train", "validation"}
+        or role not in {"train", "validation", "optimization"}
         or tuple(directory.glob("*.partial"))
     ):
         raise ValueError("ASG-CV forced distill capture prefix differs")
@@ -440,7 +440,7 @@ def fit_forced_distill_predictor(
         for ordinal in range(validation_schedule.pair_count):
             capture, patches, gradient = _read_triple(
                 directory,
-                role="validation",
+                role="optimization",
                 schedule=validation_schedule,
                 ordinal=ordinal,
             )
@@ -459,6 +459,7 @@ def fit_forced_distill_predictor(
         train_schedule_sha256=train_schedule.sha256(),
         validation_schedule_sha256=validation_schedule.sha256(),
         predictor_state_sha256=predictor_state_sha256(predictor.cpu()),
+        evaluation_role="e1_optimization",
         validation_cosines=tuple(cosines),
         prediction_nonzero_flags=tuple(prediction_nonzero),
     )
@@ -561,17 +562,17 @@ def main(argv: list[str] | None = None) -> int:
         role="train",
     )
     validation_schedule = build_forced_distill_schedule(
-        local.e0_validation[0],
-        local.e0_validation[1],
+        local.e1_optimization[0],
+        local.e1_optimization[1],
         source_commit=args.capture_source_commit,
         launch_authority_sha256=local.authority_sha256,
-        role="validation",
+        role="optimization",
     )
     train_prefix = validated_capture_prefix(
         args.output_directory, role="train", schedule=train_schedule
     )
     validation_prefix = validated_capture_prefix(
-        args.output_directory, role="validation", schedule=validation_schedule
+        args.output_directory, role="optimization", schedule=validation_schedule
     )
 
     def capture_all(
@@ -602,7 +603,7 @@ def main(argv: list[str] | None = None) -> int:
             )
 
         capture_role("train", train_schedule, local.images)
-        capture_role("validation", validation_schedule, local.validation_images)
+        capture_role("optimization", validation_schedule, local.optimization_images)
 
     if (
         train_prefix != train_schedule.pair_count

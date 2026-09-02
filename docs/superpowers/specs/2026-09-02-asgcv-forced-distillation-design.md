@@ -27,7 +27,13 @@ training classes without sampled rollouts at student-training time.
   order with batch size one, AdamW learning rate `1e-3`, weight decay `1e-4`,
   and the existing normalized dense-plus-SRHT loss with a 256-dimensional
   source-bound SRHT.  No validation-driven hyperparameter choice is allowed.
-- Evaluate once on all 32 class-disjoint validation pairs.  The primary gate is
+- Rank modulation is bounded to `[0.5,1.5]` with
+  `1 + 0.5*tanh(rank_modulation)`.  This prevents the former exact-zero channel
+  gate while retaining signed, pair-conditioned rank modulation.
+- The first E0 validation execution is diagnostic-only after revealing the
+  exact-zero modulation defect.  After mutation-locking the nonzero modulation
+  floor, evaluate once on 32 untouched `e1_optimization` class-disjoint pairs.
+  The primary gate is
   median per-pair dense cosine at least 0.50; secondary gates are positive
   cosine on at least 75% of pairs and finite nonzero predictions on every pair.
   A finite zero prediction is recorded as cosine zero and failed liveness rather
@@ -51,6 +57,6 @@ still authenticates independently before fitting.
 
 ## Decision
 
-A pass means the semantic field is compressible enough to integrate as a cheap
+A pass on the untouched E1 band means the semantic field is compressible enough to integrate as a cheap
 training-time control variate.  A fail rejects this rank-16 student and stops
 retrieval integration; it does not negate the positive teacher diagnostic.

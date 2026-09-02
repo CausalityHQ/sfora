@@ -82,7 +82,7 @@ def build_forced_distill_schedule(
 
     _hex(source_commit, 40, name="source commit")
     _hex(launch_authority_sha256, 64, name="launch authority")
-    if type(role) is not str or role not in {"train", "validation"}:
+    if type(role) is not str or role not in {"train", "validation", "optimization"}:
         raise ValueError("ASG-CV forced distill role differs")
     manifest = _manifest_bytes(example_ids, labels)
     seed = hashlib.sha256(
@@ -170,7 +170,7 @@ class ForcedDistillCapture:
             ASGCV_FORCED_DISTILL_TRAIN_PAIRS
             if self.role == "train"
             else ASGCV_FORCED_DISTILL_VALIDATION_PAIRS
-            if self.role == "validation"
+            if self.role in {"validation", "optimization"}
             else -1
         )
         if (
@@ -278,6 +278,7 @@ class ForcedDistillResult:
     train_schedule_sha256: str
     validation_schedule_sha256: str
     predictor_state_sha256: str
+    evaluation_role: str
     validation_cosines: tuple[float, ...]
     prediction_nonzero_flags: tuple[bool, ...]
     median_cosine_ppm: int
@@ -303,6 +304,7 @@ class ForcedDistillResult:
         train_schedule_sha256: str,
         validation_schedule_sha256: str,
         predictor_state_sha256: str,
+        evaluation_role: str,
         validation_cosines: tuple[float, ...],
         prediction_nonzero_flags: tuple[bool, ...],
     ) -> ForcedDistillResult:
@@ -315,6 +317,8 @@ class ForcedDistillResult:
             ("predictor state", predictor_state_sha256),
         ):
             _hex(value, 64, name=name)
+        if evaluation_role not in {"e0_validation", "e1_optimization"}:
+            raise ValueError("ASG-CV forced distill evaluation role differs")
         if (
             type(validation_cosines) is not tuple
             or len(validation_cosines) != ASGCV_FORCED_DISTILL_VALIDATION_PAIRS
@@ -348,6 +352,7 @@ class ForcedDistillResult:
             train_schedule_sha256=train_schedule_sha256,
             validation_schedule_sha256=validation_schedule_sha256,
             predictor_state_sha256=predictor_state_sha256,
+            evaluation_role=evaluation_role,
             validation_cosines=validation_cosines,
             prediction_nonzero_flags=prediction_nonzero_flags,
             median_cosine_ppm=median,
@@ -377,6 +382,7 @@ class ForcedDistillResult:
             train_schedule_sha256=self.train_schedule_sha256,
             validation_schedule_sha256=self.validation_schedule_sha256,
             predictor_state_sha256=self.predictor_state_sha256,
+            evaluation_role=self.evaluation_role,
             validation_cosines=self.validation_cosines,
             prediction_nonzero_flags=self.prediction_nonzero_flags,
         )
@@ -447,6 +453,7 @@ class ForcedDistillResult:
             train_schedule_sha256=result.train_schedule_sha256,
             validation_schedule_sha256=result.validation_schedule_sha256,
             predictor_state_sha256=result.predictor_state_sha256,
+            evaluation_role=result.evaluation_role,
             validation_cosines=result.validation_cosines,
             prediction_nonzero_flags=result.prediction_nonzero_flags,
         )

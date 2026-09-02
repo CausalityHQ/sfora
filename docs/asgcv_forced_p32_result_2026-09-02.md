@@ -44,6 +44,5 @@ P32 diagnostic from chance-level accuracy to 87.5% with near-perfect ranking.
 This is evidence for a cheap amortized supervisor, not a retrieval result.  The
 next gate captures relation-correct forced gradients on the predictor-training
 class band, trains the existing rank-16 patch-gradient predictor, and evaluates
-gradient agreement once on the disjoint validation class band.  Only a positive
+gradient agreement once on a disjoint held-out training-class band.  Only a positive
 gradient-transfer gate warrants integrating the student into metric learning.
-

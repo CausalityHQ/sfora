@@ -152,6 +152,7 @@ def test_forced_distill_result_recomputes_cosine_gates_and_rejects_mutation() ->
         train_schedule_sha256="56" * 32,
         validation_schedule_sha256="78" * 32,
         predictor_state_sha256="9a" * 32,
+        evaluation_role="e1_optimization",
         validation_cosines=cosines,
         prediction_nonzero_flags=(True,) * 32,
     )

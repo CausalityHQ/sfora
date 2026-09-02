@@ -56,6 +56,19 @@ def test_predictor_relation_controls_measure_equivariance_and_liveness() -> None
         evaluate_predictor_relation_controls(_predictor(), torch.tensor(1.0))
 
 
+def test_predictor_rank_modulation_cannot_annihilate_all_channel_factors() -> None:
+    predictor = _predictor()
+    with torch.no_grad():
+        predictor.patch_projection.weight.zero_()
+        predictor.context_projection.weight.zero_()
+        predictor.context_projection.bias[:16].fill_(1.0)
+        predictor.context_projection.bias[16:].fill_(-100.0)
+    tokens = torch.randn(1, 2, 5, 32)
+    prediction = predictor(tokens, torch.tensor([1], dtype=torch.int8))
+    assert int(torch.count_nonzero(prediction)) == prediction.numel()
+    assert float(prediction.square().sum()) > 0.0
+
+
 def test_predictor_trains_itself_but_never_backpropagates_into_stopped_tokens() -> None:
     predictor = _predictor()
     tokens = torch.randn(2, 2, 5, 32)

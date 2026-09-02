@@ -123,7 +123,7 @@ class AsgcvPatchGradientPredictor(nn.Module):
         patch_bias, rank_modulation = self.context_projection(context).chunk(2, dim=-1)
         patch_factors = self.patch_projection(normalized) + patch_bias[:, :, None, :]
         channel_factors = self.channel_basis[None, None, :, :] * (
-            1.0 + torch.tanh(rank_modulation[:, :, None, :])
+            1.0 + 0.5 * torch.tanh(rank_modulation[:, :, None, :])
         )
         result = torch.einsum("bipr,bidr->bipd", patch_factors, channel_factors)
         if not bool(torch.isfinite(result).all()):
