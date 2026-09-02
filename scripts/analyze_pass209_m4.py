@@ -9,6 +9,7 @@ import importlib.util
 import json
 import os
 import re
+import sys
 from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import cast
@@ -66,11 +67,20 @@ def _require_offline() -> None:
 
 
 def _control_aggregator() -> Callable[[tuple[bytes, ...]], bytes]:
-    spec = importlib.util.spec_from_file_location("pass209_control_runner", _CONTROL_SCRIPT)
+    module_name = "pass209_control_runner"
+    spec = importlib.util.spec_from_file_location(module_name, _CONTROL_SCRIPT)
     if spec is None or spec.loader is None:
         raise RuntimeError("M3 control aggregator is unavailable")
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    previous = sys.modules.get(module_name)
+    sys.modules[module_name] = module
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        if previous is None:
+            sys.modules.pop(module_name, None)
+        else:
+            sys.modules[module_name] = previous
     function = getattr(module, "control_aggregate_receipt_bytes", None)
     if not callable(function):
         raise RuntimeError("M3 control aggregator is unavailable")

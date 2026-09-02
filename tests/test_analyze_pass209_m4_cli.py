@@ -91,6 +91,32 @@ def test_m3_loader_requires_aggregate_recomputed_from_exact_seed_bytes(
         _MODULE.load_m3_state(seed_paths, aggregate_path, aggregator=aggregate)
 
 
+def test_control_aggregator_registers_dynamic_module_for_dataclasses(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    control = tmp_path / "control.py"
+    control.write_text(
+        """import sys
+from dataclasses import dataclass
+
+if __name__ not in sys.modules:
+    raise RuntimeError("dynamic module is not registered")
+
+@dataclass(frozen=True)
+class Receipt:
+    value: int
+
+def control_aggregate_receipt_bytes(payloads):
+    return b\"aggregate\\n\"
+"""
+    )
+    monkeypatch.setattr(_MODULE, "_CONTROL_SCRIPT", control)
+
+    aggregate = _MODULE._control_aggregator()
+
+    assert aggregate((b"seed\n",)) == b"aggregate\n"
+
+
 def test_adapter_receipt_binds_all_inputs_and_threshold_equality() -> None:
     seeds = tuple(
         _MODULE.canonical_json_bytes(
