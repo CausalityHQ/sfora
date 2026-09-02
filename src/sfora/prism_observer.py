@@ -8,7 +8,19 @@ import re
 from dataclasses import asdict, dataclass
 
 from sfora.pass209_m4 import canonical_json_bytes
-from sfora.prism_measurement import PRISM_CHANNELS, PrismTokenProtocol
+from sfora.prism_measurement import (
+    PRISM_CHANNELS,
+    PrismChannelCalibration,
+    PrismObservationCapabilityRow,
+    PrismObservationRow,
+    PrismScoringRow,
+    PrismTokenProtocol,
+    calibrate_prism_channels,
+    invalid_prism_observation,
+    parse_prism_completion,
+    prism_calibration_receipt_sha256,
+    release_prism_observation_capability,
+)
 
 _SHA256 = re.compile(r"[0-9a-f]{64}")
 _COMMIT = re.compile(r"[0-9a-f]{40}")
@@ -121,6 +133,15 @@ class PrismCompletionBundle:
     observer_authority_sha256: str
     token_protocol_sha256: str
     rows: tuple[PrismCompletionRow, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class PrismDiagnosticRelease:
+    """Calibration evidence and the resulting anonymous diagnostic capability."""
+
+    calibrations: tuple[PrismChannelCalibration, ...]
+    calibration_receipt_sha256: str
+    capability: tuple[PrismObservationCapabilityRow, ...]
 
 
 def _reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
@@ -410,3 +431,75 @@ def validate_prism_completion_bundle_bytes(raw: bytes) -> PrismCompletionBundle:
     )
     _validate_completion_bundle(bundle)
     return bundle
+
+
+def bind_prism_diagnostic_capability(
+    schedules: tuple[PrismObservationRow, ...],
+    scoring_rows: tuple[PrismScoringRow, ...],
+    calibration_capability: tuple[PrismObservationCapabilityRow, ...],
+    completion_bundle: PrismCompletionBundle,
+    protocol: PrismTokenProtocol,
+    *,
+    source_identity: str,
+) -> PrismDiagnosticRelease:
+    """Authenticate calibration completions and release the diagnostic phase."""
+
+    expected_capability = release_prism_observation_capability(
+        schedules,
+        scoring_rows,
+        source_identity=source_identity,
+        phase="calibration",
+    )
+    if calibration_capability != expected_capability:
+        raise ValueError("PRISM calibration capability binding differs")
+    _validate_completion_bundle(completion_bundle)
+    if completion_bundle.phase != "calibration":
+        raise ValueError("PRISM calibration completion phase differs")
+    expected_schedules = tuple(row for row in schedules if row.fold < 4)
+    if len(completion_bundle.rows) != len(expected_schedules):
+        raise ValueError("PRISM calibration completion cardinality differs")
+    parsed = []
+    completion_ids = []
+    for private, public, completion in zip(
+        expected_schedules,
+        expected_capability,
+        completion_bundle.rows,
+        strict=True,
+    ):
+        if (
+            completion.pair_handle != public.pair_handle
+            or completion.channel != public.channel
+        ):
+            raise ValueError("PRISM calibration completion binding differs")
+        completion_ids.append(completion.completion_ids)
+        try:
+            parsed.append(parse_prism_completion(private, completion.completion_ids, protocol))
+        except ValueError:
+            parsed.append(invalid_prism_observation(private, completion.completion_ids))
+    diagnostic_placeholders = tuple(
+        invalid_prism_observation(row, ()) for row in schedules if row.fold == 4
+    )
+    all_observations = (*parsed, *diagnostic_placeholders)
+    calibrations = calibrate_prism_channels(
+        all_observations,
+        scoring_rows,
+        source_identity=source_identity,
+    )
+    receipt = prism_calibration_receipt_sha256(calibrations, protocol)
+    pilot_count = 32 * len(PRISM_CHANNELS)
+    diagnostic_capability = release_prism_observation_capability(
+        schedules,
+        scoring_rows,
+        source_identity=source_identity,
+        phase="diagnostic",
+        calibration_receipt_sha256=receipt,
+        calibrations=calibrations,
+        pilot_observations=tuple(parsed[:pilot_count]),
+        pilot_completion_ids=tuple(completion_ids[:pilot_count]),
+        protocol=protocol,
+    )
+    return PrismDiagnosticRelease(
+        calibrations=calibrations,
+        calibration_receipt_sha256=receipt,
+        capability=diagnostic_capability,
+    )
