@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import io
 import json
@@ -10,7 +11,7 @@ import math
 import random
 import stat
 from collections import OrderedDict
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
@@ -40,6 +41,53 @@ from sfora.weight_space_transfer import (
     interpolate_inference_state,
     model_state_sha256,
 )
+
+
+def _absolute_path(value: str) -> Path:
+    path = Path(value)
+    if not path.is_absolute():
+        raise argparse.ArgumentTypeError("path must be absolute")
+    return path
+
+
+def _lower_sha256(value: str) -> str:
+    if len(value) != 64 or any(character not in "0123456789abcdef" for character in value):
+        raise argparse.ArgumentTypeError("digest must be lowercase SHA-256")
+    return value
+
+
+def _positive_bytes(value: str) -> int:
+    try:
+        parsed = int(value)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError("byte length must be an integer") from error
+    if parsed <= 0:
+        raise argparse.ArgumentTypeError("byte length must be positive")
+    return parsed
+
+
+def parse_arguments(argv: Sequence[str] | None = None) -> argparse.Namespace:
+    """Parse the explicit local-artifact diagnostic interface."""
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--burned-manifest", required=True, type=_absolute_path)
+    parser.add_argument("--burned-manifest-sha256", required=True, type=_lower_sha256)
+    parser.add_argument("--burned-manifest-bytes", required=True, type=_positive_bytes)
+    parser.add_argument("--burned-image-root", required=True, type=_absolute_path)
+    parser.add_argument("--source-manifest-sha256", required=True, type=_lower_sha256)
+    parser.add_argument("--seed-result", required=True, action="append", type=_absolute_path)
+    parser.add_argument("--seed-result-sha256", required=True, action="append", type=_lower_sha256)
+    parser.add_argument("--seed-result-bytes", required=True, action="append", type=_positive_bytes)
+    parser.add_argument("--checkpoint", required=True, action="append", type=_absolute_path)
+    parser.add_argument("--checkpoint-sha256", required=True, action="append", type=_lower_sha256)
+    parser.add_argument("--checkpoint-bytes", required=True, action="append", type=_positive_bytes)
+    parser.add_argument("--output", required=True, type=_absolute_path)
+    parser.add_argument(
+        "--execute-weight-space-transfer",
+        required=True,
+        action="store_true",
+    )
+    return parser.parse_args(argv)
 
 
 @dataclass(frozen=True)

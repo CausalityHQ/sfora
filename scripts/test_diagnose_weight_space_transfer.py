@@ -4,6 +4,7 @@ import json
 import tempfile
 import unittest
 from collections import OrderedDict
+from contextlib import redirect_stderr
 from pathlib import Path
 
 import torch
@@ -22,6 +23,7 @@ from scripts.diagnose_weight_space_transfer import (
     load_burned_inputs,
     load_seed_endpoint_authority,
     load_transfer_checkpoint,
+    parse_arguments,
     reconstruct_initial_model,
     validate_endpoint_replay,
 )
@@ -210,6 +212,54 @@ def _burned_input_fixture(root: Path) -> tuple[Path, Path, bytes]:
 
 
 class EndpointAuthorityTests(unittest.TestCase):
+    def test_cli_accepts_only_bound_local_artifacts_and_explicit_execution(self) -> None:
+        arguments = [
+            "--burned-manifest",
+            "/abs/burned.json",
+            "--burned-manifest-sha256",
+            "1" * 64,
+            "--burned-manifest-bytes",
+            "123",
+            "--burned-image-root",
+            "/abs/images",
+            "--source-manifest-sha256",
+            "2" * 64,
+            "--seed-result",
+            "/abs/seed17.json",
+            "--seed-result-sha256",
+            "3" * 64,
+            "--seed-result-bytes",
+            "456",
+            "--checkpoint",
+            "/abs/seed17.pt",
+            "--checkpoint-sha256",
+            "4" * 64,
+            "--checkpoint-bytes",
+            "789",
+            "--seed-result",
+            "/abs/seed29.json",
+            "--seed-result-sha256",
+            "5" * 64,
+            "--seed-result-bytes",
+            "457",
+            "--checkpoint",
+            "/abs/seed29.pt",
+            "--checkpoint-sha256",
+            "6" * 64,
+            "--checkpoint-bytes",
+            "790",
+            "--output",
+            "/abs/result.json",
+            "--execute-weight-space-transfer",
+        ]
+        parsed = parse_arguments(arguments)
+        self.assertEqual(parsed.seed_result, [Path("/abs/seed17.json"), Path("/abs/seed29.json")])
+        self.assertEqual(parsed.output, Path("/abs/result.json"))
+        for flag in ("--dataset", "--clean-root", "--official-test", "--network"):
+            with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                parse_arguments(arguments + [flag, "/abs/forbidden"])
+        with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            parse_arguments(arguments[:-1])
     def test_burned_loader_authenticates_exact_population_and_namespace(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             manifest, images, raw = _burned_input_fixture(Path(directory))
