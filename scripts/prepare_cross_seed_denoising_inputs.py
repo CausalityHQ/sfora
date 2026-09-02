@@ -326,8 +326,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         checkpoints.append(checkpoint)
     if len({authority.manifest_sha256 for authority in authorities}) != 1:
         raise ValueError("endpoint dataset manifest differs")
+    if (
+        len({authority.evaluation_batch_size for authority in authorities}) != 1
+        or len({authority.query_block for authority in authorities}) != 1
+    ):
+        raise ValueError("endpoint evaluation protocol differs")
     bindings = {
         "dataset_manifest_sha256": authorities[0].manifest_sha256,
+        "evaluation_batch_size": str(authorities[0].evaluation_batch_size),
+        "query_block": str(authorities[0].query_block),
         "source_commit": arguments.source_commit,
         "source_tree_digest": arguments.source_tree_digest,
         **{
