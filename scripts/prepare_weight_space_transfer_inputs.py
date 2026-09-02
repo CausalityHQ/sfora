@@ -16,6 +16,7 @@ from pathlib import Path
 from scripts.run_siglip_proxy_control import (
     ControlExampleBands,
     control_manifest_artifact_bytes,
+    control_manifest_sha256,
     load_control_examples,
 )
 from sfora.substrate_screen import SUBSTRATE_F0_CLASSES
@@ -122,7 +123,9 @@ def prepare_burned_artifact(
                 "claim_eligible": False,
                 "examples": rows,
                 "schema": "sfora-weight-space-transfer-burned-input-v1",
-                "source_manifest_sha256": hashlib.sha256(control_manifest_raw).hexdigest(),
+                "source_manifest_sha256": control_manifest_sha256(
+                    bands.ordered_manifest
+                ),
             }
         )
         _write_new(output / "burned.json", raw)

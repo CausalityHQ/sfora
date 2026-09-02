@@ -15,6 +15,7 @@ from scripts.prepare_weight_space_transfer_inputs import (
 from scripts.run_siglip_proxy_control import (
     ControlExampleBands,
     control_manifest_artifact_bytes,
+    control_manifest_sha256,
 )
 from sfora.data import ImageExample
 
@@ -62,6 +63,13 @@ class BurnedArtifactTests(unittest.TestCase):
             value = json.loads(first_raw)
             self.assertEqual(value["schema"], "sfora-weight-space-transfer-burned-input-v1")
             self.assertIs(value["claim_eligible"], False)
+            self.assertEqual(
+                value["source_manifest_sha256"],
+                control_manifest_sha256(bands.ordered_manifest),
+            )
+            self.assertNotEqual(
+                value["source_manifest_sha256"], hashlib.sha256(source).hexdigest()
+            )
             self.assertEqual(len(value["examples"]), 1)
             row = value["examples"][0]
             self.assertEqual(row["example_id"], "cars/burned")
