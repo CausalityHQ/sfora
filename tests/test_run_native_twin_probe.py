@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import OrderedDict
 from pathlib import Path
 
 import numpy as np
@@ -7,10 +8,13 @@ import pytest
 from PIL import Image
 
 from scripts.run_native_twin_probe import (
+    _validated_checkpoint_model_state,
     matched_control_crop,
     native_crop_boxes,
     parse_args,
 )
+from scripts.run_siglip_proxy_control import _config_sha256
+from sfora.siglip_proxy_control import SiglipProxyControlConfig
 
 
 def test_native_crop_boxes_are_exact_label_independent_three_by_three_grid() -> None:
@@ -97,3 +101,35 @@ def test_native_probe_cli_is_explicit_and_refuses_policy_or_data_selection_flags
     without_execute = _arguments(tmp_path)[:-1]
     with pytest.raises(SystemExit):
         parse_args(without_execute)
+
+
+def test_checkpoint_authority_accepts_exact_pytorch_ordered_model_state() -> None:
+    config = SiglipProxyControlConfig()
+    state = OrderedDict((('weight', object()),))
+    payload = {
+        "claim_eligible": False,
+        "completed_epoch": 60,
+        "config_sha256": _config_sha256(config),
+        "cpu_rng_state": object(),
+        "cuda_rng_states": (),
+        "final_objective": 1.0,
+        "initial_snapshot_sha256": "1" * 64,
+        "maximum_score_disagreement": 0.0,
+        "model_state": state,
+        "optimizer_state": {},
+        "run_authority_sha256": "2" * 64,
+        "sampler_cycles": tuple(range(49)),
+        "sampler_positions": tuple(range(49)),
+        "schema": "sfora-siglip-proxy-checkpoint-payload-v1",
+        "seed": 17,
+    }
+
+    assert _validated_checkpoint_model_state(payload, config=config, seed=17) is state
+
+    payload["model_state"] = {"weight": object()}
+    with pytest.raises(ValueError, match="payload authority"):
+        _validated_checkpoint_model_state(payload, config=config, seed=17)
+
+    payload["model_state"] = []
+    with pytest.raises(ValueError, match="payload authority"):
+        _validated_checkpoint_model_state(payload, config=config, seed=17)

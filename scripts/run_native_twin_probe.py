@@ -8,6 +8,7 @@ import hashlib
 import json
 import os
 import stat
+from collections import OrderedDict
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any, cast
@@ -55,6 +56,28 @@ _CHECKPOINT_KEYS = {
     "schema",
     "seed",
 }
+
+
+def _validated_checkpoint_model_state(
+    payload: object,
+    *,
+    config: SiglipProxyControlConfig,
+    seed: int,
+) -> OrderedDict[str, Any]:
+    """Return the exact producer-compatible model state from one checkpoint."""
+
+    if (
+        type(payload) is not dict
+        or set(payload) != _CHECKPOINT_KEYS
+        or payload["schema"] != "sfora-siglip-proxy-checkpoint-payload-v1"
+        or payload["claim_eligible"] is not False
+        or payload["seed"] != seed
+        or payload["completed_epoch"] != 60
+        or payload["config_sha256"] != _config_sha256(config)
+        or type(payload["model_state"]) is not OrderedDict
+    ):
+        raise ValueError("native checkpoint payload authority differs")
+    return cast("OrderedDict[str, Any]", payload["model_state"])
 
 
 def native_crop_boxes(width: int, height: int) -> tuple[tuple[int, int, int, int], ...]:
@@ -268,18 +291,8 @@ def run_probe(args: argparse.Namespace) -> bytes:
         proxy_initialization=config.proxy_initialization,
     )
     payload = torch.load(args.checkpoint, map_location="cpu", weights_only=True)
-    if (
-        type(payload) is not dict
-        or set(payload) != _CHECKPOINT_KEYS
-        or payload["schema"] != "sfora-siglip-proxy-checkpoint-payload-v1"
-        or payload["claim_eligible"] is not False
-        or payload["seed"] != args.seed
-        or payload["completed_epoch"] != 60
-        or payload["config_sha256"] != _config_sha256(config)
-        or type(payload["model_state"]) is not dict
-    ):
-        raise ValueError("native checkpoint payload authority differs")
-    model.load_state_dict(payload["model_state"], strict=True)
+    model_state = _validated_checkpoint_model_state(payload, config=config, seed=args.seed)
+    model.load_state_dict(model_state, strict=True)
     del payload
     model = model.to(device).eval()
     bands = load_control_examples()
