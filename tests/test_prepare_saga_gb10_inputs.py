@@ -84,7 +84,7 @@ def test_prepare_seals_immutable_snapshot_and_source_bound_fixture(
     assert snapshot.model_revision == "1" * 40
     assert fixture.source_commit == "2" * 40
     assert fixture.controller_commit == "3" * 40
-    assert fixture.patch_tokens_per_image == 49
+    assert fixture.patch_tokens_per_image == 64
     assert all(path.stat().st_mode & 0o222 == 0 for path in output.rglob("*"))
 
 

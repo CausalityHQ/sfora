@@ -172,7 +172,7 @@ def prepare_inputs(
                     "synthetic_rewards": [0, 1, 0, 1, 0, 1, 0, 1],
                     "attention_layer": 26,
                     "attribute_token_span": [0, 1],
-                    "patch_tokens_per_image": 49,
+                    "patch_tokens_per_image": 64,
                     "pseudo_labels": [ordinal % 2 for ordinal in range(64)],
                 }
             ),
