@@ -383,18 +383,27 @@ def execute_cross_seed_controller(
     return terminal
 
 
+def _run_controller_child(
+    arguments: argparse.Namespace,
+    child_argv: tuple[str, ...],
+    *,
+    tracker_factory: Callable[[], object] = TransferProcessTracker,
+    child_runner: Callable[..., bytes] = run_transfer_child_process,
+) -> bytes:
+    tracker = tracker_factory()
+    sample = getattr(tracker, "sample", None)
+    if not callable(sample):
+        raise ValueError("controller tracker differs")
+    return child_runner(child_argv, cwd=arguments.repository, sample=sample)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """Run each child in a fresh network-denied named user unit."""
 
     arguments = parse_controller_arguments(argv)
-    tracker = TransferProcessTracker()
 
     def runner(_phase: str, child_argv: tuple[str, ...]) -> bytes:
-        return run_transfer_child_process(
-            child_argv,
-            cwd=arguments.repository,
-            sample=tracker.sample,
-        )
+        return _run_controller_child(arguments, child_argv)
 
     terminal = execute_cross_seed_controller(arguments, run_phase=runner)
     sys.stdout.buffer.write(terminal)

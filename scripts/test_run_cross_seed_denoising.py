@@ -11,6 +11,7 @@ from pathlib import Path
 
 from scripts.run_cross_seed_denoising import (
     CrossSeedProcessObservation,
+    _run_controller_child,
     execute_cross_seed_controller,
     parse_controller_arguments,
     project_phase_argv,
@@ -51,6 +52,46 @@ def _arguments(root: Path) -> argparse.Namespace:
 
 
 class CrossSeedControllerTests(unittest.TestCase):
+    def test_each_phase_uses_a_fresh_process_tracker(self) -> None:
+        arguments = _arguments(Path("/tmp/fixture"))
+        trackers: list[object] = []
+        samples: list[object] = []
+
+        class Tracker:
+            def __init__(self) -> None:
+                trackers.append(self)
+
+            def sample(self) -> None:
+                return None
+
+        def child(
+            _argv: tuple[str, ...], *, cwd: Path, sample: object
+        ) -> bytes:
+            self.assertEqual(cwd, arguments.repository)
+            samples.append(sample)
+            return b"phase"
+
+        self.assertEqual(
+            _run_controller_child(
+                arguments,
+                ("phase-1",),
+                tracker_factory=Tracker,
+                child_runner=child,
+            ),
+            b"phase",
+        )
+        self.assertEqual(
+            _run_controller_child(
+                arguments,
+                ("phase-2",),
+                tracker_factory=Tracker,
+                child_runner=child,
+            ),
+            b"phase",
+        )
+        self.assertEqual(len(trackers), 2)
+        self.assertNotEqual(samples[0], samples[1])
+
     def test_phase_projection_enforces_capability_blindness(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             arguments = _arguments(Path(directory))
