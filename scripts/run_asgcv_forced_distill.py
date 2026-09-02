@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import gc
 import hashlib
 import os
 import sys
@@ -12,17 +13,57 @@ from pathlib import Path
 from typing import Protocol
 
 import numpy as np
+import torch
 
-from sfora.asgcv_forced_distill import (
+_REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPOSITORY_ROOT))
+
+from scripts.diagnose_saga_gb10_feasibility import (  # noqa: E402
+    LoadedAuthority,
+    TransformersFactory,
+    load_qwen_adapter,
+)
+from scripts.prepare_asgcv_p32_inputs import _authenticated_source_commit  # noqa: E402
+from scripts.run_asgcv_p32 import load_p32_local_authority  # noqa: E402
+from sfora.asgcv import AsgcvSrhtAuthority  # noqa: E402
+from sfora.asgcv_forced_distill import (  # noqa: E402
     ASGCV_FORCED_DISTILL_SHAPE,
+    ASGCV_FORCED_DISTILL_TRAIN_PAIRS,
+    ASGCV_FORCED_DISTILL_VALIDATION_PAIRS,
     ForcedDistillCapture,
+    ForcedDistillResult,
+    build_forced_distill_schedule,
     canonical_forced_distill_capture_bytes,
+    canonical_forced_distill_result_bytes,
+    dense_gradient_cosine,
     relation_correct_gradient,
     validate_forced_distill_capture_bytes,
+    validate_forced_distill_result_bytes,
 )
-from sfora.asgcv_protocol import AsgcvCompletionProtocol, AsgcvPair, AsgcvPairSchedule
+from sfora.asgcv_predictor import (  # noqa: E402
+    AsgcvPatchGradientPredictor,
+    canonical_predictor_state_bytes,
+    predictor_state_sha256,
+    predictor_training_loss,
+    source_bound_predictor,
+)
+from sfora.asgcv_protocol import (  # noqa: E402
+    AsgcvCompletionProtocol,
+    AsgcvPair,
+    AsgcvPairSchedule,
+)
+from sfora.saga_feasibility import (  # noqa: E402
+    load_fixture_authority,
+    load_snapshot_authority,
+)
 
 _BOUNDARY_NAMES = ("merger", "deepstack-0", "deepstack-1", "deepstack-2")
+ASGCV_FORCED_DISTILL_EPOCHS = 20
+ASGCV_FORCED_DISTILL_LEARNING_RATE = 1e-3
+ASGCV_FORCED_DISTILL_WEIGHT_DECAY = 1e-4
+ASGCV_FORCED_DISTILL_SRHT_DIMENSIONS = 256
+_SRHT_DOMAIN = b"sfora-asgcv-forced-distill-srht-v1\0"
 
 
 class ForcedDistillAdapter(Protocol):
@@ -160,6 +201,25 @@ def _validate_triple(
         raise ValueError("ASG-CV forced distill capture context differs")
 
 
+def _read_triple(
+    directory: Path,
+    *,
+    role: str,
+    schedule: AsgcvPairSchedule,
+    ordinal: int,
+) -> tuple[ForcedDistillCapture, np.ndarray, np.ndarray]:
+    _validate_triple(directory, role=role, schedule=schedule, ordinal=ordinal)
+    receipt_path, patch_path, gradient_path = _paths(directory, role, ordinal)
+    patches = _load_array(patch_path)
+    gradient = _load_array(gradient_path)
+    capture = validate_forced_distill_capture_bytes(
+        receipt_path.read_bytes(),
+        patch_tokens=patches,
+        exact_gradient=gradient,
+    )
+    return capture, patches, gradient
+
+
 def _write_array(path: Path, value: np.ndarray) -> None:
     with path.open("xb") as stream:
         np.save(stream, value, allow_pickle=False)
@@ -257,6 +317,128 @@ def run_capture_phase(
     return stop
 
 
+def forced_distill_srht_authority(initialization_seed_sha256: str) -> AsgcvSrhtAuthority:
+    """Derive the fixed 256-dimensional predictor-loss projection."""
+
+    if (
+        type(initialization_seed_sha256) is not str
+        or len(initialization_seed_sha256) != 64
+        or any(character not in "0123456789abcdef" for character in initialization_seed_sha256)
+    ):
+        raise ValueError("ASG-CV forced distill initialization seed differs")
+    return AsgcvSrhtAuthority(
+        input_dimensions=ASGCV_FORCED_DISTILL_SHAPE[-1],
+        padded_dimensions=ASGCV_FORCED_DISTILL_SHAPE[-1],
+        output_dimensions=ASGCV_FORCED_DISTILL_SRHT_DIMENSIONS,
+        seed_sha256=hashlib.sha256(
+            _SRHT_DOMAIN + bytes.fromhex(initialization_seed_sha256)
+        ).hexdigest(),
+    ).validated()
+
+
+def train_predictor_epoch(
+    predictor: AsgcvPatchGradientPredictor,
+    optimizer: torch.optim.Optimizer,
+    rows: tuple[tuple[torch.Tensor, torch.Tensor, torch.Tensor], ...],
+    *,
+    srht_authority: AsgcvSrhtAuthority,
+) -> float:
+    """Apply one fixed-order epoch and return its mean normalized loss."""
+
+    if (
+        type(predictor) is not AsgcvPatchGradientPredictor
+        or not isinstance(optimizer, torch.optim.Optimizer)
+        or type(rows) is not tuple
+        or not rows
+    ):
+        raise ValueError("ASG-CV forced distill training epoch differs")
+    losses: list[float] = []
+    predictor.train()
+    for tokens, signs, exact in rows:
+        if exact.requires_grad:
+            raise ValueError("ASG-CV forced distill exact target differs")
+        optimizer.zero_grad(set_to_none=True)
+        predicted = predictor(tokens, signs)
+        loss = predictor_training_loss(predicted, exact, srht_authority)
+        loss.backward()
+        optimizer.step()
+        value = float(loss.detach())
+        if not np.isfinite(value) or value < 0.0:
+            raise ValueError("ASG-CV forced distill training loss differs")
+        losses.append(value)
+    return float(sum(losses) / len(losses))
+
+
+def fit_forced_distill_predictor(
+    directory: Path,
+    *,
+    train_schedule: AsgcvPairSchedule,
+    validation_schedule: AsgcvPairSchedule,
+    initialization_seed_sha256: str,
+    source_commit: str,
+    launch_authority_sha256: str,
+) -> tuple[AsgcvPatchGradientPredictor, ForcedDistillResult]:
+    """Fit the frozen student recipe and evaluate the disjoint validation band once."""
+
+    if (
+        train_schedule.pair_count != ASGCV_FORCED_DISTILL_TRAIN_PAIRS
+        or validation_schedule.pair_count != ASGCV_FORCED_DISTILL_VALIDATION_PAIRS
+    ):
+        raise ValueError("ASG-CV forced distill fit schedule differs")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    predictor = source_bound_predictor(
+        channel_dimensions=ASGCV_FORCED_DISTILL_SHAPE[-1],
+        seed_sha256=initialization_seed_sha256,
+    ).to(device)
+    optimizer = torch.optim.AdamW(
+        predictor.parameters(),
+        lr=ASGCV_FORCED_DISTILL_LEARNING_RATE,
+        weight_decay=ASGCV_FORCED_DISTILL_WEIGHT_DECAY,
+    )
+    srht = forced_distill_srht_authority(initialization_seed_sha256)
+    for _epoch in range(ASGCV_FORCED_DISTILL_EPOCHS):
+        for ordinal in range(train_schedule.pair_count):
+            capture, patches, gradient = _read_triple(
+                directory,
+                role="train",
+                schedule=train_schedule,
+                ordinal=ordinal,
+            )
+            rows = (
+                (
+                    torch.from_numpy(patches).unsqueeze(0).to(device),
+                    torch.tensor([capture.relation_sign], dtype=torch.int8, device=device),
+                    torch.from_numpy(gradient).unsqueeze(0).to(device),
+                ),
+            )
+            train_predictor_epoch(predictor, optimizer, rows, srht_authority=srht)
+    predictor.eval()
+    cosines: list[float] = []
+    with torch.no_grad():
+        for ordinal in range(validation_schedule.pair_count):
+            capture, patches, gradient = _read_triple(
+                directory,
+                role="validation",
+                schedule=validation_schedule,
+                ordinal=ordinal,
+            )
+            predicted = predictor(
+                torch.from_numpy(patches).unsqueeze(0).to(device),
+                torch.tensor([capture.relation_sign], dtype=torch.int8, device=device),
+            )[0]
+            predicted_array = predicted.detach().float().cpu().contiguous().numpy()
+            cosines.append(dense_gradient_cosine(gradient, predicted_array))
+    result = ForcedDistillResult.from_cosines(
+        source_commit=source_commit,
+        launch_authority_sha256=launch_authority_sha256,
+        train_schedule_sha256=train_schedule.sha256(),
+        validation_schedule_sha256=validation_schedule.sha256(),
+        predictor_state_sha256=predictor_state_sha256(predictor.cpu()),
+        validation_cosines=tuple(cosines),
+    )
+    return predictor, result
+
+
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     """Parse the strict local-only distillation boundary."""
 
@@ -289,3 +471,144 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     if not parsed.output_directory.is_dir() or parsed.output_directory.is_symlink():
         parser.error("output directory must be an existing regular directory")
     return parsed
+
+
+def _write_atomic_bytes(path: Path, payload: bytes) -> None:
+    if path.exists() or path.is_symlink():
+        raise ValueError("ASG-CV forced distill result exists")
+    partial = path.with_name(path.name + ".partial")
+    if partial.exists() or partial.is_symlink():
+        raise ValueError("ASG-CV forced distill result partial exists")
+    try:
+        with partial.open("xb") as stream:
+            stream.write(payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(partial, path)
+        directory_fd = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
+    finally:
+        if partial.exists():
+            partial.unlink()
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Run one authenticated capture, frozen fit, and validation campaign."""
+
+    args = parse_args(argv)
+    if _authenticated_source_commit(_REPOSITORY_ROOT) != args.source_commit:
+        raise ValueError("ASG-CV forced distill executing source commit differs")
+    result_path = args.output_directory / "result.json"
+    predictor_path = args.output_directory / "predictor-state.bin"
+    if result_path.exists():
+        result = validate_forced_distill_result_bytes(result_path.read_bytes())
+        if (
+            predictor_path.is_symlink()
+            or not predictor_path.is_file()
+            or hashlib.sha256(predictor_path.read_bytes()).hexdigest()
+            != result.predictor_state_sha256
+        ):
+            raise ValueError("ASG-CV forced distill predictor result binding differs")
+        raw = canonical_forced_distill_result_bytes(result)
+        sys.stdout.buffer.write(raw)
+        sys.stdout.buffer.flush()
+        return 0
+    if predictor_path.exists() or tuple(args.output_directory.glob("*.partial")):
+        raise ValueError("ASG-CV forced distill terminal output differs")
+
+    local = load_p32_local_authority(
+        args.p32_authority,
+        args.train_manifest,
+        source_commit=args.source_commit,
+    )
+    train_schedule = build_forced_distill_schedule(
+        local.predictor_train[0],
+        local.predictor_train[1],
+        source_commit=args.source_commit,
+        launch_authority_sha256=local.authority_sha256,
+        role="train",
+    )
+    validation_schedule = build_forced_distill_schedule(
+        local.e0_validation[0],
+        local.e0_validation[1],
+        source_commit=args.source_commit,
+        launch_authority_sha256=local.authority_sha256,
+        role="validation",
+    )
+    snapshot = load_snapshot_authority(
+        root=args.model_root,
+        manifest_path=args.snapshot_manifest,
+    )
+    fixture = load_fixture_authority(args.fixture)
+    if (
+        fixture.source_commit != args.source_commit
+        or fixture.model_revision != local.rollout_authority.model_revision
+        or fixture.prompt_utf8 != local.prompt_utf8
+        or fixture.patch_tokens_per_image != local.patch_tokens_per_image
+    ):
+        raise ValueError("ASG-CV forced distill fixture binding differs")
+    adapter = load_qwen_adapter(
+        LoadedAuthority(snapshot=snapshot, fixture=fixture),
+        factory=TransformersFactory(),
+    )
+
+    def capture_all(
+        adapter_value: ForcedDistillAdapter,
+    ) -> None:
+        def capture_role(
+            role: str,
+            schedule: AsgcvPairSchedule,
+            images: tuple[np.ndarray, ...],
+        ) -> None:
+            run_capture_phase(
+                args.output_directory,
+                role=role,
+                schedule=schedule,
+                execute_one=lambda ordinal: capture_forced_distill_pair(
+                    adapter_value,
+                    role=role,
+                    pair=schedule.pairs[ordinal],
+                    schedule=schedule,
+                    images=images,
+                    prompt_utf8=local.prompt_utf8,
+                    attribute_token_span=local.attribute_token_span,
+                    patch_tokens_per_image=local.patch_tokens_per_image,
+                    completion_protocol=local.completion_protocol,
+                    source_commit=args.source_commit,
+                    launch_authority_sha256=local.authority_sha256,
+                ),
+            )
+
+        capture_role("train", train_schedule, local.images)
+        capture_role("validation", validation_schedule, local.validation_images)
+
+    capture_all(adapter)
+    del capture_all
+    del adapter
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+    predictor, result = fit_forced_distill_predictor(
+        args.output_directory,
+        train_schedule=train_schedule,
+        validation_schedule=validation_schedule,
+        initialization_seed_sha256=local.predictor_initialization_seed_sha256,
+        source_commit=args.source_commit,
+        launch_authority_sha256=local.authority_sha256,
+    )
+    predictor_bytes = canonical_predictor_state_bytes(predictor)
+    if hashlib.sha256(predictor_bytes).hexdigest() != result.predictor_state_sha256:
+        raise ValueError("ASG-CV forced distill predictor digest differs")
+    raw = canonical_forced_distill_result_bytes(result)
+    _write_atomic_bytes(predictor_path, predictor_bytes)
+    _write_atomic_bytes(result_path, raw)
+    sys.stdout.buffer.write(raw)
+    sys.stdout.buffer.flush()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

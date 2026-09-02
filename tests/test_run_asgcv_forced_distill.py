@@ -6,12 +6,15 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+import torch
 
+from sfora.asgcv import AsgcvSrhtAuthority
 from sfora.asgcv_forced_distill import (
     ASGCV_FORCED_DISTILL_SHAPE,
     build_forced_distill_schedule,
     validate_forced_distill_capture_bytes,
 )
+from sfora.asgcv_predictor import predictor_state_sha256, source_bound_predictor
 from sfora.asgcv_protocol import AsgcvCompletionProtocol
 
 _SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "run_asgcv_forced_distill.py"
@@ -22,6 +25,7 @@ _SPEC.loader.exec_module(_MODULE)
 capture_forced_distill_pair = _MODULE.capture_forced_distill_pair
 parse_args = _MODULE.parse_args
 run_capture_phase = _MODULE.run_capture_phase
+train_predictor_epoch = _MODULE.train_predictor_epoch
 
 
 SOURCE_COMMIT = "12" * 20
@@ -179,3 +183,27 @@ def test_forced_distill_cli_rejects_network_and_official_test_flags(tmp_path: Pa
     for forbidden in ("--official-test", "--model-uri", "--aws-profile"):
         with pytest.raises(SystemExit):
             parse_args([*required, forbidden, "x"])
+
+
+def test_train_predictor_epoch_updates_student_without_mutating_exact_target() -> None:
+    predictor = source_bound_predictor(channel_dimensions=16, seed_sha256="ab" * 32)
+    optimizer = torch.optim.AdamW(predictor.parameters(), lr=1e-3, weight_decay=1e-4)
+    tokens = torch.arange(64, dtype=torch.float32).reshape(1, 2, 2, 16) / 64.0
+    signs = torch.tensor([1], dtype=torch.int8)
+    exact = torch.flip(tokens, dims=(-1,)).detach()
+    preserved = exact.clone()
+    before = predictor_state_sha256(predictor)
+    loss = train_predictor_epoch(
+        predictor,
+        optimizer,
+        ((tokens, signs, exact),),
+        srht_authority=AsgcvSrhtAuthority(
+            input_dimensions=16,
+            padded_dimensions=16,
+            output_dimensions=8,
+            seed_sha256="cd" * 32,
+        ).validated(),
+    )
+    assert np.isfinite(loss) and loss >= 0.0
+    assert predictor_state_sha256(predictor) != before
+    assert torch.equal(exact, preserved)

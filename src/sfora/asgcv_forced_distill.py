@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
+import statistics
 from dataclasses import dataclass, fields
 from typing import Any, cast
 
@@ -15,6 +17,9 @@ ASGCV_FORCED_DISTILL_SHAPE = (2, 196, 2048)
 ASGCV_FORCED_DISTILL_TRAIN_PAIRS = 128
 ASGCV_FORCED_DISTILL_VALIDATION_PAIRS = 32
 ASGCV_FORCED_DISTILL_CAPTURE_SCHEMA = "sfora-asgcv-forced-distill-capture-v1"
+ASGCV_FORCED_DISTILL_RESULT_SCHEMA = "sfora-asgcv-forced-distill-result-v1"
+ASGCV_FORCED_DISTILL_COSINE_GATE_PPM = 500_000
+ASGCV_FORCED_DISTILL_POSITIVE_RATE_GATE_PPM = 750_000
 _SCHEDULE_DOMAIN = b"sfora-asgcv-forced-distill-schedule-v1\0"
 
 
@@ -108,6 +113,24 @@ def relation_correct_gradient(value: object, relation_sign: object) -> np.ndarra
     if type(relation_sign) is not int or relation_sign not in {-1, 1}:
         raise ValueError("ASG-CV forced distill relation sign differs")
     return np.ascontiguousarray(gradient * np.float32(relation_sign))
+
+
+def dense_gradient_cosine(exact: object, predicted: object) -> float:
+    """Return one float64-accumulated dense cosine over exact float32 fields."""
+
+    exact_array = _array(exact, name="exact gradient").astype(np.float64)
+    predicted_array = _array(predicted, name="predicted gradient").astype(np.float64)
+    exact_energy = float(np.square(exact_array).sum(dtype=np.float64))
+    predicted_energy = float(np.square(predicted_array).sum(dtype=np.float64))
+    if exact_energy <= 0.0 or predicted_energy <= 0.0:
+        raise ValueError("ASG-CV forced distill gradient energy differs")
+    result = float(
+        np.multiply(exact_array, predicted_array).sum(dtype=np.float64)
+        / math.sqrt(exact_energy * predicted_energy)
+    )
+    if not math.isfinite(result) or not -1.000001 <= result <= 1.000001:
+        raise ValueError("ASG-CV forced distill cosine differs")
+    return min(1.0, max(-1.0, result))
 
 
 @dataclass(frozen=True, slots=True)
@@ -231,3 +254,184 @@ def validate_forced_distill_capture_bytes(
     if not bool(np.square(gradient.astype(np.float64)).sum(dtype=np.float64) > 0.0):
         raise ValueError("ASG-CV forced distill gradient energy differs")
     return capture
+
+
+@dataclass(frozen=True, slots=True)
+class ForcedDistillResult:
+    """Recomputed class-disjoint validation result for one frozen student."""
+
+    source_commit: str
+    launch_authority_sha256: str
+    train_schedule_sha256: str
+    validation_schedule_sha256: str
+    predictor_state_sha256: str
+    validation_cosines: tuple[float, ...]
+    median_cosine_ppm: int
+    positive_cosine_rate_ppm: int
+    passed: bool
+
+    @property
+    def gates_ppm(self) -> dict[str, int]:
+        return {
+            "median_cosine": ASGCV_FORCED_DISTILL_COSINE_GATE_PPM,
+            "positive_cosine_rate": ASGCV_FORCED_DISTILL_POSITIVE_RATE_GATE_PPM,
+        }
+
+    @classmethod
+    def from_cosines(
+        cls,
+        *,
+        source_commit: str,
+        launch_authority_sha256: str,
+        train_schedule_sha256: str,
+        validation_schedule_sha256: str,
+        predictor_state_sha256: str,
+        validation_cosines: tuple[float, ...],
+    ) -> ForcedDistillResult:
+        _hex(source_commit, 40, name="source commit")
+        for name, value in (
+            ("launch authority", launch_authority_sha256),
+            ("train schedule", train_schedule_sha256),
+            ("validation schedule", validation_schedule_sha256),
+            ("predictor state", predictor_state_sha256),
+        ):
+            _hex(value, 64, name=name)
+        if (
+            type(validation_cosines) is not tuple
+            or len(validation_cosines) != ASGCV_FORCED_DISTILL_VALIDATION_PAIRS
+            or any(
+                type(value) is not float or not math.isfinite(value) or not -1.0 <= value <= 1.0
+                for value in validation_cosines
+            )
+        ):
+            raise ValueError("ASG-CV forced distill validation cosines differ")
+        median = int(round(statistics.median(validation_cosines) * 1_000_000))
+        positive_rate = int(
+            round(
+                sum(value > 0.0 for value in validation_cosines)
+                * 1_000_000
+                / len(validation_cosines)
+            )
+        )
+        return cls(
+            source_commit=source_commit,
+            launch_authority_sha256=launch_authority_sha256,
+            train_schedule_sha256=train_schedule_sha256,
+            validation_schedule_sha256=validation_schedule_sha256,
+            predictor_state_sha256=predictor_state_sha256,
+            validation_cosines=validation_cosines,
+            median_cosine_ppm=median,
+            positive_cosine_rate_ppm=positive_rate,
+            passed=(
+                median >= ASGCV_FORCED_DISTILL_COSINE_GATE_PPM
+                and positive_rate >= ASGCV_FORCED_DISTILL_POSITIVE_RATE_GATE_PPM
+            ),
+        )
+
+    def validated(self) -> ForcedDistillResult:
+        for name in (
+            "launch_authority_sha256",
+            "train_schedule_sha256",
+            "validation_schedule_sha256",
+            "predictor_state_sha256",
+        ):
+            _hex(getattr(self, name), 64, name=name.replace("_", " "))
+        _hex(self.source_commit, 40, name="source commit")
+        recomputed = type(self).from_cosines(
+            source_commit=self.source_commit,
+            launch_authority_sha256=self.launch_authority_sha256,
+            train_schedule_sha256=self.train_schedule_sha256,
+            validation_schedule_sha256=self.validation_schedule_sha256,
+            predictor_state_sha256=self.predictor_state_sha256,
+            validation_cosines=self.validation_cosines,
+        )
+        if (
+            self.median_cosine_ppm != recomputed.median_cosine_ppm
+            or self.positive_cosine_rate_ppm != recomputed.positive_cosine_rate_ppm
+            or self.passed is not recomputed.passed
+        ):
+            raise ValueError("ASG-CV forced distill result metrics differ")
+        return self
+
+    def to_mapping(self) -> dict[str, object]:
+        self.validated()
+        return {
+            "schema": ASGCV_FORCED_DISTILL_RESULT_SCHEMA,
+            "claim_eligible": False,
+            "official_test_access": False,
+            "gates_ppm": self.gates_ppm,
+            **{
+                field.name: list(value) if isinstance(value, tuple) else value
+                for field in fields(self)
+                if (value := getattr(self, field.name)) is not None
+            },
+        }
+
+    @classmethod
+    def from_mapping(cls, value: object) -> ForcedDistillResult:
+        expected = {field.name for field in fields(cls)} | {
+            "schema",
+            "claim_eligible",
+            "official_test_access",
+            "gates_ppm",
+        }
+        if (
+            type(value) is not dict
+            or set(value) != expected
+            or value["schema"] != ASGCV_FORCED_DISTILL_RESULT_SCHEMA
+            or value["claim_eligible"] is not False
+            or value["official_test_access"] is not False
+            or value["gates_ppm"]
+            != {
+                "median_cosine": ASGCV_FORCED_DISTILL_COSINE_GATE_PPM,
+                "positive_cosine_rate": ASGCV_FORCED_DISTILL_POSITIVE_RATE_GATE_PPM,
+            }
+        ):
+            raise ValueError("ASG-CV forced distill result schema differs")
+        raw = cast(dict[str, Any], value)
+        try:
+            result = cls(
+                **{
+                    field.name: (
+                        tuple(raw[field.name])
+                        if field.name == "validation_cosines" and type(raw[field.name]) is list
+                        else raw[field.name]
+                    )
+                    for field in fields(cls)
+                }
+            )
+        except (KeyError, TypeError) as error:
+            raise ValueError("ASG-CV forced distill result differs") from error
+        expected_result = cls.from_cosines(
+            source_commit=result.source_commit,
+            launch_authority_sha256=result.launch_authority_sha256,
+            train_schedule_sha256=result.train_schedule_sha256,
+            validation_schedule_sha256=result.validation_schedule_sha256,
+            predictor_state_sha256=result.predictor_state_sha256,
+            validation_cosines=result.validation_cosines,
+        )
+        if result != expected_result:
+            raise ValueError("ASG-CV forced distill result metrics differ")
+        return result
+
+
+def canonical_forced_distill_result_bytes(value: ForcedDistillResult) -> bytes:
+    """Serialize one fully recomputed result."""
+
+    if type(value) is not ForcedDistillResult:
+        raise ValueError("ASG-CV forced distill result differs")
+    return _canonical(value.to_mapping())
+
+
+def validate_forced_distill_result_bytes(raw: object) -> ForcedDistillResult:
+    """Reopen only exact canonical result bytes."""
+
+    if type(raw) is not bytes:
+        raise ValueError("ASG-CV forced distill result bytes differ")
+    try:
+        result = ForcedDistillResult.from_mapping(json.loads(raw))
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError("ASG-CV forced distill result JSON differs") from error
+    if canonical_forced_distill_result_bytes(result) != raw:
+        raise ValueError("ASG-CV forced distill result bytes differ")
+    return result

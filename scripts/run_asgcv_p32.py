@@ -63,6 +63,8 @@ class LoadedP32LocalAuthority:
     """Authenticated local-only P32 inputs after partition reconstruction."""
 
     images: tuple[np.ndarray, ...]
+    validation_images: tuple[np.ndarray, ...]
+    optimization_images: tuple[np.ndarray, ...]
     predictor_train: tuple[tuple[str, ...], tuple[int, ...]]
     e0_validation: tuple[tuple[str, ...], tuple[int, ...]]
     e1_optimization: tuple[tuple[str, ...], tuple[int, ...]]
@@ -194,13 +196,13 @@ def load_p32_local_authority(
         with_arrays=True,
         root=train_manifest_path.parent,
     )
-    validation_ids, validation_labels, _validation_images = _partition_rows(
+    validation_ids, validation_labels, validation_images = _partition_rows(
         manifest["e0_validation"],
         role="E0 validation",
         with_arrays=True,
         root=train_manifest_path.parent,
     )
-    optimization_ids, optimization_labels, _optimization_images = _partition_rows(
+    optimization_ids, optimization_labels, optimization_images = _partition_rows(
         manifest["e1_optimization"],
         role="E1 optimization",
         with_arrays=True,
@@ -258,6 +260,8 @@ def load_p32_local_authority(
     )
     return LoadedP32LocalAuthority(
         images=images,
+        validation_images=validation_images,
+        optimization_images=optimization_images,
         predictor_train=predictor_train,
         e0_validation=e0_validation,
         e1_optimization=e1_optimization,

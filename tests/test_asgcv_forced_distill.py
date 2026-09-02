@@ -7,12 +7,18 @@ import numpy as np
 import pytest
 
 from sfora.asgcv_forced_distill import (
+    ASGCV_FORCED_DISTILL_COSINE_GATE_PPM,
+    ASGCV_FORCED_DISTILL_POSITIVE_RATE_GATE_PPM,
     ASGCV_FORCED_DISTILL_SHAPE,
     ForcedDistillCapture,
+    ForcedDistillResult,
     build_forced_distill_schedule,
     canonical_forced_distill_capture_bytes,
+    canonical_forced_distill_result_bytes,
+    dense_gradient_cosine,
     relation_correct_gradient,
     validate_forced_distill_capture_bytes,
+    validate_forced_distill_result_bytes,
 )
 
 SOURCE_COMMIT = "12" * 20
@@ -127,3 +133,42 @@ def test_relation_correct_gradient_is_exact_sign_orientation() -> None:
     assert not np.shares_memory(positive, gradient)
     with pytest.raises(ValueError):
         relation_correct_gradient(gradient, True)
+
+
+def test_forced_distill_result_recomputes_cosine_gates_and_rejects_mutation() -> None:
+    exact = np.ones(ASGCV_FORCED_DISTILL_SHAPE, dtype=np.float32)
+    assert dense_gradient_cosine(exact, exact) == pytest.approx(1.0)
+    assert dense_gradient_cosine(exact, -exact) == pytest.approx(-1.0)
+    cosines = tuple([0.75] * 24 + [-0.25] * 8)
+    result = ForcedDistillResult.from_cosines(
+        source_commit=SOURCE_COMMIT,
+        launch_authority_sha256=LAUNCH_SHA256,
+        train_schedule_sha256="56" * 32,
+        validation_schedule_sha256="78" * 32,
+        predictor_state_sha256="9a" * 32,
+        validation_cosines=cosines,
+    )
+    assert result.median_cosine_ppm == 750_000
+    assert result.positive_cosine_rate_ppm == 750_000
+    assert result.passed
+    assert result.gates_ppm == {
+        "median_cosine": ASGCV_FORCED_DISTILL_COSINE_GATE_PPM,
+        "positive_cosine_rate": ASGCV_FORCED_DISTILL_POSITIVE_RATE_GATE_PPM,
+    }
+    raw = canonical_forced_distill_result_bytes(result)
+    assert validate_forced_distill_result_bytes(raw) == result
+    value = json.loads(raw)
+    value["median_cosine_ppm"] += 1
+    mutated = (json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n").encode()
+    with pytest.raises(ValueError, match="metrics"):
+        validate_forced_distill_result_bytes(mutated)
+
+
+def test_dense_gradient_cosine_rejects_zero_and_nonfinite_fields() -> None:
+    exact = np.ones(ASGCV_FORCED_DISTILL_SHAPE, dtype=np.float32)
+    with pytest.raises(ValueError):
+        dense_gradient_cosine(exact, np.zeros_like(exact))
+    changed = exact.copy()
+    changed[0, 0, 0] = np.nan
+    with pytest.raises(ValueError):
+        dense_gradient_cosine(exact, changed)
