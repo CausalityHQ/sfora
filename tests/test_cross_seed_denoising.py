@@ -532,6 +532,19 @@ def test_evaluation_rejects_wrong_order_cardinality_types_and_nonfinite_values()
         )
     with pytest.raises(ValueError, match="finite"):
         _projected(17, 1261, float("nan"), digest_byte="a")
+    with pytest.raises(ValueError, match="determinism"):
+        ProjectedEvaluation(
+            seed=17,
+            correctness=_correctness(1261),
+            mean_nearest_positive_cosine=0.5,
+            mean_nearest_negative_cosine=0.29,
+            mean_margin=0.21,
+            folded_state_sha256="a" * 64,
+            wall_time_ns=1,
+            peak_cuda_bytes=0,
+            peak_rss_bytes=1,
+            determinism_replay=False,
+        )
     with pytest.raises(ValueError, match="correctness"):
         ProjectedEvaluation(
             seed=17,

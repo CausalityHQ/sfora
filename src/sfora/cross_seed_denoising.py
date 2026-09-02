@@ -126,6 +126,7 @@ class ProjectedEvaluation:
             or type(self.peak_rss_bytes) is not int
             or self.peak_rss_bytes <= 0
             or type(self.determinism_replay) is not bool
+            or not self.determinism_replay
         ):
             raise ValueError("projected resource or determinism evidence differs")
 
