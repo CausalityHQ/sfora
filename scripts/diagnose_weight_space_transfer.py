@@ -8,8 +8,10 @@ import hashlib
 import io
 import json
 import math
+import os
 import random
 import stat
+import sys
 from collections import OrderedDict
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
@@ -25,19 +27,28 @@ from scripts.run_siglip_proxy_control import (
     _config_sha256,
     _run_authority_sha256,
     embed_control_examples,
+    load_siglip_control_components,
     read_control_seed_receipt,
+    require_control_determinism,
 )
 from sfora.data import ImageExample
-from sfora.siglip_proxy_control import NearestClassMargins, nearest_class_margins
+from sfora.siglip_proxy_control import (
+    NearestClassMargins,
+    PooledProxyAnchorModel,
+    nearest_class_margins,
+)
 from sfora.substrate_screen import (
     SUBSTRATE_F0_CLASSES,
     SubstrateScreenEvidence,
     score_frozen_substrate_evidence,
 )
+from sfora.token_set_screen import F1_TRAIN_CLASSES
 from sfora.weight_space_transfer import (
     INTERPOLATION_ALPHAS,
     AlphaEvaluation,
     SeedInterpolationCurve,
+    canonical_interpolation_result_bytes,
+    classify_interpolation_curves,
     interpolate_inference_state,
     model_state_sha256,
 )
@@ -117,6 +128,8 @@ class SeedEndpointAuthority:
     checkpoint_bytes: int
     config_sha256: str
     run_authority_sha256: str
+    evaluation_batch_size: int
+    query_block: int
 
 
 @dataclass(frozen=True)
@@ -191,6 +204,74 @@ class SeedCurveExecution:
 
     endpoint_replay: EndpointReplayEvidence
     curve: SeedInterpolationCurve
+
+
+def run_bound_weight_space_transfer(
+    arguments: argparse.Namespace,
+    *,
+    execute_seed: Callable[
+        [SeedEndpointAuthority, LoadedTransferCheckpoint, LoadedBurnedInputs],
+        SeedCurveExecution,
+    ],
+) -> bytes:
+    """Authenticate every local input, execute fixed seeds, and recompute the result."""
+
+    if not isinstance(arguments, argparse.Namespace) or not callable(execute_seed):
+        raise ValueError("bound diagnostic interface differs")
+    expected_seeds = (17, 29) if len(arguments.seed_result) == 2 else (17, 29, 43)
+    lists = (
+        arguments.seed_result,
+        arguments.seed_result_sha256,
+        arguments.seed_result_bytes,
+        arguments.checkpoint,
+        arguments.checkpoint_sha256,
+        arguments.checkpoint_bytes,
+    )
+    if any(type(values) is not list or len(values) != len(expected_seeds) for values in lists):
+        raise ValueError("bound diagnostic seed cardinality differs")
+    burned = load_burned_inputs(
+        manifest_path=arguments.burned_manifest,
+        expected_sha256=arguments.burned_manifest_sha256,
+        expected_bytes=arguments.burned_manifest_bytes,
+        expected_source_manifest_sha256=arguments.source_manifest_sha256,
+        image_root=arguments.burned_image_root,
+    )
+    executions: list[SeedCurveExecution] = []
+    for index, seed in enumerate(expected_seeds):
+        authority = load_seed_endpoint_authority(
+            path=arguments.seed_result[index],
+            expected_sha256=arguments.seed_result_sha256[index],
+            expected_bytes=arguments.seed_result_bytes[index],
+            expected_seed=seed,
+        )
+        if (
+            arguments.checkpoint[index].name != authority.checkpoint_basename
+            or arguments.checkpoint_sha256[index] != authority.checkpoint_sha256
+            or arguments.checkpoint_bytes[index] != authority.checkpoint_bytes
+        ):
+            raise ValueError("checkpoint binding differs")
+        checkpoint = load_transfer_checkpoint(
+            path=arguments.checkpoint[index],
+            expected_sha256=arguments.checkpoint_sha256[index],
+            expected_bytes=arguments.checkpoint_bytes[index],
+            expected_seed=seed,
+            expected_config_sha256=authority.config_sha256,
+            expected_run_authority_sha256=authority.run_authority_sha256,
+        )
+        execution = execute_seed(authority, checkpoint, burned)
+        if (
+            type(execution) is not SeedCurveExecution
+            or type(execution.endpoint_replay) is not EndpointReplayEvidence
+            or type(execution.endpoint_replay.maximum_float_disagreement) is not float
+            or not 0.0 <= execution.endpoint_replay.maximum_float_disagreement <= 2.0e-5
+            or type(execution.curve) is not SeedInterpolationCurve
+            or execution.curve.seed != seed
+        ):
+            raise ValueError("seed execution evidence differs")
+        executions.append(execution)
+    curves = tuple(execution.curve for execution in executions)
+    decision = classify_interpolation_curves(curves)
+    return canonical_interpolation_result_bytes(curves, decision)
 
 
 def _read_regular(path: Path, *, role: str) -> bytes:
@@ -492,6 +573,8 @@ def load_seed_endpoint_authority(
         checkpoint_bytes=checkpoint["bytes"],
         config_sha256=config_sha256,
         run_authority_sha256=_run_authority_sha256(run_authority),
+        evaluation_batch_size=run_authority.evaluation_batch_size,
+        query_block=run_authority.query_block,
     )
 
 
@@ -886,3 +969,124 @@ def evaluate_loaded_burned_model(
         projected=_evaluation_metrics(projected_evidence, projected_margins),
         projected_correctness=tuple(correctness),
     )
+
+
+def _disable_evaluation_checkpointing(model: torch.nn.Module) -> None:
+    tower = getattr(model, "tower", None)
+    vision_model = getattr(tower, "vision_model", None)
+    disable = getattr(vision_model, "gradient_checkpointing_disable", None)
+    if not callable(disable):
+        raise TypeError("evaluation model lacks checkpointing control")
+    disable()
+    if bool(getattr(vision_model, "is_gradient_checkpointing", False)):
+        raise RuntimeError("evaluation checkpointing remained enabled")
+
+
+def _execute_siglip_seed(
+    authority: SeedEndpointAuthority,
+    checkpoint: LoadedTransferCheckpoint,
+    burned: LoadedBurnedInputs,
+) -> SeedCurveExecution:
+    """Execute one registered seed with only local pinned model and burned pixels."""
+
+    if not torch.cuda.is_available():
+        raise RuntimeError("weight-space transfer diagnostic requires CUDA")
+    device = torch.device("cuda")
+    require_control_determinism(device)
+    config = SiglipProxyControlConfig()
+    processors: list[object] = []
+
+    def tower_loader() -> torch.nn.Module:
+        tower, processor = load_siglip_control_components(config=config)
+        if processors and type(processor) is not type(processors[0]):
+            raise ValueError("SigLIP processor identity changed during replay")
+        if not processors:
+            processors.append(processor)
+        return tower
+
+    def model_builder(tower: torch.nn.Module) -> torch.nn.Module:
+        return PooledProxyAnchorModel(
+            tower=tower,
+            input_dimensions=config.input_dimensions,
+            embedding_dimensions=config.embedding_dimensions,
+            class_count=len(F1_TRAIN_CLASSES),
+            projection_initialization=config.projection_initialization,
+            proxy_initialization=config.proxy_initialization,
+        )
+
+    initial = reconstruct_initial_model(
+        seed=authority.seed,
+        expected_sha256=authority.initial_state_sha256,
+        device=device,
+        tower_loader=tower_loader,
+        model_builder=model_builder,
+    )
+
+    def model_factory() -> torch.nn.Module:
+        return model_builder(tower_loader()).to(device)
+
+    def evaluate_model(model: torch.nn.Module) -> ModelBandEvaluation:
+        if not processors:
+            raise RuntimeError("SigLIP processor was not initialized")
+        return evaluate_loaded_burned_model(
+            model=model,
+            burned=burned,
+            processor=processors[0],
+            device=device,
+            batch_size=authority.evaluation_batch_size,
+            query_block=authority.query_block,
+        )
+
+    return evaluate_transfer_seed_curve(
+        authority=authority,
+        initial=initial,
+        checkpoint=checkpoint,
+        model_factory=model_factory,
+        disable_checkpointing=_disable_evaluation_checkpointing,
+        evaluate_model=evaluate_model,
+    )
+
+
+def _publish_new(path: Path, payload: bytes) -> None:
+    if not isinstance(path, Path) or type(payload) is not bytes or not payload:
+        raise ValueError("diagnostic publication interface differs")
+    partial = path.with_name(f".{path.name}.partial")
+    if path.exists() or path.is_symlink() or partial.exists() or partial.is_symlink():
+        raise FileExistsError(path)
+    try:
+        with partial.open("xb") as stream:
+            stream.write(payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.link(partial, path, follow_symlinks=False)
+    finally:
+        partial.unlink(missing_ok=True)
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """Run the authenticated local-only diagnostic and publish one result."""
+
+    arguments = parse_arguments(argv)
+    if arguments.output.exists() or arguments.output.is_symlink():
+        raise FileExistsError(arguments.output)
+    payload = run_bound_weight_space_transfer(
+        arguments,
+        execute_seed=_execute_siglip_seed,
+    )
+    _publish_new(arguments.output, payload)
+    sys.stdout.write(
+        _canonical_json(
+            {
+                "claim_eligible": False,
+                "result": str(arguments.output),
+                "result_bytes": len(payload),
+                "result_sha256": hashlib.sha256(payload).hexdigest(),
+                "schema": "sfora-weight-space-transfer-diagnostic-receipt-v1",
+            }
+        ).decode()
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

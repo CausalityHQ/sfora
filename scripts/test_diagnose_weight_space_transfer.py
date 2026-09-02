@@ -4,8 +4,9 @@ import json
 import tempfile
 import unittest
 from collections import OrderedDict
-from contextlib import redirect_stderr
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
+from unittest.mock import patch
 
 import torch
 
@@ -23,8 +24,10 @@ from scripts.diagnose_weight_space_transfer import (
     load_burned_inputs,
     load_seed_endpoint_authority,
     load_transfer_checkpoint,
+    main,
     parse_arguments,
     reconstruct_initial_model,
+    run_bound_weight_space_transfer,
     validate_endpoint_replay,
 )
 from scripts.run_siglip_proxy_control import (
@@ -41,7 +44,12 @@ from sfora.substrate_screen import (
     SubstrateScreenEvidence,
     SubstrateScreenMetrics,
 )
-from sfora.weight_space_transfer import model_state_sha256
+from sfora.weight_space_transfer import (
+    INTERPOLATION_ALPHAS,
+    AlphaEvaluation,
+    SeedInterpolationCurve,
+    model_state_sha256,
+)
 
 
 def _band(correct: int, queries: int) -> dict[str, float | int]:
@@ -83,7 +91,12 @@ def _run_authority() -> ControlRunAuthority:
     )
 
 
-def _seed_result(seed: int = 17) -> tuple[bytes, ControlRunAuthority]:
+def _seed_result(
+    seed: int = 17,
+    *,
+    checkpoint_sha256: str = "5" * 64,
+    checkpoint_bytes: int = 1234,
+) -> tuple[bytes, ControlRunAuthority]:
     config = SiglipProxyControlConfig()
     run = _run_authority()
     value = {
@@ -135,8 +148,8 @@ def _seed_result(seed: int = 17) -> tuple[bytes, ControlRunAuthority]:
         "checkpoint": {
             "basename": f"seed-{seed:03d}-epoch-060.pt",
             "receipt_basename": f"seed-{seed:03d}-epoch-060.checkpoint.json",
-            "sha256": "5" * 64,
-            "bytes": 1234,
+            "sha256": checkpoint_sha256,
+            "bytes": checkpoint_bytes,
             "epoch": 60,
         },
         "resources": {
@@ -260,6 +273,166 @@ class EndpointAuthorityTests(unittest.TestCase):
                 parse_arguments(arguments + [flag, "/abs/forbidden"])
         with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
             parse_arguments(arguments[:-1])
+
+    def test_bound_runner_authenticates_seed_pairs_and_recomputes_result(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest, images, burned_raw = _burned_input_fixture(root)
+            arguments = [
+                "--burned-manifest",
+                str(manifest),
+                "--burned-manifest-sha256",
+                hashlib.sha256(burned_raw).hexdigest(),
+                "--burned-manifest-bytes",
+                str(len(burned_raw)),
+                "--burned-image-root",
+                str(images),
+                "--source-manifest-sha256",
+                "3" * 64,
+            ]
+            for seed in (17, 29):
+                _receipt, run = _seed_result(seed)
+                checkpoint_raw = _checkpoint(seed, run)
+                checkpoint_digest = hashlib.sha256(checkpoint_raw).hexdigest()
+                receipt, _run = _seed_result(
+                    seed,
+                    checkpoint_sha256=checkpoint_digest,
+                    checkpoint_bytes=len(checkpoint_raw),
+                )
+                result_path = root / f"seed-{seed}.json"
+                checkpoint_path = root / f"seed-{seed:03d}-epoch-060.pt"
+                result_path.write_bytes(receipt)
+                checkpoint_path.write_bytes(checkpoint_raw)
+                arguments.extend(
+                    [
+                        "--seed-result",
+                        str(result_path),
+                        "--seed-result-sha256",
+                        hashlib.sha256(receipt).hexdigest(),
+                        "--seed-result-bytes",
+                        str(len(receipt)),
+                        "--checkpoint",
+                        str(checkpoint_path),
+                        "--checkpoint-sha256",
+                        checkpoint_digest,
+                        "--checkpoint-bytes",
+                        str(len(checkpoint_raw)),
+                    ]
+                )
+            arguments.extend(
+                [
+                    "--output",
+                    str(root / "result.json"),
+                    "--execute-weight-space-transfer",
+                ]
+            )
+            parsed = parse_arguments(arguments)
+            calls: list[int] = []
+
+            def execute_seed(
+                authority: SeedEndpointAuthority,
+                checkpoint: LoadedTransferCheckpoint,
+                burned: LoadedBurnedInputs,
+            ) -> SeedCurveExecution:
+                self.assertEqual(authority.seed, checkpoint.seed)
+                self.assertEqual(len(burned.rows), 1_345)
+                calls.append(authority.seed)
+                correct = (1_240, 1_258, 1_260, 1_264, 1_258)
+                rows = tuple(
+                    AlphaEvaluation(
+                        seed=authority.seed,
+                        alpha=alpha,
+                        correct=hits,
+                        queries=1_345,
+                        recall_ppm=hits * 1_000_000 // 1_345,
+                        mean_margin=(0.12 if alpha == 0.75 else 0.10 + alpha / 100.0),
+                        correctness=(True,) * hits + (False,) * (1_345 - hits),
+                        folded_state_sha256=f"{authority.seed + index:064x}",
+                        tower_squared_displacement=float(index),
+                    )
+                    for index, (alpha, hits) in enumerate(
+                        zip(INTERPOLATION_ALPHAS, correct, strict=True)
+                    )
+                )
+                return SeedCurveExecution(
+                    endpoint_replay=EndpointReplayEvidence(0.0),
+                    curve=SeedInterpolationCurve(seed=authority.seed, rows=rows),
+                )
+
+            payload = run_bound_weight_space_transfer(parsed, execute_seed=execute_seed)
+            value = json.loads(payload)
+            self.assertEqual(calls, [17, 29])
+            self.assertEqual(value["schema"], "sfora-weight-space-transfer-result-v1")
+            self.assertEqual(value["decision"]["terminal_class"], "provisional-interior-benefit")
+            self.assertNotIn("clean", payload.decode())
+
+            reversed_results = list(parsed.seed_result)
+            reversed_results.reverse()
+            parsed.seed_result = reversed_results
+            with self.assertRaisesRegex(ValueError, "seed result"):
+                run_bound_weight_space_transfer(parsed, execute_seed=execute_seed)
+
+    def test_main_publishes_one_create_new_canonical_result(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            output = root / "result.json"
+            arguments = [
+                "--burned-manifest",
+                str(root / "burned.json"),
+                "--burned-manifest-sha256",
+                "1" * 64,
+                "--burned-manifest-bytes",
+                "1",
+                "--burned-image-root",
+                str(root / "images"),
+                "--source-manifest-sha256",
+                "2" * 64,
+            ]
+            for index, seed in enumerate((17, 29), start=3):
+                arguments.extend(
+                    [
+                        "--seed-result",
+                        str(root / f"seed-{seed}.json"),
+                        "--seed-result-sha256",
+                        str(index) * 64,
+                        "--seed-result-bytes",
+                        "1",
+                        "--checkpoint",
+                        str(root / f"seed-{seed}.pt"),
+                        "--checkpoint-sha256",
+                        str(index + 2) * 64,
+                        "--checkpoint-bytes",
+                        "1",
+                    ]
+                )
+            arguments.extend(
+                [
+                    "--output",
+                    str(output),
+                    "--execute-weight-space-transfer",
+                ]
+            )
+            payload = b'{"claim_eligible":false,"schema":"fixture-result"}\n'
+            stdout = io.StringIO()
+            with (
+                patch(
+                    "scripts.diagnose_weight_space_transfer.run_bound_weight_space_transfer",
+                    return_value=payload,
+                ) as runner,
+                redirect_stdout(stdout),
+            ):
+                self.assertEqual(main(arguments), 0)
+            self.assertEqual(output.read_bytes(), payload)
+            receipt = json.loads(stdout.getvalue())
+            self.assertEqual(receipt["result_sha256"], hashlib.sha256(payload).hexdigest())
+            self.assertEqual(receipt["result_bytes"], len(payload))
+            self.assertEqual(runner.call_count, 1)
+            with patch(
+                "scripts.diagnose_weight_space_transfer.run_bound_weight_space_transfer",
+                return_value=payload,
+            ), self.assertRaises(FileExistsError):
+                main(arguments)
+
     def test_burned_loader_authenticates_exact_population_and_namespace(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             manifest, images, raw = _burned_input_fixture(Path(directory))
@@ -315,6 +488,8 @@ class EndpointAuthorityTests(unittest.TestCase):
         self.assertEqual(authority.initial_projected.correct, 1_242)
         self.assertEqual(authority.trained_projected.correct, 1_258)
         self.assertEqual(authority.checkpoint_sha256, "5" * 64)
+        self.assertEqual(authority.evaluation_batch_size, 32)
+        self.assertEqual(authority.query_block, 128)
         self.assertNotIn("clean", repr(authority))
         self.assertNotIn("2596", repr(authority))
 
@@ -538,6 +713,8 @@ class EndpointAuthorityTests(unittest.TestCase):
             checkpoint_bytes=1,
             config_sha256="6" * 64,
             run_authority_sha256="7" * 64,
+            evaluation_batch_size=32,
+            query_block=128,
         )
         checkpoint = LoadedTransferCheckpoint(
             seed=17,
