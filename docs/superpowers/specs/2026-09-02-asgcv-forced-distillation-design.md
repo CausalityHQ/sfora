@@ -30,7 +30,9 @@ training classes without sampled rollouts at student-training time.
 - Evaluate once on all 32 class-disjoint validation pairs.  The primary gate is
   median per-pair dense cosine at least 0.50; secondary gates are positive
   cosine on at least 75% of pairs and finite nonzero predictions on every pair.
-  The result is claim-ineligible and cannot authorize an official test read.
+  A finite zero prediction is recorded as cosine zero and failed liveness rather
+  than aborting the result.  The result is claim-ineligible and cannot authorize
+  an official test read.
 
 ## Boundaries
 

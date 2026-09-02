@@ -20,6 +20,7 @@ ASGCV_FORCED_DISTILL_CAPTURE_SCHEMA = "sfora-asgcv-forced-distill-capture-v1"
 ASGCV_FORCED_DISTILL_RESULT_SCHEMA = "sfora-asgcv-forced-distill-result-v1"
 ASGCV_FORCED_DISTILL_COSINE_GATE_PPM = 500_000
 ASGCV_FORCED_DISTILL_POSITIVE_RATE_GATE_PPM = 750_000
+ASGCV_FORCED_DISTILL_NONZERO_RATE_GATE_PPM = 1_000_000
 _SCHEDULE_DOMAIN = b"sfora-asgcv-forced-distill-schedule-v1\0"
 
 
@@ -118,19 +119,30 @@ def relation_correct_gradient(value: object, relation_sign: object) -> np.ndarra
 def dense_gradient_cosine(exact: object, predicted: object) -> float:
     """Return one float64-accumulated dense cosine over exact float32 fields."""
 
+    result, live = dense_gradient_cosine_with_liveness(exact, predicted)
+    if not live:
+        raise ValueError("ASG-CV forced distill gradient energy differs")
+    return result
+
+
+def dense_gradient_cosine_with_liveness(exact: object, predicted: object) -> tuple[float, bool]:
+    """Return cosine and record a finite zero prediction as failed liveness."""
+
     exact_array = _array(exact, name="exact gradient").astype(np.float64)
     predicted_array = _array(predicted, name="predicted gradient").astype(np.float64)
     exact_energy = float(np.square(exact_array).sum(dtype=np.float64))
     predicted_energy = float(np.square(predicted_array).sum(dtype=np.float64))
-    if exact_energy <= 0.0 or predicted_energy <= 0.0:
+    if exact_energy <= 0.0:
         raise ValueError("ASG-CV forced distill gradient energy differs")
+    if predicted_energy <= 0.0:
+        return 0.0, False
     result = float(
         np.multiply(exact_array, predicted_array).sum(dtype=np.float64)
         / math.sqrt(exact_energy * predicted_energy)
     )
     if not math.isfinite(result) or not -1.000001 <= result <= 1.000001:
         raise ValueError("ASG-CV forced distill cosine differs")
-    return min(1.0, max(-1.0, result))
+    return min(1.0, max(-1.0, result)), True
 
 
 @dataclass(frozen=True, slots=True)
@@ -266,8 +278,10 @@ class ForcedDistillResult:
     validation_schedule_sha256: str
     predictor_state_sha256: str
     validation_cosines: tuple[float, ...]
+    prediction_nonzero_flags: tuple[bool, ...]
     median_cosine_ppm: int
     positive_cosine_rate_ppm: int
+    prediction_nonzero_rate_ppm: int
     passed: bool
 
     @property
@@ -275,6 +289,7 @@ class ForcedDistillResult:
         return {
             "median_cosine": ASGCV_FORCED_DISTILL_COSINE_GATE_PPM,
             "positive_cosine_rate": ASGCV_FORCED_DISTILL_POSITIVE_RATE_GATE_PPM,
+            "prediction_nonzero_rate": ASGCV_FORCED_DISTILL_NONZERO_RATE_GATE_PPM,
         }
 
     @classmethod
@@ -287,6 +302,7 @@ class ForcedDistillResult:
         validation_schedule_sha256: str,
         predictor_state_sha256: str,
         validation_cosines: tuple[float, ...],
+        prediction_nonzero_flags: tuple[bool, ...],
     ) -> ForcedDistillResult:
         _hex(source_commit, 40, name="source commit")
         for name, value in (
@@ -305,6 +321,12 @@ class ForcedDistillResult:
             )
         ):
             raise ValueError("ASG-CV forced distill validation cosines differ")
+        if (
+            type(prediction_nonzero_flags) is not tuple
+            or len(prediction_nonzero_flags) != ASGCV_FORCED_DISTILL_VALIDATION_PAIRS
+            or any(type(value) is not bool for value in prediction_nonzero_flags)
+        ):
+            raise ValueError("ASG-CV forced distill prediction liveness differs")
         median = int(round(statistics.median(validation_cosines) * 1_000_000))
         positive_rate = int(
             round(
@@ -313,6 +335,9 @@ class ForcedDistillResult:
                 / len(validation_cosines)
             )
         )
+        nonzero_rate = int(
+            round(sum(prediction_nonzero_flags) * 1_000_000 / len(prediction_nonzero_flags))
+        )
         return cls(
             source_commit=source_commit,
             launch_authority_sha256=launch_authority_sha256,
@@ -320,11 +345,14 @@ class ForcedDistillResult:
             validation_schedule_sha256=validation_schedule_sha256,
             predictor_state_sha256=predictor_state_sha256,
             validation_cosines=validation_cosines,
+            prediction_nonzero_flags=prediction_nonzero_flags,
             median_cosine_ppm=median,
             positive_cosine_rate_ppm=positive_rate,
+            prediction_nonzero_rate_ppm=nonzero_rate,
             passed=(
                 median >= ASGCV_FORCED_DISTILL_COSINE_GATE_PPM
                 and positive_rate >= ASGCV_FORCED_DISTILL_POSITIVE_RATE_GATE_PPM
+                and nonzero_rate >= ASGCV_FORCED_DISTILL_NONZERO_RATE_GATE_PPM
             ),
         )
 
@@ -344,10 +372,12 @@ class ForcedDistillResult:
             validation_schedule_sha256=self.validation_schedule_sha256,
             predictor_state_sha256=self.predictor_state_sha256,
             validation_cosines=self.validation_cosines,
+            prediction_nonzero_flags=self.prediction_nonzero_flags,
         )
         if (
             self.median_cosine_ppm != recomputed.median_cosine_ppm
             or self.positive_cosine_rate_ppm != recomputed.positive_cosine_rate_ppm
+            or self.prediction_nonzero_rate_ppm != recomputed.prediction_nonzero_rate_ppm
             or self.passed is not recomputed.passed
         ):
             raise ValueError("ASG-CV forced distill result metrics differ")
@@ -385,6 +415,7 @@ class ForcedDistillResult:
             != {
                 "median_cosine": ASGCV_FORCED_DISTILL_COSINE_GATE_PPM,
                 "positive_cosine_rate": ASGCV_FORCED_DISTILL_POSITIVE_RATE_GATE_PPM,
+                "prediction_nonzero_rate": ASGCV_FORCED_DISTILL_NONZERO_RATE_GATE_PPM,
             }
         ):
             raise ValueError("ASG-CV forced distill result schema differs")
@@ -394,7 +425,8 @@ class ForcedDistillResult:
                 **{
                     field.name: (
                         tuple(raw[field.name])
-                        if field.name == "validation_cosines" and type(raw[field.name]) is list
+                        if field.name in {"validation_cosines", "prediction_nonzero_flags"}
+                        and type(raw[field.name]) is list
                         else raw[field.name]
                     )
                     for field in fields(cls)
@@ -409,6 +441,7 @@ class ForcedDistillResult:
             validation_schedule_sha256=result.validation_schedule_sha256,
             predictor_state_sha256=result.predictor_state_sha256,
             validation_cosines=result.validation_cosines,
+            prediction_nonzero_flags=result.prediction_nonzero_flags,
         )
         if result != expected_result:
             raise ValueError("ASG-CV forced distill result metrics differ")

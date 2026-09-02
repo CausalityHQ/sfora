@@ -36,7 +36,7 @@ from sfora.asgcv_forced_distill import (  # noqa: E402
     build_forced_distill_schedule,
     canonical_forced_distill_capture_bytes,
     canonical_forced_distill_result_bytes,
-    dense_gradient_cosine,
+    dense_gradient_cosine_with_liveness,
     relation_correct_gradient,
     validate_forced_distill_capture_bytes,
     validate_forced_distill_result_bytes,
@@ -414,6 +414,7 @@ def fit_forced_distill_predictor(
             train_predictor_epoch(predictor, optimizer, rows, srht_authority=srht)
     predictor.eval()
     cosines: list[float] = []
+    prediction_nonzero: list[bool] = []
     with torch.no_grad():
         for ordinal in range(validation_schedule.pair_count):
             capture, patches, gradient = _read_triple(
@@ -427,7 +428,9 @@ def fit_forced_distill_predictor(
                 torch.tensor([capture.relation_sign], dtype=torch.int8, device=device),
             )[0]
             predicted_array = predicted.detach().float().cpu().contiguous().numpy()
-            cosines.append(dense_gradient_cosine(gradient, predicted_array))
+            cosine, live = dense_gradient_cosine_with_liveness(gradient, predicted_array)
+            cosines.append(cosine)
+            prediction_nonzero.append(live)
     result = ForcedDistillResult.from_cosines(
         source_commit=source_commit,
         launch_authority_sha256=launch_authority_sha256,
@@ -435,6 +438,7 @@ def fit_forced_distill_predictor(
         validation_schedule_sha256=validation_schedule.sha256(),
         predictor_state_sha256=predictor_state_sha256(predictor.cpu()),
         validation_cosines=tuple(cosines),
+        prediction_nonzero_flags=tuple(prediction_nonzero),
     )
     return predictor, result
 

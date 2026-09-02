@@ -16,6 +16,7 @@ from sfora.asgcv_forced_distill import (
     canonical_forced_distill_capture_bytes,
     canonical_forced_distill_result_bytes,
     dense_gradient_cosine,
+    dense_gradient_cosine_with_liveness,
     relation_correct_gradient,
     validate_forced_distill_capture_bytes,
     validate_forced_distill_result_bytes,
@@ -151,13 +152,16 @@ def test_forced_distill_result_recomputes_cosine_gates_and_rejects_mutation() ->
         validation_schedule_sha256="78" * 32,
         predictor_state_sha256="9a" * 32,
         validation_cosines=cosines,
+        prediction_nonzero_flags=(True,) * 32,
     )
     assert result.median_cosine_ppm == 750_000
     assert result.positive_cosine_rate_ppm == 750_000
+    assert result.prediction_nonzero_rate_ppm == 1_000_000
     assert result.passed
     assert result.gates_ppm == {
         "median_cosine": ASGCV_FORCED_DISTILL_COSINE_GATE_PPM,
         "positive_cosine_rate": ASGCV_FORCED_DISTILL_POSITIVE_RATE_GATE_PPM,
+        "prediction_nonzero_rate": 1_000_000,
     }
     raw = canonical_forced_distill_result_bytes(result)
     assert validate_forced_distill_result_bytes(raw) == result
@@ -172,6 +176,7 @@ def test_dense_gradient_cosine_rejects_zero_and_nonfinite_fields() -> None:
     exact = np.ones(ASGCV_FORCED_DISTILL_SHAPE, dtype=np.float32)
     with pytest.raises(ValueError):
         dense_gradient_cosine(exact, np.zeros_like(exact))
+    assert dense_gradient_cosine_with_liveness(exact, np.zeros_like(exact)) == (0.0, False)
     changed = exact.copy()
     changed[0, 0, 0] = np.nan
     with pytest.raises(ValueError):
