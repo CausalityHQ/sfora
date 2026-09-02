@@ -146,7 +146,8 @@ def test_forced_distill_result_recomputes_cosine_gates_and_rejects_mutation() ->
     assert dense_gradient_cosine(exact, -exact) == pytest.approx(-1.0)
     cosines = tuple([0.75] * 24 + [-0.25] * 8)
     result = ForcedDistillResult.from_cosines(
-        source_commit=SOURCE_COMMIT,
+        capture_source_commit=SOURCE_COMMIT,
+        evaluation_source_commit="13" * 20,
         launch_authority_sha256=LAUNCH_SHA256,
         train_schedule_sha256="56" * 32,
         validation_schedule_sha256="78" * 32,

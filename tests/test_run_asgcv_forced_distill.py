@@ -178,8 +178,13 @@ def test_forced_distill_cli_rejects_network_and_official_test_flags(tmp_path: Pa
         str(tmp_path),
         "--source-commit",
         SOURCE_COMMIT,
+        "--capture-source-commit",
+        SOURCE_COMMIT,
         "--execute-forced-distill",
     ]
+    parsed = parse_args(required)
+    assert parsed.source_commit == SOURCE_COMMIT
+    assert parsed.capture_source_commit == SOURCE_COMMIT
     for forbidden in ("--official-test", "--model-uri", "--aws-profile"):
         with pytest.raises(SystemExit):
             parse_args([*required, forbidden, "x"])

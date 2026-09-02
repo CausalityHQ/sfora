@@ -43,6 +43,12 @@ canonical output.  It has no network or official-test flag.  Unit tests use a
 small fake adapter and synthetic arrays; the scientific DGX run is separately
 authenticated after code verification and commit.
 
+Capture and evaluation source identities are distinct result fields.  A later
+committed evaluator may consume a complete earlier committed capture only when
+every receipt, schedule, launch authority, and capture-source commit reopens
+exactly.  Complete captures skip Qwen loading; the executing evaluator commit
+still authenticates independently before fitting.
+
 ## Decision
 
 A pass means the semantic field is compressible enough to integrate as a cheap

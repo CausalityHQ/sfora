@@ -272,7 +272,8 @@ def validate_forced_distill_capture_bytes(
 class ForcedDistillResult:
     """Recomputed class-disjoint validation result for one frozen student."""
 
-    source_commit: str
+    capture_source_commit: str
+    evaluation_source_commit: str
     launch_authority_sha256: str
     train_schedule_sha256: str
     validation_schedule_sha256: str
@@ -296,7 +297,8 @@ class ForcedDistillResult:
     def from_cosines(
         cls,
         *,
-        source_commit: str,
+        capture_source_commit: str,
+        evaluation_source_commit: str,
         launch_authority_sha256: str,
         train_schedule_sha256: str,
         validation_schedule_sha256: str,
@@ -304,7 +306,8 @@ class ForcedDistillResult:
         validation_cosines: tuple[float, ...],
         prediction_nonzero_flags: tuple[bool, ...],
     ) -> ForcedDistillResult:
-        _hex(source_commit, 40, name="source commit")
+        _hex(capture_source_commit, 40, name="capture source commit")
+        _hex(evaluation_source_commit, 40, name="evaluation source commit")
         for name, value in (
             ("launch authority", launch_authority_sha256),
             ("train schedule", train_schedule_sha256),
@@ -339,7 +342,8 @@ class ForcedDistillResult:
             round(sum(prediction_nonzero_flags) * 1_000_000 / len(prediction_nonzero_flags))
         )
         return cls(
-            source_commit=source_commit,
+            capture_source_commit=capture_source_commit,
+            evaluation_source_commit=evaluation_source_commit,
             launch_authority_sha256=launch_authority_sha256,
             train_schedule_sha256=train_schedule_sha256,
             validation_schedule_sha256=validation_schedule_sha256,
@@ -364,9 +368,11 @@ class ForcedDistillResult:
             "predictor_state_sha256",
         ):
             _hex(getattr(self, name), 64, name=name.replace("_", " "))
-        _hex(self.source_commit, 40, name="source commit")
+        _hex(self.capture_source_commit, 40, name="capture source commit")
+        _hex(self.evaluation_source_commit, 40, name="evaluation source commit")
         recomputed = type(self).from_cosines(
-            source_commit=self.source_commit,
+            capture_source_commit=self.capture_source_commit,
+            evaluation_source_commit=self.evaluation_source_commit,
             launch_authority_sha256=self.launch_authority_sha256,
             train_schedule_sha256=self.train_schedule_sha256,
             validation_schedule_sha256=self.validation_schedule_sha256,
@@ -435,7 +441,8 @@ class ForcedDistillResult:
         except (KeyError, TypeError) as error:
             raise ValueError("ASG-CV forced distill result differs") from error
         expected_result = cls.from_cosines(
-            source_commit=result.source_commit,
+            capture_source_commit=result.capture_source_commit,
+            evaluation_source_commit=result.evaluation_source_commit,
             launch_authority_sha256=result.launch_authority_sha256,
             train_schedule_sha256=result.train_schedule_sha256,
             validation_schedule_sha256=result.validation_schedule_sha256,

@@ -280,21 +280,7 @@ def run_capture_phase(
     ):
         raise ValueError("ASG-CV forced distill capture phase differs")
     schedule.validated()
-    prefix = 0
-    for ordinal in range(schedule.pair_count):
-        existing = tuple(path.exists() for path in _paths(directory, role, ordinal))
-        if all(existing):
-            _validate_triple(directory, role=role, schedule=schedule, ordinal=ordinal)
-            prefix += 1
-            continue
-        if any(existing):
-            raise ValueError("ASG-CV forced distill partial triple differs")
-        if any(
-            any(path.exists() for path in _paths(directory, role, later))
-            for later in range(ordinal + 1, schedule.pair_count)
-        ):
-            raise ValueError("ASG-CV forced distill ordinal gap differs")
-        break
+    prefix = validated_capture_prefix(directory, role=role, schedule=schedule)
     stop = schedule.pair_count
     if maximum_new_rows is not None:
         stop = min(stop, prefix + maximum_new_rows)
@@ -315,6 +301,40 @@ def run_capture_phase(
         )
         _validate_triple(directory, role=role, schedule=schedule, ordinal=ordinal)
     return stop
+
+
+def validated_capture_prefix(
+    directory: Path,
+    *,
+    role: str,
+    schedule: AsgcvPairSchedule,
+) -> int:
+    """Return the exact contiguous authenticated capture prefix."""
+
+    if (
+        not isinstance(directory, Path)
+        or not directory.is_dir()
+        or role not in {"train", "validation"}
+        or tuple(directory.glob("*.partial"))
+    ):
+        raise ValueError("ASG-CV forced distill capture prefix differs")
+    schedule.validated()
+    prefix = 0
+    for ordinal in range(schedule.pair_count):
+        existing = tuple(path.exists() for path in _paths(directory, role, ordinal))
+        if all(existing):
+            _validate_triple(directory, role=role, schedule=schedule, ordinal=ordinal)
+            prefix += 1
+            continue
+        if any(existing):
+            raise ValueError("ASG-CV forced distill partial triple differs")
+        if any(
+            any(path.exists() for path in _paths(directory, role, later))
+            for later in range(ordinal + 1, schedule.pair_count)
+        ):
+            raise ValueError("ASG-CV forced distill ordinal gap differs")
+        break
+    return prefix
 
 
 def forced_distill_srht_authority(initialization_seed_sha256: str) -> AsgcvSrhtAuthority:
@@ -375,7 +395,8 @@ def fit_forced_distill_predictor(
     train_schedule: AsgcvPairSchedule,
     validation_schedule: AsgcvPairSchedule,
     initialization_seed_sha256: str,
-    source_commit: str,
+    capture_source_commit: str,
+    evaluation_source_commit: str,
     launch_authority_sha256: str,
 ) -> tuple[AsgcvPatchGradientPredictor, ForcedDistillResult]:
     """Fit the frozen student recipe and evaluate the disjoint validation band once."""
@@ -432,7 +453,8 @@ def fit_forced_distill_predictor(
             cosines.append(cosine)
             prediction_nonzero.append(live)
     result = ForcedDistillResult.from_cosines(
-        source_commit=source_commit,
+        capture_source_commit=capture_source_commit,
+        evaluation_source_commit=evaluation_source_commit,
         launch_authority_sha256=launch_authority_sha256,
         train_schedule_sha256=train_schedule.sha256(),
         validation_schedule_sha256=validation_schedule.sha256(),
@@ -458,14 +480,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--train-manifest", required=True, type=Path)
     parser.add_argument("--output-directory", required=True, type=Path)
     parser.add_argument("--source-commit", required=True)
+    parser.add_argument("--capture-source-commit", required=True)
     parser.add_argument("--execute-forced-distill", required=True, action="store_true")
     parsed = parser.parse_args(values)
-    if (
-        type(parsed.source_commit) is not str
-        or len(parsed.source_commit) != 40
-        or any(character not in "0123456789abcdef" for character in parsed.source_commit)
-    ):
-        parser.error("source commit must be 40 lowercase hex")
+    for name in ("source_commit", "capture_source_commit"):
+        value = getattr(parsed, name)
+        if (
+            type(value) is not str
+            or len(value) != 40
+            or any(character not in "0123456789abcdef" for character in value)
+        ):
+            parser.error(f"{name.replace('_', ' ')} must be 40 lowercase hex")
     if not parsed.model_root.is_dir() or parsed.model_root.is_symlink():
         parser.error("model root must be an existing regular directory")
     for name in ("snapshot_manifest", "fixture", "p32_authority", "train_manifest"):
@@ -526,37 +551,27 @@ def main(argv: list[str] | None = None) -> int:
     local = load_p32_local_authority(
         args.p32_authority,
         args.train_manifest,
-        source_commit=args.source_commit,
+        source_commit=args.capture_source_commit,
     )
     train_schedule = build_forced_distill_schedule(
         local.predictor_train[0],
         local.predictor_train[1],
-        source_commit=args.source_commit,
+        source_commit=args.capture_source_commit,
         launch_authority_sha256=local.authority_sha256,
         role="train",
     )
     validation_schedule = build_forced_distill_schedule(
         local.e0_validation[0],
         local.e0_validation[1],
-        source_commit=args.source_commit,
+        source_commit=args.capture_source_commit,
         launch_authority_sha256=local.authority_sha256,
         role="validation",
     )
-    snapshot = load_snapshot_authority(
-        root=args.model_root,
-        manifest_path=args.snapshot_manifest,
+    train_prefix = validated_capture_prefix(
+        args.output_directory, role="train", schedule=train_schedule
     )
-    fixture = load_fixture_authority(args.fixture)
-    if (
-        fixture.source_commit != args.source_commit
-        or fixture.model_revision != local.rollout_authority.model_revision
-        or fixture.prompt_utf8 != local.prompt_utf8
-        or fixture.patch_tokens_per_image != local.patch_tokens_per_image
-    ):
-        raise ValueError("ASG-CV forced distill fixture binding differs")
-    adapter = load_qwen_adapter(
-        LoadedAuthority(snapshot=snapshot, fixture=fixture),
-        factory=TransformersFactory(),
+    validation_prefix = validated_capture_prefix(
+        args.output_directory, role="validation", schedule=validation_schedule
     )
 
     def capture_all(
@@ -581,7 +596,7 @@ def main(argv: list[str] | None = None) -> int:
                     attribute_token_span=local.attribute_token_span,
                     patch_tokens_per_image=local.patch_tokens_per_image,
                     completion_protocol=local.completion_protocol,
-                    source_commit=args.source_commit,
+                    source_commit=args.capture_source_commit,
                     launch_authority_sha256=local.authority_sha256,
                 ),
             )
@@ -589,18 +604,39 @@ def main(argv: list[str] | None = None) -> int:
         capture_role("train", train_schedule, local.images)
         capture_role("validation", validation_schedule, local.validation_images)
 
-    capture_all(adapter)
-    del capture_all
-    del adapter
-    gc.collect()
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
+    if (
+        train_prefix != train_schedule.pair_count
+        or validation_prefix != validation_schedule.pair_count
+    ):
+        snapshot = load_snapshot_authority(
+            root=args.model_root,
+            manifest_path=args.snapshot_manifest,
+        )
+        fixture = load_fixture_authority(args.fixture)
+        if (
+            fixture.source_commit != args.capture_source_commit
+            or fixture.model_revision != local.rollout_authority.model_revision
+            or fixture.prompt_utf8 != local.prompt_utf8
+            or fixture.patch_tokens_per_image != local.patch_tokens_per_image
+        ):
+            raise ValueError("ASG-CV forced distill fixture binding differs")
+        adapter = load_qwen_adapter(
+            LoadedAuthority(snapshot=snapshot, fixture=fixture),
+            factory=TransformersFactory(),
+        )
+        capture_all(adapter)
+        del capture_all
+        del adapter
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
     predictor, result = fit_forced_distill_predictor(
         args.output_directory,
         train_schedule=train_schedule,
         validation_schedule=validation_schedule,
         initialization_seed_sha256=local.predictor_initialization_seed_sha256,
-        source_commit=args.source_commit,
+        capture_source_commit=args.capture_source_commit,
+        evaluation_source_commit=args.source_commit,
         launch_authority_sha256=local.authority_sha256,
     )
     predictor_bytes = canonical_predictor_state_bytes(predictor)
