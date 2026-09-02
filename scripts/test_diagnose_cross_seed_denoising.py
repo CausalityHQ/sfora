@@ -11,6 +11,7 @@ import torch
 
 from scripts.diagnose_cross_seed_denoising import (
     BandEvaluation,
+    _require_embedding_replay,
     evaluate_cross_seed_denoising,
     parse_arguments,
 )
@@ -33,6 +34,13 @@ def _candidate_digests() -> dict[str, str]:
 
 def _bits(correct: int) -> tuple[bool, ...]:
     return (True,) * correct + (False,) * (QUERIES - correct)
+
+
+def _endpoint_band() -> BandEvaluation:
+    margin = 0.2 - 1 / 10_000
+    return BandEvaluation(
+        _bits(1257), 0.5, 0.5 - margin, margin, 1, 0, 1, True
+    )
 
 
 def _scalar_curves() -> tuple[SeedInterpolationCurve, ...]:
@@ -103,6 +111,21 @@ def _states() -> tuple[
 
 
 class CrossSeedEvaluationTests(unittest.TestCase):
+    def test_embedding_replay_requires_byte_identical_forward_outputs(self) -> None:
+        first = (
+            torch.tensor([[0.0, 1.0]]),
+            torch.tensor([[2.0, 3.0]]),
+            torch.tensor([4]),
+        )
+        _require_embedding_replay(first, tuple(value.clone() for value in first))
+        drifted = (
+            torch.tensor([[-0.0, 1.0]]),
+            first[1].clone(),
+            first[2].clone(),
+        )
+        with self.assertRaisesRegex(ValueError, "forward determinism"):
+            _require_embedding_replay(first, drifted)
+
     def test_evaluates_raw_once_candidates_three_heads_and_all_six_swaps(self) -> None:
         candidates, towers, heads = _states()
         raw_calls: list[float] = []
@@ -133,9 +156,11 @@ class CrossSeedEvaluationTests(unittest.TestCase):
                 correct = {1: 1261, 2: 1263, 3: 1265}[int(tower_marker)]
                 margin = {1: 0.21, 2: 0.22, 3: 0.23}[int(tower_marker)]
             else:
-                correct = 1260 if int(tower_marker) == int(head_marker) else 1259
-                margin = 0.20 if correct == 1260 else 0.19
-            return BandEvaluation(_bits(correct), 0.5, 0.5 - margin, margin, 2, 100, 200, True)
+                correct = 1257 if int(tower_marker) == int(head_marker) else 1256
+                margin = 0.2 - 1 / 10_000 if correct == 1257 else 0.19
+            return BandEvaluation(
+                _bits(correct), 0.5, 0.5 - margin, margin, 2, 100, 200, True
+            )
 
         raw_result = evaluate_cross_seed_denoising(
             candidate_towers=candidates,
@@ -148,12 +173,48 @@ class CrossSeedEvaluationTests(unittest.TestCase):
             evaluate_projected=projected,
         )
         self.assertEqual(raw_calls, [1.0, 2.0, 3.0])
-        self.assertEqual(len(projected_calls), 21)  # 9 candidates + 6 own + 6 swapped.
+        self.assertEqual(len(projected_calls), 18)  # 9 candidates + 3 own + 6 swapped.
         self.assertEqual(
             read_denoising_result(raw_result).terminal_class,
             "spectral-denoise-benefit",
         )
         self.assertNotIn("proxy", json.dumps(json.loads(raw_result)["candidates"]))
+
+    def test_rejects_trained_endpoint_replay_drift(self) -> None:
+        candidates, towers, heads = _states()
+
+        def raw(_tower: OrderedDict[str, torch.Tensor]) -> BandEvaluation:
+            return BandEvaluation(_bits(1260), 0.5, 0.3, 0.2, 1, 0, 1, True)
+
+        def projected(
+            tower: OrderedDict[str, torch.Tensor], head: OrderedDict[str, torch.Tensor]
+        ) -> BandEvaluation:
+            own_endpoint = int(tower["tower.weight"].item()) == int(
+                head["projection.weight"].item()
+            )
+            correct = 1256 if own_endpoint else 1255
+            return BandEvaluation(
+                _bits(correct),
+                0.5,
+                0.3 + 1 / 10_000,
+                0.2 - 1 / 10_000,
+                1,
+                0,
+                1,
+                True,
+            )
+
+        with self.assertRaisesRegex(ValueError, "endpoint replay"):
+            evaluate_cross_seed_denoising(
+                candidate_towers=candidates,
+                trained_towers=towers,
+                trained_heads=heads,
+                scalar_curves=_scalar_curves(),
+                candidate_state_sha256=_candidate_digests(),
+                construction_evidence_sha256="f" * 64,
+                evaluate_raw=raw,
+                evaluate_projected=projected,
+            )
 
     def test_proxy_values_do_not_change_raw_candidate_evidence(self) -> None:
         candidates, towers, heads = _states()
@@ -164,8 +225,10 @@ class CrossSeedEvaluationTests(unittest.TestCase):
             return BandEvaluation(_bits(1260), 0.5, 0.3, 0.2, 1, 0, 1, True)
 
         def projected(
-            _tower: OrderedDict[str, torch.Tensor], _head: OrderedDict[str, torch.Tensor]
+            tower: OrderedDict[str, torch.Tensor], _head: OrderedDict[str, torch.Tensor]
         ) -> BandEvaluation:
+            if float(tower["tower.weight"].item()) > 3:
+                return _endpoint_band()
             return BandEvaluation(_bits(1260), 0.5, 0.3, 0.2, 1, 0, 1, True)
 
         evaluate_cross_seed_denoising(
@@ -246,7 +309,13 @@ class CrossSeedEvaluationTests(unittest.TestCase):
     def test_failure_class_produces_canonical_fail_closed_result(self) -> None:
         candidates, towers, heads = _states()
 
-        def evaluation(*_args: object) -> BandEvaluation:
+        def evaluation(*args: object) -> BandEvaluation:
+            if len(args) == 2:
+                tower = args[0]
+                if isinstance(tower, OrderedDict) and float(
+                    tower["tower.weight"].item()
+                ) > 3:
+                    return _endpoint_band()
             return BandEvaluation(_bits(1265), 0.5, 0.27, 0.23, 1, 0, 1, True)
 
         raw = evaluate_cross_seed_denoising(

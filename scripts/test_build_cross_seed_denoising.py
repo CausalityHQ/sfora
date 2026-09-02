@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import gc
 import hashlib
 import io
 import json
 import tempfile
 import unittest
+import weakref
 from collections import OrderedDict
 from contextlib import redirect_stderr
 from pathlib import Path
@@ -51,10 +53,67 @@ def _prepared(root: Path, *, ambiguous: bool = False) -> tuple[Path, bytes]:
         bindings={"source_commit": "1" * 40, "source_tree_digest": "2" * 64},
         output=root,
     )
+    _remove_head_capabilities(root, raw)
     return root / "manifest.json", raw
 
 
+def _remove_head_capabilities(root: Path, raw: bytes) -> None:
+    value = json.loads(raw)
+    for row in value["seeds"]:
+        directory = root / row["head_directory"]
+        for payload in directory.joinpath("tensors").iterdir():
+            payload.unlink()
+        directory.joinpath("tensors").rmdir()
+        directory.joinpath("manifest.json").unlink()
+        directory.rmdir()
+
+
+def _reconstructed_towers() -> dict[int, OrderedDict[str, torch.Tensor]]:
+    return {
+        seed: OrderedDict(
+            (
+                ("tower.counter", torch.tensor([7], dtype=torch.int64)),
+                ("tower.weight", torch.zeros((2, 2), dtype=torch.float64)),
+            )
+        )
+        for seed in (17, 29, 43)
+    }
+
+
 class CrossSeedBuilderTests(unittest.TestCase):
+    def test_builder_rejects_independent_pretrained_tower_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            prepared = root / "prepared"
+            _manifest_path, manifest_raw = _prepared(prepared)
+            reconstructed = _reconstructed_towers()
+            reconstructed[29]["tower.weight"][0, 0] = 1.0
+
+            with self.assertRaisesRegex(ValueError, "reconstructed initial"):
+                build_candidate_artifacts(
+                    prepared_root=prepared,
+                    prepared_manifest_raw=manifest_raw,
+                    reconstructed_initial_towers=reconstructed,
+                    output=root / "candidates",
+                )
+
+    def test_builder_requires_a_head_free_capability_namespace(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            prepared = root / "prepared"
+            _manifest_path, manifest_raw = _prepared(prepared)
+            receipt = build_candidate_artifacts(
+                prepared_root=prepared,
+                prepared_manifest_raw=manifest_raw,
+                reconstructed_initial_towers=_reconstructed_towers(),
+                output=root / "candidates",
+            )
+
+            self.assertEqual(
+                json.loads(receipt)["schema"],
+                "sfora-cross-seed-candidate-receipt-v1",
+            )
+
     def test_builds_three_deterministic_candidates_and_replay_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -64,6 +123,7 @@ class CrossSeedBuilderTests(unittest.TestCase):
             receipt = build_candidate_artifacts(
                 prepared_root=prepared,
                 prepared_manifest_raw=manifest_raw,
+                reconstructed_initial_towers=_reconstructed_towers(),
                 output=output,
             )
             self.assertEqual(output.joinpath("receipt.json").read_bytes(), receipt)
@@ -96,6 +156,7 @@ class CrossSeedBuilderTests(unittest.TestCase):
                 build_candidate_artifacts(
                     prepared_root=prepared,
                     prepared_manifest_raw=(json.dumps(value) + "\n").encode(),
+                    reconstructed_initial_towers=_reconstructed_towers(),
                     output=output,
                 )
             self.assertFalse(output.exists())
@@ -108,6 +169,7 @@ class CrossSeedBuilderTests(unittest.TestCase):
                 build_candidate_artifacts(
                     prepared_root=prepared,
                     prepared_manifest_raw=manifest_raw,
+                    reconstructed_initial_towers=_reconstructed_towers(),
                     output=output,
                 )
             self.assertFalse(output.exists())
@@ -122,6 +184,7 @@ class CrossSeedBuilderTests(unittest.TestCase):
                 build_candidate_artifacts(
                     prepared_root=prepared,
                     prepared_manifest_raw=manifest_raw,
+                    reconstructed_initial_towers=_reconstructed_towers(),
                     output=output,
                 )
             self.assertFalse(output.exists())
@@ -142,6 +205,37 @@ class CrossSeedBuilderTests(unittest.TestCase):
         }
         # Seven resident fp32 states plus one largest-tensor float64 SVD workspace.
         self.assertEqual(project_builder_peak_bytes(initial, endpoints), 7 * 40 + 4 * 48)
+
+    def test_builder_releases_first_resident_states_before_replay(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            prepared = root / "prepared"
+            _manifest_path, manifest_raw = _prepared(prepared)
+            from sfora.cross_seed_denoising import build_cross_seed_candidates
+
+            authority = build_cross_seed_candidates
+            first_reference: weakref.ReferenceType[object] | None = None
+
+            def residency_guard(*args: object, **kwargs: object) -> object:
+                nonlocal first_reference
+                if first_reference is not None:
+                    gc.collect()
+                    self.assertIsNone(first_reference())
+                value = authority(*args, **kwargs)
+                if first_reference is None:
+                    first_reference = weakref.ref(value)
+                return value
+
+            with patch(
+                "scripts.build_cross_seed_denoising.build_cross_seed_candidates",
+                side_effect=residency_guard,
+            ):
+                build_candidate_artifacts(
+                    prepared_root=prepared,
+                    prepared_manifest_raw=manifest_raw,
+                    reconstructed_initial_towers=_reconstructed_towers(),
+                    output=root / "candidates",
+                )
 
     def test_cli_has_only_outcome_free_local_inputs_and_explicit_execution(self) -> None:
         arguments = [
@@ -202,6 +296,37 @@ class CrossSeedBuilderTests(unittest.TestCase):
                 build_candidate_artifacts(
                     prepared_root=prepared,
                     prepared_manifest_raw=manifest_raw,
+                    reconstructed_initial_towers=_reconstructed_towers(),
+                    output=output,
+                )
+            self.assertFalse(output.exists())
+
+    def test_replay_requires_byte_identical_candidate_tensors(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            prepared = root / "prepared"
+            _manifest_path, manifest_raw = _prepared(prepared)
+            from sfora.cross_seed_denoising import build_cross_seed_candidates
+
+            authority = build_cross_seed_candidates
+            call_count = 0
+
+            def signed_zero_drift(*args: object, **kwargs: object) -> object:
+                nonlocal call_count
+                value = authority(*args, **kwargs)
+                call_count += 1
+                value.tower_soup["tower.weight"][0, 1] = 0.0 if call_count == 1 else -0.0
+                return value
+
+            output = root / "candidates"
+            with patch(
+                "scripts.build_cross_seed_denoising.build_cross_seed_candidates",
+                side_effect=signed_zero_drift,
+            ), self.assertRaisesRegex(ValueError, "replay"):
+                build_candidate_artifacts(
+                    prepared_root=prepared,
+                    prepared_manifest_raw=manifest_raw,
+                    reconstructed_initial_towers=_reconstructed_towers(),
                     output=output,
                 )
             self.assertFalse(output.exists())

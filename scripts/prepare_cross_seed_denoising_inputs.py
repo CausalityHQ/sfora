@@ -25,6 +25,7 @@ from scripts.run_siglip_proxy_control import load_siglip_control_components
 from sfora.cross_seed_denoising import write_tensor_artifact
 from sfora.siglip_proxy_control import PooledProxyAnchorModel, SiglipProxyControlConfig
 from sfora.token_set_screen import F1_TRAIN_CLASSES
+from sfora.weight_space_transfer import model_state_sha256
 
 _SEEDS = (17, 29, 43)
 
@@ -235,6 +236,7 @@ def prepare_cross_seed_artifacts(
                     "head_manifest_bytes": head_row["manifest_bytes"],
                     "head_manifest_sha256": head_row["manifest_sha256"],
                     "head_state_sha256": head_row["state_sha256"],
+                    "initial_state_sha256": model_state_sha256(initial[seed]),
                     "seed": seed,
                     "tower_directory": tower_directory,
                     "tower_manifest_bytes": tower_row["manifest_bytes"],

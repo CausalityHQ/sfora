@@ -187,6 +187,22 @@ def _folded_digest(
     return model_state_sha256(OrderedDict((*tower.items(), *head.items())))
 
 
+def _require_embedding_replay(
+    first: tuple[torch.Tensor, torch.Tensor, torch.Tensor],
+    replay: tuple[torch.Tensor, torch.Tensor, torch.Tensor],
+) -> None:
+    for left, right in zip(first, replay, strict=True):
+        if (
+            left.dtype != right.dtype
+            or left.shape != right.shape
+            or not torch.equal(
+                left.detach().contiguous().view(torch.uint8),
+                right.detach().contiguous().view(torch.uint8),
+            )
+        ):
+            raise ValueError("model forward determinism replay differs")
+
+
 def evaluate_cross_seed_denoising(
     *,
     candidate_towers: object,
@@ -268,11 +284,36 @@ def evaluate_cross_seed_denoising(
         )
 
     swap_rows: list[HeadSwapEvaluation] = []
+    own_rows = {
+        seed: evaluate_projected(towers[seed], heads[seed]) for seed in _SEEDS
+    }
+    if any(type(row) is not BandEvaluation for row in own_rows.values()):
+        raise ValueError("head swap evaluator returned the wrong type")
+    if (
+        type(scalar_curves) is not tuple
+        or len(scalar_curves) != 3
+        or any(type(curve) is not SeedInterpolationCurve for curve in scalar_curves)
+    ):
+        raise ValueError("scalar endpoint replay authority differs")
+    typed_curves = cast(tuple[SeedInterpolationCurve, ...], scalar_curves)
+    for curve in typed_curves:
+        endpoint = curve.rows[-1]
+        own = own_rows[curve.seed]
+        if (
+            endpoint.alpha != 1.0
+            or own.correctness != endpoint.correctness
+            or own.mean_nearest_positive_cosine
+            != endpoint.mean_nearest_positive_cosine
+            or own.mean_nearest_negative_cosine
+            != endpoint.mean_nearest_negative_cosine
+            or own.mean_margin != endpoint.mean_margin
+        ):
+            raise ValueError("trained endpoint replay differs")
     for source in _SEEDS:
         for target in _SEEDS:
             if source == target:
                 continue
-            own = evaluate_projected(towers[source], heads[source])
+            own = own_rows[source]
             swapped = evaluate_projected(towers[source], heads[target])
             if type(own) is not BandEvaluation or type(swapped) is not BandEvaluation:
                 raise ValueError("head swap evaluator returned the wrong type")
@@ -538,6 +579,14 @@ class _CudaBandEvaluator:
                 device=self.device,
                 batch_size=self.evaluation_batch_size,
             )
+            replayed = embed_control_examples(
+                model=self.model,
+                examples=examples,
+                processor=self.processor,
+                device=self.device,
+                batch_size=self.evaluation_batch_size,
+            )
+        _require_embedding_replay((raw, projected, labels), replayed)
         embeddings = raw if plane == "raw" else projected
         if plane not in ("raw", "projected"):
             raise ValueError("evaluation plane differs")

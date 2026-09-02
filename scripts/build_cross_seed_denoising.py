@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import gc
 import hashlib
 import json
 import os
@@ -17,6 +18,10 @@ from typing import cast
 
 import torch
 
+from scripts.prepare_cross_seed_denoising_inputs import (
+    _partition,
+    _reconstruct_initial_state,
+)
 from sfora.cross_seed_denoising import (
     CandidateStates,
     build_cross_seed_candidates,
@@ -161,6 +166,16 @@ def _load_inputs(
         if type(raw_row) is not dict or raw_row.get("seed") != seed:
             raise ValueError("prepared seed order differs")
         row = cast(dict[str, object], raw_row)
+        initial_state_sha256 = row.get("initial_state_sha256")
+        if (
+            type(initial_state_sha256) is not str
+            or len(initial_state_sha256) != 64
+            or any(
+                character not in "0123456789abcdef"
+                for character in initial_state_sha256
+            )
+        ):
+            raise ValueError("prepared initial state digest differs")
         tower = _artifact(
             prepared_root,
             row,
@@ -173,7 +188,7 @@ def _load_inputs(
         head_directory = row.get("head_directory")
         if type(tower_directory) is not str or type(head_directory) is not str:
             raise ValueError("prepared seed artifact paths differ")
-        expected_namespace.update((tower_directory, head_directory))
+        expected_namespace.add(tower_directory)
     actual_namespace = {path.name for path in prepared_root.iterdir()}
     if actual_namespace != expected_namespace or any(
         path.is_symlink() for path in prepared_root.iterdir()
@@ -206,18 +221,16 @@ def project_builder_peak_bytes(
     return 7 * total + 4 * largest_float64
 
 
-def _states_equal(left: CandidateStates, right: CandidateStates) -> bool:
-    if left.groups != right.groups or left.spectral != right.spectral:
-        return False
-    for role in _ROLES:
-        attribute = role.replace("-", "_")
-        left_state = cast(OrderedDict[str, torch.Tensor], getattr(left, attribute))
-        right_state = cast(OrderedDict[str, torch.Tensor], getattr(right, attribute))
-        if tuple(left_state) != tuple(right_state) or any(
-            not torch.equal(left_state[name], right_state[name]) for name in left_state
-        ):
-            return False
-    return True
+def _state_equal(
+    left: OrderedDict[str, torch.Tensor], right: OrderedDict[str, torch.Tensor]
+) -> bool:
+    return tuple(left) == tuple(right) and all(
+        torch.equal(
+            left[name].detach().cpu().contiguous().view(torch.uint8),
+            right[name].detach().cpu().contiguous().view(torch.uint8),
+        )
+        for name in left
+    )
 
 
 def _evidence_payload(candidate: CandidateStates) -> dict[str, object]:
@@ -231,6 +244,7 @@ def build_candidate_artifacts(
     *,
     prepared_root: Path,
     prepared_manifest_raw: bytes,
+    reconstructed_initial_towers: object,
     output: Path,
 ) -> bytes:
     """Authenticate, build twice, and atomically publish all three candidates."""
@@ -240,15 +254,20 @@ def build_candidate_artifacts(
     if output.exists() or output.is_symlink():
         raise FileExistsError(output)
     initial, endpoints = _load_inputs(prepared_root, prepared_manifest_raw)
+    if (
+        type(reconstructed_initial_towers) is not dict
+        or set(reconstructed_initial_towers) != set(_SEEDS)
+    ):
+        raise ValueError("reconstructed initial tower seeds differ")
+    reconstructed = cast(dict[int, object], reconstructed_initial_towers)
+    for seed in _SEEDS:
+        tower = reconstructed[seed]
+        if not isinstance(tower, OrderedDict) or not _state_equal(initial, tower):
+            raise ValueError("reconstructed initial tower differs")
     projected_peak = project_builder_peak_bytes(initial, endpoints)
     if projected_peak >= _RSS_CAP:
         raise ValueError("builder projected RSS exceeds authority")
     first = build_cross_seed_candidates(initial, endpoints)
-    replay_initial, replay_endpoints = _load_inputs(prepared_root, prepared_manifest_raw)
-    replay = build_cross_seed_candidates(replay_initial, replay_endpoints)
-    if not _states_equal(first, replay):
-        raise ValueError("candidate determinism replay differs")
-
     partial = output.with_name(f".{output.name}.partial-{os.getpid()}")
     if partial.exists() or partial.is_symlink():
         raise FileExistsError(partial)
@@ -277,10 +296,35 @@ def build_candidate_artifacts(
                     "state_sha256": manifest["state_sha256"],
                 }
             )
+        construction_evidence = _evidence_payload(first)
+        del first, initial, endpoints
+        gc.collect()
+
+        replay_initial, replay_endpoints = _load_inputs(
+            prepared_root, prepared_manifest_raw
+        )
+        replay = build_cross_seed_candidates(replay_initial, replay_endpoints)
+        del replay_initial, replay_endpoints
+        gc.collect()
+        if _evidence_payload(replay) != construction_evidence:
+            raise ValueError("candidate determinism replay differs")
+        for row in candidate_rows:
+            role = cast(str, row["role"])
+            manifest_path = partial / role / "manifest.json"
+            published = read_tensor_artifact(
+                partial / role,
+                manifest_path.read_bytes(),
+                role=role,
+            )
+            replay_state = cast(
+                OrderedDict[str, torch.Tensor], getattr(replay, role.replace("-", "_"))
+            )
+            if not _state_equal(published, replay_state):
+                raise ValueError("candidate determinism replay differs")
         receipt = {
             "candidates": candidate_rows,
             "claim_eligible": False,
-            "construction_evidence": _evidence_payload(first),
+            "construction_evidence": construction_evidence,
             "determinism_replay": True,
             "prepared_manifest_bytes": len(prepared_manifest_raw),
             "prepared_manifest_sha256": prepared_sha256,
@@ -319,6 +363,25 @@ def main(argv: Sequence[str] | None = None) -> int:
     receipt = build_candidate_artifacts(
         prepared_root=arguments.prepared_root,
         prepared_manifest_raw=raw,
+        reconstructed_initial_towers={
+            seed: _partition(
+                _reconstruct_initial_state(
+                    seed,
+                    cast(
+                        str,
+                        cast(dict[str, object], row)["initial_state_sha256"],
+                    ),
+                )
+            )[0]
+            for seed, row in zip(
+                _SEEDS,
+                cast(
+                    list[object],
+                    _read_manifest(arguments.prepared_root, raw)["seeds"],
+                ),
+                strict=True,
+            )
+        },
         output=arguments.output,
     )
     sys.stdout.buffer.write(receipt)

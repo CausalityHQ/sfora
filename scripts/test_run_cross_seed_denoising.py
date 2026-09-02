@@ -67,6 +67,8 @@ class CrossSeedControllerTests(unittest.TestCase):
             )
             build_text = " ".join(build)
             self.assertIn("--prepared-manifest", build)
+            self.assertIn(str(arguments.scratch_root / "builder-prepared"), build)
+            self.assertNotIn(str(arguments.prepared_output), build)
             for forbidden in ("checkpoint", "seed-result", "burned", "scalar", "head"):
                 self.assertNotIn(forbidden, build_text)
 
@@ -92,10 +94,50 @@ class CrossSeedControllerTests(unittest.TestCase):
                 phases.append(phase)
                 if phase == "prepare":
                     arguments.prepared_output.mkdir()
-                    raw = b'{"schema":"prepared"}\n'
+                    for name in (
+                        "initial-tower",
+                        "seed-017-tower",
+                        "seed-029-tower",
+                        "seed-043-tower",
+                        "seed-017-head",
+                        "seed-029-head",
+                        "seed-043-head",
+                    ):
+                        arguments.prepared_output.joinpath(name).mkdir()
+                        arguments.prepared_output.joinpath(name, "payload").write_bytes(
+                            name.encode()
+                        )
+                    raw = (
+                        json.dumps(
+                            {
+                                "initial_tower": {"directory": "initial-tower"},
+                                "seeds": [
+                                    {
+                                        "head_directory": f"seed-{seed:03d}-head",
+                                        "tower_directory": f"seed-{seed:03d}-tower",
+                                    }
+                                    for seed in (17, 29, 43)
+                                ],
+                            },
+                            separators=(",", ":"),
+                            sort_keys=True,
+                        )
+                        + "\n"
+                    ).encode()
                     arguments.prepared_output.joinpath("manifest.json").write_bytes(raw)
                     return raw
                 if phase == "build":
+                    builder_root = arguments.scratch_root / "builder-prepared"
+                    self.assertEqual(
+                        {path.name for path in builder_root.iterdir()},
+                        {
+                            "initial-tower",
+                            "manifest.json",
+                            "seed-017-tower",
+                            "seed-029-tower",
+                            "seed-043-tower",
+                        },
+                    )
                     arguments.candidate_output.mkdir()
                     raw = b'{"schema":"candidates"}\n'
                     arguments.candidate_output.joinpath("receipt.json").write_bytes(raw)

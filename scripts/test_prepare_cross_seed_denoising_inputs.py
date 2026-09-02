@@ -16,6 +16,7 @@ from scripts.prepare_cross_seed_denoising_inputs import (
     prepare_cross_seed_artifacts,
 )
 from sfora.cross_seed_denoising import read_tensor_artifact
+from sfora.weight_space_transfer import model_state_sha256
 
 
 def _states() -> tuple[
@@ -68,6 +69,10 @@ class CrossSeedPreparationTests(unittest.TestCase):
             self.assertEqual(value["schema"], "sfora-cross-seed-prepared-inputs-v1")
             self.assertIs(value["claim_eligible"], False)
             self.assertEqual(tuple(row["seed"] for row in value["seeds"]), (17, 29, 43))
+            self.assertEqual(
+                tuple(row["initial_state_sha256"] for row in value["seeds"]),
+                tuple(model_state_sha256(initial[seed]) for seed in (17, 29, 43)),
+            )
             forbidden = (
                 "accuracy",
                 "correct",

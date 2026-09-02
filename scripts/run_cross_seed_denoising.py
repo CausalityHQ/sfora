@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 import os
+import shutil
 import sys
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
@@ -197,13 +198,14 @@ def project_phase_argv(
         raise ValueError("prepared identity is required after preparation")
     prepared_manifest = arguments.prepared_output / "manifest.json"
     if phase == "build":
+        builder_prepared = arguments.scratch_root / "builder-prepared"
         return (
             str(arguments.python),
             str(arguments.build_cli),
             "--prepared-root",
-            str(arguments.prepared_output),
+            str(builder_prepared),
             "--prepared-manifest",
-            str(prepared_manifest),
+            str(builder_prepared / "manifest.json"),
             "--prepared-manifest-sha256",
             prepared_identity[0],
             "--prepared-manifest-bytes",
@@ -269,6 +271,41 @@ def _publish_new(path: Path, raw: bytes) -> None:
         partial.unlink(missing_ok=True)
 
 
+def _stage_builder_view(prepared_root: Path, scratch_root: Path) -> Path:
+    target = scratch_root / "builder-prepared"
+    if target.exists() or target.is_symlink():
+        raise FileExistsError(target)
+    raw = prepared_root.joinpath("manifest.json").read_bytes()
+    value = json.loads(raw)
+    if type(value) is not dict or type(value.get("seeds")) is not list:
+        raise ValueError("prepared builder projection differs")
+    initial = value.get("initial_tower")
+    if type(initial) is not dict or type(initial.get("directory")) is not str:
+        raise ValueError("prepared builder projection differs")
+    directories = [initial["directory"]]
+    for row in value["seeds"]:
+        if type(row) is not dict or type(row.get("tower_directory")) is not str:
+            raise ValueError("prepared builder projection differs")
+        directories.append(row["tower_directory"])
+    if len(directories) != 4 or any(
+        Path(directory).name != directory for directory in directories
+    ):
+        raise ValueError("prepared builder projection differs")
+    target.mkdir()
+    try:
+        os.link(prepared_root / "manifest.json", target / "manifest.json")
+        for directory in directories:
+            shutil.copytree(
+                prepared_root / directory,
+                target / directory,
+                copy_function=os.link,
+            )
+        return target
+    except BaseException:
+        shutil.rmtree(target)
+        raise
+
+
 def execute_cross_seed_controller(
     arguments: argparse.Namespace,
     *,
@@ -300,10 +337,15 @@ def execute_cross_seed_controller(
         }
     )
 
-    build_argv = project_phase_argv(
-        arguments, "build", prepared_identity=prepared_identity
-    )
-    build_stdout = run_phase("build", build_argv)
+    builder_view = _stage_builder_view(arguments.prepared_output, arguments.scratch_root)
+    try:
+        build_argv = project_phase_argv(
+            arguments, "build", prepared_identity=prepared_identity
+        )
+        build_stdout = run_phase("build", build_argv)
+    finally:
+        if builder_view.is_dir() and not builder_view.is_symlink():
+            shutil.rmtree(builder_view)
     candidate_identity = _identity(arguments.candidate_output / "receipt.json")
     phase_receipts.append(
         {"phase": "build", "stdout_sha256": hashlib.sha256(build_stdout).hexdigest()}
