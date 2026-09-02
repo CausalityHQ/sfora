@@ -512,8 +512,8 @@ for cell in REGISTERED_M4_CELLS.values():
         revision=cell.model_revision,
         local_files_only=True,
     )
-descriptors = torch.eye(3, dtype=torch.float32)
-examples = tuple(M4Example(i, f"fixture-{i}", i // 2) for i in range(3))
+descriptors = torch.eye(4, dtype=torch.float32)
+examples = tuple(M4Example(i, f"fixture-{i}", i // 2) for i in range(4))
 assert len(score_descriptor_plane(descriptors, examples, block_size=32)) == 3
 PY
 
