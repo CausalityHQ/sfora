@@ -26,6 +26,7 @@ def test_deployer_uses_content_addressed_create_new_remote_source() -> None:
     assert "git archive" in text
     assert "SOURCE_REVISION" in text
     assert "SOURCE_MANIFEST" in text
+    assert 'LC_ALL=C sort -k2,2 -o "$manifest" "$manifest"' in text
     assert "sha256sum --check --strict" in text
     assert "run_pass209_m4_objective_rescue_v1.sh" in text
     assert "[r]un_siglip_proxy_control.py" in text

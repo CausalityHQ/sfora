@@ -45,7 +45,7 @@ trap cleanup EXIT INT TERM
 printf '%s\n' "$source_revision" >"$revision_file"
 git ls-files -z | sort -z | xargs -0 sha256sum >"$manifest"
 sha256sum "$revision_file" | sed "s#  $revision_file#  SOURCE_REVISION#" >>"$manifest"
-LC_ALL=C sort -o "$manifest" "$manifest"
+LC_ALL=C sort -k2,2 -o "$manifest" "$manifest"
 git archive --format=tar --output="$archive" HEAD
 tar --append --file="$archive" -C "$scratch" SOURCE_REVISION SOURCE_MANIFEST.sha256
 archive_sha256=$(sha256sum "$archive" | awk '{print $1}')
