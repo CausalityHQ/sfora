@@ -13,7 +13,7 @@ import numpy as np
 
 from sfora.asgcv_protocol import AsgcvPairSchedule, build_asgcv_pair_schedule
 
-ASGCV_FORCED_DISTILL_SHAPE = (2, 256, 2048)
+ASGCV_FORCED_DISTILL_SHAPE = (2, 256, 4096)
 ASGCV_FORCED_DISTILL_TRAIN_PAIRS = 128
 ASGCV_FORCED_DISTILL_VALIDATION_PAIRS = 32
 ASGCV_FORCED_DISTILL_CAPTURE_SCHEMA = "sfora-asgcv-forced-distill-capture-v1"

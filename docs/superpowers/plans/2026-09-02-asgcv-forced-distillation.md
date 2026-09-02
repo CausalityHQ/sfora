@@ -15,7 +15,7 @@
 - Work only in the Sfora repository.
 - Never read Cars196 official-test artifacts.
 - Use exact local model/input/source authorities and deterministic schedules.
-- Preserve relation-correct targets as float32 `[2,256,2048]` arrays.
+- Preserve relation-correct targets as float32 `[2,256,4096]` arrays.
 - Use TDD and run the narrowest test after every change.
 
 ---
