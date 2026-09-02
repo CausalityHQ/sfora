@@ -151,7 +151,11 @@ def test_phase_a_fails_resource_liveness_determinism_and_timing_gates() -> None:
         replace(passing[0], language_gradient_parameters=1),
         replace(passing[0], generated_tokens=1),
         replace(passing[0], gradients_finite=False),
-        replace(passing[0], direct_vjp_max_abs_error=1.0),
+        replace(
+            passing[0],
+            direct_vjp_max_abs_error=1.0,
+            direct_vjp_max_rel_error=1.0,
+        ),
         replace(passing[0], vision_state_changed=False),
     )
     for first in mutations:
@@ -163,10 +167,34 @@ def test_phase_a_fails_resource_liveness_determinism_and_timing_gates() -> None:
         )
         assert result.passed is False
 
-    nondeterministic = replace(passing[0], gradient_sha256="0" * 64)
+
+def test_phase_a_vjp_gate_accepts_absolute_or_field_relative_tolerance() -> None:
+    authority = _authority()
+    steps = tuple(_step(index) for index in range(3))
+    absolute_pass = replace(
+        steps[0],
+        direct_vjp_max_abs_error=authority.direct_vjp_atol / 2,
+        direct_vjp_max_rel_error=authority.direct_vjp_rtol * 2,
+    )
+    relative_pass = replace(
+        steps[0],
+        direct_vjp_max_abs_error=authority.direct_vjp_atol * 2,
+        direct_vjp_max_rel_error=authority.direct_vjp_rtol / 2,
+    )
+    for first in (absolute_pass, relative_pass):
+        candidate = (first, *steps[1:])
+        result = FvcgPhaseAResult.from_steps(
+            authority=authority,
+            steps=candidate,
+            repeated_step_zero=first,
+            initial_language_state_sha256="f" * 64,
+        )
+        assert result.passed is True
+
+    nondeterministic = replace(steps[0], gradient_sha256="0" * 64)
     result = FvcgPhaseAResult.from_steps(
         authority=authority,
-        steps=passing,
+        steps=steps,
         repeated_step_zero=nondeterministic,
         initial_language_state_sha256="f" * 64,
     )

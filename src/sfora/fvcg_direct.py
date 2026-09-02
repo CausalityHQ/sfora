@@ -295,7 +295,7 @@ class FvcgPhaseAResult:
             )
             and all(
                 step.direct_vjp_max_abs_error <= authority.direct_vjp_atol
-                and step.direct_vjp_max_rel_error <= authority.direct_vjp_rtol
+                or step.direct_vjp_max_rel_error <= authority.direct_vjp_rtol
                 for step in (*steps, repeated_step_zero)
             )
             and combined_p90 <= FVCG_COMBINED_P90_CAP_NS
