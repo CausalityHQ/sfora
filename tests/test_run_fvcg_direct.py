@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import gc
 import importlib.util
 import sys
+import weakref
 from argparse import Namespace
 from pathlib import Path
 from types import SimpleNamespace
@@ -69,6 +71,7 @@ class _FakeAdapter:
         assert isinstance(pair, torch.Tensor)
         assert correct_completion_ids == (11,)
         assert incorrect_completion_ids == (22,)
+        assert all(parameter.grad is None for parameter in self.visual.parameters())
         self.calls.append("semantic-backward")
         feature = self.visual(pair).mean(dim=0)
         correct = feature[0].float()
@@ -95,6 +98,30 @@ class _FakeAdapter:
             gradient_sha256="6" * 64,
             boundary_gradient_sha256="7" * 64,
         )
+
+
+def test_fp32_master_adamw_keeps_optimizer_state_out_of_bfloat16() -> None:
+    parameter = torch.nn.Parameter(torch.tensor([0.125], dtype=torch.bfloat16))
+    optimizer = _MODULE.Fp32MasterAdamW(
+        (parameter,), lr=_MODULE.FVCG_ADAMW_LR, weight_decay=0.0
+    )
+    parameter.grad = torch.ones_like(parameter)
+    optimizer.step()
+    state = optimizer.state_dict()["state"]
+    assert parameter.item() != 0.125
+    assert optimizer.master_parameters[0].dtype == torch.float32
+    assert state[0]["exp_avg"].dtype == torch.float32
+    assert state[0]["exp_avg_sq"].dtype == torch.float32
+
+
+def test_memory_psi_reads_full_avg10_as_ppm(tmp_path: Path) -> None:
+    pressure = tmp_path / "memory"
+    pressure.write_text(
+        "some avg10=1.00 avg60=2.00 avg300=3.00 total=4\n"
+        "full avg10=0.57 avg60=0.25 avg300=0.10 total=9\n",
+        encoding="ascii",
+    )
+    assert _MODULE._memory_psi_full_avg10_ppm(pressure) == 5_700
 
 
 def _inputs() -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
@@ -154,6 +181,9 @@ def test_combined_step_accumulates_losses_clips_once_and_updates_trainable_roles
     assert evidence.generated_tokens == 0
     assert evidence.gradients_finite is True
     assert evidence.semantic_gradient_norm > 0.0
+    assert evidence.vision_state_changed is True
+    assert evidence.pooler_state_changed is True
+    assert evidence.proxy_state_changed is True
     assert _MODULE.parameter_state_sha256(adapter.vision_parameters()) != before_visual
     assert _MODULE.parameter_state_sha256(tuple(adapter.pooler.parameters())) != before_pooler
     assert _MODULE.parameter_state_sha256((proxies,)) != before_proxy
@@ -186,13 +216,52 @@ def test_combined_step_rejects_language_gradient_and_nonfinite_field() -> None:
         )
 
 
+def test_combined_step_timing_excludes_post_step_evidence_hashing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    adapter = _FakeAdapter()
+    microbatch, labels, pair, proxies, proxy_labels = _inputs()
+    optimizer = torch.optim.SGD(
+        [*adapter.vision_parameters(), *adapter.pooler.parameters(), proxies], lr=1.0e-3
+    )
+    clock = [0]
+    original_hash = _MODULE.parameter_state_sha256
+
+    def expensive_hash(parameters: object) -> str:
+        clock[0] += 20_000_000_000
+        return original_hash(parameters)
+
+    monkeypatch.setattr(_MODULE, "parameter_state_sha256", expensive_hash)
+    monkeypatch.setattr(_MODULE, "perf_counter_ns", lambda: clock[0])
+    evidence = _MODULE.run_combined_step(
+        adapter,
+        authority=_authority(),
+        optimizer=optimizer,
+        proxies=proxies,
+        proxy_labels=proxy_labels,
+        dml_microbatch=microbatch,
+        dml_labels=labels,
+        semantic_pair=pair,
+        correct_completion_ids=(11,),
+        incorrect_completion_ids=(22,),
+        ordinal=0,
+        direct_vjp_errors=(0.0, 0.0),
+        memory_psi_full_avg10_ppm=0,
+    )
+    assert evidence.combined_elapsed_ns == 1
+
+
 def test_phase_a_restores_each_step_and_emits_reopenable_canonical_result(tmp_path: Path) -> None:
     authority = _authority()
     factory_calls: list[int] = []
+    live_adapters: list[weakref.ReferenceType[_FakeAdapter]] = []
 
     def context_factory(ordinal: int) -> object:
+        gc.collect()
+        assert not any(reference() is not None for reference in live_adapters)
         factory_calls.append(ordinal)
         adapter = _FakeAdapter()
+        live_adapters.append(weakref.ref(adapter))
         microbatch, labels, pair, proxies, proxy_labels = _inputs()
         optimizer = torch.optim.SGD(
             [*adapter.vision_parameters(), *adapter.pooler.parameters(), proxies], lr=1.0e-3
@@ -283,6 +352,26 @@ def test_cli_accepts_only_explicit_local_phase_a_capabilities(tmp_path: Path) ->
         _MODULE.parse_args(
             [*_valid_cli_args(tmp_path), "--fixture", str(tmp_path / "fixture.json")]
         )
+    with pytest.raises(SystemExit, match="duplicate"):
+        _MODULE.parse_args(
+            [*_valid_cli_args(tmp_path), f"--fixture={tmp_path / 'fixture.json'}"]
+        )
+
+
+def test_cli_rejects_duplicate_options_from_real_sys_argv(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            str(_SCRIPT),
+            *_valid_cli_args(tmp_path),
+            f"--fixture={tmp_path / 'fixture.json'}",
+        ],
+    )
+    with pytest.raises(SystemExit, match="duplicate"):
+        _MODULE.parse_args()
 
 
 def test_main_authenticates_then_runs_one_phase_a(
@@ -313,6 +402,8 @@ def test_main_authenticates_then_runs_one_phase_a(
         path.write_bytes(b"{}\n")
     monkeypatch.setattr(_MODULE, "parse_args", lambda _argv=None: args)
     monkeypatch.setattr(_MODULE, "_executing_source_commit", lambda: args.source_commit)
+    determinism_calls: list[bool] = []
+    monkeypatch.setattr(_MODULE, "_configure_determinism", lambda: determinism_calls.append(True))
     local = SimpleNamespace(
         authority_sha256="2" * 64,
         rollout_authority=SimpleNamespace(model_revision="3" * 40),
@@ -336,5 +427,6 @@ def test_main_authenticates_then_runs_one_phase_a(
 
     monkeypatch.setattr(_MODULE, "run_phase_a", fake_run)
     assert _MODULE.main([]) == 0
+    assert determinism_calls == [True]
     assert captured["output_directory"] == args.output_directory
     assert captured["authority"].source_commit == args.source_commit

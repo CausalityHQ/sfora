@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import gc
 import hashlib
 import math
 import os
@@ -42,6 +43,10 @@ from sfora.saga_feasibility import (  # noqa: E402
     load_snapshot_authority,
 )
 
+FVCG_PFML_ALPHA = 3.0
+FVCG_ADAMW_LR = 1.0e-3
+FVCG_ADAMW_WEIGHT_DECAY = 1.0e-4
+
 
 class CombinedStepAdapter(Protocol):
     pooler: torch.nn.Module
@@ -59,6 +64,54 @@ class CombinedStepAdapter(Protocol):
         correct_completion_ids: tuple[int, ...],
         incorrect_completion_ids: tuple[int, ...],
     ) -> object: ...
+
+
+class Fp32MasterAdamW:
+    """AdamW over FP32 master weights with explicit model-gradient transfer."""
+
+    def __init__(
+        self,
+        parameters: Iterable[torch.nn.Parameter],
+        *,
+        lr: float,
+        weight_decay: float,
+    ) -> None:
+        self.model_parameters = tuple(parameters)
+        if not self.model_parameters:
+            raise ValueError("FVCG optimizer parameters are empty")
+        self.master_parameters = tuple(
+            torch.nn.Parameter(parameter.detach().float().clone(), requires_grad=False)
+            for parameter in self.model_parameters
+        )
+        self.optimizer = torch.optim.AdamW(
+            self.master_parameters,
+            lr=lr,
+            weight_decay=weight_decay,
+        )
+
+    def zero_grad(self, *, set_to_none: bool = True) -> None:
+        for parameter in self.model_parameters:
+            parameter.grad = None if set_to_none else torch.zeros_like(parameter)
+        self.optimizer.zero_grad(set_to_none=set_to_none)
+
+    def step(self) -> None:
+        for model, master in zip(
+            self.model_parameters, self.master_parameters, strict=True
+        ):
+            master.grad = (
+                None
+                if model.grad is None
+                else model.grad.detach().to(device=master.device, dtype=torch.float32)
+            )
+        self.optimizer.step()
+        with torch.no_grad():
+            for model, master in zip(
+                self.model_parameters, self.master_parameters, strict=True
+            ):
+                model.copy_(master.to(device=model.device, dtype=model.dtype))
+
+    def state_dict(self) -> dict[str, object]:
+        return self.optimizer.state_dict()
 
 
 @dataclass(frozen=True, slots=True)
@@ -165,6 +218,25 @@ def _peak_rss_bytes() -> int:
     return max(1, int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss) * 1024)
 
 
+def _memory_psi_full_avg10_ppm(path: Path = Path("/proc/pressure/memory")) -> int:
+    try:
+        rows = path.read_text(encoding="ascii").splitlines()
+    except OSError as error:
+        raise ValueError("FVCG memory PSI authority is unavailable") from error
+    for row in rows:
+        fields = row.split()
+        if fields and fields[0] == "full":
+            values = dict(field.split("=", 1) for field in fields[1:])
+            try:
+                avg10 = float(values["avg10"])
+            except (KeyError, ValueError) as error:
+                raise ValueError("FVCG memory PSI authority differs") from error
+            if not math.isfinite(avg10) or avg10 < 0.0:
+                raise ValueError("FVCG memory PSI authority differs")
+            return round(avg10 * 10_000)
+    raise ValueError("FVCG memory PSI full row is absent")
+
+
 def _synchronize() -> None:
     if torch.cuda.is_available():
         torch.cuda.synchronize()
@@ -211,6 +283,9 @@ def run_combined_step(
     if any(parameter.grad is not None for parameter in language):
         raise ValueError("FVCG language gradient differs")
 
+    initial_vision_state_sha256 = parameter_state_sha256(vision)
+    initial_pooler_state_sha256 = parameter_state_sha256(pooler)
+    initial_proxy_state_sha256 = parameter_state_sha256((proxies,))
     optimizer.zero_grad(set_to_none=True)
     if torch.cuda.is_available():
         torch.cuda.reset_peak_memory_stats()
@@ -230,18 +305,23 @@ def run_combined_step(
         proxy_embeddings=proxies,
         proxy_labels=proxy_labels,
         delta=0.2,
-        alpha=2.0,
+        alpha=FVCG_PFML_ALPHA,
         torch_module=torch,
     )
     dml_loss.backward()
     dml_gradients = tuple(
-        torch.zeros_like(parameter) if parameter.grad is None else parameter.grad.detach().clone()
+        torch.zeros_like(parameter, dtype=torch.float32)
+        if parameter.grad is None
+        else parameter.grad.detach().float().clone()
         for parameter in vision
     )
-    dml_vector = _gradient_vector(vision)
+    dml_vector = torch.cat(tuple(gradient.flatten() for gradient in dml_gradients))
     dml_norm = float(torch.linalg.vector_norm(dml_vector))
     if not math.isfinite(dml_norm) or dml_norm <= 0.0:
         raise ValueError("FVCG DML gradient differs")
+
+    for parameter in vision:
+        parameter.grad = None
 
     _synchronize()
     semantic_started = perf_counter_ns()
@@ -257,11 +337,39 @@ def run_combined_step(
     for parameter, dml_gradient in zip(vision, dml_gradients, strict=True):
         if parameter.grad is None:
             raise ValueError("FVCG semantic gradient is absent")
-        semantic_gradient = parameter.grad.detach() - dml_gradient
+        semantic_gradient = parameter.grad.detach().float().clone()
         semantic_gradients.append(semantic_gradient)
-        semantic_parts.append(semantic_gradient.float().flatten())
-        parameter.grad.copy_(dml_gradient + authority.semantic_weight * semantic_gradient)
+        semantic_parts.append(semantic_gradient.flatten())
+        parameter.grad.copy_(
+            (dml_gradient + authority.semantic_weight * semantic_gradient).to(
+                dtype=parameter.dtype
+            )
+        )
+    all_trainable = (*vision, *pooler, proxies)
+    preclip_norm = float(
+        torch.nn.utils.clip_grad_norm_(all_trainable, authority.gradient_clip_norm)
+    )
+    optimizer.step()
+    _synchronize()
+    combined_elapsed_ns = max(1, perf_counter_ns() - started)
+
     semantic_vector = torch.cat(semantic_parts)
+    combined_vector = torch.cat(
+        tuple(
+            (dml_gradient + authority.semantic_weight * semantic_gradient).flatten()
+            for dml_gradient, semantic_gradient in zip(
+                dml_gradients, semantic_gradients, strict=True
+            )
+        )
+    )
+    semantic_norm = float(torch.linalg.vector_norm(semantic_vector))
+    combined_norm = float(torch.linalg.vector_norm(combined_vector))
+    if not math.isfinite(semantic_norm) or semantic_norm <= 0.0 or combined_norm <= 0.0:
+        raise ValueError("FVCG semantic gradient differs")
+    cosine = float(torch.dot(dml_vector, combined_vector) / (dml_norm * combined_norm))
+    cosine_distance_ppm = max(
+        0, round((1.0 - max(-1.0, min(1.0, cosine))) * 1_000_000)
+    )
     if direct_vjp_reference is not None:
         if len(direct_vjp_reference) != len(semantic_gradients):
             raise ValueError("FVCG direct VJP parameter authority differs")
@@ -272,19 +380,12 @@ def run_combined_step(
                 if bool(torch.count_nonzero(actual)):
                     raise ValueError("FVCG direct VJP sparsity differs")
                 continue
-            reference = expected.to(device=actual.device, dtype=actual.dtype)
+            reference = expected.to(device=actual.device, dtype=torch.float32)
             delta = (actual - reference).abs()
             maximum_absolute = max(maximum_absolute, float(delta.max()))
             relative = delta / reference.abs().clamp_min(1.0e-12)
             maximum_relative = max(maximum_relative, float(relative.max()))
         direct_vjp_errors = (maximum_absolute, maximum_relative)
-    semantic_norm = float(torch.linalg.vector_norm(semantic_vector))
-    combined_vector = _gradient_vector(vision)
-    combined_norm = float(torch.linalg.vector_norm(combined_vector))
-    if not math.isfinite(semantic_norm) or semantic_norm <= 0.0 or combined_norm <= 0.0:
-        raise ValueError("FVCG semantic gradient differs")
-    cosine = float(torch.dot(dml_vector, combined_vector) / (dml_norm * combined_norm))
-    cosine_distance_ppm = max(0, round((1.0 - max(-1.0, min(1.0, cosine))) * 1_000_000))
 
     vision_count, vision_finite = _nonzero_finite_count(vision)
     pooler_count, pooler_finite = _nonzero_finite_count(pooler)
@@ -292,23 +393,21 @@ def run_combined_step(
     language_count, language_finite = _nonzero_finite_count(language)
     if language_count != 0:
         raise ValueError("FVCG language gradient differs")
-    all_trainable = (*vision, *pooler, proxies)
-    preclip_norm = float(torch.linalg.vector_norm(_gradient_vector(all_trainable)))
     gradient_sha256 = hashlib.sha256(
         _gradient_vector(all_trainable).detach().cpu().numpy().astype("<f4").tobytes()
     ).hexdigest()
-    torch.nn.utils.clip_grad_norm_(all_trainable, authority.gradient_clip_norm)
-    optimizer.step()
     optimizer_state_sha256 = _optimizer_state_sha256(optimizer)
+    vision_state_sha256 = parameter_state_sha256(vision)
+    pooler_state_sha256 = parameter_state_sha256(pooler)
+    proxy_state_sha256 = parameter_state_sha256((proxies,))
     updated_state_sha256 = hashlib.sha256(
-        bytes.fromhex(parameter_state_sha256(vision))
-        + bytes.fromhex(parameter_state_sha256(pooler))
-        + bytes.fromhex(parameter_state_sha256((proxies,)))
+        bytes.fromhex(vision_state_sha256)
+        + bytes.fromhex(pooler_state_sha256)
+        + bytes.fromhex(proxy_state_sha256)
     ).hexdigest()
     language_state_sha256 = parameter_state_sha256(language)
-    _synchronize()
-    combined_elapsed_ns = max(1, perf_counter_ns() - started)
 
+    observed_psi = max(memory_psi_full_avg10_ppm, _memory_psi_full_avg10_ppm())
     evidence = FvcgStepEvidence(
         ordinal=ordinal,
         selected_pair=select_stratum_pair(
@@ -331,11 +430,14 @@ def run_combined_step(
         semantic_gradient_norm=semantic_norm,
         combined_gradient_cosine_distance_ppm=cosine_distance_ppm,
         clip_activated=preclip_norm > authority.gradient_clip_norm,
+        vision_state_changed=vision_state_sha256 != initial_vision_state_sha256,
+        pooler_state_changed=pooler_state_sha256 != initial_pooler_state_sha256,
+        proxy_state_changed=proxy_state_sha256 != initial_proxy_state_sha256,
         combined_elapsed_ns=combined_elapsed_ns,
         semantic_elapsed_ns=semantic_elapsed_ns,
         peak_cuda_reserved_bytes=_peak_cuda_reserved_bytes(),
         peak_rss_bytes=_peak_rss_bytes(),
-        memory_psi_full_avg10_ppm=memory_psi_full_avg10_ppm,
+        memory_psi_full_avg10_ppm=observed_psi,
         direct_vjp_max_abs_error=direct_vjp_errors[0],
         direct_vjp_max_rel_error=direct_vjp_errors[1],
         gradient_sha256=gradient_sha256,
@@ -404,21 +506,34 @@ def run_phase_a(
             validate_fvcg_phase_a_result_bytes(result_path.read_bytes())
         )
 
-    _run_context(context_factory(0), authority=authority, ordinal=0)
-    contexts = tuple(context_factory(ordinal) for ordinal in range(3))
-    initial_language_states = tuple(
-        parameter_state_sha256(context.adapter.language_parameters()) for context in contexts
-    )
-    if len(set(initial_language_states)) != 1:
-        raise ValueError("FVCG restored language state differs")
-    steps = tuple(
-        _run_context(context, authority=authority, ordinal=ordinal)
-        for ordinal, context in enumerate(contexts)
-    )
+    def release_context() -> None:
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
+    warmup = context_factory(0)
+    _run_context(warmup, authority=authority, ordinal=0)
+    del warmup
+    release_context()
+    initial_language_state: str | None = None
+    measured: list[FvcgStepEvidence] = []
+    for ordinal in range(3):
+        context = context_factory(ordinal)
+        observed_language_state = parameter_state_sha256(context.adapter.language_parameters())
+        if initial_language_state is None:
+            initial_language_state = observed_language_state
+        elif observed_language_state != initial_language_state:
+            raise ValueError("FVCG restored language state differs")
+        measured.append(_run_context(context, authority=authority, ordinal=ordinal))
+        del context
+        release_context()
+    if initial_language_state is None:
+        raise ValueError("FVCG initial language state differs")
+    steps = tuple(measured)
     repeat_context = context_factory(0)
     if (
         parameter_state_sha256(repeat_context.adapter.language_parameters())
-        != initial_language_states[0]
+        != initial_language_state
     ):
         raise ValueError("FVCG repeated language state differs")
     repeated_step_zero = _run_context(repeat_context, authority=authority, ordinal=0)
@@ -426,7 +541,7 @@ def run_phase_a(
         authority=authority,
         steps=steps,
         repeated_step_zero=repeated_step_zero,
-        initial_language_state_sha256=initial_language_states[0],
+        initial_language_state_sha256=initial_language_state,
     )
     raw = canonical_fvcg_phase_a_result_bytes(result)
     _write_new_atomic(result_path, raw)
@@ -436,7 +551,7 @@ def run_phase_a(
 
 
 def _reject_duplicate_options(argv: list[str]) -> None:
-    options = [token for token in argv if token.startswith("--")]
+    options = [token.split("=", 1)[0] for token in argv if token.startswith("--")]
     if len(options) != len(set(options)):
         raise SystemExit("duplicate FVCG option")
 
@@ -444,9 +559,8 @@ def _reject_duplicate_options(argv: list[str]) -> None:
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     """Parse the explicit local-only Phase-A execution boundary."""
 
-    values = list(argv) if argv is not None else None
-    if values is not None:
-        _reject_duplicate_options(values)
+    values = list(sys.argv[1:] if argv is None else argv)
+    _reject_duplicate_options(values)
     parser = argparse.ArgumentParser(allow_abbrev=False, description=__doc__)
     parser.add_argument("--model-root", required=True, type=Path)
     parser.add_argument("--snapshot-manifest", required=True, type=Path)
@@ -479,6 +593,18 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def _executing_source_commit() -> str:
     return _authenticated_source_commit(_REPOSITORY_ROOT)
+
+
+def _configure_determinism() -> None:
+    configured = os.environ.get("CUBLAS_WORKSPACE_CONFIG")
+    if configured not in {None, ":4096:8"}:
+        raise ValueError("FVCG CUBLAS determinism authority differs")
+    os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+    torch.use_deterministic_algorithms(True)
+    torch.backends.cuda.matmul.allow_tf32 = False
+    torch.backends.cudnn.allow_tf32 = False
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
 
 
 def _real_context_factory(
@@ -533,10 +659,10 @@ def _real_context_factory(
         finally:
             torch.random.set_rng_state(cpu_state)
         proxy_labels = proxy_labels.to(device)
-        optimizer = torch.optim.AdamW(
+        optimizer = Fp32MasterAdamW(
             [*adapter.vision_parameters(), *adapter.pooler.parameters(), proxies],
-            lr=1.0e-5,
-            weight_decay=1.0e-4,
+            lr=FVCG_ADAMW_LR,
+            weight_decay=FVCG_ADAMW_WEIGHT_DECAY,
         )
         captured = adapter.collapsed_verdict_patch_gradient(
             pair,
@@ -566,7 +692,7 @@ def _real_context_factory(
             correct_completion_ids=correct_ids,
             incorrect_completion_ids=incorrect_ids,
             direct_vjp_errors=(0.0, 0.0),
-            memory_psi_full_avg10_ppm=0,
+            memory_psi_full_avg10_ppm=_memory_psi_full_avg10_ppm(),
             direct_vjp_reference=vjp_reference,
         )
 
@@ -579,6 +705,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     if _executing_source_commit() != args.source_commit:
         raise ValueError("FVCG executing source commit differs")
+    _configure_determinism()
     local = load_p32_local_authority(
         args.p32_authority,
         args.train_manifest,

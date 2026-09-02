@@ -123,6 +123,9 @@ class FvcgStepEvidence:
     semantic_gradient_norm: float
     combined_gradient_cosine_distance_ppm: int
     clip_activated: bool
+    vision_state_changed: bool
+    pooler_state_changed: bool
+    proxy_state_changed: bool
     combined_elapsed_ns: int
     semantic_elapsed_ns: int
     peak_cuda_reserved_bytes: int
@@ -184,8 +187,14 @@ class FvcgStepEvidence:
             value = _finite_float(getattr(self, name), name=name.replace("_", " "))
             if value < 0.0:
                 raise ValueError("FVCG direct VJP error differs")
-        if type(self.clip_activated) is not bool:
-            raise ValueError("FVCG clip evidence differs")
+        for name in (
+            "clip_activated",
+            "vision_state_changed",
+            "pooler_state_changed",
+            "proxy_state_changed",
+        ):
+            if type(getattr(self, name)) is not bool:
+                raise ValueError(f"FVCG {name.replace('_', ' ')} differs")
         for name in (
             "gradient_sha256",
             "updated_state_sha256",
@@ -272,6 +281,12 @@ class FvcgPhaseAResult:
             and repeated_step_zero.language_gradient_parameters == 0
             and all(step.gradients_finite for step in steps)
             and repeated_step_zero.gradients_finite
+            and all(
+                step.vision_state_changed
+                and step.pooler_state_changed
+                and step.proxy_state_changed
+                for step in (*steps, repeated_step_zero)
+            )
             and all(
                 step.vision_nonzero_gradient_parameters > 0
                 and step.pooler_nonzero_gradient_parameters > 0

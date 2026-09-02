@@ -196,6 +196,7 @@ class VerdictMarginalTarget:
     correct_probability: float
     coefficient: float
     branch_scores: tuple[float, float]
+    loss: float
     branch_count: int
     generated_tokens: int
 
@@ -1033,6 +1034,7 @@ class QwenSagaAdapter:
                 correct_probability=probability,
                 coefficient=coefficient,
                 branch_scores=(float(scores[0].detach()), float(scores[1].detach())),
+                loss=float(loss.detach()),
                 branch_count=2,
                 generated_tokens=0,
             )
@@ -1078,7 +1080,7 @@ class QwenSagaAdapter:
             correct_probability=target.correct_probability,
             coefficient=target.coefficient,
             branch_scores=target.branch_scores,
-            loss=-target.coefficient * (target.branch_scores[0] - target.branch_scores[1]),
+            loss=target.loss,
             branch_count=target.branch_count,
             generated_tokens=target.generated_tokens,
             vision_nonzero_gradient_parameters=gradient.vision_nonzero_gradient_parameters,

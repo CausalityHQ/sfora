@@ -52,6 +52,9 @@ def _step(ordinal: int, *, selected_pair: int | None = None) -> FvcgStepEvidence
         semantic_gradient_norm=0.5,
         combined_gradient_cosine_distance_ppm=20_000,
         clip_activated=False,
+        vision_state_changed=True,
+        pooler_state_changed=True,
+        proxy_state_changed=True,
         combined_elapsed_ns=10_000_000_000 + ordinal,
         semantic_elapsed_ns=1_000_000_000 + ordinal,
         peak_cuda_reserved_bytes=80 * 1024**3,
@@ -149,6 +152,7 @@ def test_phase_a_fails_resource_liveness_determinism_and_timing_gates() -> None:
         replace(passing[0], generated_tokens=1),
         replace(passing[0], gradients_finite=False),
         replace(passing[0], direct_vjp_max_abs_error=1.0),
+        replace(passing[0], vision_state_changed=False),
     )
     for first in mutations:
         result = FvcgPhaseAResult.from_steps(
