@@ -8,7 +8,6 @@ import hashlib
 import json
 import os
 import shutil
-import signal
 import socket
 import subprocess
 import sys
@@ -17,6 +16,7 @@ import time
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from typing import cast
 
 
 @dataclass(frozen=True)
@@ -182,6 +182,7 @@ def validate_controller_environment(
     repository = arguments.repository.resolve(strict=True)
     diagnostic = arguments.diagnostic_cli.resolve(strict=True)
     specification = arguments.spec.resolve(strict=True)
+    python = arguments.python.resolve(strict=True)
     expected_diagnostic = repository / "scripts" / "diagnose_weight_space_transfer.py"
     expected_specification = (
         repository
@@ -196,9 +197,8 @@ def validate_controller_environment(
         or specification != expected_specification
         or arguments.diagnostic_cli.is_symlink()
         or arguments.spec.is_symlink()
-        or arguments.python.is_symlink()
-        or not arguments.python.is_file()
-        or not os.access(arguments.python, os.X_OK)
+        or not python.is_file()
+        or not os.access(python, os.X_OK)
     ):
         raise ValueError("controller environment path or host differs")
     commit, clean = source_probe(repository)
@@ -257,9 +257,11 @@ def canonical_controller_result_bytes(
         or type(child["decision"]) is not dict
     ):
         raise ValueError("transfer result schema differs")
-    seeds = tuple(
-        curve.get("seed") if type(curve) is dict else None for curve in child["curves"]
-    )
+    if any(
+        type(curve) is not dict or type(curve.get("seed")) is not int for curve in child["curves"]
+    ):
+        raise ValueError("transfer result curve authority differs")
+    seeds = cast(tuple[int, ...], tuple(curve["seed"] for curve in child["curves"]))
     terminal = child["decision"].get("terminal_class")
     expected_terminal = {
         (17, 29): {
@@ -327,10 +329,7 @@ def project_transfer_capabilities(
             role="transfer specification",
         )
 
-        if (
-            arguments.burned_image_root.is_symlink()
-            or not arguments.burned_image_root.is_dir()
-        ):
+        if arguments.burned_image_root.is_symlink() or not arguments.burned_image_root.is_dir():
             raise ValueError("burned image namespace differs")
         images = scratch / "images"
         images.mkdir()
@@ -516,9 +515,10 @@ def execute_transfer_controller(
     scratch.rmdir()
     try:
         projected = projector(arguments, scratch)
-        if (
-            type(projected) is not ProjectedTransferCapabilities
-            or not projected.child_output.is_relative_to(scratch)
+        if type(
+            projected
+        ) is not ProjectedTransferCapabilities or not projected.child_output.is_relative_to(
+            scratch
         ):
             raise ValueError("projected transfer capability differs")
         try:
@@ -574,17 +574,58 @@ def _failure_bytes(*, reason: str, exit_code: int | None, stderr: bytes) -> byte
     )
 
 
+def _wait_user_unit_ready(unit_name: str, launcher_poll: Callable[[], int | None]) -> None:
+    deadline = time.monotonic() + 30.0
+    while True:
+        completed = subprocess.run(
+            (
+                "systemctl",
+                "--user",
+                "show",
+                "--property=MainPID",
+                "--value",
+                unit_name,
+            ),
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if completed.returncode == 0:
+            try:
+                if int(completed.stdout.strip()) > 0:
+                    return
+            except ValueError:
+                pass
+        if launcher_poll() is not None:
+            return
+        if time.monotonic() >= deadline:
+            raise RuntimeError("transfer child unit did not become ready")
+        time.sleep(0.1)
+
+
 def run_transfer_child_process(
     argv: tuple[str, ...],
     *,
     cwd: Path,
     sample: object,
     popen_factory: object = subprocess.Popen,
-    terminate_group: object = lambda pid: os.killpg(pid, signal.SIGTERM),
-    kill_group: object = lambda pid: os.killpg(pid, signal.SIGKILL),
+    stop_unit: object = lambda unit: subprocess.run(
+        ("systemctl", "--user", "kill", "--signal=TERM", "--kill-whom=all", unit),
+        check=True,
+        capture_output=True,
+    ),
+    kill_unit: object = lambda unit: subprocess.run(
+        ("systemctl", "--user", "kill", "--signal=KILL", "--kill-whom=all", unit),
+        check=True,
+        capture_output=True,
+    ),
+    unit_name_factory: object = lambda: (
+        f"sfora-weight-space-transfer-{os.getpid()}-{time.monotonic_ns()}"
+    ),
+    wait_unit_ready: object = _wait_user_unit_ready,
     sleep: object = time.sleep,
 ) -> bytes:
-    """Run exactly one offline private-network child and monitor registered stops."""
+    """Run exactly one network-denied child in a named, monitored user unit."""
 
     if (
         type(argv) is not tuple
@@ -594,76 +635,122 @@ def run_transfer_child_process(
         or not cwd.is_absolute()
         or not callable(sample)
         or not callable(popen_factory)
-        or not callable(terminate_group)
-        or not callable(kill_group)
+        or not callable(stop_unit)
+        or not callable(kill_unit)
+        or not callable(unit_name_factory)
+        or not callable(wait_unit_ready)
         or not callable(sleep)
     ):
         raise ValueError("transfer child process interface differs")
+    unit_name = unit_name_factory()
+    if (
+        type(unit_name) is not str
+        or not unit_name
+        or any(
+            character not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-."
+            for character in unit_name
+        )
+    ):
+        raise ValueError("transfer child unit name differs")
+    child_environment = {
+        "CUBLAS_WORKSPACE_CONFIG": ":4096:8",
+        "HF_DATASETS_OFFLINE": "1",
+        "HF_HUB_OFFLINE": "1",
+        "HOME": os.environ.get("HOME", "/nonexistent"),
+        "PATH": os.environ.get("PATH", os.defpath),
+        "PYTHONNOUSERSITE": "1",
+        "PYTHONPATH": f"{cwd / 'src'}{os.pathsep}{cwd}",
+        "TOKENIZERS_PARALLELISM": "false",
+        "TRANSFORMERS_OFFLINE": "1",
+    }
     command = (
         "systemd-run",
         "--user",
         "--wait",
         "--pipe",
         "--quiet",
-        "--property=PrivateNetwork=yes",
-        "--property=ProtectSystem=strict",
-        "--property=ProtectHome=read-only",
+        "--collect",
+        f"--unit={unit_name}",
+        f"--working-directory={cwd}",
+        "--property=SystemCallFilter=~@network-io",
         "--property=NoNewPrivileges=yes",
         "--property=MemoryMax=118111600640",
         "--property=RuntimeMaxSec=5400",
+        *(f"--setenv={name}={value}" for name, value in child_environment.items()),
         "--",
         *argv,
     )
-    process = popen_factory(
-        command,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        start_new_session=True,
-        cwd=cwd,
-        env={
-            "CUBLAS_WORKSPACE_CONFIG": ":4096:8",
-            "HF_DATASETS_OFFLINE": "1",
-            "HF_HUB_OFFLINE": "1",
-            "HOME": os.environ.get("HOME", "/nonexistent"),
-            "PATH": os.environ.get("PATH", os.defpath),
-            "PYTHONNOUSERSITE": "1",
-            "TOKENIZERS_PARALLELISM": "false",
-            "TRANSFORMERS_OFFLINE": "1",
-        },
-    )
-    pid = getattr(process, "pid", None)
-    if type(pid) is not int or pid <= 0:
-        raise RuntimeError("transfer child PID differs")
+    launcher_environment = {
+        name: value
+        for name, value in os.environ.items()
+        if name in {"DBUS_SESSION_BUS_ADDRESS", "HOME", "PATH", "XDG_RUNTIME_DIR"}
+    }
+    with (
+        tempfile.TemporaryFile(mode="w+b") as stdout_stream,
+        tempfile.TemporaryFile(mode="w+b") as stderr_stream,
+    ):
+        process = popen_factory(
+            command,
+            stdout=stdout_stream,
+            stderr=stderr_stream,
+            start_new_session=True,
+            cwd=cwd,
+            env=launcher_environment,
+        )
+        pid = getattr(process, "pid", None)
+        if type(pid) is not int or pid <= 0:
+            raise RuntimeError("transfer child PID differs")
 
-    def stop_child() -> tuple[bytes, bytes]:
-        try:
-            terminate_group(pid)
-        except BaseException:
-            kill_group(pid)
-            return process.communicate()
-        try:
-            return process.communicate(timeout=30.0)
-        except subprocess.TimeoutExpired:
-            kill_group(pid)
-            return process.communicate()
+        def captured_output() -> tuple[bytes, bytes]:
+            stdout_stream.flush()
+            stderr_stream.flush()
+            stdout_stream.seek(0)
+            stderr_stream.seek(0)
+            return stdout_stream.read(), stderr_stream.read()
 
-    while process.poll() is None:
+        def stop_child() -> tuple[bytes, bytes]:
+            try:
+                stop_unit(unit_name)
+                process.wait(timeout=30.0)
+            except (BaseException, subprocess.TimeoutExpired):
+                kill_unit(unit_name)
+                process.wait()
+            return captured_output()
+
         try:
-            observation = sample(pid)
+            wait_unit_ready(unit_name, process.poll)
         except BaseException as error:
+            exit_code = process.poll()
+            if exit_code is not None:
+                exit_code = process.wait()
+                _stdout, stderr = captured_output()
+                raise TransferChildFailure(
+                    _failure_bytes(reason="child-exit", exit_code=exit_code, stderr=stderr)
+                ) from error
             _stdout, stderr = stop_child()
             raise TransferChildFailure(
                 _failure_bytes(reason="monitor-error", exit_code=None, stderr=stderr)
             ) from error
-        reason = transfer_stop_reason(observation)
-        if reason is not None:
-            _stdout, stderr = stop_child()
-            raise TransferChildFailure(
-                _failure_bytes(reason=reason, exit_code=None, stderr=stderr)
-            )
-        sleep(1.0)
-    stdout, stderr = process.communicate()
-    exit_code = process.poll()
+
+        while process.poll() is None:
+            try:
+                observation = sample(unit_name)
+            except BaseException as error:
+                if process.poll() is not None:
+                    break
+                _stdout, stderr = stop_child()
+                raise TransferChildFailure(
+                    _failure_bytes(reason="monitor-error", exit_code=None, stderr=stderr)
+                ) from error
+            reason = transfer_stop_reason(observation)
+            if reason is not None:
+                _stdout, stderr = stop_child()
+                raise TransferChildFailure(
+                    _failure_bytes(reason=reason, exit_code=None, stderr=stderr)
+                )
+            sleep(1.0)
+        exit_code = process.wait()
+        stdout, stderr = captured_output()
     if type(exit_code) is not int or exit_code != 0:
         raise TransferChildFailure(
             _failure_bytes(reason="child-exit", exit_code=exit_code, stderr=stderr)
@@ -714,6 +801,29 @@ def _process_group_cpu_rss(pgid: int) -> tuple[int, int]:
     return cpu_ticks, rss_bytes
 
 
+def _user_unit_cpu_rss(unit_name: str) -> tuple[int, int]:
+    completed = subprocess.run(
+        (
+            "systemctl",
+            "--user",
+            "show",
+            "--property=CPUUsageNSec",
+            "--property=MemoryCurrent",
+            unit_name,
+        ),
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    values = dict(line.split("=", 1) for line in completed.stdout.splitlines() if "=" in line)
+    if set(values) != {"CPUUsageNSec", "MemoryCurrent"}:
+        raise RuntimeError("transfer child cgroup observation differs")
+    try:
+        return int(values["CPUUsageNSec"]), int(values["MemoryCurrent"])
+    except ValueError as error:
+        raise RuntimeError("transfer child cgroup counters differ") from error
+
+
 def _gpu_observation() -> tuple[int, bool]:
     completed = subprocess.run(
         (
@@ -751,9 +861,11 @@ class TransferProcessTracker:
         self._baseline_psi = _memory_psi_full_avg10()
         self._baseline_swap = _swap_used_bytes()
 
-    def sample(self, pgid: int) -> TransferProcessObservation:
+    def sample(self, unit_name: str) -> TransferProcessObservation:
+        if type(unit_name) is not str or not unit_name:
+            raise ValueError("transfer child unit observation differs")
         now = self._now_ns()
-        cpu_ticks, rss_bytes = _process_group_cpu_rss(pgid)
+        cpu_ticks, rss_bytes = _user_unit_cpu_rss(unit_name)
         cuda_bytes, gpu_active = _gpu_observation()
         if cpu_ticks > self._last_cpu_ticks or gpu_active:
             self._last_cpu_ticks = cpu_ticks

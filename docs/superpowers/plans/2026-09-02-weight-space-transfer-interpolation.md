@@ -72,10 +72,15 @@ equality, alpha-0 scoped equality, deterministic digests, and one resident model
 
 Authenticate either exact provisional seeds `(17,29)` or final `(17,29,43)`,
 their result/checkpoint authorities, burned artifact, snapshot, spec digest, and
-new output. Child manifest contains no dataset or clean capability. Test strict
+new output. Child manifest contains no dataset or clean capability. Launch one
+named user unit with explicit working directory and deterministic/offline
+environment, deny the kernel `@network-io` syscall group, monitor the unit
+cgroup rather than the launcher process, and stop all processes in that exact
+unit. Capture stdout/stderr in files rather than undrained pipes. Test strict
 CLI, seed order, dirty source, digest drift, output preexistence, one child,
-process cleanup, pressure/progress stops, and partial deletion. Provisional runs
-can emit only the two provisional classes and create no downstream capability.
+environment/cwd propagation, network denial, cgroup observation, exact-unit
+cleanup, pressure/progress stops, and partial deletion. Provisional runs can
+emit only the two provisional classes and create no downstream capability.
 
 ## Task 7: Synthetic end-to-end falsifier
 

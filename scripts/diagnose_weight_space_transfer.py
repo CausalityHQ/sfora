@@ -10,18 +10,21 @@ import json
 import math
 import os
 import random
+import resource
 import stat
 import sys
+import time
 from collections import OrderedDict
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
+from typing import Any, cast
 
 import numpy as np
 import torch
 
-from scripts.run_siglip_proxy_control import (
+from scripts.run_siglip_proxy_control import (  # type: ignore[attr-defined]
     ControlRunAuthority,
     SiglipProxyControlConfig,
     _config_sha256,
@@ -356,9 +359,9 @@ def _endpoint_metric(value: object, *, queries: int, role: str) -> EndpointMetri
         correct=correct,
         queries=observed_queries,
         recall_at_1=row["recall_at_1"],
-        mean_nearest_positive_cosine=row["mean_nearest_positive_cosine"],
-        mean_nearest_negative_cosine=row["mean_nearest_negative_cosine"],
-        mean_margin=row["mean_margin"],
+        mean_nearest_positive_cosine=cast(float, row["mean_nearest_positive_cosine"]),
+        mean_nearest_negative_cosine=cast(float, row["mean_nearest_negative_cosine"]),
+        mean_margin=cast(float, row["mean_margin"]),
     )
 
 
@@ -478,9 +481,7 @@ def _snapshot_metrics(value: object, *, role: str) -> dict[str, tuple[EndpointMe
         values = _object(snapshot[band], {"raw", "projected"}, role=f"{role} {band}")
         result[band] = (
             _endpoint_metric(values["raw"], queries=queries, role=f"{role} {band} raw"),
-            _endpoint_metric(
-                values["projected"], queries=queries, role=f"{role} {band} projected"
-            ),
+            _endpoint_metric(values["projected"], queries=queries, role=f"{role} {band} projected"),
         )
     return result
 
@@ -537,8 +538,7 @@ def load_seed_endpoint_authority(
             "clean_validation_examples": 2_746,
             "burned_diagnostic_examples": 1_345,
         }
-        or _lower_hex(dataset["manifest_sha256"], role="manifest")
-        != dataset["manifest_sha256"]
+        or _lower_hex(dataset["manifest_sha256"], role="manifest") != dataset["manifest_sha256"]
         or model["name"] != config.model_name
         or model["revision"] != config.model_revision
         or model["resolved_revision"] != config.model_revision
@@ -549,7 +549,7 @@ def load_seed_endpoint_authority(
         value["environment"], set(ControlRunAuthority.__dataclass_fields__), role="environment"
     )
     try:
-        run_authority = ControlRunAuthority(**environment)
+        run_authority = ControlRunAuthority(**cast(dict[str, Any], environment))
     except (TypeError, ValueError) as error:
         raise ValueError("seed result environment differs") from error
     if (
@@ -717,8 +717,10 @@ def reconstruct_initial_model(
     if type(seed) is not int or seed not in (17, 29, 43):
         raise ValueError("initial reconstruction seed differs")
     _lower_hex(expected_sha256, role="initial state")
-    if not isinstance(device, torch.device) or not callable(tower_loader) or not callable(
-        model_builder
+    if (
+        not isinstance(device, torch.device)
+        or not callable(tower_loader)
+        or not callable(model_builder)
     ):
         raise ValueError("initial reconstruction interface differs")
 
@@ -815,6 +817,18 @@ def _prepare_evaluation_model(
     return model
 
 
+def _reset_cuda_peak() -> None:
+    if torch.cuda.is_available():
+        torch.cuda.reset_peak_memory_stats()
+        torch.cuda.synchronize()
+
+
+def _peak_process_resources() -> tuple[int, int]:
+    peak_cuda_bytes = torch.cuda.max_memory_reserved() if torch.cuda.is_available() else 0
+    peak_rss_bytes = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024
+    return peak_cuda_bytes, peak_rss_bytes
+
+
 def evaluate_transfer_seed_curve(
     *,
     authority: SeedEndpointAuthority,
@@ -824,6 +838,9 @@ def evaluate_transfer_seed_curve(
     disable_checkpointing: Callable[[torch.nn.Module], None],
     evaluate_model: Callable[[torch.nn.Module], ModelBandEvaluation],
     progress: Callable[[str], None] = lambda _event: None,
+    now_ns: Callable[[], int] = time.monotonic_ns,
+    reset_cuda_peak: Callable[[], None] = _reset_cuda_peak,
+    peak_resources: Callable[[], tuple[int, int]] = _peak_process_resources,
 ) -> SeedCurveExecution:
     """Replay both endpoints, then evaluate all five fresh tower folds."""
 
@@ -837,9 +854,14 @@ def evaluate_transfer_seed_curve(
         or not callable(disable_checkpointing)
         or not callable(evaluate_model)
         or not callable(progress)
+        or not callable(now_ns)
+        or not callable(reset_cuda_peak)
+        or not callable(peak_resources)
     ):
         raise ValueError("transfer seed execution authority differs")
-    initial_state = OrderedDict(initial.model.state_dict())
+    initial_state = OrderedDict(
+        (name, tensor.detach().cpu().clone()) for name, tensor in initial.model.state_dict().items()
+    )
     if model_state_sha256(initial_state) != initial.sha256:
         raise ValueError("initial model changed after reconstruction")
     trained_state = OrderedDict(
@@ -850,6 +872,12 @@ def evaluate_transfer_seed_curve(
         initial.model,
         disable_checkpointing=disable_checkpointing,
     )
+    with torch.inference_mode():
+        initial_evaluation = evaluate_model(initial_model)
+    initial_model.to(torch.device("cpu"))
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
     trained_model = _prepare_evaluation_model(
         model_factory(),
         disable_checkpointing=disable_checkpointing,
@@ -859,8 +887,10 @@ def evaluate_transfer_seed_curve(
     except RuntimeError as error:
         raise ValueError("trained endpoint model state differs") from error
     with torch.inference_mode():
-        initial_evaluation = evaluate_model(initial_model)
         trained_evaluation = evaluate_model(trained_model)
+    trained_model.to(torch.device("cpu"))
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
     if (
         type(initial_evaluation) is not ModelBandEvaluation
         or type(trained_evaluation) is not ModelBandEvaluation
@@ -886,8 +916,14 @@ def evaluate_transfer_seed_curve(
             model.load_state_dict(folded.state, strict=True)
         except RuntimeError as error:
             raise ValueError("folded model state differs") from error
+        reset_cuda_peak()
+        started_ns = now_ns()
         with torch.inference_mode():
             evaluation = evaluate_model(model)
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
+        wall_time_ns = now_ns() - started_ns
+        peak_cuda_bytes, peak_rss_bytes = peak_resources()
         if type(evaluation) is not ModelBandEvaluation:
             raise ValueError("fold evaluator returned the wrong type")
         rows.append(
@@ -897,16 +933,23 @@ def evaluate_transfer_seed_curve(
                 correct=evaluation.projected.correct,
                 queries=evaluation.projected.queries,
                 recall_ppm=(
-                    evaluation.projected.correct
-                    * 1_000_000
-                    // evaluation.projected.queries
+                    evaluation.projected.correct * 1_000_000 // evaluation.projected.queries
                 ),
+                mean_nearest_positive_cosine=(evaluation.projected.mean_nearest_positive_cosine),
+                mean_nearest_negative_cosine=(evaluation.projected.mean_nearest_negative_cosine),
                 mean_margin=evaluation.projected.mean_margin,
                 correctness=evaluation.projected_correctness,
                 folded_state_sha256=folded.sha256,
                 tower_squared_displacement=folded.tower_squared_displacement,
+                wall_time_ns=wall_time_ns,
+                peak_cuda_bytes=peak_cuda_bytes,
+                peak_rss_bytes=peak_rss_bytes,
             )
         )
+        model.to(torch.device("cpu"))
+        del model, evaluation, folded
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
         progress(f"alpha-{alpha:.2f}")
     return SeedCurveExecution(
         endpoint_replay=replay,

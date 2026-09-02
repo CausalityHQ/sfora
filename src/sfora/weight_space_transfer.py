@@ -7,6 +7,7 @@ import json
 import math
 from collections import OrderedDict
 from dataclasses import dataclass
+from typing import cast
 
 import torch
 
@@ -32,10 +33,15 @@ class AlphaEvaluation:
     correct: int
     queries: int
     recall_ppm: int
+    mean_nearest_positive_cosine: float
+    mean_nearest_negative_cosine: float
     mean_margin: float
     correctness: tuple[bool, ...]
     folded_state_sha256: str
     tower_squared_displacement: float
+    wall_time_ns: int
+    peak_cuda_bytes: int
+    peak_rss_bytes: int
 
     def __post_init__(self) -> None:
         if type(self.seed) is not int or self.seed not in (17, 29, 43):
@@ -50,8 +56,13 @@ class AlphaEvaluation:
             self.correct * 1_000_000 // self.queries
         ):
             raise ValueError("alpha row recall arithmetic differs")
-        if type(self.mean_margin) is not float or not math.isfinite(self.mean_margin):
-            raise ValueError("alpha row margin must be a concrete finite float")
+        for value in (
+            self.mean_nearest_positive_cosine,
+            self.mean_nearest_negative_cosine,
+            self.mean_margin,
+        ):
+            if type(value) is not float or not math.isfinite(value):
+                raise ValueError("alpha row margins must be concrete finite floats")
         if (
             type(self.correctness) is not tuple
             or len(self.correctness) != self.queries
@@ -71,6 +82,15 @@ class AlphaEvaluation:
             or self.tower_squared_displacement < 0.0
         ):
             raise ValueError("alpha row tower displacement differs")
+        if (
+            type(self.wall_time_ns) is not int
+            or self.wall_time_ns <= 0
+            or type(self.peak_cuda_bytes) is not int
+            or self.peak_cuda_bytes < 0
+            or type(self.peak_rss_bytes) is not int
+            or self.peak_rss_bytes <= 0
+        ):
+            raise ValueError("alpha row resource evidence differs")
 
 
 @dataclass(frozen=True)
@@ -272,9 +292,7 @@ def classify_interpolation_curves(curves: object) -> InterpolationDecision:
     if passing:
         selected = max(passing, key=lambda item: (item[0], item[1], item[2]))
         delta_ppm, mean_margin, alpha, rows = selected
-        terminal = (
-            "interior-benefit" if len(curves) == 3 else "provisional-interior-benefit"
-        )
+        terminal = "interior-benefit" if len(curves) == 3 else "provisional-interior-benefit"
         pairs = tuple(
             _paired_evidence(row, endpoint) for row, endpoint in zip(rows, endpoints, strict=True)
         )
@@ -289,9 +307,7 @@ def classify_interpolation_curves(curves: object) -> InterpolationDecision:
     delta_ppm, mean_margin, _alpha, _rows = best_observed
     return InterpolationDecision(
         terminal_class=(
-            "no-interior-benefit"
-            if len(curves) == 3
-            else "provisional-no-interior-benefit"
+            "no-interior-benefit" if len(curves) == 3 else "provisional-no-interior-benefit"
         ),
         selected_alpha=None,
         aggregate_delta_ppm=delta_ppm,
@@ -309,23 +325,35 @@ def canonical_interpolation_result_bytes(
     recomputed = classify_interpolation_curves(curves)
     if type(decision) is not InterpolationDecision or decision != recomputed:
         raise ValueError("stored interpolation decision differs from recomputation")
-    typed_curves = curves
+    typed_curves = cast(tuple[SeedInterpolationCurve, ...], curves)
 
     curve_payloads: list[dict[str, object]] = []
     for curve in typed_curves:
         rows: list[dict[str, object]] = []
+        endpoint = curve.rows[-1]
         for row in curve.rows:
-            correctness_sha256 = hashlib.sha256(bytes(row.correctness)).hexdigest()
+            correctness_raw = bytes(row.correctness)
+            correctness_sha256 = hashlib.sha256(correctness_raw).hexdigest()
+            paired = _paired_evidence(row, endpoint)
             rows.append(
                 {
                     "alpha": row.alpha,
+                    "candidate_only_vs_endpoint": paired.candidate_only,
                     "correct": row.correct,
+                    "correctness_bits": correctness_raw.hex(),
                     "correctness_sha256": correctness_sha256,
+                    "endpoint_only_vs_candidate": paired.endpoint_only,
                     "folded_state_sha256": row.folded_state_sha256,
                     "mean_margin": row.mean_margin,
+                    "mean_nearest_negative_cosine": row.mean_nearest_negative_cosine,
+                    "mean_nearest_positive_cosine": row.mean_nearest_positive_cosine,
+                    "mcnemar_p_value_vs_endpoint": paired.mcnemar_p_value,
+                    "peak_cuda_bytes": row.peak_cuda_bytes,
+                    "peak_rss_bytes": row.peak_rss_bytes,
                     "queries": row.queries,
                     "recall_ppm": row.recall_ppm,
                     "tower_squared_displacement": row.tower_squared_displacement,
+                    "wall_time_ns": row.wall_time_ns,
                 }
             )
         curve_payloads.append({"rows": rows, "seed": curve.seed})

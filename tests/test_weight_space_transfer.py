@@ -143,10 +143,15 @@ def _row(seed: int, alpha: float, correct: int, margin: float) -> AlphaEvaluatio
         correct=correct,
         queries=queries,
         recall_ppm=correct * 1_000_000 // queries,
+        mean_nearest_positive_cosine=0.9,
+        mean_nearest_negative_cosine=0.8,
         mean_margin=margin,
         correctness=(True,) * correct + (False,) * (queries - correct),
         folded_state_sha256=f"{seed + round(alpha * 100):064x}",
         tower_squared_displacement=float(alpha),
+        wall_time_ns=1,
+        peak_cuda_bytes=0,
+        peak_rss_bytes=1,
     )
 
 
@@ -248,7 +253,17 @@ def test_canonical_result_recomputes_decision_and_binds_rows() -> None:
     assert value["decision"]["selected_alpha"] == 0.75
     assert len(value["curves"]) == 3
     assert len(value["curves"][0]["rows"]) == 5
-    assert len(value["curves"][0]["rows"][0]["correctness_sha256"]) == 64
+    first_row = value["curves"][0]["rows"][0]
+    assert len(first_row["correctness_sha256"]) == 64
+    assert first_row["correctness_bits"]
+    assert first_row["mean_nearest_positive_cosine"] == 0.9
+    assert first_row["mean_nearest_negative_cosine"] == 0.8
+    assert first_row["candidate_only_vs_endpoint"] >= 0
+    assert first_row["endpoint_only_vs_candidate"] >= 0
+    assert 0.0 <= first_row["mcnemar_p_value_vs_endpoint"] <= 1.0
+    assert first_row["wall_time_ns"] > 0
+    assert first_row["peak_cuda_bytes"] >= 0
+    assert first_row["peak_rss_bytes"] > 0
     assert payload == canonical_interpolation_result_bytes(curves, decision)
 
     with pytest.raises(ValueError, match="decision"):

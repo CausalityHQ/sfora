@@ -58,7 +58,11 @@ example id, label, image SHA-256, byte length)`. The preparer has no model,
 checkpoint, retrieval score, or selection capability. Although dataset loading
 may encounter other bands in memory, it cannot serialize them. The scientific
 diagnostic receives only the burned artifact and cannot load the dataset or use
-network access.
+network access. The controller stages only the registered burned inputs and
+seed artifacts, passes only those paths, and executes the child in a named user
+unit with the kernel `@network-io` syscall group denied. This is an input and
+network capability boundary, not a claim that the user unit hides every other
+host pathname.
 
 ## Authorities
 
@@ -166,3 +170,8 @@ without restart at 96 GiB combined GPU memory, 110 GiB RSS, registered memory
 pressure, or a progress timeout. A one-alpha preflight must project all three
 seeds below 90 minutes. Scratch is content-addressed and removed after process
 exit; only canonical claim-ineligible result bytes and SHA-256 are retained.
+The controller explicitly propagates the deterministic/offline environment,
+repository working directory, and `PYTHONPATH` into the named unit. Monitoring
+uses the unit cgroup rather than the `systemd-run` launcher, termination targets
+all processes in that exact unit, and stdout/stderr are file-backed so child
+logging cannot block on an undrained pipe.

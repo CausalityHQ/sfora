@@ -365,10 +365,15 @@ class EndpointAuthorityTests(unittest.TestCase):
                         correct=hits,
                         queries=1_345,
                         recall_ppm=hits * 1_000_000 // 1_345,
+                        mean_nearest_positive_cosine=0.9,
+                        mean_nearest_negative_cosine=0.8,
                         mean_margin=(0.12 if alpha == 0.75 else 0.10 + alpha / 100.0),
                         correctness=(True,) * hits + (False,) * (1_345 - hits),
                         folded_state_sha256=f"{authority.seed + index:064x}",
                         tower_squared_displacement=float(index),
+                        wall_time_ns=1,
+                        peak_cuda_bytes=0,
+                        peak_rss_bytes=1,
                     )
                     for index, (alpha, hits) in enumerate(
                         zip(INTERPOLATION_ALPHAS, correct, strict=True)
@@ -451,10 +456,13 @@ class EndpointAuthorityTests(unittest.TestCase):
             self.assertEqual(receipt["result_sha256"], hashlib.sha256(payload).hexdigest())
             self.assertEqual(receipt["result_bytes"], len(payload))
             self.assertEqual(runner.call_count, 1)
-            with patch(
-                "scripts.diagnose_weight_space_transfer.run_bound_weight_space_transfer",
-                return_value=payload,
-            ), self.assertRaises(FileExistsError):
+            with (
+                patch(
+                    "scripts.diagnose_weight_space_transfer.run_bound_weight_space_transfer",
+                    return_value=payload,
+                ),
+                self.assertRaises(FileExistsError),
+            ):
                 main(arguments)
 
     def test_burned_loader_authenticates_exact_population_and_namespace(self) -> None:
@@ -495,6 +503,7 @@ class EndpointAuthorityTests(unittest.TestCase):
                     expected_source_manifest_sha256="3" * 64,
                     image_root=images,
                 )
+
     def test_seed_result_authenticates_and_normalizes_only_endpoint_evidence(self) -> None:
         raw, _run = _seed_result()
         with tempfile.TemporaryDirectory() as directory:
@@ -817,8 +826,7 @@ class EndpointAuthorityTests(unittest.TestCase):
             error_count = 10 if score_calls == 0 else 5
             score_calls += 1
             errors = tuple(
-                SubstrateRetrievalError(index, index + 1, 82, 83)
-                for index in range(error_count)
+                SubstrateRetrievalError(index, index + 1, 82, 83) for index in range(error_count)
             )
             return SubstrateScreenEvidence(
                 metrics=SubstrateScreenMetrics(
@@ -970,10 +978,10 @@ class EndpointAuthorityTests(unittest.TestCase):
                     return ModelBandEvaluation(
                         raw=metric,
                         projected=metric,
-                        projected_correctness=(True,) * correct
-                        + (False,) * (1_345 - correct),
+                        projected_correctness=(True,) * correct + (False,) * (1_345 - correct),
                     )
 
+                ticks = iter(range(10))
                 return evaluate_transfer_seed_curve(
                     authority=authority,
                     initial=reconstruct_initial_model(
@@ -987,6 +995,9 @@ class EndpointAuthorityTests(unittest.TestCase):
                     model_factory=lambda: Model(Tower()),
                     disable_checkpointing=lambda _model: None,
                     evaluate_model=evaluate,
+                    now_ns=lambda: next(ticks),
+                    reset_cuda_peak=lambda: None,
+                    peak_resources=lambda: (0, 1),
                 )
 
             first = run_bound_weight_space_transfer(parsed, execute_seed=execute_seed)

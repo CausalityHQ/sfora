@@ -2,6 +2,8 @@ import argparse
 import hashlib
 import io
 import json
+import os
+import subprocess
 import tempfile
 import unittest
 from contextlib import redirect_stderr
@@ -12,6 +14,8 @@ from scripts.run_weight_space_transfer import (
     ProjectedTransferCapabilities,
     TransferChildFailure,
     TransferProcessObservation,
+    TransferProcessTracker,
+    _wait_user_unit_ready,
     canonical_controller_result_bytes,
     execute_transfer_controller,
     main,
@@ -128,7 +132,48 @@ class TransferControllerTests(unittest.TestCase):
             observation = TransferProcessObservation(**{**healthy.__dict__, **changed})
             self.assertEqual(transfer_stop_reason(observation), expected)
 
-    def test_child_runs_once_in_private_network_service_and_stops_process_group(self) -> None:
+    def test_tracker_samples_named_unit_cgroup_not_launcher_group(self) -> None:
+        ticks = iter((1_000, 2_000, 3_000))
+        with (
+            patch(
+                "scripts.run_weight_space_transfer._memory_psi_full_avg10",
+                side_effect=(0.0, 0.0),
+            ),
+            patch(
+                "scripts.run_weight_space_transfer._swap_used_bytes",
+                side_effect=(100, 100),
+            ),
+            patch(
+                "scripts.run_weight_space_transfer._user_unit_cpu_rss",
+                return_value=(41, 42),
+            ) as unit_sample,
+            patch(
+                "scripts.run_weight_space_transfer._process_group_cpu_rss",
+                side_effect=AssertionError("launcher process group is not authority"),
+            ),
+            patch(
+                "scripts.run_weight_space_transfer._gpu_observation",
+                return_value=(43, False),
+            ),
+        ):
+            tracker = TransferProcessTracker(now_ns=lambda: next(ticks))
+            observed = tracker.sample("sfora-transfer-fixture")
+        unit_sample.assert_called_once_with("sfora-transfer-fixture")
+        self.assertEqual(observed.rss_bytes, 42)
+        self.assertEqual(observed.cuda_reserved_bytes, 43)
+
+    def test_unit_readiness_returns_immediately_when_launcher_already_exited(self) -> None:
+        completed = subprocess.CompletedProcess(("systemctl",), 1, "", "missing")
+        with (
+            patch("scripts.run_weight_space_transfer.subprocess.run", return_value=completed),
+            patch(
+                "scripts.run_weight_space_transfer.time.sleep",
+                side_effect=AssertionError("fast exit must not wait"),
+            ),
+        ):
+            _wait_user_unit_ready("sfora-transfer-fast", lambda: 1)
+
+    def test_child_runs_once_in_network_denied_unit_and_stops_exact_unit(self) -> None:
         class Process:
             pid = 321
 
@@ -138,15 +183,17 @@ class TransferControllerTests(unittest.TestCase):
             def poll(self) -> int | None:
                 return next(self.polls, 0)
 
-            def communicate(self, timeout: float | None = None) -> tuple[bytes, bytes]:
+            def wait(self, timeout: float | None = None) -> int:
                 self.timeout = timeout
-                return b'{"schema":"fixture-receipt"}\n', b""
+                return 0
 
         launched: list[tuple[tuple[str, ...], dict[str, object]]] = []
+        readied: list[str] = []
         process = Process()
 
         def popen(argv: tuple[str, ...], **kwargs: object) -> Process:
             launched.append((argv, kwargs))
+            kwargs["stdout"].write(b'{"schema":"fixture-receipt"}\n')  # type: ignore[union-attr]
             return process
 
         healthy = TransferProcessObservation(1, 2, 0, 0, 3, 4)
@@ -155,20 +202,31 @@ class TransferControllerTests(unittest.TestCase):
             cwd=Path("/abs/repo"),
             sample=lambda _pid: healthy,
             popen_factory=popen,
+            wait_unit_ready=lambda unit, _poll: readied.append(unit),
+            unit_name_factory=lambda: "sfora-transfer-fixture",
             sleep=lambda _seconds: None,
         )
         self.assertEqual(result, b'{"schema":"fixture-receipt"}\n')
         self.assertEqual(len(launched), 1)
+        self.assertEqual(readied, ["sfora-transfer-fixture"])
         command, keywords = launched[0]
-        self.assertEqual(command[:5], ("systemd-run", "--user", "--wait", "--pipe", "--quiet"))
-        self.assertIn("--property=PrivateNetwork=yes", command)
+        self.assertEqual(
+            command[:6], ("systemd-run", "--user", "--wait", "--pipe", "--quiet", "--collect")
+        )
+        self.assertIn("--unit=sfora-transfer-fixture", command)
+        self.assertIn("--property=SystemCallFilter=~@network-io", command)
+        self.assertNotIn("--property=PrivateNetwork=yes", command)
         self.assertIn("--property=MemoryMax=118111600640", command)
+        self.assertIn("--working-directory=/abs/repo", command)
+        self.assertIn("--setenv=CUBLAS_WORKSPACE_CONFIG=:4096:8", command)
+        self.assertIn("--setenv=HF_HUB_OFFLINE=1", command)
+        self.assertIn(f"--setenv=PYTHONPATH=/abs/repo/src{os.pathsep}/abs/repo", command)
         self.assertEqual(command[-2:], ("/abs/python", "/abs/diagnose.py"))
         self.assertTrue(keywords["start_new_session"])
-        self.assertEqual(keywords["cwd"], Path("/abs/repo"))
-        self.assertEqual(keywords["env"]["HF_HUB_OFFLINE"], "1")
+        self.assertNotEqual(keywords["stdout"], subprocess.PIPE)
+        self.assertNotEqual(keywords["stderr"], subprocess.PIPE)
 
-        stopped: list[int] = []
+        stopped: list[str] = []
         failing = Process()
         with self.assertRaises(TransferChildFailure) as captured:
             run_transfer_child_process(
@@ -176,11 +234,72 @@ class TransferControllerTests(unittest.TestCase):
                 cwd=Path("/abs/repo"),
                 sample=lambda _pid: TransferProcessObservation(1, 2, 1, 0, 3, 4),
                 popen_factory=lambda *_args, **_kwargs: failing,
-                terminate_group=stopped.append,
+                stop_unit=stopped.append,
+                wait_unit_ready=lambda _unit, _poll: None,
+                unit_name_factory=lambda: "sfora-transfer-failing",
                 sleep=lambda _seconds: None,
             )
-        self.assertEqual(stopped, [321])
+        self.assertEqual(stopped, ["sfora-transfer-failing"])
         self.assertIn(b'"reason":"memory-pressure"', captured.exception.terminal_bytes)
+
+    def test_fast_exit_and_unit_collection_preserve_child_terminal(self) -> None:
+        class FastExit:
+            pid = 901
+
+            def poll(self) -> int:
+                return 1
+
+            def wait(self, timeout: float | None = None) -> int:
+                return 1
+
+        def popen(_argv: tuple[str, ...], **kwargs: object) -> FastExit:
+            kwargs["stderr"].write(b"fixture import failure")  # type: ignore[union-attr]
+            return FastExit()
+
+        with self.assertRaises(TransferChildFailure) as captured:
+            run_transfer_child_process(
+                ("/abs/python", "/abs/diagnose.py"),
+                cwd=Path("/abs/repo"),
+                sample=lambda _unit: (_ for _ in ()).throw(AssertionError("not reached")),
+                popen_factory=popen,
+                wait_unit_ready=lambda _unit, _poll: (_ for _ in ()).throw(
+                    RuntimeError("unit already collected")
+                ),
+                unit_name_factory=lambda: "sfora-transfer-fast-exit",
+            )
+        self.assertIn(b'"reason":"child-exit"', captured.exception.terminal_bytes)
+        self.assertIn(b'"exit_code":1', captured.exception.terminal_bytes)
+        self.assertIn(
+            hashlib.sha256(b"fixture import failure").hexdigest().encode(),
+            captured.exception.terminal_bytes,
+        )
+
+    def test_collected_successful_unit_is_not_mislabeled_monitor_error(self) -> None:
+        class Collected:
+            pid = 902
+
+            def __init__(self) -> None:
+                self.polls = iter((None, 0, 0))
+
+            def poll(self) -> int | None:
+                return next(self.polls, 0)
+
+            def wait(self, timeout: float | None = None) -> int:
+                return 0
+
+        def popen(_argv: tuple[str, ...], **kwargs: object) -> Collected:
+            kwargs["stdout"].write(b'{"schema":"fixture-receipt"}\n')  # type: ignore[union-attr]
+            return Collected()
+
+        result = run_transfer_child_process(
+            ("/abs/python", "/abs/diagnose.py"),
+            cwd=Path("/abs/repo"),
+            sample=lambda _unit: (_ for _ in ()).throw(RuntimeError("unit collected")),
+            popen_factory=popen,
+            wait_unit_ready=lambda _unit, _poll: None,
+            unit_name_factory=lambda: "sfora-transfer-collected",
+        )
+        self.assertEqual(result, b'{"schema":"fixture-receipt"}\n')
 
     def test_projection_authenticates_and_stages_only_burned_seed_capabilities(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -456,6 +575,14 @@ class TransferControllerTests(unittest.TestCase):
                 expected_hostname="dgx-node",
                 controller_source_commit="a" * 40,
             )
+            validate_controller_environment(
+                arguments,
+                hostname="dgx-node",
+                source_probe=lambda _repository: ("a" * 40, True),
+            )
+            resolved_python = Path(directory) / "resolved-python"
+            python.rename(resolved_python)
+            python.symlink_to(resolved_python)
             validate_controller_environment(
                 arguments,
                 hostname="dgx-node",

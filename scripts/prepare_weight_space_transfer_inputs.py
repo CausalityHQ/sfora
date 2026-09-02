@@ -136,10 +136,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     """Authenticate the control manifest and publish only burned pixels."""
 
     arguments = parse_arguments(argv)
-    if (
-        not arguments.control_manifest.is_file()
-        or arguments.control_manifest.is_symlink()
-    ):
+    if not arguments.control_manifest.is_file() or arguments.control_manifest.is_symlink():
         raise ValueError("control manifest path differs")
     raw = arguments.control_manifest.read_bytes()
     if hashlib.sha256(raw).hexdigest() != arguments.control_manifest_sha256:
@@ -164,4 +161,3 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
