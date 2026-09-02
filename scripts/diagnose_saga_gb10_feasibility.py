@@ -201,6 +201,23 @@ class VerdictMarginalTarget:
 
 
 @dataclass(frozen=True, slots=True)
+class DirectVerdictBackwardEvidence:
+    """Preserved direct scalar-backward evidence for one forced pair."""
+
+    correct_probability: float
+    coefficient: float
+    branch_scores: tuple[float, float]
+    loss: float
+    branch_count: int
+    generated_tokens: int
+    vision_nonzero_gradient_parameters: int
+    language_gradient_parameters: int
+    finite: bool
+    gradient_sha256: str
+    boundary_gradient_sha256: str
+
+
+@dataclass(frozen=True, slots=True)
 class GradientEvidence:
     """Exact trainable/frozen gradient-role evidence."""
 
@@ -208,6 +225,18 @@ class GradientEvidence:
     language_gradient_parameters: int
     finite: bool
     gradient_sha256: str
+
+
+def tensor_sha256(value: torch.Tensor) -> str:
+    """Hash one finite contiguous float32 tensor with framed shape authority."""
+
+    if type(value) is not torch.Tensor or not bool(torch.isfinite(value).all()):
+        raise ValueError("SAGA tensor digest authority differs")
+    tensor = value.detach().to(device="cpu", dtype=torch.float32).contiguous()
+    digest = hashlib.sha256()
+    digest.update(canonical_json_bytes({"shape": list(tensor.shape), "dtype": "float32-le"}))
+    digest.update(tensor.numpy().astype("<f4", copy=False).tobytes(order="C"))
+    return digest.hexdigest()
 
 
 @dataclass(frozen=True, slots=True)
@@ -859,12 +888,13 @@ class QwenSagaAdapter:
                 handle.remove()
             self.clear_graphs()
 
-    def collapsed_verdict_patch_gradient(
+    def _collapsed_verdict_patch_gradient(
         self,
         pair: object,
         *,
         correct_completion_ids: tuple[int, ...],
         incorrect_completion_ids: tuple[int, ...],
+        preserve_parameter_gradients: bool,
     ) -> VerdictMarginalTarget:
         """Capture a two-branch Rao-Blackwellized verdict control field."""
 
@@ -999,7 +1029,54 @@ class QwenSagaAdapter:
         finally:
             for handle in handles:
                 handle.remove()
-            self.clear_graphs()
+            if not preserve_parameter_gradients:
+                self.clear_graphs()
+
+    def collapsed_verdict_patch_gradient(
+        self,
+        pair: object,
+        *,
+        correct_completion_ids: tuple[int, ...],
+        incorrect_completion_ids: tuple[int, ...],
+    ) -> VerdictMarginalTarget:
+        """Capture the complete-cut verdict field and clear all parameter gradients."""
+
+        return self._collapsed_verdict_patch_gradient(
+            pair,
+            correct_completion_ids=correct_completion_ids,
+            incorrect_completion_ids=incorrect_completion_ids,
+            preserve_parameter_gradients=False,
+        )
+
+    def direct_collapsed_verdict_backward(
+        self,
+        pair: object,
+        *,
+        correct_completion_ids: tuple[int, ...],
+        incorrect_completion_ids: tuple[int, ...],
+    ) -> DirectVerdictBackwardEvidence:
+        """Backpropagate the exact two-prefix scalar and preserve trainable gradients."""
+
+        target = self._collapsed_verdict_patch_gradient(
+            pair,
+            correct_completion_ids=correct_completion_ids,
+            incorrect_completion_ids=incorrect_completion_ids,
+            preserve_parameter_gradients=True,
+        )
+        gradient = self.assert_gradient_roles()
+        return DirectVerdictBackwardEvidence(
+            correct_probability=target.correct_probability,
+            coefficient=target.coefficient,
+            branch_scores=target.branch_scores,
+            loss=-target.coefficient * (target.branch_scores[0] - target.branch_scores[1]),
+            branch_count=target.branch_count,
+            generated_tokens=target.generated_tokens,
+            vision_nonzero_gradient_parameters=gradient.vision_nonzero_gradient_parameters,
+            language_gradient_parameters=gradient.language_gradient_parameters,
+            finite=gradient.finite,
+            gradient_sha256=gradient.gradient_sha256,
+            boundary_gradient_sha256=tensor_sha256(target.boundary_predicted_gradient),
+        )
 
     @staticmethod
     def _completion_teacher_map(

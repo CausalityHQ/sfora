@@ -945,6 +945,61 @@ def test_qwen_collapsed_verdict_control_uses_two_forced_branches_without_generat
         )
 
 
+def test_qwen_direct_collapsed_backward_preserves_vision_gradients_and_matches_capture(
+    tmp_path: Path,
+) -> None:
+    authority = _hf_authority(tmp_path)
+    factory = _HfLikeFactory()
+    adapter = _MODULE.load_qwen_adapter(authority, factory=factory)
+    pair = adapter.prepare_pair(authority.fixture)
+    captured = adapter.collapsed_verdict_patch_gradient(
+        pair,
+        correct_completion_ids=(10, 11, 12),
+        incorrect_completion_ids=(20, 21, 22),
+    )
+    assert all(parameter.grad is None for parameter in adapter._vision_parameters)
+
+    direct = adapter.direct_collapsed_verdict_backward(
+        pair,
+        correct_completion_ids=(10, 11, 12),
+        incorrect_completion_ids=(20, 21, 22),
+    )
+
+    assert factory.model.forward_calls == 4
+    assert direct.branch_scores == captured.branch_scores
+    assert direct.correct_probability == captured.correct_probability
+    assert direct.coefficient == captured.coefficient
+    assert direct.branch_count == 2
+    assert direct.generated_tokens == 0
+    assert direct.vision_nonzero_gradient_parameters > 0
+    assert direct.language_gradient_parameters == 0
+    assert direct.finite is True
+    assert direct.boundary_gradient_sha256 == _MODULE.tensor_sha256(
+        captured.boundary_predicted_gradient
+    )
+    assert any(parameter.grad is not None for parameter in adapter._vision_parameters)
+    assert all(parameter.grad is None for parameter in adapter._language_parameters)
+    adapter.clear_graphs()
+
+
+def test_qwen_direct_collapsed_backward_rejects_invalid_branches(tmp_path: Path) -> None:
+    authority = _hf_authority(tmp_path)
+    adapter = _MODULE.load_qwen_adapter(authority, factory=_HfLikeFactory())
+    pair = adapter.prepare_pair(authority.fixture)
+    with pytest.raises(ValueError, match="completion"):
+        adapter.direct_collapsed_verdict_backward(
+            pair,
+            correct_completion_ids=(),
+            incorrect_completion_ids=(20,),
+        )
+    with pytest.raises(ValueError, match="branch"):
+        adapter.direct_collapsed_verdict_backward(
+            pair,
+            correct_completion_ids=(20,),
+            incorrect_completion_ids=(20,),
+        )
+
+
 def test_qwen_scores_all_pilot_completions_without_backward_or_generation(tmp_path: Path) -> None:
     authority = _hf_authority(tmp_path)
     factory = _HfLikeFactory()
