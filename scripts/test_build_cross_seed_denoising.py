@@ -16,11 +16,13 @@ import torch
 
 from scripts.build_cross_seed_denoising import (
     build_candidate_artifacts,
+    main,
     parse_arguments,
     project_builder_peak_bytes,
 )
+from scripts.diagnose_cross_seed_denoising import _load_candidates
 from scripts.prepare_cross_seed_denoising_inputs import prepare_cross_seed_artifacts
-from sfora.cross_seed_denoising import read_tensor_artifact
+from sfora.cross_seed_denoising import SpectralEdgeAmbiguity, read_tensor_artifact
 
 
 def _prepared(root: Path, *, ambiguous: bool = False) -> tuple[Path, bytes]:
@@ -81,6 +83,45 @@ def _reconstructed_towers() -> dict[int, OrderedDict[str, torch.Tensor]]:
 
 
 class CrossSeedBuilderTests(unittest.TestCase):
+    def test_builder_main_uses_registered_exit_code_only_for_spectral_edge(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            prepared = root / "prepared"
+            manifest_path, manifest_raw = _prepared(prepared)
+            arguments = type(
+                "Arguments",
+                (),
+                {
+                    "prepared_manifest": manifest_path,
+                    "prepared_manifest_bytes": len(manifest_raw),
+                    "prepared_manifest_sha256": hashlib.sha256(manifest_raw).hexdigest(),
+                    "prepared_root": prepared,
+                    "output": root / "candidates",
+                },
+            )()
+            with (
+                patch(
+                    "scripts.build_cross_seed_denoising.parse_arguments",
+                    return_value=arguments,
+                ),
+                patch(
+                    "scripts.build_cross_seed_denoising._reconstruct_initial_state",
+                    return_value=OrderedDict(
+                        (
+                            ("projection.weight", torch.tensor([[1.0]])),
+                            ("proxies", torch.tensor([[2.0]])),
+                            ("tower.counter", torch.tensor([7], dtype=torch.int64)),
+                            ("tower.weight", torch.zeros((2, 2), dtype=torch.float64)),
+                        )
+                    ),
+                ),
+                patch(
+                    "scripts.build_cross_seed_denoising.build_candidate_artifacts",
+                    side_effect=SpectralEdgeAmbiguity("fixture edge"),
+                ),
+            ):
+                self.assertEqual(main([]), 3)
+
     def test_builder_rejects_independent_pretrained_tower_drift(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -131,6 +172,7 @@ class CrossSeedBuilderTests(unittest.TestCase):
             self.assertEqual(value["schema"], "sfora-cross-seed-candidate-receipt-v1")
             self.assertIs(value["claim_eligible"], False)
             self.assertIs(value["determinism_replay"], True)
+            self.assertEqual(value["aggregate_retained_energy_ratio"], 1.0)
             self.assertEqual(
                 tuple(row["role"] for row in value["candidates"]),
                 ("tower-soup", "wiener-denoise", "spectral-denoise"),
@@ -143,6 +185,27 @@ class CrossSeedBuilderTests(unittest.TestCase):
                 self.assertEqual(tuple(state), ("tower.counter", "tower.weight"))
                 self.assertEqual(hashlib.sha256(raw).hexdigest(), row["manifest_sha256"])
             self.assertEqual(manifest_path.read_bytes(), manifest_raw)
+
+            mutated = json.loads(receipt)
+            mutated["construction_evidence"]["spectral"][0]["retained_energy"] = True
+            retained = sum(
+                row["retained_energy"]
+                for row in mutated["construction_evidence"]["spectral"]
+            )
+            total = sum(
+                row["total_energy"]
+                for row in mutated["construction_evidence"]["spectral"]
+            )
+            mutated["aggregate_retained_energy_ratio"] = retained / total
+            mutated_raw = (
+                json.dumps(mutated, separators=(",", ":"), sort_keys=True) + "\n"
+            ).encode()
+            with self.assertRaisesRegex(ValueError, "construction evidence"):
+                _load_candidates(
+                    output,
+                    mutated_raw,
+                    hashlib.sha256(manifest_raw).hexdigest(),
+                )
 
     def test_rejects_prepared_manifest_or_tensor_drift_before_output(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -203,8 +266,9 @@ class CrossSeedBuilderTests(unittest.TestCase):
             seed: OrderedDict((name, tensor.clone()) for name, tensor in initial.items())
             for seed in (17, 29, 43)
         }
-        # Seven resident fp32 states plus one largest-tensor float64 SVD workspace.
-        self.assertEqual(project_builder_peak_bytes(initial, endpoints), 7 * 40 + 4 * 48)
+        # Ten resident states (including three reconstructed authorities) plus
+        # one largest-tensor float64 SVD workspace.
+        self.assertEqual(project_builder_peak_bytes(initial, endpoints), 10 * 40 + 4 * 48)
 
     def test_builder_releases_first_resident_states_before_replay(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

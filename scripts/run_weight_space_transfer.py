@@ -624,6 +624,8 @@ def run_transfer_child_process(
     ),
     wait_unit_ready: object = _wait_user_unit_ready,
     sleep: object = time.sleep,
+    stop_decider: object = transfer_stop_reason,
+    runtime_max_sec: int = 5_400,
 ) -> bytes:
     """Run exactly one network-denied child in a named, monitored user unit."""
 
@@ -640,6 +642,9 @@ def run_transfer_child_process(
         or not callable(unit_name_factory)
         or not callable(wait_unit_ready)
         or not callable(sleep)
+        or not callable(stop_decider)
+        or type(runtime_max_sec) is not int
+        or runtime_max_sec <= 0
     ):
         raise ValueError("transfer child process interface differs")
     unit_name = unit_name_factory()
@@ -675,7 +680,7 @@ def run_transfer_child_process(
         "--property=SystemCallFilter=~@network-io",
         "--property=NoNewPrivileges=yes",
         "--property=MemoryMax=118111600640",
-        "--property=RuntimeMaxSec=5400",
+        f"--property=RuntimeMaxSec={runtime_max_sec}",
         *(f"--setenv={name}={value}" for name, value in child_environment.items()),
         "--",
         *argv,
@@ -742,7 +747,9 @@ def run_transfer_child_process(
                 raise TransferChildFailure(
                     _failure_bytes(reason="monitor-error", exit_code=None, stderr=stderr)
                 ) from error
-            reason = transfer_stop_reason(observation)
+            reason = stop_decider(observation)
+            if reason is not None and (type(reason) is not str or not reason):
+                raise ValueError("transfer stop decision differs")
             if reason is not None:
                 _stdout, stderr = stop_child()
                 raise TransferChildFailure(

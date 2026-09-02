@@ -413,6 +413,10 @@ def _candidate(
         raw_mean_nearest_positive_cosine=0.5,
         raw_mean_nearest_negative_cosine=0.5 - (margin - 0.01),
         raw_mean_margin=margin - 0.01,
+        raw_wall_time_ns=11,
+        raw_peak_cuda_bytes=101,
+        raw_peak_rss_bytes=201,
+        raw_determinism_replay=True,
         projected=tuple(
             _projected(seed, correct, margin, digest_byte=digest_byte)
             for seed in (17, 29, 43)
@@ -526,6 +530,10 @@ def test_evaluation_rejects_wrong_order_cardinality_types_and_nonfinite_values()
             raw_mean_nearest_positive_cosine=0.5,
             raw_mean_nearest_negative_cosine=0.3,
             raw_mean_margin=0.2,
+            raw_wall_time_ns=1,
+            raw_peak_cuda_bytes=0,
+            raw_peak_rss_bytes=1,
+            raw_determinism_replay=True,
             projected=(projected[1], projected[0], projected[2]),
             tower_state_sha256="a" * 64,
             construction_evidence_sha256="f" * 64,
@@ -573,6 +581,11 @@ def test_canonical_result_round_trips_and_rejects_stored_mutations() -> None:
     raw = canonical_denoising_result_bytes(scalar, candidates, swaps, decision)
     assert raw.endswith(b"\n") and not raw.endswith(b"\n\n")
     assert read_denoising_result(raw) == decision
+    first = json.loads(raw)["candidates"][0]
+    assert first["raw_wall_time_ns"] == 11
+    assert first["raw_peak_cuda_bytes"] == 101
+    assert first["raw_peak_rss_bytes"] == 201
+    assert first["raw_determinism_replay"] is True
 
     for mutation, message in (
         (lambda item: item.update({"claim_eligible": True}), "claim"),

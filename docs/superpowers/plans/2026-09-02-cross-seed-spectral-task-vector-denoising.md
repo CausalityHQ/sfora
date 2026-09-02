@@ -265,7 +265,8 @@ git commit -m "Add deterministic cross-seed candidate builder"
 unittest.
 
 **Interfaces:** consume sealed candidates/receipt, three trained tower/head
-artifacts, final scalar five-row manifest, and existing burned manifest/root;
+artifacts, the retained scalar campaign envelope containing the final five-row
+manifest, and existing burned manifest/root;
 produce one Task 3 canonical result.
 
 - [ ] **Step 1: Write REDs** for endpoint replay, best scalar selection,

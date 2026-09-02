@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 import unittest
@@ -11,12 +12,18 @@ import torch
 
 from scripts.diagnose_cross_seed_denoising import (
     BandEvaluation,
+    _load_scalar_curves,
     _require_embedding_replay,
     evaluate_cross_seed_denoising,
     parse_arguments,
 )
 from sfora.cross_seed_denoising import read_denoising_result
-from sfora.weight_space_transfer import AlphaEvaluation, SeedInterpolationCurve
+from sfora.weight_space_transfer import (
+    AlphaEvaluation,
+    SeedInterpolationCurve,
+    canonical_interpolation_result_bytes,
+    classify_interpolation_curves,
+)
 
 QUERIES = 1345
 
@@ -111,6 +118,83 @@ def _states() -> tuple[
 
 
 class CrossSeedEvaluationTests(unittest.TestCase):
+    def test_scalar_loader_requires_retained_campaign_envelope(self) -> None:
+        curves = _scalar_curves()
+        child_raw = canonical_interpolation_result_bytes(
+            curves, classify_interpolation_curves(curves)
+        )
+        child = json.loads(child_raw)
+        capabilities = {
+            "claim_eligible": False,
+            "controller_source_commit": "3" * 40,
+            "roles": [
+                {"bytes": 10, "role": "burned-manifest", "sha256": "4" * 64},
+                *(
+                    row
+                    for seed in (17, 29, 43)
+                    for row in (
+                        {
+                            "bytes": 20,
+                            "role": f"seed-{seed:03d}-result",
+                            "sha256": "5" * 64,
+                        },
+                        {
+                            "bytes": 30,
+                            "role": f"seed-{seed:03d}-checkpoint",
+                            "sha256": "6" * 64,
+                        },
+                    )
+                ),
+            ],
+            "schema": "sfora-weight-space-transfer-capabilities-v1",
+            "source_commit": "1" * 40,
+            "source_manifest_sha256": "4" * 64,
+            "source_tree_digest": "2" * 64,
+            "spec_bytes": 100,
+            "spec_sha256": "7" * 64,
+        }
+        capabilities_raw = (
+            json.dumps(capabilities, separators=(",", ":"), sort_keys=True) + "\n"
+        ).encode()
+        campaign = (
+            json.dumps(
+                {
+                    "capabilities": capabilities,
+                    "capabilities_sha256": hashlib.sha256(capabilities_raw).hexdigest(),
+                    "child_result_bytes": len(child_raw),
+                    "child_result_sha256": hashlib.sha256(child_raw).hexdigest(),
+                    "claim_eligible": False,
+                    "result": child,
+                    "schema": "sfora-weight-space-transfer-campaign-result-v1",
+                },
+                separators=(",", ":"),
+                sort_keys=True,
+            )
+            + "\n"
+        ).encode()
+
+        bindings = {
+            "dataset_manifest_sha256": "4" * 64,
+            "source_commit": "1" * 40,
+            "source_tree_digest": "2" * 64,
+            **{f"seed_{seed}_result_sha256": "5" * 64 for seed in (17, 29, 43)},
+            **{f"seed_{seed}_checkpoint_sha256": "6" * 64 for seed in (17, 29, 43)},
+        }
+        self.assertEqual(
+            _load_scalar_curves(
+                campaign,
+                prepared_bindings=bindings,
+                burned_manifest_sha256="4" * 64,
+            ),
+            curves,
+        )
+        with self.assertRaisesRegex(ValueError, "campaign"):
+            _load_scalar_curves(
+                child_raw,
+                prepared_bindings=bindings,
+                burned_manifest_sha256="4" * 64,
+            )
+
     def test_embedding_replay_requires_byte_identical_forward_outputs(self) -> None:
         first = (
             torch.tensor([[0.0, 1.0]]),
@@ -178,7 +262,12 @@ class CrossSeedEvaluationTests(unittest.TestCase):
             read_denoising_result(raw_result).terminal_class,
             "spectral-denoise-benefit",
         )
-        self.assertNotIn("proxy", json.dumps(json.loads(raw_result)["candidates"]))
+        candidate_payload = json.loads(raw_result)["candidates"]
+        self.assertNotIn("proxy", json.dumps(candidate_payload))
+        self.assertEqual(candidate_payload[0]["raw_wall_time_ns"], 1)
+        self.assertEqual(candidate_payload[0]["raw_peak_cuda_bytes"], 0)
+        self.assertEqual(candidate_payload[0]["raw_peak_rss_bytes"], 1)
+        self.assertIs(candidate_payload[0]["raw_determinism_replay"], True)
 
     def test_rejects_trained_endpoint_replay_drift(self) -> None:
         candidates, towers, heads = _states()

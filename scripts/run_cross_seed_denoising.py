@@ -17,6 +17,8 @@ from pathlib import Path
 from typing import Literal
 
 from scripts.run_weight_space_transfer import (
+    TransferChildFailure,
+    TransferProcessObservation,
     TransferProcessTracker,
     run_transfer_child_process,
 )
@@ -341,6 +343,80 @@ def _publish_new(path: Path, raw: bytes) -> None:
         partial.unlink(missing_ok=True)
 
 
+def _failure_terminal(
+    *,
+    phase: Phase,
+    error: TransferChildFailure,
+    phase_receipts: list[dict[str, object]],
+    source_receipt: CrossSeedSourceReceipt,
+) -> bytes:
+    try:
+        child = json.loads(error.terminal_bytes)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError("child failure terminal is not valid JSON") from exc
+    child_keys = {
+        "claim_eligible",
+        "exit_code",
+        "reason",
+        "schema",
+        "status",
+        "stderr_sha256",
+    }
+    if (
+        type(child) is not dict
+        or _canonical(child) != error.terminal_bytes
+        or set(child) != child_keys
+        or child.get("claim_eligible") is not False
+        or child.get("schema") != "sfora-weight-space-transfer-terminal-v1"
+        or child.get("status") != "failed"
+        or type(child.get("reason")) is not str
+        or not child.get("reason")
+        or (
+            child.get("exit_code") is not None
+            and type(child.get("exit_code")) is not int
+        )
+        or type(child.get("stderr_sha256")) is not str
+        or len(child["stderr_sha256"]) != 64
+        or any(character not in "0123456789abcdef" for character in child["stderr_sha256"])
+    ):
+        raise ValueError("child failure terminal differs")
+    reason = child.get("reason")
+    resource_reasons = {
+        "cuda-cap",
+        "memory-cap",
+        "memory-pressure",
+        "progress",
+        "rss-cap",
+        "swap-growth",
+        "timeout",
+        "wall-cap",
+    }
+    if reason in resource_reasons:
+        terminal_class = "resource-failure"
+    elif phase == "build" and reason == "child-exit" and child["exit_code"] == 3:
+        terminal_class = "numerical-failure"
+    else:
+        terminal_class = "authority-failure"
+    return _canonical(
+        {
+            "child_terminal_bytes": len(error.terminal_bytes),
+            "child_terminal_sha256": hashlib.sha256(error.terminal_bytes).hexdigest(),
+            "claim_eligible": False,
+            "failed_phase": phase,
+            "phases": phase_receipts,
+            "schema": "sfora-cross-seed-controller-terminal-v1",
+            "source": {
+                "commit": source_receipt.commit,
+                "file_sha256": list(source_receipt.file_sha256),
+                "hostname": source_receipt.hostname,
+                "tree": source_receipt.tree,
+            },
+            "status": "failed",
+            "terminal_class": terminal_class,
+        }
+    )
+
+
 def _stage_builder_view(prepared_root: Path, scratch_root: Path) -> Path:
     target = scratch_root / "builder-prepared"
     if target.exists() or target.is_symlink():
@@ -403,8 +479,22 @@ def execute_cross_seed_controller(
         raise ValueError("controller scratch root differs")
 
     phase_receipts: list[dict[str, object]] = []
+
+    def run_registered_phase(phase: Phase, argv: tuple[str, ...]) -> bytes:
+        try:
+            return run_phase(phase, argv)
+        except TransferChildFailure as error:
+            terminal = _failure_terminal(
+                phase=phase,
+                error=error,
+                phase_receipts=phase_receipts,
+                source_receipt=source_receipt,
+            )
+            _publish_new(arguments.terminal_output, terminal)
+            raise
+
     prepare_argv = project_phase_argv(arguments, "prepare")
-    prepare_stdout = run_phase("prepare", prepare_argv)
+    prepare_stdout = run_registered_phase("prepare", prepare_argv)
     prepared_identity = _identity(arguments.prepared_output / "manifest.json")
     phase_receipts.append(
         {
@@ -418,7 +508,7 @@ def execute_cross_seed_controller(
         build_argv = project_phase_argv(
             arguments, "build", prepared_identity=prepared_identity
         )
-        build_stdout = run_phase("build", build_argv)
+        build_stdout = run_registered_phase("build", build_argv)
     finally:
         if builder_view.is_dir() and not builder_view.is_symlink():
             shutil.rmtree(builder_view)
@@ -433,7 +523,7 @@ def execute_cross_seed_controller(
         prepared_identity=prepared_identity,
         candidate_identity=candidate_identity,
     )
-    evaluate_stdout = run_phase("evaluate", evaluate_argv)
+    evaluate_stdout = run_registered_phase("evaluate", evaluate_argv)
     result_sha256, result_bytes = _identity(arguments.result_output)
     if evaluate_stdout != arguments.result_output.read_bytes():
         raise ValueError("evaluator stdout/result binding differs")
@@ -476,7 +566,19 @@ def _run_controller_child(
     sample = getattr(tracker, "sample", None)
     if not callable(sample):
         raise ValueError("controller tracker differs")
-    return child_runner(child_argv, cwd=arguments.repository, sample=sample)
+
+    def cross_seed_stop(observation: object) -> str | None:
+        if type(observation) is not TransferProcessObservation:
+            raise TypeError("cross-seed child observation differs")
+        return stop_reason(CrossSeedProcessObservation(**vars(observation)))
+
+    return child_runner(
+        child_argv,
+        cwd=arguments.repository,
+        sample=sample,
+        stop_decider=cross_seed_stop,
+        runtime_max_sec=21_600,
+    )
 
 
 def main(argv: Sequence[str] | None = None) -> int:

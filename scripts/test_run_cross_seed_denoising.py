@@ -13,6 +13,7 @@ from pathlib import Path
 from scripts.run_cross_seed_denoising import (
     CrossSeedProcessObservation,
     CrossSeedSourceReceipt,
+    _failure_terminal,
     _run_controller_child,
     _source_checkout_receipt,
     execute_cross_seed_controller,
@@ -20,6 +21,7 @@ from scripts.run_cross_seed_denoising import (
     project_phase_argv,
     stop_reason,
 )
+from scripts.run_weight_space_transfer import TransferChildFailure
 
 
 def _arguments(root: Path) -> argparse.Namespace:
@@ -109,11 +111,14 @@ class CrossSeedControllerTests(unittest.TestCase):
             def sample(self) -> None:
                 return None
 
+        child_options: list[dict[str, object]] = []
+
         def child(
-            _argv: tuple[str, ...], *, cwd: Path, sample: object
+            _argv: tuple[str, ...], *, cwd: Path, sample: object, **options: object
         ) -> bytes:
             self.assertEqual(cwd, arguments.repository)
             samples.append(sample)
+            child_options.append(options)
             return b"phase"
 
         self.assertEqual(
@@ -136,6 +141,10 @@ class CrossSeedControllerTests(unittest.TestCase):
         )
         self.assertEqual(len(trackers), 2)
         self.assertNotEqual(samples[0], samples[1])
+        for options in child_options:
+            self.assertEqual(options["runtime_max_sec"], 21_600)
+            decider = options["stop_decider"]
+            self.assertTrue(callable(decider))
 
     def test_phase_projection_enforces_capability_blindness(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -246,7 +255,7 @@ class CrossSeedControllerTests(unittest.TestCase):
                 hashlib.sha256(arguments.result_output.read_bytes()).hexdigest(),
             )
 
-    def test_controller_stops_after_first_phase_failure_without_partial_terminal(self) -> None:
+    def test_controller_seals_first_phase_failure_terminal(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             arguments = _arguments(root)
@@ -255,14 +264,74 @@ class CrossSeedControllerTests(unittest.TestCase):
 
             def runner(phase: str, _argv: tuple[str, ...]) -> bytes:
                 phases.append(phase)
-                raise RuntimeError("fixture failure")
+                raise TransferChildFailure(
+                    b'{"claim_eligible":false,"exit_code":1,"reason":"child-exit",'
+                    b'"schema":"sfora-weight-space-transfer-terminal-v1",'
+                    b'"status":"failed","stderr_sha256":"' + b"a" * 64 + b'"}\n'
+                )
 
-            with self.assertRaisesRegex(RuntimeError, "fixture failure"):
+            with self.assertRaises(TransferChildFailure):
                 execute_cross_seed_controller(
                     arguments, run_phase=runner, source_receipt=_source_receipt()
                 )
             self.assertEqual(phases, ["prepare"])
+            terminal = json.loads(arguments.terminal_output.read_bytes())
+            self.assertEqual(terminal["status"], "failed")
+            self.assertEqual(terminal["failed_phase"], "prepare")
+            self.assertEqual(terminal["terminal_class"], "authority-failure")
+            self.assertEqual(
+                terminal["child_terminal_sha256"],
+                hashlib.sha256(runner_terminal := (
+                    b'{"claim_eligible":false,"exit_code":1,"reason":"child-exit",'
+                    b'"schema":"sfora-weight-space-transfer-terminal-v1",'
+                    b'"status":"failed","stderr_sha256":"' + b"a" * 64 + b'"}\n'
+                )).hexdigest(),
+            )
+            self.assertGreater(len(runner_terminal), 0)
+
+    def test_controller_rejects_malformed_child_failure_terminal(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            arguments = _arguments(root)
+            root.joinpath("scratch").mkdir()
+
+            def runner(_phase: str, _argv: tuple[str, ...]) -> bytes:
+                raise TransferChildFailure(b'{"status":"failed"}\n')
+
+            with self.assertRaisesRegex(ValueError, "child failure terminal"):
+                execute_cross_seed_controller(
+                    arguments, run_phase=runner, source_receipt=_source_receipt()
+                )
             self.assertFalse(arguments.terminal_output.exists())
+
+    def test_builder_child_exit_is_numerical_only_for_registered_edge_code(self) -> None:
+        def failure(exit_code: int) -> TransferChildFailure:
+            return TransferChildFailure(
+                (
+                    f'{{"claim_eligible":false,"exit_code":{exit_code},"reason":"child-exit",'
+                    '"schema":"sfora-weight-space-transfer-terminal-v1",'
+                    f'"status":"failed","stderr_sha256":"{"a" * 64}"}}\n'
+                ).encode()
+            )
+
+        authority = json.loads(
+            _failure_terminal(
+                phase="build",
+                error=failure(1),
+                phase_receipts=[],
+                source_receipt=_source_receipt(),
+            )
+        )
+        numerical = json.loads(
+            _failure_terminal(
+                phase="build",
+                error=failure(3),
+                phase_receipts=[],
+                source_receipt=_source_receipt(),
+            )
+        )
+        self.assertEqual(authority["terminal_class"], "authority-failure")
+        self.assertEqual(numerical["terminal_class"], "numerical-failure")
 
     def test_resource_stop_precedence_covers_phase_caps_pressure_swap_progress_and_wall(
         self,

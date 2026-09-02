@@ -205,6 +205,8 @@ class TransferControllerTests(unittest.TestCase):
             wait_unit_ready=lambda unit, _poll: readied.append(unit),
             unit_name_factory=lambda: "sfora-transfer-fixture",
             sleep=lambda _seconds: None,
+            stop_decider=lambda _observation: None,
+            runtime_max_sec=21_600,
         )
         self.assertEqual(result, b'{"schema":"fixture-receipt"}\n')
         self.assertEqual(len(launched), 1)
@@ -217,6 +219,7 @@ class TransferControllerTests(unittest.TestCase):
         self.assertIn("--property=SystemCallFilter=~@network-io", command)
         self.assertNotIn("--property=PrivateNetwork=yes", command)
         self.assertIn("--property=MemoryMax=118111600640", command)
+        self.assertIn("--property=RuntimeMaxSec=21600", command)
         self.assertIn("--working-directory=/abs/repo", command)
         self.assertIn("--setenv=CUBLAS_WORKSPACE_CONFIG=:4096:8", command)
         self.assertIn("--setenv=HF_HUB_OFFLINE=1", command)

@@ -277,6 +277,10 @@ def evaluate_cross_seed_denoising(
                 raw_mean_nearest_positive_cosine=raw.mean_nearest_positive_cosine,
                 raw_mean_nearest_negative_cosine=raw.mean_nearest_negative_cosine,
                 raw_mean_margin=raw.mean_margin,
+                raw_wall_time_ns=raw.wall_time_ns,
+                raw_peak_cuda_bytes=raw.peak_cuda_bytes,
+                raw_peak_rss_bytes=raw.peak_rss_bytes,
+                raw_determinism_replay=raw.determinism_replay,
                 projected=tuple(projected_rows),
                 tower_state_sha256=cast(dict[str, str], candidate_state_sha256)[role],
                 construction_evidence_sha256=construction_evidence_sha256,
@@ -354,13 +358,112 @@ def _read_bound(path: Path, sha256: str, byte_count: int, *, role: str) -> bytes
     return raw
 
 
-def _load_scalar_curves(raw: bytes) -> tuple[SeedInterpolationCurve, ...]:
+def _load_scalar_curves(
+    raw: bytes,
+    *,
+    prepared_bindings: object,
+    burned_manifest_sha256: str,
+) -> tuple[SeedInterpolationCurve, ...]:
     try:
         value = json.loads(raw)
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise ValueError("scalar result is not valid JSON") from exc
     if type(value) is not dict or _canonical(value) != raw:
         raise ValueError("scalar result is not canonical")
+    campaign_keys = {
+        "capabilities",
+        "capabilities_sha256",
+        "child_result_bytes",
+        "child_result_sha256",
+        "claim_eligible",
+        "result",
+        "schema",
+    }
+    if (
+        set(value) != campaign_keys
+        or value["schema"] != "sfora-weight-space-transfer-campaign-result-v1"
+        or value["claim_eligible"] is not False
+        or type(value["capabilities"]) is not dict
+        or type(value["result"]) is not dict
+    ):
+        raise ValueError("scalar campaign result schema differs")
+    capabilities = cast(dict[str, object], value["capabilities"])
+    capability_keys = {
+        "claim_eligible",
+        "controller_source_commit",
+        "roles",
+        "schema",
+        "source_commit",
+        "source_manifest_sha256",
+        "source_tree_digest",
+        "spec_bytes",
+        "spec_sha256",
+    }
+    capability_raw = _canonical(capabilities)
+    expected_roles = ("burned-manifest",) + tuple(
+        role
+        for seed in _SEEDS
+        for role in (f"seed-{seed:03d}-result", f"seed-{seed:03d}-checkpoint")
+    )
+    roles = capabilities.get("roles")
+    if (
+        set(capabilities) != capability_keys
+        or capabilities.get("schema") != "sfora-weight-space-transfer-capabilities-v1"
+        or capabilities.get("claim_eligible") is not False
+        or type(roles) is not list
+        or tuple(
+            row.get("role") if type(row) is dict else None
+            for row in cast(list[object], roles)
+        )
+        != expected_roles
+        or type(value["capabilities_sha256"]) is not str
+        or value["capabilities_sha256"] != hashlib.sha256(capability_raw).hexdigest()
+    ):
+        raise ValueError("scalar campaign capabilities differ")
+    if type(prepared_bindings) is not dict:
+        raise ValueError("scalar campaign prepared bindings differ")
+    bindings = cast(dict[str, object], prepared_bindings)
+    for role in cast(list[object], roles):
+        if (
+            type(role) is not dict
+            or set(role) != {"bytes", "role", "sha256"}
+            or type(role["bytes"]) is not int
+            or role["bytes"] <= 0
+            or type(role["sha256"]) is not str
+            or len(role["sha256"]) != 64
+            or any(character not in "0123456789abcdef" for character in role["sha256"])
+        ):
+            raise ValueError("scalar campaign role authority differs")
+    role_sha256 = {
+        cast(str, cast(dict[str, object], role)["role"]): cast(
+            str, cast(dict[str, object], role)["sha256"]
+        )
+        for role in cast(list[object], roles)
+    }
+    if (
+        capabilities["source_commit"] != bindings.get("source_commit")
+        or capabilities["source_tree_digest"] != bindings.get("source_tree_digest")
+        or capabilities["source_manifest_sha256"]
+        != bindings.get("dataset_manifest_sha256")
+        or role_sha256["burned-manifest"] != burned_manifest_sha256
+        or any(
+            role_sha256[f"seed-{seed:03d}-result"]
+            != bindings.get(f"seed_{seed}_result_sha256")
+            or role_sha256[f"seed-{seed:03d}-checkpoint"]
+            != bindings.get(f"seed_{seed}_checkpoint_sha256")
+            for seed in _SEEDS
+        )
+    ):
+        raise ValueError("scalar campaign binding differs")
+    child_raw = _canonical(value["result"])
+    if (
+        type(value["child_result_bytes"]) is not int
+        or value["child_result_bytes"] != len(child_raw)
+        or type(value["child_result_sha256"]) is not str
+        or value["child_result_sha256"] != hashlib.sha256(child_raw).hexdigest()
+    ):
+        raise ValueError("scalar campaign child result differs")
+    value = cast(dict[str, object], value["result"])
     if (
         set(value) != {"claim_eligible", "curves", "decision", "schema"}
         or value["schema"] != "sfora-weight-space-transfer-result-v1"
@@ -421,7 +524,7 @@ def _load_scalar_curves(raw: bytes) -> tuple[SeedInterpolationCurve, ...]:
     if tuple(curve.seed for curve in result) != _SEEDS:
         raise ValueError("scalar curve seed order differs")
     decision = classify_interpolation_curves(result)
-    if canonical_interpolation_result_bytes(result, decision) != raw:
+    if canonical_interpolation_result_bytes(result, decision) != child_raw:
         raise ValueError("scalar result authority differs")
     return result
 
@@ -472,6 +575,7 @@ def _load_candidates(
         "candidates",
         "claim_eligible",
         "construction_evidence",
+        "aggregate_retained_energy_ratio",
         "determinism_replay",
         "prepared_manifest_bytes",
         "prepared_manifest_sha256",
@@ -488,6 +592,35 @@ def _load_candidates(
         or len(value["candidates"]) != 3
     ):
         raise ValueError("candidate receipt authority differs")
+    construction = value["construction_evidence"]
+    if type(construction) is not dict or type(construction.get("spectral")) is not list:
+        raise ValueError("candidate construction evidence differs")
+    spectral = cast(list[object], construction["spectral"])
+    if any(type(row) is not dict for row in spectral):
+        raise ValueError("candidate construction evidence differs")
+    for raw_row in spectral:
+        row = cast(dict[str, object], raw_row)
+        if (
+            type(row.get("retained_energy")) is not float
+            or not math.isfinite(cast(float, row["retained_energy"]))
+            or cast(float, row["retained_energy"]) < 0.0
+            or type(row.get("total_energy")) is not float
+            or not math.isfinite(cast(float, row["total_energy"]))
+            or cast(float, row["total_energy"]) < 0.0
+        ):
+            raise ValueError("candidate construction evidence differs")
+    retained = sum(
+        cast(float, cast(dict[str, object], row)["retained_energy"]) for row in spectral
+    )
+    total = sum(
+        cast(float, cast(dict[str, object], row)["total_energy"]) for row in spectral
+    )
+    expected_ratio = 0.0 if total == 0.0 else retained / total
+    if (
+        type(value["aggregate_retained_energy_ratio"]) is not float
+        or value["aggregate_retained_energy_ratio"] != expected_ratio
+    ):
+        raise ValueError("candidate aggregate retained energy differs")
     states: dict[str, OrderedDict[str, torch.Tensor]] = {}
     digests: dict[str, str] = {}
     expected_namespace = {"receipt.json"}
@@ -663,7 +796,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         arguments.scalar_result_bytes,
         role="scalar result",
     )
-    scalar_curves = _load_scalar_curves(scalar_raw)
+    prepared_value = json.loads(prepared_raw)
+    prepared_bindings = prepared_value.get("bindings")
+    if type(prepared_bindings) is not dict:
+        raise ValueError("prepared evaluation bindings differ")
+    scalar_curves = _load_scalar_curves(
+        scalar_raw,
+        prepared_bindings=prepared_bindings,
+        burned_manifest_sha256=arguments.burned_manifest_sha256,
+    )
     burned = load_burned_inputs(
         manifest_path=arguments.burned_manifest,
         expected_sha256=arguments.burned_manifest_sha256,
@@ -677,10 +818,6 @@ def main(argv: Sequence[str] | None = None) -> int:
         candidate_raw,
         arguments.prepared_manifest_sha256,
     )
-    prepared_value = json.loads(prepared_raw)
-    prepared_bindings = prepared_value.get("bindings")
-    if type(prepared_bindings) is not dict:
-        raise ValueError("prepared evaluation bindings differ")
     try:
         evaluation_batch_size = int(prepared_bindings["evaluation_batch_size"])
         query_block = int(prepared_bindings["query_block"])

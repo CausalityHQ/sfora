@@ -45,6 +45,10 @@ _SQRT2 = 2.0**0.5
 _SQRT3 = 3.0**0.5
 
 
+class SpectralEdgeAmbiguity(ValueError):
+    """A singular value is within the preregistered spectral edge tolerance."""
+
+
 @dataclass(frozen=True)
 class GroupEvidence:
     """Deterministic evidence for one named tensorwise Wiener group."""
@@ -140,6 +144,10 @@ class CandidateEvaluation:
     raw_mean_nearest_positive_cosine: float
     raw_mean_nearest_negative_cosine: float
     raw_mean_margin: float
+    raw_wall_time_ns: int
+    raw_peak_cuda_bytes: int
+    raw_peak_rss_bytes: int
+    raw_determinism_replay: bool
     projected: tuple[ProjectedEvaluation, ...]
     tower_state_sha256: str
     construction_evidence_sha256: str
@@ -164,6 +172,17 @@ class CandidateEvaluation:
         )
         if any(type(value) is not float or not math.isfinite(value) for value in raw_values):
             raise ValueError("raw means must be concrete finite floats")
+        if (
+            type(self.raw_wall_time_ns) is not int
+            or self.raw_wall_time_ns <= 0
+            or type(self.raw_peak_cuda_bytes) is not int
+            or self.raw_peak_cuda_bytes < 0
+            or type(self.raw_peak_rss_bytes) is not int
+            or self.raw_peak_rss_bytes <= 0
+            or type(self.raw_determinism_replay) is not bool
+            or not self.raw_determinism_replay
+        ):
+            raise ValueError("raw resource or determinism evidence differs")
         if (
             type(self.projected) is not tuple
             or tuple(row.seed for row in self.projected) != _SEEDS
@@ -350,7 +369,9 @@ def _spectral_estimate(
         retained = torch.zeros_like(singular_values, dtype=torch.bool)
     else:
         if bool(torch.any(torch.abs(singular_values - edge) <= tolerance)):
-            raise ValueError(f"tensor {name!r} has a singular value at the spectral edge")
+            raise SpectralEdgeAmbiguity(
+                f"tensor {name!r} has a singular value at the spectral edge"
+            )
         retained = singular_values > edge
         # Adjacent values inside the tolerance are one decision cluster. A cluster
         # cannot straddle the edge because that would have triggered the guard above.
@@ -672,6 +693,10 @@ def _candidate_payload(candidate: CandidateEvaluation) -> dict[str, object]:
         "raw_mean_margin": candidate.raw_mean_margin,
         "raw_mean_nearest_negative_cosine": candidate.raw_mean_nearest_negative_cosine,
         "raw_mean_nearest_positive_cosine": candidate.raw_mean_nearest_positive_cosine,
+        "raw_peak_cuda_bytes": candidate.raw_peak_cuda_bytes,
+        "raw_peak_rss_bytes": candidate.raw_peak_rss_bytes,
+        "raw_determinism_replay": candidate.raw_determinism_replay,
+        "raw_wall_time_ns": candidate.raw_wall_time_ns,
         "role": candidate.role,
         "tower_state_sha256": candidate.tower_state_sha256,
     }
@@ -865,6 +890,10 @@ def _parse_candidates(value: object) -> tuple[CandidateEvaluation, ...]:
         "raw_mean_margin",
         "raw_mean_nearest_negative_cosine",
         "raw_mean_nearest_positive_cosine",
+        "raw_peak_cuda_bytes",
+        "raw_peak_rss_bytes",
+        "raw_determinism_replay",
+        "raw_wall_time_ns",
         "role",
         "tower_state_sha256",
     }
@@ -920,6 +949,10 @@ def _parse_candidates(value: object) -> tuple[CandidateEvaluation, ...]:
                 float, candidate["raw_mean_nearest_negative_cosine"]
             ),
             raw_mean_margin=cast(float, candidate["raw_mean_margin"]),
+            raw_wall_time_ns=cast(int, candidate["raw_wall_time_ns"]),
+            raw_peak_cuda_bytes=cast(int, candidate["raw_peak_cuda_bytes"]),
+            raw_peak_rss_bytes=cast(int, candidate["raw_peak_rss_bytes"]),
+            raw_determinism_replay=cast(bool, candidate["raw_determinism_replay"]),
             projected=tuple(projected),
             tower_state_sha256=cast(str, candidate["tower_state_sha256"]),
             construction_evidence_sha256=cast(

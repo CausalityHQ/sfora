@@ -275,7 +275,11 @@ the existing inference kernel and latency exactly.
 
 The evaluation phase first replays every trained endpoint against its
 authenticated result and validates the complete normalized five-row
-scalar-comparator manifest. A scalar `authority-failure` or `resource-failure`
+scalar-comparator manifest inside the retained
+`sfora-weight-space-transfer-campaign-result-v1` envelope. It recomputes the
+embedded child-result and capability digests and cross-binds the source,
+dataset manifest, burned manifest, seed-result, and checkpoint identities to
+the prepared three-seed authority. A scalar `authority-failure` or `resource-failure`
 blocks this run. The comparator is always the best observed common scalar row
 over the complete three-seed grid by `(aggregate correct count, mean margin,
 alpha)`, independent of whether the scalar funding gate passed. No scalar

@@ -24,6 +24,7 @@ from scripts.prepare_cross_seed_denoising_inputs import (
 )
 from sfora.cross_seed_denoising import (
     CandidateStates,
+    SpectralEdgeAmbiguity,
     build_cross_seed_candidates,
     read_tensor_artifact,
     write_tensor_artifact,
@@ -203,7 +204,7 @@ def project_builder_peak_bytes(
     initial: object,
     endpoints: object,
 ) -> int:
-    """Project the registered seven-state plus one-tensor decomposition peak."""
+    """Project ten resident states plus one-tensor decomposition workspace."""
 
     if not isinstance(initial, OrderedDict) or type(endpoints) is not dict:
         raise ValueError("builder projection states differ")
@@ -219,8 +220,9 @@ def project_builder_peak_bytes(
     endpoint_map = cast(dict[object, object], endpoints)
     if set(endpoint_map) != set(_SEEDS):
         raise ValueError("builder projection seeds differ")
-    # W0, three task vectors, and three accumulating candidate states.
-    return 7 * total + 4 * largest_float64
+    # W0, three task vectors, three accumulating candidate states, and the
+    # independently reconstructed initial tower authority for all three seeds.
+    return 10 * total + 4 * largest_float64
 
 
 def _state_equal(
@@ -240,6 +242,12 @@ def _evidence_payload(candidate: CandidateStates) -> dict[str, object]:
         "groups": [asdict(row) for row in candidate.groups],
         "spectral": [asdict(row) for row in candidate.spectral],
     }
+
+
+def _aggregate_retained_energy_ratio(candidate: CandidateStates) -> float:
+    retained = sum(row.retained_energy for row in candidate.spectral)
+    total = sum(row.total_energy for row in candidate.spectral)
+    return 0.0 if total == 0.0 else retained / total
 
 
 def build_candidate_artifacts(
@@ -299,6 +307,7 @@ def build_candidate_artifacts(
                 }
             )
         construction_evidence = _evidence_payload(first)
+        aggregate_retained_energy_ratio = _aggregate_retained_energy_ratio(first)
         del first, initial, endpoints
         gc.collect()
 
@@ -325,6 +334,7 @@ def build_candidate_artifacts(
                 raise ValueError("candidate determinism replay differs")
         receipt = {
             "candidates": candidate_rows,
+            "aggregate_retained_energy_ratio": aggregate_retained_energy_ratio,
             "claim_eligible": False,
             "construction_evidence": construction_evidence,
             "determinism_replay": True,
@@ -362,30 +372,33 @@ def main(argv: Sequence[str] | None = None) -> int:
         or hashlib.sha256(raw).hexdigest() != arguments.prepared_manifest_sha256
     ):
         raise ValueError("prepared manifest identity differs")
-    receipt = build_candidate_artifacts(
-        prepared_root=arguments.prepared_root,
-        prepared_manifest_raw=raw,
-        reconstructed_initial_towers={
-            seed: _partition(
-                _reconstruct_initial_state(
-                    seed,
+    try:
+        receipt = build_candidate_artifacts(
+            prepared_root=arguments.prepared_root,
+            prepared_manifest_raw=raw,
+            reconstructed_initial_towers={
+                seed: _partition(
+                    _reconstruct_initial_state(
+                        seed,
+                        cast(
+                            str,
+                            cast(dict[str, object], row)["initial_state_sha256"],
+                        ),
+                    )
+                )[0]
+                for seed, row in zip(
+                    _SEEDS,
                     cast(
-                        str,
-                        cast(dict[str, object], row)["initial_state_sha256"],
+                        list[object],
+                        _read_manifest(arguments.prepared_root, raw)["seeds"],
                     ),
+                    strict=True,
                 )
-            )[0]
-            for seed, row in zip(
-                _SEEDS,
-                cast(
-                    list[object],
-                    _read_manifest(arguments.prepared_root, raw)["seeds"],
-                ),
-                strict=True,
-            )
-        },
-        output=arguments.output,
-    )
+            },
+            output=arguments.output,
+        )
+    except SpectralEdgeAmbiguity:
+        return 3
     sys.stdout.buffer.write(receipt)
     return 0
 
