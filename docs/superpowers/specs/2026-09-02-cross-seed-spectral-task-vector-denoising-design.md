@@ -139,10 +139,12 @@ development band has already influenced the research program.
 The evaluation child inherits the scalar diagnostic's leakage and capability
 boundary verbatim: it receives only the registered burned manifest and
 content-addressed image root, cannot import or load the source dataset, has no
-network capability, runs in one named user unit with `@network-io` denied, is
-observed through that unit's cgroup, and uses file-backed stdout/stderr. The
-controller rejects any dataset path, clean-band artifact, classes 49--81,
-official test capability, storage client, or unregistered file.
+IP-network capability, runs in one named user unit restricted to the `AF_UNIX`
+address family, is observed through that unit's cgroup, and uses file-backed
+stdout/stderr. Local CUDA/PyTorch IPC remains available while `AF_INET` and
+`AF_INET6` fail closed. The controller rejects any dataset path, clean-band
+artifact, classes 49--81, official test capability, storage client, or
+unregistered file.
 
 ## Mathematical authority
 

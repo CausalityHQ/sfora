@@ -582,7 +582,7 @@ def _run_controller_child(
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Run each child in a fresh network-denied named user unit."""
+    """Run each child in a fresh local-socket-only named user unit."""
 
     arguments = parse_controller_arguments(argv)
     source_receipt = _source_checkout_receipt(

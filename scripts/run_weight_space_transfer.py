@@ -627,7 +627,7 @@ def run_transfer_child_process(
     stop_decider: object = transfer_stop_reason,
     runtime_max_sec: int = 5_400,
 ) -> bytes:
-    """Run exactly one network-denied child in a named, monitored user unit."""
+    """Run exactly one internet-denied child in a named, monitored user unit."""
 
     if (
         type(argv) is not tuple
@@ -677,7 +677,7 @@ def run_transfer_child_process(
         "--collect",
         f"--unit={unit_name}",
         f"--working-directory={cwd}",
-        "--property=SystemCallFilter=~@network-io",
+        "--property=RestrictAddressFamilies=AF_UNIX",
         "--property=NoNewPrivileges=yes",
         "--property=MemoryMax=118111600640",
         f"--property=RuntimeMaxSec={runtime_max_sec}",
@@ -891,7 +891,7 @@ class TransferProcessTracker:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Validate authority and execute one private-network diagnostic transaction."""
+    """Validate authority and execute one local-socket-only diagnostic transaction."""
 
     arguments = parse_controller_arguments(argv)
     try:

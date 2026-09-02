@@ -60,9 +60,10 @@ may encounter other bands in memory, it cannot serialize them. The scientific
 diagnostic receives only the burned artifact and cannot load the dataset or use
 network access. The controller stages only the registered burned inputs and
 seed artifacts, passes only those paths, and executes the child in a named user
-unit with the kernel `@network-io` syscall group denied. This is an input and
-network capability boundary, not a claim that the user unit hides every other
-host pathname.
+unit restricted to the `AF_UNIX` address family. Local CUDA/PyTorch IPC sockets
+remain available, while internet address families such as `AF_INET` and
+`AF_INET6` fail closed in the kernel. This is an input and network capability
+boundary, not a claim that the user unit hides every other host pathname.
 
 ## Authorities
 

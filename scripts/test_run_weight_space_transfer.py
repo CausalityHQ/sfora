@@ -173,7 +173,7 @@ class TransferControllerTests(unittest.TestCase):
         ):
             _wait_user_unit_ready("sfora-transfer-fast", lambda: 1)
 
-    def test_child_runs_once_in_network_denied_unit_and_stops_exact_unit(self) -> None:
+    def test_child_runs_once_in_ip_network_denied_unit_and_stops_exact_unit(self) -> None:
         class Process:
             pid = 321
 
@@ -216,7 +216,8 @@ class TransferControllerTests(unittest.TestCase):
             command[:6], ("systemd-run", "--user", "--wait", "--pipe", "--quiet", "--collect")
         )
         self.assertIn("--unit=sfora-transfer-fixture", command)
-        self.assertIn("--property=SystemCallFilter=~@network-io", command)
+        self.assertIn("--property=RestrictAddressFamilies=AF_UNIX", command)
+        self.assertNotIn("--property=SystemCallFilter=~@network-io", command)
         self.assertNotIn("--property=PrivateNetwork=yes", command)
         self.assertIn("--property=MemoryMax=118111600640", command)
         self.assertIn("--property=RuntimeMaxSec=21600", command)

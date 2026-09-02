@@ -320,9 +320,11 @@ reuse named user units, network denial, cgroup monitoring, and file logs from
 Run: `.venv/bin/python -m unittest scripts.test_run_cross_seed_denoising`
 
 - [ ] **Step 3: Implement phase projection.** Create a fresh explicit scratch
-  namespace per phase, capture logs to files, deny `@network-io`, monitor the
-  child unit cgroup, and remove only registered paths after exit. Seal candidate
-  digests before admitting burned/scalar capabilities. Never auto-restart.
+  namespace per phase, capture logs to files, restrict sockets to `AF_UNIX` so
+  local CUDA/PyTorch IPC works while IP address families fail closed, monitor
+  the child unit cgroup, and remove only registered paths after exit. Seal
+  candidate digests before admitting burned/scalar capabilities. Never
+  auto-restart.
 
 - [ ] **Step 4: Run focused GREEN, Ruff, and strict mypy.**
 
