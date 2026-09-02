@@ -96,6 +96,7 @@ def _seed_result(
     *,
     checkpoint_sha256: str = "5" * 64,
     checkpoint_bytes: int = 1234,
+    initial_state_sha256: str | None = None,
 ) -> tuple[bytes, ControlRunAuthority]:
     config = SiglipProxyControlConfig()
     run = _run_authority()
@@ -116,7 +117,9 @@ def _seed_result(
             "name": config.model_name,
             "revision": config.model_revision,
             "resolved_revision": config.model_revision,
-            "initial_state_sha256": f"{seed:064x}",
+            "initial_state_sha256": (
+                f"{seed:064x}" if initial_state_sha256 is None else initial_state_sha256
+            ),
         },
         "config": _json_compatible(vars(config)),
         "config_sha256": _config_sha256(config),
@@ -164,7 +167,12 @@ def _seed_result(
     return _canonical_bytes(value), run
 
 
-def _checkpoint(seed: int, run: ControlRunAuthority) -> bytes:
+def _checkpoint(
+    seed: int,
+    run: ControlRunAuthority,
+    *,
+    model_state: OrderedDict[str, torch.Tensor] | None = None,
+) -> bytes:
     config = SiglipProxyControlConfig()
     payload = {
         "schema": "sfora-siglip-proxy-checkpoint-payload-v1",
@@ -180,12 +188,16 @@ def _checkpoint(seed: int, run: ControlRunAuthority) -> bytes:
         "sampler_positions": (0,) * 49,
         "cpu_rng_state": torch.random.get_rng_state(),
         "cuda_rng_states": (),
-        "model_state": OrderedDict(
-            {
-                "tower.weight": torch.tensor([[1.0, 2.0]]),
-                "projection.weight": torch.tensor([[3.0, 4.0]]),
-                "proxies": torch.tensor([[5.0, 6.0]]),
-            }
+        "model_state": (
+            OrderedDict(
+                {
+                    "tower.weight": torch.tensor([[1.0, 2.0]]),
+                    "projection.weight": torch.tensor([[3.0, 4.0]]),
+                    "proxies": torch.tensor([[5.0, 6.0]]),
+                }
+            )
+            if model_state is None
+            else model_state
         ),
         "optimizer_state": {},
     }
@@ -842,6 +854,148 @@ class EndpointAuthorityTests(unittest.TestCase):
         self.assertEqual(result.projected.correct, 1_340)
         self.assertEqual(sum(result.projected_correctness), 1_340)
         self.assertFalse(any(result.projected_correctness[:5]))
+
+    def test_reduced_end_to_end_replays_endpoints_and_serializes_deterministically(self) -> None:
+        class Tower(torch.nn.Module):
+            def __init__(self) -> None:
+                super().__init__()
+                self.weight = torch.nn.Parameter(torch.zeros(1, 1))
+
+        class Model(torch.nn.Module):
+            def __init__(self, tower: torch.nn.Module) -> None:
+                super().__init__()
+                self.tower = tower
+                self.projection = torch.nn.Linear(1, 1, bias=False)
+                self.proxies = torch.nn.Parameter(torch.zeros(1, 1))
+                self.projection.weight.data.zero_()
+
+        initial_model = Model(Tower())
+        initial_digest = model_state_sha256(OrderedDict(initial_model.state_dict()))
+        trained_model = Model(Tower())
+        with torch.no_grad():
+            trained_model.tower.weight.fill_(1.0)
+            trained_model.projection.weight.fill_(1.0)
+            trained_model.proxies.fill_(1.0)
+        trained_state = OrderedDict(
+            (name, tensor.detach().clone()) for name, tensor in trained_model.state_dict().items()
+        )
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest, images, burned_raw = _burned_input_fixture(root)
+            arguments = [
+                "--burned-manifest",
+                str(manifest),
+                "--burned-manifest-sha256",
+                hashlib.sha256(burned_raw).hexdigest(),
+                "--burned-manifest-bytes",
+                str(len(burned_raw)),
+                "--burned-image-root",
+                str(images),
+                "--source-manifest-sha256",
+                "3" * 64,
+                "--source-commit",
+                "1" * 40,
+                "--source-tree-digest",
+                "2" * 64,
+            ]
+            for seed in (17, 29):
+                _receipt, run = _seed_result(seed)
+                checkpoint_raw = _checkpoint(seed, run, model_state=trained_state)
+                checkpoint_sha = hashlib.sha256(checkpoint_raw).hexdigest()
+                receipt, _run = _seed_result(
+                    seed,
+                    checkpoint_sha256=checkpoint_sha,
+                    checkpoint_bytes=len(checkpoint_raw),
+                    initial_state_sha256=initial_digest,
+                )
+                result_path = root / f"seed-{seed}.json"
+                checkpoint_path = root / f"seed-{seed:03d}-epoch-060.pt"
+                result_path.write_bytes(receipt)
+                checkpoint_path.write_bytes(checkpoint_raw)
+                arguments.extend(
+                    (
+                        "--seed-result",
+                        str(result_path),
+                        "--seed-result-sha256",
+                        hashlib.sha256(receipt).hexdigest(),
+                        "--seed-result-bytes",
+                        str(len(receipt)),
+                        "--checkpoint",
+                        str(checkpoint_path),
+                        "--checkpoint-sha256",
+                        checkpoint_sha,
+                        "--checkpoint-bytes",
+                        str(len(checkpoint_raw)),
+                    )
+                )
+            arguments.extend(
+                (
+                    "--output",
+                    str(root / "result.json"),
+                    "--execute-weight-space-transfer",
+                )
+            )
+            parsed = parse_arguments(arguments)
+
+            def execute_seed(
+                authority: SeedEndpointAuthority,
+                checkpoint: LoadedTransferCheckpoint,
+                burned: LoadedBurnedInputs,
+            ) -> SeedCurveExecution:
+                self.assertEqual(len(burned.rows), 1_345)
+
+                def evaluate(model: torch.nn.Module) -> ModelBandEvaluation:
+                    tower = float(model.tower.weight.item())
+                    projection = float(model.projection.weight.item())
+                    if projection == 0.0:
+                        correct, margin = 1_242, 0.1
+                    else:
+                        correct = {
+                            0.0: 1_250,
+                            0.25: 1_258,
+                            0.5: 1_262,
+                            0.75: 1_264,
+                            1.0: 1_258,
+                        }[tower]
+                        margin = 0.12 if tower == 0.75 else 0.1
+                    metric = EndpointMetrics(
+                        correct=correct,
+                        queries=1_345,
+                        recall_at_1=correct / 1_345,
+                        mean_nearest_positive_cosine=0.9,
+                        mean_nearest_negative_cosine=0.8,
+                        mean_margin=margin,
+                    )
+                    return ModelBandEvaluation(
+                        raw=metric,
+                        projected=metric,
+                        projected_correctness=(True,) * correct
+                        + (False,) * (1_345 - correct),
+                    )
+
+                return evaluate_transfer_seed_curve(
+                    authority=authority,
+                    initial=reconstruct_initial_model(
+                        seed=authority.seed,
+                        expected_sha256=authority.initial_state_sha256,
+                        device=torch.device("cpu"),
+                        tower_loader=Tower,
+                        model_builder=Model,
+                    ),
+                    checkpoint=checkpoint,
+                    model_factory=lambda: Model(Tower()),
+                    disable_checkpointing=lambda _model: None,
+                    evaluate_model=evaluate,
+                )
+
+            first = run_bound_weight_space_transfer(parsed, execute_seed=execute_seed)
+            second = run_bound_weight_space_transfer(parsed, execute_seed=execute_seed)
+            self.assertEqual(first, second)
+            self.assertEqual(
+                json.loads(first)["decision"]["terminal_class"],
+                "provisional-interior-benefit",
+            )
 
 
 if __name__ == "__main__":
