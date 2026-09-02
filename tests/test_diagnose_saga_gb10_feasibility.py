@@ -447,6 +447,26 @@ def test_source_bound_pooler_sends_attention_kl_gradient_to_patch_tokens() -> No
     assert torch.count_nonzero(patch_tokens.grad).item() > 0
 
 
+def test_pooler_promotes_bfloat16_tokens_to_parameter_dtype_with_gradient() -> None:
+    pooler = _MODULE.SingleQueryPooler(token_dim=16)
+    tokens = torch.linspace(
+        -1.0,
+        1.0,
+        steps=2 * 4 * 16,
+        dtype=torch.bfloat16,
+    ).reshape(2, 4, 16)
+    tokens.requires_grad_(True)
+
+    embeddings, weights = pooler(tokens)
+    embeddings.square().sum().backward()
+
+    assert embeddings.dtype == pooler.query.dtype == torch.float32
+    assert weights.dtype == torch.float32
+    assert tokens.grad is not None
+    assert tokens.grad.dtype == torch.bfloat16
+    assert torch.isfinite(tokens.grad).all()
+
+
 def test_attention_phase_rejects_nonunit_or_nonfinite_teacher() -> None:
     for teacher in (
         torch.tensor([[0.4, 0.3, 0.2, 0.2], [0.1, 0.2, 0.3, 0.4]]),

@@ -295,11 +295,12 @@ class SingleQueryPooler(torch.nn.Module):
     def forward(self, tokens: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         if tokens.ndim != 3 or tokens.shape[-1] != self.query.numel():
             raise ValueError("SAGA pooler token shape differs")
-        logits = torch.einsum("d,bpd->bp", self.query, self.key(tokens)) / math.sqrt(
-            tokens.shape[-1]
+        projected_tokens = tokens.to(dtype=self.query.dtype)
+        logits = torch.einsum("d,bpd->bp", self.query, self.key(projected_tokens)) / math.sqrt(
+            projected_tokens.shape[-1]
         )
         weights = logits.softmax(dim=-1)
-        pooled = torch.einsum("bp,bpd->bd", weights, tokens)
+        pooled = torch.einsum("bp,bpd->bd", weights, projected_tokens)
         return torch_functional.normalize(self.output(pooled), dim=-1), weights
 
 
