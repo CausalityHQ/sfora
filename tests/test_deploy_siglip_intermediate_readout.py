@@ -45,6 +45,8 @@ def test_deployment_has_offline_single_process_pressure_and_cleanup_fences() -> 
     assert "|| true)" in source
     assert 'test ! -e "$output"' in source
     assert 'test ! -e "$staging"' in source
+    assert 'mkdir -p "$authority"\n' in source
+    assert 'mkdir -p "$authority" "$images"' not in source
     assert 'rm -rf -- "$images"' in source
     assert 'rm -rf -- "$images" "$staging/authority"' not in source
     assert "validate_intermediate_readout_result_bytes" in source

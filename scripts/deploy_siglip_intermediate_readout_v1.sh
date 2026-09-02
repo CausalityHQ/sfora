@@ -108,7 +108,7 @@ fi
 test -x "$python"
 test ! -e "$output"
 test ! -e "$staging"
-mkdir -p "$authority" "$images"
+mkdir -p "$authority"
 
 export PYTHONDONTWRITEBYTECODE=1
 export PYTHONPATH="$source_dir/src:$source_dir/scripts"
