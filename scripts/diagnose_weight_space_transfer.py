@@ -23,9 +23,16 @@ from scripts.run_siglip_proxy_control import (
     SiglipProxyControlConfig,
     _config_sha256,
     _run_authority_sha256,
+    embed_control_examples,
     read_control_seed_receipt,
 )
-from sfora.substrate_screen import SUBSTRATE_F0_CLASSES
+from sfora.data import ImageExample
+from sfora.siglip_proxy_control import NearestClassMargins, nearest_class_margins
+from sfora.substrate_screen import (
+    SUBSTRATE_F0_CLASSES,
+    SubstrateScreenEvidence,
+    score_frozen_substrate_evidence,
+)
 from sfora.weight_space_transfer import (
     INTERPOLATION_ALPHAS,
     AlphaEvaluation,
@@ -749,4 +756,85 @@ def evaluate_transfer_seed_curve(
     return SeedCurveExecution(
         endpoint_replay=replay,
         curve=SeedInterpolationCurve(seed=authority.seed, rows=tuple(rows)),
+    )
+
+
+def _evaluation_metrics(
+    evidence: SubstrateScreenEvidence,
+    margins: NearestClassMargins,
+) -> EndpointMetrics:
+    if type(evidence) is not SubstrateScreenEvidence or type(margins) is not NearestClassMargins:
+        raise ValueError("burned evaluator evidence type differs")
+    return EndpointMetrics(
+        correct=evidence.metrics.correct,
+        queries=evidence.metrics.queries,
+        recall_at_1=evidence.metrics.recall_at_1,
+        mean_nearest_positive_cosine=margins.mean_nearest_positive_cosine,
+        mean_nearest_negative_cosine=margins.mean_nearest_negative_cosine,
+        mean_margin=margins.mean_margin,
+    )
+
+
+def evaluate_loaded_burned_model(
+    *,
+    model: torch.nn.Module,
+    burned: LoadedBurnedInputs,
+    processor: object,
+    device: torch.device,
+    batch_size: int,
+    query_block: int,
+    embedder: Callable[..., tuple[torch.Tensor, torch.Tensor, torch.Tensor]] = (
+        embed_control_examples
+    ),
+    scorer: Callable[..., SubstrateScreenEvidence] = score_frozen_substrate_evidence,
+    margin_scorer: Callable[..., NearestClassMargins] = nearest_class_margins,
+) -> ModelBandEvaluation:
+    """Evaluate one model against the authenticated burned-only namespace."""
+
+    if (
+        not isinstance(model, torch.nn.Module)
+        or type(burned) is not LoadedBurnedInputs
+        or not isinstance(device, torch.device)
+        or type(batch_size) is not int
+        or batch_size <= 0
+        or type(query_block) is not int
+        or query_block <= 0
+    ):
+        raise ValueError("burned evaluator interface differs")
+    examples = tuple(
+        ImageExample(example_id=row.example_id, image=row.path, label=row.label)
+        for row in burned.rows
+    )
+    raw, projected, labels = embedder(
+        model=model,
+        examples=examples,
+        processor=processor,
+        device=device,
+        batch_size=batch_size,
+    )
+    raw_evidence = scorer(raw, labels, query_block=query_block)
+    projected_evidence = scorer(projected, labels, query_block=query_block)
+    raw_margins = margin_scorer(raw, labels, query_block=query_block)
+    projected_margins = margin_scorer(projected, labels, query_block=query_block)
+    if (
+        type(raw_evidence) is not SubstrateScreenEvidence
+        or type(projected_evidence) is not SubstrateScreenEvidence
+        or raw_evidence.metrics.queries != len(burned.rows)
+        or projected_evidence.metrics.queries != len(burned.rows)
+    ):
+        raise ValueError("burned retrieval evidence differs")
+    correctness = [True] * len(burned.rows)
+    seen: set[int] = set()
+    for error in projected_evidence.errors:
+        position = error.query_position
+        if type(position) is not int or not 0 <= position < len(correctness) or position in seen:
+            raise ValueError("burned retrieval error identity differs")
+        seen.add(position)
+        correctness[position] = False
+    if sum(correctness) != projected_evidence.metrics.correct:
+        raise ValueError("burned query correctness differs")
+    return ModelBandEvaluation(
+        raw=_evaluation_metrics(raw_evidence, raw_margins),
+        projected=_evaluation_metrics(projected_evidence, projected_margins),
+        projected_correctness=tuple(correctness),
     )

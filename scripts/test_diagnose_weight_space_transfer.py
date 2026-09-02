@@ -17,6 +17,7 @@ from scripts.diagnose_weight_space_transfer import (
     ReconstructedInitialModel,
     SeedCurveExecution,
     SeedEndpointAuthority,
+    evaluate_loaded_burned_model,
     evaluate_transfer_seed_curve,
     load_burned_inputs,
     load_seed_endpoint_authority,
@@ -31,6 +32,12 @@ from scripts.run_siglip_proxy_control import (
     _config_sha256,
     _json_compatible,
     _run_authority_sha256,
+)
+from sfora.siglip_proxy_control import NearestClassMargins
+from sfora.substrate_screen import (
+    SubstrateRetrievalError,
+    SubstrateScreenEvidence,
+    SubstrateScreenMetrics,
 )
 from sfora.weight_space_transfer import model_state_sha256
 
@@ -511,6 +518,72 @@ class EndpointAuthorityTests(unittest.TestCase):
         )
         self.assertEqual(len(disabled), 7)
         self.assertEqual(execution.endpoint_replay.maximum_float_disagreement, 0.0)
+
+    def test_loaded_burned_evaluator_derives_query_correctness_from_errors(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            manifest, images, raw = _burned_input_fixture(Path(directory))
+            burned = load_burned_inputs(
+                manifest_path=manifest,
+                expected_sha256=hashlib.sha256(raw).hexdigest(),
+                expected_bytes=len(raw),
+                expected_source_manifest_sha256="3" * 64,
+                image_root=images,
+            )
+        embeddings = torch.nn.functional.normalize(torch.ones(1_345, 2), dim=1)
+        labels = torch.tensor([82 + index % 16 for index in range(1_345)])
+        score_calls = 0
+
+        def embedder(**_kwargs: object) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+            return embeddings, embeddings, labels
+
+        def scorer(
+            _embeddings: torch.Tensor,
+            _labels: torch.Tensor,
+            *,
+            query_block: int,
+        ) -> SubstrateScreenEvidence:
+            nonlocal score_calls
+            self.assertEqual(query_block, 128)
+            error_count = 10 if score_calls == 0 else 5
+            score_calls += 1
+            errors = tuple(
+                SubstrateRetrievalError(index, index + 1, 82, 83)
+                for index in range(error_count)
+            )
+            return SubstrateScreenEvidence(
+                metrics=SubstrateScreenMetrics(
+                    1_345 - error_count,
+                    1_345,
+                    (1_345 - error_count) / 1_345,
+                ),
+                errors=errors,
+            )
+
+        def margins(
+            _embeddings: torch.Tensor,
+            _labels: torch.Tensor,
+            *,
+            query_block: int,
+        ) -> NearestClassMargins:
+            self.assertEqual(query_block, 128)
+            values = torch.full((1_345,), 0.1)
+            return NearestClassMargins(values + 0.8, values + 0.7, values, 0.9, 0.8, 0.1)
+
+        result = evaluate_loaded_burned_model(
+            model=torch.nn.Linear(1, 1),
+            burned=burned,
+            processor=object(),
+            device=torch.device("cpu"),
+            batch_size=32,
+            query_block=128,
+            embedder=embedder,
+            scorer=scorer,
+            margin_scorer=margins,
+        )
+        self.assertEqual(result.raw.correct, 1_335)
+        self.assertEqual(result.projected.correct, 1_340)
+        self.assertEqual(sum(result.projected_correctness), 1_340)
+        self.assertFalse(any(result.projected_correctness[:5]))
 
 
 if __name__ == "__main__":
