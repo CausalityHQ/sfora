@@ -10,7 +10,7 @@ import os
 import resource
 import struct
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from time import perf_counter_ns
@@ -472,7 +472,7 @@ class QwenSagaAdapter:
             "image_grid_thw",
             "mm_token_type_ids",
         }
-        if type(raw) is not dict or set(raw) != expected:
+        if not isinstance(raw, Mapping) or set(raw) != expected:
             raise ValueError("SAGA processor output authority differs")
         if any(type(value) is not torch.Tensor for value in raw.values()):
             raise ValueError("SAGA processor tensor authority differs")
@@ -509,7 +509,7 @@ class QwenSagaAdapter:
     def prepare_microbatch(self, fixture: FixtureAuthority) -> PreparedMicrobatch:
         images = self._images(fixture, fixture.microbatch_ordinals)
         raw = self._processor.image_processor(images=images, return_tensors="pt")
-        if type(raw) is not dict or set(raw) != {"pixel_values", "image_grid_thw"}:
+        if not isinstance(raw, Mapping) or set(raw) != {"pixel_values", "image_grid_thw"}:
             raise ValueError("SAGA microbatch processor authority differs")
         pixel_values = raw["pixel_values"]
         image_grid_thw = raw["image_grid_thw"]

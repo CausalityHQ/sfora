@@ -4,6 +4,7 @@ import importlib.util
 import json
 import math
 import sys
+from collections import UserDict
 from dataclasses import dataclass, replace
 from pathlib import Path
 from types import SimpleNamespace
@@ -679,28 +680,36 @@ class _HfLikeProcessor:
         "mm_token_type_ids",
     )
 
-    def apply_chat_template(self, _messages: object, **kwargs: object) -> dict[str, torch.Tensor]:
+    def apply_chat_template(
+        self, _messages: object, **kwargs: object
+    ) -> UserDict[str, torch.Tensor]:
         assert kwargs == {
             "tokenize": True,
             "add_generation_prompt": True,
             "return_dict": True,
             "return_tensors": "pt",
         }
-        return {
+        return UserDict(
+            {
             "input_ids": torch.tensor([[1, 99, 99, 2, 99, 99, 3, 4, 5, 6]]),
             "attention_mask": torch.ones(1, 10, dtype=torch.long),
             "mm_token_type_ids": torch.tensor([[0, 1, 1, 0, 1, 1, 0, 0, 0, 0]]),
             "pixel_values": torch.ones(16, 1),
             "image_grid_thw": torch.tensor([[1, 2, 4], [1, 2, 4]]),
-        }
+            }
+        )
 
-    def image_processor(self, *, images: object, return_tensors: str) -> dict[str, torch.Tensor]:
+    def image_processor(
+        self, *, images: object, return_tensors: str
+    ) -> UserDict[str, torch.Tensor]:
         assert len(images) == 64
         assert return_tensors == "pt"
-        return {
-            "pixel_values": torch.ones(64 * 8, 1),
-            "image_grid_thw": torch.tensor([[1, 2, 4]] * 64),
-        }
+        return UserDict(
+            {
+                "pixel_values": torch.ones(64 * 8, 1),
+                "image_grid_thw": torch.tensor([[1, 2, 4]] * 64),
+            }
+        )
 
 
 class _HfLikeVisual(torch.nn.Module):
