@@ -27,6 +27,7 @@ def test_runner_is_source_bound_offline_and_serializes_all_science() -> None:
     scorer = text.index("self-test")
     assert "torch.eye(4, dtype=torch.float32)" in text
     assert "for i in range(4)" in text
+    assert "len(score_descriptor_plane(descriptors, examples, block_size=32)) == 4" in text
     dinov2 = text.index("--cell dinov2-large")
     siglip2 = text.index("--cell siglip2-so400m")
     selecting = text.index("--cell siglip-so400m")
