@@ -62,6 +62,7 @@ def test_deployment_refuses_overlap_and_has_pressure_cleanup_fences() -> None:
     assert "timeout --foreground --signal=TERM --kill-after=30s 14400s" in source
     assert 'kill -TERM -- "-$child"' in source
     assert 'ps -o rss= -g "$child" 2>/dev/null' in source
+    assert "((rss <= 42949672960)) || stop_reason=rss-cap" in source
     assert "stop_reason=psi" in source
     assert "stop_reason=swap-delta" in source
     assert 'test ! -e "$output"' in source

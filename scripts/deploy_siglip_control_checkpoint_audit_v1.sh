@@ -166,7 +166,9 @@ while kill -0 "$child" 2>/dev/null; do
   test -n "$rss" || rss=0
   psi=$(awk '/^full /{sub("avg10=","",$2);print $2}' /proc/pressure/memory)
   swap=$(awk '/SwapTotal/{t=$2}/SwapFree/{f=$2}END{print t-f}' /proc/meminfo)
-  ((rss <= 25769803776)) || stop_reason=rss-cap
+  # The authenticated GB10 PyTorch stack peaks near 31.3 GB while restoring
+  # SigLIP-so400m; retain measured headroom without approaching host capacity.
+  ((rss <= 42949672960)) || stop_reason=rss-cap
   awk -v x="$psi" 'BEGIN{exit !(x>=0.50)}' && stop_reason=psi || true
   ((swap-swap0 <= 262144)) || stop_reason=swap-delta
   if [[ -n $stop_reason ]]; then
