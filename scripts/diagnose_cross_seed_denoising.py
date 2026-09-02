@@ -109,6 +109,8 @@ class BandEvaluation:
     """One exact 1,345-query plane evaluation returned by the model callback."""
 
     correctness: tuple[bool, ...]
+    mean_nearest_positive_cosine: float
+    mean_nearest_negative_cosine: float
     mean_margin: float
     wall_time_ns: int
     peak_cuda_bytes: int
@@ -122,8 +124,13 @@ class BandEvaluation:
             or any(type(value) is not bool for value in self.correctness)
         ):
             raise ValueError("band correctness evidence differs")
-        if type(self.mean_margin) is not float or not math.isfinite(self.mean_margin):
-            raise ValueError("band margin must be a concrete finite float")
+        means = (
+            self.mean_nearest_positive_cosine,
+            self.mean_nearest_negative_cosine,
+            self.mean_margin,
+        )
+        if any(type(value) is not float or not math.isfinite(value) for value in means):
+            raise ValueError("band means must be concrete finite floats")
         if (
             type(self.wall_time_ns) is not int
             or self.wall_time_ns <= 0
@@ -237,8 +244,8 @@ def evaluate_cross_seed_denoising(
                 ProjectedEvaluation(
                     seed=seed,
                     correctness=projected.correctness,
-                    mean_nearest_positive_cosine=0.5,
-                    mean_nearest_negative_cosine=0.5 - projected.mean_margin,
+                    mean_nearest_positive_cosine=projected.mean_nearest_positive_cosine,
+                    mean_nearest_negative_cosine=projected.mean_nearest_negative_cosine,
                     mean_margin=projected.mean_margin,
                     folded_state_sha256=_folded_digest(tower, heads[seed]),
                     wall_time_ns=projected.wall_time_ns,
@@ -251,6 +258,8 @@ def evaluate_cross_seed_denoising(
             CandidateEvaluation(
                 role=role,
                 raw_correctness=raw.correctness,
+                raw_mean_nearest_positive_cosine=raw.mean_nearest_positive_cosine,
+                raw_mean_nearest_negative_cosine=raw.mean_nearest_negative_cosine,
                 raw_mean_margin=raw.mean_margin,
                 projected=tuple(projected_rows),
                 tower_state_sha256=cast(dict[str, str], candidate_state_sha256)[role],
@@ -555,6 +564,8 @@ class _CudaBandEvaluator:
         torch.cuda.synchronize(self.device)
         return BandEvaluation(
             correctness=tuple(correctness),
+            mean_nearest_positive_cosine=margins.mean_nearest_positive_cosine,
+            mean_nearest_negative_cosine=margins.mean_nearest_negative_cosine,
             mean_margin=margins.mean_margin,
             wall_time_ns=time.monotonic_ns() - started,
             peak_cuda_bytes=torch.cuda.max_memory_allocated(self.device),

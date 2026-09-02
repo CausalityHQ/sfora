@@ -136,6 +136,8 @@ class CandidateEvaluation:
 
     role: str
     raw_correctness: tuple[bool, ...]
+    raw_mean_nearest_positive_cosine: float
+    raw_mean_nearest_negative_cosine: float
     raw_mean_margin: float
     projected: tuple[ProjectedEvaluation, ...]
     tower_state_sha256: str
@@ -154,10 +156,13 @@ class CandidateEvaluation:
             or any(type(value) is not bool for value in self.raw_correctness)
         ):
             raise ValueError("raw correctness evidence differs")
-        if type(self.raw_mean_margin) is not float or not torch.isfinite(
-            torch.tensor(self.raw_mean_margin)
-        ):
-            raise ValueError("raw margin must be a concrete finite float")
+        raw_values = (
+            self.raw_mean_nearest_positive_cosine,
+            self.raw_mean_nearest_negative_cosine,
+            self.raw_mean_margin,
+        )
+        if any(type(value) is not float or not math.isfinite(value) for value in raw_values):
+            raise ValueError("raw means must be concrete finite floats")
         if (
             type(self.projected) is not tuple
             or tuple(row.seed for row in self.projected) != _SEEDS
@@ -664,6 +669,8 @@ def _candidate_payload(candidate: CandidateEvaluation) -> dict[str, object]:
         "projected": [_projected_payload(row) for row in candidate.projected],
         "raw_correctness": _correctness_payload(candidate.raw_correctness),
         "raw_mean_margin": candidate.raw_mean_margin,
+        "raw_mean_nearest_negative_cosine": candidate.raw_mean_nearest_negative_cosine,
+        "raw_mean_nearest_positive_cosine": candidate.raw_mean_nearest_positive_cosine,
         "role": candidate.role,
         "tower_state_sha256": candidate.tower_state_sha256,
     }
@@ -855,6 +862,8 @@ def _parse_candidates(value: object) -> tuple[CandidateEvaluation, ...]:
         "projected",
         "raw_correctness",
         "raw_mean_margin",
+        "raw_mean_nearest_negative_cosine",
+        "raw_mean_nearest_positive_cosine",
         "role",
         "tower_state_sha256",
     }
@@ -903,6 +912,12 @@ def _parse_candidates(value: object) -> tuple[CandidateEvaluation, ...]:
         built = CandidateEvaluation(
             role=cast(str, candidate["role"]),
             raw_correctness=_parse_correctness(candidate["raw_correctness"], role="raw"),
+            raw_mean_nearest_positive_cosine=cast(
+                float, candidate["raw_mean_nearest_positive_cosine"]
+            ),
+            raw_mean_nearest_negative_cosine=cast(
+                float, candidate["raw_mean_nearest_negative_cosine"]
+            ),
             raw_mean_margin=cast(float, candidate["raw_mean_margin"]),
             projected=tuple(projected),
             tower_state_sha256=cast(str, candidate["tower_state_sha256"]),

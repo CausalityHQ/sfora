@@ -111,7 +111,17 @@ class CrossSeedEvaluationTests(unittest.TestCase):
         def raw(tower: OrderedDict[str, torch.Tensor]) -> BandEvaluation:
             marker = float(tower["tower.weight"].item())
             raw_calls.append(marker)
-            return BandEvaluation(_bits(1250 + int(marker)), 0.19 + marker / 100, 1, 0, 1, True)
+            margin = 0.19 + marker / 100
+            return BandEvaluation(
+                _bits(1250 + int(marker)),
+                0.5,
+                0.5 - margin,
+                margin,
+                1,
+                0,
+                1,
+                True,
+            )
 
         def projected(
             tower: OrderedDict[str, torch.Tensor], head: OrderedDict[str, torch.Tensor]
@@ -125,7 +135,7 @@ class CrossSeedEvaluationTests(unittest.TestCase):
             else:
                 correct = 1260 if int(tower_marker) == int(head_marker) else 1259
                 margin = 0.20 if correct == 1260 else 0.19
-            return BandEvaluation(_bits(correct), margin, 2, 100, 200, True)
+            return BandEvaluation(_bits(correct), 0.5, 0.5 - margin, margin, 2, 100, 200, True)
 
         raw_result = evaluate_cross_seed_denoising(
             candidate_towers=candidates,
@@ -151,12 +161,12 @@ class CrossSeedEvaluationTests(unittest.TestCase):
 
         def raw(tower: OrderedDict[str, torch.Tensor]) -> BandEvaluation:
             raw_heads_seen.extend(name for name in tower if not name.startswith("tower."))
-            return BandEvaluation(_bits(1260), 0.2, 1, 0, 1, True)
+            return BandEvaluation(_bits(1260), 0.5, 0.3, 0.2, 1, 0, 1, True)
 
         def projected(
             _tower: OrderedDict[str, torch.Tensor], _head: OrderedDict[str, torch.Tensor]
         ) -> BandEvaluation:
-            return BandEvaluation(_bits(1260), 0.2, 1, 0, 1, True)
+            return BandEvaluation(_bits(1260), 0.5, 0.3, 0.2, 1, 0, 1, True)
 
         evaluate_cross_seed_denoising(
             candidate_towers=candidates,
@@ -172,11 +182,11 @@ class CrossSeedEvaluationTests(unittest.TestCase):
 
     def test_rejects_nonfinite_wrong_cardinality_and_nondeterministic_callback(self) -> None:
         with self.assertRaisesRegex(ValueError, "correctness"):
-            BandEvaluation((True,), 0.1, 1, 0, 1, True)
+            BandEvaluation((True,), 0.5, 0.4, 0.1, 1, 0, 1, True)
         with self.assertRaisesRegex(ValueError, "finite"):
-            BandEvaluation(_bits(1), float("nan"), 1, 0, 1, True)
+            BandEvaluation(_bits(1), 0.5, 0.4, float("nan"), 1, 0, 1, True)
         with self.assertRaisesRegex(ValueError, "determinism"):
-            BandEvaluation(_bits(1), 0.1, 1, 0, 1, False)
+            BandEvaluation(_bits(1), 0.5, 0.4, 0.1, 1, 0, 1, False)
 
     def test_cli_refuses_dataset_network_and_unregistered_model_capabilities(self) -> None:
         arguments = [
@@ -237,7 +247,7 @@ class CrossSeedEvaluationTests(unittest.TestCase):
         candidates, towers, heads = _states()
 
         def evaluation(*_args: object) -> BandEvaluation:
-            return BandEvaluation(_bits(1265), 0.23, 1, 0, 1, True)
+            return BandEvaluation(_bits(1265), 0.5, 0.27, 0.23, 1, 0, 1, True)
 
         raw = evaluate_cross_seed_denoising(
             candidate_towers=candidates,

@@ -410,6 +410,8 @@ def _candidate(
     return CandidateEvaluation(
         role=role,
         raw_correctness=_correctness(correct - 5),
+        raw_mean_nearest_positive_cosine=0.5,
+        raw_mean_nearest_negative_cosine=0.5 - (margin - 0.01),
         raw_mean_margin=margin - 0.01,
         projected=tuple(
             _projected(seed, correct, margin, digest_byte=digest_byte)
@@ -521,6 +523,8 @@ def test_evaluation_rejects_wrong_order_cardinality_types_and_nonfinite_values()
         CandidateEvaluation(
             role="tower-soup",
             raw_correctness=_correctness(1250),
+            raw_mean_nearest_positive_cosine=0.5,
+            raw_mean_nearest_negative_cosine=0.3,
             raw_mean_margin=0.2,
             projected=(projected[1], projected[0], projected[2]),
             tower_state_sha256="a" * 64,
