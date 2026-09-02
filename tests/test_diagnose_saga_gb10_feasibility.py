@@ -1009,6 +1009,48 @@ def test_qwen_adapter_exposes_only_registered_optimizer_parameter_roles(tmp_path
     assert all(not parameter.requires_grad for parameter in adapter.language_parameters())
 
 
+def test_qwen_complete_boundary_vjp_matches_direct_scalar_parameter_gradients(
+    tmp_path: Path,
+) -> None:
+    authority = _hf_authority(tmp_path)
+    adapter = _MODULE.load_qwen_adapter(authority, factory=_HfLikeFactory())
+    pair = adapter.prepare_pair(authority.fixture)
+    adapter.direct_collapsed_verdict_backward(
+        pair,
+        correct_completion_ids=(10, 11, 12),
+        incorrect_completion_ids=(20, 21, 22),
+    )
+    direct = tuple(
+        None if parameter.grad is None else parameter.grad.detach().float().clone()
+        for parameter in adapter.vision_parameters()
+    )
+    adapter.clear_graphs()
+    target = adapter.collapsed_verdict_patch_gradient(
+        pair,
+        correct_completion_ids=(10, 11, 12),
+        incorrect_completion_ids=(20, 21, 22),
+    )
+
+    adapter.boundary_verdict_vjp_backward(
+        pair,
+        completion_ids=(10, 11, 12),
+        boundary_names=target.boundary_names,
+        boundary_patch_tokens=target.boundary_patch_tokens,
+        boundary_gradient=target.boundary_predicted_gradient,
+    )
+
+    compared = 0
+    for expected, parameter in zip(direct, adapter.vision_parameters(), strict=True):
+        if expected is None and parameter.grad is None:
+            continue
+        assert expected is not None and parameter.grad is not None
+        torch.testing.assert_close(parameter.grad.float(), expected, rtol=1e-6, atol=1e-6)
+        compared += 1
+    assert compared > 0
+    assert all(parameter.grad is None for parameter in adapter.language_parameters())
+    adapter.clear_graphs()
+
+
 def test_qwen_scores_all_pilot_completions_without_backward_or_generation(tmp_path: Path) -> None:
     authority = _hf_authority(tmp_path)
     factory = _HfLikeFactory()

@@ -3,10 +3,14 @@
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import math
+import os
 import resource
-from collections.abc import Iterable
+import sys
+from collections.abc import Callable, Iterable
+from dataclasses import dataclass
 from pathlib import Path
 from time import perf_counter_ns
 from typing import Protocol
@@ -14,13 +18,29 @@ from typing import Protocol
 import torch
 
 _REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPOSITORY_ROOT))
 
+from scripts.diagnose_saga_gb10_feasibility import (  # noqa: E402
+    LoadedAuthority,
+    TransformersFactory,
+    load_qwen_adapter,
+)
+from scripts.prepare_asgcv_p32_inputs import _authenticated_source_commit  # noqa: E402
+from scripts.run_asgcv_p32 import load_p32_local_authority  # noqa: E402
 from sfora.fvcg_direct import (  # noqa: E402
+    FvcgPhaseAResult,
     FvcgStepAuthority,
     FvcgStepEvidence,
+    canonical_fvcg_phase_a_result_bytes,
     select_stratum_pair,
+    validate_fvcg_phase_a_result_bytes,
 )
 from sfora.pfml import pfml_potential_loss  # noqa: E402
+from sfora.saga_feasibility import (  # noqa: E402
+    load_fixture_authority,
+    load_snapshot_authority,
+)
 
 
 class CombinedStepAdapter(Protocol):
@@ -39,6 +59,24 @@ class CombinedStepAdapter(Protocol):
         correct_completion_ids: tuple[int, ...],
         incorrect_completion_ids: tuple[int, ...],
     ) -> object: ...
+
+
+@dataclass(frozen=True, slots=True)
+class PhaseAContext:
+    """One restored combined-step context with no mutable state shared across runs."""
+
+    adapter: CombinedStepAdapter
+    optimizer: torch.optim.Optimizer
+    proxies: torch.nn.Parameter
+    proxy_labels: torch.Tensor
+    dml_microbatch: object
+    dml_labels: torch.Tensor
+    semantic_pair: object
+    correct_completion_ids: tuple[int, ...]
+    incorrect_completion_ids: tuple[int, ...]
+    direct_vjp_errors: tuple[float, float]
+    memory_psi_full_avg10_ppm: int
+    direct_vjp_reference: tuple[torch.Tensor | None, ...] | None = None
 
 
 def _frame(value: bytes) -> bytes:
@@ -147,6 +185,7 @@ def run_combined_step(
     ordinal: int,
     direct_vjp_errors: tuple[float, float],
     memory_psi_full_avg10_ppm: int,
+    direct_vjp_reference: tuple[torch.Tensor | None, ...] | None = None,
 ) -> FvcgStepEvidence:
     """Accumulate PFML and weighted FVCG, clip once, and take one step."""
 
@@ -214,13 +253,31 @@ def run_combined_step(
     _synchronize()
     semantic_elapsed_ns = max(1, perf_counter_ns() - semantic_started)
     semantic_parts = []
+    semantic_gradients = []
     for parameter, dml_gradient in zip(vision, dml_gradients, strict=True):
         if parameter.grad is None:
             raise ValueError("FVCG semantic gradient is absent")
         semantic_gradient = parameter.grad.detach() - dml_gradient
+        semantic_gradients.append(semantic_gradient)
         semantic_parts.append(semantic_gradient.float().flatten())
         parameter.grad.copy_(dml_gradient + authority.semantic_weight * semantic_gradient)
     semantic_vector = torch.cat(semantic_parts)
+    if direct_vjp_reference is not None:
+        if len(direct_vjp_reference) != len(semantic_gradients):
+            raise ValueError("FVCG direct VJP parameter authority differs")
+        maximum_absolute = 0.0
+        maximum_relative = 0.0
+        for actual, expected in zip(semantic_gradients, direct_vjp_reference, strict=True):
+            if expected is None:
+                if bool(torch.count_nonzero(actual)):
+                    raise ValueError("FVCG direct VJP sparsity differs")
+                continue
+            reference = expected.to(device=actual.device, dtype=actual.dtype)
+            delta = (actual - reference).abs()
+            maximum_absolute = max(maximum_absolute, float(delta.max()))
+            relative = delta / reference.abs().clamp_min(1.0e-12)
+            maximum_relative = max(maximum_relative, float(relative.max()))
+        direct_vjp_errors = (maximum_absolute, maximum_relative)
     semantic_norm = float(torch.linalg.vector_norm(semantic_vector))
     combined_vector = _gradient_vector(vision)
     combined_norm = float(torch.linalg.vector_norm(combined_vector))
@@ -287,3 +344,278 @@ def run_combined_step(
         language_state_sha256=language_state_sha256,
     )
     return evidence.validated(authority)
+
+
+def _run_context(
+    context: PhaseAContext, *, authority: FvcgStepAuthority, ordinal: int
+) -> FvcgStepEvidence:
+    if type(context) is not PhaseAContext:
+        raise ValueError("FVCG Phase A context differs")
+    return run_combined_step(
+        context.adapter,
+        authority=authority,
+        optimizer=context.optimizer,
+        proxies=context.proxies,
+        proxy_labels=context.proxy_labels,
+        dml_microbatch=context.dml_microbatch,
+        dml_labels=context.dml_labels,
+        semantic_pair=context.semantic_pair,
+        correct_completion_ids=context.correct_completion_ids,
+        incorrect_completion_ids=context.incorrect_completion_ids,
+        ordinal=ordinal,
+        direct_vjp_errors=context.direct_vjp_errors,
+        memory_psi_full_avg10_ppm=context.memory_psi_full_avg10_ppm,
+        direct_vjp_reference=context.direct_vjp_reference,
+    )
+
+
+def _write_new_atomic(path: Path, raw: bytes) -> None:
+    partial = path.with_name(f".{path.name}.partial")
+    descriptor = os.open(partial, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    try:
+        with os.fdopen(descriptor, "wb", closefd=False) as stream:
+            stream.write(raw)
+            stream.flush()
+            os.fsync(stream.fileno())
+    finally:
+        os.close(descriptor)
+    os.replace(partial, path)
+
+
+def run_phase_a(
+    *,
+    authority: FvcgStepAuthority,
+    context_factory: Callable[[int], PhaseAContext],
+    output_directory: Path,
+) -> bytes:
+    """Run one warm-up, three restored measured steps, and a restored repeat."""
+
+    authority.validated()
+    if (
+        not callable(context_factory)
+        or not isinstance(output_directory, Path)
+        or output_directory.is_symlink()
+        or not output_directory.is_dir()
+    ):
+        raise ValueError("FVCG Phase A execution authority differs")
+    result_path = output_directory / "result.json"
+    if result_path.exists():
+        return canonical_fvcg_phase_a_result_bytes(
+            validate_fvcg_phase_a_result_bytes(result_path.read_bytes())
+        )
+
+    _run_context(context_factory(0), authority=authority, ordinal=0)
+    contexts = tuple(context_factory(ordinal) for ordinal in range(3))
+    initial_language_states = tuple(
+        parameter_state_sha256(context.adapter.language_parameters()) for context in contexts
+    )
+    if len(set(initial_language_states)) != 1:
+        raise ValueError("FVCG restored language state differs")
+    steps = tuple(
+        _run_context(context, authority=authority, ordinal=ordinal)
+        for ordinal, context in enumerate(contexts)
+    )
+    repeat_context = context_factory(0)
+    if (
+        parameter_state_sha256(repeat_context.adapter.language_parameters())
+        != initial_language_states[0]
+    ):
+        raise ValueError("FVCG repeated language state differs")
+    repeated_step_zero = _run_context(repeat_context, authority=authority, ordinal=0)
+    result = FvcgPhaseAResult.from_steps(
+        authority=authority,
+        steps=steps,
+        repeated_step_zero=repeated_step_zero,
+        initial_language_state_sha256=initial_language_states[0],
+    )
+    raw = canonical_fvcg_phase_a_result_bytes(result)
+    _write_new_atomic(result_path, raw)
+    if validate_fvcg_phase_a_result_bytes(result_path.read_bytes()) != result:
+        raise ValueError("FVCG Phase A persisted result differs")
+    return raw
+
+
+def _reject_duplicate_options(argv: list[str]) -> None:
+    options = [token for token in argv if token.startswith("--")]
+    if len(options) != len(set(options)):
+        raise SystemExit("duplicate FVCG option")
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    """Parse the explicit local-only Phase-A execution boundary."""
+
+    values = list(argv) if argv is not None else None
+    if values is not None:
+        _reject_duplicate_options(values)
+    parser = argparse.ArgumentParser(allow_abbrev=False, description=__doc__)
+    parser.add_argument("--model-root", required=True, type=Path)
+    parser.add_argument("--snapshot-manifest", required=True, type=Path)
+    parser.add_argument("--fixture", required=True, type=Path)
+    parser.add_argument("--p32-authority", required=True, type=Path)
+    parser.add_argument("--train-manifest", required=True, type=Path)
+    parser.add_argument("--output-directory", required=True, type=Path)
+    parser.add_argument("--source-commit", required=True)
+    parser.add_argument("--selection-seed-sha256", required=True)
+    parser.add_argument("--execute-phase-a", required=True, action="store_true")
+    parsed = parser.parse_args(values)
+    for name, length in (("source_commit", 40), ("selection_seed_sha256", 64)):
+        value = getattr(parsed, name)
+        if (
+            type(value) is not str
+            or len(value) != length
+            or any(character not in "0123456789abcdef" for character in value)
+        ):
+            parser.error(f"{name.replace('_', ' ')} must be {length} lowercase hex")
+    if parsed.model_root.is_symlink() or not parsed.model_root.is_dir():
+        parser.error("model root must be an existing regular directory")
+    for name in ("snapshot_manifest", "fixture", "p32_authority", "train_manifest"):
+        path = getattr(parsed, name)
+        if path.is_symlink() or not path.is_file():
+            parser.error(f"{name.replace('_', ' ')} must be an existing regular file")
+    if parsed.output_directory.is_symlink() or not parsed.output_directory.is_dir():
+        parser.error("output directory must be an existing regular directory")
+    return parsed
+
+
+def _executing_source_commit() -> str:
+    return _authenticated_source_commit(_REPOSITORY_ROOT)
+
+
+def _real_context_factory(
+    *,
+    snapshot: object,
+    fixture: object,
+    local: object,
+    authority: FvcgStepAuthority,
+) -> Callable[[int], PhaseAContext]:
+    def make_context(ordinal: int) -> PhaseAContext:
+        adapter = load_qwen_adapter(
+            LoadedAuthority(snapshot=snapshot, fixture=fixture),
+            factory=TransformersFactory(),
+        )
+        selected = select_stratum_pair(
+            tuple(range(8)), seed_sha256=authority.selection_seed_sha256, step=ordinal
+        )
+        row = local.pilot_schedule.pairs[selected]
+        pair = adapter.prepare_image_pair(
+            (local.images[row.left_index], local.images[row.right_index]),
+            local.prompt_utf8,
+            local.attribute_token_span,
+            local.patch_tokens_per_image,
+        )
+        protocol = local.completion_protocol
+        correct_ids, incorrect_ids = (
+            (protocol.same_prefix_ids, protocol.different_prefix_ids)
+            if row.relation_sign == 1
+            else (protocol.different_prefix_ids, protocol.same_prefix_ids)
+        )
+        device = adapter.vision_parameters()[0].device
+        labels = torch.tensor(fixture.pseudo_labels, dtype=torch.long, device=device)
+        cpu_state = torch.random.get_rng_state()
+        try:
+            seed = int.from_bytes(
+                hashlib.sha256(
+                    b"fvcg-proxies-v1\0" + bytes.fromhex(authority.selection_seed_sha256)
+                ).digest()[:8],
+                "little",
+            )
+            torch.random.default_generator.manual_seed(seed)
+            proxy_labels = torch.arange(
+                len(set(fixture.pseudo_labels)), dtype=torch.long
+            ).repeat_interleave(15)
+            proxies = torch.nn.Parameter(
+                torch.randn(
+                    proxy_labels.numel(),
+                    adapter.pooler_token_dim,
+                    dtype=torch.float32,
+                ).to(device)
+            )
+        finally:
+            torch.random.set_rng_state(cpu_state)
+        proxy_labels = proxy_labels.to(device)
+        optimizer = torch.optim.AdamW(
+            [*adapter.vision_parameters(), *adapter.pooler.parameters(), proxies],
+            lr=1.0e-5,
+            weight_decay=1.0e-4,
+        )
+        captured = adapter.collapsed_verdict_patch_gradient(
+            pair,
+            correct_completion_ids=correct_ids,
+            incorrect_completion_ids=incorrect_ids,
+        )
+        adapter.boundary_verdict_vjp_backward(
+            pair,
+            completion_ids=correct_ids,
+            boundary_names=captured.boundary_names,
+            boundary_patch_tokens=captured.boundary_patch_tokens,
+            boundary_gradient=captured.boundary_predicted_gradient,
+        )
+        vjp_reference = tuple(
+            None if parameter.grad is None else parameter.grad.detach().cpu().clone()
+            for parameter in adapter.vision_parameters()
+        )
+        adapter.clear_graphs()
+        return PhaseAContext(
+            adapter=adapter,
+            optimizer=optimizer,
+            proxies=proxies,
+            proxy_labels=proxy_labels,
+            dml_microbatch=adapter.prepare_microbatch(fixture),
+            dml_labels=labels,
+            semantic_pair=pair,
+            correct_completion_ids=correct_ids,
+            incorrect_completion_ids=incorrect_ids,
+            direct_vjp_errors=(0.0, 0.0),
+            memory_psi_full_avg10_ppm=0,
+            direct_vjp_reference=vjp_reference,
+        )
+
+    return make_context
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Authenticate local inputs and run exactly one Phase-A campaign."""
+
+    args = parse_args(argv)
+    if _executing_source_commit() != args.source_commit:
+        raise ValueError("FVCG executing source commit differs")
+    local = load_p32_local_authority(
+        args.p32_authority,
+        args.train_manifest,
+        source_commit=args.source_commit,
+    )
+    snapshot = load_snapshot_authority(root=args.model_root, manifest_path=args.snapshot_manifest)
+    fixture = load_fixture_authority(args.fixture)
+    if (
+        fixture.source_commit != args.source_commit
+        or getattr(snapshot, "model_revision", None) != local.rollout_authority.model_revision
+    ):
+        raise ValueError("FVCG local authority binding differs")
+    authority = FvcgStepAuthority(
+        source_commit=args.source_commit,
+        launch_authority_sha256=local.authority_sha256,
+        model_revision=local.rollout_authority.model_revision,
+        fixture_sha256=hashlib.sha256(args.fixture.read_bytes()).hexdigest(),
+        selection_seed_sha256=args.selection_seed_sha256,
+        semantic_weight=1.0,
+        gradient_clip_norm=10.0,
+        direct_vjp_atol=1.0e-5,
+        direct_vjp_rtol=1.0e-4,
+    ).validated()
+    raw = run_phase_a(
+        authority=authority,
+        context_factory=_real_context_factory(
+            snapshot=snapshot,
+            fixture=fixture,
+            local=local,
+            authority=authority,
+        ),
+        output_directory=args.output_directory,
+    )
+    sys.stdout.buffer.write(raw)
+    sys.stdout.buffer.flush()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

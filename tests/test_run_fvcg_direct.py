@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import sys
+from argparse import Namespace
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -183,3 +184,157 @@ def test_combined_step_rejects_language_gradient_and_nonfinite_field() -> None:
             direct_vjp_errors=(0.0, 0.0),
             memory_psi_full_avg10_ppm=0,
         )
+
+
+def test_phase_a_restores_each_step_and_emits_reopenable_canonical_result(tmp_path: Path) -> None:
+    authority = _authority()
+    factory_calls: list[int] = []
+
+    def context_factory(ordinal: int) -> object:
+        factory_calls.append(ordinal)
+        adapter = _FakeAdapter()
+        microbatch, labels, pair, proxies, proxy_labels = _inputs()
+        optimizer = torch.optim.SGD(
+            [*adapter.vision_parameters(), *adapter.pooler.parameters(), proxies], lr=1.0e-3
+        )
+        return _MODULE.PhaseAContext(
+            adapter=adapter,
+            optimizer=optimizer,
+            proxies=proxies,
+            proxy_labels=proxy_labels,
+            dml_microbatch=microbatch,
+            dml_labels=labels,
+            semantic_pair=pair,
+            correct_completion_ids=(11,),
+            incorrect_completion_ids=(22,),
+            direct_vjp_errors=(0.0, 0.0),
+            memory_psi_full_avg10_ppm=0,
+        )
+
+    raw = _MODULE.run_phase_a(
+        authority=authority,
+        context_factory=context_factory,
+        output_directory=tmp_path,
+    )
+    result = _MODULE.validate_fvcg_phase_a_result_bytes(raw)
+    assert factory_calls == [0, 0, 1, 2, 0]
+    assert len(result.steps) == 3
+    assert result.deterministic_step_zero is True
+    assert (tmp_path / "result.json").read_bytes() == raw
+
+    factory_calls.clear()
+    assert (
+        _MODULE.run_phase_a(
+            authority=authority,
+            context_factory=context_factory,
+            output_directory=tmp_path,
+        )
+        == raw
+    )
+    assert factory_calls == []
+
+
+def _valid_cli_args(tmp_path: Path) -> list[str]:
+    model = tmp_path / "model"
+    model.mkdir(exist_ok=True)
+    output = tmp_path / "output"
+    output.mkdir(exist_ok=True)
+    files = []
+    for name in ("snapshot.json", "fixture.json", "authority.json", "train.json"):
+        path = tmp_path / name
+        path.write_bytes(b"{}\n")
+        files.append(path)
+    return [
+        "--model-root",
+        str(model),
+        "--snapshot-manifest",
+        str(files[0]),
+        "--fixture",
+        str(files[1]),
+        "--p32-authority",
+        str(files[2]),
+        "--train-manifest",
+        str(files[3]),
+        "--output-directory",
+        str(output),
+        "--source-commit",
+        "1" * 40,
+        "--selection-seed-sha256",
+        "5" * 64,
+        "--execute-phase-a",
+    ]
+
+
+def test_cli_accepts_only_explicit_local_phase_a_capabilities(tmp_path: Path) -> None:
+    args = _MODULE.parse_args(_valid_cli_args(tmp_path))
+    assert args.execute_phase_a is True
+    assert args.output_directory == tmp_path / "output"
+    for forbidden in (
+        "--model-uri",
+        "--hub-token",
+        "--aws-profile",
+        "--official-test",
+        "--phase-b",
+        "--generate",
+    ):
+        with pytest.raises(SystemExit):
+            _MODULE.parse_args([*_valid_cli_args(tmp_path), forbidden, "x"])
+    with pytest.raises(SystemExit, match="duplicate"):
+        _MODULE.parse_args(
+            [*_valid_cli_args(tmp_path), "--fixture", str(tmp_path / "fixture.json")]
+        )
+
+
+def test_main_authenticates_then_runs_one_phase_a(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    args = Namespace(
+        model_root=tmp_path / "model",
+        snapshot_manifest=tmp_path / "snapshot.json",
+        fixture=tmp_path / "fixture.json",
+        p32_authority=tmp_path / "authority.json",
+        train_manifest=tmp_path / "train.json",
+        output_directory=tmp_path / "output",
+        source_commit="1" * 40,
+        selection_seed_sha256="5" * 64,
+        execute_phase_a=True,
+    )
+    for path in (
+        args.model_root,
+        args.output_directory,
+    ):
+        path.mkdir()
+    for path in (
+        args.snapshot_manifest,
+        args.fixture,
+        args.p32_authority,
+        args.train_manifest,
+    ):
+        path.write_bytes(b"{}\n")
+    monkeypatch.setattr(_MODULE, "parse_args", lambda _argv=None: args)
+    monkeypatch.setattr(_MODULE, "_executing_source_commit", lambda: args.source_commit)
+    local = SimpleNamespace(
+        authority_sha256="2" * 64,
+        rollout_authority=SimpleNamespace(model_revision="3" * 40),
+    )
+    monkeypatch.setattr(_MODULE, "load_p32_local_authority", lambda *a, **k: local)
+    monkeypatch.setattr(
+        _MODULE,
+        "load_snapshot_authority",
+        lambda **kwargs: SimpleNamespace(model_revision="3" * 40),
+    )
+    monkeypatch.setattr(
+        _MODULE,
+        "load_fixture_authority",
+        lambda _path: SimpleNamespace(source_commit=args.source_commit),
+    )
+    captured: dict[str, object] = {}
+
+    def fake_run(**kwargs: object) -> bytes:
+        captured.update(kwargs)
+        return b'{"result":"fixture"}\n'
+
+    monkeypatch.setattr(_MODULE, "run_phase_a", fake_run)
+    assert _MODULE.main([]) == 0
+    assert captured["output_directory"] == args.output_directory
+    assert captured["authority"].source_commit == args.source_commit

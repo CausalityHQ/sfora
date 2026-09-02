@@ -1088,6 +1088,81 @@ class QwenSagaAdapter:
             boundary_gradient_sha256=tensor_sha256(target.boundary_predicted_gradient),
         )
 
+    def boundary_verdict_vjp_backward(
+        self,
+        pair: object,
+        *,
+        completion_ids: tuple[int, ...],
+        boundary_names: tuple[str, ...],
+        boundary_patch_tokens: torch.Tensor,
+        boundary_gradient: torch.Tensor,
+    ) -> GradientEvidence:
+        """Apply a captured complete-cut VJP through one repeated vision forward."""
+
+        expected_names = ("merger", "deepstack-0", "deepstack-1", "deepstack-2")
+        if (
+            type(pair) is not PreparedPair
+            or type(completion_ids) is not tuple
+            or not completion_ids
+            or any(type(token) is not int or token < 0 for token in completion_ids)
+            or boundary_names != expected_names
+            or type(boundary_patch_tokens) is not torch.Tensor
+            or type(boundary_gradient) is not torch.Tensor
+            or boundary_patch_tokens.shape != boundary_gradient.shape
+            or boundary_patch_tokens.ndim != 4
+            or boundary_patch_tokens.shape[0] != len(expected_names)
+            or not bool(torch.isfinite(boundary_patch_tokens).all())
+            or not bool(torch.isfinite(boundary_gradient).all())
+        ):
+            raise ValueError("SAGA boundary VJP authority differs")
+        visual = getattr(getattr(self._model, "model", None), "visual", None)
+        merger = getattr(visual, "merger", None)
+        deepstack = getattr(visual, "deepstack_merger_list", None)
+        if (
+            not isinstance(merger, torch.nn.Module)
+            or not isinstance(deepstack, torch.nn.ModuleList)
+            or len(deepstack) != 3
+        ):
+            raise ValueError("SAGA boundary VJP modules differ")
+        modules = (merger, *tuple(deepstack))
+        captured: list[torch.Tensor] = []
+
+        def capture(
+            _module: torch.nn.Module, _inputs: tuple[object, ...], output: object
+        ) -> None:
+            if type(output) is not torch.Tensor or output.ndim != 2:
+                raise ValueError("SAGA boundary VJP output differs")
+            captured.append(output)
+
+        handles = tuple(module.register_forward_hook(capture) for module in modules)
+        self.clear_graphs()
+        succeeded = False
+        try:
+            inputs = self._completed_inputs(pair, completion_ids)
+            self._model.forward(**inputs, output_attentions=False, use_cache=False)
+            if len(captured) != 4:
+                raise ValueError("SAGA boundary VJP branch count differs")
+            expected = tuple(
+                boundary_patch_tokens[index].reshape_as(captured[index]) for index in range(4)
+            )
+            if any(
+                not torch.equal(actual.detach().float(), reference.detach().float())
+                for actual, reference in zip(captured, expected, strict=True)
+            ):
+                raise ValueError("SAGA boundary VJP token authority differs")
+            torch.autograd.backward(
+                tuple(captured),
+                tuple(boundary_gradient[index].reshape_as(captured[index]) for index in range(4)),
+            )
+            evidence = self.assert_gradient_roles()
+            succeeded = True
+            return evidence
+        finally:
+            for handle in handles:
+                handle.remove()
+            if not succeeded:
+                self.clear_graphs()
+
     @staticmethod
     def _completion_teacher_map(
         pair: PreparedPair,
