@@ -46,3 +46,44 @@ next gate captures relation-correct forced gradients on the predictor-training
 class band, trains the existing rank-16 patch-gradient predictor, and evaluates
 gradient agreement once on a disjoint held-out training-class band.  Only a positive
 gradient-transfer gate warrants integrating the student into metric learning.
+
+## Forced-gradient distillation outcome
+
+That next gate is now terminal and **negative**.  Source
+`635ac8fe64d623b8ab2469b0a3eff39ce003fd04` captured 128 balanced predictor-training
+pairs and 32 disjoint `e1_optimization` pairs, then trained the frozen rank-16
+student for 20 ordinal-order epochs.  The canonical result is 1,793 bytes with
+SHA-256 `46f131cf5c3dd67ca00ebb5b98e253c3abeabdb1f4c913d288f66a95c4d4d84a`;
+the canonical predictor state SHA-256 is
+`f3328c5eb8687e7f4d4461b79d4b88b4f936a25ed54c3183fcb20aa5620b8d82`.
+
+| Metric | Result | Frozen gate | Outcome |
+|---|---:|---:|---|
+| median dense cosine | -50 ppm | 500,000 ppm | fail |
+| positive-cosine rate | 468,750 ppm | 750,000 ppm | fail |
+| nonzero-prediction rate | 1,000,000 ppm | 1,000,000 ppm | pass |
+
+All 128 train triples and 32 optimization triples reopened successfully; no partial
+files remained, the terminal process cleared, and memory PSI full avg10 was 0.00.
+The earlier all-zero prediction defect is therefore fixed, but the live student is
+directionally uninformative.  Its median training-pair cosine is only
+`8.02e-05`, so this is not a held-out-only generalization failure.
+
+Post-result analysis on the now-burned train/optimization bands localizes the
+failure.  Exact gradients span more than six orders of magnitude in norm
+(`8.43e-06` to `15.24` on the training band), while the frozen objective normalizes
+each example independently.  More importantly, the target fields themselves are
+compressible but their coefficients are not recovered by the current input/model:
+
+- individual rank-16 matrix approximations retain roughly 0.89--0.99 cosine on
+  sampled targets;
+- a rank-16 channel subspace fitted on train-only gradients has held-out median
+  projection cosine 0.542, and rank 64 raises it to 0.665;
+- a scale-stable closed-form patch-to-rank-64 coefficient probe reaches only 0.066
+  median cosine on its training pairs and 0.046 on the burned optimization pairs.
+
+The scientific conclusion is narrow: reject this patch-token-to-dense-gradient
+student, not the forced-verdict teacher signal.  The next method should distill the
+teacher's strongly ranked scalar verdict/margin into the retrieval objective (or a
+small pair scorer), instead of reconstructing a 2,097,152-value gradient field.
+No official-test artifact was opened and none of these diagnostics is claim eligible.
