@@ -124,6 +124,24 @@ def test_memory_psi_reads_full_avg10_as_ppm(tmp_path: Path) -> None:
     assert _MODULE._memory_psi_full_avg10_ppm(pressure) == 5_700
 
 
+def test_direct_vjp_error_uses_field_l2_scale_not_near_zero_element_ratios() -> None:
+    actual = (
+        torch.tensor([0.000003, 4.03125, 1.0], dtype=torch.float32),
+    )
+    reference = (
+        torch.tensor([0.0, 4.0, 1.0], dtype=torch.float32),
+    )
+
+    maximum_absolute, relative_l2 = _MODULE._direct_vjp_errors(
+        actual,
+        reference,
+        absolute_floor=0.05,
+    )
+
+    assert maximum_absolute == pytest.approx(0.03125)
+    assert relative_l2 < 0.01
+
+
 def _inputs() -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     microbatch = torch.arange(32, dtype=torch.float32).reshape(8, 4) / 32
     labels = torch.tensor([0, 0, 1, 1, 2, 2, 3, 3])
