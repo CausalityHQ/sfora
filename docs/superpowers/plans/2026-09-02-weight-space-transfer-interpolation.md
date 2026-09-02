@@ -51,7 +51,7 @@ Reuse the strict epoch-60 checkpoint and local SigLIP runtime authorities. Bind
 seed-result bytes/digest/length and normalize only initial-state and burned
 endpoint evidence. Prove clean values cannot reach child/log/output/error text.
 Mutation-lock the exact order: tower load, CPU/CUDA seed, model construction,
-full fp32 digest, device move. Preserve and restore Python/NumPy/CPU/CUDA RNG.
+device move, full fp32 digest. Preserve and restore Python/NumPy/CPU/CUDA RNG.
 Reject `initial_snapshot_sha256` as model-state authority.
 
 ## Task 5: Burned evaluator and endpoint replay
@@ -101,4 +101,3 @@ run one-alpha endpoint/timing preflight and then one original diagnostic. Do not
 restart after a terminal. Preserve canonical rows/result/SHA, resource and
 cleanup evidence. `interior-benefit` starts a new spectral design;
 `no-interior-benefit` ends funding for this route in the current program.
-

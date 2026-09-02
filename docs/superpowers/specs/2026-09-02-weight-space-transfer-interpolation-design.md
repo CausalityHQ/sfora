@@ -79,10 +79,11 @@ only initial-state and burned endpoint evidence into the child authority.
 Clean-band values never appear in child arguments, output, logs, or exceptions.
 
 Initial reconstruction follows the training order exactly: load the pinned
-tower on CPU; set the seed on CPU and all CUDA generators; construct
+tower; set the seed on CPU and all CUDA generators; construct
 `PooledProxyAnchorModel` (including `nn.Linear.reset_parameters` before the two
-registered `kaiming_normal_` calls); hash the complete fp32 state; then move the
-model to the evaluation device. The digest must equal the authenticated
+registered `kaiming_normal_` calls); move the complete model to the registered
+evaluation device; then hash its fp32 state through CPU-contiguous bytes. The
+digest must equal the authenticated
 `initial_state_sha256`. `initial_snapshot_sha256` is not a model-state digest
 and cannot substitute for it. RNG state is restored after reconstruction.
 
@@ -165,4 +166,3 @@ without restart at 96 GiB combined GPU memory, 110 GiB RSS, registered memory
 pressure, or a progress timeout. A one-alpha preflight must project all three
 seeds below 90 minutes. Scratch is content-addressed and removed after process
 exit; only canonical claim-ineligible result bytes and SHA-256 are retained.
-

@@ -9,7 +9,7 @@ import math
 import random
 import stat
 from collections import OrderedDict
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
@@ -24,6 +24,7 @@ from scripts.run_siglip_proxy_control import (
     _run_authority_sha256,
     read_control_seed_receipt,
 )
+from sfora.weight_space_transfer import model_state_sha256
 
 
 @dataclass(frozen=True)
@@ -62,6 +63,21 @@ class LoadedTransferCheckpoint:
     seed: int
     initial_snapshot_sha256: str
     model_state: Mapping[str, torch.Tensor]
+
+
+@dataclass(frozen=True)
+class ReconstructedInitialModel:
+    """One digest-verified initial model with caller-owned lifetime."""
+
+    model: torch.nn.Module
+    sha256: str
+
+
+@dataclass(frozen=True)
+class EndpointReplayEvidence:
+    """Maximum endpoint float disagreement after exact count replay."""
+
+    maximum_float_disagreement: float
 
 
 def _read_regular(path: Path, *, role: str) -> bytes:
@@ -363,3 +379,100 @@ def load_transfer_checkpoint(
         initial_snapshot_sha256=initial_snapshot,
         model_state=MappingProxyType(copied),
     )
+
+
+def reconstruct_initial_model(
+    *,
+    seed: int,
+    expected_sha256: str,
+    device: torch.device,
+    tower_loader: Callable[[], torch.nn.Module],
+    model_builder: Callable[[torch.nn.Module], torch.nn.Module],
+) -> ReconstructedInitialModel:
+    """Reproduce tower-load, seed, construct, device, and digest ordering."""
+
+    if type(seed) is not int or seed not in (17, 29, 43):
+        raise ValueError("initial reconstruction seed differs")
+    _lower_hex(expected_sha256, role="initial state")
+    if not isinstance(device, torch.device) or not callable(tower_loader) or not callable(
+        model_builder
+    ):
+        raise ValueError("initial reconstruction interface differs")
+
+    python_state = random.getstate()
+    numpy_state = np.random.get_state()
+    cpu_state = torch.random.get_rng_state().clone()
+    cuda_states = tuple(state.clone() for state in torch.cuda.get_rng_state_all())
+    try:
+        tower = tower_loader()
+        if not isinstance(tower, torch.nn.Module):
+            raise TypeError("initial tower loader returned the wrong type")
+        torch.manual_seed(seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(seed)
+        model = model_builder(tower)
+        if not isinstance(model, torch.nn.Module):
+            raise TypeError("initial model builder returned the wrong type")
+        model = model.to(device)
+        digest = model_state_sha256(OrderedDict(model.state_dict()))
+        if digest != expected_sha256:
+            raise ValueError("initial state digest differs")
+    finally:
+        random.setstate(python_state)
+        np.random.set_state(numpy_state)
+        torch.random.set_rng_state(cpu_state)
+        if cuda_states:
+            torch.cuda.set_rng_state_all(list(cuda_states))
+    return ReconstructedInitialModel(model=model, sha256=digest)
+
+
+def validate_endpoint_replay(
+    *,
+    authority: SeedEndpointAuthority,
+    initial_raw: EndpointMetrics,
+    initial_projected: EndpointMetrics,
+    trained_raw: EndpointMetrics,
+    trained_projected: EndpointMetrics,
+) -> EndpointReplayEvidence:
+    """Require current initial/final evaluation to reproduce recorded endpoints."""
+
+    if type(authority) is not SeedEndpointAuthority:
+        raise ValueError("endpoint replay authority differs")
+    pairs = (
+        (initial_raw, authority.initial_raw),
+        (initial_projected, authority.initial_projected),
+        (trained_raw, authority.trained_raw),
+        (trained_projected, authority.trained_projected),
+    )
+    maximum = 0.0
+    for observed, expected in pairs:
+        if type(observed) is not EndpointMetrics:
+            raise ValueError("endpoint replay evidence type differs")
+        if (
+            type(observed.correct) is not int
+            or type(observed.queries) is not int
+            or observed.correct != expected.correct
+            or observed.queries != expected.queries
+            or type(observed.recall_at_1) is not float
+            or observed.recall_at_1 != observed.correct / observed.queries
+            or observed.recall_at_1 != expected.recall_at_1
+        ):
+            raise ValueError("endpoint replay count or recall differs")
+        for name in (
+            "mean_nearest_positive_cosine",
+            "mean_nearest_negative_cosine",
+            "mean_margin",
+        ):
+            left = getattr(observed, name)
+            right = getattr(expected, name)
+            if (
+                type(left) is not float
+                or type(right) is not float
+                or not math.isfinite(left)
+                or not math.isfinite(right)
+            ):
+                raise ValueError("endpoint replay float evidence differs")
+            maximum = max(maximum, abs(left - right))
+    if maximum > 2.0e-5:
+        raise ValueError("endpoint replay float disagreement exceeds authority")
+    return EndpointReplayEvidence(maximum_float_disagreement=maximum)

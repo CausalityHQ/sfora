@@ -8,10 +8,14 @@ from pathlib import Path
 import torch
 
 from scripts.diagnose_weight_space_transfer import (
+    EndpointReplayEvidence,
     LoadedTransferCheckpoint,
+    ReconstructedInitialModel,
     SeedEndpointAuthority,
     load_seed_endpoint_authority,
     load_transfer_checkpoint,
+    reconstruct_initial_model,
+    validate_endpoint_replay,
 )
 from scripts.run_siglip_proxy_control import (
     ControlRunAuthority,
@@ -21,6 +25,7 @@ from scripts.run_siglip_proxy_control import (
     _json_compatible,
     _run_authority_sha256,
 )
+from sfora.weight_space_transfer import model_state_sha256
 
 
 def _band(correct: int, queries: int) -> dict[str, float | int]:
@@ -236,6 +241,117 @@ class EndpointAuthorityTests(unittest.TestCase):
             ("tower.weight", "projection.weight", "proxies"),
         )
         self.assertTrue(torch.equal(cpu_before, torch.random.get_rng_state()))
+
+    def test_initial_reconstruction_preserves_rng_and_matches_training_order(self) -> None:
+        events: list[str] = []
+
+        class Tower(torch.nn.Module):
+            def __init__(self) -> None:
+                super().__init__()
+                self.weight = torch.nn.Parameter(torch.tensor([[1.0, 2.0]]))
+
+        class Model(torch.nn.Module):
+            def __init__(self, tower: torch.nn.Module) -> None:
+                super().__init__()
+                events.append("construct")
+                self.tower = tower
+                self.projection = torch.nn.Linear(2, 2, bias=False)
+                self.proxies = torch.nn.Parameter(torch.empty(2, 2))
+                torch.nn.init.kaiming_normal_(self.projection.weight, mode="fan_out")
+                torch.nn.init.kaiming_normal_(self.proxies, mode="fan_out")
+
+            def to(self, *args: object, **kwargs: object) -> "Model":
+                events.append("device")
+                return super().to(*args, **kwargs)
+
+        def tower_loader() -> torch.nn.Module:
+            events.append("tower")
+            return Tower()
+
+        def model_builder(tower: torch.nn.Module) -> torch.nn.Module:
+            return Model(tower)
+
+        torch.manual_seed(17)
+        expected_model = Model(Tower()).to(torch.device("cpu"))
+        expected = model_state_sha256(OrderedDict(expected_model.state_dict()))
+        events.clear()
+        torch.manual_seed(999)
+        before = torch.random.get_rng_state().clone()
+        reconstructed = reconstruct_initial_model(
+            seed=17,
+            expected_sha256=expected,
+            device=torch.device("cpu"),
+            tower_loader=tower_loader,
+            model_builder=model_builder,
+        )
+        self.assertIs(type(reconstructed), ReconstructedInitialModel)
+        self.assertEqual(reconstructed.sha256, expected)
+        self.assertEqual(events, ["tower", "construct", "device"])
+        self.assertTrue(torch.equal(before, torch.random.get_rng_state()))
+
+        with self.assertRaisesRegex(ValueError, "initial state"):
+            reconstruct_initial_model(
+                seed=17,
+                expected_sha256="0" * 64,
+                device=torch.device("cpu"),
+                tower_loader=tower_loader,
+                model_builder=model_builder,
+            )
+
+    def test_endpoint_replay_requires_exact_counts_and_bounded_float_drift(self) -> None:
+        raw, _run = _seed_result()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "seed.json"
+            path.write_bytes(raw)
+            authority = load_seed_endpoint_authority(
+                path=path,
+                expected_sha256=hashlib.sha256(raw).hexdigest(),
+                expected_bytes=len(raw),
+                expected_seed=17,
+            )
+        replay = validate_endpoint_replay(
+            authority=authority,
+            initial_raw=authority.initial_raw,
+            initial_projected=authority.initial_projected,
+            trained_raw=authority.trained_raw,
+            trained_projected=authority.trained_projected,
+        )
+        self.assertIs(type(replay), EndpointReplayEvidence)
+        self.assertEqual(replay.maximum_float_disagreement, 0.0)
+
+        close = authority.trained_projected.__class__(
+            **{
+                **authority.trained_projected.__dict__,
+                "mean_margin": authority.trained_projected.mean_margin + 1.0e-5,
+            }
+        )
+        self.assertLessEqual(
+            validate_endpoint_replay(
+                authority=authority,
+                initial_raw=authority.initial_raw,
+                initial_projected=authority.initial_projected,
+                trained_raw=authority.trained_raw,
+                trained_projected=close,
+            ).maximum_float_disagreement,
+            2.0e-5,
+        )
+
+        wrong_count = authority.trained_projected.__class__(
+            **{
+                **authority.trained_projected.__dict__,
+                "correct": authority.trained_projected.correct - 1,
+                "recall_at_1": (authority.trained_projected.correct - 1)
+                / authority.trained_projected.queries,
+            }
+        )
+        with self.assertRaisesRegex(ValueError, "endpoint replay"):
+            validate_endpoint_replay(
+                authority=authority,
+                initial_raw=authority.initial_raw,
+                initial_projected=authority.initial_projected,
+                trained_raw=authority.trained_raw,
+                trained_projected=wrong_count,
+            )
 
 
 if __name__ == "__main__":
