@@ -14,7 +14,7 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from time import perf_counter_ns
-from typing import Protocol
+from typing import Protocol, cast
 
 import numpy as np
 import torch
@@ -409,6 +409,16 @@ class QwenSagaAdapter:
 
     def frozen_parameter_roles(self) -> tuple[str, ...]:
         return ("language",)
+
+    def vision_parameters(self) -> tuple[torch.nn.Parameter, ...]:
+        """Return the exact ordered trainable vision parameter authority."""
+
+        return cast(tuple[torch.nn.Parameter, ...], self._vision_parameters)
+
+    def language_parameters(self) -> tuple[torch.nn.Parameter, ...]:
+        """Return the exact ordered frozen language parameter authority."""
+
+        return cast(tuple[torch.nn.Parameter, ...], self._language_parameters)
 
     def validate_structure(self, authority: LoadedAuthority) -> None:
         if authority.snapshot.architecture != self.architecture:

@@ -1000,6 +1000,15 @@ def test_qwen_direct_collapsed_backward_rejects_invalid_branches(tmp_path: Path)
         )
 
 
+def test_qwen_adapter_exposes_only_registered_optimizer_parameter_roles(tmp_path: Path) -> None:
+    authority = _hf_authority(tmp_path)
+    adapter = _MODULE.load_qwen_adapter(authority, factory=_HfLikeFactory())
+    assert adapter.vision_parameters() == adapter._vision_parameters
+    assert adapter.language_parameters() == adapter._language_parameters
+    assert all(parameter.requires_grad for parameter in adapter.vision_parameters())
+    assert all(not parameter.requires_grad for parameter in adapter.language_parameters())
+
+
 def test_qwen_scores_all_pilot_completions_without_backward_or_generation(tmp_path: Path) -> None:
     authority = _hf_authority(tmp_path)
     factory = _HfLikeFactory()
