@@ -97,7 +97,7 @@ class _Parameter:
 class _FakeModel:
     architecture = "Qwen3VLForConditionalGeneration"
     dtype = "bfloat16"
-    device = "cuda"
+    device = "cuda:0"
     attention_backend = "eager"
     layer_count = 36
 
@@ -115,6 +115,8 @@ class _FakeProcessor:
         "input_ids",
         "mm_token_type_ids",
         "pixel_values",
+        "pixel_values_videos",
+        "video_grid_thw",
     )
 
 
@@ -672,6 +674,8 @@ class _HfLikeProcessor:
         "attention_mask",
         "pixel_values",
         "image_grid_thw",
+        "pixel_values_videos",
+        "video_grid_thw",
         "mm_token_type_ids",
     )
 
@@ -719,7 +723,7 @@ class _HfLikeModel(torch.nn.Module):
     def __init__(self) -> None:
         super().__init__()
         self.forward_calls = 0
-        self.device = "cuda"
+        self.device = "cuda:0"
         self.dtype = "bfloat16"
         visual = _HfLikeVisual()
         language = torch.nn.Linear(1, 1, bias=False)

@@ -1185,7 +1185,7 @@ def load_qwen_adapter(authority: LoadedAuthority, *, factory: ModelFactory) -> Q
     if (
         architecture != snapshot.architecture
         or dtype != snapshot.dtype
-        or device != "cuda"
+        or device != "cuda:0"
         or attention_backend != snapshot.attention_backend
     ):
         raise ValueError("SAGA model authority differs")
@@ -1199,6 +1199,8 @@ def load_qwen_adapter(authority: LoadedAuthority, *, factory: ModelFactory) -> Q
         "input_ids",
         "mm_token_type_ids",
         "pixel_values",
+        "pixel_values_videos",
+        "video_grid_thw",
     )
     if tuple(sorted(processor_keys)) != expected_processor_keys:
         raise ValueError("SAGA model authority differs")
