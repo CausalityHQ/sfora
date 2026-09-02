@@ -752,6 +752,7 @@ class _HfLikeModel(torch.nn.Module):
     def __init__(self) -> None:
         super().__init__()
         self.forward_calls = 0
+        self.deepstack_before_merger = False
         self.device = "cuda:0"
         self.dtype = "bfloat16"
         visual = _HfLikeVisual()
@@ -779,8 +780,12 @@ class _HfLikeModel(torch.nn.Module):
         assert isinstance(input_ids, torch.Tensor)
         sequence = input_ids.shape[1]
         visual_input = torch.ones(4, 1)
-        patch_tokens = self.model.visual(visual_input)
-        deepstack_tokens = self.model.visual.deepstack(visual_input)
+        if self.deepstack_before_merger:
+            deepstack_tokens = self.model.visual.deepstack(visual_input)
+            patch_tokens = self.model.visual(visual_input)
+        else:
+            patch_tokens = self.model.visual(visual_input)
+            deepstack_tokens = self.model.visual.deepstack(visual_input)
         scale = patch_tokens.mean() + sum(value.mean() for value in deepstack_tokens)
         vocabulary = torch.arange(128, dtype=scale.dtype, device=scale.device)
         logits = scale * vocabulary.view(1, 1, -1).expand(1, sequence, -1)
@@ -1048,6 +1053,32 @@ def test_qwen_complete_boundary_vjp_matches_direct_scalar_parameter_gradients(
         compared += 1
     assert compared > 0
     assert all(parameter.grad is None for parameter in adapter.language_parameters())
+    adapter.clear_graphs()
+
+
+def test_qwen_complete_boundary_vjp_keys_outputs_by_module_not_execution_order(
+    tmp_path: Path,
+) -> None:
+    authority = _hf_authority(tmp_path)
+    factory = _HfLikeFactory()
+    factory.model.deepstack_before_merger = True
+    adapter = _MODULE.load_qwen_adapter(authority, factory=factory)
+    pair = adapter.prepare_pair(authority.fixture)
+    target = adapter.collapsed_verdict_patch_gradient(
+        pair,
+        correct_completion_ids=(10, 11, 12),
+        incorrect_completion_ids=(20, 21, 22),
+    )
+
+    evidence = adapter.boundary_verdict_vjp_backward(
+        pair,
+        completion_ids=(10, 11, 12),
+        boundary_names=target.boundary_names,
+        boundary_patch_tokens=target.boundary_patch_tokens,
+        boundary_gradient=target.boundary_predicted_gradient,
+    )
+
+    assert evidence.vision_nonzero_gradient_parameters > 0
     adapter.clear_graphs()
 
 

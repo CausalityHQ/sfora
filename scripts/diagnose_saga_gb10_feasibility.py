@@ -1127,34 +1127,45 @@ class QwenSagaAdapter:
         ):
             raise ValueError("SAGA boundary VJP modules differ")
         modules = (merger, *tuple(deepstack))
-        captured: list[torch.Tensor] = []
+        captured: dict[str, list[torch.Tensor]] = {
+            name: [] for name in expected_names
+        }
 
-        def capture(
-            _module: torch.nn.Module, _inputs: tuple[object, ...], output: object
-        ) -> None:
-            if type(output) is not torch.Tensor or output.ndim != 2:
-                raise ValueError("SAGA boundary VJP output differs")
-            captured.append(output)
+        def capture_for(
+            name: str,
+        ) -> Callable[[torch.nn.Module, tuple[object, ...], object], None]:
+            def capture(
+                _module: torch.nn.Module, _inputs: tuple[object, ...], output: object
+            ) -> None:
+                if type(output) is not torch.Tensor or output.ndim != 2:
+                    raise ValueError("SAGA boundary VJP output differs")
+                captured[name].append(output)
 
-        handles = tuple(module.register_forward_hook(capture) for module in modules)
+            return capture
+
+        handles = tuple(
+            module.register_forward_hook(capture_for(name))
+            for name, module in zip(expected_names, modules, strict=True)
+        )
         self.clear_graphs()
         succeeded = False
         try:
             inputs = self._completed_inputs(pair, completion_ids)
             self._model.forward(**inputs, output_attentions=False, use_cache=False)
-            if len(captured) != 4:
+            if any(len(captured[name]) != 1 for name in expected_names):
                 raise ValueError("SAGA boundary VJP branch count differs")
+            ordered = tuple(captured[name][0] for name in expected_names)
             expected = tuple(
-                boundary_patch_tokens[index].reshape_as(captured[index]) for index in range(4)
+                boundary_patch_tokens[index].reshape_as(ordered[index]) for index in range(4)
             )
             if any(
                 not torch.equal(actual.detach().float(), reference.detach().float())
-                for actual, reference in zip(captured, expected, strict=True)
+                for actual, reference in zip(ordered, expected, strict=True)
             ):
                 raise ValueError("SAGA boundary VJP token authority differs")
             torch.autograd.backward(
-                tuple(captured),
-                tuple(boundary_gradient[index].reshape_as(captured[index]) for index in range(4)),
+                ordered,
+                tuple(boundary_gradient[index].reshape_as(ordered[index]) for index in range(4)),
             )
             evidence = self.assert_gradient_roles()
             succeeded = True
