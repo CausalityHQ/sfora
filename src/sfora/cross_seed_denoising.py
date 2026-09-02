@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 from collections import OrderedDict
 from collections.abc import Mapping
@@ -12,6 +13,8 @@ from pathlib import Path, PurePosixPath
 from typing import cast
 
 import torch
+
+from sfora.weight_space_transfer import AlphaEvaluation, SeedInterpolationCurve
 
 _SCHEMA = "sfora-cross-seed-tensor-artifact-v1"
 _MANIFEST_KEYS = {
@@ -37,6 +40,7 @@ _DTYPES: dict[str, torch.dtype] = {
 }
 _DTYPE_NAMES = {value: key for key, value in _DTYPES.items()}
 _SEEDS = (17, 29, 43)
+_CANDIDATE_ROLES = ("tower-soup", "wiener-denoise", "spectral-denoise")
 _SQRT2 = 2.0**0.5
 _SQRT3 = 3.0**0.5
 
@@ -76,6 +80,185 @@ class CandidateStates:
     spectral_denoise: OrderedDict[str, torch.Tensor]
     groups: tuple[GroupEvidence, ...]
     spectral: tuple[SpectralEvidence, ...]
+
+
+@dataclass(frozen=True)
+class ProjectedEvaluation:
+    """One candidate evaluated with one seed's registered retrieval head."""
+
+    seed: int
+    correctness: tuple[bool, ...]
+    mean_nearest_positive_cosine: float
+    mean_nearest_negative_cosine: float
+    mean_margin: float
+    folded_state_sha256: str
+    wall_time_ns: int
+    peak_cuda_bytes: int
+    peak_rss_bytes: int
+    determinism_replay: bool
+
+    def __post_init__(self) -> None:
+        if type(self.seed) is not int or self.seed not in _SEEDS:
+            raise ValueError("projected seed differs")
+        if (
+            type(self.correctness) is not tuple
+            or len(self.correctness) != 1345
+            or any(type(value) is not bool for value in self.correctness)
+        ):
+            raise ValueError("projected correctness evidence differs")
+        values = (
+            self.mean_nearest_positive_cosine,
+            self.mean_nearest_negative_cosine,
+            self.mean_margin,
+        )
+        if any(
+            type(value) is not float or not torch.isfinite(torch.tensor(value))
+            for value in values
+        ):
+            raise ValueError("projected means must be concrete finite floats")
+        if not _is_hex(self.folded_state_sha256, 64):
+            raise ValueError("projected state digest differs")
+        if (
+            type(self.wall_time_ns) is not int
+            or self.wall_time_ns <= 0
+            or type(self.peak_cuda_bytes) is not int
+            or self.peak_cuda_bytes < 0
+            or type(self.peak_rss_bytes) is not int
+            or self.peak_rss_bytes <= 0
+            or type(self.determinism_replay) is not bool
+        ):
+            raise ValueError("projected resource or determinism evidence differs")
+
+
+@dataclass(frozen=True)
+class CandidateEvaluation:
+    """Raw and three-head evaluation evidence for one fixed candidate tower."""
+
+    role: str
+    raw_correctness: tuple[bool, ...]
+    raw_mean_margin: float
+    projected: tuple[ProjectedEvaluation, ...]
+    tower_state_sha256: str
+    construction_evidence_sha256: str
+
+    def __post_init__(self) -> None:
+        if type(self.role) is not str or self.role not in (
+            "tower-soup",
+            "wiener-denoise",
+            "spectral-denoise",
+        ):
+            raise ValueError("candidate role differs")
+        if (
+            type(self.raw_correctness) is not tuple
+            or len(self.raw_correctness) != 1345
+            or any(type(value) is not bool for value in self.raw_correctness)
+        ):
+            raise ValueError("raw correctness evidence differs")
+        if type(self.raw_mean_margin) is not float or not torch.isfinite(
+            torch.tensor(self.raw_mean_margin)
+        ):
+            raise ValueError("raw margin must be a concrete finite float")
+        if (
+            type(self.projected) is not tuple
+            or tuple(row.seed for row in self.projected) != _SEEDS
+            or any(type(row) is not ProjectedEvaluation for row in self.projected)
+        ):
+            raise ValueError("projected seed order differs")
+        if not _is_hex(self.tower_state_sha256, 64) or not _is_hex(
+            self.construction_evidence_sha256, 64
+        ):
+            raise ValueError("candidate digest differs")
+
+
+@dataclass(frozen=True)
+class HeadSwapEvaluation:
+    """One ordered source-tower/target-head coadaptation control."""
+
+    source_seed: int
+    target_seed: int
+    own_correctness: tuple[bool, ...]
+    swapped_correctness: tuple[bool, ...]
+    own_mean_margin: float
+    swapped_mean_margin: float
+
+    def __post_init__(self) -> None:
+        if (
+            type(self.source_seed) is not int
+            or type(self.target_seed) is not int
+            or self.source_seed not in _SEEDS
+            or self.target_seed not in _SEEDS
+            or self.source_seed == self.target_seed
+        ):
+            raise ValueError("swap seed pair differs")
+        for correctness in (self.own_correctness, self.swapped_correctness):
+            if (
+                type(correctness) is not tuple
+                or len(correctness) != 1345
+                or any(type(value) is not bool for value in correctness)
+            ):
+                raise ValueError("swap correctness evidence differs")
+        if any(
+            type(value) is not float or not torch.isfinite(torch.tensor(value))
+            for value in (self.own_mean_margin, self.swapped_mean_margin)
+        ):
+            raise ValueError("swap margins must be concrete finite floats")
+
+
+@dataclass(frozen=True)
+class PairedDenoisingEvidence:
+    """Per-seed exact paired evidence against the selected scalar comparator."""
+
+    seed: int
+    candidate_only: int
+    scalar_only: int
+    mcnemar_p_value: float
+
+
+@dataclass(frozen=True)
+class DenoisingDecision:
+    """Recomputed terminal classification for the fixed three-candidate experiment."""
+
+    terminal_class: str
+    selected_candidate: str | None
+    best_scalar_alpha: float
+    candidate_passes: tuple[bool, bool, bool]
+    reaches_95_percent: tuple[bool, bool, bool]
+    head_coadaptation_observed: bool
+    paired_evidence: tuple[tuple[PairedDenoisingEvidence, ...], ...]
+
+    def __post_init__(self) -> None:
+        terminals = {
+            "authority-failure",
+            "numerical-failure",
+            "resource-failure",
+            "spectral-denoise-benefit",
+            "wiener-denoise-benefit",
+            "tower-soup-only-benefit",
+            "no-cross-seed-benefit-with-head-coadaptation",
+            "no-cross-seed-benefit",
+        }
+        if self.terminal_class not in terminals:
+            raise ValueError("denoising terminal class differs")
+        if self.selected_candidate not in (None, *_CANDIDATE_ROLES):
+            raise ValueError("selected candidate differs")
+        if type(self.best_scalar_alpha) is not float:
+            raise ValueError("best scalar alpha differs")
+        if (
+            type(self.candidate_passes) is not tuple
+            or len(self.candidate_passes) != 3
+            or any(type(value) is not bool for value in self.candidate_passes)
+            or type(self.reaches_95_percent) is not tuple
+            or len(self.reaches_95_percent) != 3
+            or any(type(value) is not bool for value in self.reaches_95_percent)
+            or type(self.head_coadaptation_observed) is not bool
+        ):
+            raise ValueError("denoising decision evidence differs")
+        if (
+            type(self.paired_evidence) is not tuple
+            or len(self.paired_evidence) != 3
+            or any(tuple(row.seed for row in rows) != _SEEDS for rows in self.paired_evidence)
+        ):
+            raise ValueError("paired evidence seed order differs")
 
 
 def wiener_gain(rho: float) -> float:
@@ -261,6 +444,549 @@ def build_cross_seed_candidates(
         groups=tuple(group_rows),
         spectral=tuple(spectral_rows),
     )
+
+
+def _mcnemar(
+    candidate: tuple[bool, ...],
+    scalar: tuple[bool, ...],
+    seed: int,
+) -> PairedDenoisingEvidence:
+    candidate_only = sum(
+        left and not right for left, right in zip(candidate, scalar, strict=True)
+    )
+    scalar_only = sum(
+        right and not left for left, right in zip(candidate, scalar, strict=True)
+    )
+    disagreements = candidate_only + scalar_only
+    if disagreements == 0:
+        p_value = 1.0
+    else:
+        tail = sum(
+            math.comb(disagreements, value)
+            for value in range(min(candidate_only, scalar_only) + 1)
+        ) / (2**disagreements)
+        p_value = min(1.0, 2.0 * tail)
+    return PairedDenoisingEvidence(
+        seed=seed,
+        candidate_only=candidate_only,
+        scalar_only=scalar_only,
+        mcnemar_p_value=p_value,
+    )
+
+
+def _best_scalar_rows(
+    curves: object,
+) -> tuple[float, tuple[AlphaEvaluation, AlphaEvaluation, AlphaEvaluation]]:
+    if (
+        type(curves) is not tuple
+        or len(curves) != 3
+        or any(type(curve) is not SeedInterpolationCurve for curve in curves)
+        or tuple(curve.seed for curve in curves) != _SEEDS
+    ):
+        raise ValueError("scalar curves differ from the registered seed order")
+    typed = cast(tuple[SeedInterpolationCurve, ...], curves)
+    if any(any(row.queries != 1345 for row in curve.rows) for curve in typed):
+        raise ValueError("scalar query cardinality differs")
+    choices: list[tuple[int, float, float, tuple[AlphaEvaluation, ...]]] = []
+    for index, alpha in enumerate(typed[0].rows):
+        rows = tuple(curve.rows[index] for curve in typed)
+        if any(row.alpha != alpha.alpha for row in rows):
+            raise ValueError("scalar alpha grid differs")
+        choices.append(
+            (
+                sum(row.correct for row in rows),
+                sum(row.mean_margin for row in rows) / 3.0,
+                alpha.alpha,
+                rows,
+            )
+        )
+    _, _, selected_alpha, selected_rows = max(
+        choices, key=lambda item: (item[0], item[1], item[2])
+    )
+    return selected_alpha, cast(
+        tuple[AlphaEvaluation, AlphaEvaluation, AlphaEvaluation], selected_rows
+    )
+
+
+def classify_denoising_result(
+    scalar_curves: object,
+    candidates: object,
+    swaps: object,
+    *,
+    failure: str | None = None,
+) -> DenoisingDecision:
+    """Recompute all fixed cross-seed quality gates and terminal precedence."""
+
+    best_alpha, scalar_rows = _best_scalar_rows(scalar_curves)
+    if (
+        type(candidates) is not tuple
+        or len(candidates) != 3
+        or any(type(candidate) is not CandidateEvaluation for candidate in candidates)
+        or tuple(candidate.role for candidate in candidates) != _CANDIDATE_ROLES
+    ):
+        raise ValueError("candidate order differs")
+    typed_candidates = cast(tuple[CandidateEvaluation, ...], candidates)
+    expected_swaps = tuple(
+        (source, target)
+        for source in _SEEDS
+        for target in _SEEDS
+        if source != target
+    )
+    if (
+        type(swaps) is not tuple
+        or len(swaps) != 6
+        or any(type(row) is not HeadSwapEvaluation for row in swaps)
+        or tuple((row.source_seed, row.target_seed) for row in swaps) != expected_swaps
+    ):
+        raise ValueError("head swap order differs")
+    typed_swaps = cast(tuple[HeadSwapEvaluation, ...], swaps)
+    if failure not in (None, "authority-failure", "numerical-failure", "resource-failure"):
+        raise ValueError("failure class differs")
+
+    scalar_correct = sum(row.correct for row in scalar_rows)
+    scalar_margin = sum(row.mean_margin for row in scalar_rows) / 3.0
+    candidate_correct = tuple(
+        sum(sum(row.correctness) for row in candidate.projected)
+        for candidate in typed_candidates
+    )
+    candidate_margins = tuple(
+        sum(row.mean_margin for row in candidate.projected) / 3.0
+        for candidate in typed_candidates
+    )
+    seed_floor = tuple(
+        all(
+            sum(row.correctness) >= scalar.correct - 1
+            for row, scalar in zip(candidate.projected, scalar_rows, strict=True)
+        )
+        for candidate in typed_candidates
+    )
+    soup_pass = (
+        candidate_correct[0] - scalar_correct >= 9
+        and seed_floor[0]
+        and candidate_margins[0] > scalar_margin
+    )
+    wiener_pass = (
+        candidate_correct[1] - scalar_correct >= 9
+        and candidate_correct[1] - candidate_correct[0] >= 5
+        and seed_floor[1]
+        and candidate_margins[1] > scalar_margin
+        and candidate_margins[1] > candidate_margins[0]
+    )
+    spectral_pass = (
+        candidate_correct[2] - scalar_correct >= 9
+        and candidate_correct[2] - candidate_correct[0] >= 5
+        and candidate_correct[2] - candidate_correct[1] >= 5
+        and seed_floor[2]
+        and candidate_margins[2] > scalar_margin
+        and candidate_margins[2] > candidate_margins[0]
+        and candidate_margins[2] > candidate_margins[1]
+    )
+    candidate_passes = (soup_pass, wiener_pass, spectral_pass)
+    reaches_95 = tuple(
+        all(sum(row.correctness) >= 1278 for row in candidate.projected)
+        for candidate in typed_candidates
+    )
+    coadaptation = sum(sum(row.swapped_correctness) for row in typed_swaps) < sum(
+        sum(row.own_correctness) for row in typed_swaps
+    )
+    paired = tuple(
+        tuple(
+            _mcnemar(row.correctness, scalar.correctness, row.seed)
+            for row, scalar in zip(candidate.projected, scalar_rows, strict=True)
+        )
+        for candidate in typed_candidates
+    )
+
+    if failure is not None:
+        terminal = failure
+        selected = None
+        candidate_passes = (False, False, False)
+    elif spectral_pass:
+        terminal = "spectral-denoise-benefit"
+        selected = "spectral-denoise"
+    elif wiener_pass:
+        terminal = "wiener-denoise-benefit"
+        selected = "wiener-denoise"
+    elif soup_pass:
+        terminal = "tower-soup-only-benefit"
+        selected = "tower-soup"
+    elif coadaptation:
+        terminal = "no-cross-seed-benefit-with-head-coadaptation"
+        selected = None
+    else:
+        terminal = "no-cross-seed-benefit"
+        selected = None
+    return DenoisingDecision(
+        terminal_class=terminal,
+        selected_candidate=selected,
+        best_scalar_alpha=best_alpha,
+        candidate_passes=candidate_passes,
+        reaches_95_percent=cast(tuple[bool, bool, bool], reaches_95),
+        head_coadaptation_observed=coadaptation,
+        paired_evidence=paired,
+    )
+
+
+def _correctness_payload(correctness: tuple[bool, ...]) -> dict[str, object]:
+    raw = bytes(correctness)
+    return {
+        "bits": raw.hex(),
+        "correct": sum(correctness),
+        "queries": len(correctness),
+        "recall_ppm": sum(correctness) * 1_000_000 // len(correctness),
+        "sha256": hashlib.sha256(raw).hexdigest(),
+    }
+
+
+def _projected_payload(row: ProjectedEvaluation) -> dict[str, object]:
+    return {
+        "correctness": _correctness_payload(row.correctness),
+        "determinism_replay": row.determinism_replay,
+        "folded_state_sha256": row.folded_state_sha256,
+        "mean_margin": row.mean_margin,
+        "mean_nearest_negative_cosine": row.mean_nearest_negative_cosine,
+        "mean_nearest_positive_cosine": row.mean_nearest_positive_cosine,
+        "peak_cuda_bytes": row.peak_cuda_bytes,
+        "peak_rss_bytes": row.peak_rss_bytes,
+        "seed": row.seed,
+        "wall_time_ns": row.wall_time_ns,
+    }
+
+
+def _candidate_payload(candidate: CandidateEvaluation) -> dict[str, object]:
+    aggregate_correct = sum(sum(row.correctness) for row in candidate.projected)
+    return {
+        "aggregate_correct": aggregate_correct,
+        "aggregate_queries": 4035,
+        "aggregate_recall_ppm": aggregate_correct * 1_000_000 // 4035,
+        "construction_evidence_sha256": candidate.construction_evidence_sha256,
+        "mean_projected_margin": sum(row.mean_margin for row in candidate.projected) / 3.0,
+        "projected": [_projected_payload(row) for row in candidate.projected],
+        "raw_correctness": _correctness_payload(candidate.raw_correctness),
+        "raw_mean_margin": candidate.raw_mean_margin,
+        "role": candidate.role,
+        "tower_state_sha256": candidate.tower_state_sha256,
+    }
+
+
+def _alpha_payload(row: AlphaEvaluation) -> dict[str, object]:
+    return {
+        "alpha": row.alpha,
+        "correctness": _correctness_payload(row.correctness),
+        "folded_state_sha256": row.folded_state_sha256,
+        "mean_margin": row.mean_margin,
+        "mean_nearest_negative_cosine": row.mean_nearest_negative_cosine,
+        "mean_nearest_positive_cosine": row.mean_nearest_positive_cosine,
+        "peak_cuda_bytes": row.peak_cuda_bytes,
+        "peak_rss_bytes": row.peak_rss_bytes,
+        "seed": row.seed,
+        "tower_squared_displacement": row.tower_squared_displacement,
+        "wall_time_ns": row.wall_time_ns,
+    }
+
+
+def _swap_payload(row: HeadSwapEvaluation) -> dict[str, object]:
+    return {
+        "own_correctness": _correctness_payload(row.own_correctness),
+        "own_mean_margin": row.own_mean_margin,
+        "source_seed": row.source_seed,
+        "swapped_correctness": _correctness_payload(row.swapped_correctness),
+        "swapped_mean_margin": row.swapped_mean_margin,
+        "target_seed": row.target_seed,
+    }
+
+
+def _decision_payload(decision: DenoisingDecision) -> dict[str, object]:
+    return {
+        "best_scalar_alpha": decision.best_scalar_alpha,
+        "candidate_passes": list(decision.candidate_passes),
+        "head_coadaptation_observed": decision.head_coadaptation_observed,
+        "paired_evidence": [
+            [
+                {
+                    "candidate_only": row.candidate_only,
+                    "mcnemar_p_value": row.mcnemar_p_value,
+                    "scalar_only": row.scalar_only,
+                    "seed": row.seed,
+                }
+                for row in rows
+            ]
+            for rows in decision.paired_evidence
+        ],
+        "reaches_95_percent": list(decision.reaches_95_percent),
+        "selected_candidate": decision.selected_candidate,
+        "terminal_class": decision.terminal_class,
+    }
+
+
+def canonical_denoising_result_bytes(
+    scalar_curves: object,
+    candidates: object,
+    swaps: object,
+    decision: object,
+    *,
+    failure: str | None = None,
+) -> bytes:
+    """Serialize a claim-ineligible result after complete recomputation."""
+
+    recomputed = classify_denoising_result(
+        scalar_curves, candidates, swaps, failure=failure
+    )
+    if type(decision) is not DenoisingDecision or decision != recomputed:
+        raise ValueError("stored denoising decision differs from recomputation")
+    typed_curves = cast(tuple[SeedInterpolationCurve, ...], scalar_curves)
+    typed_candidates = cast(tuple[CandidateEvaluation, ...], candidates)
+    typed_swaps = cast(tuple[HeadSwapEvaluation, ...], swaps)
+    payload: dict[str, object] = {
+        "candidates": [_candidate_payload(candidate) for candidate in typed_candidates],
+        "claim_eligible": False,
+        "decision": _decision_payload(recomputed),
+        "failure": failure,
+        "scalar_curves": [
+            {"rows": [_alpha_payload(row) for row in curve.rows], "seed": curve.seed}
+            for curve in typed_curves
+        ],
+        "schema": "sfora-cross-seed-denoising-result-v1",
+        "swaps": [_swap_payload(row) for row in typed_swaps],
+    }
+    raw = _canonical_json_bytes(payload)
+    if read_denoising_result(raw) != recomputed:
+        raise ValueError("serialized denoising result failed validation")
+    return raw
+
+
+def _parse_correctness(value: object, *, role: str) -> tuple[bool, ...]:
+    keys = {"bits", "correct", "queries", "recall_ppm", "sha256"}
+    if type(value) is not dict or set(value) != keys:
+        raise ValueError(f"{role} correctness schema differs")
+    typed = cast(dict[str, object], value)
+    bits = typed["bits"]
+    if type(bits) is not str:
+        raise ValueError(f"{role} correctness bits differ")
+    try:
+        raw = bytes.fromhex(bits)
+    except ValueError as exc:
+        raise ValueError(f"{role} correctness bits differ") from exc
+    if any(item not in (0, 1) for item in raw):
+        raise ValueError(f"{role} correctness bits differ")
+    correctness = tuple(bool(item) for item in raw)
+    correct = sum(correctness)
+    if (
+        type(typed["correct"]) is not int
+        or typed["correct"] != correct
+        or type(typed["queries"]) is not int
+        or typed["queries"] != len(correctness)
+        or type(typed["recall_ppm"]) is not int
+        or typed["recall_ppm"] != correct * 1_000_000 // len(correctness)
+        or typed["sha256"] != hashlib.sha256(raw).hexdigest()
+    ):
+        raise ValueError(f"{role} correctness aggregate differs")
+    return correctness
+
+
+def _parse_scalar_curves(value: object) -> tuple[SeedInterpolationCurve, ...]:
+    if type(value) is not list or len(value) != 3:
+        raise ValueError("scalar curve schema differs")
+    curves: list[SeedInterpolationCurve] = []
+    row_keys = {
+        "alpha",
+        "correctness",
+        "folded_state_sha256",
+        "mean_margin",
+        "mean_nearest_negative_cosine",
+        "mean_nearest_positive_cosine",
+        "peak_cuda_bytes",
+        "peak_rss_bytes",
+        "seed",
+        "tower_squared_displacement",
+        "wall_time_ns",
+    }
+    for raw_curve in cast(list[object], value):
+        if type(raw_curve) is not dict or set(raw_curve) != {"rows", "seed"}:
+            raise ValueError("scalar curve schema differs")
+        curve = cast(dict[str, object], raw_curve)
+        if type(curve["rows"]) is not list:
+            raise ValueError("scalar curve rows differ")
+        rows: list[AlphaEvaluation] = []
+        for raw_row in cast(list[object], curve["rows"]):
+            if type(raw_row) is not dict or set(raw_row) != row_keys:
+                raise ValueError("scalar row schema differs")
+            row = cast(dict[str, object], raw_row)
+            correctness = _parse_correctness(row["correctness"], role="scalar")
+            rows.append(
+                AlphaEvaluation(
+                    seed=cast(int, row["seed"]),
+                    alpha=cast(float, row["alpha"]),
+                    correct=sum(correctness),
+                    queries=len(correctness),
+                    recall_ppm=sum(correctness) * 1_000_000 // len(correctness),
+                    mean_nearest_positive_cosine=cast(
+                        float, row["mean_nearest_positive_cosine"]
+                    ),
+                    mean_nearest_negative_cosine=cast(
+                        float, row["mean_nearest_negative_cosine"]
+                    ),
+                    mean_margin=cast(float, row["mean_margin"]),
+                    correctness=correctness,
+                    folded_state_sha256=cast(str, row["folded_state_sha256"]),
+                    tower_squared_displacement=cast(
+                        float, row["tower_squared_displacement"]
+                    ),
+                    wall_time_ns=cast(int, row["wall_time_ns"]),
+                    peak_cuda_bytes=cast(int, row["peak_cuda_bytes"]),
+                    peak_rss_bytes=cast(int, row["peak_rss_bytes"]),
+                )
+            )
+        curves.append(
+            SeedInterpolationCurve(seed=cast(int, curve["seed"]), rows=tuple(rows))
+        )
+    return tuple(curves)
+
+
+def _parse_candidates(value: object) -> tuple[CandidateEvaluation, ...]:
+    if type(value) is not list or len(value) != 3:
+        raise ValueError("candidate order differs")
+    candidate_keys = {
+        "aggregate_correct",
+        "aggregate_queries",
+        "aggregate_recall_ppm",
+        "construction_evidence_sha256",
+        "mean_projected_margin",
+        "projected",
+        "raw_correctness",
+        "raw_mean_margin",
+        "role",
+        "tower_state_sha256",
+    }
+    projected_keys = {
+        "correctness",
+        "determinism_replay",
+        "folded_state_sha256",
+        "mean_margin",
+        "mean_nearest_negative_cosine",
+        "mean_nearest_positive_cosine",
+        "peak_cuda_bytes",
+        "peak_rss_bytes",
+        "seed",
+        "wall_time_ns",
+    }
+    candidates: list[CandidateEvaluation] = []
+    for raw_candidate in cast(list[object], value):
+        if type(raw_candidate) is not dict or set(raw_candidate) != candidate_keys:
+            raise ValueError("candidate schema differs")
+        candidate = cast(dict[str, object], raw_candidate)
+        if type(candidate["projected"]) is not list:
+            raise ValueError("candidate projected schema differs")
+        projected: list[ProjectedEvaluation] = []
+        for raw_row in cast(list[object], candidate["projected"]):
+            if type(raw_row) is not dict or set(raw_row) != projected_keys:
+                raise ValueError("candidate projected schema differs")
+            row = cast(dict[str, object], raw_row)
+            projected.append(
+                ProjectedEvaluation(
+                    seed=cast(int, row["seed"]),
+                    correctness=_parse_correctness(row["correctness"], role="projected"),
+                    mean_nearest_positive_cosine=cast(
+                        float, row["mean_nearest_positive_cosine"]
+                    ),
+                    mean_nearest_negative_cosine=cast(
+                        float, row["mean_nearest_negative_cosine"]
+                    ),
+                    mean_margin=cast(float, row["mean_margin"]),
+                    folded_state_sha256=cast(str, row["folded_state_sha256"]),
+                    wall_time_ns=cast(int, row["wall_time_ns"]),
+                    peak_cuda_bytes=cast(int, row["peak_cuda_bytes"]),
+                    peak_rss_bytes=cast(int, row["peak_rss_bytes"]),
+                    determinism_replay=cast(bool, row["determinism_replay"]),
+                )
+            )
+        built = CandidateEvaluation(
+            role=cast(str, candidate["role"]),
+            raw_correctness=_parse_correctness(candidate["raw_correctness"], role="raw"),
+            raw_mean_margin=cast(float, candidate["raw_mean_margin"]),
+            projected=tuple(projected),
+            tower_state_sha256=cast(str, candidate["tower_state_sha256"]),
+            construction_evidence_sha256=cast(
+                str, candidate["construction_evidence_sha256"]
+            ),
+        )
+        expected = _candidate_payload(built)
+        for key in ("aggregate_correct", "aggregate_queries", "aggregate_recall_ppm"):
+            if candidate[key] != expected[key]:
+                raise ValueError("candidate aggregate differs")
+        if candidate["mean_projected_margin"] != expected["mean_projected_margin"]:
+            raise ValueError("candidate aggregate margin differs")
+        candidates.append(built)
+    if tuple(candidate.role for candidate in candidates) != _CANDIDATE_ROLES:
+        raise ValueError("candidate order differs")
+    return tuple(candidates)
+
+
+def _parse_swaps(value: object) -> tuple[HeadSwapEvaluation, ...]:
+    keys = {
+        "own_correctness",
+        "own_mean_margin",
+        "source_seed",
+        "swapped_correctness",
+        "swapped_mean_margin",
+        "target_seed",
+    }
+    if type(value) is not list or len(value) != 6:
+        raise ValueError("head swap order differs")
+    rows: list[HeadSwapEvaluation] = []
+    for raw_row in cast(list[object], value):
+        if type(raw_row) is not dict or set(raw_row) != keys:
+            raise ValueError("head swap schema differs")
+        row = cast(dict[str, object], raw_row)
+        rows.append(
+            HeadSwapEvaluation(
+                source_seed=cast(int, row["source_seed"]),
+                target_seed=cast(int, row["target_seed"]),
+                own_correctness=_parse_correctness(row["own_correctness"], role="swap own"),
+                swapped_correctness=_parse_correctness(
+                    row["swapped_correctness"], role="swap target"
+                ),
+                own_mean_margin=cast(float, row["own_mean_margin"]),
+                swapped_mean_margin=cast(float, row["swapped_mean_margin"]),
+            )
+        )
+    return tuple(rows)
+
+
+def read_denoising_result(raw: bytes) -> DenoisingDecision:
+    """Authenticate, recompute, and return one canonical denoising decision."""
+
+    if type(raw) is not bytes:
+        raise TypeError("denoising result must be concrete bytes")
+    try:
+        value = json.loads(raw)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError("denoising result is not valid JSON") from exc
+    keys = {
+        "candidates",
+        "claim_eligible",
+        "decision",
+        "failure",
+        "scalar_curves",
+        "schema",
+        "swaps",
+    }
+    if type(value) is not dict or _canonical_json_bytes(value) != raw:
+        raise ValueError("denoising result is not canonical")
+    if set(value) != keys or value["schema"] != "sfora-cross-seed-denoising-result-v1":
+        raise ValueError("denoising result schema differs")
+    if type(value["claim_eligible"]) is not bool or value["claim_eligible"] is not False:
+        raise ValueError("denoising result claim eligibility differs")
+    failure = value["failure"]
+    if failure is not None and type(failure) is not str:
+        raise ValueError("denoising failure class differs")
+    curves = _parse_scalar_curves(value["scalar_curves"])
+    candidates = _parse_candidates(value["candidates"])
+    swaps = _parse_swaps(value["swaps"])
+    decision = classify_denoising_result(curves, candidates, swaps, failure=failure)
+    if value["decision"] != _decision_payload(decision):
+        raise ValueError("stored denoising decision differs")
+    return decision
 
 
 def _canonical_json_bytes(value: object) -> bytes:

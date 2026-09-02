@@ -11,12 +11,20 @@ import pytest
 import torch
 
 from sfora.cross_seed_denoising import (
+    CandidateEvaluation,
     CandidateStates,
+    DenoisingDecision,
+    HeadSwapEvaluation,
+    ProjectedEvaluation,
     build_cross_seed_candidates,
+    canonical_denoising_result_bytes,
+    classify_denoising_result,
+    read_denoising_result,
     read_tensor_artifact,
     wiener_gain,
     write_tensor_artifact,
 )
+from sfora.weight_space_transfer import AlphaEvaluation, SeedInterpolationCurve
 
 BINDINGS = {
     "checkpoint_sha256": "11" * 32,
@@ -339,3 +347,241 @@ def test_candidate_construction_rejects_state_and_nonfloating_drift() -> None:
 
     with pytest.raises(ValueError, match="seeds"):
         build_cross_seed_candidates(initial, {17: endpoints[17], 29: endpoints[29]})
+
+
+_QUERIES = 1345
+_CANDIDATES = ("tower-soup", "wiener-denoise", "spectral-denoise")
+
+
+def _correctness(correct: int) -> tuple[bool, ...]:
+    return (True,) * correct + (False,) * (_QUERIES - correct)
+
+
+def _scalar_curves(correct: int = 1258, margin: float = 0.20) -> tuple[SeedInterpolationCurve, ...]:
+    curves: list[SeedInterpolationCurve] = []
+    for seed in (17, 29, 43):
+        rows = []
+        for alpha, delta in zip((0.0, 0.25, 0.5, 0.75, 1.0), (-10, -5, -2, 0, -1), strict=True):
+            hits = correct + delta
+            rows.append(
+                AlphaEvaluation(
+                    seed=seed,
+                    alpha=alpha,
+                    correct=hits,
+                    queries=_QUERIES,
+                    recall_ppm=hits * 1_000_000 // _QUERIES,
+                    mean_nearest_positive_cosine=0.5,
+                    mean_nearest_negative_cosine=0.5 - (margin + delta / 10_000),
+                    mean_margin=margin + delta / 10_000,
+                    correctness=_correctness(hits),
+                    folded_state_sha256=f"{seed:02x}" * 32,
+                    tower_squared_displacement=float(alpha),
+                    wall_time_ns=1,
+                    peak_cuda_bytes=0,
+                    peak_rss_bytes=1,
+                )
+            )
+        curves.append(SeedInterpolationCurve(seed=seed, rows=tuple(rows)))
+    return tuple(curves)
+
+
+def _projected(seed: int, correct: int, margin: float, *, digest_byte: str) -> ProjectedEvaluation:
+    return ProjectedEvaluation(
+        seed=seed,
+        correctness=_correctness(correct),
+        mean_nearest_positive_cosine=0.5,
+        mean_nearest_negative_cosine=0.5 - margin,
+        mean_margin=margin,
+        folded_state_sha256=digest_byte * 64,
+        wall_time_ns=10,
+        peak_cuda_bytes=100,
+        peak_rss_bytes=200,
+        determinism_replay=True,
+    )
+
+
+def _candidate(
+    role: str,
+    correct: int,
+    margin: float,
+    *,
+    digest_byte: str,
+) -> CandidateEvaluation:
+    return CandidateEvaluation(
+        role=role,
+        raw_correctness=_correctness(correct - 5),
+        raw_mean_margin=margin - 0.01,
+        projected=tuple(
+            _projected(seed, correct, margin, digest_byte=digest_byte)
+            for seed in (17, 29, 43)
+        ),
+        tower_state_sha256=digest_byte * 64,
+        construction_evidence_sha256=("f" if digest_byte != "f" else "e") * 64,
+    )
+
+
+def _candidates(
+    *,
+    soup: tuple[int, float] = (1261, 0.21),
+    wiener: tuple[int, float] = (1263, 0.22),
+    spectral: tuple[int, float] = (1265, 0.23),
+) -> tuple[CandidateEvaluation, ...]:
+    return (
+        _candidate("tower-soup", *soup, digest_byte="a"),
+        _candidate("wiener-denoise", *wiener, digest_byte="b"),
+        _candidate("spectral-denoise", *spectral, digest_byte="c"),
+    )
+
+
+def _swaps(*, coadapted: bool = True) -> tuple[HeadSwapEvaluation, ...]:
+    rows = []
+    for source in (17, 29, 43):
+        for target in (17, 29, 43):
+            if source == target:
+                continue
+            own = 1260
+            swapped = 1259 if coadapted else own
+            rows.append(
+                HeadSwapEvaluation(
+                    source_seed=source,
+                    target_seed=target,
+                    own_correctness=_correctness(own),
+                    swapped_correctness=_correctness(swapped),
+                    own_mean_margin=0.20,
+                    swapped_mean_margin=0.19 if coadapted else 0.20,
+                )
+            )
+    return tuple(rows)
+
+
+def test_evaluation_rows_recompute_counts_ppm_and_per_seed_mcnemar() -> None:
+    decision = classify_denoising_result(_scalar_curves(), _candidates(), _swaps())
+    assert decision.terminal_class == "spectral-denoise-benefit"
+    assert decision.selected_candidate == "spectral-denoise"
+    assert decision.best_scalar_alpha == 0.75
+    assert decision.head_coadaptation_observed is True
+    assert decision.candidate_passes == (True, True, True)
+    assert decision.reaches_95_percent == (False, False, False)
+    spectral_pairs = decision.paired_evidence[2]
+    assert tuple(row.seed for row in spectral_pairs) == (17, 29, 43)
+    assert all(row.candidate_only == 7 and row.scalar_only == 0 for row in spectral_pairs)
+    assert all(row.mcnemar_p_value == pytest.approx(1.0 / 64.0) for row in spectral_pairs)
+
+
+@pytest.mark.parametrize(
+    ("candidates", "terminal", "selected"),
+    (
+        (_candidates(spectral=(1263, 0.22)), "wiener-denoise-benefit", "wiener-denoise"),
+        (
+            _candidates(wiener=(1261, 0.21), spectral=(1261, 0.21)),
+            "tower-soup-only-benefit",
+            "tower-soup",
+        ),
+        (
+            _candidates(soup=(1258, 0.20), wiener=(1258, 0.20), spectral=(1258, 0.20)),
+            "no-cross-seed-benefit-with-head-coadaptation",
+            None,
+        ),
+    ),
+)
+def test_decision_uses_fixed_candidate_priority_and_complete_gates(
+    candidates: tuple[CandidateEvaluation, ...],
+    terminal: str,
+    selected: str | None,
+) -> None:
+    decision = classify_denoising_result(_scalar_curves(), candidates, _swaps())
+    assert decision.terminal_class == terminal
+    assert decision.selected_candidate == selected
+
+
+def test_decision_distinguishes_no_benefit_without_head_coadaptation() -> None:
+    candidates = _candidates(
+        soup=(1258, 0.20), wiener=(1258, 0.20), spectral=(1258, 0.20)
+    )
+    decision = classify_denoising_result(_scalar_curves(), candidates, _swaps(coadapted=False))
+    assert decision.terminal_class == "no-cross-seed-benefit"
+
+
+@pytest.mark.parametrize(
+    "failure",
+    ("authority-failure", "numerical-failure", "resource-failure"),
+)
+def test_decision_failure_precedence_is_fail_closed(failure: str) -> None:
+    decision = classify_denoising_result(
+        _scalar_curves(), _candidates(), _swaps(), failure=failure
+    )
+    assert decision.terminal_class == failure
+    assert decision.selected_candidate is None
+    assert decision.candidate_passes == (False, False, False)
+
+
+def test_evaluation_rejects_wrong_order_cardinality_types_and_nonfinite_values() -> None:
+    projected = _candidate("tower-soup", 1261, 0.21, digest_byte="a").projected
+    with pytest.raises(ValueError, match="seed order"):
+        CandidateEvaluation(
+            role="tower-soup",
+            raw_correctness=_correctness(1250),
+            raw_mean_margin=0.2,
+            projected=(projected[1], projected[0], projected[2]),
+            tower_state_sha256="a" * 64,
+            construction_evidence_sha256="f" * 64,
+        )
+    with pytest.raises(ValueError, match="finite"):
+        _projected(17, 1261, float("nan"), digest_byte="a")
+    with pytest.raises(ValueError, match="correctness"):
+        ProjectedEvaluation(
+            seed=17,
+            correctness=(True,) * (_QUERIES - 1),
+            mean_nearest_positive_cosine=0.5,
+            mean_nearest_negative_cosine=0.2,
+            mean_margin=0.3,
+            folded_state_sha256="a" * 64,
+            wall_time_ns=1,
+            peak_cuda_bytes=0,
+            peak_rss_bytes=1,
+            determinism_replay=True,
+        )
+
+
+def test_head_swap_requires_all_six_ordered_pairs() -> None:
+    with pytest.raises(ValueError, match="swap order"):
+        classify_denoising_result(_scalar_curves(), _candidates(), _swaps()[:-1])
+
+
+def test_canonical_result_round_trips_and_rejects_stored_mutations() -> None:
+    scalar = _scalar_curves()
+    candidates = _candidates()
+    swaps = _swaps()
+    decision = classify_denoising_result(scalar, candidates, swaps)
+    raw = canonical_denoising_result_bytes(scalar, candidates, swaps, decision)
+    assert raw.endswith(b"\n") and not raw.endswith(b"\n\n")
+    assert read_denoising_result(raw) == decision
+
+    for mutation, message in (
+        (lambda item: item.update({"claim_eligible": True}), "claim"),
+        (lambda item: item["decision"].update({"terminal_class": "resource-failure"}), "decision"),
+        (lambda item: item["candidates"][0].update({"aggregate_correct": 0}), "aggregate"),
+        (lambda item: item["candidates"][0].update({"role": "spectral-denoise"}), "order"),
+    ):
+        changed = json.loads(raw)
+        mutation(changed)
+        with pytest.raises(ValueError, match=message):
+            read_denoising_result(_canonical(changed))
+
+
+def test_canonical_result_rejects_stale_decision_object() -> None:
+    scalar = _scalar_curves()
+    candidates = _candidates()
+    swaps = _swaps()
+    decision = classify_denoising_result(scalar, candidates, swaps)
+    stale = DenoisingDecision(
+        terminal_class="resource-failure",
+        selected_candidate=None,
+        best_scalar_alpha=decision.best_scalar_alpha,
+        candidate_passes=(False, False, False),
+        reaches_95_percent=decision.reaches_95_percent,
+        head_coadaptation_observed=decision.head_coadaptation_observed,
+        paired_evidence=decision.paired_evidence,
+    )
+    with pytest.raises(ValueError, match="decision"):
+        canonical_denoising_result_bytes(scalar, candidates, swaps, stale)
