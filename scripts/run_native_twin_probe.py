@@ -8,7 +8,7 @@ import hashlib
 import json
 import os
 import stat
-from collections import OrderedDict
+from collections import Counter, OrderedDict
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any, cast
@@ -78,6 +78,22 @@ def _validated_checkpoint_model_state(
     ):
         raise ValueError("native checkpoint payload authority differs")
     return cast("OrderedDict[str, Any]", payload["model_state"])
+
+
+def unique_pixel_indices(image_sha256: tuple[str, ...]) -> tuple[int, ...]:
+    """Return ordered singleton pixel identities without consulting labels."""
+
+    if type(image_sha256) is not tuple or any(
+        type(value) is not str
+        or len(value) != 64
+        or any(character not in "0123456789abcdef" for character in value)
+        for value in image_sha256
+    ):
+        raise ValueError("native image digest authority differs")
+    counts = Counter(image_sha256)
+    return tuple(
+        index for index, digest in enumerate(image_sha256) if counts[digest] == 1
+    )
 
 
 def native_crop_boxes(width: int, height: int) -> tuple[tuple[int, int, int, int], ...]:
@@ -296,26 +312,31 @@ def run_probe(args: argparse.Namespace) -> bytes:
     del payload
     model = model.to(device).eval()
     bands = load_control_examples()
-    examples = tuple(
+    source_examples = tuple(
         example for example in bands.burned_diagnostic if example.label in {82, 83}
     )
+    decoded_rows = tuple(
+        (example, *_decoded_image(example)) for example in source_examples
+    )
+    retained_indices = unique_pixel_indices(
+        tuple(cast(str, row[2]) for row in decoded_rows)
+    )
+    rows = tuple(decoded_rows[index] for index in retained_indices)
+    examples = tuple(row[0] for row in rows)
     if len(examples) < 40:
         raise ValueError("native Caliber population is too small")
-    image_sha256: list[str] = []
+    image_sha256 = [cast(str, row[2]) for row in rows]
     crop_long_edges: list[tuple[int, ...]] = []
     global_chunks: list[np.ndarray] = []
     control_chunks: list[np.ndarray] = []
     native_chunks: list[np.ndarray] = []
     image_batch_size = max(1, args.batch_size // 9)
     for start in range(0, len(examples), image_batch_size):
-        batch = examples[start : start + image_batch_size]
-        decoded: list[object] = []
+        batch = rows[start : start + image_batch_size]
+        decoded = [row[1] for row in batch]
         control_images: list[object] = []
         native_images: list[object] = []
-        for example in batch:
-            image, digest = _decoded_image(example)
-            decoded.append(image)
-            image_sha256.append(digest)
+        for _example, image, _digest in batch:
             crop = getattr(image, "crop", None)
             if not callable(crop):
                 raise ValueError("native source image lacks crop support")

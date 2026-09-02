@@ -13,6 +13,14 @@ scoring are held fixed?**
 The probe uses only the already burned class-82/83 diagnostic population. It
 never reads the clean-validation or official-test bands.
 
+Before any descriptor extraction, decoded RGB SHA-256 values are counted and
+every member of every repeated-pixel group is removed. This collision rule is
+label-blind, removes rather than resolves ambiguous ties, preserves source
+order, and is applied before labels or model outputs enter the probe. The
+authenticated Cars population contains six two-row repeated-pixel groups and
+therefore retains 153 of 165 rows. No representative is selected from a
+collision group.
+
 ## Three frozen planes
 
 Each authenticated source image produces three descriptor planes through the
@@ -54,7 +62,7 @@ Global-384 retrieval is recorded only as context.
 ## Authority
 
 The authority binds source identity, checkpoint SHA-256, model revision,
-ordered unique example IDs, ordered unique decoded-RGB SHA-256 values, labels,
+ordered unique retained example IDs, ordered unique decoded-RGB SHA-256 values, labels,
 and exact global/control/native descriptor SHA-256 values. It also binds the
 probe revision/tree and every crop long edge, making no-op control crops
 auditable. Descriptor digests frame rank, shape, and canonical little-endian

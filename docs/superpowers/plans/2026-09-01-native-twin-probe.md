@@ -19,6 +19,9 @@ pixels recover the dominant Cars196 Caliber confusion.
 
 - Authenticate the seed/checkpoint receipts, source revision/tree, burned-band
   population, decoded RGB namespace, model revision, and processor.
+- Before encoding, count decoded RGB digests and remove every member of every
+  repeated-pixel group without consulting labels; mutation-lock stable order,
+  all-member removal, and rejection of malformed digests.
 - Produce global-384, nine fixed two-thirds crops downsampled to a 256px long
   edge, and the same nine crops without that information bottleneck.
 - Mutation-lock crop coordinates, downsample/restore behavior, no-op crops,

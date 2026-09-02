@@ -12,6 +12,7 @@ from scripts.run_native_twin_probe import (
     matched_control_crop,
     native_crop_boxes,
     parse_args,
+    unique_pixel_indices,
 )
 from scripts.run_siglip_proxy_control import _config_sha256
 from sfora.siglip_proxy_control import SiglipProxyControlConfig
@@ -133,3 +134,13 @@ def test_checkpoint_authority_accepts_exact_pytorch_ordered_model_state() -> Non
     payload["model_state"] = []
     with pytest.raises(ValueError, match="payload authority"):
         _validated_checkpoint_model_state(payload, config=config, seed=17)
+
+
+def test_unique_pixel_filter_removes_every_member_of_a_duplicate_group() -> None:
+    assert unique_pixel_indices(("1" * 64, "2" * 64, "1" * 64, "3" * 64)) == (
+        1,
+        3,
+    )
+    assert unique_pixel_indices(("1" * 64, "2" * 64)) == (0, 1)
+    with pytest.raises(ValueError, match="image digest"):
+        unique_pixel_indices(("not-a-digest",))
