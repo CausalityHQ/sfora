@@ -66,6 +66,7 @@ def test_deployer_preflights_every_dependency_and_gpu_stage_before_upload() -> N
     assert "missing uv environment:" in text
     assert "unusable M4 output parent:" in text
     assert "M4 launch did not survive" in text
+    assert 'cat "$output.launch.log" >&2' in text
     assert 'kill -0 "$pid"' in text
     assert text.count("-o BatchMode=yes") >= 3
     assert "printf 'root=%q\\n'" in text

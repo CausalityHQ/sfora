@@ -200,6 +200,7 @@ nohup setsid env \
 pid=$!
 sleep 2
 kill -0 "$pid" 2>/dev/null || {
+  cat "$output.launch.log" >&2
   echo 'M4 launch did not survive' >&2
   exit 70
 }
