@@ -401,8 +401,8 @@ def _legacy_descriptor_sha256(descriptors: torch.Tensor) -> str:
 def _gpu_environment(device: torch.device) -> dict[str, object]:
     index = torch.cuda.current_device() if device.index is None else device.index
     properties = torch.cuda.get_device_properties(index)
-    torch_uuid = getattr(properties, "uuid", None)
-    if type(torch_uuid) is not str or re.fullmatch(r"[0-9a-f-]{36}", torch_uuid) is None:
+    torch_uuid = str(getattr(properties, "uuid", ""))
+    if re.fullmatch(r"[0-9a-f-]{36}", torch_uuid) is None:
         raise RuntimeError("CUDA device UUID is unavailable")
     expected_uuid = f"GPU-{torch_uuid}"
     identity = subprocess.run(

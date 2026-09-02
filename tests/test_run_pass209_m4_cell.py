@@ -192,6 +192,34 @@ def test_gpu_environment_binds_nvidia_smi_to_torch_visible_uuid(
     assert environment["uuid"] == "GPU-12345678-1234-1234-1234-123456789abc"
 
 
+def test_gpu_environment_accepts_torch_cuuid_string_representation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FixtureCUuid:
+        def __str__(self) -> str:
+            return "12345678-1234-1234-1234-123456789abc"
+
+    properties = SimpleNamespace(
+        name="fixture-gpu",
+        major=9,
+        minor=0,
+        uuid=FixtureCUuid(),
+    )
+    monkeypatch.setattr(_MODULE.torch.cuda, "current_device", lambda: 0)
+    monkeypatch.setattr(_MODULE.torch.cuda, "get_device_properties", lambda _: properties)
+    monkeypatch.setattr(
+        _MODULE.subprocess,
+        "run",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            stdout="GPU-12345678-1234-1234-1234-123456789abc, 999.1\n"
+        ),
+    )
+
+    environment = _MODULE._gpu_environment(torch.device("cuda"))
+
+    assert environment["uuid"] == "GPU-12345678-1234-1234-1234-123456789abc"
+
+
 def _v1_receipt() -> dict[str, object]:
     return {
         "schema": "sfora-frozen-substrate-screen-v1",
