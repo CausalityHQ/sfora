@@ -67,6 +67,12 @@ def _lower_sha256(value: str) -> str:
     return value
 
 
+def _lower_commit(value: str) -> str:
+    if len(value) != 40 or any(character not in "0123456789abcdef" for character in value):
+        raise argparse.ArgumentTypeError("commit must be lowercase 40-character hexadecimal")
+    return value
+
+
 def _positive_bytes(value: str) -> int:
     try:
         parsed = int(value)
@@ -86,6 +92,8 @@ def parse_arguments(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--burned-manifest-bytes", required=True, type=_positive_bytes)
     parser.add_argument("--burned-image-root", required=True, type=_absolute_path)
     parser.add_argument("--source-manifest-sha256", required=True, type=_lower_sha256)
+    parser.add_argument("--source-commit", required=True, type=_lower_commit)
+    parser.add_argument("--source-tree-digest", required=True, type=_lower_sha256)
     parser.add_argument("--seed-result", required=True, action="append", type=_absolute_path)
     parser.add_argument("--seed-result-sha256", required=True, action="append", type=_lower_sha256)
     parser.add_argument("--seed-result-bytes", required=True, action="append", type=_positive_bytes)
@@ -130,6 +138,9 @@ class SeedEndpointAuthority:
     run_authority_sha256: str
     evaluation_batch_size: int
     query_block: int
+    source_revision: str
+    source_tree_digest: str
+    manifest_sha256: str
 
 
 @dataclass(frozen=True)
@@ -244,6 +255,12 @@ def run_bound_weight_space_transfer(
             expected_bytes=arguments.seed_result_bytes[index],
             expected_seed=seed,
         )
+        if (
+            authority.source_revision != arguments.source_commit
+            or authority.source_tree_digest != arguments.source_tree_digest
+            or authority.manifest_sha256 != arguments.source_manifest_sha256
+        ):
+            raise ValueError("seed source binding differs")
         if (
             arguments.checkpoint[index].name != authority.checkpoint_basename
             or arguments.checkpoint_sha256[index] != authority.checkpoint_sha256
@@ -575,6 +592,9 @@ def load_seed_endpoint_authority(
         run_authority_sha256=_run_authority_sha256(run_authority),
         evaluation_batch_size=run_authority.evaluation_batch_size,
         query_block=run_authority.query_block,
+        source_revision=run_authority.source_revision,
+        source_tree_digest=run_authority.source_tree_digest,
+        manifest_sha256=run_authority.manifest_sha256,
     )
 
 
@@ -803,6 +823,7 @@ def evaluate_transfer_seed_curve(
     model_factory: Callable[[], torch.nn.Module],
     disable_checkpointing: Callable[[torch.nn.Module], None],
     evaluate_model: Callable[[torch.nn.Module], ModelBandEvaluation],
+    progress: Callable[[str], None] = lambda _event: None,
 ) -> SeedCurveExecution:
     """Replay both endpoints, then evaluate all five fresh tower folds."""
 
@@ -815,6 +836,7 @@ def evaluate_transfer_seed_curve(
         or not callable(model_factory)
         or not callable(disable_checkpointing)
         or not callable(evaluate_model)
+        or not callable(progress)
     ):
         raise ValueError("transfer seed execution authority differs")
     initial_state = OrderedDict(initial.model.state_dict())
@@ -851,6 +873,7 @@ def evaluate_transfer_seed_curve(
         trained_raw=trained_evaluation.raw,
         trained_projected=trained_evaluation.projected,
     )
+    progress("endpoint-replay")
 
     rows: list[AlphaEvaluation] = []
     for alpha in INTERPOLATION_ALPHAS:
@@ -884,6 +907,7 @@ def evaluate_transfer_seed_curve(
                 tower_squared_displacement=folded.tower_squared_displacement,
             )
         )
+        progress(f"alpha-{alpha:.2f}")
     return SeedCurveExecution(
         endpoint_replay=replay,
         curve=SeedInterpolationCurve(seed=authority.seed, rows=tuple(rows)),
@@ -982,6 +1006,22 @@ def _disable_evaluation_checkpointing(model: torch.nn.Module) -> None:
         raise RuntimeError("evaluation checkpointing remained enabled")
 
 
+def _emit_progress(seed: int, event: str) -> None:
+    if type(seed) is not int or seed not in (17, 29, 43) or type(event) is not str or not event:
+        raise ValueError("diagnostic progress event differs")
+    sys.stderr.write(
+        _canonical_json(
+            {
+                "claim_eligible": False,
+                "event": event,
+                "schema": "sfora-weight-space-transfer-progress-v1",
+                "seed": seed,
+            }
+        ).decode()
+    )
+    sys.stderr.flush()
+
+
 def _execute_siglip_seed(
     authority: SeedEndpointAuthority,
     checkpoint: LoadedTransferCheckpoint,
@@ -1044,6 +1084,7 @@ def _execute_siglip_seed(
         model_factory=model_factory,
         disable_checkpointing=_disable_evaluation_checkpointing,
         evaluate_model=evaluate_model,
+        progress=lambda event: _emit_progress(authority.seed, event),
     )
 
 

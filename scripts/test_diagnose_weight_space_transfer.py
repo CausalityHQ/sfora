@@ -237,6 +237,10 @@ class EndpointAuthorityTests(unittest.TestCase):
             "/abs/images",
             "--source-manifest-sha256",
             "2" * 64,
+            "--source-commit",
+            "1" * 40,
+            "--source-tree-digest",
+            "2" * 64,
             "--seed-result",
             "/abs/seed17.json",
             "--seed-result-sha256",
@@ -289,6 +293,10 @@ class EndpointAuthorityTests(unittest.TestCase):
                 str(images),
                 "--source-manifest-sha256",
                 "3" * 64,
+                "--source-commit",
+                "1" * 40,
+                "--source-tree-digest",
+                "2" * 64,
             ]
             for seed in (17, 29):
                 _receipt, run = _seed_result(seed)
@@ -386,6 +394,10 @@ class EndpointAuthorityTests(unittest.TestCase):
                 "--burned-image-root",
                 str(root / "images"),
                 "--source-manifest-sha256",
+                "2" * 64,
+                "--source-commit",
+                "1" * 40,
+                "--source-tree-digest",
                 "2" * 64,
             ]
             for index, seed in enumerate((17, 29), start=3):
@@ -490,6 +502,9 @@ class EndpointAuthorityTests(unittest.TestCase):
         self.assertEqual(authority.checkpoint_sha256, "5" * 64)
         self.assertEqual(authority.evaluation_batch_size, 32)
         self.assertEqual(authority.query_block, 128)
+        self.assertEqual(authority.source_revision, "1" * 40)
+        self.assertEqual(authority.source_tree_digest, "2" * 64)
+        self.assertEqual(authority.manifest_sha256, "3" * 64)
         self.assertNotIn("clean", repr(authority))
         self.assertNotIn("2596", repr(authority))
 
@@ -715,6 +730,9 @@ class EndpointAuthorityTests(unittest.TestCase):
             run_authority_sha256="7" * 64,
             evaluation_batch_size=32,
             query_block=128,
+            source_revision="1" * 40,
+            source_tree_digest="2" * 64,
+            manifest_sha256="3" * 64,
         )
         checkpoint = LoadedTransferCheckpoint(
             seed=17,
@@ -722,6 +740,7 @@ class EndpointAuthorityTests(unittest.TestCase):
             model_state=trained_state,
         )
         disabled: list[torch.nn.Module] = []
+        progress: list[str] = []
 
         execution = evaluate_transfer_seed_curve(
             authority=authority,
@@ -733,6 +752,7 @@ class EndpointAuthorityTests(unittest.TestCase):
             model_factory=lambda: Model(-1.0, -1.0),
             disable_checkpointing=disabled.append,
             evaluate_model=evaluate,
+            progress=progress.append,
         )
         self.assertIs(type(execution), SeedCurveExecution)
         self.assertEqual(
@@ -744,6 +764,17 @@ class EndpointAuthorityTests(unittest.TestCase):
             execution.curve.rows[-1].correct,
         )
         self.assertEqual(len(disabled), 7)
+        self.assertEqual(
+            progress,
+            [
+                "endpoint-replay",
+                "alpha-0.00",
+                "alpha-0.25",
+                "alpha-0.50",
+                "alpha-0.75",
+                "alpha-1.00",
+            ],
+        )
         self.assertEqual(execution.endpoint_replay.maximum_float_disagreement, 0.0)
 
     def test_loaded_burned_evaluator_derives_query_correctness_from_errors(self) -> None:
