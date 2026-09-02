@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import io
 import json
+import subprocess
 import tempfile
 import unittest
 from contextlib import redirect_stderr
@@ -11,7 +12,9 @@ from pathlib import Path
 
 from scripts.run_cross_seed_denoising import (
     CrossSeedProcessObservation,
+    CrossSeedSourceReceipt,
     _run_controller_child,
+    _source_checkout_receipt,
     execute_cross_seed_controller,
     parse_controller_arguments,
     project_phase_argv,
@@ -51,7 +54,49 @@ def _arguments(root: Path) -> argparse.Namespace:
     )
 
 
+def _source_receipt() -> CrossSeedSourceReceipt:
+    return CrossSeedSourceReceipt(
+        commit="d" * 40,
+        tree="e" * 40,
+        hostname="fixture-host",
+        file_sha256=("f" * 64,) * 5,
+    )
+
+
 class CrossSeedControllerTests(unittest.TestCase):
+    def test_source_receipt_binds_clean_commit_tree_and_executable_bytes(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            repository = Path(directory) / "repo"
+            repository.mkdir()
+            subprocess.run(("git", "init", "-q", repository), check=True)
+            subprocess.run(
+                ("git", "-C", repository, "config", "user.name", "Fixture"),
+                check=True,
+            )
+            subprocess.run(
+                ("git", "-C", repository, "config", "user.email", "fixture@example.com"),
+                check=True,
+            )
+            paths = tuple(repository / name for name in ("prepare.py", "build.py"))
+            for index, path in enumerate(paths):
+                path.write_text(f"phase={index}\n")
+            subprocess.run(("git", "-C", repository, "add", "."), check=True)
+            subprocess.run(
+                ("git", "-C", repository, "commit", "-qm", "fixture"), check=True
+            )
+
+            receipt = _source_checkout_receipt(repository, paths)
+
+            self.assertEqual(len(receipt.commit), 40)
+            self.assertEqual(len(receipt.tree), 40)
+            self.assertEqual(
+                receipt.file_sha256,
+                tuple(hashlib.sha256(path.read_bytes()).hexdigest() for path in paths),
+            )
+            paths[0].write_text("dirty\n")
+            with self.assertRaisesRegex(ValueError, "clean committed"):
+                _source_checkout_receipt(repository, paths)
+
     def test_each_phase_uses_a_fresh_process_tracker(self) -> None:
         arguments = _arguments(Path("/tmp/fixture"))
         trackers: list[object] = []
@@ -187,12 +232,15 @@ class CrossSeedControllerTests(unittest.TestCase):
                 arguments.result_output.write_bytes(raw)
                 return raw
 
-            terminal = execute_cross_seed_controller(arguments, run_phase=runner)
+            terminal = execute_cross_seed_controller(
+                arguments, run_phase=runner, source_receipt=_source_receipt()
+            )
             self.assertEqual(phases, ["prepare", "build", "evaluate"])
             value = json.loads(terminal)
             self.assertEqual(value["schema"], "sfora-cross-seed-controller-terminal-v1")
             self.assertEqual(value["status"], "complete")
             self.assertIs(value["claim_eligible"], False)
+            self.assertEqual(value["source"]["commit"], "d" * 40)
             self.assertEqual(
                 value["result_sha256"],
                 hashlib.sha256(arguments.result_output.read_bytes()).hexdigest(),
@@ -210,7 +258,9 @@ class CrossSeedControllerTests(unittest.TestCase):
                 raise RuntimeError("fixture failure")
 
             with self.assertRaisesRegex(RuntimeError, "fixture failure"):
-                execute_cross_seed_controller(arguments, run_phase=runner)
+                execute_cross_seed_controller(
+                    arguments, run_phase=runner, source_receipt=_source_receipt()
+                )
             self.assertEqual(phases, ["prepare"])
             self.assertFalse(arguments.terminal_output.exists())
 

@@ -8,6 +8,8 @@ import hashlib
 import json
 import os
 import shutil
+import socket
+import subprocess
 import sys
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
@@ -116,6 +118,74 @@ class CrossSeedProcessObservation:
     def __post_init__(self) -> None:
         if any(type(value) is not int or value < 0 for value in vars(self).values()):
             raise ValueError("cross-seed process observation differs")
+
+
+@dataclass(frozen=True)
+class CrossSeedSourceReceipt:
+    """Clean checkout and exact executable-byte authority."""
+
+    commit: str
+    tree: str
+    hostname: str
+    file_sha256: tuple[str, ...]
+
+    def __post_init__(self) -> None:
+        if (
+            len(self.commit) != 40
+            or len(self.tree) != 40
+            or not self.hostname
+            or not self.file_sha256
+            or any(len(value) != 64 for value in self.file_sha256)
+        ):
+            raise ValueError("source receipt differs")
+
+
+def _source_checkout_receipt(
+    repository: Path, files: tuple[Path, ...]
+) -> CrossSeedSourceReceipt:
+    if (
+        not repository.is_absolute()
+        or repository.is_symlink()
+        or not repository.is_dir()
+        or not files
+    ):
+        raise ValueError("source repository authority differs")
+    resolved = repository.resolve()
+    for path in files:
+        if (
+            not path.is_absolute()
+            or path.is_symlink()
+            or not path.is_file()
+            or not path.resolve().is_relative_to(resolved)
+        ):
+            raise ValueError("source executable authority differs")
+    status = subprocess.run(
+        ("git", "-C", str(repository), "status", "--porcelain", "--untracked-files=all"),
+        check=True,
+        capture_output=True,
+    ).stdout
+    if status:
+        raise ValueError("source checkout must be clean committed authority")
+    commit = subprocess.run(
+        ("git", "-C", str(repository), "rev-parse", "HEAD"),
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    tree = subprocess.run(
+        ("git", "-C", str(repository), "rev-parse", "HEAD^{tree}"),
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    if any(len(value) != 40 for value in (commit, tree)):
+        raise ValueError("source git identity differs")
+    return CrossSeedSourceReceipt(
+        commit=commit,
+        tree=tree,
+        hostname=socket.gethostname(),
+        file_sha256=tuple(hashlib.sha256(path.read_bytes()).hexdigest() for path in files),
+    )
 
 
 def stop_reason(observation: CrossSeedProcessObservation) -> str | None:
@@ -310,10 +380,16 @@ def execute_cross_seed_controller(
     arguments: argparse.Namespace,
     *,
     run_phase: Callable[[str, tuple[str, ...]], bytes],
+    source_receipt: CrossSeedSourceReceipt,
 ) -> bytes:
     """Run preparation, construction, and evaluation once each in strict order."""
 
-    if not isinstance(arguments, argparse.Namespace) or not callable(run_phase):
+    if (
+        not isinstance(arguments, argparse.Namespace)
+        or not callable(run_phase)
+        or type(source_receipt) is not CrossSeedSourceReceipt
+        or len(source_receipt.file_sha256) != 5
+    ):
         raise ValueError("controller execution interface differs")
     for path in (
         arguments.prepared_output,
@@ -376,6 +452,12 @@ def execute_cross_seed_controller(
             "result_bytes": result_bytes,
             "result_sha256": result_sha256,
             "schema": "sfora-cross-seed-controller-terminal-v1",
+            "source": {
+                "commit": source_receipt.commit,
+                "file_sha256": list(source_receipt.file_sha256),
+                "hostname": source_receipt.hostname,
+                "tree": source_receipt.tree,
+            },
             "status": "complete",
         }
     )
@@ -401,11 +483,25 @@ def main(argv: Sequence[str] | None = None) -> int:
     """Run each child in a fresh network-denied named user unit."""
 
     arguments = parse_controller_arguments(argv)
+    source_receipt = _source_checkout_receipt(
+        arguments.repository,
+        (
+            arguments.prepare_cli,
+            arguments.build_cli,
+            arguments.evaluate_cli,
+            Path(__file__).resolve(),
+            arguments.repository
+            / "docs/superpowers/specs"
+            / "2026-09-02-cross-seed-spectral-task-vector-denoising-design.md",
+        ),
+    )
 
     def runner(_phase: str, child_argv: tuple[str, ...]) -> bytes:
         return _run_controller_child(arguments, child_argv)
 
-    terminal = execute_cross_seed_controller(arguments, run_phase=runner)
+    terminal = execute_cross_seed_controller(
+        arguments, run_phase=runner, source_receipt=source_receipt
+    )
     sys.stdout.buffer.write(terminal)
     return 0
 

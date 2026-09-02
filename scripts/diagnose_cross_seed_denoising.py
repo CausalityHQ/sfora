@@ -432,7 +432,7 @@ def _load_prepared_states(
     dict[int, OrderedDict[str, torch.Tensor]],
     dict[int, OrderedDict[str, torch.Tensor]],
 ]:
-    _initial, towers = _load_inputs(root, manifest_raw)
+    _initial, towers = _load_inputs(root, manifest_raw, include_heads=True)
     value = json.loads(manifest_raw)
     heads: dict[int, OrderedDict[str, torch.Tensor]] = {}
     for raw_row, seed in zip(value["seeds"], _SEEDS, strict=True):

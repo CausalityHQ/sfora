@@ -139,7 +139,7 @@ def _artifact(
 
 
 def _load_inputs(
-    prepared_root: Path, raw: bytes
+    prepared_root: Path, raw: bytes, *, include_heads: bool = False
 ) -> tuple[OrderedDict[str, torch.Tensor], dict[int, OrderedDict[str, torch.Tensor]]]:
     value = _read_manifest(prepared_root, raw)
     initial_row = value["initial_tower"]
@@ -189,6 +189,8 @@ def _load_inputs(
         if type(tower_directory) is not str or type(head_directory) is not str:
             raise ValueError("prepared seed artifact paths differ")
         expected_namespace.add(tower_directory)
+        if include_heads:
+            expected_namespace.add(head_directory)
     actual_namespace = {path.name for path in prepared_root.iterdir()}
     if actual_namespace != expected_namespace or any(
         path.is_symlink() for path in prepared_root.iterdir()
