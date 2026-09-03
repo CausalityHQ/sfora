@@ -2266,6 +2266,25 @@ def test_fepf_request_rejects_symlink_dataset_root_before_training(
         module._validate_run_receipt_request(args)
 
 
+def test_fepf_dataset_root_accepts_only_internal_relative_image_link(
+    tmp_path: Path,
+) -> None:
+    module = _load_script()
+    dataset_root = tmp_path / "dataset"
+    image_root = dataset_root / "img"
+    image_root.mkdir(parents=True)
+    (dataset_root / "Img").symlink_to("img", target_is_directory=True)
+
+    module._validate_evaluation_dataset_root(dataset_root)
+
+    (dataset_root / "Img").unlink()
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (dataset_root / "Img").symlink_to(outside, target_is_directory=True)
+    with pytest.raises(ValueError, match="dataset root differs"):
+        module._validate_evaluation_dataset_root(dataset_root)
+
+
 @pytest.mark.parametrize(
     ("mode", "seed", "resume"),
     (("random", 0, False), ("fepf_random", 7, False), ("fepf_random", 7, True)),

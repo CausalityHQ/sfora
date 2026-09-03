@@ -3616,12 +3616,22 @@ def _validate_evaluation_dataset_root(dataset_root: Path) -> None:
     absolute_root = dataset_root.absolute()
     resolved_root = dataset_root.resolve()
     image_root = resolved_root / "Img"
+    image_binding_valid = image_root.is_dir()
+    if image_binding_valid and image_root.is_symlink():
+        link = Path(os.readlink(image_root))
+        resolved_image_root = image_root.resolve()
+        image_binding_valid = (
+            not link.is_absolute()
+            and len(link.parts) == 1
+            and resolved_image_root.parent == resolved_root
+            and resolved_image_root.is_dir()
+            and not resolved_image_root.is_symlink()
+        )
     if (
         absolute_root != resolved_root
         or not resolved_root.is_dir()
         or resolved_root.is_symlink()
-        or not image_root.is_dir()
-        or image_root.is_symlink()
+        or not image_binding_valid
     ):
         raise ValueError("FEPF dataset root differs")
 
