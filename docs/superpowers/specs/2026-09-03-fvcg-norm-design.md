@@ -1,7 +1,7 @@
 # FVCG-Norm Design
 
 Date: 2026-09-03  
-Status: **PREREGISTERED — no FVCG-Norm result exists**
+Status: **CLOSED — Phase A failed its preregistered direct/VJP parity gate**
 
 ## Decision
 
@@ -75,6 +75,32 @@ and every measured step satisfies:
 
 The bounds are fixed before execution.  They are not adjusted if a real pair
 fails.  One failed campaign closes FVCG-Norm Phase A.
+
+## Phase-A result
+
+The sole repaired campaign ran from source commit
+`948e346e5da497e011bcf7faacf42631cbdd3e79`.  Its canonical result is
+`/home/riomus/fvcg-norm-phase-a-948e346e5da497e011bcf7faacf42631cbdd3e79/result.json`,
+7,070 bytes, with file SHA-256
+`e3e52d06ab7d0f1ad6c2292ca546c9b2aa73d88b2e2601e41455922e169f31a3`
+and internal result SHA-256
+`48c9fada237ab6e0a12da5c67fb2bf7438a99f1b4064ab38faf532fb536adec0`.
+
+The norm-stabilized field behaved as intended: all three applied/PFML ratios
+were 250,007--250,035 ppm, direction changes were 29,708--29,866 ppm, and
+restored step zero was deterministic.  Runtime and resource gates also passed:
+combined p90 was 7.017 seconds, semantic p90 was 0.796 seconds, peak CUDA
+reserved was 53.42 GB, peak RSS was 21.61 GB, and memory PSI was zero.
+
+The campaign nevertheless has `passed=false`.  Pair 5's independently captured
+complete-cut VJP differed from the direct scalar backward by 0.125 maximum
+absolute error and 0.0132029 field-relative L2 error, exceeding both the fixed
+0.05 and 0.01 alternatives.  A follow-up read-only characterization found
+cosine 0.999917768, direct norm 453.771602, VJP norm 455.238455, delta norm
+6.010479, and 0.2631% sign disagreement across nonzero entries.  This is
+consistent with a numerically close but non-qualifying BF16 replay, not evidence
+that the preregistered parity gate passed.  Per the frozen decision rule,
+FVCG-Norm is closed and no Cars pilot is authorized from this result.
 
 ## Next boundary
 
