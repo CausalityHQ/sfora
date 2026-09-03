@@ -122,11 +122,17 @@ def combine_norm_stabilized_gradients(
     if projected_dot < -projection_tolerance:
         raise ValueError("FVCG-Norm conflict projection differs")
 
-    applied_norm = rho * dml_norm
-    applied = tuple(value * (applied_norm / safe_norm) for value in safe)
+    target_applied_norm = rho * dml_norm
+    applied = tuple(value * (target_applied_norm / safe_norm) for value in safe)
     combined = tuple(
         dml_value + semantic_value
         for dml_value, semantic_value in zip(dml, applied, strict=True)
+    )
+    applied_norm = _norm(
+        tuple(
+            combined_value - dml_value
+            for combined_value, dml_value in zip(combined, dml, strict=True)
+        )
     )
     combined_norm = _norm(combined)
     cosine = _dot(dml, combined) / (dml_norm * combined_norm)

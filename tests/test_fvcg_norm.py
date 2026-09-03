@@ -92,6 +92,23 @@ def test_norm_stabilized_field_is_deterministic_and_fp32() -> None:
     assert first.gradients[0].dtype == torch.float32
 
 
+def test_norm_stabilized_field_reports_the_applied_fp32_increment() -> None:
+    dml = (torch.tensor([1.0e8, 3.0, -7.0], dtype=torch.float32),)
+    semantic = (torch.tensor([0.3, -0.7, 0.2], dtype=torch.float32),)
+    result = combine_norm_stabilized_gradients(dml, semantic, rho=0.25)
+    applied = tuple(
+        combined - source
+        for combined, source in zip(result.gradients, dml, strict=True)
+    )
+    actual_norm = math.sqrt(
+        math.fsum(float(torch.sum(value.double() ** 2)) for value in applied)
+    )
+    assert result.applied_semantic_norm == actual_norm
+    assert result.applied_to_dml_ratio_ppm == round(
+        actual_norm / result.dml_norm * 1_000_000
+    )
+
+
 def _authority() -> FvcgNormAuthority:
     return FvcgNormAuthority(
         base=FvcgStepAuthority(
