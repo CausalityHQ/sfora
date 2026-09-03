@@ -202,6 +202,31 @@ def test_canonical_logical_record_rejects_escape_and_symlink(tmp_path: Path) -> 
         canonical_logical_record(linked, root)
 
 
+def test_canonical_logical_record_accepts_only_internal_relative_image_root_link(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "dataset"
+    physical_image_root = root / "img"
+    image = physical_image_root / "WOMEN" / "query.jpg"
+    image.parent.mkdir(parents=True)
+    image.write_bytes(b"query")
+    (root / "Img").symlink_to("img", target_is_directory=True)
+    record = InshopRecord(
+        split="query",
+        image_path=root / "Img" / "WOMEN" / "query.jpg",
+        label="item_a",
+    )
+
+    assert canonical_logical_record(record, root).image_name == "WOMEN/query.jpg"
+
+    (root / "Img").unlink()
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (root / "Img").symlink_to(outside, target_is_directory=True)
+    with pytest.raises(ValueError, match="dataset root differs"):
+        canonical_logical_record(record, root)
+
+
 def test_query_evidence_uses_full_normalize_then_prefix_geometry(tmp_path: Path) -> None:
     query_records, gallery_records = _evidence_records(tmp_path / "dataset")
     query = np.zeros((1, 768), dtype=np.float32)

@@ -283,12 +283,22 @@ def canonical_logical_record(
     absolute_root = dataset_root.absolute()
     resolved_root = dataset_root.resolve()
     image_root = resolved_root / "Img"
+    resolved_image_root = image_root.resolve()
+    image_root_valid = image_root.is_dir()
+    if image_root_valid and image_root.is_symlink():
+        link = Path(os.readlink(image_root))
+        image_root_valid = (
+            not link.is_absolute()
+            and len(link.parts) == 1
+            and resolved_image_root.parent == resolved_root
+            and resolved_image_root.is_dir()
+            and not resolved_image_root.is_symlink()
+        )
     if (
         absolute_root != resolved_root
         or not resolved_root.is_dir()
         or resolved_root.is_symlink()
-        or not image_root.is_dir()
-        or image_root.is_symlink()
+        or not image_root_valid
     ):
         raise ValueError("In-Shop dataset root differs")
     image_path = record.image_path
@@ -297,7 +307,7 @@ def canonical_logical_record(
     absolute_path = image_path.absolute()
     resolved_path = image_path.resolve()
     try:
-        relative = resolved_path.relative_to(image_root)
+        relative = absolute_path.relative_to(image_root)
     except ValueError as error:
         raise ValueError("In-Shop image path is not a real Img descendant") from error
     unresolved = image_root
@@ -308,8 +318,8 @@ def canonical_logical_record(
         if unresolved.is_symlink():
             raise ValueError("In-Shop image path contains a symlink")
     if (
-        absolute_path != resolved_path
-        or not relative.parts
+        not relative.parts
+        or resolved_path != resolved_image_root / relative
         or not resolved_path.is_file()
         or resolved_path.is_symlink()
     ):
