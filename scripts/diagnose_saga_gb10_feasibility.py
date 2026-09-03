@@ -632,6 +632,39 @@ class QwenSagaAdapter:
             )
         ):
             raise ValueError("SAGA completion score authority differs")
+        return self._score_completion_branches(pair, completion_ids)
+
+    def score_verdict_pair(
+        self,
+        pair: object,
+        *,
+        same_completion_ids: tuple[int, ...],
+        different_completion_ids: tuple[int, ...],
+    ) -> tuple[float, float]:
+        """Score the registered SAME/Different branches without gradients."""
+
+        completions = (same_completion_ids, different_completion_ids)
+        if (
+            type(pair) is not PreparedPair
+            or any(
+                type(completion) is not tuple
+                or not completion
+                or any(type(token) is not int or token < 0 for token in completion)
+                for completion in completions
+            )
+            or same_completion_ids == different_completion_ids
+        ):
+            raise ValueError("SAGA verdict score authority differs")
+        scores = self._score_completion_branches(pair, completions)
+        return scores[0], scores[1]
+
+    def _score_completion_branches(
+        self,
+        pair: PreparedPair,
+        completion_ids: tuple[tuple[int, ...], ...],
+    ) -> tuple[float, ...]:
+        """Score validated completion branches in their supplied order."""
+
         scores: list[float] = []
         with torch.no_grad():
             for completion in completion_ids:
@@ -1127,9 +1160,7 @@ class QwenSagaAdapter:
         ):
             raise ValueError("SAGA boundary VJP modules differ")
         modules = (merger, *tuple(deepstack))
-        captured: dict[str, list[torch.Tensor]] = {
-            name: [] for name in expected_names
-        }
+        captured: dict[str, list[torch.Tensor]] = {name: [] for name in expected_names}
 
         def capture_for(
             name: str,

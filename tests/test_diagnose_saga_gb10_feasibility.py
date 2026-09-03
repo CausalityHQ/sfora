@@ -711,11 +711,11 @@ class _HfLikeProcessor:
         }
         return UserDict(
             {
-            "input_ids": torch.tensor([[1, 99, 99, 2, 99, 99, 3, 4, 5, 6]]),
-            "attention_mask": torch.ones(1, 10, dtype=torch.long),
-            "mm_token_type_ids": torch.tensor([[0, 1, 1, 0, 1, 1, 0, 0, 0, 0]]),
-            "pixel_values": torch.ones(16, 1),
-            "image_grid_thw": torch.tensor([[1, 2, 4], [1, 2, 4]]),
+                "input_ids": torch.tensor([[1, 99, 99, 2, 99, 99, 3, 4, 5, 6]]),
+                "attention_mask": torch.ones(1, 10, dtype=torch.long),
+                "mm_token_type_ids": torch.tensor([[0, 1, 1, 0, 1, 1, 0, 0, 0, 0]]),
+                "pixel_values": torch.ones(16, 1),
+                "image_grid_thw": torch.tensor([[1, 2, 4], [1, 2, 4]]),
             }
         )
 
@@ -1096,6 +1096,25 @@ def test_qwen_scores_all_pilot_completions_without_backward_or_generation(tmp_pa
     assert scores == pytest.approx((scores[0],) * 8)
     assert factory.model.forward_calls == 8
     assert all(parameter.grad is None for parameter in adapter._vision_parameters)
+
+
+def test_qwen_scores_verdict_pair_with_two_forward_only_branches(tmp_path: Path) -> None:
+    authority = _hf_authority(tmp_path)
+    factory = _HfLikeFactory()
+    adapter = _MODULE.load_qwen_adapter(authority, factory=factory)
+    pair = adapter.prepare_pair(authority.fixture)
+
+    scores = adapter.score_verdict_pair(
+        pair,
+        same_completion_ids=(10, 11),
+        different_completion_ids=(20, 21),
+    )
+
+    assert len(scores) == 2
+    assert all(type(score) is float and math.isfinite(score) for score in scores)
+    assert factory.model.forward_calls == 2
+    assert all(parameter.grad is None for parameter in adapter._vision_parameters)
+    assert all(parameter.grad is None for parameter in adapter._language_parameters)
 
 
 def test_qwen_replay_patch_gradient_rejects_missing_merger(tmp_path: Path) -> None:
