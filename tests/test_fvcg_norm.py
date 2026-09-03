@@ -1,11 +1,21 @@
 from __future__ import annotations
 
+import json
 import math
+from dataclasses import replace
 
 import pytest
 import torch
 
-from sfora.fvcg_norm import combine_norm_stabilized_gradients
+from sfora.fvcg_direct import FvcgStepAuthority, FvcgStepEvidence, select_stratum_pair
+from sfora.fvcg_norm import (
+    FvcgNormAuthority,
+    FvcgNormPhaseAResult,
+    FvcgNormStepEvidence,
+    canonical_fvcg_norm_phase_a_result_bytes,
+    combine_norm_stabilized_gradients,
+    validate_fvcg_norm_phase_a_result_bytes,
+)
 
 
 def _flat(values: tuple[torch.Tensor, ...]) -> torch.Tensor:
@@ -80,3 +90,127 @@ def test_norm_stabilized_field_is_deterministic_and_fp32() -> None:
 
     assert first == second
     assert first.gradients[0].dtype == torch.float32
+
+
+def _authority() -> FvcgNormAuthority:
+    return FvcgNormAuthority(
+        base=FvcgStepAuthority(
+            source_commit="1" * 40,
+            launch_authority_sha256="2" * 64,
+            model_revision="3" * 40,
+            fixture_sha256="4" * 64,
+            selection_seed_sha256="5" * 64,
+            semantic_weight=0.25,
+            gradient_clip_norm=10.0,
+            direct_vjp_atol=0.05,
+            direct_vjp_rtol=0.01,
+        ),
+        rho=0.25,
+    ).validated()
+
+
+def _step(ordinal: int) -> FvcgNormStepEvidence:
+    authority = _authority()
+    base = FvcgStepEvidence(
+        ordinal=ordinal,
+        selected_pair=select_stratum_pair(
+            tuple(range(8)), seed_sha256=authority.base.selection_seed_sha256, step=ordinal
+        ),
+        correct_score=-0.1,
+        incorrect_score=-1.1,
+        correct_probability_ppm=731_059,
+        coefficient_ppm=393_256,
+        loss=-0.39325649134544005,
+        generated_tokens=0,
+        vision_nonzero_gradient_parameters=2,
+        pooler_nonzero_gradient_parameters=1,
+        proxy_nonzero_gradient_parameters=1,
+        language_gradient_parameters=0,
+        gradients_finite=True,
+        dml_gradient_norm=4.0,
+        semantic_gradient_norm=2.0,
+        combined_gradient_cosine_distance_ppm=29_857,
+        clip_activated=False,
+        vision_state_changed=True,
+        pooler_state_changed=True,
+        proxy_state_changed=True,
+        combined_elapsed_ns=4_000_000_000,
+        semantic_elapsed_ns=800_000_000,
+        peak_cuda_reserved_bytes=60 * 1024**3,
+        peak_rss_bytes=20 * 1024**3,
+        memory_psi_full_avg10_ppm=0,
+        direct_vjp_max_abs_error=0.01,
+        direct_vjp_max_rel_error=0.005,
+        gradient_sha256=f"{ordinal + 6:064x}",
+        updated_state_sha256=f"{ordinal + 10:064x}",
+        optimizer_state_sha256=f"{ordinal + 14:064x}",
+        language_state_sha256="f" * 64,
+    )
+    return FvcgNormStepEvidence(
+        base=base,
+        safe_semantic_norm=2.0,
+        raw_dot=0.0,
+        projected_dot=0.0,
+        applied_semantic_norm=1.0,
+        applied_to_dml_ratio_ppm=250_000,
+    ).validated(authority)
+
+
+def test_norm_phase_a_canonical_result_recomputes_norm_gates_and_digest() -> None:
+    authority = _authority()
+    steps = tuple(_step(index) for index in range(3))
+    result = FvcgNormPhaseAResult.from_steps(
+        authority=authority,
+        steps=steps,
+        repeated_step_zero=replace(steps[0]),
+        initial_language_state_sha256="f" * 64,
+    )
+
+    raw = canonical_fvcg_norm_phase_a_result_bytes(result)
+    reopened = validate_fvcg_norm_phase_a_result_bytes(raw)
+
+    assert reopened == result
+    assert reopened.passed is True
+    assert raw.endswith(b"\n") and not raw.endswith(b"\n\n")
+
+
+def test_norm_phase_a_rejects_derived_scalar_and_pass_mutations() -> None:
+    authority = _authority()
+    steps = tuple(_step(index) for index in range(3))
+    result = FvcgNormPhaseAResult.from_steps(
+        authority=authority,
+        steps=steps,
+        repeated_step_zero=steps[0],
+        initial_language_state_sha256="f" * 64,
+    )
+    raw = canonical_fvcg_norm_phase_a_result_bytes(result)
+
+    for path in ("ratio", "projected", "direction", "passed"):
+        value = json.loads(raw)
+        if path == "ratio":
+            value["steps"][0]["applied_to_dml_ratio_ppm"] += 1
+        elif path == "projected":
+            value["steps"][0]["projected_dot"] = -1.0
+        elif path == "direction":
+            value["steps"][0]["base"]["combined_gradient_cosine_distance_ppm"] = 1
+        else:
+            value["passed"] = False
+        mutated = (json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n").encode()
+        with pytest.raises(ValueError, match="FVCG-Norm"):
+            validate_fvcg_norm_phase_a_result_bytes(mutated)
+
+
+def test_norm_phase_a_fails_out_of_band_direction_without_rewriting_evidence() -> None:
+    authority = _authority()
+    steps = tuple(_step(index) for index in range(3))
+    failed = replace(
+        steps[0],
+        base=replace(steps[0].base, combined_gradient_cosine_distance_ppm=4_999),
+    )
+    result = FvcgNormPhaseAResult.from_steps(
+        authority=authority,
+        steps=(failed, *steps[1:]),
+        repeated_step_zero=failed,
+        initial_language_state_sha256="f" * 64,
+    )
+    assert result.passed is False
