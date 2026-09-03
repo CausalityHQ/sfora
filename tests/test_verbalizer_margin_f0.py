@@ -226,7 +226,8 @@ def test_result_requires_overall_and_both_dependence_block_gates() -> None:
 
 
 def test_result_recomputes_scores_replays_resources_and_canonical_bytes() -> None:
-    rows = _observations(caliber_wins=38, other_wins=24)
+    base_rows = _observations(caliber_wins=38, other_wins=24)
+    rows = (replace(base_rows[0], peak_rss_bytes=49 * 1024**3), *base_rows[1:])
     result = VmdF0Result.from_observations(
         rows,
         repeat_checked_ordinals=(0, 102),
@@ -258,6 +259,13 @@ def test_result_recomputes_scores_replays_resources_and_canonical_bytes() -> Non
     with pytest.raises(ValueError, match="resource"):
         VmdF0Result.from_observations(
             (replace(rows[0], peak_cuda_reserved_bytes=56 * 1024**3 + 1), *rows[1:]),
+            repeat_checked_ordinals=(0, 102),
+            repeat_branch_scores=((2.0, 0.0, 0.0, 0.0), (0.0, 0.0, 2.0, 0.0)),
+            total_elapsed_ns=1,
+        )
+    with pytest.raises(ValueError, match="resource"):
+        VmdF0Result.from_observations(
+            (replace(rows[0], peak_rss_bytes=64 * 1024**3 + 1), *rows[1:]),
             repeat_checked_ordinals=(0, 102),
             repeat_branch_scores=((2.0, 0.0, 0.0, 0.0), (0.0, 0.0, 2.0, 0.0)),
             total_elapsed_ns=1,

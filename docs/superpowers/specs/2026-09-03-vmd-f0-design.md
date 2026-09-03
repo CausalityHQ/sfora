@@ -61,8 +61,11 @@ The result passes only when all conditions hold:
 - the dominant Caliber 2012/2007 block wins at least 38/63;
 - the remaining errors win at least 24/40;
 - generated tokens are zero and language-model gradients are absent;
-- peak CUDA reserved memory is at most 56 GiB, peak process RSS at most 32 GiB,
+- peak CUDA reserved memory is at most 56 GiB, peak process RSS at most 64 GiB,
   and total scoring wall time at most 900 seconds.
+
+The RSS ceiling includes the Qwen weights resident in the DGX GB10 unified-memory
+process; it is an execution-safety bound and does not affect any quality gate.
 
 The subgroup gates prevent the 63 correlated Caliber errors from deciding the
 screen alone. These are engineering falsification thresholds, not independent
@@ -81,4 +84,3 @@ burned development evidence, so every F0 artifact is `claim_eligible=false`.
 F0 passing authorizes one bounded Cars development pilot, not a paper claim.
 The pilot compares baseline, wall-matched control, and VMD. A publication claim
 requires a prospectively frozen dataset/holdout not used to design F0 or VMD.
-
