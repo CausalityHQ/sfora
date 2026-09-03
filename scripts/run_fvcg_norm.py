@@ -29,6 +29,7 @@ from sfora.fvcg_norm import (  # noqa: E402
     FvcgNormStepEvidence,
     canonical_fvcg_norm_phase_a_result_bytes,
     combine_norm_stabilized_gradients,
+    remeasure_stored_combined_gradients,
     validate_fvcg_norm_phase_a_result_bytes,
 )
 from sfora.pfml import pfml_potential_loss  # noqa: E402
@@ -123,6 +124,10 @@ def run_norm_combined_step(
     )
     for parameter in vision:
         parameter.grad = None
+    protected_gradients = tuple(
+        None if parameter.grad is None else parameter.grad.detach().clone()
+        for parameter in (*pooler, proxies)
+    )
 
     _synchronize()
     semantic_started = perf_counter_ns()
@@ -133,22 +138,31 @@ def run_norm_combined_step(
     )
     _synchronize()
     semantic_elapsed_ns = max(1, perf_counter_ns() - semantic_started)
+    if any(
+        (before is None) != (parameter.grad is None)
+        or (
+            before is not None
+            and parameter.grad is not None
+            and not torch.equal(before, parameter.grad)
+        )
+        for before, parameter in zip(protected_gradients, (*pooler, proxies), strict=True)
+    ):
+        raise ValueError("FVCG-Norm non-vision gradient differs")
     if any(parameter.grad is None for parameter in vision):
         raise ValueError("FVCG-Norm semantic gradient is absent")
-    semantic_gradients = tuple(
-        parameter.grad.detach().float().clone() for parameter in vision
-    )
-    field = combine_norm_stabilized_gradients(
-        dml_gradients, semantic_gradients, rho=authority.rho
-    )
+    semantic_gradients = tuple(parameter.grad.detach().float().clone() for parameter in vision)
+    field = combine_norm_stabilized_gradients(dml_gradients, semantic_gradients, rho=authority.rho)
     for parameter, gradient in zip(vision, field.gradients, strict=True):
         parameter.grad.copy_(gradient.to(dtype=parameter.dtype))
+    field = remeasure_stored_combined_gradients(
+        field,
+        dml_gradients,
+        tuple(parameter.grad.detach().float().clone() for parameter in vision),
+    )
 
     all_trainable = (*vision, *pooler, proxies)
     preclip_norm = float(
-        torch.nn.utils.clip_grad_norm_(
-            all_trainable, authority.base.gradient_clip_norm
-        )
+        torch.nn.utils.clip_grad_norm_(all_trainable, authority.base.gradient_clip_norm)
     )
     optimizer.step()
     _synchronize()
@@ -167,24 +181,15 @@ def run_norm_combined_step(
     if language_count:
         raise ValueError("FVCG-Norm language gradient differs")
     gradient_sha256 = hashlib.sha256(
-        direct._gradient_vector(all_trainable)
-        .detach()
-        .cpu()
-        .numpy()
-        .astype("<f4")
-        .tobytes()
+        direct._gradient_vector(all_trainable).detach().cpu().numpy().astype("<f4").tobytes()
     ).hexdigest()
     vision_state = direct.parameter_state_sha256(vision)
     pooler_state = direct.parameter_state_sha256(pooler)
     proxy_state = direct.parameter_state_sha256((proxies,))
     updated_state = hashlib.sha256(
-        bytes.fromhex(vision_state)
-        + bytes.fromhex(pooler_state)
-        + bytes.fromhex(proxy_state)
+        bytes.fromhex(vision_state) + bytes.fromhex(pooler_state) + bytes.fromhex(proxy_state)
     ).hexdigest()
-    observed_psi = max(
-        memory_psi_full_avg10_ppm, direct._memory_psi_full_avg10_ppm()
-    )
+    observed_psi = max(memory_psi_full_avg10_ppm, direct._memory_psi_full_avg10_ppm())
     base = FvcgStepEvidence(
         ordinal=ordinal,
         selected_pair=direct.select_stratum_pair(
@@ -202,9 +207,7 @@ def run_norm_combined_step(
         pooler_nonzero_gradient_parameters=pooler_count,
         proxy_nonzero_gradient_parameters=proxy_count,
         language_gradient_parameters=language_count,
-        gradients_finite=(
-            vision_finite and pooler_finite and proxy_finite and language_finite
-        ),
+        gradients_finite=(vision_finite and pooler_finite and proxy_finite and language_finite),
         dml_gradient_norm=field.dml_norm,
         semantic_gradient_norm=field.semantic_norm,
         combined_gradient_cosine_distance_ppm=field.combined_cosine_distance_ppm,
@@ -244,14 +247,16 @@ def run_phase_a(
 
     result_path = output_directory / "result.json"
     if result_path.exists():
-        return canonical_fvcg_norm_phase_a_result_bytes(
-            validate_fvcg_norm_phase_a_result_bytes(result_path.read_bytes())
-        )
+        reopened = validate_fvcg_norm_phase_a_result_bytes(result_path.read_bytes())
+        if reopened.authority != authority:
+            raise ValueError("FVCG-Norm resumed authority differs")
+        return canonical_fvcg_norm_phase_a_result_bytes(reopened)
 
-    def one(ordinal: int) -> FvcgNormStepEvidence:
+    def one(ordinal: int) -> tuple[str, FvcgNormStepEvidence]:
         context = context_factory(ordinal)
         try:
-            return run_norm_combined_step(
+            initial_language = direct.parameter_state_sha256(context.adapter.language_parameters())
+            evidence = run_norm_combined_step(
                 context.adapter,
                 authority=authority,
                 optimizer=context.optimizer,
@@ -267,6 +272,7 @@ def run_phase_a(
                 memory_psi_full_avg10_ppm=context.memory_psi_full_avg10_ppm,
                 direct_vjp_reference=context.direct_vjp_reference,
             )
+            return initial_language, evidence
         finally:
             del context
             gc.collect()
@@ -274,9 +280,14 @@ def run_phase_a(
                 torch.cuda.empty_cache()
 
     one(0)
-    steps = tuple(one(ordinal) for ordinal in range(3))
-    repeated = one(0)
-    initial_language = steps[0].base.language_state_sha256
+    measured = tuple(one(ordinal) for ordinal in range(3))
+    repeated_initial_language, repeated = one(0)
+    initial_language = measured[0][0]
+    if any(value != initial_language for value, _step in measured) or (
+        repeated_initial_language != initial_language
+    ):
+        raise ValueError("FVCG-Norm restored language state differs")
+    steps = tuple(step for _language, step in measured)
     result = FvcgNormPhaseAResult.from_steps(
         authority=authority,
         steps=steps,
@@ -319,8 +330,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         ("selection_seed_sha256", 64),
     ):
         value = getattr(parsed, name)
-        if type(value) is not str or len(value) != length or any(
-            character not in "0123456789abcdef" for character in value
+        if (
+            type(value) is not str
+            or len(value) != length
+            or any(character not in "0123456789abcdef" for character in value)
         ):
             parser.error(f"{name.replace('_', ' ')} differs")
     for name in ("snapshot_manifest", "fixture", "p32_authority", "train_manifest"):
@@ -346,14 +359,11 @@ def main(argv: list[str] | None = None) -> int:
         args.train_manifest,
         source_commit=args.fixture_source_commit,
     )
-    snapshot = load_snapshot_authority(
-        root=args.model_root, manifest_path=args.snapshot_manifest
-    )
+    snapshot = load_snapshot_authority(root=args.model_root, manifest_path=args.snapshot_manifest)
     fixture = load_fixture_authority(args.fixture)
     if (
         fixture.source_commit != args.fixture_source_commit
-        or getattr(snapshot, "model_revision", None)
-        != local.rollout_authority.model_revision
+        or getattr(snapshot, "model_revision", None) != local.rollout_authority.model_revision
     ):
         raise ValueError("FVCG-Norm local authority binding differs")
     base = FvcgStepAuthority(
@@ -367,7 +377,11 @@ def main(argv: list[str] | None = None) -> int:
         direct_vjp_atol=0.05,
         direct_vjp_rtol=0.01,
     ).validated()
-    authority = FvcgNormAuthority(base=base, rho=FVCG_NORM_RHO).validated()
+    authority = FvcgNormAuthority(
+        base=base,
+        rho=FVCG_NORM_RHO,
+        fixture_source_commit=args.fixture_source_commit,
+    ).validated()
     raw = run_phase_a(
         authority=authority,
         context_factory=direct._real_context_factory(

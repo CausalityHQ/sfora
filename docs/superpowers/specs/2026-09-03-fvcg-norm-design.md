@@ -62,7 +62,8 @@ determinism, role, state, and mixed absolute-or-field-relative VJP gates pass,
 and every measured step satisfies:
 
 - applied/PFML norm ratio is within 249,000--251,000 ppm;
-- combined cosine direction change is between 5,000 and 50,000 ppm;
+- combined cosine direction change is between 5,000 and 30,000 ppm (the upper
+  edge covers the analytic 29,857 ppm maximum plus integer rounding);
 - the safe semantic field is finite and nonzero;
 - the post-projection dot product is nonnegative within an FP64 reduction
   tolerance of `1e-10 * ||d|| * ||s_safe||`; and

@@ -14,6 +14,7 @@ from sfora.fvcg_norm import (
     FvcgNormStepEvidence,
     canonical_fvcg_norm_phase_a_result_bytes,
     combine_norm_stabilized_gradients,
+    remeasure_stored_combined_gradients,
     validate_fvcg_norm_phase_a_result_bytes,
 )
 
@@ -97,16 +98,30 @@ def test_norm_stabilized_field_reports_the_applied_fp32_increment() -> None:
     semantic = (torch.tensor([0.3, -0.7, 0.2], dtype=torch.float32),)
     result = combine_norm_stabilized_gradients(dml, semantic, rho=0.25)
     applied = tuple(
-        combined - source
-        for combined, source in zip(result.gradients, dml, strict=True)
+        combined - source for combined, source in zip(result.gradients, dml, strict=True)
     )
-    actual_norm = math.sqrt(
-        math.fsum(float(torch.sum(value.double() ** 2)) for value in applied)
-    )
+    actual_norm = math.sqrt(math.fsum(float(torch.sum(value.double() ** 2)) for value in applied))
     assert result.applied_semantic_norm == actual_norm
-    assert result.applied_to_dml_ratio_ppm == round(
-        actual_norm / result.dml_norm * 1_000_000
+    assert result.applied_to_dml_ratio_ppm == round(actual_norm / result.dml_norm * 1_000_000)
+
+
+def test_norm_stabilized_field_remeasures_the_optimizer_dtype_store() -> None:
+    dml = (torch.tensor([1.0e8, 3.0, -7.0], dtype=torch.float32),)
+    semantic = (torch.tensor([0.3, -0.7, 0.2], dtype=torch.float32),)
+    calculated = combine_norm_stabilized_gradients(dml, semantic, rho=0.25)
+    stored = tuple(value.to(torch.bfloat16).float() for value in calculated.gradients)
+
+    measured = remeasure_stored_combined_gradients(calculated, dml, stored)
+
+    actual_increment = stored[0] - dml[0]
+    assert all(
+        torch.equal(actual, expected)
+        for actual, expected in zip(measured.gradients, stored, strict=True)
     )
+    assert measured.applied_semantic_norm == pytest.approx(
+        float(torch.linalg.vector_norm(actual_increment.double()))
+    )
+    assert measured.applied_to_dml_ratio_ppm != calculated.applied_to_dml_ratio_ppm
 
 
 def _authority() -> FvcgNormAuthority:
@@ -123,6 +138,7 @@ def _authority() -> FvcgNormAuthority:
             direct_vjp_rtol=0.01,
         ),
         rho=0.25,
+        fixture_source_commit="6" * 40,
     ).validated()
 
 
@@ -202,12 +218,16 @@ def test_norm_phase_a_rejects_derived_scalar_and_pass_mutations() -> None:
     )
     raw = canonical_fvcg_norm_phase_a_result_bytes(result)
 
-    for path in ("ratio", "projected", "direction", "passed"):
+    for path in ("ratio", "projected", "safe", "cauchy", "direction", "passed"):
         value = json.loads(raw)
         if path == "ratio":
             value["steps"][0]["applied_to_dml_ratio_ppm"] += 1
         elif path == "projected":
-            value["steps"][0]["projected_dot"] = -1.0
+            value["steps"][0]["projected_dot"] = 7.0
+        elif path == "safe":
+            value["steps"][0]["safe_semantic_norm"] = 1.0
+        elif path == "cauchy":
+            value["steps"][0]["raw_dot"] = 9.0
         elif path == "direction":
             value["steps"][0]["base"]["combined_gradient_cosine_distance_ppm"] = 1
         else:
@@ -215,6 +235,18 @@ def test_norm_phase_a_rejects_derived_scalar_and_pass_mutations() -> None:
         mutated = (json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n").encode()
         with pytest.raises(ValueError, match="FVCG-Norm"):
             validate_fvcg_norm_phase_a_result_bytes(mutated)
+
+
+def test_norm_step_rejects_impossible_projection_evidence_directly() -> None:
+    authority = _authority()
+    step = _step(0)
+    for mutation in (
+        replace(step, projected_dot=7.0),
+        replace(step, safe_semantic_norm=1.0),
+        replace(step, raw_dot=9.0, projected_dot=9.0),
+    ):
+        with pytest.raises(ValueError, match="step arithmetic"):
+            mutation.validated(authority)
 
 
 def test_norm_phase_a_fails_out_of_band_direction_without_rewriting_evidence() -> None:
@@ -231,3 +263,48 @@ def test_norm_phase_a_fails_out_of_band_direction_without_rewriting_evidence() -
         initial_language_state_sha256="f" * 64,
     )
     assert result.passed is False
+
+
+def test_norm_phase_a_replay_covers_norms_and_direction() -> None:
+    authority = _authority()
+    steps = tuple(_step(index) for index in range(3))
+    for replay in (
+        replace(
+            steps[0], base=replace(steps[0].base, dml_gradient_norm=5.0), applied_semantic_norm=1.25
+        ),
+        replace(
+            steps[0],
+            base=replace(steps[0].base, semantic_gradient_norm=3.0),
+            safe_semantic_norm=3.0,
+        ),
+        replace(
+            steps[0],
+            base=replace(steps[0].base, combined_gradient_cosine_distance_ppm=6_000),
+        ),
+    ):
+        result = FvcgNormPhaseAResult.from_steps(
+            authority=authority,
+            steps=steps,
+            repeated_step_zero=replay,
+            initial_language_state_sha256="f" * 64,
+        )
+        assert result.passed is False
+
+
+def test_norm_result_publishes_recomputed_base_resource_aggregates() -> None:
+    authority = _authority()
+    steps = tuple(_step(index) for index in range(3))
+    result = FvcgNormPhaseAResult.from_steps(
+        authority=authority,
+        steps=steps,
+        repeated_step_zero=steps[0],
+        initial_language_state_sha256="f" * 64,
+    )
+    value = json.loads(canonical_fvcg_norm_phase_a_result_bytes(result))
+    assert value["combined_p90_ns"] == 4_000_000_000
+    assert value["semantic_p90_ns"] == 800_000_000
+    assert value["peak_cuda_reserved_bytes"] == 60 * 1024**3
+    assert value["peak_rss_bytes"] == 20 * 1024**3
+    assert value["peak_memory_psi_full_avg10_ppm"] == 0
+    assert value["deterministic_step_zero"] is True
+    assert value["gates"]["combined_p90_ns"] == 15_000_000_000

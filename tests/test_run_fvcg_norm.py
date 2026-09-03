@@ -31,6 +31,8 @@ class _Adapter:
         self.pooler = torch.nn.Linear(4, 3, bias=False)
         self.language = torch.nn.Linear(4, 2, bias=False)
         self.semantic_scale = semantic_scale
+        self.mutate_language = False
+        self.mutate_pooler_gradient = False
         for parameter in self.language.parameters():
             parameter.requires_grad_(False)
 
@@ -57,6 +59,12 @@ class _Adapter:
         incorrect = feature[1].float()
         loss = torch_collapsed_grpo_verdict_loss(correct, incorrect)
         (loss * self.semantic_scale).backward()
+        if self.mutate_language:
+            with torch.no_grad():
+                self.language.weight.add_(1.0)
+        if self.mutate_pooler_gradient:
+            assert self.pooler.weight.grad is not None
+            self.pooler.weight.grad.mul_(2.0)
         probability = collapsed_verdict_probability(
             float(correct.detach()), float(incorrect.detach())
         )
@@ -83,6 +91,7 @@ def _authority() -> FvcgNormAuthority:
             direct_vjp_rtol=0.01,
         ),
         rho=0.25,
+        fixture_source_commit="6" * 40,
     ).validated()
 
 
@@ -152,10 +161,13 @@ def test_norm_combined_step_is_scale_stable() -> None:
     ordinary = _run(1.0)
     huge = _run(1_000_000.0)
     assert ordinary.applied_to_dml_ratio_ppm == huge.applied_to_dml_ratio_ppm
-    assert abs(
-        ordinary.base.combined_gradient_cosine_distance_ppm
-        - huge.base.combined_gradient_cosine_distance_ppm
-    ) <= 2
+    assert (
+        abs(
+            ordinary.base.combined_gradient_cosine_distance_ppm
+            - huge.base.combined_gradient_cosine_distance_ppm
+        )
+        <= 2
+    )
 
 
 def test_norm_cli_rejects_network_and_duplicate_options(tmp_path: Path) -> None:
@@ -190,9 +202,7 @@ def test_norm_phase_a_replays_step_zero_and_reopens_result(tmp_path: Path) -> No
         "updated_state_sha256",
         "optimizer_state_sha256",
     ):
-        assert getattr(result.steps[0].base, name) == getattr(
-            result.repeated_step_zero.base, name
-        )
+        assert getattr(result.steps[0].base, name) == getattr(result.repeated_step_zero.base, name)
     assert (tmp_path / "result.json").read_bytes() == raw
     assert (
         _MODULE.run_phase_a(
@@ -202,3 +212,56 @@ def test_norm_phase_a_replays_step_zero_and_reopens_result(tmp_path: Path) -> No
         )
         == raw
     )
+
+
+def test_norm_phase_a_rejects_language_mutation_from_restored_state(tmp_path: Path) -> None:
+    def factory(_ordinal: int) -> object:
+        context = _context()
+        context.adapter.mutate_language = True
+        return context
+
+    raw = _MODULE.run_phase_a(
+        authority=_authority(), context_factory=factory, output_directory=tmp_path
+    )
+    assert _MODULE.validate_fvcg_norm_phase_a_result_bytes(raw).passed is False
+
+
+def test_norm_step_rejects_nonvision_gradient_mutation() -> None:
+    context = _context()
+    context.adapter.mutate_pooler_gradient = True
+    with pytest.raises(ValueError, match="non-vision gradient"):
+        _MODULE.run_norm_combined_step(
+            context.adapter,
+            authority=_authority(),
+            optimizer=context.optimizer,
+            proxies=context.proxies,
+            proxy_labels=context.proxy_labels,
+            dml_microbatch=context.dml_microbatch,
+            dml_labels=context.dml_labels,
+            semantic_pair=context.semantic_pair,
+            correct_completion_ids=context.correct_completion_ids,
+            incorrect_completion_ids=context.incorrect_completion_ids,
+            ordinal=0,
+            direct_vjp_errors=(0.0, 0.0),
+            memory_psi_full_avg10_ppm=0,
+        )
+
+
+def test_norm_resume_rejects_foreign_authority(tmp_path: Path) -> None:
+    raw = _MODULE.run_phase_a(
+        authority=_authority(),
+        context_factory=lambda _ordinal: _context(),
+        output_directory=tmp_path,
+    )
+    assert raw
+    foreign = FvcgNormAuthority(
+        base=FvcgStepAuthority(**{**_authority().base.__dict__, "source_commit": "a" * 40}),
+        rho=0.25,
+        fixture_source_commit="6" * 40,
+    ).validated()
+    with pytest.raises(ValueError, match="resumed authority"):
+        _MODULE.run_phase_a(
+            authority=foreign,
+            context_factory=lambda _ordinal: pytest.fail("resume reran science"),
+            output_directory=tmp_path,
+        )
