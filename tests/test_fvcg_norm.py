@@ -93,6 +93,43 @@ def test_norm_stabilized_field_is_deterministic_and_fp32() -> None:
     assert first.gradients[0].dtype == torch.float32
 
 
+def test_norm_stabilized_field_accepts_fp32_projection_roundoff() -> None:
+    generator = torch.Generator().manual_seed(1)
+    dml = (torch.randn(128, generator=generator, dtype=torch.float32) * 1.0e5,)
+    semantic = (torch.randn(128, generator=generator, dtype=torch.float32) * 1.0e-2,)
+    if float(torch.dot(dml[0], semantic[0])) >= 0.0:
+        semantic = (-semantic[0],)
+
+    result = combine_norm_stabilized_gradients(dml, semantic, rho=0.25)
+
+    normalized_residual = result.projected_dot / (
+        result.dml_norm * result.safe_semantic_norm
+    )
+    assert -1.0e-7 <= normalized_residual < -1.0e-10
+
+
+def test_norm_stabilized_field_scales_roundoff_to_unprojected_semantic_norm() -> None:
+    generator = torch.Generator().manual_seed(0)
+    dml_value = torch.randn(128, generator=generator, dtype=torch.float32) * 1.0e5
+    orthogonal = torch.randn(128, generator=generator, dtype=torch.float32)
+    scale = float(torch.sum(dml_value.double() * orthogonal.double())) / float(
+        torch.sum(dml_value.double().square())
+    )
+    orthogonal = orthogonal - scale * dml_value
+    semantic_value = -1.0e-7 * dml_value + 1.0e-4 * orthogonal
+
+    result = combine_norm_stabilized_gradients((dml_value,), (semantic_value,), rho=0.25)
+
+    safe_normalized_residual = result.projected_dot / (
+        result.dml_norm * result.safe_semantic_norm
+    )
+    semantic_normalized_residual = result.projected_dot / (
+        result.dml_norm * result.semantic_norm
+    )
+    assert safe_normalized_residual < -(2.0**-23)
+    assert semantic_normalized_residual >= -8.0 * 2.0**-23
+
+
 def test_norm_stabilized_field_reports_the_applied_fp32_increment() -> None:
     dml = (torch.tensor([1.0e8, 3.0, -7.0], dtype=torch.float32),)
     semantic = (torch.tensor([0.3, -0.7, 0.2], dtype=torch.float32),)
@@ -242,6 +279,7 @@ def test_norm_step_rejects_impossible_projection_evidence_directly() -> None:
     step = _step(0)
     for mutation in (
         replace(step, projected_dot=7.0),
+        replace(step, projected_dot=-7.9e-6),
         replace(step, safe_semantic_norm=1.0),
         replace(step, raw_dot=9.0, projected_dot=9.0),
     ):

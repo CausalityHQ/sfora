@@ -65,8 +65,11 @@ and every measured step satisfies:
 - combined cosine direction change is between 5,000 and 30,000 ppm (the upper
   edge covers the analytic 29,857 ppm maximum plus integer rounding);
 - the safe semantic field is finite and nonzero;
-- the post-projection dot product is nonnegative within an FP64 reduction
-  tolerance of `1e-10 * ||d|| * ||s_safe||`; and
+- the post-projection dot product is nonnegative within the FP32 construction
+  error envelope `8 * 2^-23 * ||d|| * ||s||`; the original semantic norm is
+  authoritative here because projecting a nearly parallel conflicting field
+  can make `||s_safe||` arbitrarily smaller than the componentwise FP32
+  rounding error, while scalar evidence alone is reduced in FP64; and
 - restored step zero reproduces all raw and derived scalar bits plus gradient
   and updated-state digests.
 

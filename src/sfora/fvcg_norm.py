@@ -18,6 +18,7 @@ FVCG_NORM_RATIO_MIN_PPM = 249_000
 FVCG_NORM_RATIO_MAX_PPM = 251_000
 FVCG_NORM_DIRECTION_MIN_PPM = 5_000
 FVCG_NORM_DIRECTION_MAX_PPM = 30_000
+FVCG_NORM_FP32_PROJECTION_ERROR_FACTOR = 8.0 * 2.0**-23
 
 
 def _finite_positive(value: object, *, name: str) -> float:
@@ -116,7 +117,9 @@ def combine_norm_stabilized_gradients(
     if not math.isfinite(safe_norm) or safe_norm / dml_norm < 1.0e-12:
         raise ValueError("FVCG-Norm safe semantic field differs")
     projected_dot = _dot(dml, safe)
-    projection_tolerance = 1.0e-10 * dml_norm * safe_norm
+    projection_tolerance = (
+        FVCG_NORM_FP32_PROJECTION_ERROR_FACTOR * dml_norm * semantic_norm
+    )
     if projected_dot < -projection_tolerance:
         raise ValueError("FVCG-Norm conflict projection differs")
 
@@ -267,7 +270,8 @@ class FvcgNormStepEvidence:
                 rel_tol=1.0e-5,
                 abs_tol=1.0e-8,
             )
-            or self.projected_dot < -1.0e-10 * dml_norm * safe_norm
+            or self.projected_dot
+            < -FVCG_NORM_FP32_PROJECTION_ERROR_FACTOR * dml_norm * semantic_norm
         ):
             raise ValueError("FVCG-Norm step arithmetic differs")
         return self
