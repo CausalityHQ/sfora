@@ -1,6 +1,6 @@
 {
   "schema": "unicom-fepf-run-config-v1",
-  "source_commit": "0ea4239851c8887090697793f1c51c10f36f637a",
+  "source_commit": "9b652e445796ae67791702aaff80f02f5dc3db25",
   "source_files": [
     {
       "path": "pyproject.toml",
@@ -24,8 +24,8 @@
     },
     {
       "path": "src/sfora/unicom_retrieval_audit.py",
-      "sha256": "12a08d827c3e24f21edacfb6d7abb5dcb64f80c6dab5f8288b436f4ca91882c9",
-      "bytes": 59412
+      "sha256": "e0604a481a33145a233a6ae7fd5572a54a5b7ceb0f875c42ecd3c585e5e1a97c",
+      "bytes": 59848
     },
     {
       "path": "src/sfora/unicom_runtime_authority.py",
@@ -74,10 +74,10 @@
     }
   ],
   "source": {
-    "commit": "0ea4239851c8887090697793f1c51c10f36f637a"
+    "commit": "9b652e445796ae67791702aaff80f02f5dc3db25"
   },
   "handoff": {
-    "config_parent": "0ea4239851c8887090697793f1c51c10f36f637a",
+    "config_parent": "9b652e445796ae67791702aaff80f02f5dc3db25",
     "config_commit_paths": [
       "docs/unicom_fepf_run_config.json"
     ],
@@ -6800,7 +6800,7 @@
     ]
   },
   "cuda_canary_environment": {
-    "path": "/home/riomus/runs/unicom-fepf-0ea4239851c8887090697793f1c51c10f36f637a/preflight/cuda-environment.json"
+    "path": "/home/riomus/runs/unicom-fepf-9b652e445796ae67791702aaff80f02f5dc3db25/preflight/cuda-environment.json"
   },
   "publication_budget": {
     "schema": "unicom-fepf-publication-budget-v1",
@@ -10149,7 +10149,7 @@
     ]
   },
   "checkout_root_template": "/home/riomus/checkouts/sfora-unicom-fepf-{config_commit}",
-  "artifact_root": "/home/riomus/runs/unicom-fepf-0ea4239851c8887090697793f1c51c10f36f637a",
+  "artifact_root": "/home/riomus/runs/unicom-fepf-9b652e445796ae67791702aaff80f02f5dc3db25",
   "runtime_order": [
     "current",
     "composed",
@@ -10256,7 +10256,7 @@
         "--parent-trainer-source",
         "70c760e57e6c27dec1473eecd4765e0a8cd4cf6b:scripts/train_unicom_inshop.py",
         "--environment-authority",
-        "/home/riomus/runs/unicom-fepf-0ea4239851c8887090697793f1c51c10f36f637a/preflight/cuda-environment.json",
+        "/home/riomus/runs/unicom-fepf-9b652e445796ae67791702aaff80f02f5dc3db25/preflight/cuda-environment.json",
         "--environment-sha256",
         "{cuda_environment_sha256}",
         "--output",
@@ -10286,7 +10286,7 @@
         "--parent-trainer-source",
         "70c760e57e6c27dec1473eecd4765e0a8cd4cf6b:scripts/train_unicom_inshop.py",
         "--environment-authority",
-        "/home/riomus/runs/unicom-fepf-0ea4239851c8887090697793f1c51c10f36f637a/preflight/cuda-environment.json",
+        "/home/riomus/runs/unicom-fepf-9b652e445796ae67791702aaff80f02f5dc3db25/preflight/cuda-environment.json",
         "--environment-sha256",
         "{cuda_environment_sha256}",
         "--output",
@@ -10316,7 +10316,7 @@
         "--parent-trainer-source",
         "70c760e57e6c27dec1473eecd4765e0a8cd4cf6b:scripts/train_unicom_inshop.py",
         "--environment-authority",
-        "/home/riomus/runs/unicom-fepf-0ea4239851c8887090697793f1c51c10f36f637a/preflight/cuda-environment.json",
+        "/home/riomus/runs/unicom-fepf-9b652e445796ae67791702aaff80f02f5dc3db25/preflight/cuda-environment.json",
         "--environment-sha256",
         "{cuda_environment_sha256}",
         "--output",
@@ -10346,7 +10346,7 @@
         "--parent-trainer-source",
         "70c760e57e6c27dec1473eecd4765e0a8cd4cf6b:scripts/train_unicom_inshop.py",
         "--environment-authority",
-        "/home/riomus/runs/unicom-fepf-0ea4239851c8887090697793f1c51c10f36f637a/preflight/cuda-environment.json",
+        "/home/riomus/runs/unicom-fepf-9b652e445796ae67791702aaff80f02f5dc3db25/preflight/cuda-environment.json",
         "--environment-sha256",
         "{cuda_environment_sha256}",
         "--output",
@@ -10376,7 +10376,7 @@
         "--parent-trainer-source",
         "70c760e57e6c27dec1473eecd4765e0a8cd4cf6b:scripts/train_unicom_inshop.py",
         "--environment-authority",
-        "/home/riomus/runs/unicom-fepf-0ea4239851c8887090697793f1c51c10f36f637a/preflight/cuda-environment.json",
+        "/home/riomus/runs/unicom-fepf-9b652e445796ae67791702aaff80f02f5dc3db25/preflight/cuda-environment.json",
         "--environment-sha256",
         "{cuda_environment_sha256}",
         "--output",
@@ -10406,7 +10406,7 @@
         "--parent-trainer-source",
         "70c760e57e6c27dec1473eecd4765e0a8cd4cf6b:scripts/train_unicom_inshop.py",
         "--environment-authority",
-        "/home/riomus/runs/unicom-fepf-0ea4239851c8887090697793f1c51c10f36f637a/preflight/cuda-environment.json",
+        "/home/riomus/runs/unicom-fepf-9b652e445796ae67791702aaff80f02f5dc3db25/preflight/cuda-environment.json",
         "--environment-sha256",
         "{cuda_environment_sha256}",
         "--output",
@@ -10436,7 +10436,7 @@
         "--parent-trainer-source",
         "70c760e57e6c27dec1473eecd4765e0a8cd4cf6b:scripts/train_unicom_inshop.py",
         "--environment-authority",
-        "/home/riomus/runs/unicom-fepf-0ea4239851c8887090697793f1c51c10f36f637a/preflight/cuda-environment.json",
+        "/home/riomus/runs/unicom-fepf-9b652e445796ae67791702aaff80f02f5dc3db25/preflight/cuda-environment.json",
         "--environment-sha256",
         "{cuda_environment_sha256}",
         "--output",
@@ -10466,7 +10466,7 @@
         "--parent-trainer-source",
         "70c760e57e6c27dec1473eecd4765e0a8cd4cf6b:scripts/train_unicom_inshop.py",
         "--environment-authority",
-        "/home/riomus/runs/unicom-fepf-0ea4239851c8887090697793f1c51c10f36f637a/preflight/cuda-environment.json",
+        "/home/riomus/runs/unicom-fepf-9b652e445796ae67791702aaff80f02f5dc3db25/preflight/cuda-environment.json",
         "--environment-sha256",
         "{cuda_environment_sha256}",
         "--output",
@@ -10487,11 +10487,11 @@
       "--run-config",
       "docs/unicom_fepf_run_config.json",
       "--environment-authority",
-      "/home/riomus/runs/unicom-fepf-0ea4239851c8887090697793f1c51c10f36f637a/preflight/cuda-environment.json",
+      "/home/riomus/runs/unicom-fepf-9b652e445796ae67791702aaff80f02f5dc3db25/preflight/cuda-environment.json",
       "--environment-sha256",
       "{cuda_environment_sha256}",
       "--publication-budget",
-      "/home/riomus/runs/unicom-fepf-0ea4239851c8887090697793f1c51c10f36f637a/preflight/publication-budget.json",
+      "/home/riomus/runs/unicom-fepf-9b652e445796ae67791702aaff80f02f5dc3db25/preflight/publication-budget.json",
       "--publication-budget-sha256",
       "0f4a9453e19eafba915cc055fea75c41d687acf4c193c4f40c8380ee019d7ae2"
     ],
@@ -10511,7 +10511,7 @@
       "--parent-trainer-source",
       "70c760e57e6c27dec1473eecd4765e0a8cd4cf6b:scripts/train_unicom_inshop.py",
       "--environment-authority",
-      "/home/riomus/runs/unicom-fepf-0ea4239851c8887090697793f1c51c10f36f637a/preflight/cuda-environment.json",
+      "/home/riomus/runs/unicom-fepf-9b652e445796ae67791702aaff80f02f5dc3db25/preflight/cuda-environment.json",
       "--environment-sha256",
       "{cuda_environment_sha256}"
     ],
