@@ -16,6 +16,7 @@ from typing import Protocol, cast
 
 import numpy as np
 import torch
+from PIL import Image
 
 _REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 if str(_REPOSITORY_ROOT) not in sys.path:
@@ -317,8 +318,9 @@ def run_vmd_f0_campaign(
 
 def _rgb(image: object) -> np.ndarray:
     converted = materialize_image(image).convert("RGB")
-    value = np.asarray(converted, dtype=np.uint8)
-    if value.ndim != 3 or value.shape[-1] != 3:
+    resized = converted.resize((224, 224), resample=Image.Resampling.BICUBIC)
+    value = np.asarray(resized, dtype=np.uint8)
+    if value.shape != (224, 224, 3):
         raise ValueError("VMD F0 image authority differs")
     return np.ascontiguousarray(value)
 

@@ -5,7 +5,9 @@ import json
 import sys
 from pathlib import Path
 
+import numpy as np
 import pytest
+from PIL import Image
 
 from sfora.verbalizer_margin_f0 import VmdF0Candidate
 
@@ -61,6 +63,24 @@ def _candidates() -> tuple[VmdF0Candidate, ...]:
         )
         for ordinal in range(103)
     )
+
+
+def test_rgb_normalizes_variable_cars_images_to_registered_qwen_shape() -> None:
+    source = np.zeros((20, 40, 3), dtype=np.uint8)
+    source[:, 20:] = 255
+
+    actual = _MODULE._rgb(Image.fromarray(source, mode="RGB"))
+
+    expected = np.asarray(
+        Image.fromarray(source, mode="RGB").resize(
+            (224, 224), resample=Image.Resampling.BICUBIC
+        ),
+        dtype=np.uint8,
+    )
+    assert actual.shape == (224, 224, 3)
+    assert actual.dtype == np.uint8
+    assert actual.flags.c_contiguous
+    assert np.array_equal(actual, expected)
 
 
 def test_campaign_scores_two_candidates_replays_and_publishes_canonical_result(
