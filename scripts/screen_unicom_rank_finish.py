@@ -106,6 +106,16 @@ def seed_rank_finish_rng(finish_seed: int) -> None:
         torch.cuda.manual_seed_all(seed)
 
 
+def model_publication_required(finish_seed: int, *, skip: bool) -> bool:
+    """Allow only the non-candidate robustness seed to omit model publication."""
+
+    if type(finish_seed) is not int or finish_seed not in {0, 1, 2}:
+        raise ValueError("rank-finish seed differs")
+    if type(skip) is not bool or (skip and finish_seed != 2):
+        raise ValueError("rank-finish model publication policy differs")
+    return not skip
+
+
 def publish_inference_checkpoint(
     path: Path,
     *,
@@ -186,6 +196,7 @@ def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--resume-run-receipt-sha256", required=True)
     parser.add_argument("--finish-seed", required=True, type=int, choices=(0, 1, 2))
     parser.add_argument("--model-output", required=True, type=Path)
+    parser.add_argument("--skip-model-publication", action="store_true")
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--execute-rank-finish", action="store_true", required=True)
     return parser.parse_args(arguments)
@@ -237,7 +248,10 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         (args.resume_run_receipt, args.resume_run_receipt_sha256, "run receipt"),
     ):
         _require_sha256(path, expected, name)
-    for path in (args.output, args.model_output):
+    publish_model = model_publication_required(
+        args.finish_seed, skip=args.skip_model_publication
+    )
+    for path in (args.output, *((args.model_output,) if publish_model else ())):
         if path.exists() or path.is_symlink():
             raise FileExistsError(path)
 
@@ -401,12 +415,16 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         (row["metrics"] for row in history if row["epoch"] == 8), None
     )
     decision = classify_rank_finish(epoch6, epoch8)
-    model_artifact = publish_inference_checkpoint(
-        args.model_output,
-        model=model,
-        finish_seed=args.finish_seed,
-        source_commit=source_commit,
-        parent_checkpoint_sha256=args.resume_checkpoint_sha256,
+    model_artifact = (
+        publish_inference_checkpoint(
+            args.model_output,
+            model=model,
+            finish_seed=args.finish_seed,
+            source_commit=source_commit,
+            parent_checkpoint_sha256=args.resume_checkpoint_sha256,
+        )
+        if publish_model
+        else None
     )
     result = {
         "schema": "unicom-rank-finish-screen-v1",

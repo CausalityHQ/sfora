@@ -9,7 +9,9 @@
 3. Run focused tests, Ruff, bytecode compilation, and the dependency-complete
    Python test suite; commit and push the frozen implementation.
 4. Deploy the exact clean commit to DGX. Run seeds 1 and 2 serially from the
-   registered epoch-4 checkpoint while actively monitoring the original process.
+   registered epoch-4 checkpoint while actively monitoring the original
+   process. Seed 2 uses metrics-only publication because it is robustness
+   evidence and cannot become the release candidate.
 5. Run the offline confirmation evaluator. If and only if it passes, execute one
    fixed seed-1 standard-test readout, recompute paired per-query evidence for
    control and candidate, and publish the paired quality receipt.

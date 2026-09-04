@@ -78,6 +78,15 @@ def test_parse_args_requires_explicit_execution_and_all_authorities(tmp_path: Pa
         MODULE.parse_args([*required, "--execute-rank-finish", "--unknown"])
 
 
+def test_only_robustness_seed_can_skip_model_publication() -> None:
+    assert MODULE.model_publication_required(1, skip=False) is True
+    assert MODULE.model_publication_required(2, skip=True) is False
+    with pytest.raises(ValueError):
+        MODULE.model_publication_required(0, skip=True)
+    with pytest.raises(ValueError):
+        MODULE.model_publication_required(1, skip=True)
+
+
 def test_finish_seed_resets_cpu_rng_deterministically() -> None:
     MODULE.seed_rank_finish_rng(2)
     first = torch.rand(8)

@@ -19,9 +19,12 @@ model stream after checkpoint restoration.
 
 For each of finish seeds 1 and 2, train epochs 5--8 exactly as in the promoted
 screen and evaluate the same identity-disjoint development holdout at epoch 8.
-Persist a canonical result and an inference-only epoch-8 model artifact. Seed 1
-is fixed in advance as the release-candidate model; seed 2 measures robustness
-and is never selected as a replacement because of its observed score.
+Persist a canonical result for both seeds and an inference-only epoch-8 model
+artifact for seed 1. Seed 1 is fixed in advance as the release-candidate model;
+seed 2 measures robustness and is never selected as a replacement because of
+its observed score. Seed 2 may therefore use the registered metrics-only mode,
+which omits the unused model publication without changing training or
+evaluation.
 
 Confirmation passes only when all three seeds satisfy:
 
@@ -60,5 +63,11 @@ checkpoint/page-cache load transient, observed with more than 22 GiB available
 and no swap growth; that transient does not predict the stable training
 footprint. Nonfinite and progress stops remain fail-closed. Publish with no
 replacement. Bind the source commit, screen result, parent checkpoint and
-receipt, partition, finish seed, method implementation, model artifact digest,
-metrics, elapsed time, and peak CUDA allocation into every result.
+receipt, partition, finish seed, method implementation, optional model artifact
+digest, metrics, elapsed time, and peak CUDA allocation into every result.
+
+A resource-stop recovery is a separately recorded attempt with the same finish
+seed and scientific protocol. Seed 2 recovery uses metrics-only publication so
+the unused multi-gigabyte model serialization that triggered the original stop
+is not repeated. The release candidate remains seed 1 regardless of seed 2's
+observed result.

@@ -50,8 +50,20 @@ def _seed_observation(result: object, expected_seed: int) -> dict[str, object]:
     observed_seed = result.get("finish_seed", 0)
     if type(observed_seed) is not int or observed_seed != expected_seed:
         raise ValueError("rank-finish seed order differs")
-    if expected_seed:
+    if expected_seed == 1:
         artifact = result.get("model_artifact")
+        if (
+            type(artifact) is not dict
+            or tuple(artifact) != ("path", "sha256", "bytes")
+            or type(artifact["path"]) is not str
+            or type(artifact["sha256"]) is not str
+            or len(artifact["sha256"]) != 64
+            or type(artifact["bytes"]) is not int
+            or artifact["bytes"] <= 0
+        ):
+            raise ValueError("rank-finish model authority differs")
+    elif expected_seed == 2 and result.get("model_artifact") is not None:
+        artifact = result["model_artifact"]
         if (
             type(artifact) is not dict
             or tuple(artifact) != ("path", "sha256", "bytes")

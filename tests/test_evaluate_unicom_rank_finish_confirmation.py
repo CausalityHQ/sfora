@@ -70,6 +70,16 @@ def test_confirmation_mean_excludes_discovery_seed() -> None:
     assert decision["confirmation_mean_delta_map_at_r"] == pytest.approx(0.010)
 
 
+def test_confirmation_accepts_metrics_only_robustness_seed() -> None:
+    results = [_result(0, 0.013), _result(1, 0.011), _result(2, 0.009)]
+    results[2].pop("model_artifact")
+
+    decision = MODULE.evaluate_confirmation(results)
+
+    assert decision["status"] == "CONFIRM"
+    assert decision["seeds"][2]["model_artifact"] is None
+
+
 @pytest.mark.parametrize(
     "results",
     (
