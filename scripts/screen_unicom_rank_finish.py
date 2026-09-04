@@ -8,6 +8,7 @@ import hashlib
 import importlib.util
 import json
 import math
+import os
 import subprocess
 import sys
 import time
@@ -16,7 +17,10 @@ from pathlib import Path
 
 import torch
 
-from sfora.atomic_publication import publish_bytes_noreplace
+from sfora.atomic_publication import (
+    publish_bytes_noreplace,
+    publish_large_writer_noreplace,
+)
 from sfora.unicom_inshop import parse_inshop_partition
 from sfora.unicom_rank_finish import (
     identity_balanced_batches,
@@ -91,6 +95,83 @@ def canonical_result_bytes(result: object) -> bytes:
     ).encode()
 
 
+def seed_rank_finish_rng(finish_seed: int) -> None:
+    """Reset stochastic finish streams after restoring the common parent."""
+
+    if type(finish_seed) is not int or finish_seed < 0:
+        raise ValueError("rank-finish seed differs")
+    seed = experiment_stream_seed(finish_seed, 4_000)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+
+
+def publish_inference_checkpoint(
+    path: Path,
+    *,
+    model: torch.nn.Module,
+    finish_seed: int,
+    source_commit: str,
+    parent_checkpoint_sha256: str,
+) -> dict[str, object]:
+    """Publish one immutable CPU inference state and return its authority."""
+
+    if type(finish_seed) is not int or finish_seed < 0:
+        raise ValueError("rank-finish seed differs")
+    if any(
+        type(value) is not str
+        or len(value) != length
+        or any(character not in "0123456789abcdef" for character in value)
+        for value, length in (
+            (source_commit, 40),
+            (parent_checkpoint_sha256, 64),
+        )
+    ):
+        raise ValueError("rank-finish inference authority differs")
+    state = {
+        name: tensor.detach().cpu().contiguous()
+        for name, tensor in model.state_dict().items()
+    }
+    payload = {
+        "schema": "unicom-rank-finish-inference-v1",
+        "finish_seed": finish_seed,
+        "source_commit": source_commit,
+        "parent_checkpoint_sha256": parent_checkpoint_sha256,
+        "model": state,
+    }
+
+    def writer(descriptor: int) -> None:
+        with os.fdopen(os.dup(descriptor), "wb") as handle:
+            torch.save(payload, handle)
+            handle.flush()
+
+    def validator(descriptor: int, size: int) -> None:
+        if size <= 0:
+            raise ValueError("rank-finish inference checkpoint is empty")
+        with os.fdopen(os.dup(descriptor), "rb") as handle:
+            restored = torch.load(handle, map_location="cpu", weights_only=True)
+        if (
+            type(restored) is not dict
+            or tuple(restored) != tuple(payload)
+            or any(restored[key] != payload[key] for key in tuple(payload)[:-1])
+            or type(restored["model"]) is not dict
+            or tuple(restored["model"]) != tuple(state)
+            or any(
+                not torch.equal(restored["model"][name], tensor)
+                for name, tensor in state.items()
+            )
+        ):
+            raise ValueError("rank-finish inference checkpoint differs")
+
+    published = publish_large_writer_noreplace(path, writer, validator=validator)
+    published.close()
+    return {
+        "path": str(path.resolve()),
+        "sha256": _sha256_file(path),
+        "bytes": path.stat().st_size,
+    }
+
+
 def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-commit", required=True)
@@ -103,6 +184,8 @@ def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--resume-checkpoint-sha256", required=True)
     parser.add_argument("--resume-run-receipt", required=True, type=Path)
     parser.add_argument("--resume-run-receipt-sha256", required=True)
+    parser.add_argument("--finish-seed", required=True, type=int, choices=(0, 1, 2))
+    parser.add_argument("--model-output", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--execute-rank-finish", action="store_true", required=True)
     return parser.parse_args(arguments)
@@ -154,8 +237,9 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         (args.resume_run_receipt, args.resume_run_receipt_sha256, "run receipt"),
     ):
         _require_sha256(path, expected, name)
-    if args.output.exists() or args.output.is_symlink():
-        raise FileExistsError(args.output)
+    for path in (args.output, args.model_output):
+        if path.exists() or path.is_symlink():
+            raise FileExistsError(path)
 
     trainer = _load_trainer(repository)
     receipt = json.loads(args.resume_run_receipt.read_bytes())
@@ -236,6 +320,7 @@ def run(args: argparse.Namespace) -> dict[str, object]:
     )
     if start_epoch != 4:
         raise ValueError("rank-finish resume epoch differs")
+    seed_rank_finish_rng(args.finish_seed)
 
     dataset = trainer.InshopTrainDataset(
         optimization, label_indices, trainer.build_train_transform(336)
@@ -251,12 +336,12 @@ def run(args: argparse.Namespace) -> dict[str, object]:
                 labels,
                 batch_size=128,
                 images_per_identity=4,
-                seed=receipt["training_seed"],
+                seed=args.finish_seed,
                 epoch=epoch + 1,
                 steps=steps,
             )
             generator = torch.Generator().manual_seed(
-                experiment_stream_seed(receipt["training_seed"], 2_000 + epoch)
+                experiment_stream_seed(args.finish_seed, 2_000 + epoch)
             )
             loader = torch.utils.data.DataLoader(
                 dataset,
@@ -301,6 +386,8 @@ def run(args: argparse.Namespace) -> dict[str, object]:
             history.append(row)
             print(json.dumps(row, sort_keys=True), file=sys.stderr, flush=True)
             if (
+                args.finish_seed == 0
+                and
                 completed_epoch == 6
                 and classify_rank_finish(metrics, None)["status"] == "ABORT_EPOCH6"
             ):
@@ -314,10 +401,18 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         (row["metrics"] for row in history if row["epoch"] == 8), None
     )
     decision = classify_rank_finish(epoch6, epoch8)
+    model_artifact = publish_inference_checkpoint(
+        args.model_output,
+        model=model,
+        finish_seed=args.finish_seed,
+        source_commit=source_commit,
+        parent_checkpoint_sha256=args.resume_checkpoint_sha256,
+    )
     result = {
         "schema": "unicom-rank-finish-screen-v1",
         "claim_eligible": False,
         "source_commit": source_commit,
+        "finish_seed": args.finish_seed,
         "script_sha256": _sha256_file(Path(__file__)),
         "rank_finish_module_sha256": _sha256_file(
             repository / "src" / "sfora" / "unicom_rank_finish.py"
@@ -331,6 +426,7 @@ def run(args: argparse.Namespace) -> dict[str, object]:
             "sha256": args.resume_run_receipt_sha256,
         },
         "partition_sha256": args.partition_sha256,
+        "model_artifact": model_artifact,
         "method": {
             "loss": "smooth-ap-deployment-prefix-v1",
             "temperature": 0.01,

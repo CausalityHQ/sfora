@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 from pathlib import Path
 
 import pytest
+import torch
 
 SCRIPT = Path(__file__).parents[1] / "scripts" / "screen_unicom_rank_finish.py"
 SPEC = importlib.util.spec_from_file_location("screen_unicom_rank_finish", SCRIPT)
@@ -62,6 +64,8 @@ def test_parse_args_requires_explicit_execution_and_all_authorities(tmp_path: Pa
         "--resume-checkpoint-sha256", "d" * 64,
         "--resume-run-receipt", str(tmp_path / "run-receipt.json"),
         "--resume-run-receipt-sha256", "e" * 64,
+        "--finish-seed", "1",
+        "--model-output", str(tmp_path / "model.pt"),
         "--output", str(tmp_path / "result.json"),
     ]
 
@@ -69,5 +73,43 @@ def test_parse_args_requires_explicit_execution_and_all_authorities(tmp_path: Pa
         MODULE.parse_args(required)
     parsed = MODULE.parse_args([*required, "--execute-rank-finish"])
     assert parsed.execute_rank_finish is True
+    assert parsed.finish_seed == 1
     with pytest.raises(SystemExit):
         MODULE.parse_args([*required, "--execute-rank-finish", "--unknown"])
+
+
+def test_finish_seed_resets_cpu_rng_deterministically() -> None:
+    MODULE.seed_rank_finish_rng(2)
+    first = torch.rand(8)
+    MODULE.seed_rank_finish_rng(2)
+    second = torch.rand(8)
+    MODULE.seed_rank_finish_rng(1)
+    different = torch.rand(8)
+
+    assert torch.equal(first, second)
+    assert not torch.equal(first, different)
+
+
+def test_inference_checkpoint_bytes_bind_seed_model_and_parent(tmp_path: Path) -> None:
+    model = torch.nn.Linear(3, 2)
+    path = tmp_path / "seed-1-model.pt"
+
+    authority = MODULE.publish_inference_checkpoint(
+        path,
+        model=model,
+        finish_seed=1,
+        source_commit="a" * 40,
+        parent_checkpoint_sha256="b" * 64,
+    )
+
+    payload = torch.load(path, map_location="cpu", weights_only=True)
+    assert payload["schema"] == "unicom-rank-finish-inference-v1"
+    assert payload["finish_seed"] == 1
+    assert payload["source_commit"] == "a" * 40
+    assert payload["parent_checkpoint_sha256"] == "b" * 64
+    assert tuple(payload["model"]) == tuple(model.state_dict())
+    assert authority == {
+        "path": str(path.resolve()),
+        "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+        "bytes": path.stat().st_size,
+    }
