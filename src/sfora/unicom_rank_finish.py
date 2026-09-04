@@ -120,36 +120,25 @@ def smooth_ap_finish_loss(
     distances = torch.sum(
         (normalized[:, None, :] - normalized[None, :, :]).square(), dim=2
     )
-    average_precisions = []
     rows = len(labels)
-    for anchor, label in enumerate(labels):
-        candidates = tuple(index for index in range(rows) if index != anchor)
-        positives = tuple(index for index in candidates if labels[index] == label)
-        positive_precisions = []
-        for positive in positives:
-            competitors = tuple(index for index in candidates if index != positive)
-            rank = 1.0 + torch.sigmoid(
-                (
-                    distances[anchor, positive]
-                    - distances[anchor, list(competitors)]
-                )
-                / temperature
-            ).sum()
-            positive_competitors = tuple(
-                index for index in positives if index != positive
-            )
-            positive_rank = 1.0
-            if positive_competitors:
-                positive_rank = positive_rank + torch.sigmoid(
-                    (
-                        distances[anchor, positive]
-                        - distances[anchor, list(positive_competitors)]
-                    )
-                    / temperature
-                ).sum()
-            positive_precisions.append(positive_rank / rank)
-        average_precisions.append(torch.stack(positive_precisions).mean())
-    loss = 1.0 - torch.stack(average_precisions).mean()
+    encoded: dict[object, int] = {}
+    label_ids = []
+    for label in labels:
+        label_ids.append(encoded.setdefault(label, len(encoded)))
+    label_tensor = torch.tensor(label_ids, device=embeddings.device)
+    identity = torch.eye(rows, device=embeddings.device, dtype=torch.bool)
+    positive_mask = label_tensor[:, None].eq(label_tensor[None, :]) & ~identity
+    comparisons = torch.sigmoid(
+        (distances[:, :, None] - distances[:, None, :]) / temperature
+    )
+    candidate_mask = ~identity
+    competitor_mask = candidate_mask[:, None, :] & ~identity[None, :, :]
+    rank = 1.0 + (comparisons * competitor_mask).sum(dim=2)
+    positive_competitor_mask = positive_mask[:, None, :] & ~identity[None, :, :]
+    positive_rank = 1.0 + (comparisons * positive_competitor_mask).sum(dim=2)
+    precision = positive_rank / rank
+    per_anchor = (precision * positive_mask).sum(dim=1) / positive_mask.sum(dim=1)
+    loss = 1.0 - per_anchor.mean()
     if not torch.isfinite(loss):
         raise ValueError("rank-finish loss is nonfinite")
     return loss
