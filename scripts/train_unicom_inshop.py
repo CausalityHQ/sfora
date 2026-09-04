@@ -7,7 +7,6 @@ import argparse
 import errno
 import hashlib
 import importlib
-import io
 import json
 import math
 import os
@@ -36,7 +35,7 @@ from torch.utils.data import Dataset, Sampler
 from sfora.atomic_publication import (
     BudgetedPublisher,
     publish_bytes_noreplace,
-    publish_writer_noreplace,
+    publish_large_writer_noreplace,
 )
 from sfora.cuda_authority import canonical_cuda_device_uuid
 from sfora.unicom_fepf import (
@@ -1708,9 +1707,14 @@ def require_configured_publication_capacity(
     root: Path,
     *,
     payload: bytes | None = None,
+    payload_size: int | None = None,
     external: bool = True,
     statvfs: Callable[[Path], object] = os.statvfs,
 ) -> None:
+    if payload is not None and payload_size is not None:
+        raise ValueError("publication payload authority differs")
+    if payload_size is not None and (type(payload_size) is not int or payload_size < 0):
+        raise ValueError("publication payload size differs")
     budget = load_configured_publication_budget(
         config_path, budget_path, budget_sha256, external=external
     )
@@ -1723,6 +1727,8 @@ def require_configured_publication_capacity(
         raise ValueError("publication destination path differs")
     if payload is not None and len(payload) > rows[0]["persistent_bytes"]:
         raise OSError(errno.EFBIG, "publication payload bytes exceed budget", destination)
+    if payload_size is not None and payload_size > rows[0]["persistent_bytes"]:
+        raise OSError(errno.EFBIG, "publication payload bytes exceed budget", destination)
     config = strict_json_object(config_path.read_bytes())
     BudgetedPublisher(
         campaign_root=root,
@@ -1731,10 +1737,10 @@ def require_configured_publication_capacity(
         exact_budget=config["publication_budget"],
         statvfs=statvfs,
         physical_admission=external,
-    ).validate_payload(
+    ).validate_size(
         name=name,
         destination=destination,
-        payload=b"" if payload is None else payload,
+        size=(len(payload) if payload is not None else (payload_size or 0)),
     )
 
 
@@ -2815,8 +2821,8 @@ def fit_model(
     training_protocol: dict[str, object],
     history: list[dict[str, object]] | None = None,
     step_ema: StepEMA | None = None,
-    publication_guard: Callable[[str, Path, bytes], None] = (
-        lambda _name, _destination, _payload: None
+    publication_guard: Callable[[str, Path, bytes | None, int | None], None] = (
+        lambda _name, _destination, _payload, _payload_size: None
     ),
 ) -> list[dict[str, object]]:
     """Fit and persist sparse raw-model checkpoints for later trajectory soups."""
@@ -2881,10 +2887,11 @@ def fit_model(
                     selection_holdout=selection_holdout,
                     training_protocol=training_protocol,
                     history=history,
-                    publication_guard=lambda payload, epoch=completed_epoch: publication_guard(
+                    publication_guard=lambda size, epoch=completed_epoch: publication_guard(
                         f"checkpoint-epoch-{epoch:04d}",
                         output_dir / f"epoch-{epoch:04d}.pt",
-                        payload,
+                        None,
+                        size,
                     ),
                 )
     finally:
@@ -2914,7 +2921,7 @@ def save_training_checkpoint(
     training_protocol: dict[str, object],
     history: list[dict[str, object]],
     step_ema: StepEMA | None = None,
-    publication_guard: Callable[[bytes], None] = lambda _payload: None,
+    publication_guard: Callable[[int], None] = lambda _size: None,
 ) -> None:
     """Atomically persist all mutable state needed to resume an epoch boundary."""
 
@@ -2940,14 +2947,17 @@ def save_training_checkpoint(
             torch.save(payload, handle)
             handle.flush()
 
-    def validate_checkpoint(encoded: bytes) -> None:
-        if not encoded:
+    def validate_checkpoint(descriptor: int, size: int) -> None:
+        if size <= 0:
             raise ValueError("checkpoint publication is empty")
-        publication_guard(encoded)
-        restored = torch.load(io.BytesIO(encoded), map_location="cpu", weights_only=False)
+        publication_guard(size)
+        with os.fdopen(os.dup(descriptor), "rb") as handle:
+            restored = torch.load(handle, map_location="cpu", weights_only=False)
         validate_checkpoint_publication(restored, expected=payload)
 
-    published = publish_writer_noreplace(path, writer, validator=validate_checkpoint)
+    published = publish_large_writer_noreplace(
+        path, writer, validator=validate_checkpoint
+    )
     published.close()
 
 
@@ -3152,7 +3162,10 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA is required for UNICOM training")
     def publication_guard(
-        name: str, destination: Path | None = None, payload: bytes | None = None
+        name: str,
+        destination: Path | None = None,
+        payload: bytes | None = None,
+        payload_size: int | None = None,
     ) -> None:
         if fepf_request and campaign_authority:
             if destination is None:
@@ -3166,6 +3179,7 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
                     destination,
                     args.campaign_root or args.output_dir,
                     payload=payload,
+                    payload_size=payload_size,
                 )
 
     if args.epochs <= 0 or args.batch_size <= 0 or args.workers < 0:

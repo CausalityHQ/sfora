@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 Validator = Callable[[bytes], None]
+LargeValidator = Callable[[int, int], None]
 Writer = Callable[[int], None]
 
 
@@ -30,6 +31,29 @@ class PublishedFile:
             self.descriptor = -1
 
     def __enter__(self) -> PublishedFile:
+        return self
+
+    def __exit__(self, *_exc: object) -> None:
+        self.close()
+
+    def __del__(self) -> None:
+        self.close()
+
+
+@dataclass
+class PublishedLargeFile:
+    """A retained immutable file identity without a materialized byte payload."""
+
+    identity: tuple[int, int]
+    size: int
+    descriptor: int
+
+    def close(self) -> None:
+        if self.descriptor >= 0:
+            os.close(self.descriptor)
+            self.descriptor = -1
+
+    def __enter__(self) -> PublishedLargeFile:
         return self
 
     def __exit__(self, *_exc: object) -> None:
@@ -153,9 +177,18 @@ class BudgetedPublisher:
     def validate_payload(
         self, *, name: str, destination: Path, payload: bytes
     ) -> Mapping[str, object]:
+        return self.validate_size(
+            name=name, destination=destination, size=len(payload)
+        )
+
+    def validate_size(
+        self, *, name: str, destination: Path, size: int
+    ) -> Mapping[str, object]:
+        if type(size) is not int or size < 0:
+            raise ValueError("publication payload size differs")
         row = self._row(name, destination)
         bound = row["persistent_bytes"] or row["temporary_bytes"]
-        if len(payload) > bound:
+        if size > bound:
             raise OSError(errno.EFBIG, "publication payload bytes exceed budget")
         return row
 
@@ -207,6 +240,26 @@ def _pread_all(descriptor: int) -> bytes:
         chunks.append(chunk)
         offset += len(chunk)
     return b"".join(chunks)
+
+
+def _descriptors_equal(left: int, right: int, size: int) -> bool:
+    """Compare two exact file images with bounded resident memory."""
+
+    if type(size) is not int or size < 0:
+        raise ValueError("immutable publication size differs")
+    if os.fstat(left).st_size != size or os.fstat(right).st_size != size:
+        return False
+    offset = 0
+    while offset < size:
+        length = min(size - offset, 1024 * 1024)
+        left_chunk = os.pread(left, length, offset)
+        right_chunk = os.pread(right, length, offset)
+        if len(left_chunk) != length or len(right_chunk) != length:
+            raise RuntimeError("immutable publication read was truncated")
+        if left_chunk != right_chunk:
+            return False
+        offset += length
+    return True
 
 
 def _write_all(descriptor: int, payload: bytes) -> None:
@@ -296,6 +349,95 @@ def publish_writer_noreplace(
         if published and not completed and owned is not None and os.path.lexists(path):
             info = path.lstat()
             if (info.st_dev, info.st_ino) == owned:
+                path.unlink()
+                os.fsync(directory)
+        if descriptor is not None:
+            os.close(descriptor)
+        if not completed and retained_descriptor is not None:
+            os.close(retained_descriptor)
+        os.close(directory)
+
+
+def publish_large_writer_noreplace(
+    path: Path,
+    writer: Writer,
+    *,
+    validator: LargeValidator,
+) -> PublishedLargeFile:
+    """Publish one absent large file without materializing its encoded bytes."""
+
+    if not isinstance(path, Path) or path.name in {"", ".", ".."}:
+        raise ValueError("immutable publication path differs")
+    parent = path.parent
+    parent_info = parent.lstat()
+    if parent.is_symlink() or not parent.is_dir():
+        raise ValueError("immutable publication parent differs")
+    if os.path.lexists(path):
+        raise FileExistsError(path)
+    directory = os.open(parent, os.O_RDONLY | os.O_DIRECTORY)
+    descriptor: int | None = None
+    published = False
+    completed = False
+    owned: tuple[int, int] | None = None
+    retained_descriptor: int | None = None
+    try:
+        if (os.fstat(directory).st_dev, os.fstat(directory).st_ino) != (
+            parent_info.st_dev,
+            parent_info.st_ino,
+        ):
+            raise RuntimeError("immutable publication parent ownership differs")
+        descriptor = os.open(parent, os.O_RDWR | os.O_TMPFILE, 0o600)
+        writer(descriptor)
+        os.fsync(descriptor)
+        info = os.fstat(descriptor)
+        owned = (info.st_dev, info.st_ino)
+        read_descriptor = os.open(
+            f"/proc/self/fd/{descriptor}", os.O_RDONLY | os.O_CLOEXEC
+        )
+        try:
+            validator(read_descriptor, info.st_size)
+        finally:
+            os.close(read_descriptor)
+        try:
+            _link_fd_noreplace(descriptor, directory, path.name)
+        except Exception:
+            try:
+                linked_info = path.lstat()
+            except FileNotFoundError:
+                pass
+            else:
+                published = (linked_info.st_dev, linked_info.st_ino) == owned
+            raise
+        published = True
+        os.fsync(directory)
+        reopened = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+        try:
+            reopened_info = os.fstat(reopened)
+            same_bytes = _descriptors_equal(descriptor, reopened, info.st_size)
+            retained_descriptor = os.dup(reopened)
+        finally:
+            os.close(reopened)
+        final_info = path.lstat()
+        if (
+            (reopened_info.st_dev, reopened_info.st_ino) != owned
+            or (final_info.st_dev, final_info.st_ino) != owned
+            or not same_bytes
+        ):
+            raise RuntimeError("immutable publication inode ownership differs")
+        os.fsync(directory)
+        final_info = path.lstat()
+        if (final_info.st_dev, final_info.st_ino) != owned:
+            raise RuntimeError("immutable publication final ownership differs")
+        completed = True
+        return PublishedLargeFile(
+            identity=owned,
+            size=info.st_size,
+            descriptor=retained_descriptor,
+        )
+    finally:
+        if published and not completed and owned is not None and os.path.lexists(path):
+            final = path.lstat()
+            if (final.st_dev, final.st_ino) == owned:
                 path.unlink()
                 os.fsync(directory)
         if descriptor is not None:

@@ -447,17 +447,17 @@ def test_review5_checkpoint_post_link_failure_cleans_owned_path_and_retries(
     module = _load_script()
     path = tmp_path / "epoch-0004.pt"
     publication = importlib.import_module("sfora.atomic_publication")
-    original = publication._pread_all
-    reads = 0
+    original = publication._descriptors_equal
+    comparisons = 0
 
-    def fail_reopened_read(descriptor: int) -> bytes:
-        nonlocal reads
-        reads += 1
-        if reads == 2:
+    def fail_reopened_read(left: int, right: int, size: int) -> bool:
+        nonlocal comparisons
+        comparisons += 1
+        if comparisons == 1:
             raise OSError("post-link verification failed")
-        return original(descriptor)
+        return original(left, right, size)
 
-    monkeypatch.setattr(publication, "_pread_all", fail_reopened_read)
+    monkeypatch.setattr(publication, "_descriptors_equal", fail_reopened_read)
     with pytest.raises(OSError, match="post-link"):
         module.save_training_checkpoint(path, **_review5_checkpoint_arguments())
     assert not path.exists()
@@ -666,12 +666,39 @@ def test_checkpoint_validator_accepts_cpu_restore_of_cuda_payload(
     module.validate_checkpoint_publication(restored, expected=payload)
 
 
+def test_checkpoint_publication_does_not_materialize_encoded_payload(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = _load_script()
+    publication = importlib.import_module("sfora.atomic_publication")
+    monkeypatch.setattr(
+        publication,
+        "_pread_all",
+        lambda _descriptor: (_ for _ in ()).throw(
+            AssertionError("checkpoint publication materialized its payload")
+        ),
+    )
+
+    path = tmp_path / "epoch-0004.pt"
+    sizes: list[int] = []
+    module.save_training_checkpoint(
+        path,
+        **_review5_checkpoint_arguments(),
+        publication_guard=sizes.append,
+    )
+
+    assert path.is_file()
+    assert sizes == [path.stat().st_size]
+    restored = torch.load(path, map_location="cpu", weights_only=False)
+    assert restored["epoch"] == 4
+
+
 def test_review10_checkpoint_publication_closes_retained_descriptor(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     module = _load_script()
     publication = importlib.import_module("sfora.atomic_publication")
-    original = publication.publish_writer_noreplace
+    original = publication.publish_large_writer_noreplace
     retained = []
 
     def capture(*args, **kwargs):
@@ -679,7 +706,7 @@ def test_review10_checkpoint_publication_closes_retained_descriptor(
         retained.append(published)
         return published
 
-    monkeypatch.setattr(module, "publish_writer_noreplace", capture)
+    monkeypatch.setattr(module, "publish_large_writer_noreplace", capture)
     model = torch.nn.Linear(2, 2)
     classifier = torch.nn.Parameter(torch.ones((3, 2)))
     optimizer = torch.optim.AdamW([*model.parameters(), classifier])
@@ -738,6 +765,17 @@ def test_review10_training_budget_guard_rejects_actual_payload_above_row_bound(
             stage / "history.json",
             root,
             payload=b"12345",
+            external=False,
+        )
+    with pytest.raises(OSError, match="bytes|budget"):
+        module.require_configured_publication_capacity(
+            config_path,
+            budget_path,
+            hashlib.sha256(payload).hexdigest(),
+            "exploratory-control-stage4:history",
+            stage / "history.json",
+            root,
+            payload_size=5,
             external=False,
         )
 

@@ -11,6 +11,40 @@ from pathlib import Path
 import pytest
 
 
+def test_large_writer_publication_validates_and_compares_without_materializing_bytes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    publication = importlib.import_module("sfora.atomic_publication")
+    destination = tmp_path / "checkpoint.pt"
+    payload = b"registered-checkpoint" * 257
+    validations: list[tuple[int, bytes]] = []
+
+    monkeypatch.setattr(
+        publication,
+        "_pread_all",
+        lambda _descriptor: (_ for _ in ()).throw(
+            AssertionError("large publication materialized its payload")
+        ),
+    )
+
+    def writer(descriptor: int) -> None:
+        publication._write_all(descriptor, payload)
+
+    def validator(descriptor: int, size: int) -> None:
+        validations.append((size, os.pread(descriptor, size, 0)))
+
+    with publication.publish_large_writer_noreplace(
+        destination, writer, validator=validator
+    ) as published:
+        assert validations == [(len(payload), payload)]
+        assert published.size == len(payload)
+        assert published.identity == (
+            destination.lstat().st_dev,
+            destination.lstat().st_ino,
+        )
+        assert os.pread(published.descriptor, len(payload), 0) == payload
+
+
 def test_review7_retained_publisher_loops_writes_and_fsyncs_directory_twice(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
