@@ -62,6 +62,26 @@ def test_identity_balanced_batches_cycle_only_after_identity_inventory() -> None
     )
 
 
+def test_identity_balanced_batches_cycle_sparse_identity_images() -> None:
+    labels = _labels(identity_count=32, images_per_identity=2)
+
+    (batch,) = identity_balanced_batches(
+        labels,
+        batch_size=128,
+        images_per_identity=4,
+        seed=13,
+        epoch=5,
+        steps=1,
+    )
+
+    counts = Counter(labels[index] for index in batch)
+    assert set(counts.values()) == {4}
+    assert all(
+        len(set(index for index in batch if labels[index] == label)) == 2
+        for label in counts
+    )
+
+
 @pytest.mark.parametrize(
     ("labels", "kwargs"),
     (

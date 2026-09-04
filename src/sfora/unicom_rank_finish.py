@@ -39,10 +39,7 @@ def identity_balanced_batches(
     for index, label in enumerate(labels):
         grouped[label].append(index)
     identities_per_batch = batch_size // images_per_identity
-    if (
-        len(grouped) < identities_per_batch
-        or any(len(indices) < images_per_identity for indices in grouped.values())
-    ):
+    if len(grouped) < identities_per_batch:
         raise ValueError("rank-finish identity inventory differs")
 
     rng = np.random.Generator(np.random.PCG64(np.random.SeedSequence((seed, epoch))))
@@ -55,6 +52,7 @@ def identity_balanced_batches(
 
     def draw(label: str) -> tuple[int, ...]:
         selected: list[int] = []
+        target_unique = min(images_per_identity, len(grouped[label]))
         while len(selected) < images_per_identity:
             permutation = permutations[label]
             position = positions[label]
@@ -65,7 +63,7 @@ def identity_balanced_batches(
             while position < len(permutation) and len(selected) < images_per_identity:
                 candidate = permutation[position]
                 position += 1
-                if candidate not in selected:
+                if candidate not in selected or len(set(selected)) >= target_unique:
                     selected.append(candidate)
             positions[label] = position
         return tuple(selected)

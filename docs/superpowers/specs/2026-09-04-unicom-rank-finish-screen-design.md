@@ -35,8 +35,9 @@ all distances, losses, and gradients must be finite.
 The identity-balanced schedule is deterministic from the registered training
 seed and epoch.  It exposes exactly the same number of complete batches as the
 original epoch schedule, samples identities without replacement within each
-batch, and cycles a per-identity deterministically shuffled image order when an
-identity has fewer than the required epoch draws.
+batch, and cycles a per-identity deterministically shuffled image order only
+after exhausting its physical images. Repeated indices for sparse identities
+therefore receive independent augmentations instead of excluding the identity.
 
 ## Evidence boundary and stops
 
@@ -69,4 +70,3 @@ The hard wall limit is two hours.  Stop on CUDA OOM, nonfinite computation,
 memory PSI full avg10 at least 0.79 immediately or at least 0.50 for three
 consecutive samples, or a ten-minute progress gap.  Expected runtime is
 60--90 minutes.
-
