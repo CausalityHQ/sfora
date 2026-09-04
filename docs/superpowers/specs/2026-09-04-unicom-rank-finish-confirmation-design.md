@@ -49,9 +49,13 @@ claim. All receipts remain `claim_eligible=false` until independent replication.
 ## Resource and publication boundary
 
 Run one seed at a time on the DGX because a finish process uses about 88 GB of
-allocated CUDA memory. Each process has a two-hour wall limit and the existing
-memory-pressure/nonfinite/progress stops. Publish with no replacement. Bind the
-source commit, screen result, parent checkpoint and receipt, partition, finish
-seed, method implementation, model artifact digest, metrics, elapsed time, and
-peak CUDA allocation into every result.
-
+allocated CUDA memory. Each process has a two-hour wall limit. Stop if available
+host memory falls below 8 GiB, swap grows by more than 256 MiB, or memory PSI
+full avg10 remains at least 0.79 for twelve consecutive five-second samples.
+The sustained PSI rule deliberately excludes the reproducible sub-minute
+checkpoint/page-cache load transient, observed with more than 22 GiB available
+and no swap growth; that transient does not predict the stable training
+footprint. Nonfinite and progress stops remain fail-closed. Publish with no
+replacement. Bind the source commit, screen result, parent checkpoint and
+receipt, partition, finish seed, method implementation, model artifact digest,
+metrics, elapsed time, and peak CUDA allocation into every result.
