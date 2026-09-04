@@ -1818,7 +1818,10 @@ def validate_checkpoint_publication(
                 isinstance(observed, torch.Tensor)
                 and observed.dtype == reference.dtype
                 and tuple(observed.shape) == tuple(reference.shape)
-                and torch.equal(observed, reference)
+                and torch.equal(
+                    observed,
+                    reference.detach().to(device=observed.device),
+                )
             )
         if isinstance(reference, Mapping):
             return (

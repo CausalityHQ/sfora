@@ -634,6 +634,38 @@ def test_review9_checkpoint_validator_rejects_complete_schema_mutation(
         module.validate_checkpoint_publication(changed, expected=payload)
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA regression")
+def test_checkpoint_validator_accepts_cpu_restore_of_cuda_payload(
+    tmp_path: Path,
+) -> None:
+    module = _load_script()
+    payload = {
+        "epoch": 4,
+        "model": {"weight": torch.ones((2, 2), device="cuda")},
+        "classifier": torch.ones((3, 2), device="cuda"),
+        "ema": None,
+        "optimizer": {
+            "state": {0: {"exp_avg": torch.ones(2, device="cuda")}},
+            "param_groups": [],
+        },
+        "scheduler": None,
+        "scaler": None,
+        "mask_generator": torch.Generator().get_state(),
+        "torch_rng_state": torch.get_rng_state(),
+        "cuda_rng_states": torch.cuda.get_rng_state_all(),
+        "selection_holdout": {"seed": 0, "fraction": 0.2},
+        "training_protocol": {"trainer_sha256": "1" * 64},
+        "history": [],
+    }
+    checkpoint = tmp_path / "cuda.pt"
+    torch.save(payload, checkpoint)
+    restored = torch.load(checkpoint, map_location="cpu", weights_only=False)
+    assert restored["model"]["weight"].device.type == "cpu"
+    assert payload["model"]["weight"].device.type == "cuda"
+
+    module.validate_checkpoint_publication(restored, expected=payload)
+
+
 def test_review10_checkpoint_publication_closes_retained_descriptor(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
