@@ -9,8 +9,9 @@ quality thresholds unchanged. Only the finish-phase random stream changes.
 
 The seed-0 screen result is immutable evidence with SHA-256
 `3a8cf818e66248fa124cbfd6231a17298cf9fb1734ce9dd1b9a47d4274d8b111`.
-It contributes one of three registered finish seeds. Seeds 1 and 2 are run from
-the same authenticated epoch-4 checkpoint. The finish seed controls the
+It is the discovery result and remains a required authenticated per-seed
+observation, but it is excluded from the confirmation mean. Seeds 1 and 2 are
+run from the same authenticated epoch-4 checkpoint. The finish seed controls the
 identity-balanced order, augmentation-worker stream, and CPU/CUDA stochastic
 model stream after checkpoint restoration.
 
@@ -28,17 +29,19 @@ Confirmation passes only when all three seeds satisfy:
 - Recall@1 delta at least -0.001;
 - Recall@10 delta at least -0.001.
 
-The three-seed mean mAP@R delta must also be at least +0.010. No seed is stopped
-early from the epoch-6 metric; all registered seed-8 outcomes are collected.
-Failure closes this exact finish method without changing a threshold or seed.
+The mean mAP@R delta across only the independently registered confirmation
+seeds 1 and 2 must also be at least +0.010. No seed is stopped early from the
+epoch-6 metric; all registered seed-8 outcomes are collected. Failure closes
+this exact finish method without changing a threshold or seed.
 
 ## Final readout
 
 Only after confirmation passes, evaluate the fixed seed-1 inference artifact on
 the standard In-Shop test split once, paired against the already authenticated
 epoch-4 control geometry. The final readout must report mAP@R and Recall@1/10/20/30,
-per-query AP@R evidence, exact artifact identities, and deterministic descriptor
-checks. It passes the release-quality gate when mAP@R improves by at least
+paired per-query AP@R evidence for both the control and candidate, exact
+artifact identities, and deterministic descriptor checks. It passes the
+release-quality gate when mAP@R improves by at least
 +0.003 and Recall@1 and Recall@10 each decline by no more than 0.001.
 
 The standard-test split has been used historically and is not represented as a

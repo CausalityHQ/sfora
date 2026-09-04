@@ -58,8 +58,16 @@ def test_confirmation_requires_all_seeds_and_mean_promotion() -> None:
     )
 
     assert decision["status"] == "CONFIRM"
-    assert decision["mean_delta_map_at_r"] == pytest.approx(0.011)
+    assert decision["confirmation_mean_delta_map_at_r"] == pytest.approx(0.010)
     assert [row["finish_seed"] for row in decision["seeds"]] == [0, 1, 2]
+
+
+def test_confirmation_mean_excludes_discovery_seed() -> None:
+    decision = MODULE.evaluate_confirmation(
+        [_result(0, 0.100), _result(1, 0.011), _result(2, 0.009)]
+    )
+
+    assert decision["confirmation_mean_delta_map_at_r"] == pytest.approx(0.010)
 
 
 @pytest.mark.parametrize(

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Authenticate and evaluate the frozen three-seed rank-finish confirmation."""
+"""Authenticate discovery seed 0 and evaluate seeds 1/2 confirmation."""
 
 from __future__ import annotations
 
@@ -97,7 +97,7 @@ def _seed_observation(result: object, expected_seed: int) -> dict[str, object]:
 
 
 def evaluate_confirmation(results: Sequence[object]) -> dict[str, object]:
-    """Recompute the frozen all-seed and mean confirmation predicates."""
+    """Recompute all per-seed gates and the seeds 1/2 confirmation mean."""
 
     if type(results) not in {list, tuple} or len(results) != 3:
         raise ValueError("rank-finish confirmation inventory differs")
@@ -105,15 +105,17 @@ def evaluate_confirmation(results: Sequence[object]) -> dict[str, object]:
         _seed_observation(result, expected_seed)
         for expected_seed, result in enumerate(results)
     ]
-    mean_delta = math.fsum(row["deltas"]["map_at_r"] for row in seeds) / 3
+    confirmation_mean_delta = math.fsum(
+        row["deltas"]["map_at_r"] for row in seeds[1:]
+    ) / 2
     status = (
         "CONFIRM"
-        if all(row["passes"] for row in seeds) and mean_delta >= 0.010
+        if all(row["passes"] for row in seeds) and confirmation_mean_delta >= 0.010
         else "REJECT"
     )
     return {
         "status": status,
-        "mean_delta_map_at_r": mean_delta,
+        "confirmation_mean_delta_map_at_r": confirmation_mean_delta,
         "all_seed_quality_pass": all(row["passes"] for row in seeds),
         "seeds": seeds,
     }
@@ -186,7 +188,7 @@ def run(args: argparse.Namespace) -> dict[str, object]:
             "per_seed_delta_map_at_r_min": 0.003,
             "per_seed_recall_at_1_delta_min": -0.001,
             "per_seed_recall_at_10_delta_min": -0.001,
-            "mean_delta_map_at_r_min": 0.010,
+            "confirmation_mean_delta_map_at_r_min": 0.010,
         },
         "decision": decision,
         "status": decision["status"],
