@@ -1234,6 +1234,9 @@ def _schedule_sha256(protocol: Mapping[str, object]) -> str:
         protocol["checkpoint_every"],
         protocol["max_steps"],
         protocol["bf16"],
+        protocol["compile"],
+        protocol["fused"],
+        protocol["ema_decay"] is None,
     )
     return hashlib.sha256(
         json.dumps(payload, allow_nan=False, separators=(",", ":")).encode()

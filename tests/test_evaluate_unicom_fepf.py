@@ -22,6 +22,39 @@ MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
 
 
+def test_schedule_digest_reconstructs_the_complete_trainer_schedule() -> None:
+    protocol = {
+        "epochs": 16,
+        "batch_size": 128,
+        "workers": 4,
+        "learning_rate": 1e-5,
+        "classifier_learning_rate": 1e-4,
+        "margin": 0.25,
+        "scale": 32.0,
+        "objective": "official-eight-mask",
+        "selected_features": 512,
+        "evaluation_features": 512,
+        "eval_every": 4,
+        "checkpoint_every": 4,
+        "max_steps": None,
+        "bf16": False,
+        "compile": False,
+        "fused": False,
+        "ema_decay": 0.999,
+    }
+
+    assert MODULE._schedule_sha256(protocol) == (
+        "b61b730a479d014f3a4c451950497eae0b8406d35dafa096210605352b5bf27b"
+    )
+    for key in ("compile", "fused"):
+        changed = dict(protocol)
+        changed[key] = True
+        assert MODULE._schedule_sha256(changed) != MODULE._schedule_sha256(protocol)
+    changed = dict(protocol)
+    changed["ema_decay"] = None
+    assert MODULE._schedule_sha256(changed) != MODULE._schedule_sha256(protocol)
+
+
 @pytest.mark.parametrize("mutation", (None, "path", "hash"))
 def test_review13_public_evaluator_loads_separate_ranked_prefix_authority(
     tmp_path: Path, mutation: str | None
@@ -1432,6 +1465,9 @@ def test_real_reload_chain_rejects_recursive_authority_rebinding(
             "checkpoint_every": 4,
             "max_steps": None,
             "bf16": False,
+            "compile": False,
+            "fused": False,
+            "ema_decay": 0.999,
             "trainer_sha256": "a" * 64,
             "initial_checkpoint_sha256": "b" * 64,
         }
