@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from collections import defaultdict
+from collections import Counter, defaultdict
 from collections.abc import Sequence
 
 import numpy as np
+import torch
 
 
 def identity_balanced_batches(
@@ -83,4 +84,75 @@ def identity_balanced_batches(
     return tuple(batches)
 
 
-__all__ = ["identity_balanced_batches"]
+def smooth_ap_finish_loss(
+    embeddings: torch.Tensor,
+    labels: Sequence[object],
+    *,
+    dimensions: int = 512,
+    temperature: float = 0.01,
+) -> torch.Tensor:
+    """Compute the fixed Smooth-AP finish loss in deployment geometry."""
+
+    if type(embeddings) is not torch.Tensor or not embeddings.is_floating_point():
+        raise TypeError("rank-finish embeddings must be a floating tensor")
+    if type(dimensions) is not int or dimensions != 512:
+        raise ValueError("rank-finish dimensions differ")
+    if type(temperature) is not float or temperature != 0.01:
+        raise ValueError("rank-finish temperature differs")
+    if (
+        embeddings.ndim != 2
+        or embeddings.shape[0] != len(labels)
+        or embeddings.shape[1] < dimensions
+        or embeddings.shape[0] < 4
+        or not torch.isfinite(embeddings).all()
+        or torch.any(torch.linalg.vector_norm(embeddings.float(), dim=1) == 0.0)
+    ):
+        raise ValueError("rank-finish embedding inventory differs")
+    if any(label is None for label in labels):
+        raise ValueError("rank-finish labels differ")
+    counts = Counter(labels)
+    if any(count < 2 for count in counts.values()):
+        raise ValueError("rank-finish positive inventory differs")
+
+    normalized = torch.nn.functional.normalize(embeddings.float(), dim=1)[
+        :, :dimensions
+    ]
+    distances = torch.sum(
+        (normalized[:, None, :] - normalized[None, :, :]).square(), dim=2
+    )
+    average_precisions = []
+    rows = len(labels)
+    for anchor, label in enumerate(labels):
+        candidates = tuple(index for index in range(rows) if index != anchor)
+        positives = tuple(index for index in candidates if labels[index] == label)
+        positive_precisions = []
+        for positive in positives:
+            competitors = tuple(index for index in candidates if index != positive)
+            rank = 1.0 + torch.sigmoid(
+                (
+                    distances[anchor, positive]
+                    - distances[anchor, list(competitors)]
+                )
+                / temperature
+            ).sum()
+            positive_competitors = tuple(
+                index for index in positives if index != positive
+            )
+            positive_rank = 1.0
+            if positive_competitors:
+                positive_rank = positive_rank + torch.sigmoid(
+                    (
+                        distances[anchor, positive]
+                        - distances[anchor, list(positive_competitors)]
+                    )
+                    / temperature
+                ).sum()
+            positive_precisions.append(positive_rank / rank)
+        average_precisions.append(torch.stack(positive_precisions).mean())
+    loss = 1.0 - torch.stack(average_precisions).mean()
+    if not torch.isfinite(loss):
+        raise ValueError("rank-finish loss is nonfinite")
+    return loss
+
+
+__all__ = ["identity_balanced_batches", "smooth_ap_finish_loss"]
