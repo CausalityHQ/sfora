@@ -80,6 +80,15 @@ def test_confirmation_accepts_metrics_only_robustness_seed() -> None:
     assert decision["seeds"][2]["model_artifact"] is None
 
 
+def test_confirmation_accepts_canonical_disk_roundtrip() -> None:
+    results = [_result(0, 0.013), _result(1, 0.011), _result(2, 0.009)]
+    restored = json.loads(json.dumps(results, sort_keys=True))
+
+    decision = MODULE.evaluate_confirmation(restored)
+
+    assert decision["status"] == "CONFIRM"
+
+
 @pytest.mark.parametrize(
     "results",
     (

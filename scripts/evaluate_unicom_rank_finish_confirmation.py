@@ -54,7 +54,7 @@ def _seed_observation(result: object, expected_seed: int) -> dict[str, object]:
         artifact = result.get("model_artifact")
         if (
             type(artifact) is not dict
-            or tuple(artifact) != ("path", "sha256", "bytes")
+            or set(artifact) != {"path", "sha256", "bytes"}
             or type(artifact["path"]) is not str
             or type(artifact["sha256"]) is not str
             or len(artifact["sha256"]) != 64
@@ -66,7 +66,7 @@ def _seed_observation(result: object, expected_seed: int) -> dict[str, object]:
         artifact = result["model_artifact"]
         if (
             type(artifact) is not dict
-            or tuple(artifact) != ("path", "sha256", "bytes")
+            or set(artifact) != {"path", "sha256", "bytes"}
             or type(artifact["path"]) is not str
             or type(artifact["sha256"]) is not str
             or len(artifact["sha256"]) != 64
