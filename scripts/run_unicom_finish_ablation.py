@@ -121,6 +121,7 @@ def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--resume-run-receipt", required=True, type=Path)
     parser.add_argument("--resume-run-receipt-sha256", required=True)
     parser.add_argument("--evidence-root", required=True, type=Path)
+    parser.add_argument("--terminal-checkpoint", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--execute-finish-ablation", action="store_true", required=True)
     return parser.parse_args(arguments)
@@ -302,8 +303,9 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         (args.resume_run_receipt, args.resume_run_receipt_sha256, "parent receipt"),
     ):
         _require_file(path, digest, name)
-    if args.output.exists() or args.output.is_symlink():
-        raise FileExistsError(args.output)
+    for output in (args.output, args.terminal_checkpoint):
+        if output.exists() or output.is_symlink():
+            raise FileExistsError(output)
     evidence_root = args.evidence_root.resolve()
     if (
         args.evidence_root.absolute() != evidence_root
@@ -543,6 +545,42 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         schedule_sha256=combined_schedule_sha256,
         evidence_root=evidence_root,
     )
+    checkpoint_history = [
+        *history,
+        *(
+            {
+                "epoch": row["epoch"],
+                "train": {
+                    "steps": row["steps"],
+                    "mean_loss": row["mean_loss"],
+                },
+                "metrics": row["metrics"],
+            }
+            for row in arm_history
+        ),
+    ]
+    trainer.save_training_checkpoint(
+        args.terminal_checkpoint,
+        epoch=8,
+        raw_model=model,
+        classifier=classifier,
+        optimizer=optimizer,
+        scheduler=scheduler,
+        scaler=scaler,
+        mask_generator=mask_generator,
+        selection_holdout={
+            "seed": parent_receipt["holdout_seed"],
+            "fraction": parent_receipt["holdout_fraction"],
+        },
+        training_protocol=protocol,
+        history=checkpoint_history,
+        step_ema=step_ema,
+    )
+    terminal_checkpoint = {
+        "path": str(args.terminal_checkpoint.resolve()),
+        "sha256": _sha256_file(args.terminal_checkpoint),
+        "bytes": args.terminal_checkpoint.stat().st_size,
+    }
     result = {
         "schema": "unicom-finish-ablation-result-v1",
         "claim_eligible": False,
@@ -571,6 +609,7 @@ def run(args: argparse.Namespace) -> dict[str, object]:
             "final_classifier_optimizer": final_classifier_sha256,
         },
         "evidence": evidence,
+        "terminal_checkpoint": terminal_checkpoint,
         "elapsed_seconds": float(time.perf_counter() - started),
         "peak_allocated_bytes": int(torch.cuda.max_memory_allocated()),
         "peak_reserved_bytes": int(torch.cuda.max_memory_reserved()),

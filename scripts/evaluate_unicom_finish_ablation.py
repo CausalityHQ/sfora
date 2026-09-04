@@ -19,6 +19,9 @@ from sfora.atomic_publication import publish_bytes_noreplace
 from sfora.unicom_finish_evidence import validate_finish_evidence
 from sfora.unicom_finish_protocol import FinishArm, validate_finish_config
 
+PARENT_RECALL_AT_1 = 0.986198243412798
+PARENT_RECALL_AT_10 = 0.9974905897114178
+
 
 def paired_contrast(
     control_ap: Sequence[float],
@@ -96,6 +99,8 @@ def classify_causal_panel(
     c_minus_b_recall1: float,
     c_minus_a_recall10: float,
     c_minus_b_recall10: float,
+    c_minus_parent_recall1: float,
+    c_minus_parent_recall10: float,
 ) -> str:
     """Apply the preregistered causal gain and recall noninferiority gates."""
 
@@ -106,6 +111,8 @@ def classify_causal_panel(
         c_minus_b_recall1,
         c_minus_a_recall10,
         c_minus_b_recall10,
+        c_minus_parent_recall1,
+        c_minus_parent_recall10,
     )
     if any(type(value) is not float or not math.isfinite(value) for value in values):
         raise ValueError("finish causal contrast differs")
@@ -118,6 +125,8 @@ def classify_causal_panel(
             c_minus_b_recall1,
             c_minus_a_recall10,
             c_minus_b_recall10,
+            c_minus_parent_recall1,
+            c_minus_parent_recall10,
         )
         >= -0.001
         else "CLOSE"
@@ -141,7 +150,9 @@ def _load_arm(
     source_commit: str,
     config: dict[str, object],
     config_sha256: str,
-) -> tuple[dict[str, object], list[float], list[bool], list[str], list[str]]:
+) -> tuple[
+    dict[str, object], list[float], list[bool], list[str], list[str], list[dict[str, object]]
+]:
     if (
         path.is_symlink()
         or not path.is_file()
@@ -170,12 +181,28 @@ def _load_arm(
         or result.get("schedule_sha256")
         != config["schedule_sha256"][expected_arm.value]
         or type(result.get("evidence")) is not dict
+        or result["evidence"].get("arm") != expected_arm.value
+        or result["evidence"].get("finish_seed") != 3
         or type(result.get("updates")) is not dict
         or result["updates"].get("attempted") != 644
         or result["updates"].get("successful") != 644
         or result["updates"].get("skipped") != 0
     ):
         raise ValueError("finish arm result authority differs")
+    checkpoint = result.get("terminal_checkpoint")
+    if (
+        type(checkpoint) is not dict
+        or set(checkpoint) != {"path", "sha256", "bytes"}
+        or type(checkpoint["path"]) is not str
+        or type(checkpoint["sha256"]) is not str
+        or type(checkpoint["bytes"]) is not int
+        or checkpoint["bytes"] <= 0
+        or Path(checkpoint["path"]).is_symlink()
+        or not Path(checkpoint["path"]).is_file()
+        or Path(checkpoint["path"]).stat().st_size != checkpoint["bytes"]
+        or _sha256_file(Path(checkpoint["path"])) != checkpoint["sha256"]
+    ):
+        raise ValueError("finish terminal checkpoint differs")
     validate_finish_evidence(
         result["evidence"],
         evidence_root,
@@ -196,7 +223,7 @@ def _load_arm(
         raise ValueError("finish paired query order differs")
     ap = [row["ap_at_r"] for row in rows]
     top1 = [bool(row["ranked_prefix"][0]["correct"]) for row in rows]
-    return result, ap, top1, labels, paths
+    return result, ap, top1, labels, paths, receipt["gallery_records"]
 
 
 def canonical_result_bytes(result: object) -> bytes:
@@ -262,10 +289,39 @@ def run(args: argparse.Namespace) -> dict[str, object]:
             config=config,
             config_sha256=args.config_sha256,
         )
-    _a_result, a_ap, a_top1, labels, paths = arms["a"]
-    _b_result, b_ap, b_top1, b_labels, b_paths = arms["b"]
-    c_result, c_ap, c_top1, c_labels, c_paths = arms["c"]
-    if labels != b_labels or labels != c_labels or paths != b_paths or paths != c_paths:
+    a_result, a_ap, a_top1, labels, paths, gallery = arms["a"]
+    b_result, b_ap, b_top1, b_labels, b_paths, b_gallery = arms["b"]
+    c_result, c_ap, c_top1, c_labels, c_paths, c_gallery = arms["c"]
+    if (
+        labels != b_labels
+        or labels != c_labels
+        or paths != b_paths
+        or paths != c_paths
+        or gallery != b_gallery
+        or gallery != c_gallery
+        or a_result["state_sha256"]["initial_model"]
+        != b_result["state_sha256"]["initial_model"]
+        or a_result["state_sha256"]["initial_model"]
+        != c_result["state_sha256"]["initial_model"]
+        or a_result["state_sha256"]["initial_classifier_optimizer"]
+        != b_result["state_sha256"]["initial_classifier_optimizer"]
+        or a_result["state_sha256"]["initial_classifier_optimizer"]
+        != c_result["state_sha256"]["initial_classifier_optimizer"]
+        or a_result["state_sha256"]["initial_classifier_optimizer"]
+        == a_result["state_sha256"]["final_classifier_optimizer"]
+        or b_result["state_sha256"]["initial_classifier_optimizer"]
+        == b_result["state_sha256"]["final_classifier_optimizer"]
+        or c_result["state_sha256"]["initial_classifier_optimizer"]
+        != c_result["state_sha256"]["final_classifier_optimizer"]
+        or any(
+            result["updates"]["final_ema"] - result["updates"]["initial_ema"]
+            != 644
+            or result["updates"]["final_scheduler_step"]
+            - result["updates"]["initial_scheduler_step"]
+            != 644
+            for result in (a_result, b_result, c_result)
+        )
+    ):
         raise ValueError("finish paired query identity differs")
     ca = paired_contrast(
         a_ap,
@@ -289,12 +345,21 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         c_minus_b_recall1=metrics["c"]["recall_at_1"] - metrics["b"]["recall_at_1"],
         c_minus_a_recall10=metrics["c"]["recall_at_10"] - metrics["a"]["recall_at_10"],
         c_minus_b_recall10=metrics["c"]["recall_at_10"] - metrics["b"]["recall_at_10"],
+        c_minus_parent_recall1=metrics["c"]["recall_at_1"] - PARENT_RECALL_AT_1,
+        c_minus_parent_recall10=metrics["c"]["recall_at_10"] - PARENT_RECALL_AT_10,
     )
     result = {
         "schema": "unicom-finish-causal-panel-v1",
         "claim_eligible": False,
         "source_commit": source,
         "config_sha256": args.config_sha256,
+        "inputs": {
+            name: {
+                "sha256": getattr(args, f"{name}_sha256"),
+                "path": str(getattr(args, f"{name}_result").resolve()),
+            }
+            for name in ("a", "b", "c")
+        },
         "gates": {
             "delta_map_at_r_min": 0.003,
             "recall_at_1_delta_min": -0.001,

@@ -51,4 +51,6 @@ def test_causal_gate_requires_both_matched_contrasts(ca, cb, r1a, r1b, expected)
         c_minus_b_recall1=r1b,
         c_minus_a_recall10=0.0,
         c_minus_b_recall10=0.0,
+        c_minus_parent_recall1=0.0,
+        c_minus_parent_recall10=0.0,
     ) == expected

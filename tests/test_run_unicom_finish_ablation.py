@@ -49,6 +49,8 @@ def _required(tmp_path: Path) -> list[str]:
         "e" * 64,
         "--evidence-root",
         str(tmp_path / "evidence"),
+        "--terminal-checkpoint",
+        str(tmp_path / "epoch-0008.pt"),
         "--output",
         str(tmp_path / "result.json"),
     ]
