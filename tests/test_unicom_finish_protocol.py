@@ -9,6 +9,7 @@ import torch
 from sfora.unicom_finish_protocol import (
     FinishArm,
     build_finish_batches,
+    build_finish_config,
     capture_rng_state,
     restore_rng_state,
     schedule_sha256,
@@ -22,16 +23,16 @@ def _labels() -> tuple[str, ...]:
 
 
 def test_finish_config_freezes_phase_one_inventory() -> None:
-    value = validate_finish_config(
-        {
-            "schema": "unicom-finish-ablation-config-v1",
-            "finish_seed": 3,
-            "epochs": [5, 6, 7, 8],
-            "steps_per_epoch": 161,
-            "batch_size": 128,
-            "images_per_identity": 4,
-            "arms": [arm.value for arm in FinishArm],
-        }
+    labels = tuple(f"identity-{index % 3_200:04d}" for index in range(20_650))
+    value = build_finish_config(
+        labels,
+        partition_sha256="a" * 64,
+        parent_checkpoint_sha256="b" * 64,
+        parent_receipt_sha256="c" * 64,
+        source_commit="d" * 40,
+        official_checkpoint_sha256="e" * 64,
+        unicom_revision="f" * 40,
+        environment_sha256="1" * 64,
     )
 
     assert value["arms"] == [
@@ -39,6 +40,12 @@ def test_finish_config_freezes_phase_one_inventory() -> None:
         "classification-pk",
         "smooth-ap-pk",
     ]
+    assert value["optimization_images"] == 20_650
+    assert value["optimization_identities"] == 3_200
+    assert value["schedule_sha256"]["classification-pk"] == value[
+        "schedule_sha256"
+    ]["smooth-ap-pk"]
+    validate_finish_config(value)
     with pytest.raises(ValueError):
         validate_finish_config({**value, "finish_seed": 4})
 

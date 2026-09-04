@@ -9,7 +9,6 @@ from pathlib import Path
 
 from sfora.unicom_finish_protocol import FinishArm
 from sfora.unicom_retrieval_audit import (
-    strict_typed_equal,
     validate_evaluation_evidence,
 )
 
@@ -40,7 +39,7 @@ def _digest(value: object) -> bool:
 
 
 def _validate_shape(value: object) -> dict[str, object]:
-    if type(value) is not dict or tuple(value) != _BUNDLE_KEYS:
+    if type(value) is not dict or set(value) != set(_BUNDLE_KEYS):
         raise ValueError("finish evidence bundle differs")
     binding = value["evaluation_receipt"]
     metrics = value["metrics"]
@@ -52,13 +51,13 @@ def _validate_shape(value: object) -> dict[str, object]:
         or type(value["finish_seed"]) is not int
         or not _digest(value["schedule_sha256"])
         or type(binding) is not dict
-        or tuple(binding) != ("path", "sha256", "bytes")
+        or set(binding) != {"path", "sha256", "bytes"}
         or binding["path"] != "evaluation-epoch-0008.json"
         or not _digest(binding["sha256"])
         or type(binding["bytes"]) is not int
         or binding["bytes"] <= 0
         or type(metrics) is not dict
-        or tuple(metrics) != _METRIC_KEYS
+        or set(metrics) != set(_METRIC_KEYS)
         or any(
             type(metrics[key]) is not float
             or not math.isfinite(metrics[key])
@@ -107,7 +106,16 @@ def validate_finish_evidence(
     if payload != expected or receipt.get("epoch") != 8:
         raise ValueError("finish evaluation receipt differs")
     validate_evaluation_evidence(receipt, root)
-    if not strict_typed_equal(bundle["metrics"], receipt.get("metrics")):
+    receipt_metrics = receipt.get("metrics")
+    if (
+        type(receipt_metrics) is not dict
+        or set(receipt_metrics) != set(_METRIC_KEYS)
+        or any(
+            type(bundle["metrics"][key]) is not type(receipt_metrics[key])
+            or bundle["metrics"][key] != receipt_metrics[key]
+            for key in _METRIC_KEYS
+        )
+    ):
         raise ValueError("finish evidence metrics differ")
 
 

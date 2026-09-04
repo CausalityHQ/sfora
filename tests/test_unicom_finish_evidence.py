@@ -63,8 +63,9 @@ def test_finish_evidence_binds_validated_evaluation_receipt(
         (tmp_path / "evaluation-epoch-0008.json").read_bytes()
     ).hexdigest()
     assert canonical_finish_evidence_bytes(bundle).endswith(b"\n")
+    reloaded = json.loads(canonical_finish_evidence_bytes(bundle))
     validate_finish_evidence(
-        bundle, tmp_path, expected_schedule_sha256="ab" * 32
+        reloaded, tmp_path, expected_schedule_sha256="ab" * 32
     )
 
 
