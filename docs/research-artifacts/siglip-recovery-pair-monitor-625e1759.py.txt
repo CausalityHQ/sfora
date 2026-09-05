@@ -1,0 +1,57 @@
+"""One fixed pair monitor, preserving the six-hour campaign and evaluation reserve."""
+import hashlib
+import importlib.util
+import json
+import math
+import os
+from pathlib import Path
+import subprocess
+import sys
+import time
+
+spec=importlib.util.spec_from_file_location('original_monitor','/home/riomus/sfora-readout-monitor-b32b6781.py')
+monitor=importlib.util.module_from_spec(spec)
+spec.loader.exec_module(monitor)
+assert hashlib.sha256(Path(monitor.__file__).read_bytes()).hexdigest()=='e7620e242cc61f32ac27b7338af3f8a54c68709c0bcb710a877c2c9e1a0f3708'
+smoke_monitor=Path('/home/riomus/siglip-recovery-smoke-4182deddf5be.monitor.json')
+assert hashlib.sha256(smoke_monitor.read_bytes()).hexdigest()=='1408e3d71013b9838ff23f9f0573b63a5af9ff7585995736da91c44af260b29d'
+record=json.loads(smoke_monitor.read_bytes())
+assert record['exit_code']==0 and record['stop_reason'] is None
+assert record['result_sha256']=='0481b835f594cbc9f910c40259a5d40c1958f236f51bbea49104cfdcaffd0344'
+# Fixed observed original wrapper time, rounded UP; reserve30m final evaluation.
+prior_seconds=math.ceil(761.4893234689953+592.8024364270386)
+wall_seconds=21600-prior_seconds-1800
+assert wall_seconds==18445
+script,result,logpath,receiptpath=map(Path,sys.argv[1:])
+assert script.is_file() and script.is_absolute()
+for path in (result,logpath,receiptpath):
+    assert path.is_absolute() and not path.exists() and not path.is_symlink()
+assert monitor.psi()<.50
+assert not subprocess.check_output(['nvidia-smi','--query-compute-apps=pid','--format=csv,noheader'],text=True).strip()
+env=dict(os.environ,HF_HUB_OFFLINE='1',HF_DATASETS_OFFLINE='1',TRANSFORMERS_OFFLINE='1',PYTHONDONTWRITEBYTECODE='1',PYTHONUNBUFFERED='1')
+start=time.monotonic();swap0=monitor.swap_used();hits=0;last_size=0;last_progress=start;samples=[];reason=None
+with logpath.open('xb',buffering=0) as log:
+    process=subprocess.Popen(['timeout','--signal=TERM','--kill-after=15s',f'{wall_seconds}s','/home/riomus/group-learning/.venv/bin/python','-u',str(script)],env=env,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
+    print(json.dumps({'original_pgid':process.pid,'script':str(script),'log':str(logpath),'wall_seconds':wall_seconds,'prior_seconds':prior_seconds}),flush=True)
+    try:
+        while process.poll() is None:
+            now=time.monotonic();size=logpath.stat().st_size
+            if size!=last_size:last_size,last_progress=size,now
+            sample={'elapsed_s':now-start,'rss_bytes':monitor.rss(process.pid),'psi_full_avg10':monitor.psi(),'swap_delta_bytes':monitor.swap_used()-swap0,'log_bytes':size,'progress_gap_s':now-last_progress}
+            samples.append(sample);hits=hits+1 if sample['psi_full_avg10']>=.50 else 0
+            if sample['rss_bytes']>=118111600640:reason='rss-cap'
+            elif sample['psi_full_avg10']>=.79 or hits>=3:reason='psi-cap'
+            elif sample['swap_delta_bytes']>268435456:reason='swap-cap'
+            elif sample['progress_gap_s']>=300:reason='progress-gap'
+            elif sample['elapsed_s']>=wall_seconds:reason='wall-cap'
+            if len(samples)%6==1 or reason:print(json.dumps(sample),flush=True)
+            if reason:monitor.terminate(process);break
+            try:process.wait(timeout=5)
+            except subprocess.TimeoutExpired:pass
+    except BaseException as error:
+        reason=f'monitor-exception:{type(error).__name__}:{error}';monitor.terminate(process)
+status=process.wait()
+receipt={'schema':'sfora-recovery-pair-monitor-v1','claim_eligible':False,'exit_code':status,'stop_reason':reason,'samples':samples,'elapsed_s':time.monotonic()-start,'prior_seconds':prior_seconds,'wall_seconds':wall_seconds,'evaluation_reserved_seconds':1800,'script_sha256':hashlib.sha256(script.read_bytes()).hexdigest(),'log_sha256':hashlib.sha256(logpath.read_bytes()).hexdigest(),'result_sha256':hashlib.sha256(result.read_bytes()).hexdigest() if result.exists() else None}
+with receiptpath.open('xb') as file:file.write((json.dumps(receipt,sort_keys=True,separators=(',',':'),allow_nan=False)+'\n').encode())
+print(json.dumps({k:v for k,v in receipt.items() if k!='samples'}),flush=True)
+sys.exit(125 if reason else status)

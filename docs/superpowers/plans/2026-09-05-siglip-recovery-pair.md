@@ -67,16 +67,21 @@ Create scripts/run_siglip_recovery_pair.py and tests/test_run_siglip_recovery_pa
 
 ## Task3: single final evaluation after sealing
 
-- [ ] Add evaluator with exact input-proof/teacher/audit/pair/checkpoint bindings.
+- [x] Add evaluator with exact input-proof/teacher/audit/pair/checkpoint bindings.
   It reads only49..81 images using metadata-first label selection after both
   checkpoints authenticate. Re-embed complete teacher and both student galleries;
   strict2746x512FP32 unit vectors and common sortedIDs/labels.
-- [ ] Reuse exact retrieval evidence (per-query hits/AP, meanRecall/MAP) and CPU
+- [x] Reuse exact retrieval evidence (per-query hits/AP, meanRecall/MAP) and CPU
   one-thread128query stable-rank search with100postwarmup samples. Reproduce
   teacher2596hits and authenticated seed17 MAP before judging students.
-- [ ] Tests independently recompute literal hit-count/MAP-loss/storage/search
+- [x] Tests independently recompute literal hit-count/MAP-loss/storage/search
   ratios, paired discordances, PA preference and claimfalse. No adaptive gate.
   Authenticate198update/final-only selection, no intermediate checkpoint surface.
+- [x] Cross-provider evaluator review and focused regression repairs: bind
+  batch32, decoded-pixel/native-order digest and imported source digests;
+  reproduce exact teacher aggregate hits/MAP before student inference and
+  separately report per-query ranking equality. No aggregate tolerance or
+  student gate change. See execution record for review disposition.
 - [ ] Verify/review, deploy one monitor job only if time remaining under6h. Preserve
   original terminal, independent receipt recomputation, exact resource caveats.
 
