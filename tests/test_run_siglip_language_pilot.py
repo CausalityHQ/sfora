@@ -14,7 +14,7 @@ from typing import Any, cast
 import pytest
 import torch
 from safetensors.torch import save_file
-from transformers import SiglipTextConfig, SiglipTextModel
+from transformers import BatchEncoding, SiglipTextConfig, SiglipTextModel
 
 from sfora.siglip_depth_recovery import relational_cross_entropy
 from sfora.siglip_language_guidance import language_centroid_cross_entropy, standardized_text_gram
@@ -46,6 +46,53 @@ def _text_model() -> SiglipTextModel:
     )
     config._attn_implementation = "eager"
     return SiglipTextModel(config)
+
+
+def test_evaluation_live_source_gate_uses_only_clean_evaluator_dependencies() -> None:
+    assert Path(subject.evaluator.__file__).name == "siglip_language_evaluation.py"
+    assert _sha(Path(subject.evaluator.__file__)) == subject.LANGUAGE_EVALUATOR_SHA256
+    assert (
+        _sha(Path(subject.evaluation_core.__file__))
+        == subject.LANGUAGE_EVALUATION_SOURCE_SHA256["evaluation_core"]
+    )
+    assert not hasattr(subject, "retrieval_core")
+
+
+def test_real_retrieval_evidence_reproduces_and_is_canonical_json_native(tmp_path: Path) -> None:
+    vectors = torch.nn.functional.normalize(
+        torch.tensor(
+            [
+                [1.0, 0.0, 0.0],
+                [0.9, 0.1, 0.0],
+                [0.0, 1.0, 0.0],
+                [0.1, 0.9, 0.0],
+            ]
+        ),
+        dim=1,
+    )
+    cell = subject.evaluator._retrieval_cell(vectors, (0, 0, 1, 1))
+    reproduction = subject.evaluator.require_teacher_reproduction(cell, cell["retrieval"])
+    assert reproduction == {
+        "aggregate_reproduced": True,
+        "per_query_bitwise_reproduced": True,
+        "first_differing_ordinal": None,
+    }
+    output = tmp_path / "evaluation.json"
+    subject._publish_language_evaluation(
+        output,
+        {"cell": cell},
+        deadline_ns=10**30,
+    )
+    assert output.read_bytes() == subject.control._canonical_bytes({"cell": cell})
+
+
+def test_recovery_dependency_gate_rejects_live_source_drift() -> None:
+    expected = subject.evaluator.recovery_dependency_sha256()
+    subject.evaluator.verify_recovery_dependencies(expected)
+    drifted = dict(expected)
+    drifted["depth_core"] = "f" * 64
+    with pytest.raises(ValueError, match="dependencies"):
+        subject.evaluator.verify_recovery_dependencies(drifted)
 
 
 def _container(path: Path, model: torch.nn.Module) -> dict[str, torch.Tensor]:
@@ -288,7 +335,12 @@ def test_initialization_authenticates_complete_pair_chain_and_ignores_copied_sel
 ) -> None:
     evaluation, evaluation_monitor = _selection_evidence()
     evaluation["selected_arm"] = "relational"  # copied convenience field is not authority
-    pair_receipt: dict[str, Any] = {"resources": {}, "arms": {}, "checkpoints": {}}
+    pair_receipt: dict[str, Any] = {
+        "resources": {},
+        "arms": {},
+        "checkpoints": {},
+        "dependencies": subject.evaluator.recovery_dependency_sha256(),
+    }
     pair_monitor = {"schema": "fixture-pair-monitor"}
     smoke = {"schema": "fixture-smoke"}
 
@@ -800,7 +852,10 @@ def test_run_training_authenticates_then_trains_and_seals_one_terminal(
     }
     initialization = {
         "selected_arm": "pa",
-        "pair_receipt": {"schema": "fixture-pair"},
+        "pair_receipt": {
+            "schema": "fixture-pair",
+            "dependencies": subject.evaluator.recovery_dependency_sha256(),
+        },
         "pair_sha256": "1" * 64,
         "pair_monitor_sha256": "2" * 64,
         "evaluation_sha256": "3" * 64,
@@ -1148,7 +1203,9 @@ def test_target_bundle_refuses_invalid_inputs_before_any_write(
     assert not list(tmp_path.iterdir())
 
 
-@pytest.mark.parametrize("mutation", ["missing", "digest", "blob", "permutation", "duplicate"])
+@pytest.mark.parametrize(
+    "mutation", ["missing", "digest", "blob", "permutation", "duplicate", "receipt-symlink"]
+)
 def test_target_loader_rejects_partial_or_coherently_rehashed_control_drift(
     tmp_path: Path,
     mutation: str,
@@ -1179,12 +1236,18 @@ def test_target_loader_rejects_partial_or_coherently_rehashed_control_drift(
             receipt["permutation"][0],
         )
     else:
-        tensors = load_file(blob)
-        tensors["permuted"] = tensors["correct"].clone()
-        save_file(tensors, blob)
-        receipt["tensors_sha256"] = _sha(blob)
-        receipt["tensors_bytes"] = blob.stat().st_size
-    path.write_text(json.dumps(receipt, sort_keys=True, separators=(",", ":")) + "\n")
+        if mutation == "duplicate":
+            tensors = load_file(blob)
+            tensors["permuted"] = tensors["correct"].clone()
+            save_file(tensors, blob)
+            receipt["tensors_sha256"] = _sha(blob)
+            receipt["tensors_bytes"] = blob.stat().st_size
+        else:
+            target = tmp_path / "language-targets-real.json"
+            path.rename(target)
+            path.symlink_to(target.name)
+    if mutation != "receipt-symlink":
+        path.write_text(json.dumps(receipt, sort_keys=True, separators=(",", ":")) + "\n")
     with pytest.raises((ValueError, FileNotFoundError)):
         subject.load_language_targets(path, _sha(path))
 
@@ -1248,10 +1311,10 @@ def test_prepare_targets_authenticates_local_sources_and_never_uses_evaluation_n
     )
 
     class Tokenizer:
-        def __call__(self, prompts: tuple[str, ...], **kwargs: Any) -> dict[str, torch.Tensor]:
+        def __call__(self, prompts: tuple[str, ...], **kwargs: Any) -> BatchEncoding:
             seen["prompts"] = prompts
             seen["tokenizer_kwargs"] = kwargs
-            return {"input_ids": ids}
+            return BatchEncoding({"input_ids": ids})
 
     monkeypatch.setattr(
         subject,
@@ -1315,3 +1378,817 @@ def test_prepare_targets_rejects_source_digest_before_model_construction(
             lambda event: None,
         )
     assert constructed == []
+
+
+def _language_train_arguments(tmp_path: Path) -> list[str]:
+    paths = {
+        name: tmp_path / name
+        for name in (
+            "pair-directory",
+            "pair-monitor",
+            "smoke-result",
+            "evaluation",
+            "evaluation-monitor",
+            "control-root",
+            "teacher-checkpoint",
+            "snapshot",
+            "model",
+            "config",
+            "tokenizer",
+            "tokenizer-config",
+            "spiece",
+            "special-tokens",
+            "dataset-info",
+            "output-dir",
+        )
+    }
+    arguments = ["train"]
+    for name, path in paths.items():
+        arguments.extend((f"--{name}", str(path)))
+    for name in (
+        "pair",
+        "pair-monitor",
+        "smoke",
+        "evaluation",
+        "evaluation-monitor",
+        "model",
+        "config",
+        "tokenizer",
+        "tokenizer-config",
+        "spiece",
+        "special-tokens",
+        "dataset-info",
+    ):
+        arguments.extend((f"--{name}-sha256", "a" * 64))
+    arguments.extend(("--expected-tokens-sha256", "b" * 64, "--execute-language-training"))
+    return arguments
+
+
+def test_cli_has_only_strict_separate_train_and_evaluate_phases(tmp_path: Path) -> None:
+    train = subject.parse_args(_language_train_arguments(tmp_path))
+    assert train.phase == "train"
+    assert train.output_dir == tmp_path / "output-dir"
+    assert train.execute_language_training is True
+
+    evaluation = subject.parse_args(
+        [
+            "evaluate",
+            "--training-directory",
+            str(tmp_path / "training"),
+            "--training-sha256",
+            "c" * 64,
+            "--training-monitor",
+            str(tmp_path / "training-monitor.json"),
+            "--training-monitor-sha256",
+            "d" * 64,
+            "--audit-result",
+            str(tmp_path / "audit.json"),
+            "--audit-sha256",
+            "e" * 64,
+            "--control-root",
+            str(tmp_path / "control"),
+            "--output",
+            str(tmp_path / "result.json"),
+            "--execute-language-evaluation",
+        ]
+    )
+    assert evaluation.phase == "evaluate"
+    assert evaluation.training_directory == tmp_path / "training"
+    assert evaluation.execute_language_evaluation is True
+
+    forbidden = _language_train_arguments(tmp_path) + ["--train-steps", "21"]
+    with pytest.raises(SystemExit):
+        subject.parse_args(forbidden)
+    duplicate = _language_train_arguments(tmp_path) + ["--pair-sha256", "e" * 64]
+    with pytest.raises(SystemExit):
+        subject.parse_args(duplicate)
+    equals_duplicate = _language_train_arguments(tmp_path) + ["--pair-sha256=" + "e" * 64]
+    with pytest.raises(SystemExit):
+        subject.parse_args(equals_duplicate)
+    abbreviated = _language_train_arguments(tmp_path)
+    abbreviated[abbreviated.index("--output-dir")] = "--output-d"
+    with pytest.raises(SystemExit):
+        subject.parse_args(abbreviated)
+
+
+def test_main_dispatches_only_the_selected_phase(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    calls: list[str] = []
+    training = SimpleNamespace(
+        phase="train",
+        output_dir=tmp_path / "training",
+        execute_language_training=True,
+    )
+    training.output_dir.mkdir()
+    (training.output_dir / "training-complete.json").write_bytes(b"{}\n")
+    monkeypatch.setattr(subject, "parse_args", lambda arguments: training)
+    monkeypatch.setattr(subject, "run_training", lambda args: calls.append("train") or {})
+    subject.main(["train"])
+    assert calls == ["train"]
+    assert "TRAINING COMPLETE" in capsys.readouterr().out
+
+    output = tmp_path / "evaluation.json"
+    evaluation = SimpleNamespace(
+        phase="evaluate",
+        output=output,
+        execute_language_evaluation=True,
+    )
+    monkeypatch.setattr(subject, "parse_args", lambda arguments: evaluation)
+    monkeypatch.setattr(
+        subject,
+        "run_pilot_evaluation",
+        lambda args: (
+            setattr(args, "_evaluation_deadline_ns", 10**30),
+            calls.append("evaluate"),
+            {"schema": "fixture-evaluation"},
+        )[-1],
+        raising=False,
+    )
+    subject.main(["evaluate"])
+    assert calls == ["train", "evaluate"]
+    assert evaluation._evaluation_process_started_ns == subject._PROCESS_STARTED_NS
+    assert output.read_bytes() == subject.control._canonical_bytes({"schema": "fixture-evaluation"})
+    assert "EVALUATION COMPLETE" in capsys.readouterr().out
+
+
+def test_evaluation_publication_is_create_exclusive_under_a_destination_race(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    output = tmp_path / "evaluation.json"
+    args = SimpleNamespace(
+        phase="evaluate",
+        output=output,
+        execute_language_evaluation=True,
+    )
+    monkeypatch.setattr(subject, "parse_args", lambda arguments: args)
+
+    def race(_: Any) -> dict[str, Any]:
+        args._evaluation_deadline_ns = 10**30
+        output.write_bytes(b"concurrent-writer\n")
+        return {"schema": "fixture-evaluation"}
+
+    monkeypatch.setattr(subject, "run_pilot_evaluation", race)
+    with pytest.raises(FileExistsError):
+        subject.main(["evaluate"])
+    assert output.read_bytes() == b"concurrent-writer\n"
+
+
+@pytest.mark.parametrize("clock", [(100, 100), (99, 100)])
+def test_evaluation_publication_fails_closed_when_deadline_expires(
+    tmp_path: Path,
+    clock: tuple[int, int],
+) -> None:
+    output = tmp_path / "evaluation.json"
+    ticks = iter(clock)
+    with pytest.raises(RuntimeError, match="wall cap"):
+        subject._publish_language_evaluation(
+            output,
+            {"schema": "fixture-evaluation"},
+            deadline_ns=100,
+            clock=lambda: next(ticks),
+        )
+    assert not output.exists()
+
+
+def test_evaluation_rejects_training_authority_before_loading_images(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    training = tmp_path / "training"
+    training.mkdir()
+    terminal = training / "training-complete.json"
+    terminal.write_bytes(b"{}\n")
+    monitor = tmp_path / "monitor.json"
+    monitor.write_bytes(subject.control._canonical_bytes({"schema": "fixture-monitor"}))
+    audit = tmp_path / "audit.json"
+    audit.write_bytes(b"{}\n")
+    monkeypatch.setattr(subject.evaluator, "AUDIT_SHA256", _sha(audit))
+    loaded: list[bool] = []
+    monkeypatch.setattr(
+        subject.evaluation_core,
+        "load_recovery_evaluation_images",
+        lambda: loaded.append(True),
+    )
+    with pytest.raises(ValueError, match="training"):
+        subject.run_pilot_evaluation(
+            SimpleNamespace(
+                training_directory=training,
+                training_sha256=_sha(terminal),
+                training_monitor=monitor,
+                training_monitor_sha256=_sha(monitor),
+                audit_result=audit,
+                control_root=tmp_path / "control",
+            )
+        )
+    assert loaded == []
+
+
+def _language_evaluation_training_fixture(
+    directory: Path,
+    *,
+    selected: str = "teacher",
+) -> tuple[Path, Path]:
+    directory.mkdir()
+    torch.manual_seed(17)
+    model = PooledProxyAnchorModel(
+        tower=torch.nn.Sequential(torch.nn.Linear(4, 1152), torch.nn.Tanh()),
+        input_dimensions=1152,
+        embedding_dimensions=512,
+        class_count=49,
+    )
+    initial_state_sha256 = subject.control._model_state_sha256(model)
+    torch.save(model.state_dict(), directory / "teacher-initial.pt")
+    with torch.no_grad():
+        model.proxies.add_(0.001)
+    state_sha256 = subject.control._model_state_sha256(model)
+    assert state_sha256 != initial_state_sha256
+    vectors = torch.nn.functional.normalize(torch.randn(49, 1152), dim=1)
+    input_ids = torch.arange(49 * 64, dtype=torch.int64).reshape(49, 64) % 32000
+    tokens_sha256 = hashlib.sha256(input_ids.numpy().tobytes()).hexdigest()
+    target_receipt = subject.seal_language_targets(
+        directory,
+        vectors,
+        input_ids,
+        tuple(f"a photo of a fixture car {index}." for index in range(49)),
+        {
+            "model": "1" * 64,
+            "config": "2" * 64,
+            "tokenizer": "3" * 64,
+            "tokenizer_config": "4" * 64,
+            "spiece": "5" * 64,
+            "special_tokens": "6" * 64,
+            "dataset_info": "7" * 64,
+            "runner": _sha(Path(subject.__file__)),
+            "guidance": _sha(Path(subject.language_guidance.__file__)),
+            "protocol": _sha(Path(subject.language_protocol.__file__)),
+        },
+        expected_tokens_sha256=tokens_sha256,
+        elapsed_seconds=1.0,
+    )
+    target_sha256 = _sha(directory / "language-targets.json")
+    assert target_receipt["gram_sha256"]["correct"] != target_receipt["gram_sha256"]["permuted"]
+    checkpoints: dict[str, dict[str, Any]] = {}
+    arm_summaries: dict[str, dict[str, Any]] = {}
+    for arm in ("base", "correct", "permuted"):
+        path = directory / f"{arm}-final.pt"
+        payload = {
+            "schema": "sfora-siglip-language-final-v1",
+            "claim_eligible": False,
+            "seed": 17,
+            "arm": arm,
+            "completed_updates": 20,
+            "target_sha256": target_sha256,
+            "consumed_gram_sha256": None if arm == "base" else target_receipt["gram_sha256"][arm],
+            "initial_state_sha256": initial_state_sha256,
+            "final_state_sha256": state_sha256,
+            "input_sha256": [f"{index:064x}" for index in range(20)],
+            "input_dimensions": model.projection.in_features,
+            "embedding_dimensions": model.projection.out_features,
+            "class_count": model.class_count,
+            "model_state": model.state_dict(),
+        }
+        torch.save(payload, path)
+        checkpoints[arm] = {
+            "basename": path.name,
+            "sha256": _sha(path),
+            "bytes": path.stat().st_size,
+            "arm": arm,
+            "completed_updates": 20,
+        }
+        arm_summaries[arm] = {
+            "arm": arm,
+            "completed_updates": 20,
+            "initial_state_sha256": initial_state_sha256,
+            "final_state_sha256": state_sha256,
+            "steps": [
+                {
+                    "arm": arm,
+                    "update": index,
+                    "elapsed_ns": 1,
+                    "input_sha256": f"{index - 1:064x}",
+                    "loss": 1.0,
+                    "proxy_loss": 1.0,
+                    "relational_loss": 1.0 if selected == "relational" else 0.0,
+                    "language_loss": 0.0 if arm == "base" else 1.0,
+                    "gradient_norm": 1.0,
+                    "maximum_descriptor_disagreement": 0.0,
+                    "lr_multiplier": subject.recovery_multiplier(index),
+                }
+                for index in range(1, 21)
+            ],
+            "input_sha256": [f"{index:064x}" for index in range(20)],
+            "consumed_gram_sha256": payload["consumed_gram_sha256"],
+            "teacher_state_sha256": initial_state_sha256 if selected == "relational" else None,
+            "teacher_unchanged": True,
+        }
+    receipt = {
+        "schema": "sfora-siglip-language-training-v1",
+        "claim_eligible": False,
+        "quality_measured": False,
+        "seed": 17,
+        "status": "complete",
+        "selected_initialization": selected,
+        "pair_sha256": "1" * 64,
+        "pair_monitor_sha256": "2" * 64,
+        "evaluation_sha256": "3" * 64,
+        "evaluation_monitor_sha256": "4" * 64,
+        "recovery_dependencies": subject.evaluator.recovery_dependency_sha256(),
+        "target_sha256": target_sha256,
+        "runner_sha256": _sha(Path(subject.__file__)),
+        "elapsed_seconds": 100.0,
+        "arms": arm_summaries,
+        "checkpoints": checkpoints,
+        "preflight": {
+            "arms": {
+                arm: {
+                    **arm_summaries[arm],
+                    "completed_updates": 3,
+                    "steps": arm_summaries[arm]["steps"][:3],
+                    "input_sha256": arm_summaries[arm]["input_sha256"][:3],
+                }
+                for arm in ("base", "correct")
+            },
+            "update_seconds": [1e-9] * 6,
+            "quality_measured": False,
+        },
+        "projection_seconds": 3600.0,
+        "initial_state_sha256": initial_state_sha256,
+        "input_sha256": [f"{index:064x}" for index in range(20)],
+        "teacher_state_sha256": initial_state_sha256 if selected == "relational" else None,
+        "teacher_unchanged": True,
+    }
+    terminal = directory / "training-complete.json"
+    terminal.write_bytes(subject.control._canonical_bytes(receipt))
+    monitor = directory.parent / "training-monitor.json"
+    monitor.write_bytes(
+        subject.control._canonical_bytes(
+            {
+                "schema": "sfora-siglip-language-training-monitor-v1",
+                "claim_eligible": False,
+                "exit_code": 0,
+                "stop_reason": None,
+                "result_sha256": _sha(terminal),
+                "elapsed_s": 110.0,
+            }
+        )
+    )
+    return terminal, monitor
+
+
+def test_evaluation_authenticates_all_three_final_payloads_before_images(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    terminal, monitor = _language_evaluation_training_fixture(tmp_path / "training")
+    audit = tmp_path / "audit.json"
+    audit.write_bytes(b"{}\n")
+    monkeypatch.setattr(subject.evaluator, "AUDIT_SHA256", _sha(audit))
+    teacher = PooledProxyAnchorModel(
+        tower=torch.nn.Sequential(torch.nn.Linear(4, 1152), torch.nn.Tanh()),
+        input_dimensions=1152,
+        embedding_dimensions=512,
+        class_count=49,
+    )
+    teacher.load_state_dict(
+        torch.load(
+            terminal.parent / "teacher-initial.pt",
+            map_location="cpu",
+            weights_only=True,
+        )
+    )
+    monkeypatch.setattr(subject.evaluator, "evaluation_device", lambda: torch.device("cpu"))
+    monkeypatch.setattr(
+        subject.evaluator,
+        "load_teacher_and_processor",
+        lambda root: (teacher, "processor"),
+    )
+    monkeypatch.setattr(
+        subject.evaluation_core,
+        "load_recovery_evaluation_images",
+        lambda: (_ for _ in ()).throw(RuntimeError("IMAGES_REACHED")),
+    )
+    with pytest.raises(RuntimeError, match="IMAGES_REACHED"):
+        subject.run_pilot_evaluation(
+            SimpleNamespace(
+                training_directory=terminal.parent,
+                training_sha256=_sha(terminal),
+                training_monitor=monitor,
+                training_monitor_sha256=_sha(monitor),
+                audit_result=audit,
+                audit_sha256=_sha(audit),
+                control_root=tmp_path / "control",
+            )
+        )
+
+
+def test_evaluation_uses_monitored_elapsed_not_training_projection_as_budget(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    terminal, monitor = _language_evaluation_training_fixture(tmp_path / "training")
+    receipt = json.loads(terminal.read_bytes())
+    receipt["elapsed_seconds"] = 3_700.0
+    receipt["projection_seconds"] = 3_600.0
+    terminal.write_bytes(subject.control._canonical_bytes(receipt))
+    monitor_value = json.loads(monitor.read_bytes())
+    monitor_value["elapsed_s"] = 3_701.0
+    monitor_value["result_sha256"] = _sha(terminal)
+    monitor.write_bytes(subject.control._canonical_bytes(monitor_value))
+    audit = tmp_path / "audit.json"
+    audit.write_bytes(b"{}\n")
+    monkeypatch.setattr(subject.evaluator, "AUDIT_SHA256", _sha(audit))
+    teacher = PooledProxyAnchorModel(
+        tower=torch.nn.Sequential(torch.nn.Linear(4, 1152), torch.nn.Tanh()),
+        input_dimensions=1152,
+        embedding_dimensions=512,
+        class_count=49,
+    )
+    teacher.load_state_dict(
+        torch.load(
+            terminal.parent / "teacher-initial.pt",
+            map_location="cpu",
+            weights_only=True,
+        )
+    )
+    monkeypatch.setattr(subject.evaluator, "evaluation_device", lambda: torch.device("cpu"))
+    monkeypatch.setattr(
+        subject.evaluator,
+        "load_teacher_and_processor",
+        lambda root: (teacher, "processor"),
+    )
+    monkeypatch.setattr(
+        subject.evaluation_core,
+        "load_recovery_evaluation_images",
+        lambda: (_ for _ in ()).throw(RuntimeError("IMAGES_REACHED")),
+    )
+    with pytest.raises(RuntimeError, match="IMAGES_REACHED"):
+        subject.run_pilot_evaluation(
+            SimpleNamespace(
+                training_directory=terminal.parent,
+                training_sha256=_sha(terminal),
+                training_monitor=monitor,
+                training_monitor_sha256=_sha(monitor),
+                audit_result=audit,
+                audit_sha256=_sha(audit),
+                control_root=tmp_path / "control",
+            )
+        )
+
+
+@pytest.mark.parametrize("selected", ["teacher", "pa", "relational"])
+def test_evaluation_recomputes_three_arm_decision_and_discordances(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    selected: str,
+) -> None:
+    terminal, monitor = _language_evaluation_training_fixture(
+        tmp_path / "training",
+        selected=selected,
+    )
+    ids = [f"image-{index}" for index in range(2746)]
+    audit_value = {
+        "common_image_ids": ids,
+        "common_to_native": list(range(2746)),
+        "decoded_native_sha256": "d" * 64,
+        "reproductions": {
+            "siglip-projected-17": {
+                "retrieval": {
+                    "fixture": True,
+                    "labels": [49 + index % 33 for index in range(2746)],
+                }
+            }
+        },
+    }
+    audit = tmp_path / "audit.json"
+    audit.write_bytes(subject.control._canonical_bytes(audit_value))
+    monkeypatch.setattr(subject.evaluator, "AUDIT_SHA256", _sha(audit))
+    examples = tuple(
+        SimpleNamespace(example_id=example_id, label=49 + index % 33)
+        for index, example_id in enumerate(ids)
+    )
+    teacher = PooledProxyAnchorModel(
+        tower=torch.nn.Sequential(torch.nn.Linear(4, 1152), torch.nn.Tanh()),
+        input_dimensions=1152,
+        embedding_dimensions=512,
+        class_count=49,
+    )
+    teacher.load_state_dict(
+        torch.load(
+            terminal.parent / "teacher-initial.pt",
+            map_location="cpu",
+            weights_only=True,
+        )
+    )
+    monkeypatch.setattr(subject.evaluator, "evaluation_device", lambda: torch.device("cpu"))
+    monkeypatch.setattr(
+        subject.evaluator,
+        "load_teacher_and_processor",
+        lambda root: (teacher, "processor"),
+    )
+    pruned: list[bool] = []
+    monkeypatch.setattr(
+        subject,
+        "prune_siglip_student",
+        lambda model: pruned.append(True) or copy.deepcopy(model),
+    )
+    monkeypatch.setattr(
+        subject.evaluation_core, "load_recovery_evaluation_images", lambda: examples
+    )
+    monkeypatch.setattr(subject.evaluator, "decoded_native_digest", lambda rows, order: "d" * 64)
+    monkeypatch.setattr(
+        subject.evaluator,
+        "embed_recovery_model",
+        lambda model, rows, processor, device, check_time: torch.nn.functional.normalize(
+            torch.ones(2746, 512), dim=1
+        ),
+    )
+    correctness = {
+        "teacher": [True] * 2596 + [False] * 150,
+        "base": [True] * 2596 + [False] * 150,
+        "correct": [True] * 2611 + [False] * 135,
+        "permuted": [True] * 2597 + [False] * 149,
+    }
+    maps = {"teacher": 0.7913744556922272, "base": 0.792, "correct": 0.793, "permuted": 0.7925}
+    names = iter(("teacher", "base", "correct", "permuted"))
+    monkeypatch.setattr(
+        subject.evaluator,
+        "_retrieval_cell",
+        lambda vectors, labels: (
+            lambda name: {
+                "queries": 2746,
+                "correct": sum(correctness[name]),
+                "map_at_r": maps[name],
+                "retrieval": {"correct": correctness[name]},
+            }
+        )(next(names)),
+    )
+    monkeypatch.setattr(
+        subject.evaluator,
+        "require_teacher_reproduction",
+        lambda cell, baseline: {"aggregate_reproduced": True},
+    )
+    result = subject.run_pilot_evaluation(
+        SimpleNamespace(
+            training_directory=terminal.parent,
+            training_sha256=_sha(terminal),
+            training_monitor=monitor,
+            training_monitor_sha256=_sha(monitor),
+            audit_result=audit,
+            audit_sha256=_sha(audit),
+            control_root=tmp_path / "control",
+        )
+    )
+    assert result["schema"] == "sfora-siglip-language-evaluation-v1"
+    assert result["selected_initialization"] == selected
+    assert len(pruned) == (0 if selected == "teacher" else 3)
+    assert result["decision"]["passed"] is True
+    assert result["cells"]["correct"]["correct"] == 2611
+    assert result["paired_discordances"]["correct-vs-base"] == {
+        "both_correct": 2596,
+        "control_only": 0,
+        "correct_only": 15,
+        "both_wrong": 135,
+    }
+    assert result["paired_discordances"]["correct-vs-permuted"]["correct_only"] == 14
+    assert "search_profile" not in result
+
+
+def test_evaluation_rejects_audit_label_drift_before_embedding(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    terminal, monitor = _language_evaluation_training_fixture(tmp_path / "training")
+    ids = [f"image-{index}" for index in range(2746)]
+    audit = tmp_path / "audit.json"
+    audit.write_bytes(
+        subject.control._canonical_bytes(
+            {
+                "common_image_ids": ids,
+                "common_to_native": list(range(2746)),
+                "decoded_native_sha256": "d" * 64,
+                "reproductions": {
+                    "siglip-projected-17": {
+                        "retrieval": {"labels": [50] * 2746},
+                    }
+                },
+            }
+        )
+    )
+    monkeypatch.setattr(subject.evaluator, "AUDIT_SHA256", _sha(audit))
+    examples = tuple(
+        SimpleNamespace(example_id=example_id, label=49 + index % 33)
+        for index, example_id in enumerate(ids)
+    )
+    teacher = PooledProxyAnchorModel(
+        tower=torch.nn.Sequential(torch.nn.Linear(4, 1152), torch.nn.Tanh()),
+        input_dimensions=1152,
+        embedding_dimensions=512,
+        class_count=49,
+    )
+    teacher.load_state_dict(
+        torch.load(
+            terminal.parent / "teacher-initial.pt",
+            map_location="cpu",
+            weights_only=True,
+        )
+    )
+    monkeypatch.setattr(subject.evaluator, "evaluation_device", lambda: torch.device("cpu"))
+    monkeypatch.setattr(
+        subject.evaluator,
+        "load_teacher_and_processor",
+        lambda root: (teacher, "processor"),
+    )
+    monkeypatch.setattr(
+        subject.evaluation_core,
+        "load_recovery_evaluation_images",
+        lambda: examples,
+    )
+    monkeypatch.setattr(subject.evaluator, "decoded_native_digest", lambda rows, order: "d" * 64)
+    monkeypatch.setattr(
+        subject.evaluator,
+        "embed_recovery_model",
+        lambda *args: (_ for _ in ()).throw(RuntimeError("EMBED_REACHED")),
+    )
+    with pytest.raises(ValueError, match="audit"):
+        subject.run_pilot_evaluation(
+            SimpleNamespace(
+                training_directory=terminal.parent,
+                training_sha256=_sha(terminal),
+                training_monitor=monitor,
+                training_monitor_sha256=_sha(monitor),
+                audit_result=audit,
+                audit_sha256=_sha(audit),
+                control_root=tmp_path / "control",
+            )
+        )
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ["selected", "digest", "arms", "projection", "teacher-state", "teacher-state-type"],
+)
+def test_evaluation_rejects_training_semantic_drift_before_images(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    mutation: str,
+) -> None:
+    terminal, monitor = _language_evaluation_training_fixture(tmp_path / "training")
+    receipt = json.loads(terminal.read_bytes())
+    if mutation == "selected":
+        receipt["selected_initialization"] = "unknown"
+    elif mutation == "digest":
+        receipt["pair_sha256"] = "not-a-digest"
+    elif mutation == "arms":
+        del receipt["arms"]["permuted"]
+    elif mutation == "projection":
+        receipt["projection_seconds"] = 7200.0001
+    elif mutation == "teacher-state":
+        receipt["teacher_state_sha256"] = "f" * 64
+    else:
+        receipt["teacher_state_sha256"] = False
+    terminal.write_bytes(subject.control._canonical_bytes(receipt))
+    monitor_value = json.loads(monitor.read_bytes())
+    monitor_value["result_sha256"] = _sha(terminal)
+    monitor.write_bytes(subject.control._canonical_bytes(monitor_value))
+    audit = tmp_path / "audit.json"
+    audit.write_bytes(b"{}\n")
+    loaded: list[bool] = []
+    monkeypatch.setattr(
+        subject.evaluation_core,
+        "load_recovery_evaluation_images",
+        lambda: loaded.append(True),
+    )
+    with pytest.raises(ValueError, match="training"):
+        subject.run_pilot_evaluation(
+            SimpleNamespace(
+                training_directory=terminal.parent,
+                training_sha256=_sha(terminal),
+                training_monitor=monitor,
+                training_monitor_sha256=_sha(monitor),
+                audit_result=audit,
+                audit_sha256=_sha(audit),
+                control_root=tmp_path / "control",
+            )
+        )
+    assert loaded == []
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "arm-summary",
+        "step-order",
+        "step-semantics",
+        "elapsed-under-steps",
+        "preflight-step",
+        "monitor-elapsed",
+        "audit-digest",
+        "target-bundle",
+        "teacher-model",
+        "recovery-dependency",
+    ],
+)
+def test_evaluation_rejects_cross_receipt_drift_before_images(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    mutation: str,
+) -> None:
+    terminal, monitor = _language_evaluation_training_fixture(tmp_path / "training")
+    if mutation == "arm-summary":
+        receipt = json.loads(terminal.read_bytes())
+        receipt["arms"]["correct"]["final_state_sha256"] = "f" * 64
+        terminal.write_bytes(subject.control._canonical_bytes(receipt))
+        monitor_value = json.loads(monitor.read_bytes())
+        monitor_value["result_sha256"] = _sha(terminal)
+        monitor.write_bytes(subject.control._canonical_bytes(monitor_value))
+    elif mutation == "step-order":
+        receipt = json.loads(terminal.read_bytes())
+        receipt["arms"]["correct"]["steps"][0]["update"] = 2
+        terminal.write_bytes(subject.control._canonical_bytes(receipt))
+        monitor_value = json.loads(monitor.read_bytes())
+        monitor_value["result_sha256"] = _sha(terminal)
+        monitor.write_bytes(subject.control._canonical_bytes(monitor_value))
+    elif mutation == "step-semantics":
+        receipt = json.loads(terminal.read_bytes())
+        receipt["arms"]["base"]["steps"][0]["language_loss"] = 0.25
+        terminal.write_bytes(subject.control._canonical_bytes(receipt))
+        monitor_value = json.loads(monitor.read_bytes())
+        monitor_value["result_sha256"] = _sha(terminal)
+        monitor.write_bytes(subject.control._canonical_bytes(monitor_value))
+    elif mutation == "elapsed-under-steps":
+        receipt = json.loads(terminal.read_bytes())
+        receipt["arms"]["base"]["steps"][0]["elapsed_ns"] = 101_000_000_000
+        terminal.write_bytes(subject.control._canonical_bytes(receipt))
+        monitor_value = json.loads(monitor.read_bytes())
+        monitor_value["result_sha256"] = _sha(terminal)
+        monitor.write_bytes(subject.control._canonical_bytes(monitor_value))
+    elif mutation == "preflight-step":
+        receipt = json.loads(terminal.read_bytes())
+        receipt["preflight"]["arms"]["correct"]["steps"][0]["update"] = 2
+        terminal.write_bytes(subject.control._canonical_bytes(receipt))
+        monitor_value = json.loads(monitor.read_bytes())
+        monitor_value["result_sha256"] = _sha(terminal)
+        monitor.write_bytes(subject.control._canonical_bytes(monitor_value))
+    elif mutation == "monitor-elapsed":
+        monitor_value = json.loads(monitor.read_bytes())
+        monitor_value["elapsed_s"] = 99.0
+        monitor.write_bytes(subject.control._canonical_bytes(monitor_value))
+    elif mutation == "target-bundle":
+        (terminal.parent / "language-targets.safetensors").unlink()
+    elif mutation == "recovery-dependency":
+        receipt = json.loads(terminal.read_bytes())
+        receipt["recovery_dependencies"]["runner"] = "f" * 64
+        terminal.write_bytes(subject.control._canonical_bytes(receipt))
+        monitor_value = json.loads(monitor.read_bytes())
+        monitor_value["result_sha256"] = _sha(terminal)
+        monitor.write_bytes(subject.control._canonical_bytes(monitor_value))
+    audit = tmp_path / "audit.json"
+    audit.write_bytes(b"{}\n")
+    monkeypatch.setattr(
+        subject.evaluator,
+        "AUDIT_SHA256",
+        "e" * 64 if mutation == "audit-digest" else _sha(audit),
+    )
+    teacher = PooledProxyAnchorModel(
+        tower=torch.nn.Sequential(torch.nn.Linear(4, 1152), torch.nn.Tanh()),
+        input_dimensions=1152,
+        embedding_dimensions=512,
+        class_count=49,
+    )
+    teacher.load_state_dict(
+        torch.load(
+            terminal.parent / "teacher-initial.pt",
+            map_location="cpu",
+            weights_only=True,
+        )
+    )
+    if mutation == "teacher-model":
+        with torch.no_grad():
+            teacher.proxies.add_(0.01)
+    monkeypatch.setattr(subject.evaluator, "evaluation_device", lambda: torch.device("cpu"))
+    monkeypatch.setattr(
+        subject.evaluator,
+        "load_teacher_and_processor",
+        lambda root: (teacher, "processor"),
+    )
+    monkeypatch.setattr(
+        subject.evaluation_core,
+        "load_recovery_evaluation_images",
+        lambda: (_ for _ in ()).throw(RuntimeError("IMAGES_REACHED")),
+    )
+    with pytest.raises(ValueError, match="language"):
+        subject.run_pilot_evaluation(
+            SimpleNamespace(
+                training_directory=terminal.parent,
+                training_sha256=_sha(terminal),
+                training_monitor=monitor,
+                training_monitor_sha256=_sha(monitor),
+                audit_result=audit,
+                audit_sha256=_sha(audit),
+                control_root=tmp_path / "control",
+            )
+        )

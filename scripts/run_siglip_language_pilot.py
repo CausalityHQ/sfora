@@ -1,17 +1,24 @@
 #!/usr/bin/env python3
 """Local authenticated boundaries for the fixed class-language pilot."""
 
+# ruff: noqa: E402  # The process clock intentionally precedes heavyweight imports.
+
 from __future__ import annotations
 
+from time import perf_counter_ns
+
+_PROCESS_STARTED_NS = perf_counter_ns()
+
+import argparse
 import copy
 import hashlib
 import json
 import math
 import os
+import resource
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from pathlib import Path
-from time import perf_counter_ns
 from typing import Any
 
 import torch
@@ -22,6 +29,7 @@ from transformers import AutoTokenizer, SiglipTextConfig, SiglipTextModel
 
 import sfora.siglip_language_guidance as language_guidance
 import sfora.siglip_language_protocol as language_protocol
+import sfora.siglip_recovery_evaluation as evaluation_core
 from sfora.siglip_depth_recovery import prune_siglip_student, recovery_multiplier
 from sfora.siglip_language_guidance import recomputed_language_backward, standardized_text_gram
 from sfora.siglip_language_protocol import fixed_language_permutation, pilot_training_projection
@@ -30,19 +38,87 @@ from sfora.siglip_recovery_evaluation import recovery_decision
 from sfora.siglip_recovery_inputs import load_optimization_images
 
 EVALUATOR_SHA256 = "e60d8fa318a17b69985deb2c8f43339427b34576f34f48bf66a21cf683ab6985"
+LANGUAGE_EVALUATOR_SHA256 = "1e580a59a496d7b2edcec5b6d4373ee0daefd9e6d90463766369a6ac73b82968"
 EVALUATION_SOURCE_SHA256 = {
     "runner": EVALUATOR_SHA256,
     "evaluation_core": "d8952c1ea5e6ea9c747379ee07e25330aab9632829ae90fc179ebde8ffad0568",
     "retrieval_core": "fa2f06d1fa78a8058b1a90f4103eb3966e90931504acd990fbb5440f61bee34c",
 }
+LANGUAGE_EVALUATION_SOURCE_SHA256 = {
+    "evaluation_core": "d8952c1ea5e6ea9c747379ee07e25330aab9632829ae90fc179ebde8ffad0568",
+    "language_evaluator": LANGUAGE_EVALUATOR_SHA256,
+}
 
 _SCRIPTS = str(Path(__file__).resolve().parent)
 if _SCRIPTS not in sys.path:
     sys.path.insert(0, _SCRIPTS)
-import evaluate_siglip_recovery_pair as evaluator  # noqa: E402
 import run_siglip_proxy_control as control  # noqa: E402
 import run_siglip_recovery_pair as pair  # noqa: E402
 import run_siglip_recovery_smoke as smoke  # noqa: E402
+
+import sfora.siglip_language_evaluation as evaluator  # noqa: E402
+
+
+def parse_args(arguments: list[str] | None = None) -> argparse.Namespace:
+    """Parse the two fail-closed scientific phases without tunable overrides."""
+    values = list(sys.argv[1:] if arguments is None else arguments)
+    flags = [value.split("=", 1)[0] for value in values if value.startswith("--")]
+    if len(flags) != len(set(flags)):
+        raise SystemExit("duplicate command-line option")
+    parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
+    phases = parser.add_subparsers(dest="phase", required=True)
+
+    train = phases.add_parser("train", allow_abbrev=False)
+    for flag in (
+        "pair-directory",
+        "pair-monitor",
+        "smoke-result",
+        "evaluation",
+        "evaluation-monitor",
+        "control-root",
+        "teacher-checkpoint",
+        "snapshot",
+        "model",
+        "config",
+        "tokenizer",
+        "tokenizer-config",
+        "spiece",
+        "special-tokens",
+        "dataset-info",
+        "output-dir",
+    ):
+        train.add_argument(f"--{flag}", type=Path, required=True)
+    for flag in (
+        "pair",
+        "pair-monitor",
+        "smoke",
+        "evaluation",
+        "evaluation-monitor",
+        "model",
+        "config",
+        "tokenizer",
+        "tokenizer-config",
+        "spiece",
+        "special-tokens",
+        "dataset-info",
+        "expected-tokens",
+    ):
+        train.add_argument(f"--{flag}-sha256", required=True)
+    train.add_argument("--execute-language-training", action="store_true", required=True)
+
+    evaluate = phases.add_parser("evaluate", allow_abbrev=False)
+    for flag in (
+        "training-directory",
+        "training-monitor",
+        "audit-result",
+        "control-root",
+        "output",
+    ):
+        evaluate.add_argument(f"--{flag}", type=Path, required=True)
+    for flag in ("training", "training-monitor", "audit"):
+        evaluate.add_argument(f"--{flag}-sha256", required=True)
+    evaluate.add_argument("--execute-language-evaluation", action="store_true", required=True)
+    return parser.parse_args(values)
 
 
 def _authenticate(path: Path, expected_sha256: str) -> None:
@@ -58,6 +134,21 @@ def _authenticate(path: Path, expected_sha256: str) -> None:
             digest.update(chunk)
     if digest.hexdigest() != expected_sha256:
         raise ValueError("input digest differs")
+
+
+def _is_sha256(value: object) -> bool:
+    return (
+        type(value) is str
+        and len(value) == 64
+        and all(character in "0123456789abcdef" for character in value)
+    )
+
+
+def _module_sha256(module: Any) -> str:
+    path = getattr(module, "__file__", None)
+    if type(path) is not str:
+        raise ValueError("language source module path unavailable")
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
 def _read_canonical_json(path: Path, expected_sha256: str) -> dict[str, Any]:
@@ -228,7 +319,7 @@ def prepare_text_targets(
         max_length=64,
         return_tensors="pt",
     )
-    if type(encoded) is not dict or set(encoded) != {"input_ids"}:
+    if not isinstance(encoded, Mapping) or set(encoded) != {"input_ids"}:
         raise ValueError("text tokenizer output authority differs")
     input_ids = encoded["input_ids"]
     torch.nn.Module.to(model, device)
@@ -378,6 +469,8 @@ def seal_language_targets(
 
 def load_language_targets(path: Path, expected_sha256: str) -> dict[str, Any]:
     """Authenticate complete bundle before parsing tensors and deriving either control."""
+    if path.is_symlink() or not path.is_file():
+        raise ValueError("language target receipt file differs")
     _authenticate(path, expected_sha256)
     raw = path.read_bytes()
     receipt = json.loads(raw)
@@ -420,6 +513,8 @@ def load_language_targets(path: Path, expected_sha256: str) -> dict[str, Any]:
     ):
         raise ValueError("language target receipt differs")
     blob = path.parent / receipt["tensors_basename"]
+    if blob.is_symlink() or not blob.is_file():
+        raise ValueError("language target tensor file differs")
     if blob.stat().st_size != receipt["tensors_bytes"]:
         raise ValueError("language target tensor length differs")
     _authenticate(blob, receipt["tensors_sha256"])
@@ -522,6 +617,7 @@ def read_initialization(args: Any) -> dict[str, Any]:
     pair_receipt = _read_canonical_json(pair_path, args.pair_sha256)
     smoke_authority = pair.read_smoke_authority(args.smoke_result, args.smoke_sha256)
     evaluator.validate_pair_receipt(pair_receipt, smoke_authority)
+    evaluator.verify_recovery_dependencies(pair_receipt["dependencies"])
     pair_monitor = _read_canonical_json(args.pair_monitor, args.pair_monitor_sha256)
     # Validation only; the recovery campaign remainder never becomes pilot time.
     evaluator.evaluation_budget_seconds(pair_receipt, pair_monitor, args.pair_sha256)
@@ -990,6 +1086,7 @@ def run_training(args: Any) -> dict[str, Any]:
         "pair_monitor_sha256": initialization["pair_monitor_sha256"],
         "evaluation_sha256": initialization["evaluation_sha256"],
         "evaluation_monitor_sha256": initialization["evaluation_monitor_sha256"],
+        "recovery_dependencies": initialization["pair_receipt"]["dependencies"],
         "target_sha256": target_sha256,
         "runner_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "elapsed_seconds": (perf_counter_ns() - began_ns) / 1e9,
@@ -997,6 +1094,538 @@ def run_training(args: Any) -> dict[str, Any]:
     }
     control._write_new(args.output_dir / "training-complete.json", control._canonical_bytes(result))
     return result
+
+
+def _valid_language_arm_steps(
+    evidence: dict[str, Any],
+    arm: str,
+    *,
+    updates: int = 20,
+    has_teacher: bool = False,
+) -> bool:
+    steps = evidence.get("steps")
+    inputs = evidence.get("input_sha256")
+    numeric = (
+        "loss",
+        "proxy_loss",
+        "relational_loss",
+        "language_loss",
+        "gradient_norm",
+        "maximum_descriptor_disagreement",
+        "lr_multiplier",
+    )
+    if (
+        type(updates) is not int
+        or updates <= 0
+        or type(steps) is not list
+        or len(steps) != updates
+        or type(inputs) is not list
+        or len(inputs) != updates
+    ):
+        return False
+    for index, step in enumerate(steps, 1):
+        if (
+            type(step) is not dict
+            or set(step)
+            != {
+                "arm",
+                "update",
+                "elapsed_ns",
+                "input_sha256",
+                *numeric,
+            }
+            or step["arm"] != arm
+            or step["update"] != index
+            or type(step["elapsed_ns"]) is not int
+            or step["elapsed_ns"] <= 0
+            or step["input_sha256"] != inputs[index - 1]
+            or any(type(step[key]) is not float or not math.isfinite(step[key]) for key in numeric)
+            or step["gradient_norm"] < 0
+            or not 0 <= step["maximum_descriptor_disagreement"] <= 2e-5
+            or step["lr_multiplier"] != recovery_multiplier(index)
+            or ((step["language_loss"] == 0.0) != (arm == "base"))
+            or ((step["relational_loss"] != 0.0) != has_teacher)
+        ):
+            return False
+    return True
+
+
+def _valid_language_preflight(
+    preflight: Any,
+    receipt: dict[str, Any],
+    target_gram_sha256: dict[str, str],
+) -> bool:
+    """Recompute the disposable six-update timing and authority evidence."""
+    if (
+        type(preflight) is not dict
+        or set(preflight) != {"arms", "update_seconds", "quality_measured"}
+        or preflight["quality_measured"] is not False
+        or type(preflight["arms"]) is not dict
+        or set(preflight["arms"]) != {"base", "correct"}
+        or type(preflight["update_seconds"]) is not list
+        or len(preflight["update_seconds"]) != 6
+    ):
+        return False
+    expected_seconds: list[float] = []
+    for arm in ("base", "correct"):
+        evidence = preflight["arms"][arm]
+        if (
+            type(evidence) is not dict
+            or set(evidence)
+            != {
+                "arm",
+                "completed_updates",
+                "initial_state_sha256",
+                "final_state_sha256",
+                "steps",
+                "input_sha256",
+                "teacher_state_sha256",
+                "teacher_unchanged",
+                "consumed_gram_sha256",
+            }
+            or evidence["arm"] != arm
+            or evidence["completed_updates"] != 3
+            or evidence["initial_state_sha256"] != receipt["initial_state_sha256"]
+            or not _is_sha256(evidence["final_state_sha256"])
+            or evidence["final_state_sha256"] == evidence["initial_state_sha256"]
+            or evidence["input_sha256"] != receipt["input_sha256"][:3]
+            or evidence["teacher_state_sha256"] != receipt["teacher_state_sha256"]
+            or evidence["teacher_unchanged"] is not True
+            or evidence["consumed_gram_sha256"]
+            != (None if arm == "base" else target_gram_sha256["correct"])
+            or not _valid_language_arm_steps(
+                evidence,
+                arm,
+                updates=3,
+                has_teacher=receipt["selected_initialization"] == "relational",
+            )
+        ):
+            return False
+        expected_seconds.extend(step["elapsed_ns"] / 1e9 for step in evidence["steps"])
+    return preflight["update_seconds"] == expected_seconds
+
+
+def _language_discordances(
+    control_cell: dict[str, Any],
+    correct_cell: dict[str, Any],
+) -> dict[str, int]:
+    """Name the asymmetric pair explicitly for language-versus-control inference."""
+    raw = evaluator.paired_discordances(control_cell, correct_cell)
+    if set(raw) != {"both_correct", "teacher_only", "student_only", "both_wrong"}:
+        raise ValueError("language paired discordance evidence differs")
+    return {
+        "both_correct": raw["both_correct"],
+        "control_only": raw["teacher_only"],
+        "correct_only": raw["student_only"],
+        "both_wrong": raw["both_wrong"],
+    }
+
+
+def run_pilot_evaluation(args: Any) -> dict[str, Any]:
+    """Authenticate a complete language training terminal before quality IO."""
+    began_ns = getattr(args, "_evaluation_process_started_ns", perf_counter_ns())
+    if type(began_ns) is not int or began_ns > perf_counter_ns():
+        raise ValueError("language evaluation process start authority differs")
+    directory = Path(args.training_directory)
+    if directory.is_symlink() or not directory.is_dir():
+        raise ValueError("language training directory differs")
+    receipt = _read_canonical_json(
+        directory / "training-complete.json",
+        args.training_sha256,
+    )
+    if (
+        set(receipt)
+        != {
+            "schema",
+            "claim_eligible",
+            "quality_measured",
+            "seed",
+            "status",
+            "selected_initialization",
+            "pair_sha256",
+            "pair_monitor_sha256",
+            "evaluation_sha256",
+            "evaluation_monitor_sha256",
+            "recovery_dependencies",
+            "target_sha256",
+            "runner_sha256",
+            "elapsed_seconds",
+            "arms",
+            "checkpoints",
+            "preflight",
+            "projection_seconds",
+            "initial_state_sha256",
+            "input_sha256",
+            "teacher_state_sha256",
+            "teacher_unchanged",
+        }
+        or receipt.get("schema") != "sfora-siglip-language-training-v1"
+        or receipt.get("claim_eligible") is not False
+        or receipt.get("quality_measured") is not False
+        or receipt.get("status") != "complete"
+        or receipt.get("seed") != 17
+    ):
+        raise ValueError("language training terminal differs")
+    selected = receipt["selected_initialization"]
+    evaluator.verify_recovery_dependencies(receipt["recovery_dependencies"])
+    digest_fields = (
+        "pair_sha256",
+        "pair_monitor_sha256",
+        "evaluation_sha256",
+        "evaluation_monitor_sha256",
+        "target_sha256",
+        "runner_sha256",
+        "initial_state_sha256",
+    )
+    elapsed = receipt["elapsed_seconds"]
+    projection = receipt["projection_seconds"]
+    inputs = receipt["input_sha256"]
+    arms = receipt["arms"]
+    if (
+        selected not in ("teacher", "pa", "relational")
+        or any(not _is_sha256(receipt[field]) for field in digest_fields)
+        or receipt["runner_sha256"] != hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+        or type(elapsed) not in (int, float)
+        or not math.isfinite(elapsed)
+        or elapsed <= 0
+        or type(projection) not in (int, float)
+        or not math.isfinite(projection)
+        or not 0 < projection <= 7200
+        or type(inputs) is not list
+        or len(inputs) != 20
+        or any(not _is_sha256(value) for value in inputs)
+        or type(arms) is not dict
+        or set(arms) != {"base", "correct", "permuted"}
+        or any(
+            type(arms[arm]) is not dict or arms[arm].get("completed_updates") != 20 for arm in arms
+        )
+        or type(receipt["preflight"]) is not dict
+        or receipt["preflight"].get("quality_measured") is not False
+        or receipt["teacher_unchanged"] is not True
+        or (
+            not _is_sha256(receipt["teacher_state_sha256"])
+            if selected == "relational"
+            else receipt["teacher_state_sha256"] is not None
+        )
+    ):
+        raise ValueError("language training semantic authority differs")
+    monitor = _read_canonical_json(args.training_monitor, args.training_monitor_sha256)
+    if (
+        set(monitor)
+        != {
+            "schema",
+            "claim_eligible",
+            "exit_code",
+            "stop_reason",
+            "result_sha256",
+            "elapsed_s",
+        }
+        or monitor["schema"] != "sfora-siglip-language-training-monitor-v1"
+        or monitor["claim_eligible"] is not False
+        or monitor["exit_code"] != 0
+        or monitor["stop_reason"] is not None
+        or monitor["result_sha256"] != args.training_sha256
+        or type(monitor["elapsed_s"]) not in (int, float)
+        or not math.isfinite(monitor["elapsed_s"])
+        or not elapsed <= monitor["elapsed_s"] <= 7200
+    ):
+        raise ValueError("language training monitor differs")
+    budget_seconds = 7200.0 - float(monitor["elapsed_s"])
+    if budget_seconds <= 0:
+        raise RuntimeError("language pilot evaluation has no remaining wall budget")
+    deadline_ns = began_ns + int(budget_seconds * 1e9)
+    args._evaluation_deadline_ns = deadline_ns
+
+    def check_time() -> None:
+        if perf_counter_ns() >= deadline_ns:
+            raise RuntimeError("language pilot exceeds total two-hour wall cap")
+
+    check_time()
+    targets = load_language_targets(directory / "language-targets.json", receipt["target_sha256"])
+    target_receipt = targets["receipt"]
+    current_target_sources = {
+        "runner": receipt["runner_sha256"],
+        "guidance": _module_sha256(language_guidance),
+        "protocol": _module_sha256(language_protocol),
+    }
+    if (
+        any(
+            target_receipt["input_sha256"][role] != digest
+            for role, digest in current_target_sources.items()
+        )
+        or target_receipt["gram_sha256"]["correct"] == target_receipt["gram_sha256"]["permuted"]
+    ):
+        raise ValueError("language training target/source binding differs")
+    target_gram_sha256 = target_receipt["gram_sha256"]
+    del targets
+    if not _valid_language_preflight(receipt["preflight"], receipt, target_gram_sha256):
+        raise ValueError("language training preflight authority differs")
+    if set(receipt["checkpoints"]) != {"base", "correct", "permuted"}:
+        raise ValueError("language training checkpoints differ")
+    payloads: dict[str, dict[str, Any]] = {}
+    for arm in ("base", "correct", "permuted"):
+        check_time()
+        seal = receipt["checkpoints"][arm]
+        if (
+            type(seal) is not dict
+            or set(seal) != {"basename", "sha256", "bytes", "arm", "completed_updates"}
+            or seal["basename"] != f"{arm}-final.pt"
+            or seal["arm"] != arm
+            or seal["completed_updates"] != 20
+            or type(seal["bytes"]) is not int
+            or seal["bytes"] <= 0
+        ):
+            raise ValueError("language checkpoint seal differs")
+        path = directory / seal["basename"]
+        if path.is_symlink() or not path.is_file():
+            raise ValueError("language checkpoint file differs")
+        digest, size = control._sha256_file(path)
+        if digest != seal["sha256"] or size != seal["bytes"]:
+            raise ValueError("language checkpoint bytes differ")
+        payload = torch.load(path, map_location="cpu", weights_only=True, mmap=True)
+        _validate_language_final_payload(payload, receipt, arm)
+        evidence = arms[arm]
+        if (
+            type(evidence) is not dict
+            or set(evidence)
+            != {
+                "arm",
+                "completed_updates",
+                "initial_state_sha256",
+                "final_state_sha256",
+                "steps",
+                "input_sha256",
+                "teacher_state_sha256",
+                "teacher_unchanged",
+                "consumed_gram_sha256",
+            }
+            or evidence["arm"] != arm
+            or evidence["completed_updates"] != 20
+            or evidence["initial_state_sha256"] != payload["initial_state_sha256"]
+            or evidence["final_state_sha256"] != payload["final_state_sha256"]
+            or evidence["initial_state_sha256"] == evidence["final_state_sha256"]
+            or evidence["input_sha256"] != payload["input_sha256"]
+            or evidence["consumed_gram_sha256"] != payload["consumed_gram_sha256"]
+            or payload["consumed_gram_sha256"]
+            != (None if arm == "base" else target_gram_sha256[arm])
+            or evidence["teacher_state_sha256"] != receipt["teacher_state_sha256"]
+            or evidence["teacher_unchanged"] is not True
+            or not _valid_language_arm_steps(
+                evidence,
+                arm,
+                has_teacher=selected == "relational",
+            )
+        ):
+            raise ValueError("language training arm/checkpoint binding differs")
+        payloads[arm] = payload
+        del payload
+        check_time()
+    measured_training_ns = sum(
+        step["elapsed_ns"] for arm in ("base", "correct", "permuted") for step in arms[arm]["steps"]
+    ) + sum(
+        step["elapsed_ns"]
+        for arm in ("base", "correct")
+        for step in receipt["preflight"]["arms"][arm]["steps"]
+    )
+    if elapsed * 1e9 < measured_training_ns:
+        raise ValueError("language training elapsed evidence differs")
+    if args.audit_sha256 != evaluator.AUDIT_SHA256:
+        raise ValueError("language training audit authority differs")
+    audit = _read_canonical_json(args.audit_result, args.audit_sha256)
+    observed_evaluator_source = {
+        "language_evaluator": _module_sha256(evaluator),
+        "evaluation_core": _module_sha256(evaluation_core),
+    }
+    if any(
+        observed_evaluator_source[role] != LANGUAGE_EVALUATION_SOURCE_SHA256[role]
+        for role in observed_evaluator_source
+    ):
+        raise ValueError("language evaluation source authority differs")
+    check_time()
+    device = evaluator.evaluation_device()
+    if device.type == "cuda":
+        torch.cuda.reset_peak_memory_stats()
+    teacher, processor = evaluator.load_teacher_and_processor(args.control_root)
+    torch.nn.Module.to(teacher, device)
+    teacher.eval().requires_grad_(False)
+    expected_teacher_state = (
+        receipt["initial_state_sha256"]
+        if selected == "teacher"
+        else receipt["teacher_state_sha256"]
+        if selected == "relational"
+        else None
+    )
+    if (
+        expected_teacher_state is not None
+        and control._model_state_sha256(teacher) != expected_teacher_state
+    ):
+        raise ValueError("language evaluation teacher state differs")
+    check_time()
+    examples = evaluation_core.load_recovery_evaluation_images()
+    try:
+        image_ids = [example.example_id for example in examples]
+        if (
+            len(examples) != 2746
+            or len(set(image_ids)) != 2746
+            or image_ids != audit["common_image_ids"]
+        ):
+            raise ValueError("language evaluation image authority differs")
+        labels = tuple(example.label for example in examples)
+        pixel_digest = evaluator.decoded_native_digest(examples, audit["common_to_native"])
+        if pixel_digest != audit["decoded_native_sha256"]:
+            raise ValueError("language evaluation decoded pixels differ")
+        baseline = audit["reproductions"]["siglip-projected-17"]["retrieval"]
+        if list(labels) != baseline["labels"]:
+            raise ValueError("language evaluation audit labels differ")
+    except (KeyError, TypeError) as error:
+        raise ValueError("language evaluation audit authority differs") from error
+
+    cells: dict[str, dict[str, Any]] = {}
+    reproduction: dict[str, Any] | None = None
+    for name in ("teacher", "base", "correct", "permuted"):
+        check_time()
+        if name == "teacher":
+            model = teacher
+        elif receipt["selected_initialization"] == "teacher":
+            model = copy.deepcopy(teacher).eval().requires_grad_(False)
+            model.load_state_dict(payloads[name]["model_state"], strict=True)
+        else:
+            model = prune_siglip_student(teacher).float().eval().requires_grad_(False)
+            model.load_state_dict(payloads[name]["model_state"], strict=True)
+        if (
+            name != "teacher"
+            and control._model_state_sha256(model) != payloads[name]["final_state_sha256"]
+        ):
+            raise ValueError("language restored final state differs")
+        vectors = evaluator.embed_recovery_model(
+            model,
+            examples,
+            processor,
+            device,
+            check_time,
+        )
+        if (
+            vectors.device.type != "cpu"
+            or vectors.dtype != torch.float32
+            or tuple(vectors.shape) != (2746, 512)
+            or not bool(torch.isfinite(vectors).all())
+            or not torch.allclose(
+                torch.linalg.vector_norm(vectors, dim=1),
+                torch.ones(2746),
+                atol=1e-6,
+                rtol=0,
+            )
+        ):
+            raise ValueError("language evaluation descriptors differ from 2746x512 unit FP32")
+        cells[name] = evaluator._retrieval_cell(vectors, labels)
+        if name == "teacher":
+            reproduction = evaluator.require_teacher_reproduction(cells["teacher"], baseline)
+        if name != "teacher":
+            del model, payloads[name]
+            if device.type == "cuda":
+                torch.cuda.empty_cache()
+    if reproduction is None:
+        raise RuntimeError("language teacher reproduction was not computed")
+    decision = language_protocol.language_pilot_decision(
+        {arm: cells[arm] for arm in ("base", "correct", "permuted")}
+    )
+    check_time()
+    return {
+        "schema": "sfora-siglip-language-evaluation-v1",
+        "claim_eligible": False,
+        "quality_measured": True,
+        "seed": 17,
+        "surface": "exploratory-reuse-49..81",
+        "training_sha256": args.training_sha256,
+        "training_monitor_sha256": args.training_monitor_sha256,
+        "audit_sha256": args.audit_sha256,
+        "selected_initialization": receipt["selected_initialization"],
+        "checkpoint_seals": receipt["checkpoints"],
+        "teacher_reproduction": reproduction,
+        "cells": cells,
+        "paired_discordances": {
+            "correct-vs-base": _language_discordances(cells["base"], cells["correct"]),
+            "correct-vs-permuted": _language_discordances(cells["permuted"], cells["correct"]),
+        },
+        "decision": decision,
+        "common_image_ids": image_ids,
+        "decoded_native_sha256": pixel_digest,
+        "resources": {
+            "elapsed_seconds": (perf_counter_ns() - began_ns) / 1e9,
+            "training_monitor_seconds": monitor["elapsed_s"],
+            "peak_rss_bytes": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024,
+            "peak_cuda_allocated_bytes": torch.cuda.max_memory_allocated()
+            if device.type == "cuda"
+            else 0,
+            "peak_cuda_reserved_bytes": torch.cuda.max_memory_reserved()
+            if device.type == "cuda"
+            else 0,
+        },
+        "runner_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+    }
+
+
+def _validate_language_final_payload(
+    payload: Any,
+    receipt: dict[str, Any],
+    arm: str,
+) -> None:
+    """Validate a complete language checkpoint without constructing a model."""
+    keys = {
+        "schema",
+        "claim_eligible",
+        "seed",
+        "arm",
+        "completed_updates",
+        "target_sha256",
+        "consumed_gram_sha256",
+        "initial_state_sha256",
+        "final_state_sha256",
+        "input_sha256",
+        "input_dimensions",
+        "embedding_dimensions",
+        "class_count",
+        "model_state",
+    }
+    if (
+        type(payload) is not dict
+        or set(payload) != keys
+        or payload["schema"] != "sfora-siglip-language-final-v1"
+        or payload["claim_eligible"] is not False
+        or payload["seed"] != 17
+        or payload["arm"] != arm
+        or payload["completed_updates"] != 20
+        or payload["target_sha256"] != receipt["target_sha256"]
+        or payload["initial_state_sha256"] != receipt["initial_state_sha256"]
+        or payload["input_sha256"] != receipt["input_sha256"]
+        or payload["input_dimensions"] != 1152
+        or payload["embedding_dimensions"] != 512
+        or payload["class_count"] != 49
+        or (payload["consumed_gram_sha256"] is None) != (arm == "base")
+    ):
+        raise ValueError("language final checkpoint binding differs")
+    state = payload["model_state"]
+    if not isinstance(state, dict) or not state:
+        raise ValueError("language final checkpoint state absent")
+    digest = hashlib.sha256()
+    for name, tensor in sorted(state.items()):
+        if (
+            type(name) is not str
+            or not isinstance(tensor, torch.Tensor)
+            or tensor.dtype != torch.float32
+            or not bool(torch.isfinite(tensor).all())
+        ):
+            raise ValueError("language final checkpoint state differs")
+        metadata = control._canonical_bytes(
+            {"dtype": str(tensor.dtype), "name": name, "shape": list(tensor.shape)}
+        )
+        raw = tensor.detach().cpu().contiguous().reshape(-1).view(torch.uint8).numpy().tobytes()
+        digest.update(len(metadata).to_bytes(8, "little"))
+        digest.update(metadata)
+        digest.update(len(raw).to_bytes(8, "little"))
+        digest.update(raw)
+    if digest.hexdigest() != payload["final_state_sha256"]:
+        raise ValueError("language final checkpoint state digest differs")
 
 
 def seal_language_checkpoint(
@@ -1111,3 +1740,48 @@ def seal_language_checkpoint(
         "arm": arm,
         "completed_updates": 20,
     }
+
+
+def _publish_language_evaluation(
+    path: Path,
+    result: dict[str, Any],
+    *,
+    deadline_ns: int,
+    clock: Callable[[], int] = perf_counter_ns,
+) -> None:
+    """Create the canonical result only while the original wall deadline remains live."""
+    if type(deadline_ns) is not int or clock() >= deadline_ns:
+        raise RuntimeError("language pilot exceeds total two-hour wall cap")
+    control._write_new(path, control._canonical_bytes(result))
+    if clock() >= deadline_ns:
+        path.unlink()
+        control._fsync_directory(path.parent)
+        raise RuntimeError("language pilot exceeds total two-hour wall cap")
+
+
+def main(arguments: list[str] | None = None) -> None:
+    """Execute exactly one authenticated phase."""
+    args = parse_args(arguments)
+    if args.phase == "train":
+        run_training(args)
+        path = args.output_dir / "training-complete.json"
+        print(f"language-pilot: TRAINING COMPLETE {hashlib.sha256(path.read_bytes()).hexdigest()}")
+        return
+    if args.output.exists() or args.output.is_symlink():
+        raise FileExistsError(args.output)
+    args._evaluation_process_started_ns = _PROCESS_STARTED_NS
+    result = run_pilot_evaluation(args)
+    _publish_language_evaluation(
+        args.output,
+        result,
+        deadline_ns=args._evaluation_deadline_ns,
+    )
+    print(f"language-pilot: EVALUATION COMPLETE {_authenticate_output(args.output)}")
+
+
+def _authenticate_output(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+if __name__ == "__main__":
+    main()
