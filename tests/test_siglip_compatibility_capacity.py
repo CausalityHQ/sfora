@@ -1,15 +1,25 @@
 from __future__ import annotations
 
+import json
+
 import pytest
 import torch
 
 from sfora.siglip_compatibility_capacity import (
     AffineMap,
+    CompatibilityDecisionMetrics,
     CompatibilityResidual,
+    build_compatibility_capacity_result,
+    classify_compatibility_capacity,
     compatibility_folds,
+    compatibility_retrieval_evidence,
+    csls_scores,
     fit_centered_similarity,
     fit_regularized_affine,
     fit_teacher_anchored_residual,
+    hubness_present,
+    select_compatibility_finalist,
+    validate_compatibility_capacity_result_bytes,
 )
 
 
@@ -177,3 +187,198 @@ def test_teacher_anchored_residual_rejects_authority_drift(
         fit_teacher_anchored_residual(
             student, teacher, ids, relational=relational, seed=seed  # type: ignore[arg-type]
         )
+
+
+def _retrieval_bank() -> tuple[torch.Tensor, tuple[str, ...], tuple[int, ...]]:
+    descriptors = torch.nn.functional.normalize(
+        torch.tensor(
+            [
+                [1.0, 0.0, 0.0],
+                [1.0, 0.1, 0.0],
+                [0.0, 1.0, 0.0],
+                [0.1, 1.0, 0.0],
+                [0.0, 0.0, 1.0],
+                [0.0, 0.1, 1.0],
+            ],
+            dtype=torch.float32,
+        ),
+        dim=1,
+    )
+    return descriptors, tuple(f"image-{index}" for index in range(6)), (0, 0, 1, 1, 2, 2)
+
+
+def test_compatibility_retrieval_recomputes_exact_micro_macro_and_diagnostics() -> None:
+    descriptors, ids, labels = _retrieval_bank()
+    evidence = compatibility_retrieval_evidence(
+        descriptors,
+        descriptors,
+        query_ids=ids,
+        gallery_ids=ids,
+        query_labels=labels,
+        gallery_labels=labels,
+        reference_query=descriptors,
+        reference_gallery=descriptors,
+    )
+
+    assert evidence.hits == (True,) * 6
+    assert evidence.average_precisions == (1.0,) * 6
+    assert evidence.micro_r1 == 1.0
+    assert evidence.micro_map_at_r == 1.0
+    assert evidence.class_macro_r1 == 1.0
+    assert evidence.class_macro_map_at_r == 1.0
+    assert evidence.paired_cosines == (1.0,) * 6
+    assert evidence.cross_score_mse == 0.0
+    assert evidence.top10_overlaps == (1.0,) * 6
+    assert evidence.hub_counts == (5, 5, 5, 5, 5, 5)
+
+
+def test_compatibility_retrieval_rejects_label_and_reference_drift() -> None:
+    descriptors, ids, labels = _retrieval_bank()
+    invalid = (
+        {"gallery_labels": (1, 0, 1, 1, 2, 2)},
+        {"reference_query": descriptors.double()},
+        {"reference_gallery": torch.full_like(descriptors, float("nan"))},
+    )
+    baseline = {
+        "query_ids": ids,
+        "gallery_ids": ids,
+        "query_labels": labels,
+        "gallery_labels": labels,
+        "reference_query": descriptors,
+        "reference_gallery": descriptors,
+    }
+    for mutation in invalid:
+        with pytest.raises(ValueError, match="compatibility retrieval authority differs"):
+            compatibility_retrieval_evidence(
+                descriptors, descriptors, **(baseline | mutation)  # type: ignore[arg-type]
+            )
+
+
+def test_csls_uses_registered_cross_domain_local_scaling() -> None:
+    query = torch.eye(2, dtype=torch.float32)
+    gallery = torch.eye(2, dtype=torch.float32)
+    assert torch.equal(
+        csls_scores(query, gallery, neighbors=1),
+        torch.tensor([[0.0, -2.0], [-2.0, 0.0]]),
+    )
+    with pytest.raises(ValueError, match="compatibility CSLS authority differs"):
+        csls_scores(query, gallery, neighbors=3)
+
+
+def test_finalist_selection_uses_worst_fold_direction_and_registered_ties() -> None:
+    results = {
+        "affine-0.0001": ((0.80, 0.82), (0.83, 0.81), (0.84, 0.80)),
+        "affine-0.01": ((0.80, 0.80), (0.82, 0.81), (0.83, 0.84)),
+        "affine-1": ((0.80, 0.80), (0.81, 0.82), (0.83, 0.84)),
+        "teacher-anchored-residual": ((0.79, 0.90), (0.91, 0.92), (0.93, 0.94)),
+    }
+    assert select_compatibility_finalist(results) == "affine-1"
+    results["teacher-anchored-residual"] = ((0.81, 0.81),) * 3
+    assert select_compatibility_finalist(results) == "teacher-anchored-residual"
+
+
+def _decision(r1: float, map_at_r: float, self_r1: float = 0.995) -> CompatibilityDecisionMetrics:
+    return CompatibilityDecisionMetrics(
+        forward_r1=r1,
+        forward_map_at_r=map_at_r,
+        reverse_r1=r1,
+        reverse_map_at_r=map_at_r,
+        self_r1=self_r1,
+        self_map_at_r=0.97,
+    )
+
+
+@pytest.mark.parametrize(
+    ("finalist", "oracle", "expected"),
+    [
+        (_decision(0.98, 0.96), _decision(0.98, 0.96), "posthoc-passed"),
+        (_decision(0.85, 0.84), _decision(0.91, 0.91), "coverage-failure"),
+        (_decision(0.85, 0.84), _decision(0.79, 0.90), "information-failure"),
+        (_decision(0.85, 0.84), _decision(0.85, 0.85), "ambiguous-capacity"),
+    ],
+)
+def test_capacity_classification_is_exhaustive_and_plain_cosine_only(
+    finalist: CompatibilityDecisionMetrics,
+    oracle: CompatibilityDecisionMetrics,
+    expected: str,
+) -> None:
+    assert classify_compatibility_capacity(finalist, oracle) == expected
+
+
+def test_hubness_is_independent_five_point_csls_lift() -> None:
+    assert hubness_present((0.70, 0.80), (0.75, 0.81)) is True
+    assert hubness_present((0.70, 0.80), (0.749, 0.849)) is False
+
+
+def _capacity_result() -> bytes:
+    descriptors, ids, labels = _retrieval_bank()
+    evidence = compatibility_retrieval_evidence(
+        descriptors,
+        descriptors,
+        query_ids=ids,
+        gallery_ids=ids,
+        query_labels=labels,
+        gallery_labels=labels,
+        reference_query=descriptors,
+        reference_gallery=descriptors,
+    )
+    cells = {
+        name: evidence
+        for name in (
+            "finalist-forward",
+            "finalist-reverse",
+            "finalist-self",
+            "oracle-forward",
+            "oracle-reverse",
+            "oracle-self",
+        )
+    }
+    folds = {
+        "affine-0.0001": ((0.80, 0.82), (0.83, 0.81), (0.84, 0.80)),
+        "affine-0.01": ((0.80, 0.80), (0.82, 0.81), (0.83, 0.84)),
+        "affine-1": ((0.80, 0.80), (0.81, 0.82), (0.83, 0.84)),
+        "teacher-anchored-residual": ((0.81, 0.81),) * 3,
+    }
+    return build_compatibility_capacity_result(
+        checkpoint_sha256="11" * 32,
+        descriptor_artifact_sha256="22" * 32,
+        fold_results=folds,
+        cells=cells,
+        cosine_r1=(0.70, 0.80),
+        csls_r1=(0.75, 0.81),
+    )
+
+
+def test_capacity_result_is_canonical_and_recomputes_selection_and_decisions() -> None:
+    raw = _capacity_result()
+    value = validate_compatibility_capacity_result_bytes(raw)
+    assert raw.endswith(b"\n") and not raw.endswith(b"\n\n")
+    assert value["claim_eligible"] is False
+    assert value["finalist"] == "teacher-anchored-residual"
+    assert value["classification"] == "posthoc-passed"
+    assert value["hubness_present"] is True
+    assert json.dumps(value, sort_keys=True, separators=(",", ":")).encode() + b"\n" == raw
+
+
+@pytest.mark.parametrize(
+    ("path", "replacement"),
+    [
+        (("classification",), "coverage-failure"),
+        (("finalist",), "affine-1"),
+        (("claim_eligible",), 0),
+        (("cells", "finalist-forward", "micro_r1"), 0.5),
+        (("cells", "oracle-forward", "hits"), [False] * 6),
+        (("hubness_present",), False),
+    ],
+)
+def test_capacity_result_rejects_summary_decision_and_concrete_type_drift(
+    path: tuple[str, ...], replacement: object
+) -> None:
+    value = json.loads(_capacity_result())
+    target = value
+    for key in path[:-1]:
+        target = target[key]
+    target[path[-1]] = replacement
+    mutated = json.dumps(value, sort_keys=True, separators=(",", ":")).encode() + b"\n"
+    with pytest.raises(ValueError, match="compatibility capacity result"):
+        validate_compatibility_capacity_result_bytes(mutated)
