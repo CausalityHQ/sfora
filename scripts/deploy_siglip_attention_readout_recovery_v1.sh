@@ -151,11 +151,12 @@ write_control_manifest_artifacts(
     output=control_manifest,
     optimization_image_root=optimization_image_root,
     bands=bands,
+    png_compress_level=0,
 )
 evaluation_image_root.mkdir()
 for example in bands.clean_validation:
     stream = io.BytesIO()
-    example.image.save(stream, format="PNG", optimize=False, compress_level=9)
+    example.image.save(stream, format="PNG", optimize=False, compress_level=0)
     path = evaluation_image_root / _image_basename(example.example_id)
     with path.open("xb") as output:
         output.write(stream.getvalue())

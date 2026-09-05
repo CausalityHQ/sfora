@@ -1253,6 +1253,25 @@ def test_control_manifest_cli_emits_authenticated_image_free_ordered_rows(
     with Image.open(image_root / expected_image) as observed:
         assert observed.convert("RGB").getpixel((0, 0)) == (1, 2, 3)
 
+    fast_output = tmp_path / "fast-manifest.json"
+    fast_root = tmp_path / "fast-images"
+    _MODULE.write_control_manifest_artifacts(
+        output=fast_output,
+        optimization_image_root=fast_root,
+        bands=bands,
+        png_compress_level=0,
+    )
+    assert fast_output.read_bytes() == output.read_bytes()
+    with Image.open(fast_root / expected_image) as observed:
+        assert observed.convert("RGB").getpixel((0, 0)) == (1, 2, 3)
+    with pytest.raises(TypeError):
+        _MODULE.write_control_manifest_artifacts(
+            output=tmp_path / "invalid.json",
+            optimization_image_root=tmp_path / "invalid-images",
+            bands=bands,
+            png_compress_level=True,
+        )
+
 
 def test_control_manifest_rejects_incoherent_band_partition() -> None:
     rows = tuple(

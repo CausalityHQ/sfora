@@ -449,10 +449,15 @@ def write_control_manifest_artifacts(
     output: Path,
     optimization_image_root: Path,
     bands: ControlExampleBands,
+    png_compress_level: int = 9,
 ) -> None:
     """Publish one full manifest and an optimization-only flat pixel namespace."""
 
-    if any(not isinstance(path, Path) for path in (output, optimization_image_root)):
+    if (
+        any(not isinstance(path, Path) for path in (output, optimization_image_root))
+        or type(png_compress_level) is not int
+        or not 0 <= png_compress_level <= 9
+    ):
         raise TypeError("control manifest artifact paths differ")
     if optimization_image_root.exists() or optimization_image_root.is_symlink():
         raise FileExistsError(optimization_image_root)
@@ -463,7 +468,7 @@ def write_control_manifest_artifacts(
             if not callable(save):
                 raise TypeError("control optimization image is not encodable")
             stream = io.BytesIO()
-            save(stream, format="PNG", optimize=False, compress_level=9)
+            save(stream, format="PNG", optimize=False, compress_level=png_compress_level)
             _write_new(
                 optimization_image_root / _rsta_optimization_image_basename(example.example_id),
                 stream.getvalue(),

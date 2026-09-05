@@ -21,6 +21,8 @@ def test_deployment_separates_optimization_and_evaluation_authority() -> None:
     assert "git bundle create" in source
     assert "sha256sum --check --strict SOURCE_MANIFEST.sha256" in source
     assert "write_control_manifest_artifacts" in source
+    assert "png_compress_level=0" in source
+    assert "compress_level=0" in source
     assert "bands.clean_validation" in source
     assert "evaluation_image_root / _image_basename(example.example_id)" in source
     assert '"schema": "sfora-attention-readout-evaluation-v1"' in source
