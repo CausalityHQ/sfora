@@ -90,6 +90,15 @@ with torch.no_grad():
 ```
 
 Store unit vectors, Gram, token IDs and permutation using exclusive writes/fsync/hash before canonical target receipt. Bind all input/source/dependency/toolchain identities and elapsed. Free text model before image training.
+
+Review clarification: evaluation admission uses twice the maximum of the
+authenticated evaluator and whole-process monitor elapsed times, plus300s.
+The actual consumed Gram digest must be recorded inside the training kernel and
+cross-checked at checkpoint sealing against the selected arm's authenticated
+target. Keep this separate from the target-bundle receipt digest. The phase
+runner must derive the correct/permuted mapping itself, reject duplicate target
+digests, and require base to consume no Gram; a caller-supplied arm label alone
+is not proof of semantic correspondence.
 - [ ] Add a CPU/meta-device header preflight: construct SiglipTextModel from authenticated text config under `torch.device("meta")`, compare exact438 prefix-stripped names/shapes/dtypes against the local safetensors header, and retain identities. No model tensor or GPU materialization. Same focused GREEN, scoped static gate, commit verified runner/test slice. This closes structural compatibility only; actual numerical encoding remains unmeasured until its scientific phase.
 
 ### Task3: Fixed training and final-only seals

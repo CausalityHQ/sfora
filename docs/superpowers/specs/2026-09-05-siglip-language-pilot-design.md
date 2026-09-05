@@ -116,8 +116,9 @@ The recovery training-monitor validator's returned remaining-six-hour budget is
 discarded. Separately require the final evaluation monitor's exact schema,
 exit0/no stop, result digest, source identity and pair-monitor binding.
 
-Before any pilot GPU work, require `2 * recovery_evaluation_elapsed + 300 <= 1800`
-using the authenticated completed evaluator's elapsed time. This conservative
+Before any pilot GPU work, require `2 * max(evaluator_elapsed, monitor_elapsed) + 300 <= 1800`
+using both authenticated completed evaluator and whole-process monitor times,
+so interpreter/import/startup costs cannot be discarded. This conservative
 admission estimate accounts for up to four full27-layer galleries versus the
 prior27+18+18-layer galleries; it is not a measured guarantee. No repeated CPU
 search timing is performed in this quality pilot. Actual external time limits

@@ -15,6 +15,11 @@ import torch
 from safetensors.torch import save_file
 from transformers import SiglipTextConfig, SiglipTextModel
 
+from sfora.siglip_depth_recovery import relational_cross_entropy
+from sfora.siglip_language_guidance import language_centroid_cross_entropy, standardized_text_gram
+from sfora.siglip_proxy_control import PooledProxyAnchorModel
+from sfora.token_set_proxy_anchor import proxy_anchor_loss
+
 SPEC = importlib.util.spec_from_file_location(
     "run_siglip_language_pilot",
     Path(__file__).parents[1] / "scripts/run_siglip_language_pilot.py",
@@ -315,10 +320,14 @@ def test_initialization_requires_its_own_successful_evaluation_monitor(
 def test_four_gallery_reserve_is_an_admission_gate_not_extra_budget() -> None:
     value, monitor = _selection_evidence()
     value["resources"]["elapsed_seconds"] = 750.0
-    monitor["elapsed_s"] = 755.0
+    monitor["elapsed_s"] = 750.0
     choice = _select(value, monitor)
     assert choice["evaluation_projection_seconds"] == 1800.0
     assert choice["pilot_total_seconds"] == 7200
+    slower_monitor = copy.deepcopy(monitor)
+    slower_monitor["elapsed_s"] = 755.0
+    with pytest.raises(ValueError, match="reserve"):
+        _select(value, slower_monitor)
     bad = copy.deepcopy(value)
     bad["resources"]["elapsed_seconds"] = 750.001
     with pytest.raises(ValueError, match="reserve"):
@@ -327,3 +336,482 @@ def test_four_gallery_reserve_is_an_admission_gate_not_extra_budget() -> None:
         bad["resources"]["elapsed_seconds"] = elapsed
         with pytest.raises(ValueError):
             _select(bad, monitor)
+
+
+def _image_model() -> PooledProxyAnchorModel:
+    torch.manual_seed(17)
+    return PooledProxyAnchorModel(
+        tower=torch.nn.Sequential(torch.nn.Linear(4, 5), torch.nn.Tanh()),
+        input_dimensions=5,
+        embedding_dimensions=3,
+        class_count=4,
+    )
+
+
+@pytest.mark.parametrize("arm", ["base", "correct", "permuted"])
+@pytest.mark.parametrize("relational", [False, True])
+def test_twenty_language_updates_match_direct_full_batch_adamw(
+    arm: str,
+    relational: bool,
+) -> None:
+    direct = _image_model()
+    replay = copy.deepcopy(direct)
+    teacher = copy.deepcopy(direct).eval().requires_grad_(False) if relational else None
+    torch.manual_seed(31)
+    pixels = torch.randn(6, 4)
+    labels = torch.tensor([0, 0, 1, 1, 3, 3])
+    gram = (
+        None
+        if arm == "base"
+        else standardized_text_gram(torch.nn.functional.normalize(torch.randn(4, 5), dim=1))
+    )
+    if arm == "permuted":
+        assert gram is not None
+        permutation = torch.tensor([1, 3, 0, 2])
+        gram = gram[permutation][:, permutation]
+    # Literal original recipe for this tiny topology; independent of the runner.
+    linear = cast(torch.nn.Linear, cast(torch.nn.Sequential, direct.tower)[0])
+    optimizer = torch.optim.AdamW(
+        [
+            {"params": [linear.bias], "lr": 1e-5, "initial_lr": 1e-5, "weight_decay": 0.0},
+            {"params": [linear.weight], "lr": 1e-5, "initial_lr": 1e-5, "weight_decay": 1e-4},
+            {
+                "params": [direct.projection.weight],
+                "lr": 1e-4,
+                "initial_lr": 1e-4,
+                "weight_decay": 1e-4,
+            },
+            {"params": [direct.proxies], "lr": 1e-2, "initial_lr": 1e-2, "weight_decay": 0.0},
+        ],
+        betas=(0.9, 0.999),
+        eps=1e-8,
+        foreach=False,
+    )
+    expected_losses = []
+    for update in range(1, 21):
+        import math
+
+        multiplier = (
+            update / 10
+            if update <= 10
+            else (0.1 + 0.45 * (1 + math.cos(math.pi * (update - 10) / 188)))
+        )
+        optimizer.zero_grad(set_to_none=True)
+        for group in optimizer.param_groups:
+            group["lr"] = group["initial_lr"] * multiplier
+        vectors = direct.encode(pixels)
+        loss = proxy_anchor_loss(
+            vectors @ torch.nn.functional.normalize(direct.proxies, dim=1).T,
+            labels,
+            alpha=32.0,
+            delta=0.1,
+        )
+        if gram is not None:
+            loss = loss + language_centroid_cross_entropy(vectors, labels, gram)
+        if teacher is not None:
+            with torch.no_grad():
+                teacher_vectors = teacher.encode(pixels)
+            loss = loss + relational_cross_entropy(vectors, teacher_vectors)
+        expected_losses.append(float(loss.detach()))
+        torch.autograd.backward(loss)
+        torch.nn.utils.clip_grad_norm_(
+            direct.parameters(), 10.0, error_if_nonfinite=True, foreach=False
+        )
+        optimizer.step()
+    events: list[dict[str, Any]] = []
+    batch_sha = hashlib.sha256(
+        b"sfora-recovery-batch-v1\0"
+        + b'{"dtype":"torch.float32","shape":[6,4]}\n'
+        + pixels.numpy().tobytes()
+        + b'{"dtype":"torch.int64","shape":[6]}\n'
+        + labels.numpy().tobytes()
+    ).hexdigest()
+    evidence = subject.train_language_arm(
+        replay,
+        teacher,
+        lambda update: (pixels, labels),
+        arm=arm,
+        gram=gram,
+        expected_input_hashes=None if arm == "base" else [batch_sha] * 20,
+        microbatch_size=2,
+        progress=events.append,
+        synchronize=lambda: None,
+    )
+    assert evidence["completed_updates"] == 20
+    expected_gram_sha = (
+        None
+        if gram is None
+        else hashlib.sha256(
+            b"sfora-language-gram-v1\0"
+            + b'{"dtype":"torch.float32","shape":[4,4]}\n'
+            + gram.numpy().tobytes()
+        ).hexdigest()
+    )
+    assert evidence["consumed_gram_sha256"] == expected_gram_sha
+    assert len(events) == 20 and [e["update"] for e in events] == list(range(1, 21))
+    assert evidence["input_sha256"] == [batch_sha] * 20
+    assert evidence["initial_state_sha256"] != evidence["final_state_sha256"]
+    for expected, actual in zip(expected_losses, events, strict=True):
+        assert actual["loss"] == pytest.approx(expected, abs=2e-4)
+        assert actual["maximum_descriptor_disagreement"] <= 2e-5
+        assert actual["elapsed_ns"] > 0
+    for a, b in zip(direct.parameters(), replay.parameters(), strict=True):
+        torch.testing.assert_close(a, b, atol=2e-5, rtol=2e-5)
+    if teacher is not None:
+        assert all(p.grad is None and not p.requires_grad for p in teacher.parameters())
+
+
+def test_language_arm_rejects_paired_input_drift_before_first_update() -> None:
+    model = _image_model()
+    before = {k: v.detach().clone() for k, v in model.state_dict().items()}
+    pixels, labels = torch.randn(6, 4), torch.tensor([0, 0, 1, 1, 3, 3])
+    gram = standardized_text_gram(torch.nn.functional.normalize(torch.randn(4, 5), dim=1))
+    events: list[dict[str, Any]] = []
+    with pytest.raises(ValueError, match="input"):
+        subject.train_language_arm(
+            model,
+            None,
+            lambda update: (pixels, labels),
+            arm="correct",
+            gram=gram,
+            expected_input_hashes=["0" * 64] * 20,
+            microbatch_size=2,
+            progress=events.append,
+            synchronize=lambda: None,
+        )
+    assert events == []
+    assert all(torch.equal(before[k], v) for k, v in model.state_dict().items())
+
+
+def test_disposable_preflight_measures_only_six_updates_and_preserves_initialization() -> None:
+    initial = _image_model()
+    before = {k: v.detach().clone() for k, v in initial.state_dict().items()}
+    instances: list[PooledProxyAnchorModel] = []
+
+    def factory() -> PooledProxyAnchorModel:
+        model = copy.deepcopy(initial)
+        instances.append(model)
+        return model
+
+    pixels, labels = torch.randn(6, 4), torch.tensor([0, 0, 1, 1, 3, 3])
+    gram = standardized_text_gram(torch.nn.functional.normalize(torch.randn(4, 5), dim=1))
+    events: list[dict[str, Any]] = []
+    result = subject.measure_language_preflight(
+        factory,
+        None,
+        lambda update: (pixels, labels),
+        gram=gram,
+        microbatch_size=2,
+        progress=events.append,
+        synchronize=lambda: None,
+    )
+    assert len(instances) == 2 and instances[0] is not instances[1]
+    assert [(e["arm"], e["update"]) for e in events] == [
+        ("base", 1),
+        ("base", 2),
+        ("base", 3),
+        ("correct", 1),
+        ("correct", 2),
+        ("correct", 3),
+    ]
+    assert len(result["update_seconds"]) == 6 and all(t > 0 for t in result["update_seconds"])
+    assert (
+        result["arms"]["base"]["initial_state_sha256"]
+        == result["arms"]["correct"]["initial_state_sha256"]
+    )
+    assert result["arms"]["base"]["input_sha256"] == result["arms"]["correct"]["input_sha256"]
+    assert all(torch.equal(before[k], v) for k, v in initial.state_dict().items())
+
+
+def test_disposable_preflight_rejects_a_factory_that_advances_initial_weights() -> None:
+    initial = _image_model()
+    instances = 0
+
+    def factory() -> PooledProxyAnchorModel:
+        nonlocal instances
+        model = copy.deepcopy(initial)
+        if instances:
+            with torch.no_grad():
+                model.proxies.add_(0.01)
+        instances += 1
+        return model
+
+    pixels, labels = torch.randn(6, 4), torch.tensor([0, 0, 1, 1, 3, 3])
+    gram = standardized_text_gram(torch.nn.functional.normalize(torch.randn(4, 5), dim=1))
+    events: list[dict[str, Any]] = []
+    with pytest.raises(ValueError, match="initial"):
+        subject.measure_language_preflight(
+            factory,
+            None,
+            lambda update: (pixels, labels),
+            gram=gram,
+            microbatch_size=2,
+            progress=events.append,
+            synchronize=lambda: None,
+        )
+    assert len(events) == 3
+
+
+def _trained_fixture() -> tuple[PooledProxyAnchorModel, dict[str, Any]]:
+    model = _image_model()
+    pixels, labels = torch.randn(6, 4), torch.tensor([0, 0, 1, 1, 3, 3])
+    result = subject.train_language_arm(
+        model,
+        None,
+        lambda update: (pixels, labels),
+        arm="base",
+        gram=None,
+        expected_input_hashes=None,
+        microbatch_size=2,
+        progress=lambda event: None,
+        synchronize=lambda: None,
+    )
+    return model, cast(dict[str, Any], result)
+
+
+def test_language_checkpoint_seal_requires_final_twenty_step_state(tmp_path: Path) -> None:
+    model, evidence = _trained_fixture()
+    path = tmp_path / "base-final.pt"
+    seal = subject.seal_language_checkpoint(path, model, evidence, target_sha256="a" * 64)
+    assert seal["sha256"] == _sha(path) and seal["bytes"] == path.stat().st_size
+    assert seal["basename"] == "base-final.pt" and seal["completed_updates"] == 20
+    payload = torch.load(path, map_location="cpu", weights_only=True)
+    assert payload["schema"] == "sfora-siglip-language-final-v1"
+    assert payload["target_sha256"] == "a" * 64
+    assert payload["final_state_sha256"] == evidence["final_state_sha256"]
+    assert payload["completed_updates"] == 20 and payload["arm"] == "base"
+    assert payload["claim_eligible"] is False
+    assert all(torch.equal(v, payload["model_state"][k]) for k, v in model.state_dict().items())
+    with pytest.raises(FileExistsError):
+        subject.seal_language_checkpoint(path, model, evidence, target_sha256="a" * 64)
+    assert _sha(path) == seal["sha256"]
+
+
+@pytest.mark.parametrize(
+    "mutation", ["partial", "order", "inputs", "state", "target", "arm", "nan-loss"]
+)
+def test_checkpoint_rejects_incomplete_or_drifted_evidence_before_write(
+    tmp_path: Path,
+    mutation: str,
+) -> None:
+    model, evidence = _trained_fixture()
+    target = "a" * 64
+    if mutation == "partial":
+        evidence["completed_updates"] = 3
+    elif mutation == "order":
+        evidence["steps"][1]["update"] = 1
+    elif mutation == "inputs":
+        evidence["input_sha256"].pop()
+    elif mutation == "state":
+        with torch.no_grad():
+            model.proxies.add_(0.01)
+    elif mutation == "target":
+        target = "invalid"
+    elif mutation == "arm":
+        evidence["arm"] = "unknown"
+    else:
+        evidence["steps"][0]["loss"] = float("nan")
+    path = tmp_path / "base-final.pt"
+    with pytest.raises(ValueError):
+        subject.seal_language_checkpoint(path, model, evidence, target_sha256=target)
+    assert not path.exists()
+
+
+def test_checkpoint_cannot_claim_an_unconsumed_language_target(tmp_path: Path) -> None:
+    model, evidence = _trained_fixture()
+    # Base consumed no Gram. A valid-looking digest must not be accepted as its target.
+    path = tmp_path / "base-final.pt"
+    with pytest.raises(ValueError, match="Gram"):
+        subject.seal_language_checkpoint(
+            path,
+            model,
+            evidence,
+            target_sha256="a" * 64,
+            expected_gram_sha256="b" * 64,
+        )
+    assert not path.exists()
+
+
+def _target_fixture() -> tuple[torch.Tensor, torch.Tensor, tuple[str, ...], dict[str, str]]:
+    generator = torch.Generator().manual_seed(17)
+    vectors = torch.nn.functional.normalize(torch.randn(49, 1152, generator=generator), dim=1)
+    ids = torch.arange(49 * 64, dtype=torch.int64).reshape(49, 64) % 32000
+    prompts = tuple(f"a photo of a training class {i}." for i in range(49))
+    sources = {
+        k: "a" * 64
+        for k in (
+            "model",
+            "config",
+            "tokenizer",
+            "tokenizer_config",
+            "spiece",
+            "special_tokens",
+            "dataset_info",
+            "runner",
+            "guidance",
+            "protocol",
+        )
+    }
+    return vectors, ids, prompts, sources
+
+
+def test_target_bundle_binds_both_axes_and_roundtrips_before_training(tmp_path: Path) -> None:
+    vectors, ids, prompts, sources = _target_fixture()
+    receipt = subject.seal_language_targets(
+        tmp_path,
+        vectors,
+        ids,
+        prompts,
+        sources,
+        expected_tokens_sha256=hashlib.sha256(ids.numpy().tobytes()).hexdigest(),
+        elapsed_seconds=1.25,
+    )
+    path = tmp_path / "language-targets.json"
+    loaded = subject.load_language_targets(path, _sha(path))
+    assert loaded["receipt"] == receipt
+    assert loaded["receipt"]["claim_eligible"] is False
+    assert loaded["receipt"]["quality_measured"] is False
+    assert loaded["receipt"]["class_ids"] == list(range(49))
+    assert loaded["receipt"]["prompts"] == list(prompts)
+    assert loaded["receipt"]["input_sha256"] == sources
+    expected = standardized_text_gram(vectors)
+    permutation = torch.tensor(
+        [
+            15,
+            6,
+            24,
+            23,
+            43,
+            13,
+            40,
+            39,
+            21,
+            42,
+            33,
+            14,
+            7,
+            11,
+            16,
+            1,
+            19,
+            20,
+            29,
+            8,
+            32,
+            17,
+            27,
+            45,
+            46,
+            12,
+            48,
+            41,
+            0,
+            30,
+            38,
+            4,
+            25,
+            31,
+            2,
+            3,
+            28,
+            18,
+            36,
+            34,
+            26,
+            47,
+            10,
+            5,
+            35,
+            9,
+            22,
+            37,
+            44,
+        ]
+    )
+    assert torch.equal(loaded["tensors"]["correct"], expected)
+    assert torch.equal(loaded["tensors"]["permuted"], expected[permutation][:, permutation])
+    assert not torch.equal(loaded["tensors"]["correct"], loaded["tensors"]["permuted"])
+    assert torch.equal(loaded["tensors"]["input_ids"], ids)
+    original = path.read_bytes()
+    with pytest.raises(FileExistsError):
+        subject.seal_language_targets(
+            tmp_path,
+            vectors,
+            ids,
+            prompts,
+            sources,
+            expected_tokens_sha256=hashlib.sha256(ids.numpy().tobytes()).hexdigest(),
+            elapsed_seconds=1.25,
+        )
+    assert path.read_bytes() == original
+
+
+@pytest.mark.parametrize("mutation", ["tokens", "vectors", "names", "source", "elapsed"])
+def test_target_bundle_refuses_invalid_inputs_before_any_write(
+    tmp_path: Path, mutation: str
+) -> None:
+    vectors, ids, prompts, sources = _target_fixture()
+    expected_tokens = hashlib.sha256(ids.numpy().tobytes()).hexdigest()
+    elapsed = 1.25
+    if mutation == "tokens":
+        ids[0, 0] += 1
+    elif mutation == "vectors":
+        vectors[0, 0] = float("nan")
+    elif mutation == "names":
+        prompts += ("a photo of an evaluation class.",)
+    elif mutation == "source":
+        sources.pop("model")
+    else:
+        elapsed = float("inf")
+    with pytest.raises(ValueError):
+        subject.seal_language_targets(
+            tmp_path,
+            vectors,
+            ids,
+            prompts,
+            sources,
+            expected_tokens_sha256=expected_tokens,
+            elapsed_seconds=elapsed,
+        )
+    assert not list(tmp_path.iterdir())
+
+
+@pytest.mark.parametrize("mutation", ["missing", "digest", "blob", "permutation", "duplicate"])
+def test_target_loader_rejects_partial_or_coherently_rehashed_control_drift(
+    tmp_path: Path,
+    mutation: str,
+) -> None:
+    from safetensors.torch import load_file
+
+    vectors, ids, prompts, sources = _target_fixture()
+    receipt = subject.seal_language_targets(
+        tmp_path,
+        vectors,
+        ids,
+        prompts,
+        sources,
+        expected_tokens_sha256=hashlib.sha256(ids.numpy().tobytes()).hexdigest(),
+        elapsed_seconds=1.25,
+    )
+    path = tmp_path / "language-targets.json"
+    blob = tmp_path / "language-targets.safetensors"
+    if mutation == "missing":
+        blob.unlink()
+    elif mutation == "digest":
+        receipt["tensors_sha256"] = "b" * 64
+    elif mutation == "blob":
+        blob.write_bytes(b"corrupt")
+    elif mutation == "permutation":
+        receipt["permutation"][0], receipt["permutation"][1] = (
+            receipt["permutation"][1],
+            receipt["permutation"][0],
+        )
+    else:
+        tensors = load_file(blob)
+        tensors["permuted"] = tensors["correct"].clone()
+        save_file(tensors, blob)
+        receipt["tensors_sha256"] = _sha(blob)
+        receipt["tensors_bytes"] = blob.stat().st_size
+    path.write_text(json.dumps(receipt, sort_keys=True, separators=(",", ":")) + "\n")
+    with pytest.raises((ValueError, FileNotFoundError)):
+        subject.load_language_targets(path, _sha(path))

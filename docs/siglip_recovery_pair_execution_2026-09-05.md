@@ -88,6 +88,39 @@ Local evaluator gate:13 tests passed, including real reduced-model checkpoint
 restoration, full2746-row retrieval and100 measured CPU-search samples. No
 scientific quality conclusion follows from these synthetic tests.
 
+## Invalid first execution and replacement
+
+The first original process completed PA198 and relational updates1..170 with
+finite evidence and zero replay discrepancy, then terminated before a
+relational checkpoint or quality evaluation. Its exact monitor receipt is
+`/home/riomus/siglip-recovery-pair-7b630dc3f15f.monitor.json`, SHA256
+`8d890b64444eafd078099b2090f1d3017ec255e3c617a45ceb7590bf3ecb36a9`:
+exit code-15, stop reason
+`monitor-exception:BrokenPipeError:[Errno 32] Broken pipe`, elapsed
+10466.898188031977s, no result SHA. The authenticated log SHA is
+`99536ff5d94f54bdede965b5badf6f1189f84270400c34eb10950ac9f1b81e56`.
+This is an invalid infrastructure attempt, not a quality result. The monitor's
+progress `print(...,flush=True)` raised after its controlling output pipe
+disappeared; its broad exception handler then terminated the healthy child.
+RSS was approximately9.98GB at the final sample, PSI full avg10 was0.00, and
+no registered resource stop fired. The surviving PA checkpoint is retained as
+evidence but is not reused to avoid inventing a cross-attempt pair receipt.
+
+One replacement attempt uses identical frozen training sources, inputs,
+hyperparameters and evaluator gates in the new namespace
+`siglip-recovery-pair-attempt2-7b630dc3f15f`. Its wrapper differs only in output
+namespace, SHA256
+`816360a052b30e3150fb37d5f3ff20b82000f4188c30e4dd1bb7bc5b60cafdc5`.
+The unchanged monitor is launched detached with stdin `/dev/null` and stdout/
+stderr bound to the durable regular file
+`siglip-recovery-pair-attempt2-7b630dc3f15f.controller.log`; losing an agent
+session therefore cannot break its reporting channel. Monitor PID1803793,
+timeout PGID1803802 and scientific PID1803803 were live at launch. Its first PA
+update reproduced the original loss12.969788551330566 and gradient norm
+36.391334533691406 exactly; elapsed is observational. No first-attempt result is
+combined with the replacement, and no evaluation begins without the complete
+replacement receipt.
+
 ## Prepared final evaluation deployment (not executed)
 
 Evaluator commit `32fba740`; immutable root
