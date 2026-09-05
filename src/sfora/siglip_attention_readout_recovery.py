@@ -181,12 +181,16 @@ def _quality_cell(value: object) -> tuple[int, float]:
     return cell["correct"], cell["map_at_r"]
 
 
+def _expected_cells() -> tuple[tuple[int, str], ...]:
+    cells = [(depth, fit) for depth in (6, 10, 14, 18, 22, 25, 27) for fit in ("ridge", "refined")]
+    cells.insert(8, (18, "learned-attention"))
+    return tuple(cells)
+
+
 def attention_readout_decision(cells: list[dict[str, object]]) -> dict[str, object]:
     """Classify the complete fixed depth/fit inventory using frozen quality gates."""
 
-    expected = tuple(
-        (depth, fit) for depth in (6, 10, 14, 18, 22, 25, 27) for fit in ("ridge", "refined")
-    )
+    expected = _expected_cells()
     if type(cells) is not list or len(cells) != len(expected):
         raise ValueError("attention readout cell inventory differs")
     parsed = []
@@ -210,50 +214,23 @@ def attention_readout_decision(cells: list[dict[str, object]]) -> dict[str, obje
         cross_hits, cross_map = _quality_cell(value["cross"])
         parsed.append((identity[0], identity[1], self_hits, self_map, cross_hits, cross_map))
 
-    def choose(candidates: list[tuple[int, str, int, float, int, float]]) -> tuple[int, str]:
-        selected = min(
-            candidates,
-            key=lambda cell: (
-                cell[0],
-                -cell[5],
-                -cell[4],
-                0 if cell[1] == "ridge" else 1,
-            ),
-        )
-        return selected[0], selected[1]
-
-    deployment = [
-        cell
-        for cell in parsed
-        if cell[0] <= 18
-        and cell[2] >= 2_591
-        and cell[3] >= 0.7893744556922272
-        and cell[4] >= 2_591
-        and cell[5] >= 0.7893744556922272
-    ]
-    promising = [
-        cell
-        for cell in parsed
-        if cell[0] <= 18
-        and cell[2] >= 2_555
-        and cell[3] >= 0.7713744556922272
-        and cell[4] >= 2_555
-        and cell[5] >= 0.7713744556922272
-    ]
-    self_only = [
-        cell
-        for cell in parsed
-        if cell[0] <= 18 and cell[2] >= 2_555 and cell[3] >= 0.7713744556922272
-    ]
+    learned = parsed[8]
+    self_promising = learned[2] >= 2_555 and learned[3] >= 0.7713744556922272
+    cross_promising = learned[4] >= 2_555 and learned[5] >= 0.7713744556922272
     selected: tuple[int | None, str | None]
-    if deployment:
-        classification, selected = "deployment-grade", choose(deployment)
-    elif promising:
-        classification, selected = "compression-promising", choose(promising)
-    elif self_only:
-        classification, selected = "nonlinear-alignment-needed", choose(self_only)
+    if (
+        learned[2] >= 2_591
+        and learned[3] >= 0.7893744556922272
+        and learned[4] >= 2_591
+        and learned[5] >= 0.7893744556922272
+    ):
+        classification, selected = "deployment-grade", (18, "learned-attention")
+    elif self_promising and cross_promising:
+        classification, selected = "compression-promising", (18, "learned-attention")
+    elif self_promising:
+        classification, selected = "coordinate-alignment-needed", (18, "learned-attention")
     else:
-        classification, selected = "linear-readout-rejected", (None, None)
+        classification, selected = "depth-18-recovery-rejected", (None, None)
     return {
         "classification": classification,
         "selected_depth": selected[0],
@@ -351,9 +328,7 @@ def build_attention_readout_result(
 ) -> bytes:
     """Build canonical per-query evidence and validate it independently."""
 
-    expected = tuple(
-        (depth, fit) for depth in (6, 10, 14, 18, 22, 25, 27) for fit in ("ridge", "refined")
-    )
+    expected = _expected_cells()
     if type(cells) is not list or len(cells) != len(expected):
         raise ValueError("attention readout result cell inventory differs")
     output_cells: list[dict[str, object]] = []
@@ -454,11 +429,9 @@ def validate_attention_readout_result_bytes(raw: bytes) -> dict[str, object]:
         "evaluation_manifest_sha256",
     ):
         _hex_digest(result[key])
-    if type(result["cells"]) is not list or len(result["cells"]) != 14:
+    if type(result["cells"]) is not list or len(result["cells"]) != 15:
         raise ValueError("attention readout result cell inventory differs")
-    expected = tuple(
-        (depth, fit) for depth in (6, 10, 14, 18, 22, 25, 27) for fit in ("ridge", "refined")
-    )
+    expected = _expected_cells()
     cells: list[dict[str, object]] = []
     for value_cell, identity in zip(cast(list[object], result["cells"]), expected, strict=True):
         if type(value_cell) is not dict or set(value_cell) != {

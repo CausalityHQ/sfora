@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Determine whether an intact SigLIP prefix of at most 18 blocks can reproduce the teacher's retrieval geometry through a deterministic attention-pooled linear readout.
+**Goal:** Determine whether the intact 18-block SigLIP prefix can reproduce the teacher's retrieval geometry through a teacher-initialized learned attention readout while retaining the verified latency advantage.
 
-**Architecture:** A new pure evidence module fits and validates deterministic ridge readouts and retrieval decisions. A sibling local-only runner authenticates the existing teacher/data authority, streams seven attention-pooled hidden-state planes, seals optimization-fitted readouts, and performs one exposed-band evaluation. Existing intermediate-readout and depth-recovery formats remain unchanged.
+**Architecture:** A new pure evidence module fits and validates deterministic ridge controls and retrieval decisions. A sibling local-only runner authenticates the existing teacher/data authority, streams seven attention-pooled control planes plus a depth-18 token plane, seals a teacher-initialized trainable LayerNorm/MAP-head/projection readout, and performs one exposed-band evaluation. Existing intermediate-readout and depth-recovery formats remain unchanged.
 
 **Tech Stack:** Python 3.12, PyTorch, Transformers 5.12.1 on DGX, pytest, Ruff, mypy.
 
@@ -40,28 +40,30 @@
 - [ ] **Step 4: Rerun the exact nodes to GREEN.** Preserve the original RED and GREEN terminals.
 - [ ] **Step 5: Write directional-refinement and control RED tests.** Prove the exact 2,000-update schedule, final-only result, deterministic cyclic shuffle, FP32 cosine loss, clipping, zero weight decay, fixed random control, and target derangement. Ridge and refined cells remain separately named.
 - [ ] **Step 6: Implement refinement and controls, then rerun focused tests.** No evaluation labels, metrics, or features may enter fitting, stopping, or cell selection.
-- [ ] **Step 7: Write result/decision RED tests.** Cover self/cross per-query evidence, exact recomputation, depth ordering, depth-27 identity, two quality tiers, nonlinear-alignment branch, invalid precedence, canonical newline bytes, and every schema/type/count/digest mutation.
+- [ ] **Step 7: Write result/decision RED tests.** Cover self/cross per-query evidence, exact recomputation, depth ordering, depth-27 identity, the required depth-18 `learned-attention` cell, two quality tiers, coordinate-alignment branch, invalid precedence, canonical newline bytes, and every schema/type/count/digest mutation. Linear cells are controls and cannot select the branch.
 - [ ] **Step 8: Implement result construction and independent validation.** The validator must derive every aggregate and selected depth from per-query evidence rather than trust stored floats.
 - [ ] **Step 9: Run the full new core file and commit the isolated core slice.** Stage only the two Task-1 files after pytest, Ruff, formatting, mypy, and diff-check pass.
 
-### Task 2: Exact attention-pooled hidden-state extraction
+### Task 2: Exact hidden-state extraction and learned attention readout
 
 **Files:**
 - Create: `scripts/probe_siglip_attention_readout_recovery.py`
 - Create: `tests/test_probe_siglip_attention_readout_recovery.py`
 
 **Interfaces:**
-- Produces `stream_attention_pooled_depths(model, pixel_batches, depths, ...)` with seven CPU FP32 `[N,1152]` planes and teacher projected targets.
+- Produces `stream_attention_readout_inputs(model, pixel_batches, depths, ...)` with seven CPU FP32 `[N,1152]` control planes, one depth-18 CPU FP16 `[N,tokens,1152]` plane, and teacher projected targets.
 - CLI consumes the exact local control binding, checkpoint, optimization manifest/images, evaluation authority, and one exclusive result path.
 
-- [ ] **Step 1: Write real tiny-SigLIP extraction RED tests.** Compare each registered plane to direct `vision_model.head(vision_model.post_layernorm(hidden_states[k]))`; prove hidden-state indexing, one teacher forward per batch, no mean pooling, no token cache, frozen modules, and depth-27 equality to `pooler_output`.
+- [ ] **Step 1: Write real tiny-SigLIP extraction RED tests.** Compare each registered control plane to direct `vision_model.head(vision_model.post_layernorm(hidden_states[k]))`; prove hidden-state indexing, one teacher forward per batch, no mean pooling, frozen encoder modules, exact depth-18 token caching, and depth-27 equality to `pooler_output`.
 - [ ] **Step 2: Run the exact extraction tests and preserve the RED.** Expected failure is the missing runner/interface only.
-- [ ] **Step 3: Implement streamed extraction.** Use the same BF16 autocast and batch partition as the authenticated evaluator, move only pooled planes/targets to CPU, hash each plane, and record derived cache bytes.
+- [ ] **Step 3: Implement streamed extraction.** Use the same BF16 autocast and batch partition as the authenticated evaluator, move only pooled control planes, the depth-18 FP16 token plane, and targets to CPU, hash each plane, and record derived cache bytes.
 - [ ] **Step 4: Rerun extraction tests to GREEN.** Include replay tolerance and exact normalized descriptor equality tests.
-- [ ] **Step 5: Write strict CLI/authority RED tests.** Require explicit execution, absolute local paths, exact SHA-256 identities, exclusive output, optimization/evaluation role separation, and refuse network, arbitrary model/checkpoint, student, text/class-name, official-test, and tuning flags.
-- [ ] **Step 6: Implement the local runner and two-phase data access.** Authenticate and fit optimization cells first; serialize and hash sealed weights; only then acquire the exposed evaluation band and score every fixed cell once.
-- [ ] **Step 7: Run focused runner and affected retrieval tests.** Include direct-script execution and deliberate digest/role/capability mutations.
-- [ ] **Step 8: Commit the runner slice.** Stage only the runner and its test after scoped static checks.
+- [ ] **Step 5: Write learned-attention RED tests.** Freeze encoder features; initialize LayerNorm, MAP head, and projection exactly from the teacher; optimize only teacher-descriptor cosine recovery with the fixed schedule; prove labels and evaluation examples cannot enter fitting, the final seal is deterministic, and explicit `optimization_limited` evidence is preserved.
+- [ ] **Step 6: Implement the learned attention readout, then rerun focused tests.** Keep the seven linear cells as non-selectable controls and add exactly one selectable depth-18 `learned-attention` cell.
+- [ ] **Step 7: Write strict CLI/authority RED tests.** Require explicit execution, absolute local paths, exact SHA-256 identities, exclusive output, optimization/evaluation role separation, and refuse network, arbitrary model/checkpoint, student, text/class-name, official-test, and tuning flags.
+- [ ] **Step 8: Implement the local runner and two-phase data access.** Authenticate and fit optimization cells first; serialize and hash sealed weights; only then acquire the exposed evaluation band and score every fixed cell once.
+- [ ] **Step 9: Run focused runner and affected retrieval tests.** Include direct-script execution and deliberate digest/role/capability mutations.
+- [ ] **Step 10: Commit the runner slice.** Stage only the runner and its test after scoped static checks.
 
 ### Task 3: Synthetic end-to-end assurance and research review
 
@@ -93,5 +95,5 @@
 - [ ] **Step 2: Launch one original monitored process.** Enforce a 90-minute wall cap, RSS 110 GiB, CUDA reserved 96 GiB, PSI full avg10 0.79 immediate or 0.50 for three 5-second samples, swap growth 256 MiB, and 300-second progress gap. Never duplicate or restart automatically.
 - [ ] **Step 3: Poll the original process at <=55-second tool intervals.** Send Telegram only for a meaningful phase change, scientific terminal, or actionable blocker.
 - [ ] **Step 4: Authenticate the sole terminal.** Recompute every metric, decision, digest, resource bound, cleanup, and PID clearance independently.
-- [ ] **Step 5: Ask Astra and Fable for post-result ideation in parallel.** Require exact next instructions for the observed branch, reconcile them, and update the evidence ledger.
-- [ ] **Step 6: Follow the frozen branch.** Positive/promising -> contiguous-prefix teacher-coordinate distillation and a fresh matched speed gate. Nonlinear alignment -> fixed small nonlinear adapter before full training. Rejected -> full-depth token/width compression. No class-language or exotic geometry detour without separate evidence.
+- [ ] **Step 5: Ask Astra and Fable for post-result ideation in parallel.** Give each only the verified objective, failures, result, and constraints; do not disclose an existing candidate plan. Require independent next instructions, reconcile them, and update the evidence ledger.
+- [ ] **Step 6: Follow the frozen branch.** Positive/promising -> contiguous-prefix teacher-coordinate distillation, listwise rank preservation, margin-gated teacher-error correction, and a fresh matched speed gate. Coordinate mismatch -> diagnose alignment without changing the gallery contract. Rejected after convergence -> full-depth delayed token merging. No class-language or exotic geometry detour without separate evidence.

@@ -113,22 +113,31 @@ def _cell(
 
 
 def _cells() -> list[dict[str, object]]:
-    return [
+    cells = [
         _cell(depth, fit) for depth in (6, 10, 14, 18, 22, 25, 27) for fit in ("ridge", "refined")
     ]
+    cells.insert(8, _cell(18, "learned-attention"))
+    return cells
 
 
 def test_decision_preserves_deployment_gate_and_prefers_smallest_qualifying_depth() -> None:
-    """A later or merely promising cell must not replace an earlier deployment-grade one."""
+    """A high-scoring linear control must not select the compression branch."""
 
     cells = _cells()
-    cells[4] = _cell(14, "ridge", self_hits=2_591, self_map=0.79, cross_hits=2_591, cross_map=0.79)
-    cells[6] = _cell(18, "ridge", self_hits=2_600, self_map=0.80, cross_hits=2_600, cross_map=0.80)
+    cells[4] = _cell(14, "ridge", self_hits=2_700, self_map=0.90, cross_hits=2_700, cross_map=0.90)
+    cells[8] = _cell(
+        18,
+        "learned-attention",
+        self_hits=2_591,
+        self_map=0.79,
+        cross_hits=2_591,
+        cross_map=0.79,
+    )
 
     assert attention_readout_decision(cells) == {
         "classification": "deployment-grade",
-        "selected_depth": 14,
-        "selected_fit": "ridge",
+        "selected_depth": 18,
+        "selected_fit": "learned-attention",
     }
 
 
@@ -136,8 +145,8 @@ def test_decision_preserves_deployment_gate_and_prefers_smallest_qualifying_dept
     ("self_hits", "self_map", "cross_hits", "cross_map", "classification"),
     [
         (2_555, 0.772, 2_555, 0.772, "compression-promising"),
-        (2_555, 0.772, 2_400, 0.70, "nonlinear-alignment-needed"),
-        (2_554, 0.90, 2_700, 0.90, "linear-readout-rejected"),
+        (2_555, 0.772, 2_400, 0.70, "coordinate-alignment-needed"),
+        (2_554, 0.90, 2_700, 0.90, "depth-18-recovery-rejected"),
     ],
 )
 def test_decision_classifies_quality_and_coordinate_failures_separately(
@@ -150,9 +159,9 @@ def test_decision_classifies_quality_and_coordinate_failures_separately(
     """Collapsing self and cross evidence would prescribe the wrong next architecture."""
 
     cells = _cells()
-    cells[6] = _cell(
+    cells[8] = _cell(
         18,
-        "ridge",
+        "learned-attention",
         self_hits=self_hits,
         self_map=self_map,
         cross_hits=cross_hits,
@@ -160,7 +169,7 @@ def test_decision_classifies_quality_and_coordinate_failures_separately(
     )
     decision = attention_readout_decision(cells)
     assert decision["classification"] == classification
-    selected_depth = 18 if classification != "linear-readout-rejected" else None
+    selected_depth = 18 if classification != "depth-18-recovery-rejected" else None
     assert decision["selected_depth"] == selected_depth
 
 
@@ -175,18 +184,27 @@ def _result_cells() -> list[dict[str, object]]:
     cells: list[dict[str, object]] = []
     for depth in (6, 10, 14, 18, 22, 25, 27):
         for fit in ("ridge", "refined"):
-            correct = 2_591 if (depth, fit) == (18, "ridge") else 2_400
-            average_precision = 0.79 if (depth, fit) == (18, "ridge") else 0.70
             cells.append(
                 {
                     "depth": depth,
                     "fit": fit,
                     "optimization_limited": False,
                     "weight_sha256": f"{depth:02x}" * 32,
-                    "self": _query_evidence(correct, average_precision),
-                    "cross": _query_evidence(correct, average_precision),
+                    "self": _query_evidence(2_400, 0.70),
+                    "cross": _query_evidence(2_400, 0.70),
                 }
             )
+            if (depth, fit) == (18, "refined"):
+                cells.append(
+                    {
+                        "depth": 18,
+                        "fit": "learned-attention",
+                        "optimization_limited": False,
+                        "weight_sha256": "aa" * 32,
+                        "self": _query_evidence(2_591, 0.79),
+                        "cross": _query_evidence(2_591, 0.79),
+                    }
+                )
     return cells
 
 
@@ -211,9 +229,9 @@ def test_result_is_canonical_and_recomputes_every_metric_and_decision() -> None:
     assert raw.endswith(b"\n") and not raw.endswith(b"\n\n")
     assert result["classification"] == "deployment-grade"
     assert result["selected_depth"] == 18
-    assert result["selected_fit"] == "ridge"
+    assert result["selected_fit"] == "learned-attention"
     result_cells = cast(list[dict[str, object]], result["cells"])
-    selected = result_cells[6]
+    selected = result_cells[8]
     selected_self = cast(dict[str, object], selected["self"])
     assert selected_self["correct"] == 2_591
     assert selected_self["map_at_r"] == 0.79
@@ -225,7 +243,7 @@ def test_result_is_canonical_and_recomputes_every_metric_and_decision() -> None:
         (lambda value: value.update({"claim_eligible": 0}), "result authority differs"),
         (lambda value: value.update({"checkpoint_sha256": "x" * 64}), "digest differs"),
         (
-            lambda value: value["cells"][6]["self"].update({"correct": 2_590}),
+            lambda value: value["cells"][8]["self"].update({"correct": 2_590}),
             "retrieval relation differs",
         ),
         (
@@ -233,7 +251,7 @@ def test_result_is_canonical_and_recomputes_every_metric_and_decision() -> None:
             "decision relation differs",
         ),
         (
-            lambda value: value["cells"][6]["self"]["hits"].append(False),
+            lambda value: value["cells"][8]["self"]["hits"].append(False),
             "retrieval evidence differs",
         ),
     ],
