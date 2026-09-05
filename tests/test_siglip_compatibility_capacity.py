@@ -36,18 +36,23 @@ def _paired_descriptors(rows: int = 96, dimensions: int = 12) -> tuple[torch.Ten
 
 
 def test_compatibility_folds_are_exact_deterministic_class_partitions() -> None:
-    folds = compatibility_folds(tuple(range(39)))
-    assert folds == (
-        (19, 13, 4, 17, 2, 9, 35, 18, 33, 0, 29, 7, 23),
-        (28, 20, 16, 8, 1, 27, 10, 12, 30, 31, 11, 37, 36),
-        (22, 24, 21, 15, 34, 3, 32, 25, 26, 38, 6, 14, 5),
+    labels = (
+        0, 1, 2, 3, 6, 7, 8, 9, 10, 11, 13, 14, 16, 17, 18, 20, 21, 22,
+        23, 25, 27, 28, 29, 30, 31, 33, 34, 35, 36, 37, 38, 39, 41, 42, 43,
+        44, 46, 47, 48,
     )
-    assert set().union(*(set(fold) for fold in folds)) == set(range(39))
+    folds = compatibility_folds(labels)
+    assert folds == (
+        (13, 46, 17, 42, 2, 9, 35, 18, 44, 33, 0, 29, 7),
+        (23, 28, 20, 16, 8, 1, 27, 39, 10, 30, 41, 31, 11),
+        (37, 36, 22, 43, 21, 34, 3, 25, 38, 48, 47, 6, 14),
+    )
+    assert set().union(*(set(fold) for fold in folds)) == set(labels)
 
 
 @pytest.mark.parametrize(
     "labels",
-    [tuple(range(38)), tuple(range(1, 40)), tuple([0] * 39), list(range(39))],
+    [tuple(range(38)), tuple(range(39)), tuple([0] * 39), list(range(39))],
 )
 def test_compatibility_folds_reject_authority_drift(labels: object) -> None:
     with pytest.raises(ValueError, match="compatibility class authority differs"):

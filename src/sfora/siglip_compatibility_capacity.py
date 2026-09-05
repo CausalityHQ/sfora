@@ -13,6 +13,8 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
+from sfora.siglip_spatial_tail_recovery import spatial_tail_class_split
+
 
 def _validated_pair(
     student: torch.Tensor, teacher: torch.Tensor
@@ -41,11 +43,12 @@ def _validated_pair(
 def compatibility_folds(labels: tuple[int, ...]) -> tuple[tuple[int, ...], ...]:
     """Return the registered three-way class folds."""
 
+    fitting, _development = spatial_tail_class_split(tuple(range(49)))
     if (
         type(labels) is not tuple
         or len(labels) != 39
         or any(type(label) is not int for label in labels)
-        or set(labels) != set(range(39))
+        or labels != tuple(sorted(fitting))
     ):
         raise ValueError("compatibility class authority differs")
     ranked = sorted(
