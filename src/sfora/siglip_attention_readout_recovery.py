@@ -21,6 +21,93 @@ class DirectionalReadoutEvidence:
     final_200_losses: tuple[float, ...]
 
 
+@dataclass(frozen=True, slots=True)
+class AttentionRetrievalEvidence:
+    """Exact per-query hit and AP@R evidence in query identity order."""
+
+    correct: tuple[bool, ...]
+    average_precisions: tuple[float, ...]
+
+    @property
+    def map_at_r(self) -> float:
+        return math.fsum(self.average_precisions) / len(self.average_precisions)
+
+
+def attention_retrieval_evidence(
+    query_descriptors: torch.Tensor,
+    gallery_descriptors: torch.Tensor,
+    *,
+    query_ids: tuple[str, ...],
+    gallery_ids: tuple[str, ...],
+    query_labels: tuple[int, ...],
+    gallery_labels: tuple[int, ...],
+) -> AttentionRetrievalEvidence:
+    """Rank query descriptors against an identity-aligned, potentially permuted gallery."""
+
+    rows = len(query_ids)
+    if (
+        rows < 2
+        or len(set(query_ids)) != rows
+        or len(gallery_ids) != rows
+        or len(set(gallery_ids)) != rows
+        or set(query_ids) != set(gallery_ids)
+        or len(query_labels) != rows
+        or len(gallery_labels) != rows
+        or any(type(value) is not str or not value for value in (*query_ids, *gallery_ids))
+        or any(type(value) is not int or value < 0 for value in (*query_labels, *gallery_labels))
+        or type(query_descriptors) is not torch.Tensor
+        or type(gallery_descriptors) is not torch.Tensor
+        or query_descriptors.device.type != "cpu"
+        or gallery_descriptors.device.type != "cpu"
+        or query_descriptors.dtype != torch.float32
+        or gallery_descriptors.dtype != torch.float32
+        or query_descriptors.ndim != 2
+        or tuple(query_descriptors.shape) != tuple(gallery_descriptors.shape)
+        or query_descriptors.shape != (rows, query_descriptors.shape[1])
+        or query_descriptors.shape[1] < 1
+        or not bool(torch.isfinite(query_descriptors).all())
+        or not bool(torch.isfinite(gallery_descriptors).all())
+    ):
+        raise ValueError("attention retrieval authority differs")
+    gallery_by_id = dict(zip(gallery_ids, range(rows), strict=True))
+    gallery_label_by_id = dict(zip(gallery_ids, gallery_labels, strict=True))
+    if tuple(gallery_label_by_id[value] for value in query_ids) != query_labels:
+        raise ValueError("attention retrieval label binding differs")
+    canonical_gallery = gallery_descriptors[
+        torch.tensor([gallery_by_id[value] for value in query_ids], dtype=torch.int64)
+    ]
+    query_norms = torch.linalg.vector_norm(query_descriptors, dim=1)
+    gallery_norms = torch.linalg.vector_norm(canonical_gallery, dim=1)
+    if not bool((query_norms > 0).all()) or not bool((gallery_norms > 0).all()):
+        raise ValueError("attention retrieval descriptors must have nonzero norms")
+    queries = F.normalize(query_descriptors, dim=1)
+    gallery = F.normalize(canonical_gallery, dim=1)
+    counts = {label: query_labels.count(label) for label in set(query_labels)}
+    if min(counts.values()) < 2:
+        raise ValueError("attention retrieval classes require at least two images")
+    label_tensor = torch.tensor(query_labels)
+    correct: list[bool] = []
+    average_precisions: list[float] = []
+    for start in range(0, rows, 128):
+        stop = min(start + 128, rows)
+        scores = queries[start:stop] @ gallery.T
+        scores[torch.arange(stop - start), torch.arange(start, stop)] = -torch.inf
+        ranked = torch.argsort(scores, dim=1, descending=True, stable=True)
+        for local, row in enumerate(range(start, stop)):
+            first = int(ranked[local, 0])
+            correct.append(query_labels[first] == query_labels[row])
+            retained = ranked[local, : counts[query_labels[row]] - 1]
+            relevant = (label_tensor[retained] == query_labels[row]).tolist()
+            hits = 0
+            terms = []
+            for rank, hit in enumerate(relevant, 1):
+                if hit:
+                    hits += 1
+                    terms.append(hits / rank)
+            average_precisions.append(math.fsum(terms) / len(relevant))
+    return AttentionRetrievalEvidence(tuple(correct), tuple(average_precisions))
+
+
 def _readout_tensors(
     features: torch.Tensor,
     targets: torch.Tensor,

@@ -489,9 +489,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     from PIL import Image
 
-    from sfora.siglip_asymmetric_recovery import asymmetric_retrieval_evidence
     from sfora.siglip_attention_readout_recovery import (
         apply_readout,
+        attention_retrieval_evidence,
         build_attention_readout_result,
         fit_ridge_readout,
         refine_directional_readout,
@@ -599,7 +599,7 @@ def main(argv: list[str] | None = None) -> int:
         device=device,
     )
     teacher = evaluation.teacher_targets
-    teacher_retrieval = asymmetric_retrieval_evidence(
+    teacher_retrieval = attention_retrieval_evidence(
         teacher,
         teacher,
         query_ids=evaluation_ids,
@@ -613,7 +613,7 @@ def main(argv: list[str] | None = None) -> int:
     cells: list[dict[str, object]] = []
     for depth, fit, weight, optimization_limited in linear_cells:
         descriptors = apply_readout(controls_by_depth[depth], weight)
-        self_evidence = asymmetric_retrieval_evidence(
+        self_evidence = attention_retrieval_evidence(
             descriptors,
             descriptors,
             query_ids=evaluation_ids,
@@ -621,7 +621,7 @@ def main(argv: list[str] | None = None) -> int:
             query_labels=evaluation_labels,
             gallery_labels=evaluation_labels,
         )
-        cross_evidence = asymmetric_retrieval_evidence(
+        cross_evidence = attention_retrieval_evidence(
             descriptors,
             teacher,
             query_ids=evaluation_ids,
@@ -652,7 +652,7 @@ def main(argv: list[str] | None = None) -> int:
                     "optimization_limited": _optimization_limited(learned.final_200_losses),
                     "weight_sha256": learned_sha256,
                     "self": _retrieval_payload(
-                        asymmetric_retrieval_evidence(
+                        attention_retrieval_evidence(
                             descriptors,
                             descriptors,
                             query_ids=evaluation_ids,
@@ -662,7 +662,7 @@ def main(argv: list[str] | None = None) -> int:
                         )
                     ),
                     "cross": _retrieval_payload(
-                        asymmetric_retrieval_evidence(
+                        attention_retrieval_evidence(
                             descriptors,
                             teacher,
                             query_ids=evaluation_ids,

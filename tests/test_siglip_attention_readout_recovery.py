@@ -8,15 +8,39 @@ from typing import Any, cast
 
 import pytest
 import torch
+from torch.nn import functional as F
 
 from sfora.siglip_attention_readout_recovery import (
     apply_readout,
     attention_readout_decision,
+    attention_retrieval_evidence,
     build_attention_readout_result,
     fit_ridge_readout,
     refine_directional_readout,
     validate_attention_readout_result_bytes,
 )
+
+
+def test_local_attention_retrieval_handles_permuted_gallery_identity() -> None:
+    """A clean bundle must not depend on an unrelated Qwen evidence type."""
+
+    ids = ("a", "b", "c", "d")
+    labels = (0, 0, 1, 1)
+    queries = F.normalize(
+        torch.tensor([[1.0, 0.1], [1.0, -0.1], [-1.0, 0.1], [-1.0, -0.1]]),
+        dim=1,
+    ).contiguous()
+    permutation = torch.tensor([2, 0, 3, 1])
+    evidence = attention_retrieval_evidence(
+        queries,
+        queries[permutation].contiguous(),
+        query_ids=ids,
+        gallery_ids=tuple(ids[index] for index in permutation),
+        query_labels=labels,
+        gallery_labels=tuple(labels[index] for index in permutation),
+    )
+    assert evidence.correct == (True, True, True, True)
+    assert evidence.average_precisions == (1.0, 1.0, 1.0, 1.0)
 
 
 def test_teacher_anchored_ridge_matches_hand_derived_normal_equations() -> None:
