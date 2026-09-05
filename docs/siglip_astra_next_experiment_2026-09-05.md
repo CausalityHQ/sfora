@@ -85,6 +85,26 @@ Other pinned snapshot SHA256s:
 No text tensors were loaded or encoded; this remains acquisition readiness, not
 a text-feature result. The original training run continued without changes.
 
+CPU tokenizer preflight exposed missing SentencePiece, then protobuf. The
+verified fix installs only pinned [SentencePiece0.2.1](https://pypi.org/project/sentencepiece/0.2.1/)
+and [protobuf6.33.5](https://pypi.org/project/protobuf/6.33.5/) binary wheels into
+`/home/riomus/sfora-language-deps-sp021`. The active venv remains unchanged:
+without that explicit PYTHONPATH, both imports are still absent. Installed
+RECORD SHA256s are respectively
+`4434fb875a681fdac84b0edc5bac40bb72a233092af821378107e4995c2a45e7` and
+`bc94b657bf065b227579fb7679c10293db69cbf798f301bee7f0a07cc77f2e89`.
+
+The exact49 prompts produce only `input_ids`, shape49x64, int64, range1..29596,
+raw little-endian tensor SHA256
+`11acd1f22b97218100a67090117348939c1b4853cf05471ca79a0ece91460fe1`.
+This follows the pinned tokenizer config's `model_input_names=[input_ids]`;
+do not synthesize an attention mask. Transformers5.12.1 warns about inherited
+full-config BOS/EOS defaults49406/49407 outside the32000 vocabulary. Actual
+token IDs are in range; its text model pools the last position, not a search
+for those config IDs. No config bytes or vocabulary were rewritten to suppress
+warnings. The future loader must check actual input range and retain this
+compatibility caveat. Text-model tensor loading/inference remains unexecuted.
+
 ## Existing teacher error concentration
 
 Read-only recomputation from the already-authenticated, already-exposed audit

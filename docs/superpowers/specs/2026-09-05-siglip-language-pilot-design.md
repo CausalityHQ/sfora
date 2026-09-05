@@ -62,6 +62,14 @@ records. Pinned tokenizer: maximum64tokens, max-length padding, truncation, one
 49-row batch; retain/hash the actual token IDs and any model-required mask.
 No evaluation-class names enter target construction.
 
+Actual pinned5.12.1 CPU preflight emits only int64 `input_ids` of shape49x64,
+raw SHA256 `11acd1f22b97218100a67090117348939c1b4853cf05471ca79a0ece91460fe1`;
+require this identity and vocabulary range, without adding an attention mask.
+SentencePiece0.2.1/protobuf6.33.5 are separately isolated dependencies, never
+installed into the active recovery venv. Preserve their recorded identities.
+The model's5.12.1 text state is flat (`embeddings`, `encoder`, `head`); strip
+exactly one `text_model.` prefix from the full checkpoint keys for strict load.
+
 After the prior pair/evaluation GPU process is terminal, encode the49 prompts
 once using frozen/eval FP32 eager text weights, deterministic CUDA settings and
 no gradient. Normalize each pooled row by its positive finite norm. Produce
