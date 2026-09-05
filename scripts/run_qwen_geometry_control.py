@@ -24,8 +24,12 @@ from PIL import Image
 from torch import Tensor, nn
 from torch.nn import functional as F
 
-from sfora.data import load_image_retrieval_examples, materialize_image
-from sfora.qwen_geometry_control import (
+_REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPOSITORY_ROOT))
+
+from sfora.data import load_image_retrieval_examples, materialize_image  # noqa: E402
+from sfora.qwen_geometry_control import (  # noqa: E402
     QwenGeometryProtocol,
     build_geometry_pooler,
     derive_epoch_batches,
@@ -35,7 +39,7 @@ from sfora.qwen_geometry_control import (
     optimizer_groups,
     pool_patch_tokens,
 )
-from sfora.token_set_proxy_anchor import proxy_anchor_loss
+from sfora.token_set_proxy_anchor import proxy_anchor_loss  # noqa: E402
 
 
 def _frame(value: bytes) -> bytes:

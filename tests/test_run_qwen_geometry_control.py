@@ -5,6 +5,8 @@ from __future__ import annotations
 import copy
 import dataclasses
 import importlib.util
+import os
+import subprocess
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -440,6 +442,39 @@ def test_train_cli_requires_distinct_checkpoint_and_explicit_execution(tmp_path:
     ]
     with pytest.raises(SystemExit):
         _MODULE.parse_args(same_path)
+
+
+def test_direct_script_resolves_sibling_dependencies_from_outside_repo(tmp_path: Path) -> None:
+    code = f"""
+import runpy
+from pathlib import Path
+from types import SimpleNamespace
+module = runpy.run_path({str(_SCRIPT)!r}, run_name='qwen_direct_test')
+args = SimpleNamespace(
+    model_root=Path('missing-model'),
+    snapshot_manifest=Path('missing.json'),
+    fixture=Path('missing-fixture.json'),
+)
+try:
+    module['_load_real_geometry_model'](args)
+except FileNotFoundError:
+    print('reached-authority')
+"""
+    environment = os.environ.copy()
+    environment["PYTHONPATH"] = str(_SCRIPT.parents[1] / "src")
+    completed = subprocess.run(
+        [sys.executable, "-c", code],
+        cwd=tmp_path,
+        env=environment,
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    assert completed.stdout.strip() == "reached-authority"
+    assert "ModuleNotFoundError" not in completed.stderr
 
 
 def test_rgb_preprocessing_returns_an_owned_writable_224_array() -> None:
