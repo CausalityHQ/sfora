@@ -189,7 +189,11 @@ def learning_rate_multiplier(update_index: int) -> float:
 
 
 def _role_entries(
-    *, tower: nn.Module, pooler: nn.Module, proxies: nn.Parameter
+    *,
+    tower: nn.Module,
+    pooler: nn.Module,
+    proxies: nn.Parameter,
+    allow_frozen: bool = False,
 ) -> list[tuple[str, str, nn.Parameter]]:
     entries = [
         (f"tower.{name}", "tower", parameter)
@@ -200,8 +204,15 @@ def _role_entries(
         for name, parameter in pooler.named_parameters(remove_duplicate=False)
     )
     entries.append(("proxies", "proxies", proxies))
-    if not entries or any(not parameter.requires_grad for _, _, parameter in entries):
+    has_forbidden_frozen = not allow_frozen and any(
+        not parameter.requires_grad for _, _, parameter in entries
+    )
+    if not entries or has_forbidden_frozen:
         raise ValueError("every registered parameter must be trainable")
+    if allow_frozen:
+        entries = [entry for entry in entries if entry[2].requires_grad]
+    if not entries:
+        raise ValueError("registered trainable parameter set is empty")
     identities = [id(parameter) for _, _, parameter in entries]
     if len(set(identities)) != len(identities):
         raise ValueError("parameter roles contain a duplicated parameter")
@@ -220,7 +231,11 @@ def parameter_role_manifest(
 
 
 def optimizer_groups(
-    *, tower: nn.Module, pooler: nn.Module, proxies: nn.Parameter
+    *,
+    tower: nn.Module,
+    pooler: nn.Module,
+    proxies: nn.Parameter,
+    allow_frozen: bool = False,
 ) -> list[dict[str, Any]]:
     """Build disjoint AdamW groups with registered learning rates and decay rules."""
 
@@ -232,7 +247,10 @@ def optimizer_groups(
     }
     grouped: dict[tuple[str, bool], list[nn.Parameter]] = {}
     for name, role, parameter in _role_entries(
-        tower=tower, pooler=pooler, proxies=proxies
+        tower=tower,
+        pooler=pooler,
+        proxies=proxies,
+        allow_frozen=allow_frozen,
     ):
         decay = role != "proxies" and not name.endswith(".bias") and parameter.ndim > 1
         grouped.setdefault((role, decay), []).append(parameter)

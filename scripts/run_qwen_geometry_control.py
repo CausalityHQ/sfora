@@ -131,6 +131,10 @@ class QwenVisionGeometryModel(nn.Module):
             parameter.requires_grad_(False)
         for parameter in self.visual.parameters():
             parameter.requires_grad_(True)
+        deepstack = getattr(self.visual, "deepstack_merger_list", None)
+        if isinstance(deepstack, nn.Module):
+            for parameter in deepstack.parameters():
+                parameter.requires_grad_(False)
 
     def forward(self, images: Sequence[object]) -> Tensor:
         if not isinstance(images, Sequence) or isinstance(images, (str, bytes)) or not images:
@@ -185,7 +189,7 @@ def _rgb_224(image: object) -> np.ndarray:
     value = np.asarray(resized, dtype=np.uint8)
     if value.shape != (224, 224, 3):
         raise ValueError("Cars image differs from RGB 224 authority")
-    return np.ascontiguousarray(value)
+    return value.copy(order="C")
 
 
 def _configure_determinism() -> None:
@@ -223,6 +227,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         or QwenGeometryProtocol().logical_batch_size % values.microbatch_size != 0
     ):
         parser.error("microbatch size must divide the logical batch")
+    invalid_output = (
+        values.output.exists()
+        or not values.output.parent.is_dir()
+        or values.output.parent.is_symlink()
+    )
+    if invalid_output:
+        parser.error("output must be absent beneath an existing regular directory")
     return values
 
 
@@ -280,7 +291,12 @@ def run_smoke(args: argparse.Namespace) -> bytes:
         )
     )
     initialize_geometry_proxies(proxies, seed=args.seed)
-    groups = optimizer_groups(tower=model.visual, pooler=model.pooler, proxies=proxies)
+    groups = optimizer_groups(
+        tower=model.visual,
+        pooler=model.pooler,
+        proxies=proxies,
+        allow_frozen=True,
+    )
     for group in groups:
         group["base_lr"] = group["lr"]
         group["schedule_update"] = 0
@@ -371,7 +387,7 @@ def replayed_proxy_anchor_step(
         if sequence_inputs
         else 0
     )
-    parameters = (*model.parameters(), proxies)
+    parameters = (*filter(lambda parameter: parameter.requires_grad, model.parameters()), proxies)
     if (
         not (tensor_inputs or sequence_inputs)
         or (tensor_inputs and (not inputs.is_floating_point() or inputs.ndim < 2))

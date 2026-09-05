@@ -10,6 +10,7 @@ from types import SimpleNamespace
 
 import pytest
 import torch
+from PIL import Image
 from torch import nn
 from torch.nn import functional as F
 
@@ -248,6 +249,7 @@ class _FakeQwen(nn.Module):
         super().__init__()
         self.model = nn.Module()
         self.model.visual = nn.Linear(4, 4, bias=False)
+        self.model.visual.deepstack_merger_list = nn.ModuleList([nn.Linear(4, 4)])
         self.model.language_model = _ForbiddenLanguage()
         self.lm_head = _ForbiddenLanguage()
 
@@ -278,10 +280,15 @@ def test_qwen_geometry_model_executes_only_vision_and_registered_pooler(arm: str
     )
     assert all(not parameter.requires_grad for parameter in qwen.model.language_model.parameters())
     assert all(not parameter.requires_grad for parameter in qwen.lm_head.parameters())
-    wrapper_ids = {id(parameter) for parameter in wrapper.parameters()}
+    assert all(
+        not parameter.requires_grad
+        for parameter in qwen.model.visual.deepstack_merger_list.parameters()
+    )
+    wrapper_ids = {id(parameter) for parameter in wrapper.parameters() if parameter.requires_grad}
     assert wrapper_ids == {
         id(parameter)
         for parameter in (*qwen.model.visual.parameters(), *wrapper.pooler.parameters())
+        if parameter.requires_grad
     }
 
 
@@ -322,3 +329,16 @@ def test_smoke_cli_is_explicit_and_refuses_network_or_test_capabilities(
             _MODULE.parse_args([*base, forbidden, "value"])
     with pytest.raises(SystemExit):
         _MODULE.parse_args([token for token in base if token != "--execute-smoke"])
+
+    (tmp_path / "result.json").write_text("occupied")
+    with pytest.raises(SystemExit):
+        _MODULE.parse_args(base)
+
+
+def test_rgb_preprocessing_returns_an_owned_writable_224_array() -> None:
+    image = Image.new("RGB", (8, 6), color=(1, 2, 3))
+    value = _MODULE._rgb_224(image)
+    assert value.shape == (224, 224, 3)
+    assert value.flags.c_contiguous
+    assert value.flags.owndata
+    assert value.flags.writeable
