@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import hashlib
+import math
 from dataclasses import dataclass
 
 import torch
+from torch import nn
 from torch.nn import functional as F
 
 
@@ -137,3 +139,170 @@ def fit_regularized_affine(
     right = augmented.T @ target / rows + regularization * identity_target
     solution = torch.linalg.solve(system, right)
     return AffineMap(solution[:-1].contiguous(), solution[-1].contiguous())
+
+
+class CompatibilityResidual(nn.Module):
+    """The fixed low-rank residual descriptor adapter."""
+
+    def __init__(
+        self,
+        dimensions: int,
+        *,
+        rank: int,
+        seed: int,
+        device: torch.device | None = None,
+    ):
+        super().__init__()
+        if (
+            type(dimensions) is not int
+            or dimensions < 2
+            or type(rank) is not int
+            or rank != 32
+            or type(seed) is not int
+            or seed < 0
+        ):
+            raise ValueError("compatibility residual authority differs")
+        target = torch.device("cpu") if device is None else device
+        with torch.random.fork_rng(devices=[] if target.type == "cpu" else [target]):
+            torch.manual_seed(seed)
+            self.down = nn.Linear(dimensions, rank, bias=False, dtype=torch.float64, device=target)
+            self.up = nn.Linear(rank, dimensions, bias=True, dtype=torch.float64, device=target)
+        nn.init.zeros_(self.up.weight)
+        nn.init.zeros_(self.up.bias)
+
+    def forward(self, descriptors: torch.Tensor) -> torch.Tensor:
+        """Apply the unnormalized residual so zero initialization is exact identity."""
+
+        return descriptors + self.up(F.gelu(self.down(descriptors)))
+
+
+@dataclass(frozen=True, slots=True)
+class ResidualFit:
+    """A frozen fitted residual and its complete optimization evidence."""
+
+    state_dict: dict[str, torch.Tensor]
+    losses: dict[str, tuple[float, ...]]
+    anchor_ids: tuple[str, ...]
+    relational: bool
+    seed: int
+
+    def apply(self, descriptors: torch.Tensor) -> torch.Tensor:
+        """Apply the frozen residual to normalized CPU FP32 descriptors."""
+
+        if type(descriptors) is not torch.Tensor or descriptors.ndim != 2:
+            raise ValueError("compatibility descriptor authority differs")
+        dimensions = self.state_dict["up.bias"].shape[0]
+        model = CompatibilityResidual(dimensions, rank=32, seed=self.seed)
+        model.load_state_dict(self.state_dict, strict=True)
+        model.eval()
+        with torch.inference_mode():
+            return F.normalize(model(descriptors.double()), dim=1).float().contiguous()
+
+
+def _masked_score_loss(
+    actual: torch.Tensor,
+    expected: torch.Tensor,
+    query_ids: tuple[str, ...],
+    anchor_ids: tuple[str, ...],
+) -> torch.Tensor:
+    mask = torch.tensor(
+        [[query_id != anchor_id for anchor_id in anchor_ids] for query_id in query_ids],
+        dtype=torch.bool,
+        device=actual.device,
+    )
+    if not bool(mask.any()):
+        raise ValueError("compatibility residual authority differs")
+    return (actual[mask] - expected[mask]).square().mean()
+
+
+def fit_teacher_anchored_residual(
+    student: torch.Tensor,
+    teacher: torch.Tensor,
+    ids: tuple[str, ...],
+    *,
+    relational: bool,
+    seed: int,
+) -> ResidualFit:
+    """Fit the registered paired or teacher-anchored residual adapter."""
+
+    student, teacher = _validated_pair(student, teacher)
+    if (
+        type(ids) is not tuple
+        or len(ids) != student.shape[0]
+        or len(ids) < 256
+        or len(set(ids)) != len(ids)
+        or any(type(value) is not str or not value for value in ids)
+        or type(relational) is not bool
+        or type(seed) is not int
+        or seed < 0
+    ):
+        raise ValueError("compatibility residual authority differs")
+    anchor_indexes = sorted(
+        range(len(ids)),
+        key=lambda index: hashlib.sha256(
+            b"sfora-compatibility-anchor-v1\0" + ids[index].encode("utf-8")
+        ).digest(),
+    )[:256]
+    anchor_ids = tuple(ids[index] for index in anchor_indexes)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    source = student.double().to(device)
+    target = teacher.double().to(device)
+    anchor_index_tensor = torch.tensor(anchor_indexes, dtype=torch.int64, device=device)
+    source_anchors = source[anchor_index_tensor]
+    target_anchors = target[anchor_index_tensor]
+    model = CompatibilityResidual(student.shape[1], rank=32, seed=seed, device=device)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=0.0)
+    trajectories: dict[str, list[float]] = {
+        "paired": [],
+        "forward": [],
+        "reverse": [],
+        "self": [],
+    }
+    rows = student.shape[0]
+    for update in range(2_000):
+        query_indexes = (torch.arange(256, device=device) + update * 256) % rows
+        query_ids = tuple(ids[int(index)] for index in query_indexes.cpu())
+        source_query = source[query_indexes]
+        target_query = target[query_indexes]
+        mapped_query = F.normalize(model(source_query), dim=1)
+        paired_loss = (1.0 - (mapped_query * target_query).sum(dim=1)).mean()
+        if relational:
+            mapped_anchors = F.normalize(model(source_anchors), dim=1)
+            teacher_scores = target_query @ target_anchors.T
+            forward_loss = _masked_score_loss(
+                mapped_query @ target_anchors.T, teacher_scores, query_ids, anchor_ids
+            )
+            reverse_loss = _masked_score_loss(
+                target_query @ mapped_anchors.T, teacher_scores, query_ids, anchor_ids
+            )
+            self_loss = _masked_score_loss(
+                mapped_query @ mapped_anchors.T,
+                source_query @ source_anchors.T,
+                query_ids,
+                anchor_ids,
+            )
+            loss = paired_loss + forward_loss + reverse_loss + self_loss
+        else:
+            forward_loss = reverse_loss = self_loss = paired_loss.new_zeros(())
+            loss = paired_loss
+        optimizer.zero_grad(set_to_none=True)
+        loss.backward()
+        optimizer.step()
+        values = {
+            "paired": float(paired_loss.detach().cpu()),
+            "forward": float(forward_loss.detach().cpu()),
+            "reverse": float(reverse_loss.detach().cpu()),
+            "self": float(self_loss.detach().cpu()),
+        }
+        if any(not math.isfinite(value) for value in values.values()):
+            raise ValueError("compatibility residual authority differs")
+        for name, value in values.items():
+            trajectories[name].append(value)
+    state = {name: value.detach().cpu().clone() for name, value in model.state_dict().items()}
+    return ResidualFit(
+        state_dict=state,
+        losses={name: tuple(values) for name, values in trajectories.items()},
+        anchor_ids=anchor_ids,
+        relational=relational,
+        seed=seed,
+    )

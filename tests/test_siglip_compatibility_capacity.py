@@ -5,9 +5,11 @@ import torch
 
 from sfora.siglip_compatibility_capacity import (
     AffineMap,
+    CompatibilityResidual,
     compatibility_folds,
     fit_centered_similarity,
     fit_regularized_affine,
+    fit_teacher_anchored_residual,
 )
 
 
@@ -108,3 +110,70 @@ def test_affine_apply_rejects_shape_dtype_and_nonfinite_drift() -> None:
     for descriptors in invalid:
         with pytest.raises(ValueError, match="compatibility descriptor authority differs"):
             affine.apply(descriptors)
+
+
+def _residual_bank() -> tuple[torch.Tensor, torch.Tensor, tuple[str, ...]]:
+    student, teacher = _paired_descriptors(rows=256, dimensions=4)
+    return student, teacher, tuple(f"example-{index:03d}" for index in range(256))
+
+
+def test_compatibility_residual_starts_as_exact_identity() -> None:
+    model = CompatibilityResidual(4, rank=32, seed=17)
+    student, _, _ = _residual_bank()
+    assert torch.equal(model(student.double()), student.double())
+    assert sum(parameter.numel() for parameter in model.parameters()) == 260
+
+
+def test_teacher_anchored_residual_is_deterministic_and_records_all_losses() -> None:
+    student, teacher, ids = _residual_bank()
+    first = fit_teacher_anchored_residual(student, teacher, ids, relational=True, seed=17)
+    second = fit_teacher_anchored_residual(student, teacher, ids, relational=True, seed=17)
+
+    assert first.anchor_ids == second.anchor_ids
+    assert first.anchor_ids == tuple(
+        sorted(
+            ids,
+            key=lambda value: __import__("hashlib").sha256(
+                b"sfora-compatibility-anchor-v1\0" + value.encode()
+            ).digest(),
+        )[:256]
+    )
+    assert set(first.losses) == {"paired", "forward", "reverse", "self"}
+    assert all(len(values) == 2_000 for values in first.losses.values())
+    assert first.losses == second.losses
+    assert all(
+        torch.equal(first.state_dict[key], second.state_dict[key]) for key in first.state_dict
+    )
+    assert float((first.apply(student) - teacher).square().mean()) < float(
+        (student - teacher).square().mean()
+    )
+
+
+def test_paired_only_residual_records_zero_relational_losses() -> None:
+    student, teacher, ids = _residual_bank()
+    fitted = fit_teacher_anchored_residual(student, teacher, ids, relational=False, seed=17)
+    assert fitted.relational is False
+    assert all(
+        value == 0.0
+        for name in ("forward", "reverse", "self")
+        for value in fitted.losses[name]
+    )
+
+
+@pytest.mark.parametrize(
+    ("ids", "relational", "seed"),
+    [
+        (tuple(f"id-{index}" for index in range(255)), True, 17),
+        (tuple("duplicate" for _ in range(256)), True, 17),
+        (tuple(f"id-{index}" for index in range(256)), 1, 17),
+        (tuple(f"id-{index}" for index in range(256)), True, -1),
+    ],
+)
+def test_teacher_anchored_residual_rejects_authority_drift(
+    ids: tuple[str, ...], relational: object, seed: int
+) -> None:
+    student, teacher, _ = _residual_bank()
+    with pytest.raises(ValueError, match="compatibility residual authority differs"):
+        fit_teacher_anchored_residual(
+            student, teacher, ids, relational=relational, seed=seed  # type: ignore[arg-type]
+        )
