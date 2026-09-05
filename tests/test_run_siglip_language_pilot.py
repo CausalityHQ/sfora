@@ -76,6 +76,19 @@ def test_text_container_load_strips_one_prefix_and_matches_real_model(tmp_path: 
         assert torch.equal(original(ids).pooler_output, destination(ids).pooler_output)
 
 
+def test_text_header_matches_model_without_materializing_tensor_payloads(tmp_path: Path) -> None:
+    model = _text_model()
+    path = tmp_path / "model.safetensors"
+    _container(path, model)
+    subject.validate_text_header(path, _sha(path), model)
+    tensors = _container(path, model)
+    key = "text_model.embeddings.token_embedding.weight"
+    tensors[key] = tensors[key].half()
+    save_file(tensors, path)
+    with pytest.raises(ValueError, match="header"):
+        subject.validate_text_header(path, _sha(path), model)
+
+
 @pytest.mark.parametrize("mutation", ["missing", "extra", "shape", "dtype", "nan", "double-prefix"])
 def test_text_container_semantic_mutations_reject_after_rehash(
     tmp_path: Path,
@@ -250,8 +263,8 @@ def _selection_evidence() -> tuple[dict[str, Any], dict[str, Any]]:
         "result_sha256": "3" * 64,
         "pair_monitor_sha256": "2" * 64,
         "elapsed_s": 305.0,
-        "monitor_sha256": "db5ae1d9293d004eee5755f60fc2a392f0107f98678cb7ff18c5e8dee0c753dc",
-        "script_sha256": "b9adad0f2bdf980e76197e7bad0b7c6012c4730bc66ffed7db7be506640953ec",
+        "monitor_sha256": "2b542c65ab9ec644693559fafddcfdccbddff1aedf297307fe2abb2d22792987",
+        "script_sha256": "140a8160dc81c3585247ff5e7227e87a99f8ffff6839fb0f6ba11db601e3072d",
     }
     return value, monitor
 
@@ -664,6 +677,74 @@ def test_disposable_preflight_rejects_a_factory_that_advances_initial_weights() 
     assert len(events) == 3
 
 
+def test_execute_training_uses_fresh_equal_models_and_seals_all_three_arms(
+    tmp_path: Path,
+) -> None:
+    initial = _image_model()
+    instances: list[PooledProxyAnchorModel] = []
+
+    def factory() -> PooledProxyAnchorModel:
+        model = copy.deepcopy(initial)
+        instances.append(model)
+        return model
+
+    pixels, labels = torch.randn(6, 4), torch.tensor([0, 0, 1, 1, 3, 3])
+    correct = standardized_text_gram(torch.nn.functional.normalize(torch.randn(4, 5), dim=1))
+    permuted = correct[[1, 0, 3, 2]][:, [1, 0, 3, 2]].contiguous()
+    events: list[dict[str, Any]] = []
+    result = subject.execute_language_training(
+        factory,
+        None,
+        lambda update: (pixels, labels),
+        output_dir=tmp_path,
+        target_sha256="a" * 64,
+        grams={"correct": correct, "permuted": permuted},
+        gram_sha256={
+            "correct": subject._gram_digest(correct),
+            "permuted": subject._gram_digest(permuted),
+        },
+        spent_seconds=1.0,
+        microbatch_size=2,
+        progress=events.append,
+        synchronize=lambda: None,
+    )
+    assert len(instances) == 5
+    assert list(result["arms"]) == ["base", "correct", "permuted"]
+    assert list(result["checkpoints"]) == ["base", "correct", "permuted"]
+    assert all(path.exists() for path in (tmp_path / f"{arm}-final.pt" for arm in result["arms"]))
+    initials = {evidence["initial_state_sha256"] for evidence in result["arms"].values()}
+    inputs = {tuple(evidence["input_sha256"]) for evidence in result["arms"].values()}
+    assert len(initials) == len(inputs) == 1
+    assert result["projection_seconds"] <= 7200
+    assert result["teacher_unchanged"] is True
+    assert len(events) == 66
+
+
+def test_execute_training_rejects_duplicate_controls_before_model_construction(
+    tmp_path: Path,
+) -> None:
+    gram = standardized_text_gram(torch.nn.functional.normalize(torch.randn(4, 5), dim=1))
+    calls: list[bool] = []
+    with pytest.raises(ValueError, match="distinct"):
+        subject.execute_language_training(
+            lambda: calls.append(True),
+            None,
+            lambda update: (torch.randn(6, 4), torch.tensor([0, 0, 1, 1, 3, 3])),
+            output_dir=tmp_path,
+            target_sha256="a" * 64,
+            grams={"correct": gram, "permuted": gram.clone()},
+            gram_sha256={
+                "correct": subject._gram_digest(gram),
+                "permuted": subject._gram_digest(gram),
+            },
+            spent_seconds=1.0,
+            microbatch_size=2,
+            progress=lambda event: None,
+            synchronize=lambda: None,
+        )
+    assert calls == [] and list(tmp_path.iterdir()) == []
+
+
 def _trained_fixture() -> tuple[PooledProxyAnchorModel, dict[str, Any]]:
     model = _image_model()
     pixels, labels = torch.randn(6, 4), torch.tensor([0, 0, 1, 1, 3, 3])
@@ -981,6 +1062,11 @@ def test_prepare_targets_authenticates_local_sources_and_never_uses_evaluation_n
         raising=False,
     )
     monkeypatch.setattr(subject, "load_text_state", lambda *args: seen.update(loaded=args))
+    monkeypatch.setattr(
+        subject,
+        "validate_text_header",
+        lambda *args: seen.update(header=args),
+    )
 
     class Tokenizer:
         def __call__(self, prompts: tuple[str, ...], **kwargs: Any) -> dict[str, torch.Tensor]:

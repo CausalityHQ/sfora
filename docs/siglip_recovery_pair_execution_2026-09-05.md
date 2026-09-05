@@ -150,3 +150,17 @@ pair-terminal receipt, before the GPU-idle check or subprocess launch. No
 evaluation log/result/monitor file was created. Scientific evaluation remains
 pending both final checkpoint seals and successful original training terminal;
 the prepared evaluator is not automatically scheduled by this document.
+
+The infrastructure-invalid first attempt also invalidated those hard-coded
+operational paths.  The replacement evaluator wrapper is therefore separately
+prepared at
+`/home/riomus/sfora-recovery-eval-attempt2-launch.py`, SHA256
+`140a8160dc81c3585247ff5e7227e87a99f8ffff6839fb0f6ba11db601e3072d`.
+Its monitor is
+`/home/riomus/sfora-recovery-eval-attempt2-monitor.py`, SHA256
+`2b542c65ab9ec644693559fafddcfdccbddff1aedf297307fe2abb2d22792987`.
+Only their pair/result/log/receipt namespaces and bound wrapper identities
+change; evaluator source, quality gates, resource caps and no-restart policy
+remain unchanged. Both files passed local bytecode compilation and their
+deployed hashes match. They remain unexecuted until the replacement pair seals
+a successful terminal.

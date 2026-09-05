@@ -23,7 +23,7 @@ import sfora.siglip_language_guidance as language_guidance
 import sfora.siglip_language_protocol as language_protocol
 from sfora.siglip_depth_recovery import recovery_multiplier
 from sfora.siglip_language_guidance import recomputed_language_backward, standardized_text_gram
-from sfora.siglip_language_protocol import fixed_language_permutation
+from sfora.siglip_language_protocol import fixed_language_permutation, pilot_training_projection
 from sfora.siglip_proxy_control import PooledProxyAnchorModel
 from sfora.siglip_recovery_evaluation import recovery_decision
 
@@ -92,6 +92,26 @@ def load_text_state(path: Path, expected_sha256: str, model: torch.nn.Module) ->
                 raise ValueError("text container tensor authority differs")
             state[name] = value
     model.load_state_dict(state, strict=True)
+
+
+def validate_text_header(path: Path, expected_sha256: str, model: torch.nn.Module) -> None:
+    """Compare text tensor names, shapes, and dtypes without reading their payloads."""
+    _authenticate(path, expected_sha256)
+    expected = model.state_dict()
+    with safe_open(path, framework="pt", device="cpu") as container:
+        container_keys = container.keys()
+        keys = {key for key in container_keys if key.startswith("text_model.")}
+        if keys != {f"text_model.{key}" for key in expected}:
+            raise ValueError("text container header authority differs")
+        for key in sorted(keys):
+            reference = expected[key.removeprefix("text_model.")]
+            tensor_slice = container.get_slice(key)
+            if (
+                reference.dtype != torch.float32
+                or tensor_slice.get_dtype() != "F32"
+                or tuple(tensor_slice.get_shape()) != tuple(reference.shape)
+            ):
+                raise ValueError("text container header authority differs")
 
 
 def official_optimization_prompts(path: Path, expected_sha256: str) -> tuple[str, ...]:
@@ -188,6 +208,10 @@ def prepare_text_targets(
         or config.vocab_size != 32000
     ):
         raise ValueError("text configuration authority differs")
+    with torch.device("meta"):
+        header_model = SiglipTextModel(config)
+    validate_text_header(paths["model"], digests["model"], header_model)
+    del header_model
     model = SiglipTextModel(config)
     load_text_state(paths["model"], digests["model"], model)
     prompts = official_optimization_prompts(
@@ -444,8 +468,8 @@ def recovery_initialization_choice(
         "stop_reason": None,
         "result_sha256": evaluation_sha256,
         "pair_monitor_sha256": pair_monitor_sha256,
-        "monitor_sha256": "db5ae1d9293d004eee5755f60fc2a392f0107f98678cb7ff18c5e8dee0c753dc",
-        "script_sha256": "b9adad0f2bdf980e76197e7bad0b7c6012c4730bc66ffed7db7be506640953ec",
+        "monitor_sha256": "2b542c65ab9ec644693559fafddcfdccbddff1aedf297307fe2abb2d22792987",
+        "script_sha256": "140a8160dc81c3585247ff5e7227e87a99f8ffff6839fb0f6ba11db601e3072d",
     }
     for actual, expected in ((evaluation, expected_evaluation), (monitor, expected_monitor)):
         for key, wanted in expected.items():
@@ -724,6 +748,102 @@ def measure_language_preflight(
         if device.type == "cuda":
             torch.cuda.empty_cache()
     return {"arms": arms, "update_seconds": seconds, "quality_measured": False}
+
+
+def execute_language_training(
+    factory: Callable[[], PooledProxyAnchorModel],
+    teacher: PooledProxyAnchorModel | None,
+    batch: Callable[[int], tuple[torch.Tensor, torch.Tensor]],
+    *,
+    output_dir: Path,
+    target_sha256: str,
+    grams: dict[str, torch.Tensor],
+    gram_sha256: dict[str, str],
+    spent_seconds: float,
+    microbatch_size: int,
+    progress: Callable[[dict[str, Any]], None],
+    synchronize: Callable[[], None],
+) -> dict[str, Any]:
+    """Time disposable copies, then train and seal three fresh matched arms."""
+    if (
+        set(grams) != {"correct", "permuted"}
+        or set(gram_sha256) != set(grams)
+        or any(
+            gram.dtype != torch.float32
+            or gram.ndim != 2
+            or gram.shape[0] != gram.shape[1]
+            or not bool(torch.isfinite(gram).all())
+            or _gram_digest(gram) != gram_sha256[arm]
+            for arm, gram in grams.items()
+        )
+        or gram_sha256["correct"] == gram_sha256["permuted"]
+        or torch.equal(grams["correct"], grams["permuted"])
+    ):
+        raise ValueError("language controls must be finite, authenticated, and distinct")
+    if output_dir.is_symlink() or not output_dir.is_dir() or any(output_dir.iterdir()):
+        raise ValueError("language training output directory must be empty")
+    teacher_initial = None if teacher is None else control._model_state_sha256(teacher)
+    preflight = measure_language_preflight(
+        factory,
+        teacher,
+        batch,
+        gram=grams["correct"],
+        microbatch_size=microbatch_size,
+        progress=progress,
+        synchronize=synchronize,
+    )
+    projection = pilot_training_projection(spent_seconds, preflight["update_seconds"])
+    if projection > 7200:
+        raise RuntimeError("language pilot projected wall cap")
+
+    arms: dict[str, Any] = {}
+    checkpoints: dict[str, Any] = {}
+    initial_sha256: str | None = None
+    input_sha256: list[str] | None = None
+    for arm in ("base", "correct", "permuted"):
+        model = factory()
+        observed_initial = control._model_state_sha256(model)
+        if initial_sha256 is not None and observed_initial != initial_sha256:
+            raise ValueError("language scientific initial states differ")
+        initial_sha256 = observed_initial
+        gram = None if arm == "base" else grams[arm]
+        evidence = train_language_arm(
+            model,
+            teacher,
+            batch,
+            arm=arm,
+            gram=gram,
+            expected_input_hashes=input_sha256,
+            microbatch_size=microbatch_size,
+            progress=progress,
+            synchronize=synchronize,
+        )
+        if input_sha256 is None:
+            input_sha256 = evidence["input_sha256"]
+        checkpoints[arm] = seal_language_checkpoint(
+            output_dir / f"{arm}-final.pt",
+            model,
+            evidence,
+            target_sha256=target_sha256,
+            expected_gram_sha256=None if arm == "base" else gram_sha256[arm],
+        )
+        arms[arm] = evidence
+        device = next(model.parameters()).device
+        del model
+        if device.type == "cuda":
+            torch.cuda.empty_cache()
+    if teacher is not None and control._model_state_sha256(teacher) != teacher_initial:
+        raise RuntimeError("language teacher changed during training")
+    return {
+        "arms": arms,
+        "checkpoints": checkpoints,
+        "preflight": preflight,
+        "projection_seconds": projection,
+        "initial_state_sha256": initial_sha256,
+        "input_sha256": input_sha256,
+        "teacher_state_sha256": teacher_initial,
+        "teacher_unchanged": True,
+    }
 
 
 def seal_language_checkpoint(
