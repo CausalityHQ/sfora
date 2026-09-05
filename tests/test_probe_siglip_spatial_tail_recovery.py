@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import importlib.util
 import sys
 from pathlib import Path
@@ -29,6 +30,9 @@ LatentInteractionTail = _MODULE.LatentInteractionTail
 FrozenTeacherReadout = _MODULE.FrozenTeacherReadout
 fit_spatial_tail_arm = _MODULE.fit_spatial_tail_arm
 spatial_tail_loss = _MODULE.spatial_tail_loss
+write_spatial_tail_artifact = _MODULE._write_spatial_tail_artifact
+load_spatial_tail_artifact = _MODULE._load_spatial_tail_artifact
+parse_args = _MODULE.parse_args
 
 
 class _MeanHead(nn.Module):
@@ -193,6 +197,61 @@ def test_matched_trainer_is_deterministic_reduces_loss_and_preserves_readout() -
     assert left.final_loss == right.final_loss
     for name, value in readout.state_dict().items():
         assert torch.equal(value, readout_before[name])
+
+
+def test_artifact_seals_and_reloads_both_arms_and_frozen_readout(tmp_path: Path) -> None:
+    model, projection = _tiny_model()
+    control = TokenwiseTailControl(16, bottleneck_width=8).eval()
+    treatment = LatentInteractionTail(16, latent_width=8, latent_count=4, heads=2).eval()
+    readout = FrozenTeacherReadout(model.post_layernorm, model.head, projection).eval()
+    path = tmp_path / "spatial-tail.safetensors"
+
+    digest = write_spatial_tail_artifact(path, control, treatment, readout)
+    restored = load_spatial_tail_artifact(path, control, treatment, readout)
+
+    assert digest == hashlib.sha256(path.read_bytes()).hexdigest()
+    for expected, actual in zip((control, treatment, readout), restored, strict=True):
+        assert set(expected.state_dict()) == set(actual.state_dict())
+        for name, value in expected.state_dict().items():
+            assert torch.equal(value, actual.state_dict()[name])
+    with pytest.raises(FileExistsError):
+        write_spatial_tail_artifact(path, control, treatment, readout)
+
+
+def _cli_args(tmp_path: Path) -> list[str]:
+    return [
+        "--control-binding",
+        str(tmp_path / "binding.json"),
+        "--control-binding-sha256",
+        "11" * 32,
+        "--checkpoint-seed17",
+        str(tmp_path / "checkpoint.safetensors"),
+        "--optimization-manifest",
+        str(tmp_path / "optimization.json"),
+        "--optimization-manifest-sha256",
+        "22" * 32,
+        "--optimization-image-root",
+        str(tmp_path / "images"),
+        "--artifact",
+        str(tmp_path / "artifact.safetensors"),
+        "--result",
+        str(tmp_path / "result.json"),
+        "--execute-spatial-tail",
+    ]
+
+
+def test_cli_accepts_only_optimization_inputs_and_explicit_execution(tmp_path: Path) -> None:
+    parsed = parse_args(_cli_args(tmp_path))
+    assert parsed.execute_spatial_tail is True
+    assert not hasattr(parsed, "evaluation_manifest")
+    for mutation in (
+        _cli_args(tmp_path)[:-1],
+        _cli_args(tmp_path) + ["--evaluation-manifest", str(tmp_path / "forbidden.json")],
+        _cli_args(tmp_path) + ["--aws-profile", "forbidden"],
+        _cli_args(tmp_path) + ["--artifact", str(tmp_path / "duplicate")],
+    ):
+        with pytest.raises(SystemExit):
+            parse_args(mutation)
 
 
 @pytest.mark.parametrize("mutation", ["shape", "dtype", "nonfinite"])

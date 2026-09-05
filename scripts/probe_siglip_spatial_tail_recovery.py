@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import argparse
 import copy
 import hashlib
+import json
 import math
-from collections.abc import Iterable
+import sys
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
+from pathlib import Path
 from typing import cast
 
 import torch
@@ -40,6 +44,40 @@ class SpatialTailFitEvidence:
     final_loss: float
     final_losses: tuple[float, ...]
     index_sha256: str
+
+
+def _absolute_path(value: str) -> Path:
+    path = Path(value)
+    if not path.is_absolute():
+        raise argparse.ArgumentTypeError("path must be absolute")
+    return path
+
+
+def _lower_sha256(value: str) -> str:
+    if len(value) != 64 or any(character not in "0123456789abcdef" for character in value):
+        raise argparse.ArgumentTypeError("digest must be 64 lowercase hexadecimal characters")
+    return value
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    """Parse the strict optimization-only spatial-tail command line."""
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--control-binding", type=_absolute_path, required=True)
+    parser.add_argument("--control-binding-sha256", type=_lower_sha256, required=True)
+    parser.add_argument("--checkpoint-seed17", type=_absolute_path, required=True)
+    parser.add_argument("--optimization-manifest", type=_absolute_path, required=True)
+    parser.add_argument("--optimization-manifest-sha256", type=_lower_sha256, required=True)
+    parser.add_argument("--optimization-image-root", type=_absolute_path, required=True)
+    parser.add_argument("--artifact", type=_absolute_path, required=True)
+    parser.add_argument("--result", type=_absolute_path, required=True)
+    parser.add_argument("--execute-spatial-tail", action="store_true", required=True)
+    effective = list(sys.argv[1:] if argv is None else argv)
+    flags = [value.split("=", 1)[0] for value in effective if value.startswith("--")]
+    duplicates = sorted({flag for flag in flags if flags.count(flag) > 1})
+    if duplicates:
+        parser.error(f"duplicate arguments are forbidden: {duplicates!r}")
+    return parser.parse_args(effective)
 
 
 def stream_spatial_tail_fit_inputs(
@@ -268,6 +306,101 @@ class LatentInteractionTail(nn.Module):
         return cast(torch.Tensor, tokens + self.output(written))
 
 
+def _write_spatial_tail_artifact(
+    path: Path,
+    control: TokenwiseTailControl,
+    treatment: LatentInteractionTail,
+    readout: FrozenTeacherReadout,
+) -> str:
+    """Exclusively seal both arms and the frozen teacher readout."""
+
+    from safetensors.torch import load_file, save_file
+
+    if (
+        not isinstance(path, Path)
+        or not isinstance(control, TokenwiseTailControl)
+        or control.training
+        or not isinstance(treatment, LatentInteractionTail)
+        or treatment.training
+        or not isinstance(readout, FrozenTeacherReadout)
+        or readout.training
+        or path.exists()
+        or path.is_symlink()
+    ):
+        if path.exists() or path.is_symlink():
+            raise FileExistsError(path)
+        raise ValueError("spatial tail artifact authority differs")
+    tensors: dict[str, torch.Tensor] = {}
+    for prefix, module in (
+        ("control", control),
+        ("treatment", treatment),
+        ("readout", readout),
+    ):
+        for name, value in sorted(module.state_dict().items()):
+            tensor = value.detach().cpu().contiguous()
+            if not tensor.is_floating_point() or not bool(torch.isfinite(tensor).all()):
+                raise ValueError("spatial tail artifact authority differs")
+            tensors[f"{prefix}.{name}"] = tensor
+    partial = path.with_name(f"{path.name}.partial")
+    if partial.exists() or partial.is_symlink():
+        raise FileExistsError(partial)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    save_file(
+        dict(sorted(tensors.items())),
+        str(partial),
+        metadata={"schema": "sfora-siglip-spatial-tail-artifact-v1"},
+    )
+    restored = load_file(str(partial), device="cpu")
+    if set(restored) != set(tensors) or any(
+        not torch.equal(restored[name], value) for name, value in tensors.items()
+    ):
+        partial.unlink(missing_ok=True)
+        raise ValueError("spatial tail artifact replay differs")
+    digest = hashlib.sha256(partial.read_bytes()).hexdigest()
+    partial.replace(path)
+    return digest
+
+
+def _load_spatial_tail_artifact(
+    path: Path,
+    control_template: TokenwiseTailControl,
+    treatment_template: LatentInteractionTail,
+    readout_template: FrozenTeacherReadout,
+) -> tuple[TokenwiseTailControl, LatentInteractionTail, FrozenTeacherReadout]:
+    """Restore a complete sealed artifact into fresh module copies."""
+
+    from safetensors.torch import load_file
+
+    if not isinstance(path, Path) or not path.is_file() or path.is_symlink():
+        raise ValueError("spatial tail artifact authority differs")
+    values = load_file(str(path), device="cpu")
+    modules = (
+        ("control", copy.deepcopy(control_template).cpu()),
+        ("treatment", copy.deepcopy(treatment_template).cpu()),
+        ("readout", copy.deepcopy(readout_template).cpu()),
+    )
+    expected = {
+        f"{prefix}.{name}"
+        for prefix, module in modules
+        for name in module.state_dict()
+    }
+    if set(values) != expected:
+        raise ValueError("spatial tail artifact schema differs")
+    restored: list[nn.Module] = []
+    for prefix, module in modules:
+        state = {
+            name: values[f"{prefix}.{name}"]
+            for name in module.state_dict()
+        }
+        module.load_state_dict(state, strict=True)
+        module.eval()
+        restored.append(module)
+    return cast(
+        tuple[TokenwiseTailControl, LatentInteractionTail, FrozenTeacherReadout],
+        tuple(restored),
+    )
+
+
 def spatial_tail_loss(
     predicted_tokens: torch.Tensor,
     target_tokens: torch.Tensor,
@@ -317,14 +450,19 @@ def _mean_spatial_tail_loss(
     with torch.no_grad():
         for start in range(0, source.shape[0], 64):
             stop = min(start + 64, source.shape[0])
-            predicted = model(source[start:stop])
-            loss = spatial_tail_loss(
-                predicted,
-                target[start:stop],
-                readout(predicted),
-                teacher[start:stop],
-                scale,
-            )
+            with torch.autocast(
+                device_type=source.device.type,
+                dtype=torch.bfloat16,
+                enabled=source.device.type == "cuda",
+            ):
+                predicted = model(source[start:stop])
+                loss = spatial_tail_loss(
+                    predicted,
+                    target[start:stop],
+                    readout(predicted),
+                    teacher[start:stop],
+                    scale,
+                )
             weighted.append(float(loss) * (stop - start))
     return math.fsum(weighted) / source.shape[0]
 
@@ -417,14 +555,19 @@ def fit_spatial_tail_arm(
         optimizer.param_groups[0]["lr"] = learning_rate
         selected = indexes.to(device)
         optimizer.zero_grad(set_to_none=True)
-        predicted = model(source[selected])
-        loss = spatial_tail_loss(
-            predicted,
-            target[selected],
-            readout(predicted),
-            teacher[selected],
-            scale,
-        )
+        with torch.autocast(
+            device_type=device.type,
+            dtype=torch.bfloat16,
+            enabled=device.type == "cuda",
+        ):
+            predicted = model(source[selected])
+            loss = spatial_tail_loss(
+                predicted,
+                target[selected],
+                readout(predicted),
+                teacher[selected],
+                scale,
+            )
         if not bool(torch.isfinite(loss)):
             raise ValueError("spatial tail fit loss is nonfinite")
         torch.autograd.backward(loss)
@@ -444,3 +587,276 @@ def fit_spatial_tail_arm(
         final_losses=tuple(losses),
         index_sha256=index_digest.hexdigest(),
     )
+
+
+def _apply_spatial_tail_arm(
+    model: nn.Module,
+    readout: FrozenTeacherReadout,
+    tokens: torch.Tensor,
+    *,
+    device: torch.device,
+    batch_size: int = 32,
+) -> torch.Tensor:
+    """Apply one sealed arm and frozen readout in bounded batches."""
+
+    if (
+        not isinstance(model, (TokenwiseTailControl, LatentInteractionTail))
+        or model.training
+        or not isinstance(readout, FrozenTeacherReadout)
+        or readout.training
+        or tokens.device.type != "cpu"
+        or tokens.dtype != torch.float16
+        or tokens.ndim != 3
+        or type(batch_size) is not int
+        or batch_size < 1
+    ):
+        raise ValueError("spatial tail application authority differs")
+    model = model.to(device)
+    readout = readout.to(device)
+    batches: list[torch.Tensor] = []
+    with torch.inference_mode():
+        for start in range(0, tokens.shape[0], batch_size):
+            source = tokens[start : start + batch_size].to(device).float()
+            with torch.autocast(
+                device_type=device.type,
+                dtype=torch.bfloat16,
+                enabled=device.type == "cuda",
+            ):
+                descriptors = readout(model(source))
+            batches.append(descriptors.float().cpu().contiguous())
+            _enforce_cuda_memory_cap(device)
+    return torch.cat(batches).contiguous()
+
+
+def _retrieval_payload(evidence: object) -> dict[str, object]:
+    correct = getattr(evidence, "correct", None)
+    average_precisions = getattr(evidence, "average_precisions", None)
+    if type(correct) is not tuple or type(average_precisions) is not tuple:
+        raise ValueError("spatial tail retrieval evidence differs")
+    return {"hits": list(correct), "average_precision": list(average_precisions)}
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Train on fitting classes, seal both arms, then score internal development."""
+
+    from diagnose_siglip_rsta_stage_a import (
+        _load_model_state_checkpoint,
+        _load_optimization_manifest,
+        _parse_control_binding,
+        _stage_a_transforms,
+        configure_stage_a_determinism,
+        load_stage_a_checkpoint_model,
+        load_stage_a_siglip_runtime,
+    )
+    from diagnose_siglip_rsta_stage_a import _read_regular as read_rsta_regular
+    from PIL import Image
+
+    from sfora.siglip_spatial_tail_recovery import (
+        build_spatial_tail_result,
+        spatial_retrieval_evidence,
+        spatial_tail_class_split,
+    )
+
+    arguments = parse_args(argv)
+    for output in (arguments.result, arguments.artifact):
+        if output.exists() or output.is_symlink():
+            raise FileExistsError(output)
+    binding_raw = read_rsta_regular(arguments.control_binding, role="spatial tail binding")
+    if hashlib.sha256(binding_raw).hexdigest() != arguments.control_binding_sha256:
+        raise ValueError("spatial tail binding digest differs")
+    binding = _parse_control_binding(binding_raw)
+    if (
+        binding.control_complete is not True
+        or binding.optimization_manifest_sha256 != arguments.optimization_manifest_sha256
+        or tuple(checkpoint.seed for checkpoint in binding.checkpoints) != (17, 29, 43)
+    ):
+        raise ValueError("spatial tail binding authority differs")
+    seed17 = binding.checkpoints[0]
+    checkpoint = _load_model_state_checkpoint(arguments.checkpoint_seed17, seed17, binding)
+    optimization_ids, optimization_labels, optimization_paths = _load_optimization_manifest(
+        arguments.optimization_manifest,
+        arguments.optimization_manifest_sha256,
+        binding,
+        arguments.optimization_image_root,
+    )
+    fit_labels, development_labels = spatial_tail_class_split(tuple(range(49)))
+    fit_indexes = tuple(
+        index for index, label in enumerate(optimization_labels) if label in fit_labels
+    )
+    development_indexes = tuple(
+        index for index, label in enumerate(optimization_labels) if label in development_labels
+    )
+    if not fit_indexes or not development_indexes:
+        raise ValueError("spatial tail class partition differs")
+
+    configure_stage_a_determinism()
+    if not torch.cuda.is_available() or not torch.cuda.is_bf16_supported():
+        raise RuntimeError("spatial tail recovery requires CUDA bf16")
+    device = torch.device("cuda")
+    runtime = load_stage_a_siglip_runtime()
+    model = load_stage_a_checkpoint_model(
+        checkpoint,
+        model_factory=runtime.model_factory,
+        device=device,
+    )
+    runtime.disable_checkpointing(model)
+    model.eval()
+    vision_model = model.tower.vision_model
+    projection = model.projection
+    _graph_transform, evaluation_transform = _stage_a_transforms(runtime.processor)
+
+    def pixel_batches(paths: tuple[Path, ...]) -> Iterable[torch.Tensor]:
+        for start in range(0, len(paths), 32):
+            tensors: list[torch.Tensor] = []
+            for path in paths[start : start + 32]:
+                with Image.open(path) as image:
+                    tensor = evaluation_transform(image)
+                if not isinstance(tensor, torch.Tensor):
+                    raise ValueError("spatial tail image transform differs")
+                tensors.append(tensor)
+            yield torch.stack(tensors)
+
+    fit_paths = tuple(optimization_paths[index] for index in fit_indexes)
+    fitting = stream_spatial_tail_fit_inputs(
+        vision_model,
+        projection,
+        pixel_batches(fit_paths),
+        source_depth=18,
+        target_depth=27,
+        device=device,
+    )
+    scale = residual_channel_scale(fitting.source_tokens, fitting.target_tokens)
+    readout = FrozenTeacherReadout(
+        vision_model.post_layernorm,
+        vision_model.head,
+        projection,
+    ).eval()
+    torch.manual_seed(20260905)
+    control = TokenwiseTailControl(1152).eval()
+    control_fit = fit_spatial_tail_arm(
+        control,
+        readout,
+        fitting.source_tokens,
+        fitting.target_tokens,
+        fitting.teacher_descriptors,
+        scale,
+        device=device,
+    )
+    torch.cuda.empty_cache()
+    torch.manual_seed(20260905)
+    treatment = LatentInteractionTail(1152).eval()
+    treatment_fit = fit_spatial_tail_arm(
+        treatment,
+        readout,
+        fitting.source_tokens,
+        fitting.target_tokens,
+        fitting.teacher_descriptors,
+        scale,
+        device=device,
+    )
+    if control_fit.index_sha256 != treatment_fit.index_sha256:
+        raise ValueError("spatial tail matched index stream differs")
+    artifact_sha256 = _write_spatial_tail_artifact(
+        arguments.artifact,
+        cast(TokenwiseTailControl, control_fit.model),
+        cast(LatentInteractionTail, treatment_fit.model),
+        readout,
+    )
+    restored_control, restored_treatment, restored_readout = _load_spatial_tail_artifact(
+        arguments.artifact,
+        cast(TokenwiseTailControl, control_fit.model),
+        cast(LatentInteractionTail, treatment_fit.model),
+        readout,
+    )
+    del fitting
+    torch.cuda.empty_cache()
+
+    development_paths = tuple(optimization_paths[index] for index in development_indexes)
+    development = stream_spatial_tail_fit_inputs(
+        vision_model,
+        projection,
+        pixel_batches(development_paths),
+        source_depth=18,
+        target_depth=27,
+        device=device,
+    )
+    teacher = development.teacher_descriptors
+    # The registered baseline is the unmodified depth-18 field through the frozen readout.
+    restored_readout = restored_readout.to(device)
+    baseline_batches: list[torch.Tensor] = []
+    with torch.inference_mode():
+        for start in range(0, development.source_tokens.shape[0], 32):
+            source = development.source_tokens[start : start + 32].to(device).float()
+            with torch.autocast(
+                device_type="cuda", dtype=torch.bfloat16, enabled=True
+            ):
+                baseline_batches.append(restored_readout(source).float().cpu())
+    baseline = torch.cat(baseline_batches).contiguous()
+    control_descriptors = _apply_spatial_tail_arm(
+        restored_control,
+        restored_readout.cpu(),
+        development.source_tokens,
+        device=device,
+    )
+    treatment_descriptors = _apply_spatial_tail_arm(
+        restored_treatment,
+        restored_readout.cpu(),
+        development.source_tokens,
+        device=device,
+    )
+    ids = tuple(optimization_ids[index] for index in development_indexes)
+    labels = tuple(optimization_labels[index] for index in development_indexes)
+
+    def evidence(query: torch.Tensor, gallery: torch.Tensor) -> dict[str, object]:
+        return _retrieval_payload(
+            spatial_retrieval_evidence(
+                query,
+                gallery,
+                query_ids=ids,
+                gallery_ids=ids,
+                query_labels=labels,
+                gallery_labels=labels,
+            )
+        )
+
+    cells: dict[str, dict[str, object]] = {
+        "baseline": {"self": evidence(baseline, baseline), "cross": evidence(baseline, teacher)},
+        "tokenwise-control": {
+            "self": evidence(control_descriptors, control_descriptors),
+            "cross": evidence(control_descriptors, teacher),
+        },
+        "latent-interaction": {
+            "self": evidence(treatment_descriptors, treatment_descriptors),
+            "cross": evidence(treatment_descriptors, teacher),
+        },
+        "teacher": {"self": evidence(teacher, teacher), "cross": evidence(teacher, teacher)},
+    }
+    raw = build_spatial_tail_result(
+        checkpoint_sha256=seed17.sha256,
+        optimization_manifest_sha256=arguments.optimization_manifest_sha256,
+        artifact_sha256=artifact_sha256,
+        fit_labels=tuple(sorted(fit_labels)),
+        development_labels=tuple(sorted(development_labels)),
+        cells=cells,
+        training={
+            "updates": 4_000,
+            "tokenwise_initial_loss": control_fit.initial_loss,
+            "tokenwise_final_loss": control_fit.final_loss,
+            "interaction_initial_loss": treatment_fit.initial_loss,
+            "interaction_final_loss": treatment_fit.final_loss,
+        },
+    )
+    value = json.loads(raw)
+    if not isinstance(value, Mapping) or value.get("claim_eligible") is not False:
+        raise ValueError("spatial tail result binding differs")
+    partial = arguments.result.with_name(f"{arguments.result.name}.partial")
+    if partial.exists() or partial.is_symlink():
+        raise FileExistsError(partial)
+    arguments.result.parent.mkdir(parents=True, exist_ok=True)
+    partial.write_bytes(raw)
+    partial.replace(arguments.result)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
