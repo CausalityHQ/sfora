@@ -64,3 +64,73 @@ During the active pair, a metadata-only DGX listing found the pinned SigLIP
 snapshot directory with model.safetensors, config and tokenizer files. This
 establishes names exist, not complete text-weight authentication. No text model
 was loaded, downloaded or run, and the active training process was unchanged.
+
+Further bounded metadata/header inspection confirmed438 `text_model.*` tensor
+keys in the3,511,950,624-byte cached model (108,624-byte safetensors header).
+This is structural availability, not full tensor-byte verification. The cached
+196-name dataset metadata has SHA256
+`e8161ee0033e1603a3474b1eef0eb6d159b5ff226b2977406e0ab84783c438f9`.
+
+Subsequent read-only whole-file hashing verified the complete3,511,950,624-byte
+model against SHA256
+`ea2abad2b7f8a9c1aa5e49a244d5d57ffa71c56f720c94bc5d240ef4d6e1d94a`.
+Other pinned snapshot SHA256s:
+
+- config.json: `adc04928d8fd19a61822584fe0cf2e813e5ebac17f3e49fb1ea096860ae6457b`
+- tokenizer.json: `c6e405cb7c670d56636a9402c81023a55bc6c3c53d89cf02b92f5c5005bfe920`
+- tokenizer_config.json: `d6423dae508cc3a129d22ea443841c111832a1a73125b8f25ea8736951698bcb`
+- spiece.model: `1e5036bed065526c3c212dfbe288752391797c4bb1a284aa18c9a0b23fcaf8ec`
+- special_tokens_map.json: `2b6a1ff67a27e0df9ac0c7d93250fc0d87431c7b366b3d5669217104f9088a26`
+
+No text tensors were loaded or encoded; this remains acquisition readiness, not
+a text-feature result. The original training run continued without changes.
+
+## Existing teacher error concentration
+
+Read-only recomputation from the already-authenticated, already-exposed audit
+finds150 teacher errors across21classes. Six classes account for119errors:
+
+| Label | Name in cached dataset metadata | Errors / queries |
+|---|---|---:|
+|73|Chevrolet Silverado1500 Extended Cab2012|24/87|
+|70|Chevrolet Express Van2007|23/70|
+|63|Chevrolet Express Cargo Van2007|22/59|
+|74|Chevrolet Silverado1500 Regular Cab2012|21/88|
+|68|Chevrolet Silverado2500HD Regular Cab2012|17/76|
+|53|Chevrolet Silverado1500 Hybrid Crew Cab2012|12/80|
+
+Reciprocal nearest-neighbor confusions63↔70 account for45errors,68↔74 for31,
+and53↔73 for22. These are fine-grained same-family distinctions; this is not
+proof of wrong labels, irreducible ambiguity or a dataset-wide ceiling. No raw
+error images were inspected in this check. Language guidance might help transfer
+fine distinctions or harm them by emphasizing shared semantics; the proposed
+correct/permuted control remains essential and unchanged. These exposed class
+names/scores cannot be claimed as untouched evaluation in later research.
+
+## CPU loss/replay preparation
+
+`src/sfora/siglip_language_guidance.py` adds the loss and one combined full-batch
+cotangent replay without changing any frozen recovery source. The no-language
+control delegates to the original recovery backward path. There is no pilot
+runner, text acquisition or scientific execution in this slice.
+
+Claude review `d7b111cbcdcf4171` confirmed the analytic gradient and replay/update
+agreement and identified a reduced-fixture degeneracy: with only two classes,
+each off-diagonal softmax has one entry and the language gradient is zero. A
+focused failing test reproduced this, then the core was restricted to at least
+three balanced multi-image classes. Scientific callers still require30x4.
+Tests now directly bind the reported language-loss term and its exact base-arm
+zero, exercise unequal counts with three valid classes, and cover invalid
+input/label/target/microbatch/gradient/dtype/proxy/dropout states plus a real
+stateful-forward replay disagreement.
+
+The global population standard deviation is the operative target scale;
+subtracting the global mean cancels in row softmax. Centering remains part of
+the stored target convention, not a claimed additional learning mechanism.
+Text extraction must explicitly unit-normalize before `standardized_text_gram`;
+that function rejects raw non-unit vectors. No silent normalization alias or
+new near-zero centroid threshold was introduced.
+
+Verification after review repairs:28 focused tests;106 combined recovery tests;
+scoped strict mypy, Ruff and format checks pass. These are CPU engineering
+checks, not CUDA feasibility, pilot quality or an inferred performance saving.

@@ -87,3 +87,33 @@ by local tests; the active training deployment is unchanged:
 Local evaluator gate:13 tests passed, including real reduced-model checkpoint
 restoration, full2746-row retrieval and100 measured CPU-search samples. No
 scientific quality conclusion follows from these synthetic tests.
+
+## Prepared final evaluation deployment (not executed)
+
+Evaluator commit `32fba740`; immutable root
+`/home/riomus/sfora-recovery-eval-e60d8fa318a1`, copied from the unchanged
+training deployment with only the three explicit evaluation overlays:
+
+- runner SHA256 `e60d8fa318a17b69985deb2c8f43339427b34576f34f48bf66a21cf683ab6985`;
+- evaluation core `d8952c1ea5e6ea9c747379ee07e25330aab9632829ae90fc179ebde8ffad0568`;
+- existing retrieval core `fa2f06d1fa78a8058b1a90f4103eb3966e90931504acd990fbb5440f61bee34c`.
+
+DGX import and frozen dependency validation completed with no model/data load.
+The full local recovery regression group passed78tests; the four evaluator/core
+and test files pass scoped strict mypy, Ruff and format checks.
+
+Prepared wrapper `/home/riomus/sfora-recovery-eval-e60d8fa318a1-launch.py`, SHA256
+`b9adad0f2bdf980e76197e7bad0b7c6012c4730bc66ffed7db7be506640953ec`;
+monitor `/home/riomus/sfora-recovery-eval-monitor.py`, SHA256
+`db5ae1d9293d004eee5755f60fc2a392f0107f98678cb7ff18c5e8dee0c753dc`.
+These are operational launch artifacts, not new training code. The monitor
+requires the original successful pair monitor's exact SHA, validates its bound
+pair result and wrapper, and permits at most min(1800,remaining campaign seconds).
+It retains110GiB RSS, original PSI/swap and300s progress caps, an external
+TERM/KILL timeout, exclusive output/log/receipt creation and no restart.
+
+A refusal-only invocation while training remained active exited1 at the missing
+pair-terminal receipt, before the GPU-idle check or subprocess launch. No
+evaluation log/result/monitor file was created. Scientific evaluation remains
+pending both final checkpoint seals and successful original training terminal;
+the prepared evaluator is not automatically scheduled by this document.
