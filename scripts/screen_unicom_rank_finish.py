@@ -56,7 +56,7 @@ def classify_rank_finish(
     """Apply the frozen epoch-6 abort and epoch-8 promotion gates."""
 
     epoch6_delta = _metric(epoch6, "map_at_r") - BASELINE["map_at_r"]
-    if epoch6_delta <= -0.003:
+    if epoch8 is None and epoch6_delta <= -0.003:
         return {"status": "ABORT_EPOCH6", "epoch6_delta_map": epoch6_delta}
     if epoch8 is None:
         return {"status": "CONTINUE_EPOCH6", "epoch6_delta_map": epoch6_delta}

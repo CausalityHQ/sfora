@@ -19,6 +19,7 @@ BASELINE = {
     "recall_at_1": 0.986198243412798,
     "recall_at_10": 0.9974905897114178,
 }
+SEED2_PRECEDENCE_DEFECT_COMMIT = "d833ec6ecd71738b45e3285607594f9774de001f"
 
 
 def _sha256_file(path: Path) -> str:
@@ -83,16 +84,41 @@ def _seed_observation(result: object, expected_seed: int) -> dict[str, object]:
         for key, baseline in BASELINE.items()
     }
     registered = result["decision"].get("epoch8_deltas")
-    if (
-        type(registered) is not dict
-        or tuple(registered) != tuple(BASELINE)
-        or any(
-            type(registered[key]) is not float
-            or not math.isclose(registered[key], delta, rel_tol=0.0, abs_tol=1e-15)
+    registered_matches = (
+        type(registered) is dict
+        and tuple(registered) == tuple(BASELINE)
+        and all(
+            type(registered[key]) is float
+            and math.isclose(registered[key], delta, rel_tol=0.0, abs_tol=1e-15)
             for key, delta in deltas.items()
         )
-    ):
-        raise ValueError("rank-finish seed decision differs")
+    )
+    if not registered_matches:
+        epoch6_rows = [
+            row
+            for row in result["history"]
+            if type(row) is dict and row.get("epoch") == 6
+        ]
+        legacy = result["decision"]
+        if (
+            expected_seed != 2
+            or result["source_commit"] != SEED2_PRECEDENCE_DEFECT_COMMIT
+            or result.get("status") != "ABORT_EPOCH6"
+            or len(epoch6_rows) != 1
+            or type(epoch6_rows[0].get("metrics")) is not dict
+            or type(legacy) is not dict
+            or set(legacy) != {"status", "epoch6_delta_map"}
+            or legacy["status"] != "ABORT_EPOCH6"
+            or type(legacy["epoch6_delta_map"]) is not float
+            or not math.isclose(
+                legacy["epoch6_delta_map"],
+                _metric(epoch6_rows[0]["metrics"].get("map_at_r"), "map_at_r")
+                - BASELINE["map_at_r"],
+                rel_tol=0.0,
+                abs_tol=1e-15,
+            )
+        ):
+            raise ValueError("rank-finish seed decision differs")
     passes = (
         deltas["map_at_r"] >= 0.003
         and deltas["recall_at_1"] >= -0.001

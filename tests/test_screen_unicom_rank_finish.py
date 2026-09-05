@@ -23,6 +23,7 @@ def _metrics(map_at_r: float, r1: float = 0.9862, r10: float = 0.9975):
     ("epoch6", "epoch8", "expected"),
     (
         (_metrics(0.8945), None, "ABORT_EPOCH6"),
+        (_metrics(0.8945), _metrics(0.8944), "REJECT"),
         (_metrics(0.8980), None, "CONTINUE_EPOCH6"),
         (_metrics(0.8980), _metrics(0.8990), "REJECT"),
         (_metrics(0.8980), _metrics(0.9020), "EXPLORATORY_IMPROVEMENT"),

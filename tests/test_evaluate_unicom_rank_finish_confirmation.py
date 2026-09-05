@@ -80,6 +80,30 @@ def test_confirmation_accepts_metrics_only_robustness_seed() -> None:
     assert decision["seeds"][2]["model_artifact"] is None
 
 
+def test_confirmation_recomputes_known_seed2_terminal_precedence_defect() -> None:
+    results = [_result(0, 0.013), _result(1, 0.011), _result(2, -0.0031)]
+    seed2 = results[2]
+    seed2.pop("model_artifact")
+    seed2["source_commit"] = MODULE.SEED2_PRECEDENCE_DEFECT_COMMIT
+    seed2["history"].insert(
+        0,
+        {
+            "epoch": 6,
+            "metrics": {
+                **seed2["history"][0]["metrics"],
+                "map_at_r": MODULE.BASELINE["map_at_r"] - 0.011,
+            },
+            "steps": 161,
+        },
+    )
+    seed2["decision"] = {"status": "ABORT_EPOCH6", "epoch6_delta_map": -0.011}
+    seed2["status"] = "ABORT_EPOCH6"
+
+    decision = MODULE.evaluate_confirmation(results)
+
+    assert decision["status"] == "REJECT"
+
+
 def test_confirmation_accepts_canonical_disk_roundtrip() -> None:
     results = [_result(0, 0.013), _result(1, 0.011), _result(2, 0.009)]
     restored = json.loads(json.dumps(results, sort_keys=True))
