@@ -105,6 +105,23 @@ for those config IDs. No config bytes or vocabulary were rewritten to suppress
 warnings. The future loader must check actual input range and retain this
 compatibility caveat. Text-model tensor loading/inference remains unexecuted.
 
+Following Claude plan review `09ec6a5520614d1b`, an actual DGX CPU/meta structural
+preflight reauthenticated the full model and config bytes, then compared all438
+prefix-stripped text key/shape/F32 entries against Transformers5.12.1's model
+constructed on `meta`. It passed:27layers,1152hidden, no tensor materialization,
+CUDA remained uninitialized. The108,624-byte header SHA256 is
+`2f2507ff26802b1bb6007f9e61bee399073ab426d2a90466ca672b5c2625190c`.
+The BOS/EOS warnings remained visible; numerical full-text encoding is still
+unexecuted. Existing recovery training continued, reaching relational71/198
+with zero replay disagreement and PSI0.00 at the next read-only check.
+
+The same review clarified separate recovery-monitor versus evaluation-monitor
+validation, a conservative four-gallery admission estimate inside the unchanged
+1800s evaluation reserve, and descriptive correct-vs-base/permuted contrasts
+regardless of investment-gate outcome. Those requirements are now explicit in
+the plan/spec. Reviewer estimates of full-depth training memory/time are not
+measurements and are not used as scientific admission evidence.
+
 ## Existing teacher error concentration
 
 Read-only recomputation from the already-authenticated, already-exposed audit

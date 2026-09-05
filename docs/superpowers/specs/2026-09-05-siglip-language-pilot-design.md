@@ -54,6 +54,10 @@ a vision-only checkpoint. Instantiate only the27-layer,1152-hidden text tower
 and strictly load all438 text tensor keys from the authenticated full container;
 vision keys are not model inputs. Validate dtype/shape/finiteness against the
 instantiated text state rather than relying only on a tensor-key count.
+Before GPU admission, compare all text key/shape/dtype entries from the local
+safetensors header with a meta-device instance built from the exact config.
+This structural preflight materializes no tensors and does not replace full
+byte authentication or numerical validation during the actual restore.
 
 Read the196-name mapping from authenticated dataset metadata, selecting only
 IDs0..48. Form exactly `a photo of a {official_class_name}.` without manual
@@ -108,6 +112,16 @@ off-diagonal softmax has no signal); the runner requires30x4.
 This is a separate pilot with a two-hour GPU execution cap, not additional time
 hidden inside the original six-hour recovery campaign. No pilot GPU work starts
 while the recovery/evaluation process is active.
+The recovery training-monitor validator's returned remaining-six-hour budget is
+discarded. Separately require the final evaluation monitor's exact schema,
+exit0/no stop, result digest, source identity and pair-monitor binding.
+
+Before any pilot GPU work, require `2 * recovery_evaluation_elapsed + 300 <= 1800`
+using the authenticated completed evaluator's elapsed time. This conservative
+admission estimate accounts for up to four full27-layer galleries versus the
+prior27+18+18-layer galleries; it is not a measured guarantee. No repeated CPU
+search timing is performed in this quality pilot. Actual external time limits
+remain authoritative. If this reserve check fails, do not spend60updates.
 
 Before committing to60updates, run three base and three correct-language timing
 updates on disposable copies of the selected initialization. Use identical
@@ -147,6 +161,10 @@ and `MAP_correct >= max(MAP_base,MAP_permuted,0.7913744556922272)`.
 
 Retain per-query paired discordances and class effects. A correct-language win
 over base but not permuted does not identify semantic information as causal.
+Always record named descriptive secondary contrasts `correct-vs-base` and
+`correct-vs-permuted`, regardless of advancement. They do not relax the fixed
+gate or trigger another configuration; a gate failure is not evidence that all
+class-language correspondence has zero effect.
 Failure closes this exact short-horizon recipe, not all language guidance.
 Authority/numerical/resource/time failures are invalid execution, not negative
 quality. No retry on the same outcomes. Full final pipeline speed requires a new

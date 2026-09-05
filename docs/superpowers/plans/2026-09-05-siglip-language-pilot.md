@@ -76,7 +76,7 @@ for a,b in zip(order, order[1:]+order[:1], strict=True):
 - [ ] Add coherent tests proving initialization calls the existing pair/checkpoint/monitor validation and recomputes `recovery_decision`, rather than trusting `selected_arm`. Mutate a selected flag while keeping measured cells fixed; the selected initialization must remain the recomputed one. Cover PA preference, relational-only pass and neither-pass teacher fallback.
 - [ ] Add loader tests using a tiny real text model/state mapping and tokenizer double: authenticate bytes before parse/load; strip exactly one `text_model.` prefix; strict missing/extra/tensor-shape rejection; require no evaluation class prompt; wrong token identity/range rejected before text forward; eval/no-grad FP32 pooled normalization and frozen Gram. Test partial receipt/overwrite rejection.
 - [ ] Run `rtk proxy .venv/bin/pytest -q tests/test_run_siglip_language_pilot.py -k 'initialization or text'` and preserve RED.
-- [ ] Implement initialization using `validate_pair_receipt`, `authenticate_checkpoint_files`, `validate_student_payload`, `evaluation_budget_seconds` and exact evaluator-source/result/monitor bindings. Verify teacher2596/MAP reproduction fields and independently recompute all recovery gates; also require successful final-evaluation monitor bound to those exact bytes. No quality image is loaded here.
+- [ ] Implement initialization using `validate_pair_receipt`, `authenticate_checkpoint_files`, `validate_student_payload` and exact evaluator-source/result/monitor bindings. Use `evaluation_budget_seconds` only to validate the recovery training monitor; discard its six-hour remainder. Add an explicit separate evaluation-monitor check for its actual schema, exit0, stop=None, result SHA and source/pair-monitor bindings. Verify teacher2596/MAP reproduction fields and independently recompute all recovery gates. Require `2*authenticated_recovery_evaluation_elapsed+300<=1800` before pilot GPU work; this conservative projection covers four full-depth galleries, not a new budget. No quality image is loaded here.
 - [ ] Implement text preparation with the authenticated full snapshot and isolated tokenizer dependencies. Read `dataset_info.json` only after its SHA matches. Build49 prompts; require actual49x64 int64 raw SHA `11acd1f22b97218100a67090117348939c1b4853cf05471ca79a0ece91460fe1`, no fabricated mask. Strictly load the flat SiglipTextModel from438 prefix-stripped keys; enforce1152 hidden/27 layers/config and tensor finiteness. Encode once on the selected scientific device and seal artifacts:
 
 ```python
@@ -90,7 +90,7 @@ with torch.no_grad():
 ```
 
 Store unit vectors, Gram, token IDs and permutation using exclusive writes/fsync/hash before canonical target receipt. Bind all input/source/dependency/toolchain identities and elapsed. Free text model before image training.
-- [ ] Same focused GREEN, scoped static gate, commit verified runner/test slice. CPU loader tests are not proof of historical GPU compatibility; actual strict text restore remains first scientific boundary.
+- [ ] Add a CPU/meta-device header preflight: construct SiglipTextModel from authenticated text config under `torch.device("meta")`, compare exact438 prefix-stripped names/shapes/dtypes against the local safetensors header, and retain identities. No model tensor or GPU materialization. Same focused GREEN, scoped static gate, commit verified runner/test slice. This closes structural compatibility only; actual numerical encoding remains unmeasured until its scientific phase.
 
 ### Task3: Fixed training and final-only seals
 
@@ -110,7 +110,7 @@ Store unit vectors, Gram, token IDs and permutation using exclusive writes/fsync
 - [ ] Write phase tests: exact required local paths/digests, training versus evaluation argument separation, unknown/duplicate parameters and any scientific depth/step/LR/template overrides rejected. Evaluation requires all three final seals and successful original training monitor before any image decode. Mutated source/state/target/input/monitor receipts must fail. A fake image loader records that early rejection happens without data access.
 - [ ] Add a complete reduced CPU phase integration with real tensor checkpoints. Independently derive quality cells from raw ranks, decision and paired discordances. Mutate aggregates, hit vectors, partial/missing arm and decision flag; require rejection/recomputation rather than trusting copied summaries.
 - [ ] Run these exact nodes for RED, then implement CLI with only `train` and `evaluate` phases. Reuse `load_recovery_evaluation_images`, `decoded_native_digest`, `embed_recovery_model`, `require_teacher_reproduction`, `paired_discordances` and retrieval core; no active evaluator edits. Authenticate all three final tensor payloads before metadata/pixel loading. Teacher is first gallery; require exact baseline aggregate before candidate judgment. Candidate galleries are independent2746x512 unitFP32. Retain per-query evidence, class effects and raw objective/elapsed resources; no final speed claim without timing.
-- [ ] Write canonical result create-exclusively and recompute Task1 advancement. Bind successful training/evaluation monitor chain and actual total GPU seconds; terminal dispositions are invalid, fixed quality failure or exploratory advancement. Treat file/authority/resource errors as invalid, never poor quality.
+- [ ] Write canonical result create-exclusively and recompute Task1 advancement. Always retain named descriptive `correct-vs-base` and `correct-vs-permuted` discordances regardless of gate outcome; do not reinterpret gate failure as no semantic effect. Do not run `profile_recovery_search` in this quality pilot. Bind successful training/evaluation monitor chain and actual total GPU seconds; terminal dispositions are invalid, fixed quality failure or exploratory advancement. Treat file/authority/resource errors as invalid, never poor quality.
 - [ ] Run guidance/protocol/runner and existing recovery tests together; scoped Ruff/format/mypy. Ask Claude read-only to review actual authority, initialization, fullbatch gradient, elapsed/monitor and phase chain. Reproduce material findings with narrow RED/GREEN before changes.
 - [ ] After stable review, run repository assurance from its documented configuration once; preserve unrelated failures separately and do not claim a clean full gate if they remain. Commit only verified slice and docs. No broad staging.
 - [ ] Only after current recovery pair AND evaluator terminate, freeze source tree, launcher bytes and actual new inputs. Install no packages into active venv. One monitored train process followed by one monitored evaluation process, sharing7200s minus actual elapsed; timeout envelopes include target/timing work and saving. Preserve original exits/monitors, no auto-resume. Telegram new measurements promptly.
@@ -119,8 +119,8 @@ Store unit vectors, Gram, token IDs and permutation using exclusive writes/fsync
 
 Inline execution is selected by operator autonomy instruction; no approval pause.
 All spec sections map to Tasks1–4. The existing28-test math foundation is reused,
-not reimplemented. Historical text compatibility is an explicit remaining
-runtime risk; tokenizer-only preflight does not remove it. Training and
+not reimplemented. Header/meta comparison closes structural compatibility;
+numerical text encoding remains a runtime risk. Training and
 evaluation have separate original monitors to avoid requiring an unfinished
 combined monitor before evaluation. Their elapsed receipts share one fixed
 two-hour budget. This plan never delays or changes the current experiment.
@@ -133,3 +133,16 @@ two-hour budget. This plan never delays or changes the current experiment.
   was mechanically repaired before the final checks. No GPU operation occurred.
 - Tasks2–4 are pending. Existing DGX relational recovery remains the sole
   scientific process; no language model encoding or pilot has started.
+- Claude review `09ec6a5520614d1b` completed412s: accepted structural/input and
+  control approach; clarified separate monitor validation, conservative4-gallery
+  admission, explicit descriptive contrasts and meta-header preflight. These
+  are now plan/spec requirements, not yet all implemented. Reviewer estimates
+  of full-depth update timing/memory remain unmeasured, not admission evidence.
+- Task2 partial boundary implemented: real tiny SigLIP/safetensors restore,
+  prompt identity, token authority/frozen pooling, and pure recovery selection
+  plus separate evaluation-monitor/reserve checks. Original missing-file/API
+  REDs preserved;43 boundary tests pass,122 combined language tests pass, scoped
+  strict mypy/Ruff/format GREEN. Actual DGX meta/header comparison also passed
+  without CUDA initialization. Top-level full-file initialization loading,
+  target serialization/receipts, CLI and Tasks3–4 remain pending. This is not
+  an executable scientific pilot yet.
