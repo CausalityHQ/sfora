@@ -44,6 +44,7 @@ def test_deployment_is_single_process_offline_bounded_and_verifies_result() -> N
     assert "stop_reason=psi-sustained" in source
     assert "stop_reason=swap-delta" in source
     assert "stop_reason=progress-gap" in source
+    assert "BEGIN{print (a > p ? a : p)}" in source
     assert '"cuda_memory_cap_enforced_in_process": True' in source
     assert "validate_attention_readout_result_bytes" in source
     assert 'unlink "$staging/control-manifest.json"' in source

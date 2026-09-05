@@ -244,7 +244,7 @@ while kill -0 "$child" 2>/dev/null; do
   cpu=$(ps -o time= -g "$child" 2>/dev/null | sha256sum | awk '{print $1}')
   ((rss > peak_rss)) && peak_rss=$rss
   ((cuda_mib > peak_cuda_mib)) && peak_cuda_mib=$cuda_mib
-  peak_psi=$(awk -v a="$peak_psi" -v b="$psi" 'BEGIN{print a>b?a:b}')
+  peak_psi=$(awk -v a="$peak_psi" -v p="$psi" 'BEGIN{print (a > p ? a : p)}')
   ((rss <= 118111600640)) || stop_reason=rss-cap
   if awk -v x="$psi" 'BEGIN{exit !(x>=0.50)}'; then
     ((psi_hits+=1))
