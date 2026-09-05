@@ -8,6 +8,7 @@ import importlib.util
 import json
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, cast
 
 import pytest
@@ -266,6 +267,117 @@ def _select(value: dict[str, Any], monitor: dict[str, Any]) -> dict[str, Any]:
             evaluation_sha256="3" * 64,
         ),
     )
+
+
+def test_initialization_authenticates_complete_pair_chain_and_ignores_copied_selection(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    evaluation, evaluation_monitor = _selection_evidence()
+    evaluation["selected_arm"] = "relational"  # copied convenience field is not authority
+    pair_receipt: dict[str, Any] = {"resources": {}, "arms": {}, "checkpoints": {}}
+    pair_monitor = {"schema": "fixture-pair-monitor"}
+    smoke = {"schema": "fixture-smoke"}
+
+    def write(name: str, value: dict[str, Any]) -> tuple[Path, str]:
+        path = tmp_path / name
+        path.write_text(json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n")
+        return path, _sha(path)
+
+    pair_path, pair_sha = write("pair-complete.json", pair_receipt)
+    pair_monitor_path, pair_monitor_sha = write("pair-monitor.json", pair_monitor)
+    evaluation["pair_sha256"] = pair_sha
+    evaluation["monitor_sha256"] = pair_monitor_sha
+    evaluation_path, evaluation_sha = write("evaluation.json", evaluation)
+    evaluation_monitor["result_sha256"] = evaluation_sha
+    evaluation_monitor["pair_monitor_sha256"] = pair_monitor_sha
+    evaluation_monitor_path, evaluation_monitor_sha = write(
+        "evaluation-monitor.json",
+        evaluation_monitor,
+    )
+    smoke_path, smoke_sha = write("smoke.json", smoke)
+    checkpoint_paths = {arm: tmp_path / f"{arm}-final.pt" for arm in ("pa", "relational")}
+    for path in checkpoint_paths.values():
+        path.write_bytes(b"payload")
+    calls: list[tuple[str, Any]] = []
+
+    def fake_smoke(path: Path, digest: str) -> dict[str, Any]:
+        calls.append(("smoke", (path, digest)))
+        return smoke
+
+    def fake_budget(value: Any, monitor: Any, digest: str) -> float:
+        calls.append(("pair-monitor", (monitor, digest)))
+        return 1.0
+
+    def fake_checkpoints(directory: Path, value: Any) -> dict[str, Path]:
+        calls.append(("checkpoint-bytes", directory))
+        return checkpoint_paths
+
+    monkeypatch.setattr(
+        subject.pair,
+        "read_smoke_authority",
+        fake_smoke,
+    )
+    monkeypatch.setattr(
+        subject.evaluator,
+        "validate_pair_receipt",
+        lambda value, authority: calls.append(("pair", (value, authority))),
+    )
+    monkeypatch.setattr(
+        subject.evaluator,
+        "evaluation_budget_seconds",
+        fake_budget,
+    )
+    monkeypatch.setattr(
+        subject.evaluator,
+        "authenticate_checkpoint_files",
+        fake_checkpoints,
+    )
+    monkeypatch.setattr(subject.torch, "load", lambda path, **kwargs: {"path": path.name})
+    monkeypatch.setattr(
+        subject.evaluator,
+        "validate_student_payload",
+        lambda payload, value, arm: calls.append(("payload", (payload, arm))),
+    )
+    result = subject.read_initialization(
+        SimpleNamespace(
+            pair_directory=tmp_path,
+            pair_sha256=pair_sha,
+            pair_monitor=pair_monitor_path,
+            pair_monitor_sha256=pair_monitor_sha,
+            smoke_result=smoke_path,
+            smoke_sha256=smoke_sha,
+            evaluation=evaluation_path,
+            evaluation_sha256=evaluation_sha,
+            evaluation_monitor=evaluation_monitor_path,
+            evaluation_monitor_sha256=evaluation_monitor_sha,
+            teacher_checkpoint=tmp_path / "teacher.pt",
+        )
+    )
+    assert result["selected_arm"] == "pa"
+    assert result["initialization_path"] == checkpoint_paths["pa"]
+    assert [c[0] for c in calls] == [
+        "smoke",
+        "pair",
+        "pair-monitor",
+        "checkpoint-bytes",
+        "payload",
+        "payload",
+    ]
+    assert result["choice"]["evaluation_projection_seconds"] == 910.0
+
+
+def test_initialization_rejects_digest_before_any_tensor_parse(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    path = tmp_path / "pair-complete.json"
+    path.write_text("{}\n")
+    parsed: list[bool] = []
+    monkeypatch.setattr(subject.torch, "load", lambda *a, **k: parsed.append(True))
+    with pytest.raises(ValueError):
+        subject.read_initialization(SimpleNamespace(pair_directory=tmp_path, pair_sha256="0" * 64))
+    assert parsed == []
 
 
 def test_initialization_recomputes_all_gates_and_prefers_pa() -> None:
@@ -815,3 +927,126 @@ def test_target_loader_rejects_partial_or_coherently_rehashed_control_drift(
     path.write_text(json.dumps(receipt, sort_keys=True, separators=(",", ":")) + "\n")
     with pytest.raises((ValueError, FileNotFoundError)):
         subject.load_language_targets(path, _sha(path))
+
+
+def test_prepare_targets_authenticates_local_sources_and_never_uses_evaluation_names(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    snapshot = tmp_path / "9fdffc58afc957d1a03a25b10dba0329ab15c2a3"
+    snapshot.mkdir()
+    files = {}
+    for role, name in {
+        "model": "model.safetensors",
+        "config": "config.json",
+        "tokenizer": "tokenizer.json",
+        "tokenizer_config": "tokenizer_config.json",
+        "spiece": "spiece.model",
+        "special_tokens": "special_tokens_map.json",
+    }.items():
+        path = snapshot / name
+        path.write_bytes(role.encode())
+        files[role] = path
+    dataset_info = tmp_path / "dataset_info.json"
+    dataset_info.write_text(
+        json.dumps(
+            {
+                "features": {
+                    "label": {"_type": "ClassLabel", "names": [f"name-{i}" for i in range(196)]}
+                }
+            }
+        )
+    )
+    files["dataset_info"] = dataset_info
+    digests = {role: _sha(path) for role, path in files.items()}
+    ids = _tokens()
+    model = _text_model()
+    model.config.hidden_size = 1152
+    model.config.num_hidden_layers = 27
+    model.config.vocab_size = 32000
+    pooled = torch.nn.functional.normalize(torch.randn(49, 1152), dim=1)
+    model.forward = lambda **kwargs: SimpleNamespace(pooler_output=pooled)  # type: ignore[method-assign]
+    seen: dict[str, Any] = {}
+    monkeypatch.setattr(subject, "SiglipTextModel", lambda config: model, raising=False)
+    monkeypatch.setattr(
+        subject,
+        "SiglipTextConfig",
+        SimpleNamespace(
+            from_json_file=lambda path: SimpleNamespace(
+                hidden_size=1152,
+                num_hidden_layers=27,
+                vocab_size=32000,
+            ),
+        ),
+        raising=False,
+    )
+    monkeypatch.setattr(subject, "load_text_state", lambda *args: seen.update(loaded=args))
+
+    class Tokenizer:
+        def __call__(self, prompts: tuple[str, ...], **kwargs: Any) -> dict[str, torch.Tensor]:
+            seen["prompts"] = prompts
+            seen["tokenizer_kwargs"] = kwargs
+            return {"input_ids": ids}
+
+    monkeypatch.setattr(
+        subject,
+        "AutoTokenizer",
+        SimpleNamespace(from_pretrained=lambda path, local_files_only: Tokenizer()),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        subject,
+        "seal_language_targets",
+        lambda directory, vectors, input_ids, prompts, source, **kwargs: (
+            seen.update(
+                sealed=(directory, vectors, input_ids, prompts, source, kwargs),
+            )
+            or {"schema": "fixture-seal"}
+        ),
+    )
+    args = SimpleNamespace(
+        snapshot=snapshot,
+        dataset_info=dataset_info,
+        output_dir=tmp_path / "out",
+        expected_tokens_sha256=_token_sha(ids),
+        **{role: path for role, path in files.items() if role != "dataset_info"},
+        **{f"{role}_sha256": digest for role, digest in digests.items()},
+    )
+    events: list[dict[str, Any]] = []
+    result = subject.prepare_text_targets(args, torch.device("cpu"), events.append)
+    assert result["schema"] == "fixture-seal"
+    assert len(events) == 2 and events[0]["stage"] == "text-targets-authenticated"
+    assert events[1]["stage"] == "text-targets-sealed"
+    assert seen["prompts"] == tuple(f"a photo of a name-{i}." for i in range(49))
+    assert all("name-49" not in prompt for prompt in seen["prompts"])
+    assert seen["tokenizer_kwargs"] == {
+        "padding": "max_length",
+        "truncation": True,
+        "max_length": 64,
+        "return_tensors": "pt",
+    }
+    source = seen["sealed"][4]
+    assert {k: source[k] for k in digests} == digests
+    assert set(source) == {*digests, "runner", "guidance", "protocol"}
+
+
+def test_prepare_targets_rejects_source_digest_before_model_construction(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    model = tmp_path / "model.safetensors"
+    model.write_bytes(b"real")
+    constructed: list[bool] = []
+    monkeypatch.setattr(
+        subject,
+        "SiglipTextModel",
+        lambda config: constructed.append(True),
+        raising=False,
+    )
+    with pytest.raises(ValueError):
+        subject.prepare_text_targets(
+            SimpleNamespace(model=model, model_sha256="0" * 64),
+            torch.device("cpu"),
+            lambda event: None,
+        )
+    assert constructed == []

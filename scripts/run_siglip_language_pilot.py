@@ -17,7 +17,10 @@ import torch
 from safetensors import safe_open
 from safetensors.torch import load as load_safetensors
 from safetensors.torch import save as save_safetensors
+from transformers import AutoTokenizer, SiglipTextConfig, SiglipTextModel
 
+import sfora.siglip_language_guidance as language_guidance
+import sfora.siglip_language_protocol as language_protocol
 from sfora.siglip_depth_recovery import recovery_multiplier
 from sfora.siglip_language_guidance import recomputed_language_backward, standardized_text_gram
 from sfora.siglip_language_protocol import fixed_language_permutation
@@ -34,7 +37,9 @@ EVALUATION_SOURCE_SHA256 = {
 _SCRIPTS = str(Path(__file__).resolve().parent)
 if _SCRIPTS not in sys.path:
     sys.path.insert(0, _SCRIPTS)
+import evaluate_siglip_recovery_pair as evaluator  # noqa: E402
 import run_siglip_proxy_control as control  # noqa: E402
+import run_siglip_recovery_pair as pair  # noqa: E402
 import run_siglip_recovery_smoke as smoke  # noqa: E402
 
 
@@ -51,6 +56,17 @@ def _authenticate(path: Path, expected_sha256: str) -> None:
             digest.update(chunk)
     if digest.hexdigest() != expected_sha256:
         raise ValueError("input digest differs")
+
+
+def _read_canonical_json(path: Path, expected_sha256: str) -> dict[str, Any]:
+    if path.is_symlink() or not path.is_file():
+        raise ValueError("input must be a regular file")
+    _authenticate(path, expected_sha256)
+    raw = path.read_bytes()
+    value = json.loads(raw)
+    if type(value) is not dict or control._canonical_bytes(value) != raw:
+        raise ValueError("input is not finite canonical JSON")
+    return value
 
 
 def load_text_state(path: Path, expected_sha256: str, model: torch.nn.Module) -> None:
@@ -125,6 +141,90 @@ def encode_frozen_text(
         vectors = pooled / norms
         gram = standardized_text_gram(vectors)
     return vectors, gram
+
+
+def prepare_text_targets(
+    args: Any,
+    device: torch.device,
+    progress: Callable[[dict[str, Any]], None],
+) -> dict[str, Any]:
+    """Authenticate the frozen text inputs, encode IDs0..48, and seal both controls."""
+    started_ns = perf_counter_ns()
+    expected_snapshot = "9fdffc58afc957d1a03a25b10dba0329ab15c2a3"
+    roles = (
+        "model",
+        "config",
+        "tokenizer",
+        "tokenizer_config",
+        "spiece",
+        "special_tokens",
+        "dataset_info",
+    )
+    paths: dict[str, Path] = {}
+    digests: dict[str, str] = {}
+    for role in roles:
+        path = Path(getattr(args, role))
+        digest = getattr(args, f"{role}_sha256")
+        if path.is_symlink() or not path.is_file():
+            raise ValueError(f"{role} source must be a regular file")
+        _authenticate(path, digest)
+        paths[role], digests[role] = path, digest
+    snapshot = Path(args.snapshot)
+    if snapshot.name != expected_snapshot or any(
+        paths[role].resolve().parent != snapshot.resolve()
+        for role in roles
+        if role != "dataset_info"
+    ):
+        raise ValueError("text snapshot authority differs")
+    progress({"stage": "text-targets-authenticated", "input_sha256": digests})
+
+    config = SiglipTextConfig.from_json_file(str(paths["config"]))
+    if (
+        type(config.hidden_size) is not int
+        or config.hidden_size != 1152
+        or type(config.num_hidden_layers) is not int
+        or config.num_hidden_layers != 27
+        or type(config.vocab_size) is not int
+        or config.vocab_size != 32000
+    ):
+        raise ValueError("text configuration authority differs")
+    model = SiglipTextModel(config)
+    load_text_state(paths["model"], digests["model"], model)
+    prompts = official_optimization_prompts(
+        paths["dataset_info"],
+        digests["dataset_info"],
+    )
+    tokenizer = AutoTokenizer.from_pretrained(str(snapshot), local_files_only=True)
+    encoded = tokenizer(
+        prompts,
+        padding="max_length",
+        truncation=True,
+        max_length=64,
+        return_tensors="pt",
+    )
+    if type(encoded) is not dict or set(encoded) != {"input_ids"}:
+        raise ValueError("text tokenizer output authority differs")
+    input_ids = encoded["input_ids"]
+    torch.nn.Module.to(model, device)
+    vectors, _ = encode_frozen_text(model, input_ids.to(device), args.expected_tokens_sha256)
+    source = {
+        **digests,
+        "runner": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+        "guidance": hashlib.sha256(Path(language_guidance.__file__).read_bytes()).hexdigest(),
+        "protocol": hashlib.sha256(Path(language_protocol.__file__).read_bytes()).hexdigest(),
+    }
+    elapsed_seconds = (perf_counter_ns() - started_ns) / 1e9
+    receipt = seal_language_targets(
+        Path(args.output_dir),
+        vectors.cpu(),
+        input_ids.cpu(),
+        prompts,
+        source,
+        expected_tokens_sha256=args.expected_tokens_sha256,
+        elapsed_seconds=float(elapsed_seconds),
+    )
+    progress({"stage": "text-targets-sealed", "receipt": receipt})
+    return receipt
 
 
 def _gram_digest(gram: torch.Tensor) -> str:
@@ -384,6 +484,44 @@ def recovery_initialization_choice(
         "recomputed_decision": decision,
         "evaluation_projection_seconds": projection,
         "pilot_total_seconds": 7200,
+    }
+
+
+def read_initialization(args: Any) -> dict[str, Any]:
+    """Authenticate the completed recovery chain without loading quality images."""
+    pair_path = args.pair_directory / "pair-complete.json"
+    pair_receipt = _read_canonical_json(pair_path, args.pair_sha256)
+    smoke_authority = pair.read_smoke_authority(args.smoke_result, args.smoke_sha256)
+    evaluator.validate_pair_receipt(pair_receipt, smoke_authority)
+    pair_monitor = _read_canonical_json(args.pair_monitor, args.pair_monitor_sha256)
+    # Validation only; the recovery campaign remainder never becomes pilot time.
+    evaluator.evaluation_budget_seconds(pair_receipt, pair_monitor, args.pair_sha256)
+    checkpoints = evaluator.authenticate_checkpoint_files(args.pair_directory, pair_receipt)
+    for arm in ("pa", "relational"):
+        payload = torch.load(checkpoints[arm], map_location="cpu", weights_only=True, mmap=True)
+        evaluator.validate_student_payload(payload, pair_receipt, arm)
+        del payload
+    evaluation = _read_canonical_json(args.evaluation, args.evaluation_sha256)
+    evaluation_monitor = _read_canonical_json(
+        args.evaluation_monitor,
+        args.evaluation_monitor_sha256,
+    )
+    choice = recovery_initialization_choice(
+        evaluation,
+        evaluation_monitor,
+        pair_sha256=args.pair_sha256,
+        pair_monitor_sha256=args.pair_monitor_sha256,
+        evaluation_sha256=args.evaluation_sha256,
+    )
+    selected = choice["initialization"]
+    return {
+        "selected_arm": selected,
+        "initialization_path": checkpoints.get(selected, args.teacher_checkpoint),
+        "choice": choice,
+        "pair_sha256": args.pair_sha256,
+        "pair_monitor_sha256": args.pair_monitor_sha256,
+        "evaluation_sha256": args.evaluation_sha256,
+        "evaluation_monitor_sha256": args.evaluation_monitor_sha256,
     }
 
 
