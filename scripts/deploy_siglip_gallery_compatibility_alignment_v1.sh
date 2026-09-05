@@ -86,7 +86,7 @@ python=/home/riomus/group-learning/.venv/bin/python3
 staging=$output.partial
 authority=$staging/authority
 optimization_images=$staging/optimization-images
-child= group=
+child= group= source_owned=0 source_checkout_complete=0
 cleanup_remote() {
   if [[ -n ${group:-} ]]; then
     kill -TERM -- "-$group" 2>/dev/null || true
@@ -99,16 +99,28 @@ cleanup_remote() {
   test ! -e "$bundle" || unlink "$bundle"
   test "$staging" = "$output.partial" || exit 99
   test ! -e "$staging" || rm -rf -- "$staging"
+  if [[ "$source_owned" = 1 && ! -e "$output" && -e "$source_dir" ]]; then
+    test ! -L "$source_dir"
+    test "${source_dir##*/}" = "$revision"
+    test "$(dirname "$source_dir")" != /
+    if [[ "$source_checkout_complete" = 1 ]]; then
+      test "$(git -C "$source_dir" rev-parse HEAD)" = "$revision" || exit 99
+    fi
+    rm -rf -- "$source_dir"
+  fi
 }
 trap cleanup_remote EXIT
 trap 'cleanup_remote; exit 130' INT
 trap 'cleanup_remote; exit 143' TERM
 
+test ! -e "$source_dir"
+source_owned=1
 git clone --quiet --no-checkout "$bundle" "$source_dir"
 git -C "$source_dir" checkout --quiet --detach "$revision"
 unlink "$bundle"
 cd "$source_dir"
 test "$(git rev-parse HEAD)" = "$revision"
+source_checkout_complete=1
 test -z "$(git status --porcelain --untracked-files=no)"
 printf '%s\n' "$revision" >SOURCE_REVISION
 : >SOURCE_MANIFEST.sha256
@@ -200,7 +212,7 @@ while kill -0 "$child" 2>/dev/null; do
     | awk '{s+=$1}END{printf "%.0f",s}' || true)
   test -n "$gpu_mib" || gpu_mib=0
   ((rss <= 51539607552)) || stop_reason=rss-cap
-  ((gpu_mib <= 8192)) || stop_reason=gpu-memory-cap
+  ((gpu_mib <= 49152)) || stop_reason=gpu-memory-cap
   if awk -v x="$psi" 'BEGIN{exit !(x>=0.50)}'; then ((psi_hits+=1)); else psi_hits=0; fi
   awk -v x="$psi" 'BEGIN{exit !(x>=0.79)}' && stop_reason=psi-immediate || true
   ((psi_hits < 3)) || stop_reason=psi-sustained

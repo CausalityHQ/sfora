@@ -50,6 +50,15 @@ def test_deployment_has_single_process_pressure_and_evidence_guards() -> None:
     assert 'score_delta == value["self_geometry_max_score_delta"]' in source
     assert "gpu-memory-cap" in source
     assert "nvidia-smi --query-compute-apps=used_memory" in source
+    assert "((gpu_mib <= 49152))" in source
+    assert "source_owned=0" in source
+    assert "source_owned=1" in source
+    assert "source_checkout_complete=0" in source
+    assert "source_checkout_complete=1" in source
+    assert 'test ! -L "$source_dir"' in source
+    assert 'test "${source_dir##*/}" = "$revision"' in source
+    assert 'git -C "$source_dir" rev-parse HEAD' in source
+    assert 'rm -rf -- "$source_dir"' in source
     assert 'value["external_evaluation_access"] is False' in source
     assert 'private_tmp="$staging/private-tmp"' in source
     assert 'export HOME="$private_tmp" TMPDIR="$private_tmp"' in source
