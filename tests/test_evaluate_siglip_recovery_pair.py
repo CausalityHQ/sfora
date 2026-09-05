@@ -14,6 +14,8 @@ from typing import Any, cast
 import pytest
 import torch
 
+import sfora.siglip_asymmetric_recovery as asymmetric_core
+
 SPEC = importlib.util.spec_from_file_location(
     "evaluate_siglip_recovery_pair",
     Path(__file__).parents[1] / "scripts/evaluate_siglip_recovery_pair.py",
@@ -245,6 +247,78 @@ def test_retrieval_reproduces_per_query_teacher_not_only_aggregate_and_retains_d
     current["pa"]["retrieval"]["correct"] = (False, False, True, True)
     discordance = subject.paired_discordances(current["teacher"], current["pa"])
     assert discordance == {"both_correct": 2, "teacher_only": 2, "student_only": 0, "both_wrong": 0}
+
+
+def test_asymmetric_retrieval_excludes_matching_id_and_is_gallery_order_invariant() -> None:
+    query_ids = ("a", "b", "c", "d")
+    query_labels = (49, 49, 50, 50)
+    queries = torch.tensor([[1.0, 0.0], [1.0, 0.0], [0.0, 1.0], [0.0, 1.0]])
+    gallery_order = (2, 0, 3, 1)
+    galleries = queries[list(gallery_order)]
+    gallery_ids = tuple(query_ids[i] for i in gallery_order)
+    gallery_labels = tuple(query_labels[i] for i in gallery_order)
+
+    checks: list[bool] = []
+    evidence = asymmetric_core.asymmetric_retrieval_evidence(
+        queries,
+        galleries,
+        query_ids=query_ids,
+        gallery_ids=gallery_ids,
+        query_labels=query_labels,
+        gallery_labels=gallery_labels,
+        check_time=lambda: checks.append(True),
+    )
+
+    assert checks == [True]
+    assert evidence.nearest_ordinals == (1, 0, 3, 2)
+    assert evidence.correct == (True, True, True, True)
+    assert evidence.map_at_r == 1.0
+    subject.validate_geometry_retrieval_evidence(evidence)
+
+    with pytest.raises(ValueError, match="identity"):
+        asymmetric_core.asymmetric_retrieval_evidence(
+            queries,
+            galleries,
+            query_ids=query_ids,
+            gallery_ids=("x", *gallery_ids[1:]),
+            query_labels=query_labels,
+            gallery_labels=gallery_labels,
+        )
+    zero = queries.clone()
+    zero[0] = 0
+    with pytest.raises(ValueError, match="nonzero"):
+        asymmetric_core.asymmetric_retrieval_evidence(
+            zero,
+            galleries,
+            query_ids=query_ids,
+            gallery_ids=gallery_ids,
+            query_labels=query_labels,
+            gallery_labels=gallery_labels,
+        )
+
+
+def test_asymmetric_cross_map_gate_is_total_and_preregistered() -> None:
+    cells = {
+        "pa": {"queries": 2746, "map_at_r": 0.7000000000000001},
+        "relational": {"queries": 2746, "map_at_r": 0.6},
+    }
+    result = asymmetric_core.asymmetric_recovery_decision(cells)
+    assert result["selected_arm"] == "pa"
+    assert result["arms"]["pa"]["classification"] == "alive"
+    assert result["arms"]["relational"]["classification"] == "inconclusive-not-alive"
+    assert result["claim_eligible"] is False
+
+    cells["pa"]["map_at_r"] = 0.462
+    result = asymmetric_core.asymmetric_recovery_decision(cells)
+    assert result["selected_arm"] is None
+    assert result["arms"]["pa"]["classification"] == "dead"
+    assert result["arms"]["relational"]["classification"] == "inconclusive-not-alive"
+
+    for bad in (float("nan"), True, "0.7"):
+        mutated = copy.deepcopy(cells)
+        mutated["pa"]["map_at_r"] = bad
+        with pytest.raises(ValueError):
+            asymmetric_core.asymmetric_recovery_decision(mutated)
 
 
 def test_teacher_ranking_tie_drift_is_recorded_but_aggregate_quality_drift_fails() -> None:
