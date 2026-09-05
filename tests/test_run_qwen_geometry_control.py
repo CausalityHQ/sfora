@@ -169,6 +169,25 @@ def test_replayed_step_is_byte_deterministic_from_restored_state() -> None:
     assert results[0].optimizer_state_sha256 == results[1].optimizer_state_sha256
 
 
+def test_replayed_step_can_reduce_gradients_without_retaining_full_copies() -> None:
+    inputs, labels = _inputs()
+    model, proxies, optimizer = _fixture()
+
+    evidence = _MODULE.replayed_proxy_anchor_step(
+        model=model,
+        proxies=proxies,
+        inputs=inputs,
+        labels=labels,
+        optimizer=optimizer,
+        microbatch_size=2,
+        update_index=0,
+        capture_parameter_gradients=False,
+    )
+
+    assert evidence.parameter_gradients == ()
+    assert evidence.gradient_norm > 0.0
+
+
 def test_replayed_step_accepts_a_sliceable_non_tensor_image_batch() -> None:
     inputs, labels = _inputs()
     model, proxies, optimizer = _fixture()

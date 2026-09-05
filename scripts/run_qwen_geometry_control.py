@@ -24,12 +24,8 @@ from PIL import Image
 from torch import Tensor, nn
 from torch.nn import functional as F
 
-_REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
-if str(_REPOSITORY_ROOT) not in sys.path:
-    sys.path.insert(0, str(_REPOSITORY_ROOT))
-
-from sfora.data import load_image_retrieval_examples, materialize_image  # noqa: E402
-from sfora.qwen_geometry_control import (  # noqa: E402
+from sfora.data import load_image_retrieval_examples, materialize_image
+from sfora.qwen_geometry_control import (
     QwenGeometryProtocol,
     build_geometry_pooler,
     derive_epoch_batches,
@@ -39,7 +35,7 @@ from sfora.qwen_geometry_control import (  # noqa: E402
     optimizer_groups,
     pool_patch_tokens,
 )
-from sfora.token_set_proxy_anchor import proxy_anchor_loss  # noqa: E402
+from sfora.token_set_proxy_anchor import proxy_anchor_loss
 
 
 def _frame(value: bytes) -> bytes:
@@ -578,11 +574,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 
 def _load_real_geometry_model(args: argparse.Namespace) -> QwenVisionGeometryModel:
-    from scripts.diagnose_saga_gb10_feasibility import (
+    scripts_directory = str(Path(__file__).resolve().parent)
+    if scripts_directory not in sys.path:
+        sys.path.insert(0, scripts_directory)
+    from diagnose_saga_gb10_feasibility import (
         LoadedAuthority,
         TransformersFactory,
         load_qwen_adapter,
     )
+
     from sfora.saga_feasibility import load_fixture_authority, load_snapshot_authority
 
     snapshot = load_snapshot_authority(
@@ -707,6 +707,7 @@ def _run_smoke_trial(
                 optimizer=optimizer,
                 microbatch_size=args.microbatch_size,
                 update_index=update_index,
+                capture_parameter_gradients=False,
             )
             if torch.cuda.is_available():
                 torch.cuda.synchronize()
@@ -728,6 +729,7 @@ def _run_smoke_trial(
                     "update": update_index,
                 }
             )
+            del evidence
     tower_displacement = _summarize_tower_displacement(model.visual, baseline)
     with torch.no_grad():
         final_tokens = model.visual_tokens(fixed_image)
@@ -884,6 +886,7 @@ def run_train(args: argparse.Namespace) -> bytes:
                 optimizer=optimizer,
                 microbatch_size=args.microbatch_size,
                 update_index=update_index,
+                capture_parameter_gradients=False,
             )
             losses.append(evidence.loss)
             maximum_gradient_norm = max(maximum_gradient_norm, evidence.gradient_norm)
@@ -899,6 +902,7 @@ def run_train(args: argparse.Namespace) -> bytes:
             terminal_state_sha256 = evidence.updated_state_sha256
             terminal_optimizer_sha256 = evidence.optimizer_state_sha256
             update_index += 1
+            del evidence
         epochs.append(
             {
                 "elapsed_ns": perf_counter_ns() - epoch_started,
@@ -988,6 +992,7 @@ def replayed_proxy_anchor_step(
     optimizer: torch.optim.Optimizer,
     microbatch_size: int,
     update_index: int,
+    capture_parameter_gradients: bool = True,
 ) -> GeometryStepEvidence:
     """Apply Proxy Anchor once while replaying a logical batch in bounded slices."""
 
@@ -1047,6 +1052,8 @@ def replayed_proxy_anchor_step(
         raise ValueError("microbatch size must be a positive logical-batch divisor")
     if type(update_index) is not int or not 0 <= update_index < protocol.optimizer_updates:
         raise ValueError("update index differs from the registered schedule")
+    if type(capture_parameter_gradients) is not bool:
+        raise ValueError("gradient capture authority differs")
     if any(group.get("schedule_update") != update_index for group in optimizer.param_groups):
         raise ValueError("optimizer schedule position differs")
     if any("base_lr" not in group for group in optimizer.param_groups):
@@ -1100,7 +1107,8 @@ def replayed_proxy_anchor_step(
     for parameter in parameters:
         if parameter.grad is None or not torch.isfinite(parameter.grad).all().item():
             raise RuntimeError("every logical replay parameter must receive a finite gradient")
-        gradients.append(parameter.grad.detach().clone())
+        if capture_parameter_gradients:
+            gradients.append(parameter.grad.detach().clone())
     gradient_norm = torch.nn.utils.clip_grad_norm_(
         parameters, protocol.gradient_clip_norm, error_if_nonfinite=True
     )
