@@ -63,8 +63,9 @@ def _evidence(correct: int, average_precision: float) -> SpatialRetrievalEvidenc
     )
 
 
-def _result_bytes() -> bytes:
+def _result_bytes(*, self_retrieval_matches: bool = True) -> bytes:
     self_evidence = _evidence(100, 0.97)
+    aligned_self_evidence = self_evidence if self_retrieval_matches else _evidence(100, 0.96)
     return build_alignment_result(
         checkpoint_sha256="11" * 32,
         spatial_artifact_sha256="22" * 32,
@@ -76,7 +77,7 @@ def _result_bytes() -> bytes:
             "student-student": self_evidence,
             "student-teacher": _evidence(70, 0.66),
             "teacher-student": _evidence(71, 0.67),
-            "aligned-aligned": self_evidence,
+            "aligned-aligned": aligned_self_evidence,
             "aligned-teacher": _evidence(98, 0.96),
             "teacher-aligned": _evidence(97, 0.95),
         },
@@ -100,6 +101,12 @@ def test_alignment_result_is_canonical_and_recomputes_pass() -> None:
     assert value["external_evaluation_access"] is False
 
 
+def test_alignment_result_records_self_retrieval_gate_failure() -> None:
+    raw = _result_bytes(self_retrieval_matches=False)
+    value = validate_alignment_result_bytes(raw)
+    assert value["classification"] == "alignment-rejected"
+
+
 def _replace_student_self_with_valid_failure(value: dict[str, Any]) -> None:
     cell = value["cells"]["student-student"]
     cell["hits"] = [False] * 100
@@ -121,7 +128,7 @@ def _replace_student_self_with_valid_failure(value: dict[str, Any]) -> None:
             lambda value: value["cells"]["aligned-aligned"]["hits"].__setitem__(0, False),
             "retrieval relation differs|self geometry differs",
         ),
-        (_replace_student_self_with_valid_failure, "self retrieval differs"),
+        (_replace_student_self_with_valid_failure, "decision differs"),
         (
             lambda value: value["fidelity"]["fit-after"].update({"mean": 0.1}),
             "fidelity relation differs",

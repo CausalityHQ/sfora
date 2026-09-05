@@ -235,8 +235,7 @@ def _alignment_decision(
     self_geometry_max_score_delta: float,
 ) -> str:
     aligned_student = cells["aligned-aligned"]
-    if aligned_student != cells["student-student"]:
-        raise ValueError("alignment self retrieval differs")
+    self_retrieval_matches = aligned_student == cells["student-student"]
     if (
         type(self_geometry_max_score_delta) is not float
         or not math.isfinite(self_geometry_max_score_delta)
@@ -250,7 +249,8 @@ def _alignment_decision(
     dev_before = cast(dict[str, object], fidelity["development-before"])["mean"]
     dev_after = cast(dict[str, object], fidelity["development-after"])["mean"]
     passed = (
-        cast(int, aligned_teacher["correct"]) * 100
+        self_retrieval_matches
+        and cast(int, aligned_teacher["correct"]) * 100
         >= cast(int, aligned_teacher["queries"]) * 97
         and cast(float, aligned_teacher["map_at_r"]) >= 0.95
         and cast(int, teacher_aligned["correct"]) * 100
