@@ -58,12 +58,14 @@ outputs for retrieval.
    three held-out fitting folds; ties choose the larger lambda.
 4. **Teacher-anchored rank-32 residual.** Use
    `z(s)=normalize(s + U GELU(Vs) + b)`, zero-residual initialization, and a
-   fixed seed. Train for exactly 2,000 full-bank updates with AdamW, learning
+   fixed seed. Train for exactly 2,000 updates with AdamW, learning
    rate `1e-3`, no weight decay, and equal normalized weights on paired cosine,
    forward teacher-score, reverse teacher-score, and student-self score losses.
-   Each score loss uses the complete fitting-fold teacher bank in deterministic
-   row blocks; identical IDs are masked. Compare against an otherwise identical
-   paired-cosine-only control. No early stopping or development access.
+   Select exactly 256 teacher anchors per fitting fold by sorting example IDs on
+   `SHA256("sfora-compatibility-anchor-v1\0" || utf8(id))`. Each update uses the
+   next cyclic block of 256 fitting rows and all 256 anchors; identical IDs are
+   masked. Compare against an otherwise identical paired-cosine-only control.
+   No early stopping, hard-neighbor mining, or development access.
 5. **Burned-development oracle.** Split the ten development labels into two
    deterministic five-class halves using
    `SHA256("sfora-compatibility-oracle-v1\0" || ascii(label))`. Fit the same
