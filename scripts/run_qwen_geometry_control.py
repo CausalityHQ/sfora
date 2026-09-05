@@ -4,12 +4,14 @@
 from __future__ import annotations
 
 import argparse
+import gc
 import hashlib
 import json
 import math
 import os
 import resource
 import sys
+import tempfile
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -311,7 +313,9 @@ class QwenVisionGeometryModel(nn.Module):
                 parameter.requires_grad_(False)
         _validate_qwen_parameter_roles(self)
 
-    def forward(self, images: Sequence[object]) -> Tensor:
+    def visual_tokens(self, images: Sequence[object]) -> Tensor:
+        """Return the pre-pooler patch-token plane for an image batch."""
+
         if not isinstance(images, Sequence) or isinstance(images, (str, bytes)) or not images:
             raise ValueError("Qwen image batch differs")
         raw = self._image_processor(images=list(images), return_tensors="pt")
@@ -354,8 +358,130 @@ class QwenVisionGeometryModel(nn.Module):
         patches = torch.split(features, split_sizes)
         if any(patch.shape != patches[0].shape for patch in patches):
             raise ValueError("Qwen patch feature authority differs")
-        descriptors, _ = pool_patch_tokens(self.pooler, torch.stack(patches))
+        return torch.stack(patches).float()
+
+    def forward(self, images: Sequence[object]) -> Tensor:
+        patches = self.visual_tokens(images)
+        descriptors, _ = pool_patch_tokens(self.pooler, patches)
         return descriptors
+
+
+def _capture_trainable_snapshot(module: nn.Module) -> dict[str, Tensor]:
+    snapshot = {
+        name: parameter.detach().to(device="cpu", dtype=torch.float32).clone()
+        for name, parameter in module.named_parameters(remove_duplicate=False)
+        if parameter.requires_grad
+    }
+    if not snapshot:
+        raise ValueError("trainable snapshot is empty")
+    return snapshot
+
+
+def _tower_block_name(parameter_name: str) -> str:
+    parts = parameter_name.split(".")
+    if len(parts) >= 2 and parts[0] == "blocks" and parts[1].isdigit():
+        return f"blocks.{parts[1]}"
+    return parts[0]
+
+
+def _summarize_tower_displacement(
+    tower: nn.Module, baseline: Mapping[str, Tensor]
+) -> dict[str, object]:
+    """Stream exact FP32 tower displacement reductions by parameter block."""
+
+    current = {
+        name: parameter
+        for name, parameter in tower.named_parameters(remove_duplicate=False)
+        if parameter.requires_grad
+    }
+    if set(current) != set(baseline):
+        raise ValueError("tower displacement parameter authority differs")
+    totals: dict[str, list[float | int]] = {}
+    total_delta_squared = 0.0
+    total_before_squared = 0.0
+    total_changed = 0
+    total_elements = 0
+    maximum_absolute_delta = 0.0
+    chunk_size = 262_144
+    for name in sorted(current):
+        parameter = current[name].detach().reshape(-1)
+        before = baseline[name].reshape(-1)
+        if before.dtype != torch.float32 or before.numel() != parameter.numel():
+            raise ValueError("tower displacement baseline authority differs")
+        block = _tower_block_name(name)
+        block_totals = totals.setdefault(block, [0.0, 0.0, 0, 0, 0.0])
+        for start in range(0, parameter.numel(), chunk_size):
+            stop = min(parameter.numel(), start + chunk_size)
+            actual = parameter[start:stop].to(device="cpu", dtype=torch.float64)
+            expected = before[start:stop].to(dtype=torch.float64)
+            delta = actual - expected
+            delta_squared = float(torch.dot(delta, delta))
+            before_squared = float(torch.dot(expected, expected))
+            changed = int((actual != expected).sum())
+            maximum = float(delta.abs().max()) if delta.numel() else 0.0
+            elements = stop - start
+            total_delta_squared += delta_squared
+            total_before_squared += before_squared
+            total_changed += changed
+            total_elements += elements
+            maximum_absolute_delta = max(maximum_absolute_delta, maximum)
+            block_totals[0] = float(block_totals[0]) + delta_squared
+            block_totals[1] = float(block_totals[1]) + before_squared
+            block_totals[2] = int(block_totals[2]) + changed
+            block_totals[3] = int(block_totals[3]) + elements
+            block_totals[4] = max(float(block_totals[4]), maximum)
+    blocks = []
+    for block, values in sorted(totals.items()):
+        delta_squared, before_squared, changed, elements, maximum = values
+        relative = math.sqrt(float(delta_squared)) / max(
+            math.sqrt(float(before_squared)), 1.0e-12
+        )
+        blocks.append(
+            {
+                "block": block,
+                "changed_elements": int(changed),
+                "maximum_absolute_delta": float(maximum),
+                "relative_l2": relative,
+                "total_elements": int(elements),
+            }
+        )
+    protocol = QwenGeometryProtocol()
+    transformer = [value for value in blocks if str(value["block"]).startswith("blocks.")]
+    moving = sum(
+        float(value["relative_l2"]) >= protocol.tower_displacement_floor
+        for value in transformer
+    )
+    return {
+        "blocks": blocks,
+        "changed_elements": total_changed,
+        "maximum_absolute_delta": maximum_absolute_delta,
+        "moving_block_fraction": moving / len(transformer) if transformer else 0.0,
+        "moving_transformer_blocks": moving,
+        "relative_l2": math.sqrt(total_delta_squared)
+        / max(math.sqrt(total_before_squared), 1.0e-12),
+        "total_elements": total_elements,
+        "transformer_blocks": len(transformer),
+    }
+
+
+def _summarize_token_displacement(
+    before: Tensor, unchanged_repeat: Tensor, after: Tensor
+) -> dict[str, object]:
+    if before.shape != unchanged_repeat.shape or before.shape != after.shape or not before.numel():
+        raise ValueError("visual token displacement shape differs")
+    before64 = before.detach().to(device="cpu", dtype=torch.float64)
+    repeat64 = unchanged_repeat.detach().to(device="cpu", dtype=torch.float64)
+    after64 = after.detach().to(device="cpu", dtype=torch.float64)
+    denominator = max(float(torch.linalg.vector_norm(before64)), 1.0e-12)
+    discrepancy = float(torch.linalg.vector_norm(repeat64 - before64)) / denominator
+    relative = float(torch.linalg.vector_norm(after64 - before64)) / denominator
+    threshold = max(1.0e-6, 10.0 * discrepancy)
+    return {
+        "passed": relative > threshold,
+        "relative_l2": relative,
+        "threshold": threshold,
+        "unchanged_repeat_discrepancy": discrepancy,
+    }
 
 
 def _canonical_bytes(value: object) -> bytes:
@@ -474,11 +600,9 @@ def _load_real_geometry_model(args: argparse.Namespace) -> QwenVisionGeometryMod
     return model
 
 
-def _run_smoke_trial(
-    args: argparse.Namespace, examples: tuple[object, ...], plan: object
-) -> dict[str, object]:
-    protocol = QwenGeometryProtocol()
-    torch.manual_seed(args.seed)
+def _initialize_geometry_training_state(
+    args: argparse.Namespace, protocol: QwenGeometryProtocol
+) -> tuple[QwenVisionGeometryModel, nn.Parameter, torch.optim.AdamW]:
     model = _load_real_geometry_model(args)
     device = next(model.visual.parameters()).device
     proxies = nn.Parameter(
@@ -505,49 +629,120 @@ def _run_smoke_trial(
         eps=protocol.adamw_epsilon,
         foreach=protocol.optimizer_foreach,
     )
+    return model, proxies, optimizer
+
+
+def _run_smoke_trial(
+    args: argparse.Namespace,
+    examples: tuple[object, ...],
+    plan: object,
+    epoch_plan_digests: tuple[str, str, str],
+    *,
+    resume_after_two: bool,
+) -> dict[str, object]:
+    protocol = QwenGeometryProtocol()
+    torch.manual_seed(args.seed)
+    model, proxies, optimizer = _initialize_geometry_training_state(args, protocol)
+    device = next(model.visual.parameters()).device
     model.train()
+    baseline = _capture_trainable_snapshot(model.visual)
+    fixed_image = (_rgb_224(examples[plan.batches[0][0]].image),)  # type: ignore[attr-defined]
+    with torch.no_grad():
+        initial_tokens = model.visual_tokens(fixed_image)
+        repeated_initial_tokens = model.visual_tokens(fixed_image)
     started = perf_counter_ns()
     updates: list[dict[str, object]] = []
     update_elapsed_ns: list[int] = []
-    for update_index, batch in enumerate(plan.batches[:3]):  # type: ignore[attr-defined]
-        images = tuple(_rgb_224(examples[index].image) for index in batch)  # type: ignore[attr-defined]
-        labels = torch.tensor(
-            [examples[index].label for index in batch],  # type: ignore[attr-defined]
-            dtype=torch.int64,
-            device=device,
-        )
-        update_started = perf_counter_ns()
-        evidence = replayed_proxy_anchor_step(
-            model=model,
-            proxies=proxies,
-            inputs=images,
-            labels=labels,
-            optimizer=optimizer,
-            microbatch_size=args.microbatch_size,
-            update_index=update_index,
-        )
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()
-        update_elapsed_ns.append(perf_counter_ns() - update_started)
-        updates.append(
-            {
-                "batch_sha256": plan.batch_digests[update_index],  # type: ignore[attr-defined]
-                "changed_sampled_parameter_values": evidence.changed_sampled_parameter_values,
-                "gradient_norm": evidence.gradient_norm,
-                "loss": evidence.loss,
-                "maximum_score_disagreement": evidence.maximum_score_disagreement,
-                "optimizer_state_sha256": evidence.optimizer_state_sha256,
-                "parameter_displacement": [
-                    {"changed": changed, "role": role, "sampled": sampled}
-                    for role, sampled, changed in evidence.parameter_displacement
-                ],
-                "sampled_parameter_values": evidence.sampled_parameter_values,
-                "state_sha256": evidence.updated_state_sha256,
-                "update": update_index,
-            }
-        )
+    with tempfile.TemporaryDirectory(prefix="sfora-qwen-smoke-") as directory:
+        for update_index, batch in enumerate(plan.batches[:3]):  # type: ignore[attr-defined]
+            if resume_after_two and update_index == 2:
+                checkpoint_path = Path(directory) / "update-two.pt"
+                authority = write_geometry_checkpoint(
+                    path=checkpoint_path,
+                    model=model,
+                    proxies=proxies,
+                    optimizer=optimizer,
+                    source_commit=args.source_commit,
+                    arm=args.arm,
+                    seed=args.seed,
+                    completed_updates=2,
+                    epoch_plan_digests=epoch_plan_digests,
+                )
+                del model, proxies, optimizer
+                gc.collect()
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                model, proxies, optimizer = _initialize_geometry_training_state(args, protocol)
+                model.train()
+                restored_update = restore_geometry_checkpoint(
+                    path=checkpoint_path,
+                    authority=authority,
+                    model=model,
+                    proxies=proxies,
+                    optimizer=optimizer,
+                    source_commit=args.source_commit,
+                    arm=args.arm,
+                    seed=args.seed,
+                    epoch_plan_digests=epoch_plan_digests,
+                )
+                if restored_update != update_index:
+                    raise RuntimeError("Qwen geometry smoke resume position differs")
+                device = next(model.visual.parameters()).device
+            images = tuple(_rgb_224(examples[index].image) for index in batch)  # type: ignore[attr-defined]
+            labels = torch.tensor(
+                [examples[index].label for index in batch],  # type: ignore[attr-defined]
+                dtype=torch.int64,
+                device=device,
+            )
+            update_started = perf_counter_ns()
+            evidence = replayed_proxy_anchor_step(
+                model=model,
+                proxies=proxies,
+                inputs=images,
+                labels=labels,
+                optimizer=optimizer,
+                microbatch_size=args.microbatch_size,
+                update_index=update_index,
+            )
+            if torch.cuda.is_available():
+                torch.cuda.synchronize()
+            update_elapsed_ns.append(perf_counter_ns() - update_started)
+            updates.append(
+                {
+                    "batch_sha256": plan.batch_digests[update_index],  # type: ignore[attr-defined]
+                    "changed_sampled_parameter_values": evidence.changed_sampled_parameter_values,
+                    "gradient_norm": evidence.gradient_norm,
+                    "loss": evidence.loss,
+                    "maximum_score_disagreement": evidence.maximum_score_disagreement,
+                    "optimizer_state_sha256": evidence.optimizer_state_sha256,
+                    "parameter_displacement": [
+                        {"changed": changed, "role": role, "sampled": sampled}
+                        for role, sampled, changed in evidence.parameter_displacement
+                    ],
+                    "sampled_parameter_values": evidence.sampled_parameter_values,
+                    "state_sha256": evidence.updated_state_sha256,
+                    "update": update_index,
+                }
+            )
+    tower_displacement = _summarize_tower_displacement(model.visual, baseline)
+    with torch.no_grad():
+        final_tokens = model.visual_tokens(fixed_image)
+    token_displacement = _summarize_token_displacement(
+        initial_tokens, repeated_initial_tokens, final_tokens
+    )
+    if (
+        float(tower_displacement["relative_l2"])
+        < protocol.tower_displacement_floor
+        or float(tower_displacement["moving_block_fraction"])
+        < protocol.minimum_moving_block_fraction
+        or not token_displacement["passed"]
+    ):
+        raise RuntimeError("Qwen geometry smoke displacement gate failed")
     return {
         "elapsed_ns": perf_counter_ns() - started,
+        "resume_after_two": resume_after_two,
+        "token_displacement": token_displacement,
+        "tower_displacement": tower_displacement,
         "update_elapsed_ns": update_elapsed_ns,
         "updates": updates,
     }
@@ -567,9 +762,27 @@ def run_smoke(args: argparse.Namespace) -> bytes:
         label: tuple(index for index, row in enumerate(examples) if row.label == label)
         for label in protocol.optimization_classes
     }
-    plan = derive_epoch_batches(members, seed=args.seed, epoch=0)
-    trials = tuple(_run_smoke_trial(args, examples, plan) for _ in range(2))
-    if trials[0]["updates"] != trials[1]["updates"]:
+    plans = tuple(
+        derive_epoch_batches(members, seed=args.seed, epoch=epoch)
+        for epoch in range(protocol.epochs)
+    )
+    plan = plans[0]
+    epoch_plan_digests = cast(tuple[str, str, str], tuple(value.digest for value in plans))
+    trials = (
+        _run_smoke_trial(
+            args, examples, plan, epoch_plan_digests, resume_after_two=False
+        ),
+        _run_smoke_trial(args, examples, plan, epoch_plan_digests, resume_after_two=True),
+    )
+    comparable = tuple(
+        {
+            key: value
+            for key, value in trial.items()
+            if key not in {"elapsed_ns", "resume_after_two", "update_elapsed_ns"}
+        }
+        for trial in trials
+    )
+    if comparable[0] != comparable[1]:
         raise RuntimeError("restored Qwen geometry smoke evidence differs")
     payload = {
         "arm": args.arm,
@@ -583,6 +796,7 @@ def run_smoke(args: argparse.Namespace) -> bytes:
         ),
         "peak_rss_bytes": max(1, resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024),
         "protocol_batch_plan_sha256": plan.digest,
+        "checkpoint_resume_equal": True,
         "restored_repetition_equal": True,
         "schema": "sfora-qwen-geometry-smoke-v2",
         "seed": args.seed,

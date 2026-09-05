@@ -295,8 +295,10 @@ def test_qwen_geometry_model_executes_only_vision_and_registered_pooler(arm: str
     )
     images = tuple(torch.arange(16, dtype=torch.float32).reshape(4, 4) + row for row in range(2))
 
+    tokens = wrapper.visual_tokens(images)
     descriptors = wrapper(images)
 
+    assert tokens.shape == (2, 1, 4)
     assert descriptors.shape == (2, 4096)
     torch.testing.assert_close(
         torch.linalg.vector_norm(descriptors, dim=-1), torch.ones(2), rtol=0, atol=1.0e-6
@@ -321,6 +323,42 @@ def test_qwen_geometry_model_executes_only_vision_and_registered_pooler(arm: str
     wrapper.pooler.output.weight.requires_grad_(False)
     with pytest.raises(ValueError, match="role"):
         _MODULE._validate_qwen_parameter_roles(wrapper)
+
+
+def test_full_tower_displacement_is_streamed_and_grouped_by_block() -> None:
+    tower = nn.Module()
+    tower.patch_embed = nn.Linear(2, 2, bias=False)
+    tower.blocks = nn.ModuleList([nn.Linear(2, 2, bias=False) for _ in range(2)])
+    baseline = _MODULE._capture_trainable_snapshot(tower)
+    with torch.no_grad():
+        tower.patch_embed.weight.add_(2.0e-6)
+        tower.blocks[0].weight.add_(3.0e-6)
+
+    summary = _MODULE._summarize_tower_displacement(tower, baseline)
+
+    assert summary["changed_elements"] == 8
+    assert summary["total_elements"] == 12
+    assert summary["relative_l2"] > 1.0e-6
+    assert tuple(block["block"] for block in summary["blocks"]) == (
+        "blocks.0",
+        "blocks.1",
+        "patch_embed",
+    )
+    assert summary["moving_transformer_blocks"] == 1
+    assert summary["transformer_blocks"] == 2
+    assert summary["moving_block_fraction"] == 0.5
+
+
+def test_visual_token_displacement_requires_functional_tower_change() -> None:
+    before = torch.tensor([[[1.0, 2.0], [3.0, 4.0]]])
+    unchanged = before.clone()
+    after = before + 2.0e-5
+
+    summary = _MODULE._summarize_token_displacement(before, unchanged, after)
+
+    assert summary["unchanged_repeat_discrepancy"] == 0.0
+    assert summary["relative_l2"] > 1.0e-6
+    assert summary["passed"] is True
 
 
 def test_smoke_cli_is_explicit_and_refuses_network_or_test_capabilities(
@@ -581,6 +619,9 @@ def test_smoke_reloads_initial_state_and_repeats_exact_evidence(
             self.visual = nn.Linear(2, 2)
             self.pooler = nn.Linear(2, 2)
 
+        def visual_tokens(self, _images: object) -> torch.Tensor:
+            return torch.ones(1, 1, 2)
+
     examples = tuple(
         SimpleNamespace(label=label, image=index)
         for label in range(49)
@@ -620,11 +661,28 @@ def test_smoke_reloads_initial_state_and_repeats_exact_evidence(
         )
 
     monkeypatch.setattr(_MODULE, "replayed_proxy_anchor_step", fake_step)
+    monkeypatch.setattr(
+        _MODULE,
+        "_summarize_tower_displacement",
+        lambda *_args: {
+            "relative_l2": 2.0e-6,
+            "moving_block_fraction": 1.0,
+            "blocks": [],
+        },
+    )
+    monkeypatch.setattr(
+        _MODULE,
+        "_summarize_token_displacement",
+        lambda *_args: {"passed": True, "relative_l2": 2.0e-6},
+    )
     args = SimpleNamespace(arm="mean", microbatch_size=1, seed=17, source_commit="1" * 40)
 
     value = __import__("json").loads(_MODULE.run_smoke(args))
 
-    assert len(loads) == 2
+    assert len(loads) == 3
     assert calls == [0, 1, 2, 0, 1, 2]
+    assert value["checkpoint_resume_equal"] is True
     assert value["restored_repetition_equal"] is True
     assert value["trials"][0]["updates"] == value["trials"][1]["updates"]
+    assert value["trials"][0]["resume_after_two"] is False
+    assert value["trials"][1]["resume_after_two"] is True
