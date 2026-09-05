@@ -11,7 +11,7 @@ import os
 import resource
 import sys
 from collections.abc import Iterable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from time import perf_counter_ns
 from typing import cast
@@ -99,6 +99,179 @@ class GeometryStepEvidence:
     learning_rate_multiplier: float
     updated_state_sha256: str
     optimizer_state_sha256: str
+    sampled_parameter_values: int
+    changed_sampled_parameter_values: int
+
+
+@dataclass(frozen=True)
+class GeometryCheckpointAuthority:
+    """Immutable byte and experiment identity for one training checkpoint."""
+
+    basename: str
+    byte_length: int
+    sha256: str
+    source_commit: str
+    arm: str
+    seed: int
+    completed_updates: int
+
+
+def _validate_qwen_parameter_roles(model: QwenVisionGeometryModel) -> None:
+    """Require the sole frozen visual branch and every intended trainable role."""
+
+    visual = tuple(model.visual.named_parameters(remove_duplicate=False))
+    pooler = tuple(model.pooler.named_parameters(remove_duplicate=False))
+    if not visual or not pooler:
+        raise ValueError("Qwen geometry parameter role authority differs")
+    if any(
+        parameter.requires_grad != (not name.startswith("deepstack_merger_list."))
+        for name, parameter in visual
+    ) or any(not parameter.requires_grad for _, parameter in pooler):
+        raise ValueError("Qwen geometry parameter role authority differs")
+
+
+def _sha256_path(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        while chunk := stream.read(1024 * 1024):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _valid_lower_hex(value: object, length: int) -> bool:
+    return (
+        type(value) is str
+        and len(value) == length
+        and all(character in "0123456789abcdef" for character in value)
+    )
+
+
+def write_geometry_checkpoint(
+    *,
+    path: Path,
+    model: nn.Module,
+    proxies: nn.Parameter,
+    optimizer: torch.optim.Optimizer,
+    source_commit: str,
+    arm: str,
+    seed: int,
+    completed_updates: int,
+    epoch_plan_digests: tuple[str, str, str],
+) -> GeometryCheckpointAuthority:
+    """Atomically publish one complete checkpoint and return its byte authority."""
+
+    protocol = QwenGeometryProtocol()
+    partial = path.with_name(path.name + ".partial")
+    valid = (
+        isinstance(path, Path)
+        and path.parent.is_dir()
+        and not path.parent.is_symlink()
+        and not path.exists()
+        and not partial.exists()
+        and _valid_lower_hex(source_commit, 40)
+        and arm in protocol.arms
+        and type(seed) is int
+        and seed in protocol.seeds
+        and type(completed_updates) is int
+        and 0 <= completed_updates <= protocol.optimizer_updates
+        and type(epoch_plan_digests) is tuple
+        and len(epoch_plan_digests) == protocol.epochs
+        and all(_valid_lower_hex(value, 64) for value in epoch_plan_digests)
+    )
+    if not valid:
+        raise ValueError("Qwen geometry checkpoint identity differs")
+    payload = {
+        "arm": arm,
+        "completed_updates": completed_updates,
+        "epoch_plan_digests": epoch_plan_digests,
+        "model_state": model.state_dict(),
+        "optimizer_state": optimizer.state_dict(),
+        "proxies": proxies.detach(),
+        "schema": "sfora-qwen-geometry-checkpoint-v1",
+        "seed": seed,
+        "source_commit": source_commit,
+        "torch_rng_state": torch.random.get_rng_state(),
+    }
+    if torch.cuda.is_available():
+        payload["cuda_rng_state"] = torch.cuda.get_rng_state()
+    with partial.open("xb") as stream:
+        torch.save(payload, stream)
+        stream.flush()
+        os.fsync(stream.fileno())
+    os.replace(partial, path)
+    byte_length = path.stat().st_size
+    return GeometryCheckpointAuthority(
+        basename=path.name,
+        byte_length=byte_length,
+        sha256=_sha256_path(path),
+        source_commit=source_commit,
+        arm=arm,
+        seed=seed,
+        completed_updates=completed_updates,
+    )
+
+
+def restore_geometry_checkpoint(
+    *,
+    path: Path,
+    authority: GeometryCheckpointAuthority,
+    model: nn.Module,
+    proxies: nn.Parameter,
+    optimizer: torch.optim.Optimizer,
+    source_commit: str,
+    arm: str,
+    seed: int,
+    epoch_plan_digests: tuple[str, str, str],
+) -> int:
+    """Authenticate and restore one checkpoint, returning its next update index."""
+
+    expected_authority = (
+        authority.basename == path.name
+        and authority.byte_length == path.stat().st_size
+        and authority.sha256 == _sha256_path(path)
+        and authority.source_commit == source_commit
+        and authority.arm == arm
+        and authority.seed == seed
+        and _valid_lower_hex(authority.sha256, 64)
+    )
+    if not expected_authority:
+        raise ValueError("Qwen geometry checkpoint byte authority differs")
+    value = torch.load(path, map_location="cpu", weights_only=True)
+    expected_keys = {
+        "arm",
+        "completed_updates",
+        "epoch_plan_digests",
+        "model_state",
+        "optimizer_state",
+        "proxies",
+        "schema",
+        "seed",
+        "source_commit",
+        "torch_rng_state",
+    }
+    if isinstance(value, dict) and "cuda_rng_state" in value:
+        expected_keys.add("cuda_rng_state")
+    if (
+        type(value) is not dict
+        or set(value) != expected_keys
+        or value["schema"] != "sfora-qwen-geometry-checkpoint-v1"
+        or value["source_commit"] != source_commit
+        or value["arm"] != arm
+        or value["seed"] != seed
+        or value["completed_updates"] != authority.completed_updates
+        or value["epoch_plan_digests"] != epoch_plan_digests
+    ):
+        raise ValueError("Qwen geometry checkpoint payload authority differs")
+    stored_proxies = value["proxies"]
+    if not isinstance(stored_proxies, Tensor) or stored_proxies.shape != proxies.shape:
+        raise ValueError("Qwen geometry proxy checkpoint differs")
+    model.load_state_dict(value["model_state"], strict=True)
+    proxies.data.copy_(stored_proxies.to(device=proxies.device, dtype=proxies.dtype))
+    optimizer.load_state_dict(value["optimizer_state"])
+    torch.random.set_rng_state(value["torch_rng_state"])
+    if "cuda_rng_state" in value and torch.cuda.is_available():
+        torch.cuda.set_rng_state(value["cuda_rng_state"])
+    return authority.completed_updates
 
 
 class QwenVisionGeometryModel(nn.Module):
@@ -125,7 +298,6 @@ class QwenVisionGeometryModel(nn.Module):
             raise ValueError("Qwen image processor differs")
         self.visual = visual
         self.pooler = build_geometry_pooler(arm, token_dimensions=token_dimensions)
-        self.__dict__["_qwen_model"] = model
         self.__dict__["_image_processor"] = processor.image_processor
         for parameter in (*language.parameters(), *language_head.parameters()):
             parameter.requires_grad_(False)
@@ -135,6 +307,7 @@ class QwenVisionGeometryModel(nn.Module):
         if isinstance(deepstack, nn.Module):
             for parameter in deepstack.parameters():
                 parameter.requires_grad_(False)
+        _validate_qwen_parameter_roles(self)
 
     def forward(self, images: Sequence[object]) -> Tensor:
         if not isinstance(images, Sequence) or isinstance(images, (str, bytes)) or not images:
@@ -150,18 +323,31 @@ class QwenVisionGeometryModel(nn.Module):
             device = next(self.visual.parameters()).device
         except StopIteration as error:
             raise ValueError("Qwen visual tower has no parameters") from error
-        output = self._qwen_model.get_image_features(
-            pixel_values.to(device), image_grid_thw.to(device)
+        try:
+            visual_dtype = next(self.visual.parameters()).dtype
+            merge_size = int(self.visual.spatial_merge_size)  # type: ignore[attr-defined]
+        except (AttributeError, StopIteration, TypeError, ValueError) as error:
+            raise ValueError("Qwen visual execution authority differs") from error
+        grid = image_grid_thw.to(device)
+        output = self.visual(
+            pixel_values.to(device=device, dtype=visual_dtype),
+            grid_thw=grid,
+            return_dict=True,
         )
         features = getattr(output, "pooler_output", None)
+        split_sizes = tuple(int(value) for value in (grid.prod(-1) // merge_size**2).tolist())
         if (
-            type(features) not in {tuple, list}
-            or len(features) != len(images)
-            or any(not isinstance(feature, Tensor) or feature.ndim != 2 for feature in features)
-            or any(feature.shape != features[0].shape for feature in features)
+            not isinstance(features, Tensor)
+            or features.ndim != 2
+            or len(split_sizes) != len(images)
+            or any(size < 1 for size in split_sizes)
+            or sum(split_sizes) != features.shape[0]
         ):
             raise ValueError("Qwen patch feature authority differs")
-        descriptors, _ = pool_patch_tokens(self.pooler, torch.stack(tuple(features)))
+        patches = torch.split(features, split_sizes)
+        if any(patch.shape != patches[0].shape for patch in patches):
+            raise ValueError("Qwen patch feature authority differs")
+        descriptors, _ = pool_patch_tokens(self.pooler, torch.stack(patches))
         return descriptors
 
 
@@ -205,19 +391,27 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     """Parse the explicit local-only real-model smoke boundary."""
 
     parser = argparse.ArgumentParser(allow_abbrev=False, description=__doc__)
-    parser.add_argument("smoke", nargs="?")
+    parser.add_argument("phase", choices=("smoke", "train"))
     parser.add_argument("--model-root", type=Path, required=True)
     parser.add_argument("--snapshot-manifest", type=Path, required=True)
     parser.add_argument("--fixture", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--checkpoint-output", type=Path)
     parser.add_argument("--source-commit", required=True)
     parser.add_argument("--arm", choices=QwenGeometryProtocol().arms, required=True)
     parser.add_argument("--seed", type=int, choices=QwenGeometryProtocol().seeds, required=True)
     parser.add_argument("--microbatch-size", type=int, required=True)
-    parser.add_argument("--execute-smoke", action="store_true", required=True)
+    parser.add_argument("--execute-smoke", action="store_true")
+    parser.add_argument("--execute-train", action="store_true")
     values = parser.parse_args(argv)
-    if values.smoke != "smoke":
-        parser.error("only the smoke phase is currently available")
+    if (values.phase == "smoke") != bool(values.execute_smoke) or (
+        values.phase == "train"
+    ) != bool(values.execute_train):
+        parser.error("phase requires its matching explicit execution flag")
+    if values.phase == "smoke" and values.checkpoint_output is not None:
+        parser.error("smoke cannot publish a training checkpoint")
+    if values.phase == "train" and values.checkpoint_output is None:
+        parser.error("train requires --checkpoint-output")
     if len(values.source_commit) != 40 or any(
         character not in "0123456789abcdef" for character in values.source_commit
     ):
@@ -234,6 +428,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     if invalid_output:
         parser.error("output must be absent beneath an existing regular directory")
+    if values.checkpoint_output is not None:
+        invalid_checkpoint = (
+            values.checkpoint_output == values.output
+            or values.checkpoint_output.exists()
+            or not values.checkpoint_output.parent.is_dir()
+            or values.checkpoint_output.parent.is_symlink()
+        )
+        if invalid_checkpoint:
+            parser.error("checkpoint output must be a distinct absent regular path")
     return values
 
 
@@ -264,22 +467,11 @@ def _load_real_geometry_model(args: argparse.Namespace) -> QwenVisionGeometryMod
     return model
 
 
-def run_smoke(args: argparse.Namespace) -> bytes:
-    """Run exactly three authenticated real-data updates and return a receipt."""
-
+def _run_smoke_trial(
+    args: argparse.Namespace, examples: tuple[object, ...], plan: object
+) -> dict[str, object]:
     protocol = QwenGeometryProtocol()
-    _configure_determinism()
     torch.manual_seed(args.seed)
-    examples = tuple(
-        row
-        for row in load_image_retrieval_examples(dataset_name="cars", split="train")
-        if row.label in protocol.optimization_classes
-    )
-    members = {
-        label: tuple(index for index, row in enumerate(examples) if row.label == label)
-        for label in protocol.optimization_classes
-    }
-    plan = derive_epoch_batches(members, seed=args.seed, epoch=0)
     model = _load_real_geometry_model(args)
     device = next(model.visual.parameters()).device
     proxies = nn.Parameter(
@@ -308,10 +500,13 @@ def run_smoke(args: argparse.Namespace) -> bytes:
     model.train()
     started = perf_counter_ns()
     updates: list[dict[str, object]] = []
-    for update_index, batch in enumerate(plan.batches[:3]):
-        images = tuple(_rgb_224(examples[index].image) for index in batch)
+    update_elapsed_ns: list[int] = []
+    for update_index, batch in enumerate(plan.batches[:3]):  # type: ignore[attr-defined]
+        images = tuple(_rgb_224(examples[index].image) for index in batch)  # type: ignore[attr-defined]
         labels = torch.tensor(
-            [examples[index].label for index in batch], dtype=torch.int64, device=device
+            [examples[index].label for index in batch],  # type: ignore[attr-defined]
+            dtype=torch.int64,
+            device=device,
         )
         update_started = perf_counter_ns()
         evidence = replayed_proxy_anchor_step(
@@ -325,22 +520,49 @@ def run_smoke(args: argparse.Namespace) -> bytes:
         )
         if torch.cuda.is_available():
             torch.cuda.synchronize()
+        update_elapsed_ns.append(perf_counter_ns() - update_started)
         updates.append(
             {
-                "batch_sha256": plan.batch_digests[update_index],
-                "elapsed_ns": perf_counter_ns() - update_started,
+                "batch_sha256": plan.batch_digests[update_index],  # type: ignore[attr-defined]
+                "changed_sampled_parameter_values": evidence.changed_sampled_parameter_values,
                 "gradient_norm": evidence.gradient_norm,
                 "loss": evidence.loss,
                 "maximum_score_disagreement": evidence.maximum_score_disagreement,
                 "optimizer_state_sha256": evidence.optimizer_state_sha256,
+                "sampled_parameter_values": evidence.sampled_parameter_values,
                 "state_sha256": evidence.updated_state_sha256,
                 "update": update_index,
             }
         )
+    return {
+        "elapsed_ns": perf_counter_ns() - started,
+        "update_elapsed_ns": update_elapsed_ns,
+        "updates": updates,
+    }
+
+
+def run_smoke(args: argparse.Namespace) -> bytes:
+    """Run, restore, and exactly repeat three authenticated real-data updates."""
+
+    protocol = QwenGeometryProtocol()
+    _configure_determinism()
+    examples = tuple(
+        row
+        for row in load_image_retrieval_examples(dataset_name="cars", split="train")
+        if row.label in protocol.optimization_classes
+    )
+    members = {
+        label: tuple(index for index, row in enumerate(examples) if row.label == label)
+        for label in protocol.optimization_classes
+    }
+    plan = derive_epoch_batches(members, seed=args.seed, epoch=0)
+    trials = tuple(_run_smoke_trial(args, examples, plan) for _ in range(2))
+    if trials[0]["updates"] != trials[1]["updates"]:
+        raise RuntimeError("restored Qwen geometry smoke evidence differs")
     payload = {
         "arm": args.arm,
         "claim_eligible": False,
-        "elapsed_ns": perf_counter_ns() - started,
+        "elapsed_ns": sum(int(trial["elapsed_ns"]) for trial in trials),
         "language_forward_calls": 0,
         "microbatch_size": args.microbatch_size,
         "optimizer_updates": 3,
@@ -349,10 +571,147 @@ def run_smoke(args: argparse.Namespace) -> bytes:
         ),
         "peak_rss_bytes": max(1, resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024),
         "protocol_batch_plan_sha256": plan.digest,
-        "schema": "sfora-qwen-geometry-smoke-v1",
+        "restored_repetition_equal": True,
+        "schema": "sfora-qwen-geometry-smoke-v2",
         "seed": args.seed,
         "source_commit": args.source_commit,
-        "updates": updates,
+        "trials": trials,
+    }
+    return _canonical_bytes(payload)
+
+
+def run_train(args: argparse.Namespace) -> bytes:
+    """Run the complete frozen optimization schedule and publish its checkpoint."""
+
+    protocol = QwenGeometryProtocol()
+    _configure_determinism()
+    torch.manual_seed(args.seed)
+    examples = tuple(
+        row
+        for row in load_image_retrieval_examples(dataset_name="cars", split="train")
+        if row.label in protocol.optimization_classes
+    )
+    members = {
+        label: tuple(index for index, row in enumerate(examples) if row.label == label)
+        for label in protocol.optimization_classes
+    }
+    plans = tuple(
+        derive_epoch_batches(members, seed=args.seed, epoch=epoch)
+        for epoch in range(protocol.epochs)
+    )
+    model = _load_real_geometry_model(args)
+    device = next(model.visual.parameters()).device
+    proxies = nn.Parameter(
+        torch.empty(
+            len(protocol.optimization_classes),
+            protocol.embedding_dimensions,
+            device=device,
+            dtype=torch.float32,
+        )
+    )
+    initialize_geometry_proxies(proxies, seed=args.seed)
+    groups = optimizer_groups(
+        tower=model.visual,
+        pooler=model.pooler,
+        proxies=proxies,
+        allow_frozen=True,
+    )
+    for group in groups:
+        group["base_lr"] = group["lr"]
+        group["schedule_update"] = 0
+    optimizer = torch.optim.AdamW(
+        groups,
+        betas=protocol.adamw_betas,
+        eps=protocol.adamw_epsilon,
+    )
+    model.train()
+    started = perf_counter_ns()
+    epochs: list[dict[str, object]] = []
+    update_index = 0
+    for epoch, plan in enumerate(plans):
+        epoch_started = perf_counter_ns()
+        losses: list[float] = []
+        maximum_gradient_norm = 0.0
+        maximum_disagreement = 0.0
+        terminal_state_sha256 = ""
+        terminal_optimizer_sha256 = ""
+        sampled_values = 0
+        changed_sampled_values = 0
+        for batch in plan.batches:
+            images = tuple(_rgb_224(examples[index].image) for index in batch)
+            labels = torch.tensor(
+                [examples[index].label for index in batch],
+                dtype=torch.int64,
+                device=device,
+            )
+            evidence = replayed_proxy_anchor_step(
+                model=model,
+                proxies=proxies,
+                inputs=images,
+                labels=labels,
+                optimizer=optimizer,
+                microbatch_size=args.microbatch_size,
+                update_index=update_index,
+            )
+            losses.append(evidence.loss)
+            maximum_gradient_norm = max(maximum_gradient_norm, evidence.gradient_norm)
+            maximum_disagreement = max(
+                maximum_disagreement, evidence.maximum_score_disagreement
+            )
+            sampled_values += evidence.sampled_parameter_values
+            changed_sampled_values += evidence.changed_sampled_parameter_values
+            terminal_state_sha256 = evidence.updated_state_sha256
+            terminal_optimizer_sha256 = evidence.optimizer_state_sha256
+            update_index += 1
+        epochs.append(
+            {
+                "elapsed_ns": perf_counter_ns() - epoch_started,
+                "epoch": epoch,
+                "changed_sampled_parameter_values": changed_sampled_values,
+                "first_loss": losses[0],
+                "last_loss": losses[-1],
+                "maximum_gradient_norm": maximum_gradient_norm,
+                "maximum_score_disagreement": maximum_disagreement,
+                "mean_loss": sum(losses) / len(losses),
+                "optimizer_state_sha256": terminal_optimizer_sha256,
+                "plan_sha256": plan.digest,
+                "sampled_parameter_values": sampled_values,
+                "state_sha256": terminal_state_sha256,
+                "updates": len(losses),
+            }
+        )
+    if update_index != protocol.optimizer_updates:
+        raise RuntimeError("Qwen geometry training update count differs")
+    checkpoint_path = args.checkpoint_output
+    if not isinstance(checkpoint_path, Path):
+        raise ValueError("Qwen geometry training checkpoint path differs")
+    checkpoint = write_geometry_checkpoint(
+        path=checkpoint_path,
+        model=model,
+        proxies=proxies,
+        optimizer=optimizer,
+        source_commit=args.source_commit,
+        arm=args.arm,
+        seed=args.seed,
+        completed_updates=update_index,
+        epoch_plan_digests=tuple(plan.digest for plan in plans),
+    )
+    payload = {
+        "arm": args.arm,
+        "checkpoint": asdict(checkpoint),
+        "claim_eligible": False,
+        "elapsed_ns": perf_counter_ns() - started,
+        "epochs": epochs,
+        "language_forward_calls": 0,
+        "microbatch_size": args.microbatch_size,
+        "optimizer_updates": update_index,
+        "peak_cuda_bytes": (
+            max(1, int(torch.cuda.max_memory_reserved())) if torch.cuda.is_available() else 1
+        ),
+        "peak_rss_bytes": max(1, resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024),
+        "schema": "sfora-qwen-geometry-train-v1",
+        "seed": args.seed,
+        "source_commit": args.source_commit,
     }
     return _canonical_bytes(payload)
 
@@ -470,7 +829,32 @@ def replayed_proxy_anchor_step(
     multiplier = learning_rate_multiplier(update_index)
     for group in optimizer.param_groups:
         group["lr"] = float(group["base_lr"]) * multiplier
+    before_samples = torch.cat(
+        tuple(
+            torch.stack(
+                (
+                    parameter.detach().reshape(-1)[0],
+                    parameter.detach().reshape(-1)[parameter.numel() // 2],
+                    parameter.detach().reshape(-1)[-1],
+                )
+            ).to(dtype=torch.float64)
+            for parameter in parameters
+        )
+    )
     optimizer.step()
+    after_samples = torch.cat(
+        tuple(
+            torch.stack(
+                (
+                    parameter.detach().reshape(-1)[0],
+                    parameter.detach().reshape(-1)[parameter.numel() // 2],
+                    parameter.detach().reshape(-1)[-1],
+                )
+            ).to(dtype=torch.float64)
+            for parameter in parameters
+        )
+    )
+    changed_sampled_values = int((before_samples != after_samples).sum())
     for group in optimizer.param_groups:
         group["schedule_update"] = update_index + 1
 
@@ -485,12 +869,14 @@ def replayed_proxy_anchor_step(
         learning_rate_multiplier=multiplier,
         updated_state_sha256=state_sha256(parameters),
         optimizer_state_sha256=_optimizer_state_sha256(optimizer),
+        sampled_parameter_values=before_samples.numel(),
+        changed_sampled_parameter_values=changed_sampled_values,
     )
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    raw = run_smoke(args)
+    raw = run_smoke(args) if args.phase == "smoke" else run_train(args)
     _write_new(args.output, raw)
     sys.stdout.buffer.write(raw)
     sys.stdout.buffer.flush()

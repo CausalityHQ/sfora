@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import dataclasses
 import importlib.util
 import sys
 from pathlib import Path
@@ -123,6 +124,8 @@ def test_replayed_step_matches_full_batch_chain_rule_and_adamw_state() -> None:
     )
     assert evidence.loss == pytest.approx(float(loss.detach()), rel=1.0e-12)
     assert evidence.gradient_norm == pytest.approx(float(expected_norm), rel=1.0e-10)
+    assert evidence.sampled_parameter_values > 0
+    assert 0 < evidence.changed_sampled_parameter_values <= evidence.sampled_parameter_values
     for actual, expected in zip(evidence.parameter_gradients, expected_gradients, strict=True):
         torch.testing.assert_close(actual, expected, rtol=1.0e-10, atol=1.0e-11)
     for actual, expected in zip(
@@ -244,22 +247,34 @@ class _ForbiddenLanguage(nn.Module):
         raise AssertionError("language execution is forbidden")
 
 
+class _FakeVisual(nn.Module):
+    spatial_merge_size = 2
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.projection = nn.Linear(4, 4, bias=False)
+        self.deepstack_merger_list = nn.ModuleList([nn.Linear(4, 4)])
+
+    def forward(
+        self,
+        pixel_values: torch.Tensor,
+        *,
+        grid_thw: torch.Tensor,
+        return_dict: bool,
+    ) -> SimpleNamespace:
+        assert return_dict
+        assert grid_thw.shape == (pixel_values.shape[0], 3)
+        rows = self.projection(pixel_values.mean(dim=1))
+        return SimpleNamespace(pooler_output=rows)
+
+
 class _FakeQwen(nn.Module):
     def __init__(self) -> None:
         super().__init__()
         self.model = nn.Module()
-        self.model.visual = nn.Linear(4, 4, bias=False)
-        self.model.visual.deepstack_merger_list = nn.ModuleList([nn.Linear(4, 4)])
+        self.model.visual = _FakeVisual()
         self.model.language_model = _ForbiddenLanguage()
         self.lm_head = _ForbiddenLanguage()
-
-    def get_image_features(
-        self, pixel_values: torch.Tensor, image_grid_thw: torch.Tensor
-    ) -> SimpleNamespace:
-        assert image_grid_thw.shape == (pixel_values.shape[0], 3)
-        rows = self.model.visual(pixel_values)
-        return SimpleNamespace(pooler_output=tuple(rows.unbind()))
-
 
 @pytest.mark.parametrize("arm", ["mean", "attention"])
 def test_qwen_geometry_model_executes_only_vision_and_registered_pooler(arm: str) -> None:
@@ -284,12 +299,19 @@ def test_qwen_geometry_model_executes_only_vision_and_registered_pooler(arm: str
         not parameter.requires_grad
         for parameter in qwen.model.visual.deepstack_merger_list.parameters()
     )
+    assert "_qwen_model" not in wrapper.__dict__
+    assert all(not isinstance(module, _ForbiddenLanguage) for module in wrapper.modules())
     wrapper_ids = {id(parameter) for parameter in wrapper.parameters() if parameter.requires_grad}
     assert wrapper_ids == {
         id(parameter)
         for parameter in (*qwen.model.visual.parameters(), *wrapper.pooler.parameters())
         if parameter.requires_grad
     }
+
+    _MODULE._validate_qwen_parameter_roles(wrapper)
+    wrapper.pooler.output.weight.requires_grad_(False)
+    with pytest.raises(ValueError, match="role"):
+        _MODULE._validate_qwen_parameter_roles(wrapper)
 
 
 def test_smoke_cli_is_explicit_and_refuses_network_or_test_capabilities(
@@ -335,6 +357,44 @@ def test_smoke_cli_is_explicit_and_refuses_network_or_test_capabilities(
         _MODULE.parse_args(base)
 
 
+def test_train_cli_requires_distinct_checkpoint_and_explicit_execution(tmp_path: Path) -> None:
+    base = [
+        "train",
+        "--model-root",
+        str(tmp_path),
+        "--snapshot-manifest",
+        str(tmp_path / "snapshot.json"),
+        "--fixture",
+        str(tmp_path / "fixture.json"),
+        "--output",
+        str(tmp_path / "receipt.json"),
+        "--checkpoint-output",
+        str(tmp_path / "checkpoint.pt"),
+        "--source-commit",
+        "1" * 40,
+        "--arm",
+        "attention",
+        "--seed",
+        "29",
+        "--microbatch-size",
+        "1",
+        "--execute-train",
+    ]
+    parsed = _MODULE.parse_args(base)
+    assert parsed.phase == "train"
+    assert parsed.checkpoint_output == tmp_path / "checkpoint.pt"
+    with pytest.raises(SystemExit):
+        _MODULE.parse_args([token for token in base if token != "--execute-train"])
+    with pytest.raises(SystemExit):
+        _MODULE.parse_args([*base, "--execute-smoke"])
+    same_path = [
+        str(tmp_path / "receipt.json") if token == str(tmp_path / "checkpoint.pt") else token
+        for token in base
+    ]
+    with pytest.raises(SystemExit):
+        _MODULE.parse_args(same_path)
+
+
 def test_rgb_preprocessing_returns_an_owned_writable_224_array() -> None:
     image = Image.new("RGB", (8, 6), color=(1, 2, 3))
     value = _MODULE._rgb_224(image)
@@ -342,3 +402,218 @@ def test_rgb_preprocessing_returns_an_owned_writable_224_array() -> None:
     assert value.flags.c_contiguous
     assert value.flags.owndata
     assert value.flags.writeable
+
+
+def test_checkpoint_round_trip_restores_exact_training_state(tmp_path: Path) -> None:
+    inputs, labels = _inputs()
+    model, proxies, optimizer = _fixture()
+    _MODULE.replayed_proxy_anchor_step(
+        model=model,
+        proxies=proxies,
+        inputs=inputs,
+        labels=labels,
+        optimizer=optimizer,
+        microbatch_size=2,
+        update_index=0,
+    )
+    checkpoint = tmp_path / "state.pt"
+
+    authority = _MODULE.write_geometry_checkpoint(
+        path=checkpoint,
+        model=model,
+        proxies=proxies,
+        optimizer=optimizer,
+        source_commit="1" * 40,
+        arm="mean",
+        seed=17,
+        completed_updates=1,
+        epoch_plan_digests=("2" * 64, "3" * 64, "4" * 64),
+    )
+
+    restored_model, restored_proxies, restored_optimizer = _fixture()
+    next_update = _MODULE.restore_geometry_checkpoint(
+        path=checkpoint,
+        authority=authority,
+        model=restored_model,
+        proxies=restored_proxies,
+        optimizer=restored_optimizer,
+        source_commit="1" * 40,
+        arm="mean",
+        seed=17,
+        epoch_plan_digests=("2" * 64, "3" * 64, "4" * 64),
+    )
+
+    assert next_update == 1
+    assert authority.basename == checkpoint.name
+    assert authority.byte_length == checkpoint.stat().st_size
+    assert authority.sha256 == _MODULE._sha256_path(checkpoint)
+    assert _MODULE.state_sha256((*restored_model.parameters(), restored_proxies)) == (
+        _MODULE.state_sha256((*model.parameters(), proxies))
+    )
+    assert _MODULE._optimizer_state_sha256(restored_optimizer) == (
+        _MODULE._optimizer_state_sha256(optimizer)
+    )
+
+
+def test_checkpoint_rejects_byte_and_identity_drift(tmp_path: Path) -> None:
+    model, proxies, optimizer = _fixture()
+    checkpoint = tmp_path / "state.pt"
+    kwargs = {
+        "source_commit": "1" * 40,
+        "arm": "attention",
+        "seed": 29,
+        "completed_updates": 0,
+        "epoch_plan_digests": ("2" * 64, "3" * 64, "4" * 64),
+    }
+    authority = _MODULE.write_geometry_checkpoint(
+        path=checkpoint,
+        model=model,
+        proxies=proxies,
+        optimizer=optimizer,
+        **kwargs,
+    )
+    restore = {
+        "path": checkpoint,
+        "authority": authority,
+        "model": model,
+        "proxies": proxies,
+        "optimizer": optimizer,
+        "source_commit": kwargs["source_commit"],
+        "arm": kwargs["arm"],
+        "seed": kwargs["seed"],
+        "epoch_plan_digests": kwargs["epoch_plan_digests"],
+    }
+
+    for mutation in (
+        {"authority": dataclasses.replace(authority, sha256="0" * 64)},
+        {"source_commit": "5" * 40},
+        {"arm": "mean"},
+        {"seed": 43},
+        {"epoch_plan_digests": ("6" * 64, "3" * 64, "4" * 64)},
+    ):
+        with pytest.raises(ValueError):
+            _MODULE.restore_geometry_checkpoint(**(restore | mutation))
+
+    with checkpoint.open("ab") as stream:
+        stream.write(b"drift")
+    with pytest.raises(ValueError, match="authority"):
+        _MODULE.restore_geometry_checkpoint(**restore)
+
+
+def test_run_train_executes_all_registered_updates_before_checkpoint(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    class _TrainModel(nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.visual = nn.Linear(2, 2)
+            self.pooler = nn.Linear(2, 2)
+
+    examples = tuple(
+        SimpleNamespace(label=label, image=index)
+        for label in range(49)
+        for index in range(4)
+    )
+    model = _TrainModel()
+    calls: list[int] = []
+
+    monkeypatch.setattr(_MODULE, "load_image_retrieval_examples", lambda **_kwargs: examples)
+    monkeypatch.setattr(_MODULE, "_rgb_224", lambda image: image)
+    monkeypatch.setattr(_MODULE, "_load_real_geometry_model", lambda _args: model)
+    monkeypatch.setattr(
+        _MODULE,
+        "optimizer_groups",
+        lambda **_kwargs: [
+            {"params": list(model.parameters()), "lr": 1.0e-3, "role": "model"},
+        ],
+    )
+
+    def fake_step(**kwargs: object) -> SimpleNamespace:
+        calls.append(int(kwargs["update_index"]))
+        return SimpleNamespace(
+            loss=12.0 - len(calls) / 1000.0,
+            gradient_norm=1.0,
+            maximum_score_disagreement=0.0,
+            sampled_parameter_values=9,
+            changed_sampled_parameter_values=8,
+            updated_state_sha256="a" * 64,
+            optimizer_state_sha256="b" * 64,
+        )
+
+    monkeypatch.setattr(_MODULE, "replayed_proxy_anchor_step", fake_step)
+    checkpoint = tmp_path / "checkpoint.pt"
+    receipt = tmp_path / "receipt.json"
+    args = SimpleNamespace(
+        arm="mean",
+        checkpoint_output=checkpoint,
+        microbatch_size=1,
+        output=receipt,
+        seed=17,
+        source_commit="1" * 40,
+    )
+
+    raw = _MODULE.run_train(args)
+    value = __import__("json").loads(raw)
+
+    assert calls == list(range(183))
+    assert value["optimizer_updates"] == 183
+    assert value["checkpoint"]["completed_updates"] == 183
+    assert checkpoint.is_file()
+    assert len(value["epochs"]) == 3
+
+
+def test_smoke_reloads_initial_state_and_repeats_exact_evidence(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class _SmokeModel(nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.visual = nn.Linear(2, 2)
+            self.pooler = nn.Linear(2, 2)
+
+    examples = tuple(
+        SimpleNamespace(label=label, image=index)
+        for label in range(49)
+        for index in range(4)
+    )
+    loads: list[_SmokeModel] = []
+    calls: list[int] = []
+    monkeypatch.setattr(_MODULE, "load_image_retrieval_examples", lambda **_kwargs: examples)
+    monkeypatch.setattr(_MODULE, "_rgb_224", lambda image: image)
+
+    def load(_args: object) -> _SmokeModel:
+        model = _SmokeModel()
+        loads.append(model)
+        return model
+
+    monkeypatch.setattr(_MODULE, "_load_real_geometry_model", load)
+    monkeypatch.setattr(
+        _MODULE,
+        "optimizer_groups",
+        lambda **kwargs: [
+            {"params": list(kwargs["tower"].parameters()), "lr": 1.0e-3, "role": "tower"}
+        ],
+    )
+
+    def fake_step(**kwargs: object) -> SimpleNamespace:
+        update = int(kwargs["update_index"])
+        calls.append(update)
+        return SimpleNamespace(
+            loss=12.0 - update,
+            gradient_norm=1.0 + update,
+            maximum_score_disagreement=0.0,
+            sampled_parameter_values=9,
+            changed_sampled_parameter_values=8,
+            updated_state_sha256=f"{update + 1:064x}",
+            optimizer_state_sha256=f"{update + 4:064x}",
+        )
+
+    monkeypatch.setattr(_MODULE, "replayed_proxy_anchor_step", fake_step)
+    args = SimpleNamespace(arm="mean", microbatch_size=1, seed=17, source_commit="1" * 40)
+
+    value = __import__("json").loads(_MODULE.run_smoke(args))
+
+    assert len(loads) == 2
+    assert calls == [0, 1, 2, 0, 1, 2]
+    assert value["restored_repetition_equal"] is True
+    assert value["trials"][0]["updates"] == value["trials"][1]["updates"]
