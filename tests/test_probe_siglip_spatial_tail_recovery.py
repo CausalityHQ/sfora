@@ -100,6 +100,27 @@ def test_residual_scale_matches_fixed_fp64_oracle_and_floors_zero_channel() -> N
     assert torch.equal(scale, expected)
 
 
+def test_residual_scale_bounds_fp64_work_by_row_blocks() -> None:
+    source = torch.zeros((5, 3, 2), dtype=torch.float16).contiguous()
+    target = torch.tensor(
+        [
+            [[1.0, 0.0], [2.0, 1.0], [3.0, 0.0]],
+            [[4.0, 1.0], [5.0, 0.0], [6.0, 1.0]],
+            [[7.0, 0.0], [8.0, 1.0], [9.0, 0.0]],
+            [[10.0, 1.0], [11.0, 0.0], [12.0, 1.0]],
+            [[13.0, 0.0], [14.0, 1.0], [15.0, 0.0]],
+        ],
+        dtype=torch.float16,
+    ).contiguous()
+
+    actual = residual_channel_scale(source, target, rows_per_block=2)
+
+    assert torch.equal(
+        actual,
+        torch.tensor([(1240.0 / 15.0) ** 0.5, (7.0 / 15.0) ** 0.5]),
+    )
+
+
 def test_models_preserve_shape_and_only_interaction_arm_crosses_tokens() -> None:
     torch.manual_seed(3)
     control = TokenwiseTailControl(16, bottleneck_width=8).eval()

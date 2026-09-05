@@ -184,7 +184,10 @@ def stream_spatial_tail_fit_inputs(
 
 
 def residual_channel_scale(
-    source_tokens: torch.Tensor, target_tokens: torch.Tensor
+    source_tokens: torch.Tensor,
+    target_tokens: torch.Tensor,
+    *,
+    rows_per_block: int = 8,
 ) -> torch.Tensor:
     """Return fitting-only per-channel RMS with the registered nonzero floor."""
 
@@ -204,10 +207,16 @@ def residual_channel_scale(
         or not target_tokens.is_contiguous()
         or not bool(torch.isfinite(source_tokens).all())
         or not bool(torch.isfinite(target_tokens).all())
+        or type(rows_per_block) is not int
+        or rows_per_block < 1
     ):
         raise ValueError("spatial tail residual scale authority differs")
-    difference = target_tokens.double() - source_tokens.double()
-    rms = torch.sqrt(torch.mean(difference.square(), dim=(0, 1)))
+    squared_sum = torch.zeros(source_tokens.shape[2], dtype=torch.float64)
+    for start in range(0, source_tokens.shape[0], rows_per_block):
+        stop = min(start + rows_per_block, source_tokens.shape[0])
+        difference = target_tokens[start:stop].double() - source_tokens[start:stop].double()
+        squared_sum.add_(difference.square().sum(dim=(0, 1), dtype=torch.float64))
+    rms = torch.sqrt(squared_sum / (source_tokens.shape[0] * source_tokens.shape[1]))
     nonzero = rms[rms > 0]
     if nonzero.numel() == 0 or not bool(torch.isfinite(rms).all()):
         raise ValueError("spatial tail residual scale authority differs")
