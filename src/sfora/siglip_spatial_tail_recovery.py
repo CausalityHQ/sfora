@@ -134,13 +134,13 @@ def _quality(value: object) -> tuple[int, int, float]:
         type(cell["queries"]) is not int
         or cell["queries"] < 2
         or type(cell["correct"]) is not int
-        or not 0 <= cast(int, cell["correct"]) <= cast(int, cell["queries"])
+        or not 0 <= cell["correct"] <= cell["queries"]
         or type(cell["map_at_r"]) is not float
-        or not math.isfinite(cast(float, cell["map_at_r"]))
-        or not 0.0 <= cast(float, cell["map_at_r"]) <= 1.0
+        or not math.isfinite(cell["map_at_r"])
+        or not 0.0 <= cell["map_at_r"] <= 1.0
     ):
         raise ValueError("spatial tail quality authority differs")
-    return cast(int, cell["queries"]), cast(int, cell["correct"]), cast(float, cell["map_at_r"])
+    return cell["queries"], cell["correct"], cell["map_at_r"]
 
 
 def spatial_tail_decision(cells: dict[str, dict[str, object]]) -> dict[str, object]:
@@ -286,7 +286,7 @@ def build_spatial_tail_result(
     decision = spatial_tail_decision(
         {
             name: {
-                key: output_cells[name]["self"][key]
+                key: cast(dict[str, object], output_cells[name]["self"])[key]
                 for key in ("queries", "correct", "map_at_r")
             }
             for name in names
@@ -367,7 +367,7 @@ def validate_spatial_tail_result_bytes(raw: bytes) -> dict[str, object]:
     decision = spatial_tail_decision(
         {
             name: {
-                key: parsed[name]["self"][key]
+                key: cast(dict[str, object], parsed[name]["self"])[key]
                 for key in ("queries", "correct", "map_at_r")
             }
             for name in names
