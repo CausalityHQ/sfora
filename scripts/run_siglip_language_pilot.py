@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 import math
@@ -21,11 +22,12 @@ from transformers import AutoTokenizer, SiglipTextConfig, SiglipTextModel
 
 import sfora.siglip_language_guidance as language_guidance
 import sfora.siglip_language_protocol as language_protocol
-from sfora.siglip_depth_recovery import recovery_multiplier
+from sfora.siglip_depth_recovery import prune_siglip_student, recovery_multiplier
 from sfora.siglip_language_guidance import recomputed_language_backward, standardized_text_gram
 from sfora.siglip_language_protocol import fixed_language_permutation, pilot_training_projection
 from sfora.siglip_proxy_control import PooledProxyAnchorModel
 from sfora.siglip_recovery_evaluation import recovery_decision
+from sfora.siglip_recovery_inputs import load_optimization_images
 
 EVALUATOR_SHA256 = "e60d8fa318a17b69985deb2c8f43339427b34576f34f48bf66a21cf683ab6985"
 EVALUATION_SOURCE_SHA256 = {
@@ -247,6 +249,9 @@ def prepare_text_targets(
         expected_tokens_sha256=args.expected_tokens_sha256,
         elapsed_seconds=float(elapsed_seconds),
     )
+    del model, tokenizer
+    if device.type == "cuda":
+        torch.cuda.empty_cache()
     progress({"stage": "text-targets-sealed", "receipt": receipt})
     return receipt
 
@@ -546,7 +551,88 @@ def read_initialization(args: Any) -> dict[str, Any]:
         "pair_monitor_sha256": args.pair_monitor_sha256,
         "evaluation_sha256": args.evaluation_sha256,
         "evaluation_monitor_sha256": args.evaluation_monitor_sha256,
+        "pair_receipt": pair_receipt,
     }
+
+
+def language_initialization_factory(
+    initialization: dict[str, Any],
+    control_root: Path,
+    device: torch.device,
+) -> tuple[
+    Callable[[], PooledProxyAnchorModel],
+    PooledProxyAnchorModel | None,
+    str,
+]:
+    """Restore the recomputed winner and return fresh matched trainable copies."""
+    selected = initialization.get("selected_arm")
+    if selected not in ("teacher", "pa", "relational"):
+        raise ValueError("language initialization arm differs")
+    full = pair.load_teacher(control_root)
+    teacher: PooledProxyAnchorModel | None = None
+    if selected == "teacher":
+        template = full.train().requires_grad_(True)
+    else:
+        payload = torch.load(
+            initialization["initialization_path"],
+            map_location="cpu",
+            weights_only=True,
+            mmap=True,
+        )
+        evaluator.validate_student_payload(payload, initialization["pair_receipt"], selected)
+        template = prune_siglip_student(full).float().train().requires_grad_(True)
+        template.load_state_dict(payload["model_state"], strict=True)
+        del payload
+        if selected == "relational":
+            teacher = full.eval().requires_grad_(False)
+            torch.nn.Module.to(teacher, device)
+        else:
+            del full
+    initial_sha256 = control._model_state_sha256(template)
+
+    def factory() -> PooledProxyAnchorModel:
+        model = copy.deepcopy(template)
+        torch.nn.Module.to(model, device)
+        return model.train().requires_grad_(True)
+
+    return factory, teacher, initial_sha256
+
+
+def language_training_batch_source(
+    pair_receipt: dict[str, Any],
+) -> Callable[[int], tuple[torch.Tensor, torch.Tensor]]:
+    """Materialize the frozen optimization inputs and bind the original first20 crops."""
+    try:
+        expected = pair_receipt["arms"]["pa"]["input_sha256"][:20]
+        relational = pair_receipt["arms"]["relational"]["input_sha256"][:20]
+    except (KeyError, TypeError) as error:
+        raise ValueError("recovery pair input authority incomplete") from error
+    if (
+        type(expected) is not list
+        or type(relational) is not list
+        or len(expected) != 20
+        or relational != expected
+        or any(type(value) is not str or len(value) != 64 for value in expected)
+    ):
+        raise ValueError("recovery pair first20 input authority differs")
+    examples = load_optimization_images()
+    batches = smoke.recovery_batches(examples)
+    transform = control.build_control_train_transform()
+
+    def batch(update: int) -> tuple[torch.Tensor, torch.Tensor]:
+        if type(update) is not int or not 1 <= update <= 20:
+            raise ValueError("language batch update differs")
+        pixels, labels = smoke.paired_training_batch(
+            examples,
+            batches[update - 1],
+            transform,
+            update=update,
+        )
+        if smoke._batch_sha(pixels, labels) != expected[update - 1]:
+            raise ValueError("language crops differ from authenticated recovery inputs")
+        return pixels, labels
+
+    return batch
 
 
 def train_language_arm(
@@ -780,8 +866,13 @@ def execute_language_training(
         or torch.equal(grams["correct"], grams["permuted"])
     ):
         raise ValueError("language controls must be finite, authenticated, and distinct")
-    if output_dir.is_symlink() or not output_dir.is_dir() or any(output_dir.iterdir()):
-        raise ValueError("language training output directory must be empty")
+    checkpoint_paths = [output_dir / f"{arm}-final.pt" for arm in ("base", "correct", "permuted")]
+    if (
+        output_dir.is_symlink()
+        or not output_dir.is_dir()
+        or any(path.exists() or path.is_symlink() for path in checkpoint_paths)
+    ):
+        raise ValueError("language training checkpoint destination differs")
     teacher_initial = None if teacher is None else control._model_state_sha256(teacher)
     preflight = measure_language_preflight(
         factory,
@@ -806,7 +897,7 @@ def execute_language_training(
         if initial_sha256 is not None and observed_initial != initial_sha256:
             raise ValueError("language scientific initial states differ")
         initial_sha256 = observed_initial
-        gram = None if arm == "base" else grams[arm]
+        gram = None if arm == "base" else grams[arm].to(next(model.parameters()).device)
         evidence = train_language_arm(
             model,
             teacher,
@@ -844,6 +935,68 @@ def execute_language_training(
         "teacher_state_sha256": teacher_initial,
         "teacher_unchanged": True,
     }
+
+
+def run_training(args: Any) -> dict[str, Any]:
+    """Run the authenticated target, timing, and fixed three-arm training phases."""
+    began_ns = perf_counter_ns()
+    initialization = read_initialization(args)
+    if not torch.cuda.is_available():
+        raise RuntimeError("scientific language pilot requires CUDA")
+    if args.output_dir.exists() or args.output_dir.is_symlink():
+        raise FileExistsError(args.output_dir)
+    device = torch.device("cuda")
+    control.require_control_determinism(device)
+    args.output_dir.mkdir(parents=True, exist_ok=False)
+
+    def progress(event: dict[str, Any]) -> None:
+        print("language-pilot:" + control._canonical_bytes(event).decode().strip(), flush=True)
+
+    target_receipt = prepare_text_targets(args, device, progress)
+    target_path = args.output_dir / "language-targets.json"
+    target_sha256 = hashlib.sha256(target_path.read_bytes()).hexdigest()
+    targets = load_language_targets(target_path, target_sha256)
+    if targets["receipt"] != target_receipt:
+        raise ValueError("language target in-memory receipt differs from sealed bytes")
+    factory, teacher, initial_sha256 = language_initialization_factory(
+        initialization,
+        args.control_root,
+        device,
+    )
+    batch = language_training_batch_source(initialization["pair_receipt"])
+    training = execute_language_training(
+        factory,
+        teacher,
+        batch,
+        output_dir=args.output_dir,
+        target_sha256=target_sha256,
+        grams={arm: targets["tensors"][arm] for arm in ("correct", "permuted")},
+        gram_sha256=targets["receipt"]["gram_sha256"],
+        spent_seconds=(perf_counter_ns() - began_ns) / 1e9,
+        microbatch_size=120,
+        progress=progress,
+        synchronize=torch.cuda.synchronize,
+    )
+    if training["initial_state_sha256"] != initial_sha256:
+        raise ValueError("language training initialization identity differs")
+    result = {
+        "schema": "sfora-siglip-language-training-v1",
+        "claim_eligible": False,
+        "quality_measured": False,
+        "seed": 17,
+        "status": "complete",
+        "selected_initialization": initialization["selected_arm"],
+        "pair_sha256": initialization["pair_sha256"],
+        "pair_monitor_sha256": initialization["pair_monitor_sha256"],
+        "evaluation_sha256": initialization["evaluation_sha256"],
+        "evaluation_monitor_sha256": initialization["evaluation_monitor_sha256"],
+        "target_sha256": target_sha256,
+        "runner_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+        "elapsed_seconds": (perf_counter_ns() - began_ns) / 1e9,
+        **training,
+    }
+    control._write_new(args.output_dir / "training-complete.json", control._canonical_bytes(result))
+    return result
 
 
 def seal_language_checkpoint(

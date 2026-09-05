@@ -393,6 +393,44 @@ def test_initialization_rejects_digest_before_any_tensor_parse(
     assert parsed == []
 
 
+@pytest.mark.parametrize("selected", ["teacher", "pa", "relational"])
+def test_language_initialization_factory_restores_only_the_recomputed_choice(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    selected: str,
+) -> None:
+    full = _image_model().eval().requires_grad_(False)
+    student = copy.deepcopy(full).train().requires_grad_(True)
+    checkpoint = tmp_path / f"{selected}-final.pt"
+    if selected != "teacher":
+        torch.save({"model_state": student.state_dict()}, checkpoint)
+    validations: list[tuple[str, str]] = []
+    monkeypatch.setattr(subject.pair, "load_teacher", lambda root: copy.deepcopy(full))
+    monkeypatch.setattr(subject, "prune_siglip_student", lambda model: copy.deepcopy(student))
+    monkeypatch.setattr(
+        subject.evaluator,
+        "validate_student_payload",
+        lambda payload, receipt, arm: validations.append((receipt["schema"], arm)),
+    )
+    factory, teacher, initial_sha = subject.language_initialization_factory(
+        {
+            "selected_arm": selected,
+            "initialization_path": checkpoint,
+            "pair_receipt": {"schema": "fixture-pair"},
+        },
+        tmp_path / "control",
+        torch.device("cpu"),
+    )
+    first, second = factory(), factory()
+    assert first is not second
+    assert subject.control._model_state_sha256(first) == initial_sha
+    assert subject.control._model_state_sha256(second) == initial_sha
+    assert validations == ([] if selected == "teacher" else [("fixture-pair", selected)])
+    assert (teacher is not None) is (selected == "relational")
+    if teacher is not None:
+        assert not any(p.requires_grad for p in teacher.parameters())
+
+
 def test_initialization_recomputes_all_gates_and_prefers_pa() -> None:
     value, monitor = _selection_evidence()
     assert _select(value, monitor)["initialization"] == "pa"
@@ -743,6 +781,147 @@ def test_execute_training_rejects_duplicate_controls_before_model_construction(
             synchronize=lambda: None,
         )
     assert calls == [] and list(tmp_path.iterdir()) == []
+
+
+def test_run_training_authenticates_then_trains_and_seals_one_terminal(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    output = tmp_path / "out"
+    calls: list[str] = []
+    gram = standardized_text_gram(torch.nn.functional.normalize(torch.randn(4, 5), dim=1))
+    permuted = gram[[1, 0, 3, 2]][:, [1, 0, 3, 2]].contiguous()
+    target_receipt = {
+        "schema": "fixture-targets",
+        "gram_sha256": {
+            "correct": subject._gram_digest(gram),
+            "permuted": subject._gram_digest(permuted),
+        },
+    }
+    initialization = {
+        "selected_arm": "pa",
+        "pair_receipt": {"schema": "fixture-pair"},
+        "pair_sha256": "1" * 64,
+        "pair_monitor_sha256": "2" * 64,
+        "evaluation_sha256": "3" * 64,
+        "evaluation_monitor_sha256": "4" * 64,
+    }
+    monkeypatch.setattr(
+        subject,
+        "read_initialization",
+        lambda args: calls.append("initialization") or initialization,
+    )
+    monkeypatch.setattr(subject.torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(
+        subject.control,
+        "require_control_determinism",
+        lambda device: calls.append("determinism"),
+    )
+
+    def prepare(args: Any, device: torch.device, progress: Any) -> dict[str, Any]:
+        calls.append("targets")
+        (args.output_dir / "language-targets.json").write_bytes(b"{}\n")
+        return target_receipt
+
+    monkeypatch.setattr(subject, "prepare_text_targets", prepare)
+    monkeypatch.setattr(
+        subject,
+        "load_language_targets",
+        lambda path, digest: {
+            "receipt": target_receipt,
+            "tensors": {"correct": gram, "permuted": permuted},
+        },
+    )
+    monkeypatch.setattr(
+        subject,
+        "language_initialization_factory",
+        lambda *args: (lambda: _image_model(), None, "5" * 64),
+    )
+    monkeypatch.setattr(
+        subject,
+        "language_training_batch_source",
+        lambda receipt: (
+            calls.append("images") or (lambda update: (torch.randn(6, 4), torch.arange(6)))
+        ),
+    )
+    monkeypatch.setattr(
+        subject,
+        "execute_language_training",
+        lambda *args, **kwargs: (
+            calls.append("training")
+            or {
+                "arms": {arm: {"completed_updates": 20} for arm in ("base", "correct", "permuted")},
+                "checkpoints": {
+                    arm: {"sha256": str(i) * 64}
+                    for i, arm in enumerate(("base", "correct", "permuted"), 6)
+                },
+                "projection_seconds": 100.0,
+                "initial_state_sha256": "5" * 64,
+                "input_sha256": ["9" * 64] * 20,
+                "teacher_state_sha256": None,
+                "teacher_unchanged": True,
+                "preflight": {"quality_measured": False},
+            }
+        ),
+    )
+    result = subject.run_training(SimpleNamespace(output_dir=output, control_root=tmp_path))
+    assert calls[:4] == ["initialization", "determinism", "targets", "images"]
+    assert calls[-1] == "training"
+    assert result["schema"] == "sfora-siglip-language-training-v1"
+    terminal = output / "training-complete.json"
+    assert terminal.read_bytes() == subject.control._canonical_bytes(result)
+
+
+def test_run_training_rejects_initialization_before_cuda_or_output(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cuda: list[bool] = []
+    monkeypatch.setattr(
+        subject,
+        "read_initialization",
+        lambda args: (_ for _ in ()).throw(ValueError("authority")),
+    )
+    monkeypatch.setattr(subject.torch.cuda, "is_available", lambda: cuda.append(True))
+    output = tmp_path / "out"
+    with pytest.raises(ValueError, match="authority"):
+        subject.run_training(SimpleNamespace(output_dir=output))
+    assert cuda == [] and not output.exists()
+
+
+def test_language_batch_source_replays_exact_authenticated_first_twenty(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    expected = [f"{index:064x}" for index in range(20)]
+    receipt = {
+        "arms": {arm: {"input_sha256": expected + ["f" * 64] * 178} for arm in ("pa", "relational")}
+    }
+    calls: list[int] = []
+    monkeypatch.setattr(subject, "load_optimization_images", lambda: ("images",))
+    monkeypatch.setattr(subject.smoke, "recovery_batches", lambda examples: tuple(range(198)))
+    monkeypatch.setattr(subject.control, "build_control_train_transform", lambda: "transform")
+    monkeypatch.setattr(
+        subject.smoke,
+        "paired_training_batch",
+        lambda examples, batch, transform, update: (
+            calls.append(update) or torch.tensor([float(update)]),
+            torch.tensor([update]),
+        ),
+    )
+    monkeypatch.setattr(
+        subject.smoke,
+        "_batch_sha",
+        lambda pixels, labels: expected[int(labels[0]) - 1],
+    )
+    batch = subject.language_training_batch_source(receipt)
+    assert int(batch(1)[1][0]) == 1
+    assert int(batch(20)[1][0]) == 20
+    assert calls == [1, 20]
+    with pytest.raises(ValueError):
+        batch(0)
+    monkeypatch.setattr(subject.smoke, "_batch_sha", lambda pixels, labels: "e" * 64)
+    with pytest.raises(ValueError, match="crops"):
+        batch(1)
 
 
 def _trained_fixture() -> tuple[PooledProxyAnchorModel, dict[str, Any]]:
