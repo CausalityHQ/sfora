@@ -1293,15 +1293,12 @@ def test_prepare_targets_authenticates_local_sources_and_never_uses_evaluation_n
     monkeypatch.setattr(subject, "SiglipTextModel", lambda config: model, raising=False)
     monkeypatch.setattr(
         subject,
-        "SiglipTextConfig",
-        SimpleNamespace(
-            from_json_file=lambda path: SimpleNamespace(
-                hidden_size=1152,
-                num_hidden_layers=27,
-                vocab_size=32000,
-            ),
+        "load_text_configuration",
+        lambda path: SimpleNamespace(
+            hidden_size=1152,
+            num_hidden_layers=27,
+            vocab_size=32000,
         ),
-        raising=False,
     )
     monkeypatch.setattr(subject, "load_text_state", lambda *args: seen.update(loaded=args))
     monkeypatch.setattr(
@@ -1356,6 +1353,36 @@ def test_prepare_targets_authenticates_local_sources_and_never_uses_evaluation_n
     source = seen["sealed"][4]
     assert {k: source[k] for k in digests} == digests
     assert set(source) == {*digests, "runner", "guidance", "protocol"}
+
+
+def test_text_configuration_uses_authenticated_nested_multimodal_config(tmp_path: Path) -> None:
+    path = tmp_path / "config.json"
+    path.write_text(
+        json.dumps(
+            {
+                "model_type": "siglip",
+                "text_config": {
+                    "hidden_size": 1152,
+                    "intermediate_size": 4304,
+                    "model_type": "siglip_text_model",
+                    "num_attention_heads": 16,
+                    "num_hidden_layers": 27,
+                    "vocab_size": 32000,
+                },
+                "vision_config": {
+                    "hidden_size": 1152,
+                    "intermediate_size": 4304,
+                    "model_type": "siglip_vision_model",
+                    "num_attention_heads": 16,
+                    "num_hidden_layers": 27,
+                },
+            }
+        )
+    )
+    config = subject.load_text_configuration(path)
+    assert config.hidden_size == 1152
+    assert config.num_hidden_layers == 27
+    assert config.vocab_size == 32000
 
 
 def test_prepare_targets_rejects_source_digest_before_model_construction(

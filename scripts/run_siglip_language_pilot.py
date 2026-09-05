@@ -25,7 +25,7 @@ import torch
 from safetensors import safe_open
 from safetensors.torch import load as load_safetensors
 from safetensors.torch import save as save_safetensors
-from transformers import AutoTokenizer, SiglipTextConfig, SiglipTextModel
+from transformers import AutoTokenizer, SiglipConfig, SiglipTextConfig, SiglipTextModel
 
 import sfora.siglip_language_guidance as language_guidance
 import sfora.siglip_language_protocol as language_protocol
@@ -227,6 +227,14 @@ def official_optimization_prompts(path: Path, expected_sha256: str) -> tuple[str
     return tuple(f"a photo of a {names[i]}." for i in range(49))
 
 
+def load_text_configuration(path: Path) -> SiglipTextConfig:
+    """Extract the text tower from the authenticated multimodal SigLIP config."""
+    config = SiglipConfig.from_json_file(str(path)).text_config
+    if not isinstance(config, SiglipTextConfig):
+        raise ValueError("text configuration type differs")
+    return config
+
+
 def encode_frozen_text(
     model: torch.nn.Module,
     input_ids: torch.Tensor,
@@ -291,7 +299,7 @@ def prepare_text_targets(
         raise ValueError("text snapshot authority differs")
     progress({"stage": "text-targets-authenticated", "input_sha256": digests})
 
-    config = SiglipTextConfig.from_json_file(str(paths["config"]))
+    config = load_text_configuration(paths["config"])
     if (
         type(config.hidden_size) is not int
         or config.hidden_size != 1152
