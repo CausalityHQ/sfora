@@ -30,6 +30,7 @@ import sfora.siglip_recovery_evaluation as evaluation_core  # noqa: E402
 from sfora.siglip_depth_recovery import prune_siglip_student  # noqa: E402
 
 PRIOR_EVALUATION_SHA256 = "d61dbf622609b03ad6adce48ecff2428567b018a5aa6b7ff9c1d71f2b522ca8b"
+PRIOR_EVALUATION_MONITOR_SHA256 = "a2ba883c87c552b40833ad22022b2503e65c3e3913cf7b588b598992ffbd68b7"
 WHOLE_PROCESS_CAP_SECONDS = 1800.0
 
 
@@ -41,6 +42,7 @@ def parse_args(arguments: list[str] | None = None) -> argparse.Namespace:
         "audit-result",
         "pair-monitor",
         "prior-evaluation",
+        "prior-evaluation-monitor",
         "control-root",
         "output",
     ):
@@ -48,6 +50,7 @@ def parse_args(arguments: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--pair-sha256", required=True)
     parser.add_argument("--monitor-sha256", required=True)
     parser.add_argument("--prior-evaluation-sha256", required=True)
+    parser.add_argument("--prior-evaluation-monitor-sha256", required=True)
     parser.add_argument("--execute-asymmetric-evaluation", action="store_true", required=True)
     return parser.parse_args(arguments)
 
@@ -78,7 +81,7 @@ def read_prior_result(
 
 def asymmetric_budget_seconds(training_remaining: float, prior: dict[str, Any]) -> float:
     """Deduct the completed control evaluation and apply the diagnostic cap."""
-    elapsed = prior.get("resources", {}).get("elapsed_seconds")
+    elapsed = prior.get("elapsed_s")
     if (
         type(training_remaining) is not float
         or not math.isfinite(training_remaining)
@@ -89,6 +92,25 @@ def asymmetric_budget_seconds(training_remaining: float, prior: dict[str, Any]) 
     ):
         raise ValueError("asymmetric evaluation budget authority differs")
     return min(WHOLE_PROCESS_CAP_SECONDS, training_remaining - elapsed)
+
+
+def read_prior_monitor(path: Path, digest: str) -> dict[str, Any]:
+    """Authenticate successful whole-process time for the frozen control evaluation."""
+    value = recovery._read_json(path, digest)
+    elapsed = value.get("elapsed_s")
+    if (
+        value.get("schema") != "sfora-recovery-evaluation-monitor-v1"
+        or value.get("claim_eligible") is not False
+        or type(value.get("exit_code")) is not int
+        or value["exit_code"] != 0
+        or value.get("stop_reason") is not None
+        or value.get("result_sha256") != PRIOR_EVALUATION_SHA256
+        or type(elapsed) is not float
+        or not math.isfinite(elapsed)
+        or elapsed <= 0
+    ):
+        raise ValueError("prior recovery evaluation monitor authority differs")
+    return value
 
 
 def _cross_cell(
@@ -160,8 +182,12 @@ def run_evaluation(args: argparse.Namespace) -> dict[str, Any]:
         args.pair_sha256,
         args.monitor_sha256,
     )
-    cap_seconds = asymmetric_budget_seconds(remaining, prior)
-    prior_evaluation_seconds = prior["resources"]["elapsed_seconds"]
+    prior_monitor = read_prior_monitor(
+        args.prior_evaluation_monitor, args.prior_evaluation_monitor_sha256
+    )
+    cap_seconds = asymmetric_budget_seconds(remaining, prior_monitor)
+    prior_evaluation_internal_seconds = prior["resources"]["elapsed_seconds"]
+    prior_evaluation_seconds = prior_monitor["elapsed_s"]
     prior_campaign_seconds = 21600.0 - remaining
     audit = recovery._read_json(args.audit_result, recovery.AUDIT_SHA256)
     paths = recovery.authenticate_checkpoint_files(args.pair_directory, receipt)
@@ -247,6 +273,7 @@ def run_evaluation(args: argparse.Namespace) -> dict[str, Any]:
         "pair_sha256": args.pair_sha256,
         "monitor_sha256": args.monitor_sha256,
         "prior_evaluation_sha256": args.prior_evaluation_sha256,
+        "prior_evaluation_monitor_sha256": args.prior_evaluation_monitor_sha256,
         "teacher_checkpoint_sha256": receipt["teacher_checkpoint_sha256"],
         "checkpoint_seals": receipt["checkpoints"],
         "cells": cells,
@@ -257,6 +284,7 @@ def run_evaluation(args: argparse.Namespace) -> dict[str, Any]:
             "elapsed_seconds": (perf_counter_ns() - began) / 1e9,
             "internal_work_cap_seconds": cap_seconds,
             "prior_campaign_seconds": prior_campaign_seconds,
+            "prior_evaluation_internal_seconds": prior_evaluation_internal_seconds,
             "prior_evaluation_seconds": prior_evaluation_seconds,
             "cumulative_prior_seconds": prior_campaign_seconds + prior_evaluation_seconds,
             "remaining_campaign_seconds_at_start": remaining - prior_evaluation_seconds,
@@ -285,6 +313,8 @@ def main(arguments: list[str] | None = None) -> None:
         raise FileExistsError(args.output)
     if args.prior_evaluation_sha256 != PRIOR_EVALUATION_SHA256:
         raise ValueError("asymmetric evaluation prior result digest differs")
+    if args.prior_evaluation_monitor_sha256 != PRIOR_EVALUATION_MONITOR_SHA256:
+        raise ValueError("asymmetric evaluation prior monitor digest differs")
     result = run_evaluation(args)
     control._write_new(args.output, probe._canonical(result))
     print("asymmetric-recovery-eval: COMPLETE " + probe._file_sha(args.output), flush=True)

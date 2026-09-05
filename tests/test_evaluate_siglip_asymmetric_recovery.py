@@ -80,12 +80,32 @@ def test_prior_result_is_exactly_bound_to_recovery_authority(tmp_path: Path) -> 
 
 
 def test_prior_evaluation_time_is_deducted_from_both_caps() -> None:
-    prior = {"resources": {"elapsed_seconds": 400.0}}
+    prior = {"elapsed_s": 400.0}
     assert subject.asymmetric_budget_seconds(2000.0, prior) == 1600.0
     assert subject.asymmetric_budget_seconds(5000.0, prior) == 1800.0
     for elapsed in (True, 0.0, float("nan"), 2000.0):
         with pytest.raises(ValueError):
-            subject.asymmetric_budget_seconds(2000.0, {"resources": {"elapsed_seconds": elapsed}})
+            subject.asymmetric_budget_seconds(2000.0, {"elapsed_s": elapsed})
+
+
+def test_prior_monitor_binds_successful_whole_process_time(tmp_path: Path) -> None:
+    value = {
+        "schema": "sfora-recovery-evaluation-monitor-v1",
+        "claim_eligible": False,
+        "exit_code": 0,
+        "stop_reason": None,
+        "elapsed_s": 475.06047469202895,
+        "result_sha256": subject.PRIOR_EVALUATION_SHA256,
+    }
+    path = tmp_path / "prior.monitor.json"
+    path.write_bytes(subject.probe._canonical(value))
+    digest = subject.probe._file_sha(path)
+    assert subject.read_prior_monitor(path, digest)["elapsed_s"] == value["elapsed_s"]
+    for key, changed in (("exit_code", 125), ("stop_reason", "psi-cap"), ("elapsed_s", 0.0)):
+        bad = {**value, key: changed}
+        path.write_bytes(subject.probe._canonical(bad))
+        with pytest.raises(ValueError):
+            subject.read_prior_monitor(path, subject.probe._file_sha(path))
 
 
 def test_direct_cli_requires_prior_authority_and_explicit_execution(tmp_path: Path) -> None:
@@ -109,6 +129,10 @@ def test_direct_cli_requires_prior_authority_and_explicit_execution(tmp_path: Pa
                 str(tmp_path / "prior.json"),
                 "--prior-evaluation-sha256",
                 "c" * 64,
+                "--prior-evaluation-monitor",
+                str(tmp_path / "prior.monitor.json"),
+                "--prior-evaluation-monitor-sha256",
+                "d" * 64,
                 "--control-root",
                 str(tmp_path / "control"),
                 "--output",
@@ -147,6 +171,8 @@ def test_runner_authenticates_then_extracts_teacher_and_both_students_once(
         monitor_sha256="2" * 64,
         prior_evaluation=tmp_path / "prior.json",
         prior_evaluation_sha256=subject.PRIOR_EVALUATION_SHA256,
+        prior_evaluation_monitor=tmp_path / "prior.monitor.json",
+        prior_evaluation_monitor_sha256=subject.PRIOR_EVALUATION_MONITOR_SHA256,
         control_root=tmp_path,
     )
     monkeypatch.setattr(
@@ -163,6 +189,7 @@ def test_runner_authenticates_then_extracts_teacher_and_both_students_once(
         "read_prior_result",
         lambda *args: {"cells": {}, "resources": {"elapsed_seconds": 100.0}},
     )
+    monkeypatch.setattr(subject, "read_prior_monitor", lambda *args: {"elapsed_s": 101.0})
     monkeypatch.setattr(
         subject.recovery,
         "authenticate_checkpoint_files",
