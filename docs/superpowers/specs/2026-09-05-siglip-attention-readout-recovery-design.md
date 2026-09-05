@@ -90,19 +90,13 @@ rather than treating it as a definitive linear-capacity failure. Ridge and
 refined cells are both evaluated after sealing; no evaluation outcome selects
 between them.
 
-Controls are:
-
-1. zero-train teacher projection at every registered depth;
-2. the depth-27 exact identity control;
-3. a fixed seed-17 Gaussian 1,152-to-512 random projection with entry variance
-   `1/1152`;
-4. a fixed seed-17 derangement of optimization image-to-target assignments,
-   fit with the same ridge and refinement budget.
-
-The last two controls are reported but cannot be selected. They are not
-required to reach chance because pretrained features and teacher initialization
-remain informative; their purpose is to measure incremental improvement and
-detect target-identity shortcuts.
+Controls are the sealed ridge and refined linear readouts at every registered
+depth plus the exact depth-27 teacher identity. They are reported but cannot be
+selected. Random projection and target-derangement sweeps are deliberately
+omitted: neither changes the branch decision, while the latter would duplicate
+the dominant optimization cost. The canonical result instead records the
+learned cell's initial loss, final loss, and all final 200 update losses so
+convergence is observable rather than represented by an unevaluated boolean.
 
 ## Branch-deciding attention readout
 
@@ -140,7 +134,7 @@ Decision precedence is:
 
 1. `invalid`: any authority, identity, topology, finiteness, replay, depth-27,
    control, or result-recomputation gate fails;
-2. `deployment-grade`: the depth-18 learned-attention cell has both self and
+2. `quality-qualified`: the depth-18 learned-attention cell has both self and
    cross-gallery hits
    >=2,591 and both mAP@R values >=0.7893744556922272;
 3. `compression-promising`: the depth-18 learned-attention cell has both self
@@ -153,13 +147,13 @@ Decision precedence is:
 The linear cells cannot select or reject the architecture; they quantify how
 much recovery requires nonlinear attention adaptation. The promising tier
 authorizes only a structured compression experiment; it is not quality
-success. Final product advancement still requires the deployment-grade gate,
-<=0.75 measured inference time, matched baselines, multiple seeds, and
+success. Final product advancement still requires the quality gate plus a
+separately authenticated complete-path latency ratio <=0.75, matched baselines, multiple seeds, and
 untouched official evaluation.
 
 ## Follow-on architecture
 
-If depth 18 is deployment-grade or promising, build a contiguous-prefix
+If depth 18 is quality-qualified or promising, build a contiguous-prefix
 student rather than the failed interleaved deletion. Initialize it from teacher
 blocks 1..k, retain the frozen teacher attention pooler, initialize the
 teacher-coordinate readout from the sealed cell, and train first with explicit

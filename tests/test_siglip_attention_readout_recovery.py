@@ -135,7 +135,7 @@ def test_decision_preserves_deployment_gate_and_prefers_smallest_qualifying_dept
     )
 
     assert attention_readout_decision(cells) == {
-        "classification": "deployment-grade",
+        "classification": "quality-qualified",
         "selected_depth": 18,
         "selected_fit": "learned-attention",
     }
@@ -214,9 +214,13 @@ def _build_result() -> bytes:
         checkpoint_sha256="11" * 32,
         optimization_manifest_sha256="22" * 32,
         evaluation_manifest_sha256="33" * 32,
+        readout_artifact_sha256="44" * 32,
         depth_27_identity=True,
-        random_projection_passed=False,
-        target_derangement_passed=False,
+        learned_attention_optimization={
+            "initial_loss": 0.25,
+            "final_loss": 0.05,
+            "final_200_losses": [0.051] * 199 + [0.05],
+        },
     )
 
 
@@ -227,7 +231,7 @@ def test_result_is_canonical_and_recomputes_every_metric_and_decision() -> None:
     result = validate_attention_readout_result_bytes(raw)
 
     assert raw.endswith(b"\n") and not raw.endswith(b"\n\n")
-    assert result["classification"] == "deployment-grade"
+    assert result["classification"] == "quality-qualified"
     assert result["selected_depth"] == 18
     assert result["selected_fit"] == "learned-attention"
     result_cells = cast(list[dict[str, object]], result["cells"])
@@ -242,6 +246,7 @@ def test_result_is_canonical_and_recomputes_every_metric_and_decision() -> None:
     [
         (lambda value: value.update({"claim_eligible": 0}), "result authority differs"),
         (lambda value: value.update({"checkpoint_sha256": "x" * 64}), "digest differs"),
+        (lambda value: value.update({"readout_artifact_sha256": "x" * 64}), "digest differs"),
         (
             lambda value: value["cells"][8]["self"].update({"correct": 2_590}),
             "retrieval relation differs",
@@ -253,6 +258,14 @@ def test_result_is_canonical_and_recomputes_every_metric_and_decision() -> None:
         (
             lambda value: value["cells"][8]["self"]["hits"].append(False),
             "retrieval evidence differs",
+        ),
+        (
+            lambda value: value["learned_attention_optimization"].update({"final_loss": 0}),
+            "optimization evidence differs",
+        ),
+        (
+            lambda value: value["learned_attention_optimization"]["final_200_losses"].pop(),
+            "optimization evidence differs",
         ),
     ],
 )

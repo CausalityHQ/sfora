@@ -224,7 +224,7 @@ def attention_readout_decision(cells: list[dict[str, object]]) -> dict[str, obje
         and learned[4] >= 2_591
         and learned[5] >= 0.7893744556922272
     ):
-        classification, selected = "deployment-grade", (18, "learned-attention")
+        classification, selected = "quality-qualified", (18, "learned-attention")
     elif self_promising and cross_promising:
         classification, selected = "compression-promising", (18, "learned-attention")
     elif self_promising:
@@ -316,15 +316,41 @@ def _decision_cells(cells: list[dict[str, object]]) -> list[dict[str, object]]:
     ]
 
 
+def _optimization_evidence(value: object) -> dict[str, object]:
+    if type(value) is not dict or set(value) != {
+        "initial_loss",
+        "final_loss",
+        "final_200_losses",
+    }:
+        raise ValueError("attention readout optimization evidence differs")
+    evidence = cast(dict[str, object], value)
+    losses = evidence["final_200_losses"]
+    if (
+        type(evidence["initial_loss"]) is not float
+        or not math.isfinite(cast(float, evidence["initial_loss"]))
+        or type(evidence["final_loss"]) is not float
+        or not math.isfinite(cast(float, evidence["final_loss"]))
+        or type(losses) is not list
+        or len(losses) != 200
+        or any(type(loss) is not float or not math.isfinite(loss) for loss in losses)
+    ):
+        raise ValueError("attention readout optimization evidence differs")
+    return {
+        "initial_loss": evidence["initial_loss"],
+        "final_loss": evidence["final_loss"],
+        "final_200_losses": cast(list[float], losses).copy(),
+    }
+
+
 def build_attention_readout_result(
     cells: list[dict[str, object]],
     *,
     checkpoint_sha256: str,
     optimization_manifest_sha256: str,
     evaluation_manifest_sha256: str,
+    readout_artifact_sha256: str,
     depth_27_identity: bool,
-    random_projection_passed: bool,
-    target_derangement_passed: bool,
+    learned_attention_optimization: dict[str, object],
 ) -> bytes:
     """Build canonical per-query evidence and validate it independently."""
 
@@ -359,12 +385,7 @@ def build_attention_readout_result(
                 "cross": _retrieval_mapping(cell["cross"], summarized=False),
             }
         )
-    if (
-        type(depth_27_identity) is not bool
-        or not depth_27_identity
-        or type(random_projection_passed) is not bool
-        or type(target_derangement_passed) is not bool
-    ):
+    if type(depth_27_identity) is not bool or not depth_27_identity:
         raise ValueError("attention readout result authority differs")
     decision = attention_readout_decision(_decision_cells(output_cells))
     result = {
@@ -374,9 +395,9 @@ def build_attention_readout_result(
         "checkpoint_sha256": _hex_digest(checkpoint_sha256),
         "optimization_manifest_sha256": _hex_digest(optimization_manifest_sha256),
         "evaluation_manifest_sha256": _hex_digest(evaluation_manifest_sha256),
+        "readout_artifact_sha256": _hex_digest(readout_artifact_sha256),
         "depth_27_identity": depth_27_identity,
-        "random_projection_passed": random_projection_passed,
-        "target_derangement_passed": target_derangement_passed,
+        "learned_attention_optimization": _optimization_evidence(learned_attention_optimization),
         "cells": output_cells,
         **decision,
     }
@@ -403,9 +424,9 @@ def validate_attention_readout_result_bytes(raw: bytes) -> dict[str, object]:
         "checkpoint_sha256",
         "optimization_manifest_sha256",
         "evaluation_manifest_sha256",
+        "readout_artifact_sha256",
         "depth_27_identity",
-        "random_projection_passed",
-        "target_derangement_passed",
+        "learned_attention_optimization",
         "cells",
         "classification",
         "selected_depth",
@@ -419,14 +440,14 @@ def validate_attention_readout_result_bytes(raw: bytes) -> dict[str, object]:
         or result["claim_eligible"] is not False
         or result["official_test_access"] is not False
         or result["depth_27_identity"] is not True
-        or type(result["random_projection_passed"]) is not bool
-        or type(result["target_derangement_passed"]) is not bool
     ):
         raise ValueError("attention readout result authority differs")
+    _optimization_evidence(result["learned_attention_optimization"])
     for key in (
         "checkpoint_sha256",
         "optimization_manifest_sha256",
         "evaluation_manifest_sha256",
+        "readout_artifact_sha256",
     ):
         _hex_digest(result[key])
     if type(result["cells"]) is not list or len(result["cells"]) != 15:

@@ -17,7 +17,7 @@
 - Depths are exactly 6, 10, 14, 18, 22, 25, and 27.
 - Fit only on classes 0..48; seal every cell before reading classes 49..81; no official-test access.
 - Depth-27 zero-train descriptors must reproduce 2,596/2,746 hits and mAP@R 0.7913744556922272.
-- Final quality is not relaxed: deployment-grade requires at least 2,591 hits and mAP@R 0.7893744556922272 at depth <=18.
+- Final quality is not relaxed: quality-qualified requires at least 2,591 hits and mAP@R 0.7893744556922272 at depth <=18; latency remains a separate mandatory gate.
 - Preserve unrelated dirty Qwen files and stage only named files.
 
 ---
@@ -38,7 +38,7 @@
 - [ ] **Step 2: Run the exact new test nodes.** Run `.venv/bin/pytest -q tests/test_siglip_attention_readout_recovery.py -k 'ridge or apply'`; require missing-module/interface failure.
 - [ ] **Step 3: Implement the minimal deterministic ridge kernel.** Accumulate `H.T@H` and `H.T@P` in float64 on CPU, add `lambda*I`, solve with `torch.linalg.solve`, return contiguous FP32 `[512,1152]`, and independently verify the residual is finite.
 - [ ] **Step 4: Rerun the exact nodes to GREEN.** Preserve the original RED and GREEN terminals.
-- [ ] **Step 5: Write directional-refinement and control RED tests.** Prove the exact 2,000-update schedule, final-only result, deterministic cyclic shuffle, FP32 cosine loss, clipping, zero weight decay, fixed random control, and target derangement. Ridge and refined cells remain separately named.
+- [ ] **Step 5: Write directional-refinement and control RED tests.** Prove the exact 2,000-update schedule, final-only result, deterministic cyclic shuffle, FP32 cosine loss, clipping, zero weight decay, and exact optimization-loss evidence. Ridge and refined cells remain separately named.
 - [ ] **Step 6: Implement refinement and controls, then rerun focused tests.** No evaluation labels, metrics, or features may enter fitting, stopping, or cell selection.
 - [ ] **Step 7: Write result/decision RED tests.** Cover self/cross per-query evidence, exact recomputation, depth ordering, depth-27 identity, the required depth-18 `learned-attention` cell, two quality tiers, coordinate-alignment branch, invalid precedence, canonical newline bytes, and every schema/type/count/digest mutation. Linear cells are controls and cannot select the branch.
 - [ ] **Step 8: Implement result construction and independent validation.** The validator must derive every aggregate and selected depth from per-query evidence rather than trust stored floats.
