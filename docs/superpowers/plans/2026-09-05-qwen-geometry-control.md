@@ -15,6 +15,8 @@
 - Sfora files only; do not modify Borsuk.
 - No official Cars test access, language forward, generation, tokenizer, Hub, HTTP, or network API in the scientific child.
 - Pooling is the sole arm difference; all six attempts execute exactly 183 successful updates.
+- All intended trainable state and AdamW moments are FP32; only the visual forward uses
+  CUDA BF16 autocast, identically in both arms. AdamW uses `foreach=False`.
 - Every implementation change follows an observed RED then narrow GREEN.
 - Preserve the four pre-existing untracked handoff entries.
 
@@ -118,13 +120,22 @@
 
 - [ ] **Step 1: Write failing checkpoint/resume/smoke tests**
 
-  Prove path+size+SHA binding, reject every identity/state mutation, compare uninterrupted and resumed states, and require two restored three-update executions to match input and state digests.
+  Prove path+size+SHA binding, reject every identity/state mutation, compare uninterrupted
+  and update-two-resumed states, and require two fresh-initialization three-update
+  executions to match input and state digests. Mutation-lock FP32 trainable parameters,
+  gradients, and moments, the exact BF16 visual-autocast boundary, `foreach=False`, and
+  the exact frozen DeepStack role set.
 
 - [ ] **Step 2: Run the narrow RED**
 
 - [ ] **Step 3: Implement atomic checkpoint publication and smoke receipts**
 
-  Store model, proxy, optimizer, schedule, RNG, sampler, protocol, arm, seed, update, and source identities. Write a temporary file, fsync, rename, hash, then publish its canonical receipt.
+  Store model, proxy, optimizer, schedule, RNG, sampler, protocol, arm, seed, update, and
+  source identities. Write a temporary file, fsync, rename, hash, then publish its canonical
+  receipt. Record role/block gradient reductions and deterministic coordinate samples on
+  every step; at smoke boundaries stream full FP32 tensor comparisons for cumulative L2,
+  changed elements, block coverage, and fixed-image pre-pooler token displacement. Enforce
+  the preregistered `1e-6` tower/block and 90% moving-block gates.
 
 - [ ] **Step 4: Run checkpoint/smoke GREEN and static checks**
 

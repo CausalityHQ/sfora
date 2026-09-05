@@ -126,6 +126,13 @@ def test_replayed_step_matches_full_batch_chain_rule_and_adamw_state() -> None:
     assert evidence.gradient_norm == pytest.approx(float(expected_norm), rel=1.0e-10)
     assert evidence.sampled_parameter_values > 0
     assert 0 < evidence.changed_sampled_parameter_values <= evidence.sampled_parameter_values
+    assert tuple(role for role, _, _ in evidence.parameter_displacement) == (
+        "model",
+        "proxies",
+    )
+    assert sum(total for _, total, _ in evidence.parameter_displacement) == (
+        evidence.sampled_parameter_values
+    )
     for actual, expected in zip(evidence.parameter_gradients, expected_gradients, strict=True):
         torch.testing.assert_close(actual, expected, rtol=1.0e-10, atol=1.0e-11)
     for actual, expected in zip(
@@ -279,6 +286,7 @@ class _FakeQwen(nn.Module):
 @pytest.mark.parametrize("arm", ["mean", "attention"])
 def test_qwen_geometry_model_executes_only_vision_and_registered_pooler(arm: str) -> None:
     qwen = _FakeQwen()
+    qwen.model.visual.to(dtype=torch.bfloat16)
     wrapper = _MODULE.QwenVisionGeometryModel(
         model=qwen,
         processor=_FakeImageProcessor(),
@@ -299,6 +307,7 @@ def test_qwen_geometry_model_executes_only_vision_and_registered_pooler(arm: str
         not parameter.requires_grad
         for parameter in qwen.model.visual.deepstack_merger_list.parameters()
     )
+    assert all(parameter.dtype == torch.float32 for parameter in wrapper.visual.parameters())
     assert "_qwen_model" not in wrapper.__dict__
     assert all(not isinstance(module, _ForbiddenLanguage) for module in wrapper.modules())
     wrapper_ids = {id(parameter) for parameter in wrapper.parameters() if parameter.requires_grad}
@@ -536,6 +545,7 @@ def test_run_train_executes_all_registered_updates_before_checkpoint(
             maximum_score_disagreement=0.0,
             sampled_parameter_values=9,
             changed_sampled_parameter_values=8,
+            parameter_displacement=(("tower", 3, 2), ("pooler", 3, 3), ("proxies", 3, 3)),
             updated_state_sha256="a" * 64,
             optimizer_state_sha256="b" * 64,
         )
@@ -604,6 +614,7 @@ def test_smoke_reloads_initial_state_and_repeats_exact_evidence(
             maximum_score_disagreement=0.0,
             sampled_parameter_values=9,
             changed_sampled_parameter_values=8,
+            parameter_displacement=(("tower", 3, 2), ("pooler", 3, 3), ("proxies", 3, 3)),
             updated_state_sha256=f"{update + 1:064x}",
             optimizer_state_sha256=f"{update + 4:064x}",
         )

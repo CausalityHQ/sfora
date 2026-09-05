@@ -41,6 +41,11 @@ def _registered_protocol_values() -> dict[str, object]:
         "weight_decay": 1.0e-4,
         "warmup_updates": 10,
         "gradient_clip_norm": 1.0,
+        "trainable_parameter_precision": "float32",
+        "visual_compute_precision": "bfloat16-autocast",
+        "optimizer_foreach": False,
+        "tower_displacement_floor": 1.0e-6,
+        "minimum_moving_block_fraction": 0.9,
     }
 
 
@@ -73,6 +78,11 @@ class QwenGeometryProtocol:
     weight_decay: float = 1.0e-4
     warmup_updates: int = 10
     gradient_clip_norm: float = 1.0
+    trainable_parameter_precision: str = "float32"
+    visual_compute_precision: str = "bfloat16-autocast"
+    optimizer_foreach: bool = False
+    tower_displacement_floor: float = 1.0e-6
+    minimum_moving_block_fraction: float = 0.9
 
     def __post_init__(self) -> None:
         registered = _registered_protocol_values()

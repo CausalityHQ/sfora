@@ -42,6 +42,15 @@ paired.
 - ten-update linear warm-up followed by cosine decay to zero;
 - one global gradient clip at norm 1.0 per successful update.
 
+The trainable visual tower, pooler, proxies, gradients, and AdamW moments are stored in
+FP32. Only the visual forward executes under CUDA BF16 autocast; pooling, Proxy Anchor,
+backward accumulation, clipping, and optimizer updates remain FP32. AdamW uses
+`foreach=False`. The unused DeepStack mergers are the only frozen visual parameters and
+their exact names are bound into the role manifest. This precision contract replaces the
+initial BF16-weight smoke, where only 22 of 1,005 fixed parameter samples changed per
+step under warm-up learning rates; those receipts remain implementation evidence but are
+ineligible for the campaign.
+
 The paired initialization manifest contains the shared vision and proxy tensors plus the
 source random stream used to initialize each arm's projection. Because the poolers have
 different shapes, their raw state hashes need not match; their initialization algorithm,
@@ -87,6 +96,14 @@ the first real smoke.
 Engineering admission requires both arms to complete the paired smoke with correct roles,
 finite evidence, restored-state replay, no pressure stop, and projected runtime no more
 than four hours per arm.
+
+Each repaired smoke loads initialization twice and reproduces the same three updates. It
+also saves after update two and requires a fresh restore to reproduce uninterrupted update
+three. Full FP32 tower comparisons must show cumulative relative L2 displacement of at
+least `1e-6`, at least 90% of trainable transformer blocks must individually reach `1e-6`,
+and a fixed optimization image's pre-pooler visual tokens must move by more than
+`max(1e-6, 10 * unchanged-repeat-discrepancy)`. Pooler or proxy movement cannot satisfy
+the tower gate.
 
 The development campaign passes only if all conditions hold:
 

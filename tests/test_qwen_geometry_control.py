@@ -52,6 +52,11 @@ def test_protocol_freezes_the_paired_qwen_geometry_experiment() -> None:
     assert protocol.weight_decay == 1.0e-4
     assert protocol.warmup_updates == 10
     assert protocol.gradient_clip_norm == 1.0
+    assert protocol.trainable_parameter_precision == "float32"
+    assert protocol.visual_compute_precision == "bfloat16-autocast"
+    assert protocol.optimizer_foreach is False
+    assert protocol.tower_displacement_floor == 1.0e-6
+    assert protocol.minimum_moving_block_fraction == 0.9
 
 
 @pytest.mark.parametrize(
@@ -76,6 +81,11 @@ def test_protocol_freezes_the_paired_qwen_geometry_experiment() -> None:
         ("adamw_betas", (0.8, 0.999)),
         ("warmup_updates", 9),
         ("gradient_clip_norm", 10.0),
+        ("trainable_parameter_precision", "bfloat16"),
+        ("visual_compute_precision", "float32"),
+        ("optimizer_foreach", True),
+        ("tower_displacement_floor", 0.0),
+        ("minimum_moving_block_fraction", 0.8),
     ],
 )
 def test_protocol_rejects_scientific_constant_drift(field: str, value: object) -> None:

@@ -101,6 +101,7 @@ class GeometryStepEvidence:
     optimizer_state_sha256: str
     sampled_parameter_values: int
     changed_sampled_parameter_values: int
+    parameter_displacement: tuple[tuple[str, int, int], ...]
 
 
 @dataclass(frozen=True)
@@ -297,6 +298,7 @@ class QwenVisionGeometryModel(nn.Module):
         if not callable(getattr(processor, "image_processor", None)):
             raise ValueError("Qwen image processor differs")
         self.visual = visual
+        self.visual.float()
         self.pooler = build_geometry_pooler(arm, token_dimensions=token_dimensions)
         self.__dict__["_image_processor"] = processor.image_processor
         for parameter in (*language.parameters(), *language_head.parameters()):
@@ -329,11 +331,16 @@ class QwenVisionGeometryModel(nn.Module):
         except (AttributeError, StopIteration, TypeError, ValueError) as error:
             raise ValueError("Qwen visual execution authority differs") from error
         grid = image_grid_thw.to(device)
-        output = self.visual(
-            pixel_values.to(device=device, dtype=visual_dtype),
-            grid_thw=grid,
-            return_dict=True,
-        )
+        with torch.autocast(
+            device_type=device.type,
+            dtype=torch.bfloat16,
+            enabled=device.type == "cuda",
+        ):
+            output = self.visual(
+                pixel_values.to(device=device, dtype=visual_dtype),
+                grid_thw=grid,
+                return_dict=True,
+            )
         features = getattr(output, "pooler_output", None)
         split_sizes = tuple(int(value) for value in (grid.prod(-1) // merge_size**2).tolist())
         if (
@@ -496,6 +503,7 @@ def _run_smoke_trial(
         groups,
         betas=protocol.adamw_betas,
         eps=protocol.adamw_epsilon,
+        foreach=protocol.optimizer_foreach,
     )
     model.train()
     started = perf_counter_ns()
@@ -529,6 +537,10 @@ def _run_smoke_trial(
                 "loss": evidence.loss,
                 "maximum_score_disagreement": evidence.maximum_score_disagreement,
                 "optimizer_state_sha256": evidence.optimizer_state_sha256,
+                "parameter_displacement": [
+                    {"changed": changed, "role": role, "sampled": sampled}
+                    for role, sampled, changed in evidence.parameter_displacement
+                ],
                 "sampled_parameter_values": evidence.sampled_parameter_values,
                 "state_sha256": evidence.updated_state_sha256,
                 "update": update_index,
@@ -623,6 +635,7 @@ def run_train(args: argparse.Namespace) -> bytes:
         groups,
         betas=protocol.adamw_betas,
         eps=protocol.adamw_epsilon,
+        foreach=protocol.optimizer_foreach,
     )
     model.train()
     started = perf_counter_ns()
@@ -637,6 +650,7 @@ def run_train(args: argparse.Namespace) -> bytes:
         terminal_optimizer_sha256 = ""
         sampled_values = 0
         changed_sampled_values = 0
+        role_displacement: dict[str, list[int]] = {}
         for batch in plan.batches:
             images = tuple(_rgb_224(examples[index].image) for index in batch)
             labels = torch.tensor(
@@ -660,6 +674,10 @@ def run_train(args: argparse.Namespace) -> bytes:
             )
             sampled_values += evidence.sampled_parameter_values
             changed_sampled_values += evidence.changed_sampled_parameter_values
+            for role, sampled, changed in evidence.parameter_displacement:
+                totals = role_displacement.setdefault(role, [0, 0])
+                totals[0] += sampled
+                totals[1] += changed
             terminal_state_sha256 = evidence.updated_state_sha256
             terminal_optimizer_sha256 = evidence.optimizer_state_sha256
             update_index += 1
@@ -674,6 +692,10 @@ def run_train(args: argparse.Namespace) -> bytes:
                 "maximum_score_disagreement": maximum_disagreement,
                 "mean_loss": sum(losses) / len(losses),
                 "optimizer_state_sha256": terminal_optimizer_sha256,
+                "parameter_displacement": [
+                    {"changed": totals[1], "role": role, "sampled": totals[0]}
+                    for role, totals in sorted(role_displacement.items())
+                ],
                 "plan_sha256": plan.digest,
                 "sampled_parameter_values": sampled_values,
                 "state_sha256": terminal_state_sha256,
@@ -724,6 +746,21 @@ def _validate_replay_model(model: nn.Module) -> None:
             raise ValueError("logical replay refuses active dropout")
 
 
+def _fixed_parameter_samples(parameters: tuple[Tensor, ...]) -> Tensor:
+    return torch.cat(
+        tuple(
+            torch.stack(
+                (
+                    parameter.detach().reshape(-1)[0],
+                    parameter.detach().reshape(-1)[parameter.numel() // 2],
+                    parameter.detach().reshape(-1)[-1],
+                )
+            ).to(dtype=torch.float64)
+            for parameter in parameters
+        )
+    )
+
+
 def replayed_proxy_anchor_step(
     *,
     model: nn.Module,
@@ -746,7 +783,33 @@ def replayed_proxy_anchor_step(
         if sequence_inputs
         else 0
     )
-    parameters = (*filter(lambda parameter: parameter.requires_grad, model.parameters()), proxies)
+    visual = getattr(model, "visual", None)
+    pooler = getattr(model, "pooler", None)
+    if isinstance(visual, nn.Module) and isinstance(pooler, nn.Module):
+        role_parameters = (
+            (
+                "tower",
+                tuple(
+                    parameter for parameter in visual.parameters() if parameter.requires_grad
+                ),
+            ),
+            (
+                "pooler",
+                tuple(parameter for parameter in pooler.parameters() if parameter.requires_grad),
+            ),
+            ("proxies", (proxies,)),
+        )
+    else:
+        role_parameters = (
+            (
+                "model",
+                tuple(parameter for parameter in model.parameters() if parameter.requires_grad),
+            ),
+            ("proxies", (proxies,)),
+        )
+    parameters = tuple(
+        parameter for _, role_values in role_parameters for parameter in role_values
+    )
     if (
         not (tensor_inputs or sequence_inputs)
         or (tensor_inputs and (not inputs.is_floating_point() or inputs.ndim < 2))
@@ -829,32 +892,25 @@ def replayed_proxy_anchor_step(
     multiplier = learning_rate_multiplier(update_index)
     for group in optimizer.param_groups:
         group["lr"] = float(group["base_lr"]) * multiplier
-    before_samples = torch.cat(
-        tuple(
-            torch.stack(
-                (
-                    parameter.detach().reshape(-1)[0],
-                    parameter.detach().reshape(-1)[parameter.numel() // 2],
-                    parameter.detach().reshape(-1)[-1],
-                )
-            ).to(dtype=torch.float64)
-            for parameter in parameters
-        )
+    before_by_role = tuple(
+        (role, _fixed_parameter_samples(role_values))
+        for role, role_values in role_parameters
     )
+    before_samples = torch.cat(tuple(values for _, values in before_by_role))
     optimizer.step()
-    after_samples = torch.cat(
-        tuple(
-            torch.stack(
-                (
-                    parameter.detach().reshape(-1)[0],
-                    parameter.detach().reshape(-1)[parameter.numel() // 2],
-                    parameter.detach().reshape(-1)[-1],
-                )
-            ).to(dtype=torch.float64)
-            for parameter in parameters
-        )
+    after_by_role = tuple(
+        (role, _fixed_parameter_samples(role_values))
+        for role, role_values in role_parameters
     )
+    after_samples = torch.cat(tuple(values for _, values in after_by_role))
     changed_sampled_values = int((before_samples != after_samples).sum())
+    displacement = tuple(
+        (role, before.numel(), int((before != after).sum()))
+        for (role, before), (after_role, after) in zip(
+            before_by_role, after_by_role, strict=True
+        )
+        if role == after_role
+    )
     for group in optimizer.param_groups:
         group["schedule_update"] = update_index + 1
 
@@ -871,6 +927,7 @@ def replayed_proxy_anchor_step(
         optimizer_state_sha256=_optimizer_state_sha256(optimizer),
         sampled_parameter_values=before_samples.numel(),
         changed_sampled_parameter_values=changed_sampled_values,
+        parameter_displacement=displacement,
     )
 
 
