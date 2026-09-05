@@ -301,6 +301,63 @@ def build_geometry_pooler(
     raise ValueError(f"{arm!r} is not a registered geometry arm")
 
 
+def _role_seed(seed: int, role: str) -> int:
+    raw = _counter_digest(f"initialize-{role}", seed)
+    return int.from_bytes(raw[:8], "little") % (2**63 - 1)
+
+
+def _copy_normal_(parameter: Tensor, *, seed: int, std: float) -> None:
+    generator = torch.Generator(device="cpu")
+    generator.manual_seed(seed)
+    value = torch.empty(parameter.shape, dtype=torch.float32, device="cpu")
+    value.normal_(mean=0.0, std=std, generator=generator)
+    with torch.no_grad():
+        parameter.copy_(value.to(device=parameter.device, dtype=parameter.dtype))
+
+
+def initialize_geometry_pooler(
+    pooler: MeanProjectionPooler | SingleQueryAttentionPooler, *, seed: int
+) -> None:
+    """Initialize each parameter role from an independent deterministic stream."""
+
+    if type(seed) is not int or seed not in QwenGeometryProtocol().seeds:
+        raise ValueError("seed differs from the registered geometry seeds")
+    _copy_normal_(
+        pooler.output.weight,
+        seed=_role_seed(seed, "output"),
+        std=math.sqrt(2.0 / pooler.output.out_features),
+    )
+    if isinstance(pooler, SingleQueryAttentionPooler):
+        _copy_normal_(
+            pooler.query,
+            seed=_role_seed(seed, "query"),
+            std=pooler.token_dimensions**-0.5,
+        )
+        _copy_normal_(
+            pooler.key.weight,
+            seed=_role_seed(seed, "key"),
+            std=math.sqrt(2.0 / pooler.key.out_features),
+        )
+
+
+def initialize_geometry_proxies(proxies: nn.Parameter, *, seed: int) -> None:
+    """Initialize the 49 registered proxies from their own deterministic stream."""
+
+    protocol = QwenGeometryProtocol()
+    if type(seed) is not int or seed not in protocol.seeds:
+        raise ValueError("seed differs from the registered geometry seeds")
+    if tuple(proxies.shape) != (
+        len(protocol.optimization_classes),
+        protocol.embedding_dimensions,
+    ):
+        raise ValueError("proxy shape differs from the registered geometry protocol")
+    _copy_normal_(
+        proxies,
+        seed=_role_seed(seed, "proxies"),
+        std=math.sqrt(2.0 / protocol.embedding_dimensions),
+    )
+
+
 def pool_patch_tokens(
     pooler: MeanProjectionPooler | SingleQueryAttentionPooler, tokens: Tensor
 ) -> tuple[Tensor, Tensor | None]:

@@ -3,16 +3,36 @@
 
 from __future__ import annotations
 
+import argparse
 import hashlib
+import json
 import math
-from collections.abc import Iterable, Mapping
+import os
+import resource
+import sys
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
+from pathlib import Path
+from time import perf_counter_ns
+from typing import cast
 
+import numpy as np
 import torch
+from PIL import Image
 from torch import Tensor, nn
 from torch.nn import functional as F
 
-from sfora.qwen_geometry_control import QwenGeometryProtocol, learning_rate_multiplier
+from sfora.data import load_image_retrieval_examples, materialize_image
+from sfora.qwen_geometry_control import (
+    QwenGeometryProtocol,
+    build_geometry_pooler,
+    derive_epoch_batches,
+    initialize_geometry_pooler,
+    initialize_geometry_proxies,
+    learning_rate_multiplier,
+    optimizer_groups,
+    pool_patch_tokens,
+)
 from sfora.token_set_proxy_anchor import proxy_anchor_loss
 
 
@@ -81,6 +101,246 @@ class GeometryStepEvidence:
     optimizer_state_sha256: str
 
 
+class QwenVisionGeometryModel(nn.Module):
+    """Expose only Qwen vision features followed by one registered pooling arm."""
+
+    def __init__(
+        self,
+        *,
+        model: nn.Module,
+        processor: object,
+        token_dimensions: int,
+        arm: str,
+    ) -> None:
+        super().__init__()
+        try:
+            visual = model.model.visual  # type: ignore[attr-defined]
+            language = model.model.language_model  # type: ignore[attr-defined]
+            language_head = model.lm_head  # type: ignore[attr-defined]
+        except AttributeError as error:
+            raise ValueError("Qwen vision-only model structure differs") from error
+        if not isinstance(visual, nn.Module):
+            raise ValueError("Qwen visual tower differs")
+        if not callable(getattr(processor, "image_processor", None)):
+            raise ValueError("Qwen image processor differs")
+        self.visual = visual
+        self.pooler = build_geometry_pooler(arm, token_dimensions=token_dimensions)
+        self.__dict__["_qwen_model"] = model
+        self.__dict__["_image_processor"] = processor.image_processor
+        for parameter in (*language.parameters(), *language_head.parameters()):
+            parameter.requires_grad_(False)
+        for parameter in self.visual.parameters():
+            parameter.requires_grad_(True)
+
+    def forward(self, images: Sequence[object]) -> Tensor:
+        if not isinstance(images, Sequence) or isinstance(images, (str, bytes)) or not images:
+            raise ValueError("Qwen image batch differs")
+        raw = self._image_processor(images=list(images), return_tensors="pt")
+        if not isinstance(raw, Mapping) or set(raw) != {"pixel_values", "image_grid_thw"}:
+            raise ValueError("Qwen image processor output differs")
+        pixel_values = raw["pixel_values"]
+        image_grid_thw = raw["image_grid_thw"]
+        if not isinstance(pixel_values, Tensor) or not isinstance(image_grid_thw, Tensor):
+            raise ValueError("Qwen image processor tensors differ")
+        try:
+            device = next(self.visual.parameters()).device
+        except StopIteration as error:
+            raise ValueError("Qwen visual tower has no parameters") from error
+        output = self._qwen_model.get_image_features(
+            pixel_values.to(device), image_grid_thw.to(device)
+        )
+        features = getattr(output, "pooler_output", None)
+        if (
+            type(features) not in {tuple, list}
+            or len(features) != len(images)
+            or any(not isinstance(feature, Tensor) or feature.ndim != 2 for feature in features)
+            or any(feature.shape != features[0].shape for feature in features)
+        ):
+            raise ValueError("Qwen patch feature authority differs")
+        descriptors, _ = pool_patch_tokens(self.pooler, torch.stack(tuple(features)))
+        return descriptors
+
+
+def _canonical_bytes(value: object) -> bytes:
+    return (
+        json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+        + b"\n"
+    )
+
+
+def _write_new(path: Path, raw: bytes) -> None:
+    partial = path.with_name(path.name + ".partial")
+    if path.exists() or partial.exists():
+        raise FileExistsError("Qwen geometry output already exists")
+    with partial.open("xb") as stream:
+        stream.write(raw)
+        stream.flush()
+        os.fsync(stream.fileno())
+    os.replace(partial, path)
+
+
+def _rgb_224(image: object) -> np.ndarray:
+    converted = cast(Image.Image, materialize_image(image)).convert("RGB")
+    resized = converted.resize((224, 224), resample=Image.Resampling.BICUBIC)
+    value = np.asarray(resized, dtype=np.uint8)
+    if value.shape != (224, 224, 3):
+        raise ValueError("Cars image differs from RGB 224 authority")
+    return np.ascontiguousarray(value)
+
+
+def _configure_determinism() -> None:
+    os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+    torch.use_deterministic_algorithms(True)
+    torch.backends.cuda.matmul.allow_tf32 = False
+    torch.backends.cudnn.allow_tf32 = False
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    """Parse the explicit local-only real-model smoke boundary."""
+
+    parser = argparse.ArgumentParser(allow_abbrev=False, description=__doc__)
+    parser.add_argument("smoke", nargs="?")
+    parser.add_argument("--model-root", type=Path, required=True)
+    parser.add_argument("--snapshot-manifest", type=Path, required=True)
+    parser.add_argument("--fixture", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--source-commit", required=True)
+    parser.add_argument("--arm", choices=QwenGeometryProtocol().arms, required=True)
+    parser.add_argument("--seed", type=int, choices=QwenGeometryProtocol().seeds, required=True)
+    parser.add_argument("--microbatch-size", type=int, required=True)
+    parser.add_argument("--execute-smoke", action="store_true", required=True)
+    values = parser.parse_args(argv)
+    if values.smoke != "smoke":
+        parser.error("only the smoke phase is currently available")
+    if len(values.source_commit) != 40 or any(
+        character not in "0123456789abcdef" for character in values.source_commit
+    ):
+        parser.error("source commit must be 40 lowercase hex")
+    if (
+        values.microbatch_size < 1
+        or QwenGeometryProtocol().logical_batch_size % values.microbatch_size != 0
+    ):
+        parser.error("microbatch size must divide the logical batch")
+    return values
+
+
+def _load_real_geometry_model(args: argparse.Namespace) -> QwenVisionGeometryModel:
+    from scripts.diagnose_saga_gb10_feasibility import (
+        LoadedAuthority,
+        TransformersFactory,
+        load_qwen_adapter,
+    )
+    from sfora.saga_feasibility import load_fixture_authority, load_snapshot_authority
+
+    snapshot = load_snapshot_authority(
+        root=args.model_root, manifest_path=args.snapshot_manifest
+    )
+    fixture = load_fixture_authority(args.fixture)
+    adapter = load_qwen_adapter(
+        LoadedAuthority(snapshot=snapshot, fixture=fixture), factory=TransformersFactory()
+    )
+    model = QwenVisionGeometryModel(
+        model=adapter._model,
+        processor=adapter._processor,
+        token_dimensions=adapter.pooler_token_dim,
+        arm=args.arm,
+    )
+    device = next(model.visual.parameters()).device
+    model.pooler.to(device)
+    initialize_geometry_pooler(model.pooler, seed=args.seed)
+    return model
+
+
+def run_smoke(args: argparse.Namespace) -> bytes:
+    """Run exactly three authenticated real-data updates and return a receipt."""
+
+    protocol = QwenGeometryProtocol()
+    _configure_determinism()
+    torch.manual_seed(args.seed)
+    examples = tuple(
+        row
+        for row in load_image_retrieval_examples(dataset_name="cars", split="train")
+        if row.label in protocol.optimization_classes
+    )
+    members = {
+        label: tuple(index for index, row in enumerate(examples) if row.label == label)
+        for label in protocol.optimization_classes
+    }
+    plan = derive_epoch_batches(members, seed=args.seed, epoch=0)
+    model = _load_real_geometry_model(args)
+    device = next(model.visual.parameters()).device
+    proxies = nn.Parameter(
+        torch.empty(
+            len(protocol.optimization_classes),
+            protocol.embedding_dimensions,
+            device=device,
+            dtype=torch.float32,
+        )
+    )
+    initialize_geometry_proxies(proxies, seed=args.seed)
+    groups = optimizer_groups(tower=model.visual, pooler=model.pooler, proxies=proxies)
+    for group in groups:
+        group["base_lr"] = group["lr"]
+        group["schedule_update"] = 0
+    optimizer = torch.optim.AdamW(
+        groups,
+        betas=protocol.adamw_betas,
+        eps=protocol.adamw_epsilon,
+    )
+    model.train()
+    started = perf_counter_ns()
+    updates: list[dict[str, object]] = []
+    for update_index, batch in enumerate(plan.batches[:3]):
+        images = tuple(_rgb_224(examples[index].image) for index in batch)
+        labels = torch.tensor(
+            [examples[index].label for index in batch], dtype=torch.int64, device=device
+        )
+        update_started = perf_counter_ns()
+        evidence = replayed_proxy_anchor_step(
+            model=model,
+            proxies=proxies,
+            inputs=images,
+            labels=labels,
+            optimizer=optimizer,
+            microbatch_size=args.microbatch_size,
+            update_index=update_index,
+        )
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
+        updates.append(
+            {
+                "batch_sha256": plan.batch_digests[update_index],
+                "elapsed_ns": perf_counter_ns() - update_started,
+                "gradient_norm": evidence.gradient_norm,
+                "loss": evidence.loss,
+                "maximum_score_disagreement": evidence.maximum_score_disagreement,
+                "optimizer_state_sha256": evidence.optimizer_state_sha256,
+                "state_sha256": evidence.updated_state_sha256,
+                "update": update_index,
+            }
+        )
+    payload = {
+        "arm": args.arm,
+        "claim_eligible": False,
+        "elapsed_ns": perf_counter_ns() - started,
+        "language_forward_calls": 0,
+        "microbatch_size": args.microbatch_size,
+        "optimizer_updates": 3,
+        "peak_cuda_bytes": (
+            max(1, int(torch.cuda.max_memory_reserved())) if torch.cuda.is_available() else 1
+        ),
+        "peak_rss_bytes": max(1, resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024),
+        "protocol_batch_plan_sha256": plan.digest,
+        "schema": "sfora-qwen-geometry-smoke-v1",
+        "seed": args.seed,
+        "source_commit": args.source_commit,
+        "updates": updates,
+    }
+    return _canonical_bytes(payload)
+
+
 def _validate_replay_model(model: nn.Module) -> None:
     for module in model.modules():
         if isinstance(module, nn.modules.batchnorm._BatchNorm) and module.training:
@@ -93,7 +353,7 @@ def replayed_proxy_anchor_step(
     *,
     model: nn.Module,
     proxies: nn.Parameter,
-    inputs: Tensor,
+    inputs: Tensor | Sequence[object],
     labels: Tensor,
     optimizer: torch.optim.Optimizer,
     microbatch_size: int,
@@ -102,18 +362,25 @@ def replayed_proxy_anchor_step(
     """Apply Proxy Anchor once while replaying a logical batch in bounded slices."""
 
     protocol = QwenGeometryProtocol()
-    batch_size = int(inputs.shape[0]) if isinstance(inputs, Tensor) and inputs.ndim >= 1 else 0
+    tensor_inputs = isinstance(inputs, Tensor)
+    sequence_inputs = isinstance(inputs, Sequence) and not isinstance(inputs, (str, bytes))
+    batch_size = (
+        int(inputs.shape[0])
+        if tensor_inputs and inputs.ndim >= 1
+        else len(inputs)
+        if sequence_inputs
+        else 0
+    )
     parameters = (*model.parameters(), proxies)
     if (
-        not isinstance(inputs, Tensor)
-        or not inputs.is_floating_point()
-        or inputs.ndim < 2
+        not (tensor_inputs or sequence_inputs)
+        or (tensor_inputs and (not inputs.is_floating_point() or inputs.ndim < 2))
         or batch_size < 1
         or labels.shape != (batch_size,)
         or labels.dtype not in (torch.int32, torch.int64)
     ):
         raise ValueError("logical batch inputs and labels differ")
-    if not torch.isfinite(inputs).all().item():
+    if tensor_inputs and not torch.isfinite(inputs).all().item():
         raise ValueError("logical batch inputs must be finite")
     if (
         type(microbatch_size) is not int
@@ -203,3 +470,16 @@ def replayed_proxy_anchor_step(
         updated_state_sha256=state_sha256(parameters),
         optimizer_state_sha256=_optimizer_state_sha256(optimizer),
     )
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parse_args(argv)
+    raw = run_smoke(args)
+    _write_new(args.output, raw)
+    sys.stdout.buffer.write(raw)
+    sys.stdout.buffer.flush()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

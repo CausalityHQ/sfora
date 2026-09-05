@@ -15,6 +15,8 @@ from sfora.qwen_geometry_control import (
     SingleQueryAttentionPooler,
     build_geometry_pooler,
     derive_epoch_batches,
+    initialize_geometry_pooler,
+    initialize_geometry_proxies,
     learning_rate_multiplier,
     optimizer_groups,
     parameter_role_manifest,
@@ -132,6 +134,31 @@ def test_pooler_factory_exposes_only_the_two_registered_arms() -> None:
     )
     with pytest.raises(ValueError, match="registered geometry arm"):
         build_geometry_pooler("max", token_dimensions=4)
+
+
+def test_role_separated_initialization_keeps_shared_projection_byte_identical() -> None:
+    mean = build_geometry_pooler("mean", token_dimensions=4)
+    attention = build_geometry_pooler("attention", token_dimensions=4)
+
+    initialize_geometry_pooler(mean, seed=17)
+    initialize_geometry_pooler(attention, seed=17)
+
+    assert torch.equal(mean.output.weight, attention.output.weight)
+    assert torch.count_nonzero(attention.query) > 0
+    assert torch.count_nonzero(attention.key.weight) > 0
+    repeated = build_geometry_pooler("attention", token_dimensions=4)
+    initialize_geometry_pooler(repeated, seed=17)
+    for left, right in zip(attention.parameters(), repeated.parameters(), strict=True):
+        assert torch.equal(left, right)
+
+    with pytest.raises(ValueError, match="seed"):
+        initialize_geometry_pooler(mean, seed=18)
+
+    proxies = torch.nn.Parameter(torch.empty(49, 4096))
+    initialize_geometry_proxies(proxies, seed=17)
+    repeated_proxies = torch.nn.Parameter(torch.empty(49, 4096))
+    initialize_geometry_proxies(repeated_proxies, seed=17)
+    assert torch.equal(proxies, repeated_proxies)
 
 
 @pytest.mark.parametrize(

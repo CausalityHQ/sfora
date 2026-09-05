@@ -6,6 +6,7 @@ import copy
 import importlib.util
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 import torch
@@ -31,6 +32,11 @@ class _TinyDescriptor(nn.Module):
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         return F.normalize(self.output(torch.tanh(self.first(inputs))), dim=-1)
+
+
+class _TupleDescriptor(_TinyDescriptor):
+    def forward(self, inputs: tuple[torch.Tensor, ...]) -> torch.Tensor:
+        return super().forward(torch.stack(inputs))
 
 
 def _fixture() -> tuple[nn.Module, nn.Parameter, torch.optim.AdamW]:
@@ -150,6 +156,44 @@ def test_replayed_step_is_byte_deterministic_from_restored_state() -> None:
     assert results[0].optimizer_state_sha256 == results[1].optimizer_state_sha256
 
 
+def test_replayed_step_accepts_a_sliceable_non_tensor_image_batch() -> None:
+    inputs, labels = _inputs()
+    model, proxies, optimizer = _fixture()
+    tuple_model = _TupleDescriptor().double()
+    tuple_model.load_state_dict(model.state_dict())
+    tuple_optimizer = torch.optim.AdamW(
+        [
+            {
+                "params": list(tuple_model.parameters()),
+                "lr": 1.0e-3,
+                "base_lr": 1.0e-3,
+                "schedule_update": 0,
+            },
+            {
+                "params": [proxies],
+                "lr": 1.0e-2,
+                "base_lr": 1.0e-2,
+                "schedule_update": 0,
+                "weight_decay": 0.0,
+            },
+        ],
+        weight_decay=1.0e-4,
+    )
+
+    evidence = _MODULE.replayed_proxy_anchor_step(
+        model=tuple_model,
+        proxies=proxies,
+        inputs=tuple(inputs.unbind()),
+        labels=labels,
+        optimizer=tuple_optimizer,
+        microbatch_size=2,
+        update_index=0,
+    )
+
+    assert evidence.update_index == 0
+    assert evidence.scores.shape == (4, 3)
+
+
 def test_rejected_step_cannot_advance_schedule_or_mutate_state() -> None:
     inputs, labels = _inputs()
     model, proxies, optimizer = _fixture()
@@ -181,3 +225,100 @@ def test_rejected_step_cannot_advance_schedule_or_mutate_state() -> None:
             microbatch_size=2,
             update_index=0,
         )
+
+
+class _FakeImageProcessor:
+    def image_processor(
+        self, *, images: list[torch.Tensor], return_tensors: str
+    ) -> dict[str, torch.Tensor]:
+        assert return_tensors == "pt"
+        return {
+            "pixel_values": torch.stack(images),
+            "image_grid_thw": torch.tensor([[1, 2, 2]] * len(images)),
+        }
+
+
+class _ForbiddenLanguage(nn.Module):
+    def forward(self, _inputs: torch.Tensor) -> torch.Tensor:
+        raise AssertionError("language execution is forbidden")
+
+
+class _FakeQwen(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.model = nn.Module()
+        self.model.visual = nn.Linear(4, 4, bias=False)
+        self.model.language_model = _ForbiddenLanguage()
+        self.lm_head = _ForbiddenLanguage()
+
+    def get_image_features(
+        self, pixel_values: torch.Tensor, image_grid_thw: torch.Tensor
+    ) -> SimpleNamespace:
+        assert image_grid_thw.shape == (pixel_values.shape[0], 3)
+        rows = self.model.visual(pixel_values)
+        return SimpleNamespace(pooler_output=tuple(rows.unbind()))
+
+
+@pytest.mark.parametrize("arm", ["mean", "attention"])
+def test_qwen_geometry_model_executes_only_vision_and_registered_pooler(arm: str) -> None:
+    qwen = _FakeQwen()
+    wrapper = _MODULE.QwenVisionGeometryModel(
+        model=qwen,
+        processor=_FakeImageProcessor(),
+        token_dimensions=4,
+        arm=arm,
+    )
+    images = tuple(torch.arange(16, dtype=torch.float32).reshape(4, 4) + row for row in range(2))
+
+    descriptors = wrapper(images)
+
+    assert descriptors.shape == (2, 4096)
+    torch.testing.assert_close(
+        torch.linalg.vector_norm(descriptors, dim=-1), torch.ones(2), rtol=0, atol=1.0e-6
+    )
+    assert all(not parameter.requires_grad for parameter in qwen.model.language_model.parameters())
+    assert all(not parameter.requires_grad for parameter in qwen.lm_head.parameters())
+    wrapper_ids = {id(parameter) for parameter in wrapper.parameters()}
+    assert wrapper_ids == {
+        id(parameter)
+        for parameter in (*qwen.model.visual.parameters(), *wrapper.pooler.parameters())
+    }
+
+
+def test_smoke_cli_is_explicit_and_refuses_network_or_test_capabilities(
+    tmp_path: Path,
+) -> None:
+    base = [
+        "smoke",
+        "--model-root",
+        str(tmp_path),
+        "--snapshot-manifest",
+        str(tmp_path / "snapshot.json"),
+        "--fixture",
+        str(tmp_path / "fixture.json"),
+        "--output",
+        str(tmp_path / "result.json"),
+        "--source-commit",
+        "1" * 40,
+        "--arm",
+        "mean",
+        "--seed",
+        "17",
+        "--microbatch-size",
+        "1",
+        "--execute-smoke",
+    ]
+    parsed = _MODULE.parse_args(base)
+    assert parsed.arm == "mean"
+    assert parsed.seed == 17
+    for forbidden in (
+        "--official-test",
+        "--hub-token",
+        "--dataset-uri",
+        "--generate",
+        "--language-model",
+    ):
+        with pytest.raises(SystemExit):
+            _MODULE.parse_args([*base, forbidden, "value"])
+    with pytest.raises(SystemExit):
+        _MODULE.parse_args([token for token in base if token != "--execute-smoke"])
