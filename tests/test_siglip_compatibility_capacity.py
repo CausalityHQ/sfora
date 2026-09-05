@@ -12,6 +12,7 @@ from sfora.siglip_compatibility_capacity import (
     build_compatibility_capacity_result,
     classify_compatibility_capacity,
     compatibility_folds,
+    compatibility_oracle_halves,
     compatibility_retrieval_evidence,
     csls_scores,
     fit_centered_similarity,
@@ -57,6 +58,13 @@ def test_compatibility_folds_are_exact_deterministic_class_partitions() -> None:
 def test_compatibility_folds_reject_authority_drift(labels: object) -> None:
     with pytest.raises(ValueError, match="compatibility class authority differs"):
         compatibility_folds(labels)  # type: ignore[arg-type]
+
+
+def test_compatibility_oracle_halves_are_exact_and_reversible() -> None:
+    assert compatibility_oracle_halves((4, 5, 12, 15, 19, 24, 26, 32, 40, 45)) == (
+        (19, 24, 40, 4, 32),
+        (45, 12, 5, 26, 15),
+    )
 
 
 def test_centered_similarity_recovers_rotation_and_finite_centering() -> None:
@@ -349,8 +357,10 @@ def _capacity_result() -> bytes:
         descriptor_artifact_sha256="22" * 32,
         fold_results=folds,
         cells=cells,
-        cosine_r1=(0.70, 0.80),
-        csls_r1=(0.75, 0.81),
+        identity_cosine_r1=(0.70, 0.80),
+        identity_csls_r1=(0.71, 0.81),
+        finalist_cosine_r1=(0.72, 0.82),
+        finalist_csls_r1=(0.77, 0.83),
     )
 
 

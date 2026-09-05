@@ -66,6 +66,28 @@ def compatibility_folds(labels: tuple[int, ...]) -> tuple[tuple[int, ...], ...]:
     )
 
 
+def compatibility_oracle_halves(
+    labels: tuple[int, ...],
+) -> tuple[tuple[int, ...], tuple[int, ...]]:
+    """Return the two registered burned-development support/evaluation halves."""
+
+    _fitting, development = spatial_tail_class_split(tuple(range(49)))
+    if type(labels) is not tuple or labels != tuple(sorted(development)):
+        raise ValueError("compatibility oracle class authority differs")
+    ranked = sorted(
+        (
+            hashlib.sha256(
+                b"sfora-compatibility-oracle-v1\0" + str(label).encode("ascii")
+            ).digest(),
+            label,
+        )
+        for label in labels
+    )
+    return tuple(label for _, label in ranked[:5]), tuple(
+        label for _, label in ranked[5:]
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class CompatibilityRetrievalEvidence:
     """Exact compatibility retrieval and cross-space diagnostic evidence."""
@@ -499,8 +521,10 @@ def build_compatibility_capacity_result(
     descriptor_artifact_sha256: str,
     fold_results: Mapping[str, tuple[tuple[float, float], ...]],
     cells: Mapping[str, CompatibilityRetrievalEvidence],
-    cosine_r1: tuple[float, float],
-    csls_r1: tuple[float, float],
+    identity_cosine_r1: tuple[float, float],
+    identity_csls_r1: tuple[float, float],
+    finalist_cosine_r1: tuple[float, float],
+    finalist_csls_r1: tuple[float, float],
 ) -> bytes:
     """Build canonical, claim-ineligible compatibility-capacity evidence."""
 
@@ -529,10 +553,19 @@ def build_compatibility_capacity_result(
         },
         "finalist": finalist,
         "cells": parsed_cells,
-        "cosine_r1": list(cosine_r1),
-        "csls_r1": list(csls_r1),
+        "csls_diagnostic": {
+            "identity": {
+                "cosine_r1": list(identity_cosine_r1),
+                "csls_r1": list(identity_csls_r1),
+            },
+            "finalist": {
+                "cosine_r1": list(finalist_cosine_r1),
+                "csls_r1": list(finalist_csls_r1),
+            },
+        },
         "classification": classify_compatibility_capacity(finalist_metrics, oracle_metrics),
-        "hubness_present": hubness_present(cosine_r1, csls_r1),
+        "hubness_present": hubness_present(identity_cosine_r1, identity_csls_r1)
+        or hubness_present(finalist_cosine_r1, finalist_csls_r1),
     }
     raw = (
         json.dumps(result, sort_keys=True, separators=(",", ":"), allow_nan=False)
@@ -558,8 +591,7 @@ def validate_compatibility_capacity_result_bytes(raw: bytes) -> dict[str, object
         "fold_results",
         "finalist",
         "cells",
-        "cosine_r1",
-        "csls_r1",
+        "csls_diagnostic",
         "classification",
         "hubness_present",
     }
@@ -612,13 +644,21 @@ def validate_compatibility_capacity_result_bytes(raw: bytes) -> dict[str, object
     cells = {name: _parse_evidence(cell_value[name]) for name in cell_names}
     if len({len(evidence.hits) for evidence in cells.values()}) != 1:
         raise ValueError("compatibility capacity result cells differ")
-    cosine = result["cosine_r1"]
-    csls = result["csls_r1"]
-    if type(cosine) is not list or type(csls) is not list:
+    diagnostic = result["csls_diagnostic"]
+    if type(diagnostic) is not dict or set(diagnostic) != {"identity", "finalist"}:
         raise ValueError("compatibility capacity result hubness differs")
-    cosine_pair = tuple(cosine)
-    csls_pair = tuple(csls)
-    expected_hubness = hubness_present(cosine_pair, csls_pair)  # type: ignore[arg-type]
+    expected_hubness = False
+    for name in ("identity", "finalist"):
+        cell = diagnostic[name]
+        if type(cell) is not dict or set(cell) != {"cosine_r1", "csls_r1"}:
+            raise ValueError("compatibility capacity result hubness differs")
+        cosine = cell["cosine_r1"]
+        csls = cell["csls_r1"]
+        if type(cosine) is not list or type(csls) is not list:
+            raise ValueError("compatibility capacity result hubness differs")
+        expected_hubness = expected_hubness or hubness_present(
+            tuple(cosine), tuple(csls)  # type: ignore[arg-type]
+        )
     expected_class = classify_compatibility_capacity(
         _decision_metrics(cells, "finalist"), _decision_metrics(cells, "oracle")
     )
