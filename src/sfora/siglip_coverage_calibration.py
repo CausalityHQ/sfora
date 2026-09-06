@@ -705,6 +705,7 @@ def validate_coverage_execution_receipt_bytes(raw: bytes) -> dict[str, object]:
         "reason_code",
         "exit_code",
         "group_drained",
+        "resource_monitor",
         "verified_artifacts",
     }
     if type(raw) is not bytes or type(value) is not dict or set(value) != keys or raw != canonical:
@@ -714,6 +715,7 @@ def validate_coverage_execution_receipt_bytes(raw: bytes) -> dict[str, object]:
     phase = receipt["failed_phase"]
     exit_code = receipt["exit_code"]
     artifacts = receipt["verified_artifacts"]
+    monitor = receipt["resource_monitor"]
     if (
         receipt["schema"] != "sfora-siglip-coverage-execution-v1"
         or receipt["claim_eligible"] is not False
@@ -725,10 +727,131 @@ def validate_coverage_execution_receipt_bytes(raw: bytes) -> dict[str, object]:
         or type(receipt["reason_code"]) is not str
         or not receipt["reason_code"]
         or type(receipt["group_drained"]) is not bool
+        or type(monitor) is not dict
+        or set(monitor)
+        != {
+            "samples",
+            "peak_process_group_rss_bytes",
+            "peak_gpu_memory_mib",
+            "peak_memory_psi_full_avg10_percent",
+            "maximum_swap_growth_kib",
+            "terminal_process_group_rss_bytes",
+            "terminal_gpu_memory_mib",
+            "terminal_memory_psi_full_avg10_percent",
+            "terminal_swap_growth_kib",
+            "immediate_psi_percent",
+            "sustained_psi_percent",
+            "sustained_samples",
+        }
         or type(artifacts) is not dict
         or set(artifacts) != {"map_artifact", "fit_receipt", "result"}
     ):
         raise ValueError("coverage execution receipt authority differs")
+    integer_fields = (
+        "peak_process_group_rss_bytes",
+        "peak_gpu_memory_mib",
+        "maximum_swap_growth_kib",
+        "terminal_process_group_rss_bytes",
+        "terminal_gpu_memory_mib",
+        "terminal_swap_growth_kib",
+    )
+    samples = monitor["samples"]
+    if (
+        type(samples) is not list
+        or any(type(monitor[field]) is not int or monitor[field] < 0 for field in integer_fields)
+        or type(monitor["peak_memory_psi_full_avg10_percent"]) is not float
+        or not 0.0 <= monitor["peak_memory_psi_full_avg10_percent"] <= 100.0
+        or type(monitor["terminal_memory_psi_full_avg10_percent"]) is not float
+        or not 0.0 <= monitor["terminal_memory_psi_full_avg10_percent"] <= 100.0
+        or monitor["immediate_psi_percent"] != 79.0
+        or type(monitor["immediate_psi_percent"]) is not float
+        or monitor["sustained_psi_percent"] != 50.0
+        or type(monitor["sustained_psi_percent"]) is not float
+        or monitor["sustained_samples"] != 3
+        or type(monitor["sustained_samples"]) is not int
+        or monitor["terminal_process_group_rss_bytes"] > monitor["peak_process_group_rss_bytes"]
+        or monitor["terminal_gpu_memory_mib"] > monitor["peak_gpu_memory_mib"]
+        or monitor["terminal_memory_psi_full_avg10_percent"]
+        > monitor["peak_memory_psi_full_avg10_percent"]
+        or monitor["terminal_swap_growth_kib"] > monitor["maximum_swap_growth_kib"]
+    ):
+        raise ValueError("coverage execution receipt resource monitor differs")
+    sample_keys = {
+        "ordinal",
+        "process_group_rss_bytes",
+        "gpu_memory_mib",
+        "memory_psi_full_avg10_percent",
+        "swap_growth_kib",
+    }
+    for ordinal, sample in enumerate(samples):
+        if (
+            type(sample) is not dict
+            or set(sample) != sample_keys
+            or type(sample["ordinal"]) is not int
+            or sample["ordinal"] != ordinal
+            or type(sample["process_group_rss_bytes"]) is not int
+            or sample["process_group_rss_bytes"] < 0
+            or type(sample["gpu_memory_mib"]) is not int
+            or sample["gpu_memory_mib"] < 0
+            or type(sample["memory_psi_full_avg10_percent"]) is not float
+            or not 0.0 <= sample["memory_psi_full_avg10_percent"] <= 100.0
+            or type(sample["swap_growth_kib"]) is not int
+            or sample["swap_growth_kib"] < 0
+        ):
+            raise ValueError("coverage execution receipt resource sample differs")
+    typed_samples = cast(list[dict[str, object]], samples)
+    if typed_samples:
+        terminal_sample = typed_samples[-1]
+        expected_monitor = {
+            "peak_process_group_rss_bytes": max(
+                cast(int, sample["process_group_rss_bytes"]) for sample in typed_samples
+            ),
+            "peak_gpu_memory_mib": max(
+                cast(int, sample["gpu_memory_mib"]) for sample in typed_samples
+            ),
+            "peak_memory_psi_full_avg10_percent": max(
+                cast(float, sample["memory_psi_full_avg10_percent"]) for sample in typed_samples
+            ),
+            "maximum_swap_growth_kib": max(
+                cast(int, sample["swap_growth_kib"]) for sample in typed_samples
+            ),
+            "terminal_process_group_rss_bytes": terminal_sample["process_group_rss_bytes"],
+            "terminal_gpu_memory_mib": terminal_sample["gpu_memory_mib"],
+            "terminal_memory_psi_full_avg10_percent": terminal_sample[
+                "memory_psi_full_avg10_percent"
+            ],
+            "terminal_swap_growth_kib": terminal_sample["swap_growth_kib"],
+        }
+    else:
+        expected_monitor = {
+            "peak_process_group_rss_bytes": 0,
+            "peak_gpu_memory_mib": 0,
+            "peak_memory_psi_full_avg10_percent": 0.0,
+            "maximum_swap_growth_kib": 0,
+            "terminal_process_group_rss_bytes": 0,
+            "terminal_gpu_memory_mib": 0,
+            "terminal_memory_psi_full_avg10_percent": 0.0,
+            "terminal_swap_growth_kib": 0,
+        }
+    if any(monitor[key] != expected for key, expected in expected_monitor.items()):
+        raise ValueError("coverage execution receipt resource recomputation differs")
+    pressure_reason: str | None = None
+    pressure_hits = 0
+    for sample in typed_samples:
+        psi_percent = cast(float, sample["memory_psi_full_avg10_percent"])
+        pressure_hits = pressure_hits + 1 if psi_percent >= 50.0 else 0
+        if psi_percent >= 79.0:
+            pressure_reason = "psi-immediate"
+            break
+        if pressure_hits >= 3:
+            pressure_reason = "psi-sustained"
+            break
+    resource_stop = any(
+        cast(int, sample["process_group_rss_bytes"]) > 118_111_600_640
+        or cast(int, sample["gpu_memory_mib"]) > 98_304
+        or cast(int, sample["swap_growth_kib"]) > 0
+        for sample in typed_samples
+    )
     for identity in artifacts.values():
         if identity is None:
             continue
@@ -749,10 +872,17 @@ def validate_coverage_execution_receipt_bytes(raw: bytes) -> dict[str, object]:
             or receipt["reason_code"] != "complete"
             or receipt["group_drained"] is not True
             or any(identity is None for identity in artifacts.values())
+            or pressure_reason is not None
+            or resource_stop
+            or not typed_samples
         ):
             raise ValueError("coverage execution receipt false success")
     elif exit_code == 0 or phase not in {"preparation", "fit", "seal", "evaluation", "publication"}:
         raise ValueError("coverage execution receipt failure differs")
+    elif receipt["reason_code"] in {"psi-immediate", "psi-sustained"} and (
+        receipt["reason_code"] != pressure_reason
+    ):
+        raise ValueError("coverage execution receipt pressure stop differs")
     return receipt
 
 

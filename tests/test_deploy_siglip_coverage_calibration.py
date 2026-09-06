@@ -19,10 +19,12 @@ def test_coverage_deployment_binds_exact_source_and_local_only_inputs() -> None:
     assert "git diff --quiet HEAD -- src/sfora scripts" in source
     for path in (
         "src/sfora/siglip_coverage_calibration.py",
+        "scripts/siglip_pressure_guard.sh",
         "scripts/prepare_siglip_coverage_calibration.py",
         "scripts/probe_siglip_coverage_calibration.py",
         "scripts/deploy_siglip_coverage_calibration_v1.sh",
         "scripts/run_siglip_coverage_calibration_two_phase.sh",
+        "tests/test_siglip_pressure_guard.py",
         "scripts/landlock_exec.c",
     ):
         assert path in source
@@ -51,6 +53,8 @@ def test_coverage_deployment_binds_exact_source_and_local_only_inputs() -> None:
 
 def test_coverage_deployment_owns_one_monitored_process_and_never_restarts() -> None:
     source = _SCRIPT.read_text()
+    guard = (_SCRIPT.parent / "siglip_pressure_guard.sh").read_text()
+    pressure_contract = source + "\n" + guard
     assert "timeout --signal=TERM --kill-after=30s 5400s" in source
     assert "coverage calibration process is already active" in source
     assert source.count("run_siglip_coverage_calibration_two_phase.sh") >= 2
@@ -67,13 +71,32 @@ def test_coverage_deployment_owns_one_monitored_process_and_never_restarts() -> 
         "swap-delta",
         "progress-gap",
     ):
-        assert f"stop_reason={reason}" in source
+        assert (
+            f"stop_reason={reason}" in pressure_contract or f"reason={reason}" in pressure_contract
+        )
     assert "((rss <= 118111600640))" in source
     assert "((gpu_mib <= 98304))" in source
+    assert "source scripts/siglip_pressure_guard.sh" in source
+    assert 'sfora_pressure_update "$psi" "$psi_hits"' in source
+    assert source.index('sfora_pressure_update "$psi" "$psi_hits"') < source.index(
+        "terminal_psi=$psi"
+    )
+    assert '"resource_monitor"' in source
+    assert "peak_memory_psi_full_avg10_percent" in source
+    assert "terminal_memory_psi_full_avg10_percent" in source
+    assert "monitor_samples" in source
     assert "((swap <= swap0))" in source
     assert "swap-swap0 <= 262144" not in source
     assert 'test -z "$(nvidia-smi' not in source
     assert source.count("gpu_processes=$(nvidia-smi") == 2
+    monitor = source.split("while kill -0", 1)[1].split("set +e; wait", 1)[0]
+    assert "gpu_telemetry_valid=true" in monitor
+    assert monitor.count("gpu_telemetry_valid=false") == 2
+    assert "if [[ $gpu_telemetry_valid != true ]]; then" in monitor
+    assert monitor.index("gpu_telemetry_valid=false") < monitor.index("gpu_mib=$(awk")
+    assert monitor.index("gpu_mib=$(awk") < monitor.index(
+        "if [[ $gpu_telemetry_valid != true ]]; then"
+    )
     assert "load_control_examples" not in source
     monitored = source.index("setsid timeout --signal=TERM --kill-after=30s 5400s")
     assert monitored < source.index(
@@ -146,12 +169,22 @@ def test_coverage_deployment_preserves_terminal_receipt_on_every_exit() -> None:
     assert 'if [[ "$staging_owned" = 1 && -e "$staging" ]]' in source
     assert 'if [[ "$input_staging_owned" = 1 && -e "$input_staging" ]]' in source
     assert 'if [[ "$group_drained" = false ]]; then return; fi' in source
+    assert 'if [[ "$receipt_written" = 0 ]]; then return; fi' in source
+    receipt_writer = source.split("write_execution_receipt() {", 1)[1].split("drain_group() {", 1)[
+        0
+    ]
+    assert 'if ! "$python" -B - "$execution_receipt"' in receipt_writer
+    assert "PY\n  then\n    return 1\n  fi\n  receipt_written=1" in receipt_writer
     assert "drain_attempted=0" in source
     assert 'if [[ "$drain_attempted" = 1 ]]; then return; fi' in source
     assert 'test ! -e "$staging/preparation.complete" || failed_phase=fit' in source
     assert "trap 'stop_reason=signal-int; exit 130' INT" in source
     assert "trap 'stop_reason=signal-term; exit 143' TERM" in source
     assert "trap 'cleanup_remote; exit" not in source
+    publication = source.index("write_execution_receipt complete none complete 0 true")
+    disable_cleanup = source.index("trap - EXIT INT TERM", publication)
+    remove_monitor = source.index('unlink "$monitor_samples_path"', publication)
+    assert publication < disable_cleanup < remove_monitor
 
 
 def test_coverage_deployment_preserves_receipt_paths_after_success() -> None:

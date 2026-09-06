@@ -135,6 +135,8 @@
 
 - [ ] **Step 1: Verify DGX identity, free resources, immutable inputs, exact revision, expected transfer volume, process limits, and absence of another scientific process.**
 
+- [ ] **Step 1a: Treat Linux PSI `avg10` as a 0–100 percentage: 79.0 immediate and 50.0 for three samples. Bind every sample, threshold, recomputed peak, and terminal resource value into the canonical execution receipt. The terminal 0.79/0.50 revision is an operational unit-error failure with no scientific result and must not be restarted.**
+
 - [ ] **Step 2: Launch exactly one deployment wrapper invocation. Retain its original job/PID and monitor that same process every 30–55 seconds; do not launch a duplicate.**
 
 - [ ] **Step 3: On terminal, preserve exit status, canonical result/artifact hashes, metrics, runtime/pressure evidence, remote PID clearance, and scratch cleanup. Never auto-restart.**

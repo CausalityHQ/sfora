@@ -18,6 +18,7 @@ spatial_bytes=67973944
 
 source_files=(
   scripts/landlock_exec.c
+  scripts/siglip_pressure_guard.sh
   scripts/deploy_siglip_coverage_calibration_v1.sh
   scripts/prepare_siglip_coverage_calibration.py
   scripts/probe_siglip_coverage_calibration.py
@@ -27,6 +28,7 @@ source_files=(
   tests/test_probe_siglip_coverage_calibration.py
   tests/test_prepare_siglip_coverage_calibration.py
   tests/test_run_siglip_coverage_calibration_two_phase.py
+  tests/test_siglip_pressure_guard.py
   tests/test_siglip_coverage_calibration.py
 )
 git diff --quiet HEAD -- src/sfora scripts \
@@ -100,13 +102,19 @@ heldout_images=$input_staging/heldout-images
 child= group= run_owned=0 source_owned=0 source_checkout_complete=0 staging_owned=0
 input_staging_owned=0 stop_reason= receipt_written=0 drain_attempted=0
 group_drained=true
+monitor_samples=0 peak_rss=0 peak_gpu_mib=0 peak_psi=0 maximum_swap_growth=0
+terminal_rss=0 terminal_gpu_mib=0 terminal_psi=0 terminal_swap_growth=0
+monitor_samples_path=$staging/monitor.samples.tsv
 write_execution_receipt() {
   local receipt_status=$1 failed_phase=$2 reason_code=$3 exit_code=$4 drained=$5
   local map_path=$phase1/maps.safetensors
   local fit_path=$phase1/fit-receipt.json
   local result_path=$phase2/result.json
-  "$python" -B - "$execution_receipt" "$revision" "$receipt_status" "$failed_phase" \
-    "$reason_code" "$exit_code" "$drained" "$map_path" "$fit_path" "$result_path" <<'PY'
+  if ! "$python" -B - "$execution_receipt" "$revision" "$receipt_status" "$failed_phase" \
+    "$reason_code" "$exit_code" "$drained" "$map_path" "$fit_path" "$result_path" \
+    "$monitor_samples_path" "$peak_rss" "$peak_gpu_mib" "$peak_psi" \
+    "$maximum_swap_growth" "$terminal_rss" "$terminal_gpu_mib" "$terminal_psi" \
+    "$terminal_swap_growth" <<'PY'
 import hashlib
 import json
 import os
@@ -121,6 +129,22 @@ def identity(raw_path):
     return {"path": str(path), "sha256": hashlib.sha256(raw).hexdigest(), "byte_length": len(raw)}
 
 target = pathlib.Path(sys.argv[1])
+samples = []
+samples_path = pathlib.Path(sys.argv[11])
+if samples_path.is_file():
+    for ordinal, line in enumerate(samples_path.read_text(encoding="ascii").splitlines()):
+        fields = line.split("\t")
+        if len(fields) != 5 or int(fields[0]) != ordinal:
+            raise ValueError("coverage monitor sample differs")
+        samples.append(
+            {
+                "ordinal": ordinal,
+                "process_group_rss_bytes": int(fields[1]),
+                "gpu_memory_mib": int(fields[2]),
+                "memory_psi_full_avg10_percent": float(fields[3]),
+                "swap_growth_kib": int(fields[4]),
+            }
+        )
 value = {
     "schema": "sfora-siglip-coverage-execution-v1",
     "claim_eligible": False,
@@ -130,6 +154,20 @@ value = {
     "reason_code": sys.argv[5],
     "exit_code": int(sys.argv[6]),
     "group_drained": sys.argv[7] == "true",
+    "resource_monitor": {
+        "samples": samples,
+        "peak_process_group_rss_bytes": int(sys.argv[12]),
+        "peak_gpu_memory_mib": int(sys.argv[13]),
+        "peak_memory_psi_full_avg10_percent": float(sys.argv[14]),
+        "maximum_swap_growth_kib": int(sys.argv[15]),
+        "terminal_process_group_rss_bytes": int(sys.argv[16]),
+        "terminal_gpu_memory_mib": int(sys.argv[17]),
+        "terminal_memory_psi_full_avg10_percent": float(sys.argv[18]),
+        "terminal_swap_growth_kib": int(sys.argv[19]),
+        "immediate_psi_percent": 79.0,
+        "sustained_psi_percent": 50.0,
+        "sustained_samples": 3,
+    },
     "verified_artifacts": {
         "map_artifact": identity(sys.argv[8]),
         "fit_receipt": identity(sys.argv[9]),
@@ -145,6 +183,9 @@ with partial.open("xb") as stream:
 os.link(partial, target)
 partial.unlink()
 PY
+  then
+    return 1
+  fi
   receipt_written=1
 }
 drain_group() {
@@ -186,6 +227,7 @@ cleanup_remote() {
     write_execution_receipt failed "$failed_phase" "$reason_code" "$original_status" \
       "$group_drained"
   fi
+  if [[ "$receipt_written" = 0 ]]; then return; fi
   test ! -e "$bundle" || unlink "$bundle"
   if [[ "$group_drained" = false ]]; then return; fi
   test "$staging" = "$output" || exit 99
@@ -247,6 +289,7 @@ export PYTHONPATH="$source_dir/src:$source_dir/scripts"
 export HF_HUB_OFFLINE=1 HF_DATASETS_OFFLINE=1 TRANSFORMERS_OFFLINE=1
 export CUBLAS_WORKSPACE_CONFIG=:4096:8
 export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1
+source scripts/siglip_pressure_guard.sh
 
 binding=$authority/control-binding.json
 optimization_manifest=$authority/optimization-manifest.json
@@ -255,6 +298,7 @@ private_tmp1=$staging/private-tmp-1
 private_tmp2=$staging/private-tmp-2
 export HF_HOME=/home/riomus/.cache/huggingface
 swap0=$(awk '/SwapTotal/{t=$2}/SwapFree/{f=$2}END{print t-f}' /proc/meminfo)
+: >"$monitor_samples_path"
 
 setsid timeout --signal=TERM --kill-after=30s 5400s \
   scripts/run_siglip_coverage_calibration_two_phase.sh \
@@ -273,20 +317,43 @@ while kill -0 "$child" 2>/dev/null; do
   psi=$(awk '/^full /{sub("avg10=","",$2);print $2}' /proc/pressure/memory)
   swap=$(awk '/SwapTotal/{t=$2}/SwapFree/{f=$2}END{print t-f}' /proc/meminfo)
   cpu=$(ps -o time= -g "$child" 2>/dev/null || true)
-  gpu_rows=
+  gpu_rows= gpu_telemetry_valid=true
   if ! gpu_rows=$(nvidia-smi --query-compute-apps=used_memory \
     --format=csv,noheader,nounits); then
     stop_reason=gpu-telemetry
+    gpu_telemetry_valid=false
   elif [[ -n $gpu_rows ]] && grep -qvE '^[[:space:]]*[0-9]+[[:space:]]*$' <<<"$gpu_rows"; then
     stop_reason=gpu-telemetry
+    gpu_telemetry_valid=false
   fi
-  gpu_mib=$(awk '{s+=$1}END{printf "%.0f",s}' <<<"$gpu_rows")
-  test -n "$gpu_mib" || gpu_mib=0
+  gpu_mib=$terminal_gpu_mib
+  if [[ $gpu_telemetry_valid = true ]]; then
+    gpu_mib=$(awk '{s+=$1}END{printf "%.0f",s}' <<<"$gpu_rows")
+    test -n "$gpu_mib" || gpu_mib=0
+  fi
+  psi_reason=
+  if [[ $gpu_telemetry_valid != true ]]; then
+    :
+  elif ! read -r psi_hits psi_reason < <(sfora_pressure_update "$psi" "$psi_hits"); then
+    stop_reason=psi-telemetry
+  else
+    swap_growth=$((swap > swap0 ? swap - swap0 : 0))
+    terminal_rss=$rss
+    terminal_gpu_mib=$gpu_mib
+    terminal_psi=$psi
+    terminal_swap_growth=$swap_growth
+    ((monitor_samples+=1))
+    ((rss > peak_rss)) && peak_rss=$rss || true
+    ((gpu_mib > peak_gpu_mib)) && peak_gpu_mib=$gpu_mib || true
+    ((swap_growth > maximum_swap_growth)) && maximum_swap_growth=$swap_growth || true
+    peak_psi=$(awk -v peak="$peak_psi" -v value="$psi" \
+      'BEGIN { print (value > peak ? value : peak) }')
+    printf '%s\t%s\t%s\t%s\t%s\n' "$((monitor_samples-1))" "$rss" "$gpu_mib" \
+      "$psi" "$swap_growth" >>"$monitor_samples_path"
+    if [[ $psi_reason != none ]]; then stop_reason=$psi_reason; fi
+  fi
   ((rss <= 118111600640)) || stop_reason=rss-cap
   ((gpu_mib <= 98304)) || stop_reason=gpu-memory-cap
-  if awk -v x="$psi" 'BEGIN{exit !(x>=0.50)}'; then ((psi_hits+=1)); else psi_hits=0; fi
-  awk -v x="$psi" 'BEGIN{exit !(x>=0.79)}' && stop_reason=psi-immediate || true
-  ((psi_hits < 3)) || stop_reason=psi-sustained
   ((swap <= swap0)) || stop_reason=swap-delta
   if [[ $cpu = "$last_cpu" ]]; then ((progress_gap+=5)); else progress_gap=0; last_cpu=$cpu; fi
   ((progress_gap < 300)) || stop_reason=progress-gap
@@ -358,6 +425,7 @@ rm -rf -- "$private_tmp1" "$private_tmp2" "$optimization_images" "$support_image
 test ! -e "$input_staging" || rm -rf -- "$input_staging"
 write_execution_receipt complete none complete 0 true
 trap - EXIT INT TERM
+unlink "$monitor_samples_path"
 REMOTE
 remote_status=$?
 set -e

@@ -193,9 +193,14 @@ descriptor and includes a bias.
 
 Run one original process on DGX with the existing pressure monitor: 90-minute
 wall cap, 96-GiB CUDA reserved-memory cap, 110-GiB process-group RSS cap,
-immediate memory-PSI full avg10 stop at `0.79`, sustained stop at `0.50` for
-three samples, and stop on swap growth. Preserve the first terminal result and
-never restart automatically.
+immediate memory-PSI full avg10 stop at `79.0` percent, sustained stop at
+`50.0` percent for three samples, and stop on swap growth. Linux exposes PSI
+averages directly in percentage units from `0.00` through `100.00`; the first
+hardened attempt incorrectly treated them as fractions and stopped at `0.79`
+percent before producing science. Every subsequent execution receipt binds the
+thresholds and the complete sampled RSS, CUDA, PSI, and swap timeline, with
+recomputed peaks and terminal values. Preserve each revision's first terminal
+result and never restart it automatically.
 
 This experiment tests low-shot, label-free paired calibration for backward-
 compatible retrieval. It is distinct from retraining the student and from using

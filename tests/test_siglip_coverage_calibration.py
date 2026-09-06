@@ -497,6 +497,28 @@ def test_coverage_execution_receipt_is_canonical_and_rejects_false_success() -> 
         "reason_code": "complete",
         "exit_code": 0,
         "group_drained": True,
+        "resource_monitor": {
+            "samples": [
+                {
+                    "ordinal": 0,
+                    "process_group_rss_bytes": 7_301_447_680,
+                    "gpu_memory_mib": 10_912,
+                    "memory_psi_full_avg10_percent": 1.25,
+                    "swap_growth_kib": 0,
+                }
+            ],
+            "peak_process_group_rss_bytes": 7_301_447_680,
+            "peak_gpu_memory_mib": 10_912,
+            "peak_memory_psi_full_avg10_percent": 1.25,
+            "maximum_swap_growth_kib": 0,
+            "terminal_process_group_rss_bytes": 7_301_447_680,
+            "terminal_gpu_memory_mib": 10_912,
+            "terminal_memory_psi_full_avg10_percent": 1.25,
+            "terminal_swap_growth_kib": 0,
+            "immediate_psi_percent": 79.0,
+            "sustained_psi_percent": 50.0,
+            "sustained_samples": 3,
+        },
         "verified_artifacts": {
             "map_artifact": identity,
             "fit_receipt": identity,
@@ -505,7 +527,22 @@ def test_coverage_execution_receipt_is_canonical_and_rejects_false_success() -> 
     }
     raw = (json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n").encode()
     assert validate_coverage_execution_receipt_bytes(raw)["status"] == "complete"
-    for mutation in ("exit", "missing-result", "claim", "phase", "not-drained"):
+    for mutation in (
+        "exit",
+        "missing-result",
+        "claim",
+        "phase",
+        "not-drained",
+        "monitor-type",
+        "monitor-threshold",
+        "monitor-terminal-over-peak",
+        "monitor-peak-drift",
+        "monitor-false-success",
+        "monitor-rss-false-success",
+        "monitor-gpu-false-success",
+        "monitor-swap-false-success",
+        "monitor-empty-success",
+    ):
         changed = json.loads(raw)
         if mutation == "exit":
             changed["exit_code"] = 1
@@ -515,6 +552,42 @@ def test_coverage_execution_receipt_is_canonical_and_rejects_false_success() -> 
             changed["claim_eligible"] = True
         elif mutation == "not-drained":
             changed["group_drained"] = False
+        elif mutation == "monitor-type":
+            changed["resource_monitor"]["samples"][0]["ordinal"] = True
+        elif mutation == "monitor-threshold":
+            changed["resource_monitor"]["immediate_psi_percent"] = 0.79
+        elif mutation == "monitor-terminal-over-peak":
+            changed["resource_monitor"]["terminal_gpu_memory_mib"] = 10_913
+        elif mutation == "monitor-peak-drift":
+            changed["resource_monitor"]["peak_process_group_rss_bytes"] += 1
+        elif mutation == "monitor-false-success":
+            changed["resource_monitor"]["samples"][0]["memory_psi_full_avg10_percent"] = 79.0
+            changed["resource_monitor"]["peak_memory_psi_full_avg10_percent"] = 79.0
+            changed["resource_monitor"]["terminal_memory_psi_full_avg10_percent"] = 79.0
+        elif mutation == "monitor-rss-false-success":
+            changed["resource_monitor"]["samples"][0]["process_group_rss_bytes"] = 118_111_600_641
+            changed["resource_monitor"]["peak_process_group_rss_bytes"] = 118_111_600_641
+            changed["resource_monitor"]["terminal_process_group_rss_bytes"] = 118_111_600_641
+        elif mutation == "monitor-gpu-false-success":
+            changed["resource_monitor"]["samples"][0]["gpu_memory_mib"] = 98_305
+            changed["resource_monitor"]["peak_gpu_memory_mib"] = 98_305
+            changed["resource_monitor"]["terminal_gpu_memory_mib"] = 98_305
+        elif mutation == "monitor-swap-false-success":
+            changed["resource_monitor"]["samples"][0]["swap_growth_kib"] = 1
+            changed["resource_monitor"]["maximum_swap_growth_kib"] = 1
+            changed["resource_monitor"]["terminal_swap_growth_kib"] = 1
+        elif mutation == "monitor-empty-success":
+            changed["resource_monitor"].update(
+                samples=[],
+                peak_process_group_rss_bytes=0,
+                peak_gpu_memory_mib=0,
+                peak_memory_psi_full_avg10_percent=0.0,
+                maximum_swap_growth_kib=0,
+                terminal_process_group_rss_bytes=0,
+                terminal_gpu_memory_mib=0,
+                terminal_memory_psi_full_avg10_percent=0.0,
+                terminal_swap_growth_kib=0,
+            )
         else:
             changed["failed_phase"] = "fit"
         mutated = (json.dumps(changed, sort_keys=True, separators=(",", ":")) + "\n").encode()
