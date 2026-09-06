@@ -6,9 +6,7 @@ import os
 from pathlib import Path
 
 _SCRIPT = (
-    Path(__file__).resolve().parents[1]
-    / "scripts"
-    / "deploy_siglip_compatibility_capacity_v1.sh"
+    Path(__file__).resolve().parents[1] / "scripts" / "deploy_siglip_compatibility_capacity_v1.sh"
 )
 
 
@@ -67,15 +65,32 @@ def test_capacity_deployment_has_single_process_resource_and_cleanup_guards() ->
 
 def test_capacity_deployment_revalidates_and_preserves_both_outputs() -> None:
     source = _SCRIPT.read_text()
+    postrun_validation = source.split("artifact_sha=", 1)[1]
+    validation_block = postrun_validation.split("<<'PY'\n", 1)[1].split("\nPY\n", 1)[0]
+    compile(validation_block, "<capacity-postrun-validation>", "exec")
+    assert "import hashlib, pathlib, sys" in postrun_validation
     assert "validate_compatibility_capacity_result_bytes" in source
     assert 'value["claim_eligible"] is False' in source
     assert 'value["external_evaluation_access"] is False' in source
     assert 'value["descriptor_artifact_sha256"] == sys.argv[2]' in source
+    assert 'value["spatial_artifact_sha256"] == sys.argv[3]' in source
+    assert 'value["control_binding_sha256"] == sys.argv[4]' in source
+    assert 'value["optimization_manifest_sha256"] == sys.argv[5]' in source
+    assert "assert metadata[name] == value[name]" in source
+    assert 'b"sfora-compatibility-capacity-id-v1\\0"' in source
+    assert "assert artifact_identities == result_identities" in source
+    for name in (
+        "checkpoint_sha256",
+        "control_binding_sha256",
+        "optimization_manifest_sha256",
+        "spatial_artifact_sha256",
+        "image_manifest_sha256",
+        "preprocessing",
+    ):
+        assert f'    "{name}",' in source
     assert 'set(payload) == {"student", "teacher", "id_sha256", "labels"}' in source
-    assert (
-        'rsync -a -- "$remote_host:$remote_output/result.json" "$local_result"'
-        in source
-    )
+    assert 'record["dimensions"] == payload["student"].shape[1]' in source
+    assert 'rsync -a -- "$remote_host:$remote_output/result.json" "$local_result"' in source
     assert (
         'rsync -a -- "$remote_host:$remote_output/descriptors.safetensors" '
         '"$local_artifact"' in source

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from typing import cast
 
 import pytest
 import torch
@@ -9,8 +10,11 @@ from sfora.siglip_compatibility_capacity import (
     AffineMap,
     CompatibilityDecisionMetrics,
     CompatibilityResidual,
+    CompatibilityRetrievalEvidence,
+    _paired_cosine_loss,
     build_compatibility_capacity_result,
     classify_compatibility_capacity,
+    combine_compatibility_retrieval_evidence,
     compatibility_folds,
     compatibility_oracle_halves,
     compatibility_retrieval_evidence,
@@ -38,9 +42,45 @@ def _paired_descriptors(rows: int = 96, dimensions: int = 12) -> tuple[torch.Ten
 
 def test_compatibility_folds_are_exact_deterministic_class_partitions() -> None:
     labels = (
-        0, 1, 2, 3, 6, 7, 8, 9, 10, 11, 13, 14, 16, 17, 18, 20, 21, 22,
-        23, 25, 27, 28, 29, 30, 31, 33, 34, 35, 36, 37, 38, 39, 41, 42, 43,
-        44, 46, 47, 48,
+        0,
+        1,
+        2,
+        3,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        13,
+        14,
+        16,
+        17,
+        18,
+        20,
+        21,
+        22,
+        23,
+        25,
+        27,
+        28,
+        29,
+        30,
+        31,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        41,
+        42,
+        43,
+        44,
+        46,
+        47,
+        48,
     )
     folds = compatibility_folds(labels)
     assert folds == (
@@ -156,9 +196,11 @@ def test_teacher_anchored_residual_is_deterministic_and_records_all_losses() -> 
     assert first.anchor_ids == tuple(
         sorted(
             ids,
-            key=lambda value: __import__("hashlib").sha256(
-                b"sfora-compatibility-anchor-v1\0" + value.encode()
-            ).digest(),
+            key=lambda value: (
+                __import__("hashlib")
+                .sha256(b"sfora-compatibility-anchor-v1\0" + value.encode())
+                .digest()
+            ),
         )[:256]
     )
     assert set(first.losses) == {"paired", "forward", "reverse", "self"}
@@ -177,9 +219,7 @@ def test_paired_only_residual_records_zero_relational_losses() -> None:
     fitted = fit_teacher_anchored_residual(student, teacher, ids, relational=False, seed=17)
     assert fitted.relational is False
     assert all(
-        value == 0.0
-        for name in ("forward", "reverse", "self")
-        for value in fitted.losses[name]
+        value == 0.0 for name in ("forward", "reverse", "self") for value in fitted.losses[name]
     )
 
 
@@ -198,7 +238,11 @@ def test_teacher_anchored_residual_rejects_authority_drift(
     student, teacher, _ = _residual_bank()
     with pytest.raises(ValueError, match="compatibility residual authority differs"):
         fit_teacher_anchored_residual(
-            student, teacher, ids, relational=relational, seed=seed  # type: ignore[arg-type]
+            student,
+            teacher,
+            ids,
+            relational=relational,  # type: ignore[arg-type]
+            seed=seed,
         )
 
 
@@ -234,6 +278,7 @@ def test_compatibility_retrieval_recomputes_exact_micro_macro_and_diagnostics() 
     )
 
     assert evidence.hits == (True,) * 6
+    assert evidence.ids == ids
     assert evidence.average_precisions == (1.0,) * 6
     assert evidence.micro_r1 == 1.0
     assert evidence.micro_map_at_r == 1.0
@@ -263,8 +308,78 @@ def test_compatibility_retrieval_rejects_label_and_reference_drift() -> None:
     for mutation in invalid:
         with pytest.raises(ValueError, match="compatibility retrieval authority differs"):
             compatibility_retrieval_evidence(
-                descriptors, descriptors, **(baseline | mutation)  # type: ignore[arg-type]
+                descriptors,
+                descriptors,
+                **(baseline | mutation),
             )
+
+
+def test_compatibility_retrieval_clamps_fp32_cosine_roundoff() -> None:
+    generator = torch.Generator().manual_seed(1)
+    descriptors = torch.nn.functional.normalize(torch.randn(64, 512, generator=generator), dim=1)
+    ids = tuple(f"roundoff-{index}" for index in range(64))
+    labels = tuple(index // 2 for index in range(64))
+    evidence = compatibility_retrieval_evidence(
+        descriptors,
+        descriptors,
+        query_ids=ids,
+        gallery_ids=ids,
+        query_labels=labels,
+        gallery_labels=labels,
+        reference_query=descriptors,
+        reference_gallery=descriptors,
+    )
+    assert max(evidence.paired_cosines) <= 1.0
+    assert min(evidence.paired_cosines) >= -1.0
+
+
+def test_paired_cosine_loss_clamps_normalization_roundoff() -> None:
+    generator = torch.Generator().manual_seed(1)
+    descriptors = torch.nn.functional.normalize(torch.randn(64, 512, generator=generator), dim=1)
+    loss = _paired_cosine_loss(
+        torch.nn.functional.normalize(descriptors.double(), dim=1),
+        descriptors.double(),
+    )
+    assert float(loss) >= 0.0
+
+
+def test_compatibility_retrieval_combines_disjoint_held_out_panels_by_identity() -> None:
+    descriptors, first_ids, first_labels = _retrieval_bank()
+    second_ids = tuple(f"held-out-{index}" for index in range(6))
+    second_labels = tuple(label + 3 for label in first_labels)
+    first = compatibility_retrieval_evidence(
+        descriptors,
+        descriptors,
+        query_ids=first_ids,
+        gallery_ids=first_ids,
+        query_labels=first_labels,
+        gallery_labels=first_labels,
+        reference_query=descriptors,
+        reference_gallery=descriptors,
+    )
+    second = compatibility_retrieval_evidence(
+        descriptors,
+        descriptors,
+        query_ids=second_ids,
+        gallery_ids=second_ids,
+        query_labels=second_labels,
+        gallery_labels=second_labels,
+        reference_query=descriptors,
+        reference_gallery=descriptors,
+    )
+    expected_ids = tuple(
+        value for pair in zip(first_ids, second_ids, strict=True) for value in pair
+    )
+    combined = combine_compatibility_retrieval_evidence((first, second), expected_ids=expected_ids)
+
+    assert combined.ids == expected_ids
+    assert combined.labels == tuple(
+        value for pair in zip(first_labels, second_labels, strict=True) for value in pair
+    )
+    assert combined.hits == (True,) * 12
+    assert combined.cross_score_mse == 0.0
+    with pytest.raises(ValueError, match="compatibility retrieval authority differs"):
+        combine_compatibility_retrieval_evidence((first, first), expected_ids=first_ids + first_ids)
 
 
 def test_csls_uses_registered_cross_domain_local_scaling() -> None:
@@ -272,7 +387,7 @@ def test_csls_uses_registered_cross_domain_local_scaling() -> None:
     gallery = torch.eye(2, dtype=torch.float32)
     assert torch.equal(
         csls_scores(query, gallery, neighbors=1),
-        torch.tensor([[0.0, -2.0], [-2.0, 0.0]]),
+        torch.tensor([[2.0, 0.0], [0.0, 2.0]]),
     )
     with pytest.raises(ValueError, match="compatibility CSLS authority differs"):
         csls_scores(query, gallery, neighbors=3)
@@ -302,20 +417,29 @@ def _decision(r1: float, map_at_r: float, self_r1: float = 0.995) -> Compatibili
 
 
 @pytest.mark.parametrize(
-    ("finalist", "oracle", "expected"),
+    ("finalist", "oracle", "matched_finalist", "expected"),
     [
-        (_decision(0.98, 0.96), _decision(0.98, 0.96), "posthoc-passed"),
-        (_decision(0.85, 0.84), _decision(0.91, 0.91), "coverage-failure"),
-        (_decision(0.85, 0.84), _decision(0.79, 0.90), "information-failure"),
-        (_decision(0.85, 0.84), _decision(0.85, 0.85), "ambiguous-capacity"),
+        (_decision(0.98, 0.96), _decision(0.98, 0.96), _decision(0.98, 0.96), "posthoc-passed"),
+        (_decision(0.85, 0.84), _decision(0.91, 0.91), _decision(0.85, 0.84), "coverage-failure"),
+        (_decision(0.85, 0.84), _decision(0.91, 0.91), _decision(0.98, 0.96), "ambiguous-capacity"),
+        (_decision(0.85, 0.84), _decision(0.91, 0.91), _decision(0.91, 0.91), "ambiguous-capacity"),
+        (_decision(0.85, 0.84), _decision(0.91, 0.91), _decision(0.96, 0.94), "ambiguous-capacity"),
+        (
+            _decision(0.85, 0.84),
+            _decision(0.79, 0.90),
+            _decision(0.70, 0.70),
+            "registered-map-failure",
+        ),
+        (_decision(0.85, 0.84), _decision(0.85, 0.85), _decision(0.85, 0.85), "ambiguous-capacity"),
     ],
 )
 def test_capacity_classification_is_exhaustive_and_plain_cosine_only(
     finalist: CompatibilityDecisionMetrics,
     oracle: CompatibilityDecisionMetrics,
+    matched_finalist: CompatibilityDecisionMetrics,
     expected: str,
 ) -> None:
-    assert classify_compatibility_capacity(finalist, oracle) == expected
+    assert classify_compatibility_capacity(finalist, oracle, matched_finalist) == expected
 
 
 def test_hubness_is_independent_five_point_csls_lift() -> None:
@@ -324,7 +448,11 @@ def test_hubness_is_independent_five_point_csls_lift() -> None:
 
 
 def _capacity_result() -> bytes:
-    descriptors, ids, labels = _retrieval_bank()
+    labels = tuple(label for label in (4, 5, 12, 15, 19, 24, 26, 32, 40, 45) for _ in range(52))
+    descriptors = torch.nn.functional.pad(
+        torch.eye(10, dtype=torch.float32), (39, 0)
+    ).repeat_interleave(52, dim=0)
+    ids = tuple(f"development-{index}" for index in range(520))
     evidence = compatibility_retrieval_evidence(
         descriptors,
         descriptors,
@@ -338,29 +466,163 @@ def _capacity_result() -> bytes:
     cells = {
         name: evidence
         for name in (
+            "identity-forward",
+            "identity-reverse",
+            "identity-self",
+            "identity-oracle-panel-forward",
+            "identity-oracle-panel-reverse",
+            "identity-oracle-panel-self",
             "finalist-forward",
             "finalist-reverse",
             "finalist-self",
+            "finalist-oracle-panel-forward",
+            "finalist-oracle-panel-reverse",
+            "finalist-oracle-panel-self",
             "oracle-forward",
             "oracle-reverse",
             "oracle-self",
         )
     }
-    folds = {
-        "affine-0.0001": ((0.80, 0.82), (0.83, 0.81), (0.84, 0.80)),
-        "affine-0.01": ((0.80, 0.80), (0.82, 0.81), (0.83, 0.84)),
-        "affine-1": ((0.80, 0.80), (0.81, 0.82), (0.83, 0.84)),
-        "teacher-anchored-residual": ((0.81, 0.81),) * 3,
-    }
+    fitting_labels = tuple(
+        label for label in sorted(set(range(49)) - set(labels)) for _ in range(10)
+    )
+    fitting_descriptors = torch.nn.functional.pad(
+        torch.eye(39, dtype=torch.float32), (0, 10)
+    ).repeat_interleave(10, dim=0)
+    fitting_ids = tuple(f"fitting-{index}" for index in range(390))
+    fold_evidence: dict[
+        str, tuple[tuple[CompatibilityRetrievalEvidence, CompatibilityRetrievalEvidence], ...]
+    ] = {}
+    fold_pairs: list[tuple[CompatibilityRetrievalEvidence, CompatibilityRetrievalEvidence]] = []
+    fitting_fold_labels = tuple(sorted(set(range(49)) - set(labels)))
+    for fold in compatibility_folds(fitting_fold_labels):
+        retained = torch.tensor([label in set(fold) for label in fitting_labels])
+        fold_labels = tuple(label for label in fitting_labels if label in set(fold))
+        fold_descriptors = fitting_descriptors[retained]
+        fold_ids = tuple(
+            identity
+            for identity, label in zip(fitting_ids, fitting_labels, strict=True)
+            if label in set(fold)
+        )
+        fold_cell = compatibility_retrieval_evidence(
+            fold_descriptors,
+            fold_descriptors,
+            query_ids=fold_ids,
+            gallery_ids=fold_ids,
+            query_labels=fold_labels,
+            gallery_labels=fold_labels,
+            reference_query=fold_descriptors,
+            reference_gallery=fold_descriptors,
+        )
+        fold_pairs.append((fold_cell, fold_cell))
+    for name in (
+        "affine-0.0001",
+        "affine-0.01",
+        "affine-1",
+        "teacher-anchored-residual",
+        "centered-similarity",
+        "paired-only-residual",
+    ):
+        fold_evidence[name] = tuple(fold_pairs)
+    fitting_identity = compatibility_retrieval_evidence(
+        fitting_descriptors,
+        fitting_descriptors,
+        query_ids=fitting_ids,
+        gallery_ids=fitting_ids,
+        query_labels=fitting_labels,
+        gallery_labels=fitting_labels,
+        reference_query=fitting_descriptors,
+        reference_gallery=fitting_descriptors,
+    )
+    optimization_records: list[dict[str, object]] = []
+    for fold_index, fold in enumerate(compatibility_folds(fitting_fold_labels)):
+        training_ids = tuple(
+            identity
+            for identity, label in zip(fitting_ids, fitting_labels, strict=True)
+            if label not in set(fold)
+        )
+        anchor_ids = sorted(
+            training_ids,
+            key=lambda identity: (
+                __import__("hashlib")
+                .sha256(b"sfora-compatibility-anchor-v1\0" + identity.encode())
+                .digest()
+            ),
+        )[:256]
+        optimization_records.append(
+            {
+                "relational": True,
+                "seed": 20260905 + fold_index,
+                "dimensions": 49,
+                "parameter_count": 3_185,
+                "anchor_ids": anchor_ids,
+                "losses": {
+                    name: [0.0] * 2_000 for name in ("paired", "forward", "reverse", "self")
+                },
+                "device": "cpu",
+                "torch_version": str(torch.__version__),
+                "optimizer": "adamw",
+                "learning_rate": 1e-3,
+                "weight_decay": 0.0,
+            }
+        )
+    oracle_records: list[dict[str, object]] = []
+    oracle_halves = compatibility_oracle_halves(tuple(sorted(set(labels))))
+    for fold_index, training_labels in enumerate(oracle_halves):
+        training_ids = tuple(
+            identity
+            for identity, label in zip(ids, labels, strict=True)
+            if label in set(training_labels)
+        )
+        oracle_records.append(
+            {
+                "relational": True,
+                "seed": 20260909 + fold_index,
+                "dimensions": 49,
+                "parameter_count": 3_185,
+                "anchor_ids": sorted(
+                    training_ids,
+                    key=lambda identity: (
+                        __import__("hashlib")
+                        .sha256(b"sfora-compatibility-anchor-v1\0" + identity.encode())
+                        .digest()
+                    ),
+                )[:256],
+                "losses": {
+                    name: [0.0] * 2_000 for name in ("paired", "forward", "reverse", "self")
+                },
+                "device": "cpu",
+                "torch_version": str(torch.__version__),
+                "optimizer": "adamw",
+                "learning_rate": 1e-3,
+                "weight_decay": 0.0,
+            }
+        )
     return build_compatibility_capacity_result(
         checkpoint_sha256="11" * 32,
         descriptor_artifact_sha256="22" * 32,
-        fold_results=folds,
+        control_binding_sha256="33" * 32,
+        optimization_manifest_sha256="44" * 32,
+        spatial_artifact_sha256="55" * 32,
+        image_manifest_sha256="66" * 32,
+        preprocessing="siglip-evaluation-transform-v1",
+        fold_evidence=fold_evidence,
+        fitting_identity=fitting_identity,
+        residual_optimization={
+            "teacher-anchored-residual": tuple(optimization_records),
+            "paired-only-residual": tuple(
+                record | {"relational": False} for record in optimization_records
+            ),
+        },
+        decision_optimization={
+            "oracle-halves": tuple(oracle_records),
+            "finalist-refit": None,
+        },
         cells=cells,
-        identity_cosine_r1=(0.70, 0.80),
-        identity_csls_r1=(0.71, 0.81),
-        finalist_cosine_r1=(0.72, 0.82),
-        finalist_csls_r1=(0.77, 0.83),
+        identity_cosine_r1=(1.0, 1.0),
+        identity_csls_hits=((True,) * 520, (True,) * 520),
+        finalist_cosine_r1=(1.0, 1.0),
+        finalist_csls_hits=((True,) * 520, (True,) * 520),
     )
 
 
@@ -369,9 +631,18 @@ def test_capacity_result_is_canonical_and_recomputes_selection_and_decisions() -
     value = validate_compatibility_capacity_result_bytes(raw)
     assert raw.endswith(b"\n") and not raw.endswith(b"\n\n")
     assert value["claim_eligible"] is False
-    assert value["finalist"] == "teacher-anchored-residual"
+    assert value["finalist"] == "affine-1"
+    assert set(cast(dict[str, object], value["control_fold_results"])) == {
+        "centered-similarity",
+        "paired-only-residual",
+    }
     assert value["classification"] == "posthoc-passed"
-    assert value["hubness_present"] is True
+    assert value["paired_cosine_gap"] == {
+        "development_mean": 1.0,
+        "fitting_mean": 1.0,
+        "gap": 0.0,
+    }
+    assert value["hubness_present"] is False
     assert json.dumps(value, sort_keys=True, separators=(",", ":")).encode() + b"\n" == raw
 
 
@@ -379,11 +650,32 @@ def test_capacity_result_is_canonical_and_recomputes_selection_and_decisions() -
     ("path", "replacement"),
     [
         (("classification",), "coverage-failure"),
-        (("finalist",), "affine-1"),
+        (("finalist",), "teacher-anchored-residual"),
+        (("fold_results", "affine-1", 0, 0), 0.5),
+        (("control_fold_results", "centered-similarity", 0, 0), 0.5),
+        (("fold_evidence", "affine-1", 0, "forward", "hits", 0), False),
+        (("paired_cosine_gap", "gap"), 0.5),
+        (("residual_optimization", "teacher-anchored-residual", 0, "parameter_count"), 1),
+        (("residual_optimization", "teacher-anchored-residual", 0, "learning_rate"), 0.01),
+        (("residual_optimization", "teacher-anchored-residual", 0, "device"), "tpu"),
+        (
+            ("residual_optimization", "teacher-anchored-residual", 0, "anchor_ids", 0),
+            "forged-anchor",
+        ),
+        (("residual_optimization", "paired-only-residual", 0, "losses", "paired"), []),
+        (("decision_optimization", "oracle-halves"), []),
+        (("decision_optimization", "finalist-refit"), {}),
         (("claim_eligible",), 0),
+        (("spatial_artifact_sha256",), "0" * 63),
+        (("preprocessing",), "different-transform"),
         (("cells", "finalist-forward", "micro_r1"), 0.5),
-        (("cells", "oracle-forward", "hits"), [False] * 6),
-        (("hubness_present",), False),
+        (("cells", "oracle-forward", "hits"), [False] * 20),
+        (("cells", "oracle-forward", "labels"), [49] + list(range(1, 20))),
+        (("cells", "oracle-forward", "ids", 0), "external-image"),
+        (("csls_diagnostic", "finalist", "cosine_r1"), [0.5, 1.0]),
+        (("csls_diagnostic", "identity", "directions", "forward", "r1"), 0.75),
+        (("csls_diagnostic", "finalist", "directions", "reverse", "hits"), []),
+        (("hubness_present",), True),
     ],
 )
 def test_capacity_result_rejects_summary_decision_and_concrete_type_drift(
@@ -396,4 +688,66 @@ def test_capacity_result_rejects_summary_decision_and_concrete_type_drift(
     target[path[-1]] = replacement
     mutated = json.dumps(value, sort_keys=True, separators=(",", ":")).encode() + b"\n"
     with pytest.raises(ValueError, match="compatibility capacity result"):
+        validate_compatibility_capacity_result_bytes(mutated)
+
+
+def test_capacity_result_rejects_coherent_fold_identity_rewrite() -> None:
+    value = json.loads(_capacity_result())
+    for entries in value["fold_evidence"].values():
+        entries[0]["forward"]["ids"][0] = "forged-fold-id"
+        entries[0]["reverse"]["ids"][0] = "forged-fold-id"
+    mutated = json.dumps(value, sort_keys=True, separators=(",", ":")).encode() + b"\n"
+    with pytest.raises(ValueError, match="compatibility capacity result"):
+        validate_compatibility_capacity_result_bytes(mutated)
+
+
+def test_capacity_result_rejects_coherent_residual_dimension_drift() -> None:
+    value = json.loads(_capacity_result())
+    record = value["residual_optimization"]["teacher-anchored-residual"][1]
+    record["dimensions"] = 2
+    record["parameter_count"] = 130
+    mutated = json.dumps(value, sort_keys=True, separators=(",", ":")).encode() + b"\n"
+    with pytest.raises(ValueError, match="compatibility capacity result optimization"):
+        validate_compatibility_capacity_result_bytes(mutated)
+
+
+def test_capacity_result_rejects_fitting_development_identity_overlap() -> None:
+    value = json.loads(_capacity_result())
+    fitting_id = value["fitting_identity"]["ids"][0]
+    for cell in value["cells"].values():
+        cell["ids"][0] = fitting_id
+    mutated = json.dumps(value, sort_keys=True, separators=(",", ":")).encode() + b"\n"
+    with pytest.raises(ValueError, match="compatibility capacity result"):
+        validate_compatibility_capacity_result_bytes(mutated)
+
+
+def test_capacity_result_requires_selected_residual_refit_optimization() -> None:
+    value = json.loads(_capacity_result())
+    for arm in ("affine-0.0001", "affine-0.01", "affine-1"):
+        for fold in value["fold_evidence"][arm]:
+            for direction in ("forward", "reverse"):
+                evidence = fold[direction]
+                evidence["average_precisions"] = [0.5] * len(evidence["average_precisions"])
+                evidence["micro_map_at_r"] = 0.5
+                evidence["class_macro_map_at_r"] = 0.5
+        value["fold_results"][arm] = [[0.5, 0.5]] * 3
+    fitting_ids = value["fitting_identity"]["ids"]
+    refit = json.loads(json.dumps(value["residual_optimization"]["teacher-anchored-residual"][0]))
+    refit["seed"] = 20260908
+    refit["anchor_ids"] = sorted(
+        fitting_ids,
+        key=lambda identity: (
+            __import__("hashlib")
+            .sha256(b"sfora-compatibility-anchor-v1\0" + identity.encode())
+            .digest()
+        ),
+    )[:256]
+    value["decision_optimization"]["finalist-refit"] = refit
+    value["finalist"] = "teacher-anchored-residual"
+    raw = json.dumps(value, sort_keys=True, separators=(",", ":")).encode() + b"\n"
+    validate_compatibility_capacity_result_bytes(raw)
+
+    value["decision_optimization"]["finalist-refit"] = None
+    mutated = json.dumps(value, sort_keys=True, separators=(",", ":")).encode() + b"\n"
+    with pytest.raises(ValueError, match="compatibility capacity result optimization"):
         validate_compatibility_capacity_result_bytes(mutated)

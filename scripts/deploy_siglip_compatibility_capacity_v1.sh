@@ -239,8 +239,9 @@ if [[ -n $stop_reason ]]; then echo "STOP:$stop_reason" >&2; exit 125; fi
 ((status == 0)) || exit "$status"
 test -s "$staging/result.json"; test -s "$staging/descriptors.safetensors"
 artifact_sha=$(sha256sum "$staging/descriptors.safetensors" | awk '{print $1}')
-"$python" -B - "$staging/result.json" "$artifact_sha" "$spatial_sha" <<'PY'
-import pathlib, sys
+"$python" -B - "$staging/result.json" "$artifact_sha" "$spatial_sha" "$binding_sha" "$manifest_sha" <<'PY'
+import hashlib, pathlib, sys
+from safetensors import safe_open
 from safetensors.torch import load_file
 from sfora.siglip_compatibility_capacity import (
     validate_compatibility_capacity_result_bytes,
@@ -249,12 +250,53 @@ value = validate_compatibility_capacity_result_bytes(pathlib.Path(sys.argv[1]).r
 assert value["claim_eligible"] is False
 assert value["external_evaluation_access"] is False
 assert value["descriptor_artifact_sha256"] == sys.argv[2]
-payload = load_file(str(pathlib.Path(sys.argv[1]).with_name("descriptors.safetensors")))
+assert value["spatial_artifact_sha256"] == sys.argv[3]
+assert value["control_binding_sha256"] == sys.argv[4]
+assert value["optimization_manifest_sha256"] == sys.argv[5]
+artifact_path = pathlib.Path(sys.argv[1]).with_name("descriptors.safetensors")
+with safe_open(str(artifact_path), framework="pt", device="cpu") as stream:
+    metadata = stream.metadata()
+for name in (
+    "checkpoint_sha256",
+    "control_binding_sha256",
+    "optimization_manifest_sha256",
+    "spatial_artifact_sha256",
+    "image_manifest_sha256",
+    "preprocessing",
+):
+    assert metadata[name] == value[name]
+payload = load_file(str(artifact_path))
 assert set(payload) == {"student", "teacher", "id_sha256", "labels"}
 assert payload["student"].shape == payload["teacher"].shape
 assert payload["student"].dtype == payload["teacher"].dtype
 assert payload["id_sha256"].shape == (payload["student"].shape[0], 32)
 assert payload["labels"].shape == (payload["student"].shape[0],)
+optimization_records = [
+    record
+    for records in value["residual_optimization"].values()
+    for record in records
+] + list(value["decision_optimization"]["oracle-halves"])
+if value["decision_optimization"]["finalist-refit"] is not None:
+    optimization_records.append(value["decision_optimization"]["finalist-refit"])
+assert all(
+    record["dimensions"] == payload["student"].shape[1]
+    for record in optimization_records
+)
+result_identities = {
+    (
+        hashlib.sha256(
+            b"sfora-compatibility-capacity-id-v1\0" + identity.encode("utf-8")
+        ).digest(),
+        label,
+    )
+    for evidence in (value["fitting_identity"], value["cells"]["identity-forward"])
+    for identity, label in zip(evidence["ids"], evidence["labels"], strict=True)
+}
+artifact_identities = {
+    (bytes(digest.tolist()), int(label))
+    for digest, label in zip(payload["id_sha256"], payload["labels"], strict=True)
+}
+assert artifact_identities == result_identities
 PY
 unlink "$staging/landlock-exec"
 rm -rf -- "$staging/private-tmp"

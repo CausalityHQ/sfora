@@ -14,8 +14,9 @@ encoder retraining:
 
 - **coverage failure:** the student descriptor contains the necessary signal,
   but a map trained on the fitting distribution does not generalize;
-- **information failure:** the missing teacher directions are not recoverable
-  from the student descriptor, so post-hoc descriptor maps should stop.
+- **registered-map failure:** the registered post-hoc maps fail to recover the
+  teacher space; this does not establish that the descriptor lacks all usable
+  compatibility signal.
 
 This is claim-ineligible development work. It cannot promote a method or open
 the external split.
@@ -30,9 +31,11 @@ for classes 49 through 81 remain unavailable to every phase.
 
 Encode each authorized image once and retain only normalized FP32 student and
 teacher descriptors, example ID, and label in a sealed safetensors artifact.
-Bind its SHA-256 and every input digest into the result. Identical IDs are
-excluded from every gallery. Descriptor generation remains inside the existing
-offline Landlock/seccomp execution envelope.
+Bind its SHA-256, checkpoint, control binding, optimization manifest, spatial
+tail, ordered image-byte manifest, and preprocessing identity into both the
+descriptor artifact and result. Identical IDs are excluded from every gallery.
+Descriptor generation remains inside the existing offline Landlock/seccomp
+execution envelope.
 
 Within the 39 fitting classes, define three deterministic 13-class folds by
 sorting labels on
@@ -65,16 +68,23 @@ outputs for retrieval.
    `SHA256("sfora-compatibility-anchor-v1\0" || utf8(id))`. Each update uses the
    next cyclic block of 256 fitting rows and all 256 anchors; identical IDs are
    masked. Compare against an otherwise identical paired-cosine-only control.
-   No early stopping, hard-neighbor mining, or development access.
+   No early stopping, hard-neighbor mining, or development access. Before
+   fitting begins, require every fitting-fold training complement and both
+   oracle training halves to contain at least 256 rows.
 5. **Burned-development oracle.** Split the ten development labels into two
    deterministic five-class halves using
    `SHA256("sfora-compatibility-oracle-v1\0" || ascii(label))`. Fit the same
-   rank-32 residual on one half and evaluate the other, then reverse the halves
-   and pool the held-out predictions. This arm is diagnostic-only, is never
+   rank-32 residual on one half and evaluate only against the gallery from the
+   other half, then reverse the halves. Pool per-query evidence only after both
+   disjoint held-out panels have been scored; never construct a mixed gallery
+   containing outputs from adapters trained on its own queries. This arm is
+   diagnostic-only, is never
    serialized as a deployable adapter, and cannot select hyperparameters.
 6. **CSLS diagnostic.** Apply cross-domain similarity local scaling with
    `k=10` to the identity and the fitting-fold-selected finalist in both
-   directions. Report it separately; plain cosine remains the promotion gate.
+   directions. Record ordered IDs, labels, and per-query R@1 hits so the
+   validator independently recomputes every CSLS R@1. Report it separately;
+   plain cosine remains the promotion gate.
 
 The affine ridge and residual finalist are chosen using fitting folds only.
 When comparing arm 3 with arm 4, select the arm with the larger minimum
@@ -84,15 +94,21 @@ ten-class development evaluation.
 
 ## Evidence
 
-For every eligible arm and direction, record exact per-query R@1 hits and
-AP@R, micro R@1 and mAP@R, class-macro R@1 and mAP@R, paired descriptor cosine,
-teacher-score mean squared error, top-10 neighborhood overlap, and gallery hub
-counts. Record fitting-fold metrics separately and report the fitting-to-
-development paired-cosine gap.
+For every eligible arm and direction, record exact query IDs and labels,
+per-query R@1 hits and AP@R, micro R@1 and mAP@R, class-macro R@1 and mAP@R,
+paired descriptor cosine, teacher-score mean squared error, top-10 neighborhood
+overlap, and gallery hub counts. Record full per-query fitting-fold evidence for
+the selectable arms, centered-similarity control, and paired-only residual
+control. Derive fold metrics and finalist selection from that evidence, and
+report the fitting-to-development paired-cosine gap.
 
 For the two learned residual arms, record the four loss trajectories and exact
-parameter count. Recompute every summary, fold selection, lambda selection,
-oracle branch, and classification in the canonical result validator. The
+parameter count for every fitting fold. Also record both oracle-half fits and
+the all-fitting-class finalist refit when the residual is selected, with seeds
+and anchors bound to their exact training complements. Bind every fit to its
+training device, Torch version, AdamW identity, learning rate `1e-3`, and zero
+weight decay. Recompute every summary,
+fold selection, lambda selection, oracle branch, and classification in the canonical result validator. The
 canonical JSON is sorted, newline-terminated, finite, and
 `claim_eligible=false`.
 
@@ -107,12 +123,18 @@ mAP@R.
   access follows automatically.
 - **coverage-failure:** no fitting-only arm passes, while the pooled oracle has
   at least `90%` R@1 and `0.90` mAP@R in both directions and meets the self
-  floors. The descriptor contains useful signal, but fitting data lack the
-  needed coverage. Next test broad, label-free teacher-anchored relational
-  distillation without changing the 18-block architecture.
-- **information-failure:** the oracle is below `80%` R@1 or `0.80` mAP@R in
-  either direction. Stop all post-hoc descriptor maps and test whether a fixed
-  summary of already-computed block-18 tokens predicts the teacher residual.
+  floors, and the frozen fitting-only finalist still fails the same `90%` R@1,
+  `0.90` mAP@R, and self floors when rescored on the oracle's identical
+  five-class held-out panels. This matched-panel comparison
+  prevents the smaller oracle galleries alone from creating a coverage result.
+  The descriptor contains useful signal, but fitting data lack the needed
+  coverage. Next test broad, label-free teacher-anchored relational distillation
+  without changing the 18-block architecture.
+- **registered-map-failure:** the registered oracle is below `80%` R@1 or
+  `0.80` mAP@R in either direction. Stop tuning these registered post-hoc maps
+  and test whether a fixed summary of already-computed block-18 tokens predicts
+  the teacher residual. This outcome is not evidence of general information
+  loss.
 - **ambiguous-capacity:** every other valid outcome. Do not tune another map on
   the same ten classes; use a separately frozen diagnostic or broader
   query-independent training distribution.

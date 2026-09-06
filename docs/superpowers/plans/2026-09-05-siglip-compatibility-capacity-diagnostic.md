@@ -67,7 +67,9 @@ git commit -m "Add SigLIP compatibility affine authority"
 **Interfaces:**
 - Produces: `CompatibilityResidual(torch.nn.Module)` with rank exactly 32 and zero-residual initialization
 - Produces: `fit_teacher_anchored_residual(student, teacher, ids, *, relational: bool, seed: int) -> ResidualFit`
-- `ResidualFit` contains the frozen state dictionary and four 2,000-value finite loss trajectories.
+- `ResidualFit` contains the frozen state dictionary, four 2,000-value finite
+  loss trajectories, training device, Torch version, and fixed AdamW
+  hyperparameters.
 
 - [ ] **Step 1: Write failing architecture, loss, and determinism tests**
 
@@ -116,7 +118,15 @@ git commit -m "Add teacher-anchored compatibility residual"
 
 - [ ] **Step 1: Write failing evidence and decision mutation tables**
 
-Cover micro and class-macro R@1/mAP@R, exact hit/AP vectors, paired cosine, cross-score MSE, top-10 overlap, hubs, CSLS `k=10`, three-fold worst-direction selection, stronger-lambda and affine tie breaks, development non-selection, oracle half reversal, all four terminal classes, independent `hubness-present`, concrete types, nonfinite values, schema keys, SHA bindings, and canonical bytes.
+Cover exact query IDs/labels, micro and class-macro R@1/mAP@R, exact hit/AP
+vectors, paired cosine, cross-score MSE, top-10 overlap, hubs, identical-ID-
+excluded CSLS `k=10` with ordered IDs/labels/per-query hit evidence, three-fold
+worst-direction selection, stronger-lambda and
+affine tie breaks, development non-selection, disjoint-panel oracle half
+reversal, all four terminal classes, independent `hubness-present`, concrete
+types, nonfinite values, schema keys, complete provenance bindings, and
+canonical bytes. Mutation-lock that every fold aggregate and control aggregate
+is reconstructed from its serialized per-query evidence.
 
 - [ ] **Step 2: Run the focused RED**
 
@@ -126,7 +136,15 @@ Expected: missing evidence/result API.
 
 - [ ] **Step 3: Implement exact recomputation**
 
-Reuse identical-ID exclusion and stable score ordering from `spatial_retrieval_evidence`, add label-group macro aggregation, and keep plain cosine and CSLS cells separate. The validator reconstructs every aggregate and decision from per-query evidence.
+Reuse identical-ID exclusion and stable score ordering from
+`spatial_retrieval_evidence`, add label-group macro aggregation, and keep plain
+cosine and CSLS cells separate. Score each oracle validation half only against
+its own held-out gallery before combining evidence. Record non-selectable
+centered-similarity and paired-only residual controls, fitting identity evidence,
+the paired-cosine gap, all residual loss trajectories, and exact parameter
+counts. The validator reconstructs every aggregate and decision from per-query
+evidence. Before fitting, reject unless every fitting-fold training complement
+and both oracle training halves independently contain at least 256 rows.
 
 - [ ] **Step 4: Run complete library GREEN and static checks**
 
@@ -147,7 +165,11 @@ git commit -m "Add compatibility capacity evidence"
 
 **Interfaces:**
 - Consumes the existing control binding, optimization manifest, checkpoint, spatial artifact, and materialized registered image directory.
-- Produces one descriptor safetensors artifact containing fitting/development student and teacher descriptors plus ID/label digests, and one canonical result.
+- Produces one descriptor safetensors artifact containing fitting/development
+  student and teacher descriptors plus ID/label digests and exact checkpoint,
+  control-binding, optimization-manifest, spatial-tail, ordered-image-byte, and
+  preprocessing authority, and one canonical result that repeats and binds
+  those authorities.
 
 - [ ] **Step 1: Write failing parser, authority, and no-leak tests**
 
