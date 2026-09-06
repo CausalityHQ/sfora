@@ -49,6 +49,12 @@ already informed method selection. They establish a strong, cheap mechanism
 and freeze the method before the historical 49-through-81 diagnostic band is
 reopened; they are not final evidence.
 
+The frozen SHA-ranked eight-shot split gives the same conclusion without a
+random seed: mapped-student forward compatibility is `0.997308` Recall@1 and
+`0.989596` mAP@R; the reverse forward cell is `0.998654` and `0.975170`;
+native-student queries against the offline-mapped teacher gallery are `0.993271`
+and `0.988406`; and the reverse offline cell is `0.998654` and `0.988576`.
+
 The affine objective itself is label-free: it regresses paired descriptors of
 the same image. Class labels are used only to define a reproducible eight-shot
 support protocol and to score retrieval. A deployment may instead re-encode a
@@ -88,10 +94,12 @@ For each external class, rank image IDs by
 `SHA256("sfora-coverage-support-v1\0" || decimal_class || "\0" || utf8(id))`
 and select the first eight as support. All remaining images are evaluation.
 Require at least ten images per class. Support pixels and descriptors may be
-read before map sealing; evaluation pixels, IDs beyond their committed manifest
-digest, descriptors, and labels may not be read until both maps are sealed and
-reloaded. No checkpoint, hyperparameter, regularization, support count, or map
-family may be selected from external results.
+read before map sealing. The authenticated manifest's IDs and labels may be
+read once to commit the support/evaluation partition before descriptor phases;
+labels are used only for that partition and later scoring. Evaluation pixels
+and descriptors may not be read until both maps are sealed and reloaded. No
+checkpoint, hyperparameter, regularization, support count, or map family may be
+selected from external results.
 
 ### Descriptor extraction
 
@@ -115,6 +123,11 @@ values, and finite solutions. There is no identity regularization, nonlinear
 adapter, class loss, or hyperparameter sweep. Application is FP64 matrix
 multiplication followed by L2 normalization and a contiguous FP32 result.
 
+Record the PyTorch version, BLAS configuration, CPU identity, and thread count.
+The sealed map artifact is the numerical authority: a later environment must
+authenticate and load it, not claim that refitting is bitwise identical across
+BLAS implementations.
+
 Seal both weights, biases, solver evidence, training row identities, and input
 digests in one safetensors artifact before external evaluation is decoded.
 
@@ -131,9 +144,11 @@ exactly:
 4. native student self-retrieval and teacher self-retrieval as immutable
    controls.
 
-Use exact same-ID exclusion, stable lowest-ordinal ties, FP64 cosine scores,
+Use exact same-ID exclusion, stable lowest-ordinal ties, the existing validated
+FP32 cosine-score authority,
 Recall@1, and mAP@R from the existing validated retrieval authority. Recompute
-micro and class-macro aggregates from per-query evidence.
+micro and class-macro aggregates from per-query evidence. The frozen decision
+uses the micro metrics; class-macro metrics remain diagnostic.
 
 ## Decision and stop rules
 
@@ -142,13 +157,16 @@ Decision precedence is:
 1. `invalid`: any digest, schema, support/evaluation isolation, solver rank,
    finiteness, artifact reload, identity, metric recomputation, or process safety
    check fails;
-2. `coverage-calibration-qualified`: both directions of `forward` and both
+2. `student-quality-rejected`: native student self-retrieval misses either
+   `0.97` Recall@1 or `0.95` mAP@R;
+3. `coverage-calibration-qualified`: both directions of `forward` and both
    directions of `offline-gallery` each achieve Recall@1 at least `0.97` and
-   mAP@R at least `0.95`, while student self-retrieval remains byte-identical to
-   the uncalibrated control evidence;
-3. `offline-gallery-qualified`: both `offline-gallery` directions pass all four
+   mAP@R at least `0.95`;
+4. `offline-gallery-qualified`: both `offline-gallery` directions pass all four
    thresholds but at least one `forward` direction does not;
-4. `coverage-calibration-rejected`: neither deployment route passes.
+5. `forward-only-qualified`: both `forward` directions pass but at least one
+   `offline-gallery` direction does not;
+6. `coverage-calibration-rejected`: neither deployment route passes.
 
 Stop after this one eight-shot confirmatory evaluation. Do not adapt the support
 count, solver, map, preprocessing, or scoring on its results. A rejection
@@ -160,9 +178,10 @@ not by itself establish SOTA.
 
 The preferred deployment is `offline-gallery`: transform each stored teacher
 descriptor once during gallery migration, then serve the unchanged native
-student query path. It adds zero query-time operations and preserves the
-measured fast-path latency exactly. Record offline migration throughput and
-artifact size, but do not mix them with online latency.
+student query encoder. It adds zero query-encoder operations. This does not by
+itself prove identical end-to-end index/search latency, so measure the complete
+serving path separately. Record offline migration throughput and artifact size,
+but do not mix them with online latency.
 
 The `forward` map is retained as a compatibility reference. It adds one
 512-by-512 affine per query and requires a fresh paired latency measurement if
