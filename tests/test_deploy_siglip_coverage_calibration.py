@@ -41,6 +41,9 @@ def test_coverage_deployment_binds_exact_source_and_local_only_inputs() -> None:
     for forbidden in ("aws s3", "class-names", "--support-per-class", "--rcond"):
         assert forbidden not in source
     preflight = source.split("<<'PREFLIGHT'", 1)[1].split("PREFLIGHT", 1)[0]
+    assert 'output_parent=$(dirname "$2")' in preflight
+    assert 'mkdir -p "$output_parent"' in preflight
+    assert 'test -d "$output_parent"' in preflight
     for seed in (17, 29, 43):
         assert f"seed-{seed:03d}/checkpoints/seed-{seed:03d}-epoch-060.pt" in preflight
         assert f"seed-{seed:03d}.receipt.json" in preflight

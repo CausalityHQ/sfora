@@ -57,6 +57,9 @@ ssh -o BatchMode=yes "$remote_host" bash -s -- \
   "$remote_source" "$remote_output" "$remote_control" "$remote_spatial" \
   "$remote_bundle" "$spatial_sha" "$spatial_bytes" <<'PREFLIGHT'
 set -euo pipefail
+output_parent=$(dirname "$2")
+mkdir -p "$output_parent"
+test -d "$output_parent"
 pgrep -f '[p]robe_siglip_coverage_calibration.py' >/dev/null && {
   echo 'coverage calibration process is already active' >&2; exit 75;
 }
