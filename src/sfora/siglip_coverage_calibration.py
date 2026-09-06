@@ -411,7 +411,7 @@ def analyze_coverage_calibration(
     )
 
 
-_RESULT_INPUT_ROLES = {
+_FIT_INPUT_ROLES = {
     "checkpoint",
     "control_binding",
     "evaluation_manifest",
@@ -419,6 +419,7 @@ _RESULT_INPUT_ROLES = {
     "optimization_manifest",
     "spatial_artifact",
 }
+_RESULT_INPUT_ROLES = {*_FIT_INPUT_ROLES, "fit_receipt"}
 
 
 def _coverage_digest(value: object) -> str:
@@ -469,6 +470,292 @@ def _solver_mapping(value: CoverageAffine) -> dict[str, object]:
     }
 
 
+def build_coverage_fit_receipt(
+    *,
+    maps: CoverageMaps,
+    support_ids: tuple[str, ...],
+    support_labels: tuple[int, ...],
+    artifact_identities: dict[str, CoverageArtifactIdentity],
+    model_source_commit: str,
+    execution_source_commit: str,
+    dataset_id: str,
+    dataset_revision: str,
+    optimization_image_root: str,
+    support_image_root: str,
+    optimization_images_sha256: str,
+    support_images_sha256: str,
+    optimization_rows: int,
+    heldout_rows: int,
+    heldout_denied: int,
+    heldout_directory_denied: bool,
+    torch_version: str,
+    torch_num_threads: int,
+    blas_config: str,
+    cpu_identity: str,
+) -> bytes:
+    """Build canonical fit-only evidence without evaluation outcomes."""
+
+    value: dict[str, object] = {
+        "schema": "sfora-siglip-coverage-fit-receipt-v1",
+        "claim_eligible": False,
+        "phase": "fit",
+        "inputs": {
+            role: artifact_identities[role].to_mapping() for role in sorted(artifact_identities)
+        }
+        if type(artifact_identities) is dict
+        and set(artifact_identities) == _FIT_INPUT_ROLES
+        and all(type(item) is CoverageArtifactIdentity for item in artifact_identities.values())
+        else None,
+        "model_source_commit": model_source_commit,
+        "execution_source_commit": execution_source_commit,
+        "dataset_id": dataset_id,
+        "dataset_revision": dataset_revision,
+        "optimization_image_root": optimization_image_root,
+        "support_image_root": support_image_root,
+        "image_namespaces": {
+            "optimization": {
+                "sha256": _coverage_digest(optimization_images_sha256),
+                "rows": optimization_rows,
+            },
+            "support": {
+                "sha256": _coverage_digest(support_images_sha256),
+                "rows": len(support_ids),
+            },
+        },
+        "support_ids": list(support_ids),
+        "support_labels": list(support_labels),
+        "fitting_rows": optimization_rows + len(support_ids),
+        "heldout_probe": {
+            "rows": heldout_rows,
+            "denied": heldout_denied,
+            "directory_denied": heldout_directory_denied,
+        },
+        "solver": {
+            "student_to_teacher": _solver_mapping(maps.student_to_teacher),
+            "teacher_to_student": _solver_mapping(maps.teacher_to_student),
+        }
+        if type(maps) is CoverageMaps
+        else None,
+        "environment": {
+            "torch_version": torch_version,
+            "torch_num_threads": torch_num_threads,
+            "blas_config": blas_config,
+            "cpu_identity": cpu_identity,
+        },
+    }
+    try:
+        raw = (
+            json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\n"
+        ).encode()
+    except (TypeError, ValueError) as error:
+        raise ValueError("coverage fit receipt authority differs") from error
+    validate_coverage_fit_receipt_bytes(raw)
+    return raw
+
+
+def validate_coverage_fit_receipt_bytes(raw: bytes) -> dict[str, object]:
+    """Validate canonical fit evidence and all derivable relations."""
+
+    try:
+        value = json.loads(raw)
+        canonical = (
+            json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\n"
+        ).encode()
+    except (TypeError, UnicodeDecodeError, json.JSONDecodeError, ValueError) as error:
+        raise ValueError("coverage fit receipt bytes differ") from error
+    keys = {
+        "schema",
+        "claim_eligible",
+        "phase",
+        "inputs",
+        "model_source_commit",
+        "execution_source_commit",
+        "dataset_id",
+        "dataset_revision",
+        "optimization_image_root",
+        "support_image_root",
+        "image_namespaces",
+        "support_ids",
+        "support_labels",
+        "fitting_rows",
+        "heldout_probe",
+        "solver",
+        "environment",
+    }
+    if type(raw) is not bytes or type(value) is not dict or set(value) != keys or raw != canonical:
+        raise ValueError("coverage fit receipt schema differs")
+    receipt = cast(dict[str, object], value)
+    if (
+        receipt["schema"] != "sfora-siglip-coverage-fit-receipt-v1"
+        or receipt["claim_eligible"] is not False
+        or receipt["phase"] != "fit"
+    ):
+        raise ValueError("coverage fit receipt authority differs")
+    inputs = receipt["inputs"]
+    if type(inputs) is not dict or set(inputs) != _FIT_INPUT_ROLES:
+        raise ValueError("coverage fit receipt inputs differ")
+    try:
+        for identity in inputs.values():
+            if type(identity) is not dict or set(identity) != {"path", "sha256", "byte_length"}:
+                raise ValueError("coverage fit receipt input differs")
+            CoverageArtifactIdentity(
+                path=identity["path"],
+                sha256=identity["sha256"],
+                byte_length=identity["byte_length"],
+            )
+    except (TypeError, ValueError) as error:
+        raise ValueError("coverage fit receipt inputs differ") from error
+    support_ids = receipt["support_ids"]
+    support_labels = receipt["support_labels"]
+    if (
+        type(support_ids) is not list
+        or type(support_labels) is not list
+        or not support_ids
+        or len(support_ids) != len(support_labels)
+        or any(type(item) is not str or not item for item in support_ids)
+        or len(set(support_ids)) != len(support_ids)
+        or sorted(support_ids) != support_ids
+        or any(type(label) is not int or label < 0 for label in support_labels)
+        or any(support_labels.count(label) != 8 for label in set(support_labels))
+    ):
+        raise ValueError("coverage fit receipt support differs")
+    namespaces = receipt["image_namespaces"]
+    if type(namespaces) is not dict or set(namespaces) != {"optimization", "support"}:
+        raise ValueError("coverage fit receipt image namespaces differ")
+    for role, namespace in namespaces.items():
+        if (
+            type(namespace) is not dict
+            or set(namespace) != {"sha256", "rows"}
+            or type(namespace["rows"]) is not int
+            or namespace["rows"] < 1
+            or (role == "support" and namespace["rows"] != len(support_ids))
+        ):
+            raise ValueError("coverage fit receipt image namespaces differ")
+        _coverage_digest(namespace["sha256"])
+    if (
+        type(receipt["fitting_rows"]) is not int
+        or receipt["fitting_rows"]
+        != namespaces["optimization"]["rows"] + namespaces["support"]["rows"]
+    ):
+        raise ValueError("coverage fit receipt rows differ")
+    probe = receipt["heldout_probe"]
+    if (
+        type(probe) is not dict
+        or set(probe) != {"rows", "denied", "directory_denied"}
+        or type(probe["rows"]) is not int
+        or probe["rows"] < 1
+        or type(probe["denied"]) is not int
+        or probe["denied"] != probe["rows"]
+        or probe["directory_denied"] is not True
+    ):
+        raise ValueError("coverage fit receipt heldout probe differs")
+    solver = receipt["solver"]
+    if type(solver) is not dict or set(solver) != {"student_to_teacher", "teacher_to_student"}:
+        raise ValueError("coverage fit receipt solver differs")
+    dimensions = {_validate_solver_evidence(item) for item in solver.values()}
+    environment = receipt["environment"]
+    if (
+        len(dimensions) != 1
+        or type(environment) is not dict
+        or set(environment) != {"torch_version", "torch_num_threads", "blas_config", "cpu_identity"}
+        or type(environment["torch_version"]) is not str
+        or not environment["torch_version"]
+        or type(environment["torch_num_threads"]) is not int
+        or environment["torch_num_threads"] < 1
+        or type(environment["blas_config"]) is not str
+        or type(environment["cpu_identity"]) is not str
+    ):
+        raise ValueError("coverage fit receipt environment differs")
+    for key in ("model_source_commit", "execution_source_commit", "dataset_revision"):
+        item = receipt[key]
+        if (
+            type(item) is not str
+            or len(item) != 40
+            or any(c not in "0123456789abcdef" for c in item)
+        ):
+            raise ValueError("coverage fit receipt identity differs")
+    if (
+        type(receipt["dataset_id"]) is not str
+        or not receipt["dataset_id"]
+        or type(receipt["optimization_image_root"]) is not str
+        or not receipt["optimization_image_root"].startswith("/")
+        or type(receipt["support_image_root"]) is not str
+        or not receipt["support_image_root"].startswith("/")
+    ):
+        raise ValueError("coverage fit receipt identity differs")
+    return receipt
+
+
+def validate_coverage_execution_receipt_bytes(raw: bytes) -> dict[str, object]:
+    """Validate one canonical terminal receipt without inventing unavailable evidence."""
+
+    try:
+        value = json.loads(raw)
+        canonical = (
+            json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\n"
+        ).encode()
+    except (TypeError, UnicodeDecodeError, json.JSONDecodeError, ValueError) as error:
+        raise ValueError("coverage execution receipt bytes differ") from error
+    keys = {
+        "schema",
+        "claim_eligible",
+        "execution_source_commit",
+        "status",
+        "failed_phase",
+        "reason_code",
+        "exit_code",
+        "group_drained",
+        "verified_artifacts",
+    }
+    if type(raw) is not bytes or type(value) is not dict or set(value) != keys or raw != canonical:
+        raise ValueError("coverage execution receipt schema differs")
+    receipt = cast(dict[str, object], value)
+    status = receipt["status"]
+    phase = receipt["failed_phase"]
+    exit_code = receipt["exit_code"]
+    artifacts = receipt["verified_artifacts"]
+    if (
+        receipt["schema"] != "sfora-siglip-coverage-execution-v1"
+        or receipt["claim_eligible"] is not False
+        or type(receipt["execution_source_commit"]) is not str
+        or len(receipt["execution_source_commit"]) != 40
+        or any(c not in "0123456789abcdef" for c in receipt["execution_source_commit"])
+        or status not in {"complete", "failed"}
+        or type(exit_code) is not int
+        or type(receipt["reason_code"]) is not str
+        or not receipt["reason_code"]
+        or type(receipt["group_drained"]) is not bool
+        or type(artifacts) is not dict
+        or set(artifacts) != {"map_artifact", "fit_receipt", "result"}
+    ):
+        raise ValueError("coverage execution receipt authority differs")
+    for identity in artifacts.values():
+        if identity is None:
+            continue
+        if type(identity) is not dict or set(identity) != {"path", "sha256", "byte_length"}:
+            raise ValueError("coverage execution receipt artifact differs")
+        try:
+            CoverageArtifactIdentity(
+                path=identity["path"],
+                sha256=identity["sha256"],
+                byte_length=identity["byte_length"],
+            )
+        except (TypeError, ValueError) as error:
+            raise ValueError("coverage execution receipt artifact differs") from error
+    if status == "complete":
+        if (
+            exit_code != 0
+            or phase is not None
+            or receipt["reason_code"] != "complete"
+            or receipt["group_drained"] is not True
+            or any(identity is None for identity in artifacts.values())
+        ):
+            raise ValueError("coverage execution receipt false success")
+    elif exit_code == 0 or phase not in {"preparation", "fit", "seal", "evaluation", "publication"}:
+        raise ValueError("coverage execution receipt failure differs")
+    return receipt
+
+
 def build_coverage_calibration_result(
     run: CoverageCalibrationRun,
     *,
@@ -501,7 +788,7 @@ def build_coverage_calibration_result(
     ):
         raise ValueError("coverage calibration result inputs differ")
     value: dict[str, object] = {
-        "schema": "sfora-siglip-coverage-calibration-v1",
+        "schema": "sfora-siglip-coverage-calibration-v2",
         "claim_eligible": False,
         "preprocessing": "siglip-evaluation-transform-v1",
         "support_per_class": 8,
@@ -625,7 +912,7 @@ def validate_coverage_calibration_result_bytes(raw: bytes) -> dict[str, object]:
     if raw != canonical:
         raise ValueError("coverage calibration result bytes differ")
     if (
-        result["schema"] != "sfora-siglip-coverage-calibration-v1"
+        result["schema"] != "sfora-siglip-coverage-calibration-v2"
         or type(result["claim_eligible"]) is not bool
         or result["claim_eligible"] is not False
         or result["preprocessing"] != "siglip-evaluation-transform-v1"
@@ -760,8 +1047,19 @@ def validate_coverage_calibration_result_bytes(raw: bytes) -> dict[str, object]:
     if any(
         evidence.ids != expected_ids or evidence.labels != expected_labels
         for evidence in cells.values()
-    ):
+    ) or set(cast(list[int], support_labels)) != set(expected_labels):
         raise ValueError("coverage calibration result cells differ")
+    candidate_pairs = sorted(
+        [
+            *zip(cast(list[str], support_ids), cast(list[int], support_labels), strict=True),
+            *zip(cast(list[str], evaluation_ids), expected_labels, strict=True),
+        ]
+    )
+    candidate_ids = tuple(identity for identity, _label in candidate_pairs)
+    candidate_labels = tuple(label for _identity, label in candidate_pairs)
+    selected = coverage_support_indexes(candidate_ids, candidate_labels)
+    if tuple(candidate_ids[index] for index in selected) != tuple(cast(list[str], support_ids)):
+        raise ValueError("coverage calibration result support protocol differs")
     classification = coverage_calibration_classification(cells)
     if type(result["classification"]) is not str or result["classification"] != classification:
         raise ValueError("coverage calibration result classification differs")

@@ -3,6 +3,8 @@ from __future__ import annotations
 import gc
 import hashlib
 import importlib.util
+import json
+import os
 import sys
 import types
 import weakref
@@ -56,6 +58,8 @@ def _provenance() -> dict[str, str]:
         "optimization_manifest_sha256": "33" * 32,
         "evaluation_manifest_sha256": "44" * 32,
         "spatial_artifact_sha256": "55" * 32,
+        "optimization_images_sha256": "66" * 32,
+        "support_images_sha256": "77" * 32,
     }
 
 
@@ -68,6 +72,76 @@ def test_coverage_image_namespace_digest_binds_ids_lengths_and_bytes(tmp_path: P
     after = coverage_image_namespace_sha256(("a", "b"), paths)
     assert before != after
     assert before != coverage_image_namespace_sha256(("a", "b"), tuple(reversed(paths)))
+
+
+def test_candidate_manifest_metadata_and_split_roots_are_independently_validated(
+    tmp_path: Path,
+) -> None:
+    ids = tuple(f"candidate-{index:02d}" for index in range(20))
+    labels = (49,) * 10 + (50,) * 10
+    manifest = tmp_path / "manifest.json"
+    raw = (
+        json.dumps(
+            {
+                "schema": "sfora-attention-readout-evaluation-v1",
+                "claim_eligible": False,
+                "dataset_id": "fixture/cars",
+                "dataset_revision": "b" * 40,
+                "examples": [
+                    {"example_id": identity, "label": label}
+                    for identity, label in zip(ids, labels, strict=True)
+                ],
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        + "\n"
+    ).encode()
+    manifest.write_bytes(raw)
+    observed_ids, observed_labels = _MODULE.load_coverage_candidate_manifest(
+        manifest,
+        hashlib.sha256(raw).hexdigest(),
+        dataset_id="fixture/cars",
+        dataset_revision="b" * 40,
+        expected_count=20,
+        expected_labels=frozenset((49, 50)),
+    )
+    support_indexes = _MODULE.coverage_support_indexes(observed_ids, observed_labels)
+    support_ids = tuple(observed_ids[index] for index in support_indexes)
+    heldout_ids = tuple(identity for identity in observed_ids if identity not in set(support_ids))
+    support_root = tmp_path / "support"
+    heldout_root = tmp_path / "heldout"
+    support_root.mkdir()
+    heldout_root.mkdir()
+    for root, selected in ((support_root, support_ids), (heldout_root, heldout_ids)):
+        for identity in selected:
+            (root / _MODULE.coverage_image_basename(identity)).write_bytes(b"image")
+    assert tuple(path.name for path in _MODULE.coverage_partition_paths(support_root, support_ids))
+    assert tuple(path.name for path in _MODULE.coverage_partition_paths(heldout_root, heldout_ids))
+    (support_root / "unexpected.image").write_bytes(b"leak")
+    with pytest.raises(ValueError, match="partition namespace"):
+        _MODULE.coverage_partition_paths(support_root, support_ids)
+
+
+def test_heldout_denial_probe_requires_eacces_for_every_file_and_directory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    heldout = tmp_path / "heldout"
+    ids = ("candidate-a", "candidate-b")
+
+    def denied_open(path: object, flags: int) -> int:
+        raise PermissionError(13, "Permission denied", os.fspath(path))
+
+    def denied_scandir(path: object) -> object:
+        raise PermissionError(13, "Permission denied", os.fspath(path))
+
+    monkeypatch.setattr(os, "open", denied_open)
+    monkeypatch.setattr(os, "scandir", denied_scandir)
+    assert _MODULE.verify_heldout_denied(heldout, ids) == {
+        "rows": 2,
+        "denied": 2,
+        "directory_denied": True,
+    }
 
 
 def test_coverage_map_artifact_round_trips_exact_maps_and_identity(tmp_path: Path) -> None:
@@ -132,12 +206,24 @@ def test_coverage_map_artifact_rejects_provenance_and_digest_drift(tmp_path: Pat
             fitting_ids=fitting_ids,
             **changed,
         )
+    changed = _provenance()
+    changed["support_images_sha256"] = "88" * 32
+    with pytest.raises(ValueError, match="artifact schema"):
+        load_coverage_map_artifact(
+            path,
+            expected_sha256=digest,
+            support_ids=support_ids,
+            fitting_ids=fitting_ids,
+            **changed,
+        )
 
 
 def test_coverage_probe_cli_requires_frozen_local_surface(tmp_path: Path) -> None:
     digest = "11" * 32
-    paths = [str(tmp_path / f"input-{index}") for index in range(9)]
-    argv = [
+    paths = [str(tmp_path / f"input-{index}") for index in range(12)]
+    common = [
+        "--phase",
+        "fit",
         "--control-binding",
         paths[0],
         "--control-binding-sha256",
@@ -154,22 +240,34 @@ def test_coverage_probe_cli_requires_frozen_local_surface(tmp_path: Path) -> Non
         paths[4],
         "--evaluation-manifest-sha256",
         digest,
-        "--evaluation-image-root",
+        "--support-image-root",
         paths[5],
-        "--spatial-artifact",
+        "--heldout-image-root",
         paths[6],
+        "--spatial-artifact",
+        paths[7],
         "--spatial-artifact-sha256",
         digest,
         "--execution-source-commit",
         "aa" * 20,
         "--map-artifact",
-        paths[7],
-        "--result",
         paths[8],
+        "--fit-receipt",
+        paths[9],
         "--execute-coverage-calibration",
     ]
-    parsed = parse_args(argv)
+    parsed = parse_args(common)
+    assert parsed.phase == "fit"
     assert parsed.execute_coverage_calibration is True
+    evaluate = [
+        *("evaluate" if value == "fit" else value for value in common),
+        "--fit-receipt-sha256",
+        digest,
+        "--result",
+        paths[10],
+    ]
+    parsed = parse_args(evaluate)
+    assert parsed.phase == "evaluate"
     for forbidden in (
         "--support-per-class",
         "--rcond",
@@ -178,9 +276,11 @@ def test_coverage_probe_cli_requires_frozen_local_surface(tmp_path: Path) -> Non
         "--storage-uri",
     ):
         with pytest.raises(SystemExit):
-            parse_args([*argv, forbidden, "x"])
+            parse_args([*common, forbidden, "x"])
     with pytest.raises(SystemExit):
-        parse_args([*argv, "--result", paths[8]])
+        parse_args([*common, "--fit-receipt", paths[9]])
+    with pytest.raises(SystemExit):
+        parse_args([*("evaluate" if value == "fit" else value for value in common)])
 
 
 def test_seal_and_evaluate_opens_evaluation_only_after_map_reload(tmp_path: Path) -> None:
@@ -237,6 +337,69 @@ def test_seal_and_evaluate_opens_evaluation_only_after_map_reload(tmp_path: Path
     assert set(calls[0]).isdisjoint(calls[1])
     assert len(calls[0]) == 16
     assert len(calls[1]) == 4
+    assert run.classification == "coverage-calibration-qualified"
+
+
+def test_split_fit_and_evaluate_match_monolithic_reference(tmp_path: Path) -> None:
+    base_student = torch.nn.functional.normalize(
+        torch.tensor(
+            [[1.0, 0.0], [0.0, 1.0], [1.0, 1.0], [-1.0, 0.5]],
+            dtype=torch.float32,
+        ),
+        dim=1,
+    )
+    transform = torch.tensor([[0.0, -1.0], [1.0, 0.0]], dtype=torch.float32)
+    base_teacher = base_student @ transform
+    offsets = torch.linspace(0.0, 0.09, 10)
+    candidate_student = torch.nn.functional.normalize(
+        torch.cat(
+            (
+                torch.stack((torch.ones(10), offsets), dim=1),
+                torch.stack((offsets, torch.ones(10)), dim=1),
+            )
+        ),
+        dim=1,
+    )
+    candidate_teacher = candidate_student @ transform
+    candidate_ids = tuple(f"candidate-{index:02d}" for index in range(20))
+    candidate_labels = (10,) * 10 + (11,) * 10
+    support_indexes = _MODULE.coverage_support_indexes(candidate_ids, candidate_labels)
+    support_set = set(support_indexes)
+    evaluation_indexes = tuple(
+        sorted(
+            (index for index in range(len(candidate_ids)) if index not in support_set),
+            key=candidate_ids.__getitem__,
+        )
+    )
+    support_ids = tuple(candidate_ids[index] for index in support_indexes)
+    support_labels = tuple(candidate_labels[index] for index in support_indexes)
+    evaluation_ids = tuple(candidate_ids[index] for index in evaluation_indexes)
+    evaluation_labels = tuple(candidate_labels[index] for index in evaluation_indexes)
+    map_path = tmp_path / "maps.safetensors"
+
+    sealed = _MODULE.fit_and_seal_coverage(
+        base_student=base_student,
+        base_teacher=base_teacher,
+        base_ids=("base-a", "base-b", "base-c", "base-d"),
+        support_student=candidate_student[list(support_indexes)],
+        support_teacher=candidate_teacher[list(support_indexes)],
+        support_ids=support_ids,
+        support_labels=support_labels,
+        map_artifact=map_path,
+        **_provenance(),
+    )
+    run = _MODULE.evaluate_sealed_coverage(
+        sealed=sealed,
+        evaluation_student=candidate_student[list(evaluation_indexes)],
+        evaluation_teacher=candidate_teacher[list(evaluation_indexes)],
+        evaluation_ids=evaluation_ids,
+        evaluation_labels=evaluation_labels,
+    )
+
+    assert map_path.is_file()
+    assert len(sealed.map_sha256) == 64
+    assert run.support_ids == tuple(sorted(support_ids))
+    assert run.evaluation_ids == tuple(sorted(evaluation_ids))
     assert run.classification == "coverage-calibration-qualified"
 
 
@@ -322,6 +485,26 @@ def test_coverage_probe_main_authenticates_seals_then_publishes_result(
     fake_diagnose._stage_a_transforms = lambda processor: (object(), object())
     monkeypatch.setitem(sys.modules, "diagnose_siglip_rsta_stage_a", fake_diagnose)
 
+    monkeypatch.setattr(
+        _MODULE,
+        "load_coverage_candidate_manifest",
+        lambda *args, **kwargs: (
+            evaluation_ids,
+            evaluation_labels,
+        ),
+    )
+    monkeypatch.setattr(
+        _MODULE,
+        "coverage_partition_paths",
+        lambda root, ids: tuple(
+            evaluation_paths[evaluation_ids.index(identity)] for identity in ids
+        ),
+    )
+    monkeypatch.setattr(
+        _MODULE,
+        "verify_heldout_denied",
+        lambda root, ids: {"rows": len(ids), "denied": len(ids), "directory_denied": True},
+    )
     fake_attention = types.ModuleType("probe_siglip_attention_readout_recovery")
     fake_attention.load_local_evaluation_manifest = lambda *args, **kwargs: (
         evaluation_ids,
@@ -377,7 +560,8 @@ def test_coverage_probe_main_authenticates_seals_then_publishes_result(
     monkeypatch.setattr(torch.cuda, "is_bf16_supported", lambda: True)
     result = tmp_path / "result.json"
     maps = tmp_path / "maps.safetensors"
-    argv = [
+    receipt = tmp_path / "fit-receipt.json"
+    common = [
         "--control-binding",
         str(inputs["binding"]),
         "--control-binding-sha256",
@@ -394,7 +578,9 @@ def test_coverage_probe_main_authenticates_seals_then_publishes_result(
         str(inputs["evaluation"]),
         "--evaluation-manifest-sha256",
         evaluation_sha,
-        "--evaluation-image-root",
+        "--support-image-root",
+        str(evaluation_root),
+        "--heldout-image-root",
         str(evaluation_root),
         "--spatial-artifact",
         str(inputs["spatial"]),
@@ -404,11 +590,92 @@ def test_coverage_probe_main_authenticates_seals_then_publishes_result(
         "a" * 40,
         "--map-artifact",
         str(maps),
-        "--result",
-        str(result),
+        "--fit-receipt",
+        str(receipt),
         "--execute-coverage-calibration",
     ]
-    assert main(argv) == 0
+    assert main(["--phase", "fit", *common]) == 0
+    assert receipt.is_file()
+    receipt_raw = receipt.read_bytes()
+    receipt_sha = hashlib.sha256(receipt_raw).hexdigest()
+    monkeypatch.setattr(
+        _MODULE,
+        "fit_coverage_affine",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("evaluation must not invoke fitting")
+        ),
+    )
+    changed_receipt = json.loads(receipt_raw)
+    changed_receipt["inputs"]["control_binding"]["path"] = "/wrong/control-binding"
+    changed_raw = (
+        json.dumps(changed_receipt, sort_keys=True, separators=(",", ":")) + "\n"
+    ).encode()
+    receipt.write_bytes(changed_raw)
+    with pytest.raises(ValueError, match="fit receipt input binding"):
+        main(
+            [
+                "--phase",
+                "evaluate",
+                *common,
+                "--fit-receipt-sha256",
+                hashlib.sha256(changed_raw).hexdigest(),
+                "--result",
+                str(tmp_path / "mutated-result.json"),
+            ]
+        )
+    receipt.write_bytes(receipt_raw)
+    changed_receipt = json.loads(receipt_raw)
+    changed_receipt["solver"]["student_to_teacher"]["singular_values"][0] *= 2
+    changed_raw = (
+        json.dumps(changed_receipt, sort_keys=True, separators=(",", ":")) + "\n"
+    ).encode()
+    receipt.write_bytes(changed_raw)
+    with pytest.raises(ValueError, match="fit receipt solver binding"):
+        main(
+            [
+                "--phase",
+                "evaluate",
+                *common,
+                "--fit-receipt-sha256",
+                hashlib.sha256(changed_raw).hexdigest(),
+                "--result",
+                str(tmp_path / "mutated-solver-result.json"),
+            ]
+        )
+    receipt.write_bytes(receipt_raw)
+    changed_receipt = json.loads(receipt_raw)
+    changed_receipt["inputs"]["map_artifact"]["path"] = "/wrong/maps.safetensors"
+    changed_raw = (
+        json.dumps(changed_receipt, sort_keys=True, separators=(",", ":")) + "\n"
+    ).encode()
+    receipt.write_bytes(changed_raw)
+    with pytest.raises(ValueError, match="fit receipt map binding"):
+        main(
+            [
+                "--phase",
+                "evaluate",
+                *common,
+                "--fit-receipt-sha256",
+                hashlib.sha256(changed_raw).hexdigest(),
+                "--result",
+                str(tmp_path / "mutated-map-result.json"),
+            ]
+        )
+    receipt.write_bytes(receipt_raw)
+    assert (
+        main(
+            [
+                "--phase",
+                "evaluate",
+                *common,
+                "--fit-receipt-sha256",
+                receipt_sha,
+                "--result",
+                str(result),
+            ]
+        )
+        == 0
+    )
     assert calls == 3
     assert maps.is_file()
     assert result.is_file()

@@ -99,8 +99,7 @@ def test_landlock_launcher_traverses_parent_without_exposing_siblings(tmp_path: 
     (allowed / "config").write_text("registered")
     (forbidden / "labels").write_text("hidden")
     script = (
-        'test "$(cat "$1/config")" = registered '
-        '&& if cat "$2/labels"; then exit 1; else exit 0; fi'
+        'test "$(cat "$1/config")" = registered && if cat "$2/labels"; then exit 1; else exit 0; fi'
     )
     completed = subprocess.run(
         [
@@ -124,3 +123,58 @@ def test_landlock_launcher_traverses_parent_without_exposing_siblings(tmp_path: 
         check=False,
     )
     assert completed.returncode == 0
+
+
+def test_coverage_fit_policy_reads_support_writes_fit_and_denies_heldout(
+    tmp_path: Path,
+) -> None:
+    source = Path(__file__).resolve().parents[1] / "scripts" / "landlock_exec.c"
+    launcher = tmp_path / "landlock-exec"
+    subprocess.run(
+        ["cc", "-std=c17", "-Wall", "-Wextra", "-Werror", str(source), "-o", str(launcher)],
+        check=True,
+    )
+    support = tmp_path / "support"
+    heldout = tmp_path / "heldout"
+    phase1 = tmp_path / "phase1"
+    support.mkdir()
+    heldout.mkdir()
+    phase1.mkdir()
+    (support / "pixel").write_bytes(b"support")
+    (heldout / "pixel").write_bytes(b"heldout")
+    program = (
+        "import errno,os,pathlib,sys\n"
+        "support,heldout,out=map(pathlib.Path,sys.argv[1:])\n"
+        "assert support.read_bytes()==b'support'\n"
+        "out.write_bytes(b'sealed')\n"
+        "try: (heldout/'pixel').read_bytes()\n"
+        "except PermissionError as e: assert e.errno==errno.EACCES\n"
+        "else: raise SystemExit(3)\n"
+        "try: list(os.scandir(heldout))\n"
+        "except PermissionError as e: assert e.errno==errno.EACCES\n"
+        "else: raise SystemExit(4)\n"
+    )
+    completed = subprocess.run(
+        [
+            str(launcher),
+            "--ro",
+            "/usr",
+            "--ro",
+            "/etc",
+            "--ro",
+            str(support),
+            "--rw",
+            str(phase1),
+            "--",
+            "/usr/bin/python3",
+            "-c",
+            program,
+            str(support / "pixel"),
+            str(heldout),
+            str(phase1 / "map"),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode == 0, completed.stderr

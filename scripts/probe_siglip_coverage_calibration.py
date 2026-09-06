@@ -4,10 +4,14 @@
 from __future__ import annotations
 
 import argparse
+import errno
 import hashlib
+import json
+import os
 import platform
 import sys
 from collections.abc import Callable, Iterable
+from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
 
@@ -21,11 +25,13 @@ from sfora.siglip_coverage_calibration import (
     CoverageCalibrationRun,
     CoverageMaps,
     build_coverage_calibration_result,
+    build_coverage_fit_receipt,
     coverage_calibration_classification,
     coverage_retrieval_cells,
     coverage_support_indexes,
     fit_coverage_affine,
     validate_coverage_calibration_result_bytes,
+    validate_coverage_fit_receipt_bytes,
 )
 
 
@@ -97,10 +103,145 @@ def coverage_image_namespace_sha256(ids: tuple[str, ...], paths: tuple[Path, ...
     return digest.hexdigest()
 
 
+def coverage_image_basename(example_id: str) -> str:
+    """Return the frozen local image name for one example identity."""
+
+    if type(example_id) is not str or not example_id:
+        raise ValueError("coverage candidate identity differs")
+    digest = hashlib.sha256(
+        b"rsta-siglip-a-v1|image-path|\0" + example_id.encode("utf-8")
+    ).hexdigest()
+    return f"{digest}.image"
+
+
+def load_coverage_candidate_manifest(
+    path: Path,
+    expected_sha256: str,
+    *,
+    dataset_id: str,
+    dataset_revision: str,
+    expected_count: int = 2_746,
+    expected_labels: frozenset[int] = frozenset(range(49, 82)),
+) -> tuple[tuple[str, ...], tuple[int, ...]]:
+    """Authenticate candidate identities and labels without opening image roots."""
+
+    raw = path.read_bytes() if isinstance(path, Path) and path.is_file() else b""
+    try:
+        value = json.loads(raw)
+        canonical = (
+            json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\n"
+        ).encode()
+    except (UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError) as error:
+        raise ValueError("coverage candidate manifest differs") from error
+    if (
+        not _valid_sha256(expected_sha256)
+        or hashlib.sha256(raw).hexdigest() != expected_sha256
+        or type(value) is not dict
+        or set(value) != {"schema", "claim_eligible", "dataset_id", "dataset_revision", "examples"}
+        or raw != canonical
+        or value["schema"] != "sfora-attention-readout-evaluation-v1"
+        or value["claim_eligible"] is not False
+        or value["dataset_id"] != dataset_id
+        or value["dataset_revision"] != dataset_revision
+        or type(value["examples"]) is not list
+        or len(value["examples"]) != expected_count
+        or type(expected_count) is not int
+        or expected_count < 1
+        or type(expected_labels) is not frozenset
+        or not expected_labels
+    ):
+        raise ValueError("coverage candidate manifest authority differs")
+    ids: list[str] = []
+    labels: list[int] = []
+    for row in value["examples"]:
+        if (
+            type(row) is not dict
+            or set(row) != {"example_id", "label"}
+            or type(row["example_id"]) is not str
+            or not row["example_id"]
+            or type(row["label"]) is not int
+            or row["label"] not in expected_labels
+        ):
+            raise ValueError("coverage candidate manifest row differs")
+        ids.append(row["example_id"])
+        labels.append(row["label"])
+    if (
+        tuple(sorted(ids)) != tuple(ids)
+        or len(set(ids)) != expected_count
+        or set(labels) != set(expected_labels)
+    ):
+        raise ValueError("coverage candidate manifest authority differs")
+    return tuple(ids), tuple(labels)
+
+
+def coverage_partition_paths(root: Path, ids: tuple[str, ...]) -> tuple[Path, ...]:
+    """Resolve exactly one support or held-out image namespace."""
+
+    try:
+        resolved_root = root.resolve(strict=True)
+    except OSError as error:
+        raise ValueError("coverage partition root differs") from error
+    if (
+        type(ids) is not tuple
+        or not ids
+        or len(set(ids)) != len(ids)
+        or tuple(sorted(ids)) != ids
+        or root.is_symlink()
+        or not root.is_dir()
+        or resolved_root != root
+    ):
+        raise ValueError("coverage partition namespace differs")
+    paths = tuple(root / coverage_image_basename(identity) for identity in ids)
+    for path in paths:
+        try:
+            resolved = path.resolve(strict=True)
+        except OSError as error:
+            raise ValueError("coverage partition image differs") from error
+        if (
+            path.is_symlink()
+            or not path.is_file()
+            or resolved != path
+            or not resolved.is_relative_to(resolved_root)
+        ):
+            raise ValueError("coverage partition image differs")
+    if {entry.name for entry in root.iterdir()} != {path.name for path in paths}:
+        raise ValueError("coverage partition namespace differs")
+    return paths
+
+
+def verify_heldout_denied(root: Path, ids: tuple[str, ...]) -> dict[str, object]:
+    """Require the fit sandbox to deny every held-out pixel and directory listing."""
+
+    if type(ids) is not tuple or not ids or tuple(sorted(ids)) != ids:
+        raise ValueError("coverage heldout denial authority differs")
+    denied = 0
+    for identity in ids:
+        path = root / coverage_image_basename(identity)
+        try:
+            descriptor = os.open(path, os.O_RDONLY)
+        except PermissionError as error:
+            if error.errno != errno.EACCES:
+                raise ValueError("coverage heldout denial differs") from error
+            denied += 1
+        else:
+            os.close(descriptor)
+            raise ValueError("coverage heldout pixel was readable during fit")
+    try:
+        iterator = os.scandir(root)
+    except PermissionError as error:
+        if error.errno != errno.EACCES:
+            raise ValueError("coverage heldout denial differs") from error
+    else:
+        iterator.close()
+        raise ValueError("coverage heldout directory was readable during fit")
+    return {"rows": len(ids), "denied": denied, "directory_denied": True}
+
+
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     """Parse the fixed local-file-only calibration surface."""
 
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
+    parser.add_argument("--phase", choices=("fit", "evaluate"), required=True)
     parser.add_argument("--control-binding", type=_absolute_path, required=True)
     parser.add_argument("--control-binding-sha256", type=_sha256, required=True)
     parser.add_argument("--checkpoint-seed17", type=_absolute_path, required=True)
@@ -109,19 +250,29 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--optimization-image-root", type=_absolute_path, required=True)
     parser.add_argument("--evaluation-manifest", type=_absolute_path, required=True)
     parser.add_argument("--evaluation-manifest-sha256", type=_sha256, required=True)
-    parser.add_argument("--evaluation-image-root", type=_absolute_path, required=True)
+    parser.add_argument("--support-image-root", type=_absolute_path, required=True)
+    parser.add_argument("--heldout-image-root", type=_absolute_path, required=True)
     parser.add_argument("--spatial-artifact", type=_absolute_path, required=True)
     parser.add_argument("--spatial-artifact-sha256", type=_sha256, required=True)
     parser.add_argument("--execution-source-commit", type=_git_sha, required=True)
     parser.add_argument("--map-artifact", type=_absolute_path, required=True)
-    parser.add_argument("--result", type=_absolute_path, required=True)
+    parser.add_argument("--fit-receipt", type=_absolute_path, required=True)
+    parser.add_argument("--fit-receipt-sha256", type=_sha256)
+    parser.add_argument("--result", type=_absolute_path)
     parser.add_argument("--execute-coverage-calibration", action="store_true", required=True)
     effective = list(sys.argv[1:] if argv is None else argv)
     flags = [value.split("=", 1)[0] for value in effective if value.startswith("--")]
     duplicates = sorted({flag for flag in flags if flags.count(flag) > 1})
     if duplicates:
         parser.error(f"duplicate arguments are forbidden: {duplicates!r}")
-    return parser.parse_args(effective)
+    parsed = parser.parse_args(effective)
+    if parsed.phase == "fit" and (
+        parsed.fit_receipt_sha256 is not None or parsed.result is not None
+    ):
+        parser.error("fit phase forbids evaluation-only arguments")
+    if parsed.phase == "evaluate" and (parsed.fit_receipt_sha256 is None or parsed.result is None):
+        parser.error("evaluate phase requires receipt digest and result")
+    return parsed
 
 
 def _ids_sha256(ids: tuple[str, ...], *, domain: bytes) -> str:
@@ -152,6 +303,8 @@ def _artifact_metadata(
     optimization_manifest_sha256: str,
     evaluation_manifest_sha256: str,
     spatial_artifact_sha256: str,
+    optimization_images_sha256: str,
+    support_images_sha256: str,
 ) -> dict[str, str]:
     digests = {
         "checkpoint_sha256": checkpoint_sha256,
@@ -159,6 +312,8 @@ def _artifact_metadata(
         "optimization_manifest_sha256": optimization_manifest_sha256,
         "evaluation_manifest_sha256": evaluation_manifest_sha256,
         "spatial_artifact_sha256": spatial_artifact_sha256,
+        "optimization_images_sha256": optimization_images_sha256,
+        "support_images_sha256": support_images_sha256,
     }
     if any(
         type(value) is not str
@@ -202,6 +357,8 @@ def write_coverage_map_artifact(
     optimization_manifest_sha256: str,
     evaluation_manifest_sha256: str,
     spatial_artifact_sha256: str,
+    optimization_images_sha256: str,
+    support_images_sha256: str,
 ) -> str:
     """Atomically seal both affine directions and their exact authority."""
 
@@ -215,6 +372,8 @@ def write_coverage_map_artifact(
         optimization_manifest_sha256=optimization_manifest_sha256,
         evaluation_manifest_sha256=evaluation_manifest_sha256,
         spatial_artifact_sha256=spatial_artifact_sha256,
+        optimization_images_sha256=optimization_images_sha256,
+        support_images_sha256=support_images_sha256,
     )
     tensors = _map_tensors(maps)
     partial = path.with_name(f"{path.name}.partial")
@@ -244,6 +403,8 @@ def load_coverage_map_artifact(
     optimization_manifest_sha256: str,
     evaluation_manifest_sha256: str,
     spatial_artifact_sha256: str,
+    optimization_images_sha256: str,
+    support_images_sha256: str,
 ) -> CoverageMaps:
     """Authenticate and restore both sealed affine directions."""
 
@@ -260,6 +421,8 @@ def load_coverage_map_artifact(
         optimization_manifest_sha256=optimization_manifest_sha256,
         evaluation_manifest_sha256=evaluation_manifest_sha256,
         spatial_artifact_sha256=spatial_artifact_sha256,
+        optimization_images_sha256=optimization_images_sha256,
+        support_images_sha256=support_images_sha256,
     )
     with safe_open(str(path), framework="pt", device="cpu") as stream:
         if stream.metadata() != expected_metadata:
@@ -288,33 +451,62 @@ def load_coverage_map_artifact(
     return CoverageMaps(mapping("student_to_teacher"), mapping("teacher_to_student"))
 
 
-def seal_and_evaluate_coverage(
+@dataclass(frozen=True, slots=True)
+class SealedCoverageFit:
+    """Authenticated fit-only output consumed by the evaluation phase."""
+
+    maps: CoverageMaps
+    support_ids: tuple[str, ...]
+    support_labels: tuple[int, ...]
+    map_sha256: str
+
+    def __post_init__(self) -> None:
+        if (
+            type(self.maps) is not CoverageMaps
+            or type(self.support_ids) is not tuple
+            or type(self.support_labels) is not tuple
+            or not self.support_ids
+            or tuple(sorted(self.support_ids)) != self.support_ids
+            or len(self.support_labels) != len(self.support_ids)
+            or any(type(label) is not int or label < 0 for label in self.support_labels)
+            or any(self.support_labels.count(label) != 8 for label in set(self.support_labels))
+            or not _valid_sha256(self.map_sha256)
+        ):
+            raise ValueError("coverage sealed fit authority differs")
+
+
+def fit_and_seal_coverage(
     *,
     base_student: torch.Tensor,
     base_teacher: torch.Tensor,
     base_ids: tuple[str, ...],
-    candidate_ids: tuple[str, ...],
-    candidate_labels: tuple[int, ...],
-    extract: Callable[[tuple[int, ...]], tuple[torch.Tensor, torch.Tensor]],
+    support_student: torch.Tensor,
+    support_teacher: torch.Tensor,
+    support_ids: tuple[str, ...],
+    support_labels: tuple[int, ...],
     map_artifact: Path,
     checkpoint_sha256: str,
     control_binding_sha256: str,
     optimization_manifest_sha256: str,
     evaluation_manifest_sha256: str,
     spatial_artifact_sha256: str,
-) -> tuple[CoverageCalibrationRun, str]:
-    """Fit and seal support-only maps before extracting evaluation descriptors."""
+    optimization_images_sha256: str,
+    support_images_sha256: str,
+) -> SealedCoverageFit:
+    """Fit and seal maps without accepting evaluation descriptors."""
 
-    if not callable(extract) or type(base_ids) is not tuple or type(candidate_ids) is not tuple:
-        raise ValueError("coverage extractor authority differs")
-    if set(base_ids) & set(candidate_ids):
-        raise ValueError("coverage calibration identity overlap")
-    support_indexes = coverage_support_indexes(candidate_ids, candidate_labels)
-    support_ids = tuple(sorted(candidate_ids[index] for index in support_indexes))
-    support_student, support_teacher = extract(support_indexes)
+    if (
+        type(base_ids) is not tuple
+        or type(support_ids) is not tuple
+        or type(support_labels) is not tuple
+        or set(base_ids) & set(support_ids)
+        or tuple(sorted(support_ids)) != support_ids
+        or len(support_labels) != len(support_ids)
+    ):
+        raise ValueError("coverage fitting authority differs")
     fitting_student = torch.cat((base_student, support_student), dim=0).contiguous()
     fitting_teacher = torch.cat((base_teacher, support_teacher), dim=0).contiguous()
-    fitting_ids = (*base_ids, *(candidate_ids[index] for index in support_indexes))
+    fitting_ids = (*base_ids, *support_ids)
     sealed_fitting_ids = tuple(sorted(fitting_ids))
     maps = CoverageMaps(
         student_to_teacher=fit_coverage_affine(fitting_student, fitting_teacher, fitting_ids),
@@ -330,6 +522,8 @@ def seal_and_evaluate_coverage(
         optimization_manifest_sha256=optimization_manifest_sha256,
         evaluation_manifest_sha256=evaluation_manifest_sha256,
         spatial_artifact_sha256=spatial_artifact_sha256,
+        optimization_images_sha256=optimization_images_sha256,
+        support_images_sha256=support_images_sha256,
     )
     restored = load_coverage_map_artifact(
         map_artifact,
@@ -341,8 +535,109 @@ def seal_and_evaluate_coverage(
         optimization_manifest_sha256=optimization_manifest_sha256,
         evaluation_manifest_sha256=evaluation_manifest_sha256,
         spatial_artifact_sha256=spatial_artifact_sha256,
+        optimization_images_sha256=optimization_images_sha256,
+        support_images_sha256=support_images_sha256,
     )
-    del support_student, support_teacher, fitting_student, fitting_teacher, maps
+    del fitting_student, fitting_teacher, maps
+    return SealedCoverageFit(restored, support_ids, support_labels, digest)
+
+
+def evaluate_sealed_coverage(
+    *,
+    sealed: SealedCoverageFit,
+    evaluation_student: torch.Tensor,
+    evaluation_teacher: torch.Tensor,
+    evaluation_ids: tuple[str, ...],
+    evaluation_labels: tuple[int, ...],
+) -> CoverageCalibrationRun:
+    """Evaluate an authenticated sealed fit without exposing a fitting API."""
+
+    if type(sealed) is not SealedCoverageFit or set(sealed.support_ids) & set(evaluation_ids):
+        raise ValueError("coverage evaluation authority differs")
+    cells = coverage_retrieval_cells(
+        evaluation_student,
+        evaluation_teacher,
+        evaluation_ids,
+        evaluation_labels,
+        sealed.maps,
+    )
+    return CoverageCalibrationRun(
+        maps=sealed.maps,
+        support_ids=sealed.support_ids,
+        support_labels=sealed.support_labels,
+        evaluation_ids=evaluation_ids,
+        cells=cells,
+        classification=coverage_calibration_classification(cells),
+    )
+
+
+def coverage_solver_evidence(maps: CoverageMaps) -> dict[str, dict[str, object]]:
+    """Reconstruct exact fit-receipt solver evidence from authenticated tensors."""
+
+    if type(maps) is not CoverageMaps:
+        raise ValueError("coverage solver evidence differs")
+
+    def mapping(value: CoverageAffine) -> dict[str, object]:
+        return {
+            "dimensions": value.weight.shape[0],
+            "rank": value.rank,
+            "singular_values": [float(item) for item in value.singular_values],
+            "rcond": value.rcond,
+            "driver": value.driver,
+        }
+
+    return {
+        "student_to_teacher": mapping(maps.student_to_teacher),
+        "teacher_to_student": mapping(maps.teacher_to_student),
+    }
+
+
+def seal_and_evaluate_coverage(
+    *,
+    base_student: torch.Tensor,
+    base_teacher: torch.Tensor,
+    base_ids: tuple[str, ...],
+    candidate_ids: tuple[str, ...],
+    candidate_labels: tuple[int, ...],
+    extract: Callable[[tuple[int, ...]], tuple[torch.Tensor, torch.Tensor]],
+    map_artifact: Path,
+    checkpoint_sha256: str,
+    control_binding_sha256: str,
+    optimization_manifest_sha256: str,
+    evaluation_manifest_sha256: str,
+    spatial_artifact_sha256: str,
+    optimization_images_sha256: str,
+    support_images_sha256: str,
+) -> tuple[CoverageCalibrationRun, str]:
+    """Fit and seal support-only maps before extracting evaluation descriptors."""
+
+    if not callable(extract) or type(base_ids) is not tuple or type(candidate_ids) is not tuple:
+        raise ValueError("coverage extractor authority differs")
+    if set(base_ids) & set(candidate_ids):
+        raise ValueError("coverage calibration identity overlap")
+    support_indexes = coverage_support_indexes(candidate_ids, candidate_labels)
+    support_ids = tuple(sorted(candidate_ids[index] for index in support_indexes))
+    ordered_support_indexes = tuple(sorted(support_indexes, key=candidate_ids.__getitem__))
+    support_labels = tuple(candidate_labels[index] for index in ordered_support_indexes)
+    support_student, support_teacher = extract(support_indexes)
+    sealed = fit_and_seal_coverage(
+        base_student=base_student,
+        base_teacher=base_teacher,
+        base_ids=base_ids,
+        support_student=support_student,
+        support_teacher=support_teacher,
+        support_ids=support_ids,
+        support_labels=support_labels,
+        map_artifact=map_artifact,
+        checkpoint_sha256=checkpoint_sha256,
+        control_binding_sha256=control_binding_sha256,
+        optimization_manifest_sha256=optimization_manifest_sha256,
+        evaluation_manifest_sha256=evaluation_manifest_sha256,
+        spatial_artifact_sha256=spatial_artifact_sha256,
+        optimization_images_sha256=optimization_images_sha256,
+        support_images_sha256=support_images_sha256,
+    )
+    del support_student, support_teacher
     support = set(support_indexes)
     evaluation_indexes = tuple(
         sorted(
@@ -353,29 +648,18 @@ def seal_and_evaluate_coverage(
     evaluation_ids = tuple(candidate_ids[index] for index in evaluation_indexes)
     evaluation_labels = tuple(candidate_labels[index] for index in evaluation_indexes)
     evaluation_student, evaluation_teacher = extract(evaluation_indexes)
-    cells = coverage_retrieval_cells(
-        evaluation_student,
-        evaluation_teacher,
-        evaluation_ids,
-        evaluation_labels,
-        restored,
-    )
-    run = CoverageCalibrationRun(
-        maps=restored,
-        support_ids=support_ids,
-        support_labels=tuple(
-            candidate_labels[index]
-            for index in sorted(support_indexes, key=candidate_ids.__getitem__)
-        ),
+    run = evaluate_sealed_coverage(
+        sealed=sealed,
+        evaluation_student=evaluation_student,
+        evaluation_teacher=evaluation_teacher,
         evaluation_ids=evaluation_ids,
-        cells=cells,
-        classification=coverage_calibration_classification(cells),
+        evaluation_labels=evaluation_labels,
     )
-    return run, digest
+    return run, sealed.map_sha256
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Run the complete frozen calibration experiment."""
+    """Run one explicitly selected fit or evaluation phase."""
 
     scripts = str(Path(__file__).resolve().parent)
     if scripts not in sys.path:
@@ -391,7 +675,6 @@ def main(argv: list[str] | None = None) -> int:
     )
     from diagnose_siglip_rsta_stage_a import _read_regular as read_rsta_regular
     from PIL import Image
-    from probe_siglip_attention_readout_recovery import load_local_evaluation_manifest
     from probe_siglip_gallery_compatibility_alignment import (
         stream_alignment_descriptor_pairs,
     )
@@ -403,7 +686,13 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     arguments = parse_args(argv)
-    for output in (arguments.map_artifact, arguments.result):
+    outputs = (
+        (arguments.map_artifact, arguments.fit_receipt)
+        if arguments.phase == "fit"
+        else (arguments.result,)
+    )
+    for output in outputs:
+        assert output is not None
         if output.exists() or output.is_symlink():
             raise FileExistsError(output)
     if _file_sha256(arguments.spatial_artifact) != arguments.spatial_artifact_sha256:
@@ -428,22 +717,97 @@ def main(argv: list[str] | None = None) -> int:
     )
     if set(base_labels) != set(range(49)):
         raise ValueError("coverage calibration optimization partition differs")
-    candidate_ids, candidate_labels, candidate_paths = load_local_evaluation_manifest(
+    candidate_ids, candidate_labels = load_coverage_candidate_manifest(
         arguments.evaluation_manifest,
         arguments.evaluation_manifest_sha256,
-        arguments.evaluation_image_root,
         dataset_id=binding.dataset_id,
         dataset_revision=binding.dataset_revision,
     )
     support_indexes = coverage_support_indexes(candidate_ids, candidate_labels)
     support_set = set(support_indexes)
     evaluation_indexes = tuple(
-        sorted(
-            (index for index in range(len(candidate_ids)) if index not in support_set),
-            key=candidate_ids.__getitem__,
-        )
+        index for index in range(len(candidate_ids)) if index not in support_set
     )
+    support_ids = tuple(candidate_ids[index] for index in support_indexes)
+    support_labels = tuple(candidate_labels[index] for index in support_indexes)
+    evaluation_ids = tuple(candidate_ids[index] for index in evaluation_indexes)
+    evaluation_labels = tuple(candidate_labels[index] for index in evaluation_indexes)
+    support_paths = coverage_partition_paths(arguments.support_image_root, support_ids)
+    heldout_probe: dict[str, object] | None = None
+    evaluation_paths: tuple[Path, ...] | None = None
+    if arguments.phase == "fit":
+        heldout_probe = verify_heldout_denied(arguments.heldout_image_root, evaluation_ids)
+    else:
+        evaluation_paths = coverage_partition_paths(arguments.heldout_image_root, evaluation_ids)
     optimization_images_sha256 = coverage_image_namespace_sha256(base_ids, base_paths)
+    support_images_sha256 = coverage_image_namespace_sha256(support_ids, support_paths)
+
+    def identity(path: Path, sha256: str) -> CoverageArtifactIdentity:
+        return CoverageArtifactIdentity(
+            path=str(path), sha256=sha256, byte_length=path.stat().st_size
+        )
+
+    common_identities = {
+        "checkpoint": identity(arguments.checkpoint_seed17, seed17.sha256),
+        "control_binding": identity(arguments.control_binding, arguments.control_binding_sha256),
+        "evaluation_manifest": identity(
+            arguments.evaluation_manifest, arguments.evaluation_manifest_sha256
+        ),
+        "optimization_manifest": identity(
+            arguments.optimization_manifest, arguments.optimization_manifest_sha256
+        ),
+        "spatial_artifact": identity(arguments.spatial_artifact, arguments.spatial_artifact_sha256),
+    }
+
+    sealed: SealedCoverageFit | None = None
+    fit_receipt_sha256: str | None = None
+    if arguments.phase == "evaluate":
+        assert arguments.fit_receipt_sha256 is not None
+        receipt_raw = arguments.fit_receipt.read_bytes()
+        fit_receipt_sha256 = hashlib.sha256(receipt_raw).hexdigest()
+        if fit_receipt_sha256 != arguments.fit_receipt_sha256:
+            raise ValueError("coverage fit receipt digest differs")
+        receipt = validate_coverage_fit_receipt_bytes(receipt_raw)
+        receipt_inputs = cast(dict[str, dict[str, object]], receipt["inputs"])
+        if any(
+            receipt_inputs[role] != item.to_mapping() for role, item in common_identities.items()
+        ):
+            raise ValueError("coverage fit receipt input binding differs")
+        receipt_namespaces = cast(dict[str, dict[str, object]], receipt["image_namespaces"])
+        if (
+            receipt["model_source_commit"] != binding.source_commit
+            or receipt["execution_source_commit"] != arguments.execution_source_commit
+            or receipt["dataset_id"] != binding.dataset_id
+            or receipt["dataset_revision"] != binding.dataset_revision
+            or receipt["support_ids"] != list(support_ids)
+            or receipt["support_labels"] != list(support_labels)
+            or receipt_namespaces["optimization"]
+            != {"sha256": optimization_images_sha256, "rows": len(base_ids)}
+            or receipt_namespaces["support"]
+            != {"sha256": support_images_sha256, "rows": len(support_ids)}
+        ):
+            raise ValueError("coverage fit receipt authority differs")
+        map_identity = receipt_inputs["map_artifact"]
+        map_sha256 = cast(str, map_identity["sha256"])
+        if map_identity != identity(arguments.map_artifact, map_sha256).to_mapping():
+            raise ValueError("coverage fit receipt map binding differs")
+        fitting_ids = tuple(sorted((*base_ids, *support_ids)))
+        maps = load_coverage_map_artifact(
+            arguments.map_artifact,
+            expected_sha256=map_sha256,
+            support_ids=support_ids,
+            fitting_ids=fitting_ids,
+            checkpoint_sha256=seed17.sha256,
+            control_binding_sha256=arguments.control_binding_sha256,
+            optimization_manifest_sha256=arguments.optimization_manifest_sha256,
+            evaluation_manifest_sha256=arguments.evaluation_manifest_sha256,
+            spatial_artifact_sha256=arguments.spatial_artifact_sha256,
+            optimization_images_sha256=optimization_images_sha256,
+            support_images_sha256=support_images_sha256,
+        )
+        if receipt["solver"] != coverage_solver_evidence(maps):
+            raise ValueError("coverage fit receipt solver binding differs")
+        sealed = SealedCoverageFit(maps, support_ids, support_labels, map_sha256)
 
     configure_stage_a_determinism()
     if not torch.cuda.is_available() or not torch.cuda.is_bf16_supported():
@@ -479,28 +843,7 @@ def main(argv: list[str] | None = None) -> int:
                 tensors.append(tensor)
             yield torch.stack(tensors)
 
-    base_student, base_teacher = stream_alignment_descriptor_pairs(
-        vision,
-        projection,
-        tokenwise,
-        readout,
-        pixel_batches(base_paths),
-        source_depth=18,
-        device=device,
-    )
-
-    phase_image_digests: dict[str, str] = {}
-
-    def extract(indexes: tuple[int, ...]) -> tuple[torch.Tensor, torch.Tensor]:
-        if indexes == support_indexes:
-            phase = "support"
-        elif indexes == evaluation_indexes:
-            phase = "evaluation"
-        else:
-            raise ValueError("coverage calibration extraction partition differs")
-        selected = tuple(candidate_paths[index] for index in indexes)
-        selected_ids = tuple(candidate_ids[index] for index in indexes)
-        phase_image_digests[phase] = coverage_image_namespace_sha256(selected_ids, selected)
+    def extract(selected: tuple[Path, ...]) -> tuple[torch.Tensor, torch.Tensor]:
         return cast(
             tuple[torch.Tensor, torch.Tensor],
             stream_alignment_descriptor_pairs(
@@ -514,55 +857,95 @@ def main(argv: list[str] | None = None) -> int:
             ),
         )
 
-    run, map_sha256 = seal_and_evaluate_coverage(
-        base_student=base_student,
-        base_teacher=base_teacher,
-        base_ids=base_ids,
-        candidate_ids=candidate_ids,
-        candidate_labels=candidate_labels,
-        extract=extract,
-        map_artifact=arguments.map_artifact,
-        checkpoint_sha256=seed17.sha256,
-        control_binding_sha256=arguments.control_binding_sha256,
-        optimization_manifest_sha256=arguments.optimization_manifest_sha256,
-        evaluation_manifest_sha256=arguments.evaluation_manifest_sha256,
-        spatial_artifact_sha256=arguments.spatial_artifact_sha256,
-    )
-    if set(phase_image_digests) != {"support", "evaluation"}:
-        raise ValueError("coverage calibration image evidence differs")
-
-    def identity(path: Path, sha256: str) -> CoverageArtifactIdentity:
-        return CoverageArtifactIdentity(
-            path=str(path), sha256=sha256, byte_length=path.stat().st_size
+    if arguments.phase == "fit":
+        assert heldout_probe is not None
+        base_student, base_teacher = extract(base_paths)
+        support_student, support_teacher = extract(support_paths)
+        sealed = fit_and_seal_coverage(
+            base_student=base_student,
+            base_teacher=base_teacher,
+            base_ids=base_ids,
+            support_student=support_student,
+            support_teacher=support_teacher,
+            support_ids=support_ids,
+            support_labels=support_labels,
+            map_artifact=arguments.map_artifact,
+            checkpoint_sha256=seed17.sha256,
+            control_binding_sha256=arguments.control_binding_sha256,
+            optimization_manifest_sha256=arguments.optimization_manifest_sha256,
+            evaluation_manifest_sha256=arguments.evaluation_manifest_sha256,
+            spatial_artifact_sha256=arguments.spatial_artifact_sha256,
+            optimization_images_sha256=optimization_images_sha256,
+            support_images_sha256=support_images_sha256,
         )
+        fit_identities = {
+            **common_identities,
+            "map_artifact": identity(arguments.map_artifact, sealed.map_sha256),
+        }
+        raw = build_coverage_fit_receipt(
+            maps=sealed.maps,
+            support_ids=support_ids,
+            support_labels=support_labels,
+            artifact_identities=fit_identities,
+            model_source_commit=binding.source_commit,
+            execution_source_commit=arguments.execution_source_commit,
+            dataset_id=binding.dataset_id,
+            dataset_revision=binding.dataset_revision,
+            optimization_image_root=str(arguments.optimization_image_root),
+            support_image_root=str(arguments.support_image_root),
+            optimization_images_sha256=optimization_images_sha256,
+            support_images_sha256=support_images_sha256,
+            optimization_rows=len(base_ids),
+            heldout_rows=cast(int, heldout_probe["rows"]),
+            heldout_denied=cast(int, heldout_probe["denied"]),
+            heldout_directory_denied=cast(bool, heldout_probe["directory_denied"]),
+            torch_version=torch.__version__,
+            torch_num_threads=torch.get_num_threads(),
+            blas_config=torch.__config__.show().strip(),
+            cpu_identity=platform.processor() or platform.machine(),
+        )
+        arguments.fit_receipt.parent.mkdir(parents=True, exist_ok=True)
+        partial = arguments.fit_receipt.with_name(f"{arguments.fit_receipt.name}.partial")
+        if partial.exists() or partial.is_symlink():
+            raise FileExistsError(partial)
+        partial.write_bytes(raw)
+        partial.replace(arguments.fit_receipt)
+        print(
+            "coverage-fit:COMPLETE "
+            f"map_sha256={sealed.map_sha256} "
+            f"receipt_sha256={hashlib.sha256(raw).hexdigest()}",
+            flush=True,
+        )
+        return 0
+
+    assert sealed is not None and evaluation_paths is not None and arguments.result is not None
+    evaluation_student, evaluation_teacher = extract(evaluation_paths)
+    evaluation_images_sha256 = coverage_image_namespace_sha256(evaluation_ids, evaluation_paths)
+    run = evaluate_sealed_coverage(
+        sealed=sealed,
+        evaluation_student=evaluation_student,
+        evaluation_teacher=evaluation_teacher,
+        evaluation_ids=evaluation_ids,
+        evaluation_labels=evaluation_labels,
+    )
+    assert fit_receipt_sha256 is not None
 
     raw = build_coverage_calibration_result(
         run,
         artifact_identities={
-            "checkpoint": identity(arguments.checkpoint_seed17, seed17.sha256),
-            "control_binding": identity(
-                arguments.control_binding, arguments.control_binding_sha256
-            ),
-            "evaluation_manifest": identity(
-                arguments.evaluation_manifest, arguments.evaluation_manifest_sha256
-            ),
-            "map_artifact": identity(arguments.map_artifact, map_sha256),
-            "optimization_manifest": identity(
-                arguments.optimization_manifest, arguments.optimization_manifest_sha256
-            ),
-            "spatial_artifact": identity(
-                arguments.spatial_artifact, arguments.spatial_artifact_sha256
-            ),
+            **common_identities,
+            "fit_receipt": identity(arguments.fit_receipt, fit_receipt_sha256),
+            "map_artifact": identity(arguments.map_artifact, sealed.map_sha256),
         },
         model_source_commit=binding.source_commit,
         execution_source_commit=arguments.execution_source_commit,
         dataset_id=binding.dataset_id,
         dataset_revision=binding.dataset_revision,
         optimization_image_root=str(arguments.optimization_image_root),
-        evaluation_image_root=str(arguments.evaluation_image_root),
+        evaluation_image_root=str(arguments.heldout_image_root),
         optimization_images_sha256=optimization_images_sha256,
-        support_images_sha256=phase_image_digests["support"],
-        evaluation_images_sha256=phase_image_digests["evaluation"],
+        support_images_sha256=support_images_sha256,
+        evaluation_images_sha256=evaluation_images_sha256,
         optimization_rows=len(base_ids),
         torch_version=torch.__version__,
         torch_num_threads=torch.get_num_threads(),
