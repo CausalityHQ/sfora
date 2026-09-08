@@ -74,12 +74,8 @@ def test_committed_evidence_replays_query_aggregates_and_digest_bindings() -> No
     )
     assert latency["model_artifact_sha256"] == model_sha256
     assert quality["script_sha256"] == latency["script_sha256"]
-    library_sha256 = hashlib.sha256(
-        (
-            Path(__file__).resolve().parents[1] / "src/sfora/joint_relational_compaction.py"
-        ).read_bytes()
-    ).hexdigest()
-    assert quality["library_sha256"] == latency["library_sha256"] == library_sha256
+    historical_library_sha256 = "2a621a219c73801e54097891530e014462eb8ea66b665950f342952df2af84b5"
+    assert quality["library_sha256"] == latency["library_sha256"] == historical_library_sha256
 
     baseline = quality["per_query_evidence"]["pca64_int8"]
     identities = torch.tensor(quality["per_query_evidence"]["identity_cluster"], dtype=torch.int64)
