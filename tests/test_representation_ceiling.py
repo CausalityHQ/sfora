@@ -8,10 +8,12 @@ from torch.nn import functional as F
 from sfora.representation_ceiling import (
     AffineMap,
     CenteredPcaTransform,
+    TeacherGuidedProjection,
     apply_normalized_affine,
     deterministic_class_partition,
     fit_centered_pca,
     fit_ridge_affine,
+    fit_teacher_guided_projection,
 )
 
 
@@ -46,6 +48,9 @@ def test_public_api_lazily_exposes_representation_ceiling_primitives() -> None:
         ClassDisjointPartition as PublicClassDisjointPartition,
     )
     from sfora import (
+        TeacherGuidedProjection as PublicTeacherGuidedProjection,
+    )
+    from sfora import (
         apply_normalized_affine as public_apply_normalized_affine,
     )
     from sfora import (
@@ -57,14 +62,19 @@ def test_public_api_lazily_exposes_representation_ceiling_primitives() -> None:
     from sfora import (
         fit_ridge_affine as public_fit_ridge_affine,
     )
+    from sfora import (
+        fit_teacher_guided_projection as public_fit_teacher_guided_projection,
+    )
 
     assert PublicAffineMap is AffineMap
     assert PublicCenteredPcaTransform is CenteredPcaTransform
+    assert PublicTeacherGuidedProjection is TeacherGuidedProjection
     assert PublicClassDisjointPartition.__name__ == "ClassDisjointPartition"
     assert public_apply_normalized_affine is apply_normalized_affine
     assert public_deterministic_class_partition is deterministic_class_partition
     assert public_fit_centered_pca is fit_centered_pca
     assert public_fit_ridge_affine is fit_ridge_affine
+    assert public_fit_teacher_guided_projection is fit_teacher_guided_projection
 
 
 def test_class_partition_is_deterministic_ordered_and_disjoint() -> None:
@@ -152,6 +162,127 @@ def test_ridge_affine_recovers_bias_and_uses_unpenalized_intercept() -> None:
     torch.testing.assert_close(fitted.bias, bias, rtol=1e-5, atol=1e-5)
     raw = fitted.apply(source)
     torch.testing.assert_close(raw, target, rtol=1e-5, atol=1e-5)
+
+
+def test_teacher_guided_projection_transfers_compact_teacher_geometry() -> None:
+    latent = torch.tensor(
+        [
+            [3.0, 0.0],
+            [2.0, 0.0],
+            [-3.0, 0.0],
+            [-2.0, 0.0],
+            [0.0, 2.0],
+            [0.0, 1.0],
+            [0.0, -2.0],
+            [0.0, -1.0],
+        ],
+        dtype=torch.float32,
+    )
+    teacher_basis = torch.tensor([[2.0, 1.0, 0.0], [-1.0, 2.0, 1.0]], dtype=torch.float32)
+    teacher_offset = torch.tensor([5.0, -3.0, 2.0], dtype=torch.float32)
+    teacher = latent @ teacher_basis + teacher_offset
+    source_rotation = torch.tensor([[0.0, 1.0], [-1.0, 0.0]], dtype=torch.float32)
+    source = torch.cat(
+        (
+            latent @ source_rotation,
+            torch.tensor(
+                [[10.0], [-10.0], [10.0], [-10.0], [9.0], [-9.0], [9.0], [-9.0]],
+                dtype=torch.float32,
+            ),
+        ),
+        dim=1,
+    )
+
+    fitted = fit_teacher_guided_projection(
+        source,
+        teacher,
+        dimensions=2,
+        penalty=1e-12,
+    )
+    encoded_source = fitted.apply_source(source)
+    encoded_teacher = fitted.apply_teacher(teacher)
+    held_out_latent = torch.tensor([[2.5, 0.0], [0.0, 1.5]], dtype=torch.float32)
+    held_out_source = torch.cat(
+        (held_out_latent @ source_rotation, torch.zeros((2, 1), dtype=torch.float32)), dim=1
+    )
+    held_out_teacher = held_out_latent @ teacher_basis + teacher_offset
+
+    assert isinstance(fitted, TeacherGuidedProjection)
+    assert fitted.source_projection.weight.shape == (2, 3)
+    assert fitted.teacher_projection.components.shape == (2, 3)
+    assert torch.equal(
+        torch.argmax(encoded_source @ encoded_source.T - torch.eye(len(encoded_source)), dim=1),
+        torch.tensor([1, 0, 3, 2, 5, 4, 7, 6]),
+    )
+    assert torch.equal(
+        torch.argmax(encoded_teacher @ encoded_teacher.T - torch.eye(len(encoded_teacher)), dim=1),
+        torch.tensor([1, 0, 3, 2, 5, 4, 7, 6]),
+    )
+    torch.testing.assert_close(encoded_source, encoded_teacher, rtol=0.0, atol=1e-5)
+    torch.testing.assert_close(
+        fitted.apply_source(held_out_source),
+        fitted.apply_teacher(held_out_teacher),
+        rtol=0.0,
+        atol=1e-5,
+    )
+
+    changed = fit_teacher_guided_projection(
+        source,
+        -teacher,
+        dimensions=2,
+        penalty=1e-12,
+    )
+    changed_source = changed.apply_source(source)
+    changed_teacher = changed.apply_teacher(-teacher)
+    torch.testing.assert_close(changed_source, changed_teacher, rtol=0.0, atol=1e-5)
+    assert not torch.allclose(encoded_source, changed_source)
+
+    regularized = fit_teacher_guided_projection(
+        source,
+        teacher,
+        dimensions=2,
+        penalty=1.0,
+    )
+    regularized_weight_norm = torch.linalg.vector_norm(regularized.source_projection.weight)
+    fitted_weight_norm = torch.linalg.vector_norm(fitted.source_projection.weight)
+    assert regularized_weight_norm < fitted_weight_norm
+
+
+def test_teacher_guided_projection_rejects_misaligned_component_widths() -> None:
+    source_projection = AffineMap(
+        weight=torch.ones((3, 2), dtype=torch.float32),
+        bias=torch.zeros(3, dtype=torch.float32),
+    )
+    teacher_projection = CenteredPcaTransform(
+        mean=torch.zeros(2, dtype=torch.float32),
+        components=torch.eye(2, dtype=torch.float32),
+    )
+
+    with pytest.raises(ValueError, match="teacher-guided projection authority"):
+        TeacherGuidedProjection(
+            source_projection=source_projection,
+            teacher_projection=teacher_projection,
+        )
+
+
+@pytest.mark.parametrize(
+    ("source", "teacher", "dimensions"),
+    [
+        (torch.ones((4, 2), dtype=torch.float32), torch.ones((4, 3)), 1),
+        (torch.ones((4, 2), dtype=torch.float32), torch.ones((3, 3)), 2),
+        (torch.ones((4, 2), dtype=torch.float32), torch.ones((4, 3)), 3),
+    ],
+)
+def test_teacher_guided_projection_rejects_incompatible_authority_before_fitting(
+    source: torch.Tensor, teacher: torch.Tensor, dimensions: int
+) -> None:
+    with pytest.raises(ValueError, match="teacher-guided projection authority"):
+        fit_teacher_guided_projection(
+            source,
+            teacher,
+            dimensions=dimensions,
+            penalty=1e-4,
+        )
 
 
 def test_ridge_penalty_is_relative_to_feature_energy() -> None:

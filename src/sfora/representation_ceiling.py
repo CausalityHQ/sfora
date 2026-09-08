@@ -246,6 +246,78 @@ def fit_ridge_affine(source: torch.Tensor, target: torch.Tensor, *, penalty: flo
     )
 
 
+@dataclass(frozen=True, init=False)
+class TeacherGuidedProjection:
+    """Train-fitted source and teacher transforms into one normalized compact space."""
+
+    _source_projection: AffineMap
+    _teacher_projection: CenteredPcaTransform
+
+    def __init__(
+        self,
+        *,
+        source_projection: AffineMap,
+        teacher_projection: CenteredPcaTransform,
+    ) -> None:
+        if (
+            type(source_projection) is not AffineMap
+            or type(teacher_projection) is not CenteredPcaTransform
+            or source_projection._weight.shape[0] != teacher_projection._components.shape[0]
+        ):
+            raise ValueError("teacher-guided projection authority differs")
+        object.__setattr__(self, "_source_projection", source_projection)
+        object.__setattr__(self, "_teacher_projection", teacher_projection)
+
+    @property
+    def source_projection(self) -> AffineMap:
+        """Return the fitted source-to-compact affine map."""
+
+        return self._source_projection
+
+    @property
+    def teacher_projection(self) -> CenteredPcaTransform:
+        """Return the fitted teacher-to-compact PCA transform."""
+
+        return self._teacher_projection
+
+    def apply_source(self, value: torch.Tensor) -> torch.Tensor:
+        """Map source embeddings into the normalized compact space."""
+
+        return apply_normalized_affine(value, self._source_projection)
+
+    def apply_teacher(self, value: torch.Tensor) -> torch.Tensor:
+        """Map teacher embeddings into the same normalized compact space."""
+
+        return self._teacher_projection.apply(value)
+
+
+def fit_teacher_guided_projection(
+    source: torch.Tensor,
+    teacher: torch.Tensor,
+    *,
+    dimensions: int,
+    penalty: float,
+) -> TeacherGuidedProjection:
+    """Fit source and teacher transforms into a normalized compact teacher PCA space."""
+
+    if (
+        not _float32_matrix(source)
+        or not _float32_matrix(teacher)
+        or source.shape[0] != teacher.shape[0]
+        or type(dimensions) is not int
+        or not 2 <= dimensions <= min(source.shape[1], teacher.shape[1], teacher.shape[0] - 1)
+    ):
+        raise ValueError("teacher-guided projection authority differs")
+
+    teacher_projection = fit_centered_pca(teacher, dimensions=dimensions)
+    compact_teacher = teacher_projection.apply(teacher)
+    source_projection = fit_ridge_affine(source, compact_teacher, penalty=penalty)
+    return TeacherGuidedProjection(
+        source_projection=source_projection,
+        teacher_projection=teacher_projection,
+    )
+
+
 def apply_normalized_affine(value: torch.Tensor, affine: AffineMap) -> torch.Tensor:
     """Apply a strict affine map and normalize each finite nonzero output row."""
 

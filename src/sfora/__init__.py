@@ -149,10 +149,12 @@ _REPRESENTATION_CEILING_EXPORTS = frozenset(
         "AffineMap",
         "CenteredPcaTransform",
         "ClassDisjointPartition",
+        "TeacherGuidedProjection",
         "apply_normalized_affine",
         "deterministic_class_partition",
         "fit_centered_pca",
         "fit_ridge_affine",
+        "fit_teacher_guided_projection",
     }
 )
 
@@ -239,6 +241,7 @@ __all__ = [
     "TextBaselineConfig",
     "TextBaselineResult",
     "TextMethodMetrics",
+    "TeacherGuidedProjection",
     "TrainableSyntheticExperimentConfig",
     "build_html_report",
     "build_markdown_report",
@@ -252,6 +255,7 @@ __all__ = [
     "deterministic_class_partition",
     "fit_centered_pca",
     "fit_ridge_affine",
+    "fit_teacher_guided_projection",
     "group_triplet_margin_loss",
     "embedding_space_diagnostics_on_split",
     "image_self_retrieval_score",
