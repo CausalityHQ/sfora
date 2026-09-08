@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
+import json
 import sys
 from pathlib import Path
 
@@ -215,3 +216,113 @@ def test_parse_args_requires_authenticated_archives_and_three_outputs() -> None:
 
     with pytest.raises(SystemExit):
         _MODULE.parse_args(["--unknown"])
+
+
+def test_main_publishes_three_seed_quality_model_and_latency_atomically(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source = F.normalize(
+        torch.tensor(
+            [
+                [1.0, 0.0, 0.1, 0.0],
+                [0.9, 0.1, 0.0, 0.1],
+                [0.0, 1.0, 0.1, 0.0],
+                [0.1, 0.9, 0.0, 0.1],
+            ],
+            dtype=torch.float32,
+        ),
+        dim=1,
+    )
+    pair = {
+        "source_metadata": {},
+        "teacher_metadata": {},
+        "source_train": source,
+        "teacher_train": source,
+        "source_test": source,
+        "teacher_test": source,
+        "train_labels": (1, 1, 2, 2),
+        "test_labels": (3, 3, 4, 4),
+    }
+    basis = torch.eye(4, dtype=torch.float32)[:3].contiguous()
+
+    monkeypatch.setattr(_MODULE, "DIMENSIONS", 2)
+    monkeypatch.setattr(_MODULE, "PCA_CONTROL_DIMENSIONS", 3)
+    monkeypatch.setattr(_MODULE, "CANDIDATE_WIDTH", 2)
+    monkeypatch.setattr(_MODULE, "LATENCY_WARMUP_PAIRS", 0)
+    monkeypatch.setattr(_MODULE, "LATENCY_MEASURED_PAIRS", 2)
+    monkeypatch.setattr(_MODULE, "MAP_IMPROVEMENT_GATE", -1.0)
+    monkeypatch.setattr(_MODULE, "load_paired_archives", lambda *_args, **_kwargs: pair)
+    monkeypatch.setattr(
+        _MODULE,
+        "_fit_uncentered_covariance_basis",
+        lambda *_args, **_kwargs: basis,
+    )
+    monkeypatch.setattr(
+        _MODULE,
+        "fit_relational_linear_encoder",
+        lambda *_args, **_kwargs: (
+            _MODULE.RelationalLinearEncoder(basis[:2].contiguous()),
+            (0.5, 0.25),
+        ),
+    )
+    monkeypatch.setattr(
+        _MODULE,
+        "_encode_floating",
+        lambda model, values, **_kwargs: model(values).detach().cpu(),
+    )
+    monkeypatch.setattr(
+        _MODULE,
+        "_encode_deployed",
+        lambda model, values, **_kwargs: (
+            model(values).detach().cpu(),
+            pack_int8_unit_embeddings(model(values).detach().cpu()),
+        ),
+    )
+    monkeypatch.setattr(_MODULE, "_familywise_lower_bound", lambda *_args, **_kwargs: 0.1)
+    monkeypatch.setattr(
+        _MODULE,
+        "_profile_paired_latency",
+        lambda *_args, **_kwargs: {
+            "alternating_order": True,
+            "baseline": {"p95_ns": 100, "samples_ns": [100, 100]},
+            "measured_pairs": 2,
+            "treatment": {"p95_ns": 101, "samples_ns": [101, 101]},
+            "warmup_pairs": 0,
+        },
+    )
+    quality = tmp_path / "quality.json"
+    model = tmp_path / "model.sfora-rl1"
+    latency = tmp_path / "latency.json"
+    arguments = [
+        "--source-embeddings",
+        "/source.npz",
+        "--source-embeddings-sha256",
+        "11" * 32,
+        "--teacher-embeddings",
+        "/teacher.npz",
+        "--teacher-embeddings-sha256",
+        "22" * 32,
+        "--output",
+        str(quality),
+        "--model-output",
+        str(model),
+        "--latency-output",
+        str(latency),
+        "--execute-relational-linear",
+    ]
+
+    assert _MODULE.main(arguments) == 0
+
+    receipt = json.loads(quality.read_bytes())
+    latency_receipt = json.loads(latency.read_bytes())
+    assert set(receipt["arms"]) == {"17", "1729", "65537"}
+    assert receipt["passes_quality"] is True
+    assert receipt["passes_latency"] is True
+    assert receipt["persistent_bytes_per_item"] == 66
+    assert latency_receipt["measured_pairs"] == 2
+    assert model.read_bytes().startswith(b"SFORA-RL1")
+    assert quality.read_bytes().endswith(b"\n")
+    assert latency.read_bytes().endswith(b"\n")
+    assert not tuple(tmp_path.glob("*.partial"))
+    with pytest.raises(FileExistsError, match="output exists"):
+        _MODULE.main(arguments)
