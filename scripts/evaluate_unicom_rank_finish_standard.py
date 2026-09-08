@@ -122,6 +122,24 @@ def _load_bound_official_model(trainer, checkout: Path, checkpoint: Path):
     return trainer._load_official_model(checkout, checkpoint)
 
 
+def _parent_model_state(parent: object) -> Mapping[str, torch.Tensor]:
+    """Return the authenticated historical checkpoint's ordered model state."""
+
+    if type(parent) is not dict:
+        raise ValueError("rank-finish parent checkpoint differs")
+    state = parent.get("model")
+    if (
+        not isinstance(state, dict)
+        or not state
+        or any(
+            type(name) is not str or type(value) is not torch.Tensor
+            for name, value in state.items()
+        )
+    ):
+        raise ValueError("rank-finish parent checkpoint differs")
+    return state
+
+
 def _evaluate(trainer, model, query, gallery, transform, device) -> dict[str, object]:
     query_values, query_labels = trainer._encode_records(
         model, query, transform, device=device, batch_size=128, workers=4
@@ -268,9 +286,7 @@ def run(args: argparse.Namespace) -> dict[str, object]:
     )
     model = model.to(device)
     parent = torch.load(args.parent_checkpoint, map_location="cpu", weights_only=False)
-    if type(parent) is not dict or type(parent.get("model")) is not dict:
-        raise ValueError("rank-finish parent checkpoint differs")
-    model.load_state_dict(parent["model"], strict=True)
+    model.load_state_dict(_parent_model_state(parent), strict=True)
     del parent
     gc.collect()
     torch.cuda.synchronize()

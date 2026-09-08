@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
+from collections import OrderedDict
 from pathlib import Path
 
 import pytest
@@ -90,3 +91,11 @@ def test_official_loader_binds_the_exact_model_filename(tmp_path: Path) -> None:
             tmp_path / "FP16-ViT-B-16.pt",
         )
     assert trainer.calls == [(checkout, exact)]
+
+
+def test_parent_loader_accepts_historical_ordered_state_and_rejects_other_types() -> None:
+    state = OrderedDict((("weight", torch.ones(2)),))
+
+    assert MODULE._parent_model_state({"model": state}) is state
+    with pytest.raises(ValueError, match="parent checkpoint differs"):
+        MODULE._parent_model_state({"model": []})
