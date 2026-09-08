@@ -5,13 +5,12 @@ from __future__ import annotations
 import math
 import struct
 from dataclasses import dataclass
+from typing import cast
 
 import numpy as np
 import torch
 from torch import nn
 from torch.nn import functional as F
-
-from sfora.split_code_anchor import fit_uncentered_covariance_basis
 
 
 def _unit_rows(value: torch.Tensor) -> bool:
@@ -44,6 +43,28 @@ def _validate_input(value: torch.Tensor, dimensions: int) -> None:
         or not bool(torch.isfinite(value).all())
     ):
         raise ValueError("joint relational input authority differs")
+
+
+def _fit_uncentered_covariance_basis(descriptors: torch.Tensor, *, dimensions: int) -> torch.Tensor:
+    """Fit leading uncentered axes without depending on experimental modules."""
+
+    if (
+        type(descriptors) is not torch.Tensor
+        or descriptors.dtype != torch.float32
+        or descriptors.device.type != "cpu"
+        or descriptors.ndim != 2
+        or descriptors.shape[0] < 2
+        or not bool(torch.isfinite(descriptors).all())
+        or type(dimensions) is not int
+        or not 1 < dimensions < descriptors.shape[1]
+    ):
+        raise ValueError("relational linear covariance authority differs")
+    values = descriptors.detach().double()
+    covariance = values.T @ values
+    eigenvalues, eigenvectors = torch.linalg.eigh(covariance)
+    if not bool(torch.isfinite(eigenvalues).all()) or float(eigenvalues[-1]) <= 0.0:
+        raise ValueError("relational linear covariance geometry differs")
+    return cast(torch.Tensor, eigenvectors[:, -dimensions:].T.flip(0).float().contiguous())
 
 
 class RelationalLinearEncoder(nn.Module):
@@ -375,7 +396,7 @@ def fit_relational_linear_compaction(
 ) -> tuple[RelationalLinearEncoder, tuple[float, ...]]:
     """Fit a train-only covariance basis and its relational linear projection."""
 
-    basis = fit_uncentered_covariance_basis(source.detach(), dimensions=output_dimensions).float()
+    basis = _fit_uncentered_covariance_basis(source, dimensions=output_dimensions)
     return fit_relational_linear_encoder(
         source,
         teacher,

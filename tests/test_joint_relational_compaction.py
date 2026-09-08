@@ -25,6 +25,29 @@ def _unit(rows: int, dimensions: int) -> torch.Tensor:
     return F.normalize(values, dim=1)
 
 
+def test_module_import_does_not_depend_on_experimental_research_modules() -> None:
+    code = """
+import importlib.abc
+import sys
+
+class BlockExperimental(importlib.abc.MetaPathFinder):
+    def find_spec(self, fullname, path, target=None):
+        if fullname == "sfora.split_code_anchor":
+            raise ModuleNotFoundError(fullname)
+        return None
+
+sys.meta_path.insert(0, BlockExperimental())
+import sfora.joint_relational_compaction
+"""
+    completed = subprocess.run(
+        [sys.executable, "-c", code],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode == 0, completed.stderr
+
+
 def test_encoder_starts_at_pca_and_residual_can_change_geometry() -> None:
     basis = torch.eye(4, dtype=torch.float32)[:2]
     encoder = JointRelationalEncoder(basis, hidden_dimensions=3, seed=17)
@@ -68,7 +91,7 @@ def test_linear_encoder_has_a_canonical_weight_artifact() -> None:
 def test_committed_deployment_model_is_authenticated_and_replayable() -> None:
     path = (
         Path(__file__).resolve().parents[1]
-        / "docs/evidence/relational_linear_compaction/relational-linear-v22.sfora-rl1"
+        / "docs/evidence/relational_linear_compaction/relational-linear-v24.sfora-rl1"
     )
     wire = path.read_bytes()
 
