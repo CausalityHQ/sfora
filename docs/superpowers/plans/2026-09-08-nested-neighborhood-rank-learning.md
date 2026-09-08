@@ -179,7 +179,7 @@ git commit -m "Add deterministic nested-rank protocol"
 
 **Interfaces:**
 - Consumes: official SOP training root, exact UNICOM B/16 checkpoint and checkout, exact train-only L/14 snapshot, source commit, arm, split seed, and output directory.
-- Produces: immutable checkpoint, ranked development evidence, run receipt, and canonical terminal result.
+- Produces: immutable checkpoint, run receipt, and canonical terminal result; it does not evaluate validation images.
 
 - [ ] **Step 0: Preflight the neighborhood hypothesis without GPU training**
 
@@ -187,9 +187,9 @@ Replay exactly 1,000 seed-17 batches over the authenticated train-only teacher
 snapshot. For temperatures `(0.05, 0.10, 0.20)`, mask repeated sample IDs and
 same-label rows, then recompute target entropy/effective support. Select the
 smallest temperature meeting the spec's median/5th-percentile gates. If none
-passes, publish a redundant-objective receipt and do not launch neighborhood
-arms. Also bind the sealed source/teacher validation controls used by the later
-premise check.
+passes, publish a redundant-objective receipt and run only Proxy-Anchor-128 and
+Proxy-Anchor-768; record neighborhood, combined, and S2SD as not run. Also bind
+the sealed source/teacher validation controls used by the later premise check.
 
 - [ ] **Step 1: Write CLI and authority REDs**
 
@@ -218,8 +218,10 @@ never accessed. Hash every loaded Sfora source file.
 
 Use tiny injected encoder/dataset fixtures to prove exact optimizer groups,
 ten epochs, the frozen update count and augmentation recipe, 32x4 batches,
-BF16 boundary, the preflight-bound temperature, arm-specific terms, no early
-stop, deterministic replay, nonfinite failure receipts, the exact UNICOM
+BF16 boundary, the preflight-bound temperature, arm-specific terms, constant
+learning rates, no warm-up/decay/clipping, exact AdamW betas/epsilon and
+weight-decay exclusions, train/eval normalization modes, drop-path zero, no
+early stop, deterministic replay, nonfinite failure receipts, the exact UNICOM
 feature tap, and one model forward per batch.
 
 For `proxy-anchor-768`, require a one-width 768 head and only `L_PA768`. For
@@ -233,12 +235,15 @@ the five-arm seed-17 execution manifest but do not enter primary promotion.
 
 ```python
 with torch.autocast(device_type="cuda", dtype=torch.bfloat16):
-    dense = encoder(images)
+    dense = F.normalize(encoder(images), dim=1)
 student = head(dense.float())
 loss = arm_loss(student, labels, teacher_rows)
 ```
 
-Use AdamW with backbone LR `1e-5`, head/proxy LR `1e-3`, weight decay `1e-4`.
+Use AdamW with backbone LR `1e-5`, head/proxy LR `1e-3`, betas
+`(0.9,0.999)`, epsilon `1e-8`, and constant rates. Apply weight decay `1e-4`
+only to encoder/head weights, not proxies, biases, or normalization parameters;
+use no warm-up, decay, gradient clipping, or drop-path.
 Publish via existing descriptor-backed no-clobber helpers and fsync the output
 directory.
 
@@ -259,7 +264,7 @@ git commit -m "Add authenticated SOP nested-rank trainer"
 - Modify: `tests/test_train_sop_nested_neighborhood_rank.py`
 
 **Interfaces:**
-- Consumes: authenticated arm results and checkpoints.
+- Consumes: authenticated arm results and checkpoints plus official-training validation image IDs, labels, and paths.
 - Produces: recomputed per-query metrics, bootstrap evidence, promotion decision, and an optional two-epoch finish result.
 
 - [ ] **Step 1: Write evaluator REDs**
@@ -278,6 +283,12 @@ then derive all aggregates, deltas, bootstrap bounds, and decisions. It must not
 trust copied scalar summaries. If Proxy-Anchor-128 exceeds the external teacher,
 the receipt must label the combined comparison as weaker-teacher regularization
 rather than stronger-teacher transfer.
+
+For epoch-10 and finished checkpoints, run a no-gradient, eval-mode inference
+pass over validation images, without loading validation teacher rows, and emit
+the immutable ranked IDs that metric recomputation consumes. Mutation-test that
+the optimization loop never samples validation images and that this evaluator
+never opens teacher-validation or official-test arrays.
 
 - [ ] **Step 3: Add the fixed finish phase under tests**
 
@@ -395,7 +406,9 @@ both combined and matched controls. Otherwise stop this objective and publish
 its exact failure classification. Confirmation means use seeds 1729 and 65537
 only; seed 17 remains the separately reported screen. After confirmation, train
 combined and Proxy-Anchor once each on the complete official training partition
-using seed 17. Use 10+2 epochs only if the matched post-finish gates pass on
+using seed 17. Use 10+2 epochs only if the matched post-finish gates pass and
+the finished combined checkpoint versus its own epoch-10 checkpoint has a
+nonnegative one-sided mAP@R lower bound and Recall@1 delta at least -0.001 on
 every seed; otherwise retain the passing epoch-10 anchored schedule. One
 evaluator opens the official test
 partition once and scores both frozen checkpoints with standard self-exclusion;

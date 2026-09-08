@@ -63,7 +63,7 @@ median target effective support `exp(entropy)` is at least 4 and whose 5th
 percentile is at least 2. If none passes, the neighborhood objective is
 classified redundant and no neighborhood GPU arm runs. Smooth-AP uses cosine
 distance, excludes the query and all repeated copies of its sample ID from
-competitors, uses every other same-label row as a positive, temperature 0.01,
+competitors, uses every remaining same-label competitor as a positive, temperature 0.01,
 and averages AP surrogates over queries with at least one positive. For each
 positive `p`, its soft rank is
 `1 + sum_{j!=p} sigmoid((d_ip-d_ij)/tau)` and its positive-only soft rank uses
@@ -152,7 +152,11 @@ identity. The matched control uses exactly
 the same batches. Training uses batch size 128, 224-pixel student inputs,
 AdamW, backbone learning rate
 1e-5, projection/proxy learning rate 1e-3, weight decay 1e-4, BF16 autocast,
-and ten phase-one epochs. An epoch contains exactly
+and ten phase-one epochs. AdamW uses betas `(0.9,0.999)`, epsilon `1e-8`,
+constant learning rates, no warm-up or decay, and no gradient clipping. Weight
+decay applies to encoder and linear-head weights but not proxies, biases, or
+normalization parameters. Encoder normalization layers are in train mode during
+optimization and eval mode for inference; drop-path is exactly zero. An epoch contains exactly
 `max(1, floor(optimization_image_count / 128))` updates. The encoder feature
 `h` is exactly the normalized output of the official `model(images)` call, the
 same tap used by the authenticated source archive. Initialization, bicubic
@@ -169,6 +173,14 @@ seeds 1729 and 65537, then apply the fixed rank finish. The official SOP test is
 read once only if the mean confirmation delta remains at least 0.005 mAP@R and
 all three seed deltas are nonnegative and every seed's Recall@1 delta is at
 least -0.001. The same gates are recomputed after the matched finish.
+
+The confirmation mean uses seeds 1729 and 65537 only; seed 17 remains the
+screen. After confirmation, combined and control models are each retrained once
+on the complete official training partition with seed 17, reusing the seed-17
+temperature without reselection. The full SOP partition gives 465 updates per
+epoch. The final evaluator opens the official test partition once for both
+models, using 10+2 epochs only when the absolute finish-adoption gate passes;
+otherwise it uses epoch 10.
 
 The seed-17 receipt also performs a premise check against the sealed full-width
 teacher on this exact validation protocol and includes a matched 768-coordinate
@@ -188,12 +200,17 @@ gradients through the 128-coordinate head into encoder output `h`. The PA-768 co
 updates, augmentation, optimizer groups, and seed-17 manifest as primary arms.
 
 The paired uncertainty calculation stores each class's AP-difference sum and
-query count, then draws 10,000 class clusters with replacement using PCG64 seed
-17. Each replicate is the sum of sampled class sums divided by the sum of their
+query count, then draws 10,000 replicates with PCG64 seed 17, each sampling
+`class_count` classes with replacement. Each replicate is the sum of sampled class sums divided by the sum of their
 query counts, matching query-weighted standard mAP@R. The lower bound is the
 finite-sample 5th percentile selected by the fixed nearest-rank rule. Recall
 deltas are recomputed from the same immutable ranked IDs rather than copied
 from training logs.
+
+The rank finish is adopted only if, on every seed, the finished combined
+checkpoint versus its own epoch-10 checkpoint has a nonnegative one-sided
+class-bootstrap lower bound for mAP@R and Recall@1 delta at least -0.001.
+Otherwise the passing epoch-10 checkpoint is the readout candidate.
 
 The final compact-quality target is at least 0.50 mAP@R and 0.79 Recall@1 on
 the standard SOP protocol at int8-128, without a float-vs-int8 loss greater than
@@ -229,10 +246,12 @@ single-query concurrency, 1,000 warm-ups, and at least 10,000 raw timed queries
 on named hardware. Scientific SOP fidelity is measured separately on the
 complete official gallery at both 4,096 candidates and the fraction-matched 248
 candidates, and compared against both exhaustive int8 and float32 rankings.
-The one-million-row performance gallery is generated deterministically by
-cycling the real SOP int8 codes in seed-17 hash order and applying a
-counter-based seed-17 integer perturbation in `{-1,0,1}` with saturation to
-each repeated copy; its exact generator and resulting digest are receipt-bound.
+The one-million-row performance gallery is generated deterministically from the
+60,502 official-test-gallery int8 codes. Order codes by SHA-256 of the seed's
+unsigned little-endian eight bytes concatenated with the signed little-endian
+eight-byte image ID, then by image ID; cycle that order and apply a counter-based
+PCG64 seed-17 integer perturbation in `{-1,0,1}` with saturation to each repeated
+copy. The exact generator and resulting digest are receipt-bound.
 
 Quality and serving gates are independent. A high-quality but slower int8 arm
 does not become a performance claim; a fast arm that misses quality does not
@@ -268,7 +287,7 @@ individually new. Seed 17 includes an S2SD-style self-distillation control.
 - If neighborhood-only and combined arms fail against Proxy-Anchor, reject this
   teacher-neighborhood objective; do not infer that all distillation fails.
 - If the combination passes before rank finish but loses after it, reject the
-  fixed finish weights or schedule while retaining the anchored representation.
+  fixed finish weights or schedule and use the epoch-10 anchored representation.
 - If float128 passes but int8 fails, the representation is viable and the
   quantizer needs separate work.
 - If all end-to-end arms remain below the frozen teacher, reject only this
