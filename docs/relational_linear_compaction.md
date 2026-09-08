@@ -45,7 +45,7 @@ the exact 66-byte scorer.
 The target-CPU paired benchmark used one thread, 12,612 gallery rows, 1,000 warmup
 pairs, and 10,000 measured pairs. It timed source normalization, projection,
 packing, packed cosine scoring, and top-256 selection. Relational linear p95 was
-1,082,069 ns versus 1,079,477 ns for PCA64, a ratio of 1.00240 against the fixed
+1,086,693 ns versus 1,083,492 ns for PCA64, a ratio of 1.00295 against the fixed
 1.10 gate. Both arms used the same exact packed scorer.
 The two pipelines are computationally identical apart from projection weights;
 this benchmark detects accidental implementation regressions rather than a
@@ -54,11 +54,11 @@ method-specific speed advantage.
 ## Evidence authority and limits
 
 - Quality receipt SHA-256:
-  [`88c82a82dfac2e685e01505fd2c4e7b72961b9af29292b40930b3cf10b7f68e0`](evidence/relational_linear_compaction/relational-linear-inshop-v22.json).
+  [`d2d4aab49482c53a53de1344d38efd4cc95e48359e9ad64ccb87be392b4fd4eb`](evidence/relational_linear_compaction/relational-linear-inshop-v24.json).
 - Latency receipt SHA-256:
-  [`d16d8833cd39d77ab47ba204167029ec055765f6e908595c873c5a817eb2a9fd`](evidence/relational_linear_compaction/relational-linear-latency-v22.json).
+  [`a6c26242b408b98b6f7d24e8d5ffe6ca191d4cc4189943281c5679eb2e2ba477`](evidence/relational_linear_compaction/relational-linear-latency-v24.json).
 - Deployment model SHA-256:
-  [`c46d5c7eff99b4962b9491688ac9a1ad5d345ea1e2bc9c4bd7ae3bfc0b186521`](evidence/relational_linear_compaction/relational-linear-v22.sfora-rl1)
+  [`c46d5c7eff99b4962b9491688ac9a1ad5d345ea1e2bc9c4bd7ae3bfc0b186521`](evidence/relational_linear_compaction/relational-linear-v24.sfora-rl1)
   (`SFORA-RL1`, 196,625 bytes).
 - Cross-domain SOP receipt SHA-256:
   [`a8daaf5fe9585c9d74b67ea0a3f250c043f717d41005f6cf1063b271c0ce098d`](evidence/relational_linear_compaction/joint-relational-sop-v13.json).

@@ -50,7 +50,7 @@
 - [x] **Step 2: Run the exact node and preserve the float32-normalization mismatch RED.**
 - [x] **Step 3: Route `_encode_deployed` through `pack_int8_unit_embeddings` and assert `bytes_per_vector == 66`.**
 - [x] **Step 4: Rerun the exact node and focused probe suite.**
-- [x] **Step 5: Execute the sealed three-seed DGX evaluation with the shared packed scorer and corrected query-weighted cluster bootstrap; authenticate `/home/riomus/sfora-tangent-e1/relational-linear-inshop-v22.json` as SHA-256 `88c82a82dfac2e685e01505fd2c4e7b72961b9af29292b40930b3cf10b7f68e0`. The receipt embeds all 14,218 per-query AP/R@1 outcomes and anonymized identity-cluster IDs for aggregate and bootstrap replay, and binds library SHA-256 `def8eaec0df6083b465ef135fb90bdc0ede59ec3d63bfd93db54800bc66ed9df`.**
+- [x] **Step 5: Execute the sealed three-seed DGX evaluation with the shared packed scorer and corrected query-weighted cluster bootstrap; authenticate `/home/riomus/sfora-tangent-e1/relational-linear-inshop-v24.json` as SHA-256 `d2d4aab49482c53a53de1344d38efd4cc95e48359e9ad64ccb87be392b4fd4eb`. The receipt embeds all 14,218 per-query AP/R@1 outcomes and anonymized identity-cluster IDs for aggregate and bootstrap replay, and binds the self-contained library SHA-256 `2a621a219c73801e54097891530e014462eb8ea66b665950f342952df2af84b5`.**
 
 ### Task 3: Public API and honest documentation
 
@@ -72,7 +72,7 @@
 ### Task 4: Independent review and repository assurance
 
 **Files:**
-- Review only: all Task 1–3 files and the authenticated v22 quality, latency, and model artifacts under `docs/evidence/relational_linear_compaction/`
+- Review only: all Task 1–3 files and the authenticated v24 quality, latency, and model artifacts under `docs/evidence/relational_linear_compaction/`
 
 **Interfaces:**
 - Consumes: stable release diff and authenticated evidence.

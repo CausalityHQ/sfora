@@ -23,10 +23,10 @@ from sfora.joint_relational_compaction import (
     PackedInt8Embeddings,
     RelationalLinearEncoder,
     RelationalLinearTrainingConfig,
+    _fit_uncentered_covariance_basis,
     fit_relational_linear_encoder,
     pack_int8_unit_embeddings,
 )
-from sfora.split_code_anchor import fit_uncentered_covariance_basis
 
 DIMENSIONS = 64
 PCA_CONTROL_DIMENSIONS = 128
@@ -447,9 +447,7 @@ def main(argv: list[str] | None = None) -> int:
         )
     ):
         raise ValueError("relational linear In-Shop evidence differs")
-    basis128 = fit_uncentered_covariance_basis(
-        student["train"], dimensions=PCA_CONTROL_DIMENSIONS
-    ).float()
+    basis128 = _fit_uncentered_covariance_basis(student["train"], dimensions=PCA_CONTROL_DIMENSIONS)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     pca64 = RelationalLinearEncoder(basis128[:DIMENSIONS].contiguous())
     pca128 = RelationalLinearEncoder(basis128)

@@ -4,6 +4,8 @@ import hashlib
 import importlib.util
 import json
 import statistics
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -22,19 +24,47 @@ _MODULE = importlib.util.module_from_spec(_SPEC)
 _SPEC.loader.exec_module(_MODULE)
 
 
+def test_probe_import_does_not_depend_on_experimental_research_modules() -> None:
+    code = f"""
+import importlib.abc
+import importlib.util
+from pathlib import Path
+import sys
+
+class BlockExperimental(importlib.abc.MetaPathFinder):
+    def find_spec(self, fullname, path, target=None):
+        if fullname == "sfora.split_code_anchor":
+            raise ModuleNotFoundError(fullname)
+        return None
+
+sys.meta_path.insert(0, BlockExperimental())
+path = Path({str(_PATH)!r})
+spec = importlib.util.spec_from_file_location("isolated_relational_probe", path)
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+"""
+    completed = subprocess.run(
+        [sys.executable, "-c", code],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode == 0, completed.stderr
+
+
 def test_committed_evidence_replays_query_aggregates_and_digest_bindings() -> None:
     evidence = Path(__file__).resolve().parents[1] / "docs/evidence/relational_linear_compaction"
-    quality_path = evidence / "relational-linear-inshop-v22.json"
-    latency_path = evidence / "relational-linear-latency-v22.json"
-    model_path = evidence / "relational-linear-v22.sfora-rl1"
+    quality_path = evidence / "relational-linear-inshop-v24.json"
+    latency_path = evidence / "relational-linear-latency-v24.json"
+    model_path = evidence / "relational-linear-v24.sfora-rl1"
     quality = json.loads(quality_path.read_bytes())
     latency = json.loads(latency_path.read_bytes())
 
     assert hashlib.sha256(quality_path.read_bytes()).hexdigest() == (
-        "88c82a82dfac2e685e01505fd2c4e7b72961b9af29292b40930b3cf10b7f68e0"
+        "d2d4aab49482c53a53de1344d38efd4cc95e48359e9ad64ccb87be392b4fd4eb"
     )
     assert hashlib.sha256(latency_path.read_bytes()).hexdigest() == (
-        "d16d8833cd39d77ab47ba204167029ec055765f6e908595c873c5a817eb2a9fd"
+        "a6c26242b408b98b6f7d24e8d5ffe6ca191d4cc4189943281c5679eb2e2ba477"
     )
     model_sha256 = hashlib.sha256(model_path.read_bytes()).hexdigest()
     assert model_sha256 == "c46d5c7eff99b4962b9491688ac9a1ad5d345ea1e2bc9c4bd7ae3bfc0b186521"
