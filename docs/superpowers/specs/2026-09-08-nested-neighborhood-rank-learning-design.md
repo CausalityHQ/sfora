@@ -57,8 +57,9 @@ each student query row only. For the valid-key mask `M_i`,
 `t_ij=softmax_{j in M_i}(cos(T_i,T_j)/tau)` and
 `q_ij=softmax_{j in M_i}(dot(z_i,stopgrad(z_j))/tau)`; the loss is
 `-mean_i sum_{j in M_i} t_ij log(q_ij)`.
-Before GPU training, a deterministic 1,000-batch replay over train-only teacher
-embeddings chooses the smallest temperature in `(0.05, 0.10, 0.20)` whose
+Before GPU training, a deterministic 1,000-batch replay over the intersection
+of the three outer folds' optimization classes chooses the smallest temperature
+in `(0.05, 0.10, 0.20)` whose
 median target effective support `exp(entropy)` is at least 4 and whose 5th
 percentile is at least 2. If none passes, the neighborhood objective is
 classified redundant and no neighborhood GPU arm runs. Smooth-AP uses cosine
@@ -107,7 +108,9 @@ authenticated model and keyed by immutable sample identity. The source archive
 may contain frozen evaluation inference, but the training process receives a
 separately authenticated official-training-only snapshot containing all
 official-training identities and no official-test rows. The trainer indexes
-only the optimization identities for its seed; validation teacher rows are
+only the optimization identities for its seed. Temperature selection uses only
+classes that are optimization members in all three preregistered folds, so no
+confirmation validation class influences it. Validation teacher rows are
 available only to the evaluator and premise check. Neither official-test arrays
 nor test records are opened or materialized. The student's train augmentation may differ from
 the teacher's canonical view; this is intentional invariance supervision.
@@ -140,7 +143,11 @@ sealed representation-ceiling split. Every validation image is a
 leave-one-out query against every other validation image, with exact
 self-exclusion. Training batches contain eight deterministic anchor identities
 and the three nearest distinct optimization identities to each anchor under
-frozen teacher class-centroid cosine distance. A domain-separated PCG64 stream
+frozen teacher class-centroid cosine distance. The exact class-centroid scan is
+performed in bounded matrix-multiplication blocks and retains only the nearest
+31 classes per source; 31 is sufficient because at most 28 other identities can
+already be occupied when the final anchor chooses three neighbors. A
+domain-separated PCG64 stream
 permutes optimization identities and supplies anchors per step, reshuffling
 only after exhaustion. At rollover, consume entries while skipping identities
 already selected in the current batch until eight unique anchors are collected.
@@ -151,16 +158,20 @@ exactly 32 unique identities and four independently augmented images per
 identity. The matched control uses exactly
 the same batches. Training uses batch size 128, 224-pixel student inputs,
 AdamW, backbone learning rate
-1e-5, projection/proxy learning rate 1e-3, weight decay 1e-4, BF16 autocast,
-and ten phase-one epochs. AdamW uses betas `(0.9,0.999)`, epsilon `1e-8`,
+1e-5, projection/proxy learning rate 1e-3, weight decay 1e-4, FP16 autocast
+with dynamic gradient scaling (matching the official UNICOM blocks' nested
+FP16 autocast), and ten phase-one epochs. AdamW uses betas `(0.9,0.999)`, epsilon `1e-8`,
 constant learning rates, no warm-up or decay, and no gradient clipping. Weight
 decay applies to encoder and linear-head weights but not proxies, biases, or
-normalization parameters. Encoder normalization layers are in train mode during
-optimization and eval mode for inference; drop-path is exactly zero. An epoch contains exactly
+normalization parameters. Encoder batch-normalization layers retain their
+authenticated evaluation statistics during optimization while their affine
+parameters remain trainable; the remaining encoder and head modules are in
+train mode. Drop-path is exactly zero. An epoch contains exactly
 `max(1, floor(optimization_image_count / 128))` updates. The encoder feature
 `h` is exactly the normalized output of the official `model(images)` call, the
 same tap used by the authenticated source archive. Initialization, bicubic
-random-resized-crop/flip/color augmentation parameters, worker count, sampler,
+resize-to-256/random-crop-to-224/horizontal-flip augmentation parameters,
+worker count, sampler,
 and RNG streams are serialized in the authenticated recipe. No early stopping
 or checkpoint selection is permitted. The two finish epochs start from each
 arm's epoch-10 checkpoint with fresh AdamW state and the same frozen schedule.

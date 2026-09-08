@@ -100,9 +100,77 @@ def class_disjoint_fold(
     )
 
 
+def shared_optimization_rows(
+    sample_ids: tuple[SampleId, ...],
+    labels: NDArray[np.int64],
+    *,
+    seeds: tuple[int, ...],
+) -> tuple[int, ...]:
+    """Return rows whose classes are outside every confirmation validation fold."""
+
+    labels = _labels_array(labels)
+    if (
+        type(seeds) is not tuple
+        or not seeds
+        or len(set(seeds)) != len(seeds)
+        or any(type(seed) is not int or not 0 <= seed < 2**63 for seed in seeds)
+    ):
+        raise ValueError("shared optimization authority differs")
+    allowed = set(range(labels.size))
+    for seed in seeds:
+        allowed.intersection_update(class_disjoint_fold(sample_ids, labels, seed=seed).optimization)
+    rows = tuple(row for row in range(labels.size) if row in allowed)
+    if not rows:
+        raise ValueError("shared optimization authority differs")
+    return rows
+
+
 def _domain_seed(seed: int, domain: bytes) -> int:
     digest = hashlib.sha256(seed.to_bytes(8, "little", signed=False) + domain).digest()
     return int.from_bytes(digest[:8], "little", signed=False)
+
+
+def _nearest_class_neighbors(
+    classes: tuple[int, ...],
+    centroids: NDArray[np.float64],
+    *,
+    retained: int = 31,
+    block_rows: int = 256,
+) -> dict[int, tuple[int, ...]]:
+    """Retain the exact nearest class prefix using bounded GEMM blocks."""
+
+    if (
+        type(classes) is not tuple
+        or len(classes) < retained + 1
+        or len(set(classes)) != len(classes)
+        or type(centroids) is not np.ndarray
+        or centroids.dtype != np.float64
+        or centroids.ndim != 2
+        or centroids.shape[0] != len(classes)
+        or not np.isfinite(centroids).all()
+        or type(retained) is not int
+        or not 1 <= retained < len(classes)
+        or type(block_rows) is not int
+        or block_rows <= 0
+    ):
+        raise ValueError("nearest class neighbor authority differs")
+    result: dict[int, tuple[int, ...]] = {}
+    for start in range(0, len(classes), block_rows):
+        stop = min(start + block_rows, len(classes))
+        similarities = centroids[start:stop] @ centroids.T
+        for local_position, source_position in enumerate(range(start, stop)):
+            row = similarities[local_position]
+            row[source_position] = -np.inf
+            boundary = float(np.partition(row, len(row) - retained)[len(row) - retained])
+            candidates = np.flatnonzero(row >= boundary)
+            ordered = sorted(
+                (int(candidate) for candidate in candidates),
+                key=lambda candidate: (-float(row[candidate]), classes[candidate]),
+            )[:retained]
+            if len(ordered) != retained:
+                raise ValueError("nearest class neighbor inventory differs")
+            result[classes[source_position]] = tuple(classes[candidate] for candidate in ordered)
+    return result
 
 
 def identity_balanced_schedule(
@@ -150,19 +218,7 @@ def identity_balanced_schedule(
             raise ValueError("identity schedule authority differs")
         centroids.append(centroid / norm)
     centroid_matrix = np.stack(centroids)
-    class_position = {label: index for index, label in enumerate(classes)}
-    neighbor_order: dict[int, tuple[int, ...]] = {}
-    for label in classes:
-        source = centroid_matrix[class_position[label]]
-        neighbor_order[label] = tuple(
-            sorted(
-                (candidate for candidate in classes if candidate != label),
-                key=lambda candidate: (
-                    1.0 - float(source @ centroid_matrix[class_position[candidate]]),
-                    candidate,
-                ),
-            )
-        )
+    neighbor_order = _nearest_class_neighbors(classes, centroid_matrix)
 
     anchor_rng = np.random.Generator(np.random.PCG64(_domain_seed(seed, b"anchors")))
     anchor_order: list[int] = []

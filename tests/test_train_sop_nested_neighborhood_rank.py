@@ -6,6 +6,7 @@ import io
 import json
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -350,11 +351,12 @@ class _CountingEncoder(nn.Module):
     def __init__(self) -> None:
         super().__init__()
         self.projection = nn.Linear(4, 8, bias=False)
+        self.norm = nn.BatchNorm1d(8)
         self.calls = 0
 
     def forward(self, images: torch.Tensor) -> torch.Tensor:
         self.calls += 1
-        return self.projection(images)
+        return self.norm(self.projection(images))
 
 
 def test_training_epoch_uses_one_forward_and_fixed_step_inventory() -> None:
@@ -383,7 +385,7 @@ def test_training_epoch_uses_one_forward_and_fixed_step_inventory() -> None:
         arm="combined",
         temperature=0.1,
         device=torch.device("cpu"),
-        bf16=False,
+        fp16=False,
         expected_steps=2,
         expected_batch_size=8,
     )
@@ -391,6 +393,9 @@ def test_training_epoch_uses_one_forward_and_fixed_step_inventory() -> None:
     assert result["steps"] == 2
     assert result["mean_loss"] > 0.0
     assert encoder.calls == 2
+    assert encoder.training is True
+    assert encoder.norm.training is False
+    assert encoder.norm.weight.grad is not None
     assert all(group["lr"] in (1e-5, 1e-3) for group in optimizer.param_groups)
 
     with pytest.raises(ValueError, match="step inventory"):
@@ -403,7 +408,7 @@ def test_training_epoch_uses_one_forward_and_fixed_step_inventory() -> None:
             arm="combined",
             temperature=0.1,
             device=torch.device("cpu"),
-            bf16=False,
+            fp16=False,
             expected_steps=2,
             expected_batch_size=8,
         )
@@ -419,7 +424,7 @@ def test_training_epoch_uses_one_forward_and_fixed_step_inventory() -> None:
             arm="combined",
             temperature=0.1,
             device=torch.device("cpu"),
-            bf16=False,
+            fp16=False,
             expected_steps=2,
             expected_batch_size=8,
         )
@@ -479,6 +484,7 @@ def test_execution_authority_binds_source_model_and_output_boundary(
             args.source_commit if path == MODULE._REPOSITORY_ROOT else args.unicom_revision
         ),
     )
+    monkeypatch.setattr(MODULE, "_git_status_porcelain", lambda path: "")
 
     result = MODULE.validate_execution_authority(args, snapshot)
     assert result["source_commit"] == "4" * 40
@@ -487,3 +493,132 @@ def test_execution_authority_binds_source_model_and_output_boundary(
     args.output_dir.mkdir()
     with pytest.raises(FileExistsError):
         MODULE.validate_execution_authority(args, snapshot)
+
+    args.output_dir.rmdir()
+    monkeypatch.setattr(MODULE, "_git_status_porcelain", lambda path: "dirty")
+    with pytest.raises(ValueError, match="source revision"):
+        MODULE.validate_execution_authority(args, snapshot)
+
+
+def test_training_record_loader_never_opens_official_test_split(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    record = SimpleNamespace(
+        split="train",
+        image_id=1,
+        label=1,
+        relative_path="train/1.jpg",
+        image_path=tmp_path / "train" / "1.jpg",
+    )
+    calls: list[tuple[Path, str]] = []
+
+    def parse_split(root: Path, split: str) -> tuple[object, ...]:
+        calls.append((root, split))
+        return (record,) * 59_551
+
+    monkeypatch.setattr(
+        MODULE.importlib,
+        "import_module",
+        lambda name: SimpleNamespace(_parse_split=parse_split),
+    )
+
+    records = MODULE._load_sop_training_records(tmp_path)
+
+    assert len(records) == 59_551
+    assert calls == [(tmp_path, "train")]
+
+
+def test_training_transform_is_retrieval_safe_and_explicit() -> None:
+    transform = MODULE._build_train_transform()
+
+    assert [type(item).__name__ for item in transform.transforms] == [
+        "Resize",
+        "RandomCrop",
+        "RandomHorizontalFlip",
+        "ToTensor",
+        "Normalize",
+    ]
+    assert transform.transforms[0].size == 256
+    assert transform.transforms[1].size == (224, 224)
+
+
+def test_training_artifacts_are_immutable_canonical_and_hash_bound(tmp_path: Path) -> None:
+    output = tmp_path / "run"
+    state = {
+        "encoder": {"weight": torch.arange(8, dtype=torch.float32).reshape(2, 4)},
+        "head": {"bias": torch.arange(2, dtype=torch.float32)},
+        "raw_proxies": torch.ones(3, 2, dtype=torch.float32),
+    }
+    authority = {
+        "source_commit": "1" * 40,
+        "unicom_revision": "2" * 40,
+        "student_checkpoint_sha256": "3" * 64,
+        "teacher_checkpoint_sha256": "4" * 64,
+        "train_snapshot_sha256": "5" * 64,
+    }
+    result = MODULE.publish_training_artifacts(
+        output,
+        state,
+        authority=authority,
+        arm="combined",
+        split_seed=17,
+        temperature=0.1,
+        optimization_rows=4,
+        optimization_classes=2,
+        history=[{"epoch": 1, "steps": 2, "mean_loss": 1.25}],
+    )
+
+    assert result["schema"] == "sfora-nnrl-sop-training-result-v1"
+    assert result["claim_eligible"] is False
+    assert result["status"] == "COMPLETE"
+    model = output / "model.pt"
+    receipt = output / "run-receipt.json"
+    terminal = output / "RESULT_COMPLETE.json"
+    assert result["model_artifact"]["sha256"] == _sha256(model.read_bytes())
+    assert result["model_artifact"]["bytes"] == model.stat().st_size
+    assert receipt.read_bytes().endswith(b"\n")
+    assert terminal.read_bytes().endswith(b"\n")
+    assert json.loads(terminal.read_bytes()) == result
+    with pytest.raises(FileExistsError):
+        MODULE.publish_training_artifacts(
+            output,
+            state,
+            authority=authority,
+            arm="combined",
+            split_seed=17,
+            temperature=0.1,
+            optimization_rows=4,
+            optimization_classes=2,
+            history=[{"epoch": 1, "steps": 2, "mean_loss": 1.25}],
+        )
+
+
+def test_phase_one_runs_exactly_ten_epochs_with_constant_schedule() -> None:
+    torch.manual_seed(65537)
+    encoder = _CountingEncoder()
+    head = NestedRankHead(NestedRankConfig(input_dim=8, hidden_dim=16, class_count=4))
+    proxies = nn.Parameter(torch.randn(4, 128))
+    batch = (
+        torch.randn(8, 4),
+        torch.tensor([0, 0, 1, 1, 2, 2, 3, 3], dtype=torch.int64),
+        torch.arange(8, dtype=torch.int64),
+        F.normalize(torch.randn(8, 16), dim=1),
+    )
+    epochs = tuple((batch, batch) for _ in range(10))
+
+    history = MODULE.run_phase_one(
+        encoder,
+        head,
+        proxies,
+        epochs,
+        arm="combined",
+        temperature=0.1,
+        device=torch.device("cpu"),
+        fp16=False,
+        fused=False,
+        expected_batch_size=8,
+    )
+
+    assert [row["epoch"] for row in history] == list(range(1, 11))
+    assert all(row["steps"] == 2 for row in history)
+    assert encoder.calls == 20

@@ -6,10 +6,12 @@ import numpy as np
 import pytest
 
 from sfora.nested_rank_protocol import (
+    _nearest_class_neighbors,
     class_disjoint_fold,
     cluster_bootstrap_lower_bound,
     identity_balanced_schedule,
     ordered_training_records_sha256,
+    shared_optimization_rows,
 )
 from sfora.representation_ceiling import deterministic_class_partition
 
@@ -37,6 +39,19 @@ def test_class_disjoint_fold_is_deterministic_for_registered_seeds(seed: int) ->
     assert class_disjoint_fold(ids, labels, seed=seed) == class_disjoint_fold(
         ids, labels, seed=seed
     )
+
+
+def test_shared_optimization_rows_exclude_every_confirmation_validation_class() -> None:
+    labels = np.repeat(np.arange(100, dtype=np.int64), 2)
+    ids = tuple(range(labels.size))
+    seeds = (17, 1729, 65537)
+
+    shared = shared_optimization_rows(ids, labels, seeds=seeds)
+
+    assert shared
+    for seed in seeds:
+        fold = class_disjoint_fold(ids, labels, seed=seed)
+        assert not set(labels[list(shared)]) & set(labels[list(fold.validation)])
 
 
 def test_identity_schedule_has_32_unique_labels_and_four_rows_each() -> None:
@@ -80,6 +95,30 @@ def test_identity_schedule_handles_rollover_collisions_without_duplicates() -> N
     )
     for batch in schedule:
         assert np.unique(labels[list(batch)]).size == 32
+
+
+def test_nearest_class_neighbors_matches_scalar_order_with_bounded_rows() -> None:
+    generator = np.random.Generator(np.random.PCG64(17))
+    centroids = generator.normal(size=(67, 19))
+    centroids /= np.linalg.norm(centroids, axis=1, keepdims=True)
+    classes = tuple(range(100, 167))
+
+    actual = _nearest_class_neighbors(classes, centroids, retained=31, block_rows=7)
+
+    assert set(actual) == set(classes)
+    assert all(len(row) == 31 for row in actual.values())
+    for position, label in enumerate(classes):
+        expected = tuple(
+            classes[candidate]
+            for candidate in sorted(
+                (candidate for candidate in range(len(classes)) if candidate != position),
+                key=lambda candidate: (
+                    1.0 - float(centroids[position] @ centroids[candidate]),
+                    classes[candidate],
+                ),
+            )[:31]
+        )
+        assert actual[label] == expected
 
 
 def test_identity_schedule_rejects_nonfinite_and_insufficient_authority() -> None:

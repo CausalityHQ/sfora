@@ -122,7 +122,7 @@ git commit -m "Add generic nested neighborhood rank losses"
 - Create: `tests/test_nested_rank_protocol.py`
 
 **Interfaces:**
-- Produces: `ClassDisjointFold`, `class_disjoint_fold`, `identity_balanced_schedule`, `cluster_bootstrap_lower_bound`.
+- Produces: `ClassDisjointFold`, `class_disjoint_fold`, `shared_optimization_rows`, `identity_balanced_schedule`, `cluster_bootstrap_lower_bound`.
 - Consumes: immutable sample IDs, class IDs, seed, batch size, and images per identity.
 
 - [ ] **Step 1: Write protocol REDs**
@@ -148,7 +148,11 @@ Expected: import failure for `sfora.nested_rank_protocol`.
 Call `deterministic_class_partition(..., fit_fraction=0.8)` directly. Sampling
 must reserve eight unique anchors, process them in sampled order,
 and select each anchor's three nearest globally unused identities with class-ID
-ties, then cycle a deterministic per-class permutation only after exhausting
+ties. Compute neighbors with bounded matrix-multiplication blocks and retain
+only the exact nearest 31 classes per source; mutation-lock this against a full
+scalar sort. Compute the temperature-preflight membership as the intersection
+of optimization rows across all three registered folds. Then cycle a
+deterministic per-class permutation only after exhausting
 physical members. Mutation-test colliding neighbor lists for exactly 32 unique
 labels and four rows per label. Matched arms consume identical schedules.
 Use domain-separated PCG64 streams for the anchor permutation and each
@@ -183,8 +187,9 @@ git commit -m "Add deterministic nested-rank protocol"
 
 - [ ] **Step 0: Preflight the neighborhood hypothesis without GPU training**
 
-Replay exactly 1,000 seed-17 batches over the authenticated train-only teacher
-snapshot. For temperatures `(0.05, 0.10, 0.20)`, mask repeated sample IDs and
+Replay exactly 1,000 seed-17-scheduled batches over classes in the intersection
+of all three folds' optimization memberships from the authenticated train-only
+teacher snapshot. For temperatures `(0.05, 0.10, 0.20)`, mask repeated sample IDs and
 same-label rows, then recompute target entropy/effective support. Select the
 smallest temperature meeting the spec's median/5th-percentile gates. If none
 passes, publish a redundant-objective receipt and run only Proxy-Anchor-128 and
@@ -218,9 +223,10 @@ never accessed. Hash every loaded Sfora source file.
 
 Use tiny injected encoder/dataset fixtures to prove exact optimizer groups,
 ten epochs, the frozen update count and augmentation recipe, 32x4 batches,
-BF16 boundary, the preflight-bound temperature, arm-specific terms, constant
-learning rates, no warm-up/decay/clipping, exact AdamW betas/epsilon and
-weight-decay exclusions, train/eval normalization modes, drop-path zero, no
+FP16 boundary with dynamic gradient scaling, the preflight-bound temperature,
+arm-specific terms, frozen encoder BatchNorm statistics, constant learning
+rates, no warm-up/decay/clipping, exact AdamW betas/epsilon and
+weight-decay exclusions, remaining-module train/eval modes, drop-path zero, no
 early stop, deterministic replay, nonfinite failure receipts, the exact UNICOM
 feature tap, and one model forward per batch.
 

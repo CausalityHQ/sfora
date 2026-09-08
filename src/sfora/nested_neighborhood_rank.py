@@ -78,7 +78,13 @@ class NestedRankHead(nn.Module):
             torch.linalg.vector_norm(dense, dim=1) == 0
         ):
             raise ValueError("nested rank features differ")
-        return {width: F.normalize(dense[:, :width], dim=1) for width in self.config.widths}
+        result = {}
+        for width in self.config.widths:
+            prefix = dense[:, :width]
+            if torch.any(torch.linalg.vector_norm(prefix, dim=1) == 0):
+                raise ValueError("nested rank features differ")
+            result[width] = F.normalize(prefix, dim=1)
+        return result
 
 
 def _labels(labels: torch.Tensor, *, rows: int, class_count: int | None = None) -> None:
@@ -106,7 +112,7 @@ def nested_proxy_anchor_loss(
 
     if (
         not embeddings
-        or type(raw_proxies) is not torch.Tensor
+        or not isinstance(raw_proxies, torch.Tensor)
         or raw_proxies.dtype != torch.float32
         or raw_proxies.ndim != 2
         or not torch.isfinite(raw_proxies).all()

@@ -5,26 +5,37 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib
 import io
 import json
 import math
+import os
+import random
 import subprocess
 import sys
-from collections.abc import Iterable, Sequence, Sized
+from collections.abc import Callable, Iterable, Mapping, Sequence, Sized
 from dataclasses import dataclass
 from pathlib import Path
-from typing import cast
+from typing import Any, Protocol, cast
 
 import numpy as np
 import torch
 from numpy.typing import NDArray
 from torch import nn
 
+from sfora.atomic_publication import publish_bytes_noreplace, publish_large_writer_noreplace
 from sfora.nested_neighborhood_rank import (
+    NestedRankConfig,
+    NestedRankHead,
     asymmetric_neighborhood_loss,
     nested_proxy_anchor_loss,
 )
-from sfora.nested_rank_protocol import ordered_training_records_sha256
+from sfora.nested_rank_protocol import (
+    class_disjoint_fold,
+    identity_balanced_schedule,
+    ordered_training_records_sha256,
+    shared_optimization_rows,
+)
 
 _ARMS = (
     "proxy-anchor",
@@ -34,6 +45,7 @@ _ARMS = (
     "s2sd-768-to-128",
 )
 _SPLIT_SEEDS = (17, 1729, 65537)
+_GRAD_SCALER_TYPE = importlib.import_module("torch.amp").GradScaler
 _SNAPSHOT_ARRAYS = {
     "train_embeddings",
     "train_labels",
@@ -61,6 +73,13 @@ _TEST_ARRAYS = {
     "test_relative_paths",
 }
 _REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+
+
+class _SopRecord(Protocol):
+    image_id: int
+    label: int
+    relative_path: str
+    image_path: Path
 
 
 @dataclass(frozen=True, slots=True)
@@ -334,6 +353,15 @@ def _git_head(path: Path) -> str:
     ).stdout.strip()
 
 
+def _git_status_porcelain(path: Path) -> str:
+    return subprocess.run(
+        ["git", "-C", str(path), "status", "--porcelain"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+
+
 def validate_execution_authority(
     arguments: argparse.Namespace, snapshot: TrainSnapshot
 ) -> dict[str, object]:
@@ -371,6 +399,8 @@ def validate_execution_authority(
     if (
         _git_head(_REPOSITORY_ROOT) != arguments.source_commit
         or _git_head(checkout) != arguments.unicom_revision
+        or _git_status_porcelain(_REPOSITORY_ROOT)
+        or _git_status_porcelain(checkout)
         or snapshot.metadata["model_revision"] != arguments.unicom_revision
     ):
         raise ValueError("NNRL source revision differs")
@@ -632,9 +662,10 @@ def run_training_epoch(
     arm: str,
     temperature: float,
     device: torch.device,
-    bf16: bool,
+    fp16: bool,
     expected_steps: int,
     expected_batch_size: int = 128,
+    scaler: Any | None = None,
 ) -> dict[str, float | int]:
     """Execute one fixed-count phase-one epoch with one encoder call per batch."""
 
@@ -648,7 +679,9 @@ def run_training_epoch(
         or not math.isfinite(temperature)
         or temperature <= 0.0
         or type(device) is not torch.device
-        or type(bf16) is not bool
+        or type(fp16) is not bool
+        or (fp16 and device.type == "cuda" and scaler is None)
+        or (scaler is not None and not isinstance(scaler, _GRAD_SCALER_TYPE))
         or type(expected_steps) is not int
         or expected_steps <= 0
         or type(expected_batch_size) is not int
@@ -658,6 +691,12 @@ def run_training_epoch(
     if isinstance(batches, Sized) and len(batches) != expected_steps:
         raise ValueError("NNRL training step inventory differs")
     encoder.train()
+    for module in encoder.modules():
+        if isinstance(
+            module,
+            (nn.BatchNorm1d, nn.BatchNorm2d, nn.BatchNorm3d, nn.SyncBatchNorm),
+        ):
+            module.eval()
     head.train()
     losses: list[float] = []
     for images, labels, sample_ids, teacher_rows in batches:
@@ -685,8 +724,8 @@ def run_training_epoch(
         optimizer.zero_grad(set_to_none=True)
         with torch.autocast(
             device_type=device.type,
-            dtype=torch.bfloat16,
-            enabled=bf16,
+            dtype=torch.float16,
+            enabled=fp16,
         ):
             encoded = encoder(images)
         dense = torch.nn.functional.normalize(encoded.float(), dim=1)
@@ -703,19 +742,443 @@ def run_training_epoch(
         )
         if not torch.isfinite(loss):
             raise ValueError("NNRL training loss is nonfinite")
-        loss.backward()  # type: ignore[no-untyped-call]
-        optimizer.step()
+        if scaler is None:
+            loss.backward()  # type: ignore[no-untyped-call]
+            optimizer.step()
+        else:
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
         losses.append(float(loss.detach()))
     if len(losses) != expected_steps:
         raise ValueError("NNRL training step inventory differs")
     return {"steps": len(losses), "mean_loss": math.fsum(losses) / len(losses)}
 
 
-def main(arguments: Sequence[str] | None = None) -> int:
-    """Refuse execution until the training loop boundary is implemented."""
+def run_phase_one(
+    encoder: nn.Module,
+    head: nn.Module,
+    raw_proxies: nn.Parameter,
+    epochs: tuple[Iterable[tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]], ...],
+    *,
+    arm: str,
+    temperature: float,
+    device: torch.device,
+    fp16: bool,
+    fused: bool,
+    expected_batch_size: int = 128,
+) -> list[dict[str, object]]:
+    """Run the fixed ten-epoch anchored-representation phase."""
 
-    parse_args(arguments)
-    raise RuntimeError("NNRL training loop is not implemented")
+    if type(epochs) is not tuple or len(epochs) != 10:
+        raise ValueError("NNRL phase-one epoch inventory differs")
+    optimizer = build_optimizer(encoder, head, raw_proxies, fused=fused)
+    scaler = _GRAD_SCALER_TYPE("cuda", enabled=fp16 and device.type == "cuda")
+    history: list[dict[str, object]] = []
+    expected_steps = None
+    for epoch_index, batches in enumerate(epochs, start=1):
+        if not isinstance(batches, Sized) or len(batches) <= 0:
+            raise ValueError("NNRL phase-one step inventory differs")
+        if expected_steps is None:
+            expected_steps = len(batches)
+        elif len(batches) != expected_steps:
+            raise ValueError("NNRL phase-one step inventory differs")
+        row = run_training_epoch(
+            encoder,
+            head,
+            raw_proxies,
+            batches,
+            optimizer,
+            arm=arm,
+            temperature=temperature,
+            device=device,
+            fp16=fp16,
+            expected_steps=expected_steps,
+            expected_batch_size=expected_batch_size,
+            scaler=scaler if scaler.is_enabled() else None,
+        )
+        history.append({"epoch": epoch_index, **row})
+    return history
+
+
+def _canonical_json_bytes(value: Mapping[str, object]) -> bytes:
+    return (
+        json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\n"
+    ).encode()
+
+
+def _sha256_descriptor(descriptor: int, size: int) -> str:
+    digest = hashlib.sha256()
+    offset = 0
+    while offset < size:
+        chunk = os.pread(descriptor, min(1024 * 1024, size - offset), offset)
+        if not chunk:
+            raise RuntimeError("NNRL published artifact is truncated")
+        digest.update(chunk)
+        offset += len(chunk)
+    return digest.hexdigest()
+
+
+def publish_training_artifacts(
+    output: Path,
+    state: dict[str, object],
+    *,
+    authority: dict[str, object],
+    arm: str,
+    split_seed: int,
+    temperature: float,
+    optimization_rows: int,
+    optimization_classes: int,
+    history: list[dict[str, object]],
+) -> dict[str, object]:
+    """Publish a checkpoint, receipt, and terminal result without replacement."""
+
+    if (
+        not isinstance(output, Path)
+        or output.exists()
+        or output.is_symlink()
+        or output.parent.is_symlink()
+        or not output.parent.is_dir()
+    ):
+        if isinstance(output, Path) and (output.exists() or output.is_symlink()):
+            raise FileExistsError(output)
+        raise ValueError("NNRL publication path differs")
+    if (
+        type(state) is not dict
+        or set(state) != {"encoder", "head", "raw_proxies"}
+        or type(authority) is not dict
+        or arm not in _ARMS
+        or split_seed not in _SPLIT_SEEDS
+        or type(temperature) is not float
+        or not math.isfinite(temperature)
+        or temperature <= 0.0
+        or type(optimization_rows) is not int
+        or optimization_rows <= 0
+        or type(optimization_classes) is not int
+        or optimization_classes <= 1
+        or type(history) is not list
+        or not history
+    ):
+        raise ValueError("NNRL publication authority differs")
+    output.mkdir(mode=0o700)
+    model_path = output / "model.pt"
+
+    def write_model(descriptor: int) -> None:
+        with os.fdopen(os.dup(descriptor), "wb") as stream:
+            torch.save(state, stream)
+            stream.flush()
+
+    def validate_model(descriptor: int, size: int) -> None:
+        if size <= 0:
+            raise ValueError("NNRL checkpoint is empty")
+        with os.fdopen(os.dup(descriptor), "rb") as stream:
+            restored = torch.load(stream, map_location="cpu", weights_only=True)
+        if type(restored) is not dict or set(restored) != set(state):
+            raise ValueError("NNRL checkpoint schema differs")
+
+    with publish_large_writer_noreplace(
+        model_path, write_model, validator=validate_model
+    ) as published_model:
+        model_sha256 = _sha256_descriptor(published_model.descriptor, published_model.size)
+        model_bytes = published_model.size
+    receipt: dict[str, object] = {
+        "schema": "sfora-nnrl-sop-training-run-receipt-v1",
+        "claim_eligible": False,
+        "arm": arm,
+        "split_seed": split_seed,
+        "temperature": temperature,
+        "optimization_rows": optimization_rows,
+        "optimization_classes": optimization_classes,
+        "epochs": len(history),
+        "history": history,
+        "authority": authority,
+        "model_artifact": {
+            "path": "model.pt",
+            "sha256": model_sha256,
+            "bytes": model_bytes,
+        },
+    }
+    receipt_payload = _canonical_json_bytes(receipt)
+    with publish_bytes_noreplace(
+        output / "run-receipt.json",
+        receipt_payload,
+        validator=lambda payload: (
+            None
+            if payload == receipt_payload and json.loads(payload) == receipt
+            else (_ for _ in ()).throw(ValueError("NNRL receipt differs"))
+        ),
+    ):
+        pass
+    result = {
+        "schema": "sfora-nnrl-sop-training-result-v1",
+        "claim_eligible": False,
+        "status": "COMPLETE",
+        **{key: value for key, value in receipt.items() if key not in {"schema", "claim_eligible"}},
+        "run_receipt": {
+            "path": "run-receipt.json",
+            "sha256": _sha256(receipt_payload),
+            "bytes": len(receipt_payload),
+        },
+    }
+    result_payload = _canonical_json_bytes(result)
+    with publish_bytes_noreplace(
+        output / "RESULT_COMPLETE.json",
+        result_payload,
+        validator=lambda payload: (
+            None
+            if payload == result_payload and json.loads(payload) == result
+            else (_ for _ in ()).throw(ValueError("NNRL result differs"))
+        ),
+    ):
+        pass
+    return result
+
+
+class _SopOptimizationDataset(
+    torch.utils.data.Dataset[tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]
+):
+    def __init__(
+        self,
+        *,
+        image_paths: tuple[Path, ...],
+        labels: NDArray[np.int64],
+        image_ids: NDArray[np.int64],
+        teacher_rows: NDArray[np.float32],
+        optimization_rows: tuple[int, ...],
+        label_indexes: dict[int, int],
+        transform: Callable[[object], object],
+    ) -> None:
+        self._image_paths = image_paths
+        self._labels = labels
+        self._image_ids = image_ids
+        self._teacher_rows = teacher_rows
+        self._optimization_rows = set(optimization_rows)
+        self._label_indexes = label_indexes
+        self._transform = transform
+
+    def __len__(self) -> int:
+        return len(self._image_paths)
+
+    def __getitem__(
+        self, index: int
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        if index not in self._optimization_rows:
+            raise ValueError("NNRL dataset accessed a validation row")
+        from PIL import Image
+
+        path = self._image_paths[index]
+        with Image.open(path) as image:
+            tensor = self._transform(image.convert("RGB"))
+        if type(tensor) is not torch.Tensor:
+            raise ValueError("NNRL transform output differs")
+        return (
+            tensor,
+            torch.tensor(self._label_indexes[int(self._labels[index])], dtype=torch.int64),
+            torch.tensor(int(self._image_ids[index]), dtype=torch.int64),
+            torch.from_numpy(self._teacher_rows[index].copy()),
+        )
+
+
+def _seed_worker(worker_id: int) -> None:
+    seed = torch.initial_seed() % 2**32
+    random.seed(seed + worker_id)
+    np.random.seed(seed + worker_id)
+
+
+def _build_train_transform() -> Callable[[object], object]:
+    from torchvision import transforms
+    from torchvision.transforms import InterpolationMode
+
+    transform = transforms.Compose(
+        (
+            transforms.Resize(256, interpolation=InterpolationMode.BICUBIC),
+            transforms.RandomCrop(224),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            transforms.Normalize(
+                mean=(0.48145466, 0.4578275, 0.40821073),
+                std=(0.26862954, 0.26130258, 0.27577711),
+            ),
+        )
+    )
+    return cast(Callable[[object], object], transform)
+
+
+def _load_student_model(checkout: Path, checkpoint: Path) -> nn.Module:
+    package_root = (checkout / "unicom").resolve()
+    sys.path.insert(0, str(package_root))
+    try:
+        unicom = importlib.import_module("unicom")
+    finally:
+        sys.path.pop(0)
+    module_file = getattr(unicom, "__file__", None)
+    if (
+        type(module_file) is not str
+        or Path(module_file).resolve().parent != package_root / "unicom"
+    ):
+        raise ValueError("NNRL imported UNICOM package differs")
+    model, _evaluation_transform = unicom.load("ViT-B/16", download_root=str(checkpoint.parent))
+    if not isinstance(model, nn.Module):
+        raise ValueError("NNRL student model differs")
+    return model
+
+
+def _load_sop_training_records(dataset_root: Path) -> tuple[_SopRecord, ...]:
+    exporter = importlib.import_module("export_unicom_sop_embeddings")
+    training = tuple(exporter._parse_split(dataset_root, "train"))
+    if len(training) != 59_551:
+        raise ValueError("NNRL SOP training record count differs")
+    return cast(tuple[_SopRecord, ...], training)
+
+
+def _source_file_sha256() -> dict[str, str]:
+    paths = (
+        Path(__file__).resolve(),
+        (_REPOSITORY_ROOT / "scripts/export_unicom_sop_embeddings.py").resolve(),
+        (_REPOSITORY_ROOT / "src/sfora/atomic_publication.py").resolve(),
+        (_REPOSITORY_ROOT / "src/sfora/nested_neighborhood_rank.py").resolve(),
+        (_REPOSITORY_ROOT / "src/sfora/nested_rank_protocol.py").resolve(),
+        (_REPOSITORY_ROOT / "src/sfora/representation_ceiling.py").resolve(),
+    )
+    return {str(path.relative_to(_REPOSITORY_ROOT)): _sha256(path.read_bytes()) for path in paths}
+
+
+def _cpu_state_dict(module: nn.Module) -> dict[str, torch.Tensor]:
+    return {name: value.detach().cpu() for name, value in module.state_dict().items()}
+
+
+def run_experiment(arguments: argparse.Namespace) -> dict[str, object]:
+    """Run one authenticated ten-epoch SOP NNRL arm on CUDA."""
+
+    snapshot = load_train_snapshot(arguments.train_snapshot, arguments.train_snapshot_sha256)
+    authority = validate_execution_authority(arguments, snapshot)
+    authority["source_files"] = _source_file_sha256()
+    records = _load_sop_training_records(arguments.dataset_root)
+    image_ids = np.asarray([record.image_id for record in records], dtype=np.int64)
+    labels = np.asarray([record.label for record in records], dtype=np.int64)
+    relative_paths = tuple(record.relative_path for record in records)
+    bind_training_records(snapshot, image_ids, labels, relative_paths)
+    image_paths = tuple(record.image_path for record in records)
+    sample_ids = tuple(int(value) for value in image_ids)
+
+    preflight_rows = shared_optimization_rows(sample_ids, labels, seeds=_SPLIT_SEEDS)
+    preflight_schedule = identity_balanced_schedule(
+        labels,
+        snapshot.embeddings,
+        preflight_rows,
+        seed=17,
+        steps=1_000,
+    )
+    preflight = preflight_neighborhood_temperature(
+        snapshot.embeddings,
+        labels,
+        image_ids,
+        preflight_schedule,
+        optimization_rows=preflight_rows,
+    )
+    if preflight.redundant and arguments.arm in {
+        "neighborhood",
+        "combined",
+        "s2sd-768-to-128",
+    }:
+        raise ValueError("NNRL neighborhood objective is redundant")
+    temperature = 0.1 if preflight.temperature is None else preflight.temperature
+
+    fold = class_disjoint_fold(sample_ids, labels, seed=arguments.split_seed)
+    steps_per_epoch = max(1, len(fold.optimization) // 128)
+    schedule = identity_balanced_schedule(
+        labels,
+        snapshot.embeddings,
+        fold.optimization,
+        seed=arguments.split_seed,
+        steps=10 * steps_per_epoch,
+    )
+    label_values = tuple(sorted({int(labels[row]) for row in fold.optimization}))
+    label_indexes = {label: index for index, label in enumerate(label_values)}
+    dataset = _SopOptimizationDataset(
+        image_paths=image_paths,
+        labels=labels,
+        image_ids=image_ids,
+        teacher_rows=snapshot.embeddings,
+        optimization_rows=fold.optimization,
+        label_indexes=label_indexes,
+        transform=_build_train_transform(),
+    )
+    epoch_loaders = []
+    for epoch in range(10):
+        epoch_batches = schedule[epoch * steps_per_epoch : (epoch + 1) * steps_per_epoch]
+        epoch_loaders.append(
+            torch.utils.data.DataLoader(
+                dataset,
+                batch_sampler=[list(batch) for batch in epoch_batches],
+                num_workers=8,
+                pin_memory=True,
+                worker_init_fn=_seed_worker,
+                generator=torch.Generator().manual_seed(arguments.split_seed + epoch),
+            )
+        )
+
+    random.seed(arguments.split_seed)
+    np.random.seed(arguments.split_seed % 2**32)
+    torch.manual_seed(arguments.split_seed)
+    torch.cuda.manual_seed_all(arguments.split_seed)
+    device = torch.device("cuda")
+    encoder = _load_student_model(arguments.unicom_checkout, arguments.unicom_checkpoint).to(device)
+    class_count = len(label_values)
+    if arguments.arm == "proxy-anchor-768":
+        config = NestedRankConfig(
+            input_dim=768,
+            hidden_dim=1024,
+            output_dim=768,
+            widths=(768,),
+            class_count=class_count,
+        )
+    else:
+        config = NestedRankConfig(input_dim=768, hidden_dim=1024, class_count=class_count)
+    head = NestedRankHead(config).to(device)
+    raw_proxies = nn.Parameter(torch.empty(class_count, config.output_dim, device=device))
+    torch.nn.init.normal_(raw_proxies, std=0.01)
+    history = run_phase_one(
+        encoder,
+        head,
+        raw_proxies,
+        tuple(epoch_loaders),
+        arm=arguments.arm,
+        temperature=temperature,
+        device=device,
+        fp16=True,
+        fused=True,
+    )
+    authority["ordered_train_record_sha256"] = snapshot.metadata["ordered_train_record_sha256"]
+    authority["preflight"] = {
+        "temperature": preflight.temperature,
+        "redundant": preflight.redundant,
+        "batch_count": preflight.batch_count,
+        "metrics": {str(key): value for key, value in preflight.metrics.items()},
+    }
+    return publish_training_artifacts(
+        arguments.output_dir,
+        {
+            "encoder": _cpu_state_dict(encoder),
+            "head": _cpu_state_dict(head),
+            "raw_proxies": raw_proxies.detach().cpu(),
+        },
+        authority=authority,
+        arm=arguments.arm,
+        split_seed=arguments.split_seed,
+        temperature=temperature,
+        optimization_rows=len(fold.optimization),
+        optimization_classes=class_count,
+        history=history,
+    )
+
+
+def main(arguments: Sequence[str] | None = None) -> int:
+    """Run one explicit authenticated NNRL training arm."""
+
+    result = run_experiment(parse_args(arguments))
+    print(_canonical_json_bytes(result).decode(), end="")
+    return 0
 
 
 if __name__ == "__main__":

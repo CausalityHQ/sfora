@@ -4,6 +4,7 @@ import math
 
 import pytest
 import torch
+from torch import nn
 from torch.nn import functional as F
 
 from sfora.nested_neighborhood_rank import (
@@ -37,6 +38,18 @@ def test_config_and_head_emit_independently_normalized_prefixes() -> None:
     for width, values in result.items():
         assert values.shape == (6, width)
         torch.testing.assert_close(values.norm(dim=1), torch.ones(6))
+
+
+def test_head_rejects_zero_normalized_prefix() -> None:
+    head = NestedRankHead(
+        NestedRankConfig(input_dim=2, hidden_dim=2, output_dim=2, widths=(1, 2), class_count=2)
+    )
+    with torch.no_grad():
+        head.skip.weight.copy_(torch.tensor([[0.0, 1.0], [1.0, 0.0]]))
+        head.residual_scale.zero_()
+
+    with pytest.raises(ValueError, match="nested rank features"):
+        head(torch.tensor([[1.0, 0.0]], dtype=torch.float32))
 
 
 @pytest.mark.parametrize(
@@ -115,6 +128,17 @@ def test_proxy_anchor_matches_scalar_formula_and_shared_prefixes() -> None:
     torch.testing.assert_close(actual, expected)
     actual.backward()
     assert raw.grad is not None and torch.isfinite(raw.grad).all()
+
+
+def test_proxy_anchor_accepts_trainable_parameter() -> None:
+    embeddings = {2: F.normalize(torch.tensor([[1.0, 0.0], [0.0, 1.0]]), dim=1)}
+    labels = torch.tensor([0, 1], dtype=torch.int64)
+    proxies = nn.Parameter(torch.eye(2, dtype=torch.float32))
+
+    loss = nested_proxy_anchor_loss(embeddings, labels, proxies)
+    loss.backward()
+
+    assert proxies.grad is not None
 
 
 def test_asymmetric_neighborhood_masks_classes_and_detaches_targets_and_keys() -> None:
