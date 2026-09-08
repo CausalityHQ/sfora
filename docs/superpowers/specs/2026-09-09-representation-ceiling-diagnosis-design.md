@@ -41,7 +41,9 @@ The first, closed-form stage contains:
    width control.
 
 The ridge solve uses float64 augmented normal equations with an unpenalized
-intercept and fixed relative penalties `(1e-6, 1e-4, 1e-2)`. Penalty selection
+intercept and fixed relative penalties `(1e-6, 1e-4, 1e-2)`. Each penalty is
+multiplied by `sum((X-mean(X))**2)/input_dimensions`, making it invariant to
+uniform feature rescaling. Penalty selection
 uses only a deterministic 80/20 class-disjoint sub-split of the outer fit
 partition and mean squared error between normalized predictions and normalized
 teacher rows. Ties select the smaller penalty. The outer validation partition

@@ -144,6 +144,18 @@ _RELATIONAL_COMPACTION_EXPORTS = frozenset(
     }
 )
 
+_REPRESENTATION_CEILING_EXPORTS = frozenset(
+    {
+        "AffineMap",
+        "CenteredPcaTransform",
+        "ClassDisjointPartition",
+        "apply_normalized_affine",
+        "deterministic_class_partition",
+        "fit_centered_pca",
+        "fit_ridge_affine",
+    }
+)
+
 
 def __getattr__(name: str) -> object:
     """Load optional PyTorch compaction symbols only when explicitly requested."""
@@ -155,6 +167,11 @@ def __getattr__(name: str) -> object:
         return value
     if name in _RELATIONAL_COMPACTION_EXPORTS:
         module = import_module("sfora.joint_relational_compaction")
+        value = cast(object, getattr(module, name))
+        globals()[name] = value
+        return value
+    if name in _REPRESENTATION_CEILING_EXPORTS:
+        module = import_module("sfora.representation_ceiling")
         value = cast(object, getattr(module, name))
         globals()[name] = value
         return value
@@ -170,6 +187,9 @@ __all__ = [
     "EncoderAblationResult",
     "EncoderAblationTrial",
     "EmbeddingSpaceDiagnostics",
+    "AffineMap",
+    "CenteredPcaTransform",
+    "ClassDisjointPartition",
     "SforaProjector",
     "Projection",
     "Identity",
@@ -228,6 +248,10 @@ __all__ = [
     "fit_sfora_projection",
     "fit_relational_linear_compaction",
     "fit_relational_linear_encoder",
+    "apply_normalized_affine",
+    "deterministic_class_partition",
+    "fit_centered_pca",
+    "fit_ridge_affine",
     "group_triplet_margin_loss",
     "embedding_space_diagnostics_on_split",
     "image_self_retrieval_score",
