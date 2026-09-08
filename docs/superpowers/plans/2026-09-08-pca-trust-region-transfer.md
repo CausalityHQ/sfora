@@ -33,6 +33,12 @@ on a method-specific unopened split.
 
 ### Task 3: Train-only displacement screen
 
+**Status:** Deferred. The comparable SOP authority showed that representation
+error dominates quantization and did not establish that interpolation is the
+highest-information next experiment. Execute
+`docs/superpowers/plans/2026-09-09-representation-ceiling-diagnosis.md` first;
+resume this task only if that diagnosis leaves a PCA-to-relational path causal.
+
 **Files:** create `src/sfora/transfer_geometry.py`,
 `scripts/probe_pca_relational_trust_region.py`, and focused tests.
 
