@@ -34,13 +34,24 @@ The sealed evaluation ran on CUDA on an aarch64 DGX host.
 | 65537 | 0.445771 | 0.714235 | +0.048708 | +0.044986 |
 
 The 64-dimensional method retained 99.5–99.6% of the 128-dimensional PCA
-control's MAP@R (`0.448061`) at approximately half its persistent item bytes. An
-An earlier exploratory receipt reports improvement over its named baseline on an
-identity-disjoint SOP validation split (`MAP@R=0.329449–0.334026` versus
-`0.309024`). Its producer is not recoverable in this repository, its baseline is
-not explicitly identified as PCA64, and its status is `cross-domain-stopped`.
-It therefore motivates cross-domain replication but is not release evidence for
-the exact 66-byte scorer.
+control's MAP@R (`0.448061`) at approximately half its persistent item bytes.
+
+The independently sealed Stanford Online Products evaluation reused the same
+recipe and seeds without SOP-result-driven tuning. Against PCA64 int8
+(`MAP@R=0.357638`, `R@1=0.635946`), all three learned 64-dimensional arms passed:
+
+| Seed | int8 MAP@R | int8 R@1 | MAP improvement | familywise MAP lower bound | familywise R@1 lower bound |
+|---:|---:|---:|---:|---:|---:|
+| 17 | 0.372987 | 0.654177 | +0.015350 | +0.013618 | +0.015400 |
+| 1729 | 0.372852 | 0.654160 | +0.015214 | +0.013528 | +0.015429 |
+| 65537 | 0.372878 | 0.653945 | +0.015240 | +0.013569 | +0.015234 |
+
+SOP used the official 59,551-image training split and 60,502-image symmetric
+leave-self-out test split. Labels were evaluation-only. The PCA128 int8 control
+reached `MAP@R=0.393314`, and the full source and teacher float controls reached
+`0.420759` and `0.476360`, respectively. These ceilings show that 64-dimensional
+compression still leaves quality headroom; the result establishes repeatable
+compression gains rather than absolute retrieval state of the art.
 
 The target-CPU paired benchmark used one thread, 12,612 gallery rows, 1,000 warmup
 pairs, and 10,000 measured pairs. It timed source normalization, projection,
@@ -50,6 +61,11 @@ packing, packed cosine scoring, and top-256 selection. Relational linear p95 was
 The two pipelines are computationally identical apart from projection weights;
 this benchmark detects accidental implementation regressions rather than a
 method-specific speed advantage.
+
+On SOP's 60,502-row gallery, the same one-thread paired operation measured
+3,231,472 ns p95 for the learned map versus 3,224,272 ns for PCA64, a ratio of
+1.00223 across 10,000 measured pairs. This is again a controlled kernel
+comparison, not concurrent end-to-end service latency.
 
 ## Evidence authority and limits
 
@@ -62,13 +78,18 @@ method-specific speed advantage.
   (`SFORA-RL1`, 196,625 bytes).
 - Cross-domain SOP receipt SHA-256:
   [`a8daaf5fe9585c9d74b67ea0a3f250c043f717d41005f6cf1063b271c0ce098d`](evidence/relational_linear_compaction/joint-relational-sop-v13.json).
+- Sealed official SOP quality receipt SHA-256:
+  [`5125a8e0bfe242345257ca172ea62c92289d3585e7185e5b11d31bf92da2110c`](evidence/relational_linear_compaction/sop/sop-relational-linear-evaluation-v1.json).
+- Sealed official SOP latency receipt SHA-256:
+  [`d18e6dedf55746f97271a320e1b7c9a87e498e147ea81c549b4a5229ee5a498a`](evidence/relational_linear_compaction/sop/sop-relational-linear-latency-v1.json).
+- Sealed official SOP deployment model SHA-256:
+  [`dad73cd0dd4662f3098899d862d5ef42dde0a2f2c81302cae3c08740f72ec100`](evidence/relational_linear_compaction/sop/sop-relational-linear-seed17.sfora-rl1).
 - The quality, latency, and SOP receipts are explicitly claim-ineligible. The
   latency receipt does not report an
   end-to-end service percentile under concurrent load.
-- The authenticated release evidence establishes the method on one
-  image-retrieval domain. The stopped SOP receipt is exploratory cross-domain
-  evidence only. This is not yet evidence of state-of-the-art end-to-end
-  retrieval training, text retrieval, or universal teacher transfer.
+- The authenticated release evidence establishes repeatable gains on two
+  image-retrieval domains. This is not yet evidence of state-of-the-art
+  end-to-end retrieval training, text retrieval, or universal teacher transfer.
 - The nonlinear residual extension did not clear its fixed incremental gate and
   is not part of the public method.
 
