@@ -33,37 +33,37 @@
   `fit_ridge_affine`, and `apply_normalized_affine`.
 - Consumes: CPU contiguous float32 tensors and concrete integer class labels.
 
-- [ ] **Step 1: Write failing partition tests**
+- [x] **Step 1: Write failing partition tests**
 
   Cover determinism, exact class disjointness, ordered indices, split-seed
   sensitivity, invalid fractions/types, singleton validation classes, and no
   dependency on research scripts.
 
-- [ ] **Step 2: Run the partition tests and preserve RED**
+- [x] **Step 2: Run the partition tests and preserve RED**
 
   Run: `pytest -q tests/test_representation_ceiling.py -k partition`
   Expected: import failure for the absent module or symbols.
 
-- [ ] **Step 3: Implement the minimal partition API**
+- [x] **Step 3: Implement the minimal partition API**
 
   Hash `seed || concrete class id` with SHA-256, order classes by digest and
   class ID, choose the nearest valid prefix to the requested fit fraction, and
   return strictly increasing row indexes plus ordered class IDs. Reject bool as
   int and every invalid or degenerate authority.
 
-- [ ] **Step 4: Write and preserve affine/PCA/ridge REDs**
+- [x] **Step 4: Write and preserve affine/PCA/ridge REDs**
 
   Mutation-lock centered PCA fit-only behavior, deterministic sign orientation,
   float64 ridge equations, unpenalized intercept, exact ridge penalty,
   normalized application, rank/singularity/nonfinite/zero-norm failures, and
   input immutability.
 
-- [ ] **Step 5: Implement closed-form transforms and run focused GREEN**
+- [x] **Step 5: Implement closed-form transforms and run focused GREEN**
 
   Run: `pytest -q tests/test_representation_ceiling.py`
   Expected: all tests pass with no warning.
 
-- [ ] **Step 6: Verify and commit the generic primitive slice**
+- [x] **Step 6: Verify and commit the generic primitive slice**
 
   Run Ruff, strict mypy on the new module, pycompile, and `git diff --check`.
   Commit only the module, public exports, tests, spec, and plan.
@@ -79,18 +79,18 @@
   primitives.
 - Produces: one canonical `sfora-representation-ceiling-v1` JSON receipt.
 
-- [ ] **Step 1: Write failing authority and arm tests**
+- [x] **Step 1: Write failing authority and arm tests**
 
   Use synthetic paired archives to require the six frozen arms, outer seeds
   `(17,1729,65537)`, inner ridge penalties `(1e-6,1e-4,1e-2)`, fit-only
   transforms, self exclusion, ordinal ties, and no test input access.
 
-- [ ] **Step 2: Preserve the evaluator RED**
+- [x] **Step 2: Preserve the evaluator RED**
 
   Run: `pytest -q tests/test_probe_representation_ceiling.py`
   Expected: missing evaluator/CLI symbols only.
 
-- [ ] **Step 3: Implement scoring, selection, uncertainty, and decisions**
+- [x] **Step 3: Implement scoring, selection, uncertainty, and decisions**
 
   Reuse authenticated SOP archive loading but not SOP-specific logic in the
   library. Emit all per-query AP/R@1 outcomes, 10,000 paired class resamples,
@@ -99,25 +99,25 @@
   `wider-code-warranted`, or `backbone-quality-work-warranted` with simultaneous
   flags retained when multiple gates fire.
 
-- [ ] **Step 4: Implement strict CLI and no-clobber publication**
+- [x] **Step 4: Implement strict CLI and no-clobber publication**
 
   Require absolute source/teacher/output paths, lowercase SHA-256 values, an
   exact 40-character source commit, and `--execute-representation-ceiling`.
   Reserve the output partial before archive loading; reject any final/partial
   collision; clean only the process-owned partial.
 
-- [ ] **Step 5: Run focused and static GREEN gates**
+- [x] **Step 5: Run focused and static GREEN gates**
 
   Run both new test files, Ruff, strict mypy on production sources, pycompile,
   and `git diff --check`.
 
-- [ ] **Step 6: Obtain independent contextless Astra and Fable review**
+- [x] **Step 6: Obtain independent contextless Astra and Fable review**
 
   Give each reviewer only the concrete evaluator diff and the authenticated
   prior measurements. Repair Critical/Important correctness or scientific
   blockers with focused RED/GREEN cycles; do not add adaptive arms.
 
-- [ ] **Step 7: Commit and verify the frozen evaluator**
+- [x] **Step 7: Commit and verify the frozen evaluator**
 
   Push `HEAD:master` and require local HEAD, `origin/master`, and remote
   `refs/heads/master` equality before scientific execution.
@@ -132,25 +132,25 @@
 - Consumes: exact paired SOP train archives already present on DGX.
 - Produces: one immutable canonical result; no model is deployed from this run.
 
-- [ ] **Step 1: Preflight exact source, archive, environment, and output authority**
+- [x] **Step 1: Preflight exact source, archive, environment, and output authority**
 
   Verify clean committed checkout, both registered archive digests, output
   absence, CUDA health, memory pressure, and the external environment. Start no
   science if any preflight differs.
 
-- [ ] **Step 2: Run one original monitored process**
+- [x] **Step 2: Run one original monitored process**
 
   Enforce a two-hour wall cap, RSS and PSI stop rules, forward-progress checks,
   explicit scratch cleanup, and no restart after any terminal. Preserve stdout,
   stderr, exit status, and pressure evidence.
 
-- [ ] **Step 3: Authenticate and interpret the receipt**
+- [x] **Step 3: Authenticate and interpret the receipt**
 
   Recompute canonical bytes, every input/source hash, partitions, ridge
   selections, aggregate metrics, bootstrap bounds, and decisions. Record
   failure as evidence; do not inspect SOP test rows.
 
-- [ ] **Step 4: Commit evidence and choose only the authorized branch**
+- [x] **Step 4: Commit evidence and choose only the authorized branch**
 
   If the ridge gain gate passes, proceed to Task 4. If only the width gate
   fires, freeze a 192/256D bytes-quality study. Otherwise move primary quality
@@ -168,7 +168,10 @@
 - Produces: deterministic row-index batches; the trainer objective and codec
   remain unchanged.
 
-- [ ] **Step 1: Stop unless Task 3 ridge full-width gate passed**
+- [x] **Step 1: Stop unless Task 3 ridge full-width gate passed**
+
+  Stopped: the observed gain was below the gate and its lower bound was
+  negative, so the conditional sampler is not authorized by this diagnosis.
 
 - [ ] **Step 2: TDD a generic deterministic teacher-neighborhood sampler**
 
