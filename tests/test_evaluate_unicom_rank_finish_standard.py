@@ -7,9 +7,7 @@ from pathlib import Path
 import pytest
 import torch
 
-SCRIPT = (
-    Path(__file__).parents[1] / "scripts" / "evaluate_unicom_rank_finish_standard.py"
-)
+SCRIPT = Path(__file__).parents[1] / "scripts" / "evaluate_unicom_rank_finish_standard.py"
 SPEC = importlib.util.spec_from_file_location("rank_finish_standard", SCRIPT)
 assert SPEC is not None and SPEC.loader is not None
 MODULE = importlib.util.module_from_spec(SPEC)
@@ -29,15 +27,9 @@ def _metrics(map_at_r: float, r1: float, r10: float):
 def test_standard_gate_requires_map_gain_and_recall_noninferiority() -> None:
     baseline = _metrics(0.760, 0.940, 0.990)
 
-    passed = MODULE.classify_standard(
-        baseline, _metrics(0.764, 0.9395, 0.9895)
-    )
-    failed_map = MODULE.classify_standard(
-        baseline, _metrics(0.7629, 0.940, 0.990)
-    )
-    failed_recall = MODULE.classify_standard(
-        baseline, _metrics(0.764, 0.9389, 0.990)
-    )
+    passed = MODULE.classify_standard(baseline, _metrics(0.764, 0.9395, 0.9895))
+    failed_map = MODULE.classify_standard(baseline, _metrics(0.7629, 0.940, 0.990))
+    failed_recall = MODULE.classify_standard(baseline, _metrics(0.764, 0.9389, 0.990))
 
     assert passed["status"] == "RELEASE"
     assert failed_map["status"] == "REJECT"
@@ -73,3 +65,28 @@ def test_inference_loader_authenticates_seed_parent_and_source(tmp_path: Path) -
             expected_source_commit="a" * 40,
             expected_parent_checkpoint_sha256="b" * 64,
         )
+
+
+def test_official_loader_binds_the_exact_model_filename(tmp_path: Path) -> None:
+    class Trainer:
+        def __init__(self) -> None:
+            self.calls: list[tuple[Path, Path]] = []
+
+        def _load_official_model(self, checkout: Path, checkpoint: Path):
+            self.calls.append((checkout, checkpoint))
+            return object(), object()
+
+    trainer = Trainer()
+    checkout = tmp_path / "unicom"
+    exact = tmp_path / "FP16-ViT-L-14-336px.pt"
+
+    MODULE._load_bound_official_model(trainer, checkout, exact)
+
+    assert trainer.calls == [(checkout, exact)]
+    with pytest.raises(ValueError, match="official checkpoint model differs"):
+        MODULE._load_bound_official_model(
+            trainer,
+            checkout,
+            tmp_path / "FP16-ViT-B-16.pt",
+        )
+    assert trainer.calls == [(checkout, exact)]

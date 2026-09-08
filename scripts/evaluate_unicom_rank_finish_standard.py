@@ -73,11 +73,7 @@ def load_inference_checkpoint(
 ) -> Mapping[str, torch.Tensor]:
     """Authenticate and load one inference-only rank-finish artifact."""
 
-    if (
-        path.is_symlink()
-        or not path.is_file()
-        or _sha256_file(path) != expected_sha256
-    ):
+    if path.is_symlink() or not path.is_file() or _sha256_file(path) != expected_sha256:
         raise ValueError("rank-finish inference bytes differ")
     value = torch.load(path, map_location="cpu", weights_only=True)
     if (
@@ -94,8 +90,7 @@ def load_inference_checkpoint(
         or type(value["finish_seed"]) is not int
         or value["finish_seed"] != expected_seed
         or value["source_commit"] != expected_source_commit
-        or value["parent_checkpoint_sha256"]
-        != expected_parent_checkpoint_sha256
+        or value["parent_checkpoint_sha256"] != expected_parent_checkpoint_sha256
         or type(value["model"]) is not dict
         or not value["model"]
         or any(
@@ -117,6 +112,14 @@ def _load_trainer(repository: Path):
     module = importlib.util.module_from_spec(specification)
     specification.loader.exec_module(module)
     return module
+
+
+def _load_bound_official_model(trainer, checkout: Path, checkpoint: Path):
+    """Load the exact checkpoint identity consumed by the pinned trainer."""
+
+    if checkpoint.name != "FP16-ViT-L-14-336px.pt":
+        raise ValueError("rank-finish official checkpoint model differs")
+    return trainer._load_official_model(checkout, checkpoint)
 
 
 def _evaluate(trainer, model, query, gallery, transform, device) -> dict[str, object]:
@@ -171,8 +174,7 @@ def canonical_result_bytes(result: object) -> bytes:
     ):
         raise ValueError("rank-finish standard result differs")
     return (
-        json.dumps(result, sort_keys=True, separators=(",", ":"), allow_nan=False)
-        + "\n"
+        json.dumps(result, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\n"
     ).encode()
 
 
@@ -261,8 +263,8 @@ def run(args: argparse.Namespace) -> dict[str, object]:
     device = torch.device("cuda")
     if not torch.cuda.is_available():
         raise RuntimeError("rank-finish standard readout requires CUDA")
-    model, transform = trainer._load_official_model(
-        args.unicom_checkout, args.official_checkpoint
+    model, transform = _load_bound_official_model(
+        trainer, args.unicom_checkout, args.official_checkpoint
     )
     model = model.to(device)
     parent = torch.load(args.parent_checkpoint, map_location="cpu", weights_only=False)
