@@ -11,17 +11,19 @@ from torch.nn import functional as F
 
 from sfora.joint_relational_compaction import (
     JointRelationalEncoder,
-    PackedInt4Embeddings,
     PackedInt8Embeddings,
     RelationalLinearEncoder,
     RelationalLinearTrainingConfig,
     fit_relational_linear_compaction,
     fit_relational_linear_encoder,
-    fixed_int4_unit_codes,
     fixed_int8_unit_codes,
     neighborhood_distribution_kl,
-    pack_int4_unit_embeddings,
     pack_int8_unit_embeddings,
+)
+from sfora.packed_int4 import (
+    PackedInt4Embeddings,
+    fixed_int4_unit_codes,
+    pack_int4_unit_embeddings,
 )
 
 

@@ -125,15 +125,20 @@ from sfora.training import (
     train_projection_head,
 )
 
-_RELATIONAL_COMPACTION_EXPORTS = frozenset(
+_PACKED_INT4_EXPORTS = frozenset(
     {
         "PackedInt4Embeddings",
+        "pack_int4_unit_embeddings",
+    }
+)
+
+_RELATIONAL_COMPACTION_EXPORTS = frozenset(
+    {
         "PackedInt8Embeddings",
         "RelationalLinearEncoder",
         "RelationalLinearTrainingConfig",
         "fit_relational_linear_compaction",
         "fit_relational_linear_encoder",
-        "pack_int4_unit_embeddings",
         "pack_int8_unit_embeddings",
     }
 )
@@ -142,6 +147,11 @@ _RELATIONAL_COMPACTION_EXPORTS = frozenset(
 def __getattr__(name: str) -> object:
     """Load optional PyTorch compaction symbols only when explicitly requested."""
 
+    if name in _PACKED_INT4_EXPORTS:
+        module = import_module("sfora.packed_int4")
+        value = cast(object, getattr(module, name))
+        globals()[name] = value
+        return value
     if name in _RELATIONAL_COMPACTION_EXPORTS:
         module = import_module("sfora.joint_relational_compaction")
         value = cast(object, getattr(module, name))

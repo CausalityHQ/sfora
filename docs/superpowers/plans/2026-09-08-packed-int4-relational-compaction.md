@@ -17,7 +17,8 @@ unchanged relational recipe at 128 dimensions on one fresh non-retail domain.
 
 - Add `PackedInt4Embeddings`, `fixed_int4_unit_codes`, and
   `pack_int4_unit_embeddings` to
-  `src/sfora/joint_relational_compaction.py`.
+  the independent `src/sfora/packed_int4.py` module so authenticated historical
+  relational-compaction source bytes remain unchanged.
 - Add lazy public exports in `src/sfora/__init__.py`.
 - Run the focused int4 tests, complete compaction tests, Ruff, mypy, bytecode,
   and diff checks.
