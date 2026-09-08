@@ -16,6 +16,7 @@ from typing import cast
 import numpy as np
 
 from sfora.atomic_publication import publish_large_writer_noreplace
+from sfora.nested_rank_protocol import ordered_training_records_sha256
 
 _SOURCE_ARRAYS = {
     "train_embeddings",
@@ -163,9 +164,11 @@ def build_train_snapshot(source: Path, source_sha256: str, output: Path) -> dict
         "train_classes": cast(dict[str, object], metadata["split_classes"])["train"],
         "train_array_sha256": {name: source_digests[name] for name in _TRAIN_ARRAYS},
         "excluded_test_array_sha256": {name: source_digests[name] for name in _TEST_ARRAYS},
-        "ordered_train_record_sha256": cast(dict[str, object], metadata["ordered_record_sha256"])[
-            "train"
-        ],
+        "ordered_train_record_sha256": ordered_training_records_sha256(
+            arrays["train_image_ids"],
+            arrays["train_labels"],
+            tuple(str(path) for path in arrays["train_relative_paths"]),
+        ),
         "transform": metadata["transform"],
     }
     metadata_json = json.dumps(

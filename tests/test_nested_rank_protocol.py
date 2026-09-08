@@ -9,6 +9,7 @@ from sfora.nested_rank_protocol import (
     class_disjoint_fold,
     cluster_bootstrap_lower_bound,
     identity_balanced_schedule,
+    ordered_training_records_sha256,
 )
 from sfora.representation_ceiling import deterministic_class_partition
 
@@ -124,3 +125,17 @@ def test_protocol_rejects_bool_seed_duplicate_ids_and_class_singletons() -> None
         class_disjoint_fold((0, 0, 2, 3), labels, seed=17)
     with pytest.raises(ValueError):
         class_disjoint_fold((0, 1, 2), np.asarray([0, 0, 1], dtype=np.int64), seed=17)
+
+
+def test_ordered_training_record_digest_binds_ids_labels_paths_and_order() -> None:
+    ids = np.asarray([10, 11], dtype=np.int64)
+    labels = np.asarray([3, 4], dtype=np.int64)
+    paths = ("a/10.jpg", "b/11.jpg")
+    digest = ordered_training_records_sha256(ids, labels, paths)
+    assert len(digest) == 64
+    assert digest == ordered_training_records_sha256(ids.copy(), labels.copy(), paths)
+    assert digest != ordered_training_records_sha256(ids[::-1].copy(), labels, paths)
+    assert digest != ordered_training_records_sha256(ids, labels[::-1].copy(), paths)
+    assert digest != ordered_training_records_sha256(ids, labels, tuple(reversed(paths)))
+    with pytest.raises(ValueError, match="ordered training record"):
+        ordered_training_records_sha256(ids, labels, ("../escape.jpg", "b/11.jpg"))

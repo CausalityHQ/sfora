@@ -147,15 +147,18 @@ def nested_proxy_anchor_loss(
             raise ValueError("Proxy-Anchor authority differs")
         proxies = F.normalize(raw_proxies[:, :width], dim=1)
         scores = values @ proxies.T
-        positive_terms = []
-        for proxy in present:
-            selected = scores[labels == proxy, proxy]
-            positive_terms.append(torch.log1p(torch.exp(-scale * (selected - margin)).sum()))
-        negative_terms = []
-        for proxy in range(raw_proxies.shape[0]):
-            selected = scores[labels != proxy, proxy]
-            negative_terms.append(torch.log1p(torch.exp(scale * (selected + margin)).sum()))
-        width_loss = torch.stack(positive_terms).mean() + torch.stack(negative_terms).mean()
+        row_indexes = torch.arange(rows, device=labels.device)
+        positive_values = torch.exp(-scale * (scores[row_indexes, labels] - margin))
+        positive_sums = scores.new_zeros(raw_proxies.shape[0]).scatter_add(
+            0, labels, positive_values
+        )
+        positive_loss = torch.log1p(positive_sums[present]).mean()
+        negative_values = torch.exp(scale * (scores + margin))
+        negative_values = negative_values.scatter(
+            1, labels[:, None], torch.zeros_like(labels[:, None], dtype=scores.dtype)
+        )
+        negative_loss = torch.log1p(negative_values.sum(dim=0)).mean()
+        width_loss = positive_loss + negative_loss
         total = total + resolved_weights[width] * width_loss
     if not torch.isfinite(total):
         raise ValueError("Proxy-Anchor result differs")

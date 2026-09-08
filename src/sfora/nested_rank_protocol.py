@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import math
 from dataclasses import dataclass
+from pathlib import PurePosixPath
 
 import numpy as np
 from numpy.typing import NDArray
@@ -12,6 +13,44 @@ from numpy.typing import NDArray
 from sfora.representation_ceiling import deterministic_class_partition
 
 type SampleId = str | int
+
+
+def ordered_training_records_sha256(
+    sample_ids: NDArray[np.int64],
+    labels: NDArray[np.int64],
+    relative_paths: tuple[str, ...],
+) -> str:
+    """Hash an ordered train-only identity/label/path table."""
+
+    if (
+        type(sample_ids) is not np.ndarray
+        or sample_ids.dtype != np.int64
+        or sample_ids.ndim != 1
+        or sample_ids.size == 0
+        or len(set(sample_ids.tolist())) != sample_ids.size
+        or type(labels) is not np.ndarray
+        or labels.dtype != np.int64
+        or labels.shape != sample_ids.shape
+        or np.any(labels < 0)
+        or type(relative_paths) is not tuple
+        or len(relative_paths) != sample_ids.size
+        or len(set(relative_paths)) != len(relative_paths)
+    ):
+        raise ValueError("ordered training record authority differs")
+    digest = hashlib.sha256()
+    for sample_id, label, path_text in zip(sample_ids, labels, relative_paths, strict=True):
+        if type(path_text) is not str or not path_text:
+            raise ValueError("ordered training record authority differs")
+        path = PurePosixPath(path_text)
+        if path.is_absolute() or ".." in path.parts or str(path) != path_text:
+            raise ValueError("ordered training record authority differs")
+        digest.update(str(int(sample_id)).encode())
+        digest.update(b"\0")
+        digest.update(str(int(label)).encode())
+        digest.update(b"\0")
+        digest.update(path_text.encode())
+        digest.update(b"\n")
+    return digest.hexdigest()
 
 
 @dataclass(frozen=True, slots=True)
