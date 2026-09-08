@@ -16,6 +16,7 @@ from sfora.nested_rank_evaluation import (
     class_bootstrap_lower_bound,
     classify_promotion,
     evaluate_paired_rankings,
+    rank_query_gallery,
     rank_self_retrieval,
     rank_self_retrieval_int8,
     recompute_self_retrieval,
@@ -29,6 +30,7 @@ __all__ = (
     "load_training_artifact",
     "rank_self_retrieval",
     "rank_self_retrieval_int8",
+    "rank_query_gallery",
     "recompute_self_retrieval",
     "restore_candidate_state",
 )

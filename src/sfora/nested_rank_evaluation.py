@@ -158,6 +158,85 @@ def rank_self_retrieval_int8(
     return result
 
 
+def rank_query_gallery(
+    query_embeddings: NDArray[np.float32],
+    query_labels: NDArray[np.int64],
+    query_sample_ids: NDArray[np.int64],
+    gallery_embeddings: NDArray[np.float32],
+    gallery_labels: NDArray[np.int64],
+    gallery_sample_ids: NDArray[np.int64],
+    *,
+    block_rows: int = 256,
+) -> list[dict[str, object]]:
+    """Rank a disjoint query/gallery protocol with exact sample-ID tie breaks."""
+
+    arrays = (
+        (query_embeddings, query_labels, query_sample_ids),
+        (gallery_embeddings, gallery_labels, gallery_sample_ids),
+    )
+    if (
+        type(block_rows) is not int
+        or block_rows <= 0
+        or any(
+            type(embeddings) is not np.ndarray
+            or embeddings.dtype != np.float32
+            or embeddings.ndim != 2
+            or embeddings.shape[0] < 1
+            or embeddings.shape[1] < 1
+            or not np.isfinite(embeddings).all()
+            or type(labels) is not np.ndarray
+            or labels.dtype != np.int64
+            or labels.shape != (embeddings.shape[0],)
+            or type(sample_ids) is not np.ndarray
+            or sample_ids.dtype != np.int64
+            or sample_ids.shape != labels.shape
+            or len(set(int(value) for value in sample_ids)) != sample_ids.size
+            for embeddings, labels, sample_ids in arrays
+        )
+        or query_embeddings.shape[1] != gallery_embeddings.shape[1]
+        or set(int(value) for value in query_sample_ids)
+        & set(int(value) for value in gallery_sample_ids)
+    ):
+        raise ValueError("nested-rank query/gallery inventory differs")
+    query_values = query_embeddings.astype(np.float64)
+    gallery_values = gallery_embeddings.astype(np.float64)
+    query_norms = np.linalg.norm(query_values, axis=1, keepdims=True)
+    gallery_norms = np.linalg.norm(gallery_values, axis=1, keepdims=True)
+    if (
+        np.any(query_norms == 0.0)
+        or np.any(gallery_norms == 0.0)
+        or not np.isfinite(query_norms).all()
+        or not np.isfinite(gallery_norms).all()
+    ):
+        raise ValueError("nested-rank query/gallery geometry differs")
+    query_values /= query_norms
+    gallery_values /= gallery_norms
+    gallery_counts = {
+        int(label): int(count)
+        for label, count in zip(*np.unique(gallery_labels, return_counts=True), strict=True)
+    }
+    if any(int(label) not in gallery_counts for label in query_labels):
+        raise ValueError("nested-rank query/gallery inventory differs")
+    result: list[dict[str, object]] = []
+    for start in range(0, len(query_values), block_rows):
+        stop = min(start + block_rows, len(query_values))
+        distances = 1.0 - query_values[start:stop] @ gallery_values.T
+        for local, query_index in enumerate(range(start, stop)):
+            relevant = gallery_counts[int(query_labels[query_index])]
+            order = _bounded_top_indices_validated(distances[local], gallery_sample_ids, relevant)
+            matches = gallery_labels[order] == query_labels[query_index]
+            precisions = np.cumsum(matches, dtype=np.int64) / np.arange(1, relevant + 1)
+            result.append(
+                {
+                    "query_sample_id": int(query_sample_ids[query_index]),
+                    "ranked_sample_ids": [int(gallery_sample_ids[index]) for index in order],
+                    "ap_at_r": float(np.sum(precisions * matches, dtype=np.float64) / relevant),
+                    "recall_at_1": bool(matches[0]),
+                }
+            )
+    return result
+
+
 def recompute_self_retrieval(
     evidence: Sequence[object],
     labels: NDArray[np.int64],

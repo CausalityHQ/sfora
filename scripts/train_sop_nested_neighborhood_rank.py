@@ -779,6 +779,19 @@ def run_training_epoch(
     }
 
 
+def build_grad_scaler(device: torch.device, *, fp16: bool) -> Any:
+    """Build the fixed-scale FP16 guard validated by the real UNICOM canary."""
+
+    if type(device) is not torch.device or type(fp16) is not bool:
+        raise ValueError("NNRL gradient scaler authority differs")
+    return _GRAD_SCALER_TYPE(
+        "cuda",
+        enabled=fp16 and device.type == "cuda",
+        init_scale=1024.0,
+        growth_interval=2**31 - 1,
+    )
+
+
 def run_phase_one(
     encoder: nn.Module,
     head: nn.Module,
@@ -797,7 +810,7 @@ def run_phase_one(
     if type(epochs) is not tuple or len(epochs) != 10:
         raise ValueError("NNRL phase-one epoch inventory differs")
     optimizer = build_optimizer(encoder, head, raw_proxies, fused=fused)
-    scaler = _GRAD_SCALER_TYPE("cuda", enabled=fp16 and device.type == "cuda")
+    scaler = build_grad_scaler(device, fp16=fp16)
     history: list[dict[str, object]] = []
     expected_steps = None
     for epoch_index, batches in enumerate(epochs, start=1):

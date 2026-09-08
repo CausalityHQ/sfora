@@ -180,6 +180,37 @@ def test_int8_self_retrieval_uses_exact_codes_norms_and_sample_id_ties() -> None
         assert row["ranked_sample_ids"] == [int(sample_ids[expected[0]])]
 
 
+def test_query_gallery_ranking_is_generic_and_deterministic() -> None:
+    query = np.asarray(((1.0, 0.0), (0.0, 1.0)), dtype=np.float32)
+    query_labels = np.asarray((10, 20), dtype=np.int64)
+    query_ids = np.asarray((1, 2), dtype=np.int64)
+    gallery = np.asarray(((0.9, 0.1), (0.8, 0.2), (0.1, 0.9), (0.2, 0.8)), dtype=np.float32)
+    gallery_labels = np.asarray((10, 10, 20, 20), dtype=np.int64)
+    gallery_ids = np.asarray((11, 12, 21, 22), dtype=np.int64)
+
+    evidence = MODULE.rank_query_gallery(
+        query,
+        query_labels,
+        query_ids,
+        gallery,
+        gallery_labels,
+        gallery_ids,
+        block_rows=1,
+    )
+
+    assert [row["ranked_sample_ids"] for row in evidence] == [[11, 12], [21, 22]]
+    assert all(row["ap_at_r"] == 1.0 for row in evidence)
+    with pytest.raises(ValueError, match="inventory"):
+        MODULE.rank_query_gallery(
+            query,
+            np.asarray((10, 30), dtype=np.int64),
+            query_ids,
+            gallery,
+            gallery_labels,
+            gallery_ids,
+        )
+
+
 def test_training_artifact_loader_authenticates_result_and_model(tmp_path: Path) -> None:
     model = tmp_path / "model.pt"
     torch.save(

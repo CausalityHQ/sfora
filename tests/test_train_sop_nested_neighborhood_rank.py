@@ -465,6 +465,26 @@ def test_training_epoch_rejects_nonfinite_gradients_before_optimizer_step() -> N
         )
 
 
+def test_cuda_grad_scaler_uses_fixed_safe_initial_scale(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict[str, object] = {}
+
+    class _Scaler:
+        def __init__(self, device: str, **kwargs: object) -> None:
+            captured.update(device=device, **kwargs)
+
+    monkeypatch.setattr(MODULE, "_GRAD_SCALER_TYPE", _Scaler)
+
+    scaler = MODULE.build_grad_scaler(torch.device("cuda"), fp16=True)
+
+    assert isinstance(scaler, _Scaler)
+    assert captured == {
+        "device": "cuda",
+        "enabled": True,
+        "init_scale": 1024.0,
+        "growth_interval": 2**31 - 1,
+    }
+
+
 def test_training_record_binding_is_exact_and_ordered(tmp_path: Path) -> None:
     snapshot_path = tmp_path / "snapshot.npz"
     snapshot = MODULE.load_train_snapshot(snapshot_path, _snapshot(snapshot_path))
