@@ -699,6 +699,8 @@ def run_training_epoch(
             module.eval()
     head.train()
     losses: list[float] = []
+    attempted_steps = 0
+    successful_updates = 0
     for images, labels, sample_ids, teacher_rows in batches:
         if len(losses) == expected_steps:
             raise ValueError("NNRL training step inventory differs")
@@ -742,17 +744,39 @@ def run_training_epoch(
         )
         if not torch.isfinite(loss):
             raise ValueError("NNRL training loss is nonfinite")
+        attempted_steps += 1
         if scaler is None:
             loss.backward()  # type: ignore[no-untyped-call]
-            optimizer.step()
         else:
             scaler.scale(loss).backward()
+            scaler.unscale_(optimizer)
+        if any(
+            parameter.grad is not None and not torch.isfinite(parameter.grad).all()
+            for group in optimizer.param_groups
+            for parameter in group["params"]
+        ):
+            raise ValueError("NNRL training gradient is nonfinite")
+        if scaler is None:
+            optimizer.step()
+        else:
             scaler.step(optimizer)
             scaler.update()
+        if any(
+            not torch.isfinite(parameter).all()
+            for group in optimizer.param_groups
+            for parameter in group["params"]
+        ):
+            raise ValueError("NNRL training parameter is nonfinite")
+        successful_updates += 1
         losses.append(float(loss.detach()))
     if len(losses) != expected_steps:
         raise ValueError("NNRL training step inventory differs")
-    return {"steps": len(losses), "mean_loss": math.fsum(losses) / len(losses)}
+    return {
+        "steps": successful_updates,
+        "attempted_steps": attempted_steps,
+        "skipped_updates": attempted_steps - successful_updates,
+        "mean_loss": math.fsum(losses) / len(losses),
+    }
 
 
 def run_phase_one(

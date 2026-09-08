@@ -391,6 +391,8 @@ def test_training_epoch_uses_one_forward_and_fixed_step_inventory() -> None:
     )
 
     assert result["steps"] == 2
+    assert result["attempted_steps"] == 2
+    assert result["skipped_updates"] == 0
     assert result["mean_loss"] > 0.0
     assert encoder.calls == 2
     assert encoder.training is True
@@ -429,6 +431,38 @@ def test_training_epoch_uses_one_forward_and_fixed_step_inventory() -> None:
             expected_batch_size=8,
         )
     assert encoder.calls == 2
+
+
+def test_training_epoch_rejects_nonfinite_gradients_before_optimizer_step() -> None:
+    torch.manual_seed(18)
+    encoder = _CountingEncoder()
+    head = NestedRankHead(NestedRankConfig(input_dim=8, hidden_dim=16, class_count=4))
+    proxies = nn.Parameter(torch.randn(4, 128))
+    optimizer = MODULE.build_optimizer(encoder, head, proxies, fused=False)
+    encoder.projection.weight.register_hook(
+        lambda gradient: torch.full_like(gradient, float("inf"))
+    )
+    batch = (
+        torch.randn(8, 4),
+        torch.tensor([0, 0, 1, 1, 2, 2, 3, 3], dtype=torch.int64),
+        torch.arange(8, dtype=torch.int64),
+        F.normalize(torch.randn(8, 16), dim=1),
+    )
+
+    with pytest.raises(ValueError, match="gradient is nonfinite"):
+        MODULE.run_training_epoch(
+            encoder,
+            head,
+            proxies,
+            [batch],
+            optimizer,
+            arm="combined",
+            temperature=0.1,
+            device=torch.device("cpu"),
+            fp16=False,
+            expected_steps=1,
+            expected_batch_size=8,
+        )
 
 
 def test_training_record_binding_is_exact_and_ordered(tmp_path: Path) -> None:
