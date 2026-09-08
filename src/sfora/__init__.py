@@ -127,11 +127,13 @@ from sfora.training import (
 
 _RELATIONAL_COMPACTION_EXPORTS = frozenset(
     {
+        "PackedInt4Embeddings",
         "PackedInt8Embeddings",
         "RelationalLinearEncoder",
         "RelationalLinearTrainingConfig",
         "fit_relational_linear_compaction",
         "fit_relational_linear_encoder",
+        "pack_int4_unit_embeddings",
         "pack_int8_unit_embeddings",
     }
 )
@@ -179,6 +181,7 @@ __all__ = [
     "ImageObjective",
     "ImageRetrievalMetrics",
     "MethodMetrics",
+    "PackedInt4Embeddings",
     "PackedInt8Embeddings",
     "ProjectionHeadTrainingConfig",
     "ProjectionHeadTrainingResult",
@@ -224,6 +227,7 @@ __all__ = [
     "mine_group_triplets",
     "mine_triplets",
     "objective_display_name",
+    "pack_int4_unit_embeddings",
     "pack_int8_unit_embeddings",
     "run_sentence_transformer_baseline",
     "run_sentence_transformer_model_suite",

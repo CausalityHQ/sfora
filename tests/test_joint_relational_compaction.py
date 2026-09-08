@@ -1,4 +1,6 @@
 import hashlib
+import math
+import struct
 import subprocess
 import sys
 from pathlib import Path
@@ -9,13 +11,16 @@ from torch.nn import functional as F
 
 from sfora.joint_relational_compaction import (
     JointRelationalEncoder,
+    PackedInt4Embeddings,
     PackedInt8Embeddings,
     RelationalLinearEncoder,
     RelationalLinearTrainingConfig,
     fit_relational_linear_compaction,
     fit_relational_linear_encoder,
+    fixed_int4_unit_codes,
     fixed_int8_unit_codes,
     neighborhood_distribution_kl,
+    pack_int4_unit_embeddings,
     pack_int8_unit_embeddings,
 )
 
@@ -189,6 +194,84 @@ def test_packed_int8_accepts_interoperable_one_ulp_inverse_norm() -> None:
     assert torch.equal(value.inverse_norms, alternative)
 
 
+def test_packed_int4_embeddings_are_66_bytes_at_128d_and_round_trip_exactly() -> None:
+    values = _unit(5, 128)
+    packed = pack_int4_unit_embeddings(values)
+    wire = packed.to_bytes()
+
+    assert packed.packed_codes.dtype == torch.uint8
+    assert packed.packed_codes.shape == (5, 64)
+    assert packed.dimensions == 128
+    assert packed.bytes_per_vector == 66
+    assert len(wire) == 5 * 66
+    restored = PackedInt4Embeddings.from_bytes(wire, count=5, dimensions=128)
+    assert torch.equal(restored.packed_codes, packed.packed_codes)
+    assert torch.equal(restored.inverse_norms, packed.inverse_norms)
+    assert torch.equal(restored.signed_codes(), packed.signed_codes())
+    torch.testing.assert_close(restored.restore(), packed.restore())
+
+
+def test_packed_int4_uses_canonical_low_then_high_twos_complement_nibbles() -> None:
+    values = F.normalize(torch.tensor([[1.0, -1.0, 0.5, -0.5]], dtype=torch.float32), dim=1)
+
+    codes, restored = fixed_int4_unit_codes(values)
+    packed = pack_int4_unit_embeddings(values)
+
+    assert codes.tolist() == [[7, -7, 4, -4]]
+    assert packed.packed_codes.tolist() == [[0x97, 0xC4]]
+    assert packed.to_bytes() == bytes((0x97, 0xC4)) + struct.pack("<e", 1.0 / math.sqrt(130))
+    torch.testing.assert_close(packed.restore(), restored, atol=2e-4, rtol=2e-4)
+
+
+def test_packed_int4_cosine_matches_restored_float_cosine() -> None:
+    gallery = pack_int4_unit_embeddings(_unit(5, 128))
+    queries = pack_int4_unit_embeddings(_unit(3, 128).roll(1, dims=1))
+
+    expected = queries.restore() @ gallery.restore().T
+
+    torch.testing.assert_close(queries.cosine_similarity(gallery), expected)
+
+
+def test_packed_int4_rejects_noncanonical_shapes_codes_norms_and_wire() -> None:
+    packed = pack_int4_unit_embeddings(_unit(4, 128))
+    with pytest.raises(ValueError, match="packed int4 byte authority"):
+        PackedInt4Embeddings.from_bytes(b"short", count=1, dimensions=128)
+    with pytest.raises(ValueError, match="packed int4 byte authority"):
+        PackedInt4Embeddings.from_bytes(packed.to_bytes(), count=4, dimensions=127)
+    with pytest.raises(ValueError, match="packed int4 embedding authority"):
+        PackedInt4Embeddings.from_bytes(
+            bytes((0x88,)) + struct.pack("<e", 1.0), count=1, dimensions=2
+        )
+    with pytest.raises(ValueError, match="packed int4 embedding authority"):
+        PackedInt4Embeddings(
+            packed_codes=torch.tensor([[0x08]], dtype=torch.uint8),
+            inverse_norms=torch.ones(1, dtype=torch.float16),
+            dimensions=2,
+        )
+    with pytest.raises(ValueError, match="packed int4 embedding authority"):
+        PackedInt4Embeddings(
+            packed_codes=packed.packed_codes,
+            inverse_norms=torch.ones(4, dtype=torch.float16),
+            dimensions=128,
+        )
+    with pytest.raises(ValueError, match="quantization authority"):
+        pack_int4_unit_embeddings(torch.zeros((2, 128), dtype=torch.float32))
+
+
+def test_packed_int4_accepts_interoperable_one_ulp_inverse_norm() -> None:
+    packed = pack_int4_unit_embeddings(_unit(4, 128))
+    alternative = packed.inverse_norms.clone()
+    alternative[0] = torch.nextafter(alternative[0], torch.tensor(torch.inf, dtype=torch.float16))
+
+    value = PackedInt4Embeddings(
+        packed_codes=packed.packed_codes,
+        inverse_norms=alternative,
+        dimensions=128,
+    )
+
+    assert torch.equal(value.inverse_norms, alternative)
+
+
 def test_relational_linear_trainer_is_deterministic_and_returns_finite_history() -> None:
     source = _unit(8, 4)
     teacher = _unit(8, 5).roll(1, dims=0)
@@ -304,6 +387,9 @@ assert 'RelationalLinearEncoder' in sfora.__all__
 
 def test_relational_linear_method_is_available_from_public_api() -> None:
     from sfora import (
+        PackedInt4Embeddings as PublicPackedInt4,
+    )
+    from sfora import (
         PackedInt8Embeddings as PublicPacked,
     )
     from sfora import (
@@ -319,12 +405,17 @@ def test_relational_linear_method_is_available_from_public_api() -> None:
         fit_relational_linear_encoder as public_fit,
     )
     from sfora import (
+        pack_int4_unit_embeddings as public_pack_int4,
+    )
+    from sfora import (
         pack_int8_unit_embeddings as public_pack,
     )
 
+    assert PublicPackedInt4 is PackedInt4Embeddings
     assert PublicPacked is PackedInt8Embeddings
     assert PublicEncoder is RelationalLinearEncoder
     assert PublicConfig is RelationalLinearTrainingConfig
     assert public_compact_fit is fit_relational_linear_compaction
     assert public_fit is fit_relational_linear_encoder
+    assert public_pack_int4 is pack_int4_unit_embeddings
     assert public_pack is pack_int8_unit_embeddings
