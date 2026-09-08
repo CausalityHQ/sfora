@@ -34,7 +34,7 @@
 - [x] **Step 2: Run focused tests and preserve missing-interface REDs.**
 - [x] **Step 3: Implement strict archive, record, array, norm, and class-split authority.**
 - [x] **Step 4: Add byte-for-byte tar-member versus extracted-root verification and preserve its RED/GREEN.**
-- [ ] **Step 5: From committed source, export B16 and L14 archives and verify hashes, dimensions, row identities, and content-manifest equality.**
+- [x] **Step 5: From committed source, export B16 and L14 archives and verify hashes, dimensions, row identities, and content-manifest equality.**
 
 ### Task 2: Sealed equal-byte CUB evaluator
 
@@ -74,9 +74,9 @@
 - Consumes: Task-3 commit and official authenticated inputs.
 - Produces: B16/L14 archive SHA-256 identities sharing one ordered/content manifest.
 
-- [ ] **Step 1: Run one B16 export and one L14 export serially or under explicitly bounded non-overlapping GPU jobs.**
-- [ ] **Step 2: Strict-load both archives, compare every row identity, and record exact hashes/sizes/model authorities.**
-- [ ] **Step 3: Stop if archive/content/row authority differs; do not run the evaluator.**
+- [x] **Step 1: Run one B16 export and one L14 export serially or under explicitly bounded non-overlapping GPU jobs.**
+- [x] **Step 2: Strict-load both archives, compare every row identity, and record exact hashes/sizes/model authorities.**
+- [x] **Step 3: Stop if archive/content/row authority differs; do not run the evaluator.**
 
 ### Task 5: SOP-only quantization falsifiers
 
@@ -89,11 +89,11 @@
 - Consumes: already-burned authenticated SOP embeddings only.
 - Produces: one frozen codec/rotation decision; no CUB access.
 
-- [ ] **Step 1: RED/GREEN exact asymmetric float-query/int4-gallery scoring and reject if MAP@R gain is below 0.003.**
-- [ ] **Step 2: RED/GREEN fixed-rotation clipped-scale int4 with train-only scale selection; reject if it recovers less than half the observed PCA128 float-to-int4 loss.**
+- [x] **Step 1: RED/GREEN exact asymmetric float-query/int4-gallery scoring and reject if MAP@R gain is below 0.003.**
+- [x] **Step 2: RED/GREEN fixed-rotation clipped-scale int4 with train-only scale selection; reject if it recovers less than half the observed PCA128 float-to-int4 loss.**
 - [ ] **Step 3: If Step 2 passes, RED/GREEN a train-only orthogonal/STE quantization-aware projection and compare three fixed seeds against matched non-STE training.**
 - [ ] **Step 4: Benchmark a bounded predecoded/fused packed CPU path against shipped 64D int8; require deterministic ranking equality and report working memory separately from 66-byte persistence.**
-- [ ] **Step 5: Freeze exactly one winner before Task 6; otherwise retain the current relational128-int4 recipe unchanged.**
+- [x] **Step 5: Freeze exactly one winner before Task 6; otherwise retain the current relational128-int4 recipe unchanged.**
 
 ### Task 6: One-shot CUB evaluation and evidence delivery
 
@@ -104,7 +104,7 @@
 - Consumes: Task-3 source SHA, Task-4 archives, and Task-5 frozen method.
 - Produces: one claim-ineligible transfer result and an evidence commit.
 
-- [ ] **Step 1: Preflight exact input/source/output authorities without scoring.**
-- [ ] **Step 2: Run one monitored evaluator process; preserve the original terminal and never duplicate/restart after a scientific terminal.**
-- [ ] **Step 3: Validate canonical JSON/model hashes, all quality gates, latency samples, resource state, and cleanup.**
-- [ ] **Step 4: Record successes and failures without suppressing controls or negative results, validate docs, commit/push, and notify the operator.**
+- [x] **Step 1: Preflight exact input/source/output authorities without scoring.**
+- [x] **Step 2: Run one monitored evaluator process; preserve the original terminal and never duplicate/restart after a scientific terminal.**
+- [x] **Step 3: Validate canonical JSON/model hashes, all quality gates, latency samples, resource state, and cleanup.**
+- [x] **Step 4: Record successes and failures without suppressing controls or negative results, validate docs, commit/push, and notify the operator.**
