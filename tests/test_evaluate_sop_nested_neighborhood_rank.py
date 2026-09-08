@@ -298,3 +298,27 @@ def test_candidate_state_restores_encoder_and_head_strictly() -> None:
             head,
             {**artifact, "encoder": {"wrong": torch.ones(1)}},
         )
+
+
+def test_three_way_evaluation_uses_identical_rows_and_int8_candidate() -> None:
+    candidate, labels, sample_ids = _fixture()
+    source = np.asarray(
+        ((1.0, 0.0), (-1.0, 0.0), (0.0, 1.0), (0.0, -1.0), (0.7, 0.7), (-0.7, -0.7)),
+        dtype=np.float32,
+    )
+    teacher = candidate.copy()
+
+    result = SCRIPT_MODULE.evaluate_three_way_embeddings(
+        candidate,
+        source,
+        teacher,
+        labels,
+        sample_ids,
+    )
+
+    assert result["candidate_float"]["metrics"]["map_at_r"] == 1.0
+    assert result["candidate_int8"]["metrics"]["map_at_r"] == 1.0
+    assert result["source"]["metrics"]["map_at_r"] < 1.0
+    assert result["teacher"]["metrics"]["map_at_r"] == 1.0
+    for arm in result.values():
+        assert [row["query_sample_id"] for row in arm["queries"]] == sample_ids.tolist()

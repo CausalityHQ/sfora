@@ -8,6 +8,7 @@ import json
 import math
 from pathlib import Path
 
+import numpy as np
 import torch
 from torch import nn
 
@@ -27,6 +28,7 @@ __all__ = (
     "class_bootstrap_lower_bound",
     "classify_promotion",
     "evaluate_paired_rankings",
+    "evaluate_three_way_embeddings",
     "load_training_artifact",
     "rank_self_retrieval",
     "rank_self_retrieval_int8",
@@ -207,3 +209,47 @@ def restore_candidate_state(
     encoder.load_state_dict(encoder_state, strict=True)
     head.load_state_dict(head_state, strict=True)
     return raw_proxies
+
+
+def evaluate_three_way_embeddings(
+    candidate: object,
+    source: object,
+    teacher: object,
+    labels: object,
+    sample_ids: object,
+    *,
+    block_rows: int = 256,
+) -> dict[str, dict[str, object]]:
+    """Evaluate candidate float/int8, source, and teacher on identical rows."""
+
+    if (
+        type(candidate) is not np.ndarray
+        or type(source) is not np.ndarray
+        or type(teacher) is not np.ndarray
+        or type(labels) is not np.ndarray
+        or type(sample_ids) is not np.ndarray
+        or candidate.shape[0] != source.shape[0]
+        or candidate.shape[0] != teacher.shape[0]
+        or labels.shape != (candidate.shape[0],)
+        or sample_ids.shape != labels.shape
+    ):
+        raise ValueError("NNRL three-way evaluation inventory differs")
+
+    def evaluate(rows: list[dict[str, object]]) -> dict[str, object]:
+        return {
+            "metrics": recompute_self_retrieval(rows, labels, sample_ids),
+            "queries": rows,
+        }
+
+    return {
+        "candidate_float": evaluate(
+            rank_self_retrieval(candidate, labels, sample_ids, block_rows=block_rows)
+        ),
+        "candidate_int8": evaluate(
+            rank_self_retrieval_int8(candidate, labels, sample_ids, block_rows=block_rows)
+        ),
+        "source": evaluate(rank_self_retrieval(source, labels, sample_ids, block_rows=block_rows)),
+        "teacher": evaluate(
+            rank_self_retrieval(teacher, labels, sample_ids, block_rows=block_rows)
+        ),
+    }
