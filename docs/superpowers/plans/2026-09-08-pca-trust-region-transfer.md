@@ -24,11 +24,11 @@ on a method-specific unopened split.
 
 ### Task 2: Comparable SOP authority
 
-- [ ] Write REDs for a 128D SOP receipt with PCA float/int4, rotated-PCA int4,
+- [x] Write REDs for a 128D SOP receipt with PCA float/int4, rotated-PCA int4,
   relational float/int4, exact 1,000-update recipe, and model bytes.
-- [ ] Implement the authority-preserving evaluator, run focused/static gates,
+- [x] Implement the authority-preserving evaluator, run focused/static gates,
   review independently, and commit before execution.
-- [ ] Run one monitored DGX process, retain negative evidence, and authenticate
+- [x] Run one monitored DGX process, retain negative evidence, and authenticate
   receipt/model hashes. Do not start interpolation without this authority.
 
 ### Task 3: Train-only displacement screen
