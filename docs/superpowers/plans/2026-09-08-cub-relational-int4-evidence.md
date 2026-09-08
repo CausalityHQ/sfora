@@ -63,7 +63,7 @@
 - [x] **Step 1: Obtain independent read-only Astra and Fable reviews from the same repository evidence.**
 - [x] **Step 2: Reconcile concrete blockers: root-content authority, matched control, source binding, timing parity, and rollback safety.**
 - [x] **Step 3: Run `pytest` on both focused files, Ruff, strict mypy, `py_compile`, and `git diff --check`.**
-- [ ] **Step 4: Commit/push to canonical `master`, verify local/remote SHA equality and clean status.**
+- [x] **Step 4: Commit/push to canonical `master`, verify local/remote SHA equality and clean status.**
 
 ### Task 4: Re-export without opening quality
 
