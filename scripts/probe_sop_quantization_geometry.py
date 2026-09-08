@@ -8,6 +8,7 @@ import hashlib
 import json
 import math
 import os
+import platform
 import subprocess
 import sys
 from collections import Counter
@@ -44,6 +45,7 @@ from sfora.packed_int4 import PackedInt4Embeddings, pack_int4_unit_embeddings
 DIMENSIONS = 128
 BATCH = 1024
 EPOCHS = 20
+UPDATES = 1_000
 LEARNING_RATE = 1e-4
 TEMPERATURE = 0.05
 WEIGHT_DECAY = 1e-4
@@ -354,8 +356,10 @@ def _score_family(
     return scores
 
 
-def run_burned_sop_quantization(pair: PairedArchives) -> dict[str, object]:
-    """Train one 128D relational arm and evaluate frozen quantization geometry."""
+def run_comparable_sop_128_authority(
+    pair: PairedArchives,
+) -> tuple[dict[str, object], bytes]:
+    """Train the comparable 128D arm and return its receipt plus model bytes."""
 
     source_train = pair["source_train"]
     teacher_train = pair["teacher_train"]
@@ -391,6 +395,7 @@ def run_burned_sop_quantization(pair: PairedArchives) -> dict[str, object]:
             learning_rate=LEARNING_RATE,
             seed=SEED,
             temperature=TEMPERATURE,
+            updates=UPDATES,
             weight_decay=WEIGHT_DECAY,
         ),
         device=device,
@@ -444,12 +449,29 @@ def run_burned_sop_quantization(pair: PairedArchives) -> dict[str, object]:
         rotated_recovery=pca_rotated["map_at_r"] - pca_base["map_at_r"],
     )
     selected_model = rotated_relational if decision["rotation_clipping"] else relational
+    relational_model_wire = relational.to_bytes()
+    steps_per_epoch = len(source_train) // BATCH
+    complete_epochs, final_epoch_updates = divmod(UPDATES, steps_per_epoch)
+    training_epoch_update_counts = [steps_per_epoch] * complete_epochs
+    if final_epoch_updates:
+        training_epoch_update_counts.append(final_epoch_updates)
+    if len(training_epoch_update_counts) != len(losses):
+        raise ValueError("comparable SOP training evidence differs")
+    environment = {
+        "cuda_device": (torch.cuda.get_device_name(device) if device.type == "cuda" else None),
+        "deterministic_algorithms": torch.are_deterministic_algorithms_enabled(),
+        "machine": platform.machine(),
+        "platform": platform.platform(),
+        "python": sys.version,
+        "torch": torch.__version__,
+    }
     return {
         "claim_eligible": False,
         "bootstrap_comparisons": BOOTSTRAP_COMPARISONS,
         "bootstrap_samples": BOOTSTRAP_SAMPLES,
         "decision": decision,
         "dimensions": DIMENSIONS,
+        "environment": environment,
         "gates": {
             "asymmetric_gain": ASYMMETRIC_GAIN_GATE,
             "rotation_recovery_fraction": ROTATION_RECOVERY_FRACTION,
@@ -458,16 +480,127 @@ def run_burned_sop_quantization(pair: PairedArchives) -> dict[str, object]:
         "clipping_pair_samples": CLIPPING_PAIR_SAMPLES,
         "clipping_ratios": CLIPPING_RATIOS,
         "relational": relational_scores,
-        "relational_model_sha256": hashlib.sha256(relational.to_bytes()).hexdigest(),
+        "model_output_arm": "unrotated-relational",
+        "relational_model_bytes": len(relational_model_wire),
+        "relational_model_sha256": hashlib.sha256(relational_model_wire).hexdigest(),
         "rotation": {"kind": "seed-fixed-orthogonal", "seed": SEED},
         "rotated_relational_model_sha256": hashlib.sha256(
             rotated_relational.to_bytes()
         ).hexdigest(),
-        "schema": "sfora-sop-quantization-geometry-v1",
+        "schema": "sfora-sop-quantization-geometry-v2",
         "selected_model_sha256": hashlib.sha256(selected_model.to_bytes()).hexdigest(),
         "seed": SEED,
+        "test_classes": len(set(labels)),
+        "test_rows": len(source_test),
+        "train_rows": len(source_train),
+        "training_epoch_update_counts": training_epoch_update_counts,
         "training_losses": losses,
-    }
+        "training_recipe": {
+            "batch_size": BATCH,
+            "comparable_to": {
+                "axis": "optimizer-updates",
+                "optimizer_updates": 1_000,
+                "receipt": "sfora-cub-relational-int4-evaluation-v1",
+            },
+            "epochs_capacity": EPOCHS,
+            "learning_rate": LEARNING_RATE,
+            "steps_per_epoch": steps_per_epoch,
+            "temperature": TEMPERATURE,
+            "updates": UPDATES,
+            "weight_decay": WEIGHT_DECAY,
+        },
+        "training_updates": UPDATES,
+    }, relational_model_wire
+
+
+def _comparable_sop_output_paths(output: Path, model_output: Path) -> tuple[Path, Path]:
+    if not isinstance(output, Path) or not isinstance(model_output, Path) or output == model_output:
+        raise ValueError("comparable SOP authority differs")
+    receipt_partial = output.with_name(output.name + ".partial")
+    model_partial = model_output.with_name(model_output.name + ".partial")
+    paths = (output, model_output, receipt_partial, model_partial)
+    if len(set(paths)) != len(paths):
+        raise ValueError("comparable SOP authority differs")
+    for path in paths:
+        if path.exists() or path.is_symlink():
+            raise FileExistsError("comparable SOP output exists")
+    return receipt_partial, model_partial
+
+
+def _reserve_comparable_sop_outputs(output: Path, model_output: Path) -> tuple[Path, Path]:
+    receipt_partial, model_partial = _comparable_sop_output_paths(output, model_output)
+    created: list[Path] = []
+    try:
+        for path in (model_partial, receipt_partial):
+            with path.open("xb"):
+                pass
+            created.append(path)
+    except BaseException:
+        for path in created:
+            if path.is_file() and not path.is_symlink():
+                path.unlink()
+        raise
+    return receipt_partial, model_partial
+
+
+def _publish_reserved_comparable_sop_authority(
+    *,
+    receipt: dict[str, object],
+    model_wire: bytes,
+    output: Path,
+    model_output: Path,
+    receipt_partial: Path,
+    model_partial: Path,
+) -> None:
+    if (
+        type(receipt) is not dict
+        or type(model_wire) is not bytes
+        or not model_wire
+        or receipt.get("relational_model_sha256") != hashlib.sha256(model_wire).hexdigest()
+    ):
+        raise ValueError("comparable SOP authority differs")
+    raw = (json.dumps(receipt, sort_keys=True, separators=(",", ":")) + "\n").encode()
+    published: list[Path] = []
+    try:
+        for path, payload in ((model_partial, model_wire), (receipt_partial, raw)):
+            with path.open("wb") as stream:
+                stream.write(payload)
+                stream.flush()
+                os.fsync(stream.fileno())
+        os.link(model_partial, model_output)
+        published.append(model_output)
+        os.link(receipt_partial, output)
+        published.append(output)
+    except BaseException:
+        for path in published:
+            if path.is_file() and not path.is_symlink():
+                path.unlink()
+        raise
+
+
+def publish_comparable_sop_128_authority(
+    *,
+    receipt: dict[str, object],
+    model_wire: bytes,
+    output: Path,
+    model_output: Path,
+) -> None:
+    """Atomically publish a canonical receipt and its bound relational model."""
+
+    receipt_partial, model_partial = _reserve_comparable_sop_outputs(output, model_output)
+    try:
+        _publish_reserved_comparable_sop_authority(
+            receipt=receipt,
+            model_wire=model_wire,
+            output=output,
+            model_output=model_output,
+            receipt_partial=receipt_partial,
+            model_partial=model_partial,
+        )
+    finally:
+        for path in (model_partial, receipt_partial):
+            if path.is_file() and not path.is_symlink():
+                path.unlink()
 
 
 def _absolute_path(value: str) -> Path:
@@ -514,6 +647,7 @@ def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--teacher-embeddings-sha256", required=True, type=_digest)
     parser.add_argument("--source-commit", required=True, type=_commit)
     parser.add_argument("--output", required=True, type=_absolute_path)
+    parser.add_argument("--model-output", required=True, type=_absolute_path)
     parser.add_argument("--execute-sop-quantization", action="store_true", required=True)
     return parser.parse_args(arguments)
 
@@ -522,38 +656,32 @@ def main(arguments: Sequence[str] | None = None) -> int:
     """Authenticate, evaluate once, and publish one canonical decision receipt."""
 
     args = parse_args(arguments)
-    output = args.output
-    partial = output.with_name(output.name + ".partial")
-    if output.exists() or output.is_symlink():
-        raise FileExistsError("SOP quantization output exists")
-    if partial.exists() or partial.is_symlink():
-        raise FileExistsError("SOP quantization partial exists")
-    verify_quantization_source_commit(args.source_commit)
-    with partial.open("xb"):
-        pass
+    receipt_partial, model_partial = _reserve_comparable_sop_outputs(args.output, args.model_output)
     try:
+        verify_quantization_source_commit(args.source_commit)
         pair = load_paired_archives(
             args.source_embeddings,
             args.source_embeddings_sha256,
             args.teacher_embeddings,
             args.teacher_embeddings_sha256,
         )
-        result = run_burned_sop_quantization(pair)
+        result, model_wire = run_comparable_sop_128_authority(pair)
         result["source_commit"] = args.source_commit
         result["source_embeddings_sha256"] = args.source_embeddings_sha256
         result["source_sha256"] = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
         result["teacher_embeddings_sha256"] = args.teacher_embeddings_sha256
-        raw = (json.dumps(result, sort_keys=True, separators=(",", ":")) + "\n").encode()
-        with partial.open("wb") as stream:
-            stream.write(raw)
-            stream.flush()
-            os.fsync(stream.fileno())
-        os.link(partial, output)
-        partial.unlink()
-    except BaseException:
-        if partial.is_file() and not partial.is_symlink():
-            partial.unlink()
-        raise
+        _publish_reserved_comparable_sop_authority(
+            receipt=result,
+            model_wire=model_wire,
+            output=args.output,
+            model_output=args.model_output,
+            receipt_partial=receipt_partial,
+            model_partial=model_partial,
+        )
+    finally:
+        for path in (model_partial, receipt_partial):
+            if path.is_file() and not path.is_symlink():
+                path.unlink()
     return 0
 
 

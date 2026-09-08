@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -278,6 +280,7 @@ def test_real_small_quantization_pipeline_preserves_equal_byte_arms(
     monkeypatch.setattr(_MODULE, "DIMENSIONS", 4)
     monkeypatch.setattr(_MODULE, "BATCH", 4)
     monkeypatch.setattr(_MODULE, "EPOCHS", 1)
+    monkeypatch.setattr(_MODULE, "UPDATES", 2)
     monkeypatch.setattr(_MODULE, "CANDIDATE_WIDTH", 2)
     monkeypatch.setattr(_MODULE, "validate_sealed_pca_reproduction", lambda **_kwargs: None)
     pair = {
@@ -291,9 +294,9 @@ def test_real_small_quantization_pipeline_preserves_equal_byte_arms(
         "test_labels": (5, 5, 6, 6, 7, 7, 8, 8),
     }
 
-    result = _MODULE.run_burned_sop_quantization(pair)
+    result, model_wire = _MODULE.run_comparable_sop_128_authority(pair)
 
-    assert result["schema"] == "sfora-sop-quantization-geometry-v1"
+    assert result["schema"] == "sfora-sop-quantization-geometry-v2"
     assert result["claim_eligible"] is False
     assert result["clipping_pair_samples"] == _MODULE.CLIPPING_PAIR_SAMPLES
     assert result["clipping_ratios"] == _MODULE.CLIPPING_RATIOS
@@ -322,6 +325,184 @@ def test_real_small_quantization_pipeline_preserves_equal_byte_arms(
     else:
         assert result["selected_model_sha256"] == result["relational_model_sha256"]
     assert len(result["training_losses"]) == 1
+    assert result["training_updates"] == 2
+    assert result["training_epoch_update_counts"] == [2]
+    assert result["training_recipe"]["comparable_to"] == {
+        "axis": "optimizer-updates",
+        "optimizer_updates": 1_000,
+        "receipt": "sfora-cub-relational-int4-evaluation-v1",
+    }
+    assert result["model_output_arm"] == "unrotated-relational"
+    assert result["relational_model_bytes"] == len(model_wire)
+    assert result["relational_model_sha256"] == hashlib.sha256(model_wire).hexdigest()
+    assert result["train_rows"] == 8
+    assert result["test_rows"] == 8
+    assert result["test_classes"] == 4
+    assert set(result["environment"]) == {
+        "cuda_device",
+        "deterministic_algorithms",
+        "machine",
+        "platform",
+        "python",
+        "torch",
+    }
+
+
+def test_comparable_sop_authority_publishes_bound_model_and_receipt(tmp_path: Path) -> None:
+    model_wire = b"SFORA-RL1-model-fixture"
+    receipt = {
+        "claim_eligible": False,
+        "relational_model_sha256": hashlib.sha256(model_wire).hexdigest(),
+        "schema": "sfora-sop-quantization-geometry-v2",
+    }
+    output = tmp_path / "receipt.json"
+    model_output = tmp_path / "model.sfora-rl1"
+
+    _MODULE.publish_comparable_sop_128_authority(
+        receipt=receipt,
+        model_wire=model_wire,
+        output=output,
+        model_output=model_output,
+    )
+
+    assert model_output.read_bytes() == model_wire
+    assert (
+        output.read_bytes()
+        == (json.dumps(receipt, sort_keys=True, separators=(",", ":")) + "\n").encode()
+    )
+    with pytest.raises(FileExistsError, match="output exists"):
+        _MODULE.publish_comparable_sop_128_authority(
+            receipt=receipt,
+            model_wire=model_wire,
+            output=output,
+            model_output=tmp_path / "other.sfora-rl1",
+        )
+
+
+def test_comparable_sop_publisher_preserves_a_racing_writer_partial(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    model_wire = b"SFORA-RL1-model-fixture"
+    receipt = {
+        "relational_model_sha256": hashlib.sha256(model_wire).hexdigest(),
+    }
+    output = tmp_path / "receipt.json"
+    model_output = tmp_path / "model.sfora-rl1"
+    receipt_partial = tmp_path / "receipt.json.partial"
+    model_partial = tmp_path / "model.sfora-rl1.partial"
+    original_open = Path.open
+
+    def racing_open(path: Path, mode: str = "r", *args: object, **kwargs: object) -> object:
+        if path == model_partial and mode == "xb":
+            with original_open(receipt_partial, "xb") as stream:
+                stream.write(b"foreign-writer")
+        return original_open(path, mode, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", racing_open)
+
+    with pytest.raises(FileExistsError):
+        _MODULE.publish_comparable_sop_128_authority(
+            receipt=receipt,
+            model_wire=model_wire,
+            output=output,
+            model_output=model_output,
+        )
+    assert receipt_partial.read_bytes() == b"foreign-writer"
+
+
+def test_comparable_sop_cli_requires_distinct_model_output(tmp_path: Path) -> None:
+    common = [
+        "--source-embeddings",
+        str(tmp_path / "source.pt"),
+        "--source-embeddings-sha256",
+        "12" * 32,
+        "--teacher-embeddings",
+        str(tmp_path / "teacher.pt"),
+        "--teacher-embeddings-sha256",
+        "34" * 32,
+        "--source-commit",
+        "56" * 20,
+        "--output",
+        str(tmp_path / "receipt.json"),
+        "--execute-sop-quantization",
+    ]
+    with pytest.raises(SystemExit):
+        _MODULE.parse_args(common)
+    parsed = _MODULE.parse_args([*common, "--model-output", str(tmp_path / "model.sfora-rl1")])
+    assert parsed.model_output == tmp_path / "model.sfora-rl1"
+
+
+def test_comparable_sop_output_paths_reject_final_partial_aliases(tmp_path: Path) -> None:
+    output = tmp_path / "receipt.json"
+
+    with pytest.raises(ValueError, match="authority differs"):
+        _MODULE._comparable_sop_output_paths(
+            output,
+            tmp_path / "receipt.json.partial",
+        )
+
+
+def test_comparable_sop_main_rejects_output_collisions_before_training(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    output = tmp_path / "receipt.json"
+    output.write_bytes(b"existing")
+    model_output = tmp_path / "model.sfora-rl1"
+    monkeypatch.setattr(
+        _MODULE,
+        "parse_args",
+        lambda _arguments: _MODULE.argparse.Namespace(
+            model_output=model_output,
+            output=output,
+            source_commit="12" * 20,
+            source_embeddings=tmp_path / "source.npz",
+            source_embeddings_sha256="34" * 32,
+            teacher_embeddings=tmp_path / "teacher.npz",
+            teacher_embeddings_sha256="56" * 32,
+        ),
+    )
+    monkeypatch.setattr(
+        _MODULE,
+        "verify_quantization_source_commit",
+        lambda _commit: pytest.fail("source verification ran after an output collision"),
+    )
+
+    with pytest.raises(FileExistsError, match="output exists"):
+        _MODULE.main([])
+
+
+def test_comparable_sop_main_revalidates_model_binding_before_publication(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    output = tmp_path / "receipt.json"
+    model_output = tmp_path / "model.sfora-rl1"
+    monkeypatch.setattr(
+        _MODULE,
+        "parse_args",
+        lambda _arguments: _MODULE.argparse.Namespace(
+            model_output=model_output,
+            output=output,
+            source_commit="12" * 20,
+            source_embeddings=tmp_path / "source.npz",
+            source_embeddings_sha256="34" * 32,
+            teacher_embeddings=tmp_path / "teacher.npz",
+            teacher_embeddings_sha256="56" * 32,
+        ),
+    )
+    monkeypatch.setattr(_MODULE, "verify_quantization_source_commit", lambda _commit: None)
+    monkeypatch.setattr(_MODULE, "load_paired_archives", lambda *_args: {})
+    monkeypatch.setattr(
+        _MODULE,
+        "run_comparable_sop_128_authority",
+        lambda _pair: ({"relational_model_sha256": "00" * 32}, b"different-model"),
+    )
+
+    with pytest.raises(ValueError, match="authority differs"):
+        _MODULE.main([])
+    assert not output.exists()
+    assert not model_output.exists()
+    assert not (tmp_path / "receipt.json.partial").exists()
+    assert not (tmp_path / "model.sfora-rl1.partial").exists()
 
 
 def test_quantization_source_must_match_registered_commit(

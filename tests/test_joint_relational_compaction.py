@@ -449,6 +449,33 @@ def test_relational_linear_trainer_is_deterministic_and_returns_finite_history()
     torch.testing.assert_close(first.projection.weight, second.projection.weight)
 
 
+def test_relational_linear_trainer_stops_at_exact_registered_update_count(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = _unit(12, 4)
+    teacher = _unit(12, 5).roll(1, dims=0)
+    basis = torch.eye(4, dtype=torch.float32)[:2]
+    updates = 0
+    original_step = torch.optim.AdamW.step
+
+    def counted_step(self: torch.optim.AdamW, *args: object, **kwargs: object) -> object:
+        nonlocal updates
+        updates += 1
+        return original_step(self, *args, **kwargs)
+
+    monkeypatch.setattr(torch.optim.AdamW, "step", counted_step)
+    _model, losses = fit_relational_linear_encoder(
+        source,
+        teacher,
+        basis,
+        config=RelationalLinearTrainingConfig(batch_size=4, epochs=3, updates=5),
+        device=torch.device("cpu"),
+    )
+
+    assert updates == 5
+    assert len(losses) == 2
+
+
 def test_relational_linear_trainer_detaches_caller_autograd_graphs() -> None:
     source = _unit(8, 4).requires_grad_()
     teacher = _unit(8, 5).roll(1, dims=0).requires_grad_()
@@ -514,6 +541,17 @@ def test_relational_linear_training_config_rejects_invalid_recipe() -> None:
         RelationalLinearTrainingConfig(batch_size=1)
     with pytest.raises(ValueError, match="training config"):
         RelationalLinearTrainingConfig(batch_size=2)
+    with pytest.raises(ValueError, match="training config"):
+        RelationalLinearTrainingConfig(updates=0)
+    with pytest.raises(ValueError, match="training config"):
+        RelationalLinearTrainingConfig(updates=True)  # type: ignore[arg-type]
+
+
+def test_relational_linear_training_config_preserves_positional_weight_decay() -> None:
+    config = RelationalLinearTrainingConfig(8, 3, 2e-4, 19, 0.07, 3e-4)
+
+    assert config.weight_decay == 3e-4
+    assert config.updates is None
 
 
 def test_base_package_import_does_not_require_optional_torch() -> None:

@@ -117,6 +117,7 @@ class RelationalLinearTrainingConfig:
     seed: int = 17
     temperature: float = 0.05
     weight_decay: float = 1e-4
+    updates: int | None = None
 
     def __post_init__(self) -> None:
         if (
@@ -132,6 +133,7 @@ class RelationalLinearTrainingConfig:
             or type(self.temperature) is not float
             or not math.isfinite(self.temperature)
             or self.temperature <= 0.0
+            or (self.updates is not None and (type(self.updates) is not int or self.updates < 1))
             or type(self.weight_decay) is not float
             or not math.isfinite(self.weight_decay)
             or self.weight_decay < 0.0
@@ -356,17 +358,22 @@ def fit_relational_linear_encoder(
         foreach=False,
     )
     steps_per_epoch = len(source) // config.batch_size
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-        optimizer, T_max=config.epochs * steps_per_epoch
-    )
+    maximum_updates = config.epochs * steps_per_epoch
+    update_count = maximum_updates if config.updates is None else config.updates
+    if update_count > maximum_updates:
+        raise ValueError("relational linear training authority differs")
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=update_count)
     generator = torch.Generator().manual_seed(config.seed)
     losses = []
+    completed_updates = 0
     for _epoch in range(config.epochs):
         order = torch.randperm(len(source), generator=generator)[
             : steps_per_epoch * config.batch_size
         ]
         epoch_losses = []
         for start in range(0, len(order), config.batch_size):
+            if completed_updates == update_count:
+                break
             indexes = order[start : start + config.batch_size]
             optimizer.zero_grad(set_to_none=True)
             encoded = model(source_unit[indexes].to(device))
@@ -381,8 +388,11 @@ def fit_relational_linear_encoder(
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()
             scheduler.step()
+            completed_updates += 1
             epoch_losses.append(float(loss.detach()))
         losses.append(math.fsum(epoch_losses) / len(epoch_losses))
+        if completed_updates == update_count:
+            break
     return model.cpu().eval(), tuple(losses)
 
 
