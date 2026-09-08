@@ -3,10 +3,36 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import lru_cache
+from typing import cast
 
 import numpy as np
 import torch
 from torch.nn import functional as F
+
+_MAX_EXACT_INT4_DOT_DIMENSIONS = (1 << 24) // 49
+
+
+@lru_cache(maxsize=1)
+def _cpu_int_mm_available() -> bool:
+    """Probe the private CPU int8 kernel once without relying on error text."""
+
+    integer_mm = getattr(torch, "_int_mm", None)
+    if not callable(integer_mm):
+        return False
+    left = torch.ones((1, 2), dtype=torch.int8)
+    right = torch.ones((2, 1), dtype=torch.int8)
+    try:
+        observed = integer_mm(left, right)
+    except (NotImplementedError, RuntimeError):
+        return False
+    return bool(
+        type(observed) is torch.Tensor
+        and observed.device.type == "cpu"
+        and observed.dtype == torch.int32
+        and observed.shape == (1, 1)
+        and observed.item() == 2
+    )
 
 
 def _unit_rows(value: torch.Tensor) -> bool:
@@ -92,7 +118,11 @@ class PackedInt4Embeddings:
     ) -> torch.Tensor:
         """Compute pairwise cosine scores from packed signed-int4 rows."""
 
-        if type(other) is not PackedInt4Embeddings or other.dimensions != self.dimensions:
+        if (
+            type(other) is not PackedInt4Embeddings
+            or other.dimensions != self.dimensions
+            or self.dimensions > _MAX_EXACT_INT4_DOT_DIMENSIONS
+        ):
             raise ValueError("packed int4 similarity authority differs")
         if device is None:
             device = torch.device("cpu")
@@ -175,6 +205,107 @@ class PackedInt4Embeddings:
             packed_codes=packed_codes,
             inverse_norms=inverse_norms,
             dimensions=dimensions,
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class ResidentInt4Gallery:
+    """CPU int8 execution layout derived from the canonical int4 artifact."""
+
+    gallery_codes_transposed: torch.Tensor
+    inverse_norms: torch.Tensor
+    dimensions: int
+
+    def __post_init__(self) -> None:
+        if (
+            type(self.dimensions) is not int
+            or self.dimensions < 2
+            or self.dimensions % 2 != 0
+            or self.dimensions > _MAX_EXACT_INT4_DOT_DIMENSIONS
+            or type(self.gallery_codes_transposed) is not torch.Tensor
+            or self.gallery_codes_transposed.device.type != "cpu"
+            or self.gallery_codes_transposed.dtype != torch.int8
+            or self.gallery_codes_transposed.ndim != 2
+            or self.gallery_codes_transposed.shape[0] != self.dimensions
+            or self.gallery_codes_transposed.shape[1] < 1
+            or not self.gallery_codes_transposed.is_contiguous()
+            or type(self.inverse_norms) is not torch.Tensor
+            or self.inverse_norms.device.type != "cpu"
+            or self.inverse_norms.dtype != torch.float16
+            or self.inverse_norms.shape != (self.gallery_codes_transposed.shape[1],)
+            or not self.inverse_norms.is_contiguous()
+            or not bool(torch.isfinite(self.inverse_norms).all())
+            or bool((self.inverse_norms <= 0).any())
+        ):
+            raise ValueError("resident int4 gallery authority differs")
+        codes = self.gallery_codes_transposed
+        norms = torch.linalg.vector_norm(codes.float(), dim=0)
+        expected = norms.reciprocal().to(torch.float16)
+        lower = torch.nextafter(expected, torch.full_like(expected, -torch.inf))
+        upper = torch.nextafter(expected, torch.full_like(expected, torch.inf))
+        if (
+            bool((codes < -7).any())
+            or bool((codes > 7).any())
+            or bool((norms <= 0).any())
+            or bool((self.inverse_norms < lower).any())
+            or bool((self.inverse_norms > upper).any())
+        ):
+            raise ValueError("resident int4 gallery authority differs")
+
+    @property
+    def resident_bytes_per_vector(self) -> int:
+        """Return layout bytes per vector, excluding source artifact and score outputs."""
+
+        return self.dimensions + 2
+
+    @property
+    def integer_backend_available(self) -> bool:
+        """Return whether the exact CPU int8 matrix kernel passed its probe."""
+
+        return _cpu_int_mm_available()
+
+    @classmethod
+    def from_packed(cls, value: PackedInt4Embeddings) -> ResidentInt4Gallery:
+        """Decode a canonical packed gallery once into the integer execution layout."""
+
+        if type(value) is not PackedInt4Embeddings:
+            raise ValueError("resident int4 gallery authority differs")
+        return cls(
+            gallery_codes_transposed=value.signed_codes().T.contiguous(),
+            inverse_norms=value.inverse_norms.clone().contiguous(),
+            dimensions=value.dimensions,
+        )
+
+    def score_queries(
+        self, *, queries: PackedInt4Embeddings, require_integer: bool = True
+    ) -> torch.Tensor:
+        """Score through CPU int8, or explicitly allow a float32 materializing fallback."""
+
+        if (
+            type(queries) is not PackedInt4Embeddings
+            or queries.dimensions != self.dimensions
+            or type(require_integer) is not bool
+        ):
+            raise ValueError("resident int4 similarity authority differs")
+
+        def float_dots() -> torch.Tensor:
+            with torch.autocast(device_type="cpu", enabled=False):
+                return queries.signed_codes().float() @ self.gallery_codes_transposed.float()
+
+        integer_mm = getattr(torch, "_int_mm", None)
+        if self.integer_backend_available and callable(integer_mm):
+            integer_dots = cast(
+                torch.Tensor,
+                integer_mm(queries.signed_codes(), self.gallery_codes_transposed),
+            ).to(torch.float32)
+        else:
+            if require_integer:
+                raise RuntimeError("resident int4 integer kernel is unavailable")
+            integer_dots = float_dots()
+        return (
+            integer_dots
+            * queries.inverse_norms.to(torch.float32).unsqueeze(1)
+            * self.inverse_norms.to(torch.float32).unsqueeze(0)
         )
 
 

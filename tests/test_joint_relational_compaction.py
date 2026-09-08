@@ -4,11 +4,13 @@ import struct
 import subprocess
 import sys
 from pathlib import Path
+from typing import cast
 
 import pytest
 import torch
 from torch.nn import functional as F
 
+import sfora.packed_int4 as packed_int4_module
 from sfora.joint_relational_compaction import (
     JointRelationalEncoder,
     PackedInt8Embeddings,
@@ -22,6 +24,7 @@ from sfora.joint_relational_compaction import (
 )
 from sfora.packed_int4 import (
     PackedInt4Embeddings,
+    ResidentInt4Gallery,
     fixed_int4_unit_codes,
     pack_int4_unit_embeddings,
 )
@@ -249,6 +252,137 @@ def test_packed_int4_float_query_similarity_is_exact_and_strict() -> None:
         gallery.float_query_similarity(queries, device="cpu")  # type: ignore[arg-type]
 
 
+@pytest.mark.skipif(
+    not packed_int4_module._cpu_int_mm_available(),
+    reason="exact CPU int8 matrix kernel unavailable",
+)
+def test_resident_int4_gallery_uses_integer_kernel_with_exact_score_and_rank_parity() -> None:
+    generator = torch.Generator().manual_seed(17)
+    gallery_values = F.normalize(torch.randn((17, 128), generator=generator), dim=1).contiguous()
+    query_values = F.normalize(torch.randn((5, 128), generator=generator), dim=1).contiguous()
+    gallery = pack_int4_unit_embeddings(gallery_values)
+    queries = pack_int4_unit_embeddings(query_values)
+
+    resident = ResidentInt4Gallery.from_packed(gallery)
+    expected = queries.cosine_similarity(gallery)
+    observed = resident.score_queries(queries=queries)
+
+    assert resident.resident_bytes_per_vector == 130
+    assert resident.gallery_codes_transposed.dtype == torch.int8
+    assert resident.gallery_codes_transposed.shape == (128, 17)
+    assert resident.gallery_codes_transposed.is_contiguous()
+    assert torch.equal(observed, expected)
+    assert torch.equal(
+        torch.argsort(observed, dim=1, descending=True, stable=True),
+        torch.argsort(expected, dim=1, descending=True, stable=True),
+    )
+
+
+def test_resident_int4_gallery_rejects_noncanonical_authority(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    gallery = pack_int4_unit_embeddings(_unit(5, 128))
+    resident = ResidentInt4Gallery.from_packed(gallery)
+    queries = pack_int4_unit_embeddings(_unit(2, 128))
+
+    with pytest.raises(ValueError, match="resident int4 gallery authority"):
+        ResidentInt4Gallery(
+            gallery_codes_transposed=resident.gallery_codes_transposed.T,
+            inverse_norms=resident.inverse_norms,
+            dimensions=128,
+        )
+    strided = torch.ones((128, 10), dtype=torch.int8)[:, ::2]
+    assert strided.shape == (128, 5) and not strided.is_contiguous()
+    with pytest.raises(ValueError, match="resident int4 gallery authority"):
+        ResidentInt4Gallery(
+            gallery_codes_transposed=strided,
+            inverse_norms=resident.inverse_norms,
+            dimensions=128,
+        )
+    with pytest.raises(ValueError, match="resident int4 gallery authority"):
+        ResidentInt4Gallery(
+            gallery_codes_transposed=torch.full((128, 1), 8, dtype=torch.int8),
+            inverse_norms=torch.tensor([1.0 / math.sqrt(128 * 64)], dtype=torch.float16),
+            dimensions=128,
+        )
+    oversized = torch.ones((342_394, 1), dtype=torch.int8)
+    with pytest.raises(ValueError, match="resident int4 gallery authority"):
+        ResidentInt4Gallery(
+            gallery_codes_transposed=oversized,
+            inverse_norms=torch.tensor([1.0 / math.sqrt(342_394)], dtype=torch.float16),
+            dimensions=342_394,
+        )
+    oversized_packed = PackedInt4Embeddings(
+        packed_codes=torch.full((1, 171_197), 0x11, dtype=torch.uint8),
+        inverse_norms=torch.tensor([1.0 / math.sqrt(342_394)], dtype=torch.float16),
+        dimensions=342_394,
+    )
+    with pytest.raises(ValueError, match="packed int4 similarity authority"):
+        oversized_packed.cosine_similarity(oversized_packed)
+    with pytest.raises(ValueError, match="resident int4 similarity authority"):
+        resident.score_queries(queries=pack_int4_unit_embeddings(_unit(2, 126)))
+    monkeypatch.setattr(torch, "_int_mm", None)
+    packed_int4_module._cpu_int_mm_available.cache_clear()
+    with pytest.raises(RuntimeError, match="integer kernel is unavailable"):
+        resident.score_queries(queries=queries)
+    assert torch.equal(
+        resident.score_queries(queries=queries, require_integer=False),
+        queries.cosine_similarity(gallery),
+    )
+    with torch.autocast(device_type="cpu", dtype=torch.bfloat16):
+        autocast_observed = resident.score_queries(queries=queries, require_integer=False)
+    assert torch.equal(autocast_observed, queries.cosine_similarity(gallery))
+
+    def unavailable_integer_mm(left: torch.Tensor, right: torch.Tensor) -> torch.Tensor:
+        del left, right
+        raise NotImplementedError("CPU kernel is not registered")
+
+    monkeypatch.setattr(torch, "_int_mm", unavailable_integer_mm)
+    packed_int4_module._cpu_int_mm_available.cache_clear()
+    with pytest.raises(RuntimeError, match="integer kernel is unavailable"):
+        resident.score_queries(queries=queries)
+    assert torch.equal(
+        resident.score_queries(queries=queries, require_integer=False),
+        queries.cosine_similarity(gallery),
+    )
+
+    def unregistered_integer_mm(left: torch.Tensor, right: torch.Tensor) -> torch.Tensor:
+        del left, right
+        raise RuntimeError("backend registration wording changed")
+
+    monkeypatch.setattr(torch, "_int_mm", unregistered_integer_mm)
+    packed_int4_module._cpu_int_mm_available.cache_clear()
+    assert torch.equal(
+        resident.score_queries(queries=queries, require_integer=False),
+        queries.cosine_similarity(gallery),
+    )
+
+    real_integer_mm = torch.ops.aten._int_mm.default
+
+    def probe_then_oom(left: torch.Tensor, right: torch.Tensor) -> torch.Tensor:
+        if left.shape == (1, 2) and right.shape == (2, 1):
+            return cast(torch.Tensor, real_integer_mm(left, right))
+        raise RuntimeError("out of memory")
+
+    monkeypatch.setattr(torch, "_int_mm", probe_then_oom)
+    packed_int4_module._cpu_int_mm_available.cache_clear()
+    with pytest.raises(RuntimeError, match="out of memory"):
+        resident.score_queries(queries=queries)
+
+    class BackendRuntimeError(RuntimeError):
+        pass
+
+    def probe_then_subclass_error(left: torch.Tensor, right: torch.Tensor) -> torch.Tensor:
+        if left.shape == (1, 2) and right.shape == (2, 1):
+            return cast(torch.Tensor, real_integer_mm(left, right))
+        raise BackendRuntimeError("allocator failed")
+
+    monkeypatch.setattr(torch, "_int_mm", probe_then_subclass_error)
+    packed_int4_module._cpu_int_mm_available.cache_clear()
+    with pytest.raises(BackendRuntimeError, match="allocator failed"):
+        resident.score_queries(queries=queries)
+
+
 def test_packed_int4_rejects_noncanonical_shapes_codes_norms_and_wire() -> None:
     packed = pack_int4_unit_embeddings(_unit(4, 128))
     with pytest.raises(ValueError, match="packed int4 byte authority"):
@@ -416,6 +550,9 @@ def test_relational_linear_method_is_available_from_public_api() -> None:
         RelationalLinearTrainingConfig as PublicConfig,
     )
     from sfora import (
+        ResidentInt4Gallery as PublicResidentInt4Gallery,
+    )
+    from sfora import (
         fit_relational_linear_compaction as public_compact_fit,
     )
     from sfora import (
@@ -432,6 +569,7 @@ def test_relational_linear_method_is_available_from_public_api() -> None:
     assert PublicPacked is PackedInt8Embeddings
     assert PublicEncoder is RelationalLinearEncoder
     assert PublicConfig is RelationalLinearTrainingConfig
+    assert PublicResidentInt4Gallery is ResidentInt4Gallery
     assert public_compact_fit is fit_relational_linear_compaction
     assert public_fit is fit_relational_linear_encoder
     assert public_pack_int4 is pack_int4_unit_embeddings

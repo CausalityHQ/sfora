@@ -128,6 +128,7 @@ from sfora.training import (
 _PACKED_INT4_EXPORTS = frozenset(
     {
         "PackedInt4Embeddings",
+        "ResidentInt4Gallery",
         "pack_int4_unit_embeddings",
     }
 )
@@ -205,6 +206,7 @@ __all__ = [
     "RelationalLinearEncoder",
     "RelationalLinearTrainingConfig",
     "ReportConfig",
+    "ResidentInt4Gallery",
     "SyntheticAblationConfig",
     "SyntheticAblationResult",
     "SyntheticAblationTrial",
