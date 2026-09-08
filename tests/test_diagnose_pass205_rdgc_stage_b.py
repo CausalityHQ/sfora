@@ -2661,13 +2661,14 @@ def test_real_pass200_source_validator_rejects_later_worktree_drift() -> None:
         != expected_sha256
     }
     assert drifted_paths == {
+        "src/sfora/__init__.py",
         "src/sfora/cli.py",
         "src/sfora/image_benchmark.py",
         "src/sfora/image_end_to_end.py",
     }
     with pytest.raises(
         ValueError,
-        match=r"source worktree differs for src/sfora/cli\.py$",
+        match=r"source worktree differs for src/sfora/__init__\.py$",
     ):
         _RSTA.validate_scientific_execution_source(
             manifest_path

@@ -272,6 +272,8 @@ for the full benchmark table, reproducibility notes, and the honest negatives
 - `sfora.api`: stable fit/transform API for external embeddings.
 - `sfora.training`: projection-head and embedding-table objectives.
 - `sfora.evaluation`: linear-probe, retrieval, and geometry metrics.
+- `sfora.joint_relational_compaction`: label-free shared projection distillation
+  and an exact compact int8 embedding format.
 - `sfora.image_benchmark`: CUB, Cars196, SOP, DeepFashion In-Shop, and iNaturalist
   retrieval benchmarks, including self-retrieval and query/gallery protocols.
 - `sfora.image_end_to_end`: ResNet-50/512 paper-protocol training for
@@ -326,6 +328,50 @@ training step.
 
 See [docs/library_usage.md](docs/library_usage.md) for retrieval scoring and
 recommended settings.
+
+### Relational embedding compaction
+
+When a stronger teacher and a cheaper source encoder describe the same training
+items, Sfora can learn one shared, bias-free projection that preserves the
+teacher's neighborhood distributions. The public method uses no class labels,
+query/gallery examples, or dataset-specific rules. Its compact wire format stores
+one signed byte per output coordinate plus a little-endian float16 inverse norm
+(66 bytes for a 64-dimensional vector).
+Install the `research` extra for this PyTorch-based API; importing the base Sfora
+package remains lightweight and does not import PyTorch.
+
+```python
+import torch
+
+from sfora import (
+    RelationalLinearTrainingConfig,
+    fit_relational_linear_compaction,
+    pack_int8_unit_embeddings,
+)
+
+model, losses = fit_relational_linear_compaction(
+    source_train,              # paired source embeddings, float32 on CPU
+    teacher_train,             # paired teacher embeddings, float32 on CPU
+    output_dimensions=64,      # basis is fitted from source_train only
+    config=RelationalLinearTrainingConfig(),
+    device=torch.device("cuda"),
+)
+model_wire = model.to_bytes()
+model = type(model).from_bytes(model_wire)
+compact = pack_int8_unit_embeddings(model(source_items))
+wire = compact.to_bytes()
+restored = type(compact).from_bytes(
+    wire, count=len(source_items), dimensions=64
+)
+scores = restored.cosine_similarity(restored)
+```
+
+The packed representation controls persistent item storage. `restore()` expands
+rows to float32 for backends that prefer dense matrix multiplication; use
+`cosine_similarity()` to score from the packed codes and inverse norms directly.
+Fit the basis and projection on training data only.
+See [the relational compaction evidence note](docs/relational_linear_compaction.md)
+for the frozen protocol, cross-domain results, and claim limitations.
 
 ### End-to-end method API — compose a method from type-safe bricks
 

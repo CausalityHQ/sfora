@@ -1,5 +1,8 @@
 """Core tools for group-based similarity learning experiments."""
 
+from importlib import import_module
+from typing import cast
+
 from sfora.ablation import (
     SyntheticAblationConfig,
     SyntheticAblationResult,
@@ -122,6 +125,29 @@ from sfora.training import (
     train_projection_head,
 )
 
+_RELATIONAL_COMPACTION_EXPORTS = frozenset(
+    {
+        "PackedInt8Embeddings",
+        "RelationalLinearEncoder",
+        "RelationalLinearTrainingConfig",
+        "fit_relational_linear_compaction",
+        "fit_relational_linear_encoder",
+        "pack_int8_unit_embeddings",
+    }
+)
+
+
+def __getattr__(name: str) -> object:
+    """Load optional PyTorch compaction symbols only when explicitly requested."""
+
+    if name in _RELATIONAL_COMPACTION_EXPORTS:
+        module = import_module("sfora.joint_relational_compaction")
+        value = cast(object, getattr(module, name))
+        globals()[name] = value
+        return value
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
 __all__ = [
     "ExperimentResult",
     "EncoderTrainingConfig",
@@ -153,6 +179,7 @@ __all__ = [
     "ImageObjective",
     "ImageRetrievalMetrics",
     "MethodMetrics",
+    "PackedInt8Embeddings",
     "ProjectionHeadTrainingConfig",
     "ProjectionHeadTrainingResult",
     "ProjectionTrainingConfig",
@@ -162,6 +189,8 @@ __all__ = [
     "RemoteRunConfig",
     "RemoteRunPlan",
     "RemoteStep",
+    "RelationalLinearEncoder",
+    "RelationalLinearTrainingConfig",
     "ReportConfig",
     "SyntheticAblationConfig",
     "SyntheticAblationResult",
@@ -182,6 +211,8 @@ __all__ = [
     "build_hf_publish_bundle",
     "build_remote_run_plan",
     "fit_sfora_projection",
+    "fit_relational_linear_compaction",
+    "fit_relational_linear_encoder",
     "group_triplet_margin_loss",
     "embedding_space_diagnostics_on_split",
     "image_self_retrieval_score",
@@ -193,6 +224,7 @@ __all__ = [
     "mine_group_triplets",
     "mine_triplets",
     "objective_display_name",
+    "pack_int8_unit_embeddings",
     "run_sentence_transformer_baseline",
     "run_sentence_transformer_model_suite",
     "run_encoder_ablation",
