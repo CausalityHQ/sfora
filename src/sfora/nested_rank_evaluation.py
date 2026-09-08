@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import math
 from collections.abc import Sequence
+from typing import cast
 
 import numpy as np
+import torch
 from numpy.typing import NDArray
 
+from sfora.joint_relational_compaction import pack_int8_unit_embeddings
 from sfora.nested_rank_protocol import cluster_bootstrap_lower_bound
 
 
@@ -126,11 +129,10 @@ def rank_self_retrieval_int8(
     values, labels, sample_ids = _validated_arrays(embeddings, labels, sample_ids)
     if type(block_rows) is not int or block_rows <= 0:
         raise ValueError("nested-rank evaluation block size differs")
-    codes = np.clip(np.rint(values * 127.0), -127, 127).astype(np.int8)
-    integer_codes = codes.astype(np.int32)
-    code_norms = np.linalg.norm(integer_codes.astype(np.float64), axis=1)
-    if np.any(code_norms == 0.0) or not np.isfinite(code_norms).all():
-        raise ValueError("nested-rank int8 geometry differs")
+    packed = pack_int8_unit_embeddings(torch.from_numpy(values.astype(np.float32)))
+    query_values = torch.from_numpy(values.astype(np.float32))
+    float_codes = packed.codes.float()
+    inverse_norms = packed.inverse_norms.float()
     label_counts = {
         int(label): int(count)
         for label, count in zip(*np.unique(labels, return_counts=True), strict=True)
@@ -138,8 +140,8 @@ def rank_self_retrieval_int8(
     result: list[dict[str, object]] = []
     for start in range(0, values.shape[0], block_rows):
         stop = min(start + block_rows, values.shape[0])
-        dots = integer_codes[start:stop] @ integer_codes.T
-        scores = dots.astype(np.float64) / (code_norms[start:stop, None] * code_norms[None, :])
+        score_tensor = (query_values[start:stop] @ float_codes.T) * inverse_norms[None, :]
+        scores = cast(NDArray[np.float64], score_tensor.numpy().astype(np.float64, copy=False))
         for local, query_index in enumerate(range(start, stop)):
             scores[local, query_index] = -np.inf
             relevant = label_counts[int(labels[query_index])] - 1

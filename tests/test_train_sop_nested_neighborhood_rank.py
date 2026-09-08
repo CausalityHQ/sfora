@@ -596,6 +596,64 @@ def test_training_transform_is_retrieval_safe_and_explicit() -> None:
     assert transform.transforms[1].size == (224, 224)
 
 
+def test_resolved_training_recipe_binds_numeric_and_runtime_authority(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(MODULE.torch.cuda, "get_device_name", lambda _device: "fixture-gpu")
+    monkeypatch.setattr(MODULE.torch.cuda, "get_device_capability", lambda _device: (9, 0))
+    monkeypatch.setattr(MODULE.torch.backends.cudnn, "version", lambda: 90100)
+
+    authority = MODULE.resolved_training_recipe(
+        arm="proxy-anchor",
+        split_seed=17,
+        temperature=0.05,
+        steps_per_epoch=372,
+        device=torch.device("cuda"),
+    )
+
+    assert authority["schema"] == "sfora-nnrl-sop-training-recipe-v1"
+    assert authority["objective"] == {
+        "arm": "proxy-anchor",
+        "temperature": 0.05,
+        "output_dimensions": [32, 128],
+    }
+    assert authority["schedule"] == {
+        "split_seed": 17,
+        "epochs": 10,
+        "steps_per_epoch": 372,
+        "batch_size": 128,
+    }
+    assert authority["optimizer"] == {
+        "name": "AdamW",
+        "encoder_learning_rate": 1e-5,
+        "head_learning_rate": 1e-3,
+        "proxy_learning_rate": 1e-3,
+        "betas": [0.9, 0.999],
+        "epsilon": 1e-8,
+        "decay": 1e-4,
+    }
+    assert authority["precision"] == {
+        "autocast": "float16",
+        "gradient_scaler_initial_scale": 1024.0,
+        "gradient_scaler_growth_interval": 2**31 - 1,
+        "fail_on_nonfinite": True,
+    }
+    assert authority["data"] == {
+        "workers": 8,
+        "pin_memory": True,
+        "frozen_batch_norm": True,
+        "transform": "resize-256-bicubic/random-crop-224/random-horizontal-flip/unicom-normalize",
+    }
+    assert authority["runtime"]["gpu_name"] == "fixture-gpu"
+    assert authority["runtime"]["gpu_capability"] == [9, 0]
+    assert authority["runtime"]["cudnn_version"] == 90100
+    assert type(authority["runtime"]["torch_version"]) is str
+    assert (
+        authority["runtime"]["cuda_version"] is None
+        or type(authority["runtime"]["cuda_version"]) is str
+    )
+
+
 def test_training_artifacts_are_immutable_canonical_and_hash_bound(tmp_path: Path) -> None:
     output = tmp_path / "run"
     state = {

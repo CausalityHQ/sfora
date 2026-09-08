@@ -231,6 +231,106 @@ def _artifact_descriptor(value: object, *, expected_path: str) -> bool:
     )
 
 
+def _validate_resolved_recipe(result: dict[str, object]) -> None:
+    authority = result["authority"]
+    if type(authority) is not dict:
+        raise ValueError("NNRL resolved recipe differs")
+    recipe = authority.get("resolved_recipe")
+    if type(recipe) is not dict or set(recipe) != {
+        "schema",
+        "objective",
+        "schedule",
+        "optimizer",
+        "precision",
+        "data",
+        "runtime",
+    }:
+        raise ValueError("NNRL resolved recipe differs")
+    objective = recipe["objective"]
+    schedule = recipe["schedule"]
+    optimizer = recipe["optimizer"]
+    precision = recipe["precision"]
+    data = recipe["data"]
+    runtime = recipe["runtime"]
+    arm = result["arm"]
+    history = result["history"]
+    if type(history) is not list or not history or type(history[0]) is not dict:
+        raise ValueError("NNRL resolved recipe differs")
+    steps_per_epoch = history[0].get("steps")
+    if type(steps_per_epoch) is not int or any(
+        type(row) is not dict or row.get("steps") != steps_per_epoch for row in history
+    ):
+        raise ValueError("NNRL resolved recipe differs")
+    expected_dimensions = [768] if arm == "proxy-anchor-768" else [32, 128]
+    if (
+        recipe["schema"] != "sfora-nnrl-sop-training-recipe-v1"
+        or type(objective) is not dict
+        or objective
+        != {
+            "arm": arm,
+            "temperature": result["temperature"],
+            "output_dimensions": expected_dimensions,
+        }
+        or type(schedule) is not dict
+        or schedule
+        != {
+            "split_seed": result["split_seed"],
+            "epochs": 10,
+            "steps_per_epoch": steps_per_epoch,
+            "batch_size": 128,
+        }
+        or type(optimizer) is not dict
+        or optimizer
+        != {
+            "name": "AdamW",
+            "encoder_learning_rate": 1e-5,
+            "head_learning_rate": 1e-3,
+            "proxy_learning_rate": 1e-3,
+            "betas": [0.9, 0.999],
+            "epsilon": 1e-8,
+            "decay": 1e-4,
+        }
+        or type(precision) is not dict
+        or precision
+        != {
+            "autocast": "float16",
+            "gradient_scaler_initial_scale": 1024.0,
+            "gradient_scaler_growth_interval": 2**31 - 1,
+            "fail_on_nonfinite": True,
+        }
+        or type(data) is not dict
+        or data
+        != {
+            "workers": 8,
+            "pin_memory": True,
+            "frozen_batch_norm": True,
+            "transform": (
+                "resize-256-bicubic/random-crop-224/random-horizontal-flip/unicom-normalize"
+            ),
+        }
+        or type(runtime) is not dict
+        or set(runtime)
+        != {
+            "python_version",
+            "torch_version",
+            "cuda_version",
+            "cudnn_version",
+            "gpu_name",
+            "gpu_capability",
+        }
+        or any(
+            type(runtime[key]) is not str or not runtime[key]
+            for key in ("python_version", "torch_version", "cuda_version", "gpu_name")
+        )
+        or type(runtime["cudnn_version"]) is not int
+        or runtime["cudnn_version"] <= 0
+        or type(runtime["gpu_capability"]) is not list
+        or len(runtime["gpu_capability"]) != 2
+        or any(type(value) is not int or value < 0 for value in runtime["gpu_capability"])
+    ):
+        raise ValueError("NNRL resolved recipe differs")
+
+
 def load_training_artifact(
     result_path: Path,
     result_sha256: str,
@@ -272,7 +372,7 @@ def load_training_artifact(
         or type(result["optimization_classes"]) is not int
         or result["optimization_classes"] <= 1
         or type(result["epochs"]) is not int
-        or result["epochs"] <= 0
+        or result["epochs"] != 10
         or type(result["history"]) is not list
         or len(result["history"]) != result["epochs"]
         or type(result["authority"]) is not dict
@@ -281,6 +381,7 @@ def load_training_artifact(
         or not _artifact_descriptor(result["run_receipt"], expected_path="run-receipt.json")
     ):
         raise ValueError("NNRL result authority differs")
+    _validate_resolved_recipe(result)
     for epoch, row in enumerate(result["history"], start=1):
         if (
             type(row) is not dict
@@ -488,7 +589,13 @@ def _load_trainer(repository: Path) -> Any:
     if specification is None or specification.loader is None:
         raise ImportError(path)
     module = importlib.util.module_from_spec(specification)
-    specification.loader.exec_module(module)
+    sys.modules[specification.name] = module
+    try:
+        specification.loader.exec_module(module)
+    except Exception:
+        if sys.modules.get(specification.name) is module:
+            del sys.modules[specification.name]
+        raise
     return module
 
 

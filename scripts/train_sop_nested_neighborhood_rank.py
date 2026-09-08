@@ -792,6 +792,78 @@ def build_grad_scaler(device: torch.device, *, fp16: bool) -> Any:
     )
 
 
+def resolved_training_recipe(
+    *,
+    arm: str,
+    split_seed: int,
+    temperature: float,
+    steps_per_epoch: int,
+    device: torch.device,
+) -> dict[str, object]:
+    """Return the exact numeric recipe and runtime bound to a training result."""
+
+    if (
+        arm not in _ARMS
+        or split_seed not in _SPLIT_SEEDS
+        or type(temperature) is not float
+        or not math.isfinite(temperature)
+        or temperature <= 0.0
+        or type(steps_per_epoch) is not int
+        or steps_per_epoch <= 0
+        or type(device) is not torch.device
+        or device.type != "cuda"
+    ):
+        raise ValueError("NNRL resolved recipe authority differs")
+    output_dimensions = [768] if arm == "proxy-anchor-768" else [32, 128]
+    capability = torch.cuda.get_device_capability(device)
+    cudnn_version = torch.backends.cudnn.version()  # type: ignore[no-untyped-call]
+    return {
+        "schema": "sfora-nnrl-sop-training-recipe-v1",
+        "objective": {
+            "arm": arm,
+            "temperature": temperature,
+            "output_dimensions": output_dimensions,
+        },
+        "schedule": {
+            "split_seed": split_seed,
+            "epochs": 10,
+            "steps_per_epoch": steps_per_epoch,
+            "batch_size": 128,
+        },
+        "optimizer": {
+            "name": "AdamW",
+            "encoder_learning_rate": 1e-5,
+            "head_learning_rate": 1e-3,
+            "proxy_learning_rate": 1e-3,
+            "betas": [0.9, 0.999],
+            "epsilon": 1e-8,
+            "decay": 1e-4,
+        },
+        "precision": {
+            "autocast": "float16",
+            "gradient_scaler_initial_scale": 1024.0,
+            "gradient_scaler_growth_interval": 2**31 - 1,
+            "fail_on_nonfinite": True,
+        },
+        "data": {
+            "workers": 8,
+            "pin_memory": True,
+            "frozen_batch_norm": True,
+            "transform": (
+                "resize-256-bicubic/random-crop-224/random-horizontal-flip/unicom-normalize"
+            ),
+        },
+        "runtime": {
+            "python_version": sys.version.split()[0],
+            "torch_version": str(torch.__version__),
+            "cuda_version": torch.version.cuda,
+            "cudnn_version": cudnn_version,
+            "gpu_name": torch.cuda.get_device_name(device),
+            "gpu_capability": [int(capability[0]), int(capability[1])],
+        },
+    }
+
+
 def run_phase_one(
     encoder: nn.Module,
     head: nn.Module,
@@ -1160,6 +1232,13 @@ def run_experiment(arguments: argparse.Namespace) -> dict[str, object]:
     torch.manual_seed(arguments.split_seed)
     torch.cuda.manual_seed_all(arguments.split_seed)
     device = torch.device("cuda")
+    authority["resolved_recipe"] = resolved_training_recipe(
+        arm=arguments.arm,
+        split_seed=arguments.split_seed,
+        temperature=temperature,
+        steps_per_epoch=steps_per_epoch,
+        device=device,
+    )
     encoder = _load_student_model(arguments.unicom_checkout, arguments.unicom_checkpoint).to(device)
     class_count = len(label_values)
     if arguments.arm == "proxy-anchor-768":

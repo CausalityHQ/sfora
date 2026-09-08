@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -161,7 +162,7 @@ def test_bounded_top_r_matches_full_stable_oracle_with_ties() -> None:
         assert np.array_equal(actual, expected)
 
 
-def test_int8_self_retrieval_uses_exact_codes_norms_and_sample_id_ties() -> None:
+def test_int8_self_retrieval_uses_deployed_codes_norms_and_sample_id_ties() -> None:
     embeddings, labels, sample_ids = _fixture()
     rows = MODULE.rank_self_retrieval_int8(
         embeddings,
@@ -172,14 +173,69 @@ def test_int8_self_retrieval_uses_exact_codes_norms_and_sample_id_ties() -> None
 
     normalized = embeddings / np.linalg.norm(embeddings, axis=1)[:, None]
     codes = np.clip(np.rint(normalized * 127), -127, 127).astype(np.int8)
-    norms = np.linalg.norm(codes.astype(np.float64), axis=1)
+    inverse_norms = np.reciprocal(np.linalg.norm(codes.astype(np.float32), axis=1)).astype(
+        np.float16
+    )
     for query_index, row in enumerate(rows):
-        scores = (codes[query_index].astype(np.int32) @ codes.astype(np.int32).T).astype(
-            np.float64
-        ) / (norms[query_index] * norms)
+        scores = normalized[query_index].astype(np.float32) @ codes.astype(np.float32).T
+        scores *= inverse_norms.astype(np.float32)
         scores[query_index] = -np.inf
         expected = np.lexsort((sample_ids, -scores))[:1]
         assert row["ranked_sample_ids"] == [int(sample_ids[expected[0]])]
+
+
+def test_int8_self_retrieval_keeps_float32_queries_against_deployed_gallery() -> None:
+    embeddings = np.asarray(
+        [
+            [
+                0.11571586,
+                -0.5432505,
+                0.34517103,
+                -0.5293921,
+                -0.12489776,
+                -0.37330404,
+                0.10255471,
+                0.35583258,
+            ],
+            [
+                -0.6879529,
+                0.02604303,
+                0.30767575,
+                0.15625975,
+                0.38168532,
+                -0.38484508,
+                0.28485638,
+                -0.1789653,
+            ],
+            [
+                0.36395937,
+                0.2005961,
+                0.24741074,
+                0.17129873,
+                -0.8390884,
+                0.07647865,
+                -0.16361836,
+                0.00708275,
+            ],
+            [
+                0.28691784,
+                0.48590967,
+                0.1413658,
+                -0.28874612,
+                -0.6037665,
+                0.03833731,
+                -0.3263976,
+                -0.32507262,
+            ],
+        ],
+        dtype=np.float32,
+    )
+    labels = np.asarray([0, 0, 1, 1], dtype=np.int64)
+    sample_ids = np.asarray([100, 101, 102, 103], dtype=np.int64)
+
+    rows = MODULE.rank_self_retrieval_int8(embeddings, labels, sample_ids, block_rows=2)
+
+    assert rows[0]["ranked_sample_ids"] == [101]
 
 
 def test_query_gallery_ranking_is_generic_and_deterministic() -> None:
@@ -244,7 +300,54 @@ def test_training_artifact_loader_authenticates_result_and_model(tmp_path: Path)
             }
             for epoch in range(1, 11)
         ],
-        "authority": {"ordered_train_record_sha256": "a" * 64},
+        "authority": {
+            "ordered_train_record_sha256": "a" * 64,
+            "resolved_recipe": {
+                "schema": "sfora-nnrl-sop-training-recipe-v1",
+                "objective": {
+                    "arm": "combined",
+                    "temperature": 0.05,
+                    "output_dimensions": [32, 128],
+                },
+                "schedule": {
+                    "split_seed": 17,
+                    "epochs": 10,
+                    "steps_per_epoch": 1,
+                    "batch_size": 128,
+                },
+                "optimizer": {
+                    "name": "AdamW",
+                    "encoder_learning_rate": 1e-5,
+                    "head_learning_rate": 1e-3,
+                    "proxy_learning_rate": 1e-3,
+                    "betas": [0.9, 0.999],
+                    "epsilon": 1e-8,
+                    "decay": 1e-4,
+                },
+                "precision": {
+                    "autocast": "float16",
+                    "gradient_scaler_initial_scale": 1024.0,
+                    "gradient_scaler_growth_interval": 2**31 - 1,
+                    "fail_on_nonfinite": True,
+                },
+                "data": {
+                    "workers": 8,
+                    "pin_memory": True,
+                    "frozen_batch_norm": True,
+                    "transform": (
+                        "resize-256-bicubic/random-crop-224/random-horizontal-flip/unicom-normalize"
+                    ),
+                },
+                "runtime": {
+                    "python_version": "3.12.3",
+                    "torch_version": "2.12.1+cu130",
+                    "cuda_version": "13.0",
+                    "cudnn_version": 91002,
+                    "gpu_name": "fixture-gpu",
+                    "gpu_capability": [12, 1],
+                },
+            },
+        },
         "model_artifact": {"path": "model.pt", "sha256": model_sha, "bytes": model.stat().st_size},
         "run_receipt": {"path": "run-receipt.json", "sha256": "b" * 64, "bytes": 10},
     }
@@ -263,6 +366,50 @@ def test_training_artifact_loader_authenticates_result_and_model(tmp_path: Path)
 
     assert loaded_result == result
     assert set(loaded_model) == {"encoder", "head", "raw_proxies"}
+
+    result["epochs"] = 1
+    result["history"] = result["history"][:1]
+    result["authority"]["resolved_recipe"]["schedule"]["epochs"] = 1
+    result_path.write_text(
+        json.dumps(result, sort_keys=True, separators=(",", ":")) + "\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="result authority"):
+        SCRIPT_MODULE.load_training_artifact(
+            result_path,
+            hashlib.sha256(result_path.read_bytes()).hexdigest(),
+            model,
+        )
+
+    result["epochs"] = 10
+    result["history"] = [
+        {
+            "epoch": epoch,
+            "steps": 1,
+            "attempted_steps": 1,
+            "skipped_updates": 0,
+            "mean_loss": 0.5,
+        }
+        for epoch in range(1, 11)
+    ]
+    result["authority"]["resolved_recipe"]["schedule"]["epochs"] = 10
+    result["authority"]["resolved_recipe"]["optimizer"]["encoder_learning_rate"] = 2e-5
+    result_path.write_text(
+        json.dumps(result, sort_keys=True, separators=(",", ":")) + "\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="resolved recipe"):
+        SCRIPT_MODULE.load_training_artifact(
+            result_path,
+            hashlib.sha256(result_path.read_bytes()).hexdigest(),
+            model,
+        )
+
+    result["authority"]["resolved_recipe"]["optimizer"]["encoder_learning_rate"] = 1e-5
+    result_path.write_text(
+        json.dumps(result, sort_keys=True, separators=(",", ":")) + "\n",
+        encoding="utf-8",
+    )
     with pytest.raises(ValueError, match="result digest"):
         SCRIPT_MODULE.load_training_artifact(result_path, "0" * 64, model)
     result["model_artifact"]["sha256"] = "0" * 64
@@ -300,6 +447,15 @@ def test_candidate_state_restores_encoder_and_head_strictly() -> None:
             head,
             {**artifact, "encoder": {"wrong": torch.ones(1)}},
         )
+
+
+def test_trainer_loader_registers_module_before_dataclass_execution() -> None:
+    repository = Path(__file__).parents[1]
+
+    trainer = SCRIPT_MODULE._load_trainer(repository)
+
+    assert trainer.TrainSnapshot.__module__ == "sop_nnrl_trainer"
+    assert sys.modules["sop_nnrl_trainer"] is trainer
 
 
 def test_three_way_evaluation_uses_identical_rows_and_int8_candidate() -> None:
