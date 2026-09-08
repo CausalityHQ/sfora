@@ -4,11 +4,13 @@ import hashlib
 import importlib.util
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
 import torch
 from torch import nn
+from torch.nn import functional as F
 
 import sfora.nested_rank_evaluation as MODULE
 
@@ -322,3 +324,96 @@ def test_three_way_evaluation_uses_identical_rows_and_int8_candidate() -> None:
     assert result["teacher"]["metrics"]["map_at_r"] == 1.0
     for arm in result.values():
         assert [row["query_sample_id"] for row in arm["queries"]] == sample_ids.tolist()
+
+
+def test_validation_encoder_reads_only_registered_rows(tmp_path: Path) -> None:
+    from PIL import Image
+
+    records = []
+    for index, value in enumerate((32, 64, 96)):
+        path = tmp_path / f"{index}.png"
+        Image.new("RGB", (2, 2), (value, 0, 0)).save(path)
+        records.append(SimpleNamespace(image_path=path, image_id=100 + index, label=10 + index))
+    records.append(
+        SimpleNamespace(image_path=tmp_path / "must-not-open.png", image_id=999, label=999)
+    )
+
+    class _Encoder(nn.Module):
+        def forward(self, images: torch.Tensor) -> torch.Tensor:
+            return images
+
+    class _Head(nn.Module):
+        def forward(self, features: torch.Tensor) -> dict[int, torch.Tensor]:
+            return {2: F.normalize(features[:, :2], dim=1)}
+
+    def transform(image: Image.Image) -> torch.Tensor:
+        return torch.tensor((float(image.getpixel((0, 0))[0]), 1.0), dtype=torch.float32)
+
+    embeddings, labels, sample_ids = SCRIPT_MODULE.encode_validation_rows(
+        tuple(records),
+        (0, 2),
+        transform,
+        _Encoder(),
+        _Head(),
+        output_width=2,
+        device=torch.device("cpu"),
+        batch_size=2,
+        workers=0,
+    )
+
+    assert embeddings.shape == (2, 2)
+    assert labels.tolist() == [10, 12]
+    assert sample_ids.tolist() == [100, 102]
+    assert np.allclose(np.linalg.norm(embeddings, axis=1), 1.0)
+
+
+def test_evaluator_cli_requires_explicit_local_authority(tmp_path: Path) -> None:
+    paths = [
+        tmp_path / name
+        for name in (
+            "result.json",
+            "model.pt",
+            "snapshot.npz",
+            "data",
+            "unicom",
+            "checkpoint.pt",
+            "output.json",
+        )
+    ]
+    arguments = [
+        "--source-commit",
+        "1" * 40,
+        "--training-result",
+        str(paths[0]),
+        "--training-result-sha256",
+        "2" * 64,
+        "--model",
+        str(paths[1]),
+        "--train-snapshot",
+        str(paths[2]),
+        "--train-snapshot-sha256",
+        "3" * 64,
+        "--dataset-root",
+        str(paths[3]),
+        "--unicom-checkout",
+        str(paths[4]),
+        "--unicom-checkpoint",
+        str(paths[5]),
+        "--unicom-checkpoint-sha256",
+        "4" * 64,
+        "--output",
+        str(paths[6]),
+        "--execute-evaluation",
+    ]
+
+    parsed = SCRIPT_MODULE.parse_args(arguments)
+
+    assert parsed.source_commit == "1" * 40
+    assert parsed.training_result == paths[0]
+    assert parsed.execute_evaluation is True
+    with pytest.raises(SystemExit):
+        SCRIPT_MODULE.parse_args(arguments[:-1])
+    with pytest.raises(SystemExit):
+        SCRIPT_MODULE.parse_args([*arguments, "--model", str(paths[1])])
+    with pytest.raises(SystemExit):
+        SCRIPT_MODULE.parse_args([*arguments, "--official-test"])
