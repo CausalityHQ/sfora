@@ -108,6 +108,34 @@ class PackedInt4Embeddings:
             * other.inverse_norms.to(device=device, dtype=torch.float32).unsqueeze(0)
         )
 
+    def float_query_similarity(
+        self,
+        queries: torch.Tensor,
+        *,
+        device: torch.device | None = None,
+    ) -> torch.Tensor:
+        """Score unit float queries against this persistent int4 gallery."""
+
+        if (
+            type(queries) is not torch.Tensor
+            or queries.device.type != "cpu"
+            or queries.dtype != torch.float32
+            or queries.ndim != 2
+            or queries.shape[0] < 1
+            or queries.shape[1] != self.dimensions
+            or not queries.is_contiguous()
+            or not _unit_rows(queries)
+        ):
+            raise ValueError("packed int4 float query authority differs")
+        if device is None:
+            device = torch.device("cpu")
+        if type(device) is not torch.device:
+            raise ValueError("packed int4 float query authority differs")
+        integer_gallery = self.signed_codes().to(device=device, dtype=torch.float32)
+        return (queries.to(device) @ integer_gallery.T) * self.inverse_norms.to(
+            device=device, dtype=torch.float32
+        ).unsqueeze(0)
+
     def to_bytes(self) -> bytes:
         """Serialize packed nibbles followed by one little-endian f16 per row."""
 

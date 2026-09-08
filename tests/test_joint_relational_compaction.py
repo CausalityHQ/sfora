@@ -234,6 +234,21 @@ def test_packed_int4_cosine_matches_restored_float_cosine() -> None:
     torch.testing.assert_close(queries.cosine_similarity(gallery), expected)
 
 
+def test_packed_int4_float_query_similarity_is_exact_and_strict() -> None:
+    gallery = pack_int4_unit_embeddings(_unit(5, 128))
+    queries = _unit(3, 128).roll(1, dims=1).contiguous()
+
+    expected = queries @ gallery.restore().T
+
+    torch.testing.assert_close(gallery.float_query_similarity(queries), expected)
+    with pytest.raises(ValueError, match="float query authority"):
+        gallery.float_query_similarity(queries[:, :-2].contiguous())
+    with pytest.raises(ValueError, match="float query authority"):
+        gallery.float_query_similarity(queries * 2.0)
+    with pytest.raises(ValueError, match="float query authority"):
+        gallery.float_query_similarity(queries, device="cpu")  # type: ignore[arg-type]
+
+
 def test_packed_int4_rejects_noncanonical_shapes_codes_norms_and_wire() -> None:
     packed = pack_int4_unit_embeddings(_unit(4, 128))
     with pytest.raises(ValueError, match="packed int4 byte authority"):
