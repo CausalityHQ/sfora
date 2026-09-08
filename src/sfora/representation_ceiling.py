@@ -225,8 +225,6 @@ def fit_ridge_affine(source: torch.Tensor, target: torch.Tensor, *, penalty: flo
         raise ValueError("ridge authority differs")
     source64 = source.double()
     target64 = target.double()
-    if int(torch.linalg.matrix_rank(source64 - source64.mean(dim=0))) < 1:
-        raise ValueError("ridge authority differs")
     augmented = torch.cat((source64, torch.ones((len(source64), 1), dtype=torch.float64)), dim=1)
     centered_source = source64 - source64.mean(dim=0)
     feature_energy = float(torch.sum(centered_source * centered_source)) / source.shape[1]
