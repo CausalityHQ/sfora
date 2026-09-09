@@ -158,6 +158,22 @@ _REPRESENTATION_CEILING_EXPORTS = frozenset(
     }
 )
 
+_TEACHER_ANCHORED_EXPORTS = frozenset(
+    {
+        "TeacherAnchoredConfig",
+        "TeacherAnchorSchedule",
+        "TeacherNeighborBatches",
+        "TeacherNeighborRanking",
+        "TeacherAnchoredLoss",
+        "EmbeddingGeometryDiagnostics",
+        "embedding_geometry_diagnostics",
+        "teacher_anchor_schedule",
+        "teacher_anchored_loss",
+        "teacher_neighbor_batches",
+        "teacher_neighbor_ranking",
+    }
+)
+
 
 def __getattr__(name: str) -> object:
     """Load optional PyTorch compaction symbols only when explicitly requested."""
@@ -174,6 +190,11 @@ def __getattr__(name: str) -> object:
         return value
     if name in _REPRESENTATION_CEILING_EXPORTS:
         module = import_module("sfora.representation_ceiling")
+        value = cast(object, getattr(module, name))
+        globals()[name] = value
+        return value
+    if name in _TEACHER_ANCHORED_EXPORTS:
+        module = import_module("sfora.teacher_anchored_distillation")
         value = cast(object, getattr(module, name))
         globals()[name] = value
         return value
@@ -242,6 +263,12 @@ __all__ = [
     "TextBaselineResult",
     "TextMethodMetrics",
     "TeacherGuidedProjection",
+    "TeacherAnchoredConfig",
+    "TeacherAnchorSchedule",
+    "TeacherNeighborBatches",
+    "TeacherNeighborRanking",
+    "TeacherAnchoredLoss",
+    "EmbeddingGeometryDiagnostics",
     "TrainableSyntheticExperimentConfig",
     "build_html_report",
     "build_markdown_report",
@@ -256,6 +283,11 @@ __all__ = [
     "fit_centered_pca",
     "fit_ridge_affine",
     "fit_teacher_guided_projection",
+    "embedding_geometry_diagnostics",
+    "teacher_anchor_schedule",
+    "teacher_anchored_loss",
+    "teacher_neighbor_batches",
+    "teacher_neighbor_ranking",
     "group_triplet_margin_loss",
     "embedding_space_diagnostics_on_split",
     "image_self_retrieval_score",

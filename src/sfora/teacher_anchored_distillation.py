@@ -1,0 +1,595 @@
+"""Dataset-agnostic schedules and objectives for teacher-anchored distillation."""
+
+from __future__ import annotations
+
+import hashlib
+import math
+from dataclasses import dataclass
+
+import numpy as np
+import torch
+from numpy.typing import NDArray
+
+type SampleId = str | int
+
+_DIMENSIONS = 128
+_NEAREST_ANCHORS = 64
+_MIDDLE_ANCHORS = 64
+_UNIFORM_ANCHORS = 384
+_ANCHORS = _NEAREST_ANCHORS + _MIDDLE_ANCHORS + _UNIFORM_ANCHORS
+_SEEDS_PER_BATCH = 128
+
+
+@dataclass(frozen=True, slots=True)
+class TeacherAnchoredConfig:
+    """The frozen dataset-independent teacher-anchored recipe."""
+
+    dimensions: int = _DIMENSIONS
+    temperatures: tuple[float, float] = (0.05, 0.20)
+    nearest_anchor_count: int = _NEAREST_ANCHORS
+    middle_anchor_count: int = _MIDDLE_ANCHORS
+    uniform_anchor_count: int = _UNIFORM_ANCHORS
+    seed_rows_per_batch: int = _SEEDS_PER_BATCH
+    anchor_weight: float = 1.0
+    point_weight: float = 0.1
+    symmetric_weight: float = 0.5
+    drift_weight: float = 0.05
+    covariance_weight: float = 0.01
+
+    def __post_init__(self) -> None:
+        expected: tuple[tuple[object, object, type[object]], ...] = (
+            (self.dimensions, _DIMENSIONS, int),
+            (self.temperatures, (0.05, 0.20), tuple),
+            (self.nearest_anchor_count, _NEAREST_ANCHORS, int),
+            (self.middle_anchor_count, _MIDDLE_ANCHORS, int),
+            (self.uniform_anchor_count, _UNIFORM_ANCHORS, int),
+            (self.seed_rows_per_batch, _SEEDS_PER_BATCH, int),
+            (self.anchor_weight, 1.0, float),
+            (self.point_weight, 0.1, float),
+            (self.symmetric_weight, 0.5, float),
+            (self.drift_weight, 0.05, float),
+            (self.covariance_weight, 0.01, float),
+        )
+        if any(type(value) is not kind or value != wanted for value, wanted, kind in expected):
+            raise ValueError("teacher-anchored configuration differs")
+        if any(type(value) is not float or not math.isfinite(value) for value in self.temperatures):
+            raise ValueError("teacher-anchored configuration differs")
+
+    @property
+    def anchor_count(self) -> int:
+        """Return the complete anchor width."""
+
+        return self.nearest_anchor_count + self.middle_anchor_count + self.uniform_anchor_count
+
+    @property
+    def batch_rows(self) -> int:
+        """Return the seed-plus-partner batch width."""
+
+        return self.seed_rows_per_batch * 2
+
+
+@dataclass(frozen=True, init=False, slots=True)
+class TeacherAnchorSchedule:
+    """Immutable row indexes and authority digest for teacher anchors."""
+
+    _row_indexes: NDArray[np.int64]
+    sha256: str
+
+    def __init__(self, *, row_indexes: NDArray[np.int64], sha256: str) -> None:
+        frozen = np.ascontiguousarray(row_indexes, dtype=np.int64).copy()
+        frozen.flags.writeable = False
+        object.__setattr__(self, "_row_indexes", frozen)
+        object.__setattr__(self, "sha256", sha256)
+
+    @property
+    def row_indexes(self) -> NDArray[np.int64]:
+        """Return a read-only defensive copy of the anchor indexes."""
+
+        result = self._row_indexes.copy()
+        result.flags.writeable = False
+        return result
+
+
+@dataclass(frozen=True, init=False, slots=True)
+class TeacherNeighborBatches:
+    """Immutable structured batches for one epoch."""
+
+    _row_indexes: NDArray[np.int64]
+    dropped_seed_row_indexes: tuple[int, ...]
+    repeated_identity_count: int
+    sha256: str
+
+    def __init__(
+        self,
+        *,
+        row_indexes: NDArray[np.int64],
+        dropped_seed_row_indexes: tuple[int, ...],
+        repeated_identity_count: int,
+        sha256: str,
+    ) -> None:
+        frozen = np.ascontiguousarray(row_indexes, dtype=np.int64).copy()
+        frozen.flags.writeable = False
+        object.__setattr__(self, "_row_indexes", frozen)
+        object.__setattr__(self, "dropped_seed_row_indexes", dropped_seed_row_indexes)
+        object.__setattr__(self, "repeated_identity_count", repeated_identity_count)
+        object.__setattr__(self, "sha256", sha256)
+
+    @property
+    def row_indexes(self) -> NDArray[np.int64]:
+        """Return a read-only defensive copy of the batch indexes."""
+
+        result = self._row_indexes.copy()
+        result.flags.writeable = False
+        return result
+
+
+@dataclass(frozen=True, init=False, slots=True)
+class TeacherNeighborRanking:
+    """Reusable exact nearest rows for collision-safe epoch batching."""
+
+    _row_indexes: NDArray[np.int64]
+    input_sha256: str
+    sha256: str
+
+    def __init__(
+        self,
+        *,
+        row_indexes: NDArray[np.int64],
+        input_sha256: str,
+        sha256: str,
+    ) -> None:
+        frozen = np.ascontiguousarray(row_indexes, dtype=np.int64).copy()
+        frozen.flags.writeable = False
+        object.__setattr__(self, "_row_indexes", frozen)
+        object.__setattr__(self, "input_sha256", input_sha256)
+        object.__setattr__(self, "sha256", sha256)
+
+    @property
+    def row_indexes(self) -> NDArray[np.int64]:
+        """Return a read-only defensive copy of the nearest-row ranks."""
+
+        result = self._row_indexes.copy()
+        result.flags.writeable = False
+        return result
+
+
+@dataclass(frozen=True, slots=True)
+class TeacherAnchoredLoss:
+    """Named differentiable terms of the frozen objective."""
+
+    total: torch.Tensor
+    anchor: torch.Tensor
+    point: torch.Tensor
+    symmetric: torch.Tensor
+    drift: torch.Tensor
+    covariance: torch.Tensor
+
+
+@dataclass(frozen=True, slots=True)
+class EmbeddingGeometryDiagnostics:
+    """Finite collapse diagnostics computed from normalized codes."""
+
+    effective_rank: float
+    leading_eigenvalue_share: float
+    top_eight_eigenvalue_share: float
+
+
+def teacher_anchor_schedule(
+    teacher_codes: NDArray[np.float32], sample_ids: tuple[SampleId, ...], *, seed: int
+) -> TeacherAnchorSchedule:
+    """Build the frozen nearest, middle-rank, and uniform anchor schedule."""
+
+    codes, identities = _validated_inputs(
+        teacher_codes,
+        sample_ids,
+        seed=seed,
+        minimum_rows=_ANCHORS + _UNIFORM_ANCHORS + 1,
+        message="teacher anchor authority differs",
+    )
+    row_count = codes.shape[0]
+    result = np.empty((row_count, _ANCHORS), dtype=np.int64)
+    double_codes = codes.astype(np.float64)
+    for block_start in range(0, row_count, 256):
+        block_stop = min(block_start + 256, row_count)
+        similarities = double_codes[block_start:block_stop] @ double_codes.T
+        for local, query_row in enumerate(range(block_start, block_stop)):
+            row = similarities[local]
+            ranked = _bounded_top_rows(row, query_row=query_row, identities=identities, count=512)
+            nearest = ranked[:_NEAREST_ANCHORS]
+            middle_inventory = np.asarray(ranked[_NEAREST_ANCHORS:], dtype=np.int64)
+            excluded = np.zeros(row_count, dtype=np.bool_)
+            excluded[query_row] = True
+            excluded[np.asarray(ranked, dtype=np.int64)] = True
+            uniform_inventory = np.flatnonzero(~excluded).astype(np.int64, copy=False)
+            generator = np.random.Generator(
+                np.random.PCG64(
+                    _domain_seed(
+                        seed,
+                        b"anchors",
+                        _identity_bytes(
+                            identities[query_row], message="teacher anchor authority differs"
+                        ),
+                    )
+                )
+            )
+            middle = middle_inventory[
+                generator.choice(len(middle_inventory), size=_MIDDLE_ANCHORS, replace=False)
+            ]
+            uniform = uniform_inventory[
+                generator.choice(len(uniform_inventory), size=_UNIFORM_ANCHORS, replace=False)
+            ]
+            result[query_row] = np.concatenate(
+                (np.asarray(nearest, dtype=np.int64), middle, uniform)
+            )
+    digest = _schedule_sha256(b"teacher-anchors-v1", codes, sample_ids, seed, result)
+    return TeacherAnchorSchedule(row_indexes=result, sha256=digest)
+
+
+def teacher_neighbor_ranking(
+    teacher_codes: NDArray[np.float32], sample_ids: tuple[SampleId, ...]
+) -> TeacherNeighborRanking:
+    """Build one reusable bounded nearest-row authority for every epoch and arm."""
+
+    codes, identities = _validated_inputs(
+        teacher_codes,
+        sample_ids,
+        seed=0,
+        minimum_rows=_SEEDS_PER_BATCH * 2,
+        message="teacher neighbor authority differs",
+    )
+    row_count = codes.shape[0]
+    retained = min(256, row_count - 1)
+    result = np.empty((row_count, retained), dtype=np.int64)
+    double_codes = codes.astype(np.float64)
+    for block_start in range(0, row_count, 256):
+        block_stop = min(block_start + 256, row_count)
+        similarities = double_codes[block_start:block_stop] @ double_codes.T
+        for local, query_row in enumerate(range(block_start, block_stop)):
+            result[query_row] = np.asarray(
+                _bounded_top_rows(
+                    similarities[local],
+                    query_row=query_row,
+                    identities=identities,
+                    count=retained,
+                ),
+                dtype=np.int64,
+            )
+    input_sha256 = _input_sha256(codes, sample_ids)
+    digest = hashlib.sha256(b"teacher-neighbors-v1" + bytes.fromhex(input_sha256))
+    digest.update(result.tobytes(order="C"))
+    return TeacherNeighborRanking(
+        row_indexes=result,
+        input_sha256=input_sha256,
+        sha256=digest.hexdigest(),
+    )
+
+
+def teacher_neighbor_batches(
+    teacher_codes: NDArray[np.float32],
+    sample_ids: tuple[SampleId, ...],
+    *,
+    seed: int,
+    epoch: int,
+    ranking: TeacherNeighborRanking | None = None,
+) -> TeacherNeighborBatches:
+    """Build deterministic seed-plus-nearest-partner batches for one epoch."""
+
+    if type(epoch) is not int or epoch < 1:
+        raise ValueError("teacher batch authority differs")
+    codes, identities = _validated_inputs(
+        teacher_codes,
+        sample_ids,
+        seed=seed,
+        minimum_rows=_SEEDS_PER_BATCH * 2,
+        message="teacher batch authority differs",
+    )
+    row_count = codes.shape[0]
+    if ranking is None:
+        ranking = teacher_neighbor_ranking(codes, sample_ids)
+    if (
+        type(ranking) is not TeacherNeighborRanking
+        or ranking._row_indexes.shape != (row_count, min(256, row_count - 1))
+        or ranking.input_sha256 != _input_sha256(codes, sample_ids)
+    ):
+        raise ValueError("teacher batch authority differs")
+    permutation_generator = np.random.Generator(
+        np.random.PCG64(_domain_seed(seed, b"batches", epoch.to_bytes(8, "little")))
+    )
+    permutation = permutation_generator.permutation(row_count)
+    usable = row_count - row_count % _SEEDS_PER_BATCH
+    seed_order = permutation[:usable]
+    dropped = tuple(int(row) for row in permutation[usable:])
+    result = np.empty((usable // _SEEDS_PER_BATCH, _SEEDS_PER_BATCH * 2), dtype=np.int64)
+    for batch_index, start in enumerate(range(0, usable, _SEEDS_PER_BATCH)):
+        seeds = [int(row) for row in seed_order[start : start + _SEEDS_PER_BATCH]]
+        selected = set(seeds)
+        partners: list[int] = []
+        for source in seeds:
+            try:
+                partner = next(
+                    int(row) for row in ranking._row_indexes[source] if int(row) not in selected
+                )
+            except StopIteration as error:
+                raise ValueError("teacher batch authority differs") from error
+            selected.add(partner)
+            partners.append(partner)
+        result[batch_index] = np.asarray((*seeds, *partners), dtype=np.int64)
+    counts = np.bincount(result.reshape(-1), minlength=row_count)
+    repeated = int(np.count_nonzero(counts > 1))
+    digest = _schedule_sha256(
+        b"teacher-batches-v1" + epoch.to_bytes(8, "little"),
+        codes,
+        sample_ids,
+        seed,
+        result,
+    )
+    return TeacherNeighborBatches(
+        row_indexes=result,
+        dropped_seed_row_indexes=dropped,
+        repeated_identity_count=repeated,
+        sha256=digest,
+    )
+
+
+def teacher_anchored_loss(
+    student: torch.Tensor,
+    teacher: torch.Tensor,
+    anchors: torch.Tensor,
+    adapted_features: torch.Tensor,
+    original_features: torch.Tensor,
+    config: TeacherAnchoredConfig,
+) -> TeacherAnchoredLoss:
+    """Compute the label-free five-term teacher-anchored objective."""
+
+    _validate_loss_inputs(student, teacher, anchors, adapted_features, original_features, config)
+    with torch.autocast(device_type=student.device.type, enabled=False):
+        anchor_terms: list[torch.Tensor] = []
+        symmetric_terms: list[torch.Tensor] = []
+        mask = ~torch.eye(student.shape[0], dtype=torch.bool, device=student.device)
+        for temperature in config.temperatures:
+            teacher_anchor_logits = torch.einsum("bd,bad->ba", teacher, anchors) / temperature
+            student_anchor_logits = torch.einsum("bd,bad->ba", student, anchors) / temperature
+            anchor_terms.append(_forward_kl(teacher_anchor_logits, student_anchor_logits))
+
+            teacher_pair_logits = ((teacher @ teacher.T) / temperature)[mask].reshape(
+                student.shape[0], student.shape[0] - 1
+            )
+            student_pair_logits = ((student @ student.T) / temperature)[mask].reshape(
+                student.shape[0], student.shape[0] - 1
+            )
+            symmetric_terms.append(_forward_kl(teacher_pair_logits, student_pair_logits))
+
+        anchor_loss = torch.stack(anchor_terms).mean()
+        symmetric_loss = torch.stack(symmetric_terms).mean()
+        point_loss = (1.0 - torch.sum(student * teacher, dim=-1)).mean()
+        drift_loss = torch.square(
+            adapted_features @ adapted_features.T - original_features @ original_features.T
+        ).mean()
+
+        centered_student = student - student.mean(dim=0)
+        centered_teacher = teacher - teacher.mean(dim=0)
+        denominator = student.shape[0] - 1
+        student_covariance = centered_student.T @ centered_student / denominator
+        teacher_covariance = centered_teacher.T @ centered_teacher / denominator
+        covariance_loss = torch.square(student_covariance - teacher_covariance).sum() / (
+            torch.square(teacher_covariance).sum() + 1e-12
+        )
+        student_sigma = torch.sqrt(torch.diag(student_covariance).clamp_min(0) + 1e-4)
+        teacher_sigma = torch.sqrt(torch.diag(teacher_covariance).clamp_min(0) + 1e-4)
+        covariance_loss = (
+            covariance_loss
+            + torch.square(torch.relu(0.5 - student_sigma / (teacher_sigma + 1e-4))).mean()
+        )
+        total = (
+            config.anchor_weight * anchor_loss
+            + config.point_weight * point_loss
+            + config.symmetric_weight * symmetric_loss
+            + config.drift_weight * drift_loss
+            + config.covariance_weight * covariance_loss
+        )
+    components = (total, anchor_loss, point_loss, symmetric_loss, drift_loss, covariance_loss)
+    if any(value.ndim != 0 or not bool(torch.isfinite(value)) for value in components):
+        raise ValueError("teacher-anchored loss authority differs")
+    return TeacherAnchoredLoss(
+        total=total,
+        anchor=anchor_loss,
+        point=point_loss,
+        symmetric=symmetric_loss,
+        drift=drift_loss,
+        covariance=covariance_loss,
+    )
+
+
+def embedding_geometry_diagnostics(codes: torch.Tensor) -> EmbeddingGeometryDiagnostics:
+    """Return effective rank and leading covariance shares for normalized codes."""
+
+    if not _valid_normalized_tensor(codes, dimensions=None) or codes.shape[0] < 2:
+        raise ValueError("embedding geometry authority differs")
+    with torch.no_grad(), torch.autocast(device_type=codes.device.type, enabled=False):
+        centered = codes - codes.mean(dim=0)
+        covariance = centered.T @ centered / (codes.shape[0] - 1)
+        eigenvalues = torch.linalg.eigvalsh(covariance).clamp_min(0)
+        total = eigenvalues.sum()
+        if float(total) <= 1e-12:
+            return EmbeddingGeometryDiagnostics(
+                effective_rank=0.0,
+                leading_eigenvalue_share=1.0,
+                top_eight_eigenvalue_share=1.0,
+            )
+        probabilities = eigenvalues / total
+        positive = probabilities > 0
+        entropy = -(probabilities[positive] * probabilities[positive].log()).sum()
+        effective_rank = float(torch.exp(entropy))
+        leading = float(probabilities[-1])
+        top_eight = float(probabilities[-min(8, probabilities.numel()) :].sum())
+    if not all(math.isfinite(value) for value in (effective_rank, leading, top_eight)):
+        raise ValueError("embedding geometry authority differs")
+    return EmbeddingGeometryDiagnostics(
+        effective_rank=effective_rank,
+        leading_eigenvalue_share=leading,
+        top_eight_eigenvalue_share=top_eight,
+    )
+
+
+def _forward_kl(reference_logits: torch.Tensor, candidate_logits: torch.Tensor) -> torch.Tensor:
+    probabilities = torch.softmax(reference_logits, dim=-1)
+    return torch.sum(
+        probabilities
+        * (
+            torch.log_softmax(reference_logits, dim=-1)
+            - torch.log_softmax(candidate_logits, dim=-1)
+        ),
+        dim=-1,
+    ).mean()
+
+
+def _validate_loss_inputs(
+    student: torch.Tensor,
+    teacher: torch.Tensor,
+    anchors: torch.Tensor,
+    adapted_features: torch.Tensor,
+    original_features: torch.Tensor,
+    config: TeacherAnchoredConfig,
+) -> None:
+    tensors: tuple[torch.Tensor, ...] = (
+        student,
+        teacher,
+        anchors,
+        adapted_features,
+        original_features,
+    )
+    if (
+        type(config) is not TeacherAnchoredConfig
+        or any(type(value) is not torch.Tensor for value in tensors)
+        or student.ndim != 2
+        or student.shape[0] < 2
+        or teacher.shape != student.shape
+        or anchors.ndim != 3
+        or anchors.shape[0] != student.shape[0]
+        or anchors.shape[1] < 1
+        or anchors.shape[2] != student.shape[1]
+        or adapted_features.ndim != 2
+        or adapted_features.shape[0] != student.shape[0]
+        or original_features.shape != adapted_features.shape
+        or teacher.requires_grad
+        or anchors.requires_grad
+        or original_features.requires_grad
+        or any(value.device != student.device for value in tensors)
+        or any(value.dtype != torch.float32 for value in tensors)
+        or any(not _valid_normalized_tensor(value, dimensions=None) for value in tensors)
+    ):
+        raise ValueError("teacher-anchored loss authority differs")
+
+
+def _valid_normalized_tensor(value: object, *, dimensions: int | None) -> bool:
+    if (
+        type(value) is not torch.Tensor
+        or value.dtype != torch.float32
+        or value.ndim not in (2, 3)
+        or (dimensions is not None and value.shape[-1] != dimensions)
+        or not bool(torch.isfinite(value).all())
+    ):
+        return False
+    norms = torch.linalg.vector_norm(value, dim=-1)
+    return bool(torch.all(torch.abs(norms - 1.0) <= 2e-5))
+
+
+def _validated_inputs(
+    teacher_codes: object,
+    sample_ids: object,
+    *,
+    seed: object,
+    minimum_rows: int,
+    message: str,
+) -> tuple[NDArray[np.float32], tuple[SampleId, ...]]:
+    if (
+        type(teacher_codes) is not np.ndarray
+        or teacher_codes.dtype != np.float32
+        or teacher_codes.ndim != 2
+        or teacher_codes.shape[0] < minimum_rows
+        or teacher_codes.shape[1] != _DIMENSIONS
+        or not teacher_codes.flags.c_contiguous
+        or not np.isfinite(teacher_codes).all()
+        or type(sample_ids) is not tuple
+        or len(sample_ids) != teacher_codes.shape[0]
+        or type(seed) is not int
+        or not 0 <= seed < 2**63
+    ):
+        raise ValueError(message)
+    encoded_identities = tuple(_identity_bytes(value, message=message) for value in sample_ids)
+    if len(set(encoded_identities)) != len(encoded_identities):
+        raise ValueError(message)
+    norms = np.linalg.vector_norm(teacher_codes.astype(np.float64), axis=1)
+    if np.any(np.abs(norms - 1.0) > 2e-6):
+        raise ValueError(message)
+    return teacher_codes, sample_ids
+
+
+def _identity_bytes(value: object, *, message: str) -> bytes:
+    if type(value) is int and -(2**63) <= value < 2**63:
+        return b"i" + value.to_bytes(8, "little", signed=True)
+    if type(value) is str and value:
+        encoded = value.encode("utf-8")
+        return b"s" + len(encoded).to_bytes(8, "little") + encoded
+    raise ValueError(message)
+
+
+def _identity_order_key(value: SampleId) -> tuple[int, int | str]:
+    if type(value) is int:
+        return (0, value)
+    return (1, value)
+
+
+def _bounded_top_rows(
+    similarities: NDArray[np.float64],
+    *,
+    query_row: int,
+    identities: tuple[SampleId, ...],
+    count: int,
+) -> list[int]:
+    """Return an exact bounded prefix without sorting every ranked pair."""
+
+    scores = similarities.copy()
+    scores[query_row] = -np.inf
+    partition = np.argpartition(scores, -count)[-count:]
+    cutoff = float(np.min(scores[partition]))
+    above = np.flatnonzero(scores > cutoff).tolist()
+    tied = [int(row) for row in np.flatnonzero(scores == cutoff) if int(row) != query_row]
+    tied.sort(key=lambda row: _identity_order_key(identities[row]))
+    selected = above + tied[: count - len(above)]
+    selected.sort(key=lambda row: (-float(scores[row]), _identity_order_key(identities[row])))
+    if len(selected) != count:
+        raise ValueError("teacher anchor authority differs")
+    return selected
+
+
+def _input_sha256(codes: NDArray[np.float32], sample_ids: tuple[SampleId, ...]) -> str:
+    digest = hashlib.sha256(b"teacher-input-v1")
+    digest.update(codes.tobytes(order="C"))
+    for sample_id in sample_ids:
+        encoded = _identity_bytes(sample_id, message="teacher input authority differs")
+        digest.update(len(encoded).to_bytes(8, "little"))
+        digest.update(encoded)
+    return digest.hexdigest()
+
+
+def _domain_seed(seed: int, domain: bytes, identity: bytes) -> int:
+    digest = hashlib.sha256(seed.to_bytes(8, "little") + domain + identity).digest()
+    return int.from_bytes(digest[:8], "little")
+
+
+def _schedule_sha256(
+    domain: bytes,
+    codes: NDArray[np.float32],
+    sample_ids: tuple[SampleId, ...],
+    seed: int,
+    rows: NDArray[np.int64],
+) -> str:
+    digest = hashlib.sha256(domain + seed.to_bytes(8, "little"))
+    digest.update(codes.tobytes(order="C"))
+    for sample_id in sample_ids:
+        encoded = _identity_bytes(sample_id, message="schedule authority differs")
+        digest.update(len(encoded).to_bytes(8, "little"))
+        digest.update(encoded)
+    digest.update(rows.tobytes(order="C"))
+    return digest.hexdigest()
