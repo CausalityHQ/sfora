@@ -72,10 +72,13 @@ class TeacherAnchoredArguments(NamedTuple):
     schedule_sha256: str
     image_root: Path
     image_tree_sha256: str
+    teacher_pca_sha256: str
+    launch_receipt: Path
     source_revision: str
     seed: int
     arm: str
     output: Path
+    progress: Path
     execute_teacher_anchored: bool
 
 
@@ -250,6 +253,7 @@ def parse_teacher_anchored_args(arguments: list[str]) -> TeacherAnchoredArgument
         "schedule",
         "unicom-checkout",
         "image-root",
+        "launch-receipt",
         "output",
     ):
         parser.add_argument(f"--{name}")
@@ -260,6 +264,7 @@ def parse_teacher_anchored_args(arguments: list[str]) -> TeacherAnchoredArgument
         "teacher-snapshot-sha256",
         "schedule-sha256",
         "image-tree-sha256",
+        "teacher-pca-sha256",
         "source-revision",
         "seed",
         "arm",
@@ -289,6 +294,7 @@ def parse_teacher_anchored_args(arguments: list[str]) -> TeacherAnchoredArgument
         "schedule",
         "unicom_checkout",
         "image_root",
+        "launch_receipt",
     ):
         raw = getattr(parsed, name)
         path = Path(raw) if type(raw) is str else Path()
@@ -297,6 +303,8 @@ def parse_teacher_anchored_args(arguments: list[str]) -> TeacherAnchoredArgument
         if name in ("image_root", "unicom_checkout") and not path.is_dir():
             raise ValueError("absolute local input authority differs")
         if name not in ("image_root", "unicom_checkout") and not path.is_file():
+            raise ValueError("absolute local input authority differs")
+        if name == "launch_receipt" and path.is_symlink():
             raise ValueError("absolute local input authority differs")
         path_values[name] = path
 
@@ -308,6 +316,9 @@ def parse_teacher_anchored_args(arguments: list[str]) -> TeacherAnchoredArgument
         raise ValueError("output already exists")
     if not output.parent.is_dir():
         raise ValueError("absolute local output authority differs")
+    progress = output.with_suffix(".progress.jsonl")
+    if progress.exists():
+        raise ValueError("progress already exists")
 
     digests: dict[str, str] = {}
     for name in (
@@ -317,6 +328,7 @@ def parse_teacher_anchored_args(arguments: list[str]) -> TeacherAnchoredArgument
         "teacher_snapshot_sha256",
         "schedule_sha256",
         "image_tree_sha256",
+        "teacher_pca_sha256",
     ):
         value = getattr(parsed, name)
         if (
@@ -327,11 +339,7 @@ def parse_teacher_anchored_args(arguments: list[str]) -> TeacherAnchoredArgument
             raise ValueError("SHA-256 authority differs")
         digests[name] = value
     revision = parsed.source_revision
-    if (
-        type(revision) is not str
-        or len(revision) != 40
-        or revision != _UNICOM_REVISION
-    ):
+    if type(revision) is not str or len(revision) != 40 or revision != _UNICOM_REVISION:
         raise ValueError("revision authority differs")
     try:
         seed = int(parsed.seed)
@@ -358,10 +366,13 @@ def parse_teacher_anchored_args(arguments: list[str]) -> TeacherAnchoredArgument
         schedule_sha256=digests["schedule_sha256"],
         image_root=path_values["image_root"],
         image_tree_sha256=digests["image_tree_sha256"],
+        teacher_pca_sha256=digests["teacher_pca_sha256"],
+        launch_receipt=path_values["launch_receipt"],
         source_revision=revision,
         seed=seed,
         arm=parsed.arm,
         output=output,
+        progress=progress,
         execute_teacher_anchored=True,
     )
 
@@ -424,9 +435,7 @@ def authenticate_teacher_anchored_files(arguments: TeacherAnchoredArguments) -> 
 
     if type(arguments) is not TeacherAnchoredArguments:
         raise ValueError("teacher-anchored input authority differs")
-    authenticate_teacher_anchored_checkout(
-        arguments.unicom_checkout, arguments.source_revision
-    )
+    authenticate_teacher_anchored_checkout(arguments.unicom_checkout, arguments.source_revision)
     observed: list[str] = []
     for path, expected in (
         (arguments.source_checkpoint, arguments.source_checkpoint_sha256),
@@ -465,9 +474,7 @@ def load_teacher_anchored_schedule_file(
     if not isinstance(path, Path) or not path.is_absolute():
         raise ValueError("teacher-anchored schedule seal differs")
     try:
-        descriptor = os.open(
-            path, os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW | os.O_CLOEXEC
-        )
+        descriptor = os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW | os.O_CLOEXEC)
     except OSError as error:
         raise ValueError("teacher-anchored schedule seal differs") from error
     try:
@@ -1011,9 +1018,7 @@ def teacher_anchored_objective_sha256(arm: str) -> str:
                 "covariance_weight": 0.01,
                 "drift_weight": 0.05,
                 "point_weight": 0.1,
-                "symmetric_weight": 0.5
-                if arm in ("head-only", "symmetric", "complete")
-                else 0.0,
+                "symmetric_weight": 0.5 if arm in ("head-only", "symmetric", "complete") else 0.0,
                 "temperatures": [0.05, 0.2],
             }
         )
@@ -1128,9 +1133,7 @@ def build_teacher_anchored_split(
     ):
         raise ValueError("teacher-anchored split authority differs")
     concrete_labels = tuple(int(value) for value in labels)
-    partition = deterministic_class_partition(
-        concrete_labels, fit_fraction=0.8, seed=seed
-    )
+    partition = deterministic_class_partition(concrete_labels, fit_fraction=0.8, seed=seed)
     fitting_rows = partition.fit_row_indexes
     validation_rows = partition.validation_row_indexes
     fitting_labels = tuple(concrete_labels[row] for row in fitting_rows)
@@ -1568,8 +1571,7 @@ def _validate_teacher_anchored_schedules(
         or type(fitting_row_count) is not int
         or fitting_row_count < 256
         or any(
-            type(epoch_batches) is not tuple
-            or len(epoch_batches) != fitting_row_count // 128
+            type(epoch_batches) is not tuple or len(epoch_batches) != fitting_row_count // 128
             for epoch_batches in schedules
         )
     ):
@@ -1693,12 +1695,13 @@ def validate_teacher_anchored_progress_chain(
             previous_update = cast(int, last["update"])
             same_arm = value["arm"] == last["arm"]
             if stage == "update":
-                valid_transition = same_arm and update == previous_update + 1 and (
-                    (previous_stage == "initialized" and epoch == 1)
-                    or (previous_stage == "update" and epoch == previous_epoch)
-                    or (
-                        previous_stage == "epoch-complete"
-                        and epoch == previous_epoch + 1
+                valid_transition = (
+                    same_arm
+                    and update == previous_update + 1
+                    and (
+                        (previous_stage == "initialized" and epoch == 1)
+                        or (previous_stage == "update" and epoch == previous_epoch)
+                        or (previous_stage == "epoch-complete" and epoch == previous_epoch + 1)
                     )
                 )
             elif stage == "epoch-complete":
@@ -1710,11 +1713,7 @@ def validate_teacher_anchored_progress_chain(
                 )
             elif stage == "stopped":
                 valid_transition = same_arm and (
-                    (
-                        previous_stage == "initialized"
-                        and epoch == 1
-                        and update == 0
-                    )
+                    (previous_stage == "initialized" and epoch == 1 and update == 0)
                     or (
                         previous_stage in ("update", "epoch-complete")
                         and epoch == previous_epoch
@@ -1749,6 +1748,71 @@ def validate_teacher_anchored_progress_chain(
         update=cast(int, last["update"]),
         line_sha256=previous,
     )
+
+
+class TeacherAnchoredProgressWriter:
+    """Append and fsync one authenticated progress chain without clobbering."""
+
+    def __init__(self, path: Path, launch_receipt_sha256: str, arm: str) -> None:
+        if (
+            not isinstance(path, Path)
+            or not path.is_absolute()
+            or not path.parent.is_dir()
+            or not _is_sha256(launch_receipt_sha256)
+            or arm not in ("head-only", "base", "anchor", "symmetric", "complete")
+        ):
+            raise ValueError("teacher-anchored progress writer authority differs")
+        flags = (
+            os.O_WRONLY
+            | os.O_CREAT
+            | os.O_EXCL
+            | os.O_APPEND
+            | getattr(os, "O_CLOEXEC", 0)
+            | getattr(os, "O_NOFOLLOW", 0)
+        )
+        try:
+            descriptor = os.open(path, flags, 0o600)
+        except FileExistsError as error:
+            raise ValueError("progress output already exists") from error
+        except OSError as error:
+            raise ValueError("teacher-anchored progress writer authority differs") from error
+        if not stat.S_ISREG(os.fstat(descriptor).st_mode):
+            os.close(descriptor)
+            raise ValueError("teacher-anchored progress writer authority differs")
+        self._descriptor: int | None = descriptor
+        self._launch_receipt_sha256 = launch_receipt_sha256
+        self._arm = arm
+        self._lines: list[bytes] = []
+
+    def __call__(self, stage: str, epoch: int, update: int) -> None:
+        descriptor = self._descriptor
+        if descriptor is None:
+            raise ValueError("progress writer is closed")
+        previous = hashlib.sha256(self._lines[-1]).hexdigest() if self._lines else "0" * 64
+        line = teacher_anchored_progress_bytes(
+            launch_receipt_sha256=self._launch_receipt_sha256,
+            sequence=len(self._lines) + 1,
+            arm=self._arm,
+            epoch=epoch,
+            update=update,
+            previous_line_sha256=previous,
+            stage=stage,
+        )
+        validate_teacher_anchored_progress_chain((*self._lines, line), self._launch_receipt_sha256)
+        view = memoryview(line)
+        while view:
+            written = os.write(descriptor, view)
+            if written <= 0:
+                raise OSError("teacher-anchored progress append failed")
+            view = view[written:]
+        os.fsync(descriptor)
+        self._lines.append(line)
+
+    def close(self) -> None:
+        descriptor = self._descriptor
+        if descriptor is not None:
+            os.close(descriptor)
+            self._descriptor = None
 
 
 def publish_teacher_anchored_artifacts(
@@ -1824,8 +1888,7 @@ def publish_teacher_anchored_artifacts(
         or module_state_sha256(head) != receipt.final_head_sha256
         or not _module_state_is_finite(encoder)
         or not _module_state_is_finite(head)
-        or encoder_frozen_state_sha256(encoder, head_only=head_only)
-        != receipt.final_frozen_sha256
+        or encoder_frozen_state_sha256(encoder, head_only=head_only) != receipt.final_frozen_sha256
     ):
         raise ValueError("teacher-anchored model state differs")
     state = {

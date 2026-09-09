@@ -92,6 +92,8 @@ def _registered_cli(tmp_path: Path) -> list[str]:
     }
     for path in inputs.values():
         path.write_bytes(b"fixture")
+    launch_receipt = tmp_path / "launch.json"
+    launch_receipt.write_bytes(b'{"schema":"fixture-launch-v1"}\n')
     image_root = tmp_path / "train-images"
     image_root.mkdir(exist_ok=True)
     unicom_checkout = tmp_path / "unicom-checkout"
@@ -107,6 +109,10 @@ def _registered_cli(tmp_path: Path) -> list[str]:
             str(unicom_checkout.resolve()),
             "--image-tree-sha256",
             "2" * 64,
+            "--teacher-pca-sha256",
+            "3" * 64,
+            "--launch-receipt",
+            str(launch_receipt.resolve()),
             "--source-revision",
             "d71992ed969e6c271436ac0a0ee1f3ca61474ac0",
             "--seed",
@@ -126,9 +132,7 @@ def _schedule_file_fixture() -> tuple[
 ]:
     generator = np.random.Generator(np.random.PCG64(917))
     codes = generator.normal(size=(897, 128)).astype(np.float32)
-    codes /= np.linalg.norm(codes.astype(np.float64), axis=1, keepdims=True).astype(
-        np.float32
-    )
+    codes /= np.linalg.norm(codes.astype(np.float64), axis=1, keepdims=True).astype(np.float32)
     codes = np.ascontiguousarray(codes)
     sample_ids = tuple(range(897))
     sealed = build_teacher_anchored_schedule(
@@ -258,6 +262,9 @@ def test_cli_accepts_only_registered_local_capability(tmp_path: Path) -> None:
     assert parsed.source_checkpoint_sha256 == "1" * 64
     assert parsed.schedule_sha256 == "1" * 64
     assert parsed.image_tree_sha256 == "2" * 64
+    assert parsed.teacher_pca_sha256 == "3" * 64
+    assert parsed.launch_receipt == (tmp_path / "launch.json").resolve()
+    assert parsed.progress == (tmp_path / "result.progress.jsonl").resolve()
 
 
 def test_split_boundary_maps_every_training_decision_through_fitting_rows_only() -> None:
@@ -285,6 +292,7 @@ def test_split_boundary_maps_every_training_decision_through_fitting_rows_only()
         (("--arm", "unknown"), "arm"),
         (("--source-checkpoint-sha256", "0"), "SHA-256"),
         (("--source-revision", "main"), "revision"),
+        (("--teacher-pca-sha256", "0"), "SHA-256"),
     ],
 )
 def test_cli_rejects_authority_value_drift(
@@ -346,6 +354,20 @@ def test_cli_requires_absolute_existing_inputs_no_clobber_and_execution_flag(
     with pytest.raises(ValueError, match="output already exists"):
         SUBJECT.parse_teacher_anchored_args(arguments)
     Path(arguments[arguments.index("--output") + 1]).unlink()
+
+    arguments = _registered_cli(tmp_path)
+    progress = Path(arguments[arguments.index("--output") + 1]).with_suffix(".progress.jsonl")
+    progress.write_bytes(b"occupied")
+    with pytest.raises(ValueError, match="progress already exists"):
+        SUBJECT.parse_teacher_anchored_args(arguments)
+    progress.unlink()
+
+    arguments = _registered_cli(tmp_path)
+    launch = Path(arguments[arguments.index("--launch-receipt") + 1])
+    launch.unlink()
+    launch.symlink_to(tmp_path / "source.pt")
+    with pytest.raises(ValueError, match="absolute local input"):
+        SUBJECT.parse_teacher_anchored_args(arguments)
 
     arguments = _registered_cli(tmp_path)
     arguments.remove("--execute-teacher-anchored")
@@ -606,9 +628,7 @@ def test_finite_gradient_norm_overflow_returns_terminal_receipt() -> None:
         initialization_effective_rank=10.0,
         initialization_leading_eigenvalue_share=0.1,
         compute_loss=compute_loss,
-        diagnose=lambda epoch: SUBJECT.TeacherAnchoredEpochDiagnostic(
-            epoch, 0.5, 10.0, 0.1, 0.4
-        ),
+        diagnose=lambda epoch: SUBJECT.TeacherAnchoredEpochDiagnostic(epoch, 0.5, 10.0, 0.1, 0.4),
         progress=lambda *_args: None,
         device_type="cpu",
     )
@@ -685,9 +705,7 @@ def test_schedule_file_loader_consumes_authenticated_bytes_and_binds_inputs(
     )
     assert loaded.sha256 == sealed.sha256
     schedules = teacher_anchored_schedule_rows(loaded)
-    SUBJECT._validate_teacher_anchored_schedules(
-        schedules, fitting_row_count=len(sample_ids)
-    )
+    SUBJECT._validate_teacher_anchored_schedules(schedules, fitting_row_count=len(sample_ids))
     assert SUBJECT.teacher_anchored_schedule_sha256(
         schedules, fitting_row_count=len(sample_ids)
     ) == SUBJECT.teacher_anchored_schedule_sha256(
@@ -771,6 +789,7 @@ raise SystemExit(1)
         timeout=10,
     )
     assert completed.returncode == 0
+
 
 def test_unicom_checkout_authentication_requires_exact_clean_git_revision(
     tmp_path: Path,
@@ -1218,9 +1237,7 @@ def test_real_batch_bridge_rejects_trainable_inventory_and_row_drift() -> None:
     }
     with pytest.raises(ValueError, match="batch authority differs"):
         SUBJECT.compute_teacher_anchored_batch_loss(encoder, head, **common)
-    common["active_parameter_names"] = tuple(
-        f"head.{name}" for name, _ in head.named_parameters()
-    )
+    common["active_parameter_names"] = tuple(f"head.{name}" for name, _ in head.named_parameters())
     common["row_indexes"] = (*range(255), 256)
     with pytest.raises(ValueError, match="batch authority differs"):
         SUBJECT.compute_teacher_anchored_batch_loss(encoder, head, **common)
@@ -1391,9 +1408,7 @@ def test_real_core_forward_nonfinite_returns_terminal_receipt() -> None:
             original,
             TeacherAnchoredConfig(),
         ),
-        diagnose=lambda epoch: SUBJECT.TeacherAnchoredEpochDiagnostic(
-            epoch, 0.5, 10.0, 0.1, 0.4
-        ),
+        diagnose=lambda epoch: SUBJECT.TeacherAnchoredEpochDiagnostic(epoch, 0.5, 10.0, 0.1, 0.4),
         progress=lambda *_args: None,
         device_type="cpu",
     )
@@ -1404,7 +1419,8 @@ def test_real_core_forward_nonfinite_returns_terminal_receipt() -> None:
 
 
 def test_nonfinite_parameter_state_still_returns_terminal_receipt(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     encoder = FakeEncoder()
     head = nn.Linear(4, 4)
@@ -1430,9 +1446,7 @@ def test_nonfinite_parameter_state_still_returns_terminal_receipt(
         compute_loss=lambda *_args: SUBJECT.TeacherAnchoredLoss(
             *(head.weight.square().mean() for _ in range(6))
         ),
-        diagnose=lambda epoch: SUBJECT.TeacherAnchoredEpochDiagnostic(
-            epoch, 0.5, 10.0, 0.1, 0.4
-        ),
+        diagnose=lambda epoch: SUBJECT.TeacherAnchoredEpochDiagnostic(epoch, 0.5, 10.0, 0.1, 0.4),
         progress=lambda *_args: None,
         device_type="cpu",
     )
@@ -1465,9 +1479,7 @@ def test_nonfinite_encoder_update_restores_publishable_state(
         if calls == 13:
             with torch.no_grad():
                 encoder.blocks[10][0].weight[0, 0] = float("nan")
-            raise SUBJECT.TeacherAnchoredNonfiniteUpdate(
-                "teacher-anchored nonfinite update"
-            )
+            raise SUBJECT.TeacherAnchoredNonfiniteUpdate("teacher-anchored nonfinite update")
         return 1.0
 
     monkeypatch.setattr(SUBJECT, "teacher_anchored_optimizer_step", corrupting_step)
@@ -1486,9 +1498,7 @@ def test_nonfinite_encoder_update_restores_publishable_state(
         compute_loss=lambda *_args: SUBJECT.TeacherAnchoredLoss(
             *(head.weight.square().mean() for _ in range(6))
         ),
-        diagnose=lambda epoch: SUBJECT.TeacherAnchoredEpochDiagnostic(
-            epoch, 0.5, 10.0, 0.1, 0.4
-        ),
+        diagnose=lambda epoch: SUBJECT.TeacherAnchoredEpochDiagnostic(epoch, 0.5, 10.0, 0.1, 0.4),
         progress=lambda *_args: None,
         device_type="cpu",
     )
@@ -1602,9 +1612,7 @@ def test_probe_scorer_is_loaded_from_exact_repository_script() -> None:
 
 
 def test_live_probe_scores_float_and_deployed_int8_with_exact_candidate_width() -> None:
-    codes = torch.tensor(
-        [[1.0, 0.0], [0.99, 0.01], [0.0, 1.0], [0.01, 0.99]], dtype=torch.float32
-    )
+    codes = torch.tensor([[1.0, 0.0], [0.99, 0.01], [0.0, 1.0], [0.01, 0.99]], dtype=torch.float32)
     codes = torch.nn.functional.normalize(codes, dim=1).contiguous()
     score = SUBJECT.score_teacher_anchored_probe(
         codes,
@@ -1648,12 +1656,15 @@ def test_fitting_probe_and_bootstrap_reject_incomplete_or_wrong_authority() -> N
     baseline = (0.4, 0.4, 0.1, 0.3)
     identities = (1, 1, 2, 2)
     lower = 0.10000000000000002
-    assert SUBJECT.teacher_anchored_bootstrap_lower_bound(
-        treatment,
-        baseline,
-        identities,
-        expected_lower_bound=lower,
-    ) == lower
+    assert (
+        SUBJECT.teacher_anchored_bootstrap_lower_bound(
+            treatment,
+            baseline,
+            identities,
+            expected_lower_bound=lower,
+        )
+        == lower
+    )
     with pytest.raises(ValueError, match="bootstrap replay differs"):
         SUBJECT.teacher_anchored_bootstrap_lower_bound(
             treatment,
@@ -1838,6 +1849,40 @@ def test_progress_chain_accepts_only_exact_monotone_canonical_events() -> None:
     assert (terminal.epoch, terminal.update) == (2, 1)
 
 
+def test_progress_writer_persists_only_valid_fsynced_chain(tmp_path: Path) -> None:
+    launch = "a" * 64
+    path = (tmp_path / "arm.progress.jsonl").resolve()
+    writer = SUBJECT.TeacherAnchoredProgressWriter(path, launch, "complete")
+    writer("initialized", 0, 0)
+    writer("update", 1, 1)
+    writer("epoch-complete", 1, 1)
+    writer.close()
+
+    lines = tuple(path.read_bytes().splitlines(keepends=True))
+    terminal = SUBJECT.validate_teacher_anchored_progress_chain(lines, launch)
+    assert (terminal.sequence, terminal.arm, terminal.epoch, terminal.update) == (
+        3,
+        "complete",
+        1,
+        1,
+    )
+    with pytest.raises(ValueError, match="progress writer is closed"):
+        writer("update", 2, 2)
+
+    occupied = (tmp_path / "occupied.progress.jsonl").resolve()
+    occupied.write_bytes(b"existing\n")
+    with pytest.raises(ValueError, match="progress output already exists"):
+        SUBJECT.TeacherAnchoredProgressWriter(occupied, launch, "complete")
+
+    target = tmp_path / "target"
+    target.write_bytes(b"unchanged")
+    symlink = tmp_path / "symlink.progress.jsonl"
+    symlink.symlink_to(target)
+    with pytest.raises(ValueError, match="progress output already exists"):
+        SUBJECT.TeacherAnchoredProgressWriter(symlink, launch, "complete")
+    assert target.read_bytes() == b"unchanged"
+
+
 def test_real_training_progress_emissions_form_a_valid_chain() -> None:
     launch = "a" * 64
     lines: list[bytes] = []
@@ -1850,9 +1895,7 @@ def test_real_training_progress_emissions_form_a_valid_chain() -> None:
                 arm="complete",
                 epoch=epoch,
                 update=update,
-                previous_line_sha256=(
-                    hashlib.sha256(lines[-1]).hexdigest() if lines else "0" * 64
-                ),
+                previous_line_sha256=(hashlib.sha256(lines[-1]).hexdigest() if lines else "0" * 64),
                 stage=stage,
             )
         )
