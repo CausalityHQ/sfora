@@ -3399,6 +3399,7 @@ dependencies = [
     { name = "pydantic" },
     { name = "rich" },
     { name = "scikit-learn" },
+    { name = "threadpoolctl" },
     { name = "typer" },
 ]
 
@@ -3443,6 +3444,7 @@ requires-dist = [
     { name = "rich", specifier = ">=13.7" },
     { name = "scikit-learn", specifier = ">=1.5" },
     { name = "sentence-transformers", marker = "extra == 'research'", specifier = ">=3.0" },
+    { name = "threadpoolctl", specifier = ">=3.5" },
     { name = "timm", marker = "extra == 'research'", specifier = "==1.0.22" },
     { name = "torch", marker = "extra == 'research'", specifier = ">=2.4" },
     { name = "torchvision", marker = "extra == 'research'", specifier = ">=0.19" },

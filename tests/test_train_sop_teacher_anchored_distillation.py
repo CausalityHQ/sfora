@@ -16,6 +16,7 @@ from types import ModuleType
 import numpy as np
 import pytest
 import torch
+from threadpoolctl import threadpool_info, threadpool_limits
 from torch import nn
 
 from sfora.teacher_anchored_distillation import (
@@ -495,6 +496,7 @@ def test_schedule_authority_rejects_drift(total_updates: int) -> None:
 
 
 def test_runtime_authority_pins_determinism_precision_and_rngs() -> None:
+    threadpool_limits(limits=4, user_api="blas")
     receipt = SUBJECT.configure_teacher_anchored_runtime(17)
     first = (random.random(), float(np.random.random()), float(torch.rand(())))
     replay = SUBJECT.configure_teacher_anchored_runtime(17)
@@ -510,6 +512,10 @@ def test_runtime_authority_pins_determinism_precision_and_rngs() -> None:
     assert not torch.backends.cudnn.allow_tf32
     assert torch.get_float32_matmul_precision() == "highest"
     assert receipt.seed == 17
+    assert receipt.cpu_threads == 2
+    assert receipt.blas_threads == 2
+    assert torch.get_num_threads() == 2
+    assert {pool["num_threads"] for pool in threadpool_info() if pool["user_api"] == "blas"} == {2}
     assert receipt.math_sdp_enabled is True
     assert receipt.flash_sdp_enabled is False
     assert receipt.memory_efficient_sdp_enabled is False

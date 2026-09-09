@@ -23,6 +23,7 @@ os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
 
 import numpy as np
 import torch
+from threadpoolctl import threadpool_info, threadpool_limits  # type: ignore[import-untyped]
 from torch import nn
 from torch.amp.grad_scaler import GradScaler
 
@@ -82,6 +83,8 @@ class TeacherAnchoredRuntimeReceipt(NamedTuple):
     """Exact deterministic arithmetic state bound into experiment receipts."""
 
     seed: int
+    cpu_threads: int
+    blas_threads: int
     cublas_workspace_config: str
     deterministic_algorithms: bool
     cudnn_deterministic: bool
@@ -373,6 +376,13 @@ def configure_teacher_anchored_runtime(seed: int) -> TeacherAnchoredRuntimeRecei
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
+    torch.set_num_threads(2)
+    threadpool_limits(limits=2, user_api="blas")
+    blas_threads = {
+        int(pool["num_threads"]) for pool in threadpool_info() if pool["user_api"] == "blas"
+    }
+    if blas_threads != {2}:
+        raise ValueError("teacher-anchored runtime authority differs")
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
     torch.use_deterministic_algorithms(True)
@@ -387,6 +397,8 @@ def configure_teacher_anchored_runtime(seed: int) -> TeacherAnchoredRuntimeRecei
     torch.backends.cuda.enable_cudnn_sdp(False)
     return TeacherAnchoredRuntimeReceipt(
         seed=seed,
+        cpu_threads=torch.get_num_threads(),
+        blas_threads=blas_threads.pop(),
         cublas_workspace_config=os.environ["CUBLAS_WORKSPACE_CONFIG"],
         deterministic_algorithms=torch.are_deterministic_algorithms_enabled(),
         cudnn_deterministic=torch.backends.cudnn.deterministic,
