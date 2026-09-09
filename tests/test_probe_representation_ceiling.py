@@ -12,6 +12,8 @@ import pytest
 import torch
 from torch.nn import functional as F
 
+from sfora.nested_rank_protocol import ordered_training_records_sha256
+
 _ROOT = Path(__file__).resolve().parents[1]
 _SCRIPT = _ROOT / "scripts/probe_representation_ceiling.py"
 sys.path.insert(0, str(_SCRIPT.parent))
@@ -127,6 +129,91 @@ def test_train_archive_loader_never_accesses_test_members(
     assert image_ids.tolist() == list(range(1, 7))
     assert len(paths) == 6
     assert not any(name.startswith("test_") for name in accessed)
+
+
+def test_train_archive_loader_accepts_strict_runtime_bound_train_only_snapshot(
+    tmp_path: Path,
+) -> None:
+    arrays = {
+        "train_embeddings": np.asarray(
+            [[1.0, 0.0], [0.9, 0.1], [0.8, 0.2], [0.0, 1.0], [0.1, 0.9], [0.2, 0.8]],
+            dtype=np.float32,
+        ),
+        "train_labels": np.asarray([1, 1, 1, 2, 2, 2], dtype=np.int64),
+        "train_image_ids": np.arange(1, 7, dtype=np.int64),
+        "train_relative_paths": np.asarray([f"train/{index}" for index in range(6)]),
+    }
+    metadata = {
+        "batch_size": 64,
+        "checkpoint_sha256": "1" * 64,
+        "embedding_dimension": 2,
+        "excluded_test_array_sha256": {
+            "test_embeddings": "4" * 64,
+            "test_image_ids": "5" * 64,
+            "test_labels": "6" * 64,
+            "test_relative_paths": "7" * 64,
+        },
+        "model_identifier": "fixture-source",
+        "model_revision": "2" * 40,
+        "ordered_train_record_sha256": ordered_training_records_sha256(
+            arrays["train_image_ids"],
+            arrays["train_labels"],
+            tuple(str(value) for value in arrays["train_relative_paths"]),
+        ),
+        "runtime": {
+            "blas_threads": 2,
+            "cpu_threads": 2,
+            "cublas_workspace_config": ":4096:8",
+            "cuda_matmul_tf32": False,
+            "cudnn_benchmark": False,
+            "cudnn_deterministic": True,
+            "cudnn_sdp_enabled": False,
+            "cudnn_tf32": False,
+            "cudnn_version": 92000,
+            "cuda_device_capability": "12.1",
+            "cuda_device_name": "fixture-gpu",
+            "cuda_version": "13.0",
+            "deterministic_algorithms": True,
+            "flash_sdp_enabled": False,
+            "float32_matmul_precision": "highest",
+            "math_sdp_enabled": True,
+            "memory_efficient_sdp_enabled": False,
+            "seed": 17,
+            "torch_version": "2.12.1+cu130",
+        },
+        "schema": "sfora-nnrl-sop-train-snapshot-v1",
+        "source_archive_sha256": "8" * 64,
+        "train_array_sha256": {
+            name: hashlib.sha256(value.tobytes(order="C")).hexdigest()
+            for name, value in arrays.items()
+        },
+        "train_classes": 2,
+        "train_rows": 6,
+        "transform": "fixture",
+    }
+    path = tmp_path / "train-only.npz"
+    np.savez(
+        path,
+        metadata_json=np.asarray(json.dumps(metadata, sort_keys=True, separators=(",", ":"))),
+        **arrays,
+    )
+
+    loaded_metadata, embeddings, labels, image_ids, paths = (
+        _MODULE._load_train_archive_snapshot(
+            path,
+            hashlib.sha256(path.read_bytes()).hexdigest(),
+            model_identifier="fixture-source",
+            expected_rows=6,
+            expected_classes=2,
+            dimensions=2,
+        )
+    )
+
+    assert loaded_metadata == metadata
+    assert embeddings.shape == (6, 2)
+    assert labels.tolist() == [1, 1, 1, 2, 2, 2]
+    assert image_ids.tolist() == list(range(1, 7))
+    assert tuple(paths) == tuple(f"train/{index}" for index in range(6))
 
 
 def test_train_only_ceiling_emits_all_fixed_arms_and_partitions() -> None:

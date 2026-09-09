@@ -25,6 +25,7 @@ import export_unicom_sop_embeddings as sop_export_module
 import numpy as np
 import probe_sop_relational_linear as sop_relational_module
 import torch
+import train_sop_nested_neighborhood_rank as nnrl_snapshot_module
 from probe_sop_relational_linear import score_symmetric
 
 import sfora.representation_ceiling as representation_ceiling_module
@@ -90,6 +91,13 @@ def _load_train_archive_snapshot(
     snapshot = path.read_bytes()
     if _sha256_bytes(snapshot) != sha256:
         raise ValueError("representation ceiling archive digest differs")
+    train_only_required = {
+        "metadata_json",
+        "train_embeddings",
+        "train_labels",
+        "train_image_ids",
+        "train_relative_paths",
+    }
     required = {
         "metadata_json",
         "train_embeddings",
@@ -102,8 +110,26 @@ def _load_train_archive_snapshot(
         "test_relative_paths",
     }
     with np.load(io.BytesIO(snapshot), allow_pickle=False) as archive:
-        if set(archive.files) != required:
+        members = set(archive.files)
+        if members not in (required, train_only_required):
             raise ValueError("representation ceiling archive schema differs")
+        if members == train_only_required:
+            loaded = nnrl_snapshot_module.load_train_snapshot(path, sha256)
+            metadata = loaded.metadata
+            if (
+                metadata.get("model_identifier") != model_identifier
+                or metadata.get("embedding_dimension") != dimensions
+                or metadata.get("train_rows") != expected_rows
+                or metadata.get("train_classes") != expected_classes
+            ):
+                raise ValueError("representation ceiling archive metadata differs")
+            return (
+                metadata,
+                loaded.embeddings,
+                loaded.labels,
+                loaded.image_ids,
+                loaded.relative_paths,
+            )
         metadata_value = archive["metadata_json"]
         metadata = json.loads(str(metadata_value.item()))
         train_embeddings = archive["train_embeddings"].copy()
@@ -183,8 +209,12 @@ def load_paired_train_archives(
     source_metadata, source_rows, source_labels, source_ids, source_paths = source
     teacher_metadata, teacher_rows, teacher_labels, teacher_ids, teacher_paths = teacher
     if (
-        source_metadata.get("ordered_record_sha256")
-        != teacher_metadata.get("ordered_record_sha256")
+        source_metadata.get(
+            "ordered_train_record_sha256", source_metadata.get("ordered_record_sha256")
+        )
+        != teacher_metadata.get(
+            "ordered_train_record_sha256", teacher_metadata.get("ordered_record_sha256")
+        )
         or source_metadata.get("model_revision") != teacher_metadata.get("model_revision")
         or not np.array_equal(source_labels, teacher_labels)
         or not np.array_equal(source_ids, teacher_ids)
