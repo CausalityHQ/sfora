@@ -165,6 +165,10 @@ class TeacherAnchoredLoss:
     covariance: torch.Tensor
 
 
+class TeacherAnchoredNumericalError(ValueError):
+    """A nonfinite objective input or result, distinct from authority drift."""
+
+
 @dataclass(frozen=True, slots=True)
 class EmbeddingGeometryDiagnostics:
     """Finite collapse diagnostics computed from normalized codes."""
@@ -388,8 +392,10 @@ def teacher_anchored_loss(
             + config.covariance_weight * covariance_loss
         )
     components = (total, anchor_loss, point_loss, symmetric_loss, drift_loss, covariance_loss)
-    if any(value.ndim != 0 or not bool(torch.isfinite(value)) for value in components):
+    if any(value.ndim != 0 for value in components):
         raise ValueError("teacher-anchored loss authority differs")
+    if any(not bool(torch.isfinite(value)) for value in components):
+        raise TeacherAnchoredNumericalError("teacher-anchored loss numerical failure")
     return TeacherAnchoredLoss(
         total=total,
         anchor=anchor_loss,
@@ -476,8 +482,11 @@ def _validate_loss_inputs(
         or original_features.requires_grad
         or any(value.device != student.device for value in tensors)
         or any(value.dtype != torch.float32 for value in tensors)
-        or any(not _valid_normalized_tensor(value, dimensions=None) for value in tensors)
     ):
+        raise ValueError("teacher-anchored loss authority differs")
+    if any(not bool(torch.isfinite(value).all()) for value in tensors):
+        raise TeacherAnchoredNumericalError("teacher-anchored loss numerical failure")
+    if any(not _valid_normalized_tensor(value, dimensions=None) for value in tensors):
         raise ValueError("teacher-anchored loss authority differs")
 
 

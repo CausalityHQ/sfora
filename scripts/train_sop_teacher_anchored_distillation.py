@@ -5,11 +5,16 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
+import json
 import math
 import os
 import random
 import stat
 import struct
+import sys
+import tempfile
+from collections.abc import Callable
 from pathlib import Path
 from typing import NamedTuple, cast
 
@@ -20,9 +25,14 @@ import torch
 from torch import nn
 from torch.amp.grad_scaler import GradScaler
 
+from sfora.joint_relational_compaction import pack_int8_unit_embeddings
 from sfora.representation_ceiling import (
     TeacherGuidedProjection,
     fit_teacher_guided_projection,
+)
+from sfora.teacher_anchored_distillation import (
+    TeacherAnchoredLoss,
+    TeacherAnchoredNumericalError,
 )
 
 
@@ -106,6 +116,92 @@ class TeacherAnchoredSnapshotReplayReceipt(NamedTuple):
     minimum_single_cosine: float
     minimum_batch_cosine: float
     minimum_shape_cosine: float
+
+
+class TeacherAnchoredEpochDiagnostic(NamedTuple):
+    """Binding fitting and non-binding validation evidence for one epoch."""
+
+    epoch: int
+    fitting_map_at_r: float
+    fitting_effective_rank: float
+    fitting_leading_eigenvalue_share: float
+    validation_map_at_r: float
+
+
+class TeacherAnchoredTrainingReceipt(NamedTuple):
+    """Exact endpoint or fitting-stop evidence for one training arm."""
+
+    arm: str
+    schedule_sha256: str
+    initial_encoder_sha256: str
+    final_encoder_sha256: str
+    initial_frozen_sha256: str
+    final_frozen_sha256: str
+    initial_head_sha256: str
+    final_head_sha256: str
+    optimizer_reset_epochs: tuple[int, ...]
+    attempted_updates: int
+    successful_updates: int
+    completed_epochs: tuple[int, ...]
+    diagnostics: tuple[TeacherAnchoredEpochDiagnostic, ...]
+    stopped_reason: str | None
+    candidate_epoch: int | None
+
+
+class TeacherAnchoredFittingProbeSelection(NamedTuple):
+    """All rows belonging to the first 512 seed-hashed fitting classes."""
+
+    class_ids: tuple[int, ...]
+    row_indexes: tuple[int, ...]
+    sha256: str
+
+
+class TeacherAnchoredProbeScore(NamedTuple):
+    """Exact float32 and deployed symmetric-int8 fitting/validation score."""
+
+    candidate_width: int
+    float_map_at_r: float
+    float_r1: float
+    packed_map_at_r: float
+    packed_r1: float
+
+
+class TeacherAnchoredBootstrapSplit(NamedTuple):
+    """One ordered historical validation split for paired replay."""
+
+    row_indexes: tuple[int, ...]
+    treatment: tuple[float, ...]
+    baseline: tuple[float, ...]
+
+
+class TeacherAnchoredProgressState(NamedTuple):
+    """Last authenticated progress event in a launch-bound chain."""
+
+    sequence: int
+    arm: str
+    epoch: int
+    update: int
+    line_sha256: str
+
+
+class TeacherAnchoredPublishedArtifacts(NamedTuple):
+    """No-clobber receipt and complete merged checkpoint paths."""
+
+    receipt: Path
+    checkpoint: Path
+    receipt_sha256: str
+    checkpoint_sha256: str
+
+
+class TeacherAnchoredNonfiniteUpdate(ValueError):
+    """A numerically invalid optimizer attempt, distinct from authority/resource failures."""
+
+
+TeacherAnchoredComputeLoss = Callable[
+    [int, int, tuple[int, ...], tuple[str, ...]], TeacherAnchoredLoss
+]
+TeacherAnchoredDiagnose = Callable[[int], TeacherAnchoredEpochDiagnostic]
+TeacherAnchoredProgress = Callable[[str, int, int], None]
 
 
 def parse_teacher_anchored_args(arguments: list[str]) -> TeacherAnchoredArguments:
@@ -640,32 +736,35 @@ def teacher_anchored_optimizer_step(
         type(loss) is not torch.Tensor
         or loss.ndim != 0
         or loss.dtype != torch.float32
-        or not bool(torch.isfinite(loss))
         or type(optimizer) is not torch.optim.AdamW
         or type(scaler) is not GradScaler
         or not parameters
         or any(type(parameter) is not nn.Parameter for parameter in parameters)
     ):
-        raise ValueError("teacher-anchored nonfinite update")
+        raise ValueError("teacher-anchored update authority differs")
+    if not bool(torch.isfinite(loss)):
+        raise TeacherAnchoredNonfiniteUpdate("teacher-anchored nonfinite update")
     optimizer.zero_grad(set_to_none=True)
     scale_before = scaler.get_scale()
     scaler.scale(loss).backward()  # type: ignore[no-untyped-call]
     scaler.unscale_(optimizer)
-    try:
-        gradient_norm = torch.nn.utils.clip_grad_norm_(
-            parameters,
-            max_norm=1.0,
-            error_if_nonfinite=True,
-        )
-    except RuntimeError as error:
+    if any(parameter.grad is None for parameter in parameters):
         optimizer.zero_grad(set_to_none=True)
-        raise ValueError("teacher-anchored nonfinite update") from error
+        raise ValueError("teacher-anchored update authority differs")
+    gradient_norm = torch.nn.utils.clip_grad_norm_(
+        parameters,
+        max_norm=1.0,
+        error_if_nonfinite=False,
+    )
+    if not bool(torch.isfinite(gradient_norm)):
+        optimizer.zero_grad(set_to_none=True)
+        raise TeacherAnchoredNonfiniteUpdate("teacher-anchored nonfinite update")
     scaler.step(optimizer)
     scaler.update()
     if scaler.get_scale() < scale_before or any(
         not bool(torch.isfinite(parameter).all()) for parameter in parameters
     ):
-        raise ValueError("teacher-anchored nonfinite update")
+        raise TeacherAnchoredNonfiniteUpdate("teacher-anchored nonfinite update")
     return float(gradient_norm)
 
 
@@ -682,6 +781,846 @@ def teacher_anchored_lr_factor(update: int, *, total_updates: int) -> float:
     if update < 100:
         return (update + 1) / 100
     return 0.5 * (1.0 + math.cos(math.pi * (update - 99) / (total_updates - 100)))
+
+
+def teacher_anchored_arm_objective(loss: TeacherAnchoredLoss, *, arm: str) -> torch.Tensor:
+    """Select one exact nested objective without changing its component reductions."""
+
+    if type(loss) is not TeacherAnchoredLoss or arm not in (
+        "head-only",
+        "base",
+        "anchor",
+        "symmetric",
+        "complete",
+    ):
+        raise ValueError("teacher-anchored arm objective differs")
+    components = (
+        loss.total,
+        loss.anchor,
+        loss.point,
+        loss.symmetric,
+        loss.drift,
+        loss.covariance,
+    )
+    if any(
+        type(component) is not torch.Tensor
+        or component.ndim != 0
+        or component.dtype != torch.float32
+        for component in components
+    ):
+        raise ValueError("teacher-anchored arm objective authority differs")
+    if not all(bool(torch.isfinite(component)) for component in components):
+        raise TeacherAnchoredNonfiniteUpdate("teacher-anchored nonfinite update")
+    base = 0.1 * loss.point + 0.05 * loss.drift + 0.01 * loss.covariance
+    if arm in ("anchor", "complete", "head-only"):
+        base = base + loss.anchor
+    if arm in ("symmetric", "complete", "head-only"):
+        base = base + 0.5 * loss.symmetric
+    if not bool(torch.isfinite(base)):
+        raise TeacherAnchoredNonfiniteUpdate("teacher-anchored nonfinite update")
+    return base
+
+
+def teacher_anchored_objective_sha256(arm: str) -> str:
+    """Bind one nested arm to the complete frozen objective recipe."""
+
+    if arm not in ("head-only", "base", "anchor", "symmetric", "complete"):
+        raise ValueError("teacher-anchored artifact authority differs")
+    return hashlib.sha256(
+        _canonical_json_bytes(
+            {
+                "anchor_weight": 1.0 if arm in ("head-only", "anchor", "complete") else 0.0,
+                "arm": arm,
+                "covariance_weight": 0.01,
+                "drift_weight": 0.05,
+                "point_weight": 0.1,
+                "symmetric_weight": 0.5
+                if arm in ("head-only", "symmetric", "complete")
+                else 0.0,
+                "temperatures": [0.05, 0.2],
+            }
+        )
+    ).hexdigest()
+
+
+def teacher_anchored_schedule_sha256(
+    schedules: tuple[tuple[tuple[int, ...], ...], ...],
+    *,
+    fitting_row_count: int,
+) -> str:
+    """Hash the exact ten-epoch row schedule without JSON-number ambiguity."""
+
+    _validate_teacher_anchored_schedules(schedules, fitting_row_count=fitting_row_count)
+    digest = hashlib.sha256(b"sfora-teacher-anchored-schedules-v1\x00")
+    digest.update(struct.pack("<Q", fitting_row_count))
+    digest.update(struct.pack("<I", len(schedules)))
+    for epoch_batches in schedules:
+        digest.update(struct.pack("<Q", len(epoch_batches)))
+        for rows in epoch_batches:
+            digest.update(struct.pack("<Q", len(rows)))
+            digest.update(struct.pack(f"<{len(rows)}q", *rows))
+    return digest.hexdigest()
+
+
+def load_teacher_anchored_probe_scorer() -> tuple[Callable[..., object], Path]:
+    """Load the exact repository probe scorer after enabling sibling imports."""
+
+    path = Path(__file__).resolve().parent / "probe_sop_relational_linear.py"
+    scripts_directory = str(path.parent)
+    if scripts_directory not in sys.path:
+        sys.path.insert(0, scripts_directory)
+    module_name = "sfora_teacher_anchored_probe_scorer"
+    spec = importlib.util.spec_from_file_location(module_name, path)
+    if spec is None or spec.loader is None:
+        raise ValueError("teacher-anchored probe scorer authority differs")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+    scorer = getattr(module, "score_symmetric", None)
+    if not callable(scorer):
+        raise ValueError("teacher-anchored probe scorer authority differs")
+    return cast(Callable[..., object], scorer), path
+
+
+def score_teacher_anchored_probe(
+    codes: torch.Tensor, labels: tuple[int, ...], *, device: torch.device
+) -> TeacherAnchoredProbeScore:
+    """Score one live code matrix through the exact float and serving paths."""
+
+    if (
+        type(codes) is not torch.Tensor
+        or codes.device.type != "cpu"
+        or codes.dtype != torch.float32
+        or codes.ndim != 2
+        or codes.shape[0] < 2
+        or not codes.is_contiguous()
+        or not bool(torch.isfinite(codes).all())
+        or type(labels) is not tuple
+        or len(labels) != len(codes)
+        or any(type(label) is not int or label < 1 for label in labels)
+        or type(device) is not torch.device
+    ):
+        raise ValueError("teacher-anchored probe authority differs")
+    counts: dict[int, int] = {}
+    for label in labels:
+        counts[label] = counts.get(label, 0) + 1
+    if any(count < 2 for count in counts.values()):
+        raise ValueError("teacher-anchored probe authority differs")
+    candidate_width = max(counts.values()) - 1
+    scorer, _path = load_teacher_anchored_probe_scorer()
+    float_score = scorer(codes, labels, candidate_width=candidate_width, device=device)
+    packed_score = scorer(
+        pack_int8_unit_embeddings(codes),
+        labels,
+        candidate_width=candidate_width,
+        device=device,
+    )
+    if type(float_score) is not dict or type(packed_score) is not dict:
+        raise ValueError("teacher-anchored probe authority differs")
+    values = (
+        float_score.get("map_at_r"),
+        float_score.get("r1"),
+        packed_score.get("map_at_r"),
+        packed_score.get("r1"),
+    )
+    if any(type(value) is not float or not math.isfinite(value) for value in values):
+        raise ValueError("teacher-anchored probe authority differs")
+    return TeacherAnchoredProbeScore(
+        candidate_width, *cast(tuple[float, float, float, float], values)
+    )
+
+
+def select_teacher_anchored_fitting_probe(
+    labels: np.ndarray, *, seed: int
+) -> TeacherAnchoredFittingProbeSelection:
+    """Select complete positive sets for the fixed fitting-only stop diagnostic."""
+
+    if (
+        type(labels) is not np.ndarray
+        or labels.dtype != np.int64
+        or labels.ndim != 1
+        or labels.size < 1024
+        or not labels.flags.c_contiguous
+        or type(seed) is not int
+        or seed not in (17, 1729, 65537)
+    ):
+        raise ValueError("teacher-anchored fitting probe authority differs")
+    classes, counts = np.unique(labels, return_counts=True)
+    if classes.size < 512 or bool((counts < 2).any()):
+        raise ValueError("teacher-anchored fitting probe authority differs")
+    ordered = sorted(
+        (int(value) for value in classes),
+        key=lambda value: (hashlib.sha256(struct.pack("<Qq", seed, value)).digest(), value),
+    )
+    selected = tuple(ordered[:512])
+    selected_set = set(selected)
+    rows = tuple(row for row, label in enumerate(labels) if int(label) in selected_set)
+    digest = hashlib.sha256(b"sfora-teacher-anchored-fitting-probe-v1\x00")
+    digest.update(labels.astype("<i8", copy=False).tobytes(order="C"))
+    digest.update(struct.pack(f"<{len(selected)}q", *selected))
+    digest.update(struct.pack(f"<{len(rows)}q", *rows))
+    return TeacherAnchoredFittingProbeSelection(selected, rows, digest.hexdigest())
+
+
+def teacher_anchored_bootstrap_lower_bound(
+    treatment: tuple[float, ...],
+    baseline: tuple[float, ...],
+    identities: tuple[int, ...],
+    *,
+    expected_lower_bound: float,
+) -> float:
+    """Replay the frozen Torch class-cluster lower-bound estimator exactly."""
+
+    path = Path(__file__).resolve().parent / "probe_representation_ceiling.py"
+    scripts_directory = str(path.parent)
+    if scripts_directory not in sys.path:
+        sys.path.insert(0, scripts_directory)
+    module_name = "sfora_teacher_anchored_bootstrap"
+    spec = importlib.util.spec_from_file_location(module_name, path)
+    if spec is None or spec.loader is None:
+        raise ValueError("teacher-anchored bootstrap authority differs")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+    estimator = getattr(module, "class_cluster_lower_bound", None)
+    if not callable(estimator):
+        raise ValueError("teacher-anchored bootstrap authority differs")
+    lower = estimator(treatment, baseline, identities, seed=17, samples=10_000)
+    if type(lower) is not float or not math.isfinite(lower):
+        raise ValueError("teacher-anchored bootstrap authority differs")
+    if (
+        type(expected_lower_bound) is not float
+        or not math.isfinite(expected_lower_bound)
+        or lower != expected_lower_bound
+    ):
+        raise ValueError("teacher-anchored bootstrap replay differs")
+    return lower
+
+
+def replay_teacher_anchored_bootstrap(
+    train_labels: np.ndarray,
+    *,
+    labels_sha256: str,
+    splits: tuple[TeacherAnchoredBootstrapSplit, ...],
+    expected_lower_bound: float,
+) -> float:
+    """Authenticate labels and replay the exact ordered three-split estimator."""
+
+    if (
+        type(train_labels) is not np.ndarray
+        or train_labels.dtype != np.dtype("<i8")
+        or train_labels.ndim != 1
+        or not train_labels.flags.c_contiguous
+        or hashlib.sha256(train_labels.tobytes(order="C")).hexdigest() != labels_sha256
+        or type(splits) is not tuple
+        or len(splits) != 3
+        or type(expected_lower_bound) is not float
+        or not math.isfinite(expected_lower_bound)
+    ):
+        raise ValueError("teacher-anchored bootstrap authority differs")
+    treatment: list[float] = []
+    baseline: list[float] = []
+    identities: list[int] = []
+    seen: set[int] = set()
+    for split in splits:
+        if (
+            type(split) is not TeacherAnchoredBootstrapSplit
+            or not split.row_indexes
+            or len(split.row_indexes) != len(split.treatment)
+            or len(split.row_indexes) != len(split.baseline)
+            or len(set(split.row_indexes)) != len(split.row_indexes)
+            or any(
+                type(row) is not int or not 0 <= row < len(train_labels)
+                for row in split.row_indexes
+            )
+            or any(row in seen for row in split.row_indexes)
+        ):
+            raise ValueError("teacher-anchored bootstrap authority differs")
+        seen.update(split.row_indexes)
+        treatment.extend(split.treatment)
+        baseline.extend(split.baseline)
+        identities.extend(int(train_labels[row]) for row in split.row_indexes)
+    return teacher_anchored_bootstrap_lower_bound(
+        tuple(treatment),
+        tuple(baseline),
+        tuple(identities),
+        expected_lower_bound=expected_lower_bound,
+    )
+
+
+def run_teacher_anchored_training(
+    encoder: nn.Module,
+    head: nn.Linear,
+    *,
+    arm: str,
+    schedules: tuple[tuple[tuple[int, ...], ...], ...],
+    fitting_row_count: int,
+    expected_schedule_sha256: str,
+    initialization_fitting_map_at_r: float,
+    initialization_effective_rank: float,
+    initialization_leading_eigenvalue_share: float,
+    compute_loss: TeacherAnchoredComputeLoss,
+    diagnose: TeacherAnchoredDiagnose,
+    progress: TeacherAnchoredProgress,
+    device_type: str,
+) -> TeacherAnchoredTrainingReceipt:
+    """Execute the fixed loop while owning optimization and state integrity."""
+
+    if (
+        not isinstance(encoder, nn.Module)
+        or type(head) is not nn.Linear
+        or arm not in ("head-only", "base", "anchor", "symmetric", "complete")
+        or type(initialization_fitting_map_at_r) is not float
+        or type(initialization_effective_rank) is not float
+        or type(initialization_leading_eigenvalue_share) is not float
+        or not all(
+            math.isfinite(value) and value >= 0.0
+            for value in (
+                initialization_fitting_map_at_r,
+                initialization_effective_rank,
+                initialization_leading_eigenvalue_share,
+            )
+        )
+        or type(fitting_row_count) is not int
+        or fitting_row_count < 256
+        or not _is_sha256(expected_schedule_sha256)
+        or not callable(compute_loss)
+        or not callable(diagnose)
+        or not callable(progress)
+        or device_type not in ("cpu", "cuda")
+        or head.weight.device.type != device_type
+        or any(parameter.device.type != device_type for parameter in encoder.parameters())
+    ):
+        raise ValueError("teacher-anchored training authority differs")
+    schedule_sha256 = teacher_anchored_schedule_sha256(
+        schedules, fitting_row_count=fitting_row_count
+    )
+    if schedule_sha256 != expected_schedule_sha256:
+        raise ValueError("teacher-anchored training schedule differs")
+    head_only = arm == "head-only"
+    if not _module_state_is_finite(encoder) or not _module_state_is_finite(head):
+        raise ValueError("teacher-anchored training authority differs")
+    initial_encoder_sha256 = module_state_sha256(encoder)
+    initial_head_sha256 = module_state_sha256(head)
+    initial_frozen_sha256 = encoder_frozen_state_sha256(encoder, head_only=head_only)
+    total_later_updates = sum(len(epoch_batches) for epoch_batches in schedules[1:])
+    if total_later_updates <= 100:
+        raise ValueError("teacher-anchored training schedule differs")
+    initialization_diagnostic = diagnose(0)
+    if (
+        type(initialization_diagnostic) is not TeacherAnchoredEpochDiagnostic
+        or initialization_diagnostic.epoch != 0
+        or not all(math.isfinite(value) for value in initialization_diagnostic[1:])
+        or initialization_diagnostic.fitting_map_at_r != initialization_fitting_map_at_r
+        or initialization_diagnostic.fitting_effective_rank != initialization_effective_rank
+        or initialization_diagnostic.fitting_leading_eigenvalue_share
+        != initialization_leading_eigenvalue_share
+    ):
+        raise ValueError("teacher-anchored live step-zero differs")
+
+    optimizer: torch.optim.AdamW | None = None
+    scaler: GradScaler | None = None
+    later_update = 0
+    attempted_updates = 0
+    successful_updates = 0
+    completed_epochs: list[int] = []
+    diagnostics: list[TeacherAnchoredEpochDiagnostic] = [initialization_diagnostic]
+    optimizer_reset_epochs: list[int] = []
+    stopped_reason: str | None = None
+    progress("initialized", 0, 0)
+    for epoch, epoch_batches in enumerate(schedules, start=1):
+        active = configure_teacher_anchored_epoch(
+            encoder,
+            head,
+            epoch=epoch,
+            head_only=head_only,
+        )
+        if epoch in (1, 2):
+            optimizer = build_teacher_anchored_optimizer(
+                encoder,
+                head,
+                epoch=epoch,
+                head_only=head_only,
+            )
+            scaler = build_teacher_anchored_grad_scaler(device_type)
+            optimizer_reset_epochs.append(epoch)
+        if optimizer is None or scaler is None:
+            raise ValueError("teacher-anchored optimizer authority differs")
+        for update_index, rows in enumerate(epoch_batches):
+            factor = (
+                1.0
+                if epoch == 1
+                else teacher_anchored_lr_factor(later_update, total_updates=total_later_updates)
+            )
+            for group in optimizer.param_groups:
+                group_name = group.get("group_name")
+                if type(group_name) is not str:
+                    raise ValueError("teacher-anchored optimizer authority differs")
+                group["lr"] = (1e-4 if group_name.startswith("head-") else 1e-6) * factor
+            attempted_updates += 1
+            try:
+                loss = compute_loss(epoch, update_index, rows, active)
+                objective = teacher_anchored_arm_objective(loss, arm=arm)
+                parameters = tuple(
+                    parameter
+                    for parameter in (*encoder.parameters(), *head.parameters())
+                    if parameter.requires_grad
+                )
+                teacher_anchored_optimizer_step(objective, optimizer, scaler, parameters)
+            except (TeacherAnchoredNonfiniteUpdate, TeacherAnchoredNumericalError):
+                stopped_reason = "nonfinite-update"
+                progress("stopped", epoch, successful_updates)
+                break
+            successful_updates += 1
+            progress("update", epoch, successful_updates)
+            if epoch >= 2:
+                later_update += 1
+        if stopped_reason is not None:
+            break
+        if epoch == 1 and module_state_sha256(encoder) != initial_encoder_sha256:
+            raise ValueError("teacher-anchored frozen state differs")
+        diagnostic = diagnose(epoch)
+        if (
+            type(diagnostic) is not TeacherAnchoredEpochDiagnostic
+            or diagnostic.epoch != epoch
+            or not all(math.isfinite(value) for value in diagnostic[1:])
+        ):
+            raise ValueError("teacher-anchored diagnostic authority differs")
+        diagnostics.append(diagnostic)
+        completed_epochs.append(epoch)
+        progress("epoch-complete", epoch, successful_updates)
+        if epoch == 1:
+            if diagnostic.fitting_map_at_r < initialization_fitting_map_at_r - 0.002:
+                stopped_reason = "epoch-one-fitting-map-regression"
+            elif diagnostic.fitting_effective_rank < 0.7 * initialization_effective_rank:
+                stopped_reason = "epoch-one-effective-rank-collapse"
+            elif (
+                diagnostic.fitting_leading_eigenvalue_share
+                > 2.0 * initialization_leading_eigenvalue_share
+            ):
+                stopped_reason = "epoch-one-leading-eigenvalue-collapse"
+            if stopped_reason is not None:
+                progress("stopped", epoch, successful_updates)
+                break
+
+    final_encoder_sha256 = module_state_sha256(encoder)
+    final_frozen_sha256 = encoder_frozen_state_sha256(encoder, head_only=head_only)
+    if head_only and final_encoder_sha256 != initial_encoder_sha256:
+        raise ValueError("teacher-anchored head-only encoder differs")
+    if final_frozen_sha256 != initial_frozen_sha256:
+        raise ValueError("teacher-anchored frozen state differs")
+    if stopped_reason is None:
+        progress("complete", 10, successful_updates)
+    return TeacherAnchoredTrainingReceipt(
+        arm=arm,
+        schedule_sha256=schedule_sha256,
+        initial_encoder_sha256=initial_encoder_sha256,
+        final_encoder_sha256=final_encoder_sha256,
+        initial_frozen_sha256=initial_frozen_sha256,
+        final_frozen_sha256=final_frozen_sha256,
+        initial_head_sha256=initial_head_sha256,
+        final_head_sha256=module_state_sha256(head),
+        optimizer_reset_epochs=tuple(optimizer_reset_epochs),
+        attempted_updates=attempted_updates,
+        successful_updates=successful_updates,
+        completed_epochs=tuple(completed_epochs),
+        diagnostics=tuple(diagnostics),
+        stopped_reason=stopped_reason,
+        candidate_epoch=10
+        if stopped_reason is None and completed_epochs == list(range(1, 11))
+        else None,
+    )
+
+
+def _validate_teacher_anchored_schedules(
+    schedules: tuple[tuple[tuple[int, ...], ...], ...],
+    *,
+    fitting_row_count: int,
+) -> None:
+    if (
+        type(schedules) is not tuple
+        or len(schedules) != 10
+        or type(fitting_row_count) is not int
+        or fitting_row_count < 256
+        or any(
+            type(epoch_batches) is not tuple
+            or len(epoch_batches) != fitting_row_count // 128
+            for epoch_batches in schedules
+        )
+    ):
+        raise ValueError("teacher-anchored training schedule differs")
+    for epoch_batches in schedules:
+        seed_rows: list[int] = []
+        for rows in epoch_batches:
+            if (
+                type(rows) is not tuple
+                or len(rows) != 256
+                or any(type(row) is not int or not 0 <= row < fitting_row_count for row in rows)
+                or len(set(rows)) != len(rows)
+            ):
+                raise ValueError("teacher-anchored training schedule differs")
+            seed_rows.extend(rows[:128])
+        expected_seed_count = fitting_row_count // 128 * 128
+        if len(seed_rows) != expected_seed_count or len(set(seed_rows)) != expected_seed_count:
+            raise ValueError("teacher-anchored training schedule differs")
+
+
+def teacher_anchored_progress_bytes(
+    *,
+    launch_receipt_sha256: str,
+    sequence: int,
+    arm: str,
+    epoch: int,
+    update: int,
+    previous_line_sha256: str,
+    stage: str,
+) -> bytes:
+    """Encode one launch-bound progress event in the authenticated chain."""
+
+    if (
+        not _is_sha256(launch_receipt_sha256)
+        or not _is_sha256(previous_line_sha256)
+        or type(sequence) is not int
+        or sequence < 1
+        or arm not in ("head-only", "base", "anchor", "symmetric", "complete")
+        or type(epoch) is not int
+        or not 0 <= epoch <= 10
+        or type(update) is not int
+        or update < 0
+        or stage not in ("initialized", "update", "epoch-complete", "stopped", "complete")
+    ):
+        raise ValueError("teacher-anchored progress authority differs")
+    return _canonical_json_bytes(
+        {
+            "arm": arm,
+            "epoch": epoch,
+            "launch_receipt_sha256": launch_receipt_sha256,
+            "previous_line_sha256": previous_line_sha256,
+            "schema": "sfora-teacher-anchored-progress-v1",
+            "sequence": sequence,
+            "stage": stage,
+            "update": update,
+        }
+    )
+
+
+def validate_teacher_anchored_progress_chain(
+    lines: tuple[bytes, ...], launch_receipt_sha256: str
+) -> TeacherAnchoredProgressState:
+    """Validate exact canonical continuation before progress can reset a watchdog."""
+
+    if type(lines) is not tuple or not lines or not _is_sha256(launch_receipt_sha256):
+        raise ValueError("teacher-anchored progress chain differs")
+    previous = "0" * 64
+    last: dict[str, object] | None = None
+    for expected_sequence, line in enumerate(lines, start=1):
+        if type(line) is not bytes:
+            raise ValueError("teacher-anchored progress chain differs")
+        try:
+            value = json.loads(line)
+        except (UnicodeDecodeError, json.JSONDecodeError) as error:
+            raise ValueError("teacher-anchored progress chain differs") from error
+        if (
+            type(value) is not dict
+            or set(value)
+            != {
+                "arm",
+                "epoch",
+                "launch_receipt_sha256",
+                "previous_line_sha256",
+                "schema",
+                "sequence",
+                "stage",
+                "update",
+            }
+            or line != _canonical_json_bytes(value)
+            or value["schema"] != "sfora-teacher-anchored-progress-v1"
+            or value["launch_receipt_sha256"] != launch_receipt_sha256
+            or value["previous_line_sha256"] != previous
+            or type(value["sequence"]) is not int
+            or value["sequence"] != expected_sequence
+            or type(value["epoch"]) is not int
+            or type(value["update"]) is not int
+        ):
+            raise ValueError("teacher-anchored progress chain differs")
+        try:
+            reconstructed = teacher_anchored_progress_bytes(
+                launch_receipt_sha256=cast(str, value["launch_receipt_sha256"]),
+                sequence=value["sequence"],
+                arm=cast(str, value["arm"]),
+                epoch=value["epoch"],
+                update=value["update"],
+                previous_line_sha256=cast(str, value["previous_line_sha256"]),
+                stage=cast(str, value["stage"]),
+            )
+        except ValueError as error:
+            raise ValueError("teacher-anchored progress chain differs") from error
+        if reconstructed != line:
+            raise ValueError("teacher-anchored progress chain differs")
+        stage = value["stage"]
+        epoch = value["epoch"]
+        update = value["update"]
+        if last is None:
+            valid_transition = stage == "initialized" and epoch == 0 and update == 0
+        else:
+            previous_stage = last["stage"]
+            previous_epoch = cast(int, last["epoch"])
+            previous_update = cast(int, last["update"])
+            same_arm = value["arm"] == last["arm"]
+            if stage == "update":
+                valid_transition = same_arm and update == previous_update + 1 and (
+                    (previous_stage == "initialized" and epoch == 1)
+                    or (previous_stage == "update" and epoch == previous_epoch)
+                    or (
+                        previous_stage == "epoch-complete"
+                        and epoch == previous_epoch + 1
+                    )
+                )
+            elif stage == "epoch-complete":
+                valid_transition = (
+                    same_arm
+                    and previous_stage == "update"
+                    and epoch == previous_epoch
+                    and update == previous_update
+                )
+            elif stage == "stopped":
+                valid_transition = same_arm and (
+                    (
+                        previous_stage == "initialized"
+                        and epoch == 1
+                        and update == 0
+                    )
+                    or (
+                        previous_stage in ("update", "epoch-complete")
+                        and epoch == previous_epoch
+                        and update == previous_update
+                    )
+                    or (
+                        previous_stage == "epoch-complete"
+                        and epoch == previous_epoch + 1
+                        and update == previous_update
+                    )
+                )
+            elif stage == "complete":
+                valid_transition = (
+                    same_arm
+                    and previous_stage == "epoch-complete"
+                    and previous_epoch == 10
+                    and epoch == 10
+                    and update == previous_update
+                )
+            else:
+                valid_transition = False
+        if not valid_transition:
+            raise ValueError("teacher-anchored progress chain differs")
+        previous = hashlib.sha256(line).hexdigest()
+        last = value
+    if last is None or type(last["arm"]) is not str:
+        raise ValueError("teacher-anchored progress chain differs")
+    return TeacherAnchoredProgressState(
+        sequence=cast(int, last["sequence"]),
+        arm=last["arm"],
+        epoch=cast(int, last["epoch"]),
+        update=cast(int, last["update"]),
+        line_sha256=previous,
+    )
+
+
+def publish_teacher_anchored_artifacts(
+    output: Path,
+    encoder: nn.Module,
+    head: nn.Linear,
+    receipt: TeacherAnchoredTrainingReceipt,
+    *,
+    authority: dict[str, object],
+) -> TeacherAnchoredPublishedArtifacts:
+    """Publish a complete merged state and canonical claim-ineligible receipt."""
+
+    checkpoint = output.with_suffix(".pt")
+    if (
+        not isinstance(output, Path)
+        or not output.is_absolute()
+        or not output.parent.is_dir()
+        or checkpoint == output
+    ):
+        raise ValueError("teacher-anchored artifact path alias differs")
+    if (
+        output.exists()
+        or checkpoint.exists()
+        or not isinstance(encoder, nn.Module)
+        or type(head) is not nn.Linear
+        or type(receipt) is not TeacherAnchoredTrainingReceipt
+    ):
+        raise ValueError("teacher-anchored artifact already exists")
+    authority_keys = {
+        "anchor_schedule_sha256",
+        "arm",
+        "batch_schedule_sha256",
+        "inputs_sha256",
+        "model_mode_sha256",
+        "objective_sha256",
+        "ridge_sha256",
+        "runtime_sha256",
+        "seed",
+        "source_revision",
+        "split_sha256",
+        "teacher_pca_sha256",
+        "trainable_inventory_sha256",
+    }
+    digest_keys = authority_keys - {"arm", "inputs_sha256", "seed", "source_revision"}
+    inputs = authority.get("inputs_sha256") if type(authority) is dict else None
+    if (
+        type(authority) is not dict
+        or set(authority) != authority_keys
+        or authority["arm"] != receipt.arm
+        or authority["batch_schedule_sha256"] != receipt.schedule_sha256
+        or authority["objective_sha256"] != teacher_anchored_objective_sha256(receipt.arm)
+        or any(not _is_sha256(authority[key]) for key in digest_keys)
+        or type(authority["seed"]) is not int
+        or authority["seed"] not in (17, 1729, 65537)
+        or type(authority["source_revision"]) is not str
+        or len(authority["source_revision"]) != 40
+        or any(character not in "0123456789abcdef" for character in authority["source_revision"])
+        or type(inputs) is not dict
+        or set(inputs)
+        != {
+            "image_tree",
+            "source_checkpoint",
+            "source_snapshot",
+            "teacher_checkpoint",
+            "teacher_snapshot",
+        }
+        or any(not _is_sha256(value) for value in inputs.values())
+    ):
+        raise ValueError("teacher-anchored artifact authority differs")
+    head_only = receipt.arm == "head-only"
+    if (
+        module_state_sha256(encoder) != receipt.final_encoder_sha256
+        or module_state_sha256(head) != receipt.final_head_sha256
+        or not _module_state_is_finite(encoder)
+        or not _module_state_is_finite(head)
+        or encoder_frozen_state_sha256(encoder, head_only=head_only)
+        != receipt.final_frozen_sha256
+    ):
+        raise ValueError("teacher-anchored model state differs")
+    state = {
+        **{f"encoder.{name}": value.detach().cpu() for name, value in encoder.state_dict().items()},
+        **{f"head.{name}": value.detach().cpu() for name, value in head.state_dict().items()},
+    }
+    checkpoint_fd, checkpoint_name = tempfile.mkstemp(
+        dir=output.parent, prefix="teacher-anchored-checkpoint-"
+    )
+    receipt_fd, receipt_name = tempfile.mkstemp(
+        dir=output.parent, prefix="teacher-anchored-receipt-"
+    )
+    checkpoint_temporary = Path(checkpoint_name)
+    receipt_temporary = Path(receipt_name)
+    checkpoint_linked = False
+    receipt_linked = False
+    try:
+        os.close(checkpoint_fd)
+        checkpoint_fd = -1
+        torch.save(state, checkpoint_temporary)
+        with checkpoint_temporary.open("rb") as stream:
+            os.fsync(stream.fileno())
+        checkpoint_sha256 = _file_sha256(checkpoint_temporary)
+        value: dict[str, object] = {
+            "arm": receipt.arm,
+            "attempted_updates": receipt.attempted_updates,
+            "authority": authority,
+            "candidate_epoch": receipt.candidate_epoch,
+            "checkpoint_path": checkpoint.name,
+            "checkpoint_sha256": checkpoint_sha256,
+            "claim_eligible": False,
+            "completed_epochs": list(receipt.completed_epochs),
+            "diagnostics": [diagnostic._asdict() for diagnostic in receipt.diagnostics],
+            "final_encoder_sha256": receipt.final_encoder_sha256,
+            "final_frozen_sha256": receipt.final_frozen_sha256,
+            "final_head_sha256": receipt.final_head_sha256,
+            "initial_encoder_sha256": receipt.initial_encoder_sha256,
+            "initial_frozen_sha256": receipt.initial_frozen_sha256,
+            "initial_head_sha256": receipt.initial_head_sha256,
+            "optimizer_reset_epochs": list(receipt.optimizer_reset_epochs),
+            "schedule_sha256": receipt.schedule_sha256,
+            "schema": "sfora-teacher-anchored-arm-v1",
+            "stopped_reason": receipt.stopped_reason,
+            "successful_updates": receipt.successful_updates,
+        }
+        payload = _canonical_json_bytes(value)
+        with os.fdopen(receipt_fd, "wb") as stream:
+            receipt_fd = -1
+            stream.write(payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.link(checkpoint_temporary, checkpoint)
+        checkpoint_linked = True
+        os.link(receipt_temporary, output)
+        receipt_linked = True
+        directory_fd = os.open(output.parent, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
+    except BaseException:
+        for linked, temporary, destination in (
+            (receipt_linked, receipt_temporary, output),
+            (checkpoint_linked, checkpoint_temporary, checkpoint),
+        ):
+            if linked and temporary.exists() and destination.exists():
+                temporary_stat = temporary.stat()
+                destination_stat = destination.stat()
+                if (temporary_stat.st_dev, temporary_stat.st_ino) == (
+                    destination_stat.st_dev,
+                    destination_stat.st_ino,
+                ):
+                    destination.unlink()
+        raise
+    finally:
+        if checkpoint_fd >= 0:
+            os.close(checkpoint_fd)
+        if receipt_fd >= 0:
+            os.close(receipt_fd)
+        for path in (receipt_temporary, checkpoint_temporary):
+            if path.exists():
+                path.unlink()
+    return TeacherAnchoredPublishedArtifacts(
+        receipt=output,
+        checkpoint=checkpoint,
+        receipt_sha256=hashlib.sha256(payload).hexdigest(),
+        checkpoint_sha256=checkpoint_sha256,
+    )
+
+
+def _canonical_json_bytes(value: object) -> bytes:
+    try:
+        return (
+            json.dumps(
+                value,
+                sort_keys=True,
+                separators=(",", ":"),
+                ensure_ascii=False,
+                allow_nan=False,
+            ).encode("utf-8")
+            + b"\n"
+        )
+    except (TypeError, ValueError) as error:
+        raise ValueError("teacher-anchored canonical JSON authority differs") from error
+
+
+def _file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        while chunk := stream.read(1024 * 1024):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _is_sha256(value: object) -> bool:
+    return (
+        type(value) is str
+        and len(value) == 64
+        and all(character in "0123456789abcdef" for character in value)
+    )
 
 
 def _parameter_sha256(*values: torch.Tensor) -> str:
@@ -745,8 +1684,6 @@ def module_state_sha256(module: nn.Module) -> str:
     state = module.state_dict()
     for name in sorted(state):
         value = state[name].detach().cpu().contiguous()
-        if not bool(torch.isfinite(value).all()):
-            raise ValueError("module state authority differs")
         name_bytes = name.encode("utf-8")
         dtype_bytes = str(value.dtype).encode("ascii")
         digest.update(struct.pack("<I", len(name_bytes)))
@@ -756,6 +1693,42 @@ def module_state_sha256(module: nn.Module) -> str:
         digest.update(struct.pack("<I", value.ndim))
         digest.update(struct.pack(f"<{value.ndim}Q", *value.shape))
         digest.update(value.reshape(-1).view(torch.uint8).numpy().tobytes(order="C"))
+    return digest.hexdigest()
+
+
+def _module_state_is_finite(module: nn.Module) -> bool:
+    if not isinstance(module, nn.Module):
+        return False
+    return all(bool(torch.isfinite(value).all()) for value in module.state_dict().values())
+
+
+def encoder_frozen_state_sha256(encoder: nn.Module, *, head_only: bool) -> str:
+    """Hash every encoder state entry that must remain immutable for an arm."""
+
+    if not isinstance(encoder, nn.Module) or type(head_only) is not bool:
+        raise ValueError("teacher-anchored frozen state differs")
+    excluded = () if head_only else ("blocks.10.", "blocks.11.", "norm.")
+    digest = hashlib.sha256(b"sfora-teacher-anchored-frozen-state-v1\x00")
+    retained = 0
+    state = encoder.state_dict()
+    for name in sorted(state):
+        if any(name.startswith(prefix) for prefix in excluded):
+            continue
+        value = state[name].detach().cpu().contiguous()
+        if not bool(torch.isfinite(value).all()):
+            raise ValueError("teacher-anchored frozen state differs")
+        name_bytes = name.encode("utf-8")
+        dtype_bytes = str(value.dtype).encode("ascii")
+        digest.update(struct.pack("<I", len(name_bytes)))
+        digest.update(name_bytes)
+        digest.update(struct.pack("<I", len(dtype_bytes)))
+        digest.update(dtype_bytes)
+        digest.update(struct.pack("<I", value.ndim))
+        digest.update(struct.pack(f"<{value.ndim}Q", *value.shape))
+        digest.update(value.reshape(-1).view(torch.uint8).numpy().tobytes(order="C"))
+        retained += 1
+    if retained == 0:
+        raise ValueError("teacher-anchored frozen state differs")
     return digest.hexdigest()
 
 

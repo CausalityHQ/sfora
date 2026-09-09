@@ -9,6 +9,7 @@ import torch
 import sfora
 from sfora.teacher_anchored_distillation import (
     TeacherAnchoredConfig,
+    TeacherAnchoredNumericalError,
     TeacherAnchorSchedule,
     TeacherNeighborBatches,
     TeacherNeighborRanking,
@@ -259,6 +260,7 @@ def test_neighbor_batches_reject_insufficient_or_invalid_authority() -> None:
 
 def test_teacher_anchored_schedule_api_is_public() -> None:
     assert sfora.TeacherAnchoredConfig is TeacherAnchoredConfig
+    assert sfora.TeacherAnchoredNumericalError is TeacherAnchoredNumericalError
     assert sfora.TeacherAnchorSchedule is TeacherAnchorSchedule
     assert sfora.TeacherNeighborBatches is TeacherNeighborBatches
     assert sfora.TeacherNeighborRanking is TeacherNeighborRanking
@@ -447,8 +449,11 @@ def test_teacher_anchored_loss_rejects_invalid_authority(mutation: str) -> None:
         anchors = anchors[:, :, :2]
     elif mutation == "feature-shape":
         original = original[:, :5]
-    with pytest.raises(ValueError, match="teacher-anchored loss authority"):
+    expected = TeacherAnchoredNumericalError if mutation == "nan" else ValueError
+    with pytest.raises(expected, match="teacher-anchored loss") as error:
         teacher_anchored_loss(student, teacher, anchors, adapted, original, TeacherAnchoredConfig())
+    if mutation != "nan":
+        assert type(error.value) is ValueError
 
 
 def test_embedding_geometry_diagnostics_match_covariance_eigenvalues() -> None:

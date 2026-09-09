@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
+import json
 import math
 import os
 import random
+import stat
 import struct
+import sys
 from pathlib import Path
 from types import ModuleType
 
@@ -13,6 +16,11 @@ import numpy as np
 import pytest
 import torch
 from torch import nn
+
+from sfora.teacher_anchored_distillation import (
+    TeacherAnchoredConfig,
+    teacher_anchored_loss,
+)
 
 
 def _load_subject() -> ModuleType:
@@ -98,6 +106,104 @@ def _registered_cli(tmp_path: Path) -> list[str]:
         )
     )
     return arguments
+
+
+def _training_schedules() -> tuple[tuple[tuple[int, ...], ...], ...]:
+    return tuple(
+        tuple(
+            tuple(
+                (
+                    *range(update * 128, (update + 1) * 128),
+                    *range(((update + 1) % 12) * 128, (((update + 1) % 12) + 1) * 128),
+                )
+            )
+            for update in range(12)
+        )
+        for epoch in range(1, 11)
+    )
+
+
+def _artifact_authority(receipt: object) -> dict[str, object]:
+    return {
+        "anchor_schedule_sha256": "4" * 64,
+        "arm": receipt.arm,
+        "batch_schedule_sha256": receipt.schedule_sha256,
+        "inputs_sha256": {
+            "image_tree": "5" * 64,
+            "source_checkpoint": "6" * 64,
+            "source_snapshot": "7" * 64,
+            "teacher_checkpoint": "8" * 64,
+            "teacher_snapshot": "9" * 64,
+        },
+        "model_mode_sha256": "a" * 64,
+        "objective_sha256": SUBJECT.teacher_anchored_objective_sha256(receipt.arm),
+        "ridge_sha256": "b" * 64,
+        "runtime_sha256": "c" * 64,
+        "seed": 17,
+        "source_revision": "3" * 40,
+        "split_sha256": "d" * 64,
+        "teacher_pca_sha256": "e" * 64,
+        "trainable_inventory_sha256": "f" * 64,
+    }
+
+
+def _run_synthetic_training(
+    arm: str,
+    progress: object | None = None,
+) -> tuple[object, list[tuple[int, int, tuple[str, ...]]], FakeEncoder, nn.Linear]:
+    encoder = FakeEncoder()
+    head = nn.Linear(4, 4)
+    updates: list[tuple[int, int, tuple[str, ...]]] = []
+
+    def compute_loss(
+        epoch: int,
+        update_index: int,
+        _rows: tuple[int, ...],
+        active: tuple[str, ...],
+    ) -> object:
+        updates.append((epoch, update_index, active))
+        parameters = tuple(
+            parameter
+            for parameter in (*encoder.parameters(), *head.parameters())
+            if parameter.requires_grad
+        )
+        value = sum((parameter.square().mean() for parameter in parameters), torch.tensor(0.0))
+        return SUBJECT.TeacherAnchoredLoss(
+            total=value,
+            anchor=value,
+            point=value,
+            symmetric=value,
+            drift=value,
+            covariance=value,
+        )
+
+    def diagnose(epoch: int) -> object:
+        return SUBJECT.TeacherAnchoredEpochDiagnostic(
+            epoch=epoch,
+            fitting_map_at_r=0.5 + epoch / 1000,
+            fitting_effective_rank=64.0,
+            fitting_leading_eigenvalue_share=0.04,
+            validation_map_at_r=0.4 + epoch / 1000,
+        )
+
+    receipt = SUBJECT.run_teacher_anchored_training(
+        encoder,
+        head,
+        arm=arm,
+        schedules=_training_schedules(),
+        fitting_row_count=1536,
+        expected_schedule_sha256=SUBJECT.teacher_anchored_schedule_sha256(
+            _training_schedules(), fitting_row_count=1536
+        ),
+        initialization_fitting_map_at_r=0.5,
+        initialization_effective_rank=64.0,
+        initialization_leading_eigenvalue_share=0.04,
+        compute_loss=compute_loss,
+        diagnose=diagnose,
+        progress=progress if callable(progress) else lambda _stage, _epoch, _update: None,
+        device_type="cpu",
+    )
+    return receipt, updates, encoder, head
 
 
 def test_cli_accepts_only_registered_local_capability(tmp_path: Path) -> None:
@@ -376,12 +482,82 @@ def test_grad_scaler_and_update_are_exact_and_fail_closed() -> None:
     assert torch.equal(parameter, before)
 
 
+def test_update_contract_failures_are_not_misclassified_as_nonfinite() -> None:
+    parameter = nn.Parameter(torch.tensor([2.0], dtype=torch.float32))
+    optimizer = torch.optim.AdamW([parameter], lr=1e-3)
+    scaler = SUBJECT.build_teacher_anchored_grad_scaler("cpu")
+
+    with pytest.raises(ValueError, match="update authority") as wrong_loss:
+        SUBJECT.teacher_anchored_optimizer_step(1.0, optimizer, scaler, (parameter,))
+    assert type(wrong_loss.value) is ValueError
+
+    detached = nn.Parameter(torch.tensor([3.0], dtype=torch.float32))
+    with pytest.raises(ValueError, match="update authority") as missing_gradient:
+        SUBJECT.teacher_anchored_optimizer_step(
+            parameter.square().sum(), optimizer, scaler, (parameter, detached)
+        )
+    assert type(missing_gradient.value) is ValueError
+
+
+def test_gradient_clipping_resource_failure_propagates(monkeypatch: pytest.MonkeyPatch) -> None:
+    parameter = nn.Parameter(torch.tensor([2.0, 3.0], dtype=torch.float32))
+    optimizer = torch.optim.AdamW([parameter], lr=1e-3)
+    scaler = SUBJECT.build_teacher_anchored_grad_scaler("cpu")
+
+    def out_of_memory(*_args: object, **_kwargs: object) -> object:
+        raise RuntimeError("CUDA out of memory")
+
+    monkeypatch.setattr(torch.nn.utils, "clip_grad_norm_", out_of_memory)
+    with pytest.raises(RuntimeError, match="CUDA out of memory"):
+        SUBJECT.teacher_anchored_optimizer_step(
+            parameter.sum() * 1e20, optimizer, scaler, (parameter,)
+        )
+
+
+def test_finite_gradient_norm_overflow_returns_terminal_receipt() -> None:
+    encoder = FakeEncoder()
+    head = nn.Linear(4, 4)
+
+    def compute_loss(*_args: object) -> object:
+        value = (head.weight.sum() + head.bias.sum()) * 1e20
+        return SUBJECT.TeacherAnchoredLoss(value, value, value, value, value, value)
+
+    receipt = SUBJECT.run_teacher_anchored_training(
+        encoder,
+        head,
+        arm="head-only",
+        schedules=_training_schedules(),
+        fitting_row_count=1536,
+        expected_schedule_sha256=SUBJECT.teacher_anchored_schedule_sha256(
+            _training_schedules(), fitting_row_count=1536
+        ),
+        initialization_fitting_map_at_r=0.5,
+        initialization_effective_rank=10.0,
+        initialization_leading_eigenvalue_share=0.1,
+        compute_loss=compute_loss,
+        diagnose=lambda epoch: SUBJECT.TeacherAnchoredEpochDiagnostic(
+            epoch, 0.5, 10.0, 0.1, 0.4
+        ),
+        progress=lambda *_args: None,
+        device_type="cpu",
+    )
+
+    assert receipt.attempted_updates == 1
+    assert receipt.successful_updates == 0
+    assert receipt.stopped_reason == "nonfinite-update"
+
+
 def test_module_state_digest_covers_named_parameters_and_buffers() -> None:
     encoder = FakeEncoder()
     baseline = SUBJECT.module_state_sha256(encoder)
     assert baseline == SUBJECT.module_state_sha256(encoder)
     with torch.no_grad():
         encoder.blocks[0][0].weight[0, 0] += 1
+    assert SUBJECT.module_state_sha256(encoder) != baseline
+    encoder = FakeEncoder()
+    baseline = SUBJECT.module_state_sha256(encoder)
+    with torch.no_grad():
+        encoder.projection[0].running_mean[0] += 1
     assert SUBJECT.module_state_sha256(encoder) != baseline
 
 
@@ -508,3 +684,782 @@ def test_snapshot_feature_replay_directly_rejects_batch_shape_drift() -> None:
             image_ids=(1, 2, 3, 4),
             device="cpu",
         )
+
+
+def test_training_loop_runs_exact_modes_resets_and_epoch_ten_candidate() -> None:
+    receipt, updates, _encoder, _head = _run_synthetic_training("complete")
+
+    assert receipt.arm == "complete"
+    assert receipt.attempted_updates == 120
+    assert receipt.successful_updates == 120
+    assert receipt.optimizer_reset_epochs == (1, 2)
+    assert receipt.completed_epochs == tuple(range(1, 11))
+    assert receipt.stopped_reason is None
+    assert receipt.candidate_epoch == 10
+    assert [epoch for epoch, _update, _active in updates] == [
+        epoch for epoch in range(1, 11) for _update in range(12)
+    ]
+    assert all(
+        active == ("head.weight", "head.bias") for epoch, _update, active in updates if epoch == 1
+    )
+    assert all(
+        any(name.startswith("blocks.10.") for name in active)
+        and any(name.startswith("blocks.11.") for name in active)
+        and any(name.startswith("norm.") for name in active)
+        for epoch, _update, active in updates
+        if epoch >= 2
+    )
+
+
+def test_head_only_complete_control_preserves_encoder_and_resets_head_optimizer() -> None:
+    encoder = FakeEncoder()
+    initial = SUBJECT.module_state_sha256(encoder)
+    head = nn.Linear(4, 4)
+
+    def compute_loss(
+        _epoch: int,
+        _update_index: int,
+        _rows: tuple[int, ...],
+        _active: tuple[str, ...],
+    ) -> object:
+        value = head.weight.square().mean() + head.bias.square().mean()
+        return SUBJECT.TeacherAnchoredLoss(value, value, value, value, value, value)
+
+    def diagnose(epoch: int) -> object:
+        return SUBJECT.TeacherAnchoredEpochDiagnostic(
+            epoch=epoch,
+            fitting_map_at_r=0.5 if epoch == 0 else 0.51,
+            fitting_effective_rank=32.0,
+            fitting_leading_eigenvalue_share=0.1,
+            validation_map_at_r=0.4,
+        )
+
+    receipt = SUBJECT.run_teacher_anchored_training(
+        encoder,
+        head,
+        arm="head-only",
+        schedules=_training_schedules(),
+        fitting_row_count=1536,
+        expected_schedule_sha256=SUBJECT.teacher_anchored_schedule_sha256(
+            _training_schedules(), fitting_row_count=1536
+        ),
+        initialization_fitting_map_at_r=0.5,
+        initialization_effective_rank=32.0,
+        initialization_leading_eigenvalue_share=0.1,
+        compute_loss=compute_loss,
+        diagnose=diagnose,
+        progress=lambda _stage, _epoch, _update: None,
+        device_type="cpu",
+    )
+    assert receipt.optimizer_reset_epochs == (1, 2)
+    assert receipt.initial_encoder_sha256 == initial == receipt.final_encoder_sha256
+    assert receipt.candidate_epoch == 10
+
+
+@pytest.mark.parametrize("arm", ["head-only", "base", "anchor", "symmetric", "complete"])
+def test_all_arms_consume_identical_sealed_schedules(arm: str) -> None:
+    receipt, _updates, _encoder, _head = _run_synthetic_training(arm)
+    assert receipt.schedule_sha256 == SUBJECT.teacher_anchored_schedule_sha256(
+        _training_schedules(), fitting_row_count=1536
+    )
+
+
+def test_schedule_requires_every_scheduled_fitting_row_once_as_an_epoch_seed() -> None:
+    schedules = _training_schedules()
+    assert len(SUBJECT.teacher_anchored_schedule_sha256(schedules, fitting_row_count=1537)) == 64
+    first_epoch = list(schedules[0])
+    first_epoch[1] = (*first_epoch[0][:128], *first_epoch[1][128:])
+    mutated = (tuple(first_epoch), *schedules[1:])
+    with pytest.raises(ValueError, match="training schedule differs"):
+        SUBJECT.teacher_anchored_schedule_sha256(mutated, fitting_row_count=1536)
+
+
+def test_epoch_one_fitting_stop_is_binding_and_has_no_candidate() -> None:
+    encoder = FakeEncoder()
+    head = nn.Linear(4, 4)
+
+    def compute_loss(
+        _epoch: int,
+        _update_index: int,
+        _rows: tuple[int, ...],
+        _active: tuple[str, ...],
+    ) -> object:
+        value = head.weight.square().mean() + head.bias.square().mean()
+        return SUBJECT.TeacherAnchoredLoss(value, value, value, value, value, value)
+
+    def diagnose(epoch: int) -> object:
+        return SUBJECT.TeacherAnchoredEpochDiagnostic(
+            epoch=epoch,
+            fitting_map_at_r=0.5 if epoch == 0 else (0.497 if epoch == 1 else 0.6),
+            fitting_effective_rank=10.0,
+            fitting_leading_eigenvalue_share=0.1,
+            validation_map_at_r=0.99,
+        )
+
+    receipt = SUBJECT.run_teacher_anchored_training(
+        encoder,
+        head,
+        arm="base",
+        schedules=_training_schedules(),
+        fitting_row_count=1536,
+        expected_schedule_sha256=SUBJECT.teacher_anchored_schedule_sha256(
+            _training_schedules(), fitting_row_count=1536
+        ),
+        initialization_fitting_map_at_r=0.5,
+        initialization_effective_rank=10.0,
+        initialization_leading_eigenvalue_share=0.1,
+        compute_loss=compute_loss,
+        diagnose=diagnose,
+        progress=lambda _stage, _epoch, _update: None,
+        device_type="cpu",
+    )
+    assert receipt.completed_epochs == (1,)
+    assert tuple(diagnostic.epoch for diagnostic in receipt.diagnostics) == (0, 1)
+    assert receipt.diagnostics[0] == diagnose(0)
+    assert receipt.stopped_reason == "epoch-one-fitting-map-regression"
+    assert receipt.candidate_epoch is None
+
+
+def test_adapted_arms_reject_frozen_parameter_and_buffer_drift() -> None:
+    encoder = FakeEncoder()
+    head = nn.Linear(4, 4)
+
+    def compute_loss(
+        epoch: int, _update: int, _rows: tuple[int, ...], _active: tuple[str, ...]
+    ) -> object:
+        if epoch == 2:
+            with torch.no_grad():
+                encoder.blocks[0][0].weight[0, 0].add_(1.0)
+                encoder.projection[0].running_mean[0].add_(1.0)
+        value = sum(
+            (
+                parameter.square().mean()
+                for parameter in (*encoder.parameters(), *head.parameters())
+                if parameter.requires_grad
+            ),
+            torch.tensor(0.0),
+        )
+        return SUBJECT.TeacherAnchoredLoss(value, value, value, value, value, value)
+
+    with pytest.raises(ValueError, match="frozen state differs"):
+        SUBJECT.run_teacher_anchored_training(
+            encoder,
+            head,
+            arm="complete",
+            schedules=_training_schedules(),
+            fitting_row_count=1536,
+            expected_schedule_sha256=SUBJECT.teacher_anchored_schedule_sha256(
+                _training_schedules(), fitting_row_count=1536
+            ),
+            initialization_fitting_map_at_r=0.5,
+            initialization_effective_rank=10.0,
+            initialization_leading_eigenvalue_share=0.1,
+            compute_loss=compute_loss,
+            diagnose=lambda epoch: SUBJECT.TeacherAnchoredEpochDiagnostic(
+                epoch, 0.5, 10.0, 0.1, 0.4
+            ),
+            progress=lambda _stage, _epoch, _update: None,
+            device_type="cpu",
+        )
+
+
+def test_nonfinite_update_returns_terminal_receipt_and_counts_attempt() -> None:
+    encoder = FakeEncoder()
+    head = nn.Linear(4, 4)
+
+    def compute_loss(
+        epoch: int, update: int, _rows: tuple[int, ...], _active: tuple[str, ...]
+    ) -> object:
+        value = head.weight.square().mean() + head.bias.square().mean()
+        if epoch == 3 and update == 5:
+            value = value * torch.tensor(float("nan"))
+        return SUBJECT.TeacherAnchoredLoss(value, value, value, value, value, value)
+
+    receipt = SUBJECT.run_teacher_anchored_training(
+        encoder,
+        head,
+        arm="head-only",
+        schedules=_training_schedules(),
+        fitting_row_count=1536,
+        expected_schedule_sha256=SUBJECT.teacher_anchored_schedule_sha256(
+            _training_schedules(), fitting_row_count=1536
+        ),
+        initialization_fitting_map_at_r=0.5,
+        initialization_effective_rank=10.0,
+        initialization_leading_eigenvalue_share=0.1,
+        compute_loss=compute_loss,
+        diagnose=lambda epoch: SUBJECT.TeacherAnchoredEpochDiagnostic(epoch, 0.5, 10.0, 0.1, 0.4),
+        progress=lambda _stage, _epoch, _update: None,
+        device_type="cpu",
+    )
+    assert receipt.attempted_updates == 30
+    assert receipt.successful_updates == 29
+    assert receipt.completed_epochs == (1, 2)
+    assert receipt.stopped_reason == "nonfinite-update"
+    assert receipt.candidate_epoch is None
+
+
+def test_real_core_forward_nonfinite_returns_terminal_receipt() -> None:
+    encoder = FakeEncoder()
+    head = nn.Linear(4, 4)
+    student = _normalized(2, 4, seed=71).requires_grad_()
+    teacher = _normalized(2, 4, seed=72)
+    anchors = _normalized(2, 4, seed=73).reshape(2, 1, 4)
+    anchors[0, 0, 0] = torch.nan
+    adapted = _normalized(2, 4, seed=74).requires_grad_()
+    original = _normalized(2, 4, seed=75)
+
+    receipt = SUBJECT.run_teacher_anchored_training(
+        encoder,
+        head,
+        arm="complete",
+        schedules=_training_schedules(),
+        fitting_row_count=1536,
+        expected_schedule_sha256=SUBJECT.teacher_anchored_schedule_sha256(
+            _training_schedules(), fitting_row_count=1536
+        ),
+        initialization_fitting_map_at_r=0.5,
+        initialization_effective_rank=10.0,
+        initialization_leading_eigenvalue_share=0.1,
+        compute_loss=lambda *_args: teacher_anchored_loss(
+            student,
+            teacher,
+            anchors,
+            adapted,
+            original,
+            TeacherAnchoredConfig(),
+        ),
+        diagnose=lambda epoch: SUBJECT.TeacherAnchoredEpochDiagnostic(
+            epoch, 0.5, 10.0, 0.1, 0.4
+        ),
+        progress=lambda *_args: None,
+        device_type="cpu",
+    )
+
+    assert receipt.attempted_updates == 1
+    assert receipt.successful_updates == 0
+    assert receipt.stopped_reason == "nonfinite-update"
+
+
+def test_nonfinite_parameter_state_still_returns_terminal_receipt(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    encoder = FakeEncoder()
+    head = nn.Linear(4, 4)
+
+    def corrupting_step(*_args: object) -> float:
+        with torch.no_grad():
+            head.weight[0, 0] = float("nan")
+        raise SUBJECT.TeacherAnchoredNonfiniteUpdate("teacher-anchored nonfinite update")
+
+    monkeypatch.setattr(SUBJECT, "teacher_anchored_optimizer_step", corrupting_step)
+    receipt = SUBJECT.run_teacher_anchored_training(
+        encoder,
+        head,
+        arm="head-only",
+        schedules=_training_schedules(),
+        fitting_row_count=1536,
+        expected_schedule_sha256=SUBJECT.teacher_anchored_schedule_sha256(
+            _training_schedules(), fitting_row_count=1536
+        ),
+        initialization_fitting_map_at_r=0.5,
+        initialization_effective_rank=10.0,
+        initialization_leading_eigenvalue_share=0.1,
+        compute_loss=lambda *_args: SUBJECT.TeacherAnchoredLoss(
+            *(head.weight.square().mean() for _ in range(6))
+        ),
+        diagnose=lambda epoch: SUBJECT.TeacherAnchoredEpochDiagnostic(
+            epoch, 0.5, 10.0, 0.1, 0.4
+        ),
+        progress=lambda *_args: None,
+        device_type="cpu",
+    )
+    assert receipt.stopped_reason == "nonfinite-update"
+    assert receipt.attempted_updates == 1
+    assert receipt.successful_updates == 0
+    assert len(receipt.final_head_sha256) == 64
+
+
+def test_training_does_not_misclassify_runtime_or_authority_failures() -> None:
+    encoder = FakeEncoder()
+    head = nn.Linear(4, 4)
+    common = {
+        "arm": "head-only",
+        "schedules": _training_schedules(),
+        "fitting_row_count": 1536,
+        "expected_schedule_sha256": SUBJECT.teacher_anchored_schedule_sha256(
+            _training_schedules(), fitting_row_count=1536
+        ),
+        "initialization_fitting_map_at_r": 0.5,
+        "initialization_effective_rank": 10.0,
+        "initialization_leading_eigenvalue_share": 0.1,
+        "diagnose": lambda epoch: SUBJECT.TeacherAnchoredEpochDiagnostic(
+            epoch, 0.5, 10.0, 0.1, 0.4
+        ),
+        "progress": lambda *_args: None,
+        "device_type": "cpu",
+    }
+    for error in (RuntimeError("CUDA out of memory"), ValueError("loss authority differs")):
+        with pytest.raises(type(error), match=str(error)):
+            SUBJECT.run_teacher_anchored_training(
+                encoder,
+                head,
+                compute_loss=lambda *_args, error=error: (_ for _ in ()).throw(error),
+                **common,
+            )
+    malformed = torch.ones(2, dtype=torch.float32)
+    with pytest.raises(ValueError, match="objective authority") as objective_error:
+        SUBJECT.run_teacher_anchored_training(
+            encoder,
+            head,
+            compute_loss=lambda *_args: SUBJECT.TeacherAnchoredLoss(
+                malformed,
+                malformed,
+                malformed,
+                malformed,
+                malformed,
+                malformed,
+            ),
+            **common,
+        )
+    assert type(objective_error.value) is ValueError
+
+
+def test_training_requires_live_step_zero_and_exact_schedule_authority() -> None:
+    encoder = FakeEncoder()
+    head = nn.Linear(4, 4)
+    common = {
+        "arm": "base",
+        "schedules": _training_schedules(),
+        "fitting_row_count": 1536,
+        "expected_schedule_sha256": "0" * 64,
+        "initialization_effective_rank": 10.0,
+        "initialization_leading_eigenvalue_share": 0.1,
+        "compute_loss": lambda *_args: None,
+        "diagnose": lambda _epoch: None,
+        "progress": lambda *_args: None,
+        "device_type": "cpu",
+    }
+    with pytest.raises(TypeError):
+        SUBJECT.run_teacher_anchored_training(encoder, head, **common)
+    with pytest.raises(ValueError, match="schedule"):
+        SUBJECT.run_teacher_anchored_training(
+            encoder,
+            head,
+            initialization_fitting_map_at_r=0.5,
+            **common,
+        )
+    common["expected_schedule_sha256"] = SUBJECT.teacher_anchored_schedule_sha256(
+        _training_schedules(), fitting_row_count=1536
+    )
+    with pytest.raises(ValueError, match="step-zero"):
+        SUBJECT.run_teacher_anchored_training(
+            encoder,
+            head,
+            initialization_fitting_map_at_r=0.5,
+            **{
+                **common,
+                "diagnose": lambda _epoch: SUBJECT.TeacherAnchoredEpochDiagnostic(
+                    0, 0.49, 10.0, 0.1, 0.4
+                ),
+            },
+        )
+
+
+def test_probe_scorer_is_loaded_from_exact_repository_script() -> None:
+    scorer, module_path = SUBJECT.load_teacher_anchored_probe_scorer()
+    assert callable(scorer)
+    assert module_path == (Path(__file__).parents[1] / "scripts" / "probe_sop_relational_linear.py")
+    assert str(module_path.parent) in sys.path
+
+
+def test_live_probe_scores_float_and_deployed_int8_with_exact_candidate_width() -> None:
+    codes = torch.tensor(
+        [[1.0, 0.0], [0.99, 0.01], [0.0, 1.0], [0.01, 0.99]], dtype=torch.float32
+    )
+    codes = torch.nn.functional.normalize(codes, dim=1).contiguous()
+    score = SUBJECT.score_teacher_anchored_probe(
+        codes,
+        (1, 1, 2, 2),
+        device=torch.device("cpu"),
+    )
+    assert score.candidate_width == 1
+    assert score.float_map_at_r == 1.0
+    assert score.packed_map_at_r == 1.0
+    assert score.float_r1 == 1.0
+    assert score.packed_r1 == 1.0
+
+
+def test_fitting_probe_selects_all_rows_of_first_512_hashed_classes() -> None:
+    labels = np.repeat(np.arange(-7, 506, dtype=np.int64), 2)
+    selection = SUBJECT.select_teacher_anchored_fitting_probe(labels, seed=17)
+    expected_classes = tuple(
+        sorted(
+            (int(value) for value in np.unique(labels)),
+            key=lambda value: (
+                hashlib.sha256(struct.pack("<Qq", 17, value)).digest(),
+                value,
+            ),
+        )[:512]
+    )
+    assert selection.class_ids == expected_classes
+    assert selection.row_indexes == tuple(
+        row for row, label in enumerate(labels) if int(label) in set(expected_classes)
+    )
+    assert len(selection.row_indexes) == 1024
+    assert len(selection.sha256) == 64
+
+
+def test_fitting_probe_and_bootstrap_reject_incomplete_or_wrong_authority() -> None:
+    with pytest.raises(ValueError, match="fitting probe authority"):
+        SUBJECT.select_teacher_anchored_fitting_probe(np.arange(512, dtype=np.int32), seed=17)
+    with pytest.raises(ValueError, match="fitting probe authority"):
+        SUBJECT.select_teacher_anchored_fitting_probe(np.arange(512, dtype=np.int64), seed=18)
+
+    treatment = (0.5, 0.7, 0.2, 0.4)
+    baseline = (0.4, 0.4, 0.1, 0.3)
+    identities = (1, 1, 2, 2)
+    lower = 0.10000000000000002
+    assert SUBJECT.teacher_anchored_bootstrap_lower_bound(
+        treatment,
+        baseline,
+        identities,
+        expected_lower_bound=lower,
+    ) == lower
+    with pytest.raises(ValueError, match="bootstrap replay differs"):
+        SUBJECT.teacher_anchored_bootstrap_lower_bound(
+            treatment,
+            baseline,
+            identities,
+            expected_lower_bound=lower + 1e-12,
+        )
+
+
+def test_authenticated_three_split_bootstrap_replay_maps_original_labels() -> None:
+    labels = np.asarray([1, 1, 2, 2, 3, 3], dtype="<i8")
+    digest = hashlib.sha256(labels.tobytes(order="C")).hexdigest()
+    splits = (
+        SUBJECT.TeacherAnchoredBootstrapSplit((0, 1), (0.5, 0.7), (0.4, 0.4)),
+        SUBJECT.TeacherAnchoredBootstrapSplit((2, 3), (0.2, 0.4), (0.1, 0.3)),
+        SUBJECT.TeacherAnchoredBootstrapSplit((4, 5), (0.8, 0.9), (0.7, 0.8)),
+    )
+    lower = SUBJECT.replay_teacher_anchored_bootstrap(
+        labels,
+        labels_sha256=digest,
+        splits=splits,
+        expected_lower_bound=0.10000000000000002,
+    )
+    assert lower == 0.10000000000000002
+    with pytest.raises(ValueError, match="bootstrap authority differs"):
+        SUBJECT.replay_teacher_anchored_bootstrap(
+            labels,
+            labels_sha256="0" * 64,
+            splits=splits,
+            expected_lower_bound=lower,
+        )
+    with pytest.raises(ValueError, match="bootstrap authority differs"):
+        SUBJECT.replay_teacher_anchored_bootstrap(
+            labels,
+            labels_sha256=digest,
+            splits=(splits[0]._replace(row_indexes=(0, 0)), *splits[1:]),
+            expected_lower_bound=lower,
+        )
+    with pytest.raises(ValueError, match="bootstrap authority differs"):
+        SUBJECT.replay_teacher_anchored_bootstrap(
+            labels,
+            labels_sha256=digest,
+            splits=(splits[0]._replace(row_indexes=(0,)), *splits[1:]),
+            expected_lower_bound=lower,
+        )
+
+
+def test_progress_chain_accepts_only_exact_monotone_canonical_events() -> None:
+    launch = "a" * 64
+    first = SUBJECT.teacher_anchored_progress_bytes(
+        launch_receipt_sha256=launch,
+        sequence=1,
+        arm="complete",
+        epoch=0,
+        update=0,
+        previous_line_sha256="0" * 64,
+        stage="initialized",
+    )
+    second = SUBJECT.teacher_anchored_progress_bytes(
+        launch_receipt_sha256=launch,
+        sequence=2,
+        arm="complete",
+        epoch=1,
+        update=1,
+        previous_line_sha256=hashlib.sha256(first).hexdigest(),
+        stage="update",
+    )
+    state = SUBJECT.validate_teacher_anchored_progress_chain((first, second), launch)
+    assert state.sequence == 2
+    assert state.epoch == 1
+    assert state.update == 1
+    for mutated in (
+        (first, first),
+        (first, second.replace(launch.encode(), ("b" * 64).encode())),
+        (first, second.replace(hashlib.sha256(first).hexdigest().encode(), ("f" * 64).encode())),
+        (first, second[:-1]),
+    ):
+        with pytest.raises(ValueError, match="progress chain"):
+            SUBJECT.validate_teacher_anchored_progress_chain(mutated, launch)
+    invalid = json.loads(first)
+    for key, value in (
+        ("arm", "foreign"),
+        ("epoch", -1),
+        ("update", -1),
+        ("stage", "quality-result"),
+    ):
+        mutated = {**invalid, key: value}
+        raw = json.dumps(mutated, sort_keys=True, separators=(",", ":")).encode() + b"\n"
+        with pytest.raises(ValueError, match="progress chain"):
+            SUBJECT.validate_teacher_anchored_progress_chain((raw,), launch)
+    invalid_transition = SUBJECT.teacher_anchored_progress_bytes(
+        launch_receipt_sha256=launch,
+        sequence=2,
+        arm="complete",
+        epoch=2,
+        update=1,
+        previous_line_sha256=hashlib.sha256(first).hexdigest(),
+        stage="update",
+    )
+    with pytest.raises(ValueError, match="progress chain"):
+        SUBJECT.validate_teacher_anchored_progress_chain((first, invalid_transition), launch)
+    epoch_complete = SUBJECT.teacher_anchored_progress_bytes(
+        launch_receipt_sha256=launch,
+        sequence=3,
+        arm="complete",
+        epoch=1,
+        update=1,
+        previous_line_sha256=hashlib.sha256(second).hexdigest(),
+        stage="epoch-complete",
+    )
+    stopped_next_epoch = SUBJECT.teacher_anchored_progress_bytes(
+        launch_receipt_sha256=launch,
+        sequence=4,
+        arm="complete",
+        epoch=2,
+        update=1,
+        previous_line_sha256=hashlib.sha256(epoch_complete).hexdigest(),
+        stage="stopped",
+    )
+    terminal = SUBJECT.validate_teacher_anchored_progress_chain(
+        (first, second, epoch_complete, stopped_next_epoch), launch
+    )
+    assert (terminal.epoch, terminal.update) == (2, 1)
+
+
+def test_real_training_progress_emissions_form_a_valid_chain() -> None:
+    launch = "a" * 64
+    lines: list[bytes] = []
+
+    def progress(stage: str, epoch: int, update: int) -> None:
+        lines.append(
+            SUBJECT.teacher_anchored_progress_bytes(
+                launch_receipt_sha256=launch,
+                sequence=len(lines) + 1,
+                arm="complete",
+                epoch=epoch,
+                update=update,
+                previous_line_sha256=(
+                    hashlib.sha256(lines[-1]).hexdigest() if lines else "0" * 64
+                ),
+                stage=stage,
+            )
+        )
+
+    receipt, _updates, _encoder, _head = _run_synthetic_training("complete", progress)
+    terminal = SUBJECT.validate_teacher_anchored_progress_chain(tuple(lines), launch)
+
+    assert receipt.candidate_epoch == 10
+    assert (terminal.sequence, terminal.arm, terminal.epoch, terminal.update) == (
+        len(lines),
+        "complete",
+        10,
+        receipt.successful_updates,
+    )
+
+
+def test_canonical_receipt_and_complete_merged_checkpoint_are_no_clobber(tmp_path: Path) -> None:
+    receipt, _updates, encoder, head = _run_synthetic_training("complete")
+    output = tmp_path / "complete.json"
+    published = SUBJECT.publish_teacher_anchored_artifacts(
+        output,
+        encoder,
+        head,
+        receipt,
+        authority=_artifact_authority(receipt),
+    )
+    raw = output.read_bytes()
+    value = json.loads(raw)
+    assert raw == json.dumps(value, sort_keys=True, separators=(",", ":")).encode() + b"\n"
+    assert value["claim_eligible"] is False
+    assert value["candidate_epoch"] == 10
+    assert (
+        value["checkpoint_sha256"] == hashlib.sha256(published.checkpoint.read_bytes()).hexdigest()
+    )
+    state = torch.load(published.checkpoint, map_location="cpu", weights_only=True)
+    assert set(state) == {
+        *(f"encoder.{name}" for name in encoder.state_dict()),
+        *(f"head.{name}" for name in head.state_dict()),
+    }
+    with pytest.raises(ValueError, match="already exists"):
+        SUBJECT.publish_teacher_anchored_artifacts(
+            output,
+            encoder,
+            head,
+            receipt,
+            authority=_artifact_authority(receipt),
+        )
+    unrelated = nn.Linear(4, 4)
+    with pytest.raises(ValueError, match="model state differs"):
+        SUBJECT.publish_teacher_anchored_artifacts(
+            tmp_path / "unrelated.json",
+            encoder,
+            unrelated,
+            receipt,
+            authority=_artifact_authority(receipt),
+        )
+    with pytest.raises(ValueError, match="artifact authority differs"):
+        SUBJECT.publish_teacher_anchored_artifacts(
+            tmp_path / "missing-authority.json",
+            encoder,
+            head,
+            receipt,
+            authority={},
+        )
+    with pytest.raises(ValueError, match="path alias"):
+        SUBJECT.publish_teacher_anchored_artifacts(
+            tmp_path / "alias.pt",
+            encoder,
+            head,
+            receipt,
+            authority=_artifact_authority(receipt),
+        )
+
+
+def test_publication_does_not_clobber_a_racing_destination(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    receipt, _updates, encoder, head = _run_synthetic_training("complete")
+    output = tmp_path / "race.json"
+    checkpoint = output.with_suffix(".pt")
+    original_link = os.link
+    calls = 0
+
+    def racing_link(source: object, destination: object) -> None:
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            output.write_bytes(b"racing-writer\n")
+        original_link(source, destination)
+
+    monkeypatch.setattr(os, "link", racing_link)
+    with pytest.raises(FileExistsError):
+        SUBJECT.publish_teacher_anchored_artifacts(
+            output,
+            encoder,
+            head,
+            receipt,
+            authority=_artifact_authority(receipt),
+        )
+    assert output.read_bytes() == b"racing-writer\n"
+    assert not checkpoint.exists()
+
+
+def test_publication_fsyncs_parent_directory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    receipt, _updates, encoder, head = _run_synthetic_training("complete")
+    original_fsync = os.fsync
+    modes: list[int] = []
+
+    def recording_fsync(descriptor: int) -> None:
+        modes.append(os.fstat(descriptor).st_mode)
+        original_fsync(descriptor)
+
+    monkeypatch.setattr(os, "fsync", recording_fsync)
+    SUBJECT.publish_teacher_anchored_artifacts(
+        tmp_path / "durable.json",
+        encoder,
+        head,
+        receipt,
+        authority=_artifact_authority(receipt),
+    )
+    assert any(stat.S_ISDIR(mode) for mode in modes)
+
+
+def test_publication_requires_complete_nested_authority(tmp_path: Path) -> None:
+    receipt, _updates, encoder, head = _run_synthetic_training("complete")
+    baseline = _artifact_authority(receipt)
+    mutations = []
+    for key in baseline:
+        mutated = {**baseline, key: False}
+        mutations.append(mutated)
+    mutations.extend(
+        (
+            {**baseline, "extra": "0" * 64},
+            {**baseline, "inputs_sha256": {}},
+            {
+                **baseline,
+                "inputs_sha256": {**baseline["inputs_sha256"], "source_checkpoint": False},
+            },
+        )
+    )
+    for index, authority in enumerate(mutations):
+        with pytest.raises(ValueError, match="artifact authority differs"):
+            SUBJECT.publish_teacher_anchored_artifacts(
+                tmp_path / f"invalid-{index}.json",
+                encoder,
+                head,
+                receipt,
+                authority=authority,
+            )
+
+
+@pytest.mark.parametrize(
+    ("arm", "expected"),
+    [
+        ("base", 0.1 * 2 + 0.05 * 4 + 0.01 * 5),
+        ("anchor", 1 + 0.1 * 2 + 0.05 * 4 + 0.01 * 5),
+        ("symmetric", 0.1 * 2 + 0.5 * 3 + 0.05 * 4 + 0.01 * 5),
+        ("complete", 1 + 0.1 * 2 + 0.5 * 3 + 0.05 * 4 + 0.01 * 5),
+        ("head-only", 1 + 0.1 * 2 + 0.5 * 3 + 0.05 * 4 + 0.01 * 5),
+    ],
+)
+def test_arm_objectives_are_exact_nested_controls(arm: str, expected: float) -> None:
+    terms = SUBJECT.TeacherAnchoredLoss(
+        total=torch.tensor(999.0),
+        anchor=torch.tensor(1.0),
+        point=torch.tensor(2.0),
+        symmetric=torch.tensor(3.0),
+        drift=torch.tensor(4.0),
+        covariance=torch.tensor(5.0),
+    )
+    value = SUBJECT.teacher_anchored_arm_objective(terms, arm=arm)
+    assert value.dtype == torch.float32
+    assert float(value) == pytest.approx(expected, abs=1e-7)
+
+
+@pytest.mark.parametrize(
+    "value",
+    (torch.ones(2, dtype=torch.float32), torch.tensor(1.0, dtype=torch.float64)),
+)
+def test_arm_objective_shape_and_dtype_drift_are_authority_failures(
+    value: torch.Tensor,
+) -> None:
+    terms = SUBJECT.TeacherAnchoredLoss(
+        total=value,
+        anchor=value,
+        point=value,
+        symmetric=value,
+        drift=value,
+        covariance=value,
+    )
+
+    with pytest.raises(ValueError, match="objective authority") as error:
+        SUBJECT.teacher_anchored_arm_objective(terms, arm="complete")
+
+    assert type(error.value) is ValueError
