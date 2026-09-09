@@ -39,6 +39,10 @@ from sfora.teacher_anchored_distillation import (
     teacher_anchored_forward,
     teacher_anchored_loss,
 )
+from sfora.teacher_anchored_schedule_io import (
+    SealedTeacherAnchoredSchedule,
+    parse_teacher_anchored_schedule_for_inputs,
+)
 
 _UNICOM_REVISION = "d71992ed969e6c271436ac0a0ee1f3ca61474ac0"
 
@@ -63,6 +67,8 @@ class TeacherAnchoredArguments(NamedTuple):
     source_snapshot_sha256: str
     teacher_snapshot: Path
     teacher_snapshot_sha256: str
+    schedule: Path
+    schedule_sha256: str
     image_root: Path
     image_tree_sha256: str
     source_revision: str
@@ -238,6 +244,7 @@ def parse_teacher_anchored_args(arguments: list[str]) -> TeacherAnchoredArgument
         "teacher-checkpoint",
         "source-snapshot",
         "teacher-snapshot",
+        "schedule",
         "unicom-checkout",
         "image-root",
         "output",
@@ -248,6 +255,7 @@ def parse_teacher_anchored_args(arguments: list[str]) -> TeacherAnchoredArgument
         "teacher-checkpoint-sha256",
         "source-snapshot-sha256",
         "teacher-snapshot-sha256",
+        "schedule-sha256",
         "image-tree-sha256",
         "source-revision",
         "seed",
@@ -275,6 +283,7 @@ def parse_teacher_anchored_args(arguments: list[str]) -> TeacherAnchoredArgument
         "teacher_checkpoint",
         "source_snapshot",
         "teacher_snapshot",
+        "schedule",
         "unicom_checkout",
         "image_root",
     ):
@@ -303,6 +312,7 @@ def parse_teacher_anchored_args(arguments: list[str]) -> TeacherAnchoredArgument
         "teacher_checkpoint_sha256",
         "source_snapshot_sha256",
         "teacher_snapshot_sha256",
+        "schedule_sha256",
         "image_tree_sha256",
     ):
         value = getattr(parsed, name)
@@ -341,6 +351,8 @@ def parse_teacher_anchored_args(arguments: list[str]) -> TeacherAnchoredArgument
         source_snapshot_sha256=digests["source_snapshot_sha256"],
         teacher_snapshot=path_values["teacher_snapshot"],
         teacher_snapshot_sha256=digests["teacher_snapshot_sha256"],
+        schedule=path_values["schedule"],
+        schedule_sha256=digests["schedule_sha256"],
         image_root=path_values["image_root"],
         image_tree_sha256=digests["image_tree_sha256"],
         source_revision=revision,
@@ -396,7 +408,7 @@ def configure_teacher_anchored_runtime(seed: int) -> TeacherAnchoredRuntimeRecei
 
 
 def authenticate_teacher_anchored_files(arguments: TeacherAnchoredArguments) -> tuple[str, ...]:
-    """Authenticate all four immutable local file capabilities before loading them."""
+    """Authenticate model/snapshot files before the schedule's retained read."""
 
     if type(arguments) is not TeacherAnchoredArguments:
         raise ValueError("teacher-anchored input authority differs")
@@ -422,6 +434,72 @@ def authenticate_teacher_anchored_files(arguments: TeacherAnchoredArguments) -> 
             raise ValueError("teacher-anchored input digest differs")
         observed.append(value)
     return tuple(observed)
+
+
+def load_teacher_anchored_schedule_file(
+    path: Path,
+    *,
+    expected_sha256: str,
+    teacher_codes: np.ndarray,
+    sample_ids: tuple[str | int, ...],
+    source_revision: str,
+    source_snapshot_sha256: str,
+    teacher_snapshot_sha256: str,
+    split_sha256: str,
+    seed: int,
+) -> SealedTeacherAnchoredSchedule:
+    """Read one retained regular-file identity and bind its schedules to inputs."""
+
+    if not isinstance(path, Path) or not path.is_absolute():
+        raise ValueError("teacher-anchored schedule seal differs")
+    try:
+        descriptor = os.open(
+            path, os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW | os.O_CLOEXEC
+        )
+    except OSError as error:
+        raise ValueError("teacher-anchored schedule seal differs") from error
+    try:
+        info = os.fstat(descriptor)
+        if not stat.S_ISREG(info.st_mode) or not 0 < info.st_size <= 512 * 1024 * 1024:
+            raise ValueError("teacher-anchored schedule seal differs")
+        payload = bytearray()
+        while chunk := os.read(descriptor, min(1024 * 1024, info.st_size - len(payload))):
+            payload.extend(chunk)
+        final_info = os.fstat(descriptor)
+        if (
+            len(payload) != info.st_size
+            or os.read(descriptor, 1)
+            or (
+                final_info.st_dev,
+                final_info.st_ino,
+                final_info.st_size,
+                final_info.st_mtime_ns,
+                final_info.st_ctime_ns,
+            )
+            != (
+                info.st_dev,
+                info.st_ino,
+                info.st_size,
+                info.st_mtime_ns,
+                info.st_ctime_ns,
+            )
+        ):
+            raise ValueError("teacher-anchored schedule seal differs")
+    finally:
+        os.close(descriptor)
+    data = bytes(payload)
+    del payload
+    return parse_teacher_anchored_schedule_for_inputs(
+        data,
+        expected_sha256=expected_sha256,
+        teacher_codes=teacher_codes,
+        sample_ids=sample_ids,
+        source_revision=source_revision,
+        source_snapshot_sha256=source_snapshot_sha256,
+        teacher_snapshot_sha256=teacher_snapshot_sha256,
+        split_sha256=split_sha256,
+        seed=seed,
+    )
 
 
 def authenticate_teacher_anchored_checkout(checkout: Path, expected_revision: str) -> str:

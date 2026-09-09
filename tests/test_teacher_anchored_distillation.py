@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import math
+from dataclasses import replace
 
 import numpy as np
 import pytest
@@ -17,9 +20,21 @@ from sfora.teacher_anchored_distillation import (
     embedding_geometry_diagnostics,
     teacher_anchor_schedule,
     teacher_anchored_forward,
+    teacher_anchored_input_sha256,
     teacher_anchored_loss,
     teacher_neighbor_batches,
     teacher_neighbor_ranking,
+    verify_teacher_anchor_schedule,
+    verify_teacher_neighbor_batches,
+)
+from sfora.teacher_anchored_schedule_io import (
+    SealedTeacherAnchoredSchedule,
+    TeacherAnchoredScheduleBinding,
+    build_teacher_anchored_schedule,
+    canonical_teacher_anchored_schedule_bytes,
+    parse_teacher_anchored_schedule_bytes,
+    parse_teacher_anchored_schedule_for_inputs,
+    teacher_anchored_schedule_rows,
 )
 
 
@@ -102,6 +117,297 @@ def _unit_codes(rows: int, *, seed: int = 17) -> np.ndarray:
     values = generator.normal(size=(rows, 128)).astype(np.float32)
     values /= np.linalg.norm(values.astype(np.float64), axis=1, keepdims=True).astype(np.float32)
     return np.ascontiguousarray(values)
+
+
+def _sealed_schedule_fixture() -> tuple[
+    TeacherAnchoredScheduleBinding,
+    TeacherAnchorSchedule,
+    tuple[TeacherNeighborBatches, ...],
+]:
+    row_count = 897
+    anchors = np.empty((row_count, 512), dtype=np.int64)
+    inventory = np.arange(row_count, dtype=np.int64)
+    for row in range(row_count):
+        anchors[row] = inventory[(row + 1 + np.arange(512)) % row_count]
+    anchor = TeacherAnchorSchedule(row_indexes=anchors, sha256="a" * 64)
+    rows = np.concatenate(
+        tuple(
+            np.concatenate(
+                (
+                    np.arange(start, start + 128, dtype=np.int64),
+                    np.arange(start + 128, start + 256, dtype=np.int64) % 896,
+                )
+            )[None, :]
+            for start in range(0, 896, 128)
+        ),
+        axis=0,
+    )
+    epochs = tuple(
+        TeacherNeighborBatches(
+            row_indexes=rows,
+            dropped_seed_row_indexes=(896,),
+            repeated_identity_count=896,
+            sha256=f"{epoch:064x}",
+        )
+        for epoch in range(1, 11)
+    )
+    binding = TeacherAnchoredScheduleBinding(
+        source_revision="1" * 40,
+        source_snapshot_sha256="2" * 64,
+        teacher_snapshot_sha256="3" * 64,
+        split_sha256="4" * 64,
+        teacher_input_sha256="5" * 64,
+        ranking_sha256="6" * 64,
+        seed=17,
+        fitting_row_count=row_count,
+    )
+    return binding, anchor, epochs
+
+
+def test_sealed_schedule_round_trip_is_exact_immutable_and_dataset_agnostic() -> None:
+    binding, anchor, epochs = _sealed_schedule_fixture()
+
+    payload = canonical_teacher_anchored_schedule_bytes(
+        binding=binding, anchor_schedule=anchor, epoch_schedules=epochs
+    )
+    digest = hashlib.sha256(payload).hexdigest()
+    loaded = parse_teacher_anchored_schedule_bytes(
+        payload, expected_sha256=digest, expected_binding=binding
+    )
+
+    assert loaded.binding == binding
+    assert loaded.sha256 == digest
+    assert np.array_equal(loaded.anchor_schedule.row_indexes, anchor.row_indexes)
+    assert tuple(item.sha256 for item in loaded.epoch_schedules) == tuple(
+        item.sha256 for item in epochs
+    )
+    assert not loaded.anchor_schedule.row_indexes.flags.writeable
+    assert all(not item.row_indexes.flags.writeable for item in loaded.epoch_schedules)
+    assert canonical_teacher_anchored_schedule_bytes(
+        binding=loaded.binding,
+        anchor_schedule=loaded.anchor_schedule,
+        epoch_schedules=loaded.epoch_schedules,
+    ) == payload
+    header = json.loads(payload.split(b"\n", 1)[0])
+    assert "dataset" not in header
+    assert "arm" not in header
+    assert "labels" not in header
+
+
+def test_sealed_schedule_rejects_digest_binding_structure_and_payload_drift() -> None:
+    binding, anchor, epochs = _sealed_schedule_fixture()
+    payload = canonical_teacher_anchored_schedule_bytes(
+        binding=binding, anchor_schedule=anchor, epoch_schedules=epochs
+    )
+    digest = hashlib.sha256(payload).hexdigest()
+
+    with pytest.raises(ValueError, match="schedule seal differs"):
+        parse_teacher_anchored_schedule_bytes(
+            payload, expected_sha256="0" * 64, expected_binding=binding
+        )
+    changed_binding = replace(binding, seed=18)
+    with pytest.raises(ValueError, match="schedule binding differs"):
+        parse_teacher_anchored_schedule_bytes(
+            payload, expected_sha256=digest, expected_binding=changed_binding
+        )
+    for malformed in (payload + b"x", payload[:-1]):
+        with pytest.raises(ValueError, match="schedule seal differs"):
+            parse_teacher_anchored_schedule_bytes(
+                malformed,
+                expected_sha256=hashlib.sha256(malformed).hexdigest(),
+                expected_binding=binding,
+            )
+
+    header_bytes, binary = payload.split(b"\n", 1)
+    header = json.loads(header_bytes)
+    header["fitting_row_count"] = True
+    malformed = (
+        json.dumps(header, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+        + b"\n"
+        + binary
+    )
+    with pytest.raises(ValueError, match="schedule seal differs"):
+        parse_teacher_anchored_schedule_bytes(
+            malformed,
+            expected_sha256=hashlib.sha256(malformed).hexdigest(),
+            expected_binding=binding,
+        )
+    nan_header = json.loads(header_bytes)
+    nan_header["anchor_bytes"] = float("nan")
+    malformed = (
+        json.dumps(nan_header, sort_keys=True, separators=(",", ":")).encode()
+        + b"\n"
+        + binary
+    )
+    with pytest.raises(ValueError, match="teacher-anchored schedule seal differs"):
+        parse_teacher_anchored_schedule_bytes(
+            malformed,
+            expected_sha256=hashlib.sha256(malformed).hexdigest(),
+            expected_binding=binding,
+        )
+
+
+def test_sealed_schedule_proof_token_and_training_rows_are_strict() -> None:
+    binding, anchor, epochs = _sealed_schedule_fixture()
+    with pytest.raises(ValueError, match="schedule seal differs"):
+        SealedTeacherAnchoredSchedule(
+            binding=binding,
+            anchor_schedule=anchor,
+            epoch_schedules=epochs,
+            sha256="invalid",
+        )
+    rows = teacher_anchored_schedule_rows(
+        SealedTeacherAnchoredSchedule(
+            binding=binding,
+            anchor_schedule=anchor,
+            epoch_schedules=epochs,
+            sha256="f" * 64,
+        )
+    )
+    assert len(rows) == 10
+    assert rows[0][0] == tuple(int(value) for value in epochs[0].row_indexes[0])
+
+
+def test_linear_schedule_verifiers_bind_rows_to_exact_teacher_input() -> None:
+    anchor_codes = _unit_codes(897)
+    anchor_ids = tuple(range(897))
+    anchor = teacher_anchor_schedule(anchor_codes, anchor_ids, seed=17)
+    assert verify_teacher_anchor_schedule(anchor_codes, anchor_ids, seed=17, schedule=anchor)
+
+    batch_codes = _unit_codes(390)
+    batch_ids = tuple(f"sample-{row}" for row in range(390))
+    batches = teacher_neighbor_batches(batch_codes, batch_ids, seed=17, epoch=3)
+    assert verify_teacher_neighbor_batches(
+        batch_codes, batch_ids, seed=17, epoch=3, schedule=batches
+    )
+
+    changed = batch_codes.copy()
+    changed[[0, 1]] = changed[[1, 0]]
+    with pytest.raises(ValueError, match="teacher batch authority differs"):
+        verify_teacher_neighbor_batches(
+            changed, batch_ids, seed=17, epoch=3, schedule=batches
+        )
+    bad_metadata = TeacherNeighborBatches(
+        row_indexes=batches.row_indexes,
+        dropped_seed_row_indexes=batches.dropped_seed_row_indexes,
+        repeated_identity_count=batches.repeated_identity_count + 1,
+        sha256=batches.sha256,
+    )
+    with pytest.raises(ValueError, match="teacher batch authority differs"):
+        verify_teacher_neighbor_batches(
+            batch_codes, batch_ids, seed=17, epoch=3, schedule=bad_metadata
+        )
+    reordered_dropped = TeacherNeighborBatches(
+        row_indexes=batches.row_indexes,
+        dropped_seed_row_indexes=tuple(reversed(batches.dropped_seed_row_indexes)),
+        repeated_identity_count=batches.repeated_identity_count,
+        sha256=batches.sha256,
+    )
+    with pytest.raises(ValueError, match="teacher batch authority differs"):
+        verify_teacher_neighbor_batches(
+            batch_codes, batch_ids, seed=17, epoch=3, schedule=reordered_dropped
+        )
+
+
+def test_execution_plan_builds_neighbor_ranking_once_and_seals_ten_epochs(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import sfora.teacher_anchored_distillation as distillation
+    import sfora.teacher_anchored_schedule_io as schedule_io
+
+    codes = _unit_codes(897)
+    sample_ids = tuple(f"train-{row:04d}" for row in range(897))
+    calls = 0
+    real_ranking = schedule_io.teacher_neighbor_ranking
+
+    def counted_ranking(values: np.ndarray, identities: tuple[str, ...]):
+        nonlocal calls
+        calls += 1
+        return real_ranking(values, identities)
+
+    def reject_fallback_ranking(
+        _values: np.ndarray, _identities: tuple[str, ...]
+    ) -> None:
+        raise AssertionError("epoch schedules must reuse the sealed ranking")
+
+    monkeypatch.setattr(schedule_io, "teacher_neighbor_ranking", counted_ranking)
+    monkeypatch.setattr(distillation, "teacher_neighbor_ranking", reject_fallback_ranking)
+    result = build_teacher_anchored_schedule(
+        codes,
+        sample_ids,
+        seed=17,
+        source_revision="1" * 40,
+        source_snapshot_sha256="2" * 64,
+        teacher_snapshot_sha256="3" * 64,
+        split_sha256="4" * 64,
+    )
+
+    assert calls == 1
+    assert len(result.epoch_schedules) == 10
+    assert result.binding.ranking_sha256 == real_ranking(codes, sample_ids).sha256
+    payload = canonical_teacher_anchored_schedule_bytes(
+        binding=result.binding,
+        anchor_schedule=result.anchor_schedule,
+        epoch_schedules=result.epoch_schedules,
+    )
+    assert result.sha256 == hashlib.sha256(payload).hexdigest()
+
+
+def test_input_bound_schedule_parser_verifies_every_schedule_without_reranking() -> None:
+    codes = _unit_codes(897)
+    sample_ids = tuple(range(897))
+    sealed = build_teacher_anchored_schedule(
+        codes,
+        sample_ids,
+        seed=17,
+        source_revision="1" * 40,
+        source_snapshot_sha256="2" * 64,
+        teacher_snapshot_sha256="3" * 64,
+        split_sha256="4" * 64,
+    )
+    payload = canonical_teacher_anchored_schedule_bytes(
+        binding=sealed.binding,
+        anchor_schedule=sealed.anchor_schedule,
+        epoch_schedules=sealed.epoch_schedules,
+    )
+
+    loaded = parse_teacher_anchored_schedule_for_inputs(
+        payload,
+        expected_sha256=sealed.sha256,
+        teacher_codes=codes,
+        sample_ids=sample_ids,
+        source_revision="1" * 40,
+        source_snapshot_sha256="2" * 64,
+        teacher_snapshot_sha256="3" * 64,
+        split_sha256="4" * 64,
+        seed=17,
+    )
+    assert loaded.sha256 == sealed.sha256
+
+    with pytest.raises(ValueError, match="schedule binding differs"):
+        parse_teacher_anchored_schedule_for_inputs(
+            payload,
+            expected_sha256=sealed.sha256,
+            teacher_codes=codes,
+            sample_ids=sample_ids,
+            source_revision="1" * 40,
+            source_snapshot_sha256="2" * 64,
+            teacher_snapshot_sha256="3" * 64,
+            split_sha256="4" * 64,
+            seed=18,
+        )
+    with pytest.raises(ValueError, match="schedule seal differs"):
+        parse_teacher_anchored_schedule_for_inputs(
+            payload,
+            expected_sha256=sealed.sha256,
+            teacher_codes=[[0.0]],
+            sample_ids=sample_ids,
+            source_revision="1" * 40,
+            source_snapshot_sha256="2" * 64,
+            teacher_snapshot_sha256="3" * 64,
+            split_sha256="4" * 64,
+            seed=17,
+        )
 
 
 def test_teacher_anchored_config_is_the_frozen_generic_recipe() -> None:
@@ -343,6 +649,22 @@ def test_teacher_anchored_schedule_api_is_public() -> None:
     assert sfora.teacher_anchor_schedule is teacher_anchor_schedule
     assert sfora.teacher_neighbor_batches is teacher_neighbor_batches
     assert sfora.teacher_neighbor_ranking is teacher_neighbor_ranking
+    assert sfora.teacher_anchored_input_sha256 is teacher_anchored_input_sha256
+    assert sfora.TeacherAnchoredScheduleBinding is TeacherAnchoredScheduleBinding
+    assert sfora.SealedTeacherAnchoredSchedule is SealedTeacherAnchoredSchedule
+    assert sfora.build_teacher_anchored_schedule is build_teacher_anchored_schedule
+    assert (
+        sfora.canonical_teacher_anchored_schedule_bytes
+        is canonical_teacher_anchored_schedule_bytes
+    )
+    assert sfora.parse_teacher_anchored_schedule_bytes is parse_teacher_anchored_schedule_bytes
+    assert (
+        sfora.parse_teacher_anchored_schedule_for_inputs
+        is parse_teacher_anchored_schedule_for_inputs
+    )
+    assert sfora.verify_teacher_anchor_schedule is verify_teacher_anchor_schedule
+    assert sfora.verify_teacher_neighbor_batches is verify_teacher_neighbor_batches
+    assert sfora.teacher_anchored_schedule_rows is teacher_anchored_schedule_rows
     assert sfora.embedding_geometry_diagnostics is embedding_geometry_diagnostics
     assert sfora.teacher_anchored_loss is teacher_anchored_loss
 

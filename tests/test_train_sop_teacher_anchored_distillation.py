@@ -22,6 +22,12 @@ from sfora.teacher_anchored_distillation import (
     TeacherAnchoredConfig,
     teacher_anchored_loss,
 )
+from sfora.teacher_anchored_schedule_io import (
+    SealedTeacherAnchoredSchedule,
+    build_teacher_anchored_schedule,
+    canonical_teacher_anchored_schedule_bytes,
+    teacher_anchored_schedule_rows,
+)
 
 
 def _load_subject() -> ModuleType:
@@ -81,6 +87,7 @@ def _registered_cli(tmp_path: Path) -> list[str]:
         "teacher-checkpoint": tmp_path / "teacher.pt",
         "source-snapshot": tmp_path / "source.npz",
         "teacher-snapshot": tmp_path / "teacher.npz",
+        "schedule": tmp_path / "schedule.bin",
     }
     for path in inputs.values():
         path.write_bytes(b"fixture")
@@ -111,6 +118,33 @@ def _registered_cli(tmp_path: Path) -> list[str]:
         )
     )
     return arguments
+
+
+def _schedule_file_fixture() -> tuple[
+    np.ndarray, tuple[int, ...], SealedTeacherAnchoredSchedule, bytes
+]:
+    generator = np.random.Generator(np.random.PCG64(917))
+    codes = generator.normal(size=(897, 128)).astype(np.float32)
+    codes /= np.linalg.norm(codes.astype(np.float64), axis=1, keepdims=True).astype(
+        np.float32
+    )
+    codes = np.ascontiguousarray(codes)
+    sample_ids = tuple(range(897))
+    sealed = build_teacher_anchored_schedule(
+        codes,
+        sample_ids,
+        seed=17,
+        source_revision="d71992ed969e6c271436ac0a0ee1f3ca61474ac0",
+        source_snapshot_sha256="1" * 64,
+        teacher_snapshot_sha256="2" * 64,
+        split_sha256="3" * 64,
+    )
+    payload = canonical_teacher_anchored_schedule_bytes(
+        binding=sealed.binding,
+        anchor_schedule=sealed.anchor_schedule,
+        epoch_schedules=sealed.epoch_schedules,
+    )
+    return codes, sample_ids, sealed, payload
 
 
 def _training_schedules() -> tuple[tuple[tuple[int, ...], ...], ...]:
@@ -221,6 +255,7 @@ def test_cli_accepts_only_registered_local_capability(tmp_path: Path) -> None:
     assert parsed.source_revision == "d71992ed969e6c271436ac0a0ee1f3ca61474ac0"
     assert parsed.unicom_checkout == (tmp_path / "unicom-checkout").resolve()
     assert parsed.source_checkpoint_sha256 == "1" * 64
+    assert parsed.schedule_sha256 == "1" * 64
     assert parsed.image_tree_sha256 == "2" * 64
 
 
@@ -623,6 +658,113 @@ def test_local_file_authentication_rejects_digest_and_symlink_drift(
     with pytest.raises(ValueError, match="regular local file"):
         SUBJECT.authenticate_teacher_anchored_files(parsed)
 
+
+def test_schedule_file_loader_consumes_authenticated_bytes_and_binds_inputs(
+    tmp_path: Path,
+) -> None:
+    codes, sample_ids, sealed, payload = _schedule_file_fixture()
+    path = tmp_path / "schedule.bin"
+    path.write_bytes(payload)
+
+    loaded = SUBJECT.load_teacher_anchored_schedule_file(
+        path,
+        expected_sha256=sealed.sha256,
+        teacher_codes=codes,
+        sample_ids=sample_ids,
+        source_revision="d71992ed969e6c271436ac0a0ee1f3ca61474ac0",
+        source_snapshot_sha256="1" * 64,
+        teacher_snapshot_sha256="2" * 64,
+        split_sha256="3" * 64,
+        seed=17,
+    )
+    assert loaded.sha256 == sealed.sha256
+    schedules = teacher_anchored_schedule_rows(loaded)
+    SUBJECT._validate_teacher_anchored_schedules(
+        schedules, fitting_row_count=len(sample_ids)
+    )
+    assert SUBJECT.teacher_anchored_schedule_sha256(
+        schedules, fitting_row_count=len(sample_ids)
+    ) == SUBJECT.teacher_anchored_schedule_sha256(
+        teacher_anchored_schedule_rows(sealed), fitting_row_count=len(sample_ids)
+    )
+
+    with pytest.raises(ValueError, match="schedule binding differs"):
+        SUBJECT.load_teacher_anchored_schedule_file(
+            path,
+            expected_sha256=sealed.sha256,
+            teacher_codes=codes,
+            sample_ids=sample_ids,
+            source_revision="d71992ed969e6c271436ac0a0ee1f3ca61474ac0",
+            source_snapshot_sha256="1" * 64,
+            teacher_snapshot_sha256="2" * 64,
+            split_sha256="4" * 64,
+            seed=17,
+        )
+
+
+def test_schedule_file_loader_rejects_growth_during_retained_descriptor_read(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    codes, sample_ids, sealed, payload = _schedule_file_fixture()
+    path = tmp_path / "schedule.bin"
+    path.write_bytes(payload)
+    original_read = os.read
+    changed = False
+
+    def growing_read(descriptor: int, size: int) -> bytes:
+        nonlocal changed
+        result = original_read(descriptor, size)
+        if result and not changed:
+            changed = True
+            with path.open("ab") as stream:
+                stream.write(b"x")
+        return result
+
+    monkeypatch.setattr(SUBJECT.os, "read", growing_read)
+    with pytest.raises(ValueError, match="schedule seal differs"):
+        SUBJECT.load_teacher_anchored_schedule_file(
+            path,
+            expected_sha256=sealed.sha256,
+            teacher_codes=codes,
+            sample_ids=sample_ids,
+            source_revision="d71992ed969e6c271436ac0a0ee1f3ca61474ac0",
+            source_snapshot_sha256="1" * 64,
+            teacher_snapshot_sha256="2" * 64,
+            split_sha256="3" * 64,
+            seed=17,
+        )
+
+
+def test_schedule_file_loader_rejects_fifo_without_waiting_for_a_writer(
+    tmp_path: Path,
+) -> None:
+    fifo = tmp_path / "schedule.fifo"
+    os.mkfifo(fifo)
+    script = Path(SUBJECT.__file__).resolve()
+    code = """
+import importlib.util
+import pathlib
+import sys
+spec = importlib.util.spec_from_file_location("subject", sys.argv[1])
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+try:
+    module.load_teacher_anchored_schedule_file(
+        pathlib.Path(sys.argv[2]), expected_sha256="0" * 64,
+        teacher_codes=None, sample_ids=(), source_revision="0" * 40,
+        source_snapshot_sha256="0" * 64, teacher_snapshot_sha256="0" * 64,
+        split_sha256="0" * 64, seed=17,
+    )
+except ValueError:
+    raise SystemExit(0)
+raise SystemExit(1)
+"""
+    completed = subprocess.run(
+        [sys.executable, "-c", code, str(script), str(fifo)],
+        check=False,
+        timeout=10,
+    )
+    assert completed.returncode == 0
 
 def test_unicom_checkout_authentication_requires_exact_clean_git_revision(
     tmp_path: Path,

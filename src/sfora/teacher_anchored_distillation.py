@@ -336,6 +336,111 @@ def teacher_neighbor_batches(
     )
 
 
+def verify_teacher_anchor_schedule(
+    teacher_codes: NDArray[np.float32],
+    sample_ids: tuple[SampleId, ...],
+    *,
+    seed: int,
+    schedule: TeacherAnchorSchedule,
+) -> bool:
+    """Verify a prebuilt anchor schedule without repeating neighbor selection."""
+
+    codes, identities = _validated_inputs(
+        teacher_codes,
+        sample_ids,
+        seed=seed,
+        minimum_rows=_ANCHORS + _UNIFORM_ANCHORS + 1,
+        message="teacher anchor authority differs",
+    )
+    if (
+        type(schedule) is not TeacherAnchorSchedule
+        or schedule._row_indexes.shape != (codes.shape[0], _ANCHORS)
+        or np.any(schedule._row_indexes < 0)
+        or np.any(schedule._row_indexes >= codes.shape[0])
+        or schedule.sha256
+        != _schedule_sha256(
+            b"teacher-anchors-v1", codes, identities, seed, schedule._row_indexes
+        )
+    ):
+        raise ValueError("teacher anchor authority differs")
+    return True
+
+
+def teacher_anchored_input_sha256(
+    teacher_codes: NDArray[np.float32], sample_ids: tuple[SampleId, ...]
+) -> str:
+    """Hash one validated teacher-code row namespace without selecting neighbors."""
+
+    codes, identities = _validated_inputs(
+        teacher_codes,
+        sample_ids,
+        seed=0,
+        minimum_rows=1,
+        message="teacher input authority differs",
+    )
+    return _input_sha256(codes, identities)
+
+
+def verify_teacher_neighbor_batches(
+    teacher_codes: NDArray[np.float32],
+    sample_ids: tuple[SampleId, ...],
+    *,
+    seed: int,
+    epoch: int,
+    schedule: TeacherNeighborBatches,
+) -> bool:
+    """Verify prebuilt epoch rows without repeating nearest-neighbor ranking."""
+
+    if type(epoch) is not int or epoch < 1:
+        raise ValueError("teacher batch authority differs")
+    codes, identities = _validated_inputs(
+        teacher_codes,
+        sample_ids,
+        seed=seed,
+        minimum_rows=_SEEDS_PER_BATCH * 2,
+        message="teacher batch authority differs",
+    )
+    expected_batches = codes.shape[0] // _SEEDS_PER_BATCH
+    expected_usable = expected_batches * _SEEDS_PER_BATCH
+    rows = schedule._row_indexes if type(schedule) is TeacherNeighborBatches else None
+    dropped = schedule.dropped_seed_row_indexes if type(schedule) is TeacherNeighborBatches else ()
+    permutation = np.random.Generator(
+        np.random.PCG64(_domain_seed(seed, b"batches", epoch.to_bytes(8, "little")))
+    ).permutation(codes.shape[0])
+    if (
+        type(schedule) is not TeacherNeighborBatches
+        or rows is None
+        or rows.shape != (expected_batches, _SEEDS_PER_BATCH * 2)
+        or np.any(rows < 0)
+        or np.any(rows >= codes.shape[0])
+        or type(dropped) is not tuple
+        or len(dropped) != codes.shape[0] - expected_usable
+        or any(type(row) is not int or not 0 <= row < codes.shape[0] for row in dropped)
+        or len(set(dropped)) != len(dropped)
+        or any(len(np.unique(batch)) != _SEEDS_PER_BATCH * 2 for batch in rows)
+        or len(np.unique(rows[:, :_SEEDS_PER_BATCH])) != expected_usable
+        or not np.array_equal(
+            rows[:, :_SEEDS_PER_BATCH].reshape(-1), permutation[:expected_usable]
+        )
+        or dropped != tuple(int(row) for row in permutation[expected_usable:])
+        or set(rows[:, :_SEEDS_PER_BATCH].reshape(-1).tolist()).union(dropped)
+        != set(range(codes.shape[0]))
+        or type(schedule.repeated_identity_count) is not int
+        or schedule.repeated_identity_count
+        != int(np.count_nonzero(np.bincount(rows.reshape(-1), minlength=codes.shape[0]) > 1))
+        or schedule.sha256
+        != _schedule_sha256(
+            b"teacher-batches-v1" + epoch.to_bytes(8, "little"),
+            codes,
+            identities,
+            seed,
+            rows,
+        )
+    ):
+        raise ValueError("teacher batch authority differs")
+    return True
+
+
 def teacher_anchored_loss(
     student: torch.Tensor,
     teacher: torch.Tensor,

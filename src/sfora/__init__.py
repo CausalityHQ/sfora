@@ -170,9 +170,24 @@ _TEACHER_ANCHORED_EXPORTS = frozenset(
         "embedding_geometry_diagnostics",
         "teacher_anchor_schedule",
         "teacher_anchored_forward",
+        "teacher_anchored_input_sha256",
         "teacher_anchored_loss",
         "teacher_neighbor_batches",
         "teacher_neighbor_ranking",
+        "verify_teacher_anchor_schedule",
+        "verify_teacher_neighbor_batches",
+    }
+)
+
+_TEACHER_ANCHORED_SCHEDULE_IO_EXPORTS = frozenset(
+    {
+        "SealedTeacherAnchoredSchedule",
+        "TeacherAnchoredScheduleBinding",
+        "build_teacher_anchored_schedule",
+        "canonical_teacher_anchored_schedule_bytes",
+        "parse_teacher_anchored_schedule_bytes",
+        "parse_teacher_anchored_schedule_for_inputs",
+        "teacher_anchored_schedule_rows",
     }
 )
 
@@ -197,6 +212,11 @@ def __getattr__(name: str) -> object:
         return value
     if name in _TEACHER_ANCHORED_EXPORTS:
         module = import_module("sfora.teacher_anchored_distillation")
+        value = cast(object, getattr(module, name))
+        globals()[name] = value
+        return value
+    if name in _TEACHER_ANCHORED_SCHEDULE_IO_EXPORTS:
+        module = import_module("sfora.teacher_anchored_schedule_io")
         value = cast(object, getattr(module, name))
         globals()[name] = value
         return value
@@ -271,6 +291,9 @@ __all__ = [
     "TeacherNeighborRanking",
     "TeacherAnchoredLoss",
     "TeacherAnchoredNumericalError",
+    "TeacherAnchoredScheduleBinding",
+    "SealedTeacherAnchoredSchedule",
+    "build_teacher_anchored_schedule",
     "EmbeddingGeometryDiagnostics",
     "TrainableSyntheticExperimentConfig",
     "build_html_report",
@@ -289,9 +312,16 @@ __all__ = [
     "embedding_geometry_diagnostics",
     "teacher_anchor_schedule",
     "teacher_anchored_forward",
+    "teacher_anchored_input_sha256",
     "teacher_anchored_loss",
     "teacher_neighbor_batches",
     "teacher_neighbor_ranking",
+    "verify_teacher_anchor_schedule",
+    "verify_teacher_neighbor_batches",
+    "canonical_teacher_anchored_schedule_bytes",
+    "parse_teacher_anchored_schedule_bytes",
+    "parse_teacher_anchored_schedule_for_inputs",
+    "teacher_anchored_schedule_rows",
     "group_triplet_margin_loss",
     "embedding_space_diagnostics_on_split",
     "image_self_retrieval_score",
