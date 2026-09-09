@@ -268,6 +268,36 @@ def test_train_only_ceiling_emits_all_fixed_arms_and_partitions() -> None:
     assert "test" not in json.dumps(receipt)
 
 
+def test_train_only_ceiling_pins_schedule_cpu_threads_before_each_split(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source, teacher, labels = _synthetic_train()
+    original_fit = _MODULE.fit_centered_pca
+    observed_threads: list[int] = []
+
+    def observe_fit(value: torch.Tensor, *, dimensions: int) -> object:
+        observed_threads.append(torch.get_num_threads())
+        return original_fit(value, dimensions=dimensions)
+
+    monkeypatch.setattr(_MODULE, "fit_centered_pca", observe_fit)
+    previous_threads = torch.get_num_threads()
+    torch.set_num_threads(1)
+    try:
+        _MODULE.run_representation_ceiling_train_only(
+            source,
+            teacher,
+            labels,
+            dimensions=2,
+            outer_split_seeds=(17, 1729),
+            ridge_penalties=(1e-6, 1e-4, 1e-2),
+            bootstrap_samples=20,
+        )
+    finally:
+        torch.set_num_threads(previous_threads)
+
+    assert observed_threads == [2, 2, 2, 2, 2, 2]
+
+
 def test_ridge_selection_uses_only_outer_fit_and_inner_class_disjoint_rows() -> None:
     source, teacher, labels = _synthetic_train()
     first_receipt = _MODULE.run_representation_ceiling_train_only(

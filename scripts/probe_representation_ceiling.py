@@ -29,6 +29,7 @@ import train_sop_nested_neighborhood_rank as nnrl_snapshot_module
 from probe_sop_relational_linear import score_symmetric
 
 import sfora.representation_ceiling as representation_ceiling_module
+from sfora.deterministic_similarity_runtime import configure_deterministic_similarity_runtime
 from sfora.representation_ceiling import (
     apply_normalized_affine,
     deterministic_class_partition,
@@ -455,6 +456,7 @@ def run_representation_ceiling_train_only(
     cluster_identities: list[int] = []
 
     for seed in outer_split_seeds:
+        configure_deterministic_similarity_runtime(seed, cpu_threads=2)
         partition = deterministic_class_partition(train_labels, fit_fraction=0.8, seed=seed)
         fit_indexes = list(partition.fit_row_indexes)
         validation_indexes = list(partition.validation_row_indexes)
