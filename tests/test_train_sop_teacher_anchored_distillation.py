@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
+import io
 import json
 import math
 import os
@@ -16,6 +17,7 @@ from types import ModuleType
 import numpy as np
 import pytest
 import torch
+from PIL import Image
 from threadpoolctl import threadpool_info, threadpool_limits
 from torch import nn
 
@@ -174,6 +176,7 @@ def _artifact_authority(receipt: object) -> dict[str, object]:
         "batch_schedule_sha256": receipt.schedule_sha256,
         "inputs_sha256": {
             "image_tree": "5" * 64,
+            "schedule": "1" * 64,
             "source_checkpoint": "6" * 64,
             "source_snapshot": "7" * 64,
             "teacher_checkpoint": "8" * 64,
@@ -401,6 +404,111 @@ def test_initializer_replays_exact_split_local_teacher_projection() -> None:
             source,
             teacher,
             expected_teacher_pca_sha256="0" * 64,
+        )
+
+
+def test_training_image_adapter_matches_authenticated_snapshot_decode(tmp_path: Path) -> None:
+    path = (tmp_path / "fixture.png").resolve()
+    Image.new("RGBA", (3, 2), color=(17, 31, 47, 89)).save(path)
+
+    def transform(image: Image.Image) -> torch.Tensor:
+        assert image.mode == "RGB"
+        array = np.asarray(image, dtype=np.float32).copy()
+        return torch.from_numpy(array).permute(2, 0, 1).contiguous()
+
+    payload = path.read_bytes()
+    with Image.open(io.BytesIO(payload)) as image:
+        expected = transform(image.convert("RGB"))
+    actual = SUBJECT.load_teacher_anchored_training_image(path, transform)
+    assert torch.equal(actual, expected)
+    assert actual.device.type == "cpu"
+    assert actual.dtype == torch.float32
+    assert actual.is_contiguous()
+
+    symlink = tmp_path / "fixture-link.png"
+    symlink.symlink_to(path)
+    with pytest.raises(ValueError, match="training image authority differs"):
+        SUBJECT.load_teacher_anchored_training_image(symlink, transform)
+    with pytest.raises(ValueError, match="training image transform differs"):
+        SUBJECT.load_teacher_anchored_training_image(
+            path, lambda _image: torch.ones(2, 2, dtype=torch.float64)
+        )
+
+
+def test_diagnose_factory_uses_fixed_chunks_memoizes_step_zero_and_restores_modes(
+    tmp_path: Path,
+) -> None:
+    class DiagnosticEncoder(nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.scale = nn.Parameter(torch.tensor(1.0))
+            self.calls: list[int] = []
+
+        def forward(self, values: torch.Tensor) -> torch.Tensor:
+            self.calls.append(len(values))
+            return values.flatten(1) * self.scale
+
+    vectors = (
+        (1.0, 0.0, 0.0, 0.0),
+        (0.9, 0.1, 0.0, 0.0),
+        (0.0, 1.0, 0.0, 0.0),
+        (0.1, 0.9, 0.0, 0.0),
+        (0.0, 0.0, 1.0, 0.0),
+        (0.0, 0.0, 0.9, 0.1),
+        (0.0, 0.0, 0.0, 1.0),
+        (0.0, 0.0, 0.1, 0.9),
+    )
+    paths = tuple((tmp_path / f"row-{index}.bin").resolve() for index in range(8))
+    for index, path in enumerate(paths):
+        path.write_text(str(index))
+
+    def transform(path: Path) -> torch.Tensor:
+        index = int(path.read_text())
+        return torch.tensor(vectors[index], dtype=torch.float32).reshape(1, 2, 2)
+
+    encoder = DiagnosticEncoder().train()
+    head = nn.Linear(4, 4, bias=False)
+    with torch.no_grad():
+        head.weight.copy_(torch.eye(4))
+    head.eval()
+    encoder.scale.requires_grad_(False)
+    head.weight.requires_grad_(True)
+    diagnose = SUBJECT.make_teacher_anchored_diagnose(
+        encoder,
+        head,
+        fitting_image_paths=paths[:4],
+        fitting_labels=(1, 1, 2, 2),
+        validation_image_paths=paths[4:],
+        validation_labels=(3, 3, 4, 4),
+        transform_image=transform,
+        device=torch.device("cpu"),
+    )
+
+    step_zero = diagnose(0)
+    assert diagnose(0) is step_zero
+    assert step_zero.epoch == 0
+    assert step_zero.fitting_map_at_r == 1.0
+    assert step_zero.validation_map_at_r == 1.0
+    assert encoder.calls == [256, 256]
+    assert encoder.training is True
+    assert head.training is False
+    assert encoder.scale.requires_grad is False
+    assert head.weight.requires_grad is True
+
+    epoch_one = diagnose(1)
+    assert epoch_one.epoch == 1
+    assert encoder.calls == [256, 256, 256, 256]
+
+    with pytest.raises(ValueError, match="diagnostic labels differ"):
+        SUBJECT.make_teacher_anchored_diagnose(
+            encoder,
+            head,
+            fitting_image_paths=paths[:4],
+            fitting_labels=(1, 1, 2, 2),
+            validation_image_paths=paths[4:],
+            validation_labels=(3, 4, 4, 5),
+            transform_image=transform,
+            device=torch.device("cpu"),
         )
 
 
@@ -1927,6 +2035,7 @@ def test_canonical_receipt_and_complete_merged_checkpoint_are_no_clobber(tmp_pat
     assert raw == json.dumps(value, sort_keys=True, separators=(",", ":")).encode() + b"\n"
     assert value["claim_eligible"] is False
     assert value["candidate_epoch"] == 10
+    assert value["authority"]["inputs_sha256"]["schedule"] == "1" * 64
     assert (
         value["checkpoint_sha256"] == hashlib.sha256(published.checkpoint.read_bytes()).hexdigest()
     )

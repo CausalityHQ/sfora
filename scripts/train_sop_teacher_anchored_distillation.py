@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import importlib.util
+import io
 import json
 import math
 import os
@@ -23,6 +24,7 @@ os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
 
 import numpy as np
 import torch
+from PIL import Image
 from threadpoolctl import threadpool_info, threadpool_limits  # type: ignore[import-untyped]
 from torch import nn
 from torch.amp.grad_scaler import GradScaler
@@ -37,6 +39,7 @@ from sfora.teacher_anchored_distillation import (
     TeacherAnchoredConfig,
     TeacherAnchoredLoss,
     TeacherAnchoredNumericalError,
+    embedding_geometry_diagnostics,
     teacher_anchored_forward,
     teacher_anchored_loss,
 )
@@ -455,6 +458,69 @@ def authenticate_teacher_anchored_files(arguments: TeacherAnchoredArguments) -> 
             raise ValueError("teacher-anchored input digest differs")
         observed.append(value)
     return tuple(observed)
+
+
+def load_teacher_anchored_training_image(
+    path: Path, transform: Callable[[Image.Image], torch.Tensor]
+) -> torch.Tensor:
+    """Decode one retained regular image with the snapshot builder's RGB semantics."""
+
+    if not isinstance(path, Path) or not path.is_absolute() or not callable(transform):
+        raise ValueError("training image authority differs")
+    try:
+        descriptor = os.open(
+            path,
+            os.O_RDONLY
+            | os.O_NONBLOCK
+            | getattr(os, "O_CLOEXEC", 0)
+            | getattr(os, "O_NOFOLLOW", 0),
+        )
+    except OSError as error:
+        raise ValueError("training image authority differs") from error
+    try:
+        before = os.fstat(descriptor)
+        if not stat.S_ISREG(before.st_mode) or not 0 < before.st_size <= 64 * 1024 * 1024:
+            raise ValueError("training image authority differs")
+        payload = bytearray()
+        while chunk := os.read(descriptor, min(1024 * 1024, before.st_size - len(payload))):
+            payload.extend(chunk)
+        after = os.fstat(descriptor)
+        if (
+            len(payload) != before.st_size
+            or os.read(descriptor, 1)
+            or (
+                after.st_dev,
+                after.st_ino,
+                after.st_size,
+                after.st_mtime_ns,
+                after.st_ctime_ns,
+            )
+            != (
+                before.st_dev,
+                before.st_ino,
+                before.st_size,
+                before.st_mtime_ns,
+                before.st_ctime_ns,
+            )
+        ):
+            raise ValueError("training image authority differs")
+    finally:
+        os.close(descriptor)
+    try:
+        with Image.open(io.BytesIO(payload)) as image:
+            tensor = transform(image.convert("RGB"))
+    except (OSError, TypeError, ValueError) as error:
+        raise ValueError("training image authority differs") from error
+    if (
+        type(tensor) is not torch.Tensor
+        or tensor.device.type != "cpu"
+        or tensor.dtype != torch.float32
+        or tensor.ndim != 3
+        or not tensor.is_contiguous()
+        or not bool(torch.isfinite(tensor).all())
+    ):
+        raise ValueError("training image transform differs")
+    return tensor
 
 
 def load_teacher_anchored_schedule_file(
@@ -1110,6 +1176,114 @@ def score_teacher_anchored_probe(
     return TeacherAnchoredProbeScore(
         candidate_width, *cast(tuple[float, float, float, float], values)
     )
+
+
+def make_teacher_anchored_diagnose(
+    encoder: nn.Module,
+    head: nn.Linear,
+    *,
+    fitting_image_paths: tuple[Path, ...],
+    fitting_labels: tuple[int, ...],
+    validation_image_paths: tuple[Path, ...],
+    validation_labels: tuple[int, ...],
+    transform_image: Callable[[Path], torch.Tensor],
+    device: torch.device,
+) -> TeacherAnchoredDiagnose:
+    """Build the fixed-chunk live scorer while preserving training state exactly."""
+
+    def valid_population(paths: tuple[Path, ...], labels: tuple[int, ...]) -> bool:
+        counts: dict[int, int] = {}
+        for label in labels:
+            counts[label] = counts.get(label, 0) + 1
+        return (
+            type(paths) is tuple
+            and len(paths) >= 2
+            and all(isinstance(path, Path) and path.is_absolute() for path in paths)
+            and type(labels) is tuple
+            and len(labels) == len(paths)
+            and all(type(label) is int and label >= 1 for label in labels)
+            and all(count >= 2 for count in counts.values())
+        )
+
+    if (
+        not isinstance(encoder, nn.Module)
+        or type(head) is not nn.Linear
+        or not valid_population(fitting_image_paths, fitting_labels)
+        or not valid_population(validation_image_paths, validation_labels)
+        or not callable(transform_image)
+        or type(device) is not torch.device
+        or any(
+            parameter.device != device for parameter in (*encoder.parameters(), *head.parameters())
+        )
+    ):
+        raise ValueError("teacher-anchored diagnostic labels differ")
+
+    def encode(paths: tuple[Path, ...]) -> torch.Tensor:
+        chunks: list[torch.Tensor] = []
+        for start in range(0, len(paths), 256):
+            transformed = tuple(transform_image(path) for path in paths[start : start + 256])
+            if (
+                not transformed
+                or any(type(image) is not torch.Tensor for image in transformed)
+                or any(
+                    image.device.type != "cpu"
+                    or image.dtype != torch.float32
+                    or not image.is_contiguous()
+                    or not bool(torch.isfinite(image).all())
+                    for image in transformed
+                )
+                or any(image.shape != transformed[0].shape for image in transformed)
+            ):
+                raise ValueError("teacher-anchored diagnostic image differs")
+            retained = len(transformed)
+            padded = (*transformed, *(transformed[-1] for _ in range(256 - retained)))
+            images = torch.stack(padded).to(device=device, non_blocking=False)
+            with torch.inference_mode():
+                _features, codes = teacher_anchored_forward(encoder, head, images)
+            chunks.append(codes[:retained].float().cpu().contiguous())
+        return torch.cat(chunks).contiguous()
+
+    step_zero: TeacherAnchoredEpochDiagnostic | None = None
+
+    def diagnose(epoch: int) -> TeacherAnchoredEpochDiagnostic:
+        nonlocal step_zero
+        if type(epoch) is not int or not 0 <= epoch <= 10:
+            raise ValueError("teacher-anchored diagnostic authority differs")
+        if epoch == 0 and step_zero is not None:
+            return step_zero
+        modules = tuple(encoder.modules()) + tuple(head.modules())
+        training_states = tuple(module.training for module in modules)
+        parameters = tuple(encoder.parameters()) + tuple(head.parameters())
+        gradient_states = tuple(parameter.requires_grad for parameter in parameters)
+        try:
+            encoder.eval()
+            head.eval()
+            fitting_codes = encode(fitting_image_paths)
+            validation_codes = encode(validation_image_paths)
+            fitting_score = score_teacher_anchored_probe(
+                fitting_codes, fitting_labels, device=device
+            )
+            validation_score = score_teacher_anchored_probe(
+                validation_codes, validation_labels, device=device
+            )
+            geometry = embedding_geometry_diagnostics(fitting_codes)
+            result = TeacherAnchoredEpochDiagnostic(
+                epoch=epoch,
+                fitting_map_at_r=fitting_score.packed_map_at_r,
+                fitting_effective_rank=geometry.effective_rank,
+                fitting_leading_eigenvalue_share=geometry.leading_eigenvalue_share,
+                validation_map_at_r=validation_score.packed_map_at_r,
+            )
+        finally:
+            for module, training in zip(modules, training_states, strict=True):
+                module.training = training
+            for parameter, requires_grad in zip(parameters, gradient_states, strict=True):
+                parameter.requires_grad_(requires_grad)
+        if epoch == 0:
+            step_zero = result
+        return result
+
+    return diagnose
 
 
 def build_teacher_anchored_split(
@@ -1874,6 +2048,7 @@ def publish_teacher_anchored_artifacts(
         or set(inputs)
         != {
             "image_tree",
+            "schedule",
             "source_checkpoint",
             "source_snapshot",
             "teacher_checkpoint",
