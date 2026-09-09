@@ -1685,7 +1685,11 @@ def compute_teacher_anchored_snapshot_diagnostic(
 
     fitting_codes = encode(fitting_features)
     validation_codes = encode(validation_features)
-    probe_indexes = torch.tensor(fitting_probe_rows, dtype=torch.int64, device=device)
+    probe_indexes = torch.tensor(
+        fitting_probe_rows,
+        dtype=torch.int64,
+        device=fitting_codes.device,
+    )
     probe_codes = fitting_codes[probe_indexes].cpu().contiguous()
     probe_labels = tuple(fitting_labels[row] for row in fitting_probe_rows)
     validation_codes = validation_codes.cpu().contiguous()
