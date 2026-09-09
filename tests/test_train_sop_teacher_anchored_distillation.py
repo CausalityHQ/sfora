@@ -1001,6 +1001,83 @@ def test_all_arms_consume_identical_sealed_schedules(arm: str) -> None:
     )
 
 
+def test_real_batch_bridge_maps_fitting_rows_and_exact_objective() -> None:
+    rows = 256
+    feature_width = 4
+    encoder = nn.Sequential(nn.Identity())
+    head = nn.Linear(feature_width, 128, bias=True)
+    with torch.no_grad():
+        head.weight.copy_(_normalized(128, feature_width, seed=701))
+        head.bias.zero_()
+    image_paths = tuple(Path(f"/fixture/image-{row}.jpg") for row in range(rows))
+    source_features = _normalized(rows, feature_width, seed=702)
+    teacher_codes = _normalized(rows, 128, seed=703)
+    anchor_rows = torch.arange(512, dtype=torch.int64).remainder(rows).repeat(rows, 1)
+    scheduled = tuple(reversed(range(rows)))
+    observed: list[Path] = []
+
+    def transform(path: Path) -> torch.Tensor:
+        observed.append(path)
+        return source_features[int(path.stem.split("-")[-1])].clone()
+
+    result = SUBJECT.compute_teacher_anchored_batch_loss(
+        encoder,
+        head,
+        row_indexes=scheduled,
+        active_parameter_names=tuple(f"head.{name}" for name, _ in head.named_parameters()),
+        image_paths=image_paths,
+        transform_image=transform,
+        source_features=source_features,
+        teacher_codes=teacher_codes,
+        anchor_row_indexes=anchor_rows,
+        config=TeacherAnchoredConfig(),
+        device=torch.device("cpu"),
+    )
+
+    batch = torch.stack([source_features[row] for row in scheduled])
+    adapted = torch.nn.functional.normalize(batch, dim=1)
+    student = torch.nn.functional.normalize(head(adapted), dim=1)
+    index = torch.tensor(scheduled, dtype=torch.int64)
+    expected = teacher_anchored_loss(
+        student,
+        teacher_codes[index],
+        teacher_codes[anchor_rows[index]],
+        adapted,
+        source_features[index],
+        TeacherAnchoredConfig(),
+    )
+    assert observed == [image_paths[row] for row in scheduled]
+    assert torch.equal(result.total, expected.total)
+    assert torch.equal(result.anchor, expected.anchor)
+
+
+def test_real_batch_bridge_rejects_trainable_inventory_and_row_drift() -> None:
+    encoder = nn.Sequential(nn.Identity())
+    head = nn.Linear(4, 128)
+    source_features = _normalized(256, 4, seed=711)
+    teacher_codes = _normalized(256, 128, seed=712)
+    anchors = torch.arange(512, dtype=torch.int64).remainder(256).repeat(256, 1)
+    common = {
+        "row_indexes": tuple(range(256)),
+        "active_parameter_names": ("head.weight",),
+        "image_paths": tuple(Path(f"/fixture/{row}.jpg") for row in range(256)),
+        "transform_image": lambda path: source_features[int(path.stem)].clone(),
+        "source_features": source_features,
+        "teacher_codes": teacher_codes,
+        "anchor_row_indexes": anchors,
+        "config": TeacherAnchoredConfig(),
+        "device": torch.device("cpu"),
+    }
+    with pytest.raises(ValueError, match="batch authority differs"):
+        SUBJECT.compute_teacher_anchored_batch_loss(encoder, head, **common)
+    common["active_parameter_names"] = tuple(
+        f"head.{name}" for name, _ in head.named_parameters()
+    )
+    common["row_indexes"] = (*range(255), 256)
+    with pytest.raises(ValueError, match="batch authority differs"):
+        SUBJECT.compute_teacher_anchored_batch_loss(encoder, head, **common)
+
+
 def test_schedule_requires_every_scheduled_fitting_row_once_as_an_epoch_seed() -> None:
     schedules = _training_schedules()
     assert len(SUBJECT.teacher_anchored_schedule_sha256(schedules, fitting_row_count=1537)) == 64

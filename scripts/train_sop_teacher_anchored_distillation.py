@@ -33,8 +33,11 @@ from sfora.representation_ceiling import (
     fit_teacher_guided_projection,
 )
 from sfora.teacher_anchored_distillation import (
+    TeacherAnchoredConfig,
     TeacherAnchoredLoss,
     TeacherAnchoredNumericalError,
+    teacher_anchored_forward,
+    teacher_anchored_loss,
 )
 
 _UNICOM_REVISION = "d71992ed969e6c271436ac0a0ee1f3ca61474ac0"
@@ -1192,6 +1195,86 @@ def replay_teacher_anchored_bootstrap(
         tuple(baseline),
         tuple(identities),
         expected_lower_bound=expected_lower_bound,
+    )
+
+
+def compute_teacher_anchored_batch_loss(
+    encoder: nn.Module,
+    head: nn.Linear,
+    *,
+    row_indexes: tuple[int, ...],
+    active_parameter_names: tuple[str, ...],
+    image_paths: tuple[Path, ...],
+    transform_image: Callable[[Path], torch.Tensor],
+    source_features: torch.Tensor,
+    teacher_codes: torch.Tensor,
+    anchor_row_indexes: torch.Tensor,
+    config: TeacherAnchoredConfig,
+    device: torch.device,
+) -> TeacherAnchoredLoss:
+    """Map one fitting-local schedule batch into the generic objective."""
+
+    actual_active = tuple(
+        name for name, parameter in encoder.named_parameters() if parameter.requires_grad
+    ) + tuple(
+        f"head.{name}" for name, parameter in head.named_parameters() if parameter.requires_grad
+    )
+    row_count = len(image_paths) if type(image_paths) is tuple else -1
+    if (
+        not isinstance(encoder, nn.Module)
+        or type(head) is not nn.Linear
+        or type(config) is not TeacherAnchoredConfig
+        or type(device) is not torch.device
+        or type(row_indexes) is not tuple
+        or len(row_indexes) != config.batch_rows
+        or any(type(row) is not int or not 0 <= row < row_count for row in row_indexes)
+        or len(set(row_indexes)) != len(row_indexes)
+        or type(active_parameter_names) is not tuple
+        or active_parameter_names != actual_active
+        or any(not isinstance(path, Path) or not path.is_absolute() for path in image_paths)
+        or not callable(transform_image)
+        or type(source_features) is not torch.Tensor
+        or source_features.device.type != "cpu"
+        or source_features.dtype != torch.float32
+        or source_features.shape != (row_count, head.in_features)
+        or not source_features.is_contiguous()
+        or type(teacher_codes) is not torch.Tensor
+        or teacher_codes.device.type != "cpu"
+        or teacher_codes.dtype != torch.float32
+        or teacher_codes.shape != (row_count, config.dimensions)
+        or not teacher_codes.is_contiguous()
+        or type(anchor_row_indexes) is not torch.Tensor
+        or anchor_row_indexes.device.type != "cpu"
+        or anchor_row_indexes.dtype != torch.int64
+        or anchor_row_indexes.shape != (row_count, config.anchor_count)
+        or not anchor_row_indexes.is_contiguous()
+        or bool((anchor_row_indexes < 0).any())
+        or bool((anchor_row_indexes >= row_count).any())
+        or not bool(torch.isfinite(source_features).all())
+        or not bool(torch.isfinite(teacher_codes).all())
+    ):
+        raise ValueError("teacher-anchored batch authority differs")
+    transformed = tuple(transform_image(image_paths[row]) for row in row_indexes)
+    if (
+        any(type(image) is not torch.Tensor for image in transformed)
+        or any(image.device.type != "cpu" or image.dtype != torch.float32 for image in transformed)
+        or any(image.shape != transformed[0].shape for image in transformed)
+        or any(not bool(torch.isfinite(image).all()) for image in transformed)
+    ):
+        raise ValueError("teacher-anchored batch authority differs")
+    images = torch.stack(transformed).to(device)
+    adapted_features, student_codes = teacher_anchored_forward(encoder, head, images)
+    indexes = torch.tensor(row_indexes, dtype=torch.int64)
+    batch_teacher = teacher_codes[indexes].to(device)
+    batch_anchors = teacher_codes[anchor_row_indexes[indexes]].to(device)
+    batch_source = source_features[indexes].to(device)
+    return teacher_anchored_loss(
+        student_codes,
+        batch_teacher,
+        batch_anchors,
+        adapted_features,
+        batch_source,
+        config,
     )
 
 
