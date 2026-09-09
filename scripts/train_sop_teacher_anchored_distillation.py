@@ -46,6 +46,16 @@ from sfora.teacher_anchored_distillation import (
 from sfora.teacher_anchored_schedule_io import (
     SealedTeacherAnchoredSchedule,
     parse_teacher_anchored_schedule_for_inputs,
+    teacher_anchored_schedule_rows,
+)
+
+_SCRIPTS = str(Path(__file__).resolve().parent)
+if _SCRIPTS not in sys.path:
+    sys.path.insert(0, _SCRIPTS)
+
+from sop_teacher_anchored_runtime import (  # noqa: E402
+    TeacherAnchoredImageManifest,
+    TeacherAnchoredTrainPair,
 )
 
 _UNICOM_REVISION = "d71992ed969e6c271436ac0a0ee1f3ca61474ac0"
@@ -102,6 +112,24 @@ class TeacherAnchoredRuntimeReceipt(NamedTuple):
     flash_sdp_enabled: bool
     memory_efficient_sdp_enabled: bool
     cudnn_sdp_enabled: bool
+
+
+class TeacherAnchoredPreparedArrays(NamedTuple):
+    """Fitting-local tensors and initialized projection for one sealed split."""
+
+    split: TeacherAnchoredSplit
+    initialization: TeacherAnchoredInitialization
+    source_features: torch.Tensor
+    teacher_codes: torch.Tensor
+
+
+class TeacherAnchoredBoundSchedule(NamedTuple):
+    """Authenticated schedule materialized in the fitting-local row space."""
+
+    sealed: SealedTeacherAnchoredSchedule
+    schedules: tuple[tuple[tuple[int, ...], ...], ...]
+    anchor_row_indexes: torch.Tensor
+    fitting_image_paths: tuple[Path, ...]
 
 
 class TeacherAnchoredHeadReplayReceipt(NamedTuple):
@@ -686,6 +714,98 @@ def initialize_teacher_anchored_student(
     )
 
 
+def prepare_teacher_anchored_arrays(
+    pair: TeacherAnchoredTrainPair,
+    *,
+    seed: int,
+    expected_teacher_pca_sha256: str,
+) -> TeacherAnchoredPreparedArrays:
+    """Create only fitting-local optimization tensors from an authenticated pair."""
+
+    if (
+        type(pair) is not TeacherAnchoredTrainPair
+        or type(seed) is not int
+        or seed not in (17, 1729, 65537)
+        or pair.source_embeddings.shape != pair.teacher_embeddings.shape
+        or pair.source_embeddings.shape[0] != len(pair.labels)
+        or pair.source_embeddings.dtype != np.float32
+        or pair.teacher_embeddings.dtype != np.float32
+        or not pair.source_embeddings.flags.c_contiguous
+        or not pair.teacher_embeddings.flags.c_contiguous
+    ):
+        raise ValueError("teacher-anchored prepared array authority differs")
+    split = build_teacher_anchored_split(pair.labels, pair.image_ids, seed=seed)
+    fitting_rows = np.asarray(split.fitting_rows, dtype=np.int64)
+    source_features = _normalize_snapshot_rows(
+        torch.from_numpy(np.ascontiguousarray(pair.source_embeddings[fitting_rows]))
+    )
+    teacher_features = _normalize_snapshot_rows(
+        torch.from_numpy(np.ascontiguousarray(pair.teacher_embeddings[fitting_rows]))
+    )
+    initialization = initialize_teacher_anchored_student(
+        source_features,
+        teacher_features,
+        expected_teacher_pca_sha256=expected_teacher_pca_sha256,
+    )
+    teacher_codes = (
+        initialization.projection.apply_teacher(teacher_features).float().cpu().contiguous()
+    )
+    if teacher_codes.shape != (len(split.fitting_rows), 128) or not bool(
+        torch.isfinite(teacher_codes).all()
+    ):
+        raise ValueError("teacher-anchored prepared array authority differs")
+    return TeacherAnchoredPreparedArrays(
+        split=split,
+        initialization=initialization,
+        source_features=source_features,
+        teacher_codes=teacher_codes,
+    )
+
+
+def bind_teacher_anchored_schedule(
+    arguments: TeacherAnchoredArguments,
+    prepared: TeacherAnchoredPreparedArrays,
+    manifest: TeacherAnchoredImageManifest,
+) -> TeacherAnchoredBoundSchedule:
+    """Authenticate the shared schedule and map paths to its local row indexes."""
+
+    if (
+        type(arguments) is not TeacherAnchoredArguments
+        or type(prepared) is not TeacherAnchoredPreparedArrays
+        or type(manifest) is not TeacherAnchoredImageManifest
+        or manifest.sha256 != arguments.image_tree_sha256
+        or len(manifest.image_paths)
+        != len(prepared.split.fitting_rows) + len(prepared.split.validation_rows)
+        or prepared.source_features.shape[0] != len(prepared.split.fitting_rows)
+        or prepared.teacher_codes.shape != (len(prepared.split.fitting_rows), 128)
+    ):
+        raise ValueError("teacher-anchored schedule binding differs")
+    sealed = load_teacher_anchored_schedule_file(
+        arguments.schedule,
+        expected_sha256=arguments.schedule_sha256,
+        teacher_codes=np.ascontiguousarray(prepared.teacher_codes.numpy(), dtype=np.float32),
+        sample_ids=prepared.split.fitting_image_ids,
+        source_revision=arguments.source_revision,
+        source_snapshot_sha256=arguments.source_snapshot_sha256,
+        teacher_snapshot_sha256=arguments.teacher_snapshot_sha256,
+        split_sha256=prepared.split.sha256,
+        seed=arguments.seed,
+    )
+    fitting_image_paths = tuple(manifest.image_paths[row] for row in prepared.split.fitting_rows)
+    anchor_row_indexes = torch.from_numpy(sealed.anchor_schedule.row_indexes.copy()).contiguous()
+    if anchor_row_indexes.dtype != torch.int64 or anchor_row_indexes.shape != (
+        len(fitting_image_paths),
+        512,
+    ):
+        raise ValueError("teacher-anchored schedule binding differs")
+    return TeacherAnchoredBoundSchedule(
+        sealed=sealed,
+        schedules=teacher_anchored_schedule_rows(sealed),
+        anchor_row_indexes=anchor_row_indexes,
+        fitting_image_paths=fitting_image_paths,
+    )
+
+
 def validate_teacher_anchored_head_replay(
     initialization: TeacherAnchoredInitialization,
     source_rows: torch.Tensor,
@@ -1086,6 +1206,91 @@ def teacher_anchored_objective_sha256(arm: str) -> str:
                 "point_weight": 0.1,
                 "symmetric_weight": 0.5 if arm in ("head-only", "symmetric", "complete") else 0.0,
                 "temperatures": [0.05, 0.2],
+            }
+        )
+    ).hexdigest()
+
+
+def teacher_anchored_runtime_sha256(receipt: TeacherAnchoredRuntimeReceipt) -> str:
+    """Bind every deterministic runtime setting to one canonical digest."""
+
+    if type(receipt) is not TeacherAnchoredRuntimeReceipt:
+        raise ValueError("teacher-anchored runtime receipt differs")
+    return hashlib.sha256(
+        _canonical_json_bytes(
+            {
+                "runtime": receipt._asdict(),
+                "schema": "sfora-teacher-anchored-runtime-v1",
+            }
+        )
+    ).hexdigest()
+
+
+def teacher_anchored_model_mode_sha256(arm: str) -> str:
+    """Bind the fixed per-epoch train/eval and trainability recipe."""
+
+    if arm not in ("head-only", "base", "anchor", "symmetric", "complete"):
+        raise ValueError("teacher-anchored model mode differs")
+    later = ["head"] if arm == "head-only" else ["blocks.10", "blocks.11", "norm", "head"]
+    return hashlib.sha256(
+        _canonical_json_bytes(
+            {
+                "batch_norm": "eval",
+                "drop_path": "eval",
+                "epoch_1_trainable": ["head"],
+                "epochs_2_to_10_trainable": later,
+                "schema": "sfora-teacher-anchored-model-mode-v1",
+            }
+        )
+    ).hexdigest()
+
+
+def teacher_anchored_trainable_inventory_sha256(encoder: nn.Module, head: nn.Linear) -> str:
+    """Bind names, shapes, dtypes, and trainability of every live parameter."""
+
+    if not isinstance(encoder, nn.Module) or type(head) is not nn.Linear:
+        raise ValueError("teacher-anchored trainable inventory differs")
+    parameters = tuple(encoder.named_parameters()) + tuple(
+        (f"head.{name}", parameter) for name, parameter in head.named_parameters()
+    )
+    if not parameters:
+        raise ValueError("teacher-anchored trainable inventory differs")
+    rows = [
+        {
+            "dtype": str(parameter.dtype),
+            "name": name,
+            "shape": list(parameter.shape),
+            "trainable": parameter.requires_grad,
+        }
+        for name, parameter in parameters
+    ]
+    return hashlib.sha256(
+        _canonical_json_bytes(
+            {
+                "parameters": rows,
+                "schema": "sfora-teacher-anchored-trainable-inventory-v1",
+            }
+        )
+    ).hexdigest()
+
+
+def teacher_anchored_ridge_sha256(initialization: TeacherAnchoredInitialization) -> str:
+    """Bind the exact fitted source-to-teacher-PCA affine state."""
+
+    if type(initialization) is not TeacherAnchoredInitialization:
+        raise ValueError("teacher-anchored ridge authority differs")
+    projection = initialization.projection.source_projection
+    weight = projection.weight.detach().cpu().float().contiguous()
+    bias = projection.bias.detach().cpu().float().contiguous()
+    parameter_sha256 = _parameter_sha256(weight, bias)
+    return hashlib.sha256(
+        _canonical_json_bytes(
+            {
+                "dimensions": int(weight.shape[0]),
+                "input_dimensions": int(weight.shape[1]),
+                "parameter_sha256": parameter_sha256,
+                "penalty": 1e-6,
+                "schema": "sfora-teacher-anchored-ridge-v1",
             }
         )
     ).hexdigest()

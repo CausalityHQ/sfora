@@ -45,6 +45,22 @@ def _load_subject() -> ModuleType:
 SUBJECT = _load_subject()
 
 
+def _load_runtime_subject() -> ModuleType:
+    existing = sys.modules.get("sop_teacher_anchored_runtime")
+    if isinstance(existing, ModuleType):
+        return existing
+    path = Path(__file__).parents[1] / "scripts" / "sop_teacher_anchored_runtime.py"
+    spec = importlib.util.spec_from_file_location("sop_teacher_anchored_runtime", path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+RUNTIME = _load_runtime_subject()
+
+
 class DropPath(nn.Module):
     def forward(self, value: torch.Tensor) -> torch.Tensor:
         return value
@@ -548,6 +564,116 @@ def test_initializer_normalizes_raw_rows_with_float64_recipe() -> None:
         )
 
 
+def test_prepared_arrays_are_fitting_local_and_bind_teacher_projection() -> None:
+    labels = np.repeat(np.arange(1, 201, dtype=np.int64), 2)
+    image_ids = np.arange(10_000, 10_400, dtype=np.int64)
+    source = _normalized(400, 128, seed=101).numpy()
+    teacher = _normalized(400, 128, seed=102).numpy()
+    pair = RUNTIME.TeacherAnchoredTrainPair(
+        source_embeddings=np.ascontiguousarray(source),
+        teacher_embeddings=np.ascontiguousarray(teacher),
+        labels=np.ascontiguousarray(labels),
+        image_ids=np.ascontiguousarray(image_ids),
+        relative_paths=tuple(f"class/image-{row}.jpg" for row in range(400)),
+        source_metadata={"model_revision": "d" * 40},
+        teacher_metadata={"model_revision": "d" * 40},
+        source_snapshot_sha256="1" * 64,
+        teacher_snapshot_sha256="2" * 64,
+    )
+    split = SUBJECT.build_teacher_anchored_split(labels, image_ids, seed=17)
+    fitting = np.asarray(split.fitting_rows, dtype=np.int64)
+    expected = SUBJECT.fit_teacher_guided_projection(
+        torch.from_numpy(source[fitting]).contiguous(),
+        torch.from_numpy(teacher[fitting]).contiguous(),
+        dimensions=128,
+        penalty=1e-6,
+    )
+    expected_pca = _parameter_sha256(
+        expected.teacher_projection.mean, expected.teacher_projection.components
+    )
+
+    prepared = SUBJECT.prepare_teacher_anchored_arrays(
+        pair,
+        seed=17,
+        expected_teacher_pca_sha256=expected_pca,
+    )
+
+    assert prepared.split == split
+    assert prepared.source_features.shape == (len(fitting), 128)
+    assert prepared.teacher_codes.shape == (len(fitting), 128)
+    assert prepared.teacher_codes.dtype == torch.float32
+    assert prepared.teacher_codes.is_contiguous()
+    assert torch.allclose(
+        prepared.teacher_codes,
+        prepared.initialization.projection.apply_teacher(
+            torch.from_numpy(teacher[fitting]).contiguous()
+        ),
+        rtol=0.0,
+        atol=0.0,
+    )
+
+
+def test_schedule_binding_maps_original_manifest_into_fitting_index_space(
+    tmp_path: Path,
+) -> None:
+    codes, sample_ids, sealed, payload = _schedule_file_fixture()
+    arguments = _registered_cli(tmp_path)
+    schedule_path = (tmp_path / "schedule.bin").resolve()
+    schedule_path.write_bytes(payload)
+    arguments[arguments.index("--schedule") + 1] = str(schedule_path)
+    arguments[arguments.index("--schedule-sha256") + 1] = sealed.sha256
+    arguments[arguments.index("--teacher-snapshot-sha256") + 1] = "2" * 64
+    parsed = SUBJECT.parse_teacher_anchored_args(arguments)
+    features = _normalized(897, 128, seed=201)
+    source = _normalized(132, 128, seed=202)
+    teacher = _normalized(132, 128, seed=203)
+    projection = SUBJECT.fit_teacher_guided_projection(
+        source, teacher, dimensions=128, penalty=1e-6
+    )
+    initialization = SUBJECT.initialize_teacher_anchored_student(
+        source,
+        teacher,
+        expected_teacher_pca_sha256=_parameter_sha256(
+            projection.teacher_projection.mean, projection.teacher_projection.components
+        ),
+    )
+    split = SUBJECT.TeacherAnchoredSplit(
+        fitting_rows=tuple(range(897)),
+        validation_rows=(897, 898),
+        fitting_class_ids=(1,),
+        validation_class_ids=(2,),
+        fitting_labels=tuple(1 for _ in range(897)),
+        validation_labels=(2, 2),
+        fitting_image_ids=sample_ids,
+        validation_image_ids=(897, 898),
+        sha256="3" * 64,
+    )
+    prepared = SUBJECT.TeacherAnchoredPreparedArrays(
+        split=split,
+        initialization=initialization,
+        source_features=features,
+        teacher_codes=torch.from_numpy(codes).contiguous(),
+    )
+    image_paths = tuple((tmp_path / f"image-{row}.jpg").resolve() for row in range(899))
+    manifest = RUNTIME.TeacherAnchoredImageManifest(
+        image_paths=image_paths,
+        relative_paths=tuple(path.name for path in image_paths),
+        sha256="2" * 64,
+    )
+
+    bound = SUBJECT.bind_teacher_anchored_schedule(parsed, prepared, manifest)
+
+    assert bound.sealed.sha256 == sealed.sha256
+    assert bound.sealed.binding == sealed.binding
+    assert bound.sealed.anchor_schedule.sha256 == sealed.anchor_schedule.sha256
+    assert bound.schedules == teacher_anchored_schedule_rows(sealed)
+    assert torch.equal(
+        bound.anchor_row_indexes,
+        torch.from_numpy(sealed.anchor_schedule.row_indexes.copy()).contiguous(),
+    )
+    assert bound.fitting_image_paths == image_paths[:897]
+
+
 def test_epoch_modes_freeze_exact_inventory_and_disable_batchnorm_droppath() -> None:
     encoder = FakeEncoder()
     head = nn.Linear(4, 128)
@@ -650,6 +776,43 @@ def test_runtime_authority_pins_determinism_precision_and_rngs() -> None:
     assert receipt.flash_sdp_enabled is False
     assert receipt.memory_efficient_sdp_enabled is False
     assert receipt.cudnn_sdp_enabled is False
+
+
+def test_named_authority_digests_change_with_runtime_mode_inventory_and_ridge() -> None:
+    runtime = SUBJECT.configure_teacher_anchored_runtime(17)
+    assert SUBJECT.teacher_anchored_runtime_sha256(runtime) != (
+        SUBJECT.teacher_anchored_runtime_sha256(runtime._replace(seed=1729))
+    )
+    assert SUBJECT.teacher_anchored_model_mode_sha256("head-only") != (
+        SUBJECT.teacher_anchored_model_mode_sha256("complete")
+    )
+
+    encoder = FakeEncoder()
+    head = nn.Linear(4, 128)
+    SUBJECT.configure_teacher_anchored_epoch(encoder, head, epoch=2, head_only=False)
+    inventory = SUBJECT.teacher_anchored_trainable_inventory_sha256(encoder, head)
+    encoder.blocks[10][0].weight.requires_grad_(False)
+    assert SUBJECT.teacher_anchored_trainable_inventory_sha256(encoder, head) != inventory
+
+    source = _normalized(132, 128, seed=301)
+    teacher = _normalized(132, 128, seed=302)
+    projection = SUBJECT.fit_teacher_guided_projection(
+        source, teacher, dimensions=128, penalty=1e-6
+    )
+    initialized = SUBJECT.initialize_teacher_anchored_student(
+        source,
+        teacher,
+        expected_teacher_pca_sha256=_parameter_sha256(
+            projection.teacher_projection.mean, projection.teacher_projection.components
+        ),
+    )
+    ridge = SUBJECT.teacher_anchored_ridge_sha256(initialized)
+    with torch.no_grad():
+        initialized.projection.source_projection._weight[0, 0] += 0.25
+    assert SUBJECT.teacher_anchored_ridge_sha256(initialized) != ridge
+
+    for digest in (inventory, ridge):
+        assert len(digest) == 64
 
 
 def test_runtime_authority_rejects_conflicting_cublas_and_seed(
