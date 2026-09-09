@@ -2959,7 +2959,12 @@ def _execute_teacher_anchored_arm(
     )
     initialization_diagnostic = compute_teacher_anchored_snapshot_diagnostic(
         head,
-        fitting_features=prepared.source_features,
+        fitting_features=torch.from_numpy(
+            np.ascontiguousarray(
+                pair.source_embeddings[np.asarray(prepared.split.fitting_rows)],
+                dtype=np.float32,
+            )
+        ),
         fitting_labels=prepared.split.fitting_labels,
         fitting_probe_rows=probe.row_indexes,
         validation_features=validation_source,
