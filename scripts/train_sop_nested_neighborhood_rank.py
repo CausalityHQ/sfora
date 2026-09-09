@@ -66,12 +66,83 @@ _SNAPSHOT_METADATA = {
     "train_rows",
     "transform",
 }
+_SNAPSHOT_RUNTIME_METADATA = {
+    "blas_threads",
+    "cpu_threads",
+    "cublas_workspace_config",
+    "cuda_matmul_tf32",
+    "cudnn_benchmark",
+    "cudnn_deterministic",
+    "cudnn_sdp_enabled",
+    "cudnn_tf32",
+    "cudnn_version",
+    "cuda_device_capability",
+    "cuda_device_name",
+    "cuda_version",
+    "deterministic_algorithms",
+    "flash_sdp_enabled",
+    "float32_matmul_precision",
+    "math_sdp_enabled",
+    "memory_efficient_sdp_enabled",
+    "seed",
+    "torch_version",
+}
 _TEST_ARRAYS = {
     "test_embeddings",
     "test_labels",
     "test_image_ids",
     "test_relative_paths",
 }
+
+
+def _valid_snapshot_runtime_metadata(value: object) -> bool:
+    if type(value) is not dict:
+        return False
+    runtime = cast(dict[str, object], value)
+    bool_fields = (
+        "cuda_matmul_tf32",
+        "cudnn_benchmark",
+        "cudnn_deterministic",
+        "cudnn_sdp_enabled",
+        "cudnn_tf32",
+        "deterministic_algorithms",
+        "flash_sdp_enabled",
+        "math_sdp_enabled",
+        "memory_efficient_sdp_enabled",
+    )
+    optional_strings = (
+        "cuda_device_capability",
+        "cuda_device_name",
+        "cuda_version",
+    )
+    return (
+        set(runtime) == _SNAPSHOT_RUNTIME_METADATA
+        and all(type(runtime.get(field)) is bool for field in bool_fields)
+        and all(
+            type(runtime.get(field)) is int and cast(int, runtime[field]) > 0
+            for field in ("blas_threads", "cpu_threads")
+        )
+        and type(runtime.get("seed")) is int
+        and cast(int, runtime["seed"]) >= 0
+        and runtime.get("cublas_workspace_config") in (":16:8", ":4096:8")
+        and runtime.get("float32_matmul_precision") in ("highest", "high", "medium")
+        and type(runtime.get("torch_version")) is str
+        and bool(cast(str, runtime["torch_version"]))
+        and all(
+            runtime.get(field) is None
+            or (type(runtime.get(field)) is str and bool(cast(str, runtime[field])))
+            for field in optional_strings
+        )
+        and (
+            runtime.get("cudnn_version") is None
+            or (
+                type(runtime.get("cudnn_version")) is int
+                and cast(int, runtime["cudnn_version"]) > 0
+            )
+        )
+    )
+
+
 _REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -248,7 +319,7 @@ def load_train_snapshot(path: Path, expected_sha256: str) -> TrainSnapshot:
         arrays = {name: archive[name].copy() for name in _SNAPSHOT_ARRAYS}
     if (
         type(metadata) is not dict
-        or set(metadata) != _SNAPSHOT_METADATA
+        or set(metadata) not in (_SNAPSHOT_METADATA, _SNAPSHOT_METADATA | {"batch_size", "runtime"})
         or metadata.get("schema") != "sfora-nnrl-sop-train-snapshot-v1"
         or type(metadata.get("train_array_sha256")) is not dict
         or set(cast(dict[str, object], metadata["train_array_sha256"])) != _SNAPSHOT_ARRAYS
@@ -256,6 +327,14 @@ def load_train_snapshot(path: Path, expected_sha256: str) -> TrainSnapshot:
         or set(cast(dict[str, object], metadata["excluded_test_array_sha256"])) != _TEST_ARRAYS
     ):
         raise ValueError("train snapshot metadata differs")
+    if "runtime" in metadata:
+        runtime = metadata.get("runtime")
+        if (
+            type(metadata.get("batch_size")) is not int
+            or cast(int, metadata["batch_size"]) < 1
+            or not _valid_snapshot_runtime_metadata(runtime)
+        ):
+            raise ValueError("train snapshot metadata differs")
     train_rows = metadata.get("train_rows")
     train_classes = metadata.get("train_classes")
     dimensions = metadata.get("embedding_dimension")

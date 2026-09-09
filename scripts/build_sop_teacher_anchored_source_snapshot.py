@@ -24,10 +24,15 @@ from PIL import Image
 from torch import nn
 
 from sfora.atomic_publication import publish_large_writer_noreplace
+from sfora.deterministic_similarity_runtime import (
+    DeterministicSimilarityRuntimeReceipt,
+    configure_deterministic_similarity_runtime,
+    validate_deterministic_similarity_runtime,
+)
 from sfora.nested_rank_protocol import ordered_training_records_sha256
 
 _SOURCE_ARCHIVE_SHA256 = "6bc0d8383251685eaccd472eeda357861caffb3bfb4129f18e0124c3ddc72818"
-_SOURCE_TRAIN_EMBEDDINGS_SHA256 = "d88e9d35f8419c7a661bd1358c901ecb2c64d4111ecd6ec311229d0d7c76dd74"
+_SOURCE_TRAIN_EMBEDDINGS_SHA256 = "baca47e3349b4d8cd2f3d52a85d2692fe8c539347daa54a49a351adef0a5f9df"
 _SOURCE_TEST_EMBEDDINGS_SHA256 = "52b7b1fa8c2668468c9ac8983a8dd1d98d8c04ca0684bec79c2c31ee5666bfa9"
 _TEACHER_SNAPSHOT_SHA256 = "b0da9f6097646ffad78c21c84970751ae9a7da003e0eb2979e28f72009785264"
 _SOURCE_MODEL_IDENTIFIER = "UNICOM-ViT-B/16"
@@ -37,6 +42,37 @@ _TRAIN_ARRAYS = (
     "train_image_ids",
     "train_labels",
     "train_relative_paths",
+)
+_SOURCE_RUNTIME = DeterministicSimilarityRuntimeReceipt(
+    seed=17,
+    cpu_threads=2,
+    blas_threads=2,
+    cublas_workspace_config=":4096:8",
+    deterministic_algorithms=True,
+    cudnn_deterministic=True,
+    cudnn_benchmark=False,
+    cuda_matmul_tf32=False,
+    cudnn_tf32=False,
+    float32_matmul_precision="highest",
+    math_sdp_enabled=True,
+    flash_sdp_enabled=False,
+    memory_efficient_sdp_enabled=False,
+    cudnn_sdp_enabled=False,
+    torch_version=str(torch.__version__),
+    cuda_version=torch.version.cuda,
+    cudnn_version=torch.backends.cudnn.version(),  # type: ignore[no-untyped-call]
+    cuda_device_name=(
+        torch.cuda.get_device_name(torch.cuda.current_device())
+        if torch.cuda.is_available()
+        else None
+    ),
+    cuda_device_capability=(
+        ".".join(
+            str(value) for value in torch.cuda.get_device_capability(torch.cuda.current_device())
+        )
+        if torch.cuda.is_available()
+        else None
+    ),
 )
 
 
@@ -225,6 +261,7 @@ def build_source_snapshot(
     image_root: Path,
     output: Path,
     source_model: SourceSnapshotModel,
+    runtime: DeterministicSimilarityRuntimeReceipt,
     expected_train_embeddings_sha256: str,
     batch_size: int,
 ) -> dict[str, object]:
@@ -243,12 +280,15 @@ def build_source_snapshot(
         or output.parent.is_symlink()
         or not output.parent.is_dir()
         or not _is_digest(expected_train_embeddings_sha256)
+        or type(runtime) is not DeterministicSimilarityRuntimeReceipt
+        or runtime != _SOURCE_RUNTIME
         or type(batch_size) is not int
         or batch_size < 1
     ):
         if output.exists() or output.is_symlink():
             raise FileExistsError(output)
         raise ValueError("source snapshot authority differs")
+    validate_deterministic_similarity_runtime(runtime)
     teacher = _load_snapshot(teacher_snapshot, teacher_snapshot_sha256)
     metadata = cast(dict[str, object], teacher.metadata)
     paths = tuple(str(value) for value in teacher.relative_paths)
@@ -261,6 +301,15 @@ def build_source_snapshot(
         raise ValueError("teacher snapshot authority differs")
 
     device = next(source_model.encoder.parameters(), torch.empty(0)).device
+    if (runtime.cuda_device_name is None and device.type != "cpu") or (
+        runtime.cuda_device_name is not None
+        and (
+            device.type != "cuda"
+            or device.index not in (None, torch.cuda.current_device())
+            or torch.cuda.get_device_name(device) != runtime.cuda_device_name
+        )
+    ):
+        raise ValueError("source model device authority differs")
     source_model.encoder.eval()
     image_manifest = hashlib.sha256(b"sfora-teacher-anchored-image-tree-v1\x00")
     encoded: list[NDArray[np.float32]] = []
@@ -316,6 +365,8 @@ def build_source_snapshot(
         "model_revision": source_model.model_revision,
         "checkpoint_sha256": source_model.checkpoint_sha256,
         "embedding_dimension": embeddings.shape[1],
+        "batch_size": batch_size,
+        "runtime": runtime._asdict(),
         "train_rows": embeddings.shape[0],
         "train_classes": len(set(arrays["train_labels"].tolist())),
         "train_array_sha256": {
@@ -400,6 +451,7 @@ def main(arguments: Sequence[str] | None = None) -> int:
 
     try:
         args = parse_args(arguments)
+        runtime = configure_deterministic_similarity_runtime(17, cpu_threads=2)
         loaded = _load_source_model(args.unicom_checkout, args.checkpoint)
         loaded.encoder.cuda()
         model = SourceSnapshotModel(
@@ -418,6 +470,7 @@ def main(arguments: Sequence[str] | None = None) -> int:
             image_root=args.image_root,
             output=args.output,
             source_model=model,
+            runtime=runtime,
             expected_train_embeddings_sha256=_SOURCE_TRAIN_EMBEDDINGS_SHA256,
             batch_size=args.batch_size,
         )

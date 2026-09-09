@@ -142,6 +142,50 @@ def test_train_snapshot_authenticates_exact_schema_and_arrays(tmp_path: Path) ->
         MODULE.load_train_snapshot(bad, bad_digest)
 
 
+def test_train_snapshot_runtime_metadata_uses_concrete_portable_types(tmp_path: Path) -> None:
+    path = tmp_path / "snapshot.npz"
+    _snapshot(path)
+    with np.load(path, allow_pickle=False) as archive:
+        values = {name: archive[name].copy() for name in archive.files}
+    metadata = json.loads(str(values["metadata_json"].item()))
+    metadata["batch_size"] = 64
+    metadata["runtime"] = {
+        "blas_threads": 2,
+        "cpu_threads": 2,
+        "cublas_workspace_config": ":4096:8",
+        "cuda_matmul_tf32": False,
+        "cudnn_benchmark": False,
+        "cudnn_deterministic": True,
+        "cudnn_sdp_enabled": False,
+        "cudnn_tf32": False,
+        "cudnn_version": 92000,
+        "cuda_device_capability": "12.1",
+        "cuda_device_name": "fixture-gpu",
+        "cuda_version": "13.0",
+        "deterministic_algorithms": True,
+        "flash_sdp_enabled": False,
+        "float32_matmul_precision": "highest",
+        "math_sdp_enabled": True,
+        "memory_efficient_sdp_enabled": False,
+        "seed": 17,
+        "torch_version": "2.12.1+cu130",
+    }
+
+    def write() -> str:
+        values["metadata_json"] = np.asarray(
+            json.dumps(metadata, sort_keys=True, separators=(",", ":"))
+        )
+        buffer = io.BytesIO()
+        np.savez(buffer, **values)
+        path.write_bytes(buffer.getvalue())
+        return _sha256(path.read_bytes())
+
+    MODULE.load_train_snapshot(path, write())
+    metadata["runtime"]["deterministic_algorithms"] = 1
+    with pytest.raises(ValueError, match="snapshot metadata"):
+        MODULE.load_train_snapshot(path, write())
+
+
 def test_snapshot_loader_rejects_symlinks_and_test_members(tmp_path: Path) -> None:
     path = tmp_path / "snapshot.npz"
     digest = _snapshot(path)

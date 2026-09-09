@@ -39,6 +39,7 @@ _COMMON_EXCLUDED_TEST_ARRAY_SHA256 = {
 }
 _REGISTERED_SNAPSHOT_METADATA = {
     "source": {
+        "batch_size": 64,
         "checkpoint_sha256": "c04f324f7c3b4435667236ec6c0eca1cd62f9d64fbfc2d06f8e8e60e6497edef",
         "excluded_test_array_sha256": {
             **_COMMON_EXCLUDED_TEST_ARRAY_SHA256,
@@ -47,9 +48,30 @@ _REGISTERED_SNAPSHOT_METADATA = {
         "model_identifier": "UNICOM-ViT-B/16",
         "model_revision": "d71992ed969e6c271436ac0a0ee1f3ca61474ac0",
         "source_archive_sha256": "6bc0d8383251685eaccd472eeda357861caffb3bfb4129f18e0124c3ddc72818",
+        "runtime": {
+            "blas_threads": 2,
+            "cpu_threads": 2,
+            "cublas_workspace_config": ":4096:8",
+            "cuda_matmul_tf32": False,
+            "cudnn_benchmark": False,
+            "cudnn_deterministic": True,
+            "cudnn_sdp_enabled": False,
+            "cudnn_tf32": False,
+            "cudnn_version": 92000,
+            "cuda_device_capability": "12.1",
+            "cuda_device_name": "NVIDIA GB10",
+            "cuda_version": "13.0",
+            "deterministic_algorithms": True,
+            "flash_sdp_enabled": False,
+            "float32_matmul_precision": "highest",
+            "math_sdp_enabled": True,
+            "memory_efficient_sdp_enabled": False,
+            "seed": 17,
+            "torch_version": "2.12.1+cu130",
+        },
         "train_array_sha256": {
             **_COMMON_TRAIN_ARRAY_SHA256,
-            "train_embeddings": "d88e9d35f8419c7a661bd1358c901ecb2c64d4111ecd6ec311229d0d7c76dd74",
+            "train_embeddings": "baca47e3349b4d8cd2f3d52a85d2692fe8c539347daa54a49a351adef0a5f9df",
         },
     },
     "teacher": {
@@ -340,7 +362,7 @@ def load_authenticated_source_model(
 ) -> TeacherAnchoredSourceModel:
     """Load the registered local B/16 graph without a download-capable input."""
 
-    registered = _REGISTERED_SNAPSHOT_METADATA["source"]
+    registered = cast(dict[str, object], _REGISTERED_SNAPSHOT_METADATA["source"])
     expected_revision = registered["model_revision"]
     expected_checkpoint = registered["checkpoint_sha256"]
     if (
@@ -486,8 +508,8 @@ def load_authenticated_train_pair(
         raise ValueError("teacher-anchored snapshot pair authority differs") from error
     source_metadata = cast(dict[str, object], source.metadata)
     teacher_metadata = cast(dict[str, object], teacher.metadata)
-    registered_source = _REGISTERED_SNAPSHOT_METADATA["source"]
-    registered_teacher = _REGISTERED_SNAPSHOT_METADATA["teacher"]
+    registered_source = cast(dict[str, object], _REGISTERED_SNAPSHOT_METADATA["source"])
+    registered_teacher = cast(dict[str, object], _REGISTERED_SNAPSHOT_METADATA["teacher"])
     if (
         any(source_metadata.get(key) != value for key, value in registered_source.items())
         or any(teacher_metadata.get(key) != value for key, value in registered_teacher.items())

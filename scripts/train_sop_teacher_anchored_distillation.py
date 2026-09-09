@@ -10,7 +10,6 @@ import io
 import json
 import math
 import os
-import random
 import stat
 import struct
 import subprocess
@@ -25,10 +24,15 @@ os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
 import numpy as np
 import torch
 from PIL import Image
-from threadpoolctl import threadpool_info, threadpool_limits  # type: ignore[import-untyped]
 from torch import nn
 from torch.amp.grad_scaler import GradScaler
 
+from sfora.deterministic_similarity_runtime import (
+    DeterministicSimilarityRuntimeReceipt as TeacherAnchoredRuntimeReceipt,
+)
+from sfora.deterministic_similarity_runtime import (
+    configure_deterministic_similarity_runtime,
+)
 from sfora.joint_relational_compaction import pack_int8_unit_embeddings
 from sfora.representation_ceiling import (
     TeacherGuidedProjection,
@@ -100,25 +104,6 @@ class TeacherAnchoredArguments(NamedTuple):
     output: Path
     progress: Path
     execute_teacher_anchored: bool
-
-
-class TeacherAnchoredRuntimeReceipt(NamedTuple):
-    """Exact deterministic arithmetic state bound into experiment receipts."""
-
-    seed: int
-    cpu_threads: int
-    blas_threads: int
-    cublas_workspace_config: str
-    deterministic_algorithms: bool
-    cudnn_deterministic: bool
-    cudnn_benchmark: bool
-    cuda_matmul_tf32: bool
-    cudnn_tf32: bool
-    float32_matmul_precision: str
-    math_sdp_enabled: bool
-    flash_sdp_enabled: bool
-    memory_efficient_sdp_enabled: bool
-    cudnn_sdp_enabled: bool
 
 
 class TeacherAnchoredPreparedArrays(NamedTuple):
@@ -429,52 +414,10 @@ def configure_teacher_anchored_runtime(seed: int) -> TeacherAnchoredRuntimeRecei
 
     if type(seed) is not int or seed not in (17, 1729, 65537):
         raise ValueError("teacher-anchored runtime authority differs")
-    if os.environ.get("CUBLAS_WORKSPACE_CONFIG") != ":4096:8":
-        raise ValueError("teacher-anchored runtime authority differs")
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.set_num_threads(2)
-    threadpool_limits(limits=2, user_api="blas")
-    blas_threads = {
-        int(pool["num_threads"]) for pool in threadpool_info() if pool["user_api"] == "blas"
-    }
-    if blas_threads != {2}:
-        raise ValueError("teacher-anchored runtime authority differs")
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(seed)
-    torch.use_deterministic_algorithms(True)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-    torch.backends.cuda.matmul.allow_tf32 = False
-    torch.backends.cudnn.allow_tf32 = False
-    torch.set_float32_matmul_precision("highest")
-    torch.backends.cuda.enable_math_sdp(True)
-    torch.backends.cuda.enable_flash_sdp(False)
-    torch.backends.cuda.enable_mem_efficient_sdp(False)
-    torch.backends.cuda.enable_cudnn_sdp(False)
-    return TeacherAnchoredRuntimeReceipt(
-        seed=seed,
-        cpu_threads=torch.get_num_threads(),
-        blas_threads=blas_threads.pop(),
-        cublas_workspace_config=os.environ["CUBLAS_WORKSPACE_CONFIG"],
-        deterministic_algorithms=torch.are_deterministic_algorithms_enabled(),
-        cudnn_deterministic=torch.backends.cudnn.deterministic,
-        cudnn_benchmark=torch.backends.cudnn.benchmark,
-        cuda_matmul_tf32=torch.backends.cuda.matmul.allow_tf32,
-        cudnn_tf32=torch.backends.cudnn.allow_tf32,
-        float32_matmul_precision=torch.get_float32_matmul_precision(),
-        math_sdp_enabled=cast(bool, torch.backends.cuda.math_sdp_enabled()),  # type: ignore[no-untyped-call]
-        flash_sdp_enabled=cast(bool, torch.backends.cuda.flash_sdp_enabled()),  # type: ignore[no-untyped-call]
-        memory_efficient_sdp_enabled=cast(
-            bool,
-            torch.backends.cuda.mem_efficient_sdp_enabled(),  # type: ignore[no-untyped-call]
-        ),
-        cudnn_sdp_enabled=cast(
-            bool,
-            torch.backends.cuda.cudnn_sdp_enabled(),  # type: ignore[no-untyped-call]
-        ),
-    )
+    try:
+        return configure_deterministic_similarity_runtime(seed, cpu_threads=2)
+    except ValueError as error:
+        raise ValueError("teacher-anchored runtime authority differs") from error
 
 
 def authenticate_teacher_anchored_files(arguments: TeacherAnchoredArguments) -> tuple[str, ...]:
@@ -1610,8 +1553,8 @@ def make_teacher_anchored_diagnose(
 
     def encode(paths: tuple[Path, ...]) -> torch.Tensor:
         chunks: list[torch.Tensor] = []
-        for start in range(0, len(paths), 256):
-            transformed = tuple(transform_image(path) for path in paths[start : start + 256])
+        for start in range(0, len(paths), 64):
+            transformed = tuple(transform_image(path) for path in paths[start : start + 64])
             if (
                 not transformed
                 or any(type(image) is not torch.Tensor for image in transformed)
@@ -1626,7 +1569,7 @@ def make_teacher_anchored_diagnose(
             ):
                 raise ValueError("teacher-anchored diagnostic image differs")
             retained = len(transformed)
-            padded = (*transformed, *(transformed[-1] for _ in range(256 - retained)))
+            padded = (*transformed, *(transformed[-1] for _ in range(64 - retained)))
             images = torch.stack(padded).to(device=device, non_blocking=False)
             with torch.inference_mode():
                 _features, codes = teacher_anchored_forward(encoder, head, images)
@@ -1718,11 +1661,30 @@ def compute_teacher_anchored_snapshot_diagnostic(
         )
     ):
         raise ValueError("teacher-anchored snapshot diagnostic authority differs")
-    fitting = _normalize_snapshot_rows(fitting_features)
-    validation = _normalize_snapshot_rows(validation_features)
-    with torch.inference_mode():
-        fitting_codes = torch.nn.functional.normalize(head(fitting.to(device)).float(), dim=1)
-        validation_codes = torch.nn.functional.normalize(head(validation.to(device)).float(), dim=1)
+
+    def encode(features: torch.Tensor) -> torch.Tensor:
+        _normalize_snapshot_rows(features)
+        chunks: list[torch.Tensor] = []
+        for start in range(0, len(features), 64):
+            retained = features[start : start + 64]
+            padded = torch.cat(
+                (retained, retained[-1:].expand(64 - len(retained), -1)),
+                dim=0,
+            )
+            with torch.inference_mode():
+                normalized = torch.nn.functional.normalize(padded.to(device), dim=1)
+                raw_codes = head(normalized).float()
+                code_norms = torch.linalg.vector_norm(raw_codes.double(), dim=1)
+                if not bool(torch.isfinite(raw_codes).all()) or bool((code_norms <= 1e-12).any()):
+                    raise TeacherAnchoredNumericalError(
+                        "teacher-anchored snapshot diagnostic numerical failure"
+                    )
+                codes = torch.nn.functional.normalize(raw_codes, dim=1)
+            chunks.append(codes[: len(retained)].cpu().contiguous())
+        return torch.cat(chunks).contiguous()
+
+    fitting_codes = encode(fitting_features)
+    validation_codes = encode(validation_features)
     probe_indexes = torch.tensor(fitting_probe_rows, dtype=torch.int64, device=device)
     probe_codes = fitting_codes[probe_indexes].cpu().contiguous()
     probe_labels = tuple(fitting_labels[row] for row in fitting_probe_rows)

@@ -408,6 +408,7 @@ def test_prepared_arm_is_accepted_by_real_trainer_parser_and_cannot_overwrite(
 
 def test_process_group_runner_accepts_only_authenticated_progress_and_matching_output(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     launch_sha = "a" * 64
     output = (tmp_path / "complete.result.json").resolve()
@@ -450,6 +451,7 @@ sys.stdout.buffer.write(payload)
         progress=progress,
         command=(sys.executable, str(child), str(progress), str(output), launch_sha),
     )
+    monkeypatch.setattr(SUBJECT, "_sample_teacher_anchored_pressure", lambda *_args: _sample())
 
     terminal = SUBJECT.run_teacher_anchored_arm_process(launch, poll_seconds=0.01)
 

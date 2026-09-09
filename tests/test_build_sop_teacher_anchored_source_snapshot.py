@@ -13,6 +13,10 @@ import pytest
 import torch
 from PIL import Image
 
+from sfora.deterministic_similarity_runtime import (
+    DeterministicSimilarityRuntimeReceipt,
+    configure_deterministic_similarity_runtime,
+)
 from sfora.nested_rank_protocol import ordered_training_records_sha256
 
 SCRIPT = Path(__file__).parents[1] / "scripts" / "build_sop_teacher_anchored_source_snapshot.py"
@@ -107,6 +111,10 @@ def _source_model(encoder: torch.nn.Module | None = None) -> object:
     )
 
 
+def _runtime_receipt() -> DeterministicSimilarityRuntimeReceipt:
+    return configure_deterministic_similarity_runtime(17, cpu_threads=2)
+
+
 def _image_tree(root: Path) -> None:
     train = root / "train"
     train.mkdir()
@@ -134,6 +142,7 @@ def test_build_source_snapshot_reads_only_teacher_named_training_images(
         image_root=image_root,
         output=output,
         source_model=_source_model(),
+        runtime=_runtime_receipt(),
         expected_train_embeddings_sha256=_sha256(expected_embeddings.tobytes()),
         batch_size=2,
     )
@@ -154,6 +163,8 @@ def test_build_source_snapshot_reads_only_teacher_named_training_images(
         assert np.array_equal(snapshot["train_relative_paths"], arrays["train_relative_paths"])
         metadata = json.loads(str(snapshot["metadata_json"].item()))
     assert metadata["model_identifier"] == "UNICOM-ViT-B/16"
+    assert metadata["batch_size"] == 2
+    assert metadata["runtime"] == _runtime_receipt()._asdict()
     assert metadata["source_archive_sha256"] == "9" * 64
     assert metadata["excluded_test_array_sha256"] == {
         "test_embeddings": "a" * 64,
@@ -183,6 +194,7 @@ def test_build_source_snapshot_pads_tail_with_authorized_training_rows(
         image_root=image_root,
         output=tmp_path / "source.npz",
         source_model=_source_model(encoder),
+        runtime=_runtime_receipt(),
         expected_train_embeddings_sha256=_sha256(expected.tobytes()),
         batch_size=3,
     )
@@ -203,6 +215,7 @@ def test_build_source_snapshot_rejects_digest_output_and_image_authority(
         "teacher_snapshot_sha256": teacher_sha256,
         "image_root": image_root,
         "source_model": _source_model(),
+        "runtime": _runtime_receipt(),
         "expected_train_embeddings_sha256": "b" * 64,
         "batch_size": 2,
     }
@@ -217,6 +230,14 @@ def test_build_source_snapshot_rejects_digest_output_and_image_authority(
     with pytest.raises(ValueError, match="embedding digest"):
         SUBJECT.build_source_snapshot(output=tmp_path / "bad-embedding.npz", **kwargs)
     assert not (tmp_path / "bad-embedding.npz").exists()
+    with pytest.raises(ValueError, match="snapshot authority"):
+        SUBJECT.build_source_snapshot(
+            output=tmp_path / "bad-runtime.npz",
+            **{
+                **kwargs,
+                "runtime": _runtime_receipt()._replace(cuda_matmul_tf32=True),
+            },
+        )
 
     occupied = tmp_path / "occupied.npz"
     occupied.write_bytes(b"occupied")
@@ -259,6 +280,7 @@ def test_build_source_snapshot_does_not_accept_or_delete_replaced_output(
             image_root=image_root,
             output=output,
             source_model=_source_model(),
+            runtime=_runtime_receipt(),
             expected_train_embeddings_sha256=_sha256(expected.tobytes()),
             batch_size=2,
         )
@@ -301,6 +323,7 @@ def test_build_source_snapshot_rejects_same_inode_corruption_after_publish(
             image_root=image_root,
             output=output,
             source_model=_source_model(),
+            runtime=_runtime_receipt(),
             expected_train_embeddings_sha256=_sha256(expected.tobytes()),
             batch_size=2,
         )

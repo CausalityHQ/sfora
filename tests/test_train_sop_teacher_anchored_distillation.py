@@ -669,7 +669,7 @@ def test_diagnose_factory_uses_fixed_chunks_memoizes_step_zero_and_restores_mode
     assert step_zero.epoch == 0
     assert step_zero.fitting_map_at_r == 1.0
     assert step_zero.validation_map_at_r == 1.0
-    assert encoder.calls == [256, 256]
+    assert encoder.calls == [64, 64]
     assert heartbeats == [1, 1]
     assert encoder.training is True
     assert head.training is False
@@ -678,7 +678,7 @@ def test_diagnose_factory_uses_fixed_chunks_memoizes_step_zero_and_restores_mode
 
     epoch_one = diagnose(1)
     assert epoch_one.epoch == 1
-    assert encoder.calls == [256, 256, 256, 256]
+    assert encoder.calls == [64, 64, 64, 64]
     assert heartbeats == [1, 1, 1, 1]
 
     with pytest.raises(ValueError, match="diagnostic labels differ"):
@@ -721,6 +721,62 @@ def test_snapshot_step_zero_is_independent_of_the_live_image_diagnostic() -> Non
     assert diagnostic.epoch == 0
     assert diagnostic.fitting_map_at_r == 1.0
     assert diagnostic.validation_map_at_r == 1.0
+
+
+def test_snapshot_step_zero_uses_the_live_fixed_padded_head_shape() -> None:
+    features = torch.randn(130, 4, generator=torch.Generator().manual_seed(41)).contiguous()
+    labels = tuple(1 + row // 2 for row in range(130))
+    head = nn.Linear(4, 4, bias=False)
+    calls: list[int] = []
+    hook = head.register_forward_pre_hook(
+        lambda _module, arguments: calls.append(int(arguments[0].shape[0]))
+    )
+    try:
+        SUBJECT.compute_teacher_anchored_snapshot_diagnostic(
+            head,
+            fitting_features=features,
+            fitting_labels=labels,
+            fitting_probe_rows=(0, 1, 2, 3),
+            validation_features=features,
+            validation_labels=labels,
+            device=torch.device("cpu"),
+        )
+    finally:
+        hook.remove()
+
+    assert calls == [64, 64, 64, 64, 64, 64]
+
+
+def test_snapshot_and_live_step_zero_are_exact_for_identical_encoder_features() -> None:
+    features = torch.randn(130, 4, generator=torch.Generator().manual_seed(43)).contiguous()
+    labels = tuple(1 + row // 2 for row in range(130))
+    paths = tuple(Path(f"/registered/{row}.jpg") for row in range(130))
+    rows = {path: features[row] for row, path in enumerate(paths)}
+    head = nn.Linear(4, 4, bias=True)
+    torch.nn.init.normal_(head.weight, generator=torch.Generator().manual_seed(47))
+    torch.nn.init.normal_(head.bias, generator=torch.Generator().manual_seed(53))
+    live = SUBJECT.make_teacher_anchored_diagnose(
+        nn.Identity(),
+        head,
+        fitting_image_paths=paths,
+        fitting_labels=labels,
+        validation_image_paths=paths,
+        validation_labels=labels,
+        transform_image=rows.__getitem__,
+        device=torch.device("cpu"),
+    )(0)
+
+    snapshot = SUBJECT.compute_teacher_anchored_snapshot_diagnostic(
+        head,
+        fitting_features=features,
+        fitting_labels=labels,
+        fitting_probe_rows=tuple(range(130)),
+        validation_features=features,
+        validation_labels=labels,
+        device=torch.device("cpu"),
+    )
+
+    assert snapshot == live
 
 
 def test_initializer_normalizes_raw_rows_with_float64_recipe() -> None:

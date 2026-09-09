@@ -46,8 +46,30 @@ def test_registered_snapshot_metadata_matches_the_sealed_sop_authority() -> None
         "1ba27b2d6b9db39067aa6facd0ef8aafc303c4527f6feabed859b0512c7d921a"
     )
     assert source["train_array_sha256"]["train_embeddings"] == (
-        "d88e9d35f8419c7a661bd1358c901ecb2c64d4111ecd6ec311229d0d7c76dd74"
+        "baca47e3349b4d8cd2f3d52a85d2692fe8c539347daa54a49a351adef0a5f9df"
     )
+    assert source["batch_size"] == 64
+    assert source["runtime"] == {
+        "blas_threads": 2,
+        "cpu_threads": 2,
+        "cublas_workspace_config": ":4096:8",
+        "cuda_matmul_tf32": False,
+        "cudnn_benchmark": False,
+        "cudnn_deterministic": True,
+        "cudnn_sdp_enabled": False,
+        "cudnn_tf32": False,
+        "cudnn_version": 92000,
+        "cuda_device_capability": "12.1",
+        "cuda_device_name": "NVIDIA GB10",
+        "cuda_version": "13.0",
+        "deterministic_algorithms": True,
+        "flash_sdp_enabled": False,
+        "float32_matmul_precision": "highest",
+        "math_sdp_enabled": True,
+        "memory_efficient_sdp_enabled": False,
+        "seed": 17,
+        "torch_version": "2.12.1+cu130",
+    }
     assert teacher["train_array_sha256"]["train_embeddings"] == (
         "5a8629deee1adff92ac941a0f78f4fd55f1d4cb0db43b1459a0d6c92f84b46fc"
     )
@@ -106,6 +128,9 @@ def _snapshot(
         ),
         "transform": "fixture-transform",
     }
+    if model.endswith("B/16"):
+        metadata["batch_size"] = 64
+        metadata["runtime"] = SUBJECT._REGISTERED_SNAPSHOT_METADATA["source"]["runtime"]
     np.savez(
         path,
         metadata_json=np.asarray(json.dumps(metadata, sort_keys=True, separators=(",", ":"))),
@@ -143,17 +168,15 @@ def _paired_snapshots(
         for role, path in (("source", source), ("teacher", teacher)):
             with np.load(path, allow_pickle=False) as archive:
                 metadata = json.loads(str(archive["metadata_json"].item()))
-            registered[role] = {
-                key: metadata[key]
-                for key in (
-                    "checkpoint_sha256",
-                    "excluded_test_array_sha256",
-                    "model_identifier",
-                    "model_revision",
-                    "source_archive_sha256",
-                    "train_array_sha256",
-                )
-            }
+            keys = (
+                "checkpoint_sha256",
+                "excluded_test_array_sha256",
+                "model_identifier",
+                "model_revision",
+                "source_archive_sha256",
+                "train_array_sha256",
+            ) + (("batch_size", "runtime") if role == "source" else ())
+            registered[role] = {key: metadata[key] for key in keys}
         monkeypatch.setattr(SUBJECT, "_REGISTERED_SNAPSHOT_METADATA", registered)
     return source, source_sha, teacher, teacher_sha
 
