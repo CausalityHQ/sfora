@@ -8,6 +8,7 @@ import os
 import random
 import stat
 import struct
+import subprocess
 import sys
 from pathlib import Path
 from types import ModuleType
@@ -85,6 +86,8 @@ def _registered_cli(tmp_path: Path) -> list[str]:
         path.write_bytes(b"fixture")
     image_root = tmp_path / "train-images"
     image_root.mkdir(exist_ok=True)
+    unicom_checkout = tmp_path / "unicom-checkout"
+    unicom_checkout.mkdir(exist_ok=True)
     arguments: list[str] = []
     for name, path in inputs.items():
         arguments.extend((f"--{name}", str(path.resolve()), f"--{name}-sha256", "1" * 64))
@@ -92,10 +95,12 @@ def _registered_cli(tmp_path: Path) -> list[str]:
         (
             "--image-root",
             str(image_root.resolve()),
+            "--unicom-checkout",
+            str(unicom_checkout.resolve()),
             "--image-tree-sha256",
             "2" * 64,
             "--source-revision",
-            "3" * 40,
+            "d71992ed969e6c271436ac0a0ee1f3ca61474ac0",
             "--seed",
             "17",
             "--arm",
@@ -140,7 +145,7 @@ def _artifact_authority(receipt: object) -> dict[str, object]:
         "ridge_sha256": "b" * 64,
         "runtime_sha256": "c" * 64,
         "seed": 17,
-        "source_revision": "3" * 40,
+        "source_revision": "d71992ed969e6c271436ac0a0ee1f3ca61474ac0",
         "split_sha256": "d" * 64,
         "teacher_pca_sha256": "e" * 64,
         "trainable_inventory_sha256": "f" * 64,
@@ -213,9 +218,28 @@ def test_cli_accepts_only_registered_local_capability(tmp_path: Path) -> None:
     assert parsed.arm == "complete"
     assert parsed.execute_teacher_anchored is True
     assert parsed.output == (tmp_path / "result.json").resolve()
-    assert parsed.source_revision == "3" * 40
+    assert parsed.source_revision == "d71992ed969e6c271436ac0a0ee1f3ca61474ac0"
+    assert parsed.unicom_checkout == (tmp_path / "unicom-checkout").resolve()
     assert parsed.source_checkpoint_sha256 == "1" * 64
     assert parsed.image_tree_sha256 == "2" * 64
+
+
+def test_split_boundary_maps_every_training_decision_through_fitting_rows_only() -> None:
+    labels = np.repeat(np.arange(1, 801, dtype=np.int64), 2)
+    image_ids = np.arange(10_000, 11_600, dtype=np.int64)
+
+    split = SUBJECT.build_teacher_anchored_split(labels, image_ids, seed=17)
+    fitting_labels = np.asarray(split.fitting_labels, dtype=np.int64)
+    probe = SUBJECT.select_teacher_anchored_fitting_probe(fitting_labels, seed=17)
+
+    assert len(split.fitting_rows) + len(split.validation_rows) == len(labels)
+    assert set(split.fitting_rows).isdisjoint(split.validation_rows)
+    assert set(split.fitting_class_ids).isdisjoint(split.validation_class_ids)
+    assert tuple(int(labels[row]) for row in split.fitting_rows) == split.fitting_labels
+    assert tuple(int(image_ids[row]) for row in split.fitting_rows) == split.fitting_image_ids
+    assert set(probe.class_ids).issubset(split.fitting_class_ids)
+    assert all(0 <= row < len(split.fitting_rows) for row in probe.row_indexes)
+    assert len(split.sha256) == 64
 
 
 @pytest.mark.parametrize(
@@ -272,6 +296,12 @@ def test_cli_requires_absolute_existing_inputs_no_clobber_and_execution_flag(
     arguments = _registered_cli(tmp_path)
     source_flag = arguments.index("--source-checkpoint")
     arguments[source_flag + 1] = "relative.pt"
+    with pytest.raises(ValueError, match="absolute local input"):
+        SUBJECT.parse_teacher_anchored_args(arguments)
+
+    arguments = _registered_cli(tmp_path)
+    checkout_flag = arguments.index("--unicom-checkout")
+    arguments[checkout_flag + 1] = str((tmp_path / "missing-checkout").resolve())
     with pytest.raises(ValueError, match="absolute local input"):
         SUBJECT.parse_teacher_anchored_args(arguments)
 
@@ -561,7 +591,9 @@ def test_module_state_digest_covers_named_parameters_and_buffers() -> None:
     assert SUBJECT.module_state_sha256(encoder) != baseline
 
 
-def test_local_file_authentication_rejects_digest_and_symlink_drift(tmp_path: Path) -> None:
+def test_local_file_authentication_rejects_digest_and_symlink_drift(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     arguments = _registered_cli(tmp_path)
     expected = hashlib.sha256(b"fixture").hexdigest()
     for flag in (
@@ -572,6 +604,11 @@ def test_local_file_authentication_rejects_digest_and_symlink_drift(tmp_path: Pa
     ):
         arguments[arguments.index(flag) + 1] = expected
     parsed = SUBJECT.parse_teacher_anchored_args(arguments)
+    monkeypatch.setattr(
+        SUBJECT,
+        "authenticate_teacher_anchored_checkout",
+        lambda checkout, revision: revision,
+    )
     receipt = SUBJECT.authenticate_teacher_anchored_files(parsed)
     assert receipt == (expected, expected, expected, expected)
 
@@ -585,6 +622,206 @@ def test_local_file_authentication_rejects_digest_and_symlink_drift(tmp_path: Pa
     parsed.source_checkpoint.symlink_to(target)
     with pytest.raises(ValueError, match="regular local file"):
         SUBJECT.authenticate_teacher_anchored_files(parsed)
+
+
+def test_unicom_checkout_authentication_requires_exact_clean_git_revision(
+    tmp_path: Path,
+) -> None:
+    checkout = tmp_path / "unicom"
+    checkout.mkdir()
+    subprocess.run(["git", "init", "-q", str(checkout)], check=True)
+    (checkout / "model.py").write_text("MODEL = 'fixture'\n", encoding="utf-8")
+    subprocess.run(["git", "-C", str(checkout), "add", "model.py"], check=True)
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(checkout),
+            "-c",
+            "user.name=Fixture",
+            "-c",
+            "user.email=fixture@example.invalid",
+            "commit",
+            "-q",
+            "-m",
+            "fixture",
+        ],
+        check=True,
+    )
+    revision = subprocess.run(
+        ["git", "-C", str(checkout), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    (checkout / ".git/info/exclude").write_text("checkpoints/\n", encoding="utf-8")
+    ignored_checkpoint = checkout / "checkpoints/model.pt"
+    ignored_checkpoint.parent.mkdir()
+    ignored_checkpoint.write_bytes(b"external checkpoint")
+
+    assert SUBJECT.authenticate_teacher_anchored_checkout(checkout, revision) == revision
+    with pytest.raises(ValueError, match="checkout authority differs"):
+        SUBJECT.authenticate_teacher_anchored_checkout(checkout, "0" * 40)
+    (checkout / "model.py").write_text("MODEL = 'mutated'\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="checkout authority differs"):
+        SUBJECT.authenticate_teacher_anchored_checkout(checkout, revision)
+
+
+def test_unicom_checkout_authentication_rejects_ambient_git_directory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    checkout = tmp_path / "unicom"
+    checkout.mkdir()
+    subprocess.run(["git", "init", "-q", str(checkout)], check=True)
+    (checkout / "model.py").write_text("MODEL = 'fixture'\n", encoding="utf-8")
+    subprocess.run(["git", "-C", str(checkout), "add", "model.py"], check=True)
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(checkout),
+            "-c",
+            "user.name=Fixture",
+            "-c",
+            "user.email=fixture@example.invalid",
+            "commit",
+            "-q",
+            "-m",
+            "fixture",
+        ],
+        check=True,
+    )
+    revision = subprocess.run(
+        ["git", "-C", str(checkout), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    unrelated = tmp_path / "unrelated"
+    unrelated.mkdir()
+    monkeypatch.setenv("GIT_DIR", str(checkout / ".git"))
+    monkeypatch.setenv("GIT_WORK_TREE", str(checkout))
+
+    with pytest.raises(ValueError, match="checkout authority differs"):
+        SUBJECT.authenticate_teacher_anchored_checkout(unrelated, revision)
+
+
+def test_unicom_checkout_authentication_rejects_repository_subdirectory(
+    tmp_path: Path,
+) -> None:
+    checkout = tmp_path / "unicom"
+    checkout.mkdir()
+    subprocess.run(["git", "init", "-q", str(checkout)], check=True)
+    (checkout / "model.py").write_text("MODEL = 'fixture'\n", encoding="utf-8")
+    subprocess.run(["git", "-C", str(checkout), "add", "model.py"], check=True)
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(checkout),
+            "-c",
+            "user.name=Fixture",
+            "-c",
+            "user.email=fixture@example.invalid",
+            "commit",
+            "-q",
+            "-m",
+            "fixture",
+        ],
+        check=True,
+    )
+    revision = subprocess.run(
+        ["git", "-C", str(checkout), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    nested = checkout / "nested"
+    nested.mkdir()
+
+    with pytest.raises(ValueError, match="checkout authority differs"):
+        SUBJECT.authenticate_teacher_anchored_checkout(nested, revision)
+
+
+def test_unicom_checkout_authentication_rejects_hidden_index_mutation(
+    tmp_path: Path,
+) -> None:
+    checkout = tmp_path / "unicom"
+    checkout.mkdir()
+    subprocess.run(["git", "init", "-q", str(checkout)], check=True)
+    model = checkout / "model.py"
+    model.write_text("MODEL = 'fixture'\n", encoding="utf-8")
+    subprocess.run(["git", "-C", str(checkout), "add", "model.py"], check=True)
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(checkout),
+            "-c",
+            "user.name=Fixture",
+            "-c",
+            "user.email=fixture@example.invalid",
+            "commit",
+            "-q",
+            "-m",
+            "fixture",
+        ],
+        check=True,
+    )
+    revision = subprocess.run(
+        ["git", "-C", str(checkout), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    subprocess.run(
+        ["git", "-C", str(checkout), "update-index", "--assume-unchanged", "model.py"],
+        check=True,
+    )
+    model.write_text("MODEL = 'mutated'\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="checkout authority differs"):
+        SUBJECT.authenticate_teacher_anchored_checkout(checkout, revision)
+
+
+def test_unicom_checkout_authentication_rejects_ignored_python_shadow(
+    tmp_path: Path,
+) -> None:
+    checkout = tmp_path / "unicom"
+    checkout.mkdir()
+    subprocess.run(["git", "init", "-q", str(checkout)], check=True)
+    model = checkout / "model.py"
+    model.write_text("MODEL = 'fixture'\n", encoding="utf-8")
+    subprocess.run(["git", "-C", str(checkout), "add", "model.py"], check=True)
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(checkout),
+            "-c",
+            "user.name=Fixture",
+            "-c",
+            "user.email=fixture@example.invalid",
+            "commit",
+            "-q",
+            "-m",
+            "fixture",
+        ],
+        check=True,
+    )
+    revision = subprocess.run(
+        ["git", "-C", str(checkout), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    (checkout / ".git/info/exclude").write_text("model/\n", encoding="utf-8")
+    shadow = checkout / "model"
+    shadow.mkdir()
+    (shadow / "__init__.py").write_text("MODEL = 'mutated'\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="checkout authority differs"):
+        SUBJECT.authenticate_teacher_anchored_checkout(checkout, revision)
 
 
 def test_initialized_head_replays_float64_map_with_registered_chunking() -> None:
@@ -942,7 +1179,7 @@ def test_real_core_forward_nonfinite_returns_terminal_receipt() -> None:
 
 
 def test_nonfinite_parameter_state_still_returns_terminal_receipt(
-    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     encoder = FakeEncoder()
     head = nn.Linear(4, 4)
@@ -978,6 +1215,72 @@ def test_nonfinite_parameter_state_still_returns_terminal_receipt(
     assert receipt.attempted_updates == 1
     assert receipt.successful_updates == 0
     assert len(receipt.final_head_sha256) == 64
+    assert all(bool(torch.isfinite(value).all()) for value in head.state_dict().values())
+    published = SUBJECT.publish_teacher_anchored_artifacts(
+        tmp_path / "nonfinite-stop.json",
+        encoder,
+        head,
+        receipt,
+        authority=_artifact_authority(receipt),
+    )
+    assert published.receipt.is_file()
+    assert published.checkpoint.is_file()
+
+
+def test_nonfinite_encoder_update_restores_publishable_state(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    encoder = FakeEncoder()
+    head = nn.Linear(4, 4)
+    calls = 0
+
+    def corrupting_step(*_args: object) -> float:
+        nonlocal calls
+        calls += 1
+        if calls == 13:
+            with torch.no_grad():
+                encoder.blocks[10][0].weight[0, 0] = float("nan")
+            raise SUBJECT.TeacherAnchoredNonfiniteUpdate(
+                "teacher-anchored nonfinite update"
+            )
+        return 1.0
+
+    monkeypatch.setattr(SUBJECT, "teacher_anchored_optimizer_step", corrupting_step)
+    receipt = SUBJECT.run_teacher_anchored_training(
+        encoder,
+        head,
+        arm="complete",
+        schedules=_training_schedules(),
+        fitting_row_count=1536,
+        expected_schedule_sha256=SUBJECT.teacher_anchored_schedule_sha256(
+            _training_schedules(), fitting_row_count=1536
+        ),
+        initialization_fitting_map_at_r=0.5,
+        initialization_effective_rank=10.0,
+        initialization_leading_eigenvalue_share=0.1,
+        compute_loss=lambda *_args: SUBJECT.TeacherAnchoredLoss(
+            *(head.weight.square().mean() for _ in range(6))
+        ),
+        diagnose=lambda epoch: SUBJECT.TeacherAnchoredEpochDiagnostic(
+            epoch, 0.5, 10.0, 0.1, 0.4
+        ),
+        progress=lambda *_args: None,
+        device_type="cpu",
+    )
+
+    assert receipt.stopped_reason == "nonfinite-update"
+    assert receipt.attempted_updates == 13
+    assert receipt.successful_updates == 12
+    assert all(bool(torch.isfinite(value).all()) for value in encoder.state_dict().values())
+    published = SUBJECT.publish_teacher_anchored_artifacts(
+        tmp_path / "encoder-nonfinite-stop.json",
+        encoder,
+        head,
+        receipt,
+        authority=_artifact_authority(receipt),
+    )
+    assert published.receipt.is_file()
+    assert published.checkpoint.is_file()
 
 
 def test_training_does_not_misclassify_runtime_or_authority_failures() -> None:
@@ -1139,17 +1442,17 @@ def test_authenticated_three_split_bootstrap_replay_maps_original_labels() -> No
     labels = np.asarray([1, 1, 2, 2, 3, 3], dtype="<i8")
     digest = hashlib.sha256(labels.tobytes(order="C")).hexdigest()
     splits = (
-        SUBJECT.TeacherAnchoredBootstrapSplit((0, 1), (0.5, 0.7), (0.4, 0.4)),
-        SUBJECT.TeacherAnchoredBootstrapSplit((2, 3), (0.2, 0.4), (0.1, 0.3)),
-        SUBJECT.TeacherAnchoredBootstrapSplit((4, 5), (0.8, 0.9), (0.7, 0.8)),
+        SUBJECT.TeacherAnchoredBootstrapSplit(17, (2, 3), (0.5, 0.7), (0.4, 0.4)),
+        SUBJECT.TeacherAnchoredBootstrapSplit(1729, (2, 3), (0.2, 0.4), (0.1, 0.3)),
+        SUBJECT.TeacherAnchoredBootstrapSplit(65537, (4, 5), (0.8, 0.9), (0.7, 0.8)),
     )
     lower = SUBJECT.replay_teacher_anchored_bootstrap(
         labels,
         labels_sha256=digest,
         splits=splits,
-        expected_lower_bound=0.10000000000000002,
+        expected_lower_bound=0.10000000000000003,
     )
-    assert lower == 0.10000000000000002
+    assert lower == 0.10000000000000003
     with pytest.raises(ValueError, match="bootstrap authority differs"):
         SUBJECT.replay_teacher_anchored_bootstrap(
             labels,
@@ -1170,6 +1473,65 @@ def test_authenticated_three_split_bootstrap_replay_maps_original_labels() -> No
             labels_sha256=digest,
             splits=(splits[0]._replace(row_indexes=(0,)), *splits[1:]),
             expected_lower_bound=lower,
+        )
+
+
+def test_authenticated_bootstrap_allows_rows_shared_by_different_seed_splits(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    labels = np.asarray([1, 1, 2, 2, 3, 3], dtype="<i8")
+    digest = hashlib.sha256(labels.tobytes(order="C")).hexdigest()
+    splits = (
+        SUBJECT.TeacherAnchoredBootstrapSplit(17, (2, 3), (0.6, 0.7), (0.4, 0.5)),
+        SUBJECT.TeacherAnchoredBootstrapSplit(1729, (2, 3), (0.8, 0.9), (0.5, 0.6)),
+        SUBJECT.TeacherAnchoredBootstrapSplit(65537, (4, 5), (0.4, 0.5), (0.3, 0.4)),
+    )
+    observed: list[tuple[object, ...]] = []
+
+    def replay(
+        treatment: tuple[float, ...],
+        baseline: tuple[float, ...],
+        identities: tuple[int, ...],
+        *,
+        expected_lower_bound: float,
+    ) -> float:
+        observed.extend((treatment, baseline, identities))
+        assert expected_lower_bound == 0.125
+        return expected_lower_bound
+
+    monkeypatch.setattr(SUBJECT, "teacher_anchored_bootstrap_lower_bound", replay)
+
+    assert (
+        SUBJECT.replay_teacher_anchored_bootstrap(
+            labels,
+            labels_sha256=digest,
+            splits=splits,
+            expected_lower_bound=0.125,
+        )
+        == 0.125
+    )
+    assert observed == [
+        (0.6, 0.7, 0.8, 0.9, 0.4, 0.5),
+        (0.4, 0.5, 0.5, 0.6, 0.3, 0.4),
+        (2, 2, 2, 2, 3, 3),
+    ]
+
+
+def test_authenticated_bootstrap_rejects_three_identical_splits() -> None:
+    labels = np.asarray([11, 11, 22, 22, 33, 33], dtype="<i8")
+    digest = hashlib.sha256(labels.tobytes(order="C")).hexdigest()
+    repeated = SUBJECT.TeacherAnchoredBootstrapSplit(17, (0, 1), (0.6, 0.7), (0.4, 0.5))
+
+    with pytest.raises(ValueError, match="bootstrap authority differs"):
+        SUBJECT.replay_teacher_anchored_bootstrap(
+            labels,
+            labels_sha256=digest,
+            splits=(
+                repeated,
+                repeated._replace(seed=1729),
+                repeated._replace(seed=65537),
+            ),
+            expected_lower_bound=0.1,
         )
 
 

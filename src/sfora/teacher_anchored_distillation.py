@@ -429,20 +429,38 @@ def teacher_anchored_forward(
             features.ndim != 2
             or features.shape[0] != images.shape[0]
             or features.shape[1] != head.in_features
-            or not bool(torch.isfinite(features).all())
         ):
             raise ValueError("teacher-anchored forward authority differs")
+        if not bool(torch.isfinite(features).all()):
+            raise TeacherAnchoredNumericalError("teacher-anchored forward numerical failure")
         feature_norms = torch.linalg.vector_norm(features.double(), dim=1)
         if not bool(torch.isfinite(feature_norms).all()) or bool((feature_norms <= 1e-12).any()):
-            raise ValueError("teacher-anchored forward authority differs")
+            raise TeacherAnchoredNumericalError("teacher-anchored forward numerical failure")
         normalized_features = torch.nn.functional.normalize(features, dim=1)
+        normalized_feature_norms = torch.linalg.vector_norm(
+            normalized_features.double(), dim=1
+        )
+        if (
+            not bool(torch.isfinite(normalized_features).all())
+            or bool((normalized_feature_norms <= 1e-12).any())
+        ):
+            raise TeacherAnchoredNumericalError("teacher-anchored forward numerical failure")
         raw_codes = head(normalized_features).float()
-        if raw_codes.ndim != 2 or not bool(torch.isfinite(raw_codes).all()):
+        if raw_codes.ndim != 2:
             raise ValueError("teacher-anchored forward authority differs")
+        if not bool(torch.isfinite(raw_codes).all()):
+            raise TeacherAnchoredNumericalError("teacher-anchored forward numerical failure")
         code_norms = torch.linalg.vector_norm(raw_codes.double(), dim=1)
         if not bool(torch.isfinite(code_norms).all()) or bool((code_norms <= 1e-12).any()):
-            raise ValueError("teacher-anchored forward authority differs")
-        return normalized_features, torch.nn.functional.normalize(raw_codes, dim=1)
+            raise TeacherAnchoredNumericalError("teacher-anchored forward numerical failure")
+        normalized_codes = torch.nn.functional.normalize(raw_codes, dim=1)
+        normalized_code_norms = torch.linalg.vector_norm(normalized_codes.double(), dim=1)
+        if (
+            not bool(torch.isfinite(normalized_codes).all())
+            or bool((normalized_code_norms <= 1e-12).any())
+        ):
+            raise TeacherAnchoredNumericalError("teacher-anchored forward numerical failure")
+        return normalized_features, normalized_codes
 
 
 def embedding_geometry_diagnostics(codes: torch.Tensor) -> EmbeddingGeometryDiagnostics:

@@ -329,6 +329,7 @@ def load_model_and_transform(name):
         },
     }
     monkeypatch.setattr(SUBJECT, "_REGISTERED_SNAPSHOT_METADATA", registered)
+    monkeypatch.setattr(SUBJECT, "_git_root", lambda path: path.resolve(), raising=False)
     monkeypatch.setattr(SUBJECT, "_git_revision", lambda _path: "1" * 40, raising=False)
     monkeypatch.setattr(SUBJECT, "_git_status_porcelain", lambda _path: "", raising=False)
     monkeypatch.setattr(
@@ -581,3 +582,44 @@ def test_git_source_bytes_ignores_git_replacement_objects(tmp_path: Path) -> Non
     )
 
     assert SUBJECT._git_source_bytes(checkout, revision, relative) == b"trusted source\n"
+
+
+def test_git_source_bytes_rejects_ambient_repository_redirection(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    checkout = tmp_path / "checkout"
+    checkout.mkdir()
+    subprocess.run(["git", "init", "-q", str(checkout)], check=True)
+    relative = Path("unicom/unicom/model.py")
+    source = checkout / relative
+    source.parent.mkdir(parents=True)
+    source.write_bytes(b"trusted source\n")
+    subprocess.run(["git", "-C", str(checkout), "add", relative.as_posix()], check=True)
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(checkout),
+            "-c",
+            "user.name=Fixture",
+            "-c",
+            "user.email=fixture@example.invalid",
+            "commit",
+            "-qm",
+            "fixture",
+        ],
+        check=True,
+    )
+    revision = subprocess.run(
+        ["git", "-C", str(checkout), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    unrelated = tmp_path / "unrelated"
+    unrelated.mkdir()
+    monkeypatch.setenv("GIT_DIR", str(checkout / ".git"))
+    monkeypatch.setenv("GIT_WORK_TREE", str(checkout))
+
+    with pytest.raises(subprocess.CalledProcessError):
+        SUBJECT._git_source_bytes(unrelated, revision, relative)

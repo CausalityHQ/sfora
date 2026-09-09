@@ -12,6 +12,7 @@ import os
 import random
 import stat
 import struct
+import subprocess
 import sys
 import tempfile
 from collections.abc import Callable
@@ -28,12 +29,15 @@ from torch.amp.grad_scaler import GradScaler
 from sfora.joint_relational_compaction import pack_int8_unit_embeddings
 from sfora.representation_ceiling import (
     TeacherGuidedProjection,
+    deterministic_class_partition,
     fit_teacher_guided_projection,
 )
 from sfora.teacher_anchored_distillation import (
     TeacherAnchoredLoss,
     TeacherAnchoredNumericalError,
 )
+
+_UNICOM_REVISION = "d71992ed969e6c271436ac0a0ee1f3ca61474ac0"
 
 
 class TeacherAnchoredInitialization(NamedTuple):
@@ -51,6 +55,7 @@ class TeacherAnchoredArguments(NamedTuple):
     source_checkpoint_sha256: str
     teacher_checkpoint: Path
     teacher_checkpoint_sha256: str
+    unicom_checkout: Path
     source_snapshot: Path
     source_snapshot_sha256: str
     teacher_snapshot: Path
@@ -156,6 +161,20 @@ class TeacherAnchoredFittingProbeSelection(NamedTuple):
     sha256: str
 
 
+class TeacherAnchoredSplit(NamedTuple):
+    """Class-disjoint fitting and validation rows in their original order."""
+
+    fitting_rows: tuple[int, ...]
+    validation_rows: tuple[int, ...]
+    fitting_class_ids: tuple[int, ...]
+    validation_class_ids: tuple[int, ...]
+    fitting_labels: tuple[int, ...]
+    validation_labels: tuple[int, ...]
+    fitting_image_ids: tuple[int, ...]
+    validation_image_ids: tuple[int, ...]
+    sha256: str
+
+
 class TeacherAnchoredProbeScore(NamedTuple):
     """Exact float32 and deployed symmetric-int8 fitting/validation score."""
 
@@ -169,6 +188,7 @@ class TeacherAnchoredProbeScore(NamedTuple):
 class TeacherAnchoredBootstrapSplit(NamedTuple):
     """One ordered historical validation split for paired replay."""
 
+    seed: int
     row_indexes: tuple[int, ...]
     treatment: tuple[float, ...]
     baseline: tuple[float, ...]
@@ -215,6 +235,7 @@ def parse_teacher_anchored_args(arguments: list[str]) -> TeacherAnchoredArgument
         "teacher-checkpoint",
         "source-snapshot",
         "teacher-snapshot",
+        "unicom-checkout",
         "image-root",
         "output",
     ):
@@ -251,15 +272,16 @@ def parse_teacher_anchored_args(arguments: list[str]) -> TeacherAnchoredArgument
         "teacher_checkpoint",
         "source_snapshot",
         "teacher_snapshot",
+        "unicom_checkout",
         "image_root",
     ):
         raw = getattr(parsed, name)
         path = Path(raw) if type(raw) is str else Path()
         if type(raw) is not str or not path.is_absolute() or not path.exists():
             raise ValueError("absolute local input authority differs")
-        if name == "image_root" and not path.is_dir():
+        if name in ("image_root", "unicom_checkout") and not path.is_dir():
             raise ValueError("absolute local input authority differs")
-        if name != "image_root" and not path.is_file():
+        if name not in ("image_root", "unicom_checkout") and not path.is_file():
             raise ValueError("absolute local input authority differs")
         path_values[name] = path
 
@@ -292,7 +314,7 @@ def parse_teacher_anchored_args(arguments: list[str]) -> TeacherAnchoredArgument
     if (
         type(revision) is not str
         or len(revision) != 40
-        or any(character not in "0123456789abcdef" for character in revision)
+        or revision != _UNICOM_REVISION
     ):
         raise ValueError("revision authority differs")
     try:
@@ -311,6 +333,7 @@ def parse_teacher_anchored_args(arguments: list[str]) -> TeacherAnchoredArgument
         source_checkpoint_sha256=digests["source_checkpoint_sha256"],
         teacher_checkpoint=path_values["teacher_checkpoint"],
         teacher_checkpoint_sha256=digests["teacher_checkpoint_sha256"],
+        unicom_checkout=path_values["unicom_checkout"],
         source_snapshot=path_values["source_snapshot"],
         source_snapshot_sha256=digests["source_snapshot_sha256"],
         teacher_snapshot=path_values["teacher_snapshot"],
@@ -374,6 +397,9 @@ def authenticate_teacher_anchored_files(arguments: TeacherAnchoredArguments) -> 
 
     if type(arguments) is not TeacherAnchoredArguments:
         raise ValueError("teacher-anchored input authority differs")
+    authenticate_teacher_anchored_checkout(
+        arguments.unicom_checkout, arguments.source_revision
+    )
     observed: list[str] = []
     for path, expected in (
         (arguments.source_checkpoint, arguments.source_checkpoint_sha256),
@@ -393,6 +419,64 @@ def authenticate_teacher_anchored_files(arguments: TeacherAnchoredArguments) -> 
             raise ValueError("teacher-anchored input digest differs")
         observed.append(value)
     return tuple(observed)
+
+
+def authenticate_teacher_anchored_checkout(checkout: Path, expected_revision: str) -> str:
+    """Require the executable UNICOM checkout to be the exact clean revision."""
+
+    if (
+        not isinstance(checkout, Path)
+        or checkout.is_symlink()
+        or not checkout.is_dir()
+        or type(expected_revision) is not str
+        or len(expected_revision) != 40
+        or any(character not in "0123456789abcdef" for character in expected_revision)
+    ):
+        raise ValueError("teacher-anchored checkout authority differs")
+    checkout = checkout.resolve()
+    git_environment = {
+        key: value for key, value in os.environ.items() if not key.upper().startswith("GIT_")
+    }
+
+    def git_output(*arguments: str) -> str:
+        return subprocess.run(
+            ["git", "--no-replace-objects", "-C", str(checkout), *arguments],
+            check=True,
+            capture_output=True,
+            text=True,
+            env=git_environment,
+        ).stdout
+
+    try:
+        root = Path(git_output("rev-parse", "--show-toplevel").strip()).resolve()
+        revision = git_output("rev-parse", "HEAD").strip()
+        status = git_output("status", "--porcelain", "--untracked-files=all")
+        ignored_python = tuple(
+            entry
+            for entry in git_output(
+                "ls-files",
+                "--others",
+                "--ignored",
+                "--exclude-standard",
+                "-z",
+            ).split("\0")
+            if entry.endswith(".py")
+        )
+        index_entries = tuple(
+            entry for entry in git_output("ls-files", "-v", "-z").split("\0") if entry
+        )
+    except (OSError, subprocess.SubprocessError) as error:
+        raise ValueError("teacher-anchored checkout authority differs") from error
+    if (
+        root != checkout
+        or revision != expected_revision
+        or status
+        or ignored_python
+        or not index_entries
+        or any(not entry.startswith("H ") for entry in index_entries)
+    ):
+        raise ValueError("teacher-anchored checkout authority differs")
+    return revision
 
 
 def initialize_teacher_anchored_student(
@@ -930,6 +1014,61 @@ def score_teacher_anchored_probe(
     )
 
 
+def build_teacher_anchored_split(
+    labels: np.ndarray, image_ids: np.ndarray, *, seed: int
+) -> TeacherAnchoredSplit:
+    """Seal the class-disjoint split and its fitting-local index space."""
+
+    if (
+        type(labels) is not np.ndarray
+        or labels.dtype != np.int64
+        or labels.ndim != 1
+        or labels.size < 3
+        or not labels.flags.c_contiguous
+        or type(image_ids) is not np.ndarray
+        or image_ids.dtype != np.int64
+        or image_ids.shape != labels.shape
+        or not image_ids.flags.c_contiguous
+        or np.unique(image_ids).size != image_ids.size
+        or type(seed) is not int
+        or seed not in (17, 1729, 65537)
+    ):
+        raise ValueError("teacher-anchored split authority differs")
+    concrete_labels = tuple(int(value) for value in labels)
+    partition = deterministic_class_partition(
+        concrete_labels, fit_fraction=0.8, seed=seed
+    )
+    fitting_rows = partition.fit_row_indexes
+    validation_rows = partition.validation_row_indexes
+    fitting_labels = tuple(concrete_labels[row] for row in fitting_rows)
+    validation_labels = tuple(concrete_labels[row] for row in validation_rows)
+    concrete_image_ids = tuple(int(value) for value in image_ids)
+    fitting_image_ids = tuple(concrete_image_ids[row] for row in fitting_rows)
+    validation_image_ids = tuple(concrete_image_ids[row] for row in validation_rows)
+    digest = hashlib.sha256(b"sfora-teacher-anchored-split-v1\x00")
+    digest.update(labels.astype("<i8", copy=False).tobytes(order="C"))
+    digest.update(image_ids.astype("<i8", copy=False).tobytes(order="C"))
+    for values in (
+        fitting_rows,
+        validation_rows,
+        partition.fit_class_ids,
+        partition.validation_class_ids,
+    ):
+        digest.update(struct.pack("<Q", len(values)))
+        digest.update(struct.pack(f"<{len(values)}q", *values))
+    return TeacherAnchoredSplit(
+        fitting_rows,
+        validation_rows,
+        partition.fit_class_ids,
+        partition.validation_class_ids,
+        fitting_labels,
+        validation_labels,
+        fitting_image_ids,
+        validation_image_ids,
+        digest.hexdigest(),
+    )
+
+
 def select_teacher_anchored_fitting_probe(
     labels: np.ndarray, *, seed: int
 ) -> TeacherAnchoredFittingProbeSelection:
@@ -1021,7 +1160,6 @@ def replay_teacher_anchored_bootstrap(
     treatment: list[float] = []
     baseline: list[float] = []
     identities: list[int] = []
-    seen: set[int] = set()
     for split in splits:
         if (
             type(split) is not TeacherAnchoredBootstrapSplit
@@ -1033,13 +1171,22 @@ def replay_teacher_anchored_bootstrap(
                 type(row) is not int or not 0 <= row < len(train_labels)
                 for row in split.row_indexes
             )
-            or any(row in seen for row in split.row_indexes)
         ):
             raise ValueError("teacher-anchored bootstrap authority differs")
-        seen.update(split.row_indexes)
         treatment.extend(split.treatment)
         baseline.extend(split.baseline)
         identities.extend(int(train_labels[row]) for row in split.row_indexes)
+    if tuple(split.seed for split in splits) != (17, 1729, 65537):
+        raise ValueError("teacher-anchored bootstrap authority differs")
+    concrete_labels = tuple(int(value) for value in train_labels)
+    if any(
+        split.row_indexes
+        != deterministic_class_partition(
+            concrete_labels, fit_fraction=0.8, seed=split.seed
+        ).validation_row_indexes
+        for split in splits
+    ):
+        raise ValueError("teacher-anchored bootstrap authority differs")
     return teacher_anchored_bootstrap_lower_bound(
         tuple(treatment),
         tuple(baseline),
@@ -1158,16 +1305,21 @@ def run_teacher_anchored_training(
                     raise ValueError("teacher-anchored optimizer authority differs")
                 group["lr"] = (1e-4 if group_name.startswith("head-") else 1e-6) * factor
             attempted_updates += 1
+            parameters = tuple(
+                parameter
+                for parameter in (*encoder.parameters(), *head.parameters())
+                if parameter.requires_grad
+            )
+            finite_state = tuple(parameter.detach().clone() for parameter in parameters)
             try:
                 loss = compute_loss(epoch, update_index, rows, active)
                 objective = teacher_anchored_arm_objective(loss, arm=arm)
-                parameters = tuple(
-                    parameter
-                    for parameter in (*encoder.parameters(), *head.parameters())
-                    if parameter.requires_grad
-                )
                 teacher_anchored_optimizer_step(objective, optimizer, scaler, parameters)
             except (TeacherAnchoredNonfiniteUpdate, TeacherAnchoredNumericalError):
+                with torch.no_grad():
+                    for parameter, value in zip(parameters, finite_state, strict=True):
+                        parameter.copy_(value)
+                optimizer.zero_grad(set_to_none=True)
                 stopped_reason = "nonfinite-update"
                 progress("stopped", epoch, successful_updates)
                 break

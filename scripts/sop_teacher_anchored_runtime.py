@@ -132,22 +132,90 @@ def _is_sha256(value: object) -> bool:
     )
 
 
+def _git_environment() -> dict[str, str]:
+    return {
+        key: value for key, value in os.environ.items() if not key.upper().startswith("GIT_")
+    }
+
+
 def _git_revision(checkout: Path) -> str:
     return subprocess.run(
-        ["git", "-C", str(checkout), "rev-parse", "HEAD"],
+        ["git", "--no-replace-objects", "-C", str(checkout), "rev-parse", "HEAD"],
         check=True,
         capture_output=True,
         text=True,
+        env=_git_environment(),
     ).stdout.strip()
 
 
-def _git_status_porcelain(checkout: Path) -> str:
-    return subprocess.run(
-        ["git", "-C", str(checkout), "status", "--porcelain", "--untracked-files=all"],
+def _git_root(checkout: Path) -> Path:
+    root = subprocess.run(
+        [
+            "git",
+            "--no-replace-objects",
+            "-C",
+            str(checkout),
+            "rev-parse",
+            "--show-toplevel",
+        ],
         check=True,
         capture_output=True,
         text=True,
+        env=_git_environment(),
+    ).stdout.strip()
+    return Path(root).resolve()
+
+
+def _git_status_porcelain(checkout: Path) -> str:
+    environment = _git_environment()
+    status = subprocess.run(
+        [
+            "git",
+            "--no-replace-objects",
+            "-C",
+            str(checkout),
+            "status",
+            "--porcelain",
+            "--untracked-files=all",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+        env=environment,
     ).stdout
+    index = subprocess.run(
+        ["git", "--no-replace-objects", "-C", str(checkout), "ls-files", "-v", "-z"],
+        check=True,
+        capture_output=True,
+        text=True,
+        env=environment,
+    ).stdout
+    entries = tuple(entry for entry in index.split("\0") if entry)
+    ignored = subprocess.run(
+        [
+            "git",
+            "--no-replace-objects",
+            "-C",
+            str(checkout),
+            "ls-files",
+            "--others",
+            "--ignored",
+            "--exclude-standard",
+            "-z",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+        env=environment,
+    ).stdout
+    ignored_python = tuple(entry for entry in ignored.split("\0") if entry.endswith(".py"))
+    if (
+        not entries
+        or any(not entry.startswith("H ") for entry in entries)
+        or ignored_python
+    ):
+        return "invalid-index-state"
+    return status
 
 
 def _stream_sha256(stream: Any) -> str:
@@ -169,6 +237,7 @@ def _git_source_bytes(checkout: Path, revision: str, relative: Path) -> bytes:
         ],
         check=True,
         capture_output=True,
+        env=_git_environment(),
     ).stdout
 
 
@@ -296,11 +365,13 @@ def load_authenticated_source_model(
         checkpoint_info = checkpoint.lstat()
         if not stat.S_ISREG(checkpoint_info.st_mode):
             raise ValueError("teacher-anchored source model authority differs")
+        checkout = checkout.resolve()
+        root = _git_root(checkout)
         revision = _git_revision(checkout)
         checkout_status = _git_status_porcelain(checkout)
     except (OSError, subprocess.SubprocessError) as error:
         raise ValueError("teacher-anchored source model authority differs") from error
-    if revision != expected_revision or checkout_status:
+    if root != checkout or revision != expected_revision or checkout_status:
         raise ValueError("teacher-anchored source model authority differs")
 
     package_parent = checkout / "unicom"

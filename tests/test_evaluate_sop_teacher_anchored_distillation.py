@@ -424,6 +424,44 @@ def test_serving_reconstruction_loads_only_merged_state_and_emits_unit_128d_code
     )
 
 
+def test_serving_reconstruction_deserializes_only_authenticated_bytes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    encoder = ServingEncoder()
+    head = nn.Linear(4, 128)
+    checkpoint = tmp_path / "complete.pt"
+    torch.save(
+        {
+            **{f"encoder.{name}": value for name, value in encoder.state_dict().items()},
+            **{f"head.{name}": value for name, value in head.state_dict().items()},
+        },
+        checkpoint,
+    )
+    batches = (torch.eye(4, dtype=torch.float32).contiguous(),)
+    expected = _expected_serving_codes(encoder, head, batches)
+    original_load = torch.load
+    loaded_from: list[object] = []
+
+    def recording_load(source: object, **kwargs: object) -> object:
+        loaded_from.append(source)
+        return original_load(source, **kwargs)
+
+    monkeypatch.setattr(SUBJECT.torch, "load", recording_load)
+    SUBJECT.reconstruct_teacher_anchored_serving(
+        ServingEncoder(),
+        nn.Linear(4, 128),
+        checkpoint,
+        batches,
+        expected_checkpoint_sha256=_checkpoint_sha256(checkpoint),
+        expected_codes=expected,
+        expected_input_shape=(4,),
+        device=torch.device("cpu"),
+    )
+
+    assert len(loaded_from) == 1
+    assert not isinstance(loaded_from[0], (str, Path))
+
+
 def test_serving_reconstruction_rejects_extra_roles_and_batch_shape_drift(
     tmp_path: Path,
 ) -> None:

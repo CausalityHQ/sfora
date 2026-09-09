@@ -129,3 +129,10 @@ def test_progress_cursor_advances_only_on_strict_authenticated_extension() -> No
     assert state.sequence == 2
     with pytest.raises(ValueError, match="progress replay"):
         SUBJECT.advance_teacher_anchored_progress(state, (first, second), launch)
+
+
+def test_progress_validator_is_loaded_once_per_launcher_process() -> None:
+    first = SUBJECT._load_progress_validator()
+    second = SUBJECT._load_progress_validator()
+
+    assert first is second

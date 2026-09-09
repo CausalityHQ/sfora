@@ -12,6 +12,8 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import NamedTuple, cast
 
+_PROGRESS_VALIDATOR: Callable[[tuple[bytes, ...], str], object] | None = None
+
 
 class TeacherAnchoredPressureSample(NamedTuple):
     """One process-group and host-pressure observation."""
@@ -34,6 +36,9 @@ class TeacherAnchoredProgressState(NamedTuple):
 
 
 def _load_progress_validator() -> Callable[[tuple[bytes, ...], str], object]:
+    global _PROGRESS_VALIDATOR
+    if _PROGRESS_VALIDATOR is not None:
+        return _PROGRESS_VALIDATOR
     path = Path(__file__).resolve().parent / "train_sop_teacher_anchored_distillation.py"
     spec = importlib.util.spec_from_file_location("sfora_teacher_anchored_progress", path)
     if spec is None or spec.loader is None:
@@ -44,7 +49,8 @@ def _load_progress_validator() -> Callable[[tuple[bytes, ...], str], object]:
     validator = getattr(module, "validate_teacher_anchored_progress_chain", None)
     if not callable(validator):
         raise ValueError("teacher-anchored progress replay differs")
-    return cast(Callable[[tuple[bytes, ...], str], object], validator)
+    _PROGRESS_VALIDATOR = cast(Callable[[tuple[bytes, ...], str], object], validator)
+    return _PROGRESS_VALIDATOR
 
 
 def advance_teacher_anchored_progress(

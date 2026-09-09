@@ -56,6 +56,47 @@ def test_forward_fences_the_float32_path_from_ambient_autocast() -> None:
     torch.testing.assert_close(actual[1], expected[1], rtol=0.0, atol=0.0)
 
 
+@pytest.mark.parametrize("value", (float("nan"), 0.0))
+def test_forward_classifies_nonfinite_or_zero_feature_norm_as_numerical(value: float) -> None:
+    encoder = nn.Linear(3, 3, bias=False)
+    head = nn.Linear(3, 2)
+    images = torch.ones((2, 3), dtype=torch.float32)
+    with torch.no_grad():
+        encoder.weight.zero_()
+        encoder.weight[0, 0] = value
+
+    with pytest.raises(TeacherAnchoredNumericalError, match="forward numerical"):
+        teacher_anchored_forward(encoder, head, images)
+
+
+def test_forward_classifies_nonfinite_or_zero_code_norm_as_numerical() -> None:
+    encoder = nn.Linear(3, 3, bias=False)
+    head = nn.Linear(3, 2)
+    images = torch.ones((2, 3), dtype=torch.float32)
+    with torch.no_grad():
+        encoder.weight.copy_(torch.eye(3))
+        head.weight.zero_()
+        head.bias.zero_()
+
+    with pytest.raises(TeacherAnchoredNumericalError, match="forward numerical"):
+        teacher_anchored_forward(encoder, head, images)
+
+
+def test_forward_classifies_float32_normalization_overflow_as_numerical() -> None:
+    encoder = nn.Identity()
+    head = nn.Linear(3, 2)
+    with torch.no_grad():
+        head.weight.zero_()
+        head.bias.copy_(torch.tensor([1.0, -1.0]))
+    images = torch.tensor(
+        [[1.0e20, -1.0e20, 1.0e20], [-1.0e20, 1.0e20, 1.0e20]],
+        dtype=torch.float32,
+    )
+
+    with pytest.raises(TeacherAnchoredNumericalError, match="forward numerical"):
+        teacher_anchored_forward(encoder, head, images)
+
+
 def _unit_codes(rows: int, *, seed: int = 17) -> np.ndarray:
     generator = np.random.Generator(np.random.PCG64(seed))
     values = generator.normal(size=(rows, 128)).astype(np.float32)

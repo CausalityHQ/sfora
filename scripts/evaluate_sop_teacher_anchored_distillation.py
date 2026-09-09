@@ -5,8 +5,10 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
+import io
 import json
 import math
+import os
 import stat
 import struct
 import sys
@@ -388,13 +390,25 @@ def reconstruct_teacher_anchored_serving(
     if expected_codes.shape[0] != sum(len(batch) for batch in batches):
         raise ValueError("teacher-anchored serving authority differs")
 
-    checkpoint_digest = hashlib.sha256()
-    with checkpoint.open("rb") as stream:
-        while chunk := stream.read(1024 * 1024):
-            checkpoint_digest.update(chunk)
-    if checkpoint_digest.hexdigest() != expected_checkpoint_sha256:
+    flags = os.O_RDONLY | os.O_CLOEXEC
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    descriptor = os.open(checkpoint, flags)
+    with os.fdopen(descriptor, "rb", buffering=0) as stream:
+        opened = os.fstat(stream.fileno())
+        checkpoint_bytes = stream.read()
+        final_opened = os.fstat(stream.fileno())
+    final_path = checkpoint.lstat()
+    if (
+        not stat.S_ISREG(opened.st_mode)
+        or (opened.st_dev, opened.st_ino, opened.st_size)
+        != (final_opened.st_dev, final_opened.st_ino, final_opened.st_size)
+        or (opened.st_dev, opened.st_ino, opened.st_size)
+        != (final_path.st_dev, final_path.st_ino, final_path.st_size)
+        or hashlib.sha256(checkpoint_bytes).hexdigest() != expected_checkpoint_sha256
+    ):
         raise ValueError("teacher-anchored serving authority differs")
-    state = torch.load(checkpoint, map_location="cpu", weights_only=True)
+    state = torch.load(io.BytesIO(checkpoint_bytes), map_location="cpu", weights_only=True)
     encoder_state = encoder.state_dict()
     head_state = head.state_dict()
     expected_keys = {
