@@ -61,7 +61,13 @@ def _expected_serving_codes(
     head.eval()
     with torch.inference_mode():
         return torch.cat(
-            [F.normalize(head(encoder(batch)).float(), dim=1).cpu() for batch in batches]
+            [
+                F.normalize(
+                    head(F.normalize(encoder(batch).float(), dim=1)),
+                    dim=1,
+                ).cpu()
+                for batch in batches
+            ]
         ).contiguous()
 
 

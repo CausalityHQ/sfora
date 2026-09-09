@@ -9,6 +9,7 @@ from dataclasses import dataclass
 import numpy as np
 import torch
 from numpy.typing import NDArray
+from torch import nn
 
 type SampleId = str | int
 
@@ -404,6 +405,44 @@ def teacher_anchored_loss(
         drift=drift_loss,
         covariance=covariance_loss,
     )
+
+
+def teacher_anchored_forward(
+    encoder: nn.Module,
+    head: nn.Linear,
+    images: torch.Tensor,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Encode images through the registered normalized feature/head boundary."""
+
+    if (
+        not isinstance(encoder, nn.Module)
+        or type(head) is not nn.Linear
+        or type(images) is not torch.Tensor
+        or images.ndim < 2
+        or images.shape[0] < 1
+        or not bool(torch.isfinite(images).all())
+    ):
+        raise ValueError("teacher-anchored forward authority differs")
+    with torch.autocast(device_type=images.device.type, enabled=False):
+        features = encoder(images).float()
+        if (
+            features.ndim != 2
+            or features.shape[0] != images.shape[0]
+            or features.shape[1] != head.in_features
+            or not bool(torch.isfinite(features).all())
+        ):
+            raise ValueError("teacher-anchored forward authority differs")
+        feature_norms = torch.linalg.vector_norm(features.double(), dim=1)
+        if not bool(torch.isfinite(feature_norms).all()) or bool((feature_norms <= 1e-12).any()):
+            raise ValueError("teacher-anchored forward authority differs")
+        normalized_features = torch.nn.functional.normalize(features, dim=1)
+        raw_codes = head(normalized_features).float()
+        if raw_codes.ndim != 2 or not bool(torch.isfinite(raw_codes).all()):
+            raise ValueError("teacher-anchored forward authority differs")
+        code_norms = torch.linalg.vector_norm(raw_codes.double(), dim=1)
+        if not bool(torch.isfinite(code_norms).all()) or bool((code_norms <= 1e-12).any()):
+            raise ValueError("teacher-anchored forward authority differs")
+        return normalized_features, torch.nn.functional.normalize(raw_codes, dim=1)
 
 
 def embedding_geometry_diagnostics(codes: torch.Tensor) -> EmbeddingGeometryDiagnostics:

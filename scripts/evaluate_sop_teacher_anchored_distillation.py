@@ -19,6 +19,7 @@ import torch
 from torch import nn
 
 from sfora.joint_relational_compaction import pack_int8_unit_embeddings
+from sfora.teacher_anchored_distillation import teacher_anchored_forward
 
 
 class TeacherAnchoredEvaluationEvidence(NamedTuple):
@@ -428,7 +429,7 @@ def reconstruct_teacher_anchored_serving(
     single_chunks: list[torch.Tensor] = []
     with torch.inference_mode():
         for batch in batches:
-            raw = head(encoder(batch.to(device))).float()
+            _features, raw = teacher_anchored_forward(encoder, head, batch.to(device))
             if (
                 raw.ndim != 2
                 or raw.shape != (len(batch), 128)
@@ -438,14 +439,14 @@ def reconstruct_teacher_anchored_serving(
             norms = torch.linalg.vector_norm(raw.double(), dim=1, keepdim=True)
             if not bool(torch.isfinite(norms).all()) or bool((norms <= 1e-12).any()):
                 raise ValueError("teacher-anchored serving authority differs")
-            chunks.append(torch.nn.functional.normalize(raw, dim=1).cpu().contiguous())
+            chunks.append(raw.cpu().contiguous())
             for row in batch:
-                single_raw = head(encoder(row.unsqueeze(0).to(device))).float()
+                _single_features, single_raw = teacher_anchored_forward(
+                    encoder, head, row.unsqueeze(0).to(device)
+                )
                 if not bool(torch.isfinite(single_raw).all()):
                     raise ValueError("teacher-anchored serving authority differs")
-                single_chunks.append(
-                    torch.nn.functional.normalize(single_raw, dim=1).cpu().contiguous()
-                )
+                single_chunks.append(single_raw.cpu().contiguous())
     codes = torch.cat(chunks).contiguous()
     singles = torch.cat(single_chunks).contiguous()
     maximum_batch_shape_error = float(torch.max(torch.abs(codes - singles)))
