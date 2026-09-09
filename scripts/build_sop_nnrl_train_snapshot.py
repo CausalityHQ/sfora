@@ -48,6 +48,18 @@ def _sha256_bytes(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
 
 
+def _sha256_descriptor(descriptor: int, size: int) -> str:
+    digest = hashlib.sha256()
+    offset = 0
+    while offset < size:
+        chunk = os.pread(descriptor, min(size - offset, 1024 * 1024), offset)
+        if not chunk:
+            raise RuntimeError("train snapshot read was truncated")
+        digest.update(chunk)
+        offset += len(chunk)
+    return digest.hexdigest()
+
+
 def _absolute_path(value: str) -> Path:
     path = Path(value)
     if not path.is_absolute():
@@ -184,7 +196,10 @@ def build_train_snapshot(source: Path, source_sha256: str, output: Path) -> dict
             )
             stream.flush()
 
+    validated_output_sha256: str | None = None
+
     def validator(descriptor: int, size: int) -> None:
+        nonlocal validated_output_sha256
         if size <= 0:
             raise ValueError("train snapshot is empty")
         with (
@@ -197,16 +212,33 @@ def build_train_snapshot(source: Path, source_sha256: str, output: Path) -> dict
                 raise ValueError("train snapshot metadata differs")
             if any(not np.array_equal(snapshot[name], arrays[name]) for name in _TRAIN_ARRAYS):
                 raise ValueError("train snapshot array differs")
+        validated_output_sha256 = _sha256_descriptor(descriptor, size)
 
     published = publish_large_writer_noreplace(output, writer, validator=validator)
-    published.close()
+    try:
+        current = output.lstat()
+        if (current.st_dev, current.st_ino) != published.identity:
+            raise ValueError("train snapshot publication ownership differs")
+        if current.st_size != published.size:
+            raise ValueError("train snapshot publication content differs")
+        output_sha256 = _sha256_descriptor(published.descriptor, published.size)
+        if validated_output_sha256 is None or output_sha256 != validated_output_sha256:
+            raise ValueError("train snapshot publication content differs")
+        output_bytes = published.size
+        current = output.lstat()
+        if (current.st_dev, current.st_ino) != published.identity:
+            raise ValueError("train snapshot publication ownership differs")
+        if current.st_size != published.size:
+            raise ValueError("train snapshot publication content differs")
+    finally:
+        published.close()
     return {
         "schema": "sfora-nnrl-sop-train-snapshot-result-v1",
         "claim_eligible": False,
         "source_archive_sha256": source_sha256,
         "output": str(output.resolve()),
-        "output_sha256": _sha256_bytes(output.read_bytes()),
-        "output_bytes": output.stat().st_size,
+        "output_sha256": output_sha256,
+        "output_bytes": output_bytes,
         "train_rows": snapshot_metadata["train_rows"],
     }
 

@@ -4,6 +4,7 @@ import hashlib
 import importlib.util
 import io
 import json
+import os
 from pathlib import Path
 
 import numpy as np
@@ -103,6 +104,36 @@ def test_snapshot_rejects_digest_schema_train_drift_and_overwrite(tmp_path: Path
     output.write_bytes(b"occupied")
     with pytest.raises(FileExistsError):
         build_train_snapshot(source, source_sha256, output)
+
+
+@pytest.mark.parametrize("mutation", ["replace", "overwrite", "append"])
+def test_snapshot_receipt_rejects_mutated_published_output(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mutation: str
+) -> None:
+    source = tmp_path / "source.npz"
+    source_sha256 = _source_archive(source)
+    output = tmp_path / "train-only.npz"
+    displaced = tmp_path / "displaced.npz"
+    publish = MODULE.publish_large_writer_noreplace
+
+    def mutate_after_publish(*args: object, **kwargs: object) -> object:
+        retained = publish(*args, **kwargs)
+        if mutation == "replace":
+            output.rename(displaced)
+            output.write_bytes(b"foreign")
+        else:
+            with output.open("r+b") as stream:
+                stream.seek(0, os.SEEK_SET if mutation == "overwrite" else os.SEEK_END)
+                stream.write(b"mutation")
+                stream.flush()
+        return retained
+
+    monkeypatch.setattr(MODULE, "publish_large_writer_noreplace", mutate_after_publish)
+    with pytest.raises(ValueError, match="snapshot publication"):
+        build_train_snapshot(source, source_sha256, output)
+    if mutation == "replace":
+        assert output.read_bytes() == b"foreign"
+        assert displaced.is_file()
 
 
 def test_snapshot_cli_is_explicit_local_only_and_fail_closed(tmp_path: Path) -> None:
