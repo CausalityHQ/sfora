@@ -133,9 +133,7 @@ def _is_sha256(value: object) -> bool:
 
 
 def _git_environment() -> dict[str, str]:
-    return {
-        key: value for key, value in os.environ.items() if not key.upper().startswith("GIT_")
-    }
+    return {key: value for key, value in os.environ.items() if not key.upper().startswith("GIT_")}
 
 
 def _git_revision(checkout: Path) -> str:
@@ -209,11 +207,7 @@ def _git_status_porcelain(checkout: Path) -> str:
         env=environment,
     ).stdout
     ignored_python = tuple(entry for entry in ignored.split("\0") if entry.endswith(".py"))
-    if (
-        not entries
-        or any(not entry.startswith("H ") for entry in entries)
-        or ignored_python
-    ):
+    if not entries or any(not entry.startswith("H ") for entry in entries) or ignored_python:
         return "invalid-index-state"
     return status
 
@@ -540,6 +534,8 @@ def bind_authenticated_train_images(
     pair: TeacherAnchoredTrainPair,
     image_root: Path,
     expected_sha256: str,
+    *,
+    heartbeat: Callable[[], None] | None = None,
 ) -> TeacherAnchoredImageManifest:
     """Bind only the ordered training images named by the authenticated snapshots."""
 
@@ -549,12 +545,13 @@ def bind_authenticated_train_images(
         or image_root.is_symlink()
         or not image_root.is_dir()
         or not _is_sha256(expected_sha256)
+        or (heartbeat is not None and not callable(heartbeat))
     ):
         raise ValueError("teacher-anchored image manifest authority differs")
     root = image_root.resolve()
     digest = hashlib.sha256(b"sfora-teacher-anchored-image-tree-v1\x00")
     image_paths: list[Path] = []
-    for relative in pair.relative_paths:
+    for ordinal, relative in enumerate(pair.relative_paths):
         pure = PurePosixPath(relative)
         if (
             not relative
@@ -594,6 +591,10 @@ def bind_authenticated_train_images(
         digest.update(struct.pack("<Q", size))
         digest.update(file_digest.digest())
         image_paths.append(path)
+        if heartbeat is not None and (
+            (ordinal + 1) % 512 == 0 or ordinal + 1 == len(pair.relative_paths)
+        ):
+            heartbeat()
     observed = digest.hexdigest()
     if observed != expected_sha256:
         raise ValueError("teacher-anchored image manifest authority differs")

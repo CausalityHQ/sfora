@@ -110,14 +110,39 @@ def _registered_cli(tmp_path: Path) -> list[str]:
     }
     for path in inputs.values():
         path.write_bytes(b"fixture")
-    launch_receipt = tmp_path / "launch.json"
-    launch_receipt.write_bytes(b'{"schema":"fixture-launch-v1"}\n')
     ceiling_receipt = tmp_path / "ceiling.json"
     ceiling_receipt.write_bytes(b'{"schema":"fixture-ceiling-v1"}\n')
     image_root = tmp_path / "train-images"
     image_root.mkdir(exist_ok=True)
     unicom_checkout = tmp_path / "unicom-checkout"
     unicom_checkout.mkdir(exist_ok=True)
+    output = (tmp_path / "result.json").resolve()
+    launch_receipt = tmp_path / "launch.json"
+    launch_receipt.write_bytes(
+        json.dumps(
+            {
+                "arm": "complete",
+                "claim_eligible": False,
+                "inputs_sha256": {
+                    "ceiling_receipt": "4" * 64,
+                    "image_tree": "2" * 64,
+                    "schedule": "1" * 64,
+                    "source_checkpoint": "1" * 64,
+                    "source_snapshot": "1" * 64,
+                    "teacher_checkpoint": "1" * 64,
+                    "teacher_snapshot": "1" * 64,
+                },
+                "output": str(output),
+                "schema": "sfora-teacher-anchored-launch-v1",
+                "seed": 17,
+                "source_revision": "d71992ed969e6c271436ac0a0ee1f3ca61474ac0",
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode()
+        + b"\n"
+    )
+    launch_sha256 = hashlib.sha256(launch_receipt.read_bytes()).hexdigest()
     arguments: list[str] = []
     for name, path in inputs.items():
         arguments.extend((f"--{name}", str(path.resolve()), f"--{name}-sha256", "1" * 64))
@@ -133,6 +158,8 @@ def _registered_cli(tmp_path: Path) -> list[str]:
             "3" * 64,
             "--launch-receipt",
             str(launch_receipt.resolve()),
+            "--launch-receipt-sha256",
+            launch_sha256,
             "--ceiling-receipt",
             str(ceiling_receipt.resolve()),
             "--ceiling-receipt-sha256",
@@ -144,7 +171,7 @@ def _registered_cli(tmp_path: Path) -> list[str]:
             "--arm",
             "complete",
             "--output",
-            str((tmp_path / "result.json").resolve()),
+            str(output),
             "--execute-teacher-anchored",
         )
     )
@@ -197,7 +224,9 @@ def _artifact_authority(receipt: object) -> dict[str, object]:
         "arm": receipt.arm,
         "batch_schedule_sha256": receipt.schedule_sha256,
         "inputs_sha256": {
+            "ceiling_receipt": "0" * 64,
             "image_tree": "5" * 64,
+            "launch_receipt": "2" * 64,
             "schedule": "1" * 64,
             "source_checkpoint": "6" * 64,
             "source_snapshot": "7" * 64,
@@ -205,9 +234,12 @@ def _artifact_authority(receipt: object) -> dict[str, object]:
             "teacher_snapshot": "9" * 64,
         },
         "model_mode_sha256": "a" * 64,
+        "fitting_probe_sha256": "0" * 64,
+        "head_replay_sha256": "2" * 64,
         "objective_sha256": SUBJECT.teacher_anchored_objective_sha256(receipt.arm),
         "ridge_sha256": "b" * 64,
         "runtime_sha256": "c" * 64,
+        "snapshot_replay_sha256": "3" * 64,
         "seed": 17,
         "source_revision": "d71992ed969e6c271436ac0a0ee1f3ca61474ac0",
         "split_sha256": "d" * 64,
@@ -289,6 +321,10 @@ def test_cli_accepts_only_registered_local_capability(tmp_path: Path) -> None:
     assert parsed.image_tree_sha256 == "2" * 64
     assert parsed.teacher_pca_sha256 == "3" * 64
     assert parsed.launch_receipt == (tmp_path / "launch.json").resolve()
+    assert (
+        parsed.launch_receipt_sha256
+        == hashlib.sha256(parsed.launch_receipt.read_bytes()).hexdigest()
+    )
     assert parsed.ceiling_receipt == (tmp_path / "ceiling.json").resolve()
     assert parsed.ceiling_receipt_sha256 == "4" * 64
     assert parsed.progress == (tmp_path / "result.progress.jsonl").resolve()
@@ -303,17 +339,113 @@ def test_sealed_ceiling_receipt_selects_the_registered_split_projection() -> Non
         / "sop-representation-ceiling-v1.json"
     ).resolve()
 
-    assert SUBJECT.load_teacher_anchored_ceiling_pca_sha256(
-        receipt,
-        expected_sha256="a89a09f73661fd64acc666b84732c411cb74b215103dbf7d818ba47c71624f3e",
-        seed=17,
-    ) == "3cc075cc806a446f960a3b7bb3a5161f95ef71bbf2f440cb0ce08c750478f0ee"
+    assert (
+        SUBJECT.load_teacher_anchored_ceiling_pca_sha256(
+            receipt,
+            expected_sha256="a89a09f73661fd64acc666b84732c411cb74b215103dbf7d818ba47c71624f3e",
+            seed=17,
+        )
+        == "3cc075cc806a446f960a3b7bb3a5161f95ef71bbf2f440cb0ce08c750478f0ee"
+    )
     with pytest.raises(ValueError, match="ceiling receipt authority differs"):
         SUBJECT.load_teacher_anchored_ceiling_pca_sha256(
             receipt,
             expected_sha256="0" * 64,
             seed=17,
         )
+
+
+def test_launch_receipt_binds_the_exact_arm_seed_output_and_inputs(tmp_path: Path) -> None:
+    parsed = SUBJECT.parse_teacher_anchored_args(_registered_cli(tmp_path))
+    assert SUBJECT.authenticate_teacher_anchored_launch_receipt(parsed) == (
+        parsed.launch_receipt_sha256
+    )
+
+    value = json.loads(parsed.launch_receipt.read_bytes())
+    value["arm"] = "base"
+    payload = json.dumps(value, sort_keys=True, separators=(",", ":")).encode() + b"\n"
+    parsed.launch_receipt.write_bytes(payload)
+    mutated = parsed._replace(launch_receipt_sha256=hashlib.sha256(payload).hexdigest())
+    with pytest.raises(ValueError, match="launch receipt authority differs"):
+        SUBJECT.authenticate_teacher_anchored_launch_receipt(mutated)
+
+
+def test_main_executes_one_registered_arm_and_emits_its_canonical_receipt(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    arguments = _registered_cli(tmp_path)
+    parsed = SUBJECT.parse_teacher_anchored_args(arguments)
+    payload = b'{"claim_eligible":false,"schema":"fixture-arm-v1"}\n'
+    observed: list[object] = []
+
+    def execute(value: object) -> object:
+        observed.append(value)
+        parsed.output.write_bytes(payload)
+        return SUBJECT.TeacherAnchoredPublishedArtifacts(
+            receipt=parsed.output,
+            checkpoint=parsed.output.with_suffix(".pt"),
+            receipt_sha256=hashlib.sha256(payload).hexdigest(),
+            checkpoint_sha256="5" * 64,
+        )
+
+    monkeypatch.setattr(SUBJECT, "execute_teacher_anchored_arm", execute, raising=False)
+
+    assert SUBJECT.main(arguments) == 0
+    assert capsys.readouterr().out.encode() == payload
+    assert observed == [parsed]
+
+
+def test_arm_executor_stops_before_model_load_on_ceiling_projection_drift(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    parsed = SUBJECT.parse_teacher_anchored_args(_registered_cli(tmp_path))
+    initialized = SUBJECT.TeacherAnchoredInitialization(
+        projection=None,
+        head=nn.Linear(4, 128),
+        teacher_pca_sha256="3" * 64,
+    )
+    prepared = SUBJECT.TeacherAnchoredPreparedArrays(
+        split=None,
+        initialization=initialized,
+        source_features=torch.zeros((2, 4), dtype=torch.float32),
+        teacher_codes=torch.zeros((2, 128), dtype=torch.float32),
+    )
+    monkeypatch.setattr(SUBJECT, "authenticate_teacher_anchored_files", lambda _value: ())
+    monkeypatch.setattr(SUBJECT, "authenticate_teacher_anchored_checkout", lambda *_args: "d" * 40)
+    monkeypatch.setattr(SUBJECT, "configure_teacher_anchored_runtime", lambda _seed: object())
+    monkeypatch.setattr(
+        SUBJECT, "load_authenticated_train_pair", lambda *_args: object(), raising=False
+    )
+    monkeypatch.setattr(
+        SUBJECT,
+        "bind_authenticated_train_images",
+        lambda *_args, **_kwargs: object(),
+        raising=False,
+    )
+    monkeypatch.setattr(SUBJECT, "prepare_teacher_anchored_arrays", lambda *_args, **_kw: prepared)
+    monkeypatch.setattr(
+        SUBJECT,
+        "load_teacher_anchored_ceiling_pca_sha256",
+        lambda *_args, **_kwargs: "4" * 64,
+    )
+    monkeypatch.setattr(
+        SUBJECT,
+        "load_authenticated_source_model",
+        lambda *_args: pytest.fail("model loaded before ceiling projection was authenticated"),
+        raising=False,
+    )
+
+    with pytest.raises(ValueError, match="ceiling projection differs"):
+        SUBJECT.execute_teacher_anchored_arm(parsed)
+
+
+def test_cuda_execution_resolves_the_concrete_current_device(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(SUBJECT.torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(SUBJECT.torch.cuda, "current_device", lambda: 2)
+
+    assert SUBJECT.resolve_teacher_anchored_cuda_device() == torch.device("cuda:2")
 
 
 def test_split_boundary_maps_every_training_decision_through_fitting_rows_only() -> None:
@@ -519,6 +651,7 @@ def test_diagnose_factory_uses_fixed_chunks_memoizes_step_zero_and_restores_mode
     head.eval()
     encoder.scale.requires_grad_(False)
     head.weight.requires_grad_(True)
+    heartbeats: list[int] = []
     diagnose = SUBJECT.make_teacher_anchored_diagnose(
         encoder,
         head,
@@ -528,6 +661,7 @@ def test_diagnose_factory_uses_fixed_chunks_memoizes_step_zero_and_restores_mode
         validation_labels=(3, 3, 4, 4),
         transform_image=transform,
         device=torch.device("cpu"),
+        heartbeat=lambda: heartbeats.append(1),
     )
 
     step_zero = diagnose(0)
@@ -536,6 +670,7 @@ def test_diagnose_factory_uses_fixed_chunks_memoizes_step_zero_and_restores_mode
     assert step_zero.fitting_map_at_r == 1.0
     assert step_zero.validation_map_at_r == 1.0
     assert encoder.calls == [256, 256]
+    assert heartbeats == [1, 1]
     assert encoder.training is True
     assert head.training is False
     assert encoder.scale.requires_grad is False
@@ -544,6 +679,7 @@ def test_diagnose_factory_uses_fixed_chunks_memoizes_step_zero_and_restores_mode
     epoch_one = diagnose(1)
     assert epoch_one.epoch == 1
     assert encoder.calls == [256, 256, 256, 256]
+    assert heartbeats == [1, 1, 1, 1]
 
     with pytest.raises(ValueError, match="diagnostic labels differ"):
         SUBJECT.make_teacher_anchored_diagnose(
@@ -556,6 +692,35 @@ def test_diagnose_factory_uses_fixed_chunks_memoizes_step_zero_and_restores_mode
             transform_image=transform,
             device=torch.device("cpu"),
         )
+
+
+def test_snapshot_step_zero_is_independent_of_the_live_image_diagnostic() -> None:
+    features = torch.tensor(
+        [
+            [1.0, 0.0, 0.0, 0.0],
+            [0.9, 0.1, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.1, 0.9, 0.0, 0.0],
+        ],
+        dtype=torch.float32,
+    ).contiguous()
+    head = nn.Linear(4, 4, bias=False)
+    with torch.no_grad():
+        head.weight.copy_(torch.eye(4))
+
+    diagnostic = SUBJECT.compute_teacher_anchored_snapshot_diagnostic(
+        head,
+        fitting_features=features,
+        fitting_labels=(1, 1, 2, 2),
+        fitting_probe_rows=(0, 1, 2, 3),
+        validation_features=features,
+        validation_labels=(3, 3, 4, 4),
+        device=torch.device("cpu"),
+    )
+
+    assert diagnostic.epoch == 0
+    assert diagnostic.fitting_map_at_r == 1.0
+    assert diagnostic.validation_map_at_r == 1.0
 
 
 def test_initializer_normalizes_raw_rows_with_float64_recipe() -> None:
@@ -1306,7 +1471,10 @@ def test_initialized_head_replays_float64_map_with_registered_chunking() -> None
         ),
     )
 
-    receipt = SUBJECT.validate_teacher_anchored_head_replay(initialized, source, device="cpu")
+    heartbeats: list[int] = []
+    receipt = SUBJECT.validate_teacher_anchored_head_replay(
+        initialized, source, device="cpu", heartbeat=lambda: heartbeats.append(1)
+    )
 
     assert receipt.rows == 132
     assert receipt.chunk_rows == 256
@@ -1317,6 +1485,7 @@ def test_initialized_head_replays_float64_map_with_registered_chunking() -> None
     assert len(receipt.head_state_sha256) == 64
     assert len(receipt.runtime_codes_sha256) == 64
     assert len(receipt.reference_codes_sha256) == 64
+    assert heartbeats == [1]
     assert (
         SUBJECT.validate_teacher_anchored_head_replay(
             initialized,
@@ -1517,6 +1686,39 @@ def test_real_batch_bridge_maps_fitting_rows_and_exact_objective() -> None:
     assert observed == [image_paths[row] for row in scheduled]
     assert torch.equal(result.total, expected.total)
     assert torch.equal(result.anchor, expected.anchor)
+
+
+def test_head_only_batch_bridge_uses_authenticated_snapshot_features() -> None:
+    rows = 256
+    head = nn.Linear(4, 128)
+    source_features = _normalized(rows, 4, seed=711)
+    teacher_codes = _normalized(rows, 128, seed=712)
+    anchor_rows = torch.arange(512, dtype=torch.int64).remainder(rows).repeat(rows, 1)
+    scheduled = tuple(reversed(range(rows)))
+
+    result = SUBJECT.compute_teacher_anchored_snapshot_batch_loss(
+        head,
+        row_indexes=scheduled,
+        active_parameter_names=("head.weight", "head.bias"),
+        source_features=source_features,
+        teacher_codes=teacher_codes,
+        anchor_row_indexes=anchor_rows,
+        config=TeacherAnchoredConfig(),
+        device=torch.device("cpu"),
+    )
+
+    indexes = torch.tensor(scheduled, dtype=torch.int64)
+    source = source_features[indexes]
+    expected = teacher_anchored_loss(
+        torch.nn.functional.normalize(head(source), dim=1),
+        teacher_codes[indexes],
+        teacher_codes[anchor_rows[indexes]],
+        source,
+        source,
+        TeacherAnchoredConfig(),
+    )
+    assert torch.equal(result.total, expected.total)
+    assert torch.equal(result.drift, torch.zeros((), dtype=torch.float32))
 
 
 def test_real_batch_bridge_rejects_trainable_inventory_and_row_drift() -> None:
@@ -2156,13 +2358,14 @@ def test_progress_writer_persists_only_valid_fsynced_chain(tmp_path: Path) -> No
     writer = SUBJECT.TeacherAnchoredProgressWriter(path, launch, "complete")
     writer("initialized", 0, 0)
     writer("update", 1, 1)
+    writer.heartbeat()
     writer("epoch-complete", 1, 1)
     writer.close()
 
     lines = tuple(path.read_bytes().splitlines(keepends=True))
     terminal = SUBJECT.validate_teacher_anchored_progress_chain(lines, launch)
     assert (terminal.sequence, terminal.arm, terminal.epoch, terminal.update) == (
-        3,
+        4,
         "complete",
         1,
         1,
@@ -2213,6 +2416,33 @@ def test_real_training_progress_emissions_form_a_valid_chain() -> None:
     )
 
 
+def test_progress_heartbeats_preserve_the_last_scientific_transition() -> None:
+    launch = "a" * 64
+    lines: list[bytes] = []
+
+    def append(stage: str, epoch: int, update: int) -> None:
+        lines.append(
+            SUBJECT.teacher_anchored_progress_bytes(
+                launch_receipt_sha256=launch,
+                sequence=len(lines) + 1,
+                arm="complete",
+                epoch=epoch,
+                update=update,
+                previous_line_sha256=(hashlib.sha256(lines[-1]).hexdigest() if lines else "0" * 64),
+                stage=stage,
+            )
+        )
+
+    append("heartbeat", 0, 0)
+    append("initialized", 0, 0)
+    append("update", 1, 1)
+    append("heartbeat", 1, 1)
+    append("epoch-complete", 1, 1)
+
+    terminal = SUBJECT.validate_teacher_anchored_progress_chain(tuple(lines), launch)
+    assert (terminal.sequence, terminal.epoch, terminal.update) == (5, 1, 1)
+
+
 def test_canonical_receipt_and_complete_merged_checkpoint_are_no_clobber(tmp_path: Path) -> None:
     receipt, _updates, encoder, head = _run_synthetic_training("complete")
     output = tmp_path / "complete.json"
@@ -2229,6 +2459,8 @@ def test_canonical_receipt_and_complete_merged_checkpoint_are_no_clobber(tmp_pat
     assert value["claim_eligible"] is False
     assert value["candidate_epoch"] == 10
     assert value["authority"]["inputs_sha256"]["schedule"] == "1" * 64
+    assert value["authority"]["inputs_sha256"]["ceiling_receipt"] == "0" * 64
+    assert value["authority"]["head_replay_sha256"] == "2" * 64
     assert (
         value["checkpoint_sha256"] == hashlib.sha256(published.checkpoint.read_bytes()).hexdigest()
     )

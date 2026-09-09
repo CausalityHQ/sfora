@@ -55,7 +55,11 @@ if _SCRIPTS not in sys.path:
 
 from sop_teacher_anchored_runtime import (  # noqa: E402
     TeacherAnchoredImageManifest,
+    TeacherAnchoredSourceModel,
     TeacherAnchoredTrainPair,
+    bind_authenticated_train_images,
+    load_authenticated_source_model,
+    load_authenticated_train_pair,
 )
 
 _UNICOM_REVISION = "d71992ed969e6c271436ac0a0ee1f3ca61474ac0"
@@ -87,6 +91,7 @@ class TeacherAnchoredArguments(NamedTuple):
     image_tree_sha256: str
     teacher_pca_sha256: str
     launch_receipt: Path
+    launch_receipt_sha256: str
     ceiling_receipt: Path
     ceiling_receipt_sha256: str
     source_revision: str
@@ -299,6 +304,7 @@ def parse_teacher_anchored_args(arguments: list[str]) -> TeacherAnchoredArgument
         "schedule-sha256",
         "image-tree-sha256",
         "teacher-pca-sha256",
+        "launch-receipt-sha256",
         "ceiling-receipt-sha256",
         "source-revision",
         "seed",
@@ -365,6 +371,7 @@ def parse_teacher_anchored_args(arguments: list[str]) -> TeacherAnchoredArgument
         "schedule_sha256",
         "image_tree_sha256",
         "teacher_pca_sha256",
+        "launch_receipt_sha256",
         "ceiling_receipt_sha256",
     ):
         value = getattr(parsed, name)
@@ -405,6 +412,7 @@ def parse_teacher_anchored_args(arguments: list[str]) -> TeacherAnchoredArgument
         image_tree_sha256=digests["image_tree_sha256"],
         teacher_pca_sha256=digests["teacher_pca_sha256"],
         launch_receipt=path_values["launch_receipt"],
+        launch_receipt_sha256=digests["launch_receipt_sha256"],
         ceiling_receipt=path_values["ceiling_receipt"],
         ceiling_receipt_sha256=digests["ceiling_receipt_sha256"],
         source_revision=revision,
@@ -623,9 +631,7 @@ def load_teacher_anchored_schedule_file(
     )
 
 
-def load_teacher_anchored_ceiling_pca_sha256(
-    path: Path, *, expected_sha256: str, seed: int
-) -> str:
+def load_teacher_anchored_ceiling_pca_sha256(path: Path, *, expected_sha256: str, seed: int) -> str:
     """Authenticate the sealed ceiling receipt and select one split's PCA identity."""
 
     if (
@@ -712,6 +718,80 @@ def load_teacher_anchored_ceiling_pca_sha256(
     if observed_seeds != [17, 1729, 65537] or selected is None:
         raise ValueError("ceiling receipt authority differs")
     return selected
+
+
+def authenticate_teacher_anchored_launch_receipt(arguments: TeacherAnchoredArguments) -> str:
+    """Authenticate a canonical launch receipt against this exact arm invocation."""
+
+    if type(arguments) is not TeacherAnchoredArguments:
+        raise ValueError("teacher-anchored launch receipt authority differs")
+    try:
+        descriptor = os.open(
+            arguments.launch_receipt,
+            os.O_RDONLY
+            | os.O_NONBLOCK
+            | getattr(os, "O_NOFOLLOW", 0)
+            | getattr(os, "O_CLOEXEC", 0),
+        )
+    except OSError as error:
+        raise ValueError("teacher-anchored launch receipt authority differs") from error
+    try:
+        before = os.fstat(descriptor)
+        if not stat.S_ISREG(before.st_mode) or not 0 < before.st_size <= 1024 * 1024:
+            raise ValueError("teacher-anchored launch receipt authority differs")
+        payload = bytearray()
+        while chunk := os.read(descriptor, min(1024 * 1024, before.st_size - len(payload))):
+            payload.extend(chunk)
+        after = os.fstat(descriptor)
+        if (
+            len(payload) != before.st_size
+            or os.read(descriptor, 1)
+            or (
+                after.st_dev,
+                after.st_ino,
+                after.st_size,
+                after.st_mtime_ns,
+                after.st_ctime_ns,
+            )
+            != (
+                before.st_dev,
+                before.st_ino,
+                before.st_size,
+                before.st_mtime_ns,
+                before.st_ctime_ns,
+            )
+        ):
+            raise ValueError("teacher-anchored launch receipt authority differs")
+    finally:
+        os.close(descriptor)
+    data = bytes(payload)
+    del payload
+    if hashlib.sha256(data).hexdigest() != arguments.launch_receipt_sha256:
+        raise ValueError("teacher-anchored launch receipt authority differs")
+    try:
+        value = json.loads(data)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError("teacher-anchored launch receipt authority differs") from error
+    expected = {
+        "arm": arguments.arm,
+        "claim_eligible": False,
+        "inputs_sha256": {
+            "ceiling_receipt": arguments.ceiling_receipt_sha256,
+            "image_tree": arguments.image_tree_sha256,
+            "schedule": arguments.schedule_sha256,
+            "source_checkpoint": arguments.source_checkpoint_sha256,
+            "source_snapshot": arguments.source_snapshot_sha256,
+            "teacher_checkpoint": arguments.teacher_checkpoint_sha256,
+            "teacher_snapshot": arguments.teacher_snapshot_sha256,
+        },
+        "output": str(arguments.output),
+        "schema": "sfora-teacher-anchored-launch-v1",
+        "seed": arguments.seed,
+        "source_revision": arguments.source_revision,
+    }
+    if value != expected or data != _canonical_json_bytes(expected):
+        raise ValueError("teacher-anchored launch receipt authority differs")
+    return arguments.launch_receipt_sha256
 
 
 def authenticate_teacher_anchored_checkout(checkout: Path, expected_revision: str) -> str:
@@ -911,6 +991,7 @@ def validate_teacher_anchored_head_replay(
     *,
     device: str,
     expected_receipt: TeacherAnchoredHeadReplayReceipt | None = None,
+    heartbeat: Callable[[], None] | None = None,
 ) -> TeacherAnchoredHeadReplayReceipt:
     """Replay the initialized float32 head against the fitted float64 affine map."""
 
@@ -925,6 +1006,7 @@ def validate_teacher_anchored_head_replay(
         or not bool(torch.isfinite(source_rows).all())
         or device not in ("cpu", "cuda")
         or (device == "cuda" and not torch.cuda.is_available())
+        or (heartbeat is not None and not callable(heartbeat))
     ):
         raise ValueError("teacher-anchored head replay authority differs")
     source_unit = _normalize_snapshot_rows(source_rows)
@@ -937,6 +1019,8 @@ def validate_teacher_anchored_head_replay(
         for start in range(0, source_rows.shape[0], 256):
             raw = head(source_unit[start : start + 256].to(device=device, dtype=torch.float32))
             chunks.append(torch.nn.functional.normalize(raw.float(), dim=-1).cpu())
+            if heartbeat is not None:
+                heartbeat()
     runtime = torch.cat(chunks).double()
     maximum_absolute_error = float(torch.max(torch.abs(runtime - reference)))
     cosines = torch.sum(runtime * reference, dim=1) / (
@@ -1492,6 +1576,7 @@ def make_teacher_anchored_diagnose(
     validation_labels: tuple[int, ...],
     transform_image: Callable[[Path], torch.Tensor],
     device: torch.device,
+    heartbeat: Callable[[], None] | None = None,
 ) -> TeacherAnchoredDiagnose:
     """Build the fixed-chunk live scorer while preserving training state exactly."""
 
@@ -1515,6 +1600,7 @@ def make_teacher_anchored_diagnose(
         or not valid_population(fitting_image_paths, fitting_labels)
         or not valid_population(validation_image_paths, validation_labels)
         or not callable(transform_image)
+        or (heartbeat is not None and not callable(heartbeat))
         or type(device) is not torch.device
         or any(
             parameter.device != device for parameter in (*encoder.parameters(), *head.parameters())
@@ -1545,6 +1631,8 @@ def make_teacher_anchored_diagnose(
             with torch.inference_mode():
                 _features, codes = teacher_anchored_forward(encoder, head, images)
             chunks.append(codes[:retained].float().cpu().contiguous())
+            if heartbeat is not None:
+                heartbeat()
         return torch.cat(chunks).contiguous()
 
     step_zero: TeacherAnchoredEpochDiagnostic | None = None
@@ -1588,6 +1676,69 @@ def make_teacher_anchored_diagnose(
         return result
 
     return diagnose
+
+
+def compute_teacher_anchored_snapshot_diagnostic(
+    head: nn.Linear,
+    *,
+    fitting_features: torch.Tensor,
+    fitting_labels: tuple[int, ...],
+    fitting_probe_rows: tuple[int, ...],
+    validation_features: torch.Tensor,
+    validation_labels: tuple[int, ...],
+    device: torch.device,
+) -> TeacherAnchoredEpochDiagnostic:
+    """Compute the independent step-zero reference from authenticated snapshots."""
+
+    if (
+        type(head) is not nn.Linear
+        or type(device) is not torch.device
+        or type(fitting_features) is not torch.Tensor
+        or type(validation_features) is not torch.Tensor
+        or fitting_features.device.type != "cpu"
+        or validation_features.device.type != "cpu"
+        or fitting_features.dtype != torch.float32
+        or validation_features.dtype != torch.float32
+        or fitting_features.ndim != 2
+        or validation_features.ndim != 2
+        or fitting_features.shape[1] != head.in_features
+        or validation_features.shape[1] != head.in_features
+        or not fitting_features.is_contiguous()
+        or not validation_features.is_contiguous()
+        or type(fitting_labels) is not tuple
+        or len(fitting_labels) != len(fitting_features)
+        or type(validation_labels) is not tuple
+        or len(validation_labels) != len(validation_features)
+        or type(fitting_probe_rows) is not tuple
+        or not fitting_probe_rows
+        or len(set(fitting_probe_rows)) != len(fitting_probe_rows)
+        or any(
+            type(row) is not int or not 0 <= row < len(fitting_features)
+            for row in fitting_probe_rows
+        )
+    ):
+        raise ValueError("teacher-anchored snapshot diagnostic authority differs")
+    fitting = _normalize_snapshot_rows(fitting_features)
+    validation = _normalize_snapshot_rows(validation_features)
+    with torch.inference_mode():
+        fitting_codes = torch.nn.functional.normalize(head(fitting.to(device)).float(), dim=1)
+        validation_codes = torch.nn.functional.normalize(head(validation.to(device)).float(), dim=1)
+    probe_indexes = torch.tensor(fitting_probe_rows, dtype=torch.int64, device=device)
+    probe_codes = fitting_codes[probe_indexes].cpu().contiguous()
+    probe_labels = tuple(fitting_labels[row] for row in fitting_probe_rows)
+    validation_codes = validation_codes.cpu().contiguous()
+    fitting_score = score_teacher_anchored_probe(probe_codes, probe_labels, device=device)
+    validation_score = score_teacher_anchored_probe(
+        validation_codes, validation_labels, device=device
+    )
+    geometry = embedding_geometry_diagnostics(probe_codes)
+    return TeacherAnchoredEpochDiagnostic(
+        epoch=0,
+        fitting_map_at_r=fitting_score.packed_map_at_r,
+        fitting_effective_rank=geometry.effective_rank,
+        fitting_leading_eigenvalue_share=geometry.leading_eigenvalue_share,
+        validation_map_at_r=validation_score.packed_map_at_r,
+    )
 
 
 def build_teacher_anchored_split(
@@ -1849,6 +2000,66 @@ def compute_teacher_anchored_batch_loss(
     )
 
 
+def compute_teacher_anchored_snapshot_batch_loss(
+    head: nn.Linear,
+    *,
+    row_indexes: tuple[int, ...],
+    active_parameter_names: tuple[str, ...],
+    source_features: torch.Tensor,
+    teacher_codes: torch.Tensor,
+    anchor_row_indexes: torch.Tensor,
+    config: TeacherAnchoredConfig,
+    device: torch.device,
+) -> TeacherAnchoredLoss:
+    """Compute the head-only control from authenticated frozen source features."""
+
+    row_count = source_features.shape[0] if type(source_features) is torch.Tensor else -1
+    if (
+        type(head) is not nn.Linear
+        or type(config) is not TeacherAnchoredConfig
+        or type(device) is not torch.device
+        or active_parameter_names != ("head.weight", "head.bias")
+        or type(row_indexes) is not tuple
+        or len(row_indexes) != config.batch_rows
+        or len(set(row_indexes)) != len(row_indexes)
+        or any(type(row) is not int or not 0 <= row < row_count for row in row_indexes)
+        or type(source_features) is not torch.Tensor
+        or source_features.device.type != "cpu"
+        or source_features.dtype != torch.float32
+        or source_features.ndim != 2
+        or source_features.shape[1] != head.in_features
+        or not source_features.is_contiguous()
+        or type(teacher_codes) is not torch.Tensor
+        or teacher_codes.device.type != "cpu"
+        or teacher_codes.dtype != torch.float32
+        or teacher_codes.shape != (row_count, config.dimensions)
+        or not teacher_codes.is_contiguous()
+        or type(anchor_row_indexes) is not torch.Tensor
+        or anchor_row_indexes.device.type != "cpu"
+        or anchor_row_indexes.dtype != torch.int64
+        or anchor_row_indexes.shape != (row_count, config.anchor_count)
+        or not anchor_row_indexes.is_contiguous()
+        or bool((anchor_row_indexes < 0).any())
+        or bool((anchor_row_indexes >= row_count).any())
+        or not bool(torch.isfinite(source_features).all())
+        or not bool(torch.isfinite(teacher_codes).all())
+    ):
+        raise ValueError("teacher-anchored snapshot batch authority differs")
+    indexes = torch.tensor(row_indexes, dtype=torch.int64)
+    original = source_features[indexes].to(device)
+    student = torch.nn.functional.normalize(head(original).float(), dim=1)
+    batch_teacher = teacher_codes[indexes].to(device)
+    batch_anchors = teacher_codes[anchor_row_indexes[indexes]].to(device)
+    return teacher_anchored_loss(
+        student,
+        batch_teacher,
+        batch_anchors,
+        original,
+        original,
+        config,
+    )
+
+
 def run_teacher_anchored_training(
     encoder: nn.Module,
     head: nn.Linear,
@@ -2092,7 +2303,8 @@ def teacher_anchored_progress_bytes(
         or not 0 <= epoch <= 10
         or type(update) is not int
         or update < 0
-        or stage not in ("initialized", "update", "epoch-complete", "stopped", "complete")
+        or stage
+        not in ("heartbeat", "initialized", "update", "epoch-complete", "stopped", "complete")
     ):
         raise ValueError("teacher-anchored progress authority differs")
     return _canonical_json_bytes(
@@ -2118,6 +2330,7 @@ def validate_teacher_anchored_progress_chain(
         raise ValueError("teacher-anchored progress chain differs")
     previous = "0" * 64
     last: dict[str, object] | None = None
+    last_scientific: dict[str, object] | None = None
     for expected_sequence, line in enumerate(lines, start=1):
         if type(line) is not bytes:
             raise ValueError("teacher-anchored progress chain differs")
@@ -2165,13 +2378,21 @@ def validate_teacher_anchored_progress_chain(
         stage = value["stage"]
         epoch = value["epoch"]
         update = value["update"]
-        if last is None:
+        if stage == "heartbeat":
+            valid_transition = (
+                epoch == 0 and update == 0
+                if last is None
+                else value["arm"] == last["arm"]
+                and epoch == last["epoch"]
+                and update == last["update"]
+            )
+        elif last_scientific is None:
             valid_transition = stage == "initialized" and epoch == 0 and update == 0
         else:
-            previous_stage = last["stage"]
-            previous_epoch = cast(int, last["epoch"])
-            previous_update = cast(int, last["update"])
-            same_arm = value["arm"] == last["arm"]
+            previous_stage = last_scientific["stage"]
+            previous_epoch = cast(int, last_scientific["epoch"])
+            previous_update = cast(int, last_scientific["update"])
+            same_arm = value["arm"] == last_scientific["arm"]
             if stage == "update":
                 valid_transition = (
                     same_arm
@@ -2217,6 +2438,8 @@ def validate_teacher_anchored_progress_chain(
             raise ValueError("teacher-anchored progress chain differs")
         previous = hashlib.sha256(line).hexdigest()
         last = value
+        if stage != "heartbeat":
+            last_scientific = value
     if last is None or type(last["arm"]) is not str:
         raise ValueError("teacher-anchored progress chain differs")
     return TeacherAnchoredProgressState(
@@ -2261,6 +2484,8 @@ class TeacherAnchoredProgressWriter:
         self._launch_receipt_sha256 = launch_receipt_sha256
         self._arm = arm
         self._lines: list[bytes] = []
+        self._epoch = 0
+        self._update = 0
 
     def __call__(self, stage: str, epoch: int, update: int) -> None:
         descriptor = self._descriptor
@@ -2285,6 +2510,13 @@ class TeacherAnchoredProgressWriter:
             view = view[written:]
         os.fsync(descriptor)
         self._lines.append(line)
+        self._epoch = epoch
+        self._update = update
+
+    def heartbeat(self) -> None:
+        """Persist an authenticated liveness event without advancing science state."""
+
+        self("heartbeat", self._epoch, self._update)
 
     def close(self) -> None:
         descriptor = self._descriptor
@@ -2323,11 +2555,14 @@ def publish_teacher_anchored_artifacts(
         "anchor_schedule_sha256",
         "arm",
         "batch_schedule_sha256",
+        "fitting_probe_sha256",
+        "head_replay_sha256",
         "inputs_sha256",
         "model_mode_sha256",
         "objective_sha256",
         "ridge_sha256",
         "runtime_sha256",
+        "snapshot_replay_sha256",
         "seed",
         "source_revision",
         "split_sha256",
@@ -2351,7 +2586,9 @@ def publish_teacher_anchored_artifacts(
         or type(inputs) is not dict
         or set(inputs)
         != {
+            "ceiling_receipt",
             "image_tree",
+            "launch_receipt",
             "schedule",
             "source_checkpoint",
             "source_snapshot",
@@ -2599,10 +2836,270 @@ def encoder_frozen_state_sha256(encoder: nn.Module, *, head_only: bool) -> str:
     return digest.hexdigest()
 
 
-def main() -> int:
-    """Refuse execution until the strict CLI and complete loop are implemented."""
+def resolve_teacher_anchored_cuda_device() -> torch.device:
+    """Resolve the indexed CUDA device used by model parameters and diagnostics."""
 
-    raise SystemExit("teacher-anchored training CLI is not implemented")
+    if not torch.cuda.is_available():
+        raise ValueError("teacher-anchored CUDA authority differs")
+    index = torch.cuda.current_device()
+    if type(index) is not int or index < 0:
+        raise ValueError("teacher-anchored CUDA authority differs")
+    return torch.device("cuda", index)
+
+
+def execute_teacher_anchored_arm(
+    arguments: TeacherAnchoredArguments,
+) -> TeacherAnchoredPublishedArtifacts:
+    """Authenticate, execute, and publish one registered teacher-anchored arm."""
+
+    if type(arguments) is not TeacherAnchoredArguments:
+        raise ValueError("teacher-anchored execution authority differs")
+    launch_receipt_sha256 = authenticate_teacher_anchored_launch_receipt(arguments)
+    progress = TeacherAnchoredProgressWriter(
+        arguments.progress, launch_receipt_sha256, arguments.arm
+    )
+    try:
+        progress.heartbeat()
+        return _execute_teacher_anchored_arm(arguments, progress, launch_receipt_sha256)
+    finally:
+        progress.close()
+
+
+def _execute_teacher_anchored_arm(
+    arguments: TeacherAnchoredArguments,
+    progress: TeacherAnchoredProgressWriter,
+    launch_receipt_sha256: str,
+) -> TeacherAnchoredPublishedArtifacts:
+    """Run one arm after its progress chain has been opened."""
+
+    authenticate_teacher_anchored_files(arguments)
+    authenticate_teacher_anchored_checkout(arguments.unicom_checkout, arguments.source_revision)
+    runtime = configure_teacher_anchored_runtime(arguments.seed)
+    pair = load_authenticated_train_pair(
+        arguments.source_snapshot,
+        arguments.source_snapshot_sha256,
+        arguments.teacher_snapshot,
+        arguments.teacher_snapshot_sha256,
+    )
+    manifest = bind_authenticated_train_images(
+        pair,
+        arguments.image_root,
+        arguments.image_tree_sha256,
+        heartbeat=progress.heartbeat,
+    )
+    prepared = prepare_teacher_anchored_arrays(
+        pair,
+        seed=arguments.seed,
+        expected_teacher_pca_sha256=arguments.teacher_pca_sha256,
+    )
+    registered_pca = load_teacher_anchored_ceiling_pca_sha256(
+        arguments.ceiling_receipt,
+        expected_sha256=arguments.ceiling_receipt_sha256,
+        seed=arguments.seed,
+    )
+    if (
+        registered_pca != arguments.teacher_pca_sha256
+        or prepared.initialization.teacher_pca_sha256 != registered_pca
+    ):
+        raise ValueError("teacher-anchored ceiling projection differs")
+
+    bound = bind_teacher_anchored_schedule(arguments, prepared, manifest)
+    pristine_model = load_authenticated_source_model(
+        arguments.unicom_checkout, arguments.source_checkpoint
+    )
+    training_model = load_authenticated_source_model(
+        arguments.unicom_checkout, arguments.source_checkpoint
+    )
+    if (
+        type(pristine_model) is not TeacherAnchoredSourceModel
+        or type(training_model) is not TeacherAnchoredSourceModel
+        or pristine_model.revision != arguments.source_revision
+        or training_model.revision != arguments.source_revision
+        or pristine_model.checkpoint_sha256 != arguments.source_checkpoint_sha256
+        or training_model.checkpoint_sha256 != arguments.source_checkpoint_sha256
+    ):
+        raise ValueError("teacher-anchored source model authority differs")
+    device = resolve_teacher_anchored_cuda_device()
+
+    validation_rows = torch.tensor(prepared.split.validation_rows, dtype=torch.int64)
+    validation_source = torch.from_numpy(
+        np.ascontiguousarray(pair.source_embeddings[validation_rows.numpy()], dtype=np.float32)
+    )
+    head_replay = validate_teacher_anchored_head_replay(
+        prepared.initialization,
+        validation_source,
+        device="cuda",
+        heartbeat=progress.heartbeat,
+    )
+
+    replay_rows = tuple(
+        sorted(
+            prepared.split.fitting_rows,
+            key=lambda row: (
+                hashlib.sha256(
+                    struct.pack("<Qq", arguments.seed, int(pair.image_ids[row]))
+                ).digest(),
+                int(pair.image_ids[row]),
+            ),
+        )[:32]
+    )
+    replay_paths = tuple(manifest.image_paths[row] for row in replay_rows)
+    replay_images = torch.stack(
+        tuple(
+            load_teacher_anchored_training_image(path, pristine_model.transform)
+            for path in replay_paths
+        )
+    ).contiguous()
+    replay_expected = torch.from_numpy(
+        np.ascontiguousarray(pair.source_embeddings[np.asarray(replay_rows)], dtype=np.float32)
+    )
+    snapshot_replay = validate_teacher_anchored_snapshot_feature_replay(
+        pristine_model.encoder,
+        training_model.encoder,
+        replay_images,
+        replay_expected,
+        image_ids=tuple(int(pair.image_ids[row]) for row in replay_rows),
+        device="cuda",
+    )
+    pristine_model.encoder.to("cpu")
+    del pristine_model, replay_images, replay_expected
+    torch.cuda.empty_cache()
+
+    encoder = training_model.encoder.to(device)
+    head = prepared.initialization.head.to(device)
+    configure_teacher_anchored_epoch(encoder, head, epoch=2, head_only=arguments.arm == "head-only")
+    planned_trainable_inventory_sha256 = teacher_anchored_trainable_inventory_sha256(encoder, head)
+
+    def transform_image(path: Path) -> torch.Tensor:
+        return load_teacher_anchored_training_image(path, training_model.transform)
+
+    probe = select_teacher_anchored_fitting_probe(
+        np.ascontiguousarray(prepared.split.fitting_labels, dtype=np.int64),
+        seed=arguments.seed,
+    )
+    fitting_probe_paths = tuple(bound.fitting_image_paths[row] for row in probe.row_indexes)
+    fitting_probe_labels = tuple(prepared.split.fitting_labels[row] for row in probe.row_indexes)
+    validation_paths = tuple(manifest.image_paths[row] for row in prepared.split.validation_rows)
+    diagnose = make_teacher_anchored_diagnose(
+        encoder,
+        head,
+        fitting_image_paths=fitting_probe_paths,
+        fitting_labels=fitting_probe_labels,
+        validation_image_paths=validation_paths,
+        validation_labels=prepared.split.validation_labels,
+        transform_image=transform_image,
+        device=device,
+        heartbeat=progress.heartbeat,
+    )
+    initialization_diagnostic = compute_teacher_anchored_snapshot_diagnostic(
+        head,
+        fitting_features=prepared.source_features,
+        fitting_labels=prepared.split.fitting_labels,
+        fitting_probe_rows=probe.row_indexes,
+        validation_features=validation_source,
+        validation_labels=prepared.split.validation_labels,
+        device=device,
+    )
+    config = TeacherAnchoredConfig()
+
+    def compute_loss(
+        _epoch: int,
+        _update: int,
+        rows: tuple[int, ...],
+        active: tuple[str, ...],
+    ) -> TeacherAnchoredLoss:
+        if arguments.arm == "head-only":
+            return compute_teacher_anchored_snapshot_batch_loss(
+                head,
+                row_indexes=rows,
+                active_parameter_names=active,
+                source_features=prepared.source_features,
+                teacher_codes=prepared.teacher_codes,
+                anchor_row_indexes=bound.anchor_row_indexes,
+                config=config,
+                device=device,
+            )
+        return compute_teacher_anchored_batch_loss(
+            encoder,
+            head,
+            row_indexes=rows,
+            active_parameter_names=active,
+            image_paths=bound.fitting_image_paths,
+            transform_image=transform_image,
+            source_features=prepared.source_features,
+            teacher_codes=prepared.teacher_codes,
+            anchor_row_indexes=bound.anchor_row_indexes,
+            config=config,
+            device=device,
+        )
+
+    receipt = run_teacher_anchored_training(
+        encoder,
+        head,
+        arm=arguments.arm,
+        schedules=bound.schedules,
+        fitting_row_count=len(bound.fitting_image_paths),
+        expected_schedule_sha256=teacher_anchored_schedule_sha256(
+            bound.schedules, fitting_row_count=len(bound.fitting_image_paths)
+        ),
+        initialization_fitting_map_at_r=initialization_diagnostic.fitting_map_at_r,
+        initialization_effective_rank=initialization_diagnostic.fitting_effective_rank,
+        initialization_leading_eigenvalue_share=(
+            initialization_diagnostic.fitting_leading_eigenvalue_share
+        ),
+        compute_loss=compute_loss,
+        diagnose=diagnose,
+        progress=progress,
+        device_type="cuda",
+    )
+
+    authority: dict[str, object] = {
+        "anchor_schedule_sha256": bound.sealed.anchor_schedule.sha256,
+        "arm": arguments.arm,
+        "batch_schedule_sha256": receipt.schedule_sha256,
+        "fitting_probe_sha256": probe.sha256,
+        "head_replay_sha256": hashlib.sha256(
+            _canonical_json_bytes(head_replay._asdict())
+        ).hexdigest(),
+        "inputs_sha256": {
+            "ceiling_receipt": arguments.ceiling_receipt_sha256,
+            "image_tree": arguments.image_tree_sha256,
+            "launch_receipt": launch_receipt_sha256,
+            "schedule": arguments.schedule_sha256,
+            "source_checkpoint": arguments.source_checkpoint_sha256,
+            "source_snapshot": arguments.source_snapshot_sha256,
+            "teacher_checkpoint": arguments.teacher_checkpoint_sha256,
+            "teacher_snapshot": arguments.teacher_snapshot_sha256,
+        },
+        "model_mode_sha256": teacher_anchored_model_mode_sha256(arguments.arm),
+        "objective_sha256": teacher_anchored_objective_sha256(arguments.arm),
+        "ridge_sha256": teacher_anchored_ridge_sha256(prepared.initialization),
+        "runtime_sha256": teacher_anchored_runtime_sha256(runtime),
+        "seed": arguments.seed,
+        "snapshot_replay_sha256": hashlib.sha256(
+            _canonical_json_bytes(snapshot_replay._asdict())
+        ).hexdigest(),
+        "source_revision": arguments.source_revision,
+        "split_sha256": prepared.split.sha256,
+        "teacher_pca_sha256": registered_pca,
+        "trainable_inventory_sha256": planned_trainable_inventory_sha256,
+    }
+    return publish_teacher_anchored_artifacts(
+        arguments.output, encoder, head, receipt, authority=authority
+    )
+
+
+def main(arguments: list[str] | None = None) -> int:
+    """Execute one authenticated local arm and emit its canonical receipt."""
+
+    parsed = parse_teacher_anchored_args(sys.argv[1:] if arguments is None else arguments)
+    published = execute_teacher_anchored_arm(parsed)
+    payload = published.receipt.read_bytes()
+    if not payload or payload[-1:] != b"\n":
+        raise ValueError("teacher-anchored published receipt differs")
+    sys.stdout.buffer.write(payload)
+    sys.stdout.buffer.flush()
+    return 0
 
 
 if __name__ == "__main__":

@@ -237,12 +237,16 @@ def test_image_binding_reads_only_ordered_train_manifest(
     forbidden.parent.mkdir(parents=True)
     forbidden.write_bytes(b"official-test")
     expected = _image_digest(root, pair.relative_paths)
+    heartbeats: list[int] = []
 
-    bound = SUBJECT.bind_authenticated_train_images(pair, root, expected)
+    bound = SUBJECT.bind_authenticated_train_images(
+        pair, root, expected, heartbeat=lambda: heartbeats.append(1)
+    )
 
     assert bound.relative_paths == pair.relative_paths
     assert bound.image_paths == tuple(root / value for value in pair.relative_paths)
     assert bound.sha256 == expected
+    assert heartbeats == [1]
 
 
 def test_image_binding_rejects_path_escape_symlink_and_digest_drift(
@@ -362,8 +366,7 @@ def test_source_model_loader_binds_checkout_checkpoint_and_local_load(
     assert loaded.package_file == (checkout / "unicom" / "unicom" / "__init__.py").resolve()
     assert tuple(sys.path) == original_sys_path
     assert not any(
-        name == _AUTHENTICATED_UNICOM_MODULE
-        or name.startswith(f"{_AUTHENTICATED_UNICOM_MODULE}.")
+        name == _AUTHENTICATED_UNICOM_MODULE or name.startswith(f"{_AUTHENTICATED_UNICOM_MODULE}.")
         for name in sys.modules
     )
     assert all(
@@ -570,12 +573,16 @@ def test_git_source_bytes_ignores_git_replacement_objects(tmp_path: Path) -> Non
         capture_output=True,
         text=True,
     ).stdout.strip()
-    replacement_blob = subprocess.run(
-        ["git", "-C", str(checkout), "hash-object", "-w", "--stdin"],
-        input=b"replacement source\n",
-        check=True,
-        capture_output=True,
-    ).stdout.decode().strip()
+    replacement_blob = (
+        subprocess.run(
+            ["git", "-C", str(checkout), "hash-object", "-w", "--stdin"],
+            input=b"replacement source\n",
+            check=True,
+            capture_output=True,
+        )
+        .stdout.decode()
+        .strip()
+    )
     subprocess.run(
         ["git", "-C", str(checkout), "replace", original_blob, replacement_blob],
         check=True,
