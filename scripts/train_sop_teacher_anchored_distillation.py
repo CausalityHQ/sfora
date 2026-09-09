@@ -87,6 +87,8 @@ class TeacherAnchoredArguments(NamedTuple):
     image_tree_sha256: str
     teacher_pca_sha256: str
     launch_receipt: Path
+    ceiling_receipt: Path
+    ceiling_receipt_sha256: str
     source_revision: str
     seed: int
     arm: str
@@ -285,6 +287,7 @@ def parse_teacher_anchored_args(arguments: list[str]) -> TeacherAnchoredArgument
         "unicom-checkout",
         "image-root",
         "launch-receipt",
+        "ceiling-receipt",
         "output",
     ):
         parser.add_argument(f"--{name}")
@@ -296,6 +299,7 @@ def parse_teacher_anchored_args(arguments: list[str]) -> TeacherAnchoredArgument
         "schedule-sha256",
         "image-tree-sha256",
         "teacher-pca-sha256",
+        "ceiling-receipt-sha256",
         "source-revision",
         "seed",
         "arm",
@@ -326,6 +330,7 @@ def parse_teacher_anchored_args(arguments: list[str]) -> TeacherAnchoredArgument
         "unicom_checkout",
         "image_root",
         "launch_receipt",
+        "ceiling_receipt",
     ):
         raw = getattr(parsed, name)
         path = Path(raw) if type(raw) is str else Path()
@@ -335,7 +340,7 @@ def parse_teacher_anchored_args(arguments: list[str]) -> TeacherAnchoredArgument
             raise ValueError("absolute local input authority differs")
         if name not in ("image_root", "unicom_checkout") and not path.is_file():
             raise ValueError("absolute local input authority differs")
-        if name == "launch_receipt" and path.is_symlink():
+        if name in ("launch_receipt", "ceiling_receipt") and path.is_symlink():
             raise ValueError("absolute local input authority differs")
         path_values[name] = path
 
@@ -360,6 +365,7 @@ def parse_teacher_anchored_args(arguments: list[str]) -> TeacherAnchoredArgument
         "schedule_sha256",
         "image_tree_sha256",
         "teacher_pca_sha256",
+        "ceiling_receipt_sha256",
     ):
         value = getattr(parsed, name)
         if (
@@ -399,6 +405,8 @@ def parse_teacher_anchored_args(arguments: list[str]) -> TeacherAnchoredArgument
         image_tree_sha256=digests["image_tree_sha256"],
         teacher_pca_sha256=digests["teacher_pca_sha256"],
         launch_receipt=path_values["launch_receipt"],
+        ceiling_receipt=path_values["ceiling_receipt"],
+        ceiling_receipt_sha256=digests["ceiling_receipt_sha256"],
         source_revision=revision,
         seed=seed,
         arm=parsed.arm,
@@ -613,6 +621,97 @@ def load_teacher_anchored_schedule_file(
         split_sha256=split_sha256,
         seed=seed,
     )
+
+
+def load_teacher_anchored_ceiling_pca_sha256(
+    path: Path, *, expected_sha256: str, seed: int
+) -> str:
+    """Authenticate the sealed ceiling receipt and select one split's PCA identity."""
+
+    if (
+        not isinstance(path, Path)
+        or not path.is_absolute()
+        or not _is_sha256(expected_sha256)
+        or type(seed) is not int
+        or seed not in (17, 1729, 65537)
+    ):
+        raise ValueError("ceiling receipt authority differs")
+    try:
+        descriptor = os.open(
+            path,
+            os.O_RDONLY
+            | os.O_NONBLOCK
+            | getattr(os, "O_NOFOLLOW", 0)
+            | getattr(os, "O_CLOEXEC", 0),
+        )
+    except OSError as error:
+        raise ValueError("ceiling receipt authority differs") from error
+    try:
+        before = os.fstat(descriptor)
+        if not stat.S_ISREG(before.st_mode) or not 0 < before.st_size <= 16 * 1024 * 1024:
+            raise ValueError("ceiling receipt authority differs")
+        payload = bytearray()
+        while chunk := os.read(descriptor, min(1024 * 1024, before.st_size - len(payload))):
+            payload.extend(chunk)
+        after = os.fstat(descriptor)
+        if (
+            len(payload) != before.st_size
+            or os.read(descriptor, 1)
+            or (
+                after.st_dev,
+                after.st_ino,
+                after.st_size,
+                after.st_mtime_ns,
+                after.st_ctime_ns,
+            )
+            != (
+                before.st_dev,
+                before.st_ino,
+                before.st_size,
+                before.st_mtime_ns,
+                before.st_ctime_ns,
+            )
+        ):
+            raise ValueError("ceiling receipt authority differs")
+    finally:
+        os.close(descriptor)
+    data = bytes(payload)
+    del payload
+    if hashlib.sha256(data).hexdigest() != expected_sha256:
+        raise ValueError("ceiling receipt authority differs")
+    try:
+        value = json.loads(data)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError("ceiling receipt authority differs") from error
+    if (
+        type(value) is not dict
+        or _canonical_json_bytes(value) != data
+        or value.get("schema") != "sfora-representation-ceiling-v1"
+        or value.get("claim_eligible") is not False
+        or value.get("outer_split_seeds") != [17, 1729, 65537]
+        or type(value.get("splits")) is not list
+        or len(value["splits"]) != 3
+    ):
+        raise ValueError("ceiling receipt authority differs")
+    selected: str | None = None
+    observed_seeds: list[int] = []
+    for split in value["splits"]:
+        if type(split) is not dict or type(split.get("seed")) is not int:
+            raise ValueError("ceiling receipt authority differs")
+        split_seed = split["seed"]
+        transforms = split.get("transform_sha256")
+        if (
+            type(transforms) is not dict
+            or set(transforms) != {"ridge", "ridge-pca", "source-pca", "teacher-pca"}
+            or any(not _is_sha256(digest) for digest in transforms.values())
+        ):
+            raise ValueError("ceiling receipt authority differs")
+        observed_seeds.append(split_seed)
+        if split_seed == seed:
+            selected = transforms["teacher-pca"]
+    if observed_seeds != [17, 1729, 65537] or selected is None:
+        raise ValueError("ceiling receipt authority differs")
+    return selected
 
 
 def authenticate_teacher_anchored_checkout(checkout: Path, expected_revision: str) -> str:

@@ -112,6 +112,8 @@ def _registered_cli(tmp_path: Path) -> list[str]:
         path.write_bytes(b"fixture")
     launch_receipt = tmp_path / "launch.json"
     launch_receipt.write_bytes(b'{"schema":"fixture-launch-v1"}\n')
+    ceiling_receipt = tmp_path / "ceiling.json"
+    ceiling_receipt.write_bytes(b'{"schema":"fixture-ceiling-v1"}\n')
     image_root = tmp_path / "train-images"
     image_root.mkdir(exist_ok=True)
     unicom_checkout = tmp_path / "unicom-checkout"
@@ -131,6 +133,10 @@ def _registered_cli(tmp_path: Path) -> list[str]:
             "3" * 64,
             "--launch-receipt",
             str(launch_receipt.resolve()),
+            "--ceiling-receipt",
+            str(ceiling_receipt.resolve()),
+            "--ceiling-receipt-sha256",
+            "4" * 64,
             "--source-revision",
             "d71992ed969e6c271436ac0a0ee1f3ca61474ac0",
             "--seed",
@@ -283,7 +289,31 @@ def test_cli_accepts_only_registered_local_capability(tmp_path: Path) -> None:
     assert parsed.image_tree_sha256 == "2" * 64
     assert parsed.teacher_pca_sha256 == "3" * 64
     assert parsed.launch_receipt == (tmp_path / "launch.json").resolve()
+    assert parsed.ceiling_receipt == (tmp_path / "ceiling.json").resolve()
+    assert parsed.ceiling_receipt_sha256 == "4" * 64
     assert parsed.progress == (tmp_path / "result.progress.jsonl").resolve()
+
+
+def test_sealed_ceiling_receipt_selects_the_registered_split_projection() -> None:
+    receipt = (
+        Path(__file__).parents[1]
+        / "docs"
+        / "evidence"
+        / "representation_ceiling"
+        / "sop-representation-ceiling-v1.json"
+    ).resolve()
+
+    assert SUBJECT.load_teacher_anchored_ceiling_pca_sha256(
+        receipt,
+        expected_sha256="a89a09f73661fd64acc666b84732c411cb74b215103dbf7d818ba47c71624f3e",
+        seed=17,
+    ) == "3cc075cc806a446f960a3b7bb3a5161f95ef71bbf2f440cb0ce08c750478f0ee"
+    with pytest.raises(ValueError, match="ceiling receipt authority differs"):
+        SUBJECT.load_teacher_anchored_ceiling_pca_sha256(
+            receipt,
+            expected_sha256="0" * 64,
+            seed=17,
+        )
 
 
 def test_split_boundary_maps_every_training_decision_through_fitting_rows_only() -> None:
