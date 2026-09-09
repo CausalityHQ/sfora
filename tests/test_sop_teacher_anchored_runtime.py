@@ -3,14 +3,20 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import os
+import py_compile
 import struct
+import subprocess
 import sys
+from collections.abc import Callable
 from dataclasses import replace
 from pathlib import Path
 from types import ModuleType
 
 import numpy as np
 import pytest
+import torch
+from torch import nn
 
 from sfora.nested_rank_protocol import ordered_training_records_sha256
 
@@ -26,6 +32,7 @@ def _load_subject() -> ModuleType:
 
 
 SUBJECT = _load_subject()
+_AUTHENTICATED_UNICOM_MODULE = "_sfora_authenticated_unicom"
 
 
 def test_registered_snapshot_metadata_matches_the_sealed_sop_authority() -> None:
@@ -286,3 +293,291 @@ def test_image_binding_rejects_empty_relative_path_uniformly(
 
     with pytest.raises(ValueError, match="image manifest"):
         SUBJECT.bind_authenticated_train_images(invalid, root, "0" * 64)
+
+
+def _fake_unicom_source(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Path, Path, str]:
+    checkout = tmp_path / "unicom-checkout"
+    package = checkout / "unicom" / "unicom"
+    package.mkdir(parents=True)
+    (package / "__init__.py").write_text(
+        "from .model import load\n",
+        encoding="utf-8",
+    )
+    (package / "model.py").write_text(
+        """
+import torch
+
+def load(*_args, **_kwargs):
+    raise AssertionError("download-capable loader must not be called")
+
+def load_model_and_transform(name):
+    assert name == "ViT-B/16"
+    return torch.nn.Linear(4, 4), lambda value: value
+""".lstrip(),
+        encoding="utf-8",
+    )
+    checkpoint = checkout / "checkpoints" / "FP16-ViT-B-16.pt"
+    checkpoint.parent.mkdir()
+    torch.save(nn.Linear(4, 4).state_dict(), checkpoint)
+    checkpoint_sha256 = hashlib.sha256(checkpoint.read_bytes()).hexdigest()
+    registered = {
+        **SUBJECT._REGISTERED_SNAPSHOT_METADATA,
+        "source": {
+            **SUBJECT._REGISTERED_SNAPSHOT_METADATA["source"],
+            "checkpoint_sha256": checkpoint_sha256,
+            "model_revision": "1" * 40,
+        },
+    }
+    monkeypatch.setattr(SUBJECT, "_REGISTERED_SNAPSHOT_METADATA", registered)
+    monkeypatch.setattr(SUBJECT, "_git_revision", lambda _path: "1" * 40, raising=False)
+    monkeypatch.setattr(SUBJECT, "_git_status_porcelain", lambda _path: "", raising=False)
+    monkeypatch.setattr(
+        SUBJECT,
+        "_git_source_bytes",
+        lambda root, _revision, relative: (root / relative).read_bytes(),
+        raising=False,
+    )
+    for name in tuple(sys.modules):
+        if name in {"unicom", _AUTHENTICATED_UNICOM_MODULE} or name.startswith(
+            ("unicom.", f"{_AUTHENTICATED_UNICOM_MODULE}.")
+        ):
+            monkeypatch.delitem(sys.modules, name, raising=False)
+    return checkout, checkpoint, checkpoint_sha256
+
+
+def test_source_model_loader_binds_checkout_checkpoint_and_local_load(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    checkout, checkpoint, checkpoint_sha256 = _fake_unicom_source(tmp_path, monkeypatch)
+    original_sys_path = tuple(sys.path)
+
+    loaded = SUBJECT.load_authenticated_source_model(checkout, checkpoint)
+
+    assert isinstance(loaded.encoder, nn.Module)
+    assert loaded.encoder.training is False
+    assert isinstance(loaded.transform, Callable)
+    assert loaded.revision == "1" * 40
+    assert loaded.checkpoint_sha256 == checkpoint_sha256
+    assert loaded.package_file == (checkout / "unicom" / "unicom" / "__init__.py").resolve()
+    assert tuple(sys.path) == original_sys_path
+    assert not any(
+        name == _AUTHENTICATED_UNICOM_MODULE
+        or name.startswith(f"{_AUTHENTICATED_UNICOM_MODULE}.")
+        for name in sys.modules
+    )
+    assert all(
+        not value.is_floating_point() or value.dtype == torch.float32
+        for value in loaded.encoder.state_dict().values()
+    )
+
+
+def test_source_model_loader_rejects_revision_checkpoint_symlink_and_module_drift(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    checkout, checkpoint, _checkpoint_sha256 = _fake_unicom_source(tmp_path, monkeypatch)
+    monkeypatch.setattr(SUBJECT, "_git_revision", lambda _path: "2" * 40)
+    with pytest.raises(ValueError, match="source model"):
+        SUBJECT.load_authenticated_source_model(checkout, checkpoint)
+
+    monkeypatch.setattr(SUBJECT, "_git_revision", lambda _path: "1" * 40)
+    target = checkpoint.with_name("target.pt")
+    checkpoint.rename(target)
+    checkpoint.symlink_to(target)
+    with pytest.raises(ValueError, match="source model"):
+        SUBJECT.load_authenticated_source_model(checkout, checkpoint)
+
+    checkpoint.unlink()
+    target.rename(checkpoint)
+    foreign = ModuleType(_AUTHENTICATED_UNICOM_MODULE)
+    foreign.__file__ = str((checkout / "unicom" / "unicom" / "__init__.py").resolve())
+    monkeypatch.setitem(sys.modules, _AUTHENTICATED_UNICOM_MODULE, foreign)
+    with pytest.raises(ValueError, match="source model"):
+        SUBJECT.load_authenticated_source_model(checkout, checkpoint)
+
+
+def test_source_model_loader_rejects_dirty_checkout_and_never_uses_named_loader(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    checkout, checkpoint, _checkpoint_sha256 = _fake_unicom_source(tmp_path, monkeypatch)
+    monkeypatch.setattr(SUBJECT, "_git_status_porcelain", lambda _path: " M unicom/model.py")
+
+    with pytest.raises(ValueError, match="source model"):
+        SUBJECT.load_authenticated_source_model(checkout, checkpoint)
+
+
+def test_source_model_loader_reads_the_authenticated_open_file_description(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    checkout, checkpoint, _checkpoint_sha256 = _fake_unicom_source(tmp_path, monkeypatch)
+    original_load = torch.load
+
+    def replace_path_then_load(stream: object, *args: object, **kwargs: object) -> object:
+        replacement = checkpoint.with_name("replacement.pt")
+        torch.save(nn.Linear(3, 3).state_dict(), replacement)
+        replacement.replace(checkpoint)
+        return original_load(stream, *args, **kwargs)
+
+    monkeypatch.setattr(torch, "load", replace_path_then_load)
+
+    with pytest.raises(ValueError, match="source model"):
+        SUBJECT.load_authenticated_source_model(checkout, checkpoint)
+
+
+def test_source_model_loader_rejects_in_place_checkpoint_mutation_after_hash(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    checkout, checkpoint, _checkpoint_sha256 = _fake_unicom_source(tmp_path, monkeypatch)
+    original_load = torch.load
+
+    def mutate_after_load(stream: object, *args: object, **kwargs: object) -> object:
+        state = original_load(stream, *args, **kwargs)
+        with checkpoint.open("r+b") as mutable:
+            mutable.seek(-1, 2)
+            last = mutable.read(1)
+            mutable.seek(-1, 2)
+            mutable.write(bytes([last[0] ^ 1]))
+        return state
+
+    monkeypatch.setattr(torch, "load", mutate_after_load)
+
+    with pytest.raises(ValueError, match="source model"):
+        SUBJECT.load_authenticated_source_model(checkout, checkpoint)
+
+
+def test_source_model_loader_deserializes_only_the_authenticated_immutable_bytes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    checkout, checkpoint, _checkpoint_sha256 = _fake_unicom_source(tmp_path, monkeypatch)
+    original_bytes = checkpoint.read_bytes()
+    alternate_model = nn.Linear(4, 4)
+    with torch.no_grad():
+        alternate_model.weight.fill_(9.0)
+        alternate_model.bias.fill_(9.0)
+    torch.save(alternate_model.state_dict(), checkpoint)
+    alternate_bytes = checkpoint.read_bytes()
+    checkpoint.write_bytes(original_bytes)
+    assert len(alternate_bytes) == len(original_bytes)
+    original_load = torch.load
+
+    def overwrite_load_restore(stream: object, *args: object, **kwargs: object) -> object:
+        checkpoint.write_bytes(alternate_bytes)
+        try:
+            return original_load(stream, *args, **kwargs)
+        finally:
+            checkpoint.write_bytes(original_bytes)
+
+    monkeypatch.setattr(torch, "load", overwrite_load_restore)
+
+    loaded = SUBJECT.load_authenticated_source_model(checkout, checkpoint)
+
+    assert not torch.equal(loaded.encoder.weight, alternate_model.weight)
+
+
+def test_source_model_loader_ignores_unauthenticated_bytecode_cache(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    checkout, checkpoint, _checkpoint_sha256 = _fake_unicom_source(tmp_path, monkeypatch)
+    model_path = checkout / "unicom" / "unicom" / "model.py"
+    trusted_source = model_path.read_text(encoding="utf-8")
+    malicious_source = """
+import torch
+def load(*_args, **_kwargs): raise AssertionError
+def load_model_and_transform(_name):
+    raise AssertionError("UNAUTHENTICATED_BYTECODE_EXECUTED")
+""".lstrip()
+    assert len(malicious_source) <= len(trusted_source)
+    malicious_source += "#" * (len(trusted_source) - len(malicious_source))
+    fixed_time = 1_700_000_000
+    model_path.write_text(malicious_source, encoding="utf-8")
+    os.utime(model_path, (fixed_time, fixed_time))
+    py_compile.compile(str(model_path), doraise=True)
+    model_path.write_text(trusted_source, encoding="utf-8")
+    os.utime(model_path, (fixed_time, fixed_time))
+
+    loaded = SUBJECT.load_authenticated_source_model(checkout, checkpoint)
+
+    assert isinstance(loaded.encoder, nn.Linear)
+
+
+def test_source_model_loader_executes_registered_git_blobs_not_transient_worktree_bytes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    checkout, checkpoint, _checkpoint_sha256 = _fake_unicom_source(tmp_path, monkeypatch)
+    relative_files = (
+        Path("unicom/unicom/__init__.py"),
+        Path("unicom/unicom/model.py"),
+    )
+    registered_blobs = {relative: (checkout / relative).read_bytes() for relative in relative_files}
+    monkeypatch.setattr(
+        SUBJECT,
+        "_git_source_bytes",
+        lambda _root, _revision, relative: registered_blobs[relative],
+        raising=False,
+    )
+    (checkout / "unicom/unicom/model.py").write_text(
+        "raise AssertionError('TRANSIENT_WORKTREE_CODE_EXECUTED')\n",
+        encoding="utf-8",
+    )
+
+    loaded = SUBJECT.load_authenticated_source_model(checkout, checkpoint)
+
+    assert isinstance(loaded.encoder, nn.Linear)
+
+
+def test_source_model_loader_never_falls_back_to_sourceless_bytecode(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    checkout, checkpoint, _checkpoint_sha256 = _fake_unicom_source(tmp_path, monkeypatch)
+    model_path = checkout / "unicom/unicom/model.py"
+    model_pyc = model_path.with_suffix(".pyc")
+    malicious = model_path.with_name("malicious.py")
+    malicious.write_text(
+        "raise AssertionError('SOURCELESS_BYTECODE_EXECUTED')\n",
+        encoding="utf-8",
+    )
+    py_compile.compile(str(malicious), cfile=str(model_pyc), doraise=True)
+    model_path.unlink()
+
+    with pytest.raises(ValueError, match="source model"):
+        SUBJECT.load_authenticated_source_model(checkout, checkpoint)
+
+
+def test_git_source_bytes_ignores_git_replacement_objects(tmp_path: Path) -> None:
+    checkout = tmp_path / "checkout"
+    checkout.mkdir()
+    subprocess.run(["git", "init", "-q", str(checkout)], check=True)
+    subprocess.run(["git", "-C", str(checkout), "config", "user.name", "Fixture"], check=True)
+    subprocess.run(
+        ["git", "-C", str(checkout), "config", "user.email", "fixture@example.invalid"],
+        check=True,
+    )
+    relative = Path("unicom/unicom/model.py")
+    source = checkout / relative
+    source.parent.mkdir(parents=True)
+    source.write_bytes(b"trusted source\n")
+    subprocess.run(["git", "-C", str(checkout), "add", relative.as_posix()], check=True)
+    subprocess.run(["git", "-C", str(checkout), "commit", "-qm", "fixture"], check=True)
+    revision = subprocess.run(
+        ["git", "-C", str(checkout), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    original_blob = subprocess.run(
+        ["git", "-C", str(checkout), "rev-parse", f"{revision}:{relative.as_posix()}"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    replacement_blob = subprocess.run(
+        ["git", "-C", str(checkout), "hash-object", "-w", "--stdin"],
+        input=b"replacement source\n",
+        check=True,
+        capture_output=True,
+    ).stdout.decode().strip()
+    subprocess.run(
+        ["git", "-C", str(checkout), "replace", original_blob, replacement_blob],
+        check=True,
+    )
+
+    assert SUBJECT._git_source_bytes(checkout, revision, relative) == b"trusted source\n"
