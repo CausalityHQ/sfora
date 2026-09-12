@@ -231,6 +231,17 @@ necessary candidates and loses quality through fine local ordering. This support
 hard-score/rank-aware codec training, and bounded conditional reranking as the next mechanisms.
 It is an oracle diagnostic using unavailable float database vectors, not a deployable result.
 
+The deterministic five-alternation OPQ24 control subsequently ran from commit
+`29610d98f62aa7613978a2b9f08f73d55a006809`. It reached `0.572753908 / 0.821895839`, an
+improvement of `0.002033236` mAP@R over matched PQ24, but remained `0.006169277` below PQ32 and
+`0.012876092` below the research target. Rotation therefore has real but insufficient value, and
+its slight Recall@1 regression prevents a broad dominance claim. The canonical receipt SHA-256
+is `b0922d2cfd4578873fc3b7a3276ee4cb0c80dc51ac15ce6f9dc575541f9ba10b`; its codebook
+checkpoint SHA-256 is `0583c03dee0352a28373f1f6e8002da3178f22581730dedc0a59da3018408e39`.
+Total fitting took 182.44 seconds, including 105.16 seconds for OPQ24. This development-only
+failure closes rotation as a sufficient intervention, not as a useful initialization for
+hard-score training.
+
 ## Scientific interpretation
 
 Most of the adaptation gain is already explained by the pooled control. Positive coverage adds

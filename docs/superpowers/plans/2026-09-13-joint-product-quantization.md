@@ -98,9 +98,9 @@ optimization or candidate construction.
   component extraction.
 - [x] Add a deterministic OPQ alternation with float64 Procrustes updates, fitting-data-only model
   selection, and ordinary-PQ non-regression.
-- [ ] Run the authenticated seed-0 OPQ24 control. Require it to match PQ32 before making it the
-  initialization for hard-score joint training; record distortion and the exact rotation/codebook
-  checkpoint even on failure.
+- [x] Run the authenticated seed-0 OPQ24 control. It improved matched PQ24 from `0.570721` to
+  `0.572754` mAP@R but did not match PQ32 `0.578923`; retain it as an initialization/control, not
+  as a sufficient solution. The canonical receipt SHA-256 is `b0922d2c...f9ba10b`.
 
 ### Task 3: Authenticated joint-codec development driver
 
