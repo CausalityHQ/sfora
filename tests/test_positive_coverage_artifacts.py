@@ -662,12 +662,25 @@ def test_projection_parameterization_artifacts_bind_distinct_state_schemas(
         "bias": torch.tensor([0.25, -0.5]),
         "weight": torch.tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]),
     }
-    states = {"direct_projection": direct, "restricted_adapter": restricted}
+    factorized = {
+        "bias": torch.tensor([0.2, -0.4]),
+        "weight": torch.tensor([[0.8, 0.1, 0.2], [0.0, 0.7, 0.3]]),
+    }
+    states = {
+        "direct_projection": direct,
+        "factorized_adapter": factorized,
+        "restricted_adapter": restricted,
+    }
     receipt = {
         "arms": {
             "direct_projection": {
                 "parameter_sha256": artifacts.affine_parameters_sha256(
                     direct["weight"], direct["bias"]
+                )
+            },
+            "factorized_adapter": {
+                "deployed_head_sha256": artifacts.affine_parameters_sha256(
+                    factorized["weight"], factorized["bias"]
                 )
             },
             "restricted_adapter": {
@@ -678,10 +691,11 @@ def test_projection_parameterization_artifacts_bind_distinct_state_schemas(
             },
         },
         "claim_eligible": False,
-        "schema": "sfora-projection-parameterizations-v1",
+        "schema": "sfora-projection-parameterizations-v2",
     }
     paths = artifacts.ProjectionParameterizationArtifactPaths(
         restricted_checkpoint=tmp_path / "restricted.pt",
+        factorized_checkpoint=tmp_path / "factorized.pt",
         direct_checkpoint=tmp_path / "direct.pt",
         complete_receipt=tmp_path / "complete.json",
     )
@@ -692,6 +706,7 @@ def test_projection_parameterization_artifacts_bind_distinct_state_schemas(
 
     assert set(tmp_path.iterdir()) == {
         paths.restricted_checkpoint,
+        paths.factorized_checkpoint,
         paths.direct_checkpoint,
         paths.complete_receipt,
     }
@@ -701,6 +716,10 @@ def test_projection_parameterization_artifacts_bind_distinct_state_schemas(
     )
     assert set(completed["arms"]["restricted_adapter"]["checkpoint"]) == {"bytes", "sha256"}
     assert set(completed["arms"]["direct_projection"]["checkpoint"]) == {"bytes", "sha256"}
+    assert set(completed["arms"]["factorized_adapter"]["checkpoint"]) == {
+        "bytes",
+        "sha256",
+    }
 
 
 def test_projection_parameterization_artifacts_reject_state_role_drift(
@@ -709,6 +728,10 @@ def test_projection_parameterization_artifacts_reject_state_role_drift(
     states = {
         "restricted_adapter": {"weight": torch.eye(2)},
         "direct_projection": {
+            "weight": torch.ones((2, 3)),
+            "bias": torch.zeros(2),
+        },
+        "factorized_adapter": {
             "weight": torch.ones((2, 3)),
             "bias": torch.zeros(2),
         },
@@ -721,12 +744,14 @@ def test_projection_parameterization_artifacts_reject_state_role_drift(
                 )
             },
             "direct_projection": {"parameter_sha256": "0" * 64},
+            "factorized_adapter": {"deployed_head_sha256": "0" * 64},
         },
         "claim_eligible": False,
-        "schema": "sfora-projection-parameterizations-v1",
+        "schema": "sfora-projection-parameterizations-v2",
     }
     paths = artifacts.ProjectionParameterizationArtifactPaths(
         restricted_checkpoint=tmp_path / "restricted.pt",
+        factorized_checkpoint=tmp_path / "factorized.pt",
         direct_checkpoint=tmp_path / "direct.pt",
         complete_receipt=tmp_path / "complete.json",
     )

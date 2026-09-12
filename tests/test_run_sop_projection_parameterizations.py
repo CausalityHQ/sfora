@@ -30,16 +30,21 @@ def test_parameterizations_start_from_the_same_effective_affine_map() -> None:
     teacher = torch.tensor([[1.0, 2.0, -1.0], [-0.5, 0.25, 0.75]], dtype=torch.float32)
 
     models = subject.initialize_matched_parameterizations(weight, bias, device=torch.device("cpu"))
-    base = torch.nn.functional.normalize(torch.nn.functional.linear(teacher, weight, bias), dim=-1)
+    base_raw = torch.nn.functional.linear(teacher, weight, bias)
+    base = torch.nn.functional.normalize(base_raw, dim=-1)
     restricted = subject.encode_parameterization(
         "restricted_adapter", models["restricted_adapter"], teacher, base
     )
     direct = subject.encode_parameterization(
         "direct_projection", models["direct_projection"], teacher, base
     )
+    factorized = subject.encode_parameterization(
+        "factorized_adapter", models["factorized_adapter"], teacher, base_raw
+    )
 
     torch.testing.assert_close(restricted, base, rtol=2e-6, atol=2e-7)
     torch.testing.assert_close(direct, base, rtol=2e-6, atol=2e-7)
+    torch.testing.assert_close(factorized, base, rtol=2e-6, atol=2e-7)
     torch.testing.assert_close(models["direct_projection"].weight, weight, rtol=0.0, atol=0.0)
     torch.testing.assert_close(models["direct_projection"].bias, bias, rtol=0.0, atol=0.0)
 
@@ -106,9 +111,21 @@ def test_direct_projection_learning_rate_matches_deployed_map_scale() -> None:
     assert subject.parameterization_learning_rate("direct_projection") == pytest.approx(
         subject.coverage.LEARNING_RATE * np.sqrt(128.0 / 768.0)
     )
+    assert subject.parameterization_learning_rate("factorized_adapter") == pytest.approx(
+        subject.coverage.LEARNING_RATE * np.sqrt(128.0 / 768.0)
+    )
 
 
-@pytest.mark.parametrize("name", ("restricted_adapter", "direct_projection"))
+def test_scientific_factorized_adapter_matches_direct_parameter_count() -> None:
+    subject = _subject()
+    models = subject.initialize_matched_parameterizations(
+        torch.ones((128, 768)), torch.zeros(128), device=torch.device("cpu")
+    )
+    assert subject.trainable_parameter_count(models["factorized_adapter"]) == 98_432
+    assert subject.trainable_parameter_count(models["direct_projection"]) == 98_432
+
+
+@pytest.mark.parametrize("name", ("restricted_adapter", "factorized_adapter", "direct_projection"))
 def test_train_parameterization_arm_preserves_matched_evidence_shape(name: str) -> None:
     subject = _subject()
     teacher = torch.tensor(
@@ -124,7 +141,8 @@ def test_train_parameterization_arm_preserves_matched_evidence_shape(name: str) 
     )
     weight = torch.tensor([[1.0, 0.1, 0.0], [0.0, 1.0, 0.1]])
     bias = torch.tensor([0.05, -0.05])
-    base = torch.nn.functional.normalize(torch.nn.functional.linear(teacher, weight, bias), dim=-1)
+    base_raw = torch.nn.functional.linear(teacher, weight, bias)
+    base = torch.nn.functional.normalize(base_raw, dim=-1)
     labels = (1, 1, 2, 2, 3, 3)
     negative_table = subject.controls.frozen_hard_negative_index(
         base, labels, device=torch.device("cpu"), k=2, block_size=3
@@ -133,13 +151,14 @@ def test_train_parameterization_arm_preserves_matched_evidence_shape(name: str) 
         name
     ]
 
+    arm_base = base_raw if name == "factorized_adapter" else base
     result, state = subject.train_parameterization_arm(
         name,
         model,
         teacher,
         teacher,
-        base,
-        base,
+        arm_base,
+        arm_base,
         weight,
         bias,
         labels,
@@ -157,6 +176,7 @@ def test_train_parameterization_arm_preserves_matched_evidence_shape(name: str) 
         "mean_last_100_loss",
         "parameter_sha256",
         "score",
+        "trainable_parameters",
     }
     if name == "restricted_adapter":
         expected_result_keys.add("base_head_sha256")
@@ -166,8 +186,11 @@ def test_train_parameterization_arm_preserves_matched_evidence_shape(name: str) 
     if name == "restricted_adapter":
         assert result["deployment_equivalence"]["maximum_absolute_code_delta"] <= 2e-6
         assert set(state) == {"weight", "base_head_weight", "base_head_bias"}
-    else:
+    elif name == "direct_projection":
         assert result["deployment_equivalence"] == "identical-parameterization"
+        assert set(state) == {"weight", "bias"}
+    else:
+        assert np.isfinite(result["deployment_equivalence"]["maximum_absolute_code_delta"])
         assert set(state) == {"weight", "bias"}
 
 
@@ -187,8 +210,17 @@ def test_projection_decision_uses_paired_class_cluster_evidence() -> None:
             "packed_r1": 0.71,
         }
     }
+    factorized = {
+        "score": {
+            "packed_map_at_r": 0.504,
+            "packed_per_query_ap": [0.404, 0.604, 0.404, 0.604],
+            "packed_r1": 0.704,
+        }
+    }
 
-    decision = subject.projection_decision(restricted, direct, validation_labels=(1, 1, 2, 2))
+    decision = subject.projection_decision(
+        restricted, factorized, direct, validation_labels=(1, 1, 2, 2)
+    )
 
     assert decision["gates"] == {
         "class_clustered_lower_bound": 0.0,
@@ -196,6 +228,8 @@ def test_projection_decision_uses_paired_class_cluster_evidence() -> None:
         "packed_r1_gain": 0.0,
     }
     assert decision["observed"]["packed_map_at_r_gain"] == pytest.approx(0.01)
+    assert decision["capacity_control"]["closure_fraction"] == pytest.approx(0.4)
+    assert decision["capacity_control"]["classification"] == "mixed-or-information-leading"
     assert decision["passed"] is True
 
 

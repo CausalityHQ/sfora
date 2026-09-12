@@ -20,9 +20,10 @@ from probe_representation_ceiling import load_paired_train_archives
 from torch import nn
 
 from sfora.deterministic_similarity_runtime import configure_deterministic_similarity_runtime
+from sfora.foldable_linear import FoldableLinear
 from sfora.representation_ceiling import deterministic_class_partition
 
-_ARM_NAMES = ("restricted_adapter", "direct_projection")
+_ARM_NAMES = ("restricted_adapter", "factorized_adapter", "direct_projection")
 _SHA256 = re.compile(r"[0-9a-f]{64}")
 
 
@@ -40,7 +41,7 @@ def initialize_matched_parameterizations(
     base_bias: torch.Tensor,
     *,
     device: torch.device,
-) -> dict[str, nn.Linear]:
+) -> dict[str, nn.Module]:
     """Initialize both parameterizations to the same effective affine map."""
 
     if (
@@ -56,24 +57,34 @@ def initialize_matched_parameterizations(
     ):
         raise ValueError("base projection authority differs")
     restricted = nn.Linear(base_weight.shape[0], base_weight.shape[0], bias=False, device=device)
+    factorized = FoldableLinear(
+        input_dim=base_weight.shape[0],
+        hidden_dim=3 * base_weight.shape[0],
+        output_dim=base_weight.shape[0],
+    ).to(device)
     direct = nn.Linear(base_weight.shape[1], base_weight.shape[0], bias=True, device=device)
     with torch.no_grad():
         restricted.weight.copy_(torch.eye(base_weight.shape[0], device=device))
+        factorized.initialize_repeated_identity()
         direct.weight.copy_(base_weight.to(device))
         assert direct.bias is not None
         direct.bias.copy_(base_bias.to(device))
-    return {"restricted_adapter": restricted, "direct_projection": direct}
+    return {
+        "restricted_adapter": restricted,
+        "factorized_adapter": factorized,
+        "direct_projection": direct,
+    }
 
 
 def encode_parameterization(
     name: str,
-    model: nn.Linear,
+    model: nn.Module,
     teacher_rows: torch.Tensor,
     base_rows: torch.Tensor,
 ) -> torch.Tensor:
     """Encode rows through one registered matched parameterization."""
 
-    if name == "restricted_adapter":
+    if name in ("restricted_adapter", "factorized_adapter"):
         source = base_rows
     elif name == "direct_projection":
         source = teacher_rows
@@ -118,12 +129,20 @@ def parameterization_state(name: str, model: nn.Linear) -> tuple[dict[str, torch
     raise ValueError("parameterization arm differs")
 
 
+def trainable_parameter_count(model: nn.Module) -> int:
+    """Count trainable scalar parameters without counting frozen buffers."""
+
+    if not isinstance(model, nn.Module):
+        raise ValueError("parameterization arm differs")
+    return sum(parameter.numel() for parameter in model.parameters() if parameter.requires_grad)
+
+
 def parameterization_learning_rate(name: str) -> float:
     """Match first-order deployed-map motion across parameter widths."""
 
     if name == "restricted_adapter":
         return coverage.LEARNING_RATE
-    if name == "direct_projection":
+    if name in ("factorized_adapter", "direct_projection"):
         return coverage.LEARNING_RATE * math.sqrt(128.0 / 768.0)
     raise ValueError("parameterization arm differs")
 
@@ -146,6 +165,7 @@ def _relative_affine_displacement(
 
 def projection_decision(
     restricted: dict[str, object],
+    factorized: dict[str, object],
     direct: dict[str, object],
     *,
     validation_labels: tuple[int, ...],
@@ -153,6 +173,7 @@ def projection_decision(
     """Apply the preregistered paired capacity-screen decision rule."""
 
     restricted_score = cast(dict[str, object], restricted["score"])
+    factorized_score = cast(dict[str, object], factorized["score"])
     direct_score = cast(dict[str, object], direct["score"])
     restricted_ap = cast(list[float], restricted_score["packed_per_query_ap"])
     direct_ap = cast(list[float], direct_score["packed_per_query_ap"])
@@ -161,7 +182,28 @@ def projection_decision(
     )
     r1_gain = cast(float, direct_score["packed_r1"]) - cast(float, restricted_score["packed_r1"])
     lower_bound = coverage._class_cluster_lower_bound(direct_ap, restricted_ap, validation_labels)
+    factorized_gain = cast(float, factorized_score["packed_map_at_r"]) - cast(
+        float, restricted_score["packed_map_at_r"]
+    )
+    closure_fraction = factorized_gain / map_gain if map_gain > 0.0 else 0.0
+    direct_factorized_gain = cast(float, direct_score["packed_map_at_r"]) - cast(
+        float, factorized_score["packed_map_at_r"]
+    )
+    if map_gain < 0.003 or lower_bound <= 0.0 or r1_gain < 0.0:
+        classification = "direct-screen-failed"
+    elif factorized_gain >= map_gain - 0.002:
+        classification = "parameterization-sufficient"
+    elif direct_factorized_gain >= 0.005 and closure_fraction < 0.6:
+        classification = "mixed-or-information-leading"
+    else:
+        classification = "mixed"
     return {
+        "capacity_control": {
+            "classification": classification,
+            "closure_fraction": closure_fraction,
+            "direct_minus_factorized_packed_map_at_r": direct_factorized_gain,
+            "factorized_minus_restricted_packed_map_at_r": factorized_gain,
+        },
         "gates": {
             "class_clustered_lower_bound": 0.0,
             "packed_map_at_r_gain": 0.003,
@@ -178,7 +220,7 @@ def projection_decision(
 
 def train_parameterization_arm(
     name: str,
-    model: nn.Linear,
+    model: nn.Module,
     teacher_fit: torch.Tensor,
     teacher_validation: torch.Tensor,
     base_fit: torch.Tensor,
@@ -233,7 +275,7 @@ def train_parameterization_arm(
             "bd,bnd->bn", anchor_codes, negative_codes
         ).contiguous()
         self_similarities = torch.einsum(
-            "bd,bd->b", anchor_codes, base_fit_device[anchors]
+            "bd,bd->b", anchor_codes, coverage._unit(base_fit_device[anchors])
         ).contiguous()
         loss = controls.matched_control_loss(
             "mean_logit",
@@ -267,15 +309,32 @@ def train_parameterization_arm(
             teacher_validation.to(device),
             base_validation.to(device),
         ).cpu()
-    state, parameter_sha256 = parameterization_state(name, model)
+    if name == "factorized_adapter":
+        if not isinstance(model, FoldableLinear):
+            raise ValueError("parameterization arm differs")
+        adapter_weight, adapter_bias = model.fold()
+        folded_weight = torch.matmul(adapter_weight.detach().cpu(), base_weight).contiguous()
+        folded_bias = (
+            torch.mv(adapter_weight.detach().cpu(), base_bias) + adapter_bias.detach().cpu()
+        ).contiguous()
+        state = {"weight": folded_weight, "bias": folded_bias}
+        parameter_sha256 = artifacts.affine_parameters_sha256(
+            adapter_weight.detach().cpu(), adapter_bias.detach().cpu()
+        )
+    else:
+        if not isinstance(model, nn.Linear):
+            raise ValueError("parameterization arm differs")
+        state, parameter_sha256 = parameterization_state(name, model)
     if name == "restricted_adapter":
         folded_weight, folded_bias = fold_restricted_adapter(
             state["weight"], base_weight, base_bias
         )
         deployed_head_sha256 = artifacts.affine_parameters_sha256(folded_weight, folded_bias)
-    else:
+    elif name == "direct_projection":
         folded_weight = state["weight"]
         folded_bias = state["bias"]
+        deployed_head_sha256 = artifacts.affine_parameters_sha256(folded_weight, folded_bias)
+    else:
         deployed_head_sha256 = artifacts.affine_parameters_sha256(folded_weight, folded_bias)
     with torch.inference_mode():
         deployment_codes = coverage._unit(
@@ -294,6 +353,8 @@ def train_parameterization_arm(
         state["base_head_weight"] = base_weight.detach().cpu().float().contiguous()
         state["base_head_bias"] = base_bias.detach().cpu().float().contiguous()
         deployment_equivalence: object = {"maximum_absolute_code_delta": deployment_delta}
+    elif name == "factorized_adapter":
+        deployment_equivalence = {"maximum_absolute_code_delta": deployment_delta}
     else:
         deployment_equivalence = "identical-parameterization"
     result: dict[str, object] = {
@@ -306,6 +367,7 @@ def train_parameterization_arm(
         "mean_last_100_loss": artifacts.mean_recent_loss(losses, window=100),
         "parameter_sha256": parameter_sha256,
         "score": coverage._score(deployment_codes.cpu(), validation_labels, device),
+        "trainable_parameters": trainable_parameter_count(model),
     }
     if name == "restricted_adapter":
         result["base_head_sha256"] = artifacts.affine_parameters_sha256(
@@ -329,6 +391,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--expected-base-r1", type=float, required=True)
     parser.add_argument("--seed", type=int, required=True)
     parser.add_argument("--restricted-checkpoint", type=Path, required=True)
+    parser.add_argument("--factorized-checkpoint", type=Path, required=True)
     parser.add_argument("--direct-checkpoint", type=Path, required=True)
     parser.add_argument("--receipt", type=Path, required=True)
     parser.add_argument("--source-revision", required=True)
@@ -358,6 +421,7 @@ def main() -> None:
     )
     paths = artifacts.ProjectionParameterizationArtifactPaths(
         restricted_checkpoint=args.restricted_checkpoint,
+        factorized_checkpoint=args.factorized_checkpoint,
         direct_checkpoint=args.direct_checkpoint,
         complete_receipt=args.receipt,
     )
@@ -403,12 +467,14 @@ def main() -> None:
     if artifacts.affine_parameters_sha256(base_weight, base_bias) != base_parameter_sha256:
         raise ValueError("base checkpoint parameters differ")
     with torch.inference_mode():
-        base_fit = coverage._unit(
-            torch.nn.functional.linear(teacher[fit_indexes], base_weight, base_bias)
-        )
-        base_validation = coverage._unit(
-            torch.nn.functional.linear(teacher[validation_indexes], base_weight, base_bias)
-        )
+        base_fit_raw = torch.nn.functional.linear(
+            teacher[fit_indexes], base_weight, base_bias
+        ).contiguous()
+        base_validation_raw = torch.nn.functional.linear(
+            teacher[validation_indexes], base_weight, base_bias
+        ).contiguous()
+        base_fit = coverage._unit(base_fit_raw)
+        base_validation = coverage._unit(base_validation_raw)
     device = torch.device("cuda")
     base_score = coverage._score(base_validation, validation_labels, device)
     observed_map = base_score.get("packed_map_at_r")
@@ -433,9 +499,9 @@ def main() -> None:
     with torch.inference_mode():
         teacher_fit_device = teacher[fit_indexes].to(device)
         base_fit_device = coverage._unit(
-            torch.nn.functional.linear(
+            base_fit_raw_device := torch.nn.functional.linear(
                 teacher_fit_device, base_weight.to(device), base_bias.to(device)
-            )
+            ).contiguous()
         )
         initial_delta = float(
             torch.max(
@@ -455,18 +521,46 @@ def main() -> None:
                 )
             ).cpu()
         )
-    if not math.isfinite(initial_delta) or initial_delta > 2e-6:
+        factorized_delta = float(
+            torch.max(
+                torch.abs(
+                    encode_parameterization(
+                        "restricted_adapter",
+                        models["restricted_adapter"],
+                        teacher_fit_device,
+                        base_fit_device,
+                    )
+                    - encode_parameterization(
+                        "factorized_adapter",
+                        models["factorized_adapter"],
+                        teacher_fit_device,
+                        base_fit_raw_device,
+                    )
+                )
+            ).cpu()
+        )
+    if (
+        not math.isfinite(initial_delta)
+        or not math.isfinite(factorized_delta)
+        or max(initial_delta, factorized_delta) > 2e-6
+        or trainable_parameter_count(models["factorized_adapter"])
+        != trainable_parameter_count(models["direct_projection"])
+    ):
         raise ValueError("matched initialization differs")
     arms: dict[str, dict[str, object]] = {}
     states: dict[str, dict[str, torch.Tensor]] = {}
     for name in _ARM_NAMES:
+        arm_base_fit = base_fit_raw_device if name == "factorized_adapter" else base_fit_device
+        arm_base_validation = (
+            base_validation_raw if name == "factorized_adapter" else base_validation
+        )
         arms[name], states[name] = train_parameterization_arm(
             name,
             models[name],
             teacher_fit_device,
             teacher[validation_indexes],
-            base_fit_device,
-            base_validation,
+            arm_base_fit,
+            arm_base_validation,
             base_weight,
             base_bias,
             fit_labels,
@@ -477,6 +571,7 @@ def main() -> None:
         )
     decision = projection_decision(
         arms["restricted_adapter"],
+        arms["factorized_adapter"],
         arms["direct_projection"],
         validation_labels=validation_labels,
     )
@@ -493,7 +588,8 @@ def main() -> None:
         "decision": decision,
         "fitting_rows": len(fit_indexes),
         "initialization": {
-            "maximum_absolute_code_delta": initial_delta,
+            "direct_maximum_absolute_code_delta": initial_delta,
+            "factorized_maximum_absolute_code_delta": factorized_delta,
             "maximum_allowed_delta": 2e-6,
         },
         "inputs": {
@@ -504,6 +600,12 @@ def main() -> None:
             "anchor_weight": controls.ANCHOR_WEIGHT,
             "classes_per_update": coverage.CLASS_COUNT,
             "deployment": "single-affine-768-to-128-then-unit-int8",
+            "factorized_adapter": {
+                "base_input": "raw-affine-128-before-unit-normalization",
+                "hidden_dimensions": 384,
+                "initialization": "three-balanced-repeated-identity-frames",
+                "nonlinearity": "none",
+            },
             "hard_negatives": coverage.HARD_NEGATIVES,
             "learning_rates": {name: parameterization_learning_rate(name) for name in _ARM_NAMES},
             "margin": controls.MARGIN,
@@ -518,6 +620,9 @@ def main() -> None:
             "schedule_sha256": schedule_authority.sha256,
             "temperature": controls.TEMPERATURE,
             "updates_per_arm": coverage.UPDATES,
+            "trainable_parameters": {
+                name: trainable_parameter_count(models[name]) for name in _ARM_NAMES
+            },
         },
         "official_test_touched": False,
         "partition": {
@@ -535,7 +640,7 @@ def main() -> None:
             ),
         },
         "runtime": runtime._asdict(),
-        "schema": "sfora-projection-parameterizations-v1",
+        "schema": "sfora-projection-parameterizations-v2",
         "seed": args.seed,
         "source": source_identity,
         "validation_classes": len(partition.validation_class_ids),
