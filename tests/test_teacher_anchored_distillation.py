@@ -1119,10 +1119,18 @@ def test_retrieval_local_rank_distillation_preserves_teacher_neighbor_margins() 
         teacher_neighbor_count=1,
         margin_cap=0.05,
     )
+    replay_drift = torch.tensor([[0.8, 0.8000001, 0.0]], dtype=torch.float32)
+    replayed = retrieval_local_rank_distillation_loss(
+        replay_drift.clone().requires_grad_(),
+        replay_drift,
+        teacher_neighbor_count=2,
+        margin_cap=0.05,
+    )
 
     assert zero.item() == pytest.approx(0.0, abs=1e-7)
     assert loss.item() == pytest.approx(4.5, abs=2e-6)
     assert permuted.item() == pytest.approx(loss.item(), abs=1e-7)
+    assert replayed.item() == pytest.approx(0.0, abs=1e-7)
     loss.backward()  # type: ignore[no-untyped-call]
     assert mismatched.grad is not None and bool(torch.isfinite(mismatched.grad).all())
     assert teacher.grad is None

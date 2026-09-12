@@ -663,7 +663,7 @@ def retrieval_local_rank_distillation_loss(
         raise ValueError("retrieval-local rank authority differs")
     teacher_neighbors = teacher_similarities[:, :teacher_neighbor_count]
     if teacher_neighbor_count > 1 and bool(
-        (teacher_neighbors[:, 1:] > teacher_neighbors[:, :-1]).any()
+        (teacher_neighbors[:, 1:] - teacher_neighbors[:, :-1] > 2e-6).any()
     ):
         raise ValueError("retrieval-local rank authority differs")
 
