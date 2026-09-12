@@ -327,6 +327,201 @@ candidate plus a 24,576-byte float32 correction table per query; a fused product
 not implemented or benchmarked. Each arm fit in about 85.8 seconds on the DGX, and the complete
 authenticated run exited zero with empty stderr.
 
+### Single-stage differential PQ rejection
+
+The subsequent four-arm screen ran from Sfora commit
+`05d136289bbd3094561f701e03ad2ca3a1b6f593`. It initialized every arm with byte-identical
+PQ24 codes and bit-identical projected rows, then jointly optimized the 768-to-128 projection and
+PQ24 codebooks through the exact hard ADC forward path. Restricted arms confined projection
+updates to the incumbent row space; differential arms additionally penalized differences between
+neighbor residuals. The fitting partition contained 47,704 rows and the class-disjoint validation
+partition 11,847 rows. The official test remained untouched.
+
+| Arm | mAP@R | Recall@1 | PQ32 paired lower bound |
+|---|---:|---:|---:|
+| Restricted rank | 0.5436338492 | 0.8038321938 | -0.0379510889 |
+| Restricted differential | **0.5452072293** | **0.8054359754** | -0.0364484656 |
+| Full rank | 0.5401540851 | 0.8008778594 | -0.0415649569 |
+| Full differential | 0.5404674166 | 0.8024816409 | -0.0412318534 |
+
+Every objective decreased and every stage retained at least 246 of 256 codewords, so gross
+dead-code collapse does not explain the failure. The float embedding before quantization also
+fell to mAP@R `0.5622`--`0.5659`, however, and every fitting row changed at least one code byte.
+The registered result is therefore `kill`: neither the single-stage information-access mechanism
+nor the neighbor-differential mechanism is supported. The canonical receipt SHA-256 is
+`4f7bafabc92c766cb999ab0fb37bfb7ce3787dac92aa1ed0317b753e8e24a06c`; the model
+checkpoint SHA-256 is `1acfe8a85cedfc81ee2801f2632784a119cac5ecac87b8de45607670e6052a93`.
+
+A claim-ineligible interpolation diagnostic then traversed the exact parameter segment from the
+PQ24 baseline to the best restricted-differential endpoint. The best point was alpha `0.01` at
+`0.5709046202 / 0.8219802482`, only `0.0001839479` mAP@R above PQ24 and still
+`0.0147253798` below the target. At alpha one, 85.14% of individual code bytes changed. This
+rules out early stopping or a simple trust region along the learned direction as a material
+repair; it does not rule out other directions around the frozen teacher geometry. The diagnostic
+receipt SHA-256 is `aadb21308603ebaed34f518a836ae2351dc214eb0620c96d391034f4016dfa5b`.
+
+### Additive encoder and compact interaction diagnostics
+
+Eight deterministic coordinate-descent restarts against the frozen anisotropic additive
+codebooks reduced the label-free reconstruction objective from `0.1104281` to `0.1005164`.
+Choosing the lowest-objective code per row peaked transiently at mAP@R `0.5743010` after three
+restarts and ended at `0.5728024`; lower reconstruction error was therefore not monotone in
+retrieval quality. This confirms a modest encoder-local-minimum effect but rejects more restarts
+of the same reconstruction objective as a route to the `0.58563` target. The exploratory receipt
+SHA-256 is `918d1331d6e3d6dba6ac15871d31a0957fb292227863609d71f9a8f4cdd2fc10`.
+
+A separate frozen-code diagnostic fit twelve 256-entry overlapping factors to the exact augmented
+ADC residual `[2(x-x_hat), ||x_hat||^2-1]` using fitting classes only. The best full correction,
+which used four-fragment XOR addresses, regressed to `0.5672921 / 0.8199544`. Scaling this
+correction over the closed interval from zero to one reached only `0.5707922 / 0.8224867`, a
+`0.0000715` mAP@R increase. This rejects that compact residual-regression interaction formula,
+not all code interactions. Its full-strength and scale-sweep receipt SHA-256 values are
+`ae68a99e084bbb9788e5d97753728c8246a137364fa8327328da19cc0a90e71e` and
+`c09728710ed12648ad8be4572c3a769abb5e6a82d909c2abea3d48fb69da5d4b`.
+
+Query-side ambiguous decoding was then tested by fitting 16 fine subcentroids inside every stored
+PQ byte bin. Retaining each fine identity, an explicitly over-budget 36-byte control, reached
+`0.5824581 / 0.8275513`: better than PQ32 but still `0.0031719` below target. Folding the fine
+identities back into the deployable 24 bytes and letting each query choose the closest alias
+regressed to `0.5702217 / 0.8214738`. This rejects that hierarchical 16-alias construction: its
+fine representation is insufficient at 36 bytes and its query-selected ambiguity introduces
+additional full-gallery errors. The exploratory receipt SHA-256 is
+`8530ae61b6b20db3af5f16a9b9f3575f70475f422ac417842a001ea854364360`.
+
+Finally, a residual-innovation screen allocated 20 bytes to PQ and the remaining 32 bits to 28
+fixed random residual signs plus a 4-bit magnitude. PQ20 reached `0.5608118 / 0.8157339`; adding
+the exact float coefficients in the registered 28-dimensional residual subspace reached only
+`0.5625584 / 0.8159872`, and the actual sign-and-magnitude representation reached
+`0.5611771 / 0.8155651`. Because the over-budget exact-subspace diagnostic itself is far below
+target, this random residual-measurement allocation is closed without production implementation.
+Its exploratory receipt SHA-256 is
+`5f2d5fef3445cc3aa6054efcfc1e44fe749f41b8ab3aa21d315c1049b7f8d217`.
+
+### Supervised candidate-set refinement
+
+A claim-ineligible diagnostic retained the exact PQ24 codes, ADC top-32 candidate sets, and
+candidate-set architecture, then continued fitting the label-free reranker for 10,000 updates
+with a `0.1`-weighted uniform-positive listwise objective on the fitting classes. The fitting
+shortlists contained at least one same-class positive for `94.1955%` of queries. The official
+test remained untouched.
+
+The refined reranker reached mAP@R `0.5851297694` and Recall@1 `0.8228243437`. This improves
+mAP@R by `0.0065142537` over the label-free set reranker and by `0.0144090970` over bare PQ24,
+but remains `0.0005002306` below the preregistered `0.58563` target. The exact-float rerank of
+the same top-32 sets remains `0.591225`, so the result localizes the remaining gap to candidate
+ordering rather than immediate candidate discovery. It does not yet establish generic transfer:
+the repeatedly inspected class-disjoint validation split is development evidence, and the
+supervised refinement needs a frozen inner-selection protocol plus independent datasets before
+any release claim. The receipt SHA-256 is
+`4267ab73bb03c0384966b16ebf42ecd5f3716b78396f2a4eef8453a2dd822dc3`.
+
+A follow-up causal diagnostic kept the codes, ADC scores, top-32 membership, architecture, and
+supervised fitting recipe fixed, but supplied exact float candidate-to-candidate similarities in
+place of PQ-decoded pairwise similarities. Merely substituting those edges into the label-free
+model raised mAP@R from `0.5786155` to `0.5797289`. Continuing the same supervised refinement
+with the exact edges reached **`0.5922123570 / 0.8242593062`**, exceeding both the `0.58563`
+target and the direct float all-gallery mAP@R reference (`0.5912648`). This diagnostic is not
+deployable because it reads float gallery vectors, and the semantic objective can improve mAP@R
+without matching the float scorer's Recall@1. It nevertheless supplies the first direct evidence
+that relational geometry lost during PQ decoding, rather than top-32 membership or the 24-byte
+budget itself, is the immediate bottleneck. The JSON receipt is 852 bytes with SHA-256
+`0626c55d8ab9b300a9369fa027908aad856ba44baddd7c9773afd8f1fa8efa77`; the exploratory
+model is 2,432,163 bytes with SHA-256
+`b85aa031bba919de48c1416a13fac1fe93dbe936ee58119e5b18a713d1b40eda`.
+
+The first deployable reconstruction probe then fit a 263,680-byte residual MLP from the decoded
+PQ vector to its fitting-class float vector. At inference it reconstructs only the retained 32
+candidates, computes their relational edges, and leaves the full-gallery ADC scan unchanged.
+Every proposed correction remained inside every selected PQ subquantizer's Voronoi cell on both
+the fitting and validation rows (minimum and mean admissible step `1.0`), so the explicit
+code-consistency projection did not clip an update. With otherwise identical supervised
+refinement it reached **`0.5856208856 / 0.8231619819`**: only `0.0000091144` mAP@R below the
+target while retaining exactly 24 database bytes per vector and no float gallery cache. This is
+strong feasibility evidence, not a pass to be obtained by post-hoc weight tuning. The next fixed
+change trains the decoder against the pairwise geometry error implicated by the preceding causal
+diagnostic, then freezes it for independent class folds and datasets. The receipt SHA-256 is
+`9a1fb861f1cb3e4e96694a250126a8d1e37582cbce61ec9289c9a18731daea90`; the combined
+decoder/reranker checkpoint is 2,697,011 bytes with SHA-256
+`d972de6a736b5531d98e8752accb7af8365c3d289128a9f13d202a5408cbc82d`.
+
+Replacing the decoder's pointwise loss with smooth-L1 candidate-pair Gram-matrix regression plus
+a pointwise anchor did not improve retrieval. It reached `0.5856079680 / 0.8230775724`, lower
+than the pointwise decoder by `0.0000129176`. Its validation minimum admissible cell step fell to
+`0.7548893`, although the mean remained `0.9999578`. The difference is too small to order the
+losses statistically, but this intervention provides no reason to displace the simpler pointwise
+candidate. Pairwise geometry error is not identical to query-to-candidate ordering error, and a
+Gram loss weakens absolute coordinate anchoring; the pointwise conditional-mean estimator remains
+the frozen primary candidate for independent replication. The relational receipt SHA-256 is
+`42db568d4e8c97c383f1b60e1d2f94c90b015755d76de16ad560838bd3f96df6`.
+
+Five predetermined pointwise-decoder training seeds, with no best-seed selection, produced mAP@R
+`0.5856987`, `0.5852391`, `0.5852167`, `0.5854206`, and `0.5851428`. The mean was
+`0.5853435854`, population standard deviation `0.0001996828`, and range
+`0.5851427963`--`0.5856987145`; one of five seeds crossed the literal target. Mean Recall@1 was
+`0.8232463915` with population standard deviation `0.0001412442`. This confirms a stable large
+gain over PQ24 but not a robust target crossing. Selecting the passing seed would be invalid, so
+the recipe proceeds unchanged to cross-dataset and latency tests.
+
+The frozen recipe did not transfer to a second dataset. On a deterministic 80/20 class-disjoint
+partition of the CUB official training set (80 fitting classes, 20 validation classes, 4,695 and
+1,169 rows), bare PQ24 reached `0.7658249851 / 0.8947818648`, while the label-free contextual
+reranker reached `0.7639183052 / 0.8913601369` and the pointwise-decoder plus supervised reranker
+reached `0.7632189644 / 0.8999144568`. The latter improves Recall@1 but loses `0.0026060207`
+mAP@R versus PQ24, so it changes the first hit at the expense of ordering the remaining relevant
+items. Exhaustive float scoring reached `0.7707993101 / 0.8990590248`; exact float scoring inside
+the unchanged PQ shortlist reached `0.7681361519 / 0.8990590248`. The official CUB test arrays
+were not accessed. The 784-byte receipt SHA-256 is
+`88f0a25925510f036837980c895888a52aa5445ca224d63ba10d1c25b798020e`; the 2,696,957-byte
+checkpoint SHA-256 is `b4a12d198a7e951902d6a451d337d540df8b63ace673dc86a04d109a862ba2a0`.
+
+A no-training edge-substitution ablation then scored the same saved CUB models with PQ-decoded,
+pointwise-decoded, and exact-float candidate-pair geometry. The label-free model produced mAP@R
+`0.7639183`, `0.7637984`, and `0.7632832`; the supervised model produced `0.7634581`,
+`0.7632190`, and `0.7629061`, respectively. Thus even exact candidate-pair geometry does not
+repair the CUB contextual scorer. A direct query-to-candidate rerank with the decoder and no
+context also regressed: constrained and unconstrained reconstructions reached `0.7648824` and
+`0.7648000`, versus `0.7658250` for PQ24 and `0.7681362` for exact floats. The edge-ablation
+receipt is 692 bytes with SHA-256
+`eb4253ed4286a36580eb1f0073c4be5dd203d72b067e052798bbe995823c17d9`; the 503-byte direct
+decoder receipt SHA-256 is `3693ac6ac139f743c5a1492a4a5b629c4b83a32f51d86a110c819f6ceaaf826a`.
+These controls localize
+the cross-domain failure to two facts: the contextual/listwise rule is dataset-sensitive, and the
+unchanged PQ codes do not retain enough instance-specific residual information for a deterministic
+decoder to recover generically. The contextual reranker and fixed-code decoder are therefore
+closed as the release core rather than rescued with CUB-specific weights.
+
+A matched 24-byte representation control split the payload into sixteen ordinary 8-bit product
+codes plus sixteen packed 4-bit residual product codes. On the same CUB holdout it reached
+`0.7641478814 / 0.9050470488`, below ordinary PQ24 mAP@R despite higher Recall@1. Its relative
+squared reconstruction error was `0.1539975`, also worse than PQ24's `0.1283821`; PQ32 reached
+`0.7684300532 / 0.9016253208`. The 715-byte receipt SHA-256 is
+`6c8c36f38e4fcab685da229b2e57dee7dc25f515e2e8d8beeb46ac199b53cc9b`. This rejects naïve
+second-stage residual allocation as the generic repair and reinforces that the stored-code
+objective must preserve ranking margins rather than reconstruction alone.
+
+Freezing the embedding and optimizing only PQ24 codebooks through the exact hard-ADC,
+label-free neighborhood-distillation loss did not solve the transfer failure either. With the
+original unnormalized loss, held-out CUB mAP@R fell to `0.7638738280` and relative squared error
+rose to `0.1548563`. Equalizing the ranking and reconstruction terms at their initial scale
+limited the error to `0.1313175`, but quality still fell to `0.7647089020 / 0.8905047049` from
+PQ24's `0.7658249851 / 0.8947818648`. The balanced receipt SHA-256 is
+`7dd8826720efe6e23f62ba565cf91fa8c5b2ad3375538f6ad9c43952f2cf2db0`; its checkpoint SHA-256
+is `cb3f319a5c7eba6f4859117be9681e3b40bcc071cb06993224e41ca158dbd519`. Two controlled
+variants therefore close codebook-only hard-rank distillation rather than initiating a
+dataset-specific loss-weight search.
+
+A final equal-rate partition control encoded 32 four-dimensional blocks with 64 centroids each,
+packing four 6-bit indexes into three bytes for an exact 24-byte logical record. On SOP,
+unrotated 32-by-6-bit PQ reached `0.5715506395 / 0.8219802482`, a small mAP@R gain but Recall@1
+loss versus PQ24; its rotated form reached `0.5703239349 / 0.8215582004`. On CUB, the unrotated
+form reached `0.7652442137 / 0.8870829769`, while the rotated form reached
+`0.7665910772 / 0.8870829769`. The representation choice therefore reverses between datasets,
+and every arm loses Recall@1 materially on CUB. The CUB and SOP receipt SHA-256 values are
+`66df1471f763cafcca81a52c4a6e48e60c6e2960c1ae115f13d236e426be177d` and
+`889281ef3b91d336ce2fa96c0583686d8f948f2fcd1c0d4e802671c44aa7f261`. A dataset-specific
+rotation switch is disallowed, and the SOP gain remains far below target, so the partition
+control is closed without a production wire-format implementation.
+
 ## Scientific interpretation
 
 Most of the adaptation gain is already explained by the pooled control. Positive coverage adds
@@ -334,10 +529,12 @@ a smaller but reproducible increment on SOP and In-Shop and is inconclusive on C
 objective is close to established N-pair, supervised-contrastive/SINCERE, and Multi-Similarity
 families; this evidence does not support a novel-loss claim.
 
-The next decisive boundary is the actual quality/byte/search frontier: test the frozen direct head
-under 16-byte-class product quantization, then measure identical codes with exhaustive scoring and
-a real inverted index so compression loss and search loss are separated. A second encoder family
-and fresh datasets with frozen protocols are required before claiming a generic learning
-improvement.
+The current decisive boundary is no longer post-hoc reconstruction of unchanged PQ24 codes. SOP
+shows that exact candidate geometry contains enough signal, but the five-seed target miss and CUB
+regression show that the learned context/decoder recipe is not generic. The next representation
+screen must explicitly spend part of the same 24-byte row budget on residual ranking information
+and compare against ordinary residual quantization, with no dataset-specific switch. A frozen
+inner model-selection split, fresh outer confirmation, at least one additional image dataset, and
+one non-image vector distribution are required before claiming a generic learning improvement.
 Class-name semantics, if studied, remain an optional external-information adapter with real-name,
 shuffled-name, and no-name controls; they are not part of the generic label-only core.

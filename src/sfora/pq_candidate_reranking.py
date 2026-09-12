@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import math
 from dataclasses import dataclass
 from typing import cast
@@ -266,6 +267,166 @@ class ProductCodeResidualStatistics(nn.Module):
         )
 
 
+class ProductCodeResidualDecoder(nn.Module):
+    """Decode systematic cross-block residual structure without changing product codes."""
+
+    def __init__(self, quantizer: ProductQuantizer, *, hidden_dimensions: int) -> None:
+        super().__init__()
+        if (
+            type(quantizer) is not ProductQuantizer
+            or type(hidden_dimensions) is not int
+            or hidden_dimensions < 1
+        ):
+            raise ValueError("product-code residual decoder authority differs")
+        self.spec = quantizer.spec
+        output = nn.Linear(hidden_dimensions, self.spec.dimensions)
+        nn.init.zeros_(output.weight)
+        nn.init.zeros_(output.bias)
+        self.network = nn.Sequential(
+            nn.Linear(self.spec.dimensions, hidden_dimensions), nn.GELU(), output
+        )
+        self.to(quantizer.codebooks[0].device)
+
+    def forward(self, decoded: torch.Tensor) -> torch.Tensor:
+        """Return the decoded vectors plus their learned query-independent residuals."""
+
+        if (
+            type(decoded) is not torch.Tensor
+            or decoded.dtype != torch.float32
+            or decoded.ndim != 2
+            or decoded.shape[0] < 1
+            or decoded.shape[1] != self.spec.dimensions
+            or decoded.device != self.network[0].weight.device
+            or not bool(torch.isfinite(decoded).all())
+        ):
+            raise ValueError("product-code residual decoder input differs")
+        return cast(torch.Tensor, (decoded + self.network(decoded)).contiguous())
+
+    def decode(
+        self, codes: torch.Tensor, quantizer: ProductQuantizer
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """Decode codes and shorten each block correction to its selected Voronoi cell."""
+
+        if type(quantizer) is not ProductQuantizer or quantizer.spec != self.spec:
+            raise ValueError("product-code residual decoder codec differs")
+        quantizer._validate_codes(codes)
+        if codes.device != self.network[0].weight.device:
+            raise ValueError("product-code residual decoder codec differs")
+        decoded = quantizer.hard_decode(codes)
+        proposed = self(decoded)
+        corrected_blocks = []
+        steps = []
+        start = 0
+        row_indexes = torch.arange(len(codes), device=codes.device)
+        for block_index, (width, codebook) in enumerate(
+            zip(self.spec.block_dimensions, quantizer.codebooks, strict=True)
+        ):
+            current = decoded[:, start : start + width]
+            delta = proposed[:, start : start + width] - current
+            differences = current[:, None, :] - codebook[None, :, :]
+            numerator = differences.square().sum(dim=-1)
+            denominator = -2.0 * torch.einsum("bd,bkd->bk", delta, differences)
+            bounds = torch.where(
+                denominator > 0,
+                numerator / denominator.clamp_min(torch.finfo(torch.float32).tiny),
+                torch.inf,
+            )
+            bounds[row_indexes, codes[:, block_index].long()] = torch.inf
+            step = bounds.amin(dim=1).clamp(0.0, 1.0)
+            corrected_blocks.append(current + step[:, None] * delta)
+            steps.append(step)
+            start += width
+        corrected = torch.cat(corrected_blocks, dim=1).contiguous()
+        step_values = torch.stack(steps, dim=1).contiguous()
+        if not bool(torch.isfinite(corrected).all()) or not bool(torch.isfinite(step_values).all()):
+            raise RuntimeError("product-code residual decoder output is nonfinite")
+        return corrected, step_values
+
+    def candidate_pairwise(
+        self, candidate_codes: torch.Tensor, quantizer: ProductQuantizer
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """Return cosine geometry and cell steps for bounded candidate code sets."""
+
+        if (
+            type(candidate_codes) is not torch.Tensor
+            or candidate_codes.dtype != torch.uint8
+            or candidate_codes.ndim != 3
+            or candidate_codes.shape[0] < 1
+            or candidate_codes.shape[1] < 1
+            or candidate_codes.shape[2] != self.spec.bytes_per_vector
+        ):
+            raise ValueError("product-code residual decoder candidates differ")
+        batch, candidates, blocks = candidate_codes.shape
+        flat_codes = candidate_codes.reshape(batch * candidates, blocks).contiguous()
+        corrected, flat_steps = self.decode(flat_codes, quantizer)
+        normalized = F.normalize(corrected, dim=1).reshape(batch, candidates, -1)
+        raw_pairwise = torch.matmul(normalized, normalized.transpose(1, 2))
+        pairwise = (0.5 * (raw_pairwise + raw_pairwise.transpose(1, 2))).contiguous()
+        return pairwise, flat_steps.reshape(batch, candidates, blocks).contiguous()
+
+
+def fit_product_code_residual_decoder(
+    quantizer: ProductQuantizer,
+    values: torch.Tensor,
+    codes: torch.Tensor,
+    *,
+    hidden_dimensions: int,
+    seed: int,
+    updates: int,
+    batch_size: int,
+    learning_rate: float,
+) -> ProductCodeResidualDecoder:
+    """Fit a deterministic pointwise residual decoder for fixed product codes."""
+
+    if (
+        type(quantizer) is not ProductQuantizer
+        or type(seed) is not int
+        or seed < 0
+        or type(updates) is not int
+        or updates < 1
+        or type(batch_size) is not int
+        or batch_size < 1
+        or batch_size > len(values)
+        or type(learning_rate) is not float
+        or not math.isfinite(learning_rate)
+        or learning_rate <= 0
+    ):
+        raise ValueError("product-code residual decoder fit authority differs")
+    quantizer._validate_values(values)
+    quantizer._validate_codes(codes)
+    if len(values) != len(codes):
+        raise ValueError("product-code residual decoder fit authority differs")
+    fork_devices = []
+    if values.device.type == "cuda":
+        fork_devices = [
+            values.device.index if values.device.index is not None else torch.cuda.current_device()
+        ]
+    with torch.random.fork_rng(devices=fork_devices):
+        torch.manual_seed(seed)
+        decoder = ProductCodeResidualDecoder(quantizer, hidden_dimensions=hidden_dimensions)
+        optimizer = torch.optim.AdamW(decoder.parameters(), lr=learning_rate, weight_decay=0.01)
+        generator = torch.Generator().manual_seed(seed)
+        schedule = torch.randperm(len(values), generator=generator)
+        offset = 0
+        decoded = quantizer.hard_decode(codes).detach()
+        decoder.train()
+        for _ in range(updates):
+            if offset + batch_size > len(schedule):
+                schedule = torch.randperm(len(values), generator=generator)
+                offset = 0
+            indexes = schedule[offset : offset + batch_size].to(values.device)
+            offset += batch_size
+            optimizer.zero_grad(set_to_none=True)
+            predicted = decoder(decoded[indexes])
+            pointwise = F.mse_loss(predicted, values[indexes])
+            directional = 1.0 - F.cosine_similarity(predicted, values[indexes], dim=1).mean()
+            loss = pointwise + 0.1 * directional
+            loss.backward()  # type: ignore[no-untyped-call]
+            torch.nn.utils.clip_grad_norm_(decoder.parameters(), 1.0)
+            optimizer.step()
+        return decoder.eval()
+
+
 class _CandidateAttentionBlock(nn.Module):
     def __init__(self, dimensions: int, heads: int) -> None:
         super().__init__()
@@ -462,6 +623,16 @@ class CandidateSetDistillationLoss:
     score_mse: torch.Tensor
 
 
+@dataclass(frozen=True, slots=True)
+class CandidateSetSupervisedLoss:
+    """Observable label-free and uniform-positive candidate refinement losses."""
+
+    total: torch.Tensor
+    distillation: torch.Tensor
+    positive_listwise: torch.Tensor
+    positive_coverage: float
+
+
 def candidate_set_distillation_loss(
     student_scores: torch.Tensor,
     teacher_scores: torch.Tensor,
@@ -504,3 +675,132 @@ def candidate_set_distillation_loss(
     if not bool(torch.isfinite(total)):
         raise RuntimeError("candidate-set distillation loss is nonfinite")
     return CandidateSetDistillationLoss(total, listwise_kl, score_mse)
+
+
+def candidate_set_supervised_loss(
+    student_scores: torch.Tensor,
+    teacher_scores: torch.Tensor,
+    positive_mask: torch.Tensor,
+    *,
+    temperature: float,
+    score_weight: float,
+    supervised_weight: float,
+) -> CandidateSetSupervisedLoss:
+    """Combine float-score distillation with uniform-positive shortlist supervision."""
+
+    if (
+        type(positive_mask) is not torch.Tensor
+        or positive_mask.dtype != torch.bool
+        or positive_mask.shape != student_scores.shape
+        or positive_mask.device != student_scores.device
+        or type(supervised_weight) is not float
+        or not math.isfinite(supervised_weight)
+        or supervised_weight < 0
+    ):
+        raise ValueError("candidate-set supervised loss authority differs")
+    distillation = candidate_set_distillation_loss(
+        student_scores,
+        teacher_scores,
+        temperature=temperature,
+        score_weight=score_weight,
+    ).total
+    valid = positive_mask.any(dim=1)
+    if bool(valid.any()):
+        targets = positive_mask[valid].to(student_scores.dtype)
+        targets = targets / targets.sum(dim=1, keepdim=True)
+        positive_listwise = (
+            -(targets * F.log_softmax(student_scores[valid] / temperature, dim=1)).sum(dim=1).mean()
+        )
+    else:
+        positive_listwise = student_scores.sum() * 0.0
+    total = distillation + supervised_weight * positive_listwise
+    if not bool(torch.isfinite(total)):
+        raise RuntimeError("candidate-set supervised loss is nonfinite")
+    return CandidateSetSupervisedLoss(
+        total=total,
+        distillation=distillation,
+        positive_listwise=positive_listwise,
+        positive_coverage=float(valid.to(torch.float32).mean()),
+    )
+
+
+def refine_supervised_candidate_set_reranker(
+    source: CandidateSetReranker,
+    baseline_scores: torch.Tensor,
+    features: torch.Tensor,
+    pairwise: torch.Tensor,
+    teacher_scores: torch.Tensor,
+    positive_mask: torch.Tensor,
+    *,
+    seed: int,
+    updates: int,
+    batch_size: int,
+    learning_rate: float,
+    temperature: float,
+    score_weight: float,
+    supervised_weight: float,
+) -> CandidateSetReranker:
+    """Refine a copied candidate reranker using fitting-set positive identities."""
+
+    if (
+        type(source) is not CandidateSetReranker
+        or type(seed) is not int
+        or seed < 0
+        or type(updates) is not int
+        or updates < 1
+        or type(batch_size) is not int
+        or batch_size < 1
+        or batch_size > len(baseline_scores)
+        or type(learning_rate) is not float
+        or not math.isfinite(learning_rate)
+        or learning_rate <= 0
+    ):
+        raise ValueError("candidate-set supervised refinement authority differs")
+    source(baseline_scores[:1], features[:1], pairwise[:1])
+    candidate_set_supervised_loss(
+        baseline_scores,
+        teacher_scores,
+        positive_mask,
+        temperature=temperature,
+        score_weight=score_weight,
+        supervised_weight=supervised_weight,
+    )
+    fork_devices = []
+    if baseline_scores.device.type == "cuda":
+        fork_devices = [
+            baseline_scores.device.index
+            if baseline_scores.device.index is not None
+            else torch.cuda.current_device()
+        ]
+    with torch.random.fork_rng(devices=fork_devices):
+        torch.manual_seed(seed)
+        model = copy.deepcopy(source)
+        optimizer = torch.optim.AdamW(model.parameters(), learning_rate, weight_decay=0.01)
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+            optimizer, T_max=updates, eta_min=0.1 * learning_rate
+        )
+        generator = torch.Generator().manual_seed(seed)
+        schedule = torch.randperm(len(baseline_scores), generator=generator)
+        offset = 0
+        model.train()
+        for _ in range(updates):
+            if offset + batch_size > len(schedule):
+                schedule = torch.randperm(len(baseline_scores), generator=generator)
+                offset = 0
+            indexes = schedule[offset : offset + batch_size].to(baseline_scores.device)
+            offset += batch_size
+            optimizer.zero_grad(set_to_none=True)
+            scores = model(baseline_scores[indexes], features[indexes], pairwise[indexes])
+            loss = candidate_set_supervised_loss(
+                scores,
+                teacher_scores[indexes],
+                positive_mask[indexes],
+                temperature=temperature,
+                score_weight=score_weight,
+                supervised_weight=supervised_weight,
+            )
+            loss.total.backward()  # type: ignore[no-untyped-call]
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+            optimizer.step()
+            scheduler.step()
+        return model.eval()
