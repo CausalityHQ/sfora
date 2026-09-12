@@ -21,6 +21,7 @@ from sfora.teacher_anchored_distillation import (
     cross_dimensional_relational_distillation_loss,
     cross_dimensional_similarity_distillation_loss,
     embedding_geometry_diagnostics,
+    retrieval_local_rank_distillation_loss,
     teacher_anchor_schedule,
     teacher_anchored_forward,
     teacher_anchored_input_sha256,
@@ -1091,4 +1092,74 @@ def test_cross_dimensional_similarity_distillation_rejects_invalid_authority(
             student,
             teacher,
             temperatures=temperatures,
+        )
+
+
+def test_retrieval_local_rank_distillation_preserves_teacher_neighbor_margins() -> None:
+    assert sfora.retrieval_local_rank_distillation_loss is retrieval_local_rank_distillation_loss
+    teacher = torch.tensor([[0.8, 0.6, 0.7]], dtype=torch.float32)
+    matched = teacher.clone().requires_grad_()
+    mismatched = torch.tensor([[0.7, 0.8, 0.6]], dtype=torch.float32, requires_grad=True)
+
+    zero = retrieval_local_rank_distillation_loss(
+        matched,
+        teacher,
+        teacher_neighbor_count=1,
+        margin_cap=0.05,
+    )
+    loss = retrieval_local_rank_distillation_loss(
+        mismatched,
+        teacher,
+        teacher_neighbor_count=1,
+        margin_cap=0.05,
+    )
+    permuted = retrieval_local_rank_distillation_loss(
+        mismatched[:, [0, 2, 1]].contiguous(),
+        teacher[:, [0, 2, 1]].contiguous(),
+        teacher_neighbor_count=1,
+        margin_cap=0.05,
+    )
+
+    assert zero.item() == pytest.approx(0.0, abs=1e-7)
+    assert loss.item() == pytest.approx(4.5, abs=2e-6)
+    assert permuted.item() == pytest.approx(loss.item(), abs=1e-7)
+    loss.backward()  # type: ignore[no-untyped-call]
+    assert mismatched.grad is not None and bool(torch.isfinite(mismatched.grad).all())
+    assert teacher.grad is None
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ("teacher-grad", "nan", "shape", "range", "rank-order", "count", "margin"),
+)
+def test_retrieval_local_rank_distillation_rejects_invalid_authority(mutation: str) -> None:
+    student = torch.zeros((4, 5), dtype=torch.float32, requires_grad=True)
+    teacher = torch.tensor(
+        [[0.5, 0.4, 0.0, -0.2, -0.4]] * 4,
+        dtype=torch.float32,
+    )
+    count = 2
+    margin = 0.05
+    if mutation == "teacher-grad":
+        teacher.requires_grad_()
+    elif mutation == "nan":
+        teacher[0, 0] = torch.nan
+    elif mutation == "shape":
+        teacher = teacher[:, :-1].contiguous()
+    elif mutation == "range":
+        teacher[0, 0] = 1.01
+    elif mutation == "rank-order":
+        teacher[0, :2] = torch.tensor([0.4, 0.5])
+    elif mutation == "count":
+        count = 5
+    else:
+        margin = 0.0
+
+    expected = TeacherAnchoredNumericalError if mutation == "nan" else ValueError
+    with pytest.raises(expected, match="retrieval-local rank"):
+        retrieval_local_rank_distillation_loss(
+            student,
+            teacher,
+            teacher_neighbor_count=count,
+            margin_cap=margin,
         )

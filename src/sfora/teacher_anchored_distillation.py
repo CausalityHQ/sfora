@@ -623,6 +623,83 @@ def cross_dimensional_similarity_distillation_loss(
     return result
 
 
+def retrieval_local_rank_distillation_loss(
+    student_similarities: torch.Tensor,
+    teacher_similarities: torch.Tensor,
+    *,
+    teacher_neighbor_count: int,
+    margin_cap: float,
+) -> torch.Tensor:
+    """Preserve teacher-local retrieval ordering with capped pairwise margins."""
+
+    if (
+        type(student_similarities) is not torch.Tensor
+        or type(teacher_similarities) is not torch.Tensor
+        or student_similarities.ndim != 2
+        or teacher_similarities.shape != student_similarities.shape
+        or student_similarities.shape[0] < 1
+        or student_similarities.shape[1] < 2
+        or student_similarities.dtype != torch.float32
+        or teacher_similarities.dtype != torch.float32
+        or student_similarities.device != teacher_similarities.device
+        or not student_similarities.is_contiguous()
+        or not teacher_similarities.is_contiguous()
+        or not student_similarities.requires_grad
+        or teacher_similarities.requires_grad
+        or type(teacher_neighbor_count) is not int
+        or not 1 <= teacher_neighbor_count < student_similarities.shape[1]
+        or type(margin_cap) is not float
+        or not math.isfinite(margin_cap)
+        or margin_cap <= 0.0
+    ):
+        raise ValueError("retrieval-local rank authority differs")
+    if not bool(torch.isfinite(student_similarities).all()) or not bool(
+        torch.isfinite(teacher_similarities).all()
+    ):
+        raise TeacherAnchoredNumericalError("retrieval-local rank numerical failure")
+    if bool((student_similarities.detach().abs() > 1.00002).any()) or bool(
+        (teacher_similarities.abs() > 1.00002).any()
+    ):
+        raise ValueError("retrieval-local rank authority differs")
+    teacher_neighbors = teacher_similarities[:, :teacher_neighbor_count]
+    if teacher_neighbor_count > 1 and bool(
+        (teacher_neighbors[:, 1:] > teacher_neighbors[:, :-1]).any()
+    ):
+        raise ValueError("retrieval-local rank authority differs")
+
+    with torch.autocast(device_type=student_similarities.device.type, enabled=False):
+        teacher_delta = teacher_neighbors.unsqueeze(2) - teacher_similarities.unsqueeze(1)
+        valid = teacher_delta > 0.0
+        margins = torch.minimum(
+            torch.full_like(teacher_delta, margin_cap),
+            teacher_delta / 2.0,
+        )
+        ranks = torch.arange(
+            1,
+            teacher_neighbor_count + 1,
+            dtype=torch.float32,
+            device=student_similarities.device,
+        )
+        discounts = torch.log2(1.0 + ranks).reciprocal().reshape(1, -1, 1)
+        weights = torch.minimum(
+            torch.ones_like(teacher_delta),
+            teacher_delta / margin_cap,
+        ).clamp_min(0.0) * discounts
+        weights = torch.where(valid, weights, torch.zeros_like(weights))
+        denominators = weights.sum(dim=(1, 2))
+        if bool((denominators <= 0.0).any()):
+            raise ValueError("retrieval-local rank authority differs")
+        student_delta = (
+            student_similarities[:, :teacher_neighbor_count].unsqueeze(2)
+            - student_similarities.unsqueeze(1)
+        )
+        violations = torch.relu((margins - student_delta) / margin_cap).square()
+        result = ((weights * violations).sum(dim=(1, 2)) / denominators).mean()
+    if result.ndim != 0 or not bool(torch.isfinite(result)):
+        raise TeacherAnchoredNumericalError("retrieval-local rank numerical failure")
+    return result
+
+
 def teacher_anchored_loss(
     student: torch.Tensor,
     teacher: torch.Tensor,
