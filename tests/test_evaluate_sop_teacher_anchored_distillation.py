@@ -3,6 +3,7 @@ import importlib.util
 import json
 import struct
 import sys
+from copy import deepcopy
 from pathlib import Path
 
 import pytest
@@ -22,6 +23,251 @@ assert SPEC is not None and SPEC.loader is not None
 SUBJECT = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = SUBJECT
 SPEC.loader.exec_module(SUBJECT)
+
+
+def _evaluation_arguments(tmp_path: Path) -> list[str]:
+    paths: dict[str, Path] = {}
+    for name in (
+        "panel-receipt",
+        "source-checkpoint",
+        "source-snapshot",
+        "teacher-snapshot",
+        "ceiling-receipt",
+    ):
+        path = tmp_path / name
+        path.write_bytes(name.encode())
+        paths[name] = path
+    checkout = tmp_path / "unicom"
+    checkout.mkdir(exist_ok=True)
+    images = tmp_path / "images"
+    images.mkdir(exist_ok=True)
+    output = tmp_path / "evaluation.json"
+    values = {
+        "panel-receipt-sha256": "1" * 64,
+        "source-checkpoint-sha256": "2" * 64,
+        "source-snapshot-sha256": "3" * 64,
+        "teacher-snapshot-sha256": "4" * 64,
+        "image-tree-sha256": "5" * 64,
+        "ceiling-receipt-sha256": "6" * 64,
+        "teacher-pca-sha256": "7" * 64,
+        "source-revision": "d71992ed969e6c271436ac0a0ee1f3ca61474ac0",
+        "seed": "17",
+    }
+    arguments: list[str] = []
+    for name, path in paths.items():
+        arguments.extend((f"--{name}", str(path.resolve())))
+    arguments.extend(("--unicom-checkout", str(checkout.resolve())))
+    arguments.extend(("--image-root", str(images.resolve())))
+    arguments.extend(("--output", str(output.resolve())))
+    for name, value in values.items():
+        arguments.extend((f"--{name}", value))
+    arguments.append("--execute-teacher-anchored-evaluation")
+    return arguments
+
+
+def test_evaluator_cli_is_strict_local_only_and_refuses_official_test(tmp_path: Path) -> None:
+    parsed = SUBJECT.parse_teacher_anchored_evaluation_args(_evaluation_arguments(tmp_path))
+
+    assert parsed.seed == 17
+    assert parsed.output == (tmp_path / "evaluation.json").resolve()
+    assert parsed.panel_receipt == (tmp_path / "panel-receipt").resolve()
+    for forbidden in ("--official-test", "--bucket", "--s3-uri", "--arm"):
+        with pytest.raises(ValueError, match="unsupported argument"):
+            SUBJECT.parse_teacher_anchored_evaluation_args(
+                [*_evaluation_arguments(tmp_path), forbidden, "forbidden"]
+            )
+
+
+def _completed_panel_arm_results() -> dict[str, dict[str, object]]:
+    arms = ("head-only", "base", "anchor", "symmetric", "complete")
+    common_inputs = {
+        "ceiling_receipt": "1" * 64,
+        "image_tree": "2" * 64,
+        "schedule": "3" * 64,
+        "source_checkpoint": "4" * 64,
+        "source_snapshot": "5" * 64,
+        "teacher_checkpoint": "6" * 64,
+        "teacher_snapshot": "7" * 64,
+    }
+    common_authority = {
+        "anchor_schedule_sha256": "8" * 64,
+        "batch_schedule_sha256": "9" * 64,
+        "fitting_probe_sha256": "a" * 64,
+        "ridge_sha256": "b" * 64,
+        "runtime_sha256": "c" * 64,
+        "seed": 17,
+        "snapshot_replay_sha256": "d" * 64,
+        "source_revision": "d71992ed969e6c271436ac0a0ee1f3ca61474ac0",
+        "split_sha256": "f" * 64,
+        "teacher_pca_sha256": "0" * 64,
+    }
+    return {
+        arm: {
+            "arm": arm,
+            "authority": {
+                **common_authority,
+                "arm": arm,
+                "head_replay_sha256": chr(ord("a") + index) * 64,
+                "inputs_sha256": {
+                    **common_inputs,
+                    "launch_receipt": str(index + 1) * 64,
+                },
+                "model_mode_sha256": chr(ord("f") - index) * 64,
+                "objective_sha256": str(5 + index) * 64,
+                "trainable_inventory_sha256": str(9 - index) * 64,
+            },
+            "attempted_updates": 3720,
+            "final_encoder_sha256": "a" * 64 if arm == "head-only" else str(index) * 64,
+            "initial_encoder_sha256": "a" * 64,
+            "initial_frozen_sha256": "b" * 64,
+            "initial_head_sha256": "c" * 64,
+            "schedule_sha256": "9" * 64,
+            "successful_updates": 3720,
+        }
+        for index, arm in enumerate(arms)
+    }
+
+
+def test_completed_panel_rejects_cross_arm_schedule_split_input_and_state_drift() -> None:
+    baseline = _completed_panel_arm_results()
+    SUBJECT.validate_teacher_anchored_cross_arm_authority(baseline)
+
+    mutations = (
+        ("base", "schedule_sha256", "0" * 64),
+        ("anchor", "successful_updates", 3719),
+        ("symmetric", "initial_encoder_sha256", "1" * 64),
+    )
+    for arm, key, value in mutations:
+        changed = deepcopy(baseline)
+        changed[arm][key] = value
+        with pytest.raises(ValueError, match="cross-arm authority"):
+            SUBJECT.validate_teacher_anchored_cross_arm_authority(changed)
+
+    for key in ("batch_schedule_sha256", "split_sha256", "ridge_sha256", "runtime_sha256"):
+        changed = deepcopy(baseline)
+        changed["complete"]["authority"][key] = "1" * 64
+        with pytest.raises(ValueError, match="cross-arm authority"):
+            SUBJECT.validate_teacher_anchored_cross_arm_authority(changed)
+
+    changed = deepcopy(baseline)
+    changed["base"]["authority"]["inputs_sha256"]["source_snapshot"] = "1" * 64
+    with pytest.raises(ValueError, match="cross-arm authority"):
+        SUBJECT.validate_teacher_anchored_cross_arm_authority(changed)
+
+    changed = deepcopy(baseline)
+    changed["head-only"]["final_encoder_sha256"] = "1" * 64
+    with pytest.raises(ValueError, match="cross-arm authority"):
+        SUBJECT.validate_teacher_anchored_cross_arm_authority(changed)
+
+
+def _write_canonical_json(path: Path, value: dict[str, object]) -> bytes:
+    payload = json.dumps(value, sort_keys=True, separators=(",", ":")).encode() + b"\n"
+    path.write_bytes(payload)
+    return payload
+
+
+def _completed_panel_fixture(
+    tmp_path: Path,
+) -> tuple[object, dict[str, dict[str, object]]]:
+    results = _completed_panel_arm_results()
+    panel_inputs = {
+        key: value
+        for key, value in results["head-only"]["authority"]["inputs_sha256"].items()
+        if key != "launch_receipt"
+    }
+    panel_arms: dict[str, dict[str, str]] = {}
+    for arm, result in results.items():
+        result_path = (tmp_path / f"{arm}.result.json").resolve()
+        checkpoint_path = result_path.with_suffix(".pt")
+        checkpoint_bytes = f"{arm}-checkpoint".encode()
+        checkpoint_path.write_bytes(checkpoint_bytes)
+        checkpoint_sha256 = hashlib.sha256(checkpoint_bytes).hexdigest()
+        launch = {
+            "arm": arm,
+            "claim_eligible": False,
+            "inputs_sha256": panel_inputs,
+            "output": str(result_path),
+            "schema": "sfora-teacher-anchored-launch-v1",
+            "seed": 17,
+            "source_revision": "d71992ed969e6c271436ac0a0ee1f3ca61474ac0",
+        }
+        launch_payload = _write_canonical_json(tmp_path / f"{arm}.launch.json", launch)
+        launch_sha256 = hashlib.sha256(launch_payload).hexdigest()
+        result["authority"]["inputs_sha256"]["launch_receipt"] = launch_sha256
+        result.update(
+            {
+                "candidate_epoch": 10,
+                "checkpoint_path": checkpoint_path.name,
+                "checkpoint_sha256": checkpoint_sha256,
+                "claim_eligible": False,
+                "completed_epochs": list(range(1, 11)),
+                "diagnostics": [{} for _ in range(11)],
+                "final_frozen_sha256": "d" * 64,
+                "final_head_sha256": "e" * 64,
+                "optimizer_reset_epochs": [1, 2],
+                "schema": "sfora-teacher-anchored-arm-v1",
+                "stopped_reason": None,
+            }
+        )
+        result_payload = _write_canonical_json(result_path, result)
+        panel_arms[arm] = {
+            "launch_receipt_sha256": launch_sha256,
+            "result_sha256": hashlib.sha256(result_payload).hexdigest(),
+        }
+    panel = {
+        "arms": panel_arms,
+        "claim_eligible": False,
+        "inputs_sha256": panel_inputs,
+        "schema": "sfora-teacher-anchored-panel-v1",
+        "seed": 17,
+        "source_revision": "d71992ed969e6c271436ac0a0ee1f3ca61474ac0",
+    }
+    panel_path = (tmp_path / "panel.result.json").resolve()
+    panel_payload = _write_canonical_json(panel_path, panel)
+    source_checkpoint = (tmp_path / "source.pt").resolve()
+    source_snapshot = (tmp_path / "source.npz").resolve()
+    teacher_snapshot = (tmp_path / "teacher.npz").resolve()
+    ceiling_receipt = (tmp_path / "ceiling.json").resolve()
+    for path in (source_checkpoint, source_snapshot, teacher_snapshot, ceiling_receipt):
+        path.write_bytes(path.name.encode())
+    checkout = (tmp_path / "unicom").resolve()
+    image_root = (tmp_path / "images").resolve()
+    checkout.mkdir()
+    image_root.mkdir()
+    arguments = SUBJECT.TeacherAnchoredEvaluationArguments(
+        panel_receipt=panel_path,
+        panel_receipt_sha256=hashlib.sha256(panel_payload).hexdigest(),
+        source_checkpoint=source_checkpoint,
+        source_checkpoint_sha256=panel_inputs["source_checkpoint"],
+        source_snapshot=source_snapshot,
+        source_snapshot_sha256=panel_inputs["source_snapshot"],
+        teacher_snapshot=teacher_snapshot,
+        teacher_snapshot_sha256=panel_inputs["teacher_snapshot"],
+        unicom_checkout=checkout,
+        image_root=image_root,
+        image_tree_sha256=panel_inputs["image_tree"],
+        ceiling_receipt=ceiling_receipt,
+        ceiling_receipt_sha256=panel_inputs["ceiling_receipt"],
+        teacher_pca_sha256="0" * 64,
+        source_revision="d71992ed969e6c271436ac0a0ee1f3ca61474ac0",
+        seed=17,
+        output=(tmp_path / "evaluation.json").resolve(),
+        execute_teacher_anchored_evaluation=True,
+    )
+    return arguments, results
+
+
+def test_completed_panel_loader_authenticates_panel_launch_result_and_checkpoint_chain(
+    tmp_path: Path,
+) -> None:
+    arguments, expected = _completed_panel_fixture(tmp_path)
+
+    loaded = SUBJECT.load_teacher_anchored_completed_panel(arguments)
+
+    assert loaded == expected
+    (tmp_path / "base.result.pt").write_bytes(b"foreign checkpoint")
+    with pytest.raises(ValueError, match="panel authority"):
+        SUBJECT.load_teacher_anchored_completed_panel(arguments)
 
 
 class DropPath(nn.Module):
@@ -394,6 +640,7 @@ def test_serving_reconstruction_loads_only_merged_state_and_emits_unit_128d_code
         expected_checkpoint_sha256=_checkpoint_sha256(checkpoint),
         expected_codes=expected_codes,
         expected_input_shape=(4,),
+        retained_batch_rows=(4, 1),
         device=torch.device("cpu"),
     )
 
@@ -422,6 +669,50 @@ def test_serving_reconstruction_loads_only_merged_state_and_emits_unit_128d_code
         torch.equal(value, source_encoder.state_dict()[name])
         for name, value in encoder.state_dict().items()
     )
+
+
+def test_serving_reconstruction_discards_registered_padding_rows(tmp_path: Path) -> None:
+    source_encoder = ServingEncoder()
+    source_head = nn.Linear(4, 128)
+    checkpoint = tmp_path / "padded.pt"
+    torch.save(
+        {
+            **{f"encoder.{name}": value for name, value in source_encoder.state_dict().items()},
+            **{f"head.{name}": value for name, value in source_head.state_dict().items()},
+        },
+        checkpoint,
+    )
+    batches = (
+        torch.eye(4, dtype=torch.float32).contiguous(),
+        torch.tensor(
+            [
+                [1.0, 1.0, 0.0, 0.0],
+                [0.0, 1.0, 1.0, 0.0],
+                [0.0, 1.0, 1.0, 0.0],
+                [0.0, 1.0, 1.0, 0.0],
+            ],
+            dtype=torch.float32,
+        ).contiguous(),
+    )
+    all_codes = _expected_serving_codes(source_encoder, source_head, batches)
+    expected = torch.cat((all_codes[:4], all_codes[4:6])).contiguous()
+
+    reconstructed = SUBJECT.reconstruct_teacher_anchored_serving(
+        ServingEncoder(),
+        nn.Linear(4, 128),
+        checkpoint,
+        batches,
+        expected_checkpoint_sha256=_checkpoint_sha256(checkpoint),
+        expected_codes=expected,
+        expected_input_shape=(4,),
+        retained_batch_rows=(4, 2),
+        device=torch.device("cpu"),
+    )
+
+    assert reconstructed.rows == 6
+    assert reconstructed.batch_rows == (4, 4)
+    assert reconstructed.retained_batch_rows == (4, 2)
+    assert torch.equal(reconstructed.codes, expected)
 
 
 def test_serving_reconstruction_deserializes_only_authenticated_bytes(
@@ -455,6 +746,7 @@ def test_serving_reconstruction_deserializes_only_authenticated_bytes(
         expected_checkpoint_sha256=_checkpoint_sha256(checkpoint),
         expected_codes=expected,
         expected_input_shape=(4,),
+        retained_batch_rows=(4,),
         device=torch.device("cpu"),
     )
 
@@ -503,6 +795,7 @@ def test_serving_reconstruction_rejects_extra_roles_and_batch_shape_drift(
                     (sum(len(batch) for batch in batches), 128), dtype=torch.float32
                 ),
                 expected_input_shape=(4,),
+                retained_batch_rows=tuple(len(batch) for batch in batches),
                 device=torch.device("cpu"),
             )
         except ValueError as error:
@@ -542,6 +835,7 @@ def test_serving_reconstruction_rejects_digest_replay_and_batch_sensitivity(
                 expected_checkpoint_sha256=expected_digest,
                 expected_codes=expected_codes,
                 expected_input_shape=(4,),
+                retained_batch_rows=(4,),
                 device=torch.device("cpu"),
             )
 
@@ -564,6 +858,7 @@ def test_serving_reconstruction_rejects_digest_replay_and_batch_sensitivity(
             expected_checkpoint_sha256=_checkpoint_sha256(sensitive_checkpoint),
             expected_codes=_expected_serving_codes(sensitive_encoder, sensitive_head, batches),
             expected_input_shape=(4,),
+            retained_batch_rows=(4,),
             device=torch.device("cpu"),
         )
 
@@ -591,6 +886,7 @@ def test_serving_reconstruction_rejects_non_tensor_batch_as_authority_error(
             expected_checkpoint_sha256=_checkpoint_sha256(checkpoint),
             expected_codes=torch.zeros((1, 128), dtype=torch.float32),
             expected_input_shape=(4,),
+            retained_batch_rows=(1,),
             device=torch.device("cpu"),
         )
 
@@ -608,6 +904,8 @@ def _serving_evidence() -> object:
         rows=4,
         dimensions=128,
         batch_rows=(2, 2),
+        retained_batch_rows=(2, 2),
+        scoring_device="cpu",
         checkpoint_sha256="a" * 64,
         codes_sha256=digest.hexdigest(),
         expected_codes_sha256=digest.hexdigest(),
@@ -647,7 +945,9 @@ def test_canonical_result_recomputes_gates_and_excludes_serving_only_inputs() ->
         "expected_codes_sha256": _serving_evidence().expected_codes_sha256,
         "maximum_batch_shape_error": 0.0,
         "minimum_batch_shape_cosine": 1.0,
+        "retained_batch_rows": [2, 2],
         "rows": 4,
+        "scoring_device": "cpu",
     }
     assert "teacher" not in value["serving"]
     assert "anchors" not in value["serving"]
@@ -701,6 +1001,8 @@ def test_canonical_result_binds_complete_metrics_and_validation_rows_to_serving(
         rows=2,
         dimensions=128,
         batch_rows=(2,),
+        retained_batch_rows=(2,),
+        scoring_device="cpu",
         checkpoint_sha256="a" * 64,
         codes_sha256=digest.hexdigest(),
         expected_codes_sha256=digest.hexdigest(),
