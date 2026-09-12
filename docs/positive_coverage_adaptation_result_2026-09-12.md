@@ -362,6 +362,18 @@ receipt SHA-256 is `aadb21308603ebaed34f518a836ae2351dc214eb0620c96d391034f4016d
 
 ### Additive encoder and compact interaction diagnostics
 
+The complete alternating full-dimensional additive-code experiment was also recovered from its
+authenticated DGX artifact rather than rerun. Starting from padded PQ24, it jointly refit 24
+full-dimensional 256-entry codebooks and reassigned one byte per stage. The anisotropic arm reached
+mAP@R `0.5723724300` and Recall@1 `0.8213049717`; the isotropic arm reached
+`0.5591426508 / 0.8100785009`. Both failed the matched PQ32 control
+(`0.5789231844 / 0.8241748966`) despite reducing their fitting objectives. The canonical receipt
+is 9,287,454 bytes with SHA-256
+`187426cae791f6d42b517636f5245c4f9af0551ab7d0afaef30d032b62a3b636`; its 6,293,797-byte
+checkpoint has SHA-256
+`eea5baa5bff1c0588804c52bed03665d9ca066bec9d59495f9ae28e5435b9009`. This closes the
+already-executed full additive arm and avoids presenting it as an unrun capacity experiment.
+
 Eight deterministic coordinate-descent restarts against the frozen anisotropic additive
 codebooks reduced the label-free reconstruction objective from `0.1104281` to `0.1005164`.
 Choosing the lowest-objective code per row peaked transiently at mAP@R `0.5743010` after three
