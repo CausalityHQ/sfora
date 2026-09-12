@@ -144,11 +144,18 @@ their SHA-256 digests were:
 - seed 3: `0832962f255ada5e8c6295b06f1d4a5aa5d3771d31f0f8782bba827be0453863`;
 - seed 4: `5e7fe9ea642935a95685544b4b029a051eee5a769072da5dd5ecb9d849b25fe1`.
 
-This is evidence that the restricted 128-dimensional adaptation subspace was a material quality
-bottleneck under the matched protocol. It is not evidence that the loss is novel, that 128-byte
-codes satisfy the 100-million-item memory target, or that the method generalizes beyond the
-observed SOP validation split. The next scientific boundary is a nested quality/bytes frontier and
-fresh-dataset replication, not further tuning on these validation queries.
+This is evidence that the restricted parameterization was a material quality bottleneck under the
+matched protocol. It does not yet distinguish access to discarded 768-dimensional information
+from optimization or parameter-count effects: the direct affine head has 98,432 trainable
+parameters including bias, versus 16,384 in the restricted adapter. The next causal control is an
+exactly foldable, identity-initialized 128-to-384-to-128 linear factorization with trainable output
+bias, matching the direct arm's parameter count while remaining unable to recover discarded input
+directions.
+
+The result is not evidence that the loss is novel, that 128-byte codes satisfy the
+100-million-item memory target, or that the method generalizes beyond the observed SOP validation
+split. After the capacity control, the next boundary is the quality/bytes frontier and
+fresh-dataset replication, not further loss tuning on these validation queries.
 
 ## Scientific interpretation
 
