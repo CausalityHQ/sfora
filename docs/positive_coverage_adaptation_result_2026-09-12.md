@@ -116,6 +116,40 @@ Quantization is therefore not the immediate 128-dimensional quality bottleneck h
 not establish end-to-end integer serving performance or the memory feasibility of 128 bytes per
 item at 100 million items.
 
+## Projection-capacity diagnostic
+
+The preregistered direct-projection comparison ran from Sfora commit
+`c4644161d8728dca38acc83c284ac677d2695b96`, with driver SHA-256
+`ecf797e48632e4102ae30a5870ee65693327c4e0923b7029dfa451e220850a1f`. Both arms used the
+same frozen negative table, whose SHA-256 was
+`067dee0c6d2329ccebe9441ea9bc222da135e7fb1834e17171ae5afd5ae30142`.
+
+| Seed | Restricted mAP@R / R@1 | Direct mAP@R / R@1 | Direct mAP@R gain |
+|---:|---:|---:|---:|
+| 0 | 0.5813248753 / 0.8265383641 | 0.5916047950 / 0.8322782139 | 0.0102799197 |
+| 1 | 0.5811864684 / 0.8262007259 | 0.5913895690 / 0.8313497088 | 0.0102031006 |
+| 2 | 0.5813415879 / 0.8265383641 | 0.5914732103 / 0.8329534903 | 0.0101316225 |
+| 3 | 0.5813535129 / 0.8265383641 | 0.5915297130 / 0.8327002617 | 0.0101762001 |
+| 4 | 0.5815306299 / 0.8262007259 | 0.5916413674 / 0.8321938043 | 0.0101107375 |
+| Mean | 0.5813474149 / 0.8264033089 | **0.5915277309 / 0.8322950958** | **0.0101803161** |
+
+Direct projection won both metrics in all five seeds. Its mean Recall@1 gain was `0.0058917870`.
+The one-sided paired class-cluster lower bound computed after averaging each query across the five
+seeds was `0.0091318298` mAP@R. Every individual receipt also passed all three preregistered gates;
+their SHA-256 digests were:
+
+- seed 0: `99da747e61767eea981fda8769a4dd4e852eb6083a79fa920bb21d8c378b72d0`;
+- seed 1: `5ce926869e4ce7d959023ccb28050336eccdff0f4641abbe3f2109bc47e11ec4`;
+- seed 2: `b96fada9817ae7c0355d357002567dc888bbce90d2838fbad135665b9f14e020`;
+- seed 3: `0832962f255ada5e8c6295b06f1d4a5aa5d3771d31f0f8782bba827be0453863`;
+- seed 4: `5e7fe9ea642935a95685544b4b029a051eee5a769072da5dd5ecb9d849b25fe1`.
+
+This is evidence that the restricted 128-dimensional adaptation subspace was a material quality
+bottleneck under the matched protocol. It is not evidence that the loss is novel, that 128-byte
+codes satisfy the 100-million-item memory target, or that the method generalizes beyond the
+observed SOP validation split. The next scientific boundary is a nested quality/bytes frontier and
+fresh-dataset replication, not further tuning on these validation queries.
+
 ## Scientific interpretation
 
 Most of the adaptation gain is already explained by the pooled control. Positive coverage adds
