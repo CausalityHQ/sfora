@@ -11,6 +11,7 @@ from sfora.product_quantization import (
     fit_optimized_product_quantizer,
     fit_product_quantizer,
     neighborhood_adc_distillation_loss,
+    neighborhood_differential_error,
 )
 
 
@@ -190,7 +191,7 @@ def test_straight_through_forward_is_hard_and_gradients_reach_rows_and_codebooks
     torch.testing.assert_close(reconstructed.detach(), expected, rtol=0.0, atol=0.0)
 
     weights = torch.tensor([[1.0, 2.0, 3.0], [-2.0, 1.0, 0.5]])
-    (reconstructed * weights).sum().backward()
+    (reconstructed * weights).sum().backward()  # type: ignore[no-untyped-call]
 
     torch.testing.assert_close(values.grad, weights, rtol=0.0, atol=0.0)
     first_gradient = quantizer.codebooks[0].grad
@@ -249,10 +250,123 @@ def test_neighborhood_adc_distillation_matches_independent_terms_and_backpropaga
     torch.testing.assert_close(observed.reconstruction.detach(), expected_reconstruction)
     expected_total = expected_adc + 0.25 * expected_float + 0.1 * expected_reconstruction
     torch.testing.assert_close(observed.total.detach(), expected_total)
-    observed.total.backward()
+    observed.total.backward()  # type: ignore[no-untyped-call]
     assert student_queries.grad_fn is not None
     assert student_gallery.grad_fn is not None
     assert all(codebook.grad is not None for codebook in quantizer.codebooks)
+
+
+def test_neighborhood_differential_error_matches_literal_residual_pair_formula() -> None:
+    quantizer = _quantizer()
+    values = torch.tensor(
+        [[0.2, 0.1, -0.8], [0.9, 0.2, 1.8], [-0.1, 1.8, 0.1]],
+        dtype=torch.float32,
+        requires_grad=True,
+    )
+    pairs = torch.tensor([[0, 1], [1, 2]], dtype=torch.int64)
+
+    observed = neighborhood_differential_error(values, quantizer, pairs)
+
+    torch.testing.assert_close(observed.detach(), torch.tensor(0.255), rtol=0.0, atol=1e-7)
+    observed.backward()  # type: ignore[no-untyped-call]
+    assert values.grad is not None
+    assert float(values.grad.abs().sum()) > 0.0
+    assert all(codebook.grad is not None for codebook in quantizer.codebooks)
+
+
+def test_neighborhood_adc_distillation_adds_weighted_differential_error() -> None:
+    quantizer = _quantizer()
+    student_queries = F.normalize(torch.tensor([[0.8, 0.2, -0.3]]), dim=-1)
+    student_gallery = F.normalize(
+        torch.tensor([[[0.7, 0.1, -0.2], [0.0, 0.9, 0.3], [-0.8, 0.1, 0.2]]]),
+        dim=-1,
+    )
+    pairs = torch.tensor([[0, 1], [1, 2]], dtype=torch.int64)
+
+    baseline = neighborhood_adc_distillation_loss(
+        student_queries,
+        student_gallery,
+        student_queries,
+        student_gallery,
+        quantizer,
+        temperature=0.2,
+        float_weight=0.25,
+        reconstruction_weight=0.1,
+    )
+    treatment = neighborhood_adc_distillation_loss(
+        student_queries,
+        student_gallery,
+        student_queries,
+        student_gallery,
+        quantizer,
+        temperature=0.2,
+        float_weight=0.25,
+        reconstruction_weight=0.1,
+        differential_weight=0.4,
+        neighbor_pairs=pairs,
+    )
+
+    torch.testing.assert_close(
+        treatment.total,
+        baseline.total + 0.4 * treatment.differential,
+    )
+    assert float(treatment.differential.detach()) > 0.0
+    torch.testing.assert_close(baseline.differential, torch.tensor(0.0))
+
+
+def test_neighborhood_adc_forward_matches_24_table_deployment_order() -> None:
+    generator = torch.Generator().manual_seed(19)
+    spec = ProductQuantizationSpec(block_dimensions=(5,) * 16 + (6,) * 8, codebook_size=3)
+    quantizer = ProductQuantizer.from_codebooks(
+        spec,
+        tuple(torch.randn((3, width), generator=generator) for width in spec.block_dimensions),
+    )
+    queries = F.normalize(torch.randn((2, 128), generator=generator), dim=1)
+    gallery = F.normalize(torch.randn((2, 3, 128), generator=generator), dim=2)
+    temperature = 0.2
+    observed = neighborhood_adc_distillation_loss(
+        queries,
+        gallery,
+        queries,
+        gallery,
+        quantizer,
+        temperature=temperature,
+        float_weight=0.0,
+        reconstruction_weight=0.0,
+    )
+    codes = quantizer.hard_encode(gallery.reshape(-1, 128)).reshape(2, 3, 24)
+    deployed = torch.zeros((2, 3), dtype=torch.float32)
+    start = 0
+    for stage, (width, codebook) in enumerate(
+        zip(spec.block_dimensions, quantizer.codebooks, strict=True)
+    ):
+        table = (queries[:, None, start : start + width] - codebook[None]).square().sum(-1)
+        deployed = deployed + torch.gather(table, 1, codes[:, :, stage].long())
+        start += width
+    teacher_probabilities = F.softmax(
+        torch.einsum("bd,bcd->bc", queries, gallery) / temperature, -1
+    )
+    expected = F.kl_div(
+        F.log_softmax(-0.5 * deployed / temperature, dim=-1),
+        teacher_probabilities,
+        reduction="batchmean",
+    )
+
+    torch.testing.assert_close(observed.adc_kl, expected, rtol=0.0, atol=0.0)
+
+
+@pytest.mark.parametrize(
+    "pairs",
+    (
+        torch.tensor([[0, 3]], dtype=torch.int64),
+        torch.tensor([[0, 1]], dtype=torch.int32),
+        torch.tensor([0, 1], dtype=torch.int64),
+        torch.tensor([[0, 0]], dtype=torch.int64),
+    ),
+)
+def test_neighborhood_differential_error_rejects_invalid_pairs(pairs: torch.Tensor) -> None:
+    with pytest.raises(ValueError, match="neighborhood differential"):
+        neighborhood_differential_error(torch.ones((3, 3)), _quantizer(), pairs)
 
 
 def test_reconstruction_gradient_attracts_rows_and_selected_codewords() -> None:
@@ -283,7 +397,7 @@ def test_reconstruction_gradient_attracts_rows_and_selected_codewords() -> None:
     codes = quantizer.hard_encode(student_gallery.detach().reshape(-1, 3))
     hard = quantizer.hard_decode(codes).detach().reshape_as(student_gallery)
 
-    loss.reconstruction.backward()
+    loss.reconstruction.backward()  # type: ignore[no-untyped-call]
 
     assert student_gallery.grad is not None
     displacement = student_gallery.detach() - hard

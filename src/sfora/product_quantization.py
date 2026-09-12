@@ -53,6 +53,7 @@ class NeighborhoodAdcDistillationLoss:
     adc_kl: torch.Tensor
     float_kl: torch.Tensor
     reconstruction: torch.Tensor
+    differential: torch.Tensor
 
 
 class _HardReconstructionStraightThrough(torch.autograd.Function):
@@ -371,6 +372,43 @@ def _unit_rows(values: torch.Tensor) -> bool:
     return bool((torch.abs(norms - 1.0) <= 2e-5).all())
 
 
+def neighborhood_differential_error(
+    values: torch.Tensor,
+    quantizer: ProductQuantizer,
+    neighbor_pairs: torch.Tensor,
+) -> torch.Tensor:
+    """Measure squared differences between hard-quantization errors of neighbor pairs."""
+
+    if (
+        type(quantizer) is not ProductQuantizer
+        or type(values) is not torch.Tensor
+        or values.dtype != torch.float32
+        or values.ndim != 2
+        or values.shape[0] < 2
+        or values.shape[1] != quantizer.spec.dimensions
+        or values.device != quantizer.codebooks[0].device
+        or not bool(torch.isfinite(values).all())
+        or type(neighbor_pairs) is not torch.Tensor
+        or neighbor_pairs.dtype != torch.int64
+        or neighbor_pairs.ndim != 2
+        or neighbor_pairs.shape[0] < 1
+        or neighbor_pairs.shape[1] != 2
+        or neighbor_pairs.device != values.device
+        or bool((neighbor_pairs < 0).any())
+        or bool((neighbor_pairs >= values.shape[0]).any())
+        or bool((neighbor_pairs[:, 0] == neighbor_pairs[:, 1]).any())
+    ):
+        raise ValueError("neighborhood differential authority differs")
+    codes = quantizer.hard_encode(values.detach())
+    reconstructed = quantizer.hard_decode(codes)
+    residuals = values - reconstructed
+    differences = residuals[neighbor_pairs[:, 0]] - residuals[neighbor_pairs[:, 1]]
+    result = differences.square().sum(dim=1).mean()
+    if not bool(torch.isfinite(result)):
+        raise RuntimeError("neighborhood differential error is nonfinite")
+    return result
+
+
 def neighborhood_adc_distillation_loss(
     student_queries: torch.Tensor,
     student_gallery: torch.Tensor,
@@ -381,43 +419,56 @@ def neighborhood_adc_distillation_loss(
     temperature: float,
     float_weight: float,
     reconstruction_weight: float,
+    differential_weight: float = 0.0,
+    neighbor_pairs: torch.Tensor | None = None,
+    _validated: bool = False,
 ) -> NeighborhoodAdcDistillationLoss:
     """Distill teacher neighborhoods through the exact hard asymmetric score."""
 
-    if (
-        type(quantizer) is not ProductQuantizer
-        or type(student_queries) is not torch.Tensor
-        or type(student_gallery) is not torch.Tensor
-        or type(teacher_queries) is not torch.Tensor
-        or type(teacher_gallery) is not torch.Tensor
-        or student_queries.dtype != torch.float32
-        or student_gallery.dtype != torch.float32
-        or teacher_queries.dtype != torch.float32
-        or teacher_gallery.dtype != torch.float32
-        or student_queries.ndim != 2
-        or student_gallery.ndim != 3
-        or teacher_queries.shape != student_queries.shape
-        or teacher_gallery.shape != student_gallery.shape
-        or student_gallery.shape[0] != student_queries.shape[0]
-        or student_gallery.shape[2] != student_queries.shape[1]
-        or student_queries.shape[1] != quantizer.spec.dimensions
-        or student_queries.device != student_gallery.device
-        or teacher_queries.device != student_queries.device
-        or teacher_gallery.device != student_queries.device
-        or quantizer.codebooks[0].device != student_queries.device
-        or not _unit_rows(student_queries)
-        or not _unit_rows(student_gallery)
-        or not _unit_rows(teacher_queries)
-        or not _unit_rows(teacher_gallery)
-        or type(temperature) is not float
-        or not math.isfinite(temperature)
-        or temperature <= 0.0
-        or type(float_weight) is not float
-        or not math.isfinite(float_weight)
-        or float_weight < 0.0
-        or type(reconstruction_weight) is not float
-        or not math.isfinite(reconstruction_weight)
-        or reconstruction_weight < 0.0
+    if type(_validated) is not bool or (
+        not _validated
+        and (
+            type(quantizer) is not ProductQuantizer
+            or type(student_queries) is not torch.Tensor
+            or type(student_gallery) is not torch.Tensor
+            or type(teacher_queries) is not torch.Tensor
+            or type(teacher_gallery) is not torch.Tensor
+            or student_queries.dtype != torch.float32
+            or student_gallery.dtype != torch.float32
+            or teacher_queries.dtype != torch.float32
+            or teacher_gallery.dtype != torch.float32
+            or student_queries.ndim != 2
+            or student_gallery.ndim != 3
+            or teacher_queries.ndim != 2
+            or teacher_gallery.ndim != 3
+            or teacher_queries.shape[0] != student_queries.shape[0]
+            or teacher_gallery.shape[:2] != student_gallery.shape[:2]
+            or teacher_gallery.shape[2] != teacher_queries.shape[1]
+            or student_gallery.shape[0] != student_queries.shape[0]
+            or student_gallery.shape[2] != student_queries.shape[1]
+            or student_queries.shape[1] != quantizer.spec.dimensions
+            or student_queries.device != student_gallery.device
+            or teacher_queries.device != student_queries.device
+            or teacher_gallery.device != student_queries.device
+            or quantizer.codebooks[0].device != student_queries.device
+            or not _unit_rows(student_queries)
+            or not _unit_rows(student_gallery)
+            or not _unit_rows(teacher_queries)
+            or not _unit_rows(teacher_gallery)
+            or type(temperature) is not float
+            or not math.isfinite(temperature)
+            or temperature <= 0.0
+            or type(float_weight) is not float
+            or not math.isfinite(float_weight)
+            or float_weight < 0.0
+            or type(reconstruction_weight) is not float
+            or not math.isfinite(reconstruction_weight)
+            or reconstruction_weight < 0.0
+            or type(differential_weight) is not float
+            or not math.isfinite(differential_weight)
+            or differential_weight < 0.0
+            or (differential_weight > 0.0 and neighbor_pairs is None)
+        )
     ):
         raise ValueError("neighborhood ADC distillation authority differs")
     batch, candidates, dimensions = student_gallery.shape
@@ -429,9 +480,23 @@ def neighborhood_adc_distillation_loss(
     teacher_logits = (
         torch.einsum("bd,bcd->bc", teacher_queries.detach(), teacher_gallery.detach()) / temperature
     )
-    adc_logits = (
-        -0.5 * (student_queries[:, None, :] - hard_gallery).square().sum(dim=-1) / temperature
+    surrogate_distances = (student_queries[:, None, :] - hard_gallery).square().sum(dim=-1)
+    deployed_distances = torch.zeros_like(surrogate_distances)
+    start = 0
+    candidate_codes = codes.reshape(batch, candidates, -1)
+    for block_index, (width, codebook) in enumerate(
+        zip(quantizer.spec.block_dimensions, quantizer.codebooks, strict=True)
+    ):
+        query_block = student_queries[:, start : start + width]
+        table = (query_block[:, None, :] - codebook[None, :, :]).square().sum(dim=-1)
+        deployed_distances = deployed_distances + torch.gather(
+            table, 1, candidate_codes[:, :, block_index].long()
+        )
+        start += width
+    exact_forward_distances = (
+        surrogate_distances + (deployed_distances - surrogate_distances).detach()
     )
+    adc_logits = -0.5 * exact_forward_distances / temperature
     float_logits = torch.einsum("bd,bcd->bc", student_queries, student_gallery) / temperature
     teacher_probabilities = F.softmax(teacher_logits, dim=-1)
     adc_kl = F.kl_div(
@@ -441,7 +506,29 @@ def neighborhood_adc_distillation_loss(
         F.log_softmax(float_logits, dim=-1), teacher_probabilities, reduction="batchmean"
     )
     reconstruction = F.mse_loss(reconstruction_gallery, student_gallery)
-    total = adc_kl + float_weight * float_kl + reconstruction_weight * reconstruction
+    differential = torch.zeros((), dtype=torch.float32, device=student_gallery.device)
+    if neighbor_pairs is not None:
+        if not _validated and (
+            type(neighbor_pairs) is not torch.Tensor
+            or neighbor_pairs.dtype != torch.int64
+            or neighbor_pairs.ndim != 2
+            or neighbor_pairs.shape[0] < 1
+            or neighbor_pairs.shape[1] != 2
+            or neighbor_pairs.device != student_gallery.device
+            or bool((neighbor_pairs < 0).any())
+            or bool((neighbor_pairs >= candidates).any())
+            or bool((neighbor_pairs[:, 0] == neighbor_pairs[:, 1]).any())
+        ):
+            raise ValueError("neighborhood ADC distillation authority differs")
+        residuals = student_gallery - reconstruction_gallery
+        differences = residuals[:, neighbor_pairs[:, 0]] - residuals[:, neighbor_pairs[:, 1]]
+        differential = differences.square().sum(dim=-1).mean()
+    total = (
+        adc_kl
+        + float_weight * float_kl
+        + reconstruction_weight * reconstruction
+        + differential_weight * differential
+    )
     if not bool(torch.isfinite(total)):
         raise RuntimeError("neighborhood ADC distillation loss is nonfinite")
     return NeighborhoodAdcDistillationLoss(
@@ -449,4 +536,5 @@ def neighborhood_adc_distillation_loss(
         adc_kl=adc_kl,
         float_kl=float_kl,
         reconstruction=reconstruction,
+        differential=differential,
     )
