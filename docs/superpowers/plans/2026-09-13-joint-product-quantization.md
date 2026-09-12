@@ -24,11 +24,12 @@ optimization or candidate construction.
 - Work only in the Sfora repository.
 - Keep the frozen 768-dimensional teacher input, existing 128-dimensional float-head
   initialization, class-disjoint fit/validation partition, and evaluator unchanged.
-- Encode every database vector into exactly 24 bytes: 24 independent 256-entry codebooks whose
-  block dimensions sum to 128. The initial registered layout is sixteen 5-dimensional blocks
-  followed by eight 6-dimensional blocks.
-- Float-query/database-code scoring is exactly negative one-half of the sum of squared block
-  distances. Never renormalize a decoded database vector or substitute symmetric scoring.
+- Encode every database vector into exactly 24 bytes: one `uint8` assignment for each of 24
+  256-entry codebooks. The PQ controls use sixteen 5-dimensional blocks followed by eight
+  6-dimensional blocks; the Task 3 candidates use 24 full-dimensional additive codebooks.
+- PQ-control scoring is negative one-half of summed squared block distances. Task 3 additive
+  scoring is exactly `sum_m q dot A_m[c_m]`, with no database sidecar or decoded-vector
+  renormalization. Never substitute symmetric scoring for either registered rule.
 - Candidate construction and optimization are label-free. Validation labels are evaluation-only.
 - SOP validation is burned development evidence. Results remain `claim_eligible=false`; no result
   alone authorizes a generic or production claim.
@@ -198,20 +199,36 @@ recipe and makes Task 3's learned hard-code assignments the next representation 
 - Modify: `scripts/positive_coverage_artifacts.py`
 - Modify: `tests/test_positive_coverage_artifacts.py`
 
-- [ ] Freeze a four-arm exact-192-bit comparison: PQ24 control; same PQ supports with score-aware
-  hard reassignment; full-dimensional 24-stage additive codebooks with reconstruction fitting;
-  and the same additive codebooks with the Task 2C listwise ranking loss. Initialize the additive
-  codebooks from the exact PQ24 reconstruction, then use hard coordinate-descent encoding and
-  freshly encode held-out vectors from scratch.
-- [ ] Mutation-lock the registered 128D head, 24 one-byte stages, temperature `0.03`, loss
-  coefficients, candidate strata, four reassignment sweeps, optimizer schedule, refresh cadence,
-  and seed-0 kill gate. Each additive codeword is full-dimensional; database rows contain no
-  norm, scale, residual, or sidecar bytes.
+- [ ] Add `src/sfora/additive_quantization.py` and focused tests for a generic full-dimensional
+  additive codec. Its database representation is exactly 24 `uint8` assignments; its shared
+  codebooks have shape `24 x 256 x 128`; query/database scoring is exactly
+  `sum_m q dot A_m[c_m]`, requiring 24 table lookups and no database norm, scale, residual, or
+  sidecar bytes. Mutation-lock hard decode, lookup/direct-dot equality, finite/device/type
+  authority, incumbent-preserving coordinate-descent ties, and exact padded-PQ initialization.
+- [ ] Freeze a three-arm exact-192-bit comparison: matched PQ24 control; re-encoded additive
+  quantization with ordinary reconstruction; and re-encoded additive quantization with
+  anisotropic reconstruction
+  `||x-x_hat||^2 + 3 * (x dot (x-x_hat))^2`. Initialize the 24 full-dimensional codebooks by
+  embedding each existing PQ24 codeword in its original block and initialize every encode from
+  the original PQ24 bytes. Use eight outer rounds, two hard coordinate-descent assignment sweeps
+  per round, two complete fixed-assignment Adam codebook passes per round, batch size 1,024,
+  learning rate `1e-3` for rounds 1--4 and `3e-4` for rounds 5--8, no weight decay, and one retry
+  at one-quarter learning rate when the complete fitting objective increases. Held-out vectors
+  are freshly encoded from their own PQ24 initialization with eight coordinate sweeps.
+- [ ] Do not use labels, candidate sampling, hard-negative refresh, KL, or another learned query
+  scorer in this screen. The prior fixed-code losses optimized their sampled objectives while
+  worsening exhaustive retrieval, so changing both encoding and mining would make the next
+  result uninterpretable. Validation labels remain evaluation-only.
 - [ ] Authenticate the same source/teacher snapshots and parent direct-head checkpoint used by the
   projection-capacity experiment. Initialize the student head identically to that checkpoint.
-- [ ] Fit codebooks only on fitting representations. Train the head and codebooks against the
-  actual hard asymmetric score; report a frozen-head/codebook-only causal control and the joint
-  arm, plus joint float quality, distortion, utilization, assignment churn, and ranking flips.
+- [ ] Fit codebooks only on fitting representations and keep the 128D head frozen for this first
+  representation test. Report initial-padded/fixed-code, re-encoded isotropic, and re-encoded
+  anisotropic controls plus a fixed-codebook anisotropic re-encoding control; exhaustive
+  mAP@R/R1; reconstruction and parallel/tangential error;
+  float-head top-1/8/32/128 overlap; float-head-top32 pairwise inversions; coded top32 intruders
+  from outside float-head top128; float reranking within each arm's top32; utilization; assignment churn;
+  and the full-gallery score-error upper tail. This separates containment, local ordering,
+  representation change, and objective effects.
 - [ ] Publish no-clobber checkpoints and one canonical complete receipt; refuse implicit execution.
 
 ### Task 4: Seed-0 kill screen and evidence
@@ -220,9 +237,11 @@ recipe and makes Task 3's learned hard-code assignments the next representation 
   test suite.
 - [ ] Commit/push the exact Sfora slice to canonical `master`, deploy that exact commit to the DGX,
   and rerun focused tests against checkout `src`.
-- [ ] Run exactly one seed-0 SOP development screen. Kill the recipe unless hard-ADC mAP@R reaches
-  at least `0.5809` (recovering at least 0.010 of the 0.0207 post-hoc loss), with no more than
-  0.002 float-student regression. The desired research threshold is `0.5859`.
+- [ ] Run exactly one seed-0 SOP development screen. Kill the recipe unless additive-dot mAP@R
+  reaches at least `0.5809`, with no more than `0.002` R1 regression from the matched padded-PQ24
+  additive-dot control. The desired research threshold is `0.58563`; PQ32 hard-ADC remains a named
+  cross-functional quality bar rather than the matched scoring-rule control. This is a
+  preregistered best-of-two claim-ineligible screen, not a single-arm publication claim.
 - [ ] On failure, preserve diagnostics and seek fresh independent failure analysis before changing
   the recipe. On success, run the frozen remaining seeds and require paired class-cluster evidence.
 
