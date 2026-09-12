@@ -461,6 +461,21 @@ def test_positive_coverage_drivers_require_explicit_execution(
     assert "--execute-positive-coverage" in result.stderr
 
 
+def test_sop_positive_coverage_official_evaluator_requires_explicit_execution() -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(_SCRIPT.parent / "evaluate_sop_positive_coverage_official.py"),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 2
+    assert "--execute-official-evaluation" in result.stderr
+
+
 @pytest.mark.parametrize("mutation", ("state-key", "nonfinite", "parameter", "claim"))
 def test_positive_coverage_artifacts_reject_invalid_authority(
     tmp_path: Path, mutation: str
