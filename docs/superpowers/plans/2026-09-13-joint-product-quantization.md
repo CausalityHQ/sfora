@@ -117,24 +117,59 @@ optimization or candidate construction.
 - [x] Add a permutation-equivariant residual set scorer that begins at the exact hard-ADC
   baseline, listwise float-teacher distillation, deterministic fitting, and an exact top-32
   candidate constructor with leave-self-out and row-index tie authority.
-- [ ] Before training, measure PQ24 seed variance and preserve the existing PQ24/PQ32/OPQ24/float
+- [x] Before training, measure PQ24 seed variance and preserve the existing PQ24/PQ32/OPQ24/float
   controls. A gain smaller than the observed seed variation is not evidence.
-- [ ] Train one frozen label-free recipe on fitting rows only: 32 ADC candidates, a three-layer
+- [x] Train one frozen label-free recipe on fitting rows only: 32 ADC candidates, a three-layer
   128-wide/four-head set scorer, temperature `0.05`, KL plus `0.1` row-centered (shift-invariant)
   score MSE, AdamW, and a fixed schedule. Validation labels remain evaluation-only. Report the
   exact baseline and reranked candidate lists, per-query AP, paired deltas, objective components,
   residual gate, target entropy/effective support, codebook seed, model bytes, and top-32 ceiling.
-- [ ] Kill the ordering-repair path below PQ32 `0.578923`; call it promising only at or above the
+- [x] Kill the ordering-repair path below PQ32 `0.578923`; call it promising only at or above the
   preregistered `0.58563` target, above measured PQ seed variation, and without more than `0.002`
   R@1 loss from its own PQ24 baseline. A pass remains SOP development evidence and must transfer
   to a fresh domain before any generic claim. A non-improving fit objective is an optimization
   failure, not a scientific rejection of candidate-set reranking.
-- [ ] If this bounded reranker fails, proceed to Task 3's joint hard-code ranking objective. Do not
+- [x] If this bounded reranker fails, proceed to Task 3's joint hard-code ranking objective. Do not
   spend another experiment on reconstruction-only codebook or decoder improvements.
 
 The initial substrate remains PQ24 so the experiment isolates ordering repair against the exact
 matched hard-PQ control. OPQ24 remains a separately reported control and a possible initializer for
 Task 3; mixing it into this screen would change both the representation and the ordering mechanism.
+
+The completed seed-0 screen reached `0.578615516 / 0.822655525`, gaining `0.007894843` mAP@R
+over PQ24, or 8.99 measured PQ-codebook seed standard deviations. It nevertheless missed PQ32 by
+`0.000307669` and the target by `0.007014484`, so the registered path is closed. The exact-float
+top-32 ceiling remains `0.591225085`, localizing the remaining problem to information and ordering
+inside the fixed 192-bit representation rather than candidate containment.
+
+### Task 2C: Fixed-code lookup-table distillation diagnostic
+
+**Files:**
+- Create: `src/sfora/pq_lookup_distillation.py`
+- Create: `tests/test_pq_lookup_distillation.py`
+- Create: `scripts/run_sop_pq_lookup_distillation.py`
+- Create: `tests/test_run_sop_pq_lookup_distillation.py`
+
+- [ ] Add a generic query-dependent additive scorer
+  `s(q,c)=s_PQ(q,c)+sum_m h(q)^T E_m[c_m]`, with a `128 -> 128 -> 32` GELU query network and
+  24 zero-initialized, mean-centered `256 x 32` correction tables. The database remains exactly
+  24 bytes and exhaustive scoring remains 24 table lookups and additions per vector.
+- [ ] Mutation-lock permutation independence, exact zero-correction equality to PQ24, table
+  centering, direct-score/lookup equality, deterministic state, and rejection of nonfinite or
+  malformed codes and queries.
+- [ ] Train two frozen label-free controls on fitting classes only, using the same deduplicated
+  float-top128, compressed-top128, and 128 uniform-tail pool: teacher-score MSE and listwise
+  teacher KL plus 256 soft pairwise comparisons at temperature `0.03`. Refresh compressed
+  candidates once per epoch; validation labels remain evaluation-only.
+- [ ] Report both fixed-candidate and own exhaustive rankings, teacher pairwise agreement,
+  mAP@R, Recall@1, model/table bytes, PQ seed variation, and exact input/output authorities.
+  Kill the fixed-code branch unless the registered ranking-loss arm beats `0.578615516` by more
+  than measured run variation. Crossing PQ32 is a useful production baseline; only reaching
+  `0.58563` without more than `0.001` Recall@1 loss can defer Task 3.
+- [ ] Add a fitting-shard-only contested-margin spectrum diagnostic before any anisotropic codec:
+  compare global PCA energy, PQ residual error, and centered float top-32 pairwise decision energy.
+  Kill contested-set anisotropy when the registered alignment ratio is at least `0.6`; treat a
+  value below `0.4` as evidence to retain it as a later additive-quantizer ablation.
 
 ### Task 3: Authenticated joint-codec development driver
 
@@ -144,9 +179,15 @@ Task 3; mixing it into this screen would change both the representation and the 
 - Modify: `scripts/positive_coverage_artifacts.py`
 - Modify: `tests/test_positive_coverage_artifacts.py`
 
-- [ ] Freeze the independently reviewed recipe in constants and mutation-lock them: 128D head,
-  exact 24-byte codec selected by Task 2, temperature, loss coefficients, candidate strata,
-  optimizer schedule, refresh cadence, and seed-0 kill gate.
+- [ ] Freeze a four-arm exact-192-bit comparison: PQ24 control; same PQ supports with score-aware
+  hard reassignment; full-dimensional 24-stage additive codebooks with reconstruction fitting;
+  and the same additive codebooks with the Task 2C listwise ranking loss. Initialize the additive
+  codebooks from the exact PQ24 reconstruction, then use hard coordinate-descent encoding and
+  freshly encode held-out vectors from scratch.
+- [ ] Mutation-lock the registered 128D head, 24 one-byte stages, temperature `0.03`, loss
+  coefficients, candidate strata, four reassignment sweeps, optimizer schedule, refresh cadence,
+  and seed-0 kill gate. Each additive codeword is full-dimensional; database rows contain no
+  norm, scale, residual, or sidecar bytes.
 - [ ] Authenticate the same source/teacher snapshots and parent direct-head checkpoint used by the
   projection-capacity experiment. Initialize the student head identically to that checkpoint.
 - [ ] Fit codebooks only on fitting representations. Train the head and codebooks against the

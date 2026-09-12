@@ -242,6 +242,47 @@ Total fitting took 182.44 seconds, including 105.16 seconds for OPQ24. This deve
 failure closes rotation as a sufficient intervention, not as a useful initialization for
 hard-score training.
 
+### Label-free PQ24 candidate-set ordering repair
+
+The preregistered seed-0 candidate-set screen ran from Sfora commit
+`08234d15fff6cceabdab989d593987beb5110728`, with driver SHA-256
+`60050bceddb5e005a895afa823dbf6e394b48f7c49631d9f6e4a8fb2e47feeb0`. It retained exactly
+24 database bytes per vector. The shared query-side scorer used the query, the 32 exact PQ24 ADC
+candidates, codeword residual second moments, partial block scores, decoded norms, and pairwise
+code similarity. No validation label or official-test row entered fitting.
+
+| Representation / scorer | mAP@R | Recall@1 |
+|---|---:|---:|
+| PQ24 ADC baseline | 0.5707206723 | 0.8222334768 |
+| PQ24 candidate-set reranker | **0.5786155157** | **0.8226555246** |
+| PQ32 ADC control | 0.5789231844 | 0.8241748966 |
+| PQ24 top-32 exact-float ceiling | 0.5912250853 | 0.8327002617 |
+| Full float 128D | 0.5912648481 | 0.8327002617 |
+
+The reranker gained `0.0078948434` mAP@R and `0.0004220478` Recall@1 over PQ24. The mAP gain was
+8.99 times the five-codebook-seed population standard deviation (`0.0008777193`), so the effect
+is much larger than that measured codec noise. Its label-free fit objective decreased from
+`0.0888102120` to `0.0544697634`; the final residual gate was `0.2223121822`. The learned model
+contains 2,417,720 parameter bytes, shared across all database rows, and fitting took 106.12
+seconds. The complete run, including deterministic control recomputation, finished in about three
+minutes on the DGX.
+
+The frozen decision is nevertheless `candidate-set-reranker-failed-pq32`: it missed PQ32 by
+`0.0003076687` mAP@R and the `0.58563` research target by `0.0070144843`. This is a meaningful
+positive mechanism result but not a release candidate. It shows that code-conditioned local set
+context repairs a large fraction of PQ24's ordering loss; the healthy objective convergence and
+R@1 improvement rule out a simple optimization collapse. It also shows that post-hoc scoring of
+fixed PQ24 codes is insufficient under the registered gate. The next experiment must train the
+24-byte codes and embedding head against their actual hard ranking behavior, rather than add more
+post-hoc reconstruction or reranker variants on the same development split.
+
+The canonical receipt is 6,710,448 bytes with SHA-256
+`1c17c0df21bd903d28a915a791527c6930e165e140331278350e97b02ded163a`; the model checkpoint
+is 3,312,151 bytes with SHA-256
+`20b8c3d7574d58d9e9c582f1f882d273f30c71241f7114b994e9fbdf7a27de71`. This remains
+claim-ineligible SOP class-disjoint development evidence. Reranker initialization variance is
+unmeasured, and neither a 100-million-vector index nor end-to-end query latency is established.
+
 ## Scientific interpretation
 
 Most of the adaptation gain is already explained by the pooled control. Positive coverage adds
