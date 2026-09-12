@@ -118,8 +118,9 @@ def _completed_panel_arm_results() -> dict[str, dict[str, object]]:
             },
             "attempted_updates": 3720,
             "final_encoder_sha256": "a" * 64 if arm == "head-only" else str(index) * 64,
+            "final_frozen_sha256": "b" * 64 if arm == "head-only" else "d" * 64,
             "initial_encoder_sha256": "a" * 64,
-            "initial_frozen_sha256": "b" * 64,
+            "initial_frozen_sha256": "b" * 64 if arm == "head-only" else "d" * 64,
             "initial_head_sha256": "c" * 64,
             "schedule_sha256": "9" * 64,
             "successful_updates": 3720,
@@ -156,6 +157,11 @@ def test_completed_panel_rejects_cross_arm_schedule_split_input_and_state_drift(
 
     changed = deepcopy(baseline)
     changed["head-only"]["final_encoder_sha256"] = "1" * 64
+    with pytest.raises(ValueError, match="cross-arm authority"):
+        SUBJECT.validate_teacher_anchored_cross_arm_authority(changed)
+
+    changed = deepcopy(baseline)
+    changed["anchor"]["final_frozen_sha256"] = "1" * 64
     with pytest.raises(ValueError, match="cross-arm authority"):
         SUBJECT.validate_teacher_anchored_cross_arm_authority(changed)
 
@@ -202,7 +208,7 @@ def _completed_panel_fixture(
                 "claim_eligible": False,
                 "completed_epochs": list(range(1, 11)),
                 "diagnostics": [{} for _ in range(11)],
-                "final_frozen_sha256": "d" * 64,
+                "final_frozen_sha256": result["initial_frozen_sha256"],
                 "final_head_sha256": "e" * 64,
                 "optimizer_reset_epochs": [1, 2],
                 "schema": "sfora-teacher-anchored-arm-v1",

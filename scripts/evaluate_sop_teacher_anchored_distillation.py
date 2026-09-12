@@ -261,7 +261,6 @@ def validate_teacher_anchored_cross_arm_authority(
     common_result_keys = (
         "attempted_updates",
         "initial_encoder_sha256",
-        "initial_frozen_sha256",
         "initial_head_sha256",
         "schedule_sha256",
         "successful_updates",
@@ -303,6 +302,7 @@ def validate_teacher_anchored_cross_arm_authority(
                 not _is_sha256(result.get(key))
                 for key in (
                     "final_encoder_sha256",
+                    "final_frozen_sha256",
                     "initial_encoder_sha256",
                     "initial_frozen_sha256",
                     "initial_head_sha256",
@@ -310,6 +310,7 @@ def validate_teacher_anchored_cross_arm_authority(
                 )
             )
             or result["schedule_sha256"] != authority["batch_schedule_sha256"]
+            or result["final_frozen_sha256"] != result["initial_frozen_sha256"]
         ):
             raise ValueError("teacher-anchored cross-arm authority differs")
         launch_digest = cast(str, inputs["launch_receipt"])
