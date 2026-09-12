@@ -12,18 +12,22 @@ from torch import nn
 
 import sfora
 from sfora.teacher_anchored_distillation import (
+    ClassBalancedAnchorSchedule,
     TeacherAnchoredConfig,
     TeacherAnchoredNumericalError,
     TeacherAnchorSchedule,
     TeacherNeighborBatches,
     TeacherNeighborRanking,
+    class_balanced_anchor_schedule,
     cross_dimensional_anchor_distillation_loss,
     cross_dimensional_relational_distillation_loss,
     cross_dimensional_similarity_distillation_loss,
     embedding_geometry_diagnostics,
+    exposure_normalized_update_count,
     positive_coverage_hard_negative_loss,
     retrieval_impact_weighted_pairwise_loss,
     retrieval_local_rank_distillation_loss,
+    stable_different_class_topk,
     teacher_anchor_schedule,
     teacher_anchored_forward,
     teacher_anchored_input_sha256,
@@ -189,11 +193,14 @@ def test_sealed_schedule_round_trip_is_exact_immutable_and_dataset_agnostic() ->
     )
     assert not loaded.anchor_schedule.row_indexes.flags.writeable
     assert all(not item.row_indexes.flags.writeable for item in loaded.epoch_schedules)
-    assert canonical_teacher_anchored_schedule_bytes(
-        binding=loaded.binding,
-        anchor_schedule=loaded.anchor_schedule,
-        epoch_schedules=loaded.epoch_schedules,
-    ) == payload
+    assert (
+        canonical_teacher_anchored_schedule_bytes(
+            binding=loaded.binding,
+            anchor_schedule=loaded.anchor_schedule,
+            epoch_schedules=loaded.epoch_schedules,
+        )
+        == payload
+    )
     header = json.loads(payload.split(b"\n", 1)[0])
     assert "dataset" not in header
     assert "arm" not in header
@@ -241,9 +248,7 @@ def test_sealed_schedule_rejects_digest_binding_structure_and_payload_drift() ->
     nan_header = json.loads(header_bytes)
     nan_header["anchor_bytes"] = float("nan")
     malformed = (
-        json.dumps(nan_header, sort_keys=True, separators=(",", ":")).encode()
-        + b"\n"
-        + binary
+        json.dumps(nan_header, sort_keys=True, separators=(",", ":")).encode() + b"\n" + binary
     )
     with pytest.raises(ValueError, match="teacher-anchored schedule seal differs"):
         parse_teacher_anchored_schedule_bytes(
@@ -290,9 +295,7 @@ def test_linear_schedule_verifiers_bind_rows_to_exact_teacher_input() -> None:
     changed = batch_codes.copy()
     changed[[0, 1]] = changed[[1, 0]]
     with pytest.raises(ValueError, match="teacher batch authority differs"):
-        verify_teacher_neighbor_batches(
-            changed, batch_ids, seed=17, epoch=3, schedule=batches
-        )
+        verify_teacher_neighbor_batches(changed, batch_ids, seed=17, epoch=3, schedule=batches)
     bad_metadata = TeacherNeighborBatches(
         row_indexes=batches.row_indexes,
         dropped_seed_row_indexes=batches.dropped_seed_row_indexes,
@@ -331,9 +334,7 @@ def test_execution_plan_builds_neighbor_ranking_once_and_seals_ten_epochs(
         calls += 1
         return real_ranking(values, identities)
 
-    def reject_fallback_ranking(
-        _values: np.ndarray, _identities: tuple[str, ...]
-    ) -> None:
+    def reject_fallback_ranking(_values: np.ndarray, _identities: tuple[str, ...]) -> None:
         raise AssertionError("epoch schedules must reuse the sealed ranking")
 
     monkeypatch.setattr(schedule_io, "teacher_neighbor_ranking", counted_ranking)
@@ -660,8 +661,7 @@ def test_teacher_anchored_schedule_api_is_public() -> None:
     assert sfora.SealedTeacherAnchoredSchedule is SealedTeacherAnchoredSchedule
     assert sfora.build_teacher_anchored_schedule is build_teacher_anchored_schedule
     assert (
-        sfora.canonical_teacher_anchored_schedule_bytes
-        is canonical_teacher_anchored_schedule_bytes
+        sfora.canonical_teacher_anchored_schedule_bytes is canonical_teacher_anchored_schedule_bytes
     )
     assert sfora.parse_teacher_anchored_schedule_bytes is parse_teacher_anchored_schedule_bytes
     assert (
@@ -924,9 +924,7 @@ def test_cross_dimensional_anchor_distillation_matches_relations_not_coordinates
         [[[1.0, 0.0], [0.0, 1.0]]], dtype=torch.float32, requires_grad=True
     )
     teacher = torch.tensor([[1.0, 0.0, 0.0]], dtype=torch.float32)
-    teacher_anchors = torch.tensor(
-        [[[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]], dtype=torch.float32
-    )
+    teacher_anchors = torch.tensor([[[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]], dtype=torch.float32)
 
     matched = cross_dimensional_anchor_distillation_loss(
         student,
@@ -1176,17 +1174,12 @@ def test_retrieval_local_rank_distillation_rejects_invalid_authority(mutation: s
 
 
 def test_retrieval_impact_weighted_pairwise_loss_matches_weighted_rank_swaps() -> None:
-    assert (
-        sfora.retrieval_impact_weighted_pairwise_loss
-        is retrieval_impact_weighted_pairwise_loss
-    )
+    assert sfora.retrieval_impact_weighted_pairwise_loss is retrieval_impact_weighted_pairwise_loss
     positives = torch.tensor([[0.2, 0.4]], dtype=torch.float32, requires_grad=True)
     negatives = torch.tensor([[0.3, -0.1]], dtype=torch.float32, requires_grad=True)
     impacts = torch.tensor([[[1.0, 0.0], [3.0, 2.0]]], dtype=torch.float32)
 
-    loss = retrieval_impact_weighted_pairwise_loss(
-        positives, negatives, impacts, temperature=0.1
-    )
+    loss = retrieval_impact_weighted_pairwise_loss(positives, negatives, impacts, temperature=0.1)
     terms = torch.nn.functional.softplus(
         (negatives.detach().unsqueeze(1) - positives.detach().unsqueeze(2)) / 0.1
     )
@@ -1266,6 +1259,256 @@ def test_positive_coverage_hard_negative_loss_exposes_each_positive() -> None:
     assert positives.grad is not None and positives.grad[0, 1] < positives.grad[0, 0]
     assert negatives.grad is not None and bool(torch.isfinite(negatives.grad).all())
     assert self_similarities.grad is not None and self_similarities.grad.item() < 0.0
+
+
+def test_positive_coverage_hard_negative_loss_supports_detached_evaluation() -> None:
+    positives = torch.tensor([[0.9, 0.1]], dtype=torch.float32)
+    mask = torch.tensor([[True, True]])
+    negatives = torch.tensor([[0.2]], dtype=torch.float32)
+    self_similarities = torch.tensor([0.95], dtype=torch.float32)
+
+    result = positive_coverage_hard_negative_loss(
+        positives,
+        mask,
+        negatives,
+        self_similarities,
+        temperature=0.05,
+        margin=0.02,
+        anchor_weight=10.0,
+        positive_aggregation="coverage",
+    )
+
+    assert result.ndim == 0
+    assert not result.requires_grad
+    assert math.isfinite(result.item())
+
+
+def test_exposure_normalized_update_count_is_invariant_to_class_inventory() -> None:
+    assert sfora.exposure_normalized_update_count is exposure_normalized_update_count
+    authority = {
+        "classes_per_update": 64,
+        "reference_classes_per_update": 64,
+        "reference_class_count": 9_054,
+        "reference_updates": 2_000,
+    }
+    assert exposure_normalized_update_count(eligible_class_count=9_054, **authority) == 2_000
+    assert exposure_normalized_update_count(eligible_class_count=100, **authority) == 23
+    assert exposure_normalized_update_count(eligible_class_count=3_985, **authority) == 881
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    (
+        ("eligible_class_count", True),
+        ("eligible_class_count", 0),
+        ("classes_per_update", 0),
+        ("reference_updates", 0),
+        ("reference_class_count", 0),
+        ("reference_classes_per_update", 0),
+    ),
+)
+def test_exposure_normalized_update_count_rejects_invalid_authority(
+    field: str, value: object
+) -> None:
+    arguments: dict[str, object] = {
+        "eligible_class_count": 100,
+        "classes_per_update": 64,
+        "reference_updates": 2_000,
+        "reference_class_count": 9_054,
+        "reference_classes_per_update": 64,
+    }
+    arguments[field] = value
+    with pytest.raises(ValueError, match="class exposure authority"):
+        exposure_normalized_update_count(**arguments)  # type: ignore[arg-type]
+
+
+def test_class_balanced_anchor_schedule_is_singleton_safe_and_reproducible() -> None:
+    assert sfora.ClassBalancedAnchorSchedule is ClassBalancedAnchorSchedule
+    assert sfora.class_balanced_anchor_schedule is class_balanced_anchor_schedule
+    labels = np.asarray([0, 0, 1, 1, 2, 3, 3], dtype=np.int64)
+    first = class_balanced_anchor_schedule(
+        labels,
+        seed=17,
+        updates=5,
+        classes_per_update=2,
+        rows_per_class=2,
+    )
+    second = class_balanced_anchor_schedule(
+        labels,
+        seed=17,
+        updates=5,
+        classes_per_update=2,
+        rows_per_class=2,
+    )
+    changed = class_balanced_anchor_schedule(
+        labels,
+        seed=18,
+        updates=5,
+        classes_per_update=2,
+        rows_per_class=2,
+    )
+
+    assert isinstance(first, ClassBalancedAnchorSchedule)
+    assert first.eligible_class_count == 3
+    assert first.sha256 == second.sha256
+    assert first.sha256 != changed.sha256
+    np.testing.assert_array_equal(first.row_indexes, second.row_indexes)
+    assert first.row_indexes.shape == (5, 4)
+    assert not first.row_indexes.flags.writeable
+    for update in first.row_indexes:
+        update_labels = labels[update]
+        unique, counts = np.unique(update_labels, return_counts=True)
+        assert len(unique) == 2
+        assert counts.tolist() == [2, 2]
+        assert 2 not in unique
+        assert len(set(update.tolist())) == 4
+    leaked = first.row_indexes
+    with pytest.raises(ValueError):
+        leaked[0, 0] = 6
+    np.testing.assert_array_equal(first.row_indexes, second.row_indexes)
+
+
+@pytest.mark.parametrize("mutation", ("rows", "eligible", "sha"))
+def test_class_balanced_anchor_schedule_rejects_direct_construction_drift(
+    mutation: str,
+) -> None:
+    rows: object = np.asarray([[0, 1]], dtype=np.int64)
+    eligible: object = 1
+    sha: object = "0" * 64
+    if mutation == "rows":
+        rows = [[0, 1]]
+    elif mutation == "eligible":
+        eligible = True
+    else:
+        sha = "A" * 64
+    with pytest.raises(ValueError, match="class-balanced anchor authority"):
+        ClassBalancedAnchorSchedule(
+            row_indexes=rows,  # type: ignore[arg-type]
+            eligible_class_count=eligible,  # type: ignore[arg-type]
+            sha256=sha,  # type: ignore[arg-type]
+        )
+
+
+@pytest.mark.parametrize("mutation", ("dtype", "rank", "classes", "rows", "seed"))
+def test_class_balanced_anchor_schedule_rejects_invalid_authority(mutation: str) -> None:
+    labels = np.asarray([0, 0, 1, 1], dtype=np.int64)
+    arguments: dict[str, object] = {
+        "seed": 17,
+        "updates": 2,
+        "classes_per_update": 2,
+        "rows_per_class": 2,
+    }
+    if mutation == "dtype":
+        labels = labels.astype(np.int32)
+    elif mutation == "rank":
+        labels = labels[:, None]
+    elif mutation == "classes":
+        arguments["classes_per_update"] = 3
+    elif mutation == "rows":
+        arguments["rows_per_class"] = 3
+    else:
+        arguments["seed"] = True
+    with pytest.raises(ValueError, match="class-balanced anchor authority"):
+        class_balanced_anchor_schedule(labels, **arguments)  # type: ignore[arg-type]
+
+
+def test_stable_different_class_topk_breaks_cutoff_ties_by_lower_row() -> None:
+    assert sfora.stable_different_class_topk is stable_different_class_topk
+    bank = torch.tensor(
+        [[1.0, 0.0], [1.0, 0.0], [0.8, 0.6], [0.8, 0.6], [0.0, 1.0]],
+        dtype=torch.float32,
+    )
+    anchors = torch.tensor([[1.0, 0.0], [0.0, 1.0]], dtype=torch.float32)
+    anchor_labels = torch.tensor([0, 4], dtype=torch.int64)
+    bank_labels = torch.tensor([0, 0, 1, 2, 3], dtype=torch.int64)
+
+    result = stable_different_class_topk(
+        anchors,
+        bank,
+        anchor_labels,
+        bank_labels,
+        k=2,
+    )
+
+    assert result.dtype == torch.int64
+    assert result.device == anchors.device
+    assert result.is_contiguous()
+    torch.testing.assert_close(result, torch.tensor([[2, 3], [2, 4]]))
+
+
+def test_stable_different_class_topk_matches_scalar_membership() -> None:
+    generator = torch.Generator().manual_seed(29)
+    bank = torch.nn.functional.normalize(torch.randn(19, 7, generator=generator), dim=1)
+    anchors = torch.nn.functional.normalize(torch.randn(4, 7, generator=generator), dim=1)
+    bank_labels = torch.tensor([row % 5 for row in range(19)], dtype=torch.int64)
+    anchor_labels = torch.tensor([0, 1, 2, 3], dtype=torch.int64)
+    actual = stable_different_class_topk(
+        anchors,
+        bank,
+        anchor_labels,
+        bank_labels,
+        k=5,
+    )
+    scores = anchors @ bank.T
+    expected = []
+    for row in range(len(anchors)):
+        candidates = [
+            candidate
+            for candidate in range(len(bank))
+            if bank_labels[candidate] != anchor_labels[row]
+        ]
+        chosen = sorted(
+            candidates,
+            key=lambda candidate: (-float(scores[row, candidate]), candidate),
+        )[:5]
+        expected.append(sorted(chosen))
+    torch.testing.assert_close(actual, torch.tensor(expected, dtype=torch.int64))
+
+
+def test_stable_different_class_topk_fences_float32_from_ambient_autocast() -> None:
+    anchors = torch.tensor([[1.0, 0.0]], dtype=torch.float32)
+    bank = torch.tensor(
+        [[0.8001, math.sqrt(1.0 - 0.8001**2)], [0.8002, math.sqrt(1.0 - 0.8002**2)]],
+        dtype=torch.float32,
+    )
+    anchor_labels = torch.tensor([0], dtype=torch.int64)
+    bank_labels = torch.tensor([1, 2], dtype=torch.int64)
+
+    expected = stable_different_class_topk(anchors, bank, anchor_labels, bank_labels, k=1)
+    with torch.autocast(device_type="cpu", dtype=torch.bfloat16):
+        actual = stable_different_class_topk(anchors, bank, anchor_labels, bank_labels, k=1)
+
+    torch.testing.assert_close(expected, torch.tensor([[1]], dtype=torch.int64))
+    torch.testing.assert_close(actual, expected)
+
+
+@pytest.mark.parametrize("mutation", ("nan", "norm", "label", "negative-label", "k", "shape"))
+def test_stable_different_class_topk_rejects_invalid_authority(mutation: str) -> None:
+    anchors = torch.eye(3, dtype=torch.float32)
+    bank = torch.eye(3, dtype=torch.float32)
+    anchor_labels = torch.arange(3, dtype=torch.int64)
+    bank_labels = torch.arange(3, dtype=torch.int64)
+    k = 1
+    if mutation == "nan":
+        anchors[0, 0] = torch.nan
+    elif mutation == "norm":
+        anchors[0] *= 0.5
+    elif mutation == "label":
+        bank_labels = bank_labels.to(torch.int32)
+    elif mutation == "negative-label":
+        bank_labels[0] = -1
+    elif mutation == "k":
+        k = 3
+    else:
+        bank = bank[:, :-1].contiguous()
+    with pytest.raises(ValueError, match="different-class top-k authority"):
+        stable_different_class_topk(
+            anchors,
+            bank,
+            anchor_labels,
+            bank_labels,
+            k=k,
+        )
 
 
 @pytest.mark.parametrize(

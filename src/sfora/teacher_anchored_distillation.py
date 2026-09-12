@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import math
+import struct
 from dataclasses import dataclass
 
 import numpy as np
@@ -19,6 +20,215 @@ _MIDDLE_ANCHORS = 64
 _UNIFORM_ANCHORS = 384
 _ANCHORS = _NEAREST_ANCHORS + _MIDDLE_ANCHORS + _UNIFORM_ANCHORS
 _SEEDS_PER_BATCH = 128
+
+
+@dataclass(frozen=True, init=False, slots=True)
+class ClassBalancedAnchorSchedule:
+    """Immutable class-balanced anchor rows for supervised adaptation."""
+
+    _row_indexes: NDArray[np.int64]
+    eligible_class_count: int
+    sha256: str
+
+    def __init__(
+        self,
+        *,
+        row_indexes: NDArray[np.int64],
+        eligible_class_count: int,
+        sha256: str,
+    ) -> None:
+        if (
+            type(row_indexes) is not np.ndarray
+            or row_indexes.dtype != np.int64
+            or row_indexes.ndim != 2
+            or min(row_indexes.shape) < 1
+            or np.any(row_indexes < 0)
+            or any(len(set(row.tolist())) != len(row) for row in row_indexes)
+            or type(eligible_class_count) is not int
+            or eligible_class_count <= 0
+            or type(sha256) is not str
+            or len(sha256) != 64
+            or any(character not in "0123456789abcdef" for character in sha256)
+        ):
+            raise ValueError("class-balanced anchor authority differs")
+        frozen = np.ascontiguousarray(row_indexes, dtype=np.int64).copy()
+        frozen.flags.writeable = False
+        object.__setattr__(self, "_row_indexes", frozen)
+        object.__setattr__(self, "eligible_class_count", eligible_class_count)
+        object.__setattr__(self, "sha256", sha256)
+
+    @property
+    def row_indexes(self) -> NDArray[np.int64]:
+        """Return a read-only defensive copy of the scheduled rows."""
+
+        result = self._row_indexes.copy()
+        result.flags.writeable = False
+        return result
+
+
+def exposure_normalized_update_count(
+    *,
+    eligible_class_count: int,
+    classes_per_update: int,
+    reference_updates: int,
+    reference_class_count: int,
+    reference_classes_per_update: int,
+) -> int:
+    """Scale updates so each eligible class receives the same expected exposure."""
+
+    values = (
+        eligible_class_count,
+        classes_per_update,
+        reference_updates,
+        reference_class_count,
+        reference_classes_per_update,
+    )
+    if (
+        any(type(value) is not int or value <= 0 for value in values)
+        or classes_per_update > eligible_class_count
+        or reference_classes_per_update > reference_class_count
+    ):
+        raise ValueError("class exposure authority differs")
+    numerator = reference_updates * reference_classes_per_update * eligible_class_count
+    denominator = reference_class_count * classes_per_update
+    return (numerator + denominator - 1) // denominator
+
+
+def class_balanced_anchor_schedule(
+    labels: NDArray[np.int64],
+    *,
+    seed: int,
+    updates: int,
+    classes_per_update: int,
+    rows_per_class: int,
+) -> ClassBalancedAnchorSchedule:
+    """Build deterministic updates while leaving ineligible rows in the negative bank."""
+
+    if (
+        type(labels) is not np.ndarray
+        or labels.dtype != np.int64
+        or labels.ndim != 1
+        or labels.size == 0
+        or np.any(labels < 0)
+        or type(seed) is not int
+        or not 0 <= seed < 2**63
+        or type(updates) is not int
+        or updates <= 0
+        or type(classes_per_update) is not int
+        or classes_per_update <= 0
+        or type(rows_per_class) is not int
+        or rows_per_class <= 0
+    ):
+        raise ValueError("class-balanced anchor authority differs")
+    mutable_groups: dict[int, list[int]] = {}
+    for row, label in enumerate(labels.tolist()):
+        mutable_groups.setdefault(int(label), []).append(row)
+    groups = {
+        label: np.asarray(rows, dtype=np.int64)
+        for label, rows in mutable_groups.items()
+        if len(rows) >= rows_per_class
+    }
+    classes = np.asarray(sorted(groups), dtype=np.int64)
+    if len(classes) < classes_per_update:
+        raise ValueError("class-balanced anchor authority differs")
+    generator = np.random.Generator(np.random.PCG64(seed))
+    width = classes_per_update * rows_per_class
+    scheduled = np.empty((updates, width), dtype=np.int64)
+    for update in range(updates):
+        selected = generator.choice(classes, classes_per_update, replace=False)
+        scheduled[update] = np.concatenate(
+            [
+                generator.choice(groups[int(label)], rows_per_class, replace=False)
+                for label in selected
+            ]
+        )
+    digest = hashlib.sha256()
+    digest.update(b"SFORA-CLASS-BALANCED-ANCHORS-v1\0")
+    digest.update(
+        struct.pack(
+            "<QQQQQ",
+            seed,
+            updates,
+            classes_per_update,
+            rows_per_class,
+            len(classes),
+        )
+    )
+    digest.update(labels.astype("<i8", copy=False).tobytes(order="C"))
+    digest.update(scheduled.astype("<i8", copy=False).tobytes(order="C"))
+    return ClassBalancedAnchorSchedule(
+        row_indexes=scheduled,
+        eligible_class_count=len(classes),
+        sha256=digest.hexdigest(),
+    )
+
+
+def stable_different_class_topk(
+    anchor_codes: torch.Tensor,
+    bank_codes: torch.Tensor,
+    anchor_labels: torch.Tensor,
+    bank_labels: torch.Tensor,
+    *,
+    k: int,
+) -> torch.Tensor:
+    """Return exact top-k different-class membership with lower-row cutoff ties."""
+
+    values = (anchor_codes, bank_codes)
+    labels = (anchor_labels, bank_labels)
+    if (
+        any(type(value) is not torch.Tensor for value in (*values, *labels))
+        or any(
+            value.dtype != torch.float32
+            or value.ndim != 2
+            or value.shape[0] < 1
+            or value.shape[1] < 2
+            or not value.is_contiguous()
+            for value in values
+        )
+        or anchor_codes.shape[1] != bank_codes.shape[1]
+        or any(
+            value.dtype != torch.int64 or value.ndim != 1 or not value.is_contiguous()
+            for value in labels
+        )
+        or any(bool((value < 0).any()) for value in labels)
+        or anchor_labels.shape[0] != anchor_codes.shape[0]
+        or bank_labels.shape[0] != bank_codes.shape[0]
+        or any(value.device != anchor_codes.device for value in (*values, *labels))
+        or type(k) is not int
+        or k <= 0
+        or k > bank_codes.shape[0]
+    ):
+        raise ValueError("different-class top-k authority differs")
+    with torch.no_grad(), torch.autocast(device_type=anchor_codes.device.type, enabled=False):
+        if not all(bool(torch.isfinite(value).all()) for value in values):
+            raise ValueError("different-class top-k authority differs")
+        if any(
+            bool((torch.abs(torch.linalg.vector_norm(value.double(), dim=1) - 1.0) > 2e-5).any())
+            for value in values
+        ):
+            raise ValueError("different-class top-k authority differs")
+        eligible = anchor_labels[:, None] != bank_labels[None, :]
+        if bool((eligible.sum(dim=1) < k).any()):
+            raise ValueError("different-class top-k authority differs")
+        scores = anchor_codes @ bank_codes.T
+        scores.masked_fill_(~eligible, -torch.inf)
+        cutoff = (
+            torch.topk(scores, k, dim=1, largest=True, sorted=False)
+            .values.min(dim=1, keepdim=True)
+            .values
+        )
+        above = scores > cutoff
+        equal = scores == cutoff
+        needed = k - above.sum(dim=1, keepdim=True)
+        equal_rank = torch.cumsum(equal, dim=1)
+        selected = above | (equal & (equal_rank <= needed))
+        if bool((selected.sum(dim=1) != k).any()):
+            raise ValueError("different-class top-k authority differs")
+        return (
+            torch.nonzero(selected, as_tuple=False)[:, 1]
+            .reshape(anchor_codes.shape[0], k)
+            .contiguous()
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -358,9 +568,7 @@ def verify_teacher_anchor_schedule(
         or np.any(schedule._row_indexes < 0)
         or np.any(schedule._row_indexes >= codes.shape[0])
         or schedule.sha256
-        != _schedule_sha256(
-            b"teacher-anchors-v1", codes, identities, seed, schedule._row_indexes
-        )
+        != _schedule_sha256(b"teacher-anchors-v1", codes, identities, seed, schedule._row_indexes)
     ):
         raise ValueError("teacher anchor authority differs")
     return True
@@ -419,9 +627,7 @@ def verify_teacher_neighbor_batches(
         or len(set(dropped)) != len(dropped)
         or any(len(np.unique(batch)) != _SEEDS_PER_BATCH * 2 for batch in rows)
         or len(np.unique(rows[:, :_SEEDS_PER_BATCH])) != expected_usable
-        or not np.array_equal(
-            rows[:, :_SEEDS_PER_BATCH].reshape(-1), permutation[:expected_usable]
-        )
+        or not np.array_equal(rows[:, :_SEEDS_PER_BATCH].reshape(-1), permutation[:expected_usable])
         or dropped != tuple(int(row) for row in permutation[expected_usable:])
         or set(rows[:, :_SEEDS_PER_BATCH].reshape(-1).tolist()).union(dropped)
         != set(range(codes.shape[0]))
@@ -477,9 +683,7 @@ def cross_dimensional_anchor_distillation_loss(
         or type(temperatures) is not tuple
         or not temperatures
         or any(
-            type(temperature) is not float
-            or not math.isfinite(temperature)
-            or temperature <= 0.0
+            type(temperature) is not float or not math.isfinite(temperature) or temperature <= 0.0
             for temperature in temperatures
         )
     ):
@@ -531,9 +735,7 @@ def cross_dimensional_relational_distillation_loss(
         or type(temperatures) is not tuple
         or not temperatures
         or any(
-            type(temperature) is not float
-            or not math.isfinite(temperature)
-            or temperature <= 0.0
+            type(temperature) is not float or not math.isfinite(temperature) or temperature <= 0.0
             for temperature in temperatures
         )
     ):
@@ -592,9 +794,7 @@ def cross_dimensional_similarity_distillation_loss(
         or type(temperatures) is not tuple
         or not temperatures
         or any(
-            type(temperature) is not float
-            or not math.isfinite(temperature)
-            or temperature <= 0.0
+            type(temperature) is not float or not math.isfinite(temperature) or temperature <= 0.0
             for temperature in temperatures
         )
     ):
@@ -681,18 +881,20 @@ def retrieval_local_rank_distillation_loss(
             device=student_similarities.device,
         )
         discounts = torch.log2(1.0 + ranks).reciprocal().reshape(1, -1, 1)
-        weights = torch.minimum(
-            torch.ones_like(teacher_delta),
-            teacher_delta / margin_cap,
-        ).clamp_min(0.0) * discounts
+        weights = (
+            torch.minimum(
+                torch.ones_like(teacher_delta),
+                teacher_delta / margin_cap,
+            ).clamp_min(0.0)
+            * discounts
+        )
         weights = torch.where(valid, weights, torch.zeros_like(weights))
         denominators = weights.sum(dim=(1, 2))
         if bool((denominators <= 0.0).any()):
             raise ValueError("retrieval-local rank authority differs")
-        student_delta = (
-            student_similarities[:, :teacher_neighbor_count].unsqueeze(2)
-            - student_similarities.unsqueeze(1)
-        )
+        student_delta = student_similarities[:, :teacher_neighbor_count].unsqueeze(
+            2
+        ) - student_similarities.unsqueeze(1)
         violations = torch.relu((margins - student_delta) / margin_cap).square()
         result = ((weights * violations).sum(dim=(1, 2)) / denominators).mean()
     if result.ndim != 0 or not bool(torch.isfinite(result)):
@@ -742,29 +944,17 @@ def retrieval_impact_weighted_pairwise_loss(
         bool(torch.isfinite(value).all())
         for value in (positive_similarities, negative_similarities, swap_impacts)
     ):
-        raise TeacherAnchoredNumericalError(
-            "retrieval-impact weighted numerical failure"
-        )
-    if bool((swap_impacts < 0.0).any()) or bool(
-        (swap_impacts.sum(dim=(1, 2)) <= 0.0).any()
-    ):
+        raise TeacherAnchoredNumericalError("retrieval-impact weighted numerical failure")
+    if bool((swap_impacts < 0.0).any()) or bool((swap_impacts.sum(dim=(1, 2)) <= 0.0).any()):
         raise ValueError("retrieval-impact weighted authority differs")
     with torch.autocast(device_type=positive_similarities.device.type, enabled=False):
         violations = torch.nn.functional.softplus(
-            (
-                negative_similarities.unsqueeze(1)
-                - positive_similarities.unsqueeze(2)
-            )
-            / temperature
+            (negative_similarities.unsqueeze(1) - positive_similarities.unsqueeze(2)) / temperature
         )
-        per_query = (violations * swap_impacts).sum(dim=(1, 2)) / swap_impacts.sum(
-            dim=(1, 2)
-        )
+        per_query = (violations * swap_impacts).sum(dim=(1, 2)) / swap_impacts.sum(dim=(1, 2))
         result = per_query.mean()
     if result.ndim != 0 or not bool(torch.isfinite(result)):
-        raise TeacherAnchoredNumericalError(
-            "retrieval-impact weighted numerical failure"
-        )
+        raise TeacherAnchoredNumericalError("retrieval-impact weighted numerical failure")
     return result
 
 
@@ -798,7 +988,6 @@ def positive_coverage_hard_negative_loss(
             value.dtype != torch.float32
             or value.device != positive_similarities.device
             or not value.is_contiguous()
-            or not value.requires_grad
             for value in values
         )
         or positive_mask.device != positive_similarities.device
@@ -817,32 +1006,25 @@ def positive_coverage_hard_negative_loss(
     ):
         raise ValueError("positive-coverage hard-negative authority differs")
     if not all(bool(torch.isfinite(value).all()) for value in values):
-        raise TeacherAnchoredNumericalError(
-            "positive-coverage hard-negative numerical failure"
-        )
+        raise TeacherAnchoredNumericalError("positive-coverage hard-negative numerical failure")
     if any(bool((value.detach().abs() > 1.00002).any()) for value in values):
         raise ValueError("positive-coverage hard-negative authority differs")
 
     with torch.autocast(device_type=positive_similarities.device.type, enabled=False):
-        log_negative_mass = torch.logsumexp(
-            (negative_similarities + margin) / temperature, dim=1
-        )
+        log_negative_mass = torch.logsumexp((negative_similarities + margin) / temperature, dim=1)
         positive_logits = positive_similarities / temperature
         if positive_aggregation == "coverage":
-            terms = torch.nn.functional.softplus(
-                log_negative_mass.unsqueeze(1) - positive_logits
-            )
+            terms = torch.nn.functional.softplus(log_negative_mass.unsqueeze(1) - positive_logits)
             ranking = (terms * positive_mask).sum(dim=1) / positive_mask.sum(dim=1)
         else:
-            pooled = torch.logsumexp(
-                positive_logits.masked_fill(~positive_mask, -torch.inf), dim=1
-            ) - positive_mask.sum(dim=1).log()
+            pooled = (
+                torch.logsumexp(positive_logits.masked_fill(~positive_mask, -torch.inf), dim=1)
+                - positive_mask.sum(dim=1).log()
+            )
             ranking = torch.nn.functional.softplus(log_negative_mass - pooled)
         result = ranking.mean() + anchor_weight * (1.0 - self_similarities).mean()
     if result.ndim != 0 or not bool(torch.isfinite(result)):
-        raise TeacherAnchoredNumericalError(
-            "positive-coverage hard-negative numerical failure"
-        )
+        raise TeacherAnchoredNumericalError("positive-coverage hard-negative numerical failure")
     return result
 
 
@@ -947,12 +1129,9 @@ def teacher_anchored_forward(
         if not bool(torch.isfinite(feature_norms).all()) or bool((feature_norms <= 1e-12).any()):
             raise TeacherAnchoredNumericalError("teacher-anchored forward numerical failure")
         normalized_features = torch.nn.functional.normalize(features, dim=1)
-        normalized_feature_norms = torch.linalg.vector_norm(
-            normalized_features.double(), dim=1
-        )
-        if (
-            not bool(torch.isfinite(normalized_features).all())
-            or bool((normalized_feature_norms <= 1e-12).any())
+        normalized_feature_norms = torch.linalg.vector_norm(normalized_features.double(), dim=1)
+        if not bool(torch.isfinite(normalized_features).all()) or bool(
+            (normalized_feature_norms <= 1e-12).any()
         ):
             raise TeacherAnchoredNumericalError("teacher-anchored forward numerical failure")
         raw_codes = head(normalized_features).float()
@@ -965,9 +1144,8 @@ def teacher_anchored_forward(
             raise TeacherAnchoredNumericalError("teacher-anchored forward numerical failure")
         normalized_codes = torch.nn.functional.normalize(raw_codes, dim=1)
         normalized_code_norms = torch.linalg.vector_norm(normalized_codes.double(), dim=1)
-        if (
-            not bool(torch.isfinite(normalized_codes).all())
-            or bool((normalized_code_norms <= 1e-12).any())
+        if not bool(torch.isfinite(normalized_codes).all()) or bool(
+            (normalized_code_norms <= 1e-12).any()
         ):
             raise TeacherAnchoredNumericalError("teacher-anchored forward numerical failure")
         return normalized_features, normalized_codes
