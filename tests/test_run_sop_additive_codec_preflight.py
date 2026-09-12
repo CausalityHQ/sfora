@@ -9,6 +9,10 @@ from types import ModuleType
 import pytest
 import torch
 
+from sfora.product_quantization import (
+    OptimizedProductQuantizer,
+    ProductQuantizationSpec,
+)
 from sfora.residual_quantization import ResidualQuantizationSpec, ResidualQuantizer
 
 _SCRIPT = Path(__file__).parents[1] / "scripts" / "run_sop_additive_codec_preflight.py"
@@ -108,6 +112,77 @@ def test_additive_preflight_requires_r1_to_pass_the_target() -> None:
     )
     assert decision["classification"] == "greedy-residual-viable"
     assert decision["passed"] is False
+
+
+def test_optimized_product_score_uses_the_rotated_exact_adc() -> None:
+    subject = _subject()
+    values = torch.nn.functional.normalize(
+        torch.tensor(
+            [
+                [-1.0, 0.0],
+                [-0.9, 0.1],
+                [0.0, -1.0],
+                [0.1, -0.9],
+                [0.0, 1.0],
+                [0.1, 0.9],
+                [1.0, 0.0],
+                [0.9, 0.1],
+            ],
+            dtype=torch.float32,
+        ),
+        dim=1,
+    )
+    quantizer = OptimizedProductQuantizer.from_components(
+        ProductQuantizationSpec(block_dimensions=(1, 1), codebook_size=4),
+        torch.tensor([[0.0, 1.0], [-1.0, 0.0]], dtype=torch.float32),
+        (
+            torch.tensor([[-1.0], [-0.1], [0.1], [1.0]]),
+            torch.tensor([[-1.0], [-0.1], [0.1], [1.0]]),
+        ),
+    )
+
+    score = subject.score_asymmetric_optimized_product(
+        values,
+        quantizer.hard_encode(values),
+        quantizer,
+        (1, 1, 2, 2, 3, 3, 4, 4),
+        device=torch.device("cpu"),
+    )
+
+    assert score["map_at_r"] == pytest.approx(1.0)
+    assert score["r1"] == pytest.approx(1.0)
+
+
+@pytest.mark.parametrize(
+    ("map_at_r", "r1", "classification"),
+    (
+        (0.5690, 0.83, "opq-regressed-pq24"),
+        (0.5750, 0.83, "opq-improved-pq24"),
+        (0.5820, 0.83, "opq-viable-pq32"),
+        (0.5860, 0.82, "opq-viable"),
+        (0.5860, 0.83, "opq-target-passed"),
+    ),
+)
+def test_optimized_product_decision_uses_pq32_and_target_gates(
+    map_at_r: float, r1: float, classification: str
+) -> None:
+    subject = _subject()
+
+    decision = subject.optimized_product_decision(
+        map_at_r=map_at_r,
+        r1=r1,
+        pq24_map_at_r=0.5707206722633901,
+        pq24_r1=0.8222334768295771,
+        pq32_map_at_r=0.5789231844165709,
+        pq32_r1=0.8241748965982949,
+    )
+
+    assert decision["classification"] == classification
+    assert decision["passed"] is (classification == "opq-target-passed")
+    assert decision["versus_pq24"] == {
+        "map_at_r": pytest.approx(map_at_r - 0.5707206722633901),
+        "r1": pytest.approx(r1 - 0.8222334768295771),
+    }
 
 
 def test_additive_preflight_requires_explicit_execution() -> None:

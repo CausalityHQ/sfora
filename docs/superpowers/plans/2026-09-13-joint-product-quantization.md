@@ -68,18 +68,39 @@ optimization or candidate construction.
 - Create: `src/sfora/residual_quantization.py`
 - Create: `tests/test_residual_quantization.py`
 
-- [ ] Add tests for fitting-only deterministic codebook initialization, empty-cluster repair,
+- [x] Add tests for fitting-only deterministic codebook initialization, empty-cluster repair,
   seed reproducibility, and one-byte-per-block state authority.
-- [ ] Add tests for a 24-stage full-dimensional residual quantizer: exact greedy residual updates,
+- [x] Add tests for a 24-stage full-dimensional residual quantizer: exact greedy residual updates,
   decoded-vector sums, one-byte-per-stage codes, float-query additive-dot lookup equality, stable
   ties, and deterministic fitting. Do not claim cosine or squared-L2 equivalence.
-- [ ] On seed 0, compare the fixed 24-stage residual quantizer to post-hoc PQ24 and PQ32 before
-  representation adaptation. Kill the additive family if it remains below `0.58195` mAP@R; if it
-  clears that threshold, use it rather than disjoint-subspace PQ for the joint objective.
+- [x] On seed 0, compare the fixed 24-stage residual quantizer to post-hoc PQ24 and PQ32 before
+  representation adaptation. The exact greedy arm failed at `0.526219` raw-dot mAP@R and
+  `0.561729` under decoded-cosine diagnosis versus matched PQ24 `0.570721` and PQ32 `0.578923`.
+  Retire this greedy construction without claiming that all additive quantizers fail.
 - [ ] Add a blockwise, label-free teacher candidate builder. For each registered query row it
   must exclude self and return unique near, middle-rank, and uniform-tail identities with stable
   distance/row tie-breaking.
 - [ ] Implement and verify without importing experiment-specific SOP code into the library.
+
+### Task 2A: Deterministic OPQ control and local-ordering ceiling
+
+**Files:**
+- Modify: `src/sfora/product_quantization.py`
+- Modify: `tests/test_product_quantization.py`
+- Modify: `scripts/run_sop_additive_codec_preflight.py`
+- Modify: `tests/test_run_sop_additive_codec_preflight.py`
+
+- [x] Prove that PQ24 candidate containment is not the binding failure: exact float reranking of
+  its top 32 reproduces the `0.591265 / 0.832700` float result, while a fitting-only linear
+  conditional decoder reaches only `0.573793 / 0.823500`.
+- [x] Add a generic fixed-rotation product quantizer with exact hard encode/decode and asymmetric
+  distance equivalence, strict whole-matrix orthogonality and device authority, and canonical
+  component extraction.
+- [x] Add a deterministic OPQ alternation with float64 Procrustes updates, fitting-data-only model
+  selection, and ordinary-PQ non-regression.
+- [ ] Run the authenticated seed-0 OPQ24 control. Require it to match PQ32 before making it the
+  initialization for hard-score joint training; record distortion and the exact rotation/codebook
+  checkpoint even on failure.
 
 ### Task 3: Authenticated joint-codec development driver
 

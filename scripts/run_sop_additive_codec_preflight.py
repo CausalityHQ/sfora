@@ -23,8 +23,10 @@ from probe_sop_relational_linear import _lexicographic_candidates, score_symmetr
 from sfora.atomic_publication import publish_bytes_noreplace
 from sfora.deterministic_similarity_runtime import configure_deterministic_similarity_runtime
 from sfora.product_quantization import (
+    OptimizedProductQuantizer,
     ProductQuantizationSpec,
     ProductQuantizer,
+    fit_optimized_product_quantizer,
     fit_product_quantizer,
 )
 from sfora.representation_ceiling import deterministic_class_partition
@@ -38,6 +40,7 @@ STAGES = 24
 CODEBOOK_SIZE = 256
 DIMENSIONS = 128
 MAXIMUM_ITERATIONS = 25
+ROTATION_ITERATIONS = 5
 SPLIT_SEED = 17
 TARGET_MAP = 0.58563
 _SHA256 = re.compile(r"[0-9a-f]{64}")
@@ -162,6 +165,27 @@ def score_asymmetric_product(
     )
 
 
+def score_asymmetric_optimized_product(
+    queries: torch.Tensor,
+    gallery_codes: torch.Tensor,
+    quantizer: OptimizedProductQuantizer,
+    labels: tuple[int, ...],
+    *,
+    device: torch.device,
+) -> dict[str, object]:
+    """Score exact negative-squared-distance OPQ codes against float queries."""
+
+    if type(quantizer) is not OptimizedProductQuantizer:
+        raise ValueError("optimized product SOP score authority differs")
+    return _score_asymmetric(
+        queries,
+        gallery_codes,
+        labels,
+        lambda query, codes: -quantizer.asymmetric_squared_distances(query, codes),
+        device=device,
+    )
+
+
 def additive_preflight_decision(
     *,
     map_at_r: float,
@@ -200,6 +224,50 @@ def additive_preflight_decision(
             "recover_0_015_map_at_r": TARGET_MAP,
         },
         "passed": classification == "greedy-residual-target-passed",
+    }
+
+
+def optimized_product_decision(
+    *,
+    map_at_r: float,
+    r1: float,
+    pq24_map_at_r: float,
+    pq24_r1: float,
+    pq32_map_at_r: float,
+    pq32_r1: float,
+) -> dict[str, object]:
+    """Classify the frozen OPQ control against PQ32 and the research target."""
+
+    values = (map_at_r, r1, pq24_map_at_r, pq24_r1, pq32_map_at_r, pq32_r1)
+    if any(
+        type(value) is not float or not math.isfinite(value) or not 0.0 <= value <= 1.0
+        for value in values
+    ):
+        raise ValueError("optimized product result differs")
+    if map_at_r < pq24_map_at_r:
+        classification = "opq-regressed-pq24"
+    elif map_at_r < pq32_map_at_r:
+        classification = "opq-improved-pq24"
+    elif map_at_r >= TARGET_MAP and r1 >= pq32_r1:
+        classification = "opq-target-passed"
+    elif map_at_r >= pq32_map_at_r and r1 >= pq32_r1:
+        classification = "opq-viable-pq32"
+    else:
+        classification = "opq-viable"
+    return {
+        "classification": classification,
+        "gates": {
+            "match_pq24_map_at_r": pq24_map_at_r,
+            "match_pq24_r1": pq24_r1,
+            "match_pq32_map_at_r": pq32_map_at_r,
+            "match_pq32_r1": pq32_r1,
+            "recover_0_015_map_at_r": TARGET_MAP,
+        },
+        "passed": classification == "opq-target-passed",
+        "versus_pq24": {
+            "map_at_r": map_at_r - pq24_map_at_r,
+            "r1": r1 - pq24_r1,
+        },
     }
 
 
@@ -312,19 +380,34 @@ def main() -> None:
     pq24 = fit_product_quantizer(
         fit_rows, pq24_spec, seed=args.seed, maximum_iterations=MAXIMUM_ITERATIONS
     )
+    pq24_seconds = time.monotonic() - started
+    arm_started = time.monotonic()
     pq32 = fit_product_quantizer(
         fit_rows, pq32_spec, seed=args.seed, maximum_iterations=MAXIMUM_ITERATIONS
     )
+    pq32_seconds = time.monotonic() - arm_started
+    arm_started = time.monotonic()
+    opq24 = fit_optimized_product_quantizer(
+        fit_rows,
+        pq24_spec,
+        seed=args.seed,
+        maximum_iterations=MAXIMUM_ITERATIONS,
+        rotation_iterations=ROTATION_ITERATIONS,
+    )
+    opq24_seconds = time.monotonic() - arm_started
+    arm_started = time.monotonic()
     quantizer = fit_residual_quantizer(
         fit_rows,
         spec,
         seed=args.seed,
         maximum_iterations=MAXIMUM_ITERATIONS,
     )
+    residual_seconds = time.monotonic() - arm_started
     fit_seconds = time.monotonic() - started
     device = torch.device("cuda")
     pq24 = pq24.to(device).eval()
     pq32 = pq32.to(device).eval()
+    opq24 = opq24.to(device).eval()
     quantizer = quantizer.to(device).eval()
     validation = embeddings[validation_indexes].to(device)
     device = validation.device
@@ -353,6 +436,14 @@ def main() -> None:
         pq32_score = score_asymmetric_product(
             validation, pq32_codes, pq32, validation_labels, device=device
         )
+        opq24_codes = opq24.hard_encode(validation)
+        opq24_score = score_asymmetric_optimized_product(
+            validation, opq24_codes, opq24, validation_labels, device=device
+        )
+        opq24_restored = opq24.hard_decode(opq24_codes)
+        opq24_relative_squared_error = float(
+            (validation - opq24_restored).square().sum() / validation.square().sum()
+        )
         restored = quantizer.hard_decode(codes)
         relative_squared_error = float(
             (validation - restored).square().sum() / validation.square().sum()
@@ -366,6 +457,14 @@ def main() -> None:
         pq32_map_at_r=cast(float, pq32_score["map_at_r"]),
         pq32_r1=cast(float, pq32_score["r1"]),
     )
+    opq_decision = optimized_product_decision(
+        map_at_r=cast(float, opq24_score["map_at_r"]),
+        r1=cast(float, opq24_score["r1"]),
+        pq24_map_at_r=cast(float, pq24_score["map_at_r"]),
+        pq24_r1=cast(float, pq24_score["r1"]),
+        pq32_map_at_r=cast(float, pq32_score["map_at_r"]),
+        pq32_r1=cast(float, pq32_score["r1"]),
+    )
     checkpoint_state = {
         "codebooks": quantizer.codebooks.detach().cpu().contiguous(),
         "codebook_size": CODEBOOK_SIZE,
@@ -373,6 +472,8 @@ def main() -> None:
         "stages": STAGES,
         "pq24_codebooks": pq24.detached_codebooks(),
         "pq32_codebooks": pq32.detached_codebooks(),
+        "opq24_codebooks": opq24.detached_codebooks(),
+        "opq24_rotation": opq24.detached_rotation(),
     }
     checkpoint_buffer = io.BytesIO()
     torch.save(checkpoint_state, checkpoint_buffer)
@@ -407,10 +508,22 @@ def main() -> None:
         "decision": decision,
         "matched_controls": {
             "float": float_score,
+            "opq24": opq24_score,
             "pq24": pq24_score,
             "pq32": pq32_score,
         },
+        "optimized_product": {
+            "decision": opq_decision,
+            "relative_validation_squared_error": opq24_relative_squared_error,
+            "rotation_iterations": ROTATION_ITERATIONS,
+        },
         "fit_seconds": fit_seconds,
+        "fit_seconds_by_arm": {
+            "greedy_residual24": residual_seconds,
+            "opq24": opq24_seconds,
+            "pq24": pq24_seconds,
+            "pq32": pq32_seconds,
+        },
         "inputs": {
             "direct_checkpoint_sha256": args.direct_checkpoint_sha256,
             "source_snapshot_sha256": args.source_sha256,
@@ -435,7 +548,7 @@ def main() -> None:
             "standard_deviation": float(restored_norms.std(unbiased=False)),
         },
         "runtime": runtime._asdict(),
-        "schema": "sfora-additive-codec-preflight-v1",
+        "schema": "sfora-additive-codec-preflight-v2",
         "score": score,
         "seed": args.seed,
         "source": source_identity,

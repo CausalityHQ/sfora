@@ -185,6 +185,87 @@ class ProductQuantizer(nn.Module):
         return distances.contiguous()
 
 
+class OptimizedProductQuantizer(nn.Module):
+    """Product quantization behind one fixed orthogonal input rotation."""
+
+    _rotation: torch.Tensor
+
+    def __init__(
+        self,
+        spec: ProductQuantizationSpec,
+        rotation: torch.Tensor,
+        codebooks: Sequence[torch.Tensor],
+    ) -> None:
+        super().__init__()
+        if (
+            type(rotation) is not torch.Tensor
+            or rotation.dtype != torch.float32
+            or rotation.ndim != 2
+            or rotation.shape != (spec.dimensions, spec.dimensions)
+            or not bool(torch.isfinite(rotation).all())
+        ):
+            raise ValueError("optimized product quantization rotation differs")
+        identity = torch.eye(spec.dimensions, dtype=torch.float64, device=rotation.device)
+        gram = rotation.double().T @ rotation.double()
+        if float(torch.linalg.matrix_norm(gram - identity, ord="fro")) > 2e-5:
+            raise ValueError("optimized product quantization rotation differs")
+        quantizer = ProductQuantizer(spec, codebooks)
+        if rotation.device != quantizer.codebooks[0].device:
+            raise ValueError("optimized product quantization rotation differs")
+        self.spec = spec
+        self.register_buffer("_rotation", rotation.detach().clone().contiguous())
+        self.quantizer = quantizer
+
+    @classmethod
+    def from_components(
+        cls,
+        spec: ProductQuantizationSpec,
+        rotation: torch.Tensor,
+        codebooks: Sequence[torch.Tensor],
+    ) -> OptimizedProductQuantizer:
+        """Construct an OPQ codec from exact rotation and codebook components."""
+
+        return cls(spec, rotation, codebooks)
+
+    def detached_rotation(self) -> torch.Tensor:
+        """Return the canonical CPU float32 orthogonal rotation."""
+
+        return self._rotation.detach().cpu().float().contiguous().clone()
+
+    def detached_codebooks(self) -> tuple[torch.Tensor, ...]:
+        """Return the canonical CPU float32 product codebooks."""
+
+        return self.quantizer.detached_codebooks()
+
+    def _rotated(self, values: torch.Tensor) -> torch.Tensor:
+        self.quantizer._validate_values(values)
+        return torch.matmul(values, self._rotation).contiguous()
+
+    def hard_encode(self, values: torch.Tensor) -> torch.Tensor:
+        """Rotate and assign every block to one hard codeword."""
+
+        return self.quantizer.hard_encode(self._rotated(values))
+
+    def hard_decode(self, codes: torch.Tensor) -> torch.Tensor:
+        """Decode hard codes back into the original vector coordinates."""
+
+        transformed = self.quantizer.hard_decode(codes)
+        return torch.matmul(transformed, self._rotation.T).contiguous()
+
+    def straight_through(self, values: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        """Use the exact rotated hard codec with straight-through row gradients."""
+
+        transformed, codes = self.quantizer.straight_through(self._rotated(values))
+        return torch.matmul(transformed, self._rotation.T).contiguous(), codes
+
+    def asymmetric_squared_distances(
+        self, queries: torch.Tensor, gallery_codes: torch.Tensor
+    ) -> torch.Tensor:
+        """Score original-coordinate float queries against rotated hard codes."""
+
+        return self.quantizer.asymmetric_squared_distances(self._rotated(queries), gallery_codes)
+
+
 def fit_product_quantizer(
     values: torch.Tensor,
     spec: ProductQuantizationSpec,
@@ -228,6 +309,59 @@ def fit_product_quantizer(
         codebooks.append(torch.from_numpy(centers))
         start += width
     return ProductQuantizer.from_codebooks(spec, tuple(codebooks))
+
+
+def fit_optimized_product_quantizer(
+    values: torch.Tensor,
+    spec: ProductQuantizationSpec,
+    *,
+    seed: int,
+    maximum_iterations: int,
+    rotation_iterations: int,
+) -> OptimizedProductQuantizer:
+    """Fit deterministic OPQ alternations and retain the best observed codec."""
+
+    if (
+        type(values) is not torch.Tensor
+        or values.device.type != "cpu"
+        or values.dtype != torch.float32
+        or values.ndim != 2
+        or values.shape[0] < spec.codebook_size
+        or values.shape[1] != spec.dimensions
+        or not bool(torch.isfinite(values).all())
+        or type(rotation_iterations) is not int
+        or rotation_iterations < 1
+    ):
+        raise ValueError("optimized product quantization fit authority differs")
+    rotation = torch.eye(spec.dimensions, dtype=torch.float32)
+    baseline = fit_product_quantizer(values, spec, seed=seed, maximum_iterations=maximum_iterations)
+    with torch.inference_mode():
+        baseline_codes = baseline.hard_encode(values)
+        best_error = float((values - baseline.hard_decode(baseline_codes)).double().square().sum())
+    best_rotation = rotation.clone()
+    best_codebooks = baseline.detached_codebooks()
+    candidate = baseline
+    for _ in range(rotation_iterations):
+        transformed = torch.matmul(values, rotation).float().contiguous()
+        with torch.inference_mode():
+            codes = candidate.hard_encode(transformed)
+            reconstructed = candidate.hard_decode(codes)
+            left, _singular, right = torch.linalg.svd(
+                values.double().T @ reconstructed.double(), full_matrices=False
+            )
+            rotation = torch.matmul(left, right).float().contiguous()
+        transformed = torch.matmul(values, rotation).float().contiguous()
+        candidate = fit_product_quantizer(
+            transformed, spec, seed=seed, maximum_iterations=maximum_iterations
+        )
+        with torch.inference_mode():
+            codes = candidate.hard_encode(transformed)
+            error = float((transformed - candidate.hard_decode(codes)).double().square().sum())
+            if error < best_error:
+                best_error = error
+                best_rotation = rotation
+                best_codebooks = candidate.detached_codebooks()
+    return OptimizedProductQuantizer.from_components(spec, best_rotation, best_codebooks)
 
 
 def _unit_rows(values: torch.Tensor) -> bool:

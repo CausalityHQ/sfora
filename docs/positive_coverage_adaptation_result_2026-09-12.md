@@ -196,6 +196,41 @@ The result is not evidence that the loss is novel, that 128-byte codes satisfy t
 split. After the capacity control, the next boundary is the quality/bytes frontier and
 fresh-dataset replication, not further loss tuning on these validation queries.
 
+## Exact 24-byte codec diagnosis
+
+The seed-0 class-disjoint development preflight at Sfora commit
+`0162455000daa6dde3155076fa8dc6e5fc561766` compared the same frozen direct head under matched
+post-hoc codecs. Its canonical receipt is 516,310 bytes with SHA-256
+`a750db5d45b53d1711aa011a52e239483a2704078b18c2a827758ae1d2dc3bae`; the codebook checkpoint
+SHA-256 is `7d35e27300277dda591e37d39078ccc8e0ed2c322b9c7fc8f027a5a4e336a83f`.
+The run used only fitting classes for codebook construction and did not touch the official test.
+
+| Representation and exact scorer | mAP@R | Recall@1 |
+|---|---:|---:|
+| Float 128D | 0.5912648481 | 0.8327002617 |
+| PQ24, asymmetric squared distance | 0.5707206723 | 0.8222334768 |
+| PQ32, asymmetric squared distance | 0.5789231844 | 0.8241748966 |
+| Greedy residual 24-byte, raw additive dot | 0.5262194584 | 0.7801975184 |
+| Greedy residual 24-byte, decoded cosine diagnostic | 0.5617286623 | 0.8112602347 |
+
+The greedy residual codec's relative validation squared error was `0.153756604`; reconstructed
+norms ranged from `0.779159665` to `1.108605385`. Correcting its scorer accounts for a large part
+of its failure, but even decoded cosine remains 0.00899 mAP@R below PQ24. This rejects the specific
+greedy residual construction and raw-dot scorer, not the broader additive-quantization family.
+
+PQ24 and PQ32 relative validation squared errors were `0.118127875` and `0.067196026`.
+Decoded-cosine scoring changed PQ24 only to `0.571085056` and PQ32 to `0.580106424`, so norm
+correction alone does not reach the `0.58563` research target. A fitting-class-only affine
+cross-block decoder followed by normalized reranking of the PQ24 top 32 reached
+`0.573792860 / 0.823499620`; this is a useful positive control but remains below PQ32.
+
+The decisive ceiling is candidate containment: selecting 32 candidates with PQ24 and reranking
+only those candidates with the exact float vectors reproduced the full float result exactly,
+`0.5912648481 / 0.8327002617`. Thus, on this development split, the 24-byte code retains the
+necessary candidates and loses quality through fine local ordering. This supports rotation,
+hard-score/rank-aware codec training, and bounded conditional reranking as the next mechanisms.
+It is an oracle diagnostic using unavailable float database vectors, not a deployable result.
+
 ## Scientific interpretation
 
 Most of the adaptation gain is already explained by the pooled control. Positive coverage adds

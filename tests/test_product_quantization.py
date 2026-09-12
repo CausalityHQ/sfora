@@ -5,8 +5,10 @@ import torch
 from torch.nn import functional as F
 
 from sfora.product_quantization import (
+    OptimizedProductQuantizer,
     ProductQuantizationSpec,
     ProductQuantizer,
+    fit_optimized_product_quantizer,
     fit_product_quantizer,
     neighborhood_adc_distillation_loss,
 )
@@ -97,6 +99,86 @@ def test_product_quantizer_fit_is_seeded_and_uses_every_dimension() -> None:
     restored = first.hard_decode(first.hard_encode(values)).detach()
     assert restored.shape == values.shape
     assert float((values - restored).square().mean()) < float(values.square().mean())
+
+
+def test_optimized_product_quantizer_rotates_exact_hard_codec_and_adc() -> None:
+    base = _quantizer()
+    rotation = torch.tensor(
+        [[0.8, 0.0, 0.6], [0.0, 1.0, 0.0], [-0.6, 0.0, 0.8]], dtype=torch.float32
+    )
+    quantizer = OptimizedProductQuantizer.from_components(
+        base.spec, rotation, base.detached_codebooks()
+    )
+    values = torch.tensor([[0.1, 0.9, 0.8], [1.8, 0.0, -1.9]], dtype=torch.float32)
+    queries = torch.tensor([[0.3, 0.4, -0.5], [-0.2, 1.0, 0.1]], dtype=torch.float32)
+
+    codes = quantizer.hard_encode(values)
+    decoded = quantizer.hard_decode(codes)
+    observed = quantizer.asymmetric_squared_distances(queries, codes)
+    expected = (queries[:, None, :] - decoded[None, :, :]).square().sum(dim=-1)
+
+    assert codes.dtype == torch.uint8
+    torch.testing.assert_close(observed, expected, rtol=1e-6, atol=1e-7)
+    torch.testing.assert_close(
+        quantizer.detached_rotation() @ quantizer.detached_rotation().T,
+        torch.eye(3),
+        rtol=0.0,
+        atol=2e-7,
+    )
+
+
+def test_optimized_product_quantizer_fit_is_deterministic_and_never_worse_than_pq() -> None:
+    generator = torch.Generator().manual_seed(19)
+    latent = torch.randn((1024, 2), generator=generator)
+    mixing = torch.tensor([[1.0, 0.9, 0.8, -0.7], [0.2, -0.3, 0.6, 1.0]])
+    values = (latent @ mixing).float().contiguous()
+    spec = ProductQuantizationSpec(block_dimensions=(2, 2), codebook_size=8)
+    baseline = fit_product_quantizer(values, spec, seed=7, maximum_iterations=12)
+
+    first = fit_optimized_product_quantizer(
+        values, spec, seed=7, maximum_iterations=12, rotation_iterations=3
+    )
+    second = fit_optimized_product_quantizer(
+        values, spec, seed=7, maximum_iterations=12, rotation_iterations=3
+    )
+
+    baseline_error = (values - baseline.hard_decode(baseline.hard_encode(values))).square().sum()
+    optimized_error = (values - first.hard_decode(first.hard_encode(values))).square().sum()
+    assert float(optimized_error.detach()) <= 0.75 * float(baseline_error.detach())
+    torch.testing.assert_close(
+        first.detached_rotation(), second.detached_rotation(), rtol=0, atol=0
+    )
+    for left, right in zip(first.detached_codebooks(), second.detached_codebooks(), strict=True):
+        torch.testing.assert_close(left, right, rtol=0, atol=0)
+
+
+@pytest.mark.parametrize(
+    "rotation",
+    (
+        torch.eye(2),
+        torch.tensor([[1.0, 0.0, 0.0], [0.0, 2.0, 0.0], [0.0, 0.0, 1.0]]),
+        torch.tensor([[1.0, 0.0, 0.0], [0.0, float("nan"), 0.0], [0.0, 0.0, 1.0]]),
+        torch.eye(3) + 9e-6 * torch.ones((3, 3)),
+    ),
+)
+def test_optimized_product_quantizer_rejects_wrong_or_nonorthogonal_rotation(
+    rotation: torch.Tensor,
+) -> None:
+    base = _quantizer()
+
+    with pytest.raises(ValueError, match="optimized product quantization rotation"):
+        OptimizedProductQuantizer.from_components(
+            base.spec, rotation.float(), base.detached_codebooks()
+        )
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA is unavailable")
+def test_optimized_product_quantizer_rejects_mixed_component_devices() -> None:
+    base = _quantizer()
+    codebooks = tuple(value.cuda() for value in base.detached_codebooks())
+
+    with pytest.raises(ValueError, match="optimized product quantization rotation"):
+        OptimizedProductQuantizer.from_components(base.spec, torch.eye(3), codebooks)
 
 
 def test_straight_through_forward_is_hard_and_gradients_reach_rows_and_codebooks() -> None:
