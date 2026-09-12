@@ -90,6 +90,15 @@ def test_float_shortlist_excludes_self_and_repairs_retention_boundary_ties() -> 
     assert observed.tolist() == [[1, 2], [0, 2], [0, 1], [0, 1], [0, 1]]
 
 
+def test_concrete_tensor_device_resolves_indexed_runtime_device() -> None:
+    subject = _subject()
+    value = torch.zeros((1,), dtype=torch.float32)
+
+    assert subject._concrete_tensor_device(value, expected_type="cpu") == value.device
+    with pytest.raises(ValueError, match="lookup execution device differs"):
+        subject._concrete_tensor_device(value, expected_type="cuda")
+
+
 def test_fixed_candidate_ranking_breaks_corrected_score_ties_by_row_ordinal(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

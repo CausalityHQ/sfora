@@ -144,6 +144,19 @@ def validate_prior_reranker_receipt(
         raise ValueError("prior reranker receipt authority differs")
 
 
+def _concrete_tensor_device(value: torch.Tensor, *, expected_type: str) -> torch.device:
+    """Return the indexed runtime device represented by an allocated tensor."""
+
+    if (
+        type(value) is not torch.Tensor
+        or type(expected_type) is not str
+        or expected_type not in {"cpu", "cuda"}
+        or value.device.type != expected_type
+    ):
+        raise ValueError("lookup execution device differs")
+    return value.device
+
+
 def build_label_free_candidate_pool(
     float_rankings: torch.Tensor,
     compressed_rankings: torch.Tensor,
@@ -683,6 +696,7 @@ def main() -> None:
     pq24, pq32, opq24 = _load_parent_quantizers(args.parent_codec_checkpoint)
     device = torch.device("cuda")
     validation = validation_rows.to(device)
+    device = _concrete_tensor_device(validation, expected_type="cuda")
     fit_values = fit_rows.to(device)
     candidate_width = max(Counter(validation_labels).values()) - 1
 
