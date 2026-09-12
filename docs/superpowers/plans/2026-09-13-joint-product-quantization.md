@@ -102,6 +102,40 @@ optimization or candidate construction.
   `0.572754` mAP@R but did not match PQ32 `0.578923`; retain it as an initialization/control, not
   as a sufficient solution. The canonical receipt SHA-256 is `b0922d2c...f9ba10b`.
 
+### Task 2B: Candidate-set ordering repair before joint codec training
+
+**Files:**
+- Create: `src/sfora/pq_candidate_reranking.py`
+- Create: `tests/test_pq_candidate_reranking.py`
+- Create: `scripts/run_sop_pq_candidate_reranking.py`
+- Create: `tests/test_run_sop_pq_candidate_reranking.py`
+
+- [x] Add query-independent per-codeword residual second moments and exact query/code features:
+  all 24 partial dot products, 24 directional variances, 24 residual energies, decoded norm,
+  and the bounded candidate-set code similarity matrix. These are shared metadata only; database
+  rows remain exactly 24 bytes.
+- [x] Add a permutation-equivariant residual set scorer that begins at the exact hard-ADC
+  baseline, listwise float-teacher distillation, deterministic fitting, and an exact top-32
+  candidate constructor with leave-self-out and row-index tie authority.
+- [ ] Before training, measure PQ24 seed variance and preserve the existing PQ24/PQ32/OPQ24/float
+  controls. A gain smaller than the observed seed variation is not evidence.
+- [ ] Train one frozen label-free recipe on fitting rows only: 32 ADC candidates, a three-layer
+  128-wide/four-head set scorer, temperature `0.05`, KL plus `0.1` row-centered (shift-invariant)
+  score MSE, AdamW, and a fixed schedule. Validation labels remain evaluation-only. Report the
+  exact baseline and reranked candidate lists, per-query AP, paired deltas, objective components,
+  residual gate, target entropy/effective support, codebook seed, model bytes, and top-32 ceiling.
+- [ ] Kill the ordering-repair path below PQ32 `0.578923`; call it promising only at or above the
+  preregistered `0.58563` target, above measured PQ seed variation, and without more than `0.002`
+  R@1 loss from its own PQ24 baseline. A pass remains SOP development evidence and must transfer
+  to a fresh domain before any generic claim. A non-improving fit objective is an optimization
+  failure, not a scientific rejection of candidate-set reranking.
+- [ ] If this bounded reranker fails, proceed to Task 3's joint hard-code ranking objective. Do not
+  spend another experiment on reconstruction-only codebook or decoder improvements.
+
+The initial substrate remains PQ24 so the experiment isolates ordering repair against the exact
+matched hard-PQ control. OPQ24 remains a separately reported control and a possible initializer for
+Task 3; mixing it into this screen would change both the representation and the ordering mechanism.
+
 ### Task 3: Authenticated joint-codec development driver
 
 **Files:**
