@@ -152,6 +152,45 @@ exactly foldable, identity-initialized 128-to-384-to-128 linear factorization wi
 bias, matching the direct arm's parameter count while remaining unable to recover discarded input
 directions.
 
+### Parameter-matched capacity control
+
+That control ran from Sfora commit `61c95178a04ddcf73387283977e4924b48fa9254`, with driver
+SHA-256 `cb5c165089a4af20fd3e530ea1cbb1435fedf8604b3046126329f6517116aae9`.
+The factorized arm has exactly 98,432 trainable parameters, the same as the direct affine arm, but
+receives only the raw 128-dimensional base affine output. It contains no nonlinearity and is folded
+with the base head into one 768-to-128 affine deployment checkpoint before scoring. All three arms
+again used the same frozen negative table, SHA-256
+`067dee0c6d2329ccebe9441ea9bc222da135e7fb1834e17171ae5afd5ae30142`.
+
+| Seed | Restricted mAP@R / R@1 | Matched factorized mAP@R / R@1 | Direct mAP@R / R@1 | Factorized closure |
+|---:|---:|---:|---:|---:|
+| 0 | 0.5813248753 / 0.8265383641 | 0.5835101466 / 0.8279733266 | 0.5916037901 / 0.8322782139 | 0.212597473 |
+| 1 | 0.5811864684 / 0.8262007259 | 0.5835764518 / 0.8277200979 | 0.5913895690 / 0.8313497088 | 0.234240898 |
+| 2 | 0.5813415879 / 0.8265383641 | 0.5831779966 / 0.8283109648 | 0.5914738071 / 0.8329534903 | 0.181244478 |
+| 3 | 0.5813535129 / 0.8265383641 | 0.5836014732 / 0.8278045075 | 0.5915297130 / 0.8327002617 | 0.220903702 |
+| 4 | 0.5815306299 / 0.8262007259 | 0.5834210204 / 0.8279733266 | 0.5916413674 / 0.8321938043 | 0.186968605 |
+| Mean | 0.5813474149 / 0.8264033089 | 0.5834574177 / 0.8279564447 | **0.5915276493 / 0.8322950958** | **0.207191031** |
+
+The factorized control improves over restricted by `0.0021100029` mAP@R and `0.0015531358`
+Recall@1, but direct retains advantages of `0.0080702316` and `0.0043386511`. The ordering is
+strict in all five seeds. After averaging each query over seeds, the one-sided paired
+class-cluster lower bounds are `0.0016701285` for factorized minus restricted and `0.0070233665`
+for direct minus factorized. The control therefore closes only 20.7% of the direct mAP@R gain and
+classifies the result as `mixed-or-information-leading` under the frozen rule.
+
+The canonical receipt SHA-256 values for seeds 0 through 4 are respectively
+`d635a3f708aced91a0639ebe0c0139179ab883f38dd639ff153e3a69ab3c1d25`,
+`2ce6ed8faaf4d75bd20733fbd25b1a99a834957282a3710fdd6c246c4fdbc581`,
+`5d58f04e3ddc3f8b5a42072691e4c1f85bd32321f620c70342fb5582d55a2b6f`,
+`bf83811ad62e7ad1a5e2e82ba77d0ed59b3300e0bcabaa94d43138605d857a22`, and
+`7a5ca2ec4519940c2191854790e52c57536dbe902ed0573f2fcec1187e8718c4`.
+
+This resolves the parameter-count confound for this diagnostic: overparameterizing a map that
+only sees the 128-dimensional base output recovers a small part of the improvement, while access
+to the full frozen 768-dimensional representation is the dominant observed difference. It does
+not prove that the discarded directions alone are causal, because the two parameterizations still
+have different optimization geometry, and it remains SOP-validation-only evidence.
+
 The result is not evidence that the loss is novel, that 128-byte codes satisfy the
 100-million-item memory target, or that the method generalizes beyond the observed SOP validation
 split. After the capacity control, the next boundary is the quality/bytes frontier and
@@ -164,9 +203,10 @@ a smaller but reproducible increment on SOP and In-Shop and is inconclusive on C
 objective is close to established N-pair, supervised-contrastive/SINCERE, and Multi-Similarity
 families; this evidence does not support a novel-loss claim.
 
-The next decisive comparison tests representation capacity: train the frozen 768-to-128 affine
-head directly against an identity-initialized 128-to-128 adapter, starting from the same effective
-map and holding mean-logit, schedule, positives, negatives, and evaluation fixed. A second encoder
-family and one fresh dataset are required before claiming a generic learning improvement.
+The next decisive boundary is the actual quality/byte/search frontier: test the frozen direct head
+under 16-byte-class product quantization, then measure identical codes with exhaustive scoring and
+a real inverted index so compression loss and search loss are separated. A second encoder family
+and fresh datasets with frozen protocols are required before claiming a generic learning
+improvement.
 Class-name semantics, if studied, remain an optional external-information adapter with real-name,
 shuffled-name, and no-name controls; they are not part of the generic label-only core.
