@@ -21,6 +21,7 @@ from sfora.teacher_anchored_distillation import (
     cross_dimensional_relational_distillation_loss,
     cross_dimensional_similarity_distillation_loss,
     embedding_geometry_diagnostics,
+    retrieval_impact_weighted_pairwise_loss,
     retrieval_local_rank_distillation_loss,
     teacher_anchor_schedule,
     teacher_anchored_forward,
@@ -1170,4 +1171,62 @@ def test_retrieval_local_rank_distillation_rejects_invalid_authority(mutation: s
             teacher,
             teacher_neighbor_count=count,
             margin_cap=margin,
+        )
+
+
+def test_retrieval_impact_weighted_pairwise_loss_matches_weighted_rank_swaps() -> None:
+    assert (
+        sfora.retrieval_impact_weighted_pairwise_loss
+        is retrieval_impact_weighted_pairwise_loss
+    )
+    positives = torch.tensor([[0.2, 0.4]], dtype=torch.float32, requires_grad=True)
+    negatives = torch.tensor([[0.3, -0.1]], dtype=torch.float32, requires_grad=True)
+    impacts = torch.tensor([[[1.0, 0.0], [3.0, 2.0]]], dtype=torch.float32)
+
+    loss = retrieval_impact_weighted_pairwise_loss(
+        positives, negatives, impacts, temperature=0.1
+    )
+    terms = torch.nn.functional.softplus(
+        (negatives.detach().unsqueeze(1) - positives.detach().unsqueeze(2)) / 0.1
+    )
+    expected = (terms * impacts).sum() / impacts.sum()
+    permuted = retrieval_impact_weighted_pairwise_loss(
+        positives[:, [1, 0]].contiguous(),
+        negatives[:, [1, 0]].contiguous(),
+        impacts[:, [1, 0]][:, :, [1, 0]].contiguous(),
+        temperature=0.1,
+    )
+
+    torch.testing.assert_close(loss, expected, rtol=0.0, atol=1e-7)
+    torch.testing.assert_close(permuted, loss, rtol=0.0, atol=1e-7)
+    loss.backward()  # type: ignore[no-untyped-call]
+    assert positives.grad is not None and bool(torch.isfinite(positives.grad).all())
+    assert negatives.grad is not None and bool(torch.isfinite(negatives.grad).all())
+    assert impacts.grad is None
+
+
+@pytest.mark.parametrize("mutation", ("impact-grad", "nan", "shape", "zero", "temperature"))
+def test_retrieval_impact_weighted_pairwise_loss_rejects_invalid_authority(
+    mutation: str,
+) -> None:
+    positives = torch.zeros((2, 3), dtype=torch.float32, requires_grad=True)
+    negatives = torch.zeros((2, 4), dtype=torch.float32, requires_grad=True)
+    impacts = torch.ones((2, 3, 4), dtype=torch.float32)
+    temperature = 0.1
+    if mutation == "impact-grad":
+        impacts.requires_grad_()
+    elif mutation == "nan":
+        negatives = negatives.detach().clone()
+        negatives[0, 0] = torch.nan
+        negatives.requires_grad_()
+    elif mutation == "shape":
+        impacts = impacts[:, :-1].contiguous()
+    elif mutation == "zero":
+        impacts[0].zero_()
+    else:
+        temperature = 0.0
+    expected = TeacherAnchoredNumericalError if mutation == "nan" else ValueError
+    with pytest.raises(expected, match="retrieval-impact weighted"):
+        retrieval_impact_weighted_pairwise_loss(
+            positives, negatives, impacts, temperature=temperature
         )

@@ -700,6 +700,74 @@ def retrieval_local_rank_distillation_loss(
     return result
 
 
+def retrieval_impact_weighted_pairwise_loss(
+    positive_similarities: torch.Tensor,
+    negative_similarities: torch.Tensor,
+    swap_impacts: torch.Tensor,
+    *,
+    temperature: float,
+) -> torch.Tensor:
+    """Penalize positive-negative inversions in proportion to retrieval impact."""
+
+    if (
+        type(positive_similarities) is not torch.Tensor
+        or type(negative_similarities) is not torch.Tensor
+        or type(swap_impacts) is not torch.Tensor
+        or positive_similarities.ndim != 2
+        or negative_similarities.ndim != 2
+        or positive_similarities.shape[0] != negative_similarities.shape[0]
+        or swap_impacts.shape
+        != (
+            positive_similarities.shape[0],
+            positive_similarities.shape[1],
+            negative_similarities.shape[1],
+        )
+        or min(positive_similarities.shape) < 1
+        or negative_similarities.shape[1] < 1
+        or any(
+            value.dtype != torch.float32
+            or value.device != positive_similarities.device
+            or not value.is_contiguous()
+            for value in (positive_similarities, negative_similarities, swap_impacts)
+        )
+        or not positive_similarities.requires_grad
+        or not negative_similarities.requires_grad
+        or swap_impacts.requires_grad
+        or type(temperature) is not float
+        or not math.isfinite(temperature)
+        or temperature <= 0.0
+    ):
+        raise ValueError("retrieval-impact weighted authority differs")
+    if not all(
+        bool(torch.isfinite(value).all())
+        for value in (positive_similarities, negative_similarities, swap_impacts)
+    ):
+        raise TeacherAnchoredNumericalError(
+            "retrieval-impact weighted numerical failure"
+        )
+    if bool((swap_impacts < 0.0).any()) or bool(
+        (swap_impacts.sum(dim=(1, 2)) <= 0.0).any()
+    ):
+        raise ValueError("retrieval-impact weighted authority differs")
+    with torch.autocast(device_type=positive_similarities.device.type, enabled=False):
+        violations = torch.nn.functional.softplus(
+            (
+                negative_similarities.unsqueeze(1)
+                - positive_similarities.unsqueeze(2)
+            )
+            / temperature
+        )
+        per_query = (violations * swap_impacts).sum(dim=(1, 2)) / swap_impacts.sum(
+            dim=(1, 2)
+        )
+        result = per_query.mean()
+    if result.ndim != 0 or not bool(torch.isfinite(result)):
+        raise TeacherAnchoredNumericalError(
+            "retrieval-impact weighted numerical failure"
+        )
+    return result
+
+
 def teacher_anchored_loss(
     student: torch.Tensor,
     teacher: torch.Tensor,

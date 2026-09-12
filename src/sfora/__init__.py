@@ -172,6 +172,7 @@ _TEACHER_ANCHORED_EXPORTS = frozenset(
         "cross_dimensional_similarity_distillation_loss",
         "embedding_geometry_diagnostics",
         "retrieval_local_rank_distillation_loss",
+        "retrieval_impact_weighted_pairwise_loss",
         "teacher_anchor_schedule",
         "teacher_anchored_forward",
         "teacher_anchored_input_sha256",
