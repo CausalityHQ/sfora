@@ -184,6 +184,12 @@ inside the fixed 192-bit representation rather than candidate containment.
   Kill contested-set anisotropy when the registered alignment ratio is at least `0.6`; treat a
   value below `0.4` as evidence to retain it as a later additive-quantizer ablation.
 
+The completed fixed-code screen regressed despite healthy matched-pool optimization. The ranking
+arm reached only `0.566232738 / 0.819279142` exhaustive mAP@R / Recall@1, while the score-MSE arm
+reached `0.557812453 / 0.809403224`; plain PQ24 remained `0.570720672 / 0.822233477`. Its
+canonical receipt SHA-256 is `e3555a41...9af44ca0`. This closes the frozen lookup-correction
+recipe and makes Task 3's learned hard-code assignments the next representation boundary.
+
 ### Task 3: Authenticated joint-codec development driver
 
 **Files:**

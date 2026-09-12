@@ -283,6 +283,50 @@ is 3,312,151 bytes with SHA-256
 claim-ineligible SOP class-disjoint development evidence. Reranker initialization variance is
 unmeasured, and neither a 100-million-vector index nor end-to-end query latency is established.
 
+### Label-free fixed-code lookup-table distillation
+
+The subsequent seed-0 screen ran from Sfora commit
+`ea1efccd4aff57289a265d20d88a1ea6f3202bfb`. It retained the exact same 24 PQ bytes per
+database row and learned query-conditioned additive correction tables from fitting classes only.
+The registered ranking arm used teacher-top128, 128 compressed-exclusive rows, 128 independently
+sampled uniform-tail rows, three current-student refreshes across four complete epochs, and
+listwise, pairwise, and centered-score objectives. The MSE arm isolated score regression. The
+official test remained untouched.
+
+| Representation / scorer | mAP@R | Recall@1 |
+|---|---:|---:|
+| Float 128D | 0.5912648481 | 0.8327002617 |
+| PQ24 ADC baseline | 0.5707206723 | 0.8222334768 |
+| PQ32 ADC control | 0.5789231844 | 0.8241748966 |
+| Prior PQ24 top-32 set reranker | 0.5786155157 | 0.8226555246 |
+| Fixed-code lookup, ranking objective | **0.5662327375** | **0.8192791424** |
+| Fixed-code lookup, teacher-score MSE | 0.5578124531 | 0.8094032244 |
+
+The fixed-top32 and exhaustive results were effectively identical for the ranking arm
+(`0.5662332156` versus `0.5662327375` mAP@R), so candidate scope does not explain this failure.
+The ranking objective improved on both the fixed initial pool (`0.2313884655` to `0.1591775314`)
+and the final refreshed pool (`0.2310133162` to `0.1590813338`). The MSE objective likewise
+improved on both pools. Nevertheless, the ranking arm regressed by `0.0044879347` mAP@R and
+`0.0029543344` Recall@1 from plain PQ24, and by `0.0126904469` mAP@R from PQ32. Its exhaustive
+fixed-top32 teacher pairwise agreement was `0.8082189560` on all 496 unordered pairs within each
+top-32 set.
+
+The registered classification is `fixed-code-lookup-r1-regressed`; `passed=false` and
+`claim_eligible=false`. This is a genuine scientific rejection of the frozen sampled-distillation
+recipe rather than an optimization failure. It does not reject every query-dependent scorer, but
+combined with the earlier set reranker it closes further post-hoc work on these fixed PQ24 codes.
+The next representation experiment must train the exact 24-byte code assignments/codebooks for
+neighborhood ordering rather than fit another scorer around immutable codes.
+
+The canonical receipt is 8,783,697 bytes with SHA-256
+`e3555a41c50e5cde65eadda492f39c616905bfbc0b61c4aa76d7e2399af44ca0`; the model
+checkpoint is 1,742,149 bytes with SHA-256
+`517318879ccf2be3686a833243a30f99497e860a0cb957567016399b1cca0df4`. Each arm contains
+868,992 shared parameter bytes. The diagnostic reports 24 baseline and 24 correction lookups per
+candidate plus a 24,576-byte float32 correction table per query; a fused production kernel was
+not implemented or benchmarked. Each arm fit in about 85.8 seconds on the DGX, and the complete
+authenticated run exited zero with empty stderr.
+
 ## Scientific interpretation
 
 Most of the adaptation gain is already explained by the pooled control. Positive coverage adds
