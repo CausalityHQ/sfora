@@ -441,6 +441,132 @@ def verify_teacher_neighbor_batches(
     return True
 
 
+def cross_dimensional_anchor_distillation_loss(
+    student: torch.Tensor,
+    student_anchors: torch.Tensor,
+    teacher: torch.Tensor,
+    teacher_anchors: torch.Tensor,
+    *,
+    temperatures: tuple[float, ...],
+) -> torch.Tensor:
+    """Match query-to-anchor relations across different embedding widths."""
+
+    tensors = (student, student_anchors, teacher, teacher_anchors)
+    if (
+        any(type(value) is not torch.Tensor for value in tensors)
+        or student.ndim != 2
+        or teacher.ndim != 2
+        or student_anchors.ndim != 3
+        or teacher_anchors.ndim != 3
+        or student.shape[0] < 1
+        or student.shape[1] < 2
+        or teacher.shape[1] < 2
+        or student_anchors.shape[:2] != teacher_anchors.shape[:2]
+        or student_anchors.shape[0] != student.shape[0]
+        or teacher.shape[0] != student.shape[0]
+        or student_anchors.shape[2] != student.shape[1]
+        or teacher_anchors.shape[2] != teacher.shape[1]
+        or student_anchors.shape[1] < 2
+        or any(value.dtype != torch.float32 for value in tensors)
+        or any(value.device != student.device for value in tensors)
+        or any(not value.is_contiguous() for value in tensors)
+        or not student.requires_grad
+        or not student_anchors.requires_grad
+        or teacher.requires_grad
+        or teacher_anchors.requires_grad
+        or type(temperatures) is not tuple
+        or not temperatures
+        or any(
+            type(temperature) is not float
+            or not math.isfinite(temperature)
+            or temperature <= 0.0
+            for temperature in temperatures
+        )
+    ):
+        raise ValueError("cross-dimensional anchor authority differs")
+    if any(not bool(torch.isfinite(value).all()) for value in tensors):
+        raise TeacherAnchoredNumericalError("cross-dimensional anchor numerical failure")
+    for value in tensors:
+        norms = torch.linalg.vector_norm(value.detach().double(), dim=-1)
+        if not bool((torch.abs(norms - 1.0) <= 2e-5).all()):
+            raise ValueError("cross-dimensional anchor authority differs")
+
+    with torch.autocast(device_type=student.device.type, enabled=False):
+        teacher_logits = torch.einsum("bd,bad->ba", teacher, teacher_anchors)
+        student_logits = torch.einsum("bd,bad->ba", student, student_anchors)
+        terms = [
+            _forward_kl(teacher_logits / temperature, student_logits / temperature)
+            for temperature in temperatures
+        ]
+        result = torch.stack(terms).mean()
+    if result.ndim != 0 or not bool(torch.isfinite(result)):
+        raise TeacherAnchoredNumericalError("cross-dimensional anchor numerical failure")
+    return result
+
+
+def cross_dimensional_relational_distillation_loss(
+    student: torch.Tensor,
+    teacher: torch.Tensor,
+    *,
+    temperatures: tuple[float, ...],
+) -> torch.Tensor:
+    """Match leave-self-out pair geometry across different embedding widths."""
+
+    if (
+        type(student) is not torch.Tensor
+        or type(teacher) is not torch.Tensor
+        or student.ndim != 2
+        or teacher.ndim != 2
+        or student.shape[0] < 3
+        or teacher.shape[0] != student.shape[0]
+        or student.shape[1] < 2
+        or teacher.shape[1] < 2
+        or student.dtype != torch.float32
+        or teacher.dtype != torch.float32
+        or student.device != teacher.device
+        or not student.is_contiguous()
+        or not teacher.is_contiguous()
+        or not student.requires_grad
+        or teacher.requires_grad
+        or type(temperatures) is not tuple
+        or not temperatures
+        or any(
+            type(temperature) is not float
+            or not math.isfinite(temperature)
+            or temperature <= 0.0
+            for temperature in temperatures
+        )
+    ):
+        raise ValueError("cross-dimensional relational authority differs")
+    if not bool(torch.isfinite(student).all()) or not bool(torch.isfinite(teacher).all()):
+        raise TeacherAnchoredNumericalError("cross-dimensional relational numerical failure")
+    for value in (student, teacher):
+        norms = torch.linalg.vector_norm(value.detach().double(), dim=1)
+        if not bool((torch.abs(norms - 1.0) <= 2e-5).all()):
+            raise ValueError("cross-dimensional relational authority differs")
+
+    with torch.autocast(device_type=student.device.type, enabled=False):
+        mask = ~torch.eye(student.shape[0], dtype=torch.bool, device=student.device)
+        teacher_relations = (teacher @ teacher.T)[mask].reshape(
+            student.shape[0], student.shape[0] - 1
+        )
+        student_relations = (student @ student.T)[mask].reshape(
+            student.shape[0], student.shape[0] - 1
+        )
+        result = torch.stack(
+            [
+                _forward_kl(
+                    teacher_relations / temperature,
+                    student_relations / temperature,
+                )
+                for temperature in temperatures
+            ]
+        ).mean()
+    if result.ndim != 0 or not bool(torch.isfinite(result)):
+        raise TeacherAnchoredNumericalError("cross-dimensional relational numerical failure")
+    return result
+
+
 def teacher_anchored_loss(
     student: torch.Tensor,
     teacher: torch.Tensor,

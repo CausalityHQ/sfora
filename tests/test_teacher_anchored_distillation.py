@@ -17,6 +17,8 @@ from sfora.teacher_anchored_distillation import (
     TeacherAnchorSchedule,
     TeacherNeighborBatches,
     TeacherNeighborRanking,
+    cross_dimensional_anchor_distillation_loss,
+    cross_dimensional_relational_distillation_loss,
     embedding_geometry_diagnostics,
     teacher_anchor_schedule,
     teacher_anchored_forward,
@@ -906,3 +908,119 @@ def test_free_student_codes_converge_toward_teacher_without_collapse() -> None:
     assert final > initial + 0.04
     assert final > 0.99
     assert diagnostics.effective_rank > 3.0
+
+
+def test_cross_dimensional_anchor_distillation_matches_relations_not_coordinates() -> None:
+    assert (
+        sfora.cross_dimensional_anchor_distillation_loss
+        is cross_dimensional_anchor_distillation_loss
+    )
+    student = torch.tensor([[1.0, 0.0]], dtype=torch.float32, requires_grad=True)
+    student_anchors = torch.tensor(
+        [[[1.0, 0.0], [0.0, 1.0]]], dtype=torch.float32, requires_grad=True
+    )
+    teacher = torch.tensor([[1.0, 0.0, 0.0]], dtype=torch.float32)
+    teacher_anchors = torch.tensor(
+        [[[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]], dtype=torch.float32
+    )
+
+    matched = cross_dimensional_anchor_distillation_loss(
+        student,
+        student_anchors,
+        teacher,
+        teacher_anchors,
+        temperatures=(0.05, 0.20),
+    )
+    mismatched = cross_dimensional_anchor_distillation_loss(
+        student,
+        student_anchors.flip(1),
+        teacher,
+        teacher_anchors,
+        temperatures=(0.05, 0.20),
+    )
+    permuted = cross_dimensional_anchor_distillation_loss(
+        student,
+        student_anchors.flip(1),
+        teacher,
+        teacher_anchors.flip(1),
+        temperatures=(0.05, 0.20),
+    )
+
+    assert matched.item() == pytest.approx(0.0, abs=1e-7)
+    assert mismatched.item() > 1.0
+    assert permuted.item() == pytest.approx(matched.item(), abs=1e-7)
+    mismatched.backward()  # type: ignore[no-untyped-call]
+    assert student.grad is not None and bool(torch.isfinite(student.grad).all())
+    assert student_anchors.grad is not None and bool(torch.isfinite(student_anchors.grad).all())
+    assert teacher.grad is None
+    assert teacher_anchors.grad is None
+
+
+@pytest.mark.parametrize("mutation", ("teacher-grad", "nan", "shape", "temperature"))
+def test_cross_dimensional_anchor_distillation_rejects_invalid_authority(
+    mutation: str,
+) -> None:
+    student = _normalized_tensor(4, 3, seed=51).requires_grad_()
+    student_anchors = _normalized_tensor(20, 3, seed=52).reshape(4, 5, 3).requires_grad_()
+    teacher = _normalized_tensor(4, 7, seed=53)
+    teacher_anchors = _normalized_tensor(20, 7, seed=54).reshape(4, 5, 7)
+    temperatures: tuple[float, ...] = (0.05, 0.20)
+    if mutation == "teacher-grad":
+        teacher.requires_grad_()
+    elif mutation == "nan":
+        teacher_anchors = teacher_anchors.clone()
+        teacher_anchors[0, 0, 0] = torch.nan
+    elif mutation == "shape":
+        student_anchors = student_anchors[:, :-1]
+    else:
+        temperatures = (0.0,)
+
+    expected = TeacherAnchoredNumericalError if mutation == "nan" else ValueError
+    with pytest.raises(expected, match="cross-dimensional anchor"):
+        cross_dimensional_anchor_distillation_loss(
+            student,
+            student_anchors,
+            teacher,
+            teacher_anchors,
+            temperatures=temperatures,
+        )
+
+
+def test_cross_dimensional_relational_distillation_matches_off_diagonal_geometry() -> None:
+    assert (
+        sfora.cross_dimensional_relational_distillation_loss
+        is cross_dimensional_relational_distillation_loss
+    )
+    student = torch.tensor(
+        [[1.0, 0.0], [0.0, 1.0], [-1.0, 0.0]],
+        dtype=torch.float32,
+        requires_grad=True,
+    )
+    teacher = torch.tensor(
+        [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [-1.0, 0.0, 0.0]],
+        dtype=torch.float32,
+    )
+
+    matched = cross_dimensional_relational_distillation_loss(
+        student,
+        teacher,
+        temperatures=(0.05, 0.20),
+    )
+    mismatched = cross_dimensional_relational_distillation_loss(
+        student.roll(1, 0),
+        teacher,
+        temperatures=(0.05, 0.20),
+    )
+    permutation = torch.tensor([2, 0, 1])
+    permuted = cross_dimensional_relational_distillation_loss(
+        student[permutation].contiguous(),
+        teacher[permutation].contiguous(),
+        temperatures=(0.05, 0.20),
+    )
+
+    assert matched.item() == pytest.approx(0.0, abs=1e-7)
+    assert mismatched.item() > 1.0
+    assert permuted.item() == pytest.approx(matched.item(), abs=1e-7)
+    mismatched.backward()  # type: ignore[no-untyped-call]
+    assert student.grad is not None and bool(torch.isfinite(student.grad).all())
+    assert teacher.grad is None
