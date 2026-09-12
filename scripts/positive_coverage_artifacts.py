@@ -17,6 +17,7 @@ from typing import cast
 import torch
 
 _ARM_NAMES = ("pooled", "coverage")
+_CONTROL_ARM_NAMES = ("pooled", "coverage", "mean_logit", "supcon", "multi_similarity")
 
 
 def mean_recent_loss(values: list[float], *, window: int) -> float:
@@ -171,6 +172,36 @@ class PositiveCoverageArtifactPaths:
             raise ValueError("artifact path authority differs")
 
 
+@dataclass(frozen=True, slots=True)
+class MatchedLossPanelArtifactPaths:
+    """Distinct no-clobber output paths for the five matched loss arms."""
+
+    pooled_checkpoint: Path
+    coverage_checkpoint: Path
+    mean_logit_checkpoint: Path
+    supcon_checkpoint: Path
+    multi_similarity_checkpoint: Path
+    complete_receipt: Path
+
+    def __post_init__(self) -> None:
+        paths = (
+            self.pooled_checkpoint,
+            self.coverage_checkpoint,
+            self.mean_logit_checkpoint,
+            self.supcon_checkpoint,
+            self.multi_similarity_checkpoint,
+            self.complete_receipt,
+        )
+        all_paths = (*paths, *(_partial(path) for path in paths))
+        if (
+            any(not isinstance(path, Path) or not path.is_absolute() for path in paths)
+            or len(set(all_paths)) != len(all_paths)
+            or any(not path.parent.is_dir() for path in paths)
+            or any(path.exists() or _partial(path).exists() for path in paths)
+        ):
+            raise ValueError("artifact path authority differs")
+
+
 def _validated_states(
     states: dict[str, dict[str, torch.Tensor]], receipt: dict[str, object]
 ) -> dict[str, dict[str, torch.Tensor]]:
@@ -217,8 +248,52 @@ def _validated_states(
     return states
 
 
+def _validated_control_states(
+    states: dict[str, dict[str, torch.Tensor]], receipt: dict[str, object]
+) -> dict[str, dict[str, torch.Tensor]]:
+    if (
+        type(states) is not dict
+        or set(states) != set(_CONTROL_ARM_NAMES)
+        or type(receipt) is not dict
+        or receipt.get("claim_eligible") is not False
+        or receipt.get("schema") != "sfora-matched-loss-controls-v1"
+        or type(receipt.get("arms")) is not dict
+        or set(cast(dict[str, object], receipt["arms"])) != set(_CONTROL_ARM_NAMES)
+    ):
+        raise ValueError("matched-loss control artifact authority differs")
+    arms = cast(dict[str, object], receipt["arms"])
+    for name in _CONTROL_ARM_NAMES:
+        state = states.get(name)
+        arm = arms.get(name)
+        if (
+            type(state) is not dict
+            or tuple(state) != ("weight",)
+            or type(arm) is not dict
+            or cast(dict[str, object], arm).get("parameter_sha256")
+            != linear_weight_sha256(state["weight"])
+            or "checkpoint" in cast(dict[str, object], arm)
+        ):
+            raise ValueError("matched-loss control artifact authority differs")
+    return states
+
+
 def _partial(path: Path) -> Path:
     return path.with_name(f"{path.name}.partial")
+
+
+def _owned_partial(path: Path) -> tuple[Path, int, int]:
+    status = path.stat(follow_symlinks=False)
+    return path, status.st_dev, status.st_ino
+
+
+def _unlink_owned_partial(owned: tuple[Path, int, int]) -> None:
+    path, device, inode = owned
+    try:
+        status = path.stat(follow_symlinks=False)
+    except FileNotFoundError:
+        return
+    if (status.st_dev, status.st_ino) == (device, inode):
+        path.unlink()
 
 
 def _sync_save(state: dict[str, torch.Tensor], path: Path) -> None:
@@ -271,14 +346,14 @@ def write_canonical_receipt_no_clobber(receipt: dict[str, object], destination: 
     ):
         raise ValueError("artifact path authority differs")
     temporary = _partial(destination)
-    owned = False
+    owned: tuple[Path, int, int] | None = None
     try:
         _sync_write(canonical_positive_coverage_receipt_bytes(receipt), temporary)
-        owned = True
+        owned = _owned_partial(temporary)
         _publish_no_clobber(temporary, destination)
     finally:
-        if owned:
-            temporary.unlink(missing_ok=True)
+        if owned is not None:
+            _unlink_owned_partial(owned)
 
 
 def write_linear_replay_artifacts(
@@ -314,23 +389,27 @@ def write_linear_replay_artifacts(
     ):
         raise ValueError("artifact path authority differs")
     completed = copy.deepcopy(receipt)
-    owned: list[Path] = []
+    owned: list[tuple[Path, int, int]] = []
     try:
         checkpoint_partial = _partial(checkpoint)
         _sync_save(state, checkpoint_partial)
-        owned.append(checkpoint_partial)
+        checkpoint_owner = _owned_partial(checkpoint_partial)
+        owned.append(checkpoint_owner)
         completed["checkpoint"] = {
             "bytes": checkpoint_partial.stat().st_size,
             "sha256": _file_sha256(checkpoint_partial),
         }
         _publish_no_clobber(checkpoint_partial, checkpoint)
+        owned.remove(checkpoint_owner)
         receipt_partial = _partial(complete_receipt)
         _sync_write(canonical_positive_coverage_receipt_bytes(completed), receipt_partial)
-        owned.append(receipt_partial)
+        receipt_owner = _owned_partial(receipt_partial)
+        owned.append(receipt_owner)
         _publish_no_clobber(receipt_partial, complete_receipt)
+        owned.remove(receipt_owner)
     finally:
-        for path in owned:
-            path.unlink(missing_ok=True)
+        for partial in owned:
+            _unlink_owned_partial(partial)
     return completed
 
 
@@ -345,13 +424,14 @@ def write_positive_coverage_artifacts(
     if type(paths) is not PositiveCoverageArtifactPaths:
         raise ValueError("artifact path authority differs")
     validated = _validated_states(states, receipt)
+    canonical_positive_coverage_receipt_bytes(receipt)
     outputs = (paths.pooled_checkpoint, paths.coverage_checkpoint, paths.complete_receipt)
     partials = tuple(_partial(path) for path in outputs)
     if any(path.exists() for path in (*outputs, *partials)):
         raise ValueError("artifact path authority differs")
     completed = copy.deepcopy(receipt)
     completed_arms = cast(dict[str, dict[str, object]], completed["arms"])
-    owned_partials: list[Path] = []
+    owned_partials: list[tuple[Path, int, int]] = []
     try:
         for name, destination in zip(
             _ARM_NAMES,
@@ -360,19 +440,73 @@ def write_positive_coverage_artifacts(
         ):
             temporary = _partial(destination)
             _sync_save(validated[name], temporary)
-            owned_partials.append(temporary)
+            owner = _owned_partial(temporary)
+            owned_partials.append(owner)
             checkpoint = {
                 "bytes": temporary.stat().st_size,
                 "sha256": _file_sha256(temporary),
             }
             _publish_no_clobber(temporary, destination)
+            owned_partials.remove(owner)
             completed_arms[name]["checkpoint"] = checkpoint
         wire = canonical_positive_coverage_receipt_bytes(completed)
         temporary_receipt = _partial(paths.complete_receipt)
         _sync_write(wire, temporary_receipt)
-        owned_partials.append(temporary_receipt)
+        receipt_owner = _owned_partial(temporary_receipt)
+        owned_partials.append(receipt_owner)
         _publish_no_clobber(temporary_receipt, paths.complete_receipt)
+        owned_partials.remove(receipt_owner)
     finally:
         for partial in owned_partials:
-            partial.unlink(missing_ok=True)
+            _unlink_owned_partial(partial)
+    return completed
+
+
+def write_matched_loss_panel_artifacts(
+    *,
+    states: dict[str, dict[str, torch.Tensor]],
+    receipt: dict[str, object],
+    paths: MatchedLossPanelArtifactPaths,
+) -> dict[str, object]:
+    """Write all matched-loss checkpoints before publishing the receipt."""
+
+    if type(paths) is not MatchedLossPanelArtifactPaths:
+        raise ValueError("artifact path authority differs")
+    validated = _validated_control_states(states, receipt)
+    canonical_positive_coverage_receipt_bytes(receipt)
+    destinations = (
+        paths.pooled_checkpoint,
+        paths.coverage_checkpoint,
+        paths.mean_logit_checkpoint,
+        paths.supcon_checkpoint,
+        paths.multi_similarity_checkpoint,
+    )
+    outputs = (*destinations, paths.complete_receipt)
+    partials = tuple(_partial(path) for path in outputs)
+    if any(path.exists() for path in (*outputs, *partials)):
+        raise ValueError("artifact path authority differs")
+    completed = copy.deepcopy(receipt)
+    completed_arms = cast(dict[str, dict[str, object]], completed["arms"])
+    owned_partials: list[tuple[Path, int, int]] = []
+    try:
+        for name, destination in zip(_CONTROL_ARM_NAMES, destinations, strict=True):
+            temporary = _partial(destination)
+            _sync_save(validated[name], temporary)
+            owner = _owned_partial(temporary)
+            owned_partials.append(owner)
+            completed_arms[name]["checkpoint"] = {
+                "bytes": temporary.stat().st_size,
+                "sha256": _file_sha256(temporary),
+            }
+            _publish_no_clobber(temporary, destination)
+            owned_partials.remove(owner)
+        temporary_receipt = _partial(paths.complete_receipt)
+        _sync_write(canonical_positive_coverage_receipt_bytes(completed), temporary_receipt)
+        receipt_owner = _owned_partial(temporary_receipt)
+        owned_partials.append(receipt_owner)
+        _publish_no_clobber(temporary_receipt, paths.complete_receipt)
+        owned_partials.remove(receipt_owner)
+    finally:
+        for partial in owned_partials:
+            _unlink_owned_partial(partial)
     return completed

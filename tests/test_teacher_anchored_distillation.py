@@ -24,10 +24,12 @@ from sfora.teacher_anchored_distillation import (
     cross_dimensional_similarity_distillation_loss,
     embedding_geometry_diagnostics,
     exposure_normalized_update_count,
+    multi_similarity_hard_negative_loss,
     positive_coverage_hard_negative_loss,
     retrieval_impact_weighted_pairwise_loss,
     retrieval_local_rank_distillation_loss,
     stable_different_class_topk,
+    supervised_contrastive_hard_negative_loss,
     teacher_anchor_schedule,
     teacher_anchored_forward,
     teacher_anchored_input_sha256,
@@ -1259,6 +1261,161 @@ def test_positive_coverage_hard_negative_loss_exposes_each_positive() -> None:
     assert positives.grad is not None and positives.grad[0, 1] < positives.grad[0, 0]
     assert negatives.grad is not None and bool(torch.isfinite(negatives.grad).all())
     assert self_similarities.grad is not None and self_similarities.grad.item() < 0.0
+
+
+def test_positive_coverage_is_margin_shifted_sincere() -> None:
+    positives = torch.tensor([[0.7, 0.2]], dtype=torch.float32, requires_grad=True)
+    mask = torch.tensor([[True, True]])
+    negatives = torch.tensor([[0.4, -0.1]], dtype=torch.float32, requires_grad=True)
+    self_similarities = torch.tensor([0.8], dtype=torch.float32, requires_grad=True)
+    temperature = 0.2
+    margin = 0.05
+    anchor_weight = 0.3
+
+    observed = positive_coverage_hard_negative_loss(
+        positives,
+        mask,
+        negatives,
+        self_similarities,
+        temperature=temperature,
+        margin=margin,
+        anchor_weight=anchor_weight,
+        positive_aggregation="coverage",
+    )
+    negative_logits = (negatives + margin) / temperature
+    expected_terms = []
+    for positive in positives[0]:
+        logits = torch.cat((positive.reshape(1) / temperature, negative_logits[0]))
+        expected_terms.append(-torch.log_softmax(logits, dim=0)[0])
+    expected = torch.stack(expected_terms).mean() + anchor_weight * (1.0 - self_similarities).mean()
+
+    torch.testing.assert_close(observed, expected, rtol=1e-6, atol=1e-7)
+
+
+def test_positive_coverage_supports_mean_positive_logit_mechanism_control() -> None:
+    positives = torch.tensor(
+        [[0.8, 0.2, -0.4], [0.6, 0.1, 0.0]], dtype=torch.float32, requires_grad=True
+    )
+    mask = torch.tensor([[True, True, False], [True, False, False]])
+    negatives = torch.tensor([[0.4, -0.2], [0.2, -0.3]], dtype=torch.float32, requires_grad=True)
+    self_similarities = torch.tensor([0.9, 0.7], dtype=torch.float32, requires_grad=True)
+
+    observed = positive_coverage_hard_negative_loss(
+        positives,
+        mask,
+        negatives,
+        self_similarities,
+        temperature=0.25,
+        margin=0.05,
+        anchor_weight=0.2,
+        positive_aggregation="mean_logit",
+    )
+    negative_mass = torch.logsumexp((negatives + 0.05) / 0.25, dim=1)
+    mean_positive = (positives / 0.25 * mask).sum(dim=1) / mask.sum(dim=1)
+    expected = torch.nn.functional.softplus(negative_mass - mean_positive).mean()
+    expected = expected + 0.2 * (1.0 - self_similarities).mean()
+
+    torch.testing.assert_close(observed, expected, rtol=1e-6, atol=1e-7)
+
+
+def test_supervised_contrastive_hard_negative_loss_matches_supcon_outside_log() -> None:
+    positives = torch.tensor(
+        [[0.8, 0.3, -0.4], [0.6, 0.1, 0.0]], dtype=torch.float32, requires_grad=True
+    )
+    mask = torch.tensor([[True, True, False], [True, False, False]])
+    negatives = torch.tensor([[0.4, -0.2], [0.2, -0.3]], dtype=torch.float32, requires_grad=True)
+    self_similarities = torch.tensor([0.9, 0.7], dtype=torch.float32, requires_grad=True)
+    temperature = 0.25
+    margin = 0.05
+    anchor_weight = 0.2
+
+    observed = supervised_contrastive_hard_negative_loss(
+        positives,
+        mask,
+        negatives,
+        self_similarities,
+        temperature=temperature,
+        margin=margin,
+        anchor_weight=anchor_weight,
+    )
+    expected_rows = []
+    for row in range(2):
+        positive_logits = positives[row, mask[row]] / temperature
+        negative_logits = (negatives[row] + margin) / temperature
+        denominator = torch.logsumexp(torch.cat((positive_logits, negative_logits)), dim=0)
+        expected_rows.append((denominator - positive_logits).mean())
+    expected = torch.stack(expected_rows).mean() + anchor_weight * (1.0 - self_similarities).mean()
+
+    torch.testing.assert_close(observed, expected, rtol=1e-6, atol=1e-7)
+    observed.backward()  # type: ignore[no-untyped-call]
+    assert positives.grad is not None and bool(torch.isfinite(positives.grad).all())
+    assert negatives.grad is not None and bool(torch.isfinite(negatives.grad).all())
+
+
+def test_one_positive_makes_sincere_pooled_mean_and_supcon_identical() -> None:
+    positives = torch.tensor([[0.4]], dtype=torch.float32)
+    mask = torch.tensor([[True]])
+    negatives = torch.tensor([[0.1, -0.2]], dtype=torch.float32)
+    self_similarities = torch.tensor([0.8], dtype=torch.float32)
+    common = {
+        "temperature": 0.2,
+        "margin": 0.05,
+        "anchor_weight": 0.3,
+    }
+    variants = [
+        positive_coverage_hard_negative_loss(
+            positives,
+            mask,
+            negatives,
+            self_similarities,
+            positive_aggregation=name,
+            **common,
+        )
+        for name in ("coverage", "pooled", "mean_logit")
+    ]
+    variants.append(
+        supervised_contrastive_hard_negative_loss(
+            positives, mask, negatives, self_similarities, **common
+        )
+    )
+    for value in variants[1:]:
+        torch.testing.assert_close(value, variants[0], rtol=1e-6, atol=1e-7)
+
+
+def test_multi_similarity_hard_negative_loss_matches_published_objective() -> None:
+    assert sfora.multi_similarity_hard_negative_loss is multi_similarity_hard_negative_loss
+    positives = torch.tensor([[0.9, 0.2]], dtype=torch.float32, requires_grad=True)
+    mask = torch.tensor([[True, True]])
+    negatives = torch.tensor([[0.3, -0.5]], dtype=torch.float32, requires_grad=True)
+    self_similarities = torch.tensor([0.8], dtype=torch.float32, requires_grad=True)
+
+    observed = multi_similarity_hard_negative_loss(
+        positives,
+        mask,
+        negatives,
+        self_similarities,
+        alpha=2.0,
+        beta=50.0,
+        base=1.0,
+        mining_margin=0.1,
+        anchor_weight=0.3,
+    )
+    selected_positive = positives[0, 1]
+    selected_negative = negatives[0, 0]
+    expected = (
+        torch.log1p(torch.exp(-2.0 * (selected_positive - 1.0))) / 2.0
+        + torch.log1p(torch.exp(50.0 * (selected_negative - 1.0))) / 50.0
+        + 0.3 * (1.0 - self_similarities).mean()
+    )
+
+    torch.testing.assert_close(observed, expected, rtol=1e-6, atol=1e-7)
+    observed.backward()  # type: ignore[no-untyped-call]
+    assert positives.grad is not None
+    assert positives.grad[0, 0] == 0.0
+    assert positives.grad[0, 1] < 0.0
+    assert negatives.grad is not None
+    assert negatives.grad[0, 0] > 0.0
+    assert negatives.grad[0, 1] == 0.0
 
 
 def test_positive_coverage_hard_negative_loss_supports_detached_evaluation() -> None:

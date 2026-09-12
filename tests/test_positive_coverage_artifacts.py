@@ -114,6 +114,151 @@ def test_positive_coverage_artifacts_preserve_self_contained_base_head(
     assert not invalid_paths.pooled_checkpoint.exists()
 
 
+def test_matched_loss_panel_artifacts_publish_all_arms_before_receipt(
+    tmp_path: Path,
+) -> None:
+    states = {
+        "pooled": _state(0.0),
+        "coverage": _state(0.05),
+        "mean_logit": _state(0.1),
+        "supcon": _state(0.2),
+        "multi_similarity": _state(0.3),
+    }
+    receipt = _receipt({"pooled": states["supcon"], "coverage": states["multi_similarity"]})
+    receipt["arms"] = {
+        name: {"parameter_sha256": artifacts.linear_weight_sha256(state["weight"])}
+        for name, state in states.items()
+    }
+    receipt["schema"] = "sfora-matched-loss-controls-v1"
+    paths = artifacts.MatchedLossPanelArtifactPaths(
+        pooled_checkpoint=tmp_path / "pooled.pt",
+        coverage_checkpoint=tmp_path / "coverage.pt",
+        mean_logit_checkpoint=tmp_path / "mean-logit.pt",
+        supcon_checkpoint=tmp_path / "supcon.pt",
+        multi_similarity_checkpoint=tmp_path / "multi-similarity.pt",
+        complete_receipt=tmp_path / "complete.json",
+    )
+
+    completed = artifacts.write_matched_loss_panel_artifacts(
+        states=states,
+        receipt=receipt,
+        paths=paths,
+    )
+
+    expected = artifacts.canonical_positive_coverage_receipt_bytes(completed)
+    assert paths.complete_receipt.read_bytes() == expected
+    for name, path in (
+        ("pooled", paths.pooled_checkpoint),
+        ("coverage", paths.coverage_checkpoint),
+        ("mean_logit", paths.mean_logit_checkpoint),
+        ("supcon", paths.supcon_checkpoint),
+        ("multi_similarity", paths.multi_similarity_checkpoint),
+    ):
+        wire = path.read_bytes()
+        assert completed["arms"][name]["checkpoint"] == {  # type: ignore[index]
+            "bytes": len(wire),
+            "sha256": hashlib.sha256(wire).hexdigest(),
+        }
+
+
+def _matched_panel_fixture(
+    tmp_path: Path,
+) -> tuple[dict[str, dict[str, torch.Tensor]], dict[str, object], object]:
+    states = {
+        name: _state(offset)
+        for name, offset in (
+            ("pooled", 0.0),
+            ("coverage", 0.05),
+            ("mean_logit", 0.1),
+            ("supcon", 0.2),
+            ("multi_similarity", 0.3),
+        )
+    }
+    receipt = {
+        "arms": {
+            name: {"parameter_sha256": artifacts.linear_weight_sha256(state["weight"])}
+            for name, state in states.items()
+        },
+        "claim_eligible": False,
+        "schema": "sfora-matched-loss-controls-v1",
+    }
+    paths = artifacts.MatchedLossPanelArtifactPaths(
+        pooled_checkpoint=tmp_path / "pooled.pt",
+        coverage_checkpoint=tmp_path / "coverage.pt",
+        mean_logit_checkpoint=tmp_path / "mean-logit.pt",
+        supcon_checkpoint=tmp_path / "supcon.pt",
+        multi_similarity_checkpoint=tmp_path / "multi-similarity.pt",
+        complete_receipt=tmp_path / "complete.json",
+    )
+    return states, receipt, paths
+
+
+def test_matched_loss_panel_rejects_noncanonical_value_before_checkpoint_publish(
+    tmp_path: Path,
+) -> None:
+    states, receipt, paths = _matched_panel_fixture(tmp_path)
+    receipt["invalid"] = float("nan")
+
+    with pytest.raises(ValueError, match="positive-coverage artifact authority"):
+        artifacts.write_matched_loss_panel_artifacts(states=states, receipt=receipt, paths=paths)
+
+    assert not any(tmp_path.iterdir())
+
+
+def test_matched_loss_panel_accepts_semantic_arm_maps_independent_of_insertion_order(
+    tmp_path: Path,
+) -> None:
+    states, receipt, paths = _matched_panel_fixture(tmp_path)
+    states = dict(reversed(tuple(states.items())))
+    receipt["arms"] = dict(reversed(tuple(receipt["arms"].items())))  # type: ignore[union-attr]
+
+    completed = artifacts.write_matched_loss_panel_artifacts(
+        states=states, receipt=receipt, paths=paths
+    )
+
+    assert set(completed["arms"]) == set(states)  # type: ignore[arg-type]
+
+
+def test_matched_loss_panel_cleanup_does_not_unlink_replacement_partial(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    states, receipt, paths = _matched_panel_fixture(tmp_path)
+    original = artifacts._publish_no_clobber
+    replacement = paths.pooled_checkpoint.with_name("pooled.pt.partial")
+
+    def publish_then_interleave(temporary: Path, destination: Path) -> None:
+        original(temporary, destination)
+        if destination == paths.pooled_checkpoint:
+            replacement.write_bytes(b"replacement-owner")
+        elif destination == paths.coverage_checkpoint:
+            raise OSError("injected publication failure")
+
+    monkeypatch.setattr(artifacts, "_publish_no_clobber", publish_then_interleave)
+    with pytest.raises(OSError, match="injected publication failure"):
+        artifacts.write_matched_loss_panel_artifacts(states=states, receipt=receipt, paths=paths)
+
+    assert replacement.read_bytes() == b"replacement-owner"
+
+
+def test_matched_loss_panel_cleanup_preserves_replacement_after_publish_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    states, receipt, paths = _matched_panel_fixture(tmp_path)
+    original = artifacts._publish_no_clobber
+    replacement = paths.pooled_checkpoint.with_name("pooled.pt.partial")
+
+    def publish_replace_then_fail(temporary: Path, destination: Path) -> None:
+        original(temporary, destination)
+        replacement.write_bytes(b"replacement-after-unlink")
+        raise OSError("injected post-publication failure")
+
+    monkeypatch.setattr(artifacts, "_publish_no_clobber", publish_replace_then_fail)
+    with pytest.raises(OSError, match="injected post-publication failure"):
+        artifacts.write_matched_loss_panel_artifacts(states=states, receipt=receipt, paths=paths)
+
+    assert replacement.read_bytes() == b"replacement-after-unlink"
+
+
 def test_positive_coverage_artifacts_refuse_overwrite(tmp_path: Path) -> None:
     states = {"pooled": _state(0.0), "coverage": _state(0.1)}
     paths = artifacts.PositiveCoverageArtifactPaths(

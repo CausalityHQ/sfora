@@ -1002,7 +1002,7 @@ def positive_coverage_hard_negative_loss(
         or type(anchor_weight) is not float
         or not math.isfinite(anchor_weight)
         or anchor_weight < 0.0
-        or positive_aggregation not in ("coverage", "pooled")
+        or positive_aggregation not in ("coverage", "pooled", "mean_logit")
     ):
         raise ValueError("positive-coverage hard-negative authority differs")
     if not all(bool(torch.isfinite(value).all()) for value in values):
@@ -1016,15 +1016,170 @@ def positive_coverage_hard_negative_loss(
         if positive_aggregation == "coverage":
             terms = torch.nn.functional.softplus(log_negative_mass.unsqueeze(1) - positive_logits)
             ranking = (terms * positive_mask).sum(dim=1) / positive_mask.sum(dim=1)
-        else:
+        elif positive_aggregation == "pooled":
             pooled = (
                 torch.logsumexp(positive_logits.masked_fill(~positive_mask, -torch.inf), dim=1)
                 - positive_mask.sum(dim=1).log()
             )
             ranking = torch.nn.functional.softplus(log_negative_mass - pooled)
+        else:
+            mean_positive = (positive_logits * positive_mask).sum(dim=1) / positive_mask.sum(dim=1)
+            ranking = torch.nn.functional.softplus(log_negative_mass - mean_positive)
         result = ranking.mean() + anchor_weight * (1.0 - self_similarities).mean()
     if result.ndim != 0 or not bool(torch.isfinite(result)):
         raise TeacherAnchoredNumericalError("positive-coverage hard-negative numerical failure")
+    return result
+
+
+def supervised_contrastive_hard_negative_loss(
+    positive_similarities: torch.Tensor,
+    positive_mask: torch.Tensor,
+    negative_similarities: torch.Tensor,
+    self_similarities: torch.Tensor,
+    *,
+    temperature: float,
+    margin: float,
+    anchor_weight: float,
+) -> torch.Tensor:
+    """Apply SupCon's outside-log objective to a fixed hard-negative candidate set."""
+
+    values = (positive_similarities, negative_similarities, self_similarities)
+    if (
+        any(type(value) is not torch.Tensor for value in values)
+        or type(positive_mask) is not torch.Tensor
+        or positive_similarities.ndim != 2
+        or negative_similarities.ndim != 2
+        or self_similarities.ndim != 1
+        or positive_mask.shape != positive_similarities.shape
+        or positive_mask.dtype != torch.bool
+        or positive_similarities.shape[0] != negative_similarities.shape[0]
+        or self_similarities.shape[0] != positive_similarities.shape[0]
+        or min(positive_similarities.shape) < 1
+        or negative_similarities.shape[1] < 1
+        or any(
+            value.dtype != torch.float32
+            or value.device != positive_similarities.device
+            or not value.is_contiguous()
+            for value in values
+        )
+        or positive_mask.device != positive_similarities.device
+        or not positive_mask.is_contiguous()
+        or bool((positive_mask.sum(dim=1) == 0).any())
+        or type(temperature) is not float
+        or not math.isfinite(temperature)
+        or temperature <= 0.0
+        or type(margin) is not float
+        or not math.isfinite(margin)
+        or margin < 0.0
+        or type(anchor_weight) is not float
+        or not math.isfinite(anchor_weight)
+        or anchor_weight < 0.0
+    ):
+        raise ValueError("supervised-contrastive hard-negative authority differs")
+    if not all(bool(torch.isfinite(value).all()) for value in values):
+        raise TeacherAnchoredNumericalError(
+            "supervised-contrastive hard-negative numerical failure"
+        )
+    if any(bool((value.detach().abs() > 1.00002).any()) for value in values):
+        raise ValueError("supervised-contrastive hard-negative authority differs")
+
+    with torch.autocast(device_type=positive_similarities.device.type, enabled=False):
+        positive_logits = positive_similarities / temperature
+        denominator = torch.logsumexp(
+            torch.cat(
+                (
+                    positive_logits.masked_fill(~positive_mask, -torch.inf),
+                    (negative_similarities + margin) / temperature,
+                ),
+                dim=1,
+            ),
+            dim=1,
+        )
+        ranking = ((denominator.unsqueeze(1) - positive_logits) * positive_mask).sum(
+            dim=1
+        ) / positive_mask.sum(dim=1)
+        result = ranking.mean() + anchor_weight * (1.0 - self_similarities).mean()
+    if result.ndim != 0 or not bool(torch.isfinite(result)):
+        raise TeacherAnchoredNumericalError(
+            "supervised-contrastive hard-negative numerical failure"
+        )
+    return result
+
+
+def multi_similarity_hard_negative_loss(
+    positive_similarities: torch.Tensor,
+    positive_mask: torch.Tensor,
+    negative_similarities: torch.Tensor,
+    self_similarities: torch.Tensor,
+    *,
+    alpha: float,
+    beta: float,
+    base: float,
+    mining_margin: float,
+    anchor_weight: float,
+) -> torch.Tensor:
+    """Apply standard Multi-Similarity mining and weighting to a fixed candidate set."""
+
+    values = (positive_similarities, negative_similarities, self_similarities)
+    if (
+        any(type(value) is not torch.Tensor for value in values)
+        or type(positive_mask) is not torch.Tensor
+        or positive_similarities.ndim != 2
+        or negative_similarities.ndim != 2
+        or self_similarities.ndim != 1
+        or positive_mask.shape != positive_similarities.shape
+        or positive_mask.dtype != torch.bool
+        or positive_similarities.shape[0] != negative_similarities.shape[0]
+        or self_similarities.shape[0] != positive_similarities.shape[0]
+        or min(positive_similarities.shape) < 1
+        or negative_similarities.shape[1] < 1
+        or any(
+            value.dtype != torch.float32
+            or value.device != positive_similarities.device
+            or not value.is_contiguous()
+            for value in values
+        )
+        or positive_mask.device != positive_similarities.device
+        or not positive_mask.is_contiguous()
+        or bool((positive_mask.sum(dim=1) == 0).any())
+        or any(
+            type(value) is not float or not math.isfinite(value)
+            for value in (alpha, beta, base, mining_margin, anchor_weight)
+        )
+        or alpha <= 0.0
+        or beta <= 0.0
+        or mining_margin < 0.0
+        or anchor_weight < 0.0
+    ):
+        raise ValueError("multi-similarity hard-negative authority differs")
+    if not all(bool(torch.isfinite(value).all()) for value in values):
+        raise TeacherAnchoredNumericalError("multi-similarity hard-negative numerical failure")
+    if any(bool((value.detach().abs() > 1.00002).any()) for value in values):
+        raise ValueError("multi-similarity hard-negative authority differs")
+
+    with torch.autocast(device_type=positive_similarities.device.type, enabled=False):
+        hardest_positive = (
+            positive_similarities.masked_fill(~positive_mask, torch.inf).min(dim=1).values
+        )
+        hardest_negative = negative_similarities.max(dim=1).values
+        selected_positive = positive_mask & (
+            positive_similarities < hardest_negative.unsqueeze(1) + mining_margin
+        )
+        selected_negative = negative_similarities > (hardest_positive.unsqueeze(1) - mining_margin)
+        positive_mass = torch.logsumexp(
+            (-alpha * (positive_similarities - base)).masked_fill(~selected_positive, -torch.inf),
+            dim=1,
+        )
+        negative_mass = torch.logsumexp(
+            (beta * (negative_similarities - base)).masked_fill(~selected_negative, -torch.inf),
+            dim=1,
+        )
+        zero = torch.zeros_like(positive_mass)
+        ranking = torch.logaddexp(zero, positive_mass) / alpha
+        ranking = ranking + torch.logaddexp(zero, negative_mass) / beta
+        result = ranking.mean() + anchor_weight * (1.0 - self_similarities).mean()
+    if result.ndim != 0 or not bool(torch.isfinite(result)):
+        raise TeacherAnchoredNumericalError("multi-similarity hard-negative numerical failure")
     return result
 
 
