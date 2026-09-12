@@ -768,6 +768,84 @@ def retrieval_impact_weighted_pairwise_loss(
     return result
 
 
+def positive_coverage_hard_negative_loss(
+    positive_similarities: torch.Tensor,
+    positive_mask: torch.Tensor,
+    negative_similarities: torch.Tensor,
+    self_similarities: torch.Tensor,
+    *,
+    temperature: float,
+    margin: float,
+    anchor_weight: float,
+    positive_aggregation: str,
+) -> torch.Tensor:
+    """Contrast hard negatives against every positive or their pooled evidence."""
+
+    values = (positive_similarities, negative_similarities, self_similarities)
+    if (
+        any(type(value) is not torch.Tensor for value in values)
+        or type(positive_mask) is not torch.Tensor
+        or positive_similarities.ndim != 2
+        or negative_similarities.ndim != 2
+        or self_similarities.ndim != 1
+        or positive_mask.shape != positive_similarities.shape
+        or positive_mask.dtype != torch.bool
+        or positive_similarities.shape[0] != negative_similarities.shape[0]
+        or self_similarities.shape[0] != positive_similarities.shape[0]
+        or min(positive_similarities.shape) < 1
+        or negative_similarities.shape[1] < 1
+        or any(
+            value.dtype != torch.float32
+            or value.device != positive_similarities.device
+            or not value.is_contiguous()
+            or not value.requires_grad
+            for value in values
+        )
+        or positive_mask.device != positive_similarities.device
+        or not positive_mask.is_contiguous()
+        or bool((positive_mask.sum(dim=1) == 0).any())
+        or type(temperature) is not float
+        or not math.isfinite(temperature)
+        or temperature <= 0.0
+        or type(margin) is not float
+        or not math.isfinite(margin)
+        or margin < 0.0
+        or type(anchor_weight) is not float
+        or not math.isfinite(anchor_weight)
+        or anchor_weight < 0.0
+        or positive_aggregation not in ("coverage", "pooled")
+    ):
+        raise ValueError("positive-coverage hard-negative authority differs")
+    if not all(bool(torch.isfinite(value).all()) for value in values):
+        raise TeacherAnchoredNumericalError(
+            "positive-coverage hard-negative numerical failure"
+        )
+    if any(bool((value.detach().abs() > 1.00002).any()) for value in values):
+        raise ValueError("positive-coverage hard-negative authority differs")
+
+    with torch.autocast(device_type=positive_similarities.device.type, enabled=False):
+        log_negative_mass = torch.logsumexp(
+            (negative_similarities + margin) / temperature, dim=1
+        )
+        positive_logits = positive_similarities / temperature
+        if positive_aggregation == "coverage":
+            terms = torch.nn.functional.softplus(
+                log_negative_mass.unsqueeze(1) - positive_logits
+            )
+            ranking = (terms * positive_mask).sum(dim=1) / positive_mask.sum(dim=1)
+        else:
+            pooled = torch.logsumexp(
+                positive_logits.masked_fill(~positive_mask, -torch.inf), dim=1
+            ) - positive_mask.sum(dim=1).log()
+            ranking = torch.nn.functional.softplus(log_negative_mass - pooled)
+        result = ranking.mean() + anchor_weight * (1.0 - self_similarities).mean()
+    if result.ndim != 0 or not bool(torch.isfinite(result)):
+        raise TeacherAnchoredNumericalError(
+            "positive-coverage hard-negative numerical failure"
+        )
+    return result
+
+
 def teacher_anchored_loss(
     student: torch.Tensor,
     teacher: torch.Tensor,

@@ -21,6 +21,7 @@ from sfora.teacher_anchored_distillation import (
     cross_dimensional_relational_distillation_loss,
     cross_dimensional_similarity_distillation_loss,
     embedding_geometry_diagnostics,
+    positive_coverage_hard_negative_loss,
     retrieval_impact_weighted_pairwise_loss,
     retrieval_local_rank_distillation_loss,
     teacher_anchor_schedule,
@@ -1229,4 +1230,79 @@ def test_retrieval_impact_weighted_pairwise_loss_rejects_invalid_authority(
     with pytest.raises(expected, match="retrieval-impact weighted"):
         retrieval_impact_weighted_pairwise_loss(
             positives, negatives, impacts, temperature=temperature
+        )
+
+
+def test_positive_coverage_hard_negative_loss_exposes_each_positive() -> None:
+    assert sfora.positive_coverage_hard_negative_loss is positive_coverage_hard_negative_loss
+    positives = torch.tensor([[0.9, 0.1]], dtype=torch.float32, requires_grad=True)
+    mask = torch.tensor([[True, True]])
+    negatives = torch.tensor([[0.2]], dtype=torch.float32, requires_grad=True)
+    self_similarities = torch.tensor([0.95], dtype=torch.float32, requires_grad=True)
+
+    coverage = positive_coverage_hard_negative_loss(
+        positives,
+        mask,
+        negatives,
+        self_similarities,
+        temperature=0.05,
+        margin=0.02,
+        anchor_weight=10.0,
+        positive_aggregation="coverage",
+    )
+    pooled = positive_coverage_hard_negative_loss(
+        positives,
+        mask,
+        negatives,
+        self_similarities,
+        temperature=0.05,
+        margin=0.02,
+        anchor_weight=10.0,
+        positive_aggregation="pooled",
+    )
+
+    assert coverage.item() > pooled.item() + 0.5
+    coverage.backward()  # type: ignore[no-untyped-call]
+    assert positives.grad is not None and positives.grad[0, 1] < positives.grad[0, 0]
+    assert negatives.grad is not None and bool(torch.isfinite(negatives.grad).all())
+    assert self_similarities.grad is not None and self_similarities.grad.item() < 0.0
+
+
+@pytest.mark.parametrize(
+    "mutation", ("mask-shape", "empty", "nan", "aggregation", "temperature", "margin")
+)
+def test_positive_coverage_hard_negative_loss_rejects_invalid_authority(
+    mutation: str,
+) -> None:
+    positives = torch.zeros((2, 3), dtype=torch.float32, requires_grad=True)
+    mask = torch.ones((2, 3), dtype=torch.bool)
+    negatives = torch.zeros((2, 4), dtype=torch.float32, requires_grad=True)
+    self_similarities = torch.ones(2, dtype=torch.float32, requires_grad=True)
+    aggregation = "coverage"
+    temperature, margin = 0.05, 0.02
+    if mutation == "mask-shape":
+        mask = mask[:, :-1].contiguous()
+    elif mutation == "empty":
+        mask[0].zero_()
+    elif mutation == "nan":
+        self_similarities = self_similarities.detach().clone()
+        self_similarities[0] = torch.nan
+        self_similarities.requires_grad_()
+    elif mutation == "aggregation":
+        aggregation = "mean"
+    elif mutation == "temperature":
+        temperature = 0.0
+    else:
+        margin = -0.1
+    expected = TeacherAnchoredNumericalError if mutation == "nan" else ValueError
+    with pytest.raises(expected, match="positive-coverage hard-negative"):
+        positive_coverage_hard_negative_loss(
+            positives,
+            mask,
+            negatives,
+            self_similarities,
+            temperature=temperature,
+            margin=margin,
+            anchor_weight=10.0,
+            positive_aggregation=aggregation,
         )
