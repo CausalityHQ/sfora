@@ -150,22 +150,35 @@ inside the fixed 192-bit representation rather than candidate containment.
 - Create: `scripts/run_sop_pq_lookup_distillation.py`
 - Create: `tests/test_run_sop_pq_lookup_distillation.py`
 
-- [ ] Add a generic query-dependent additive scorer
+- [x] Add a generic query-dependent additive scorer
   `s(q,c)=s_PQ(q,c)+sum_m h(q)^T E_m[c_m]`, with a `128 -> 128 -> 32` GELU query network and
   24 zero-initialized, mean-centered `256 x 32` correction tables. The database remains exactly
-  24 bytes and exhaustive scoring remains 24 table lookups and additions per vector.
-- [ ] Mutation-lock permutation independence, exact zero-correction equality to PQ24, table
+  24 bytes. This diagnostic computes the existing 24-lookup PQ baseline and the 24 correction
+  lookups separately; a fused 24-lookup production table is possible but is not implemented or
+  claimed by this experiment.
+- [x] Mutation-lock permutation independence, exact zero-correction equality to PQ24, table
   centering, direct-score/lookup equality, deterministic state, and rejection of nonfinite or
   malformed codes and queries.
-- [ ] Train two frozen label-free controls on fitting classes only, using the same deduplicated
-  float-top128, compressed-top128, and 128 uniform-tail pool: teacher-score MSE and listwise
-  teacher KL plus 256 soft pairwise comparisons at temperature `0.03`. Refresh compressed
-  candidates once per epoch; validation labels remain evaluation-only.
-- [ ] Report both fixed-candidate and own exhaustive rankings, teacher pairwise agreement,
+- [x] Train two frozen label-free controls on fitting classes only, using teacher-top128, the
+  first 128 additional compressed candidates outside that teacher set (mined from compressed
+  top256), and a 128-row uniform tail: teacher-score MSE and listwise
+  teacher KL plus 256 soft pairwise comparisons at temperature `0.03`. The uniform tail uses
+  independent per-query SplitMix64 rejection sampling. Train for four epochs and refresh the
+  compressed candidates at the start of epochs two through four; validation labels remain
+  evaluation-only. Authenticate and bind the exact prior reranker receipt and compare the final
+  fitted loss against the unchanged scorer on both the initial fixed pool and the same final
+  refreshed pool. Pairwise strata are
+  64 teacher-top32 pairs, 64 compressed-exclusive-top32 pairs, and 128 near-versus-tail pairs;
+  listwise KL relates all candidate groups. Record an objective failure per arm rather than
+  aborting the other arm or suppressing the result receipt.
+- [x] Report both fixed-candidate and own exhaustive rankings, teacher pairwise agreement,
   mAP@R, Recall@1, model/table bytes, PQ seed variation, and exact input/output authorities.
-  Kill the fixed-code branch unless the registered ranking-loss arm beats `0.578615516` by more
-  than measured run variation. Crossing PQ32 is a useful production baseline; only reaching
-  `0.58563` without more than `0.001` Recall@1 loss can defer Task 3.
+  Kill this frozen fixed-code recipe unless its fixed-PQ24-top32 ranking beats the matched prior
+  reranker `0.578615516` by more than the measured PQ-codebook seed-variation heuristic and its
+  exhaustive ranking crosses PQ32. This is not learned-scorer run variation and cannot reject the
+  whole fixed-code model family. Only reaching
+  `0.58563` without more than `0.001` Recall@1 loss can defer Task 3. This seed-0 screen always
+  remains `passed=false`; a target-screen result requires a separately frozen multi-seed run.
 - [ ] Add a fitting-shard-only contested-margin spectrum diagnostic before any anisotropic codec:
   compare global PCA energy, PQ residual error, and centered float top-32 pairwise decision energy.
   Kill contested-set anisotropy when the registered alignment ratio is at least `0.6`; treat a
