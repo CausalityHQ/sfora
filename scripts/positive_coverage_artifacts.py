@@ -18,6 +18,7 @@ import torch
 
 _ARM_NAMES = ("pooled", "coverage")
 _CONTROL_ARM_NAMES = ("pooled", "coverage", "mean_logit", "supcon", "multi_similarity")
+_PROJECTION_ARM_NAMES = ("restricted_adapter", "direct_projection")
 
 
 def mean_recent_loss(values: list[float], *, window: int) -> float:
@@ -202,6 +203,30 @@ class MatchedLossPanelArtifactPaths:
             raise ValueError("artifact path authority differs")
 
 
+@dataclass(frozen=True, slots=True)
+class ProjectionParameterizationArtifactPaths:
+    """Distinct no-clobber paths for the matched projection arms."""
+
+    restricted_checkpoint: Path
+    direct_checkpoint: Path
+    complete_receipt: Path
+
+    def __post_init__(self) -> None:
+        paths = (
+            self.restricted_checkpoint,
+            self.direct_checkpoint,
+            self.complete_receipt,
+        )
+        all_paths = (*paths, *(_partial(path) for path in paths))
+        if (
+            any(not isinstance(path, Path) or not path.is_absolute() for path in paths)
+            or len(set(all_paths)) != len(all_paths)
+            or any(not path.parent.is_dir() for path in paths)
+            or any(path.exists() or _partial(path).exists() for path in paths)
+        ):
+            raise ValueError("artifact path authority differs")
+
+
 def _validated_states(
     states: dict[str, dict[str, torch.Tensor]], receipt: dict[str, object]
 ) -> dict[str, dict[str, torch.Tensor]]:
@@ -274,6 +299,44 @@ def _validated_control_states(
             or "checkpoint" in cast(dict[str, object], arm)
         ):
             raise ValueError("matched-loss control artifact authority differs")
+    return states
+
+
+def _validated_projection_states(
+    states: dict[str, dict[str, torch.Tensor]], receipt: dict[str, object]
+) -> dict[str, dict[str, torch.Tensor]]:
+    if (
+        type(states) is not dict
+        or set(states) != set(_PROJECTION_ARM_NAMES)
+        or type(receipt) is not dict
+        or receipt.get("claim_eligible") is not False
+        or receipt.get("schema") != "sfora-projection-parameterizations-v1"
+        or type(receipt.get("arms")) is not dict
+        or set(cast(dict[str, object], receipt["arms"])) != set(_PROJECTION_ARM_NAMES)
+    ):
+        raise ValueError("projection-parameterization artifact authority differs")
+    arms = cast(dict[str, object], receipt["arms"])
+    restricted = states.get("restricted_adapter")
+    direct = states.get("direct_projection")
+    restricted_arm = arms.get("restricted_adapter")
+    direct_arm = arms.get("direct_projection")
+    if (
+        type(restricted) is not dict
+        or set(restricted) != {"weight", "base_head_weight", "base_head_bias"}
+        or type(direct) is not dict
+        or set(direct) != {"weight", "bias"}
+        or type(restricted_arm) is not dict
+        or type(direct_arm) is not dict
+        or cast(dict[str, object], restricted_arm).get("parameter_sha256")
+        != linear_weight_sha256(restricted["weight"])
+        or cast(dict[str, object], restricted_arm).get("base_head_sha256")
+        != affine_parameters_sha256(restricted["base_head_weight"], restricted["base_head_bias"])
+        or cast(dict[str, object], direct_arm).get("parameter_sha256")
+        != affine_parameters_sha256(direct["weight"], direct["bias"])
+        or "checkpoint" in cast(dict[str, object], restricted_arm)
+        or "checkpoint" in cast(dict[str, object], direct_arm)
+    ):
+        raise ValueError("projection-parameterization artifact authority differs")
     return states
 
 
@@ -490,6 +553,50 @@ def write_matched_loss_panel_artifacts(
     owned_partials: list[tuple[Path, int, int]] = []
     try:
         for name, destination in zip(_CONTROL_ARM_NAMES, destinations, strict=True):
+            temporary = _partial(destination)
+            _sync_save(validated[name], temporary)
+            owner = _owned_partial(temporary)
+            owned_partials.append(owner)
+            completed_arms[name]["checkpoint"] = {
+                "bytes": temporary.stat().st_size,
+                "sha256": _file_sha256(temporary),
+            }
+            _publish_no_clobber(temporary, destination)
+            owned_partials.remove(owner)
+        temporary_receipt = _partial(paths.complete_receipt)
+        _sync_write(canonical_positive_coverage_receipt_bytes(completed), temporary_receipt)
+        receipt_owner = _owned_partial(temporary_receipt)
+        owned_partials.append(receipt_owner)
+        _publish_no_clobber(temporary_receipt, paths.complete_receipt)
+        owned_partials.remove(receipt_owner)
+    finally:
+        for partial in owned_partials:
+            _unlink_owned_partial(partial)
+    return completed
+
+
+def write_projection_parameterization_artifacts(
+    *,
+    states: dict[str, dict[str, torch.Tensor]],
+    receipt: dict[str, object],
+    paths: ProjectionParameterizationArtifactPaths,
+) -> dict[str, object]:
+    """Publish both projection checkpoints before their complete receipt."""
+
+    if type(paths) is not ProjectionParameterizationArtifactPaths:
+        raise ValueError("artifact path authority differs")
+    validated = _validated_projection_states(states, receipt)
+    canonical_positive_coverage_receipt_bytes(receipt)
+    destinations = (paths.restricted_checkpoint, paths.direct_checkpoint)
+    outputs = (*destinations, paths.complete_receipt)
+    partials = tuple(_partial(path) for path in outputs)
+    if any(path.exists() for path in (*outputs, *partials)):
+        raise ValueError("artifact path authority differs")
+    completed = copy.deepcopy(receipt)
+    completed_arms = cast(dict[str, dict[str, object]], completed["arms"])
+    owned_partials: list[tuple[Path, int, int]] = []
+    try:
+        for name, destination in zip(_PROJECTION_ARM_NAMES, destinations, strict=True):
             temporary = _partial(destination)
             _sync_save(validated[name], temporary)
             owner = _owned_partial(temporary)

@@ -85,6 +85,37 @@ packed-quality evaluator expands int8 codes to float32 for matrix multiplication
 establish integer-search latency. End-to-end training time, peak device memory, folded-adapter
 inference latency, and a real integer retrieval backend remain open measurements.
 
+## Matched established-loss control panel
+
+A later five-seed class-disjoint validation panel held the class schedule, positive rows, update
+count, anchor term, and one base-mined 47,704-by-256 negative table fixed across every arm.
+
+| Objective | Packed mAP@R | Packed Recall@1 |
+|---|---:|---:|
+| Pooled | 0.5769800760 | 0.8245969444 |
+| Positive coverage | 0.5812870510 | 0.8262344897 |
+| Mean-logit | **0.5813475649** | **0.8264033089** |
+| Supervised contrastive | 0.5796550999 | 0.8259474973 |
+| Multi-Similarity | 0.5574199366 | 0.8112433527 |
+
+Coverage beat pooled in all five seeds by mean mAP@R `0.004306975`; its paired
+class-clustered 95% interval was `[0.003342170, 0.005299140]`. Mean-logit minus coverage was only
+`0.000060514`, won three of five seeds, and had interval `[-0.000297969, 0.000400754]`.
+Supervised contrastive lost to coverage in every seed by mean `0.001631951`; Multi-Similarity lost
+to pooled in every seed by mean `0.019560139`.
+
+These numbers supersede the earlier comparison for objective isolation. The older runs re-mined
+hard negatives after every optimizer update; this panel freezes one base-mined table for all arms.
+Absolute scores across those protocols are not interchangeable. Within the controlled panel,
+positive-pressure handling matters, but mean-logit and coverage are effectively tied and another
+positive aggregator is not the next research priority.
+
+Mean float-to-symmetric-int8 mAP@R gaps were small: pooled `0.000328828`, coverage `0.000026312`,
+mean-logit `0.000078429`, supervised contrastive `0.000234348`, and Multi-Similarity `0.000280619`.
+Quantization is therefore not the immediate 128-dimensional quality bottleneck here. This does
+not establish end-to-end integer serving performance or the memory feasibility of 128 bytes per
+item at 100 million items.
+
 ## Scientific interpretation
 
 Most of the adaptation gain is already explained by the pooled control. Positive coverage adds
@@ -92,11 +123,9 @@ a smaller but reproducible increment on SOP and In-Shop and is inconclusive on C
 objective is close to established N-pair, supervised-contrastive/SINCERE, and Multi-Similarity
 families; this evidence does not support a novel-loss claim.
 
-The next decisive comparison holds representation, sampler, positive sets, hard negatives,
-anchoring, optimizer, update schedule, and evaluation fixed while challenging coverage with
-verified established objectives and matched optimization pressure. The same work must measure
-angular drift, gradient norms, clipping frequency, positive-similarity spread, and negative-class
-diversity. A second encoder family and one fresh dataset are required before claiming a generic
-learning improvement. Class-name semantics, if studied, remain an optional external-information
-adapter with real-name, shuffled-name, and no-name controls; they are not part of the generic
-label-only core.
+The next decisive comparison tests representation capacity: train the frozen 768-to-128 affine
+head directly against an identity-initialized 128-to-128 adapter, starting from the same effective
+map and holding mean-logit, schedule, positives, negatives, and evaluation fixed. A second encoder
+family and one fresh dataset are required before claiming a generic learning improvement.
+Class-name semantics, if studied, remain an optional external-information adapter with real-name,
+shuffled-name, and no-name controls; they are not part of the generic label-only core.

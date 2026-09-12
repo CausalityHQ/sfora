@@ -223,3 +223,52 @@ def test_base_receipt_authenticates_parent_identity(tmp_path: Path) -> None:
             expected_map=0.5,
             expected_r1=0.75,
         )
+
+
+def test_base_receipt_authenticates_current_v2_source_and_inputs(tmp_path: Path) -> None:
+    parameter = "1" * 64
+    source_sha = "3" * 64
+    teacher_sha = "4" * 64
+    receipt = {
+        "claim_eligible": False,
+        "dataset": "sop-official-train-class-disjoint-validation",
+        "expected_head_sha256": parameter,
+        "expected_packed_map_at_r": 0.5,
+        "expected_packed_r1": 0.75,
+        "final_head_sha256": parameter,
+        "inputs": {
+            "source_snapshot_sha256": source_sha,
+            "teacher_snapshot_sha256": teacher_sha,
+        },
+        "matched": True,
+        "official_test_touched": False,
+        "schema": "sfora-retrieval-local-rank-replay-v2",
+        "source": {"driver_sha256": "5" * 64, "source_revision": "2" * 40},
+    }
+    path = tmp_path / "base-v2.json"
+    wire = (json.dumps(receipt, sort_keys=True, separators=(",", ":")) + "\n").encode()
+    path.write_bytes(wire)
+    digest = hashlib.sha256(wire).hexdigest()
+
+    assert controls.load_base_receipt_authority(
+        path=path,
+        sha256=digest,
+        parameter_sha256=parameter,
+        expected_map=0.5,
+        expected_r1=0.75,
+        source_snapshot_sha256=source_sha,
+        teacher_snapshot_sha256=teacher_sha,
+    ) == {"sha256": digest, "source_revision": "2" * 40}
+
+    receipt["inputs"]["teacher_snapshot_sha256"] = "6" * 64
+    path.write_text(json.dumps(receipt, sort_keys=True, separators=(",", ":")) + "\n")
+    with pytest.raises(ValueError, match="base receipt authority"):
+        controls.load_base_receipt_authority(
+            path=path,
+            sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
+            parameter_sha256=parameter,
+            expected_map=0.5,
+            expected_r1=0.75,
+            source_snapshot_sha256=source_sha,
+            teacher_snapshot_sha256=teacher_sha,
+        )

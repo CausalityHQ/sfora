@@ -87,6 +87,8 @@ def load_base_receipt_authority(
     parameter_sha256: str,
     expected_map: float,
     expected_r1: float,
+    source_snapshot_sha256: str | None = None,
+    teacher_snapshot_sha256: str | None = None,
 ) -> dict[str, str]:
     """Authenticate the parent base receipt used by the SOP control panel."""
 
@@ -102,10 +104,32 @@ def load_base_receipt_authority(
         value = json.loads(path.read_bytes())
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
         raise ValueError("base receipt authority differs") from error
+    if type(value) is not dict:
+        raise ValueError("base receipt authority differs")
+    schema = value.get("schema")
+    source_revision: object
+    if schema == "sfora-retrieval-local-rank-replay-v1":
+        source_revision = value.get("source_revision")
+    elif schema == "sfora-retrieval-local-rank-replay-v2":
+        source = value.get("source")
+        inputs = value.get("inputs")
+        if (
+            type(source) is not dict
+            or set(source) != {"driver_sha256", "source_revision"}
+            or _SHA256.fullmatch(str(source.get("driver_sha256"))) is None
+            or type(inputs) is not dict
+            or set(inputs) != {"source_snapshot_sha256", "teacher_snapshot_sha256"}
+            or inputs.get("source_snapshot_sha256") != source_snapshot_sha256
+            or inputs.get("teacher_snapshot_sha256") != teacher_snapshot_sha256
+            or value.get("expected_head_sha256") != parameter_sha256
+            or value.get("matched") is not True
+        ):
+            raise ValueError("base receipt authority differs")
+        source_revision = source.get("source_revision")
+    else:
+        raise ValueError("base receipt authority differs")
     if (
-        type(value) is not dict
-        or value.get("schema") != "sfora-retrieval-local-rank-replay-v1"
-        or value.get("claim_eligible") is not False
+        value.get("claim_eligible") is not False
         or value.get("official_test_touched") is not False
         or value.get("dataset") != "sop-official-train-class-disjoint-validation"
         or value.get("final_head_sha256") != parameter_sha256
@@ -113,11 +137,11 @@ def load_base_receipt_authority(
         or type(value.get("expected_packed_r1")) is not float
         or abs(value["expected_packed_map_at_r"] - expected_map) > 1e-12
         or abs(value["expected_packed_r1"] - expected_r1) > 1e-12
-        or type(value.get("source_revision")) is not str
-        or re.fullmatch(r"[0-9a-f]{40}", value["source_revision"]) is None
+        or type(source_revision) is not str
+        or re.fullmatch(r"[0-9a-f]{40}", source_revision) is None
     ):
         raise ValueError("base receipt authority differs")
-    return {"sha256": sha256, "source_revision": value["source_revision"]}
+    return {"sha256": sha256, "source_revision": source_revision}
 
 
 def frozen_hard_negative_index(
@@ -353,6 +377,8 @@ def main() -> None:
         parameter_sha256=base_parameter_sha256,
         expected_map=expected_base_map,
         expected_r1=expected_base_r1,
+        source_snapshot_sha256=args.source_sha256,
+        teacher_snapshot_sha256=args.teacher_sha256,
     )
     device = torch.device("cuda")
     pair = load_paired_train_archives(
