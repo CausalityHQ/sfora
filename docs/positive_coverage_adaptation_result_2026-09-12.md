@@ -374,6 +374,25 @@ checkpoint has SHA-256
 `eea5baa5bff1c0588804c52bed03665d9ca066bec9d59495f9ae28e5435b9009`. This closes the
 already-executed full additive arm and avoids presenting it as an unrun capacity experiment.
 
+Two claim-ineligible score-preservation probes then tested whether the reconstruction objective,
+rather than additive capacity, caused that failure. A covariance-weighted fit normalized ordinary
+reconstruction and expected squared query-score error equally. Its fitting objective fell from
+`2.0` to `1.0836`, yet held-out SOP quality regressed to `0.5603976693 / 0.8090655862`.
+A stricter candidate-margin fit used deterministic float-near, compressed-near, and uniform-tail
+candidate strata and optimized centered teacher-score errors while reassigning codes. It reached
+only `0.5530328675 / 0.8068709378`. Their canonical result SHA-256 values are
+`a25ca72755a33611c92733757d485c9bc8f59665521dfdda289e565d9cdd27fc` and
+`c956850439fb6e74cc198360e8f1bb49cb34316af62c339067a0ba332a70e897`.
+These probes close the present 24-stage additive family under reconstruction, global score-error,
+and direct candidate-margin objectives; they do not prove that every additive quantizer fails.
+
+A separate exact-24-byte capacity screen projected the same embeddings into 24 float dimensions,
+then stored one signed byte per dimension. PCA24 reached only `0.4857184191 / 0.7555499283` in
+float and `0.4855064431 / 0.7560563856` after int8 packing. A supervised Fisher24 projection was
+worse at `0.4606706677 / 0.7302270617` in float. The small float-to-int8 change shows that this
+path fails from dimensional/semantic capacity, not scalar quantization. Its canonical result
+SHA-256 is `1928aad12e8ebf591395368d180c0c624b3c5a0127a42cf7b1fcb046ae6e869e`.
+
 Eight deterministic coordinate-descent restarts against the frozen anisotropic additive
 codebooks reduced the label-free reconstruction objective from `0.1104281` to `0.1005164`.
 Choosing the lowest-objective code per row peaked transiently at mAP@R `0.5743010` after three
