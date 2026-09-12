@@ -567,6 +567,62 @@ def cross_dimensional_relational_distillation_loss(
     return result
 
 
+def cross_dimensional_similarity_distillation_loss(
+    student_similarities: torch.Tensor,
+    teacher_similarities: torch.Tensor,
+    *,
+    temperatures: tuple[float, ...],
+) -> torch.Tensor:
+    """Match precomputed cosine-similarity distributions across embedding widths."""
+
+    if (
+        type(student_similarities) is not torch.Tensor
+        or type(teacher_similarities) is not torch.Tensor
+        or student_similarities.ndim != 2
+        or teacher_similarities.shape != student_similarities.shape
+        or student_similarities.shape[0] < 1
+        or student_similarities.shape[1] < 2
+        or student_similarities.dtype != torch.float32
+        or teacher_similarities.dtype != torch.float32
+        or student_similarities.device != teacher_similarities.device
+        or not student_similarities.is_contiguous()
+        or not teacher_similarities.is_contiguous()
+        or not student_similarities.requires_grad
+        or teacher_similarities.requires_grad
+        or type(temperatures) is not tuple
+        or not temperatures
+        or any(
+            type(temperature) is not float
+            or not math.isfinite(temperature)
+            or temperature <= 0.0
+            for temperature in temperatures
+        )
+    ):
+        raise ValueError("cross-dimensional similarity authority differs")
+    if not bool(torch.isfinite(student_similarities).all()) or not bool(
+        torch.isfinite(teacher_similarities).all()
+    ):
+        raise TeacherAnchoredNumericalError("cross-dimensional similarity numerical failure")
+    if bool((student_similarities.detach().abs() > 1.00002).any()) or bool(
+        (teacher_similarities.abs() > 1.00002).any()
+    ):
+        raise ValueError("cross-dimensional similarity authority differs")
+
+    with torch.autocast(device_type=student_similarities.device.type, enabled=False):
+        result = torch.stack(
+            [
+                _forward_kl(
+                    teacher_similarities / temperature,
+                    student_similarities / temperature,
+                )
+                for temperature in temperatures
+            ]
+        ).mean()
+    if result.ndim != 0 or not bool(torch.isfinite(result)):
+        raise TeacherAnchoredNumericalError("cross-dimensional similarity numerical failure")
+    return result
+
+
 def teacher_anchored_loss(
     student: torch.Tensor,
     teacher: torch.Tensor,

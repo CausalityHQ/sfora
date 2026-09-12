@@ -19,6 +19,7 @@ from sfora.teacher_anchored_distillation import (
     TeacherNeighborRanking,
     cross_dimensional_anchor_distillation_loss,
     cross_dimensional_relational_distillation_loss,
+    cross_dimensional_similarity_distillation_loss,
     embedding_geometry_diagnostics,
     teacher_anchor_schedule,
     teacher_anchored_forward,
@@ -1024,3 +1025,70 @@ def test_cross_dimensional_relational_distillation_matches_off_diagonal_geometry
     mismatched.backward()  # type: ignore[no-untyped-call]
     assert student.grad is not None and bool(torch.isfinite(student.grad).all())
     assert teacher.grad is None
+
+
+def test_cross_dimensional_similarity_distillation_matches_precomputed_relations() -> None:
+    assert (
+        sfora.cross_dimensional_similarity_distillation_loss
+        is cross_dimensional_similarity_distillation_loss
+    )
+    student = torch.tensor(
+        [[1.0, 0.0, -1.0], [0.5, -0.5, 0.0]],
+        dtype=torch.float32,
+        requires_grad=True,
+    )
+    teacher = student.detach().clone()
+
+    matched = cross_dimensional_similarity_distillation_loss(
+        student,
+        teacher,
+        temperatures=(0.05, 0.20),
+    )
+    mismatched = cross_dimensional_similarity_distillation_loss(
+        student.flip(1).contiguous(),
+        teacher,
+        temperatures=(0.05, 0.20),
+    )
+    permutation = torch.tensor([2, 0, 1])
+    permuted = cross_dimensional_similarity_distillation_loss(
+        student[:, permutation].contiguous(),
+        teacher[:, permutation].contiguous(),
+        temperatures=(0.05, 0.20),
+    )
+
+    assert matched.item() == pytest.approx(0.0, abs=1e-7)
+    assert mismatched.item() > 1.0
+    assert permuted.item() == pytest.approx(matched.item(), abs=1e-7)
+    mismatched.backward()  # type: ignore[no-untyped-call]
+    assert student.grad is not None and bool(torch.isfinite(student.grad).all())
+    assert teacher.grad is None
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ("teacher-grad", "nan", "shape", "range", "temperature"),
+)
+def test_cross_dimensional_similarity_distillation_rejects_invalid_authority(
+    mutation: str,
+) -> None:
+    student = torch.zeros((4, 5), dtype=torch.float32, requires_grad=True)
+    teacher = torch.zeros((4, 5), dtype=torch.float32)
+    temperatures: tuple[float, ...] = (0.05, 0.20)
+    if mutation == "teacher-grad":
+        teacher.requires_grad_()
+    elif mutation == "nan":
+        teacher[0, 0] = torch.nan
+    elif mutation == "shape":
+        teacher = teacher[:, :-1].contiguous()
+    elif mutation == "range":
+        teacher[0, 0] = 1.01
+    else:
+        temperatures = (0.0,)
+
+    expected = TeacherAnchoredNumericalError if mutation == "nan" else ValueError
+    with pytest.raises(expected, match="cross-dimensional similarity"):
+        cross_dimensional_similarity_distillation_loss(
+            student,
+            teacher,
+            temperatures=temperatures,
+        )
