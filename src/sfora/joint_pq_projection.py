@@ -87,7 +87,15 @@ class JointPqFitResult:
 class JointPqProjection(nn.Module):
     """One normalized linear projection followed by a trainable hard PQ codec."""
 
-    def __init__(self, projection: nn.Linear, quantizer: ProductQuantizer) -> None:
+    _initial_weight: torch.Tensor
+    _row_space_basis: torch.Tensor | None
+
+    def __init__(
+        self,
+        projection: nn.Linear,
+        quantizer: ProductQuantizer,
+        row_space_basis: torch.Tensor | None = None,
+    ) -> None:
         super().__init__()
         if (
             type(projection) is not nn.Linear
@@ -99,10 +107,26 @@ class JointPqProjection(nn.Module):
             or projection.weight.device != quantizer.codebooks[0].device
             or not bool(torch.isfinite(projection.weight).all())
             or not bool(torch.isfinite(projection.bias).all())
+            or (
+                row_space_basis is not None
+                and (
+                    type(row_space_basis) is not torch.Tensor
+                    or row_space_basis.dtype != torch.float32
+                    or row_space_basis.ndim != 2
+                    or row_space_basis.shape[1] != projection.in_features
+                    or row_space_basis.device != projection.weight.device
+                    or not bool(torch.isfinite(row_space_basis).all())
+                )
+            )
         ):
             raise ValueError("joint PQ projection authority differs")
         self.projection = projection
         self.quantizer = quantizer
+        self.register_buffer("_initial_weight", projection.weight.detach().clone())
+        self.register_buffer(
+            "_row_space_basis",
+            None if row_space_basis is None else row_space_basis.detach().clone(),
+        )
 
     @classmethod
     def from_components(
@@ -112,6 +136,7 @@ class JointPqProjection(nn.Module):
         initial_weight: torch.Tensor,
         initial_bias: torch.Tensor,
         quantizer: ProductQuantizer,
+        row_space_basis: torch.Tensor | None = None,
     ) -> JointPqProjection:
         """Clone an affine projection and quantizer into an independent trainable arm."""
 
@@ -144,7 +169,21 @@ class JointPqProjection(nn.Module):
             quantizer.spec,
             tuple(codebook.detach().clone() for codebook in quantizer.codebooks),
         )
-        return cls(projection, cloned_quantizer)
+        return cls(projection, cloned_quantizer, row_space_basis)
+
+    def effective_weight(self) -> torch.Tensor:
+        """Return the deployable weight, constrained to the registered row space if present."""
+
+        delta = self.projection.weight - self._initial_weight
+        basis = self._row_space_basis
+        if basis is not None:
+            delta = (delta @ basis.T) @ basis
+        return self._initial_weight + delta
+
+    def _project_prevalidated(self, inputs: torch.Tensor) -> torch.Tensor:
+        return F.normalize(
+            F.linear(inputs, self.effective_weight(), self.projection.bias), dim=-1
+        ).contiguous()
 
     def project(self, inputs: torch.Tensor) -> torch.Tensor:
         """Project and unit-normalize one row matrix."""
@@ -159,7 +198,7 @@ class JointPqProjection(nn.Module):
             or not bool(torch.isfinite(inputs).all())
         ):
             raise ValueError("joint PQ projection input differs")
-        result = F.normalize(self.projection(inputs), dim=-1)
+        result = self._project_prevalidated(inputs)
         if not bool(torch.isfinite(result).all()):
             raise RuntimeError("joint PQ projection is nonfinite")
         return result.contiguous()
@@ -175,10 +214,9 @@ class JointPqProjection(nn.Module):
         spec: JointPqTrainingSpec,
     ) -> NeighborhoodAdcDistillationLoss:
         batch, candidates, input_dimensions = candidate_inputs.shape
-        projected_queries = F.normalize(self.projection(query_inputs), dim=-1)
-        projected_candidates = F.normalize(
-            self.projection(candidate_inputs.reshape(batch * candidates, input_dimensions)),
-            dim=-1,
+        projected_queries = self._project_prevalidated(query_inputs)
+        projected_candidates = self._project_prevalidated(
+            candidate_inputs.reshape(batch * candidates, input_dimensions)
         ).reshape(batch, candidates, -1)
         return neighborhood_adc_distillation_loss(
             projected_queries,

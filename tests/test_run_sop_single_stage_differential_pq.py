@@ -48,15 +48,10 @@ def test_four_arms_start_with_identical_rows_and_codes() -> None:
     )
     bias = torch.tensor([0.01, -0.02, 0.03, -0.04])
     incumbent = F.normalize(F.linear(teacher, weight, bias), dim=1)
-    restricted = subject.projection_row_space_inputs(teacher, weight)
-    torch.testing.assert_close(
-        F.linear(restricted, weight, bias),
-        F.linear(teacher, weight, bias),
-        rtol=1e-5,
-        atol=1e-6,
+    basis = subject.projection_row_space_basis(weight)
+    arms = subject.initialize_joint_pq_arms(
+        weight, bias, _quantizer(), row_space_basis=basis, device=torch.device("cpu")
     )
-
-    arms = subject.initialize_joint_pq_arms(weight, bias, _quantizer(), device=torch.device("cpu"))
 
     assert (
         tuple(arms)
@@ -69,12 +64,37 @@ def test_four_arms_start_with_identical_rows_and_codes() -> None:
         )
     )
     baseline_codes = _quantizer().hard_encode(incumbent)
-    for name, model in arms.items():
-        inputs = restricted if name.startswith("restricted_") else teacher
-        projected = model.project(inputs)
-        torch.testing.assert_close(projected, incumbent, rtol=1e-5, atol=1e-6)
+    for model in arms.values():
+        projected = model.project(teacher)
+        torch.testing.assert_close(projected, incumbent, rtol=0.0, atol=0.0)
         assert torch.equal(model.quantizer.hard_encode(projected), baseline_codes)
     assert len({id(model.quantizer) for model in arms.values()}) == 4
+
+
+def test_restricted_arms_cannot_learn_from_incumbent_null_space() -> None:
+    subject = _subject()
+    weight = torch.tensor([[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0]])
+    bias = torch.zeros(2)
+    quantizer = ProductQuantizer.from_codebooks(
+        ProductQuantizationSpec(block_dimensions=(2,), codebook_size=3),
+        (torch.tensor([[-1.0, 0.0], [0.0, 0.0], [1.0, 0.0]]),),
+    )
+    basis = subject.projection_row_space_basis(weight)
+    arms = subject.initialize_joint_pq_arms(
+        weight, bias, quantizer, row_space_basis=basis, device=torch.device("cpu")
+    )
+    base = torch.tensor([[1.0, 0.5, 0.0, 0.0]])
+    null_shifted = torch.tensor([[1.0, 0.5, 2.0, -3.0]])
+    update = torch.tensor([[0.0, 0.0, 0.5, 0.2], [0.0, 0.0, -0.3, 0.4]])
+    with torch.no_grad():
+        for model in arms.values():
+            model.projection.weight.add_(update)
+
+    for name in ("restricted_rank", "restricted_differential"):
+        torch.testing.assert_close(
+            arms[name].project(base), arms[name].project(null_shifted), rtol=0.0, atol=0.0
+        )
+    assert not torch.equal(arms["full_rank"].project(base), arms["full_rank"].project(null_shifted))
 
 
 def test_deployment_contract_is_exactly_24_bytes_and_24_lookups() -> None:

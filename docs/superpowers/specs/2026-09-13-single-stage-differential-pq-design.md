@@ -31,22 +31,26 @@ only the already-compressed 128-dimensional head output.
 ## Frozen arms and deployment
 
 All arms start from the same deployed 128-dimensional direct projection and the same
-24-byte PQ codebooks. They differ only by projection input and differential weight:
+24-byte PQ codebooks. They differ only by projection-update constraint and differential
+weight:
 
-| Arm | Trainable input | Differential weight |
+| Arm | Projection update | Differential weight |
 |---|---:|---:|
-| `restricted_rank` | 768D input projected into incumbent-head row space | 0.0 |
-| `restricted_differential` | 768D input projected into incumbent-head row space | 0.1 |
-| `full_rank` | frozen 768D teacher features | 0.0 |
-| `full_differential` | frozen 768D teacher features | 0.1 |
+| `restricted_rank` | constrained to incumbent-head row space | 0.0 |
+| `restricted_differential` | constrained to incumbent-head row space | 0.1 |
+| `full_rank` | unconstrained | 0.0 |
+| `full_differential` | unconstrained | 0.1 |
 
 All four arms use the same 768-to-128 affine architecture, existing checkpoint,
-optimizer, and update schedule. For incumbent weight `W`, restricted inputs are the
-orthogonal row-space projection `x_r = W^T (W W^T)^-1 W x`; therefore
-`W x_r + b = W x + b` at step zero while components in the null space of `W` are
-unavailable. Full arms receive `x`. Every arm must emit identical PQ assignments at
-step zero on the complete fitting set; the receipt records each code digest and maximum
-float-row delta.
+optimizer, input rows, parameter count, and update schedule. Write the incumbent weight
+as `W0`, train a same-shaped displacement `D`, and derive an orthonormal row-space basis
+`Q` once from `W0`. Full arms use `W0 + D`; restricted arms use
+`W0 + (D Q^T) Q`. Every arm initializes `D=0` and therefore executes the identical
+original affine computation at step zero, without reconstructing inputs or `W0` through
+a numerically approximate projector. Thereafter the restricted learned displacement
+cannot use components in the null space of `W0`. Every arm must emit bit-identical
+projected rows and PQ assignments at step zero on the complete fitting set; the receipt
+records each code digest and maximum float-row delta.
 
 The database representation remains exactly 24 unsigned bytes per vector with no
 per-vector sidecar. Query-time scoring is the existing asymmetric PQ scorer: 24

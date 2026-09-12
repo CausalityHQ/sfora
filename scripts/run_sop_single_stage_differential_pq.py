@@ -69,32 +69,27 @@ def _clone_quantizer(quantizer: ProductQuantizer, device: torch.device) -> Produ
     )
 
 
-def projection_row_space_inputs(values: torch.Tensor, weight: torch.Tensor) -> torch.Tensor:
-    """Remove only components in the incumbent projection's exact null space."""
+def projection_row_space_basis(weight: torch.Tensor) -> torch.Tensor:
+    """Return an orthonormal basis for the incumbent projection's row space."""
 
     if (
-        type(values) is not torch.Tensor
-        or type(weight) is not torch.Tensor
-        or values.dtype != torch.float32
+        type(weight) is not torch.Tensor
         or weight.dtype != torch.float32
-        or values.ndim != 2
         or weight.ndim != 2
-        or values.shape[1] != weight.shape[1]
         or weight.shape[0] >= weight.shape[1]
-        or values.device != weight.device
-        or not bool(torch.isfinite(values).all())
         or not bool(torch.isfinite(weight).all())
     ):
         raise ValueError("projection row-space authority differs")
-    gram = weight.double() @ weight.double().T
     try:
-        reconstruction = torch.linalg.solve(gram, weight.double()).float()
+        basis = torch.linalg.qr(weight.double().T, mode="reduced")[0].T.float().contiguous()
     except RuntimeError as error:
         raise ValueError("projection row-space authority differs") from error
-    result = ((values @ weight.T) @ reconstruction).contiguous()
-    if not bool(torch.isfinite(result).all()):
+    identity = torch.eye(weight.shape[0], dtype=torch.float32, device=weight.device)
+    if not bool(torch.isfinite(basis).all()) or not torch.allclose(
+        basis @ basis.T, identity, rtol=1e-5, atol=1e-6
+    ):
         raise ValueError("projection row-space authority differs")
-    return cast(torch.Tensor, result)
+    return cast(torch.Tensor, basis)
 
 
 def initialize_joint_pq_arms(
@@ -102,6 +97,7 @@ def initialize_joint_pq_arms(
     base_bias: torch.Tensor,
     quantizer: ProductQuantizer,
     *,
+    row_space_basis: torch.Tensor,
     device: torch.device,
 ) -> dict[str, JointPqProjection]:
     """Create four independent arms with deployment-identical step-zero outputs."""
@@ -116,6 +112,9 @@ def initialize_joint_pq_arms(
         or base_weight.shape[0] != quantizer.spec.dimensions
         or not bool(torch.isfinite(base_weight).all())
         or not bool(torch.isfinite(base_bias).all())
+        or type(row_space_basis) is not torch.Tensor
+        or row_space_basis.dtype != torch.float32
+        or row_space_basis.shape != base_weight.shape
         or not isinstance(device, torch.device)
     ):
         raise ValueError("joint PQ initialization authority differs")
@@ -128,6 +127,9 @@ def initialize_joint_pq_arms(
             initial_weight=full_weight,
             initial_bias=full_bias,
             quantizer=_clone_quantizer(quantizer, device),
+            row_space_basis=(
+                row_space_basis.to(device) if name.startswith("restricted_") else None
+            ),
         )
     return result
 
@@ -279,7 +281,7 @@ def _checkpoint_bytes(arms: dict[str, JointPqProjection]) -> bytes:
                 "bias": model.projection.bias.detach().cpu().float().contiguous(),
                 "codebooks": model.quantizer.detached_codebooks(),
                 "input_dimensions": model.projection.in_features,
-                "weight": model.projection.weight.detach().cpu().float().contiguous(),
+                "weight": model.effective_weight().detach().cpu().float().contiguous(),
             }
             for name, model in arms.items()
         },
@@ -423,8 +425,6 @@ def main() -> None:
     fit_teacher = teacher[fit_indexes].to(device)
     validation_teacher = teacher[validation_indexes].to(device)
     with torch.inference_mode():
-        fit_restricted = projection_row_space_inputs(fit_teacher, weight.to(device))
-        validation_restricted = projection_row_space_inputs(validation_teacher, weight.to(device))
         fit_incumbent = torch.nn.functional.normalize(
             torch.nn.functional.linear(fit_teacher, weight.to(device), bias.to(device)), dim=1
         ).contiguous()
@@ -462,7 +462,10 @@ def main() -> None:
         if candidate_indexes.shape != (len(fit_indexes), CANDIDATE_WIDTH):
             raise RuntimeError("joint PQ candidate pool is incomplete")
     neighbor_pairs = torch.combinations(torch.arange(8, device=device), r=2)
-    arms = initialize_joint_pq_arms(weight, bias, pq24, device=device)
+    row_space_basis = projection_row_space_basis(weight.to(device))
+    arms = initialize_joint_pq_arms(
+        weight, bias, pq24, row_space_basis=row_space_basis, device=device
+    )
     arm_results: dict[str, object] = {}
     qualities: dict[str, dict[str, float]] = {}
     validation_pq32_codes = pq32.hard_encode(validation_incumbent)
@@ -482,8 +485,7 @@ def main() -> None:
     step_zero_rows: dict[str, torch.Tensor] = {}
     with torch.inference_mode():
         for name, model in arms.items():
-            inputs = fit_restricted if name.startswith("restricted_") else fit_teacher
-            step_zero_rows[name] = model.project(inputs)
+            step_zero_rows[name] = model.project(fit_teacher)
             step_zero_codes[name] = model.quantizer.hard_encode(step_zero_rows[name])
     baseline_step_zero = step_zero_codes[JOINT_PQ_ARM_NAMES[0]]
     if any(
@@ -500,7 +502,7 @@ def main() -> None:
         },
     }
     for name, model in arms.items():
-        inputs = fit_restricted if name.startswith("restricted_") else fit_teacher
+        inputs = fit_teacher
         differential_weight = 0.1 if name.endswith("_differential") else 0.0
         training_spec = JointPqTrainingSpec(
             updates=1_000,
@@ -524,11 +526,8 @@ def main() -> None:
             neighbor_pairs=neighbor_pairs,
             spec=training_spec,
         )
-        validation_inputs = (
-            validation_restricted if name.startswith("restricted_") else validation_teacher
-        )
         with torch.inference_mode():
-            validation_rows = fitted.model.project(validation_inputs)
+            validation_rows = fitted.model.project(validation_teacher)
             codes = fitted.model.quantizer.hard_encode(validation_rows)
             fit_codes = fitted.model.quantizer.hard_encode(fitted.model.project(inputs))
         quality = score_asymmetric_product(
