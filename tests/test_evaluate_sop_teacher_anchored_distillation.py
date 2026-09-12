@@ -296,6 +296,16 @@ class BatchSensitiveEncoder(nn.Module):
         return value + value.mean(dim=0, keepdim=True)
 
 
+class CountingServingEncoder(ServingEncoder):
+    def __init__(self) -> None:
+        super().__init__()
+        self.forward_calls = 0
+
+    def forward(self, value: torch.Tensor) -> torch.Tensor:
+        self.forward_calls += 1
+        return super().forward(value)
+
+
 def _checkpoint_sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as stream:
@@ -719,6 +729,42 @@ def test_serving_reconstruction_discards_registered_padding_rows(tmp_path: Path)
     assert reconstructed.batch_rows == (4, 4)
     assert reconstructed.retained_batch_rows == (4, 2)
     assert torch.equal(reconstructed.codes, expected)
+
+
+def test_serving_reconstruction_bounds_single_row_batch_invariance_replay(
+    tmp_path: Path,
+) -> None:
+    source_encoder = ServingEncoder()
+    source_head = nn.Linear(4, 128)
+    checkpoint = tmp_path / "bounded-replay.pt"
+    torch.save(
+        {
+            **{
+                f"encoder.{name}": value
+                for name, value in source_encoder.state_dict().items()
+            },
+            **{f"head.{name}": value for name, value in source_head.state_dict().items()},
+        },
+        checkpoint,
+    )
+    batch = torch.arange(160, dtype=torch.float32).reshape(40, 4).contiguous()
+    expected = _expected_serving_codes(source_encoder, source_head, (batch,))
+    encoder = CountingServingEncoder()
+
+    reconstructed = SUBJECT.reconstruct_teacher_anchored_serving(
+        encoder,
+        nn.Linear(4, 128),
+        checkpoint,
+        (batch,),
+        expected_checkpoint_sha256=_checkpoint_sha256(checkpoint),
+        expected_codes=expected,
+        expected_input_shape=(4,),
+        retained_batch_rows=(40,),
+        device=torch.device("cpu"),
+    )
+
+    assert reconstructed.rows == 40
+    assert encoder.forward_calls == 33
 
 
 def test_serving_reconstruction_deserializes_only_authenticated_bytes(

@@ -937,6 +937,7 @@ def reconstruct_teacher_anchored_serving(
         raise ValueError("teacher-anchored serving authority differs")
     chunks: list[torch.Tensor] = []
     single_chunks: list[torch.Tensor] = []
+    remaining_single_replay_rows = 32
     with torch.inference_mode():
         for batch, retained in zip(batches, retained_batch_rows, strict=True):
             _features, raw = teacher_anchored_forward(encoder, head, batch.to(device))
@@ -950,18 +951,21 @@ def reconstruct_teacher_anchored_serving(
             if not bool(torch.isfinite(norms).all()) or bool((norms <= 1e-12).any()):
                 raise ValueError("teacher-anchored serving authority differs")
             chunks.append(raw[:retained].cpu().contiguous())
-            for row in batch[:retained]:
+            replay_rows = min(retained, remaining_single_replay_rows)
+            for row in batch[:replay_rows]:
                 _single_features, single_raw = teacher_anchored_forward(
                     encoder, head, row.unsqueeze(0).to(device)
                 )
                 if not bool(torch.isfinite(single_raw).all()):
                     raise ValueError("teacher-anchored serving authority differs")
                 single_chunks.append(single_raw.cpu().contiguous())
+            remaining_single_replay_rows -= replay_rows
     codes = torch.cat(chunks).contiguous()
     singles = torch.cat(single_chunks).contiguous()
-    maximum_batch_shape_error = float(torch.max(torch.abs(codes - singles)))
-    batch_shape_cosines = torch.sum(codes.double() * singles.double(), dim=1) / (
-        torch.linalg.vector_norm(codes.double(), dim=1)
+    replay_codes = codes[: len(singles)]
+    maximum_batch_shape_error = float(torch.max(torch.abs(replay_codes - singles)))
+    batch_shape_cosines = torch.sum(replay_codes.double() * singles.double(), dim=1) / (
+        torch.linalg.vector_norm(replay_codes.double(), dim=1)
         * torch.linalg.vector_norm(singles.double(), dim=1)
     )
     minimum_batch_shape_cosine = float(torch.min(batch_shape_cosines))
