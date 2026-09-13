@@ -3,7 +3,177 @@
 
 from __future__ import annotations
 
+import hashlib
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Literal
+
+import h5py
 import numpy as np
+
+Metric = Literal["angular", "squared_l2"]
+_HDF5_DATASETS = {"train", "test", "neighbors", "distances"}
+_HEX = frozenset("0123456789abcdef")
+
+
+@dataclass(frozen=True)
+class AnnBenchmarkDataset:
+    """Authenticated in-memory view of one official ANN-Benchmarks dataset."""
+
+    source_sha256: str
+    metric: Metric
+    train: np.ndarray
+    test: np.ndarray
+    truth_ordinals: np.ndarray
+    truth_distances: np.ndarray
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        while chunk := stream.read(1024 * 1024):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _metric_distances(train: np.ndarray, query: np.ndarray, metric: Metric) -> np.ndarray:
+    distances = np.empty(train.shape[0], dtype=np.float64)
+    query64 = query.astype(np.float64)
+    query_norm = float(np.linalg.norm(query64))
+    for start in range(0, train.shape[0], 65_536):
+        stop = min(start + 65_536, train.shape[0])
+        block = train[start:stop].astype(np.float64)
+        if metric == "angular":
+            norms = np.linalg.norm(block, axis=1)
+            distances[start:stop] = 1.0 - (block @ query64) / (norms * query_norm)
+        else:
+            delta = block - query64
+            distances[start:stop] = np.sqrt(np.einsum("ij,ij->i", delta, delta))
+    return distances
+
+
+def _validate_truth_boundaries(
+    train: np.ndarray,
+    test: np.ndarray,
+    truth_ordinals: np.ndarray,
+    truth_distances: np.ndarray,
+    metric: Metric,
+) -> None:
+    query_count = test.shape[0]
+    checks = sorted({0, query_count // 2, query_count - 1})
+    truth_width = truth_ordinals.shape[1]
+    for query_index in checks:
+        distances = _metric_distances(train, test[query_index], metric)
+        selected = truth_ordinals[query_index]
+        selected_distances = distances[selected]
+        if not np.allclose(
+            selected_distances,
+            truth_distances[query_index],
+            rtol=1e-4,
+            atol=1e-5,
+        ):
+            raise ValueError("ANN-Benchmarks authority differs")
+        boundary = float(np.partition(distances, truth_width - 1)[truth_width - 1])
+        tolerance = max(1e-7, abs(boundary) * 1e-6)
+        selected_set = set(int(value) for value in selected)
+        required = np.flatnonzero(distances < boundary - tolerance)
+        if (
+            any(int(value) not in selected_set for value in required)
+            or bool((selected_distances > boundary + tolerance).any())
+        ):
+            raise ValueError("ANN-Benchmarks authority differs")
+
+
+def load_ann_benchmark(
+    path: Path,
+    *,
+    expected_sha256: str,
+    expected_metric: Metric,
+) -> AnnBenchmarkDataset:
+    """Authenticate and load one native-metric ANN-Benchmarks HDF5 artifact."""
+
+    if (
+        not isinstance(path, Path)
+        or path.is_symlink()
+        or not path.is_file()
+        or type(expected_sha256) is not str
+        or len(expected_sha256) != 64
+        or any(character not in _HEX for character in expected_sha256)
+        or expected_metric not in ("angular", "squared_l2")
+        or _sha256_file(path) != expected_sha256
+    ):
+        raise ValueError("ANN-Benchmarks authority differs")
+
+    try:
+        with h5py.File(path, "r") as handle:
+            stored_metric = handle.attrs.get("distance")
+            mapped_metric = {
+                "angular": "angular",
+                "euclidean": "squared_l2",
+            }.get(stored_metric)
+            if set(handle.keys()) != _HDF5_DATASETS or mapped_metric != expected_metric:
+                raise ValueError("ANN-Benchmarks authority differs")
+            train = np.asarray(handle["train"][...])
+            test = np.asarray(handle["test"][...])
+            neighbors = np.asarray(handle["neighbors"][...])
+            distances = np.asarray(handle["distances"][...])
+    except (OSError, KeyError, TypeError, ValueError) as error:
+        raise ValueError("ANN-Benchmarks authority differs") from error
+
+    if (
+        train.dtype != np.float32
+        or train.ndim != 2
+        or train.shape[0] < 1
+        or train.shape[1] < 1
+        or test.dtype != np.float32
+        or test.ndim != 2
+        or test.shape[0] < 1
+        or test.shape[1] != train.shape[1]
+        or neighbors.dtype != np.int32
+        or neighbors.ndim != 2
+        or neighbors.shape[0] != test.shape[0]
+        or not 1 <= neighbors.shape[1] <= train.shape[0]
+        or distances.dtype != np.float32
+        or distances.shape != neighbors.shape
+        or not bool(np.isfinite(train).all())
+        or not bool(np.isfinite(test).all())
+        or not bool(np.isfinite(distances).all())
+        or bool((distances < 0).any())
+        or bool((neighbors < 0).any())
+        or bool((neighbors >= train.shape[0]).any())
+        or bool((np.diff(distances, axis=1) < 0).any())
+        or any(len(np.unique(row)) != len(row) for row in neighbors)
+        or (
+            expected_metric == "angular"
+            and (
+                bool((np.linalg.norm(train, axis=1) == 0).any())
+                or bool((np.linalg.norm(test, axis=1) == 0).any())
+            )
+        )
+    ):
+        raise ValueError("ANN-Benchmarks authority differs")
+
+    truth_ordinals = np.ascontiguousarray(neighbors, dtype=np.int64)
+    train = np.ascontiguousarray(train)
+    test = np.ascontiguousarray(test)
+    truth_distances = np.ascontiguousarray(distances)
+    _validate_truth_boundaries(
+        train,
+        test,
+        truth_ordinals,
+        truth_distances,
+        expected_metric,
+    )
+    for value in (train, test, truth_ordinals, truth_distances):
+        value.flags.writeable = False
+    return AnnBenchmarkDataset(
+        source_sha256=expected_sha256,
+        metric=expected_metric,
+        train=train,
+        test=test,
+        truth_ordinals=truth_ordinals,
+        truth_distances=truth_distances,
+    )
 
 
 def candidate_containment_hits(

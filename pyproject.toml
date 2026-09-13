@@ -28,6 +28,7 @@ research = [
   "accelerate>=1.0",
   "datasets>=3.0",
   "evaluate>=0.4",
+  "h5py>=3.11",
   "huggingface-hub>=0.34",
   "ipython>=8.26",
   "jupyterlab>=4.2",
@@ -79,7 +80,7 @@ warn_return_any = true
 warn_unused_configs = true
 
 [[tool.mypy.overrides]]
-module = ["datasets", "sentence_transformers", "sklearn.*", "torch", "torchvision", "torchvision.*"]
+module = ["datasets", "h5py", "sentence_transformers", "sklearn.*", "torch", "torchvision", "torchvision.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
