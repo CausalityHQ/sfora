@@ -107,6 +107,16 @@ class ProgressiveResidualCodes:
         return self.base_codes.device
 
 
+@dataclass(frozen=True, slots=True)
+class ProgressiveCandidateResult:
+    """Stable bounded candidate ranking with explicit physical byte accounting."""
+
+    ordinals: torch.Tensor
+    scores: torch.Tensor
+    base_bytes_read: int
+    residual_bytes_read: int
+
+
 def _validate_dimensions(dimensions: int) -> None:
     if type(dimensions) is not int or dimensions < 1:
         raise ValueError("progressive residual indexes differ")
@@ -313,6 +323,82 @@ class ProgressiveResidualQuantizer(nn.Module):
         if not bool(torch.isfinite(reconstructed).all()):
             raise RuntimeError("progressive residual decode is nonfinite")
         return reconstructed.contiguous()
+
+    @torch.no_grad()
+    def score_candidates(
+        self,
+        queries: torch.Tensor,
+        codes: ProgressiveResidualCodes,
+        candidate_ordinals: torch.Tensor,
+        *,
+        residual_bits: int,
+        return_width: int,
+    ) -> ProgressiveCandidateResult:
+        """Refine and stably rank only caller-supplied candidate rows."""
+
+        self._validate_codes(codes)
+        self.spec.bytes_per_vector(residual_bits=residual_bits)
+        prepared_queries = self.prepare_values(queries)
+        if (
+            type(candidate_ordinals) is not torch.Tensor
+            or candidate_ordinals.dtype != torch.int64
+            or candidate_ordinals.ndim != 2
+            or candidate_ordinals.shape[0] < 1
+            or candidate_ordinals.shape[1] < 1
+            or candidate_ordinals.shape[0] != prepared_queries.shape[0]
+            or candidate_ordinals.device != self.device
+            or not candidate_ordinals.is_contiguous()
+            or bool((candidate_ordinals < 0).any())
+            or bool((candidate_ordinals >= codes.rows).any())
+            or type(return_width) is not int
+            or return_width < 1
+            or return_width > candidate_ordinals.shape[1]
+        ):
+            raise ValueError("progressive candidate authority differs")
+        sorted_candidates = torch.sort(candidate_ordinals, dim=1).values
+        if candidate_ordinals.shape[1] > 1 and bool(
+            (sorted_candidates[:, 1:] == sorted_candidates[:, :-1]).any()
+        ):
+            raise ValueError("progressive candidate authority differs")
+        flat = candidate_ordinals.reshape(-1)
+        gathered = ProgressiveResidualCodes(
+            base_codes=codes.base_codes[flat].contiguous(),
+            scales=codes.scales[flat].contiguous(),
+            residual_planes=codes.residual_planes[flat].contiguous(),
+        )
+        decoded = self.decode_prefix(gathered, residual_bits=residual_bits).reshape(
+            candidate_ordinals.shape[0],
+            candidate_ordinals.shape[1],
+            self.spec.dimensions,
+        )
+        if self.spec.metric == "angular":
+            raw_scores = torch.einsum("bd,bkd->bk", prepared_queries, decoded)
+            descending = True
+        else:
+            raw_scores = (decoded - prepared_queries[:, None, :]).square().sum(dim=-1)
+            descending = False
+        ordinal_order = torch.argsort(candidate_ordinals, dim=1, stable=True)
+        ordered_ordinals = candidate_ordinals.gather(1, ordinal_order)
+        ordered_scores = raw_scores.gather(1, ordinal_order)
+        score_order = torch.argsort(
+            ordered_scores,
+            dim=1,
+            descending=descending,
+            stable=True,
+        )[:, :return_width]
+        query_count, candidate_count = candidate_ordinals.shape
+        return ProgressiveCandidateResult(
+            ordinals=ordered_ordinals.gather(1, score_order).contiguous(),
+            scores=ordered_scores.gather(1, score_order).contiguous(),
+            base_bytes_read=(
+                query_count * candidate_count * self.spec.base_spec.bytes_per_vector
+            ),
+            residual_bytes_read=(
+                query_count
+                * candidate_count
+                * (2 + residual_bits * self.spec.residual_plane_bytes)
+            ),
+        )
 
     def export_artifact(self) -> dict[str, object]:
         """Return a versioned CPU-portable codec artifact."""

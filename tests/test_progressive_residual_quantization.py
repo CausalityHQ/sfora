@@ -11,6 +11,7 @@ from sfora.product_quantization import (
     balanced_product_quantization_spec,
 )
 from sfora.progressive_residual_quantization import (
+    ProgressiveCandidateResult,
     ProgressiveResidualCodes,
     ProgressiveResidualQuantizer,
     ProgressiveResidualSpec,
@@ -339,3 +340,122 @@ def test_codec_artifact_roundtrip_and_mutations() -> None:
     for mutation in mutations:
         with pytest.raises(ValueError, match="progressive residual artifact differs"):
             ProgressiveResidualQuantizer.from_artifact(mutation)
+
+
+def test_candidate_scoring_uses_metric_order_and_lowest_ordinal_ties() -> None:
+    l2_codec = _fixed_codec()
+    angular_codec = _fixed_codec("angular")
+    l2_gallery = torch.tensor(
+        [[-1.0, 0.0], [1.0, 0.0], [0.0, 2.0], [0.0, -2.0]],
+        dtype=torch.float32,
+    )
+    angular_gallery = torch.tensor(
+        [[-1.0, 0.0], [1.0, 0.0], [0.0, 1.0], [0.0, -1.0]],
+        dtype=torch.float32,
+    )
+    candidates = torch.tensor([[3, 2, 1, 0]], dtype=torch.int64)
+
+    l2 = l2_codec.score_candidates(
+        torch.tensor([[0.9, 0.0]], dtype=torch.float32),
+        l2_codec.encode(l2_gallery),
+        candidates,
+        residual_bits=8,
+        return_width=4,
+    )
+    angular = angular_codec.score_candidates(
+        torch.tensor([[1.0, 0.0]], dtype=torch.float32),
+        angular_codec.encode(angular_gallery),
+        candidates,
+        residual_bits=8,
+        return_width=4,
+    )
+    tied = l2_codec.score_candidates(
+        torch.tensor([[0.0, 0.0]], dtype=torch.float32),
+        l2_codec.encode(l2_gallery[:2]),
+        torch.tensor([[1, 0]], dtype=torch.int64),
+        residual_bits=8,
+        return_width=2,
+    )
+
+    assert l2.ordinals.tolist() == [[1, 0, 2, 3]]
+    assert angular.ordinals.tolist() == [[1, 2, 3, 0]]
+    assert tied.ordinals.tolist() == [[0, 1]]
+    assert bool(torch.all(l2.scores[:, 1:] >= l2.scores[:, :-1]))
+    assert bool(torch.all(angular.scores[:, 1:] <= angular.scores[:, :-1]))
+
+
+def test_candidate_scoring_is_bounded_and_counts_physical_stage_bytes() -> None:
+    codec = _fixed_codec()
+    gallery = torch.tensor(
+        [[-1.0, 0.0], [1.0, 0.0], [0.0, 2.0], [0.0, -2.0]],
+        dtype=torch.float32,
+    )
+    candidates = torch.tensor([[3, 2, 1, 0], [0, 1, 2, 3]], dtype=torch.int64)
+
+    result = codec.score_candidates(
+        torch.tensor([[0.9, 0.0], [-0.9, 0.0]], dtype=torch.float32),
+        codec.encode(gallery),
+        candidates,
+        residual_bits=4,
+        return_width=2,
+    )
+
+    assert type(result) is ProgressiveCandidateResult
+    assert result.ordinals.shape == (2, 2)
+    assert result.scores.shape == (2, 2)
+    assert result.base_bytes_read == 2 * 4 * 1
+    assert result.residual_bytes_read == 2 * 4 * (2 + 4 * 1)
+
+
+@pytest.mark.parametrize(
+    "candidates",
+    [
+        torch.tensor([[0, 0]], dtype=torch.int64),
+        torch.tensor([[0, 4]], dtype=torch.int64),
+        torch.tensor([[0, -1]], dtype=torch.int64),
+        torch.tensor([[0, 1]], dtype=torch.int32),
+        torch.tensor([0, 1], dtype=torch.int64),
+    ],
+)
+def test_candidate_scoring_rejects_ordinal_authority_drift(candidates: torch.Tensor) -> None:
+    codec = _fixed_codec()
+    gallery = codec.encode(torch.tensor([[float(i), 0.0] for i in range(4)]))
+
+    with pytest.raises(ValueError, match="progressive candidate authority differs"):
+        codec.score_candidates(
+            torch.tensor([[0.0, 0.0]], dtype=torch.float32),
+            gallery,
+            candidates,
+            residual_bits=4,
+            return_width=1,
+        )
+
+
+def test_candidate_scoring_rejects_width_query_and_prefix_drift() -> None:
+    codec = _fixed_codec()
+    gallery = codec.encode(torch.tensor([[float(i), 0.0] for i in range(4)]))
+    candidates = torch.tensor([[0, 1]], dtype=torch.int64)
+
+    invalid = (
+        {"queries": object()},
+        {"queries": torch.ones((1, 3), dtype=torch.float32)},
+        {"queries": torch.tensor([[float("nan"), 0.0]], dtype=torch.float32)},
+        {"return_width": 3},
+        {"return_width": True},
+        {"residual_bits": 0},
+    )
+    baseline: dict[str, object] = {
+        "queries": torch.tensor([[0.0, 0.0]], dtype=torch.float32),
+        "residual_bits": 4,
+        "return_width": 1,
+    }
+    for update in invalid:
+        arguments = {**baseline, **update}
+        with pytest.raises(ValueError):
+            codec.score_candidates(
+                arguments["queries"],  # type: ignore[arg-type]
+                gallery,
+                candidates,
+                residual_bits=arguments["residual_bits"],  # type: ignore[arg-type]
+                return_width=arguments["return_width"],  # type: ignore[arg-type]
+            )
