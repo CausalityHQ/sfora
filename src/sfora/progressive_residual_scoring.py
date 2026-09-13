@@ -394,12 +394,17 @@ class CompiledProgressiveCandidateScorer:
                 fallback_reason="compiled-output-differs",
                 membership_contract="eager-reference",
             )
-        repair_ordinals, _approximate_scores = _select_scores(
-            candidate_ordinals,
-            raw_scores,
-            return_width=self.spec.boundary_repair_width,
-            descending=self._codec.spec.metric == "angular",
-        )
+        if self.spec.boundary_repair_width == self.spec.candidate_width:
+            repair_ordinals = candidate_ordinals
+        else:
+            repair_order = torch.topk(
+                raw_scores,
+                k=self.spec.boundary_repair_width,
+                dim=1,
+                largest=self._codec.spec.metric == "angular",
+                sorted=False,
+            ).indices
+            repair_ordinals = candidate_ordinals.gather(1, repair_order).contiguous()
         repair_spec = ProgressiveScoringSpec(
             residual_bits=self.spec.residual_bits,
             candidate_width=self.spec.boundary_repair_width,

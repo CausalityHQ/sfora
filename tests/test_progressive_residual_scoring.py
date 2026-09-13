@@ -212,6 +212,47 @@ def test_compiled_progressive_scorer_pads_query_tail_and_owns_replayed_scores() 
     assert torch.equal(result.scores, reference.scores)
 
 
+def test_partial_boundary_repair_never_full_sorts_all_candidate_scores(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    codec = _codec()
+    gallery = torch.tensor(
+        [[0.0, 0.0], [2.0, 0.0], [0.0, 3.0], [4.0, 4.0]], dtype=torch.float32
+    )
+    codes = codec.encode(gallery)
+    query = torch.tensor([[1.9, 0.0]], dtype=torch.float32)
+    candidates = torch.tensor([[0, 1, 2]], dtype=torch.int64)
+    spec = ProgressiveScoringSpec(
+        residual_bits=3,
+        candidate_width=3,
+        return_width=1,
+        compiled_batch_rows=1,
+        boundary_repair_width=2,
+    )
+    scorer = compile_progressive_candidate_scorer(
+        codec,
+        codes,
+        spec,
+        calibration_queries=query,
+        calibration_candidates=candidates,
+        compiler=lambda function: function,
+    )
+    original_argsort = torch.argsort
+    sorted_widths: list[int] = []
+
+    def observed_argsort(value: torch.Tensor, *args: object, **kwargs: object) -> torch.Tensor:
+        sorted_widths.append(value.shape[1])
+        return original_argsort(value, *args, **kwargs)
+
+    monkeypatch.setattr(torch, "argsort", observed_argsort)
+
+    result = scorer.score(query, candidates)
+
+    assert result.ordinals.tolist() == [[1]]
+    assert sorted_widths
+    assert max(sorted_widths) == spec.boundary_repair_width
+
+
 def test_progressive_scorer_falls_back_when_compilation_fails() -> None:
     codec = _codec()
     gallery = torch.tensor(
