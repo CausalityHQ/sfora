@@ -5,6 +5,7 @@ from __future__ import annotations
 import ctypes
 import errno
 import hashlib
+import heapq
 import json
 import mmap
 import os
@@ -941,3 +942,194 @@ def write_factorized_residual_artifact(
         if cleanup_root.exists():
             cleanup_root.rmdir()
         raise
+
+
+@dataclass(frozen=True, slots=True)
+class CandidateEvidence:
+    """Bounded work accounting for one portable candidate search."""
+
+    backend: Literal["portable-float64"]
+    rows_scanned: int
+    codes_bytes_scanned: int
+    probe_count: int
+    shortlist_width: int
+
+    def __post_init__(self) -> None:
+        if (
+            self.backend != "portable-float64"
+            or any(
+                type(value) is not int
+                for value in (
+                    self.rows_scanned,
+                    self.codes_bytes_scanned,
+                    self.probe_count,
+                    self.shortlist_width,
+                )
+            )
+            or self.rows_scanned < 0
+            or self.codes_bytes_scanned < 0
+            or self.probe_count < 1
+            or self.shortlist_width < 1
+        ):
+            raise ValueError("factorized residual candidate evidence differs")
+
+
+@dataclass(frozen=True, slots=True)
+class CandidateResult:
+    """Owned approximate candidates ordered by distance then internal ID."""
+
+    ids: NDArray[np.uint32]
+    approximate_distances: NDArray[np.float64]
+    probe_lists: NDArray[np.uint32]
+    evidence: CandidateEvidence
+
+    def __post_init__(self) -> None:
+        if (
+            type(self.ids) is not np.ndarray
+            or self.ids.dtype.str != "<u4"
+            or self.ids.ndim != 1
+            or type(self.approximate_distances) is not np.ndarray
+            or self.approximate_distances.dtype.str != "<f8"
+            or self.approximate_distances.shape != self.ids.shape
+            or not bool(np.isfinite(self.approximate_distances).all())
+            or type(self.probe_lists) is not np.ndarray
+            or self.probe_lists.dtype.str != "<u4"
+            or self.probe_lists.ndim != 1
+            or self.probe_lists.shape[0] < 1
+            or type(self.evidence) is not CandidateEvidence
+        ):
+            raise ValueError("factorized residual candidate result differs")
+        pairs = list(zip(self.approximate_distances.tolist(), self.ids.tolist(), strict=True))
+        if pairs != sorted(pairs) or len(set(self.ids.tolist())) != self.ids.shape[0]:
+            raise ValueError("factorized residual candidate result differs")
+        object.__setattr__(self, "ids", _owned_read_only(self.ids))
+        object.__setattr__(
+            self,
+            "approximate_distances",
+            _owned_read_only(self.approximate_distances),
+        )
+        object.__setattr__(self, "probe_lists", _owned_read_only(self.probe_lists))
+
+
+class PortableCandidateIndex:
+    """Deterministic bounded-memory float64 reference candidate scorer."""
+
+    def __init__(self, artifact: FactorizedResidualArtifact) -> None:
+        if type(artifact) is not FactorizedResidualArtifact or artifact._closed:
+            raise ValueError("factorized residual candidate index differs")
+        self._artifact = artifact
+
+    def search(
+        self,
+        query: NDArray[np.generic],
+        *,
+        probe_count: int | None = None,
+        shortlist_width: int | None = None,
+    ) -> CandidateResult:
+        """Return approximate candidates from selected posting lists."""
+
+        artifact = self._artifact
+        spec = artifact.spec
+        expected_dtype = np.dtype(np.uint8 if spec.vector_dtype == "uint8" else "<f4")
+        if (
+            artifact._closed
+            or type(query) is not np.ndarray
+            or query.dtype != expected_dtype
+            or query.shape != (spec.dimensions,)
+            or not query.flags.c_contiguous
+            or not bool(np.isfinite(query).all())
+        ):
+            raise ValueError("factorized residual query differs")
+        selected_probe_count = spec.probe_count if probe_count is None else probe_count
+        selected_shortlist_width = (
+            spec.shortlist_width if shortlist_width is None else shortlist_width
+        )
+        if (
+            type(selected_probe_count) is not int
+            or not 1 <= selected_probe_count <= spec.probe_count
+            or type(selected_shortlist_width) is not int
+            or not 1 <= selected_shortlist_width <= spec.shortlist_width
+        ):
+            raise ValueError("factorized residual search differs")
+        arrays = artifact._arrays
+        coarse = cast(NDArray[np.float32], arrays["coarse.f32"])
+        pq = cast(NDArray[np.float32], arrays["pq.f32"])
+        offsets = cast(NDArray[np.uint64], arrays["offsets.u64"])
+        ids = cast(NDArray[np.uint32], arrays["ids.u32"])
+        codes = cast(NDArray[np.uint8], arrays["codes.u8"])
+        norm_codes = cast(NDArray[np.uint8], arrays["norms.u8"])
+        norm_lows = cast(NDArray[np.float32], arrays["norm-low.f32"])
+        norm_scales = cast(NDArray[np.float32], arrays["norm-scale.f32"])
+        query64 = query.astype(np.float64)
+
+        probe_heap: list[tuple[float, int]] = []
+        for list_id in range(spec.list_count):
+            distance = 0.0
+            for dimension in range(spec.dimensions):
+                difference = query64[dimension] - float(coarse[list_id, dimension])
+                distance += difference * difference
+            pair = (-distance, -list_id)
+            if len(probe_heap) < selected_probe_count:
+                heapq.heappush(probe_heap, pair)
+            elif pair > probe_heap[0]:
+                heapq.heapreplace(probe_heap, pair)
+        probe_pairs = sorted((-distance, -list_id) for distance, list_id in probe_heap)
+        probe_lists = np.asarray([list_id for _, list_id in probe_pairs], dtype="<u4")
+
+        query_norm = 0.0
+        for coordinate in query64:
+            query_norm += float(coordinate) * float(coordinate)
+        lut = np.zeros((spec.subquantizers, spec.codebook_size), dtype="<f8")
+        for subquantizer in range(spec.subquantizers):
+            offset = subquantizer * spec.subvector_dimensions
+            for codeword in range(spec.codebook_size):
+                dot = 0.0
+                for coordinate in range(spec.subvector_dimensions):
+                    dot += query64[offset + coordinate] * float(
+                        pq[subquantizer, codeword, coordinate]
+                    )
+                lut[subquantizer, codeword] = -2.0 * dot
+
+        candidate_heap: list[tuple[float, int]] = []
+        rows_scanned = 0
+        chunk_rows = 65_536
+        for list_id in probe_lists.tolist():
+            coarse_dot = 0.0
+            for dimension in range(spec.dimensions):
+                coarse_dot += query64[dimension] * float(coarse[list_id, dimension])
+            constant = query_norm - 2.0 * coarse_dot + float(norm_lows[list_id])
+            begin = int(offsets[list_id])
+            end = int(offsets[list_id + 1])
+            rows_scanned += end - begin
+            for start in range(begin, end, chunk_rows):
+                stop = min(start + chunk_rows, end)
+                scores = constant + float(norm_scales[list_id]) * norm_codes[
+                    start:stop
+                ].astype(np.float64)
+                for subquantizer in range(spec.subquantizers):
+                    indexes = _code_indexes(codes, spec, start, stop, subquantizer)
+                    scores += lut[subquantizer, indexes]
+                if not bool(np.isfinite(scores).all()):
+                    raise ValueError("factorized residual scores differ")
+                for row_offset, score in enumerate(scores.tolist()):
+                    internal_id = int(ids[start + row_offset])
+                    pair = (-score, -internal_id)
+                    if len(candidate_heap) < selected_shortlist_width:
+                        heapq.heappush(candidate_heap, pair)
+                    elif pair > candidate_heap[0]:
+                        heapq.heapreplace(candidate_heap, pair)
+        ordered = sorted((-score, -internal_id) for score, internal_id in candidate_heap)
+        return CandidateResult(
+            ids=np.asarray([internal_id for _, internal_id in ordered], dtype="<u4"),
+            approximate_distances=np.asarray(
+                [distance for distance, _ in ordered], dtype="<f8"
+            ),
+            probe_lists=probe_lists,
+            evidence=CandidateEvidence(
+                backend="portable-float64",
+                rows_scanned=rows_scanned,
+                codes_bytes_scanned=rows_scanned * spec.code_bytes,
+                probe_count=selected_probe_count,
+                shortlist_width=selected_shortlist_width,
+            ),
+        )

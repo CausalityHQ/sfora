@@ -137,10 +137,12 @@ _FOLDABLE_LINEAR_EXPORTS = frozenset({"FoldableLinear"})
 
 _FACTORIZED_RESIDUAL_ANN_EXPORTS = frozenset(
     {
+        "CandidateResult",
         "FactorizedResidualArtifact",
         "FactorizedResidualComponents",
         "FactorizedResidualPostings",
         "FactorizedResidualSpec",
+        "PortableCandidateIndex",
         "VectorStoreIdentity",
         "write_factorized_residual_artifact",
     }
@@ -336,11 +338,13 @@ def __getattr__(name: str) -> object:
 
 
 __all__ = [
+    "CandidateResult",
     "ExperimentResult",
     "FactorizedResidualArtifact",
     "FactorizedResidualComponents",
     "FactorizedResidualPostings",
     "FactorizedResidualSpec",
+    "PortableCandidateIndex",
     "FoldableLinear",
     "average_compatible_model_states",
     "EncoderTrainingConfig",
