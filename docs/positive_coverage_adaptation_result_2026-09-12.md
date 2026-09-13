@@ -761,6 +761,37 @@ and records `201.1749613` seconds elapsed. Both diagnostics are claim-ineligible
 training partition, preserved 24 bytes per vector with no database sidecar, and did not touch the
 official test.
 
+### Codeword-uncertainty falsification
+
+A subsequent class-disjoint diagnostic tested whether query-dependent covariance features could
+correct ordinary OPQ24 ADC without changing database codes. Classes from the SOP training
+partition were assigned by SHA-256 to four disjoint roles: codec fitting, residual-moment
+estimation, coefficient fitting, and locked evaluation. Three fresh codecs used seeds 40, 41, and
+42. For each subquantizer codeword, the diagnostic estimated shrunk radial and tangential
+residual variances, then fitted two shared coefficients with a convex pair-ranking loss. The
+serving form folded the two terms into one lookup table per subcode, retaining exactly 24 bytes
+per database vector and no sidecar. A jointly permuted codeword-table control preserved the
+radial/tangential pair distribution.
+
+The fit converged numerically but not scientifically. The radial/tangential coefficients were
+`-1428.0530362 / -706.8945136`; the shuffled-control coefficients were similarly extreme at
+`-1480.7429105 / -641.8044258`. Mean baseline mAP@R on the locked class partition was
+`0.4657205159`, while both the real correction and shuffled control collapsed to exactly `0.0`
+for all three codec seeds. The paired treatment-minus-baseline effect was `-0.4657205159`, with
+one-sided 95% interval endpoints `-0.4763919637 / -0.4549484059`; treatment minus shuffled
+control was exactly zero. This rejects the tested unconstrained two-coefficient covariance
+correction as a useful standalone mechanism. The indistinguishable shuffled control indicates
+that the ranking fit exploited variance magnitude rather than transferable codeword geometry; it
+does not reject constrained code-dependent decoders or richer code interactions.
+
+The canonical 1,296,571-byte result has SHA-256
+`aba5aee707a39004ce32452c4454a184b2223576070186809043ee7c28d6f4e3`. Its prefit artifact was
+sealed before locked evaluation with SHA-256
+`7fdd466390b2c6d28b0e96dbc44b43f9e0d8bfe5ac49b404ee1616607314c2ed`. Independent receipt
+checks reproduced the per-codec and overall effects, classification, canonical newline, and
+script authority. The experiment is claim-ineligible, did not touch the SOP official test, and
+does not support a latency improvement claim.
+
 ## Deployable library composition
 
 The resulting candidate is a training-time composition, not a new serving representation:
