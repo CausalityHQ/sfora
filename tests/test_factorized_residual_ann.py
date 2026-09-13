@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import signal
 from dataclasses import replace
 from pathlib import Path
 
@@ -248,15 +249,30 @@ def test_vector_store_identity_rejects_schema_and_arithmetic_drift(
         replace(_store_identity(), **update)
 
 
+def test_vector_store_identity_rejects_unencodable_uint32_row_count() -> None:
+    rows = 2**32
+    with pytest.raises(ValueError, match="vector store identity differs"):
+        VectorStoreIdentity(
+            sha256="12" * 32,
+            logical_bytes=8 + rows * 4,
+            physical_bytes=8 + rows * 4,
+            rows=rows,
+            dimensions=4,
+            dtype="uint8",
+            header_bytes=8,
+            row_stride=4,
+            zero_padding_bytes=0,
+            generation="unencodable-row-count",
+        )
+
+
 def _components_and_postings() -> tuple[
     FactorizedResidualSpec,
     FactorizedResidualComponents,
     FactorizedResidualPostings,
 ]:
     spec = _spec()
-    coarse = np.array(
-        [[0.0, 0.0, 0.0, 0.0], [10.0, 10.0, 10.0, 10.0]], dtype="<f4"
-    )
+    coarse = np.array([[0.0, 0.0, 0.0, 0.0], [10.0, 10.0, 10.0, 10.0]], dtype="<f4")
     pq = np.zeros((2, 8, 2), dtype="<f4")
     pq[:, 1, 0] = 1.0
     components = FactorizedResidualComponents(spec, coarse, pq)
@@ -295,9 +311,10 @@ def test_writer_emits_exact_packed_norm_and_canonical_manifest_bytes(tmp_path: P
     )
     manifest_bytes = (destination / "manifest.json").read_bytes()
     manifest = json.loads(manifest_bytes)
-    assert manifest_bytes == (
-        json.dumps(manifest, sort_keys=True, separators=(",", ":")) + "\n"
-    ).encode()
+    assert (
+        manifest_bytes
+        == (json.dumps(manifest, sort_keys=True, separators=(",", ":")) + "\n").encode()
+    )
     assert manifest_sha256 == hashlib.sha256(manifest_bytes).hexdigest()
     assert manifest["resident_bytes"] == sum(role["bytes"] for role in manifest["roles"].values())
     assert manifest["vector_store_identity"]["sha256"] == "12" * 32
@@ -321,9 +338,7 @@ def test_writer_uses_ties_to_even_for_halfway_norm_code(tmp_path: Path) -> None:
         np.stack(
             (
                 np.zeros(510, dtype="<f4"),
-                np.concatenate(
-                    (np.ones(255, dtype="<f4"), np.zeros(255, dtype="<f4"))
-                ),
+                np.concatenate((np.ones(255, dtype="<f4"), np.zeros(255, dtype="<f4"))),
                 np.ones(510, dtype="<f4"),
                 np.zeros(510, dtype="<f4"),
             )
@@ -349,9 +364,7 @@ def test_writer_uses_ties_to_even_for_halfway_norm_code(tmp_path: Path) -> None:
     )
     destination = tmp_path / "rounding-tie"
 
-    write_factorized_residual_artifact(
-        destination, spec, components, postings, identity
-    )
+    write_factorized_residual_artifact(destination, spec, components, postings, identity)
 
     assert (destination / "norms.u8").read_bytes() == bytes((0, 128, 255))
 
@@ -505,15 +518,11 @@ def _single_dimension_norm_fixture(
 def test_writer_rejects_finite_parameters_whose_decoded_norm_overflows(
     tmp_path: Path,
 ) -> None:
-    spec, components, postings, identity = _single_dimension_norm_fixture(
-        np.float32(2.0e19)
-    )
+    spec, components, postings, identity = _single_dimension_norm_fixture(np.float32(2.0e19))
     destination = tmp_path / "decoded-overflow"
 
     with pytest.raises(ValueError, match="factorized residual norms differ"):
-        write_factorized_residual_artifact(
-            destination, spec, components, postings, identity
-        )
+        write_factorized_residual_artifact(destination, spec, components, postings, identity)
 
     assert not destination.exists()
 
@@ -522,15 +531,11 @@ def test_writer_rejects_positive_norm_range_that_underflows_stored_scale(
     tmp_path: Path,
 ) -> None:
     smallest_positive = np.nextafter(np.float32(0.0), np.float32(1.0))
-    spec, components, postings, identity = _single_dimension_norm_fixture(
-        smallest_positive
-    )
+    spec, components, postings, identity = _single_dimension_norm_fixture(smallest_positive)
     destination = tmp_path / "scale-underflow"
 
     with pytest.raises(ValueError, match="factorized residual norms differ"):
-        write_factorized_residual_artifact(
-            destination, spec, components, postings, identity
-        )
+        write_factorized_residual_artifact(destination, spec, components, postings, identity)
 
     assert not destination.exists()
 
@@ -543,9 +548,7 @@ def test_writer_rejects_manifest_exceeding_reader_limit_without_output(
     destination = tmp_path / "oversized-writer-manifest"
 
     with pytest.raises(ValueError, match="factorized residual artifact differs"):
-        write_factorized_residual_artifact(
-            destination, spec, components, postings, identity
-        )
+        write_factorized_residual_artifact(destination, spec, components, postings, identity)
 
     assert not destination.exists()
 
@@ -613,10 +616,41 @@ def test_artifact_close_releases_every_resource_and_retries_failed_mapping(
 
     assert closed_descriptors == [11, 10]
     assert not artifact._closed
+    with pytest.raises(ValueError, match="factorized residual artifact differs"):
+        artifact._acquire_search()
     artifact.close()
     assert artifact._closed
     assert retry_mapping.calls == 2
     assert successful_mapping.calls == 1
+
+
+def test_artifact_close_interruption_releases_closing_state() -> None:
+    artifact = FactorizedResidualArtifact(
+        spec=_spec(),
+        rows=4,
+        vector_store_identity=_store_identity(),
+        resident_bytes=0,
+        arrays={"sentinel": np.zeros(1, dtype=np.uint8)},
+        mappings=[],
+        descriptors=[],
+    )
+    artifact._acquire_search()
+    previous = signal.signal(
+        signal.SIGALRM,
+        lambda _signal, _frame: (_ for _ in ()).throw(TimeoutError("interrupt")),
+    )
+    signal.setitimer(signal.ITIMER_REAL, 0.02)
+    try:
+        with pytest.raises(TimeoutError, match="interrupt"):
+            artifact.close()
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, previous)
+
+    assert not artifact._closing
+    artifact._release_search()
+    artifact.close()
+    assert artifact._closed
 
 
 def test_artifact_close_never_retries_a_descriptor_after_close_error(
@@ -739,9 +773,7 @@ def test_artifact_open_rejects_reauthenticated_nonderived_norm_roles(
 
     decode_overflow = tmp_path / "norm-decode-overflow"
     _write_fixture_artifact(decode_overflow)
-    np.full(2, np.finfo(np.float32).max, dtype="<f4").tofile(
-        decode_overflow / "norm-scale.f32"
-    )
+    np.full(2, np.finfo(np.float32).max, dtype="<f4").tofile(decode_overflow / "norm-scale.f32")
     _reroot_role_in_manifest(decode_overflow, "norm-scale.f32")
 
     with pytest.raises(ValueError, match="factorized residual artifact differs"):
@@ -846,9 +878,7 @@ def test_portable_candidate_search_scores_selected_lists_and_sparse_shortlist(
 ) -> None:
     destination = tmp_path / "candidate-artifact"
     manifest_sha256 = _write_fixture_artifact(destination)
-    artifact = FactorizedResidualArtifact.open(
-        destination, manifest_sha256=manifest_sha256
-    )
+    artifact = FactorizedResidualArtifact.open(destination, manifest_sha256=manifest_sha256)
     index = PortableCandidateIndex(artifact)
 
     result = index.search(np.zeros(4, dtype=np.uint8))
@@ -929,9 +959,7 @@ def _pack_code_matrix(indexes: np.ndarray, bits: int) -> np.ndarray:
             bit = subquantizer * bits
             for value_bit in range(bits):
                 if value & (1 << value_bit):
-                    packed[row, (bit + value_bit) >> 3] |= 1 << (
-                        (bit + value_bit) & 7
-                    )
+                    packed[row, (bit + value_bit) >> 3] |= 1 << ((bit + value_bit) & 7)
     return packed
 
 
@@ -980,9 +1008,7 @@ def test_portable_candidate_search_matches_independent_factorized_oracle(
         postings,
         identity,
     )
-    artifact = FactorizedResidualArtifact.open(
-        destination, manifest_sha256=manifest_sha256
-    )
+    artifact = FactorizedResidualArtifact.open(destination, manifest_sha256=manifest_sha256)
     query = rng.normal(size=8).astype("<f4")
 
     result = PortableCandidateIndex(artifact).search(query)

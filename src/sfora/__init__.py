@@ -148,6 +148,14 @@ _FACTORIZED_RESIDUAL_ANN_EXPORTS = frozenset(
     }
 )
 
+_FACTORIZED_RESIDUAL_NATIVE_EXPORTS = frozenset(
+    {
+        "NativeBackend",
+        "NativeCandidateIndex",
+        "compile_factorized_residual_backend",
+    }
+)
+
 _MODEL_SOUP_EXPORTS = frozenset({"average_compatible_model_states"})
 
 _VECTOR_STORE_EXPORTS = frozenset(
@@ -295,6 +303,11 @@ def __getattr__(name: str) -> object:
         value = cast(object, getattr(module, name))
         globals()[name] = value
         return value
+    if name in _FACTORIZED_RESIDUAL_NATIVE_EXPORTS:
+        module = import_module("sfora.factorized_residual_native")
+        value = cast(object, getattr(module, name))
+        globals()[name] = value
+        return value
     if name in _MODEL_SOUP_EXPORTS:
         module = import_module("sfora.model_soup")
         value = cast(object, getattr(module, name))
@@ -364,8 +377,11 @@ __all__ = [
     "ExactSearchResult",
     "InsufficientCandidatesError",
     "MemoryVectorStore",
+    "NativeBackend",
+    "NativeCandidateIndex",
     "PreadVectorStore",
     "PortableCandidateIndex",
+    "compile_factorized_residual_backend",
     "FoldableLinear",
     "average_compatible_model_states",
     "EncoderTrainingConfig",
