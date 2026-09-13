@@ -162,6 +162,15 @@ _PRODUCT_QUANTIZATION_EXPORTS = frozenset(
     }
 )
 
+_PQ_CANDIDATE_SCORING_EXPORTS = frozenset(
+    {
+        "CompiledPqCandidateScorer",
+        "PqCandidateResult",
+        "PqCandidateScoringSpec",
+        "compile_pq_candidate_scorer",
+    }
+)
+
 _PROGRESSIVE_RESIDUAL_QUANTIZATION_EXPORTS = frozenset(
     {
         "ProgressiveCandidateResult",
@@ -267,6 +276,11 @@ def __getattr__(name: str) -> object:
         value = cast(object, getattr(module, name))
         globals()[name] = value
         return value
+    if name in _PQ_CANDIDATE_SCORING_EXPORTS:
+        module = import_module("sfora.pq_candidate_scoring")
+        value = cast(object, getattr(module, name))
+        globals()[name] = value
+        return value
     if name in _PROGRESSIVE_RESIDUAL_QUANTIZATION_EXPORTS:
         module = import_module("sfora.progressive_residual_quantization")
         value = cast(object, getattr(module, name))
@@ -314,6 +328,7 @@ __all__ = [
     "Join",
     "RetrievalReport",
     "compare",
+    "compile_pq_candidate_scorer",
     "evaluate",
     "grid",
     "HfPublishBundle",
@@ -328,12 +343,15 @@ __all__ = [
     "MethodMetrics",
     "PackedInt4Embeddings",
     "PackedInt8Embeddings",
+    "PqCandidateResult",
+    "PqCandidateScoringSpec",
     "ProjectionHeadTrainingConfig",
     "ProjectionHeadTrainingResult",
     "ProjectionTrainingConfig",
     "ProjectionTrainingResult",
     "ProbeScore",
     "ProductQuantizationSpec",
+    "CompiledPqCandidateScorer",
     "ProgressiveCandidateResult",
     "ProgressiveResidualCodes",
     "ProgressiveResidualQuantizer",

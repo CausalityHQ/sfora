@@ -93,7 +93,7 @@ Expose:
   calibration_candidates)`;
 - `score(queries, candidate_ordinals) -> ProgressiveCandidateResult` with the existing exact physical
   byte counters plus explicit boundary-reread bytes and backend evidence.
-- `PqCandidateScoringSpec(candidate_width, compiled_batch_rows, row_tile)` and
+- `PqCandidateScoringSpec(metric, candidate_width, compiled_batch_rows, row_tile)` and
   `compile_pq_candidate_scorer(base_quantizer, gallery_codes, spec, calibration_queries)` returning
   owned `int64[Q,K]` candidates plus physical padding, score, and backend evidence.
 

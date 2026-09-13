@@ -28,7 +28,7 @@
 - Modify: `src/sfora/__init__.py`
 
 **Interfaces:**
-- Produces: `PqCandidateScoringSpec(candidate_width, compiled_batch_rows, row_tile=64)`.
+- Produces: `PqCandidateScoringSpec(metric, candidate_width, compiled_batch_rows, row_tile=64)`.
 - Produces: `CompiledPqCandidateScorer` and `compile_pq_candidate_scorer`.
 - Returns owned candidate ordinals and backend/padding evidence without exposing full score matrices.
 
