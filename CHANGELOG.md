@@ -9,6 +9,9 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
+- Progressive residual quantization with physically nested bitplane prefixes, bounded candidate
+  reranking, exact byte accounting, and optional optimized-product-quantizer bases for angular and
+  squared-L2 retrieval.
 - Rate-matched product quantization primitives that compose train-only centered PCA with
   fixed-byte OPQ, strict portable artifacts, and deployment-identical ADC scoring.
 - `average_compatible_model_states`, a strict overflow-safe FP64 state-dict averaging primitive

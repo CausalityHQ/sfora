@@ -162,6 +162,18 @@ _PRODUCT_QUANTIZATION_EXPORTS = frozenset(
     }
 )
 
+_PROGRESSIVE_RESIDUAL_QUANTIZATION_EXPORTS = frozenset(
+    {
+        "ProgressiveCandidateResult",
+        "ProgressiveResidualCodes",
+        "ProgressiveResidualQuantizer",
+        "ProgressiveResidualSpec",
+        "fit_progressive_residual_quantizer",
+        "pack_residual_bitplanes",
+        "unpack_residual_prefix",
+    }
+)
+
 _REPRESENTATION_CEILING_EXPORTS = frozenset(
     {
         "AffineMap",
@@ -255,6 +267,11 @@ def __getattr__(name: str) -> object:
         value = cast(object, getattr(module, name))
         globals()[name] = value
         return value
+    if name in _PROGRESSIVE_RESIDUAL_QUANTIZATION_EXPORTS:
+        module = import_module("sfora.progressive_residual_quantization")
+        value = cast(object, getattr(module, name))
+        globals()[name] = value
+        return value
     if name in _REPRESENTATION_CEILING_EXPORTS:
         module = import_module("sfora.representation_ceiling")
         value = cast(object, getattr(module, name))
@@ -317,6 +334,10 @@ __all__ = [
     "ProjectionTrainingResult",
     "ProbeScore",
     "ProductQuantizationSpec",
+    "ProgressiveCandidateResult",
+    "ProgressiveResidualCodes",
+    "ProgressiveResidualQuantizer",
+    "ProgressiveResidualSpec",
     "RetrievalScore",
     "RemoteRunConfig",
     "RemoteRunPlan",
@@ -361,6 +382,7 @@ __all__ = [
     "fit_relational_linear_compaction",
     "fit_relational_linear_encoder",
     "fit_rate_matched_product_quantizer",
+    "fit_progressive_residual_quantizer",
     "apply_normalized_affine",
     "deterministic_class_partition",
     "fit_centered_pca",
@@ -402,6 +424,7 @@ __all__ = [
     "objective_display_name",
     "pack_int4_unit_embeddings",
     "pack_int8_unit_embeddings",
+    "pack_residual_bitplanes",
     "run_sentence_transformer_baseline",
     "run_sentence_transformer_model_suite",
     "run_encoder_ablation",
@@ -418,6 +441,7 @@ __all__ = [
     "train_embedding_table",
     "train_projection_head",
     "triplet_margin_loss",
+    "unpack_residual_prefix",
     "write_ablation_report",
     "write_experiment_report",
     "write_encoder_training_report",

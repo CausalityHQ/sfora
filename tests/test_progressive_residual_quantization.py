@@ -5,6 +5,7 @@ from dataclasses import FrozenInstanceError
 import pytest
 import torch
 
+import sfora
 from sfora.product_quantization import (
     OptimizedProductQuantizer,
     ProductQuantizationSpec,
@@ -20,6 +21,14 @@ from sfora.progressive_residual_quantization import (
     pack_residual_bitplanes,
     unpack_residual_prefix,
 )
+
+
+def test_progressive_codec_is_available_from_the_public_package() -> None:
+    assert sfora.ProgressiveResidualSpec is ProgressiveResidualSpec
+    assert sfora.ProgressiveResidualCodes is ProgressiveResidualCodes
+    assert sfora.ProgressiveResidualQuantizer is ProgressiveResidualQuantizer
+    assert sfora.ProgressiveCandidateResult is ProgressiveCandidateResult
+    assert sfora.fit_progressive_residual_quantizer is fit_progressive_residual_quantizer
 
 
 def test_progressive_spec_counts_physical_prefix_bytes() -> None:
