@@ -13,6 +13,7 @@ from sfora.product_quantization import (
     OptimizedProductQuantizer,
     ProductQuantizationSpec,
     ProductQuantizer,
+    fit_optimized_product_quantizer,
     fit_product_quantizer,
 )
 
@@ -556,6 +557,7 @@ def fit_progressive_residual_quantizer(
     *,
     seed: int,
     maximum_iterations: int,
+    rotation_iterations: int = 0,
 ) -> ProgressiveResidualQuantizer:
     """Fit the base codebooks from only the caller-supplied metric rows."""
 
@@ -565,18 +567,31 @@ def fit_progressive_residual_quantizer(
         or seed < 0
         or type(maximum_iterations) is not int
         or maximum_iterations < 1
+        or type(rotation_iterations) is not int
+        or rotation_iterations < 0
         or type(values) is not torch.Tensor
         or values.device.type != "cpu"
     ):
         raise ValueError("progressive residual fit differs")
     prepared = _prepare_metric_values(values, spec, device=torch.device("cpu"))
     try:
-        base = fit_product_quantizer(
-            prepared,
-            spec.base_spec,
-            seed=seed,
-            maximum_iterations=maximum_iterations,
-        )
+        if rotation_iterations:
+            base: ProductQuantizer | OptimizedProductQuantizer = (
+                fit_optimized_product_quantizer(
+                    prepared,
+                    spec.base_spec,
+                    seed=seed,
+                    maximum_iterations=maximum_iterations,
+                    rotation_iterations=rotation_iterations,
+                )
+            )
+        else:
+            base = fit_product_quantizer(
+                prepared,
+                spec.base_spec,
+                seed=seed,
+                maximum_iterations=maximum_iterations,
+            )
     except ValueError as error:
         raise ValueError("progressive residual fit differs") from error
     return ProgressiveResidualQuantizer(spec, base)

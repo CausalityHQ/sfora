@@ -403,6 +403,53 @@ def test_fit_prepares_only_caller_rows_and_is_seeded(monkeypatch: pytest.MonkeyP
     assert received[0][1:] == (17, 9)
 
 
+def test_fit_can_select_an_optimized_base_without_evaluation_inputs(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    received: list[tuple[torch.Tensor, int, int, int]] = []
+    base_spec = ProductQuantizationSpec(block_dimensions=(2,), codebook_size=2)
+    optimized = OptimizedProductQuantizer.from_components(
+        base_spec,
+        torch.eye(2, dtype=torch.float32),
+        (torch.tensor([[0.0, 0.0], [1.0, 1.0]], dtype=torch.float32),),
+    )
+
+    def fake_fit(
+        values: torch.Tensor,
+        spec: ProductQuantizationSpec,
+        *,
+        seed: int,
+        maximum_iterations: int,
+        rotation_iterations: int,
+    ) -> OptimizedProductQuantizer:
+        assert spec == base_spec
+        received.append((values.clone(), seed, maximum_iterations, rotation_iterations))
+        return optimized
+
+    monkeypatch.setattr(
+        "sfora.progressive_residual_quantization.fit_optimized_product_quantizer",
+        fake_fit,
+    )
+    values = torch.tensor([[3.0, 4.0], [5.0, 12.0]], dtype=torch.float32)
+
+    fitted = fit_progressive_residual_quantizer(
+        values,
+        ProgressiveResidualSpec(metric="angular", base_spec=base_spec),
+        seed=17,
+        maximum_iterations=9,
+        rotation_iterations=3,
+    )
+
+    assert type(fitted.base_quantizer) is OptimizedProductQuantizer
+    assert received[0][1:] == (17, 9, 3)
+    torch.testing.assert_close(
+        received[0][0],
+        torch.tensor([[0.6, 0.8], [5.0 / 13.0, 12.0 / 13.0]], dtype=torch.float32),
+        rtol=1e-6,
+        atol=1e-7,
+    )
+
+
 def test_codec_artifact_roundtrip_and_mutations() -> None:
     codec = _fixed_codec("angular")
     artifact = codec.export_artifact()
