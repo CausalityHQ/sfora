@@ -728,6 +728,39 @@ has SHA-256 `2ed683b58e644bb968464b8003e4c467a912835e1e0f2cabcf912c9b80c37733` a
 constraints matched exactly. The experiment is claim-ineligible and did not touch the SOP
 official test.
 
+### Query-correction falsification
+
+Two bounded diagnostics tested whether the remaining compression gap could be recovered without
+changing the 24-byte database codes. First, a ridge model predicted the OPQ reconstruction
+residual from the reconstructed vector on an 80/20 class-disjoint split of the SOP training
+partition. Its held-class coefficient of determination was only `0.0384378702`, above the frozen
+`0.02` continuation threshold but too small to establish retrieval benefit. Compression reduced
+per-query AP for `37.3597%` of queries, with a mean AP change of `-0.0203631003`. The canonical
+1,686-byte receipt has SHA-256
+`c40cde21a9ff8419ea7089ee07765e75d35e2e7822edb32a73e4d262fedfcf83`.
+
+A second diagnostic used a separate SHA-256-ordered 60/20/20 class split and three fresh codec
+seeds. It excluded the locked 20% audit classes from both fitting and retrieval. On the 11,966-row
+calibration partition, with the 35,521 fit rows included as distractors, standard L2 ADC averaged
+`0.4807903161` mAP@R. Removing the decoded-vector norm term and ranking the same codes by inner
+product fell to `0.4572409843`, a mean change of `-0.0235493318`; its one-sided 95% upper bound
+was still `-0.0213122673`. A transferred full 128-by-128 residual ridge map reached only
+`0.4607634408` (`-0.0200268753` versus L2 ADC). Even the deliberately optimistic MSE map fitted
+on those same calibration vectors reached only `0.4629578556`; its delta was
+`-0.0178324605`, with one-sided 95% upper bound `-0.0157474396`. The exact algebraic dot-product
+duality check differed by at most `1.11e-15`, and the structure-matched permuted-residual control
+did not improve the baseline.
+
+The second result therefore rejects inner-product rescoring and these MSE-derived global query
+maps as target-closing mechanisms. It does not reject every nonlinear or ranking-trained query
+map. More importantly, it shows that the decoded-vector norm term is useful ranking evidence:
+discarding it loses substantially more than the linear residual model can restore. The canonical
+4,127,338-byte receipt has SHA-256
+`b3ab0216c59c1f7bb95dbe15c8dff19c0eef0d3cf662460f59426cafb0ee8472`
+and records `201.1749613` seconds elapsed. Both diagnostics are claim-ineligible, used only the SOP
+training partition, preserved 24 bytes per vector with no database sidecar, and did not touch the
+official test.
+
 ## Deployable library composition
 
 The resulting candidate is a training-time composition, not a new serving representation:
