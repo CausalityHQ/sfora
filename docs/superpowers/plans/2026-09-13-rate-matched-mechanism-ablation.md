@@ -33,12 +33,12 @@ timing, strict receipt validation, and atomic publication. It does not alter the
 - Produces: `score_float_retrieval(queries, gallery, labels, *, batch_size, neighbor_width)`.
 - Produces: per-query AP@R, Recall@1, stable top-100 ordinals, and aggregate metrics.
 
-- [ ] Write tests for leave-self-out behavior, stable ties, R greater than one, bounded distance
+- [x] Write tests for leave-self-out behavior, stable ties, R greater than one, bounded distance
   calls, nonfinite rejection, and exact neighborhood overlap.
-- [ ] Run the focused tests and preserve the missing-interface RED.
-- [ ] Implement the bounded squared-L2 scorer by reusing `_lowest_distance_candidates`.
-- [ ] Run the focused tests and static checks to GREEN.
-- [ ] Commit the focused reusable scoring slice.
+- [x] Run the focused tests and preserve the missing-interface RED.
+- [x] Implement the bounded squared-L2 scorer by reusing `_lowest_distance_candidates`.
+- [x] Run the focused tests and static checks to GREEN.
+- [x] Commit the focused reusable scoring slice.
 
 ### Task 2: Frozen representation construction
 
@@ -109,4 +109,3 @@ timing, strict receipt validation, and atomic publication. It does not alter the
 - [ ] Run the exact SOP cell once; do not rerun or tune based on CUB/SOP results.
 - [ ] Record only verified findings, limitations, receipt hashes, and resource evidence.
 - [ ] Verify docs, commit, push to `master`, and confirm remote equality and a clean tree.
-

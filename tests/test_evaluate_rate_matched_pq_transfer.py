@@ -115,6 +115,38 @@ def test_score_adc_retrieval_computes_ap_over_more_than_one_positive() -> None:
     assert score["map_at_r"] == 7.0 / 8.0
 
 
+def test_score_float_retrieval_is_bounded_excludes_self_and_retains_neighbors() -> None:
+    values = torch.tensor(
+        [[0.0, 0.0], [1.0, 0.0], [-1.0, 0.0], [0.0, 2.0]],
+        dtype=torch.float32,
+    )
+    labels = (1, 2, 1, 2)
+
+    score = SUBJECT.score_float_retrieval(
+        values,
+        values,
+        labels,
+        batch_size=2,
+        neighbor_width=2,
+    )
+
+    assert score == {
+        "map_at_r": 0.25,
+        "neighbor_ordinals": ((1, 2), (0, 2), (0, 1), (0, 1)),
+        "per_query_ap": (0.0, 0.0, 1.0, 0.0),
+        "per_query_r1": (0.0, 0.0, 1.0, 0.0),
+        "r1": 0.25,
+    }
+    with pytest.raises(ValueError, match="float retrieval authority"):
+        SUBJECT.score_float_retrieval(
+            values,
+            values.clone().index_fill(0, torch.tensor([3]), torch.nan),
+            labels,
+            batch_size=2,
+            neighbor_width=2,
+        )
+
+
 def test_paired_class_bootstrap_interval_is_deterministic_and_clustered() -> None:
     candidate = (1.0, 1.0, 0.0, 0.0)
     baseline = (0.0, 0.0, 1.0, 1.0)

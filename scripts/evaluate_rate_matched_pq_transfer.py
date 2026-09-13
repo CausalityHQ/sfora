@@ -77,6 +77,12 @@ class AdcRetrievalScore(TypedDict):
     r1: float
 
 
+class FloatRetrievalScore(AdcRetrievalScore):
+    """Float retrieval evidence plus retained exact-neighbor ordinals."""
+
+    neighbor_ordinals: tuple[tuple[int, ...], ...]
+
+
 @dataclass(frozen=True, slots=True)
 class TransferArchive:
     """Authenticated normalized train/test embedding archive."""
@@ -298,6 +304,73 @@ def score_adc_retrieval(
             per_query_r1.append(float(labels[ranking[0]] == label))
     return AdcRetrievalScore(
         map_at_r=math.fsum(per_query_ap) / len(per_query_ap),
+        per_query_ap=tuple(per_query_ap),
+        per_query_r1=tuple(per_query_r1),
+        r1=math.fsum(per_query_r1) / len(per_query_r1),
+    )
+
+
+def score_float_retrieval(
+    queries: torch.Tensor,
+    gallery: torch.Tensor,
+    labels: tuple[int, ...],
+    *,
+    batch_size: int,
+    neighbor_width: int,
+) -> FloatRetrievalScore:
+    """Evaluate bounded exact squared-L2 retrieval with stable ordinal ties."""
+
+    if (
+        type(queries) is not torch.Tensor
+        or queries.dtype != torch.float32
+        or queries.ndim != 2
+        or type(gallery) is not torch.Tensor
+        or gallery.dtype != torch.float32
+        or gallery.ndim != 2
+        or gallery.shape != queries.shape
+        or queries.device != gallery.device
+        or not bool(torch.isfinite(queries).all())
+        or not bool(torch.isfinite(gallery).all())
+        or type(labels) is not tuple
+        or len(labels) != len(queries)
+        or any(type(label) is not int for label in labels)
+        or type(batch_size) is not int
+        or batch_size < 1
+        or type(neighbor_width) is not int
+        or neighbor_width < 1
+        or neighbor_width >= len(gallery)
+    ):
+        raise ValueError("float retrieval authority differs")
+    counts = Counter(labels)
+    if len(counts) < 2 or any(count < 2 for count in counts.values()):
+        raise ValueError("float retrieval authority differs")
+    retained = max(neighbor_width, max(counts.values()) - 1)
+    per_query_ap: list[float] = []
+    per_query_r1: list[float] = []
+    neighbor_ordinals: list[tuple[int, ...]] = []
+    for start in range(0, len(queries), batch_size):
+        stop = min(start + batch_size, len(queries))
+        batch = queries[start:stop]
+        distances = (batch[:, None, :] - gallery[None, :, :]).square().sum(dim=2)
+        distances[
+            torch.arange(stop - start, device=distances.device),
+            torch.arange(start, stop, device=distances.device),
+        ] = torch.inf
+        rankings = _lowest_distance_candidates(distances, retained).cpu().tolist()
+        for ranking, label in zip(rankings, labels[start:stop], strict=True):
+            positive_count = counts[label] - 1
+            found = 0
+            terms: list[float] = []
+            for rank, index in enumerate(ranking[:positive_count], start=1):
+                if labels[index] == label:
+                    found += 1
+                    terms.append(found / rank)
+            per_query_ap.append(math.fsum(terms) / positive_count)
+            per_query_r1.append(float(labels[ranking[0]] == label))
+            neighbor_ordinals.append(tuple(ranking[:neighbor_width]))
+    return FloatRetrievalScore(
+        map_at_r=math.fsum(per_query_ap) / len(per_query_ap),
+        neighbor_ordinals=tuple(neighbor_ordinals),
         per_query_ap=tuple(per_query_ap),
         per_query_r1=tuple(per_query_r1),
         r1=math.fsum(per_query_r1) / len(per_query_r1),
