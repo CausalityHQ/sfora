@@ -792,6 +792,42 @@ checks reproduced the per-codec and overall effects, classification, canonical n
 script authority. The experiment is claim-ineligible, did not touch the SOP official test, and
 does not support a latency improvement claim.
 
+### Query-aware code reassignment falsification
+
+A further diagnostic asked whether the frozen OPQ24 codebooks could preserve neighborhood
+distances better by changing only each database vector's 24 code assignments. SOP training
+classes were SHA-256-partitioned into disjoint codec, scale, unused development, and locked
+evaluation roles. For each database vector, the treatment minimized normalized reconstruction
+error plus squared distance error to 64 nearest and 64 uniformly sampled reference vectors from
+an 8,192-row codec-only bank. Coordinate descent used at most five sweeps and a hard 1.25-times
+reconstruction-error cap. A structure-matched control used 128 uniform references. Both arms
+kept exactly 24 bytes per vector, no sidecar, and the unchanged exact squared-L2 ADC serving
+kernel.
+
+On 12,062 locked evaluation queries, float retrieval scored `0.4827146585` mAP@R and
+`0.7497098325` R@1. Ordinary OPQ24 scored `0.4611755246 / 0.7360305090`. Query-aware recoding
+reached `0.4616978955 / 0.7338749793`: the mAP@R change was only `+0.0005223709`, with a
+class-bootstrap 95% interval of `[-0.0012799960, +0.0024070415]`, below the preregistered
+`+0.005` useful-effect threshold. The uniform-reference control scored
+`0.4585827861 / 0.7328801194`. Treatment exceeded that control by `+0.0031151094` mAP@R with
+interval `[+0.0014846757, +0.0047214853]`, showing that local reference structure supplied real
+signal, but not enough to improve reliably over ordinary OPQ24. Treatment changed at least one
+code for `99.7582%` of rows and raised mean reconstruction error from `0.1345737612` to
+`0.1517992225`; the control changed `99.8254%` and raised it to `0.1557965389`.
+
+The canonical 789,280-byte result has SHA-256
+`56e8dba8c053722c2d64e188428a1e838173180b1cf35fbb521a2febd2c2e3b2`; its 4,565,485-byte
+prefit artifact has SHA-256
+`e97f8909441340a9400e88a6b0c7397a8c46fcbcdad515209340a7ba0a7d15ea`. The exact experiment
+script had SHA-256 `319da3c8a92c4487aaf243308e3c8edb41f228375f263eae2fc3276b6af2c950`.
+Independent checks reproduced canonical framing, all four arm means, both paired effects, the
+classification `query-aware-recoding-insufficient`, repository cleanliness, and process/GPU
+cleanup. Total elapsed time was `206.8227560` seconds; treatment and control recoding took
+`79.1782665` and `77.0400126` seconds. This result rejects the tested frozen-codebook reassignment
+recipe, not query-aware codec training or other learned compressed representations. It is
+claim-ineligible, uses a newly observed training-class split, and did not touch the official SOP
+test.
+
 ## Deployable library composition
 
 The resulting candidate is a training-time composition, not a new serving representation:
