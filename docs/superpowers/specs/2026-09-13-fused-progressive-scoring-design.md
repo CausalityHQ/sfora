@@ -95,7 +95,9 @@ Expose:
   byte counters plus explicit boundary-reread bytes and backend evidence.
 - `PqCandidateScoringSpec(metric, candidate_width, compiled_batch_rows, row_tile)` and
   `compile_pq_candidate_scorer(base_quantizer, gallery_codes, spec, calibration_queries)` returning
-  owned `int64[Q,K]` candidates plus physical padding, score, and backend evidence.
+  owned `int64[Q,K]` candidates plus physical padding, score, backend, and an explicit
+  `calibrated-approximate` versus `eager-reference` membership contract. Calibration cannot certify
+  unseen query boundaries; compiled candidates are never described as reference-exact.
 
 CPU, unsupported accelerators, compile failures, dynamic geometry, and failed calibration use the eager
 path. No dataset loader, truth array, label, URI, or ANN router enters this module.
@@ -117,9 +119,11 @@ large-magnitude, and adversarial boundary cases. DGX screens require:
   and exact bytes read.
 
 Candidate tests additionally cover non-divisible gallery sizes, masked sentinels, CUDA-graph output
-reuse, OPQ query preparation outside the graph, and candidate-set equality. A returned ordinal may
-never address padding. Candidate-set disagreement triggers eager fallback; internal candidate order is
-canonicalized by score and ordinal only where downstream behavior consumes that order.
+reuse, OPQ query preparation outside the graph, and candidate-set overlap. A returned ordinal may
+never address padding. Candidate-set disagreement during calibration triggers eager fallback; a
+compiled result remains explicitly calibrated-approximate because later boundaries are not certified.
+Internal candidate order is canonicalized by score and ordinal only where downstream behavior consumes
+that order.
 
 The optimized residual-PQ and scalar controls must receive equivalent kernel optimization before any
 frontier claim.

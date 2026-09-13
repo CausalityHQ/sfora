@@ -30,7 +30,8 @@
 **Interfaces:**
 - Produces: `PqCandidateScoringSpec(metric, candidate_width, compiled_batch_rows, row_tile=64)`.
 - Produces: `CompiledPqCandidateScorer` and `compile_pq_candidate_scorer`.
-- Returns owned candidate ordinals and backend/padding evidence without exposing full score matrices.
+- Returns owned candidate ordinals and backend/padding evidence without exposing full score matrices;
+  compiled results explicitly report `calibrated-approximate` membership.
 
 - [ ] **Step 1: Write RED geometry, masking, and ownership tests**
 
@@ -60,8 +61,9 @@ Run the new file, existing PQ/progressive/evaluator tests, Ruff, strict mypy, py
 
 - [ ] **Step 6: Run one DGX CUDA differential**
 
-Require all 5,000 candidate IDs on GloVe and at least 4,999.999 mean overlap on SIFT, at least 2x speed,
-no sentinel IDs, and no hidden fallback. Record compilation separately.
+Require at least 4,999.999/5,000 mean overlap on both GloVe and SIFT, at least 2x speed, no sentinel
+IDs, no hidden fallback, and the explicit calibrated-approximate contract. Final top-100 membership and
+recall, rather than candidate overlap, remain the downstream quality gate. Record compilation separately.
 
 - [ ] **Step 7: Commit and push Task 0**
 

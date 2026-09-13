@@ -49,6 +49,7 @@ class PqCandidateResult:
     codes_bytes_scanned: int
     backend: Literal["compiled", "eager"]
     fallback_reason: str | None
+    membership_contract: Literal["calibrated-approximate", "eager-reference"]
 
     def __post_init__(self) -> None:
         if (
@@ -65,6 +66,12 @@ class PqCandidateResult:
             or type(self.backend) is not str
             or self.backend not in ("compiled", "eager")
             or (self.backend == "compiled") != (self.fallback_reason is None)
+            or type(self.membership_contract) is not str
+            or (self.backend, self.membership_contract)
+            not in (
+                ("compiled", "calibrated-approximate"),
+                ("eager", "eager-reference"),
+            )
         ):
             raise ValueError("PQ candidate result differs")
 
@@ -282,6 +289,9 @@ class CompiledPqCandidateScorer:
             codes_bytes_scanned=scanned_code_rows * code_width,
             backend=backend,
             fallback_reason=fallback_reason,
+            membership_contract=(
+                "calibrated-approximate" if backend == "compiled" else "eager-reference"
+            ),
         )
 
 

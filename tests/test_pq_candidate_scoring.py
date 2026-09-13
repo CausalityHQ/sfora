@@ -83,6 +83,7 @@ def test_compiled_candidate_scorer_masks_gallery_tail_and_matches_eager() -> Non
     assert result.codes_bytes_scanned == 4 * 4
     assert result.backend == "compiled"
     assert result.fallback_reason is None
+    assert result.membership_contract == "calibrated-approximate"
     assert bool((result.ordinals < len(gallery_codes)).all())
 
 
@@ -188,6 +189,7 @@ def test_candidate_scorer_falls_back_when_calibration_membership_differs() -> No
     assert result.ordinals.tolist() == [[1, 0], [2, 0]]
     assert result.backend == "eager"
     assert result.fallback_reason == "calibration-membership-differs"
+    assert result.membership_contract == "eager-reference"
 
 
 def test_candidate_scorer_falls_back_when_compilation_fails() -> None:
