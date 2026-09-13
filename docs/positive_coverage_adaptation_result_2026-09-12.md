@@ -828,6 +828,49 @@ recipe, not query-aware codec training or other learned compressed representatio
 claim-ineligible, uses a newly observed training-class split, and did not touch the official SOP
 test.
 
+### Matched OPQ rate-quality diagnostic
+
+A matched rate curve then tested whether the remaining loss was primarily caused by the
+24-byte budget. It used the same SHA-256 class partition as the query-aware diagnostic but
+constructed the representation from the externally authenticated five-seed positive-coverage
+state average. All four OPQ codecs used seed 50, twenty k-means iterations, four rotation
+iterations, balanced blocks, the same codec-fitting classes, and the same locked evaluation
+classes. The prefit states and codes were sealed before any evaluation metric was computed.
+
+| Representation | mAP@R | Recall@1 | Mean held-class reconstruction error |
+|---|---:|---:|---:|
+| Float 128D | 0.4841187702 | 0.7492124026 | n/a |
+| OPQ16 | 0.4374533988 | 0.7127342066 | 0.2242633253 |
+| OPQ24 | 0.4608832835 | 0.7329630244 | 0.1295419484 |
+| OPQ32 | 0.4731006865 | 0.7409219035 | 0.0741471350 |
+| OPQ48 | 0.4797583627 | 0.7461449179 | 0.0236199480 |
+
+Relative to OPQ24, OPQ32 gained `+0.0122174030` mAP@R with a two-width
+Bonferroni-adjusted class-bootstrap interval of `[+0.0097059637, +0.0147653936]`.
+OPQ48 gained `+0.0188750792`, interval `[+0.0164805061, +0.0213116813]`.
+The float-to-OPQ24 gap was `0.0232354867`. The direct paired contrast for recovering 80% of
+that gap was negative for OPQ32, with interval `[-0.0081431384, -0.0046256356]`, and
+inconclusive for OPQ48, with interval `[-0.0010153648, +0.0016159291]`. The registered
+classification was therefore `rate-helps-without-closing-gap`. All four float replays matched
+exactly and the point estimates were monotone with rate.
+
+At 100 million database rows, the raw payload alone is 2.4 GB for OPQ24, 3.2 GB for OPQ32,
+and 4.8 GB for OPQ48. OPQ48 violates the 3-GiB serving envelope outright. OPQ32 is only
+21,225,472 bytes below 3 GiB before codebooks, routing, identifiers, or runtime workspace, so it
+is a diagnostic rather than a feasible deployment under the current total-memory constraint.
+The result shows that additional code rate contains substantial useful information, but it does
+not establish that a larger fixed-width code is deployable or that rate alone can close the gap.
+
+The canonical 983,722-byte result has SHA-256
+`4b636fc32e77801e605a113d0751058344bb7e20e06a37be39ec5a83a8632ee6`; its
+7,966,137-byte prefit seal has SHA-256
+`ea2ae22d36ac39b70d0bdffd5212dadead677d49f2fe50e2be6c89dae4985a49`.
+The exact experiment script had SHA-256
+`eddab5af84d456a4cd1ea936bce2c24ef4cf4999eb395423d7b00ab1497aec74`.
+The run took `203.0818869` seconds, did not touch the SOP official test, and is
+claim-ineligible. The evaluation split had already been observed by the preceding diagnostic;
+this result is causal guidance for codec design, not independent quality evidence.
+
 ## Deployable library composition
 
 The resulting candidate is a training-time composition, not a new serving representation:
