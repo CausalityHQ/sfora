@@ -911,6 +911,46 @@ The exact experiment script had SHA-256
 The run took `58.0877814` seconds, used no official SOP test data, and left the DGX process,
 GPU, and memory-pressure state clear.
 
+### Reduced-dimension fixed-rate diagnostic
+
+The next diagnostic fit a PCA basis using only the codec-fitting classes, sealed that basis before
+evaluation, and measured normalized float retrieval after projection. Relative to the 128D float
+reference (`0.4841187702` mAP@R / `0.7492124026` Recall@1), PCA96 reached
+`0.4871403004` / `0.7543525120` and PCA80 reached `0.4854445301` /
+`0.7530260322`. PCA64 reached `0.4790417903` / `0.7470568728`; its mAP@R
+familywise lower delta was `-0.0090229624`, outside the registered `-0.006` preservation
+envelope. PCA48 failed clearly. The preregistered classification was therefore
+`pca-80-dimension-live`. The canonical 782,676-byte result has SHA-256
+`d5d3fec2956fdbab09ecaf888178b7a0260d1a117529ea037a2ea4ae54426283`; the
+68,125-byte prefit seal has SHA-256
+`f48e5ff171fb0af1ffcf0a80d690a254ee161bc612710331798e8a6a347e71f1`.
+
+Applying the same seed-50, 24-block, 256-centroid OPQ contract to PCA80 then produced
+`0.4742034889` mAP@R and `0.7441551981` Recall@1 at the same 24-byte database-code
+width. Against the 128D OPQ24 baseline, the paired gains were `+0.0133202054` mAP@R,
+simultaneous familywise interval `[+0.0091715955, +0.0174823216]`, and
+`+0.0111921738` Recall@1, interval `[+0.0044515793, +0.0180063055]`. These gains
+are established under the registered 100,000-replicate class bootstrap. The point estimates also
+exceeded 128D OPQ32 (`0.4731006865` / `0.7409219035`) while using 25% fewer code
+bytes. For the stronger target of recovering 80% of OPQ32's gain over OPQ24, the PCA80 arm's
+mAP@R lower bound was positive (`+0.0000032532`), while Recall@1 remained inconclusive with
+lower bound `-0.0010911794`. Its reduced-space reconstruction error was `0.0556946136`.
+
+PCA96+OPQ24 was materially weaker at `0.4658085466` / `0.7383518488`, showing that
+the result is not explained by projection alone: the 80D representation gives the fixed 192-bit
+codec materially more rate per retained dimension while discarding directions that harmed float
+retrieval. The registered classification was `pca80-opq24-beats-opq24`.
+
+The canonical 395,780-byte PCA+OPQ result has SHA-256
+`6e28be3c355688de78a178246fd6914efa26b6acf916d9965819b1e334e069ef`; its
+3,114,253-byte prefit seal has SHA-256
+`0a9f693de860c99367e72c70c3c4cf2be4e8351e78d73eb5aefc4338c0905c79`.
+The exact experiment script had SHA-256
+`f16fd71d7bbb6645b6d4fa85b635706b16aed518bfee5362b84d77f58db28b3a`.
+The run took `90.3478589` seconds. Both reduced-dimension diagnostics used an already observed
+split and are claim-ineligible; they justify a generic library implementation and independent
+replication, not a final SOTA claim.
+
 ## Deployable library composition
 
 The resulting candidate is a training-time composition, not a new serving representation:
