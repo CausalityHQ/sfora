@@ -236,6 +236,70 @@ def ann_benchmark_recall_hits(
     return hits
 
 
+def ann_benchmark_containment_hits(
+    dataset: AnnBenchmarkDataset,
+    candidate_ordinals: np.ndarray,
+    *,
+    query_ordinals: np.ndarray,
+    candidate_width: int,
+    truth_width: int,
+) -> np.ndarray:
+    """Count native-distance truth hits anywhere in each candidate prefix."""
+
+    if (
+        type(dataset) is not AnnBenchmarkDataset
+        or type(candidate_ordinals) is not np.ndarray
+        or candidate_ordinals.dtype != np.int64
+        or candidate_ordinals.ndim != 2
+        or candidate_ordinals.shape[0] < 1
+        or candidate_ordinals.shape[1] < 1
+        or not candidate_ordinals.flags.c_contiguous
+        or type(query_ordinals) is not np.ndarray
+        or query_ordinals.dtype != np.int64
+        or query_ordinals.ndim != 1
+        or query_ordinals.shape != (candidate_ordinals.shape[0],)
+        or not query_ordinals.flags.c_contiguous
+        or len(np.unique(query_ordinals)) != len(query_ordinals)
+        or bool((query_ordinals < 0).any())
+        or bool((query_ordinals >= dataset.test.shape[0]).any())
+        or type(candidate_width) is not int
+        or not 1 <= candidate_width <= candidate_ordinals.shape[1]
+        or type(truth_width) is not int
+        or not 1 <= truth_width <= dataset.truth_distances.shape[1]
+        or bool((candidate_ordinals < 0).any())
+        or bool((candidate_ordinals >= dataset.train.shape[0]).any())
+    ):
+        raise ValueError("ANN-Benchmarks containment differs")
+    ordered = np.sort(candidate_ordinals, axis=1)
+    if candidate_ordinals.shape[1] > 1 and bool(
+        (ordered[:, 1:] == ordered[:, :-1]).any()
+    ):
+        raise ValueError("ANN-Benchmarks containment differs")
+
+    hits = np.empty(candidate_ordinals.shape[0], dtype=np.int64)
+    thresholds = (
+        dataset.truth_distances[query_ordinals, truth_width - 1].astype(np.float64) + 1e-3
+    )
+    for start in range(0, candidate_ordinals.shape[0], 64):
+        stop = min(start + 64, candidate_ordinals.shape[0])
+        selected = dataset.train[
+            candidate_ordinals[start:stop, :candidate_width]
+        ].astype(np.float64)
+        queries = dataset.test[query_ordinals[start:stop]].astype(np.float64)
+        if dataset.metric == "angular":
+            query_norms = np.linalg.norm(queries, axis=1)
+            selected_norms = np.linalg.norm(selected, axis=2)
+            distances = 1.0 - np.einsum("qkd,qd->qk", selected, queries) / (
+                selected_norms * query_norms[:, None]
+            )
+        else:
+            delta = selected - queries[:, None, :]
+            distances = np.sqrt(np.einsum("qkd,qkd->qk", delta, delta))
+        raw_hits = (distances <= thresholds[start:stop, None]).sum(axis=1)
+        hits[start:stop] = np.minimum(raw_hits, truth_width)
+    return hits
+
+
 def candidate_containment_hits(
     candidate_ordinals: np.ndarray,
     truth_ordinals: np.ndarray,

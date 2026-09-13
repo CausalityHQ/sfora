@@ -203,6 +203,28 @@ def test_ann_benchmark_recall_scores_an_explicit_query_subset(tmp_path: Path) ->
     assert hits.tolist() == [2]
 
 
+def test_ann_benchmark_containment_scores_all_candidates_with_truth_ties(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "sift-like.hdf5"
+    digest = _write_ann_benchmark_fixture(path, metric="euclidean")
+    dataset = SUBJECT.load_ann_benchmark(
+        path,
+        expected_sha256=digest,
+        expected_metric="squared_l2",
+    )
+
+    hits = SUBJECT.ann_benchmark_containment_hits(
+        dataset,
+        np.array([[3, 0, 2], [0, 3, 1]], dtype=np.int64),
+        query_ordinals=np.array([0, 1], dtype=np.int64),
+        candidate_width=3,
+        truth_width=2,
+    )
+
+    assert hits.tolist() == [2, 2]
+
+
 @pytest.mark.parametrize(
     ("returned", "count"),
     [
