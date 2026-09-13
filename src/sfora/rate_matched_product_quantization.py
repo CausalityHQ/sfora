@@ -12,12 +12,13 @@ from sfora.product_quantization import (
     OptimizedProductQuantizer,
     ProductQuantizationSpec,
     fit_optimized_product_quantizer,
+    fit_product_quantizer,
 )
 from sfora.representation_ceiling import fit_centered_pca
 
 
 class RateMatchedProductQuantizer(nn.Module):
-    """A fitted normalized linear representation followed by a fixed-byte OPQ codec."""
+    """A fitted normalized linear representation followed by a fixed-byte PQ codec."""
 
     _mean: torch.Tensor
     _components: torch.Tensor
@@ -61,8 +62,15 @@ class RateMatchedProductQuantizer(nn.Module):
         self.register_buffer("_components", components.detach().clone().contiguous())
         self.quantizer = quantizer
         self.quantizer.requires_grad_(False)
+        self._uses_rotation = not torch.equal(
+            rotation,
+            torch.eye(spec.dimensions, dtype=torch.float32, device=rotation.device),
+        )
         self.register_load_state_dict_pre_hook(  # type: ignore[no-untyped-call]
             self._validate_checkpoint
+        )
+        self.register_load_state_dict_post_hook(  # type: ignore[no-untyped-call]
+            self._refresh_rotation_profile
         )
 
     def _apply(
@@ -151,6 +159,14 @@ class RateMatchedProductQuantizer(nn.Module):
         ):
             raise RuntimeError("rate-matched checkpoint authority differs")
 
+    def _refresh_rotation_profile(self, module: nn.Module, incompatible_keys: object) -> None:
+        del module, incompatible_keys
+        rotation = self.quantizer._rotation
+        self._uses_rotation = not torch.equal(
+            rotation,
+            torch.eye(self.reduced_dimensions, dtype=torch.float32, device=rotation.device),
+        )
+
     @classmethod
     def from_components(
         cls,
@@ -194,6 +210,12 @@ class RateMatchedProductQuantizer(nn.Module):
         """Return the exact tensor bytes shared by every encoded vector."""
 
         return sum(value.numel() * value.element_size() for value in self.state_dict().values())
+
+    @property
+    def uses_rotation(self) -> bool:
+        """Return whether deployment requires a learned OPQ rotation."""
+
+        return self._uses_rotation
 
     def detached_mean(self) -> torch.Tensor:
         """Return a canonical CPU copy of the fitted centering vector."""
@@ -315,7 +337,10 @@ class RateMatchedProductQuantizer(nn.Module):
         """
 
         with torch.no_grad():
-            return self.quantizer.hard_encode(self.prepare_queries(values))
+            prepared = self.prepare_queries(values)
+            if not self.uses_rotation:
+                return self.quantizer.quantizer.hard_encode(prepared)
+            return self.quantizer.hard_encode(prepared)
 
     def score_prepared_codes(
         self, prepared_queries: torch.Tensor, gallery_codes: torch.Tensor
@@ -327,6 +352,10 @@ class RateMatchedProductQuantizer(nn.Module):
         """
 
         with torch.no_grad():
+            if not self.uses_rotation:
+                return self.quantizer.quantizer.asymmetric_squared_distances(
+                    prepared_queries, gallery_codes
+                )
             return self.quantizer.asymmetric_squared_distances(prepared_queries, gallery_codes)
 
     def score_codes(self, queries: torch.Tensor, gallery_codes: torch.Tensor) -> torch.Tensor:
@@ -339,6 +368,8 @@ class RateMatchedProductQuantizer(nn.Module):
         """Decode hard codes in normalized reduced coordinates."""
 
         with torch.no_grad():
+            if not self.uses_rotation:
+                return self.quantizer.quantizer.hard_decode(codes)
             return self.quantizer.hard_decode(codes)
 
 
@@ -373,25 +404,37 @@ def fit_rate_matched_product_quantizer(
         or type(maximum_iterations) is not int
         or maximum_iterations < 1
         or type(rotation_iterations) is not int
-        or rotation_iterations < 1
+        or rotation_iterations < 0
     ):
         raise ValueError("rate-matched fit authority differs")
     try:
         projection = fit_centered_pca(values, dimensions=spec.dimensions)
         prepared = projection.apply(values)
-        quantizer = fit_optimized_product_quantizer(
-            prepared,
-            spec,
-            seed=seed,
-            maximum_iterations=maximum_iterations,
-            rotation_iterations=rotation_iterations,
-        )
+        if rotation_iterations == 0:
+            plain_quantizer = fit_product_quantizer(
+                prepared,
+                spec,
+                seed=seed,
+                maximum_iterations=maximum_iterations,
+            )
+            rotation = torch.eye(spec.dimensions, dtype=torch.float32)
+            codebooks = plain_quantizer.detached_codebooks()
+        else:
+            optimized_quantizer = fit_optimized_product_quantizer(
+                prepared,
+                spec,
+                seed=seed,
+                maximum_iterations=maximum_iterations,
+                rotation_iterations=rotation_iterations,
+            )
+            rotation = optimized_quantizer.detached_rotation()
+            codebooks = optimized_quantizer.detached_codebooks()
     except ValueError as error:
         raise ValueError("rate-matched fit authority differs") from error
     return RateMatchedProductQuantizer.from_components(
         mean=projection.mean,
         components=projection.components,
         spec=spec,
-        rotation=quantizer.detached_rotation(),
-        codebooks=quantizer.detached_codebooks(),
+        rotation=rotation,
+        codebooks=codebooks,
     )

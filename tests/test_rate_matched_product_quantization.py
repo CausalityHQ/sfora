@@ -365,6 +365,29 @@ def test_rate_matched_fit_is_deterministic_and_dataset_agnostic() -> None:
         torch.testing.assert_close(value, second.state_dict()[name], rtol=0.0, atol=0.0)
 
 
+def test_rate_matched_fit_supports_rotation_free_plain_pq_profile() -> None:
+    generator = torch.Generator().manual_seed(41)
+    values = torch.randn((32, 6), generator=generator, dtype=torch.float32)
+    spec = ProductQuantizationSpec(block_dimensions=(2, 2), codebook_size=4)
+
+    codec = fit_rate_matched_product_quantizer(
+        values,
+        spec,
+        seed=7,
+        maximum_iterations=5,
+        rotation_iterations=0,
+    )
+
+    torch.testing.assert_close(
+        codec.quantizer.detached_rotation(),
+        torch.eye(4, dtype=torch.float32),
+        rtol=0.0,
+        atol=0.0,
+    )
+    assert codec.uses_rotation is False
+    assert codec.encode(values[:7]).shape == (7, 2)
+
+
 @pytest.mark.parametrize(
     ("mean", "components"),
     (
@@ -433,7 +456,7 @@ def test_rate_matched_fit_rejects_invalid_fit_matrices(values: torch.Tensor) -> 
     (
         {"seed": True, "maximum_iterations": 2, "rotation_iterations": 1},
         {"seed": 1, "maximum_iterations": 0, "rotation_iterations": 1},
-        {"seed": 1, "maximum_iterations": 2, "rotation_iterations": 0},
+        {"seed": 1, "maximum_iterations": 2, "rotation_iterations": -1},
     ),
 )
 def test_rate_matched_fit_rejects_invalid_optimization_contract(kwargs: dict[str, object]) -> None:
