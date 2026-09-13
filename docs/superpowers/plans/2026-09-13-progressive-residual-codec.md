@@ -62,7 +62,7 @@ Expected: collection failure for the missing module or missing interfaces.
 
 - [ ] **Step 4: Implement only wire types and packing**
 
-Use tensor shifts and fixed byte weights; never serialize through Python integer lists. Store residual planes as contiguous `uint8[N, 8, ceil(D/8)]`, with planes ordered from bit 7 to bit 0. Validate concrete types and zero padding in one private helper reused by packing, unpacking, and `ProgressiveResidualCodes`.
+Use tensor shifts and fixed byte weights; never serialize through Python integer lists. Pack eight planes once, then physically retain only the registered maximum `B` as contiguous `uint8[N, B, ceil(D/8)]`, with planes ordered from bit 7 toward bit 0. Validate concrete types, stored width, and zero padding in helpers reused by packing, unpacking, and `ProgressiveResidualCodes`; a lower-rate scorer gathers only its requested prefix.
 
 - [ ] **Step 5: Run focused GREEN and static checks**
 

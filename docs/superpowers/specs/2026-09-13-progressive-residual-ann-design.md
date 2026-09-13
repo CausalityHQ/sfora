@@ -126,7 +126,8 @@ the adaptive claim fails and the fixed-rate codec remains valid.
 Add `src/sfora/progressive_residual_quantization.py` with:
 
 - `ProgressiveResidualSpec`: metric, base PQ geometry, maximum residual planes;
-- `ProgressiveResidualCodes`: packed base codes, float16 scales, and plane-major residual bytes;
+- `ProgressiveResidualCodes`: packed base codes, float16 scales, and row-major residual records
+  containing only the registered maximum number of MSB-first planes;
 - `ProgressiveResidualQuantizer`: validated encode, prefix decode, candidate score, export, and
   restore operations;
 - `fit_progressive_residual_quantizer`: deterministic train-only fitting.
