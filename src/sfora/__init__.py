@@ -183,6 +183,13 @@ _PROGRESSIVE_RESIDUAL_QUANTIZATION_EXPORTS = frozenset(
     }
 )
 
+_PROGRESSIVE_RESIDUAL_SCORING_EXPORTS = frozenset(
+    {
+        "ProgressiveScoringSpec",
+        "progressive_candidate_scores",
+    }
+)
+
 _REPRESENTATION_CEILING_EXPORTS = frozenset(
     {
         "AffineMap",
@@ -286,6 +293,11 @@ def __getattr__(name: str) -> object:
         value = cast(object, getattr(module, name))
         globals()[name] = value
         return value
+    if name in _PROGRESSIVE_RESIDUAL_SCORING_EXPORTS:
+        module = import_module("sfora.progressive_residual_scoring")
+        value = cast(object, getattr(module, name))
+        globals()[name] = value
+        return value
     if name in _REPRESENTATION_CEILING_EXPORTS:
         module = import_module("sfora.representation_ceiling")
         value = cast(object, getattr(module, name))
@@ -331,6 +343,7 @@ __all__ = [
     "compile_pq_candidate_scorer",
     "evaluate",
     "grid",
+    "progressive_candidate_scores",
     "HfPublishBundle",
     "HfPublishConfig",
     "HfPublishResult",
@@ -356,6 +369,7 @@ __all__ = [
     "ProgressiveResidualCodes",
     "ProgressiveResidualQuantizer",
     "ProgressiveResidualSpec",
+    "ProgressiveScoringSpec",
     "RetrievalScore",
     "RemoteRunConfig",
     "RemoteRunPlan",
