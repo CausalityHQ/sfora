@@ -951,6 +951,62 @@ The run took `90.3478589` seconds. Both reduced-dimension diagnostics used an al
 split and are claim-ineligible; they justify a generic library implementation and independent
 replication, not a final SOTA claim.
 
+### Rate-matched transfer replication
+
+The released generic `RateMatchedProductQuantizer` was then evaluated without changing its
+PCA80, 24-byte, seed-50, 256-codeword, twenty-Lloyd-iteration, or four-OPQ-alternation contract.
+Both studies fit every transform and codebook on the official training split only, normalized the
+source embeddings identically, evaluated symmetric leave-self-out retrieval on the official test
+split, retained every query's AP@R and Recall@1, and used 10,000 paired complete-class bootstrap
+resamples. The frozen controls were ordinary OPQ24 and OPQ32 on the original 768-dimensional
+embedding. The preregistered rule required a positive lower 95% mAP@R bound against OPQ24 and a
+lower bound of at least `-0.005` against OPQ32 on both domains.
+
+| Dataset and fixed representation | mAP@R | Recall@1 | Fit seconds | Full evaluation seconds |
+|---|---:|---:|---:|---:|
+| SOP UniCOM-B16, PCA80+OPQ24 | 0.3591872820 | 0.6359789759 | 99.8625 | 7.8275 |
+| SOP UniCOM-B16, OPQ24 | 0.3328050437 | 0.5990711051 | 181.9070 | 8.9210 |
+| SOP UniCOM-B16, OPQ32 | 0.3581598277 | 0.6306072527 | 190.0510 | 11.2160 |
+| CUB-200-2011 UniCOM-B16, PCA80+OPQ24 | 0.5336201302 | 0.8485820392 | 10.6537 | 0.6057 |
+| CUB-200-2011 UniCOM-B16, OPQ24 | 0.4932416740 | 0.8273126266 | 18.8440 | 0.2378 |
+| CUB-200-2011 UniCOM-B16, OPQ32 | 0.5152926956 | 0.8426738690 | 19.6187 | 0.2547 |
+
+On SOP, PCA80+OPQ24 improved over OPQ24 by `+0.0263822383` mAP@R with paired 95%
+interval `[+0.0246827582, +0.0281060973]`. Against OPQ32 it changed mAP@R by
+`+0.0010274544`, interval `[-0.0006535119, +0.0026215558]`, satisfying the frozen
+noninferiority margin with 25% fewer database-code bytes. Its Recall@1 improvements over OPQ24
+and OPQ32 were respectively `+0.0369078708`, interval
+`[+0.0339492264, +0.0398932751]`, and `+0.0053717232`, interval
+`[+0.0026512536, +0.0081614259]`.
+
+On CUB, PCA80+OPQ24 improved over OPQ24 by `+0.0403784563` mAP@R, interval
+`[+0.0329170326, +0.0482982879]`, and exceeded OPQ32 by `+0.0183274347`, interval
+`[+0.0124486066, +0.0242615769]`. The corresponding Recall@1 changes were
+`+0.0212694126`, interval `[+0.0096626547, +0.0325906164]`, and
+`+0.0059081702`, interval `[-0.0023625004, +0.0143826462]`. Both frozen domains
+therefore pass the registered mAP@R replication rule.
+
+The candidate stores 24 bytes per database vector and 356,352 bytes of fitted parameters,
+versus 32 bytes and 3,145,728 parameter bytes for original-space OPQ32. On the 60,502-row SOP
+evaluation its complete encode-and-ADC loop was about 30% shorter than OPQ32. On the much smaller
+5,924-row CUB evaluation it was slower because fixed projection overhead dominated; these are
+diagnostic full-corpus durations, not candidate-index or serving p99 measurements. The SOP
+single-threaded fitting process reached roughly 7.5 GiB RSS because the existing OPQ fitter makes
+full-population assignments. That is an engineering target for bounded batching, not a serving
+memory result.
+
+The canonical SOP receipt is 2,692,774 bytes with SHA-256
+`a6e001ac4d2b8381c04febd00968cb9453086fa3352fd0e93710afc23b335753`; the CUB
+receipt is 409,975 bytes with SHA-256
+`c64ea3e645bb2438562056db48fd1d90c8bf26c1402a4e21970cefcfd56d7e56`. Both were
+produced from source commit `ef8ad13752593689c8b847b3e487bb052dd00156`, authenticated the
+complete input archive before parsing, passed the evaluator's strict recomputation against their
+test labels, and left DGX pressure and process state clear. The receipts remain
+`claim_eligible=false`: the
+method now has replicated rate-quality evidence across two domains, but a performance or SOTA
+claim still requires indexed serving p99, end-to-end memory, an additional embedding backbone,
+and comparison with production ANN baselines.
+
 ## Deployable library composition
 
 The resulting candidate is a training-time composition, not a new serving representation:

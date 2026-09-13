@@ -101,22 +101,24 @@ git diff --check
 - Consumes: committed evaluator/source hashes and authenticated embedding archives.
 - Produces: paired quality contrasts, storage comparison, diagnostic throughput, and an explicit replication classification.
 
-- [ ] **Step 1: Commit and push the evaluator before opening evaluation rows**
+- [x] **Step 1: Commit and push the evaluator before opening evaluation rows**
 
 Run the complete focused/static gate, stage only the evaluator/test/plan, commit with configured operator identity and no attribution trailers, push `HEAD:master`, and verify local HEAD, `origin/master`, and `git ls-remote origin refs/heads/master` are identical.
 
-- [ ] **Step 2: Run the fixed SOP cell once**
+- [x] **Step 2: Run the fixed SOP cell once**
 
 Use the authenticated UniCOM-B16 SOP archive, exact fixed configuration above, CUDA, bounded batches, and an absent output. Preserve the original terminal and canonical result SHA-256. Do not rerun based on outcome.
 
-- [ ] **Step 3: Run one fixed second-domain cell once**
+- [x] **Step 3: Run one fixed second-domain cell once**
 
 Use the same configuration and scoring semantics on the frozen CUB-200-2011 UniCOM-B16 archive above. Do not change rank, bytes, seeds, iteration counts, or gates after the SOP result.
 
-- [ ] **Step 4: Classify without overclaim**
+- [x] **Step 4: Classify without overclaim**
 
 Call the rate-matching mechanism replicated only if both frozen cells satisfy the exact paired interval rules above at 25% lower code storage than OPQ32. Otherwise report which representation/domain or comparison fails. Regardless of quality, keep the result diagnostic until candidate-index p99 and total 100M-row memory are measured.
 
-- [ ] **Step 5: Verify and commit the evidence note**
+- [x] **Step 5: Verify and commit the evidence note**
 
-Run the documentation validator, `git diff --check`, assert only the intended evidence document changed, commit, push to `master`, and verify remote equality and a clean worktree.
+Run the available documentation checks and `git diff --check`, assert that only the intended evidence
+document and this execution-status plan changed, commit, push to `master`, and verify remote equality
+and a clean worktree.
