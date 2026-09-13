@@ -91,8 +91,10 @@ Expose:
 - `CompiledProgressiveCandidateScorer`, created from one frozen codec, gallery code owner, and spec;
 - `compile_progressive_candidate_scorer(codec, codes, spec, calibration_queries,
   calibration_candidates)`;
-- `score(queries, candidate_ordinals) -> ProgressiveCandidateResult` with the existing exact physical
-  byte counters plus explicit boundary-reread bytes and backend evidence.
+- `score(queries, candidate_ordinals) -> ProgressiveScoringResult` with the existing exact physical
+  byte counters plus explicit boundary-reread bytes, backend evidence, and membership contract. A
+  repair width equal to the candidate width is `full-reference`; a smaller repair width remains
+  `validated-approximate` until an exclusion certificate is implemented.
 - `PqCandidateScoringSpec(metric, candidate_width, compiled_batch_rows, row_tile)` and
   `compile_pq_candidate_scorer(base_quantizer, gallery_codes, spec, calibration_queries)` returning
   owned `int64[Q,K]` candidates plus physical padding, score, backend, and an explicit

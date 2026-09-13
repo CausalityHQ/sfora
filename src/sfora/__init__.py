@@ -185,7 +185,10 @@ _PROGRESSIVE_RESIDUAL_QUANTIZATION_EXPORTS = frozenset(
 
 _PROGRESSIVE_RESIDUAL_SCORING_EXPORTS = frozenset(
     {
+        "CompiledProgressiveCandidateScorer",
         "ProgressiveScoringSpec",
+        "ProgressiveScoringResult",
+        "compile_progressive_candidate_scorer",
         "progressive_candidate_scores",
     }
 )
@@ -341,6 +344,7 @@ __all__ = [
     "RetrievalReport",
     "compare",
     "compile_pq_candidate_scorer",
+    "compile_progressive_candidate_scorer",
     "evaluate",
     "grid",
     "progressive_candidate_scores",
@@ -365,11 +369,13 @@ __all__ = [
     "ProbeScore",
     "ProductQuantizationSpec",
     "CompiledPqCandidateScorer",
+    "CompiledProgressiveCandidateScorer",
     "ProgressiveCandidateResult",
     "ProgressiveResidualCodes",
     "ProgressiveResidualQuantizer",
     "ProgressiveResidualSpec",
     "ProgressiveScoringSpec",
+    "ProgressiveScoringResult",
     "RetrievalScore",
     "RemoteRunConfig",
     "RemoteRunPlan",

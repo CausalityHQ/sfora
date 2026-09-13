@@ -114,6 +114,8 @@ Commit only the focused module, export, and tests; push `HEAD:master` and verify
 - Produces: fixed-shape `torch.compile(fullgraph=True, dynamic=False)` activation.
 - Produces: truth-free calibration evidence and explicit eager fallback reason.
 - Produces: boundary-prefix eager repair and reread byte accounting.
+- Labels partial-prefix repair `validated-approximate`; only a full-candidate repair is
+  `full-reference` before the exclusion-certificate task is complete.
 
 - [ ] **Step 1: Write RED compiler-boundary tests**
 

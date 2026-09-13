@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import pytest
 import torch
 
@@ -13,7 +15,9 @@ from sfora.progressive_residual_quantization import (
     ProgressiveResidualSpec,
 )
 from sfora.progressive_residual_scoring import (
+    CompiledProgressiveCandidateScorer,
     ProgressiveScoringSpec,
+    compile_progressive_candidate_scorer,
     progressive_candidate_scores,
 )
 
@@ -155,3 +159,180 @@ def test_progressive_candidate_scores_match_angular_opq_reference() -> None:
     assert float(result.scores[0, 0]) > 0.999
     assert torch.equal(result.ordinals, reference.ordinals)
     assert torch.equal(result.scores, reference.scores)
+
+
+def test_compiled_progressive_scorer_pads_query_tail_and_owns_replayed_scores() -> None:
+    codec = _codec()
+    gallery = torch.tensor(
+        [[0.0, 0.0], [2.0, 0.0], [0.0, 3.0], [4.0, 4.0]], dtype=torch.float32
+    )
+    codes = codec.encode(gallery)
+    queries = torch.tensor([[1.9, 0.0], [3.9, 4.0], [0.0, 2.9]], dtype=torch.float32)
+    candidates = torch.tensor([[0, 1, 2], [0, 2, 3], [0, 1, 2]], dtype=torch.int64)
+    shared: torch.Tensor | None = None
+
+    def compiler(
+        function: Callable[..., torch.Tensor],
+    ) -> Callable[..., torch.Tensor]:
+        def compiled(*arguments: torch.Tensor) -> torch.Tensor:
+            nonlocal shared
+            assert arguments[0].shape[0] == 2
+            observed = function(*arguments)
+            if shared is None:
+                shared = torch.empty_like(observed)
+            shared.copy_(observed)
+            return shared
+
+        return compiled
+
+    spec = ProgressiveScoringSpec(
+        residual_bits=3,
+        candidate_width=3,
+        return_width=2,
+        compiled_batch_rows=2,
+        boundary_repair_width=2,
+    )
+    scorer = compile_progressive_candidate_scorer(
+        codec,
+        codes,
+        spec,
+        calibration_queries=queries[:2],
+        calibration_candidates=candidates[:2],
+        compiler=compiler,
+    )
+
+    result = scorer.score(queries, candidates)
+    reference = progressive_candidate_scores(codec, codes, queries, candidates, spec)
+
+    assert isinstance(scorer, CompiledProgressiveCandidateScorer)
+    assert result.backend == "compiled"
+    assert result.fallback_reason is None
+    assert result.membership_contract == "validated-approximate"
+    assert torch.equal(result.ordinals, reference.ordinals)
+    assert torch.equal(result.scores, reference.scores)
+
+
+def test_progressive_scorer_falls_back_when_compilation_fails() -> None:
+    codec = _codec()
+    gallery = torch.tensor(
+        [[0.0, 0.0], [2.0, 0.0], [0.0, 3.0], [4.0, 4.0]], dtype=torch.float32
+    )
+    codes = codec.encode(gallery)
+    queries = torch.tensor([[1.9, 0.0]], dtype=torch.float32)
+    candidates = torch.tensor([[0, 1, 2]], dtype=torch.int64)
+    spec = ProgressiveScoringSpec(
+        residual_bits=3,
+        candidate_width=3,
+        return_width=2,
+        compiled_batch_rows=1,
+        boundary_repair_width=2,
+    )
+
+    def compiler(function: Callable[..., torch.Tensor]) -> Callable[..., torch.Tensor]:
+        del function
+        raise RuntimeError("compiler unavailable")
+
+    scorer = compile_progressive_candidate_scorer(
+        codec,
+        codes,
+        spec,
+        calibration_queries=queries,
+        calibration_candidates=candidates,
+        compiler=compiler,
+    )
+    result = scorer.score(queries, candidates)
+
+    assert result.ordinals.tolist() == [[1, 0]]
+    assert result.backend == "eager"
+    assert result.fallback_reason == "compile-failed:RuntimeError"
+    assert result.membership_contract == "eager-reference"
+
+
+def test_full_boundary_repair_rescores_unseen_compiled_score_drift() -> None:
+    codec = _codec()
+    gallery = torch.tensor(
+        [[0.0, 0.0], [2.0, 0.0], [0.0, 3.0], [4.0, 4.0]], dtype=torch.float32
+    )
+    codes = codec.encode(gallery)
+    query = torch.tensor([[1.9, 0.0]], dtype=torch.float32)
+    candidates = torch.tensor([[0, 1, 2]], dtype=torch.int64)
+    calls = 0
+
+    def compiler(
+        function: Callable[..., torch.Tensor],
+    ) -> Callable[..., torch.Tensor]:
+        def compiled(*arguments: torch.Tensor) -> torch.Tensor:
+            nonlocal calls
+            calls += 1
+            scores = function(*arguments)
+            return scores if calls == 1 else -scores
+
+        return compiled
+
+    spec = ProgressiveScoringSpec(
+        residual_bits=3,
+        candidate_width=3,
+        return_width=2,
+        compiled_batch_rows=1,
+        boundary_repair_width=3,
+    )
+    scorer = compile_progressive_candidate_scorer(
+        codec,
+        codes,
+        spec,
+        calibration_queries=query,
+        calibration_candidates=candidates,
+        compiler=compiler,
+    )
+
+    result = scorer.score(query, candidates)
+
+    assert result.ordinals.tolist() == [[1, 0]]
+    assert result.backend == "compiled"
+    assert result.boundary_reread_bytes == 3 * (1 + 2 + 3)
+    assert result.membership_contract == "full-reference"
+
+
+def test_progressive_scorer_falls_back_on_runtime_compiler_failure() -> None:
+    codec = _codec()
+    gallery = torch.tensor(
+        [[0.0, 0.0], [2.0, 0.0], [0.0, 3.0], [4.0, 4.0]], dtype=torch.float32
+    )
+    codes = codec.encode(gallery)
+    query = torch.tensor([[1.9, 0.0]], dtype=torch.float32)
+    candidates = torch.tensor([[0, 1, 2]], dtype=torch.int64)
+    calls = 0
+
+    def compiler(
+        function: Callable[..., torch.Tensor],
+    ) -> Callable[..., torch.Tensor]:
+        def compiled(*arguments: torch.Tensor) -> torch.Tensor:
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                return function(*arguments)
+            raise RuntimeError("runtime compiler failure")
+
+        return compiled
+
+    spec = ProgressiveScoringSpec(
+        residual_bits=3,
+        candidate_width=3,
+        return_width=2,
+        compiled_batch_rows=1,
+        boundary_repair_width=2,
+    )
+    scorer = compile_progressive_candidate_scorer(
+        codec,
+        codes,
+        spec,
+        calibration_queries=query,
+        calibration_candidates=candidates,
+        compiler=compiler,
+    )
+
+    result = scorer.score(query, candidates)
+
+    assert result.ordinals.tolist() == [[1, 0]]
+    assert result.backend == "eager"
+    assert result.fallback_reason == "compiled-execution-failed:RuntimeError"
