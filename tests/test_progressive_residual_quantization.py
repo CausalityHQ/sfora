@@ -6,6 +6,7 @@ import pytest
 import torch
 
 from sfora.product_quantization import (
+    OptimizedProductQuantizer,
     ProductQuantizationSpec,
     ProductQuantizer,
     balanced_product_quantization_spec,
@@ -187,6 +188,24 @@ def _fixed_codec(
             metric=metric,
             base_spec=base_spec,
             maximum_residual_bits=maximum_residual_bits,
+        ),
+        base,
+    )
+
+
+def _fixed_optimized_codec() -> ProgressiveResidualQuantizer:
+    base_spec = ProductQuantizationSpec(block_dimensions=(2,), codebook_size=2)
+    rotation = torch.tensor([[0.0, -1.0], [1.0, 0.0]], dtype=torch.float32)
+    base = OptimizedProductQuantizer.from_components(
+        base_spec,
+        rotation,
+        (torch.tensor([[0.0, 0.0], [10.0, 10.0]], dtype=torch.float32),),
+    )
+    return ProgressiveResidualQuantizer(
+        ProgressiveResidualSpec(
+            metric="squared_l2",
+            base_spec=base_spec,
+            maximum_residual_bits=5,
         ),
         base,
     )
@@ -412,6 +431,34 @@ def test_codec_artifact_roundtrip_and_mutations() -> None:
     bad_codebooks[0] = bad_codebooks[0].double()
     mutations.append({**artifact, "codebooks": tuple(bad_codebooks)})
     for mutation in mutations:
+        with pytest.raises(ValueError, match="progressive residual artifact differs"):
+            ProgressiveResidualQuantizer.from_artifact(mutation)
+
+
+def test_optimized_base_rotation_survives_progressive_artifact_roundtrip() -> None:
+    codec = _fixed_optimized_codec()
+    values = torch.tensor([[1.0, -2.0], [-3.0, 4.0]], dtype=torch.float32)
+    expected = codec.encode(values)
+
+    artifact = codec.export_artifact()
+    restored = ProgressiveResidualQuantizer.from_artifact(artifact)
+    actual = restored.encode(values)
+
+    assert artifact["schema"] == "sfora-progressive-residual-quantizer-v2"
+    assert artifact["base_kind"] == "optimized-product-quantizer"
+    assert torch.equal(artifact["rotation"], torch.tensor([[0.0, -1.0], [1.0, 0.0]]))
+    assert torch.equal(actual.base_codes, expected.base_codes)
+    assert torch.equal(actual.scales, expected.scales)
+    assert torch.equal(actual.residual_planes, expected.residual_planes)
+    assert torch.equal(
+        restored.decode_prefix(actual, residual_bits=5),
+        codec.decode_prefix(expected, residual_bits=5),
+    )
+    for mutation in (
+        {**artifact, "base_kind": "product-quantizer"},
+        {**artifact, "rotation": None},
+        {**artifact, "rotation": artifact["rotation"].double()},  # type: ignore[union-attr]
+    ):
         with pytest.raises(ValueError, match="progressive residual artifact differs"):
             ProgressiveResidualQuantizer.from_artifact(mutation)
 

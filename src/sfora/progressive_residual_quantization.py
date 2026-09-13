@@ -10,6 +10,7 @@ from torch import nn
 from torch.nn import functional as F
 
 from sfora.product_quantization import (
+    OptimizedProductQuantizer,
     ProductQuantizationSpec,
     ProductQuantizer,
     fit_product_quantizer,
@@ -240,12 +241,12 @@ class ProgressiveResidualQuantizer(nn.Module):
     def __init__(
         self,
         spec: ProgressiveResidualSpec,
-        base_quantizer: ProductQuantizer,
+        base_quantizer: ProductQuantizer | OptimizedProductQuantizer,
     ) -> None:
         super().__init__()
         if (
             type(spec) is not ProgressiveResidualSpec
-            or type(base_quantizer) is not ProductQuantizer
+            or type(base_quantizer) not in (ProductQuantizer, OptimizedProductQuantizer)
             or base_quantizer.spec != spec.base_spec
         ):
             raise ValueError("progressive residual codec differs")
@@ -257,7 +258,7 @@ class ProgressiveResidualQuantizer(nn.Module):
     def device(self) -> torch.device:
         """Return the common codebook device."""
 
-        return torch.device(self.base_quantizer.codebooks[0].device)
+        return torch.device(next(self.base_quantizer.parameters()).device)
 
     def prepare_values(self, values: torch.Tensor) -> torch.Tensor:
         """Validate rows and apply only the registered metric preparation."""
@@ -339,7 +340,11 @@ class ProgressiveResidualQuantizer(nn.Module):
             or codes.device != self.device
         ):
             raise ValueError("progressive residual codes differ")
-        self.base_quantizer._validate_codes(codes.base_codes)
+        if type(self.base_quantizer) is ProductQuantizer:
+            self.base_quantizer._validate_codes(codes.base_codes)
+        else:
+            optimized = cast(OptimizedProductQuantizer, self.base_quantizer)
+            optimized.quantizer._validate_codes(codes.base_codes)
 
     def _decode_prefix_tensors(
         self,
@@ -468,13 +473,22 @@ class ProgressiveResidualQuantizer(nn.Module):
     def export_artifact(self) -> dict[str, object]:
         """Return a versioned CPU-portable codec artifact."""
 
+        optimized = type(self.base_quantizer) is OptimizedProductQuantizer
         return {
-            "schema": "sfora-progressive-residual-quantizer-v1",
+            "schema": "sfora-progressive-residual-quantizer-v2",
             "metric": self.spec.metric,
             "maximum_residual_bits": self.spec.maximum_residual_bits,
+            "base_kind": (
+                "optimized-product-quantizer" if optimized else "product-quantizer"
+            ),
             "block_dimensions": self.spec.base_spec.block_dimensions,
             "codebook_size": self.spec.base_spec.codebook_size,
             "codebooks": self.base_quantizer.detached_codebooks(),
+            "rotation": (
+                cast(OptimizedProductQuantizer, self.base_quantizer).detached_rotation()
+                if optimized
+                else None
+            ),
         }
 
     @classmethod
@@ -485,20 +499,30 @@ class ProgressiveResidualQuantizer(nn.Module):
             "schema",
             "metric",
             "maximum_residual_bits",
+            "base_kind",
             "block_dimensions",
             "codebook_size",
             "codebooks",
+            "rotation",
         }:
             raise ValueError("progressive residual artifact differs")
-        if artifact.get("schema") != "sfora-progressive-residual-quantizer-v1":
+        if artifact.get("schema") != "sfora-progressive-residual-quantizer-v2":
             raise ValueError("progressive residual artifact differs")
+        base_kind = artifact.get("base_kind")
         block_dimensions = artifact.get("block_dimensions")
         codebook_size = artifact.get("codebook_size")
         codebooks = artifact.get("codebooks")
+        rotation = artifact.get("rotation")
         if (
-            type(block_dimensions) is not tuple
+            base_kind not in ("product-quantizer", "optimized-product-quantizer")
+            or type(block_dimensions) is not tuple
             or type(codebook_size) is not int
             or type(codebooks) is not tuple
+            or (base_kind == "product-quantizer" and rotation is not None)
+            or (
+                base_kind == "optimized-product-quantizer"
+                and type(rotation) is not torch.Tensor
+            )
         ):
             raise ValueError("progressive residual artifact differs")
         try:
@@ -511,7 +535,16 @@ class ProgressiveResidualQuantizer(nn.Module):
                 base_spec=base_spec,
                 maximum_residual_bits=artifact.get("maximum_residual_bits"),  # type: ignore[arg-type]
             )
-            base = ProductQuantizer.from_codebooks(base_spec, codebooks)
+            if base_kind == "product-quantizer":
+                base: ProductQuantizer | OptimizedProductQuantizer = (
+                    ProductQuantizer.from_codebooks(base_spec, codebooks)
+                )
+            else:
+                base = OptimizedProductQuantizer.from_components(
+                    base_spec,
+                    rotation,  # type: ignore[arg-type]
+                    codebooks,
+                )
             return cls(spec, base)
         except (TypeError, ValueError) as error:
             raise ValueError("progressive residual artifact differs") from error
