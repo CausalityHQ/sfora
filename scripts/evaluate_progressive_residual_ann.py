@@ -176,6 +176,54 @@ def load_ann_benchmark(
     )
 
 
+def ann_benchmark_recall_hits(
+    dataset: AnnBenchmarkDataset,
+    returned_ordinals: np.ndarray,
+    *,
+    count: int,
+) -> np.ndarray:
+    """Return official additive-epsilon distance-threshold recall hits."""
+
+    if (
+        type(dataset) is not AnnBenchmarkDataset
+        or type(returned_ordinals) is not np.ndarray
+        or returned_ordinals.dtype != np.int64
+        or returned_ordinals.ndim != 2
+        or returned_ordinals.shape[0] != dataset.test.shape[0]
+        or returned_ordinals.shape[1] < 1
+        or not returned_ordinals.flags.c_contiguous
+        or type(count) is not int
+        or not 1 <= count <= returned_ordinals.shape[1]
+        or count > dataset.truth_distances.shape[1]
+        or bool((returned_ordinals < 0).any())
+        or bool((returned_ordinals >= dataset.train.shape[0]).any())
+    ):
+        raise ValueError("ANN-Benchmarks result differs")
+    ordered = np.sort(returned_ordinals, axis=1)
+    if returned_ordinals.shape[1] > 1 and bool(
+        (ordered[:, 1:] == ordered[:, :-1]).any()
+    ):
+        raise ValueError("ANN-Benchmarks result differs")
+
+    hits = np.empty(dataset.test.shape[0], dtype=np.int64)
+    thresholds = dataset.truth_distances[:, count - 1].astype(np.float64) + 1e-3
+    for start in range(0, dataset.test.shape[0], 256):
+        stop = min(start + 256, dataset.test.shape[0])
+        selected = dataset.train[returned_ordinals[start:stop, :count]].astype(np.float64)
+        queries = dataset.test[start:stop].astype(np.float64)
+        if dataset.metric == "angular":
+            query_norms = np.linalg.norm(queries, axis=1)
+            selected_norms = np.linalg.norm(selected, axis=2)
+            distances = 1.0 - np.einsum("qkd,qd->qk", selected, queries) / (
+                selected_norms * query_norms[:, None]
+            )
+        else:
+            delta = selected - queries[:, None, :]
+            distances = np.sqrt(np.einsum("qkd,qkd->qk", delta, delta))
+        hits[start:stop] = (distances <= thresholds[start:stop, None]).sum(axis=1)
+    return hits
+
+
 def candidate_containment_hits(
     candidate_ordinals: np.ndarray,
     truth_ordinals: np.ndarray,
@@ -204,21 +252,42 @@ def candidate_containment_hits(
         or not 1 <= truth_width <= truth_ordinals.shape[1]
         or bool((candidate_ordinals < 0).any())
         or bool((truth_ordinals < 0).any())
-        or any(
-            len(np.unique(row)) != len(row)
-            for row in candidate_ordinals
+        or (
+            candidate_ordinals.shape[1] > 1
+            and bool(
+                (
+                    np.diff(np.sort(candidate_ordinals, axis=1), axis=1)
+                    == 0
+                ).any()
+            )
         )
-        or any(len(np.unique(row)) != len(row) for row in truth_ordinals)
+        or (
+            truth_ordinals.shape[1] > 1
+            and bool(
+                (np.diff(np.sort(truth_ordinals, axis=1), axis=1) == 0).any()
+            )
+        )
     ):
         raise ValueError("candidate containment authority differs")
-    hits = [
-        int(
-            np.isin(
-                truth_ordinals[index, :truth_width],
-                candidate_ordinals[index, :candidate_width],
-                assume_unique=True,
-            ).sum()
+    candidates = np.sort(candidate_ordinals[:, :candidate_width], axis=1)
+    truth = truth_ordinals[:, :truth_width]
+    lower = np.zeros(truth.shape, dtype=np.int64)
+    upper = np.full(truth.shape, candidate_width, dtype=np.int64)
+    while bool((lower < upper).any()):
+        active = lower < upper
+        middle = (lower + upper) // 2
+        probes = np.take_along_axis(
+            candidates,
+            np.minimum(middle, candidate_width - 1),
+            axis=1,
         )
-        for index in range(candidate_ordinals.shape[0])
-    ]
+        below = probes < truth
+        lower = np.where(active & below, middle + 1, lower)
+        upper = np.where(active & ~below, middle, upper)
+    probes = np.take_along_axis(
+        candidates,
+        np.minimum(lower, candidate_width - 1),
+        axis=1,
+    )
+    hits = ((lower < candidate_width) & (probes == truth)).sum(axis=1, dtype=np.int64)
     return np.asarray(hits, dtype=np.int64)

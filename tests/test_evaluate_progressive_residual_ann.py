@@ -158,6 +158,58 @@ def test_load_ann_benchmark_rejects_digest_and_metric_authority_drift(
         )
 
 
+def test_ann_benchmark_recall_accepts_equal_distance_truth_ties(tmp_path: Path) -> None:
+    path = tmp_path / "sift-like.hdf5"
+    digest = _write_ann_benchmark_fixture(path, metric="euclidean")
+    dataset = SUBJECT.load_ann_benchmark(
+        path,
+        expected_sha256=digest,
+        expected_metric="squared_l2",
+    )
+
+    hits = SUBJECT.ann_benchmark_recall_hits(
+        dataset,
+        np.array([[0, 1], [3, 1]], dtype=np.int64),
+        count=2,
+    )
+    tied = SUBJECT.ann_benchmark_recall_hits(
+        dataset,
+        np.array([[0, 2], [3, 1]], dtype=np.int64),
+        count=2,
+    )
+
+    assert hits.tolist() == [2, 2]
+    assert tied.tolist() == [2, 2]
+
+
+@pytest.mark.parametrize(
+    ("returned", "count"),
+    [
+        (np.array([[0, 0], [3, 1]], dtype=np.int64), 2),
+        (np.array([[0, 4], [3, 1]], dtype=np.int64), 2),
+        (np.array([[0, 1], [3, 1]], dtype=np.int32), 2),
+        (np.array([[0, 1]], dtype=np.int64), 2),
+        (np.array([[0, 1], [3, 1]], dtype=np.int64), True),
+        (np.array([[0, 1], [3, 1]], dtype=np.int64), 3),
+    ],
+)
+def test_ann_benchmark_recall_rejects_result_authority_drift(
+    tmp_path: Path,
+    returned: np.ndarray,
+    count: object,
+) -> None:
+    path = tmp_path / "sift-like.hdf5"
+    digest = _write_ann_benchmark_fixture(path, metric="euclidean")
+    dataset = SUBJECT.load_ann_benchmark(
+        path,
+        expected_sha256=digest,
+        expected_metric="squared_l2",
+    )
+
+    with pytest.raises(ValueError, match="ANN-Benchmarks result differs"):
+        SUBJECT.ann_benchmark_recall_hits(dataset, returned, count=count)
+
+
 def test_candidate_containment_uses_full_candidate_width_not_truth_width() -> None:
     candidates = np.arange(1_000, dtype=np.int64).reshape(1, 1_000)
     truth = np.array([[0, 999]], dtype=np.int64)
