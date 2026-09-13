@@ -9,6 +9,7 @@ import pytest
 import torch
 
 from sfora.product_quantization import balanced_product_quantization_spec
+from sfora.representation_ceiling import fit_centered_pca
 
 TRANSFER_SCRIPT = (
     Path(__file__).resolve().parents[1] / "scripts/evaluate_rate_matched_pq_transfer.py"
@@ -99,6 +100,19 @@ def test_build_representations_freezes_geometry_and_uses_train_only_statistics()
         dimensions=80,
         bytes_per_vector=24,
         codebook_size=256,
+    )
+    projection = fit_centered_pca(archive.train_embeddings, dimensions=80)
+    torch.testing.assert_close(
+        by_name["pca-unit"].train_embeddings,
+        projection.apply(archive.train_embeddings),
+        rtol=0.0,
+        atol=0.0,
+    )
+    torch.testing.assert_close(
+        by_name["pca-unit"].test_embeddings,
+        projection.apply(archive.test_embeddings),
+        rtol=0.0,
+        atol=0.0,
     )
 
 

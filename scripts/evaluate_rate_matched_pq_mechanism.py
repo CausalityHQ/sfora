@@ -127,8 +127,8 @@ def build_representations(
     components = pca.components.double()
     pca_train = (centered_train.double() @ components.T).float().contiguous()
     pca_test = (centered_test.double() @ components.T).float().contiguous()
-    pca_unit_train = normalize_embedding_rows(pca_train)
-    pca_unit_test = normalize_embedding_rows(pca_test)
+    pca_unit_train = pca.apply(train)
+    pca_unit_test = pca.apply(test)
 
     random_components = _random_orthonormal_components(
         train.shape[1], dimensions, seed=random_seed
