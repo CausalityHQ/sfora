@@ -50,14 +50,14 @@ timing, strict receipt validation, and atomic publication. It does not alter the
 - Produces: `MechanismConfig`, `Representation`, `build_representations`, and strict CLI parsing.
 - Consumes: authenticated `TransferArchive` and train-only rows.
 
-- [ ] Write tests fixing all six representation names/order, train-only mean/PCA fitting,
+- [x] Write tests fixing all six representation names/order, train-only mean/PCA fitting,
   deterministic random orthonormal projection, normalization semantics, and centered-L2 ranking
   invariance.
-- [ ] Run the focused tests and preserve the missing-interface RED.
-- [ ] Implement the minimal constructors with float64 fitting arithmetic and float32 contiguous
+- [x] Run the focused tests and preserve the missing-interface RED.
+- [x] Implement the minimal constructors with float64 fitting arithmetic and float32 contiguous
   outputs.
-- [ ] Run focused tests, Ruff, mypy, py_compile, and `git diff --check`.
-- [ ] Commit the representation slice.
+- [x] Run focused tests, Ruff, mypy, py_compile, and `git diff --check`.
+- [x] Commit the representation slice.
 
 ### Task 3: Quantized mechanism arms and convergence control
 

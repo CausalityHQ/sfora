@@ -26,19 +26,19 @@ measure; seed variation is reported separately and is not folded into that inter
 
 The evaluator constructs these query-independent representations in fixed order:
 
-1. `original-unit-768`: the authenticated normalized embeddings.
-2. `centered-768`: subtract the train mean without renormalization. Its unquantized L2 ranking
-   must exactly match `original-unit-768` because common translation preserves pairwise L2.
-3. `centered-unit-768`: subtract the train mean and renormalize each row.
-4. `pca80`: train-only centered PCA80 without radial renormalization.
-5. `pca80-unit`: train-only centered PCA80 with row renormalization; this is the released
+1. `original-unit`: the authenticated normalized embeddings.
+2. `centered`: subtract the train mean without renormalization. Its unquantized L2 ranking
+   must exactly match `original-unit` because common translation preserves pairwise L2.
+3. `centered-unit`: subtract the train mean and renormalize each row.
+4. `pca`: train-only centered PCA80 without radial renormalization.
+5. `pca-unit`: train-only centered PCA80 with row renormalization; this is the released
    candidate geometry.
-6. `random80-unit`: a seed-derived train-independent orthonormal 80-dimensional projection of
+6. `random-orthogonal-unit`: a seed-derived train-independent orthonormal 80-dimensional projection of
    centered rows followed by renormalization.
 
-Every representation receives an unquantized exact-retrieval arm. `original-unit-768`,
-`centered-unit-768`, `pca80`, `pca80-unit`, and `random80-unit` receive fixed 24-byte OPQ arms.
-`pca80-unit` additionally receives ordinary PQ24, and `original-unit-768` retains OPQ32.
+Every representation receives an unquantized exact-retrieval arm. `original-unit`,
+`centered-unit`, `pca`, `pca-unit`, and `random-orthogonal-unit` receive fixed 24-byte OPQ arms.
+`pca-unit` additionally receives ordinary PQ24, and `original-unit` retains OPQ32.
 Balanced block widths and 256 codewords are fixed; OPQ uses twenty Lloyd iterations and four
 alternations.
 
@@ -67,12 +67,12 @@ partial file. It has exactly one trailing newline and `claim_eligible=false`.
 
 ## Interpretation
 
-- Float `pca80-unit` improvement identifies a representation/geometry contribution.
+- Float `pca-unit` improvement identifies a representation/geometry contribution.
 - No float improvement with quantized improvement identifies reduced quantization damage as the
   dominant mechanism.
-- `centered-unit-768` matching the candidate credits centering/normalization rather than PCA.
-- `random80-unit` matching PCA80 means variance selection is unnecessary.
-- PQ24 matching OPQ24 on `pca80-unit` removes the need for rotation fitting.
+- `centered-unit` matching the candidate credits centering/normalization rather than PCA.
+- `random-orthogonal-unit` matching PCA means variance selection is unnecessary.
+- PQ24 matching OPQ24 on `pca-unit` removes the need for rotation fitting.
 - Stronger, convergence-checked original OPQ erasing the gain classifies the current result as a
   training-budget advantage.
 - A small-gallery regression with a large-gallery win requires a workload-dependent dispatch
@@ -82,4 +82,3 @@ Advance beyond the mechanism study only if the released PCA80+OPQ24 quality adva
 over all five seeds, original-neighbor overlap remains within a preregistered 0.02 absolute loss,
 and the instrumented path shows a concrete removable fixed-cost bottleneck. The next production
 step is then a fused centered-projection/rotation query kernel plus an indexed candidate benchmark.
-
