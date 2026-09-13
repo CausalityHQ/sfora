@@ -28,6 +28,252 @@ class AnnBenchmarkDataset:
     truth_distances: np.ndarray
 
 
+@dataclass(frozen=True)
+class DenseScalarQuantizer:
+    """Per-dimension endpoint scalar grid used as a matched-byte control."""
+
+    metric: Metric
+    bits: int
+    minimums: np.ndarray
+    steps: np.ndarray
+
+    def __post_init__(self) -> None:
+        if (
+            type(self.metric) is not str
+            or self.metric not in ("angular", "squared_l2")
+            or type(self.bits) is not int
+            or not 1 <= self.bits <= 8
+            or type(self.minimums) is not np.ndarray
+            or self.minimums.dtype != np.float32
+            or self.minimums.ndim != 1
+            or self.minimums.shape[0] < 1
+            or not self.minimums.flags.c_contiguous
+            or self.minimums.flags.writeable
+            or type(self.steps) is not np.ndarray
+            or self.steps.dtype != np.float32
+            or self.steps.shape != self.minimums.shape
+            or not self.steps.flags.c_contiguous
+            or self.steps.flags.writeable
+            or not bool(np.isfinite(self.minimums).all())
+            or not bool(np.isfinite(self.steps).all())
+            or bool((self.steps <= 0).any())
+        ):
+            raise ValueError("dense scalar quantizer authority differs")
+
+    @property
+    def dimensions(self) -> int:
+        """Return the represented coordinate count."""
+
+        return int(self.minimums.shape[0])
+
+    @property
+    def bytes_per_vector(self) -> int:
+        """Return exact packed payload bytes per vector."""
+
+        return (self.dimensions * self.bits + 7) // 8
+
+    @property
+    def shared_bytes(self) -> int:
+        """Return exact float32 endpoint-grid metadata bytes."""
+
+        return int(self.minimums.nbytes + self.steps.nbytes)
+
+
+def _prepare_dense_scalar_values(values: np.ndarray, metric: Metric) -> np.ndarray:
+    if (
+        type(values) is not np.ndarray
+        or values.dtype != np.float32
+        or values.ndim != 2
+        or values.shape[0] < 1
+        or values.shape[1] < 1
+        or not values.flags.c_contiguous
+        or not bool(np.isfinite(values).all())
+    ):
+        raise ValueError("dense scalar quantizer authority differs")
+    if metric == "squared_l2":
+        return values
+    norms = np.linalg.norm(values.astype(np.float64), axis=1, keepdims=True)
+    if not bool(np.isfinite(norms).all()) or bool((norms <= 1e-12).any()):
+        raise ValueError("dense scalar quantizer authority differs")
+    return np.ascontiguousarray((values.astype(np.float64) / norms).astype(np.float32))
+
+
+def fit_dense_scalar_quantizer(
+    training: np.ndarray,
+    *,
+    bits: int,
+    metric: Metric,
+) -> DenseScalarQuantizer:
+    """Fit a deterministic direct scalar grid without query or truth inputs."""
+
+    if type(metric) is not str or metric not in ("angular", "squared_l2"):
+        raise ValueError("dense scalar quantizer authority differs")
+    if type(bits) is not int or not 1 <= bits <= 8:
+        raise ValueError("dense scalar quantizer authority differs")
+    prepared = _prepare_dense_scalar_values(training, metric)
+    minimums = np.asarray(prepared.min(axis=0), dtype=np.float32)
+    maximums = np.asarray(prepared.max(axis=0), dtype=np.float32)
+    steps = np.asarray((maximums - minimums) / ((1 << bits) - 1), dtype=np.float32)
+    steps[steps == 0] = np.float32(1.0)
+    minimums = np.ascontiguousarray(minimums)
+    steps = np.ascontiguousarray(steps)
+    minimums.flags.writeable = False
+    steps.flags.writeable = False
+    return DenseScalarQuantizer(
+        metric=metric,
+        bits=bits,
+        minimums=minimums,
+        steps=steps,
+    )
+
+
+def encode_dense_scalar_quantizer(
+    quantizer: DenseScalarQuantizer,
+    values: np.ndarray,
+) -> np.ndarray:
+    """Encode vectors into the control's exact packed row records."""
+
+    if type(quantizer) is not DenseScalarQuantizer:
+        raise ValueError("dense scalar quantizer authority differs")
+    prepared = _prepare_dense_scalar_values(values, quantizer.metric)
+    if prepared.shape[1] != quantizer.dimensions:
+        raise ValueError("dense scalar quantizer authority differs")
+    indexes = np.rint(
+        (prepared.astype(np.float64) - quantizer.minimums.astype(np.float64))
+        / quantizer.steps.astype(np.float64)
+    )
+    indexes = np.ascontiguousarray(
+        np.clip(indexes, 0, (1 << quantizer.bits) - 1).astype(np.uint8)
+    )
+    return pack_dense_unsigned_codes(indexes, bits=quantizer.bits)
+
+
+def score_dense_scalar_candidates(
+    quantizer: DenseScalarQuantizer,
+    payload: np.ndarray,
+    queries: np.ndarray,
+    candidate_ordinals: np.ndarray,
+    *,
+    result_width: int,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Rerank bounded candidates directly from packed scalar records."""
+
+    if (
+        type(quantizer) is not DenseScalarQuantizer
+        or type(payload) is not np.ndarray
+        or payload.dtype != np.uint8
+        or payload.ndim != 2
+        or payload.shape[0] < 1
+        or payload.shape[1] != quantizer.bytes_per_vector
+        or not payload.flags.c_contiguous
+        or type(candidate_ordinals) is not np.ndarray
+        or candidate_ordinals.dtype != np.int64
+        or candidate_ordinals.ndim != 2
+        or candidate_ordinals.shape[0] < 1
+        or candidate_ordinals.shape[1] < 1
+        or not candidate_ordinals.flags.c_contiguous
+        or bool((candidate_ordinals < 0).any())
+        or bool((candidate_ordinals >= payload.shape[0]).any())
+        or (
+            candidate_ordinals.shape[1] > 1
+            and bool(
+                (
+                    np.diff(np.sort(candidate_ordinals, axis=1), axis=1)
+                    == 0
+                ).any()
+            )
+        )
+        or type(result_width) is not int
+        or not 1 <= result_width <= candidate_ordinals.shape[1]
+    ):
+        raise ValueError("dense scalar quantizer authority differs")
+    prepared_queries = _prepare_dense_scalar_values(queries, quantizer.metric)
+    if (
+        prepared_queries.shape[0] != candidate_ordinals.shape[0]
+        or prepared_queries.shape[1] != quantizer.dimensions
+    ):
+        raise ValueError("dense scalar quantizer authority differs")
+
+    ranked = np.empty((queries.shape[0], result_width), dtype=np.int64)
+    ranked_scores = np.empty((queries.shape[0], result_width), dtype=np.float64)
+    minimums = quantizer.minimums.astype(np.float64)
+    steps = quantizer.steps.astype(np.float64)
+    for query_index, candidates in enumerate(candidate_ordinals):
+        indexes = unpack_dense_unsigned_codes(
+            np.ascontiguousarray(payload[candidates]),
+            dimensions=quantizer.dimensions,
+            bits=quantizer.bits,
+        )
+        reconstructed = minimums + indexes.astype(np.float64) * steps
+        query = prepared_queries[query_index].astype(np.float64)
+        if quantizer.metric == "angular":
+            norms = np.linalg.norm(reconstructed, axis=1)
+            if bool((norms <= 1e-12).any()) or not bool(np.isfinite(norms).all()):
+                raise ValueError("dense scalar quantizer authority differs")
+            scores = (reconstructed @ query) / norms
+            order = np.lexsort((candidates, -scores))[:result_width]
+        else:
+            delta = reconstructed - query
+            scores = np.einsum("kd,kd->k", delta, delta)
+            order = np.lexsort((candidates, scores))[:result_width]
+        ranked[query_index] = candidates[order]
+        ranked_scores[query_index] = scores[order]
+    return ranked, ranked_scores
+
+
+def pack_dense_unsigned_codes(indexes: np.ndarray, *, bits: int) -> np.ndarray:
+    """Pack fixed-width unsigned coordinates into one dense MSB-first row record."""
+
+    if (
+        type(indexes) is not np.ndarray
+        or indexes.dtype != np.uint8
+        or indexes.ndim != 2
+        or indexes.shape[0] < 1
+        or indexes.shape[1] < 1
+        or not indexes.flags.c_contiguous
+        or type(bits) is not int
+        or not 1 <= bits <= 8
+        or bool((indexes >= (1 << bits)).any())
+    ):
+        raise ValueError("dense scalar code authority differs")
+    shifts = np.arange(bits - 1, -1, -1, dtype=np.uint8)
+    bit_rows = ((indexes[:, :, None] >> shifts) & 1).reshape(indexes.shape[0], -1)
+    padding = (-bit_rows.shape[1]) % 8
+    if padding:
+        bit_rows = np.pad(bit_rows, ((0, 0), (0, padding)), constant_values=0)
+    return np.ascontiguousarray(np.packbits(bit_rows, axis=1, bitorder="big"))
+
+
+def unpack_dense_unsigned_codes(
+    payload: np.ndarray,
+    *,
+    dimensions: int,
+    bits: int,
+) -> np.ndarray:
+    """Decode one exact dense unsigned scalar-code record."""
+
+    if (
+        type(dimensions) is not int
+        or dimensions < 1
+        or type(bits) is not int
+        or not 1 <= bits <= 8
+        or type(payload) is not np.ndarray
+        or payload.dtype != np.uint8
+        or payload.ndim != 2
+        or payload.shape[0] < 1
+        or payload.shape[1] != (dimensions * bits + 7) // 8
+        or not payload.flags.c_contiguous
+    ):
+        raise ValueError("dense scalar code authority differs")
+    unpacked = np.unpackbits(payload, axis=1, bitorder="big")
+    used_bits = dimensions * bits
+    if bool(unpacked[:, used_bits:].any()):
+        raise ValueError("dense scalar code authority differs")
+    coordinates = unpacked[:, :used_bits].reshape(payload.shape[0], dimensions, bits)
+    weights = (1 << np.arange(bits - 1, -1, -1, dtype=np.uint16))[None, None, :]
+    return np.asarray((coordinates * weights).sum(axis=2), dtype=np.uint8).copy(order="C")
+
+
 def _sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as stream:

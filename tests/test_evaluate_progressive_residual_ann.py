@@ -17,6 +17,152 @@ sys.modules[SPEC.name] = SUBJECT
 SPEC.loader.exec_module(SUBJECT)
 
 
+@pytest.mark.parametrize(
+    ("indexes", "bits", "wire"),
+    [
+        (np.array([[0, 1, 2, 3]], dtype=np.uint8), 2, [[0x1B]]),
+        (np.array([[0, 1, 7]], dtype=np.uint8), 3, [[0x07, 0x80]]),
+        (np.array([[0, 255]], dtype=np.uint8), 8, [[0x00, 0xFF]]),
+    ],
+)
+def test_dense_scalar_codes_have_exact_packed_wire_bytes(
+    indexes: np.ndarray,
+    bits: int,
+    wire: list[list[int]],
+) -> None:
+    packed = SUBJECT.pack_dense_unsigned_codes(indexes, bits=bits)
+
+    assert packed.tolist() == wire
+    assert packed.shape[1] == (indexes.shape[1] * bits + 7) // 8
+    assert np.array_equal(
+        SUBJECT.unpack_dense_unsigned_codes(
+            packed,
+            dimensions=indexes.shape[1],
+            bits=bits,
+        ),
+        indexes,
+    )
+
+
+def test_dense_scalar_codes_reject_range_shape_and_padding_drift() -> None:
+    indexes = np.array([[0, 1, 2]], dtype=np.uint8)
+    packed = SUBJECT.pack_dense_unsigned_codes(indexes, bits=2)
+    bad_padding = packed.copy()
+    bad_padding[0, -1] |= 0x01
+
+    for value, bits in (
+        (indexes.astype(np.int64), 2),
+        (np.array([[0, 1, 4]], dtype=np.uint8), 2),
+        (indexes, True),
+        (indexes, 0),
+        (indexes, 9),
+    ):
+        with pytest.raises(ValueError, match="dense scalar code authority differs"):
+            SUBJECT.pack_dense_unsigned_codes(value, bits=bits)
+    for value, dimensions, bits in (
+        (packed.astype(np.int64), 3, 2),
+        (bad_padding, 3, 2),
+        (packed, 5, 2),
+        (packed, 3, True),
+    ):
+        with pytest.raises(ValueError, match="dense scalar code authority differs"):
+            SUBJECT.unpack_dense_unsigned_codes(
+                value,
+                dimensions=dimensions,
+                bits=bits,
+            )
+
+
+def test_dense_scalar_quantizer_fits_exact_endpoint_grid_and_storage() -> None:
+    training = np.array([[0.0, 0.0], [3.0, 6.0]], dtype=np.float32)
+    quantizer = SUBJECT.fit_dense_scalar_quantizer(
+        training,
+        bits=2,
+        metric="squared_l2",
+    )
+
+    assert quantizer.bits == 2
+    assert quantizer.metric == "squared_l2"
+    assert quantizer.dimensions == 2
+    assert quantizer.bytes_per_vector == 1
+    assert quantizer.shared_bytes == 16
+    assert quantizer.minimums.tolist() == [0.0, 0.0]
+    assert quantizer.steps.tolist() == [1.0, 2.0]
+    assert SUBJECT.encode_dense_scalar_quantizer(
+        quantizer,
+        np.array([[0.0, 2.0], [3.0, 4.0]], dtype=np.float32),
+    ).tolist() == [[0x10], [0xE0]]
+
+
+@pytest.mark.parametrize("metric", ["angular", "squared_l2"])
+def test_dense_scalar_candidate_scoring_is_metric_exact_and_stable(metric: str) -> None:
+    gallery = np.array(
+        [[1.0, 0.0], [0.8, 0.2], [0.0, 1.0], [0.0, 1.0]],
+        dtype=np.float32,
+    )
+    if metric == "squared_l2":
+        gallery = np.array(
+            [[0.0, 0.0], [0.2, 0.0], [1.0, 0.0], [1.0, 0.0]],
+            dtype=np.float32,
+        )
+    quantizer = SUBJECT.fit_dense_scalar_quantizer(gallery, bits=8, metric=metric)
+    payload = SUBJECT.encode_dense_scalar_quantizer(quantizer, gallery)
+    candidates = np.array([[3, 2, 1, 0]], dtype=np.int64)
+    query = np.array([[1.0, 0.0]], dtype=np.float32)
+    if metric == "squared_l2":
+        query = np.array([[0.0, 0.0]], dtype=np.float32)
+
+    ranked, scores = SUBJECT.score_dense_scalar_candidates(
+        quantizer,
+        payload,
+        query,
+        candidates,
+        result_width=3,
+    )
+
+    assert ranked.tolist() == [[0, 1, 2]]
+    assert scores.dtype == np.float64
+    assert np.isfinite(scores).all()
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ["fit-dtype", "fit-nonfinite", "metric", "encode-shape", "candidate-duplicate"],
+)
+def test_dense_scalar_quantizer_rejects_authority_drift(mutation: str) -> None:
+    training = np.array([[0.0, 0.0], [1.0, 1.0]], dtype=np.float32)
+    if mutation == "fit-dtype":
+        training = training.astype(np.float64)
+    if mutation == "fit-nonfinite":
+        training[0, 0] = np.nan
+    if mutation in {"fit-dtype", "fit-nonfinite", "metric"}:
+        with pytest.raises(ValueError, match="dense scalar quantizer authority differs"):
+            SUBJECT.fit_dense_scalar_quantizer(
+                training,
+                bits=4,
+                metric="cosine" if mutation == "metric" else "squared_l2",
+            )
+        return
+    quantizer = SUBJECT.fit_dense_scalar_quantizer(
+        training,
+        bits=4,
+        metric="squared_l2",
+    )
+    payload = SUBJECT.encode_dense_scalar_quantizer(quantizer, training)
+    if mutation == "encode-shape":
+        with pytest.raises(ValueError, match="dense scalar quantizer authority differs"):
+            SUBJECT.encode_dense_scalar_quantizer(quantizer, training[:, :1])
+        return
+    with pytest.raises(ValueError, match="dense scalar quantizer authority differs"):
+        SUBJECT.score_dense_scalar_candidates(
+            quantizer,
+            payload,
+            training[:1],
+            np.array([[0, 0]], dtype=np.int64),
+            result_width=1,
+        )
+
+
 def _write_ann_benchmark_fixture(
     path: Path,
     *,
