@@ -236,3 +236,27 @@ def test_score_quantized_arm_encodes_only_test_rows_and_uses_exact_adc() -> None
         "per_query_r1": (0.0, 0.0, 1.0, 1.0),
         "r1": 0.5,
     }
+
+
+def test_score_float_representations_recomputes_original_neighbor_overlap() -> None:
+    archive = _archive()
+    representations = SUBJECT.build_representations(archive, dimensions=80, random_seed=50)
+
+    results = SUBJECT.score_float_representations(
+        representations,
+        labels=archive.test_labels,
+        batch_size=4,
+        neighbor_width=5,
+    )
+
+    assert tuple(result["name"] for result in results) == tuple(
+        representation.name for representation in representations
+    )
+    assert results[0]["original_neighbor_overlap"] == 1.0
+    assert results[1]["original_neighbor_overlap"] == 1.0
+    for result in results:
+        assert len(result["per_query_ap"]) == 12
+        assert len(result["per_query_r1"]) == 12
+        assert 0.0 <= result["map_at_r"] <= 1.0
+        assert 0.0 <= result["r1"] <= 1.0
+        assert 0.0 <= result["original_neighbor_overlap"] <= 1.0

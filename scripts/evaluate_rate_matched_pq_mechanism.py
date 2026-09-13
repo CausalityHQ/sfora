@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import math
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -30,6 +31,7 @@ normalize_embedding_rows = cast(
 )
 encode_in_batches = _transfer_module.encode_in_batches
 score_adc_retrieval = _transfer_module.score_adc_retrieval
+score_float_retrieval = _transfer_module.score_float_retrieval
 
 
 class _TransferArchiveLike(Protocol):
@@ -282,3 +284,53 @@ def score_quantized_arm(
         "per_query_r1": score["per_query_r1"],
         "r1": score["r1"],
     }
+
+
+def score_float_representations(
+    representations: tuple[Representation, ...],
+    *,
+    labels: tuple[int, ...],
+    batch_size: int,
+    neighbor_width: int,
+) -> tuple[dict[str, Any], ...]:
+    """Score every float geometry and its overlap with original-space neighbors."""
+
+    if (
+        type(representations) is not tuple
+        or not representations
+        or representations[0].name != "original-unit"
+        or type(neighbor_width) is not int
+        or neighbor_width < 1
+    ):
+        raise ValueError("mechanism float panel authority differs")
+    scores: list[dict[str, Any]] = []
+    original_neighbors: tuple[tuple[int, ...], ...] | None = None
+    for representation in representations:
+        score = cast(
+            dict[str, Any],
+            score_float_retrieval(
+                representation.test_embeddings,
+                representation.test_embeddings,
+                labels,
+                batch_size=batch_size,
+                neighbor_width=neighbor_width,
+            ),
+        )
+        neighbors = cast(tuple[tuple[int, ...], ...], score["neighbor_ordinals"])
+        if original_neighbors is None:
+            original_neighbors = neighbors
+        overlap = math.fsum(
+            len(set(reference).intersection(candidate)) / neighbor_width
+            for reference, candidate in zip(original_neighbors, neighbors, strict=True)
+        ) / len(neighbors)
+        scores.append(
+            {
+                "map_at_r": score["map_at_r"],
+                "name": representation.name,
+                "original_neighbor_overlap": overlap,
+                "per_query_ap": score["per_query_ap"],
+                "per_query_r1": score["per_query_r1"],
+                "r1": score["r1"],
+            }
+        )
+    return tuple(scores)
