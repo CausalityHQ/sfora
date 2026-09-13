@@ -274,6 +274,8 @@ for the full benchmark table, reproducibility notes, and the honest negatives
 - `sfora.evaluation`: linear-probe, retrieval, and geometry metrics.
 - `sfora.joint_relational_compaction`: label-free shared projection distillation
   and an exact compact int8 embedding format.
+- `sfora.model_soup`: strict FP64 averaging of compatible same-initialization
+  model states into one deployable state dictionary.
 - `sfora.image_benchmark`: CUB, Cars196, SOP, DeepFashion In-Shop, and iNaturalist
   retrieval benchmarks, including self-retrieval and query/gallery protocols.
 - `sfora.image_end_to_end`: ResNet-50/512 paper-protocol training for
@@ -372,6 +374,25 @@ rows to float32 for backends that prefer dense matrix multiplication; use
 Fit the basis and projection on training data only.
 See [the relational compaction evidence note](docs/relational_linear_compaction.md)
 for the frozen protocol, cross-domain results, and claim limitations.
+
+### Collapse predetermined training replicas
+
+Compatible same-initialization replicas can be averaged once after training and loaded as one
+ordinary model. Floating tensors use overflow-safe FP64 averaging; discrete buffers and
+state-dict version metadata must agree exactly. This is a deployment transform, not an inference
+ensemble.
+
+```python
+import torch
+
+from sfora import average_compatible_model_states
+
+states = tuple(torch.load(path, map_location="cpu", weights_only=True) for path in checkpoints)
+model.load_state_dict(average_compatible_model_states(states), strict=True)
+```
+
+Predetermine the checkpoints or seeds on training-only evidence. Selecting the members from test
+performance turns model averaging into test-set tuning.
 
 ### End-to-end method API — compose a method from type-safe bricks
 

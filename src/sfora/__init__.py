@@ -135,6 +135,8 @@ _PACKED_INT4_EXPORTS = frozenset(
 
 _FOLDABLE_LINEAR_EXPORTS = frozenset({"FoldableLinear"})
 
+_MODEL_SOUP_EXPORTS = frozenset({"average_compatible_model_states"})
+
 _RELATIONAL_COMPACTION_EXPORTS = frozenset(
     {
         "PackedInt8Embeddings",
@@ -219,6 +221,11 @@ def __getattr__(name: str) -> object:
         value = cast(object, getattr(module, name))
         globals()[name] = value
         return value
+    if name in _MODEL_SOUP_EXPORTS:
+        module = import_module("sfora.model_soup")
+        value = cast(object, getattr(module, name))
+        globals()[name] = value
+        return value
     if name in _RELATIONAL_COMPACTION_EXPORTS:
         module = import_module("sfora.joint_relational_compaction")
         value = cast(object, getattr(module, name))
@@ -245,6 +252,7 @@ def __getattr__(name: str) -> object:
 __all__ = [
     "ExperimentResult",
     "FoldableLinear",
+    "average_compatible_model_states",
     "EncoderTrainingConfig",
     "EncoderTrainingMethodMetrics",
     "EncoderTrainingResult",

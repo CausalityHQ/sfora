@@ -569,3 +569,188 @@ inner model-selection split, fresh outer confirmation, at least one additional i
 one non-image vector distribution are required before claiming a generic learning improvement.
 Class-name semantics, if studied, remain an optional external-information adapter with real-name,
 shuffled-name, and no-name controls; they are not part of the generic label-only core.
+
+Two additional exact-24-byte, claim-ineligible screens tested representation families outside
+the additive and decoder paths. A two-state conditional/trellis PQ duplicated each OPQ24 block
+codebook into two banks, derived the incoming bank from the preceding byte parity, and alternated
+exact dynamic-programming assignments with centroid means for twelve fixed rounds. Its fitting
+reconstruction SSE decreased monotonically from `0.1082263` to `0.1013580`, but held-out SOP
+class-disjoint quality reached only `0.5722444199 / 0.8198700093`, below the matched OPQ24
+control (`0.5727539078 / 0.8218958386`). The corrected 129,157-byte receipt SHA-256 is
+`be8549a820beb0227e99158e00c78b7a43b3802bb5b6a3801e702a8113f2444d`. An earlier
+throwaway receipt is invalid: its local evaluator accumulated relevant hits beyond each query's
+own `R`; replaying OPQ24 through that scorer exposed the inflation before any scientific claim.
+
+A 192-bit angular sketch then encoded one full and one half deterministic orthogonal frame into
+exactly 24 database bytes. Query-side projection magnitudes supplied an asymmetric 24-table score;
+the matched pure-Hamming arm used the same stored bits. On the same SOP holdout, asymmetric
+scoring reached `0.5462912194 / 0.8050139276` and Hamming reached
+`0.5053382543 / 0.7768211362`, both far below PQ24. Runtime for both exhaustive arms was
+`0.462` seconds on the DGX, and the 260,818-byte receipt SHA-256 is
+`c943c0caa1af4ac3df4f78b8e3231334f17e317e74e1fb62b22a0edb0fef655d`.
+These failures show that better average reconstruction, weak finite-state block dependence, and
+untrained angular measurements do not preserve the rank-critical information. They do not rule
+out quantization-aware representation training, which changes the encoder so the deployed hard
+24-byte score—not reconstruction of a frozen embedding—is the supervised training boundary.
+
+A frozen-code popularity correction also failed its preregistered mechanism gate. On the SOP
+development half, the best fixed coefficient (`0.5`) increased OPQ24 mAP@R from
+`0.6275687572` to `0.6288021669`, a gain of `0.0012334097`, below the required `0.0015`.
+Its training-to-holdout code-attractiveness prediction had only `R²=0.26545`, below the required
+`0.5`; no official-test audit or replication followed. The receipt SHA-256 is
+`6876d6a74fe1241cf8857531ecc8b6431de035d0171c6b8a397ca39799f440a6`.
+
+The first hard-ADC representation-training probe reached exact-24-byte SOP quality of
+`0.5755623711 / 0.8246813539`, while its transformed floating representation reached
+`0.5942920148 / 0.8344728623`. Because the compression gap did not shrink, this was ordinary
+embedding improvement rather than evidence that the 24-byte bottleneck was repaired. Its
+252,962-byte receipt SHA-256 is
+`d22d444de8a3f09c9d0af31c1f3d7c2f938bc472968e15043023c549c5036e75`.
+
+Composing the already frozen positive-coverage transform with the unchanged OPQ24 codec gave a
+more useful matched result. Across five SOP seeds, pooled training averaged `0.5835918056 /
+0.8285641935`, while positive coverage averaged `0.5851458677 / 0.8305393771`. Every paired
+seed improved: mean deltas were `+0.0015540621` mAP@R and `+0.0019751836` R@1, and the
+query-class-cluster bootstrap lower bound for the mean per-query AP difference was
+`+0.0001416214`. Two of five individual seeds exceeded the development target `0.58563`; the
+mean did not. This exact-24-byte receipt contains all per-query AP values, is 1,275,406 bytes,
+and has SHA-256 `90f37461c81fe6635da6b78e735b7301ced65e292998797ecb227421ff202295`.
+Refitting OPQ on seed 0 improved its coverage arm slightly further to `0.5846701970 /
+0.8297459272`; the 384,164-byte receipt SHA-256 is
+`63e8a034c7ec71464ce9146fcad76524caab2e05f780fdea856479339b62d584`.
+A low-rate hard-ADC continuation from that representation reached the best single SOP result,
+`0.5850280482 / 0.8291550604`, still `0.000602` below target; its 253,416-byte receipt SHA-256
+is `b801accf77dfa2b63e5186f1fa81ac8f94656dd2139948b7427d3af57800bbff`.
+
+Cross-dataset exact-24-byte checks support generic transfer but not yet a broad claim. On CUB,
+the frozen composition moved refitted OPQ24 from `0.6104800846 / 0.8772788656` to
+`0.6109166241 / 0.8801485483` (`+0.0004365395 / +0.0028696826`); the receipt SHA-256 is
+`6e841e3f4246e79d49c291bbaaf10110f269450e7797e8fcd724c965833b856f`.
+On the official In-Shop query/gallery split, the corrected registered mAP@R evaluator moved
+OPQ24 from `0.5165164345 / 0.7747925165` to `0.5677836717 / 0.8152342102`, gains of
+`+0.0512672372 / +0.0404416936`. The corrected 259,250-byte receipt SHA-256 is
+`db238418e60ae2548b4722dd1a5ebe6fff2b75b2b06d318cb7a71f2c0abc9003`.
+An earlier In-Shop receipt is invalid because it computed full-list AP instead of AP@R; its R@1
+values happened to be unaffected, but none of that receipt is used as evidence. Both CUB and
+In-Shop official splits had already been touched, so these remain claim-ineligible confirmation
+checks rather than independent publication tests.
+
+An orthogonal two-view union preflight tested whether a different similarity composition worked
+without relevance training. It divided the 128-dimensional coverage representation into two
+normalized 64-dimensional views, assigned twelve PQ bytes to each, and compared the maximum of
+the two view scores with their average. The maximum was substantially worse in both packed
+(`0.5369111389 / 0.7977547058` versus `0.5825276962 / 0.8290706508`) and floating
+(`0.5724273213 / 0.8215582004` versus `0.6021952755 / 0.8401283025`) evaluation. The
+510,740-byte receipt SHA-256 is
+`77c33e788923cec97f08e5f780728697885b9befb232d640980dcd294dd800f1`.
+This rejects an untrained view split, not a relevance-trained union metric: a maximum creates a
+false-positive path through either view unless training explicitly suppresses negatives in both.
+
+The corresponding relevance-trained union screen also failed. Starting both arms from identical
+orthogonal heads and fitted twelve-byte-per-view codebooks, it used a frozen train-only negative
+pool, hard nearest-centroid forwards with straight-through gradients, and 2,048 fixed updates of
+coverage, first-hit, and quantization losses. The average arm reached packed/floating
+`0.5564719252 / 0.8113446442` and `0.5893819500 / 0.8275512788`; the maximum arm reached only
+`0.4953640127 / 0.7645817507` and `0.5536653432 / 0.8089811767`. The 514,395-byte result
+receipt SHA-256 is `3f03d5cfbae75a3a75995bde263967cd01777b842dea2cf6be44825e071afa32`.
+The maximum gives every negative two independent ways to become spuriously close, while splitting
+the rate leaves each view with only twelve bytes. More importantly, the trained average arm also
+fell far below its untrained control, so this particular straight-through objective destabilized
+useful geometry rather than repairing compression. This closes the exact recipe, not all
+multi-vector or learned discrete-similarity methods.
+
+A zero-serving-cost weight-soup screen then averaged the five same-initialization transform
+matrices before fitting one OPQ24 codec. The coverage soup reached `0.5860846787 / 0.8304212037`,
+crossing the `0.58563` SOP development target, while the matched pooled soup reached
+`0.5841758053 / 0.8292394699`; the deltas were `+0.0019088734 / +0.0011817338` at exactly
+24 bytes and no sidecar. A complete replay from the saved weights, rotation, and codebooks
+reproduced both aggregate metrics and every per-query AP exactly. The 256,717-byte result receipt
+SHA-256 is `656a99d8f903f37b87438df6312c4f4ccbc58ac67dc02e17161d38aa22572212`;
+the 538,247-byte model SHA-256 is
+`d210bebd3a162ef8e822dbde6121e5cd577b22069d88595e3f115708e3c56aac`.
+However, the query-class-cluster bootstrap lower bound for coverage soup minus pooled soup was
+`-0.0004619688`. Crossing the engineering target is therefore a candidate result, not a
+statistically secure or independent publication claim; it requires an untouched class split and
+matched established-loss controls.
+
+The unchanged weight-soup construction transferred to In-Shop. Averaging the five pooled
+transforms and refitting OPQ24 reached `0.5538762370 / 0.8063018709`; averaging the five coverage
+transforms reached `0.5677000283 / 0.8157968772`, gains of `+0.0138237913 / +0.0094950063`.
+The query-identity-cluster bootstrap lower bound for the per-query AP difference was
+`+0.0111730209`. The 259,613-byte result receipt SHA-256 is
+`8f6922c7ee83e58285b20e5b57f77859bf1bf7eb1240ec61b3c02601cbd4b101` and the
+1,326,843-byte model SHA-256 is
+`f87c8f8d961659f38fcfbf567f5723a2c119e258e190ca885d37d64dcb151239`.
+This is strong cross-dataset evidence for the training-and-averaging direction, but it remains
+claim-ineligible because the In-Shop official evaluation split had already been observed.
+
+Two exact established-loss controls clarify attribution. Under the earlier shared frozen-negative
+table, refitted OPQ24 scored `0.5820711349 / 0.8272136406` for pooled aggregation,
+`0.5828020013 / 0.8283953744` for coverage, and `0.5832102771 / 0.8275512788` for mean-logit.
+The 384,241-byte receipt SHA-256 is
+`874cdc69ddf28a879829718048a602eddf9eaae272444cd700b759db06c0f34b`.
+Thus coverage is not uniformly better than mean-logit under every mining regime. With the dynamic
+hard-negative mining used by the stronger five-seed recipe, however, the matched seed-0
+mean-logit arm reached only `0.5809526285 / 0.8270448215`, versus coverage's
+`0.5846701970 / 0.8297459272`. Its 254,148-byte receipt SHA-256 is
+`581a41a03fe2f67334b58737e392f5ba2e649d6a5432dcd44779c7633bfe9947`.
+The result supports the interaction between worst-positive coverage pressure and refreshed hard
+negatives; it does not support claiming either ingredient alone as new.
+
+### Three-seed float/codec decomposition
+
+A subsequent decomposition removed the single-codec-fit ambiguity from the soup result. It used
+the exact five predetermined checkpoints for each soup, averaged their floating tensors with the
+same overflow-safe FP64 rule shipped by Sfora, measured the resulting float representation, and
+then independently refit OPQ24 with codec seeds 0, 1, and 2. The class-disjoint SOP validation
+split and 24-byte/no-sidecar serving contract were unchanged.
+
+| Transform | Float mAP@R / R@1 | Mean OPQ24 mAP@R / R@1 | Mean mAP compression penalty |
+|---|---:|---:|---:|
+| Identity | 0.5912648481 / 0.8327002617 | 0.5714843865 / 0.8218677021 | 0.0197804617 |
+| Pooled soup | 0.6026187936 / 0.8402127121 | 0.5828884338 / 0.8290987873 | 0.0197303598 |
+| Coverage soup | **0.6037121089** / 0.8400438930 | **0.5833490086** / **0.8293238795** | 0.0203631003 |
+
+Relative to identity, pooled soup contributes `+0.0113539454` float and `+0.0114040473` OPQ24
+mAP@R. Coverage adds only `+0.0010933154` float mAP@R over pooled soup, and its mean packed gain
+shrinks to `+0.0004605748` mAP@R and `+0.0002250921` R@1. Its per-codec-seed packed mAP@R values
+were `0.5827267498`, `0.5834335291`, and `0.5838867470`; the matched pooled values were
+`0.5837498344`, `0.5823241877`, and `0.5825912793`. Coverage therefore lost the seed-0 comparison
+and none of the three refits crossed the `0.58563` target.
+
+This supersedes the earlier single-fit target crossing as the robustness conclusion. The earlier
+receipt remains a valid deterministic result for its exact saved codec, but it is not evidence of
+a codec-seed-stable crossing. The dominant reproducible effect is same-initialization state
+averaging before OPQ; positive coverage supplies a smaller float-space increment whose packed
+effect is partly offset by a larger compression penalty. The 1,528,738-byte decomposition receipt
+has SHA-256 `2ed683b58e644bb968464b8003e4c467a912835e1e0f2cabcf912c9b80c37733` and records
+`748.5679494` seconds elapsed. An independent replay of its three arithmetic means and serving
+constraints matched exactly. The experiment is claim-ineligible and did not touch the SOP
+official test.
+
+## Deployable library composition
+
+The resulting candidate is a training-time composition, not a new serving representation:
+
+1. train same-initialization transform replicas with refreshed hard negatives and the existing
+   `positive_coverage_hard_negative_loss` coverage aggregation;
+2. combine every predetermined replica with `average_compatible_model_states`;
+3. apply the one averaged transform, normalize its rows, and fit one
+   `OptimizedProductQuantizer` with the registered 24-block layout;
+4. deploy only that transform, OPQ rotation, codebooks, and one 24-byte code per database row.
+
+The averaging primitive uses overflow-safe FP64 averaging, requires identical ordered tensor
+schemas and compatible PyTorch state-dict version metadata, rejects nonfinite floating values,
+requires exact equality for discrete buffers, and returns detached non-aliasing state.
+Consequently, it cannot silently select one replica's counters, masks, or serialization version.
+The serving path performs no model ensemble and adds no database sidecar: scan memory, code width,
+and ADC operations are the same as ordinary OPQ24. Training five replicas costs more offline
+compute, but it does not change per-query deployment cost.
+
+This composition is generic across state dictionaries and embedding datasets; no SOP, CUB, or
+In-Shop identity is present in the library API. The experimental recipe still needs a frozen
+replica count and untouched evidence. In particular, the SOP single-codec target crossing did not
+survive the three-seed refit protocol, and the In-Shop confirmation used an already observed
+official split. A publication claim therefore requires a predetermined untouched class partition
+or dataset, paired per-query evidence, and the same pooled-versus-coverage comparison without
+choosing seeds, replica count, codec, or hyperparameters from the held-out result.

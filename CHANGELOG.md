@@ -9,6 +9,9 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
+- `average_compatible_model_states`, a strict overflow-safe FP64 state-dict averaging primitive
+  that preserves compatible version metadata while collapsing predetermined same-initialization
+  training replicas into one deployable model without an inference ensemble.
 - **HERD** objective add-on — Hypergraph EMA-teacher Relational Distillation: a
   slow EMA momentum teacher (`--ema-distill-weight`, `--ema-momentum`,
   `--ema-distill-tau`) supplies soft batch-neighborhood targets on top of the
