@@ -62,7 +62,7 @@ class ProgressiveResidualSpec:
 
 @dataclass(frozen=True, slots=True)
 class ProgressiveResidualCodes:
-    """One concrete batch of base codes, scales, and eight residual bitplanes."""
+    """One concrete batch of base codes, scales, and stored residual bitplanes."""
 
     base_codes: torch.Tensor
     scales: torch.Tensor
@@ -86,7 +86,7 @@ class ProgressiveResidualCodes:
             or self.residual_planes.dtype != torch.uint8
             or self.residual_planes.ndim != 3
             or self.residual_planes.shape[0] != self.base_codes.shape[0]
-            or self.residual_planes.shape[1] != 8
+            or not 1 <= self.residual_planes.shape[1] <= 8
             or self.residual_planes.shape[2] < 1
             or not self.residual_planes.is_contiguous()
             or self.scales.device != self.base_codes.device
@@ -105,6 +105,12 @@ class ProgressiveResidualCodes:
         """Return the common tensor device."""
 
         return self.base_codes.device
+
+    @property
+    def stored_residual_bits(self) -> int:
+        """Return the number of physically resident residual bitplanes."""
+
+        return self.residual_planes.shape[1]
 
 
 @dataclass(frozen=True, slots=True)
@@ -175,7 +181,7 @@ def unpack_residual_prefix(
         or planes.dtype != torch.uint8
         or planes.ndim != 3
         or planes.shape[0] < 1
-        or planes.shape[1] != 8
+        or not residual_bits <= planes.shape[1] <= 8
         or planes.shape[2] != plane_bytes
         or not planes.is_contiguous()
     ):
@@ -219,7 +225,7 @@ def _prepare_metric_values(
         raise ValueError("progressive residual input differs")
     if spec.metric == "squared_l2":
         return values.clone().contiguous()
-    norms = torch.linalg.vector_norm(values.double(), dim=1, keepdim=True)
+    norms = torch.linalg.vector_norm(values, dim=1, keepdim=True, dtype=torch.float64)
     if not bool(torch.isfinite(norms).all()) or bool((norms <= 1e-12).any()):
         raise ValueError("progressive residual input differs")
     prepared = (values.double() / norms).float().contiguous()
@@ -281,22 +287,82 @@ class ProgressiveResidualQuantizer(nn.Module):
             .to(torch.uint8)
             .contiguous()
         )
-        planes = pack_residual_bitplanes(indexes, dimensions=self.spec.dimensions)
+        planes = pack_residual_bitplanes(indexes, dimensions=self.spec.dimensions)[
+            :, : self.spec.maximum_residual_bits
+        ].contiguous()
         return ProgressiveResidualCodes(
             base_codes=base_codes,
             scales=scales.contiguous(),
             residual_planes=planes,
         )
 
+    @torch.no_grad()
+    def encode_in_batches(
+        self,
+        values: torch.Tensor,
+        *,
+        batch_rows: int,
+    ) -> ProgressiveResidualCodes:
+        """Encode a row table while bounding base-quantizer working memory."""
+
+        if (
+            type(batch_rows) is not int
+            or batch_rows < 1
+            or type(values) is not torch.Tensor
+            or values.dtype != torch.float32
+            or values.ndim != 2
+            or values.shape[0] < 1
+            or values.shape[1] != self.spec.dimensions
+            or values.device != self.device
+            or not values.is_contiguous()
+            or not bool(torch.isfinite(values).all())
+        ):
+            raise ValueError("progressive residual batch differs")
+        batches = [
+            self.encode(values[start : start + batch_rows])
+            for start in range(0, values.shape[0], batch_rows)
+        ]
+        return ProgressiveResidualCodes(
+            base_codes=torch.cat([batch.base_codes for batch in batches], dim=0).contiguous(),
+            scales=torch.cat([batch.scales for batch in batches], dim=0).contiguous(),
+            residual_planes=torch.cat(
+                [batch.residual_planes for batch in batches], dim=0
+            ).contiguous(),
+        )
+
     def _validate_codes(self, codes: ProgressiveResidualCodes) -> None:
         if (
             type(codes) is not ProgressiveResidualCodes
             or codes.base_codes.shape[1] != self.spec.base_spec.bytes_per_vector
+            or codes.stored_residual_bits != self.spec.maximum_residual_bits
             or codes.residual_planes.shape[2] != self.spec.residual_plane_bytes
             or codes.device != self.device
         ):
             raise ValueError("progressive residual codes differ")
         self.base_quantizer._validate_codes(codes.base_codes)
+
+    def _decode_prefix_tensors(
+        self,
+        base_codes: torch.Tensor,
+        scales: torch.Tensor,
+        residual_planes: torch.Tensor,
+        *,
+        residual_bits: int,
+    ) -> torch.Tensor:
+        prefix = unpack_residual_prefix(
+            residual_planes,
+            dimensions=self.spec.dimensions,
+            residual_bits=residual_bits,
+        ).float()
+        step = 1 << (8 - residual_bits)
+        centers = prefix * step + (step - 1) / 2.0 - 127.5
+        decoded = self.base_quantizer.hard_decode(base_codes)
+        reconstructed = decoded + centers * scales.float()[:, None]
+        if self.spec.metric == "angular":
+            reconstructed = F.normalize(reconstructed, dim=1)
+        if not bool(torch.isfinite(reconstructed).all()):
+            raise RuntimeError("progressive residual decode is nonfinite")
+        return reconstructed.contiguous()
 
     @torch.no_grad()
     def decode_prefix(
@@ -309,20 +375,12 @@ class ProgressiveResidualQuantizer(nn.Module):
 
         self._validate_codes(codes)
         self.spec.bytes_per_vector(residual_bits=residual_bits)
-        prefix = unpack_residual_prefix(
-            codes.residual_planes,
-            dimensions=self.spec.dimensions,
+        return self._decode_prefix_tensors(
+            codes.base_codes,
+            codes.scales,
+            codes.residual_planes[:, :residual_bits].contiguous(),
             residual_bits=residual_bits,
-        ).float()
-        step = 1 << (8 - residual_bits)
-        centers = prefix * step + (step - 1) / 2.0 - 127.5
-        decoded = self.base_quantizer.hard_decode(codes.base_codes)
-        reconstructed = decoded + centers * codes.scales.float()[:, None]
-        if self.spec.metric == "angular":
-            reconstructed = F.normalize(reconstructed, dim=1)
-        if not bool(torch.isfinite(reconstructed).all()):
-            raise RuntimeError("progressive residual decode is nonfinite")
-        return reconstructed.contiguous()
+        )
 
     @torch.no_grad()
     def score_candidates(
@@ -361,12 +419,19 @@ class ProgressiveResidualQuantizer(nn.Module):
         ):
             raise ValueError("progressive candidate authority differs")
         flat = candidate_ordinals.reshape(-1)
-        gathered = ProgressiveResidualCodes(
-            base_codes=codes.base_codes[flat].contiguous(),
-            scales=codes.scales[flat].contiguous(),
-            residual_planes=codes.residual_planes[flat].contiguous(),
+        gathered_base = codes.base_codes.index_select(0, flat).contiguous()
+        gathered_scales = codes.scales.index_select(0, flat).contiguous()
+        gathered_planes = (
+            codes.residual_planes[:, :residual_bits]
+            .index_select(0, flat)
+            .contiguous()
         )
-        decoded = self.decode_prefix(gathered, residual_bits=residual_bits).reshape(
+        decoded = self._decode_prefix_tensors(
+            gathered_base,
+            gathered_scales,
+            gathered_planes,
+            residual_bits=residual_bits,
+        ).reshape(
             candidate_ordinals.shape[0],
             candidate_ordinals.shape[1],
             self.spec.dimensions,

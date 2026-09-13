@@ -133,7 +133,7 @@ def test_bitplane_boundaries_reject_shape_type_and_padding_drift() -> None:
 
     invalid_planes = (
         planes.float(),
-        planes[:, :7],
+        torch.zeros((2, 9, 2), dtype=torch.uint8),
         planes[:, :, :1],
         bad_padding,
     )
@@ -157,7 +157,7 @@ def test_progressive_codes_own_one_concrete_contiguous_device_matched_batch() ->
     invalid = (
         {"base_codes": torch.zeros((2, 3), dtype=torch.int16)},
         {"scales": torch.ones(2)},
-        {"residual_planes": torch.zeros((2, 7, 2), dtype=torch.uint8)},
+        {"residual_planes": torch.zeros((2, 9, 2), dtype=torch.uint8)},
         {"residual_planes": torch.zeros((3, 8, 2), dtype=torch.uint8)},
         {"base_codes": torch.zeros((0, 3), dtype=torch.uint8)},
     )
@@ -172,14 +172,22 @@ def test_progressive_codes_own_one_concrete_contiguous_device_matched_batch() ->
             ProgressiveResidualCodes(**arguments)
 
 
-def _fixed_codec(metric: str = "squared_l2") -> ProgressiveResidualQuantizer:
+def _fixed_codec(
+    metric: str = "squared_l2",
+    *,
+    maximum_residual_bits: int = 8,
+) -> ProgressiveResidualQuantizer:
     base_spec = ProductQuantizationSpec(block_dimensions=(2,), codebook_size=2)
     base = ProductQuantizer.from_codebooks(
         base_spec,
         (torch.tensor([[0.0, 0.0], [10.0, 10.0]], dtype=torch.float32),),
     )
     return ProgressiveResidualQuantizer(
-        ProgressiveResidualSpec(metric=metric, base_spec=base_spec),  # type: ignore[arg-type]
+        ProgressiveResidualSpec(  # type: ignore[arg-type]
+            metric=metric,
+            base_spec=base_spec,
+            maximum_residual_bits=maximum_residual_bits,
+        ),
         base,
     )
 
@@ -228,6 +236,72 @@ def test_encode_uses_float16_scale_and_one_maximum_rate_code() -> None:
         torch.tensor([[255, 0]], dtype=torch.uint8),
     )
     assert codes.residual_planes.shape == (1, 8, 1)
+
+
+def test_encode_physically_stores_only_registered_maximum_prefix() -> None:
+    codec = _fixed_codec(maximum_residual_bits=5)
+    values = torch.tensor([[1.0, -1.0], [-1.0, 1.0]], dtype=torch.float32)
+
+    codes = codec.encode(values)
+
+    assert codes.stored_residual_bits == 5
+    assert codes.residual_planes.shape == (2, 5, 1)
+    assert (
+        codes.base_codes.numel()
+        + codes.scales.numel() * codes.scales.element_size()
+        + codes.residual_planes.numel()
+    ) == 2 * codec.spec.bytes_per_vector(residual_bits=5)
+    for residual_bits in range(1, 6):
+        assert codec.decode_prefix(codes, residual_bits=residual_bits).shape == (2, 2)
+    with pytest.raises(ValueError, match="progressive residual prefix differs"):
+        codec.decode_prefix(codes, residual_bits=6)
+
+
+def test_encode_in_batches_matches_one_shot_and_bounds_every_encode() -> None:
+    codec = _fixed_codec(maximum_residual_bits=5)
+    values = torch.tensor(
+        [[float(index), -float(index)] for index in range(1, 6)],
+        dtype=torch.float32,
+    )
+    expected = codec.encode(values)
+    observed_rows: list[int] = []
+    original_encode = codec.encode
+
+    def observed_encode(batch: torch.Tensor) -> ProgressiveResidualCodes:
+        observed_rows.append(batch.shape[0])
+        return original_encode(batch)
+
+    codec.encode = observed_encode  # type: ignore[method-assign]
+    actual = codec.encode_in_batches(values, batch_rows=2)
+
+    assert observed_rows == [2, 2, 1]
+    assert torch.equal(actual.base_codes, expected.base_codes)
+    assert torch.equal(actual.scales, expected.scales)
+    assert torch.equal(actual.residual_planes, expected.residual_planes)
+    for batch_rows in (True, 0):
+        with pytest.raises(ValueError, match="progressive residual batch differs"):
+            codec.encode_in_batches(values, batch_rows=batch_rows)  # type: ignore[arg-type]
+
+
+def test_candidate_scoring_accepts_a_physical_prefix_shorter_than_stored_code() -> None:
+    codec = _fixed_codec(maximum_residual_bits=5)
+    gallery = codec.encode(
+        torch.tensor(
+            [[-1.0, 0.0], [1.0, 0.0], [0.0, 2.0], [0.0, -2.0]],
+            dtype=torch.float32,
+        )
+    )
+
+    result = codec.score_candidates(
+        torch.tensor([[0.9, 0.0]], dtype=torch.float32),
+        gallery,
+        torch.tensor([[3, 2, 1, 0]], dtype=torch.int64),
+        residual_bits=3,
+        return_width=2,
+    )
+
+    assert result.ordinals.tolist() == [[1, 0]]
+    assert result.residual_bytes_read == 4 * (2 + 3)
 
 
 def test_decode_uses_exact_prefix_centers_and_metric_semantics() -> None:
