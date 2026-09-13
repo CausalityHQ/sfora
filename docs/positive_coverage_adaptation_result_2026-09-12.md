@@ -871,6 +871,46 @@ The run took `203.0818869` seconds, did not touch the SOP official test, and is
 claim-ineligible. The evaluation split had already been observed by the preceding diagnostic;
 this result is causal guidance for codec design, not independent quality evidence.
 
+### Equal-storage OPQ geometry diagnostic
+
+A follow-up held database-code storage fixed at exactly 192 bits while varying the product
+geometry: 32 blocks with 6-bit codes, 48 blocks with 4-bit codes, and 64 blocks with 3-bit
+codes. All codecs reused seed 50 and the same twenty-iteration, four-rotation fitting contract.
+Codes were sealed in packed 24-byte form before evaluation; the reference evaluator explicitly
+unpacked them to byte-per-block codes, so this experiment measured quality and packed storage,
+not a production packed-code kernel or serving latency.
+
+| 192-bit geometry | mAP@R | Recall@1 | Mean held-class reconstruction error |
+|---|---:|---:|---:|
+| OPQ24x8 reference | 0.4608832835 | 0.7329630244 | 0.1295419484 |
+| OPQ32x6 | 0.4637342634 | 0.7396783286 | 0.1372172236 |
+| OPQ48x4 | 0.4633451905 | 0.7340407893 | 0.1427445561 |
+| OPQ64x3 | 0.4622571600 | 0.7349527442 | 0.1535940170 |
+
+OPQ32x6 had the best point estimates, improving on OPQ24x8 by `+0.0028509799` mAP@R and
+`0.0067153043` Recall@1. Under the preregistered 100,000-replicate class bootstrap and
+simultaneous two-sided Bonferroni correction across eighteen contrasts, however, the respective
+intervals were `[-0.0013578268, +0.0071267311]` and
+`[-0.0004165009, +0.0140004857]`. The improvement is therefore not established. All three
+geometries also failed the registered 80%-of-OPQ32 improvement target; OPQ32x6's mAP@R contrast
+was `-0.0069229425`, interval `[-0.0103583816, -0.0035213221]`. The classification was
+`equal-bit-geometries-insufficient`.
+
+The result rules out product-block geometry alone as the missing fixed-rate lever on this
+observed split. It does not rule out changing the coded dimension, locally adaptive or additive
+codebooks, or score-aware training. The split was class-disjoint only between codec fitting and
+evaluation; the representation and evaluation data had already been observed, so the result is
+claim-ineligible and cannot support a publication-quality generalization claim.
+
+The canonical 595,035-byte result has SHA-256
+`0a3fde9c3a87bfa2fa901c6c31d1543d8a3a0601f4b952daf4ad4ef46104a635`; its
+4,568,631-byte prefit seal has SHA-256
+`5c0d5228b01124e80fd34c4c8eacd757b7eef0e62762a693cc6627511914d70f`.
+The exact experiment script had SHA-256
+`06fee841bc0d85c790323bb2102853df61c9e38269eaa3b8c10ce9265bdf2cb6`.
+The run took `58.0877814` seconds, used no official SOP test data, and left the DGX process,
+GPU, and memory-pressure state clear.
+
 ## Deployable library composition
 
 The resulting candidate is a training-time composition, not a new serving representation:
