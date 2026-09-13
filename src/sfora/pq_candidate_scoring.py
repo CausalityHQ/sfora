@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Literal, cast
@@ -82,6 +83,8 @@ def _prepare_queries(
     queries: torch.Tensor,
     quantizer: ProductQuantizer | OptimizedProductQuantizer,
     metric: PqCandidateMetric,
+    *,
+    maximum_codebook_absolute: float,
 ) -> torch.Tensor:
     base = _product_quantizer(quantizer)
     if (
@@ -92,7 +95,6 @@ def _prepare_queries(
         or queries.shape[1] != base.spec.dimensions
         or queries.device != base.codebooks[0].device
         or not queries.is_contiguous()
-        or not bool(torch.isfinite(queries).all())
     ):
         raise ValueError("PQ candidate queries differ")
     prepared = queries
@@ -103,7 +105,16 @@ def _prepare_queries(
         prepared = (queries.double() / norms).float()
     if type(quantizer) is OptimizedProductQuantizer:
         prepared = torch.matmul(prepared, quantizer._rotation)
-    return prepared.contiguous()
+    prepared = prepared.contiguous()
+    maximum_query_absolute = float(torch.abs(prepared).max())
+    maximum_difference = maximum_query_absolute + maximum_codebook_absolute
+    if (
+        not math.isfinite(maximum_query_absolute)
+        or base.spec.dimensions * maximum_difference * maximum_difference
+        > torch.finfo(torch.float32).max / 4
+    ):
+        raise ValueError("PQ candidate scores differ")
+    return prepared
 
 
 def _candidate_core(
@@ -131,17 +142,15 @@ def _candidate_core(
             )
             distances = distances + table[:, gallery_codes[:, block_index].long()]
             start += width
-        scores_are_finite = torch.isfinite(distances[:, :gallery_rows]).all()
         if gallery_rows < gallery_codes.shape[0]:
             distances[:, gallery_rows:] = torch.inf
-        ordinals = torch.topk(
+        return torch.topk(
             distances,
             k=candidate_width,
             dim=1,
             largest=False,
             sorted=True,
         ).indices
-        return torch.where(scores_are_finite, ordinals, torch.full_like(ordinals, -1))
 
     return score
 
@@ -164,6 +173,7 @@ class CompiledPqCandidateScorer:
         spec: PqCandidateScoringSpec,
         compiled: _CompiledCandidateFunction | None,
         fallback_reason: str | None,
+        maximum_codebook_absolute: float,
     ) -> None:
         self._quantizer = quantizer
         self._base = _product_quantizer(quantizer)
@@ -172,6 +182,7 @@ class CompiledPqCandidateScorer:
         self.spec = spec
         self._compiled = compiled
         self._fallback_reason = fallback_reason
+        self._maximum_codebook_absolute = maximum_codebook_absolute
 
     def _compiled_ordinals(self, prepared: torch.Tensor) -> torch.Tensor:
         if self._compiled is None:
@@ -229,7 +240,12 @@ class CompiledPqCandidateScorer:
     def score(self, queries: torch.Tensor) -> PqCandidateResult:
         """Return bounded candidates for every query without exposing padded rows."""
 
-        prepared = _prepare_queries(queries, self._quantizer, self.spec.metric)
+        prepared = _prepare_queries(
+            queries,
+            self._quantizer,
+            self.spec.metric,
+            maximum_codebook_absolute=self._maximum_codebook_absolute,
+        )
         fallback_reason = self._fallback_reason
         code_width = self._gallery_codes.shape[1]
         eager_code_rows = prepared.shape[0] * self._gallery_codes.shape[0]
@@ -299,12 +315,30 @@ def compile_pq_candidate_scorer(
         padded_codes = torch.cat((gallery_codes, padding), dim=0).contiguous()
     else:
         padded_codes = gallery_codes.clone()
-    prepared = _prepare_queries(calibration_queries, quantizer, spec.metric)
+    maximum_codebook_absolute = float(
+        torch.cat([codebook.detach().reshape(-1) for codebook in base.codebooks]).abs().max()
+    )
+    prepared = _prepare_queries(
+        calibration_queries,
+        quantizer,
+        spec.metric,
+        maximum_codebook_absolute=maximum_codebook_absolute,
+    )
     core = _candidate_core(
         base,
         gallery_rows=gallery_codes.shape[0],
         candidate_width=spec.candidate_width,
     )
+    calibration_scorer = CompiledPqCandidateScorer(
+        quantizer,
+        gallery_codes,
+        padded_codes,
+        spec,
+        None,
+        "calibration-reference",
+        maximum_codebook_absolute,
+    )
+    expected = calibration_scorer._eager_ordinals(prepared)
     try:
         compiled = compiler(core)
         scorer = CompiledPqCandidateScorer(
@@ -314,6 +348,7 @@ def compile_pq_candidate_scorer(
             spec,
             compiled,
             None,
+            maximum_codebook_absolute,
         )
         observed = scorer._compiled_ordinals(prepared)
     except Exception as error:
@@ -324,8 +359,8 @@ def compile_pq_candidate_scorer(
             spec,
             None,
             f"compile-failed:{type(error).__name__}",
+            maximum_codebook_absolute,
         )
-    expected = scorer._eager_ordinals(prepared)
     if not scorer._valid_ordinals(observed, query_rows=prepared.shape[0]) or not torch.equal(
         torch.sort(observed, dim=1).values, torch.sort(expected, dim=1).values
     ):
@@ -336,5 +371,6 @@ def compile_pq_candidate_scorer(
             spec,
             None,
             "calibration-membership-differs",
+            maximum_codebook_absolute,
         )
     return scorer
