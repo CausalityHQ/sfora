@@ -45,6 +45,32 @@ class ProductQuantizationSpec:
         return len(self.block_dimensions)
 
 
+def balanced_product_quantization_spec(
+    *, dimensions: int, bytes_per_vector: int, codebook_size: int = 256
+) -> ProductQuantizationSpec:
+    """Distribute dimensions narrow-first across an exact number of byte blocks.
+
+    This deterministic layout is a geometry convention; quality also depends on
+    the fitted projection, rotation, and codebooks.
+    """
+
+    if (
+        type(dimensions) is not int
+        or type(bytes_per_vector) is not int
+        or type(codebook_size) is not int
+        or dimensions < 1
+        or bytes_per_vector < 1
+        or bytes_per_vector > dimensions
+        or not 2 <= codebook_size <= 256
+    ):
+        raise ValueError("product quantization rate geometry differs")
+    width, wider_blocks = divmod(dimensions, bytes_per_vector)
+    return ProductQuantizationSpec(
+        block_dimensions=(width,) * (bytes_per_vector - wider_blocks) + (width + 1,) * wider_blocks,
+        codebook_size=codebook_size,
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class NeighborhoodAdcDistillationLoss:
     """Observable components of neighborhood distillation through hard ADC."""

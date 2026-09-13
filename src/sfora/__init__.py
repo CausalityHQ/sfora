@@ -148,6 +148,20 @@ _RELATIONAL_COMPACTION_EXPORTS = frozenset(
     }
 )
 
+_RATE_MATCHED_PRODUCT_QUANTIZATION_EXPORTS = frozenset(
+    {
+        "RateMatchedProductQuantizer",
+        "fit_rate_matched_product_quantizer",
+    }
+)
+
+_PRODUCT_QUANTIZATION_EXPORTS = frozenset(
+    {
+        "ProductQuantizationSpec",
+        "balanced_product_quantization_spec",
+    }
+)
+
 _REPRESENTATION_CEILING_EXPORTS = frozenset(
     {
         "AffineMap",
@@ -231,6 +245,16 @@ def __getattr__(name: str) -> object:
         value = cast(object, getattr(module, name))
         globals()[name] = value
         return value
+    if name in _RATE_MATCHED_PRODUCT_QUANTIZATION_EXPORTS:
+        module = import_module("sfora.rate_matched_product_quantization")
+        value = cast(object, getattr(module, name))
+        globals()[name] = value
+        return value
+    if name in _PRODUCT_QUANTIZATION_EXPORTS:
+        module = import_module("sfora.product_quantization")
+        value = cast(object, getattr(module, name))
+        globals()[name] = value
+        return value
     if name in _REPRESENTATION_CEILING_EXPORTS:
         module = import_module("sfora.representation_ceiling")
         value = cast(object, getattr(module, name))
@@ -292,10 +316,12 @@ __all__ = [
     "ProjectionTrainingConfig",
     "ProjectionTrainingResult",
     "ProbeScore",
+    "ProductQuantizationSpec",
     "RetrievalScore",
     "RemoteRunConfig",
     "RemoteRunPlan",
     "RemoteStep",
+    "RateMatchedProductQuantizer",
     "RelationalLinearEncoder",
     "RelationalLinearTrainingConfig",
     "ReportConfig",
@@ -330,9 +356,11 @@ __all__ = [
     "build_site_data",
     "build_hf_publish_bundle",
     "build_remote_run_plan",
+    "balanced_product_quantization_spec",
     "fit_sfora_projection",
     "fit_relational_linear_compaction",
     "fit_relational_linear_encoder",
+    "fit_rate_matched_product_quantizer",
     "apply_normalized_affine",
     "deterministic_class_partition",
     "fit_centered_pca",
