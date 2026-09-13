@@ -69,12 +69,12 @@ timing, strict receipt validation, and atomic publication. It does not alter the
 - Produces: fixed OPQ24/PQ24/OPQ32 arm fitting and ADC scoring for seeds 50 through 54.
 - Produces: reconstruction error trajectories and matched-wall-time/convergence classifications.
 
-- [ ] Write tests for exact arm matrix, code widths, block widths, fitter inputs, seed propagation,
+- [x] Write tests for exact arm matrix, code widths, block widths, fitter inputs, seed propagation,
   fit schedules, ADC-vs-decoded-distance agreement, and train/evaluation separation.
-- [ ] Run the focused RED.
-- [ ] Implement the arm loop using existing generic quantizers without changing their public API.
-- [ ] Run focused GREEN and static checks.
-- [ ] Commit the quantized-arm slice.
+- [x] Run the focused RED.
+- [x] Implement the arm loop using existing generic quantizers without changing their public API.
+- [x] Run focused GREEN and static checks.
+- [x] Commit the quantized-arm slice.
 
 ### Task 4: Stage timing, memory, and strict receipt
 
