@@ -170,16 +170,37 @@ def test_ann_benchmark_recall_accepts_equal_distance_truth_ties(tmp_path: Path) 
     hits = SUBJECT.ann_benchmark_recall_hits(
         dataset,
         np.array([[0, 1], [3, 1]], dtype=np.int64),
+        query_ordinals=np.array([0, 1], dtype=np.int64),
         count=2,
     )
     tied = SUBJECT.ann_benchmark_recall_hits(
         dataset,
         np.array([[0, 2], [3, 1]], dtype=np.int64),
+        query_ordinals=np.array([0, 1], dtype=np.int64),
         count=2,
     )
 
     assert hits.tolist() == [2, 2]
     assert tied.tolist() == [2, 2]
+
+
+def test_ann_benchmark_recall_scores_an_explicit_query_subset(tmp_path: Path) -> None:
+    path = tmp_path / "sift-like.hdf5"
+    digest = _write_ann_benchmark_fixture(path, metric="euclidean")
+    dataset = SUBJECT.load_ann_benchmark(
+        path,
+        expected_sha256=digest,
+        expected_metric="squared_l2",
+    )
+
+    hits = SUBJECT.ann_benchmark_recall_hits(
+        dataset,
+        np.array([[0, 2]], dtype=np.int64),
+        query_ordinals=np.array([0], dtype=np.int64),
+        count=2,
+    )
+
+    assert hits.tolist() == [2]
 
 
 @pytest.mark.parametrize(
@@ -188,7 +209,6 @@ def test_ann_benchmark_recall_accepts_equal_distance_truth_ties(tmp_path: Path) 
         (np.array([[0, 0], [3, 1]], dtype=np.int64), 2),
         (np.array([[0, 4], [3, 1]], dtype=np.int64), 2),
         (np.array([[0, 1], [3, 1]], dtype=np.int32), 2),
-        (np.array([[0, 1]], dtype=np.int64), 2),
         (np.array([[0, 1], [3, 1]], dtype=np.int64), True),
         (np.array([[0, 1], [3, 1]], dtype=np.int64), 3),
     ],
@@ -207,7 +227,43 @@ def test_ann_benchmark_recall_rejects_result_authority_drift(
     )
 
     with pytest.raises(ValueError, match="ANN-Benchmarks result differs"):
-        SUBJECT.ann_benchmark_recall_hits(dataset, returned, count=count)
+        SUBJECT.ann_benchmark_recall_hits(
+            dataset,
+            returned,
+            query_ordinals=np.arange(returned.shape[0], dtype=np.int64),
+            count=count,
+        )
+
+
+@pytest.mark.parametrize(
+    "query_ordinals",
+    [
+        np.array([0, 1], dtype=np.int32),
+        np.array([0, 0], dtype=np.int64),
+        np.array([-1, 1], dtype=np.int64),
+        np.array([0, 2], dtype=np.int64),
+        np.array([[0, 1]], dtype=np.int64),
+    ],
+)
+def test_ann_benchmark_recall_rejects_query_identity_drift(
+    tmp_path: Path,
+    query_ordinals: np.ndarray,
+) -> None:
+    path = tmp_path / "sift-like.hdf5"
+    digest = _write_ann_benchmark_fixture(path, metric="euclidean")
+    dataset = SUBJECT.load_ann_benchmark(
+        path,
+        expected_sha256=digest,
+        expected_metric="squared_l2",
+    )
+
+    with pytest.raises(ValueError, match="ANN-Benchmarks result differs"):
+        SUBJECT.ann_benchmark_recall_hits(
+            dataset,
+            np.array([[0, 1], [3, 1]], dtype=np.int64),
+            query_ordinals=query_ordinals,
+            count=2,
+        )
 
 
 def test_candidate_containment_uses_full_candidate_width_not_truth_width() -> None:

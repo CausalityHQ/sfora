@@ -180,6 +180,7 @@ def ann_benchmark_recall_hits(
     dataset: AnnBenchmarkDataset,
     returned_ordinals: np.ndarray,
     *,
+    query_ordinals: np.ndarray,
     count: int,
 ) -> np.ndarray:
     """Return official additive-epsilon distance-threshold recall hits."""
@@ -189,9 +190,17 @@ def ann_benchmark_recall_hits(
         or type(returned_ordinals) is not np.ndarray
         or returned_ordinals.dtype != np.int64
         or returned_ordinals.ndim != 2
-        or returned_ordinals.shape[0] != dataset.test.shape[0]
+        or returned_ordinals.shape[0] < 1
         or returned_ordinals.shape[1] < 1
         or not returned_ordinals.flags.c_contiguous
+        or type(query_ordinals) is not np.ndarray
+        or query_ordinals.dtype != np.int64
+        or query_ordinals.ndim != 1
+        or query_ordinals.shape != (returned_ordinals.shape[0],)
+        or not query_ordinals.flags.c_contiguous
+        or bool((query_ordinals < 0).any())
+        or bool((query_ordinals >= dataset.test.shape[0]).any())
+        or len(np.unique(query_ordinals)) != len(query_ordinals)
         or type(count) is not int
         or not 1 <= count <= returned_ordinals.shape[1]
         or count > dataset.truth_distances.shape[1]
@@ -205,12 +214,15 @@ def ann_benchmark_recall_hits(
     ):
         raise ValueError("ANN-Benchmarks result differs")
 
-    hits = np.empty(dataset.test.shape[0], dtype=np.int64)
-    thresholds = dataset.truth_distances[:, count - 1].astype(np.float64) + 1e-3
-    for start in range(0, dataset.test.shape[0], 256):
-        stop = min(start + 256, dataset.test.shape[0])
+    query_count = returned_ordinals.shape[0]
+    hits = np.empty(query_count, dtype=np.int64)
+    thresholds = (
+        dataset.truth_distances[query_ordinals, count - 1].astype(np.float64) + 1e-3
+    )
+    for start in range(0, query_count, 256):
+        stop = min(start + 256, query_count)
         selected = dataset.train[returned_ordinals[start:stop, :count]].astype(np.float64)
-        queries = dataset.test[start:stop].astype(np.float64)
+        queries = dataset.test[query_ordinals[start:stop]].astype(np.float64)
         if dataset.metric == "angular":
             query_norms = np.linalg.norm(queries, axis=1)
             selected_norms = np.linalg.norm(selected, axis=2)
