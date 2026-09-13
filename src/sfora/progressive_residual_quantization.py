@@ -3,11 +3,17 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, cast
 
 import torch
+from torch import nn
+from torch.nn import functional as F
 
-from sfora.product_quantization import ProductQuantizationSpec
+from sfora.product_quantization import (
+    ProductQuantizationSpec,
+    ProductQuantizer,
+    fit_product_quantizer,
+)
 
 ProgressiveMetric = Literal["angular", "squared_l2"]
 
@@ -182,3 +188,211 @@ def unpack_residual_prefix(
         ).reshape(planes.shape[0], plane_bytes * 8)[:, :dimensions]
         prefix = torch.bitwise_or(torch.bitwise_left_shift(prefix, 1), bits.to(torch.int16))
     return prefix.to(torch.uint8).contiguous()
+
+
+def _prepare_metric_values(
+    values: torch.Tensor,
+    spec: ProgressiveResidualSpec,
+    *,
+    device: torch.device,
+) -> torch.Tensor:
+    if (
+        type(values) is not torch.Tensor
+        or values.dtype != torch.float32
+        or values.ndim != 2
+        or values.shape[0] < 1
+        or values.shape[1] != spec.dimensions
+        or values.device != device
+        or not values.is_contiguous()
+        or not bool(torch.isfinite(values).all())
+    ):
+        raise ValueError("progressive residual input differs")
+    if spec.metric == "squared_l2":
+        return values.clone().contiguous()
+    norms = torch.linalg.vector_norm(values.double(), dim=1, keepdim=True)
+    if not bool(torch.isfinite(norms).all()) or bool((norms <= 1e-12).any()):
+        raise ValueError("progressive residual input differs")
+    prepared = (values.double() / norms).float().contiguous()
+    if not bool(torch.isfinite(prepared).all()):
+        raise ValueError("progressive residual input differs")
+    return cast(torch.Tensor, prepared)
+
+
+class ProgressiveResidualQuantizer(nn.Module):
+    """Full-dimensional product codes with one nested residual bitstream."""
+
+    def __init__(
+        self,
+        spec: ProgressiveResidualSpec,
+        base_quantizer: ProductQuantizer,
+    ) -> None:
+        super().__init__()
+        if (
+            type(spec) is not ProgressiveResidualSpec
+            or type(base_quantizer) is not ProductQuantizer
+            or base_quantizer.spec != spec.base_spec
+        ):
+            raise ValueError("progressive residual codec differs")
+        self.spec = spec
+        self.base_quantizer = base_quantizer
+        self.base_quantizer.requires_grad_(False)
+
+    @property
+    def device(self) -> torch.device:
+        """Return the common codebook device."""
+
+        return torch.device(self.base_quantizer.codebooks[0].device)
+
+    def prepare_values(self, values: torch.Tensor) -> torch.Tensor:
+        """Validate rows and apply only the registered metric preparation."""
+
+        return _prepare_metric_values(values, self.spec, device=self.device)
+
+    @torch.no_grad()
+    def encode(self, values: torch.Tensor) -> ProgressiveResidualCodes:
+        """Encode base assignments and one maximum-rate residual bitstream."""
+
+        prepared = self.prepare_values(values)
+        base_codes = self.base_quantizer.hard_encode(prepared)
+        decoded = self.base_quantizer.hard_decode(base_codes)
+        residual = prepared - decoded
+        minimum = torch.tensor(
+            torch.finfo(torch.float16).tiny,
+            dtype=torch.float32,
+            device=prepared.device,
+        )
+        scales = (residual.abs().amax(dim=1) / 127.5).clamp_min(minimum).to(torch.float16)
+        if not bool(torch.isfinite(scales).all()) or bool((scales <= 0).any()):
+            raise ValueError("progressive residual scale differs")
+        scale32 = scales.float()
+        indexes = (
+            torch.round(residual / scale32[:, None] + 127.5)
+            .clamp(0, 255)
+            .to(torch.uint8)
+            .contiguous()
+        )
+        planes = pack_residual_bitplanes(indexes, dimensions=self.spec.dimensions)
+        return ProgressiveResidualCodes(
+            base_codes=base_codes,
+            scales=scales.contiguous(),
+            residual_planes=planes,
+        )
+
+    def _validate_codes(self, codes: ProgressiveResidualCodes) -> None:
+        if (
+            type(codes) is not ProgressiveResidualCodes
+            or codes.base_codes.shape[1] != self.spec.base_spec.bytes_per_vector
+            or codes.residual_planes.shape[2] != self.spec.residual_plane_bytes
+            or codes.device != self.device
+        ):
+            raise ValueError("progressive residual codes differ")
+        self.base_quantizer._validate_codes(codes.base_codes)
+
+    @torch.no_grad()
+    def decode_prefix(
+        self,
+        codes: ProgressiveResidualCodes,
+        *,
+        residual_bits: int,
+    ) -> torch.Tensor:
+        """Decode one physical residual prefix under the registered metric."""
+
+        self._validate_codes(codes)
+        self.spec.bytes_per_vector(residual_bits=residual_bits)
+        prefix = unpack_residual_prefix(
+            codes.residual_planes,
+            dimensions=self.spec.dimensions,
+            residual_bits=residual_bits,
+        ).float()
+        step = 1 << (8 - residual_bits)
+        centers = prefix * step + (step - 1) / 2.0 - 127.5
+        decoded = self.base_quantizer.hard_decode(codes.base_codes)
+        reconstructed = decoded + centers * codes.scales.float()[:, None]
+        if self.spec.metric == "angular":
+            reconstructed = F.normalize(reconstructed, dim=1)
+        if not bool(torch.isfinite(reconstructed).all()):
+            raise RuntimeError("progressive residual decode is nonfinite")
+        return reconstructed.contiguous()
+
+    def export_artifact(self) -> dict[str, object]:
+        """Return a versioned CPU-portable codec artifact."""
+
+        return {
+            "schema": "sfora-progressive-residual-quantizer-v1",
+            "metric": self.spec.metric,
+            "maximum_residual_bits": self.spec.maximum_residual_bits,
+            "block_dimensions": self.spec.base_spec.block_dimensions,
+            "codebook_size": self.spec.base_spec.codebook_size,
+            "codebooks": self.base_quantizer.detached_codebooks(),
+        }
+
+    @classmethod
+    def from_artifact(cls, artifact: object) -> ProgressiveResidualQuantizer:
+        """Restore and strictly validate one codec artifact."""
+
+        if type(artifact) is not dict or set(artifact) != {
+            "schema",
+            "metric",
+            "maximum_residual_bits",
+            "block_dimensions",
+            "codebook_size",
+            "codebooks",
+        }:
+            raise ValueError("progressive residual artifact differs")
+        if artifact.get("schema") != "sfora-progressive-residual-quantizer-v1":
+            raise ValueError("progressive residual artifact differs")
+        block_dimensions = artifact.get("block_dimensions")
+        codebook_size = artifact.get("codebook_size")
+        codebooks = artifact.get("codebooks")
+        if (
+            type(block_dimensions) is not tuple
+            or type(codebook_size) is not int
+            or type(codebooks) is not tuple
+        ):
+            raise ValueError("progressive residual artifact differs")
+        try:
+            base_spec = ProductQuantizationSpec(
+                block_dimensions=block_dimensions,
+                codebook_size=codebook_size,
+            )
+            spec = ProgressiveResidualSpec(
+                metric=artifact.get("metric"),  # type: ignore[arg-type]
+                base_spec=base_spec,
+                maximum_residual_bits=artifact.get("maximum_residual_bits"),  # type: ignore[arg-type]
+            )
+            base = ProductQuantizer.from_codebooks(base_spec, codebooks)
+            return cls(spec, base)
+        except (TypeError, ValueError) as error:
+            raise ValueError("progressive residual artifact differs") from error
+
+
+def fit_progressive_residual_quantizer(
+    values: torch.Tensor,
+    spec: ProgressiveResidualSpec,
+    *,
+    seed: int,
+    maximum_iterations: int,
+) -> ProgressiveResidualQuantizer:
+    """Fit the base codebooks from only the caller-supplied metric rows."""
+
+    if (
+        type(spec) is not ProgressiveResidualSpec
+        or type(seed) is not int
+        or seed < 0
+        or type(maximum_iterations) is not int
+        or maximum_iterations < 1
+        or type(values) is not torch.Tensor
+        or values.device.type != "cpu"
+    ):
+        raise ValueError("progressive residual fit differs")
+    prepared = _prepare_metric_values(values, spec, device=torch.device("cpu"))
+    try:
+        base = fit_product_quantizer(
+            prepared,
+            spec.base_spec,
+            seed=seed,
+            maximum_iterations=maximum_iterations,
+        )
+    except ValueError as error:
+        raise ValueError("progressive residual fit differs") from error
+    return ProgressiveResidualQuantizer(spec, base)
