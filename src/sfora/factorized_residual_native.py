@@ -12,6 +12,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import threading
 from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
@@ -25,12 +26,59 @@ from sfora.factorized_residual_ann import (
     CandidateResult,
     FactorizedResidualArtifact,
 )
+from sfora.vector_store import (
+    DirectIoVectorStore,
+    ExactSearchResult,
+    InsufficientCandidatesError,
+    VectorReadEvidence,
+)
 
 _SOURCE = Path(__file__).with_name("_native") / "factorized_residual_ann.c"
-_COMPILE_FLAGS = ("-std=c11", "-O3", "-fPIC", "-shared", "-fopenmp")
+_COMPILE_FLAGS = (
+    "-std=c11",
+    "-O3",
+    "-ffp-contract=off",
+    "-fPIC",
+    "-shared",
+    "-fopenmp",
+)
 _LINK_FLAGS = ("-lm",)
 _ERROR = "native factorized residual compiler failed"
 _POINTER_BYTES = ctypes.sizeof(ctypes.c_void_p)
+_DIRECT_CONDITION = threading.Condition()
+_DIRECT_ACTIVE = False
+_DIRECT_POISONED = False
+
+
+class NativeDirectBusyError(RuntimeError):
+    """Raised when the bounded direct-I/O context is already active."""
+
+
+class NativeDirectQuiescenceError(RuntimeError):
+    """Raised after terminality becomes unprovable and direct I/O is poisoned."""
+
+
+class NativeDirectUnsupportedError(RuntimeError):
+    """Raised when the operating environment cannot provide the direct backend."""
+
+
+def _acquire_direct_admission() -> None:
+    global _DIRECT_ACTIVE
+    with _DIRECT_CONDITION:
+        if _DIRECT_POISONED:
+            raise NativeDirectQuiescenceError("native direct I/O is permanently poisoned")
+        if _DIRECT_ACTIVE:
+            raise NativeDirectBusyError("native direct I/O context is busy")
+        _DIRECT_ACTIVE = True
+
+
+def _release_direct_admission(*, poison: bool) -> None:
+    global _DIRECT_ACTIVE, _DIRECT_POISONED
+    with _DIRECT_CONDITION:
+        if poison:
+            _DIRECT_POISONED = True
+        _DIRECT_ACTIVE = False
+        _DIRECT_CONDITION.notify_all()
 
 
 def _canonical_bytes(value: object) -> bytes:
@@ -108,9 +156,13 @@ def _load_backend(path: Path, source_sha256: str, binary_sha256: str) -> NativeB
         abi_version = library.sfora_factorized_backend_abi_version
         abi_version.argtypes = []
         abi_version.restype = ctypes.c_uint32
-        if abi_version() != 1:
+        if abi_version() != 2:
             raise OSError("native backend ABI differs")
         function = library.sfora_factorized_candidate_search
+        probe = library.sfora_direct_io_probe
+        alignment = library.sfora_direct_io_alignment
+        context_bytes = library.sfora_exact_rerank_context_bytes
+        rerank = library.sfora_exact_rerank_direct
     except (AttributeError, OSError) as error:
         raise RuntimeError(_ERROR) from error
     finally:
@@ -158,6 +210,40 @@ def _load_backend(path: Path, source_sha256: str, binary_sha256: str) -> NativeB
         u64_pointer,
     ]
     function.restype = ctypes.c_int
+    probe.argtypes = []
+    probe.restype = ctypes.c_int
+    alignment.argtypes = [ctypes.c_int, u32_pointer, u32_pointer]
+    alignment.restype = ctypes.c_int
+    context_bytes.argtypes = [
+        ctypes.c_uint32,
+        ctypes.c_uint32,
+        ctypes.c_uint32,
+        ctypes.c_uint32,
+        ctypes.c_uint32,
+        u64_pointer,
+    ]
+    context_bytes.restype = ctypes.c_int
+    rerank.argtypes = [
+        float_pointer,
+        ctypes.c_size_t,
+        u32_pointer,
+        ctypes.c_size_t,
+        ctypes.c_uint32,
+        ctypes.c_uint32,
+        ctypes.c_uint32,
+        ctypes.c_uint32,
+        ctypes.c_int,
+        ctypes.c_uint64,
+        ctypes.c_uint32,
+        ctypes.c_uint32,
+        ctypes.c_uint32,
+        u32_pointer,
+        ndpointer(dtype=np.dtype("<f8"), ndim=1, flags=("C_CONTIGUOUS",)),
+        ctypes.c_size_t,
+        u64_pointer,
+        u32_pointer,
+    ]
+    rerank.restype = ctypes.c_int
     return NativeBackend(path, source_sha256, binary_sha256, library)
 
 
@@ -325,7 +411,7 @@ class NativeCandidateIndex:
         artifact = self._artifact
         backend = self._backend
         spec = artifact.spec
-        query32 = np.ascontiguousarray(query, dtype="<f4")
+        query32 = np.array(query, dtype="<f4", order="C", copy=True)
         coarse = cast(NDArray[np.float32], arrays["coarse.f32"]).reshape(-1)
         pq = cast(NDArray[np.float32], arrays["pq.f32"]).reshape(-1)
         offsets = cast(NDArray[np.uint64], arrays["offsets.u64"]).reshape(-1)
@@ -389,5 +475,156 @@ class NativeCandidateIndex:
                 codes_bytes_scanned=int(rows_scanned[0]) * spec.code_bytes,
                 probe_count=selected_probe,
                 shortlist_width=selected_shortlist,
+            ),
+        )
+
+
+class NativeExactReranker:
+    """Exact native reranking over one authenticated Linux direct-I/O store."""
+
+    def __init__(
+        self,
+        store: DirectIoVectorStore,
+        backend: NativeBackend,
+        *,
+        thread_count: int = 1,
+    ) -> None:
+        if (
+            type(store) is not DirectIoVectorStore
+            or store._closed
+            or type(backend) is not NativeBackend
+            or backend._closed
+            or type(thread_count) is not int
+            or not 1 <= thread_count <= 256
+        ):
+            raise ValueError("native exact reranker differs")
+        memory_alignment = np.zeros(1, dtype="<u4")
+        offset_alignment = np.zeros(1, dtype="<u4")
+        probe_status = backend._library.sfora_direct_io_probe()
+        if probe_status == -5:
+            raise NativeDirectUnsupportedError("native direct I/O is unsupported")
+        if probe_status != 0:
+            raise RuntimeError(f"native direct I/O probe failed: {probe_status}")
+        descriptor = store._begin_direct_read()
+        try:
+            alignment_status = backend._library.sfora_direct_io_alignment(
+                descriptor, memory_alignment, offset_alignment
+            )
+        finally:
+            store._end_direct_read()
+        if (
+            alignment_status != 0
+            or int(memory_alignment[0]) < 1
+            or int(offset_alignment[0]) < 1
+            or store.identity.physical_bytes % int(offset_alignment[0]) != 0
+        ):
+            raise ValueError("native exact reranker differs")
+        self._store = store
+        self._backend = backend
+        self._thread_count = thread_count
+        self._memory_alignment = int(memory_alignment[0])
+        self._offset_alignment = int(offset_alignment[0])
+
+    def context_bytes(self, candidate_count: int) -> int:
+        """Return exact native allocations and ring mappings for one rerank call."""
+
+        if type(candidate_count) is not int or not 1 <= candidate_count <= 4096:
+            raise ValueError("native exact reranker differs")
+        output = np.zeros(1, dtype="<u8")
+        status = self._backend._library.sfora_exact_rerank_context_bytes(
+            candidate_count,
+            self._store.identity.dimensions,
+            int(self._store.identity.dtype == "uint8"),
+            self._memory_alignment,
+            self._offset_alignment,
+            output,
+        )
+        if status != 0:
+            raise RuntimeError(f"native direct context accounting failed: {status}")
+        return int(output[0])
+
+    def search(
+        self,
+        query: NDArray[np.generic],
+        candidates: CandidateResult,
+        *,
+        return_width: int,
+    ) -> ExactSearchResult:
+        """Read candidates with O_DIRECT and return exact deterministic neighbors."""
+
+        store = self._store
+        backend = self._backend
+        identity = store.identity
+        if (
+            type(candidates) is CandidateResult
+            and type(return_width) is int
+            and return_width > candidates.ids.shape[0]
+        ):
+            raise InsufficientCandidatesError("insufficient exact rerank candidates")
+        expected_dtype = np.dtype(np.uint8 if identity.dtype == "uint8" else "<f4")
+        if (
+            store._closed
+            or backend._closed
+            or type(candidates) is not CandidateResult
+            or type(return_width) is not int
+            or not 1 <= return_width <= candidates.ids.shape[0]
+            or candidates.ids.shape[0] > 4096
+            or bool((candidates.ids >= identity.rows).any())
+            or type(query) is not np.ndarray
+            or query.dtype != expected_dtype
+            or query.shape != (identity.dimensions,)
+            or not query.flags.c_contiguous
+            or not bool(np.isfinite(query).all())
+        ):
+            raise ValueError("native exact rerank differs")
+        query32 = np.array(query, dtype="<f4", order="C", copy=True)
+        output_ids = np.empty(return_width, dtype="<u4")
+        output_distances = np.empty(return_width, dtype="<f8")
+        physical_bytes = np.zeros(1, dtype="<u8")
+        operations = np.zeros(1, dtype="<u4")
+        status: int | None = None
+        _acquire_direct_admission()
+        try:
+            descriptor = store._begin_direct_read()
+            try:
+                status = backend._library.sfora_exact_rerank_direct(
+                    query32,
+                    query32.size,
+                    candidates.ids,
+                    candidates.ids.size,
+                    identity.rows,
+                    identity.dimensions,
+                    int(identity.dtype == "uint8"),
+                    return_width,
+                    descriptor,
+                    identity.physical_bytes,
+                    self._memory_alignment,
+                    self._offset_alignment,
+                    self._thread_count,
+                    output_ids,
+                    output_distances,
+                    output_ids.size,
+                    physical_bytes,
+                    operations,
+                )
+            finally:
+                store._end_direct_read()
+        finally:
+            _release_direct_admission(poison=status == -4)
+        if status == -4:
+            raise NativeDirectQuiescenceError("native direct I/O quiescence is unproved")
+        if status == -5:
+            raise NativeDirectUnsupportedError("native direct I/O is unsupported")
+        if status == -7:
+            raise NativeDirectBusyError("native direct I/O context is busy")
+        if status != 0 or int(operations[0]) != candidates.ids.size:
+            raise RuntimeError(f"native direct rerank failed: {status}")
+        return ExactSearchResult(
+            ids=output_ids,
+            squared_distances=output_distances,
+            vector_reads=VectorReadEvidence(
+                requested_rows=candidates.ids.size,
+                logical_bytes=candidates.ids.size * identity.row_stride,
+                physical_bytes=int(physical_bytes[0]),
             ),
         )

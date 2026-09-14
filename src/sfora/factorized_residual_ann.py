@@ -408,21 +408,42 @@ def _encode_norm_roles(
     components: FactorizedResidualComponents,
     postings: FactorizedResidualPostings,
 ) -> tuple[NDArray[np.uint8], NDArray[np.float32], NDArray[np.float32]]:
-    spec = components.spec
-    norm_codes = np.zeros(postings.rows, dtype=np.uint8)
+    return _encode_norm_roles_from_arrays(
+        components.spec,
+        components.coarse_centroids,
+        components.pq_codebooks,
+        postings.offsets,
+        postings.codes,
+    )
+
+
+def _encode_norm_roles_from_arrays(
+    spec: FactorizedResidualSpec,
+    coarse_centroids: NDArray[np.float32],
+    pq_codebooks: NDArray[np.float32],
+    offsets: NDArray[np.uint64],
+    codes: NDArray[np.uint8],
+) -> tuple[NDArray[np.uint8], NDArray[np.float32], NDArray[np.float32]]:
+    norm_codes = np.zeros(codes.shape[0], dtype=np.uint8)
     lows = np.zeros(spec.list_count, dtype="<f4")
     scales = np.zeros(spec.list_count, dtype="<f4")
     chunk_rows = 65_536
     for list_id in range(spec.list_count):
-        begin = int(postings.offsets[list_id])
-        end = int(postings.offsets[list_id + 1])
+        begin = int(offsets[list_id])
+        end = int(offsets[list_id + 1])
         if begin == end:
             continue
         low = np.inf
         high = -np.inf
         for start in range(begin, end, chunk_rows):
-            norms = _reconstructed_norms(
-                components, postings, start, min(start + chunk_rows, end), list_id
+            norms = _reconstructed_norms_from_arrays(
+                spec,
+                coarse_centroids,
+                pq_codebooks,
+                codes,
+                start,
+                min(start + chunk_rows, end),
+                list_id,
             )
             low = min(low, float(norms.min()))
             high = max(high, float(norms.max()))
@@ -433,7 +454,15 @@ def _encode_norm_roles(
             continue
         for start in range(begin, end, chunk_rows):
             stop = min(start + chunk_rows, end)
-            norms = _reconstructed_norms(components, postings, start, stop, list_id)
+            norms = _reconstructed_norms_from_arrays(
+                spec,
+                coarse_centroids,
+                pq_codebooks,
+                codes,
+                start,
+                stop,
+                list_id,
+            )
             encoded = np.rint((norms - float(stored_low)) / float(stored_scale))
             norm_codes[start:stop] = np.clip(encoded, 0, 255).astype(np.uint8)
     return norm_codes, lows, scales
@@ -490,6 +519,30 @@ def _validate_derived_norm_roles(
                 raise ValueError("factorized residual artifact differs")
 
 
+def _validate_authenticated_affine_norm_roles(
+    spec: FactorizedResidualSpec,
+    arrays: dict[str, NDArray[np.generic]],
+) -> None:
+    offsets = cast(NDArray[np.uint64], arrays["offsets.u64"])
+    norm_codes = cast(NDArray[np.uint8], arrays["norms.u8"])
+    lows = cast(NDArray[np.float32], arrays["norm-low.f32"])
+    scales = cast(NDArray[np.float32], arrays["norm-scale.f32"])
+    if bool((lows < 0).any()) or bool((scales < 0).any()):
+        raise ValueError("factorized residual artifact differs")
+    with np.errstate(over="ignore", invalid="ignore"):
+        decoded_maxima = lows + scales * np.float32(255.0)
+    if not bool(np.isfinite(decoded_maxima).all()):
+        raise ValueError("factorized residual artifact differs")
+    for list_id in range(spec.list_count):
+        begin = int(offsets[list_id])
+        end = int(offsets[list_id + 1])
+        if begin == end:
+            if lows[list_id] != 0.0 or scales[list_id] != 0.0:
+                raise ValueError("factorized residual artifact differs")
+        elif scales[list_id] == 0.0 and bool(norm_codes[begin:end].any()):
+            raise ValueError("factorized residual artifact differs")
+
+
 def _store_identity_json(identity: VectorStoreIdentity) -> dict[str, object]:
     return {
         "dimensions": identity.dimensions,
@@ -543,6 +596,7 @@ class FactorizedResidualArtifact:
     _arrays: dict[str, NDArray[np.generic]]
     _mappings: list[mmap.mmap]
     _descriptors: list[int]
+    _descriptor_metadata: list[tuple[int, int, int, int, int]]
     _closed: bool
     _closing: bool
     _active_searches: int
@@ -554,6 +608,7 @@ class FactorizedResidualArtifact:
         "_closed",
         "_closing",
         "_descriptors",
+        "_descriptor_metadata",
         "_mappings",
         "_search_condition",
         "resident_bytes",
@@ -576,6 +631,7 @@ class FactorizedResidualArtifact:
         arrays: dict[str, NDArray[np.generic]],
         mappings: list[mmap.mmap],
         descriptors: list[int],
+        descriptor_metadata: list[tuple[int, int, int, int, int]] | None = None,
     ) -> None:
         object.__setattr__(self, "spec", spec)
         object.__setattr__(self, "rows", rows)
@@ -584,6 +640,7 @@ class FactorizedResidualArtifact:
         object.__setattr__(self, "_arrays", arrays)
         object.__setattr__(self, "_mappings", mappings)
         object.__setattr__(self, "_descriptors", descriptors)
+        object.__setattr__(self, "_descriptor_metadata", descriptor_metadata or [])
         object.__setattr__(self, "_closed", False)
         object.__setattr__(self, "_closing", False)
         object.__setattr__(self, "_active_searches", 0)
@@ -591,7 +648,20 @@ class FactorizedResidualArtifact:
 
     def _acquire_search(self) -> dict[str, NDArray[np.generic]]:
         with self._search_condition:
-            if self._closed or self._closing or not self._arrays:
+            stable_fields = ("st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns")
+            if (
+                self._closed
+                or self._closing
+                or not self._arrays
+                or len(self._descriptor_metadata) != len(self._descriptors)
+                or any(
+                    tuple(getattr(os.fstat(descriptor), field) for field in stable_fields)
+                    != metadata
+                    for descriptor, metadata in zip(
+                        self._descriptors, self._descriptor_metadata, strict=True
+                    )
+                )
+            ):
                 raise ValueError("factorized residual artifact differs")
             object.__setattr__(self, "_active_searches", self._active_searches + 1)
             return self._arrays
@@ -600,6 +670,15 @@ class FactorizedResidualArtifact:
         with self._search_condition:
             object.__setattr__(self, "_active_searches", self._active_searches - 1)
             self._search_condition.notify_all()
+            stable_fields = ("st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns")
+            if any(
+                tuple(getattr(os.fstat(descriptor), field) for field in stable_fields)
+                != metadata
+                for descriptor, metadata in zip(
+                    self._descriptors, self._descriptor_metadata, strict=True
+                )
+            ):
+                raise ValueError("factorized residual artifact differs")
 
     @classmethod
     def open(
@@ -614,6 +693,7 @@ class FactorizedResidualArtifact:
         descriptors: list[int] = []
         mappings: list[mmap.mmap] = []
         arrays: dict[str, NDArray[np.generic]] = {}
+        descriptor_metadata: list[tuple[int, int, int, int, int]] = []
         try:
             expected_entries = {*_ARTIFACT_ROLES, "manifest.json"}
             if (
@@ -652,9 +732,16 @@ class FactorizedResidualArtifact:
                 for field in stable_fields
             ):
                 raise ValueError("factorized residual artifact differs")
-            manifest = _require_exact_keys(
-                manifest_value,
-                {
+            descriptor_metadata.append(
+                tuple(getattr(manifest_after, field) for field in stable_fields)
+            )
+            if type(manifest_value) is not dict:
+                raise ValueError("factorized residual artifact differs")
+            imported_norms = (
+                manifest_value.get("schema")
+                == "sfora-factorized-residual-ann-imported-v1"
+            )
+            manifest_keys = {
                     "bits_per_subquantizer",
                     "claim_eligible",
                     "code_bytes",
@@ -671,15 +758,37 @@ class FactorizedResidualArtifact:
                     "subquantizers",
                     "vector_dtype",
                     "vector_store_identity",
-                },
-            )
+            }
+            if imported_norms:
+                manifest_keys.add("norm_authority")
+            manifest = _require_exact_keys(manifest_value, manifest_keys)
             if (
-                manifest["schema"] != "sfora-factorized-residual-ann-v1"
+                manifest["schema"]
+                not in {
+                    "sfora-factorized-residual-ann-v1",
+                    "sfora-factorized-residual-ann-imported-v1",
+                }
                 or manifest["claim_eligible"] is not False
                 or type(manifest["rows"]) is not int
                 or not 1 <= manifest["rows"] < 2**32
             ):
                 raise ValueError("factorized residual artifact differs")
+            if imported_norms:
+                norm_authority = _require_exact_keys(
+                    manifest["norm_authority"],
+                    {"profile", "source_manifest_sha256"},
+                )
+                source_manifest_sha256 = norm_authority["source_manifest_sha256"]
+                if (
+                    norm_authority["profile"] != "authenticated-affine-u8-v1"
+                    or type(source_manifest_sha256) is not str
+                    or len(source_manifest_sha256) != 64
+                    or any(
+                        character not in "0123456789abcdef"
+                        for character in source_manifest_sha256
+                    )
+                ):
+                    raise ValueError("factorized residual artifact differs")
             try:
                 spec = FactorizedResidualSpec(
                     metric=manifest["metric"],  # type: ignore[arg-type]
@@ -740,6 +849,7 @@ class FactorizedResidualArtifact:
                 after = os.fstat(fd)
                 if any(getattr(before, field) != getattr(after, field) for field in stable_fields):
                     raise ValueError("factorized residual artifact differs")
+                descriptor_metadata.append(tuple(getattr(after, field) for field in stable_fields))
                 mapping = mmap.mmap(fd, expected_bytes, access=mmap.ACCESS_READ)
                 mappings.append(mapping)
                 array = np.ndarray(shape, dtype=dtype, buffer=mapping)
@@ -781,7 +891,18 @@ class FactorizedResidualArtifact:
                 for begin in range(0, rows, 8 << 20):
                     if bool((codes[begin : begin + (8 << 20), -1] & trailing_mask).any()):
                         raise ValueError("factorized residual artifact differs")
-            _validate_derived_norm_roles(spec, arrays)
+            if imported_norms:
+                _validate_authenticated_affine_norm_roles(spec, arrays)
+            else:
+                _validate_derived_norm_roles(spec, arrays)
+            if any(
+                tuple(getattr(os.fstat(descriptor), field) for field in stable_fields)
+                != metadata
+                for descriptor, metadata in zip(
+                    descriptors, descriptor_metadata, strict=True
+                )
+            ):
+                raise ValueError("factorized residual artifact differs")
             return cls(
                 spec=spec,
                 rows=rows,
@@ -790,6 +911,7 @@ class FactorizedResidualArtifact:
                 arrays=arrays,
                 mappings=mappings,
                 descriptors=descriptors,
+                descriptor_metadata=descriptor_metadata,
             )
         except BaseException as original_error:
             error_type = type(original_error)
@@ -960,6 +1082,197 @@ def write_factorized_residual_artifact(
         if cleanup_root.exists():
             cleanup_root.rmdir()
         raise
+
+
+def write_factorized_residual_artifact_from_role_files(
+    path: str | Path,
+    spec: FactorizedResidualSpec,
+    source_roles: dict[str, tuple[str | Path, str]],
+    vector_store_identity: VectorStoreIdentity,
+    *,
+    source_manifest_sha256: str,
+) -> str:
+    """Adopt authenticated affine-norm role files into an owned artifact."""
+
+    destination = Path(path)
+    source_names = set(_ARTIFACT_ROLES)
+    if (
+        type(spec) is not FactorizedResidualSpec
+        or type(source_roles) is not dict
+        or set(source_roles) != source_names
+        or type(vector_store_identity) is not VectorStoreIdentity
+        or vector_store_identity.dimensions != spec.dimensions
+        or vector_store_identity.dtype != spec.vector_dtype
+        or type(source_manifest_sha256) is not str
+        or len(source_manifest_sha256) != 64
+        or any(
+            character not in "0123456789abcdef"
+            for character in source_manifest_sha256
+        )
+        or destination.exists()
+        or not destination.parent.is_dir()
+    ):
+        raise ValueError("factorized residual source roles differ")
+    rows = vector_store_identity.rows
+    geometry: dict[str, tuple[np.dtype[np.generic], tuple[int, ...]]] = {
+        "coarse.f32": (np.dtype("<f4"), (spec.list_count, spec.dimensions)),
+        "pq.f32": (
+            np.dtype("<f4"),
+            (spec.subquantizers, spec.codebook_size, spec.subvector_dimensions),
+        ),
+        "offsets.u64": (np.dtype("<u8"), (spec.list_count + 1,)),
+        "ids.u32": (np.dtype("<u4"), (rows,)),
+        "codes.u8": (np.dtype("u1"), (rows, spec.code_bytes)),
+        "norms.u8": (np.dtype("u1"), (rows,)),
+        "norm-low.f32": (np.dtype("<f4"), (spec.list_count,)),
+        "norm-scale.f32": (np.dtype("<f4"), (spec.list_count,)),
+    }
+    descriptors: list[int] = []
+    mappings: list[mmap.mmap] = []
+    arrays: dict[str, NDArray[np.generic]] = {}
+    source_metadata: dict[str, os.stat_result] = {}
+    temporary: Path | None = None
+    try:
+        open_flags = os.O_RDONLY | os.O_CLOEXEC | getattr(os, "O_NOFOLLOW", 0)
+        stable_fields = ("st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns")
+        for name in sorted(source_names):
+            source = source_roles[name]
+            if (
+                type(source) is not tuple
+                or len(source) != 2
+                or type(source[1]) is not str
+                or len(source[1]) != 64
+                or any(character not in "0123456789abcdef" for character in source[1])
+            ):
+                raise ValueError("factorized residual source roles differ")
+            source_path = Path(source[0])
+            dtype, shape = geometry[name]
+            expected_bytes = int(np.prod(shape, dtype=np.int64)) * dtype.itemsize
+            descriptor = os.open(source_path, open_flags)
+            descriptors.append(descriptor)
+            before = os.fstat(descriptor)
+            if (
+                not stat.S_ISREG(before.st_mode)
+                or before.st_size != expected_bytes
+                or _sha256_fd(descriptor, expected_bytes) != source[1]
+            ):
+                raise ValueError("factorized residual source roles differ")
+            after = os.fstat(descriptor)
+            if any(
+                getattr(before, field) != getattr(after, field) for field in stable_fields
+            ):
+                raise ValueError("factorized residual source roles differ")
+            source_metadata[name] = after
+            mapping = mmap.mmap(descriptor, expected_bytes, access=mmap.ACCESS_READ)
+            mappings.append(mapping)
+            array = np.ndarray(shape, dtype=dtype, buffer=mapping)
+            array.flags.writeable = False
+            arrays[name] = array
+
+        coarse = cast(NDArray[np.float32], arrays["coarse.f32"])
+        pq = cast(NDArray[np.float32], arrays["pq.f32"])
+        offsets = cast(NDArray[np.uint64], arrays["offsets.u64"])
+        ids = cast(NDArray[np.uint32], arrays["ids.u32"])
+        codes = cast(NDArray[np.uint8], arrays["codes.u8"])
+        if (
+            not bool(np.isfinite(coarse).all())
+            or not bool(np.isfinite(pq).all())
+            or int(offsets[0]) != 0
+            or int(offsets[-1]) != rows
+            or bool((offsets[1:] < offsets[:-1]).any())
+        ):
+            raise ValueError("factorized residual source roles differ")
+        seen = bytearray((rows + 7) // 8)
+        for raw_value in ids:
+            value = int(raw_value)
+            byte_index = value >> 3
+            mask = 1 << (value & 7)
+            if value >= rows or seen[byte_index] & mask:
+                raise ValueError("factorized residual source roles differ")
+            seen[byte_index] |= mask
+        trailing_bits = spec.code_bytes * 8 - spec.subquantizers * spec.bits_per_subquantizer
+        if trailing_bits:
+            trailing_mask = ((1 << trailing_bits) - 1) << (8 - trailing_bits)
+            for begin in range(0, rows, 8 << 20):
+                if bool((codes[begin : begin + (8 << 20), -1] & trailing_mask).any()):
+                    raise ValueError("factorized residual source roles differ")
+        try:
+            _validate_authenticated_affine_norm_roles(spec, arrays)
+        except ValueError as error:
+            raise ValueError("factorized residual source roles differ") from error
+        temporary = Path(
+            tempfile.mkdtemp(prefix=f".{destination.name}.", dir=destination.parent)
+        )
+        role_authority: dict[str, dict[str, object]] = {}
+        for name in _ARTIFACT_ROLES:
+            role_path = temporary / name
+            _write_array_bounded(role_path, arrays[name])
+            output_sha256 = _sha256_file(role_path)
+            if output_sha256 != source_roles[name][1]:
+                raise ValueError("factorized residual source roles differ")
+            role_authority[name] = {
+                "bytes": role_path.stat().st_size,
+                "sha256": output_sha256,
+            }
+        for name, descriptor in zip(sorted(source_names), descriptors, strict=True):
+            after_copy = os.fstat(descriptor)
+            if any(
+                getattr(source_metadata[name], field) != getattr(after_copy, field)
+                for field in stable_fields
+            ):
+                raise ValueError("factorized residual source roles differ")
+        manifest = {
+            "bits_per_subquantizer": spec.bits_per_subquantizer,
+            "claim_eligible": False,
+            "code_bytes": spec.code_bytes,
+            "dimensions": spec.dimensions,
+            "list_count": spec.list_count,
+            "metric": spec.metric,
+            "norm_authority": {
+                "profile": "authenticated-affine-u8-v1",
+                "source_manifest_sha256": source_manifest_sha256,
+            },
+            "probe_count": spec.probe_count,
+            "resident_bytes": sum(
+                (temporary / name).stat().st_size for name in _ARTIFACT_ROLES
+            ),
+            "return_width": spec.return_width,
+            "roles": role_authority,
+            "rows": rows,
+            "schema": "sfora-factorized-residual-ann-imported-v1",
+            "shortlist_width": spec.shortlist_width,
+            "subquantizers": spec.subquantizers,
+            "vector_dtype": spec.vector_dtype,
+            "vector_store_identity": _store_identity_json(vector_store_identity),
+        }
+        manifest_bytes = _canonical_json_bytes(manifest)
+        manifest_path = temporary / "manifest.json"
+        with manifest_path.open("wb") as stream:
+            stream.write(manifest_bytes)
+            stream.flush()
+            os.fsync(stream.fileno())
+        _fsync_directory(temporary)
+        parent_fd = os.open(destination.parent, os.O_RDONLY)
+        try:
+            _rename_directory_no_replace(temporary, destination)
+            temporary = None
+            os.fsync(parent_fd)
+        finally:
+            os.close(parent_fd)
+        return hashlib.sha256(manifest_bytes).hexdigest()
+    except BaseException:
+        if temporary is not None and temporary.exists():
+            for name in (*_ARTIFACT_ROLES, "manifest.json"):
+                candidate = temporary / name
+                if candidate.exists():
+                    candidate.unlink()
+            temporary.rmdir()
+        raise
+    finally:
+        for mapping in reversed(mappings):
+            mapping.close()
+        for descriptor in reversed(descriptors):
+            os.close(descriptor)
 
 
 @dataclass(frozen=True, slots=True)

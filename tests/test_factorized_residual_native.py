@@ -16,6 +16,7 @@ import pytest
 import sfora
 import sfora.factorized_residual_native as factorized_residual_native
 from sfora.factorized_residual_ann import (
+    CandidateEvidence,
     FactorizedResidualArtifact,
     FactorizedResidualComponents,
     FactorizedResidualPostings,
@@ -26,8 +27,12 @@ from sfora.factorized_residual_ann import (
 )
 from sfora.factorized_residual_native import (
     NativeCandidateIndex,
+    NativeDirectQuiescenceError,
+    NativeDirectUnsupportedError,
+    NativeExactReranker,
     compile_factorized_residual_backend,
 )
+from sfora.vector_store import DirectIoVectorStore, ExactSearchResult
 
 
 def _write_artifact(path: Path) -> FactorizedResidualArtifact:
@@ -150,6 +155,10 @@ def test_native_backend_compiles_offline_and_reuses_authenticated_cache(tmp_path
     assert same.binary_sha256 == backend.binary_sha256
     same.close()
     backend.close()
+
+
+def test_native_backend_disables_implicit_floating_point_contraction() -> None:
+    assert "-ffp-contract=off" in factorized_residual_native._COMPILE_FLAGS
 
 
 def test_native_backend_accepts_relative_private_cache(
@@ -347,6 +356,583 @@ def test_artifact_close_waits_for_native_call_to_release_mappings(tmp_path: Path
     assert closed.is_set()
     assert artifact._closed
     compiled.close()
+
+
+def test_native_direct_rerank_matches_integer_exact_oracle(tmp_path: Path) -> None:
+    vectors = np.array(
+        [[1, 2, 3, 4], [4, 3, 2, 1], [0, 0, 0, 0], [2, 2, 2, 2]],
+        dtype=np.uint8,
+    )
+    logical = np.asarray([4, 4], dtype="<u4").tobytes() + vectors.tobytes()
+    physical = logical + b"\0" * (4096 - len(logical))
+    path = tmp_path / "vectors.bin"
+    path.write_bytes(physical)
+    identity = VectorStoreIdentity(
+        sha256=hashlib.sha256(physical).hexdigest(),
+        logical_bytes=len(logical),
+        physical_bytes=len(physical),
+        rows=4,
+        dimensions=4,
+        dtype="uint8",
+        header_bytes=8,
+        row_stride=4,
+        zero_padding_bytes=len(physical) - len(logical),
+        generation="direct-fixture",
+    )
+    candidates = sfora.CandidateResult(
+        ids=np.array([0, 2, 3, 1], dtype="<u4"),
+        approximate_distances=np.array([0, 1, 2, 3], dtype="<f8"),
+        probe_lists=np.array([0], dtype="<u4"),
+        evidence=CandidateEvidence(
+            backend="portable-float64",
+            rows_scanned=4,
+            codes_bytes_scanned=4,
+            probe_count=1,
+            shortlist_width=4,
+        ),
+    )
+    store = DirectIoVectorStore(path, identity)
+    backend = compile_factorized_residual_backend(tmp_path / "cache")
+    memory_alignment = np.zeros(1, dtype="<u4")
+    offset_alignment = np.zeros(1, dtype="<u4")
+    assert (
+        backend._library.sfora_direct_io_alignment(
+            store._descriptor, memory_alignment, offset_alignment
+        )
+        == 0
+    )
+
+    try:
+        result = NativeExactReranker(store, backend).search(
+            np.array([1, 2, 3, 4], dtype=np.uint8), candidates, return_width=2
+        )
+    except RuntimeError as error:
+        store.close()
+        backend.close()
+        if str(error) == "native direct rerank failed: -5":
+            pytest.skip("io_uring unavailable in this execution environment")
+        raise
+
+    assert result.ids.tolist() == [0, 3]
+    assert result.squared_distances.tolist() == [0.0, 6.0]
+    assert result.vector_reads.requested_rows == 4
+    assert result.vector_reads.logical_bytes == 16
+    alignment = int(offset_alignment[0])
+    expected_physical = sum(
+        ((8 + internal_id * identity.row_stride) % alignment + identity.row_stride + alignment - 1)
+        // alignment
+        * alignment
+        for internal_id in candidates.ids.tolist()
+    )
+    assert result.vector_reads.physical_bytes == expected_physical
+    store.close()
+    backend.close()
+
+
+def test_native_exact_reranker_owns_query_while_native_call_releases_gil(
+    tmp_path: Path,
+) -> None:
+    vectors = np.array([[1.0, 2.0]], dtype="<f4")
+    logical = np.asarray([1, 2], dtype="<u4").tobytes() + vectors.tobytes()
+    physical = logical + b"\0" * (4096 - len(logical))
+    path = tmp_path / "vectors.bin"
+    path.write_bytes(physical)
+    store = DirectIoVectorStore(
+        path,
+        VectorStoreIdentity(
+            sha256=hashlib.sha256(physical).hexdigest(),
+            logical_bytes=len(logical),
+            physical_bytes=len(physical),
+            rows=1,
+            dimensions=2,
+            dtype="float32",
+            header_bytes=8,
+            row_stride=8,
+            zero_padding_bytes=len(physical) - len(logical),
+            generation="direct-query-ownership",
+        ),
+    )
+    backend = compile_factorized_residual_backend(tmp_path / "cache")
+    candidates = sfora.CandidateResult(
+        ids=np.array([0], dtype="<u4"),
+        approximate_distances=np.array([0.0], dtype="<f8"),
+        probe_lists=np.array([0], dtype="<u4"),
+        evidence=CandidateEvidence(
+            backend="portable-float64",
+            rows_scanned=1,
+            codes_bytes_scanned=1,
+            probe_count=1,
+            shortlist_width=1,
+        ),
+    )
+    entered = threading.Event()
+    release = threading.Event()
+    observed: list[list[float]] = []
+    backend._library.sfora_direct_io_alignment = lambda _fd, memory, offset: (
+        memory.__setitem__(0, 512),
+        offset.__setitem__(0, 512),
+        0,
+    )[-1]
+
+    def blocked_rerank(*arguments: object) -> int:
+        entered.set()
+        assert release.wait(5)
+        observed.append(arguments[0].tolist())  # type: ignore[union-attr]
+        arguments[13][0] = 0  # type: ignore[index]
+        arguments[14][0] = 0.0  # type: ignore[index]
+        arguments[16][0] = 512  # type: ignore[index]
+        arguments[17][0] = 1  # type: ignore[index]
+        return 0
+
+    backend._library.sfora_exact_rerank_direct = blocked_rerank
+    query = np.array([1.0, 2.0], dtype="<f4")
+    results: list[ExactSearchResult] = []
+    thread = threading.Thread(
+        target=lambda: results.append(
+            NativeExactReranker(store, backend).search(query, candidates, return_width=1)
+        )
+    )
+    thread.start()
+    assert entered.wait(5)
+    query[:] = 99.0
+    release.set()
+    thread.join(5)
+
+    assert observed == [[1.0, 2.0]]
+    assert len(results) == 1
+    store.close()
+    backend.close()
+
+
+def test_native_direct_float32_rerank_matches_ordered_float64_across_threads(
+    tmp_path: Path,
+) -> None:
+    random = np.random.default_rng(20260913)
+    vectors = random.normal(size=(5, 513)).astype("<f4")
+    vectors[4] = vectors[3]
+    query = random.normal(size=513).astype("<f4")
+    logical = np.asarray([5, 513], dtype="<u4").tobytes() + vectors.tobytes()
+    physical = logical + b"\0" * ((-len(logical)) % 4096)
+    path = tmp_path / "vectors-float.bin"
+    path.write_bytes(physical)
+    identity = VectorStoreIdentity(
+        sha256=hashlib.sha256(physical).hexdigest(),
+        logical_bytes=len(logical),
+        physical_bytes=len(physical),
+        rows=5,
+        dimensions=513,
+        dtype="float32",
+        header_bytes=8,
+        row_stride=513 * 4,
+        zero_padding_bytes=len(physical) - len(logical),
+        generation="direct-float-fixture",
+    )
+    expected: list[tuple[float, int]] = []
+    for internal_id in range(5):
+        distance = 0.0
+        for dimension in range(513):
+            difference = float(query[dimension]) - float(vectors[internal_id, dimension])
+            distance += difference * difference
+        expected.append((distance, internal_id))
+    expected.sort()
+    candidates = sfora.CandidateResult(
+        ids=np.asarray([internal_id for _, internal_id in expected], dtype="<u4"),
+        approximate_distances=np.arange(5, dtype="<f8"),
+        probe_lists=np.array([0], dtype="<u4"),
+        evidence=CandidateEvidence(
+            backend="portable-float64",
+            rows_scanned=5,
+            codes_bytes_scanned=5,
+            probe_count=1,
+            shortlist_width=5,
+        ),
+    )
+    store = DirectIoVectorStore(path, identity)
+    backend = compile_factorized_residual_backend(tmp_path / "cache")
+
+    for thread_count in (1, 2, 4):
+        result = NativeExactReranker(
+            store, backend, thread_count=thread_count
+        ).search(query, candidates, return_width=5)
+        assert result.ids.tolist() == [internal_id for _, internal_id in expected]
+        np.testing.assert_array_equal(
+            result.squared_distances.view(np.uint64),
+            np.asarray([distance for distance, _ in expected], dtype="<f8").view(np.uint64),
+        )
+
+    store.close()
+    backend.close()
+
+
+def test_native_direct_float32_rejects_nonfinite_unselected_candidate(
+    tmp_path: Path,
+) -> None:
+    vectors = np.array([[0.0, 0.0], [np.nan, 1.0]], dtype="<f4")
+    logical = np.asarray([2, 2], dtype="<u4").tobytes() + vectors.tobytes()
+    physical = logical + b"\0" * (4096 - len(logical))
+    path = tmp_path / "vectors-nonfinite.bin"
+    path.write_bytes(physical)
+    store = DirectIoVectorStore(
+        path,
+        VectorStoreIdentity(
+            sha256=hashlib.sha256(physical).hexdigest(),
+            logical_bytes=len(logical),
+            physical_bytes=len(physical),
+            rows=2,
+            dimensions=2,
+            dtype="float32",
+            header_bytes=8,
+            row_stride=8,
+            zero_padding_bytes=len(physical) - len(logical),
+            generation="direct-nonfinite-fixture",
+        ),
+    )
+    backend = compile_factorized_residual_backend(tmp_path / "cache")
+    candidates = sfora.CandidateResult(
+        ids=np.array([0, 1], dtype="<u4"),
+        approximate_distances=np.array([0.0, 1.0], dtype="<f8"),
+        probe_lists=np.array([0], dtype="<u4"),
+        evidence=CandidateEvidence(
+            backend="portable-float64",
+            rows_scanned=2,
+            codes_bytes_scanned=2,
+            probe_count=1,
+            shortlist_width=2,
+        ),
+    )
+
+    with pytest.raises(RuntimeError, match="native direct rerank failed: -6"):
+        NativeExactReranker(store, backend).search(
+            np.array([0.0, 0.0], dtype="<f4"), candidates, return_width=1
+        )
+
+    store.close()
+    backend.close()
+
+
+def test_native_exact_reranker_rejects_more_than_bounded_candidates(
+    tmp_path: Path,
+) -> None:
+    logical = np.asarray([1, 1], dtype="<u4").tobytes() + b"\0"
+    physical = logical + b"\0" * (4096 - len(logical))
+    path = tmp_path / "vectors.bin"
+    path.write_bytes(physical)
+    store = DirectIoVectorStore(
+        path,
+        VectorStoreIdentity(
+            sha256=hashlib.sha256(physical).hexdigest(),
+            logical_bytes=len(logical),
+            physical_bytes=len(physical),
+            rows=1,
+            dimensions=1,
+            dtype="uint8",
+            header_bytes=8,
+            row_stride=1,
+            zero_padding_bytes=len(physical) - len(logical),
+            generation="direct-candidate-bound",
+        ),
+    )
+    backend = compile_factorized_residual_backend(tmp_path / "cache")
+    candidates = sfora.CandidateResult(
+        ids=np.arange(4097, dtype="<u4"),
+        approximate_distances=np.arange(4097, dtype="<f8"),
+        probe_lists=np.array([0], dtype="<u4"),
+        evidence=CandidateEvidence(
+            backend="portable-float64",
+            rows_scanned=4097,
+            codes_bytes_scanned=4097,
+            probe_count=1,
+            shortlist_width=4097,
+        ),
+    )
+
+    with pytest.raises(ValueError, match="native exact rerank differs"):
+        NativeExactReranker(store, backend).search(
+            np.array([0], dtype=np.uint8), candidates, return_width=1
+        )
+
+    store.close()
+    backend.close()
+
+
+def test_native_exact_reranker_rejects_unpadded_direct_tail_at_construction(
+    tmp_path: Path,
+) -> None:
+    vectors = np.zeros((3, 128), dtype="<f4")
+    logical = np.asarray([3, 128], dtype="<u4").tobytes() + vectors.tobytes()
+    path = tmp_path / "vectors-unpadded.bin"
+    path.write_bytes(logical)
+    store = DirectIoVectorStore(
+        path,
+        VectorStoreIdentity(
+            sha256=hashlib.sha256(logical).hexdigest(),
+            logical_bytes=len(logical),
+            physical_bytes=len(logical),
+            rows=3,
+            dimensions=128,
+            dtype="float32",
+            header_bytes=8,
+            row_stride=512,
+            zero_padding_bytes=0,
+            generation="direct-unpadded-tail",
+        ),
+    )
+    backend = compile_factorized_residual_backend(tmp_path / "cache")
+
+    with pytest.raises(ValueError, match="native exact reranker differs"):
+        NativeExactReranker(store, backend)
+
+    store.close()
+    backend.close()
+
+
+def test_native_direct_quarantine_poisons_all_loaded_backends(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    vectors = np.array([[0]], dtype=np.uint8)
+    logical = np.asarray([1, 1], dtype="<u4").tobytes() + vectors.tobytes()
+    physical = logical + b"\0" * (4096 - len(logical))
+    path = tmp_path / "vectors.bin"
+    path.write_bytes(physical)
+    identity = VectorStoreIdentity(
+        sha256=hashlib.sha256(physical).hexdigest(),
+        logical_bytes=len(logical),
+        physical_bytes=len(physical),
+        rows=1,
+        dimensions=1,
+        dtype="uint8",
+        header_bytes=8,
+        row_stride=1,
+        zero_padding_bytes=len(physical) - len(logical),
+        generation="direct-poison-fixture",
+    )
+    first_store = DirectIoVectorStore(path, identity)
+    second_store = DirectIoVectorStore(path, identity)
+    first_backend = compile_factorized_residual_backend(tmp_path / "first-cache")
+    second_backend = compile_factorized_residual_backend(tmp_path / "second-cache")
+    first = NativeExactReranker(first_store, first_backend)
+    second = NativeExactReranker(second_store, second_backend)
+    candidates = sfora.CandidateResult(
+        ids=np.array([0], dtype="<u4"),
+        approximate_distances=np.array([0.0], dtype="<f8"),
+        probe_lists=np.array([0], dtype="<u4"),
+        evidence=CandidateEvidence(
+            backend="portable-float64",
+            rows_scanned=1,
+            codes_bytes_scanned=1,
+            probe_count=1,
+            shortlist_width=1,
+        ),
+    )
+    monkeypatch.setattr(factorized_residual_native, "_DIRECT_POISONED", False)
+    first_backend._library.sfora_exact_rerank_direct = lambda *_arguments: -4
+
+    with pytest.raises(NativeDirectQuiescenceError):
+        first.search(np.array([0], dtype=np.uint8), candidates, return_width=1)
+
+    second_called = False
+
+    def reject_second_call(*_arguments: object) -> int:
+        nonlocal second_called
+        second_called = True
+        return 0
+
+    second_backend._library.sfora_exact_rerank_direct = reject_second_call
+    with pytest.raises(NativeDirectQuiescenceError):
+        second.search(np.array([0], dtype=np.uint8), candidates, return_width=1)
+    assert not second_called
+
+    first_store.close()
+    second_store.close()
+    first_backend.close()
+    second_backend.close()
+
+
+def test_native_exact_reranker_refuses_unsupported_ring_at_construction(
+    tmp_path: Path,
+) -> None:
+    logical = np.asarray([1, 1], dtype="<u4").tobytes() + b"\0"
+    physical = logical + b"\0" * (4096 - len(logical))
+    path = tmp_path / "vectors.bin"
+    path.write_bytes(physical)
+    store = DirectIoVectorStore(
+        path,
+        VectorStoreIdentity(
+            sha256=hashlib.sha256(physical).hexdigest(),
+            logical_bytes=len(logical),
+            physical_bytes=len(physical),
+            rows=1,
+            dimensions=1,
+            dtype="uint8",
+            header_bytes=8,
+            row_stride=1,
+            zero_padding_bytes=len(physical) - len(logical),
+            generation="direct-probe-fixture",
+        ),
+    )
+    backend = compile_factorized_residual_backend(tmp_path / "cache")
+    backend._library.sfora_direct_io_probe = lambda: -5
+
+    with pytest.raises(NativeDirectUnsupportedError):
+        NativeExactReranker(store, backend)
+
+    store.close()
+    backend.close()
+
+
+@pytest.mark.parametrize("thread_count", (True, 0, 257))
+def test_native_exact_reranker_rejects_unbounded_thread_count(
+    tmp_path: Path,
+    thread_count: object,
+) -> None:
+    vectors = np.array([[1, 2, 3, 4]], dtype=np.uint8)
+    logical = np.asarray([1, 4], dtype="<u4").tobytes() + vectors.tobytes()
+    physical = logical + b"\0" * (4096 - len(logical))
+    path = tmp_path / "vectors.bin"
+    path.write_bytes(physical)
+    store = DirectIoVectorStore(
+        path,
+        VectorStoreIdentity(
+            sha256=hashlib.sha256(physical).hexdigest(),
+            logical_bytes=len(logical),
+            physical_bytes=len(physical),
+            rows=1,
+            dimensions=4,
+            dtype="uint8",
+            header_bytes=8,
+            row_stride=4,
+            zero_padding_bytes=len(physical) - len(logical),
+            generation="direct-thread-fixture",
+        ),
+    )
+    backend = compile_factorized_residual_backend(tmp_path / "cache")
+
+    with pytest.raises(ValueError, match="native exact reranker differs"):
+        NativeExactReranker(store, backend, thread_count=thread_count)  # type: ignore[arg-type]
+
+    store.close()
+    backend.close()
+
+
+def test_native_direct_rerank_rejects_non_power_of_two_alignment_before_io(
+    tmp_path: Path,
+) -> None:
+    backend = compile_factorized_residual_backend(tmp_path / "cache")
+    query = np.array([1, 2, 3, 4], dtype="<f4")
+    candidate_ids = np.array([0], dtype="<u4")
+    output_ids = np.empty(1, dtype="<u4")
+    output_distances = np.empty(1, dtype="<f8")
+    physical_bytes = np.zeros(1, dtype="<u8")
+    operations = np.zeros(1, dtype="<u4")
+
+    status = backend._library.sfora_exact_rerank_direct(
+        query,
+        query.size,
+        candidate_ids,
+        candidate_ids.size,
+        1,
+        4,
+        1,
+        1,
+        0,
+        4096,
+        3,
+        512,
+        1,
+        output_ids,
+        output_distances,
+        output_ids.size,
+        physical_bytes,
+        operations,
+    )
+
+    assert status == -1
+    assert physical_bytes[0] == 0
+    assert operations[0] == 0
+    backend.close()
+
+
+def test_native_direct_rerank_accepts_statx_memory_alignment_below_pointer_size(
+    tmp_path: Path,
+) -> None:
+    backend = compile_factorized_residual_backend(tmp_path / "cache")
+    query = np.array([1, 2, 3, 4], dtype="<f4")
+    candidate_ids = np.array([0], dtype="<u4")
+    output_ids = np.empty(1, dtype="<u4")
+    output_distances = np.empty(1, dtype="<f8")
+    physical_bytes = np.zeros(1, dtype="<u8")
+    operations = np.zeros(1, dtype="<u4")
+
+    status = backend._library.sfora_exact_rerank_direct(
+        query,
+        query.size,
+        candidate_ids,
+        candidate_ids.size,
+        1,
+        4,
+        1,
+        1,
+        0,
+        4096,
+        4,
+        512,
+        1,
+        output_ids,
+        output_distances,
+        output_ids.size,
+        physical_bytes,
+        operations,
+    )
+
+    assert status != -1
+    backend.close()
+
+
+@pytest.mark.parametrize(
+    "base_is_u8,query",
+    (
+        (0, np.array([0.0, np.nan], dtype="<f4")),
+        (1, np.array([0.0, 1.5], dtype="<f4")),
+        (1, np.array([0.0, 256.0], dtype="<f4")),
+    ),
+)
+def test_native_direct_rerank_rejects_invalid_query_before_io(
+    tmp_path: Path,
+    base_is_u8: int,
+    query: np.ndarray,
+) -> None:
+    backend = compile_factorized_residual_backend(tmp_path / "cache")
+    candidate_ids = np.array([0], dtype="<u4")
+    output_ids = np.empty(1, dtype="<u4")
+    output_distances = np.empty(1, dtype="<f8")
+    physical_bytes = np.zeros(1, dtype="<u8")
+    operations = np.zeros(1, dtype="<u4")
+
+    status = backend._library.sfora_exact_rerank_direct(
+        query,
+        query.size,
+        candidate_ids,
+        candidate_ids.size,
+        1,
+        2,
+        base_is_u8,
+        1,
+        0,
+        4096,
+        4096,
+        512,
+        1,
+        output_ids,
+        output_distances,
+        output_ids.size,
+        physical_bytes,
+        operations,
+    )
+
+    assert status == -1
+    assert operations[0] == 0
+    backend.close()
 
 
 def test_native_candidate_ids_match_scalar_f32_control_across_threads(

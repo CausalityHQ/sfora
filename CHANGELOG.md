@@ -38,9 +38,16 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   driver; the HERD recipe adds a steady margin) in `docs/results.md`.
 - Sub-center Proxy Anchor and Gaussian-potential uniformity objectives
   (evaluated, documented as negative results).
+- Experimental authenticated factorized-residual ANN artifacts and a public
+  file-backed squared-L2 index with portable and native candidate scoring,
+  deterministic exact reranking, explicit memory admission, and canonical
+  evaluation receipts.
 
 ### Fixed
 
+- Portable positional vector reads no longer allocate a second full-size copy of
+  every row, and vector-file authentication reuses one bounded block instead of
+  duplicating each 8 MiB read.
 - HIST distribution loss uses `cross_entropy` (no NaN from an empty masked mean).
 - Checkpoint selection never silently falls back to the test split.
 - Free CUDA memory between objectives; save per-example ids for provable ensemble
