@@ -94,6 +94,47 @@ Pet receipt authorities:
 - Pet exporter SHA-256
   `e14b3f62b4e846a9fb050d1ab3bbae2ac969494a6ef750dda8d3669388a3c3d3`.
 
+## Standard Cars196 panel result
+
+After the Pet confirmation, the unchanged selector and compact learner were
+measured on the standard Cars196 metric-learning split.  The pinned
+`tanganke/stanford_cars` revision
+`9abf6cf7d6dfa7b95152a0d6e791ea9435b47a40` supplied all 16,185 images;
+classes 0--97 formed the 8,054-row fit partition and classes 98--195 formed the
+8,131-row evaluation partition.  Cars196 had historical exposure elsewhere in
+the project, so this is standard-protocol panel evidence rather than a fresh
+confirmation.
+
+The fit-only selector measured `+0.033108` mAP@R and `+0.003477` Recall@1.
+Its class-clustered mAP@R 95% interval was
+`[+0.023754, +0.043083]`, so the frozen rule selected the learned projection.
+The one-shot external result was:
+
+| Representation | mAP@R | Recall@1 |
+| --- | ---: | ---: |
+| PCA int8-128 | `0.767869` | `0.970852` |
+| learned int8-128 | **`0.825656`** | **`0.972574`** |
+| learned float-128 | `0.825687` | `0.973435` |
+| teacher float-768 | `0.826089` | `0.974542` |
+
+Learned int8-128 improved over same-byte PCA by `+0.057787` mAP@R and
+`+0.001722` Recall@1.  It retained 99.95% of the float teacher's mAP@R
+(`0.825656 / 0.826089`) while using 128 signed bytes per stored item.  The
+remaining teacher gap was `0.000434` mAP@R and `0.001968` Recall@1.
+
+Cars196 receipt authorities:
+
+- feature archive SHA-256
+  `6ddfd7e2c9fd489dff51fa33697c62abf92a45247b52b336c0371f5482231ab3`;
+- selector SHA-256
+  `0b2724620bd9494ffdd7c185c78c6143dd485c94abff6a33a43140ffa2023cfc`;
+- external result SHA-256
+  `def8d3250561af82c9401a8a55674204dcccfea3f583723947550b9c4a849444`;
+- fitted checkpoint SHA-256
+  `1cd1d633764fd53caefb49f0aa091feb49370455d5e16dfb6c334d7c88a58e9f`;
+- exporter SHA-256
+  `1b00133936b1c289c4c6d532fb3d7c8ca9937eb25c74cff0424cffc716f8fbe5`.
+
 ## Scope
 
 This result validates fit-only model selection for the existing supervised
@@ -101,5 +142,7 @@ compact projection.  It does not establish a universal frozen projection:
 CUB and the six-domain transfer panel already falsified that stronger claim.
 The Pet split is a fresh class-disjoint confirmation of the selector, not a
 comparison with published Oxford-IIIT Pet systems that use the standard
-same-class train/test protocol.  The next production step is to expose this
-fit-only choice without changing the compact encoder or ANN serving path.
+same-class train/test protocol.  Cars196 adds a standard zero-shot retrieval
+panel result but is not method-specific untouched evidence.  The next
+production step is to expose this fit-only choice without changing the compact
+encoder or ANN serving path.
