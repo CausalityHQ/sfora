@@ -624,12 +624,17 @@ int sfora_factorized_candidate_search(
     }
 
     SforaPair *list_heap = malloc((size_t)nprobe * sizeof(*list_heap));
+    SforaPair *coarse_heaps =
+        malloc((size_t)requested_threads * nprobe * sizeof(*coarse_heaps));
+    size_t *coarse_counts = calloc((size_t)requested_threads, sizeof(*coarse_counts));
     int thread_count = (int)requested_threads;
     SforaPair *candidate_heaps = malloc((size_t)thread_count * shortlist * sizeof(*candidate_heaps));
     size_t *candidate_counts = calloc((size_t)thread_count, sizeof(*candidate_counts));
     float *lut = malloc((size_t)subquantizers * codebook_size * sizeof(*lut));
-    if (!list_heap || !candidate_heaps || !candidate_counts || !lut) {
-        free(list_heap); free(candidate_heaps); free(candidate_counts); free(lut);
+    if (!list_heap || !coarse_heaps || !coarse_counts ||
+        !candidate_heaps || !candidate_counts || !lut) {
+        free(list_heap); free(coarse_heaps); free(coarse_counts);
+        free(candidate_heaps); free(candidate_counts); free(lut);
         return -2;
     }
 
@@ -637,15 +642,37 @@ int sfora_factorized_candidate_search(
     float query_norm = 0.0f;
     for (uint32_t j = 0; j < dimensions; ++j)
         query_norm = fmaf(query[j], query[j], query_norm);
+    /* The coarse search streams every centroid, which is more bytes per query
+       than the posting scan below it. Run it with the same per-thread heap and
+       merge the posting scan uses; top-nprobe is partition-invariant, so the
+       selection is identical to the serial order. */
+    int coarse_error = 0;
+#pragma omp parallel for schedule(static) num_threads(requested_threads)
     for (uint32_t list = 0; list < nlist; ++list) {
+        int coarse_thread = 0;
+#ifdef _OPENMP
+        coarse_thread = omp_get_thread_num();
+#endif
         float distance = 0.0f;
         const float *centroid = coarse + (size_t)list * dimensions;
         for (uint32_t j = 0; j < dimensions; ++j) {
             float delta = query[j] - centroid[j];
             distance = fmaf(delta, delta, distance);
         }
-        if (!isfinite(distance)) goto invalid_score;
-        offer(list_heap, &list_count, nprobe, (SforaPair){distance, list});
+        if (!isfinite(distance)) {
+#pragma omp atomic write
+            coarse_error = 1;
+        } else {
+            offer(coarse_heaps + (size_t)coarse_thread * nprobe,
+                  &coarse_counts[coarse_thread], nprobe,
+                  (SforaPair){distance, list});
+        }
+    }
+    if (coarse_error) goto invalid_score;
+    for (uint32_t coarse_thread = 0; coarse_thread < requested_threads; ++coarse_thread) {
+        SforaPair *source = coarse_heaps + (size_t)coarse_thread * nprobe;
+        for (size_t index = 0; index < coarse_counts[coarse_thread]; ++index)
+            offer(list_heap, &list_count, nprobe, source[index]);
     }
     qsort(list_heap, list_count, sizeof(*list_heap), ascending_pair);
     for (size_t index = 0; index < list_count; ++index)
@@ -723,10 +750,12 @@ int sfora_factorized_candidate_search(
         uint32_t list = list_heap[index].id;
         *rows_scanned += offsets[list + 1] - offsets[list];
     }
-    free(list_heap); free(candidate_heaps); free(candidate_counts); free(lut);
+    free(list_heap); free(coarse_heaps); free(coarse_counts);
+    free(candidate_heaps); free(candidate_counts); free(lut);
     return 0;
 
 invalid_score:
-    free(list_heap); free(candidate_heaps); free(candidate_counts); free(lut);
+    free(list_heap); free(coarse_heaps); free(coarse_counts);
+    free(candidate_heaps); free(candidate_counts); free(lut);
     return -4;
 }
