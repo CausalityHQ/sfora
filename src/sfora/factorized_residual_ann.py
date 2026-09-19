@@ -11,6 +11,7 @@ import mmap
 import os
 import stat
 import tempfile
+import threading
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal, cast
@@ -173,8 +174,7 @@ class FactorizedResidualPostings:
 
     def _codes_have_canonical_trailing_bits(self) -> bool:
         trailing_bits = (
-            self.spec.code_bytes * 8
-            - self.spec.subquantizers * self.spec.bits_per_subquantizer
+            self.spec.code_bytes * 8 - self.spec.subquantizers * self.spec.bits_per_subquantizer
         )
         if trailing_bits == 0:
             return True
@@ -219,7 +219,7 @@ class VectorStoreIdentity:
             or any(character not in "0123456789abcdef" for character in self.sha256)
             or any(type(value) is not int for value in integers)
             or self.rows < 1
-            or self.rows > 2**32
+            or self.rows >= 2**32
             or self.dimensions < 1
             or type(self.dtype) is not str
             or self.dtype not in ("uint8", "float32")
@@ -359,9 +359,7 @@ def _reconstructed_norms_from_arrays(
         start = subquantizer * spec.subvector_dimensions
         stop = start + spec.subvector_dimensions
         indexes = _code_indexes(codes, spec, begin, end, subquantizer)
-        reconstructed[:, start:stop] += pq_codebooks[
-            subquantizer, indexes
-        ].astype(np.float64)
+        reconstructed[:, start:stop] += pq_codebooks[subquantizer, indexes].astype(np.float64)
     norms = np.zeros(end - begin, dtype=np.float64)
     for dimension in range(spec.dimensions):
         coordinate = reconstructed[:, dimension]
@@ -400,9 +398,7 @@ def _stored_norm_parameters(low: float, high: float) -> tuple[np.float32, np.flo
     stored_low = np.float32(low)
     stored_scale = np.float32(scale)
     with np.errstate(over="ignore", invalid="ignore"):
-        decoded_maximum = np.float32(
-            stored_low + np.float32(stored_scale * np.float32(255.0))
-        )
+        decoded_maximum = np.float32(stored_low + np.float32(stored_scale * np.float32(255.0)))
     if (high > low and stored_scale == 0.0) or not np.isfinite(decoded_maximum):
         raise ValueError("factorized residual norms differ")
     return stored_low, stored_scale
@@ -484,15 +480,11 @@ def _validate_derived_norm_roles(
             raise ValueError("factorized residual artifact differs")
         for start in range(begin, end, chunk_rows):
             stop = min(start + chunk_rows, end)
-            norms = _reconstructed_norms_from_arrays(
-                spec, coarse, pq, codes, start, stop, list_id
-            )
+            norms = _reconstructed_norms_from_arrays(spec, coarse, pq, codes, start, stop, list_id)
             if expected_scale == 0.0:
                 expected_codes = np.zeros(stop - start, dtype=np.uint8)
             else:
-                encoded = np.rint(
-                    (norms - float(expected_low)) / float(expected_scale)
-                )
+                encoded = np.rint((norms - float(expected_low)) / float(expected_scale))
                 expected_codes = np.clip(encoded, 0, 255).astype(np.uint8)
             if not np.array_equal(norm_codes[start:stop], expected_codes):
                 raise ValueError("factorized residual artifact differs")
@@ -552,12 +544,18 @@ class FactorizedResidualArtifact:
     _mappings: list[mmap.mmap]
     _descriptors: list[int]
     _closed: bool
+    _closing: bool
+    _active_searches: int
+    _search_condition: threading.Condition
 
     __slots__ = (
         "_arrays",
+        "_active_searches",
         "_closed",
+        "_closing",
         "_descriptors",
         "_mappings",
+        "_search_condition",
         "resident_bytes",
         "rows",
         "spec",
@@ -587,6 +585,21 @@ class FactorizedResidualArtifact:
         object.__setattr__(self, "_mappings", mappings)
         object.__setattr__(self, "_descriptors", descriptors)
         object.__setattr__(self, "_closed", False)
+        object.__setattr__(self, "_closing", False)
+        object.__setattr__(self, "_active_searches", 0)
+        object.__setattr__(self, "_search_condition", threading.Condition())
+
+    def _acquire_search(self) -> dict[str, NDArray[np.generic]]:
+        with self._search_condition:
+            if self._closed or self._closing or not self._arrays:
+                raise ValueError("factorized residual artifact differs")
+            object.__setattr__(self, "_active_searches", self._active_searches + 1)
+            return self._arrays
+
+    def _release_search(self) -> None:
+        with self._search_condition:
+            object.__setattr__(self, "_active_searches", self._active_searches - 1)
+            self._search_condition.notify_all()
 
     @classmethod
     def open(
@@ -622,12 +635,8 @@ class FactorizedResidualArtifact:
             if len(manifest_bytes) != manifest_stat.st_size:
                 raise ValueError("factorized residual artifact differs")
             observed_manifest_sha256 = hashlib.sha256(manifest_bytes).hexdigest()
-            if (
-                manifest_sha256 is not None
-                and (
-                    type(manifest_sha256) is not str
-                    or manifest_sha256 != observed_manifest_sha256
-                )
+            if manifest_sha256 is not None and (
+                type(manifest_sha256) is not str or manifest_sha256 != observed_manifest_sha256
             ):
                 raise ValueError("factorized residual artifact differs")
             try:
@@ -668,7 +677,7 @@ class FactorizedResidualArtifact:
                 manifest["schema"] != "sfora-factorized-residual-ann-v1"
                 or manifest["claim_eligible"] is not False
                 or type(manifest["rows"]) is not int
-                or not 1 <= manifest["rows"] <= 2**32
+                or not 1 <= manifest["rows"] < 2**32
             ):
                 raise ValueError("factorized residual artifact differs")
             try:
@@ -770,12 +779,7 @@ class FactorizedResidualArtifact:
                 trailing_mask = ((1 << trailing_bits) - 1) << (8 - trailing_bits)
                 codes = cast(NDArray[np.uint8], arrays["codes.u8"])
                 for begin in range(0, rows, 8 << 20):
-                    if bool(
-                        (
-                            codes[begin : begin + (8 << 20), -1]
-                            & trailing_mask
-                        ).any()
-                    ):
+                    if bool((codes[begin : begin + (8 << 20), -1] & trailing_mask).any()):
                         raise ValueError("factorized residual artifact differs")
             _validate_derived_norm_roles(spec, arrays)
             return cls(
@@ -822,8 +826,19 @@ class FactorizedResidualArtifact:
     def close(self) -> None:
         """Release mappings and descriptors exactly once."""
 
-        if self._closed:
-            return
+        with self._search_condition:
+            while self._closing and not self._closed:
+                self._search_condition.wait()
+            if self._closed:
+                return
+            object.__setattr__(self, "_closing", True)
+            try:
+                while self._active_searches:
+                    self._search_condition.wait()
+            except BaseException:
+                object.__setattr__(self, "_closing", False)
+                self._search_condition.notify_all()
+                raise
         self._arrays.clear()
         first_error: BaseException | None = None
         failed_mappings: list[mmap.mmap] = []
@@ -847,6 +862,9 @@ class FactorizedResidualArtifact:
             "_closed",
             not self._mappings and not self._descriptors,
         )
+        with self._search_condition:
+            object.__setattr__(self, "_closing", False)
+            self._search_condition.notify_all()
         if first_error is not None:
             raise first_error
 
@@ -948,7 +966,7 @@ def write_factorized_residual_artifact(
 class CandidateEvidence:
     """Bounded work accounting for one portable candidate search."""
 
-    backend: Literal["portable-float64"]
+    backend: Literal["portable-float64", "native-c11-fma"]
     rows_scanned: int
     codes_bytes_scanned: int
     probe_count: int
@@ -956,7 +974,7 @@ class CandidateEvidence:
 
     def __post_init__(self) -> None:
         if (
-            self.backend != "portable-float64"
+            self.backend not in {"portable-float64", "native-c11-fma"}
             or any(
                 type(value) is not int
                 for value in (
@@ -1051,7 +1069,22 @@ class PortableCandidateIndex:
             or not 1 <= selected_shortlist_width <= spec.shortlist_width
         ):
             raise ValueError("factorized residual search differs")
-        arrays = artifact._arrays
+        arrays = artifact._acquire_search()
+        try:
+            return self._search_acquired(
+                query, arrays, selected_probe_count, selected_shortlist_width
+            )
+        finally:
+            artifact._release_search()
+
+    def _search_acquired(
+        self,
+        query: NDArray[np.generic],
+        arrays: dict[str, NDArray[np.generic]],
+        selected_probe_count: int,
+        selected_shortlist_width: int,
+    ) -> CandidateResult:
+        spec = self._artifact.spec
         coarse = cast(NDArray[np.float32], arrays["coarse.f32"])
         pq = cast(NDArray[np.float32], arrays["pq.f32"])
         offsets = cast(NDArray[np.uint64], arrays["offsets.u64"])
@@ -1103,9 +1136,9 @@ class PortableCandidateIndex:
             rows_scanned += end - begin
             for start in range(begin, end, chunk_rows):
                 stop = min(start + chunk_rows, end)
-                scores = constant + float(norm_scales[list_id]) * norm_codes[
-                    start:stop
-                ].astype(np.float64)
+                scores = constant + float(norm_scales[list_id]) * norm_codes[start:stop].astype(
+                    np.float64
+                )
                 for subquantizer in range(spec.subquantizers):
                     indexes = _code_indexes(codes, spec, start, stop, subquantizer)
                     scores += lut[subquantizer, indexes]
@@ -1121,9 +1154,7 @@ class PortableCandidateIndex:
         ordered = sorted((-score, -internal_id) for score, internal_id in candidate_heap)
         return CandidateResult(
             ids=np.asarray([internal_id for _, internal_id in ordered], dtype="<u4"),
-            approximate_distances=np.asarray(
-                [distance for distance, _ in ordered], dtype="<f8"
-            ),
+            approximate_distances=np.asarray([distance for distance, _ in ordered], dtype="<f8"),
             probe_lists=probe_lists,
             evidence=CandidateEvidence(
                 backend="portable-float64",

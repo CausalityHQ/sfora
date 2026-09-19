@@ -10,6 +10,9 @@ build/
 *.egg-info/
 .ipynb_checkpoints/
 data/
+!tests/data/
+!tests/data/factorized_residual_golden/
+!tests/data/factorized_residual_golden/*
 # ...but the site's small projection/embedding JSON is source the build needs.
 !site/src/data/
 !site/src/data/*.json
