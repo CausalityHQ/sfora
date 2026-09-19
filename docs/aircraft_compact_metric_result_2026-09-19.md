@@ -27,19 +27,21 @@ same learned code metrics and schedule digest.
 ## Runtime and storage
 
 Training the affine head took 4.34 seconds on the DGX for 716 updates. On an
-NVIDIA GB10, the complete post-backbone operation
+NVIDIA GB10, the final public `CompactMetricModule.encode()` path
 `normalize-768 -> affine-128 -> normalize -> round-int8` measured:
 
 | Batch | Mean | p50 | p99 | Throughput at mean |
 | --- | ---: | ---: | ---: | ---: |
-| 1 | 53.03 us | 52.64 us | 59.36 us | 18,857 vectors/s |
-| 256 | 56.48 us total | 55.58 us total | 106.30 us total | 4.53M vectors/s |
+| 1 | 58.08 us | 57.12 us | 64.26 us | 17,217 vectors/s |
+| 256 | 60.44 us total | 59.94 us total | 68.11 us total | 4.24M vectors/s |
 
 The shared float32 affine parameters occupy 393,728 bytes. Each persisted code
 is exactly 128 bytes; this payload figure excludes shared model parameters and
-any retrieval-index metadata. `CompactMetricModule.encode()` exposes this exact
-operation as the trusted device-local fast path, without CUDA scalar reads.
-Checked input validation remains available through the CPU encoder boundary.
+any retrieval-index metadata. An interleaved same-process control produced
+exact int8 equality between the public method and the equivalent manual
+operation. Their batch-256 mean times differed by less than 0.3%; batch-1 p50
+was identical. The public fast path has no CUDA scalar reads. Checked input
+validation remains available through the CPU encoder boundary.
 
 ## Interpretation and limits
 
@@ -75,6 +77,12 @@ not theoretically universal.
   `8ca1dbf7d5c333cc2069a842692b77bd863acb919a2917f31ee7a74b9c218d3f`
 - Generic-library raw parameter-byte SHA-256:
   `5f74eb5056a28d84f6b6d839d1e94ab36d7b64aac32f44f2abe7325ac99d48ad`
+- Public-encoder benchmark receipt:
+  `docs/evidence/aircraft_compact_metric/compact-metric-public-encode-gb10-v1.json`
+- Benchmarked release-module SHA-256:
+  `2d98e39786bea3d4a45205ec3e4fd1d79adaa594e61c3d1ba82b4b5b4600e553`
+- Public-benchmark script SHA-256:
+  `3ee67d80d3f8df9a7fda4ec7d9723d742753a4feb43f9592a8a37137ac31c057`
 - The receipt binds the exact exporter, gate, verifier, library-shadow, and
   benchmark script hashes used for the run. Their byte-exact sources are
   preserved as non-executable `.txt` evidence under

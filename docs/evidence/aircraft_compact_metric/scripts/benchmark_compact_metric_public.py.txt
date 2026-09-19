@@ -1,0 +1,136 @@
+#!/usr/bin/env python3
+"""Benchmark the SHA-authenticated release CompactMetricModule public encoder."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import importlib.util
+import json
+import os
+import statistics
+import sys
+import types
+from pathlib import Path
+
+import numpy as np
+import torch
+
+
+def _load_release_module(path: Path) -> types.ModuleType:
+    """Load only the deployment classes while stubbing unused training imports."""
+
+    package = types.ModuleType("sfora")
+    package.__path__ = []  # type: ignore[attr-defined]
+    sys.modules["sfora"] = package
+    joint = types.ModuleType("sfora.joint_relational_compaction")
+    joint.fixed_int8_unit_codes = lambda value: None  # type: ignore[attr-defined]
+    sys.modules[joint.__name__] = joint
+    ceiling = types.ModuleType("sfora.representation_ceiling")
+    ceiling.fit_centered_pca = lambda *args, **kwargs: None  # type: ignore[attr-defined]
+    sys.modules[ceiling.__name__] = ceiling
+    distillation = types.ModuleType("sfora.teacher_anchored_distillation")
+    for name in (
+        "class_balanced_anchor_schedule",
+        "positive_coverage_hard_negative_loss",
+        "stable_different_class_topk",
+    ):
+        setattr(distillation, name, lambda *args, **kwargs: None)
+    sys.modules[distillation.__name__] = distillation
+    specification = importlib.util.spec_from_file_location("compact_metric_release", path)
+    if specification is None or specification.loader is None:
+        raise RuntimeError("compact metric module loading differs")
+    module = importlib.util.module_from_spec(specification)
+    sys.modules[specification.name] = module
+    specification.loader.exec_module(module)
+    return module
+
+
+def _summary(values: list[float], rows: int) -> dict[str, float]:
+    samples = np.asarray(values)
+    return {
+        "mean_us": float(statistics.fmean(values)),
+        "p50_us": float(np.quantile(samples, 0.5)),
+        "p99_us": float(np.quantile(samples, 0.99)),
+        "vectors_per_second_at_mean": float(rows * 1e6 / samples.mean()),
+    }
+
+
+def _manual(module: torch.nn.Module, values: torch.Tensor) -> torch.Tensor:
+    projected = module(values)
+    return torch.round(projected * 127.0).clamp(-127, 127).to(torch.int8).contiguous()
+
+
+def _paired(module: torch.nn.Module, rows: int, samples: int) -> dict[str, object]:
+    generator = torch.Generator(device="cuda").manual_seed(91 + rows)
+    values = torch.randn(rows, 768, device="cuda", generator=generator)
+    if not torch.equal(_manual(module, values), module.encode(values)):
+        raise RuntimeError("public encode parity differs")
+    for _ in range(300):
+        _manual(module, values)
+        module.encode(values)
+    torch.cuda.synchronize()
+    manual_events = []
+    public_events = []
+    for index in range(samples):
+        manual_start = torch.cuda.Event(enable_timing=True)
+        manual_stop = torch.cuda.Event(enable_timing=True)
+        public_start = torch.cuda.Event(enable_timing=True)
+        public_stop = torch.cuda.Event(enable_timing=True)
+        if index % 2 == 0:
+            manual_start.record()
+            _manual(module, values)
+            manual_stop.record()
+            public_start.record()
+            module.encode(values)
+            public_stop.record()
+        else:
+            public_start.record()
+            module.encode(values)
+            public_stop.record()
+            manual_start.record()
+            _manual(module, values)
+            manual_stop.record()
+        manual_events.append((manual_start, manual_stop))
+        public_events.append((public_start, public_stop))
+    torch.cuda.synchronize()
+    manual = [start.elapsed_time(stop) * 1000.0 for start, stop in manual_events]
+    public = [start.elapsed_time(stop) * 1000.0 for start, stop in public_events]
+    return {
+        "rows": rows,
+        "samples": samples,
+        "manual": _summary(manual, rows),
+        "public": _summary(public, rows),
+        "public_over_manual_mean_ratio": float(np.mean(public) / np.mean(manual)),
+        "exact_output_parity": True,
+    }
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--module", type=Path, required=True)
+    parser.add_argument("--checkpoint", type=Path, required=True)
+    arguments = parser.parse_args()
+    source = arguments.module.read_bytes()
+    module = _load_release_module(arguments.module)
+    state = torch.load(arguments.checkpoint, map_location="cpu", weights_only=True)
+    encoder = module.CompactMetricModule(
+        state["weight"], state["bias"], device=torch.device("cuda")
+    )
+    output = {
+        "schema": "sfora-compact-metric-public-encode-gb10-v1",
+        "device": torch.cuda.get_device_name(0),
+        "torch": torch.__version__,
+        "module_sha256": hashlib.sha256(source).hexdigest(),
+        "benchmark_script_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+        "operation": "CompactMetricModule.encode:normalize-768-affine-128-normalize-round-int8",
+        "batch1": _paired(encoder, 1, 5000),
+        "batch256": _paired(encoder, 256, 1000),
+        "parameter_bytes_f32": 128 * 768 * 4 + 128 * 4,
+        "persistent_code_bytes_per_vector": 128,
+    }
+    print(json.dumps(output, sort_keys=True, separators=(",", ":")))
+
+
+if __name__ == "__main__":
+    main()
