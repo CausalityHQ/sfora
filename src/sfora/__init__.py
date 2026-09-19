@@ -139,7 +139,11 @@ _COMPACT_METRIC_EXPORTS = frozenset(
         "CompactMetricEncoder",
         "CompactMetricFitResult",
         "CompactMetricModule",
+        "CompactMetricSelectionFold",
+        "CompactMetricSelectionResult",
+        "choose_compact_metric_projection",
         "fit_compact_metric_projection",
+        "select_compact_metric_projection",
     }
 )
 
@@ -406,6 +410,8 @@ __all__ = [
     "CompactMetricEncoder",
     "CompactMetricFitResult",
     "CompactMetricModule",
+    "CompactMetricSelectionFold",
+    "CompactMetricSelectionResult",
     "ExperimentResult",
     "FactorizedResidualArtifact",
     "FactorizedResidualComponents",
@@ -523,6 +529,7 @@ __all__ = [
     "build_hf_publish_bundle",
     "build_remote_run_plan",
     "balanced_product_quantization_spec",
+    "choose_compact_metric_projection",
     "fit_sfora_projection",
     "fit_compact_metric_projection",
     "fit_relational_linear_compaction",
@@ -534,6 +541,7 @@ __all__ = [
     "fit_centered_pca",
     "fit_ridge_affine",
     "fit_teacher_guided_projection",
+    "select_compact_metric_projection",
     "cross_dimensional_anchor_distillation_loss",
     "cross_dimensional_relational_distillation_loss",
     "cross_dimensional_similarity_distillation_loss",

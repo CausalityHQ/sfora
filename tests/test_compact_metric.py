@@ -10,8 +10,12 @@ from sfora.compact_metric import (
     CompactMetricConfig,
     CompactMetricEncoder,
     CompactMetricModule,
+    CompactMetricSelectionFold,
+    CompactMetricSelectionResult,
     _positive_rows,
+    choose_compact_metric_projection,
     fit_compact_metric_projection,
+    select_compact_metric_projection,
 )
 from sfora.representation_ceiling import fit_centered_pca
 
@@ -32,7 +36,116 @@ def test_compact_metric_api_is_public() -> None:
     assert sfora.CompactMetricConfig is CompactMetricConfig
     assert sfora.CompactMetricEncoder is CompactMetricEncoder
     assert sfora.CompactMetricModule is CompactMetricModule
+    assert sfora.CompactMetricSelectionFold is CompactMetricSelectionFold
+    assert sfora.CompactMetricSelectionResult is CompactMetricSelectionResult
+    assert sfora.choose_compact_metric_projection is choose_compact_metric_projection
     assert sfora.fit_compact_metric_projection is fit_compact_metric_projection
+    assert sfora.select_compact_metric_projection is select_compact_metric_projection
+
+
+def test_compact_metric_selection_policy_uses_quality_gain_and_recall_guard() -> None:
+    """Catch accepting a learned projection that misses either frozen gate."""
+
+    assert (
+        choose_compact_metric_projection(
+            map_at_r_delta=0.003,
+            recall_at_1_delta=0.0,
+        )
+        == "learned_projection"
+    )
+    assert (
+        choose_compact_metric_projection(
+            map_at_r_delta=0.002999,
+            recall_at_1_delta=0.1,
+        )
+        == "pca_fallback"
+    )
+    assert (
+        choose_compact_metric_projection(
+            map_at_r_delta=0.1,
+            recall_at_1_delta=-1e-9,
+        )
+        == "pca_fallback"
+    )
+
+
+def test_fit_only_selector_returns_full_fit_pca_fallback() -> None:
+    """Catch test-split selection or returning a fold-local fallback encoder."""
+
+    generator = torch.Generator().manual_seed(41)
+    labels_by_class = (5, 7, 0, 1, 2, 3)
+    centers = torch.randn(len(labels_by_class), 6, generator=generator)
+    embeddings = torch.cat(
+        [center + 0.08 * torch.randn(4, 6, generator=generator) for center in centers]
+    )
+    embeddings = torch.nn.functional.normalize(embeddings, dim=1).contiguous()
+    labels = torch.tensor(labels_by_class, dtype=torch.int64).repeat_interleave(4)
+    config = CompactMetricConfig(
+        output_dimensions=3,
+        cycles=1,
+        anchor_epochs_per_cycle=0.5,
+        hard_negatives=3,
+    )
+
+    result = select_compact_metric_projection(
+        embeddings,
+        labels,
+        config=config,
+        minimum_map_gain=1.0,
+        device=torch.device("cpu"),
+    )
+
+    assert result.selected == "pca_fallback"
+    assert len(result.folds) == 3
+    assert [fold.validation_class_count for fold in result.folds] == [2, 2, 2]
+    assert [fold.validation_row_count for fold in result.folds] == [8, 8, 8]
+    assert math.isfinite(result.map_at_r_delta)
+    assert math.isfinite(result.recall_at_1_delta)
+    expected = fit_centered_pca(
+        torch.nn.functional.normalize(embeddings, dim=1).contiguous(), dimensions=3
+    )
+    expected_bias = (-(expected.components.double() @ expected.mean.double())).float()
+    torch.testing.assert_close(result.encoder.weight, expected.components, atol=0, rtol=0)
+    torch.testing.assert_close(result.encoder.bias, expected_bias, atol=0, rtol=0)
+
+
+def test_fit_only_selector_refits_the_selected_learned_projection() -> None:
+    """Catch returning a fold-local learned encoder instead of the full-data fit."""
+
+    generator = torch.Generator().manual_seed(41)
+    labels_by_class = (5, 7, 0, 1, 2, 3)
+    centers = torch.randn(len(labels_by_class), 6, generator=generator)
+    embeddings = torch.cat(
+        [center + 0.08 * torch.randn(4, 6, generator=generator) for center in centers]
+    )
+    embeddings = torch.nn.functional.normalize(embeddings, dim=1).contiguous()
+    labels = torch.tensor(labels_by_class, dtype=torch.int64).repeat_interleave(4)
+    config = CompactMetricConfig(
+        output_dimensions=3,
+        cycles=1,
+        anchor_epochs_per_cycle=0.5,
+        hard_negatives=3,
+    )
+
+    result = select_compact_metric_projection(
+        embeddings,
+        labels,
+        config=config,
+        minimum_map_gain=0.0,
+        device=torch.device("cpu"),
+    )
+    expected = fit_compact_metric_projection(
+        torch.nn.functional.normalize(embeddings, dim=1).contiguous(),
+        labels,
+        config=config,
+        device=torch.device("cpu"),
+    )
+
+    assert result.selected == "learned_projection"
+    assert result.map_at_r_delta == 0.0
+    assert result.recall_at_1_delta == 0.0
+    torch.testing.assert_close(result.encoder.weight, expected.encoder.weight, atol=0, rtol=0)
+    torch.testing.assert_close(result.encoder.bias, expected.encoder.bias, atol=0, rtol=0)
 
 
 def test_fit_compact_metric_projection_adapts_schedule_and_emits_exact_codes() -> None:
