@@ -1,0 +1,115 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import math
+import time
+from collections import Counter
+from pathlib import Path
+
+import numpy as np
+import torch
+from torch.nn import functional as F
+
+from sfora.compact_metric import CompactMetricConfig, fit_compact_metric_projection
+from sfora.deterministic_similarity_runtime import configure_deterministic_similarity_runtime
+
+
+def sha256(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def labels(values: np.ndarray) -> tuple[int, ...]:
+    unique = sorted(int(value) for value in np.unique(values))
+    remap = {value: index + 1 for index, value in enumerate(unique)}
+    return tuple(remap[int(value)] for value in values)
+
+
+def score_codes(codes: torch.Tensor, target: tuple[int, ...]) -> dict[str, float]:
+    restored = F.normalize(codes.float(), dim=1)
+    width = max(Counter(target).values()) - 1
+    gallery = restored.cuda()
+    rankings = []
+    for start in range(0, len(restored), 256):
+        stop = min(start + 256, len(restored))
+        scores = gallery[start:stop] @ gallery.T
+        scores[torch.arange(stop - start, device="cuda"), torch.arange(start, stop, device="cuda")] = -torch.inf
+        # Stable descending score with lower row ordinal as the tie break.
+        rankings.append(torch.argsort(scores, dim=1, descending=True, stable=True)[:, :width].cpu())
+    counts = Counter(target)
+    aps = []
+    hits = []
+    for ranking, label in zip(torch.cat(rankings).tolist(), target, strict=True):
+        positives = counts[label] - 1
+        found = 0
+        terms = []
+        for rank, index in enumerate(ranking[:positives], start=1):
+            if target[index] == label:
+                found += 1
+                terms.append(found / rank)
+        aps.append(math.fsum(terms) / positives)
+        hits.append(float(target[ranking[0]] == label))
+    return {"map_at_r": math.fsum(aps) / len(target), "r1": math.fsum(hits) / len(target)}
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--features", type=Path, required=True)
+    parser.add_argument("--features-sha256", required=True)
+    args = parser.parse_args()
+    if sha256(args.features) != args.features_sha256:
+        raise ValueError("feature digest differs")
+    configure_deterministic_similarity_runtime(17, cpu_threads=2)
+    archive = np.load(args.features, allow_pickle=False)
+    fit = F.normalize(torch.from_numpy(archive["fit_embeddings"]).float(), dim=1).contiguous()
+    fit_labels = torch.tensor(labels(archive["fit_labels"].astype(np.int64))) - 1
+    evaluation = F.normalize(
+        torch.from_numpy(archive["evaluation_embeddings"]).float(), dim=1
+    ).contiguous()
+    evaluation_labels = labels(archive["evaluation_labels"].astype(np.int64))
+    seeds = (17, 1729, 65537, 97, 7919)
+    results = []
+    for seed in seeds:
+        started = time.monotonic()
+        fitted = fit_compact_metric_projection(
+            fit,
+            fit_labels.contiguous(),
+            config=CompactMetricConfig(seed=seed),
+            device=torch.device("cuda"),
+        )
+        codes = fitted.encoder.encode(evaluation)
+        result = {
+            "seed": seed,
+            "score": score_codes(codes, evaluation_labels),
+            "elapsed_seconds": time.monotonic() - started,
+            "schedule_sha256": fitted.schedule_sha256,
+            "parameter_sha256": fitted.parameter_sha256,
+        }
+        results.append(result)
+        print(json.dumps({"progress": result}, sort_keys=True), flush=True)
+    maps = np.asarray([r["score"]["map_at_r"] for r in results])
+    r1s = np.asarray([r["score"]["r1"] for r in results])
+    print(json.dumps({
+        "schema": "sfora-aircraft-compact-metric-seed-screen-v1",
+        "claim_eligible": False,
+        "features_sha256": args.features_sha256,
+        "seeds": results,
+        "map_mean": float(maps.mean()),
+        "map_min": float(maps.min()),
+        "map_max": float(maps.max()),
+        "map_sample_std": float(maps.std(ddof=1)),
+        "r1_mean": float(r1s.mean()),
+        "r1_min": float(r1s.min()),
+        "r1_max": float(r1s.max()),
+        "r1_sample_std": float(r1s.std(ddof=1)),
+    }, sort_keys=True, separators=(",", ":")))
+
+
+if __name__ == "__main__":
+    main()
