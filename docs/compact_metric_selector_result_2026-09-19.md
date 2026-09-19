@@ -122,6 +122,24 @@ Learned int8-128 improved over same-byte PCA by `+0.057787` mAP@R and
 (`0.825656 / 0.826089`) while using 128 signed bytes per stored item.  The
 remaining teacher gap was `0.000434` mAP@R and `0.001968` Recall@1.
 
+An equal-byte standard-codec screen then fitted Faiss 1.12.0 PQ and OPQ on
+exactly the same 8,054 authorized fit rows.  All four arms persist 128 bytes
+per item:
+
+| Representation | mAP@R | Recall@1 |
+| --- | ---: | ---: |
+| PCA int8-128 | `0.767869` | `0.970852` |
+| Faiss `PQ128x8` | `0.814752` | **`0.974419`** |
+| Faiss `OPQ128_768,PQ128x8` | `0.817630` | `0.973066` |
+| learned int8-128 | **`0.825656`** | `0.972574` |
+
+The learned code gains `+0.008026` mAP@R over OPQ at equal bytes, but its
+Recall@1 is `0.000492` lower.  The evidence therefore supports higher ranking
+quality per byte, not dominance on every retrieval metric.  Faiss also warned
+that the 8,054 authorized fit rows are below its recommended 9,984 rows for
+training 256 centroids; evaluation rows were not leaked into codec fitting to
+silence that warning.
+
 Cars196 receipt authorities:
 
 - feature archive SHA-256
@@ -130,6 +148,10 @@ Cars196 receipt authorities:
   `0b2724620bd9494ffdd7c185c78c6143dd485c94abff6a33a43140ffa2023cfc`;
 - external result SHA-256
   `def8d3250561af82c9401a8a55674204dcccfea3f583723947550b9c4a849444`;
+- equal-byte codec receipt SHA-256
+  `80c9d776ad1aab27056c99344d0f2b21498a0ee08d3b6ccc3a886a3027187044`;
+- equal-byte codec driver SHA-256
+  `c6ebc6807176c312b0790ae9636606f905b3e5b90e75900a32bc9779b7df6491`;
 - fitted checkpoint SHA-256
   `1cd1d633764fd53caefb49f0aa091feb49370455d5e16dfb6c334d7c88a58e9f`;
 - exporter SHA-256
