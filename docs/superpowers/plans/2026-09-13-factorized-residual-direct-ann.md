@@ -65,7 +65,8 @@
 - Produces: `FactorizedResidualSpec`; its manifest fields own immutable defaults for `probe_count`,
   `shortlist_width`, and fixed public `return_width`.
 - Produces: `FactorizedResidualComponents(spec, coarse_centroids, pq_codebooks)` and
-  `FactorizedResidualPostings(spec, offsets, ids, code_indexes)`; callers never provide norm bytes.
+  `FactorizedResidualPostings(spec, offsets, ids, codes)` with canonical packed LSB-first bytes; callers never
+  provide norm bytes and the writer never allocates a second complete packed matrix.
 - Produces: `VectorStoreIdentity(sha256, logical_bytes, physical_bytes, rows, dimensions, dtype,
   header_bytes, row_stride, zero_padding_bytes, generation)`.
 - Produces: `FactorizedResidualArtifact.open(path, manifest_sha256=None)` and `.resident_bytes`.
@@ -106,7 +107,7 @@ as a dense permutation of `[0, rows)` with a one-bit-per-ID bitmap; never alloca
 - [ ] **Step 4: Write writer RED tests and implement atomic output**
 
 Write into a new sibling temporary directory. Reconstruct each posting from its list centroid and PQ
-codewords, apply the spec's increasing-coordinate float32 `fmaf` norm loop, derive per-list low/scale,
+codewords, apply the spec's increasing-coordinate noncontracted float64 norm loop, derive stored float32 low/scale,
 apply ties-to-even u8 rounding, and mutation-lock the exact resulting norm bytes. Stream norm computation
 and list output under an explicit build-memory ledger, flush/fsync roles and manifest, then rename once. On every
 injected exception assert neither final directory nor partial manifest exists. Encode codes LSB-first and

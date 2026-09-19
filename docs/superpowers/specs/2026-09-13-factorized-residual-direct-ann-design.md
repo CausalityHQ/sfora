@@ -88,11 +88,12 @@ starts `score=constant+(norm_scale[list]*norm_code[row])`, then for increasing s
 float32 addition `score=score+lut[subspace,decoded_code]`. No reassociation or extra contraction is allowed.
 Empty lists have `norm_low=norm_scale=+0.0f` and no norm codes.
 
-The writer reconstructs a row in float32 with one coordinate addition, then computes its norm with the same
-increasing-coordinate `fmaf` loop. Per-list low/high are selected by numeric value with posting ordinal
-breaking equal-value ties; `scale=(high-low)/255.0f` is one correctly rounded float32 division. For a
-nondegenerate list the u8 code is `roundTiesToEven((row_norm-low)/scale)` after one float32 subtraction and
-division, clipped to `[0,255]`; a degenerate list writes zero. Boundary fixtures freeze exact role bytes for
+The portable writer converts each authenticated float32 centroid/codeword value to float64, adds centroid
+and codeword terms in increasing subspace order, and accumulates squared coordinates in increasing
+dimension order without contraction. Per-list low/high are selected by numeric value with posting ordinal
+breaking equal-value ties; stored low and `scale=(high-low)/255` are rounded once to float32. For a
+nondegenerate list the u8 code is `roundTiesToEven((row_norm-float64(stored_low)) /
+float64(stored_scale))`, clipped to `[0,255]`; a degenerate list writes zero. Boundary fixtures freeze exact role bytes for
 empty lists, constant norms, half-way rounding, subnormals, and finite maximum values.
 
 Exact refinement is exact relative to a declared input representation and order. For uint8 queries and
@@ -137,20 +138,24 @@ only read-only array views or defensive copies.
 
 `probe_count`, `shortlist_width`, and `return_width` in the manifest are the immutable search defaults.
 Per-call overrides may only reduce `probe_count` and `shortlist_width`; `return_width` is fixed by the public
-index so receipt and capacity arithmetic cannot drift. The writer receives unpacked unsigned code indexes
-with exact shape `[rows, subquantizers]`, posting offsets, and dense internal IDs. It reconstructs each row
-from the row's list centroid plus its PQ codewords, accumulates the squared norm with the scalar float32
-authority above, derives each list's low/scale, applies
+index so receipt and capacity arithmetic cannot drift. The writer receives canonical LSB-first packed codes
+with exact shape `[rows, code_bytes]`, posting offsets, and dense internal IDs. This avoids a second complete
+packed allocation at 100M scale; code indexes are decoded only for a bounded norm-construction chunk. It reconstructs each row
+from the row's list centroid plus its PQ codewords, accumulates the squared norm with the ordered float64
+writer authority above, derives each list's low/scale, applies
 IEEE-754 ties-to-even rounding, and then writes the u8 norm channel. Loader tests recompute these bytes from
 the same authenticated centroids/codebooks/codes/offsets; callers cannot supply arbitrary norm bytes.
+Atomic directory publication is fail-closed and no-replace: Linux uses `renameat2(RENAME_NOREPLACE)` and
+Windows uses its native non-replacing rename semantics. Artifact writing is unsupported on other platforms
+until an equivalent atomic primitive is provided; it never falls back to check-then-rename.
 
 For the measured 100M geometry the exact resident role sum is 2,934,635,784 bytes: 2.4 GB codes,
 400 MB IDs, 100 MB norm codes, 33,554,432 bytes centroids, 524,296 bytes offsets, 524,288 bytes norm
 parameters, and 32,768 bytes PQ codebooks. The native search scratch is bounded separately and includes
 the probe heap, thread-local shortlist heaps, global LUT, aligned direct-read buffers, and result arrays.
 Digesting streams through at most 8 MiB; dense-ID validation uses 12,500,000 bytes at 100M; neither remains
-after load. Offline norm construction/writing have a separate build-memory budget and stream a list/chunk
-at a time. Serving memory includes Python/runtime imports, mappings, OpenMP stacks, native heap, ring maps,
+after load. Offline norm construction/writing have a separate build-memory budget, decode bounded row chunks,
+and stream role bytes in at most 8 MiB writes. Serving memory includes Python/runtime imports, mappings, OpenMP stacks, native heap, ring maps,
 registered/aligned buffers, and every active context. The measured profile permits one active query context,
 20 worker threads, queue depth 1,024, no swap, and a 3 GiB service-cgroup `memory.max`. Higher concurrency
 is admitted only after atomically reserving
