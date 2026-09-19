@@ -202,6 +202,24 @@ not a claim against published In-Shop systems: the experiment was not
 preregistered as a publication comparison and its receipt is explicitly
 claim-ineligible.
 
+A follow-up equal-byte screen fitted four Faiss 1.12.0 codecs on exactly the
+same 25,882 authorized training rows.  Each codec stores 128 bytes per item;
+its query and gallery codes were decoded and cosine-scored under the same
+official protocol:
+
+| Representation | mAP@R | Recall@1 |
+| --- | ---: | ---: |
+| Faiss `PQ128x8` | `0.462979` | `0.741947` |
+| Faiss `OPQ128_768,PQ128x8` | `0.473946` | `0.753060` |
+| Faiss `PQ256x4` | `0.463619` | `0.741876` |
+| Faiss `OPQ256_768,PQ256x4` | `0.464860` | `0.740399` |
+| learned int8-128 | **`0.610128`** | **`0.859404`** |
+
+At equal stored width, the learned code exceeds the strongest standard codec
+by `+0.136182` mAP@R and `+0.106344` Recall@1.  This rules out ordinary
+same-rate PCA/PQ/OPQ compression as the explanation for the In-Shop gain; it
+does not compare against end-to-end image metric-learning systems.
+
 In-Shop receipt authorities:
 
 - feature archive SHA-256
@@ -215,7 +233,11 @@ In-Shop receipt authorities:
 - selector driver SHA-256
   `e17f6a70ac83127bab24ef4736adc078f9f43795d701b7281e6f1b947ddd84ac`;
 - candidate production module SHA-256
-  `d6a644476ee6b2b8486876e770eb103bdf478197234208da7e00fbf081850654`.
+  `d6a644476ee6b2b8486876e770eb103bdf478197234208da7e00fbf081850654`;
+- equal-byte codec receipt SHA-256
+  `4500a584964447f8a497e6afc588cc876cff0a39644be2c565a035c1222e0964`;
+- equal-byte codec driver SHA-256
+  `926f558be3aa39d6ff290921243932baa127e35ec1e333ebc36c79b555150b49`.
 
 ## Scope
 
