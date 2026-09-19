@@ -629,3 +629,31 @@ def test_portable_vector_read_uses_pread_when_preadv_is_unavailable(
     assert calls == 5
     context.close()
     store.close()
+
+
+def test_pread_read_releases_its_lease_when_the_destination_allocation_fails(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    vectors = _uint8_vectors()
+    payload = np.array([3, 2], dtype="<u4").tobytes() + vectors.tobytes()
+    path = tmp_path / "vectors.bin"
+    path.write_bytes(payload)
+    store = PreadVectorStore(path, _identity(payload, rows=3, dimensions=2))
+    context = store.new_context()
+
+    def refuse(*_args: object, **_kwargs: object) -> object:
+        raise MemoryError("destination allocation failure")
+
+    monkeypatch.setattr(vector_store_module.np, "empty", refuse)
+    with pytest.raises(MemoryError, match="destination allocation failure"):
+        context.read(np.array([0, 1], dtype="<u4"))
+    monkeypatch.undo()
+
+    assert store._active_reads == 0
+    closed = threading.Event()
+    threading.Thread(target=lambda: (store.close(), closed.set()), daemon=True).start()
+
+    assert closed.wait(timeout=5)
+
+    context.close()

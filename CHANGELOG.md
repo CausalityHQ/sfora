@@ -48,6 +48,12 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Portable positional vector reads no longer allocate a second full-size copy of
   every row, and vector-file authentication reuses one bounded block instead of
   duplicating each 8 MiB read.
+- A failed destination allocation no longer leaks its vector-store read lease,
+  which had left `close()` waiting forever.
+- Factorized-residual admission now reserves per-candidate Python scratch for
+  every stage that builds Python objects, including the exact reranker used when
+  a native candidate backend is paired with a non-direct store, and candidate
+  ordering/uniqueness is validated in NumPy rather than per-candidate tuples.
 - HIST distribution loss uses `cross_entropy` (no NaN from an empty masked mean).
 - Checkpoint selection never silently falls back to the test split.
 - Free CUDA memory between objectives; save per-example ids for provable ensemble

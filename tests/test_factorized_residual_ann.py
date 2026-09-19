@@ -12,6 +12,7 @@ import pytest
 import sfora
 import sfora.factorized_residual_ann as factorized_residual_ann
 from sfora.factorized_residual_ann import (
+    CandidateEvidence,
     CandidateResult,
     FactorizedResidualArtifact,
     FactorizedResidualComponents,
@@ -1220,3 +1221,56 @@ def test_portable_candidate_search_matches_independent_factorized_oracle(
     )
     assert result.probe_lists.shape == (3,)
     artifact.close()
+
+
+def _candidate_parts(
+    distances: list[float], identifiers: list[int]
+) -> tuple[np.ndarray, np.ndarray, CandidateEvidence]:
+    return (
+        np.asarray(identifiers, dtype="<u4"),
+        np.asarray(distances, dtype="<f8"),
+        CandidateEvidence(
+            backend="portable-float64",
+            rows_scanned=len(identifiers),
+            codes_bytes_scanned=0,
+            probe_count=1,
+            shortlist_width=max(len(identifiers), 1),
+        ),
+    )
+
+
+@pytest.mark.parametrize(
+    ("distances", "identifiers", "accepted"),
+    (
+        ([1.0, 2.0, 3.0], [7, 5, 9], True),
+        ([1.0, 1.0, 2.0], [5, 7, 3], True),
+        ([2.0, 1.0], [1, 2], False),
+        ([1.0, 1.0], [7, 5], False),
+        ([1.0, 2.0], [4, 4], False),
+        ([1.0], [3], True),
+    ),
+)
+def test_candidate_result_orders_by_distance_then_identifier_and_rejects_duplicates(
+    distances: list[float],
+    identifiers: list[int],
+    accepted: bool,
+) -> None:
+    ids, approximate, evidence = _candidate_parts(distances, identifiers)
+    probe_lists = np.zeros(1, dtype="<u4")
+
+    if accepted:
+        result = CandidateResult(
+            ids=ids,
+            approximate_distances=approximate,
+            probe_lists=probe_lists,
+            evidence=evidence,
+        )
+        assert result.ids.tolist() == identifiers
+    else:
+        with pytest.raises(ValueError, match="candidate result differs"):
+            CandidateResult(
+                ids=ids,
+                approximate_distances=approximate,
+                probe_lists=probe_lists,
+                evidence=evidence,
+            )
