@@ -165,6 +165,58 @@ Cars196 receipt authorities:
 - exporter SHA-256
   `1b00133936b1c289c4c6d532fb3d7c8ca9937eb25c74cff0424cffc716f8fbe5`.
 
+## In-Shop cross-backbone replication
+
+The production selector was then exercised on the official In-Shop Clothes
+Retrieval partitions using a different frozen backbone, UNICOM ViT-B/16.  The
+authenticated feature archive contains 25,882 training rows from 3,997
+identities, 14,218 query rows, and 12,612 gallery rows; training and evaluation
+identities are disjoint.  Twelve training identities contain one row each.
+Those rows are excluded from inner class-disjoint validation because mAP@R is
+undefined for a singleton query class, but remain in the final full-fit PCA and
+learned refits as negative-bank evidence.
+
+Every fit-only fold independently favored the learned projection:
+
+| Fold | learned mAP@R | PCA mAP@R | learned Recall@1 | PCA Recall@1 |
+| ---: | ---: | ---: | ---: | ---: |
+| 0 | `0.675906` | `0.522969` | `0.946057` | `0.877603` |
+| 1 | `0.670621` | `0.517953` | `0.944451` | `0.869922` |
+| 2 | `0.702578` | `0.545016` | `0.955127` | `0.889526` |
+
+The pooled selector deltas were `+0.154314` mAP@R and `+0.069579`
+Recall@1, so the unchanged rule selected the learned projection.  On the
+official identity-disjoint query/gallery evaluation, the result was:
+
+| Representation | Stored width | mAP@R | Recall@1 |
+| --- | ---: | ---: | ---: |
+| PCA int8-128 | 128 bytes | `0.449546` | `0.724996` |
+| UNICOM teacher float-768 | 3,072 bytes | `0.482066` | `0.758335` |
+| learned int8-128 | 128 bytes | **`0.610128`** | **`0.859404`** |
+
+Learned int8-128 improved over same-byte PCA by `+0.160582` mAP@R and
+`+0.134407` Recall@1.  It also exceeded this frozen teacher by `+0.128062`
+mAP@R and `+0.101069` Recall@1 while using 24 times fewer stored bytes.  This
+is a cross-backbone, standard-protocol replication of the selector mechanism,
+not a claim against published In-Shop systems: the experiment was not
+preregistered as a publication comparison and its receipt is explicitly
+claim-ineligible.
+
+In-Shop receipt authorities:
+
+- feature archive SHA-256
+  `730764705dc7dbacefd9c5d0ba1d9f2d65f1b9cbbebd62da84e97fd0d9548a29`;
+- result receipt SHA-256
+  `7d1f95afd21cdb37d46889db980c52861ad8f16d377a024ff4f72aa0c48d79e6`;
+- fitted checkpoint SHA-256
+  `28f03a5a17ea10d41032f649f55659f684a190e6e7c52c8c783ddd5be12ddfb8`;
+- learned encoder SHA-256
+  `3e2a23add6edd6683112a127738c8181d985a06d636402b49e6480525e61f0b5`;
+- selector driver SHA-256
+  `e17f6a70ac83127bab24ef4736adc078f9f43795d701b7281e6f1b947ddd84ac`;
+- candidate production module SHA-256
+  `d6a644476ee6b2b8486876e770eb103bdf478197234208da7e00fbf081850654`.
+
 ## Scope
 
 This result validates fit-only model selection for the existing supervised
@@ -173,7 +225,9 @@ CUB and the six-domain transfer panel already falsified that stronger claim.
 The Pet split is a fresh class-disjoint confirmation of the selector, not a
 comparison with published Oxford-IIIT Pet systems that use the standard
 same-class train/test protocol.  Cars196 adds a standard zero-shot retrieval
-panel result but is not method-specific untouched evidence.  The fit-only
+panel result but is not method-specific untouched evidence.  In-Shop adds a
+different-backbone standard identity-disjoint replication, but its exploratory
+receipt remains claim-ineligible.  The fit-only
 choice is now exposed as `select_compact_metric_projection`; it returns either
 the learned projection or a full-fit PCA fallback without consuming evaluation
 data or changing the compact encoder and ANN serving path.
