@@ -260,6 +260,24 @@ this post-hoc composition remains explicitly claim-ineligible.  It is strong
 product evidence and motivates a fresh, prospectively frozen replication; it
 is not presented as a new publication claim on an untouched test set.
 
+A follow-up linear-attribution panel separates supervised geometry from
+quantization conditioning.  Float and int8 scores were nearly identical for
+the learned head (`0.800036` versus `0.800020` mAP@R) and differed by only
+`0.000384` for ordinary PCA.  PCA whitening fell to `0.745186` int8 mAP@R,
+regularized supervised whitening reached only `0.773972`, and the shuffled-label
+whitening control fell to `0.669961`.  Thus neither fixed-scale int8 rounding
+nor a closed-form second-order whitening control explains the learned head's
+`+0.022448` mAP@R advantage over same-byte PCA.
+
+A matched full-rank control then trained the identical objective as a
+768-to-768 affine map.  It reached `0.801648` mAP@R / `0.954424` Recall@1 in
+float form, only `+0.001612` / `+0.000141` above learned float-128.  The result
+localizes the principal gain to supervised metric deformation, not to
+compression itself.  Conversely, the 128-dimensional code retains more than
+99.7% of the full-rank mAP@R while reducing descriptor payload from 3,072 to
+128 bytes.  These controls are post-hoc on the already observed In-Shop test
+and therefore explain mechanism without upgrading claim eligibility.
+
 The strongest source was a corrected seed-0 BN-Inception ProxyAnchor final
 state.  Here the inner learned-minus-PCA evidence was only `+0.001811` mAP@R
 and `0.000000` Recall@1, below the frozen `+0.003` mAP gate, so the production
@@ -314,6 +332,12 @@ In-Shop receipt authorities:
   `748237506aad7df36693630255c88e2175c6c11e00fd6e3df1eefcc7a58ddd96`;
 - authenticated rank-finished standard-result SHA-256
   `93ed2130fd1f8e8e03c84f3c9850d04f40f694b6702d8ae5eb86d50b3c23b911`;
+- rank-finished linear-attribution receipt SHA-256
+  `22fe205422e10ef2e996bcb374ef4a036ea5b3cbaaa1652a4ddde1be22fce808`;
+- rank-finished full-rank-control receipt SHA-256
+  `adb03d7c0abaf18cbf26720fa418563bdbbf323dd67c08ef99fc57eaea922040`;
+- rank-finished full-rank-control checkpoint SHA-256
+  `c8b31445b25e1b11cd292d98db8215877aa0cead05469535290b2d20b447a1d8`;
 - ProxyAnchor train/query/gallery archive SHA-256 values
   `67aa387c9815fd300e7db0da9f1a781e4b95191bc9db715e7d06850c9a7e6fea`,
   `ef5278fd9aae7a6398a6c74133e6acc0ded05e39647087bdf78459223b9eb761`,
