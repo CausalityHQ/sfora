@@ -287,13 +287,11 @@ def select_compact_metric_projection(
     label_array = labels.numpy()
     label_values = tuple(int(value) for value in np.unique(label_array))
     counts = {value: int((label_array == value).sum()) for value in label_values}
-    label_folds = {value: _compact_metric_fold(value) for value in label_values}
-    if (
-        len(label_values) < 3
-        or any(count < 2 for count in counts.values())
-        or set(label_folds.values()) != {0, 1, 2}
-    ):
+    eligible_values = tuple(value for value in label_values if counts[value] >= 2)
+    label_folds = {value: _compact_metric_fold(value) for value in eligible_values}
+    if len(eligible_values) < 3 or set(label_folds.values()) != {0, 1, 2}:
         raise ValueError("compact metric selector authority differs")
+    eligible_mask = np.isin(label_array, np.asarray(eligible_values, dtype=label_array.dtype))
 
     folds: list[CompactMetricSelectionFold] = []
     learned_ap: list[float] = []
@@ -302,9 +300,13 @@ def select_compact_metric_projection(
     pca_r1: list[float] = []
     for fold in range(3):
         validation_mask = np.asarray(
-            [label_folds[int(value)] == fold for value in label_array], dtype=np.bool_
+            [
+                bool(eligible) and label_folds[int(value)] == fold
+                for value, eligible in zip(label_array, eligible_mask, strict=True)
+            ],
+            dtype=np.bool_,
         )
-        training_mask = ~validation_mask
+        training_mask = eligible_mask & ~validation_mask
         training_labels = labels[torch.from_numpy(training_mask)].contiguous()
         validation_labels = labels[torch.from_numpy(validation_mask)].contiguous()
         if len(torch.unique(training_labels)) < 2 or len(torch.unique(validation_labels)) < 1:

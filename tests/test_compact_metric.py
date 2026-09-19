@@ -109,6 +109,45 @@ def test_fit_only_selector_returns_full_fit_pca_fallback() -> None:
     torch.testing.assert_close(result.encoder.bias, expected_bias, atol=0, rtol=0)
 
 
+def test_fit_only_selector_excludes_singletons_from_folds_but_not_full_fit() -> None:
+    """Catch rejecting realistic fit sets or dropping singleton rows from the final PCA."""
+
+    generator = torch.Generator().manual_seed(53)
+    labels_by_class = (5, 7, 0, 1, 2, 3)
+    centers = torch.randn(len(labels_by_class), 6, generator=generator)
+    embeddings = torch.cat(
+        [center + 0.08 * torch.randn(4, 6, generator=generator) for center in centers]
+        + [torch.randn(1, 6, generator=generator)]
+    )
+    embeddings = torch.nn.functional.normalize(embeddings, dim=1).contiguous()
+    labels = torch.cat(
+        [torch.tensor(labels_by_class, dtype=torch.int64).repeat_interleave(4), torch.tensor([4])]
+    ).contiguous()
+    config = CompactMetricConfig(
+        output_dimensions=3,
+        cycles=1,
+        anchor_epochs_per_cycle=0.5,
+        hard_negatives=3,
+    )
+
+    result = select_compact_metric_projection(
+        embeddings,
+        labels,
+        config=config,
+        minimum_map_gain=1.0,
+        device=torch.device("cpu"),
+    )
+
+    assert result.selected == "pca_fallback"
+    assert sum(fold.validation_row_count for fold in result.folds) == 24
+    expected = fit_centered_pca(
+        torch.nn.functional.normalize(embeddings, dim=1).contiguous(), dimensions=3
+    )
+    expected_bias = (-(expected.components.double() @ expected.mean.double())).float()
+    torch.testing.assert_close(result.encoder.weight, expected.components, atol=0, rtol=0)
+    torch.testing.assert_close(result.encoder.bias, expected_bias, atol=0, rtol=0)
+
+
 def test_fit_only_selector_refits_the_selected_learned_projection() -> None:
     """Catch returning a fold-local learned encoder instead of the full-data fit."""
 
