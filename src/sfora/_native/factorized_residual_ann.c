@@ -622,7 +622,11 @@ int sfora_factorized_candidate_search(
     }
 
     int score_error = 0;
-#pragma omp parallel for schedule(static) num_threads(thread_count)
+/* Probed lists are ordered by centroid distance and vary widely in length, so a
+   static contiguous partition hands the densest lists to one thread and wall
+   time tracks the unluckiest worker. The loop body is independent and the
+   merged top-k is partition-invariant, so dynamic scheduling is result-neutral. */
+#pragma omp parallel for schedule(dynamic, 1) num_threads(thread_count)
     for (size_t probe = 0; probe < list_count; ++probe) {
         int thread_id = 0;
 #ifdef _OPENMP
