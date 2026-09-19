@@ -23,7 +23,10 @@ candidate-local discriminant result transfers beyond SOP, In-Shop, and CUB.
 - Positive mean: query and rank-one candidate.
 - Local negatives: ranks 41 through 128 inclusive.
 - Local covariance shrinkage target: trace-normalized within-class covariance
-  from fit codes only. `lambda = trace(local_covariance) / 128`.
+  from fit codes only, with eigenvalues floored at `1e-4` and the matrix
+  renormalized to trace 128. `lambda = trace(local_covariance) / 128`.
+- If the local covariance trace is at most `1e-8`, use DBA scores for that
+  query. Clamp score standard deviations below at `1e-6` before z-scoring.
 - Final score: equal sum of population-z-scored CLD and DBA scores.
 - Reorder only inside baseline bands induced by cutoffs `{1, 10, 100}`.
 

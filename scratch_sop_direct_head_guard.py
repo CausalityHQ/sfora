@@ -19,6 +19,9 @@ from scratch_shortlist_graph_panel import metrics_from_hits, remap
 BATCH = 256
 SHORTLIST = 128
 NEIGHBORS = 5
+PRIOR_EIGENVALUE_FLOOR = 1.0e-4
+LOCAL_TRACE_FLOOR = 1.0e-8
+SCORE_STD_FLOOR = 1.0e-6
 
 
 def normalized_within_class_covariance(
@@ -35,6 +38,9 @@ def normalized_within_class_covariance(
     means = sums / counts[:, None]
     residuals = unit - means[label_tensor]
     covariance = residuals.T @ residuals / len(residuals)
+    covariance = covariance * (covariance.shape[0] / covariance.trace())
+    eigenvalues, eigenvectors = torch.linalg.eigh(covariance)
+    covariance = (eigenvectors * eigenvalues.clamp_min(PRIOR_EIGENVALUE_FLOOR)) @ eigenvectors.T
     return covariance * (covariance.shape[0] / covariance.trace())
 
 
@@ -124,6 +130,7 @@ def evaluate_codes(
             "oracle",
         )
     }
+    fallback_count = 0
     prior_cholesky = (
         None
         if covariance_prior is None
@@ -183,18 +190,24 @@ def evaluate_codes(
             if covariance_prior is None
             else covariance_prior
         )
-        discriminant = torch.linalg.solve(
-            covariance + ridge[:, None, None] * prior,
-            (positive_mean - negative_mean)[:, :, None],
-        ).squeeze(2)
-        cld_scores = torch.einsum("bkd,bd->bk", unit_candidates, discriminant)
+        active = ridge > LOCAL_TRACE_FLOOR
+        fallback_count += int((~active).sum())
+        cld_scores = dba_scores.clone()
+        if bool(active.any()):
+            discriminant = torch.linalg.solve(
+                covariance[active] + ridge[active, None, None] * prior,
+                (positive_mean[active] - negative_mean[active])[:, :, None],
+            ).squeeze(2)
+            cld_scores[active] = torch.einsum(
+                "bkd,bd->bk", unit_candidates[active], discriminant
+            )
         cld_relative = band_order(cld_scores, protected_cutoffs)
         standardized_cld = (cld_scores - cld_scores.mean(1, keepdim=True)) / cld_scores.std(
             1, keepdim=True, correction=0
-        )
+        ).clamp_min(SCORE_STD_FLOOR)
         standardized_dba = (dba_scores - dba_scores.mean(1, keepdim=True)) / dba_scores.std(
             1, keepdim=True, correction=0
-        )
+        ).clamp_min(SCORE_STD_FLOOR)
         cld_dba_scores = standardized_cld + standardized_dba
         cld_dba_relative = band_order(cld_dba_scores, protected_cutoffs)
         positive_scores = torch.einsum("bkd,bd->bk", unit_candidates, positive_mean)
@@ -308,6 +321,7 @@ def evaluate_codes(
         "prior_dba_recall_at_1": prior_dba_r1_value,
         "prior_dba_minus_normalized_dba_map_at_r": prior_dba_ap_value
         - dba_ap_value,
+        "numerical_fallback_count": fallback_count,
         "oracle_map_at_r": oracle_ap_value,
         "oracle_minus_normalized_dba_map_at_r": oracle_ap_value - dba_ap_value,
     }
