@@ -225,11 +225,13 @@ local-only `scripts/evaluate_factorized_residual_ann.py` evaluator emits a
 canonical, claim-ineligible receipt with raw latency samples, recall arithmetic,
 stage timing, I/O, memory, and binary identities.
 
-This experimental subsystem makes no comparative performance claim. Reported
-latencies are single-query wall clock with `thread_count=20`, not throughput,
-and the BigANN100M query ranges used are reproduction evidence on an exposed
-split rather than held-out confirmation. Matched-thread external controls,
-recall curves and an open-loop load sweep all remain required; see
+Against a thread-matched Faiss control on BigANN100M development queries, over
+the same centroids, codebooks and postings and at the same Recall@100 0.988120,
+this path measured 1.55x lower mean latency, 1.49x lower p99 and 1.27x less peak
+RSS at 20 threads, and 1.40x/1.45x lower single-threaded. That is one control on
+one exposed split at one operating point, not a state-of-the-art claim: several
+controls the registered protocol requires have not been run. Reported latencies
+are single-query wall clock, not throughput. See
 [the release evidence](reports/factorized_residual_ann_2026-09-13.md) for what
 is and is not established.
 
