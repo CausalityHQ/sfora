@@ -68,6 +68,17 @@ typedef struct {
 
 static _Atomic int sfora_direct_state = 0;
 static SforaDirectQuarantine sfora_direct_quarantine;
+/* The per-query read buffer is 8 MiB at BigANN geometry, and mapping, faulting
+   and unmapping it costs far more than every other fixed step combined. Keep it
+   mapped between queries; the admission ledger already reserves these bytes for
+   the one direct context this process admits. */
+static void *sfora_direct_buffer_mapping = NULL;
+static size_t sfora_direct_buffer_size = 0;
+
+static void sfora_direct_buffer_forget(void) {
+    sfora_direct_buffer_mapping = NULL;
+    sfora_direct_buffer_size = 0;
+}
 
 static int checked_product(size_t left, size_t right, size_t *output);
 
@@ -286,8 +297,22 @@ int sfora_exact_rerank_direct(
     read_sizes = calloc(candidate_count, sizeof(*read_sizes));
     terminal = calloc(candidate_count, sizeof(*terminal));
     data_fd = dup(direct_fd);
-    buffer_mapping = mmap(NULL, buffer_mapping_size, PROT_READ | PROT_WRITE,
-                          MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    if (sfora_direct_buffer_mapping != NULL &&
+        sfora_direct_buffer_size == buffer_mapping_size) {
+        buffer_mapping = sfora_direct_buffer_mapping;
+    } else {
+        if (sfora_direct_buffer_mapping != NULL) {
+            munmap(sfora_direct_buffer_mapping, sfora_direct_buffer_size);
+            sfora_direct_buffer_forget();
+        }
+        buffer_mapping = mmap(NULL, buffer_mapping_size, PROT_READ | PROT_WRITE,
+                              MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+        if (buffer_mapping != MAP_FAILED &&
+            madvise(buffer_mapping, buffer_mapping_size, MADV_DONTFORK) == 0) {
+            sfora_direct_buffer_mapping = buffer_mapping;
+            sfora_direct_buffer_size = buffer_mapping_size;
+        }
+    }
     if (buffer_mapping != MAP_FAILED) {
         uintptr_t start = (uintptr_t)buffer_mapping;
         uintptr_t aligned = (start + allocation_alignment - 1u) &
@@ -296,10 +321,13 @@ int sfora_exact_rerank_direct(
     }
     if (!pairs || !inside || !read_sizes ||
         !terminal || data_fd < 0 || buffer_mapping == MAP_FAILED ||
-        madvise(buffer_mapping, buffer_mapping_size, MADV_DONTFORK) != 0) {
+        sfora_direct_buffer_mapping != buffer_mapping) {
         ring_destroy(&ring);
         if (data_fd >= 0) close(data_fd);
-        if (buffer_mapping != MAP_FAILED) munmap(buffer_mapping, buffer_mapping_size);
+        if (buffer_mapping != MAP_FAILED) {
+            munmap(buffer_mapping, buffer_mapping_size);
+            sfora_direct_buffer_forget();
+        }
         free(pairs); free(inside); free(read_sizes); free(terminal);
         atomic_store(&sfora_direct_state, 0);
         return -2;
@@ -308,6 +336,7 @@ int sfora_exact_rerank_direct(
         int setup_errno = errno;
         if (data_fd >= 0) close(data_fd);
         munmap(buffer_mapping, buffer_mapping_size);
+        sfora_direct_buffer_forget();
         free(pairs); free(inside); free(read_sizes); free(terminal);
         atomic_store(&sfora_direct_state, 0);
         return (setup_errno == EPERM || setup_errno == EACCES || setup_errno == ENOSYS)
@@ -433,6 +462,7 @@ int sfora_exact_rerank_direct(
         sfora_direct_quarantine.buffers = buffers;
         sfora_direct_quarantine.buffer_mapping = buffer_mapping;
         sfora_direct_quarantine.buffer_mapping_size = buffer_mapping_size;
+        sfora_direct_buffer_forget();
         sfora_direct_quarantine.data_fd = data_fd;
         atomic_store(&sfora_direct_state, 2);
         return -4;
@@ -474,7 +504,6 @@ int sfora_exact_rerank_direct(
     }
     ring_destroy(&ring);
     close(data_fd);
-    munmap(buffer_mapping, buffer_mapping_size);
     free(pairs); free(inside); free(read_sizes); free(terminal);
     atomic_store(&sfora_direct_state, 0);
     return io_error == 2 ? -6 : (io_error ? -3 : 0);
@@ -535,6 +564,18 @@ static int ascending_pair(const void *left, const void *right) {
 static int checked_product(size_t left, size_t right, size_t *output) {
     if (right != 0 && left > SIZE_MAX / right) return -1;
     *output = left * right;
+    return 0;
+}
+
+int sfora_direct_release_buffer(void) {
+    int expected_state = 0;
+    if (!atomic_compare_exchange_strong(&sfora_direct_state, &expected_state, 1))
+        return expected_state == 2 ? -4 : -7;
+    if (sfora_direct_buffer_mapping != NULL) {
+        munmap(sfora_direct_buffer_mapping, sfora_direct_buffer_size);
+        sfora_direct_buffer_forget();
+    }
+    atomic_store(&sfora_direct_state, 0);
     return 0;
 }
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import ctypes
 import hashlib
 import json
@@ -119,9 +120,16 @@ class NativeBackend:
             raise ValueError("native factorized residual backend differs")
 
     def close(self) -> None:
-        """Refuse future calls through this handle."""
+        """Refuse future calls through this handle and release the read buffer.
+
+        The direct reader keeps its read buffer mapped between queries, so an
+        idle backend would otherwise retain it for the life of the process. A
+        quarantined reader keeps ownership and is left alone.
+        """
 
         object.__setattr__(self, "_closed", True)
+        with contextlib.suppress(OSError):
+            self._library.sfora_direct_release_buffer()
 
 
 def _compiler_path(cc: str | Path | None) -> Path:
@@ -163,6 +171,7 @@ def _load_backend(path: Path, source_sha256: str, binary_sha256: str) -> NativeB
         alignment = library.sfora_direct_io_alignment
         context_bytes = library.sfora_exact_rerank_context_bytes
         rerank = library.sfora_exact_rerank_direct
+        release_buffer = library.sfora_direct_release_buffer
     except (AttributeError, OSError) as error:
         raise RuntimeError(_ERROR) from error
     finally:
@@ -244,6 +253,8 @@ def _load_backend(path: Path, source_sha256: str, binary_sha256: str) -> NativeB
         u32_pointer,
     ]
     rerank.restype = ctypes.c_int
+    release_buffer.argtypes = []
+    release_buffer.restype = ctypes.c_int
     return NativeBackend(path, source_sha256, binary_sha256, library)
 
 
