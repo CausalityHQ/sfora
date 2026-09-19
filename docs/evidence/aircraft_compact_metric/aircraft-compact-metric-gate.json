@@ -98,7 +98,8 @@
     "export_sha256": "1198d0c3e5c02e605004a7789cfafa7bfbb65ec76eb9f103339303bd3527448c",
     "gate_sha256": "670ed5d573662532800f8e681b902697813e4deeb3b3228d639072493fc086f4",
     "independent_verifier_sha256": "b01da9205a2c1d1257ba83cfbf8f7107eff4b82f72b66923ffa9c39b09921e69",
-    "library_shadow_sha256": "82861549f76b147224f6b0616cfda11807880dfa7fb737ee4ee5cb89c4d43f3d"
+    "library_shadow_sha256": "82861549f76b147224f6b0616cfda11807880dfa7fb737ee4ee5cb89c4d43f3d",
+    "public_benchmark_sha256": "3ee67d80d3f8df9a7fda4ec7d9723d742753a4feb43f9592a8a37137ac31c057"
   },
   "teacher": {
     "checkpoint_sha256": "3916ab5aed3b522fc90345be8b4457fe5dad60801ad2af5a6871c0c096e8d7ea",
