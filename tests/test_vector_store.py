@@ -1,0 +1,400 @@
+from __future__ import annotations
+
+import hashlib
+import threading
+from pathlib import Path
+
+import numpy as np
+import pytest
+
+import sfora
+import sfora.vector_store as vector_store_module
+from sfora.factorized_residual_ann import (
+    CandidateEvidence,
+    CandidateResult,
+    VectorStoreIdentity,
+)
+from sfora.vector_store import (
+    ExactReranker,
+    MemoryVectorStore,
+    PreadVectorStore,
+    VectorReadEvidence,
+)
+
+
+def _identity(
+    payload: bytes,
+    *,
+    rows: int,
+    dimensions: int,
+    dtype: str = "uint8",
+    zero_padding_bytes: int = 0,
+) -> VectorStoreIdentity:
+    physical = payload + b"\0" * zero_padding_bytes
+    item_bytes = 1 if dtype == "uint8" else 4
+    return VectorStoreIdentity(
+        sha256=hashlib.sha256(physical).hexdigest(),
+        logical_bytes=8 + rows * dimensions * item_bytes,
+        physical_bytes=len(physical),
+        rows=rows,
+        dimensions=dimensions,
+        dtype=dtype,  # type: ignore[arg-type]
+        header_bytes=8,
+        row_stride=dimensions * item_bytes,
+        zero_padding_bytes=zero_padding_bytes,
+        generation="vector-fixture",
+    )
+
+
+def _uint8_vectors() -> np.ndarray:
+    return np.array([[0, 0], [10, 10], [2, 2]], dtype=np.uint8)
+
+
+def _memory_identity() -> VectorStoreIdentity:
+    vectors = _uint8_vectors()
+    payload = np.array([3, 2], dtype="<u4").tobytes() + vectors.tobytes()
+    return _identity(payload, rows=3, dimensions=2)
+
+
+def test_vector_store_api_is_public() -> None:
+    assert sfora.MemoryVectorStore is MemoryVectorStore
+    assert sfora.PreadVectorStore is PreadVectorStore
+    assert sfora.ExactReranker is ExactReranker
+
+
+def test_memory_vector_store_owns_rows_and_preserves_duplicate_read_order() -> None:
+    vectors = _uint8_vectors()
+    store = MemoryVectorStore(vectors, _memory_identity())
+    vectors[2] = 99
+    context = store.new_context()
+
+    observed, evidence = context.read(np.array([2, 0, 2], dtype="<u4"))
+
+    np.testing.assert_array_equal(observed, np.array([[2, 2], [0, 0], [2, 2]], np.uint8))
+    assert type(evidence) is VectorReadEvidence
+    assert evidence.requested_rows == 3
+    assert evidence.logical_bytes == 6
+    assert evidence.physical_bytes == 6
+    assert not observed.flags.writeable
+    context.close()
+    store.close()
+
+
+def test_memory_store_authenticates_the_retained_snapshot(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    vectors = _uint8_vectors()
+    real_owned = vector_store_module._owned_read_only
+
+    def mutate_before_copy(value: np.ndarray) -> np.ndarray:
+        vectors[0, 0] = 99
+        return real_owned(value)
+
+    monkeypatch.setattr(vector_store_module, "_owned_read_only", mutate_before_copy)
+
+    with pytest.raises(ValueError, match="memory vector store differs"):
+        MemoryVectorStore(vectors, _memory_identity())
+
+
+def test_vector_store_identity_cannot_be_reassigned(tmp_path: Path) -> None:
+    memory = MemoryVectorStore(_uint8_vectors(), _memory_identity())
+    with pytest.raises(AttributeError):
+        memory.identity = _memory_identity()
+    memory.close()
+
+    vectors = _uint8_vectors()
+    payload = np.array([3, 2], dtype="<u4").tobytes() + vectors.tobytes()
+    path = tmp_path / "vectors.bin"
+    path.write_bytes(payload)
+    pread = PreadVectorStore(path, _identity(payload, rows=3, dimensions=2))
+    with pytest.raises(AttributeError):
+        pread.identity = _memory_identity()
+    pread.close()
+
+
+def test_exact_reranker_repairs_approximate_order_with_integer_authority() -> None:
+    store = MemoryVectorStore(_uint8_vectors(), _memory_identity())
+    candidates = CandidateResult(
+        ids=np.array([1, 2, 0], dtype="<u4"),
+        approximate_distances=np.array([0.0, 1.0, 2.0], dtype="<f8"),
+        probe_lists=np.array([0], dtype="<u4"),
+        evidence=CandidateEvidence(
+            backend="portable-float64",
+            rows_scanned=3,
+            codes_bytes_scanned=3,
+            probe_count=1,
+            shortlist_width=3,
+        ),
+    )
+
+    result = ExactReranker(store).search(
+        np.array([1, 1], dtype=np.uint8), candidates, return_width=2
+    )
+
+    assert result.ids.tolist() == [0, 2]
+    assert result.squared_distances.tolist() == [2.0, 2.0]
+    assert result.vector_reads.requested_rows == 3
+    store.close()
+
+
+def test_exact_reranker_float32_uses_stable_float64_distance_order() -> None:
+    vectors = np.array([[0.0, 0.0], [1.0, 1.0], [2.0, 2.0]], dtype="<f4")
+    payload = np.array([3, 2], dtype="<u4").tobytes() + vectors.tobytes()
+    identity = _identity(payload, rows=3, dimensions=2, dtype="float32")
+    store = MemoryVectorStore(vectors, identity)
+    candidates = CandidateResult(
+        ids=np.array([0, 1, 2], dtype="<u4"),
+        approximate_distances=np.array([0.0, 1.0, 2.0], dtype="<f8"),
+        probe_lists=np.array([0], dtype="<u4"),
+        evidence=CandidateEvidence(
+            backend="portable-float64",
+            rows_scanned=3,
+            codes_bytes_scanned=3,
+            probe_count=1,
+            shortlist_width=3,
+        ),
+    )
+
+    result = ExactReranker(store).search(
+        np.array([1.5, 1.5], dtype="<f4"), candidates, return_width=2
+    )
+
+    assert result.ids.tolist() == [1, 2]
+    assert result.squared_distances.tolist() == [0.5, 0.5]
+    store.close()
+
+
+def test_exact_reranker_rejects_insufficient_candidates() -> None:
+    store = MemoryVectorStore(_uint8_vectors(), _memory_identity())
+    candidates = CandidateResult(
+        ids=np.array([0], dtype="<u4"),
+        approximate_distances=np.array([0.0], dtype="<f8"),
+        probe_lists=np.array([0], dtype="<u4"),
+        evidence=CandidateEvidence(
+            backend="portable-float64",
+            rows_scanned=1,
+            codes_bytes_scanned=1,
+            probe_count=1,
+            shortlist_width=1,
+        ),
+    )
+
+    with pytest.raises(vector_store_module.InsufficientCandidatesError):
+        ExactReranker(store).search(
+            np.array([0, 0], dtype=np.uint8), candidates, return_width=2
+        )
+
+    store.close()
+
+
+@pytest.mark.parametrize("dtype", ("uint8", "float32"))
+def test_exact_reranker_matches_independent_ordered_distance_bits(dtype: str) -> None:
+    rng = np.random.default_rng(90210)
+    dimensions = 257
+    if dtype == "uint8":
+        vectors = rng.integers(0, 256, size=(7, dimensions), dtype=np.uint8)
+        query = rng.integers(0, 256, size=dimensions, dtype=np.uint8)
+    else:
+        vectors = (rng.normal(size=(7, dimensions)) * 1.0e10).astype("<f4")
+        query = (rng.normal(size=dimensions) * 1.0e-10).astype("<f4")
+    payload = np.asarray([7, dimensions], dtype="<u4").tobytes() + vectors.tobytes()
+    identity = _identity(
+        payload,
+        rows=7,
+        dimensions=dimensions,
+        dtype=dtype,
+    )
+    store = MemoryVectorStore(vectors, identity)
+    candidates = CandidateResult(
+        ids=np.arange(7, dtype="<u4"),
+        approximate_distances=np.arange(7, dtype="<f8"),
+        probe_lists=np.array([0], dtype="<u4"),
+        evidence=CandidateEvidence(
+            backend="portable-float64",
+            rows_scanned=7,
+            codes_bytes_scanned=7,
+            probe_count=1,
+            shortlist_width=7,
+        ),
+    )
+    expected: list[tuple[float, int]] = []
+    for internal_id in range(7):
+        if dtype == "uint8":
+            integer_distance = 0
+            for dimension in range(dimensions):
+                difference = int(query[dimension]) - int(vectors[internal_id, dimension])
+                integer_distance += difference * difference
+            distance = float(integer_distance)
+        else:
+            distance = 0.0
+            for dimension in range(dimensions):
+                difference = float(query[dimension]) - float(vectors[internal_id, dimension])
+                distance += difference * difference
+        expected.append((distance, internal_id))
+    expected.sort()
+
+    result = ExactReranker(store).search(query, candidates, return_width=7)
+
+    assert result.ids.tolist() == [internal_id for _, internal_id in expected]
+    np.testing.assert_array_equal(
+        result.squared_distances.view(np.uint64),
+        np.asarray([distance for distance, _ in expected], dtype="<f8").view(np.uint64),
+    )
+    store.close()
+
+
+def test_pread_store_authenticates_header_payload_padding_and_reads_rows(
+    tmp_path: Path,
+) -> None:
+    vectors = _uint8_vectors()
+    logical = np.array([3, 2], dtype="<u4").tobytes() + vectors.tobytes()
+    payload = logical + b"\0" * 8
+    path = tmp_path / "vectors.bin"
+    path.write_bytes(payload)
+    identity = _identity(logical, rows=3, dimensions=2, zero_padding_bytes=8)
+    store = PreadVectorStore(path, identity)
+    context = store.new_context()
+
+    observed, evidence = context.read(np.array([1, 0], dtype="<u4"))
+
+    np.testing.assert_array_equal(observed, np.array([[10, 10], [0, 0]], np.uint8))
+    assert evidence.logical_bytes == 4
+    assert evidence.physical_bytes == 4
+    context.close()
+    store.close()
+
+
+def test_pread_context_retries_eintr_and_short_successful_reads(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    vectors = _uint8_vectors()
+    payload = np.array([3, 2], dtype="<u4").tobytes() + vectors.tobytes()
+    path = tmp_path / "vectors.bin"
+    path.write_bytes(payload)
+    store = PreadVectorStore(path, _identity(payload, rows=3, dimensions=2))
+    real_pread = vector_store_module.os.pread
+    calls = 0
+
+    def interrupted_then_short(fd: int, size: int, offset: int) -> bytes:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise InterruptedError
+        return real_pread(fd, min(size, 1), offset)
+
+    monkeypatch.setattr(vector_store_module.os, "pread", interrupted_then_short)
+    context = store.new_context()
+
+    observed, _ = context.read(np.array([2, 0], dtype="<u4"))
+
+    np.testing.assert_array_equal(observed, np.array([[2, 2], [0, 0]], np.uint8))
+    assert calls == 5
+    context.close()
+    store.close()
+
+
+def test_pread_close_waits_for_active_read_before_descriptor_release(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    vectors = _uint8_vectors()
+    payload = np.array([3, 2], dtype="<u4").tobytes() + vectors.tobytes()
+    path = tmp_path / "vectors.bin"
+    path.write_bytes(payload)
+    store = PreadVectorStore(path, _identity(payload, rows=3, dimensions=2))
+    context = store.new_context()
+    real_pread = vector_store_module.os.pread
+    read_entered = threading.Event()
+    release_read = threading.Event()
+    close_finished = threading.Event()
+
+    def blocked_pread(fd: int, size: int, offset: int) -> bytes:
+        if offset == 8 and not read_entered.is_set():
+            read_entered.set()
+            assert release_read.wait(timeout=2)
+        return real_pread(fd, size, offset)
+
+    monkeypatch.setattr(vector_store_module.os, "pread", blocked_pread)
+    read_thread = threading.Thread(
+        target=lambda: context.read(np.array([0, 1], dtype="<u4"))
+    )
+    close_thread = threading.Thread(
+        target=lambda: (store.close(), close_finished.set())
+    )
+    read_thread.start()
+    assert read_entered.wait(timeout=2)
+    close_thread.start()
+
+    assert not close_finished.wait(timeout=0.05)
+    release_read.set()
+    read_thread.join(timeout=2)
+    close_thread.join(timeout=2)
+    assert not read_thread.is_alive()
+    assert not close_thread.is_alive()
+    assert close_finished.is_set()
+    context.close()
+
+
+def test_pread_context_rejects_eof_without_partial_result(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    vectors = _uint8_vectors()
+    payload = np.array([3, 2], dtype="<u4").tobytes() + vectors.tobytes()
+    path = tmp_path / "vectors.bin"
+    path.write_bytes(payload)
+    store = PreadVectorStore(path, _identity(payload, rows=3, dimensions=2))
+    monkeypatch.setattr(vector_store_module.os, "pread", lambda *_args: b"")
+    context = store.new_context()
+
+    with pytest.raises(ValueError, match="vector read differs"):
+        context.read(np.array([0], dtype="<u4"))
+
+    context.close()
+    store.close()
+
+
+def test_vector_store_close_is_idempotent_and_invalidates_context() -> None:
+    store = MemoryVectorStore(_uint8_vectors(), _memory_identity())
+    context = store.new_context()
+
+    store.close()
+    store.close()
+
+    with pytest.raises(ValueError, match="vector read differs"):
+        context.read(np.array([0], dtype="<u4"))
+
+
+@pytest.mark.parametrize("mutation", ("header", "payload", "padding", "truncated"))
+def test_pread_store_rejects_authenticated_file_drift(
+    tmp_path: Path,
+    mutation: str,
+) -> None:
+    vectors = _uint8_vectors()
+    logical = np.array([3, 2], dtype="<u4").tobytes() + vectors.tobytes()
+    payload = bytearray(logical + b"\0" * 8)
+    identity = _identity(logical, rows=3, dimensions=2, zero_padding_bytes=8)
+    if mutation == "header":
+        payload[0] ^= 1
+    elif mutation == "payload":
+        payload[8] ^= 1
+    elif mutation == "padding":
+        payload[-1] = 1
+    else:
+        payload.pop()
+    path = tmp_path / "drift.bin"
+    path.write_bytes(payload)
+
+    with pytest.raises(ValueError, match="pread vector store differs"):
+        PreadVectorStore(path, identity)
+
+
+@pytest.mark.parametrize("ids", ([-1], [3]))
+def test_vector_read_rejects_invalid_ids(tmp_path: Path, ids: list[int]) -> None:
+    store = MemoryVectorStore(_uint8_vectors(), _memory_identity())
+    context = store.new_context()
+    with pytest.raises(ValueError, match="vector read differs"):
+        context.read(np.asarray(ids, dtype="<i8"))
+    context.close()
+    store.close()

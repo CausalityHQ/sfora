@@ -150,6 +150,17 @@ _FACTORIZED_RESIDUAL_ANN_EXPORTS = frozenset(
 
 _MODEL_SOUP_EXPORTS = frozenset({"average_compatible_model_states"})
 
+_VECTOR_STORE_EXPORTS = frozenset(
+    {
+        "ExactReranker",
+        "ExactSearchResult",
+        "InsufficientCandidatesError",
+        "MemoryVectorStore",
+        "PreadVectorStore",
+        "VectorReadEvidence",
+    }
+)
+
 _RELATIONAL_COMPACTION_EXPORTS = frozenset(
     {
         "PackedInt8Embeddings",
@@ -289,6 +300,11 @@ def __getattr__(name: str) -> object:
         value = cast(object, getattr(module, name))
         globals()[name] = value
         return value
+    if name in _VECTOR_STORE_EXPORTS:
+        module = import_module("sfora.vector_store")
+        value = cast(object, getattr(module, name))
+        globals()[name] = value
+        return value
     if name in _RELATIONAL_COMPACTION_EXPORTS:
         module = import_module("sfora.joint_relational_compaction")
         value = cast(object, getattr(module, name))
@@ -344,6 +360,11 @@ __all__ = [
     "FactorizedResidualComponents",
     "FactorizedResidualPostings",
     "FactorizedResidualSpec",
+    "ExactReranker",
+    "ExactSearchResult",
+    "InsufficientCandidatesError",
+    "MemoryVectorStore",
+    "PreadVectorStore",
     "PortableCandidateIndex",
     "FoldableLinear",
     "average_compatible_model_states",
@@ -516,5 +537,6 @@ __all__ = [
     "write_site_data",
     "write_text_baseline_report",
     "VectorStoreIdentity",
+    "VectorReadEvidence",
     "write_factorized_residual_artifact",
 ]
