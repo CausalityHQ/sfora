@@ -43,6 +43,17 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   deterministic exact reranking, explicit memory admission, and canonical
   evaluation receipts.
 
+### Changed
+
+- The factorized-residual candidate scan is roughly 1.9x faster end to end on
+  BigANN100M, from 10.569 to 5.469 ms mean and 13.413 to 7.052 ms p99 at 20
+  threads, with no query above 15 ms where every earlier run had some. The
+  posting scan is scheduled dynamically instead of in static contiguous chunks,
+  the direct read buffer stays mapped between queries, and the coarse centroid
+  search is parallelised instead of streaming all 65,536 centroids serially on
+  every query. All three are result-neutral: recall and the ordered-output
+  digest are unchanged.
+
 ### Fixed
 
 - Portable positional vector reads no longer allocate a second full-size copy of

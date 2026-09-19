@@ -8,11 +8,13 @@ budgets, and its ordered output is byte-identical to the frozen research
 prototype. That supports shipping the authenticated index format and the public
 API as an experimental subsystem.
 
-It does not support a performance claim against other ANN systems. The single
-comparison in this report is not thread-matched (see "What the Faiss control
-does and does not establish"), and six of the controls the registered protocol
-requires were never run. Per that protocol, missing controls retain the
-restricted claim and are never silently dropped.
+A thread-matched comparison against Faiss now exists and Sfora wins it at both
+1 and 20 threads, at identical recall and with less memory (see "Matched-thread
+comparison against Faiss"). That supports a narrow, measured performance claim
+against that one control on that one split. It is still not a state-of-the-art
+claim: six of the controls the registered protocol requires were never run, and
+per that protocol missing controls retain the restricted claim and are never
+silently dropped.
 
 ## Protocol status and exposure history
 
@@ -53,6 +55,7 @@ load sweep before any serving SLO is claimed; that sweep has not been run.
 
 | Evaluation | Recall@100 | p99 (ms) | Mean (ms) | Max (ms) | Queries >15 ms | Peak RSS (bytes) |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Current, after the scan optimisations | 0.989583 | 7.052182 | 5.469377 | 8.629 | 0 / 9,000 | 3,097,866,240 |
 | Post-repair public evaluator | 0.989583 | 13.413222 | 10.569177 | 16.847 | 4 / 9,000 | 3,096,879,104 |
 | Preceding hardened evaluator | 0.989583 | 13.353576 | 10.530736 | 16.013 | 2 / 9,000 | 3,093,360,640 |
 | Restart/order seed 51 | 0.989583 | 13.381727 | 10.570517 | 15.924 | 3 / 9,000 | 3,073,753,088 |
@@ -62,10 +65,18 @@ load sweep before any serving SLO is claimed; that sweep has not been run.
 | Restart/order seed 55 | 0.989583 | 13.464097 | 10.586845 | 16.536 | 3 / 9,000 | 3,074,932,736 |
 
 The design requires reporting the fraction above 15 ms, which earlier revisions
-omitted. Every run has a maximum above 15 ms; between 2 and 7 queries per 9,000
-(0.022%--0.078%) exceed it. The gate is on p99, which every run satisfies.
-Bootstrap confidence intervals, also required by the design, are not yet
-computed.
+omitted. Before the scan optimisations every run had a maximum above 15 ms,
+with 2 to 7 queries per 9,000 (0.022%--0.078%) exceeding it. The current build
+has a maximum of 8.629 ms and no query above 15 ms. Bootstrap confidence
+intervals, also required by the design, are not yet computed.
+
+Three result-neutral changes account for the improvement from 10.569 to 5.469
+ms mean: dynamic scheduling of the posting scan, reuse of the direct read
+buffer between queries, and parallelising the coarse centroid search, which had
+streamed all 65,536 centroids serially on every query. Each was measured
+separately and each preserved the ordered-output digest exactly. Receipts and
+the preregistered predictions are under
+`reports/receipts/factorized_residual_ann_2026-09-19-threadmatched/`.
 
 The unpermuted ordered-output SHA-256 is
 `ec16438f507a7331b24f60f6291115fa13346e3ec332bb0d51f3258589a8b444`, matching the
@@ -127,32 +138,49 @@ sealed `memfd` with write, shrink and grow seals, or `fs-verity` on the mapped
 roles, or a read lease on each role descriptor. The honest statement is that
 none of these was implemented or validated within this budget.
 
-## What the Faiss control does and does not establish
+## Matched-thread comparison against Faiss
 
-On development queries 0--999, the Sfora path and an exact-coarse Faiss control
-both measured Recall@100 0.988120. Sfora measured p99 14.411351 ms and peak RSS
-2,975,289,344 B; the Faiss control measured p99 56.760716 ms and peak RSS
-3,920,982,016 B.
+The earlier control set 20 OpenMP threads but never set `parallel_mode`, and
+submitted one query per `search_preassigned` call. Faiss's default IVF mode
+parallelizes across queries, so that control's scan ran effectively
+single-threaded while Sfora used 20 threads. The resulting "3.94x lower p99" was
+an artifact of unmatched parallelism and has been withdrawn.
 
-**This is not a thread-matched comparison, and the latency ratio must not be
-attributed to the scoring method.** The control script calls
-`faiss.omp_set_num_threads(20)` and its receipt records `threads: 20`, but it
-never sets `parallel_mode`. Faiss's default IVF mode parallelizes across
-queries, and the control submits one query per `search_preassigned` call, so its
-scan runs effectively single-threaded. Sfora ran with `thread_count=20` and
-parallelizes across posting lists within a single query. The control's memory is
-also inflated by choices that are not the method: `use_precomputed_table=1` and
-a retained HNSW quantizer alongside an additional exact quantizer.
+Setting `parallel_mode=1` alone takes the same Faiss configuration from 56.761
+to 10.968 ms p99 on the same split, which is most of what that figure measured.
 
-The defensible statement is that this specific Faiss configuration measured
-slower and larger on this split. The registered protocol requires matched thread
-allowance for publication comparisons, which this pairing does not meet.
+Both systems were then measured at matched thread counts on BigANN100M
+development queries 0--999, on the same host, over the same trained centroids,
+codebooks and postings, through the same exact direct-I/O reranker, one query at
+a time. **Every arm returns Recall@100 0.988120**, so these rows differ only in
+speed and memory.
 
-The cheapest experiment that would settle it: rerun 1,000 development queries
-with Faiss `parallel_mode=1` and no precomputed table, or Sfora at
-`thread_count=1`, recording `ru_utime` in both receipts. Both reviewers expect
-the latency advantage to narrow or disappear. Until then this report makes no
-comparative performance claim.
+| System | Threads | Mean (ms) | p99 (ms) | Peak RSS (bytes) | CPU (ms/query) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Sfora | 1  | 26.020 | 39.568 | 3,096,858,624 | ~26.0 |
+| Faiss | 1  | 36.553 | 57.188 | 3,921,264,640 | 40.05 |
+| Sfora | 20 |  5.678 |  7.341 | 3,097,006,080 | - |
+| Faiss | 20 |  8.815 | 10.968 | 3,920,982,016 | 67.40 |
+
+Sfora is 1.40x lower mean and 1.45x lower p99 single-threaded, and 1.55x lower
+mean and 1.49x lower p99 at 20 threads, with 1.27x less peak RSS, at the same
+recall. The Faiss arms record CPU time directly; Sfora's single-threaded wall
+clock bounds its CPU per query at roughly 26 ms against Faiss's 40.05 ms, so the
+per-core scan is the more efficient of the two rather than the advantage being
+purely parallel.
+
+Scope, stated plainly. This is one control, one dataset, one operating point, on
+an exposed split. The control's memory is inflated by choices that are not the
+method, `use_precomputed_table=1` and a retained HNSW quantizer alongside an
+additional exact quantizer, so the memory ratio should not be attributed to
+scoring alone. Faiss also scales better from 1 to 20 threads (5.17x against
+Sfora's 4.58x), so a machine with many more cores could reverse the 20-thread
+row. Nothing here establishes a result against a tuned Faiss fast-scan, a graph
+index, or a modern quantizer; see the next section.
+
+The control script and every receipt behind this table, together with the
+predictions registered before each run, are under
+`reports/receipts/factorized_residual_ann_2026-09-19-threadmatched/`.
 
 ## Required controls that were not run
 
@@ -209,7 +237,8 @@ Every number in this report is backed by a receipt retained verbatim under
 Public evaluator receipts, SHA-256:
 
 ```text
-4a7c424fd9ceebc9ad28da800b1bc4429fa97cb2f1b805bae313f9e4d9b47ef5  final (post-repair)
+759ac683c37bb70a9bb3417a3b2c8e6eb4a72b71e8fe02ff2ae686d7f962ad19  current (optimised)
+4a7c424fd9ceebc9ad28da800b1bc4429fa97cb2f1b805bae313f9e4d9b47ef5  post-repair
 5131706c8f8bd5c082fe884fe49f7f2b846a436809bc8955de7d348e2e51fdfe  preceding hardened
 5c3eabd095db6318129de90534c9bb7c0122c231e76391dee1576f6d5c0c1b32  restart seed 51
 08891c44c86e6234aa9ac1aa72c8b7f13924ea1f450e12e8ea6096321cfae76a  restart seed 52
@@ -224,6 +253,10 @@ receipts but predate the `query_start` and `truth_format` fields, so the shipped
 validator rejects them. They are preserved unmodified as the primary record of
 those runs. A schema identifier should have been versioned when those required
 fields were added.
+
+The matched-thread comparison receipts, the preregistered predictions for every
+optimisation, and the parameterised Faiss control script are under
+`reports/receipts/factorized_residual_ann_2026-09-19-threadmatched/`.
 
 Prototype and control receipts are under
 `reports/receipts/factorized_residual_ann_2026-09-13/prototype-and-controls/`:
@@ -246,9 +279,10 @@ Closed with recorded evidence: two rounds of independent adversarial engineering
 review and one independent research critique, with every reported defect either
 repaired under a regression test or explicitly scoped here; the repository-wide
 Python suite; distribution builds with a clean-wheel installation smoke test;
-and the post-repair BigANN100M reproduction above.
+the BigANN100M reproduction above; and a matched-thread comparison against the
+Faiss control at 1 and 20 threads.
 
-Not closed: matched-thread comparison; the six required controls listed above;
+Not closed: the six required controls listed above;
 recall curves bracketing 0.98; bootstrap confidence intervals; an enforced
 service-cgroup memory ledger; an open-loop load sweep; and receipts that bind
 the Python source tree. Each is required before any comparative or serving
