@@ -143,6 +143,7 @@ CUB and the six-domain transfer panel already falsified that stronger claim.
 The Pet split is a fresh class-disjoint confirmation of the selector, not a
 comparison with published Oxford-IIIT Pet systems that use the standard
 same-class train/test protocol.  Cars196 adds a standard zero-shot retrieval
-panel result but is not method-specific untouched evidence.  The next
-production step is to expose this fit-only choice without changing the compact
-encoder or ANN serving path.
+panel result but is not method-specific untouched evidence.  The fit-only
+choice is now exposed as `select_compact_metric_projection`; it returns either
+the learned projection or a full-fit PCA fallback without consuming evaluation
+data or changing the compact encoder and ANN serving path.
