@@ -1330,8 +1330,15 @@ class CandidateResult:
             or type(self.evidence) is not CandidateEvidence
         ):
             raise ValueError("factorized residual candidate result differs")
-        pairs = list(zip(self.approximate_distances.tolist(), self.ids.tolist(), strict=True))
-        if pairs != sorted(pairs) or len(set(self.ids.tolist())) != self.ids.shape[0]:
+        # Validate ordering and uniqueness in NumPy: materialising Python tuples,
+        # floats and ints here costs an order of magnitude more memory per
+        # candidate than the admission ledger reserves for a wide shortlist.
+        identifiers = self.ids.astype(np.int64)
+        leading, trailing = self.approximate_distances[:-1], self.approximate_distances[1:]
+        earlier, later = identifiers[:-1], identifiers[1:]
+        ordered = bool(np.all((leading < trailing) | ((leading == trailing) & (earlier <= later))))
+        unique = int(np.unique(self.ids).shape[0]) == self.ids.shape[0]
+        if not ordered or not unique:
             raise ValueError("factorized residual candidate result differs")
         object.__setattr__(self, "ids", _owned_read_only(self.ids))
         object.__setattr__(

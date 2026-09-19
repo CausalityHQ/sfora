@@ -200,12 +200,12 @@ class _PreadReadContext:
             raise ValueError("vector read differs")
         _validate_ids(ids, store.identity.rows)
         descriptor = store._begin_read()
-        values = np.empty(
-            (ids.shape[0], store.identity.dimensions),
-            dtype=_dtype(store.identity),
-        )
-        raw = memoryview(values).cast("B")
         try:
+            values = np.empty(
+                (ids.shape[0], store.identity.dimensions),
+                dtype=_dtype(store.identity),
+            )
+            raw = memoryview(values).cast("B")
             for index, internal_id in enumerate(ids.tolist()):
                 begin = index * store.identity.row_stride
                 _pread_exact_into(

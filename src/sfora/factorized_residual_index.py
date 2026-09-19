@@ -193,8 +193,6 @@ class FactorizedResidualIndex:
                 + spec.subquantizers * spec.codebook_size * 8
                 + portable_chunk_rows * 64
                 + spec.probe_count * 256
-                + spec.shortlist_width * 256
-                + spec.return_width * 64
             )
         elif type(candidate_backend) is NativeBackend:
             context_bytes += (
@@ -208,6 +206,13 @@ class FactorizedResidualIndex:
                     store, candidate_backend, thread_count=thread_count
                 )
                 context_bytes += exact_reranker.context_bytes(spec.shortlist_width)
+        # Every stage that materialises Python objects per candidate needs its own
+        # allowance: the portable scorer's heap and ordered result, and the Python
+        # exact reranker's ranked tuples. A native candidate backend paired with a
+        # non-direct store still reranks in Python, so this cannot hang off the
+        # candidate backend alone. Measured marginal cost is ~273 B/candidate.
+        if candidate_backend is None or exact_reranker is None:
+            context_bytes += spec.shortlist_width * 384 + spec.return_width * 64
         total = (
             artifact.resident_bytes
             + store.resident_bytes

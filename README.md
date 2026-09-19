@@ -208,7 +208,10 @@ SFORA also provides a squared-L2 index for `uint8` and `float32`
 vectors. It combines authenticated factorized residual-PQ candidate scoring with
 deterministic exact reranking over memory, `pread`, or an explicitly requested
 Linux `io_uring`/`O_DIRECT` backend. Native compilation is local and explicit;
-unsupported native/direct execution fails instead of silently falling back.
+unsupported native/direct execution fails instead of silently falling back. The
+portable float64 scorer is a correctness reference, not a peer of the native
+backend: at 100M rows it takes seconds per query, and serving requires the
+native/direct path.
 
 `FactorizedResidualIndex` accounts for the resident artifact, vector-store
 ownership, per-query native/direct scratch, fixed service overhead, and safety
@@ -220,9 +223,15 @@ ordinary metadata drift before and after searches. Metric and dtype are fixed by
 their manifest, and raw vector generation/digest mismatches are terminal. The
 local-only `scripts/evaluate_factorized_residual_ann.py` evaluator emits a
 canonical, claim-ineligible receipt with raw latency samples, recall arithmetic,
-stage timing, I/O, memory, and binary identities. This experimental subsystem is
-not yet a broad SOTA claim; transfer datasets and matched external ANN controls
-remain required.
+stage timing, I/O, memory, and binary identities.
+
+This experimental subsystem makes no comparative performance claim. Reported
+latencies are single-query wall clock with `thread_count=20`, not throughput,
+and the BigANN100M query ranges used are reproduction evidence on an exposed
+split rather than held-out confirmation. Matched-thread external controls,
+recall curves and an open-loop load sweep all remain required; see
+[the release evidence](reports/factorized_residual_ann_2026-09-13.md) for what
+is and is not established.
 
 ### Extended retrieval datasets
 

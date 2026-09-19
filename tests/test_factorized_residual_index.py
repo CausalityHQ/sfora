@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import threading
+import tracemalloc
 from pathlib import Path
 
 import numpy as np
@@ -21,7 +22,7 @@ from sfora.factorized_residual_index import (
     FactorizedResidualSearchResult,
 )
 from sfora.factorized_residual_native import compile_factorized_residual_backend
-from sfora.vector_store import DirectIoVectorStore, MemoryVectorStore
+from sfora.vector_store import DirectIoVectorStore, MemoryVectorStore, PreadVectorStore
 
 
 def _open_fixture(tmp_path: Path) -> tuple[FactorizedResidualArtifact, MemoryVectorStore]:
@@ -318,3 +319,128 @@ def test_public_index_retries_interrupted_owner_cleanup_without_reopening_search
     assert calls == 2
     assert store._closed
     assert artifact._closed
+
+
+def _wide_shortlist_parts(
+    tmp_path: Path, *, rows: int, shortlist: int, probe: int
+) -> tuple[FactorizedResidualArtifact, VectorStoreIdentity, Path, np.ndarray]:
+    """Build a one-dimensional artifact whose shortlist dominates the ledger."""
+
+    lists, subquantizers, bits = 2, 1, 8
+    rng = np.random.default_rng(7)
+    vectors = rng.integers(0, 256, size=(rows, 1), dtype=np.uint8)
+    payload = np.asarray([rows, 1], dtype="<u4").tobytes() + vectors.tobytes()
+    path = tmp_path / "wide-vectors.u8"
+    path.write_bytes(payload)
+    identity = VectorStoreIdentity(
+        sha256=hashlib.sha256(payload).hexdigest(),
+        logical_bytes=len(payload),
+        physical_bytes=len(payload),
+        rows=rows,
+        dimensions=1,
+        dtype="uint8",
+        header_bytes=8,
+        row_stride=1,
+        zero_padding_bytes=0,
+        generation="wide-shortlist-fixture",
+    )
+    spec = FactorizedResidualSpec(
+        metric="squared_l2",
+        vector_dtype="uint8",
+        dimensions=1,
+        list_count=lists,
+        subquantizers=subquantizers,
+        bits_per_subquantizer=bits,
+        probe_count=probe,
+        shortlist_width=shortlist,
+        return_width=4,
+    )
+    components = FactorizedResidualComponents(
+        spec,
+        rng.random((lists, 1), dtype=np.float32) * 255.0,
+        rng.random((subquantizers, 1 << bits, 1), dtype=np.float32),
+    )
+    postings = FactorizedResidualPostings(
+        spec,
+        np.arange(lists + 1, dtype="<u8") * (rows // lists),
+        np.arange(rows, dtype="<u4"),
+        rng.integers(0, 256, size=(rows, subquantizers * bits // 8), dtype=np.uint8),
+    )
+    root = tmp_path / "wide-artifact"
+    manifest = write_factorized_residual_artifact(root, spec, components, postings, identity)
+    artifact = FactorizedResidualArtifact.open(root, manifest_sha256=manifest)
+    return artifact, identity, path, vectors
+
+
+@pytest.mark.parametrize("backend_kind", ("portable", "native"))
+def test_search_peak_allocation_stays_within_the_admission_ledger(
+    tmp_path: Path,
+    backend_kind: str,
+) -> None:
+    """A whole search must fit the reservation that admitted it.
+
+    Both stages that build Python objects per candidate are exercised: the
+    portable scorer, and the Python exact reranker that a native candidate
+    backend still uses when the store is not direct-I/O.
+    """
+
+    rows, shortlist = 16384, 8192
+    artifact, identity, path, vectors = _wide_shortlist_parts(
+        tmp_path, rows=rows, shortlist=shortlist, probe=2
+    )
+    backend = (
+        compile_factorized_residual_backend(tmp_path / "cache")
+        if backend_kind == "native"
+        else None
+    )
+    store = (
+        MemoryVectorStore(vectors, identity)
+        if backend_kind == "native"
+        else PreadVectorStore(path, identity)
+    )
+    index = FactorizedResidualIndex.open(
+        artifact,
+        store,
+        candidate_backend=backend,
+        thread_count=1,
+        memory_limit_bytes=3 * 1024**3,
+        fixed_service_overhead_bytes=128 * 1024**2,
+        safety_headroom_bytes=64 * 1024**2,
+    )
+    query = np.zeros(1, dtype=np.uint8)
+    index.search(query)
+
+    tracemalloc.start()
+    result = index.search(query)
+    _, peak = tracemalloc.get_traced_memory()
+    tracemalloc.stop()
+
+    assert result.candidates.ids.shape[0] == shortlist
+    assert peak <= index.memory_ledger().context_bytes
+
+    index.close()
+
+
+def test_admission_reserves_python_object_scratch_per_candidate(tmp_path: Path) -> None:
+    """The per-candidate reservation must exceed the measured ~273 B marginal cost."""
+
+    narrow, wide = 1024, 9216
+    reservations = []
+    for index_number, shortlist in enumerate((narrow, wide)):
+        case = tmp_path / f"case{index_number}"
+        case.mkdir()
+        artifact, identity, _path, vectors = _wide_shortlist_parts(
+            case, rows=16384, shortlist=shortlist, probe=2
+        )
+        index = FactorizedResidualIndex.open(
+            artifact,
+            MemoryVectorStore(vectors, identity),
+            memory_limit_bytes=3 * 1024**3,
+            fixed_service_overhead_bytes=0,
+            safety_headroom_bytes=0,
+        )
+        reservations.append(index.memory_ledger().context_bytes)
+        index.close()
+
+    marginal = (reservations[1] - reservations[0]) / (wide - narrow)
+    assert marginal >= 384
