@@ -220,6 +220,33 @@ by `+0.136182` mAP@R and `+0.106344` Recall@1.  This rules out ordinary
 same-rate PCA/PQ/OPQ compression as the explanation for the In-Shop gain; it
 does not compare against end-to-end image metric-learning systems.
 
+Two additional frozen sources isolate how the selector behaves as upstream
+quality improves.  Replaying the identical policy over authenticated UNICOM
+ViT-L/14@336 features selected the learned projection in every fold and raised
+the official result to `0.654677` mAP@R / `0.875088` Recall@1, versus the
+float-768 source at `0.555428` / `0.810100` and same-byte PCA at `0.538349` /
+`0.792657`.
+
+The strongest source was a corrected seed-0 BN-Inception ProxyAnchor final
+state.  Here the inner learned-minus-PCA evidence was only `+0.001811` mAP@R
+and `0.000000` Recall@1, below the frozen `+0.003` mAP gate, so the production
+policy correctly returned its PCA fallback.  Official query/gallery results
+were:
+
+| Representation | Stored width | mAP@R | Recall@1 |
+| --- | ---: | ---: | ---: |
+| ProxyAnchor source float-512 | 2,048 bytes | `0.647238` | `0.913701` |
+| selected PCA int8-128 | 128 bytes | `0.653438` | `0.914897` |
+| exploratory learned int8-128 | 128 bytes | **`0.657014`** | **`0.916796`** |
+
+Thus the conservative deployed choice still improves both metrics while using
+16 times fewer stored bytes.  The learned arm is reported to diagnose the
+selector margin, not silently substituted for the frozen policy.  Its
+additional gain is too small to justify changing a threshold selected before
+this result.  These stronger-source runs show that absolute retrieval quality
+continues to depend on the upstream representation; the compact method is not
+the cause of the remaining gap to higher-capacity end-to-end In-Shop systems.
+
 In-Shop receipt authorities:
 
 - feature archive SHA-256
@@ -237,7 +264,23 @@ In-Shop receipt authorities:
 - equal-byte codec receipt SHA-256
   `4500a584964447f8a497e6afc588cc876cff0a39644be2c565a035c1222e0964`;
 - equal-byte codec driver SHA-256
-  `926f558be3aa39d6ff290921243932baa127e35ec1e333ebc36c79b555150b49`.
+  `926f558be3aa39d6ff290921243932baa127e35ec1e333ebc36c79b555150b49`;
+- ViT-L/14@336 feature archive SHA-256
+  `6eae13715e18d7eb99450bade5056538f8f08f1e9b550d0f24ee09e52bb25d0e`;
+- ViT-L/14@336 result receipt SHA-256
+  `df5b46b6e5d84911b6e9f81553d3ad4b00eb489bc41a4cd88d0c2b98ef7abd2a`;
+- ViT-L/14@336 fitted checkpoint SHA-256
+  `4e9767b7959749d3a2ea4b60956f4fd8cdd7f192ccaa937c32ec222aedea7555`;
+- ProxyAnchor train/query/gallery archive SHA-256 values
+  `67aa387c9815fd300e7db0da9f1a781e4b95191bc9db715e7d06850c9a7e6fea`,
+  `ef5278fd9aae7a6398a6c74133e6acc0ded05e39647087bdf78459223b9eb761`,
+  and `6eb89ff57e7a6002f2ba71f9659e04dabd0cafdb1996be3d85f5211731ba861a`;
+- ProxyAnchor result receipt SHA-256
+  `69794850a1087c597a2e9f7ecfb70c3ca4bc4f632e966334469b6a55e535e301`;
+- ProxyAnchor fitted checkpoint SHA-256
+  `346f27ec19425e34cfe42fd90eae6c663e204aa1ed6c985992424a9fda118068`;
+- ProxyAnchor selector driver SHA-256
+  `5f0a9b09f136a4d9f62e479d4f247fe8945bcb8d710307724560edb1e29eed0f`.
 
 ## Scope
 
