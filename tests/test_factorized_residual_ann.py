@@ -11,10 +11,12 @@ import pytest
 import sfora
 import sfora.factorized_residual_ann as factorized_residual_ann
 from sfora.factorized_residual_ann import (
+    CandidateResult,
     FactorizedResidualArtifact,
     FactorizedResidualComponents,
     FactorizedResidualPostings,
     FactorizedResidualSpec,
+    PortableCandidateIndex,
     VectorStoreIdentity,
     write_factorized_residual_artifact,
 )
@@ -52,6 +54,11 @@ def test_factorized_residual_artifact_api_is_available_from_public_package() -> 
     assert sfora.FactorizedResidualPostings is FactorizedResidualPostings
     assert sfora.VectorStoreIdentity is VectorStoreIdentity
     assert sfora.write_factorized_residual_artifact is write_factorized_residual_artifact
+
+
+def test_portable_candidate_api_is_available_from_public_package() -> None:
+    assert sfora.CandidateResult is CandidateResult
+    assert sfora.PortableCandidateIndex is PortableCandidateIndex
 
 
 @pytest.mark.parametrize(
@@ -832,3 +839,180 @@ def test_artifact_open_rejects_undeclared_directory_role(tmp_path: Path) -> None
 
     with pytest.raises(ValueError, match="factorized residual artifact differs"):
         FactorizedResidualArtifact.open(destination)
+
+
+def test_portable_candidate_search_scores_selected_lists_and_sparse_shortlist(
+    tmp_path: Path,
+) -> None:
+    destination = tmp_path / "candidate-artifact"
+    manifest_sha256 = _write_fixture_artifact(destination)
+    artifact = FactorizedResidualArtifact.open(
+        destination, manifest_sha256=manifest_sha256
+    )
+    index = PortableCandidateIndex(artifact)
+
+    result = index.search(np.zeros(4, dtype=np.uint8))
+
+    assert type(result) is CandidateResult
+    assert result.ids.tolist() == [2, 0]
+    assert result.approximate_distances.tolist() == [
+        0.0,
+        float(np.float32(2.0 / 255.0)) * 255.0,
+    ]
+    assert result.probe_lists.tolist() == [0]
+    assert result.evidence.backend == "portable-float64"
+    assert result.evidence.rows_scanned == 2
+    assert result.evidence.codes_bytes_scanned == 2
+    assert not result.ids.flags.writeable
+    assert not result.approximate_distances.flags.writeable
+    artifact.close()
+
+
+@pytest.mark.parametrize(
+    "query",
+    (
+        np.zeros(4, dtype=np.float32),
+        np.zeros(4, dtype=np.uint16),
+        np.zeros((1, 4), dtype=np.uint8),
+        np.zeros(3, dtype=np.uint8),
+        np.zeros(8, dtype=np.uint8)[::2],
+    ),
+)
+def test_portable_candidate_search_rejects_query_type_shape_and_layout(
+    tmp_path: Path,
+    query: np.ndarray,
+) -> None:
+    destination = tmp_path / "query-validation"
+    artifact = FactorizedResidualArtifact.open(
+        destination,
+        manifest_sha256=_write_fixture_artifact(destination),
+    )
+
+    with pytest.raises(ValueError, match="factorized residual query differs"):
+        PortableCandidateIndex(artifact).search(query)
+
+    artifact.close()
+
+
+@pytest.mark.parametrize(
+    ("probe_count", "shortlist_width"),
+    ((True, None), (0, None), (2, None), (None, True), (None, 0), (None, 4)),
+)
+def test_portable_candidate_search_rejects_override_expansion_and_type_drift(
+    tmp_path: Path,
+    probe_count: object,
+    shortlist_width: object,
+) -> None:
+    destination = tmp_path / "override-validation"
+    artifact = FactorizedResidualArtifact.open(
+        destination,
+        manifest_sha256=_write_fixture_artifact(destination),
+    )
+
+    with pytest.raises(ValueError, match="factorized residual search differs"):
+        PortableCandidateIndex(artifact).search(
+            np.zeros(4, dtype=np.uint8),
+            probe_count=probe_count,  # type: ignore[arg-type]
+            shortlist_width=shortlist_width,  # type: ignore[arg-type]
+        )
+
+    artifact.close()
+
+
+def _pack_code_matrix(indexes: np.ndarray, bits: int) -> np.ndarray:
+    rows, subquantizers = indexes.shape
+    code_bytes = (subquantizers * bits + 7) // 8
+    packed = np.zeros((rows, code_bytes), dtype=np.uint8)
+    for row in range(rows):
+        for subquantizer in range(subquantizers):
+            value = int(indexes[row, subquantizer])
+            bit = subquantizer * bits
+            for value_bit in range(bits):
+                if value & (1 << value_bit):
+                    packed[row, (bit + value_bit) >> 3] |= 1 << (
+                        (bit + value_bit) & 7
+                    )
+    return packed
+
+
+def test_portable_candidate_search_matches_independent_factorized_oracle(
+    tmp_path: Path,
+) -> None:
+    rng = np.random.default_rng(20260913)
+    spec = FactorizedResidualSpec(
+        metric="squared_l2",
+        vector_dtype="float32",
+        dimensions=8,
+        list_count=3,
+        subquantizers=4,
+        bits_per_subquantizer=5,
+        probe_count=3,
+        shortlist_width=12,
+        return_width=4,
+    )
+    coarse = rng.normal(size=(3, 8)).astype("<f4")
+    pq = rng.normal(size=(4, 32, 2)).astype("<f4")
+    indexes = rng.integers(0, 32, size=(12, 4), dtype=np.uint8)
+    ids = rng.permutation(12).astype("<u4")
+    postings = FactorizedResidualPostings(
+        spec,
+        np.array([0, 1, 4, 12], dtype="<u8"),
+        ids,
+        _pack_code_matrix(indexes, 5),
+    )
+    identity = VectorStoreIdentity(
+        sha256="78" * 32,
+        logical_bytes=392,
+        physical_bytes=392,
+        rows=12,
+        dimensions=8,
+        dtype="float32",
+        header_bytes=8,
+        row_stride=32,
+        zero_padding_bytes=0,
+        generation="factorized-oracle",
+    )
+    destination = tmp_path / "factorized-oracle"
+    manifest_sha256 = write_factorized_residual_artifact(
+        destination,
+        spec,
+        FactorizedResidualComponents(spec, coarse, pq),
+        postings,
+        identity,
+    )
+    artifact = FactorizedResidualArtifact.open(
+        destination, manifest_sha256=manifest_sha256
+    )
+    query = rng.normal(size=8).astype("<f4")
+
+    result = PortableCandidateIndex(artifact).search(query)
+
+    norm_codes = np.fromfile(destination / "norms.u8", dtype=np.uint8)
+    norm_lows = np.fromfile(destination / "norm-low.f32", dtype="<f4")
+    norm_scales = np.fromfile(destination / "norm-scale.f32", dtype="<f4")
+    query64 = query.astype(np.float64)
+    expected: list[tuple[float, int]] = []
+    for list_id, (begin, end) in enumerate(((0, 1), (1, 4), (4, 12))):
+        for row in range(begin, end):
+            score = float(np.dot(query64, query64))
+            score -= 2.0 * float(np.dot(query64, coarse[list_id].astype(np.float64)))
+            score += float(norm_lows[list_id])
+            score += float(norm_scales[list_id]) * int(norm_codes[row])
+            for subquantizer in range(4):
+                start = subquantizer * 2
+                score -= 2.0 * float(
+                    np.dot(
+                        query64[start : start + 2],
+                        pq[subquantizer, indexes[row, subquantizer]].astype(np.float64),
+                    )
+                )
+            expected.append((score, int(ids[row])))
+    expected.sort()
+
+    assert result.ids.tolist() == [internal_id for _, internal_id in expected]
+    np.testing.assert_array_equal(
+        result.approximate_distances,
+        np.asarray([score for score, _ in expected], dtype="<f8"),
+    )
+    assert result.probe_lists.shape == (3,)
+    artifact.close()
