@@ -2,7 +2,7 @@
 
 This ledger prevents failed development hypotheses from being silently revived.
 The canonical research checkout for these results is
-`/home/rb/worktrees/sfora-emafactorial-release` at `88751b3e`; the older dirty
+`/home/rb/worktrees/sfora-emafactorial-release`; the older dirty
 `/home/rb/worktrees/sfora-emafactorial` checkout is not an authority for this
 line. Unless stated otherwise, these are claim-ineligible development results.
 
@@ -74,7 +74,8 @@ throwaway driver SHA-256:
   reached `0.668009`, but this is labeled same-domain transfer rather than a
   generic scorer result (`docs/evidence/stanford_dogs_cld/`).
 
-These failures close additional scorer tuning. The next bounded quality
-hypothesis is train-time compact representation learning with fit-only model
-selection and a safe PCA fallback; CUDA-Oxide/CuTile remain implementation
-backends after the representation is selected.
+These failures close additional scorer tuning. Train-time compact
+representation learning with fit-only model selection and a safe PCA fallback
+has now passed an untouched Oxford-IIIT Pet class-disjoint confirmation; see
+`docs/compact_metric_selector_result_2026-09-19.md`. CUDA-Oxide/CuTile remain
+implementation backends after the representation is selected.
