@@ -20,6 +20,7 @@ from sfora.factorized_residual_ann import (
     PortableCandidateIndex,
     VectorStoreIdentity,
     write_factorized_residual_artifact,
+    write_factorized_residual_artifact_from_role_files,
 )
 
 
@@ -55,6 +56,11 @@ def test_factorized_residual_artifact_api_is_available_from_public_package() -> 
     assert sfora.FactorizedResidualPostings is FactorizedResidualPostings
     assert sfora.VectorStoreIdentity is VectorStoreIdentity
     assert sfora.write_factorized_residual_artifact is write_factorized_residual_artifact
+    assert (
+        sfora.write_factorized_residual_artifact_from_role_files
+        is write_factorized_residual_artifact_from_role_files
+    )
+    assert "write_factorized_residual_artifact_from_role_files" in sfora.__all__
 
 
 def test_portable_candidate_api_is_available_from_public_package() -> None:
@@ -579,6 +585,32 @@ def test_artifact_open_authenticates_and_maps_exact_read_only_roles(tmp_path: Pa
     artifact.close()
 
 
+@pytest.mark.parametrize("mutation", ("content", "truncate"))
+def test_artifact_rejects_role_mutation_after_authentication(
+    tmp_path: Path,
+    mutation: str,
+) -> None:
+    destination = tmp_path / "artifact"
+    manifest_sha256 = _write_fixture_artifact(destination)
+    artifact = FactorizedResidualArtifact.open(
+        destination,
+        manifest_sha256=manifest_sha256,
+    )
+
+    role = destination / "norms.u8"
+    if mutation == "content":
+        mutated = bytearray(role.read_bytes())
+        mutated[0] ^= 1
+        role.write_bytes(mutated)
+    else:
+        role.write_bytes(b"")
+
+    with pytest.raises(ValueError, match="factorized residual artifact differs"):
+        PortableCandidateIndex(artifact).search(np.zeros(4, dtype=np.uint8))
+
+    artifact.close()
+
+
 def test_artifact_close_releases_every_resource_and_retries_failed_mapping(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -726,6 +758,152 @@ def _write_fixture_artifact(path: Path) -> str:
         postings,
         _store_identity(),
     )
+
+
+def _write_source_roles(path: Path) -> tuple[dict[str, tuple[Path, str]], str]:
+    source_manifest_sha256 = _write_fixture_artifact(path)
+    roles: dict[str, tuple[Path, str]] = {}
+    for name in factorized_residual_ann._ARTIFACT_ROLES:
+        role_path = path / name
+        roles[name] = (role_path, hashlib.sha256(role_path.read_bytes()).hexdigest())
+    return roles, source_manifest_sha256
+
+
+def test_file_backed_writer_reproduces_owned_writer_without_large_input_copies(
+    tmp_path: Path,
+) -> None:
+    source_roles, source_manifest_sha256 = _write_source_roles(tmp_path / "source")
+    expected = tmp_path / "expected"
+    actual = tmp_path / "actual"
+    _write_fixture_artifact(expected)
+
+    manifest_sha256 = write_factorized_residual_artifact_from_role_files(
+        actual,
+        _spec(),
+        source_roles,
+        _store_identity(),
+        source_manifest_sha256=source_manifest_sha256,
+    )
+
+    artifact = FactorizedResidualArtifact.open(actual, manifest_sha256=manifest_sha256)
+    for name in factorized_residual_ann._ARTIFACT_ROLES:
+        assert (actual / name).read_bytes() == (expected / name).read_bytes()
+    artifact.close()
+
+
+def test_file_backed_writer_rejects_source_digest_drift_without_publishing(
+    tmp_path: Path,
+) -> None:
+    source_roles, source_manifest_sha256 = _write_source_roles(tmp_path / "source")
+    source_path, _ = source_roles["codes.u8"]
+    source_roles["codes.u8"] = (source_path, "12" * 32)
+    destination = tmp_path / "destination"
+
+    with pytest.raises(ValueError, match="factorized residual source roles differ"):
+        write_factorized_residual_artifact_from_role_files(
+            destination,
+            _spec(),
+            source_roles,
+            _store_identity(),
+            source_manifest_sha256=source_manifest_sha256,
+        )
+
+    assert not destination.exists()
+
+
+def test_file_backed_writer_rejects_negative_authenticated_norm_scale(
+    tmp_path: Path,
+) -> None:
+    source_roles, source_manifest_sha256 = _write_source_roles(tmp_path / "source")
+    scale_path, _ = source_roles["norm-scale.f32"]
+    scales = np.fromfile(scale_path, dtype="<f4")
+    scales[0] = -1.0
+    scale_path.write_bytes(scales.tobytes())
+    source_roles["norm-scale.f32"] = (
+        scale_path,
+        hashlib.sha256(scale_path.read_bytes()).hexdigest(),
+    )
+    destination = tmp_path / "destination"
+
+    with pytest.raises(ValueError, match="factorized residual source roles differ"):
+        write_factorized_residual_artifact_from_role_files(
+            destination,
+            _spec(),
+            source_roles,
+            _store_identity(),
+            source_manifest_sha256=source_manifest_sha256,
+        )
+
+    assert not destination.exists()
+
+
+def test_file_backed_writer_preserves_explicit_authenticated_affine_norms(
+    tmp_path: Path,
+) -> None:
+    source_roles, source_manifest_sha256 = _write_source_roles(tmp_path / "source")
+    norm_path, _ = source_roles["norms.u8"]
+    mutated = bytearray(norm_path.read_bytes())
+    mutated[0] ^= 1
+    norm_path.write_bytes(mutated)
+    source_roles["norms.u8"] = (
+        norm_path,
+        hashlib.sha256(mutated).hexdigest(),
+    )
+    destination = tmp_path / "destination"
+
+    manifest_sha256 = write_factorized_residual_artifact_from_role_files(
+        destination,
+        _spec(),
+        source_roles,
+        _store_identity(),
+        source_manifest_sha256=source_manifest_sha256,
+    )
+
+    artifact = FactorizedResidualArtifact.open(
+        destination, manifest_sha256=manifest_sha256
+    )
+    assert (destination / "norms.u8").read_bytes() == mutated
+    manifest = json.loads((destination / "manifest.json").read_bytes())
+    assert manifest["norm_authority"] == {
+        "profile": "authenticated-affine-u8-v1",
+        "source_manifest_sha256": source_manifest_sha256,
+    }
+    artifact.close()
+
+
+def test_file_backed_writer_rejects_source_mutation_during_copy(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source_roles, source_manifest_sha256 = _write_source_roles(tmp_path / "source")
+    source_path, _ = source_roles["coarse.f32"]
+    real_write = factorized_residual_ann._write_array_bounded
+    mutated = False
+
+    def mutate_then_write(path: Path, value: np.ndarray) -> None:
+        nonlocal mutated
+        if not mutated:
+            mutated = True
+            changed = bytearray(source_path.read_bytes())
+            changed[0] ^= 1
+            source_path.write_bytes(changed)
+        real_write(path, value)
+
+    monkeypatch.setattr(
+        factorized_residual_ann, "_write_array_bounded", mutate_then_write
+    )
+    destination = tmp_path / "destination"
+
+    with pytest.raises(ValueError, match="factorized residual source roles differ"):
+        write_factorized_residual_artifact_from_role_files(
+            destination,
+            _spec(),
+            source_roles,
+            _store_identity(),
+            source_manifest_sha256=source_manifest_sha256,
+        )
+
+    assert not destination.exists()
 
 
 def _reroot_role_in_manifest(path: Path, role: str) -> None:

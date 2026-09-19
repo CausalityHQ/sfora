@@ -145,6 +145,7 @@ _FACTORIZED_RESIDUAL_ANN_EXPORTS = frozenset(
         "PortableCandidateIndex",
         "VectorStoreIdentity",
         "write_factorized_residual_artifact",
+        "write_factorized_residual_artifact_from_role_files",
     }
 )
 
@@ -152,7 +153,19 @@ _FACTORIZED_RESIDUAL_NATIVE_EXPORTS = frozenset(
     {
         "NativeBackend",
         "NativeCandidateIndex",
+        "NativeDirectBusyError",
+        "NativeDirectQuiescenceError",
+        "NativeDirectUnsupportedError",
+        "NativeExactReranker",
         "compile_factorized_residual_backend",
+    }
+)
+
+_FACTORIZED_RESIDUAL_INDEX_EXPORTS = frozenset(
+    {
+        "FactorizedResidualIndex",
+        "FactorizedResidualMemoryLedger",
+        "FactorizedResidualSearchResult",
     }
 )
 
@@ -162,6 +175,7 @@ _VECTOR_STORE_EXPORTS = frozenset(
     {
         "ExactReranker",
         "ExactSearchResult",
+        "DirectIoVectorStore",
         "InsufficientCandidatesError",
         "MemoryVectorStore",
         "PreadVectorStore",
@@ -308,6 +322,11 @@ def __getattr__(name: str) -> object:
         value = cast(object, getattr(module, name))
         globals()[name] = value
         return value
+    if name in _FACTORIZED_RESIDUAL_INDEX_EXPORTS:
+        module = import_module("sfora.factorized_residual_index")
+        value = cast(object, getattr(module, name))
+        globals()[name] = value
+        return value
     if name in _MODEL_SOUP_EXPORTS:
         module = import_module("sfora.model_soup")
         value = cast(object, getattr(module, name))
@@ -373,12 +392,20 @@ __all__ = [
     "FactorizedResidualComponents",
     "FactorizedResidualPostings",
     "FactorizedResidualSpec",
+    "FactorizedResidualIndex",
+    "FactorizedResidualMemoryLedger",
+    "FactorizedResidualSearchResult",
     "ExactReranker",
     "ExactSearchResult",
+    "DirectIoVectorStore",
     "InsufficientCandidatesError",
     "MemoryVectorStore",
     "NativeBackend",
     "NativeCandidateIndex",
+    "NativeDirectBusyError",
+    "NativeDirectQuiescenceError",
+    "NativeDirectUnsupportedError",
+    "NativeExactReranker",
     "PreadVectorStore",
     "PortableCandidateIndex",
     "compile_factorized_residual_backend",
@@ -555,4 +582,5 @@ __all__ = [
     "VectorStoreIdentity",
     "VectorReadEvidence",
     "write_factorized_residual_artifact",
+    "write_factorized_residual_artifact_from_role_files",
 ]

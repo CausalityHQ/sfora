@@ -19,6 +19,8 @@ from sfora.factorized_residual_ann import (
     _owned_read_only,
 )
 
+_HAS_PREADV = hasattr(os, "preadv")
+
 
 class InsufficientCandidatesError(ValueError):
     """Raised when exact reranking cannot produce the fixed result width."""
@@ -52,9 +54,7 @@ class VectorReadEvidence:
 class VectorReadContext(Protocol):
     """Owned per-query vector read state."""
 
-    def read(
-        self, ids: NDArray[np.uint32]
-    ) -> tuple[NDArray[np.generic], VectorReadEvidence]: ...
+    def read(self, ids: NDArray[np.uint32]) -> tuple[NDArray[np.generic], VectorReadEvidence]: ...
 
     def close(self) -> None: ...
 
@@ -62,7 +62,11 @@ class VectorReadContext(Protocol):
 class VectorStore(Protocol):
     """Immutable vector authority with isolated read contexts."""
 
-    identity: VectorStoreIdentity
+    @property
+    def identity(self) -> VectorStoreIdentity: ...
+
+    @property
+    def resident_bytes(self) -> int: ...
 
     def new_context(self) -> VectorReadContext: ...
 
@@ -90,9 +94,7 @@ class _MemoryReadContext:
         self._store = store
         self._closed = False
 
-    def read(
-        self, ids: NDArray[np.uint32]
-    ) -> tuple[NDArray[np.generic], VectorReadEvidence]:
+    def read(self, ids: NDArray[np.uint32]) -> tuple[NDArray[np.generic], VectorReadEvidence]:
         store = self._store
         if self._closed or store._closed:
             raise ValueError("vector read differs")
@@ -146,6 +148,12 @@ class MemoryVectorStore:
 
         return self._identity
 
+    @property
+    def resident_bytes(self) -> int:
+        """Return bytes owned by the resident vector matrix."""
+
+        return self._vectors.nbytes
+
     def new_context(self) -> VectorReadContext:
         if self._closed:
             raise ValueError("memory vector store differs")
@@ -155,17 +163,30 @@ class MemoryVectorStore:
         self._closed = True
 
 
-def _pread_exact(fd: int, size: int, offset: int) -> bytes:
-    result = bytearray()
-    while len(result) < size:
+def _pread_exact_into(fd: int, destination: memoryview, offset: int) -> None:
+    """Fill ``destination`` from ``fd`` without allocating a second copy of it."""
+
+    size = destination.nbytes
+    filled = 0
+    while filled < size:
         try:
-            block = os.pread(fd, size - len(result), offset + len(result))
+            if _HAS_PREADV:
+                read = os.preadv(fd, (destination[filled:],), offset + filled)
+            else:
+                block = os.pread(fd, size - filled, offset + filled)
+                read = len(block)
+                destination[filled : filled + read] = block
         except InterruptedError:
             continue
-        if not block:
+        if read < 1:
             raise ValueError("vector read differs")
-        result.extend(block)
-    return bytes(result)
+        filled += read
+
+
+def _pread_exact(fd: int, size: int, offset: int) -> bytes:
+    destination = bytearray(size)
+    _pread_exact_into(fd, memoryview(destination), offset)
+    return bytes(destination)
 
 
 class _PreadReadContext:
@@ -173,31 +194,29 @@ class _PreadReadContext:
         self._store = store
         self._closed = False
 
-    def read(
-        self, ids: NDArray[np.uint32]
-    ) -> tuple[NDArray[np.generic], VectorReadEvidence]:
+    def read(self, ids: NDArray[np.uint32]) -> tuple[NDArray[np.generic], VectorReadEvidence]:
         store = self._store
         if self._closed or store._closed:
             raise ValueError("vector read differs")
         _validate_ids(ids, store.identity.rows)
         descriptor = store._begin_read()
+        values = np.empty(
+            (ids.shape[0], store.identity.dimensions),
+            dtype=_dtype(store.identity),
+        )
+        raw = memoryview(values).cast("B")
         try:
-            raw = bytearray(ids.shape[0] * store.identity.row_stride)
             for index, internal_id in enumerate(ids.tolist()):
-                row = _pread_exact(
-                    descriptor,
-                    store.identity.row_stride,
-                    store.identity.header_bytes
-                    + int(internal_id) * store.identity.row_stride,
-                )
                 begin = index * store.identity.row_stride
-                raw[begin : begin + store.identity.row_stride] = row
+                _pread_exact_into(
+                    descriptor,
+                    raw[begin : begin + store.identity.row_stride],
+                    store.identity.header_bytes + int(internal_id) * store.identity.row_stride,
+                )
         finally:
             store._end_read()
-        values = np.frombuffer(bytes(raw), dtype=_dtype(store.identity)).reshape(
-            ids.shape[0], store.identity.dimensions
-        )
-        logical_bytes = len(raw)
+        values.flags.writeable = False
+        logical_bytes = values.nbytes
         return values, VectorReadEvidence(
             requested_rows=ids.shape[0],
             logical_bytes=logical_bytes,
@@ -221,15 +240,15 @@ class PreadVectorStore:
             if not stat.S_ISREG(before.st_mode) or before.st_size != identity.physical_bytes:
                 raise ValueError("pread vector store differs")
             digest = hashlib.sha256()
+            scratch = bytearray(min(8 << 20, identity.physical_bytes))
+            window = memoryview(scratch)
             offset = 0
             while offset < identity.physical_bytes:
-                block = _pread_exact(
-                    descriptor,
-                    min(8 << 20, identity.physical_bytes - offset),
-                    offset,
-                )
+                span = min(len(scratch), identity.physical_bytes - offset)
+                block = window[:span]
+                _pread_exact_into(descriptor, block, offset)
                 digest.update(block)
-                offset += len(block)
+                offset += span
             if digest.hexdigest() != identity.sha256:
                 raise ValueError("pread vector store differs")
             header = _pread_exact(descriptor, 8, 0)
@@ -238,11 +257,13 @@ class PreadVectorStore:
             padding_offset = identity.logical_bytes
             remaining = identity.zero_padding_bytes
             while remaining:
-                block = _pread_exact(descriptor, min(8 << 20, remaining), padding_offset)
+                span = min(len(scratch), remaining)
+                block = window[:span]
+                _pread_exact_into(descriptor, block, padding_offset)
                 if any(block):
                     raise ValueError("pread vector store differs")
-                padding_offset += len(block)
-                remaining -= len(block)
+                padding_offset += span
+                remaining -= span
             after = os.fstat(descriptor)
             stable = ("st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns")
             if any(getattr(before, field) != getattr(after, field) for field in stable):
@@ -252,6 +273,7 @@ class PreadVectorStore:
             raise
         self._identity = identity
         self._descriptor = descriptor
+        self._authenticated_metadata = tuple(getattr(after, field) for field in stable)
         self._closed = False
         self._closing = False
         self._active_reads = 0
@@ -263,9 +285,21 @@ class PreadVectorStore:
 
         return self._identity
 
+    @property
+    def resident_bytes(self) -> int:
+        """Return resident corpus bytes owned by this descriptor-only store."""
+
+        return 0
+
     def _begin_read(self) -> int:
         with self._condition:
-            if self._closed or self._closing:
+            stable = ("st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns")
+            if (
+                self._closed
+                or self._closing
+                or tuple(getattr(os.fstat(self._descriptor), field) for field in stable)
+                != self._authenticated_metadata
+            ):
                 raise ValueError("vector read differs")
             self._active_reads += 1
             return self._descriptor
@@ -274,6 +308,11 @@ class PreadVectorStore:
         with self._condition:
             self._active_reads -= 1
             self._condition.notify_all()
+            stable = ("st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns")
+            if tuple(getattr(os.fstat(self._descriptor), field) for field in stable) != (
+                self._authenticated_metadata
+            ):
+                raise ValueError("pread vector store differs")
 
     def new_context(self) -> VectorReadContext:
         with self._condition:
@@ -288,14 +327,137 @@ class PreadVectorStore:
             if self._closed:
                 return
             self._closing = True
-            while self._active_reads:
-                self._condition.wait()
+            try:
+                while self._active_reads:
+                    self._condition.wait()
+            except BaseException:
+                self._closing = False
+                self._condition.notify_all()
+                raise
             try:
                 os.close(self._descriptor)
             finally:
                 self._closed = True
                 self._closing = False
                 self._condition.notify_all()
+
+
+class DirectIoVectorStore:
+    """Linux direct-I/O descriptor paired with an authenticated positional-read store."""
+
+    def __init__(self, path: str | Path, identity: VectorStoreIdentity) -> None:
+        if not hasattr(os, "O_DIRECT"):
+            raise ValueError("direct I/O vector store differs")
+        authenticated = PreadVectorStore(path, identity)
+        descriptor = -1
+        try:
+            descriptor = os.open(
+                Path(path),
+                os.O_RDONLY | os.O_CLOEXEC | os.O_DIRECT | getattr(os, "O_NOFOLLOW", 0),
+            )
+            authenticated_stat = os.fstat(authenticated._descriptor)
+            direct_stat = os.fstat(descriptor)
+            stable = ("st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns")
+            if any(
+                getattr(authenticated_stat, field) != getattr(direct_stat, field)
+                for field in stable
+            ):
+                raise ValueError("direct I/O vector store differs")
+        except BaseException:
+            if descriptor >= 0:
+                os.close(descriptor)
+            authenticated.close()
+            raise
+        self._authenticated = authenticated
+        self._descriptor = descriptor
+        self._closed = False
+        self._closing = False
+        self._active_reads = 0
+        self._condition = threading.Condition()
+        self._process_id = os.getpid()
+
+    @property
+    def identity(self) -> VectorStoreIdentity:
+        """Return the immutable authenticated vector identity."""
+
+        return self._authenticated.identity
+
+    @property
+    def resident_bytes(self) -> int:
+        """Return resident corpus bytes owned by this descriptor-only store."""
+
+        return 0
+
+    def new_context(self) -> VectorReadContext:
+        """Return the portable authenticated context for non-native callers."""
+
+        with self._condition:
+            if self._closed or self._closing or os.getpid() != self._process_id:
+                raise ValueError("direct I/O vector store differs")
+            return self._authenticated.new_context()
+
+    def _begin_direct_read(self) -> int:
+        with self._condition:
+            stable = ("st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns")
+            if (
+                self._closed
+                or self._closing
+                or os.getpid() != self._process_id
+                or tuple(getattr(os.fstat(self._descriptor), field) for field in stable)
+                != self._authenticated._authenticated_metadata
+            ):
+                raise ValueError("direct vector read differs")
+            self._active_reads += 1
+            return self._descriptor
+
+    def _end_direct_read(self) -> None:
+        with self._condition:
+            self._active_reads -= 1
+            self._condition.notify_all()
+            stable = ("st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns")
+            if tuple(getattr(os.fstat(self._descriptor), field) for field in stable) != (
+                self._authenticated._authenticated_metadata
+            ):
+                raise ValueError("direct I/O vector store differs")
+
+    def close(self) -> None:
+        """Wait for direct reads before closing both bound descriptors."""
+
+        with self._condition:
+            while self._closing and not self._closed:
+                self._condition.wait()
+            if self._closed:
+                return
+            self._closing = True
+            try:
+                while self._active_reads:
+                    self._condition.wait()
+            except BaseException:
+                self._closing = False
+                self._condition.notify_all()
+                raise
+            first_error: BaseException | None = None
+            try:
+                self._authenticated.close()
+            except BaseException as error:
+                if not self._authenticated._closed:
+                    self._closing = False
+                    self._condition.notify_all()
+                    raise
+                first_error = error
+            descriptor = self._descriptor
+            self._descriptor = -1
+            try:
+                os.close(descriptor)
+            except BaseException as error:
+                if first_error is None:
+                    first_error = error
+            finally:
+                self._closed = True
+                self._closing = False
+                self._condition.notify_all()
+            if first_error is not None:
+                raise first_error
 
 
 @dataclass(frozen=True, slots=True)
@@ -371,9 +533,7 @@ class ExactReranker:
             else:
                 distance = 0.0
                 for dimension in range(identity.dimensions):
-                    float_difference = float(query[dimension]) - float(
-                        vectors[index, dimension]
-                    )
+                    float_difference = float(query[dimension]) - float(vectors[index, dimension])
                     distance += float_difference * float_difference
             if not np.isfinite(distance):
                 raise ValueError("exact rerank differs")

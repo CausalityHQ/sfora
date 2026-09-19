@@ -202,6 +202,28 @@ end-to-end or a projection head on frozen embeddings, evaluates with
 R@1/MAP@R/F1/P@1, and generates a scientific report plus a static presentation
 page. See [CHANGELOG.md](CHANGELOG.md) and [docs/results.md](docs/results.md).
 
+### Factorized-residual ANN (experimental)
+
+SFORA also provides a squared-L2 index for `uint8` and `float32`
+vectors. It combines authenticated factorized residual-PQ candidate scoring with
+deterministic exact reranking over memory, `pread`, or an explicitly requested
+Linux `io_uring`/`O_DIRECT` backend. Native compilation is local and explicit;
+unsupported native/direct execution fails instead of silently falling back.
+
+`FactorizedResidualIndex` accounts for the resident artifact, vector-store
+ownership, per-query native/direct scratch, fixed service overhead, and safety
+headroom before admitting work. The direct backend currently admits one query
+context per process. Artifact and vector files must reside on trusted immutable
+local storage for the lifetime of an open index; concurrent external mutation or
+truncation is unsupported. The reader authenticates them before use and rejects
+ordinary metadata drift before and after searches. Metric and dtype are fixed by
+their manifest, and raw vector generation/digest mismatches are terminal. The
+local-only `scripts/evaluate_factorized_residual_ann.py` evaluator emits a
+canonical, claim-ineligible receipt with raw latency samples, recall arithmetic,
+stage timing, I/O, memory, and binary identities. This experimental subsystem is
+not yet a broad SOTA claim; transfer datasets and matched external ANN controls
+remain required.
+
 ### Extended retrieval datasets
 
 SFORA also supports the official **DeepFashion In-Shop** train/query/gallery

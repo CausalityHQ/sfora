@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import builtins
 import hashlib
 import threading
+import tracemalloc
 from pathlib import Path
 
 import numpy as np
@@ -15,6 +17,7 @@ from sfora.factorized_residual_ann import (
     VectorStoreIdentity,
 )
 from sfora.vector_store import (
+    DirectIoVectorStore,
     ExactReranker,
     MemoryVectorStore,
     PreadVectorStore,
@@ -110,6 +113,129 @@ def test_vector_store_identity_cannot_be_reassigned(tmp_path: Path) -> None:
     with pytest.raises(AttributeError):
         pread.identity = _memory_identity()
     pread.close()
+
+
+def test_direct_store_close_exhausts_cleanup_without_retrying_released_fd(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    vectors = _uint8_vectors()
+    logical = np.array([3, 2], dtype="<u4").tobytes() + vectors.tobytes()
+    payload = logical + b"\0" * (4096 - len(logical))
+    path = tmp_path / "vectors-direct.bin"
+    path.write_bytes(payload)
+    store = DirectIoVectorStore(
+        path,
+        _identity(logical, rows=3, dimensions=2, zero_padding_bytes=4096 - len(logical)),
+    )
+    direct_descriptor = store._descriptor
+    authenticated_descriptor = store._authenticated._descriptor
+    real_close = vector_store_module.os.close
+    closed: list[int] = []
+    rejected_once = False
+
+    def reject_direct_once(descriptor: int) -> None:
+        nonlocal rejected_once
+        closed.append(descriptor)
+        if descriptor == direct_descriptor and not rejected_once:
+            rejected_once = True
+            raise OSError("fixture direct close interruption")
+        real_close(descriptor)
+
+    monkeypatch.setattr(vector_store_module.os, "close", reject_direct_once)
+
+    with pytest.raises(OSError, match="fixture direct close interruption"):
+        store.close()
+
+    assert store._authenticated._closed
+    assert authenticated_descriptor in closed
+    assert store._closed
+    store.close()
+    assert closed.count(direct_descriptor) == 1
+
+
+def test_direct_store_closes_direct_descriptor_when_authenticated_close_raises(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    vectors = _uint8_vectors()
+    logical = np.array([3, 2], dtype="<u4").tobytes() + vectors.tobytes()
+    payload = logical + b"\0" * (4096 - len(logical))
+    path = tmp_path / "vectors-direct.bin"
+    path.write_bytes(payload)
+    store = DirectIoVectorStore(
+        path,
+        _identity(logical, rows=3, dimensions=2, zero_padding_bytes=4096 - len(logical)),
+    )
+    direct_descriptor = store._descriptor
+    real_close = vector_store_module.os.close
+    closed: list[int] = []
+
+    def record_close(descriptor: int) -> None:
+        closed.append(descriptor)
+        real_close(descriptor)
+
+    monkeypatch.setattr(vector_store_module.os, "close", record_close)
+
+    def fail_after_authenticated_retirement() -> None:
+        store._authenticated._closed = True
+        raise OSError("fixture authenticated close failure")
+
+    monkeypatch.setattr(store._authenticated, "close", fail_after_authenticated_retirement)
+
+    with pytest.raises(OSError, match="fixture authenticated close failure"):
+        store.close()
+
+    assert direct_descriptor in closed
+    assert store._descriptor == -1
+    assert store._closed
+
+
+def test_direct_store_refuses_use_after_fork_identity_change(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    vectors = _uint8_vectors()
+    logical = np.array([3, 2], dtype="<u4").tobytes() + vectors.tobytes()
+    payload = logical + b"\0" * (4096 - len(logical))
+    path = tmp_path / "vectors-direct.bin"
+    path.write_bytes(payload)
+    store = DirectIoVectorStore(
+        path,
+        _identity(logical, rows=3, dimensions=2, zero_padding_bytes=4096 - len(logical)),
+    )
+
+    monkeypatch.setattr(vector_store_module.os, "getpid", lambda: store._process_id + 1)
+
+    with pytest.raises(ValueError, match="direct I/O vector store differs"):
+        store.new_context()
+    with pytest.raises(ValueError, match="direct vector read differs"):
+        store._begin_direct_read()
+
+    monkeypatch.undo()
+    store.close()
+
+
+def test_direct_store_rejects_vector_mutation_after_authentication(tmp_path: Path) -> None:
+    vectors = _uint8_vectors()
+    logical = np.array([3, 2], dtype="<u4").tobytes() + vectors.tobytes()
+    payload = logical + b"\0" * (4096 - len(logical))
+    path = tmp_path / "vectors-direct.bin"
+    path.write_bytes(payload)
+    store = DirectIoVectorStore(
+        path,
+        _identity(logical, rows=3, dimensions=2, zero_padding_bytes=4096 - len(logical)),
+    )
+
+    with path.open("r+b") as stream:
+        stream.seek(8)
+        stream.write(b"\xff")
+        stream.flush()
+
+    with pytest.raises(ValueError, match="direct vector read differs"):
+        store._begin_direct_read()
+
+    store.close()
 
 
 def test_exact_reranker_repairs_approximate_order_with_integer_authority() -> None:
@@ -264,6 +390,53 @@ def test_pread_store_authenticates_header_payload_padding_and_reads_rows(
     store.close()
 
 
+def test_pread_context_does_not_duplicate_the_complete_vector_buffer(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    vectors = _uint8_vectors()
+    payload = np.array([3, 2], dtype="<u4").tobytes() + vectors.tobytes()
+    path = tmp_path / "vectors.bin"
+    path.write_bytes(payload)
+    store = PreadVectorStore(path, _identity(payload, rows=3, dimensions=2))
+    context = store.new_context()
+
+    def bounded_bytes(value: object) -> bytes:
+        if len(value) > store.identity.row_stride:  # type: ignore[arg-type]
+            pytest.fail("complete vector buffer was duplicated")
+        return builtins.bytes(value)
+
+    monkeypatch.setattr(vector_store_module, "bytes", bounded_bytes, raising=False)
+
+    observed, _ = context.read(np.array([0, 2], dtype="<u4"))
+
+    np.testing.assert_array_equal(observed, np.array([[0, 0], [2, 2]], np.uint8))
+    assert observed.flags.owndata
+    assert not observed.flags.writeable
+    context.close()
+    store.close()
+
+
+def test_pread_store_rejects_vector_mutation_after_authentication(tmp_path: Path) -> None:
+    vectors = _uint8_vectors()
+    payload = np.array([3, 2], dtype="<u4").tobytes() + vectors.tobytes()
+    path = tmp_path / "vectors.bin"
+    path.write_bytes(payload)
+    store = PreadVectorStore(path, _identity(payload, rows=3, dimensions=2))
+    context = store.new_context()
+
+    with path.open("r+b") as stream:
+        stream.seek(8)
+        stream.write(b"\xff")
+        stream.flush()
+
+    with pytest.raises(ValueError, match="vector read differs"):
+        context.read(np.array([0], dtype="<u4"))
+
+    context.close()
+    store.close()
+
+
 def test_pread_context_retries_eintr_and_short_successful_reads(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -273,17 +446,18 @@ def test_pread_context_retries_eintr_and_short_successful_reads(
     path = tmp_path / "vectors.bin"
     path.write_bytes(payload)
     store = PreadVectorStore(path, _identity(payload, rows=3, dimensions=2))
-    real_pread = vector_store_module.os.pread
+    real_preadv = vector_store_module.os.preadv
     calls = 0
 
-    def interrupted_then_short(fd: int, size: int, offset: int) -> bytes:
+    def interrupted_then_short(fd: int, buffers: tuple[memoryview, ...], offset: int) -> int:
         nonlocal calls
         calls += 1
         if calls == 1:
             raise InterruptedError
-        return real_pread(fd, min(size, 1), offset)
+        (destination,) = buffers
+        return int(real_preadv(fd, (destination[:1],), offset))
 
-    monkeypatch.setattr(vector_store_module.os, "pread", interrupted_then_short)
+    monkeypatch.setattr(vector_store_module.os, "preadv", interrupted_then_short)
     context = store.new_context()
 
     observed, _ = context.read(np.array([2, 0], dtype="<u4"))
@@ -304,18 +478,18 @@ def test_pread_close_waits_for_active_read_before_descriptor_release(
     path.write_bytes(payload)
     store = PreadVectorStore(path, _identity(payload, rows=3, dimensions=2))
     context = store.new_context()
-    real_pread = vector_store_module.os.pread
+    real_preadv = vector_store_module.os.preadv
     read_entered = threading.Event()
     release_read = threading.Event()
     close_finished = threading.Event()
 
-    def blocked_pread(fd: int, size: int, offset: int) -> bytes:
+    def blocked_preadv(fd: int, buffers: tuple[memoryview, ...], offset: int) -> int:
         if offset == 8 and not read_entered.is_set():
             read_entered.set()
             assert release_read.wait(timeout=2)
-        return real_pread(fd, size, offset)
+        return int(real_preadv(fd, buffers, offset))
 
-    monkeypatch.setattr(vector_store_module.os, "pread", blocked_pread)
+    monkeypatch.setattr(vector_store_module.os, "preadv", blocked_preadv)
     read_thread = threading.Thread(
         target=lambda: context.read(np.array([0, 1], dtype="<u4"))
     )
@@ -345,7 +519,7 @@ def test_pread_context_rejects_eof_without_partial_result(
     path = tmp_path / "vectors.bin"
     path.write_bytes(payload)
     store = PreadVectorStore(path, _identity(payload, rows=3, dimensions=2))
-    monkeypatch.setattr(vector_store_module.os, "pread", lambda *_args: b"")
+    monkeypatch.setattr(vector_store_module.os, "preadv", lambda *_args: 0)
     context = store.new_context()
 
     with pytest.raises(ValueError, match="vector read differs"):
@@ -396,5 +570,62 @@ def test_vector_read_rejects_invalid_ids(tmp_path: Path, ids: list[int]) -> None
     context = store.new_context()
     with pytest.raises(ValueError, match="vector read differs"):
         context.read(np.asarray(ids, dtype="<i8"))
+    context.close()
+    store.close()
+
+
+def test_portable_vector_read_does_not_duplicate_wide_row_buffers(tmp_path: Path) -> None:
+    rows = 4
+    dimensions = 4 << 20
+    header = np.asarray([rows, dimensions], dtype="<u4").tobytes()
+    payload = header + bytes(rows * dimensions)
+    path = tmp_path / "wide.bin"
+    path.write_bytes(payload)
+    identity = _identity(payload, rows=rows, dimensions=dimensions)
+    store = PreadVectorStore(path, identity)
+    context = store.new_context()
+    ids = np.arange(rows, dtype="<u4")
+    context.read(ids[:1])
+
+    tracemalloc.start()
+    vectors, _ = context.read(ids)
+    _, peak = tracemalloc.get_traced_memory()
+    tracemalloc.stop()
+
+    destination_bytes = rows * dimensions
+    assert vectors.nbytes == destination_bytes
+    assert peak <= destination_bytes + dimensions + (64 << 10)
+
+    context.close()
+    store.close()
+
+
+def test_portable_vector_read_uses_pread_when_preadv_is_unavailable(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    vectors = _uint8_vectors()
+    payload = np.array([3, 2], dtype="<u4").tobytes() + vectors.tobytes()
+    path = tmp_path / "vectors.bin"
+    path.write_bytes(payload)
+    store = PreadVectorStore(path, _identity(payload, rows=3, dimensions=2))
+    monkeypatch.setattr(vector_store_module, "_HAS_PREADV", False)
+    real_pread = vector_store_module.os.pread
+    calls = 0
+
+    def interrupted_then_short(fd: int, size: int, offset: int) -> bytes:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise InterruptedError
+        return bytes(real_pread(fd, min(size, 1), offset))
+
+    monkeypatch.setattr(vector_store_module.os, "pread", interrupted_then_short)
+    context = store.new_context()
+
+    observed, _ = context.read(np.array([2, 0], dtype="<u4"))
+
+    np.testing.assert_array_equal(observed, np.array([[2, 2], [0, 0]], np.uint8))
+    assert calls == 5
     context.close()
     store.close()
