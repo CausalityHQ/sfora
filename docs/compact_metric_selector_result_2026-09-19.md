@@ -227,6 +227,34 @@ the official result to `0.654677` mAP@R / `0.875088` Recall@1, versus the
 float-768 source at `0.555428` / `0.810100` and same-byte PCA at `0.538349` /
 `0.792657`.
 
+The same policy was finally applied to the separately trained rank-finished
+UNICOM ViT-L/14@336 source.  This source is the release candidate from model
+SHA-256 `ad7e16d28daf32c3ae8d6258444e18c142cdf2e1816448a615be653e9545697b`.
+Its authenticated standard readout is `0.776033` mAP@R / `0.944718` Recall@1.
+The export used the corrected 52,712-image official pixel corpus, whose
+registered image-tree root is `b91f639916fddb1834c2511a7eb5f354d1f301425bee9f7f717e8da48af0ba72`.
+Replaying the standard first-512-coordinate metric directly from the exported
+archive reproduced `0.77603312` / `0.94471796`; Recall@1 was exact and the
+mAP@R difference was `1.8e-8` from batching arithmetic.
+
+All three class-disjoint fit-only folds favored learned int8-128 over PCA.  The
+pooled deltas were `+0.015002` mAP@R and `+0.003363` Recall@1, so the unchanged
+production rule selected the learned projection.  Official query/gallery
+results were:
+
+| Representation | Stored width | mAP@R | Recall@1 |
+| --- | ---: | ---: | ---: |
+| rank-finished standard float source | 3,072 bytes | `0.776033` | `0.944718` |
+| PCA int8-128 | 128 bytes | `0.777572` | `0.946125` |
+| learned int8-128 | 128 bytes | **`0.800020`** | **`0.954283`** |
+
+Thus the learned code improves over the rank-finished standard source by
+`+0.023987` mAP@R and `+0.009565` Recall@1 while storing 24 times fewer bytes.
+It also clears the repository's `0.939` In-Shop Recall@1 frontier, but this
+post-hoc composition remains explicitly claim-ineligible.  It is strong
+product evidence and motivates a fresh, prospectively frozen replication; it
+is not presented as a new publication claim on an untouched test set.
+
 The strongest source was a corrected seed-0 BN-Inception ProxyAnchor final
 state.  Here the inner learned-minus-PCA evidence was only `+0.001811` mAP@R
 and `0.000000` Recall@1, below the frozen `+0.003` mAP gate, so the production
@@ -271,6 +299,16 @@ In-Shop receipt authorities:
   `df5b46b6e5d84911b6e9f81553d3ad4b00eb489bc41a4cd88d0c2b98ef7abd2a`;
 - ViT-L/14@336 fitted checkpoint SHA-256
   `4e9767b7959749d3a2ea4b60956f4fd8cdd7f192ccaa937c32ec222aedea7555`;
+- rank-finished official feature archive SHA-256
+  `05cd5901425210c06a3972f5a67acf41c961b2f4b59d6535744f3e3536d036ad`;
+- rank-finished compact result SHA-256
+  `b9ab3eac27d6f2e158c0d8209ecf79a297ab5f84cc972a8875970134771e915c`;
+- rank-finished compact checkpoint SHA-256
+  `56d57c92e315be13eb8361f1e72f26f548cece833806fca2142f1d405df752fd`;
+- rank-finished compact encoder SHA-256
+  `748237506aad7df36693630255c88e2175c6c11e00fd6e3df1eefcc7a58ddd96`;
+- authenticated rank-finished standard-result SHA-256
+  `93ed2130fd1f8e8e03c84f3c9850d04f40f694b6702d8ae5eb86d50b3c23b911`;
 - ProxyAnchor train/query/gallery archive SHA-256 values
   `67aa387c9815fd300e7db0da9f1a781e4b95191bc9db715e7d06850c9a7e6fea`,
   `ef5278fd9aae7a6398a6c74133e6acc0ded05e39647087bdf78459223b9eb761`,
