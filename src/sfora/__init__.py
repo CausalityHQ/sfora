@@ -135,6 +135,17 @@ _PACKED_INT4_EXPORTS = frozenset(
 
 _FOLDABLE_LINEAR_EXPORTS = frozenset({"FoldableLinear"})
 
+_FACTORIZED_RESIDUAL_ANN_EXPORTS = frozenset(
+    {
+        "FactorizedResidualArtifact",
+        "FactorizedResidualComponents",
+        "FactorizedResidualPostings",
+        "FactorizedResidualSpec",
+        "VectorStoreIdentity",
+        "write_factorized_residual_artifact",
+    }
+)
+
 _MODEL_SOUP_EXPORTS = frozenset({"average_compatible_model_states"})
 
 _RELATIONAL_COMPACTION_EXPORTS = frozenset(
@@ -266,6 +277,11 @@ def __getattr__(name: str) -> object:
         value = cast(object, getattr(module, name))
         globals()[name] = value
         return value
+    if name in _FACTORIZED_RESIDUAL_ANN_EXPORTS:
+        module = import_module("sfora.factorized_residual_ann")
+        value = cast(object, getattr(module, name))
+        globals()[name] = value
+        return value
     if name in _MODEL_SOUP_EXPORTS:
         module = import_module("sfora.model_soup")
         value = cast(object, getattr(module, name))
@@ -321,6 +337,10 @@ def __getattr__(name: str) -> object:
 
 __all__ = [
     "ExperimentResult",
+    "FactorizedResidualArtifact",
+    "FactorizedResidualComponents",
+    "FactorizedResidualPostings",
+    "FactorizedResidualSpec",
     "FoldableLinear",
     "average_compatible_model_states",
     "EncoderTrainingConfig",
@@ -491,4 +511,6 @@ __all__ = [
     "write_remote_run_plan",
     "write_site_data",
     "write_text_baseline_report",
+    "VectorStoreIdentity",
+    "write_factorized_residual_artifact",
 ]
