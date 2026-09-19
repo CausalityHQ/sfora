@@ -278,6 +278,20 @@ compression itself.  Conversely, the 128-dimensional code retains more than
 128 bytes.  These controls are post-hoc on the already observed In-Shop test
 and therefore explain mechanism without upgrading claim eligibility.
 
+A final mechanism panel tested three narrower explanations under the same
+official readout.  Equal-class between-class PCA reached `0.782391` mAP@R /
+`0.947742` Recall@1 at int8-128, closing only 21.5% of the learned-versus-PCA
+mAP@R gap.  Applying the unchanged learned 128-to-128 recipe inside the fixed
+PCA subspace reached `0.790550` / `0.951822`, closing 57.8% of that gap but
+remaining `0.009470` mAP@R below the learned 768-to-128 head.  The learned
+weight matrix has 45.1% of its Frobenius energy outside the PCA row space, with
+a maximum principal angle of 49.4 degrees.  Finally, fitting the ranking head
+after row-permuting labels while preserving exact class counts collapsed to
+`0.720253` / `0.934027`, `0.057319` mAP@R below PCA.  The evidence therefore
+isolates label-dependent supervised geometry that is not reducible to class
+means, PCA-space reweighting, or label-independent conditioning.  It remains
+post-hoc mechanism evidence, not a prospective quality claim.
+
 The strongest source was a corrected seed-0 BN-Inception ProxyAnchor final
 state.  Here the inner learned-minus-PCA evidence was only `+0.001811` mAP@R
 and `0.000000` Recall@1, below the frozen `+0.003` mAP gate, so the production
@@ -328,6 +342,8 @@ In-Shop receipt authorities:
   `b9ab3eac27d6f2e158c0d8209ecf79a297ab5f84cc972a8875970134771e915c`;
 - rank-finished compact checkpoint SHA-256
   `56d57c92e315be13eb8361f1e72f26f548cece833806fca2142f1d405df752fd`;
+- rank-finished mechanism-panel receipt SHA-256
+  `8b276c65a2dcb08d18d2344164f162aa98d506ce3420738f2897a43ab8200fe7`;
 - rank-finished compact encoder SHA-256
   `748237506aad7df36693630255c88e2175c6c11e00fd6e3df1eefcc7a58ddd96`;
 - authenticated rank-finished standard-result SHA-256
