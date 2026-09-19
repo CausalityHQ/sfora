@@ -102,7 +102,7 @@ post-result capacity-confound note in
 - [ ] **Step 4: Deploy that exact commit to the DGX, run focused tests against checkout `src`, then
   run seed 0 with no-clobber artifacts.**
 
-- [ ] **Step 5: If valid, run frozen seeds 1 through 4 unchanged.** Classify information as the
+- [x] **Step 5: If valid, run frozen seeds 1 through 4 unchanged.** Classify information as the
   leading cause only if the factorized control closes less than 60% of the direct-minus-linear
   mAP@R gap and direct retains at least `0.005` mAP@R advantage over factorized with a positive
   class-cluster lower bound. Otherwise classify optimization parameterization as sufficient or
