@@ -1,0 +1,312 @@
+#!/usr/bin/env python3
+"""Throwaway fresh FGVC-Aircraft PCA-to-learned schedule gate."""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import math
+import time
+from collections import Counter
+from pathlib import Path
+
+import numpy as np
+import torch
+from torch import nn
+from torch.nn import functional as F
+
+EXPECTED_CHECKPOINT_SHA256 = "3916ab5aed3b522fc90345be8b4457fe5dad60801ad2af5a6871c0c096e8d7ea"
+EXPECTED_UNICOM_REVISION = "d71992ed969e6c271436ac0a0ee1f3ca61474ac0"
+REFERENCE_ELIGIBLE_CLASSES = 9054
+REFERENCE_FIT_ROWS = 47704
+REFERENCE_UPDATES = 2000
+REFERENCE_CLASSES_PER_UPDATE = 64
+FIT_CLASSES_PER_UPDATE = 50
+CYCLES = 4
+MAP_GAIN_GATE = 0.003
+BOOTSTRAP_SAMPLES = 10_000
+
+
+def sha(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        while chunk := stream.read(1 << 20):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def positive_labels(values: np.ndarray) -> tuple[int, ...]:
+    unique = sorted(int(value) for value in np.unique(values))
+    remap = {value: index + 1 for index, value in enumerate(unique)}
+    return tuple(remap[int(value)] for value in values)
+
+
+def paired_class_bootstrap(
+    delta: np.ndarray, labels: tuple[int, ...], *, seed: int = 17
+) -> dict[str, float | int]:
+    label_array = np.asarray(labels, dtype=np.int64)
+    groups = [np.flatnonzero(label_array == label) for label in sorted(set(labels))]
+    sums = np.asarray([float(delta[group].sum()) for group in groups], dtype=np.float64)
+    counts = np.asarray([len(group) for group in groups], dtype=np.float64)
+    generator = np.random.Generator(np.random.PCG64(seed))
+    values = np.empty(BOOTSTRAP_SAMPLES, dtype=np.float64)
+    for index in range(BOOTSTRAP_SAMPLES):
+        selected = generator.integers(0, len(groups), size=len(groups))
+        values[index] = sums[selected].sum() / counts[selected].sum()
+    return {
+        "samples": BOOTSTRAP_SAMPLES,
+        "seed": seed,
+        "lower_95": float(np.quantile(values, 0.025)),
+        "median": float(np.quantile(values, 0.5)),
+        "upper_95": float(np.quantile(values, 0.975)),
+    }
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--features", type=Path, required=True)
+    parser.add_argument("--features-sha256", required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--checkpoint-output", type=Path, required=True)
+    args = parser.parse_args()
+    if (
+        args.output.exists()
+        or args.checkpoint_output.exists()
+        or sha(args.features) != args.features_sha256
+    ):
+        raise ValueError("authority differs")
+
+    import run_sop_positive_coverage_metric as coverage
+    import run_sop_similarity_loss_controls as controls
+    from probe_sop_relational_linear import score_symmetric
+    from sfora.deterministic_similarity_runtime import (
+        configure_deterministic_similarity_runtime,
+    )
+    from sfora.joint_relational_compaction import fixed_int8_unit_codes
+    from sfora.representation_ceiling import fit_centered_pca
+    from sfora.teacher_anchored_distillation import (
+        class_balanced_anchor_schedule,
+    )
+
+    configure_deterministic_similarity_runtime(17, cpu_threads=2)
+    device = torch.device("cuda")
+    archive = np.load(args.features, allow_pickle=False)
+    metadata = json.loads(str(archive["metadata_json"].item()))
+    if (
+        metadata.get("schema") != "scratch-aircraft-unicom-features-v2"
+        or metadata.get("protocol")
+        != "sha256-name-ordered-50-fit-50-eval-classes"
+        or metadata.get("checkpoint_sha256") != EXPECTED_CHECKPOINT_SHA256
+        or metadata.get("unicom_revision") != EXPECTED_UNICOM_REVISION
+        or metadata.get("dimensions") != 768
+        or set(metadata.get("fit_classes", ()))
+        & set(metadata.get("evaluation_classes", ()))
+        or len(metadata.get("fit_classes", ())) != 50
+        or len(metadata.get("evaluation_classes", ())) != 50
+    ):
+        raise ValueError("feature metadata authority differs")
+
+    fit = F.normalize(torch.from_numpy(archive["fit_embeddings"]).float(), dim=1)
+    fit_labels = positive_labels(archive["fit_labels"].astype(np.int64))
+    fit_label_array = np.asarray(fit_labels, dtype=np.int64)
+    evaluation = F.normalize(
+        torch.from_numpy(archive["evaluation_embeddings"]).float(), dim=1
+    )
+    evaluation_labels = positive_labels(
+        archive["evaluation_labels"].astype(np.int64)
+    )
+    if (
+        fit.ndim != 2
+        or evaluation.ndim != 2
+        or fit.shape[1] != 768
+        or evaluation.shape[1] != 768
+        or fit.shape[0] != len(fit_labels)
+        or evaluation.shape[0] != len(evaluation_labels)
+        or len(set(fit_labels)) != 50
+        or len(set(evaluation_labels)) != 50
+        or metadata.get("counts")
+        != {"fit": len(fit_labels), "evaluation": len(evaluation_labels)}
+    ):
+        raise ValueError("feature array authority differs")
+    candidate_width = max(Counter(evaluation_labels).values()) - 1
+
+    def score(values: torch.Tensor) -> dict[str, object]:
+        normalized = F.normalize(values.float(), dim=1)
+        codes, _ = fixed_int8_unit_codes(normalized)
+        code_only = F.normalize(codes.float(), dim=1)
+        floating = score_symmetric(
+            normalized,
+            evaluation_labels,
+            candidate_width=candidate_width,
+            device=device,
+        )
+        packed = score_symmetric(
+            code_only,
+            evaluation_labels,
+            candidate_width=candidate_width,
+            device=device,
+        )
+        return {
+            "float_map_at_r": float(floating["map_at_r"]),
+            "float_r1": float(floating["r1"]),
+            "packed128_map_at_r": float(packed["map_at_r"]),
+            "packed128_r1": float(packed["r1"]),
+            "packed128_per_query_ap": [float(value) for value in packed["per_query_ap"]],
+            "packed128_per_query_r1": [float(value) for value in packed["per_query_r1"]],
+        }
+
+    pca = fit_centered_pca(fit, dimensions=128)
+    pca_evaluation = (evaluation - pca.mean.float()) @ pca.components.T.float()
+    teacher = score_symmetric(
+        evaluation,
+        evaluation_labels,
+        candidate_width=candidate_width,
+        device=device,
+    )
+    pca_result = score(pca_evaluation)
+
+    model = nn.Linear(768, 128, device=device)
+    with torch.no_grad():
+        model.weight.copy_(pca.components.float().to(device))
+        model.bias.copy_(
+            (-(pca.mean.float() @ pca.components.T.float())).to(device)
+        )
+    fit_cuda = fit.to(device)
+    with torch.inference_mode():
+        start = coverage._unit(model(fit_cuda)).detach()
+    positive_groups = {
+        label: np.flatnonzero(fit_label_array == label) for label in set(fit_labels)
+    }
+    frozen_negatives = controls.frozen_hard_negative_index(
+        start.cpu(),
+        fit_labels,
+        device=device,
+        k=coverage.HARD_NEGATIVES,
+        block_size=128,
+    )
+    updates = math.ceil(
+        REFERENCE_UPDATES
+        * REFERENCE_CLASSES_PER_UPDATE
+        * len(fit_labels)
+        / (REFERENCE_FIT_ROWS * FIT_CLASSES_PER_UPDATE)
+    )
+    schedule_authority = class_balanced_anchor_schedule(
+        fit_label_array,
+        seed=17,
+        updates=updates,
+        classes_per_update=FIT_CLASSES_PER_UPDATE,
+        rows_per_class=2,
+    )
+    schedule = tuple(row.copy() for row in schedule_authority.row_indexes)
+    optimizer = torch.optim.Adam(
+        model.parameters(), lr=1e-3 * (128 / 768) ** 0.5
+    )
+    started = time.monotonic()
+    losses: list[float] = []
+    for _cycle in range(CYCLES):
+        for anchors_numpy in schedule:
+            anchors = torch.from_numpy(anchors_numpy).to(device)
+            positives_numpy, positive_mask_numpy = coverage._positive_rows(
+                anchors_numpy, fit_label_array, positive_groups
+            )
+            positives = torch.from_numpy(positives_numpy).to(device)
+            positive_mask = torch.from_numpy(positive_mask_numpy).to(device)
+            negatives = frozen_negatives[anchors]
+            anchor_codes = coverage._unit(model(fit_cuda[anchors]))
+            positive_codes = coverage._unit(
+                model(fit_cuda[positives.reshape(-1)])
+            ).reshape(len(anchors), positives.shape[1], -1)
+            negative_codes = coverage._unit(
+                model(fit_cuda[negatives.reshape(-1)])
+            ).reshape(len(anchors), negatives.shape[1], -1)
+            loss = controls.matched_control_loss(
+                "mean_logit",
+                torch.einsum("bd,bpd->bp", anchor_codes, positive_codes),
+                positive_mask,
+                torch.einsum("bd,bnd->bn", anchor_codes, negative_codes),
+                torch.einsum("bd,bd->b", anchor_codes, start[anchors]),
+            )
+            optimizer.zero_grad(set_to_none=True)
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+            optimizer.step()
+            losses.append(float(loss.detach()))
+
+    with torch.inference_mode():
+        learned = score(coverage._unit(model(evaluation.to(device))).cpu())
+    ap_delta = np.asarray(learned["packed128_per_query_ap"]) - np.asarray(
+        pca_result["packed128_per_query_ap"]
+    )
+    r1_delta = np.asarray(learned["packed128_per_query_r1"]) - np.asarray(
+        pca_result["packed128_per_query_r1"]
+    )
+    ap_bootstrap = paired_class_bootstrap(ap_delta, evaluation_labels)
+    r1_bootstrap = paired_class_bootstrap(r1_delta, evaluation_labels)
+    map_gain = float(
+        learned["packed128_map_at_r"] - pca_result["packed128_map_at_r"]
+    )
+    r1_gain = float(learned["packed128_r1"] - pca_result["packed128_r1"])
+    passed = (
+        map_gain >= MAP_GAIN_GATE
+        and r1_gain >= 0.0
+        and float(ap_bootstrap["lower_95"]) > 0.0
+    )
+    torch.save(
+        {
+            "weight": model.weight.detach().cpu(),
+            "bias": model.bias.detach().cpu(),
+            "features_sha256": args.features_sha256,
+            "schedule_sha256": schedule_authority.sha256,
+        },
+        args.checkpoint_output,
+    )
+    output = {
+        "schema": "scratch-aircraft-pca-linear-gate-v2",
+        "claim_eligible": False,
+        "dataset": "fgvc-aircraft-sha-class-disjoint",
+        "features_sha256": args.features_sha256,
+        "metadata": metadata,
+        "training": {
+            "initialization": "centered-pca128",
+            "objective": "mean_logit",
+            "cycles": CYCLES,
+            "updates_per_cycle": updates,
+            "classes_per_update": FIT_CLASSES_PER_UPDATE,
+            "rows_per_class": 2,
+            "reference": {
+                "eligible_classes": REFERENCE_ELIGIBLE_CLASSES,
+                "fit_rows": REFERENCE_FIT_ROWS,
+                "updates": REFERENCE_UPDATES,
+                "classes_per_update": REFERENCE_CLASSES_PER_UPDATE,
+            },
+            "schedule_sha256": schedule_authority.sha256,
+            "elapsed_seconds": time.monotonic() - started,
+            "final_loss": losses[-1],
+        },
+        "arms": {
+            "teacher_float768": {
+                "float_map_at_r": float(teacher["map_at_r"]),
+                "float_r1": float(teacher["r1"]),
+            },
+            "pca128": pca_result,
+            "learned_linear128": learned,
+        },
+        "decision": {
+            "map_gain_gate": MAP_GAIN_GATE,
+            "observed_map_gain": map_gain,
+            "observed_r1_gain": r1_gain,
+            "paired_class_bootstrap_map_gain": ap_bootstrap,
+            "paired_class_bootstrap_r1_gain": r1_bootstrap,
+            "passed": passed,
+        },
+        "checkpoint_sha256": sha(args.checkpoint_output),
+    }
+    wire = json.dumps(
+        output, sort_keys=True, separators=(",", ":"), allow_nan=False
+    ) + "\n"
+    args.output.write_text(wire)
+    print(wire, end="")
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,59 @@
+#!/usr/bin/env python3
+"""Measure the frozen affine head and exact int8 encoder on DGX."""
+from __future__ import annotations
+
+import json
+import statistics
+
+import numpy as np
+import torch
+
+from compact_metric import CompactMetricEncoder
+
+
+def measure(module: torch.nn.Module, rows: int, samples: int) -> dict[str, float | int]:
+    generator = torch.Generator(device="cuda").manual_seed(31 + rows)
+    values = torch.randn(rows, 768, device="cuda", generator=generator)
+    for _ in range(200):
+        output = module(values)
+        torch.round(output * 127.0).clamp(-127, 127).to(torch.int8)
+    torch.cuda.synchronize()
+    starts = [torch.cuda.Event(enable_timing=True) for _ in range(samples)]
+    stops = [torch.cuda.Event(enable_timing=True) for _ in range(samples)]
+    for start, stop in zip(starts, stops, strict=True):
+        start.record()
+        output = module(values)
+        torch.round(output * 127.0).clamp(-127, 127).to(torch.int8)
+        stop.record()
+    torch.cuda.synchronize()
+    microseconds = np.asarray(
+        [start.elapsed_time(stop) * 1000.0 for start, stop in zip(starts, stops, strict=True)]
+    )
+    return {
+        "rows": rows,
+        "samples": samples,
+        "mean_us": float(statistics.fmean(microseconds.tolist())),
+        "p50_us": float(np.quantile(microseconds, 0.5)),
+        "p99_us": float(np.quantile(microseconds, 0.99)),
+        "vectors_per_second_at_mean": float(rows * 1e6 / microseconds.mean()),
+    }
+
+
+def main() -> None:
+    state = torch.load("/tmp/aircraft-library-shadow.pt", map_location="cpu", weights_only=True)
+    encoder = CompactMetricEncoder(weight=state["weight"], bias=state["bias"])
+    module = encoder.to_module(torch.device("cuda"))
+    output = {
+        "schema": "scratch-compact-metric-gb10-benchmark-v1",
+        "device": torch.cuda.get_device_name(0),
+        "operation": "normalize-768-affine-128-normalize-round-int8",
+        "batch1": measure(module, 1, 5000),
+        "batch256": measure(module, 256, 1000),
+        "parameter_bytes_f32": 128 * 768 * 4 + 128 * 4,
+        "persistent_code_bytes_per_vector": 128,
+    }
+    print(json.dumps(output, sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,82 @@
+#!/usr/bin/env python3
+"""Independent NumPy ranking replay for the Aircraft scratch gate."""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+from pathlib import Path
+
+import numpy as np
+import torch
+
+
+def sha(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        while chunk := stream.read(1 << 20):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def unit(values: torch.Tensor) -> torch.Tensor:
+    return torch.nn.functional.normalize(values.float(), dim=1)
+
+
+def code_only(values: torch.Tensor) -> np.ndarray:
+    normalized = unit(values)
+    codes = torch.round(normalized * 127.0).clamp(-127, 127).to(torch.int8)
+    return unit(codes.float()).numpy().astype(np.float32, copy=False)
+
+
+def score(embeddings: np.ndarray, labels: np.ndarray) -> tuple[float, float]:
+    scores = embeddings @ embeddings.T
+    np.fill_diagonal(scores, -np.inf)
+    ordinals = np.arange(len(labels))
+    aps = []
+    hits = []
+    for row in range(len(labels)):
+        ranking = np.lexsort((ordinals, -scores[row]))
+        relevant = int(np.sum(labels == labels[row]) - 1)
+        selected = labels[ranking[:relevant]] == labels[row]
+        precision = np.cumsum(selected) / np.arange(1, relevant + 1)
+        aps.append(float(np.sum(precision[selected]) / relevant))
+        hits.append(float(labels[ranking[0]] == labels[row]))
+    return float(np.mean(aps)), float(np.mean(hits))
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--features", type=Path, required=True)
+    parser.add_argument("--checkpoint", type=Path, required=True)
+    parser.add_argument("--result", type=Path, required=True)
+    args = parser.parse_args()
+    archive = np.load(args.features, allow_pickle=False)
+    labels = archive["evaluation_labels"].astype(np.int64)
+    evaluation = unit(torch.from_numpy(archive["evaluation_embeddings"]))
+    state = torch.load(args.checkpoint, map_location="cpu", weights_only=True)
+    learned = unit(evaluation @ state["weight"].T + state["bias"])
+    result = json.loads(args.result.read_text())
+    teacher_score = score(evaluation.numpy().astype(np.float32, copy=False), labels)
+    learned_score = score(code_only(learned), labels)
+    expected_teacher = result["arms"]["teacher_float768"]
+    expected_learned = result["arms"]["learned_linear128"]
+    assert abs(teacher_score[0] - expected_teacher["float_map_at_r"]) < 1e-12
+    assert abs(teacher_score[1] - expected_teacher["float_r1"]) < 1e-12
+    learned_map_delta = learned_score[0] - expected_learned["packed128_map_at_r"]
+    assert abs(learned_map_delta) < 1e-6
+    assert abs(learned_score[1] - expected_learned["packed128_r1"]) < 1e-12
+    print(json.dumps({
+        "schema": "scratch-aircraft-independent-replay-v1",
+        "features_sha256": sha(args.features),
+        "checkpoint_sha256": sha(args.checkpoint),
+        "result_sha256": sha(args.result),
+        "teacher_float768": {"map_at_r": teacher_score[0], "r1": teacher_score[1]},
+        "learned_exact128": {"map_at_r": learned_score[0], "r1": learned_score[1]},
+        "numpy_minus_gpu_map_at_r": learned_map_delta,
+        "verified": True,
+    }, sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+"""Replay the burned Aircraft gate through the generic library fitter."""
+from __future__ import annotations
+
+import hashlib
+import json
+from collections import Counter
+from pathlib import Path
+
+import numpy as np
+import torch
+from torch.nn import functional as F
+
+from compact_metric import CompactMetricConfig, fit_compact_metric_projection
+from probe_sop_relational_linear import score_symmetric
+from sfora.deterministic_similarity_runtime import configure_deterministic_similarity_runtime
+
+
+def tensor_sha(*values: torch.Tensor) -> str:
+    digest = hashlib.sha256()
+    for value in values:
+        digest.update(value.detach().cpu().contiguous().numpy().tobytes())
+    return digest.hexdigest()
+
+
+def positive_labels(values: np.ndarray) -> tuple[int, ...]:
+    mapping = {value: index + 1 for index, value in enumerate(sorted(set(values.tolist())))}
+    return tuple(mapping[value] for value in values.tolist())
+
+
+def main() -> None:
+    configure_deterministic_similarity_runtime(17, cpu_threads=2)
+    archive = np.load("/tmp/aircraft-unicom-l14.npz", allow_pickle=False)
+    fit = np.ascontiguousarray(archive["fit_embeddings"], dtype=np.float32)
+    labels = torch.tensor(positive_labels(archive["fit_labels"]), dtype=torch.int64)
+    evaluation = np.ascontiguousarray(archive["evaluation_embeddings"], dtype=np.float32)
+    evaluation_labels = positive_labels(archive["evaluation_labels"])
+    result = fit_compact_metric_projection(
+        torch.from_numpy(fit),
+        labels,
+        config=CompactMetricConfig(),
+        device=torch.device("cuda"),
+    )
+    codes = result.encoder.encode(torch.from_numpy(evaluation))
+    restored = F.normalize(codes.float(), dim=1)
+    width = max(Counter(evaluation_labels).values()) - 1
+    score = score_symmetric(
+        restored,
+        evaluation_labels,
+        candidate_width=width,
+        device=torch.device("cuda"),
+    )
+    torch.save(
+        {"weight": result.encoder.weight, "bias": result.encoder.bias},
+        "/tmp/aircraft-library-shadow.pt",
+    )
+    output = {
+        "schema": "scratch-aircraft-library-shadow-v1",
+        "map_at_r": float(score["map_at_r"]),
+        "r1": float(score["r1"]),
+        "classes_per_update": result.classes_per_update,
+        "updates_per_cycle": result.updates_per_cycle,
+        "total_updates": result.total_updates,
+        "effective_hard_negatives": result.effective_hard_negatives,
+        "schedule_sha256": result.schedule_sha256,
+        "parameter_sha256": tensor_sha(result.encoder.weight, result.encoder.bias),
+        "final_loss": result.losses[-1],
+    }
+    Path("/tmp/aircraft-library-shadow.json").write_text(
+        json.dumps(output, sort_keys=True, separators=(",", ":")) + "\n"
+    )
+    print(json.dumps(output, sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()

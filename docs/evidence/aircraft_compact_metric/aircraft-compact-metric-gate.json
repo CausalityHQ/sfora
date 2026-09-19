@@ -1,0 +1,137 @@
+{
+  "artifacts": {
+    "checkpoint": {
+      "bytes": 396013,
+      "sha256": "4f548d62b79af1ccf1086ce97ce0d7258dcb1e4cce39b9dd8e64cb891db28f45"
+    },
+    "features": {
+      "bytes": 15398128,
+      "sha256": "84629ac7922c7aa8b2656c4f050d9545838e766b3861a9c13aed9a8e1bbdf003"
+    },
+    "raw_result": {
+      "bytes": 75508,
+      "sha256": "f882337446965e6ad36e365d645b4ea9b5aafc0b6b42de9b4317bd0118f6e6de"
+    }
+  },
+  "benchmark": {
+    "batch1": {
+      "mean_us": 53.031251224502924,
+      "p50_us": 52.639998495578766,
+      "p99_us": 59.362241216003945,
+      "samples": 5000,
+      "vectors_per_second_at_mean": 18856.80569305431
+    },
+    "batch256": {
+      "mean_total_us": 56.4804478995502,
+      "p50_total_us": 55.58399856090546,
+      "p99_total_us": 106.29983715713021,
+      "samples": 1000,
+      "vectors_per_second_at_mean": 4532541.959569671
+    },
+    "device": "NVIDIA GB10",
+    "operation": "normalize-768-affine-128-normalize-round-int8",
+    "parameter_bytes_f32": 393728,
+    "persistent_code_bytes_per_vector": 128,
+    "receipt_sha256": "656483844edc19232613552b8dfb6211e49909698b40deeed3c176b22d44c59f"
+  },
+  "claim_eligible": false,
+  "dataset": {
+    "evaluation_classes": 50,
+    "evaluation_rows": 1665,
+    "fit_classes": 50,
+    "fit_rows": 3332,
+    "name": "FGVC-Aircraft",
+    "protocol": "SHA-256-name-ordered 50-fit/50-evaluation disjoint variants",
+    "source_split": "trainval for fit; test for evaluation",
+    "total_variants": 100
+  },
+  "decision": {
+    "map_gain_gate": 0.003,
+    "observed_map_gain": 0.040784679875043084,
+    "observed_r1_gain": 0.015615615615615641,
+    "paired_class_bootstrap_map_gain": {
+      "lower_95": 0.024954257254504567,
+      "median": 0.04034204116198602,
+      "samples": 10000,
+      "upper_95": 0.059055716226630556
+    },
+    "passed": true
+  },
+  "independent_replay": {
+    "learned_exact128": {
+      "map_at_r": 0.48061444713266965,
+      "r1": 0.7405405405405405
+    },
+    "numpy_minus_gpu_map_at_r": 5.951149741889594e-7,
+    "receipt_sha256": "589e5294e95edf4140e8165673e0f1a2b88fe0cedd714684342d046506716adb",
+    "teacher_float768": {
+      "map_at_r": 0.4427107411399534,
+      "r1": 0.7327327327327328
+    },
+    "verified": true
+  },
+  "metrics": {
+    "learned_exact128": {
+      "map_at_r": 0.48061385201769546,
+      "r1": 0.7405405405405405
+    },
+    "learned_float128": {
+      "map_at_r": 0.4807820829069831,
+      "r1": 0.7435435435435436
+    },
+    "pca_exact128": {
+      "map_at_r": 0.4398291721426524,
+      "r1": 0.7249249249249249
+    },
+    "pca_float128": {
+      "map_at_r": 0.4399934791820034,
+      "r1": 0.7249249249249249
+    },
+    "teacher_float768": {
+      "map_at_r": 0.4427107411399534,
+      "r1": 0.7327327327327328
+    }
+  },
+  "schema": "sfora-aircraft-compact-metric-evidence-v1",
+  "scripts": {
+    "benchmark_sha256": "8d6023d8019de32704327089596a5b85ac71512b3bd284afd240f27e28c08330",
+    "export_sha256": "1198d0c3e5c02e605004a7789cfafa7bfbb65ec76eb9f103339303bd3527448c",
+    "gate_sha256": "670ed5d573662532800f8e681b902697813e4deeb3b3228d639072493fc086f4",
+    "independent_verifier_sha256": "b01da9205a2c1d1257ba83cfbf8f7107eff4b82f72b66923ffa9c39b09921e69",
+    "library_shadow_sha256": "82861549f76b147224f6b0616cfda11807880dfa7fb737ee4ee5cb89c4d43f3d"
+  },
+  "teacher": {
+    "checkpoint_sha256": "3916ab5aed3b522fc90345be8b4457fe5dad60801ad2af5a6871c0c096e8d7ea",
+    "dimensions": 768,
+    "model": "UNICOM ViT-L/14@336",
+    "revision": "d71992ed969e6c271436ac0a0ee1f3ca61474ac0"
+  },
+  "training": {
+    "classes_per_update": 50,
+    "cycles": 4,
+    "elapsed_seconds": 4.34194,
+    "configured_learning_rate": 0.001,
+    "effective_learning_rate": 0.00040824829046386303,
+    "temperature": 0.05,
+    "margin": 0.02,
+    "anchor_weight": 10.0,
+    "gradient_clip": 1.0,
+    "hard_negatives": 256,
+    "mining_block_size": 128,
+    "output_dimensions": 128,
+    "rows_per_class": 2,
+    "schedule_sha256": "09e20f596fd496c3a57fde356f98a32353dd27c01c820cc930a7168ac79cb10f",
+    "seed": 17,
+    "total_updates": 716,
+    "updates_per_cycle": 179
+  },
+  "library_replay": {
+    "parameter_bytes_sha256": "5f74eb5056a28d84f6b6d839d1e94ab36d7b64aac32f44f2abe7325ac99d48ad",
+    "result_bytes": 404,
+    "result_sha256": "8ca1dbf7d5c333cc2069a842692b77bd863acb919a2917f31ee7a74b9c218d3f",
+    "map_at_r": 0.48061444713266965,
+    "r1": 0.7405405405405405,
+    "schedule_sha256": "09e20f596fd496c3a57fde356f98a32353dd27c01c820cc930a7168ac79cb10f",
+    "total_updates": 716
+  }
+}
