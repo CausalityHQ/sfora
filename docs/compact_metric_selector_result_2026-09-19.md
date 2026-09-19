@@ -131,14 +131,18 @@ per item:
 | PCA int8-128 | `0.767869` | `0.970852` |
 | Faiss `PQ128x8` | `0.814752` | **`0.974419`** |
 | Faiss `OPQ128_768,PQ128x8` | `0.817630` | `0.973066` |
+| Faiss `PQ256x4` | `0.816410` | `0.973681` |
+| Faiss `OPQ256_768,PQ256x4` | `0.815397` | `0.973558` |
 | learned int8-128 | **`0.825656`** | `0.972574` |
 
-The learned code gains `+0.008026` mAP@R over OPQ at equal bytes, but its
-Recall@1 is `0.000492` lower.  The evidence therefore supports higher ranking
-quality per byte, not dominance on every retrieval metric.  Faiss also warned
-that the 8,054 authorized fit rows are below its recommended 9,984 rows for
-training 256 centroids; evaluation rows were not leaked into codec fitting to
-silence that warning.
+The learned code gains `+0.008026` mAP@R over the strongest OPQ/PQ mAP result
+at equal bytes.  Its Recall@1 is `0.001845` lower than the strongest PQ result,
+so the evidence supports higher ranking quality per byte, not dominance on
+every retrieval metric.  The four-bit controls were added because their 16-way
+subquantizers are better matched to this fit-set size; neither displaced the
+learned code on mAP@R.  Faiss warned that the 8,054 authorized fit rows are
+below its recommended 9,984 rows for internal 256-centroid training;
+evaluation rows were not leaked into codec fitting to silence that warning.
 
 Cars196 receipt authorities:
 
@@ -152,6 +156,10 @@ Cars196 receipt authorities:
   `80c9d776ad1aab27056c99344d0f2b21498a0ee08d3b6ccc3a886a3027187044`;
 - equal-byte codec driver SHA-256
   `c6ebc6807176c312b0790ae9636606f905b3e5b90e75900a32bc9779b7df6491`;
+- four-bit codec extension receipt SHA-256
+  `17c8b0d166f13f0ba4a10d518818784ada900154bb3749055551af306455854b`;
+- four-bit codec extension driver SHA-256
+  `3b7021c2339530d114109a49a68284fe81b0f050b4c6e6a1778aa8d55383c742`;
 - fitted checkpoint SHA-256
   `1cd1d633764fd53caefb49f0aa091feb49370455d5e16dfb6c334d7c88a58e9f`;
 - exporter SHA-256
