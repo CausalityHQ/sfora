@@ -244,14 +244,19 @@ results were:
 
 | Representation | Stored width | mAP@R | Recall@1 |
 | --- | ---: | ---: | ---: |
-| rank-finished standard float source | 3,072 bytes | `0.776033` | `0.944718` |
+| historical first-512 standard readout | 2,048 bytes | `0.776033` | `0.944718` |
+| matched-input float-768 source | 3,072 bytes | `0.779547` | `0.945703` |
 | PCA int8-128 | 128 bytes | `0.777572` | `0.946125` |
 | learned int8-128 | 128 bytes | **`0.800020`** | **`0.954283`** |
 
-Thus the learned code improves over the rank-finished standard source by
-`+0.023987` mAP@R and `+0.009565` Recall@1 while storing 24 times fewer bytes.
-It also clears the repository's `0.939` In-Shop Recall@1 frontier, but this
-post-hoc composition remains explicitly claim-ineligible.  It is strong
+The all-768 source is the matched representation baseline because the compact
+learner receives all 768 input coordinates.  Against it, learned int8-128 gains
+`+0.020473` mAP@R and `+0.008581` Recall@1 while storing 24 times fewer bytes.
+Against same-byte PCA it gains `+0.022448` / `+0.008159`.  The historical
+first-512 result is retained only to bind this model to its earlier standard
+release evidence, not used as the primary compact-method comparator.  Learned
+int8-128 also clears the repository's `0.939` In-Shop Recall@1 frontier, but
+this post-hoc composition remains explicitly claim-ineligible.  It is strong
 product evidence and motivates a fresh, prospectively frozen replication; it
 is not presented as a new publication claim on an untouched test set.
 
