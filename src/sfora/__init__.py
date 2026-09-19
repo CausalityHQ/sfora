@@ -133,6 +133,16 @@ _PACKED_INT4_EXPORTS = frozenset(
     }
 )
 
+_COMPACT_METRIC_EXPORTS = frozenset(
+    {
+        "CompactMetricConfig",
+        "CompactMetricEncoder",
+        "CompactMetricFitResult",
+        "CompactMetricModule",
+        "fit_compact_metric_projection",
+    }
+)
+
 _FOLDABLE_LINEAR_EXPORTS = frozenset({"FoldableLinear"})
 
 _FACTORIZED_RESIDUAL_ANN_EXPORTS = frozenset(
@@ -307,6 +317,11 @@ def __getattr__(name: str) -> object:
         value = cast(object, getattr(module, name))
         globals()[name] = value
         return value
+    if name in _COMPACT_METRIC_EXPORTS:
+        module = import_module("sfora.compact_metric")
+        value = cast(object, getattr(module, name))
+        globals()[name] = value
+        return value
     if name in _FOLDABLE_LINEAR_EXPORTS:
         module = import_module("sfora.foldable_linear")
         value = cast(object, getattr(module, name))
@@ -387,6 +402,10 @@ def __getattr__(name: str) -> object:
 
 __all__ = [
     "CandidateResult",
+    "CompactMetricConfig",
+    "CompactMetricEncoder",
+    "CompactMetricFitResult",
+    "CompactMetricModule",
     "ExperimentResult",
     "FactorizedResidualArtifact",
     "FactorizedResidualComponents",
@@ -505,6 +524,7 @@ __all__ = [
     "build_remote_run_plan",
     "balanced_product_quantization_spec",
     "fit_sfora_projection",
+    "fit_compact_metric_projection",
     "fit_relational_linear_compaction",
     "fit_relational_linear_encoder",
     "fit_rate_matched_product_quantizer",

@@ -1,0 +1,46 @@
+#!/usr/bin/env python3
+"""Throwaway frozen UNICOM feature export for fresh FGVC-Aircraft gate."""
+from __future__ import annotations
+import argparse, hashlib, json, subprocess
+from pathlib import Path
+import numpy as np
+from torchvision.datasets import FGVCAircraft
+
+UNICOM_REVISION = "d71992ed969e6c271436ac0a0ee1f3ca61474ac0"
+CHECKPOINT_SHA256 = "3916ab5aed3b522fc90345be8b4457fe5dad60801ad2af5a6871c0c096e8d7ea"
+
+def sha(path: Path) -> str:
+    h=hashlib.sha256()
+    with path.open("rb") as f:
+        while b:=f.read(1<<20): h.update(b)
+    return h.hexdigest()
+
+def main() -> None:
+    p=argparse.ArgumentParser(); p.add_argument("--root",type=Path,required=True); p.add_argument("--checkout",type=Path,required=True); p.add_argument("--checkpoint",type=Path,required=True); p.add_argument("--output",type=Path,required=True); a=p.parse_args()
+    if a.output.exists(): raise FileExistsError(a.output)
+    revision = subprocess.run(
+        ["git", "-C", str(a.checkout), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    checkpoint_sha256 = sha(a.checkpoint)
+    if revision != UNICOM_REVISION or checkpoint_sha256 != CHECKPOINT_SHA256:
+        raise ValueError("teacher authority differs")
+    from export_unicom_inshop_embeddings import _official_encoder
+    train=FGVCAircraft(root=a.root,split="trainval",annotation_level="variant"); test=FGVCAircraft(root=a.root,split="test",annotation_level="variant")
+    if train.classes!=test.classes or len(train.classes)!=100 or len(train)!=6667 or len(test)!=3333: raise ValueError("aircraft authority differs")
+    order=sorted(range(100),key=lambda i:(hashlib.sha256(train.classes[i].encode()).hexdigest(),train.classes[i])); fit=set(order[:50]); evaluation=set(order[50:])
+    encoder=_official_encoder(a.checkout,a.checkpoint,model_name="ViT-L/14@336px")
+    def encode(paths: list[str]) -> np.ndarray:
+        parts=[]
+        for start in range(0,len(paths),64): parts.append(encoder(tuple(Path(x) for x in paths[start:start+64])))
+        return np.ascontiguousarray(np.concatenate(parts))
+    fit_idx=[i for i,y in enumerate(train._labels) if y in fit]; eval_idx=[i for i,y in enumerate(test._labels) if y in evaluation]
+    fit_paths=[train._image_files[i] for i in fit_idx]; eval_paths=[test._image_files[i] for i in eval_idx]
+    fit_emb=encode(fit_paths); eval_emb=encode(eval_paths); fit_labels=np.asarray([train._labels[i] for i in fit_idx],dtype=np.int64); eval_labels=np.asarray([test._labels[i] for i in eval_idx],dtype=np.int64)
+    archive = a.root / "fgvc-aircraft-2013b.tar.gz"
+    meta={"schema":"scratch-aircraft-unicom-features-v2","claim_eligible":False,"protocol":"sha256-name-ordered-50-fit-50-eval-classes","fit_classes":[train.classes[i] for i in order[:50]],"evaluation_classes":[train.classes[i] for i in order[50:]],"unicom_revision":revision,"checkpoint_sha256":checkpoint_sha256,"dataset_archive_sha256":sha(archive),"counts":{"fit":len(fit_idx),"evaluation":len(eval_idx)},"dimensions":768}
+    np.savez(a.output,metadata_json=np.asarray(json.dumps(meta,sort_keys=True,separators=(",",":"))),fit_embeddings=fit_emb,fit_labels=fit_labels,evaluation_embeddings=eval_emb,evaluation_labels=eval_labels)
+    print(json.dumps({"output":str(a.output),"sha256":sha(a.output),**meta},sort_keys=True),flush=True)
+if __name__=="__main__": main()
