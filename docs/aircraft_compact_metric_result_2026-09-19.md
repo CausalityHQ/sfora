@@ -30,10 +30,19 @@ Training the affine head took 4.34 seconds on the DGX for 716 updates. On an
 NVIDIA GB10, the final public `CompactMetricModule.encode()` path
 `normalize-768 -> affine-128 -> normalize -> round-int8` measured:
 
-| Batch | Mean | p50 | p99 | Throughput at mean |
+| Batch | Mean | p50 | p99 | Effective rate at mean |
 | --- | ---: | ---: | ---: | ---: |
 | 1 | 58.08 us | 57.12 us | 64.26 us | 17,217 vectors/s |
 | 256 | 60.44 us total | 59.94 us total | 68.11 us total | 4.24M vectors/s |
+
+The effective rate in this small-batch table is derived from repeated batch
+latency; it is not a saturated-throughput claim. A follow-up screen measured
+eager event throughput at 17.34M vectors/s for batch 4,096 and 13.10M
+vectors/s for batch 65,536. On the latency path, `torch.compile` reduced the
+batch-1 event mean from 56.02 us to 34.31 us, while CUDA Graph replay with an
+explicit input copy reduced it to 18.29 us. Both optimized paths produced the
+same int8 codes as eager execution in this screen. These are encoder-only
+measurements, not end-to-end backbone latency.
 
 The shared float32 affine parameters occupy 393,728 bytes. Each persisted code
 is exactly 128 bytes; this payload figure excludes shared model parameters and
@@ -58,6 +67,13 @@ transferred recipe tested here. The API adapts classes per update and updates
 per cycle to the available labeled rows, but its defaults remain empirical,
 not theoretically universal.
 
+A post-result five-seed stability screen produced packed mAP@R in
+`[0.479811, 0.483826]` (mean `0.481789`, sample standard deviation
+`0.001589`) and Recall@1 in `[0.736937, 0.745946]`. Every seed remained above
+the fixed PCA-int8 mAP@R control of `0.439829`. Because this screen reused the
+already observed Aircraft evaluation classes, it is robustness evidence only
+and remains claim-ineligible.
+
 ## Authorities
 
 - Sealed summary receipt:
@@ -79,6 +95,14 @@ not theoretically universal.
   `5f74eb5056a28d84f6b6d839d1e94ab36d7b64aac32f44f2abe7325ac99d48ad`
 - Public-encoder benchmark receipt:
   `docs/evidence/aircraft_compact_metric/compact-metric-public-encode-gb10-v1.json`
+- Backend and saturated-batch screen receipt:
+  `docs/evidence/aircraft_compact_metric/compact-metric-backend-screen-gb10-v1.json`
+- Five-seed stability receipt:
+  `docs/evidence/aircraft_compact_metric/aircraft-compact-metric-seed-screen-v1.json`
+- Backend-screen script SHA-256:
+  `501997488661d14b9969e81ec3a7fa8acfc6eaf326608a2b34bdd6fb99b5bda7`
+- Five-seed-screen script SHA-256:
+  `c75e9a28b194906cd778571d1791a85cd967ba13c1255af126daa812fb4f83b3`
 - Benchmarked release-module SHA-256:
   `2d98e39786bea3d4a45205ec3e4fd1d79adaa594e61c3d1ba82b4b5b4600e553`
 - Public-benchmark script SHA-256:

@@ -1,0 +1,164 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import hashlib
+import importlib.util
+import json
+import statistics
+import sys
+import time
+import types
+from pathlib import Path
+
+import numpy as np
+import torch
+
+
+def load_release(path: Path) -> types.ModuleType:
+    package = types.ModuleType("sfora")
+    package.__path__ = []
+    sys.modules["sfora"] = package
+    joint = types.ModuleType("sfora.joint_relational_compaction")
+    joint.fixed_int8_unit_codes = lambda value: None
+    sys.modules[joint.__name__] = joint
+    ceiling = types.ModuleType("sfora.representation_ceiling")
+    ceiling.fit_centered_pca = lambda *args, **kwargs: None
+    sys.modules[ceiling.__name__] = ceiling
+    distillation = types.ModuleType("sfora.teacher_anchored_distillation")
+    for name in (
+        "class_balanced_anchor_schedule",
+        "positive_coverage_hard_negative_loss",
+        "stable_different_class_topk",
+    ):
+        setattr(distillation, name, lambda *args, **kwargs: None)
+    sys.modules[distillation.__name__] = distillation
+    spec = importlib.util.spec_from_file_location("compact_metric_release", path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def summary(values: list[float], rows: int) -> dict[str, float]:
+    array = np.asarray(values)
+    return {
+        "mean_us": float(statistics.fmean(values)),
+        "p50_us": float(np.quantile(array, 0.5)),
+        "p99_us": float(np.quantile(array, 0.99)),
+        "vectors_per_second": float(rows * 1e6 / array.mean()),
+    }
+
+
+def event_bench(fn, rows: int, samples: int) -> dict[str, float]:
+    for _ in range(50):
+        fn()
+    torch.cuda.synchronize()
+    pairs = []
+    for _ in range(samples):
+        start = torch.cuda.Event(enable_timing=True)
+        stop = torch.cuda.Event(enable_timing=True)
+        start.record()
+        fn()
+        stop.record()
+        pairs.append((start, stop))
+    torch.cuda.synchronize()
+    return summary([a.elapsed_time(b) * 1000.0 for a, b in pairs], rows)
+
+
+def wall_bench(fn, rows: int, samples: int) -> dict[str, float]:
+    values = []
+    for _ in range(samples):
+        start = time.perf_counter_ns()
+        fn()
+        torch.cuda.synchronize()
+        values.append((time.perf_counter_ns() - start) / 1000.0)
+    return summary(values, rows)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--module", type=Path, required=True)
+    parser.add_argument("--checkpoint", type=Path, required=True)
+    args = parser.parse_args()
+    module_source = args.module.read_bytes()
+    release = load_release(args.module)
+    state = torch.load(args.checkpoint, map_location="cpu", weights_only=True)
+    encoder = release.CompactMetricModule(
+        state["weight"], state["bias"], device=torch.device("cuda")
+    )
+    output = {
+        "schema": "sfora-compact-metric-backend-screen-v1",
+        "device": torch.cuda.get_device_name(0),
+        "torch": torch.__version__,
+        "module_sha256": hashlib.sha256(module_source).hexdigest(),
+        "checkpoint_sha256": hashlib.sha256(args.checkpoint.read_bytes()).hexdigest(),
+        "results": {},
+    }
+    for rows, samples in ((1, 1000), (256, 500), (4096, 100), (65536, 20)):
+        generator = torch.Generator(device="cuda").manual_seed(1900 + rows)
+        values = torch.randn(rows, 768, device="cuda", generator=generator)
+        eager = lambda: encoder.encode(values)
+        eager_reference = eager()
+        result = {
+            "eager_event": event_bench(eager, rows, samples),
+            "eager_wall_complete": wall_bench(eager, rows, min(samples, 100)),
+        }
+        if rows <= 256:
+            compiled = torch.compile(
+                encoder.encode, fullgraph=True, dynamic=False, mode="reduce-overhead"
+            )
+            compiled_reference = compiled(values)
+            torch.cuda.synchronize()
+            result["compile_exact_codes"] = bool(
+                torch.equal(eager_reference, compiled_reference)
+            )
+            result["compile_max_code_delta"] = int(
+                (eager_reference.to(torch.int16) - compiled_reference.to(torch.int16))
+                .abs()
+                .max()
+                .item()
+            )
+            result["compile_event"] = event_bench(
+                lambda: compiled(values), rows, samples
+            )
+            result["compile_wall_complete"] = wall_bench(
+                lambda: compiled(values), rows, min(samples, 100)
+            )
+            static_input = values.clone()
+            graph = torch.cuda.CUDAGraph()
+            with torch.cuda.graph(graph):
+                graph_output = encoder.encode(static_input)
+            graph.replay()
+            torch.cuda.synchronize()
+            result["graph_exact_codes"] = bool(
+                torch.equal(eager_reference, graph_output)
+            )
+            result["graph_replay_event"] = event_bench(graph.replay, rows, samples)
+            result["graph_replay_wall_complete"] = wall_bench(
+                graph.replay, rows, min(samples, 100)
+            )
+            staged = torch.empty_like(values)
+            staged_graph = torch.cuda.CUDAGraph()
+            with torch.cuda.graph(staged_graph):
+                staged_output = encoder.encode(staged)
+
+            def copy_and_replay():
+                staged.copy_(values)
+                staged_graph.replay()
+                return staged_output
+
+            result["graph_copy_replay_event"] = event_bench(
+                copy_and_replay, rows, samples
+            )
+            result["graph_copy_replay_wall_complete"] = wall_bench(
+                copy_and_replay, rows, min(samples, 100)
+            )
+        output["results"][str(rows)] = result
+        print(json.dumps({"progress_rows": rows, "result": result}, sort_keys=True), flush=True)
+    print(json.dumps(output, sort_keys=True, separators=(",", ":")))
+
+
+if __name__ == "__main__":
+    main()
