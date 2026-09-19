@@ -196,7 +196,7 @@ class FactorizedResidualIndex:
             )
         elif type(candidate_backend) is NativeBackend:
             context_bytes += (
-                spec.probe_count * 8
+                thread_count * spec.probe_count * 8
                 + thread_count * spec.shortlist_width * 8
                 + thread_count * 8
                 + spec.subquantizers * spec.codebook_size * 4
