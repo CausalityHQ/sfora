@@ -29,25 +29,33 @@ That machinery is the point. It caught two real confounds that had each produced
 published-looking result: a **LayerNorm** mismatch between a method and its own
 control, and a **BatchNorm** mismatch between an EMA teacher and its student.
 
-> ## ⚠️ Current status (2026-08-03) — no novel improvement is established
+> ## Current status (2026-09-20) — verified compact retrieval, no SOTA claim
 >
-> The empirical claims below are historical, not current benchmark conclusions.
-> Every historical In-Shop run used the wrong DeepFashion pixel corpus; SOP had
-> split/checkpoint defects; Proxy Anchor arms used non-reference proxy
-> initialization; and the claimed selection-bias correction was invalid. Therefore
-> the measured BatchNorm-recovery magnitudes, In-Shop method comparisons, HERD
-> single-model claim, and “SFORA beats SOTA” headline are withdrawn. The code-level
-> BatchNorm mismatch exists and is EMAN prior art, but its corrected-benchmark cost
-> is unknown. The only surviving positive method effect, CUB PA distillation, is
-> provisional pending an independent CUB corpus/artifact audit and second-dataset
-> replication. See the
-> [current evidence boundary](docs/current_evidence_reliability_audit_321_2026-08-03.md)
-> and [method-search verdict](docs/method_search_verdict.md).
+> SFORA 0.3 ships two evidence-backed components: a fit-only compact-metric
+> selector with a PCA fallback, and an exact persistent cuTile scorer for its
+> 130-byte int8 codes. The selector was prospectively correct on a class-disjoint
+> Oxford-IIIT Pet confirmation: learned int8-128 improved mAP@R from `0.847639`
+> to `0.862759` and Recall@1 from `0.962275` to `0.969595`. On standard Cars196,
+> the same path reached `0.825656 / 0.972574` mAP@R / Recall@1 at 128 code bytes,
+> beating matched Faiss OPQ128x8 mAP@R by `0.008026` while trading `-0.000492`
+> Recall@1 against that OPQ arm. CUB remains a measured null and correctly falls
+> back to PCA; the method is not presented as a universal quality improvement.
 >
-> The currently verified benchmark anchors are the corrected official In-Shop
-> corpus/published-checkpoint check (0.9176396), a hash-bound local In-Shop PA seed-0
-> final score (0.9137; raw best 0.9163), corrected SOP PA seed 0 (0.791), and the
-> Cars196 RS@k reference (0.7933). None is a novel method result.
+> At one million gallery rows on NVIDIA GB10, the persistent packed scorer
+> returned exact deterministic top-10 results at batch-1 p50/p99
+> `1.021 / 1.550 ms` (`954.6 q/s`) and batch-32 p50/p99
+> `4.594 / 5.274 ms` (`6,870.4 q/s`). Persistent gallery storage was
+> 130 bytes/item and process peak RSS was 1.552 GB. This is a matched systems
+> result, not evidence that descriptor quality beats the strongest published
+> end-to-end model.
+>
+> The frozen five-dataset zero-training width ladder produced no universal
+> winner, its label-free selector failed on unseen Flowers-102, and top-2
+> database augmentation improved mAP@R but regressed Recall@1 on both In-Shop
+> and EuroSAT. Those branches are closed. See the
+> [compact selector evidence](docs/compact_metric_selector_result_2026-09-19.md),
+> [one-million-row scorer evidence](docs/packed_int8_cutile_topk_result_2026-09-20.md),
+> and [negative-results ledger](docs/similarity_negative_results_2026-09-19.md).
 
 > ## Historical status (2026-07-29) — superseded and partly retracted
 >

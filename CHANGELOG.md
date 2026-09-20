@@ -7,6 +7,8 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-20
+
 ### Added
 
 - A fit-only supervised compact-metric selector that chooses between a learned
@@ -45,6 +47,10 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   file-backed squared-L2 index with portable and native candidate scoring,
   deterministic exact reranking, explicit memory admission, and canonical
   evaluation receipts.
+- A persistent cuTile packed-int8 cosine scorer with deterministic device
+  top-10, exact score-bit parity, and bounded gallery memory. At one million
+  rows it measured 1.550 ms p99 for one query and 5.274 ms p99 for a batch of
+  32 on NVIDIA GB10.
 
 ### Changed
 

@@ -1,7 +1,7 @@
 [project]
 name = "sfora"
-version = "0.2.0"
-description = "SFORA: deep metric learning. HERD (Hypergraph EMA-teacher Relational Distillation) + a multi-model ensemble reach CUB-200 R@1 74.68, beating reported same-arch SOTA."
+version = "0.3.0"
+description = "SFORA: provenance-tracked similarity learning, compact metric codes, and exact packed retrieval."
 readme = "README.md"
 requires-python = ">=3.12"
 authors = [{ name = "Roman Bartusiak" }]
