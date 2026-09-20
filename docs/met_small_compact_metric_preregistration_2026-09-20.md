@@ -46,12 +46,13 @@ image is encoded or scored in this phase.  Test quality remains unrevealed.
 - Exporter SHA-256
   `514c4bcb1041f8e6afcb82e461b92e68269ac12b67ef67071cafc4b37e7a730b`.
 - Validation scorer SHA-256
-  `3ecc6427123a8093cd48911d010c810243ae5619cc2bbd615745845db0e4adfd`.
+  `958b1c97fdcf7ed7837529c4eaf2adc1a557ec1a17a71c8f844f10f1a894186f`.
 
 Archive members were checked before extraction: no absolute path, parent
 traversal, symlink, hard link, device, or other non-file/non-directory member
 was accepted.  Exporter metadata/path self-tests cover all 38,436 authorized
-rows.  The scorer's synthetic query/gallery self-test is green.
+rows.  The scorer's synthetic query/gallery and fifth-position score-tie
+self-tests are green; the tie test requires the lowest gallery ordinals.
 
 ## Fixed method and controls
 
