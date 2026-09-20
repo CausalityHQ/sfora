@@ -1,0 +1,116 @@
+#!/usr/bin/env python3
+"""Independent deterministic refit and NumPy ranking replay for Food whitening."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import importlib.util
+import json
+import sys
+from pathlib import Path
+from types import SimpleNamespace
+
+import numpy as np
+import torch
+
+import sfora.compact_metric as compact_metric
+from sfora.deterministic_similarity_runtime import configure_deterministic_similarity_runtime
+
+
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def class_order(label: int) -> bytes:
+    return hashlib.sha256(f"food-whitening-selector-v1:{label}".encode()).digest()
+
+
+def score(codes: np.ndarray, labels: np.ndarray) -> tuple[float, float]:
+    values = codes.astype(np.float32)
+    values /= np.linalg.norm(values, axis=1, keepdims=True)
+    similarities = values @ values.T
+    np.fill_diagonal(similarities, -np.inf)
+    ordinals = np.arange(len(labels))
+    average_precision = []
+    recall = []
+    for row in range(len(labels)):
+        ranking = np.lexsort((ordinals, -similarities[row]))
+        relevant = int(np.sum(labels == labels[row]) - 1)
+        selected = labels[ranking[:relevant]] == labels[row]
+        precision = np.cumsum(selected) / np.arange(1, relevant + 1)
+        average_precision.append(float(np.sum(precision[selected]) / relevant))
+        recall.append(float(labels[ranking[0]] == labels[row]))
+    return float(np.mean(average_precision)), float(np.mean(recall))
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(allow_abbrev=False)
+    parser.add_argument("--features", type=Path, required=True)
+    parser.add_argument("--features-sha256", required=True)
+    parser.add_argument("--whitening-core", type=Path, required=True)
+    parser.add_argument("--whitening-core-sha256", required=True)
+    parser.add_argument("--result", type=Path, required=True)
+    parser.add_argument("--result-sha256", required=True)
+    args = parser.parse_args()
+    if any(
+        sha256(path) != expected
+        for path, expected in (
+            (args.features, args.features_sha256),
+            (args.whitening_core, args.whitening_core_sha256),
+            (args.result, args.result_sha256),
+        )
+    ):
+        raise ValueError("Food replay authority differs")
+    configure_deterministic_similarity_runtime(17, cpu_threads=2)
+    spec = importlib.util.spec_from_file_location("scratch_whitening_core", args.whitening_core)
+    if spec is None or spec.loader is None:
+        raise ImportError(args.whitening_core)
+    core = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = core
+    spec.loader.exec_module(core)
+    with np.load(args.features, allow_pickle=False) as archive:
+        features = np.ascontiguousarray(archive["features"], dtype=np.float32)
+        labels = np.ascontiguousarray(archive["labels"], dtype=np.int64)
+    values = sorted((int(value) for value in np.unique(labels)), key=class_order)
+    fit_values = set(values[:50])
+    fit = np.asarray([int(value) in fit_values for value in labels])
+    _lda, whitening, mean, _evidence = core.fit_shrinkage_lda(
+        features[fit], labels[fit], compact_metric
+    )
+    original = compact_metric.fit_centered_pca
+    compact_metric.fit_centered_pca = lambda _values, *, dimensions: SimpleNamespace(
+        components=whitening.weight,
+        mean=torch.from_numpy(np.ascontiguousarray(mean)),
+    )
+    try:
+        encoder = compact_metric.fit_compact_metric_projection(
+            torch.from_numpy(features[fit].copy()),
+            torch.from_numpy(labels[fit].copy()),
+            device=torch.device("cuda"),
+        ).encoder
+    finally:
+        compact_metric.fit_centered_pca = original
+    result = json.loads(args.result.read_text())
+    assert encoder.sha256 == result["encoders"]["whitening_initialized"]
+    evaluation = torch.from_numpy(features[~fit].copy())
+    actual = score(encoder.encode(evaluation).numpy(), labels[~fit])
+    expected = result["external"]["scores"]["whitening_initialized"]
+    assert abs(actual[0] - expected["map_at_r"]) < 1e-6
+    assert abs(actual[1] - expected["recall_at_1"]) < 1e-12
+    print(json.dumps({
+        "schema": "sfora-food-whitening-independent-replay-v1",
+        "encoder_sha256": encoder.sha256,
+        "map_at_r": actual[0],
+        "recall_at_1": actual[1],
+        "numpy_minus_gpu_map_at_r": actual[0] - expected["map_at_r"],
+        "verified": True,
+    }, sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()

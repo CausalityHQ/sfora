@@ -1,0 +1,107 @@
+#!/usr/bin/env python3
+"""Post-hoc fit-only fold audit for the Food within-class whitening arm."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import importlib.util
+import json
+import math
+import sys
+from pathlib import Path
+
+import numpy as np
+import torch
+
+import sfora.compact_metric as compact_metric
+from sfora.deterministic_similarity_runtime import configure_deterministic_similarity_runtime
+
+
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def class_order(label: int) -> bytes:
+    return hashlib.sha256(f"food-whitening-selector-v1:{label}".encode()).digest()
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(allow_abbrev=False)
+    parser.add_argument("--features", type=Path, required=True)
+    parser.add_argument("--features-sha256", required=True)
+    parser.add_argument("--whitening-core", type=Path, required=True)
+    parser.add_argument("--whitening-core-sha256", required=True)
+    parser.add_argument("--result", type=Path, required=True)
+    parser.add_argument("--result-sha256", required=True)
+    args = parser.parse_args()
+    if any(
+        sha256(path) != expected
+        for path, expected in (
+            (args.features, args.features_sha256),
+            (args.whitening_core, args.whitening_core_sha256),
+            (args.result, args.result_sha256),
+        )
+    ):
+        raise ValueError("Food CV audit authority differs")
+    configure_deterministic_similarity_runtime(17, cpu_threads=2)
+    spec = importlib.util.spec_from_file_location("scratch_whitening_core", args.whitening_core)
+    if spec is None or spec.loader is None:
+        raise ImportError(args.whitening_core)
+    core = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = core
+    spec.loader.exec_module(core)
+    with np.load(args.features, allow_pickle=False) as archive:
+        features = np.ascontiguousarray(archive["features"], dtype=np.float32)
+        labels = np.ascontiguousarray(archive["labels"], dtype=np.int64)
+    values = sorted((int(value) for value in np.unique(labels)), key=class_order)
+    fit_values = set(values[:50])
+    selected = np.asarray([int(value) in fit_values for value in labels])
+    fit = features[selected].copy()
+    fit_labels = labels[selected].copy()
+    sealed = json.loads(args.result.read_text())
+    rows = []
+    for fold in range(3):
+        validation = np.asarray(
+            [compact_metric._compact_metric_fold(int(value)) == fold for value in fit_labels]
+        )
+        training = ~validation
+        _lda, whitening, _mean, _evidence = core.fit_shrinkage_lda(
+            fit[training], fit_labels[training], compact_metric
+        )
+        score = compact_metric._score_compact_metric_codes(
+            whitening.encode(torch.from_numpy(fit[validation].copy())),
+            torch.from_numpy(fit_labels[validation].copy()),
+            device=torch.device("cuda"),
+        )
+        expected = sealed["fit_only"]["folds"][fold]
+        if int(validation.sum()) != expected["rows"]:
+            raise ValueError("Food CV audit fold differs")
+        rows.append({
+            "fold": fold,
+            "rows": int(validation.sum()),
+            "within_class_whitening_map_at_r": score[0],
+            "within_class_whitening_recall_at_1": score[1],
+        })
+    total = sum(row["rows"] for row in rows)
+    pooled = {
+        key: math.fsum(row["rows"] * row[key] for row in rows) / total
+        for key in ("within_class_whitening_map_at_r", "within_class_whitening_recall_at_1")
+    }
+    print(json.dumps({
+        "schema": "sfora-food-whitening-cv-posthoc-audit-v1",
+        "claim_eligible": False,
+        "folds": rows,
+        **pooled,
+        "sealed_incumbent": sealed["fit_only"]["incumbent"],
+        "sealed_pca_map_at_r": sealed["fit_only"]["pca_map_at_r"],
+        "sealed_pca_recall_at_1": sealed["fit_only"]["pca_recall_at_1"],
+    }, sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()

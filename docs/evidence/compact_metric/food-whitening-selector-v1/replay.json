@@ -1,0 +1,1 @@
+{"encoder_sha256": "22842f0a4877898c80dfdc1550091e6e6eee435aaeb36791d41dc1b2e39f9096", "map_at_r": 0.7444765154616338, "numpy_minus_gpu_map_at_r": -1.1102230246251565e-16, "recall_at_1": 0.9389019607843138, "schema": "sfora-food-whitening-independent-replay-v1", "verified": true}

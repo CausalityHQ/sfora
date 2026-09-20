@@ -1,0 +1,239 @@
+#!/usr/bin/env python3
+"""Prospective Food101 class-disjoint whitening selector probe."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import math
+import time
+from pathlib import Path
+from types import SimpleNamespace
+
+import numpy as np
+import torch
+
+from sfora.compact_metric import (
+    CompactMetricEncoder,
+    _compact_metric_fold,
+    _score_compact_metric_codes,
+    fit_compact_metric_projection,
+)
+from sfora.deterministic_similarity_runtime import configure_deterministic_similarity_runtime
+from sfora.representation_ceiling import fit_centered_pca
+
+
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def class_order(label: int) -> bytes:
+    return hashlib.sha256(f"food-whitening-selector-v1:{label}".encode()).digest()
+
+
+def encoder_from_pca(values: np.ndarray) -> CompactMetricEncoder:
+    tensor = torch.from_numpy(np.ascontiguousarray(values, dtype=np.float32))
+    pca = fit_centered_pca(torch.nn.functional.normalize(tensor, dim=1), dimensions=128)
+    weight = pca.components.float().contiguous()
+    bias = (-(weight.double() @ pca.mean.double())).float().contiguous()
+    return CompactMetricEncoder(weight=weight, bias=bias)
+
+
+def pooled(rows: list[dict[str, float | int]], key: str) -> float:
+    total = sum(int(row["rows"]) for row in rows)
+    return math.fsum(int(row["rows"]) * float(row[key]) for row in rows) / total
+
+
+def bootstrap(delta: np.ndarray, labels: np.ndarray) -> dict[str, float]:
+    classes = np.unique(labels)
+    sums = np.asarray([delta[labels == value].sum() for value in classes], dtype=np.float64)
+    sizes = np.asarray([(labels == value).sum() for value in classes], dtype=np.int64)
+    generator = np.random.default_rng(17)
+    draws = np.empty(10_000, dtype=np.float64)
+    for start in range(0, len(draws), 1_000):
+        stop = min(start + 1_000, len(draws))
+        indexes = generator.integers(0, len(classes), size=(stop - start, len(classes)))
+        draws[start:stop] = sums[indexes].sum(axis=1) / sizes[indexes].sum(axis=1)
+    low, median, high = np.quantile(draws, [0.025, 0.5, 0.975])
+    return {"lower": float(low), "median": float(median), "upper": float(high)}
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(allow_abbrev=False)
+    parser.add_argument("--features", type=Path, required=True)
+    parser.add_argument("--features-sha256", required=True)
+    parser.add_argument("--preregistration", type=Path, required=True)
+    parser.add_argument("--preregistration-sha256", required=True)
+    parser.add_argument("--whitening-core", type=Path, required=True)
+    parser.add_argument("--whitening-core-sha256", required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args()
+    if (
+        args.output.exists()
+        or sha256(args.features) != args.features_sha256
+        or sha256(args.preregistration) != args.preregistration_sha256
+        or sha256(args.whitening_core) != args.whitening_core_sha256
+    ):
+        raise ValueError("Food whitening authority differs")
+    preregistration = json.loads(args.preregistration.read_text())
+    if preregistration["schema"] != "sfora-food-whitening-selector-preregistration-v1":
+        raise ValueError("Food whitening preregistration differs")
+
+    import importlib.util
+    import sys
+
+    spec = importlib.util.spec_from_file_location("scratch_whitening_core", args.whitening_core)
+    if spec is None or spec.loader is None:
+        raise ImportError(args.whitening_core)
+    core = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = core
+    spec.loader.exec_module(core)
+
+    runtime = configure_deterministic_similarity_runtime(17, cpu_threads=2)
+    with np.load(args.features, allow_pickle=False) as archive:
+        features = np.ascontiguousarray(archive["features"], dtype=np.float32)
+        labels = np.ascontiguousarray(archive["labels"], dtype=np.int64)
+        metadata = json.loads(str(archive["metadata_json"]))
+    values = sorted((int(value) for value in np.unique(labels)), key=class_order)
+    fit_values = set(values[:50])
+    fit_mask = np.asarray([int(value) in fit_values for value in labels])
+    evaluation_mask = ~fit_mask
+    fit = features[fit_mask].copy()
+    fit_labels = labels[fit_mask].copy()
+    evaluation = torch.from_numpy(features[evaluation_mask].copy())
+    evaluation_labels = torch.from_numpy(labels[evaluation_mask].copy())
+    if (
+        features.shape != (25_250, 768)
+        or len(values) != 101
+        or len(fit_values) != 50
+        or len(np.unique(evaluation_labels.numpy())) != 51
+        or np.intersect1d(fit_labels, evaluation_labels.numpy()).size
+    ):
+        raise ValueError("Food whitening split differs")
+
+    device = torch.device("cuda")
+    started = time.monotonic()
+    fold_rows: list[dict[str, float | int]] = []
+    for fold in range(3):
+        validation = np.asarray([_compact_metric_fold(int(value)) == fold for value in fit_labels])
+        training = ~validation
+        train_tensor = torch.from_numpy(fit[training].copy())
+        train_labels = torch.from_numpy(fit_labels[training].copy())
+        validation_tensor = torch.from_numpy(fit[validation].copy())
+        validation_labels = torch.from_numpy(fit_labels[validation].copy())
+        pca = encoder_from_pca(fit[training])
+        learned = fit_compact_metric_projection(train_tensor, train_labels, device=device).encoder
+        _lda, whitening, whitening_mean, _evidence = core.fit_shrinkage_lda(
+            fit[training], fit_labels[training], __import__("sfora.compact_metric", fromlist=["*"])
+        )
+        import sfora.compact_metric as compact_metric
+
+        original = compact_metric.fit_centered_pca
+        compact_metric.fit_centered_pca = lambda _values, *, dimensions: SimpleNamespace(
+            components=whitening.weight,
+            mean=torch.from_numpy(np.ascontiguousarray(whitening_mean)),
+        )
+        try:
+            whitened = fit_compact_metric_projection(
+                train_tensor, train_labels, device=device
+            ).encoder
+        finally:
+            compact_metric.fit_centered_pca = original
+        row: dict[str, float | int] = {"fold": fold, "rows": int(validation.sum())}
+        for name, encoder in (("pca", pca), ("learned", learned), ("whitening_initialized", whitened)):
+            score = _score_compact_metric_codes(
+                encoder.encode(validation_tensor), validation_labels, device=device
+            )
+            row[f"{name}_map_at_r"] = score[0]
+            row[f"{name}_recall_at_1"] = score[1]
+        fold_rows.append(row)
+
+    cv = {
+        f"{name}_{metric}": pooled(fold_rows, f"{name}_{metric}")
+        for name in ("pca", "learned", "whitening_initialized")
+        for metric in ("map_at_r", "recall_at_1")
+    }
+    incumbent = "learned" if (
+        cv["learned_map_at_r"] >= cv["pca_map_at_r"] + 0.003
+        and cv["learned_recall_at_1"] >= cv["pca_recall_at_1"]
+    ) else "pca"
+    selected = "whitening_initialized" if (
+        cv["whitening_initialized_map_at_r"] >= cv[f"{incumbent}_map_at_r"] + 0.003
+        and cv["whitening_initialized_recall_at_1"]
+        >= cv[f"{incumbent}_recall_at_1"] - 0.003
+    ) else incumbent
+
+    full_pca = encoder_from_pca(fit)
+    full_learned = fit_compact_metric_projection(
+        torch.from_numpy(fit.copy()), torch.from_numpy(fit_labels.copy()), device=device
+    ).encoder
+    _lda, full_whitening, full_mean, whitening_evidence = core.fit_shrinkage_lda(
+        fit, fit_labels, __import__("sfora.compact_metric", fromlist=["*"])
+    )
+    import sfora.compact_metric as compact_metric
+
+    original = compact_metric.fit_centered_pca
+    compact_metric.fit_centered_pca = lambda _values, *, dimensions: SimpleNamespace(
+        components=full_whitening.weight,
+        mean=torch.from_numpy(np.ascontiguousarray(full_mean)),
+    )
+    try:
+        full_whitened = fit_compact_metric_projection(
+            torch.from_numpy(fit.copy()), torch.from_numpy(fit_labels.copy()), device=device
+        ).encoder
+    finally:
+        compact_metric.fit_centered_pca = original
+    encoders = {"pca": full_pca, "learned": full_learned, "whitening_initialized": full_whitened}
+    scores = {}
+    per_query = {}
+    for name in dict.fromkeys((selected, incumbent)):
+        score = _score_compact_metric_codes(
+            encoders[name].encode(evaluation), evaluation_labels, device=device
+        )
+        scores[name] = {"map_at_r": score[0], "recall_at_1": score[1]}
+        per_query[name] = np.asarray(score[2], dtype=np.float64)
+    teacher_score = _score_compact_metric_codes(evaluation, evaluation_labels, device=device)
+    scores["teacher_float_768"] = {
+        "map_at_r": teacher_score[0], "recall_at_1": teacher_score[1]
+    }
+    delta = per_query[selected] - per_query[incumbent]
+    result = {
+        "schema": "sfora-food-whitening-selector-result-v1",
+        "claim_eligible": False,
+        "authorities": {
+            "features_sha256": args.features_sha256,
+            "preregistration_sha256": args.preregistration_sha256,
+            "whitening_core_sha256": args.whitening_core_sha256,
+        },
+        "dataset": {
+            "metadata": metadata,
+            "fit_classes": 50,
+            "fit_rows": int(fit_mask.sum()),
+            "evaluation_classes": 51,
+            "evaluation_rows": int(evaluation_mask.sum()),
+        },
+        "runtime": runtime._asdict(),
+        "fit_only": {"folds": fold_rows, **cv, "incumbent": incumbent, "selected": selected},
+        "external": {
+            "scores": scores,
+            "selected_minus_incumbent": {
+                "map_at_r": scores[selected]["map_at_r"] - scores[incumbent]["map_at_r"],
+                "recall_at_1": scores[selected]["recall_at_1"] - scores[incumbent]["recall_at_1"],
+                "class_bootstrap_map_delta_95": bootstrap(delta, evaluation_labels.numpy()),
+            },
+        },
+        "whitening_fit": whitening_evidence,
+        "encoders": {name: encoder.sha256 for name, encoder in encoders.items()},
+        "elapsed_seconds": time.monotonic() - started,
+    }
+    args.output.write_text(json.dumps(result, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\n")
+    print(json.dumps(result, indent=2, sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()
