@@ -164,7 +164,7 @@ def _parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--preregistration-sha256", required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--batch-size", type=int, default=32)
-    parser.add_argument("--workers", type=int, default=8)
+    parser.add_argument("--workers", type=int, default=0)
     parser.add_argument("--execute-screen", action="store_true", required=True)
     return parser.parse_args(arguments)
 
@@ -182,7 +182,7 @@ def main(arguments: Sequence[str] | None = None) -> int:
         args.output.exists()
         or args.model_snapshot.name != MODEL_REVISION
         or args.batch_size != 32
-        or args.workers != 8
+        or args.workers != 0
         or sha256(model_file) != MODEL_SHA256
         or sha256(config_file) != CONFIG_SHA256
         or sha256(processor_file) != PROCESSOR_SHA256
