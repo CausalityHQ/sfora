@@ -1,0 +1,24 @@
+{
+  "schema": "scratch-oml-sop-asymmetric-int4-preregistration-v1",
+  "claim_eligible": false,
+  "source_commit": "c1fc400ed2a458a8ff1c3abe8c0331c7ebffc72e",
+  "script_sha256": "4c9b165d137f7163595110d2eac8c0272bda5f223b72ea9e728df234d15af609",
+  "features_sha256": "8f565027b20e55923826a5240d97c564171428a5f1cc7290e680d2223fd28da4",
+  "checkpoint_sha256": "2f578e3b3d0a357b4d76488e19fbd2e8153ccaee3f41b82f41c9d3993a8069cd",
+  "parent_receipt_sha256": "9b7a2cf8c46f0a8ba22f7b2e7efa165bf2896d85ca3f5cfdd0661db55cc46605",
+  "prior_art": "Asymmetric distance computation is established product-quantization practice; this gate tests deployment value and makes no novelty claim.",
+  "hypothesis": "Leaving the transient learned256 query unquantized while keeping every stored gallery item in the unchanged 128-byte signed-int4 representation removes a material share of the measured OML SOP quantization loss.",
+  "arms": [
+    "symmetric learned256 int4 query and gallery",
+    "float learned256 query against learned256 int4 gallery",
+    "float learned256 query and gallery ceiling"
+  ],
+  "decision": {
+    "minimum_asymmetric_minus_symmetric_map_at_r": 0.002,
+    "paired_query_map_ci95_lower_must_exceed_zero": true,
+    "minimum_asymmetric_minus_symmetric_recall_at_1": 0.0,
+    "maximum_float_minus_asymmetric_map_at_r": 0.003,
+    "on_pass": "replicate the unchanged scorer on official OML In-Shop query/gallery",
+    "on_failure": "kill this exact asymmetric scorer without quantizer, scale, or head tuning"
+  }
+}

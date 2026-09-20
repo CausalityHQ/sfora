@@ -1,0 +1,35 @@
+{
+  "schema": "scratch-oml-sop-scann-anisotropic-128byte-preregistration-v1",
+  "source_commit": "c1fc400ed2a458a8ff1c3abe8c0331c7ebffc72e",
+  "dataset": "Stanford Online Products",
+  "split": "official leave-one-out test gallery; unsupervised gallery-fit index",
+  "features_sha256": "8f565027b20e55923826a5240d97c564171428a5f1cc7290e680d2223fd28da4",
+  "faiss_result_sha256": "79e2164daee89755e12c580ff1add6c4394fea5547b99aced325ac14bc98518d",
+  "script_sha256": "bef56461bb6fb71042446319940dc769fccf94e47e37f85c727eab51fbf00c90",
+  "hypothesis": "ScaNN score-aware anisotropic hashing preserves dot-product rankings at 128 bytes better than its isotropic control and the matched Faiss OPQ standard baseline.",
+  "fixed_recipe": {
+    "scann_version": "1.4.2",
+    "scann_extension_sha256": "6bf70cff2ac0d7646f91664cab0292117490ada30a6dddf8afa920ee79725",
+    "distance": "dot_product",
+    "hash_type": "lut256",
+    "dimensions_per_block": 3,
+    "blocks": 128,
+    "persistent_bytes_per_item": 128,
+    "training_iterations": 20,
+    "training_sample": "all 60502 unlabeled official test-gallery rows",
+    "training_threads": 1,
+    "anisotropic_quantization_threshold": 0.2,
+    "tree": false,
+    "reordering": false
+  },
+  "promotion_gate": {
+    "minimum_paired_map_gain_over_isotropic": 0.002,
+    "map_ci95_lower_must_exceed_zero": true,
+    "minimum_recall_at_1_delta_over_isotropic": 0.0,
+    "must_beat_faiss_opq128x8_asymmetric_in_both_metrics": true,
+    "maximum_map_gap_to_source_float384": 0.003,
+    "source_paired_map_ci95_lower_minimum": -0.003,
+    "maximum_recall_at_1_gap_to_source_float384": 0.001
+  },
+  "terminal_rule": "If any gate fails, kill this exact ScaNN configuration without tuning. If all gates pass, replicate the unchanged recipe once on official disjoint-query/gallery OML In-Shop."
+}

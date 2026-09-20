@@ -1,0 +1,28 @@
+{
+  "schema": "sfora-negative-scratch-ledger-v1",
+  "decision": "NO_PARETO_WINNER",
+  "reason": "OPQ128x8 recovered 0.002632 mAP@R over learned256-int4 but lost 0.000182 Recall@1, and its paired source mAP noninferiority interval extended to -0.003094 beyond the frozen -0.003 margin. No unchanged In-Shop replication is authorized.",
+  "authorities": {
+    "source_commit": "c1fc400ed2a458a8ff1c3abe8c0331c7ebffc72e",
+    "features_sha256": "8f565027b20e55923826a5240d97c564171428a5f1cc7290e680d2223fd28da4",
+    "script_sha256": "a4bbb99b3ce9318e90f1e598bd7bd49b2894062729fca09d8a996671a3635a26",
+    "preregistration_sha256": "38cdb1e603ba193f8c37520f423b054264c9d8bfc77a3bfaea5d596c80a6cadc",
+    "result_sha256": "79e2164daee89755e12c580ff1add6c4394fea5547b99aced325ac14bc98518d",
+    "result_bytes": 1657,
+    "faiss_version": "1.12.0"
+  },
+  "result": {
+    "dataset": "Stanford Online Products",
+    "persistent_bytes_per_item": 128,
+    "source_float384": {"map_at_r": 0.6543931630278715, "recall_at_1": 0.8655746917457274},
+    "learned256_int4": {"map_at_r": 0.6491067713616872, "recall_at_1": 0.8644507619582824},
+    "pq128x8_asymmetric": {"map_at_r": 0.6516832392689939, "recall_at_1": 0.8646821592674623},
+    "opq128x8_asymmetric": {"map_at_r": 0.6517388097465923, "recall_at_1": 0.8642689497867839},
+    "opq_minus_learned256_int4": {"map_at_r": 0.002632038384905111, "recall_at_1": -0.0001818121714984855},
+    "opq_minus_source_map_at_r": {
+      "delta": -0.002654353281279312,
+      "ci95": [-0.003093803720134748, -0.0022122398054325474]
+    },
+    "gate_passed": false
+  }
+}

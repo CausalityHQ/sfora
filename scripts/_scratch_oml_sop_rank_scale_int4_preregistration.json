@@ -1,0 +1,31 @@
+{
+  "schema": "scratch-oml-sop-rank-scale-int4-preregistration-v1",
+  "claim_eligible": false,
+  "source_commit": "c1fc400ed2a458a8ff1c3abe8c0331c7ebffc72e",
+  "script_sha256": "7b51aaa8ce4bb27c46585bb6f15ce0b6e951f1a101c59c06898356fb51879f61",
+  "features_sha256": "8f565027b20e55923826a5240d97c564171428a5f1cc7290e680d2223fd28da4",
+  "checkpoint_sha256": "2f578e3b3d0a357b4d76488e19fbd2e8153ccaee3f41b82f41c9d3993a8069cd",
+  "prior_art": "Ranking-aware and anisotropic quantization are established; this gate isolates whether fit-only positive-negative margin weighting improves the existing fixed-width int4 database code and makes no novelty claim.",
+  "frozen_training": {
+    "anchors": 4096,
+    "candidate_pool": 8192,
+    "hard_negatives_per_anchor": 8,
+    "updates": 200,
+    "learning_rate": 0.01,
+    "initial_scale_quantile": 0.999,
+    "near_margin_weight": "exp(-abs(float_margin)/0.05) normalized to mean one"
+  },
+  "arms": [
+    "fixed 0.999-quantile scales",
+    "equal-update reconstruction-MSE scale control",
+    "positive-negative margin-preservation scales"
+  ],
+  "decision": {
+    "minimum_margin_minus_quantile_map_at_r": 0.002,
+    "paired_query_map_ci95_lower_must_exceed_zero": true,
+    "minimum_margin_minus_quantile_recall_at_1": 0.0,
+    "margin_map_at_r_must_exceed_reconstruction_control": true,
+    "on_pass": "replicate unchanged scale fitting and asymmetric scoring on official OML In-Shop",
+    "on_failure": "kill the exact rank-scale family without changing weights, pair counts, optimizer, or clipping"
+  }
+}

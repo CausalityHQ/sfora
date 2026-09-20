@@ -1,0 +1,53 @@
+{
+  "schema": "sfora-negative-scratch-ledger-v1",
+  "decision": "NO_PARETO_WINNER",
+  "reason": "ScaNN anisotropic hashing produced a real paired improvement over isotropic hashing but missed the frozen effect, float-source noninferiority, and Faiss-OPQ joint-metric gates.",
+  "authorities": {
+    "source_commit": "c1fc400ed2a458a8ff1c3abe8c0331c7ebffc72e",
+    "features_sha256": "8f565027b20e55923826a5240d97c564171428a5f1cc7290e680d2223fd28da4",
+    "faiss_result_sha256": "79e2164daee89755e12c580ff1add6c4394fea5547b99aced325ac14bc98518d",
+    "script_sha256": "bef56461bb6fb71042446319940dc769fccf94e47e37f85c727eab51fbf00c90",
+    "preregistration_sha256": "ab0e0ed07442b29abbe9d2a9f52a476ddd23a73683fe6bbed3c0bd83f77e8786",
+    "result_sha256": "6087d16c96cafc4d67fe9015d5a12dd0b8fea11f6b8bc6cc26c631ab7587b123",
+    "result_bytes": 1627,
+    "log_sha256": "5c9fa4d398a8b7b6e6d6c8456df74f42aad84cd0f85ef029fe3f5e10194d2ba1",
+    "scann_version": "1.4.2",
+    "scann_extension_sha256": "6bf70cff2ac0d7646f91664cab0292117490ada30a6dddf8afa920ee79725"
+  },
+  "result": {
+    "dataset": "Stanford Online Products",
+    "split": "official leave-one-out test gallery; unsupervised gallery-fit index",
+    "persistent_bytes_per_item": 128,
+    "source_float384": {
+      "map_at_r": 0.6543855761104416,
+      "recall_at_1": 0.8655746917457274
+    },
+    "faiss_opq128x8_asymmetric": {
+      "map_at_r": 0.6517388097465923,
+      "recall_at_1": 0.8642689497867839
+    },
+    "scann_isotropic": {
+      "map_at_r": 0.6500277886392557,
+      "recall_at_1": 0.863029321344749,
+      "build_seconds": 26.195956161944196,
+      "search_seconds": 71.60640850220807
+    },
+    "scann_anisotropic": {
+      "map_at_r": 0.6513147802340523,
+      "recall_at_1": 0.8643515916829195,
+      "build_seconds": 32.37530434783548,
+      "search_seconds": 72.24988300492987
+    },
+    "anisotropic_minus_isotropic": {
+      "map_at_r_delta": 0.0012869915947965693,
+      "map_at_r_ci95": [0.0007738215565758571, 0.00179820445667958],
+      "recall_at_1_delta": 0.001322270338170639
+    },
+    "anisotropic_minus_source": {
+      "map_at_r_delta": -0.0030707958763893776,
+      "map_at_r_ci95": [-0.003539082604350673, -0.0025758121525503905],
+      "recall_at_1_delta": -0.0012231000628078411
+    },
+    "gate_passed": false
+  }
+}

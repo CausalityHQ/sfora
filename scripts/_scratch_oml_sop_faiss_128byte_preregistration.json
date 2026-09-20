@@ -1,0 +1,31 @@
+{
+  "schema": "scratch-oml-sop-faiss-128byte-preregistration-v1",
+  "claim_eligible": false,
+  "source_commit": "c1fc400ed2a458a8ff1c3abe8c0331c7ebffc72e",
+  "script_sha256": "a4bbb99b3ce9318e90f1e598bd7bd49b2894062729fca09d8a996671a3635a26",
+  "features_sha256": "8f565027b20e55923826a5240d97c564171428a5f1cc7290e680d2223fd28da4",
+  "int4_result_sha256": "9b7a2cf8c46f0a8ba22f7b2e7efa165bf2896d85ca3f5cfdd0661db55cc46605",
+  "prior_art": "Product quantization, optimized product quantization, and asymmetric distance computation are established controls. This is a matched baseline gate, not a novelty claim.",
+  "arms": [
+    "Faiss PQ128x8 over normalized OML float384",
+    "Faiss OPQ128_384,PQ128x8 over normalized OML float384"
+  ],
+  "training": {
+    "rows": "all 59551 official SOP train rows only",
+    "faiss_threads": 1,
+    "test_rows_in_training": false
+  },
+  "evaluation": {
+    "primary": "float source query against reconstructed normalized 128-byte gallery",
+    "control": "reconstructed normalized query against reconstructed normalized gallery",
+    "ties": "repository deterministic lexicographic scorer"
+  },
+  "decision": {
+    "minimum_winner_minus_learned256_int4_map_at_r": 0.002,
+    "minimum_winner_minus_learned256_int4_recall_at_1": 0.0,
+    "maximum_float_source_minus_winner_map_at_r": 0.003,
+    "paired_source_noninferiority_margin": 0.003,
+    "on_pass": "replicate the unchanged winning codec on official OML In-Shop",
+    "on_failure": "retain learned256-int4 as the stronger measured 128-byte OML SOP code and close standard PQ/OPQ for this teacher"
+  }
+}

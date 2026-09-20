@@ -6,6 +6,67 @@ The canonical research checkout for the current line is
 `/home/rb/worktrees/sfora-emafactorial` checkout is not an authority for this
 line. Unless stated otherwise, these are claim-ineligible development results.
 
+## Matched OML SOP PQ/OPQ improves depth but is not quality-Pareto
+
+The missing standard 128-byte baselines were fitted on all 59,551 official OML
+SOP train rows with Faiss 1.12.0 and evaluated on the same 60,502-row official
+test split.  Float-query asymmetric PQ128x8 reached `0.651683` mAP@R /
+`0.864682` Recall@1; OPQ128_384,PQ128x8 reached `0.651739 / 0.864269`.
+The exact float384 source is `0.654393 / 0.865575`, and learned256-int4 is
+`0.649107 / 0.864451`.  OPQ therefore gains `+0.002632` mAP@R over learned
+int4 but loses `0.000182` Recall@1.  Its paired source mAP delta is `-0.002654`
+with 95% interval `[-0.003094,-0.002212]`, narrowly outside the frozen
+`-0.003` noninferiority margin.  No arm is a quality-Pareto winner and the
+unchanged In-Shop replication is not run.  Result SHA-256:
+`79e2164daee89755e12c580ff1add6c4394fea5547b99aced325ac14bc98518d`.
+
+## Ranking-aware int4 scale fitting destroys the strong OML SOP code
+
+The frozen learned-scale diagnostic held the OML ViT-S/16 head, 256 dimensions,
+128-byte gallery wire, float query, calibration rows, update count, and
+optimizer fixed.  The established `0.999`-quantile scales scored `0.651362`
+mAP@R / `0.865624` Recall@1.  Equal-update reconstruction-scale fitting fell to
+`0.592345 / 0.838666`; hard positive-negative margin-scale fitting fell further
+to `0.584095 / 0.835857`.  Margin minus quantile was `-0.067267` mAP@R with
+paired 95% interval `[-0.068594,-0.065945]` and `-0.029768` Recall@1.  Margin
+also lost `0.008250` mAP@R to the reconstruction control.  This exact
+ranking-aware shared-scale family is killed without optimizer, weight, pair,
+or learning-rate tuning.  Result SHA-256:
+`f39c03ca4fc2d337edd0ad8ecab749396dc17afca403302216f47ce9d1558ebc`.
+
+## OML SOP asymmetric int4 is a significant near-miss, not a promotion
+
+On the frozen official OML ViT-S/16 SOP representation, leaving the transient
+256-dimensional query in float while retaining the unchanged 128-byte int4
+gallery raised mAP@R from `0.649105` to `0.651362` and Recall@1 from
+`0.864451` to `0.865624`.  The paired per-query gains were `+0.002257` mAP@R
+with 95% interval `[+0.001834,+0.002697]` and `+0.001174` Recall@1 with
+interval `[+0.000430,+0.001934]`.  The remaining gap to float was `0.003021`
+mAP@R, however, narrowly above the frozen `0.003000` ceiling.  The complete
+gate therefore failed; the ceiling is not moved and the planned In-Shop
+replication is not run.  The diagnostic attributes about 43% of the symmetric
+int4 mAP loss to query quantization and leaves database-code error as the next
+boundary.  Result SHA-256:
+`2d5589414d595d78a0a10d2756f4c691ba8e78ac251d6b32d6ea30ed25bab3df`.
+
+## Fit-only mixed precision is not a generic 1,024-bit improvement
+
+The frozen unequal-bit probe trained the same 256-dimensional compact head and
+allocated exactly 64 coordinates at eight bits, 128 at four bits, and dropped
+64.  Allocation minimized fit-only positive-negative margin damage and was
+compared with variance-ranked and fixed-random allocations at the identical
+bit budget.  On Cars, the margin code reached `0.848305` mAP@R / `0.974788`
+Recall@1, losing `0.003502` mAP@R to uniform learned256-int4.  On CUB it reached
+`0.722579 / 0.911096`, gains of `0.002093 / 0.002450` over the better uniform
+parent.  The registered rule required both datasets, so the family is killed
+without tuning bit counts, clipping quantile, or the allocation objective.
+Variance ranking was within `0.000365` mAP@R on Cars and `0.000206` on CUB,
+providing no evidence that the more expensive margin allocator is materially
+distinct.  Raw DGX log SHA-256:
+`88be4b58712da700fb4dd016c02dac26c2151ab7e5e3bfedc455b09d47ec378a`;
+checked-in summary:
+`docs/evidence/compact_metric/mixed-precision-margin-probe-v1.json`.
+
 ## Top-2 DBA passes mAP but is not quality-Pareto on In-Shop
 
 The frozen PCA128-int8 top-2 gallery augmentation gate used the official
@@ -180,3 +241,45 @@ representation learning with fit-only model selection and a safe PCA fallback
 has now passed an untouched Oxford-IIIT Pet class-disjoint confirmation; see
 `docs/compact_metric_selector_result_2026-09-19.md`. CUDA-Oxide/CuTile remain
 implementation backends after the representation is selected.
+
+## Exact 128-byte signed-int4 QAT does not repair the remaining SOP gap
+
+A frozen quantization-aware continuation started from the authenticated OML
+ViT-S/16 learned256 checkpoint.  It used the same 2,000-update schedule,
+frozen hard negatives, learning rate, and initial state as a matched float
+continuation.  The treatment alone applied the exact signed-int4 `[-7,7]`
+dequantized forward with a straight-through gradient; scales were fixed from
+official training rows before either continuation.
+
+On the official Stanford Online Products test split, the starting int4 model
+scored `0.649107 / 0.864451` mAP@R / Recall@1, the float-continuation control
+scored `0.649800 / 0.865178`, and QAT scored `0.649725 / 0.865343`.  QAT minus
+the matched control was `-0.000075` mAP@R with paired 95% interval
+`[-0.000419,+0.000275]`.  QAT improved the starting model by only `+0.000618`
+mAP@R, below the registered `+0.002` effect, and remained `-0.004669` behind
+the float384 source with interval `[-0.005393,-0.003946]`.
+
+The exact family is killed without tuning or In-Shop replication.  Result
+SHA-256: `e525e76b51e8d1e4609915dd3624ca24b9e2e6cd00a82dd14b4d6ed8de09cb06`;
+details: `docs/evidence/compact_metric/oml-vits16-sop-int4-qat-v1.json`.
+
+## ScaNN anisotropic hashing improves its control but is not the 128-byte winner
+
+The published ScaNN 1.4.2 score-aware anisotropic hashing mode was evaluated as
+a matched standard implementation: 128 three-dimensional LUT256 blocks,
+exactly 128 code bytes/item, dot-product search, no tree, and no exact rerank.
+Both indexes fit only the unlabeled official SOP gallery.  The fixed threshold
+was `0.2`; no parameter search was performed.
+
+Isotropic ScaNN reached `0.650028 / 0.863029` mAP@R / Recall@1.  Anisotropic
+ScaNN reached `0.651315 / 0.864352`, a paired `+0.001287` mAP gain with 95%
+interval `[+0.000774,+0.001798]` and `+0.001322` Recall@1.  The mechanism is
+therefore real under the compatible dot-product scorer, but its effect is below
+the frozen `+0.002` gate.  Against the strongest matched Faiss OPQ128x8 arm it
+traded `-0.000424` mAP for `+0.000083` Recall@1; against float384 it remained
+`-0.003071 / -0.001223`, missing both noninferiority margins.
+
+There is no Pareto winner and no In-Shop replication.  Result SHA-256:
+`6087d16c96cafc4d67fe9015d5a12dd0b8fea11f6b8bc6cc26c631ab7587b123`;
+details:
+`docs/evidence/compact_metric/oml-vits16-sop-scann-anisotropic-128byte-v1.json`.

@@ -1,0 +1,56 @@
+{
+  "schema": "sfora-negative-scratch-ledger-v1",
+  "decision": "KILL_EXACT_FAMILY",
+  "reason": "Exact signed-int4-aware continuation did not outperform its matched float continuation, recovered only 0.000618 mAP@R over the starting int4 head, and remained 0.004669 mAP@R behind the float384 source.",
+  "authorities": {
+    "source_commit": "c1fc400ed2a458a8ff1c3abe8c0331c7ebffc72e",
+    "features_sha256": "8f565027b20e55923826a5240d97c564171428a5f1cc7290e680d2223fd28da4",
+    "checkpoint_sha256": "2f578e3b3d0a357b4d76488e19fbd2e8153ccaee3f41b82f41c9d3993a8069cd",
+    "parent_result_sha256": "9b7a2cf8c46f0a8ba22f7b2e7efa165bf2896d85ca3f5cfdd0661db55cc46605",
+    "script_sha256": "47284512036f2f9a3dd19b018e3d23a7839d930ded1b60d32b6af6c5491e8113",
+    "preregistration_sha256": "3ae47e27f95f13b767dd5e26b0ca95ac1ed4a932b663c3f36343302ece538acf",
+    "result_sha256": "e525e76b51e8d1e4609915dd3624ca24b9e2e6cd00a82dd14b4d6ed8de09cb06",
+    "result_bytes": 2637,
+    "log_sha256": "2cc15675adf183ff94f1bad791389f32efcd7c2b028efd281c03e46dfb701bb2"
+  },
+  "result": {
+    "dataset": "Stanford Online Products",
+    "split": "official train fit; official leave-one-out test evaluation",
+    "persistent_bytes_per_item": 128,
+    "source_float384": {
+      "map_at_r": 0.6543931630278715,
+      "recall_at_1": 0.8655746917457274
+    },
+    "initial_int4": {
+      "map_at_r": 0.6491067713616872,
+      "recall_at_1": 0.8644507619582824
+    },
+    "float_continuation_int4": {
+      "map_at_r": 0.6498000315269888,
+      "recall_at_1": 0.8651780106442762
+    },
+    "qat_int4": {
+      "map_at_r": 0.6497245394733993,
+      "recall_at_1": 0.8653432944365476
+    },
+    "qat_minus_float_continuation": {
+      "map_at_r_delta": -0.00007549205358960776,
+      "map_at_r_ci95": [-0.0004185963259575576, 0.0002750712099648486],
+      "recall_at_1_delta": 0.00016528379227132988
+    },
+    "qat_minus_initial": {
+      "map_at_r_delta": 0.0006177681117121331,
+      "map_at_r_ci95": [0.00005271834109263268, 0.0011939007140675962],
+      "recall_at_1_delta": 0.0008925324782651813
+    },
+    "qat_minus_source": {
+      "map_at_r_delta": -0.004668623554472342,
+      "map_at_r_ci95": [-0.00539266910979428, -0.0039457109760717935],
+      "recall_at_1_delta": -0.00023139730917986183
+    },
+    "updates_per_arm": 2000,
+    "elapsed_seconds": 71.31891244207509,
+    "peak_cuda_bytes": 709996032,
+    "gate_passed": false
+  }
+}

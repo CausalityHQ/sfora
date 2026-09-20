@@ -1,0 +1,36 @@
+{
+  "schema": "scratch-mixed-precision-margin-probe-preregistration-v1",
+  "claim_eligible": false,
+  "source_commit": "c1fc400ed2a458a8ff1c3abe8c0331c7ebffc72e",
+  "script_sha256": "a45b3ca686bb9c5001e72ffc2fbb74540040fc02a47573e94498547d2d18dcf1",
+  "inputs": {
+    "cars_sha256": "6ddfd7e2c9fd489dff51fa33697c62abf92a45247b52b336c0371f5482231ab3",
+    "cub_sha256": "847a40bd8c0c2a5289de9b5a8eca93c935d4eafed6507e1360da3a3bfee6f62e"
+  },
+  "hypothesis": "At a fixed 1024-bit database descriptor, allocating 8 bits to 64 coordinates, 4 bits to 128 coordinates, and dropping 64 coordinates according to fit-only positive-negative margin damage improves over both learned128-int8 and learned256-int4 on Cars and CUB.",
+  "candidate": {
+    "width": 256,
+    "persistent_bits_per_item": 1024,
+    "allocation": {
+      "zero_bit_coordinates": 64,
+      "four_bit_coordinates": 128,
+      "eight_bit_coordinates": 64
+    },
+    "fit_only_anchors": 4096,
+    "scale_quantile": 0.999,
+    "assignment": "minimum-cost one-to-one allocation from per-coordinate margin damage using a fixed Hungarian solve"
+  },
+  "controls": [
+    "learned128-int8",
+    "learned256-int4",
+    "variance-ranked allocation with identical 64/128/64 bit counts",
+    "seed-20260920 random allocation with identical 64/128/64 bit counts"
+  ],
+  "decision": {
+    "minimum_map_gain_over_best_uniform_parent_per_dataset": 0.002,
+    "maximum_recall_at_1_loss_per_dataset": 0.002,
+    "must_not_lose_map_to_either_allocation_control": true,
+    "must_pass_both_datasets": true,
+    "on_failure": "kill this exact mixed-precision allocation family without tuning counts, quantiles, or allocation objective"
+  }
+}

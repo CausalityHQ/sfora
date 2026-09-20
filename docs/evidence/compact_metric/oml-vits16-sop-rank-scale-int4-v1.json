@@ -1,0 +1,31 @@
+{
+  "schema": "sfora-negative-scratch-ledger-v1",
+  "decision": "KILL_EXACT_FAMILY",
+  "reason": "Both equal-update learned-scale objectives severely degraded official SOP retrieval relative to the unchanged 0.999-quantile int4 scales. The margin arm also lost to the reconstruction control. No optimizer, weighting, pair-count, or learning-rate tuning is authorized.",
+  "authorities": {
+    "source_commit": "c1fc400ed2a458a8ff1c3abe8c0331c7ebffc72e",
+    "features_sha256": "8f565027b20e55923826a5240d97c564171428a5f1cc7290e680d2223fd28da4",
+    "checkpoint_sha256": "2f578e3b3d0a357b4d76488e19fbd2e8153ccaee3f41b82f41c9d3993a8069cd",
+    "script_sha256": "7b51aaa8ce4bb27c46585bb6f15ce0b6e951f1a101c59c06898356fb51879f61",
+    "preregistration_sha256": "3e63c5cebe2e87d40e430919471245b0e627f11fd8219ab4857664e11e2479ce",
+    "result_sha256": "f39c03ca4fc2d337edd0ad8ecab749396dc17afca403302216f47ce9d1558ebc",
+    "result_bytes": 1048
+  },
+  "result": {
+    "dataset": "Stanford Online Products",
+    "persistent_gallery_bytes_per_item": 128,
+    "arms": {
+      "quantile": {"map_at_r": 0.6513620962832011, "recall_at_1": 0.8656242768834088},
+      "reconstruction": {"map_at_r": 0.592344902251265, "recall_at_1": 0.8386664903639549},
+      "margin": {"map_at_r": 0.5840946399356524, "recall_at_1": 0.8358566658953424}
+    },
+    "margin_minus_quantile": {
+      "map_at_r": -0.06726745634754874,
+      "map_at_r_ci95": [-0.0685944140737668, -0.06594503812414872],
+      "recall_at_1": -0.02976761098806651,
+      "recall_at_1_ci95": [-0.031618789461505405, -0.027866847376946217]
+    },
+    "margin_minus_reconstruction_map_at_r": -0.0082502623156127,
+    "gate_passed": false
+  }
+}

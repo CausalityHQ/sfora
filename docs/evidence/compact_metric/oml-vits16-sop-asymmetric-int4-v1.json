@@ -1,0 +1,33 @@
+{
+  "schema": "sfora-negative-scratch-ledger-v1",
+  "decision": "KILL_EXACT_ARM",
+  "reason": "Float-query/int4-gallery scoring improved both metrics with positive paired intervals, but its remaining float mAP@R gap was 0.0030211841, narrowly above the frozen 0.0030000000 ceiling. The threshold is not moved and no In-Shop replication is run.",
+  "authorities": {
+    "source_commit": "c1fc400ed2a458a8ff1c3abe8c0331c7ebffc72e",
+    "features_sha256": "8f565027b20e55923826a5240d97c564171428a5f1cc7290e680d2223fd28da4",
+    "checkpoint_sha256": "2f578e3b3d0a357b4d76488e19fbd2e8153ccaee3f41b82f41c9d3993a8069cd",
+    "parent_receipt_sha256": "9b7a2cf8c46f0a8ba22f7b2e7efa165bf2896d85ca3f5cfdd0661db55cc46605",
+    "script_sha256": "4c9b165d137f7163595110d2eac8c0272bda5f223b72ea9e728df234d15af609",
+    "preregistration_sha256": "fdb07fe7f52e2ce0b41f6769c2f6ac990d5d76fd0109b0c7b34541068e2eed58",
+    "result_sha256": "2d5589414d595d78a0a10d2756f4c691ba8e78ac251d6b32d6ea30ed25bab3df",
+    "result_bytes": 1115
+  },
+  "result": {
+    "dataset": "Stanford Online Products",
+    "split": "official train fit; official leave-one-out test evaluation",
+    "persistent_gallery_bytes_per_item": 128,
+    "arms": {
+      "symmetric_int4": {"map_at_r": 0.6491053633886418, "recall_at_1": 0.8644507619582824},
+      "asymmetric_float_query_int4_gallery": {"map_at_r": 0.6513620962832011, "recall_at_1": 0.8656242768834088},
+      "float_query_float_gallery": {"map_at_r": 0.6543832803592375, "recall_at_1": 0.8666325080162639}
+    },
+    "asymmetric_minus_symmetric": {
+      "map_at_r": 0.0022567328945593376,
+      "map_at_r_ci95": [0.001834074240310186, 0.0026970039167931907],
+      "recall_at_1": 0.001173514925126442,
+      "recall_at_1_ci95": [0.0004297378599054577, 0.0019338203695745595]
+    },
+    "float_minus_asymmetric_map_at_r": 0.003021184076036465,
+    "gate_passed": false
+  }
+}

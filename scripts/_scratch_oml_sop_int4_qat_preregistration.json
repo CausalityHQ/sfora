@@ -1,0 +1,35 @@
+{
+  "schema": "scratch-oml-sop-int4-qat-preregistration-v1",
+  "source_commit": "c1fc400ed2a458a8ff1c3abe8c0331c7ebffc72e",
+  "dataset": "Stanford Online Products",
+  "split": "official train fit; official leave-one-out test evaluation",
+  "features_sha256": "8f565027b20e55923826a5240d97c564171428a5f1cc7290e680d2223fd28da4",
+  "checkpoint_sha256": "2f578e3b3d0a357b4d76488e19fbd2e8153ccaee3f41b82f41c9d3993a8069cd",
+  "parent_result_sha256": "9b7a2cf8c46f0a8ba22f7b2e7efa165bf2896d85ca3f5cfdd0661db55cc46605",
+  "script_sha256": "47284512036f2f9a3dd19b018e3d23a7839d930ded1b60d32b6af6c5491e8113",
+  "hypothesis": "Training the frozen 256-D projection through its exact signed-int4 symmetric deployed forward preserves rank-critical geometry better than an otherwise identical float continuation.",
+  "controls": [
+    "unchanged_initial_learned256",
+    "matched_float_continuation_from_identical_checkpoint",
+    "source_float384"
+  ],
+  "fixed_recipe": {
+    "dimensions": 256,
+    "persistent_bytes_per_item": 128,
+    "scale_fit_quantile": 0.999,
+    "scale_source": "initial checkpoint official training rows only",
+    "schedule": "existing deterministic 2000-update learned-width schedule",
+    "hard_negatives": 256,
+    "quantizer": "symmetric signed int4 [-7,7], straight-through gradient, normalized decoded scores",
+    "seed": 17
+  },
+  "promotion_gate": {
+    "minimum_paired_map_gain_over_float_continuation": 0.002,
+    "minimum_paired_map_gain_over_initial": 0.002,
+    "map_ci95_lower_must_exceed_zero": true,
+    "minimum_recall_at_1_delta_for_both_contrasts": 0.0,
+    "maximum_map_gap_to_source_float384": 0.003,
+    "source_paired_map_ci95_lower_minimum": -0.003
+  },
+  "terminal_rule": "If any gate fails, kill this exact 128-byte scalar-int4 QAT family without tuning. If all gates pass, replicate the unchanged recipe once on official OML In-Shop."
+}

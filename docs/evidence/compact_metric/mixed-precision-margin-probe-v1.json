@@ -1,0 +1,39 @@
+{
+  "schema": "scratch-mixed-precision-margin-probe-summary-v1",
+  "claim_eligible": false,
+  "source_commit": "c1fc400ed2a458a8ff1c3abe8c0331c7ebffc72e",
+  "script_sha256": "a45b3ca686bb9c5001e72ffc2fbb74540040fc02a47573e94498547d2d18dcf1",
+  "preregistration_sha256": "a30744da2993eda567f7d8995bc95e0d56767797970db34039fb8bffc91db4db",
+  "raw_log_sha256": "88be4b58712da700fb4dd016c02dac26c2151ab7e5e3bfedc455b09d47ec378a",
+  "raw_log_bytes": 6573,
+  "persistent_bits_per_item": 1024,
+  "allocation_counts": {
+    "zero_bit_coordinates": 64,
+    "four_bit_coordinates": 128,
+    "eight_bit_coordinates": 64
+  },
+  "results": {
+    "cars": {
+      "learned128_int8": {"map_at_r": 0.8337097934071753, "recall_at_1": 0.9728200713319395},
+      "learned256_int4": {"map_at_r": 0.8518074844316162, "recall_at_1": 0.9751568072807772},
+      "margin_allocation": {"map_at_r": 0.8483050479191001, "recall_at_1": 0.974787848973066},
+      "variance_control": {"map_at_r": 0.8479406737565272, "recall_at_1": 0.974787848973066},
+      "random_control": {"map_at_r": 0.8410587773738093, "recall_at_1": 0.9762636822039109},
+      "margin_minus_best_uniform": {"map_at_r": -0.0035024365125161383, "recall_at_1": -0.0003689583077112202},
+      "passed": false
+    },
+    "cub": {
+      "learned128_int8": {"map_at_r": 0.7204860937139628, "recall_at_1": 0.9054952747637381},
+      "learned256_int4": {"map_at_r": 0.7201944575017682, "recall_at_1": 0.9086454322716135},
+      "margin_allocation": {"map_at_r": 0.7225785979194914, "recall_at_1": 0.9110955547777388},
+      "variance_control": {"map_at_r": 0.7223726440788695, "recall_at_1": 0.9103955197759888},
+      "random_control": {"map_at_r": 0.7060200911772083, "recall_at_1": 0.9093454672733636},
+      "margin_minus_best_uniform": {"map_at_r": 0.0020925042055286447, "recall_at_1": 0.0024501225061253074},
+      "passed": true
+    }
+  },
+  "decision": {
+    "passed": false,
+    "reason": "The frozen candidate passed CUB but lost 0.003502 mAP@R to uniform learned256-int4 on Cars. The exact allocation family is killed without changing bit counts, quantile, or allocation objective."
+  }
+}
