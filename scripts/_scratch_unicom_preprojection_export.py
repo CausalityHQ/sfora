@@ -66,6 +66,23 @@ def capture_preprojection_batch(
     return captured[0], final
 
 
+def reproduction_cosines(
+    final: np.ndarray,
+    fit_mask: np.ndarray,
+    fit_reference: np.ndarray,
+    evaluation_reference: np.ndarray,
+) -> np.ndarray:
+    """Compare original-order outputs to the cache's fit/evaluation partitions."""
+
+    aligned = np.concatenate((final[fit_mask], final[~fit_mask]))
+    reference = np.concatenate((fit_reference, evaluation_reference))
+    if aligned.shape != reference.shape:
+        raise ValueError("teacher reproduction shape differs")
+    return np.einsum("nd,nd->n", aligned, reference) / (
+        np.linalg.norm(aligned, axis=1) * np.linalg.norm(reference, axis=1)
+    )
+
+
 def _require_checkout(checkout: Path) -> None:
     head = subprocess.run(
         ["git", "-C", str(checkout), "rev-parse", "HEAD"],
@@ -171,9 +188,11 @@ def main(arguments: Sequence[str] | None = None) -> int:
 
     preprojection = np.ascontiguousarray(np.concatenate(preprojection_rows), dtype=np.float32)
     final = np.ascontiguousarray(np.concatenate(final_rows), dtype=np.float32)
-    reference = np.concatenate((fit_final_reference, evaluation_final_reference))
-    cosine = np.einsum("nd,nd->n", final, reference) / (
-        np.linalg.norm(final, axis=1) * np.linalg.norm(reference, axis=1)
+    cosine = reproduction_cosines(
+        final,
+        fit_mask,
+        fit_final_reference,
+        evaluation_final_reference,
     )
     if (
         preprojection.shape != (16_185, 1_024)

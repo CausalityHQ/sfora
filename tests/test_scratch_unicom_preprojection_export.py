@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
+import numpy as np
 import pytest
 import torch
 
@@ -60,3 +61,19 @@ def test_capture_preprojection_rejects_noncanonical_teacher_layout() -> None:
             preprojection_dimensions=3,
             final_dimensions=2,
         )
+
+
+def test_reproduction_cosines_align_interleaved_rows_by_fit_mask() -> None:
+    subject = _load_subject()
+    final = np.asarray(
+        [[1.0, 0.0], [0.0, 1.0], [-1.0, 0.0], [0.0, -1.0]], dtype=np.float32
+    )
+    fit_mask = np.asarray([True, False, True, False])
+    fit_reference = final[fit_mask].copy()
+    evaluation_reference = final[~fit_mask].copy()
+
+    cosine = subject.reproduction_cosines(
+        final, fit_mask, fit_reference, evaluation_reference
+    )
+
+    np.testing.assert_allclose(cosine, np.ones(4), rtol=0.0, atol=0.0)
