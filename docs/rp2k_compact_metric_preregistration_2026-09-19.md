@@ -149,11 +149,20 @@ The run took 204.768 seconds after feature extraction.
 
 The learned code improved over PCA by `+0.014289` mMP@5 and `+0.006866`
 R@1, over between-class PCA by `+0.010643` mMP@5, and over equal-byte OPQ
-by `+0.005538` mMP@5.  Its class-clustered learned-minus-PCA bootstrap
-lower bound was `+0.035139`.  Shuffled-label training was worse than PCA,
+by `+0.005538` mMP@5.  Shuffled-label training was worse than PCA,
 supporting a label-dependent effect.  The 64-byte learned code retained
 `100.050%` of source float-768 mMP@5 and `99.852%` of its R@1 while using
 48 times fewer stored bytes.
+
+A post-result estimand audit found that the receipt's `+0.035139`
+class-clustered lower bound is macro-class weighted: its corresponding point
+estimate is `+0.048754`, rather than the query-weighted mMP@5 delta above.
+The matching query-weighted cluster bootstrap lower bound is `+0.009530`, so
+the frozen positivity gate still passes, but only that latter interval is
+comparable to reported query-weighted mMP@5.  The query-weighted R@1 lower
+bound is `+0.004046`, with 196 learned wins, 78 losses, and 16,911 ties.  The
+audit receipt is
+`docs/evidence/rank_finished_l14_336_rp2k_bootstrap_estimand_audit_v1.json`.
 
 Despite the strong absolute result, the candidate failed the frozen
 `+0.020` learned-minus-PCA and `+0.010` learned-minus-OPQ mMP@5 gates.  The
