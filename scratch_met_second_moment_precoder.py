@@ -185,6 +185,8 @@ def main() -> None:
     _, baseline_official_rank = baseline.search(official, 5)
     baseline_codes = np.ascontiguousarray(baseline.sa_encode(gallery), dtype=np.uint8)
     baseline_decoded = np.ascontiguousarray(baseline.sa_decode(baseline_codes), dtype=np.float32)
+    baseline_ip_pseudo_rank = top5(faiss, baseline_decoded, pseudo, metric="ip")
+    baseline_ip_official_rank = top5(faiss, baseline_decoded, official, metric="ip")
 
     transformed_gallery, transformed_pseudo, diagnostics = second_moment_pair(gallery, pseudo)
     _, transformed_official, official_diagnostics = second_moment_pair(gallery, official)
@@ -222,21 +224,41 @@ def main() -> None:
     baseline_pseudo_rows = quality_rows(
         baseline_pseudo_rank, pseudo_labels, gallery_labels
     )
+    baseline_ip_pseudo_rows = quality_rows(
+        baseline_ip_pseudo_rank, pseudo_labels, gallery_labels
+    )
     candidate_pseudo_rows = quality_rows(
         candidate_pseudo_rank, pseudo_labels, gallery_labels
     )
     baseline_official_rows = quality_rows(
         baseline_official_rank, official_labels, gallery_labels
     )
+    baseline_ip_official_rows = quality_rows(
+        baseline_ip_official_rank, official_labels, gallery_labels
+    )
     candidate_official_rows = quality_rows(
         candidate_official_rank, official_labels, gallery_labels
     )
-    mmp_interval = paired_interval(
-        candidate_pseudo_rows[0] - baseline_pseudo_rows[0], seed=20_260_922
-    )
-    r1_interval = paired_interval(
-        candidate_pseudo_rows[1] - baseline_pseudo_rows[1], seed=20_260_923
-    )
+    comparisons = {}
+    comparison_passes = []
+    for offset, (name, rows) in enumerate(
+        (("opq_squared_l2", baseline_pseudo_rows), ("opq_inner_product", baseline_ip_pseudo_rows))
+    ):
+        mmp_interval = paired_interval(
+            candidate_pseudo_rows[0] - rows[0], seed=20_260_922 + 2 * offset
+        )
+        r1_interval = paired_interval(
+            candidate_pseudo_rows[1] - rows[1], seed=20_260_923 + 2 * offset
+        )
+        comparisons[name] = {
+            "mmp_at_5_lower_mean_upper_95": mmp_interval,
+            "recall_at_1_lower_mean_upper_95": r1_interval,
+        }
+        comparison_passes.append(
+            mmp_interval[1] >= 0.002
+            and mmp_interval[0] > 0.0
+            and r1_interval[0] > -0.001
+        )
     payload = {
         "schema": "scratch-met-small-second-moment-precoder-v1",
         "claim_eligible": False,
@@ -248,7 +270,7 @@ def main() -> None:
         "official_validation_queries": len(official),
         "payload_bytes_per_item": int(candidate_codes.shape[1]),
         "transform": diagnostics,
-        "baseline": {
+        "opq64x8_squared_l2": {
             "spec": SPEC,
             "fit_seconds": baseline_fit_seconds,
             "reconstruction_mse": float(
@@ -256,6 +278,10 @@ def main() -> None:
             ),
             "pseudo": summarize(baseline_pseudo_rows),
             "official": summarize(baseline_official_rows),
+        },
+        "opq64x8_inner_product": {
+            "pseudo": summarize(baseline_ip_pseudo_rows),
+            "official": summarize(baseline_ip_official_rows),
         },
         "second_moment_precoded": {
             "spec": SPEC,
@@ -266,15 +292,8 @@ def main() -> None:
             "pseudo": summarize(candidate_pseudo_rows),
             "official": summarize(candidate_official_rows),
         },
-        "paired_pseudo_delta_candidate_minus_baseline": {
-            "mmp_at_5_lower_mean_upper_95": mmp_interval,
-            "recall_at_1_lower_mean_upper_95": r1_interval,
-        },
-        "promotion_passed": bool(
-            mmp_interval[1] >= 0.002
-            and mmp_interval[0] > 0.0
-            and r1_interval[0] > -0.001
-        ),
+        "paired_pseudo_delta_candidate_minus_controls": comparisons,
+        "promotion_passed": bool(all(comparison_passes)),
     }
     wire = json.dumps(payload, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\n"
     partial = args.output.with_suffix(args.output.suffix + ".partial")
