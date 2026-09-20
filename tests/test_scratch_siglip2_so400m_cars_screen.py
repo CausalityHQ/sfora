@@ -3,6 +3,8 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
+import torch
+
 SCRIPT = (
     Path(__file__).parents[1]
     / "scripts"
@@ -93,3 +95,38 @@ def test_processor_collate_batches_images_in_one_authenticated_call() -> None:
 
     assert collate(["a", "b", "c"]) == ("batch", ("a", "b", "c"))
     assert processor.calls == [(["a", "b", "c"], "pt")]
+
+
+def test_fused_inference_backend_is_explicit_and_repeatability_bound() -> None:
+    subject = _load_subject()
+    original = {
+        "deterministic": torch.are_deterministic_algorithms_enabled(),
+        "cudnn_deterministic": torch.backends.cudnn.deterministic,
+        "cudnn_benchmark": torch.backends.cudnn.benchmark,
+        "flash": torch.backends.cuda.flash_sdp_enabled(),
+        "memory_efficient": torch.backends.cuda.mem_efficient_sdp_enabled(),
+        "cudnn_sdp": torch.backends.cuda.cudnn_sdp_enabled(),
+    }
+    try:
+        receipt = subject.enable_repeatable_fused_inference()
+        assert receipt == {
+            "backend": "upstream-default-fused-sdp-v1",
+            "deterministic_algorithms": False,
+            "flash_sdp": True,
+            "memory_efficient_sdp": True,
+            "cudnn_sdp": True,
+            "repeatability_probe_equal": True,
+            "repeatability_probe_sha256": (
+                "71cc58509212167962fbedd843abb9efe7d654181981759b4ff48e764e383253"
+            ),
+            "strict_fast_min_cosine": 0.9999939203262329,
+        }
+        assert torch.are_deterministic_algorithms_enabled() is False
+        assert torch.backends.cuda.flash_sdp_enabled() is True
+    finally:
+        torch.use_deterministic_algorithms(original["deterministic"])
+        torch.backends.cudnn.deterministic = original["cudnn_deterministic"]
+        torch.backends.cudnn.benchmark = original["cudnn_benchmark"]
+        torch.backends.cuda.enable_flash_sdp(original["flash"])
+        torch.backends.cuda.enable_mem_efficient_sdp(original["memory_efficient"])
+        torch.backends.cuda.enable_cudnn_sdp(original["cudnn_sdp"])

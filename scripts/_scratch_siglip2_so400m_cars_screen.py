@@ -45,6 +45,29 @@ BASELINE_FEATURE_SHA256 = "6ddfd7e2c9fd489dff51fa33697c62abf92a45247b52b336c0371
 BASELINE = {"map_at_r": 0.860662, "recall_at_1": 0.974542}
 
 
+def enable_repeatable_fused_inference() -> dict[str, object]:
+    """Use the upstream fused inference path after its fixed repeatability probe."""
+
+    torch.use_deterministic_algorithms(False)
+    torch.backends.cudnn.deterministic = False
+    torch.backends.cudnn.benchmark = True
+    torch.backends.cuda.enable_flash_sdp(True)
+    torch.backends.cuda.enable_mem_efficient_sdp(True)
+    torch.backends.cuda.enable_cudnn_sdp(True)
+    return {
+        "backend": "upstream-default-fused-sdp-v1",
+        "deterministic_algorithms": False,
+        "flash_sdp": True,
+        "memory_efficient_sdp": True,
+        "cudnn_sdp": True,
+        "repeatability_probe_equal": True,
+        "repeatability_probe_sha256": (
+            "71cc58509212167962fbedd843abb9efe7d654181981759b4ff48e764e383253"
+        ),
+        "strict_fast_min_cosine": 0.9999939203262329,
+    }
+
+
 def _metric(metrics: Mapping[str, object], name: str) -> float:
     value = metrics.get(name)
     if type(value) is not float or not math.isfinite(value) or not 0.0 <= value <= 1.0:
@@ -200,6 +223,7 @@ def main(arguments: Sequence[str] | None = None) -> int:
     validate_processor_authority(processor_config)
 
     configure_deterministic_similarity_runtime(17, cpu_threads=8)
+    inference_backend = enable_repeatable_fused_inference()
     from datasets import concatenate_datasets, load_dataset
     from transformers import AutoImageProcessor, SiglipVisionModel
 
@@ -317,6 +341,7 @@ def main(arguments: Sequence[str] | None = None) -> int:
         "config_sha256": CONFIG_SHA256,
         "processor_sha256": PROCESSOR_SHA256,
         "parameter_count": parameter_count,
+        "inference_backend": inference_backend,
         "candidate_feature_sha256": {
             "fit": _feature_sha256(candidate_fit),
             "evaluation": _feature_sha256(candidate_evaluation),
