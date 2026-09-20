@@ -1,0 +1,36 @@
+{
+  "schema": "sfora-compact-residual-head-preregistration-v1",
+  "claim_eligible": false,
+  "source_commit": "9df67d3bbdc11c6129683533c61b182e85fa7f6e",
+  "script_sha256": "b106007320a3351cae4c64e50528e9e408da9e4bf4731d782c9987bfd2d21e03",
+  "dataset": "cars196",
+  "features_sha256": "6ddfd7e2c9fd489dff51fa33697c62abf92a45247b52b336c0371f5482231ab3",
+  "evaluation_split": "official class-disjoint evaluation classes from authenticated archive",
+  "output_dimensions": 128,
+  "storage_bytes_per_item": 128,
+  "hidden_dimensions": 32,
+  "seed": 17,
+  "candidate": "residual_anchor",
+  "controls": [
+    "affine",
+    "affine_anchor",
+    "residual"
+  ],
+  "initialization": "same centered PCA-128 affine projection; nonlinear output exactly zero",
+  "training": "same CompactMetricConfig schedule, frozen hard negatives, positive-coverage mean-logit objective, optimizer, learning rate and update count for every arm",
+  "anchor_weight": 10.0,
+  "gate": {
+    "minimum_map_at_r_delta_over_strongest_control": 0.005,
+    "paired_class_bootstrap_replicates": 10000,
+    "paired_class_bootstrap_seed": 17,
+    "require_map_delta_95_lower_strictly_positive": true,
+    "minimum_recall_at_1_delta": 0.0
+  },
+  "decision": "replicate residual_anchor unchanged on CUB only if every Cars gate passes; otherwise close this exact nonlinear residual family",
+  "prohibitions": [
+    "no evaluation-label use during fitting",
+    "no hyperparameter changes after Cars scoring",
+    "no CUDA kernel work before cross-dataset quality success",
+    "no SOTA or release claim from this scratch result"
+  ]
+}
