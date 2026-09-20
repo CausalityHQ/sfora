@@ -141,8 +141,10 @@ _COMPACT_METRIC_EXPORTS = frozenset(
         "CompactMetricModule",
         "CompactMetricSelectionFold",
         "CompactMetricSelectionResult",
+        "WithinClassWhiteningFitResult",
         "choose_compact_metric_projection",
         "fit_compact_metric_projection",
+        "fit_within_class_whitening_projection",
         "select_compact_metric_projection",
     }
 )
@@ -412,6 +414,7 @@ __all__ = [
     "CompactMetricModule",
     "CompactMetricSelectionFold",
     "CompactMetricSelectionResult",
+    "WithinClassWhiteningFitResult",
     "ExperimentResult",
     "FactorizedResidualArtifact",
     "FactorizedResidualComponents",
@@ -532,6 +535,7 @@ __all__ = [
     "choose_compact_metric_projection",
     "fit_sfora_projection",
     "fit_compact_metric_projection",
+    "fit_within_class_whitening_projection",
     "fit_relational_linear_compaction",
     "fit_relational_linear_encoder",
     "fit_rate_matched_product_quantizer",

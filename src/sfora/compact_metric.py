@@ -10,6 +10,7 @@ from typing import Literal, cast
 
 import numpy as np
 import torch
+from sklearn.covariance import LedoitWolf
 
 from sfora.joint_relational_compaction import fixed_int8_unit_codes
 from sfora.representation_ceiling import fit_centered_pca
@@ -134,7 +135,7 @@ class CompactMetricEncoder:
             or embeddings.shape[1] != self._weight.shape[1]
             or not embeddings.is_contiguous()
             or not bool(torch.isfinite(embeddings).all())
-            or bool((torch.linalg.vector_norm(embeddings, dim=1) == 0).any())
+            or bool((torch.linalg.vector_norm(embeddings, dim=1) < 1e-12).any())
         ):
             raise ValueError("compact metric transform authority differs")
         with torch.autocast(device_type="cpu", enabled=False):
@@ -195,6 +196,16 @@ class CompactMetricFitResult:
     schedule_sha256: str
     parameter_sha256: str
     losses: tuple[float, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class WithinClassWhiteningFitResult:
+    """Experimental opt-in whitening encoder and covariance evidence."""
+
+    encoder: CompactMetricEncoder
+    shrinkage: float
+    within_minimum_eigenvalue: float
+    within_maximum_eigenvalue: float
 
 
 @dataclass(frozen=True, slots=True)
@@ -266,7 +277,7 @@ def select_compact_metric_projection(
         or embeddings.shape[1] < 2
         or not embeddings.is_contiguous()
         or not bool(torch.isfinite(embeddings).all())
-        or bool((torch.linalg.vector_norm(embeddings, dim=1) == 0).any())
+        or bool((torch.linalg.vector_norm(embeddings, dim=1) < 1e-12).any())
         or type(labels) is not torch.Tensor
         or labels.device.type != "cpu"
         or labels.dtype != torch.int64
@@ -410,6 +421,7 @@ def fit_compact_metric_projection(
     labels: torch.Tensor,
     *,
     config: CompactMetricConfig | None = None,
+    initial_encoder: CompactMetricEncoder | None = None,
     device: torch.device | None = None,
 ) -> CompactMetricFitResult:
     """Fit the compact affine metric recipe on labeled embeddings."""
@@ -424,7 +436,7 @@ def fit_compact_metric_projection(
         or embeddings.shape[1] < 2
         or not embeddings.is_contiguous()
         or not bool(torch.isfinite(embeddings).all())
-        or bool((torch.linalg.vector_norm(embeddings, dim=1) == 0).any())
+        or bool((torch.linalg.vector_norm(embeddings, dim=1) < 1e-12).any())
         or type(labels) is not torch.Tensor
         or labels.device.type != "cpu"
         or labels.dtype != torch.int64
@@ -432,6 +444,13 @@ def fit_compact_metric_projection(
         or not labels.is_contiguous()
         or bool((labels < 0).any())
         or resolved.output_dimensions > min(embeddings.shape[0] - 1, embeddings.shape[1])
+        or (
+            initial_encoder is not None
+            and (
+                type(initial_encoder) is not CompactMetricEncoder
+                or initial_encoder.weight.shape != (resolved.output_dimensions, embeddings.shape[1])
+            )
+        )
         or (device is not None and type(device) is not torch.device)
     ):
         raise ValueError("compact metric training authority differs")
@@ -445,7 +464,11 @@ def fit_compact_metric_projection(
         torch.autocast(device_type=destination.type, enabled=False),
     ):
         return _fit_compact_metric_projection(
-            embeddings.detach(), labels, config=resolved, device=destination
+            embeddings.detach(),
+            labels,
+            config=resolved,
+            initial_encoder=initial_encoder,
+            device=destination,
         )
 
 
@@ -454,6 +477,7 @@ def _fit_compact_metric_projection(
     labels: torch.Tensor,
     *,
     config: CompactMetricConfig,
+    initial_encoder: CompactMetricEncoder | None,
     device: torch.device,
 ) -> CompactMetricFitResult:
     resolved = config
@@ -485,13 +509,19 @@ def _fit_compact_metric_projection(
         rows_per_class=resolved.rows_per_class,
     )
 
-    pca = fit_centered_pca(normalized, dimensions=resolved.output_dimensions)
     model = torch.nn.Linear(
         embeddings.shape[1], resolved.output_dimensions, device=destination, dtype=torch.float32
     )
     with torch.no_grad():
-        model.weight.copy_(pca.components.to(destination))
-        model.bias.copy_((-(pca.components.double() @ pca.mean.double())).float().to(destination))
+        if initial_encoder is None:
+            pca = fit_centered_pca(normalized, dimensions=resolved.output_dimensions)
+            model.weight.copy_(pca.components.to(destination))
+            model.bias.copy_(
+                (-(pca.components.double() @ pca.mean.double())).float().to(destination)
+            )
+        else:
+            model.weight.copy_(initial_encoder.weight.to(destination))
+            model.bias.copy_(initial_encoder.bias.to(destination))
     bank = normalized.to(destination)
     with torch.inference_mode():
         start = torch.nn.functional.normalize(model(bank), dim=1).detach().contiguous()
@@ -555,6 +585,87 @@ def _fit_compact_metric_projection(
         schedule_sha256=schedule.sha256,
         parameter_sha256=encoder.sha256,
         losses=tuple(losses),
+    )
+
+
+def fit_within_class_whitening_projection(
+    embeddings: torch.Tensor,
+    labels: torch.Tensor,
+    *,
+    output_dimensions: int = 128,
+) -> WithinClassWhiteningFitResult:
+    """Fit an experimental shrinkage-whitened projection, failing on ambiguous spectra."""
+
+    if (
+        type(embeddings) is not torch.Tensor
+        or embeddings.device.type != "cpu"
+        or embeddings.dtype != torch.float32
+        or embeddings.ndim != 2
+        or embeddings.shape[0] < 3
+        or embeddings.shape[1] < 2
+        or not embeddings.is_contiguous()
+        or not bool(torch.isfinite(embeddings).all())
+        or bool((torch.linalg.vector_norm(embeddings, dim=1) < 1e-12).any())
+        or type(labels) is not torch.Tensor
+        or labels.device.type != "cpu"
+        or labels.dtype != torch.int64
+        or labels.shape != (embeddings.shape[0],)
+        or not labels.is_contiguous()
+        or bool((labels < 0).any())
+        or len(torch.unique(labels)) < 2
+        or type(output_dimensions) is not int
+        or not 2 <= output_dimensions <= min(embeddings.shape[0] - 1, embeddings.shape[1])
+    ):
+        raise ValueError("within-class whitening authority differs")
+
+    normalized = torch.nn.functional.normalize(embeddings.detach().double(), dim=1).numpy()
+    label_array = labels.numpy()
+    values = np.unique(label_array)
+    mean = normalized.mean(axis=0)
+    class_means = np.stack([normalized[label_array == value].mean(axis=0) for value in values])
+    residuals = np.concatenate(
+        [
+            normalized[label_array == value] - class_means[index]
+            for index, value in enumerate(values)
+        ]
+    )
+    estimator = LedoitWolf(assume_centered=True, store_precision=False).fit(residuals)
+    within = np.asarray(estimator.covariance_, dtype=np.float64)
+    eigenvalues, eigenvectors = np.linalg.eigh(within)
+    if not np.isfinite(eigenvalues).all() or eigenvalues[0] <= 0.0:
+        raise ValueError("within-class whitening covariance differs")
+    inverse_root = (eigenvectors / np.sqrt(eigenvalues)) @ eigenvectors.T
+    centered = normalized - mean
+    whitened = centered @ inverse_root
+    total_white = whitened.T @ whitened / len(whitened)
+    variance, directions = np.linalg.eigh(total_white)
+    order = np.argsort(variance, kind="stable")[::-1]
+    retained_boundary = min(output_dimensions + 1, len(variance))
+    boundary_values = variance[order[:retained_boundary]]
+    selected_values = boundary_values[:output_dimensions]
+    tolerance = max(normalized.shape) * np.finfo(np.float64).eps * max(float(variance[-1]), 1.0)
+    if (
+        not np.isfinite(variance).all()
+        or selected_values[-1] <= tolerance
+        or any(
+            abs(float(boundary_values[index] - boundary_values[index + 1])) <= tolerance
+            for index in range(len(boundary_values) - 1)
+        )
+    ):
+        raise ValueError("within-class whitening projection differs")
+    selected = directions[:, order[:output_dimensions]].copy()
+    for direction in selected.T:
+        pivot = int(np.argmax(np.abs(direction)))
+        if direction[pivot] < 0.0:
+            direction *= -1.0
+    weight = np.ascontiguousarray((selected.T @ inverse_root).astype(np.float32))
+    bias = np.ascontiguousarray((-(weight.astype(np.float64) @ mean)).astype(np.float32))
+    encoder = CompactMetricEncoder(weight=torch.from_numpy(weight), bias=torch.from_numpy(bias))
+    return WithinClassWhiteningFitResult(
+        encoder=encoder,
+        shrinkage=float(estimator.shrinkage_),
+        within_minimum_eigenvalue=float(eigenvalues[0]),
+        within_maximum_eigenvalue=float(eigenvalues[-1]),
     )
 
 

@@ -12,10 +12,12 @@ from sfora.compact_metric import (
     CompactMetricModule,
     CompactMetricSelectionFold,
     CompactMetricSelectionResult,
+    WithinClassWhiteningFitResult,
     _positive_rows,
     _score_compact_metric_codes,
     choose_compact_metric_projection,
     fit_compact_metric_projection,
+    fit_within_class_whitening_projection,
     select_compact_metric_projection,
 )
 from sfora.representation_ceiling import fit_centered_pca
@@ -39,9 +41,140 @@ def test_compact_metric_api_is_public() -> None:
     assert sfora.CompactMetricModule is CompactMetricModule
     assert sfora.CompactMetricSelectionFold is CompactMetricSelectionFold
     assert sfora.CompactMetricSelectionResult is CompactMetricSelectionResult
+    assert sfora.WithinClassWhiteningFitResult is WithinClassWhiteningFitResult
     assert sfora.choose_compact_metric_projection is choose_compact_metric_projection
     assert sfora.fit_compact_metric_projection is fit_compact_metric_projection
+    assert sfora.fit_within_class_whitening_projection is fit_within_class_whitening_projection
     assert sfora.select_compact_metric_projection is select_compact_metric_projection
+
+
+def test_within_class_whitening_is_deterministic_and_does_not_mutate_inputs() -> None:
+    """Catch fitting from total covariance or mutating caller-owned teacher features."""
+
+    generator = torch.Generator().manual_seed(101)
+    centers = torch.randn(8, 4, generator=generator)
+    scales = torch.tensor([0.45, 0.12, 0.035, 0.01])
+    embeddings = (
+        torch.cat([center + torch.randn(20, 4, generator=generator) * scales for center in centers])
+        .float()
+        .contiguous()
+        .requires_grad_(True)
+    )
+    labels = torch.arange(8, dtype=torch.int64).repeat_interleave(20).contiguous()
+    original = embeddings.detach().clone()
+
+    first = fit_within_class_whitening_projection(embeddings, labels, output_dimensions=3)
+    second = fit_within_class_whitening_projection(
+        embeddings.clone(), labels.clone(), output_dimensions=3
+    )
+
+    assert isinstance(first, WithinClassWhiteningFitResult)
+    torch.testing.assert_close(embeddings.detach(), original, atol=0, rtol=0)
+    torch.testing.assert_close(first.encoder.weight, second.encoder.weight, atol=0, rtol=0)
+    torch.testing.assert_close(first.encoder.bias, second.encoder.bias, atol=0, rtol=0)
+    assert first.shrinkage == second.shrinkage
+    assert 0.0 <= first.shrinkage <= 1.0
+    assert first.within_minimum_eigenvalue > 0.0
+    assert first.within_maximum_eigenvalue >= first.within_minimum_eigenvalue
+    assert (
+        first.encoder.sha256 == "d9b2c4ea5574255736d51c25f5e367001ddb0cd27dd1593ef3195edb703eebd1"
+    )
+    normalized = torch.nn.functional.normalize(embeddings.detach().double(), dim=1)
+    projected = normalized @ first.encoder.weight.double().T + first.encoder.bias.double()
+    centered_origin = normalized.mean(dim=0) @ first.encoder.weight.double().T
+    centered_origin += first.encoder.bias.double()
+    assert float(centered_origin.abs().max()) < 2e-7
+    class_means = torch.stack([projected[labels == value].mean(dim=0) for value in range(8)])
+    residuals = torch.cat([projected[labels == value] - class_means[value] for value in range(8)])
+    covariance = residuals.T.double() @ residuals.double() / len(residuals)
+    condition = torch.linalg.cond(covariance).item()
+    raw_means = torch.stack([normalized[labels == value].mean(dim=0) for value in range(8)])
+    raw_residuals = torch.cat(
+        [normalized[labels == value] - raw_means[value] for value in range(8)]
+    )
+    raw_covariance = raw_residuals.T.double() @ raw_residuals.double() / len(raw_residuals)
+    assert condition < torch.linalg.cond(raw_covariance).item() / 5.0
+
+
+def test_compact_metric_accepts_explicit_whitening_initializer_without_changing_default() -> None:
+    """Catch reintroducing the research monkeypatch or changing the PCA default path."""
+
+    embeddings, labels = _fixture()
+    config = CompactMetricConfig(
+        output_dimensions=3,
+        cycles=1,
+        anchor_epochs_per_cycle=0.5,
+        hard_negatives=3,
+    )
+    baseline = fit_compact_metric_projection(
+        embeddings, labels, config=config, device=torch.device("cpu")
+    )
+    repeated = fit_compact_metric_projection(
+        embeddings, labels, config=config, initial_encoder=None, device=torch.device("cpu")
+    )
+    whitening = fit_within_class_whitening_projection(embeddings, labels, output_dimensions=3)
+    whitened = fit_compact_metric_projection(
+        embeddings,
+        labels,
+        config=config,
+        initial_encoder=whitening.encoder,
+        device=torch.device("cpu"),
+    )
+
+    assert baseline.parameter_sha256 == repeated.parameter_sha256
+    assert baseline.losses == repeated.losses
+    assert (
+        baseline.parameter_sha256
+        == "b4a72755f750bafac225ce72d6f716d6b3e4adb18808016dfcd2cc95aa4c2358"
+    )
+    assert whitened.parameter_sha256 != baseline.parameter_sha256
+    assert whitened.losses != baseline.losses
+    assert whitened.total_updates == baseline.total_updates
+    assert whitened.encoder.weight.shape == (3, 6)
+    assert torch.isfinite(whitened.encoder.weight).all()
+    assert torch.isfinite(whitened.encoder.bias).all()
+
+
+def test_within_class_whitening_rejects_a_degenerate_retained_boundary() -> None:
+    """Catch choosing an arbitrary axis when retained and excluded variances tie."""
+
+    embeddings = torch.tensor(
+        [
+            [2.0, 1.0, 0.0],
+            [2.0, -1.0, 0.0],
+            [2.0, 0.0, 1.0],
+            [2.0, 0.0, -1.0],
+            [-2.0, 1.0, 0.0],
+            [-2.0, -1.0, 0.0],
+            [-2.0, 0.0, 1.0],
+            [-2.0, 0.0, -1.0],
+        ],
+        dtype=torch.float32,
+    ).contiguous()
+    labels = torch.tensor([0, 0, 0, 0, 1, 1, 1, 1], dtype=torch.int64).contiguous()
+
+    with pytest.raises(ValueError, match="within-class whitening projection differs"):
+        fit_within_class_whitening_projection(embeddings, labels, output_dimensions=2)
+
+
+def test_compact_metric_rejects_subnormal_input_geometry() -> None:
+    """Catch epsilon-clamped normalization retaining input-magnitude dependence."""
+
+    embeddings, labels = _fixture()
+    embeddings[0].mul_(1e-15)
+    encoder = CompactMetricEncoder(weight=torch.eye(6), bias=torch.zeros(6))
+
+    with pytest.raises(ValueError, match="compact metric transform authority differs"):
+        encoder.transform(embeddings[:1].contiguous())
+    with pytest.raises(ValueError, match="compact metric training authority differs"):
+        fit_compact_metric_projection(
+            embeddings,
+            labels,
+            config=CompactMetricConfig(output_dimensions=3),
+            device=torch.device("cpu"),
+        )
+    with pytest.raises(ValueError, match="within-class whitening authority differs"):
+        fit_within_class_whitening_projection(embeddings, labels, output_dimensions=3)
 
 
 def test_compact_metric_selection_policy_uses_quality_gain_and_recall_guard() -> None:
