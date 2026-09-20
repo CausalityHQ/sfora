@@ -46,6 +46,10 @@ impl PackedRows {
             dimensions,
         })
     }
+
+    pub fn rows(&self) -> usize {
+        self.rows
+    }
 }
 
 pub fn scalar_scores(

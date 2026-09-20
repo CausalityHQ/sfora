@@ -1,6 +1,7 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::sync::Arc;
+use std::time::Instant;
 
 use cuda_core::Device;
 use cutile::prelude::*;
@@ -8,7 +9,6 @@ use cutile::prelude::*;
 use crate::PackedRows;
 
 const DIMENSIONS: usize = 128;
-const BM: usize = 16;
 const BN: usize = 128;
 const BK: usize = 32;
 
@@ -74,24 +74,225 @@ mod score_module {
     }
 }
 
+#[cutile::module]
+mod float_score_module {
+    use cutile::core::*;
+
+    #[cutile::entry()]
+    fn float_score<const BM: i32, const BN: i32, const BK: i32, const K: i32>(
+        output: &mut Tensor<f32, { [BM, BN] }>,
+        queries: &Tensor<f32, { [-1, K] }>,
+        gallery_transposed: &Tensor<f32, { [K, -1] }>,
+    ) {
+        let pid = get_tile_block_id();
+        let query_partition = queries.partition(const_shape![BM, BK]);
+        let gallery_partition = gallery_transposed.partition(const_shape![BK, BN]);
+        let mut accumulator: Tile<f32, { [BM, BN] }> = constant(0.0f32, const_shape![BM, BN]);
+        for inner in 0i32..(K / BK) {
+            accumulator = mma(
+                query_partition.load([pid.0, inner]),
+                gallery_partition.load([inner, pid.1]),
+                accumulator,
+            );
+        }
+        output.store(accumulator);
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ScorePlaneMeasurements {
+    pub packed_compile_ns: u64,
+    pub packed_samples_ns: Vec<u64>,
+    pub resident_f32_compile_ns: u64,
+    pub resident_f32_samples_ns: Vec<u64>,
+    pub packed_persistent_bytes: u64,
+    pub resident_f32_persistent_bytes: u64,
+    pub score_plane_bytes: u64,
+}
+
+fn elapsed_ns(start: Instant) -> Result<u64, CutileScoreError> {
+    u64::try_from(start.elapsed().as_nanos()).map_err(|_| CutileScoreError::Runtime)
+}
+
+pub fn benchmark_score_planes(
+    device: &Arc<Device>,
+    queries: &PackedRows,
+    gallery: &PackedRows,
+    batch: BatchShape,
+    warmups: usize,
+    samples: usize,
+) -> Result<ScorePlaneMeasurements, CutileScoreError> {
+    let bm = match batch {
+        BatchShape::One => 1usize,
+        BatchShape::ThirtyTwo => 32usize,
+    };
+    if queries.rows != bm
+        || queries.dimensions != DIMENSIONS
+        || gallery.dimensions != DIMENSIONS
+        || warmups == 0
+        || samples == 0
+    {
+        return Err(CutileScoreError::Authority);
+    }
+    let padded_gallery_rows = gallery.rows.div_ceil(BN) * BN;
+    let mut gallery_codes = vec![0i8; DIMENSIONS * padded_gallery_rows];
+    let mut resident_gallery = vec![0.0f32; DIMENSIONS * padded_gallery_rows];
+    for row in 0..gallery.rows {
+        let inverse_norm = gallery.inverse_norms[row].to_f32();
+        for column in 0..DIMENSIONS {
+            let value = gallery.codes[row * DIMENSIONS + column];
+            gallery_codes[column * padded_gallery_rows + row] = value;
+            resident_gallery[column * padded_gallery_rows + row] = f32::from(value) * inverse_norm;
+        }
+    }
+    let mut query_codes = vec![0i8; bm * DIMENSIONS];
+    query_codes.copy_from_slice(&queries.codes);
+    let mut query_norms = vec![0.0f32; bm];
+    let mut resident_queries = vec![0.0f32; bm * DIMENSIONS];
+    for row in 0..bm {
+        let inverse_norm = queries.inverse_norms[row].to_f32();
+        query_norms[row] = inverse_norm;
+        for column in 0..DIMENSIONS {
+            resident_queries[row * DIMENSIONS + column] =
+                f32::from(queries.codes[row * DIMENSIONS + column]) * inverse_norm;
+        }
+    }
+    let mut gallery_norms = vec![0.0f32; padded_gallery_rows];
+    for (output, input) in gallery_norms.iter_mut().zip(&gallery.inverse_norms) {
+        *output = input.to_f32();
+    }
+
+    let stream = device.new_stream().map_err(|_| CutileScoreError::Runtime)?;
+    let mut packed_output = cutile::api::zeros::<f32>(&[bm, padded_gallery_rows])
+        .sync_on(&stream)
+        .map_err(|_| CutileScoreError::Runtime)?;
+    let mut float_output = cutile::api::zeros::<f32>(&[bm, padded_gallery_rows])
+        .sync_on(&stream)
+        .map_err(|_| CutileScoreError::Runtime)?;
+    let query_tensor: Arc<Tensor<i8>> =
+        cutile::api::copy_host_vec_to_device(&Arc::new(query_codes))
+            .reshape(&[bm, DIMENSIONS])
+            .sync_on(&stream)
+            .map_err(|_| CutileScoreError::Runtime)?
+            .into();
+    let gallery_tensor: Arc<Tensor<i8>> =
+        cutile::api::copy_host_vec_to_device(&Arc::new(gallery_codes))
+            .reshape(&[DIMENSIONS, padded_gallery_rows])
+            .sync_on(&stream)
+            .map_err(|_| CutileScoreError::Runtime)?
+            .into();
+    let query_norm_tensor: Arc<Tensor<f32>> =
+        cutile::api::copy_host_vec_to_device(&Arc::new(query_norms))
+            .reshape(&[bm, 1])
+            .sync_on(&stream)
+            .map_err(|_| CutileScoreError::Runtime)?
+            .into();
+    let gallery_norm_tensor: Arc<Tensor<f32>> =
+        cutile::api::copy_host_vec_to_device(&Arc::new(gallery_norms))
+            .reshape(&[1, padded_gallery_rows])
+            .sync_on(&stream)
+            .map_err(|_| CutileScoreError::Runtime)?
+            .into();
+    let resident_query_tensor: Arc<Tensor<f32>> =
+        cutile::api::copy_host_vec_to_device(&Arc::new(resident_queries))
+            .reshape(&[bm, DIMENSIONS])
+            .sync_on(&stream)
+            .map_err(|_| CutileScoreError::Runtime)?
+            .into();
+    let resident_gallery_tensor: Arc<Tensor<f32>> =
+        cutile::api::copy_host_vec_to_device(&Arc::new(resident_gallery))
+            .reshape(&[DIMENSIONS, padded_gallery_rows])
+            .sync_on(&stream)
+            .map_err(|_| CutileScoreError::Runtime)?
+            .into();
+    let generics = vec![
+        bm.to_string(),
+        BN.to_string(),
+        BK.to_string(),
+        DIMENSIONS.to_string(),
+    ];
+
+    let mut launch_packed = || -> Result<(), CutileScoreError> {
+        let output = (&mut packed_output).partition([bm, BN]);
+        let _ = score_module::signed_int8_score(
+            output,
+            query_tensor.clone(),
+            gallery_tensor.clone(),
+            query_norm_tensor.clone(),
+            gallery_norm_tensor.clone(),
+        )
+        .generics(generics.clone())
+        .sync_on(&stream)
+        .map_err(|_| CutileScoreError::Runtime)?;
+        Ok(())
+    };
+    let packed_compile_start = Instant::now();
+    launch_packed()?;
+    let packed_compile_ns = elapsed_ns(packed_compile_start)?;
+    for _ in 0..warmups {
+        launch_packed()?;
+    }
+    let mut packed_samples_ns = Vec::with_capacity(samples);
+    for _ in 0..samples {
+        let start = Instant::now();
+        launch_packed()?;
+        packed_samples_ns.push(elapsed_ns(start)?);
+    }
+
+    let mut launch_float = || -> Result<(), CutileScoreError> {
+        let output = (&mut float_output).partition([bm, BN]);
+        let _ = float_score_module::float_score(
+            output,
+            resident_query_tensor.clone(),
+            resident_gallery_tensor.clone(),
+        )
+        .generics(generics.clone())
+        .sync_on(&stream)
+        .map_err(|_| CutileScoreError::Runtime)?;
+        Ok(())
+    };
+    let float_compile_start = Instant::now();
+    launch_float()?;
+    let resident_f32_compile_ns = elapsed_ns(float_compile_start)?;
+    for _ in 0..warmups {
+        launch_float()?;
+    }
+    let mut resident_f32_samples_ns = Vec::with_capacity(samples);
+    for _ in 0..samples {
+        let start = Instant::now();
+        launch_float()?;
+        resident_f32_samples_ns.push(elapsed_ns(start)?);
+    }
+
+    Ok(ScorePlaneMeasurements {
+        packed_compile_ns,
+        packed_samples_ns,
+        resident_f32_compile_ns,
+        resident_f32_samples_ns,
+        packed_persistent_bytes: u64::try_from(gallery.rows * (DIMENSIONS + 2))
+            .map_err(|_| CutileScoreError::Runtime)?,
+        resident_f32_persistent_bytes: u64::try_from(gallery.rows * DIMENSIONS * 4)
+            .map_err(|_| CutileScoreError::Runtime)?,
+        score_plane_bytes: u64::try_from(bm * gallery.rows * 4)
+            .map_err(|_| CutileScoreError::Runtime)?,
+    })
+}
+
 pub fn score_cutile(
     device: &Arc<Device>,
     queries: &PackedRows,
     gallery: &PackedRows,
     batch: BatchShape,
 ) -> Result<Vec<f32>, CutileScoreError> {
-    let expected_queries = match batch {
-        BatchShape::One => 1,
-        BatchShape::ThirtyTwo => 32,
+    let bm = match batch {
+        BatchShape::One => 1usize,
+        BatchShape::ThirtyTwo => 32usize,
     };
-    if queries.dimensions != DIMENSIONS
-        || gallery.dimensions != DIMENSIONS
-        || queries.rows != expected_queries
-    {
+    if queries.dimensions != DIMENSIONS || gallery.dimensions != DIMENSIONS || queries.rows != bm {
         return Err(CutileScoreError::Authority);
     }
 
-    let padded_query_rows = queries.rows.div_ceil(BM) * BM;
+    let padded_query_rows = queries.rows;
     let padded_gallery_rows = gallery.rows.div_ceil(BN) * BN;
     let mut query_codes = vec![0i8; padded_query_rows * DIMENSIONS];
     query_codes[..queries.codes.len()].copy_from_slice(&queries.codes);
@@ -115,7 +316,7 @@ pub fn score_cutile(
     let output = cutile::api::zeros::<f32>(&[padded_query_rows, padded_gallery_rows])
         .sync_on(&stream)
         .map_err(|_| CutileScoreError::Runtime)?
-        .partition([BM, BN]);
+        .partition([bm, BN]);
     let query_tensor: Arc<Tensor<i8>> =
         cutile::api::copy_host_vec_to_device(&Arc::new(query_codes))
             .reshape(&[padded_query_rows, DIMENSIONS])
@@ -141,7 +342,7 @@ pub fn score_cutile(
             .map_err(|_| CutileScoreError::Runtime)?
             .into();
     let generics = vec![
-        BM.to_string(),
+        bm.to_string(),
         BN.to_string(),
         BK.to_string(),
         DIMENSIONS.to_string(),
