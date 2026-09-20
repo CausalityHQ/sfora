@@ -95,9 +95,11 @@ def encode_views(
                 mirrors.append(transform(ImageOps.mirror(image)))
         with torch.inference_mode():
             ordinary_values = F.normalize(model(torch.stack(ordinary).cuda()).float(), dim=1)
-            mirror_values = F.normalize(model(torch.stack(mirrors).cuda()).float(), dim=1)
         torch.cuda.synchronize()
         ordinary_host = ordinary_values.cpu().numpy().copy()
+        with torch.inference_mode():
+            mirror_values = F.normalize(model(torch.stack(mirrors).cuda()).float(), dim=1)
+        torch.cuda.synchronize()
         mirror_host = mirror_values.cpu().numpy().copy()
         if identity is None or flipped is None:
             identity = np.empty((len(paths), ordinary_host.shape[1]), dtype=np.float32)
