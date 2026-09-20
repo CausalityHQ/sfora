@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 import pytest
+import torch
 
 ROOT = Path(__file__).resolve().parents[1]
 MODULE_PATH = ROOT / "scripts/build_unicom_fepf_run_config.py"
@@ -53,6 +54,27 @@ def _runtime_inference_signature() -> dict[str, object]:
         "descriptor_sha256": "5" * 64,
         "operations": _inference_structure()["operations"],
     }
+
+
+def test_checkpoint_loader_memory_maps_path_backed_tensor_storage(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    checkpoint_path = tmp_path / "checkpoint.pt"
+    torch.save({"model": {"weight": torch.tensor([1.0])}}, checkpoint_path)
+    torch_load = torch.load
+
+    def require_mmap(source: object, **kwargs: object) -> object:
+        assert source == checkpoint_path
+        assert kwargs == {
+            "map_location": "cpu",
+            "weights_only": False,
+            "mmap": True,
+        }
+        return torch_load(source, **kwargs)
+
+    monkeypatch.setattr(torch, "load", require_mmap)
+    checkpoint = MODULE._load_checkpoint_mapped(checkpoint_path)
+    assert torch.equal(checkpoint["model"]["weight"], torch.tensor([1.0]))
 
 
 def _partition_inventory() -> dict[str, int]:

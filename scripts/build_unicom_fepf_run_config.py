@@ -260,12 +260,23 @@ def _commands(
     }
 
 
+def _load_checkpoint_mapped(path: Path) -> dict[str, object]:
+    import torch
+
+    return torch.load(
+        path,
+        map_location="cpu",
+        weights_only=False,
+        mmap=True,
+    )
+
+
 def _checkpoint_inference_structure(path: Path) -> dict[str, object]:
     import torch
 
     if path.is_symlink() or not path.is_file():
         raise ValueError("registered runtime checkpoint differs")
-    checkpoint = torch.load(path, map_location="cpu", weights_only=False)
+    checkpoint = _load_checkpoint_mapped(path)
     if type(checkpoint) is not dict or not isinstance(checkpoint.get("model"), dict):
         raise ValueError("registered runtime checkpoint differs")
     state = checkpoint["model"]
@@ -306,12 +317,10 @@ def _checkpoint_inference_structure(path: Path) -> dict[str, object]:
 def _checkpoint_runtime_inference_signature(path: Path) -> dict[str, object]:
     """Reload the registered signature from the authenticated runtime checkpoint."""
 
-    import torch
-
     from sfora.unicom_inshop import parse_inshop_partition
     from sfora.unicom_runtime_authority import build_runtime_authority_descriptor
 
-    checkpoint = torch.load(path, map_location="cpu", weights_only=False)
+    checkpoint = _load_checkpoint_mapped(path)
     if type(checkpoint) is not dict or not isinstance(checkpoint.get("model"), dict):
         raise ValueError("registered runtime inference signature is absent")
     trainer_path = Path(__file__).with_name("train_unicom_inshop.py")
