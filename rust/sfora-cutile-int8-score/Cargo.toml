@@ -5,5 +5,7 @@ edition = "2024"
 publish = false
 
 [dependencies]
+cuda-core = "=0.1.1"
+cutile = "=0.1.1"
+cutile-compiler = "=0.1.1"
 half = "=2.7.1"
-
