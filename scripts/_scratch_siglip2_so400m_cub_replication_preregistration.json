@@ -1,0 +1,63 @@
+{
+  "cars_gate": {
+    "candidate_map_at_r": 0.9306463832433143,
+    "candidate_recall_at_1": 0.9814290985118682,
+    "map_at_r_delta": 0.06998667597636898,
+    "map_at_r_delta_ci95": [
+      0.04763245341119986,
+      0.09456488367351579
+    ],
+    "passed": true,
+    "result_sha256": "eaaeb61c6f62a9be57b71977d2915cf241a0a00c2f78a870e68286034fb257d0"
+  },
+  "claim_eligible": false,
+  "dataset": {
+    "archive_bytes": 1150585339,
+    "archive_sha256": "0c685df5597a8b24909f6a7c9db6d11e008733779a671760afef78feb49bf081",
+    "evaluation": "100 SHA-selected classes, official test rows, 2857 images",
+    "fit": "disjoint 100 SHA-selected classes, official train rows, 2997 images",
+    "protocol": "sha256-name-ordered-100-fit-train-100-eval-test-classes"
+  },
+  "decision": {
+    "candidate": "unchanged frozen SigLIP2 SO400M/14@384 vision embedding with the unchanged Cars compact head",
+    "close": "close this exact frozen-teacher family after a CUB failure; do not tune a third decision dataset",
+    "minimum_map_at_r_delta": 0.005,
+    "minimum_recall_at_1_delta": 0.0,
+    "next_if_pass": "profile end-to-end encoder and compact retrieval, then integrate the evidence winner before opening another scorer family",
+    "paired_class_bootstrap_replicates": 10000,
+    "paired_class_bootstrap_seed": 17,
+    "require_positive_map_interval_lower": true
+  },
+  "implementation_commit": "3e9360326c063d51fb256485185bc29b5a1ee615",
+  "inputs": {
+    "baseline_feature_sha256": "847a40bd8c0c2a5289de9b5a8eca93c935d4eafed6507e1360da3a3bfee6f62e",
+    "config_sha256": "73477b47ae9a395f008f993ebd8fb5c16ce0b5e8419ffdf2f5b2183b260f9cff",
+    "model_id": "google/siglip2-so400m-patch14-384",
+    "model_revision": "e8e487298228002f3d8a82e0cd5c8ea9c567f57f",
+    "model_sha256": "9f4f4a49f908ef0c979bce8ff5a5c0e88882dc6c5dc4304387cbbd152558e2c2",
+    "processor_sha256": "fb2817d3523ca3b666c859f15320c7138416bc38ffc515e2963f78c868c51c90"
+  },
+  "method": {
+    "backbone_training": "none",
+    "batch_size": 32,
+    "feature_dtype": "float16 forward then float32 output",
+    "pooling": "authenticated SigLIP2 vision pooler_output",
+    "preprocessing": "authenticated upstream SiglipImageProcessor 384x384",
+    "workers": 0
+  },
+  "prohibitions": [
+    "no model, preprocessing, pooling, projection, alpha, regularization, codec, seed, or gate change from Cars",
+    "no evaluation-class input to projection fitting",
+    "no serving-topology or persistent-byte change",
+    "no third decision-dataset tuning after this result",
+    "no claim-eligible or SOTA interpretation from this probe"
+  ],
+  "representation": {
+    "bytes_per_item": 130,
+    "kind": "signed-int8-128-plus-f16-inverse-norm",
+    "power_whitening_alpha": 0.75,
+    "power_whitening_regularization": 1.0
+  },
+  "schema": "sfora-siglip2-so400m-cub-replication-v1",
+  "script_sha256": "0d61af21d5f25c14af1a54285f6f235dfc2ba84685e4725c53e6a4874790c7bf"
+}
