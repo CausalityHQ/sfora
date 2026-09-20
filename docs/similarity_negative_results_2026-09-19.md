@@ -421,3 +421,37 @@ were deleted after the result was authenticated.  Result SHA-256:
 `23916d8a130ae38ab417a258ad2504afbbc7b053d1d5657331d0f22de45a0355`;
 details:
 `docs/evidence/compact_metric/cars-unicom-lastblock-proxy-anchor-v1.json`.
+
+## Frozen SigLIP2 SO400M improves Cars but fails unchanged CUB replication
+
+The frozen `google/siglip2-so400m-patch14-384` vision encoder initially passed
+the Cars196 class-disjoint gate with the existing power-whitening signed-int8
+128-D plus f16 inverse-norm representation (`130` bytes/item).  Against the
+authenticated UniCOM compact baseline it improved mAP@R from `0.860660` to
+`0.930646` (`+0.069987`, paired class-bootstrap 95% interval
+`[+0.047632,+0.094565]`) and Recall@1 from `0.974542` to `0.981429`
+(`+0.006887`).  This justified exactly one unchanged CUB replication.
+
+On the preregistered CUB-200-2011 split (2,997 fit rows from 100 classes and
+2,857 disjoint evaluation rows from 100 classes), the same model,
+preprocessing, pooler, `alpha=0.75`, regularization, codec, seed, and gate
+reversed sharply.  The authenticated UniCOM compact baseline reached
+`0.697855 / 0.904445` mAP@R / Recall@1, while SigLIP2 reached only
+`0.644223 / 0.881344`.  The mAP@R delta was `-0.053633`, with paired
+class-bootstrap 95% interval `[-0.076936,-0.027689]`; Recall@1 fell by
+`-0.023101`.
+
+The exact frozen-teacher family is therefore closed after its two decision
+datasets, without changing the compact method or trying a third dataset.  This
+is not a claim that SigLIP2 is generally weaker: it is a cross-domain failure
+of this teacher as a universal compact-retrieval replacement, especially on
+fine-grained birds.  The CUB run took 114.15 seconds, peaked at 1,604,974,592
+CUDA bytes, authenticated the official archive and every selected extracted
+image byte, and had terminal memory PSI full avg10 `0.00`.  Cars receipt
+SHA-256:
+`eaaeb61c6f62a9be57b71977d2915cf241a0a00c2f78a870e68286034fb257d0`;
+CUB receipt SHA-256:
+`1a2b4e4d1440f05595cd4e8af52a8f48e54ab5d0fcb70b0f055d90a759271e65`;
+details:
+`docs/evidence/compact_metric/cars-siglip2-so400m-compact-v1.json` and
+`docs/evidence/compact_metric/cub-siglip2-so400m-compact-v1.json`.
