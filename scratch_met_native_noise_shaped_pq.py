@@ -201,12 +201,24 @@ def fit_seed(
         anisotropic_raw
     ):
         raise RuntimeError("native PQ packed round trip differs")
+    recentered_codebooks, recentered_counts = recenter_codebooks(
+        gallery_cpu,
+        anisotropic_raw.detach().cpu(),
+        codebooks.detach().cpu(),
+    )
+    recentered_quantizer = ProductQuantizer(
+        spec, tuple(recentered_codebooks[index] for index in range(BLOCKS))
+    ).to(gallery.device).eval()
     arms: dict[str, object] = {}
-    for name, packed in (("isotropic", isotropic), ("anisotropic", anisotropic)):
+    for name, scorer, packed in (
+        ("isotropic", quantizer, isotropic),
+        ("anisotropic", quantizer, anisotropic),
+        ("recentered_anisotropic", recentered_quantizer, anisotropic),
+    ):
         metrics: dict[str, object] = {}
         for metric in ("dot", "squared_l2", "normalized_squared_l2"):
             pseudo_score, pseudo_seconds = score_packed(
-                quantizer,
+                scorer,
                 packed,
                 pseudo,
                 pseudo_labels,
@@ -214,7 +226,7 @@ def fit_seed(
                 metric=metric,
             )
             official_score, official_seconds = score_packed(
-                quantizer,
+                scorer,
                 packed,
                 official,
                 official_labels,
@@ -230,7 +242,7 @@ def fit_seed(
         arms[name] = {
             "packed_codes_sha256": tensor_sha256(packed),
             "payload_bytes": packed.numel(),
-            "diagnostics": reconstruction_diagnostics(gallery, quantizer, packed),
+            "diagnostics": reconstruction_diagnostics(gallery, scorer, packed),
             "metrics": metrics,
         }
     return {
@@ -240,6 +252,8 @@ def fit_seed(
         "anisotropic_encode_seconds": anisotropic_encode_seconds,
         "codebooks_sha256": tensor_sha256(codebooks),
         "codebook_bytes": codebooks.numel() * codebooks.element_size(),
+        "recentered_codebooks_sha256": tensor_sha256(recentered_codebooks),
+        "recentered_empty_cells": int((recentered_counts == 0).sum()),
         "public_source_isotropic_code_difference_fraction": float(
             (public_isotropic_raw != isotropic_raw).double().mean()
         ),
@@ -250,7 +264,9 @@ def fit_seed(
     }
 
 
-def summarize(seeds: list[dict[str, object]]) -> dict[str, object]:
+def summarize(
+    seeds: list[dict[str, object]], *, candidate_arm: str = "anisotropic"
+) -> dict[str, object]:
     summary: dict[str, object] = {}
     for metric in ("dot", "squared_l2", "normalized_squared_l2"):
         seed_deltas: list[dict[str, object]] = []
@@ -259,7 +275,7 @@ def summarize(seeds: list[dict[str, object]]) -> dict[str, object]:
         for seed_result in seeds:
             arms = seed_result["arms"]
             baseline = arms["isotropic"]["metrics"][metric]
-            candidate = arms["anisotropic"]["metrics"][metric]
+            candidate = arms[candidate_arm]["metrics"][metric]
             row: dict[str, object] = {"seed": seed_result["seed"]}
             for split in ("pseudo", "official"):
                 row[split] = {
@@ -621,6 +637,52 @@ def reconstruction_objective(
     return residual.square().sum(dim=(1, 2)) + (parallel_multiplier - 1.0) * parallel.square()
 
 
+def recenter_codebooks(
+    values: torch.Tensor,
+    codes: torch.Tensor,
+    initial_codebooks: torch.Tensor,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Return conditional-mean centers for fixed assignments.
+
+    Empty cells retain their initial center.  The control runs on CPU so each
+    center mean has a deterministic row-reduction order.
+    """
+
+    if (
+        type(values) is not torch.Tensor
+        or values.dtype != torch.float32
+        or values.device.type != "cpu"
+        or values.ndim != 2
+        or type(codes) is not torch.Tensor
+        or codes.dtype != torch.uint8
+        or codes.device.type != "cpu"
+        or codes.ndim != 2
+        or codes.shape[0] != values.shape[0]
+        or type(initial_codebooks) is not torch.Tensor
+        or initial_codebooks.dtype != torch.float32
+        or initial_codebooks.device.type != "cpu"
+        or initial_codebooks.ndim != 3
+        or initial_codebooks.shape[0] != codes.shape[1]
+        or initial_codebooks.shape[0] * initial_codebooks.shape[2] != values.shape[1]
+        or bool((codes >= initial_codebooks.shape[1]).any())
+        or not bool(torch.isfinite(values).all())
+        or not bool(torch.isfinite(initial_codebooks).all())
+    ):
+        raise ValueError("recentered codebook authority differs")
+    blocks, centers, width = initial_codebooks.shape
+    blocked = values.reshape(values.shape[0], blocks, width)
+    result = initial_codebooks.clone()
+    counts = torch.zeros((blocks, centers), dtype=torch.int64)
+    for block in range(blocks):
+        for center in range(centers):
+            selected = codes[:, block] == center
+            count = int(selected.sum())
+            counts[block, center] = count
+            if count:
+                result[block, center] = blocked[selected, block].double().mean(dim=0).float()
+    return result.contiguous(), counts
+
+
 def self_test() -> None:
     assert meets_lower_bound(0.002, 0.002)
     assert meets_lower_bound(0.002 - 5e-13, 0.002)
@@ -628,6 +690,31 @@ def self_test() -> None:
     assert recall_hit_delta([1.0, 0.0, 1.0], [1.0, 0.0, 1.0]) == 0
     assert recall_hit_delta([1.0, 0.0, 0.0], [1.0, 0.0, 1.0]) == -1
     assert recall_hit_delta([0.0, 0.0, 0.0], [1.0, 0.0, 1.0]) == -2
+    recenter_values = torch.tensor(
+        [[1.0, 3.0, 10.0, 12.0], [3.0, 5.0, 14.0, 16.0], [9.0, 11.0, 20.0, 22.0]],
+        dtype=torch.float32,
+    )
+    recenter_codes = torch.tensor([[0, 1], [0, 1], [1, 1]], dtype=torch.uint8)
+    recenter_initial = torch.tensor(
+        [
+            [[-1.0, -2.0], [-3.0, -4.0], [-5.0, -6.0]],
+            [[-7.0, -8.0], [-9.0, -10.0], [-11.0, -12.0]],
+        ],
+        dtype=torch.float32,
+    )
+    recentered, counts = recenter_codebooks(
+        recenter_values, recenter_codes, recenter_initial
+    )
+    assert counts.tolist() == [[2, 1, 0], [0, 3, 0]]
+    torch.testing.assert_close(
+        recentered,
+        torch.tensor(
+            [
+                [[2.0, 4.0], [9.0, 11.0], [-5.0, -6.0]],
+                [[-7.0, -8.0], [44.0 / 3.0, 50.0 / 3.0], [-11.0, -12.0]],
+            ]
+        ),
+    )
     values = torch.tensor([[0.8, 0.4, 0.3, 0.3]], dtype=torch.float32)
     values = torch.nn.functional.normalize(values, dim=1)
     codebooks = torch.tensor(
@@ -785,8 +872,9 @@ def main() -> None:
             flush=True,
         )
     summary = summarize(seed_results)
+    recentered_summary = summarize(seed_results, candidate_arm="recentered_anisotropic")
     payload = {
-        "schema": "scratch-met-small-native-noise-shaped-pq128x4-normalization-v1",
+        "schema": "scratch-met-small-native-noise-shaped-pq128x4-recentered-v1",
         "claim_eligible": False,
         "features_sha256": args.features_sha256,
         "fit_gallery_rows": len(gallery_array),
@@ -810,6 +898,7 @@ def main() -> None:
         },
         "seeds": seed_results,
         "summary": summary,
+        "recentered_summary": recentered_summary,
         "public_codec_followup_supported": bool(
             summary["dot"]["mechanism_supported"]
             and summary["squared_l2"]["promotion_supported"]
@@ -822,6 +911,9 @@ def main() -> None:
             summary["dot"]["promotion_supported"]
             and not summary["squared_l2"]["promotion_supported"]
             and summary["normalized_squared_l2"]["promotion_supported"]
+        ),
+        "recentered_decoder_supported": bool(
+            recentered_summary["squared_l2"]["promotion_supported"]
         ),
         "generic_supported": False,
     }
