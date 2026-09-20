@@ -88,7 +88,7 @@ def score_packed(
     query_labels: np.ndarray,
     gallery_labels: np.ndarray,
     *,
-    metric: Literal["dot", "squared_l2"],
+    metric: Literal["dot", "squared_l2", "normalized_squared_l2"],
 ) -> tuple[dict[str, object], float]:
     started = time.monotonic()
     raw = unpack_nibbles(packed)
@@ -204,7 +204,7 @@ def fit_seed(
     arms: dict[str, object] = {}
     for name, packed in (("isotropic", isotropic), ("anisotropic", anisotropic)):
         metrics: dict[str, object] = {}
-        for metric in ("dot", "squared_l2"):
+        for metric in ("dot", "squared_l2", "normalized_squared_l2"):
             pseudo_score, pseudo_seconds = score_packed(
                 quantizer,
                 packed,
@@ -252,7 +252,7 @@ def fit_seed(
 
 def summarize(seeds: list[dict[str, object]]) -> dict[str, object]:
     summary: dict[str, object] = {}
-    for metric in ("dot", "squared_l2"):
+    for metric in ("dot", "squared_l2", "normalized_squared_l2"):
         seed_deltas: list[dict[str, object]] = []
         per_query_mmp = []
         isotropic_mmp = []
@@ -357,7 +357,7 @@ def topk_decoded(
     decoded: torch.Tensor,
     *,
     width: int,
-    metric: Literal["dot", "squared_l2"],
+    metric: Literal["dot", "squared_l2", "normalized_squared_l2"],
     batch_rows: int = 64,
 ) -> torch.Tensor:
     """Return exact exhaustive rankings with stable lowest-ordinal ties."""
@@ -375,13 +375,17 @@ def topk_decoded(
         or queries.device != decoded.device
         or type(width) is not int
         or width < 1
-        or metric not in ("dot", "squared_l2")
+        or metric not in ("dot", "squared_l2", "normalized_squared_l2")
         or type(batch_rows) is not int
         or batch_rows < 1
         or not bool(torch.isfinite(queries).all())
         or not bool(torch.isfinite(decoded).all())
     ):
         raise ValueError("decoded ranking authority differs")
+    if metric == "normalized_squared_l2":
+        queries = torch.nn.functional.normalize(queries, dim=1)
+        decoded = torch.nn.functional.normalize(decoded, dim=1)
+        metric = "squared_l2"
     batches = []
     decoded_norms = decoded.square().sum(dim=1)
     with torch.no_grad():
@@ -698,6 +702,13 @@ def self_test() -> None:
     queries = torch.tensor([[1.0, 0.0, 0.0]], dtype=torch.float32)
     assert topk_decoded(queries, decoded, width=2, metric="dot").tolist() == [[0, 1]]
     assert topk_decoded(queries, decoded, width=2, metric="squared_l2").tolist() == [[0, 1]]
+    unequal_norms = torch.tensor([[0.9, 0.0], [1.0, 1.0]], dtype=torch.float32)
+    axis_query = torch.tensor([[1.0, 0.0]], dtype=torch.float32)
+    assert topk_decoded(axis_query, unequal_norms, width=1, metric="dot").tolist() == [[1]]
+    assert topk_decoded(axis_query, unequal_norms, width=1, metric="squared_l2").tolist() == [[0]]
+    assert topk_decoded(
+        axis_query, unequal_norms, width=1, metric="normalized_squared_l2"
+    ).tolist() == [[0]]
 
 
 def main() -> None:
@@ -775,7 +786,7 @@ def main() -> None:
         )
     summary = summarize(seed_results)
     payload = {
-        "schema": "scratch-met-small-native-noise-shaped-pq128x4-v1",
+        "schema": "scratch-met-small-native-noise-shaped-pq128x4-normalization-v1",
         "claim_eligible": False,
         "features_sha256": args.features_sha256,
         "fit_gallery_rows": len(gallery_array),
@@ -806,6 +817,11 @@ def main() -> None:
         "scorer_compatibility_diagnostic_supported": bool(
             summary["dot"]["promotion_supported"]
             and not summary["squared_l2"]["promotion_supported"]
+        ),
+        "normalization_resolves_scorer_mismatch": bool(
+            summary["dot"]["promotion_supported"]
+            and not summary["squared_l2"]["promotion_supported"]
+            and summary["normalized_squared_l2"]["promotion_supported"]
         ),
         "generic_supported": False,
     }
