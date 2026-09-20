@@ -53,3 +53,31 @@ number of queries, so the interval and point estimate are both query-weighted.
 This is an algorithm-selection experiment, not a serving benchmark.  CUDA,
 CuTile, or CUDA-Oxide work remains deferred because no arithmetic bottleneck
 can change the quality decision.
+
+## Result
+
+The panel completed in 183.394 seconds.  Its canonical receipt is
+`docs/evidence/rank_finished_l14_336_rp2k_closed_form_controls_v1.json`,
+1,444 bytes, SHA-256
+`383aeb6b44970d89429a9083add4b4d02e5a1bd36d25d02287bda2e847f51096`.
+
+| Arm | mMP@5 | R@1 |
+| --- | ---: | ---: |
+| PCA int8-64, symmetric | `0.955515` | `0.977364` |
+| Fisher int8-64, symmetric | `0.962236` | `0.978702` |
+| Fisher int8-64 gallery, float query | `0.962399` | `0.979168` |
+| OPQ64x8 decoded, symmetric | `0.963976` | `0.982427` |
+| OPQ64x8 decoded gallery, float query | `0.967449` | `0.983998` |
+| learned int8-64, symmetric | **`0.969804`** | **`0.984230`** |
+| learned int8-64 gallery, float projected query | `0.969827` | **`0.984230`** |
+
+Learned symmetric int8-64 exceeded Fisher by `+0.007568` mMP@5 with
+query-weighted paired lower bound `+0.003879`, and by `+0.005528` R@1 with
+lower bound `+0.003106`.  This rejects the hypothesis that the SGD head is
+merely an expensive Fisher projection.
+
+Against asymmetric OPQ, learned gained `+0.002355` mMP@5 with lower bound
+`+0.000500`, but only `+0.000233` R@1 with lower bound `-0.001924`.  This lies
+between the frozen `0.002` retirement and `0.003` survival bands, so the
+supervised advantage over the strongest equal-byte control is inconclusive.
+No RP2K threshold is changed and the test split remains unopened.
