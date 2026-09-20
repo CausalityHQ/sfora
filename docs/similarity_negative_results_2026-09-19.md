@@ -19,6 +19,14 @@ replication and does not authorize integration, 1M benchmarking, or kernels.
 Full receipt SHA-256:
 `ab91bf35c5ad0eac694dbb95c141856baacb1b9f3abae99aa12e930747119d11`.
 
+The single untouched EuroSAT replication confirmed the same mechanism and
+closed it. mAP@R rose from `0.430537` to `0.448966`, delta `+0.018429` with
+paired 95% interval `[+0.018063, +0.018808]`, while Recall@1 fell from
+`0.936420` to `0.931235`, delta `-0.005185`. The preregistered joint
+quality-Pareto decision failed. No neighbour-count, mixture, rank-protection,
+or scoring variant is permitted on this holdout. Full holdout receipt SHA-256:
+`27a0388962facc2ad9c6b33eee95d93629072618907cef22713661e45e7afbf7`.
+
 ## Flip-view gate is invalid, not a quality result
 
 The frozen Food-101/Oxford-IIIT Pet identity-plus-horizontal-flip gate did not
