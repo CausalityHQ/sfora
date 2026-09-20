@@ -1,3 +1,4 @@
+mod ffi;
 mod kernel;
 mod topk;
 mod wire;
