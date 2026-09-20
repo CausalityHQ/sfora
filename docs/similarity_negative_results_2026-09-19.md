@@ -283,3 +283,28 @@ There is no Pareto winner and no In-Shop replication.  Result SHA-256:
 `6087d16c96cafc4d67fe9015d5a12dd0b8fea11f6b8bc6cc26c631ab7587b123`;
 details:
 `docs/evidence/compact_metric/oml-vits16-sop-scann-anisotropic-128byte-v1.json`.
+
+## A zero-initialized nonlinear residual does not improve the compact Cars head
+
+The preregistered scratch probe held the authenticated UniCOM-L/14 teacher,
+Cars-196 class-disjoint split, PCA-128 initialization, class-balanced schedule,
+frozen hard negatives, positive-coverage objective, optimizer, update count,
+int8-128 storage, and exact scorer fixed.  It changed only a zero-initialized
+`768 -> 32 -> 128` GELU residual branch and the existing geometry anchor.
+
+The anchored affine control reached `0.825656 / 0.972574` mAP@R / Recall@1.
+The anchored residual reached `0.823730 / 0.973189`: mAP@R delta `-0.001926`
+with paired class-bootstrap 95% interval `[-0.003448, -0.000272]`, despite a
+small `+0.000615` Recall@1 delta.  It therefore fails the fixed `+0.005` mAP@R,
+strictly-positive interval, and joint non-regression decision.  The unanchored
+residual (`0.764694 / 0.967901`) also lost to its unanchored affine control
+(`0.777091 / 0.967778`).
+
+This exact 32-hidden residual family is closed without CUB replication or
+hyperparameter tuning.  It does not establish that all nonlinear heads fail;
+it shows that adding a small zero-initialized residual to the saturated compact
+objective does not recover the teacher-dominated errors.  Runtime was 49.18 s
+wall, maximum host RSS 2,500,984 KiB, peak CUDA allocation 404,395,520 bytes,
+and zero swaps.  Receipt SHA-256:
+`fb0a1a759d6c91dcd38f6a6cd8dfd15363b8a2087bda712dfd9777debac964fd`;
+details: `docs/evidence/compact_metric/cars-compact-residual-head-v1.json`.
