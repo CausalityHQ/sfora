@@ -392,3 +392,32 @@ canonical result remains.  Result SHA-256:
 `623523d2c365f08dedacce508e5a930f4ec4a7345538bb1ada12d5902d7585c3`;
 details:
 `docs/evidence/compact_metric/cars-unicom-lastblock-rank-finish-v1.json`.
+
+## Final-block imprinted Proxy Anchor degrades Cars quality
+
+The frozen orthogonal Cars196 class-disjoint probe updated the same UniCOM
+transformer block 23 (`12,593,152` of `908,200,448` parameters) for four
+epochs, but replaced Smooth-AP with imprinted Proxy Anchor.  Its proxies were
+initialized once from normalized means of the authenticated frozen UniCOM
+features for fit classes 0--97, optimized with the canonical
+`alpha=32, delta=0.1` loss, and discarded before inference.  The evaluation
+classes 98--195 were unseen by training.  Scoring again used the identical
+power-whitening signed-int8 128-D plus f16 inverse-norm representation (`130`
+bytes/item).
+
+The baseline reproduced at `0.860660 / 0.974542` mAP@R / Recall@1.  The
+candidate reached only `0.856906 / 0.974296`: deltas of `-0.003753` mAP@R and
+`-0.000246` Recall@1.  The paired evaluation-class bootstrap 95% interval for
+the mAP@R delta was `[-0.006152,-0.001404]`, excluding zero in the wrong
+direction.  It therefore fails all relevant parts of the preregistered joint
+gate (`delta mAP@R >= +0.005`, positive interval lower bound, and nonnegative
+Recall@1 delta).
+
+This exact imprinted Proxy Anchor final-block family is closed without tuning
+or CUB replication.  Runtime was 2,251.32 seconds, peak CUDA allocation was
+16,077,522,944 bytes, memory PSI full avg10 was `0.00` at terminal, and no
+pressure stop fired.  The rejected 50-MB checkpoint and exact remote checkout
+were deleted after the result was authenticated.  Result SHA-256:
+`23916d8a130ae38ab417a258ad2504afbbc7b053d1d5657331d0f22de45a0355`;
+details:
+`docs/evidence/compact_metric/cars-unicom-lastblock-proxy-anchor-v1.json`.
