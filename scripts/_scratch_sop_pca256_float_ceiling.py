@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 import os
+import sys
 import time
 from collections import Counter
 from pathlib import Path
@@ -17,6 +18,7 @@ from torch.nn import functional as F
 
 SOURCE_SHA256 = "6bc0d8383251685eaccd472eeda357861caffb3bfb4129f18e0124c3ddc72818"
 TEACHER_SHA256 = "1ba27b2d6b9db39067aa6facd0ef8aafc303c4527f6feabed859b0512c7d921a"
+HELPER_SHA256 = "0ebd8bd47f4ee9b1606d5ca06dbf799f8c95b2a9894d1ae1d06208c4e23f68cf"
 PCA128_FLOAT_MAP = 0.45763895695082696
 MAP_GAIN_GATE = 0.006
 
@@ -33,6 +35,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(allow_abbrev=False)
     parser.add_argument("--source-snapshot", type=Path, required=True)
     parser.add_argument("--teacher-snapshot", type=Path, required=True)
+    parser.add_argument("--helper", type=Path, required=True)
     parser.add_argument("--preregistration", type=Path, required=True)
     parser.add_argument("--preregistration-sha256", required=True)
     parser.add_argument("--script-sha256", required=True)
@@ -47,9 +50,11 @@ def main() -> None:
         or preregistration["script_sha256"] != args.script_sha256
         or sha256(args.source_snapshot) != SOURCE_SHA256
         or sha256(args.teacher_snapshot) != TEACHER_SHA256
+        or sha256(args.helper) != HELPER_SHA256
     ):
         raise ValueError("SOP PCA256 float ceiling authority differs")
 
+    sys.path.insert(0, str(args.helper.parent))
     from probe_sop_relational_linear import load_paired_archives, score_symmetric
     from sfora.deterministic_similarity_runtime import (
         configure_deterministic_similarity_runtime,
@@ -89,6 +94,7 @@ def main() -> None:
         "evaluation_rows": int(test.shape[0]),
         "source_sha256": SOURCE_SHA256,
         "teacher_sha256": TEACHER_SHA256,
+        "helper_sha256": HELPER_SHA256,
         "script_sha256": args.script_sha256,
         "preregistration_sha256": args.preregistration_sha256,
         "pca128_float_map_at_r_reference": PCA128_FLOAT_MAP,
