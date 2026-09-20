@@ -140,7 +140,11 @@ class CompactMetricEncoder:
             raise ValueError("compact metric transform authority differs")
         with torch.autocast(device_type="cpu", enabled=False):
             normalized = torch.nn.functional.normalize(embeddings, dim=1)
-            projected = normalized @ self._weight.T + self._bias
+            projected = torch.nn.functional.linear(
+                normalized,
+                self._weight,
+                self._bias,
+            )
             return _normalize_projected(projected)
 
     def encode(self, embeddings: torch.Tensor) -> torch.Tensor:
