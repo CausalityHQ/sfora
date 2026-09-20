@@ -1,0 +1,4 @@
+[workspace]
+members = ["rust/sfora-cutile-int8-score"]
+resolver = "2"
+
