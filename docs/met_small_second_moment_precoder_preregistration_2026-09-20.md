@@ -26,7 +26,9 @@ Then `z @ y.T = q @ x.T` before quantization. Fit one unchanged
 for this quality reference, and rank by exact inner product `z @ y_hat.T`.
 There is no reconstruction renormalization, original-vector reranking,
 candidate pruning, label use, seed sweep, eigenvalue-floor sweep, or alternate
-split. The existing OPQ arm is refit and scored in the same process.
+split. The existing OPQ arm is refit and scored in the same process both by
+its registered squared-L2 ADC and by inner product against its decoded gallery.
+The candidate must beat both controls, preventing a precoder/scorer confound.
 
 The script must require exact feature SHA-256
 `0277f717e73416e9cb7d1a8d57c3db08e05aea20cf9803f1fcedbfc502b81105`,
@@ -39,7 +41,8 @@ split.
 ## Decision
 
 On the 3,050-query primary split, compute paired query bootstrap intervals with
-10,000 fixed-seed replicates. Promote only if all hold:
+10,000 fixed-seed replicates against each OPQ control. Promote only if all hold
+against both controls:
 
 1. candidate minus incumbent mMP@5 is at least `+0.002`;
 2. its 95% interval lower bound is above zero;
