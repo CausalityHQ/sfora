@@ -96,8 +96,9 @@ def encode_views(
         with torch.inference_mode():
             ordinary_values = F.normalize(model(torch.stack(ordinary).cuda()).float(), dim=1)
             mirror_values = F.normalize(model(torch.stack(mirrors).cuda()).float(), dim=1)
-        identity.append(ordinary_values.cpu())
-        flipped.append(mirror_values.cpu())
+        torch.cuda.synchronize()
+        identity.append(ordinary_values.cpu().clone())
+        flipped.append(mirror_values.cpu().clone())
     return torch.cat(identity), torch.cat(flipped)
 
 
