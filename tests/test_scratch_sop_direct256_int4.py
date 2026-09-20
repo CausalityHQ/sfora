@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import subprocess
 import sys
 from pathlib import Path
 
@@ -9,6 +10,9 @@ import pytest
 import torch
 
 _SCRIPT = Path(__file__).parents[1] / "scripts" / "_scratch_sop_direct256_int4.py"
+_OFFICIAL_SCRIPT = (
+    Path(__file__).parents[1] / "scripts" / "_scratch_evaluate_sop_direct256_int4_official.py"
+)
 sys.path.insert(0, str(_SCRIPT.parent))
 
 
@@ -55,3 +59,11 @@ def test_train_fitted_int4_roundtrip_is_exactly_128_bytes_per_row() -> None:
     assert np.isfinite(decoded.numpy()).all()
     with pytest.raises(ValueError, match="256 dimensions"):
         subject.fit_pack_decode_int4(fit[:, :-1], values[:, :-1])
+
+
+def test_official_positioning_evaluator_requires_explicit_execution() -> None:
+    result = subprocess.run(
+        [sys.executable, str(_OFFICIAL_SCRIPT)], check=False, capture_output=True, text=True
+    )
+    assert result.returncode == 2
+    assert "--execute-official-positioning" in result.stderr
