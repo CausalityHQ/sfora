@@ -14,6 +14,7 @@ from pathlib import Path
 
 import torch
 from torch.nn import functional as F
+import numpy as np
 
 
 SOURCE_SHA256 = "6bc0d8383251685eaccd472eeda357861caffb3bfb4129f18e0124c3ddc72818"
@@ -21,6 +22,9 @@ TEACHER_SHA256 = "1ba27b2d6b9db39067aa6facd0ef8aafc303c4527f6feabed859b0512c7d92
 HELPER_SHA256 = "0ebd8bd47f4ee9b1606d5ca06dbf799f8c95b2a9894d1ae1d06208c4e23f68cf"
 PCA128_FLOAT_MAP = 0.45763895695082696
 MAP_GAIN_GATE = 0.006
+PCA128_INT8_MAP = 0.45756936733227493
+FLOAT_LOSS_GATE = 0.002
+BYTE_MATCHED_GAIN_GATE = 0.005
 
 
 def sha256(path: Path) -> str:
@@ -40,7 +44,7 @@ def main() -> None:
     parser.add_argument("--preregistration-sha256", required=True)
     parser.add_argument("--script-sha256", required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--execute-float-ceiling", action="store_true", required=True)
+    parser.add_argument("--execute-int4-gate", action="store_true", required=True)
     args = parser.parse_args()
     preregistration = json.loads(args.preregistration.read_text())
     if (
@@ -77,17 +81,50 @@ def main() -> None:
     values, vectors = torch.linalg.eigh(covariance.double())
     order = torch.argsort(values, descending=True)[:256]
     components = vectors[:, order].float().contiguous()
-    projected = F.normalize((test - centre) @ components, dim=1).contiguous()
-    score = score_symmetric(
-        projected,
+    projected_train = F.normalize((train - centre) @ components, dim=1).contiguous()
+    projected_test = F.normalize((test - centre) @ components, dim=1).contiguous()
+    float_score = score_symmetric(
+        projected_test,
         labels,
         candidate_width=max(Counter(labels).values()) - 1,
         device=torch.device("cuda"),
     )
-    pca256_map = float(score["map_at_r"])
+    pca256_map = float(float_score["map_at_r"])
     gain = pca256_map - PCA128_FLOAT_MAP
+    fit_abs = projected_train.abs().numpy()
+    scales = np.quantile(fit_abs, 0.999, axis=0, method="linear").astype(np.float32) / 7.0
+    if not np.isfinite(scales).all() or bool((scales <= 0).any()):
+        raise ValueError("SOP PCA256 int4 scale authority differs")
+    codes = torch.clamp(
+        torch.round(projected_test / torch.from_numpy(scales)), -7, 7
+    ).to(torch.int8)
+    unsigned = codes.numpy().view(np.uint8) & 0x0F
+    packed = np.ascontiguousarray(unsigned[:, 0::2] | (unsigned[:, 1::2] << 4))
+    signed = packed.view(np.int8)
+    low = (signed << 4) >> 4
+    high = signed >> 4
+    restored = np.stack((low, high), axis=2).reshape(codes.shape)
+    if packed.shape[1] != 128 or not np.array_equal(restored, codes.numpy()):
+        raise ValueError("SOP PCA256 int4 packing differs")
+    decoded = F.normalize(
+        torch.from_numpy(restored.astype(np.float32) * scales), dim=1
+    ).contiguous()
+    int4_score = score_symmetric(
+        decoded,
+        labels,
+        candidate_width=max(Counter(labels).values()) - 1,
+        device=torch.device("cuda"),
+    )
+    int4_map = float(int4_score["map_at_r"])
+    float_loss = pca256_map - int4_map
+    byte_matched_gain = int4_map - PCA128_INT8_MAP
+    passed = (
+        gain >= MAP_GAIN_GATE
+        and float_loss <= FLOAT_LOSS_GATE
+        and byte_matched_gain >= BYTE_MATCHED_GAIN_GATE
+    )
     result = {
-        "schema": "scratch-sop-pca256-float-ceiling-v1",
+        "schema": "scratch-sop-pca256-int4-gate-v1",
         "claim_eligible": False,
         "dataset": "stanford-online-products-official-test-already-observed",
         "fit_rows": int(train.shape[0]),
@@ -98,14 +135,28 @@ def main() -> None:
         "script_sha256": args.script_sha256,
         "preregistration_sha256": args.preregistration_sha256,
         "pca128_float_map_at_r_reference": PCA128_FLOAT_MAP,
+        "pca128_int8_map_at_r_reference": PCA128_INT8_MAP,
         "pca256_float": {
             "map_at_r": pca256_map,
-            "recall_at_1": float(score["r1"]),
+            "recall_at_1": float(float_score["r1"]),
+        },
+        "pca256_int4": {
+            "map_at_r": int4_map,
+            "recall_at_1": float(int4_score["r1"]),
+            "persistent_bytes_per_item": 128,
+            "shared_scale_bytes": int(scales.nbytes),
+            "scale_fit_quantile": 0.999,
         },
         "pca256_minus_pca128_map_at_r": gain,
-        "gate": MAP_GAIN_GATE,
-        "passed": gain >= MAP_GAIN_GATE,
-        "next": "test global-scale PCA256 int4" if gain >= MAP_GAIN_GATE else "close rate-reallocation lane",
+        "pca256_float_minus_int4_map_at_r": float_loss,
+        "pca256_int4_minus_pca128_int8_map_at_r": byte_matched_gain,
+        "gates": {
+            "float_ceiling_gain": MAP_GAIN_GATE,
+            "maximum_int4_float_loss": FLOAT_LOSS_GATE,
+            "minimum_byte_matched_gain": BYTE_MATCHED_GAIN_GATE,
+        },
+        "passed": passed,
+        "next": "replicate exact allocation across six datasets" if passed else "close rate-reallocation lane",
         "elapsed_seconds": time.monotonic() - started,
     }
     wire = json.dumps(result, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\n"
