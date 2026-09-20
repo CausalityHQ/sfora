@@ -1,0 +1,20 @@
+{
+  "schema": "scratch-top2-dba-eurosat-holdout-preregistration-v1",
+  "source_commit": "ad9644b708ffe2770ad903d6f24eaeef6325f790",
+  "script_sha256": "ecc9d64796af2e73bfd98af9df2370be9f6a5e87b48cb763685dc65e12e973f1",
+  "dataset": "EuroSAT RGB official 27,000-image archive",
+  "dataset_url": "https://huggingface.co/datasets/torchgeo/eurosat/resolve/c877bcd43f099cd0196738f714544e355477f3fd/EuroSAT.zip",
+  "dataset_archive_md5": "c8fa014336c82ac7804f0398fcb19387",
+  "split": "Within each class, sort by SHA256(sfora-top2-dba-eurosat-v1:<relative-path>), then allocate 40% fit, 30% query, 30% gallery.",
+  "baseline": "fit-only PCA128 plus exact PackedInt8Embeddings scoring",
+  "candidate": "normalize(self+mean(top2-nonself-packed-cosine-neighbours));repack-int8",
+  "decision": {
+    "map_estimand": "paired per-query AP@R difference",
+    "minimum_map_effect": 0.005,
+    "interval": "two-sided percentile 95%",
+    "replicates": 10000,
+    "seed": 20260921,
+    "requires_nonnegative_recall_at_1_delta": true
+  },
+  "terminal_rule": "This is the single untouched replication. Pass only if the mAP gate survives and Recall@1 does not regress. Failure closes top-2 DBA without another dataset or formula."
+}
