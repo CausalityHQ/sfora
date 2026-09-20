@@ -1,0 +1,57 @@
+{
+  "claim_eligible": false,
+  "dataset": {
+    "evaluation_classes": "Cars196 labels 98-195",
+    "fit_classes": "Cars196 labels 0-97",
+    "id": "tanganke/stanford_cars",
+    "revision": "9abf6cf7d6dfa7b95152a0d6e791ea9435b47a40",
+    "split": "official train+test rows partitioned class-disjoint by label"
+  },
+  "decision": {
+    "candidate": "final transformer block 23 rank-finished for four epochs",
+    "close": "close this exact rank-finishing family immediately if any Cars gate fails",
+    "minimum_map_at_r_delta": 0.005,
+    "minimum_recall_at_1_delta": 0.0,
+    "next_if_pass": "replicate the identical method once on CUB without tuning",
+    "paired_class_bootstrap_replicates": 10000,
+    "paired_class_bootstrap_seed": 17,
+    "require_positive_map_interval_lower": true
+  },
+  "implementation_commit": "4d763fb514903f734719cb299ee4d8ef9785dc34",
+  "inputs": {
+    "baseline_feature_sha256": "6ddfd7e2c9fd489dff51fa33697c62abf92a45247b52b336c0371f5482231ab3",
+    "official_checkpoint_sha256": "3916ab5aed3b522fc90345be8b4457fe5dad60801ad2af5a6871c0c096e8d7ea",
+    "unicom_revision": "d71992ed969e6c271436ac0a0ee1f3ca61474ac0"
+  },
+  "method": {
+    "augmentation": "random-resized-crop-336-scale-0.8-1.0-plus-horizontal-flip",
+    "batch_size": 128,
+    "epochs": 4,
+    "gradient_norm_cap": 1.0,
+    "identities_per_batch": 32,
+    "images_per_identity": 4,
+    "loss": "smooth-ap-deployment-prefix-v1",
+    "loss_dimensions": 512,
+    "maximum_learning_rate": 0.00001,
+    "optimizer": "adamw-one-cycle",
+    "seed": 17,
+    "temperature": 0.01,
+    "trainable_scope": "blocks.23 only",
+    "weight_decay": 0.0
+  },
+  "prohibitions": [
+    "no hyperparameter change after Cars scoring",
+    "no second seed or checkpoint selection",
+    "no evaluation-class input to training or projection fitting",
+    "no serving topology or persistent-byte change",
+    "no claim-eligible or SOTA interpretation from this probe"
+  ],
+  "representation": {
+    "bytes_per_item": 130,
+    "kind": "signed-int8-128-plus-f16-inverse-norm",
+    "power_whitening_alpha": 0.75,
+    "power_whitening_regularization": 1.0
+  },
+  "schema": "sfora-unicom-lastblock-rank-finish-v1",
+  "script_sha256": "7662712ea4878c96ca61972a0e601f171969c24a49182c13688ac04b7ff4d736"
+}
