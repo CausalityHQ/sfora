@@ -52,6 +52,17 @@ tolerance.  The run was not retried or retuned.  Any future retry must first
 reconstruct the original feature-producer runtime and prove identity replay;
 the current zero-training representation ladder takes priority.
 
+The subsequently authorized same-process repair reached both view arms and
+closed the method. Food-101 R@1 moved from `0.939120` to `0.940240`
+(`+0.001120`), while Oxford-IIIT Pet moved from `0.958708` to `0.961355`
+(`+0.002647`). The row-weighted pooled delta was only `+0.001320`, below the
+frozen `+0.003` gate, and the class-clustered bootstrap lower 95% bound was
+`-0.000139`. Mean identity-to-flip cosine was also too high on both datasets:
+`0.986665` and `0.988384` versus the frozen `<0.98` requirement. All three
+decision conditions failed. Horizontal-flip gallery aggregation is now closed
+without crop, scale, weighting, or additional-view tuning. Full receipt
+SHA-256: `5663fc06a670a5e52d52d7bdb4dbb9e84ced9bc95b8c5a0d7deec42eff6c1535`.
+
 ## First ladder receipt used the wrong int8 scoring surface
 
 The first four-arm/five-dataset ladder process completed, but its independent
