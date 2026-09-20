@@ -364,6 +364,38 @@ training step.
 See [docs/library_usage.md](docs/library_usage.md) for retrieval scoring and
 recommended settings.
 
+### Supervised compact metric codes
+
+When labeled frozen embeddings are available, the compact-metric selector fits
+a PCA-initialized affine metric in three class-disjoint training folds. It ships
+the learned projection only when its pooled fit-only mAP@R gain is at least
+0.003 and Recall@1 does not regress; otherwise it refits and returns the PCA
+fallback. The resulting code stores one signed byte per output coordinate.
+
+```python
+import torch
+
+from sfora import CompactMetricConfig, select_compact_metric_projection
+
+selection = select_compact_metric_projection(
+    train_embeddings.contiguous().float(),  # finite CPU tensor
+    train_labels.contiguous().long(),        # stable non-negative integer IDs
+    config=CompactMetricConfig(output_dimensions=128),
+    device=torch.device("cuda"),
+)
+gallery_codes = selection.encoder.encode(gallery_embeddings.contiguous().float())
+query_codes = selection.encoder.encode(query_embeddings.contiguous().float())
+```
+
+Only fit labels enter selection or training; keep evaluation identities and
+queries outside this call. Integer label IDs determine the reproducible fold
+assignment, so their mapping must remain stable. Training performs quadratic
+hard-negative mining and is validated up to 25,882 fit rows; it is not a
+streaming large-corpus trainer. The encoder itself is one normalized affine
+projection plus int8 rounding. See
+[the compact selector evidence](docs/compact_metric_selector_result_2026-09-19.md)
+for multi-dataset results, throughput, and claim limits.
+
 ### Relational embedding compaction
 
 When a stronger teacher and a cheaper source encoder describe the same training

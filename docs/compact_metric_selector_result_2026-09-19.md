@@ -6,8 +6,9 @@ A three-fold, class-disjoint selector fitted only on authorized training
 classes can decide whether to deploy the supervised compact projection or its
 PCA initialization.  The frozen decision rule is:
 
-1. assign complete labels to three folds with
-   `SHA256("compact-selector-v1:" + decimal_label) mod 3`;
+1. assign complete labels to three folds by taking the first eight bytes of
+   `SHA256("compact-selector-v1:" + decimal_label)` as an unsigned
+   little-endian integer, then reducing it modulo 3;
 2. in each fold, fit the existing compact metric on the other two folds and
    compare packed int8-128 retrieval with fit-only PCA on the unseen fold;
 3. select the learned projection only when pooled mAP@R gain is at least
@@ -17,6 +18,13 @@ The rule contains no dataset identity, class name, or evaluation-split input.
 It was fixed after the Stanford Dogs development result and then evaluated
 once on untouched Oxford-IIIT Pet evidence.  No threshold was changed after
 the Pet result.
+
+Integer label identities are part of the deterministic fold authority:
+relabeling an otherwise identical corpus can change folds near the selection
+threshold. Callers must therefore keep a stable label-to-integer mapping. The
+fit path also performs quadratic hard-negative mining and materializes positive
+rows up to the largest class; the shipped evidence covers at most 25,882 fit
+rows and does not establish memory bounds for classes with thousands of rows.
 
 ## Development evidence
 
@@ -326,6 +334,8 @@ In-Shop receipt authorities:
   `e17f6a70ac83127bab24ef4736adc078f9f43795d701b7281e6f1b947ddd84ac`;
 - candidate production module SHA-256
   `d6a644476ee6b2b8486876e770eb103bdf478197234208da7e00fbf081850654`;
+- release module SHA-256 after caller-autograd/autocast boundary repair
+  `d93ceccc5fe8cf20ccfe76c6520af61521d1f7197a16242eead3dc11de9f421a`;
 - equal-byte codec receipt SHA-256
   `4500a584964447f8a497e6afc588cc876cff0a39644be2c565a035c1222e0964`;
 - equal-byte codec driver SHA-256

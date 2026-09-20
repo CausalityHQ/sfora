@@ -13,6 +13,7 @@ from sfora.compact_metric import (
     CompactMetricSelectionFold,
     CompactMetricSelectionResult,
     _positive_rows,
+    _score_compact_metric_codes,
     choose_compact_metric_projection,
     fit_compact_metric_projection,
     select_compact_metric_projection,
@@ -185,6 +186,108 @@ def test_fit_only_selector_refits_the_selected_learned_projection() -> None:
     assert result.recall_at_1_delta == 0.0
     torch.testing.assert_close(result.encoder.weight, expected.encoder.weight, atol=0, rtol=0)
     torch.testing.assert_close(result.encoder.bias, expected.encoder.bias, atol=0, rtol=0)
+
+
+def test_fit_only_selector_detaches_caller_autograd_graph() -> None:
+    """Catch selector PCA retaining an input graph and failing on sign canonicalization."""
+
+    generator = torch.Generator().manual_seed(41)
+    labels_by_class = (5, 7, 0, 1, 2, 3)
+    centers = torch.randn(len(labels_by_class), 6, generator=generator)
+    embeddings = torch.cat(
+        [center + 0.08 * torch.randn(4, 6, generator=generator) for center in centers]
+    )
+    embeddings = torch.nn.functional.normalize(embeddings, dim=1).contiguous()
+    labels = torch.tensor(labels_by_class, dtype=torch.int64).repeat_interleave(4)
+    config = CompactMetricConfig(
+        output_dimensions=3,
+        cycles=1,
+        anchor_epochs_per_cycle=0.5,
+        hard_negatives=3,
+    )
+    expected = select_compact_metric_projection(
+        embeddings,
+        labels,
+        config=config,
+        minimum_map_gain=1.0,
+        device=torch.device("cpu"),
+    )
+
+    actual = select_compact_metric_projection(
+        embeddings.clone().requires_grad_(True),
+        labels,
+        config=config,
+        minimum_map_gain=1.0,
+        device=torch.device("cpu"),
+    )
+
+    assert actual.selected == expected.selected
+    assert actual.map_at_r_delta == expected.map_at_r_delta
+    assert actual.recall_at_1_delta == expected.recall_at_1_delta
+    torch.testing.assert_close(actual.encoder.weight, expected.encoder.weight, atol=0, rtol=0)
+    torch.testing.assert_close(actual.encoder.bias, expected.encoder.bias, atol=0, rtol=0)
+
+
+def test_fit_only_selector_disables_ambient_cpu_autocast() -> None:
+    """Catch caller autocast changing selector quantization or fold decisions."""
+
+    generator = torch.Generator().manual_seed(41)
+    labels_by_class = (5, 7, 0, 1, 2, 3)
+    centers = torch.randn(len(labels_by_class), 6, generator=generator)
+    embeddings = torch.cat(
+        [center + 0.08 * torch.randn(4, 6, generator=generator) for center in centers]
+    )
+    embeddings = torch.nn.functional.normalize(embeddings, dim=1).contiguous()
+    labels = torch.tensor(labels_by_class, dtype=torch.int64).repeat_interleave(4)
+    config = CompactMetricConfig(
+        output_dimensions=3,
+        cycles=1,
+        anchor_epochs_per_cycle=0.5,
+        hard_negatives=3,
+    )
+    expected = select_compact_metric_projection(
+        embeddings,
+        labels,
+        config=config,
+        minimum_map_gain=1.0,
+        device=torch.device("cpu"),
+    )
+
+    with torch.autocast(device_type="cpu", dtype=torch.bfloat16):
+        actual = select_compact_metric_projection(
+            embeddings,
+            labels,
+            config=config,
+            minimum_map_gain=1.0,
+            device=torch.device("cpu"),
+        )
+
+    assert actual.selected == expected.selected
+    assert actual.map_at_r_delta == expected.map_at_r_delta
+    assert actual.recall_at_1_delta == expected.recall_at_1_delta
+    torch.testing.assert_close(actual.encoder.weight, expected.encoder.weight, atol=0, rtol=0)
+    torch.testing.assert_close(actual.encoder.bias, expected.encoder.bias, atol=0, rtol=0)
+
+
+def test_selector_scorer_matches_hand_derived_map_at_r_with_cutoff_ties() -> None:
+    """Catch non-stable ties or full-list AP replacing exact mAP@R semantics."""
+
+    codes = torch.tensor(
+        [[1, 0], [1, 0], [1, 0], [1, 0], [0, 1], [0, 1]],
+        dtype=torch.int8,
+    )
+    labels = torch.tensor([0, 0, 0, 1, 1, 1], dtype=torch.int64)
+
+    mean_ap, recall_at_1, per_query_ap, per_query_recall = _score_compact_metric_codes(
+        codes,
+        labels,
+        device=torch.device("cpu"),
+    )
+
+    assert per_query_ap == (1.0, 1.0, 1.0, 0.0, 0.5, 0.5)
+    assert per_query_recall == (1.0, 1.0, 1.0, 0.0, 1.0, 1.0)
+    assert mean_ap == 2.0 / 3.0
+    assert recall_at_1 == 5.0 / 6.0
 
 
 def test_fit_compact_metric_projection_adapts_schedule_and_emits_exact_codes() -> None:

@@ -61,6 +61,8 @@ SOP-only artifact. The evaluation uses one teacher, one deterministic schedule,
 and one dataset split; it does not establish training-seed robustness. PCA is
 an unsupervised compression control, so the result should not be described as a
 loss-function comparison against a supervised deep-metric-learning method.
+The sealed receipt is explicitly `claim_eligible=false`; the result is
+development evidence and the bootstrap interval is not a publication claim.
 
 The default exposure-normalized schedule in `CompactMetricConfig` is the exact
 transferred recipe tested here. The API adapts classes per update and updates
@@ -107,6 +109,12 @@ and remains claim-ineligible.
   `2d98e39786bea3d4a45205ec3e4fd1d79adaa594e61c3d1ba82b4b5b4600e553`
 - Public-benchmark script SHA-256:
   `3ee67d80d3f8df9a7fda4ec7d9723d742753a4feb43f9592a8a37137ac31c057`
+- The seed-screen seed-17 schedule digest (`b6171285...`) intentionally differs
+  from the gate/library-shadow digest (`09e20f59...`): the archived seed screen
+  hashes zero-based label bytes, while the gate hashes the one-based labels used
+  by that run. Its parameter digest uses the encoder's domain-separated format,
+  while the gate records raw weight-then-bias bytes. Metrics are bit-identical;
+  these digests authenticate different byte conventions and are not aliases.
 - The receipt binds the exact exporter, gate, verifier, library-shadow, and
   benchmark script hashes used for the run. Their byte-exact sources are
   preserved as non-executable `.txt` evidence under

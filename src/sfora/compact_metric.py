@@ -283,6 +283,26 @@ def select_compact_metric_projection(
     if destination.type == "cuda" and not torch.cuda.is_available():
         raise ValueError("compact metric selector authority differs")
 
+    with torch.autocast(device_type="cpu", enabled=False):
+        return _select_compact_metric_projection(
+            embeddings.detach(),
+            labels,
+            resolved=resolved,
+            minimum_map_gain=minimum_map_gain,
+            destination=destination,
+        )
+
+
+def _select_compact_metric_projection(
+    embeddings: torch.Tensor,
+    labels: torch.Tensor,
+    *,
+    resolved: CompactMetricConfig,
+    minimum_map_gain: float,
+    destination: torch.device,
+) -> CompactMetricSelectionResult:
+    """Run selection with caller autograd and CPU autocast disabled."""
+
     normalized = torch.nn.functional.normalize(embeddings, dim=1).contiguous()
     label_array = labels.numpy()
     label_values = tuple(int(value) for value in np.unique(label_array))
@@ -591,9 +611,9 @@ def _score_compact_metric_codes(
     if any(count < 2 for count in counts.values()):
         raise ValueError("compact metric selector authority differs")
     width = max(counts.values()) - 1
-    gallery = torch.nn.functional.normalize(codes.float(), dim=1).to(device)
     rankings = []
-    with torch.inference_mode():
+    with torch.autocast(device_type=device.type, enabled=False), torch.inference_mode():
+        gallery = torch.nn.functional.normalize(codes.float(), dim=1).to(device)
         for start in range(0, len(gallery), 256):
             stop = min(start + 256, len(gallery))
             scores = gallery[start:stop] @ gallery.T
