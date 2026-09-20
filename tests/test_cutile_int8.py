@@ -86,7 +86,7 @@ def test_explicit_native_handle_validates_searches_and_closes(
 
     assert ordinals.shape == (32, 10)
     assert scores.shape == (32, 10)
-    assert ordinals.dtype == np.dtype("<u4")
+    assert ordinals.dtype == np.dtype("<i8")
     assert scores.dtype == np.dtype("<f4")
     assert np.array_equal(ordinals[0], np.arange(10, dtype="<u4"))
     gallery.close()

@@ -131,7 +131,9 @@ class CutilePackedInt8Gallery:
         )
         if status != 0:
             raise RuntimeError(f"{_ERROR}: search status {status}")
-        return ordinals.reshape(codes.shape[0], k), scores.reshape(codes.shape[0], k)
+        return ordinals.reshape(codes.shape[0], k).astype(np.int64), scores.reshape(
+            codes.shape[0], k
+        )
 
     def close(self) -> None:
         """Release the native gallery exactly once."""
