@@ -126,10 +126,15 @@ def load_inshop(path: Path) -> dict[str, torch.Tensor]:
         query_raw = np.ascontiguousarray(archive["query_labels"])
         gallery = np.ascontiguousarray(archive["gallery_embeddings"], dtype=np.float32)
         gallery_raw = np.ascontiguousarray(archive["gallery_labels"])
+    values, counts = np.unique(train_raw, return_counts=True)
+    eligible_values = values[counts >= 2]
+    eligible = np.isin(train_raw, eligible_values)
+    train = train[eligible].copy()
+    train_raw = train_raw[eligible].copy()
     train_values = sorted(str(value) for value in np.unique(train_raw))
     evaluation_values = sorted(str(value) for value in np.unique(query_raw))
     if (
-        train.shape != (25_882, 768)
+        train.shape != (25_870, 768)
         or query.shape != (14_218, 768)
         or gallery.shape != (12_612, 768)
         or set(train_values).intersection(evaluation_values)
