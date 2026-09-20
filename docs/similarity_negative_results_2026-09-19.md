@@ -6,6 +6,19 @@ The canonical research checkout for the current line is
 `/home/rb/worktrees/sfora-emafactorial` checkout is not an authority for this
 line. Unless stated otherwise, these are claim-ineligible development results.
 
+## Top-2 DBA passes mAP but is not quality-Pareto on In-Shop
+
+The frozen PCA128-int8 top-2 gallery augmentation gate used the official
+disjoint In-Shop query/gallery split. It raised mAP@R from `0.777802` to
+`0.794346`: delta `+0.016544`, paired per-query 95% interval
+`[+0.014416, +0.018654]`. It therefore passed the preregistered primary
+`+0.005` mAP gate. Recall@1 fell from `0.945773` to `0.938951`, however, a
+`-0.006822` regression. The result is retained as a primary-gate pass but not
+as Pareto-superior quality evidence. It authorizes at most one exact untouched
+replication and does not authorize integration, 1M benchmarking, or kernels.
+Full receipt SHA-256:
+`ab91bf35c5ad0eac694dbb95c141856baacb1b9f3abae99aa12e930747119d11`.
+
 ## Flip-view gate is invalid, not a quality result
 
 The frozen Food-101/Oxford-IIIT Pet identity-plus-horizontal-flip gate did not

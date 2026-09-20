@@ -1,0 +1,18 @@
+{
+  "schema": "scratch-top2-dba-gate-preregistration-v1",
+  "source_commit": "8eb47d9109b27fe86dc42558faf309ac043e8bce",
+  "script_sha256": "3904e7ff4379be005443114d8631a74f63e26809ef795b402e9cd8cd7878d972",
+  "input_sha256": "05cd5901425210c06a3972f5a67acf41c961b2f4b59d6535744f3e3536d036ad",
+  "dataset": "In-Shop official disjoint query/gallery",
+  "baseline": "fit-only PCA128 plus exact PackedInt8Embeddings scoring",
+  "candidate": "normalize(self+mean(top2-nonself-packed-cosine-neighbours));repack-int8",
+  "decision": {
+    "estimand": "paired per-query AP@R difference",
+    "minimum_map_effect": 0.005,
+    "interval": "two-sided percentile 95%",
+    "replicates": 10000,
+    "seed": 20260921,
+    "survives": "delta>=0.005 and lower95>0"
+  },
+  "followup": "If and only if the candidate survives, replicate the exact transform once on an untouched disjoint-query/gallery dataset before integration or performance work. Otherwise close top-2 DBA with no retry."
+}
