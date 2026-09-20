@@ -9,6 +9,9 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
+- A fit-only supervised compact-metric selector that chooses between a learned
+  affine int8 projection and PCA using three class-disjoint folds, then refits
+  only on authorized training data for deployment.
 - Progressive residual quantization with physically nested bitplane prefixes, bounded candidate
   reranking, exact byte accounting, and optional optimized-product-quantizer bases for angular and
   squared-L2 retrieval.
@@ -56,6 +59,9 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- Compact-metric selection now detaches caller autograd graphs and disables
+  ambient CPU autocast so external execution context cannot change PCA,
+  quantization, or the selected encoder.
 - Portable positional vector reads no longer allocate a second full-size copy of
   every row, and vector-file authentication reuses one bounded block instead of
   duplicating each 8 MiB read.
