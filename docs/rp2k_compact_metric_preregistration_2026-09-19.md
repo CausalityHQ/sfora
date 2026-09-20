@@ -123,3 +123,40 @@ inference through optimized PyTorch CUDA.  CuTile, CUDA-Oxide, or another
 custom kernel is introduced only if a profile shows a material uncovered
 kernel hotspot and a prototype beats the existing path under identical output
 and quality.  Kernel work is not allowed to delay this algorithm gate.
+
+## Validation result
+
+The preregistered validation ran once on the authenticated feature archive
+SHA-256
+`46cfbd7dea5592de7fcbdfedd7a3b5bc3960160b853d4e484c46ac07b31abbc7`.
+The canonical result is
+`docs/evidence/rank_finished_l14_336_rp2k_compact64_validation_v1.json`,
+2,295 bytes, SHA-256
+`f15a17eb26b809a00fded5fb8dde13d06ec2c1a42dfe8b07d88a2d5bb200bb5a`.
+The fitted learned head has SHA-256
+`866e942a51de3f15c37aaf4cedcb8600119c834e639445e81ca27f95da089035`.
+The run took 204.768 seconds after feature extraction.
+
+| Representation | Stored bytes | mMP@5 | R@1 |
+| --- | ---: | ---: | ---: |
+| source float-768 | 3,072 | `0.969320` | **`0.985685`** |
+| PCA int8-64 | 64 | `0.955515` | `0.977364` |
+| PCA-whiten int8-64 | 64 | `0.956942` | `0.976782` |
+| between-class PCA int8-64 | 64 | `0.959161` | `0.978586` |
+| OPQ64x8, 64-byte decoded code | 64 | `0.964266` | `0.982019` |
+| shuffled-label learned int8-64 | 64 | `0.950466` | `0.974687` |
+| learned int8-64 | 64 | **`0.969804`** | `0.984230` |
+
+The learned code improved over PCA by `+0.014289` mMP@5 and `+0.006866`
+R@1, over between-class PCA by `+0.010643` mMP@5, and over equal-byte OPQ
+by `+0.005538` mMP@5.  Its class-clustered learned-minus-PCA bootstrap
+lower bound was `+0.035139`.  Shuffled-label training was worse than PCA,
+supporting a label-dependent effect.  The 64-byte learned code retained
+`100.050%` of source float-768 mMP@5 and `99.852%` of its R@1 while using
+48 times fewer stored bytes.
+
+Despite the strong absolute result, the candidate failed the frozen
+`+0.020` learned-minus-PCA and `+0.010` learned-minus-OPQ mMP@5 gates.  The
+full-width control was therefore not run, its retention gate is false, and
+`test_reveal_eligible=false`.  The official RP2K test split remains unopened.
+No threshold is relaxed and this validation result is claim-ineligible.
