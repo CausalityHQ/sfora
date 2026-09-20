@@ -1,0 +1,53 @@
+{
+  "arms": {
+    "learned128_int8": "frozen 2000-update mean-logit affine 768-to-128 head; signed int8 serving code",
+    "learned256_int4": "same frozen objective/schedule and width-scaled learning rate; affine 768-to-256 head; train-only 0.999-quantile per-coordinate signed int4 scales",
+    "pca128_int8": "fit-only centered PCA 768-to-128; signed int8 serving code",
+    "pca256_int4": "fit-only centered PCA 768-to-256; fit-only 0.999-quantile per-coordinate signed int4 scales"
+  },
+  "bootstrap": {
+    "estimand": "paired per-query AP@R difference",
+    "interval": "two-sided percentile 95%",
+    "replicates": 10000,
+    "seed": 20260920
+  },
+  "claim_eligible": false,
+  "datasets": {
+    "cars": {
+      "sha256": "6ddfd7e2c9fd489dff51fa33697c62abf92a45247b52b336c0371f5482231ab3",
+      "split": "authenticated SHA-ordered class-disjoint fit/evaluation"
+    },
+    "cub": {
+      "sha256": "847a40bd8c0c2a5289de9b5a8eca93c935d4eafed6507e1360da3a3bfee6f62e",
+      "split": "authenticated SHA-ordered class-disjoint fit/evaluation"
+    },
+    "food101": {
+      "sha256": "277c192d91ae05ec5389f5cb70e43e5b88d8898140a2a06c64f6d8961e9893b5",
+      "split": "official test features partitioned by deterministic class hash, 80% fit / 20% evaluation, seed 17"
+    },
+    "inshop": {
+      "sha256": "05cd5901425210c06a3972f5a67acf41c961b2f4b59d6535744f3e3536d036ad",
+      "split": "official train fit, official disjoint query/gallery evaluation; singleton train identities excluded"
+    },
+    "sop": {
+      "sha256": "1ba27b2d6b9db39067aa6facd0ef8aafc303c4527f6feabed859b0512c7d921a",
+      "split": "official train fit, official test symmetric evaluation"
+    }
+  },
+  "decision": {
+    "baseline": "pca128_int8",
+    "kill_arm_if": "on any dataset its paired mAP@R interval against pca128_int8 includes zero, or its point effect is below 0.005",
+    "minimum_map_at_r_effect": 0.005,
+    "outer_width_contrast": "also report learned256_int4 minus learned128_int8 with the identical paired bootstrap; do not use it to rescue an arm killed against the reference",
+    "survive_arm_if": "paired mAP@R lower endpoint is strictly positive and point effect is at least 0.005 on every dataset"
+  },
+  "prohibitions": [
+    "no dataset-specific optimizer, schedule, seed, scale quantile, or metric tuning",
+    "no result-dependent rerun",
+    "no scorer-family or augmentation work before this ladder is terminal",
+    "no CUDA kernel work from quality-only evidence"
+  ],
+  "schema": "scratch-same-teacher-four-arm-five-dataset-ladder-preregistration-v1",
+  "script_sha256": "e12b5dc760e70efaa8891b8b41a2c7830bd81e161c8a1d1f14ac08cc7a40b514",
+  "source_commit": "e87d25da3831495b902a90d8ac897fc6d051b1ac"
+}

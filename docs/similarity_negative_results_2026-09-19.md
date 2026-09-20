@@ -1,10 +1,79 @@
 # Similarity-learning negative results ledger
 
 This ledger prevents failed development hypotheses from being silently revived.
-The canonical research checkout for these results is
-`/home/rb/worktrees/sfora-emafactorial-release`; the older dirty
+The canonical research checkout for the current line is
+`/home/rb/worktrees/sfora-positive-causality`; the older dirty
 `/home/rb/worktrees/sfora-emafactorial` checkout is not an authority for this
 line. Unless stated otherwise, these are claim-ineligible development results.
+
+## Flip-view gate is invalid, not a quality result
+
+The frozen Food-101/Oxford-IIIT Pet identity-plus-horizontal-flip gate did not
+reach either flip arm.  Its sole bounded DGX process ran for about 19 minutes
+and then rejected the authenticated Food-101 identity replay: maximum absolute
+feature drift was `0.0023138634860515594`, above the preregistered `0.0002`
+limit.  No flip score, bootstrap interval, result artifact, or promotion
+decision exists.  This is an authority failure, not evidence for or against
+database-view augmentation.
+
+- Source commit: `e87d25da3831495b902a90d8ac897fc6d051b1ac`
+- Runner SHA-256:
+  `6a625544e51ce565ba13e1b76407ec36a0ff0f71d73b30e7b88c02c4c739f535`
+- Preregistration SHA-256:
+  `446e5639ec60946309146c6521b2a32690d9a1f2f7ffbf9ff5c66c73f0710bd7`
+- Frozen UNICOM checkpoint SHA-256:
+  `3916ab5aed3b522fc90345be8b4457fe5dad60801ad2af5a6871c0c096e8d7ea`
+
+The likely boundary is cross-runtime or cross-device FP16 feature replay: the
+source revision, checkpoint, dataset identity, and official transform matched,
+but the cached identity vectors were not reproduced within the frozen numeric
+tolerance.  The run was not retried or retuned.  Any future retry must first
+reconstruct the original feature-producer runtime and prove identity replay;
+the current zero-training representation ladder takes priority.
+
+## First ladder receipt used the wrong int8 scoring surface
+
+The first four-arm/five-dataset ladder process completed, but its independent
+replay found that the two int8 arms had been restored and normalized into
+float tensors before scoring.  The library's deployed path instead multiplies
+integer dot products by the stored per-row f16 inverse norms.  This made the
+receipt unmatched to the serving representation, even though the point
+differences were small on the first checked dataset.  Full invalid receipt
+SHA-256: `36a844af50d04b7803fd8338947debe0851f6034e762b6824dd76d994002dc58`.
+
+No arm decision from that receipt is promoted.  The correction is
+measurement-only: keep the frozen datasets, projections, training recipe,
+bootstrap seed/count, and decision thresholds unchanged, and route int8 arms
+through the exact `PackedInt8Embeddings` score.  A regression now compares the
+ladder score to the library scorer query by query.  This is the sole authorized
+rerun of the frozen ladder, not result-dependent tuning.
+
+## The frozen width/learning ladder has no universal winner
+
+The corrected exact-packed receipt evaluated PCA128-int8, PCA256-int4,
+learned128-int8, and learned256-int4 on Cars, CUB, SOP, In-Shop, and Food-101.
+The registered survival rule required at least `+0.005` mAP@R over PCA128-int8
+and a paired per-query 95% interval excluding zero on every dataset.
+
+- PCA256-int4 failed CUB (`-0.000085`, 95% CI
+  `[-0.001084,+0.000927]`) and In-Shop (`+0.000287`,
+  `[-0.001078,+0.001723]`).
+- Learned128-int8 failed CUB (`+0.001367`,
+  `[-0.000378,+0.003062]`).
+- Learned256-int4 failed CUB (`+0.001075`,
+  `[-0.000912,+0.003070]`).
+- Learned256-int4 minus learned128-int8 was positive on Cars, SOP, and
+  Food-101, but included zero on CUB and In-Shop.
+
+All three candidates are killed as generic defaults.  The prospective
+label-free width selector is also killed: it selected 256 correctly on
+Food-101, but selected 128 on unseen Flowers-102 while 256 had the higher outer
+mAP@R (`0.983412` versus `0.981970`).  No top-2 augmentation, 1M benchmark, or
+CUDA optimization is authorized without a surviving representation.
+
+Corrected full receipt SHA-256:
+`149313594c2e5da36c3a1a8d7137bb0afb163da9e0209038039bed98bf69a188`;
+details: `docs/same_teacher_zero_training_ladder_result_2026-09-20.md`.
 
 ## A single fixed compact projection is not domain universal
 
