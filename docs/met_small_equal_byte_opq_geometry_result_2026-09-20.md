@@ -2,8 +2,9 @@
 
 ## Result
 
-Redistributing the same 64-byte payload across more product subspaces and
-fewer bits does not jointly improve MET-small validation mMP@5 and R@1.
+Redistributing the same 64-byte payload across more, narrower product
+subquantizers and fewer bits per subquantizer does not jointly improve
+MET-small validation mMP@5 and R@1.
 
 | Codec | mMP@5 | R@1 | reconstruction MSE | fit/eval seconds |
 |---|---:|---:|---:|---:|
@@ -12,9 +13,11 @@ fewer bits does not jointly improve MET-small validation mMP@5 and R@1.
 | OPQ256×2 | 0.707106 | **0.767442** | 0.00053774 | 405.61 |
 
 All codes store exactly 64 bytes and were fit with one Faiss CPU thread on the
-same 38,307 normalized fit rows.  Higher-rank/lower-bit codes improve top-one
-accuracy but reduce top-five neighborhood quality and increase reconstruction
-error.  Neither lower-bit arm satisfies the frozen joint rule, so
+same 38,307 normalized fit rows. Finer-partition/lower-bit codes improve
+top-one accuracy but reduce top-five neighborhood quality and increase
+reconstruction error. All three Faiss arms retain 768 dimensions; this result
+is not evidence about representation rank. Neither lower-bit arm satisfies the
+frozen joint rule, so
 `higher_rank_lower_bit_supported` is false.
 
 This is a multi-objective tradeoff rather than evidence that either metric is

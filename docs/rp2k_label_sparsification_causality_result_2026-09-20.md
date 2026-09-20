@@ -22,6 +22,14 @@ count did not restore the loss; it increased the drop to `0.011356`.  The frozen
 classification is therefore `positive_coverage_supported`, not
 `optimizer_exposure_supported`.
 
+Post-result identification correction: the intervention assigned fresh
+singleton labels to removed classmates while hard-negative eligibility uses
+label inequality. It therefore both removes positive access and permits true
+classmates to act as false negatives. The frozen classification describes the
+registered intervention outcome, but it does **not** isolate positive coverage
+as the sole cause. A clean successor must preserve original-class negative
+exclusion while restricting positive access and matching anchor exposure.
+
 ## Consequence
 
 The current supervised objective is useful when genuine repeated positives

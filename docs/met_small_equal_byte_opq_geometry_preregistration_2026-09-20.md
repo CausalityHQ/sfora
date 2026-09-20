@@ -3,9 +3,14 @@
 ## Question
 
 The burned MET-small rank diagnostic shows that signed-int8 rounding is not the
-learned64 limitation and that wider subspaces recover mMP@5.  This fixed screen
-asks whether the same 64-byte payload improves when it represents more
-directions with fewer bits per product-quantizer subspace.
+learned64 limitation. This fixed screen asks whether the same 64-byte payload
+improves when it uses more, narrower product subquantizers with fewer bits per
+subquantizer.
+
+Correction recorded after execution: Faiss specifications `OPQ64_768`,
+`OPQ128_768`, and `OPQ256_768` all retain 768 dimensions. This experiment
+changes partition granularity and per-subquantizer resolution, not retained
+representation rank.
 
 ## Authority and arms
 
