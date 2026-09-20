@@ -94,22 +94,26 @@ def validate_processor_authority(config: Mapping[str, object]) -> None:
 
 
 class _ImageDataset(torch.utils.data.Dataset):
-    def __init__(
-        self, source: object, indices: Sequence[int], processor: object
-    ) -> None:
+    def __init__(self, source: object, indices: Sequence[int]) -> None:
         self.source = source
         self.indices = tuple(indices)
-        self.processor = processor
 
     def __len__(self) -> int:
         return len(self.indices)
 
-    def __getitem__(self, index: int) -> torch.Tensor:
+    def __getitem__(self, index: int) -> object:
         row = self.source[self.indices[index]]  # type: ignore[index]
-        image = row["image"].convert("RGB")
-        return self.processor(images=image, return_tensors="pt")[  # type: ignore[operator]
-            "pixel_values"
-        ][0]
+        return row["image"].convert("RGB")
+
+
+class _ProcessorCollate:
+    def __init__(self, processor: object) -> None:
+        self.processor = processor
+
+    def __call__(self, images: list[object]) -> torch.Tensor:
+        return self.processor(  # type: ignore[operator]
+            images=images, return_tensors="pt"
+        )["pixel_values"]
 
 
 def _encode(
@@ -123,11 +127,12 @@ def _encode(
     workers: int,
 ) -> torch.Tensor:
     loader = torch.utils.data.DataLoader(
-        _ImageDataset(source, indices, processor),
+        _ImageDataset(source, indices),
         batch_size=batch_size,
         shuffle=False,
         num_workers=workers,
         pin_memory=True,
+        collate_fn=_ProcessorCollate(processor),
     )
     rows = []
     model.eval()

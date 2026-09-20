@@ -75,3 +75,21 @@ def test_processor_authority_accepts_only_frozen_siglip2_shape() -> None:
         assert str(error) == "SigLIP2 processor authority differs"
     else:
         raise AssertionError("processor drift was accepted")
+
+
+def test_processor_collate_batches_images_in_one_authenticated_call() -> None:
+    subject = _load_subject()
+
+    class _Processor:
+        def __init__(self) -> None:
+            self.calls = []
+
+        def __call__(self, *, images, return_tensors):
+            self.calls.append((images, return_tensors))
+            return {"pixel_values": ("batch", tuple(images))}
+
+    processor = _Processor()
+    collate = subject._ProcessorCollate(processor)
+
+    assert collate(["a", "b", "c"]) == ("batch", ("a", "b", "c"))
+    assert processor.calls == [(["a", "b", "c"], "pt")]
