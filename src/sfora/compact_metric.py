@@ -283,7 +283,11 @@ def select_compact_metric_projection(
     if destination.type == "cuda" and not torch.cuda.is_available():
         raise ValueError("compact metric selector authority differs")
 
-    with torch.autocast(device_type="cpu", enabled=False):
+    with (
+        torch.inference_mode(False),
+        torch.enable_grad(),
+        torch.autocast(device_type="cpu", enabled=False),
+    ):
         return _select_compact_metric_projection(
             embeddings.detach(),
             labels,
@@ -309,8 +313,14 @@ def _select_compact_metric_projection(
     counts = {value: int((label_array == value).sum()) for value in label_values}
     eligible_values = tuple(value for value in label_values if counts[value] >= 2)
     label_folds = {value: _compact_metric_fold(value) for value in eligible_values}
-    if len(eligible_values) < 3 or set(label_folds.values()) != {0, 1, 2}:
-        raise ValueError("compact metric selector authority differs")
+    if len(eligible_values) < 3:
+        raise ValueError("compact metric selector requires at least three eligible classes")
+    missing_folds = {0, 1, 2} - set(label_folds.values())
+    if missing_folds:
+        raise ValueError(
+            "compact metric selector has no eligible classes in deterministic fold "
+            f"{min(missing_folds)}"
+        )
     eligible_mask = np.isin(label_array, np.asarray(eligible_values, dtype=label_array.dtype))
 
     folds: list[CompactMetricSelectionFold] = []
@@ -429,7 +439,11 @@ def fit_compact_metric_projection(
     if destination.type == "cuda" and not torch.cuda.is_available():
         raise ValueError("compact metric training authority differs")
 
-    with torch.autocast(device_type=destination.type, enabled=False):
+    with (
+        torch.inference_mode(False),
+        torch.enable_grad(),
+        torch.autocast(device_type=destination.type, enabled=False),
+    ):
         return _fit_compact_metric_projection(
             embeddings.detach(), labels, config=resolved, device=destination
         )

@@ -110,6 +110,32 @@ def test_fit_only_selector_returns_full_fit_pca_fallback() -> None:
     torch.testing.assert_close(result.encoder.bias, expected_bias, atol=0, rtol=0)
 
 
+def test_fit_only_selector_names_missing_deterministic_fold() -> None:
+    """Catch small label sets failing after partial training with an opaque authority error."""
+
+    embeddings = torch.nn.functional.normalize(
+        torch.randn(10, 6, generator=torch.Generator().manual_seed(71)), dim=1
+    ).contiguous()
+    labels = torch.arange(5, dtype=torch.int64).repeat_interleave(2)
+
+    with pytest.raises(
+        ValueError,
+        match=r"compact metric selector has no eligible classes in deterministic fold 0",
+    ):
+        select_compact_metric_projection(
+            embeddings,
+            labels,
+            config=CompactMetricConfig(
+                output_dimensions=2,
+                cycles=1,
+                anchor_epochs_per_cycle=0.5,
+                rows_per_class=2,
+                hard_negatives=2,
+            ),
+            device=torch.device("cpu"),
+        )
+
+
 def test_fit_only_selector_excludes_singletons_from_folds_but_not_full_fit() -> None:
     """Catch rejecting realistic fit sets or dropping singleton rows from the final PCA."""
 
@@ -269,6 +295,51 @@ def test_fit_only_selector_disables_ambient_cpu_autocast() -> None:
     torch.testing.assert_close(actual.encoder.bias, expected.encoder.bias, atol=0, rtol=0)
 
 
+@pytest.mark.parametrize("context_name", ["no_grad", "inference_mode"])
+def test_fit_only_selector_enables_training_inside_disabled_grad_context(
+    context_name: str,
+) -> None:
+    """Catch caller inference contexts disabling the selector's internal training graph."""
+
+    generator = torch.Generator().manual_seed(41)
+    labels_by_class = (5, 7, 0, 1, 2, 3)
+    centers = torch.randn(len(labels_by_class), 6, generator=generator)
+    embeddings = torch.cat(
+        [center + 0.08 * torch.randn(4, 6, generator=generator) for center in centers]
+    )
+    embeddings = torch.nn.functional.normalize(embeddings, dim=1).contiguous()
+    labels = torch.tensor(labels_by_class, dtype=torch.int64).repeat_interleave(4)
+    config = CompactMetricConfig(
+        output_dimensions=3,
+        cycles=1,
+        anchor_epochs_per_cycle=0.5,
+        hard_negatives=3,
+    )
+    expected = select_compact_metric_projection(
+        embeddings,
+        labels,
+        config=config,
+        minimum_map_gain=1.0,
+        device=torch.device("cpu"),
+    )
+    context = torch.no_grad() if context_name == "no_grad" else torch.inference_mode()
+
+    with context:
+        actual = select_compact_metric_projection(
+            embeddings,
+            labels,
+            config=config,
+            minimum_map_gain=1.0,
+            device=torch.device("cpu"),
+        )
+
+    assert actual.selected == expected.selected
+    assert actual.map_at_r_delta == expected.map_at_r_delta
+    assert actual.recall_at_1_delta == expected.recall_at_1_delta
+    torch.testing.assert_close(actual.encoder.weight, expected.encoder.weight, atol=0, rtol=0)
+    torch.testing.assert_close(actual.encoder.bias, expected.encoder.bias, atol=0, rtol=0)
+
+
 def test_selector_scorer_matches_hand_derived_map_at_r_with_cutoff_ties() -> None:
     """Catch non-stable ties or full-list AP replacing exact mAP@R semantics."""
 
@@ -385,6 +456,40 @@ def test_fit_compact_metric_projection_detaches_frozen_teacher_embeddings() -> N
 
     assert result.total_updates > 0
     assert embeddings.grad is None
+
+
+@pytest.mark.parametrize("context_name", ["no_grad", "inference_mode"])
+def test_fit_compact_metric_projection_enables_training_inside_disabled_grad_context(
+    context_name: str,
+) -> None:
+    """Catch caller inference contexts disabling the public fit function's gradient graph."""
+
+    embeddings, labels = _fixture()
+    config = CompactMetricConfig(
+        output_dimensions=3,
+        cycles=1,
+        anchor_epochs_per_cycle=0.5,
+        hard_negatives=3,
+    )
+    expected = fit_compact_metric_projection(
+        embeddings,
+        labels,
+        config=config,
+        device=torch.device("cpu"),
+    )
+    context = torch.no_grad() if context_name == "no_grad" else torch.inference_mode()
+
+    with context:
+        actual = fit_compact_metric_projection(
+            embeddings,
+            labels,
+            config=config,
+            device=torch.device("cpu"),
+        )
+
+    assert actual.losses == expected.losses
+    torch.testing.assert_close(actual.encoder.weight, expected.encoder.weight, atol=0, rtol=0)
+    torch.testing.assert_close(actual.encoder.bias, expected.encoder.bias, atol=0, rtol=0)
 
 
 def test_compact_metric_float32_contract_ignores_ambient_autocast() -> None:

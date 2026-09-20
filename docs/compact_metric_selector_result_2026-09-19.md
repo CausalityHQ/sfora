@@ -91,6 +91,12 @@ receipt.
 
 Pet receipt authorities:
 
+- The two canonical JSON receipts are retained in
+  `docs/evidence/compact_metric/pet-compact-selector-v1.json` and
+  `docs/evidence/compact_metric/pet-compact-metric-v1.json`. The authenticated
+  feature archive and fitted checkpoint remain at
+  `/home/riomus/datasets/universal-panel-v1/` on the DGX evidence host; they are
+  not copied into Git.
 - selector SHA-256
   `d835fca611b291d8402f7b55f7a5d85875ffe13c682a896ab7599d7daa3b8d1e`;
 - external result SHA-256
@@ -205,10 +211,11 @@ official identity-disjoint query/gallery evaluation, the result was:
 Learned int8-128 improved over same-byte PCA by `+0.160582` mAP@R and
 `+0.134407` Recall@1.  It also exceeded this frozen teacher by `+0.128062`
 mAP@R and `+0.101069` Recall@1 while using 24 times fewer stored bytes.  This
-is a cross-backbone, standard-protocol replication of the selector mechanism,
-not a claim against published In-Shop systems: the experiment was not
-preregistered as a publication comparison and its receipt is explicitly
-claim-ineligible.
+comparison uses supervised fit labels for the compact projection while the
+frozen teacher itself is not refitted. It is a cross-backbone,
+standard-protocol replication of the selector mechanism, not a claim against
+published In-Shop systems: the experiment was not preregistered as a
+publication comparison and its receipt is explicitly claim-ineligible.
 
 A follow-up equal-byte screen fitted four Faiss 1.12.0 codecs on exactly the
 same 25,882 authorized training rows.  Each codec stores 128 bytes per item;
@@ -300,7 +307,7 @@ isolates label-dependent supervised geometry that is not reducible to class
 means, PCA-space reweighting, or label-independent conditioning.  It remains
 post-hoc mechanism evidence, not a prospective quality claim.
 
-The strongest source was a corrected seed-0 BN-Inception ProxyAnchor final
+An independent source was a corrected seed-0 BN-Inception ProxyAnchor final
 state.  Here the inner learned-minus-PCA evidence was only `+0.001811` mAP@R
 and `0.000000` Recall@1, below the frozen `+0.003` mAP gate, so the production
 policy correctly returned its PCA fallback.  Official query/gallery results
@@ -334,8 +341,9 @@ In-Shop receipt authorities:
   `e17f6a70ac83127bab24ef4736adc078f9f43795d701b7281e6f1b947ddd84ac`;
 - candidate production module SHA-256
   `d6a644476ee6b2b8486876e770eb103bdf478197234208da7e00fbf081850654`;
-- release module SHA-256 after caller-autograd/autocast boundary repair
-  `d93ceccc5fe8cf20ccfe76c6520af61521d1f7197a16242eead3dc11de9f421a`;
+- release module SHA-256 after caller-autograd, autocast, and inference-context
+  boundary repair
+  `dc1e11d13d407d91d8270c509cebeeab395aefbfcb40d5f80fa00fea703f3f12`;
 - equal-byte codec receipt SHA-256
   `4500a584964447f8a497e6afc588cc876cff0a39644be2c565a035c1222e0964`;
 - equal-byte codec driver SHA-256

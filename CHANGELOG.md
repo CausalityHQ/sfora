@@ -59,8 +59,9 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
-- Compact-metric selection now detaches caller autograd graphs and disables
-  ambient CPU autocast so external execution context cannot change PCA,
+- Compact-metric fitting and selection now detach caller autograd graphs,
+  override ambient inference/gradient modes, and disable CPU autocast so
+  external execution context cannot break training or change PCA,
   quantization, or the selected encoder.
 - Portable positional vector reads no longer allocate a second full-size copy of
   every row, and vector-file authentication reuses one bounded block instead of
