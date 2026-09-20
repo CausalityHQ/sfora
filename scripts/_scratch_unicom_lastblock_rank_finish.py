@@ -98,6 +98,49 @@ def classify_candidate(
     }
 
 
+def proxy_anchor_loss(
+    embeddings: torch.Tensor,
+    labels: torch.Tensor,
+    proxies: torch.Tensor,
+    *,
+    alpha: float = 32.0,
+    delta: float = 0.1,
+) -> torch.Tensor:
+    """Compute the canonical Proxy Anchor objective with learned class proxies."""
+
+    if (
+        embeddings.ndim != 2
+        or proxies.ndim != 2
+        or embeddings.shape[1] != proxies.shape[1]
+        or labels.shape != (embeddings.shape[0],)
+        or labels.dtype != torch.int64
+        or int(labels.min()) < 0
+        or int(labels.max()) >= proxies.shape[0]
+        or type(alpha) is not float
+        or alpha != 32.0
+        or type(delta) is not float
+        or delta != 0.1
+        or not bool(torch.isfinite(embeddings).all())
+        or not bool(torch.isfinite(proxies).all())
+    ):
+        raise ValueError("Proxy Anchor authority differs")
+    normalized_embeddings = torch.nn.functional.normalize(embeddings.float(), dim=1)
+    normalized_proxies = torch.nn.functional.normalize(proxies.float(), dim=1)
+    similarities = normalized_embeddings @ normalized_proxies.T
+    positive = torch.nn.functional.one_hot(
+        labels, num_classes=proxies.shape[0]
+    ).bool()
+    negative = ~positive
+    positive_terms = torch.exp(-alpha * (similarities - delta)) * positive
+    negative_terms = torch.exp(alpha * (similarities + delta)) * negative
+    present = positive.any(dim=0)
+    loss = torch.log1p(positive_terms.sum(dim=0))[present].mean()
+    loss = loss + torch.log1p(negative_terms.sum(dim=0)).mean()
+    if not torch.isfinite(loss):
+        raise ValueError("Proxy Anchor loss is nonfinite")
+    return loss
+
+
 def paired_class_bootstrap(
     candidate: np.ndarray, control: np.ndarray, labels: np.ndarray
 ) -> dict[str, float]:
@@ -251,6 +294,9 @@ def _parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--preregistration-sha256", required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--checkpoint-output", type=Path, required=True)
+    parser.add_argument(
+        "--objective", choices=("smooth-ap", "imprinted-proxy-anchor"), required=True
+    )
     parser.add_argument("--batch-size", type=int, default=128)
     parser.add_argument("--workers", type=int, default=8)
     parser.add_argument("--execute-rank-finish", action="store_true", required=True)
@@ -358,10 +404,26 @@ def main(arguments: Sequence[str] | None = None) -> int:
     training_labels = tuple(str(int(labels[index])) for index in fit_indices)
     steps_per_epoch = len(fit_indices) // args.batch_size
     parameters = [value for value in model.parameters() if value.requires_grad]
-    optimizer = torch.optim.AdamW(parameters, lr=1e-5, weight_decay=0.0)
+    proxies = None
+    parameter_groups: list[dict[str, object]] = [{"params": parameters, "lr": 1e-5}]
+    maximum_learning_rates = [1e-5]
+    if args.objective == "imprinted-proxy-anchor":
+        normalized_baseline = torch.nn.functional.normalize(baseline_fit, dim=1)
+        imprinted = torch.stack(
+            [
+                normalized_baseline[fit_labels == label].mean(dim=0)
+                for label in range(98)
+            ]
+        )
+        proxies = torch.nn.Parameter(
+            torch.nn.functional.normalize(imprinted, dim=1).to(device)
+        )
+        parameter_groups.append({"params": [proxies], "lr": 1e-3})
+        maximum_learning_rates.append(1e-3)
+    optimizer = torch.optim.AdamW(parameter_groups, lr=1e-5, weight_decay=0.0)
     scheduler = torch.optim.lr_scheduler.OneCycleLR(
         optimizer,
-        max_lr=1e-5,
+        max_lr=maximum_learning_rates,
         steps_per_epoch=steps_per_epoch,
         epochs=4,
         pct_start=0.1,
@@ -392,12 +454,22 @@ def main(arguments: Sequence[str] | None = None) -> int:
         for step, (images, batch_labels) in enumerate(loader, start=1):
             optimizer.zero_grad(set_to_none=True)
             embeddings = model(images.to(device)).float()
-            loss = smooth_ap_finish_loss(
-                embeddings,
-                tuple(int(value) for value in batch_labels.tolist()),
-            )
+            if args.objective == "smooth-ap":
+                loss = smooth_ap_finish_loss(
+                    embeddings,
+                    tuple(int(value) for value in batch_labels.tolist()),
+                )
+            else:
+                assert proxies is not None
+                loss = proxy_anchor_loss(
+                    embeddings,
+                    batch_labels.to(device=device, dtype=torch.int64),
+                    proxies,
+                )
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(parameters, 1.0)
+            torch.nn.utils.clip_grad_norm_(
+                [*parameters, *((proxies,) if proxies is not None else ())], 1.0
+            )
             optimizer.step()
             scheduler.step()
             losses.append(float(loss.detach()))
@@ -501,14 +573,22 @@ def main(arguments: Sequence[str] | None = None) -> int:
         "checkpoint_sha256": sha256(args.checkpoint_output),
         "parameter_authority": authority,
         "method": {
+            "objective": args.objective,
             "trainable_scope": "transformer-block-23-only",
             "epochs": 4,
             "batch_size": 128,
             "identities_per_batch": 32,
             "images_per_identity": 4,
-            "loss": "smooth-ap-deployment-prefix-v1",
-            "loss_dimensions": 512,
-            "temperature": 0.01,
+            "loss": (
+                "smooth-ap-deployment-prefix-v1"
+                if args.objective == "smooth-ap"
+                else "imprinted-proxy-anchor-v1"
+            ),
+            "loss_dimensions": 512 if args.objective == "smooth-ap" else 768,
+            "temperature": 0.01 if args.objective == "smooth-ap" else None,
+            "proxy_anchor_alpha": 32.0 if proxies is not None else None,
+            "proxy_anchor_delta": 0.1 if proxies is not None else None,
+            "proxy_learning_rate": 1e-3 if proxies is not None else None,
             "optimizer": "adamw",
             "maximum_learning_rate": 1e-5,
             "weight_decay": 0.0,

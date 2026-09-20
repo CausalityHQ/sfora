@@ -83,3 +83,22 @@ def test_classify_candidate_requires_effect_ci_and_recall_nonregression() -> Non
     assert small["passed"] is False
     assert uncertain["passed"] is False
     assert recall_loss["passed"] is False
+
+
+def test_proxy_anchor_loss_rewards_aligned_class_proxies_and_has_gradients() -> None:
+    subject = _load_subject()
+    embeddings = torch.tensor(
+        [[1.0, 0.0], [0.9, 0.1], [0.0, 1.0], [0.1, 0.9]],
+        requires_grad=True,
+    )
+    labels = torch.tensor([0, 0, 1, 1])
+    aligned = torch.tensor([[1.0, 0.0], [0.0, 1.0]], requires_grad=True)
+    swapped = torch.tensor([[0.0, 1.0], [1.0, 0.0]])
+
+    aligned_loss = subject.proxy_anchor_loss(embeddings, labels, aligned)
+    swapped_loss = subject.proxy_anchor_loss(embeddings, labels, swapped)
+    aligned_loss.backward()
+
+    assert aligned_loss < swapped_loss
+    assert embeddings.grad is not None and bool(torch.isfinite(embeddings.grad).all())
+    assert aligned.grad is not None and bool(torch.isfinite(aligned.grad).all())
