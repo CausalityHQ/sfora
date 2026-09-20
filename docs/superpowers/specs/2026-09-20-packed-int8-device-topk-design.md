@@ -24,14 +24,18 @@ The device reduction has two stages:
 
 1. The signed-i8 MMA score kernel handles 128 gallery rows per block. Ten
    repeated `reduce_max` / equality / `reduce_min` selections retain the exact
-   local top ten. Invalid padded ordinals are assigned `-inf` and `i32::MAX`.
-2. Candidate blocks are reduced in fixed groups of 128. Each group reshapes at
-   most 1,280 candidates, applies the same exact selection, and emits ten
+   local top ten. cuTile requires power-of-two tile dimensions, so the physical
+   result tile has 16 lanes: ten authoritative candidates followed by six
+   `(-inf, i32::MAX)` sentinels. Invalid padded ordinals receive the same
+   sentinels.
+2. Candidate blocks are reduced in fixed groups of 128 physical 16-lane tiles.
+   Each group therefore loads at most 2,048 lanes, masks all sentinels, applies
+   the same exact selection, and emits one 16-lane tile containing ten
    candidates. Reduction repeats until one block remains. No dense score plane
    or full ranked-pair allocation reaches host memory.
 
 The maximum temporary device storage at batch 32 and one million rows is the
-first candidate plane: `32 * ceil(1,000,000/128) * 10 * 8 = 20,001,280`
+first physical candidate plane: `32 * ceil(1,000,000/128) * 16 * 8 = 32,002,048`
 bytes, plus smaller reduction levels and final outputs. The persistent gallery
 remains exactly 130,000,000 bytes.
 
