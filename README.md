@@ -377,24 +377,31 @@ import torch
 
 from sfora import CompactMetricConfig, select_compact_metric_projection
 
+training_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 selection = select_compact_metric_projection(
     train_embeddings.contiguous().float(),  # finite CPU tensor
     train_labels.contiguous().long(),        # stable non-negative integer IDs
     config=CompactMetricConfig(output_dimensions=128),
-    device=torch.device("cuda"),
+    device=training_device,
 )
-gallery_codes = selection.encoder.encode(gallery_embeddings.contiguous().float())
-query_codes = selection.encoder.encode(query_embeddings.contiguous().float())
+encoder = selection.encoder.to_module(training_device)
+gallery_codes = encoder.encode(gallery_embeddings.to(training_device).contiguous().float())
+query_codes = encoder.encode(query_embeddings.to(training_device).contiguous().float())
 ```
 
 Only fit labels enter selection or training; keep evaluation identities and
 queries outside this call. Integer label IDs determine the reproducible fold
 assignment, so their mapping must remain stable. Training performs quadratic
 hard-negative mining and is validated up to 25,882 fit rows; it is not a
-streaming large-corpus trainer. The encoder itself is one normalized affine
-projection plus int8 rounding. See
-[the compact selector evidence](docs/compact_metric_selector_result_2026-09-19.md)
-for multi-dataset results, throughput, and claim limits.
+streaming large-corpus trainer. Every deterministic fold must receive an
+eligible class; small class sets can therefore be rejected rather than silently
+falling back. The encoder itself is one normalized affine projection plus int8
+rounding. The selector has one prospective confirmation on a class-disjoint
+Oxford-IIIT Pet protocol. See the
+[compact selector evidence](docs/compact_metric_selector_result_2026-09-19.md)
+for multi-dataset quality and claim limits, and the
+[Aircraft release evidence](docs/aircraft_compact_metric_result_2026-09-19.md)
+for measured throughput.
 
 ### Relational embedding compaction
 

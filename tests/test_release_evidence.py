@@ -11,6 +11,7 @@ import pytest
 _REPORT = Path("reports/factorized_residual_ann_2026-09-13.md")
 _PUBLIC = Path("reports/receipts/factorized_residual_ann_2026-09-13")
 _MATCHED = Path("reports/receipts/factorized_residual_ann_2026-09-19-threadmatched")
+_COMPACT = Path("docs/evidence/compact_metric")
 
 
 def _report() -> str:
@@ -68,3 +69,24 @@ def test_faiss_control_arms_record_the_parallel_mode_they_ran_with() -> None:
         protocol = json.loads((_MATCHED / name).read_text())["protocol"]
         assert protocol["parallel_mode"] == 1, "the matched control must not run query-parallel"
         assert "threads" in protocol
+
+
+@pytest.mark.parametrize(
+    ("receipt", "expected_sha256"),
+    (
+        (
+            "pet-compact-selector-v1.json",
+            "d835fca611b291d8402f7b55f7a5d85875ffe13c682a896ab7599d7daa3b8d1e",
+        ),
+        (
+            "pet-compact-metric-v1.json",
+            "67ab728083a2a8f3920a0c24872c8ab253fa93966ecf8d5b48473bc1719cf3ce",
+        ),
+    ),
+)
+def test_pet_compact_metric_receipts_are_retained_and_claim_ineligible(
+    receipt: str, expected_sha256: str
+) -> None:
+    path = _COMPACT / receipt
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == expected_sha256
+    assert json.loads(path.read_text())["claim_eligible"] is False
