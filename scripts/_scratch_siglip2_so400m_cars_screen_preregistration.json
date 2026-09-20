@@ -17,7 +17,7 @@
     "paired_class_bootstrap_seed": 17,
     "require_positive_map_interval_lower": true
   },
-  "implementation_commit": "93c2d3ebe08a3fcdb2f8aa8f9166cae9e4f31ad9",
+  "implementation_commit": "605efa515f59349bd04187d396a29d441f1f5312",
   "inputs": {
     "baseline_feature_sha256": "6ddfd7e2c9fd489dff51fa33697c62abf92a45247b52b336c0371f5482231ab3",
     "config_sha256": "73477b47ae9a395f008f993ebd8fb5c16ce0b5e8419ffdf2f5b2183b260f9cff",
@@ -39,6 +39,10 @@
     "replacement": "invoke the same authenticated processor once per 32-image batch in the sole process with no forked workers",
     "integrated_images_per_second_first256": 44.023565266176234,
     "integrated_peak_cuda_bytes_first256": 1604974592,
+    "fused_attention_repeat_equal": true,
+    "fused_attention_repeat_sha256": "71cc58509212167962fbedd843abb9efe7d654181981759b4ff48e764e383253",
+    "fused_attention_speedup_vs_strict": 5.239251160725077,
+    "fused_attention_strict_min_cosine": 0.9999939203262329,
     "vision_forward_images_per_second_batch32": 60.87661622296193,
     "vision_forward_peak_cuda_bytes_batch32": 1551226880
   },
@@ -57,5 +61,5 @@
     "power_whitening_regularization": 1.0
   },
   "schema": "sfora-siglip2-so400m-cars-screen-v1",
-  "script_sha256": "952383b400acbf9e4ccbe680d9b3098859854391234f3991b0bf573d98281320"
+  "script_sha256": "c6b9c39767ea7a91b915b89dab57dd7145c5b0199ce634371bd6f80c57311316"
 }
