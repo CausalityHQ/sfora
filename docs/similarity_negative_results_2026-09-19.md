@@ -367,3 +367,28 @@ full-SOP receipt SHA-256:
 Details:
 `docs/evidence/compact_metric/complementary-visual-fusion-v1.json` and
 `docs/evidence/compact_metric/sop-complementary-visual-fusion-v1.json`.
+
+## Final-block Smooth-AP rank finishing is positive but below the Cars gate
+
+The frozen Cars196 class-disjoint probe updated only UniCOM transformer block
+23 (`12,593,152` of `908,200,448` parameters) for four epochs with the existing
+Smooth-AP rank-finishing loss.  It then refit the identical power-whitening
+128-D head and evaluated the same signed-int8 128-D plus f16 inverse-norm
+representation (`130` bytes/item).  Evaluation labels and metrics were not
+consulted during training.
+
+The authenticated baseline reproduced at `0.860660 / 0.974542` mAP@R /
+Recall@1.  Rank finishing reached `0.865211 / 0.974542`, a `+0.004551` mAP@R
+gain with paired evaluation-class bootstrap 95% interval
+`[+0.003044,+0.006204]` and exactly zero Recall@1 change.  The effect is real,
+but it misses the preregistered `+0.005` minimum practical effect by
+`0.000449`.  The joint gate therefore fails.
+
+This exact final-block method is closed without changing the learning rate,
+epoch count, seed, augmentation, or loss and without CUB replication.  Runtime
+was 2,374.75 seconds, peak CUDA allocation was 16,076,318,720 bytes, and the
+run had no pressure stop.  The rejected 50-MB checkpoint was deleted; only the
+canonical result remains.  Result SHA-256:
+`623523d2c365f08dedacce508e5a930f4ec4a7345538bb1ada12d5902d7585c3`;
+details:
+`docs/evidence/compact_metric/cars-unicom-lastblock-rank-finish-v1.json`.
