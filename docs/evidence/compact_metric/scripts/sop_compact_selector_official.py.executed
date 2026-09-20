@@ -1,0 +1,107 @@
+#!/usr/bin/env python3
+"""Throwaway official-test scorer for the fit-only SOP compact selector."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+from collections import Counter
+from pathlib import Path
+
+import numpy as np
+import torch
+from torch.nn import functional as F
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(allow_abbrev=False)
+    parser.add_argument("--features", type=Path, required=True)
+    parser.add_argument("--features-sha256", required=True)
+    parser.add_argument("--selector", type=Path, required=True)
+    parser.add_argument("--selector-sha256", required=True)
+    parser.add_argument("--checkpoint", type=Path, required=True)
+    parser.add_argument("--checkpoint-sha256", required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args()
+    if args.output.exists():
+        raise ValueError("SOP selector scorer output already exists")
+    for path, expected in (
+        (args.features, args.features_sha256),
+        (args.selector, args.selector_sha256),
+        (args.checkpoint, args.checkpoint_sha256),
+    ):
+        if _sha256(path) != expected:
+            raise ValueError("SOP selector scorer authority differs")
+
+    selector = json.loads(args.selector.read_text())
+    if selector["checkpoint_sha256"] != args.checkpoint_sha256:
+        raise ValueError("SOP selector checkpoint binding differs")
+    state = torch.load(args.checkpoint, map_location="cpu", weights_only=True)
+    if set(state) != {"weight", "bias"}:
+        raise ValueError("SOP selector checkpoint shape differs")
+    weight = state["weight"].float().contiguous()
+    bias = state["bias"].float().contiguous()
+    if weight.shape != (128, 768) or bias.shape != (128,):
+        raise ValueError("SOP selector affine shape differs")
+
+    archive = np.load(args.features, allow_pickle=False)
+    test = torch.from_numpy(np.ascontiguousarray(archive["test_embeddings"])).float()
+    label_tensor = torch.from_numpy(np.ascontiguousarray(archive["test_labels"])).long()
+    if test.shape != (60_502, 768) or label_tensor.shape != (60_502,):
+        raise ValueError("SOP official split differs")
+    labels = tuple(int(value) for value in label_tensor.tolist())
+
+    from probe_sop_relational_linear import score_symmetric
+    from sfora.deterministic_similarity_runtime import configure_deterministic_similarity_runtime
+    from sfora.joint_relational_compaction import pack_int8_unit_embeddings
+
+    configure_deterministic_similarity_runtime(17, cpu_threads=2)
+    device = torch.device("cuda")
+    width = max(Counter(labels).values()) - 1
+
+    def score(codes: torch.Tensor) -> dict[str, float]:
+        raw = score_symmetric(codes, labels, candidate_width=width, device=device)
+        return {"map_at_r": float(raw["map_at_r"]), "recall_at_1": float(raw["r1"])}
+
+    with torch.inference_mode():
+        source = F.normalize(test, dim=1).contiguous()
+        selected = F.normalize(F.linear(source, weight, bias), dim=1).contiguous()
+        source_score = score(source)
+        selected_float = score(selected)
+        selected_packed = score(pack_int8_unit_embeddings(selected))
+
+    result = {
+        "schema": "scratch-sop-compact-selector-official-v1",
+        "claim_eligible": False,
+        "dataset": "stanford-online-products",
+        "split": "official-test-already-observed",
+        "rows": len(test),
+        "dimensions": 128,
+        "storage": "signed-int8-unit-code",
+        "selection": selector["selected"],
+        "selection_fit_only": True,
+        "inputs": {
+            "features_sha256": args.features_sha256,
+            "selector_sha256": args.selector_sha256,
+            "checkpoint_sha256": args.checkpoint_sha256,
+        },
+        "source_float": source_score,
+        "selected_float": selected_float,
+        "selected_int8": selected_packed,
+    }
+    wire = json.dumps(result, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\n"
+    args.output.write_text(wire)
+    print(wire, end="")
+
+
+if __name__ == "__main__":
+    main()

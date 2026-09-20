@@ -23,8 +23,10 @@ Integer label identities are part of the deterministic fold authority:
 relabeling an otherwise identical corpus can change folds near the selection
 threshold. Callers must therefore keep a stable label-to-integer mapping. The
 fit path also performs quadratic hard-negative mining and materializes positive
-rows up to the largest class; the shipped evidence covers at most 25,882 fit
-rows and does not establish memory bounds for classes with thousands of rows.
+rows up to the largest class.  The shipped evidence now covers a 59,551-row
+SOP fit, but that run retained no peak-RSS measurement and therefore does not
+establish a generic memory bound for larger corpora or classes with thousands
+of rows.
 
 ## Development evidence
 
@@ -158,6 +160,28 @@ learned code on mAP@R.  Faiss warned that the 8,054 authorized fit rows are
 below its recommended 9,984 rows for internal 256-centroid training;
 evaluation rows were not leaked into codec fitting to silence that warning.
 
+A supervision-matched control then trained a conventional ProxyAnchor
+768-to-128 affine head (`alpha=32`, `delta=0.1`) from the same PCA
+initialization, on the same 8,054 fit rows, with the same class-balanced batch
+shape and 1,352 optimizer updates.  Its training-only 98-by-128 proxy table is
+discarded at deployment, leaving exactly the same 98,432 deployed affine
+parameters and 128-byte code width as the candidate.  Official results were:
+
+| Affine objective | mAP@R | Recall@1 |
+| --- | ---: | ---: |
+| conventional ProxyAnchor control | `0.825195` | `0.971959` |
+| compact-metric candidate | **`0.825656`** | **`0.972574`** |
+
+The candidate margin was only `+0.000460` mAP@R and `+0.000615` Recall@1.
+A 10,000-draw evaluation-class bootstrap interval for the per-query mAP@R
+difference was `[-0.007154, +0.005814]`; the frozen diagnostic gate of at least
+`+0.005` mAP@R with a positive lower bound therefore failed.  This does not
+invalidate the selector's large gains over PCA and ordinary codecs.  It shows
+that, on Cars196, those gains are explained by supervised affine metric
+learning in general rather than a demonstrated advantage of the candidate's
+positive-coverage hard-negative objective over a standard proxy loss.  Further
+panel expansion is stopped until the objective itself changes.
+
 Cars196 receipt authorities:
 
 - feature archive SHA-256
@@ -174,6 +198,10 @@ Cars196 receipt authorities:
   `17c8b0d166f13f0ba4a10d518818784ada900154bb3749055551af306455854b`;
 - four-bit codec extension driver SHA-256
   `3b7021c2339530d114109a49a68284fe81b0f050b4c6e6a1778aa8d55383c742`;
+- matched ProxyAnchor control receipt SHA-256
+  `923969ac1866bcabfdfa94f2e8726a88c512077436850c50e156ed88a2910a18`;
+- matched ProxyAnchor control driver SHA-256
+  `924ee5493d1cdaf737d25ea8e254d44355c143dd4bcc1736c981e7cdb59ab37e`;
 - fitted checkpoint SHA-256
   `1cd1d633764fd53caefb49f0aa091feb49370455d5e16dfb6c334d7c88a58e9f`;
 - exporter SHA-256
@@ -383,6 +411,83 @@ In-Shop receipt authorities:
 - ProxyAnchor selector driver SHA-256
   `5f0a9b09f136a4d9f62e479d4f247fe8945bcb8d710307724560edb1e29eed0f`.
 
+## Stanford Online Products standard panel result
+
+The unchanged production selector was finally evaluated on the standard SOP
+split using the authenticated UNICOM ViT-L/14 feature archive: 59,551 official
+training rows from 11,318 products and 60,502 official test rows.  The selector
+used only training rows.  All three class-disjoint folds independently favored
+the learned projection over PCA:
+
+| Fold | learned mAP@R | PCA mAP@R | learned Recall@1 | PCA Recall@1 |
+| ---: | ---: | ---: | ---: | ---: |
+| 0 | `0.569801` | `0.510357` | `0.823518` | `0.781138` |
+| 1 | `0.578690` | `0.522414` | `0.823503` | `0.784734` |
+| 2 | `0.578843` | `0.518591` | `0.824335` | `0.784458` |
+
+The pooled fit-only deltas were `+0.058651` mAP@R and `+0.040352`
+Recall@1, so the frozen policy selected the learned projection.  The one-shot
+official-test result was:
+
+| Representation | Stored width | mAP@R | Recall@1 |
+| --- | ---: | ---: | ---: |
+| frozen source float-768 | 3,072 bytes | `0.476360` | `0.745099` |
+| selected learned float-128 | 512 bytes | `0.511589` | `0.770454` |
+| selected learned int8-128 | 128 bytes | **`0.511490`** | **`0.770173`** |
+
+The deployed code gains `+0.035130` mAP@R and `+0.025074` Recall@1 over
+the frozen source while reducing stored payload by 24 times.  Quantization
+costs only `0.000099` mAP@R and `0.000281` Recall@1 relative to the selected
+float head.  It clears the repository's previously recorded `0.496` mAP@R
+compact target.  Repository history shows that the target was first committed
+with the earlier official-test result rather than in a pre-result
+preregistration, so it is a development target, not a confirmatory gate.
+
+The earlier five-seed capacity diagnostic reached `0.487936` mAP@R with heads
+trained under its restricted-versus-direct experimental recipe.  The present
+`0.511490` result is not a rerun of those heads: it is the unchanged production
+selector, whose three training-only folds selected the learned arm before a
+single full refit on all 59,551 official training rows.  The difference is
+therefore attributable to the training and selection path, not evaluator
+noise; both results remain claim-ineligible because this test split was already
+observed.
+
+For published context only, HPL WACV 2022 Table 1 reports `0.4907` mAP@R
+and `0.7697` P@1 for HPL-PA under its standardized BN-Inception concatenated
+512-dimensional protocol.  The selected compact code is `+0.02079` mAP@R
+above that contextual row, but the backbone and protocol differ, so this is
+not a controlled superiority claim.  Conversely, the PFML CVPR 2025
+ResNet-50/512-dimensional target reports `0.829` Recall@1, showing that this
+compact frozen-feature result is not absolute Recall@1 SOTA.  Its supported
+claim is a strong quality-per-byte Pareto point and a generic supervised
+compaction improvement, not dominance over end-to-end DML systems.
+
+SOP had already been observed elsewhere in the project before this selector
+experiment.  The receipt is therefore explicitly claim-ineligible even though
+the selection itself consumed only official training rows.  It is decisive
+standard-panel evidence and closes the missing large-scale selector test; a
+prospective publication claim still requires a frozen replication on a new
+dataset or protocol.
+
+SOP receipt authorities:
+
+- feature archive SHA-256
+  `1ba27b2d6b9db39067aa6facd0ef8aafc303c4527f6feabed859b0512c7d921a`;
+- selector receipt SHA-256
+  `798b9a63d346ef39e38a0151b6a23b19e6f196d563d1b19a55399472f3c2dcab`;
+- official result SHA-256
+  `3e69c1dea1c1393f0884f1eb8b418abd296ac3a45ef403cdace79ee6cde40520`;
+- fitted checkpoint SHA-256
+  `fd00465b9e940367c2a75391f1b173aafd2a53c1aa39ded9c3998f5945cdde23`;
+- learned encoder SHA-256
+  `70d6d2ccc943befec63938b5b9b63caa446bfbfe18a66d776347c2505d80f4e4`;
+- production compact-metric module SHA-256
+  `dc1e11d13d407d91d8270c509cebeeab395aefbfcb40d5f80fa00fea703f3f12`;
+- selector driver SHA-256
+  `4b1d4fa9371096ef05534d56cec20102d0915308907835f8f4335da0b8560c48`;
+- official scorer SHA-256
+  `2c1ad3154e232e2d9d3fe84952591dd34c580912f3fdb586fd2cb6eccd54944e`.
+
 ## Scope
 
 This result validates fit-only model selection for the existing supervised
@@ -393,7 +498,14 @@ comparison with published Oxford-IIIT Pet systems that use the standard
 same-class train/test protocol.  Cars196 adds a standard zero-shot retrieval
 panel result but is not method-specific untouched evidence.  In-Shop adds a
 different-backbone standard identity-disjoint replication, but its exploratory
-receipt remains claim-ineligible.  The fit-only
+receipt remains claim-ineligible.  SOP adds a 59,551-row large-scale fit and
+60,502-row standard test, but is likewise claim-ineligible because its test had
+already informed earlier project decisions.  Across the panel the strongest
+evidence is concentrated in dense-label product, vehicle, breed, and apparel
+domains; earlier RP2K and MET failures bound the method's supported population
+and rule out a universal improvement claim.  Descriptor byte counts above cover
+the stored vector payload only, not shared projection parameters or ANN index
+metadata.  The fit-only
 choice is now exposed as `select_compact_metric_projection`; it returns either
 the learned projection or a full-fit PCA fallback without consuming evaluation
 data or changing the compact encoder and ANN serving path.

@@ -45,13 +45,15 @@ improving on it for retrieval, which is what the projection-capacity diagnostic
 predicted: the 768-dimensional teacher space contains directions the previous
 deployed 128-dimensional frame had discarded.
 
-## The preregistered bar is missed
+## The previously recorded development target is missed
 
-`docs/` records a preregistered confirmatory bar of `>= 0.496` mAP@R for int8
+`docs/` records a development target of `>= 0.496` mAP@R for int8
 128-dimensional codes on this split. The measured `0.487936` **misses it by
 0.008064**. The method is the best this line has produced and it beats its
-teacher, and it still does not clear the bar that was set in advance. Both
-statements are reported together.
+teacher, and it still does not clear that target. Repository history shows the
+number was first committed with this result rather than in a pre-result
+preregistration, so it must not be treated as a confirmatory gate. Both the
+target miss and its development-only status are reported together.
 
 The validation split predicted a `+0.010180` gain of direct over restricted; the
 official split delivered `+0.008656`. The direction held and the magnitude
@@ -89,4 +91,4 @@ byte budgets, and neither has been run.
 The honest gaps, in order: a matched-backbone or matched-byte external control,
 which is what would turn this into a real state-of-the-art comparison; a fresh
 dataset, since In-Shop and CUB have not seen the trained-projection arm; and the
-0.496 bar, which remains open.
+0.496 development target, which remained open at this point.

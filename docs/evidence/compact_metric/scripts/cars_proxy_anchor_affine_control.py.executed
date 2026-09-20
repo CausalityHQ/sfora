@@ -1,0 +1,217 @@
+#!/usr/bin/env python3
+"""Throwaway supervision-matched affine control for the Cars compact metric."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import importlib.util
+import json
+import math
+import sys
+import time
+from pathlib import Path
+
+import numpy as np
+import torch
+
+
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def load_module(path: Path):
+    spec = importlib.util.spec_from_file_location("sfora.compact_metric_control", path)
+    if spec is None or spec.loader is None:
+        raise ImportError(path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def proxy_anchor_loss(
+    embeddings: torch.Tensor,
+    labels: torch.Tensor,
+    proxies: torch.Tensor,
+    *,
+    alpha: float = 32.0,
+    delta: float = 0.1,
+) -> torch.Tensor:
+    similarities = torch.nn.functional.normalize(embeddings, dim=1) @ torch.nn.functional.normalize(
+        proxies, dim=1
+    ).T
+    positive = labels[:, None].eq(torch.arange(len(proxies), device=labels.device)[None, :])
+    positive_logits = (-alpha * (similarities - delta)).masked_fill(~positive, -1.0e9)
+    negative_logits = (alpha * (similarities + delta)).masked_fill(positive, -1.0e9)
+    return torch.nn.functional.softplus(torch.logsumexp(positive_logits, dim=0)).mean() + (
+        torch.nn.functional.softplus(torch.logsumexp(negative_logits, dim=0)).mean()
+    )
+
+
+def class_bootstrap_lower_bound(
+    deltas: np.ndarray, labels: np.ndarray, *, samples: int = 10_000, seed: int = 17
+) -> tuple[float, float, float]:
+    classes = np.unique(labels)
+    class_means = np.asarray([deltas[labels == value].mean() for value in classes])
+    generator = np.random.default_rng(seed)
+    draws = np.empty(samples, dtype=np.float64)
+    for start in range(0, samples, 1_000):
+        stop = min(start + 1_000, samples)
+        chosen = generator.integers(0, len(classes), size=(stop - start, len(classes)))
+        draws[start:stop] = class_means[chosen].mean(axis=1)
+    return tuple(float(value) for value in np.quantile(draws, [0.025, 0.5, 0.975]))
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(allow_abbrev=False)
+    parser.add_argument("--features", type=Path, required=True)
+    parser.add_argument("--features-sha256", required=True)
+    parser.add_argument("--candidate-module", type=Path, required=True)
+    parser.add_argument("--candidate-module-sha256", required=True)
+    parser.add_argument("--candidate-checkpoint", type=Path, required=True)
+    parser.add_argument("--candidate-checkpoint-sha256", required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args()
+    if (
+        args.output.exists()
+        or sha256(args.features) != args.features_sha256
+        or sha256(args.candidate_module) != args.candidate_module_sha256
+        or sha256(args.candidate_checkpoint) != args.candidate_checkpoint_sha256
+    ):
+        raise ValueError("control authority differs")
+
+    candidate = load_module(args.candidate_module)
+    from sfora.deterministic_similarity_runtime import configure_deterministic_similarity_runtime
+
+    configure_deterministic_similarity_runtime(17, cpu_threads=2)
+    archive = np.load(args.features, allow_pickle=False)
+    fit = torch.from_numpy(np.ascontiguousarray(archive["fit_embeddings"])).float()
+    fit_labels = torch.from_numpy(np.ascontiguousarray(archive["fit_labels"])).long()
+    evaluation = torch.from_numpy(np.ascontiguousarray(archive["evaluation_embeddings"])).float()
+    evaluation_labels = torch.from_numpy(
+        np.ascontiguousarray(archive["evaluation_labels"])
+    ).long()
+    unique = torch.unique(fit_labels, sorted=True)
+    if not torch.equal(unique, torch.arange(len(unique), dtype=torch.int64)):
+        raise ValueError("control labels differ")
+
+    config = candidate.CompactMetricConfig()
+    normalized = torch.nn.functional.normalize(fit, dim=1).contiguous()
+    pca = candidate.fit_centered_pca(normalized, dimensions=config.output_dimensions)
+    device = torch.device("cuda")
+    model = torch.nn.Linear(768, 128, device=device, dtype=torch.float32)
+    with torch.no_grad():
+        model.weight.copy_(pca.components.to(device))
+        model.bias.copy_((-(pca.components.double() @ pca.mean.double())).float().to(device))
+    bank = normalized.to(device)
+    labels_gpu = fit_labels.to(device)
+    with torch.no_grad():
+        initial = torch.nn.functional.normalize(model(bank), dim=1)
+        proxy_init = torch.stack([initial[labels_gpu == value].mean(dim=0) for value in unique.to(device)])
+        proxies = torch.nn.Parameter(torch.nn.functional.normalize(proxy_init, dim=1))
+
+    classes_per_update = min(config.classes_per_update, len(unique))
+    updates_per_cycle = math.ceil(
+        config.anchor_epochs_per_cycle
+        * len(fit)
+        / (classes_per_update * config.rows_per_class)
+    )
+    schedule = candidate.class_balanced_anchor_schedule(
+        fit_labels.numpy(),
+        seed=config.seed,
+        updates=updates_per_cycle,
+        classes_per_update=classes_per_update,
+        rows_per_class=config.rows_per_class,
+    )
+    optimizer = torch.optim.Adam(
+        list(model.parameters()) + [proxies],
+        lr=config.learning_rate * math.sqrt(config.output_dimensions / fit.shape[1]),
+    )
+    started = time.monotonic()
+    losses: list[float] = []
+    for _cycle in range(config.cycles):
+        for indexes in schedule.row_indexes:
+            rows = torch.from_numpy(indexes.copy()).to(device)
+            projected = model(bank[rows])
+            loss = proxy_anchor_loss(projected, labels_gpu[rows], proxies)
+            optimizer.zero_grad(set_to_none=True)
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(list(model.parameters()) + [proxies], config.gradient_clip)
+            optimizer.step()
+            losses.append(float(loss.detach()))
+
+    control = candidate.CompactMetricEncoder(
+        weight=model.weight.detach().cpu().contiguous(),
+        bias=model.bias.detach().cpu().contiguous(),
+    )
+    checkpoint = torch.load(args.candidate_checkpoint, map_location="cpu", weights_only=True)
+    learned = candidate.CompactMetricEncoder(
+        weight=checkpoint["weight"].float().contiguous(),
+        bias=checkpoint["bias"].float().contiguous(),
+    )
+    control_codes = control.encode(evaluation.contiguous())
+    learned_codes = learned.encode(evaluation.contiguous())
+    control_score = candidate._score_compact_metric_codes(
+        control_codes, evaluation_labels, device=device
+    )
+    learned_score = candidate._score_compact_metric_codes(
+        learned_codes, evaluation_labels, device=device
+    )
+    per_query_delta = np.asarray(learned_score[2]) - np.asarray(control_score[2])
+    interval = class_bootstrap_lower_bound(per_query_delta, evaluation_labels.numpy())
+    result = {
+        "schema": "scratch-cars-affine-proxy-anchor-control-v1",
+        "claim_eligible": False,
+        "authorities": {
+            "features_sha256": args.features_sha256,
+            "candidate_module_sha256": args.candidate_module_sha256,
+            "candidate_checkpoint_sha256": args.candidate_checkpoint_sha256,
+        },
+        "control": {
+            "name": "proxy_anchor_affine_768_to_128",
+            "alpha": 32.0,
+            "delta": 0.1,
+            "deployed_parameter_count": int(sum(value.numel() for value in model.parameters())),
+            "training_proxy_parameter_count": int(proxies.numel()),
+            "total_updates": len(losses),
+            "first_loss": losses[0],
+            "last_loss": losses[-1],
+            "map_at_r": control_score[0],
+            "recall_at_1": control_score[1],
+            "encoder_sha256": control.sha256,
+        },
+        "candidate": {
+            "map_at_r": learned_score[0],
+            "recall_at_1": learned_score[1],
+            "encoder_sha256": learned.sha256,
+        },
+        "candidate_minus_control": {
+            "map_at_r": learned_score[0] - control_score[0],
+            "recall_at_1": learned_score[1] - control_score[1],
+            "class_bootstrap_map_delta_95": {
+                "lower": interval[0],
+                "median": interval[1],
+                "upper": interval[2],
+            },
+        },
+        "decision": {
+            "minimum_map_gain": 0.005,
+            "passed": bool(
+                learned_score[0] - control_score[0] >= 0.005 and interval[0] > 0.0
+            ),
+        },
+        "elapsed_seconds": time.monotonic() - started,
+    }
+    args.output.write_text(
+        json.dumps(result, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\n"
+    )
+    print(json.dumps(result, indent=2, sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()

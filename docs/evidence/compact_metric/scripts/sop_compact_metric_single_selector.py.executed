@@ -1,0 +1,92 @@
+#!/usr/bin/env python3
+"""Run one throwaway compact-metric fit-only selector candidate."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import importlib.util
+import json
+import sys
+import time
+from dataclasses import asdict
+from pathlib import Path
+
+import numpy as np
+import torch
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _load(name: str, path: Path):
+    specification = importlib.util.spec_from_file_location(name, path)
+    if specification is None or specification.loader is None:
+        raise ImportError(path)
+    module = importlib.util.module_from_spec(specification)
+    sys.modules[name] = module
+    specification.loader.exec_module(module)
+    return module
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(allow_abbrev=False)
+    parser.add_argument("--features", type=Path, required=True)
+    parser.add_argument("--features-sha256", required=True)
+    parser.add_argument("--candidate-module", type=Path, required=True)
+    parser.add_argument("--candidate-module-sha256", required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--checkpoint", type=Path, required=True)
+    args = parser.parse_args()
+    if (
+        args.output.exists()
+        or args.checkpoint.exists()
+        or _sha256(args.features) != args.features_sha256
+        or _sha256(args.candidate_module) != args.candidate_module_sha256
+    ):
+        raise ValueError("single selector authority differs")
+
+    candidate = _load("sfora.compact_metric_candidate", args.candidate_module)
+    from sfora.deterministic_similarity_runtime import configure_deterministic_similarity_runtime
+
+    configure_deterministic_similarity_runtime(17, cpu_threads=2)
+    archive = np.load(args.features, allow_pickle=False)
+    train = torch.from_numpy(np.ascontiguousarray(archive["train_embeddings"])).float()
+    universe = tuple(sorted(set(str(value) for value in archive["train_labels"])))
+    mapping = {value: index for index, value in enumerate(universe)}
+    labels = torch.tensor(
+        [mapping[str(value)] for value in archive["train_labels"]], dtype=torch.int64
+    )
+    started = time.monotonic()
+    selection = candidate.select_compact_metric_projection(
+        train.contiguous(), labels.contiguous(), device=torch.device("cuda")
+    )
+    torch.save(
+        {"weight": selection.encoder.weight, "bias": selection.encoder.bias}, args.checkpoint
+    )
+    result = {
+        "schema": "scratch-compact-metric-single-selector-v1",
+        "claim_eligible": False,
+        "features_sha256": args.features_sha256,
+        "candidate_module_sha256": args.candidate_module_sha256,
+        "selected": selection.selected,
+        "map_at_r_delta": selection.map_at_r_delta,
+        "recall_at_1_delta": selection.recall_at_1_delta,
+        "folds": [asdict(fold) for fold in selection.folds],
+        "encoder_sha256": selection.encoder.sha256,
+        "checkpoint_sha256": _sha256(args.checkpoint),
+        "elapsed_seconds": time.monotonic() - started,
+    }
+    args.output.write_text(
+        json.dumps(result, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\n"
+    )
+    print(json.dumps(result, indent=2, sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()

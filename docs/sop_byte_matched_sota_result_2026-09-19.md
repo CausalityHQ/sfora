@@ -63,7 +63,9 @@ axes it was asked about: quality per byte, and latency per query.
   by this project; the receipt records
   `split_status: already-observed-development-surface` and
   `claim_eligible: false`.
-- **The preregistered bar of 0.496 mAP@R is still missed**, by 0.008033.
+- **The previously recorded development target of 0.496 mAP@R is still
+  missed**, by 0.008033. Repository history does not support calling this a
+  preregistered confirmatory bar.
 - **This is not a comparison against published deep-metric-learning methods.**
   It compares compression and projection methods over one fixed teacher. A
   method that trains its own backbone could land anywhere relative to this.
