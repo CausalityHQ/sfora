@@ -308,3 +308,35 @@ wall, maximum host RSS 2,500,984 KiB, peak CUDA allocation 404,395,520 bytes,
 and zero swaps.  Receipt SHA-256:
 `fb0a1a759d6c91dcd38f6a6cd8dfd15363b8a2087bda712dfd9777debac964fd`;
 details: `docs/evidence/compact_metric/cars-compact-residual-head-v1.json`.
+
+## UniCOM's pre-projection global vector does not recover the compact Cars gap
+
+The frozen information gate re-encoded all 16,185 Cars196 images once with the
+authenticated UniCOM ViT-L/14@336 checkpoint.  The model does not use a CLS
+token: it flattens 576 normalized patch tokens into a learned 1,024-D global
+vector, then applies its final `1,024 -> 768` projection.  The experiment
+compared the existing fixed power-whitening compact method on that 1,024-D
+pre-projection vector against both the authenticated final 768-D output and a
+deterministic 1,024-D nonlinear expansion of the final output that contains no
+new image information.  Every arm produced the same signed-int8 128-D plus
+f16-inverse-norm 130-byte wire representation.
+
+The final-output incumbent reproduced at `0.860662 / 0.974542` mAP@R /
+Recall@1.  The derived-width control reached `0.858203 / 0.975157`.  The
+pre-projection candidate reached `0.859131 / 0.974665`; relative to the
+strongest control its mAP@R delta was `-0.001531`, with paired
+evaluation-class bootstrap 95% interval `[-0.003298, -0.000012]`, and its
+Recall@1 delta was only `+0.000123`.  The interval excludes zero in the wrong
+direction, so the fixed `+0.005` joint gate fails decisively.
+
+This closes the exact pre-projection readout family on Cars without another
+layer, hyperparameter change, or unseen-dataset run.  It does not reject all
+intermediate token representations, but it shows that the information removed
+by UniCOM's final 1,024-to-768 projection is not the missing quality source
+under the strongest compact method.  Full-cache reproduction cosine was at
+least `0.9999995`; the one-shot run took 6:04.49 wall, used 10,156,848 KiB peak
+host RSS, and performed no swapping.  Feature-cache SHA-256:
+`a5e152d06be53fd968a74d5628bea95e8f77b6ea36f7dd2f57bd963c769f6ab1`;
+result SHA-256:
+`ffe324797a3693aa62cf09544de4332409a1092fce19c42c96c8365d9eaef9a7`;
+details: `docs/evidence/compact_metric/cars-unicom-preprojection-v1.json`.
