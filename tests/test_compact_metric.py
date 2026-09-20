@@ -12,11 +12,13 @@ from sfora.compact_metric import (
     CompactMetricModule,
     CompactMetricSelectionFold,
     CompactMetricSelectionResult,
+    PowerWhiteningFitResult,
     WithinClassWhiteningFitResult,
     _positive_rows,
     _score_compact_metric_codes,
     choose_compact_metric_projection,
     fit_compact_metric_projection,
+    fit_power_whitening_projection,
     fit_within_class_whitening_projection,
     select_compact_metric_projection,
 )
@@ -41,11 +43,70 @@ def test_compact_metric_api_is_public() -> None:
     assert sfora.CompactMetricModule is CompactMetricModule
     assert sfora.CompactMetricSelectionFold is CompactMetricSelectionFold
     assert sfora.CompactMetricSelectionResult is CompactMetricSelectionResult
+    assert sfora.PowerWhiteningFitResult is PowerWhiteningFitResult
     assert sfora.WithinClassWhiteningFitResult is WithinClassWhiteningFitResult
     assert sfora.choose_compact_metric_projection is choose_compact_metric_projection
     assert sfora.fit_compact_metric_projection is fit_compact_metric_projection
+    assert sfora.fit_power_whitening_projection is fit_power_whitening_projection
     assert sfora.fit_within_class_whitening_projection is fit_within_class_whitening_projection
     assert sfora.select_compact_metric_projection is select_compact_metric_projection
+
+
+def test_power_whitening_projection_is_deterministic_and_explicit() -> None:
+    generator = torch.Generator().manual_seed(809)
+    centers = torch.randn(8, 6, generator=generator)
+    scales = torch.tensor([0.6, 0.3, 0.15, 0.08, 0.04, 0.02])
+    embeddings = torch.cat(
+        [center + torch.randn(20, 6, generator=generator) * scales for center in centers]
+    ).float().contiguous()
+    labels = torch.arange(8, dtype=torch.int64).repeat_interleave(20).contiguous()
+    original = embeddings.clone()
+
+    first = fit_power_whitening_projection(
+        embeddings,
+        labels,
+        alpha=0.75,
+        regularization=1.0,
+        output_dimensions=4,
+    )
+    second = fit_power_whitening_projection(
+        embeddings.clone(),
+        labels.clone(),
+        alpha=0.75,
+        regularization=1.0,
+        output_dimensions=4,
+    )
+
+    assert isinstance(first, PowerWhiteningFitResult)
+    assert first.alpha == 0.75
+    assert first.regularization == 1.0
+    assert first.output_dimensions == 4
+    assert first.encoder.sha256 == second.encoder.sha256
+    torch.testing.assert_close(first.encoder.weight, second.encoder.weight, atol=0, rtol=0)
+    torch.testing.assert_close(first.encoder.bias, second.encoder.bias, atol=0, rtol=0)
+    torch.testing.assert_close(embeddings, original, atol=0, rtol=0)
+    assert first.within_minimum_eigenvalue > 0.0
+    assert first.within_maximum_eigenvalue >= first.within_minimum_eigenvalue
+    assert first.encoder.encode(embeddings).shape == (160, 4)
+
+
+@pytest.mark.parametrize(
+    ("alpha", "regularization"),
+    [(-0.25, 0.0), (1.25, 0.0), (0.5, -0.01), (0.5, float("nan"))],
+)
+def test_power_whitening_projection_rejects_unregistered_geometry(
+    alpha: float, regularization: float
+) -> None:
+    embeddings, labels = _fixture()
+
+    with pytest.raises(ValueError, match="power whitening authority differs"):
+        fit_power_whitening_projection(
+            embeddings,
+            labels,
+            alpha=alpha,
+            regularization=regularization,
+            output_dimensions=3,
+        )
 
 
 def test_within_class_whitening_is_deterministic_and_does_not_mutate_inputs() -> None:

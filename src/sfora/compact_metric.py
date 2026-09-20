@@ -209,6 +209,18 @@ class WithinClassWhiteningFitResult:
 
 
 @dataclass(frozen=True, slots=True)
+class PowerWhiteningFitResult:
+    """Explicit covariance-power projection and its fit-only authority."""
+
+    encoder: CompactMetricEncoder
+    alpha: float
+    regularization: float
+    output_dimensions: int
+    within_minimum_eigenvalue: float
+    within_maximum_eigenvalue: float
+
+
+@dataclass(frozen=True, slots=True)
 class CompactMetricSelectionFold:
     """One unseen-class fold from fit-only compact metric selection."""
 
@@ -664,6 +676,96 @@ def fit_within_class_whitening_projection(
     return WithinClassWhiteningFitResult(
         encoder=encoder,
         shrinkage=float(estimator.shrinkage_),
+        within_minimum_eigenvalue=float(eigenvalues[0]),
+        within_maximum_eigenvalue=float(eigenvalues[-1]),
+    )
+
+
+def fit_power_whitening_projection(
+    embeddings: torch.Tensor,
+    labels: torch.Tensor,
+    *,
+    alpha: float,
+    regularization: float,
+    output_dimensions: int = 128,
+) -> PowerWhiteningFitResult:
+    """Fit one explicit member of the replicated covariance-power family."""
+
+    if (
+        type(embeddings) is not torch.Tensor
+        or embeddings.device.type != "cpu"
+        or embeddings.dtype != torch.float32
+        or embeddings.ndim != 2
+        or embeddings.shape[0] < 3
+        or embeddings.shape[1] < 2
+        or not embeddings.is_contiguous()
+        or not bool(torch.isfinite(embeddings).all())
+        or bool((torch.linalg.vector_norm(embeddings, dim=1) < 1e-12).any())
+        or type(labels) is not torch.Tensor
+        or labels.device.type != "cpu"
+        or labels.dtype != torch.int64
+        or labels.shape != (embeddings.shape[0],)
+        or not labels.is_contiguous()
+        or bool((labels < 0).any())
+        or len(torch.unique(labels)) < 2
+        or type(alpha) is not float
+        or not math.isfinite(alpha)
+        or not 0.0 <= alpha <= 1.0
+        or type(regularization) is not float
+        or not math.isfinite(regularization)
+        or regularization < 0.0
+        or type(output_dimensions) is not int
+        or not 2 <= output_dimensions <= min(embeddings.shape[0] - 1, embeddings.shape[1])
+    ):
+        raise ValueError("power whitening authority differs")
+
+    normalized = torch.nn.functional.normalize(embeddings.detach().double(), dim=1).numpy()
+    label_array = labels.numpy()
+    mean = normalized.mean(axis=0)
+    centered = normalized - mean
+    residuals = np.empty_like(normalized)
+    for label in np.unique(label_array):
+        mask = label_array == label
+        residuals[mask] = normalized[mask] - normalized[mask].mean(axis=0)
+    within = residuals.T @ residuals / len(residuals)
+    eigenvalues, eigenvectors = np.linalg.eigh(within)
+    if eigenvalues[0] <= 0.0 or not np.isfinite(eigenvalues).all():
+        raise ValueError("power whitening covariance differs")
+    scale = float(np.trace(within) / within.shape[0])
+    adjusted = eigenvalues + regularization * scale
+    powers = np.power(adjusted, -alpha)
+    if not np.isfinite(powers).all():
+        raise ValueError("power whitening covariance differs")
+    transform = (eigenvectors * powers) @ eigenvectors.T
+    transformed = centered @ transform
+    total = transformed.T @ transformed / len(transformed)
+    variance, directions = np.linalg.eigh(total)
+    order = np.argsort(variance, kind="stable")[::-1]
+    retained_boundary = min(output_dimensions + 1, len(variance))
+    boundary_values = variance[order[:retained_boundary]]
+    tolerance = max(normalized.shape) * np.finfo(np.float64).eps * max(float(variance[-1]), 1.0)
+    if (
+        not np.isfinite(variance).all()
+        or boundary_values[output_dimensions - 1] <= tolerance
+        or any(
+            abs(float(boundary_values[index] - boundary_values[index + 1])) <= tolerance
+            for index in range(len(boundary_values) - 1)
+        )
+    ):
+        raise ValueError("power whitening projection differs")
+    selected = directions[:, order[:output_dimensions]].copy()
+    for direction in selected.T:
+        pivot = int(np.argmax(np.abs(direction)))
+        if direction[pivot] < 0.0:
+            direction *= -1.0
+    weight64 = selected.T @ transform
+    weight = np.ascontiguousarray(weight64.astype(np.float32))
+    bias = np.ascontiguousarray((-(weight64 @ mean)).astype(np.float32))
+    return PowerWhiteningFitResult(
+        encoder=CompactMetricEncoder(weight=torch.from_numpy(weight), bias=torch.from_numpy(bias)),
+        alpha=alpha,
+        regularization=regularization,
+        output_dimensions=output_dimensions,
         within_minimum_eigenvalue=float(eigenvalues[0]),
         within_maximum_eigenvalue=float(eigenvalues[-1]),
     )
