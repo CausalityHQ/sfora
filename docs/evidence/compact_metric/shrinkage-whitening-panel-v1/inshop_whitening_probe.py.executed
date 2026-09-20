@@ -1,0 +1,249 @@
+#!/usr/bin/env python3
+"""Claim-ineligible In-Shop whitening mechanism probe on frozen embeddings."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import importlib.util
+import json
+import math
+import sys
+import time
+from collections import Counter
+from pathlib import Path
+from types import SimpleNamespace
+
+import numpy as np
+import torch
+from torch.nn import functional as F
+
+
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def load_module(name: str, path: Path):
+    spec = importlib.util.spec_from_file_location(name, path)
+    if spec is None or spec.loader is None:
+        raise ImportError(path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def labels(values: np.ndarray, universe: tuple[str, ...]) -> torch.Tensor:
+    mapping = {value: index for index, value in enumerate(universe)}
+    return torch.tensor([mapping[str(value)] for value in values], dtype=torch.int64)
+
+
+def score(
+    query: torch.Tensor,
+    gallery: torch.Tensor,
+    query_labels: torch.Tensor,
+    gallery_labels: torch.Tensor,
+    *,
+    candidate,
+    device: torch.device,
+) -> tuple[float, float]:
+    query_values = F.normalize(query.float(), dim=1).to(device)
+    gallery_values = F.normalize(gallery.float(), dim=1).to(device)
+    gallery_label_values = tuple(int(value) for value in gallery_labels.tolist())
+    counts = Counter(gallery_label_values)
+    width = max(counts.values())
+    rankings = []
+    with torch.inference_mode():
+        for start in range(0, len(query_values), 256):
+            similarities = query_values[start : start + 256] @ gallery_values.T
+            rankings.append(
+                candidate._compact_metric_lexicographic_topk(similarities, width).cpu()
+            )
+    average_precision = []
+    recall_at_1 = []
+    for ranking, label in zip(torch.cat(rankings).tolist(), query_labels.tolist(), strict=True):
+        positives = counts[int(label)]
+        found = 0
+        terms = []
+        for rank, row in enumerate(ranking[:positives], start=1):
+            if gallery_label_values[row] == label:
+                found += 1
+                terms.append(found / rank)
+        average_precision.append(math.fsum(terms) / positives)
+        recall_at_1.append(float(gallery_label_values[ranking[0]] == label))
+    return math.fsum(average_precision) / len(average_precision), math.fsum(recall_at_1) / len(
+        recall_at_1
+    )
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(allow_abbrev=False)
+    parser.add_argument("--features", type=Path, required=True)
+    parser.add_argument("--features-sha256", required=True)
+    parser.add_argument("--candidate-module", type=Path, required=True)
+    parser.add_argument("--candidate-module-sha256", required=True)
+    parser.add_argument("--core-module", type=Path, required=True)
+    parser.add_argument("--core-module-sha256", required=True)
+    parser.add_argument("--candidate-checkpoint", type=Path, required=True)
+    parser.add_argument("--candidate-checkpoint-sha256", required=True)
+    parser.add_argument("--selector-receipt", type=Path, required=True)
+    parser.add_argument("--selector-receipt-sha256", required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args()
+    if args.output.exists() or any(
+        sha256(path) != expected
+        for path, expected in (
+            (args.features, args.features_sha256),
+            (args.candidate_module, args.candidate_module_sha256),
+            (args.core_module, args.core_module_sha256),
+            (args.candidate_checkpoint, args.candidate_checkpoint_sha256),
+            (args.selector_receipt, args.selector_receipt_sha256),
+        )
+    ):
+        raise ValueError("In-Shop whitening authority differs")
+
+    candidate = load_module("sfora.compact_metric_inshop_whitening", args.candidate_module)
+    core = load_module("sfora.scratch_whitening_core", args.core_module)
+    from sfora.deterministic_similarity_runtime import configure_deterministic_similarity_runtime
+
+    configure_deterministic_similarity_runtime(17, cpu_threads=2)
+    archive = np.load(args.features, allow_pickle=False)
+    train = np.ascontiguousarray(archive["train_embeddings"], dtype=np.float32)
+    train_universe = tuple(sorted(set(str(value) for value in archive["train_labels"])))
+    evaluation_universe = tuple(sorted(set(str(value) for value in archive["query_labels"])))
+    if set(train_universe).intersection(evaluation_universe):
+        raise ValueError("In-Shop whitening class authority differs")
+    train_labels = labels(archive["train_labels"], train_universe)
+    query_labels = labels(archive["query_labels"], evaluation_universe)
+    gallery_labels = labels(archive["gallery_labels"], evaluation_universe)
+    query = torch.from_numpy(np.ascontiguousarray(archive["query_embeddings"], dtype=np.float32))
+    gallery = torch.from_numpy(
+        np.ascontiguousarray(archive["gallery_embeddings"], dtype=np.float32)
+    )
+    device = torch.device("cuda")
+    started = time.monotonic()
+    lda, whitening, whitening_mean, fit_evidence = core.fit_shrinkage_lda(
+        train, train_labels.numpy(), candidate
+    )
+    original_pca = candidate.fit_centered_pca
+    candidate.fit_centered_pca = lambda _values, *, dimensions: SimpleNamespace(
+        components=whitening.weight,
+        mean=torch.from_numpy(np.ascontiguousarray(whitening_mean)),
+    )
+    try:
+        whitening_initialized = candidate.fit_compact_metric_projection(
+            torch.from_numpy(train), train_labels, device=device
+        ).encoder
+    finally:
+        candidate.fit_centered_pca = original_pca
+    checkpoint = torch.load(args.candidate_checkpoint, map_location="cpu", weights_only=True)
+    learned = candidate.CompactMetricEncoder(
+        weight=checkpoint["weight"].float().contiguous(),
+        bias=checkpoint["bias"].float().contiguous(),
+    )
+
+    arms = {}
+    for name, encoder in (
+        ("within_class_whitened_pca", whitening),
+        ("lda_hybrid", lda),
+        ("whitening_initialized_learned", whitening_initialized),
+        ("pca_initialized_learned", learned),
+    ):
+        arms[name] = score(
+            encoder.encode(query),
+            encoder.encode(gallery),
+            query_labels,
+            gallery_labels,
+            candidate=candidate,
+            device=device,
+        )
+    selector = json.loads(args.selector_receipt.read_text())
+    receipt_folds = {int(row["fold"]): row for row in selector["selector"]["folds"]}
+    train_array = train_labels.numpy()
+    label_values, label_counts = np.unique(train_array, return_counts=True)
+    eligible_values = label_values[label_counts >= 2]
+    eligible = np.isin(train_array, eligible_values)
+    fold_rows = []
+    for fold in range(3):
+        fold_training = np.asarray(
+            [candidate._compact_metric_fold(int(value)) != fold for value in train_array]
+        )
+        training = eligible & fold_training
+        validation = eligible & ~fold_training
+        receipt = receipt_folds[fold]
+        if (
+            int(training.sum()) != receipt["training_row_count"]
+            or int(validation.sum()) != receipt["validation_row_count"]
+        ):
+            raise ValueError("In-Shop whitening fold authority differs")
+        _fold_lda, fold_whitening, _fold_mean, _fold_evidence = core.fit_shrinkage_lda(
+            train[training], train_array[training], candidate
+        )
+        fold_score = candidate._score_compact_metric_codes(
+            fold_whitening.encode(torch.from_numpy(train[validation])),
+            torch.from_numpy(train_array[validation]),
+            device=device,
+        )
+        fold_rows.append(
+            {
+                "fold": fold,
+                "validation_rows": int(validation.sum()),
+                "whitening_map_at_r": fold_score[0],
+                "whitening_recall_at_1": fold_score[1],
+                "learned_map_at_r": receipt["learned_map_at_r"],
+                "learned_recall_at_1": receipt["learned_recall_at_1"],
+                "pca_map_at_r": receipt["pca_map_at_r"],
+                "pca_recall_at_1": receipt["pca_recall_at_1"],
+            }
+        )
+    fold_total = sum(row["validation_rows"] for row in fold_rows)
+    fit_only = {
+        "folds": fold_rows,
+        **{
+            key: sum(row["validation_rows"] * row[key] for row in fold_rows) / fold_total
+            for key in (
+                "whitening_map_at_r",
+                "whitening_recall_at_1",
+                "learned_map_at_r",
+                "learned_recall_at_1",
+                "pca_map_at_r",
+                "pca_recall_at_1",
+            )
+        },
+    }
+    result = {
+        "schema": "scratch-inshop-whitening-mechanism-v1",
+        "claim_eligible": False,
+        "authorities": {
+            "features_sha256": args.features_sha256,
+            "candidate_module_sha256": args.candidate_module_sha256,
+            "core_module_sha256": args.core_module_sha256,
+            "candidate_checkpoint_sha256": args.candidate_checkpoint_sha256,
+            "selector_receipt_sha256": args.selector_receipt_sha256,
+        },
+        "fit_evidence": fit_evidence,
+        "fit_only": fit_only,
+        "arms": {
+            name: {"map_at_r": value[0], "recall_at_1": value[1]}
+            for name, value in arms.items()
+        },
+        "encoder_sha256": {
+            "within_class_whitened_pca": whitening.sha256,
+            "lda_hybrid": lda.sha256,
+            "whitening_initialized_learned": whitening_initialized.sha256,
+            "pca_initialized_learned": learned.sha256,
+        },
+        "elapsed_seconds": time.monotonic() - started,
+    }
+    args.output.write_text(
+        json.dumps(result, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\n"
+    )
+    print(json.dumps(result, indent=2, sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()

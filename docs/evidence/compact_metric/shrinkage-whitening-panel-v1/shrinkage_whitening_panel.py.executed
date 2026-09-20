@@ -1,0 +1,434 @@
+#!/usr/bin/env python3
+"""Closed-form shrinkage-LDA control for class-disjoint compact affine heads."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import importlib.util
+import json
+import sys
+import time
+from pathlib import Path
+from types import SimpleNamespace
+
+import numpy as np
+import torch
+from sklearn.covariance import LedoitWolf
+
+
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def load_module(path: Path):
+    spec = importlib.util.spec_from_file_location("sfora.compact_metric_lda", path)
+    if spec is None or spec.loader is None:
+        raise ImportError(path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def class_bootstrap(deltas: np.ndarray, labels: np.ndarray) -> tuple[float, float, float]:
+    values = np.unique(labels)
+    class_sums = np.asarray([deltas[labels == value].sum() for value in values])
+    class_sizes = np.asarray([(labels == value).sum() for value in values])
+    generator = np.random.default_rng(17)
+    draws = np.empty(10_000, dtype=np.float64)
+    for start in range(0, len(draws), 1_000):
+        stop = min(start + 1_000, len(draws))
+        indexes = generator.integers(0, len(values), size=(stop - start, len(values)))
+        draws[start:stop] = class_sums[indexes].sum(axis=1) / class_sizes[indexes].sum(axis=1)
+    return tuple(float(value) for value in np.quantile(draws, [0.025, 0.5, 0.975]))
+
+
+def fit_shrinkage_lda(
+    embeddings: np.ndarray, labels: np.ndarray, candidate
+) -> tuple[object, object, np.ndarray, dict[str, float | int]]:
+    fit = np.array(embeddings, dtype=np.float64, order="C", copy=True)
+    if (
+        fit.ndim != 2
+        or fit.shape[0] < 3
+        or fit.shape[1] < 128
+        or labels.shape != (fit.shape[0],)
+        or not np.isfinite(fit).all()
+    ):
+        raise ValueError("shrinkage LDA input authority differs")
+    norms = np.linalg.norm(fit, axis=1, keepdims=True)
+    if not (norms > 0.0).all():
+        raise ValueError("shrinkage LDA input authority differs")
+    fit /= norms
+    values = np.unique(labels)
+    mean = fit.mean(axis=0)
+    class_means = np.stack([fit[labels == value].mean(axis=0) for value in values])
+    residuals = np.concatenate(
+        [fit[labels == value] - class_means[index] for index, value in enumerate(values)]
+    )
+    estimator = LedoitWolf(assume_centered=True, store_precision=False).fit(residuals)
+    within = estimator.covariance_
+    eigenvalues, eigenvectors = np.linalg.eigh(within)
+    if eigenvalues[0] <= 0.0:
+        raise ValueError("shrinkage LDA covariance differs")
+    inverse_root = (eigenvectors / np.sqrt(eigenvalues)) @ eigenvectors.T
+    centered_means = class_means - class_means.mean(axis=0)
+    between = centered_means.T @ centered_means / len(centered_means)
+    white_between = inverse_root @ between @ inverse_root
+    discriminant_values, discriminant_vectors = np.linalg.eigh(white_between)
+    order = np.argsort(discriminant_values, kind="stable")[::-1]
+    discriminant_vectors = discriminant_vectors[:, order]
+    rank_tolerance = max(discriminant_values[-1], 0.0) * np.finfo(np.float64).eps * fit.shape[1]
+    numerical_rank = int((discriminant_values > rank_tolerance).sum())
+    supervised_rank = min(len(values) - 1, numerical_rank, 128)
+    if supervised_rank < 1:
+        raise ValueError("shrinkage LDA between-class rank differs")
+    supervised = discriminant_vectors[:, :supervised_rank]
+    null = discriminant_vectors[:, supervised_rank:]
+    centered = fit - mean
+    total_white = (centered @ inverse_root).T @ (centered @ inverse_root) / len(centered)
+    whitening_values, whitening_vectors = np.linalg.eigh(total_white)
+    whitening_order = np.argsort(whitening_values, kind="stable")[::-1]
+    whitening_directions = whitening_vectors[:, whitening_order[:128]]
+    null_total = null.T @ total_white @ null
+    residual_values, residual_vectors = np.linalg.eigh(null_total)
+    residual_order = np.argsort(residual_values, kind="stable")[::-1]
+    fill_dimensions = 128 - supervised_rank
+    fill = null @ residual_vectors[:, residual_order[:fill_dimensions]]
+    directions = np.concatenate([supervised, fill], axis=1)
+    selected_values = discriminant_values[order[:supervised_rank]]
+    residual = white_between @ supervised - supervised * selected_values
+    relative_eigen_residual = float(
+        np.linalg.norm(residual)
+        / max(np.linalg.norm(white_between @ supervised), np.finfo(np.float64).tiny)
+    )
+    weight = (directions.T @ inverse_root).astype(np.float32)
+    bias = (-(weight.astype(np.float64) @ mean)).astype(np.float32)
+    encoder = candidate.CompactMetricEncoder(
+        weight=torch.from_numpy(np.ascontiguousarray(weight)),
+        bias=torch.from_numpy(np.ascontiguousarray(bias)),
+    )
+    whitening_weight = (whitening_directions.T @ inverse_root).astype(np.float32)
+    whitening_bias = (-(whitening_weight.astype(np.float64) @ mean)).astype(np.float32)
+    whitening_encoder = candidate.CompactMetricEncoder(
+        weight=torch.from_numpy(np.ascontiguousarray(whitening_weight)),
+        bias=torch.from_numpy(np.ascontiguousarray(whitening_bias)),
+    )
+    return encoder, whitening_encoder, mean.astype(np.float32), {
+        "shrinkage": float(estimator.shrinkage_),
+        "supervised_rank": supervised_rank,
+        "between_numerical_rank": numerical_rank,
+        "residual_fill_dimensions": fill_dimensions,
+        "relative_whitened_eigen_residual": relative_eigen_residual,
+        "within_minimum_eigenvalue": float(eigenvalues[0]),
+        "within_maximum_eigenvalue": float(eigenvalues[-1]),
+    }
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(allow_abbrev=False)
+    parser.add_argument("--features", type=Path, required=True)
+    parser.add_argument("--features-sha256", required=True)
+    parser.add_argument("--candidate-module", type=Path, required=True)
+    parser.add_argument("--candidate-module-sha256", required=True)
+    parser.add_argument("--candidate-checkpoint", type=Path, required=True)
+    parser.add_argument("--candidate-checkpoint-sha256", required=True)
+    parser.add_argument("--selector-receipt", type=Path, required=True)
+    parser.add_argument("--selector-receipt-sha256", required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args()
+    if (
+        args.output.exists()
+        or sha256(args.features) != args.features_sha256
+        or sha256(args.candidate_module) != args.candidate_module_sha256
+        or sha256(args.candidate_checkpoint) != args.candidate_checkpoint_sha256
+        or sha256(args.selector_receipt) != args.selector_receipt_sha256
+    ):
+        raise ValueError("shrinkage LDA authority differs")
+
+    candidate = load_module(args.candidate_module)
+    from sfora.deterministic_similarity_runtime import configure_deterministic_similarity_runtime
+
+    configure_deterministic_similarity_runtime(17, cpu_threads=2)
+    archive = np.load(args.features, allow_pickle=False)
+    metadata = json.loads(str(archive["metadata_json"]))
+    fit_prefix = "fit" if "fit_embeddings" in archive.files else "train"
+    evaluation_prefix = "evaluation" if "evaluation_embeddings" in archive.files else "test"
+    fit = np.ascontiguousarray(archive[f"{fit_prefix}_embeddings"], dtype=np.float64)
+    labels = np.ascontiguousarray(archive[f"{fit_prefix}_labels"], dtype=np.int64)
+    evaluation = torch.from_numpy(
+        np.ascontiguousarray(archive[f"{evaluation_prefix}_embeddings"], dtype=np.float32)
+    )
+    evaluation_labels = torch.from_numpy(
+        np.ascontiguousarray(archive[f"{evaluation_prefix}_labels"], dtype=np.int64)
+    )
+    values = np.unique(labels)
+    evaluation_values = np.unique(evaluation_labels.numpy())
+    named_fit = metadata.get("fit_classes")
+    named_evaluation = metadata.get("evaluation_classes")
+    if named_fit is not None or named_evaluation is not None:
+        class_disjoint = (
+            isinstance(named_fit, list)
+            and isinstance(named_evaluation, list)
+            and len(named_fit) == len(values)
+            and len(named_evaluation) == len(evaluation_values)
+            and not set(named_fit).intersection(named_evaluation)
+        )
+        disjointness_authority = "metadata-class-names"
+    else:
+        class_disjoint = not np.intersect1d(values, evaluation_values).size
+        disjointness_authority = "global-integer-labels"
+    if len(values) < 3 or not class_disjoint:
+        raise ValueError("shrinkage LDA class authority differs")
+    started = time.monotonic()
+    lda, whitening, whitening_mean, lda_fit = fit_shrinkage_lda(fit, labels, candidate)
+    checkpoint = torch.load(args.candidate_checkpoint, map_location="cpu", weights_only=True)
+    learned = candidate.CompactMetricEncoder(
+        weight=checkpoint["weight"].float().contiguous(),
+        bias=checkpoint["bias"].float().contiguous(),
+    )
+    original_pca = candidate.fit_centered_pca
+    candidate.fit_centered_pca = lambda _values, *, dimensions: SimpleNamespace(
+        components=whitening.weight,
+        mean=torch.from_numpy(np.ascontiguousarray(whitening_mean)),
+    )
+    try:
+        whitening_initialized = candidate.fit_compact_metric_projection(
+            torch.from_numpy(fit.astype(np.float32)),
+            torch.from_numpy(labels),
+            device=torch.device("cuda"),
+        ).encoder
+    finally:
+        candidate.fit_centered_pca = original_pca
+    device = torch.device("cuda")
+    lda_float_score = candidate._score_compact_metric_codes(
+        lda.transform(evaluation), evaluation_labels, device=device
+    )
+    lda_int8_score = candidate._score_compact_metric_codes(
+        lda.encode(evaluation), evaluation_labels, device=device
+    )
+    learned_float_score = candidate._score_compact_metric_codes(
+        learned.transform(evaluation), evaluation_labels, device=device
+    )
+    learned_int8_score = candidate._score_compact_metric_codes(
+        learned.encode(evaluation), evaluation_labels, device=device
+    )
+    whitening_float_score = candidate._score_compact_metric_codes(
+        whitening.transform(evaluation), evaluation_labels, device=device
+    )
+    whitening_int8_score = candidate._score_compact_metric_codes(
+        whitening.encode(evaluation), evaluation_labels, device=device
+    )
+    whitening_initialized_float_score = candidate._score_compact_metric_codes(
+        whitening_initialized.transform(evaluation), evaluation_labels, device=device
+    )
+    whitening_initialized_int8_score = candidate._score_compact_metric_codes(
+        whitening_initialized.encode(evaluation), evaluation_labels, device=device
+    )
+    delta = np.asarray(learned_int8_score[2]) - np.asarray(lda_int8_score[2])
+    interval = class_bootstrap(delta, evaluation_labels.numpy())
+    selector = json.loads(args.selector_receipt.read_text())
+    receipt_folds = {int(row["fold"]): row for row in selector["folds"]}
+    fold_rows = []
+    for fold in range(3):
+        training = np.asarray(
+            [candidate._compact_metric_fold(int(label)) != fold for label in labels]
+        )
+        validation = ~training
+        row = receipt_folds[fold]
+        expected_training_rows = row.get("train_rows", row.get("training_row_count"))
+        expected_validation_rows = row.get(
+            "validation_rows", row.get("validation_row_count")
+        )
+        if (
+            int(training.sum()) != expected_training_rows
+            or int(validation.sum()) != expected_validation_rows
+        ):
+            raise ValueError("shrinkage LDA selector fold authority differs")
+        fold_lda, fold_whitening, fold_mean, fold_fit = fit_shrinkage_lda(
+            fit[training], labels[training], candidate
+        )
+        original_pca = candidate.fit_centered_pca
+        candidate.fit_centered_pca = lambda _values, *, dimensions: SimpleNamespace(
+            components=fold_whitening.weight,
+            mean=torch.from_numpy(np.ascontiguousarray(fold_mean)),
+        )
+        try:
+            fold_whitening_initialized = candidate.fit_compact_metric_projection(
+                torch.from_numpy(fit[training].astype(np.float32)),
+                torch.from_numpy(labels[training]),
+                device=device,
+            ).encoder
+        finally:
+            candidate.fit_centered_pca = original_pca
+        fold_score = candidate._score_compact_metric_codes(
+            fold_lda.encode(torch.from_numpy(fit[validation].astype(np.float32))),
+            torch.from_numpy(labels[validation]),
+            device=device,
+        )
+        fold_whitening_score = candidate._score_compact_metric_codes(
+            fold_whitening.encode(torch.from_numpy(fit[validation].astype(np.float32))),
+            torch.from_numpy(labels[validation]),
+            device=device,
+        )
+        fold_whitening_initialized_score = candidate._score_compact_metric_codes(
+            fold_whitening_initialized.encode(
+                torch.from_numpy(fit[validation].astype(np.float32))
+            ),
+            torch.from_numpy(labels[validation]),
+            device=device,
+        )
+        fold_rows.append(
+            {
+                "fold": fold,
+                "validation_rows": int(validation.sum()),
+                "lda_map_at_r": fold_score[0],
+                "lda_recall_at_1": fold_score[1],
+                "whitening_map_at_r": fold_whitening_score[0],
+                "whitening_recall_at_1": fold_whitening_score[1],
+                "whitening_initialized_map_at_r": fold_whitening_initialized_score[0],
+                "whitening_initialized_recall_at_1": fold_whitening_initialized_score[1],
+                "learned_map_at_r": row["learned_map_at_r"],
+                "learned_recall_at_1": row["learned_recall_at_1"],
+                "pca_map_at_r": row["pca_map_at_r"],
+                "pca_recall_at_1": row["pca_recall_at_1"],
+                "lda_fit": fold_fit,
+            }
+        )
+    row_count = sum(row["validation_rows"] for row in fold_rows)
+    cv_lda_map = sum(
+        row["validation_rows"] * row["lda_map_at_r"] for row in fold_rows
+    ) / row_count
+    cv_learned_map = sum(
+        row["validation_rows"] * row["learned_map_at_r"] for row in fold_rows
+    ) / row_count
+    cv_pca_map = sum(
+        row["validation_rows"] * row["pca_map_at_r"] for row in fold_rows
+    ) / row_count
+    cv_lda_recall = sum(
+        row["validation_rows"] * row["lda_recall_at_1"] for row in fold_rows
+    ) / row_count
+    cv_learned_recall = sum(
+        row["validation_rows"] * row["learned_recall_at_1"] for row in fold_rows
+    ) / row_count
+    cv_pca_recall = sum(
+        row["validation_rows"] * row["pca_recall_at_1"] for row in fold_rows
+    ) / row_count
+    cv_whitening_map = sum(
+        row["validation_rows"] * row["whitening_map_at_r"] for row in fold_rows
+    ) / row_count
+    cv_whitening_recall = sum(
+        row["validation_rows"] * row["whitening_recall_at_1"] for row in fold_rows
+    ) / row_count
+    cv_whitening_initialized_map = sum(
+        row["validation_rows"] * row["whitening_initialized_map_at_r"]
+        for row in fold_rows
+    ) / row_count
+    cv_whitening_initialized_recall = sum(
+        row["validation_rows"] * row["whitening_initialized_recall_at_1"]
+        for row in fold_rows
+    ) / row_count
+    result = {
+        "schema": "scratch-class-disjoint-shrinkage-lda-control-v2",
+        "claim_eligible": False,
+        "authorities": {
+            "features_sha256": args.features_sha256,
+            "candidate_module_sha256": args.candidate_module_sha256,
+            "candidate_checkpoint_sha256": args.candidate_checkpoint_sha256,
+            "selector_receipt_sha256": args.selector_receipt_sha256,
+        },
+        "lda": {
+            "within_covariance": "ledoit-wolf-class-residual",
+            "shrinkage": lda_fit["shrinkage"],
+            "fit_class_count": int(len(values)),
+            "evaluation_class_count": int(len(evaluation_values)),
+            "class_disjointness_authority": disjointness_authority,
+            "supervised_rank": lda_fit["supervised_rank"],
+            "residual_fill_dimensions": lda_fit["residual_fill_dimensions"],
+            "relative_whitened_eigen_residual": lda_fit[
+                "relative_whitened_eigen_residual"
+            ],
+            "within_minimum_eigenvalue": lda_fit["within_minimum_eigenvalue"],
+            "within_maximum_eigenvalue": lda_fit["within_maximum_eigenvalue"],
+            "float_map_at_r": lda_float_score[0],
+            "float_recall_at_1": lda_float_score[1],
+            "int8_map_at_r": lda_int8_score[0],
+            "int8_recall_at_1": lda_int8_score[1],
+            "int8_minus_float_map_at_r": lda_int8_score[0] - lda_float_score[0],
+            "int8_minus_float_recall_at_1": lda_int8_score[1] - lda_float_score[1],
+            "encoder_sha256": lda.sha256,
+        },
+        "candidate": {
+            "float_map_at_r": learned_float_score[0],
+            "float_recall_at_1": learned_float_score[1],
+            "int8_map_at_r": learned_int8_score[0],
+            "int8_recall_at_1": learned_int8_score[1],
+            "encoder_sha256": learned.sha256,
+        },
+        "within_class_whitened_pca": {
+            "float_map_at_r": whitening_float_score[0],
+            "float_recall_at_1": whitening_float_score[1],
+            "int8_map_at_r": whitening_int8_score[0],
+            "int8_recall_at_1": whitening_int8_score[1],
+            "encoder_sha256": whitening.sha256,
+        },
+        "whitening_initialized_learned": {
+            "float_map_at_r": whitening_initialized_float_score[0],
+            "float_recall_at_1": whitening_initialized_float_score[1],
+            "int8_map_at_r": whitening_initialized_int8_score[0],
+            "int8_recall_at_1": whitening_initialized_int8_score[1],
+            "encoder_sha256": whitening_initialized.sha256,
+        },
+        "candidate_minus_lda": {
+            "map_at_r": learned_int8_score[0] - lda_int8_score[0],
+            "recall_at_1": learned_int8_score[1] - lda_int8_score[1],
+            "class_bootstrap_map_delta_95": {
+                "lower": interval[0],
+                "median": interval[1],
+                "upper": interval[2],
+            },
+        },
+        "fit_only_selector": {
+            "folds": fold_rows,
+            "lda_map_at_r": cv_lda_map,
+            "lda_recall_at_1": cv_lda_recall,
+            "learned_map_at_r": cv_learned_map,
+            "learned_recall_at_1": cv_learned_recall,
+            "pca_map_at_r": cv_pca_map,
+            "pca_recall_at_1": cv_pca_recall,
+            "whitening_map_at_r": cv_whitening_map,
+            "whitening_recall_at_1": cv_whitening_recall,
+            "whitening_initialized_map_at_r": cv_whitening_initialized_map,
+            "whitening_initialized_recall_at_1": cv_whitening_initialized_recall,
+            "lda_minus_learned_map_at_r": cv_lda_map - cv_learned_map,
+            "highest_observed_map_arm": max(
+                ("lda", cv_lda_map),
+                ("learned_projection", cv_learned_map),
+                ("pca", cv_pca_map),
+                ("within_class_whitened_pca", cv_whitening_map),
+                ("whitening_initialized_learned", cv_whitening_initialized_map),
+                key=lambda item: item[1],
+            )[0],
+        },
+        "decision": {
+            "lda_within_0_005_map": (
+                abs(learned_int8_score[0] - lda_int8_score[0]) <= 0.005
+            ),
+            "numerical_residual_below_1e_10": (
+                lda_fit["relative_whitened_eigen_residual"] < 1e-10
+            ),
+        },
+        "elapsed_seconds": time.monotonic() - started,
+    }
+    args.output.write_text(
+        json.dumps(result, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\n"
+    )
+    print(json.dumps(result, indent=2, sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()
