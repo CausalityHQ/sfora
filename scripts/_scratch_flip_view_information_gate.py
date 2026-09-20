@@ -83,8 +83,8 @@ def encode_views(
     *,
     batch_size: int,
 ) -> tuple[torch.Tensor, torch.Tensor]:
-    identity: list[torch.Tensor] = []
-    flipped: list[torch.Tensor] = []
+    identity: np.ndarray | None = None
+    flipped: np.ndarray | None = None
     for start in range(0, len(paths), batch_size):
         ordinary = []
         mirrors = []
@@ -97,9 +97,17 @@ def encode_views(
             ordinary_values = F.normalize(model(torch.stack(ordinary).cuda()).float(), dim=1)
             mirror_values = F.normalize(model(torch.stack(mirrors).cuda()).float(), dim=1)
         torch.cuda.synchronize()
-        identity.append(ordinary_values.cpu().clone())
-        flipped.append(mirror_values.cpu().clone())
-    return torch.cat(identity), torch.cat(flipped)
+        ordinary_host = ordinary_values.cpu().numpy().copy()
+        mirror_host = mirror_values.cpu().numpy().copy()
+        if identity is None or flipped is None:
+            identity = np.empty((len(paths), ordinary_host.shape[1]), dtype=np.float32)
+            flipped = np.empty_like(identity)
+        stop = start + len(ordinary_host)
+        identity[start:stop] = ordinary_host
+        flipped[start:stop] = mirror_host
+    if identity is None or flipped is None:
+        raise ValueError("flip-view input is empty")
+    return torch.from_numpy(identity), torch.from_numpy(flipped)
 
 
 def top1_correct(values: torch.Tensor, labels: torch.Tensor) -> np.ndarray:
