@@ -340,3 +340,30 @@ host RSS, and performed no swapping.  Feature-cache SHA-256:
 result SHA-256:
 `ffe324797a3693aa62cf09544de4332409a1092fce19c42c96c8365d9eaef9a7`;
 details: `docs/evidence/compact_metric/cars-unicom-preprojection-v1.json`.
+
+## Complementary DINO/UniCOM fusion does not survive full SOP evaluation
+
+A frozen two-encoder screen concatenated 64-D PCA/int8 codes from DINOv2 and
+UniCOM into the same 128-D int8 payload.  On six 512-query development panels
+the compact fusion improved macro mAP@R over the better compact constituent by
+`+0.017784`; five of six panels were positive and the worst-domain delta was
+`-0.005902`.  The corresponding full-float fusion was also positive on all six
+panels.  This made the mechanism worth one full-dataset falsification, but the
+panel result was explicitly claim-ineligible.
+
+On the official Stanford Online Products test (`60,502` queries/rows), compact
+UniCOM alone reached `0.452324 / 0.723398` mAP@R / Recall@1, while the 64+64
+fusion reached only `0.387317 / 0.670193`.  Its mAP@R delta versus the stronger
+compact constituent was `-0.065007`, and it missed the fixed `0.496` mAP@R
+target by `-0.108683`.  Full-float fusion (`0.422436 / 0.702968`) also remained
+well below full-float UniCOM (`0.476328 / 0.745050`).
+
+The SOP reversal closes this exact complementary-encoder fusion family.  It
+does not justify doubling encoder cost, and no alternative width split or
+dataset-specific fusion weight will be tuned.  Development-panel receipt
+SHA-256: `866033d051e5fe4483dd9330d1dff138b9610c47b62dcb44a98ea94b0807039e`;
+full-SOP receipt SHA-256:
+`8b0f5b4bf76702e73b39beddfc1450c8ee88e209c9da4887db0afb994cb67e85`.
+Details:
+`docs/evidence/compact_metric/complementary-visual-fusion-v1.json` and
+`docs/evidence/compact_metric/sop-complementary-visual-fusion-v1.json`.
