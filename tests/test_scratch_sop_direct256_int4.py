@@ -13,6 +13,7 @@ _SCRIPT = Path(__file__).parents[1] / "scripts" / "_scratch_sop_direct256_int4.p
 _OFFICIAL_SCRIPT = (
     Path(__file__).parents[1] / "scripts" / "_scratch_evaluate_sop_direct256_int4_official.py"
 )
+_CUB_SCRIPT = Path(__file__).parents[1] / "scripts" / "_scratch_cub_direct256_int4.py"
 sys.path.insert(0, str(_SCRIPT.parent))
 
 
@@ -67,3 +68,11 @@ def test_official_positioning_evaluator_requires_explicit_execution() -> None:
     )
     assert result.returncode == 2
     assert "--execute-official-positioning" in result.stderr
+
+
+def test_cub_replication_requires_explicit_execution() -> None:
+    result = subprocess.run(
+        [sys.executable, str(_CUB_SCRIPT)], check=False, capture_output=True, text=True
+    )
+    assert result.returncode == 2
+    assert "--execute-cub-replication" in result.stderr
