@@ -18,9 +18,13 @@ frozen `-0.005` non-inferiority boundary and R@1 is exactly tied. Therefore
 
 The two arms use the same 768 normalized dimensions, 128 LUT16 blocks, all
 35,257 reduced-gallery rows for training, 20 training iterations, and no tree
-partition or exact reordering. The comparison isolates ScaNN's score-aware
-anisotropic quantization objective; it does not compare different storage,
-candidate sets, or rerankers.
+partition or exact reordering. ScaNN conventionally trains and fixes each arm's
+block codebooks before applying its score-aware anisotropic hard-code
+assignment. Because the external API fit the arms independently and did not
+expose codebook hashes, this screen supports the combined mode but cannot by
+itself attribute the gain exclusively to assignment. The paired native follow-up
+uses shared codebooks to isolate that mechanism. The screen does not compare
+different storage, candidate sets, or rerankers.
 
 ## Timing and implementation boundary
 
@@ -31,8 +35,9 @@ These are one-thread CPU ScaNN batch measurements, not Sfora production
 latency measurements.
 
 This positive result licenses a native Sfora algorithm spike that reproduces
-the anisotropic objective and verifies the gain under Sfora's public codec and
-scoring contracts. It does not yet license a custom CUDA kernel. The measured
+the anisotropic assignment objective over fixed codebooks and verifies the gain
+under Sfora's public scoring contract. It does not yet license a custom CUDA
+kernel. The measured
 search path is already small relative to fitting, and kernel work remains
 conditional on end-to-end profiling showing a named operation at least 50% of
 runtime with a credible twofold operation-level gain.
@@ -54,7 +59,7 @@ runtime with a credible twofold operation-level gain.
 ## Next discriminator
 
 Implement the smallest faithful native anisotropic product-quantization
-training/scoring spike and compare it with the same-byte isotropic native arm
+encoding/scoring spike and compare it with the same-byte isotropic native arm
 on the powered pseudo-query protocol, retaining official validation as the
 secondary non-inferiority check. Only after native quality is reproduced
 should an end-to-end profile decide between optimized Torch/Faiss, CuTile, or
