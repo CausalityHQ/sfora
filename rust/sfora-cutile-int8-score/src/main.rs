@@ -29,6 +29,10 @@ fn nearest_rank_percentile(samples: &[u64], percentile: usize) -> u64 {
     sorted[rank.saturating_sub(1)]
 }
 
+fn throughput_qps(batch: usize, p50_ns: u64) -> f64 {
+    batch as f64 * 1_000_000_000.0 / p50_ns as f64
+}
+
 fn validate_timing_samples(
     compile_ns: u64,
     raw_ns: &[u64],
@@ -57,6 +61,8 @@ struct BatchReceipt {
     resident_f32: TimingSummary,
     resident_f32_persistent_bytes: u64,
     score_plane_bytes: u64,
+    temporary_bytes: u64,
+    throughput_queries_per_second: f64,
 }
 
 #[derive(Serialize)]
@@ -69,6 +75,7 @@ struct Receipt {
     schema: &'static str,
     source_commit: String,
     tileiras: String,
+    rustc: String,
     warmups: usize,
 }
 
@@ -167,6 +174,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .map_err(std::io::Error::other)?;
         let (exact_score_bits, exact_top_ten) = exactness(&device, batch)?;
         let advance = exact_score_bits && exact_top_ten && packed.p99_ns < resident_f32.p99_ns;
+        let throughput_queries_per_second = throughput_qps(batch_size, packed.p50_ns);
         batches.push(BatchReceipt {
             advance,
             batch: batch_size,
@@ -177,6 +185,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             resident_f32,
             resident_f32_persistent_bytes: measured.resident_f32_persistent_bytes,
             score_plane_bytes: measured.score_plane_bytes,
+            temporary_bytes: measured.score_plane_bytes,
+            throughput_queries_per_second,
         });
     }
     let receipt = Receipt {
@@ -190,6 +200,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         tileiras: std::env::var("CUTILE_TILEIRAS_PATH")
             .map(|path| tool_output(&path, "--version"))
             .unwrap_or_else(|_| "unavailable".to_owned()),
+        rustc: tool_output("rustc", "--version"),
         warmups: WARMUPS,
     };
     let mut bytes = serde_json::to_vec(&receipt)?;
@@ -200,7 +211,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 #[cfg(test)]
 mod tests {
-    use super::{nearest_rank_percentile, validate_timing_samples};
+    use super::{nearest_rank_percentile, throughput_qps, validate_timing_samples};
 
     #[test]
     fn receipt_recomputes_nearest_rank_percentiles_and_excludes_compile_time() {
@@ -214,6 +225,10 @@ mod tests {
         assert_eq!(summary.p99_ns, nearest_rank_percentile(&raw_ns, 99));
         assert_eq!(summary.p50_ns, 25);
         assert_eq!(summary.p99_ns, 50);
+        assert_eq!(
+            throughput_qps(32, 25).to_bits(),
+            1_280_000_000.0f64.to_bits()
+        );
         assert!(!raw_ns.contains(&summary.compile_ns));
         assert!(validate_timing_samples(9_999, &[], 50).is_err());
         assert!(validate_timing_samples(9_999, &raw_ns[..49], 50).is_err());
