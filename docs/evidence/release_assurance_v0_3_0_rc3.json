@@ -1,0 +1,173 @@
+{
+  "artifact": {
+    "sdist": {
+      "bytes": 777478,
+      "filename": "sfora-0.3.0rc3.tar.gz",
+      "sha256": "508d70f89c57fbfb4e481e8b7a5dfd0c39fffb18d4c12b0f0f355577d2d8b59f"
+    },
+    "wheel": {
+      "bytes": 573731,
+      "filename": "sfora-0.3.0rc3-py3-none-any.whl",
+      "sha256": "fdf59a26817bc0c443635de0291d474c010d0928ffb7251a1a6ee73af8f7193e"
+    }
+  },
+  "artifact_reproducibility": {
+    "build_backend": "hatchling==1.32.3",
+    "clean_git_archive_exports": true,
+    "independent_builds": 2,
+    "sdist_sha256_equal": true,
+    "wheel_sha256_equal": true
+  },
+  "claim_vocabulary": {
+    "claim_eligible": "A scientific result is eligible for a prospective publication claim under its registered protocol.",
+    "release_ready": "The stated library API, package, and systems boundaries passed release verification.",
+    "relationship": "Release readiness does not promote claim-ineligible panel evidence into a scientific superiority claim."
+  },
+  "clean_checkout_public_api": {
+    "base_wheel": {
+      "imports": [
+        "sfora",
+        "sfora.cutile_int8"
+      ],
+      "metadata_version": "0.3.0rc3",
+      "status": "verified"
+    },
+    "compact_metric": {
+      "deterministic_exact_codes": true,
+      "encoder_save_load_sha256_equal": true,
+      "pca_fallback_selected": true,
+      "source": "the clean-export wheel loaded ahead of the authenticated research environment",
+      "status": "verified"
+    },
+    "native_packed_scorer": {
+      "backend_bytes": 10841080,
+      "backend_sha256": "a9e583881201760088f3d99c180367e587ca68219c79dfe1760a3467f06b8dea",
+      "clean_wheel_sha256": "fdf59a26817bc0c443635de0291d474c010d0928ffb7251a1a6ee73af8f7193e",
+      "device": "NVIDIA GB10 device 0",
+      "exact_score_bits": true,
+      "exact_top10_ordinals": true,
+      "gallery_rows": 10,
+      "query_rows": 1,
+      "status": "verified correctness smoke"
+    }
+  },
+  "measured_evidence": {
+    "compact_quality": {
+      "cars196_standard_class_disjoint": {
+        "baseline": {
+          "map_at_r": 0.817630,
+          "method": "Faiss OPQ128_768,PQ128x8",
+          "recall_at_1": 0.973066
+        },
+        "candidate": {
+          "map_at_r": 0.825656,
+          "method": "learned int8-128",
+          "recall_at_1": 0.972574
+        },
+        "status": "verified panel; no dominance claim on Recall@1"
+      },
+      "cub200_frozen_width_null": {
+        "learned256_minus_learned128_map_at_r": -0.000292,
+        "paired_map_delta_95pct_ci": [
+          -0.001432,
+          0.000832
+        ],
+        "selector_external_learned_minus_pca_map_at_r": -0.000323,
+        "status": "verified null; selector chose PCA"
+      },
+      "inshop_official_query_gallery_rank_finished": {
+        "baseline": {
+          "bytes_per_item": 3072,
+          "map_at_r": 0.779547,
+          "method": "matched-input float-768 source",
+          "recall_at_1": 0.945703
+        },
+        "candidate": {
+          "code_bytes_per_item": 128,
+          "map_at_r": 0.800020,
+          "method": "learned int8-128",
+          "recall_at_1": 0.954283,
+          "served_bytes_per_item": 130
+        },
+        "status": "verified post-hoc; claim_eligible=false"
+      },
+      "oxford_iiit_pet_untouched_class_disjoint": {
+        "baseline": {
+          "map_at_r": 0.847639,
+          "method": "PCA int8-128",
+          "recall_at_1": 0.962275
+        },
+        "candidate": {
+          "map_at_r": 0.862759,
+          "method": "learned int8-128",
+          "recall_at_1": 0.969595
+        },
+        "fit_only_selector_map_delta_95pct_ci": [
+          0.005856,
+          0.016646
+        ],
+        "status": "verified prospective selector confirmation; nonstandard class-disjoint Pet protocol"
+      },
+      "sop_official_test": {
+        "baseline": {
+          "bytes_per_item": 3072,
+          "map_at_r": 0.476360,
+          "method": "frozen float-768 source",
+          "recall_at_1": 0.745099
+        },
+        "candidate": {
+          "code_bytes_per_item": 128,
+          "map_at_r": 0.511490,
+          "method": "selected learned int8-128",
+          "recall_at_1": 0.770173,
+          "served_bytes_per_item": 130
+        },
+        "status": "verified standard panel; claim_eligible=false"
+      }
+    },
+    "packed_int8_cutile_1m": {
+      "batch_1": {
+        "p50_ms": 1.021,
+        "p99_ms": 1.550,
+        "throughput_queries_per_second": 954.6
+      },
+      "batch_32": {
+        "p50_ms": 4.594,
+        "p99_ms": 5.274,
+        "throughput_queries_per_second": 6870.4
+      },
+      "bytes_per_item": 130,
+      "exact_score_bits": true,
+      "peak_rss_bytes": 1552142336,
+      "status": "verified systems evidence"
+    }
+  },
+  "preserved_untracked_evidence": {
+    "aggregate_inventory_sha256": "d03d6bd2c94aa66d1b41ac0ab5eea0f6e4a37ef25161937195c503f51f101a26",
+    "bytes": 282348,
+    "entries": 39,
+    "policy": "Preserved in place and excluded from the release commit and artifacts; no cleanup performed."
+  },
+  "quality_table": "docs/release_candidate_0_3_0_rc3.md",
+  "schema": "sfora-release-assurance-v2",
+  "source_commit": "05f8c93e5bf601b00fc50b9a471aabbb5b4bf588",
+  "test_assurance": {
+    "focused_release_delta": {
+      "command": "pytest -q tests/test_compact_metric.py tests/test_compact_metric_persistence.py tests/test_cutile_int8.py",
+      "failed": 0,
+      "passed": 46,
+      "python": "CPython 3.12.3"
+    },
+    "inherited_full_suite": {
+      "failed": 0,
+      "passed": 5313,
+      "skipped": 7,
+      "source_commit": "321ec10b7674aead22faebe104ca956a3a781996"
+    },
+    "scoped_static": {
+      "mypy_strict": "passed for compact_metric.py and cutile_int8.py",
+      "ruff": "passed for the changed release surface",
+      "status": "verified"
+    }
+  }
+}
