@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 
 _DIMENSIONS = 128
 _TOP_K = 10
+_NATIVE_BATCH = 32
 _ERROR = "cuTile packed-int8 scorer failed"
 
 
@@ -28,6 +29,7 @@ def _packed_inputs(
         not isinstance(codes, np.ndarray)
         or codes.dtype != np.dtype("i1")
         or codes.ndim != 2
+        or codes.shape[0] < 1
         or codes.shape[1] != _DIMENSIONS
         or not codes.flags.c_contiguous
         or not isinstance(inverse_norms, np.ndarray)
@@ -136,29 +138,51 @@ class CutilePackedInt8Gallery:
     ) -> tuple[NDArray[np.int64], NDArray[np.float32]]:
         """Return exact cosine top-k with deterministic ordinal ties."""
 
-        flat_codes, norm_bits = _packed_inputs(codes, inverse_norms, role="query")
-        if codes.shape[0] not in (1, 32) or k != _TOP_K:
+        _packed_inputs(codes, inverse_norms, role="query")
+        if k != _TOP_K:
             raise ValueError("cuTile query authority differs")
-        ordinals = np.empty(codes.shape[0] * k, dtype="<u4")
-        scores = np.empty(codes.shape[0] * k, dtype="<f4")
+        ordinal_chunks: list[NDArray[np.int64]] = []
+        score_chunks: list[NDArray[np.float32]] = []
         with self._lifecycle_lock:
             if self._handle.value is None:
                 raise RuntimeError("cuTile packed-int8 gallery is closed")
-            status = self._library.sfora_cutile_int8_search(
-                self._handle,
-                flat_codes,
-                norm_bits,
-                codes.shape[0],
-                codes.shape[1],
-                k,
-                ordinals,
-                scores,
-            )
-        if status != 0:
-            raise RuntimeError(f"{_ERROR}: search status {status}")
-        return ordinals.reshape(codes.shape[0], k).astype(np.int64), scores.reshape(
-            codes.shape[0], k
-        )
+            for start in range(0, codes.shape[0], _NATIVE_BATCH):
+                stop = min(start + _NATIVE_BATCH, codes.shape[0])
+                actual_rows = stop - start
+                chunk_codes = codes[start:stop]
+                chunk_norms = inverse_norms[start:stop]
+                if actual_rows not in (1, _NATIVE_BATCH):
+                    padding = _NATIVE_BATCH - actual_rows
+                    chunk_codes = np.ascontiguousarray(
+                        np.concatenate(
+                            (chunk_codes, np.repeat(chunk_codes[-1:], padding, axis=0)),
+                            axis=0,
+                        )
+                    )
+                    chunk_norms = np.ascontiguousarray(
+                        np.concatenate((chunk_norms, np.repeat(chunk_norms[-1:], padding)))
+                    )
+                flat_codes, norm_bits = _packed_inputs(chunk_codes, chunk_norms, role="query")
+                native_rows = chunk_codes.shape[0]
+                ordinals = np.empty(native_rows * k, dtype="<u4")
+                scores = np.empty(native_rows * k, dtype="<f4")
+                status = self._library.sfora_cutile_int8_search(
+                    self._handle,
+                    flat_codes,
+                    norm_bits,
+                    native_rows,
+                    chunk_codes.shape[1],
+                    k,
+                    ordinals,
+                    scores,
+                )
+                if status != 0:
+                    raise RuntimeError(f"{_ERROR}: search status {status}")
+                ordinal_chunks.append(
+                    ordinals.reshape(native_rows, k)[:actual_rows].astype(np.int64)
+                )
+                score_chunks.append(scores.reshape(native_rows, k)[:actual_rows].copy())
+        return np.concatenate(ordinal_chunks), np.concatenate(score_chunks)
 
     def search_packed(
         self,

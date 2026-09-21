@@ -125,6 +125,43 @@ def test_native_gallery_accepts_the_public_packed_embedding_type(
     assert library.destroyed
 
 
+def test_native_search_batches_arbitrary_query_counts_without_partial_results(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    library_path = tmp_path / "libsfora_cutile_int8_score.so"
+    library_path.write_bytes(b"fixture")
+    library = _Library()
+    native_rows: list[int] = []
+
+    def recording_search(
+        _handle: object,
+        _codes: np.ndarray,
+        _norms: np.ndarray,
+        rows: int,
+        _dimensions: int,
+        k: int,
+        ordinals: np.ndarray,
+        scores: np.ndarray,
+    ) -> int:
+        native_rows.append(int(rows))
+        ordinals[:] = np.tile(np.arange(int(k), dtype="<u4"), int(rows))
+        scores[:] = np.arange(int(rows) * int(k), dtype="<f4")
+        return 0
+
+    library.sfora_cutile_int8_search = _Function(recording_search)
+    monkeypatch.setattr(ctypes, "CDLL", lambda path: library)
+    gallery_codes, gallery_norms = _packed(129)
+    query_codes, query_norms = _packed(70)
+
+    with CutilePackedInt8Gallery.open(library_path, gallery_codes, gallery_norms) as gallery:
+        ordinals, scores = gallery.search(query_codes, query_norms)
+
+    assert native_rows == [32, 32, 32]
+    assert ordinals.shape == (70, 10)
+    assert scores.shape == (70, 10)
+    assert np.array_equal(ordinals[:, 0], np.zeros(70, dtype=np.int64))
+
+
 def test_native_handle_rejects_implicit_or_invalid_arrays(tmp_path: Path) -> None:
     codes, norms = _packed(10)
     with pytest.raises(ValueError, match="absolute"):

@@ -88,7 +88,10 @@ The current native backend binds CUDA device 0. Operations on one
 `CutilePackedInt8Gallery` are serialized: `close()` waits for an active search,
 and concurrent searches do not enter the native handle simultaneously. Use
 separate processes or separately opened galleries when deployment requires
-parallel native calls, and account for each gallery's device memory.
+parallel native calls, and account for each gallery's device memory. The native
+kernels retain their measured batch-1 and batch-32 shapes; the wrapper accepts
+any positive logical batch, uses full 32-row chunks, and pads only a final
+2–31-row tail while holding the gallery lock for the complete request.
 
 For a portable correctness fallback, `sfora.CpuPackedInt8Gallery` consumes the
 same `PackedInt8Embeddings` value and returns the same ordinal/score array
