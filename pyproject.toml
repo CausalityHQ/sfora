@@ -1,6 +1,6 @@
 [project]
 name = "sfora"
-version = "0.3.0"
+version = "0.3.0rc2"
 description = "SFORA: provenance-tracked similarity learning, compact metric codes, and exact packed retrieval."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -60,11 +60,24 @@ Issues = "https://github.com/CausalityHQ/sfora/issues"
 Changelog = "https://github.com/CausalityHQ/sfora/blob/main/CHANGELOG.md"
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling==1.32.3"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/sfora"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "/src",
+  "/rust",
+  "/Cargo.toml",
+  "/Cargo.lock",
+  "/README.md",
+  "/CHANGELOG.md",
+  "/LICENSE",
+  "/pyproject.toml",
+  "/uv.lock",
+]
 
 [tool.ruff]
 line-length = 100

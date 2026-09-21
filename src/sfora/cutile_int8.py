@@ -5,6 +5,7 @@ from __future__ import annotations
 import contextlib
 import ctypes
 import os
+import threading
 from pathlib import Path
 
 import numpy as np
@@ -42,6 +43,7 @@ class CutilePackedInt8Gallery:
     def __init__(self, library: ctypes.CDLL, handle: ctypes.c_void_p) -> None:
         self._library = library
         self._handle = handle
+        self._lifecycle_lock = threading.Lock()
 
     @classmethod
     def open(
@@ -109,26 +111,27 @@ class CutilePackedInt8Gallery:
         inverse_norms: NDArray[np.float16],
         *,
         k: int = _TOP_K,
-    ) -> tuple[NDArray[np.uint32], NDArray[np.float32]]:
+    ) -> tuple[NDArray[np.int64], NDArray[np.float32]]:
         """Return exact cosine top-k with deterministic ordinal ties."""
 
-        if self._handle.value is None:
-            raise RuntimeError("cuTile packed-int8 gallery is closed")
         flat_codes, norm_bits = _packed_inputs(codes, inverse_norms, role="query")
         if codes.shape[0] not in (1, 32) or k != _TOP_K:
             raise ValueError("cuTile query authority differs")
         ordinals = np.empty(codes.shape[0] * k, dtype="<u4")
         scores = np.empty(codes.shape[0] * k, dtype="<f4")
-        status = self._library.sfora_cutile_int8_search(
-            self._handle,
-            flat_codes,
-            norm_bits,
-            codes.shape[0],
-            codes.shape[1],
-            k,
-            ordinals,
-            scores,
-        )
+        with self._lifecycle_lock:
+            if self._handle.value is None:
+                raise RuntimeError("cuTile packed-int8 gallery is closed")
+            status = self._library.sfora_cutile_int8_search(
+                self._handle,
+                flat_codes,
+                norm_bits,
+                codes.shape[0],
+                codes.shape[1],
+                k,
+                ordinals,
+                scores,
+            )
         if status != 0:
             raise RuntimeError(f"{_ERROR}: search status {status}")
         return ordinals.reshape(codes.shape[0], k).astype(np.int64), scores.reshape(
@@ -138,11 +141,12 @@ class CutilePackedInt8Gallery:
     def close(self) -> None:
         """Release the native gallery exactly once."""
 
-        if self._handle.value is None:
-            return
-        handle = self._handle
-        self._handle = ctypes.c_void_p()
-        status = self._library.sfora_cutile_int8_destroy(handle)
+        with self._lifecycle_lock:
+            if self._handle.value is None:
+                return
+            handle = self._handle
+            self._handle = ctypes.c_void_p()
+            status = self._library.sfora_cutile_int8_destroy(handle)
         if status != 0:
             raise RuntimeError(f"{_ERROR}: destroy status {status}")
 

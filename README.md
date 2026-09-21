@@ -80,6 +80,12 @@ aarch64 DGX setting; other supported hosts must supply their own compiler includ
 path. Missing CUDA, `tileiras`, or an incompatible backend fails closed—there is
 no silently relabelled CPU fallback.
 
+The current native backend binds CUDA device 0. Operations on one
+`CutilePackedInt8Gallery` are serialized: `close()` waits for an active search,
+and concurrent searches do not enter the native handle simultaneously. Use
+separate processes or separately opened galleries when deployment requires
+parallel native calls, and account for each gallery's device memory.
+
 > ## Historical status (2026-07-29) — superseded and partly retracted
 >
 > The “two results stand” wording below is preserved as decision history. The

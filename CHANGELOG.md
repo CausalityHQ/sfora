@@ -7,7 +7,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
-## [0.3.0] - 2026-09-20
+## [0.3.0rc2] - 2026-09-21
 
 ### Added
 
@@ -30,9 +30,11 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Best-over-training per-epoch test evaluation (`--eval-test-interval-epochs`) and
   best-epoch embedding export (`--save-test-embeddings`).
 - `scripts/ensemble_eval.py` — feature-concatenation multi-model ensemble
-  ("a SFORA of HERDs") that beats the reported same-arch SOTA (CUB-200 R@1
-  74.68 at 5 models / 75.34 at 9 vs PFML 73.4). Reports R@1/R@2/R@4/R@8/MAP@R
-  and `--compare-methods` for 512-dim folds (GPA-aligned mean keeps 99.4%).
+  ("a SFORA of HERDs") whose historical, non-official same-architecture
+  reference exceeded the then-reported PFML number (CUB-200 R@1 74.68 at 5
+  models / 75.34 at 9 vs PFML 73.4). This is not a matched current-SOTA claim.
+  The script reports R@1/R@2/R@4/R@8/MAP@R and `--compare-methods` for 512-dim
+  folds (GPA-aligned mean keeps 99.4%).
 - **`sfora.compose`** — a composable, type-safe projection-brick API: `Projection`
   protocol, `Identity`/`L2Normalize`/`Pca`/`Head` leaves, `Pipeline`/`Join`
   combinators (concat / mean / Procrustes-aligned-mean ensembles), and
