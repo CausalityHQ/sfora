@@ -92,6 +92,21 @@
           "selected": "PCA int8-128",
           "status": "verified-null-correct-fallback"
         },
+        "inshop_official_query_gallery_rank_finished_source": {
+          "candidate": {
+            "bytes_per_item": 128,
+            "map_at_r": 0.800020,
+            "method": "learned int8-128",
+            "recall_at_1": 0.954283
+          },
+          "matched_input_source": {
+            "bytes_per_item": 3072,
+            "map_at_r": 0.779547,
+            "method": "float-768 rank-finished UNICOM source",
+            "recall_at_1": 0.945703
+          },
+          "status": "verified-post-hoc-claim-ineligible"
+        },
         "oxford_iiit_pet_untouched_confirmation": {
           "candidate": {
             "map_at_r": 0.862759,
@@ -105,6 +120,21 @@
             "recall_at_1": 0.962275
           },
           "status": "verified-prospective-pass"
+        },
+        "sop_official_test": {
+          "candidate": {
+            "bytes_per_item": 128,
+            "map_at_r": 0.511490,
+            "method": "selected learned int8-128",
+            "recall_at_1": 0.770173
+          },
+          "frozen_source": {
+            "bytes_per_item": 3072,
+            "map_at_r": 0.476360,
+            "method": "float-768 UNICOM source",
+            "recall_at_1": 0.745099
+          },
+          "status": "verified-standard-panel-claim-ineligible"
         }
       }
     },
