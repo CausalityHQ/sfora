@@ -7,10 +7,14 @@ import ctypes
 import os
 import threading
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import numpy as np
 from numpy.ctypeslib import ndpointer
 from numpy.typing import NDArray
+
+if TYPE_CHECKING:
+    from sfora.joint_relational_compaction import PackedInt8Embeddings
 
 _DIMENSIONS = 128
 _TOP_K = 10
@@ -105,6 +109,24 @@ class CutilePackedInt8Gallery:
             raise RuntimeError(f"{_ERROR}: create status {status}")
         return cls(library, handle)
 
+    @classmethod
+    def open_packed(
+        cls,
+        library_path: Path,
+        embeddings: PackedInt8Embeddings,
+    ) -> CutilePackedInt8Gallery:
+        """Open a gallery from Sfora's complete packed embedding value."""
+
+        from sfora.joint_relational_compaction import PackedInt8Embeddings
+
+        if type(embeddings) is not PackedInt8Embeddings:
+            raise ValueError("cuTile packed gallery authority differs")
+        return cls.open(
+            library_path,
+            embeddings.codes.numpy(),
+            embeddings.inverse_norms.numpy(),
+        )
+
     def search(
         self,
         codes: NDArray[np.int8],
@@ -136,6 +158,24 @@ class CutilePackedInt8Gallery:
             raise RuntimeError(f"{_ERROR}: search status {status}")
         return ordinals.reshape(codes.shape[0], k).astype(np.int64), scores.reshape(
             codes.shape[0], k
+        )
+
+    def search_packed(
+        self,
+        embeddings: PackedInt8Embeddings,
+        *,
+        k: int = _TOP_K,
+    ) -> tuple[NDArray[np.int64], NDArray[np.float32]]:
+        """Search with Sfora's complete packed embedding value."""
+
+        from sfora.joint_relational_compaction import PackedInt8Embeddings
+
+        if type(embeddings) is not PackedInt8Embeddings:
+            raise ValueError("cuTile packed query authority differs")
+        return self.search(
+            embeddings.codes.numpy(),
+            embeddings.inverse_norms.numpy(),
+            k=k,
         )
 
     def close(self) -> None:

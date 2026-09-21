@@ -418,6 +418,7 @@ import torch
 from pathlib import Path
 
 from sfora import CompactMetricConfig, CompactMetricEncoder, select_compact_metric_projection
+from sfora.cutile_int8 import CutilePackedInt8Gallery
 
 training_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 selection = select_compact_metric_projection(
@@ -439,6 +440,11 @@ assert restored.sha256 == selection.encoder.sha256
 # dimension plus one float16 inverse norm per row (130 bytes at 128 dimensions).
 gallery_packed = restored.encode_packed(gallery_embeddings.cpu().contiguous().float())
 query_packed = restored.encode_packed(query_embeddings.cpu().contiguous().float())
+
+with CutilePackedInt8Gallery.open_packed(
+    Path("/absolute/path/to/libsfora_cutile_int8_score.so"), gallery_packed
+) as gallery:
+    top10_ordinals, top10_scores = gallery.search_packed(query_packed)
 ```
 
 Only fit labels enter selection or training; keep evaluation identities and
@@ -454,7 +460,9 @@ rounding. `encode()` returns code bytes alone; use `encode_packed()` when exact
 cosine search also needs the per-row inverse norms. The returned
 `PackedInt8Embeddings.codes.numpy()` and
 `PackedInt8Embeddings.inverse_norms.numpy()` arrays can be passed directly to
-`CutilePackedInt8Gallery.open(...)` and `.search(...)`. The selector has one prospective confirmation on a class-disjoint
+the low-level `CutilePackedInt8Gallery.open(...)` and `.search(...)` methods;
+`open_packed(...)` and `search_packed(...)` provide the typed integration shown
+above. The selector has one prospective confirmation on a class-disjoint
 Oxford-IIIT Pet protocol. See the
 [compact selector evidence](docs/compact_metric_selector_result_2026-09-19.md)
 for multi-dataset quality and claim limits, and the

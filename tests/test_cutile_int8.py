@@ -6,8 +6,10 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+import torch
 
 from sfora.cutile_int8 import CutilePackedInt8Gallery
+from sfora.joint_relational_compaction import pack_int8_unit_embeddings
 
 
 class _Function:
@@ -95,6 +97,32 @@ def test_explicit_native_handle_validates_searches_and_closes(
     assert library.destroyed
     with pytest.raises(RuntimeError, match="closed"):
         gallery.search(query_codes, query_norms, k=10)
+
+
+def test_native_gallery_accepts_the_public_packed_embedding_type(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    library_path = tmp_path / "libsfora_cutile_int8_score.so"
+    library_path.write_bytes(b"fixture")
+    library = _Library()
+    monkeypatch.setattr(ctypes, "CDLL", lambda path: library)
+    gallery_values = torch.nn.functional.normalize(
+        torch.arange(129 * 128, dtype=torch.float32).reshape(129, 128) + 1.0,
+        dim=1,
+    )
+    query_values = torch.nn.functional.normalize(
+        torch.arange(128, dtype=torch.float32).reshape(1, 128) + 1.0,
+        dim=1,
+    )
+    gallery_packed = pack_int8_unit_embeddings(gallery_values)
+    query_packed = pack_int8_unit_embeddings(query_values)
+
+    with CutilePackedInt8Gallery.open_packed(library_path, gallery_packed) as gallery:
+        ordinals, scores = gallery.search_packed(query_packed)
+
+    assert ordinals.shape == (1, 10)
+    assert scores.shape == (1, 10)
+    assert library.destroyed
 
 
 def test_native_handle_rejects_implicit_or_invalid_arrays(tmp_path: Path) -> None:
