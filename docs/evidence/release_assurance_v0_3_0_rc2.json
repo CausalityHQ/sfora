@@ -30,7 +30,7 @@
   },
   "measured_evidence": {
     "compact_quality": {
-      "aircraft_official_test": {
+      "aircraft_class_disjoint_evaluation": {
         "baseline": {
           "map_at_r": 0.439829,
           "method": "PCA int8-128",
@@ -67,6 +67,44 @@
           -0.027689
         ],
         "status": "verified-fail-family-closed"
+      },
+      "release_selector": {
+        "cars196_standard_split": {
+          "candidate": {
+            "map_at_r": 0.825656,
+            "method": "learned int8-128",
+            "recall_at_1": 0.972574
+          },
+          "matched_equal_byte_comparator": {
+            "map_at_r": 0.817630,
+            "method": "Faiss OPQ128_768,PQ128x8",
+            "recall_at_1": 0.973066
+          },
+          "pca_int8_128": {
+            "map_at_r": 0.767869,
+            "recall_at_1": 0.970852
+          },
+          "status": "verified-panel-not-untouched-confirmation"
+        },
+        "cub200_development": {
+          "external_learned_minus_pca_map_at_r": -0.000323,
+          "selected": "PCA int8-128",
+          "status": "verified-null-correct-fallback"
+        },
+        "oxford_iiit_pet_untouched_confirmation": {
+          "candidate": {
+            "map_at_r": 0.862759,
+            "method": "learned int8-128",
+            "recall_at_1": 0.969595
+          },
+          "learned_minus_pca_map_at_r": 0.015121,
+          "learned_minus_pca_recall_at_1": 0.007320,
+          "pca_int8_128": {
+            "map_at_r": 0.847639,
+            "recall_at_1": 0.962275
+          },
+          "status": "verified-prospective-pass"
+        }
       }
     },
     "packed_int8_cutile_1m": {
