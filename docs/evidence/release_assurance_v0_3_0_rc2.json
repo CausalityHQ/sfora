@@ -141,6 +141,13 @@
       "from sfora import PackedInt8Embeddings",
       "from sfora.cutile_int8 import CutilePackedInt8Gallery"
     ],
+    "rust_cutile_backend": {
+      "aarch64_cdylib_bytes": 10841080,
+      "aarch64_cdylib_sha256": "a9e583881201760088f3d99c180367e587ca68219c79dfe1760a3467f06b8dea",
+      "native_create_search_destroy_smoke": "verified on NVIDIA GB10 with authenticated tileiras on PATH",
+      "packaging": "source distribution includes the Rust crate; the py3-none-any wheel contains the Python FFI wrapper but not the architecture-specific cdylib",
+      "toolchain_requirements": "CUDA_TOOLKIT_PATH, a bindgen compiler include path, and tileiras on PATH"
+    },
     "status": "verified"
   },
   "schema": "sfora-release-assurance-v1",

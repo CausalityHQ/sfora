@@ -57,6 +57,29 @@ control, and a **BatchNorm** mismatch between an EMA teacher and its student.
 > [one-million-row scorer evidence](docs/packed_int8_cutile_topk_result_2026-09-20.md),
 > and [negative-results ledger](docs/similarity_negative_results_2026-09-19.md).
 
+### cuTile backend installation boundary
+
+The Python wheel contains the validated `sfora.cutile_int8.CutilePackedInt8Gallery`
+FFI wrapper, but it does **not** bundle an architecture-specific native library.
+The source distribution contains the pinned
+`rust/sfora-cutile-int8-score` crate. On a supported CUDA host, build the backend
+from that source with the CUDA toolkit and NVIDIA `tileiras` compiler explicitly
+available:
+
+```bash
+CUDA_TOOLKIT_PATH=/usr/local/cuda \
+BINDGEN_EXTRA_CLANG_ARGS=-I/usr/lib/gcc/aarch64-linux-gnu/13/include \
+cargo build --locked --release -p sfora-cutile-int8-score
+```
+
+`tileiras` must also be on `PATH` when the first search JIT-compiles its kernels.
+Pass the resulting absolute
+`target/release/libsfora_cutile_int8_score.so` path to
+`CutilePackedInt8Gallery.open(...)`. The GCC include path above is the verified
+aarch64 DGX setting; other supported hosts must supply their own compiler include
+path. Missing CUDA, `tileiras`, or an incompatible backend fails closed—there is
+no silently relabelled CPU fallback.
+
 > ## Historical status (2026-07-29) — superseded and partly retracted
 >
 > The “two results stand” wording below is preserved as decision history. The
