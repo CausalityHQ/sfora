@@ -1,0 +1,117 @@
+{
+  "artifact": {
+    "sdist": {
+      "bytes": 15795496,
+      "filename": "sfora-0.3.0.tar.gz",
+      "sha256": "ecabfb8e4b5dfd49b50e5f4091048ebc7b4d85debe84584887c6693c9b9188af"
+    },
+    "wheel": {
+      "bytes": 572128,
+      "filename": "sfora-0.3.0-py3-none-any.whl",
+      "sha256": "0bfc44be285bd0625debcef7c34b917a489770ca114d7fa1fcdc9b465a7131be"
+    }
+  },
+  "artifact_reproducibility": {
+    "independent_builds": 2,
+    "sdist_sha256_equal": true,
+    "wheel_sha256_equal": true
+  },
+  "claim": {
+    "matched_sota_claim": false,
+    "release_scope": "validated library release candidate",
+    "reason": "The strongest quality and serving results are verified, but no matched current-SOTA implementation has yet been measured under identical data, split, representation, and hardware settings."
+  },
+  "commit": "1e6268b549a42d849b0ea85276dd1aad128c84ef",
+  "known_non_green_gates": {
+    "mypy_src_tests": "pre-existing repository-wide typing debt",
+    "ruff_check_repository": "pre-existing findings across legacy, report, and scratch sources",
+    "ruff_format_repository": "pre-existing formatting drift across historical authenticated sources",
+    "scope_decision": "Do not mechanically rewrite authenticated historical sources in this release slice; changed production and test files passed scoped Ruff, py_compile, and diff checks."
+  },
+  "measured_evidence": {
+    "compact_quality": {
+      "aircraft_official_test": {
+        "baseline": {
+          "map_at_r": 0.439829,
+          "method": "PCA int8-128",
+          "recall_at_1": 0.724925
+        },
+        "candidate": {
+          "map_at_r": 0.480614,
+          "method": "learned int8-128",
+          "recall_at_1": 0.740541
+        },
+        "map_at_r_delta": 0.040785,
+        "map_at_r_delta_95pct_ci": [
+          0.024954,
+          0.059056
+        ],
+        "status": "verified"
+      },
+      "cars196_siglip2_screen": {
+        "baseline_map_at_r": 0.860660,
+        "candidate_map_at_r": 0.930646,
+        "map_at_r_delta": 0.069987,
+        "map_at_r_delta_95pct_ci": [
+          0.047632,
+          0.094565
+        ],
+        "status": "verified-pass"
+      },
+      "cub_siglip2_replication": {
+        "baseline_map_at_r": 0.697855,
+        "candidate_map_at_r": 0.644223,
+        "map_at_r_delta": -0.053633,
+        "map_at_r_delta_95pct_ci": [
+          -0.076936,
+          -0.027689
+        ],
+        "status": "verified-fail-family-closed"
+      }
+    },
+    "packed_int8_cutile_1m": {
+      "batch_1": {
+        "p50_ms": 1.021,
+        "p99_ms": 1.550,
+        "throughput_queries_per_second": 954.6
+      },
+      "batch_32": {
+        "p50_ms": 4.594,
+        "p99_ms": 5.274,
+        "throughput_queries_per_second": 6870.4
+      },
+      "bytes_per_item": 130,
+      "exact_score_bits": true,
+      "peak_rss_bytes": 1552000000,
+      "status": "verified"
+    },
+    "rejected_augmentations": {
+      "flip_augmentation": "closed because the positive effect was below the preregistered threshold and its confidence interval crossed zero",
+      "top2_database_augmentation": "closed because mAP improved while Recall@1 regressed on both In-Shop and EuroSAT"
+    }
+  },
+  "package_smoke": {
+    "base_environment": [
+      "import sfora",
+      "metadata version equals 0.3.0",
+      "sfora --help"
+    ],
+    "python": "CPython 3.12.3",
+    "research_environment": [
+      "from sfora import CompactMetricEncoder",
+      "from sfora import PackedInt8Embeddings",
+      "from sfora.cutile_int8 import CutilePackedInt8Gallery"
+    ],
+    "status": "verified"
+  },
+  "schema": "sfora-release-assurance-v1",
+  "test_assurance": {
+    "collected": 5320,
+    "failed": 0,
+    "method": "serial file-batched execution in one immutable DGX checkout, with ten high-memory nodes run individually after the memory-pressure gate cleared",
+    "passed": 5313,
+    "python": "CPython 3.12.3",
+    "skipped": 7,
+    "skip_reason": "declared CUDA-unavailable or fused-AdamW environment skips"
+  }
+}
