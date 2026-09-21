@@ -7,6 +7,22 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added
+
+- Search-ready compact encoding that returns the canonical int8 codes and
+  float16 inverse norms required by exact cosine retrieval.
+- A bounded-memory deterministic CPU exact-search fallback over the same packed
+  representation, with authenticated self-describing gallery artifacts.
+- Typed packed-value adapters and arbitrary logical batching for the persistent
+  cuTile exact top-10 backend.
+
+### Changed
+
+- Native logical requests now use batch-32 kernel chunks and pad only a final
+  2–31-query tail while holding the gallery lifecycle lock for the full request.
+- DADA terminal evidence parsing now requires exactly 200 complete epochs and
+  recomputes final/best mAP@R, Recall@1, and runtime summaries without retuning.
+
 ## [0.3.0rc3] - 2026-09-21
 
 ### Added
