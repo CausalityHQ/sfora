@@ -151,6 +151,19 @@
     "status": "verified"
   },
   "schema": "sfora-release-assurance-v1",
+  "scoped_release_surface_assurance": {
+    "python_modules": [
+      "src/sfora/compact_metric.py",
+      "src/sfora/cutile_int8.py",
+      "src/sfora/joint_relational_compaction.py"
+    ],
+    "python_static": "Ruff format, Ruff check, and strict mypy all passed",
+    "rust_cutile": {
+      "clippy": "passed with -D warnings on all crate targets",
+      "format": "cargo fmt --all --check passed",
+      "tests": "7 passed, 0 failed, including three live NVIDIA GB10 kernel/FFI exactness tests"
+    }
+  },
   "test_assurance": {
     "collected": 5320,
     "failed": 0,
