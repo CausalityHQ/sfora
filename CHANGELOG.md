@@ -7,6 +7,19 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [0.3.0rc3] - 2026-09-21
+
+### Added
+
+- Authenticated portable save/load support for `CompactMetricEncoder`.
+- A single release table joining quality, confidence intervals, storage,
+  latency, throughput, memory, matched baselines, and claim limitations.
+
+### Changed
+
+- Distinguished library release readiness from scientific claim eligibility,
+  and documented the functional versus resource-qualified compact-fit limits.
+
 ## [0.3.0rc2] - 2026-09-21
 
 ### Added

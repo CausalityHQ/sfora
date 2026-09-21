@@ -6,6 +6,7 @@ import hashlib
 import math
 import struct
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Literal, cast
 
 import numpy as np
@@ -19,6 +20,9 @@ from sfora.teacher_anchored_distillation import (
     positive_coverage_hard_negative_loss,
     stable_different_class_topk,
 )
+
+_COMPACT_METRIC_ARTIFACT_MAGIC = b"SFORA-COMPACT-METRIC-v1\0"
+_SHA256_BYTES = 32
 
 
 @dataclass(frozen=True, slots=True)
@@ -117,11 +121,56 @@ class CompactMetricEncoder:
         """Return the digest of the canonical weight-then-bias float32 bytes."""
 
         digest = hashlib.sha256()
-        digest.update(b"SFORA-COMPACT-METRIC-v1\0")
+        digest.update(_COMPACT_METRIC_ARTIFACT_MAGIC)
         digest.update(struct.pack("<QQ", *self._weight.shape))
         digest.update(self._weight.numpy().astype("<f4", copy=False).tobytes(order="C"))
         digest.update(self._bias.numpy().astype("<f4", copy=False).tobytes(order="C"))
         return digest.hexdigest()
+
+    def save(self, path: Path) -> None:
+        """Persist the encoder in a strict authenticated little-endian format."""
+
+        if not isinstance(path, Path):
+            raise ValueError("compact metric artifact path differs")
+        payload = bytearray(_COMPACT_METRIC_ARTIFACT_MAGIC)
+        payload.extend(struct.pack("<QQ", *self._weight.shape))
+        payload.extend(self._weight.numpy().astype("<f4", copy=False).tobytes(order="C"))
+        payload.extend(self._bias.numpy().astype("<f4", copy=False).tobytes(order="C"))
+        payload.extend(hashlib.sha256(payload).digest())
+        path.write_bytes(payload)
+
+    @classmethod
+    def load(cls, path: Path) -> CompactMetricEncoder:
+        """Load an encoder only when its framing, length, and digest are exact."""
+
+        if not isinstance(path, Path):
+            raise ValueError("compact metric artifact path differs")
+        artifact = path.read_bytes()
+        header_bytes = len(_COMPACT_METRIC_ARTIFACT_MAGIC) + 16
+        if len(artifact) < header_bytes + _SHA256_BYTES:
+            raise ValueError("compact metric artifact differs")
+        payload = artifact[:-_SHA256_BYTES]
+        if (
+            not payload.startswith(_COMPACT_METRIC_ARTIFACT_MAGIC)
+            or hashlib.sha256(payload).digest() != artifact[-_SHA256_BYTES:]
+        ):
+            raise ValueError("compact metric artifact differs")
+        output_dimensions, input_dimensions = struct.unpack(
+            "<QQ", payload[len(_COMPACT_METRIC_ARTIFACT_MAGIC) : header_bytes]
+        )
+        expected_bytes = header_bytes + 4 * (
+            output_dimensions * input_dimensions + output_dimensions
+        )
+        if output_dimensions < 2 or input_dimensions < 2 or len(payload) != expected_bytes:
+            raise ValueError("compact metric artifact differs")
+        values = np.frombuffer(payload, dtype="<f4", offset=header_bytes).copy()
+        split = output_dimensions * input_dimensions
+        weight = torch.from_numpy(values[:split].reshape(output_dimensions, input_dimensions))
+        bias = torch.from_numpy(values[split:])
+        try:
+            return cls(weight=weight, bias=bias)
+        except ValueError as error:
+            raise ValueError("compact metric artifact differs") from error
 
     def transform(self, embeddings: torch.Tensor) -> torch.Tensor:
         """Project finite nonzero CPU float32 embeddings into the unit code space."""

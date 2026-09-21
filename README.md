@@ -29,7 +29,7 @@ That machinery is the point. It caught two real confounds that had each produced
 published-looking result: a **LayerNorm** mismatch between a method and its own
 control, and a **BatchNorm** mismatch between an EMA teacher and its student.
 
-> ## Current status (2026-09-20) — verified compact retrieval, no SOTA claim
+> ## Current status (2026-09-21) — verified compact retrieval, no SOTA claim
 >
 > SFORA 0.3 ships two evidence-backed components: a fit-only compact-metric
 > selector with a PCA fallback, and an exact persistent cuTile scorer for its
@@ -56,6 +56,10 @@ control, and a **BatchNorm** mismatch between an EMA teacher and its student.
 > [compact selector evidence](docs/compact_metric_selector_result_2026-09-19.md),
 > [one-million-row scorer evidence](docs/packed_int8_cutile_topk_result_2026-09-20.md),
 > and [negative-results ledger](docs/similarity_negative_results_2026-09-19.md).
+> The [0.3.0rc3 release table](docs/release_candidate_0_3_0_rc3.md) puts quality,
+> matched baselines, confidence intervals, bytes, latency, throughput, RSS, and
+> claim limits in one place. Here, **release-ready** describes package/API/system
+> verification; **claim-eligible** is the separate scientific-publication status.
 
 ### cuTile backend installation boundary
 
@@ -411,8 +415,9 @@ fallback. The resulting code stores one signed byte per output coordinate.
 
 ```python
 import torch
+from pathlib import Path
 
-from sfora import CompactMetricConfig, select_compact_metric_projection
+from sfora import CompactMetricConfig, CompactMetricEncoder, select_compact_metric_projection
 
 training_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 selection = select_compact_metric_projection(
@@ -424,13 +429,20 @@ selection = select_compact_metric_projection(
 encoder = selection.encoder.to_module(training_device)
 gallery_codes = encoder.encode(gallery_embeddings.to(training_device).contiguous().float())
 query_codes = encoder.encode(query_embeddings.to(training_device).contiguous().float())
+
+# Persist the selected affine encoder in an authenticated, portable format.
+selection.encoder.save(Path("compact-metric.sfora"))
+restored = CompactMetricEncoder.load(Path("compact-metric.sfora"))
+assert restored.sha256 == selection.encoder.sha256
 ```
 
 Only fit labels enter selection or training; keep evaluation identities and
 queries outside this call. Integer label IDs determine the reproducible fold
 assignment, so their mapping must remain stable. Training performs quadratic
 hard-negative mining and is validated up to 25,882 fit rows; it is not a
-streaming large-corpus trainer. Every deterministic fold must receive an
+streaming large-corpus trainer. A 59,551-row SOP fit completed functionally,
+but retained no peak-RSS evidence and does not extend the resource-qualified
+boundary. Every deterministic fold must receive an
 eligible class; small class sets can therefore be rejected rather than silently
 falling back. The encoder itself is one normalized affine projection plus int8
 rounding. The selector has one prospective confirmation on a class-disjoint
