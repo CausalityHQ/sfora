@@ -1,29 +1,32 @@
 {
   "artifact": {
     "sdist": {
-      "bytes": 15846703,
-      "filename": "sfora-0.3.0.tar.gz",
-      "sha256": "2ad0b99e41455f6135b95a9d78a254cadd82c03291cc4f8eb3507457778db349"
+      "bytes": 776072,
+      "filename": "sfora-0.3.0rc2.tar.gz",
+      "sha256": "e6e03cfb223912a0375e1153e0a875cbab9e7a10e202867bbdb6ac1fa330ec53"
     },
     "wheel": {
-      "bytes": 572627,
-      "filename": "sfora-0.3.0-py3-none-any.whl",
-      "sha256": "10e5d6685dd154f4bee085b6d6746fdc2118f2ee209f3c5816f916467b07af8d"
+      "bytes": 572891,
+      "filename": "sfora-0.3.0rc2-py3-none-any.whl",
+      "sha256": "036c9d1ff445c12f715442388c6341ad0cf39fa28280b0a290778445baf69761"
     }
   },
   "artifact_reproducibility": {
+    "build_backend": "hatchling==1.32.3",
+    "clean_git_archive_exports": true,
     "independent_builds": 2,
+    "sdist_scope": "explicit package, Rust crate, lockfiles, metadata, README, changelog, and license allowlist; docs, tests, reports, scripts, site, .devbox, and img are excluded",
     "sdist_sha256_equal": true,
     "wheel_sha256_equal": true
   },
   "claim": {
     "matched_sota_claim": false,
-    "release_scope": "validated library release candidate",
+    "release_scope": "validated library prerelease candidate",
     "reason": "The strongest quality and serving results are verified, but no matched current-SOTA implementation has yet been measured under identical data, split, representation, and hardware settings."
   },
-  "commit": "321ec10b7674aead22faebe104ca956a3a781996",
+  "source_commit": "349fc255d3ef5f1417716baa4f466ec853cf33ea",
   "known_non_green_gates": {
-    "ci_consequence": "The checked-in CI workflow runs these repository-wide gates, so the current master is not a fully green final-release candidate.",
+    "ci_consequence": "The checked-in CI workflow now triggers on canonical master and v* tags, but its repository-wide Ruff and mypy jobs remain red because of the disclosed legacy debt; this prerelease is not represented as a fully green final release.",
     "mypy_src_tests": "2,699 pre-existing errors across 130 source/test files",
     "ruff_check_repository": "505 pre-existing findings across 55 legacy, report, scratch, source, and test files",
     "ruff_format_repository": "247 files would be reformatted; 280 files already conform",
@@ -162,32 +165,55 @@
   "package_smoke": {
     "base_environment": [
       "import sfora",
-      "metadata version equals 0.3.0",
+      "metadata version equals 0.3.0rc2",
+      "import sfora.cutile_int8",
       "sfora --help"
     ],
+    "base_method": "installed the clean-export wheel and dependencies into a fresh offline virtual environment",
     "python": "CPython 3.12.3",
     "research_environment": [
       "from sfora import CompactMetricEncoder",
       "from sfora import PackedInt8Embeddings",
       "from sfora.cutile_int8 import CutilePackedInt8Gallery"
     ],
+    "research_method": "loaded the unpacked wheel ahead of an authenticated existing environment containing the optional research dependencies because Matplotlib was unavailable in the offline package cache",
     "rust_cutile_backend": {
       "aarch64_cdylib_bytes": 10841080,
       "aarch64_cdylib_sha256": "a9e583881201760088f3d99c180367e587ca68219c79dfe1760a3467f06b8dea",
       "native_create_search_destroy_smoke": "verified on NVIDIA GB10 with authenticated tileiras on PATH",
+      "native_device": "current native backend uses CUDA device 0",
       "packaging": "source distribution includes the Rust crate; the py3-none-any wheel contains the Python FFI wrapper but not the architecture-specific cdylib",
+      "python_lifecycle": "search and close are serialized per gallery; separate gallery instances may execute independently",
       "toolchain_requirements": "CUDA_TOOLKIT_PATH, a bindgen compiler include path, and tileiras on PATH"
     },
     "status": "verified"
   },
   "schema": "sfora-release-assurance-v1",
+  "release_review": {
+    "dual_critique_group": "e1b61a90a53841f3",
+    "reviewers": [
+      "Claude Fable 5.1",
+      "Codex GPT-6 Astra"
+    ],
+    "verdict": "tag-only-after-fixes",
+    "verified_disposition": {
+      "ci_branch": "fixed to canonical master and v* tags",
+      "concurrent_gallery_lifecycle": "fixed with a per-gallery lifecycle lock and deterministic close/search plus search/search tests",
+      "package_version": "fixed to 0.3.0rc2",
+      "return_dtype_annotation": "fixed to int64 to match the actual public return value",
+      "sdist_reproducibility": "fixed with a pinned build backend and explicit narrow include list",
+      "sota_wording": "legacy changelog wording qualified; no matched current-SOTA claim is made",
+      "tag_target": "the v0.3.0-rc2 tag must point to the receipt-bearing commit; artifacts remain bound to source_commit because docs are excluded from both artifacts"
+    }
+  },
   "scoped_release_surface_assurance": {
     "python_modules": [
       "src/sfora/compact_metric.py",
       "src/sfora/cutile_int8.py",
       "src/sfora/joint_relational_compaction.py"
     ],
-    "python_static": "Ruff format, Ruff check, and strict mypy all passed",
+    "python_lifecycle_tests": "tests/test_cutile_int8.py: 4 passed, including deterministic close/search and search/search serialization tests",
+    "python_static": "Ruff format, Ruff check, and strict mypy passed on the changed release surface",
     "rust_cutile": {
       "clippy": "passed with -D warnings on all crate targets",
       "format": "cargo fmt --all --check passed",
@@ -195,12 +221,22 @@
     }
   },
   "test_assurance": {
-    "collected": 5320,
-    "failed": 0,
-    "method": "serial file-batched execution in one immutable DGX checkout, with ten high-memory nodes run individually after the memory-pressure gate cleared",
-    "passed": 5313,
+    "inherited_full_suite": {
+      "collected": 5320,
+      "failed": 0,
+      "method": "serial file-batched execution in one immutable DGX checkout, with ten high-memory nodes run individually after the memory-pressure gate cleared",
+      "passed": 5313,
+      "skipped": 7,
+      "source_commit": "321ec10b7674aead22faebe104ca956a3a781996"
+    },
+    "post_review_delta": {
+      "failed": 0,
+      "passed": 4,
+      "source_commit": "349fc255d3ef5f1417716baa4f466ec853cf33ea",
+      "test_file": "tests/test_cutile_int8.py"
+    },
     "python": "CPython 3.12.3",
-    "skipped": 7,
-    "skip_reason": "declared CUDA-unavailable or fused-AdamW environment skips"
+    "skip_reason": "seven declared environment-conditional skips in the inherited full-suite run; see source configuration and markers",
+    "scope_note": "Rust production code was unchanged after the inherited full-suite and live native evidence; the post-review Python lifecycle delta received focused unit and static verification."
   }
 }
