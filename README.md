@@ -90,6 +90,20 @@ and concurrent searches do not enter the native handle simultaneously. Use
 separate processes or separately opened galleries when deployment requires
 parallel native calls, and account for each gallery's device memory.
 
+For a portable correctness fallback, `sfora.CpuPackedInt8Gallery` consumes the
+same `PackedInt8Embeddings` value and returns the same ordinal/score array
+shapes. It scans explicit gallery blocks, so score workspace is bounded rather
+than allocating the full query-by-gallery matrix, and resolves equal scores by
+the lowest gallery ordinal. This CPU path is deliberately explicit: failure to
+load the CUDA backend never silently changes deployment performance.
+
+```python
+from sfora import CpuPackedInt8Gallery
+
+cpu_gallery = CpuPackedInt8Gallery.open_packed(gallery_packed, block_rows=65_536)
+top10_ordinals, top10_scores = cpu_gallery.search_packed(query_packed)
+```
+
 > ## Historical status (2026-07-29) — superseded and partly retracted
 >
 > The “two results stand” wording below is preserved as decision history. The

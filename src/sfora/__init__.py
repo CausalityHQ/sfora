@@ -133,6 +133,8 @@ _PACKED_INT4_EXPORTS = frozenset(
     }
 )
 
+_PACKED_INT8_SEARCH_EXPORTS = frozenset({"CpuPackedInt8Gallery"})
+
 _COMPACT_METRIC_EXPORTS = frozenset(
     {
         "CompactMetricConfig",
@@ -325,6 +327,11 @@ def __getattr__(name: str) -> object:
         value = cast(object, getattr(module, name))
         globals()[name] = value
         return value
+    if name in _PACKED_INT8_SEARCH_EXPORTS:
+        module = import_module("sfora.packed_int8_search")
+        value = cast(object, getattr(module, name))
+        globals()[name] = value
+        return value
     if name in _COMPACT_METRIC_EXPORTS:
         module = import_module("sfora.compact_metric")
         value = cast(object, getattr(module, name))
@@ -416,6 +423,7 @@ __all__ = [
     "CompactMetricModule",
     "CompactMetricSelectionFold",
     "CompactMetricSelectionResult",
+    "CpuPackedInt8Gallery",
     "PowerWhiteningFitResult",
     "WithinClassWhiteningFitResult",
     "ExperimentResult",
