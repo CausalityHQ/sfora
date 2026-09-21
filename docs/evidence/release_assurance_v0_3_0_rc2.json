@@ -1,14 +1,14 @@
 {
   "artifact": {
     "sdist": {
-      "bytes": 15795496,
+      "bytes": 15846703,
       "filename": "sfora-0.3.0.tar.gz",
-      "sha256": "ecabfb8e4b5dfd49b50e5f4091048ebc7b4d85debe84584887c6693c9b9188af"
+      "sha256": "2ad0b99e41455f6135b95a9d78a254cadd82c03291cc4f8eb3507457778db349"
     },
     "wheel": {
-      "bytes": 572128,
+      "bytes": 572627,
       "filename": "sfora-0.3.0-py3-none-any.whl",
-      "sha256": "0bfc44be285bd0625debcef7c34b917a489770ca114d7fa1fcdc9b465a7131be"
+      "sha256": "10e5d6685dd154f4bee085b6d6746fdc2118f2ee209f3c5816f916467b07af8d"
     }
   },
   "artifact_reproducibility": {
@@ -21,7 +21,7 @@
     "release_scope": "validated library release candidate",
     "reason": "The strongest quality and serving results are verified, but no matched current-SOTA implementation has yet been measured under identical data, split, representation, and hardware settings."
   },
-  "commit": "1e6268b549a42d849b0ea85276dd1aad128c84ef",
+  "commit": "321ec10b7674aead22faebe104ca956a3a781996",
   "known_non_green_gates": {
     "ci_consequence": "The checked-in CI workflow runs these repository-wide gates, so the current master is not a fully green final-release candidate.",
     "mypy_src_tests": "2,699 pre-existing errors across 130 source/test files",
