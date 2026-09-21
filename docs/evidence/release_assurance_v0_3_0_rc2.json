@@ -23,9 +23,10 @@
   },
   "commit": "1e6268b549a42d849b0ea85276dd1aad128c84ef",
   "known_non_green_gates": {
-    "mypy_src_tests": "pre-existing repository-wide typing debt",
-    "ruff_check_repository": "pre-existing findings across legacy, report, and scratch sources",
-    "ruff_format_repository": "pre-existing formatting drift across historical authenticated sources",
+    "ci_consequence": "The checked-in CI workflow runs these repository-wide gates, so the current master is not a fully green final-release candidate.",
+    "mypy_src_tests": "2,699 pre-existing errors across 130 source/test files",
+    "ruff_check_repository": "505 pre-existing findings across 55 legacy, report, scratch, source, and test files",
+    "ruff_format_repository": "247 files would be reformatted; 280 files already conform",
     "scope_decision": "Do not mechanically rewrite authenticated historical sources in this release slice; changed production and test files passed scoped Ruff, py_compile, and diff checks."
   },
   "measured_evidence": {
