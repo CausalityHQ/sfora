@@ -340,9 +340,7 @@ def test_environment_probe_imports_exact_upstream_graph_through_registered_paths
     command = dada._build_environment_probe_command(request)
 
     assert command[:4] == (str(request.python), "-I", "-B", "-c")
-    assert command[4].index(str(dependency_root)) < command[4].index(
-        str(request.source.checkout)
-    )
+    assert command[4].index(str(dependency_root)) < command[4].index(str(request.source.checkout))
     for module in (
         "faiss",
         "sklearn",
@@ -378,9 +376,7 @@ def test_command_inserts_dedicated_dependency_root_without_changing_torch(
 
 
 @pytest.mark.parametrize(("field", "value"), [("seed", 1), ("gpu", 1)])
-def test_command_rejects_unregistered_seed_or_gpu(
-    tmp_path: Path, field: str, value: int
-) -> None:
+def test_command_rejects_unregistered_seed_or_gpu(tmp_path: Path, field: str, value: int) -> None:
     request = _request(tmp_path)
     mutated = dada.DadaSmokeRequest(
         **{**request.__dict__, field: value},
@@ -431,6 +427,55 @@ def test_log_parser_accepts_real_tqdm_intermediate_frames() -> None:
     assert progress.completed_epochs == 6
     assert progress.optimizer_steps == 5 * 8
     assert progress.last_loss == pytest.approx(0.2)
+
+
+def test_full_log_parser_recomputes_all_terminal_quality_and_runtime_fields() -> None:
+    lines = []
+    for epoch in range(200):
+        recall = 0.93 if epoch == 150 else 0.80 + epoch / 10_000
+        map_at_r = 0.82 if epoch == 120 else 0.70 + epoch / 10_000
+        lines.extend(
+            (
+                f"[Train Epoch {epoch}]: 100.00% [143/143, 00:10<00:00, "
+                f"DisL:0.5000, DML:{1.0 / (epoch + 1):.6f}]",
+                f"e_recall@1: {recall:.6f}",
+                f"MAP: {map_at_r:.6f}",
+                f"Total Epoch Runtime: {100.0 + epoch:.2f}s",
+            )
+        )
+
+    progress = dada.parse_dada_full_log(lines)
+
+    assert progress.completed_epochs == 200
+    assert progress.optimizer_steps == 199 * 143
+    assert progress.last_loss == pytest.approx(0.005)
+    assert progress.last_recall_at_1 == pytest.approx(0.8199)
+    assert progress.best_recall_at_1 == pytest.approx(0.93)
+    assert progress.best_recall_epoch == 150
+    assert progress.last_map_at_r == pytest.approx(0.7199)
+    assert progress.best_map_at_r == pytest.approx(0.82)
+    assert progress.best_map_epoch == 120
+    assert progress.total_epoch_seconds == pytest.approx(39_900.0)
+    assert progress.mean_epoch_seconds == pytest.approx(199.5)
+    assert progress.median_epoch_seconds == pytest.approx(199.5)
+    assert progress.last_epoch_seconds == pytest.approx(299.0)
+
+
+def test_full_log_parser_rejects_out_of_range_map() -> None:
+    lines = []
+    for epoch in range(200):
+        lines.extend(
+            (
+                f"[Train Epoch {epoch}]: 100.00% [143/143, 00:10<00:00, "
+                "DisL:0.5000, DML:0.1000]",
+                "e_recall@1: 0.9000",
+                "MAP: 1.1000" if epoch == 199 else "MAP: 0.8000",
+                "Total Epoch Runtime: 100.00s",
+            )
+        )
+
+    with pytest.raises(ValueError, match="DADA MAP differs"):
+        dada.parse_dada_full_log(lines)
 
 
 def test_log_parser_rejects_incomplete_last_tqdm_frame() -> None:
@@ -608,9 +653,10 @@ def test_success_report_recomputes_runtime_and_budget_fields(
     assert report["evaluation"]["last_recall_at_1"] == pytest.approx(0.85)
     assert report["evaluation"]["best_recall_at_1"] == pytest.approx(0.85)
     assert report["evaluation"]["best_checkpoint"] == str(checkpoint)
-    assert report["config"]["smoke_config_sha256"] == hashlib.sha256(
-        request.smoke_config.read_bytes()
-    ).hexdigest()
+    assert (
+        report["config"]["smoke_config_sha256"]
+        == hashlib.sha256(request.smoke_config.read_bytes()).hexdigest()
+    )
     assert report["progress"]["last_epoch_seconds"] == pytest.approx(12.5)
     missing_peak = copy.deepcopy(report)
     missing_peak["resources"]["peak_gpu_memory_mib"] = None

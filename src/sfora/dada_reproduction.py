@@ -10,6 +10,7 @@ import platform
 import re
 import secrets
 import stat
+import statistics
 import subprocess
 import sys
 import time
@@ -79,6 +80,23 @@ class DadaProgress:
     last_loss: float
     last_recall_at_1: float
     best_recall_at_1: float
+    last_epoch_seconds: float
+
+
+@dataclass(frozen=True)
+class DadaFullProgress:
+    completed_epochs: int
+    optimizer_steps: int
+    last_loss: float
+    last_recall_at_1: float
+    best_recall_at_1: float
+    best_recall_epoch: int
+    last_map_at_r: float
+    best_map_at_r: float
+    best_map_epoch: int
+    total_epoch_seconds: float
+    mean_epoch_seconds: float
+    median_epoch_seconds: float
     last_epoch_seconds: float
 
 
@@ -224,12 +242,12 @@ def build_dada_command(request: DadaSmokeRequest) -> tuple[str, ...]:
         f"sys.path.insert(0,{checkout!r});"
         "import pandas as _dada_pd;"
         "_dada_original_read_table=_dada_pd.read_table;"
-        "exec(\"def _dada_read_table(*args,**kwargs):\\n"
+        'exec("def _dada_read_table(*args,**kwargs):\\n'
         "    delim=kwargs.pop('delim_whitespace',False)\\n"
         "    if delim:\\n"
         "        if 'sep' in kwargs: raise TypeError('sep and delim_whitespace conflict')\\n"
         "        kwargs['sep']=r'\\\\s+'\\n"
-        "    return _dada_original_read_table(*args,**kwargs)\",globals());"
+        '    return _dada_original_read_table(*args,**kwargs)",globals());'
         "_dada_pd.read_table=_dada_read_table;"
         f"runpy.run_path({main_path!r},run_name='__main__')"
     )
@@ -260,9 +278,8 @@ _TRAIN_RE = re.compile(
     r"DML:(?P<loss>[-+A-Za-z0-9.eE]+)"
 )
 _RECALL_RE = re.compile(r"e_recall@1:\s*(?P<recall>[-+A-Za-z0-9.eE]+)")
-_EPOCH_RUNTIME_RE = re.compile(
-    r"Total Epoch Runtime:\s*(?P<seconds>[-+A-Za-z0-9.eE]+)s"
-)
+_MAP_RE = re.compile(r"MAP:\s*(?P<map>[-+A-Za-z0-9.eE]+)")
+_EPOCH_RUNTIME_RE = re.compile(r"Total Epoch Runtime:\s*(?P<seconds>[-+A-Za-z0-9.eE]+)s")
 
 
 def parse_dada_log(lines: Iterable[str]) -> DadaProgress:
@@ -317,6 +334,49 @@ def parse_dada_log(lines: Iterable[str]) -> DadaProgress:
         last_recall_at_1=recalls[-1],
         best_recall_at_1=max(recalls),
         last_epoch_seconds=epoch_runtimes[-1],
+    )
+
+
+def parse_dada_full_log(lines: Iterable[str]) -> DadaFullProgress:
+    raw_lines = tuple(str(line) for line in lines)
+    progress = parse_dada_log(raw_lines)
+    if progress.completed_epochs != 200:
+        raise ValueError("DADA full run did not complete exactly 200 epochs")
+    recalls: list[float] = []
+    maps: list[float] = []
+    runtimes: list[float] = []
+    for line in raw_lines:
+        for fragment in line.split("\r"):
+            recall_match = _RECALL_RE.search(fragment)
+            if recall_match is not None:
+                recalls.append(float(recall_match.group("recall")))
+            map_match = _MAP_RE.search(fragment)
+            if map_match is not None:
+                map_at_r = float(map_match.group("map"))
+                if not math.isfinite(map_at_r) or not 0.0 <= map_at_r <= 1.0:
+                    raise ValueError("DADA MAP differs")
+                maps.append(map_at_r)
+            runtime_match = _EPOCH_RUNTIME_RE.search(fragment)
+            if runtime_match is not None:
+                runtimes.append(float(runtime_match.group("seconds")))
+    if len(recalls) != 200 or len(maps) != 200 or len(runtimes) != 200:
+        raise ValueError("DADA full per-epoch evidence differs")
+    best_recall_epoch = max(range(200), key=recalls.__getitem__)
+    best_map_epoch = max(range(200), key=maps.__getitem__)
+    return DadaFullProgress(
+        completed_epochs=progress.completed_epochs,
+        optimizer_steps=progress.optimizer_steps,
+        last_loss=progress.last_loss,
+        last_recall_at_1=progress.last_recall_at_1,
+        best_recall_at_1=progress.best_recall_at_1,
+        best_recall_epoch=best_recall_epoch,
+        last_map_at_r=maps[-1],
+        best_map_at_r=maps[best_map_epoch],
+        best_map_epoch=best_map_epoch,
+        total_epoch_seconds=sum(runtimes),
+        mean_epoch_seconds=statistics.fmean(runtimes),
+        median_epoch_seconds=statistics.median(runtimes),
+        last_epoch_seconds=progress.last_epoch_seconds,
     )
 
 
@@ -720,9 +780,7 @@ def run_dada_smoke(request: DadaSmokeRequest) -> dict[str, object]:
             "best_checkpoint": str(checkpoint),
         },
         "resources": {"peak_gpu_memory_mib": child.peak_gpu_memory_mib},
-        "projection": {
-            "projected_full_run_seconds": progress.last_epoch_seconds * 200.0
-        },
+        "projection": {"projected_full_run_seconds": progress.last_epoch_seconds * 200.0},
         "failure": None,
     }
     validate_dada_smoke_report(report)
