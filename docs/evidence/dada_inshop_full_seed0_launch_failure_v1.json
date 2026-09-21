@@ -1,0 +1,30 @@
+{
+  "attempt": {
+    "completed_epochs": 0,
+    "elapsed_seconds": 5,
+    "exit_code": 1,
+    "peak_gpu_memory_mib": 0,
+    "started_utc": "2026-09-21T01:49:22Z"
+  },
+  "classification": "INVALID_LAUNCH",
+  "failure": {
+    "exception": "FileNotFoundError: [Errno 2] No such file or directory: '/home/riomus/criteria'",
+    "root_cause": "The direct SSH harness inherited /home/riomus as its working directory, but upstream DADA discovers criteria modules relative to os.getcwd(). The successful smoke runner had explicitly set cwd to the pinned DADA checkout.",
+    "scientific_quality_available": false
+  },
+  "log": {
+    "bytes": 1447,
+    "remote_path": "/home/riomus/dada-full-seed0-v1/dada-child.log",
+    "sha256": "b452f96252ca3e2dc9e81b712737857f4b7f2203cb0aff5badc32c41a26fb05c"
+  },
+  "repair": {
+    "action": "Run the child from /home/riomus/DADA-726ee8b and preflight relative criteria/ and architectures/ discovery before the bounded process starts.",
+    "scope": "execution harness only; source, config, dataset, objective, and recipe bytes remain unchanged"
+  },
+  "schema": "sfora-dada-full-launch-failure-v1",
+  "source": {
+    "config_sha256": "2685672b2a42faef74d5ee3af0cecc035741728379ea147ef1197af777ff2160",
+    "dada_revision": "726ee8b9c94371e37beeeeeb9a50e6a0fec1d1c8",
+    "sfora_plan_commit": "9a90c5dd867c89c5b146fe47741f2cfea515fca5"
+  }
+}

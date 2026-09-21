@@ -71,7 +71,14 @@ Reject shell expansion and every extra training flag.
 
 - [ ] **Step 1: Start one bounded process group**
 
-Launch with `setsid timeout --signal=TERM --kill-after=30s 108000s`. Redirect stdout/stderr to the exclusive-create native log. Record process-group PID, start time, baseline swap, and GPU identity.
+Change the child working directory to the exact upstream checkout
+`/home/riomus/DADA-726ee8b`, matching the successful smoke runner's
+`subprocess.Popen(..., cwd=request.source.checkout)` boundary. Before the
+long run, prove that `criteria/` and `architectures/` resolve as directories
+from that working directory. Then launch with
+`setsid timeout --signal=TERM --kill-after=30s 108000s`. Redirect
+stdout/stderr to the exclusive-create native log. Record process-group PID,
+start time, baseline swap, and GPU identity.
 
 - [ ] **Step 2: Monitor the original process only**
 
