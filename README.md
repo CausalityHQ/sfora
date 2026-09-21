@@ -431,7 +431,12 @@ fallback. The resulting code stores one signed byte per output coordinate.
 import torch
 from pathlib import Path
 
-from sfora import CompactMetricConfig, CompactMetricEncoder, select_compact_metric_projection
+from sfora import (
+    CompactMetricConfig,
+    CompactMetricEncoder,
+    PackedInt8Embeddings,
+    select_compact_metric_projection,
+)
 from sfora.cutile_int8 import CutilePackedInt8Gallery
 
 training_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -454,6 +459,8 @@ assert restored.sha256 == selection.encoder.sha256
 # dimension plus one float16 inverse norm per row (130 bytes at 128 dimensions).
 gallery_packed = restored.encode_packed(gallery_embeddings.cpu().contiguous().float())
 query_packed = restored.encode_packed(query_embeddings.cpu().contiguous().float())
+gallery_packed.save(Path("gallery.sfora-int8"))
+gallery_packed = PackedInt8Embeddings.load(Path("gallery.sfora-int8"))
 
 with CutilePackedInt8Gallery.open_packed(
     Path("/absolute/path/to/libsfora_cutile_int8_score.so"), gallery_packed

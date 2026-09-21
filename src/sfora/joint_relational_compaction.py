@@ -2,15 +2,20 @@
 
 from __future__ import annotations
 
+import hashlib
 import math
 import struct
 from dataclasses import dataclass
+from pathlib import Path
 from typing import cast
 
 import numpy as np
 import torch
 from torch import nn
 from torch.nn import functional as F
+
+_PACKED_INT8_ARTIFACT_MAGIC = b"SFORA-PACKED-INT8-v1\0"
+_SHA256_BYTES = 32
 
 
 def _unit_rows(value: torch.Tensor) -> bool:
@@ -227,6 +232,44 @@ class PackedInt8Embeddings:
         inverse_bytes = self.inverse_norms.numpy().astype("<f2", copy=False).view(np.uint8)
         wire[:, dimensions:] = inverse_bytes.reshape(count, 2)
         return wire.tobytes(order="C")
+
+    def save(self, path: Path) -> None:
+        """Persist a self-describing packed batch with an exact SHA-256 trailer."""
+
+        if not isinstance(path, Path):
+            raise ValueError("packed int8 artifact path differs")
+        count, dimensions = self.codes.shape
+        payload = (
+            _PACKED_INT8_ARTIFACT_MAGIC + struct.pack("<QQ", count, dimensions) + self.to_bytes()
+        )
+        path.write_bytes(payload + hashlib.sha256(payload).digest())
+
+    @classmethod
+    def load(cls, path: Path) -> PackedInt8Embeddings:
+        """Load a packed batch only when framing, dimensions, and digest are exact."""
+
+        if not isinstance(path, Path):
+            raise ValueError("packed int8 artifact path differs")
+        artifact = path.read_bytes()
+        header_bytes = len(_PACKED_INT8_ARTIFACT_MAGIC) + 16
+        if len(artifact) < header_bytes + _SHA256_BYTES:
+            raise ValueError("packed int8 artifact differs")
+        payload = artifact[:-_SHA256_BYTES]
+        if (
+            not payload.startswith(_PACKED_INT8_ARTIFACT_MAGIC)
+            or hashlib.sha256(payload).digest() != artifact[-_SHA256_BYTES:]
+        ):
+            raise ValueError("packed int8 artifact differs")
+        count, dimensions = struct.unpack(
+            "<QQ", payload[len(_PACKED_INT8_ARTIFACT_MAGIC) : header_bytes]
+        )
+        expected_bytes = header_bytes + count * (dimensions + 2)
+        if count < 1 or dimensions < 2 or len(payload) != expected_bytes:
+            raise ValueError("packed int8 artifact differs")
+        try:
+            return cls.from_bytes(payload[header_bytes:], count=count, dimensions=dimensions)
+        except ValueError as error:
+            raise ValueError("packed int8 artifact differs") from error
 
     @classmethod
     def from_bytes(cls, wire: bytes, *, count: int, dimensions: int) -> PackedInt8Embeddings:

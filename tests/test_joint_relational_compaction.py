@@ -168,6 +168,23 @@ def test_packed_int8_embeddings_are_66_bytes_and_round_trip_exactly() -> None:
     )
 
 
+def test_packed_int8_artifact_is_self_describing_and_authenticated(tmp_path: Path) -> None:
+    packed = pack_int8_unit_embeddings(_unit(5, 64))
+    artifact = tmp_path / "gallery.sfora-int8"
+
+    packed.save(artifact)
+    restored = PackedInt8Embeddings.load(artifact)
+
+    assert restored.bytes_per_vector == 66
+    assert torch.equal(restored.codes, packed.codes)
+    assert torch.equal(restored.inverse_norms, packed.inverse_norms)
+    corrupted = bytearray(artifact.read_bytes())
+    corrupted[-33] ^= 1
+    artifact.write_bytes(corrupted)
+    with pytest.raises(ValueError, match="packed int8 artifact differs"):
+        PackedInt8Embeddings.load(artifact)
+
+
 def test_packed_int8_cosine_matches_restored_float_cosine() -> None:
     gallery = pack_int8_unit_embeddings(_unit(5, 64))
     queries = pack_int8_unit_embeddings(_unit(3, 64).roll(1, dims=1))
