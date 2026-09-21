@@ -434,6 +434,11 @@ query_codes = encoder.encode(query_embeddings.to(training_device).contiguous().f
 selection.encoder.save(Path("compact-metric.sfora"))
 restored = CompactMetricEncoder.load(Path("compact-metric.sfora"))
 assert restored.sha256 == selection.encoder.sha256
+
+# Emit the complete search wire representation on CPU: one int8 code byte per
+# dimension plus one float16 inverse norm per row (130 bytes at 128 dimensions).
+gallery_packed = restored.encode_packed(gallery_embeddings.cpu().contiguous().float())
+query_packed = restored.encode_packed(query_embeddings.cpu().contiguous().float())
 ```
 
 Only fit labels enter selection or training; keep evaluation identities and
@@ -445,7 +450,11 @@ but retained no peak-RSS evidence and does not extend the resource-qualified
 boundary. Every deterministic fold must receive an
 eligible class; small class sets can therefore be rejected rather than silently
 falling back. The encoder itself is one normalized affine projection plus int8
-rounding. The selector has one prospective confirmation on a class-disjoint
+rounding. `encode()` returns code bytes alone; use `encode_packed()` when exact
+cosine search also needs the per-row inverse norms. The returned
+`PackedInt8Embeddings.codes.numpy()` and
+`PackedInt8Embeddings.inverse_norms.numpy()` arrays can be passed directly to
+`CutilePackedInt8Gallery.open(...)` and `.search(...)`. The selector has one prospective confirmation on a class-disjoint
 Oxford-IIIT Pet protocol. See the
 [compact selector evidence](docs/compact_metric_selector_result_2026-09-19.md)
 for multi-dataset quality and claim limits, and the

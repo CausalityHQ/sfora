@@ -13,7 +13,11 @@ import numpy as np
 import torch
 from sklearn.covariance import LedoitWolf
 
-from sfora.joint_relational_compaction import fixed_int8_unit_codes
+from sfora.joint_relational_compaction import (
+    PackedInt8Embeddings,
+    fixed_int8_unit_codes,
+    pack_int8_unit_embeddings,
+)
 from sfora.representation_ceiling import fit_centered_pca
 from sfora.teacher_anchored_distillation import (
     class_balanced_anchor_schedule,
@@ -201,6 +205,11 @@ class CompactMetricEncoder:
 
         codes, _restored = fixed_int8_unit_codes(self.transform(embeddings))
         return codes
+
+    def encode_packed(self, embeddings: torch.Tensor) -> PackedInt8Embeddings:
+        """Return code bytes and inverse norms required by exact cosine search."""
+
+        return pack_int8_unit_embeddings(self.transform(embeddings))
 
     def to_module(self, device: torch.device) -> CompactMetricModule:
         """Build a frozen module for repeated inference beside a backbone."""

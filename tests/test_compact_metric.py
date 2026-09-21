@@ -22,6 +22,7 @@ from sfora.compact_metric import (
     fit_within_class_whitening_projection,
     select_compact_metric_projection,
 )
+from sfora.joint_relational_compaction import PackedInt8Embeddings
 from sfora.representation_ceiling import fit_centered_pca
 
 
@@ -236,6 +237,25 @@ def test_compact_metric_rejects_subnormal_input_geometry() -> None:
         )
     with pytest.raises(ValueError, match="within-class whitening authority differs"):
         fit_within_class_whitening_projection(embeddings, labels, output_dimensions=3)
+
+
+def test_compact_metric_encoder_emits_the_complete_search_wire_representation() -> None:
+    """Catch exposing code bytes without the inverse norms required by exact search."""
+
+    generator = torch.Generator().manual_seed(911)
+    embeddings = torch.randn(5, 6, generator=generator).float().contiguous()
+    encoder = CompactMetricEncoder(
+        weight=torch.randn(3, 6, generator=generator).float().contiguous(),
+        bias=torch.randn(3, generator=generator).float().contiguous(),
+    )
+
+    packed = encoder.encode_packed(embeddings)
+
+    assert isinstance(packed, PackedInt8Embeddings)
+    assert torch.equal(packed.codes, encoder.encode(embeddings))
+    assert packed.codes.shape == (5, 3)
+    assert packed.inverse_norms.shape == (5,)
+    assert len(packed.to_bytes()) == 5 * (3 + 2)
 
 
 def test_compact_metric_selection_policy_uses_quality_gain_and_recall_guard() -> None:
