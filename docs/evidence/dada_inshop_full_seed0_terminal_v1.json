@@ -1,0 +1,59 @@
+{
+  "schema": "sfora-dada-inshop-full-seed0-terminal-v1",
+  "status": "COMPLETE_SINGLE_SEED_DESCRIPTIVE",
+  "claim_eligible": false,
+  "source": {
+    "upstream_revision": "726ee8b9c94371e37beeeeeb9a50e6a0fec1d1c8",
+    "config_sha256": "2685672b2a42faef74d5ee3af0cecc035741728379ea147ef1197af777ff2160",
+    "dataset": "DeepFashion In-Shop official split",
+    "seed": 0,
+    "epochs_configured": 200,
+    "remote_host": "riomus@100.104.199.68"
+  },
+  "log": {
+    "remote_path": "/home/riomus/dada-full-seed0-v1/dada-child.log",
+    "bytes": 5775195,
+    "sha256": "b4ca25b99685a8190c2927d57dc17df55dcf83dc9eb1c2350209ed8034115f30",
+    "parser": "sfora.dada_reproduction.parse_dada_full_log"
+  },
+  "checkpoint": {
+    "remote_path": "/home/riomus/dada-full-seed0-v1/results/inshop/dada-inshop-full-seed0/checkpoint_Test_embeds_e_recall@1.pth.tar",
+    "bytes": 301447751,
+    "sha256": "b137c523d9bad378c8d26ce6dddea415b01b6a6d658bfb231bd3e0e6866d6428",
+    "reloadable": true,
+    "state_dict_entries": 632
+  },
+  "progress": {
+    "completed_epochs": 200,
+    "optimizer_steps": 28457,
+    "last_loss": -3.1898,
+    "last_epoch_seconds": 450.12,
+    "total_epoch_seconds": 88033.0,
+    "mean_epoch_seconds": 440.165,
+    "median_epoch_seconds": 442.035
+  },
+  "quality": {
+    "final_recall_at_1": 0.9285,
+    "best_recall_at_1": 0.9302,
+    "best_recall_epoch": 92,
+    "final_map_at_r": 0.8166,
+    "best_map_at_r": 0.818,
+    "best_map_epoch": 46,
+    "published_pa_dada_recall_at_1": 0.93,
+    "rc3_recall_at_1": 0.9542833028555352,
+    "rc3_map_at_r": 0.8000197729351304
+  },
+  "resources": {
+    "gpu": "NVIDIA GB10",
+    "terminal_peak_gpu_memory_mib": null,
+    "process_group_peak_rss_bytes": null,
+    "child_returncode": null,
+    "note": "The original controller did not persist these terminal fields in the available artifact. The native log and checkpoint prove completed epochs, not the child exit code or resource peaks."
+  },
+  "decision": {
+    "fidelity": "PASS_POINT_ESTIMATE_ONLY",
+    "rc3_joint_quality_and_deployability": "FAIL",
+    "reason": "DADA best-test R@1 is 0.024083 below RC3 while its 512-float representation uses 2048 bytes/item versus RC3's 130 served bytes/item. The mAP values come from distinct backbones and are unpaired; no superiority claim is made.",
+    "next_action": "Close DADA without replication or serving benchmark; continue production RC4 usability and bounded performance work."
+  }
+}

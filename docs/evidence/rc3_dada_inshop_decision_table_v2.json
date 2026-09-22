@@ -1,0 +1,198 @@
+{
+  "authorities": {
+    "dada_config_sha256": "2685672b2a42faef74d5ee3af0cecc035741728379ea147ef1197af777ff2160",
+    "dada_revision": "726ee8b9c94371e37beeeeeb9a50e6a0fec1d1c8",
+    "dada_terminal_receipt": {
+      "path": "docs/evidence/dada_inshop_full_seed0_terminal_v1.json",
+      "sha256": "a0b5f8cf39da45ceed708298eaff167d839be21104d2371f2ac52bb14fd19f87",
+      "status": "complete_single_seed_descriptive"
+    },
+    "packed_score_receipt": {
+      "path": "docs/evidence/packed_int8_cutile_score_summary.json",
+      "sha256": "c7b1403de61a3fe457fa92eeab08f814fbfcc5cd60a1d4f1fe241c6eb4374fb4"
+    },
+    "packed_topk_receipt": {
+      "path": "docs/evidence/packed_int8_cutile_topk_summary.json",
+      "sha256": "88e6874c93ca4f33e8856f823e82319d93773413dc9ca19630ac00674e73e42d"
+    },
+    "rank_finished_receipt": {
+      "path": "docs/evidence/rank_finished_l14_336_official_compact_selector_v1.json",
+      "sha256": "b9ab3eac27d6f2e158c0d8209ecf79a297ab5f84cc972a8875970134771e915c"
+    },
+    "rc3_commit": "e583cdcb6bc73c5086c1c7b6d699e27db00710c1",
+    "rc3_release_receipt": {
+      "path": "docs/evidence/release_assurance_v0_3_0_rc3.json",
+      "sha256": "3ea7d584a944423477dec2034f63da66f47fe27efd9355fcc73a8903693f2400"
+    },
+    "rc3_tag": "v0.3.0-rc3"
+  },
+  "dataset": {
+    "gallery_count": 12612,
+    "name": "DeepFashion In-Shop Clothes Retrieval",
+    "partition": "official identity-disjoint train/query/gallery partition",
+    "query_count": 14218,
+    "train_count": 25882
+  },
+  "decision": {
+    "dada_gate": "Close DADA unless the terminal run is structurally complete and jointly improves quality and deployability over RC3; no retuning.",
+    "rc3_status": "released",
+    "reason": "DADA best R@1 0.9302 < RC3 0.954283; 2048 versus 130 served bytes/item. Distinct backbones and no paired confidence evidence; DADA cannot establish joint quality/deployability superiority.",
+    "status": "DADA_CLOSED_RC3_CONTINUES"
+  },
+  "performance_rows": [
+    {
+      "artifact": {
+        "encoder_bytes": null,
+        "measurement_command": "BLOCKED: the frozen compact-selector receipt retained the encoder SHA-256 but not its byte length",
+        "status": "not_measured"
+      },
+      "fit_or_train_wall_seconds": {
+        "note": "Frozen compact-head fit plus official evaluation; not encoder-backbone training and not separately decomposed.",
+        "status": "verified",
+        "value": 97.69571521389298
+      },
+      "gpu_peak_memory_bytes": {
+        "measurement_command": "BLOCKED: peak GPU memory was not retained by the frozen compact-selector protocol",
+        "status": "not_measured",
+        "value": null
+      },
+      "hardware": {
+        "quality_fit": "not retained in compact-selector receipt",
+        "serving": "NVIDIA GB10"
+      },
+      "host_peak_rss_bytes": {
+        "scope": "one-million-row native exact scorer process",
+        "status": "verified",
+        "value": 1552142336
+      },
+      "id": "rc3_learned_int8_128",
+      "index_build_or_gallery_pack_seconds": {
+        "measurement_command": "BLOCKED: the released scorer receipt authenticates resident gallery bytes but did not time gallery packing",
+        "status": "not_measured",
+        "value": null
+      },
+      "scaling": {
+        "1000000_rows": {
+          "batch_1": {
+            "p50_ms": 1.020624,
+            "p95_ms": 1.222459,
+            "p99_ms": 1.550336,
+            "queries_per_second": 954.5728334299043
+          },
+          "batch_32": {
+            "p50_ms": 4.594196,
+            "p95_ms": 4.986664,
+            "p99_ms": 5.27392,
+            "queries_per_second": 6870.399607260477
+          },
+          "gallery_rows": 1000000,
+          "sample_count": 50,
+          "status": "verified; p95 recomputed by the receipt's nearest-rank convention from authenticated raw samples",
+          "warmups": 5
+        },
+        "100000_rows": {
+          "measurement_command": "BLOCKED: no authenticated 100k gallery timing protocol was frozen for RC3",
+          "status": "not_measured"
+        }
+      }
+    },
+    {
+      "artifact": {
+        "checkpoint_bytes": 301447751,
+        "sha256": "b137c523d9bad378c8d26ce6dddea415b01b6a6d658bfb231bd3e0e6866d6428",
+        "status": "verified_reloadable"
+      },
+      "fit_or_train_wall_seconds": {
+        "note": "200 epoch runtimes sum to 88033.0 seconds; process wall time was not retained.",
+        "status": "not_retained",
+        "value": null
+      },
+      "gpu_peak_memory_bytes": {
+        "status": "not_retained",
+        "value": null
+      },
+      "hardware": "NVIDIA GB10",
+      "host_peak_rss_bytes": {
+        "status": "not_retained",
+        "value": null
+      },
+      "id": "dada_seed0",
+      "serving": {
+        "reason": "DADA failed the joint quality/deployability gate; no serving benchmark authorized.",
+        "status": "not_measured"
+      }
+    }
+  ],
+  "quality_rows": [
+    {
+      "baseline": {
+        "dimensions": 768,
+        "map_at_r": 0.7795470455716479,
+        "method": "matched-input rank-finished UNICOM float-768 source",
+        "persistent_bytes_per_item": 3072,
+        "recall_at_1": 0.9457026304684203,
+        "recall_at_10": {
+          "measurement_command": "BLOCKED: the frozen compact-selector receipt did not retain R@10 and no post-release compact R@10 protocol was preregistered",
+          "status": "not_measured",
+          "value": null
+        }
+      },
+      "candidate": {
+        "dimensions": 128,
+        "map_at_r": 0.8000197729351304,
+        "method": "fit-only learned signed-int8 compact metric",
+        "persistent_bytes_per_item": 130,
+        "recall_at_1": 0.9542833028555352,
+        "recall_at_10": {
+          "measurement_command": "BLOCKED: the frozen compact-selector receipt did not retain R@10 and no post-release compact R@10 protocol was preregistered",
+          "status": "not_measured",
+          "value": null
+        }
+      },
+      "delta": {
+        "map_at_r": 0.02047272736348251,
+        "paired_map_at_r_95_ci": {
+          "measurement_command": "BLOCKED: per-query compact/baseline AP vectors were not retained in the frozen selector receipt; rerunning now would be post-release analysis",
+          "status": "not_measured",
+          "value": null
+        },
+        "recall_at_1": 0.008580672387114855
+      },
+      "id": "rc3_learned_int8_128",
+      "seed_count": {
+        "note": "Deterministic zero-training fit/readout; no stochastic training seed ensemble.",
+        "value": 1
+      },
+      "status": "verified post-hoc panel; claim_eligible=false"
+    },
+    {
+      "baseline": {
+        "map_at_r": null,
+        "method": "published PA+DADA In-Shop operating point",
+        "recall_at_1": 0.93,
+        "recall_at_10": null,
+        "status": "published point estimate; seed count and uncertainty unreported"
+      },
+      "candidate": {
+        "dimensions": 512,
+        "final_map_at_r": 0.8166,
+        "final_recall_at_1": 0.9285,
+        "map_at_r": 0.818,
+        "method": "faithful upstream PA+DADA seed 0",
+        "persistent_bytes_per_item": 2048,
+        "recall_at_1": 0.9302,
+        "recall_at_10": null
+      },
+      "delta": {
+        "map_at_r_vs_rc3_unpaired": 0.0179802270648696,
+        "paired_map_at_r_95_ci": null,
+        "recall_at_1_vs_published": 0.0002,
+        "recall_at_1_vs_rc3": -0.0240833028555352
+      },
+      "id": "dada_seed0",
+      "seed_count": 1,
+      "status": "complete single seed; descriptive; closed for RC4"
+    }
+  ],
+  "schema": "sfora-rc3-dada-inshop-decision-table-v2"
+}
