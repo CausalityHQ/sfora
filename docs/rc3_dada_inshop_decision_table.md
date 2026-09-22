@@ -56,14 +56,17 @@ top-10 smoke on GB10 are recorded in
 `docs/evidence/release_assurance_v0_3_0_rc3.json`. These are package checks,
 not a claim that every new unreleased RC4 API has been packaged.
 
-The remaining serving bottleneck candidate is the device top-10 reduction.
-The frozen packed score-plane run measured p50 `0.619 ms` (batch 1) and
-`1.195 ms` (batch 32), while the exact persistent top-10 path measured
-`1.021 ms` and `4.594 ms`. Those were separate kernels and harnesses, so
-subtracting them is only a prioritization clue, not a component timing.
-The next bounded experiment is a single instrumented GB10 replay of the
-current packed scorer at one million rows, batch 1 and 32, splitting host
-transfer, score tiles, block top-10, merge, and output transfer with CUDA
-events. It should publish exactness and stage times, then optimize only the
-largest measured stage if the gain is material. No DADA or new training job
-is part of this experiment.
+The single largest measured batch-1 GPU bottleneck is the fused
+`score_block_topk` kernel. A completed Nsight Systems replay on the existing
+one-million-row RC3 scorer assigns `97.7%` of GPU kernel time to that kernel,
+versus `1.6%` to `merge_topk`. Its authenticated report and exact scope are in
+`docs/evidence/rc3_packed_topk_batch1_nsys_v1.json`. This trace does not
+separate scoring from block selection or quantify host overhead. A batch-32
+trace was stopped during a long CUDA assembler compile and yielded no stage
+measurements.
+
+The next bounded performance experiment should instrument the fused block
+kernel internally and replay batches 1 and 32 on the same one-million-row
+gallery. It should publish exactness, stage time, and memory before changing
+the kernel. Optimize the largest measured operation only if the gain is
+material. No DADA or new training job is part of this experiment.

@@ -1,0 +1,46 @@
+{
+  "schema": "sfora-rc3-packed-topk-batch1-nsys-v1",
+  "source": {
+    "scorer_library_sha256": "a9e583881201760088f3d99c180367e587ca68219c79dfe1760a3467f06b8dea",
+    "gallery_rows": 1000000,
+    "dimensions": 128,
+    "batch": 1,
+    "top_k": 10,
+    "device": "NVIDIA GB10"
+  },
+  "profiler": {
+    "tool": "NVIDIA Nsight Systems 2025.3.2",
+    "trace": "cuda",
+    "remote_report": "/tmp/sfora-rc3-topk-b1-profile.nsys-rep",
+    "report_bytes": 97423,
+    "report_sha256": "bf72c040c1ed643a38ad9f38d04cd007d26fa3c40e408cff6036b7cb9cabe66d",
+    "remote_script_sha256": "06363a767a976da6ab442c86846d0e273545a23e68b509829ae322fb38fbc5c5",
+    "warmups": 3,
+    "measured_requests": 8,
+    "status": "completed"
+  },
+  "gpu_kernel_summary": [
+    {
+      "name": "score_block_topk_entry",
+      "instances": 11,
+      "total_ns": 10282784,
+      "average_ns": 934798.5,
+      "share_percent": 97.7
+    },
+    {
+      "name": "merge_topk_entry",
+      "instances": 22,
+      "total_ns": 172992,
+      "average_ns": 7863.3,
+      "share_percent": 1.6
+    },
+    {
+      "name": "full_entry",
+      "instances": 66,
+      "total_ns": 64384,
+      "average_ns": 975.5,
+      "share_percent": 0.6
+    }
+  ],
+  "decision": "The fused score/block-top-10 kernel is the dominant batch-1 GPU stage. This trace does not separate scoring from local selection, measure host overhead, or establish a batch-32 breakdown."
+}
