@@ -43,6 +43,15 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def publish_result(path: Path, payload: bytes) -> None:
+    def validate(persisted: bytes) -> None:
+        if persisted != payload:
+            raise ValueError("fit-only result publication differs")
+
+    published = publish_bytes_noreplace(path, payload, validator=validate)
+    published.close()
+
+
 def fake_quantized_unit(value: torch.Tensor) -> torch.Tensor:
     """Return the packed code's unit geometry with a straight-through gradient."""
 
@@ -330,8 +339,7 @@ def main() -> int:
     payload = (
         json.dumps(result, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\n"
     ).encode()
-    published = publish_bytes_noreplace(args.output, payload)
-    published.close()
+    publish_result(args.output, payload)
     print(json.dumps({"output": str(args.output), "gate": result["gate"],
                       "delta": result["delta"]}), flush=True)
     return 0

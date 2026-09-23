@@ -6,6 +6,7 @@ import importlib.util
 from pathlib import Path
 
 import numpy as np
+import pytest
 import torch
 from torch.nn import functional as F
 
@@ -54,3 +55,13 @@ def test_packed_query_gallery_metrics_respects_map_at_r_and_ordinal_ties() -> No
         np.asarray(["a"]), np.asarray(["b", "a"]), device=torch.device("cpu"),
     )
     assert tied["recall_at_1"] == 0.0
+
+
+def test_result_is_published_once_and_validated(tmp_path: Path) -> None:
+    module = _module()
+    path = tmp_path / "result.json"
+    payload = b'{"result":"ok"}\n'
+    module.publish_result(path, payload)
+    assert path.read_bytes() == payload
+    with pytest.raises(FileExistsError):
+        module.publish_result(path, payload)
