@@ -22,6 +22,7 @@ from export_unicom_sop_embeddings import load_sop_embedding_archive
 from PIL import Image
 from torch.nn import functional as F
 
+import sfora.cutile_int8 as cutile_int8_module
 from sfora.cutile_int8 import CutilePackedInt8Gallery
 from sfora.joint_relational_compaction import pack_int8_unit_embeddings
 from sfora.model_profiles import load_oml_sop_compact_encoder
@@ -32,6 +33,7 @@ OML_FEATURES_SHA256 = "8f565027b20e55923826a5240d97c564171428a5f1cc7290e680d2223
 UNICOM_CHECKPOINT_SHA256 = "c04f324f7c3b4435667236ec6c0eca1cd62f9d64fbfc2d06f8e8e60e6497edef"
 UNICOM_FEATURES_SHA256 = "16b4554d3868363905f1e1cd385783a8033513835723a7b89f4b762d893d757f"
 NATIVE_LIBRARY_SHA256 = "39602d0e4e8b0d5ec441be460ad7f18e288241bef19fb6e6c5df14f4033ac73c"
+NATIVE_API_SHA256 = "b7c57022a836774d641a829e6aac71c1d547e3f71136f716d3c9aeeedad11409"
 QUALITY_SCREEN_SHA256 = "a7c65b7b5dda1a8884f08ea384f150ef98ac20c77607c0b8b2ed2fbbe6c1053d"
 
 
@@ -168,6 +170,7 @@ def main() -> None:
         (args.unicom_features, UNICOM_FEATURES_SHA256),
         (args.unicom_checkpoint, UNICOM_CHECKPOINT_SHA256),
         (args.native_library, NATIVE_LIBRARY_SHA256),
+        (Path(cutile_int8_module.__file__), NATIVE_API_SHA256),
         (args.quality_screen, QUALITY_SCREEN_SHA256),
     )
     for path, digest in expected_files:
