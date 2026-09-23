@@ -1,0 +1,70 @@
+{
+  "baseline_api_sha256": "7e585fa716ad79b0ad9f998ac6eb63a4f9c7a89409eefee2d9367885686c3818",
+  "baseline_library_sha256": "a9e583881201760088f3d99c180367e587ca68219c79dfe1760a3467f06b8dea",
+  "candidate_api_sha256": "b7c57022a836774d641a829e6aac71c1d547e3f71136f716d3c9aeeedad11409",
+  "candidate_library_sha256": "39602d0e4e8b0d5ec441be460ad7f18e288241bef19fb6e6c5df14f4033ac73c",
+  "pair_rows": [
+    {
+      "baseline_p50_ms": 1.049629,
+      "baseline_p95_ms": 1.293292,
+      "baseline_p99_ms": 1.440603,
+      "baseline_queries_per_second": 928.185748829075,
+      "batch": 1,
+      "candidate_p50_ms": 1.065725,
+      "candidate_p95_ms": 1.267868,
+      "candidate_p99_ms": 1.40598,
+      "candidate_queries_per_second": 914.9141881854789,
+      "p99_improvement_fraction": 0.024033685894031875,
+      "pair": 1,
+      "passed": true
+    },
+    {
+      "baseline_p50_ms": 4.529923,
+      "baseline_p95_ms": 4.993234,
+      "baseline_p99_ms": 5.282752,
+      "baseline_queries_per_second": 6935.046373008024,
+      "batch": 32,
+      "candidate_p50_ms": 2.830904,
+      "candidate_p95_ms": 3.316214,
+      "candidate_p99_ms": 3.424886,
+      "candidate_queries_per_second": 11062.619730819773,
+      "p99_improvement_fraction": 0.3516852579867463,
+      "pair": 1,
+      "passed": true
+    },
+    {
+      "baseline_p50_ms": 1.059085,
+      "baseline_p95_ms": 1.365692,
+      "baseline_p99_ms": 1.49398,
+      "baseline_queries_per_second": 920.2633918983435,
+      "batch": 1,
+      "candidate_p50_ms": 1.061213,
+      "candidate_p95_ms": 1.38694,
+      "candidate_p99_ms": 1.461099,
+      "candidate_queries_per_second": 913.9284653932853,
+      "p99_improvement_fraction": 0.022008996104365575,
+      "pair": 2,
+      "passed": true
+    },
+    {
+      "baseline_p50_ms": 4.502051,
+      "baseline_p95_ms": 4.964273,
+      "baseline_p99_ms": 5.241328,
+      "baseline_queries_per_second": 7011.549015992857,
+      "batch": 32,
+      "candidate_p50_ms": 2.826887,
+      "candidate_p95_ms": 3.242999,
+      "candidate_p99_ms": 3.304406,
+      "candidate_queries_per_second": 11174.57470249633,
+      "p99_improvement_fraction": 0.369547946627267,
+      "pair": 2,
+      "passed": true
+    }
+  ],
+  "raw_archive_sha256": "5133778163ff59902fa3521e863c6464639e1952817b548ad5a1857ef054b017",
+  "release_gate_passed": true,
+  "retained_gc_objects_baseline": 400,
+  "retained_gc_objects_candidate": 0,
+  "schema": "sfora-packed-topk-rc5-pointer-decision-v1",
+  "tracked_cuda_pool_peak_bytes": 165014016
+}

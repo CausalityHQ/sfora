@@ -17,8 +17,29 @@ class _Function:
         self.callback = callback
         self.argtypes: list[object] = []
         self.restype: object = None
+        self.raw_arguments: tuple[object, ...] = ()
+        self.captured_inputs: tuple[np.ndarray, np.ndarray] | None = None
 
     def __call__(self, *args: object) -> int:
+        self.raw_arguments = args
+        if len(args) == 8 and self.argtypes[1] is ctypes.c_void_p:
+            rows, dimensions, k = (int(args[index]) for index in (3, 4, 5))
+            pointers = (args[index] for index in (1, 2, 6, 7))
+            codes_ptr, norms_ptr, ordinals_ptr, scores_ptr = pointers
+            assert all(
+                isinstance(address, int) and address > 0
+                for address in (codes_ptr, norms_ptr, ordinals_ptr, scores_ptr)
+            )
+            codes = np.ctypeslib.as_array(
+                (ctypes.c_int8 * (rows * dimensions)).from_address(codes_ptr)
+            )
+            norms = np.ctypeslib.as_array((ctypes.c_uint16 * rows).from_address(norms_ptr))
+            ordinals = np.ctypeslib.as_array(
+                (ctypes.c_uint32 * (rows * k)).from_address(ordinals_ptr)
+            )
+            scores = np.ctypeslib.as_array((ctypes.c_float * (rows * k)).from_address(scores_ptr))
+            self.captured_inputs = codes.copy(), norms.copy()
+            args = (args[0], codes, norms, rows, dimensions, k, ordinals, scores)
         return int(self.callback(*args))  # type: ignore[operator]
 
 
@@ -97,6 +118,28 @@ def test_explicit_native_handle_validates_searches_and_closes(
     assert library.destroyed
     with pytest.raises(RuntimeError, match="closed"):
         gallery.search(query_codes, query_norms, k=10)
+
+
+def test_search_passes_validated_live_array_addresses_to_native(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    library_path = tmp_path / "libsfora_cutile_int8_score.so"
+    library_path.write_bytes(b"fixture")
+    library = _Library()
+    monkeypatch.setattr(ctypes, "CDLL", lambda path: library)
+    gallery_codes, gallery_norms = _packed(129)
+    query_codes, query_norms = _packed(32)
+
+    with CutilePackedInt8Gallery.open(library_path, gallery_codes, gallery_norms) as gallery:
+        ordinals, scores = gallery.search(query_codes, query_norms)
+
+    search = library.sfora_cutile_int8_search
+    assert all(isinstance(search.raw_arguments[index], int) for index in (1, 2, 6, 7))
+    assert search.captured_inputs is not None
+    assert np.array_equal(search.captured_inputs[0], query_codes.reshape(-1))
+    assert np.array_equal(search.captured_inputs[1], query_norms.view("<u2"))
+    assert np.array_equal(ordinals[0], np.arange(10, dtype=np.int64))
+    assert np.array_equal(scores[0], np.arange(10, dtype=np.float32))
 
 
 def test_native_gallery_accepts_the_public_packed_embedding_type(

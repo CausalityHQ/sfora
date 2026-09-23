@@ -76,8 +76,6 @@ class CutilePackedInt8Gallery:
             raise RuntimeError(_ERROR) from error
         i8 = ndpointer(dtype=np.dtype("i1"), ndim=1, flags=("C_CONTIGUOUS",))
         u16 = ndpointer(dtype=np.dtype("<u2"), ndim=1, flags=("C_CONTIGUOUS",))
-        u32 = ndpointer(dtype=np.dtype("<u4"), ndim=1, flags=("C_CONTIGUOUS",))
-        f32 = ndpointer(dtype=np.dtype("<f4"), ndim=1, flags=("C_CONTIGUOUS",))
         create.argtypes = [
             i8,
             u16,
@@ -88,13 +86,13 @@ class CutilePackedInt8Gallery:
         create.restype = ctypes.c_int
         search.argtypes = [
             ctypes.c_void_p,
-            i8,
-            u16,
+            ctypes.c_void_p,
+            ctypes.c_void_p,
             ctypes.c_size_t,
             ctypes.c_size_t,
             ctypes.c_size_t,
-            u32,
-            f32,
+            ctypes.c_void_p,
+            ctypes.c_void_p,
         ]
         search.restype = ctypes.c_int
         destroy.argtypes = [ctypes.c_void_p]
@@ -166,15 +164,18 @@ class CutilePackedInt8Gallery:
                 native_rows = chunk_codes.shape[0]
                 ordinals = np.empty(native_rows * k, dtype="<u4")
                 scores = np.empty(native_rows * k, dtype="<f4")
+                # All four arrays are validated or allocated here and stay live
+                # until this synchronous FFI call returns. Avoid ndarray.ctypes,
+                # whose wrappers remain tracked until Python GC runs.
                 status = self._library.sfora_cutile_int8_search(
                     self._handle,
-                    flat_codes,
-                    norm_bits,
+                    flat_codes.__array_interface__["data"][0],
+                    norm_bits.__array_interface__["data"][0],
                     native_rows,
                     chunk_codes.shape[1],
                     k,
-                    ordinals,
-                    scores,
+                    ordinals.__array_interface__["data"][0],
+                    scores.__array_interface__["data"][0],
                 )
                 if status != 0:
                     raise RuntimeError(f"{_ERROR}: search status {status}")

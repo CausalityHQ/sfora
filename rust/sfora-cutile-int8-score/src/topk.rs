@@ -10,7 +10,8 @@ const SCORE_BLOCK: usize = 128;
 const INNER_BLOCK: usize = 32;
 const TOP_K: usize = 10;
 const TOP_K_TILE: usize = 16;
-const MERGE_WIDTH: usize = 2048;
+const MERGE_WIDTH_BATCH_ONE: usize = 2048;
+const MERGE_WIDTH_BATCH_THIRTY_TWO: usize = 512;
 
 #[derive(Clone, Debug)]
 pub struct TopKResult {
@@ -480,8 +481,12 @@ impl PreparedPackedGallery {
         let mut scores: Arc<Tensor<f32>> = Arc::new(score_output.unpartition());
         let mut ordinals: Arc<Tensor<i32>> = Arc::new(ordinal_output.unpartition());
         let mut real_entries = score_blocks * TOP_K_TILE;
+        let merge_width = match batch {
+            BatchShape::One => MERGE_WIDTH_BATCH_ONE,
+            BatchShape::ThirtyTwo => MERGE_WIDTH_BATCH_THIRTY_TWO,
+        };
         loop {
-            let groups = real_entries.div_ceil(MERGE_WIDTH);
+            let groups = real_entries.div_ceil(merge_width);
             let output_real_entries = groups * TOP_K_TILE;
             let output_scores = cutile::api::full(f32::NEG_INFINITY, &[bm, output_real_entries])
                 .sync_on(&self.stream)
@@ -493,7 +498,7 @@ impl PreparedPackedGallery {
                 .partition([bm, TOP_K_TILE]);
             let merge_generics = vec![
                 bm.to_string(),
-                MERGE_WIDTH.to_string(),
+                merge_width.to_string(),
                 TOP_K_TILE.to_string(),
                 TOP_K.to_string(),
                 real_entries.to_string(),
