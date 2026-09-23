@@ -17,6 +17,7 @@ _STAGES = {
     "host_and_api",
 }
 _DIGEST = re.compile(r"[0-9a-f]{64}\Z")
+_COMMIT = re.compile(r"[0-9a-f]{40}\Z")
 
 
 def _hash(value: object, name: str) -> None:
@@ -39,8 +40,10 @@ def summarize_receipt(value: object, *, expected_samples: int = 50) -> dict[str,
     _positive_int(expected_samples, "expected_samples")
     if type(value) is not dict or value.get("schema") != "sfora-packed-topk-rc4-stage-v1":
         raise ValueError("RC4 profiler receipt schema differs")
+    commit = value.get("source_commit")
+    if type(commit) is not str or _COMMIT.fullmatch(commit) is None:
+        raise ValueError("source_commit must be a full Git commit ID")
     for name in (
-        "source_commit",
         "gallery_sha256",
         "baseline_receipt_sha256",
         "diagnostic_binary_sha256",

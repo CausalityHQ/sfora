@@ -39,7 +39,7 @@ def _receipt() -> dict[str, object]:
     }
     return {
         "schema": "sfora-packed-topk-rc4-stage-v1",
-        "source_commit": digest,
+        "source_commit": "b" * 40,
         "gallery_sha256": digest,
         "query_sha256": {"1": digest, "32": digest},
         "baseline_receipt_sha256": digest,

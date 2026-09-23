@@ -38,7 +38,9 @@ unbounded compiler is a measured limitation, not a reason to infer stage time.
 Choose only the largest measured contributor. Pilot one change to the kernel
 or packed data layout with a two-hour wall cap. Require exact score bits,
 deterministic top-10 order, no increase above the 2 GiB process RSS gate, and
-a material end-to-end improvement on both batches relative to matched RC3.
+a material end-to-end improvement on the batch whose measured bottleneck is
+changed, with no more than a 5% p99 regression on the other supported batch,
+relative to matched RC3.
 If no single change passes, retain the current scorer and publish a finite
 negative decision naming the next distinct bottleneck.
 

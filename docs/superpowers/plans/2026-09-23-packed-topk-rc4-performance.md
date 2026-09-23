@@ -57,7 +57,7 @@
 - [ ] State the single candidate and predicted p99 gain from Task 2's largest stage. Set a two-hour pilot cap and an explicit reject gate before editing.
 - [ ] Add a failing exactness test for the candidate using signed extremes, ties, batch 1/32, and a padded tail; observe RED.
 - [ ] Implement the smallest kernel or layout change, run the focused exactness tests on GB10, and benchmark against the pinned RC3 binary on the same gallery and host.
-- [ ] Retain the change only if scores/ordinals remain exact, RSS stays below 2 GiB, and both batch p99 values materially improve. Otherwise revert production code and record the finite negative and next distinct bottleneck.
+- [ ] Retain the change only if scores/ordinals remain exact, RSS stays below 2 GiB, the targeted batch p99 materially improves, and the other batch p99 regresses by no more than 5%. Otherwise revert production code and record the finite negative and next distinct bottleneck.
 - [ ] Commit the terminal candidate and record its full commit hash; request one Opus 5.5/Astra dual critique and independently verify each finding.
 
 ### Task 4: Release decision
