@@ -58,3 +58,31 @@ against the pinned RC3 library on the same inputs before a release decision.
 Otherwise revert the constant and publish a finite negative decision. These
 thresholds are engineering release gates, not statistical confidence or a
 SOTA claim.
+
+## Pilot result and bounded refinement
+
+The flat 512-width pilot passed its original Rust replay gate: exact bits and
+ordinals at both gallery sizes and batches, batch-32 p99 `3.635 ms` versus
+`5.176 ms` for the unchanged fused path, batch-1 p99 `1.446 ms` versus
+`1.457 ms`, and peak process RSS below 2 GiB. The candidate library also
+matched the pinned RC3 library's output through the public Python API. In the
+matched FFI replay, however, batch-1 p99 was `1.513 ms` versus RC3 `1.423 ms`
+(a 6.4% regression), while batch-32 p99 was `3.484 ms` versus `5.178 ms`.
+The batch-1 FFI result breaches the cross-library 5% guardrail. This single
+50-sample p99 is sensitive to outliers, but the mean and p50 also rose.
+The executed source and all flat-pilot raw replays are preserved in
+`docs/evidence/packed_topk_rc4_pilot_width512_raw_v1.tar.gz` (SHA-256
+`357afd8fd250882d30398c0a5a25ca6401f3283ad95973480ed99763a96abec2`).
+
+Before a second build, refine the *same merge-width intervention* by choosing
+the old width 2048 for batch 1 and the measured faster width 512 for batch 32.
+The stage profile already showed distinct bottlenecks by batch; this selection
+keeps the unchanged batch-1 kernel path and targets only the merge-dominated
+batch-32 path. Run the identical Rust exactness matrix and two independent
+paired FFI replays on the same frozen inputs, without selecting a favorable
+run. Retain only if every replay has exact bits and ordinals, batch-32 p99 is
+at least 20% below its paired RC3 p99, batch-1 p99 is no more than 5% above
+its paired RC3 p99, process RSS remains below 2 GiB, and the tracked CUDA pool
+peak is measured. If any guardrail fails, reject this intervention and record
+a finite negative result. This is the final refinement under the two-hour
+pilot cap; no width sweep follows.
