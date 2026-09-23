@@ -30,6 +30,7 @@ def _receipt() -> dict[str, object]:
             "score": 30,
             "block_selection": 40,
             "merge": 10,
+            "buffer_initialization": 10,
             "device_to_host": 5,
             "host_and_api": 20,
         },
@@ -42,7 +43,9 @@ def _receipt() -> dict[str, object]:
         "gallery_sha256": digest,
         "query_sha256": {"1": digest, "32": digest},
         "baseline_receipt_sha256": digest,
-        "scorer_library_sha256": digest,
+        "diagnostic_binary_sha256": digest,
+        "rc3_library_sha256": digest,
+        "fixture_manifest_sha256": digest,
         "profiler_report_sha256": {"1": digest, "32": digest},
         "batches": {"1": copy.deepcopy(row), "32": copy.deepcopy(row)},
     }

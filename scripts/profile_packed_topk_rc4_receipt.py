@@ -12,6 +12,7 @@ _STAGES = {
     "score",
     "block_selection",
     "merge",
+    "buffer_initialization",
     "device_to_host",
     "host_and_api",
 }
@@ -42,7 +43,9 @@ def summarize_receipt(value: object, *, expected_samples: int = 50) -> dict[str,
         "source_commit",
         "gallery_sha256",
         "baseline_receipt_sha256",
-        "scorer_library_sha256",
+        "diagnostic_binary_sha256",
+        "rc3_library_sha256",
+        "fixture_manifest_sha256",
     ):
         _hash(value.get(name), name)
     for name in ("query_sha256", "profiler_report_sha256"):
