@@ -8,8 +8,10 @@ dependency revisions. The proof files contain no holes or custom axioms.
 The finite gallery is a set of unique ordinals. `keyFun` ranks rows by higher
 score, then lower ordinal. `rank` counts valid rows ahead of a row, and `topK`
 contains the first `min(k, gallery size)` rows. Invalid padded rows are absent
-from the gallery. The model uses an exact linear order on scores, so it excludes
-NaNs and floating-point rounding.
+from the gallery. The model assumes a fixed linear order on finite scores;
+the selector theorems also apply to already-rounded scores when their tie
+ordering agrees with this model. Arithmetic error between two scoring methods
+belongs in the separate ε premise. NaNs are outside the model.
 
 `topK_merge` proves that top `k` of the union of each block's top `k` is the
 global top `k`. Blocks may overlap and may contain fewer than `k` rows; they
@@ -38,10 +40,11 @@ in the RC4 receipt; a measured or analytic bound is needed to make this
 conditional theorem a numeric quality claim. A uniform ε can be the maximum
 of per-row errors for one query, though row-specific bounds could be tighter.
 
-`card_candidates_le` bounds the distinct merged block candidates by
-`blocks*k`. `candidate_count_le` bounds emitted records even when blocks
-overlap, and `candidate_bytes_le` converts this to a fixed-record storage
-bound. The kernel uses 16 physical lanes per block for logical `k=10`, so
+`card_candidates_le` bounds the distinct merged logical candidates by
+`blocks*k`. Under an explicit per-block cap of `k`, `candidate_count_le`
+bounds emitted logical records even when blocks overlap, and
+`candidate_bytes_le` converts that count to fixed-record payload bytes. The
+kernel uses 16 physical lanes per block for logical `k=10`, so
 `allocatedCandidateSlots` models the larger padded slot count. At 1,000,003
 rows and block width 128 the checked counts are 7,813 blocks, at most 78,130
 logical candidates, and 125,008 physical lanes per query. For one f32 score
@@ -51,8 +54,11 @@ other GPU buffers, and allocator overhead. The `blockCount` expression
 assumes positive block width, and the partition and block-specific bounds
 explicitly require it. `symbolic_latency_le`
 sums explicit assumptions on scoring, selection, merge, transfer, and host
-stages. Its merge premise must cover every merge level. It does not establish
-those assumptions or a percentile latency bound.
+stages. Its merge premise must cover every merge level. For the fused
+score-and-select launch, one may set `select=0` and charge the whole launch to
+`score`; query copies and per-call allocation belong in an explicit stage
+bound as well. The theorem does not establish these premises or a percentile
+latency bound.
 
 `denseScoreProducts_le_padded` relates valid-row products to the padded
 block-by-dimension count used in the symbolic scoring premise. Neither count
@@ -72,8 +78,12 @@ placeholders in their unused lanes. The set model omits those records.
 Production accepts galleries with at least `k=10` rows and repeatedly merges
 until one group remains; a source-level refinement proof would need to show
 that placeholders never displace ten valid finite winners and that duplicate
-masking preserves the modeled set at every level. A hardware execution model
-would also be needed for wall-time and allocation guarantees.
+masking preserves the modeled set at every level. It would also need a bound
+`rows < i32::MAX`: the kernel uses signed 32-bit ordinals and reserves
+`i32::MAX` for placeholders, while this bound is not enforced by the current
+constructor. A leaked `i32::MAX` ordinal passes the final `u32` conversion.
+A hardware execution model would also be needed for wall-time and allocation
+guarantees.
 
 Measured p50/p95/p99 latency, throughput, peak GPU allocation, RSS, and
 Pet/In-Shop recall remain empirical claims. The authenticated RC4 decision
