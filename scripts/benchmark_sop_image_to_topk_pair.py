@@ -31,7 +31,8 @@ OML_CHECKPOINT_SHA256 = "2701830538f31bd2dabb06622475cc889b1095580fc57218d0293e7
 OML_FEATURES_SHA256 = "8f565027b20e55923826a5240d97c564171428a5f1cc7290e680d2223fd28da4"
 UNICOM_CHECKPOINT_SHA256 = "c04f324f7c3b4435667236ec6c0eca1cd62f9d64fbfc2d06f8e8e60e6497edef"
 UNICOM_FEATURES_SHA256 = "16b4554d3868363905f1e1cd385783a8033513835723a7b89f4b762d893d757f"
-NATIVE_LIBRARY_SHA256 = "b7440d394724249647e681a966345f4fb6ce5f1902871137d9e19eefdc524318"
+NATIVE_LIBRARY_SHA256 = "39602d0e4e8b0d5ec441be460ad7f18e288241bef19fb6e6c5df14f4033ac73c"
+QUALITY_SCREEN_SHA256 = "a7c65b7b5dda1a8884f08ea384f150ef98ac20c77607c0b8b2ed2fbbe6c1053d"
 
 
 def sha256(path: Path) -> str:
@@ -102,13 +103,23 @@ def _call(arm: dict[str, object], paths: tuple[Path, ...], gallery: CutilePacked
 def _measure(
     arm: dict[str, object], paths: tuple[Path, ...], gallery: CutilePackedInt8Gallery, calls: int
 ) -> dict[str, object]:
+    label = f"{arm['name']} batch={len(paths)}"
+    print(
+        f"{label}: warmup started (first call may compile CUDA kernels)",
+        file=sys.stderr,
+        flush=True,
+    )
     for _ in range(5):
         _call(arm, paths, gallery)
+    print(f"{label}: warmup completed; {calls} timed calls started", file=sys.stderr, flush=True)
     samples: dict[str, list[int]] = {
         stage: []
         for stage in (
-            "decode_preprocess_ns", "encoder_transfer_ns", "project_pack_ns",
-            "native_search_ns", "image_to_topk_ns",
+            "decode_preprocess_ns",
+            "encoder_transfer_ns",
+            "project_pack_ns",
+            "native_search_ns",
+            "image_to_topk_ns",
         )
     }
     first_hash = None
@@ -120,6 +131,7 @@ def _measure(
             raise ValueError("SOP image-to-top-k result changed during paired replay")
         for stage, elapsed in durations.items():
             samples[stage].append(elapsed)
+    print(f"{label}: timed calls completed", file=sys.stderr, flush=True)
     return {
         "name": arm["name"],
         "batch": len(paths),
@@ -143,6 +155,7 @@ def main() -> None:
     parser.add_argument("--unicom-checkout", required=True, type=Path)
     parser.add_argument("--unicom-checkpoint", required=True, type=Path)
     parser.add_argument("--native-library", required=True, type=Path)
+    parser.add_argument("--quality-screen", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--calls", type=int, default=200)
     parser.add_argument("--execute-paired-replay", action="store_true", required=True)
@@ -155,6 +168,7 @@ def main() -> None:
         (args.unicom_features, UNICOM_FEATURES_SHA256),
         (args.unicom_checkpoint, UNICOM_CHECKPOINT_SHA256),
         (args.native_library, NATIVE_LIBRARY_SHA256),
+        (args.quality_screen, QUALITY_SCREEN_SHA256),
     )
     for path, digest in expected_files:
         if sha256(path) != digest:
@@ -180,9 +194,7 @@ def main() -> None:
     pca = fit_centered_pca(train.contiguous(), dimensions=128)
     b16_test = F.normalize(torch.from_numpy(source["test_embeddings"]).float(), dim=1)
     b16_gallery = pack_int8_unit_embeddings(pca.apply(b16_test.contiguous()))
-    screen = json.loads(
-        (args.unicom_features.parent / "screen-result.json").read_text()
-    )
+    screen = json.loads(args.quality_screen.read_text())
     if (
         hashlib.sha256(b16_gallery.codes.numpy().tobytes()).hexdigest()
         != screen["pca_packed"]["gallery_code_sha256"]
@@ -195,8 +207,10 @@ def main() -> None:
     arms = {
         "oml": {"name": "oml", "model": oml_model, "transform": oml_transform, "head": oml_head},
         "unicom_b16": {
-            "name": "unicom_b16", "model": b16_model,
-            "transform": b16_transform, "head": pca,
+            "name": "unicom_b16",
+            "model": b16_model,
+            "transform": b16_transform,
+            "head": pca,
         },
     }
     results = []
@@ -204,13 +218,15 @@ def main() -> None:
         galleries = {
             "oml": stack.enter_context(
                 CutilePackedInt8Gallery.open(
-                    args.native_library, oml_gallery.codes.numpy()[32:].copy(),
+                    args.native_library,
+                    oml_gallery.codes.numpy()[32:].copy(),
                     oml_gallery.inverse_norms.numpy()[32:].copy(),
                 )
             ),
             "unicom_b16": stack.enter_context(
                 CutilePackedInt8Gallery.open(
-                    args.native_library, b16_gallery.codes.numpy()[32:].copy(),
+                    args.native_library,
+                    b16_gallery.codes.numpy()[32:].copy(),
                     b16_gallery.inverse_norms.numpy()[32:].copy(),
                 )
             ),
@@ -249,9 +265,7 @@ def main() -> None:
         stream.flush()
         os.fsync(stream.fileno())
     print(
-        json.dumps(
-            [{"pair": r["pair"], "name": r["name"], "batch": r["batch"]} for r in results]
-        )
+        json.dumps([{"pair": r["pair"], "name": r["name"], "batch": r["batch"]} for r in results])
     )
 
 

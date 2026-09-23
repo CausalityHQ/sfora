@@ -90,6 +90,12 @@ PCA head, so that replay could not produce a valid quality-matched result.
 The process group exited after termination; no overlapping copy was started.
 Cold compilation remains a measured startup concern, and a corrected paired
 timing run is pending. This observation does not establish hot-path p99.
+The paired replay script had also pinned the rejected RC5 output-initialization
+pilot library (`b7440d39…`) rather than the accepted RC4 library. Its input
+authority now requires the released `39602d0e…` binary and the immutable
+pretrained B/16 quality-screen receipt (`a7c65b7b…`). A focused check binds
+those hashes to the release decision and committed evidence. This corrects
+the intended benchmark input; no new timing result has been measured yet.
 
 The authenticated B/16 feature export contains the official 59,551 train and
 60,502 test images, checkpoint SHA-256
