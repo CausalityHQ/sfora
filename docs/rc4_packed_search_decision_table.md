@@ -10,7 +10,9 @@ package metadata remains `0.3.0rc3` and the `v0.3.0-rc3` tag is unchanged.
 ## Public-call evidence
 
 Each row is a separate 50-call Python FFI replay after five warmups on the
-same authenticated one-million-row, 128-dimensional GB10 gallery. Pair 1 ran
+same one-million-row, 128-dimensional GB10 fixture. The correct-API replay
+hashed its fixture manifest but did not rehash the eight consumed files;
+the later fast-path replay verified those files against the manifest. Pair 1 ran
 RC3 then the candidate; pair 2 reversed that order. Latency is p50 / p95 /
 p99 in milliseconds, throughput is queries per second from the sample mean,
 and RSS is the process high-water mark. Both arms in each pair used the exact
@@ -30,12 +32,12 @@ same Python API file, SHA-256
 
 Both candidate batch-32 runs contained one 16–19 ms call at sample index 12.
 The preregistered batch-32 p99 requirement was at least 20% below the paired
-RC3 value; both runs fail. An instrumented replay later observed a 17.0 ms
-batch-1 call coincident with generation-2 Python garbage collection. That
-observation establishes one public-call tail mechanism, but does not prove
-the cause of the two batch-32 spikes. The 50-sample nearest-rank p99 is the
-maximum sample, so these calls are material to the stated gate and are not
-discarded as outliers.
+RC3 value; both runs fail. A later replay recorded a 17.0 ms batch-1 call,
+but the archived receipts do not retain GC event timestamps or an instrumented
+script. Garbage collection remains a hypothesis for the public-call tail, and
+the cause of the two batch-32 spikes is unproved. The 50-sample nearest-rank
+p99 is the maximum sample, so these calls are material to the stated gate and
+are not discarded as outliers.
 
 A bounded direct-native Python fast-path pilot then removed chunk lists,
 copies, and concatenation for batches 1 and 32. It authenticated all eight
@@ -121,10 +123,14 @@ production scorer is byte-identical to its pre-pilot tested source. A
 repository-wide Ruff/mypy run on a clean export failed on existing files
 outside the RC4 changes, so these static checks are reported as scoped gates.
 
-GPT-6 Astra's terminal-candidate critique identified the obsolete Python
-wrapper in the initial passing replay and the missing consumed-file fixture
-authentication. Both findings were verified and addressed in the later
-replays and collectors; those replays failed the release gate, producing this
-finite negative decision. The requested Claude Opus 5.5 critique could not
+GPT-6 Astra's critique of the superseded candidate identified the obsolete
+Python wrapper in the initial passing replay and missing consumed-file fixture
+authentication. The correct-API replay fixed the wrapper but still authenticated
+only the manifest. The later fast-path replay verified all consumed fixture
+files and failed the release gate in both paired runs, independently supporting
+this finite negative decision. Astra's final-decision critique
+(`5ffedc224ed94822`) confirmed the gate calculations and identified the
+provenance and GC claim limits recorded above. The requested Claude Opus 5.5
+critique could not
 run because its OAuth session expired. The operator has been notified; this
 review remains outstanding and no Opus verdict is claimed.

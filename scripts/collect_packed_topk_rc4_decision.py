@@ -25,6 +25,7 @@ PILOTS = {
         "api_sha256": "7e585fa716ad79b0ad9f998ac6eb63a4f9c7a89409eefee2d9367885686c3818",
         "script_path": "profile_packed_topk_rc4_library.py",
         "script_sha256": "6ee62e2f569281515f54c843e1f7f90c0822a30a14c3444a1f4cebe00de44a3d",
+        "fixture_file_authentication": "manifest_hash_only",
     },
     "direct_native_api": {
         "archive": "packed_topk_rc4_api_fast_failed_raw_v1.tar.gz",
@@ -33,6 +34,7 @@ PILOTS = {
         "api_sha256": "634d5edd161323924d8234fbbe6a780f56f6baf0ff9e404401ab9b951de172e5",
         "script_path": "api-pilot/profile_packed_topk_rc4_library.py",
         "script_sha256": "f7fc06bb42ec706662fa4ef336b0f26a8a4723a739cac814664a32043eac4071",
+        "fixture_file_authentication": "consumed_files_sha256_verified",
     },
 }
 
@@ -114,6 +116,7 @@ def main() -> None:
             "archive_sha256": sha256(archive_path.read_bytes()),
             "api_sha256": authority["api_sha256"],
             "replay_script_sha256": authority["script_sha256"],
+            "fixture_file_authentication": authority["fixture_file_authentication"],
             "pairs": pairs,
         }
     assert all(
@@ -163,9 +166,11 @@ def main() -> None:
         "persistent_bytes_per_item": 130,
         "pilots": pilots,
         "next_bottleneck": (
-            "public Python FFI tail: rare 14–19 ms calls; one instrumented "
-            "17.0 ms call coincided with generation-2 garbage collection"
+            "public Python FFI tail: rare 14–19 ms calls; localize garbage "
+            "collection, ctypes dispatch, and CUDA synchronization under "
+            "mixed-batch traffic"
         ),
+        "gc_attribution": "unverified_no_archived_gc_event_log",
         "claim_eligible": False,
     }
     OUTPUT.write_text(json.dumps(receipt, sort_keys=True, indent=2) + "\n")

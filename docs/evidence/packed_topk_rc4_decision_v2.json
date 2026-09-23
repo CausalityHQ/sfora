@@ -3,13 +3,15 @@
   "decision": "reject_merge_width_change_and_retain_rc3_scorer",
   "fixture_manifest_sha256": "2d34832dfe22378b767f9cbedc0911e04ff2e06add2d1fdea66e6d0d55497799",
   "gallery_rows": 1000000,
+  "gc_attribution": "unverified_no_archived_gc_event_log",
   "historical_misqualified_receipt_sha256": "27e96da49cd42051a387688df0a4dfb3784880b59849a638ba264c556d46b4f9",
-  "next_bottleneck": "public Python FFI tail: rare 14\u201319 ms calls; one instrumented 17.0 ms call coincided with generation-2 garbage collection",
+  "next_bottleneck": "public Python FFI tail: rare 14\u201319 ms calls; localize garbage collection, ctypes dispatch, and CUDA synchronization under mixed-batch traffic",
   "persistent_bytes_per_item": 130,
   "pilots": {
     "direct_native_api": {
       "api_sha256": "634d5edd161323924d8234fbbe6a780f56f6baf0ff9e404401ab9b951de172e5",
       "archive_sha256": "b84f40636ee9bcf5dc630c88a85edad6ba2496546a219c70441f5b3a91429073",
+      "fixture_file_authentication": "consumed_files_sha256_verified",
       "pairs": {
         "1": {
           "batch_1_p99_regression_fraction": -0.020068690218066565,
@@ -99,6 +101,7 @@
     "rc4_api": {
       "api_sha256": "7e585fa716ad79b0ad9f998ac6eb63a4f9c7a89409eefee2d9367885686c3818",
       "archive_sha256": "e35a072ea9ef9232d39267510b3e71d4dd49adf61c41f9eafc6bd3b0c9e3a1c5",
+      "fixture_file_authentication": "manifest_hash_only",
       "pairs": {
         "1": {
           "batch_1_p99_regression_fraction": -0.039343133962594035,
