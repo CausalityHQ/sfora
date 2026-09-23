@@ -104,6 +104,10 @@ Python API, and the immutable
 pretrained B/16 quality-screen receipt (`a7c65b7b…`). A focused check binds
 those hashes to the release decision and committed evidence. This corrects
 the intended benchmark input; no new timing result has been measured yet.
+The benchmark also requires the pinned SOP test-image content manifest
+(`28a3ec05…`) and verifies the exact bytes of its first 32 query images before
+timing. A CPU-only DGX preflight matched all 32 images against that manifest;
+the trainer remained active, so the GPU timing replay was not run concurrently.
 
 The authenticated B/16 feature export contains the official 59,551 train and
 60,502 test images, checkpoint SHA-256

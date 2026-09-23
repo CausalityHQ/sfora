@@ -35,6 +35,7 @@ UNICOM_FEATURES_SHA256 = "16b4554d3868363905f1e1cd385783a8033513835723a7b89f4b76
 NATIVE_LIBRARY_SHA256 = "39602d0e4e8b0d5ec441be460ad7f18e288241bef19fb6e6c5df14f4033ac73c"
 NATIVE_API_SHA256 = "b7c57022a836774d641a829e6aac71c1d547e3f71136f716d3c9aeeedad11409"
 QUALITY_SCREEN_SHA256 = "a7c65b7b5dda1a8884f08ea384f150ef98ac20c77607c0b8b2ed2fbbe6c1053d"
+TEST_IMAGE_MANIFEST_SHA256 = "28a3ec0561cd83ee426f3d1c301c70799316af91c1e9083a5a1ffdf3414327c1"
 
 
 def sha256(path: Path) -> str:
@@ -47,6 +48,15 @@ def sha256(path: Path) -> str:
 
 def percentile(samples: list[int], fraction: float) -> int:
     return sorted(samples)[math.ceil(len(samples) * fraction) - 1]
+
+
+def verify_query_images(paths: tuple[Path, ...], manifest: bytes) -> None:
+    """Check the query pixels against official SOP metadata-order digests."""
+    if len(manifest) != 60_502 * 32 or len(paths) != 32:
+        raise ValueError("paired SOP query image manifest differs")
+    for index, path in enumerate(paths):
+        if hashlib.sha256(path.read_bytes()).digest() != manifest[index * 32 : (index + 1) * 32]:
+            raise ValueError("paired SOP query image content differs")
 
 
 def _load_unicom(checkout: Path, checkpoint: Path):
@@ -158,6 +168,7 @@ def main() -> None:
     parser.add_argument("--unicom-checkpoint", required=True, type=Path)
     parser.add_argument("--native-library", required=True, type=Path)
     parser.add_argument("--quality-screen", required=True, type=Path)
+    parser.add_argument("--test-image-manifest", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--calls", type=int, default=200)
     parser.add_argument("--execute-paired-replay", action="store_true", required=True)
@@ -172,6 +183,7 @@ def main() -> None:
         (args.native_library, NATIVE_LIBRARY_SHA256),
         (Path(cutile_int8_module.__file__), NATIVE_API_SHA256),
         (args.quality_screen, QUALITY_SCREEN_SHA256),
+        (args.test_image_manifest, TEST_IMAGE_MANIFEST_SHA256),
     )
     for path, digest in expected_files:
         if sha256(path) != digest:
@@ -189,8 +201,7 @@ def main() -> None:
     test_paths = tuple(
         args.dataset_root / relative for relative in source["test_relative_paths"][:32]
     )
-    if not all(path.is_file() for path in test_paths):
-        raise ValueError("paired SOP test images differ")
+    verify_query_images(test_paths, args.test_image_manifest.read_bytes())
     oml_head = load_oml_sop_compact_encoder()
     oml_gallery = pack_int8_unit_embeddings(oml_head.transform(oml_test))
     train = F.normalize(torch.from_numpy(source["train_embeddings"]).float(), dim=1)
