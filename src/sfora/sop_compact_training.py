@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from collections import Counter
 from enum import StrEnum
 
@@ -48,6 +49,8 @@ def compact_training_terms(
     masks: torch.Tensor,
     *,
     arm: CompactTrainingArm,
+    arcface_margin: float = 0.3,
+    arcface_scale: float = 64.0,
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """Return ArcFace and rank terms while preserving the same classifier.
 
@@ -58,6 +61,10 @@ def compact_training_terms(
 
     if type(arm) is not CompactTrainingArm:
         raise ValueError("SOP compact training arm differs")
+    if not math.isfinite(arcface_margin) or not 0 <= arcface_margin < math.pi:
+        raise ValueError("SOP compact ArcFace margin differs")
+    if not math.isfinite(arcface_scale) or arcface_scale <= 0:
+        raise ValueError("SOP compact ArcFace scale differs")
     if (
         type(features) is not torch.Tensor
         or features.ndim != 2
@@ -82,7 +89,12 @@ def compact_training_terms(
     with torch.autocast(device_type=features.device.type, enabled=False):
         float_features = features.float()
         control = sharded_mask_arcface_loss(
-            float_features, classifier, labels, masks, margin=0.3, scale=64.0
+            float_features,
+            classifier,
+            labels,
+            masks,
+            margin=arcface_margin,
+            scale=arcface_scale,
         )
         if arm is CompactTrainingArm.ARCFACE:
             return control, control.new_zeros(())

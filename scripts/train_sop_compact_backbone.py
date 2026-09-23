@@ -14,6 +14,7 @@ import sys
 import tempfile
 import time
 from collections.abc import Callable
+from importlib.metadata import version
 from pathlib import Path
 from typing import BinaryIO
 
@@ -37,10 +38,17 @@ from sfora.sop_compact_training import (
     compact_training_terms,
 )
 from sfora.sop_evaluation import score_symmetric
+from sfora.sop_reference_recipe import (
+    reference_recipe,
+    reference_scheduler,
+    reference_train_transform,
+)
 from sfora.unicom_rank_finish import identity_balanced_batches
 
 CHECKPOINT_SHA256 = "c04f324f7c3b4435667236ec6c0eca1cd62f9d64fbfc2d06f8e8e60e6497edef"
 ARCHIVE_SHA256 = "16b4554d3868363905f1e1cd385783a8033513835723a7b89f4b762d893d757f"
+UPSTREAM_RETRIEVAL_SHA256 = "35fcea34c35ce428ccbcf0af66a61b0f7deae6e77b1cfcc3867edd2f5e8d2071"
+UPSTREAM_SOP_B16_LAUNCH_SHA256 = "f7dae3c3a97d18630a4a57cb73cf747e773b49a6b69cd0f9bd58297129c90ac8"
 FIT_FRACTION = 0.9
 SPLIT_SEED = 179019
 BATCH_SIZE = 128
@@ -56,6 +64,7 @@ SOURCE_RELATIVES = (
     "src/sfora/unicom_rank_finish.py",
     "src/sfora/representation_ceiling.py",
     "src/sfora/sop_evaluation.py",
+    "src/sfora/sop_reference_recipe.py",
     "src/sfora/joint_relational_compaction.py",
 )
 
@@ -71,6 +80,26 @@ def sha256(path: Path) -> str:
 def source_manifest() -> dict[str, str]:
     root = Path(__file__).resolve().parents[1]
     return {relative: sha256(root / relative) for relative in SOURCE_RELATIVES}
+
+
+def assert_source_imports() -> None:
+    """Bind the receipt's file hashes to the modules actually in memory."""
+
+    root = Path(__file__).resolve().parents[1]
+    for relative in SOURCE_RELATIVES:
+        path = Path(relative)
+        if relative == "scripts/train_sop_compact_backbone.py":
+            loaded = sys.modules[__name__]
+        elif path.parts[0] == "scripts":
+            loaded = sys.modules.get(path.stem)
+        else:
+            loaded = sys.modules.get(f"sfora.{path.stem}")
+        if (
+            loaded is None
+            or not getattr(loaded, "__file__", None)
+            or Path(loaded.__file__).resolve() != (root / path).resolve()
+        ):
+            raise ValueError("executed SOP training source differs from receipt files")
 
 
 def publish_file_noreplace(path: Path, write: Callable[[BinaryIO], None]) -> None:
@@ -204,7 +233,8 @@ def parse_args() -> argparse.Namespace:
         "--arm", type=CompactTrainingArm, choices=tuple(CompactTrainingArm), required=True
     )
     parser.add_argument("--seed", type=int, default=179019)
-    parser.add_argument("--updates", type=int, default=1000)
+    parser.add_argument("--updates", type=int)
+    parser.add_argument("--recipe", choices=("screen", "reference"), default="screen")
     parser.add_argument("--workers", type=int, default=8)
     parser.add_argument("--checkpoint-output", type=Path, required=True)
     parser.add_argument("--receipt-output", type=Path, required=True)
@@ -212,7 +242,7 @@ def parse_args() -> argparse.Namespace:
     args = parser.parse_args()
     if (
         args.seed < 0
-        or args.updates < 1
+        or (args.updates is not None and args.updates < 1)
         or args.workers < 0
         or args.checkpoint_output.exists()
         or args.receipt_output.exists()
@@ -223,6 +253,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+    assert_source_imports()
     initial_source_manifest = source_manifest()
     for destination in (args.checkpoint_output, args.receipt_output):
         destination.parent.mkdir(parents=True, exist_ok=True)
@@ -258,11 +289,45 @@ def main() -> None:
     validation_records = tuple(train_records[index] for index in partition.validation_row_indexes)
     fit_labels = tuple(record.label for record in fit_records)
     validation_labels = tuple(record.label for record in validation_records)
+    reference = args.recipe == "reference"
+    batch_size = 64 if reference else BATCH_SIZE
+    recipe = reference_recipe(fit_images=len(fit_records), batch_size=batch_size)
+    if args.recipe == "reference":
+        if len(fit_records) != 53_700:
+            raise ValueError("reference SOP fit inventory differs")
+        if args.updates is not None and args.updates != recipe.total_updates:
+            raise ValueError("reference SOP run requires 64 pass-equivalent updates")
+        args.updates = recipe.total_updates
+    elif args.updates is None:
+        args.updates = 1000
+    upstream_retrieval = args.unicom_checkout / "unicom" / "retrieval.py"
+    upstream_launch = args.unicom_checkout / "unicom" / "scripts" / "sop_vit_b_16.sh"
+    if args.recipe == "reference" and (
+        not upstream_retrieval.is_file() or not upstream_launch.is_file()
+    ):
+        raise ValueError("authenticated upstream retrieval recipe is missing")
+    upstream_retrieval_sha256 = sha256(upstream_retrieval) if args.recipe == "reference" else None
+    upstream_launch_sha256 = sha256(upstream_launch) if reference else None
+    if reference and (
+        upstream_retrieval_sha256 != UPSTREAM_RETRIEVAL_SHA256
+        or upstream_launch_sha256 != UPSTREAM_SOP_B16_LAUNCH_SHA256
+    ):
+        raise ValueError("authenticated upstream SOP B/16 source differs")
+    diagnostic_steps = (4000, 8000, 16000, 32000, 48000) if reference else ()
+    for diagnostic_step in diagnostic_steps:
+        diagnostic_checkpoint = args.checkpoint_output.with_name(
+            f"{args.checkpoint_output.stem}.step{diagnostic_step}{args.checkpoint_output.suffix}"
+        )
+        diagnostic_receipt = args.receipt_output.with_name(
+            f"{args.receipt_output.stem}.step{diagnostic_step}{args.receipt_output.suffix}"
+        )
+        if diagnostic_checkpoint.exists() or diagnostic_receipt.exists():
+            raise ValueError("reference SOP diagnostic destination already exists")
     class_names = tuple(sorted(set(fit_labels)))
     class_index = {name: index for index, name in enumerate(class_names)}
     batches = identity_balanced_batches(
         tuple(str(label) for label in fit_labels),
-        batch_size=BATCH_SIZE,
+        batch_size=batch_size,
         images_per_identity=IMAGES_PER_IDENTITY,
         seed=args.seed,
         epoch=1,
@@ -289,8 +354,11 @@ def main() -> None:
     train_dataset = IndexedImages(
         tuple(record.image_path for record in fit_records),
         tuple(class_index[label] for label in fit_labels),
-        make_train_transform(),
+        reference_train_transform() if args.recipe == "reference" else make_train_transform(),
     )
+    train_transform_sha256 = hashlib.sha256(
+        repr(train_dataset.transform).encode("utf-8")
+    ).hexdigest()
     train_loader = DataLoader(
         train_dataset,
         batch_sampler=FixedBatches(batches),
@@ -311,9 +379,7 @@ def main() -> None:
         pin_memory=True,
     )
     initial_validation_started = time.perf_counter()
-    initial_validation = evaluate_validation(
-        model, head, validation_loader, validation_labels
-    )
+    initial_validation = evaluate_validation(model, head, validation_loader, validation_labels)
     initial_validation_seconds = time.perf_counter() - initial_validation_started
     initial_float = initial_validation["float"]
     initial_packed = initial_validation["packed"]
@@ -324,19 +390,27 @@ def main() -> None:
         or abs(initial_packed["map_at_r"] - 0.5653424049482333) > 0.002
     ):
         raise ValueError("SOP compact step-zero image/archive parity differs")
+    learning_rates = recipe.peak_learning_rates if reference else (1e-5, 1e-4, 1e-4)
     optimizer = torch.optim.AdamW(
         [
-            {"params": model.parameters(), "lr": 1e-5},
-            {"params": head.parameters(), "lr": 1e-4},
-            {"params": [classifier], "lr": 1e-4},
+            {"params": model.parameters(), "lr": learning_rates[0]},
+            {"params": head.parameters(), "lr": learning_rates[1]},
+            {"params": [classifier], "lr": learning_rates[2]},
         ],
-        weight_decay=0.05,
+        weight_decay=recipe.weight_decay if reference else 0.05,
     )
-    scaler = torch.amp.GradScaler("cuda", init_scale=1024.0, growth_interval=1000)
+    scheduler = reference_scheduler(optimizer, recipe) if reference else None
+    scaler = torch.amp.GradScaler(
+        "cuda",
+        init_scale=1024.0,
+        growth_interval=recipe.grad_scaler_growth_interval if reference else 1000,
+    )
     masks = torch.arange(128, device="cuda", dtype=torch.int64).unsqueeze(0)
     torch.cuda.reset_peak_memory_stats()
     started = time.perf_counter()
     step_seconds = []
+    diagnostic_overhead_seconds = 0.0
+    training_peak_before_diagnostic = 0
     first_loss = None
     last_loss = None
     first_control = None
@@ -353,7 +427,13 @@ def main() -> None:
         source = model(images)
         features = compact_head_features(source, head)
         control, rank = compact_training_terms(
-            features, classifier, labels, masks, arm=args.arm
+            features,
+            classifier,
+            labels,
+            masks,
+            arm=args.arm,
+            arcface_margin=recipe.margin if reference else 0.3,
+            arcface_scale=recipe.scale if reference else 64.0,
         )
         loss = control + RANK_COEFFICIENT * rank
         if not bool(torch.isfinite(loss)):
@@ -379,6 +459,8 @@ def main() -> None:
         scaler.update()
         if observed_steps != 1:
             raise ValueError("SOP compact GradScaler skipped an optimizer step")
+        if scheduler is not None:
+            scheduler.step()
         torch.cuda.synchronize()
         step_seconds.append(time.perf_counter() - step_started)
         if first_loss is None:
@@ -400,8 +482,107 @@ def main() -> None:
                 ),
                 flush=True,
             )
-    training_seconds = time.perf_counter() - started
-    training_peak_cuda_allocated_bytes = torch.cuda.max_memory_allocated()
+        if step in diagnostic_steps:
+            diagnostic_checkpoint = args.checkpoint_output.with_name(
+                f"{args.checkpoint_output.stem}.step{step}{args.checkpoint_output.suffix}"
+            )
+            diagnostic_receipt = args.receipt_output.with_name(
+                f"{args.receipt_output.stem}.step{step}{args.receipt_output.suffix}"
+            )
+            diagnostic_started = time.perf_counter()
+            training_peak_before_diagnostic = max(
+                training_peak_before_diagnostic, torch.cuda.max_memory_allocated()
+            )
+            if source_manifest() != initial_source_manifest or (
+                reference
+                and (
+                    sha256(upstream_retrieval) != upstream_retrieval_sha256
+                    or sha256(upstream_launch) != upstream_launch_sha256
+                )
+            ):
+                raise ValueError("SOP compact source changed during training")
+            diagnostic_checkpoint_payload = {
+                "model": model.state_dict(),
+                "head": head.state_dict(),
+                "classifier": classifier.detach().cpu(),
+                "optimizer": optimizer.state_dict(),
+                "scaler": scaler.state_dict(),
+                "scheduler": scheduler.state_dict(),
+                "recipe": args.recipe,
+                "resumable": False,
+                "arm": args.arm.value,
+                "seed": args.seed,
+                "updates": step,
+                "schedule_sha256": schedule_sha256,
+            }
+            publish_file_noreplace(
+                diagnostic_checkpoint,
+                lambda stream, payload=diagnostic_checkpoint_payload: torch.save(payload, stream),
+            )
+            diagnostic_validation = evaluate_validation(
+                model, head, validation_loader, validation_labels
+            )
+            diagnostic_receipt_bytes = (
+                json.dumps(
+                    {
+                        "schema": "sfora-sop-compact-training-diagnostic-v1",
+                        "claim_eligible": False,
+                        "resumable": False,
+                        "recipe": args.recipe,
+                        "arm": args.arm.value,
+                        "seed": args.seed,
+                        "step": step,
+                        "total_updates": args.updates,
+                        "diagnostic_seconds": time.perf_counter() - diagnostic_started,
+                        "validation_image_ids": [record.image_id for record in validation_records],
+                        "validation_labels": list(validation_labels),
+                        "validation": diagnostic_validation,
+                        "source_sha256": initial_source_manifest,
+                        "schedule_sha256": schedule_sha256,
+                        "fit_row_indexes_sha256": hashlib.sha256(
+                            np.asarray(partition.fit_row_indexes, dtype="<i4").tobytes(order="C")
+                        ).hexdigest(),
+                        "validation_row_indexes_sha256": hashlib.sha256(
+                            np.asarray(partition.validation_row_indexes, dtype="<i4").tobytes(
+                                order="C"
+                            )
+                        ).hexdigest(),
+                        "input_checkpoint_sha256": CHECKPOINT_SHA256,
+                        "features_archive_sha256": ARCHIVE_SHA256,
+                        "upstream_retrieval_sha256": upstream_retrieval_sha256,
+                        "upstream_launch_sha256": upstream_launch_sha256,
+                        "train_transform_sha256": train_transform_sha256,
+                        "timm_version": version("timm"),
+                        "sop_train_metadata_sha256": sha256(args.dataset_root / "Ebay_train.txt"),
+                        "checkpoint_sha256": sha256(diagnostic_checkpoint),
+                    },
+                    sort_keys=True,
+                    allow_nan=False,
+                )
+                + "\n"
+            ).encode()
+            publish_file_noreplace(
+                diagnostic_receipt,
+                lambda stream, data=diagnostic_receipt_bytes: stream.write(data),
+            )
+            print(
+                json.dumps(
+                    {
+                        "diagnostic_step": step,
+                        "packed_r1": diagnostic_validation["packed"]["recall_at_1"],
+                        "packed_map_at_r": diagnostic_validation["packed"]["map_at_r"],
+                    }
+                ),
+                flush=True,
+            )
+            diagnostic_overhead_seconds += time.perf_counter() - diagnostic_started
+            torch.cuda.reset_peak_memory_stats()
+            model.train()
+            head.train()
+    training_seconds = time.perf_counter() - started - diagnostic_overhead_seconds
+    training_peak_cuda_allocated_bytes = max(
+        training_peak_before_diagnostic, torch.cuda.max_memory_allocated()
+    )
     publish_file_noreplace(
         args.checkpoint_output,
         lambda stream: torch.save(
@@ -411,6 +592,8 @@ def main() -> None:
                 "classifier": classifier.detach().cpu(),
                 "optimizer": optimizer.state_dict(),
                 "scaler": scaler.state_dict(),
+                "scheduler": scheduler.state_dict() if scheduler is not None else None,
+                "recipe": args.recipe,
                 "arm": args.arm.value,
                 "seed": args.seed,
                 "updates": args.updates,
@@ -426,15 +609,22 @@ def main() -> None:
     torch.cuda.reset_peak_memory_stats()
     validation = evaluate_validation(model, head, validation_loader, validation_labels)
     validation_seconds = time.perf_counter() - validation_started
-    if source_manifest() != initial_source_manifest:
+    if source_manifest() != initial_source_manifest or (
+        reference
+        and (
+            sha256(upstream_retrieval) != upstream_retrieval_sha256
+            or sha256(upstream_launch) != upstream_launch_sha256
+        )
+    ):
         raise ValueError("SOP compact source changed during training")
     receipt = {
         "schema": "sfora-sop-compact-full-backbone-v1",
         "claim_eligible": False,
         "arm": args.arm.value,
+        "recipe": args.recipe,
         "seed": args.seed,
         "updates": args.updates,
-        "batch_size": BATCH_SIZE,
+        "batch_size": batch_size,
         "images_per_identity": IMAGES_PER_IDENTITY,
         "fit_images": len(fit_records),
         "fit_classes": len(class_names),
@@ -457,22 +647,42 @@ def main() -> None:
             "head": "fit-only normalized PCA 768-to-128 affine initialization",
             "classifier": "fit-only 128-dimensional class-mean imprint",
             "augmentation": (
-                "RandomResizedCrop224 scale 0.8:1.0 bilinear; "
+                "timm create_transform224; RandomResizedCrop scale 0.08:1.0; "
+                "RandAugment rand-m9-mstd0.5-inc1 (disables color jitter); "
+                "bicubic; random erasing pixel p0.25; "
+                "UNICOM normalization"
+                if reference
+                else "RandomResizedCrop224 scale 0.8:1.0 bilinear; "
                 "RandomHorizontalFlip; UNICOM normalization"
             ),
             "objective": (
-                "ArcFace margin 0.3 scale 64; rank arms add "
-                "2.0 SmoothAP temperature 0.01"
+                f"ArcFace margin {recipe.margin if reference else 0.3:g} "
+                f"scale {recipe.scale if reference else 64.0:g}; "
+                "rank arms add 2.0 SmoothAP temperature 0.01"
             ),
             "optimizer": (
-                "AdamW weight_decay 0.05; backbone lr 1e-5; "
+                "AdamW weight_decay 0; OneCycle pct_start 0.1 over "
+                "64 pass-equivalent balanced-sampler updates; "
+                "peak backbone lr 1e-5; peak head and classifier lr 1e-4; "
+                "momentum cycling; gradient clip 1.0; static GradScaler 1024"
+                if reference
+                else "AdamW weight_decay 0.05; backbone lr 1e-5; "
                 "head and classifier lr 1e-4; gradient clip 1.0"
             ),
             "precision": (
                 "official internal fp16 backbone autocast with GradScaler; "
                 "float32 source normalization, head, and objective"
             ),
-            "selection": "train-identity holdout packed mAP@R; official test excluded",
+            "selection": (
+                "max train-identity holdout packed mAP@R over recorded "
+                "checkpoints; tie by packed Recall@1, then earlier step; "
+                "official test excluded"
+            ),
+            "sampler": (
+                f"deterministic {batch_size // IMAGES_PER_IDENTITY} distinct "
+                "identities x 4 images; "
+                "per-identity image permutations recycle across batches"
+            ),
         },
         "first_loss": first_loss,
         "last_loss": last_loss,
@@ -481,7 +691,12 @@ def main() -> None:
         "first_rank_loss": first_rank,
         "last_rank_loss": last_rank,
         "rank_coefficient": RANK_COEFFICIENT,
+        "reference_steps_per_epoch": recipe.steps_per_epoch if reference else None,
+        "selection_checkpoint_steps": [*diagnostic_steps, args.updates]
+        if reference
+        else [args.updates],
         "training_seconds": training_seconds,
+        "diagnostic_overhead_seconds": diagnostic_overhead_seconds,
         "validation_seconds": validation_seconds,
         "updates_per_second": args.updates / training_seconds,
         "step_seconds_p50": float(np.median(step_seconds)),
@@ -495,6 +710,7 @@ def main() -> None:
             "python": platform.python_version(),
             "torch": torch.__version__,
             "torchvision": torchvision_version,
+            "timm": version("timm") if reference else None,
             "numpy": np.__version__,
             "cuda": torch.version.cuda,
         },
@@ -503,6 +719,9 @@ def main() -> None:
             "features_archive_sha256": ARCHIVE_SHA256,
             "sop_train_metadata_sha256": sha256(args.dataset_root / "Ebay_train.txt"),
             "source_sha256": initial_source_manifest,
+            "upstream_retrieval_sha256": upstream_retrieval_sha256,
+            "upstream_launch_sha256": upstream_launch_sha256,
+            "train_transform_sha256": train_transform_sha256,
             "initial_head_sha256": initial_head_sha256,
             "initial_classifier_sha256": initial_classifier_sha256,
             "checkpoint_output_sha256": sha256(args.checkpoint_output),

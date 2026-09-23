@@ -65,6 +65,14 @@ storage point from a single compact embedding. These published comparisons
 are a dated, checked reference panel, not an exhaustive current-frontier
 audit or a claim that any local system surpasses state of the art.
 
+The later [LoCoRe CVPR 2025 paper](https://arxiv.org/html/2503.21772v1)
+reports 83.8% SOP and 87.9% In-Shop Recall@1 for its base model when it
+re-ranks 100 images from its own global-descriptor shortlist. Its shared
+global-only controls are 80.8% and 88.5%, respectively. Its method compares
+re-rankers on the same shortlist and uses additional local descriptors;
+these numbers do not replace the stronger UNICOM single-descriptor quality
+gates or provide a same-hardware image-to-top-k speed comparison.
+
 The OML float source rescored with the same stable-ordinal evaluator remains
 86.5575% Recall@1 and 0.654393 mAP@R, with
 [raw matched-scorer evidence](evidence/compact_metric/oml-vits16-sop-matched-scorer-v1.json).
@@ -272,18 +280,44 @@ has per-query values and SHA-256
 
 The upstream UNICOM
 [`retrieval.py`](https://github.com/deepglint/unicom/blob/d71992ed969e6c271436ac0a0ee1f3ca61474ac0/unicom/retrieval.py)
-recipe in the authenticated checkout uses
-32 epochs, batch 128, OneCycle peak backbone learning rate 1e-4, classifier
-multiplier 5, scale 32, margin 0.3, and zero weight decay. Our 1,000-update
-screen used about 2.4 passes over its fit images, constant backbone learning
-rate 1e-5, scale 64, and weight decay 0.05. Its failure therefore does not
-isolate backbone capacity from an under-budget, off-reference recipe. The
+generic defaults are **not** the SOP training recipe. The authenticated
+[`sop_vit_b_16.sh`](https://github.com/deepglint/unicom/blob/d71992ed969e6c271436ac0a0ee1f3ca61474ac0/unicom/scripts/sop_vit_b_16.sh)
+launches one GPU with batch 64, 64 epochs, OneCycle peak backbone learning
+rate 1e-5, classifier multiplier 10, ArcFace margin 0.25 and scale 32, and
+zero weight decay. The corresponding L/14@336 script launches eight GPUs at
+batch 16 **per GPU**, also for 64 epochs with margin 0.25 and scale 32.
+Our 1,000-update screen used about 2.4 image-count passes over its fit images,
+constant backbone learning rate 1e-5, scale 64, margin 0.3, and weight decay
+0.05. Its failure therefore does not isolate backbone capacity from an
+under-budget, off-reference recipe. The
 next causal gate is a longer B/16 ArcFace training run with a reference-like
 schedule and periodic **train-holdout** checks, paired with a full-width
 768-D control under the same inputs and budget. Only if that recipe approaches
 the published B/16 result should full L/14 fine-tuning or teacher-to-student
 distillation consume the substantially larger training budget. The existing
 official test result is a feasibility gate and must not select checkpoints.
+
+The prepared reference-like compact control keeps the same 53,700-image fit
+partition, balanced 16-product × 4-image sampler, PCA-initialized 128-D head,
+and packed holdout evaluator. It changes the optimizer to upstream-like
+OneCycle peak rates (backbone 1e-5, head/classifier 1e-4), zero weight decay,
+ArcFace margin 0.25 and scale 32, and the upstream timm training augmentation.
+It trains for 53,760 updates, the equivalent of 64 passes by image count, with
+durable **diagnostic-only** checkpoints and train-only holdout receipts at
+4,000, 8,000, 16,000, 32,000, and 48,000 updates, plus the final checkpoint.
+The 4,000-update diagnostic is not a stop gate; none of the intermediate
+checkpoints is a resumable training state. The best completed checkpoint is
+selected by holdout packed mAP@R, then packed Recall@1, then earlier step.
+Because the balanced sampler differs from upstream's shuffled image sampler,
+the compact head is new, only 90% of SOP train identities are fitted, and
+gradient clipping at norm 1.0 is additional, this is **reference-like**, not
+a faithful published UNICOM reproduction. The upstream B/16 script's
+single-GPU batch 64 avoids a global-batch mismatch, but its classifier is
+full-width and uses `num_feat=512` in PartialFC.
+The 4,000-update constant-rate screen already running on the DGX is a separate
+budget diagnostic; it uses the original 1,000-update recipe and must be
+interpreted separately from this prepared control.
+
 The one-update ArcFace canary passed an image-level step-zero parity check:
 the packed validation Recall@1 and mAP@R were exactly 0.8205435 and 0.5653424,
 matching the cached-feature screen. Its full-backbone update took 2.182 s
