@@ -16,9 +16,11 @@ The OML compact profile improves Sfora's previous absolute SOP result by
 bytes. It loses 0.012568 mAP@R and 0.005818 Recall@1 against its own float
 source, so it should not be described as better than OML itself. The
 projection's training-only three-fold choice and the observed official test
-are in `docs/evidence/compact_metric/oml-vits16-sop-power-whitening-v1.json`.
-That earlier scorer normalized the integer codes in float32. A new
-independent replay used the exact served f16 inverse norms and produced
+are in `docs/evidence/compact_metric/oml-vits16-sop-power-whitening-v1.json`;
+that receipt also supplies the displayed float-384 mAP@R. That earlier scorer
+normalized the integer codes in float32. A new independent replay started
+from authenticated cached OML features, used the exact served f16 inverse
+norms, and produced
 0.6418248620 mAP@R / 0.8597567023 Recall@1 from the bundled artifact. Its
 canonical receipt is
 `docs/evidence/compact_metric/oml-vits16-sop-packed-profile-verification-v1.json`,
@@ -50,11 +52,26 @@ The source fit checkpoint was SHA-256
 The loader verifies both strict artifact framing and the pinned hashes.
 
 The existing 128-D native search kernel accepts this wire without changing
-its storage or arithmetic shape. That does not alone establish equal tail
-latency on a million OML gallery codes; a paired public-call replay using
-this profile's code distribution is required before a performance release
-claim. Encoder runtime is separate: OML ViT-S/16 at 224 pixels and the prior
-UNICOM ViT-L/14 at 336 pixels have not yet been paired in one latency replay.
+its storage or arithmetic shape. A corrected paired 1M-row public-call replay
+on the GB10 used the released RC4 library and 50 timed calls per arm and
+batch. Both galleries received the same SOP queries, and the 32 query rows
+were excluded from the SOP gallery source. The remaining 60,470 authenticated
+SOP codes were tiled to 1M rows; each source item therefore appears 16 or 17
+times. This is a code-distribution smoke, not a realistic independent 1M-item
+population. Both arms had 130 bytes per gallery row. Batch-1 medians were
+1.055/1.056 ms for the RC4 fixture and 1.072/1.071 ms for the SOP profile,
+a consistent ~1.6% offset. Batch-32 medians were 2.800/2.799 ms and
+2.794/2.789 ms, respectively. The nearest-rank p99 from 50 samples is only
+the maximum observed call, and it varied substantially by pair. This does not
+establish a tail-latency improvement or a stable no-regression claim. Raw
+timed calls, deterministic result hashes, input bindings, and process RSS
+are in `docs/evidence/compact_metric/oml-vits16-sop-packed-1m-replay-v2.json`,
+SHA-256 `d95b4bcc11847d4142c745659725320452589c1623847db63a59db037f82d921`.
+The earlier self-including, unmatched-query smoke is retained as
+`oml-vits16-sop-packed-1m-replay-v1.json` for audit, not for comparison.
+The image encoder was excluded from this search-only replay: OML ViT-S/16 at
+224 pixels and the prior UNICOM ViT-L/14 at 336 pixels still need a paired
+end-to-end latency measurement.
 For published quality context, [UNICOM Table 4 (ICLR 2023)](https://arxiv.org/pdf/2304.05884)
 reports 88.8%, 89.9%, and 91.2% SOP Recall@1 for supervised ViT-B/16,
 ViT-L/14, and ViT-L/14@336 respectively. Its table's 88.0% figure is the
@@ -62,3 +79,16 @@ ViT-L/14, and ViT-L/14@336 respectively. Its table's 88.0% figure is the
 systems remain ahead of this profile's 85.98% and use different training and
 deployment budgets. Raising a compact profile to that quality range requires
 an adapted image backbone and matched encoder-latency evidence.
+
+The next quality gate is a measured, paired encoder-plus-search replay for
+the current OML ViT-S/16@224 path and a UNICOM ViT-B/16@224 candidate, with
+the released 1M search path, at batch 1 and 32. This fixes the end-to-end
+latency budget before training. Then a single frozen SOP-train fine-tune of
+the UNICOM backbone can be compressed using train-only fits and scored once
+on the already-observed official test split. The OML checkpoint was itself
+trained on all SOP-train classes, so an SOP-train holdout is unsuitable for a
+head-to-head comparison against it. A ViT-B/16 gain would be an absolute
+product-quality gain, not a state-of-the-art claim: UNICOM's strongest
+published SOP result is ViT-L/14@336 at 91.2% before 130-byte compression.
+The earlier head-only deployed-code SmoothAP gate did not justify more
+projection tuning; backbone adaptation is the distinct next mechanism.
