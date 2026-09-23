@@ -56,10 +56,11 @@ control, and a **BatchNorm** mismatch between an EMA teacher and its student.
 > [compact selector evidence](docs/compact_metric_selector_result_2026-09-19.md),
 > [one-million-row scorer evidence](docs/packed_int8_cutile_topk_result_2026-09-20.md),
 > and [negative-results ledger](docs/similarity_negative_results_2026-09-19.md).
-> The [0.3.0rc3 release table](docs/release_candidate_0_3_0_rc3.md) puts quality,
-> matched baselines, confidence intervals, bytes, latency, throughput, RSS, and
-> claim limits in one place. Here, **release-ready** describes package/API/system
-> verification; **claim-eligible** is the separate scientific-publication status.
+> The [0.3.0rc4 release checkpoint](docs/release_candidate_0_3_0_rc4.md) links
+> the frozen quality table and reports the new exact packed-search latency,
+> throughput, resource measurements, and claim limits. Here, **release-ready**
+> describes package/API/system verification; **claim-eligible** is the separate
+> scientific-publication status.
 
 ### cuTile backend installation boundary
 
@@ -83,6 +84,11 @@ Pass the resulting absolute
 aarch64 DGX setting; other supported hosts must supply their own compiler include
 path. Missing CUDA, `tileiras`, or an incompatible backend fails closed—there is
 no silently relabelled CPU fallback.
+
+The `0.3.0rc4` performance receipt pairs Python API SHA-256 `b7c57022…` with
+native library SHA-256 `39602d0e…`; use this release's Rust source to build a
+backend for the versioned wheel. A separately built binary can be correct, but
+the published latency measurements apply to the recorded binary/API pair.
 
 The current native backend binds CUDA device 0. Operations on one
 `CutilePackedInt8Gallery` are serialized: `close()` waits for an active search,

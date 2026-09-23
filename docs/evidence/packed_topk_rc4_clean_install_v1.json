@@ -1,0 +1,31 @@
+{
+  "checks": {
+    "1000000_1": {
+      "exact_ordinals": true,
+      "exact_score_bits": true
+    },
+    "1000000_32": {
+      "exact_ordinals": true,
+      "exact_score_bits": true
+    },
+    "1000003_1": {
+      "exact_ordinals": true,
+      "exact_score_bits": true
+    },
+    "1000003_32": {
+      "exact_ordinals": true,
+      "exact_score_bits": true
+    }
+  },
+  "fixture_manifest_sha256": "2d34832dfe22378b767f9cbedc0911e04ff2e06add2d1fdea66e6d0d55497799",
+  "installed_api_path": "/home/riomus/sfora-rc5-pointer-b7c57022/final-wheel/venv/lib/python3.12/site-packages/sfora/cutile_int8.py",
+  "installed_api_sha256": "b7c57022a836774d641a829e6aac71c1d547e3f71136f716d3c9aeeedad11409",
+  "native_library_sha256": "39602d0e4e8b0d5ec441be460ad7f18e288241bef19fb6e6c5df14f4033ac73c",
+  "process_peak_rss_bytes": 730943488,
+  "python": "3.12.14 (main, Aug 25 2026, 13:59:30) [Clang 22.1.3 ]",
+  "python_prefix": "/home/riomus/sfora-rc5-pointer-b7c57022/final-wheel/venv",
+  "schema": "sfora-rc4-clean-install-v1",
+  "version": "0.3.0rc4",
+  "wheel_filename": "sfora-0.3.0rc4-py3-none-any.whl",
+  "wheel_sha256": "714ed57e3b37211640b33f0c87276627f59de1564ff4dd21cf994a15588cb5f5"
+}

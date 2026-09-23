@@ -215,6 +215,31 @@ def test_native_handle_rejects_implicit_or_invalid_arrays(tmp_path: Path) -> Non
         CutilePackedInt8Gallery.open(library_path, codes.astype(np.float32), norms)
 
 
+def test_search_rejects_invalid_arrays_before_pointer_dispatch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    library_path = tmp_path / "libsfora_cutile_int8_score.so"
+    library_path.write_bytes(b"fixture")
+    library = _Library()
+    monkeypatch.setattr(ctypes, "CDLL", lambda path: library)
+    gallery_codes, gallery_norms = _packed(129)
+    codes, norms = _packed(32)
+    bad_norms = norms.copy()
+    bad_norms[0] = np.nan
+    cases = [
+        (codes[::2], norms[::2]),
+        (np.asfortranarray(codes), norms),
+        (codes.astype(np.float32), norms),
+        (codes, norms.astype(">f2")),
+        (codes, bad_norms),
+    ]
+    with CutilePackedInt8Gallery.open(library_path, gallery_codes, gallery_norms) as gallery:
+        for bad_codes, bad_inverse_norms in cases:
+            with pytest.raises(ValueError, match="query"):
+                gallery.search(bad_codes, bad_inverse_norms)
+            assert library.sfora_cutile_int8_search.raw_arguments == ()
+
+
 def test_close_waits_for_active_native_search(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
