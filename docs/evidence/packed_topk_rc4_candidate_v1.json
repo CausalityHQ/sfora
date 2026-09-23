@@ -1,0 +1,173 @@
+{
+  "candidate_diagnostic_binary_sha256": "ee68c1e7684298f3845138ce15c71a27462fe674800559bb4cbd7706a41ef112",
+  "candidate_library_sha256": "39602d0e4e8b0d5ec441be460ad7f18e288241bef19fb6e6c5df14f4033ac73c",
+  "candidate_raw_sha256": "d872fa567f57d32b9757c7a824e7a641a58857a6c580ea637ade35cfa30596cb",
+  "claim_eligible": false,
+  "clean_wheel_smoke_sha256": "64c3ffee321a20dceb367a82ffcdf0a0aa35e49549635ad7f391bf5114c7310e",
+  "device": "NVIDIA GB10",
+  "dimensions": 128,
+  "exactness": {
+    "1000000_1": {
+      "exact_ordinals": true,
+      "exact_score_bits": true,
+      "matched_frozen_fused": true,
+      "process_peak_rss_bytes": 382308352
+    },
+    "1000000_32": {
+      "exact_ordinals": true,
+      "exact_score_bits": true,
+      "matched_frozen_fused": true,
+      "process_peak_rss_bytes": 382361600
+    },
+    "1000003_1": {
+      "exact_ordinals": true,
+      "exact_score_bits": true,
+      "matched_frozen_fused": true,
+      "process_peak_rss_bytes": 382513152
+    },
+    "1000003_32": {
+      "exact_ordinals": true,
+      "exact_score_bits": true,
+      "matched_frozen_fused": true,
+      "process_peak_rss_bytes": 382357504
+    }
+  },
+  "ffi_replay_script_sha256": "6ee62e2f569281515f54c843e1f7f90c0822a30a14c3444a1f4cebe00de44a3d",
+  "fixture_manifest_sha256": "2d34832dfe22378b767f9cbedc0911e04ff2e06add2d1fdea66e6d0d55497799",
+  "flat_pilot_raw_sha256": "357afd8fd250882d30398c0a5a25ca6401f3283ad95973480ed99763a96abec2",
+  "gallery_rows": 1000000,
+  "gpu_memory": {
+    "1": {
+      "nsys_report_sha256": "b5c36bd689338cbef0a7c196d5a05ea195648742c77f54776beb9d52771b9a0e",
+      "scope": "maximum CUDA memory-pool utilized bytes in separate memory-enabled trace",
+      "tracked_cuda_pool_peak_bytes": 133016448
+    },
+    "32": {
+      "nsys_report_sha256": "6cacd9fe8f96e68657205a99113257aa09462a149c4328e241632d57188dcb88",
+      "scope": "maximum CUDA memory-pool utilized bytes in separate memory-enabled trace",
+      "tracked_cuda_pool_peak_bytes": 165014016
+    }
+  },
+  "kernel_commit": "8dd89c8b02c3b88c0a5b05ea6ae1e4e44b9d785e",
+  "kernel_source_sha256": "5c5628b5bac9ac4109e3c8133db5928b2c1755ecce89f0c50f217c3a5d653a42",
+  "paired_ffi_replays": {
+    "1": {
+      "batch_1_p99_regression_fraction": 0.021584811092043354,
+      "batch_32_p99_gain_fraction": 0.35874944611485327,
+      "candidate": {
+        "batches": {
+          "1": {
+            "p50_ns": 1059009,
+            "p95_ns": 1438359,
+            "p99_ns": 1500136,
+            "process_peak_rss_bytes": 779919360,
+            "queries_per_second": 911.9864993896166
+          },
+          "32": {
+            "p50_ns": 2801708,
+            "p95_ns": 3244579,
+            "p99_ns": 3306772,
+            "process_peak_rss_bytes": 779919360,
+            "queries_per_second": 11249.547733026297
+          }
+        },
+        "library_sha256": "39602d0e4e8b0d5ec441be460ad7f18e288241bef19fb6e6c5df14f4033ac73c"
+      },
+      "rc3": {
+        "batches": {
+          "1": {
+            "p50_ns": 1050897,
+            "p95_ns": 1236132,
+            "p99_ns": 1468440,
+            "process_peak_rss_bytes": 781299712,
+            "queries_per_second": 929.2376428445012
+          },
+          "32": {
+            "p50_ns": 4526217,
+            "p95_ns": 4943519,
+            "p99_ns": 5156755,
+            "process_peak_rss_bytes": 781299712,
+            "queries_per_second": 6983.096763981896
+          }
+        },
+        "library_sha256": "a9e583881201760088f3d99c180367e587ca68219c79dfe1760a3467f06b8dea"
+      }
+    },
+    "2": {
+      "batch_1_p99_regression_fraction": 0.025119708601385238,
+      "batch_32_p99_gain_fraction": 0.36722552876076264,
+      "candidate": {
+        "batches": {
+          "1": {
+            "p50_ns": 1056033,
+            "p95_ns": 1290196,
+            "p99_ns": 1435878,
+            "process_peak_rss_bytes": 779984896,
+            "queries_per_second": 923.9792897803621
+          },
+          "32": {
+            "p50_ns": 2809404,
+            "p95_ns": 3230211,
+            "p99_ns": 3307204,
+            "process_peak_rss_bytes": 779984896,
+            "queries_per_second": 11137.548945264021
+          }
+        },
+        "library_sha256": "39602d0e4e8b0d5ec441be460ad7f18e288241bef19fb6e6c5df14f4033ac73c"
+      },
+      "rc3": {
+        "batches": {
+          "1": {
+            "p50_ns": 1066657,
+            "p95_ns": 1332724,
+            "p99_ns": 1400693,
+            "process_peak_rss_bytes": 781320192,
+            "queries_per_second": 916.3136598835753
+          },
+          "32": {
+            "p50_ns": 4562214,
+            "p95_ns": 5070094,
+            "p99_ns": 5226513,
+            "process_peak_rss_bytes": 781320192,
+            "queries_per_second": 6924.6103347567405
+          }
+        },
+        "library_sha256": "a9e583881201760088f3d99c180367e587ca68219c79dfe1760a3467f06b8dea"
+      }
+    }
+  },
+  "persistent_bytes_per_item": 130,
+  "profiler": "NVIDIA Nsight Systems 2025.3.2",
+  "quality_revalidation_sha256": "61ba86bae0bd168f7323263e7dc3883445518c795f2018a230d2bc724d9bc6c0",
+  "rc3_library_sha256": "a9e583881201760088f3d99c180367e587ca68219c79dfe1760a3467f06b8dea",
+  "release_gate": {
+    "batch_1_p99_regression_at_most": 0.05,
+    "batch_32_p99_gain_at_least": 0.2,
+    "passed": true,
+    "process_rss_below_bytes": 2147483648
+  },
+  "rust_replay": {
+    "1": {
+      "p50_ns": 1037793,
+      "p95_ns": 1271765,
+      "p99_ns": 1364535,
+      "process_peak_rss_bytes": 382492672,
+      "queries_per_second": 940.661085699361
+    },
+    "32": {
+      "p50_ns": 2807454,
+      "p95_ns": 3256725,
+      "p99_ns": 3307958,
+      "process_peak_rss_bytes": 382369792,
+      "queries_per_second": 11215.295049283477
+    }
+  },
+  "schema": "sfora-packed-topk-rc4-candidate-v1",
+  "sdist_sha256": "c08e5f1626d4de64082938888f48c46ae9dd8bc3db7489a449e9fb019913f988",
+  "source_commit": "086eb6c29ddc759c336aa9863367a3d001b11d42",
+  "stage_receipt_sha256": "f37fb705e6e0eef4bc433a649d85e7aa66259d208bef7db3a692b1b6b8e2b612",
+  "tail_rows": 1000003,
+  "tileiras": "NVIDIA CUDA TileIR 13.4.92",
+  "top_k": 10,
+  "wheel_sha256": "38843a0d3b5c583f0cdfe25aeb971fa34dece10b356afb030c026fe479f5fc8e"
+}

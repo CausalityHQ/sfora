@@ -1,0 +1,36 @@
+{
+  "claim_eligible": false,
+  "files": {
+    "inshop_result": {
+      "path": "docs/evidence/rank_finished_l14_336_official_linear_attribution_v1.json",
+      "sha256": "22fe205422e10ef2e996bcb374ef4a036ea5b3cbaaa1652a4ddde1be22fce808"
+    },
+    "inshop_selector": {
+      "path": "docs/evidence/compact_metric/inshop-compact-selector-v1.json",
+      "sha256": "7d1f95afd21cdb37d46889db980c52861ad8f16d377a024ff4f72aa0c48d79e6"
+    },
+    "pet_result": {
+      "path": "docs/evidence/compact_metric/pet-compact-metric-v1.json",
+      "sha256": "67ab728083a2a8f3920a0c24872c8ab253fa93966ecf8d5b48473bc1719cf3ce"
+    },
+    "pet_selector": {
+      "path": "docs/evidence/compact_metric/pet-compact-selector-v1.json",
+      "sha256": "d835fca611b291d8402f7b55f7a5d85875ffe13c682a896ab7599d7daa3b8d1e"
+    },
+    "rc3_assurance": {
+      "path": "docs/evidence/release_assurance_v0_3_0_rc3.json",
+      "sha256": "3ea7d584a944423477dec2034f63da66f47fe27efd9355fcc73a8903693f2400"
+    }
+  },
+  "inshop": {
+    "map_at_r": 0.8000197729351304,
+    "recall_at_1": 0.9542833028555352
+  },
+  "pet": {
+    "map_at_r": 0.8627591338576014,
+    "recall_at_1": 0.9695945945945946
+  },
+  "recomputed_descriptor_training": false,
+  "schema": "sfora-rc4-quality-revalidation-v1",
+  "status": "unchanged_receipts_and_frozen_metrics"
+}
