@@ -266,6 +266,26 @@ scorer; repeated tuning of this already-failed 128-D B/16 point is unwarranted.
 Second-dataset transfer and image-to-top-k p99 remain unmeasured for this
 checkpoint.
 
+The distinct **4,000-update ArcFace budget diagnostic** completed on the
+same B/16 checkpoint, seed, 53,700/5,851 training-identity partition,
+PCA-initialized 128-D head, deterministic batch prefix, and constant-rate
+screen recipe. Its train-only holdout packed Recall@1 was **92.8388%** and
+mAP@R **0.755029**, versus 91.8988% and 0.726940 at 1,000 ArcFace updates.
+The within-seed class-bootstrap differences are +0.940 percentage points in
+Recall@1 (95% interval +0.481 to +1.429 points) and +0.028089 mAP@R
+(+0.023543 to +0.032718). Training took 2,745.797 s on the GB10 with
+12,410,501,120 peak allocated CUDA bytes, about four times the 1,000-update
+training cost. The raw [per-query receipt](evidence/compact_metric/sop-full-backbone-arcface-seed179019-4000-v1.json)
+has SHA-256
+`4b6a74d0e258d5b6a3d4b770d0fc9945fb02e0dc02a0f2d515c5e118d1c4e9de`;
+the DGX checkpoint is
+`/home/riomus/runs/sfora-sop-compact-backbone-179019/full-arcface-seed179019-4000.pt`,
+SHA-256 `28df81a7fb7fcdd4f6f5dbbfdebd19702d9b65db519cbb890d76c299e9e5441c`.
+Source, split, initialization, and per-query aggregate hashes were verified
+against the 1,000-update ArcFace receipt. This is evidence that the first
+screen was under-budget on its own holdout. It is **not** an official-test
+result or a matched-budget algorithmic comparison with the rank arms.
+
 An authenticated, paired **pretrained architecture screen** reused the same
 5,851-image SOP training-class holdout and exact image rows for B/16@224 and
 L/14@336. B/16 full-width/PCA-128 packed Recall@1 was 84.0882%/82.0543%;
@@ -314,9 +334,9 @@ gradient clipping at norm 1.0 is additional, this is **reference-like**, not
 a faithful published UNICOM reproduction. The upstream B/16 script's
 single-GPU batch 64 avoids a global-batch mismatch, but its classifier is
 full-width and uses `num_feat=512` in PartialFC.
-The 4,000-update constant-rate screen already running on the DGX is a separate
-budget diagnostic; it uses the original 1,000-update recipe and must be
-interpreted separately from this prepared control.
+The completed 4,000-update constant-rate screen is a separate budget
+diagnostic using the original recipe. Its measured gain must be interpreted
+separately from the longer reference-like control now running on the DGX.
 
 The one-update ArcFace canary passed an image-level step-zero parity check:
 the packed validation Recall@1 and mAP@R were exactly 0.8205435 and 0.5653424,
