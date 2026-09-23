@@ -499,6 +499,22 @@ for multi-dataset quality and claim limits, and the
 [Aircraft release evidence](docs/aircraft_compact_metric_result_2026-09-19.md)
 for measured throughput.
 
+For the official Stanford Online Products split, an optional prefit profile
+accepts 384-dimensional embeddings from OML's `vits16_sop` checkpoint and
+returns the same 130-byte packed search wire:
+
+```python
+from sfora.model_profiles import load_oml_sop_compact_encoder
+
+profile = load_oml_sop_compact_encoder()
+packed = profile.encode_packed(oml_features.cpu().float().contiguous())
+```
+
+The OML image encoder and its weights are external to the Sfora wheel. The
+profile is tied to that exact checkpoint and preprocessor; see the
+[SOP quality profile](docs/sop_quality_profile_2026-09-23.md) for hashes,
+metrics, and performance limits.
+
 ### Relational embedding compaction
 
 When a stronger teacher and a cheaper source encoder describe the same training
