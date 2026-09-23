@@ -80,7 +80,7 @@ def _call(arm: dict[str, object], paths: tuple[Path, ...], gallery: CutilePacked
         features = arm["model"](images).float().cpu()  # type: ignore[operator]
     encoded = time.perf_counter_ns()
     if arm["name"] == "unicom_b16":
-        projected = arm["head"].apply(features)  # type: ignore[union-attr]
+        projected = arm["head"].apply(F.normalize(features, dim=1))  # type: ignore[union-attr]
     else:
         projected = arm["head"].transform(features)  # type: ignore[union-attr]
     packed = pack_int8_unit_embeddings(projected)

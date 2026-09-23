@@ -28,9 +28,10 @@ inverse norm. The causal arms are ArcFace alone, ArcFace plus SmoothAP on
 float cosine, and ArcFace plus SmoothAP on the exact packed forward score
 with a straight-through gradient. Match train identities, augmentation,
 class-balanced batch sequence, optimizer, update count, seeds, and checkpoint
-selection. Use only train identities for recipe selection. First test a head
-feasibility pilot, then train the backbone under the frozen recipe; compare
-paired independent seeds before attributing a gain to the new loss. The
+selection. Use only train identities for recipe selection. Train the entire
+backbone under the frozen recipe in the first causal screen: the earlier
+head-only rank experiment failed its gate. Compare paired independent seeds
+before attributing a gain to the new loss. The
 published full-width B/16 SOP result is 88.8%, so this cheaper architecture
 is only a feasibility step toward the L/14 quality gate.
 
@@ -53,6 +54,15 @@ native and full image-to-top-k p50/p95/p99 at batch 1 and 32 on the same GPU.
 | SOP official test, same queries | OML ViT-S/16@224 + Sfora compact profile | 85.9757% | 0.641825 | 130 | — | Exploratory, packed representation; [raw profile](evidence/compact_metric/oml-vits16-sop-packed-profile-verification-v1.json) |
 | In-Shop official query/gallery | UNICOM ViT-L/14@336 | 96.7% | — | 768 f32 output before indexing | — | Published [UNICOM Table 4](https://arxiv.org/pdf/2304.05884); evaluator uses normalized prefix-512 Euclidean |
 | In-Shop official query/gallery | UNICOM ViT-L/14@336 + Sfora compact profile | 95.4283% | 0.800020 | 130 | — | Exploratory, [local result](compact_metric_selector_result_2026-09-19.md) |
+| In-Shop official 14,218-query/12,612-gallery split | OML ViT-S/16@224, raw 384-D Euclidean | 92.0945% | 0.685148 | 1536 as f32 | — | Exploratory local reproduction of the published 92.1% control; [raw receipt](evidence/compact_metric/oml-vits16-inshop-baseline-v1.json) |
+
+The independent [STIR paper](https://arxiv.org/pdf/2304.13393) reports
+88.3% SOP and 95.0% In-Shop Recall@1 for a ViT-S/16 system with a symmetric
+pixel-level top-five reranker. It is a useful method comparison, but its
+additional inference stage and backbone make it a different latency and
+storage point from a single compact embedding. These published comparisons
+are a dated, checked reference panel, not an exhaustive current-frontier
+audit or a claim that any local system surpasses state of the art.
 
 The OML float source rescored with the same stable-ordinal evaluator remains
 86.5575% Recall@1 and 0.654393 mAP@R, with
@@ -63,6 +73,14 @@ uses a tiled SOP gallery, not one million distinct images. It reports search
 medians near 1.05 ms at batch 1 and 2.8 ms at batch 32 on a DGX GB10, with
 50 calls per arm. Those timings exclude decode, encoding, and packing; their
 p99 values are diagnostic only. They cannot fill the end-to-end column above.
+A first end-to-end paired replay was terminated after 41 minutes with **zero
+timed calls**: its first `tileiras --gpu-name sm_121 --opt-level 3` compilation
+was still using one CPU core and about 5.7 GiB RSS. The original B/16 query
+path also lacked the source-vector normalization required by its train-fitted
+PCA head, so that replay could not produce a valid quality-matched result.
+The process group exited after termination; no overlapping copy was started.
+Cold compilation remains a measured startup concern, and a corrected paired
+timing run is pending. This observation does not establish hot-path p99.
 
 The authenticated B/16 feature export contains the official 59,551 train and
 60,502 test images, checkpoint SHA-256
@@ -77,6 +95,18 @@ order effect and different descriptor widths; they are not paired serving
 latencies or evidence that int8 search is faster. The three-arm raw screen is
 [`unicom-b16-sop-pretrained-screen-v2.json`](evidence/compact_metric/unicom-b16-sop-pretrained-screen-v2.json),
 SHA-256 `a7c65b7b5dda1a8884f08ea384f150ef98ac20c77607c0b8b2ed2fbbe6c1053d`.
+
+For arm selection, a separate deterministic 90/10 **class-disjoint partition
+of SOP training identities** (seed 179019) has 53,700 fit images and 5,851
+validation images. With the same pretrained B/16 checkpoint, fit-only PCA-128,
+and matched scorer, validation Recall@1 was 84.0882% full float, 82.0714%
+PCA float, and 82.0543% packed; mAP@R was 0.591994, 0.564800, and 0.565342.
+The [raw holdout screen](evidence/compact_metric/unicom-b16-sop-train-holdout-screen-v1.json)
+has per-query outputs, SHA-256
+`0480525d64fdf8a40bd8f1c3cde8dcaa1bb644236af48b0e22dbc975766b9d1d`.
+This split is substantially easier than the official SOP test for the
+pretrained checkpoint; use it for **paired arm deltas and checkpoint choice**,
+not as a prediction of absolute official-test quality.
 
 ## Causal training-cost diagnostic
 
@@ -132,8 +162,8 @@ into a confirmatory method claim. See the
 SHA-256 `33c33a8da9a2ca06143a2a6ef1c6b761770e6aea60f36751f8959894e168379a`.
 This does not falsify supervised B/16 or all learned compact heads: UNICOM
 reports 88.8% SOP Recall@1 after supervised fine-tuning. The next learning
-experiment should train a 128-dimensional head and then the backbone on SOP
-train identities, beginning with a matched ArcFace control. Add float-rank
+experiment should train a 128-dimensional head and the backbone together on
+SOP train identities, beginning with a matched ArcFace control. Add float-rank
 if the control has room; prioritize packed-rank if the new trained head
 shows a material int8-specific loss. Match starting checkpoint, classifier,
 batch identities and order, total updates, scorer, and seed. Measure training
@@ -142,3 +172,38 @@ an arm. One seed is a feasibility screen; at least three paired seeds and a
 second dataset are needed for an algorithmic claim. The OML compact profile
 remains the efficient product baseline for a future paired end-to-end timing;
 no image-to-result p99 result exists yet.
+The full-backbone feasibility runner is
+[`train_sop_compact_backbone.py`](../scripts/train_sop_compact_backbone.py):
+all three arms share the fixed 90/10 train-identity split, 32 identities ×
+4 images per batch, PCA-initialized 768-to-128 head, imprinted ArcFace
+classifier, the authenticated backbone's internal fp16 attention with gradient
+scaling, AdamW optimizer topology, 1,000 updates,
+and exact packed validation scorer. The rank arms only add the specified
+2.0-weight float or packed SmoothAP term. The coefficient was frozen from
+the first train-fit batch before full training: at weight 0.1, the float and
+packed rank gradients were only 1.031% and 1.007% of the ArcFace gradient
+at the head output. At weight 2.0, the same measured gradients imply 20.62%
+and 20.15%. This is an initialization diagnostic on cached features, not a
+guarantee about later training; see the
+[raw gradient receipt](evidence/compact_metric/sop-compact-rank-gradient-diagnostic-v1.json),
+SHA-256 `54f4504626b35598e99c550da78dc6b68745677070e052e5232d4b93de86dfaa`.
+A one-seed result can screen this
+mechanism but cannot establish an algorithmic improvement.
+The one-update ArcFace canary passed an image-level step-zero parity check:
+the packed validation Recall@1 and mAP@R were exactly 0.8205435 and 0.5653424,
+matching the cached-feature screen. Its full-backbone update took 2.182 s
+including batch loading, with 10.766 GB peak CUDA allocation; initial and
+final validation took 14.55 and 15.12 s. Its after-one-update packed metrics
+(0.8207144 Recall@1, 0.5662724 mAP@R) are a plumbing check, not a quality
+finding. The [raw canary receipt](evidence/compact_metric/sop-full-backbone-arcface-canary-v1.json)
+has per-query evidence, SHA-256
+`0e1c49673c23c3dc084833c7447ed1e9025126bb915fdaee8c4f5a9f0b8d4011`;
+its DGX checkpoint is
+`/home/riomus/runs/sfora-sop-compact-backbone-179019/canary-arcface-1.pt`,
+SHA-256 `eed4eafeb81e4a078acd5828727bb37c1a982ed7dec8c39b6e269fd2ab25b9ad`.
+An additional one-update packed-rank canary used the earlier 0.1 coefficient;
+its initial ArcFace and raw SmoothAP losses were 7.893748 and 0.060270.
+That coefficient was superseded before the full runs. The
+[raw packed canary](evidence/compact_metric/sop-full-backbone-packed-canary-coefficient0p1-v1.json)
+is retained under SHA-256
+`d9febf3b4caa780c1cb328137929dbf31d2741fb88b4161eb7e5a6bd7311b85b`.
