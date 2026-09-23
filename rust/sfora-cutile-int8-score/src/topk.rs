@@ -13,6 +13,30 @@ const TOP_K_TILE: usize = 16;
 const MERGE_WIDTH_BATCH_ONE: usize = 2048;
 const MERGE_WIDTH_BATCH_THIRTY_TWO: usize = 512;
 
+fn validated_topk_padded_rows(rows: usize) -> Result<usize, CutileScoreError> {
+    if rows < TOP_K {
+        return Err(CutileScoreError::Authority);
+    }
+    let padded = rows
+        .checked_add(SCORE_BLOCK - 1)
+        .and_then(|value| value.checked_div(SCORE_BLOCK))
+        .and_then(|blocks| blocks.checked_mul(SCORE_BLOCK))
+        .ok_or(CutileScoreError::Authority)?;
+    // All kernel ordinals, including padded lanes, must fit below the sentinel.
+    if padded > i32::MAX as usize {
+        return Err(CutileScoreError::Authority);
+    }
+    Ok(padded)
+}
+
+fn checked_output_ordinal(value: i32, rows: usize) -> Result<u32, CutileScoreError> {
+    let ordinal = usize::try_from(value).map_err(|_| CutileScoreError::Runtime)?;
+    if ordinal >= rows {
+        return Err(CutileScoreError::Runtime);
+    }
+    u32::try_from(ordinal).map_err(|_| CutileScoreError::Runtime)
+}
+
 #[derive(Clone, Debug)]
 pub struct TopKResult {
     ordinals: Vec<u32>,
@@ -318,10 +342,10 @@ pub struct PreparedPackedGallery {
 
 impl PreparedPackedGallery {
     pub fn new(device: &Arc<Device>, gallery: &PackedRows) -> Result<Self, CutileScoreError> {
-        if gallery.dimensions != DIMENSIONS || gallery.rows < TOP_K {
+        if gallery.dimensions != DIMENSIONS {
             return Err(CutileScoreError::Authority);
         }
-        let padded_rows = gallery.rows.div_ceil(SCORE_BLOCK) * SCORE_BLOCK;
+        let padded_rows = validated_topk_padded_rows(gallery.rows)?;
         let mut transposed = vec![0i8; DIMENSIONS * padded_rows];
         for row in 0..gallery.rows {
             for column in 0..DIMENSIONS {
@@ -532,7 +556,7 @@ impl PreparedPackedGallery {
                     ordinals: ordinal_rows
                         .iter()
                         .flat_map(|row| row[..TOP_K].iter().copied())
-                        .map(|value| u32::try_from(value).map_err(|_| CutileScoreError::Runtime))
+                        .map(|value| checked_output_ordinal(value, self.rows))
                         .collect::<Result<Vec<_>, _>>()?,
                     scores: score_rows
                         .iter()
@@ -552,8 +576,42 @@ mod tests {
     use cuda_core::Device;
     use half::f16;
 
-    use super::PreparedPackedGallery;
-    use crate::{BatchShape, PackedRows, scalar_scores};
+    use super::{PreparedPackedGallery, checked_output_ordinal, validated_topk_padded_rows};
+    use crate::{BatchShape, CutileScoreError, PackedRows, scalar_scores};
+
+    #[test]
+    fn gallery_row_limit_preserves_signed_ordinals_and_padded_shape() {
+        let maximum_padded = (i32::MAX as usize / 128) * 128;
+        assert_eq!(validated_topk_padded_rows(10), Ok(128));
+        assert_eq!(
+            validated_topk_padded_rows(maximum_padded),
+            Ok(maximum_padded)
+        );
+        assert_eq!(
+            validated_topk_padded_rows(maximum_padded + 1),
+            Err(CutileScoreError::Authority)
+        );
+        assert_eq!(
+            validated_topk_padded_rows(9),
+            Err(CutileScoreError::Authority)
+        );
+        assert_eq!(
+            validated_topk_padded_rows(usize::MAX),
+            Err(CutileScoreError::Authority)
+        );
+    }
+
+    #[test]
+    fn output_ordinal_rejects_placeholders_and_out_of_gallery_values() {
+        assert_eq!(checked_output_ordinal(0, 10), Ok(0));
+        assert_eq!(checked_output_ordinal(9, 10), Ok(9));
+        for invalid in [-1, 10, i32::MAX] {
+            assert_eq!(
+                checked_output_ordinal(invalid, 10),
+                Err(CutileScoreError::Runtime)
+            );
+        }
+    }
 
     fn packed(codes: Vec<i8>, rows: usize) -> PackedRows {
         let dimensions = 128;

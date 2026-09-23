@@ -353,6 +353,17 @@ augmentation, margin, scale, weight decay, and batch size. This early
 OneCycle checkpoint is still in warmup, so the comparison is diagnostic and
 does not select the final model or support a method claim.
 
+At 8,000 updates, the same run's train-identity holdout improved to packed
+Recall@1 **92.5996%** and mAP@R **0.746960** (float 92.5825% and 0.747406)
+across all 5,851 holdout queries. The [raw per-query receipt](evidence/compact_metric/sop-reference-arcface-seed179019-step8000-v1.json)
+has SHA-256
+`845a568319701281737cac94dd367fef50d2996d7cc05f7537a3dca5f88baaad`,
+independently matched against the remote file. The trainer records checkpoint
+SHA-256 `35d9b2416cb78680cc4df967af9c7465cc55ad091e744867873aa6a11b1dfe00`.
+The per-query AP averages independently reproduce both reported mAP@R values.
+This is still a diagnostic from training classes; no official-test result or
+method improvement follows from it.
+
 The official SOP evaluator for this long recipe is prepared but must wait for
 all six checkpoints and the final training receipt. It checks the frozen
 training-source snapshot and each checkpoint digest, selects the highest

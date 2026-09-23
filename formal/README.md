@@ -78,10 +78,14 @@ placeholders in their unused lanes. The set model omits those records.
 Production accepts galleries with at least `k=10` rows and repeatedly merges
 until one group remains; a source-level refinement proof would need to show
 that placeholders never displace ten valid finite winners and that duplicate
-masking preserves the modeled set at every level. It would also need a bound
-`rows < i32::MAX`: the kernel uses signed 32-bit ordinals and reserves
-`i32::MAX` for placeholders, while this bound is not enforced by the current
-constructor. A leaked `i32::MAX` ordinal passes the final `u32` conversion.
+masking preserves the modeled set at every level. The production constructor
+checks that the 128-row padded gallery has at most `2,147,483,520` rows, the
+greatest multiple of 128 below `i32::MAX`; signed kernel ordinals therefore
+remain below the `i32::MAX` placeholder. The host output check rejects every
+negative, sentinel, or out-of-gallery ordinal before converting to `u32`.
+`padded_ordinal_lt_i32_sentinel` and `gallery_rows_lt_i32_sentinel` prove the
+arithmetic implication of that padded-row premise in Lean.
+These source-level guards do not establish a refinement proof of the kernel.
 A hardware execution model would also be needed for wall-time and allocation
 guarantees.
 

@@ -16,6 +16,22 @@ theorem rows_le_blockCount_mul (rows width : ℕ) (hw : 0 < width) :
   rw [Nat.mul_comm width ((rows + width - 1) / width)] at hdiv
   omega
 
+/-- With the production 128-row pad bound, every materialized lane index is
+strictly below the signed `i32::MAX` sentinel. This is an arithmetic contract;
+the Rust constructor must enforce its premise. -/
+theorem padded_ordinal_lt_i32_sentinel (rows ordinal : ℕ)
+    (hpad : blockCount rows 128 * 128 ≤ 2147483520)
+    (hord : ordinal < blockCount rows 128 * 128) :
+    ordinal < 2147483647 := by
+  omega
+
+/-- The same guard bounds the number of valid gallery rows. -/
+theorem gallery_rows_lt_i32_sentinel (rows : ℕ)
+    (hpad : blockCount rows 128 * 128 ≤ 2147483520) :
+    rows < 2147483647 := by
+  have hcover := rows_le_blockCount_mul rows 128 (by omega)
+  omega
+
 /-- Every block emits at most `k` candidates, including the short tail block. -/
 theorem candidate_count_le (blocks k : ℕ) (emitted : Fin blocks → ℕ)
     (h : ∀ b, emitted b ≤ k) :
