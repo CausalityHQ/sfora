@@ -16,6 +16,9 @@ STAGE_RAW = EVIDENCE / "packed_topk_rc4_stage_raw_v1.tar.gz"
 OUTPUT = EVIDENCE / "packed_topk_rc4_candidate_v1.json"
 RC3_LIBRARY = "a9e583881201760088f3d99c180367e587ca68219c79dfe1760a3467f06b8dea"
 CANDIDATE_LIBRARY = "39602d0e4e8b0d5ec441be460ad7f18e288241bef19fb6e6c5df14f4033ac73c"
+ARCHIVED_KERNEL_SHA256 = "5c5628b5bac9ac4109e3c8133db5928b2c1755ecce89f0c50f217c3a5d653a42"
+ARCHIVED_REPLAY_SHA256 = "6ee62e2f569281515f54c843e1f7f90c0822a30a14c3444a1f4cebe00de44a3d"
+ARCHIVED_API_SHA256 = "826b342b1811a7843eabe4e08f3f6af1f6c8d9dcc1c2c67e9c60ceb730892a38"
 
 
 def digest(data: bytes) -> str:
@@ -53,8 +56,8 @@ def main() -> None:
         source_hash = digest(read("rust/sfora-cutile-int8-score/src/topk.rs"))
         script_hash = digest(read("profile_packed_topk_rc4_library.py"))
         manifest_hash = digest(read("evidence-inputs/manifest.json"))
-        assert source_hash == file_digest(ROOT / "rust/sfora-cutile-int8-score/src/topk.rs")
-        assert script_hash == file_digest(ROOT / "scripts/profile_packed_topk_rc4_library.py")
+        assert source_hash == ARCHIVED_KERNEL_SHA256
+        assert script_hash == ARCHIVED_REPLAY_SHA256
 
         exactness = {}
         for rows in (1_000_000, 1_000_003):
@@ -77,6 +80,7 @@ def main() -> None:
             for label, expected_hash in (("rc3", RC3_LIBRARY), ("candidate", CANDIDATE_LIBRARY)):
                 item = replay(f"selector_pair{pair}_{label}")
                 assert item["library_sha256"] == expected_hash
+                assert item["api_sha256"] == ARCHIVED_API_SHA256
                 assert item["fixture_manifest_sha256"] == manifest_hash
                 assert item["process_peak_rss_bytes"] < 2 * 1024**3
                 batches = {}
@@ -96,7 +100,11 @@ def main() -> None:
                         "queries_per_second": result["queries_per_second"],
                         "process_peak_rss_bytes": item["process_peak_rss_bytes"],
                     }
-                arms[label] = {"library_sha256": expected_hash, "batches": batches}
+                arms[label] = {
+                    "library_sha256": expected_hash,
+                    "api_sha256": item["api_sha256"],
+                    "batches": batches,
+                }
             batch_1_regression = (
                 arms["candidate"]["batches"]["1"]["p99_ns"] / arms["rc3"]["batches"]["1"]["p99_ns"]
                 - 1
@@ -187,8 +195,13 @@ def main() -> None:
             "batch_32_p99_gain_at_least": 0.20,
             "batch_1_p99_regression_at_most": 0.05,
             "process_rss_below_bytes": 2 * 1024**3,
-            "passed": True,
+            "passed": False,
+            "reason": (
+                "Paired FFI replays used the archived RC3 Python API; "
+                "the RC4 wheel API differs and later correct-API p99 replays failed."
+            ),
         },
+        "status": "historical_candidate_superseded_by_finite_negative_decision",
         "claim_eligible": False,
     }
     OUTPUT.write_text(json.dumps(receipt, sort_keys=True, indent=2) + "\n")

@@ -55,6 +55,7 @@
       "batch_1_p99_regression_fraction": 0.021584811092043354,
       "batch_32_p99_gain_fraction": 0.35874944611485327,
       "candidate": {
+        "api_sha256": "826b342b1811a7843eabe4e08f3f6af1f6c8d9dcc1c2c67e9c60ceb730892a38",
         "batches": {
           "1": {
             "p50_ns": 1059009,
@@ -74,6 +75,7 @@
         "library_sha256": "39602d0e4e8b0d5ec441be460ad7f18e288241bef19fb6e6c5df14f4033ac73c"
       },
       "rc3": {
+        "api_sha256": "826b342b1811a7843eabe4e08f3f6af1f6c8d9dcc1c2c67e9c60ceb730892a38",
         "batches": {
           "1": {
             "p50_ns": 1050897,
@@ -97,6 +99,7 @@
       "batch_1_p99_regression_fraction": 0.025119708601385238,
       "batch_32_p99_gain_fraction": 0.36722552876076264,
       "candidate": {
+        "api_sha256": "826b342b1811a7843eabe4e08f3f6af1f6c8d9dcc1c2c67e9c60ceb730892a38",
         "batches": {
           "1": {
             "p50_ns": 1056033,
@@ -116,6 +119,7 @@
         "library_sha256": "39602d0e4e8b0d5ec441be460ad7f18e288241bef19fb6e6c5df14f4033ac73c"
       },
       "rc3": {
+        "api_sha256": "826b342b1811a7843eabe4e08f3f6af1f6c8d9dcc1c2c67e9c60ceb730892a38",
         "batches": {
           "1": {
             "p50_ns": 1066657,
@@ -143,8 +147,9 @@
   "release_gate": {
     "batch_1_p99_regression_at_most": 0.05,
     "batch_32_p99_gain_at_least": 0.2,
-    "passed": true,
-    "process_rss_below_bytes": 2147483648
+    "passed": false,
+    "process_rss_below_bytes": 2147483648,
+    "reason": "Paired FFI replays used the archived RC3 Python API; the RC4 wheel API differs and later correct-API p99 replays failed."
   },
   "rust_replay": {
     "1": {
@@ -166,6 +171,7 @@
   "sdist_sha256": "c08e5f1626d4de64082938888f48c46ae9dd8bc3db7489a449e9fb019913f988",
   "source_commit": "086eb6c29ddc759c336aa9863367a3d001b11d42",
   "stage_receipt_sha256": "f37fb705e6e0eef4bc433a649d85e7aa66259d208bef7db3a692b1b6b8e2b612",
+  "status": "historical_candidate_superseded_by_finite_negative_decision",
   "tail_rows": 1000003,
   "tileiras": "NVIDIA CUDA TileIR 13.4.92",
   "top_k": 10,

@@ -86,3 +86,42 @@ its paired RC3 p99, process RSS remains below 2 GiB, and the tracked CUDA pool
 peak is measured. If any guardrail fails, reject this intervention and record
 a finite negative result. This is the final refinement under the two-hour
 pilot cap; no width sweep follows.
+
+## FFI provenance repair and final API pilot
+
+The first two paired FFI replays used the frozen RC3 Python wrapper, whose
+SHA-256 is `826b342b1811a7843eabe4e08f3f6af1f6c8d9dcc1c2c67e9c60ceb730892a38`.
+This differs from the RC4 wheel API SHA-256
+`7e585fa716ad79b0ad9f998ac6eb63a4f9c7a89409eefee2d9367885686c3818`,
+so those otherwise exact replays cannot qualify the shipped public call. The
+correct-API paired replays preserved in
+`docs/evidence/packed_topk_rc4_rc4api_failed_raw_v1.tar.gz` (SHA-256
+`e35a072ea9ef9232d39267510b3e71d4dd49adf61c41f9eafc6bd3b0c9e3a1c5`)
+show one 16–19 ms batch-32 call at sample index 12 in each candidate run, so
+both fail the preregistered p99 gate. A separate instrumented replay observed
+a 14.6 ms batch-1 call coincident with a generation-2 Python garbage
+collection. That localizes one stall but does not prove the cause of the two
+batch-32 spikes. All failed runs remain part of the record.
+
+The bounded final repair is to return the single native result directly for
+logical batches 1 and 32 in `src/sfora/cutile_int8.py`, avoiding chunk lists,
+extra copies, and concatenation on those native shapes. Arbitrary logical
+batching keeps its existing path. The replay must hash all eight consumed
+fixture files against the pinned manifest and verify the exact installed API
+hash before timing. Rebuild the wheel and run two new paired 50-sample FFI
+replays in opposite order, retaining every result. The same gate applies in
+each pair: exact scores and ordinals at 1,000,000 and 1,000,003 rows; batch-32
+p99 at least 20% below paired RC3; batch-1 p99 no more than 5% above paired
+RC3; process RSS below 2 GiB. If either pair fails, reject the RC4 performance
+claim and identify the public-call tail as the architectural blocker. This
+repair addresses the measured Python boundary and does not restart a merge
+width sweep.
+
+The direct-native API pilot preserved exactness but failed both paired p99
+gates: batch-32 candidate p99 was `18.642 / 19.236 ms` versus paired RC3
+`5.306 / 5.218 ms`; batch-1 pair 2 also regressed from `1.272` to
+`1.445 ms` (+13.6%). Its raw archive is
+`docs/evidence/packed_topk_rc4_api_fast_failed_raw_v1.tar.gz` (SHA-256
+`b84f40636ee9bcf5dc630c88a85edad6ba2496546a219c70441f5b3a91429073`).
+The production merge-width change and API fast path were reverted. The final
+finite-negative decision is `docs/rc4_packed_search_decision_table.md`.

@@ -13,6 +13,9 @@ from pathlib import Path
 
 import numpy as np
 
+_FIXTURE_MANIFEST_SHA256 = "2d34832dfe22378b767f9cbedc0911e04ff2e06add2d1fdea66e6d0d55497799"
+_RC4_API_SHA256 = "7e585fa716ad79b0ad9f998ac6eb63a4f9c7a89409eefee2d9367885686c3818"
+
 
 def _sha256(path: Path) -> str:
     digest = hashlib.sha256()
@@ -26,6 +29,28 @@ def _percentile(samples: list[int], percent: int) -> int:
     return sorted(samples)[math.ceil(len(samples) * percent / 100) - 1]
 
 
+def verify_fixture(fixture: Path, expected_manifest_sha256: str) -> set[str]:
+    manifest_path = fixture / "manifest.json"
+    if _sha256(manifest_path) != expected_manifest_sha256:
+        raise ValueError("RC4 fixture manifest differs")
+    manifest = json.loads(manifest_path.read_text())
+    files = manifest.get("files")
+    if not isinstance(files, dict) or not files:
+        raise ValueError("RC4 fixture file list differs")
+    for name, authority in files.items():
+        path = fixture / name
+        if (
+            not isinstance(name, str)
+            or Path(name).name != name
+            or not isinstance(authority, dict)
+            or not path.is_file()
+            or path.stat().st_size != authority.get("bytes")
+            or _sha256(path) != authority.get("sha256")
+        ):
+            raise ValueError(f"RC4 fixture bytes differ: {name}")
+    return set(files)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(allow_abbrev=False)
     parser.add_argument("--library", type=Path, required=True)
@@ -36,6 +61,15 @@ def main() -> None:
     args = parser.parse_args()
     if args.output.exists():
         raise ValueError("RC4 library replay output already exists")
+    expected_files = {
+        f"gallery_{rows}_{kind}.bin"
+        for rows in (1_000_000, 1_000_003)
+        for kind in ("codes", "norms")
+    } | {f"query_{batch}_{kind}.bin" for batch in (1, 32) for kind in ("codes", "norms")}
+    if verify_fixture(args.fixture, _FIXTURE_MANIFEST_SHA256) != expected_files:
+        raise ValueError("RC4 fixture inputs differ")
+    if _sha256(args.api_root / "sfora/cutile_int8.py") != _RC4_API_SHA256:
+        raise ValueError("RC4 Python API differs")
     sys.path.insert(0, str(args.api_root.resolve()))
     from sfora.cutile_int8 import CutilePackedInt8Gallery
 
