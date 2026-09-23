@@ -74,9 +74,11 @@ def profile_arrays(
         raise ValueError("OML SOP feature inventory differs")
     encoder = load_oml_sop_compact_encoder()
     packed = encoder.encode_packed(values)
-    repeats = math.ceil(ROWS / len(packed.codes))
-    codes = np.ascontiguousarray(np.tile(packed.codes.numpy(), (repeats, 1))[:ROWS])
-    norms = np.ascontiguousarray(np.tile(packed.inverse_norms.numpy(), repeats)[:ROWS])
+    gallery_source_codes = packed.codes.numpy()[32:]
+    gallery_source_norms = packed.inverse_norms.numpy()[32:]
+    repeats = math.ceil(ROWS / len(gallery_source_codes))
+    codes = np.ascontiguousarray(np.tile(gallery_source_codes, (repeats, 1))[:ROWS])
+    norms = np.ascontiguousarray(np.tile(gallery_source_norms, repeats)[:ROWS])
     queries = {
         batch: (
             np.ascontiguousarray(packed.codes.numpy()[:batch]),
@@ -93,7 +95,9 @@ def profile_arrays(
             "encoder_sha256": encoder.sha256,
             "gallery_code_sha256": hashlib.sha256(codes.tobytes()).hexdigest(),
             "gallery_norm_sha256": hashlib.sha256(norms.tobytes()).hexdigest(),
-            "construction": "tile 60502 SOP test codes in original order to 1000000 rows",
+            "query_code_sha256": hashlib.sha256(queries[32][0].tobytes()).hexdigest(),
+            "query_norm_sha256": hashlib.sha256(queries[32][1].tobytes()).hexdigest(),
+            "construction": "tile SOP test codes 32:60502 to 1000000 rows; queries 0:32",
         },
     )
 
@@ -112,10 +116,10 @@ def main() -> int:
 
     if sha256(Path(api.__file__)) != API_SHA256:
         raise ValueError("SOP packed API differs")
-    fixture_codes, fixture_norms, fixture_queries = fixture_arrays(args.fixture)
+    fixture_codes, fixture_norms, _fixture_queries = fixture_arrays(args.fixture)
     profile_codes, profile_norms, profile_queries, profile_meta = profile_arrays(args.features)
     all_data = {
-        "fixture": (fixture_codes, fixture_norms, fixture_queries),
+        "fixture": (fixture_codes, fixture_norms, profile_queries),
         "profile": (profile_codes, profile_norms, profile_queries),
     }
     with ExitStack() as stack:
@@ -160,8 +164,9 @@ def main() -> int:
                         }
                     )
     receipt = {
-        "schema": "sfora-oml-sop-packed-1m-profile-v1",
+        "schema": "sfora-oml-sop-packed-1m-profile-v2",
         "claim_eligible": False,
+        "shared_query_codes_across_arms": True,
         "source_commit": args.source_commit,
         "script_sha256": sha256(Path(__file__)),
         "library_sha256": LIBRARY_SHA256,
