@@ -108,3 +108,23 @@ one deterministic synthetic GB10 gallery, not a production p99 improvement,
 cross-device guarantee, descriptor-quality change, or scientific SOTA claim.
 Pet and In-Shop quality is inherited frozen evidence with its original claim
 limits; no model fitting or retuning was performed.
+
+## Assurance and review status
+
+The full repository test suite ran once from the Git worktree at retained
+commit `116afe27`: `uv run pytest -q` exited 0 with 5,332 passed, 8 skipped,
+and 22 warnings in 523.92 seconds. The focused RC4 Python tests passed
+58/58. Scoped Ruff format/lint on changed Python files, mypy on the unchanged
+public API module, Rust formatting, and `git diff --check` passed. The DGX
+Rust crate tests passed before the candidate was reverted; the retained
+production scorer is byte-identical to its pre-pilot tested source. A
+repository-wide Ruff/mypy run on a clean export failed on existing files
+outside the RC4 changes, so these static checks are reported as scoped gates.
+
+GPT-6 Astra's terminal-candidate critique identified the obsolete Python
+wrapper in the initial passing replay and the missing consumed-file fixture
+authentication. Both findings were verified and addressed in the later
+replays and collectors; those replays failed the release gate, producing this
+finite negative decision. The requested Claude Opus 5.5 critique could not
+run because its OAuth session expired. The operator has been notified; this
+review remains outstanding and no Opus verdict is claimed.
