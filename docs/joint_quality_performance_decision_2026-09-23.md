@@ -162,11 +162,10 @@ into a confirmatory method claim. See the
 [per-query class-clustered decomposition](evidence/compact_metric/unicom-b16-sop-loss-decomposition-v1.json),
 SHA-256 `33c33a8da9a2ca06143a2a6ef1c6b761770e6aea60f36751f8959894e168379a`.
 This does not falsify supervised B/16 or all learned compact heads: UNICOM
-reports 88.8% SOP Recall@1 after supervised fine-tuning. The next learning
-experiment should train a 128-dimensional head and the backbone together on
-SOP train identities, beginning with a matched ArcFace control. Add float-rank
-if the control has room; prioritize packed-rank if the new trained head
-shows a material int8-specific loss. Match starting checkpoint, classifier,
+reports 88.8% SOP Recall@1 after supervised fine-tuning. The first learning
+experiment trained a 128-dimensional head and the backbone together on
+SOP train identities, beginning with a matched ArcFace control and adding
+float-rank and packed-rank arms. It matched starting checkpoint, classifier,
 batch identities and order, total updates, scorer, and seed. Measure training
 time/throughput/VRAM and encoder-plus-packed-search latency before promoting
 an arm. One seed is a feasibility screen; at least three paired seeds and a
@@ -258,6 +257,33 @@ representation capacity or training method while preserving a matched packed
 scorer; repeated tuning of this already-failed 128-D B/16 point is unwarranted.
 Second-dataset transfer and image-to-top-k p99 remain unmeasured for this
 checkpoint.
+
+An authenticated, paired **pretrained architecture screen** reused the same
+5,851-image SOP training-class holdout and exact image rows for B/16@224 and
+L/14@336. B/16 full-width/PCA-128 packed Recall@1 was 84.0882%/82.0543%;
+L/14 was 87.5064%/86.1220%. The L/14 packed mAP@R was 0.623416 versus
+B/16's 0.565342. The larger backbone improves the pretrained packed score
+by 4.068 percentage points and loses 1.384 points when compressed from its
+full-width float output, versus 2.034 points for B/16. This is a train-only
+architecture diagnostic, not a trained L/14 result or official-test claim.
+The [raw paired screen](evidence/compact_metric/sop-pretrained-architecture-holdout-b16-l14-seed179019-v1.json)
+has per-query values and SHA-256
+`f13ad36978fe7afa4c8754d153da42468c7cc518e957824aa3334c1179bf5476`.
+
+The upstream UNICOM
+[`retrieval.py`](https://github.com/deepglint/unicom/blob/d71992ed969e6c271436ac0a0ee1f3ca61474ac0/unicom/retrieval.py)
+recipe in the authenticated checkout uses
+32 epochs, batch 128, OneCycle peak backbone learning rate 1e-4, classifier
+multiplier 5, scale 32, margin 0.3, and zero weight decay. Our 1,000-update
+screen used about 2.4 passes over its fit images, constant backbone learning
+rate 1e-5, scale 64, and weight decay 0.05. Its failure therefore does not
+isolate backbone capacity from an under-budget, off-reference recipe. The
+next causal gate is a longer B/16 ArcFace training run with a reference-like
+schedule and periodic **train-holdout** checks, paired with a full-width
+768-D control under the same inputs and budget. Only if that recipe approaches
+the published B/16 result should full L/14 fine-tuning or teacher-to-student
+distillation consume the substantially larger training budget. The existing
+official test result is a feasibility gate and must not select checkpoints.
 The one-update ArcFace canary passed an image-level step-zero parity check:
 the packed validation Recall@1 and mAP@R were exactly 0.8205435 and 0.5653424,
 matching the cached-feature screen. Its full-backbone update took 2.182 s
