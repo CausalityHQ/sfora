@@ -51,6 +51,7 @@ native and full image-to-top-k p50/p95/p99 at batch 1 and 32 on the same GPU.
 | SOP official test, same queries | UNICOM ViT-B/16@224, pretrained float | 69.9812% | 0.420759 | 768 f32 before indexing | — | Exploratory reproduced pretrained checkpoint; no SOP fine-tuning |
 | SOP official test, same queries | Same B/16 with train-only PCA-128, float | 67.2903% | 0.393903 | 128 f32 before indexing | — | Exploratory projection control; [raw per-query result](evidence/compact_metric/unicom-b16-sop-pretrained-screen-v2.json) |
 | SOP official test, same queries | Same B/16 with train-only PCA-128 and int8 wire | 67.2325% | 0.393442 | 130 | — | Exploratory, no SOP fine-tuning; same raw result |
+| SOP official test, same queries | Same B/16 full-backbone trained, selected packed-rank 128-D | 81.2221% | 0.562186 | 130 | — | Exploratory one-seed result selected on train-identity holdout; [per-query receipt](evidence/compact_metric/sop-full-backbone-packed-rank-official-test-seed179019-1000-v1.json) |
 | SOP official test, same queries | OML ViT-S/16@224 + Sfora compact profile | 85.9757% | 0.641825 | 130 | — | Exploratory, packed representation; [raw profile](evidence/compact_metric/oml-vits16-sop-packed-profile-verification-v1.json) |
 | In-Shop official query/gallery | UNICOM ViT-L/14@336 | 96.7% | — | 768 f32 output before indexing | — | Published [UNICOM Table 4](https://arxiv.org/pdf/2304.05884); evaluator uses normalized prefix-512 Euclidean |
 | In-Shop official query/gallery | UNICOM ViT-L/14@336 + Sfora compact profile | 95.4283% | 0.800020 | 130 | — | Exploratory, [local result](compact_metric_selector_result_2026-09-19.md) |
@@ -189,6 +190,74 @@ guarantee about later training; see the
 SHA-256 `54f4504626b35598e99c550da78dc6b68745677070e052e5232d4b93de86dfaa`.
 A one-seed result can screen this
 mechanism but cannot establish an algorithmic improvement.
+The first 1,000-update full-backbone ArcFace control completed on the DGX
+GB10 with seed 179019. On the **SOP train-identity holdout**, packed Recall@1
+increased from 82.0543% to 91.8988%, and packed mAP@R from 0.565342 to
+0.726940. The final float metrics were 91.8305% and 0.726542. These are
+validation scores on classes disjoint from the fitting identities, not the
+official SOP test and not a SOTA comparison. Training took 688.306 s for
+1,000 updates (1.453 updates/s), with 0.685 s median and 0.691 s 95th
+percentile step duration and 12.411 GB peak CUDA allocation. The
+[complete per-query receipt](evidence/compact_metric/sop-full-backbone-arcface-seed179019-1000-v1.json)
+has SHA-256
+`8a533ab4668576dae14f15c183553af16310f88b7e8df70272da5ab3fe841662`;
+the remote checkpoint SHA-256 recorded in that receipt is
+`a2568c671336b2c5a97587634ed8312c026625e172eadcba0a0df57abf799672`.
+All ten source hashes in the receipt match this checkout. The matched
+1,000-update float-rank arm has now finished:
+packed Recall@1 92.2236% and mAP@R 0.732604 on the same holdout, versus
+91.8988% and 0.726940 for ArcFace. Training took 688.380 s and used the same
+12.411 GB peak CUDA allocation. The seed, split, batch schedule, pretrained
+checkpoint, source hashes, initial head, and initial classifier match the
+control receipt. A paired 10,000-resample product-identity bootstrap gives
+packed Recall@1 delta +0.325 percentage points (95% interval +0.122 to
++0.539) and mAP@R delta +0.005664 (+0.004178 to +0.007177). This is an
+intra-seed query uncertainty summary; independent training seeds remain
+required before attributing a method improvement. The
+[float-rank per-query receipt](evidence/compact_metric/sop-full-backbone-float-rank-seed179019-1000-v1.json)
+has SHA-256
+`6ff9e916da1cf709d93a7e3f09470b38817ec93410a8860aff09ff9f2cfd798e`.
+The packed-rank run has since completed and passes the same schedule, split,
+source, initial-head, and initial-classifier checks. The one-seed holdout
+decision is:
+
+| 1,000-update arm, seed 179019 | Packed Recall@1 | Packed mAP@R | Train seconds | Peak allocated CUDA bytes |
+| --- | ---: | ---: | ---: | ---: |
+| ArcFace control | 91.8988% | 0.726940 | 688.306 | 12,410,501,120 |
+| ArcFace + float SmoothAP | 92.2236% | 0.732604 | 688.380 | 12,410,501,120 |
+| ArcFace + deployed-packed SmoothAP | 92.1894% | **0.734052** | 691.429 | 12,410,501,120 |
+
+The predeclared train-holdout packed mAP@R rule selects **packed-rank** for
+one official SOP test evaluation. Its mAP@R advantage over ArcFace is
++0.007112 (paired product-identity bootstrap 95% interval +0.005561 to
++0.008743); over float-rank it is +0.001448 (+0.000242 to +0.002651).
+Its Recall@1 is +0.291 percentage points against ArcFace (+0.071 to +0.513)
+and −0.034 points against float-rank (−0.221 to +0.156). These within-seed
+intervals do not account for training-seed variance. The
+[packed-rank per-query receipt](evidence/compact_metric/sop-full-backbone-packed-rank-seed179019-1000-v1.json)
+has SHA-256
+`3540d86f9f684031a4be3e8e0169bb355463b9805482c5e8f3d6d31674b34172`.
+The one frozen **official SOP test** evaluation has now measured the selected
+packed-rank checkpoint: 81.2221% Recall@1 and 0.562186 mAP@R for the deployed
+130-byte descriptor; float 128-D scoring gives 81.2486% and 0.562395.
+Encoding the 60,502 images took 133.390 s, packing 0.021 s, and aggregate
+packed leave-one-out scoring 3.281 s on the DGX GB10. These aggregate stage
+times are **not** batch-1 or batch-32 image-to-top-k p99. The complete
+[official per-query receipt](evidence/compact_metric/sop-full-backbone-packed-rank-official-test-seed179019-1000-v1.json)
+has SHA-256
+`03ab8c7a0c92afbcee4cbc62d76e9020530de06a9c0e191d0faf202f46c3492d`,
+binds the three holdout-selection receipts, exact test inventory, source, and
+trained checkpoint, and passed per-query aggregate checks. The result is
+**4.754 percentage points below** local OML packed SOP Recall@1 and
+**9.978 points below** the published UNICOM L/14@336 reference. The trained
+float-to-packed loss is only 0.026 percentage points, so the first priority
+is the learned representation or training recipe, not finer quantization.
+This B/16 result improves 13.990 points over its own pretrained packed PCA
+control, yet fails the joint quality gate. The next experiment must change
+representation capacity or training method while preserving a matched packed
+scorer; repeated tuning of this already-failed 128-D B/16 point is unwarranted.
+Second-dataset transfer and image-to-top-k p99 remain unmeasured for this
+checkpoint.
 The one-update ArcFace canary passed an image-level step-zero parity check:
 the packed validation Recall@1 and mAP@R were exactly 0.8205435 and 0.5653424,
 matching the cached-feature screen. Its full-backbone update took 2.182 s
