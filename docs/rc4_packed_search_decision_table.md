@@ -3,7 +3,7 @@
 **Decision:** reject the batch-specific 512-entry merge change and retain the
 RC3 production scorer with a 2048-entry merge width for both native batches.
 The kernel candidate preserved exact scores and reduced typical batch-32
-latency, but failed the preregistered public-call p99 gate in every paired run
+latency, but failed the amended public-call p99 gate in every paired run
 that used the shipped Python API. No RC4 performance release is qualified;
 package metadata remains `0.3.0rc3` and the `v0.3.0-rc3` tag is unchanged.
 
@@ -12,8 +12,10 @@ package metadata remains `0.3.0rc3` and the `v0.3.0-rc3` tag is unchanged.
 Each row is a separate 50-call Python FFI replay after five warmups on the
 same one-million-row, 128-dimensional GB10 fixture. The correct-API replay
 hashed its fixture manifest but did not rehash the eight consumed files;
-the later fast-path replay verified those files against the manifest. Pair 1 ran
-RC3 then the candidate; pair 2 reversed that order. Latency is p50 / p95 /
+the later fast-path replay verified those files against the manifest. The run
+protocol put RC3 before the candidate in pair 1 and reversed the order in pair
+2; the archived receipts do not include timestamps to verify that order.
+Latency is p50 / p95 /
 p99 in milliseconds, throughput is queries per second from the sample mean,
 and RSS is the process high-water mark. Both arms in each pair used the exact
 same Python API file, SHA-256
@@ -31,13 +33,24 @@ same Python API file, SHA-256
 | 2 | 32 | candidate | 2.819 / 3.387 / **19.057** | 9,965.0 | 717.1 |
 
 Both candidate batch-32 runs contained one 16–19 ms call at sample index 12.
-The preregistered batch-32 p99 requirement was at least 20% below the paired
-RC3 value; both runs fail. A later replay recorded a 17.0 ms batch-1 call,
-but the archived receipts do not retain GC event timestamps or an instrumented
-script. Garbage collection remains a hypothesis for the public-call tail, and
-the cause of the two batch-32 spikes is unproved. The 50-sample nearest-rank
+The amended batch-32 p99 requirement was at least 20% below paired RC3, with
+at most 5% batch-1 regression; both runs fail. Commit `da914e87` adopted this
+batch-specific guardrail after the flat 512-width pilot and before the
+batch-specific candidate was measured. The original design required a material
+gain on both batches; the candidate also fails that requirement. The archived
+receipts do not retain GC event timestamps, per-call CUDA allocation traces, or
+an instrumented diagnostic script, so the cause of the batch-32 spikes is
+unproved. The 50-sample nearest-rank
 p99 is the maximum sample, so these calls are material to the stated gate and
 are not discarded as outliers.
+
+Three additional candidate diagnostics are archived outside the paired gate:
+`selector_rc4api_diag_candidate.json` recorded batch-1/32 p99 of
+1.408/3.369 ms; `selector_rc4api_gcdiag.json` recorded 14.630/3.426 ms,
+including a batch-1 spike at sample 39; `api_fast_native_diag.json` recorded
+17.057/3.505 ms, including a batch-1 spike at sample 36. Their run conditions,
+including GC state, were not retained. The clean unpaired diagnostic cannot
+qualify the candidate or override the paired failures.
 
 A bounded direct-native Python fast-path pilot then removed chunk lists,
 copies, and concatenation for batches 1 and 32. It authenticated all eight
@@ -63,10 +76,10 @@ in the record and was rejected at its own batch-1 guardrail.
 
 | Check | Evidence and limit |
 | --- | --- |
-| Exactness | Rejected kernel matched exact f32 score bits and ordered top-10 ordinals for batches 1 and 32 at 1,000,000 and 1,000,003 rows, including the padded tail. Rust tests cover signed extremes and stable ties. Every public FFI replay in both later pilots returned the same ordered outputs. |
+| Exactness | Rejected kernel matched exact f32 score bits and ordered top-10 ordinals for batches 1 and 32 at 1,000,000 and 1,000,003 rows, including the padded tail. Rust tests cover signed extremes and stable ties. Each public replay's untimed first call per shape matched its supplied expected score bits and ordinals; the public archives do not contain or hash those expected-reference files, and the timed calls were latency-only. |
 | Typical Rust replay | Rejected candidate batch-1 p50/p95/p99 1.038/1.272/1.365 ms; batch-32 2.807/3.257/3.308 ms. These do not override the failed public-call gate. |
 | Tracked CUDA pool peak | Rejected candidate 133.0 MB (batch 1) and 165.0 MB (batch 32), measured in separate memory-enabled Nsight traces. The unchanged fused scorer's corresponding stage receipt values are 133.0 and 164.3 MB. These are pool figures, not device-wide allocation peaks. |
-| Process RSS | All matched public-call pilot processes stayed below the 2 GiB gate. Correct-API candidate runs were 714.9–717.1 MB; the direct-native pilot was 717.0 MB or less. Different harnesses' RSS values are not compared. |
+| Process RSS | All matched public-call pilot processes stayed below the 2 GiB gate. Correct-API candidate arms were 714.9–717.1 MB; direct-native candidate arms were at most 717.0 MB, while one paired RC3 arm reached 727.2 MB. Different harnesses' RSS values are not compared. |
 | Storage and API | Retained scorer serves 128 signed code bytes plus one 2-byte inverse norm per gallery item, 130 bytes total. The public API and native ABI remain unchanged. The optional native library is supplied by explicit path; it is not bundled in the pure-Python wheel. |
 | Pet quality | Untouched class-disjoint learned int8-128 receipt: mAP@R 0.862759, Recall@1 0.969595. |
 | In-Shop quality | Untouched official query/gallery rank-finished receipt: mAP@R 0.800020, Recall@1 0.954283. |
@@ -101,11 +114,15 @@ The retained clean-wheel smoke is in
 
 ## Next distinct bottleneck and claim limit
 
-The next work is to localize public-call tail latency across Python garbage
-collection, `ctypes` dispatch, and native CUDA synchronization under sustained
-mixed-batch traffic. A defensible p99 claim needs a prespecified tail protocol
-that records GC and GPU activity per call, and independent replications after
-the cause is repaired. This run establishes a typical backend merge gain on
+The retained RC3 scorer's measured batch-32 kernel bottleneck is merge work.
+The rejected candidate also has a distinct, reproducible public-call tail:
+all four paired batch-32 candidate arms under the current APIs spiked at
+sample 12, while their matched RC3 arms did not. The cause is unknown. The
+next measurement should trace per-call CUDA pool growth and synchronization,
+host allocations, GC events, and `ctypes` dispatch while replaying the
+candidate and RC3 with the same API. A defensible p99 claim needs a
+prespecified tail protocol and independent replications after the cause is
+repaired. This run establishes a typical backend merge gain on
 one deterministic synthetic GB10 gallery, not a production p99 improvement,
 cross-device guarantee, descriptor-quality change, or scientific SOTA claim.
 Pet and In-Shop quality is inherited frozen evidence with its original claim
@@ -130,7 +147,8 @@ only the manifest. The later fast-path replay verified all consumed fixture
 files and failed the release gate in both paired runs, independently supporting
 this finite negative decision. Astra's final-decision critique
 (`5ffedc224ed94822`) confirmed the gate calculations and identified the
-provenance and GC claim limits recorded above. The requested Claude Opus 5.5
-critique could not
-run because its OAuth session expired. The operator has been notified; this
-review remains outstanding and no Opus verdict is claimed.
+provenance and GC claim limits recorded above. Claude Opus 5.5's final-decision
+critique (`fda7756e120348aa`) independently recalculated the paired gates and
+confirmed the finite-negative decision. It identified the amended-gate,
+candidate-tail, diagnostic, exactness-reference, and RSS claim limits now
+recorded above. Neither critique qualifies a performance release.

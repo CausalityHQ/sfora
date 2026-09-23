@@ -5,7 +5,8 @@
   "gallery_rows": 1000000,
   "gc_attribution": "unverified_no_archived_gc_event_log",
   "historical_misqualified_receipt_sha256": "27e96da49cd42051a387688df0a4dfb3784880b59849a638ba264c556d46b4f9",
-  "next_bottleneck": "public Python FFI tail: rare 14\u201319 ms calls; localize garbage collection, ctypes dispatch, and CUDA synchronization under mixed-batch traffic",
+  "next_bottleneck": "candidate-associated public-call tail: batch-32 index-12 spikes in all four paired candidate runs under current APIs; trace per-call allocation, CUDA activity, and host events before another merge change; RC3 batch-32 merge remains the measured kernel bottleneck",
+  "p99_gate_provenance": "batch-specific 20% batch-32 gain and at-most-5% batch-1 regression adopted at da914e87 after the flat 512-width pilot; the original both-batch material-gain requirement also fails",
   "persistent_bytes_per_item": 130,
   "pilots": {
     "direct_native_api": {

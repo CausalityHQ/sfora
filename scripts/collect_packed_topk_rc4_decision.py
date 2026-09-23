@@ -164,11 +164,17 @@ def main() -> None:
         "gallery_rows": 1_000_000,
         "tail_rows": 1_000_003,
         "persistent_bytes_per_item": 130,
+        "p99_gate_provenance": (
+            "batch-specific 20% batch-32 gain and at-most-5% batch-1 regression "
+            "adopted at da914e87 after the flat 512-width pilot; the original "
+            "both-batch material-gain requirement also fails"
+        ),
         "pilots": pilots,
         "next_bottleneck": (
-            "public Python FFI tail: rare 14–19 ms calls; localize garbage "
-            "collection, ctypes dispatch, and CUDA synchronization under "
-            "mixed-batch traffic"
+            "candidate-associated public-call tail: batch-32 index-12 spikes "
+            "in all four paired candidate runs under current APIs; trace "
+            "per-call allocation, CUDA activity, and host events before another "
+            "merge change; RC3 batch-32 merge remains the measured kernel bottleneck"
         ),
         "gc_attribution": "unverified_no_archived_gc_event_log",
         "claim_eligible": False,
