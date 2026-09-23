@@ -72,6 +72,13 @@ global-only controls are 80.8% and 88.5%, respectively. Its method compares
 re-rankers on the same shortlist and uses additional local descriptors;
 these numbers do not replace the stronger UNICOM single-descriptor quality
 gates or provide a same-hardware image-to-top-k speed comparison.
+An additional primary-source check of the
+[ICCV 2025 AdvRF paper](https://arxiv.org/pdf/2507.21742) found **84.2%** SOP
+Recall@1 in its Table 4 on the official 59,551/60,502-image split. Its
+deployed retrieval backbone is ResNet-50, and it does not provide a paired
+In-Shop result in that paper. It is a later, useful method comparison but does
+not raise the UNICOM SOP quality gate. This is a scoped source audit, not a
+certificate that no stronger 2026 result exists.
 
 The OML float source rescored with the same stable-ordinal evaluator remains
 86.5575% Recall@1 and 0.654393 mAP@R, with
