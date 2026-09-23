@@ -36,6 +36,7 @@ from sfora.sop_compact_training import (
     CompactTrainingArm,
     compact_head_features,
     compact_training_terms,
+    initialize_full_width_head_and_classifier,
 )
 from sfora.sop_evaluation import score_symmetric
 from sfora.sop_reference_recipe import (
@@ -203,7 +204,7 @@ def evaluate_validation(
     outputs = []
     for images, _ in loader:
         source = model(images.cuda(non_blocking=True))
-        features = compact_head_features(source, head)
+        features = compact_head_features(source, head, output_dim=head.out_features)
         outputs.append(F.normalize(features, dim=1).cpu())
     values = torch.cat(outputs).contiguous()
     label_tensor = torch.tensor(labels, dtype=torch.int64)
@@ -235,6 +236,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=179019)
     parser.add_argument("--updates", type=int)
     parser.add_argument("--recipe", choices=("screen", "reference"), default="screen")
+    parser.add_argument("--embedding-width", type=int, choices=(128, 768), default=128)
     parser.add_argument("--workers", type=int, default=8)
     parser.add_argument("--checkpoint-output", type=Path, required=True)
     parser.add_argument("--receipt-output", type=Path, required=True)
@@ -290,6 +292,10 @@ def main() -> None:
     fit_labels = tuple(record.label for record in fit_records)
     validation_labels = tuple(record.label for record in validation_records)
     reference = args.recipe == "reference"
+    if args.embedding_width == 768 and not reference:
+        raise ValueError("full-width control requires the matched reference recipe")
+    if args.embedding_width == 768 and args.arm is not CompactTrainingArm.ARCFACE:
+        raise ValueError("full-width control only supports ArcFace")
     batch_size = 64 if reference else BATCH_SIZE
     recipe = reference_recipe(fit_images=len(fit_records), batch_size=batch_size)
     if args.recipe == "reference":
@@ -339,7 +345,11 @@ def main() -> None:
     fit_features = torch.from_numpy(
         np.ascontiguousarray(archive["train_embeddings"][list(partition.fit_row_indexes)])
     ).float()
-    head, classifier = initialize_head_and_classifier(fit_features, fit_labels)
+    head, classifier = (
+        initialize_head_and_classifier(fit_features, fit_labels)
+        if args.embedding_width == 128
+        else initialize_full_width_head_and_classifier(fit_features, fit_labels)
+    )
     initial_head_sha256 = hashlib.sha256(
         head.weight.detach().numpy().tobytes(order="C")
         + head.bias.detach().numpy().tobytes(order="C")
@@ -384,10 +394,23 @@ def main() -> None:
     initial_float = initial_validation["float"]
     initial_packed = initial_validation["packed"]
     if (
-        abs(initial_float["recall_at_1"] - 0.8207144077935395) > 0.002
-        or abs(initial_float["map_at_r"] - 0.5647995976409332) > 0.002
-        or abs(initial_packed["recall_at_1"] - 0.8205434968381473) > 0.002
-        or abs(initial_packed["map_at_r"] - 0.5653424049482333) > 0.002
+        abs(
+            initial_float["recall_at_1"]
+            - (0.8207144077935395 if args.embedding_width == 128 else 0.8408819005298239)
+        )
+        > 0.002
+        or abs(
+            initial_float["map_at_r"]
+            - (0.5647995976409332 if args.embedding_width == 128 else 0.5919940764004235)
+        )
+        > 0.002
+        or (
+            args.embedding_width == 128
+            and (
+                abs(initial_packed["recall_at_1"] - 0.8205434968381473) > 0.002
+                or abs(initial_packed["map_at_r"] - 0.5653424049482333) > 0.002
+            )
+        )
     ):
         raise ValueError("SOP compact step-zero image/archive parity differs")
     learning_rates = recipe.peak_learning_rates if reference else (1e-5, 1e-4, 1e-4)
@@ -405,7 +428,7 @@ def main() -> None:
         init_scale=1024.0,
         growth_interval=recipe.grad_scaler_growth_interval if reference else 1000,
     )
-    masks = torch.arange(128, device="cuda", dtype=torch.int64).unsqueeze(0)
+    masks = torch.arange(args.embedding_width, device="cuda", dtype=torch.int64).unsqueeze(0)
     torch.cuda.reset_peak_memory_stats()
     started = time.perf_counter()
     step_seconds = []
@@ -425,7 +448,7 @@ def main() -> None:
         labels = labels.cuda(non_blocking=True)
         optimizer.zero_grad(set_to_none=True)
         source = model(images)
-        features = compact_head_features(source, head)
+        features = compact_head_features(source, head, output_dim=args.embedding_width)
         control, rank = compact_training_terms(
             features,
             classifier,
@@ -434,6 +457,7 @@ def main() -> None:
             arm=args.arm,
             arcface_margin=recipe.margin if reference else 0.3,
             arcface_scale=recipe.scale if reference else 64.0,
+            output_dim=args.embedding_width,
         )
         loss = control + RANK_COEFFICIENT * rank
         if not bool(torch.isfinite(loss)):
@@ -509,6 +533,7 @@ def main() -> None:
                 "scaler": scaler.state_dict(),
                 "scheduler": scheduler.state_dict(),
                 "recipe": args.recipe,
+                "embedding_width": args.embedding_width,
                 "resumable": False,
                 "arm": args.arm.value,
                 "seed": args.seed,
@@ -529,6 +554,7 @@ def main() -> None:
                         "claim_eligible": False,
                         "resumable": False,
                         "recipe": args.recipe,
+                        "embedding_width": args.embedding_width,
                         "arm": args.arm.value,
                         "seed": args.seed,
                         "step": step,
@@ -594,6 +620,7 @@ def main() -> None:
                 "scaler": scaler.state_dict(),
                 "scheduler": scheduler.state_dict() if scheduler is not None else None,
                 "recipe": args.recipe,
+                "embedding_width": args.embedding_width,
                 "arm": args.arm.value,
                 "seed": args.seed,
                 "updates": args.updates,
@@ -622,6 +649,8 @@ def main() -> None:
         "claim_eligible": False,
         "arm": args.arm.value,
         "recipe": args.recipe,
+        "embedding_width": args.embedding_width,
+        "packed_bytes_per_embedding": args.embedding_width + 2,
         "seed": args.seed,
         "updates": args.updates,
         "batch_size": batch_size,
@@ -644,8 +673,12 @@ def main() -> None:
         "initial_validation": initial_validation,
         "protocol": {
             "backbone": "authenticated UNICOM ViT-B/16@224 full fine-tune",
-            "head": "fit-only normalized PCA 768-to-128 affine initialization",
-            "classifier": "fit-only 128-dimensional class-mean imprint",
+            "head": (
+                "fit-only normalized PCA 768-to-128 affine initialization"
+                if args.embedding_width == 128
+                else "identity-initialized trainable 768-to-768 affine"
+            ),
+            "classifier": f"fit-only {args.embedding_width}-dimensional class-mean imprint",
             "augmentation": (
                 "timm create_transform224; RandomResizedCrop scale 0.08:1.0; "
                 "RandAugment rand-m9-mstd0.5-inc1 (disables color jitter); "

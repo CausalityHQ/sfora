@@ -11,6 +11,7 @@ from sfora.sop_compact_training import (
     compact_head_features,
     compact_training_loss,
     compact_training_terms,
+    initialize_full_width_head_and_classifier,
 )
 from sfora.unicom_training import sharded_mask_arcface_loss
 
@@ -89,3 +90,56 @@ def test_reference_scale_changes_only_the_shared_arcface_control():
     expected = sharded_mask_arcface_loss(features, weights, labels, masks, margin=0.25, scale=32.0)
     torch.testing.assert_close(control, expected)
     torch.testing.assert_close(rank, smooth_ap_packed_loss(features, labels.tolist()))
+
+
+def test_full_width_identity_head_and_fit_only_class_imprint():
+    torch.manual_seed(31)
+    source = torch.randn(8, 768)
+    labels = (9, 9, 9, 9, 3, 3, 3, 3)
+    head, classifier = initialize_full_width_head_and_classifier(source, labels)
+    projected = compact_head_features(source, head, output_dim=768)
+    torch.testing.assert_close(projected, torch.nn.functional.normalize(source, dim=1))
+    expected = torch.stack([projected[4:].sum(dim=0), projected[:4].sum(dim=0)])
+    torch.testing.assert_close(classifier, torch.nn.functional.normalize(expected, dim=1))
+
+
+def test_full_width_arcface_control_matches_direct_objective_and_gradients():
+    torch.manual_seed(32)
+    features = torch.randn(8, 768, requires_grad=True)
+    classifier = torch.nn.Parameter(torch.randn(2, 768))
+    labels = torch.tensor([0, 0, 0, 0, 1, 1, 1, 1], dtype=torch.int64)
+    masks = torch.arange(768, dtype=torch.int64).unsqueeze(0)
+    actual, rank = compact_training_terms(
+        features,
+        classifier,
+        labels,
+        masks,
+        arm=CompactTrainingArm.ARCFACE,
+        arcface_margin=0.25,
+        arcface_scale=32.0,
+        output_dim=768,
+    )
+    expected = sharded_mask_arcface_loss(
+        features, classifier, labels, masks, margin=0.25, scale=32.0
+    )
+    torch.testing.assert_close(actual, expected)
+    assert float(rank) == 0.0
+    actual.backward()
+    assert bool(torch.isfinite(features.grad).all())
+    assert bool(torch.isfinite(classifier.grad).all())
+
+
+def test_full_width_control_rejects_compact_only_rank_objective():
+    features = torch.randn(8, 768)
+    classifier = torch.randn(2, 768)
+    labels = torch.tensor([0, 0, 0, 0, 1, 1, 1, 1], dtype=torch.int64)
+    masks = torch.arange(768, dtype=torch.int64).unsqueeze(0)
+    with pytest.raises(ValueError, match="full-width control only supports ArcFace"):
+        compact_training_terms(
+            features,
+            classifier,
+            labels,
+            masks,
+            arm=CompactTrainingArm.PACKED_RANK,
+            output_dim=768,
+        )

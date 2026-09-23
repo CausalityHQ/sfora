@@ -338,6 +338,26 @@ The completed 4,000-update constant-rate screen is a separate budget
 diagnostic using the original recipe. Its measured gain must be interpreted
 separately from the longer reference-like control now running on the DGX.
 
+A matched full-width B/16 control is prepared with the same 53,700 fit images,
+class-disjoint holdout, pretrained checkpoint, seed, batch schedule, reference
+augmentation, ArcFace margin/scale, OneCycle schedule, and 53,760 updates. Its
+trainable 768-to-768 head starts as the identity, so its initial float
+descriptor matches the pretrained 768-dimensional source; class proxies are
+imprinted only from fit identities. The runner records both 768-D float and
+770-byte packed holdout results. Paired comparison with the 128-D run can
+attribute a quality difference to embedding width and its associated head
+initialization, but the two systems occupy different gallery-storage and
+search-cost points. It has not been launched while the compact DGX job runs.
+The shared global gradient clip may reduce backbone updates by different
+amounts as the head and classifier widths change. A full-width float result
+therefore diagnoses the trained-system capacity, not width in isolation. The
+770-byte fixed-scale int8 wire also has a different quantization error than
+the 130-byte wire. After training, fit a PCA-128 projection on full-width
+**fit identities only**, then score the held-out identities in float and
+packed form. This will test whether full-width learning followed by compact
+deployment improves the same 130-byte product profile without another GPU
+training run.
+
 The one-update ArcFace canary passed an image-level step-zero parity check:
 the packed validation Recall@1 and mAP@R were exactly 0.8205435 and 0.5653424,
 matching the cached-feature screen. Its full-backbone update took 2.182 s
