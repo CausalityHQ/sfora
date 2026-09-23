@@ -49,6 +49,105 @@ mod topk_module {
     use cutile::core::*;
 
     #[cutile::entry()]
+    fn score_tile_for_profile<const BM: i32, const BN: i32, const BK: i32, const K: i32>(
+        output: &mut Tensor<f32, { [BM, BN] }>,
+        queries: &Tensor<i8, { [-1, K] }>,
+        gallery_transposed: &Tensor<i8, { [K, -1] }>,
+        query_norms: &Tensor<f32, { [-1, 1] }>,
+        gallery_norms: &Tensor<f32, { [1, -1] }>,
+    ) {
+        let pid = get_tile_block_id();
+        let query_partition = queries.partition(const_shape![BM, BK]);
+        let gallery_partition = gallery_transposed.partition(const_shape![BK, BN]);
+        let mut accumulator: Tile<i32, { [BM, BN] }> = constant(0i32, const_shape![BM, BN]);
+        for inner in 0i32..(K / BK) {
+            accumulator = mmai(
+                query_partition.load([pid.0, inner]),
+                gallery_partition.load([inner, pid.1]),
+                accumulator,
+                signedness::Signed,
+                signedness::Signed,
+            );
+        }
+        let query_scale: Tile<f32, { [BM, 1] }> = query_norms
+            .partition(const_shape![BM, 1])
+            .load([pid.0, 0i32]);
+        let gallery_scale: Tile<f32, { [1, BN] }> = gallery_norms
+            .partition(const_shape![1, BN])
+            .load([0i32, pid.1]);
+        let scores: Tile<f32, { [BM, BN] }> = convert_tile(accumulator)
+            * query_scale.broadcast(const_shape![BM, BN])
+            * gallery_scale.broadcast(const_shape![BM, BN]);
+        output.store(scores);
+    }
+
+    #[cutile::entry()]
+    fn select_tile_for_profile<
+        const BM: i32,
+        const BN: i32,
+        const TOP_TILE: i32,
+        const TOP: i32,
+        const GALLERY_ROWS: i32,
+    >(
+        output_scores: &mut Tensor<f32, { [BM, TOP_TILE] }>,
+        output_ordinals: &mut Tensor<i32, { [BM, TOP_TILE] }>,
+        input_scores: &Tensor<f32, { [-1, -1] }>,
+    ) {
+        let pid = get_tile_block_id();
+        let mut scores = input_scores
+            .partition(const_shape![BM, BN])
+            .load([pid.0, pid.1]);
+        let local_ordinals: Tile<i32, { [BN] }> = iota(const_shape![BN]);
+        let ordinal_offset: Tile<i32, { [BM, BN] }> = (pid.1 * BN).broadcast(const_shape![BM, BN]);
+        let ordinals: Tile<i32, { [BM, BN] }> = local_ordinals
+            .reshape(const_shape![1, BN])
+            .broadcast(const_shape![BM, BN])
+            + ordinal_offset;
+        let valid = lt_tile(ordinals, GALLERY_ROWS.broadcast(const_shape![BM, BN]));
+        let negative_infinity: Tile<f32, { [BM, BN] }> =
+            constant(f32::NEG_INFINITY, const_shape![BM, BN]);
+        let false_tile: Tile<bool, { [BM, BN] }> = constant(false, const_shape![BM, BN]);
+        let maximum_ordinal: Tile<i32, { [BM, BN] }> =
+            constant(2147483647i32, const_shape![BM, BN]);
+        scores = select(valid, scores, negative_infinity);
+        let mut selected_scores: Tile<f32, { [BM, TOP_TILE] }> =
+            constant(f32::NEG_INFINITY, const_shape![BM, TOP_TILE]);
+        let mut selected_ordinals: Tile<i32, { [BM, TOP_TILE] }> =
+            constant(2147483647i32, const_shape![BM, TOP_TILE]);
+        let rank_range: Tile<i32, { [TOP_TILE] }> = iota(const_shape![TOP_TILE]);
+        let rank_lanes: Tile<i32, { [BM, TOP_TILE] }> = rank_range
+            .reshape(const_shape![1, TOP_TILE])
+            .broadcast(const_shape![BM, TOP_TILE]);
+        for rank in 0i32..TOP {
+            let best_score: Tile<f32, { [BM] }> = reduce_max(scores, 1i32);
+            let best_score = best_score.reshape(const_shape![BM, 1]);
+            let equal_score = eq_tile(scores, best_score.broadcast(const_shape![BM, BN]));
+            let eligible = select(valid, equal_score, false_tile);
+            let eligible_ordinals = select(eligible, ordinals, maximum_ordinal);
+            let best_ordinal: Tile<i32, { [BM] }> = reduce_min(eligible_ordinals, 1i32);
+            let best_ordinal = best_ordinal.reshape(const_shape![BM, 1]);
+            let rank_mask = eq_tile(rank_lanes, rank.broadcast(const_shape![BM, TOP_TILE]));
+            selected_scores = select(
+                rank_mask,
+                best_score.broadcast(const_shape![BM, TOP_TILE]),
+                selected_scores,
+            );
+            selected_ordinals = select(
+                rank_mask,
+                best_ordinal.broadcast(const_shape![BM, TOP_TILE]),
+                selected_ordinals,
+            );
+            scores = select(
+                eq_tile(ordinals, best_ordinal.broadcast(const_shape![BM, BN])),
+                negative_infinity,
+                scores,
+            );
+        }
+        output_scores.store(selected_scores);
+        output_ordinals.store(selected_ordinals);
+    }
+
+    #[cutile::entry()]
     fn score_block_topk<
         const BM: i32,
         const BN: i32,
@@ -258,6 +357,26 @@ impl PreparedPackedGallery {
         batch: BatchShape,
         k: usize,
     ) -> Result<TopKResult, CutileScoreError> {
+        self.search_internal(queries, batch, k, false)
+    }
+
+    /// Diagnostic split of the fused score/select kernel; never used by the public FFI.
+    pub fn search_split_for_profile(
+        &mut self,
+        queries: &PackedRows,
+        batch: BatchShape,
+        k: usize,
+    ) -> Result<TopKResult, CutileScoreError> {
+        self.search_internal(queries, batch, k, true)
+    }
+
+    fn search_internal(
+        &mut self,
+        queries: &PackedRows,
+        batch: BatchShape,
+        k: usize,
+        split_for_profile: bool,
+    ) -> Result<TopKResult, CutileScoreError> {
         let bm = match batch {
             BatchShape::One => 1usize,
             BatchShape::ThirtyTwo => 32usize,
@@ -301,21 +420,63 @@ impl PreparedPackedGallery {
             TOP_K.to_string(),
             self.rows.to_string(),
         ];
-        let (score_output, ordinal_output, _, _, _, _) = topk_module::score_block_topk(
-            score_output,
-            ordinal_output,
-            query_codes,
-            self.codes.clone(),
-            query_norms,
-            self.inverse_norms.clone(),
-        )
-        .grid((1, score_blocks as u32, 1))
-        .generics(generics)
-        .sync_on(&self.stream)
-        .map_err(|error| {
-            eprintln!("score_block_topk failed: {error:?}");
-            CutileScoreError::Runtime
-        })?;
+        let (score_output, ordinal_output) = if split_for_profile {
+            let score_plane = cutile::api::zeros::<f32>(&[bm, self.padded_rows])
+                .sync_on(&self.stream)
+                .map_err(|_| CutileScoreError::Runtime)?
+                .partition([bm, SCORE_BLOCK]);
+            let score_generics = vec![
+                bm.to_string(),
+                SCORE_BLOCK.to_string(),
+                INNER_BLOCK.to_string(),
+                DIMENSIONS.to_string(),
+            ];
+            let (score_plane, _, _, _, _) = topk_module::score_tile_for_profile(
+                score_plane,
+                query_codes,
+                self.codes.clone(),
+                query_norms,
+                self.inverse_norms.clone(),
+            )
+            .grid((1, score_blocks as u32, 1))
+            .generics(score_generics)
+            .sync_on(&self.stream)
+            .map_err(|_| CutileScoreError::Runtime)?;
+            let selection_generics = vec![
+                bm.to_string(),
+                SCORE_BLOCK.to_string(),
+                TOP_K_TILE.to_string(),
+                TOP_K.to_string(),
+                self.rows.to_string(),
+            ];
+            let (score_output, ordinal_output, _) = topk_module::select_tile_for_profile(
+                score_output,
+                ordinal_output,
+                Arc::new(score_plane.unpartition()),
+            )
+            .grid((1, score_blocks as u32, 1))
+            .generics(selection_generics)
+            .sync_on(&self.stream)
+            .map_err(|_| CutileScoreError::Runtime)?;
+            (score_output, ordinal_output)
+        } else {
+            let (score_output, ordinal_output, _, _, _, _) = topk_module::score_block_topk(
+                score_output,
+                ordinal_output,
+                query_codes,
+                self.codes.clone(),
+                query_norms,
+                self.inverse_norms.clone(),
+            )
+            .grid((1, score_blocks as u32, 1))
+            .generics(generics)
+            .sync_on(&self.stream)
+            .map_err(|error| {
+                eprintln!("score_block_topk failed: {error:?}");
+                CutileScoreError::Runtime
+            })?;
+            (score_output, ordinal_output)
+        };
         let mut scores: Arc<Tensor<f32>> = Arc::new(score_output.unpartition());
         let mut ordinals: Arc<Tensor<i32>> = Arc::new(ordinal_output.unpartition());
         let mut real_entries = score_blocks * TOP_K_TILE;
@@ -465,6 +626,24 @@ mod tests {
                     assert_eq!(&observed.ordinals()[..2], &[0, 128]);
                 }
             }
+        }
+    }
+
+    #[test]
+    fn diagnostic_split_preserves_exact_scores_and_stable_ordinals() {
+        let device = Device::new(0).unwrap();
+        for (batch, query_rows) in [(BatchShape::One, 1), (BatchShape::ThirtyTwo, 32)] {
+            let (queries, gallery) = fixture(query_rows, 129);
+            let expected = scalar_top_ten(&queries, &gallery);
+            let mut prepared = PreparedPackedGallery::new(&device, &gallery).unwrap();
+            let fused = prepared.search(&queries, batch, 10).unwrap();
+            let split = prepared
+                .search_split_for_profile(&queries, batch, 10)
+                .unwrap();
+
+            assert_eq!(split.as_pairs(), fused.as_pairs());
+            assert_eq!(split.as_pairs(), expected);
+            assert_eq!(&split.ordinals()[..2], &[0, 128]);
         }
     }
 }
