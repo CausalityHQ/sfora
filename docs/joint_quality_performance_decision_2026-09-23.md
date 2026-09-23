@@ -338,6 +338,45 @@ The completed 4,000-update constant-rate screen is a separate budget
 diagnostic using the original recipe. Its measured gain must be interpreted
 separately from the longer reference-like control now running on the DGX.
 
+The reference-like run's first **train-identity holdout** diagnostic at 4,000
+of 53,760 updates recorded packed Recall@1 **90.2239%** and mAP@R
+**0.696166** (float 90.2410% and 0.695663). Its immutable [raw receipt](evidence/compact_metric/sop-reference-arcface-seed179019-step4000-v1.json)
+has per-query outputs and SHA-256
+`35341869a4336f756331779ccd37bf3a8f837fc0e463498af9b46750adc6eaa2`;
+the remote checkpoint SHA-256 recorded by the trainer is
+`9ad0375f73bd0eb7af9ccb48450cf210b9e7f7ab32a43dd700e4092a4a3803da`.
+The source-manifest digest matches the frozen `b8f85611` snapshot
+(`79dc20905e9bac9ed865fbbbece6d69623cad753812bd1d75d2599889466e427`).
+The older constant-rate 4,000-update screen reached 92.8388% packed Recall@1
+and 0.755029 mAP@R on the same holdout, but the recipes differ in schedule,
+augmentation, margin, scale, weight decay, and batch size. This early
+OneCycle checkpoint is still in warmup, so the comparison is diagnostic and
+does not select the final model or support a method claim.
+
+The official SOP evaluator for this long recipe is prepared but must wait for
+all six checkpoints and the final training receipt. It checks the frozen
+training-source snapshot and each checkpoint digest, selects the highest
+train-holdout packed mAP@R (then Recall@1, then earlier step), binds the
+selected model tensors to that receipt, and records the evaluator's loaded
+source hashes. An atomic claim in the shared SOP dataset directory is keyed
+by the final checkpoint digest, preventing an automatic second official-test
+exposure after a copied receipt, changed output path, or crashed evaluation.
+The first diagnostic receipt's eleven source-file hashes
+were independently compared with git commit `b8f85611` and all matched.
+The evaluator also requires a pinned [binary manifest](evidence/compact_metric/sop-test-image-sha256-v1.bin)
+of one SHA-256 digest per official test image in metadata order. Its SHA-256 is
+`28a3ec0561cd83ee426f3d1c301c70799316af91c1e9083a5a1ffdf3414327c1`;
+the [builder receipt](evidence/compact_metric/sop-test-image-sha256-v1.json)
+has SHA-256
+`33555493dc1b7eb074f8b53ea135ba90953d3eb0a98820a5bce9bbb0e1a9168d`.
+The 60,502 images occupy 1,442,004,273 source bytes. The evaluator hashes the
+same bytes it decodes for inference and rejects a mismatch. This pins the
+local DGX corpus used before model selection; it does not independently
+certify the images against a publisher-supplied checksum.
+The evaluator's aggregate encoding time includes JPEG decoding and SHA-256
+verification; public image-to-top-k p50/p95/p99 require a separate matched
+serving benchmark.
+
 A matched full-width B/16 control is prepared with the same 53,700 fit images,
 class-disjoint holdout, pretrained checkpoint, seed, batch schedule, reference
 augmentation, ArcFace margin/scale, OneCycle schedule, and 53,760 updates. Its
