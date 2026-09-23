@@ -7,8 +7,6 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
-## [0.3.0rc4] - 2026-09-23
-
 ### Added
 
 - Search-ready compact encoding that returns the canonical int8 codes and
@@ -22,10 +20,6 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 - Native logical requests now use batch-32 kernel chunks and pad only a final
   2–31-query tail while holding the gallery lifecycle lock for the full request.
-- Persistent cuTile top-10 now uses a 512-entry merge width for batch 32 and
-  retains the 2048-entry width for batch 1. On a matched one-million-row GB10
-  replay, batch-32 p99 improved by 35.9% and 36.7% in two paired runs against
-  the pinned RC3 backend, with exact score bits and ordered ordinals.
 - DADA terminal evidence parsing now requires exactly 200 complete epochs and
   recomputes final/best mAP@R, Recall@1, and runtime summaries without retuning.
 
