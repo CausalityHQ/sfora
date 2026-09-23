@@ -370,6 +370,16 @@ SHA-256 `35d9b2416cb78680cc4df967af9c7465cc55ad091e744867873aa6a11b1dfe00`.
 The per-query AP averages independently reproduce both reported mAP@R values.
 This is still a diagnostic from training classes; no official-test result or
 method improvement follows from it.
+The [paired progress receipt](evidence/compact_metric/sop-reference-holdout-progress-step4000-to8000-v1.json)
+compares identical queries and resamples all queries within each of the 1,132
+held-out product identities together (10,000 draws, seed 179019). From 4,000
+to 8,000 updates, packed mAP@R rose **+0.050794** (product-bootstrap 95%
+interval **+0.045802 to +0.056082**) and Recall@1 rose **+2.376 percentage
+points** (**+1.900 to +2.864**). Of 5,851 queries, 167 changed from miss to
+hit and 28 from hit to miss. This within-run interval does not include
+training-seed variation or predict the official-test result. The raw progress
+receipt has SHA-256
+`5bfc147f8cec80d2836165bbd1ac9dc5da5888a2f22f990afc7bee544fee6905`.
 
 The official SOP evaluator for this long recipe is prepared but must wait for
 all six checkpoints and the final training receipt. It checks the frozen
