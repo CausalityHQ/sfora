@@ -1,5 +1,36 @@
 # Joint quality and performance decision, first training-code gate
 
+## 24 September full-gallery SOP train error census
+
+The [frozen train-only census](evidence/compact_metric/sop-trained-fullgallery-error-census-preregistration-v1.json)
+used the authenticated step-48,000 trained B/16 **768-D float** feature
+archive, seed 179019, and 5,851 queries from 1,132 held-out SOP training
+identities. The [raw receipt](evidence/compact_metric/sop-trained-fullgallery-error-census-v1.json)
+has SHA-256 `71909711f5bab9f8d79350fae91441318020f01cfc8a079ea344dac4b20997a1`,
+identical to the DGX original. It uses L2-normalized float32 cosine and
+excludes each query image from the gallery. No official test image bytes were
+read. This is a diagnostic of the trained representation, not a deployed
+packed-code quality or official-test measurement.
+
+| SOP train query/gallery | Recall@1 | Wrong queries |
+| --- | ---: | ---: |
+| 5,851 holdout rows except self | 96.0349% | 232 |
+| All 59,551 train rows except self | 88.5831% | 668 |
+
+Adding the fit-identity gallery rows introduces **436** additional errors
+among these queries. Only **4 of 668** full-gallery wrong top-1 pairs have
+cosine at least 0.95, and **3** are exact image-byte duplicates; among the
+436 new errors, only **4** exceed 0.95. Median wrong-top-1 cosine is
+`0.5475`, with 90th percentile `0.7902`. Cross-product near twins and
+exact duplicates therefore cannot explain most of the measured gallery-size
+loss. The earlier static hard-negative-bank failure should not be attributed
+to label twins without new evidence. The next learning comparison should
+target ordinary hard confusions under a gallery-scale train-only metric,
+with a matched in-batch control and unchanged encoder, budget, and scorer.
+This single-seed descriptive census does not identify a winning loss or
+establish official SOP quality. The DGX analysis took 3.85 s, peaked at
+646 MB PyTorch CUDA allocation and 1.60 GB host RSS.
+
 ## 24 September L/14 exact-head image-to-top-10 screen
 
 The corrected [v2 preregistration](evidence/compact_metric/l14-exact-head-image-to-topk-preregistration-v2.json)
