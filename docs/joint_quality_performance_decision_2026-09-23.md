@@ -926,3 +926,30 @@ run, followed by the separately staged trained-checkpoint gallery diagnosis.
 The latter's seen-fit distractors remain diagnostic only. The original
 full-width DGX trainer and downstream watchers remain active, so this screen
 used local CPU and did not contend for their GPU.
+
+## Matched 32,000-update width checkpoint, 24 September
+
+The original full-width B/16 trainer published its step-32,000 diagnostic
+checkpoint while continuing the same 53,760-update run. Its checkpoint file
+SHA-256 `a6ee8dff640ac79c45b009414c1b3e289574c4d2d237cc9e90c64fa56f2c99c0`
+matches the receipt. The compact and full-width receipts bind identical SOP
+official-**train** holdout image IDs and labels, 5,851 queries/gallery items,
+split hashes, source checkpoint, schedule, seed 179019, ArcFace reference
+recipe, and update count. Their heads, class proxies, gradient response, and
+packed storage widths differ, so this is a trained-system width comparison,
+not an isolated dimension-only effect.
+
+| Step 32,000 SOP train holdout | Packed bytes/item | Packed Recall@1 | Packed mAP@R |
+| --- | ---: | ---: | ---: |
+| Direct compact 128-D | 130 | 94.9410% | 0.805460 |
+| Full-width 768-D | 770 | 95.8469% | 0.831014 |
+
+Full width gained **0.9058 pp** packed Recall@1, product-bootstrap 95%
+interval **[0.5318, 1.2841] pp**, and **0.025554** mAP@R, interval
+**[0.021424, 0.029679]**. It won 85 queries the compact arm missed and lost
+32 the compact arm hit. The [full-width raw receipt](evidence/compact_metric/sop-fullwidth768-seed179019-step32000-holdout-v1.json)
+and [reproducible paired summary](evidence/compact_metric/sop-compact-vs-fullwidth-seed179019-step32000-paired-v1.json)
+record the hashes and per-query evidence. The original trainer and downstream
+jobs remain live. The queued fit-only PCA-128 probe will test whether this
+quality advantage can be retained at 130 bytes per gallery item without
+another backbone run; official SOP test results are still pending.
