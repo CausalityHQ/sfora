@@ -257,9 +257,16 @@ versus 130 bytes at 128-D.
 | ---: | ---: | ---: | --- |
 | 4,000 | 90.2239% / 0.696166 | 92.4799% / 0.737175 | [step 4,000](evidence/compact_metric/sop-fullwidth768-seed179019-step4000-holdout-v1.json), SHA-256 `48d86bc5f8633591c9e661399160a598d4531227e894b1df91ceb3443e32e1d8` |
 | 8,000 | 92.5996% / 0.746960 | 94.0181% / 0.789077 | [step 8,000](evidence/compact_metric/sop-fullwidth768-seed179019-step8000-holdout-v1.json), SHA-256 `792e3de74acda3be7095b6d37bd3e1ed582e91c4c9f22ffc00bd026851bd628c` |
+| 16,000 | 93.8643% / 0.779284 | 95.0094% / 0.813594 | [step 16,000](evidence/compact_metric/sop-fullwidth768-seed179019-step16000-holdout-v1.json), SHA-256 `ae4eedee1360551bdc86be78194d86780b11df20e77d5687b441bf87c21f7e3d` |
 
-The gap narrows from 2.2560 to 1.4185 percentage points in Recall@1 as
-training proceeds. Neither checkpoint has been selected for the official
+The packed Recall@1 gap narrows from 2.2560 to 1.4185 to 1.1451 percentage
+points as training proceeds. At step 16,000, the full-width arm wins 95 of the
+5,851 identical holdout queries that the compact arm misses and loses 28 that
+the compact arm gets right. Resampling training identities 2,000 times with
+seed 179019 gives a descriptive 95% percentile interval of +0.7920 to
++1.5256 points for the packed difference. This does not isolate embedding
+width because the head initialization, proxy geometry, and backbone updates
+also differ. None of these checkpoints has been selected for the official
 test, and these observations do not justify substituting a 770-byte product
 for the 130-byte target. A queued train-only probe freezes both step-8,000
 backbones, replays their trained heads, and fits three 128-D PCA maps using
