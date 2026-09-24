@@ -1,5 +1,76 @@
 # Joint quality and performance decision, first training-code gate
 
+## 24 September cached token-slot readout: close this variant
+
+The [frozen exploratory preregistration](superpowers/specs/2026-09-24-token-slot-readout-prereg.md)
+tested a materially different B/16@224 descriptor head. Four arms started
+from the same authenticated UNICOM B/16 checkpoint and fit-only 128-D head:
+original frozen position-flatten readout with ArcFace (A0); the same with a
+source-descriptor anchor (A1); ridge-initialized mean-token readout with that
+anchor (M); and ridge-initialized four-slot content-attention readout with
+the same anchor (S). Each updated the final transformer block, head, and
+class proxies for 1,595 matched identity-balanced steps with seed 179019.
+The 768-D ridge target used only fit rows. No official TEST row was read.
+
+| SOP official TRAIN, 5,851 product-disjoint holdout queries | Packed holdout R@1 / mAP@R | Packed full 59,551-image TRAIN gallery R@1 | Float full-gallery R@1 | Cached-tail train, online / including ridge |
+| --- | ---: | ---: | ---: | ---: |
+| A0, flatten + ArcFace | 88.5490% / 0.661730 | **75.0812%** | 75.2350% | 70.518 / 70.518 s |
+| A1, flatten + anchor | 88.3097% / 0.658559 | 74.9615% | 74.9615% | 71.130 / 71.130 s |
+| M, mean + anchor | 88.0362% / 0.650581 | 74.1241% | 74.1241% | 61.299 / 77.314 s |
+| S, four slots + anchor | 88.5490% / 0.658345 | **75.1325%** | 74.8932% | 64.245 / 80.260 s |
+
+The A0 control check reproduced the previous 88.5490% holdout and 75.0812%
+full-gallery packed R@1 results exactly, within the frozen 0.2-point
+tolerance. The stronger flatten control is A0. S−A0 full-gallery packed R@1 is only
+**+0.0513 percentage points**, paired by heldout product with a 95%
+bootstrap interval **[−0.5846,+0.6838] points**. S−A0 holdout packed
+mAP@R is **−0.003385**, interval **[−0.007848,+0.001075]**; S's float
+full-gallery R@1 is also lower than A0. S−M packed full-gallery R@1 is
+**+1.0084 points**, interval **[+0.7093,+1.3318]**. This shows an
+S−M difference under these optimizer and initialization choices; it does
+not isolate content addressing. S fails the frozen
+**+1.0-point over the stronger flatten control** gate, its positive lower
+endpoint condition, and its holdout mAP nonregression condition. The
+predeclared **at most +0.5-point** closure condition fires. **Close this
+four-slot variant; do not port it to In-Shop, transfer, or live serving.**
+The learned attention-map pairwise total variation is only **0.0000724**
+on the first 64 fit rows, versus **0.0000649** initially. The four
+projection blocks began as the same ridge matrix and small queries made
+their attention near uniform. The tiny change in pairwise variation shows
+near-duplicate slots in this run; it does not measure the shared attention's
+distance from uniform or prove that all slot architectures collapse. With
+near-duplicate slots, four projection blocks can also make the effective
+summed map move at a different rate from M's single projection under AdamW.
+The frozen comparison is additionally limited because the 128-D head and
+class proxies were initialized for the original flatten descriptor: M/S
+began at **66.023%** full-gallery packed R@1 with ridge-to-source fit cosine
+**0.9131**, while A0 used the exact pretrained descriptor. The coefficient-1
+anchor then pulled M/S toward that flatten source, finishing at anchor loss
+**0.1172/0.1285** versus **0.036** for A1. These are architecture-screen
+confounds, not an excuse to override the frozen negative gate.
+
+The [raw terminal receipt](evidence/compact_metric/sop-slot-readout-v1/receipt.json)
+and four per-arm JSON receipts match the DGX originals byte for byte.
+The terminal receipt SHA-256 is
+`9e7f0f52684c2aa6f82655c261871abc7b13cee56c4a92206b37babe0ac611a1`.
+All 13 runtime source hashes match commit `150f314c`; all checkpoint hashes
+match the original DGX files. Durable GB10 unit
+`sfora-slot-readout-150f314c.service` exited with result success and status
+zero; total wall was **387.675 s**. This cache experiment excludes image
+decode, early encoder blocks, and end-to-end inference. The recorded
+**41.316 GB** peak parent RSS includes pages of the mapped 34 GB token cache;
+it is not a standalone serving memory figure. The product bootstrap is
+conditional on one training seed and a reused development holdout. It
+cannot establish official quality or a new learning-method claim. Most
+full-gallery distractors are fit-product images whose embeddings participated
+in training, while official SOP TEST products are unseen; the 75% gallery
+figure cannot be compared numerically with official TEST in either direction.
+The float S−A0 full-gallery loss is a point estimate, not a demonstrated
+negative effect. The next quality experiment must target the stronger trunk
+or a distinct training
+signal while retaining the 130-byte deployed score and a matched full
+image-to-top-k cost gate.
+
 ## 24 September B/16 resolution continuation: do not advance
 
 The [adaptive preregistration](superpowers/specs/2026-09-24-b16-resolution-continuation-prereg.md)
