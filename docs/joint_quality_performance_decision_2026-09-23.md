@@ -1,5 +1,44 @@
 # Joint quality and performance decision, first training-code gate
 
+## 24 September CUB transfer falsifier: stop this partial-tail candidate
+
+The [frozen transfer preregistration](evidence/compact_metric/sop-tail-cub-transfer-preregistration-v1.json)
+compared the two SOP TRAIN checkpoints on CUB-200-2011 classes 101–200:
+5,924 query/gallery images, self excluded, no CUB fitting. This CUB split
+had been inspected in prior work, so the result is exploratory transfer
+evidence. Both arms used the same authenticated UNICOM B/16 image path,
+128-dimensional head, and 130-byte packed scorer; the head checkpoint had
+its final block frozen during SOP training, while the candidate had updated
+that block in eval mode.
+
+| CUB classes 101–200, DGX GB10 | Packed R@1 | Packed mAP@R | Float R@1 | Image encoding wall time |
+| --- | ---: | ---: | ---: | ---: |
+| SOP head ArcFace control | 83.8791% | 0.502327 | 83.8285% | 13.57 s / 5,924 images |
+| SOP eval-mode tail ArcFace candidate | 84.0142% | 0.502076 | 84.0648% | 12.84 s / 5,924 images |
+
+The [raw CUB receipt](evidence/compact_metric/sop-tail-cub-transfer-v1.json)
+has SHA-256 `bcfeb5f043b663b8417a8490f2d95b7692334b3c56cf02ab2b8f35b2d8b0e116`,
+matching the DGX original. The preflight and full transfer services both
+exited zero. The [paired decision](evidence/compact_metric/sop-tail-cub-transfer-decision-v1.json)
+(SHA-256 `5e9577a8c6c0236d6b465ca0ca1bc26fde096ef8c16c8954561c1ff91b0734af`)
+recomputed the 5,924 per-query vectors: candidate minus control is **+0.1350
+percentage points** packed R@1 (100-class bootstrap 95% interval **−0.2358
+to +0.4923**) and **−0.0251 points** packed mAP@R (interval **−0.1604
+to +0.1145**). The frozen gate required no point regression in both; mAP@R
+fails. **Stop this partial-tail candidate before Cars transfer, official SOP
+testing, multi-seed training, or a latency claim.** Its one-seed +3.95-point
+SOP TRAIN holdout gain did not yield a convincing transferable improvement
+here. The 36.50 s transfer wall time includes authentication and both image
+encodes; the 0.73 s difference between sequential encodes is not a paired
+serving-latency estimate. Peak PyTorch allocated CUDA memory was 1.15 GB,
+host RSS 4.35 GB.
+
+**Next method decision:** diagnose the capacity/generalization gap with a
+materially different representation or training signal using SOP TRAIN only,
+then freeze it for a new transfer gate. The teacher-relational and tail-only
+recipes in this section are closed; the published UNICOM reference values
+remain distant official-protocol targets, not matched local baselines.
+
 ## 24 September matched-mode tail control: advance to exploratory transfer
 
 The first four-arm SOP TRAIN screen confounded final-block weight updates
