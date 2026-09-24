@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 import pytest
+import torch
 
 SCRIPT = Path(__file__).parents[1] / "scripts" / "train_sop_compact_backbone.py"
 SPEC = importlib.util.spec_from_file_location("train_sop_compact_backbone", SCRIPT)
@@ -26,3 +27,26 @@ def test_source_binding_accepts_executed_modules_and_rejects_stale_package(
     monkeypatch.setattr(trained, "__file__", str(tmp_path / "stale_package.py"))
     with pytest.raises(ValueError, match="executed SOP training source differs"):
         MODULE.assert_source_imports()
+
+
+def test_full_width_holdout_records_unicom_prefix_rule_separately() -> None:
+    values = torch.zeros((4, 768), dtype=torch.float32)
+    values[:, 0] = torch.tensor([1.0, 1.0, -1.0, -1.0])
+    values[:, 512] = torch.tensor([10.0, -10.0, 10.0, -10.0])
+    values = torch.nn.functional.normalize(values, dim=1)
+    labels = (0, 0, 1, 1)
+
+    result = MODULE.score_validation_features(values, labels)
+
+    assert result["float"]["recall_at_1"] == 0.0
+    assert result["upstream_prefix512_euclidean"]["recall_at_1"] == 1.0
+    assert set(result) == {"float", "packed", "upstream_prefix512_euclidean"}
+
+
+def test_compact_holdout_keeps_existing_metric_inventory() -> None:
+    values = torch.tensor([[1.0, 0.0], [0.9, 0.1], [-1.0, 0.0], [-0.9, -0.1]])
+    values = torch.nn.functional.normalize(torch.nn.functional.pad(values, (0, 126)), dim=1)
+
+    result = MODULE.score_validation_features(values, (0, 0, 1, 1))
+
+    assert set(result) == {"float", "packed"}

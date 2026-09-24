@@ -444,6 +444,14 @@ gradient clipping at norm 1.0 is additional, this is **reference-like**, not
 a faithful published UNICOM reproduction. The upstream B/16 script's
 single-GPU batch 64 avoids a global-batch mismatch, but its classifier is
 full-width and uses `num_feat=512` in PartialFC.
+
+For a later 768-D width control, the holdout receipt now records a separate
+`upstream_prefix512_euclidean` metric using UNICOM's full-vector normalization,
+first-512 truncation, and Euclidean ranking. Its checkpoint rule remains the
+same packed mAP@R rule as the 128-D control. Applying the upstream scorer to
+our trained affine head does not make this width control a faithful UNICOM
+training reproduction.
+
 The completed 4,000-update constant-rate screen is a separate budget
 diagnostic using the original recipe. Its measured gain must be interpreted
 separately from the longer reference-like control now running on the DGX.

@@ -193,6 +193,37 @@ def initialize_head_and_classifier(
 
 
 @torch.inference_mode()
+def score_validation_features(values: torch.Tensor, labels: tuple[int, ...]) -> dict[str, object]:
+    """Score the deployed code and, for full width, the upstream prefix rule."""
+
+    if values.ndim != 2 or values.shape[1] not in (128, 768) or len(values) != len(labels):
+        raise ValueError("SOP holdout feature inventory differs")
+    label_tensor = torch.tensor(labels, dtype=torch.int64)
+    float_result = score_symmetric(values, label_tensor)
+    packed = pack_int8_unit_embeddings(values)
+    packed_result = score_symmetric(
+        packed.codes.float(), label_tensor, inverse_norms=packed.inverse_norms
+    )
+    results = [("float", float_result), ("packed", packed_result)]
+    if values.shape[1] == 768:
+        results.append(
+            (
+                "upstream_prefix512_euclidean",
+                score_symmetric(values, label_tensor, prefix_euclidean_dimensions=512),
+            )
+        )
+    return {
+        name: {
+            "recall_at_1": float(scored["recall_at_1"]),
+            "map_at_r": float(scored["map_at_r"]),
+            "per_query_r1": scored["per_query_r1"],
+            "per_query_ap": scored["per_query_ap"],
+        }
+        for name, scored in results
+    }
+
+
+@torch.inference_mode()
 def evaluate_validation(
     model: nn.Module,
     head: nn.Module,
@@ -207,21 +238,7 @@ def evaluate_validation(
         features = compact_head_features(source, head, output_dim=head.out_features)
         outputs.append(F.normalize(features, dim=1).cpu())
     values = torch.cat(outputs).contiguous()
-    label_tensor = torch.tensor(labels, dtype=torch.int64)
-    float_result = score_symmetric(values, label_tensor)
-    packed = pack_int8_unit_embeddings(values)
-    packed_result = score_symmetric(
-        packed.codes.float(), label_tensor, inverse_norms=packed.inverse_norms
-    )
-    return {
-        name: {
-            "recall_at_1": float(scored["recall_at_1"]),
-            "map_at_r": float(scored["map_at_r"]),
-            "per_query_r1": scored["per_query_r1"],
-            "per_query_ap": scored["per_query_ap"],
-        }
-        for name, scored in (("float", float_result), ("packed", packed_result))
-    }
+    return score_validation_features(values, labels)
 
 
 def parse_args() -> argparse.Namespace:
