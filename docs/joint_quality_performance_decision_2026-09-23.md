@@ -1,5 +1,52 @@
 # Joint quality and performance decision, first training-code gate
 
+## 24 September loss-design and label-audit gate
+
+The 50-pair [seeded SOP train audit](evidence/compact_metric/sop-label-twin-visual-audit-preregistration-v1.json)
+was generated from the 436 newly wrong full-gallery queries, with 10 local
+contact sheets and an image-path/SHA manifest. The DGX job exited zero and
+used no GPU. One of the 50 pairs has identical image bytes across different
+product IDs; the other 49 are byte-distinct. Visual inspection shows plausible
+same-design listings and near variants, including furniture and appliances,
+but the contact sheets do not establish physical product identity. The
+manifest explicitly has `claim_eligible=false` and no independent human
+labels. Therefore no label-twin prevalence estimate or loss mask threshold is
+licensed by this audit. Its value is to keep different-photo label conflicts
+in the next experiment's error analysis rather than treating cosine below
+0.95 as proof that a negative pair is valid.
+
+The completed independent Fable consultation `8affd8e3ae924278`
+adversarially checked the proposed finite-gallery loss against the measured
+SOP outranking-count distribution and known rank-surrogate work. For a bank
+with `M` wrong negatives and soft count `K`, the proposed
+`-log[C(M-K,N)/C(M,N)]` has almost constant marginal cost per violation for
+the observed `K` range; using `N=5,000` on the `M=53,700` fit pool, its
+marginal coefficient changes only from about 0.0977 at zero violations to
+0.0997 at 1,000. It is effectively a scaled sigmoid violation-count loss,
+not a distinct gallery-calibrated learning mechanism. The direct success
+probability `C(M-K,N)/C(M,N)` has a saturating gradient and is a narrower
+falsifiable candidate, but rank-surrogate and cross-batch-memory prior art
+preclude a novelty claim. `N` must not exceed `M` in the exact formula; at
+`N=M` its hard combinatorial limit is unsuitable as a smooth objective.
+The consultation is a theoretical critique, not a trained result.
+
+**Decision:** reject the logarithmic loss as a new method. Preregister one
+short, head-only screen on the authenticated pretrained B/16 SOP **training**
+features: identical PCA-initialized 768→128 heads and 130-byte scorer, fixed
+class-balanced schedule, and frozen train-only hyperparameter selection.
+Compare frozen PCA, ArcFace, in-batch direct-probability, full-bank log-count,
+and full-bank direct-probability arms. Recompute the detached fit-feature
+bank each step, supply the positive score from current minibatch features,
+and report wall time, packed holdout/full-train Recall@1 and mAP@R, exact
+equal-size sampled-negative success, and product-bootstrap intervals. A
+frozen-pretrained similarity ignore mask is a separate preregistered ablation
+only after an independently labelled image-pair audit supports its threshold.
+Promote to matched full-backbone, three-seed training only if the full-bank
+direct-probability arm gains at least 1.0 percentage point over its in-batch
+counterpart on the full-train packed gallery with interval excluding zero,
+does not regress on the holdout-only gallery, and matches or beats ArcFace.
+The screen alone cannot establish official-test or cross-dataset superiority.
+
 ## 24 September equal-size SOP seen-gallery diagnosis
 
 The [preregistered comparison](evidence/compact_metric/sop-seen-gallery-effect-preregistration-v1.json)
