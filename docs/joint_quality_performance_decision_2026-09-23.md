@@ -875,3 +875,27 @@ That coefficient was superseded before the full runs. The
 [raw packed canary](evidence/compact_metric/sop-full-backbone-packed-canary-coefficient0p1-v1.json)
 is retained under SHA-256
 `d9febf3b4caa780c1cb328137929dbf31d2741fb88b4161eb7e5a6bd7311b85b`.
+
+## Frozen-encoder negative coverage diagnostic, 24 September
+
+On 512 deterministic anchors from the SOP **train fit identities**, the
+authenticated pretrained UNICOM B/16@224 768-D cosine features expose a
+specific learning opportunity. A 53,700-image fit bank has a wrong-product
+nearest neighbor above the anchor's best same-product image for **28.125%** of
+anchors. A random 16-product, four-image-per-product proxy batch (15 other
+products) exposes such a negative for **2.5391%**. The full-bank nearest
+wrong-product cosine exceeds the sampled-batch nearest wrong-product cosine
+by a median **0.36554**. These are frozen-feature, train-fit-only diagnostic
+measurements; they are neither trained-model quality gains nor official-test
+results. The proxy random class draw is not a replay of the trainer's actual
+batch schedule or augmentation. The [reproducible receipt](evidence/compact_metric/sop-b16-pretrained-negative-coverage-probe-v1.json)
+binds the archive and script hashes.
+
+The next learning-method control should compare bank negatives with the same
+architecture, initialization, images, update budget, positive rule, and packed
+scorer as the in-batch arm, and select on unseen train identities. First use
+the separately staged trained-checkpoint exporter to check whether the gap
+persists after training. Its fit-distractor replay is diagnostic only because
+those identities trained the checkpoint. The original full-width DGX trainer
+and its downstream evaluation, transfer, PCA, CuTile, and stage-split watchers
+remain active; no competing GPU run has been started.
