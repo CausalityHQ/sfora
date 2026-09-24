@@ -1,0 +1,37 @@
+{
+  "adapter_sha256": "3a3e82e4f175005d8add9914d51e9aa53ef8ef1bac35094a0b9edc181940c379",
+  "claim_eligible": false,
+  "control_upsample_encode_transfer_seconds": 293.5982920737006,
+  "detail_encode_transfer_seconds": 294.4813739513047,
+  "features": {
+    "b16_336_detail": {
+      "file": "b16_336_detail.npy",
+      "rows": 59551,
+      "sha256": "6f6b37905440099b4fcae593c2764443bb5f7b04f27809c83aeec37b23d0bc1e",
+      "width": 768
+    },
+    "b16_336_upsampled": {
+      "file": "b16_336_upsampled.npy",
+      "rows": 59551,
+      "sha256": "c33f0d82fd33dd1a7f8f7372daa0099faf8148b52de89feb414ddf98dfac1770",
+      "width": 768
+    }
+  },
+  "hardware": {
+    "cuda": "13.0",
+    "gpu": "NVIDIA GB10",
+    "python": "3.13.9",
+    "torch": "2.12.1+cu130"
+  },
+  "peak_cuda_allocated_bytes": 1256380416,
+  "peak_host_rss_bytes": 4182908928,
+  "schema": "sfora-sop-b16-resolution-train-extract-v1",
+  "script_sha256": "20405f44c37fdd5e14cb8e1098ddea81bc152f7a18ae25cc875992851677bcaa",
+  "source_224_parity_max_abs": 2.915039658546448e-07,
+  "source_archive_sha256": "16b4554d3868363905f1e1cd385783a8033513835723a7b89f4b762d893d757f",
+  "source_checkpoint_sha256": "c04f324f7c3b4435667236ec6c0eca1cd62f9d64fbfc2d06f8e8e60e6497edef",
+  "source_revision": "d71992ed969e6c271436ac0a0ee1f3ca61474ac0",
+  "split": "SOP official TRAIN only; 59,551 ordered images, 11,318 products",
+  "total_seconds": 594.6516633140855,
+  "train_image_ids_sha256": "0d3165e8e29881062b85f0d83b68ef2d70d265f007a4d62263677a234a42473a"
+}

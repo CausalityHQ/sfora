@@ -87,6 +87,16 @@ spent over eight minutes on its batch-32 merge specialization before that
 diagnostic run was stopped. That startup issue needs a separate fix and does
 not change the matched RC4 cost ratio.
 
+The full SOP TRAIN feature extraction for B and C completed in 594.652 s.
+Model forward plus device-to-host transfer totaled 294.481 s for B and
+293.598 s for C; peak CUDA allocation was 1.256 GB and host RSS 4.183 GB.
+The source 224 replay differed from its archived feature by at most
+`2.91504e-7` on the first eight images. The two 59,551×768 float32 feature
+files remain on DGX and are pinned by the
+`docs/evidence/compact_metric/sop-b16-resolution-train-extract-v1.json`
+receipt. Full-gallery and holdout retrieval scoring is a separate job; these
+extraction times are not training times or retrieval quality.
+
 ## Stage 1: matched learning screen if Stage 0 permits
 
 Run the same 1,000-update full-backbone ArcFace recipe for A, B and C,
