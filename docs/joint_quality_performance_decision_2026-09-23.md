@@ -891,11 +891,38 @@ results. The proxy random class draw is not a replay of the trainer's actual
 batch schedule or augmentation. The [reproducible receipt](evidence/compact_metric/sop-b16-pretrained-negative-coverage-probe-v1.json)
 binds the archive and script hashes.
 
-The next learning-method control should compare bank negatives with the same
-architecture, initialization, images, update budget, positive rule, and packed
-scorer as the in-batch arm, and select on unseen train identities. First use
-the separately staged trained-checkpoint exporter to check whether the gap
-persists after training. Its fit-distractor replay is diagnostic only because
-those identities trained the checkpoint. The original full-width DGX trainer
-and its downstream evaluation, transfer, PCA, CuTile, and stage-split watchers
-remain active; no competing GPU run has been started.
+A matched CPU head screen then compared the strongest wrong-product negative
+from each actual scheduled 64-image batch against the strongest from the
+53,700-image fit bank. Both arms used the same frozen pretrained B/16 encoder,
+identity-initialized trainable 768-D linear head, source-feature hardest
+positive, softplus cosine-triplet loss, Adam at 1e-4, 256 batches, seed
+179019, 770-byte packed scorer, and 5,851-image disjoint-product SOP train
+holdout. This was an exploratory method screen, not independent-seed or
+full-backbone evidence.
+
+| SOP train holdout, 5,851 queries | Packed Recall@1 | Packed mAP@R | Head-training time, local CPU |
+| --- | ---: | ---: | ---: |
+| Frozen identity head | 84.0540% | 0.591906 | 0 s |
+| In-batch hardest negative | 85.3358% | 0.609979 | 2.27 s |
+| Full-fit-bank hardest negative | 83.2849% | 0.577061 | 2.29 s |
+
+The bank arm lost **2.0509 percentage points** Recall@1 relative to the
+in-batch arm, with product-bootstrap 95% interval **[-2.6069, -1.4975] pp**;
+its mAP@R fell **0.032918**, interval **[-0.037340, -0.028432]**. There were
+185 in-batch-only hits and 65 bank-only hits. Mining took 14.85 s before
+either arm trained. The [raw per-query receipt](evidence/compact_metric/sop-b16-bank-negative-head-screen-v1.json)
+and [compact summary](evidence/compact_metric/sop-b16-bank-negative-head-screen-summary-v1.json)
+retain the source, schedule, code, timing, and paired evidence. The naive
+static, single-strongest-bank-negative formulation is rejected for the next
+full-backbone run; the coverage gap alone did not predict a quality gain. This
+screen kept pretrained mining indexes fixed and propagated gradients through
+both sides of each selected pair. It does not test a refreshed or detached
+memory bank, and one training schedule does not measure variation across
+training seeds. Opus 5.5 and GPT-6 Astra independently found no
+comparison-breaking code flaw but agreed that the result cannot reject bank
+methods as a class. The decision now prioritizes the already-queued
+full-width-to-PCA-128 matched 130-byte control, which requires no new backbone
+run, followed by the separately staged trained-checkpoint gallery diagnosis.
+The latter's seen-fit distractors remain diagnostic only. The original
+full-width DGX trainer and downstream watchers remain active, so this screen
+used local CPU and did not contend for their GPU.

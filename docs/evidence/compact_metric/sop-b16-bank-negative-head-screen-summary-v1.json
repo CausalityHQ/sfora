@@ -1,0 +1,46 @@
+{
+  "arm_training_seconds": {
+    "fit_bank": 2.2902245381847024,
+    "inbatch": 2.2676054751500487
+  },
+  "bank_minus_inbatch_packed_map_at_r": -0.03291843928252809,
+  "bank_minus_inbatch_packed_map_at_r_product_bootstrap_ci95": [
+    -0.03734041525132146,
+    -0.028432094936791427
+  ],
+  "bank_minus_inbatch_packed_r1": -0.02050931464706888,
+  "bank_minus_inbatch_packed_r1_product_bootstrap_ci95": [
+    -0.026068853833306118,
+    -0.014974723725039376
+  ],
+  "bank_only_hits": 65,
+  "baseline_packed": {
+    "map_at_r": 0.5919058967933728,
+    "recall_at_1": 0.8405400786190395
+  },
+  "bootstrap": "10000 product-cluster resamples with replacement, seed 179019",
+  "claim_eligible": false,
+  "dataset": "Stanford Online Products",
+  "decision": "Reject naive static full-fit-bank single-hardest-negative head loss for the next full-backbone run; other bank methods are untested",
+  "gallery_bytes_per_item": 770,
+  "holdout_labels_sha256": "daca6d90d2aaf376a592ec8cff8af785c4da409bd90f45d30c4716e40afb1fe6",
+  "inbatch_only_hits": 185,
+  "mining_seconds": 14.845635225065053,
+  "packed": {
+    "fit_bank": {
+      "map_at_r": 0.5770607646806202,
+      "recall_at_1": 0.8328490856263886
+    },
+    "inbatch": {
+      "map_at_r": 0.6099792039631483,
+      "recall_at_1": 0.8533584002734576
+    }
+  },
+  "raw_receipt_sha256": "ded7836cefa070843198ee77791c9be8c7179011e066e71dc99b05ad63392ee3",
+  "schema": "sfora-sop-frozen-b16-bank-negative-head-screen-summary-v1",
+  "seed": 179019,
+  "source_archive_sha256": "16b4554d3868363905f1e1cd385783a8033513835723a7b89f4b762d893d757f",
+  "split": "official train, 5851 class-disjoint held-out images",
+  "steps": 256,
+  "summary_script_sha256": "d79a0e862580aae9de2ebdc5806661165a173ecb8144e225bde9cbd9acd58fb7"
+}
