@@ -28,6 +28,25 @@ exact-search control for the serving component. A published number alone does
 not establish a paired speed comparison: we need the checkpoint and a
 protocol-matched run on the same machine.
 
+The exact-real prefix-score ranking identity is now proved in
+[`Euclidean.lean`](../formal/SforaProofs/Euclidean.lean), but this does not
+prove float32 rankings. A synthetic near-duplicate CPU probe changed top-1
+between the expanded float32 score and float64 direct distance. To test
+whether that precision risk is already a bottleneck in the available real
+descriptors, the [source-frozen train-only audit](../scripts/audit_sop_train_prefix_precision.py)
+used the authenticated pretrained B/16 archive (SHA-256 `16b4554d…`),
+1,024 evenly spaced SOP **training** queries, and all 59,551 training rows.
+The float32 expanded scorer, evaluated as individual queries and in a batch,
+and the float64 scorer selected the same top-1 ordinal on every query; all
+three sampled Recall@1 values were 69.7266%. This sampled negative result
+does not bound the error rate on the trained model, the official SOP test, or
+near-duplicate cohorts. The [raw receipt](evidence/compact_metric/sop-train-prefix-precision-probe-1024-v1.json)
+has SHA-256 `729f8b281b9c174be5815716baaeae7ea5f6dbee0753c0cab27a19983001c954`;
+the committed audit script matches its recorded SHA-256
+`5f24962fe457593bf22186ce135341cf5e1c90056b943f70ba0e965e8fd35f7a`.
+For the next product decision, train-only quality and full image-to-top-k
+latency take priority over changing this source-matched scorer.
+
 The first learning-method screen uses the authenticated UNICOM ViT-B/16 at
 224 px (12 transformer layers, width 768, 12 heads) because training and
 encoding it are cheaper. It starts at the same pretrained checkpoint in every
