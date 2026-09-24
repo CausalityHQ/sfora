@@ -1,5 +1,70 @@
 # Joint quality and performance decision, first training-code gate
 
+## 24 September public L-class substrate: advance to matched training
+
+The [frozen preregistration](superpowers/specs/2026-09-24-siglip2-l-substrate-screen-prereg.md)
+screened public pretrained SigLIP2 L/16@256 against authenticated pretrained
+UNICOM L/14@336. No new model weights were trained. On Stanford Online
+Products **official TRAIN only**, seed 179019 supplied 53,700 fit images and
+5,851 queries from 1,132 products disjoint from fit; the full gallery was all
+59,551 TRAIN images with self exclusion. Each arm independently fitted a
+centered PCA-128 map on fit rows only, then used the same 130-byte signed-int8
+plus f16 inverse-norm wire and exact native top-10 scorer. The two encoders
+have different pretraining, processors, input resolutions and parameter
+precision, so this is a system/substrate comparison, **not an isolated Sfora
+learning-method effect**.
+
+| DGX GB10; SOP TRAIN, 5,851 product-disjoint queries | UNICOM L/14@336 | SigLIP2 L/16@256 | Candidate/reference or difference |
+| --- | ---: | ---: | ---: |
+| Packed Recall@1, full 59,551-image TRAIN gallery | 71.2528% | **78.3456%** | **+7.0928 percentage points**; paired product bootstrap 95% **[+5.6920,+8.5015]** |
+| Packed mAP@R, full TRAIN gallery | 0.432534 | **0.508168** | +0.075634; paired 95% [0.064082,0.087422] |
+| Packed Recall@1, holdout-only gallery | 86.1220% | **90.2923%** | +4.1702 percentage points |
+| Packed mAP@R, holdout-only gallery | 0.623416 | **0.694776** | +0.071361; paired 95% [0.059790,0.083157] |
+| Full image-to-top-10 p50, batch 1; 50 alternating blocks | 39.6595 ms | **17.4091 ms** | **0.4390×** |
+| Full image-to-top-10 p95, batch 1 | 42.0443 ms | 20.5554 ms | 0.4890× |
+| Full image-to-top-10 p50, batch 32; 20 alternating blocks | 552.5169 ms | **260.5502 ms** | **0.4716×** |
+| Full image-to-top-10 p95, batch 32 | 567.0272 ms | 269.0910 ms | 0.4746× |
+| Full image-to-top-10 throughput, batch 1 / 32 | 25.478 / 57.943 queries/s | **58.520 / 122.793 queries/s** | same resident 59,551-image gallery |
+
+The candidate's encoder/transfer p50 was 9.289/210.585 ms at batches 1/32,
+versus 30.311/393.084 ms for UNICOM. Native search p50 was 0.406/0.754 ms
+versus 0.450/0.778 ms, so the encoder and preprocessing explain most of the
+full-pipeline gain. The timing process peaked at 6.003 GB PyTorch CUDA
+allocation and 12.219 GB parent host RSS across both loaded models, galleries,
+and cached features. The model weight file is 3.526 GB; it is not training
+memory. SigLIP2 used the pinned native torchvision processor and fp16 model
+parameters; UNICOM used its authenticated native preprocessing and fp32
+parameters with internal fp16 attention. The comparison includes each model's
+real preprocessing, but does not isolate architecture, numerical precision or
+pretraining. Neither p99 nor training speed is established by this screen.
+
+The [quality receipt](evidence/compact_metric/sop-siglip2-substrate-v1/receipt.json)
+and [live timing receipt](evidence/compact_metric/sop-siglip2-substrate-v1/live-134-receipt.json)
+are raw, hash-bound evidence. The live run reproduced cached feature cosine
+above 0.9999996, exact packed query codes and norms, and native top-10 against
+the CPU oracle on 32 queries per arm; independent recomputation matched every
+timing p50/p95 and both ratios. The same released library under CUDA 13.3
+[did not reach timed calls](evidence/compact_metric/sop-siglip2-substrate-v1/live-133-cold-abort.json)
+after 60 minutes of `ptxas` CPU on a 32 MB merge PTX module. With CUDA 13.4,
+fresh-process [batch-1](evidence/compact_metric/sop-siglip2-substrate-v1/cutile-cold-134-b1.json)
+and [batch-32](evidence/compact_metric/sop-siglip2-substrate-v1/cutile-cold-134-b32.json)
+first calls took 0.862 and 2.181 seconds with exact ordinal ties. The canaries
+did not clear compiler caches, so they establish the working deployment
+configuration, not a controlled universal 13.3-versus-13.4 compile claim.
+
+**Decision:** all frozen TRAIN-only substrate gates pass: full-gallery packed
+Recall@1 exceeds the reference by >1 point with a positive paired lower
+endpoint, holdout mAP@R does not regress, and full-pipeline p50 is below
+0.85× at both batches. Advance **only** to source-recipe-matched supervised
+training: the same SigLIP2 starting weights, processor, 128-dimensional head,
+class sampler, optimizer, update budget, seed and packed scorer for an ArcFace
+control, a float-rank control, and a deployed-code ranking arm. Freeze choices
+on TRAIN identities, profile training wall/throughput/VRAM, then require
+independent paired seeds, official SOP and In-Shop evaluation, CUB/Cars
+transfer and certified p99 before any algorithmic or SOTA claim. The reused
+holdout and unknown overlap between public pretraining and SOP prevent a
+confirmatory claim from this screen.
+
 ## 24 September cached token-slot readout: close this variant
 
 The [frozen exploratory preregistration](superpowers/specs/2026-09-24-token-slot-readout-prereg.md)

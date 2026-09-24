@@ -1,0 +1,28 @@
+{
+  "schema": "sfora-sop-siglip2-live-cold-abort-v1",
+  "dataset_split": "Stanford Online Products official TRAIN; 59,551 gallery images; no TEST rows",
+  "hardware": "NVIDIA GB10",
+  "source_commit": "4ab8071a",
+  "native_library_sha256": "39602d0e4e8b0d5ec441be460ad7f18e288241bef19fb6e6c5df14f4033ac73c",
+  "tileiras_version": "CUDA TileIR 13.3",
+  "tileiras_sha256": "92499512a869b96b3a38c6763b1fe3e6a00c16e4a29385cd9cf740dffa18b444",
+  "unit": "sfora-siglip2-live-4ab8071a.service",
+  "started_utc": "2026-09-24T21:11:49Z",
+  "agent_stopped_utc": "2026-09-24T22:18:29Z",
+  "terminal_active_state": "inactive",
+  "terminal_systemd_result": "success after deliberate systemctl stop; no benchmark completion",
+  "timing_receipt_exists": false,
+  "timing_samples": 0,
+  "compiler": {
+    "stage": "merge_topk_entry",
+    "ptx_sha256": "7cf852de9ce67a3c5ea67ca7625d7b5672f8e2c1766fdca2b195544cecae50c9",
+    "ptx_bytes": 32016465,
+    "ptx_lines": 909031,
+    "ptxas_cpu_seconds_at_stop": 3605,
+    "ptxas_peak_observed_rss_bytes_approx": 11250000000,
+    "still_compiling_at_stop": true
+  },
+  "systemd_cpu_time_seconds": 4094.765,
+  "systemd_peak_memory": "15.1G",
+  "interpretation": "CUDA 13.3 cold compilation did not reach timed calls within 60 minutes of ptxas CPU. There is no measured image-to-top-10 latency or speed-gate result from this run."
+}

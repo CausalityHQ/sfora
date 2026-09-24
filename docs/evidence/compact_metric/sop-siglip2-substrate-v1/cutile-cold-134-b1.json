@@ -1,0 +1,15 @@
+{
+  "batch": 1,
+  "create_ns": 327910122,
+  "exact_ordinal_ties": true,
+  "first_search_ns": 862269694,
+  "gallery_rows": 59551,
+  "host_peak_rss_bytes": 393687040,
+  "library_sha256": "39602d0e4e8b0d5ec441be460ad7f18e288241bef19fb6e6c5df14f4033ac73c",
+  "platform": "Linux-6.17.0-1026-nvidia-aarch64-with-glibc2.39",
+  "schema": "sfora-cutile-cold-start-v1",
+  "source_sha256": "52df1ac54f29cad1cc907454e3e99763ee195e0ed5a1d7612dad7b05d2b6c2b9",
+  "stored_gallery_bytes": 7741630,
+  "tileiras_sha256": "df2e9ef3804cab682f605a5c9e50045a24404ba22c3be0903454e1a60fcd78ae",
+  "total_ns": 1190179816
+}
