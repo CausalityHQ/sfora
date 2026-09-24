@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
 import platform
@@ -184,6 +185,15 @@ def score_arm(values: torch.Tensor, labels: torch.Tensor, held_rows: np.ndarray)
     }
 
 
+def optimizer_step_range(optimizer: torch.optim.Optimizer) -> tuple[int, int]:
+    """Audit that every trainable tensor received the intended updates."""
+
+    steps = [int(state["step"].item()) for state in optimizer.state.values() if "step" in state]
+    if not steps or len(steps) != sum(len(group["params"]) for group in optimizer.param_groups):
+        raise ValueError("continuation optimizer state inventory differs")
+    return min(steps), max(steps)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     for name in (
@@ -277,8 +287,12 @@ def main() -> None:
         head.load_state_dict(checkpoint["head"])
         with torch.no_grad():
             classifier.copy_(checkpoint["classifier"].cuda())
-        optimizer.load_state_dict(checkpoint["optimizer"])
-        scaler.load_state_dict(checkpoint["scaler"])
+        # AdamW's CPU step tensors can alias the input state dict. A deep copy
+        # prevents the previous arm from advancing the next arm's clock.
+        optimizer.load_state_dict(copy.deepcopy(checkpoint["optimizer"]))
+        scaler.load_state_dict(copy.deepcopy(checkpoint["scaler"]))
+        if optimizer_step_range(optimizer) != (1000, 1000):
+            raise ValueError("continuation start optimizer clock differs")
         torch.set_rng_state(checkpoint["torch_rng_state"])
         torch.cuda.set_rng_state_all(checkpoint["cuda_rng_states"])
         random.setstate(checkpoint["python_rng_state"])
@@ -327,6 +341,8 @@ def main() -> None:
             if step % 25 == 0:
                 print(json.dumps({"arm": arm, "step": step, "loss": last_loss}), flush=True)
         train_seconds = time.perf_counter() - begin
+        if optimizer_step_range(optimizer) != (1200, 1200):
+            raise ValueError("continuation did not complete 200 optimizer updates")
         train_peak = torch.cuda.max_memory_allocated()
         save_path = args.output_dir / f"{arm}-1200.pt"
         torch.save(
@@ -360,6 +376,7 @@ def main() -> None:
             "encode_peak_cuda_allocated_bytes": encode_peak,
             "first_loss": first_loss,
             "last_loss": last_loss,
+            "optimizer_step_range": optimizer_step_range(optimizer),
         }
         print(
             json.dumps(
