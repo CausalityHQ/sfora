@@ -232,6 +232,25 @@ checkpoint choice. If full width recovers quality or transfer, compression is
 a likely bottleneck; if it does not, constrain the backbone update and test
 it under the same split and budget. Neither branch is evidence of a new
 algorithmic or SOTA gain without the paired independent-seed panel.
+The first two full-width checkpoint receipts are now published. These are
+interim measurements on the **5,851-image SOP training-identity holdout**,
+not on the official test identities. Both rows use the same seed, image
+inventory and update count; the full-width arm also changes initialization
+and proxy geometry. Packed storage is 770 bytes per gallery item at 768-D
+versus 130 bytes at 128-D.
+
+| Updates | 128-D packed Recall@1 / mAP@R | 768-D packed Recall@1 / mAP@R | Full-width receipt |
+| ---: | ---: | ---: | --- |
+| 4,000 | 90.2239% / 0.696166 | 92.4799% / 0.737175 | [step 4,000](evidence/compact_metric/sop-fullwidth768-seed179019-step4000-holdout-v1.json), SHA-256 `48d86bc5f8633591c9e661399160a598d4531227e894b1df91ceb3443e32e1d8` |
+| 8,000 | 92.5996% / 0.746960 | 94.0181% / 0.789077 | [step 8,000](evidence/compact_metric/sop-fullwidth768-seed179019-step8000-holdout-v1.json), SHA-256 `792e3de74acda3be7095b6d37bd3e1ed582e91c4c9f22ffc00bd026851bd628c` |
+
+The gap narrows from 2.2560 to 1.4185 percentage points in Recall@1 as
+training proceeds. Neither checkpoint has been selected for the official
+test, and these observations do not justify substituting a 770-byte product
+for the 130-byte target. A post-training, train-only compression probe of a
+frozen full-width checkpoint can test whether 128-D projection training or
+the backbone is responsible for the quality gap, with the same deployed
+packed scorer.
 The CUB and Cars transfer evaluators now have a four-arm diagnostic option:
 pretrained/trained backbone crossed with initial/trained 128-D projection head,
 with both float and 130-byte packed retrieval. This will show whether either
