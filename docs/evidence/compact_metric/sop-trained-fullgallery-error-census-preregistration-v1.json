@@ -1,0 +1,14 @@
+{
+  "schema": "sfora-sop-trained-fullgallery-error-census-preregistration-v1",
+  "claim_eligible": false,
+  "script_sha256": "730c8087a8d5741323f20373b4bf27920d89e01c2f858057b7c499c68a9f8cdb",
+  "archive_sha256": "e5f83f81e3c7bae29b5cbf1ecc08fc0d5c244d2c52e49302307c90b19dbda744",
+  "checkpoint_sha256": "232f7cee93e39fa242d8461f8dc8cee684d7228eef01f8fe9399b9782e80a1b2",
+  "dataset": "Stanford Online Products official TRAIN images only; no official test image bytes",
+  "split": "seed 179019 class-disjoint 90/10 train-identity partition; 5851 holdout queries, all 59551 train rows except self for full-gallery score, 5851 holdout rows except self for the within-holdout control",
+  "representation": "selected step-48000 B/16 trained full-width 768-D source features, L2-normalized; float32 cosine, no trained compression or packed scorer",
+  "question": "Are larger-gallery retrieval errors dominated by cross-product near twins or exact duplicate image bytes?",
+  "frozen_outputs": ["holdout-only Recall@1", "full-train-gallery Recall@1", "new errors introduced by fit-identity gallery rows", "wrong-top1 cosine at 0.90, 0.95, 0.98", "exact-byte duplicate wrong top1 pairs"],
+  "interpretation": "Descriptive diagnosis only. A majority of wrong top1 scores at or above 0.95 would argue against naive cross-batch hard-negative mining; exact duplicate counts supply a stricter label-conflict floor. Neither observation proves a causal quality fix or a new method.",
+  "prohibitions": ["no official test image bytes", "no training", "no product quality or SOTA claim"]
+}
