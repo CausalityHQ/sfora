@@ -1124,7 +1124,7 @@ train-only ablation and transfer check before promotion; the current evidence
 does not justify launching that GPU experiment ahead of the queued width/PCA
 and official-quality results.
 
-## Full-width official SOP and transfer factorial, 24 September
+## Full-width official SOP and compact-backbone transfer factorial, 24 September
 
 The step-48,000 full-width checkpoint was selected on the class-disjoint SOP
 training holdout under the frozen packed mAP@R rule before its one-time
@@ -1161,10 +1161,11 @@ receipt's 132.220 s encode and 5.074 s packed-score totals cover one offline
 test pass. They are not batch-1 serving latency or certified p99. The
 full-pipeline and equal-byte PCA checks remain queued.
 
-The completed four-arm [CUB transfer factorial](evidence/compact_metric/sop-fullwidth768-seed179019-cub-transfer-factorial-v2.json)
-and [Cars transfer factorial](evidence/compact_metric/sop-fullwidth768-seed179019-cars-transfer-factorial-v2.json)
+The completed four-arm [CUB transfer factorial](evidence/compact_metric/sop-compact128-seed179019-cub-transfer-factorial-v2.json)
+and [Cars transfer factorial](evidence/compact_metric/sop-compact128-seed179019-cars-transfer-factorial-v2.json)
 retain per-query metrics, source hashes, and class-disjoint test protocols.
-They cross pretrained versus SOP-trained backbones with a fixed fit-only
+They use the selected **compact 128-D** checkpoint, not the full-width
+checkpoint. They cross pretrained versus SOP-trained compact backbones with a fixed fit-only
 initial 128-D head versus the trained 128-D head, without fitting on CUB or
 Cars. The receipts match their DGX originals at SHA-256
 `f020215194d87ba3afc5ae3169649fc7739f8f3df2a2f1df5023cbda4a06336c`
@@ -1179,7 +1180,8 @@ Holding the initial head fixed, SOP backbone training reduces CUB Recall@1
 by **10.1958 points** and Cars by **2.7672 points**. Holding the pretrained
 backbone fixed, swapping in the trained head changes CUB by **+0.3207** and
 Cars by **−0.2214 points**. Backbone updates are thus the dominant measured
-source of transfer loss. This factorial does not isolate the mechanism within
+source of transfer loss **for the compact run**. Full-width-backbone transfer
+has not yet been measured. This factorial does not isolate the mechanism within
 backbone training. The next controlled experiment should retain pretrained
 backbone geometry more strongly, use source-matched `origin_clip`
 augmentation as a separate arm, select on SOP train identities plus transfer
