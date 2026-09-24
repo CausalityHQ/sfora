@@ -4,7 +4,7 @@ import pytest
 import torch
 from torch import nn
 
-from sfora.unicom_resolution_adapter import output_at_resolution
+from sfora.unicom_resolution_adapter import output_at_resolution, train_output_at_resolution
 
 
 class _PatchEmbed(nn.Module):
@@ -64,6 +64,19 @@ def test_other_image_sizes_are_rejected(size):
 def test_training_mode_is_rejected():
     with pytest.raises(ValueError, match="evaluation mode"):
         output_at_resolution(_SourceShape().train(), torch.empty(2, 3, 224, 224))
+
+
+def test_training_adapter_keeps_source_head_and_backpropagates():
+    torch.manual_seed(19)
+    model = _SourceShape().train()
+    native = torch.randn(2, 3, 224, 224)
+    detail = torch.randn(2, 3, 336, 336)
+    assert torch.equal(train_output_at_resolution(model, native), model(native))
+    output = train_output_at_resolution(model, detail)
+    assert output.shape == (2, 8)
+    output.square().mean().backward()
+    assert model.patch_embed.proj.weight.grad is not None
+    assert model.pos_embed.grad is not None
 
 
 def test_wrong_pretrained_head_geometry_is_rejected():

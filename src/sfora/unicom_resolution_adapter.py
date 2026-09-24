@@ -47,6 +47,18 @@ def output_at_resolution(model: nn.Module, images: torch.Tensor) -> torch.Tensor
 
     if model.training:
         raise ValueError("UNICOM resolution adapter requires evaluation mode")
+    return _run_at_resolution(model, images)
+
+
+def train_output_at_resolution(model: nn.Module, images: torch.Tensor) -> torch.Tensor:
+    """Run the same source graph at 224 or 336 pixels with training enabled."""
+
+    if not model.training:
+        raise ValueError("UNICOM training adapter requires training mode")
+    return _run_at_resolution(model, images)
+
+
+def _run_at_resolution(model: nn.Module, images: torch.Tensor) -> torch.Tensor:
     if (
         images.ndim != 4
         or images.shape[1] != 3
