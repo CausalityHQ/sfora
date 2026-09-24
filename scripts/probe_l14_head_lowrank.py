@@ -24,6 +24,7 @@ from probe_l14_parallel_fold import (
     timing_summary,
 )
 from torch import nn
+from torch.nn import functional as F
 from torch.utils.data import DataLoader, Dataset
 from train_sop_compact_backbone import (
     FIT_FRACTION,
@@ -97,7 +98,7 @@ def encode(model: nn.Module, loader: DataLoader, expected_rows: int) -> tuple[to
 def score_features(values: torch.Tensor, labels: tuple[int, ...]) -> dict[str, object]:
     gpu_values = values.cuda()
     gpu_labels = torch.tensor(labels, dtype=torch.int64, device="cuda")
-    packed = pack_int8_unit_embeddings(gpu_values)
+    packed = pack_int8_unit_embeddings(F.normalize(gpu_values, dim=1))
     return {
         "full_float_cosine": score_symmetric(gpu_values, gpu_labels),
         "full_packed_cosine": score_symmetric(
