@@ -958,3 +958,14 @@ full-width checkpoint's fit-identity features and comparing the resulting
 holdout descriptor with a matched compact checkpoint. The staged trained
 feature exporter can supply those features after the existing GPU queue
 finishes. Official SOP test results are still pending.
+
+The separate [matched step-48,000 PCA audit](../scripts/audit_sop_matched_fullwidth_pca.py)
+is prepared for that later check. It pins the existing [compact diagnostic
+receipt](evidence/compact_metric/sop-reference-arcface-seed179019-step48000-v1.json),
+requires the full-width export to reproduce its original holdout scores,
+fits PCA on fit identities only, and records a usable projection with its
+normalization rules and input hashes. It has passed focused lint, type check,
+CLI import, and paired-score checks against the actual step-32,000 receipts;
+it has **not** run on step-48,000 trained features. The compact 48,000-update
+checkpoint was selected using this same holdout, so the eventual matched-step
+comparison remains exploratory and will disclose that selection.
