@@ -427,8 +427,26 @@ points Recall@1 (95% interval +0.034 to +0.474) and +0.006993 mAP@R
 provenance fields match the 32,000-update receipt. The 48,000-update receipt is
 `/home/riomus/runs/sfora-sop-reference-b8f85611-179019/arcface-seed179019-53760.step48000.json`
 (SHA-256 `42350440edf3dcb972c6d2a9372a1adc75e6363319efc31a047815e81cea29c0`).
-The final checkpoint and the one-time official evaluation remain pending;
-these training-identity scores cannot establish the published quality gate.
+The completed 53,760-update checkpoint reached 95.3341% packed holdout
+Recall@1 and 0.811912 packed mAP@R, versus 95.1974% and 0.812453 at
+48,000 updates. Thus the frozen train-only mAP@R rule selects the
+48,000-update checkpoint; the later Recall@1 increase does not override the
+primary selection metric. The final [raw training receipt](evidence/compact_metric/sop-reference-arcface-seed179019-final-v1.json)
+has SHA-256 `a020cfc246df0423b617cdba45acbf5001174c44d1cda888d063fe2822dce3fb`
+and binds the final checkpoint SHA-256
+`5c8a68975f959df89da45324bda6877627499807dd4f64d6fea98ba14ac9f85d`.
+It records 23,543.867 seconds of training, 2.2834 updates per second,
+7,804,527,104 peak CUDA allocated bytes, and 6,613,139,456 peak host RSS
+bytes on one NVIDIA GB10. The receipt also records 91.745 seconds of
+checkpoint diagnostic overhead separately. This is one seed and a
+train-identity holdout; the one-time official evaluation is running and these
+holdout scores cannot establish the published quality gate.
+On identical holdout queries, the final-minus-48,000 paired product-clustered
+10,000-resample bootstrap (PCG64 seed 179019) gives +0.137 percentage points
+packed Recall@1 (95% interval +0.034 to +0.260) and −0.000541 packed mAP@R
+(−0.001625 to +0.000575). The mAP@R interval crosses zero; the frozen
+selection rule still chooses the 48,000-update checkpoint by its observed
+holdout mAP@R.
 
 A passive 60-sample, 1 Hz DGX trace spanning the diagnostic had median SM
 utilization 96% and median GPU power 51 W; five samples had SM utilization
@@ -454,7 +472,7 @@ training reproduction.
 
 The completed 4,000-update constant-rate screen is a separate budget
 diagnostic using the original recipe. Its measured gain must be interpreted
-separately from the longer reference-like control now running on the DGX.
+separately from the completed longer reference-like control.
 
 The reference-like run's first **train-identity holdout** diagnostic at 4,000
 of 53,760 updates recorded packed Recall@1 **90.2239%** and mAP@R
