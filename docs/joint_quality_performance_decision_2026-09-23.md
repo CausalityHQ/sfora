@@ -1044,6 +1044,32 @@ show whether the full-width advantage survives at 130 bytes/item. The final
 trainer, official SOP evaluation, transfer checks and export queue are still
 active; no official-test result is inferred from this holdout.
 
+## Full-width training closeout, 24 September
+
+The original 53,760-update full-width run completed on the NVIDIA GB10. Its
+[final receipt](evidence/compact_metric/sop-fullwidth768-seed179019-final-v1.json)
+matches the remote SHA-256
+`73408b5ceddace5f23cca4bbf071ec1a8df3e72db0cc9b20a7e7ae9ae2e1404f`;
+the final checkpoint independently hashes to the receipt's
+`dc5b94a02176b6a8437466f7e1d7fc8dfa5136318fc1f0e95d3f15242a795c66`.
+It trained seed 179019 on 53,700 SOP train-fit images from 10,186 product
+identities, batch 64 with four images per identity. Training time excluding
+diagnostics was **24,095.94 s (6.693 h)**, or **2.231 updates/s**, with
+step-time p50 **0.4438 s** and p95 **0.4475 s**. Peak allocated CUDA memory
+was **7.916 GB** and peak host RSS **6.453 GB**. Diagnostic overhead added
+100.90 s and the final validation took 20.28 s. The earlier compact run's
+corresponding training receipt records 23,543.87 s, 2.283 updates/s, and
+7.805 GB peak allocated CUDA memory; these are separate runs with differences
+in their recorded trainer, evaluation, and loss-module source hashes, so the
+2.3% throughput difference is descriptive rather than an isolated width cost.
+
+The final full-width packed train-holdout score is **96.0520% Recall@1** and
+**0.836346 mAP@R**. The frozen selection rule maximizes packed mAP@R, with
+Recall@1 and earlier step only as ties. It therefore selects the already
+verified step-48,000 checkpoint at **0.836934 mAP@R**; the final step's
+0.0171-point Recall@1 increase does not override that rule. The queued
+official SOP evaluator is running from its original immutable source snapshot.
+
 The independent local CPU serving check used the authenticated 59,551-image
 SOP **train** feature archive as one gallery, with normalized 128-coordinate
 prefix and 768-coordinate pretrained descriptors. The 128-D prefix is a
