@@ -109,4 +109,75 @@ def score_symmetric(
     }
 
 
-__all__ = ["score_symmetric"]
+@torch.inference_mode()
+def score_gallery_r1(
+    values: torch.Tensor,
+    labels: torch.Tensor,
+    query_rows: torch.Tensor,
+    *,
+    block_rows: int = 64,
+    inverse_norms: torch.Tensor | None = None,
+) -> Mapping[str, object]:
+    """Score selected self-excluded queries against the full gallery.
+
+    Float rows use unit cosine. With f16 inverse norms, rows are widened
+    signed-byte codes and the deployed packed cosine arithmetic is used.
+    ``argmax`` selects the first gallery ordinal on an exact score tie.
+    """
+
+    if (
+        type(values) is not torch.Tensor
+        or values.dtype != torch.float32
+        or values.ndim != 2
+        or values.shape[0] < 2
+        or values.shape[1] < 2
+        or not bool(torch.isfinite(values).all())
+        or type(labels) is not torch.Tensor
+        or labels.dtype != torch.int64
+        or labels.shape != (len(values),)
+        or labels.device != values.device
+        or type(query_rows) is not torch.Tensor
+        or query_rows.dtype != torch.int64
+        or query_rows.ndim != 1
+        or query_rows.device != values.device
+        or len(query_rows) == 0
+        or bool(((query_rows < 0) | (query_rows >= len(values))).any())
+        or len(torch.unique(query_rows)) != len(query_rows)
+        or type(block_rows) is not int
+        or block_rows < 1
+    ):
+        raise ValueError("SOP full-gallery scoring inventory differs")
+    if inverse_norms is not None and (
+        type(inverse_norms) is not torch.Tensor
+        or inverse_norms.dtype != torch.float16
+        or inverse_norms.shape != (len(values),)
+        or inverse_norms.device != values.device
+        or not bool(torch.isfinite(inverse_norms).all())
+        or bool((inverse_norms <= 0).any())
+        or bool((values.abs() > 127).any())
+        or not bool(torch.equal(values, values.round()))
+    ):
+        raise ValueError("SOP full-gallery packed inventory differs")
+    matrix = F.normalize(values, dim=1) if inverse_norms is None else values
+    inverse = None if inverse_norms is None else inverse_norms.float()
+    transpose = matrix.T.contiguous()
+    nearest: list[int] = []
+    correct: list[int] = []
+    for start in range(0, len(query_rows), block_rows):
+        rows = query_rows[start : start + block_rows]
+        scores = matrix[rows] @ transpose
+        if inverse is not None:
+            scores = scores * inverse[rows, None] * inverse[None, :]
+        scores[torch.arange(len(rows), device=values.device), rows] = -torch.inf
+        winners = torch.argmax(scores, dim=1)
+        nearest.extend(int(row) for row in winners.cpu().tolist())
+        correct.extend(int(value) for value in (labels[winners] == labels[rows]).cpu().tolist())
+    return {
+        "queries": len(query_rows),
+        "recall_at_1": sum(correct) / len(correct),
+        "per_query_r1": correct,
+        "nearest_ordinals": nearest,
+    }
+
+
+__all__ = ["score_symmetric", "score_gallery_r1"]
