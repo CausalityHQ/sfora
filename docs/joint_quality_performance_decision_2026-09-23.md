@@ -1,5 +1,60 @@
 # Joint quality and performance decision, first training-code gate
 
+## 24 September cached final-block screen: retain the tail finding, reject teacher relations
+
+The [frozen preregistration](evidence/compact_metric/sop-cached-teacher-tail-preregistration-v1.json)
+tested the authenticated pretrained UNICOM ViT-B/16@224 on **SOP TRAIN only**:
+53,700 fit images from 10,186 products and 5,851 held-out images from 1,132
+disjoint products, seed 179019. All four arms used the same fit-only PCA
+initialization, 128-dimensional compact head, fit-only centroid-initialized
+ArcFace proxies, five complete product-coverage passes (1,595 updates),
+and deployed 130-byte signed-int8/f16 packed scoring. Each batch contained
+two distinct images from each of 32 distinct products. The tail arms trained
+only the final ViT block in addition to the head and proxies; the teacher
+arms added an off-diagonal, packed-score relational KL from cached UNICOM
+L/14 features. All arms used the same canonical image view and schedule;
+the offline float32 token cache is not a serving input.
+
+| Arm, DGX GB10 | SOP TRAIN disjoint holdout-only R@1 / mAP@R | SOP TRAIN full 59,551-row gallery R@1 / mAP@R | Training time, 1,595 updates |
+| --- | ---: | ---: | ---: |
+| Frozen B/16 + ArcFace head | 84.6009% / 0.603678 | 69.8513% / 0.413587 | 42.10 s |
+| Frozen B/16 + ArcFace head + L/14 relations | 84.6864% / 0.604336 | 69.9880% / 0.414580 | 42.01 s |
+| B/16 final block + ArcFace head | **88.2071% / 0.657137** | 74.7394% / 0.466240 | 73.45 s |
+| B/16 final block + ArcFace head + L/14 relations | 88.2584% / 0.656872 | 74.8419% / 0.466388 | 75.07 s |
+
+These are verified single-seed development measurements on SOP training
+identities, with exact per-query vectors in the [raw screen receipt](evidence/compact_metric/sop-cached-teacher-tail-screen-v1.json)
+(SHA-256 `331b8055b970704b1269b3229e0b2114f594033bfe1690c9af736b4631b46aa1`).
+They are neither official SOP test scores nor state-of-the-art evidence. The
+head-to-tail ArcFace contrast is **+3.6062 percentage points** holdout-only
+R@1 and **+4.8881 points** full-gallery R@1. The teacher effect *conditional
+on the trainable tail* is only **+0.0513 points** holdout-only R@1, with a
+paired 10,000-draw product-cluster bootstrap 95% interval **−0.1518 to
++0.2543 points**; holdout-only mAP@R regressed by 0.000265. The
+[decision receipt](evidence/compact_metric/sop-cached-teacher-tail-decision-v1.json)
+(SHA-256 `5650084b42d2be527d8251ca5b19bedff5f4dfe3c04e2dcb09dc08619fe0d4dd`)
+fails the frozen +1-point, positive-lower-bound, and mAP@R nonregression
+gates. **Do not promote this L/14 relational-distillation recipe.** The
+large tail gain belongs to final-block adaptation and requires paired
+independent-seed and transfer checks before a learning-method claim.
+
+The one durable DGX service `sfora-cached-teacher-tail-b0d92ebd.service`
+exited zero. Total wall time was 322.67 s, including archive/hash checks,
+training, evaluation, and four checkpoint writes. Per-arm packed evaluation
+and full-gallery encoding took 19.64–20.27 s; peak PyTorch allocated CUDA
+memory was 1.73 GB and peak host RSS was 41.30 GB, including the mapped
+35.86 GB offline cache. These are **screen** resources, not live image-to-top-k
+latency or full-backbone throughput. The four full checkpoints remain under
+`/home/riomus/runs/sfora-cached-teacher-tail-b0d92ebd/output/` on the DGX;
+their hashes are pinned in the raw receipt.
+
+**Next gate:** assess the ArcFace tail-only checkpoint against a frozen B/16
+control under matched full image-to-top-k serving, and on unseen CUB/Cars
+classes before spending on a multi-seed or full-backbone run. Treat any
+transfer or serving regression as a stop for this partial-tail candidate.
+The tail result does not validate a novel Sfora loss, and the dated published
+UNICOM L/14@336 references remain 91.2% SOP and 96.7% In-Shop Recall@1.
+
 ## 24 September finite-gallery head screen: reject this loss as the next backbone run
 
 The [v1 preregistration](evidence/compact_metric/sop-finite-gallery-head-preregistration-v1.json)
