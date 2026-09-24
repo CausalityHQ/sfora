@@ -16,7 +16,7 @@ from typing import Any, cast
 
 import numpy as np
 import torch
-from export_unicom_sop_embeddings import load_sop_embedding_archive, parse_sop_records
+from export_unicom_sop_embeddings import _parse_split
 from PIL import Image
 from score_sop_b16_resolution_train import compare, sha256
 from sop_teacher_anchored_runtime import load_authenticated_source_model
@@ -110,7 +110,14 @@ class EvaluationImages(Dataset[tuple[torch.Tensor, torch.Tensor]]):
         self.paths = paths
         self.source_transform = source_transform
         steps = source_transform.transforms
-        if len(steps) != 5 or not isinstance(steps[0], transforms.Resize):
+        if (
+            len(steps) != 5
+            or not isinstance(steps[0], transforms.Resize)
+            or not isinstance(steps[1], transforms.CenterCrop)
+            or steps[0].size != 224
+            or steps[0].interpolation != InterpolationMode.BICUBIC
+            or steps[1].size != (224, 224)
+        ):
             raise ValueError("source B/16 evaluation transform differs")
         self.detail_transform = transforms.Compose(
             [
@@ -204,16 +211,16 @@ def main() -> None:
     torch.manual_seed(SEED)
     random.seed(SEED)
     np.random.seed(SEED)
-    records = tuple(
-        record for record in parse_sop_records(args.sop_root) if record.split == "train"
-    )
-    archive = load_sop_embedding_archive(args.source_archive)
+    records = _parse_split(args.sop_root, "train")
+    with np.load(args.source_archive, allow_pickle=False) as archive:
+        archive_train_ids = np.asarray(archive["train_image_ids"], dtype=np.int64)
+        archive_train_labels = np.asarray(archive["train_labels"], dtype=np.int64)
     if len(records) != 59_551 or tuple(r.image_id for r in records) != tuple(
-        map(int, cast(np.ndarray, archive["train_image_ids"]))
+        map(int, archive_train_ids)
     ):
         raise ValueError("SOP TRAIN row identity differs")
     labels = tuple(r.label for r in records)
-    if labels != tuple(map(int, cast(np.ndarray, archive["train_labels"]))):
+    if labels != tuple(map(int, archive_train_labels)):
         raise ValueError("SOP TRAIN labels differ")
     partition = deterministic_class_partition(labels, fit_fraction=0.9, seed=SEED)
     fit_rows = partition.fit_row_indexes
