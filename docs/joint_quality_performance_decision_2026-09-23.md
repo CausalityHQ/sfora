@@ -1,5 +1,61 @@
 # Joint quality and performance decision, first training-code gate
 
+## 24 September finite-gallery head screen: reject this loss as the next backbone run
+
+The [v1 preregistration](evidence/compact_metric/sop-finite-gallery-head-preregistration-v1.json)
+fixed a five-arm, 256-update head-only screen on the authenticated **pretrained**
+UNICOM B/16 768-D SOP **training** feature archive. All arms share the
+seed-179019 identity-disjoint split (53,700 fit rows, 5,851 holdout queries),
+fit-only PCA-initialized 768→128 affine head, 130-byte signed-int8/f16 wire,
+class-balanced batches, and exact packed-score forward arithmetic. The
+full-bank objective refreshes its detached 53,700-row code bank at every
+update and takes its positive from the current minibatch. The comparison
+uses the same 5,851 queries against either the holdout-only gallery (self
+excluded) or the complete 59,551-row training gallery (self excluded).
+No official test image bytes were read. This is an inexpensive frozen-feature
+falsifier, not a matched full-backbone learning claim.
+
+| SOP train-only packed 130-byte head | Holdout-only R@1 / mAP@R | Full-train-gallery R@1 / mAP@R | GPU head training wall time |
+| --- | ---: | ---: | ---: |
+| Frozen PCA | 82.0543% / 0.565342 | 66.9458% / 0.381382 | 0 s |
+| ArcFace head | 81.9347% / 0.563246 | 66.6724% / 0.379478 | 0.672 s |
+| In-batch direct probability | 82.3449% / 0.568378 | 67.2535% / 0.383733 | 0.728 s |
+| Full-bank negative-log probability | 81.9860% / 0.564455 | 67.0142% / 0.381127 | 1.556 s |
+| Full-bank direct probability | **82.4987% / 0.571567** | **67.5098% / 0.386182** | 1.570 s |
+
+The candidate improves full-gallery Recall@1 over the in-batch direct
+probability control by **+0.2564 percentage points**, with a paired
+10,000-draw bootstrap over the 1,132 held-out product identities giving
+95% interval **−0.0848 to +0.6084 points**. It improves against ArcFace by
++0.8375 points (interval +0.5011 to +1.1895) and against the full-bank
+negative-log arm by +0.4956 points (+0.1405 to +0.8627). The preregistered
+advance rule required at least **+1.0 point versus the in-batch control**
+with interval excluding zero, plus holdout nonregression and at least ArcFace
+parity. The first two conditions fail; the latter two pass. **Do not promote
+this loss to a costly full-backbone run.** The frozen-feature result cannot
+explain the earlier SOP-trained backbone's transfer regression, and the
+absolute Recall@1 numbers are not comparable to the official SOP test split.
+
+The [synchronized v2 raw receipt](evidence/compact_metric/sop-finite-gallery-head-screen-v2.json)
+has SHA-256 `5d30439310f5b53e985a88c2f6db078476376c980b767c7c2f9d0f3feb6b6629`,
+identical to its DGX original. The [v1 pilot receipt](evidence/compact_metric/sop-finite-gallery-head-screen-v1.json)
+is preserved; all five arms' per-query quality vectors reproduce **exactly**
+in v2. The [v2 preregistration](evidence/compact_metric/sop-finite-gallery-head-preregistration-v2.json)
+changed only the per-arm CUDA timer synchronization. The
+[decision receipt](evidence/compact_metric/sop-finite-gallery-head-decision-v1.json)
+has SHA-256 `601a1b9f4bd8a14610b58154bebeeb7dd70bfce5ed08ef1d966eaeaf82dd999b`.
+The DGX GB10 run exited zero in 12.42 s; peak allocated PyTorch CUDA memory
+was 560 MB and peak host RSS 2.86 GB. These are head-screen costs, not
+full-backbone training throughput or image-to-top-k latency.
+
+**Next decision:** materially change the representation or encoder route.
+An Opus 5.5 scientific review and GPT-6 Astra engineering review of this
+terminal result are active under durable consultation IDs
+`236c38d20ed8482d` and `db5afe7258e44ba2`; reconcile their advice with
+the measured B/16 compression and transfer gaps before preregistering the
+next train-only architecture screen. Keep SOP and In-Shop published quality
+gates, full image-to-result speed, and transfer as separate requirements.
+
 ## 24 September loss-design and label-audit gate
 
 The 50-pair [seeded SOP train audit](evidence/compact_metric/sop-label-twin-visual-audit-preregistration-v1.json)
