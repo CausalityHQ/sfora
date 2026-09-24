@@ -66,6 +66,8 @@ class CpuPackedInt8Gallery:
             or type(k) is not int
             or k < 1
             or k > self._codes.shape[0]
+            or not bool(torch.isfinite(queries.inverse_norms).all())
+            or bool((queries.inverse_norms <= 0).any())
         ):
             raise ValueError("CPU packed query authority differs")
         query_count = queries.codes.shape[0]

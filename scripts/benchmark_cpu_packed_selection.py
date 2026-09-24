@@ -23,6 +23,8 @@ def full_sort(scores: np.ndarray, ordinals: np.ndarray, k: int) -> np.ndarray:
 
 
 def main() -> None:
+    if packed_search.__file__ is None:
+        raise ValueError("CPU packed search source path is unavailable")
     torch.set_num_threads(1)
     generator = torch.Generator().manual_seed(179019)
     gallery = pack_int8_unit_embeddings(
@@ -44,6 +46,7 @@ def main() -> None:
         "numpy": np.__version__,
         "torch": torch.__version__,
         "script_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+        "library_sha256": hashlib.sha256(Path(packed_search.__file__).read_bytes()).hexdigest(),
         "cases": cases,
     }
     try:

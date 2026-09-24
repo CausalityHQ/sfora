@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import numpy as np
+import pytest
 import torch
 
 import sfora
 from sfora.joint_relational_compaction import PackedInt8Embeddings, pack_int8_unit_embeddings
-from sfora.packed_int8_search import CpuPackedInt8Gallery
+from sfora.packed_int8_search import CpuPackedInt8Gallery, _ordered_topk_indexes
 
 
 def _packed(rows: int, *, seed: int) -> PackedInt8Embeddings:
@@ -55,3 +56,23 @@ def test_cpu_packed_gallery_matches_full_order_for_variable_k_and_block_edges() 
         actual, scores = index.search_packed(queries, k=k)
         np.testing.assert_array_equal(actual, expected)
         np.testing.assert_array_equal(scores, np.take_along_axis(reference, expected, axis=1))
+
+
+@pytest.mark.parametrize("corrupt_norm", [float("nan"), float("inf"), 0.0])
+def test_cpu_packed_gallery_rejects_mutated_invalid_query_norm(corrupt_norm: float) -> None:
+    gallery = _packed(50, seed=233)
+    queries = _packed(2, seed=239)
+    queries.inverse_norms[0] = corrupt_norm
+    index = CpuPackedInt8Gallery.open_packed(gallery, block_rows=16)
+
+    with pytest.raises(ValueError, match="CPU packed query authority differs"):
+        index.search_packed(queries)
+
+
+def test_cpu_topk_cutoff_tie_uses_ordinal_with_shuffled_candidates() -> None:
+    scores = np.asarray([0.5, 0.5, 0.5, 0.4], dtype=np.float32)
+    ordinals = np.asarray([9, 1, 5, 0], dtype=np.int64)
+
+    np.testing.assert_array_equal(
+        _ordered_topk_indexes(scores, ordinals, 2), np.asarray([1, 2], dtype=np.intp)
+    )

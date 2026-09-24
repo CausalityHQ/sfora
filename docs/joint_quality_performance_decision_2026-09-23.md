@@ -229,11 +229,11 @@ The CPU packed-search fallback now selects the top-k cutoff before sorting
 the retained candidates, while resolving cutoff ties by the lower gallery
 ordinal. A paired **synthetic-code CPU diagnostic** on this aarch64 devbox
 (59,519 rows × 128 dimensions, top-10, one Torch thread, 10 interleaved
-blocks) measured median complete packed-search calls of 6.945 → 2.710 ms at
-batch 1 and 173.530 → 34.806 ms at batch 32 for full-sort control → cutoff
+blocks) measured median complete packed-search calls of 6.949 → 2.771 ms at
+batch 1 and 174.950 → 35.840 ms at batch 32 for full-sort control → cutoff
 selection. Ordinals and scores matched exactly in both arms. The
 [raw receipt](evidence/packed_topk/cpu-selection-synthetic-v1.json) has SHA-256
-`aeeae7f1f81ac799c6cbee6727528601f957cdbd3530fd1528d09ed018e93cfa`.
+`c15de9957c2611ef72748c2008bd4dec5d14c3a70085568864f615c664cd7b57`.
 This changes the CPU fallback only; the vectors are synthetic and the numbers
 do not measure DGX GPU image-to-top-k or establish a quality improvement.
 
