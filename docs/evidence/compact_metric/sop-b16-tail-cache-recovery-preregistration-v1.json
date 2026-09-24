@@ -1,0 +1,12 @@
+{
+  "schema": "sfora-sop-b16-tail-cache-recovery-preregistration-v1",
+  "claim_eligible": false,
+  "original_job": "SOP float32 final-block cache build in session 99013 ended with exit 143 after approximately four minutes; process PID 3834576 is gone, no OOM kernel message was found, and the partial .npy file remains",
+  "original_script_sha256": "bd0a21e263cef60fcf4b1c133c244fa0dab3096c1c55a6a984faf9eb196ff3f1",
+  "finalizer_sha256": "3cee3b762741ffc04a1a9d204a65ff1080313483fee4ebca096b9386670876e7",
+  "source_archive_sha256": "16b4554d3868363905f1e1cd385783a8033513835723a7b89f4b762d893d757f",
+  "verification": "read every cached row from the partial .npy file; require finite nonzero 196x768 float32 tokens; replay the authenticated frozen final UNICOM B/16 block, norm and original head; require every row's normalized cosine to its authenticated SOP TRAIN source descriptor to be at least 0.99999; hash the whole file before publishing without replacement",
+  "failure": "retain the partial file and do not publish a final cache or receipt",
+  "resource_policy": "run recovery as a durable user systemd service to avoid tying the long hash/verification step to the SSH exec session; check the same unit and collect its final exit status",
+  "prohibitions": ["no official SOP test image bytes", "no new image encoding or training", "no quality or latency claim from this cache"]
+}
