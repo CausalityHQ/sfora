@@ -408,6 +408,22 @@ training-seed variation or predict the official-test result. The raw progress
 receipt has SHA-256
 `5bfc147f8cec80d2836165bbd1ac9dc5da5888a2f22f990afc7bee544fee6905`.
 
+At 16,000 updates, the same fixed train-identity holdout reaches packed
+Recall@1 **93.8643%** and mAP@R **0.779284** (float 93.7959% and 0.779206).
+The [raw per-query receipt](evidence/compact_metric/sop-reference-arcface-seed179019-step16000-v1.json)
+has SHA-256 `bad3fab826a5b0d317054b001f623bca26b602eba5871c140000577698f01af5`,
+matching the original DGX file; its checkpoint digest is
+`c30e4df3fbb97a2ae30e419ee938babdb085dee0a7cbcf177801655e4da847df`.
+The [paired 8,000-to-16,000 progress receipt](evidence/compact_metric/sop-reference-holdout-progress-step8000-to16000-seed179019-v1.json)
+uses 10,000 product-identity bootstrap draws. Packed mAP@R rose **+0.032323**
+(95% interval **+0.028240 to +0.036599**) and Recall@1 rose **+1.265
+percentage points** (**+0.864 to +1.662**); 108 queries changed from miss
+to hit and 34 from hit to miss. The progress receipt SHA-256 is
+`320f53e6c5a9d35b9f53b0a7c2ce924961123e5dd3207d73ccd1d2ebdd084c26`.
+These are within-run train-holdout diagnostics on one seed; the original
+53,760-update trainer is continuing, and no official-test or latency claim
+follows from this checkpoint.
+
 The official SOP evaluator for this long recipe is prepared but must wait for
 all six checkpoints and the final training receipt. It checks the frozen
 training-source snapshot and each checkpoint digest, selects the highest
