@@ -2,6 +2,45 @@
 
 ## 24 September full-width transfer development result
 
+### Frozen source-to-trained weight blend diagnostic
+
+The [five-arm blend receipt](evidence/compact_metric/sop-fullwidth-step48000-weight-blend-development-v1.json)
+(SHA-256 `66caaefd0800940ec4dc6efdda753243d29449f6b0ae5e80baaeb8f6157043dd`)
+evaluates α = 0, 0.25, 0.5, 0.75, 1 in
+`(1−α)·pretrained + α·SOP-trained` for both the B/16 backbone and its
+identity-to-trained 768-D head. All arms use the same signed-int8 packed
+cosine scorer, 770 bytes per item, 5,851 **SOP train-identity holdout**
+images and 5,864 **CUB development classes 1–100** images. The α=0 and α=1
+per-query float/packed scores reproduce the pinned training and CUB receipts;
+CUB endpoint feature-array hashes match. The DGX GB10 job exited 0 in 155.69 s,
+with 6.02 GB peak host RSS and 1.15 GB peak CUDA allocation. This is a
+development diagnostic, not an official-test or SOTA measurement; the SOP
+holdout had already selected checkpoint step 48,000.
+
+| Trained weight fraction α | SOP train holdout packed Recall@1 / mAP@R | CUB development packed Recall@1 / mAP@R |
+| ---: | ---: | ---: |
+| 0 | 84.0540% / 0.591906 | 87.5000% / 0.618651 |
+| 0.25 | 89.5744% / 0.679477 | 87.2613% / 0.610725 |
+| 0.5 | 93.1977% / 0.760299 | 86.4939% / 0.587066 |
+| 0.75 | 95.3512% / 0.816001 | 84.7033% / 0.536931 |
+| 1 | 96.0349% / 0.836934 | 80.1330% / 0.430912 |
+
+At α=0.75, CUB development Recall@1 gains **4.5703 points** versus fully
+trained (paired 100-class bootstrap descriptive 95% interval **+3.6134 to
++5.6121**) while SOP train-holdout loses **0.6836 points** (paired
+1,132-product interval **−1.0012 to −0.3745**). At α=0.5, CUB gains 6.3608
+points and SOP loses 2.8371 points versus fully trained. The intervals use
+10,000 class/product resamples with NumPy PCG64 seed 179019 and the receipt's
+paired per-query outcomes. No tested blend
+jointly improves SOP holdout and CUB development over their respective
+endpoint best scores. The free blend curve is therefore a control for a
+future anchored-training arm, not itself a solved quality method. The CUB
+development labels were not used to fit or select α; any future selection
+needs a preregistered rule and an independent confirmation panel. Because
+the B/16 official SOP test remains below the 91.2% published L/14 reference,
+an L/14-capacity encoder with a **measured** latency improvement is the next
+architecture gate before expensive retraining.
+
 The [authenticated CUB development receipt](evidence/compact_metric/sop-fullwidth-step48000-cub-development-v1.json)
 (SHA-256 `93c2e04a94f618c0e48884ae59182e327d2d7205b6c059160cf5207ac72590d9`)
 scores all 5,864 images in CUB-200-2011 **classes 1–100** by self retrieval,
