@@ -59,6 +59,25 @@ def verify_query_images(paths: tuple[Path, ...], manifest: bytes) -> None:
             raise ValueError("paired SOP query image content differs")
 
 
+def verify_live_query_features(
+    live: torch.Tensor, cached: torch.Tensor, *, arm: str
+) -> dict[str, float | int]:
+    """Bind the timed encoder and transform to the cached gallery source."""
+    if (
+        live.ndim != 2
+        or cached.shape != live.shape
+        or live.shape[0] != 32
+        or not bool(torch.isfinite(live).all())
+        or not bool(torch.isfinite(cached).all())
+    ):
+        raise ValueError(f"{arm} live query feature parity differs")
+    cosine = F.cosine_similarity(live.float(), cached.float(), dim=1)
+    minimum = float(cosine.min())
+    if not math.isfinite(minimum) or minimum < 0.999:
+        raise ValueError(f"{arm} live query feature parity differs: min cosine {minimum:.6f}")
+    return {"queries": live.shape[0], "min_cosine": minimum, "mean_cosine": float(cosine.mean())}
+
+
 def _load_unicom(checkout: Path, checkpoint: Path):
     package_root = checkout / "unicom"
     sys.path.insert(0, str(package_root))
@@ -80,7 +99,7 @@ def _load_oml(checkpoint: Path):
     return model.cuda().eval(), get_normalisation_resize_hypvit(im_size=224, crop_size=224)
 
 
-def _call(arm: dict[str, object], paths: tuple[Path, ...], gallery: CutilePackedInt8Gallery):
+def _decode_encode(arm: dict[str, object], paths: tuple[Path, ...]):
     started = time.perf_counter_ns()
     tensors = []
     transform = arm["transform"]
@@ -92,6 +111,11 @@ def _call(arm: dict[str, object], paths: tuple[Path, ...], gallery: CutilePacked
     with torch.inference_mode():
         features = arm["model"](images).float().cpu()  # type: ignore[operator]
     encoded = time.perf_counter_ns()
+    return features, started, decoded, encoded
+
+
+def _call(arm: dict[str, object], paths: tuple[Path, ...], gallery: CutilePackedInt8Gallery):
+    features, started, decoded, encoded = _decode_encode(arm, paths)
     if arm["name"] == "unicom_b16":
         projected = arm["head"].apply(F.normalize(features, dim=1))  # type: ignore[union-attr]
     else:
@@ -227,6 +251,16 @@ def main() -> None:
             "head": pca,
         },
     }
+    query_feature_parity = {
+        "oml": verify_live_query_features(
+            _decode_encode(arms["oml"], test_paths)[0], oml_test[:32], arm="oml"
+        ),
+        "unicom_b16": verify_live_query_features(
+            _decode_encode(arms["unicom_b16"], test_paths)[0],
+            torch.from_numpy(source["test_embeddings"][:32]),
+            arm="unicom_b16",
+        ),
+    }
     results = []
     with ExitStack() as stack:
         galleries = {
@@ -266,6 +300,7 @@ def main() -> None:
         },
         "inputs": {str(path): digest for path, digest in expected_files},
         "oml_head_sha256": oml_head.sha256,
+        "query_feature_parity": query_feature_parity,
         "script_sha256": sha256(Path(__file__)),
         "peak_cuda_allocated_bytes": torch.cuda.max_memory_allocated(device),
         "peak_host_rss_bytes": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024,

@@ -108,6 +108,10 @@ The benchmark also requires the pinned SOP test-image content manifest
 (`28a3ec05…`) and verifies the exact bytes of its first 32 query images before
 timing. A CPU-only DGX preflight matched all 32 images against that manifest;
 the trainer remained active, so the GPU timing replay was not run concurrently.
+The replay now checks that all 32 freshly encoded query features match the
+cached gallery source for each encoder (minimum normalized cosine 0.999)
+before opening the native gallery or recording timings. This guards against
+an encoder checkpoint or preprocessing mismatch; no new GPU timing is claimed.
 
 The authenticated B/16 feature export contains the official 59,551 train and
 60,502 test images, checkpoint SHA-256

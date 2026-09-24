@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 import pytest
+import torch
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -65,3 +66,27 @@ def test_benchmark_rejects_changed_query_image_bytes(tmp_path: Path) -> None:
     paths[17].write_bytes(b"changed image")
     with pytest.raises(ValueError, match="query image content differs"):
         module.verify_query_images(paths, manifest)
+
+
+def test_live_query_features_must_match_cached_gallery_source() -> None:
+    script = ROOT / "scripts/benchmark_sop_image_to_topk_pair.py"
+    spec = importlib.util.spec_from_file_location("benchmark_sop_image_to_topk_pair", script)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.path.insert(0, str(script.parent))
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        sys.path.pop(0)
+
+    cached = torch.eye(32, dtype=torch.float32)
+    matching = cached * 2
+    parity = module.verify_live_query_features(matching, cached, arm="oml")
+    assert parity["min_cosine"] == pytest.approx(1.0)
+    assert parity["queries"] == 32
+
+    swapped = cached[[1, 0, *range(2, 32)]]
+    with pytest.raises(ValueError, match="live query feature parity differs"):
+        module.verify_live_query_features(swapped, cached, arm="oml")
+    with pytest.raises(ValueError, match="live query feature parity differs"):
+        module.verify_live_query_features(cached[:2], cached, arm="oml")
