@@ -7,7 +7,7 @@ from torch import nn
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from probe_l14_head_lowrank import factorize_linear
+from probe_l14_head_lowrank import factorize_linear, pack_head_features
 
 
 def test_factorize_linear_exact_at_full_rank() -> None:
@@ -25,3 +25,11 @@ def test_factorize_linear_rejects_invalid_geometry() -> None:
         factorize_linear(nn.Linear(6, 4, bias=False), 5)
     with pytest.raises(ValueError, match="geometry"):
         factorize_linear(nn.Linear(6, 4, bias=True), 2)
+
+
+def test_pack_head_features_accepts_raw_cpu_descriptors() -> None:
+    values = torch.tensor([[4.0, 3.0, 0.0], [0.0, -12.0, 5.0]])
+    packed = pack_head_features(values)
+    assert packed.codes.device.type == "cpu"
+    assert packed.inverse_norms.device.type == "cpu"
+    assert packed.codes.shape == values.shape

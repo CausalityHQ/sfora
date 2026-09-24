@@ -98,16 +98,24 @@ def encode(model: nn.Module, loader: DataLoader, expected_rows: int) -> tuple[to
 def score_features(values: torch.Tensor, labels: tuple[int, ...]) -> dict[str, object]:
     gpu_values = values.cuda()
     gpu_labels = torch.tensor(labels, dtype=torch.int64, device="cuda")
-    packed = pack_int8_unit_embeddings(F.normalize(gpu_values, dim=1))
+    packed = pack_head_features(values)
     return {
         "full_float_cosine": score_symmetric(gpu_values, gpu_labels),
         "full_packed_cosine": score_symmetric(
-            packed.codes.float(), gpu_labels, inverse_norms=packed.inverse_norms
+            packed.codes.float().cuda(), gpu_labels, inverse_norms=packed.inverse_norms.cuda()
         ),
         "upstream_prefix512_euclidean": score_symmetric(
             gpu_values, gpu_labels, prefix_euclidean_dimensions=512
         ),
     }
+
+
+def pack_head_features(values: torch.Tensor):
+    """Construct the actual CPU-owned wire from unnormalized encoder output."""
+
+    if values.device.type != "cpu" or values.dtype != torch.float32:
+        raise ValueError("L/14 low-rank packing input differs")
+    return pack_int8_unit_embeddings(F.normalize(values, dim=1))
 
 
 def parse_args() -> argparse.Namespace:
