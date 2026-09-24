@@ -1064,3 +1064,34 @@ descriptor costs 5.92 times the persistent gallery bytes and, in this CPU
 check, 3.84 times the batch-1 median search latency. The p95 variation and
 200-call p99 are diagnostic; neither arm includes image encoding, and this
 does not replace the pending DGX full-pipeline and CuTile measurements.
+
+## SOP fit-label conflict census, 24 September
+
+The [train-only census](evidence/compact_metric/sop-pretrained-b16-fit-cross-label-census-v1.json)
+uses the authenticated pretrained B/16 feature archive (SHA-256
+`16b4554d3868363905f1e1cd385783a8033513835723a7b89f4b762d893d757f`),
+L2-normalizes its 768-D embeddings, and scores each of the 53,700 fit images
+against all fit images from a *different* labeled product. It excludes the
+5,851 train-identity holdout and all official-test features. The exact CPU
+scan took 41.46 s with four threads and 1.39 GB peak RSS. Thresholds were
+chosen after a 2,048-query screen, so these are descriptive counts, not a
+confirmatory test.
+
+| Nearest cross-label cosine | Fit queries | Fraction of 53,700 |
+| --- | ---: | ---: |
+| At least 0.90 | 2,218 | 4.13% |
+| At least 0.95 | 280 | 0.52% |
+| At least 0.98 | 33 | 0.061% |
+
+The closest examples include a chair/sofa pair with identical image bytes
+(SHA-256 `7e6e498cad0fc1f65b1156d524e21ee20fc07b15106efd038c48886b7c060c36`)
+and a bicycle/lamp pair with identical image bytes
+(`a567462f4edd496bdf5cd00da5bbde64131c283e3cf396bfd58c0fac26b13d9a`).
+Different SOP product IDs can therefore impose contradictory class negatives
+on visually identical images. Other high-cosine pairs can be legitimate
+lookalikes. The measured high-similarity incidence alone does not establish
+that label conflicts caused the CUB/Cars transfer decline or that merging
+labels improves SOP retrieval. A conflict-aware objective needs a matched
+train-only ablation and transfer check before promotion; the current evidence
+does not justify launching that GPU experiment ahead of the queued width/PCA
+and official-quality results.
