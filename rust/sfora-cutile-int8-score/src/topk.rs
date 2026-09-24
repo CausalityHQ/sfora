@@ -509,19 +509,23 @@ impl PreparedPackedGallery {
             BatchShape::One => MERGE_WIDTH_BATCH_ONE,
             BatchShape::ThirtyTwo => MERGE_WIDTH_BATCH_THIRTY_TWO,
         };
+        // The merge is independent for each query. A one-row tile keeps the
+        // generated reduction program small even when the score stage uses
+        // a 32-row MMA tile.
+        let merge_bm = 1usize;
         loop {
             let groups = real_entries.div_ceil(merge_width);
             let output_real_entries = groups * TOP_K_TILE;
             let output_scores = cutile::api::full(f32::NEG_INFINITY, &[bm, output_real_entries])
                 .sync_on(&self.stream)
                 .map_err(|_| CutileScoreError::Runtime)?
-                .partition([bm, TOP_K_TILE]);
+                .partition([merge_bm, TOP_K_TILE]);
             let output_ordinals = cutile::api::full(i32::MAX, &[bm, output_real_entries])
                 .sync_on(&self.stream)
                 .map_err(|_| CutileScoreError::Runtime)?
-                .partition([bm, TOP_K_TILE]);
+                .partition([merge_bm, TOP_K_TILE]);
             let merge_generics = vec![
-                bm.to_string(),
+                merge_bm.to_string(),
                 merge_width.to_string(),
                 TOP_K_TILE.to_string(),
                 TOP_K.to_string(),
@@ -529,7 +533,7 @@ impl PreparedPackedGallery {
             ];
             let (output_scores, output_ordinals, _, _) =
                 topk_module::merge_topk(output_scores, output_ordinals, scores, ordinals)
-                    .grid((1, groups as u32, 1))
+                    .grid((bm as u32, groups as u32, 1))
                     .generics(merge_generics)
                     .sync_on(&self.stream)
                     .map_err(|error| {

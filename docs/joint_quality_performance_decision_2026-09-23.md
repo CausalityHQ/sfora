@@ -82,8 +82,8 @@ native and full image-to-top-k p50/p95/p99 at batch 1 and 32 on the same GPU.
 | SOP official test, same queries | Same B/16 with train-only PCA-128, float | 67.2903% | 0.393903 | 128 f32 before indexing | — | Exploratory projection control; [raw per-query result](evidence/compact_metric/unicom-b16-sop-pretrained-screen-v2.json) |
 | SOP official test, same queries | Same B/16 with train-only PCA-128 and int8 wire | 67.2325% | 0.393442 | 130 | — | Exploratory, no SOP fine-tuning; same raw result |
 | SOP official test, same queries | Same B/16 full-backbone trained, selected packed-rank 128-D | 81.2221% | 0.562186 | 130 | — | Exploratory one-seed result selected on train-identity holdout; [per-query receipt](evidence/compact_metric/sop-full-backbone-packed-rank-official-test-seed179019-1000-v1.json) |
-| SOP official test, same queries | B/16@224 full-backbone ArcFace, 48k train-selected, packed 128-D | 86.4715% | 0.651811 | 130 | pending | Exploratory one-seed reference-like control; [raw per-query receipt](evidence/compact_metric/sop-reference-arcface-seed179019-official-test-v1.json) |
-| SOP official test, same queries | OML ViT-S/16@224 + Sfora compact profile | 85.9757% | 0.641825 | 130 | — | Exploratory, packed representation; [raw profile](evidence/compact_metric/oml-vits16-sop-packed-profile-verification-v1.json) |
+| SOP official test, same queries | B/16@224 full-backbone ArcFace, 48k train-selected, packed 128-D | 86.4715% | 0.651811 | 130 | batch 1: 16.679–17.464 ms; batch 32: 215.513–219.152 ms | Exploratory one-seed quality; diagnostic p99 on separate SOP **training** image/gallery split, 50 calls per arm/order; [quality receipt](evidence/compact_metric/sop-reference-arcface-seed179019-official-test-v1.json), [timing receipt](evidence/compact_metric/sop-trained-b16-vs-oml-paired-image-to-topk-bm1-v2.json) |
+| SOP official test, same queries | OML ViT-S/16@224 + Sfora compact profile | 85.9757% | 0.641825 | 130 | batch 1: 7.298–7.462 ms; batch 32: 208.876–210.693 ms | Exploratory packed quality; same paired training-split diagnostic timing; [quality profile](evidence/compact_metric/oml-vits16-sop-packed-profile-verification-v1.json) |
 | In-Shop official query/gallery | UNICOM ViT-L/14@336 | 96.7% | — | 768 f32 output before indexing | — | Published [UNICOM Table 4](https://arxiv.org/pdf/2304.05884); evaluator uses normalized prefix-512 Euclidean |
 | In-Shop official query/gallery | UNICOM ViT-L/14@336 + Sfora compact profile | 95.4283% | 0.800020 | 130 | — | Exploratory, [local result](compact_metric_selector_result_2026-09-19.md) |
 | In-Shop official 14,218-query/12,612-gallery split | OML ViT-S/16@224, raw 384-D Euclidean | 92.0945% | 0.685148 | 1536 as f32 | — | Exploratory local reproduction of the published 92.1% control; [raw receipt](evidence/compact_metric/oml-vits16-inshop-baseline-v1.json) |
@@ -144,15 +144,23 @@ was still using one CPU core and about 5.7 GiB RSS. The original B/16 query
 path also lacked the source-vector normalization required by its train-fitted
 PCA head, so that replay could not produce a valid quality-matched result.
 The process group exited after termination; no overlapping copy was started.
-Cold compilation remains a measured startup concern, and a corrected paired
-timing run is pending. This observation does not establish hot-path p99.
+Cold compilation remains a measured startup concern. In a later 59,551-row
+batch-32 diagnostic the original 32-row merge generated 909,031 PTX lines;
+`ptxas` was still at 100% of one CPU core and about 11 GB RSS after 47 minutes.
+That single job was stopped before a result. The merge now uses one query row
+per CUDA block while the score stage retains its 32-row MMA tile. Its
+4,097-row batch-32 GPU boundary test passed, including exact top-10 ties;
+a second test with distinct query rows passed against the scalar reference.
+The subsequent paired replay completed every warmup and timed call. Its
+full-gallery cold compilation duration was not measured separately.
 The paired replay script had also pinned the rejected RC5 output-initialization
 pilot library (`b7440d39…`) rather than the accepted RC4 library. Its input
 authority now requires the released `39602d0e…` binary, its `b7c57022…`
 Python API, and the immutable
 pretrained B/16 quality-screen receipt (`a7c65b7b…`). A focused check binds
 those hashes to the release decision and committed evidence. This corrects
-the intended benchmark input; no new timing result has been measured yet.
+the intended benchmark input; it is historical evidence for that earlier
+pretrained replay, not the library binary used by the trained paired result.
 The benchmark also requires the pinned SOP test-image content manifest
 (`28a3ec05…`) and verifies the exact bytes of its first 32 query images before
 timing. A CPU-only DGX preflight matched all 32 images against that manifest;
@@ -162,17 +170,53 @@ cached gallery source for each encoder (minimum normalized cosine 0.999)
 before opening the native gallery or recording timings. This guards against
 an encoder checkpoint or preprocessing mismatch; no new GPU timing is claimed.
 A second, train-image [paired replay](../scripts/benchmark_sop_trained_image_to_topk_pair.py)
-is prepared for the checkpoint selected by the completed reference run. It
-will encode the same 59,551 SOP training images with both the selected B/16
-and OML S/16, use the first 32 as timed queries and the remaining 59,519 as
-their equal-size 130-byte galleries, and measure the full image-to-top-10
-call at batch 1 and 32 in both arm orders. It authenticates the selected
-checkpoint through the official evaluation receipt, pins OML's published
-profile receipt, rechecks the selected checkpoint on its train-identity
-holdout, and checks full-gallery/live-query feature parity and GPU process
-occupancy. Both galleries are encoded live from the same training pixels.
-This replay uses no SOP test pixels; its training-row latency is a separate
-axis from the official-test quality metrics. It is not yet a measured result.
+completed on the DGX GB10 with the selected 48k B/16 checkpoint and OML
+ViT-S/16. It encoded the same 59,551 SOP training images live, used the first
+32 as timed queries and the remaining 59,519 as equal-size 130-byte galleries,
+and ran 50 full image-to-top-10 calls per arm, batch, and AB/BA order. It
+authenticated both quality receipts, the selected checkpoint and train
+holdout, full-gallery/live-query feature parity, and GPU process occupancy.
+No SOP test pixels were used for timing. The [raw receipt](evidence/compact_metric/sop-trained-b16-vs-oml-paired-image-to-topk-bm1-v2.json)
+has SHA-256 `31c49af66af61563b5beda1a93b89fa48badc635e1cf61a13569ef3724815a27`.
+
+| SOP training-image split, 59,519-row gallery | B/16 p50 in AB/BA order | OML p50 in AB/BA order | B/16 p99 in AB/BA order | OML p99 in AB/BA order |
+| --- | ---: | ---: | ---: | ---: |
+| Batch 1, full image-to-top-10, ms/call | 12.940 / 12.364 | 6.249 / 5.468 | 17.464 / 16.679 | 7.462 / 7.298 |
+| Batch 32, full image-to-top-10, ms/call | 203.569 / 203.990 | 194.708 / 195.605 | 219.152 / 215.513 | 210.693 / 208.876 |
+
+B/16 gallery encoding took 130.520 s versus 96.834 s for OML; packing took
+0.020 s versus 0.049 s. At batch 1, B/16's p50 preprocessing was
+5.636–6.041 ms versus OML's 1.565–1.976 ms, and encoder/transfer was
+6.259–6.394 ms versus 3.165–3.191 ms. Native search was only 0.307–0.348
+versus 0.257–0.268 ms at batch 1, and 0.509 versus 0.506–0.508 ms at batch
+32. The quality gain of 0.496 percentage points over OML therefore does not
+pay for slower full-pipeline serving or encoding in this comparison. This is
+a 50-call diagnostic, not a certified p99, a matched-architecture method
+ablation, or a SOTA claim. The next performance change must target image
+preprocessing/encoding or select a smaller backbone with comparable quality;
+further search-kernel tuning cannot close the measured batch-1 gap alone.
+
+The same selected SOP-trained B/16 checkpoint was also evaluated without any
+target-dataset fitting on class-disjoint CUB and Cars identities. These are
+transfer diagnostics, not matched published-model reproductions. Both arms
+use a 128-D head and the same 130-byte packed scorer; the control uses the
+pretrained B/16 and fit-only initial head, while the candidate has the SOP
+updated backbone and head. Thus the result detects a joint training effect
+but does not yet isolate the head from backbone drift.
+
+| Transfer test self retrieval | Pretrained packed Recall@1 / mAP@R | SOP-trained packed Recall@1 / mAP@R | Difference in Recall@1 | Raw receipt |
+| --- | ---: | ---: | ---: | --- |
+| CUB-200-2011 classes 101–200, 5,924 queries | 83.8960% / 0.507338 | 73.3288% / 0.333417 | −10.5672 percentage points | [CUB result](evidence/compact_metric/sop-b16-cub-transfer-v1.json), SHA-256 `c96a2a3892506fc0564139f8f94c20ff08f01021296fed2a1ae3673004755812` |
+| Cars196 classes 98–195, 8,131 queries | 96.2120% / 0.655341 | 92.6577% / 0.435613 | −3.5543 percentage points | [Cars result](evidence/compact_metric/sop-b16-cars-transfer-v1.json), SHA-256 `f9484ccf7bd77d06a4c1877b1131a4181469fa86f553a35d6d97424eba382c08` |
+
+The next controlled training run keeps the same B/16 initialization, SOP
+fit identities, ArcFace recipe, batch schedule and update budget, and changes
+only the head width from 128 to 768. It will compare train-holdout packed and
+float ranking, then run the one-time official SOP test only after a train-only
+checkpoint choice. If full width recovers quality or transfer, compression is
+a likely bottleneck; if it does not, constrain the backbone update and test
+it under the same split and budget. Neither branch is evidence of a new
+algorithmic or SOTA gain without the paired independent-seed panel.
 An optional `--certify-p99` mode now records 20 interleaved AB/BA blocks with
 500 timed full image-to-top-10 calls per arm at each of batch 1 and 32,
 retains every stage sample, checks result stability across blocks, and records
@@ -184,8 +228,9 @@ requires its upper 95% bound below 1, a one-sided paired-superblock sign-test
 Its interval is conditional
 on exchangeable superblocks; boundary telemetry cannot prove continuous GPU
 exclusivity. The receipt remains diagnostic and claim-ineligible. This mode
-has only CPU-level scheduler and statistical tests; no GPU call, p99 interval,
-or full-pipeline speed win has yet been measured.
+has only CPU-level scheduler and statistical tests; the completed 50-call GPU
+diagnostic above did not run this certification mode. No p99 interval or
+full-pipeline speed win has been established.
 
 The authenticated B/16 feature export contains the official 59,551 train and
 60,502 test images, checkpoint SHA-256
@@ -543,9 +588,9 @@ uses 10,000 product-identity bootstrap draws. Packed mAP@R rose **+0.032323**
 percentage points** (**+0.864 to +1.662**); 108 queries changed from miss
 to hit and 34 from hit to miss. The progress receipt SHA-256 is
 `320f53e6c5a9d35b9f53b0a7c2ce924961123e5dd3207d73ccd1d2ebdd084c26`.
-These are within-run train-holdout diagnostics on one seed; the original
-53,760-update trainer is continuing, and no official-test or latency claim
-follows from this checkpoint.
+These are within-run train-holdout diagnostics on one seed. The original
+53,760-update trainer later completed; this intermediate checkpoint alone
+did not establish an official-test or latency result.
 
 At 32,000 updates, packed Recall@1 reaches **94.9410%** and mAP@R
 **0.805460** on the same 5,851-query train-identity holdout; float reaches
@@ -590,17 +635,18 @@ The evaluator's aggregate encoding time includes JPEG decoding and SHA-256
 verification; public image-to-top-k p50/p95/p99 require a separate matched
 serving benchmark.
 
-The CUB transfer evaluator is prepared for a separate, exploratory
-class-disjoint check after SOP selection. It compares the authenticated
+The CUB transfer evaluator completed an exploratory class-disjoint check
+after SOP selection. It compares the authenticated
 pretrained UNICOM ViT-B/16@224 with the SOP-fit-only PCA 128 head against
 the train-selected SOP-finetuned ViT-B/16@224 and trained 128 head. Both use
 the same CUB-200-2011 classes 101–200 test self-retrieval protocol (5,924
 images), 128-D float and 130-byte packed scoring, with no CUB fitting. The
 script binds the selected checkpoint to the official SOP receipt, reconstructs
 and hashes the fit-only initial head, checks every CUB image against the pinned
-source tar, and writes per-query Recall@1 and mAP@R. Its CPU preflight can run
-while the GPU is occupied. No CUB transfer result has been measured for this
-trained checkpoint yet; it cannot establish an SOP or In-Shop SOTA claim.
+source tar, and writes per-query Recall@1 and mAP@R. The measured packed
+Recall@1 was 83.8960% pretrained versus 73.3288% SOP-trained; the raw
+receipt and mAP@R are reported above. It cannot establish an SOP or In-Shop
+SOTA claim.
 
 The Cars196 transfer evaluator is also prepared for the SOP-selected model.
 It uses the pinned `tanganke/stanford_cars` revision
@@ -610,7 +656,10 @@ bind the image bytes and evaluation order. Classes 98–195 across both original
 image partitions give 8,131 evaluation images; their label order exactly
 matches the earlier authenticated archive. It compares the same pretrained
 PCA-128 and SOP-finetuned 128-D arms in float and 130-byte packed form, with
-no Cars fitting. This is a prepared transfer check, not a measured result.
+no Cars fitting. The measured packed Recall@1 was 96.2120% pretrained versus
+92.6577% SOP-trained; the raw receipt and mAP@R are reported above. Arrow
+here is the external Cars dataset cache format, not a Sfora library or index
+dependency.
 
 A matched full-width B/16 control is prepared with the same 53,700 fit images,
 class-disjoint holdout, pretrained checkpoint, seed, batch schedule, reference
@@ -621,7 +670,9 @@ imprinted only from fit identities. The runner records both 768-D float and
 770-byte packed holdout results. Paired comparison with the 128-D run can
 attribute a quality difference to embedding width and its associated head
 initialization, but the two systems occupy different gallery-storage and
-search-cost points. It has not been launched while the compact DGX job runs.
+search-cost points. The full-width run started after the paired serving and
+transfer checks finished; its result is pending. No second training copy is
+running.
 The shared global gradient clip may reduce backbone updates by different
 amounts as the head and classifier widths change. A full-width float result
 therefore diagnoses the trained-system capacity, not width in isolation. The
