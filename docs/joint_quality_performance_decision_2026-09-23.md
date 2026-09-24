@@ -41,6 +41,28 @@ the B/16 official SOP test remains below the 91.2% published L/14 reference,
 an L/14-capacity encoder with a **measured** latency improvement is the next
 architecture gate before expensive retraining.
 
+Independent Claude Opus 5.5 and GPT-6 Astra result reviews agreed that the
+blend does not justify immediate B/16 anchor retraining. They differed on
+whether to prioritize a broader serving-stack panel or a bounded fold probe;
+the chosen next gate is a **no-training L/14 fold falsifier with a faithful
+same-stack baseline**. The authenticated pretrained UNICOM L/14@336 checkpoint
+is available locally, but a reproduced SOP-supervised 91.2% checkpoint is
+not. First measure sequential L/14 and a precisely specified 24-to-12
+parallel-residual fold on the same GB10, same 336-pixel inputs, precision,
+packing, gallery and top-k scorer. Time encoder-only and full image-to-top-k
+at batch 1 and 32 on SOP **training** requests; include the existing B/16
+and OML S/16 as separately labelled controls. A short paired screen can
+reject a slow fold, but any p99 advancement must satisfy the target contract's
+10,000 calls per cell, 10 interleaved blocks and paired interval, with
+nonregressing p50 and throughput. Only if folding passes the latency gate
+should it receive quality-retention and distillation experiments. A folded
+pair approximates `x + f₁(x) + f₂(x + f₁(x))` by
+`x + f₁(x) + f₂(x)`; retaining weights does not preserve the function.
+The proposal is an unmeasured hypothesis with related prior art, not a novel
+or superior method claim. Separately, benchmark the faithful local L/14
+reference's full pipeline latency before claiming any candidate is faster
+than the quality reference; B/16-versus-OML timing cannot supply that number.
+
 The [authenticated CUB development receipt](evidence/compact_metric/sop-fullwidth-step48000-cub-development-v1.json)
 (SHA-256 `93c2e04a94f618c0e48884ae59182e327d2d7205b6c059160cf5207ac72590d9`)
 scores all 5,864 images in CUB-200-2011 **classes 1–100** by self retrieval,
