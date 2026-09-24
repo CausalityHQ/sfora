@@ -387,7 +387,6 @@ def main() -> None:
             manifest_sha256=np.asarray(hashlib.sha256(manifest).hexdigest()),
         )
 
-    publish_file_noreplace(args.features_output, write_features)
     receipt = {
         "schema": "sfora-sop-cub-transfer-v1",
         "claim_eligible": False,
@@ -423,7 +422,7 @@ def main() -> None:
             "cub_content_sha256": content_digest,
             "cub_ordered_records_sha256": ordered_record_sha256(records),
             "cub_test_manifest_sha256": hashlib.sha256(manifest).hexdigest(),
-            "features_sha256": sha256(args.features_output),
+            "features_sha256": "",
             "feature_array_sha256": {
                 "baseline": hashlib.sha256(baseline_values.numpy().tobytes()).hexdigest(),
                 "trained": hashlib.sha256(trained_values.numpy().tobytes()).hexdigest(),
@@ -441,15 +440,23 @@ def main() -> None:
         "argv": sys.argv,
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    payload = (json.dumps(receipt, sort_keys=True, allow_nan=False) + "\n").encode()
-
-    def write_receipt(stream: BinaryIO) -> None:
-        stream.write(payload)
-
+    features_published = False
     try:
+        publish_file_noreplace(args.features_output, write_features)
+        features_published = True
+        receipt_inputs = receipt["inputs"]
+        if not isinstance(receipt_inputs, dict):
+            raise ValueError("CUB transfer receipt inventory differs")
+        receipt_inputs["features_sha256"] = sha256(args.features_output)
+        payload = (json.dumps(receipt, sort_keys=True, allow_nan=False) + "\n").encode()
+
+        def write_receipt(stream: BinaryIO) -> None:
+            stream.write(payload)
+
         publish_file_noreplace(args.output, write_receipt)
     except BaseException:
-        args.features_output.unlink()
+        if features_published:
+            args.features_output.unlink()
         raise
     print(
         json.dumps(

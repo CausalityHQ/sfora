@@ -520,6 +520,16 @@ source tar, and writes per-query Recall@1 and mAP@R. Its CPU preflight can run
 while the GPU is occupied. No CUB transfer result has been measured for this
 trained checkpoint yet; it cannot establish an SOP or In-Shop SOTA claim.
 
+The Cars196 transfer evaluator is also prepared for the SOP-selected model.
+It uses the pinned `tanganke/stanford_cars` revision
+`9abf6cf7d6dfa7b95152a0d6e791ea9435b47a40` already present in the DGX
+cache. Four Arrow shard SHA-256 values and the earlier Cars feature archive
+bind the image bytes and evaluation order. Classes 98–195 across both original
+image partitions give 8,131 evaluation images; their label order exactly
+matches the earlier authenticated archive. It compares the same pretrained
+PCA-128 and SOP-finetuned 128-D arms in float and 130-byte packed form, with
+no Cars fitting. This is a prepared transfer check, not a measured result.
+
 A matched full-width B/16 control is prepared with the same 53,700 fit images,
 class-disjoint holdout, pretrained checkpoint, seed, batch schedule, reference
 augmentation, ArcFace margin/scale, OneCycle schedule, and 53,760 updates. Its
