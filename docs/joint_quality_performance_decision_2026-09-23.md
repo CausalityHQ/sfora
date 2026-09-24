@@ -124,6 +124,19 @@ holdout, and checks full-gallery/live-query feature parity and GPU process
 occupancy. Both galleries are encoded live from the same training pixels.
 This replay uses no SOP test pixels; its training-row latency is a separate
 axis from the official-test quality metrics. It is not yet a measured result.
+An optional `--certify-p99` mode now records 20 interleaved AB/BA blocks with
+500 timed full image-to-top-10 calls per arm at each of batch 1 and 32,
+retains every stage sample, checks result stability across blocks, and records
+GPU process occupancy, clocks, power, and utilization at block boundaries.
+It bootstraps ten consecutive AB/BA superblocks to preserve the order balance
+when estimating the trained B/16 to OML p99 ratio. The fixed diagnostic gate
+requires its upper 95% bound below 1, a one-sided paired-superblock sign-test
+`p < 0.05`, and nonregressing pooled p50 and mean latency at both batch sizes.
+Its interval is conditional
+on exchangeable superblocks; boundary telemetry cannot prove continuous GPU
+exclusivity. The receipt remains diagnostic and claim-ineligible. This mode
+has only CPU-level scheduler and statistical tests; no GPU call, p99 interval,
+or full-pipeline speed win has yet been measured.
 
 The authenticated B/16 feature export contains the official 59,551 train and
 60,502 test images, checkpoint SHA-256

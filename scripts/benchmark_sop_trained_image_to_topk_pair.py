@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
 import platform
 import resource
@@ -18,6 +19,7 @@ from pathlib import Path
 import benchmark_sop_image_to_topk_pair as pair_module
 import export_unicom_sop_embeddings as export_module
 import numpy as np
+import paired_latency_certification as latency_module
 import sop_teacher_anchored_runtime as teacher_module
 import torch
 from benchmark_sop_image_to_topk_pair import (
@@ -33,6 +35,11 @@ from benchmark_sop_image_to_topk_pair import (
     verify_live_query_features,
 )
 from export_unicom_sop_embeddings import _parse_split
+from paired_latency_certification import (
+    block_bootstrap_p99_ratio,
+    paired_order,
+    validate_certification_shape,
+)
 from PIL import Image
 from sop_teacher_anchored_runtime import load_authenticated_source_model
 from torch import nn
@@ -53,8 +60,11 @@ from sfora.sop_evaluation import score_symmetric
 SOURCE_CHECKPOINT_SHA256 = "c04f324f7c3b4435667236ec6c0eca1cd62f9d64fbfc2d06f8e8e60e6497edef"
 EVALUATOR_SHA256 = "af66d5e38ef722688307ed6255e4db9def415baaae18401bb5acf1afaea9e28c"
 PAIR_HELPER_SHA256 = "02df351fba2db9ffb701d892900a5335816a3edf33f466a359f087ed1a9f6b05"
+PAIR_LATENCY_SHA256 = "ada676f60096f90551450d463bfeeba168bab8689c1f433b58aed43bbb85c325"
 OML_HEAD_SHA256 = "07e6e0f38dae4d509fe1e27b10aa650acda1f08d799faa025793cf7686a78cd4"
 OML_QUALITY_SHA256 = "780805d2a090a6faa048cd3b5ba39c1a692fc494641bbfa987f509c9a9f7193c"
+CERTIFIED_BLOCKS = 20
+CERTIFIED_CALLS_PER_BLOCK = 500
 TRAIN_SOURCE_SHA256 = {
     "scripts/export_unicom_sop_embeddings.py": (
         "8967844e48dc45bb5f0eff3692caa6079d40301e5e0905ffd17bf6f896cfec26"
@@ -154,6 +164,8 @@ def validate_train_holdout_parity(
     if any(
         not isinstance(measured.get(actual), (int, float))
         or not isinstance(expected.get(reference), (int, float))
+        or not math.isfinite(float(measured[actual]))
+        or not math.isfinite(float(expected[reference]))
         or abs(float(measured[actual]) - float(expected[reference])) > 0.002
         for actual, reference in (
             ("map_at_r", "packed_map_at_r"),
@@ -207,6 +219,158 @@ def gpu_compute_pids() -> set[int]:
     except (OSError, subprocess.SubprocessError) as error:
         raise ValueError("SOP GPU process inventory differs") from error
     return parse_gpu_pids(result.stdout)
+
+
+def validate_timing_invocation(certify_p99: bool, calls: int | None) -> tuple[int, int, int | None]:
+    """Freeze the paired tail design; `--calls` applies only to diagnostics."""
+
+    if certify_p99:
+        if calls is not None:
+            raise ValueError("SOP trained timing invocation differs")
+        validate_certification_shape(CERTIFIED_BLOCKS, CERTIFIED_CALLS_PER_BLOCK)
+        return CERTIFIED_BLOCKS, CERTIFIED_CALLS_PER_BLOCK, None
+    if calls is not None and calls < 50:
+        raise ValueError("SOP trained timing invocation differs")
+    return 0, 0, 200 if calls is None else calls
+
+
+def gpu_timing_environment(_block: int, _phase: str) -> dict[str, object]:
+    """Sample contention, clocks and power between paired timing blocks."""
+
+    pids = gpu_compute_pids()
+    if pids != {os.getpid()}:
+        raise ValueError("SOP certified timing GPU process overlap")
+    try:
+        result = subprocess.run(
+            [
+                "nvidia-smi",
+                "--query-gpu=clocks.current.sm,clocks.current.memory,power.draw,"
+                "temperature.gpu,utilization.gpu",
+                "--format=csv,noheader,nounits",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+    except (OSError, subprocess.SubprocessError) as error:
+        raise ValueError("SOP certified timing GPU telemetry differs") from error
+    if len(result.stdout.strip().splitlines()) != 1:
+        raise ValueError("SOP certified timing GPU telemetry differs")
+    values = [value.strip() for value in result.stdout.strip().split(",")]
+    try:
+        if len(values) != 5 or not values[0].isdecimal() or int(values[0]) <= 0:
+            raise ValueError
+        if values[1] not in {"[N/A]", "N/A"} and (not values[1].isdecimal() or int(values[1]) <= 0):
+            raise ValueError
+        power, temperature, utilization = (float(value) for value in values[2:])
+        if (
+            not all(math.isfinite(value) for value in (power, temperature, utilization))
+            or power < 0
+            or not 0 <= temperature <= 120
+            or not 0 <= utilization <= 100
+        ):
+            raise ValueError
+    except ValueError:
+        raise ValueError("SOP certified timing GPU telemetry differs") from None
+    return {
+        "at_monotonic_ns": time.monotonic_ns(),
+        "compute_pids": sorted(pids),
+        "nvidia_smi_columns": [
+            "sm_clock_mhz",
+            "memory_clock_mhz",
+            "power_w",
+            "temperature_c",
+            "utilization_percent",
+        ],
+        "nvidia_smi_values": values,
+    }
+
+
+def measure_certified_blocks(
+    arms,
+    query_paths,
+    galleries,
+    *,
+    blocks: int,
+    calls_per_block: int,
+    measure=_measure,
+    bootstrap_draws: int = 2000,
+    observer=None,
+):
+    """Run paired AB/BA blocks and retain every timed call for tail inference."""
+
+    validate_certification_shape(blocks, calls_per_block)
+    if len(query_paths) != 32 or set(arms) != {"oml", "trained_b16"} or set(galleries) != set(arms):
+        raise ValueError("SOP certified timing arm or query inventory differs")
+    rows = []
+    sample_blocks = {batch: {name: [] for name in arms} for batch in (1, 32)}
+    stable_hashes = {}
+    block_environment = []
+    for block in range(blocks):
+        environment_before = observer(block, "before") if observer is not None else None
+        for batch in (1, 32):
+            for name in paired_order(block):
+                row = measure(arms[name], query_paths[:batch], galleries[name], calls_per_block)
+                samples = row.get("samples_ns", {}).get("image_to_topk_ns")
+                if (
+                    row.get("name") != name
+                    or row.get("batch") != batch
+                    or row.get("calls") != calls_per_block
+                    or not isinstance(samples, list)
+                    or len(samples) != calls_per_block
+                    or not isinstance(row.get("first_result_sha256"), str)
+                ):
+                    raise ValueError("SOP certified timing sample inventory differs")
+                key = (name, batch)
+                result_hash = row["first_result_sha256"]
+                if key in stable_hashes and stable_hashes[key] != result_hash:
+                    raise ValueError("SOP certified timing result changed across blocks")
+                stable_hashes[key] = result_hash
+                sample_blocks[batch][name].append(samples)
+                rows.append({"block": block, **row})
+        environment_after = observer(block, "after") if observer is not None else None
+        block_environment.append(
+            {"block": block, "before": environment_before, "after": environment_after}
+        )
+    summary = {
+        f"batch_{batch}": block_bootstrap_p99_ratio(
+            sample_blocks[batch]["trained_b16"],
+            sample_blocks[batch]["oml"],
+            draws=bootstrap_draws,
+            seed=179019 + batch,
+        )
+        for batch in (1, 32)
+    }
+    summary["block_environment"] = block_environment
+    if observer is None:
+        clock_spread = None
+        clock_stable = False
+    else:
+        try:
+            clocks = [
+                int(environment[phase]["nvidia_smi_values"][0])
+                for environment in block_environment
+                for phase in ("before", "after")
+            ]
+            if len(clocks) != 2 * blocks or min(clocks) <= 0:
+                raise ValueError
+        except (KeyError, IndexError, TypeError, ValueError):
+            raise ValueError("SOP certified timing clock inventory differs") from None
+        clock_spread = max(clocks) / min(clocks) - 1.0
+        clock_stable = clock_spread <= 0.05
+    summary["boundary_clock_spread_fraction"] = clock_spread
+    summary["boundary_clock_stable"] = clock_stable
+    summary["overall_latency_gate_passed"] = bool(
+        clock_stable
+        and summary["batch_1"]["latency_gate_passed"]
+        and summary["batch_32"]["latency_gate_passed"]
+    )
+    summary["boundary_observation_limit"] = (
+        "GPU occupancy and clocks sampled only between blocks; transient overlap or "
+        "in-block throttling is not excluded"
+    )
+    return rows, summary
 
 
 class TrainImages(Dataset[torch.Tensor]):
@@ -282,11 +446,13 @@ def main() -> None:
     parser.add_argument("--native-library", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--workers", type=int, default=8)
-    parser.add_argument("--calls", type=int, default=200)
+    parser.add_argument("--calls", type=int)
+    parser.add_argument("--certify-p99", action="store_true")
     parser.add_argument("--execute-trained-paired-replay", action="store_true", required=True)
     args = parser.parse_args()
-    if args.workers < 0 or args.calls < 50 or not torch.cuda.is_available():
+    if args.workers < 0 or not torch.cuda.is_available():
         raise ValueError("SOP trained timing invocation differs")
+    blocks, calls_per_block, calls = validate_timing_invocation(args.certify_p99, args.calls)
     if not args.native_library.is_absolute():
         raise ValueError("SOP trained timing native library path differs")
     validate_output_absent(args.output)
@@ -299,6 +465,7 @@ def main() -> None:
         args.native_library: NATIVE_LIBRARY_SHA256,
         Path(cutile_int8_module.__file__): NATIVE_API_SHA256,
         root / "scripts/benchmark_sop_image_to_topk_pair.py": PAIR_HELPER_SHA256,
+        root / "scripts/paired_latency_certification.py": PAIR_LATENCY_SHA256,
         **{root / name: digest for name, digest in TRAIN_SOURCE_SHA256.items()},
     }
     for path, digest in expected_files.items():
@@ -306,6 +473,7 @@ def main() -> None:
             raise ValueError(f"SOP trained timing input differs: {path}")
     loaded_sources = {
         "scripts/benchmark_sop_image_to_topk_pair.py": pair_module,
+        "scripts/paired_latency_certification.py": latency_module,
         "scripts/export_unicom_sop_embeddings.py": export_module,
         "scripts/sop_teacher_anchored_runtime.py": teacher_module,
         "src/sfora/sop_compact_training.py": compact_training_module,
@@ -458,17 +626,26 @@ def main() -> None:
         if gpu_before_timing != {os.getpid()}:
             raise ValueError("SOP trained timing GPU process overlap")
         torch.cuda.reset_peak_memory_stats()
-        for pair, order in enumerate((("oml", "trained_b16"), ("trained_b16", "oml")), 1):
-            for name in order:
-                for batch in (1, 32):
-                    results.append(
-                        {
-                            "pair": pair,
-                            **_measure(
-                                arms[name], query_paths[:batch], galleries[name], args.calls
-                            ),
-                        }
-                    )
+        if args.certify_p99:
+            results, certification = measure_certified_blocks(
+                arms,
+                query_paths,
+                galleries,
+                blocks=blocks,
+                calls_per_block=calls_per_block,
+                observer=gpu_timing_environment,
+            )
+        else:
+            certification = None
+            for pair, order in enumerate((("oml", "trained_b16"), ("trained_b16", "oml")), 1):
+                for name in order:
+                    for batch in (1, 32):
+                        results.append(
+                            {
+                                "pair": pair,
+                                **_measure(arms[name], query_paths[:batch], galleries[name], calls),
+                            }
+                        )
         gpu_after_timing = gpu_compute_pids()
         if gpu_after_timing != {os.getpid()}:
             raise ValueError("SOP trained timing GPU process overlap")
@@ -476,6 +653,8 @@ def main() -> None:
     receipt = {
         "schema": "sfora-sop-trained-image-to-topk-pair-v1",
         "claim_eligible": False,
+        "timing_mode": "paired_block_p99_diagnostic" if args.certify_p99 else "diagnostic",
+        "p99_certification": certification,
         "split": "SOP official training rows; first 32 timed queries; gallery rows 32:59551",
         "gallery_rows": 59_519,
         "gallery_bytes_per_item": 130,

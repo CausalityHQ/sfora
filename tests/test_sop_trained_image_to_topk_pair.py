@@ -125,3 +125,95 @@ def test_selected_train_holdout_parity_rejects_wrong_score() -> None:
     subject.validate_train_holdout_parity(measured, expected)
     with pytest.raises(ValueError, match="train holdout parity differs"):
         subject.validate_train_holdout_parity({**measured, "map_at_r": 0.70}, expected)
+    with pytest.raises(ValueError, match="train holdout parity differs"):
+        subject.validate_train_holdout_parity({**measured, "map_at_r": float("nan")}, expected)
+    with pytest.raises(ValueError, match="train holdout parity differs"):
+        subject.validate_train_holdout_parity(
+            measured, {**expected, "packed_recall_at_1": float("inf")}
+        )
+
+
+def test_certified_replay_interleaves_blocks_and_keeps_raw_samples() -> None:
+    subject = _subject()
+    seen = []
+    observed = []
+
+    def fake_measure(arm, paths, _gallery, calls):
+        seen.append((arm["name"], len(paths), calls))
+        duration = 80 if arm["name"] == "trained_b16" else 100
+        return {
+            "name": arm["name"],
+            "batch": len(paths),
+            "calls": calls,
+            "first_result_sha256": f"{arm['name']}-{len(paths)}",
+            "samples_ns": {"image_to_topk_ns": [duration] * calls},
+        }
+
+    arms = {name: {"name": name} for name in ("oml", "trained_b16")}
+    galleries = {name: object() for name in arms}
+    rows, summary = subject.measure_certified_blocks(
+        arms,
+        tuple(range(32)),
+        galleries,
+        blocks=20,
+        calls_per_block=500,
+        measure=fake_measure,
+        observer=lambda block, phase: (
+            observed.append((block, phase))
+            or {"nvidia_smi_values": ["1000", "[N/A]", "50", "70", "90"]}
+        ),
+    )
+    assert len(rows) == 80
+    assert seen[:4] == [
+        ("oml", 1, 500),
+        ("trained_b16", 1, 500),
+        ("oml", 32, 500),
+        ("trained_b16", 32, 500),
+    ]
+    assert seen[4:8] == [
+        ("trained_b16", 1, 500),
+        ("oml", 1, 500),
+        ("trained_b16", 32, 500),
+        ("oml", 32, 500),
+    ]
+    assert summary["batch_1"]["ci95_upper"] == pytest.approx(0.8)
+    assert summary["batch_32"]["ci95_upper"] == pytest.approx(0.8)
+    assert all(len(row["samples_ns"]["image_to_topk_ns"]) == 500 for row in rows)
+    assert observed == [
+        item for block in range(20) for item in ((block, "before"), (block, "after"))
+    ]
+    assert len(summary["block_environment"]) == 20
+    assert summary["boundary_clock_spread_fraction"] == 0.0
+    assert summary["overall_latency_gate_passed"] is True
+
+
+def test_gpu_clock_telemetry_rejects_malformed_rows(monkeypatch) -> None:
+    import os
+    from types import SimpleNamespace
+
+    subject = _subject()
+    monkeypatch.setattr(subject, "gpu_compute_pids", lambda: {os.getpid()})
+    monkeypatch.setattr(
+        subject.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(stdout="2398, [N/A], 51.45, 70, 96\n"),
+    )
+    row = subject.gpu_timing_environment(0, "before")
+    assert row["nvidia_smi_values"] == ["2398", "[N/A]", "51.45", "70", "96"]
+    monkeypatch.setattr(
+        subject.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(stdout="garbage\n"),
+    )
+    with pytest.raises(ValueError, match="telemetry differs"):
+        subject.gpu_timing_environment(0, "after")
+
+
+def test_p99_invocation_has_fixed_shape_and_no_ignored_calls() -> None:
+    subject = _subject()
+    assert subject.validate_timing_invocation(True, None) == (20, 500, None)
+    assert subject.validate_timing_invocation(False, None) == (0, 0, 200)
+    with pytest.raises(ValueError, match="invocation differs"):
+        subject.validate_timing_invocation(True, 200)
+    with pytest.raises(ValueError, match="invocation differs"):
+        subject.validate_timing_invocation(False, 49)
