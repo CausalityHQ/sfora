@@ -28,6 +28,25 @@ different top row from float64 direct distance; matrix shape also changed some
 rounded dot products. These are implementation-level ranking risks, not a
 measured SOP dataset error rate.
 
+`PackedNorm.lean` bounds the error between ideal cosine of the **quantized
+codes** and a score formed with two rounded inverse norms. If each stored
+scale has total relative error at most `u`, ideal code cosine has magnitude at
+most one, and residual score arithmetic has absolute error at most `ρ`, then
+the score error is at most `ρ + 2u + u²`. Under an explicit `u = 2⁻¹¹`
+premise, the scale-only term is `4097/4194304 ≈ 0.000977`.
+That premise is conditional even for freshly packed rows, because the code
+computes the norm and reciprocal in f32 before f16 storage; the wire validator
+also accepts neighboring f16 inverse norms, which may need a larger `u`.
+`packedNorm_errWithin` supplies this bound to the existing robust-margin
+top-k theorem. No proof here establishes the actual f16 scale-construction
+error, the f32 residual `ρ`, the descriptor-to-code quantization error, or
+the required score-margin distribution. `commonQueryScale_topK_eq` proves
+that a fixed positive query-scale factor does not change ranking. In exact
+score arithmetic (`ρ = 0`), `robust_mem_roundedNormScore` therefore needs
+only the gallery-scale radius `u` and a true-winner margin greater than `2u`.
+These premises must be established separately before the conditional theorem
+yields a numeric recall guarantee for the compiled scorer.
+
 `topK_merge` proves that top `k` of the union of each block's top `k` is the
 global top `k`. Blocks may overlap and may contain fewer than `k` rows; they
 must each be subsets of the gallery and together cover it. `orderedTopK_merge`
