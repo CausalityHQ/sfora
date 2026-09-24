@@ -58,6 +58,19 @@ def test_cpu_packed_gallery_matches_full_order_for_variable_k_and_block_edges() 
         np.testing.assert_array_equal(scores, np.take_along_axis(reference, expected, axis=1))
 
 
+def test_cpu_packed_gallery_supports_short_gallery_with_exact_ties() -> None:
+    vector = torch.nn.functional.normalize(torch.arange(1, 129, dtype=torch.float32), dim=0)
+    gallery = pack_int8_unit_embeddings(vector.repeat(3, 1).contiguous())
+    query = pack_int8_unit_embeddings(vector.reshape(1, 128).contiguous())
+
+    index = CpuPackedInt8Gallery.open_packed(gallery, block_rows=2)
+    ordinals, scores = index.search_packed(query, k=3)
+    reference = query.cosine_similarity(gallery).numpy()
+
+    np.testing.assert_array_equal(ordinals, [[0, 1, 2]])
+    np.testing.assert_array_equal(scores, reference)
+
+
 @pytest.mark.parametrize("corrupt_norm", [float("nan"), float("inf"), 0.0])
 def test_cpu_packed_gallery_rejects_mutated_invalid_query_norm(corrupt_norm: float) -> None:
     gallery = _packed(50, seed=233)

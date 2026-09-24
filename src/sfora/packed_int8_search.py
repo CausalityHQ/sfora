@@ -36,7 +36,6 @@ class CpuPackedInt8Gallery:
             type(embeddings) is not PackedInt8Embeddings
             or type(block_rows) is not int
             or block_rows < 1
-            or embeddings.codes.shape[0] < 10
         ):
             raise ValueError("CPU packed gallery authority differs")
         self._codes = embeddings.codes.clone().contiguous()
