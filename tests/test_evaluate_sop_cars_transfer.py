@@ -24,3 +24,12 @@ def test_cars_evaluation_uses_last_98_classes_from_both_image_partitions() -> No
         MODULE.select_evaluation_rows((98, 196), (99,), expected_count=3)
     with pytest.raises(ValueError, match="Cars transfer split"):
         MODULE.select_evaluation_rows((98,), (99,), expected_count=3)
+
+
+def test_cars_development_uses_first_98_classes_from_both_image_partitions() -> None:
+    selected = MODULE.select_development_rows((0, 97, 98, 195), (100, 96, 99), expected_count=3)
+    assert selected == (("train", 0, 0), ("train", 1, 97), ("test", 1, 96))
+    with pytest.raises(ValueError, match="Cars transfer split"):
+        MODULE.select_development_rows((97, 196), (96,), expected_count=2)
+    with pytest.raises(ValueError, match="Cars transfer split"):
+        MODULE.select_development_rows((97,), (96,), expected_count=3)

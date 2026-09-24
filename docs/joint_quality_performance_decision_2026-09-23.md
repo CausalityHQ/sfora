@@ -1250,3 +1250,57 @@ most of the remaining median gap. A kernel-only speedup cannot produce a joint
 image-to-result win here. The next serving change must target these measured
 stages while preserving descriptor quality and the exact preprocessing
 contract. The 10,000-call paired p99 gate remains unmet.
+
+## Selected step-48,000 equal-byte PCA result, 24 September
+
+The dependent compact and full-width SOP **train** feature exports completed
+from their selected step-48,000 checkpoints. The [fit-only PCA audit](evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.json)
+then fit one centered 768-to-128 projection on the 53,700 full-width
+training-fit head features and scored the unchanged 5,851-image,
+1,132-product class-disjoint train holdout. The receipt and the
+[projection artifact](evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz)
+match their DGX originals at SHA-256
+`458b45f31e61a1ad04c5213ca25cd53857a55dcc9b8b56e0359faa98d9294299`
+and `b1ec4a628788b55242a2d8b233392f264be4a8c3a6eabe37a88b297373a09e91`.
+The audit replays both source packed holdout scores before comparing them.
+No official SOP test features enter the PCA fit or audit.
+
+| SOP train-identity holdout, selected step 48,000 | Packed Recall@1 | Packed mAP@R | Bytes/item |
+| --- | ---: | ---: | ---: |
+| Trained full-width B/16 head | 96.0349% | 0.836934 | 770 |
+| Same full-width head, fit-only PCA-128 | 95.6076% | 0.828906 | 130 |
+| Separately trained compact B/16 head | 95.1974% | 0.812453 | 130 |
+
+At equal 130-byte storage, PCA of the full-width trained head exceeds the
+compact trained head by **0.4102 percentage points Recall@1** with product
+bootstrap 95% interval **0.0000 to +0.8168 points**, and **0.016453 mAP@R**
+with interval **+0.011246 to +0.021308**. It loses **0.4273 points
+Recall@1** and **0.008028 mAP@R** relative to the 770-byte full-width
+version. The Recall@1 equal-byte interval reaches zero, and the official-test
+quality of the PCA version is unmeasured. The early step-8,000 equal-byte gain
+did not fully persist to the selected checkpoint. This is one seed, and the
+separately trained heads changed backbone optimization as well as the
+descriptor width. The result supports a 130-byte candidate for the next
+controlled experiment but no SOP or joint SOTA claim.
+
+The independent Claude Opus 5.5 and GPT-6 Astra read-only method critiques
+both identified the missing **full-width transfer** measurement and favored
+a pretrained-feature anchor only as a controlled hypothesis. The immediate
+no-training gate is to score the selected full-width checkpoint and its
+SOP-fit PCA-128 projection on CUB classes 1–100 (5,864 images) and Cars
+classes 0–97 (8,054 images), then measure a frozen pretrained-to-trained
+weight-blend curve on the SOP train holdout and these transfer development
+classes. No CUB/Cars features may fit the projection or update the model.
+The already observed CUB/Cars test halves are descriptive evidence and will
+not choose the blend or a new training arm.
+
+If no free blend supplies the desired SOP/transfer tradeoff, compare two
+same-source, same-seed 8,000-update full-width ArcFace arms: a control and
+one with a frozen-pretrained cosine feature anchor on the same augmented
+image tensor. Keep the 53,760-step OneCycle schedule, timm augmentation,
+batch sampler, classifier, and fit-only PCA-128 deployment identical. Only
+promote the anchor if it improves packed SOP train-holdout quality and
+CUB/Cars development transfer beyond the control's weight-blend Pareto
+curve; report training time and VRAM as part of that gate. A known feature
+anchor or weight blend alone is not a novel Sfora method or a SOTA claim.
+Source-matched `origin_clip` augmentation is a separate controlled factor.

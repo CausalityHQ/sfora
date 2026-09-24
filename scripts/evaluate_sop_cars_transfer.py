@@ -99,6 +99,29 @@ def select_evaluation_rows(
     return selected
 
 
+def select_development_rows(
+    train_labels: Sequence[int], test_labels: Sequence[int], *, expected_count: int = 8054
+) -> tuple[CarsRow, ...]:
+    """Use classes 0-97 from both original image partitions in source order."""
+
+    if (
+        type(expected_count) is not int
+        or expected_count < 1
+        or any(type(label) is not int or not 0 <= label < 196 for label in train_labels)
+        or any(type(label) is not int or not 0 <= label < 196 for label in test_labels)
+    ):
+        raise ValueError("Cars transfer split differs")
+    selected = tuple(
+        (split, index, label)
+        for split, labels in (("train", train_labels), ("test", test_labels))
+        for index, label in enumerate(labels)
+        if label < 98
+    )
+    if len(selected) != expected_count:
+        raise ValueError("Cars transfer split differs")
+    return selected
+
+
 class VerifiedCarsImages(Dataset[tuple[torch.Tensor, int]]):
     """Decode only image bytes already bound to the frozen source manifest."""
 
