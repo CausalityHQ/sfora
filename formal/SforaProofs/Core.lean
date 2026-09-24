@@ -352,16 +352,38 @@ theorem certified_queries_le_top1_hits {Q ι : Type*} [DecidableEq Q] [LinearOrd
     (herror : ∀ q ∈ queries, ErrWithin (ideal q) (observed q) (ε q) (gallery q)) :
     (queries.filter (fun q => ∃ x ∈ gallery q, positive q x ∧
       ∀ y ∈ gallery q, ¬ positive q y → ideal q y + ε q + ε q < ideal q x)).card ≤
-    (queries.filter (fun q => ∀ z ∈ topK (observed q) (gallery q) 1,
+    (queries.filter (fun q => ∃ z ∈ topK (observed q) (gallery q) 1,
       positive q z)).card := by
   classical
   apply Finset.card_le_card
   intro q hq
   obtain ⟨hqSet, x, hx, hxPositive, hmargin⟩ := Finset.mem_filter.mp hq
-  apply Finset.mem_filter.mpr
-  exact ⟨hqSet, top1_label_correct_of_positive_margin
+  have hcorrect := top1_label_correct_of_positive_margin
     (gallery q) (ideal q) (observed q) (positive q) (ε q)
-    (herror q hqSet) x hx hxPositive hmargin⟩
+    (herror q hqSet) x hx hxPositive hmargin
+  have hcard : 0 < (topK (observed q) (gallery q) 1).card := by
+    rw [card_topK]
+    exact lt_min (by omega) (Finset.card_pos.mpr ⟨x, hx⟩)
+  obtain ⟨z, hz⟩ := Finset.card_pos.mp hcard
+  exact Finset.mem_filter.mpr ⟨hqSet, z, hz, hcorrect z hz⟩
+
+/-- The certified-query fraction is a conditional lower bound on label
+    Recall@1 over this exact, nonempty query panel. -/
+theorem certified_fraction_le_top1_recall {Q ι : Type*} [DecidableEq Q] [LinearOrder ι]
+    (queries : Finset Q) (gallery : Q → Finset ι)
+    (ideal observed : Q → ι → ℝ) (positive : Q → ι → Prop) (ε : Q → ℝ)
+    (hqueries : queries.Nonempty)
+    (herror : ∀ q ∈ queries, ErrWithin (ideal q) (observed q) (ε q) (gallery q)) :
+    ((queries.filter (fun q => ∃ x ∈ gallery q, positive q x ∧
+      ∀ y ∈ gallery q, ¬ positive q y → ideal q y + ε q + ε q < ideal q x)).card : ℚ)
+        / queries.card ≤
+    ((queries.filter (fun q => ∃ z ∈ topK (observed q) (gallery q) 1,
+      positive q z)).card : ℚ) / queries.card := by
+  have hcount := certified_queries_le_top1_hits
+    queries gallery ideal observed positive ε herror
+  apply div_le_div_of_nonneg_right
+  · exact_mod_cast hcount
+  · exact_mod_cast (Finset.card_pos.mpr hqueries).le
 end
 
 /-- Recall (hits) is at least the number of robust winners. -/

@@ -74,6 +74,20 @@ in the RC4 receipt; a measured or analytic bound is needed to make this
 conditional theorem a numeric quality claim. A uniform ε can be the maximum
 of per-row errors for one query, though row-specific bounds could be tighter.
 
+`top1_label_correct_of_positive_margin` gives a label-level guarantee: if one
+positive gallery row scores more than `2ε` above every negative under an ideal
+scorer, every top-1 row under the observed scorer is positive, even if another
+positive becomes the winner. `certified_queries_le_top1_hits` counts such
+queries in a finite panel and proves their count is a lower bound on observed
+top-1 hits; an empty gallery cannot count as a hit. For a nonempty panel,
+`certified_fraction_le_top1_recall` divides both counts by the same number of
+queries. The gallery for a leave-one-out query must exclude its own row.
+To turn this into a numeric recall bound, measure or prove the pointwise error
+between the chosen ideal scorer and the compiled deployed scorer on every
+eligible query-gallery pair, then count the certified margins. The existing
+inverse-norm bound alone compares scores of quantized codes and does not bound
+the original float descriptor against its quantized code.
+
 `card_candidates_le` bounds the distinct merged logical candidates by
 `blocks*k`. Under an explicit per-block cap of `k`, `candidate_count_le`
 bounds emitted logical records even when blocks overlap, and
