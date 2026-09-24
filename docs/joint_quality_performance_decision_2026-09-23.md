@@ -247,10 +247,14 @@ versus 130 bytes at 128-D.
 The gap narrows from 2.2560 to 1.4185 percentage points in Recall@1 as
 training proceeds. Neither checkpoint has been selected for the official
 test, and these observations do not justify substituting a 770-byte product
-for the 130-byte target. A post-training, train-only compression probe of a
-frozen full-width checkpoint can test whether 128-D projection training or
-the backbone is responsible for the quality gap, with the same deployed
-packed scorer.
+for the 130-byte target. A queued train-only probe freezes both step-8,000
+backbones, replays their trained heads, and fits three 128-D PCA maps using
+fit identities only: on full-width headed features, full-width source features,
+and compact-run source features. The same deployed packed scorer then measures
+linear compressibility on the shared holdout. This is a matched-step diagnostic,
+not a clean backbone-versus-head training intervention: the two backbones
+followed different head, proxy, and gradient trajectories. The full-run
+train-selected checkpoint and official SOP test remain pending.
 The CUB and Cars transfer evaluators now have a four-arm diagnostic option:
 pretrained/trained backbone crossed with initial/trained 128-D projection head,
 with both float and 130-byte packed retrieval. This will show whether either
