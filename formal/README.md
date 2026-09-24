@@ -13,6 +13,21 @@ the selector theorems also apply to already-rounded scores when their tie
 ordering agrees with this model. Arithmetic error between two scoring methods
 belongs in the separate ε premise. NaNs are outside the model.
 
+`Euclidean.lean` proves that, for a fixed query and finite real vectors,
+`2·dot(query, gallery) − ‖gallery‖²` equals the query's squared norm minus
+squared Euclidean distance. `euclidean_beats_iff` proves identical pairwise
+ranking, including the lower-ordinal rule for exact ties; `euclidean_topK_eq`
+proves equality of the selected row sets. This models the algebra in
+`src/sfora/sop_evaluation.py`'s prefix scorer **over exact real arithmetic**.
+For leave-one-out retrieval, the finite gallery set must omit the query's own
+ordinal. The proof does not establish upstream UNICOM's different self-exclusion
+and tie behavior, nor that float32 matmul, normalization, or stable sorting
+matches real arithmetic. In a constructed CPU float32 near-duplicate probe,
+expanded scores collapsed 200 rows to 186 distinct values and selected a
+different top row from float64 direct distance; matrix shape also changed some
+rounded dot products. These are implementation-level ranking risks, not a
+measured SOP dataset error rate.
+
 `topK_merge` proves that top `k` of the union of each block's top `k` is the
 global top `k`. Blocks may overlap and may contain fewer than `k` rows; they
 must each be subsets of the gallery and together cover it. `orderedTopK_merge`
