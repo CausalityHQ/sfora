@@ -79,6 +79,7 @@ native and full image-to-top-k p50/p95/p99 at batch 1 and 32 on the same GPU.
 | SOP official test, same protocol | UNICOM ViT-B/16@224, full width | 88.8% | — | 768 f32 output before indexing | — | Published [UNICOM Table 4](https://arxiv.org/pdf/2304.05884); no local fine-tuned checkpoint reproduction |
 | SOP official test, same protocol | UNICOM-pretrained ViT-B/16 + ArcFace + TCM, full width | 89.1% | — | 768 f32 output before indexing | — | Published [ICLR 2024 Table 10](https://proceedings.iclr.cc/paper_files/paper/2024/file/16336d94a5ffca8de019087ab7fe403f-Paper-Conference.pdf); same backbone family, different loss and storage budget; no local reproduction |
 | SOP official test, same protocol | SEE ViT-S 128-D float | 85.9% | — | 512 as 128 f32 | — | Published [IJCAI 2025 Table 1](https://www.ijcai.org/proceedings/2025/1214.pdf); width-matched recent method, no local checkpoint or paired runtime |
+| SOP official 60,502-image test split, author protocol | LaFG ViT, language-guided training | 87.1% | — | Not reported | — | Published [CVPR 2026 Table 3](https://arxiv.org/pdf/2512.06255); ImageNet initialization plus LLM/VLM-derived training targets and A100 training, no matched scorer or runtime; not a 130-byte comparison |
 | SOP official test, same queries | UNICOM ViT-B/16@224, pretrained float | 69.9812% | 0.420759 | 768 f32 before indexing | — | Exploratory reproduced pretrained checkpoint; no SOP fine-tuning |
 | SOP official test, same queries | Same B/16 with train-only PCA-128, float | 67.2903% | 0.393903 | 128 f32 before indexing | — | Exploratory projection control; [raw per-query result](evidence/compact_metric/unicom-b16-sop-pretrained-screen-v2.json) |
 | SOP official test, same queries | Same B/16 with train-only PCA-128 and int8 wire | 67.2325% | 0.393442 | 130 | — | Exploratory, no SOP fine-tuning; same raw result |
@@ -89,6 +90,13 @@ native and full image-to-top-k p50/p95/p99 at batch 1 and 32 on the same GPU.
 | In-Shop official query/gallery | UNICOM ViT-L/14@336 + Sfora compact profile | 95.4283% | 0.800020 | 130 | — | Exploratory, [local result](compact_metric_selector_result_2026-09-19.md) |
 | In-Shop official query/gallery | SEE ViT-S 128-D float | 92.8% | — | 512 as 128 f32 | — | Published [IJCAI 2025 Table 1](https://www.ijcai.org/proceedings/2025/1214.pdf); matched descriptor width, different training and wire |
 | In-Shop official 14,218-query/12,612-gallery split | OML ViT-S/16@224, raw 384-D Euclidean | 92.0945% | 0.685148 | 1536 as f32 | — | Exploratory local reproduction of the published 92.1% control; [raw receipt](evidence/compact_metric/oml-vits16-inshop-baseline-v1.json) |
+
+The 24 September 2026 primary-paper spot check adds LaFG as a recent SOP
+method comparison: its paper specifies the official 59,551-image train and
+60,502-image test split, cosine-distance Recall@K, and 87.1% SOP Recall@1.
+It does not report a matched 130-byte wire, end-to-end runtime, or In-Shop
+result. This bounded check does not certify a global frontier; the published
+UNICOM 91.2% SOP and 96.7% In-Shop values remain the dated quality gates.
 
 The one-time selected B/16 SOP official receipt has SHA-256
 `d2e25fc66ce22df71d8dbeeff04330a26b2f55cdc1cf3ebcbaddba6bcae55629`.
