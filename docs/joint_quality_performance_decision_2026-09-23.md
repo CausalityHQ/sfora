@@ -120,6 +120,7 @@ native and full image-to-top-k p50/p95/p99 at batch 1 and 32 on the same GPU.
 | SOP official test, same queries | Same B/16 with train-only PCA-128 and int8 wire | 67.2325% | 0.393442 | 130 | — | Exploratory, no SOP fine-tuning; same raw result |
 | SOP official test, same queries | Same B/16 full-backbone trained, selected packed-rank 128-D | 81.2221% | 0.562186 | 130 | — | Exploratory one-seed result selected on train-identity holdout; [per-query receipt](evidence/compact_metric/sop-full-backbone-packed-rank-official-test-seed179019-1000-v1.json) |
 | SOP official test, same queries | B/16@224 full-backbone ArcFace, 48k train-selected, packed 128-D | 86.4715% | 0.651811 | 130 | batch 1: 16.679–17.464 ms; batch 32: 215.513–219.152 ms | Exploratory one-seed quality; diagnostic p99 on separate SOP **training** image/gallery split, 50 calls per arm/order; [quality receipt](evidence/compact_metric/sop-reference-arcface-seed179019-official-test-v1.json), [timing receipt](evidence/compact_metric/sop-trained-b16-vs-oml-paired-image-to-topk-bm1-v2.json) |
+| SOP official test, same queries | B/16@224 full-backbone ArcFace, 48k train-selected, packed 768-D | 87.9078% | 0.679219 | 770 | — | Exploratory one-seed quality; no full-pipeline p99 yet; [per-query receipt](evidence/compact_metric/sop-fullwidth768-seed179019-official-test-v1.json) |
 | SOP official test, same queries | OML ViT-S/16@224 + Sfora compact profile | 85.9757% | 0.641825 | 130 | batch 1: 7.298–7.462 ms; batch 32: 208.876–210.693 ms | Exploratory packed quality; same paired training-split diagnostic timing; [quality profile](evidence/compact_metric/oml-vits16-sop-packed-profile-verification-v1.json) |
 | In-Shop official query/gallery | UNICOM ViT-L/14@336 | 96.7% | — | 768 f32 output before indexing | — | Published [UNICOM Table 4](https://arxiv.org/pdf/2304.05884); evaluator uses normalized prefix-512 Euclidean |
 | In-Shop official query/gallery | UNICOM ViT-L/14@336 + Sfora compact profile | 95.4283% | 0.800020 | 130 | — | Exploratory, [local result](compact_metric_selector_result_2026-09-19.md) |
@@ -1067,8 +1068,9 @@ The final full-width packed train-holdout score is **96.0520% Recall@1** and
 **0.836346 mAP@R**. The frozen selection rule maximizes packed mAP@R, with
 Recall@1 and earlier step only as ties. It therefore selects the already
 verified step-48,000 checkpoint at **0.836934 mAP@R**; the final step's
-0.0171-point Recall@1 increase does not override that rule. The queued
-official SOP evaluator is running from its original immutable source snapshot.
+0.0171-point Recall@1 increase does not override that rule. The official SOP
+evaluator subsequently completed from its original immutable source snapshot;
+its result is recorded below.
 
 The independent local CPU serving check used the authenticated 59,551-image
 SOP **train** feature archive as one gallery, with normalized 128-coordinate
@@ -1121,3 +1123,64 @@ labels improves SOP retrieval. A conflict-aware objective needs a matched
 train-only ablation and transfer check before promotion; the current evidence
 does not justify launching that GPU experiment ahead of the queued width/PCA
 and official-quality results.
+
+## Full-width official SOP and transfer factorial, 24 September
+
+The step-48,000 full-width checkpoint was selected on the class-disjoint SOP
+training holdout under the frozen packed mAP@R rule before its one-time
+official-test evaluation. The [official receipt](evidence/compact_metric/sop-fullwidth768-seed179019-official-test-v1.json)
+has SHA-256
+`ff25925f85232087fa753bb75130f71f7f376aafe602e37fb771d0b08f7643f3`,
+matching the DGX original. Its remote claim file matches the receipt's SHA-256
+`a0662b9b629ea26bae21388b59c6d6ebcbe582174c1e5da4fbf32ad4a54f232e`.
+The selected checkpoint SHA-256 is
+`232f7cee93e39fa242d8461f8dc8cee684d7228eef01f8fe9399b9782e80a1b2`.
+All 60,502 official SOP test images from 11,316 unseen products were used as
+queries against that test gallery with self-exclusion.
+
+| SOP official test system | Packed Recall@1 | Packed mAP@R | Bytes/gallery item |
+| --- | ---: | ---: | ---: |
+| Trained B/16, selected step 48,000, 768-D | 87.9078% | 0.679219 | 770 |
+| Trained B/16, selected step 48,000, 128-D | 86.4715% | 0.651811 | 130 |
+
+The two receipts have identical ordered test images, labels, manifest, and
+evaluator source. The full-width trained system gains **1.4363 percentage
+points Recall@1** and **0.027407 mAP@R** at **5.923 times the gallery
+storage**. A paired bootstrap resampling all 11,316 product clusters 5,000
+times with seed 179019 gives a descriptive 95% interval of **+1.2794 to
++1.5976 percentage points** for Recall@1 and **+0.025996 to +0.028824** for
+mAP@R. This compares two trained heads and checkpoints, not a dimension-only
+intervention. It is one seed with already observed official test results, so
+the interval does not establish variation across training seeds.
+
+The new result remains **0.8922 percentage points below** the published
+UNICOM B/16 SOP 88.8% reference and **3.2922 points below** the L/14 91.2%
+reference. Those publications did not use this 770-byte packed scorer; a
+source-compatible prefix-512 float comparator is still needed. The new
+receipt's 132.220 s encode and 5.074 s packed-score totals cover one offline
+test pass. They are not batch-1 serving latency or certified p99. The
+full-pipeline and equal-byte PCA checks remain queued.
+
+The completed four-arm [CUB transfer factorial](evidence/compact_metric/sop-fullwidth768-seed179019-cub-transfer-factorial-v2.json)
+and [Cars transfer factorial](evidence/compact_metric/sop-fullwidth768-seed179019-cars-transfer-factorial-v2.json)
+retain per-query metrics, source hashes, and class-disjoint test protocols.
+They cross pretrained versus SOP-trained backbones with a fixed fit-only
+initial 128-D head versus the trained 128-D head, without fitting on CUB or
+Cars. The receipts match their DGX originals at SHA-256
+`f020215194d87ba3afc5ae3169649fc7739f8f3df2a2f1df5023cbda4a06336c`
+and `a897dc61acffc5720a7549b2b1806373bfcfe1df2557b33667df929b90cfc033`.
+
+| Transfer test and split | Pretrained backbone + initial head | Pretrained backbone + trained head | SOP-trained backbone + initial head | SOP-trained backbone + trained head |
+| --- | ---: | ---: | ---: | ---: |
+| CUB-200-2011 classes 101–200, 5,924 self queries: packed Recall@1 / mAP@R | 83.8960% / 0.507338 | 84.2167% / 0.508154 | 73.7002% / 0.341901 | 73.3288% / 0.333417 |
+| Cars196 classes 98–195, 8,131 self queries: packed Recall@1 / mAP@R | 96.2120% / 0.655341 | 95.9907% / 0.645332 | 93.4448% / 0.483354 | 92.6577% / 0.435613 |
+
+Holding the initial head fixed, SOP backbone training reduces CUB Recall@1
+by **10.1958 points** and Cars by **2.7672 points**. Holding the pretrained
+backbone fixed, swapping in the trained head changes CUB by **+0.3207** and
+Cars by **−0.2214 points**. Backbone updates are thus the dominant measured
+source of transfer loss. This factorial does not isolate the mechanism within
+backbone training. The next controlled experiment should retain pretrained
+backbone geometry more strongly, use source-matched `origin_clip`
+augmentation as a separate arm, select on SOP train identities plus transfer
+checks, and wait for the queued equal-byte PCA result before another full run.
