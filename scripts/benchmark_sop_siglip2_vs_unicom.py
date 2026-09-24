@@ -268,6 +268,7 @@ def main() -> None:
     )
     raw: dict[str, Any] = {}
     parity: dict[str, float] = {}
+    batch1_parity: dict[str, float] = {}
     torch.cuda.reset_peak_memory_stats()
     with ExitStack() as stack:
         galleries = {
@@ -308,6 +309,21 @@ def main() -> None:
             ):
                 raise ValueError(f"SOP live {name} packed query differs from quality export")
             verify_native_top10(arms[name], paths, fitted[name].packed)
+            one_feature, _a, _b, _c = encode_live(arms[name], paths[:1])
+            one_cached = torch.from_numpy(np.asarray(source[name][query_rows[:1]]).copy())
+            batch1_parity[name] = verify_live_features(one_feature, one_cached)
+            one_packed = pack_int8_unit_embeddings(
+                fitted[name].pca.apply(F.normalize(one_feature, dim=1))
+            )
+            if not torch.equal(
+                one_packed.codes, fitted[name].packed.codes[query_rows[:1]]
+            ) or not torch.equal(
+                one_packed.inverse_norms, fitted[name].packed.inverse_norms[query_rows[:1]]
+            ):
+                raise ValueError(
+                    f"SOP live {name} batch-1 packed query differs from quality export"
+                )
+            verify_native_top10(arms[name], paths[:1], fitted[name].packed)
         for batch_size, blocks in ((1, args.b1_blocks), (32, args.b32_blocks)):
             selected_paths = paths[:batch_size]
             for name in ARMS:
@@ -377,6 +393,7 @@ def main() -> None:
         "gallery_rows": len(labels),
         "gallery_wire_bytes_per_row": 130,
         "live_feature_min_cosine": parity,
+        "batch1_feature_min_cosine": batch1_parity,
         "timing": raw,
         "p50_candidate_to_reference_ratio": ratios,
         "p50_screen_gate_pass": all(ratio <= 0.85 for ratio in ratios.values()),

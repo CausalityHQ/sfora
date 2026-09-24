@@ -51,6 +51,16 @@ and [batch-32](evidence/compact_metric/sop-siglip2-substrate-v1/cutile-cold-134-
 first calls took 0.862 and 2.181 seconds with exact ordinal ties. The canaries
 did not clear compiler caches, so they establish the working deployment
 configuration, not a controlled universal 13.3-versus-13.4 compile claim.
+An additional [full native replay](evidence/compact_metric/sop-siglip2-substrate-v1/native-full-gallery-parity.json)
+ran all 5,851 TRAIN holdout queries in each arm through the released RC5
+library against each 59,551-row packed gallery. Every per-query Recall@1
+outcome matched the quality receipt: SigLIP2 4,584/5,851 (78.3456%) and
+UNICOM 4,169/5,851 (71.2528%). The maximum difference across all returned
+native top-10 scores versus independently computed scalar packed arithmetic
+was **0.0**. Its per-arm search wall includes first-call compilation and is
+not used as a serving benchmark. The live timing receipt checked exact cached
+code parity at batch 32; a separate batch-1 code-parity check remains before a
+broader serving claim.
 
 **Decision:** all frozen TRAIN-only substrate gates pass: full-gallery packed
 Recall@1 exceeds the reference by >1 point with a positive paired lower
