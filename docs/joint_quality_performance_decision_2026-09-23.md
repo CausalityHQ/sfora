@@ -418,6 +418,26 @@ receipts are
 (SHA-256 `bad3fab826a5b0d317054b001f623bca26b602eba5871c140000577698f01af5`)
 and `arcface-seed179019-53760.step32000.json`
 (SHA-256 `13eb5df7c49686c6ff28cdbedf3323b0973c729be19f89ba22376b3999a85cd4`).
+The 48,000-update receipt records 95.1974% packed holdout Recall@1 and
+0.812453 packed mAP@R. Relative to 32,000 updates on exactly the same holdout
+rows, paired product-clustered 10,000-resample intervals (PCG64 seed 179019)
+give +0.256 percentage
+points Recall@1 (95% interval +0.034 to +0.474) and +0.006993 mAP@R
+(+0.004920 to +0.009048). The source, split, schedule, and checkpoint
+provenance fields match the 32,000-update receipt. The 48,000-update receipt is
+`/home/riomus/runs/sfora-sop-reference-b8f85611-179019/arcface-seed179019-53760.step48000.json`
+(SHA-256 `42350440edf3dcb972c6d2a9372a1adc75e6363319efc31a047815e81cea29c0`).
+The final checkpoint and the one-time official evaluation remain pending;
+these training-identity scores cannot establish the published quality gate.
+
+A passive 60-sample, 1 Hz DGX trace spanning the diagnostic had median SM
+utilization 96% and median GPU power 51 W; five samples had SM utilization
+below 90%, including four at zero. Its raw path is
+`/home/riomus/runs/sfora-sop-reference-b8f85611-179019/arcface-seed179019-53760.gpu-dmon-60s.txt`
+(SHA-256 `8193209b4911d691e9b6d173e097e121187eacfdbca722b5172a7b587dbaff0f`).
+This short, diagnostic-spanning trace is not a training-only throughput or
+latency profile.
+
 Because the balanced sampler differs from upstream's shuffled image sampler,
 the compact head is new, only 90% of SOP train identities are fitted, and
 gradient clipping at norm 1.0 is additional, this is **reference-like**, not
