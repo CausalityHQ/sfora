@@ -1,0 +1,17 @@
+{
+  "schema": "sfora-sop-tail-cub-transfer-preregistration-v1",
+  "claim_eligible": false,
+  "question": "Does the SOP TRAIN matched-mode final-block gain transfer to unseen CUB-200-2011 classes without CUB fitting?",
+  "script_sha256": "200855ceabc193123522c43aa20a45b734203681ada121420e3ea4dc5941a612",
+  "original_sop_receipt_sha256": "331b8055b970704b1269b3229e0b2114f594033bfe1690c9af736b4631b46aa1",
+  "candidate_sop_receipt_sha256": "cb3b03d814f08e0acf9e992f1569bc099566d77409b6895cdb2d3ba763e354cb",
+  "head_checkpoint_sha256": "9eaf0cdbd757f1f83b00e5415349b4608a62769a56ace81983d67ea2b87781fd",
+  "tail_checkpoint_sha256": "9c07e1b0c0b171a9f72cafdc2c9a7b4d21248d28de5a4510180fb699b8300918",
+  "source_checkpoint_sha256": "c04f324f7c3b4435667236ec6c0eca1cd62f9d64fbfc2d06f8e8e60e6497edef",
+  "cub_archive_sha256": "0c685df5597a8b24909f6a7c9db6d11e008733779a671760afef78feb49bf081",
+  "population": "CUB-200-2011 official classes 101-200 test identity split, all 5,924 images in self-retrieval gallery with query self excluded; no CUB fitting; this transfer panel has been inspected in earlier experiments, so it is exploratory",
+  "arms": "the frozen SOP TRAIN head_arcface checkpoint and the SOP TRAIN tail_arcface_eval checkpoint; same UNICOM B/16 architecture, 224-pixel canonical preprocessing, 128-dimensional compact head, 130-byte signed-int8/f16 packed scorer, ordinal tie break",
+  "metrics": "paired per-query packed Recall@1 and mAP@R primary, float 128-D auxiliary; record image-byte manifest, feature digests, encoder/scorer wall times, CUDA allocated peak and host RSS",
+  "gate": "advance the frozen tail checkpoint to exploratory Cars196 transfer only if its CUB packed Recall@1 and mAP@R are each at least the matched head checkpoint point estimate; otherwise stop this SOP-trained tail candidate and diagnose cross-dataset forgetting; no post-result threshold changes",
+  "next_if_pass": "CUB/Cars transfer and live JPEG-to-encoder versus cached-token descriptor parity precede three-seed and larger unseen-gallery confirmation; no official SOP or In-Shop quality claim from this gate"
+}
