@@ -155,6 +155,34 @@ theorem mem_topK {f : ι → β} {S : Finset ι} {k : ℕ} {x : ι} :
     Finset.mem_map', Function.comp_def, and_self_left]
   exact Iff.rfl
 
+/-- A cutoff score splits the rows preceding `x` into strictly higher scores
+    and equal scores with a lower ordinal. This is the selector's tie rule. -/
+theorem beating_count (f : ι → β) (S : Finset ι) (x : ι) :
+    (S.filter (fun y => beats f y x)).card =
+      (S.filter (fun y => f x < f y)).card +
+      (S.filter (fun y => f y = f x ∧ y < x)).card := by
+  have hdisjoint : Disjoint (S.filter (fun y => f x < f y))
+      (S.filter (fun y => f y = f x ∧ y < x)) := by
+    apply Finset.disjoint_left.mpr
+    intro y hyBetter hyTie
+    have hgt := (Finset.mem_filter.mp hyBetter).2
+    have heq := (Finset.mem_filter.mp hyTie).2.1
+    exact (lt_irrefl (f x)) (heq ▸ hgt)
+  have hsplit : S.filter (fun y => beats f y x) =
+      S.filter (fun y => f x < f y) ∪
+        S.filter (fun y => f y = f x ∧ y < x) := by
+    ext y
+    simp only [Finset.mem_filter, Finset.mem_union, beats_iff]
+    tauto
+  rw [hsplit, Finset.card_union_of_disjoint hdisjoint]
+
+/-- Membership under the score cutoff and the stable ordinal tie rule. -/
+theorem mem_topK_cutoff {f : ι → β} {S : Finset ι} {k : ℕ} {x : ι} :
+    x ∈ topK f S k ↔ x ∈ S ∧
+      (S.filter (fun y => f x < f y)).card +
+        (S.filter (fun y => f y = f x ∧ y < x)).card < k := by
+  rw [mem_topK, beating_count]
+
 theorem map_biUnion' {γ κ : Type*} [DecidableEq γ] (e : ι ↪ γ) (I : Finset κ)
     (g : κ → Finset ι) : (I.biUnion g).map e = I.biUnion (fun i => (g i).map e) := by
   ext z
