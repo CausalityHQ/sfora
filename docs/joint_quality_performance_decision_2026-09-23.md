@@ -63,6 +63,41 @@ or superior method claim. Separately, benchmark the faithful local L/14
 reference's full pipeline latency before claiming any candidate is faster
 than the quality reference; B/16-versus-OML timing cannot supply that number.
 
+### L/14 optimistic fold F0: rejected for this gate
+
+The [raw F0 timing receipt](evidence/compact_metric/l14-parallel-fold-encoder-f0-v1.json)
+(SHA-256 `5868a869a074855ff1ca82a4c394a2db04dbe04cad1eba33ea66fae3f2cc09d5`)
+used the pinned pretrained UNICOM L/14@336 checkpoint and 32 sampled SOP
+**training** images on DGX GB10. The concrete probe is *more aggressive* than
+the whole-block parallel expression above: it evaluates both attention and
+MLP branches of each pair at the same input, absorbs LayerNorm affines into
+fused layers, and uses 12 fused blocks. The weight mapping passes a CPU
+parallel-oracle test; on one real pretrained pair, the maximum absolute
+output difference from the explicit four-branch CUDA oracle is 0.007324
+under fp16 autocast. This validates the intended approximation only within
+the recorded numerical tolerance, not equivalence to the sequential model.
+
+| Region, resident preprocessed train tensors | Original L/14 GPU p50 | Optimistic fold GPU p50 | Fold/original p50 ratio |
+| --- | ---: | ---: | ---: |
+| Full encoder, batch 1 | 28.934 ms | 31.316 ms | 1.0823 |
+| Full encoder, batch 32 | 395.306 ms | 282.180 ms | 0.7138 |
+| Transformer blocks only, batch 1 | 18.292 ms | 20.633 ms | 1.1280 |
+| Transformer blocks only, batch 32 | 360.841 ms | 244.041 ms | 0.6763 |
+
+Each cell has 100 calls in 10 alternated blocks. The median of the 10 paired
+block-median **full-encoder batch-1 ratios** is 1.0851, with a descriptive
+10,000-resample block-bootstrap 95% interval of 1.0807–1.0884 (NumPy PCG64
+seed 179019). The batch-1 direction is therefore a measured regression in
+this short screen, despite a batch-32 improvement. The fold fails the
+preregistered need to improve both batch sizes; **do not fund fold healing or
+training on this implementation**. The original-versus-folded output
+embedding cosine averages 0.052 over the 32 images, indicating a large
+representation change but measuring neither Recall@1 nor mAP@R. The F0 uses
+resident GPU tensors and measures no decode, packing, search or 10,000-call
+p99 interval. It cannot establish full image-to-top-k performance or a SOTA
+claim. The full local L/14 serving baseline and a route to higher quality
+than its published supervised result remain open work.
+
 The [authenticated CUB development receipt](evidence/compact_metric/sop-fullwidth-step48000-cub-development-v1.json)
 (SHA-256 `93c2e04a94f618c0e48884ae59182e327d2d7205b6c059160cf5207ac72590d9`)
 scores all 5,864 images in CUB-200-2011 **classes 1–100** by self retrieval,
