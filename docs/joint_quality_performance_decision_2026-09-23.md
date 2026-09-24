@@ -255,6 +255,14 @@ linear compressibility on the shared holdout. This is a matched-step diagnostic,
 not a clean backbone-versus-head training intervention: the two backbones
 followed different head, proxy, and gradient trajectories. The full-run
 train-selected checkpoint and official SOP test remain pending.
+The PCA probe is a diagnostic baseline, not a new learning method. The
+[ICLR 2025 AE-SVC/(SS)²D paper](https://proceedings.iclr.cc/paper_files/paper/2025/file/a2370db7c99791ad5d9f3ef48ad6d464-Paper-Conference.pdf)
+already studies PCA against learned compact retrieval embeddings, and
+[CVPR 2025 PFML](https://openaccess.thecvf.com/content/CVPR2025/html/Bhatnagar_Potential_Field_Based_Deep_Metric_Learning_CVPR_2025_paper.html)
+studies a potential-field metric-learning loss on SOP and transfer sets.
+Neither supplies protocol-matched 130-byte image-to-top-k latency evidence
+for this Sfora candidate. A proposed new loss or projection must identify
+its difference from these methods and pass a matched training ablation.
 The CUB and Cars transfer evaluators now have a four-arm diagnostic option:
 pretrained/trained backbone crossed with initial/trained 128-D projection head,
 with both float and 130-byte packed retrieval. This will show whether either
