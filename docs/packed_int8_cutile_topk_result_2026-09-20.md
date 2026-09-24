@@ -5,6 +5,9 @@ on an NVIDIA GB10 at source `e67a5d1dccce6ec005bd87f13779c1b4c110b393`.
 The canonical receipt is
 `docs/evidence/packed_int8_cutile_topk_summary.json` (SHA-256
 `88e6874c93ca4f33e8856f823e82319d93773413dc9ca19630ac00674e73e42d`).
+Each batch has five warmups and 50 timed calls. The p99 columns and ratios
+below describe that diagnostic sample; they do not meet the later 10,000-call
+paired-block p99 certification protocol for a full-system claim.
 
 | Batch | Native p50 / p99 | Throughput | Prior materializing p99 | Resident-f32 p99 |
 |---:|---:|---:|---:|---:|

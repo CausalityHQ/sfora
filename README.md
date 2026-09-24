@@ -57,8 +57,9 @@ an EMA teacher and its student.
 > `1.021 / 1.550 ms` (`954.6 q/s`) and batch-32 p50/p99
 > `4.594 / 5.274 ms` (`6,870.4 q/s`). Persistent gallery storage was
 > 130 bytes/item and process peak RSS was 1.552 GB. This is a matched systems
-> result, not evidence that descriptor quality beats the strongest published
-> end-to-end model.
+> diagnostic from 50 timed calls per batch; its p99 values do not meet the
+> later 10,000-call certification protocol. It is not evidence that descriptor
+> quality beats the strongest published end-to-end model.
 >
 > The frozen five-dataset zero-training width ladder produced no universal
 > winner, its label-free selector failed on unseen Flowers-102, and top-2
