@@ -1183,4 +1183,35 @@ source of transfer loss. This factorial does not isolate the mechanism within
 backbone training. The next controlled experiment should retain pretrained
 backbone geometry more strongly, use source-matched `origin_clip`
 augmentation as a separate arm, select on SOP train identities plus transfer
-checks, and wait for the queued equal-byte PCA result before another full run.
+checks, and assess equal-byte PCA before another full run.
+
+## Equal-byte step-8,000 PCA diagnostic, 24 September
+
+The already queued [PCA diagnostic](evidence/compact_metric/sop-matched-step8000-pca128-v2.json)
+completed on the original 5,851-image, 1,132-product SOP **training**
+identity holdout. The local receipt's SHA-256
+`d4b332df82025eaba2ab5ffbdfb3590ca5a241455c4f529385583fcf948e537b`
+matches the DGX original. Its three 768-to-128 PCA projections were fit only
+on the 53,700 training-fit images. Source checkpoints, feature arrays,
+projection arrays, holdout order, and exact replay of both source packed
+scores are hashed in the receipt. The comparison is diagnostic at the common
+step 8,000; it is not the train-selected product checkpoint or an official-test
+result.
+
+| SOP train-identity holdout, step 8,000 | Packed Recall@1 | Packed mAP@R | Bytes/item |
+| --- | ---: | ---: | ---: |
+| Trained 128-D compact head | 92.5996% | 0.746960 | 130 |
+| Trained 768-D head, no projection | 94.0181% | 0.789077 | 770 |
+| Trained 768-D head, fit-only PCA-128 | 93.8301% | 0.785465 | 130 |
+| Trained 768-D backbone source feature, fit-only PCA-128 | 93.2319% | 0.767266 | 130 |
+
+The equal-byte full-width-head PCA arm exceeds the compact trained head by
+**1.2306 percentage points Recall@1** and **0.038505 mAP@R**. Resampling
+the 1,132 products 5,000 times (seed 179019) gives descriptive paired 95%
+intervals of **+0.7766 to +1.6670 percentage points** and **+0.033163 to
++0.043750 mAP@R**. The full-width-head PCA arm retains most of its
+unprojected holdout quality at this early step. Different head/proxy geometry
+also changed backbone training, so this comparison does not isolate a pure
+width effect or identify a superior final model. The selected step-48,000
+equal-byte check remains necessary; its feature export is queued behind the
+existing image-to-top-k stage split.
