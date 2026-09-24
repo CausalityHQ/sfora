@@ -57,12 +57,36 @@ was 560 MB and peak host RSS 2.86 GB. These are head-screen costs, not
 full-backbone training throughput or image-to-top-k latency.
 
 **Next decision:** materially change the representation or encoder route.
-An Opus 5.5 scientific review and GPT-6 Astra engineering review of this
-terminal result are active under durable consultation IDs
-`236c38d20ed8482d` and `db5afe7258e44ba2`; reconcile their advice with
-the measured B/16 compression and transfer gaps before preregistering the
-next train-only architecture screen. Keep SOP and In-Shop published quality
-gates, full image-to-result speed, and transfer as separate requirements.
+Completed independent Opus 5.5 (`236c38d20ed8482d`) and GPT-6 Astra
+(`db5afe7258e44ba2`) reviews agree the head-screen failure is sound and
+does not establish a representation ceiling. Opus suggested a B/16@336
+resolution screen, but its proposed position-only interpolation is
+incomplete for this UNICOM graph: the original head's first linear layer
+consumes all 196 patch tokens, so 336 pixels also changes that layer's
+input from 196 to 441 tokens. The comparable candidate would need an
+explicit head adaptation and a zero-step fidelity check. Astra's narrower
+cached L/14-to-B/16 teacher screen changes the student's final block while
+keeping its deployed B/16 graph and 130-byte gallery wire. Use a matched
+head/tail × ArcFace/teacher factorial on SOP training identities, with
+heldout-only products as the primary selection readout. This is a known
+distillation family; it is an architecture and training screen, not a
+novelty claim. The older seed-17 teacher-anchored panel on a different
+80/20 SOP train split cannot substitute for this matched 90/10 screen.
+
+The [eight-image tail-cache preflight](evidence/compact_metric/sop-b16-tail-cache-preflight-v1.json)
+loaded the authenticated UNICOM B/16 checkpoint and eight SOP **training**
+images on the DGX GB10. Splitting before its final transformer block and
+replaying the cached float32 prefix tokens reproduced the unsplit 768-D
+output with **zero maximum absolute difference**. The unsplit outputs had
+minimum normalized cosine `0.99999994` against the authenticated source
+archive. Casting those tokens to float16 introduced maximum descriptor
+difference `1.6475e-4`; the proposed screen will therefore cache float32
+tokens unless a separate packed-retrieval parity gate proves float16 safe.
+For all 59,551 SOP training rows, the 196×768 float32 cache requires about
+35.86 GB before metadata (17.93 GB at float16). These are storage estimates,
+not measured cache-build time or live image latency. The new
+[tail adapter](../src/sfora/unicom_tail_adapter.py) has two focused tests
+covering exact split parity and final-block-only gradients.
 
 ## 24 September loss-design and label-audit gate
 
