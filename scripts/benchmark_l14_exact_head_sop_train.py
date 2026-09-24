@@ -27,13 +27,17 @@ from torch import nn
 from torch.nn import functional as F
 from train_sop_compact_backbone import FIT_FRACTION, SPLIT_SEED, publish_file_noreplace, sha256
 
+import sfora.cutile_int8 as cutile_int8_module
 from sfora.cutile_int8 import CutilePackedInt8Gallery
 from sfora.inference_head import fold_eval_affine_head
 from sfora.joint_relational_compaction import pack_int8_unit_embeddings
 from sfora.representation_ceiling import deterministic_class_partition, fit_centered_pca
 
 SOP_ARCHIVE_SHA256 = "1ba27b2d6b9db39067aa6facd0ef8aafc303c4527f6feabed859b0512c7d921a"
-NATIVE_LIBRARY_SHA256 = "b7440d394724249647e681a966345f4fb6ce5f1902871137d9e19eefdc524318"
+NATIVE_LIBRARY_SHA256 = "39602d0e4e8b0d5ec441be460ad7f18e288241bef19fb6e6c5df14f4033ac73c"
+NATIVE_API_SHA256 = "b7c57022a836774d641a829e6aac71c1d547e3f71136f716d3c9aeeedad11409"
+BOOTSTRAP_DRAWS = 5000
+BOOTSTRAP_SEED = 179019
 STAGES = (
     "host_decode_preprocess_ns",
     "host_to_device_ns",
@@ -107,7 +111,7 @@ def call(
     paths: tuple[Path, ...],
     pca: object,
     gallery: CutilePackedInt8Gallery,
-) -> tuple[dict[str, int], str]:
+) -> tuple[dict[str, int], str, np.ndarray]:
     values, started, host_ready, device_ready, encoded, _ = encode_query(
         model, transform, paths
     )
@@ -125,7 +129,7 @@ def call(
         "image_to_topk_ns": finished - started,
     }
     digest = hashlib.sha256(ordinals.tobytes() + scores.tobytes()).hexdigest()
-    return timings, digest
+    return timings, digest, ordinals[:, 0].copy()
 
 
 def timing_summary(values: list[int]) -> dict[str, float]:
@@ -135,6 +139,26 @@ def timing_summary(values: list[int]) -> dict[str, float]:
         "p95_ms": float(np.quantile(array, 0.95) / 1e6),
         "p99_ms_diagnostic_only": float(np.quantile(array, 0.99) / 1e6),
         "mean_ms": float(np.mean(array) / 1e6),
+    }
+
+
+def paired_block_p50_ratio(original: list[int], fused: list[int]) -> dict[str, float | int]:
+    """One-sided paired-block bootstrap for the exact-fused/original median ratio."""
+
+    if len(original) != 100 or len(fused) != 100 or min(original + fused) <= 0:
+        raise ValueError("L/14 paired timing schedule differs")
+    baseline = np.asarray(original, dtype=np.int64).reshape(10, 10)
+    candidate = np.asarray(fused, dtype=np.int64).reshape(10, 10)
+    random = np.random.default_rng(BOOTSTRAP_SEED)
+    ratios = np.empty(BOOTSTRAP_DRAWS, dtype=np.float64)
+    for draw in range(BOOTSTRAP_DRAWS):
+        selected = random.integers(0, 10, size=10)
+        ratios[draw] = np.median(candidate[selected]) / np.median(baseline[selected])
+    return {
+        "point": float(np.median(candidate) / np.median(baseline)),
+        "upper_95": float(np.quantile(ratios, 0.95, method="higher")),
+        "draws": BOOTSTRAP_DRAWS,
+        "seed": BOOTSTRAP_SEED,
     }
 
 
@@ -155,12 +179,13 @@ def main() -> None:
     if (
         args.output.exists()
         or args.output.is_symlink()
-        or args.blocks < 2
-        or args.calls_per_block < 2
+        or args.blocks != 10
+        or args.calls_per_block != 10
         or not torch.cuda.is_available()
         or gpu_compute_pids()
         or sha256(args.sop_archive) != SOP_ARCHIVE_SHA256
         or sha256(args.native_library) != NATIVE_LIBRARY_SHA256
+        or sha256(Path(cutile_int8_module.__file__)) != NATIVE_API_SHA256
     ):
         raise ValueError("L/14 exact head paired benchmark invocation differs")
     started = time.perf_counter()
@@ -219,15 +244,26 @@ def main() -> None:
         raise ValueError("L/14 paired gallery inventory differs")
     with CutilePackedInt8Gallery.open_packed(args.native_library, packed_gallery) as gallery:
         gallery_torch_cuda_bytes = torch.cuda.memory_allocated()
-        native_ordinals, _native_scores = gallery.search_packed(source_codes)
-        scalar_ordinals = scalar_packed_topk(
-            source_codes.codes.numpy()[0],
-            source_codes.inverse_norms.numpy()[0],
-            packed_gallery.codes.numpy(),
-            packed_gallery.inverse_norms.numpy(),
+        scalar_by_arm: dict[str, np.ndarray] = {}
+        native_by_arm: dict[str, np.ndarray] = {}
+        for arm, codes in (("original", source_codes), ("exact_fused", fused_codes)):
+            scalar_by_arm[arm] = np.stack(
+                [
+                    scalar_packed_topk(
+                        codes.codes.numpy()[row],
+                        codes.inverse_norms.numpy()[row],
+                        packed_gallery.codes.numpy(),
+                        packed_gallery.inverse_norms.numpy(),
+                    )
+                    for row in range(32)
+                ]
+            )
+            native_by_arm[arm] = gallery.search_packed(codes)[0]
+            if not np.array_equal(native_by_arm[arm], scalar_by_arm[arm]):
+                raise ValueError(f"L/14 {arm} native packed top-k differs from scalar oracle")
+        top1_unchanged = bool(
+            np.array_equal(native_by_arm["original"][:, 0], native_by_arm["exact_fused"][:, 0])
         )
-        if not np.array_equal(native_ordinals[0], scalar_ordinals):
-            raise ValueError("L/14 native packed top-k differs from scalar ordinal oracle")
         timing: dict[str, object] = {}
         for batch_size in (1, 32):
             paths = query_paths[:batch_size]
@@ -248,7 +284,9 @@ def main() -> None:
                     order.append(name)
                     model.feature = head
                     for _ in range(args.calls_per_block):
-                        durations, result_hash = call(model, transform, paths, pca, gallery)
+                        durations, result_hash, top1 = call(model, transform, paths, pca, gallery)
+                        if not np.array_equal(top1, native_by_arm[name][:batch_size, 0]):
+                            raise ValueError("L/14 timed packed top-1 differs from oracle")
                         if name in first_hash and first_hash[name] != result_hash:
                             raise ValueError("L/14 packed top-k changed during replay")
                         first_hash[name] = result_hash
@@ -262,6 +300,10 @@ def main() -> None:
                     name: {stage: timing_summary(values) for stage, values in columns.items()}
                     for name, columns in samples.items()
                 },
+                "paired_block_p50_ratio": paired_block_p50_ratio(
+                    samples["original"]["image_to_topk_ns"],
+                    samples["exact_fused"]["image_to_topk_ns"],
+                ),
             }
             print(
                 json.dumps(
@@ -282,7 +324,7 @@ def main() -> None:
         raise ValueError("L/14 SOP query image content changed")
     assert_no_foreign_gpu_processes()
     result = {
-        "schema": "sfora-l14-exact-head-sop-train-image-to-topk-f0-v1",
+        "schema": "sfora-l14-exact-head-sop-train-image-to-topk-f0-v2",
         "claim_eligible": False,
         "p99_contract_satisfied": False,
         "split": (
@@ -304,8 +346,17 @@ def main() -> None:
         "pca128_fit_seconds": pca_fit_seconds,
         "pca128_mean_sha256": hashlib.sha256(pca.mean.numpy().tobytes()).hexdigest(),
         "pca128_components_sha256": hashlib.sha256(pca.components.numpy().tobytes()).hexdigest(),
-        "gallery_torch_cuda_allocated_bytes": gallery_torch_cuda_bytes,
-        "scalar_topk_query0_ordinals": scalar_ordinals.tolist(),
+        "gallery_torch_cuda_allocated_bytes_excludes_native": gallery_torch_cuda_bytes,
+        "scalar_topk_ordinals": {name: rows.tolist() for name, rows in scalar_by_arm.items()},
+        "native_topk_ordinals": {name: rows.tolist() for name, rows in native_by_arm.items()},
+        "top1_unchanged_32_queries": top1_unchanged,
+        "advance": bool(
+            top1_unchanged
+            and all(
+                timing[str(batch)]["paired_block_p50_ratio"]["upper_95"] < 1
+                for batch in (1, 32)
+            )
+        ),
         "timing": timing,
         "peak_cuda_allocated_bytes": torch.cuda.max_memory_allocated(),
         "peak_host_rss_bytes": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024,
@@ -319,6 +370,7 @@ def main() -> None:
             "checkpoint_sha256": sha256(args.checkpoint),
             "sop_archive_sha256": SOP_ARCHIVE_SHA256,
             "native_library_sha256": NATIVE_LIBRARY_SHA256,
+            "native_api_sha256": NATIVE_API_SHA256,
             "script_sha256": sha256(Path(__file__)),
         },
     }

@@ -1,0 +1,22 @@
+{
+  "schema": "sfora-l14-exact-head-image-to-topk-preregistration-v2",
+  "claim_eligible": false,
+  "source_script_sha256": "9c2bc6ddd0823a4af06984fb82e0834149a9419fd7db1758923647748cea6064",
+  "dataset": "Stanford Online Products official training images only; official test metadata validated but no official test image bytes decoded",
+  "sop_archive_sha256": "1ba27b2d6b9db39067aa6facd0ef8aafc303c4527f6feabed859b0512c7d921a",
+  "checkpoint_sha256": "3916ab5aed3b522fc90345be8b4457fe5dad60801ad2af5a6871c0c096e8d7ea",
+  "native_library_sha256": "39602d0e4e8b0d5ec441be460ad7f18e288241bef19fb6e6c5df14f4033ac73c",
+  "native_api_sha256": "b7c57022a836774d641a829e6aac71c1d547e3f71136f716d3c9aeeedad11409",
+  "split": "seed-179019 class-disjoint 90/10 split on SOP train identities; 32 evenly spaced holdout query images; all 59551 training archive rows except those 32 form the 59519-row gallery",
+  "shared_fit": "centered PCA-128 on normalized original L/14 fit-identity outputs only, held fixed across both query arms",
+  "arms": ["original L/14 query head", "exact affine-fold L/14 query head"],
+  "gallery": "one shared resident original-encoder 130-byte signed-int8 gallery; asymmetric query-path diagnostic, not a symmetric product claim",
+  "timing": "exactly 10 alternating blocks x 10 calls per arm at batch 1 and 32 after 5 warmups per arm; decode through released RC4 native packed top-10",
+  "decision": {
+    "statistic": "median of 100 full image-to-top-k calls for exact-fused divided by original, separately at batch 1 and 32",
+    "bootstrap": "5000 paired 10-call block resamples with replacement, seed 179019, 95th percentile with higher interpolation; one-sided upper 95% bound",
+    "advance": "upper bound < 1 at both batches and no native top-1 ordinal change among all 32 predeclared queries",
+    "oracle": "both arms, all 32 queries, full scalar signed-int8 scan with gallery-ordinal tie breaking, matched to native batch-32 output; timed batch-1 and batch-32 top-1 must match"
+  },
+  "prohibitions": ["no official test image bytes", "no rank or precision sweep", "no p99 certification from 100 calls", "no SOTA claim"]
+}
