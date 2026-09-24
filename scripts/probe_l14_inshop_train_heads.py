@@ -13,7 +13,6 @@ from collections import Counter
 from io import BytesIO
 from pathlib import Path
 
-import numpy as np
 import torch
 from evaluate_sop_cub_transfer import gpu_compute_pids
 from PIL import Image
@@ -27,11 +26,9 @@ from train_sop_compact_backbone import publish_file_noreplace, sha256
 from sfora.inference_head import fold_eval_affine_head
 from sfora.joint_relational_compaction import pack_int8_unit_embeddings
 from sfora.representation_ceiling import deterministic_class_partition, fit_centered_pca
-from sfora.unicom_audit_io import load_embedding_bundle
 from sfora.unicom_inshop import parse_inshop_partition
 
 PARTITION_SHA256 = "cfada103c44df866db5e2ee9ecc2301ca691a4d0cdb3c875fe4051b62570894c"
-SOURCE_ARCHIVE_SHA256 = "6eae13715e18d7eb99450bade5056538f8f08f1e9b550d0f24ee09e52bb25d0e"
 FIT_FRACTION = 0.9
 SPLIT_SEED = 179019
 
@@ -166,7 +163,7 @@ class VerifiedTrainImages(Dataset):
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
-    for name in ("unicom-checkout", "checkpoint", "inshop-root", "source-archive", "output"):
+    for name in ("unicom-checkout", "checkpoint", "inshop-root", "output"):
         parser.add_argument(f"--{name}", required=True, type=Path)
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument(
@@ -184,7 +181,6 @@ def main() -> None:
         or not torch.cuda.is_available()
         or gpu_compute_pids()
         or sha256(args.inshop_root / "Eval" / "list_eval_partition.txt") != PARTITION_SHA256
-        or sha256(args.source_archive) != SOURCE_ARCHIVE_SHA256
     ):
         raise ValueError("In-Shop L/14 head screen invocation differs")
     started = time.perf_counter()
@@ -192,16 +188,6 @@ def main() -> None:
     torch.backends.cuda.matmul.allow_tf32 = False
     all_records = parse_inshop_partition(args.inshop_root)
     train = tuple(row for row in all_records if row.split == "train")
-    source_archive = load_embedding_bundle(args.source_archive)
-    if (
-        source_archive.metadata["model_identifier"] != "UNICOM-ViT-L/14@336px"
-        or source_archive.metadata["checkpoint_sha256"]
-        != "3916ab5aed3b522fc90345be8b4457fe5dad60801ad2af5a6871c0c096e8d7ea"
-        or not np.array_equal(
-            source_archive.train_labels, np.asarray([row.label for row in train])
-        )
-    ):
-        raise ValueError("In-Shop L/14 source archive differs")
     counts = Counter(row.label for row in train)
     eligible_indexes = tuple(index for index, row in enumerate(train) if counts[row.label] >= 2)
     identities = {label: index for index, label in enumerate(sorted(counts))}
@@ -213,17 +199,13 @@ def main() -> None:
     validation_indexes = tuple(
         eligible_indexes[index] for index in partition.validation_row_indexes
     )
+    eligible_records = tuple(train[index] for index in eligible_indexes)
     selected = tuple(train[index] for index in validation_indexes)
     selected_labels = tuple(identities[row.label] for row in selected)
     query_indexes, gallery_indexes = split_query_gallery_rows(selected_labels)
-    manifest = b"".join(hashlib.sha256(row.image_path.read_bytes()).digest() for row in selected)
-    fit_features = torch.from_numpy(
-        np.ascontiguousarray(source_archive.train_embeddings[list(fit_indexes)]).copy()
+    manifest = b"".join(
+        hashlib.sha256(row.image_path.read_bytes()).digest() for row in eligible_records
     )
-    pca_started = time.perf_counter()
-    pca = fit_centered_pca(F.normalize(fit_features, dim=1), dimensions=128)
-    pca_fit_seconds = time.perf_counter() - pca_started
-    del fit_features
     model, transform = load_authenticated_l14(args.unicom_checkout, args.checkpoint)
     rank_first, spectral_energy = factorize_linear(model.feature[0], 512)
     model = model.cuda().eval()
@@ -235,7 +217,7 @@ def main() -> None:
     arms = {"original": source_head, "rank512": rank_head, "exact_fused": fused_head}
     assert_no_foreign_gpu_processes()
     loader = DataLoader(
-        VerifiedTrainImages(selected, transform, manifest),
+        VerifiedTrainImages(eligible_records, transform, manifest),
         batch_size=32,
         shuffle=False,
         num_workers=args.workers,
@@ -248,15 +230,20 @@ def main() -> None:
             flattened = model.forward_features(images.cuda(non_blocking=True))
             for name, head in arms.items():
                 encoded[name].append(head(flattened).float().cpu())
-    features = {name: torch.cat(parts).contiguous() for name, parts in encoded.items()}
-    if any(value.shape != (len(selected), 768) for value in features.values()):
+    encode_seconds = time.perf_counter() - encode_started
+    all_features = {name: torch.cat(parts).contiguous() for name, parts in encoded.items()}
+    if any(value.shape != (len(eligible_records), 768) for value in all_features.values()):
         raise ValueError("In-Shop L/14 encoded validation geometry differs")
-    archive_validation = torch.from_numpy(
-        np.ascontiguousarray(source_archive.train_embeddings[list(validation_indexes)]).copy()
-    )
-    archive_max_abs = float((features["original"] - archive_validation).abs().max())
-    if archive_max_abs > 1e-4:
-        raise ValueError(f"In-Shop source archive feature mismatch: {archive_max_abs}")
+    pca_started = time.perf_counter()
+    fit_features = all_features["original"][list(partition.fit_row_indexes)].contiguous()
+    pca = fit_centered_pca(F.normalize(fit_features, dim=1), dimensions=128)
+    pca_fit_seconds = time.perf_counter() - pca_started
+    fit_feature_sha256 = hashlib.sha256(fit_features.numpy().tobytes()).hexdigest()
+    features = {
+        name: values[list(partition.validation_row_indexes)].contiguous()
+        for name, values in all_features.items()
+    }
+    del all_features, fit_features
     exact_max_abs = float((features["original"] - features["exact_fused"]).abs().max())
     labels = torch.tensor(selected_labels, dtype=torch.int64, device="cuda")
     query_labels = labels[list(query_indexes)]
@@ -327,15 +314,14 @@ def main() -> None:
         "validation_labels": list(selected_labels),
         "query_indexes": query_indexes,
         "gallery_indexes": gallery_indexes,
-        "validation_image_manifest_sha256": hashlib.sha256(manifest).hexdigest(),
+        "eligible_train_image_manifest_sha256": hashlib.sha256(manifest).hexdigest(),
+        "fit_source_feature_sha256": fit_feature_sha256,
         "spectral_energy_fraction_rank512": spectral_energy,
         "pca128_fit_seconds": pca_fit_seconds,
         "pca128_mean_sha256": hashlib.sha256(pca.mean.numpy().tobytes()).hexdigest(),
         "pca128_components_sha256": hashlib.sha256(pca.components.numpy().tobytes()).hexdigest(),
-        "archive_validation_max_abs_difference": archive_max_abs,
         "exact_fused_max_abs_difference": exact_max_abs,
-        "encoding_seconds_all_arms_shared_trunk_including_decode": time.perf_counter()
-        - encode_started,
+        "encoding_seconds_all_arms_shared_trunk_including_decode": encode_seconds,
         "quality": results,
         "peak_cuda_allocated_bytes": torch.cuda.max_memory_allocated(),
         "peak_host_rss_bytes": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024,
@@ -348,7 +334,6 @@ def main() -> None:
         "inputs": {
             "checkpoint_sha256": sha256(args.checkpoint),
             "partition_sha256": PARTITION_SHA256,
-            "source_archive_sha256": SOURCE_ARCHIVE_SHA256,
             "source_sha256": sha256(Path(__file__)),
         },
     }
