@@ -88,6 +88,27 @@ not measured cache-build time or live image latency. The new
 [tail adapter](../src/sfora/unicom_tail_adapter.py) has two focused tests
 covering exact split parity and final-block-only gradients.
 
+The first full-cache builder's foreground SSH session terminated with exit
+143 after writing its `.npy` file. The process was confirmed gone and no
+kernel OOM message was found; the signal sender was not established. Its
+partial data were **not** accepted on file presence. A separately
+[preregistered finalizer](evidence/compact_metric/sop-b16-tail-cache-recovery-preregistration-v1.json)
+replayed **all 59,551 rows** through the authenticated frozen last block and
+head under durable user unit `sfora-b16-tail-cache-finalize-68a7500b.service`.
+The unit exited zero. The [raw recovery receipt](evidence/compact_metric/sop-b16-tail-cache-recovered-v1.json)
+has SHA-256 `acbdbbbf4d4ea6953740592779ca449b24b258eb909aacc8acf7f3d266599ca8`,
+matching the DGX original. The published float32 cache at
+`/home/riomus/runs/sfora-b16-tail-cache-bd0a21e2/prefix.npy` is
+35,856,371,840 bytes with independently rechecked SHA-256
+`f7835576efaf513c59895ba99eb4b839649df972f62aecbf674e9542a118b0d9`.
+The minimum normalized cosine to the authenticated 768-D source archive
+was **0.99999976**, maximum absolute descriptor difference `4.95e-7`.
+Finalization took 43.34 s, peaked at 1.11 GB PyTorch CUDA allocation and
+38.98 GB host RSS including mapped cache pages. Original image-encoding
+wall time and peak resources are incomplete because that session was
+terminated. The cached inputs support controlled training; they are not a
+serving benchmark.
+
 ## 24 September loss-design and label-audit gate
 
 The 50-pair [seeded SOP train audit](evidence/compact_metric/sop-label-twin-visual-audit-preregistration-v1.json)
