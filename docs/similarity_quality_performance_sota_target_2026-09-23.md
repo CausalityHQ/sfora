@@ -51,11 +51,18 @@ output, 336-pixel input, and 191.3 GFLOPs per image. Its ViT-B/16@224 has 12
 layers, width 768, 12 heads, 768-dimensional output, and 17.6 GFLOPs; Table
 4 reports 88.8% SOP Recall@1. These are full-width supervised models, so
 their quality numbers alone cannot establish an equal-storage comparison.
-The published In-Shop evaluator normalizes the 768-output vector, truncates
-to its first 512 coordinates without renormalizing, and ranks by Euclidean
-distance. Reproduce that scorer for its published-quality check rather than
-silently substituting 768-dimensional cosine. Audit the SOP reference code
-separately before specifying its scorer.
+The authenticated upstream `unicom/retrieval.py` at revision
+`d71992ed969e6c271436ac0a0ee1f3ca61474ac0` (SHA-256
+`35fcea34c35ce428ccbcf0af66a61b0f7deae6e77b1cfcc3867edd2f5e8d2071`)
+uses the same scorer for SOP and In-Shop: normalize the full 768-output
+vector, truncate to its first 512 coordinates without renormalizing, then
+rank by Euclidean distance. Its SOP leave-one-out path takes the second of
+the two nearest gallery rows to skip the query image itself. A local
+reproduction must explicitly exclude self and apply that normalized-prefix
+distance; full-width cosine can give a different ranking. Explicit self
+exclusion also makes exact-duplicate ties deterministic, while the upstream
+second-neighbor rule may select a different row on such ties. The paper
+reports Recall@K for this comparison; any local mAP@R is an additional metric.
 
 The current compact SOP system starts from OML's externally trained
 ViT-S/16@224, produces a normalized 384-dimensional descriptor, and applies

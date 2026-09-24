@@ -12,12 +12,21 @@ the local scores are exploratory product evidence.
 The published quality reference is the supervised UNICOM ViT-L/14 at 336 px:
 24 transformer layers, width 1024, 16 attention heads and a 768-dimensional
 output. Its reported 91.2% SOP and 96.7% In-Shop Recall@1 are dated reference
-gates, not a verified 2026 global frontier. We also compare with the official
-OML ViT-S/16 at 224 px, whose 384-dimensional float descriptor is a strong
-efficient local control, and with a native packed exact-search control for
-the serving component. A published number alone does not establish a paired
-speed comparison: we need the checkpoint and a protocol-matched run on the
-same machine.
+gates, not a verified 2026 global frontier. The authenticated upstream SOP
+scorer normalizes the full 768-dimensional output, keeps the first 512
+coordinates without a second normalization, and ranks by Euclidean distance
+with self excluded. The local
+[`score_symmetric`](../src/sfora/sop_evaluation.py) exposes this distinct
+reference path; its compact candidate path still scores the deployed code.
+For the 768-dimensional local control, that path scores its additional trained
+linear head; the checkpoint is selected on packed train-holdout mAP@R, not the
+upstream scorer. It is not an exact reproduction of UNICOM training. No new
+reference-quality measurement follows from adding the scorer. We also
+compare with the official OML ViT-S/16 at 224 px, whose 384-dimensional float
+descriptor is a strong efficient local control, and with a native packed
+exact-search control for the serving component. A published number alone does
+not establish a paired speed comparison: we need the checkpoint and a
+protocol-matched run on the same machine.
 
 The first learning-method screen uses the authenticated UNICOM ViT-B/16 at
 224 px (12 transformer layers, width 768, 12 heads) because training and
@@ -47,7 +56,7 @@ native and full image-to-top-k p50/p95/p99 at batch 1 and 32 on the same GPU.
 
 | Dataset and split | Model or system | Recall@1 | mAP@R | Gallery bytes/item | Image-to-top-k p99 | Status |
 | --- | --- | ---: | ---: | ---: | ---: | --- |
-| SOP official test, 60,502 self-retrieval queries | UNICOM ViT-L/14@336 | 91.2% | — | 768 f32 output before indexing | — | Published [UNICOM Table 4](https://arxiv.org/pdf/2304.05884); protocol audit pending |
+| SOP official test, 60,502 self-retrieval queries | UNICOM ViT-L/14@336 | 91.2% | — | 768 f32 output before indexing | — | Published [UNICOM Table 4](https://arxiv.org/pdf/2304.05884); scorer audited, checkpoint reproduction pending |
 | SOP official test, same queries | UNICOM ViT-B/16@224, pretrained float | 69.9812% | 0.420759 | 768 f32 before indexing | — | Exploratory reproduced pretrained checkpoint; no SOP fine-tuning |
 | SOP official test, same queries | Same B/16 with train-only PCA-128, float | 67.2903% | 0.393903 | 128 f32 before indexing | — | Exploratory projection control; [raw per-query result](evidence/compact_metric/unicom-b16-sop-pretrained-screen-v2.json) |
 | SOP official test, same queries | Same B/16 with train-only PCA-128 and int8 wire | 67.2325% | 0.393442 | 130 | — | Exploratory, no SOP fine-tuning; same raw result |

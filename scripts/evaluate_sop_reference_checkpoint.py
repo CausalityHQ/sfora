@@ -337,6 +337,15 @@ def main() -> None:
     float_started = time.perf_counter()
     float_score = score_symmetric(values.cuda(), label_tensor)
     float_score_seconds = time.perf_counter() - float_started
+    upstream_scorer_started = time.perf_counter()
+    upstream_scorer_score = (
+        score_symmetric(values.cuda(), label_tensor, prefix_euclidean_dimensions=512)
+        if width == 768
+        else None
+    )
+    upstream_scorer_score_seconds = (
+        time.perf_counter() - upstream_scorer_started if width == 768 else None
+    )
     packed_started = time.perf_counter()
     packed_score = score_symmetric(
         packed.codes.float().cuda(), label_tensor, inverse_norms=packed.inverse_norms.cuda()
@@ -374,11 +383,13 @@ def main() -> None:
         "test_image_ids": [record.image_id for record in records],
         "test_labels": labels,
         "float": float_score,
+        "local_float_upstream_scorer_prefix512_euclidean": upstream_scorer_score,
         "packed": packed_score,
         "gallery_bytes_per_item": width + 2,
         "encode_seconds": encode_seconds,
         "pack_seconds": pack_seconds,
         "float_score_seconds": float_score_seconds,
+        "local_float_upstream_scorer_seconds": upstream_scorer_score_seconds,
         "packed_score_seconds": packed_score_seconds,
         "total_seconds": time.perf_counter() - started,
         "peak_cuda_allocated_bytes": torch.cuda.max_memory_allocated(),
@@ -391,6 +402,7 @@ def main() -> None:
         },
         "inputs": {
             "source_checkpoint_sha256": CHECKPOINT_SHA256,
+            "upstream_retrieval_sha256": UPSTREAM_RETRIEVAL_SHA256,
             "selected_checkpoint_sha256": selected_checkpoint_digest,
             "training_receipt_sha256": {
                 str(receipt.get("updates", receipt.get("step"))): digest
