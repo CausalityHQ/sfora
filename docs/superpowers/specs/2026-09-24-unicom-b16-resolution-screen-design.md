@@ -71,6 +71,22 @@ native 224 and both 336 arms; retain separate decode, encoder, packing and
 search timings. The 10,000-call paired p99 certification is reserved for a
 quality candidate.
 
+The paired cost screen on DGX GB10 passed with the previously verified RC4
+native scorer and a complete CUDA 13.3 TileIR toolchain. On 32 fixed SOP
+TRAIN query images, batch-1 image-to-top-10 p50 was 13.920 ms (A),
+15.283 ms (B), 15.484 ms (C), and 36.816 ms (L/14@336); B/L/14 = 0.415.
+At batch 32 the p50 values were 195.183, 316.018, 304.351 and
+565.422 ms, respectively. The 130-byte gallery and fit-only PCA used for
+timing were shared across arms, so these are cost measurements only; L/14
+rankings have no quality meaning. Raw 30-call batch-1 and 10-call batch-32
+samples, stage timings and resource use are in
+`docs/evidence/compact_metric/sop-b16-resolution-cost-v1.json`. No p99 or
+throughput superiority is certified. A newer RC5 scorer binary could not
+complete this screen: isolated TileIR lacked NVVM, and the complete compiler
+spent over eight minutes on its batch-32 merge specialization before that
+diagnostic run was stopped. That startup issue needs a separate fix and does
+not change the matched RC4 cost ratio.
+
 ## Stage 1: matched learning screen if Stage 0 permits
 
 Run the same 1,000-update full-backbone ArcFace recipe for A, B and C,
