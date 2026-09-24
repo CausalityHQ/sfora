@@ -1,5 +1,6 @@
 """Authority checks for the selected trained-encoder timing replay."""
 
+import hashlib
 import importlib.util
 import sys
 from pathlib import Path
@@ -7,6 +8,12 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_paired_helper_pin_matches_replay_source() -> None:
+    subject = _subject()
+    helper = ROOT / "scripts/benchmark_sop_image_to_topk_pair.py"
+    assert hashlib.sha256(helper.read_bytes()).hexdigest() == subject.PAIR_HELPER_SHA256
 
 
 def _subject():
