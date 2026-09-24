@@ -1215,5 +1215,38 @@ intervals of **+0.7766 to +1.6670 percentage points** and **+0.033163 to
 unprojected holdout quality at this early step. Different head/proxy geometry
 also changed backbone training, so this comparison does not isolate a pure
 width effect or identify a superior final model. The selected step-48,000
-equal-byte check remains necessary; its feature export is queued behind the
-existing image-to-top-k stage split.
+equal-byte check remains necessary; its feature export started after the
+replacement image-to-top-k stage split completed.
+
+## Paired image-to-top-k stage attribution, 24 September
+
+The original queued stage-split watcher failed before timing: its launcher
+omitted `CUTILE_TILEIRAS_PATH` and the CuTile JIT tried to execute a
+`tileiras` command absent from `PATH`. The compiler binary existed and the
+separate exactness watcher had passed with its path pinned. The original
+watcher and dependent exporter both reached terminal `exit=1` with no
+benchmark output. A distinct v3 watcher pinned the compiler path and completed
+once; the dependent export was safely replaced by a distinct v2 watcher. No
+overlapping benchmark or feature export was started.
+
+The [v3 raw stage receipt](evidence/compact_metric/sop-compact128-b16-vs-oml-stage-split-v3.json)
+matches its DGX original at SHA-256
+`557728bbc20610a7d8ef155fc25268f8c9708f893c258c2d207488b704d6df16`.
+It compares the selected SOP-trained compact B/16 with the OML ViT-S/16 on
+the same SOP **training** query images and 59,519-row gallery, in AB/BA
+order, 50 calls per arm and batch shape. It is a diagnostic timing result, not
+a certified p99 or a matched-architecture quality comparison.
+
+| Batch | System | Image-to-top-k p50 | Host decode/preprocess p50 | Encoder/transfer p50 | Native search p50 | Image-to-top-k p99 diagnostic |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| 1 | SOP-trained B/16, 130 bytes/item | 12.124–12.263 ms | 5.335–5.514 ms | 6.265–6.268 ms | 0.294–0.295 ms | 16.819–17.306 ms |
+| 1 | OML S/16, 130 bytes/item | 5.918–5.926 ms | 1.704–1.810 ms | 3.207–3.222 ms | 0.262–0.265 ms | 7.625–12.969 ms |
+| 32 | SOP-trained B/16, 130 bytes/item | 199.440–204.133 ms | 147.871–151.381 ms | 48.484–48.516 ms | 0.498–0.504 ms | 218.395–218.619 ms |
+| 32 | OML S/16, 130 bytes/item | 192.751–196.264 ms | 138.765–142.900 ms | 47.164–47.226 ms | 0.507–0.512 ms | 211.640–215.023 ms |
+
+At batch one, both host image preprocessing and encoder execution account for
+the B/16 gap; packed search does not. At batch 32, preprocessing accounts for
+most of the remaining median gap. A kernel-only speedup cannot produce a joint
+image-to-result win here. The next serving change must target these measured
+stages while preserving descriptor quality and the exact preprocessing
+contract. The 10,000-call paired p99 gate remains unmet.
