@@ -237,6 +237,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--expected-official-receipt-sha256", required=True)
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--preflight-only", action="store_true")
+    parser.add_argument("--crossed-factorial", action="store_true")
     parser.add_argument("--execute-sop-cars-transfer", action="store_true", required=True)
     return parser.parse_args()
 
@@ -314,16 +315,40 @@ def main() -> None:
         pin_memory=True,
     )
     torch.cuda.reset_peak_memory_stats()
-    baseline_values, baseline_encode_seconds = encode_cars(
-        model, initial_head.cuda().eval(), loader
-    )
-    model.load_state_dict(trained["model"], strict=True)
+    initial_head = initial_head.cuda().eval()
+    baseline_values, baseline_encode_seconds = encode_cars(model, initial_head, loader)
     trained_head = nn.Linear(768, 128)
     trained_head.load_state_dict(trained["head"], strict=True)
-    trained_values, trained_encode_seconds = encode_cars(model, trained_head.cuda().eval(), loader)
+    trained_head = trained_head.cuda().eval()
+    pretrained_trained_head_values = None
+    trained_initial_head_values = None
+    cross_encode_seconds: dict[str, float] = {}
+    if args.crossed_factorial:
+        pretrained_trained_head_values, cross_encode_seconds["pretrained_trained_head"] = (
+            encode_cars(model, trained_head, loader)
+        )
+    model.load_state_dict(trained["model"], strict=True)
+    if args.crossed_factorial:
+        trained_initial_head_values, cross_encode_seconds["trained_initial_head"] = encode_cars(
+            model, initial_head, loader
+        )
+    trained_values, trained_encode_seconds = encode_cars(model, trained_head, loader)
     labels = torch.tensor([label for _, _, label in rows], dtype=torch.int64, device="cuda")
     results: dict[str, dict[str, Mapping[str, object]]] = {}
-    for name, values in (("pretrained_initial_head", baseline_values), ("trained", trained_values)):
+    feature_arrays = {"baseline": baseline_values.numpy(), "trained": trained_values.numpy()}
+    arms = [("pretrained_initial_head", baseline_values), ("trained", trained_values)]
+    if args.crossed_factorial:
+        assert pretrained_trained_head_values is not None
+        assert trained_initial_head_values is not None
+        arms.extend(
+            (
+                ("pretrained_trained_head", pretrained_trained_head_values),
+                ("trained_initial_head", trained_initial_head_values),
+            )
+        )
+        feature_arrays["pretrained_trained_head"] = pretrained_trained_head_values.numpy()
+        feature_arrays["trained_initial_head"] = trained_initial_head_values.numpy()
+    for name, values in arms:
         packed = pack_int8_unit_embeddings(values)
         results[name] = {
             "float": score_symmetric(values.cuda(), labels),
@@ -340,8 +365,7 @@ def main() -> None:
     def write_features(stream: BinaryIO) -> None:
         np.savez(
             stream,
-            baseline=baseline_values.numpy(),
-            trained=trained_values.numpy(),
+            **feature_arrays,
             labels=np.asarray([label for _, _, label in rows], dtype=np.int64),
             source_rows=np.asarray(
                 [(0 if split == "train" else 1, index) for split, index, _ in rows],
@@ -351,7 +375,11 @@ def main() -> None:
         )
 
     receipt = {
-        "schema": "sfora-sop-cars-transfer-v1",
+        "schema": (
+            "sfora-sop-cars-backbone-head-factorial-v2"
+            if args.crossed_factorial
+            else "sfora-sop-cars-transfer-v1"
+        ),
         "claim_eligible": False,
         "protocol": (
             "Cars196 classes 98-195 across original train and test images; "
@@ -365,6 +393,7 @@ def main() -> None:
         "results": results,
         "pretrained_encode_seconds": baseline_encode_seconds,
         "trained_encode_seconds": trained_encode_seconds,
+        **({"cross_encode_seconds": cross_encode_seconds} if args.crossed_factorial else {}),
         "preflight_seconds": preflight_seconds,
         "inference_and_scoring_seconds": time.perf_counter() - inference_started,
         "total_seconds": time.perf_counter() - started_all,
@@ -396,8 +425,10 @@ def main() -> None:
             "fit_row_indexes_sha256": final["fit_row_indexes_sha256"],
             "features_sha256": "",
             "feature_array_sha256": {
-                "baseline": hashlib.sha256(baseline_values.numpy().tobytes()).hexdigest(),
-                "trained": hashlib.sha256(trained_values.numpy().tobytes()).hexdigest(),
+                **{
+                    name: hashlib.sha256(values.tobytes()).hexdigest()
+                    for name, values in feature_arrays.items()
+                },
                 "labels": hashlib.sha256(
                     np.asarray([label for _, _, label in rows], dtype="<i8").tobytes()
                 ).hexdigest(),

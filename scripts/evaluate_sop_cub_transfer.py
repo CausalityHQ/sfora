@@ -271,6 +271,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--expected-official-receipt-sha256", required=True)
     parser.add_argument("--workers", type=int, default=8)
     parser.add_argument("--preflight-only", action="store_true")
+    parser.add_argument("--crossed-factorial", action="store_true")
     parser.add_argument("--execute-sop-cub-transfer", action="store_true", required=True)
     return parser.parse_args()
 
@@ -357,14 +358,38 @@ def main() -> None:
     )
     torch.cuda.reset_peak_memory_stats()
     baseline_values, baseline_encode_seconds = encode_cub(model, initial_head, loader)
-    model.load_state_dict(trained["model"], strict=True)
     trained_head = nn.Linear(768, 128)
     trained_head.load_state_dict(trained["head"], strict=True)
     trained_head = trained_head.cuda().eval()
+    pretrained_trained_head_values = None
+    trained_initial_head_values = None
+    cross_encode_seconds: dict[str, float] = {}
+    if args.crossed_factorial:
+        pretrained_trained_head_values, cross_encode_seconds["pretrained_trained_head"] = (
+            encode_cub(model, trained_head, loader)
+        )
+    model.load_state_dict(trained["model"], strict=True)
+    if args.crossed_factorial:
+        trained_initial_head_values, cross_encode_seconds["trained_initial_head"] = encode_cub(
+            model, initial_head, loader
+        )
     trained_values, trained_encode_seconds = encode_cub(model, trained_head, loader)
     labels = torch.tensor([record.label for record in selected], dtype=torch.int64, device="cuda")
     results: dict[str, dict[str, Mapping[str, object]]] = {}
-    for name, values in (("pretrained_initial_head", baseline_values), ("trained", trained_values)):
+    feature_arrays = {"baseline": baseline_values.numpy(), "trained": trained_values.numpy()}
+    arms = [("pretrained_initial_head", baseline_values), ("trained", trained_values)]
+    if args.crossed_factorial:
+        assert pretrained_trained_head_values is not None
+        assert trained_initial_head_values is not None
+        arms.extend(
+            (
+                ("pretrained_trained_head", pretrained_trained_head_values),
+                ("trained_initial_head", trained_initial_head_values),
+            )
+        )
+        feature_arrays["pretrained_trained_head"] = pretrained_trained_head_values.numpy()
+        feature_arrays["trained_initial_head"] = trained_initial_head_values.numpy()
+    for name, values in arms:
         packed = pack_int8_unit_embeddings(values)
         float_score = score_symmetric(values.cuda(), labels)
         packed_score = score_symmetric(
@@ -380,15 +405,18 @@ def main() -> None:
     def write_features(stream: BinaryIO) -> None:
         np.savez(
             stream,
-            baseline=baseline_values.numpy(),
-            trained=trained_values.numpy(),
+            **feature_arrays,
             labels=np.asarray([record.label for record in selected], dtype=np.int64),
             image_ids=np.asarray([record.image_id for record in selected], dtype=np.int64),
             manifest_sha256=np.asarray(hashlib.sha256(manifest).hexdigest()),
         )
 
     receipt = {
-        "schema": "sfora-sop-cub-transfer-v1",
+        "schema": (
+            "sfora-sop-cub-backbone-head-factorial-v2"
+            if args.crossed_factorial
+            else "sfora-sop-cub-transfer-v1"
+        ),
         "claim_eligible": False,
         "protocol": "CUB classes 101-200 test self retrieval; no CUB model fitting",
         "selected_sop_step": official["selection_step"],
@@ -400,6 +428,7 @@ def main() -> None:
         "results": results,
         "pretrained_encode_seconds": baseline_encode_seconds,
         "trained_encode_seconds": trained_encode_seconds,
+        **({"cross_encode_seconds": cross_encode_seconds} if args.crossed_factorial else {}),
         "preflight_seconds": preflight_seconds,
         "inference_and_scoring_seconds": time.perf_counter() - started,
         "total_seconds": time.perf_counter() - started_all,
@@ -424,8 +453,10 @@ def main() -> None:
             "cub_test_manifest_sha256": hashlib.sha256(manifest).hexdigest(),
             "features_sha256": "",
             "feature_array_sha256": {
-                "baseline": hashlib.sha256(baseline_values.numpy().tobytes()).hexdigest(),
-                "trained": hashlib.sha256(trained_values.numpy().tobytes()).hexdigest(),
+                **{
+                    name: hashlib.sha256(values.tobytes()).hexdigest()
+                    for name, values in feature_arrays.items()
+                },
                 "labels": hashlib.sha256(
                     np.asarray([record.label for record in selected], dtype="<i8").tobytes()
                 ).hexdigest(),
