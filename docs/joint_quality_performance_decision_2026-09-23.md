@@ -131,11 +131,22 @@ The loss is largest among products with fewer positive images:
 | 4–5 | 1,356 | 83.4808% | 69.9115% | 184 |
 | 6–12 | 3,490 | 86.0172% | 72.4069% | 475 |
 
+The ratio of large-gallery to small-gallery **miss rates** is 1.83, 1.86,
+1.82 and 1.97 respectively across these bands. The larger percentage-point
+loss for two-image products is therefore not evidence by itself that training
+underweights them: their baseline miss rate is already higher, and each query
+has fewer distinct positive gallery images. A class-size weighting arm needs a
+matched control and a separate positive-coverage diagnosis.
+
 This identifies a large
 gallery-size effect for one pretrained encoder; it does **not** measure the
 effect for the 48k trained encoder or prove the remaining official-test
 distribution shift is zero. A size-matched trained-encoder diagnosis remains
-necessary before changing its learning objective.
+necessary before changing its learning objective. The fit-identity distractors
+were seen during trained-model learning, so a 59,551-row replay with them is a
+labelled diagnostic bracket, not an unbiased unseen-identity checkpoint
+selector. An unseen-only holdout curve or a separate class-disjoint pilot is
+needed for that selection decision.
 
 The independent [STIR paper](https://arxiv.org/pdf/2304.13393) reports
 88.3% SOP and 95.0% In-Shop Recall@1 for a ViT-S/16 system with a symmetric
