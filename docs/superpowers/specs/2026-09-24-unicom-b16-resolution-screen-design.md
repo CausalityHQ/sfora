@@ -97,6 +97,27 @@ files remain on DGX and are pinned by the
 receipt. Full-gallery and holdout retrieval scoring is a separate job; these
 extraction times are not training times or retrieval quality.
 
+The frozen [TRAIN-only quality receipt](../../evidence/compact_metric/sop-b16-resolution-train-quality-v1.json)
+completed on DGX GB10. Each 128-D PCA is fitted on the same 53,700 fit
+images using that arm's features. The 5,851 holdout queries cover 1,132
+disjoint products; their full TRAIN gallery contains 59,551 images. No SOP
+TEST image or label entered this screen.
+
+| Arm | Float holdout R@1 / mAP@R | Packed holdout R@1 / mAP@R | Packed full TRAIN gallery R@1 |
+| --- | ---: | ---: | ---: |
+| A, B/16@224 | 84.0882% / 0.591994 | 82.0543% / 0.565342 | 66.9458% |
+| B, B/16@336 native detail | 83.9002% / 0.583520 | 81.8834% / 0.559022 | 67.2706% |
+| C, B/16@336 upsampled 224 | 83.7293% / 0.584377 | 82.1227% / 0.557262 | 66.7920% |
+
+B minus A packed full-gallery R@1 is +0.3247 percentage points with
+paired product bootstrap 95% interval [−0.5671, +1.2193]; B minus C is
++0.4786 points [−0.2943, +1.2500]. Both intervals include zero. B minus A
+packed holdout mAP@R is −0.006320 [−0.012531, −0.000326]. Frozen native
+detail thus has no established quality gain and a holdout ranking loss.
+Stage 0's predeclared stopping conditions were latency and source parity;
+this frozen result is diagnostic for the matched learning screen, not a
+reason to select B on SOP quality.
+
 ## Stage 1: matched learning screen if Stage 0 permits
 
 Run the same 1,000-update full-backbone ArcFace recipe for A, B and C,
