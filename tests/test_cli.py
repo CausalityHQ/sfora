@@ -93,7 +93,7 @@ def test_foundation_screen_command_forwards_explicit_authorities(
             "allow_registered_test_read": True,
         }
     ]
-    assert str(report) in result.output
+    assert str(report) in result.output.replace("\n", "")
 
 
 def test_foundation_screen_command_reports_no_clobber_without_changing_destination(

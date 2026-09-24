@@ -20,16 +20,19 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-3d7c47.svg)](LICENSE)
 -->
 
-**SFORA** (Polish: *a hound pack* 🐕) is a research deep-metric-learning library for
-zero-shot image retrieval, built around **strictly provenance-tracked reproductions**
-of published method×dataset recipes — every run pinned to a cryptographic digest of
-its recipe, so a comparison cannot silently drift.
+**SFORA** (Polish: *a hound pack* 🐕) is a neural vector-space similarity
+learning and retrieval library. Its goal is to train better embeddings and serve
+their nearest neighbors faster as one measured system. The current research
+release provides compact descriptors, an exact packed scorer, and reproducible
+training and evaluation; it has not yet established a new quality and
+performance state of the art.
 
-That machinery is the point. It caught two real confounds that had each produced a
-published-looking result: a **LayerNorm** mismatch between a method and its own
-control, and a **BatchNorm** mismatch between an EMA teacher and its student.
+Training recipes and comparisons carry cryptographic provenance so experiments
+can be reproduced without silent protocol drift. This caught a **LayerNorm**
+mismatch between a method and its control and a **BatchNorm** mismatch between
+an EMA teacher and its student.
 
-> ## Current status (2026-09-21) — verified compact retrieval, no SOTA claim
+> ## Current status (2026-09-24) — verified compact retrieval, no SOTA claim
 >
 > SFORA 0.3 ships two evidence-backed components: a fit-only compact-metric
 > selector with a PCA fallback, and an exact persistent cuTile scorer for its
@@ -40,6 +43,14 @@ control, and a **BatchNorm** mismatch between an EMA teacher and its student.
 > beating matched Faiss OPQ128x8 mAP@R by `0.008026` while trading `-0.000492`
 > Recall@1 against that OPQ arm. CUB remains a measured null and correctly falls
 > back to PCA; the method is not presented as a universal quality improvement.
+>
+> A one-seed, SOP-trained UNICOM ViT-B/16 compact control reached 86.4715%
+> Recall@1 and 0.651811 mAP@R on the official SOP test split at 130 bytes per
+> image. The local OML ViT-S/16 compact control reached 85.9757% and 0.641825;
+> the published full-width UNICOM ViT-L/14@336 reference reports 91.2%
+> Recall@1. The [SOP receipt](docs/evidence/compact_metric/sop-reference-arcface-seed179019-official-test-v1.json)
+> makes the comparison auditable. The trained B/16 control establishes a
+> reproducible comparison, not a novel quality-leading learning method.
 >
 > At one million gallery rows on NVIDIA GB10, the persistent packed scorer
 > returned exact deterministic top-10 results at batch-1 p50/p99

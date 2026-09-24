@@ -77,6 +77,7 @@ native and full image-to-top-k p50/p95/p99 at batch 1 and 32 on the same GPU.
 | --- | --- | ---: | ---: | ---: | ---: | --- |
 | SOP official test, 60,502 self-retrieval queries | UNICOM ViT-L/14@336 | 91.2% | — | 768 f32 output before indexing | — | Published [UNICOM Table 4](https://arxiv.org/pdf/2304.05884); scorer audited, checkpoint reproduction pending |
 | SOP official test, same protocol | UNICOM ViT-B/16@224, full width | 88.8% | — | 768 f32 output before indexing | — | Published [UNICOM Table 4](https://arxiv.org/pdf/2304.05884); no local fine-tuned checkpoint reproduction |
+| SOP official test, same protocol | UNICOM-pretrained ViT-B/16 + ArcFace + TCM, full width | 89.1% | — | 768 f32 output before indexing | — | Published [ICLR 2024 Table 10](https://proceedings.iclr.cc/paper_files/paper/2024/file/16336d94a5ffca8de019087ab7fe403f-Paper-Conference.pdf); same backbone family, different loss and storage budget; no local reproduction |
 | SOP official test, same queries | UNICOM ViT-B/16@224, pretrained float | 69.9812% | 0.420759 | 768 f32 before indexing | — | Exploratory reproduced pretrained checkpoint; no SOP fine-tuning |
 | SOP official test, same queries | Same B/16 with train-only PCA-128, float | 67.2903% | 0.393903 | 128 f32 before indexing | — | Exploratory projection control; [raw per-query result](evidence/compact_metric/unicom-b16-sop-pretrained-screen-v2.json) |
 | SOP official test, same queries | Same B/16 with train-only PCA-128 and int8 wire | 67.2325% | 0.393442 | 130 | — | Exploratory, no SOP fine-tuning; same raw result |
