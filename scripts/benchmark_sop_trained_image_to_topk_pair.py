@@ -24,7 +24,6 @@ import sop_teacher_anchored_runtime as teacher_module
 import torch
 from benchmark_sop_image_to_topk_pair import (
     NATIVE_API_SHA256,
-    NATIVE_LIBRARY_SHA256,
     OML_CHECKPOINT_SHA256,
     OML_FEATURES_SHA256,
     TEST_IMAGE_MANIFEST_SHA256,
@@ -61,6 +60,7 @@ SOURCE_CHECKPOINT_SHA256 = "c04f324f7c3b4435667236ec6c0eca1cd62f9d64fbfc2d06f8e8
 EVALUATOR_SHA256 = "af66d5e38ef722688307ed6255e4db9def415baaae18401bb5acf1afaea9e28c"
 PAIR_HELPER_SHA256 = "9b0ee9cbdae09a16350b7edfefcc239f34a68c50745a8e33f4a9655ad122827a"
 PAIR_LATENCY_SHA256 = "ada676f60096f90551450d463bfeeba168bab8689c1f433b58aed43bbb85c325"
+TRAINED_NATIVE_LIBRARY_SHA256 = "8be7f837c065df11103ea62396674c7b9770cd5a7a90dcb216327a1f2143df42"
 OML_HEAD_SHA256 = "07e6e0f38dae4d509fe1e27b10aa650acda1f08d799faa025793cf7686a78cd4"
 OML_QUALITY_SHA256 = "780805d2a090a6faa048cd3b5ba39c1a692fc494641bbfa987f509c9a9f7193c"
 CERTIFIED_BLOCKS = 20
@@ -462,7 +462,7 @@ def main() -> None:
         args.oml_checkpoint: OML_CHECKPOINT_SHA256,
         args.oml_quality_receipt: OML_QUALITY_SHA256,
         args.source_checkpoint: SOURCE_CHECKPOINT_SHA256,
-        args.native_library: NATIVE_LIBRARY_SHA256,
+        args.native_library: TRAINED_NATIVE_LIBRARY_SHA256,
         Path(cutile_int8_module.__file__): NATIVE_API_SHA256,
         root / "scripts/benchmark_sop_image_to_topk_pair.py": PAIR_HELPER_SHA256,
         root / "scripts/paired_latency_certification.py": PAIR_LATENCY_SHA256,

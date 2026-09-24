@@ -2,6 +2,7 @@
 
 import hashlib
 import importlib.util
+import json
 import sys
 from pathlib import Path
 
@@ -14,6 +15,22 @@ def test_paired_helper_pin_matches_replay_source() -> None:
     subject = _subject()
     helper = ROOT / "scripts/benchmark_sop_image_to_topk_pair.py"
     assert hashlib.sha256(helper.read_bytes()).hexdigest() == subject.PAIR_HELPER_SHA256
+
+
+def test_trained_replay_native_pin_matches_its_prior_paired_receipt() -> None:
+    subject = _subject()
+    receipt = json.loads(
+        (
+            ROOT
+            / "docs/evidence/compact_metric/sop-trained-b16-vs-oml-paired-image-to-topk-bm1-v2.json"
+        ).read_text()
+    )
+    library_hashes = {
+        digest
+        for path, digest in receipt["inputs"].items()
+        if path.endswith("/libsfora_cutile_int8_score.so")
+    }
+    assert library_hashes == {subject.TRAINED_NATIVE_LIBRARY_SHA256}
 
 
 def _subject():
