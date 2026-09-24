@@ -1,0 +1,12 @@
+{
+  "schema": "sfora-sop-label-twin-visual-audit-preregistration-v1",
+  "claim_eligible": false,
+  "script_sha256": "659f2e191f8a988403e77894b475a30e1d8b33a4ae39651246d745021e6b9655",
+  "census_sha256": "71909711f5bab9f8d79350fae91441318020f01cfc8a079ea344dac4b20997a1",
+  "population": "436 SOP official TRAIN queries newly wrong after adding fit-identity gallery rows",
+  "sampling": "50 distinct query slots selected without replacement by NumPy PCG64 seed 179019, then sorted; all pair images are official TRAIN rows",
+  "question": "Are different product labels on these newly wrong pairs often visually the same physical item despite different image bytes?",
+  "review_categories": ["same physical product likely", "different physical product likely", "uncertain from images"],
+  "interpretation": "manual images can suggest label conflicts but cannot prove product identity or a training-method gain; preserve uncertain calls and do not silently relabel the benchmark",
+  "prohibitions": ["no official test image bytes", "no training", "no SOTA claim"]
+}
