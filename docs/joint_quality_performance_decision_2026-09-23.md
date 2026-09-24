@@ -76,14 +76,34 @@ native and full image-to-top-k p50/p95/p99 at batch 1 and 32 on the same GPU.
 | Dataset and split | Model or system | Recall@1 | mAP@R | Gallery bytes/item | Image-to-top-k p99 | Status |
 | --- | --- | ---: | ---: | ---: | ---: | --- |
 | SOP official test, 60,502 self-retrieval queries | UNICOM ViT-L/14@336 | 91.2% | — | 768 f32 output before indexing | — | Published [UNICOM Table 4](https://arxiv.org/pdf/2304.05884); scorer audited, checkpoint reproduction pending |
+| SOP official test, same protocol | UNICOM ViT-B/16@224, full width | 88.8% | — | 768 f32 output before indexing | — | Published [UNICOM Table 4](https://arxiv.org/pdf/2304.05884); no local fine-tuned checkpoint reproduction |
 | SOP official test, same queries | UNICOM ViT-B/16@224, pretrained float | 69.9812% | 0.420759 | 768 f32 before indexing | — | Exploratory reproduced pretrained checkpoint; no SOP fine-tuning |
 | SOP official test, same queries | Same B/16 with train-only PCA-128, float | 67.2903% | 0.393903 | 128 f32 before indexing | — | Exploratory projection control; [raw per-query result](evidence/compact_metric/unicom-b16-sop-pretrained-screen-v2.json) |
 | SOP official test, same queries | Same B/16 with train-only PCA-128 and int8 wire | 67.2325% | 0.393442 | 130 | — | Exploratory, no SOP fine-tuning; same raw result |
 | SOP official test, same queries | Same B/16 full-backbone trained, selected packed-rank 128-D | 81.2221% | 0.562186 | 130 | — | Exploratory one-seed result selected on train-identity holdout; [per-query receipt](evidence/compact_metric/sop-full-backbone-packed-rank-official-test-seed179019-1000-v1.json) |
+| SOP official test, same queries | B/16@224 full-backbone ArcFace, 48k train-selected, packed 128-D | 86.4715% | 0.651811 | 130 | pending | Exploratory one-seed reference-like control; [raw per-query receipt](evidence/compact_metric/sop-reference-arcface-seed179019-official-test-v1.json) |
 | SOP official test, same queries | OML ViT-S/16@224 + Sfora compact profile | 85.9757% | 0.641825 | 130 | — | Exploratory, packed representation; [raw profile](evidence/compact_metric/oml-vits16-sop-packed-profile-verification-v1.json) |
 | In-Shop official query/gallery | UNICOM ViT-L/14@336 | 96.7% | — | 768 f32 output before indexing | — | Published [UNICOM Table 4](https://arxiv.org/pdf/2304.05884); evaluator uses normalized prefix-512 Euclidean |
 | In-Shop official query/gallery | UNICOM ViT-L/14@336 + Sfora compact profile | 95.4283% | 0.800020 | 130 | — | Exploratory, [local result](compact_metric_selector_result_2026-09-19.md) |
 | In-Shop official 14,218-query/12,612-gallery split | OML ViT-S/16@224, raw 384-D Euclidean | 92.0945% | 0.685148 | 1536 as f32 | — | Exploratory local reproduction of the published 92.1% control; [raw receipt](evidence/compact_metric/oml-vits16-inshop-baseline-v1.json) |
+
+The one-time selected B/16 SOP official receipt has SHA-256
+`d2e25fc66ce22df71d8dbeeff04330a26b2f55cdc1cf3ebcbaddba6bcae55629`.
+Its float descriptor scored 86.4633% Recall@1 and 0.651951 mAP@R, so
+signed-byte packing did not cause the large quality shortfall. It binds the
+48,000-update checkpoint SHA-256
+`a337acf9fff0b789ad305a2241da469202f9448580bb90ef373570c74c615cbd`
+and completed one-time official test claim. The OML feature archive's
+60,502 test IDs and labels exactly match this receipt's order. Relative to
+the 130-byte OML packed control, paired product-clustered 10,000-resample
+bootstraps (PCG64 seed 179019; 11,316 test products) give +0.496 percentage
+points Recall@1 (95% interval +0.217 to +0.781) and +0.009986 mAP@R
+(+0.006721 to +0.013331). This is a cross-encoder system comparison,
+not a matched learning-method ablation. The candidate remains below the
+published full-width B/16 88.8% reference and L/14 91.2% gate. Its 95.20%
+train-identity holdout therefore did not predict official-test quality;
+the next run must diagnose representation width and generalization before a
+new learning-method claim.
 
 The independent [STIR paper](https://arxiv.org/pdf/2304.13393) reports
 88.3% SOP and 95.0% In-Shop Recall@1 for a ViT-S/16 system with a symmetric
