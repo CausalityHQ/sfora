@@ -1,5 +1,40 @@
 # Joint quality and performance decision, first training-code gate
 
+## 24 September L/14 exact-head image-to-top-10 screen
+
+The corrected [v2 preregistration](evidence/compact_metric/l14-exact-head-image-to-topk-preregistration-v2.json)
+pins the released RC4 native scorer, both-arm all-query scalar oracle, and
+one-sided paired-block p50 rule. The [raw DGX receipt](evidence/compact_metric/l14-exact-head-sop-image-to-topk-f0-v2.json)
+has SHA-256 `7da728567a8560fa8c53d5822b17165083aea1bedd235b3330ac88bb2b0e5638`,
+matching the remote original. The run exited zero in 146.97 s on the DGX GB10.
+It used authenticated pretrained UNICOM L/14@336, 32 deterministic images
+from a class-disjoint **SOP training** holdout, and one fixed 59,519-row
+gallery of original-encoder 128-D signed-int8 descriptors at 130 bytes/item.
+The centered PCA-128 was fitted on the other 90% of SOP train identities;
+both query arms used that same map and gallery. No official test image bytes
+were decoded. This is an asymmetric query-path diagnostic, not a symmetric
+product-quality comparison.
+
+| SOP train, image decode through packed top-10 | Original p50 / p95 | Exact fold p50 / p95 | Fused/original p50 | Paired-block upper 95% ratio |
+| --- | ---: | ---: | ---: | ---: |
+| Batch 1, 100 calls/arm | 38.374 / 41.185 ms | 36.441 / 39.215 ms | 0.94964 | 0.95855 |
+| Batch 32, 100 calls/arm | 565.858 / 580.728 ms | 559.822 / 573.561 ms | 0.98933 | 0.99480 |
+
+The preregistered 5,000-resample paired 10-call-block bootstrap, seed
+179019, passes its upper-bound-below-one rule at both batch sizes. Original
+and folded descriptors differed by at most `8.345e-7`; all 32 packed query
+codes, inverse norms, and ordered top-10 results were identical. Both arms'
+native 32-query top-10 outputs matched a full scalar gallery scan, and
+every timed top-1 matched its oracle. The 7,737,470-byte gallery used the
+released RC4 binary SHA-256 `39602d0e…`, not the rejected RC5 pilot.
+Peak PyTorch CUDA allocation was 7.86 GB, excluding native allocations;
+peak host RSS was 11.06 GB. The 100-call p99 values in the raw receipt are
+diagnostic only. **Advance the exact fold** to a symmetric-gallery quality
+check and a 10,000-call paired p99/scaling panel. The 0.6% batch-32 median
+gain is small, so that longer panel must establish practical benefit before
+calling this a production serving improvement. This execution-preserving
+head transform is not a new similarity-learning method or a quality gain.
+
 ## 24 September official-standard In-Shop train-only head gate
 
 The [preregistered rule](evidence/compact_metric/l14-inshop-train-heads-preregistration-v1.json)
