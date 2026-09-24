@@ -1,0 +1,15 @@
+{
+  "schema": "sfora-l14-inshop-train-heads-preregistration-v1",
+  "claim_eligible": false,
+  "source_script_sha256": "746fb57db89f552f7910e6f3aa47becbc9e90de46b5cdeaf4d5587d49432fa53",
+  "dataset": "DeepFashion In-Shop official train identities only",
+  "partition_sha256": "cfada103c44df866db5e2ee9ecc2301ca691a4d0cdb3c875fe4051b62570894c",
+  "source_archive_sha256": "6eae13715e18d7eb99450bade5056538f8f08f1e9b550d0f24ee09e52bb25d0e",
+  "checkpoint_sha256": "3916ab5aed3b522fc90345be8b4457fe5dad60801ad2af5a6871c0c096e8d7ea",
+  "split": "exclude singleton train identities, class-disjoint 90/10 split at seed 179019; alternate original-order images within each validation identity into gallery then query",
+  "arms": ["original", "rank512", "exact_fused"],
+  "shared_projection": "centered PCA-128 fitted only on normalized original L/14 fit-identity embeddings and held fixed across all three arms",
+  "scorers": ["full_float_cosine", "upstream_prefix512_euclidean", "full_packed_cosine_770_bytes", "pca128_packed_cosine_130_bytes"],
+  "advancement_rule": "Rank512 is eligible for a full-pipeline screen only if its class-bootstrap 95% lower bound versus original is at least -0.002 Recall@1 for both the 130-byte packed and upstream-prefix scorers; exact_fused requires maximum absolute descriptor difference no more than 0.000005 and no material retrieval regression. This is a train-only diagnostic gate, not a SOTA claim.",
+  "prohibitions": ["no official query/gallery image bytes", "no projection refit by arm", "no selection from CUB or Cars transfer outcomes", "no p99 or SOTA claim from this screen"]
+}
