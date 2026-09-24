@@ -102,7 +102,10 @@ The production path is `rust/sfora-cutile-int8-score/src/topk.rs`: it uses
 128-row score blocks, a retained width of 10, a 16-lane local output tile, and
 a 2048-wide merge tile. It masks padded rows and selects the lowest ordinal
 on equal finite scores. `src/wire.rs` rejects non-finite or non-positive packed
-inverse norms, and the 128-term signed-byte dot product is bounded. The scalar
+inverse norms. `signed_byte_dot_128_fits_i32` bounds the full 128-term
+signed-byte dot product by 2²¹ in magnitude, including `-128` inputs; this
+fits the kernel's i32 accumulator. The Rust scalar oracle accumulates into i64
+because its public packed-row constructor accepts wider descriptors. The scalar
 oracle uses `total_cmp` while the kernel uses float equality for ties; their
 ordering agreement also relies on finite scores without signed-zero
 differences. The Lean model does not verify the Rust/Cutile source,

@@ -1,6 +1,9 @@
 import Mathlib.Data.Finset.Sort
 import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 import Mathlib.Algebra.Order.BigOperators.Group.Finset
+import Mathlib.Data.Real.Basic
+import Mathlib.Tactic.NormNum
+import Mathlib.Tactic.Linarith
 
 namespace SforaProofs
 
@@ -31,6 +34,36 @@ theorem gallery_rows_lt_i32_sentinel (rows : ℕ)
     rows < 2147483647 := by
   have hcover := rows_le_blockCount_mul rows 128 (by omega)
   omega
+
+/-- A full 128-coordinate signed-byte dot product fits in a signed 32-bit
+accumulator, even when either input contains `-128`. -/
+theorem signed_byte_dot_128_fits_i32 (query gallery : Fin 128 → ℤ)
+    (hq : ∀ i, |query i| ≤ 128) (hg : ∀ i, |gallery i| ≤ 128) :
+    -(2147483648 : ℤ) ≤ ∑ i, query i * gallery i ∧
+      ∑ i, query i * gallery i ≤ 2147483647 := by
+  have hterm (i : Fin 128) :
+      -(16384 : ℤ) ≤ query i * gallery i ∧
+        query i * gallery i ≤ 16384 := by
+    have hq0 := abs_nonneg (query i)
+    have hg0 := abs_nonneg (gallery i)
+    have hmul1 := mul_nonneg (sub_nonneg.mpr (hq i)) hg0
+    have hmul2 := mul_nonneg (by norm_num : (0 : ℤ) ≤ 128)
+      (sub_nonneg.mpr (hg i))
+    have habs : |query i * gallery i| ≤ 16384 := by
+      rw [abs_mul]
+      nlinarith
+    exact abs_le.mp habs
+  have hl : (∑ _i : Fin 128, -(16384 : ℤ)) ≤
+      ∑ i : Fin 128, query i * gallery i := by
+    apply Finset.sum_le_sum
+    intro i _
+    exact (hterm i).1
+  have hu : (∑ i : Fin 128, query i * gallery i) ≤
+      ∑ _i : Fin 128, (16384 : ℤ) := by
+    apply Finset.sum_le_sum
+    intro i _
+    exact (hterm i).2
+  constructor <;> simp at hl hu ⊢ <;> omega
 
 /-- Every block emits at most `k` candidates, including the short tail block. -/
 theorem candidate_count_le (blocks k : ℕ) (emitted : Fin blocks → ℕ)

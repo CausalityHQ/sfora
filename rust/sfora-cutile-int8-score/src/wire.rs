@@ -70,8 +70,8 @@ pub fn scalar_scores(
             let dot = query
                 .iter()
                 .zip(gallery_values)
-                .map(|(&left, &right)| i32::from(left) * i32::from(right))
-                .sum::<i32>();
+                .map(|(&left, &right)| i64::from(left) * i64::from(right))
+                .sum::<i64>();
             scores.push((dot as f32) * query_norm * gallery.inverse_norms[gallery_row].to_f32());
         }
     }
@@ -110,6 +110,19 @@ mod tests {
         assert_eq!(
             observed[1].to_bits(),
             ((negative_dot as f32) * 0.5 * 0.125).to_bits()
+        );
+    }
+
+    #[test]
+    fn scalar_score_handles_valid_width_beyond_i32_dot_range() {
+        let dimensions = 131_072;
+        let codes = vec![-128; dimensions];
+        let queries = packed(&codes, &[1.0], 1, dimensions);
+        let gallery = packed(&codes, &[1.0], 1, dimensions);
+
+        assert_eq!(
+            scalar_scores(&queries, &gallery).unwrap(),
+            vec![2_147_483_648.0]
         );
     }
 
