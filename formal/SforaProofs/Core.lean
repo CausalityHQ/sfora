@@ -3,6 +3,7 @@ import Mathlib.Data.Finset.Sort
 import Mathlib.Data.Prod.Lex
 import Mathlib.Algebra.Order.BigOperators.Group.Finset
 import Mathlib.Algebra.Order.Field.Basic
+import Mathlib.Data.Real.Basic
 import Mathlib.Tactic.Linarith
 
 namespace SforaProofs
@@ -312,6 +313,56 @@ theorem robust_mem_topK_approx {f g : ι → β} {ε : β} {S : Finset ι} {k : 
       ≤ ((topK f S k).erase x).card := Finset.card_le_card hsub
     _ < (topK f S k).card := Finset.card_erase_lt_of_mem hxT
     _ ≤ k := by rw [card_topK]; exact min_le_left _ _
+
+/-- If an ideal positive scores more than `2ε` above every negative, every
+    observed top-1 result is positive. Other positives may outrank the witness.
+    This is a label-recall guarantee, rather than exact-neighbor stability. -/
+theorem top1_label_correct_of_positive_margin {ι : Type*} [LinearOrder ι]
+    (S : Finset ι) (ideal observed : ι → ℝ) (positive : ι → Prop)
+    (ε : ℝ) (hε : ErrWithin ideal observed ε S)
+    (x : ι) (hx : x ∈ S) (hxPositive : positive x)
+    (hmargin : ∀ y ∈ S, ¬ positive y → ideal y + ε + ε < ideal x) :
+    ∀ z ∈ topK observed S 1, positive z := by
+  intro z hz
+  by_cases hzx : z = x
+  · simpa [hzx] using hxPositive
+  by_contra hzNegative
+  have hzS : z ∈ S := topK_subset observed S 1 hz
+  have hobs : observed z < observed x := by
+    have hxLower := (hε.2 x hx).1
+    have hzUpper := (hε.2 z hzS).2
+    linarith [hmargin z hzS hzNegative]
+  have hbeats : beats observed x z := (beats_iff observed x z).2 (Or.inl hobs)
+  have hfilter : x ∈ S.filter (fun y => beats observed y z) :=
+    Finset.mem_filter.mpr ⟨hx, hbeats⟩
+  have hcard : 0 < (S.filter (fun y => beats observed y z)).card :=
+    Finset.card_pos.mpr ⟨x, hfilter⟩
+  have htop := (mem_topK.mp hz).2
+  omega
+
+noncomputable section
+open Classical
+/-- On a finite query panel, count queries with a positive witness whose ideal
+    score clears every negative by `2ε`. Pointwise score-error certificates
+    make this a lower bound on observed top-1 label hits. The premise must be
+    checked for the deployed scorer and the actual query/gallery rows. -/
+theorem certified_queries_le_top1_hits {Q ι : Type*} [DecidableEq Q] [LinearOrder ι]
+    (queries : Finset Q) (gallery : Q → Finset ι)
+    (ideal observed : Q → ι → ℝ) (positive : Q → ι → Prop) (ε : Q → ℝ)
+    (herror : ∀ q ∈ queries, ErrWithin (ideal q) (observed q) (ε q) (gallery q)) :
+    (queries.filter (fun q => ∃ x ∈ gallery q, positive q x ∧
+      ∀ y ∈ gallery q, ¬ positive q y → ideal q y + ε q + ε q < ideal q x)).card ≤
+    (queries.filter (fun q => ∀ z ∈ topK (observed q) (gallery q) 1,
+      positive q z)).card := by
+  classical
+  apply Finset.card_le_card
+  intro q hq
+  obtain ⟨hqSet, x, hx, hxPositive, hmargin⟩ := Finset.mem_filter.mp hq
+  apply Finset.mem_filter.mpr
+  exact ⟨hqSet, top1_label_correct_of_positive_margin
+    (gallery q) (ideal q) (observed q) (positive q) (ε q)
+    (herror q hqSet) x hx hxPositive hmargin⟩
+end
 
 /-- Recall (hits) is at least the number of robust winners. -/
 theorem card_robust_le_hits {f g : ι → β} {ε : β} {S : Finset ι} {k : ℕ}
