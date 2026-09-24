@@ -969,3 +969,24 @@ CLI import, and paired-score checks against the actual step-32,000 receipts;
 it has **not** run on step-48,000 trained features. The compact 48,000-update
 checkpoint was selected using this same holdout, so the eventual matched-step
 comparison remains exploratory and will disclose that selection.
+
+The independent local CPU serving check used the authenticated 59,551-image
+SOP **train** feature archive as one gallery, with normalized 128-coordinate
+prefix and 768-coordinate pretrained descriptors. The 128-D prefix is a
+width-only timing control, not a trained compact quality candidate. Both arms
+used the same exact packed scorer, gallery order, k=10, four CPU threads on a
+four-vCPU Neoverse-V2, 25 warmups and 200 timed calls per cell. A stable full
+sort agreed with the production selector on four sampled queries at each
+width.
+
+| CPU packed search | Gallery bytes | Batch-1 p50 / p95 | Batch-32 p50 / p95 | Pack time |
+| --- | ---: | ---: | ---: | ---: |
+| 128-D timing control | 7,741,630 | 1.214 / 2.383 ms | 22.727 / 32.107 ms | 0.066 s |
+| 768-D pretrained | 45,854,270 | 4.656 / 33.245 ms | 48.632 / 59.558 ms | 0.978 s |
+
+The [raw 200-call receipt](evidence/compact_metric/sop-pretrained-cpu-packed-width-cost-v1.json)
+records every duration, source and script hashes, RSS, and hardware. The wider
+descriptor costs 5.92 times the persistent gallery bytes and, in this CPU
+check, 3.84 times the batch-1 median search latency. The p95 variation and
+200-call p99 are diagnostic; neither arm includes image encoding, and this
+does not replace the pending DGX full-pipeline and CuTile measurements.
