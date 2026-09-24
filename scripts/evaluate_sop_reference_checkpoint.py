@@ -377,6 +377,9 @@ def main() -> None:
             for receipt in receipts
         },
         "seed": selection.receipt["seed"],
+        "train_transform_mode": final.get("train_transform_mode", "timm"),
+        "train_transform_sha256": inputs["train_transform_sha256"],
+        "upstream_transform_source_sha256": inputs.get("upstream_transform_source_sha256"),
         "embedding_width": width,
         "test_images": len(records),
         "test_classes": len(set(labels)),

@@ -124,3 +124,16 @@ def test_rejects_checkpoint_from_another_run_even_if_bytes_match(tmp_path: Path)
     candidates[0] = (alternate, candidates[0][1])
     with pytest.raises(ValueError, match="run checkpoint path"):
         select_reference_checkpoint(candidates, source_manifest=SOURCE)
+
+
+def test_origin_clip_run_requires_source_transform_digest_at_every_step(tmp_path: Path):
+    candidates = [_candidate(tmp_path, step, 0.7, 0.9) for step in STEPS]
+    for _, receipt in candidates:
+        receipt["train_transform_mode"] = "origin_clip"
+        source = receipt["inputs"] if receipt["schema"].endswith("full-backbone-v1") else receipt
+        source["upstream_transform_source_sha256"] = "a" * 64
+    assert select_reference_checkpoint(candidates, source_manifest=SOURCE).step == STEPS[0]
+
+    del candidates[0][1]["upstream_transform_source_sha256"]
+    with pytest.raises(ValueError, match="source transform"):
+        select_reference_checkpoint(candidates, source_manifest=SOURCE)

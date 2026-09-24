@@ -58,3 +58,30 @@ def test_reference_augmentation_produces_normalized_224_pixel_images():
     output = transform(image)
     assert output.shape == (3, 224, 224)
     assert bool(torch.isfinite(output).all())
+
+
+def test_origin_clip_training_uses_authenticated_source_transform():
+    image = Image.new("RGB", (300, 280), color=(127, 90, 40))
+    seen = []
+
+    def upstream_transform(value: Image.Image) -> torch.Tensor:
+        seen.append(value.size)
+        return torch.full((3, 224, 224), 7.0)
+
+    transform = reference_train_transform(
+        224, mode="origin_clip", source_transform=upstream_transform
+    )
+
+    assert transform is upstream_transform
+    assert torch.equal(transform(image), torch.full((3, 224, 224), 7.0))
+    assert seen == [(300, 280)]
+
+
+def test_origin_clip_training_requires_authenticated_source_transform():
+    with pytest.raises(ValueError, match="authenticated source transform"):
+        reference_train_transform(224, mode="origin_clip")
+
+
+def test_origin_clip_training_rejects_wrong_image_size():
+    with pytest.raises(ValueError, match="origin_clip image size"):
+        reference_train_transform(336, mode="origin_clip", source_transform=lambda image: image)

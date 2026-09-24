@@ -99,9 +99,10 @@ def select_reference_checkpoint(
                 or receipt.get("selection_checkpoint_steps") != list(REFERENCE_STEPS)
             ):
                 raise ValueError("complete reference run differs")
+            final_inputs = receipt.get("inputs")
             checkpoint_digest = (
-                receipt["inputs"].get("checkpoint_output_sha256")
-                if isinstance(receipt.get("inputs"), Mapping)
+                final_inputs.get("checkpoint_output_sha256")
+                if isinstance(final_inputs, Mapping)
                 else None
             )
         else:
@@ -114,6 +115,23 @@ def select_reference_checkpoint(
         if not checkpoint.is_file() or _sha256(checkpoint) != checkpoint_digest:
             raise ValueError("reference checkpoint digest differs")
         source_inputs = _provenance(receipt, final)
+        transform_mode = receipt.get("train_transform_mode", "timm")
+        source = receipt.get("inputs") if final else receipt
+        source_transform_digest = (
+            source.get("upstream_transform_source_sha256") if isinstance(source, Mapping) else None
+        )
+        if (
+            transform_mode not in ("timm", "origin_clip")
+            or (
+                transform_mode == "origin_clip"
+                and (
+                    not isinstance(source_transform_digest, str)
+                    or len(source_transform_digest) != 64
+                )
+            )
+            or (transform_mode == "timm" and source_transform_digest is not None)
+        ):
+            raise ValueError("reference source transform differs")
         if source_inputs[_SOURCE_KEYS.index("source_sha256")] != dict(source_manifest):
             raise ValueError("reference training source differs")
         if any(
@@ -141,6 +159,8 @@ def select_reference_checkpoint(
             receipt.get("validation_row_indexes_sha256"),
             tuple(ids),
             tuple(labels),
+            transform_mode,
+            source_transform_digest,
             source_inputs,
         )
         if baseline_inventory is None:
@@ -148,7 +168,12 @@ def select_reference_checkpoint(
         elif inventory != baseline_inventory:
             raise ValueError("matched training inventory differs")
         try:
-            packed = receipt["validation"]["packed"]
+            validation = receipt["validation"]
+            if not isinstance(validation, Mapping):
+                raise TypeError
+            packed = validation["packed"]
+            if not isinstance(packed, Mapping):
+                raise TypeError
             map_at_r = packed["map_at_r"]
             recall = packed["recall_at_1"]
         except (KeyError, TypeError):

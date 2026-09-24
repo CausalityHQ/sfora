@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+from copy import deepcopy
 from pathlib import Path
 
 import numpy as np
@@ -52,3 +53,25 @@ def test_real_holdout_receipts_require_the_same_products_and_recomputed_metrics(
     later["validation_labels"][0] += 1
     with pytest.raises(ValueError, match="SOP holdout pairing differs"):
         MODULE.analyze(earlier, later, seed=7, replicates=32)
+
+
+def test_transform_control_rejects_unmatched_source_or_schedule() -> None:
+    evidence = Path(__file__).parents[1] / "docs/evidence/compact_metric"
+    timm = json.loads((evidence / "sop-reference-arcface-seed179019-step8000-v1.json").read_text())
+    origin = deepcopy(timm)
+    origin["train_transform_mode"] = "origin_clip"
+    origin["train_transform_sha256"] = "b" * 64
+    origin["upstream_transform_source_sha256"] = "c" * 64
+    origin["source_sha256"]["scripts/train_sop_compact_backbone.py"] = "d" * 64
+    origin["source_sha256"]["src/sfora/sop_reference_recipe.py"] = "e" * 64
+    audited = MODULE.audit_transform_control(timm, origin, replicates=32)
+    assert audited["step"] == 8000
+    assert audited["metrics"]["recall_at_1"]["point"] == 0
+    changed_schedule = deepcopy(origin)
+    changed_schedule["schedule_sha256"] = "f" * 64
+    with pytest.raises(ValueError, match="control pairing"):
+        MODULE.audit_transform_control(timm, changed_schedule, replicates=32)
+    changed_scorer = deepcopy(origin)
+    changed_scorer["source_sha256"]["src/sfora/sop_evaluation.py"] = "f" * 64
+    with pytest.raises(ValueError, match="control source"):
+        MODULE.audit_transform_control(timm, changed_scorer, replicates=32)

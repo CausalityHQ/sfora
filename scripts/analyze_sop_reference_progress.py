@@ -30,6 +30,12 @@ PAIRED_FIELDS = (
     "validation_image_ids",
     "validation_labels",
 )
+TRANSFORM_CONTROL_FIELDS = tuple(
+    key for key in PAIRED_FIELDS if key not in ("source_sha256", "train_transform_sha256")
+) + ("embedding_width",)
+TRANSFORM_SOURCE_FILES = frozenset(
+    {"scripts/train_sop_compact_backbone.py", "src/sfora/sop_reference_recipe.py"}
+)
 
 
 def sha256(path: Path) -> str:
@@ -135,27 +141,113 @@ def analyze(
     }
 
 
+def audit_transform_control(
+    timm: dict[str, object],
+    origin: dict[str, object],
+    *,
+    seed: int = 179019,
+    replicates: int = 10_000,
+) -> dict[str, object]:
+    """Compare paired holdout queries only after the control contract passes."""
+    if (
+        timm.get("schema") != "sfora-sop-compact-training-diagnostic-v1"
+        or origin.get("schema") != timm["schema"]
+        or timm.get("train_transform_mode", "timm") != "timm"
+        or origin.get("train_transform_mode") != "origin_clip"
+        or timm.get("train_transform_sha256") == origin.get("train_transform_sha256")
+        or timm.get("upstream_transform_source_sha256") is not None
+        or not isinstance(origin.get("upstream_transform_source_sha256"), str)
+        or len(origin["upstream_transform_source_sha256"]) != 64
+        or timm.get("step") != origin.get("step")
+        or timm.get("arm") != "arcface"
+        or timm.get("recipe") != "reference"
+        or any(timm.get(key) != origin.get(key) for key in TRANSFORM_CONTROL_FIELDS)
+    ):
+        raise ValueError("SOP transform control pairing differs")
+    first_source, second_source = timm.get("source_sha256"), origin.get("source_sha256")
+    if (
+        not isinstance(first_source, dict)
+        or not isinstance(second_source, dict)
+        or first_source.keys() != second_source.keys()
+        or {key for key in first_source if first_source[key] != second_source[key]}
+        - TRANSFORM_SOURCE_FILES
+        or not TRANSFORM_SOURCE_FILES.issubset(first_source)
+    ):
+        raise ValueError("SOP transform control source differs")
+    labels = np.asarray(timm["validation_labels"], dtype=np.int64)
+    if len(labels) != 5851 or len(np.unique(labels)) != 1132:
+        raise ValueError("SOP transform control inventory differs")
+    for receipt in (timm, origin):
+        for metric in ("r1", "ap"):
+            _metric(receipt, metric, len(labels))
+    metrics = {}
+    for name, label in (("r1", "recall_at_1"), ("ap", "map_at_r")):
+        delta = _metric(origin, name, len(labels)) - _metric(timm, name, len(labels))
+        metrics[label] = {
+            **product_bootstrap(delta, labels, seed=seed, replicates=replicates),
+            "queries_gained": int(np.count_nonzero(delta > 0)),
+            "queries_lost": int(np.count_nonzero(delta < 0)),
+            "queries_unchanged": int(np.count_nonzero(delta == 0)),
+        }
+    return {
+        "step": timm["step"],
+        "seed": timm["seed"],
+        "query_count": len(labels),
+        "product_count": len(np.unique(labels)),
+        "source_files_differing": sorted(
+            key for key in first_source if first_source[key] != second_source[key]
+        ),
+        "matched_fields": [*TRANSFORM_CONTROL_FIELDS],
+        "delta_direction": "origin_clip minus timm",
+        "bootstrap_seed": seed,
+        "bootstrap_replicates": replicates,
+        "resampling_unit": "product identity with all original queries",
+        "metrics": metrics,
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(allow_abbrev=False)
-    parser.add_argument("--earlier", type=Path, required=True)
-    parser.add_argument("--later", type=Path, required=True)
+    parser.add_argument("--earlier", type=Path)
+    parser.add_argument("--later", type=Path)
+    parser.add_argument("--timm", type=Path)
+    parser.add_argument("--origin-clip", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--seed", type=int, default=179019)
     parser.add_argument("--replicates", type=int, default=10_000)
     parser.add_argument("--execute-sop-reference-progress", action="store_true", required=True)
     args = parser.parse_args()
-    result = analyze(
-        json.loads(args.earlier.read_text()),
-        json.loads(args.later.read_text()),
-        seed=args.seed,
-        replicates=args.replicates,
-    )
+    progress = args.earlier is not None and args.later is not None
+    control = args.timm is not None and args.origin_clip is not None
+    if (
+        progress == control
+        or (progress and (args.timm or args.origin_clip))
+        or (control and (args.earlier or args.later))
+    ):
+        parser.error("select exactly one SOP holdout analysis")
+    if progress:
+        result = analyze(
+            json.loads(args.earlier.read_text()),
+            json.loads(args.later.read_text()),
+            seed=args.seed,
+            replicates=args.replicates,
+        )
+        inputs = {"earlier_sha256": sha256(args.earlier), "later_sha256": sha256(args.later)}
+        schema = "sfora-sop-reference-holdout-progress-v1"
+    else:
+        result = audit_transform_control(
+            json.loads(args.timm.read_text()),
+            json.loads(args.origin_clip.read_text()),
+            seed=args.seed,
+            replicates=args.replicates,
+        )
+        inputs = {"timm_sha256": sha256(args.timm), "origin_clip_sha256": sha256(args.origin_clip)}
+        schema = "sfora-sop-reference-transform-control-audit-v1"
     receipt = {
-        "schema": "sfora-sop-reference-holdout-progress-v1",
+        "schema": schema,
         "claim_eligible": False,
         "inputs": {
-            "earlier_sha256": sha256(args.earlier),
-            "later_sha256": sha256(args.later),
+            **inputs,
             "script_sha256": sha256(Path(__file__)),
         },
         **result,
@@ -167,7 +259,7 @@ def main() -> None:
         stream.write(payload)
         stream.flush()
         os.fsync(stream.fileno())
-    print(json.dumps(result["metrics"], sort_keys=True))
+    print(json.dumps(result.get("metrics", result), sort_keys=True))
 
 
 if __name__ == "__main__":

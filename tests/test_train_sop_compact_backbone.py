@@ -50,3 +50,33 @@ def test_compact_holdout_keeps_existing_metric_inventory() -> None:
     result = MODULE.score_validation_features(values, (0, 0, 1, 1))
 
     assert set(result) == {"float", "packed"}
+
+
+def test_origin_clip_transform_requires_reference_recipe(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    command = [
+        str(SCRIPT),
+        "--dataset-root",
+        str(tmp_path / "dataset"),
+        "--unicom-checkout",
+        str(tmp_path / "unicom"),
+        "--checkpoint",
+        str(tmp_path / "source.pt"),
+        "--features-archive",
+        str(tmp_path / "features.npz"),
+        "--arm",
+        "arcface",
+        "--reference-transform",
+        "origin_clip",
+        "--checkpoint-output",
+        str(tmp_path / "trained.pt"),
+        "--receipt-output",
+        str(tmp_path / "trained.json"),
+        "--execute-sop-compact-training",
+    ]
+    monkeypatch.setattr(sys, "argv", command)
+    with pytest.raises(SystemExit, match="2"):
+        MODULE.parse_args()
+    monkeypatch.setattr(sys, "argv", command + ["--recipe", "reference"])
+    assert MODULE.parse_args().reference_transform == "origin_clip"

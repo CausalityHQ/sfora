@@ -30,6 +30,29 @@ released pretrained checkpoint and its archived features cannot serve as the
 identified in the pinned upstream model loader; a faithful local runtime
 comparison still requires an authenticated supervised checkpoint or a
 documented reproduction of its fine-tuning recipe.
+The pinned upstream SOP launch scripts pass `--transform origin_clip`, which
+reuses the authenticated model's deterministic resize/center-crop transform
+for training. The current Sfora B/16 ArcFace runs instead use timm random
+crop, RandAugment and random erasing. That is a real training-recipe difference,
+not an explanation proven to cause the observed quality gap. The trainer now
+offers an explicit `--reference-transform origin_clip` control; its default
+remains `timm`, and the chosen mode and source transform digest are recorded in
+new receipts. A future run must compare the two modes on the same SOP train
+identities, architecture, projection width, seed, schedule and packed scorer
+before attributing any difference to augmentation. It would remain a Sfora
+control because the sampler, head and model-selection rule still differ from
+upstream UNICOM.
+The control will be chosen, if run, by the already-frozen train-identity
+holdout packed mAP@R rule, with packed Recall@1 and earlier step as ties. A
+cross-arm audit must verify identical seed, fit/holdout rows, schedule, width,
+source checkpoint, objective and deployed scorer; only the transform and its
+source-code hashes may differ. The existing SOP official test has already
+been observed, and evaluating a second transform there would remain
+exploratory, not a clean confirmation or a basis for selecting the arm.
+The `analyze_sop_reference_progress.py --timm ... --origin-clip ...` control
+audit rejects mismatched diagnostic receipts, including changes in the frozen
+train split, schedule, seed, width, or scorer source; it does not turn a
+single-seed contrast into an algorithmic gain claim.
 For the 768-dimensional local control, that path scores its additional trained
 linear head; the checkpoint is selected on packed train-holdout mAP@R, not the
 upstream scorer. It is not an exact reproduction of UNICOM training. No new

@@ -50,6 +50,9 @@ CHECKPOINT_SHA256 = "c04f324f7c3b4435667236ec6c0eca1cd62f9d64fbfc2d06f8e8e60e649
 ARCHIVE_SHA256 = "16b4554d3868363905f1e1cd385783a8033513835723a7b89f4b762d893d757f"
 UPSTREAM_RETRIEVAL_SHA256 = "35fcea34c35ce428ccbcf0af66a61b0f7deae6e77b1cfcc3867edd2f5e8d2071"
 UPSTREAM_SOP_B16_LAUNCH_SHA256 = "f7dae3c3a97d18630a4a57cb73cf747e773b49a6b69cd0f9bd58297129c90ac8"
+UPSTREAM_VISION_TRANSFORMER_SHA256 = (
+    "9f707ce7734c4df6d0a05895e514671211fe346d03d03758a59cb998ae8684a8"
+)
 FIT_FRACTION = 0.9
 SPLIT_SEED = 179019
 BATCH_SIZE = 128
@@ -253,6 +256,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=179019)
     parser.add_argument("--updates", type=int)
     parser.add_argument("--recipe", choices=("screen", "reference"), default="screen")
+    parser.add_argument("--reference-transform", choices=("timm", "origin_clip"))
     parser.add_argument("--embedding-width", type=int, choices=(128, 768), default=128)
     parser.add_argument("--workers", type=int, default=8)
     parser.add_argument("--checkpoint-output", type=Path, required=True)
@@ -265,8 +269,11 @@ def parse_args() -> argparse.Namespace:
         or args.workers < 0
         or args.checkpoint_output.exists()
         or args.receipt_output.exists()
+        or (args.reference_transform is not None and args.recipe != "reference")
     ):
         parser.error("SOP compact training invocation differs")
+    if args.reference_transform is None:
+        args.reference_transform = "timm"
     return args
 
 
@@ -381,11 +388,32 @@ def main() -> None:
     train_dataset = IndexedImages(
         tuple(record.image_path for record in fit_records),
         tuple(class_index[label] for label in fit_labels),
-        reference_train_transform() if args.recipe == "reference" else make_train_transform(),
+        (
+            reference_train_transform(
+                mode=args.reference_transform,
+                source_transform=(
+                    authenticated.transform if args.reference_transform == "origin_clip" else None
+                ),
+            )
+            if reference
+            else make_train_transform()
+        ),
     )
-    train_transform_sha256 = hashlib.sha256(
-        repr(train_dataset.transform).encode("utf-8")
-    ).hexdigest()
+    upstream_transform_source = args.unicom_checkout / "unicom" / "unicom" / "vision_transformer.py"
+    upstream_transform_source_sha256 = (
+        sha256(upstream_transform_source) if args.reference_transform == "origin_clip" else None
+    )
+    if (
+        upstream_transform_source_sha256 is not None
+        and upstream_transform_source_sha256 != UPSTREAM_VISION_TRANSFORMER_SHA256
+    ):
+        raise ValueError("authenticated upstream origin_clip transform differs")
+    transform_identity = (
+        f"origin_clip:224:{upstream_transform_source_sha256}"
+        if args.reference_transform == "origin_clip"
+        else repr(train_dataset.transform)
+    )
+    train_transform_sha256 = hashlib.sha256(transform_identity.encode("utf-8")).hexdigest()
     train_loader = DataLoader(
         train_dataset,
         batch_sampler=FixedBatches(batches),
@@ -539,6 +567,10 @@ def main() -> None:
                 and (
                     sha256(upstream_retrieval) != upstream_retrieval_sha256
                     or sha256(upstream_launch) != upstream_launch_sha256
+                    or (
+                        upstream_transform_source_sha256 is not None
+                        and sha256(upstream_transform_source) != upstream_transform_source_sha256
+                    )
                 )
             ):
                 raise ValueError("SOP compact source changed during training")
@@ -550,6 +582,7 @@ def main() -> None:
                 "scaler": scaler.state_dict(),
                 "scheduler": scheduler.state_dict(),
                 "recipe": args.recipe,
+                "train_transform_mode": args.reference_transform if reference else "screen",
                 "embedding_width": args.embedding_width,
                 "resumable": False,
                 "arm": args.arm.value,
@@ -571,6 +604,7 @@ def main() -> None:
                         "claim_eligible": False,
                         "resumable": False,
                         "recipe": args.recipe,
+                        "train_transform_mode": args.reference_transform if reference else "screen",
                         "embedding_width": args.embedding_width,
                         "arm": args.arm.value,
                         "seed": args.seed,
@@ -595,7 +629,10 @@ def main() -> None:
                         "upstream_retrieval_sha256": upstream_retrieval_sha256,
                         "upstream_launch_sha256": upstream_launch_sha256,
                         "train_transform_sha256": train_transform_sha256,
-                        "timm_version": version("timm"),
+                        "upstream_transform_source_sha256": upstream_transform_source_sha256,
+                        "timm_version": version("timm")
+                        if args.reference_transform == "timm"
+                        else None,
                         "sop_train_metadata_sha256": sha256(args.dataset_root / "Ebay_train.txt"),
                         "checkpoint_sha256": sha256(diagnostic_checkpoint),
                     },
@@ -637,6 +674,7 @@ def main() -> None:
                 "scaler": scaler.state_dict(),
                 "scheduler": scheduler.state_dict() if scheduler is not None else None,
                 "recipe": args.recipe,
+                "train_transform_mode": args.reference_transform if reference else "screen",
                 "embedding_width": args.embedding_width,
                 "arm": args.arm.value,
                 "seed": args.seed,
@@ -658,6 +696,10 @@ def main() -> None:
         and (
             sha256(upstream_retrieval) != upstream_retrieval_sha256
             or sha256(upstream_launch) != upstream_launch_sha256
+            or (
+                upstream_transform_source_sha256 is not None
+                and sha256(upstream_transform_source) != upstream_transform_source_sha256
+            )
         )
     ):
         raise ValueError("SOP compact source changed during training")
@@ -666,6 +708,7 @@ def main() -> None:
         "claim_eligible": False,
         "arm": args.arm.value,
         "recipe": args.recipe,
+        "train_transform_mode": args.reference_transform if reference else "screen",
         "embedding_width": args.embedding_width,
         "packed_bytes_per_embedding": args.embedding_width + 2,
         "seed": args.seed,
@@ -697,7 +740,10 @@ def main() -> None:
             ),
             "classifier": f"fit-only {args.embedding_width}-dimensional class-mean imprint",
             "augmentation": (
-                "timm create_transform224; RandomResizedCrop scale 0.08:1.0; "
+                "authenticated upstream UNICOM origin_clip resize and center crop; "
+                "no stochastic training augmentation"
+                if reference and args.reference_transform == "origin_clip"
+                else "timm create_transform224; RandomResizedCrop scale 0.08:1.0; "
                 "RandAugment rand-m9-mstd0.5-inc1 (disables color jitter); "
                 "bicubic; random erasing pixel p0.25; "
                 "UNICOM normalization"
@@ -760,7 +806,7 @@ def main() -> None:
             "python": platform.python_version(),
             "torch": torch.__version__,
             "torchvision": torchvision_version,
-            "timm": version("timm") if reference else None,
+            "timm": version("timm") if reference and args.reference_transform == "timm" else None,
             "numpy": np.__version__,
             "cuda": torch.version.cuda,
         },
@@ -772,6 +818,7 @@ def main() -> None:
             "upstream_retrieval_sha256": upstream_retrieval_sha256,
             "upstream_launch_sha256": upstream_launch_sha256,
             "train_transform_sha256": train_transform_sha256,
+            "upstream_transform_source_sha256": upstream_transform_source_sha256,
             "initial_head_sha256": initial_head_sha256,
             "initial_classifier_sha256": initial_classifier_sha256,
             "checkpoint_output_sha256": sha256(args.checkpoint_output),

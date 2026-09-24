@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any, cast
 
 import torch
 
@@ -45,22 +47,38 @@ def reference_scheduler(
     )
 
 
-def reference_train_transform(image_size: int = 224):
-    """Use the authenticated UNICOM retrieval script's training augmentation."""
+def reference_train_transform(
+    image_size: int = 224,
+    *,
+    mode: str = "timm",
+    source_transform: Callable[[Any], torch.Tensor] | None = None,
+) -> Callable[[Any], torch.Tensor]:
+    """Choose the existing timm arm or the upstream SOP launch transform."""
 
     if image_size not in (224, 336):
         raise ValueError("reference SOP image size differs")
-    from timm.data import create_transform
+    if mode == "origin_clip":
+        if image_size != 224:
+            raise ValueError("origin_clip image size differs")
+        if source_transform is None:
+            raise ValueError("authenticated source transform is required")
+        return source_transform
+    if mode != "timm":
+        raise ValueError("reference SOP training transform differs")
+    from timm.data.transforms_factory import create_transform
 
-    return create_transform(
-        input_size=image_size,
-        is_training=True,
-        color_jitter=0.4,
-        auto_augment="rand-m9-mstd0.5-inc1",
-        interpolation="bicubic",
-        re_prob=0.25,
-        re_mode="pixel",
-        re_count=1,
-        mean=(0.48145466, 0.4578275, 0.40821073),
-        std=(0.26862954, 0.26130258, 0.27577711),
+    return cast(
+        Callable[[Any], torch.Tensor],
+        create_transform(
+            input_size=image_size,
+            is_training=True,
+            color_jitter=0.4,
+            auto_augment="rand-m9-mstd0.5-inc1",
+            interpolation="bicubic",
+            re_prob=0.25,
+            re_mode="pixel",
+            re_count=1,
+            mean=(0.48145466, 0.4578275, 0.40821073),
+            std=(0.26862954, 0.26130258, 0.27577711),
+        ),
     )
