@@ -1,5 +1,62 @@
 # Joint quality and performance decision, first training-code gate
 
+## 24 September B/16 resolution continuation: close this route
+
+The [adaptive preregistration](superpowers/specs/2026-09-24-b16-resolution-continuation-prereg.md)
+continued one verified UNICOM B/16@224 ArcFace checkpoint for 200 matched
+optimizer updates per arm: A at native 224, B with native 336 image detail,
+and C with the same 224 image tensor enlarged to 336. It used only official
+SOP TRAIN: 53,700 fit images, 5,851 product-disjoint holdout queries from
+1,132 products, and a 59,551-image full TRAIN gallery. The model's learned
+128-D head was scored as float and as a 130-byte packed vector, without PCA
+refitting. All comparisons below are on this reused development split.
+
+| SOP TRAIN, 5,851 holdout queries | Float holdout R@1 / mAP@R | Packed holdout R@1 / mAP@R | Packed full TRAIN gallery R@1 | 200-update train / full-gallery encode |
+| --- | ---: | ---: | ---: | ---: |
+| A, B/16@224 | 91.6937% / 0.729107 | 91.7450% / 0.729077 | 81.1485% | 139.014 s / 110.551 s |
+| B, B/16@336 native detail | 92.2919% / 0.739246 | 92.3090% / 0.738847 | 82.0202% | 286.255 s / 303.554 s |
+| C, B/16@336 enlarged 224 | 91.8646% / 0.734649 | 91.8646% / 0.734686 | 81.6613% | 285.147 s / 303.373 s |
+
+B−A full-gallery R@1 is **+0.8716 percentage points** in both float and
+packed outputs. The paired 1,132-product bootstrap 95% intervals are
+**[+0.2442, +1.5180]** points for float and **[+0.2378, +1.5142]** for
+packed. B−C is **+0.3589 points**, with float interval
+**[−0.1205, +0.8311]** and packed interval **[−0.1399, +0.8607]**.
+B−A float holdout mAP@R improves **+0.010139** with interval
+**[+0.006018, +0.014448]**. The new image detail therefore helped this
+holdout, but the preregistered full-gallery threshold of **at least +1.0
+point** fails, as does the requirement that B−C's float full-gallery lower
+endpoint exceed zero. **Close this B/16@336 route for the joint SOTA target.**
+Do not promote to CUB transfer, independent seeds, official SOP/In-Shop TEST,
+or certified latency on the strength of this one-seed development result.
+
+The [raw receipt](evidence/compact_metric/sop-b16-resolution-continuation-v1.json)
+has SHA-256 `91ddfd84e8dadc37cb770acd6f93ccf7ea76cffc897c9b9a50079fc922a0c629`,
+matching the DGX original. Durable DGX GB10 unit
+`sfora-b16-cont-c11e27ae.service` exited zero. Every arm reports optimizer
+step range `[1200, 1200]` after starting at step 1000. The previous unit
+`sfora-b16-cont-dfe6d2e.service` was explicitly stopped and excluded after
+discovering that loading AdamW state without a deep copy aliases its CPU
+step tensors across arms. The corrected code and a regression test are at
+commit `c11e27ae`; an independent Opus review confirmed that bug and checked
+source-graph training parity.
+
+B's training allocated **23.864 GB CUDA** versus A's **12.397 GB**;
+full-gallery encoding took **2.75×** as long, and training **2.06×** as long.
+Whole three-arm wall time was **1439.508 s**, peak host RSS **11.717 GB**.
+The earlier paired GB10 image-to-top-10 cost screen measured B at
+**15.283 ms p50** versus A **13.920 ms** and high-quality UNICOM L/14@336
+**36.816 ms** at batch 1; it did not measure certified p99 or meaningful L/14
+quality on the shared B/16 gallery. The published UNICOM L/14@336 official
+SOP **91.2%** and In-Shop **96.7%** Recall@1 remain dated reference gates.
+This TRAIN result cannot be compared numerically with either official TEST
+protocol.
+
+**Next method decision:** test a materially different representation or
+training architecture that preserves unseen-product transfer while fitting
+the full image-to-top-k latency and 130-byte gallery budget. Reject another
+resolution-only tweak unless new evidence explains the weak B−C gain.
+
 ## 24 September frozen patch-token signal falsifier: reject top-32 MaxSim teacher
 
 The [frozen train-only preregistration](evidence/compact_metric/sop-token-maxsim-top32-preregistration-v1.json)
