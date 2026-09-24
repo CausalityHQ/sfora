@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import platform
 import resource
 import time
@@ -151,12 +152,15 @@ def main() -> None:
     parser.add_argument("--b1-calls", type=int, default=30)
     parser.add_argument("--b32-calls", type=int, default=10)
     args = parser.parse_args()
+    tileiras = os.environ.get("CUTILE_TILEIRAS_PATH")
     if (
         args.output.exists()
         or args.output.is_symlink()
         or not torch.cuda.is_available()
         or args.b1_calls < 10
         or args.b32_calls < 5
+        or not tileiras
+        or not Path(tileiras).is_file()
     ):
         raise ValueError("SOP B/16 resolution cost invocation differs")
     started = time.perf_counter()
@@ -240,6 +244,8 @@ def main() -> None:
         "b16_checkpoint_sha256": source.checkpoint_sha256,
         "l14_checkpoint_sha256": sha256(args.l14_checkpoint),
         "native_library_sha256": sha256(args.native_library),
+        "tileiras_path": tileiras,
+        "tileiras_sha256": sha256(Path(tileiras)),
         "script_sha256": sha256(Path(__file__)),
         "adapter_sha256": sha256(Path(output_at_resolution.__code__.co_filename)),
         "sop_train_query_ids": ids,
