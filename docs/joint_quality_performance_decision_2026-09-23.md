@@ -403,6 +403,21 @@ durable **diagnostic-only** checkpoints and train-only holdout receipts at
 The 4,000-update diagnostic is not a stop gate; none of the intermediate
 checkpoints is a resumable training state. The best completed checkpoint is
 selected by holdout packed mAP@R, then packed Recall@1, then earlier step.
+At 16,000 and 32,000 updates, packed holdout Recall@1 was 93.8643% and
+94.9410%, while mAP@R was 0.779284 and 0.805460. The same 5,851 holdout
+images in 1,132 products appear in both receipts. A paired, product-clustered
+10,000-resample bootstrap (PCG64 seed 179019, resampling the 1,132 products)
+of the 32,000-minus-16,000 per-query scores gives
++1.077 percentage points Recall@1 (95% percentile interval +0.718 to +1.447)
+and +0.026177 mAP@R (+0.022297 to +0.029857). This is a train-identity
+diagnostic, not an official-test or independent-seed result. Its continued
+improvement supports completing the frozen schedule rather than selecting a
+checkpoint from the previously observed official test. The DGX
+receipts are
+`/home/riomus/runs/sfora-sop-reference-b8f85611-179019/arcface-seed179019-53760.step16000.json`
+(SHA-256 `bad3fab826a5b0d317054b001f623bca26b602eba5871c140000577698f01af5`)
+and `arcface-seed179019-53760.step32000.json`
+(SHA-256 `13eb5df7c49686c6ff28cdbedf3323b0973c729be19f89ba22376b3999a85cd4`).
 Because the balanced sampler differs from upstream's shuffled image sampler,
 the compact head is new, only 90% of SOP train identities are fitted, and
 gradient clipping at norm 1.0 is additional, this is **reference-like**, not
