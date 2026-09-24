@@ -465,6 +465,25 @@ These are within-run train-holdout diagnostics on one seed; the original
 53,760-update trainer is continuing, and no official-test or latency claim
 follows from this checkpoint.
 
+At 32,000 updates, packed Recall@1 reaches **94.9410%** and mAP@R
+**0.805460** on the same 5,851-query train-identity holdout; float reaches
+94.9923% and 0.805731. The [raw checkpoint receipt](evidence/compact_metric/sop-reference-arcface-seed179019-step32000-v1.json)
+has SHA-256 `13eb5df7c49686c6ff28cdbedf3323b0973c729be19f89ba22376b3999a85cd4`;
+the original DGX checkpoint was independently hashed to
+`0ca583b11f11b45c5f716f4b870bc0273d39ee4419021a88de407517ad48ca18`,
+as recorded by the trainer. The [paired 16,000-to-32,000 receipt](evidence/compact_metric/sop-reference-holdout-progress-step16000-to32000-seed179019-v1.json)
+has SHA-256 `9ad3ebcaea377aab4a07bbdc525bdebe4cd62e5227a59184fb120b6cae0ebbd2`.
+Across the same queries, packed Recall@1 rose **+1.077 percentage points**
+(product-bootstrap 95% interval **+0.718 to +1.447**) and mAP@R rose
+**+0.026177** (**+0.022409 to +0.029965**). There were 87 new Recall@1
+hits and 24 lost hits. At this checkpoint, packed minus float Recall@1 is
+−0.051 percentage points (product-bootstrap interval −0.134 to +0.017)
+and packed minus float mAP@R is −0.000271 (−0.001005 to +0.000409).
+Thus the measured train-holdout improvement from further backbone training
+is much larger than the current packing difference. These are one-seed,
+train-only diagnostics; they do not predict the official-test score or prove
+that a rank loss cannot help.
+
 The official SOP evaluator for this long recipe is prepared but must wait for
 all six checkpoints and the final training receipt. It checks the frozen
 training-source snapshot and each checkpoint digest, selects the highest
