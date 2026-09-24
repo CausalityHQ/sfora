@@ -1,5 +1,48 @@
 # Joint quality and performance decision, first training-code gate
 
+## 24 September matched-mode tail control: advance to exploratory transfer
+
+The first four-arm SOP TRAIN screen confounded final-block weight updates
+with its training-mode stochastic depth. The [mode-control preregistration](evidence/compact_metric/sop-tail-eval-control-preregistration-v1.json)
+therefore fixed one additional ArcFace arm: train the final UNICOM B/16 block
+but keep it in **evaluation mode**, matching the original frozen-encoder
+ArcFace head control. The first-batch pre-update loss in the [one-batch
+preflight](evidence/compact_metric/sop-tail-eval-control-preflight-v1.json)
+was exactly `6.143701553344727` for both arms, and the new block had nonzero
+gradients. The preflight's original DGX unit exited zero.
+
+| SOP TRAIN matched eval-mode block, DGX GB10 | Product-disjoint holdout-only R@1 / mAP@R | Full TRAIN gallery R@1 / mAP@R | Cached-token training time, 1,595 updates |
+| --- | ---: | ---: | ---: |
+| Frozen block, ArcFace head control | 84.6009% / 0.603678 | 69.8513% / 0.413587 | 42.10 s |
+| Trainable block, ArcFace head candidate | **88.5490% / 0.661730** | **75.0812% / 0.470142** | 72.64 s |
+
+The [candidate raw receipt](evidence/compact_metric/sop-tail-eval-control-screen-v1.json)
+has SHA-256 `cb3b03d814f08e0acf9e992f1569bc099566d77409b6895cdb2d3ba763e354cb`;
+it matches the DGX original, whose durable unit
+`sfora-tail-eval-screen-2db10973.service` exited zero. The
+[frozen-gate decision](evidence/compact_metric/sop-tail-eval-control-decision-v1.json)
+(SHA-256 `38a364eaa7441276626337f9ba4942c18fb4d28a3217c649f03df277bcfcd2ab`)
+finds **+3.9480 percentage points** holdout-only R@1 (paired product-bootstrap
+95% interval **+3.3820 to +4.5384**), **+5.8052 points** holdout mAP@R,
+and **+5.2299 points** full-gallery R@1 against the matched frozen-head
+control. All four preregistered conditions pass. The source archive,
+product schedule, initial head/proxies, optimizer, split, number of updates,
+and 130-byte deployed score are fixed across the pair. This establishes a
+one-seed improvement from adapting final-block weights with stochastic depth
+disabled on this reused SOP TRAIN holdout. The control's cached-token
+training wall time is a harness measurement, not an optimized frozen-head
+training floor.
+
+The new arm's recorded wall time was 101.52 s **after upfront input hashes**;
+training 72.64 s, encoding/scoring 20.32 s, PyTorch peak allocated CUDA
+memory 1.729 GB, host RSS 41.13 GB including the offline cache. The
+checkpoint is pinned by SHA-256 in the raw receipt and remains on the DGX.
+No official-test or live image-to-top-k result follows from this screen.
+**Next:** freeze this exact checkpoint for exploratory CUB/Cars transfer and
+verify live image-path versus cached-token descriptor parity. Only a transfer
+pass warrants independent-seed and larger unseen-gallery confirmation before
+official SOP/In-Shop comparisons and end-to-end latency certification.
+
 ## 24 September cached final-block screen: retain the tail finding, reject teacher relations
 
 The [frozen preregistration](evidence/compact_metric/sop-cached-teacher-tail-preregistration-v1.json)
