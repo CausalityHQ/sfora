@@ -1,0 +1,17 @@
+{
+  "schema": "sfora-sop-token-maxsim-top32-preregistration-v1",
+  "claim_eligible": false,
+  "question": "Do frozen UNICOM B/16 block-11 patch tokens contain enough complementary part correspondence to improve compact head retrieval before training a side branch?",
+  "script_sha256": "771537b6f6b29da1d59c49b5209a95c7b62f4baeaedc27aafe5baec1207d640e",
+  "source_archive_sha256": "16b4554d3868363905f1e1cd385783a8033513835723a7b89f4b762d893d757f",
+  "token_cache_sha256": "f7835576efaf513c59895ba99eb4b839649df972f62aecbf674e9542a118b0d9",
+  "head_checkpoint_sha256": "9eaf0cdbd757f1f83b00e5415349b4608a62769a56ace81983d67ea2b87781fd",
+  "original_receipt_sha256": "331b8055b970704b1269b3229e0b2114f594033bfe1690c9af736b4631b46aa1",
+  "population": "SOP TRAIN seed179019 identity-disjoint holdout: 5,851 query/gallery images from 1,132 products, leave-one-out, no official test bytes; this split has been reused and is exploratory",
+  "control": "frozen pretrained UNICOM B/16@224 with SOP TRAIN ArcFace-trained 768-to-128 head; 130-byte signed-int8/f16 deployed scorer; must reproduce 84.6009229% holdout Recall@1 and 0.6036782664 mAP@R",
+  "candidate": "for each query, take the control's top 32 gallery rows, then rerank only those 32 by symmetric mean-of-max cosine between unit-normalized 196x768 frozen block-11 patch-token grids; exact ordinal ties; no training, no global-score blend, no extra serving artifact",
+  "metrics": "holdout-only Recall@1 and mAP@R with per-query vectors, plus positive-in-top32 upper bound, paired 10,000-draw seed179019 product bootstrap for Recall@1 delta, maxsim wall time, CUDA peak and host RSS",
+  "advance_gate": "only if candidate minus control Recall@1 is at least +1.0 percentage point, product-bootstrap 95% lower endpoint >0, and mAP@R has no point regression should the token-signal side-branch training hypothesis advance; otherwise kill this top32 MaxSim teacher recipe; do not infer a general token-information ceiling",
+  "scope": "a deliberately cheap signal falsifier, not a deployable system or a SOTA/novelty claim; prior Cars/CUB local-token methods failed and this SOP result cannot erase those negatives",
+  "compute_estimate": "5,851 x 32 token-pair comparisons, each 196x196x768 MAC, about 5.5e12 MAC; GPU normalized heldout token tensor 3.5 GB float32 plus temporary batches; actual latency and memory must be measured"
+}
