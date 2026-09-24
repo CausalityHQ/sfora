@@ -1,0 +1,19 @@
+{
+  "schema": "sfora-sop-tail-eval-control-preregistration-v1",
+  "claim_eligible": false,
+  "question": "Does updating the B/16 final block improve packed retrieval when both candidate and head-only control keep the block in eval mode during optimization?",
+  "script_sha256": "9fd785a2fb5ac1c077bad8452f49e08d8a6a4de76f22f9790101cc779237ea65",
+  "original_four_arm_receipt_sha256": "331b8055b970704b1269b3229e0b2114f594033bfe1690c9af736b4631b46aa1",
+  "source_archive_sha256": "16b4554d3868363905f1e1cd385783a8033513835723a7b89f4b762d893d757f",
+  "teacher_archive_sha256": "1ba27b2d6b9db39067aa6facd0ef8aafc303c4527f6feabed859b0512c7d921a",
+  "token_cache_sha256": "f7835576efaf513c59895ba99eb4b839649df972f62aecbf674e9542a118b0d9",
+  "population": "SOP TRAIN only: 53,700 fit images in 10,186 products and 5,851 heldout images in 1,132 disjoint products, seed 179019; no official test image bytes",
+  "control": "head_arcface from the immutable four-arm receipt; pretrained UNICOM B/16 block in eval mode with frozen weights, trainable PCA-initialized 768-to-128 head and fit-only centroid proxies",
+  "candidate": "tail_arcface_eval: same source, schedule, head/proxy initialization and objective, but final B/16 block weights trainable while the block stays in eval mode; no teacher loss",
+  "preflight_gate": "candidate first-batch pre-update ArcFace loss matches head_arcface old preflight 6.143701553344727 to absolute 1e-6, tail gradient nonzero, and no other CUDA job active",
+  "training": "canonical cached float32 prefix tokens; five product-coverage passes, 32 distinct products and two distinct images per product per batch, 1,595 identical 64-image updates; AdamW zero weight decay, head LR1e-4, tail LR1e-5, proxy LR1e-3, global gradient clip1; ArcFace margin0.3 scale64; final checkpoint only",
+  "evaluation": "130-byte signed-int8/f16 packed-score 5,851 heldout-only self-retrieval queries against 5,850 other heldout rows as primary, same queries against 59,550 other SOP TRAIN rows as secondary, Recall@1 and mAP@R, ordinal ties",
+  "advance_gate": "candidate minus head_arcface holdout-only Recall@1 at least +1.0 percentage point, paired 10,000-draw seed-179019 product-cluster bootstrap 95% lower endpoint >0, and no point regression in holdout mAP@R or full-TRAIN-gallery Recall@1; a pass warrants exploratory CUB/Cars transfer before official test or live latency; a fail closes partial-tail-weight-adaptation promotion",
+  "interpretation": "This new arm isolates final-block weight updates from the prior training-mode stochastic-depth confound. It is a one-seed reused SOP TRAIN split and cannot establish novelty, state of the art, official test performance, or serving speed.",
+  "resources": "one durable DGX GB10 preflight then one full single-arm screen if preflight passes; collect original systemd exit status and receipt, checkpoint SHA, training/evaluation seconds, CUDA peak and host RSS; offline 35.86 GB token cache excluded from serving"
+}

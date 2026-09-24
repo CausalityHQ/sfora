@@ -27,7 +27,13 @@ identities, with exact per-query vectors in the [raw screen receipt](evidence/co
 (SHA-256 `331b8055b970704b1269b3229e0b2114f594033bfe1690c9af736b4631b46aa1`).
 They are neither official SOP test scores nor state-of-the-art evidence. The
 head-to-tail ArcFace contrast is **+3.6062 percentage points** holdout-only
-R@1 and **+4.8881 points** full-gallery R@1. The teacher effect *conditional
+R@1 and **+4.8881 points** full-gallery R@1 (holdout product-bootstrap
+95% interval **+3.0619 to +4.1872 points**). This contrast changes both
+final-block trainability and its mode: the head arm keeps the block in eval
+mode, while the tail arm enables training mode and the pretrained block's
+0.1 stochastic-depth probability. It is therefore a gain for the combined
+training route, not an isolated causal estimate for trainable weights. The
+teacher effect *conditional
 on the trainable tail* is only **+0.0513 points** holdout-only R@1, with a
 paired 10,000-draw product-cluster bootstrap 95% interval **−0.1518 to
 +0.2543 points**; holdout-only mAP@R regressed by 0.000265. The
@@ -35,12 +41,13 @@ paired 10,000-draw product-cluster bootstrap 95% interval **−0.1518 to
 (SHA-256 `5650084b42d2be527d8251ca5b19bedff5f4dfe3c04e2dcb09dc08619fe0d4dd`)
 fails the frozen +1-point, positive-lower-bound, and mAP@R nonregression
 gates. **Do not promote this L/14 relational-distillation recipe.** The
-large tail gain belongs to final-block adaptation and requires paired
-independent-seed and transfer checks before a learning-method claim.
+large tail-arm gain requires a matched-mode control, paired independent-seed
+and transfer checks before a learning-method claim.
 
 The one durable DGX service `sfora-cached-teacher-tail-b0d92ebd.service`
-exited zero. Total wall time was 322.67 s, including archive/hash checks,
-training, evaluation, and four checkpoint writes. Per-arm packed evaluation
+exited zero. Its recorded 322.67 s starts **after** the upfront archive and
+cache SHA-256 checks and includes data loading, training, evaluation, and
+four checkpoint writes. Per-arm packed evaluation
 and full-gallery encoding took 19.64–20.27 s; peak PyTorch allocated CUDA
 memory was 1.73 GB and peak host RSS was 41.30 GB, including the mapped
 35.86 GB offline cache. These are **screen** resources, not live image-to-top-k
@@ -48,11 +55,12 @@ latency or full-backbone throughput. The four full checkpoints remain under
 `/home/riomus/runs/sfora-cached-teacher-tail-b0d92ebd/output/` on the DGX;
 their hashes are pinned in the raw receipt.
 
-**Next gate:** assess the ArcFace tail-only checkpoint against a frozen B/16
-control under matched full image-to-top-k serving, and on unseen CUB/Cars
-classes before spending on a multi-seed or full-backbone run. Treat any
+**Next gate:** isolate trainable-tail weight adaptation from stochastic depth
+using matched block modes on the same SOP TRAIN holdout, then assess the
+surviving tail-only checkpoint on CUB/Cars transfer and matched live
+image-to-top-k serving before a multi-seed or full-backbone run. Treat any
 transfer or serving regression as a stop for this partial-tail candidate.
-The tail result does not validate a novel Sfora loss, and the dated published
+The current result does not validate a novel Sfora loss, and the dated published
 UNICOM L/14@336 references remain 91.2% SOP and 96.7% In-Shop Recall@1.
 
 ## 24 September finite-gallery head screen: reject this loss as the next backbone run

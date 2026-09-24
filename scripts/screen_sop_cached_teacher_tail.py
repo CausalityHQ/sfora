@@ -150,6 +150,7 @@ def main() -> None:
     parser.add_argument("--token-cache", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--preflight-only", action="store_true")
+    parser.add_argument("--tail-eval-control-only", action="store_true")
     parser.add_argument("--execute-sop-cached-teacher-tail", action="store_true", required=True)
     args = parser.parse_args()
     receipt_path = args.output_dir / "receipt.json"
@@ -214,7 +215,8 @@ def main() -> None:
     device = torch.device("cuda")
     args.output_dir.mkdir(parents=True, exist_ok=True)
     results: dict[str, object] = {}
-    for arm in ARMS:
+    active_arms = ("tail_arcface_eval",) if args.tail_eval_control_only else ARMS
+    for arm in active_arms:
         torch.manual_seed(SEED)
         model.blocks[-1].load_state_dict(original_tail)
         model.eval()
@@ -222,7 +224,7 @@ def main() -> None:
         for parameter in model.blocks[-1].parameters():
             parameter.requires_grad_(tail_trainable)
             parameter.grad = None
-        if tail_trainable:
+        if tail_trainable and not args.tail_eval_control_only:
             model.blocks[-1].train()
         head = nn.Linear(768, 128, device=device)
         head.load_state_dict(initial_head.state_dict())
@@ -329,7 +331,11 @@ def main() -> None:
         )
     receipt = {
         "schema": (
-            "sfora-sop-cached-teacher-tail-preflight-v1"
+            "sfora-sop-tail-eval-control-preflight-v1"
+            if args.tail_eval_control_only and args.preflight_only
+            else "sfora-sop-tail-eval-control-screen-v1"
+            if args.tail_eval_control_only
+            else "sfora-sop-cached-teacher-tail-preflight-v1"
             if args.preflight_only
             else "sfora-sop-cached-teacher-tail-screen-v1"
         ),
