@@ -1,0 +1,17 @@
+Started sfora-siglip2-arcface-150-gradient-diag-v8-55040a7.service - /bin/bash /home/riomus/sfora-siglip2-train-gradient-diag-v8-55040a7/run_gradient_diag_v8.sh arcface.
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  12%|█▏        | 94/792 [00:00<00:00, 939.26it/s]Loading weights:  56%|█████▌    | 443/792 [00:00<00:00, 2428.20it/s]Loading weights:  98%|█████████▊| 773/792 [00:00<00:00, 2824.96it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2576.31it/s]
+{"step": 50, "loss": 7.038821220397949, "arcface": 7.038821220397949, "rank": 0.0, "elapsed_seconds": 61.43262831494212}
+{"step": 100, "loss": 7.09409236907959, "arcface": 7.09409236907959, "rank": 0.0, "elapsed_seconds": 120.8137309961021}
+{"diagnostic_step": 131, "bad_gradients": ["vision.embeddings.patch_embedding.weight", "vision.embeddings.patch_embedding.bias", "vision.embeddings.position_embedding.weight", "vision.encoder.layers.0.layer_norm1.weight", "vision.encoder.layers.0.layer_norm1.bias", "vision.encoder.layers.0.self_attn.k_proj.weight", "vision.encoder.layers.0.self_attn.k_proj.bias", "vision.encoder.layers.0.self_attn.v_proj.weight", "vision.encoder.layers.0.self_attn.v_proj.bias", "vision.encoder.layers.0.self_attn.q_proj.weight", "vision.encoder.layers.0.self_attn.q_proj.bias", "vision.encoder.layers.0.self_attn.out_proj.weight", "vision.encoder.layers.0.self_attn.out_proj.bias"], "bad_count": 13, "scale": 1024.0, "loss": 5.903996467590332, "source_feature_finite": true, "head_feature_finite": true, "largest_grad_norms": [["vision", "embeddings.patch_embedding.weight", NaN], ["vision", "embeddings.patch_embedding.bias", NaN], ["vision", "embeddings.position_embedding.weight", NaN], ["vision", "encoder.layers.0.layer_norm1.weight", NaN], ["vision", "encoder.layers.0.layer_norm1.bias", NaN], ["vision", "encoder.layers.0.self_attn.k_proj.weight", NaN], ["vision", "encoder.layers.0.self_attn.k_proj.bias", NaN], ["vision", "encoder.layers.0.self_attn.v_proj.weight", NaN], ["vision", "encoder.layers.0.self_attn.v_proj.bias", Infinity], ["vision", "encoder.layers.0.self_attn.q_proj.weight", NaN], ["vision", "encoder.layers.0.self_attn.q_proj.bias", NaN], ["vision", "encoder.layers.0.self_attn.out_proj.weight", Infinity], ["vision", "encoder.layers.0.self_attn.out_proj.bias", Infinity], ["vision", "encoder.layers.0.mlp.fc2.weight", 901.9657592773438], ["vision", "encoder.layers.0.mlp.fc1.weight", 659.6649780273438]]}
+Traceback (most recent call last):
+  File "/home/riomus/sfora-siglip2-train-gradient-diag-v8-55040a7/scripts/train_sop_siglip2_compact.py", line 740, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/sfora-siglip2-train-gradient-diag-v8-55040a7/scripts/train_sop_siglip2_compact.py", line 572, in main
+    raise ValueError("diagnostic nonfinite gradient")
+ValueError: diagnostic nonfinite gradient
+sfora-siglip2-arcface-150-gradient-diag-v8-55040a7.service: Main process exited, code=exited, status=1/FAILURE
+sfora-siglip2-arcface-150-gradient-diag-v8-55040a7.service: Failed with result 'exit-code'.
+sfora-siglip2-arcface-150-gradient-diag-v8-55040a7.service: Consumed 4min 3.060s CPU time, 4.7G memory peak, 0B memory swap peak.

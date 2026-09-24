@@ -30,13 +30,14 @@ def compact_head_features(
     if (
         type(source) is not torch.Tensor
         or source.ndim != 2
-        or source.shape[1] != 768
+        or source.shape[1] not in (768, 1024)
         or not source.is_floating_point()
         or not bool(torch.isfinite(source).all())
         or bool((torch.linalg.vector_norm(source.float(), dim=1) == 0).any())
         or type(head) is not nn.Linear
-        or head.in_features != 768
+        or head.in_features != source.shape[1]
         or output_dim not in (128, 768)
+        or (output_dim == 768 and source.shape[1] != 768)
         or head.out_features != output_dim
         or source.device != head.weight.device
     ):

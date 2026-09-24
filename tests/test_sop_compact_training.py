@@ -64,6 +64,18 @@ def test_compact_head_is_invariant_to_positive_source_scale():
     torch.testing.assert_close(actual, scaled, rtol=1e-5, atol=1e-5)
 
 
+def test_compact_head_accepts_siglip2_width_and_backpropagates():
+    torch.manual_seed(2701)
+    source = torch.randn(6, 1024, requires_grad=True)
+    head = torch.nn.Linear(1024, 128)
+    actual = compact_head_features(source, head)
+    scaled = compact_head_features(source * 2.0, head)
+    torch.testing.assert_close(actual, scaled, rtol=1e-5, atol=1e-5)
+    actual.square().sum().backward()
+    assert source.grad is not None and bool(torch.isfinite(source.grad).all())
+    assert head.weight.grad is not None and bool(torch.isfinite(head.weight.grad).all())
+
+
 @pytest.mark.parametrize("arm", tuple(CompactTrainingArm))
 def test_compact_terms_reconstruct_total_without_extra_objective(arm):
     features, weights, labels, masks = _batch()

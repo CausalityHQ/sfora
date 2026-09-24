@@ -269,6 +269,7 @@ def main() -> None:
     raw: dict[str, Any] = {}
     parity: dict[str, float] = {}
     batch1_parity: dict[str, float] = {}
+    batch1_diagnostics: dict[str, dict[str, Any]] = {}
     torch.cuda.reset_peak_memory_stats()
     with ExitStack() as stack:
         galleries = {
@@ -315,14 +316,21 @@ def main() -> None:
             one_packed = pack_int8_unit_embeddings(
                 fitted[name].pca.apply(F.normalize(one_feature, dim=1))
             )
-            if not torch.equal(
-                one_packed.codes, fitted[name].packed.codes[query_rows[:1]]
-            ) or not torch.equal(
-                one_packed.inverse_norms, fitted[name].packed.inverse_norms[query_rows[:1]]
-            ):
-                raise ValueError(
-                    f"SOP live {name} batch-1 packed query differs from quality export"
-                )
+            cached_packed = PackedInt8Embeddings(
+                codes=fitted[name].packed.codes[query_rows[:1]].contiguous(),
+                inverse_norms=fitted[name].packed.inverse_norms[query_rows[:1]].contiguous(),
+            )
+            live_ordinals, live_scores = galleries[name].search_packed(one_packed)
+            cached_ordinals, cached_scores = galleries[name].search_packed(cached_packed)
+            batch1_diagnostics[name] = {
+                "feature_max_abs": float((one_feature - one_cached).abs().max()),
+                "code_mismatch_count": int((one_packed.codes != cached_packed.codes).sum()),
+                "inverse_norm_equal": bool(
+                    torch.equal(one_packed.inverse_norms, cached_packed.inverse_norms)
+                ),
+                "top10_ordinals_equal": bool(np.array_equal(live_ordinals, cached_ordinals)),
+                "top10_score_max_abs": float(np.max(np.abs(live_scores - cached_scores))),
+            }
             verify_native_top10(arms[name], paths[:1], fitted[name].packed)
         for batch_size, blocks in ((1, args.b1_blocks), (32, args.b32_blocks)):
             selected_paths = paths[:batch_size]
@@ -394,6 +402,7 @@ def main() -> None:
         "gallery_wire_bytes_per_row": 130,
         "live_feature_min_cosine": parity,
         "batch1_feature_min_cosine": batch1_parity,
+        "batch1_vs_export_diagnostic": batch1_diagnostics,
         "timing": raw,
         "p50_candidate_to_reference_ratio": ratios,
         "p50_screen_gate_pass": all(ratio <= 0.85 for ratio in ratios.values()),

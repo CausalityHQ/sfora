@@ -1,0 +1,35 @@
+Started sfora-siglip2-arcface-1000-v7-55040a7.service - /bin/bash /home/riomus/sfora-siglip2-train-matched-v7-55040a7/run_matched_v7.sh arcface.
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:   1%|          | 4/792 [00:00<00:22, 35.21it/s]Loading weights:  63%|██████▎   | 499/792 [00:00<00:00, 2771.80it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2632.65it/s]
+{"step": 50, "loss": 7.038821220397949, "arcface": 7.038821220397949, "rank": 0.0, "elapsed_seconds": 59.669587050098926}
+{"step": 100, "loss": 7.09409236907959, "arcface": 7.09409236907959, "rank": 0.0, "elapsed_seconds": 117.1436264119111}
+Traceback (most recent call last):
+  File "/home/riomus/sfora-siglip2-train-matched-v7-55040a7/scripts/train_sop_siglip2_compact.py", line 724, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/sfora-siglip2-train-matched-v7-55040a7/scripts/train_sop_siglip2_compact.py", line 557, in main
+    torch.nn.utils.clip_grad_norm_(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        list(vision.parameters()) + list(head.parameters()) + [classifier],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        1.0,
+        ^^^^
+        error_if_nonfinite=True,
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/nn/utils/clip_grad.py", line 41, in _no_grad_wrapper
+    return func(*args, **kwargs)
+  File "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/nn/utils/clip_grad.py", line 230, in clip_grad_norm_
+    total_norm = _get_total_norm(grads, norm_type, error_if_nonfinite, foreach)
+  File "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/nn/utils/clip_grad.py", line 41, in _no_grad_wrapper
+    return func(*args, **kwargs)
+  File "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/nn/utils/clip_grad.py", line 110, in _get_total_norm
+    raise RuntimeError(
+    ...<4 lines>...
+    )
+RuntimeError: The total norm of order 2.0 for gradients from `parameters` is non-finite, so it cannot be clipped. To disable this error and scale the gradients by the non-finite norm anyway, set `error_if_nonfinite=False`
+sfora-siglip2-arcface-1000-v7-55040a7.service: Main process exited, code=exited, status=1/FAILURE
+sfora-siglip2-arcface-1000-v7-55040a7.service: Failed with result 'exit-code'.
+sfora-siglip2-arcface-1000-v7-55040a7.service: Consumed 3min 56.780s CPU time, 4.7G memory peak, 0B memory swap peak.
