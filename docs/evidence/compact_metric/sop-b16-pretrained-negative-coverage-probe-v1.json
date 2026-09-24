@@ -1,0 +1,20 @@
+{
+  "anchors": 512,
+  "archive_sha256": "16b4554d3868363905f1e1cd385783a8033513835723a7b89f4b762d893d757f",
+  "batch_negative_above_best_positive": 0.025390625,
+  "batch_negative_rule": "15 other randomly sampled fit classes; 4 sampled images per class",
+  "claim_eligible": false,
+  "dataset": "Stanford Online Products",
+  "elapsed_seconds": 0.6380722271278501,
+  "encoder": "UNICOM B16@224 pretrained, 768D cosine-normalized",
+  "fit_gallery_rows": 53700,
+  "full_harder_fraction": 0.998046875,
+  "full_negative_above_best_positive": 0.28125,
+  "full_vs_batch_negative_cosine_gap_median": 0.3655421733856201,
+  "full_vs_batch_negative_cosine_gap_p90": 0.5748140051960945,
+  "sample_seed": 179019,
+  "schema": "sfora-sop-frozen-pretrained-negative-coverage-probe-v1",
+  "script_sha256": "332b9bd37b38143843ab6443d90b73e62ea390396f80fa055bc3ffa430a7710b",
+  "split": "official train fit identities only; no holdout or test",
+  "split_seed": 179019
+}
