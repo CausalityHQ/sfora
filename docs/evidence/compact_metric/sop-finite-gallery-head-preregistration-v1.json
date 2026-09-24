@@ -1,0 +1,18 @@
+{
+  "schema": "sfora-sop-finite-gallery-head-preregistration-v1",
+  "claim_eligible": false,
+  "question": "Does a packed-code full-bank direct finite-gallery success loss beat matched in-batch probability, full-bank log-count, and ArcFace controls on SOP train-only heldout products?",
+  "source_archive_sha256": "16b4554d3868363905f1e1cd385783a8033513835723a7b89f4b762d893d757f",
+  "script_sha256": "d2f7c188a90afba190df48f3a31453d090f52ef48bfd0e113ddf082b35fd9047",
+  "gallery_risk_sha256": "e910ea1110bc3b155ea46b0de70b6446189dfa80d915fa7284c4c2e08752e52a",
+  "population": "SOP official TRAIN 59,551 images; seed-179019 class-disjoint 53,700 fit images and 5,851 heldout images; no official test bytes",
+  "backbone": "frozen authenticated pretrained UNICOM ViT-B/16@224 768-D features",
+  "head_and_wire": "same centered fit-only PCA-initialized 768-to-128 affine head in all arms; normalize, round to signed int8, f16 inverse norm, 130 bytes per gallery row",
+  "arms": ["frozen PCA", "ArcFace", "in-batch direct finite-gallery success", "full-bank negative-log finite-gallery success", "full-bank direct finite-gallery success"],
+  "schedule": "256 identical seed-179019 class-balanced 64-image batches, four images per identity; Adam head LR 0.0001, no weight decay; ArcFace proxy LR 0.0001; head gradient clip norm 1",
+  "loss_parameters": "sigmoid score-difference temperature 0.03; direct success samples 5000/53700 of fit pool or proportional six of 63 in-batch rows; current-batch strongest positive; fit bank recomputed and detached every step; ArcFace margin 0.3 scale 64",
+  "readouts": "packed Recall@1 and mAP@R on 5,851 heldout self-retrieval queries with 5,850 available heldout gallery rows, the same heldout queries against all 59,550 other train rows, and exact expected Recall@1 with 5,000 fit-pool rows sampled without replacement plus fixed heldout positives; report per-query vectors, training wall time, CUDA allocation and RSS",
+  "advance_gate": "full-bank direct probability gains at least 1.0 percentage point full-train packed Recall@1 over in-batch direct probability, with product-identity bootstrap 95% interval excluding zero; no heldout-only Recall@1 regression; at least matches ArcFace full-train Recall@1; no official-test or SOTA claim from this screen",
+  "kill_conditions": "a nonfinite loss, materially mismatched packed score arithmetic, direct probability tying log-count, or gains confined to fit-identity distractors without heldout-only nonregression",
+  "limitations": "single seed, frozen backbone, all-fit gallery includes head-training identities, fixed temperature is a screen choice, no independent label-twin mask or official test read"
+}
