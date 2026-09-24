@@ -1,0 +1,22 @@
+{
+  "schema": "sfora-sop-cached-teacher-tail-preregistration-v1",
+  "claim_eligible": false,
+  "question": "Can a cached stronger L/14 teacher improve unseen-product retrieval when the B/16 final block can adapt, without increasing serving encoder or gallery footprint?",
+  "script_sha256": "df9b0eb5f22fb82aeaf92ee5dd8df4355f971937ecf5ff5b3ee0ae49c35effd4",
+  "source_archive_sha256": "16b4554d3868363905f1e1cd385783a8033513835723a7b89f4b762d893d757f",
+  "teacher_archive_sha256": "1ba27b2d6b9db39067aa6facd0ef8aafc303c4527f6feabed859b0512c7d921a",
+  "token_cache_sha256": "f7835576efaf513c59895ba99eb4b839649df972f62aecbf674e9542a118b0d9",
+  "source_checkpoint_sha256": "c04f324f7c3b4435667236ec6c0eca1cd62f9d64fbfc2d06f8e8e60e6497edef",
+  "population": "official SOP TRAIN 59,551 images; seed-179019 53,700 fit images in 10,186 products and 5,851 heldout images in 1,132 disjoint products; no official test image bytes",
+  "input_view": "canonical authenticated UNICOM B/16 image view, cached as exact float32 input to its final transformer block; no random image augmentation in this screen",
+  "arms": ["head_arcface", "head_teacher", "tail_arcface", "tail_teacher"],
+  "controls": "all arms start from the same authenticated pretrained B/16, fit-only PCA-initialized 768-to-128 compact head and fit-only normalized class-centroid proxies; tail arms alone update final transformer block; teacher arms alone add cached L/14 row-relation KL",
+  "schedule": "NumPy PCG64 seed179019, five full product-coverage passes; 32 distinct products per batch, two distinct images per product, 1,595 identical 64-image updates per trained arm; final checkpoint only",
+  "optimizer": "AdamW with zero weight decay; LR final block 1e-5, compact head 1e-4, class proxies 1e-3; global trainable-gradient norm clip 1",
+  "loss": "ArcFace margin0.3 scale64 on normalized 128-D compact features in all arms; teacher arms add coefficient1.0 rowwise KL(teacher||student) over off-diagonal pair scores at temperature0.1, using normalized 768-D cached L/14 teacher cosine and Sfora's exact-forward 130-byte signed-int8/f16 packed-score straight-through surrogate",
+  "evaluation": "same packed 130-byte scorer on 5,851 heldout self-retrieval queries against 5,850 other heldout rows (primary), and against all 59,550 other TRAIN rows (secondary); Recall@1 and mAP@R with per-query vectors, exact ordinal ties; same final checkpoint rule for each arm",
+  "advance_gate": "tail_teacher gains at least +1.0 percentage point holdout-only packed Recall@1 over each of head_teacher and tail_arcface, with each paired 1,132-product bootstrap 95% lower bound above zero; no point regression against tail_arcface in full-TRAIN-gallery Recall@1 or holdout-only mAP@R; otherwise kill this partial-tail teacher recipe",
+  "after_pass": "only a passing candidate earns CUB/Cars transfer, In-Shop port, matched live image-to-top-k and three-seed confirmation; no SOTA or novelty claim from one reused SOP train-only split",
+  "resources": "run one durable DGX GB10 job, collect original systemd exit status, per-arm training/evaluation wall times, PyTorch CUDA peak and host RSS; the 35.86 GB cached token file is an offline training artifact and is excluded from serving footprint",
+  "preflight": "one-batch four-arm gradient/row-alignment check completed under durable unit sfora-tail-teacher-preflight-fc798a99; raw receipt sop-cached-teacher-tail-preflight-v1.json; code was subsequently amended only to record dependency file hashes"
+}
