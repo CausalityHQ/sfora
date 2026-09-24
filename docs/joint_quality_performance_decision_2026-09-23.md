@@ -950,6 +950,11 @@ interval **[0.5318, 1.2841] pp**, and **0.025554** mAP@R, interval
 32 the compact arm hit. The [full-width raw receipt](evidence/compact_metric/sop-fullwidth768-seed179019-step32000-holdout-v1.json)
 and [reproducible paired summary](evidence/compact_metric/sop-compact-vs-fullwidth-seed179019-step32000-paired-v1.json)
 record the hashes and per-query evidence. The original trainer and downstream
-jobs remain live. The queued fit-only PCA-128 probe will test whether this
-quality advantage can be retained at 130 bytes per gallery item without
-another backbone run; official SOP test results are still pending.
+jobs remain live. The already-queued fit-only PCA-128 probe is pinned to the
+matched **step-8,000** checkpoints and will answer an early-stage
+compressibility question. It cannot establish whether the step-32,000 gain
+survives 130-byte deployment. That requires fitting PCA on the later
+full-width checkpoint's fit-identity features and comparing the resulting
+holdout descriptor with a matched compact checkpoint. The staged trained
+feature exporter can supply those features after the existing GPU queue
+finishes. Official SOP test results are still pending.
