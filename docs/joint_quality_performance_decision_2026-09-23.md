@@ -35,6 +35,14 @@ parity. The first two conditions fail; the latter two pass. **Do not promote
 this loss to a costly full-backbone run.** The frozen-feature result cannot
 explain the earlier SOP-trained backbone's transfer regression, and the
 absolute Recall@1 numbers are not comparable to the official SOP test split.
+The ArcFace arm is a weak control: its 10,186 randomly initialized class
+proxies receive very few positive updates in 256 steps, and its final loss
+is 38.65. The in-batch direct-probability arm also nearly saturates at a
+final loss of 0.0033 with only six sampled rows. Thus the candidate's
++0.8375 points versus ArcFace and +0.2564 points versus in-batch should not
+be read as advantages over well-trained controls. The cleaner same-bank
+loss-form contrast is the +0.4956 points versus full-bank negative-log, but
+it is still a single-seed frozen-feature result on seen fit distractors.
 
 The [synchronized v2 raw receipt](evidence/compact_metric/sop-finite-gallery-head-screen-v2.json)
 has SHA-256 `5d30439310f5b53e985a88c2f6db078476376c980b767c7c2f9d0f3feb6b6629`,
