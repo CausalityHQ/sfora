@@ -209,6 +209,20 @@ These stage measurements do not isolate why the two nominally similar
 resize/crop pipelines have different recorded preprocessing times; an
 identical-pixel, interleaved component probe is still required before changing
 the transform or attributing the difference to the encoder architecture.
+Inspection of the authenticated transform sources showed that both use
+bicubic resize to 224 pixels, center crop to 224 pixels, and tensor conversion;
+UNICOM additionally converts an already-RGB image to RGB inside its transform.
+A CPU-only interleaved probe on the same SOP training image, while the DGX
+trainer was active, measured 6.532 ms median for that UNICOM sequence and
+6.585 ms for the OML sequence over 35 timed calls each. Their tensors were
+identical when the same normalization constants were used. This one-image
+contended CPU check is diagnostic, not a serving latency measurement. The
+paired benchmark's old `decode_preprocess_ns` stage also includes host-to-GPU
+transfer. Its source now records `host_decode_preprocess_ns` and
+`host_to_device_ns` separately while preserving the aggregate stage. The latter
+is wall time around `.cuda(non_blocking=False)`, which includes allocation and
+synchronization overhead; it is not a pure device-copy kernel time. The
+GPU split measurement is pending an idle-GPU replay.
 
 The same selected SOP-trained B/16 checkpoint was also evaluated without any
 target-dataset fitting on class-disjoint CUB and Cars identities. These are

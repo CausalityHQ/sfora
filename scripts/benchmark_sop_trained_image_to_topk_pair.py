@@ -659,6 +659,9 @@ def main() -> None:
         "gallery_rows": 59_519,
         "gallery_bytes_per_item": 130,
         "stage_timing_note": (
+            "decode_preprocess_ns includes both host_decode_preprocess_ns and host_to_device_ns; "
+            "host_to_device_ns times the .cuda(non_blocking=False) call, including allocation and "
+            "synchronization overhead; "
             "trained B/16 projection is inside encoder_transfer_ns; OML projection is inside "
             "project_pack_ns; compare image_to_topk_ns for the paired total"
         ),

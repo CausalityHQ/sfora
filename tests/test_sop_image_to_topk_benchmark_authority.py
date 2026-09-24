@@ -7,8 +7,11 @@ import json
 import sys
 from pathlib import Path
 
+import numpy as np
 import pytest
 import torch
+from PIL import Image
+from torchvision.transforms import ToTensor
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -90,3 +93,63 @@ def test_live_query_features_must_match_cached_gallery_source() -> None:
         module.verify_live_query_features(swapped, cached, arm="oml")
     with pytest.raises(ValueError, match="live query feature parity differs"):
         module.verify_live_query_features(cached[:2], cached, arm="oml")
+
+
+def test_decode_encode_separates_host_preprocess_from_device_transfer(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    script = ROOT / "scripts/benchmark_sop_image_to_topk_pair.py"
+    spec = importlib.util.spec_from_file_location("benchmark_sop_image_to_topk_pair", script)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.path.insert(0, str(script.parent))
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        sys.path.pop(0)
+
+    path = tmp_path / "query.png"
+    Image.new("RGB", (2, 2), color=(255, 0, 0)).save(path)
+    monkeypatch.setattr(torch.Tensor, "cuda", lambda self, non_blocking=False: self)
+    arm = {"transform": ToTensor(), "model": torch.nn.Flatten()}
+
+    features, started, host_ready, device_ready, encoded = module._decode_encode(arm, (path,))
+
+    assert features.shape == (1, 12)
+    assert started < host_ready <= device_ready <= encoded
+
+    class FixedModel(torch.nn.Module):
+        def forward(self, images: torch.Tensor) -> torch.Tensor:
+            return torch.nn.functional.normalize(
+                torch.ones((images.shape[0], 128), dtype=images.dtype), dim=1
+            )
+
+    class IdentityHead:
+        def transform(self, values: torch.Tensor) -> torch.Tensor:
+            return values
+
+    class FixedGallery:
+        def search(self, codes: object, inverse_norms: object) -> tuple[np.ndarray, np.ndarray]:
+            del codes, inverse_norms
+            return np.array([[0]], dtype=np.int32), np.array([[1.0]], dtype=np.float32)
+
+    arm.update({"name": "oml", "model": FixedModel(), "head": IdentityHead()})
+    durations, _ = module._call(arm, (path,), FixedGallery())
+    assert durations["host_decode_preprocess_ns"] > 0
+    assert durations["host_to_device_ns"] >= 0
+    assert durations["decode_preprocess_ns"] == (
+        durations["host_decode_preprocess_ns"] + durations["host_to_device_ns"]
+    )
+    assert (
+        sum(
+            durations[name]
+            for name in (
+                "host_decode_preprocess_ns",
+                "host_to_device_ns",
+                "encoder_transfer_ns",
+                "project_pack_ns",
+                "native_search_ns",
+            )
+        )
+        == durations["image_to_topk_ns"]
+    )

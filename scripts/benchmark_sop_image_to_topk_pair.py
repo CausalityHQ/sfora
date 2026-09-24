@@ -106,16 +106,18 @@ def _decode_encode(arm: dict[str, object], paths: tuple[Path, ...]):
     for path in paths:
         with Image.open(path) as image:
             tensors.append(transform(image.convert("RGB")))  # type: ignore[operator]
-    images = torch.stack(tensors).cuda(non_blocking=False)
-    decoded = time.perf_counter_ns()
+    host_images = torch.stack(tensors)
+    host_ready = time.perf_counter_ns()
+    images = host_images.cuda(non_blocking=False)
+    device_ready = time.perf_counter_ns()
     with torch.inference_mode():
         features = arm["model"](images).float().cpu()  # type: ignore[operator]
     encoded = time.perf_counter_ns()
-    return features, started, decoded, encoded
+    return features, started, host_ready, device_ready, encoded
 
 
 def _call(arm: dict[str, object], paths: tuple[Path, ...], gallery: CutilePackedInt8Gallery):
-    features, started, decoded, encoded = _decode_encode(arm, paths)
+    features, started, host_ready, device_ready, encoded = _decode_encode(arm, paths)
     if arm["name"] == "unicom_b16":
         projected = arm["head"].apply(F.normalize(features, dim=1))  # type: ignore[union-attr]
     else:
@@ -126,8 +128,10 @@ def _call(arm: dict[str, object], paths: tuple[Path, ...], gallery: CutilePacked
     finished = time.perf_counter_ns()
     return (
         {
-            "decode_preprocess_ns": decoded - started,
-            "encoder_transfer_ns": encoded - decoded,
+            "decode_preprocess_ns": device_ready - started,
+            "host_decode_preprocess_ns": host_ready - started,
+            "host_to_device_ns": device_ready - host_ready,
+            "encoder_transfer_ns": encoded - device_ready,
             "project_pack_ns": packed_at - encoded,
             "native_search_ns": finished - packed_at,
             "image_to_topk_ns": finished - started,
@@ -152,6 +156,8 @@ def _measure(
         stage: []
         for stage in (
             "decode_preprocess_ns",
+            "host_decode_preprocess_ns",
+            "host_to_device_ns",
             "encoder_transfer_ns",
             "project_pack_ns",
             "native_search_ns",
