@@ -1,5 +1,66 @@
 # Joint quality and performance decision, first training-code gate
 
+## 24 September L/14 low-rank head screen: a viable latency lever, not a quality win
+
+The [raw train-only head receipt](evidence/compact_metric/l14-lowrank-head-train-holdout-v1.json)
+(SHA-256 `fafe5cf48fc92f1fb9c1ab6019199a6fafca6487e7ee35a3f541d7d4cc95e71e`)
+comes from the pinned **pretrained** UNICOM ViT-L/14@336 checkpoint and
+5,851 images from SOP **training identities**, held out by the established
+seed-179019 class partition. The [versioned probe](../scripts/probe_l14_head_lowrank.py)
+replaces only its 1,024 × 589,824 token-flattening linear layer with the
+optimal rank-512 Frobenius approximation `U(UᵀW)` obtained from the top
+eigenvectors of `WWᵀ`; it uses no SOP labels to build that approximation.
+The rank-512 matrix captures 99.1766% of the source weight matrix's squared
+Frobenius norm. That spectral number alone predicts neither retrieval quality
+nor latency. The remaining encoder, BatchNorm layers and 768-D output are
+unchanged. This is a known low-rank factorization, not a new Sfora learning
+method or evidence about a supervised L/14 checkpoint.
+
+| SOP train-identity holdout, 5,851 self queries | Original L/14 | Rank-512 head |
+| --- | ---: | ---: |
+| 768-D full-float Recall@1 / mAP@R | 87.5064% / 0.645904 | 87.5064% / 0.645906 |
+| 770-byte packed Recall@1 / mAP@R | 87.5064% / 0.645945 | 87.4893% / 0.646260 |
+| 768-D upstream-prefix-512 Euclidean Recall@1 / mAP@R | 87.3184% / 0.643466 | 87.2500% / 0.643385 |
+
+The original full-float 87.5064% / 0.645904 exactly reproduces the pinned
+pretrained architecture holdout receipt at its reported precision. In the
+packed comparison, rank-512 gains four queries and loses five. The paired
+1,132-product class-bootstrap 95% descriptive interval for the packed
+Recall@1 difference is **−0.1197 to +0.0849 percentage points**
+(10,000 resamples, NumPy PCG64 seed 179019). The mean cosine between source
+and factorized normalized descriptors is 0.999982, but this is only a
+coordinate diagnostic. No In-Shop or official-test quality retention has
+been measured for this factorization.
+
+| Preprocessed SOP training images resident on GB10 | Original encoder GPU p50 | Rank-512 encoder GPU p50 | Ratio |
+| --- | ---: | ---: | ---: |
+| Batch 1 | 28.960 ms | 23.964 ms | 0.8275 |
+| Batch 32 | 401.654 ms | 389.419 ms | 0.9695 |
+
+Each timing cell has 100 calls in ten alternated blocks on the same model
+with the head module swapped outside the timed call; both arms use fp32
+stored weights and UNICOM's internal fp16 attention autocast. The median
+of ten paired block-median ratios is 0.8267 at batch 1 (10,000-resample
+block-bootstrap 95% descriptive interval 0.8207–0.8284) and 0.9692 at
+batch 32 (0.9677–0.9701). The measured head saves about 1.205 GB of fp32
+weight storage before package overhead. The DGX job exited zero in 255.19 s,
+with peak CUDA allocation 5.45 GB and peak host RSS 10.46 GB. The local
+repository suite passed 5,446 tests with 12 skips; the new focused probe
+tests passed 3/3 and Ruff passed. These are encoder-only timings on resident
+tensors, **not** decode/pack/search, serving p99, training throughput, or
+a joint quality/performance advance over the published supervised UNICOM
+91.2% SOP and 96.7% In-Shop Recall@1 references.
+
+The fold F0 remains rejected. The rank-512 head is retained as a low-cost
+candidate for the next **matched full image-to-top-k** batch-1/batch-32
+screen and a train-only In-Shop retrieval check. It should advance to a
+supervised L/14 training arm only if the same-stack full-pipeline latency
+improves at both batch sizes and In-Shop train-only quality stays within a
+predeclared retention tolerance. A 10,000-call interleaved paired p99 panel
+and official split evaluation remain required for a product claim. Parallel
+Claude Opus 5.5 and GPT-6 Astra terminal-result critiques were started after
+the receipt; their findings will be reconciled before that next gate.
+
 ## 24 September full-width transfer development result
 
 ### Frozen source-to-trained weight blend diagnostic
