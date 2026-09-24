@@ -121,7 +121,7 @@ identities gives a descriptive 95% interval of **−15.6398 to −13.2496
 points**. The [raw per-query receipt](evidence/compact_metric/sop-b16-train-gallery-size-audit-v1.json)
 binds the [audit script](../scripts/audit_sop_gallery_size_train_holdout.py) and
 the authenticated source feature archive; its SHA-256 is
-`6ed220a3a472f1ae8e4c22c6096dfcd0fccf6c0837c88040f46e3a4350458882`.
+`5b0bdfdd945c224abd669961f5ff6f0f6352bf841bfb6dc431a48e099e6d63fb`.
 The loss is largest among products with fewer positive images:
 
 | Holdout product images | Query rows | Small-gallery Recall@1 | 59,551-row Recall@1 | Hits lost |
@@ -137,6 +137,14 @@ loss for two-image products is therefore not evidence by itself that training
 underweights them: their baseline miss rate is already higher, and each query
 has fewer distinct positive gallery images. A class-size weighting arm needs a
 matched control and a separate positive-coverage diagnosis.
+
+The 1,775 failed queries in the large-gallery arm chose 1,690 distinct wrong
+gallery items; no single item won more than three failed queries. Among the
+844 newly lost queries, the median winning-wrong minus best-positive cosine
+margin was **0.03993** (25th–75th percentile 0.01762–0.08191). This
+pretrained-encoder diagnostic shows widely distributed, often nontrivial
+wrong-negative margins. It weakens a simple small-set-of-hubs explanation,
+without ruling out a learned per-item scoring method on a different encoder.
 
 This identifies a large
 gallery-size effect for one pretrained encoder; it does **not** measure the

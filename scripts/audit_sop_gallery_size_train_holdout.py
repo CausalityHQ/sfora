@@ -11,6 +11,7 @@ import hashlib
 import json
 import platform
 import time
+from collections import Counter
 from pathlib import Path
 
 import numpy as np
@@ -35,8 +36,8 @@ def sha256(path: Path) -> str:
 
 def paired_top1(
     vectors: torch.Tensor, labels: np.ndarray, holdout: np.ndarray, *, block_rows: int = 64
-) -> tuple[np.ndarray, np.ndarray]:
-    """Return hits against holdout-only and all-training galleries.
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Return paired hits and full-gallery winning/positive score evidence.
 
     ``holdout`` is in source-gallery ordinal order. Torch argmax chooses the
     first ordinal on exact score ties, as does the deployed stable tie rule.
@@ -55,6 +56,12 @@ def paired_top1(
     gallery = source.T.contiguous()
     small_hits = np.empty(len(holdout), dtype=np.bool_)
     full_hits = np.empty(len(holdout), dtype=np.bool_)
+    full_winners = np.empty(len(holdout), dtype=np.int64)
+    winner_scores = np.empty(len(holdout), dtype=np.float32)
+    best_positive_scores = np.empty(len(holdout), dtype=np.float32)
+    positives: dict[int, list[int]] = {}
+    for ordinal in holdout:
+        positives.setdefault(int(labels[ordinal]), []).append(int(ordinal))
     holdout_torch = torch.from_numpy(holdout)
     for start in range(0, len(holdout), block_rows):
         stop = min(start + block_rows, len(holdout))
@@ -66,7 +73,16 @@ def paired_top1(
         targets = labels[holdout[start:stop]]
         full_hits[start:stop] = labels[full_top1] == targets
         small_hits[start:stop] = labels[small_top1] == targets
-    return small_hits, full_hits
+        full_winners[start:stop] = full_top1
+        winner_scores[start:stop] = scores[
+            torch.arange(stop - start), torch.from_numpy(full_top1)
+        ].numpy()
+        for offset, ordinal in enumerate(holdout[start:stop]):
+            same_product = positives[int(labels[ordinal])]
+            if len(same_product) < 2:
+                raise ValueError("SOP holdout query has no distinct positive")
+            best_positive_scores[start + offset] = float(scores[offset, same_product].max())
+    return small_hits, full_hits, full_winners, winner_scores, best_positive_scores
 
 
 def cluster_interval(
@@ -110,7 +126,9 @@ def main() -> None:
     if not set(labels[holdout]).isdisjoint(labels[list(partition.fit_row_indexes)]):
         raise ValueError("SOP fit and holdout class identities overlap")
     with torch.inference_mode():
-        small, full = paired_top1(vectors, labels, holdout)
+        small, full, full_winners, winner_scores, best_positive_scores = paired_top1(
+            vectors, labels, holdout
+        )
     if bool(np.any(full & ~small)):
         raise ValueError("adding class-disjoint distractors increased a top-1 hit")
     query_labels = labels[holdout]
@@ -135,6 +153,9 @@ def main() -> None:
         }
     if sum(int(value["query_rows"]) for value in by_product_size.values()) != len(holdout):
         raise ValueError("SOP holdout product-size bands do not cover all queries")
+    wrong_winner_counts = Counter(full_winners[~full].tolist())
+    wrong_margins = winner_scores[~full] - best_positive_scores[~full]
+    newly_lost_margins = winner_scores[small & ~full] - best_positive_scores[small & ~full]
     receipt = {
         "schema": "sfora-sop-train-holdout-gallery-size-audit-v1",
         "claim_eligible": False,
@@ -152,11 +173,22 @@ def main() -> None:
         "full_minus_small_cluster_bootstrap_ci95": cluster_interval(labels[holdout], small, full),
         "small_only_hits": int(np.count_nonzero(small & ~full)),
         "full_only_hits": int(np.count_nonzero(full & ~small)),
+        "wrong_winner_unique_items": len(wrong_winner_counts),
+        "wrong_winner_max_query_count": max(wrong_winner_counts.values()),
+        "wrong_margin_quantiles": np.quantile(
+            wrong_margins, [0, 0.25, 0.5, 0.75, 0.9, 0.99, 1]
+        ).tolist(),
+        "newly_lost_margin_quantiles": np.quantile(
+            newly_lost_margins, [0, 0.25, 0.5, 0.75, 0.9, 0.99, 1]
+        ).tolist(),
         "by_product_size": by_product_size,
         "query_source_ordinals": holdout.tolist(),
         "query_labels": query_labels.tolist(),
         "small_hits": small.astype(int).tolist(),
         "full_hits": full.astype(int).tolist(),
+        "full_top1_ordinals": full_winners.tolist(),
+        "full_top1_scores": winner_scores.tolist(),
+        "best_positive_scores": best_positive_scores.tolist(),
         "tie_rule": "lowest source-gallery ordinal among equal float32 cosine scores",
         "self_excluded": True,
         "torch_threads": torch.get_num_threads(),
