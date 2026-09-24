@@ -99,7 +99,7 @@ def ridge_mean_map(
             pooled[start:stop] = final.mean(dim=1).cpu()
     extraction_seconds = time.perf_counter() - started
     x = pooled.double().cuda()
-    y = torch.from_numpy(target.copy()).double().cuda()
+    y = F.normalize(torch.from_numpy(target.copy()).double().cuda(), dim=1)
     x_mean = x.mean(dim=0)
     y_mean = y.mean(dim=0)
     centered_x = x - x_mean
@@ -133,6 +133,24 @@ def source_from_cache(model: Any, tokens: torch.Tensor, readout: nn.Module | Non
         return output_from_last_block_input(model, tokens)
     final = model.norm(model.blocks[-1](tokens).float())
     return cast(torch.Tensor, readout(final))
+
+
+@torch.inference_mode()
+def slot_attention_diversity(
+    model: Any, slot: SlotTokenReadout, cache: np.ndarray, fit_rows: np.ndarray
+) -> float:
+    """Average total-variation distance between slot maps on fit rows."""
+
+    tokens = torch.from_numpy(np.asarray(cache[fit_rows[:64]]).copy()).cuda()
+    final = model.norm(model.blocks[-1](tokens).float())
+    scores = (final @ slot.queries.float().T).transpose(1, 2) / slot.width**0.5
+    weights = F.softmax(scores, dim=-1)
+    pairs = [
+        (weights[:, left] - weights[:, right]).abs().sum(dim=1).mean() / 2
+        for left in range(slot.slots)
+        for right in range(left + 1, slot.slots)
+    ]
+    return float(torch.stack(pairs).mean())
 
 
 @torch.inference_mode()
@@ -274,11 +292,23 @@ def main() -> None:
         if readout is not None:
             groups.append({"params": readout.parameters(), "lr": HEAD_LR})
         optimizer = torch.optim.AdamW(groups, weight_decay=0.0)
+        initial_score = (
+            evaluate(model, head, readout, cache, labels, fit_rows, held_rows)
+            if readout is not None
+            else None
+        )
+        initial_slot_diversity = (
+            slot_attention_diversity(model, readout, cache, fit_rows)
+            if isinstance(readout, SlotTokenReadout)
+            else None
+        )
         torch.cuda.reset_peak_memory_stats()
         begin = time.perf_counter()
         first_loss = None
         last_loss = None
         last_anchor = None
+        first_clip_norm = None
+        last_clip_norm = None
         for step, local_rows in enumerate(batches, 1):
             global_rows = fit_rows[local_rows]
             tokens = torch.from_numpy(np.asarray(cache[global_rows]).copy()).cuda()
@@ -299,12 +329,14 @@ def main() -> None:
             parameters = list(head.parameters()) + [proxy] + list(model.blocks[-1].parameters())
             if readout is not None:
                 parameters += list(readout.parameters())
-            torch.nn.utils.clip_grad_norm_(parameters, 1.0, error_if_nonfinite=True)
+            clip_norm = torch.nn.utils.clip_grad_norm_(parameters, 1.0, error_if_nonfinite=True)
             optimizer.step()
             if first_loss is None:
                 first_loss = float(loss.detach())
+                first_clip_norm = float(clip_norm)
             last_loss = float(loss.detach())
             last_anchor = float(anchor.detach())
+            last_clip_norm = float(clip_norm)
             if step % 319 == 0:
                 print(json.dumps({"arm": arm, "step": step, "loss": last_loss}), flush=True)
         torch.cuda.synchronize()
@@ -318,11 +350,10 @@ def main() -> None:
         begin = time.perf_counter()
         score = evaluate(model, head, readout, cache, labels, fit_rows, held_rows)
         eval_seconds = time.perf_counter() - begin
-        if arm == "flatten_arcface" and (
+        parity_failed = arm == "flatten_arcface" and (
             abs(score["packed_130b"]["holdout_only"]["recall_at_1"] - 0.885490) > 0.002
             or abs(score["packed_130b"]["full_train_gallery"]["recall_at_1"] - 0.750812) > 0.002
-        ):
-            raise ValueError("SOP slot flatten control does not reproduce prior result")
+        )
         checkpoint = args.output_dir / f"{arm}.pt"
         torch.save(
             {
@@ -348,12 +379,26 @@ def main() -> None:
             "train_seconds": train_seconds,
             "evaluation_seconds": eval_seconds,
             "train_peak_cuda_allocated_bytes": train_peak,
+            "parent_host_rss_peak_bytes": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024,
+            "tail_parameters": sum(p.numel() for p in model.blocks[-1].parameters()),
+            "head_parameters": sum(p.numel() for p in head.parameters()),
             "readout_parameters": 0
             if readout is None
             else sum(p.numel() for p in readout.parameters()),
             "first_loss": first_loss,
             "last_loss": last_loss,
             "last_anchor": last_anchor,
+            "first_preclip_norm": first_clip_norm,
+            "last_preclip_norm": last_clip_norm,
+            "initial_score": initial_score,
+            "initial_slot_attention_variation": initial_slot_diversity,
+            "final_slot_attention_variation": slot_attention_diversity(
+                model, readout, cache, fit_rows
+            )
+            if isinstance(readout, SlotTokenReadout)
+            else None,
+            "train_plus_full_ridge_seconds": train_seconds
+            + (ridge_receipt["total_ridge_seconds"] if readout is not None else 0.0),
             "score": score,
             "checkpoint_sha256": sha256(checkpoint),
             "source_manifest_sha256": hashlib.sha256(
@@ -379,6 +424,8 @@ def main() -> None:
             ),
             flush=True,
         )
+        if parity_failed:
+            raise ValueError("SOP slot flatten control does not reproduce prior result")
         if arm == "flatten_anchor":
             # Candidates have no dependency on the 115M-parameter source head.
             model.feature = nn.Identity()

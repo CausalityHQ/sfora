@@ -30,12 +30,14 @@ as soon as it finishes, then a paired terminal receipt. Run GPU arms
 sequentially in one durable job.
 
 Fit a single ridge map from the mean of the frozen post-block tokens to the
-authenticated 768-D source descriptor, using fit rows only. Fix ridge
+unit-normalized authenticated 768-D source descriptor, using fit rows only. Fix ridge
 regularization to `0.001 × trace(XᵀX)/768` and no tuning. Use that map to
 initialize both mean and slot arms. The four slot queries start with
 seed-179019 Gaussian scale 0.01; their output projection averages four
 identical ridge maps at step zero. The resulting near-mean initial output,
-fit-only ridge cost, and source-descriptor agreement are diagnostics.
+fit-only ridge cost, source-descriptor agreement, and the zero-update M/S
+retrieval scores are diagnostics. Record whether the slot attention maps
+actually separate on fit rows after training.
 
 ## Arms
 
@@ -60,19 +62,19 @@ cannot be called a readout benefit. M isolates simple position-free pooling.
 Advance S only if, relative to the stronger flatten control, packed full
 TRAIN gallery R@1 improves by at least +1.0 percentage point with a paired
 1,132-product bootstrap lower 95% endpoint above zero; holdout-only packed
-mAP@R lower endpoint is above −0.003; S−M full-gallery packed R@1 lower
-endpoint is above zero; and **S's 1,595-update online training wall** is
-at most 0.9× the faster flatten control. Report the one-time ridge fit
-separately and in S's total training bill. A later full training comparison
-must beat the matched reference including that preparation cost. If S's
-full-gallery R@1 gain is at most +0.5 point, or S does not beat M, close this
-slot readout
-variant. Ambiguous results do not advance. A pass permits CUB transfer,
+mAP@R lower endpoint is above −0.003; and S−M full-gallery packed R@1 lower
+endpoint is above zero. Online training time is a diagnostic in this cache
+harness, where file gathering and tail work dominate both arms. Report the
+one-time ridge fit separately and in S's total training bill. A later live
+full-training comparison must beat the matched reference including that
+preparation cost. If S's full-gallery R@1 gain is at most +0.5 point, or S
+does not beat M, close this slot readout variant. Ambiguous results do not
+advance. A pass permits CUB transfer,
 matched live image-to-top-10 batch-1/32 profiling, independent seeds, and
 only then a port to a stronger trunk and In-Shop. No official or SOTA claim
 follows from this screen.
 
 The cached-token run cannot measure the end-to-end training or serving speed
-of a full image encoder. The training gate is a local cost filter, not that
-product claim. A slot readout may improve B/16 without reaching the published
+of a full image encoder. The cache timing is a diagnostic, not a product
+claim. A slot readout may improve B/16 without reaching the published
 UNICOM L/14 quality gate; the latter remains separate.
