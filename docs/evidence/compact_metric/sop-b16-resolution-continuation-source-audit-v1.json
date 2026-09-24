@@ -1,0 +1,26 @@
+{
+  "dgx_exit_status": 0,
+  "dgx_result": "success",
+  "dgx_source_root": "/home/riomus/sfora-b16-cont-c11e27ae",
+  "dgx_unit": "sfora-b16-cont-c11e27ae.service",
+  "receipt_sha256": "91ddfd84e8dadc37cb770acd6f93ccf7ea76cffc897c9b9a50079fc922a0c629",
+  "schema": "sfora-sop-b16-resolution-continuation-source-audit-v1",
+  "source_archive_sha256": "16b4554d3868363905f1e1cd385783a8033513835723a7b89f4b762d893d757f",
+  "source_checkpoint_sha256": "c04f324f7c3b4435667236ec6c0eca1cd62f9d64fbfc2d06f8e8e60e6497edef",
+  "source_commit": "c11e27ae",
+  "source_files_sha256": {
+    "scripts/export_unicom_sop_embeddings.py": "8967844e48dc45bb5f0eff3692caa6079d40301e5e0905ffd17bf6f896cfec26",
+    "scripts/score_sop_b16_resolution_train.py": "abe2b96a0b5938500097d809207db43567d2929b439b37530b3a28aa3e5d1ddd",
+    "scripts/sop_teacher_anchored_runtime.py": "1f60a8d5ad4a8779be3f078f3e748120d79ab77e990c309a898e744063582cb6",
+    "scripts/train_sop_b16_resolution_continuation.py": "657dc91ddcf3af29017468600b23d8c27a2ddb2708cf5a8f0b0704700d4e432b",
+    "src/sfora/deployed_code_rank.py": "5670a4dcb72eda7f31ef84d5907b6905ad25a4095926d705c794d7ba135478fe",
+    "src/sfora/joint_relational_compaction.py": "4ca0de1b0579ea6165c81e9057e9afe77e6dd4141f0b4a0adb281de25300de67",
+    "src/sfora/representation_ceiling.py": "1608181a9c7ba18d1ae1016804898551b2bba9ab40fec9bd4cc2eaf27981771c",
+    "src/sfora/sop_compact_training.py": "888bb8a71a81b8cdbd098fa97e67546edb83481e19f8bbfa98c85130133f6152",
+    "src/sfora/sop_evaluation.py": "a0711d449eb9eb8dd4746725e070b400b67c380c1018cbf68069d9076fc5f4fc",
+    "src/sfora/unicom_rank_finish.py": "b77c119aab09dae0e7ba6bab5dbffbcb9b1695d85c7b544771adaf54b0cce253",
+    "src/sfora/unicom_resolution_adapter.py": "5e7d6ab55af706b6a1c4b31ab322d0f80b680a50458a60c392afc2384aec4956",
+    "src/sfora/unicom_training.py": "a40b0dac4173511787dd9a4da82e506ce44eb3ccb63710595800bc9ebcd4d272"
+  },
+  "start_checkpoint_sha256": "a2568c671336b2c5a97587634ed8312c026625e172eadcba0a0df57abf799672"
+}

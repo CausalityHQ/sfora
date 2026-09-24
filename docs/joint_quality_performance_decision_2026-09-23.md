@@ -1,6 +1,6 @@
 # Joint quality and performance decision, first training-code gate
 
-## 24 September B/16 resolution continuation: close this route
+## 24 September B/16 resolution continuation: do not advance
 
 The [adaptive preregistration](superpowers/specs/2026-09-24-b16-resolution-continuation-prereg.md)
 continued one verified UNICOM B/16@224 ArcFace checkpoint for 200 matched
@@ -23,12 +23,18 @@ packed outputs. The paired 1,132-product bootstrap 95% intervals are
 packed. B−C is **+0.3589 points**, with float interval
 **[−0.1205, +0.8311]** and packed interval **[−0.1399, +0.8607]**.
 B−A float holdout mAP@R improves **+0.010139** with interval
-**[+0.006018, +0.014448]**. The new image detail therefore helped this
-holdout, but the preregistered full-gallery threshold of **at least +1.0
+**[+0.006018, +0.014448]**. B−C float holdout-only R@1 improves
+**+0.4273 points** with interval **[+0.0667, +0.7875]**; its holdout mAP@R
+improves **+0.004597** with interval **[+0.001957, +0.007242]**. The new
+image detail therefore helped the holdout-only gallery, while C−A accounts
+for **+0.5127** of B−A's **+0.8716** full-gallery points. The
+preregistered full-gallery threshold of **at least +1.0
 point** fails, as does the requirement that B−C's float full-gallery lower
-endpoint exceed zero. **Close this B/16@336 route for the joint SOTA target.**
-Do not promote to CUB transfer, independent seeds, official SOP/In-Shop TEST,
-or certified latency on the strength of this one-seed development result.
+endpoint exceed zero. The result falls in the preregistered **ambiguous**
+range: its point estimate misses the advancement threshold even though the
+interval includes gains above it, and neither explicit statistical
+closure condition. **Do not advance** to CUB transfer, independent seeds,
+official SOP/In-Shop TEST, or certified latency on this evidence.
 
 The [raw receipt](evidence/compact_metric/sop-b16-resolution-continuation-v1.json)
 has SHA-256 `91ddfd84e8dadc37cb770acd6f93ccf7ea76cffc897c9b9a50079fc922a0c629`,
@@ -39,11 +45,18 @@ step range `[1200, 1200]` after starting at step 1000. The previous unit
 discovering that loading AdamW state without a deep copy aliases its CPU
 step tensors across arms. The corrected code and a regression test are at
 commit `c11e27ae`; an independent Opus review confirmed that bug and checked
-source-graph training parity.
+source-graph training parity. A separate [source audit](evidence/compact_metric/sop-b16-resolution-continuation-source-audit-v1.json)
+matched twelve runtime source-file hashes on the DGX to commit `c11e27ae`
+and pins the three source artifacts and original receipt hash.
 
 B's training allocated **23.864 GB CUDA** versus A's **12.397 GB**;
 full-gallery encoding took **2.75×** as long, and training **2.06×** as long.
-Whole three-arm wall time was **1439.508 s**, peak host RSS **11.717 GB**.
+The encode comparison uses a loader that decodes both 224 and 336 views in
+each arm and retains the training process, so it is an extraction-harness
+cost, not isolated serving throughput. Whole three-arm wall time was
+**1439.508 s**; the **11.717 GB** RSS is the parent-process peak and excludes
+DataLoader workers. The product bootstrap conditions on this one training
+seed, fixed gallery, and reused holdout; it does not include their variation.
 The earlier paired GB10 image-to-top-10 cost screen measured B at
 **15.283 ms p50** versus A **13.920 ms** and high-quality UNICOM L/14@336
 **36.816 ms** at batch 1; it did not measure certified p99 or meaningful L/14
@@ -52,10 +65,17 @@ SOP **91.2%** and In-Shop **96.7%** Recall@1 remain dated reference gates.
 This TRAIN result cannot be compared numerically with either official TEST
 protocol.
 
-**Next method decision:** test a materially different representation or
-training architecture that preserves unseen-product transfer while fitting
-the full image-to-top-k latency and 130-byte gallery budget. Reject another
-resolution-only tweak unless new evidence explains the weak B−C gain.
+**Post-result resource decision:** deprioritize this resolution adapter as a
+product route. Its +0.8716-point full-gallery packed gain costs about twice
+the training time and 2.75× the extraction-harness encoding time; native
+image detail beyond an upsampled 224 control is not established on the full
+gallery. The adapter area-pools final 21×21 tokens to the original 14×14
+flatten head, a plausible bottleneck for new detail; the screen did not test
+a different readout. This choice is
+separate from the frozen statistical rules. Next, test a materially different
+representation or training architecture that preserves unseen-product
+transfer while fitting the full image-to-top-k latency and 130-byte gallery
+budget. Reopen resolution only with a new mechanism and a new preregistration.
 
 ## 24 September frozen patch-token signal falsifier: reject top-32 MaxSim teacher
 
