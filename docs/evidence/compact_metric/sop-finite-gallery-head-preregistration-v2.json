@@ -1,0 +1,10 @@
+{
+  "schema": "sfora-sop-finite-gallery-head-preregistration-v2",
+  "parent": "sop-finite-gallery-head-preregistration-v1.json",
+  "reason": "Add explicit torch.cuda.synchronize() before and after each arm timer. The v1 run is terminal and retained; all training and evaluation choices and the advancement rule remain identical.",
+  "script_sha256": "d74daf7da69fdce62ff49a68c831925946e673880b234c490333b2690a360576",
+  "gallery_risk_sha256": "e910ea1110bc3b155ea46b0de70b6446189dfa80d915fa7284c4c2e08752e52a",
+  "source_archive_sha256": "16b4554d3868363905f1e1cd385783a8033513835723a7b89f4b762d893d757f",
+  "output": "sop-finite-gallery-head-screen-v2.json",
+  "claim_eligible": false
+}

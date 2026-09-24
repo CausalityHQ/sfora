@@ -267,6 +267,7 @@ def main() -> None:
         if proxy is not None:
             params.append({"params": [proxy], "lr": PROXY_LR})
         optimizer = torch.optim.Adam(params)
+        torch.cuda.synchronize()
         arm_started = time.perf_counter()
         last_loss = None
         if arm != "pca":
@@ -283,6 +284,7 @@ def main() -> None:
                 torch.nn.utils.clip_grad_norm_(head.parameters(), 1.0)
                 optimizer.step()
                 last_loss = float(loss.detach())
+        torch.cuda.synchronize()
         training_seconds = time.perf_counter() - arm_started
         held_codes, held_inverse = packed_gallery(head, held)
         fit_codes, fit_inverse = packed_gallery(head, fit)
