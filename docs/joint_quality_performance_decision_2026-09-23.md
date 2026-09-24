@@ -1013,6 +1013,37 @@ it has **not** run on step-48,000 trained features. The compact 48,000-update
 checkpoint was selected using this same holdout, so the eventual matched-step
 comparison remains exploratory and will disclose that selection.
 
+## Matched 48,000-update width checkpoint, 24 September
+
+The original full-width trainer published its step-48,000 diagnostic while
+continuing the same 53,760-update run. The remote checkpoint hashes to
+`232f7cee93e39fa242d8461f8dc8cee684d7228eef01f8fe9399b9782e80a1b2`,
+matching the receipt; the copied receipt matches the remote SHA-256
+`b0b857e02a26fe27560aa9721912db99f6e54f60ff6c43ffbead16403164010b`.
+The [raw full-width receipt](evidence/compact_metric/sop-fullwidth768-seed179019-step48000-holdout-v1.json)
+and [paired width audit](evidence/compact_metric/sop-compact-vs-fullwidth-seed179019-step48000-paired-v1.json)
+bind the same official SOP **train** class-disjoint holdout: 5,851 query/gallery
+images from 1,132 products, seed 179019, matched image rows, source checkpoint,
+schedule, ArcFace recipe and update count.
+
+| Step 48,000 SOP train holdout | Packed bytes/item | Packed Recall@1 | Packed mAP@R |
+| --- | ---: | ---: | ---: |
+| Direct compact 128-D | 130 | 95.1974% | 0.812453 |
+| Full-width 768-D | 770 | 96.0349% | 0.836934 |
+
+The full-width packed descriptor gains **0.8375 pp** Recall@1, paired
+product-bootstrap 95% interval **[0.4900, 1.1909] pp**, and **0.024481**
+mAP@R, interval **[0.020585, 0.028321]**. It recovers 77 queries the
+compact arm misses and loses 28 compact hits. Compared with its own step-32,000
+checkpoint, full width gains **0.1880 pp** packed Recall@1 and **0.005920**
+mAP@R; the [within-run progress audit](evidence/compact_metric/sop-fullwidth-reference-holdout-progress-step32000-to48000-seed179019-v1.json)
+records paired intervals. This remains a one-seed, train-holdout, unequal
+storage comparison. The selected compact checkpoint was chosen on this
+holdout. The fit-only PCA-128 audit on the staged train-feature export must
+show whether the full-width advantage survives at 130 bytes/item. The final
+trainer, official SOP evaluation, transfer checks and export queue are still
+active; no official-test result is inferred from this holdout.
+
 The independent local CPU serving check used the authenticated 59,551-image
 SOP **train** feature archive as one gallery, with normalized 128-coordinate
 prefix and 768-coordinate pretrained descriptors. The 128-D prefix is a

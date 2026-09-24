@@ -1,0 +1,56 @@
+{
+  "bootstrap": "10000 product-cluster resamples with replacement, seed 179019",
+  "claim_eligible": false,
+  "compact_bytes_per_gallery_item": 130,
+  "compact_checkpoint_sha256": "a337acf9fff0b789ad305a2241da469202f9448580bb90ef373570c74c615cbd",
+  "compact_receipt_sha256": "42350440edf3dcb972c6d2a9372a1adc75e6363319efc31a047815e81cea29c0",
+  "compact_width": 128,
+  "dataset": "Stanford Online Products",
+  "float": {
+    "compact_map_at_r": 0.8127954985455845,
+    "compact_only_hits": 29,
+    "compact_recall_at_1": 0.9518031105793882,
+    "fullwidth_map_at_r": 0.8369298677143697,
+    "fullwidth_minus_compact_map_at_r": 0.024134369168785204,
+    "fullwidth_minus_compact_recall_at_1": 0.008545547769612033,
+    "fullwidth_only_hits": 79,
+    "fullwidth_recall_at_1": 0.9603486583490002,
+    "map_at_r_product_bootstrap_ci95": [
+      0.020299808176670268,
+      0.02799575286009872
+    ],
+    "recall_at_1_product_bootstrap_ci95": [
+      0.0049916304324176385,
+      0.012113992722855299
+    ]
+  },
+  "full_bytes_per_gallery_item": 770,
+  "full_width": 768,
+  "fullwidth_checkpoint_sha256": "232f7cee93e39fa242d8461f8dc8cee684d7228eef01f8fe9399b9782e80a1b2",
+  "fullwidth_receipt_sha256": "b0b857e02a26fe27560aa9721912db99f6e54f60ff6c43ffbead16403164010b",
+  "packed": {
+    "compact_map_at_r": 0.812452760583146,
+    "compact_only_hits": 28,
+    "compact_recall_at_1": 0.9519740215347804,
+    "fullwidth_map_at_r": 0.8369339971308577,
+    "fullwidth_minus_compact_map_at_r": 0.02448123654771174,
+    "fullwidth_minus_compact_recall_at_1": 0.008374636814219792,
+    "fullwidth_only_hits": 77,
+    "fullwidth_recall_at_1": 0.9603486583490002,
+    "map_at_r_product_bootstrap_ci95": [
+      0.020584958974909563,
+      0.028320865851325493
+    ],
+    "recall_at_1_product_bootstrap_ci95": [
+      0.004900304156809733,
+      0.011909021805389285
+    ]
+  },
+  "schema": "sfora-sop-matched-width-holdout-comparison-v1",
+  "script_sha256": "54ec7440c81be8b0140b1fb04e09c0c21b97e29ec9b89cffc092dfd406204348",
+  "seed": 179019,
+  "split": "official train class-disjoint holdout, same 5851 queries and gallery images",
+  "step": 48000,
+  "validation_labels_sha256": "daca6d90d2aaf376a592ec8cff8af785c4da409bd90f45d30c4716e40afb1fe6",
+  "validation_row_indexes_sha256": "e327aac24df8d629073e7c2bedcbff07b62d21d2caedb10fd06a2416b75099f8"
+}
