@@ -1,5 +1,54 @@
 # Joint quality and performance decision, first training-code gate
 
+## 24 September exact affine L/14 head F0: smaller safe baseline
+
+The UNICOM L/14 evaluation head is
+`Linear(589824→1024) → BatchNorm → Linear(1024→768) → BatchNorm`, with no
+activation. In evaluation mode it can be composed into one 589,824→768
+affine layer. This is exact in real arithmetic; finite-precision GEMM
+reordering must be checked. The new optional
+[inference transform](../src/sfora/inference_head.py) implements the
+composition and rejects training-mode or incompatible heads. Two numerical
+unit tests pass, including nontrivial BatchNorm running statistics, affine
+parameters and biases. The [raw F0 receipt](evidence/compact_metric/l14-exact-head-fold-f0-v1.json)
+has SHA-256 `82911b63163185ba9ed1db099afecea1c88365b78cee10aa5ec7e1b81d880ec7`.
+
+On 32 sampled SOP **training** images from the pinned pretrained L/14@336
+checkpoint, the largest absolute 768-D descriptor difference is
+`7.153e-7`, largest relative L2 difference `1.355e-6`, and mean normalized
+cosine 1.0. These 32 images are a numerical smoke check, not retrieval
+quality evidence. The fold removes about 0.604 GB of fp32 head weights
+before package overhead, compared with the original head. It leaves the
+same 768-D output and 770-byte packed gallery wire.
+
+| DGX GB10, resident preprocessed SOP train tensors | Original GPU p50 | Exact-fold GPU p50 | Fold/original ratio |
+| --- | ---: | ---: | ---: |
+| Full encoder, batch 1 | 28.686 ms | 26.094 ms | 0.9096 |
+| Full encoder, batch 32 | 399.444 ms | 393.422 ms | 0.9849 |
+| Head only, batch 1 | 9.708 ms | 7.211 ms | 0.7428 |
+| Head only, batch 32 | 26.049 ms | 20.140 ms | 0.7732 |
+
+Each cell contains 100 calls in ten alternating blocks. For full-encoder
+batch 1, the median paired block-median ratio is 0.9077, with a descriptive
+10,000-resample block-bootstrap 95% interval 0.9000–0.9117; for batch 32
+it is 0.9857 (0.9840–0.9873). The DGX job exited zero in 110.19 s,
+with peak CUDA allocation 7.90 GB. The head remains fp32 and runs outside
+UNICOM's internal fp16 transformer-block autocast. This is a short
+encoder-only screen: no retrieval quality, full image-to-top-k or contract
+p99 was measured. It is an execution-preserving serving control, not a new
+similarity-learning method.
+
+The compact Sfora path calls `F.normalize(source)` **between** the UNICOM
+head and its 768→128 projection; its fitted centered PCA also has a mean.
+Thus composing those stages directly into a 128-output affine layer would
+change the current product function. A 128-output fold is exact only for a
+separately specified, purely affine downstream head without that intermediate
+normalization, or under additional conditions such as a bias-free projection
+followed by final normalization. This control must not silently replace the
+130-byte product path. Both exact-fold and rank-512 heads should be compared
+on the same eventual compact wire and matched full pipeline; the two F0
+receipts are separate runs and do not establish their direct paired ordering.
+
 ## 24 September L/14 low-rank head screen: a viable latency lever, not a quality win
 
 The [raw train-only head receipt](evidence/compact_metric/l14-lowrank-head-train-holdout-v1.json)
@@ -19,7 +68,7 @@ method or evidence about a supervised L/14 checkpoint.
 | SOP train-identity holdout, 5,851 self queries | Original L/14 | Rank-512 head |
 | --- | ---: | ---: |
 | 768-D full-float Recall@1 / mAP@R | 87.5064% / 0.645904 | 87.5064% / 0.645906 |
-| 770-byte packed Recall@1 / mAP@R | 87.5064% / 0.645945 | 87.4893% / 0.646260 |
+| 770-byte packed Recall@1 / mAP@R (off the 130-byte target) | 87.5064% / 0.645945 | 87.4893% / 0.646260 |
 | 768-D upstream-prefix-512 Euclidean Recall@1 / mAP@R | 87.3184% / 0.643466 | 87.2500% / 0.643385 |
 
 The original full-float 87.5064% / 0.645904 exactly reproduces the pinned
@@ -29,8 +78,12 @@ packed comparison, rank-512 gains four queries and loses five. The paired
 Recall@1 difference is **−0.1197 to +0.0849 percentage points**
 (10,000 resamples, NumPy PCG64 seed 179019). The mean cosine between source
 and factorized normalized descriptors is 0.999982, but this is only a
-coordinate diagnostic. No In-Shop or official-test quality retention has
-been measured for this factorization.
+coordinate diagnostic. The published UNICOM normalized-prefix Euclidean
+scorer loses four correct queries and gains none on this split, a
+**−0.0684-point** change. Its post-hoc product-bootstrap descriptive 95%
+interval is −0.1393 to −0.0168 points. No In-Shop or official-test quality
+retention has been measured for this factorization. These intervals are
+retrospective diagnostics, not a predeclared retention test.
 
 | Preprocessed SOP training images resident on GB10 | Original encoder GPU p50 | Rank-512 encoder GPU p50 | Ratio |
 | --- | ---: | ---: | ---: |
@@ -39,7 +92,8 @@ been measured for this factorization.
 
 Each timing cell has 100 calls in ten alternated blocks on the same model
 with the head module swapped outside the timed call; both arms use fp32
-stored weights and UNICOM's internal fp16 attention autocast. The median
+stored head weights, run the head outside autocast, and use UNICOM's
+internal fp16 autocast for transformer blocks. The median
 of ten paired block-median ratios is 0.8267 at batch 1 (10,000-resample
 block-bootstrap 95% descriptive interval 0.8207–0.8284) and 0.9692 at
 batch 32 (0.9677–0.9701). The measured head saves about 1.205 GB of fp32
