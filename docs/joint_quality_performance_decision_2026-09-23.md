@@ -1,5 +1,51 @@
 # Joint quality and performance decision, first training-code gate
 
+## 24 September full-width transfer development result
+
+The [authenticated CUB development receipt](evidence/compact_metric/sop-fullwidth-step48000-cub-development-v1.json)
+(SHA-256 `93c2e04a94f618c0e48884ae59182e327d2d7205b6c059160cf5207ac72590d9`)
+scores all 5,864 images in CUB-200-2011 **classes 1–100** by self retrieval,
+excluding each query itself. It never fits on CUB and never reads test classes
+101–200. The selected SOP ArcFace B/16 step-48,000 checkpoint and its SOP
+fit-identity PCA projection are pinned by SHA-256, and the evaluator was
+committed as `63304672` before the DGX run. All three rows below use the same
+images, canonical UNICOM preprocessing, exact deployed signed-int8 scorer,
+and the NVIDIA GB10. This is exploratory development evidence, not a new
+official-test or state-of-the-art result.
+
+| CUB development representation | Recall@1 | mAP@R | Gallery bytes/item | Image encoding, full split |
+| --- | ---: | ---: | ---: | ---: |
+| Pretrained UNICOM B/16, 768-D packed | 87.5000% | 0.618651 | 770 | 13.54 s |
+| SOP-trained B/16 step 48,000, 768-D packed | 80.1330% | 0.430912 | 770 | 12.78 s |
+| Same trained B/16, SOP fit-only PCA-128 packed | 75.3752% | 0.338990 | 130 | 12.78 s plus PCA |
+
+The trained full-width arm loses **7.3670 percentage points Recall@1** and
+**0.187739 mAP@R** against the same-width pretrained control. A paired
+10,000-resample bootstrap over CUB development classes gives descriptive 95%
+intervals of −8.8640 to −5.9569 points for Recall@1 and −0.206211 to
+−0.169734 for mAP@R. Thus the transfer loss is already present before
+projection; its precise training mechanism is not yet identified. The SOP
+fit-only PCA additionally loses **4.7578 points Recall@1** and **0.091922
+mAP@R** against trained full width (class-bootstrap intervals −5.8128 to
+−3.7313 points and −0.102492 to −0.081336). This projection improved SOP
+train-identity holdout quality at equal 130-byte storage, but it does not
+generalize to this CUB development split. Packing itself changes the
+full-width CUB Recall@1 by zero points versus float, so quantization is not
+the source of the large observed drop.
+
+The next diagnostic will compare source-to-trained checkpoint interpolation
+on the **SOP train-identity holdout** and this already-used CUB development
+half, with identical image bytes and packed scorer. It will test whether an
+anchored weight path recovers transfer while retaining SOP fit/holdout gains.
+The blend coefficient and any later training recipe must be selected on SOP
+train identities; CUB development only tests robustness and cannot become an
+untouched confirmation. If interpolation fails, test a transfer-aware
+projection or an L/14-capacity encoder under a matched performance protocol.
+The completed read-only Fable architecture proposal suggested folding pairs
+of L/14 blocks to reduce serial depth, but its quality and latency effects
+are unmeasured. A no-training encoder timing gate must precede any costly
+distillation or retraining.
+
 This is a dated research checkpoint, not a state-of-the-art claim. The
 [target contract](similarity_quality_performance_sota_target_2026-09-23.md)
 requires quality above authenticated published references on SOP and In-Shop
@@ -1285,12 +1331,13 @@ controlled experiment but no SOP or joint SOTA claim.
 
 The independent Claude Opus 5.5 and GPT-6 Astra read-only method critiques
 both identified the missing **full-width transfer** measurement and favored
-a pretrained-feature anchor only as a controlled hypothesis. The immediate
-no-training gate is to score the selected full-width checkpoint and its
-SOP-fit PCA-128 projection on CUB classes 1–100 (5,864 images) and Cars
-classes 0–97 (8,054 images), then measure a frozen pretrained-to-trained
-weight-blend curve on the SOP train holdout and these transfer development
-classes. No CUB/Cars features may fit the projection or update the model.
+a pretrained-feature anchor only as a controlled hypothesis. The CUB
+classes 1–100 result is now recorded above: trained full width loses 7.3670
+points against pretrained full width, and SOP-fit PCA loses another 4.7578
+points. The next no-training gate is a frozen pretrained-to-trained weight
+blend curve on the SOP train holdout and these transfer development classes,
+followed by Cars classes 0–97 (8,054 images) if the CUB and SOP curve is
+promising. No CUB/Cars features may fit the projection or update the model.
 The already observed CUB/Cars test halves are descriptive evidence and will
 not choose the blend or a new training arm.
 
