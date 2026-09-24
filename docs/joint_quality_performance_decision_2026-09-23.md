@@ -18,6 +18,18 @@ coordinates without a second normalization, and ranks by Euclidean distance
 with self excluded. The local
 [`score_symmetric`](../src/sfora/sop_evaluation.py) exposes this distinct
 reference path; its compact candidate path still scores the deployed code.
+The [pinned upstream README](https://github.com/deepglint/unicom/blob/d71992ed969e6c271436ac0a0ee1f3ca61474ac0/unicom/README.md)
+separately reports **74.5% zero-shot** and **91.2% supervised** SOP Recall@1
+for L/14@336. The archived pretrained L/14 source scored **74.5099%** on the
+60,502-image official test through Sfora's full-width cosine evaluator
+([receipt](evidence/compact_metric/sop-compact-selector-official-v1.json));
+that numerical match is not a reproduction of either upstream protocol because
+the upstream evaluator uses normalized-prefix-512 Euclidean distance. The
+released pretrained checkpoint and its archived features cannot serve as the
+91.2% supervised reference checkpoint. No SOP-supervised L/14 checkpoint was
+identified in the pinned upstream model loader; a faithful local runtime
+comparison still requires an authenticated supervised checkpoint or a
+documented reproduction of its fine-tuning recipe.
 For the 768-dimensional local control, that path scores its additional trained
 linear head; the checkpoint is selected on packed train-holdout mAP@R, not the
 upstream scorer. It is not an exact reproduction of UNICOM training. No new
