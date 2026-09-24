@@ -266,7 +266,14 @@ the compact arm gets right. Resampling training identities 2,000 times with
 seed 179019 gives a descriptive 95% percentile interval of +0.7920 to
 +1.5256 points for the packed difference. This does not isolate embedding
 width because the head initialization, proxy geometry, and backbone updates
-also differ. None of these checkpoints has been selected for the official
+also differ. In the same step-16,000 receipts, float-to-packed scoring changes
+top-1 label correctness for only 9 full-width queries (6 float wins, 3 packed
+wins) and 10 compact queries (3 float wins, 7 packed wins). The float Recall@1
+values are 95.0607% and 93.7959%, respectively. Thus the observed packed
+quality gap is principally present before byte packing; a different code
+format alone has little measured room to close it at this checkpoint. These
+counts are paired train-holdout diagnostics, not a general quantization bound.
+None of these checkpoints has been selected for the official
 test, and these observations do not justify substituting a 770-byte product
 for the 130-byte target. A queued train-only probe freezes both step-8,000
 backbones, replays their trained heads, and fits three 128-D PCA maps using
