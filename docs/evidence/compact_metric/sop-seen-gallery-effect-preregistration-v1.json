@@ -1,0 +1,18 @@
+{
+  "schema": "sfora-sop-seen-gallery-effect-preregistration-v1",
+  "claim_eligible": false,
+  "script_sha256": "a24b27795060a91d762920649a04939d84b4ff2b98f6a2d2656f054cd3b3cdb1",
+  "pretrained_archive_sha256": "16b4554d3868363905f1e1cd385783a8033513835723a7b89f4b762d893d757f",
+  "trained_archive_sha256": "e5f83f81e3c7bae29b5cbf1ecc08fc0d5c244d2c52e49302307c90b19dbda744",
+  "dataset": "Stanford Online Products official TRAIN split only; no official test image bytes",
+  "split": "seed-179019 class-disjoint 53700 fit / 5851 holdout images; each holdout row is a query",
+  "representation": "pretrained and selected step-48000 SOP-trained UNICOM B/16 768-D source features, normalized float32 cosine with TF32 disabled",
+  "positive_set": "all other holdout images with the query product label, fixed across negative-pool arms",
+  "negative_pools": ["wrong-product holdout rows from identities unseen in backbone training", "fit rows from identities seen in backbone training"],
+  "sample_sizes": [1000, 3000, 5000],
+  "estimand": "for each query and pool, exact probability that N uniformly sampled wrong-product rows without replacement contain no negative outranking the strongest positive; ties resolve by lower gallery ordinal; expectation is C(M-K,N)/C(M,N)",
+  "comparison": "seen-minus-unseen expected Recall@1 at equal negative count, separately for pretrained and trained embeddings; then trained minus pretrained interaction",
+  "baseline_parity": "selected trained archive must reproduce holdout-only R1 0.9603486583490002 and full-train-gallery R1 0.8858314817979832 from prior authenticated census",
+  "interpretation": "descriptive seen-class effect at equal sampled gallery size; pretraining contrast controls some preexisting pool differences, not all possible dataset confounding; no method or official-test claim",
+  "prohibitions": ["no official test image bytes", "no training", "no SOTA claim"]
+}
