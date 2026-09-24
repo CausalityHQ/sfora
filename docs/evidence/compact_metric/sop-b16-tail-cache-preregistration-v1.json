@@ -1,0 +1,14 @@
+{
+  "schema": "sfora-sop-b16-tail-cache-preregistration-v1",
+  "claim_eligible": false,
+  "purpose": "Build one deterministic float32 input cache to the pretrained UNICOM B/16 final transformer block for a train-only matched representation screen",
+  "script_sha256": "bd0a21e263cef60fcf4b1c133c244fa0dab3096c1c55a6a984faf9eb196ff3f1",
+  "adapter_sha256": "fd3efc8c99c29aaca3069bc3f360dbe98614c754bf51716121256090d98909fd",
+  "source_archive_sha256": "16b4554d3868363905f1e1cd385783a8033513835723a7b89f4b762d893d757f",
+  "checkpoint_sha256": "c04f324f7c3b4435667236ec6c0eca1cd62f9d64fbfc2d06f8e8e60e6497edef",
+  "rows": "all 59,551 official SOP TRAIN images in source-archive order; no official test image bytes",
+  "cache": "shape (59551,196,768), float32 .npy, canonical authenticated UNICOM evaluation transform, frozen prefix through block 10 inclusive",
+  "validation": "for every row, replay block 11, norm and original output head from cached tokens; require normalized cosine with authenticated source descriptor at least 0.99999; record minimum cosine, maximum absolute descriptor difference, data SHA-256, wall time, peak CUDA allocation and host RSS",
+  "output_location": "/home/riomus/runs/sfora-b16-tail-cache-bd0a21e2",
+  "next_use": "the same immutable cache will feed all matched SOP train-only head/tail and ArcFace/teacher arms; it is not a live inference timing benchmark"
+}
