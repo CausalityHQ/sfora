@@ -1,5 +1,38 @@
 # Joint quality and performance decision, first training-code gate
 
+## 24 September equal-size SOP seen-gallery diagnosis
+
+The [preregistered comparison](evidence/compact_metric/sop-seen-gallery-effect-preregistration-v1.json)
+uses the same 5,851 SOP **training** holdout queries and fixes every query's
+positive gallery images. It calculates the exact probability of Recall@1
+success when 1,000, 3,000, or 5,000 wrong-product images are sampled
+uniformly without replacement from either held-out identities or fit
+identities. For a pool of `M` negatives with `K` outranking the strongest
+positive, the probability is `C(M-K,N)/C(M,N)`. This removes Monte Carlo
+variation in the negative sample and compares equal negative counts. The
+[raw DGX receipt](evidence/compact_metric/sop-seen-gallery-effect-v1.json)
+has SHA-256 `55ab7bf7b0fe9ac9e4e630944021c0a597e727c8d816960c78955cd16f8dab8c`,
+identical to the remote original. Its trained full- and small-gallery
+scores reproduce the previous census exactly. No official test image bytes
+were read.
+
+| SOP train, 5,000 sampled wrong negatives plus fixed positives | Unseen holdout pool expected R@1 | Seen fit pool expected R@1 | Seen minus unseen |
+| --- | ---: | ---: | ---: |
+| Pretrained B/16, 768-D float cosine | 84.7132% | 83.0386% | −1.6746 pp |
+| SOP-trained step-48,000 B/16, 768-D float cosine | 96.2119% | 95.4514% | −0.7606 pp |
+
+The trained-minus-pretrained interaction in the seen-pool penalty is
+**+0.9140 pp** at this gallery size. At 1,000 and 3,000 negatives it is
++0.5968 and +0.8261 pp. Thus the trained representation is not
+disproportionately harmed by seen-class distractors at equal sampled
+negative counts; adding tens of thousands of rows is the stronger observed
+stress. The interaction is descriptive, not a causal estimate of training:
+fit and holdout products may differ intrinsically, and this tests sampled
+wrong-image galleries rather than the official unseen-product test gallery.
+It gives a cleaner train-only scale target for the next controlled learning
+experiment. The DGX calculation took 4.22 s and peaked at 712 MB PyTorch
+CUDA allocation and 2.08 GB host RSS.
+
 ## 24 September full-gallery SOP train error census
 
 The [frozen train-only census](evidence/compact_metric/sop-trained-fullgallery-error-census-preregistration-v1.json)
