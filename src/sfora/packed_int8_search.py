@@ -9,6 +9,23 @@ from numpy.typing import NDArray
 from sfora.joint_relational_compaction import PackedInt8Embeddings
 
 
+def _ordered_topk_indexes(
+    scores: NDArray[np.float32], ordinals: NDArray[np.int64], k: int
+) -> NDArray[np.intp]:
+    """Select exact top-k without sorting every score in a large block."""
+
+    if k == len(scores):
+        return np.lexsort((ordinals, -scores))
+    cutoff = np.partition(scores, len(scores) - k)[len(scores) - k]
+    better = np.flatnonzero(scores > cutoff)
+    equal = np.flatnonzero(scores == cutoff)
+    needed = k - len(better)
+    if len(equal) > needed:
+        equal = equal[np.argpartition(ordinals[equal], needed - 1)[:needed]]
+    chosen = np.concatenate((better, equal))
+    return chosen[np.lexsort((ordinals[chosen], -scores[chosen]))]
+
+
 class CpuPackedInt8Gallery:
     """Owned CPU gallery with deterministic blockwise exact cosine top-k."""
 
@@ -73,7 +90,7 @@ class CpuPackedInt8Gallery:
                 keep = min(k, candidate_scores.shape[1])
                 selected = np.stack(
                     [
-                        np.lexsort((candidate_ordinals[row], -candidate_scores[row]))[:keep]
+                        _ordered_topk_indexes(candidate_scores[row], candidate_ordinals[row], keep)
                         for row in range(query_count)
                     ]
                 )
