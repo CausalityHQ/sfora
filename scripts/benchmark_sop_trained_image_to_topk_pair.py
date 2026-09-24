@@ -102,7 +102,7 @@ def validate_selected_training(
         or inputs.get("selected_checkpoint_sha256") != checkpoint_sha256
         or trained.get("recipe") != "reference"
         or trained.get("arm") != "arcface"
-        or trained.get("embedding_width") != 128
+        or trained.get("embedding_width", 128) != 128
         or trained.get("seed") != official.get("seed")
         or trained.get("updates") != official.get("selection_step")
     ):

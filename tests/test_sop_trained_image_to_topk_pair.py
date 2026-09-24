@@ -42,11 +42,16 @@ def test_selected_training_matches_official_receipt() -> None:
         "embedding_width": 128,
     }
     subject.validate_selected_training(official, trained, digest)
+    # The frozen reference-like 128-D checkpoint predates the width field;
+    # the official evaluator authenticates that payload as width 128.
+    legacy_trained = {key: value for key, value in trained.items() if key != "embedding_width"}
+    subject.validate_selected_training(official, legacy_trained, digest)
     for bad_digest, bad_trained, bad_official in (
         ("b" * 64, trained, official),
         (digest, {**trained, "updates": 8000}, official),
         (digest, {**trained, "seed": 1}, official),
         (digest, {**trained, "arm": "packed_rank"}, official),
+        (digest, {**trained, "embedding_width": 768}, official),
         (digest, trained, {**official, "embedding_width": 768}),
     ):
         with pytest.raises(ValueError, match="selected training authority differs"):
