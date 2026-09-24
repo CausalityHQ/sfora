@@ -112,6 +112,18 @@ The replay now checks that all 32 freshly encoded query features match the
 cached gallery source for each encoder (minimum normalized cosine 0.999)
 before opening the native gallery or recording timings. This guards against
 an encoder checkpoint or preprocessing mismatch; no new GPU timing is claimed.
+A second, train-image [paired replay](../scripts/benchmark_sop_trained_image_to_topk_pair.py)
+is prepared for the checkpoint selected by the completed reference run. It
+will encode the same 59,551 SOP training images with both the selected B/16
+and OML S/16, use the first 32 as timed queries and the remaining 59,519 as
+their equal-size 130-byte galleries, and measure the full image-to-top-10
+call at batch 1 and 32 in both arm orders. It authenticates the selected
+checkpoint through the official evaluation receipt, pins OML's published
+profile receipt, rechecks the selected checkpoint on its train-identity
+holdout, and checks full-gallery/live-query feature parity and GPU process
+occupancy. Both galleries are encoded live from the same training pixels.
+This replay uses no SOP test pixels; its training-row latency is a separate
+axis from the official-test quality metrics. It is not yet a measured result.
 
 The authenticated B/16 feature export contains the official 59,551 train and
 60,502 test images, checkpoint SHA-256
