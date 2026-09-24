@@ -1,0 +1,16 @@
+{
+  "schema": "sfora-l14-exact-head-image-to-topk-preregistration-v1",
+  "claim_eligible": false,
+  "source_script_sha256": "693e0379f5fcf300c751e88d402d4472dfe2f3faef3e5b25c611590071976f87",
+  "dataset": "Stanford Online Products official training images only",
+  "sop_archive_sha256": "1ba27b2d6b9db39067aa6facd0ef8aafc303c4527f6feabed859b0512c7d921a",
+  "checkpoint_sha256": "3916ab5aed3b522fc90345be8b4457fe5dad60801ad2af5a6871c0c096e8d7ea",
+  "native_library_sha256": "b7440d394724249647e681a966345f4fb6ce5f1902871137d9e19eefdc524318",
+  "split": "seed-179019 class-disjoint 90/10 split on SOP train identities; 32 evenly spaced holdout query images; all 59551 training archive rows except those 32 form the 59519-row gallery",
+  "shared_fit": "centered PCA-128 on normalized original L/14 fit-identity outputs only, held fixed across both query arms",
+  "arms": ["original L/14 query head", "exact affine-fold L/14 query head"],
+  "gallery": "one shared resident original-encoder 130-byte signed-int8 gallery; this is an asymmetric query-path diagnostic, not a symmetric product claim",
+  "timing": "10 alternating blocks x 10 calls per arm at batch 1 and 32 after 5 warmups per arm; decode through exact native packed top-10",
+  "decision": "advance to a same-encoder gallery and 10000-call p99 panel only if the upper paired-block-bootstrap 95% bound for the full image-to-top-k p50 ratio is below 1 at both batch sizes, with no top-1 change among the 32 predeclared queries",
+  "prohibitions": ["no official test image bytes", "no rank or precision sweep", "no p99 certification from 100 calls", "no SOTA claim"]
+}
