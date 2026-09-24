@@ -8,6 +8,8 @@ from numpy.typing import NDArray
 
 from sfora.joint_relational_compaction import PackedInt8Embeddings
 
+_QUERY_BLOCK_ROWS = 64
+
 
 def _ordered_topk_indexes(
     scores: NDArray[np.float32], ordinals: NDArray[np.int64], k: int
@@ -78,24 +80,39 @@ class CpuPackedInt8Gallery:
             query_norms = queries.inverse_norms.float().unsqueeze(1)
             for start in range(0, self._codes.shape[0], self._block_rows):
                 stop = min(start + self._block_rows, self._codes.shape[0])
-                integer_dots = query_codes @ self._codes[start:stop].float().T
-                block_scores = (
-                    integer_dots
-                    * query_norms
-                    * self._inverse_norms[start:stop].float().unsqueeze(0)
-                ).numpy()
-                block_ordinals = np.broadcast_to(
-                    np.arange(start, stop, dtype=np.int64), block_scores.shape
-                )
-                candidate_ordinals = np.concatenate((best_ordinals, block_ordinals), axis=1)
-                candidate_scores = np.concatenate((best_scores, block_scores), axis=1)
-                keep = min(k, candidate_scores.shape[1])
-                selected = np.stack(
-                    [
-                        _ordered_topk_indexes(candidate_scores[row], candidate_ordinals[row], keep)
-                        for row in range(query_count)
-                    ]
-                )
-                best_ordinals = np.take_along_axis(candidate_ordinals, selected, axis=1)
-                best_scores = np.take_along_axis(candidate_scores, selected, axis=1)
-        return np.ascontiguousarray(best_ordinals), np.ascontiguousarray(best_scores)
+                gallery_codes = self._codes[start:stop].float().T
+                gallery_norms = self._inverse_norms[start:stop].float().unsqueeze(0)
+                keep = min(k, best_ordinals.shape[1] + stop - start)
+                next_ordinals = np.empty((query_count, keep), dtype=np.int64)
+                next_scores = np.empty((query_count, keep), dtype=np.float32)
+                for query_start in range(0, query_count, _QUERY_BLOCK_ROWS):
+                    query_stop = min(query_start + _QUERY_BLOCK_ROWS, query_count)
+                    integer_dots = query_codes[query_start:query_stop] @ gallery_codes
+                    block_scores = (
+                        integer_dots * query_norms[query_start:query_stop] * gallery_norms
+                    ).numpy()
+                    block_ordinals = np.broadcast_to(
+                        np.arange(start, stop, dtype=np.int64), block_scores.shape
+                    )
+                    candidate_ordinals = np.concatenate(
+                        (best_ordinals[query_start:query_stop], block_ordinals), axis=1
+                    )
+                    candidate_scores = np.concatenate(
+                        (best_scores[query_start:query_stop], block_scores), axis=1
+                    )
+                    selected = np.stack(
+                        [
+                            _ordered_topk_indexes(
+                                candidate_scores[row], candidate_ordinals[row], keep
+                            )
+                            for row in range(query_stop - query_start)
+                        ]
+                    )
+                    next_ordinals[query_start:query_stop] = np.take_along_axis(
+                        candidate_ordinals, selected, axis=1
+                    )
+                    next_scores[query_start:query_stop] = np.take_along_axis(
+                        candidate_scores, selected, axis=1
+                    )
+                best_ordinals, best_scores = next_ordinals, next_scores
+        return best_ordinals, best_scores

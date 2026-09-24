@@ -227,15 +227,20 @@ GPU split measurement is pending an idle-GPU replay.
 
 The CPU packed-search fallback now selects the top-k cutoff before sorting
 the retained candidates, while resolving cutoff ties by the lower gallery
-ordinal. A paired **synthetic-code CPU diagnostic** on this aarch64 devbox
+ordinal. It also scans at most 64 query rows per gallery block. With the
+default 65,536-row gallery block, one f32 score plane is at most 16 MiB
+regardless of total query count; top-k output storage still grows with the
+number of queries. A paired **synthetic-code CPU diagnostic** on this aarch64 devbox
 (59,519 rows × 128 dimensions, top-10, one Torch thread, 10 interleaved
-blocks) measured median complete packed-search calls of 6.949 → 2.771 ms at
-batch 1 and 174.950 → 35.840 ms at batch 32 for full-sort control → cutoff
+blocks) measured median complete packed-search calls of 7.179 → 2.990 ms at
+batch 1, 173.800 → 34.671 ms at batch 32, and 1,328.501 → 250.541 ms at
+batch 256 for full-sort control → cutoff
 selection. Ordinals and scores matched exactly in both arms. The
 [raw receipt](evidence/packed_topk/cpu-selection-synthetic-v1.json) has SHA-256
-`c15de9957c2611ef72748c2008bd4dec5d14c3a70085568864f615c664cd7b57`.
+`b7845aba2d70e8873baf76d732035be82674787e1e39b00cc7aab327a2237b43`.
 This changes the CPU fallback only; the vectors are synthetic and the numbers
-do not measure DGX GPU image-to-top-k or establish a quality improvement.
+do not measure an untiled memory baseline, DGX GPU image-to-top-k, or a quality
+improvement.
 
 The same selected SOP-trained B/16 checkpoint was also evaluated without any
 target-dataset fitting on class-disjoint CUB and Cars identities. These are

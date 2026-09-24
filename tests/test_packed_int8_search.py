@@ -76,3 +76,28 @@ def test_cpu_topk_cutoff_tie_uses_ordinal_with_shuffled_candidates() -> None:
     np.testing.assert_array_equal(
         _ordered_topk_indexes(scores, ordinals, 2), np.asarray([1, 2], dtype=np.intp)
     )
+
+
+def test_cpu_packed_gallery_preserves_order_across_query_tiles(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    gallery = _packed(257, seed=241)
+    queries = _packed(67, seed=251)
+    reference = queries.cosine_similarity(gallery).numpy()
+    ordinals = np.arange(gallery.codes.shape[0], dtype=np.int64)
+    expected = np.stack([np.lexsort((ordinals, -row))[:10] for row in reference])
+    index = CpuPackedInt8Gallery.open_packed(gallery, block_rows=33)
+    matmul = torch.Tensor.__matmul__
+    observed_query_rows: list[int] = []
+
+    def tracked_matmul(left: torch.Tensor, right: torch.Tensor) -> torch.Tensor:
+        observed_query_rows.append(left.shape[0])
+        return matmul(left, right)
+
+    monkeypatch.setattr(torch.Tensor, "__matmul__", tracked_matmul)
+
+    actual, scores = index.search_packed(queries)
+
+    assert observed_query_rows and max(observed_query_rows) <= 64
+    np.testing.assert_array_equal(actual, expected)
+    np.testing.assert_array_equal(scores, np.take_along_axis(reference, expected, axis=1))

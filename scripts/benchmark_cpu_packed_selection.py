@@ -39,6 +39,7 @@ def main() -> None:
         "gallery_rows": 59_519,
         "dimensions": 128,
         "top_k": 10,
+        "query_tile_rows": packed_search._QUERY_BLOCK_ROWS,
         "blocks": 10,
         "torch_threads": torch.get_num_threads(),
         "cpu": platform.processor(),
@@ -50,7 +51,7 @@ def main() -> None:
         "cases": cases,
     }
     try:
-        for batch in (1, 32):
+        for batch in (1, 32, 256):
             queries = pack_int8_unit_embeddings(
                 torch.nn.functional.normalize(torch.randn(batch, 128, generator=generator), dim=1)
             )
