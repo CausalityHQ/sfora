@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any, cast
+
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -10,12 +12,13 @@ from torch.nn import functional as F
 def _check_source_geometry(model: nn.Module) -> int:
     """Reject graphs whose flattened pretrained feature head has another contract."""
 
+    graph: Any = model
     try:
-        patch = model.patch_embed
+        patch = graph.patch_embed
         projection = patch.proj
-        position = model.pos_embed
-        first_feature = model.feature[0]
-        width = int(model.dim)
+        position = graph.pos_embed
+        first_feature = graph.feature[0]
+        width = int(graph.dim)
     except (AttributeError, IndexError, TypeError, ValueError) as error:
         raise ValueError("UNICOM B/16 source geometry differs") from error
     if (
@@ -55,22 +58,23 @@ def output_at_resolution(model: nn.Module, images: torch.Tensor) -> torch.Tensor
     ):
         raise ValueError("UNICOM resolution adapter requires 224 or 336 pixel RGB images")
     width = _check_source_geometry(model)
+    graph: Any = model
     batch = images.shape[0]
-    tokens = model.patch_embed(images)
+    tokens = graph.patch_embed(images)
     if images.shape[-1] == 224:
-        position = model.pos_embed
+        position = graph.pos_embed
     else:
-        position_grid = model.pos_embed.reshape(1, 14, 14, width).permute(0, 3, 1, 2)
+        position_grid = graph.pos_embed.reshape(1, 14, 14, width).permute(0, 3, 1, 2)
         position = (
             F.interpolate(position_grid, size=(21, 21), mode="bicubic", align_corners=False)
             .permute(0, 2, 3, 1)
             .reshape(1, 441, width)
         )
     tokens = tokens + position
-    for block in model.blocks:
+    for block in graph.blocks:
         tokens = block(tokens)
-    tokens = model.norm(tokens.float())
+    tokens = graph.norm(tokens.float())
     if images.shape[-1] == 336:
         grid = tokens.reshape(batch, 21, 21, width).permute(0, 3, 1, 2)
         tokens = F.interpolate(grid, size=(14, 14), mode="area").permute(0, 2, 3, 1)
-    return model.feature(torch.reshape(tokens, (batch, 196 * width)))
+    return cast(torch.Tensor, graph.feature(torch.reshape(tokens, (batch, 196 * width))))

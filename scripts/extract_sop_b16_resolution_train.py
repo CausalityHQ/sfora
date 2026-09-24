@@ -9,7 +9,9 @@ import json
 import platform
 import resource
 import time
+from collections.abc import Callable
 from pathlib import Path, PurePosixPath
+from typing import cast
 
 import numpy as np
 import torch
@@ -30,7 +32,12 @@ def sha256(path: Path) -> str:
 
 
 class SopResolutionImages(Dataset[tuple[torch.Tensor, torch.Tensor]]):
-    def __init__(self, paths: list[Path], base_transform: object, detail_transform: object) -> None:
+    def __init__(
+        self,
+        paths: list[Path],
+        base_transform: Callable[[Image.Image], torch.Tensor],
+        detail_transform: Callable[[Image.Image], torch.Tensor],
+    ) -> None:
         self.paths = paths
         self.base_transform = base_transform
         self.detail_transform = detail_transform
@@ -80,7 +87,7 @@ def main() -> None:
             raise ValueError("SOP TRAIN image is missing")
         paths.append(path)
     source = load_authenticated_source_model(args.unicom_checkout, args.b16_checkpoint)
-    steps = source.transform.transforms
+    steps = cast(Compose, source.transform).transforms
     if (
         len(steps) != 5
         or not isinstance(steps[0], Resize)

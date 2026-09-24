@@ -10,10 +10,10 @@ import platform
 import resource
 import time
 from pathlib import Path
+from typing import Any, cast
 
 import numpy as np
 import torch
-from analyze_sop_reference_progress import product_bootstrap
 from torch.nn import functional as F
 
 from sfora.joint_relational_compaction import pack_int8_unit_embeddings
@@ -31,10 +31,28 @@ def sha256(path: Path) -> str:
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
+def product_bootstrap(delta: np.ndarray, labels: np.ndarray) -> dict[str, float]:
+    """Paired percentile interval resampling whole heldout products."""
+
+    if delta.shape != labels.shape or not np.isfinite(delta).all():
+        raise ValueError("SOP resolution product bootstrap input differs")
+    classes, inverse = np.unique(labels, return_inverse=True)
+    counts = np.bincount(inverse)
+    totals = np.bincount(inverse, weights=delta, minlength=len(classes))
+    random = np.random.default_rng(SEED)
+    draws = np.empty(BOOTSTRAP_DRAWS, dtype=np.float64)
+    for start in range(0, BOOTSTRAP_DRAWS, 512):
+        stop = min(start + 512, BOOTSTRAP_DRAWS)
+        selected = random.integers(0, len(classes), size=(stop - start, len(classes)))
+        draws[start:stop] = totals[selected].sum(axis=1) / counts[selected].sum(axis=1)
+    lower, upper = np.quantile(draws, [0.025, 0.975])
+    return {"point": float(delta.mean()), "lower_95": float(lower), "upper_95": float(upper)}
+
+
 def compare(
     candidate: dict[str, object], baseline: dict[str, object], labels: np.ndarray
 ) -> dict[str, object]:
-    result = {}
+    result: dict[str, object] = {}
     for key, row_key in (("recall_at_1", "per_query_r1"), ("map_at_r", "per_query_ap")):
         if row_key not in candidate or row_key not in baseline:
             continue
@@ -43,10 +61,11 @@ def compare(
         )
         if (
             len(delta) != len(labels)
-            or abs(float(delta.mean()) - (candidate[key] - baseline[key])) > 1e-6
+            or abs(float(delta.mean()) - (cast(float, candidate[key]) - cast(float, baseline[key])))
+            > 1e-6
         ):
             raise ValueError("SOP resolution paired metric differs")
-        result[key] = product_bootstrap(delta, labels, seed=SEED, replicates=BOOTSTRAP_DRAWS)
+        result[key] = product_bootstrap(delta, labels)
     return result
 
 
@@ -131,7 +150,7 @@ def main() -> None:
     if (len(fit_rows), len(held_rows), len(np.unique(labels[held_rows]))) != (53_700, 5_851, 1_132):
         raise ValueError("SOP B/16 resolution partition differs")
     train_labels = torch.from_numpy(labels)
-    results = {}
+    results: dict[str, Any] = {}
     feature_sha = {"b16_224": SOURCE_ARCHIVE_SHA256}
     for arm in ARMS:
         if arm == "b16_224":
