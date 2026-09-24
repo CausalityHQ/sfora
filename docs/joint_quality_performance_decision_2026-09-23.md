@@ -508,6 +508,18 @@ The evaluator's aggregate encoding time includes JPEG decoding and SHA-256
 verification; public image-to-top-k p50/p95/p99 require a separate matched
 serving benchmark.
 
+The CUB transfer evaluator is prepared for a separate, exploratory
+class-disjoint check after SOP selection. It compares the authenticated
+pretrained UNICOM ViT-B/16@224 with the SOP-fit-only PCA 128 head against
+the train-selected SOP-finetuned ViT-B/16@224 and trained 128 head. Both use
+the same CUB-200-2011 classes 101–200 test self-retrieval protocol (5,924
+images), 128-D float and 130-byte packed scoring, with no CUB fitting. The
+script binds the selected checkpoint to the official SOP receipt, reconstructs
+and hashes the fit-only initial head, checks every CUB image against the pinned
+source tar, and writes per-query Recall@1 and mAP@R. Its CPU preflight can run
+while the GPU is occupied. No CUB transfer result has been measured for this
+trained checkpoint yet; it cannot establish an SOP or In-Shop SOTA claim.
+
 A matched full-width B/16 control is prepared with the same 53,700 fit images,
 class-disjoint holdout, pretrained checkpoint, seed, batch schedule, reference
 augmentation, ArcFace margin/scale, OneCycle schedule, and 53,760 updates. Its
