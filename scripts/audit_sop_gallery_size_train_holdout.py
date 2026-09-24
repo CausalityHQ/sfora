@@ -113,6 +113,28 @@ def main() -> None:
         small, full = paired_top1(vectors, labels, holdout)
     if bool(np.any(full & ~small)):
         raise ValueError("adding class-disjoint distractors increased a top-1 hit")
+    query_labels = labels[holdout]
+    _, inverse_labels, product_counts = np.unique(
+        query_labels, return_inverse=True, return_counts=True
+    )
+    query_product_sizes = product_counts[inverse_labels]
+    by_product_size = {}
+    for name, mask in (
+        ("2", query_product_sizes == 2),
+        ("3", query_product_sizes == 3),
+        ("4-5", (query_product_sizes >= 4) & (query_product_sizes <= 5)),
+        ("6-12", (query_product_sizes >= 6) & (query_product_sizes <= 12)),
+    ):
+        if not bool(mask.any()):
+            raise ValueError("SOP holdout product-size band is empty")
+        by_product_size[name] = {
+            "query_rows": int(mask.sum()),
+            "small_recall_at_1": float(small[mask].mean()),
+            "full_recall_at_1": float(full[mask].mean()),
+            "small_only_hits": int(np.count_nonzero(small[mask] & ~full[mask])),
+        }
+    if sum(int(value["query_rows"]) for value in by_product_size.values()) != len(holdout):
+        raise ValueError("SOP holdout product-size bands do not cover all queries")
     receipt = {
         "schema": "sfora-sop-train-holdout-gallery-size-audit-v1",
         "claim_eligible": False,
@@ -130,7 +152,9 @@ def main() -> None:
         "full_minus_small_cluster_bootstrap_ci95": cluster_interval(labels[holdout], small, full),
         "small_only_hits": int(np.count_nonzero(small & ~full)),
         "full_only_hits": int(np.count_nonzero(full & ~small)),
+        "by_product_size": by_product_size,
         "query_source_ordinals": holdout.tolist(),
+        "query_labels": query_labels.tolist(),
         "small_hits": small.astype(int).tolist(),
         "full_hits": full.astype(int).tolist(),
         "tie_rule": "lowest source-gallery ordinal among equal float32 cosine scores",

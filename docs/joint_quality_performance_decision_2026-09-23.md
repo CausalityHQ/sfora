@@ -121,7 +121,16 @@ identities gives a descriptive 95% interval of **−15.6398 to −13.2496
 points**. The [raw per-query receipt](evidence/compact_metric/sop-b16-train-gallery-size-audit-v1.json)
 binds the [audit script](../scripts/audit_sop_gallery_size_train_holdout.py) and
 the authenticated source feature archive; its SHA-256 is
-`3c4bb26d86f06b62bf04c73d37176b11578d6ac7c5b7d6c9ab34c75983e5daf8`.
+`6ed220a3a472f1ae8e4c22c6096dfcd0fccf6c0837c88040f46e3a4350458882`.
+The loss is largest among products with fewer positive images:
+
+| Holdout product images | Query rows | Small-gallery Recall@1 | 59,551-row Recall@1 | Hits lost |
+| ---: | ---: | ---: | ---: | ---: |
+| 2 | 450 | 75.3333% | 54.8889% | 92 |
+| 3 | 555 | 80.5405% | 63.7838% | 93 |
+| 4–5 | 1,356 | 83.4808% | 69.9115% | 184 |
+| 6–12 | 3,490 | 86.0172% | 72.4069% | 475 |
+
 This identifies a large
 gallery-size effect for one pretrained encoder; it does **not** measure the
 effect for the 48k trained encoder or prove the remaining official-test
