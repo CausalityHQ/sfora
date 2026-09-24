@@ -1,0 +1,49 @@
+{
+  "adapter_sha256": "3a3e82e4f175005d8add9914d51e9aa53ef8ef1bac35094a0b9edc181940c379",
+  "archive_max_abs_error": 2.915039658546448e-07,
+  "claim_eligible": false,
+  "control_transform": "F.interpolate(canonical224,336,bicubic,align_corners=False)",
+  "detail_transform": "Compose(\n    Resize(size=336, interpolation=bicubic, max_size=None, antialias=True)\n    CenterCrop(size=(336, 336))\n    <function _convert_image_to_rgb at 0xfd220a63bce0>\n    ToTensor()\n    Normalize(mean=(0.48145466, 0.4578275, 0.40821073), std=(0.26862954, 0.26130258, 0.27577711))\n)",
+  "elapsed_seconds": 3.5368053852580488,
+  "exact_224_parity": true,
+  "hardware": {
+    "cuda": "13.0",
+    "gpu": "NVIDIA GB10",
+    "python": "3.13.9",
+    "torch": "2.12.1+cu130"
+  },
+  "mean_cosine_224_vs_336": 0.934861421585083,
+  "mean_cosine_224_vs_upsampled": 0.8748817443847656,
+  "output_shape": [
+    8,
+    768
+  ],
+  "peak_cuda_allocated_bytes": 947263488,
+  "peak_host_rss_bytes": 3404550144,
+  "schema": "sfora-sop-b16-resolution-preflight-v1",
+  "script_sha256": "a8a87ae5ace2b641a541a4280865ee7e25df66e6bccc4c443c8a8fda3b7e48e6",
+  "source_archive_sha256": "16b4554d3868363905f1e1cd385783a8033513835723a7b89f4b762d893d757f",
+  "source_checkpoint_sha256": "c04f324f7c3b4435667236ec6c0eca1cd62f9d64fbfc2d06f8e8e60e6497edef",
+  "source_revision": "d71992ed969e6c271436ac0a0ee1f3ca61474ac0",
+  "source_transform": "Compose(\n    Resize(size=224, interpolation=bicubic, max_size=None, antialias=True)\n    CenterCrop(size=(224, 224))\n    <function _convert_image_to_rgb at 0xfd220a63bce0>\n    ToTensor()\n    Normalize(mean=(0.48145466, 0.4578275, 0.40821073), std=(0.26862954, 0.26130258, 0.27577711))\n)",
+  "train_image_ids": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+  ],
+  "train_image_sha256": [
+    "4f289f0e9e65eae809dc061496ea6ee760166de5db651de83d78a6144799a722",
+    "f76d5ea960fd49c8c55ffc35f00dc2986a7cb4d47302f2278fc57c5e0ee67f38",
+    "b6979f511890e7dd9f1ded47af42af5f75d22cda7ab2a3b7bfad87fa4c2d9ec8",
+    "aff1238aa2e9820f35225b6139da88188f6eb0bfa09114d4b96ce0934d294365",
+    "17c6cd7e18590be51e3478f0f1134d8a7b956f35db2760e05076e224dbf02e0c",
+    "9643ca266078f8807fdf9e160c5cbdd65ffc8801caed5bf06fc95d8a9196b582",
+    "ba20336a324d1b69f85a9c667729fabba851b0da16fcb8b8aea3839b4441d72c",
+    "bb68ca6a9ffc8ea04c1b6b2e6e454838cc5b2e2f819b7c37b8b406d286862ddf"
+  ]
+}

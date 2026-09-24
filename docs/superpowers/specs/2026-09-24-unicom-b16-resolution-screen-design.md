@@ -34,6 +34,14 @@ area-resample tokens to 14×14, flatten in row-major order, and run the
 unchanged `feature` module. At 224, the adapter must match direct model
 output exactly on an eight-image authenticated SOP TRAIN preflight.
 
+The eight-image DGX preflight passed at commit `2eb1aa32`: exact 224 parity,
+maximum absolute difference from the prior archived descriptors
+`2.91504e-7`, finite 336 outputs, peak CUDA allocation 947,263,488 bytes.
+The native 336 and upsampled-224 336 outputs averaged cosine 0.93486 and
+0.87488 against 224 on these eight images. These are representation
+diagnostics, not retrieval scores. The raw receipt is
+`docs/evidence/compact_metric/sop-b16-resolution-preflight-v1.json`.
+
 ## Stage 0: frozen feasibility gate
 
 Three arms use the same source images, product labels, fit/holdout split,
