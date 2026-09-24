@@ -1,5 +1,58 @@
 # Joint quality and performance decision, first training-code gate
 
+## 24 September official-standard In-Shop train-only head gate
+
+The [preregistered rule](evidence/compact_metric/l14-inshop-train-heads-preregistration-v1.json)
+was fixed before scoring. Its [raw DGX receipt](evidence/compact_metric/l14-inshop-train-heads-v1.json)
+has SHA-256 `7bb00c1aea0cbcd2c8bdc7ab044ddd81e65f8024ad6eeb4d3eb9ba4adb688826`;
+the [versioned gate analysis](../scripts/analyze_l14_inshop_train_heads.py)
+and [decision receipt](evidence/compact_metric/l14-inshop-train-heads-decision-v1.json)
+apply a 10,000-resample identity-clustered bootstrap at seed 179019.
+The experiment decoded only the corrected official-standard In-Shop
+**training** images. After excluding 12 singleton train identities, a
+deterministic 90/10 class split supplied 23,143 fit images and 2,727
+validation images in 398 identities. Alternating images within each
+validation identity made a disjoint 1,289-query / 1,438-gallery test.
+The same pretrained UNICOM L/14@336 backbone execution supplied original,
+rank-512 and exact-affine-fold heads. A centered PCA-128 map was fitted
+**only** on normalized original fit-identity features, then held fixed
+for all heads. The packed 128-D scorer stores 130 bytes per gallery item.
+This constructed train-only query/gallery panel is not the official In-Shop
+test split and its absolute Recall@1 cannot be compared to the paper's 96.7%.
+
+| In-Shop train-only constructed query/gallery | Original | Rank-512 | Exact fold |
+| --- | ---: | ---: | ---: |
+| Packed 128-D, Recall@1 / mAP@R | 96.4313% / 0.799178 | 96.3538% / 0.800303 | 96.4313% / 0.799178 |
+| Packed 768-D, Recall@1 / mAP@R | 96.8968% / 0.802754 | 96.8192% / 0.800968 | 96.8968% / 0.802754 |
+| Upstream prefix-512 Euclidean, Recall@1 / mAP@R | 96.5865% / 0.797321 | 96.5865% / 0.797342 | 96.5865% / 0.797321 |
+
+Rank-512 loses one 130-byte Recall@1 query and gains none. Its paired
+identity-bootstrap difference is −0.0776 percentage points with descriptive
+95% interval **−0.2511 to 0.0000 points**. The preregistered lower bound
+had to be at least −0.2 points on the packed 128-D and upstream-prefix
+scorers. The packed lower bound fails, so **rank-512 does not advance to
+the full-pipeline screen**. This is a narrow negative gate on a constructed
+train-only panel, not proof of a population quality loss. Exact folding
+changes no Recall@1 outcomes under any of the four recorded scorers; its
+maximum descriptor difference is `9.09e-7`, below the frozen `5e-6`
+numerical tolerance. It advances to the full-pipeline timing screen.
+No official query/gallery image bytes were decoded.
+
+The first attempted run stopped at a source-feature provenance check. The
+older pretrained In-Shop feature archive (SHA-256 `6eae1371…`) came from
+`/datasets/inshop`, whose image bytes differ from the registered
+`/datasets/inshop_official_standard` corpus despite the same partition
+metadata. Its first-row inference matches the former (cosine 0.9999998),
+while the official-standard first row differs (cosine 0.8355). The corrected
+run re-encoded all 25,870 eligible official-standard training images and
+fitted PCA from those live features; it did not use that archive. This
+does not revise the earlier 95.4283% official exploratory result, which
+used a separately trained rank-finished checkpoint and its corrected
+pixel corpus. The successful DGX job exited zero in 380.96 s; shared-trunk
+three-head encoding with decode took 357.68 s, PCA fit 1.257 s, peak CUDA
+allocation 9.07 GB and peak host RSS 10.41 GB. These are run resources,
+not a per-image training or serving latency benchmark.
+
 ## 24 September exact affine L/14 head F0: smaller safe baseline
 
 The UNICOM L/14 evaluation head is
@@ -105,15 +158,15 @@ tensors, **not** decode/pack/search, serving p99, training throughput, or
 a joint quality/performance advance over the published supervised UNICOM
 91.2% SOP and 96.7% In-Shop Recall@1 references.
 
-The fold F0 remains rejected. The rank-512 head is retained as a low-cost
-candidate for the next **matched full image-to-top-k** batch-1/batch-32
-screen and a train-only In-Shop retrieval check. It should advance to a
-supervised L/14 training arm only if the same-stack full-pipeline latency
-improves at both batch sizes and In-Shop train-only quality stays within a
-predeclared retention tolerance. A 10,000-call interleaved paired p99 panel
-and official split evaluation remain required for a product claim. Parallel
-Claude Opus 5.5 and GPT-6 Astra terminal-result critiques were started after
-the receipt; their findings will be reconciled before that next gate.
+The parallel transformer-block fold F0 remains rejected. The later
+preregistered In-Shop train-only gate above also rejects rank-512 for the
+next full-pipeline screen. Exact affine head fusion is the surviving
+execution-preserving candidate. A 10,000-call interleaved paired p99 panel
+and official split evaluation remain required for a product claim. Claude
+Opus 5.5 and GPT-6 Astra independently critiqued the low-rank result; Opus
+identified the exact affine control. Its suggested exact 128-output fusion
+does not apply to Sfora's current intermediate-normalization path, as
+explained above.
 
 ## 24 September full-width transfer development result
 
