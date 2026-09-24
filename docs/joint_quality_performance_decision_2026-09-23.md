@@ -108,6 +108,26 @@ train-identity holdout therefore did not predict official-test quality;
 the next run must diagnose representation width and generalization before a
 new learning-method claim.
 
+A paired **train-only gallery-size audit** now isolates one source of that
+holdout mismatch for the *pretrained*, full-width B/16 encoder. All 5,851
+class-disjoint holdout images are the same queries in both arms, with the same
+normalized 768-D float32 cosine scorer and self exclusion. The small gallery
+contains those 5,851 images; the large gallery adds the 53,700 fit-identity
+images as distractors, for 59,551 rows total. Recall@1 falls from **84.0882%
+to 69.6633%** (−14.4249 percentage points). Exactly 844 formerly correct
+queries become incorrect and none change in the other direction, as required
+when only distractors are added. A paired bootstrap over holdout product
+identities gives a descriptive 95% interval of **−15.6398 to −13.2496
+points**. The [raw per-query receipt](evidence/compact_metric/sop-b16-train-gallery-size-audit-v1.json)
+binds the [audit script](../scripts/audit_sop_gallery_size_train_holdout.py) and
+the authenticated source feature archive; its SHA-256 is
+`3c4bb26d86f06b62bf04c73d37176b11578d6ac7c5b7d6c9ab34c75983e5daf8`.
+This identifies a large
+gallery-size effect for one pretrained encoder; it does **not** measure the
+effect for the 48k trained encoder or prove the remaining official-test
+distribution shift is zero. A size-matched trained-encoder diagnosis remains
+necessary before changing its learning objective.
+
 The independent [STIR paper](https://arxiv.org/pdf/2304.13393) reports
 88.3% SOP and 95.0% In-Shop Recall@1 for a ViT-S/16 system with a symmetric
 pixel-level top-five reranker. It is a useful method comparison, but its
