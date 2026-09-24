@@ -1,5 +1,43 @@
 # Joint quality and performance decision, first training-code gate
 
+## 24 September frozen patch-token signal falsifier: reject top-32 MaxSim teacher
+
+The [frozen train-only preregistration](evidence/compact_metric/sop-token-maxsim-top32-preregistration-v1.json)
+tested whether UNICOM B/16 block-11 patch tokens contain a useful part-match
+signal before training a side branch. It reproduced the original head ArcFace
+control on the same 5,851 SOP TRAIN product-disjoint holdout queries, took
+each query's top 32 gallery rows under the deployed 130-byte packed scorer,
+then reranked only those rows by symmetric mean-of-max cosine between the
+frozen 196×768 token grids. No new weights were trained and no official test
+images were read. The preflight and the single full DGX service exited zero.
+
+| SOP TRAIN holdout-only, 5,851 queries | Recall@1 | mAP@R |
+| --- | ---: | ---: |
+| Packed global head control | 84.6009% | 0.603678 |
+| Frozen-token MaxSim top-32 rerank | **80.7554%** | **0.535993** |
+
+The [raw receipt](evidence/compact_metric/sop-token-maxsim-top32-v1.json)
+(SHA-256 `5394028503619469a504ae86bc2dd3aa3a3d900ac60ad5033ac988def89539fe`)
+matches the DGX original. A positive appeared somewhere in the global top 32
+for 5,699 of 5,851 queries (97.40%), so shortlist exclusion alone cannot
+explain the loss. MaxSim fixed 182 baseline-wrong queries but broke 407
+baseline-correct queries. The [paired decision](evidence/compact_metric/sop-token-maxsim-top32-decision-v1.json)
+(SHA-256 `95d621519f362b142d21e7ac5162dd98de25d9273161e848bc17e9a93ec85129`)
+finds **−3.8455 percentage points** Recall@1 with a 1,132-product bootstrap
+95% interval **−4.8160 to −2.8449**, and **−6.7685 points** mAP@R. Every
+frozen advancement condition fails. **Do not train the proposed side branch
+with this top-32 MaxSim teacher.** This result rejects that score and
+shortlist combination on this reused split; it does not prove all patch-token
+information or all frozen-trunk side branches are useless.
+
+The actual MaxSim compute took **4.52 s** for 5,851×32 token pairs on the
+DGX GB10; total recorded wall after upfront hashes was **14.53 s**. Peak
+PyTorch allocated CUDA memory was **8.51 GB**, host RSS **14.45 GB**. This
+is an offline diagnostic and would violate the existing 130-byte-gallery
+serving contract if deployed as a token scorer. A new quality route must
+change the representation or supply a stronger transfer-preserving training
+signal rather than retrying this known failing token operator.
+
 ## 24 September CUB transfer falsifier: stop this partial-tail candidate
 
 The [frozen transfer preregistration](evidence/compact_metric/sop-tail-cub-transfer-preregistration-v1.json)
