@@ -28,6 +28,23 @@ def test_bank_loss_backpropagates_through_anchors() -> None:
     assert anchors.grad.abs().sum() > 0
 
 
+def test_trimming_unused_positive_padding_preserves_loss_and_gradient() -> None:
+    torch.manual_seed(179026)
+    bank = F.normalize(torch.randn(9, 128), dim=1)
+    anchors = F.normalize(torch.randn(2, 128), dim=1).requires_grad_()
+    padded = torch.tensor([[1, 2, -1, -1], [4, -1, -1, -1]])
+    self_rows = torch.tensor([0, 3])
+    full = smooth_ap_bank_loss(anchors, bank, padded, self_rows)
+    trimmed = smooth_ap_bank_loss(anchors, bank, padded[:, :2], self_rows)
+    torch.testing.assert_close(trimmed, full, atol=1e-7, rtol=1e-7)
+    torch.testing.assert_close(
+        torch.autograd.grad(trimmed, anchors, retain_graph=True)[0],
+        torch.autograd.grad(full, anchors)[0],
+        atol=1e-7,
+        rtol=1e-7,
+    )
+
+
 def test_bank_loss_gradient_matches_independent_detached_gallery_reference() -> None:
     torch.manual_seed(179021)
     bank = F.normalize(torch.randn(8, 128, dtype=torch.float32), dim=1).requires_grad_()
