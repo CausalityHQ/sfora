@@ -47,3 +47,18 @@ def test_live_head_keeps_cached_source_detached() -> None:
     loss.backward()
     assert source.grad is None
     assert head.weight.grad is not None
+
+
+@pytest.mark.parametrize("temperature", [float("nan"), float("inf")])
+def test_live_head_rejects_nonfinite_temperature(temperature: float) -> None:
+    source = torch.eye(3, dtype=torch.float32)
+    head = nn.Linear(3, 3, bias=False)
+    with pytest.raises(ValueError, match="geometry"):
+        live_head_bank_loss(
+            source[:1],
+            source,
+            head,
+            torch.tensor([[1]]),
+            torch.tensor([0]),
+            temperature=temperature,
+        )

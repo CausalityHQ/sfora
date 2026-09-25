@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import math
+
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -41,6 +43,7 @@ def live_head_bank_loss(
         or anchors.device != positive_ordinals.device
         or anchors.device != self_ordinals.device
         or type(temperature) is not float
+        or not math.isfinite(temperature)
         or temperature <= 0.0
         or bool((self_ordinals < 0).any())
         or bool((self_ordinals >= len(source_bank)).any())
