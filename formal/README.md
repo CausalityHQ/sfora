@@ -39,6 +39,13 @@ does not establish that training keeps drift small, that bank-gradient updates
 improve retrieval, or that the compiled fp32/CUDA score equals exact real
 arithmetic. Those premises require measured or further formal evidence.
 
+`validBankPositiveSlots_trim` proves that truncating an all-invalid padded
+suffix preserves the valid member-bank positive slots. `validBankPositiveSum_trim`
+proves equality of any exact-real sum over those slots. This applies to the
+In-Shop per-batch width optimization when every column after the selected
+width is `-1`; it does not prove bitwise equality of CUDA floating-point loss
+or gradients. A runnable PyTorch value/gradient parity test covers that path.
+
 `PackedNorm.lean` bounds the error between ideal cosine of the **quantized
 codes** and a score formed with two rounded inverse norms. If each stored
 scale has total relative error at most `u`, ideal code cosine has magnitude at

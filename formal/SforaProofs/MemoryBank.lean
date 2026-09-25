@@ -55,4 +55,29 @@ theorem staleBank_errWithin {n : ℕ} {ι : Type*} [LinearOrder ι]
   have hle := (abs_le.mp (hbound.trans (haggregate row hrow)))
   constructor <;> linarith
 
+/-- Slot ordinals whose padded member-bank entries are valid (`-1` is invalid). -/
+def validBankPositiveSlots (width : ℕ) (entries : ℕ → ℤ) : Finset ℕ :=
+  (Finset.range width).filter (fun i => 0 ≤ entries i)
+
+/-- Removing an invalid trailing suffix preserves every valid positive slot. -/
+theorem validBankPositiveSlots_trim {width padded : ℕ} (entries : ℕ → ℤ)
+    (hwidth : width ≤ padded)
+    (htail : ∀ i, width ≤ i → i < padded → entries i < 0) :
+    validBankPositiveSlots padded entries = validBankPositiveSlots width entries := by
+  ext i
+  by_cases hi : i < width
+  · simp [validBankPositiveSlots, hi, lt_of_lt_of_le hi hwidth]
+  · by_cases hin : i < padded
+    · have hneg := htail i (Nat.le_of_not_lt hi) hin
+      simp [validBankPositiveSlots, hi, hin, not_le_of_gt hneg]
+    · simp [validBankPositiveSlots, hi, hin]
+
+/-- Any valid-positive aggregate used by a mathematical bank loss is unchanged. -/
+theorem validBankPositiveSum_trim {width padded : ℕ} (entries : ℕ → ℤ)
+    (term : ℕ → ℝ) (hwidth : width ≤ padded)
+    (htail : ∀ i, width ≤ i → i < padded → entries i < 0) :
+    (∑ i ∈ validBankPositiveSlots padded entries, term i) =
+      ∑ i ∈ validBankPositiveSlots width entries, term i := by
+  rw [validBankPositiveSlots_trim entries hwidth htail]
+
 end SforaProofs
