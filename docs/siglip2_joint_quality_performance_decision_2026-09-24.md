@@ -7,6 +7,32 @@ training, signed-int8 gallery codes with f16 inverse norms (130 bytes per
 image), and an exact native CUDA top-10 scorer. Apache Arrow is not in the
 training or retrieval path.
 
+## Trained serving API
+
+`sfora.siglip2_compact_serving.Siglip2CompactIndex` loads the trained vision
+encoder, 128-dimensional head, and resident native packed gallery. The caller
+must supply a trusted SHA-256 digest of the training receipt from outside the
+artifact directory. The loader checks that receipt against the checkpoint,
+gallery, native library, model files, image-stack versions, and CuTile toolchain.
+It accepts at most 32 PIL images per request, with at most 16 million pixels
+per image, and returns exact top-10 **gallery row ordinals** and scores. Callers
+must map those ordinals to their own row IDs. The API does not exclude a query
+image if it is also in the gallery; evaluation protocols must apply their own
+self-exclusion. `close()` frees the resident gallery and releases the index's
+encoder reference. Serving artifacts and their directory must be trusted and
+immutable while loading, since the native library is executable code.
+
+The revised public API was smoke-tested on the NVIDIA GB10 with the same
+selected 32 SOP TRAIN holdout images and frozen paired timing receipt. For
+both native-fp16 and fp32-autocast, batch-one and batch-32 ordinal-plus-score
+digests matched the frozen benchmark byte for byte. The
+[fp16 receipt](evidence/compact_metric/sop-siglip2-substrate-v1/serving-api-fp16-parity-v2.json)
+(SHA-256 `1f390aee1e0a732424b3152a54c1ce0372e47aa0aa25ffe537f9369497048ff1`)
+and [autocast receipt](evidence/compact_metric/sop-siglip2-substrate-v1/serving-api-fp32-parity-v2.json)
+(SHA-256 `044de8feb9d371d6632f96b8004881e600ee94870e3ae9a01d3db0750e7ac9e2`)
+bind the exact serving module, verifier, training receipt, and runtime versions.
+This is a parity check, not a new latency or quality measurement.
+
 ## Comparison panel and current evidence
 
 All measured quality below uses **Stanford Online Products (SOP) official
@@ -219,3 +245,38 @@ gate, require three paired seeds, official SOP TEST and In-Shop protocols,
 CUB/Cars transfer, and p99/scaling measurements before a new-method or
 joint SOTA claim. Lean verifies reusable scorer correctness and conditional
 bounds; empirical quality and latency still require these measurements.
+
+### Next fit-only diagnosis and learning gate (registered before its run)
+
+Use the ArcFace checkpoint and packed 128-dimensional embeddings for the
+53,700 fit images only. Each fit image searches all other fit images, with its
+own row excluded and gallery-order tie breaking. For every error, record the
+rank of the best same-product mate, whether the correct ArcFace product proxy
+beats every competing proxy, and whether the top impostor is a near duplicate
+in the frozen 1024-dimensional source space (cosine at least 0.97). Put errors
+with best-mate rank 2–10 in the near-miss group; rank above 10 is the orphan
+group. Also record product-level positive-pair coherence and whether the
+best-mate direction agrees with the product mean. Require at least 200 fit
+errors for a proportion-based decision; if fewer occur, run the same fixed
+census on the frozen zero-update PCA head and report both without changing
+the thresholds. All data and proxy choices remain on SOP TRAIN fit products;
+holdout query outcomes and official TEST are unavailable to this selection.
+Define direction misalignment as a negative dot product between the unit
+vectors from the query to its best mate and from the query to its product
+mean. Define proxy-correct using the highest unmodified normalized classifier
+cosine, with the lowest product ordinal winning ties.
+
+If at least half the errors have a frozen-space near-duplicate impostor, the
+planned positive-side arm is not justified by this census. If at least 40% are
+proxy-correct but gallery-member-wrong, the proxy competitor field itself is
+the next target. Otherwise, run one matched `existential_mate` arm only if
+near misses plus direction-misaligned orphans account for at least 30% of
+errors. This arm keeps the ArcFace competitor proxies, training schedule,
+architecture, and deployed scorer, and replaces the target proxy logit with a
+log-sum-exp over that proxy and same-product in-batch mates. This objective
+combines existing proxy and supervised-positive ideas; novelty is not claimed.
+Its screen requires at least +1 percentage point paired holdout Recall@1 with
+a positive product-bootstrap lower bound, mAP@R loss no worse than 0.005,
+training-wall ratio no greater than 1.15, exact native top-10, and a matched
+same-source ArcFace replay. Only then advance to multiple seeds and official
+evaluation.
