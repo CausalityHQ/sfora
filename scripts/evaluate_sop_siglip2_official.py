@@ -85,6 +85,22 @@ def validate_decision_arm(
             and receipt.get("train_vision_dtype") == "bf16"
             and receipt.get("updates") == 1_000
         )
+    elif schema == "sfora-sop-siglip2-bf16-coverage-replication-v1":
+        expected_arm = "float_rank_member_bank" if arm == "bank" else None
+        valid = (
+            expected_arm is not None
+            and decision.get("claim_eligible") is False
+            and decision.get("replication_gate_pass") is True
+            and tuple(decision.get("seeds", ())) == BF16_SEEDS
+            and seed in BF16_SEEDS
+            and decision.get("arms", {}).get(str(seed), {}).get("bank", {}).get("receipt_sha256")
+            == receipt_sha256
+            and receipt.get("rank_coefficient") == 8.0
+            and receipt.get("source_sha256")
+            == "400f6ef2d992e449ff7eabf53c2982b88db0889df0586bbf94875a1b04a6e118"
+            and receipt.get("train_vision_dtype") == "bf16"
+            and receipt.get("updates") == 1_000
+        )
     else:
         expected_arm = None
         valid = False
@@ -228,10 +244,10 @@ def main() -> None:
     receipt = json.loads(args.training_receipt.read_text())
     expected_arm = validate_decision_arm(decision, args.seed, args.arm, receipt_sha, receipt)
     root = Path(__file__).resolve().parents[1]
-    if (
-        decision["schema"] == "sfora-sop-siglip2-bf16-rankmatched-float-v1"
-        and args.training_source_root is None
-    ):
+    if decision["schema"] in (
+        "sfora-sop-siglip2-bf16-rankmatched-float-v1",
+        "sfora-sop-siglip2-bf16-coverage-replication-v1",
+    ) and args.training_source_root is None:
         raise ValueError("SOP BF16 training source root required")
     training_root = args.training_source_root or root
     evaluator_files = (
