@@ -1,0 +1,126 @@
+OFFICIAL SOP TEST seed=179023 arm=bank output=/home/riomus/runs/sfora-siglip2-bf16-official-179023-bank-v1
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:   1%|          | 4/792 [00:00<00:25, 30.92it/s]Loading weights:  66%|██████▌   | 521/792 [00:00<00:00, 2685.33it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2464.85it/s]
+{"export_batches": 100}
+{"export_batches": 200}
+{"export_batches": 300}
+{"export_batches": 400}
+{"export_batches": 500}
+{"export_batches": 600}
+{"export_batches": 700}
+{"export_batches": 800}
+{"export_batches": 900}
+{"seed": 179023, "arm": "bank", "packed_r1": 0.905540312716935}
+OFFICIAL SOP TEST seed=179023 arm=original_float output=/home/riomus/runs/sfora-siglip2-bf16-official-179023-original_float-v1
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:   1%|          | 4/792 [00:00<00:21, 36.49it/s]Loading weights:  57%|█████▋    | 451/792 [00:00<00:00, 2544.04it/s]Loading weights:  94%|█████████▍| 745/792 [00:00<00:00, 2720.28it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2437.17it/s]
+{"export_batches": 100}
+{"export_batches": 200}
+{"export_batches": 300}
+{"export_batches": 400}
+{"export_batches": 500}
+{"export_batches": 600}
+{"export_batches": 700}
+{"export_batches": 800}
+{"export_batches": 900}
+{"seed": 179023, "arm": "original_float", "packed_r1": 0.8948629797362071}
+OFFICIAL SOP TEST seed=179023 arm=matched_float output=/home/riomus/runs/sfora-siglip2-bf16-official-179023-matched_float-v1
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  31%|███       | 244/792 [00:00<00:00, 2436.99it/s]Loading weights:  71%|███████   | 561/792 [00:00<00:00, 2858.06it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2851.77it/s]
+{"export_batches": 100}
+{"export_batches": 200}
+{"export_batches": 300}
+{"export_batches": 400}
+{"export_batches": 500}
+{"export_batches": 600}
+{"export_batches": 700}
+{"export_batches": 800}
+{"export_batches": 900}
+{"seed": 179023, "arm": "matched_float", "packed_r1": 0.8948629797362071}
+OFFICIAL SOP TEST seed=179024 arm=bank output=/home/riomus/runs/sfora-siglip2-bf16-official-179024-bank-v1
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  38%|███▊      | 298/792 [00:00<00:00, 2940.91it/s]Loading weights:  81%|████████  | 641/792 [00:00<00:00, 3185.69it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 3194.42it/s]
+{"export_batches": 100}
+{"export_batches": 200}
+{"export_batches": 300}
+{"export_batches": 400}
+{"export_batches": 500}
+{"export_batches": 600}
+{"export_batches": 700}
+{"export_batches": 800}
+{"export_batches": 900}
+{"seed": 179024, "arm": "bank", "packed_r1": 0.9042015139995372}
+OFFICIAL SOP TEST seed=179024 arm=original_float output=/home/riomus/runs/sfora-siglip2-bf16-official-179024-original_float-v1
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  18%|█▊        | 140/792 [00:00<00:00, 1358.95it/s]Loading weights:  55%|█████▌    | 439/792 [00:00<00:00, 2305.13it/s]Loading weights:  93%|█████████▎| 737/792 [00:00<00:00, 2606.20it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2479.70it/s]
+{"export_batches": 100}
+{"export_batches": 200}
+{"export_batches": 300}
+{"export_batches": 400}
+{"export_batches": 500}
+{"export_batches": 600}
+{"export_batches": 700}
+{"export_batches": 800}
+{"export_batches": 900}
+{"seed": 179024, "arm": "original_float", "packed_r1": 0.8948795081154342}
+OFFICIAL SOP TEST seed=179024 arm=matched_float output=/home/riomus/runs/sfora-siglip2-bf16-official-179024-matched_float-v1
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:   1%|          | 4/792 [00:00<00:25, 30.45it/s]Loading weights:  59%|█████▉    | 471/792 [00:00<00:00, 2441.08it/s]Loading weights:  95%|█████████▍| 749/792 [00:00<00:00, 2584.90it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2281.35it/s]
+{"export_batches": 100}
+{"export_batches": 200}
+{"export_batches": 300}
+{"export_batches": 400}
+{"export_batches": 500}
+{"export_batches": 600}
+{"export_batches": 700}
+{"export_batches": 800}
+{"export_batches": 900}
+{"seed": 179024, "arm": "matched_float", "packed_r1": 0.8945158837724373}
+OFFICIAL SOP TEST seed=179025 arm=bank output=/home/riomus/runs/sfora-siglip2-bf16-official-179025-bank-v1
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:   1%|          | 4/792 [00:00<00:22, 34.48it/s]Loading weights:  61%|██████    | 481/792 [00:00<00:00, 2628.61it/s]Loading weights:  97%|█████████▋| 771/792 [00:00<00:00, 2703.36it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2422.32it/s]
+{"export_batches": 100}
+{"export_batches": 200}
+{"export_batches": 300}
+{"export_batches": 400}
+{"export_batches": 500}
+{"export_batches": 600}
+{"export_batches": 700}
+{"export_batches": 800}
+{"export_batches": 900}
+{"seed": 179025, "arm": "bank", "packed_r1": 0.9043172126541271}
+OFFICIAL SOP TEST seed=179025 arm=original_float output=/home/riomus/runs/sfora-siglip2-bf16-official-179025-original_float-v1
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:   1%|          | 4/792 [00:00<00:23, 33.67it/s]Loading weights:  61%|██████    | 481/792 [00:00<00:00, 2595.46it/s]Loading weights:  98%|█████████▊| 779/792 [00:00<00:00, 2746.92it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2437.97it/s]
+{"export_batches": 100}
+{"export_batches": 200}
+{"export_batches": 300}
+{"export_batches": 400}
+{"export_batches": 500}
+{"export_batches": 600}
+{"export_batches": 700}
+{"export_batches": 800}
+{"export_batches": 900}
+{"seed": 179025, "arm": "original_float", "packed_r1": 0.8931440282965852}
+OFFICIAL SOP TEST seed=179025 arm=matched_float output=/home/riomus/runs/sfora-siglip2-bf16-official-179025-matched_float-v1
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  21%|██        | 166/792 [00:00<00:00, 1659.89it/s]Loading weights:  59%|█████▉    | 467/792 [00:00<00:00, 2452.64it/s]Loading weights:  94%|█████████▍| 747/792 [00:00<00:00, 2563.18it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2503.05it/s]
+{"export_batches": 100}
+{"export_batches": 200}
+{"export_batches": 300}
+{"export_batches": 400}
+{"export_batches": 500}
+{"export_batches": 600}
+{"export_batches": 700}
+{"export_batches": 800}
+{"export_batches": 900}
+{"seed": 179025, "arm": "matched_float", "packed_r1": 0.8941522594294403}
