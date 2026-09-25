@@ -63,6 +63,7 @@ def main() -> None:
     head = nn.Linear(1024, 128).cuda().eval()
     torch.backends.cuda.matmul.allow_tf32 = False
     held_labels = tuple(labels[index] for index in held)
+    held_paths = tuple(train[index].image_path for index in held)
     encoded = {name: index for index, name in enumerate(sorted(set(held_labels)))}
     label_ids = torch.tensor([encoded[name] for name in held_labels], dtype=torch.int64)
     rows = {}
@@ -86,8 +87,8 @@ def main() -> None:
         values = export_all(
             vision,
             head,
-            tuple(row.image_path for row in train),
-            held,
+            held_paths,
+            tuple(range(len(held_paths))),
             processor,
             workers=4,
             batch_size=64,

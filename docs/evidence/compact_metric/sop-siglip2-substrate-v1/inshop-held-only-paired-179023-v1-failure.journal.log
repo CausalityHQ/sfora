@@ -1,0 +1,24 @@
+2026-09-26T00:27:31+02:00 spark-2751 systemd[3489]: Started sfora-inshop-held-only-paired-179023-v1.service - /usr/bin/env PYTHONPATH=/home/riomus/runs:/home/riomus/sfora-siglip2-deployed-batch-v1/src:/home/riomus/sfora-siglip2-deployed-batch-v1/scripts HF_HUB_OFFLINE=1 /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/diagnose_inshop_siglip2_held_gallery.py --dataset-root /home/riomus/datasets/inshop_official_standard --model-snapshot /home/riomus/.cache/huggingface/hub/models--google--siglip2-large-patch16-256/snapshots/787800c8990e6f058423089178e718139608408c --run-base /home/riomus/runs --decision /home/riomus/runs/sfora-inshop-siglip2-paired-holdout-v1.json --output /home/riomus/runs/sfora-inshop-held-only-paired-179023-v1.json.
+2026-09-26T00:27:35+02:00 spark-2751 env[116763]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-26T00:27:35+02:00 spark-2751 env[116763]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-26T00:27:36+02:00 spark-2751 env[116763]: [389B blob data]
+2026-09-26T00:27:38+02:00 spark-2751 env[116763]: Traceback (most recent call last):
+2026-09-26T00:27:38+02:00 spark-2751 env[116763]:   File "/home/riomus/runs/diagnose_inshop_siglip2_held_gallery.py", line 140, in <module>
+2026-09-26T00:27:38+02:00 spark-2751 env[116763]:     main()
+2026-09-26T00:27:38+02:00 spark-2751 env[116763]:     ~~~~^^
+2026-09-26T00:27:38+02:00 spark-2751 env[116763]:   File "/home/riomus/runs/diagnose_inshop_siglip2_held_gallery.py", line 86, in main
+2026-09-26T00:27:38+02:00 spark-2751 env[116763]:     values = export_all(
+2026-09-26T00:27:38+02:00 spark-2751 env[116763]:         vision,
+2026-09-26T00:27:38+02:00 spark-2751 env[116763]:     ...<5 lines>...
+2026-09-26T00:27:38+02:00 spark-2751 env[116763]:         batch_size=64,
+2026-09-26T00:27:38+02:00 spark-2751 env[116763]:     )
+2026-09-26T00:27:38+02:00 spark-2751 env[116763]:   File "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/utils/_contextlib.py", line 124, in decorate_context
+2026-09-26T00:27:38+02:00 spark-2751 env[116763]:     return func(*args, **kwargs)
+2026-09-26T00:27:38+02:00 spark-2751 env[116763]:   File "/home/riomus/runs/train_sop_siglip2_compact.py", line 378, in export_all
+2026-09-26T00:27:38+02:00 spark-2751 env[116763]:     dataset = ImageRows(paths, labels, augment=False)
+2026-09-26T00:27:38+02:00 spark-2751 env[116763]:   File "/home/riomus/runs/train_sop_siglip2_compact.py", line 146, in __init__
+2026-09-26T00:27:38+02:00 spark-2751 env[116763]:     raise ValueError("SOP SigLIP2 image rows differ")
+2026-09-26T00:27:38+02:00 spark-2751 env[116763]: ValueError: SOP SigLIP2 image rows differ
+2026-09-26T00:27:38+02:00 spark-2751 systemd[3489]: sfora-inshop-held-only-paired-179023-v1.service: Main process exited, code=exited, status=1/FAILURE
+2026-09-26T00:27:38+02:00 spark-2751 systemd[3489]: sfora-inshop-held-only-paired-179023-v1.service: Failed with result 'exit-code'.
+2026-09-26T00:27:38+02:00 spark-2751 systemd[3489]: sfora-inshop-held-only-paired-179023-v1.service: Consumed 15.108s CPU time, 3.1M memory peak, 0B memory swap peak.
