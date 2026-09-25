@@ -174,6 +174,19 @@ All three paired screen gates failed. These one-seed TRAIN-holdout results
 support broader-ranking improvement but no proven top-1 method gain.
 Official TEST results remain pending.
 
+A fit-only positive-pair geometry
+[census](evidence/compact_metric/sop-siglip2-substrate-v1/fit-positive-geometry-v1.json)
+(SHA-256 `d84982d00495f1db974397c295f6b72c3b04bc990f924cf060a88b4465771a4b`)
+examined all 10,186 fit products and archived its
+[executed source](evidence/compact_metric/sop-siglip2-substrate-v1/fit-positive-geometry-v1.py.txt).
+For ArcFace, 31.78% of fit products have a minimum positive-pair cosine below
+0.5, and 44.41% have a within-product positive-pair cosine range over 0.3.
+The median range is 0.2628. Float-rank reduces those fractions to 29.88%
+and 43.44%, respectively; packed-rank to 30.48% and 43.58%. This measures
+positive-view dispersion in fitted products only. It does not establish that
+dispersion caused the holdout top-1 failures or that a new positive-side
+objective will improve them.
+
 The original deployed-code-rank screen failed. Diagnose why the rank loss
 improved mAP@R without a top-1 gain, using a fit-only error census of
 positive-view dispersion, then preregister one positive-side training

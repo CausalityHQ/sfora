@@ -1,0 +1,99 @@
+#!/usr/bin/env python3
+"""Fit-product pairwise positive geometry for matched trained SOP arms."""
+
+import hashlib
+import json
+import os
+from pathlib import Path
+
+import numpy as np
+
+from sfora.representation_ceiling import deterministic_class_partition
+
+BASE = Path("/home/riomus/runs")
+ARCHIVE = Path("/home/riomus/sfora-relational-sop-e1/unicom-l14-sop-v1.npz")
+OUTPUT = BASE / "sfora-siglip2-fit-positive-geometry-v1.json"
+ARCHIVE_SHA = "1ba27b2d6b9db39067aa6facd0ef8aafc303c4527f6feabed859b0512c7d921a"
+EMBEDDINGS = {
+    "arcface": "0c078d2252222560c7c899a833a9acba8bdf77fdc462e1f590c80533282c54b5",
+    "packed_rank": "383932668e670f392e5449d549855585fbf84846e0e07264151aebdfcbde9891",
+    "float_rank": "afe38529008f89cbce13ef3224ac38734895dee6e44068eaaa36f9a44e18b134",
+}
+SEED = 179019
+
+
+def sha256(path: Path) -> str:
+    with path.open("rb") as stream:
+        return hashlib.file_digest(stream, "sha256").hexdigest()
+
+
+def quantiles(values: np.ndarray) -> list[float]:
+    return np.quantile(values, [0.05, 0.25, 0.5, 0.75, 0.95]).tolist()
+
+
+def main() -> None:
+    if OUTPUT.exists() or sha256(ARCHIVE) != ARCHIVE_SHA:
+        raise ValueError("fit positive geometry authority differs")
+    with np.load(ARCHIVE, allow_pickle=False) as archive:
+        labels = np.asarray(archive["train_labels"], dtype=np.int64)
+    if labels.shape != (59_551,):
+        raise ValueError("fit positive geometry row inventory differs")
+    partition = deterministic_class_partition(tuple(map(int, labels)), fit_fraction=0.9, seed=SEED)
+    fit = np.asarray(partition.fit_row_indexes, dtype=np.int64)
+    groups: dict[int, list[int]] = {}
+    for row in fit:
+        groups.setdefault(int(labels[row]), []).append(int(row))
+    if len(fit) != 53_700 or len(groups) != 10_186 or min(map(len, groups.values())) < 2:
+        raise ValueError("fit positive geometry product inventory differs")
+    results = {}
+    for arm, expected in EMBEDDINGS.items():
+        path = BASE / f"sfora-siglip2-{arm}-1000-v10-55040a7/train_embeddings.npy"
+        if sha256(path) != expected:
+            raise ValueError(f"fit positive geometry {arm} embeddings differ")
+        embeddings = np.load(path, mmap_mode="r")
+        if embeddings.shape != (59_551, 128) or embeddings.dtype != np.float32:
+            raise ValueError("fit positive geometry embedding shape differs")
+        values = []
+        for rows in groups.values():
+            vectors = np.asarray(embeddings[rows], dtype=np.float32)
+            similarities = vectors @ vectors.T
+            positives = similarities[np.triu_indices(len(rows), 1)]
+            values.append(
+                [
+                    float(positives.min()),
+                    float(positives.mean()),
+                    float(positives.max()),
+                    float(positives.max() - positives.min()),
+                ]
+            )
+        values = np.asarray(values, dtype=np.float64)
+        results[arm] = {
+            "min_positive_cosine_quantiles": quantiles(values[:, 0]),
+            "mean_positive_cosine_quantiles": quantiles(values[:, 1]),
+            "max_positive_cosine_quantiles": quantiles(values[:, 2]),
+            "positive_pair_range_quantiles": quantiles(values[:, 3]),
+            "fraction_min_positive_under_0_5": float(np.mean(values[:, 0] < 0.5)),
+            "fraction_positive_pair_range_over_0_3": float(np.mean(values[:, 3] > 0.3)),
+        }
+    result = {
+        "schema": "sfora-sop-siglip2-fit-positive-geometry-v1",
+        "claim_eligible": False,
+        "split": "SOP official TRAIN fit products only",
+        "seed": SEED,
+        "fit_images": len(fit),
+        "fit_products": len(groups),
+        "product_size_quantiles": quantiles(np.asarray([len(rows) for rows in groups.values()])),
+        "source_sha256": sha256(Path(__file__)),
+        "source_archive_sha256": ARCHIVE_SHA,
+        "train_embeddings_sha256": EMBEDDINGS,
+        "arms": results,
+    }
+    with OUTPUT.open("xb") as stream:
+        stream.write((json.dumps(result, sort_keys=True, allow_nan=False) + "\n").encode())
+        stream.flush()
+        os.fsync(stream.fileno())
+    print(json.dumps({"fit_products": len(groups), "arms": results}, sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()
