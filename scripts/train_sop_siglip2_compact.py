@@ -70,9 +70,7 @@ SOURCE_RELATIVES = (
 )
 
 
-def training_precision(
-    choice: str, *, device: str
-) -> tuple[torch.dtype, GradScaler]:
+def training_precision(choice: str, *, device: str) -> tuple[torch.dtype, GradScaler]:
     """Choose vision autocast and loss scaling as one training recipe."""
 
     if choice not in {"fp16", "bf16"}:
@@ -84,6 +82,14 @@ def training_precision(
         enabled=choice == "fp16",
     )
     return dtype, scaler
+
+
+def validated_rank_coefficient(value: float) -> float:
+    """Require a finite bounded rank weight for the versioned training recipe."""
+
+    if type(value) is not float or not math.isfinite(value) or not 0.5 <= value <= 256.0:
+        raise ValueError("SOP SigLIP2 rank coefficient differs")
+    return value
 
 
 def sha256(path: Path) -> str:
@@ -519,6 +525,7 @@ def main() -> None:
     parser.add_argument("--batch-size", type=int, default=64)
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--gradient-diagnostic-steps", type=int, default=0)
+    parser.add_argument("--rank-coefficient", type=float, default=SIGLIP2_RANK_COEFFICIENT)
     parser.add_argument("--train-vision-dtype", choices=("fp16", "bf16"), default="fp16")
     parser.add_argument("--member-bank", action="store_true")
     parser.add_argument("--member-bank-preflight", type=Path)
@@ -530,6 +537,7 @@ def main() -> None:
     parser.add_argument("--expected-live-head-cost-sha256")
     parser.add_argument("--evaluate", action="store_true")
     args = parser.parse_args()
+    rank_coefficient = validated_rank_coefficient(args.rank_coefficient)
     arm_name = (
         "float_rank_live_head_member_bank"
         if args.live_head_bank
@@ -787,7 +795,7 @@ def main() -> None:
                 query_ordinals,
                 live_head=args.live_head_bank,
             )
-        loss = control + SIGLIP2_RANK_COEFFICIENT * rank
+        loss = control + rank_coefficient * rank
         if not bool(torch.isfinite(loss)):
             raise ValueError("SOP SigLIP2 train loss is nonfinite")
         if step <= args.gradient_diagnostic_steps:
@@ -797,9 +805,7 @@ def main() -> None:
             rank_norm = float(rank_gradient.norm())
             if not np.isfinite(control_norm) or not np.isfinite(rank_norm) or control_norm <= 0:
                 raise ValueError("SOP SigLIP2 training gradient diagnostic differs")
-            rank_to_arcface_head_gradient_ratio.append(
-                SIGLIP2_RANK_COEFFICIENT * rank_norm / control_norm
-            )
+            rank_to_arcface_head_gradient_ratio.append(rank_coefficient * rank_norm / control_norm)
         scaler.scale(loss).backward()
         scaler.unscale_(optimizer)
         torch.nn.utils.clip_grad_norm_(
@@ -887,6 +893,7 @@ def main() -> None:
             raise ValueError("SOP SigLIP2 step-zero archive quality parity differs")
     if source_manifest() != initial_source_manifest:
         raise ValueError("SOP SigLIP2 source changed during export or scoring")
+    rank_objective = f"ArcFace margin 0.3 scale 64 plus {rank_coefficient}"
     receipt = {
         "schema": "sfora-sop-siglip2-compact-full-backbone-v1",
         "claim_eligible": False,
@@ -926,15 +933,15 @@ def main() -> None:
         "rank_to_arcface_head_gradient_ratio": rank_to_arcface_head_gradient_ratio,
         "query_image_ids_sha256": hashlib.sha256(ids[held_rows].tobytes()).hexdigest(),
         "training_objective": (
-            "ArcFace margin 0.3 scale 64 plus 8.0 full-fit SmoothAP with live-head source bank"
+            rank_objective + " full-fit SmoothAP with live-head source bank"
             if args.live_head_bank
-            else "ArcFace margin 0.3 scale 64 plus 8.0 full-fit float SmoothAP member bank"
+            else rank_objective + " full-fit float SmoothAP member bank"
             if args.member_bank
-            else "ArcFace margin 0.3 scale 64 plus 8.0 deployed-code SmoothAP"
+            else rank_objective + " deployed-code SmoothAP"
             if args.arm is CompactTrainingArm.PACKED_RANK
             else "ArcFace margin 0.3 scale 64"
             if args.arm is CompactTrainingArm.ARCFACE
-            else "ArcFace margin 0.3 scale 64 plus 8.0 float SmoothAP"
+            else rank_objective + " float SmoothAP"
         ),
         "optimizer": (
             "AdamW weight_decay 0.05; vision lr 1e-5; head/classifier lr 1e-4; grad clip 1.0"
@@ -958,7 +965,7 @@ def main() -> None:
         "last_arcface_loss": control_losses[-1] if control_losses else None,
         "first_rank_loss": rank_losses[0] if rank_losses else None,
         "last_rank_loss": rank_losses[-1] if rank_losses else None,
-        "rank_coefficient": SIGLIP2_RANK_COEFFICIENT,
+        "rank_coefficient": rank_coefficient,
         "grad_scaler_initial_scale": (
             GRAD_SCALER_INITIAL_SCALE if args.train_vision_dtype == "fp16" else 1.0
         ),

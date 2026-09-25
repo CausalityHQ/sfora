@@ -3,8 +3,12 @@
 import json
 from pathlib import Path
 
+import numpy as np
 import pytest
-from compare_sop_siglip2_bf16_member_bank_multiseed import validate_three_arms
+from compare_sop_siglip2_bf16_member_bank_multiseed import (
+    validate_metric_values,
+    validate_three_arms,
+)
 
 EVIDENCE = (
     Path(__file__).resolve().parents[1] / "docs/evidence/compact_metric/sop-siglip2-substrate-v1"
@@ -22,9 +26,7 @@ def _synthetic_bf16_seed() -> tuple[dict, dict, dict]:
     )
     for row in rows:
         row["seed"] = 179023
-        row["source_sha256"] = (
-            "ad66b1613f0c1c8373d69a689d1556c9b250527a8045a6b85bec523f99466d23"
-        )
+        row["source_sha256"] = "ad66b1613f0c1c8373d69a689d1556c9b250527a8045a6b85bec523f99466d23"
         row["source_files_sha256"]["scripts/train_sop_siglip2_compact.py"] = row["source_sha256"]
         row["train_vision_dtype"] = "bf16"
         row["precision"] = "fp32 parameters, bf16 vision autocast, fp32 objective, no loss scaling"
@@ -45,3 +47,9 @@ def test_bf16_analyzer_rejects_unpaired_schedule() -> None:
     floating["schedule_sha256"] = "wrong"
     with pytest.raises(ValueError, match="matched authority"):
         validate_three_arms(179023, arcface, floating, bank)
+
+
+def test_bf16_analyzer_rejects_nonfinite_per_query_metric() -> None:
+    validate_metric_values(np.asarray([0.0, 1.0]), 0.5, 2)
+    with pytest.raises(ValueError, match="per-query metric"):
+        validate_metric_values(np.asarray([0.0, np.nan]), np.nan, 2)

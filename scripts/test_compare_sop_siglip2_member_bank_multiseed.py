@@ -62,3 +62,21 @@ def test_exploratory_seed_cannot_pay_for_weak_replication() -> None:
         for control in ("float_rank", "arcface")
     }
     assert continuation_gate(comparisons) is False
+
+
+def test_nonfinite_interval_or_map_cannot_pass_gate() -> None:
+    comparisons = {
+        control: {
+            "replication_seedwise_r1": [0.01, 0.01, 0.01],
+            "replication_pooled_r1": {"point": 0.01, "lower_95": 0.005},
+            "replication_pooled_map_at_r": {"point": 0.01},
+            "replication_seedwise_wall_ratio": [1.01, 1.01, 1.01],
+        }
+        for control in ("float_rank", "arcface")
+    }
+    assert continuation_gate(comparisons) is True
+    comparisons["float_rank"]["replication_pooled_r1"]["lower_95"] = float("nan")
+    assert continuation_gate(comparisons) is False
+    comparisons["float_rank"]["replication_pooled_r1"]["lower_95"] = 0.005
+    comparisons["arcface"]["replication_pooled_map_at_r"]["point"] = float("nan")
+    assert continuation_gate(comparisons) is False

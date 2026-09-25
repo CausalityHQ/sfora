@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 
@@ -111,9 +112,17 @@ def validate_three_arms(seed: int, arcface: dict, floating: dict, bank: dict) ->
 def continuation_gate(comparisons: dict) -> bool:
     for name in ("float_rank", "arcface"):
         row = comparisons[name]
+        values = (
+            *row["replication_seedwise_r1"],
+            *row["replication_seedwise_wall_ratio"],
+            row["replication_pooled_r1"]["point"],
+            row["replication_pooled_r1"]["lower_95"],
+            row["replication_pooled_map_at_r"]["point"],
+        )
         if (
             len(row["replication_seedwise_r1"]) != 3
             or len(row["replication_seedwise_wall_ratio"]) != 3
+            or not all(math.isfinite(value) for value in values)
             or not all(value > 0 for value in row["replication_seedwise_r1"])
             or row["replication_pooled_r1"]["lower_95"] <= 0
             or row["replication_pooled_map_at_r"]["point"] < 0

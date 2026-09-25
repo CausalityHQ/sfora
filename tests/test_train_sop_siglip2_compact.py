@@ -64,6 +64,14 @@ def test_training_precision_keeps_fp16_scaling() -> None:
     assert scaler.get_scale() == MODULE.GRAD_SCALER_INITIAL_SCALE
 
 
+def test_rank_coefficient_accepts_frozen_float_control_and_rejects_nonfinite() -> None:
+    assert MODULE.validated_rank_coefficient(21.93) == 21.93
+    assert MODULE.validated_rank_coefficient(8.0) == 8.0
+    for value in (float("nan"), float("inf"), -1.0, 0.0, 257.0):
+        with pytest.raises(ValueError, match="rank coefficient"):
+            MODULE.validated_rank_coefficient(value)
+
+
 def test_ordered_source_digest_detects_reassigned_feature_rows() -> None:
     ids = np.arange(59_551, dtype=np.int64)
     labels = ids // 5

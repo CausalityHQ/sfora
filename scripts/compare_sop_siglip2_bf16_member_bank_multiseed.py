@@ -36,6 +36,16 @@ def sha256(path: Path) -> str:
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
+def validate_metric_values(values: np.ndarray, stated_mean: float, expected_rows: int) -> None:
+    if (
+        values.shape != (expected_rows,)
+        or not bool(np.isfinite(values).all())
+        or not bool(np.isfinite(stated_mean))
+        or abs(float(values.mean()) - stated_mean) > 1e-6
+    ):
+        raise ValueError("SOP BF16 per-query metric authority differs")
+
+
 def validate_three_arms(seed: int, arcface: dict, floating: dict, bank: dict) -> None:
     arms = (arcface, floating, bank)
     if (
@@ -140,8 +150,7 @@ def main() -> None:
             quality = row["quality"]
             for metric, key in (("recall_at_1", "per_query_r1"), ("map_at_r", "per_query_ap")):
                 values = np.asarray(quality[key], dtype=np.float64)
-                if values.shape != (len(held),) or abs(values.mean() - quality[metric]) > 1e-6:
-                    raise ValueError("SOP BF16 per-query metric authority differs")
+                validate_metric_values(values, quality[metric], len(held))
             wall = (
                 row["training_wall_including_member_bank_init_seconds"]
                 if arm == "bank"
