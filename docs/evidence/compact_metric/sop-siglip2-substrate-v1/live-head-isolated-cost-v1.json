@@ -1,0 +1,39 @@
+{
+  "anchors": 64,
+  "arms": {
+    "detached_bank": {
+      "calls": 40,
+      "max_incremental_allocated_bytes": 467414528,
+      "median_ms": 13.69318412616849,
+      "p95_ms": 14.316241000778973
+    },
+    "live_head": {
+      "calls": 40,
+      "max_incremental_allocated_bytes": 522833408,
+      "median_ms": 19.559605978429317,
+      "p95_ms": 19.941230420954525
+    }
+  },
+  "calls_per_block_per_arm": 10,
+  "claim_eligible": false,
+  "device": "cuda",
+  "forward_loss_difference": 0.0,
+  "hardware": "NVIDIA GB10",
+  "inventory": "synthetic unit-normalized source rows; SOP fit-bank dimensions",
+  "measurement": "isolated rank loss forward plus backward; no encoder, optimizer, or export",
+  "output_width": 128,
+  "positives_per_anchor": 11,
+  "python_version": "3.13.9",
+  "rows": 53700,
+  "schema": "sfora-sop-siglip2-live-head-isolated-cost-v1",
+  "seed": 179023,
+  "source_sha256": {
+    "detached_loss": "a57a1b8cb4722a12dbc8fd255255632b05aff918c8c66e46e5708c2da9e4854a",
+    "live_loss": "c90ca44a036cfee1998a5ad11362e6f358f013f502ca83ddd92b8318875a5c39",
+    "script": "8389fe936edac600712d4734da1fdd315669f913ae5aab4ea8c160d44b82ceec"
+  },
+  "source_width": 1024,
+  "timed_blocks": 4,
+  "torch_version": "2.12.1+cu130",
+  "warmup_calls_per_arm": 2
+}

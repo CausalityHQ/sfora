@@ -1,0 +1,112 @@
+Started sfora-siglip2-member-bank-multiseed-v2.service - /bin/bash /home/riomus/sfora-siglip2-member-bank-v1/scripts/run_sop_siglip2_member_bank_multiseed_dgx.sh.
+RUN seed=179020 arm=float_rank output=/home/riomus/runs/sfora-siglip2-member-bank-multiseed-179020-float_rank-v1
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  30%|██▉       | 234/792 [00:00<00:00, 2299.31it/s]Loading weights:  69%|██████▉   | 547/792 [00:00<00:00, 2749.27it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2897.46it/s]
+{"step": 50, "loss": 4.214607238769531, "arcface": 4.214607238769531, "rank": 0.0, "elapsed_seconds": 59.492411389015615}
+{"step": 100, "loss": 7.5980048179626465, "arcface": 7.549637317657471, "rank": 0.006045937538146973, "elapsed_seconds": 116.92386965360492}
+{"step": 150, "loss": 7.402973651885986, "arcface": 7.222605228424072, "rank": 0.022546052932739258, "elapsed_seconds": 174.42220078594983}
+{"step": 200, "loss": 5.458488464355469, "arcface": 5.458483695983887, "rank": 5.960464477539062e-07, "elapsed_seconds": 231.96442807791755}
+{"step": 250, "loss": 8.365948677062988, "arcface": 8.206944465637207, "rank": 0.019875526428222656, "elapsed_seconds": 289.47346514090896}
+{"step": 300, "loss": 6.211376190185547, "arcface": 6.211376190185547, "rank": 0.0, "elapsed_seconds": 347.0184913347475}
+{"step": 350, "loss": 5.865163803100586, "arcface": 5.865163803100586, "rank": 0.0, "elapsed_seconds": 404.5441625639796}
+{"step": 400, "loss": 5.204344272613525, "arcface": 5.204344272613525, "rank": 0.0, "elapsed_seconds": 462.1278470028192}
+{"step": 450, "loss": 5.99703311920166, "arcface": 5.997032165527344, "rank": 1.1920928955078125e-07, "elapsed_seconds": 519.6453548315912}
+{"step": 500, "loss": 3.6411123275756836, "arcface": 3.6067404747009277, "rank": 0.004296481609344482, "elapsed_seconds": 577.1879462986253}
+{"step": 550, "loss": 5.8642072677612305, "arcface": 5.809296607971191, "rank": 0.006863832473754883, "elapsed_seconds": 634.7414641138166}
+{"step": 600, "loss": 8.825225830078125, "arcface": 8.753575325012207, "rank": 0.00895625352859497, "elapsed_seconds": 692.3010359988548}
+{"step": 650, "loss": 3.777212142944336, "arcface": 3.777212142944336, "rank": 0.0, "elapsed_seconds": 749.7989981579594}
+{"step": 700, "loss": 4.318541049957275, "arcface": 4.318458080291748, "rank": 1.0371208190917969e-05, "elapsed_seconds": 807.2956635248847}
+{"step": 750, "loss": 6.935338973999023, "arcface": 6.935338020324707, "rank": 1.1920928955078125e-07, "elapsed_seconds": 864.7738096937537}
+{"step": 800, "loss": 5.996914386749268, "arcface": 5.849669933319092, "rank": 0.018405556678771973, "elapsed_seconds": 922.2618914339691}
+{"step": 850, "loss": 4.807229518890381, "arcface": 4.803444862365723, "rank": 0.0004730820655822754, "elapsed_seconds": 979.7194399759173}
+{"step": 900, "loss": 4.988969802856445, "arcface": 4.928110122680664, "rank": 0.007607460021972656, "elapsed_seconds": 1037.2085722428747}
+{"step": 950, "loss": 4.812281608581543, "arcface": 4.616136074066162, "rank": 0.024518191814422607, "elapsed_seconds": 1094.6497795600444}
+{"step": 1000, "loss": 6.28451681137085, "arcface": 6.103055477142334, "rank": 0.022682666778564453, "elapsed_seconds": 1152.0966598480009}
+{"export_batches": 100}
+{"export_batches": 200}
+{"export_batches": 300}
+{"export_batches": 400}
+{"export_batches": 500}
+{"export_batches": 600}
+{"export_batches": 700}
+{"export_batches": 800}
+{"export_batches": 900}
+{"arm": "float_rank", "training_seconds": 1152.165410217829, "quality_r1": 0.9080499059989745}
+RUN seed=179020 arm=bank output=/home/riomus/runs/sfora-siglip2-member-bank-multiseed-179020-bank-v1
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  20%|█▉        | 156/792 [00:00<00:00, 1558.99it/s]Loading weights:  61%|██████    | 481/792 [00:00<00:00, 2534.67it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2705.44it/s]
+{"step": 50, "loss": 6.2241315841674805, "arcface": 4.316597938537598, "rank": 0.23844170570373535, "elapsed_seconds": 60.76746784616262}
+{"step": 100, "loss": 11.005233764648438, "arcface": 7.896914958953857, "rank": 0.38853979110717773, "elapsed_seconds": 119.15754040703177}
+{"step": 150, "loss": 8.793107032775879, "arcface": 6.692770004272461, "rank": 0.26254212856292725, "elapsed_seconds": 177.56832000706345}
+{"step": 200, "loss": 7.218916416168213, "arcface": 5.064924240112305, "rank": 0.2692490220069885, "elapsed_seconds": 235.94234558101743}
+{"step": 250, "loss": 11.413934707641602, "arcface": 7.831975936889648, "rank": 0.44774478673934937, "elapsed_seconds": 294.31524053402245}
+{"step": 300, "loss": 7.890119552612305, "arcface": 5.996503829956055, "rank": 0.23670196533203125, "elapsed_seconds": 352.7277834499255}
+{"step": 350, "loss": 7.421643257141113, "arcface": 5.291594505310059, "rank": 0.26625609397888184, "elapsed_seconds": 411.0643892828375}
+{"step": 400, "loss": 7.877223968505859, "arcface": 5.781503200531006, "rank": 0.2619650959968567, "elapsed_seconds": 469.45331225404516}
+{"step": 450, "loss": 7.638274192810059, "arcface": 5.686406135559082, "rank": 0.24398350715637207, "elapsed_seconds": 527.8232389572076}
+{"step": 500, "loss": 4.349221229553223, "arcface": 3.2788171768188477, "rank": 0.13380050659179688, "elapsed_seconds": 586.1885360530578}
+{"step": 550, "loss": 8.125144958496094, "arcface": 5.602604866027832, "rank": 0.3153175711631775, "elapsed_seconds": 644.5033104168251}
+{"step": 600, "loss": 10.182214736938477, "arcface": 7.830942630767822, "rank": 0.293908953666687, "elapsed_seconds": 702.8016431247815}
+{"step": 650, "loss": 5.11991024017334, "arcface": 3.7846319675445557, "rank": 0.16690975427627563, "elapsed_seconds": 761.1060934518464}
+{"step": 700, "loss": 5.2579803466796875, "arcface": 4.158360481262207, "rank": 0.13745248317718506, "elapsed_seconds": 819.4299578838982}
+{"step": 750, "loss": 7.941192626953125, "arcface": 6.564847946166992, "rank": 0.1720430850982666, "elapsed_seconds": 877.7319932300597}
+{"step": 800, "loss": 7.953476905822754, "arcface": 5.650265693664551, "rank": 0.2879014015197754, "elapsed_seconds": 936.0000136061572}
+{"step": 850, "loss": 5.9719462394714355, "arcface": 4.440408229827881, "rank": 0.19144225120544434, "elapsed_seconds": 994.3259103801101}
+{"step": 900, "loss": 6.071333885192871, "arcface": 4.740989685058594, "rank": 0.16629302501678467, "elapsed_seconds": 1052.621669088956}
+{"step": 950, "loss": 7.2880730628967285, "arcface": 5.262394428253174, "rank": 0.25320982933044434, "elapsed_seconds": 1110.951490350999}
+{"step": 1000, "loss": 8.320669174194336, "arcface": 6.025505542755127, "rank": 0.2868954539299011, "elapsed_seconds": 1169.268295771908}
+{"export_batches": 100}
+{"export_batches": 200}
+{"export_batches": 300}
+{"export_batches": 400}
+{"export_batches": 500}
+{"export_batches": 600}
+{"export_batches": 700}
+{"export_batches": 800}
+{"export_batches": 900}
+{"arm": "float_rank_member_bank", "training_seconds": 1169.3087769770063, "quality_r1": 0.9153990770808409}
+RUN seed=179020 arm=arcface output=/home/riomus/runs/sfora-siglip2-member-bank-multiseed-179020-arcface-v1
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:   1%|          | 4/792 [00:00<00:21, 37.41it/s]Loading weights:  61%|██████    | 480/792 [00:00<00:00, 2738.07it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2582.19it/s]
+{"step": 50, "loss": 4.111405372619629, "arcface": 4.111405372619629, "rank": 0.0, "elapsed_seconds": 59.877699862234294}
+{"step": 100, "loss": 7.741183280944824, "arcface": 7.741183280944824, "rank": 0.0, "elapsed_seconds": 117.40954025322571}
+{"step": 150, "loss": 6.998366355895996, "arcface": 6.998366355895996, "rank": 0.0, "elapsed_seconds": 174.9180866871029}
+{"step": 200, "loss": 5.635319709777832, "arcface": 5.635319709777832, "rank": 0.0, "elapsed_seconds": 232.41915278322995}
+{"step": 250, "loss": 7.871338844299316, "arcface": 7.871338844299316, "rank": 0.0, "elapsed_seconds": 289.9619601890445}
+{"step": 300, "loss": 6.361503601074219, "arcface": 6.361503601074219, "rank": 0.0, "elapsed_seconds": 347.5027451021597}
+{"step": 350, "loss": 5.86602258682251, "arcface": 5.86602258682251, "rank": 0.0, "elapsed_seconds": 405.03944650292397}
+{"step": 400, "loss": 5.250888824462891, "arcface": 5.250888824462891, "rank": 0.0, "elapsed_seconds": 462.53389012627304}
+{"step": 450, "loss": 6.0315327644348145, "arcface": 6.0315327644348145, "rank": 0.0, "elapsed_seconds": 520.0645089922473}
+{"step": 500, "loss": 3.7941272258758545, "arcface": 3.7941272258758545, "rank": 0.0, "elapsed_seconds": 577.6073700711131}
+Traceback (most recent call last):
+  File "/home/riomus/sfora-siglip2-member-bank-v1/scripts/train_sop_siglip2_compact.py", line 863, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/sfora-siglip2-member-bank-v1/scripts/train_sop_siglip2_compact.py", line 680, in main
+    torch.nn.utils.clip_grad_norm_(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        list(vision.parameters()) + list(head.parameters()) + [classifier],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        1.0,
+        ^^^^
+        error_if_nonfinite=True,
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/nn/utils/clip_grad.py", line 41, in _no_grad_wrapper
+    return func(*args, **kwargs)
+  File "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/nn/utils/clip_grad.py", line 230, in clip_grad_norm_
+    total_norm = _get_total_norm(grads, norm_type, error_if_nonfinite, foreach)
+  File "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/nn/utils/clip_grad.py", line 41, in _no_grad_wrapper
+    return func(*args, **kwargs)
+  File "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/nn/utils/clip_grad.py", line 110, in _get_total_norm
+    raise RuntimeError(
+    ...<4 lines>...
+    )
+RuntimeError: The total norm of order 2.0 for gradients from `parameters` is non-finite, so it cannot be clipped. To disable this error and scale the gradients by the non-finite norm anyway, set `error_if_nonfinite=False`
+sfora-siglip2-member-bank-multiseed-v2.service: Main process exited, code=exited, status=1/FAILURE
+sfora-siglip2-member-bank-multiseed-v2.service: Failed with result 'exit-code'.
+sfora-siglip2-member-bank-multiseed-v2.service: Consumed 1h 23min 23.294s CPU time, 11.0G memory peak, 0B memory swap peak.

@@ -1,0 +1,39 @@
+--- frozen/train_sop_siglip2_compact.py
++++ diagnostic/train_sop_siglip2_compact.py
+@@ -677,6 +677,36 @@
+             )
+         scaler.scale(loss).backward()
+         scaler.unscale_(optimizer)
++        if step >= 500:
++            bad_gradients = []
++            named = (
++                [(f"vision.{name}", parameter) for name, parameter in vision.named_parameters()]
++                + [(f"head.{name}", parameter) for name, parameter in head.named_parameters()]
++                + [("classifier", classifier)]
++            )
++            for name, parameter in named:
++                gradient = parameter.grad
++                if gradient is not None and not bool(torch.isfinite(gradient).all()):
++                    bad_gradients.append({
++                        "name": name,
++                        "dtype": str(gradient.dtype),
++                        "nan_count": int(torch.isnan(gradient).sum()),
++                        "inf_count": int(torch.isinf(gradient).sum()),
++                    })
++            if bad_gradients:
++                digest = hashlib.sha256()
++                for key in sorted(batch):
++                    digest.update(key.encode())
++                    digest.update(batch[key].contiguous().numpy().tobytes())
++                digest.update(target.detach().cpu().contiguous().numpy().tobytes())
++                print(json.dumps({
++                    "gradient_failure_step": step,
++                    "loss": float(loss.detach()),
++                    "grad_scaler": scaler.get_scale(),
++                    "input_batch_sha256": digest.hexdigest(),
++                    "bad_gradients": bad_gradients,
++                }, sort_keys=True), flush=True)
++                raise RuntimeError("diagnostic nonfinite gradient")
+         torch.nn.utils.clip_grad_norm_(
+             list(vision.parameters()) + list(head.parameters()) + [classifier],
+             1.0,

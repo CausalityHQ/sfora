@@ -1,0 +1,25 @@
+Started sfora-siglip2-arcface-overflow-diag-179020-v1.service - /bin/bash /home/riomus/sfora-siglip2-arcface-overflow-diag-v1/scripts/run_sop_siglip2_arcface_gradient_diagnostic_dgx.sh.
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:   1%|          | 7/792 [00:00<00:11, 69.99it/s]Loading weights:  55%|█████▍    | 433/792 [00:00<00:00, 2531.06it/s]Loading weights:  97%|█████████▋| 771/792 [00:00<00:00, 2916.92it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2573.85it/s]
+{"step": 50, "loss": 4.111405372619629, "arcface": 4.111405372619629, "rank": 0.0, "elapsed_seconds": 59.40100850304589}
+{"step": 100, "loss": 7.741183280944824, "arcface": 7.741183280944824, "rank": 0.0, "elapsed_seconds": 116.7677744422108}
+{"step": 150, "loss": 6.998366355895996, "arcface": 6.998366355895996, "rank": 0.0, "elapsed_seconds": 174.30172992218286}
+{"step": 200, "loss": 5.635319709777832, "arcface": 5.635319709777832, "rank": 0.0, "elapsed_seconds": 231.81323965080082}
+{"step": 250, "loss": 7.871338844299316, "arcface": 7.871338844299316, "rank": 0.0, "elapsed_seconds": 289.3729405691847}
+{"step": 300, "loss": 6.361503601074219, "arcface": 6.361503601074219, "rank": 0.0, "elapsed_seconds": 346.9486466231756}
+{"step": 350, "loss": 5.86602258682251, "arcface": 5.86602258682251, "rank": 0.0, "elapsed_seconds": 404.5648655211553}
+{"step": 400, "loss": 5.250888824462891, "arcface": 5.250888824462891, "rank": 0.0, "elapsed_seconds": 462.18126173410565}
+{"step": 450, "loss": 6.0315327644348145, "arcface": 6.0315327644348145, "rank": 0.0, "elapsed_seconds": 519.8068694910035}
+{"step": 500, "loss": 3.7941272258758545, "arcface": 3.7941272258758545, "rank": 0.0, "elapsed_seconds": 577.4514890140854}
+{"bad_gradients": [{"dtype": "torch.float32", "inf_count": 0, "name": "vision.embeddings.patch_embedding.weight", "nan_count": 786432}, {"dtype": "torch.float32", "inf_count": 0, "name": "vision.embeddings.patch_embedding.bias", "nan_count": 1024}, {"dtype": "torch.float32", "inf_count": 0, "name": "vision.embeddings.position_embedding.weight", "nan_count": 262144}, {"dtype": "torch.float32", "inf_count": 0, "name": "vision.encoder.layers.0.layer_norm1.weight", "nan_count": 1024}, {"dtype": "torch.float32", "inf_count": 0, "name": "vision.encoder.layers.0.layer_norm1.bias", "nan_count": 1024}, {"dtype": "torch.float32", "inf_count": 0, "name": "vision.encoder.layers.0.self_attn.k_proj.weight", "nan_count": 1048576}, {"dtype": "torch.float32", "inf_count": 0, "name": "vision.encoder.layers.0.self_attn.k_proj.bias", "nan_count": 1024}, {"dtype": "torch.float32", "inf_count": 8148, "name": "vision.encoder.layers.0.self_attn.v_proj.weight", "nan_count": 1040428}, {"dtype": "torch.float32", "inf_count": 97, "name": "vision.encoder.layers.0.self_attn.v_proj.bias", "nan_count": 927}, {"dtype": "torch.float32", "inf_count": 0, "name": "vision.encoder.layers.0.self_attn.q_proj.weight", "nan_count": 1048576}, {"dtype": "torch.float32", "inf_count": 0, "name": "vision.encoder.layers.0.self_attn.q_proj.bias", "nan_count": 1024}, {"dtype": "torch.float32", "inf_count": 4096, "name": "vision.encoder.layers.0.self_attn.out_proj.weight", "nan_count": 0}, {"dtype": "torch.float32", "inf_count": 4, "name": "vision.encoder.layers.0.self_attn.out_proj.bias", "nan_count": 0}, {"dtype": "torch.float32", "inf_count": 1, "name": "vision.encoder.layers.1.self_attn.out_proj.weight", "nan_count": 0}], "grad_scaler": 128.0, "gradient_failure_step": 543, "input_batch_sha256": "070ff753eaca317954f39cd6979b6f565828198c6a1bee25c9a482002f214e9f", "loss": 4.480570316314697}
+Traceback (most recent call last):
+  File "/home/riomus/sfora-siglip2-arcface-overflow-diag-v1/scripts/train_sop_siglip2_compact.py", line 893, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/sfora-siglip2-arcface-overflow-diag-v1/scripts/train_sop_siglip2_compact.py", line 709, in main
+    raise RuntimeError("diagnostic nonfinite gradient")
+RuntimeError: diagnostic nonfinite gradient
+sfora-siglip2-arcface-overflow-diag-179020-v1.service: Main process exited, code=exited, status=1/FAILURE
+sfora-siglip2-arcface-overflow-diag-179020-v1.service: Failed with result 'exit-code'.
+sfora-siglip2-arcface-overflow-diag-179020-v1.service: Consumed 13min 42.476s CPU time, 4.7G memory peak, 0B memory swap peak.
