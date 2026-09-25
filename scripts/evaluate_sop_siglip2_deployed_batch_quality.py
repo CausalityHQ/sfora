@@ -209,7 +209,9 @@ def main() -> None:
         "batch64_recall_at_1": float(original.mean()),
         "rows": rows,
         "source_sha256": sha256(Path(__file__)),
-        "export_source_sha256": sha256(Path(export_verified.__code__.co_filename)),
+        "export_source_sha256": sha256(
+            Path(__file__).with_name("evaluate_sop_siglip2_official.py")
+        ),
         "inputs": {
             "archive_sha256": ARCHIVE_SHA256,
             "manifest_sha256": MANIFEST_SHA256,
