@@ -1,6 +1,7 @@
 import SforaProofs.Core
 import Mathlib.Algebra.BigOperators.Ring.Finset
 import Mathlib.Data.Real.Basic
+import Mathlib.Tactic.Linarith
 
 namespace SforaProofs
 
@@ -37,5 +38,21 @@ theorem dotScore_stale_error_of_coordinate_bounds {n : ℕ}
       apply Finset.sum_le_sum
       intro i _
       exact mul_le_mul_of_nonneg_left (h i) (abs_nonneg _)
+
+/-- Uniformly bounded gallery drift supplies the `ErrWithin` premise used by
+    the existing conditional top-k and label-recall theorems. -/
+theorem staleBank_errWithin {n : ℕ} {ι : Type*} [LinearOrder ι]
+    (S : Finset ι) (q : Fin n → ℝ) (fresh stale : ι → Fin n → ℝ)
+    (radius : ι → Fin n → ℝ) (ε : ℝ) (hε : 0 ≤ ε)
+    (hcoordinate : ∀ row ∈ S, ∀ i, |fresh row i - stale row i| ≤ radius row i)
+    (haggregate : ∀ row ∈ S, (∑ i, |q i| * radius row i) ≤ ε) :
+    ErrWithin (fun row => dotScore q (fresh row))
+      (fun row => dotScore q (stale row)) ε S := by
+  refine ⟨hε, ?_⟩
+  intro row hrow
+  have hbound := dotScore_stale_error_of_coordinate_bounds
+    q (stale row) (fresh row) (radius row) (hcoordinate row hrow)
+  have hle := (abs_le.mp (hbound.trans (haggregate row hrow)))
+  constructor <;> linarith
 
 end SforaProofs

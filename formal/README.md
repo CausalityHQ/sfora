@@ -32,8 +32,9 @@ measured SOP dataset error rate.
 member-bank training lane: the absolute difference between fresh and stale
 dot scores is at most the sum of `|query_coordinate| × |member_drift_coordinate|`.
 `dotScore_stale_error_of_coordinate_bounds` replaces actual drift with explicit
-per-coordinate upper bounds. A separately established uniform radius can then
-serve as `ErrWithin` for the existing margin and Recall@1 theorems. This proof
+per-coordinate upper bounds. `staleBank_errWithin` shows that a uniform bound
+on those query-weighted sums supplies `ErrWithin` for the existing margin and
+Recall@1 theorems. This proof
 does not establish that training keeps drift small, that bank-gradient updates
 improve retrieval, or that the compiled fp32/CUDA score equals exact real
 arithmetic. Those premises require measured or further formal evidence.
