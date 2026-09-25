@@ -48,6 +48,7 @@ def main() -> None:
         rows[str(seed)] = {}
         per_query[seed] = {}
         first_input = None
+        paired_reference = None
         for arm in ARMS:
             run = args.run_base / f"sfora-inshop-siglip2-{arm}-{seed}-v1"
             path = run / "receipt.json"
@@ -85,6 +86,19 @@ def main() -> None:
                 first_input = receipt["first_input_batch_sha256"]
             elif receipt["first_input_batch_sha256"] != first_input:
                 raise ValueError(f"In-Shop seed {seed} paired input differs")
+            common = (
+                "feature_receipt_sha256",
+                "features_sha256",
+                "model_file_sha256",
+                "pca_sha256",
+                "schedule_sha256",
+                "source_files_sha256",
+                "hardware",
+            )
+            if paired_reference is None:
+                paired_reference = receipt
+            elif any(receipt[key] != paired_reference[key] for key in common):
+                raise ValueError(f"In-Shop seed {seed} paired geometry differs")
             for metric, key in (("recall_at_1", "per_query_r1"), ("map_at_r", "per_query_ap")):
                 values = np.asarray(quality[key], dtype=np.float64)
                 if (
