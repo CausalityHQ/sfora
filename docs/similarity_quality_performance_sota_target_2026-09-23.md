@@ -193,15 +193,17 @@ established novelty claim.
 | SOP official TEST, 60,502 symmetric queries, self excluded | Coverage bank, 3 seeds | packed R@1 91.2725%, mAP@R 0.757861 | 130-byte gallery | [exploratory official read](sop_siglip2_coverage_official_result_2026-09-25.md), source-bound; TEST had prior Sfora reads |
 | SOP official TEST, 60,470 gallery rows after 32 held query rows | Selected bank checkpoint vs faithful UNICOM L14/336 | quality assessed separately above | image-to-top10 p50/p95 at batch1: 23.328/26.239 ms vs 36.305/39.055 ms; batch32: 314.683/325.875 ms vs 558.497/568.963 ms | [100-call diagnostic](sop_coverage_vs_fullwidth_unicom_latency_2026-09-25.md), no p99 certification |
 | In-Shop official TRAIN, 2,540 class-disjoint held queries/full 25,882 TRAIN gallery | Bank vs matched float, three seeds | mean packed R@1 97.6640% vs 97.1916%; mAP@R 0.777733 vs 0.760664 | mean 1,150.614 s/55.62 images/s/23.829 GB peak CUDA vs 1,137.119 s/56.28 images/s/21.077 GB per 64,000 images | [completed paired exploratory TRAIN gate](inshop_siglip2_paired_training_gate_2026-09-25.md); bank selected for official query/gallery |
+| In-Shop official query/gallery, 14,218/12,612 | Selected bank, three seeds | mean packed R@1 **95.4823%**, mAP@R **0.784502** | 130-byte/image gallery; mean export 143.239 s for query+gallery; native top-10 exact on all queries | [exploratory official readout](inshop_siglip2_official_result_2026-09-25.md); **fails** published 96.7% reference by 1.218 pp |
 | SOP official TEST / In-Shop official query-gallery | UNICOM L14/336 paper | published R@1 91.2% / 96.7% | published full-width descriptor; local SOP latency control above | dated [UNICOM Table 4](https://arxiv.org/abs/2304.05884), not the verified latest frontier |
 
-The In-Shop TRAIN holdout is not an official query/gallery score and cannot
-be compared numerically with the paper's 96.7%. The three-seed paired gate
-has selected bank using TRAIN only; the official 14,218-query / 12,612-gallery
-split remains unopened for selection. Evaluate all three selected checkpoints, compare matched local
-quality and image-to-top-k latency, then run the 10,000-call/cell p99 gate if
-both primary quality protocols clear. CUB/Cars transfer and a separately
-validated new method remain required for a broad SOTA/novelty claim. Lean
+The In-Shop TRAIN holdout cannot be compared numerically with the paper's
+96.7%. The frozen bank selection produced a 95.4823% official mean, below that
+reference. A TRAIN-only held-gallery diagnostic is next to test why validation
+overpredicted quality. Revise the representation/training layer if the gap
+persists, then compare matched local image-to-top-k latency; the 10,000-call/cell
+p99 gate follows only when both primary quality protocols clear. CUB/Cars
+transfer and a separately validated new method remain required for a broad
+SOTA/novelty claim. Lean
 currently proves exact selector invariants, conditional score/recall/cost
 bounds, and valid-positive preservation for the bank padding trim; it does
 not prove empirical recall, optimizer success, or physical latency.

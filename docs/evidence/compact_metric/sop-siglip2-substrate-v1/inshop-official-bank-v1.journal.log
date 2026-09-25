@@ -1,0 +1,29 @@
+2026-09-26T00:15:59+02:00 spark-2751 systemd[3489]: Started sfora-inshop-siglip2-official-bank-v1.service - /bin/bash /home/riomus/runs/run_inshop_siglip2_official_selected.sh.
+2026-09-26T00:15:59+02:00 spark-2751 bash[112809]: START official bank seed=179023
+2026-09-26T00:16:03+02:00 spark-2751 bash[112820]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-26T00:16:03+02:00 spark-2751 bash[112820]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-26T00:16:04+02:00 spark-2751 bash[112820]: [391B blob data]
+2026-09-26T00:16:40+02:00 spark-2751 bash[112820]: {"export_batches": 100}
+2026-09-26T00:17:13+02:00 spark-2751 bash[112820]: {"export_batches": 200}
+2026-09-26T00:17:55+02:00 spark-2751 bash[112820]: {"export_batches": 100}
+2026-09-26T00:18:31+02:00 spark-2751 bash[112820]: {"seed": 179023, "arm": "bank", "packed_r1": 0.9553383035588691}
+2026-09-26T00:18:33+02:00 spark-2751 bash[112809]: DONE official bank seed=179023 receipt_sha256=72ee7d8a8a09c7c518c1ca6ffc6abb6d162ef6f176e990751bebf74d4bae8ae1
+2026-09-26T00:18:33+02:00 spark-2751 bash[112809]: START official bank seed=179024
+2026-09-26T00:18:37+02:00 spark-2751 bash[113582]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-26T00:18:37+02:00 spark-2751 bash[113582]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-26T00:18:38+02:00 spark-2751 bash[113582]: [381B blob data]
+2026-09-26T00:19:14+02:00 spark-2751 bash[113582]: {"export_batches": 100}
+2026-09-26T00:19:48+02:00 spark-2751 bash[113582]: {"export_batches": 200}
+2026-09-26T00:20:30+02:00 spark-2751 bash[113582]: {"export_batches": 100}
+2026-09-26T00:21:06+02:00 spark-2751 bash[113582]: {"seed": 179024, "arm": "bank", "packed_r1": 0.954212969475313}
+2026-09-26T00:21:07+02:00 spark-2751 bash[112809]: DONE official bank seed=179024 receipt_sha256=b736d890d864cbf722f0b3d3a459c1f3375493cf442ba5fd671f87e11b8a6c60
+2026-09-26T00:21:07+02:00 spark-2751 bash[112809]: START official bank seed=179025
+2026-09-26T00:21:12+02:00 spark-2751 bash[114524]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-26T00:21:12+02:00 spark-2751 bash[114524]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-26T00:21:13+02:00 spark-2751 bash[114524]: [381B blob data]
+2026-09-26T00:21:49+02:00 spark-2751 bash[114524]: {"export_batches": 100}
+2026-09-26T00:22:23+02:00 spark-2751 bash[114524]: {"export_batches": 200}
+2026-09-26T00:23:04+02:00 spark-2751 bash[114524]: {"export_batches": 100}
+2026-09-26T00:23:41+02:00 spark-2751 bash[114524]: {"seed": 179025, "arm": "bank", "packed_r1": 0.9549163032775355}
+2026-09-26T00:23:42+02:00 spark-2751 bash[112809]: DONE official bank seed=179025 receipt_sha256=c77f989af6fdbf1223ac145cea62131befc5fcba78ee9b091f3023c8bb1faf7a
+2026-09-26T00:23:42+02:00 spark-2751 systemd[3489]: sfora-inshop-siglip2-official-bank-v1.service: Consumed 11min 32.593s CPU time, 8.5G memory peak, 0B memory swap peak.
