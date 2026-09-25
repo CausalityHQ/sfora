@@ -52,7 +52,10 @@ Bank minus float is **+0.7007 percentage points** Recall@1 and **+0.017814**
 mAP@R at **1.0108×** accounted training wall. Bank minus ArcFace is
 **+1.0938 points** Recall@1 and **+0.029727** mAP@R at **1.0077×** wall.
 These are a second seed's internal TRAIN holdout measurements, not the
-three-seed gate or an official TEST result. Seed 179025 began in its own
+three-seed gate or an official TEST result. The
+[rank-contribution control](sop_siglip2_rank_contribution_control_2026-09-25.md)
+freezes the next fit-only diagnostic and matched comparison before its
+coefficient is observed. Seed 179025 began in its own
 serial unit after this unit terminated and the GPU became idle.
 
 No official SOP TEST or In-Shop evaluation has been opened for this SigLIP2
