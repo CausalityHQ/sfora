@@ -392,3 +392,61 @@ final ArcFace graph to seed a fresh treatment would change the frozen design
 and contaminate the training comparison. The next causal revision must test
 actual member-level negatives or representation geometry with a distinct
 fit-only preregistration.
+
+## 25 September member-level bank result
+
+The two product-graph lanes above failed their frozen preflight gates. A
+distinct member-level lane used a full **53,700-member fit-only memory bank**
+as the candidate set for the float SmoothAP term, retaining the same pretrained
+SigLIP2 L/16@256 encoder, PCA-initialized 1024-to-128 head, ArcFace margin
+0.3/scale 64, rank coefficient 8, 1,000 balanced updates, and deployed
+130-byte signed-int8 plus f16-norm gallery. The [preregistered bank gate](sop_siglip2_member_bank_preflight_2026-09-25.md)
+selected the raw zero-update bank after it exposed the actual trained-control
+impostor among top 64 fit negatives for **4,127/4,296 errors (96.07%)**. A
+source-bound worst-positive-count loss-only forward/backward and bank write
+took **13.466 ms median** across 20 GB10 steps, below the 60 ms timing gate.
+Those checks were diagnostic, not quality measurements.
+
+One same-source sequential ArcFace replay and one bank treatment then completed
+on NVIDIA GB10, seed 179019. Both use the **SOP official TRAIN** product-disjoint
+split: 53,700 fit images/10,186 products; 5,851 holdout queries/1,132
+products; every query searches all 59,551 TRAIN images excluding itself.
+No official SOP TEST or In-Shop row entered training, preflight, or selection.
+The two runs have equal trainer/module-source digests, model files, initial
+PCA/head/classifier hashes, schedule, first ten augmented input-batch hashes,
+query IDs, and exact native top-10 scoring semantics. The replay reproduced
+the historical ArcFace quality exactly despite its changed trainer source.
+
+| Same-source run | Packed Recall@1 | mAP@R | Training wall, including bank init | Peak CUDA allocated | Gallery |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| ArcFace control | 90.4632% | 0.718801 | 1,150.288 s | 21,089,142,784 B | 130 B/image |
+| ArcFace + full-fit member-bank SmoothAP | **91.8305%** | **0.749306** | **1,166.074 s** | 21,409,461,248 B | 130 B/image |
+
+The [raw control](evidence/compact_metric/sop-siglip2-substrate-v1/member-bank-control-1000-v1.json)
+(SHA-256 `d88167bfcbf8152ee912c8382061afaf248e45fe52ae24cf5f1a5da739477fc3`),
+[treatment](evidence/compact_metric/sop-siglip2-substrate-v1/member-bank-treatment-1000-v1.json)
+(SHA-256 `2e73ee0e6252c91d54c815d52581abd0d303de09a56776a2fcd5b5e7908c981c`),
+and [paired decision](evidence/compact_metric/sop-siglip2-substrate-v1/member-bank-decision-v1.json)
+(SHA-256 `35b144bb44e1ca67baf02e257e62219cfd8452a2f915a3b14c07011c3306e606`)
+retain the per-query outcomes and resource accounting. The paired
+product-cluster bootstrap over 5,000 draws gives **+1.3673 percentage points**
+Recall@1, 95% interval **[+0.8628,+1.8559]**, and **+0.030506 mAP@R**, 95%
+interval **[+0.025908,+0.035304]**. Training wall ratio, including the
+0.208 s bank initialization, is **1.013724**. The frozen internal screen
+therefore **passes** its +1-point Recall@1, positive lower bound, at most
+0.005 mAP@R loss, and at most 1.15x wall gates. Gallery export took
+318.553 s for control and 319.149 s for treatment; exact holdout scoring
+took 2.960 and 3.017 s respectively. These are serialized run measurements,
+not paired serving latency benchmarks.
+
+This is a **single-seed internal TRAIN-holdout result**, not a published-frontier
+or official-test result. A same-source in-batch float-SmoothAP replay is needed
+to attribute any further gain specifically to the bank rather than to adding
+a ranking term. At least three independent paired seeds are required for a
+learning-method claim. Cross-batch memory and SmoothAP are prior art, so this
+composition is not described as a novel algorithm. The next gates are an
+independent Opus/Astra audit, same-source in-batch ablation and independent
+seeds, then frozen official SOP TEST and In-Shop protocols, CUB/Cars transfer,
+and paired full-pipeline latency/p99/scaling measurements. The published
+UNICOM 91.2% SOP and 96.7% In-Shop numbers remain official-protocol reference
+gates; the 91.8305% internal holdout cannot be compared to them as a win.
