@@ -138,11 +138,19 @@ class VerifiedRows(Dataset):  # type: ignore[misc]
 
 @torch.inference_mode()  # type: ignore[untyped-decorator]
 def export_verified(
-    dataset: VerifiedRows, processor: Any, vision: nn.Module, head: nn.Linear, *, workers: int
+    dataset: VerifiedRows,
+    processor: Any,
+    vision: nn.Module,
+    head: nn.Linear,
+    *,
+    workers: int,
+    batch_size: int = 64,
 ) -> torch.Tensor:
+    if batch_size not in (1, 32, 64):
+        raise ValueError("SOP official export batch size differs")
     loader = DataLoader(
         dataset,
-        batch_size=64,
+        batch_size=batch_size,
         shuffle=False,
         num_workers=workers,
         pin_memory=True,
@@ -244,10 +252,14 @@ def main() -> None:
     receipt = json.loads(args.training_receipt.read_text())
     expected_arm = validate_decision_arm(decision, args.seed, args.arm, receipt_sha, receipt)
     root = Path(__file__).resolve().parents[1]
-    if decision["schema"] in (
-        "sfora-sop-siglip2-bf16-rankmatched-float-v1",
-        "sfora-sop-siglip2-bf16-coverage-replication-v1",
-    ) and args.training_source_root is None:
+    if (
+        decision["schema"]
+        in (
+            "sfora-sop-siglip2-bf16-rankmatched-float-v1",
+            "sfora-sop-siglip2-bf16-coverage-replication-v1",
+        )
+        and args.training_source_root is None
+    ):
         raise ValueError("SOP BF16 training source root required")
     training_root = args.training_source_root or root
     evaluator_files = (
