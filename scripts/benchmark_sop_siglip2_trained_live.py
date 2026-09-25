@@ -29,6 +29,7 @@ ARCHIVE_SHA256 = "1ba27b2d6b9db39067aa6facd0ef8aafc303c4527f6feabed859b0512c7d92
 NATIVE_SHA256 = "39602d0e4e8b0d5ec441be460ad7f18e288241bef19fb6e6c5df14f4033ac73c"
 TILEIRAS_SHA256 = "df2e9ef3804cab682f605a5c9e50045a24404ba22c3be0903454e1a60fcd78ae"
 TRAINER_SHA256 = "95de5b80fda488db18715308588a3d56e53ecf6e4df99313877426274346b1c8"
+BF16_TRAINER_SHA256 = "ad66b1613f0c1c8373d69a689d1556c9b250527a8045a6b85bec523f99466d23"
 MODEL_HASHES = {
     "config.json": "172e39dbf0143b8fe22d2f08921730eb8c397967e58cb37d133161e28aa34104",
     "preprocessor_config.json": "d14ba2ee3fd816f3de8abaddc31953565128eaf37c73ad4bed32101a98465aff",
@@ -64,6 +65,38 @@ def first_nonself(ordinals: np.ndarray, row: int) -> int:
         if int(ordinal) != row:
             return int(ordinal)
     raise ValueError("trained SigLIP2 live nonself top-10 is missing")
+
+
+def validate_training_profile(training: dict[str, Any], profile: str) -> int:
+    """Bind live timing to one frozen training recipe and registered seed."""
+
+    seed = training.get("seed")
+    source = training.get("source_sha256")
+    source_file = training.get("source_files_sha256", {}).get(
+        "scripts/train_sop_siglip2_compact.py"
+    )
+    if profile == "fp16_selected":
+        valid = (
+            seed == 179019
+            and training.get("arm") in ("arcface", "packed_rank", "float_rank")
+            and source == TRAINER_SHA256
+            and source_file == TRAINER_SHA256
+            and training.get("grad_scaler_initial_scale") == 128.0
+        )
+    elif profile == "bf16_bank":
+        valid = (
+            seed in (179023, 179024, 179025)
+            and training.get("arm") == "float_rank_member_bank"
+            and source == BF16_TRAINER_SHA256
+            and source_file == BF16_TRAINER_SHA256
+            and training.get("train_vision_dtype") == "bf16"
+            and training.get("grad_scaler_initial_scale") == 1.0
+        )
+    else:
+        valid = False
+    if not valid:
+        raise ValueError("trained SigLIP2 live training profile differs")
+    return int(seed)
 
 
 def paired_order(repeat: int) -> tuple[str, str]:
@@ -187,6 +220,11 @@ def main() -> None:
         default="fp32_autocast",
     )
     parser.add_argument("--paired-precision", action="store_true")
+    parser.add_argument(
+        "--training-profile",
+        choices=("fp16_selected", "bf16_bank"),
+        default="fp16_selected",
+    )
     args = parser.parse_args()
     tileiras = os.environ.get("CUTILE_TILEIRAS_PATH")
     if (
@@ -205,19 +243,15 @@ def main() -> None:
     ):
         raise ValueError("trained SigLIP2 live timing authority differs")
     training = json.loads(args.training_receipt.read_text())
+    training_seed = validate_training_profile(training, args.training_profile)
     if (
         training.get("schema") != "sfora-sop-siglip2-compact-full-backbone-v1"
         or training.get("updates") != 1_000
-        or training.get("seed") != 179019
-        or training.get("arm") not in ("arcface", "packed_rank", "float_rank")
-        or training.get("grad_scaler_initial_scale") != 128.0
         or training.get("source_archive_sha256") != ARCHIVE_SHA256
         or training.get("native_library_sha256") != NATIVE_SHA256
         or training.get("tileiras_sha256") != TILEIRAS_SHA256
         or training.get("quality", {}).get("native_top10_exact") is not True
         or training.get("quality", {}).get("gallery_wire_bytes_per_row") != 130
-        or training.get("source_files_sha256", {}).get("scripts/train_sop_siglip2_compact.py")
-        != TRAINER_SHA256
         or training.get("checkpoint_sha256") != sha256(args.training_checkpoint)
         or training.get("train_embeddings_sha256") != sha256(args.train_embeddings)
     ):
@@ -276,7 +310,7 @@ def main() -> None:
     head = torch.nn.Linear(1024, 128).cuda().eval()
     checkpoint = torch.load(args.training_checkpoint, map_location="cpu", weights_only=True)
     if (
-        checkpoint.get("seed") != 179019
+        checkpoint.get("seed") != training_seed
         or checkpoint.get("updates") != 1_000
         or checkpoint.get("arm") != training["arm"]
     ):
@@ -357,7 +391,8 @@ def main() -> None:
                 "claim_eligible": False,
                 "split": "SOP official TRAIN product-disjoint holdout query images only",
                 "arm": training["arm"],
-                "seed": 179019,
+                "seed": training_seed,
+                "training_profile": args.training_profile,
                 "order": "AB/BA/BA/AB repeated",
                 "timing_query_policy": (
                     "fixed first holdout query at batch 1; fixed 32 queries at batch 32"
@@ -488,7 +523,8 @@ def main() -> None:
         "split": "SOP official TRAIN product-disjoint holdout query images only",
         "arm": training["arm"],
         "inference_precision": args.inference_precision,
-        "seed": 179019,
+        "seed": training_seed,
+        "training_profile": args.training_profile,
         "query_image_ids": ids[query_rows].tolist(),
         "query_image_sha256": [sha256(path) for path in paths],
         "source_archive_sha256": ARCHIVE_SHA256,

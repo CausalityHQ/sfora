@@ -52,3 +52,25 @@ def test_paired_order_balances_first_and_second_position() -> None:
         ("fp16_native", "fp32_autocast"),
         ("fp32_autocast", "fp16_native"),
     ]
+
+
+def test_bf16_bank_profile_accepts_registered_receipt_only() -> None:
+    row = {
+        "seed": 179025,
+        "arm": "float_rank_member_bank",
+        "source_sha256": MODULE.BF16_TRAINER_SHA256,
+        "source_files_sha256": {"scripts/train_sop_siglip2_compact.py": MODULE.BF16_TRAINER_SHA256},
+        "train_vision_dtype": "bf16",
+        "grad_scaler_initial_scale": 1.0,
+        "quality": {"native_top10_exact": True, "gallery_wire_bytes_per_row": 130},
+    }
+    assert MODULE.validate_training_profile(row, "bf16_bank") == 179025
+    for changed in (
+        {"seed": 179019},
+        {"arm": "float_rank"},
+        {"source_sha256": "0" * 64},
+        {"train_vision_dtype": "fp16"},
+        {"grad_scaler_initial_scale": 128.0},
+    ):
+        with pytest.raises(ValueError, match="profile"):
+            MODULE.validate_training_profile({**row, **changed}, "bf16_bank")
