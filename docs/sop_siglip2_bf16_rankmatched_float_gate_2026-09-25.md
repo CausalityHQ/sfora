@@ -7,6 +7,8 @@ selected a **21.93** in-batch float SmoothAP coefficient by the median of
 three paired first-step feature-gradient ratios. The existing full-fit bank
 arms retain coefficient **8.0**. This protocol freezes the next comparison
 before any 21.93 full-training quality result is read.
+The match concerns the **first-step feature-gradient norm only**. Later
+gradients, optimizer updates, and clipped whole-model steps need not match.
 
 ## Fixed implementation and runs
 
@@ -47,10 +49,20 @@ the pinned code diff above and all other package-source hashes are part of
 the authority check. Report Recall@1, mAP@R, per-query differences,
 product-clustered 5,000-draw bootstrap of the three-seed mean, accounted
 training wall, images/s, peak GPU allocation, export/scoring time, and
-gallery bytes. The bootstrap conditions on the trained seeds and selected
-TRAIN holdout; it is not seed-population uncertainty.
+gallery bytes. Also report the coefficient-21.93 float arm minus the original
+coefficient-8.0 float arm per query and with the same product bootstrap. The
+original float receipts are already bound to the passing three-seed gate.
+This second comparison is report-only and does not change the frozen bank
+screen. If the higher coefficient makes float training worse, interpret a bank
+screen pass against the stronger original float control and do not claim that
+first-step norm matching isolated a bank-specific effect. The bootstrap
+conditions on the trained seeds and selected TRAIN holdout; it is not
+seed-population uncertainty. Bank and float wall times come from separate,
+serial DGX sessions; the ratio pairs arms by seed and is a cross-session
+measurement.
 
-The bank-specific *screen* passes only if bank-minus-matched-float Recall@1
+The bank-specific *first-step-norm-matched screen* passes only if
+bank-minus-matched-float Recall@1
 is positive in all three seeds, its arithmetic mean is at least **+0.5
 percentage points**, the product-bootstrap lower 95% limit of the mean is
 positive, mean mAP@R does not regress, and bank accounted training wall is at

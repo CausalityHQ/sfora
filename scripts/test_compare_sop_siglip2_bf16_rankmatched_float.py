@@ -14,6 +14,7 @@ from compare_sop_siglip2_bf16_rankmatched_float import (
     rankmatched_gate,
     validate_authority,
     validate_canary,
+    validate_original_float,
     validate_pair,
 )
 
@@ -43,6 +44,11 @@ def test_only_trainer_source_and_coefficient_may_change() -> None:
     floating["source_files_sha256"]["src/sfora/deployed_code_rank.py"] = "0" * 64
     with pytest.raises(ValueError, match="paired authority"):
         validate_pair(179023, bank, floating, gate)
+    floating["source_files_sha256"] = copy.deepcopy(bank["source_files_sha256"])
+    floating["source_files_sha256"][TRAINER_RELATIVE] = NEW_TRAINER_SHA256
+    floating["rank_to_arcface_head_gradient_ratio"] = [0.1] * 1000
+    with pytest.raises(ValueError, match="paired authority"):
+        validate_pair(179023, bank, floating, gate)
 
 
 def test_rankmatched_gate_rejects_nan_and_threshold_misses() -> None:
@@ -58,6 +64,7 @@ def test_rankmatched_gate_rejects_nan_and_threshold_misses() -> None:
 
 def test_canary_requires_finite_matched_first_step() -> None:
     original = json.loads((EVIDENCE / "bf16-seed179023-float-rank-v1.json").read_text())
+    diagnostic = json.loads((EVIDENCE / "bf16-rank-contribution-analysis-v1.json").read_text())
     canary = copy.deepcopy(original)
     canary["source_sha256"] = NEW_TRAINER_SHA256
     canary["rank_coefficient"] = 21.93
@@ -65,8 +72,33 @@ def test_canary_requires_finite_matched_first_step() -> None:
     canary["quality"] = None
     canary["step_seconds"] = canary["step_seconds"][:1]
     canary["first_input_batch_sha256"] = canary["first_input_batch_sha256"][:1]
-    canary["rank_to_arcface_head_gradient_ratio"] = [0.8]
-    validate_canary(canary, original)
+    canary["source_files_sha256"][TRAINER_RELATIVE] = NEW_TRAINER_SHA256
+    canary["rank_to_arcface_head_gradient_ratio"] = [
+        diagnostic["first_step_ratios"]["179023"]["float_ratio"] * 21.93 / 8.0
+    ]
+    validate_canary(canary, original, diagnostic)
     canary["rank_to_arcface_head_gradient_ratio"] = [math.nan]
     with pytest.raises(ValueError, match="canary authority"):
-        validate_canary(canary, original)
+        validate_canary(canary, original, diagnostic)
+    canary["rank_to_arcface_head_gradient_ratio"] = [0.1]
+    with pytest.raises(ValueError, match="canary authority"):
+        validate_canary(canary, original, diagnostic)
+    canary["rank_to_arcface_head_gradient_ratio"] = [
+        diagnostic["first_step_ratios"]["179023"]["float_ratio"] * 21.93 / 8.0
+    ]
+    canary["source_files_sha256"]["src/sfora/deployed_code_rank.py"] = "0" * 64
+    with pytest.raises(ValueError, match="canary authority"):
+        validate_canary(canary, original, diagnostic)
+
+
+def test_original_float_is_bound_to_matched_recipe() -> None:
+    bank = json.loads((EVIDENCE / "bf16-seed179023-bank-v1.json").read_text())
+    original = json.loads((EVIDENCE / "bf16-seed179023-float-rank-v1.json").read_text())
+    matched = copy.deepcopy(original)
+    matched["source_sha256"] = NEW_TRAINER_SHA256
+    matched["source_files_sha256"][TRAINER_RELATIVE] = NEW_TRAINER_SHA256
+    matched["rank_coefficient"] = 21.93
+    validate_original_float(179023, original, matched, bank)
+    original["rank_to_arcface_head_gradient_ratio"] = [0.1] * 1_000
+    with pytest.raises(ValueError, match="original float authority"):
+        validate_original_float(179023, original, matched, bank)

@@ -36,6 +36,11 @@ ACROSS_SEED_KEYS = tuple(
     for key in COMMON_ACROSS_SEEDS
     if key not in ("source_sha256", "source_files_sha256", "rank_coefficient")
 )
+CANARY_KEYS = tuple(
+    key
+    for key in PAIRED_KEYS
+    if key not in ("updates", "schedule_sha256", "first_input_batch_sha256")
+)
 
 
 def sha256(path: Path) -> str:
@@ -77,6 +82,7 @@ def validate_pair(seed: int, bank: dict, floating: dict, gate: dict) -> None:
         or floating.get("seed") != seed
         or any(bank.get(key) != floating.get(key) for key in PAIRED_KEYS)
         or any(row.get("train_vision_dtype") != "bf16" for row in (bank, floating))
+        or any(row.get("rank_to_arcface_head_gradient_ratio") != [] for row in (bank, floating))
         or any(
             row.get("updates") != 1_000 or len(row.get("step_seconds", [])) != 1_000
             for row in (bank, floating)
@@ -92,10 +98,25 @@ def validate_pair(seed: int, bank: dict, floating: dict, gate: dict) -> None:
         raise ValueError("SOP rank-matched paired authority differs")
 
 
-def validate_canary(canary: dict, original: dict) -> None:
+def validate_canary(canary: dict, original: dict, diagnostic: dict) -> None:
+    old_sources = original.get("source_files_sha256", {})
+    new_sources = canary.get("source_files_sha256", {})
+    expected_ratio = (
+        diagnostic.get("first_step_ratios", {}).get(str(SEEDS[0]), {}).get("float_ratio", math.nan)
+        * 21.93
+        / 8.0
+    )
     if (
         canary.get("source_sha256") != NEW_TRAINER_SHA256
+        or original.get("source_sha256") != OLD_TRAINER_SHA256
+        or old_sources.get(TRAINER_RELATIVE) != OLD_TRAINER_SHA256
+        or new_sources.get(TRAINER_RELATIVE) != NEW_TRAINER_SHA256
+        or set(old_sources) != set(new_sources)
+        or any(
+            old_sources[key] != new_sources[key] for key in old_sources if key != TRAINER_RELATIVE
+        )
         or canary.get("arm") != "float_rank"
+        or original.get("arm") != "float_rank"
         or canary.get("seed") != SEEDS[0]
         or canary.get("rank_coefficient") != 21.93
         or canary.get("train_vision_dtype") != "bf16"
@@ -105,14 +126,35 @@ def validate_canary(canary: dict, original: dict) -> None:
         or not math.isfinite(canary.get("first_loss", math.nan))
         or len(canary.get("rank_to_arcface_head_gradient_ratio", [])) != 1
         or not math.isfinite(canary["rank_to_arcface_head_gradient_ratio"][0])
-        or any(
-            canary.get(key) != original.get(key)
-            for key in ("initial_head_sha256", "initial_classifier_sha256", "model_file_sha256")
+        or not math.isfinite(expected_ratio)
+        or not math.isclose(
+            canary["rank_to_arcface_head_gradient_ratio"][0],
+            expected_ratio,
+            rel_tol=1e-9,
+            abs_tol=1e-9,
         )
+        or any(canary.get(key) != original.get(key) for key in CANARY_KEYS)
         or canary.get("first_input_batch_sha256", [None])[0]
         != original.get("first_input_batch_sha256", [None])[0]
     ):
         raise ValueError("SOP rank-matched canary authority differs")
+
+
+def validate_original_float(seed: int, original: dict, matched: dict, bank: dict) -> None:
+    if (
+        original.get("arm") != "float_rank"
+        or original.get("seed") != seed
+        or original.get("source_sha256") != OLD_TRAINER_SHA256
+        or original.get("rank_coefficient") != 8.0
+        or original.get("source_files_sha256") != bank.get("source_files_sha256")
+        or original.get("rank_to_arcface_head_gradient_ratio") != []
+        or any(original.get(key) != matched.get(key) for key in PAIRED_KEYS)
+        or original.get("train_vision_dtype") != "bf16"
+        or original.get("quality", {}).get("native_top10_exact") is not True
+        or original.get("quality", {}).get("gallery_wire_bytes_per_row") != 130
+        or len(original.get("step_seconds", [])) != 1_000
+    ):
+        raise ValueError("SOP original float authority differs")
 
 
 def rankmatched_gate(
@@ -153,7 +195,13 @@ def main() -> None:
     original_path = (
         args.run_base / "sfora-siglip2-bf16-member-bank-179023-float_rank-v1/receipt.json"
     )
-    validate_canary(json.loads(canary_path.read_text()), json.loads(original_path.read_text()))
+    if sha256(original_path) != gate["arms"][str(SEEDS[0])]["float_rank"]["receipt_sha256"]:
+        raise ValueError("SOP rank-matched original float receipt differs from passed gate")
+    validate_canary(
+        json.loads(canary_path.read_text()),
+        json.loads(original_path.read_text()),
+        diagnostic,
+    )
     with np.load(args.source_archive, allow_pickle=False) as archive:
         labels = np.asarray(archive["train_labels"], dtype=np.int64)
         ids = np.asarray(archive["train_image_ids"], dtype=np.int64)
@@ -168,18 +216,28 @@ def main() -> None:
     if len(held) != 5_851 or len(np.unique(labels[held])) != 1_132:
         raise ValueError("SOP rank-matched holdout inventory differs")
     rows: dict[str, dict] = {}
-    deltas: dict[str, list[np.ndarray]] = {"r1": [], "map_at_r": []}
+    deltas: dict[str, dict[str, list[np.ndarray]]] = {
+        "bank_minus_matched_float": {"r1": [], "map_at_r": []},
+        "matched_minus_original_float": {"r1": [], "map_at_r": []},
+    }
     walls: list[float] = []
     bank_reference: dict | None = None
     float_reference: dict | None = None
     for seed in SEEDS:
         bank_path = args.run_base / f"sfora-siglip2-bf16-member-bank-{seed}-bank-v1/receipt.json"
         float_path = args.run_base / f"sfora-siglip2-bf16-rankmatched-{seed}-float-v1/receipt.json"
+        original_path = (
+            args.run_base / f"sfora-siglip2-bf16-member-bank-{seed}-float_rank-v1/receipt.json"
+        )
         if sha256(bank_path) != gate["arms"][str(seed)]["bank"]["receipt_sha256"]:
             raise ValueError("SOP rank-matched bank receipt differs from passed gate")
+        if sha256(original_path) != gate["arms"][str(seed)]["float_rank"]["receipt_sha256"]:
+            raise ValueError("SOP rank-matched original float receipt differs from passed gate")
         bank = json.loads(bank_path.read_text())
         floating = json.loads(float_path.read_text())
+        original = json.loads(original_path.read_text())
         validate_pair(seed, bank, floating, gate)
+        validate_original_float(seed, original, floating, bank)
         if (
             bank.get("query_image_ids_sha256") != hashlib.sha256(ids[held].tobytes()).hexdigest()
             or (
@@ -196,25 +254,35 @@ def main() -> None:
         float_reference = floating
         bank_wall = bank["training_wall_including_member_bank_init_seconds"]
         float_wall = floating["training_wall_seconds"]
-        if not all(math.isfinite(value) and value > 0 for value in (bank_wall, float_wall)):
+        original_wall = original["training_wall_seconds"]
+        if not all(
+            math.isfinite(value) and value > 0 for value in (bank_wall, float_wall, original_wall)
+        ):
             raise ValueError("SOP rank-matched training wall differs")
         walls.append(bank_wall / float_wall)
         for metric, key in (("r1", "per_query_r1"), ("map_at_r", "per_query_ap")):
             stated = "recall_at_1" if metric == "r1" else metric
             bank_values = np.asarray(bank["quality"][key], dtype=np.float64)
             float_values = np.asarray(floating["quality"][key], dtype=np.float64)
+            original_values = np.asarray(original["quality"][key], dtype=np.float64)
             validate_metric_values(bank_values, bank["quality"][stated], len(held))
             validate_metric_values(float_values, floating["quality"][stated], len(held))
-            deltas[metric].append(bank_values - float_values)
+            validate_metric_values(original_values, original["quality"][stated], len(held))
+            deltas["bank_minus_matched_float"][metric].append(bank_values - float_values)
+            deltas["matched_minus_original_float"][metric].append(float_values - original_values)
         rows[str(seed)] = {
             "bank_receipt_sha256": sha256(bank_path),
             "matched_float_receipt_sha256": sha256(float_path),
+            "original_float_receipt_sha256": sha256(original_path),
             "bank_r1": bank["quality"]["recall_at_1"],
             "matched_float_r1": floating["quality"]["recall_at_1"],
+            "original_float_r1": original["quality"]["recall_at_1"],
             "bank_map_at_r": bank["quality"]["map_at_r"],
             "matched_float_map_at_r": floating["quality"]["map_at_r"],
+            "original_float_map_at_r": original["quality"]["map_at_r"],
             "bank_accounted_training_wall_seconds": bank_wall,
             "matched_float_training_wall_seconds": float_wall,
+            "original_float_training_wall_seconds": original_wall,
             "bank_images_per_second": 64_000 / bank_wall,
             "matched_float_images_per_second": 64_000 / float_wall,
             "bank_peak_cuda_allocated_bytes": bank["training_peak_cuda_allocated_bytes"],
@@ -229,13 +297,17 @@ def main() -> None:
             "bank_over_matched_float_wall_ratio": walls[-1],
         }
     metrics = {
-        name: {
-            "seedwise": [product_bootstrap(delta, labels[held]) for delta in values],
-            "mean": product_bootstrap(np.mean(values, axis=0), labels[held]),
+        comparison: {
+            name: {
+                "seedwise": [product_bootstrap(delta, labels[held]) for delta in values],
+                "mean": product_bootstrap(np.mean(values, axis=0), labels[held]),
+            }
+            for name, values in comparison_deltas.items()
         }
-        for name, values in deltas.items()
+        for comparison, comparison_deltas in deltas.items()
     }
-    seedwise_r1 = [row["point"] for row in metrics["r1"]["seedwise"]]
+    bank_metrics = metrics["bank_minus_matched_float"]
+    seedwise_r1 = [row["point"] for row in bank_metrics["r1"]["seedwise"]]
     result = {
         "schema": "sfora-sop-siglip2-bf16-rankmatched-float-v1",
         "claim_eligible": False,
@@ -260,10 +332,15 @@ def main() -> None:
         "rank_coefficient_matched_float": 21.93,
         "canary_receipt_sha256": sha256(canary_path),
         "arms": rows,
-        "bank_minus_matched_float": metrics,
+        "bank_minus_matched_float": bank_metrics,
+        "matched_minus_original_float": metrics["matched_minus_original_float"],
         "bank_over_matched_float_wall_ratio": walls,
         "bank_specific_screen_pass": rankmatched_gate(
-            seedwise_r1, metrics["r1"]["mean"], metrics["map_at_r"]["mean"], walls
+            seedwise_r1, bank_metrics["r1"]["mean"], bank_metrics["map_at_r"]["mean"], walls
+        ),
+        "interpretation": (
+            "first-step feature-gradient-norm matched float control; compare against "
+            "the original coefficient-8 float arm before reading bank specificity"
         ),
         "interval_scope": (
             "product bootstrap conditional on three trained seeds and selected TRAIN holdout"
@@ -278,7 +355,8 @@ def main() -> None:
         json.dumps(
             {
                 "bank_specific_screen_pass": result["bank_specific_screen_pass"],
-                "bank_minus_matched_float": metrics,
+                "bank_minus_matched_float": bank_metrics,
+                "matched_minus_original_float": metrics["matched_minus_original_float"],
                 "bank_over_matched_float_wall_ratio": walls,
             },
             sort_keys=True,
