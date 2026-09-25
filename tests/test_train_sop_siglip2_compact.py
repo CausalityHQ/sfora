@@ -133,6 +133,19 @@ def test_member_bank_singleton_row_can_be_left_empty_for_skipped_rank_batches() 
     ]
 
 
+def test_classifier_can_keep_singleton_product_for_arcface_only_batches() -> None:
+    features = torch.randn(129, 1024, generator=torch.Generator().manual_seed(179019))
+    labels = tuple(label for label in range(64) for _ in (0, 1)) + (64,)
+    with pytest.raises(ValueError, match="class proxy"):
+        MODULE.initialize_head_and_classifier(features, labels)
+    head, classifier, digest = MODULE.initialize_head_and_classifier(
+        features, labels, allow_singletons=True
+    )
+    assert head.weight.shape == (128, 1024)
+    assert classifier.shape == (65, 128)
+    assert len(digest) == 64
+
+
 def test_member_bank_refresh_uses_last_augmented_view_for_duplicate_row() -> None:
     rows, positions = MODULE.member_bank_refresh_rows((5, 3, 5, 4, 3))
     assert rows == (3, 4, 5)

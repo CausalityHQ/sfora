@@ -208,13 +208,17 @@ def paths_from_archive(dataset_root: Path, relatives: np.ndarray) -> tuple[Path,
 
 
 def initialize_head_and_classifier(
-    fit_features: torch.Tensor, fit_labels: tuple[int, ...]
+    fit_features: torch.Tensor,
+    fit_labels: tuple[int, ...],
+    *,
+    allow_singletons: bool = False,
 ) -> tuple[nn.Linear, nn.Parameter, str]:
     if (
         fit_features.shape != (len(fit_labels), WIDTH)
         or fit_features.device.type != "cpu"
         or fit_features.dtype != torch.float32
         or not bool(torch.isfinite(fit_features).all())
+        or not isinstance(allow_singletons, bool)
     ):
         raise ValueError("SOP SigLIP2 initialization inventory differs")
     normalized = F.normalize(fit_features, dim=1)
@@ -231,7 +235,7 @@ def initialize_head_and_classifier(
     for row, label in enumerate(fit_labels):
         sums[indexes[label]] += projected[row]
         counts[indexes[label]] += 1
-    if int(counts.min()) < 2:
+    if int(counts.min()) < (1 if allow_singletons else 2):
         raise ValueError("SOP SigLIP2 class proxy inventory differs")
     classifier = nn.Parameter(F.normalize(sums, dim=1))
     pca_sha = hashlib.sha256(
