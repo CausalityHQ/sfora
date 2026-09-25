@@ -3,6 +3,12 @@ set -euo pipefail
 
 expected_commit="${1:?pass frozen coverage-screen commit}"
 [[ "$expected_commit" =~ ^[0-9a-f]{40}$ ]] || exit 2
+shift
+seeds=("$@")
+(( ${#seeds[@]} )) || seeds=(179023)
+for seed in "${seeds[@]}"; do
+  [[ "$seed" == 179023 || "$seed" == 179024 || "$seed" == 179025 ]] || exit 2
+done
 root=/home/riomus/sfora-siglip2-bf16-coverage-v1
 run_base=/home/riomus/runs
 archive=/home/riomus/sfora-relational-sop-e1/unicom-l14-sop-v1.npz
@@ -31,13 +37,16 @@ check_sha "$cost" 8f6867ff4de768ffd3bfa108cb86d7537b913d6ae5cb4f8cb16a43bc87f741
 exec 9>"$run_base/.sfora-siglip2-gpu.lock"
 flock -n 9 || exit 1
 
-for arm in fixed_float matched_float bank; do
-  output="$run_base/sfora-siglip2-bf16-coverage-179023-${arm}-v1"
-  [[ ! -e "$output" && ! -L "$output" ]] || { echo "output exists: $output" >&2; exit 1; }
+for seed in "${seeds[@]}"; do
+  for arm in fixed_float matched_float bank; do
+    output="$run_base/sfora-siglip2-bf16-coverage-${seed}-${arm}-v1"
+    [[ ! -e "$output" && ! -L "$output" ]] || { echo "output exists: $output" >&2; exit 1; }
+  done
 done
 
-for arm in fixed_float matched_float bank; do
-  output="$run_base/sfora-siglip2-bf16-coverage-179023-${arm}-v1"
+for seed in "${seeds[@]}"; do
+ for arm in fixed_float matched_float bank; do
+  output="$run_base/sfora-siglip2-bf16-coverage-${seed}-${arm}-v1"
   extra=()
   coefficient=58.64
   if [[ "$arm" == fixed_float ]]; then
@@ -49,13 +58,14 @@ for arm in fixed_float matched_float bank; do
       --member-bank-cost-receipt "$cost"
       --expected-member-bank-cost-sha256 8f6867ff4de768ffd3bfa108cb86d7537b913d6ae5cb4f8cb16a43bc87f741a9)
   fi
-  echo "COVERAGE FIRST seed=179023 arm=$arm output=$output" >&2
+  echo "COVERAGE FIRST seed=$seed arm=$arm output=$output" >&2
   "$python" "$root/scripts/train_sop_siglip2_compact.py" \
     --model-snapshot "$model" --candidate-dir "$run_base/sfora-siglip2-train-28e19203" \
     --unicom-l14-archive "$archive" --dataset-root /home/riomus/datasets/Stanford_Online_Products \
     --native-library "$native" --output-dir "$output" --arm float_rank \
-    --seed 179023 --updates 1000 --batch-size 64 --workers 2 \
+    --seed "$seed" --updates 1000 --batch-size 64 --workers 2 \
     --rank-coefficient "$coefficient" --train-vision-dtype bf16 \
     --coverage-first-schedule --evaluate "${extra[@]}"
   test -s "$output/receipt.json"
+ done
 done

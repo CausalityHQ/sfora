@@ -47,11 +47,23 @@ state-of-the-art result. The existing fixed-image live batch-1 serving
 diagnostic remains 15.879 ms p50 bank versus 15.712 ms ArcFace; this screen
 made no serving-speed claim.
 
-**Decision:** run frozen seeds 179024 and 179025 serially with the bank and
-fixed-coefficient float arms under the identical schedule. The 58.64 arm is
-retained as a one-seed gradient-calibration sensitivity result, not a
-three-seed comparator. Advance the training method only after the paired
-three-seed readout; keep source, scorer and selection fixed. The raw
+**Decision:** run frozen seeds 179024 and 179025 serially with all three arms
+under the identical schedule. The 58.64 coefficient remains frozen from the
+seed-179023 canary; it is a calibration sensitivity control, not evidence that
+gradients match at other seeds. Freeze the following replication gate before
+starting: all six new receipts must pass the same source, schedule, exact
+top-10 and finite-update checks; the three-seed bank mean must beat the old
+three-seed bank mean by at least 0.30 Recall@1 points and not lose mAP@R;
+bank must exceed **both** same-schedule float-arm three-seed means by at least
+0.60 Recall@1 points and not lose mAP@R; the bank-minus-each-float Recall@1
+delta must be positive on both new seeds and have a positive paired
+product-bootstrap 95% lower bound on the mean of all three seeds; bank mean
+training wall must remain within 1.03 times the old bank mean and peak CUDA
+allocation within 1.05 times its old peak. Each seed's metrics and costs
+remain visible even if the gate fails. These are selected TRAIN holdout
+replications; passing does not turn them into independent official TEST or
+SOTA evidence. Keep trainer, sampler, scorer and holdout selection fixed.
+The raw
 [bank](evidence/compact_metric/sop-siglip2-substrate-v1/bf16-coverage-179023-bank-v1.json),
 [fixed float](evidence/compact_metric/sop-siglip2-substrate-v1/bf16-coverage-179023-fixed_float-v1.json)
 and [calibrated float](evidence/compact_metric/sop-siglip2-substrate-v1/bf16-coverage-179023-matched_float-v1.json)
