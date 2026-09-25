@@ -88,6 +88,16 @@ eligible query-gallery pair, then count the certified margins. The existing
 inverse-norm bound alone compares scores of quantized codes and does not bound
 the original float descriptor against its quantized code.
 
+For one finite SOP TRAIN product-disjoint holdout, the
+[SigLIP2 ArcFace score-pair receipt](../docs/evidence/compact_metric/sop-siglip2-substrate-v1/float-packed-margin-certificate-v1.json)
+measures the maximum fp32 float-to-packed formula score error against every
+nonself gallery row for each of 5,851 queries. The positive-versus-negative
+margin is greater than twice that radius for 5,111 queries, so the theorem
+certifies 87.35% Recall@1 for these specified finite computed scores; observed
+packed Recall@1 is 90.46%. This does not establish an analytic quantization
+error bound, compiled CUDA arithmetic identity, or generalization to unseen
+queries. The stored per-query radii and margins make each premise auditable.
+
 `card_candidates_le` bounds the distinct merged logical candidates by
 `blocks*k`. Under an explicit per-block cap of `k`, `candidate_count_le`
 bounds emitted logical records even when blocks overlap, and

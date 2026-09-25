@@ -187,6 +187,25 @@ positive-view dispersion in fitted products only. It does not establish that
 dispersion caused the holdout top-1 failures or that a new positive-side
 objective will improve them.
 
+The existing Lean `top1_label_correct_of_positive_margin` theorem can be
+instantiated with a measured per-query score-error radius. An
+[ArcFace finite-panel certificate](evidence/compact_metric/sop-siglip2-substrate-v1/float-packed-margin-certificate-v1.json)
+(SHA-256 `8794dfb3c91948ae8038fb7e450eaec7959242e531e8655bdd9ba1962297a5fa`)
+streamed every nonself pair of the 5,851 heldout queries and 59,551-image
+gallery, comparing fp32 float descriptor dot products to the deployed packed
+score formula. The maximum absolute error per query was between **0.01126
+and 0.01839**, median **0.01377**. For **5,111/5,851 queries (87.35%)**,
+the ideal best-positive minus best-negative margin exceeded twice that
+query's measured maximum score error. The theorem then certifies a positive
+packed top-1 for those finite computed scores; the measured packed result is
+**5,293/5,851 (90.4632%)**. Float and packed Recall@1 match in aggregate,
+with nine queries correct only in each mode. The
+[executed source](evidence/compact_metric/sop-siglip2-substrate-v1/float-packed-margin-certificate-v1.py.txt)
+records every per-query radius and margin. This is conditional on the
+specified fp32 numerical score definitions and cached TRAIN embeddings. It
+does not prove a real-arithmetic quantization bound, the compiled CUDA
+kernel, an unseen-data recall rate, or a latency bound.
+
 The original deployed-code-rank screen failed. Diagnose why the rank loss
 improved mAP@R without a top-1 gain, using a fit-only error census of
 positive-view dispersion, then preregister one positive-side training

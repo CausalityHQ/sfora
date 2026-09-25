@@ -1,0 +1,173 @@
+#!/usr/bin/env python3
+"""Finite-panel conditional packed-score and top-1 margin certificate."""
+
+import hashlib
+import json
+import os
+import resource
+import time
+from pathlib import Path
+
+import numpy as np
+import torch
+
+from sfora.joint_relational_compaction import pack_int8_unit_embeddings
+from sfora.representation_ceiling import deterministic_class_partition
+
+BASE = Path("/home/riomus/runs/sfora-siglip2-arcface-1000-v10-55040a7")
+ARCHIVE = Path("/home/riomus/sfora-relational-sop-e1/unicom-l14-sop-v1.npz")
+EMBEDDINGS = BASE / "train_embeddings.npy"
+TRAINING = BASE / "receipt.json"
+OUTPUT = BASE / "float_packed_margin_certificate.json"
+ARCHIVE_SHA = "1ba27b2d6b9db39067aa6facd0ef8aafc303c4527f6feabed859b0512c7d921a"
+EMBEDDINGS_SHA = "0c078d2252222560c7c899a833a9acba8bdf77fdc462e1f590c80533282c54b5"
+TRAINING_SHA = "3ff998f70900ea24c4c6c33d1cee866ca8650b629b799d58d060b2063624ecca"
+SEED = 179019
+BATCH = 64
+
+
+def sha256(path: Path) -> str:
+    with path.open("rb") as stream:
+        return hashlib.file_digest(stream, "sha256").hexdigest()
+
+
+def quantiles(values: np.ndarray) -> list[float]:
+    return np.quantile(values, [0, 0.01, 0.05, 0.5, 0.95, 0.99, 1]).tolist()
+
+
+def main() -> None:
+    started = time.perf_counter()
+    if (
+        OUTPUT.exists()
+        or sha256(ARCHIVE) != ARCHIVE_SHA
+        or sha256(EMBEDDINGS) != EMBEDDINGS_SHA
+        or sha256(TRAINING) != TRAINING_SHA
+        or not torch.cuda.is_available()
+    ):
+        raise ValueError("float-packed margin certificate authority differs")
+    receipt = json.loads(TRAINING.read_text())
+    with np.load(ARCHIVE, allow_pickle=False) as archive:
+        labels = np.asarray(archive["train_labels"], dtype=np.int64)
+    partition = deterministic_class_partition(tuple(map(int, labels)), fit_fraction=0.9, seed=SEED)
+    held = np.asarray(partition.validation_row_indexes, dtype=np.int64)
+    if labels.shape != (59_551,) or len(held) != 5_851:
+        raise ValueError("float-packed margin certificate inventory differs")
+    raw = np.load(EMBEDDINGS, mmap_mode="r")
+    if raw.shape != (59_551, 128) or raw.dtype != np.float32:
+        raise ValueError("float-packed margin certificate embeddings differ")
+    features = torch.from_numpy(np.asarray(raw).copy())
+    if not bool(torch.isfinite(features).all()) or not bool(
+        ((torch.linalg.vector_norm(features, dim=1) - 1).abs() < 1e-5).all()
+    ):
+        raise ValueError("float-packed margin certificate unit geometry differs")
+    packed = pack_int8_unit_embeddings(features)
+    torch.backends.cuda.matmul.allow_tf32 = False
+    torch.cuda.reset_peak_memory_stats()
+    embeddings = features.cuda()
+    codes = packed.codes.float().cuda()
+    inverse_norms = packed.inverse_norms.float().cuda()
+    gallery_labels = torch.from_numpy(labels).cuda()
+    epsilon = []
+    margin = []
+    float_r1 = []
+    packed_r1 = []
+    certified = []
+    for start in range(0, len(held), BATCH):
+        rows = held[start : start + BATCH]
+        indexes = torch.from_numpy(rows).cuda()
+        ideal = embeddings[indexes] @ embeddings.T
+        observed = (codes[indexes] @ codes.T) * inverse_norms[indexes, None]
+        observed = observed * inverse_norms[None, :]
+        difference = (ideal - observed).abs()
+        local_rows = torch.arange(len(rows), device="cuda")
+        difference[local_rows, indexes] = 0
+        radius = difference.amax(dim=1)
+        positive = gallery_labels[None, :] == gallery_labels[indexes, None]
+        positive[local_rows, indexes] = False
+        negative = ~positive
+        negative[local_rows, indexes] = False
+        best_positive = ideal.masked_fill(~positive, -torch.inf).amax(dim=1)
+        best_negative = ideal.masked_fill(~negative, -torch.inf).amax(dim=1)
+        gap = best_positive - best_negative
+        ideal[local_rows, indexes] = -torch.inf
+        observed[local_rows, indexes] = -torch.inf
+        ideal_top1 = ideal.argmax(dim=1)
+        packed_top1 = observed.argmax(dim=1)
+        float_hits = gallery_labels[ideal_top1] == gallery_labels[indexes]
+        packed_hits = gallery_labels[packed_top1] == gallery_labels[indexes]
+        certificates = gap > 2 * radius
+        if bool((certificates & ~packed_hits).any()):
+            raise ValueError("float-packed margin certificate violated")
+        epsilon.extend(radius.cpu().tolist())
+        margin.extend(gap.cpu().tolist())
+        float_r1.extend(float_hits.cpu().tolist())
+        packed_r1.extend(packed_hits.cpu().tolist())
+        certified.extend(certificates.cpu().tolist())
+        if (start // BATCH) % 20 == 19:
+            print(json.dumps({"queries": start + len(rows)}), flush=True)
+    float_r1 = np.asarray(float_r1, dtype=np.bool_)
+    packed_r1 = np.asarray(packed_r1, dtype=np.bool_)
+    certified = np.asarray(certified, dtype=np.bool_)
+    expected = np.asarray(receipt["quality"]["per_query_r1"], dtype=np.bool_)
+    if not np.array_equal(packed_r1, expected):
+        raise ValueError("float-packed top-1 differs from native receipt")
+    radius = np.asarray(epsilon)
+    gaps = np.asarray(margin)
+    result = {
+        "schema": "sfora-sop-siglip2-float-packed-margin-certificate-v1",
+        "claim_eligible": False,
+        "split": "SOP official TRAIN product-disjoint holdout, full TRAIN gallery except self",
+        "seed": SEED,
+        "queries": len(held),
+        "gallery_rows": len(labels),
+        "source_sha256": sha256(Path(__file__)),
+        "archive_sha256": ARCHIVE_SHA,
+        "embeddings_sha256": EMBEDDINGS_SHA,
+        "training_receipt_sha256": TRAINING_SHA,
+        "score_definition": (
+            "fp32 float dot versus widened-int8 fp32 dot, multiplied query f16 inverse "
+            "norm then gallery f16 inverse norm; CUDA matmul TF32 disabled"
+        ),
+        "certificate_definition": (
+            "for each query, ideal max-positive minus max-negative > 2 times maximum "
+            "absolute float-to-packed score error over every nonself gallery row"
+        ),
+        "float_r1": float(float_r1.mean()),
+        "packed_r1": float(packed_r1.mean()),
+        "certified_fraction": float(certified.mean()),
+        "epsilon_quantiles": quantiles(radius),
+        "ideal_best_positive_minus_negative_quantiles": quantiles(gaps),
+        "per_query_epsilon": radius.tolist(),
+        "per_query_ideal_margin": gaps.tolist(),
+        "per_query_float_r1": float_r1.astype(np.uint8).tolist(),
+        "per_query_packed_r1": packed_r1.astype(np.uint8).tolist(),
+        "per_query_certified": certified.astype(np.uint8).tolist(),
+        "wall_seconds": time.perf_counter() - started,
+        "peak_cuda_allocated_bytes": torch.cuda.max_memory_allocated(),
+        "peak_parent_host_rss_bytes": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024,
+        "hardware": {"gpu": torch.cuda.get_device_name(), "torch": torch.__version__},
+        "scope_limit": (
+            "finite cached TRAIN embeddings and this score formula; "
+            "not an analytic error bound or compiled-kernel proof"
+        ),
+    }
+    with OUTPUT.open("xb") as stream:
+        stream.write((json.dumps(result, sort_keys=True, allow_nan=False) + "\n").encode())
+        stream.flush()
+        os.fsync(stream.fileno())
+    print(
+        json.dumps(
+            {
+                "float_r1": result["float_r1"],
+                "packed_r1": result["packed_r1"],
+                "certified_fraction": result["certified_fraction"],
+                "epsilon_quantiles": result["epsilon_quantiles"],
+                "wall_seconds": result["wall_seconds"],
+            }
+        ),
+        flush=True,
+    )
+
+
+if __name__ == "__main__":
+    main()
