@@ -28,6 +28,16 @@ different top row from float64 direct distance; matrix shape also changed some
 rounded dot products. These are implementation-level ranking risks, not a
 measured SOP dataset error rate.
 
+`MemoryBank.lean` proves an exact real-arithmetic staleness bound for the
+member-bank training lane: the absolute difference between fresh and stale
+dot scores is at most the sum of `|query_coordinate| × |member_drift_coordinate|`.
+`dotScore_stale_error_of_coordinate_bounds` replaces actual drift with explicit
+per-coordinate upper bounds. A separately established uniform radius can then
+serve as `ErrWithin` for the existing margin and Recall@1 theorems. This proof
+does not establish that training keeps drift small, that bank-gradient updates
+improve retrieval, or that the compiled fp32/CUDA score equals exact real
+arithmetic. Those premises require measured or further formal evidence.
+
 `PackedNorm.lean` bounds the error between ideal cosine of the **quantized
 codes** and a score formed with two rounded inverse norms. If each stored
 scale has total relative error at most `u`, ideal code cosine has magnitude at
