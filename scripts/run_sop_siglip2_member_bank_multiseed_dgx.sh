@@ -25,7 +25,8 @@ check_sha "$preflight" 54e806715e76b2caa7e877d55b0fecbdc921718386bce845e04367164
 check_sha "$cost" 8f6867ff4de768ffd3bfa108cb86d7537b913d6ae5cb4f8cb16a43bc87f741a9
 
 run_arm() {
-  local seed="$1" name="$2" output="$run_base/sfora-siglip2-member-bank-multiseed-${seed}-${2}-v1"
+  local seed="$1" name="$2" output
+  output="$run_base/sfora-siglip2-member-bank-multiseed-${seed}-${name}-v1"
   local arm="$name" extra=()
   if [[ "$name" == bank ]]; then
     arm=float_rank
