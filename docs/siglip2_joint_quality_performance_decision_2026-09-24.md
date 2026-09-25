@@ -440,13 +440,21 @@ took 2.960 and 3.017 s respectively. These are serialized run measurements,
 not paired serving latency benchmarks.
 
 This is a **single-seed internal TRAIN-holdout result**, not a published-frontier
-or official-test result. A same-source in-batch float-SmoothAP replay is needed
+or official-test result. The bootstrap interval conditions on the trained pair
+and its lower bound is **below +1 point**; only a positive difference, not a
+gain of at least one point at 95% confidence, is established. Also, 53,700
+of 59,551 images in this evaluation gallery are fit-product negatives. A
+new [holdout-only-gallery sensitivity check](sop_siglip2_unseen_gallery_diagnostic_2026-09-25.md)
+is registered to test whether the gain persists when those seen-product
+distractors are removed. Independent Opus 5.5 and GPT-6 Astra read-only audits
+accepted the result as an internal screen and identified these interpretation
+limits. A same-source in-batch float-SmoothAP replay is needed
 to attribute any further gain specifically to the bank rather than to adding
 a ranking term. At least three independent paired seeds are required for a
 learning-method claim. Cross-batch memory and SmoothAP are prior art, so this
-composition is not described as a novel algorithm. The next gates are an
-independent Opus/Astra audit, same-source in-batch ablation and independent
-seeds, then frozen official SOP TEST and In-Shop protocols, CUB/Cars transfer,
+composition is not described as a novel algorithm. The next gates are the
+holdout-only-gallery sensitivity check, same-source in-batch ablation and
+independent seeds, then frozen official SOP TEST and In-Shop protocols, CUB/Cars transfer,
 and paired full-pipeline latency/p99/scaling measurements. The published
 UNICOM 91.2% SOP and 96.7% In-Shop numbers remain official-protocol reference
 gates; the 91.8305% internal holdout cannot be compared to them as a win.

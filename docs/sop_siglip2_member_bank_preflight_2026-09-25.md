@@ -40,8 +40,9 @@ work and independent numerical tests.
 
 If either branch passes both gates, train one treatment and a same-source
 ArcFace control replay, with identical data tickets, initial weights, head,
-optimizer, 1,000 updates, and checkpoint rule. Compare on the untouched SOP
-TRAIN product-disjoint holdout: 5,851 queries/1,132 products against all 59,551
+optimizer, 1,000 updates, and checkpoint rule. Compare on the SOP TRAIN
+product-disjoint holdout, which was excluded from fitting but used in earlier
+method-selection screens: 5,851 queries/1,132 products against all 59,551
 TRAIN images, excluding self. Advancement requires >=+1.0 percentage point
 paired product-bootstrap Recall@1 with a positive lower confidence bound,
 mAP@R decline <=0.005, actual wall <=1.15x, and matching native top-10
