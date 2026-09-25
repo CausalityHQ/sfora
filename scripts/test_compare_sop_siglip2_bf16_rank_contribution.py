@@ -5,6 +5,7 @@ from compare_sop_siglip2_bf16_rank_contribution import (
     TRAINER_SHA256,
     coefficient_from_ratios,
     validate_diagnostic_pair,
+    validate_gate_receipt_hashes,
 )
 
 
@@ -54,3 +55,25 @@ def test_diagnostic_rejects_changed_first_batch() -> None:
             float_full,
             bank_full,
         )
+
+
+def test_gate_hashes_bind_full_training_receipts(tmp_path) -> None:
+    floating = tmp_path / "float.json"
+    bank = tmp_path / "bank.json"
+    floating.write_text("float")
+    bank.write_text("bank")
+    from hashlib import sha256
+
+    gate = {
+        "arms": {
+            "179023": {
+                "float_rank": {"receipt_sha256": sha256(b"float").hexdigest()},
+                "bank": {"receipt_sha256": sha256(b"bank").hexdigest()},
+            }
+        }
+    }
+    paths = {"float_rank": floating, "bank": bank}
+    validate_gate_receipt_hashes(gate, 179023, paths)
+    bank.write_text("changed")
+    with pytest.raises(ValueError, match="gate receipt"):
+        validate_gate_receipt_hashes(gate, 179023, paths)

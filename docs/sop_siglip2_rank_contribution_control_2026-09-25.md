@@ -53,3 +53,29 @@ controlled float outcomes so an increased coefficient's benefit or failure
 is visible. The internal TRAIN holdout has influenced candidate selection;
 even a passed control needs official protocols and independent validation
 before any external quality or novelty claim.
+
+## Completed fit-only diagnostic
+
+The guarded serial DGX unit `sfora-siglip2-bf16-rank-contribution-v1.service`
+(invocation `8957ef91e6574905b2f96db779103bfd`) completed all six one-update
+arms successfully with no quality evaluation. The source-bound
+[analysis receipt](evidence/compact_metric/sop-siglip2-substrate-v1/bf16-rank-contribution-analysis-v1.json)
+has SHA-256 `54685249fdc2dd199a28d59469f9b107f9e68ac4a01f34ac5abd7d5a68e7a390`;
+its [raw journal](evidence/compact_metric/sop-siglip2-substrate-v1/bf16-rank-contribution-serial-journal-v1.log)
+has SHA-256 `8eaa21ff946993191a4cf946d2a735c20b5e42d061e3a24e2913d32af81a7394`.
+It binds every diagnostic to the exact full-run receipt hashes in the passing
+three-seed gate and confirms that each paired diagnostic has the same first
+augmented batch and initial model/head/classifier as its full run.
+
+| Seed | Float rank/ArcFace feature-gradient ratio | Bank rank/ArcFace ratio | Bank/float | Raw receipts |
+| --- | ---: | ---: | ---: | --- |
+| 179023 | 0.323390 | 0.886516 | 2.741325 | [float](evidence/compact_metric/sop-siglip2-substrate-v1/bf16-rank-contribution-179023-float_rank-v1.json), [bank](evidence/compact_metric/sop-siglip2-substrate-v1/bf16-rank-contribution-179023-bank-v1.json) |
+| 179024 | 0.277604 | 0.561542 | 2.022815 | [float](evidence/compact_metric/sop-siglip2-substrate-v1/bf16-rank-contribution-179024-float_rank-v1.json), [bank](evidence/compact_metric/sop-siglip2-substrate-v1/bf16-rank-contribution-179024-bank-v1.json) |
+| 179025 | 0.075322 | 1.010022 | 13.409401 | [float](evidence/compact_metric/sop-siglip2-substrate-v1/bf16-rank-contribution-179025-float_rank-v1.json), [bank](evidence/compact_metric/sop-siglip2-substrate-v1/bf16-rank-contribution-179025-bank-v1.json) |
+
+The preregistered median rule yields a frozen float-arm coefficient of
+**21.93** (bank remains at 8.0), inside the registered [0.5, 256] range.
+Seed 179025's 13.41 ratio shows substantial batch-to-batch heterogeneity;
+the median coefficient is a coarse first-step match, not a claim of equal
+gradients on every seed or throughout training. The matched full-training
+control and its quality result remain pending.

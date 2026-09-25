@@ -35,6 +35,17 @@ def sha256(path: Path) -> str:
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
+def validate_gate_receipt_hashes(gate: dict, seed: int, full_paths: dict[str, Path]) -> None:
+    """Bind diagnostics to the exact full runs that passed the three-seed gate."""
+
+    expected = gate.get("arms", {}).get(str(seed), {})
+    if any(
+        expected.get(arm, {}).get("receipt_sha256") != sha256(full_paths[arm])
+        for arm in ("float_rank", "bank")
+    ):
+        raise ValueError("SOP BF16 rank diagnostic gate receipt hashes differ")
+
+
 def validate_diagnostic_pair(
     seed: int, floating: dict, bank: dict, full_float: dict, full_bank: dict
 ) -> tuple[float, float]:
@@ -115,6 +126,7 @@ def main() -> None:
         full = {
             arm: json.loads(full_paths[seed][arm].read_text()) for arm in ("float_rank", "bank")
         }
+        validate_gate_receipt_hashes(gate, seed, full_paths[seed])
         floating, bank = validate_diagnostic_pair(
             seed, rows["float_rank"], rows["bank"], full["float_rank"], full["bank"]
         )

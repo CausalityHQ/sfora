@@ -1,0 +1,38 @@
+Started sfora-siglip2-bf16-rank-contribution-v1.service - /bin/bash /home/riomus/sfora-siglip2-bf16-qual-v1/scripts/run_sop_siglip2_bf16_rank_contribution_dgx.sh 70a682d158c914d00505df8d9fd2e53dab5abe3f067a43d472a5fd5d411ad6ce.
+RUN BF16 rank contribution seed=179023 arm=float_rank
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  19%|█▊        | 148/792 [00:00<00:00, 1461.83it/s]Loading weights:  61%|██████    | 481/792 [00:00<00:00, 2524.60it/s]Loading weights:  99%|█████████▉| 787/792 [00:00<00:00, 2759.06it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2603.97it/s]
+{"step": 1, "loss": 6.427533149719238, "arcface": 6.304065704345703, "rank": 0.015433430671691895, "elapsed_seconds": 2.801500333007425}
+{"arm": "float_rank", "training_seconds": 2.834419494960457, "quality_r1": null}
+RUN BF16 rank contribution seed=179023 arm=bank
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  27%|██▋       | 210/792 [00:00<00:00, 2075.86it/s]Loading weights:  71%|███████   | 562/792 [00:00<00:00, 2920.41it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2947.35it/s]
+{"step": 1, "loss": 10.243264198303223, "arcface": 6.304065704345703, "rank": 0.49239981174468994, "elapsed_seconds": 2.902631593402475}
+{"arm": "float_rank_member_bank", "training_seconds": 2.943581758067012, "quality_r1": null}
+RUN BF16 rank contribution seed=179024 arm=float_rank
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:   1%|          | 4/792 [00:00<00:19, 39.77it/s]Loading weights:  63%|██████▎   | 497/792 [00:00<00:00, 2897.69it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2731.54it/s]
+{"step": 1, "loss": 7.604234218597412, "arcface": 6.953700065612793, "rank": 0.08131676912307739, "elapsed_seconds": 2.8172381022013724}
+{"arm": "float_rank", "training_seconds": 2.8496248912997544, "quality_r1": null}
+RUN BF16 rank contribution seed=179024 arm=bank
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  31%|███       | 244/792 [00:00<00:00, 2359.89it/s]Loading weights:  73%|███████▎  | 579/792 [00:00<00:00, 2927.36it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2984.48it/s]
+{"step": 1, "loss": 11.306539535522461, "arcface": 6.953700065612793, "rank": 0.5441049337387085, "elapsed_seconds": 2.900276380125433}
+{"arm": "float_rank_member_bank", "training_seconds": 2.934736561961472, "quality_r1": null}
+RUN BF16 rank contribution seed=179025 arm=float_rank
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  18%|█▊        | 145/792 [00:00<00:00, 1447.00it/s]Loading weights:  61%|██████▏   | 486/792 [00:00<00:00, 2596.32it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2732.57it/s]
+{"step": 1, "loss": 5.759185791015625, "arcface": 5.648962020874023, "rank": 0.013777971267700195, "elapsed_seconds": 2.8819878259673715}
+{"arm": "float_rank", "training_seconds": 2.9240474733524024, "quality_r1": null}
+RUN BF16 rank contribution seed=179025 arm=bank
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:   1%|          | 4/792 [00:00<00:20, 39.38it/s]Loading weights:  61%|██████    | 481/792 [00:00<00:00, 2767.92it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2688.81it/s]
+{"step": 1, "loss": 9.341836929321289, "arcface": 5.648962020874023, "rank": 0.4616093635559082, "elapsed_seconds": 2.917660064995289}
+{"arm": "float_rank_member_bank", "training_seconds": 2.958236859180033, "quality_r1": null}
+sfora-siglip2-bf16-rank-contribution-v1.service: Consumed 6min 14.376s CPU time, 10.3G memory peak, 0B memory swap peak.
