@@ -70,3 +70,12 @@ and [calibrated float](evidence/compact_metric/sop-siglip2-substrate-v1/bf16-cov
 receipts have SHA-256 values `778634601b58584be21e21f56a95ed163f85b19accf7fb8c36d56b655df78f62`,
 `1e91a491aa0f1ab5e170e55430112410fa49cf3ec0f526e2334f496318461476`,
 and `9c7d4fd1b5b920cfc3d6ef3f8e13070a95077da18736cbfab103a70a9099609e`.
+
+An In-Shop CPU-only schedule preflight used official partition SHA-256
+`cfada103c44df866db5e2ee9ecc2301ca691a4d0cdb3c875fe4051b62570894c`
+and sampler SHA-256 `bb97a0e0e97c0452ba48e10caf003b95c19d42ec9ce84204190be4b727d966a3`.
+Its 25,882 TRAIN rows comprise 3,997 products, including 12 singleton
+products. At 1,000 updates of 64 and four images per identity, seeds
+179023/179024/179025 each touched all 25,882 rows. Singleton rows are
+repeated within their batch; the In-Shop loss and augmentation handling must
+be checked before a GPU port. This preflight measures schedule coverage only.

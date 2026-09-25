@@ -95,6 +95,21 @@ def test_coverage_first_schedule_visits_each_identity_before_second_pass() -> No
     assert all(len(Counter(labels[index] for index in batch)) == 10 for batch in batches)
 
 
+def test_coverage_first_keeps_singleton_training_identity() -> None:
+    labels = ("singleton", "a", "a", "a", "a", "b", "b", "b", "b")
+    batches = identity_balanced_batches(
+        labels,
+        batch_size=8,
+        images_per_identity=4,
+        seed=179023,
+        epoch=1,
+        steps=2,
+        coverage_first=True,
+    )
+    assert {index for batch in batches for index in batch} == set(range(len(labels)))
+    assert any(batch.count(0) == 4 for batch in batches)
+
+
 @pytest.mark.parametrize(
     ("labels", "kwargs"),
     (
