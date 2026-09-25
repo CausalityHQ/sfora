@@ -76,13 +76,15 @@ def score_symmetric(
     if int(relevant.min()) < 1:
         raise ValueError("SOP symmetric positive inventory differs")
     width = int(relevant.max())
-    ranks = torch.arange(1, width + 1, device=values.device)
+    rank_width = max(width, min(1_000, len(values) - 1))
+    ranks = torch.arange(1, rank_width + 1, device=values.device)
     gallery_rows = torch.arange(len(values), device=values.device)
     gallery_squared_norms = (
         (matrix * matrix).sum(dim=1) if prefix_euclidean_dimensions is not None else None
     )
     per_query_ap: list[float] = []
     per_query_r1: list[float] = []
+    per_query_recall: dict[int, list[float]] = {10: [], 100: [], 1_000: []}
     for start in range(0, len(values), block_rows):
         stop = min(start + block_rows, len(values))
         scores = matrix[start:stop] @ matrix.T
@@ -92,19 +94,23 @@ def score_symmetric(
             scores = 2 * scores - gallery_squared_norms[None, :]
         local = torch.arange(stop - start, device=values.device)
         scores[local, gallery_rows[start:stop]] = -torch.inf
-        ranked = torch.argsort(scores, dim=1, descending=True, stable=True)[:, :width]
+        ranked = torch.argsort(scores, dim=1, descending=True, stable=True)[:, :rank_width]
         matches = labels[ranked].eq(labels[start:stop, None])
         precision = torch.cumsum(matches, dim=1) / ranks[None, :]
         valid = ranks[None, :] <= relevant[start:stop, None]
         ap = (precision * matches * valid).sum(dim=1) / relevant[start:stop]
         per_query_ap.extend(float(x) for x in ap.cpu().tolist())
         per_query_r1.extend(float(x) for x in matches[:, 0].cpu().tolist())
+        for k, values_at_k in per_query_recall.items():
+            values_at_k.extend(float(x) for x in matches[:, :k].any(dim=1).cpu().tolist())
     return {
         "queries": len(values),
         "max_relevant": width,
         "recall_at_1": sum(per_query_r1) / len(per_query_r1),
+        **{f"recall_at_{k}": sum(rows) / len(rows) for k, rows in per_query_recall.items()},
         "map_at_r": sum(per_query_ap) / len(per_query_ap),
         "per_query_r1": per_query_r1,
+        **{f"per_query_r{k}": rows for k, rows in per_query_recall.items()},
         "per_query_ap": per_query_ap,
     }
 

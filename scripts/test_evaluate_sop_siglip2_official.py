@@ -31,6 +31,68 @@ def test_decision_requires_post_selection_seed_and_pinned_receipt() -> None:
         validate_decision_arm(decision, 179020, "bank", "b" * 64, receipt)
 
 
+def test_bf16_decision_binds_three_seed_float_controls() -> None:
+    decision = {
+        "schema": "sfora-sop-siglip2-bf16-rankmatched-float-v1",
+        "claim_eligible": False,
+        "bank_specific_screen_pass": True,
+        "seeds": [179023, 179024, 179025],
+        "arms": {
+            "179023": {
+                "bank_receipt_sha256": "a" * 64,
+                "matched_float_receipt_sha256": "a" * 64,
+                "original_float_receipt_sha256": "a" * 64,
+            }
+        },
+    }
+    receipt = {
+        "seed": 179023,
+        "arm": "float_rank",
+        "rank_coefficient": 21.93,
+        "train_vision_dtype": "bf16",
+        "updates": 1_000,
+        "source_sha256": "328cdfbd4d35ae8037d1130c5fc889d60fe0ec25cf185c0c9ecc714a475120e4",
+        "quality": {"native_top10_exact": True},
+    }
+    assert (
+        validate_decision_arm(decision, 179023, "matched_float", "a" * 64, receipt) == "float_rank"
+    )
+    old_source = "ad66b1613f0c1c8373d69a689d1556c9b250527a8045a6b85bec523f99466d23"
+    assert (
+        validate_decision_arm(
+            decision,
+            179023,
+            "bank",
+            "a" * 64,
+            {
+                **receipt,
+                "arm": "float_rank_member_bank",
+                "rank_coefficient": 8.0,
+                "source_sha256": old_source,
+            },
+        )
+        == "float_rank_member_bank"
+    )
+    assert (
+        validate_decision_arm(
+            decision,
+            179023,
+            "original_float",
+            "a" * 64,
+            {**receipt, "rank_coefficient": 8.0, "source_sha256": old_source},
+        )
+        == "float_rank"
+    )
+    with pytest.raises(ValueError, match="gate"):
+        validate_decision_arm(decision, 179023, "matched_float", "b" * 64, receipt)
+    with pytest.raises(ValueError, match="gate"):
+        validate_decision_arm(
+            decision, 179023, "matched_float", "a" * 64, {**receipt, "rank_coefficient": 8.0}
+        )
+    with pytest.raises(ValueError, match="gate"):
+        validate_decision_arm(decision, 179020, "matched_float", "a" * 64, receipt)
+
+
 def test_verified_rows_reject_changed_image_bytes(tmp_path: Path) -> None:
     path = tmp_path / "image.png"
     Image.new("RGB", (3, 2), color=(10, 20, 30)).save(path)

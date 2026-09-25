@@ -23,7 +23,7 @@ from torch.utils.data import DataLoader, Dataset
 from train_sop_siglip2_compact import make_collate, paths_from_archive
 
 from sfora.cutile_int8 import CutilePackedInt8Gallery
-from sfora.joint_relational_compaction import pack_int8_unit_embeddings
+from sfora.joint_relational_compaction import PackedInt8Embeddings, pack_int8_unit_embeddings
 from sfora.sop_compact_training import compact_head_features
 from sfora.sop_evaluation import score_symmetric
 
@@ -31,6 +31,24 @@ ARCHIVE_SHA256 = "1ba27b2d6b9db39067aa6facd0ef8aafc303c4527f6feabed859b0512c7d92
 TEST_IMAGE_MANIFEST_SHA256 = "28a3ec0561cd83ee426f3d1c301c70799316af91c1e9083a5a1ffdf3414327c1"
 ARMS = {"arcface": "arcface", "float_rank": "float_rank", "bank": "float_rank_member_bank"}
 REPLICATION_SEEDS = (179020, 179021, 179022)
+BF16_SEEDS = (179023, 179024, 179025)
+BF16_ARMS = {
+    "bank": (
+        "float_rank_member_bank",
+        8.0,
+        "ad66b1613f0c1c8373d69a689d1556c9b250527a8045a6b85bec523f99466d23",
+    ),
+    "matched_float": (
+        "float_rank",
+        21.93,
+        "328cdfbd4d35ae8037d1130c5fc889d60fe0ec25cf185c0c9ecc714a475120e4",
+    ),
+    "original_float": (
+        "float_rank",
+        8.0,
+        "ad66b1613f0c1c8373d69a689d1556c9b250527a8045a6b85bec523f99466d23",
+    ),
+}
 
 
 def sha256(path: Path) -> str:
@@ -40,20 +58,45 @@ def sha256(path: Path) -> str:
 
 def validate_decision_arm(
     decision: dict, seed: int, arm: str, receipt_sha256: str, receipt: dict
-) -> None:
+) -> str:
+    schema = decision.get("schema")
+    if schema == "sfora-sop-siglip2-member-bank-multiseed-v1":
+        expected_arm = ARMS.get(arm)
+        valid = (
+            decision.get("continuation_gate_pass") is True
+            and tuple(decision.get("replication_seeds", ())) == REPLICATION_SEEDS
+            and seed in REPLICATION_SEEDS
+            and decision.get("arms", {}).get(str(seed), {}).get(arm, {}).get("receipt_sha256")
+            == receipt_sha256
+        )
+    elif schema == "sfora-sop-siglip2-bf16-rankmatched-float-v1":
+        expected = BF16_ARMS.get(arm)
+        expected_arm = expected[0] if expected else None
+        valid = (
+            expected is not None
+            and decision.get("claim_eligible") is False
+            and decision.get("bank_specific_screen_pass") is True
+            and tuple(decision.get("seeds", ())) == BF16_SEEDS
+            and seed in BF16_SEEDS
+            and decision.get("arms", {}).get(str(seed), {}).get(f"{arm}_receipt_sha256")
+            == receipt_sha256
+            and receipt.get("rank_coefficient") == expected[1]
+            and receipt.get("source_sha256") == expected[2]
+            and receipt.get("train_vision_dtype") == "bf16"
+            and receipt.get("updates") == 1_000
+        )
+    else:
+        expected_arm = None
+        valid = False
     if (
-        decision.get("schema") != "sfora-sop-siglip2-member-bank-multiseed-v1"
-        or decision.get("continuation_gate_pass") is not True
-        or tuple(decision.get("replication_seeds", ())) != REPLICATION_SEEDS
-        or seed not in REPLICATION_SEEDS
-        or arm not in ARMS
-        or decision.get("arms", {}).get(str(seed), {}).get(arm, {}).get("receipt_sha256")
-        != receipt_sha256
+        not valid
+        or expected_arm is None
         or receipt.get("seed") != seed
-        or receipt.get("arm") != ARMS[arm]
+        or receipt.get("arm") != expected_arm
         or receipt.get("quality", {}).get("native_top10_exact") is not True
     ):
         raise ValueError("SOP official evaluation gate or arm authority differs")
+    return expected_arm
 
 
 class VerifiedRows(Dataset):  # type: ignore[misc]
@@ -109,15 +152,16 @@ def export_verified(
 
 
 @torch.inference_mode()  # type: ignore[untyped-decorator]
-def verify_native(values: torch.Tensor, labels: np.ndarray, native_library: Path) -> dict[str, Any]:
-    packed = pack_int8_unit_embeddings(values)
+def verify_native(
+    packed: PackedInt8Embeddings, labels: np.ndarray, native_library: Path
+) -> dict[str, Any]:
     code = packed.codes.float().cuda()
     inverse = packed.inverse_norms.float().cuda()
     native_r1 = []
     max_score_delta = 0.0
     with CutilePackedInt8Gallery.open_packed(native_library, packed) as gallery:
-        for start in range(0, len(values), 32):
-            stop = min(start + 32, len(values))
+        for start in range(0, len(packed.codes), 32):
+            stop = min(start + 32, len(packed.codes))
             block = np.arange(start, stop, dtype=np.int64)
             query = type(packed)(
                 packed.codes[start:stop].contiguous(),
@@ -157,9 +201,12 @@ def main() -> None:
     parser.add_argument("--decision", type=Path, required=True)
     parser.add_argument("--expected-decision-sha256", required=True)
     parser.add_argument("--seed", type=int, required=True)
-    parser.add_argument("--arm", choices=tuple(ARMS), required=True)
+    parser.add_argument(
+        "--arm", choices=tuple(ARMS) + ("matched_float", "original_float"), required=True
+    )
     parser.add_argument("--training-receipt", type=Path, required=True)
     parser.add_argument("--training-checkpoint", type=Path, required=True)
+    parser.add_argument("--training-source-root", type=Path)
     parser.add_argument("--source-archive", type=Path, required=True)
     parser.add_argument("--test-image-manifest", type=Path, required=True)
     parser.add_argument("--dataset-root", type=Path, required=True)
@@ -179,10 +226,20 @@ def main() -> None:
     decision = json.loads(args.decision.read_text())
     receipt_sha = sha256(args.training_receipt)
     receipt = json.loads(args.training_receipt.read_text())
-    validate_decision_arm(decision, args.seed, args.arm, receipt_sha, receipt)
+    expected_arm = validate_decision_arm(decision, args.seed, args.arm, receipt_sha, receipt)
     root = Path(__file__).resolve().parents[1]
+    if (
+        decision["schema"] == "sfora-sop-siglip2-bf16-rankmatched-float-v1"
+        and args.training_source_root is None
+    ):
+        raise ValueError("SOP BF16 training source root required")
+    training_root = args.training_source_root or root
     evaluator_files = (
         "scripts/evaluate_sop_siglip2_official.py",
+        "scripts/train_sop_siglip2_compact.py",
+        "src/sfora/cutile_int8.py",
+        "src/sfora/joint_relational_compaction.py",
+        "src/sfora/sop_compact_training.py",
         "src/sfora/sop_evaluation.py",
     )
     evaluator_manifest = {relative: sha256(root / relative) for relative in evaluator_files}
@@ -194,7 +251,7 @@ def main() -> None:
         or sha256(args.training_checkpoint) != receipt.get("checkpoint_sha256")
         or sha256(args.native_library) != receipt.get("native_library_sha256")
         or any(
-            sha256(root / relative) != digest
+            sha256(training_root / relative) != digest
             for relative, digest in receipt["source_files_sha256"].items()
         )
         or any(
@@ -257,7 +314,7 @@ def main() -> None:
     checkpoint = torch.load(args.training_checkpoint, map_location="cpu", weights_only=True)
     if (
         checkpoint.get("seed") != args.seed
-        or checkpoint.get("arm") != ARMS[args.arm]
+        or checkpoint.get("arm") != expected_arm
         or checkpoint.get("updates") != 1_000
     ):
         raise ValueError("SOP official training checkpoint identity differs")
@@ -273,13 +330,20 @@ def main() -> None:
     score_started = time.perf_counter()
     label_tensor = torch.from_numpy(labels.copy()).cuda()
     float_quality = score_symmetric(values.cuda(), label_tensor)
+    float_score_seconds = time.perf_counter() - score_started
+    packing_started = time.perf_counter()
     packed = pack_int8_unit_embeddings(values)
+    packing_seconds = time.perf_counter() - packing_started
+    packed_score_started = time.perf_counter()
     packed_quality = score_symmetric(
         packed.codes.float().cuda(),
         label_tensor,
         inverse_norms=packed.inverse_norms.cuda(),
     )
-    native = verify_native(values, labels, args.native_library)
+    packed_score_seconds = time.perf_counter() - packed_score_started
+    native_started = time.perf_counter()
+    native = verify_native(packed, labels, args.native_library)
+    native_verify_seconds = time.perf_counter() - native_started
     if native["native_per_query_r1"] != packed_quality["per_query_r1"]:
         raise ValueError("SOP official native recall differs from packed oracle")
     if {relative: sha256(root / relative) for relative in evaluator_files} != evaluator_manifest:
@@ -298,6 +362,7 @@ def main() -> None:
         "evaluator_source_files_sha256": evaluator_manifest,
         "decision_sha256": sha256(args.decision),
         "training_receipt_sha256": receipt_sha,
+        "training_source_root": str(training_root.resolve()),
         "training_checkpoint_sha256": sha256(args.training_checkpoint),
         "source_archive_sha256": ARCHIVE_SHA256,
         "test_image_manifest_sha256": TEST_IMAGE_MANIFEST_SHA256,
@@ -311,6 +376,10 @@ def main() -> None:
         "native_top10_max_score_abs_delta": native["native_top10_max_score_abs_delta"],
         "native_per_query_r1_equal": True,
         "export_seconds": export_seconds,
+        "float_score_seconds": float_score_seconds,
+        "packing_seconds": packing_seconds,
+        "packed_score_seconds": packed_score_seconds,
+        "native_verify_seconds": native_verify_seconds,
         "score_seconds": score_seconds,
         "total_wall_seconds": time.perf_counter() - started,
         "peak_cuda_allocated_bytes": torch.cuda.max_memory_allocated(),

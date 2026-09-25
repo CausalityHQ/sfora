@@ -174,3 +174,18 @@ system. The next decision is to port the frozen full-backbone bank and both
 float controls to official SOP TEST, with every arm's cache, training, export,
 packing, and search costs reported separately. No new training is selected
 from this used holdout.
+
+The official evaluation is frozen as a report-only nine-arm panel: seeds
+`179023`/`179024`/`179025`, each with the existing bank coefficient 8,
+original in-batch float coefficient 8, and first-step-gradient-matched float
+coefficient 21.93 checkpoint. The evaluator must validate each source-root,
+receipt, checkpoint, ordered TEST image digest, native library, exact packed
+top-10, and self-excluded symmetric score before writing its receipt. It runs
+all arms serially from the same source commit with no quality-based stop,
+checkpoint choice, or retraining. Report packed Recall@1, R@10/R@100/R@1000
+when present, mAP@R, per-seed and paired uncertainty, source-cache plus
+training wall, export/pack/score time, gallery bytes, and peak memory. A
+failure of source or score authority stops the panel for repair; a low quality
+result is recorded as observed. This official TEST read is exploratory because
+earlier Sfora work has already used this protocol, and it does not by itself
+establish a current SOTA claim.

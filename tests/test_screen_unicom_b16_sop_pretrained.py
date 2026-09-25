@@ -51,3 +51,14 @@ def test_map_at_r_counts_only_first_r_for_multiple_positives() -> None:
     assert result["max_relevant"] == 2
     assert result["per_query_r1"][0] == 1.0
     assert result["per_query_ap"][0] == 0.5
+
+
+def test_standard_recall_k_can_recover_after_rank_ten() -> None:
+    values = torch.zeros((24, 2), dtype=torch.float32)
+    values[:, 0] = 1.0
+    values[1] = torch.tensor([0.0, 1.0])
+    labels = torch.arange(12, dtype=torch.int64).repeat_interleave(2)
+    result = score_symmetric(values, labels, block_rows=3)
+    assert result["per_query_r1"][0] == 0.0
+    assert result["per_query_r10"][0] == 0.0
+    assert result["per_query_r100"][0] == result["per_query_r1000"][0] == 1.0
