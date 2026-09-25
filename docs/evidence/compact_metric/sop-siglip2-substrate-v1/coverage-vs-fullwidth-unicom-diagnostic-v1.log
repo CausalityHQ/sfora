@@ -1,0 +1,31 @@
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  19%|█▉        | 154/792 [00:00<00:00, 1534.57it/s]Loading weights:  61%|██████    | 481/792 [00:00<00:00, 2511.74it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2620.11it/s]
+/home/riomus/group-learning/.venv/lib/python3.13/site-packages/timm/models/layers/__init__.py:48: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+{"candidate_live_cached_top10_equal_rows": 26, "candidate_live_cached_top1_equal_rows": 32, "candidate_cached_native_scalar_equal": true, "candidate_padded64_cached_top10_equal_rows": 32, "candidate_live_first_top10": [496, 498, 500, 497, 499, 0, 580, 68, 69, 579], "candidate_cached_first_top10": [496, 498, 500, 497, 499, 0, 580, 68, 69, 579]}
+/home/riomus/unicom-d71992e/unicom/unicom/vision_transformer.py:131: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(True):
+/home/riomus/unicom-d71992e/unicom/unicom/vision_transformer.py:87: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(True):
+{"batch": 1, "completed_blocks": 1}
+{"batch": 1, "completed_blocks": 2}
+{"batch": 1, "completed_blocks": 3}
+{"batch": 1, "completed_blocks": 4}
+{"batch": 1, "completed_blocks": 5}
+{"batch": 1, "completed_blocks": 6}
+{"batch": 1, "completed_blocks": 7}
+{"batch": 1, "completed_blocks": 8}
+{"batch": 1, "completed_blocks": 9}
+{"batch": 1, "completed_blocks": 10}
+{"batch": 32, "completed_blocks": 1}
+{"batch": 32, "completed_blocks": 2}
+{"batch": 32, "completed_blocks": 3}
+{"batch": 32, "completed_blocks": 4}
+{"batch": 32, "completed_blocks": 5}
+{"batch": 32, "completed_blocks": 6}
+{"batch": 32, "completed_blocks": 7}
+{"batch": 32, "completed_blocks": 8}
+{"batch": 32, "completed_blocks": 9}
+{"batch": 32, "completed_blocks": 10}
+{"1": {"candidate": {"mean_ms": 23.70966604, "p50_ms": 23.327515, "p95_ms": 26.2393764}, "reference": {"mean_ms": 36.690554219999996, "p50_ms": 36.305082999999996, "p95_ms": 39.05503735}}, "32": {"candidate": {"mean_ms": 315.57390167, "p50_ms": 314.68302900000003, "p95_ms": 325.87457775}, "reference": {"mean_ms": 557.36780647, "p50_ms": 558.4967369999999, "p95_ms": 568.9630451}}}

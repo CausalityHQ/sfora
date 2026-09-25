@@ -1,0 +1,12 @@
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  16%|█▌        | 126/792 [00:00<00:00, 1259.66it/s]Loading weights:  57%|█████▋    | 451/792 [00:00<00:00, 2411.82it/s]Loading weights:  97%|█████████▋| 768/792 [00:00<00:00, 2736.10it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2540.21it/s]
+/home/riomus/group-learning/.venv/lib/python3.13/site-packages/timm/models/layers/__init__.py:48: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+Traceback (most recent call last):
+  File "/home/riomus/runs/benchmark_sop_coverage_vs_fullwidth_unicom_83dfdf.py", line 326, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/benchmark_sop_coverage_vs_fullwidth_unicom_83dfdf.py", line 229, in main
+    raise ValueError("selected live query differs from scored packed path")
+ValueError: selected live query differs from scored packed path

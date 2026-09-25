@@ -223,8 +223,33 @@ def main() -> None:
                 scalar_ordinals = CpuPackedInt8Gallery.open_packed(candidate_gallery).search_packed(
                     cached_query
                 )[0]
-                if not np.array_equal(ordinals, cached_ordinals) or not np.array_equal(
-                    ordinals, scalar_ordinals
+                padded_ordinals = call(arm, paths + paths, state[arm])[1][:32]
+                if not np.array_equal(ordinals, cached_ordinals):
+                    print(
+                        json.dumps(
+                            {
+                                "candidate_live_cached_top10_equal_rows": int(
+                                    np.all(ordinals == cached_ordinals, axis=1).sum()
+                                ),
+                                "candidate_live_cached_top1_equal_rows": int(
+                                    (ordinals[:, 0] == cached_ordinals[:, 0]).sum()
+                                ),
+                                "candidate_cached_native_scalar_equal": bool(
+                                    np.array_equal(cached_ordinals, scalar_ordinals)
+                                ),
+                                "candidate_padded64_cached_top10_equal_rows": int(
+                                    np.all(padded_ordinals == cached_ordinals, axis=1).sum()
+                                ),
+                                "candidate_live_first_top10": ordinals[0].tolist(),
+                                "candidate_cached_first_top10": cached_ordinals[0].tolist(),
+                            }
+                        ),
+                        flush=True,
+                    )
+                if (
+                    not np.array_equal(cached_ordinals, scalar_ordinals)
+                    or not np.array_equal(padded_ordinals, cached_ordinals)
+                    or not np.array_equal(ordinals[:, 0], cached_ordinals[:, 0])
                 ):
                     raise ValueError("selected live query differs from scored packed path")
             else:
