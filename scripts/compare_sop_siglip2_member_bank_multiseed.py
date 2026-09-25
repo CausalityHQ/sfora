@@ -21,8 +21,14 @@ from compare_sop_siglip2_member_bank_arms import (
 
 from sfora.representation_ceiling import deterministic_class_partition
 
-SEEDS = (179019, 179020, 179021)
+SEEDS = (179019, 179020, 179021, 179022)
+REPLICATION_SEEDS = SEEDS[1:]
 ARMS = ("arcface", "float_rank", "bank")
+EXPLORATORY_RECEIPT_SHA256 = {
+    "arcface": "d88167bfcbf8152ee912c8382061afaf248e45fe52ae24cf5f1a5da739477fc3",
+    "float_rank": "99d6492b687fe35be850ccf16b22fe778b0fc82c620f5c3ea0277d8b42139e97",
+    "bank": "2e73ee0e6252c91d54c815d52581abd0d303de09a56776a2fcd5b5e7908c981c",
+}
 COMMON_WITHIN_SEED = (
     "schema",
     "split",
@@ -106,15 +112,15 @@ def continuation_gate(comparisons: dict) -> bool:
     for name in ("float_rank", "arcface"):
         row = comparisons[name]
         if (
-            len(row["seedwise_r1"]) != 3
-            or len(row["seedwise_wall_ratio"]) != 3
-            or not all(value > 0 for value in row["seedwise_r1"])
-            or row["pooled_r1"]["lower_95"] <= 0
-            or row["pooled_map_at_r"]["point"] < 0
-            or not all(value <= 1.15 for value in row["seedwise_wall_ratio"])
+            len(row["replication_seedwise_r1"]) != 3
+            or len(row["replication_seedwise_wall_ratio"]) != 3
+            or not all(value > 0 for value in row["replication_seedwise_r1"])
+            or row["replication_pooled_r1"]["lower_95"] <= 0
+            or row["replication_pooled_map_at_r"]["point"] < 0
+            or not all(value <= 1.15 for value in row["replication_seedwise_wall_ratio"])
         ):
             return False
-    return comparisons["float_rank"]["pooled_r1"]["point"] >= 0.005
+    return comparisons["float_rank"]["replication_pooled_r1"]["point"] >= 0.005
 
 
 def receipt_paths(run_base: Path) -> dict[int, dict[str, Path]]:
@@ -150,6 +156,8 @@ def main() -> None:
     ):
         raise ValueError("SOP multi-seed source or output differs")
     paths = receipt_paths(args.run_base)
+    if any(sha256(paths[SEEDS[0]][arm]) != EXPLORATORY_RECEIPT_SHA256[arm] for arm in ARMS):
+        raise ValueError("SOP exploratory receipt pin differs")
     receipts = {
         seed: {arm: json.loads(path.read_text()) for arm, path in paths[seed].items()}
         for seed in SEEDS
@@ -200,7 +208,8 @@ def main() -> None:
                 "receipt_sha256": sha256(paths[seed][arm]),
                 "recall_at_1": quality["recall_at_1"],
                 "map_at_r": quality["map_at_r"],
-                "training_wall_seconds": wall,
+                "training_wall_accounted_seconds": wall,
+                "member_bank_init_seconds": row["member_bank_init_seconds"],
                 "training_images_per_second": 64_000 / wall,
                 "training_peak_cuda_allocated_bytes": row["training_peak_cuda_allocated_bytes"],
                 "export_seconds": row["export_seconds"],
@@ -218,36 +227,44 @@ def main() -> None:
             ]
             by_metric[metric] = {
                 "seedwise": [product_bootstrap(delta, labels[held]) for delta in deltas],
-                "pooled": product_bootstrap(np.mean(deltas, axis=0), labels[held]),
+                "replication_pooled": product_bootstrap(np.mean(deltas[1:], axis=0), labels[held]),
             }
+        wall_ratios = [
+            result_rows[str(seed)]["bank"]["training_wall_accounted_seconds"]
+            / result_rows[str(seed)][control]["training_wall_accounted_seconds"]
+            for seed in SEEDS
+        ]
         comparisons[control] = {
             "seedwise_r1": [row["point"] for row in by_metric["r1"]["seedwise"]],
-            "seedwise_wall_ratio": [
-                result_rows[str(seed)]["bank"]["training_wall_seconds"]
-                / result_rows[str(seed)][control]["training_wall_seconds"]
-                for seed in SEEDS
-            ],
+            "seedwise_wall_ratio": wall_ratios,
+            "replication_seedwise_r1": [row["point"] for row in by_metric["r1"]["seedwise"][1:]],
+            "replication_seedwise_wall_ratio": wall_ratios[1:],
             "seedwise_product_bootstrap": {
                 key: by_metric[key]["seedwise"] for key in ("r1", "map_at_r")
             },
-            "pooled_r1": by_metric["r1"]["pooled"],
-            "pooled_map_at_r": by_metric["map_at_r"]["pooled"],
+            "replication_pooled_r1": by_metric["r1"]["replication_pooled"],
+            "replication_pooled_map_at_r": by_metric["map_at_r"]["replication_pooled"],
         }
     result = {
         "schema": "sfora-sop-siglip2-member-bank-multiseed-v1",
         "claim_eligible": False,
         "split": "SOP official TRAIN product-disjoint holdout; full TRAIN gallery",
         "seeds": SEEDS,
+        "replication_seeds": REPLICATION_SEEDS,
+        "exploratory_seed": SEEDS[0],
         "bootstrap_draws": DRAWS,
         "holdout_queries": len(held),
         "holdout_products": 1_132,
         "source_sha256": sha256(Path(__file__)),
+        "bootstrap_source_sha256": sha256(
+            Path(__file__).with_name("compare_sop_siglip2_member_bank_arms.py")
+        ),
         "source_archive_sha256": ARCHIVE_SHA256,
         "arms": result_rows,
         "comparisons": comparisons,
         "continuation_gate_pass": continuation_gate(comparisons),
         "interval_scope": (
-            "product bootstrap conditional on three trained seeds; "
+            "product bootstrap conditional on three post-selection trained seeds; "
             "not seed-population confidence"
         ),
     }

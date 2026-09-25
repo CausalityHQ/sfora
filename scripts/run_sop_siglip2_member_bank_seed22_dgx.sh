@@ -66,9 +66,6 @@ run_arm() {
   test -s "$output/receipt.json"
 }
 
-run_arm 179020 float_rank
-run_arm 179020 bank
-run_arm 179020 arcface
-run_arm 179021 bank
-run_arm 179021 arcface
-run_arm 179021 float_rank
+run_arm 179022 arcface
+run_arm 179022 float_rank
+run_arm 179022 bank

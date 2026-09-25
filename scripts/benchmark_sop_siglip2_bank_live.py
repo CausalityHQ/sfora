@@ -193,7 +193,7 @@ def main() -> None:
         "query_image_sha256": image_hashes,
         "query_labels": labels,
         "timing": result,
-        "peak_cuda_allocated_bytes_after_loading": peak,
+        "joint_peak_cuda_allocated_bytes_after_loading": peak,
         "peak_parent_host_rss_bytes": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024,
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)

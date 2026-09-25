@@ -8,6 +8,13 @@ export PATH="$(dirname "$CUTILE_TILEIRAS_PATH"):$PATH"
 export PYTHONPATH="$root/src:$root/scripts"
 export HF_HUB_OFFLINE=1
 
+if systemctl --user is-active --quiet sfora-siglip2-member-bank-multiseed-v2.service \
+  || systemctl --user is-active --quiet sfora-siglip2-member-bank-seed22-v1.service \
+  || [[ -n "$(nvidia-smi --query-compute-apps=pid --format=csv,noheader)" ]]; then
+  echo "paired live timing requires an idle DGX GPU" >&2
+  exit 1
+fi
+
 exec /home/riomus/group-learning/.venv/bin/python \
   "$root/scripts/benchmark_sop_siglip2_bank_live.py" \
   --source-archive /home/riomus/sfora-relational-sop-e1/unicom-l14-sop-v1.npz \
