@@ -97,7 +97,10 @@ advancement rule were frozen in the
 The [v7 zero-update full-gallery receipt](evidence/compact_metric/sop-siglip2-substrate-v1/train-step0-v7.json)
 (SHA-256 `f0acb4f798bcdf868f9cb08f662b5195afc784f80628c8a44f10614e1f9c8a20`)
 verified the v7 source before the initial 1,000-update attempt. The revised
-v10 source needs its own zero-update replay. On all 5,851
+v10 source later reproduced the same quality in its
+[exact-source zero-update receipt](evidence/compact_metric/sop-siglip2-substrate-v1/train-step0-v10.json),
+with matching initial head/proxy/PCA hashes against the v10 control.
+On all 5,851
 SOP TRAIN holdout queries, it measured **78.4139% Recall@1** and
 **0.508128 mAP@R**. The frozen batched-export reference was 78.3456% and
 0.508168, respectively, so the differences are +0.0684 percentage points
@@ -117,8 +120,13 @@ Reducing only the GradScaler initial scale from 1024 to 128 completed 150
 finite control updates in the
 [replay receipt](evidence/compact_metric/sop-siglip2-substrate-v1/train-arcface-scale128-150-v9.json)
 (180.19 seconds training wall time, 21.09 GB peak CUDA allocation). This
-motivated the documented recipe revision; a full 1,000-update control is
-still required before evaluating its quality or proceeding to treatment arms.
+motivated the documented recipe revision. The revised v10 ArcFace control
+subsequently completed all 1,000 updates in 1,152.795 seconds training wall
+time on the GB10, with 21.09 GB peak CUDA allocation. Its
+[full receipt](evidence/compact_metric/sop-siglip2-substrate-v1/train-arcface-1000-v10.json)
+measured **90.4632% Recall@1** and **0.718801 mAP@R** on the SOP TRAIN
+holdout, with exact native top-10 ordinals and scores for all 5,851 queries.
+This is a local control result, not an official SOP TEST or SOTA claim.
 
 ## Decision
 
