@@ -63,17 +63,64 @@ binds the original and modified trainer hashes to the
 [exact patch](evidence/compact_metric/sop-siglip2-substrate-v1/arcface-gradient-instrumentation.diff).
 This localizes the failure to encoder backward arithmetic but does not yet
 prove which operation first overflowed or whether a lower fp16 loss scale
-would suffice. A matched precision-stable recipe must be chosen and
+would suffice. An earlier [seed-179019 gradient replay](evidence/compact_metric/sop-siglip2-substrate-v1/train-arcface-gradient-diagnostic-v8.log)
+found a similar layer-0 failure at step 131 with scale 1024. That was a
+different seed and scale, so the two failure steps do not isolate a scale
+effect. They do show that a short precision qualification on one seed was
+insufficient. A matched precision-stable recipe must be chosen and
 preregistered before any new three-seed quality claim.
 
-The live-head source-bank alternative remains unmeasured for quality. Its
-guarded, synthetic-geometry **isolated ranking-loss** screen on the same
-NVIDIA GB10 measured detached-bank median/p95 **13.693/14.316 ms** versus
-live-head **19.560/19.941 ms**, 40 loss-plus-backward calls per arm, exact
-forward-loss parity, and maximum incremental GPU allocation **467.4 MB**
-versus **522.8 MB**. The [cost receipt](evidence/compact_metric/sop-siglip2-substrate-v1/live-head-isolated-cost-v1.json)
-has SHA-256 `1e9d3502050e081edc58d582b42ddd893760165203dce67b53e8a8da7266d56a`.
-Its predeclared trainer cost gate passes, but the screen excludes image
-encoding, optimizer, export, and actual retrieval. This candidate still
-requires a new matched quality and end-to-end performance evaluation before
-promotion.
+The live-head source-bank alternative remains unmeasured for quality. A first
+[isolated cost screen](evidence/compact_metric/sop-siglip2-substrate-v1/live-head-isolated-cost-v1.json)
+omitted the trainer's TF32 setting and persistent bank bytes; it is superseded
+for decision purposes. The corrected, guarded, synthetic-geometry
+**isolated ranking-loss** screen on the same NVIDIA GB10 set
+`matmul.allow_tf32=False` and measured detached-bank median/p95
+**13.616/14.074 ms** versus live-head **19.257/19.950 ms**, 40
+loss-plus-backward calls per arm with exact forward-loss parity. Maximum
+incremental GPU allocation was **467.4 MB** versus **522.8 MB**. The persistent
+bank payload itself grows from **27,494,400 bytes** to **219,955,200 bytes**.
+The corrected [cost receipt](evidence/compact_metric/sop-siglip2-substrate-v1/live-head-isolated-cost-v2.json)
+has SHA-256 `50416fd7e7b0515ae4ced059fcbc17966acd1e1226b117ff1106ae665431a033`.
+Its revised trainer cost gate passes, but the screen excludes image encoding,
+optimizer, export, and actual retrieval. This candidate still requires a new
+matched quality and end-to-end performance evaluation before promotion.
+
+## Same-state precision fork, diagnostic only
+
+A separate instrumentation-only replay captured the model, head, classifier,
+exact processed fit batch, labels, and RNG state immediately before the
+seed-179020 ArcFace step 543 forward pass. The capture is retained on the DGX
+at `/home/riomus/runs/sfora-siglip2-arcface-step543-capture-179020-v1/step543_state.pt`
+(SHA-256 `2a639395856bd85bff55f2beaa4c87e77a70667febc1baecd246e85ca66e8c3e`).
+The [capture journal](evidence/compact_metric/sop-siglip2-substrate-v1/arcface-step543-capture-journal-v1.log)
+(SHA-256 `a68da822be9b158ea6677c384afc9a6321a1f0a2efb791b22183ab3fdda7c0b9`)
+records the same capture hash and the original non-finite clipping failure.
+This artifact has no optimizer state and is valid for a backward-only precision
+comparison, not a training continuation.
+
+The [backward fork receipt](evidence/compact_metric/sop-siglip2-substrate-v1/arcface-step543-backward-fork-v1.json)
+(SHA-256 `21ac49997e93b16aa2b3b44fbd677525c97bc90856196bfae5e2daa77addbad3`)
+and [raw journal](evidence/compact_metric/sop-siglip2-substrate-v1/arcface-step543-backward-fork-journal-v1.log)
+(SHA-256 `0e236557e70622798ff8f7712f2ce61c7aff742f4ed40811ca2bd91e7e9fca11`)
+compare the *same* parameters and fit batch without optimizer updates on
+NVIDIA GB10, PyTorch 2.12.1+cu130, with TF32 disabled:
+
+| Vision forward precision | Loss scale | Loss | Non-finite parameter gradients | Unclipped parameter-gradient L2 norm |
+| --- | ---: | ---: | ---: | ---: |
+| fp16 | 128 | 4.480570 | 14, exactly the original failing names | non-finite |
+| fp16 | 32 | 4.480570 | 0 | 17,927.47 |
+| fp16 | 8 | 4.480570 | 0 | 17,915.21 |
+| fp16 | 1 | 4.480570 | 0 | 17,926.64 |
+| fp32 | 1 | 4.475663 | 0 | 114.51 |
+| bf16 | 1 | 4.486574 | 0 | 121.84 |
+
+The fp16 scale-128 fork reproduced the original loss and all 14 bad gradient
+names. Reducing the loss scale made the gradients finite but left their norm
+about 156 times the fp32 norm; finiteness alone is therefore an inadequate
+qualification. BF16 is the next training-recipe candidate because this
+one-state comparison is much closer to fp32. This does not establish where
+the first fp16 arithmetic error occurs, guarantee BF16 training stability, or
+rescue the frozen three-seed gate. Next, qualify a BF16 ArcFace training run
+with a distinct source and receipt, then freeze and execute a new matched
+multi-seed protocol before opening official TEST.

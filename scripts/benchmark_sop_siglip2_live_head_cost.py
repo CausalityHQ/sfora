@@ -52,6 +52,7 @@ def benchmark(args: argparse.Namespace) -> dict[str, Any]:
     device = torch.device(args.device)
     if device.type == "cuda" and not torch.cuda.is_available():
         raise ValueError("live-head cost requires CUDA")
+    torch.backends.cuda.matmul.allow_tf32 = False
     torch.manual_seed(179023)
     source = F.normalize(torch.randn(args.rows, 1024, device=device), dim=1)
     head = nn.Linear(1024, 128, device=device)
@@ -126,6 +127,9 @@ def benchmark(args: argparse.Namespace) -> dict[str, Any]:
         "hardware": torch.cuda.get_device_name(device) if device.type == "cuda" else "CPU smoke",
         "device": args.device,
         "torch_version": torch.__version__,
+        "cuda_version": torch.version.cuda,
+        "matmul_allow_tf32": torch.backends.cuda.matmul.allow_tf32,
+        "cudnn_allow_tf32": torch.backends.cudnn.allow_tf32,
         "python_version": platform.python_version(),
         "rows": args.rows,
         "source_width": 1024,
@@ -137,6 +141,10 @@ def benchmark(args: argparse.Namespace) -> dict[str, Any]:
         "timed_blocks": args.blocks,
         "calls_per_block_per_arm": args.repeats,
         "forward_loss_difference": new_value - old_value,
+        "persistent_bank_bytes": {
+            "detached_bank": projected.numel() * projected.element_size(),
+            "live_head": source.numel() * source.element_size(),
+        },
         "arms": {
             name: {
                 "calls": len(timings[name]),

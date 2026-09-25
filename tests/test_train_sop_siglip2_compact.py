@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 import torch
 from PIL import Image
+from torch.nn import functional as F
 
 SCRIPT = Path(__file__).parents[1] / "scripts" / "train_sop_siglip2_compact.py"
 SPEC = importlib.util.spec_from_file_location("train_sop_siglip2_compact", SCRIPT)
@@ -101,3 +102,87 @@ def test_member_bank_refresh_uses_last_augmented_view_for_duplicate_row() -> Non
     rows, positions = MODULE.member_bank_refresh_rows((5, 3, 5, 4, 3))
     assert rows == (3, 4, 5)
     assert positions == (4, 3, 2)
+
+
+def test_live_head_bank_keeps_unit_sources_and_refreshes_from_encoder() -> None:
+    generator = torch.Generator().manual_seed(179025)
+    source = torch.randn(4, 1024, generator=generator)
+    head = torch.nn.Linear(1024, 128)
+    initial = MODULE.member_bank_initial_values(source, head, live_head=True)
+    torch.testing.assert_close(initial, F.normalize(source, dim=1))
+    assert initial.shape == (4, 1024)
+    old_initial = MODULE.member_bank_initial_values(source, head, live_head=False)
+    torch.testing.assert_close(old_initial, F.normalize(head(F.normalize(source, dim=1)), dim=1))
+    assert old_initial.shape == (4, 128)
+
+    current_source = torch.randn(4, 1024, generator=generator, requires_grad=True)
+    current_head = head(F.normalize(current_source, dim=1))
+    positions = torch.tensor([3, 1])
+    refreshed = MODULE.member_bank_refresh_values(
+        current_source, current_head, positions, live_head=True
+    )
+    torch.testing.assert_close(refreshed, F.normalize(current_source.detach()[positions], dim=1))
+    assert not refreshed.requires_grad
+    old_refreshed = MODULE.member_bank_refresh_values(
+        current_source, current_head, positions, live_head=False
+    )
+    torch.testing.assert_close(old_refreshed, F.normalize(current_head.detach()[positions], dim=1))
+
+
+def test_live_head_trainer_loss_reaches_head_through_cached_candidates() -> None:
+    generator = torch.Generator().manual_seed(179026)
+    source = F.normalize(torch.randn(6, 1024, generator=generator), dim=1)
+    head = torch.nn.Linear(1024, 128)
+    anchors = F.normalize(torch.randn(2, 128, generator=generator), dim=1)
+    positives = torch.tensor([[1], [0]], dtype=torch.long)
+    self_rows = torch.tensor([0, 1], dtype=torch.long)
+    live = MODULE.member_bank_rank_loss(anchors, source, head, positives, self_rows, live_head=True)
+    gradient = torch.autograd.grad(live, head.weight)[0]
+    assert torch.isfinite(gradient).all()
+    assert gradient.abs().sum() > 0
+
+
+def test_live_head_cost_receipt_rejects_slow_candidate() -> None:
+    receipt = {
+        "schema": "sfora-sop-siglip2-live-head-isolated-cost-v1",
+        "claim_eligible": False,
+        "device": "cuda",
+        "hardware": "NVIDIA GB10",
+        "torch_version": torch.__version__,
+        "cuda_version": torch.version.cuda,
+        "matmul_allow_tf32": False,
+        "rows": 53_700,
+        "anchors": 64,
+        "positives_per_anchor": 11,
+        "timed_blocks": 4,
+        "calls_per_block_per_arm": 10,
+        "forward_loss_difference": 0.0,
+        "persistent_bank_bytes": {
+            "detached_bank": 53_700 * 128 * 4,
+            "live_head": 53_700 * 1024 * 4,
+        },
+        "arms": {
+            "detached_bank": {"calls": 40, "p95_ms": 14.0},
+            "live_head": {
+                "calls": 40,
+                "p95_ms": 151.0,
+                "max_incremental_allocated_bytes": 500_000_000,
+            },
+        },
+        "source_sha256": {
+            "script": "bfcf51e3e6e9fee5ba4a0c45cf144177e8571aa00681236ebaeff9350ec09fb3",
+            "live_loss": "c90ca44a036cfee1998a5ad11362e6f358f013f502ca83ddd92b8318875a5c39",
+            "detached_loss": "a57a1b8cb4722a12dbc8fd255255632b05aff918c8c66e46e5708c2da9e4854a",
+        },
+    }
+    with pytest.raises(ValueError, match="live-head cost gate"):
+        MODULE.validate_live_head_cost_receipt(receipt)
+    receipt["arms"]["live_head"]["p95_ms"] = 100.0
+    MODULE.validate_live_head_cost_receipt(receipt)
+    receipt["matmul_allow_tf32"] = True
+    with pytest.raises(ValueError, match="live-head cost gate"):
+        MODULE.validate_live_head_cost_receipt(receipt)
+    receipt["matmul_allow_tf32"] = False
+    receipt["source_sha256"]["live_loss"] = "0" * 64
+    with pytest.raises(ValueError, match="live-head cost gate"):
+        MODULE.validate_live_head_cost_receipt(receipt)

@@ -1,0 +1,11 @@
+Started sfora-siglip2-arcface-step543-backward-fork-v1.service - /bin/bash /home/riomus/sfora-siglip2-step543-fork-v1/scripts/run_sop_siglip2_step543_backward_fork_dgx.sh 2a639395856bd85bff55f2beaa4c87e77a70667febc1baecd246e85ca66e8c3e.
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:   1%|          | 4/792 [00:00<00:30, 26.12it/s]Loading weights:  69%|██████▉   | 547/792 [00:00<00:00, 2632.61it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2394.50it/s]
+{"mode": "fp16_scale128", "loss": 4.480570316314697, "bad_count": 14, "total_norm": null}
+{"mode": "fp32", "loss": 4.475662708282471, "bad_count": 0, "total_norm": 114.50642686919467}
+{"mode": "fp16_scale32", "loss": 4.480570316314697, "bad_count": 0, "total_norm": 17927.470105433815}
+{"mode": "fp16_scale8", "loss": 4.480570316314697, "bad_count": 0, "total_norm": 17915.209087875864}
+{"mode": "fp16_scale1", "loss": 4.480570316314697, "bad_count": 0, "total_norm": 17926.639854150395}
+{"mode": "bf16", "loss": 4.486574172973633, "bad_count": 0, "total_norm": 121.83937075963551}
+sfora-siglip2-arcface-step543-backward-fork-v1.service: Consumed 28.769s CPU time, 4.1G memory peak, 0B memory swap peak.

@@ -1,0 +1,44 @@
+Started sfora-siglip2-arcface-step543-capture-179020-v1.service - /bin/bash /home/riomus/sfora-siglip2-step543-capture-v1/scripts/run_sop_siglip2_step543_capture_dgx.sh.
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:   1%|          | 4/792 [00:00<00:23, 34.00it/s]Loading weights:  65%|██████▍   | 513/792 [00:00<00:00, 2795.71it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2650.09it/s]
+{"step": 50, "loss": 4.111405372619629, "arcface": 4.111405372619629, "rank": 0.0, "elapsed_seconds": 59.558640693780035}
+{"step": 100, "loss": 7.741183280944824, "arcface": 7.741183280944824, "rank": 0.0, "elapsed_seconds": 117.09631532197818}
+{"step": 150, "loss": 6.998366355895996, "arcface": 6.998366355895996, "rank": 0.0, "elapsed_seconds": 174.8345958981663}
+{"step": 200, "loss": 5.635319709777832, "arcface": 5.635319709777832, "rank": 0.0, "elapsed_seconds": 232.49557253997773}
+{"step": 250, "loss": 7.871338844299316, "arcface": 7.871338844299316, "rank": 0.0, "elapsed_seconds": 290.2756852339953}
+{"step": 300, "loss": 6.361503601074219, "arcface": 6.361503601074219, "rank": 0.0, "elapsed_seconds": 348.0326056811027}
+{"step": 350, "loss": 5.86602258682251, "arcface": 5.86602258682251, "rank": 0.0, "elapsed_seconds": 405.8059592549689}
+{"step": 400, "loss": 5.250888824462891, "arcface": 5.250888824462891, "rank": 0.0, "elapsed_seconds": 463.588075812906}
+{"step": 450, "loss": 6.0315327644348145, "arcface": 6.0315327644348145, "rank": 0.0, "elapsed_seconds": 521.331238721963}
+{"step": 500, "loss": 3.7941272258758545, "arcface": 3.7941272258758545, "rank": 0.0, "elapsed_seconds": 579.0854572639801}
+{"captured_step": 543, "capture_sha256": "2a639395856bd85bff55f2beaa4c87e77a70667febc1baecd246e85ca66e8c3e"}
+Traceback (most recent call last):
+  File "/home/riomus/sfora-siglip2-step543-capture-v1/scripts/train_sop_siglip2_compact.py", line 882, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/sfora-siglip2-step543-capture-v1/scripts/train_sop_siglip2_compact.py", line 699, in main
+    torch.nn.utils.clip_grad_norm_(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        list(vision.parameters()) + list(head.parameters()) + [classifier],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        1.0,
+        ^^^^
+        error_if_nonfinite=True,
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/nn/utils/clip_grad.py", line 41, in _no_grad_wrapper
+    return func(*args, **kwargs)
+  File "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/nn/utils/clip_grad.py", line 230, in clip_grad_norm_
+    total_norm = _get_total_norm(grads, norm_type, error_if_nonfinite, foreach)
+  File "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/nn/utils/clip_grad.py", line 41, in _no_grad_wrapper
+    return func(*args, **kwargs)
+  File "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/nn/utils/clip_grad.py", line 110, in _get_total_norm
+    raise RuntimeError(
+    ...<4 lines>...
+    )
+RuntimeError: The total norm of order 2.0 for gradients from `parameters` is non-finite, so it cannot be clipped. To disable this error and scale the gradients by the non-finite norm anyway, set `error_if_nonfinite=False`
+sfora-siglip2-arcface-step543-capture-179020-v1.service: Main process exited, code=exited, status=1/FAILURE
+sfora-siglip2-arcface-step543-capture-179020-v1.service: Failed with result 'exit-code'.
+sfora-siglip2-arcface-step543-capture-179020-v1.service: Consumed 13min 45.881s CPU time, 4.0G memory peak, 0B memory swap peak.
