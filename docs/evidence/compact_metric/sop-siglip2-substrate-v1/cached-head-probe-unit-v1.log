@@ -1,0 +1,26 @@
+2026-09-25T14:30:22.572679+02:00 spark-2751 systemd[3489]: Started sfora-siglip2-cached-head-probe-v1.service - /usr/bin/bash /home/riomus/sfora-siglip2-bf16-cached-head-v1/scripts/run_sop_siglip2_cached_head_probe_dgx.sh.
+2026-09-25T14:30:22.974338+02:00 spark-2751 bash[4151153]: RUN SOP cached-head arm=arcface
+2026-09-25T14:30:31.004632+02:00 spark-2751 bash[4151181]: {"step": 100, "elapsed_seconds": 0.7924245079047978}
+2026-09-25T14:30:31.322010+02:00 spark-2751 bash[4151181]: {"step": 200, "elapsed_seconds": 1.1101284646429121}
+2026-09-25T14:30:31.595867+02:00 spark-2751 bash[4151181]: {"step": 300, "elapsed_seconds": 1.3836795748211443}
+2026-09-25T14:30:31.906990+02:00 spark-2751 bash[4151181]: {"step": 400, "elapsed_seconds": 1.6950584896840155}
+2026-09-25T14:30:32.188935+02:00 spark-2751 bash[4151181]: {"step": 500, "elapsed_seconds": 1.9767459067516029}
+2026-09-25T14:30:32.466952+02:00 spark-2751 bash[4151181]: {"step": 600, "elapsed_seconds": 2.2549617867916822}
+2026-09-25T14:30:32.693825+02:00 spark-2751 bash[4151181]: {"step": 700, "elapsed_seconds": 2.481954626739025}
+2026-09-25T14:30:32.921052+02:00 spark-2751 bash[4151181]: {"step": 800, "elapsed_seconds": 2.7091749226674438}
+2026-09-25T14:30:33.151825+02:00 spark-2751 bash[4151181]: {"step": 900, "elapsed_seconds": 2.9399520037695765}
+2026-09-25T14:30:33.376118+02:00 spark-2751 bash[4151181]: {"step": 1000, "elapsed_seconds": 3.1642457540147007}
+2026-09-25T14:30:36.603663+02:00 spark-2751 bash[4151181]: {"arm": "arcface", "packed_r1": 0.8275508460092292}
+2026-09-25T14:30:37.490522+02:00 spark-2751 bash[4151153]: RUN SOP cached-head arm=live_head_bank
+2026-09-25T14:30:47.511677+02:00 spark-2751 bash[4151452]: {"step": 100, "elapsed_seconds": 2.8219560999423265}
+2026-09-25T14:30:49.744916+02:00 spark-2751 bash[4151452]: {"step": 200, "elapsed_seconds": 5.055202753283083}
+2026-09-25T14:30:51.982257+02:00 spark-2751 bash[4151452]: {"step": 300, "elapsed_seconds": 7.29254754493013}
+2026-09-25T14:30:54.212901+02:00 spark-2751 bash[4151452]: {"step": 400, "elapsed_seconds": 9.523152923211455}
+2026-09-25T14:30:56.450970+02:00 spark-2751 bash[4151452]: {"step": 500, "elapsed_seconds": 11.761262808926404}
+2026-09-25T14:30:58.687570+02:00 spark-2751 bash[4151452]: {"step": 600, "elapsed_seconds": 13.997866995166987}
+2026-09-25T14:31:00.923596+02:00 spark-2751 bash[4151452]: {"step": 700, "elapsed_seconds": 16.233819222077727}
+2026-09-25T14:31:03.160460+02:00 spark-2751 bash[4151452]: {"step": 800, "elapsed_seconds": 18.47074834210798}
+2026-09-25T14:31:05.403072+02:00 spark-2751 bash[4151452]: {"step": 900, "elapsed_seconds": 20.713357154279947}
+2026-09-25T14:31:07.637550+02:00 spark-2751 bash[4151452]: {"step": 1000, "elapsed_seconds": 22.94783319020644}
+2026-09-25T14:31:10.847929+02:00 spark-2751 bash[4151452]: {"arm": "live_head_bank", "packed_r1": 0.8485728935224748}
+2026-09-25T14:31:11.728523+02:00 spark-2751 systemd[3489]: sfora-siglip2-cached-head-probe-v1.service: Consumed 2min 3.251s CPU time, 2.7G memory peak, 0B memory swap peak.

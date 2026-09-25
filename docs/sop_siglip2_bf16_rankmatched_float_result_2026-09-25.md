@@ -65,3 +65,57 @@ Next, measure bank versus ArcFace live encoding plus exact search on paired
 GB10 requests, then run the already frozen cache-inclusive head-only speed
 falsifier. Keep these GPU jobs serial. Freeze the resulting system before
 official protocol reads and transfer checks.
+
+## Subsequent serving and training-speed diagnostics
+
+Both planned serial DGX units ended with `Result=success` and exit status 0.
+The paired live unit `sfora-siglip2-bf16-bank-live-seed179024-v1.service`
+used invocation `1237a578154b47d2a0b64501be1132f2`. Its
+[receipt](evidence/compact_metric/sop-siglip2-substrate-v1/bf16-bank-live-seed179024-v1.json)
+has SHA-256 `743aed5aa67b4aa39603e8d3eb698d5dbd28e400a48858e0f5d8438f65b5d52c`;
+the [journal](evidence/compact_metric/sop-siglip2-substrate-v1/bf16-bank-live-seed179024-unit-v1.log)
+has SHA-256 `99ace37d5fdedaababa21c02b9e58b20a3fcfbadcceb5460cfac9862b5171f1e`.
+Both variants used the same trained seed, 32 selected SOP TRAIN holdout images,
+preloaded PIL inputs, native-fp16 vision parameters, 130-byte resident gallery,
+and exact top-10 API. AB/BA/BA/AB balanced 100 calls per variant at each batch
+size on NVIDIA GB10.
+
+| Batch | Trained bank p50/p95/p99 | ArcFace p50/p95/p99 | Bank throughput | ArcFace throughput |
+| --- | ---: | ---: | ---: | ---: |
+| 1 | 15.879/18.548/18.985 ms | 15.712/18.108/19.479 ms | 62.310 queries/s | 62.684 queries/s |
+| 32 | 266.277/293.314/303.670 ms | 268.287/290.913/303.871 ms | 119.594 queries/s | 119.767 queries/s |
+
+This fixed-image diagnostic does not show a clear serving improvement over
+the same architecture and cannot support a population p99 claim. The two
+loaded models jointly peaked at 1,515,488,256 B of PyTorch CUDA allocation
+after loading, and parent host RSS peaked at 7,476,781,056 B. The receipt
+binds both training-receipt hashes and stable top-10 output digests. Full
+live quality over all 5,851 holdout images was not measured in this run.
+
+The cached-head unit `sfora-siglip2-cached-head-probe-v1.service` used
+invocation `e95546a46af2425ea18ccf36fdfc2dad`. Its source-bound
+[comparison receipt](evidence/compact_metric/sop-siglip2-substrate-v1/cached-head-probe-comparison-v1.json)
+has SHA-256 `d47304a3bdc62ac710c486e7b18d49b7c6e622fa525e4cbaf9422c296adae459`;
+raw [ArcFace](evidence/compact_metric/sop-siglip2-substrate-v1/cached-head-probe-arcface-v1.json),
+[live-head bank](evidence/compact_metric/sop-siglip2-substrate-v1/cached-head-probe-live-bank-v1.json),
+and [unit journal](evidence/compact_metric/sop-siglip2-substrate-v1/cached-head-probe-unit-v1.log)
+are archived. On the same selected SOP TRAIN holdout, the head-only bank
+reached **84.8573% Recall@1**, **0.617283 mAP@R** versus head-only ArcFace
+**82.7551%**, **0.578572**. The paired difference is **+2.1022 percentage
+points Recall@1**, single-seed product-bootstrap 95% interval
+**[+1.6851,+2.5336] points**, and **+0.038711 mAP@R**, interval
+**[+0.035386,+0.042034]**. All exact native top-10 checks passed.
+
+The bank arm used **22.948 s** for 1,000 head/proxy updates and
+**536.463 s** for the frozen speed numerator: 508.517 s initial source-cache
+encoding plus head initialization and training. This was **0.4677×** the
+pinned 1,146.908 s full-backbone bank training wall. Peak PyTorch allocation
+in its head-training phase was **1,092,567,040 B**. The
+[frozen probe gate](sop_siglip2_cached_head_speed_probe_2026-09-25.md)
+**fails** because packed Recall@1 misses its 85% floor by **0.1427
+percentage points**; it passes the paired gain, mAP nonregression, and time
+criteria. The cache-plus-head numerator is a defined feasibility measure,
+not a complete training or deployment wall. Frozen-encoder head fitting
+cannot replace full-backbone training at the stated quality floor. A reduced
+encoder-update hybrid remains unmeasured and requires a fresh train-only
+selection split and frozen protocol before any tuning or claim.
