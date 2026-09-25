@@ -17,7 +17,7 @@ from export_inshop_siglip2_train_features import MODEL_HASHES
 from export_sop_siglip2_train import MODEL_REVISION
 from torch import nn
 from train_inshop_siglip2_compact import FIT_SHA256, HELD_SHA256, SEEDS
-from train_sop_siglip2_compact import NATIVE_SHA256, export_all, sha256
+from train_sop_siglip2_compact import NATIVE_SHA256, TILEIRAS_SHA256, export_all, sha256
 
 from sfora.cutile_int8 import CutilePackedInt8Gallery
 from sfora.joint_relational_compaction import PackedInt8Embeddings, pack_int8_unit_embeddings
@@ -126,6 +126,7 @@ def main() -> None:
     evaluator_source_sha = sha256(Path(__file__))
     training_receipt_path = args.training_dir / "receipt.json"
     checkpoint_path = args.training_dir / "checkpoint.pt"
+    tileiras_path = os.environ.get("CUTILE_TILEIRAS_PATH")
     if (
         args.output_dir.exists()
         or args.workers < 0
@@ -136,6 +137,8 @@ def main() -> None:
             sha256(args.model_snapshot / name) != digest for name, digest in MODEL_HASHES.items()
         )
         or sha256(args.native_library) != NATIVE_SHA256
+        or not tileiras_path
+        or sha256(Path(tileiras_path)) != TILEIRAS_SHA256
     ):
         raise ValueError("In-Shop official evaluation authority differs")
     receipt = json.loads(training_receipt_path.read_text())
@@ -241,6 +244,7 @@ def main() -> None:
         "decision_sha256": sha256(args.decision),
         "checkpoint_sha256": sha256(checkpoint_path),
         "native_library_sha256": NATIVE_SHA256,
+        "tileiras_sha256": TILEIRAS_SHA256,
         "float_quality": float_quality,
         "packed_quality": packed_quality,
         **native,
