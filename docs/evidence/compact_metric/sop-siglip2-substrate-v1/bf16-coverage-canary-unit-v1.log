@@ -1,0 +1,10 @@
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  20%|█▉        | 156/792 [00:00<00:00, 1541.71it/s]Loading weights:  60%|█████▉    | 473/792 [00:00<00:00, 2436.46it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2644.01it/s]
+{"step": 1, "loss": 7.033926963806152, "arcface": 6.8775458335876465, "rank": 0.019547641277313232, "elapsed_seconds": 3.2377994060516357}
+{"arm": "float_rank", "training_seconds": 3.276695849839598, "quality_r1": null}
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:   1%|          | 4/792 [00:00<00:20, 37.91it/s]Loading weights:  63%|██████▎   | 497/792 [00:00<00:00, 2851.47it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2647.10it/s]
+{"step": 1, "loss": 10.796152114868164, "arcface": 6.8775458335876465, "rank": 0.4898257255554199, "elapsed_seconds": 2.9878464420326054}
+{"arm": "float_rank_member_bank", "training_seconds": 3.0168089801445603, "quality_r1": null}

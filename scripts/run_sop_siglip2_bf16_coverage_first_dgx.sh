@@ -31,16 +31,18 @@ check_sha "$cost" 8f6867ff4de768ffd3bfa108cb86d7537b913d6ae5cb4f8cb16a43bc87f741
 exec 9>"$run_base/.sfora-siglip2-gpu.lock"
 flock -n 9 || exit 1
 
-for arm in matched_float bank; do
+for arm in fixed_float matched_float bank; do
   output="$run_base/sfora-siglip2-bf16-coverage-179023-${arm}-v1"
   [[ ! -e "$output" && ! -L "$output" ]] || { echo "output exists: $output" >&2; exit 1; }
 done
 
-for arm in matched_float bank; do
+for arm in fixed_float matched_float bank; do
   output="$run_base/sfora-siglip2-bf16-coverage-179023-${arm}-v1"
   extra=()
-  coefficient=21.93
-  if [[ "$arm" == bank ]]; then
+  coefficient=58.64
+  if [[ "$arm" == fixed_float ]]; then
+    coefficient=21.93
+  elif [[ "$arm" == bank ]]; then
     coefficient=8.0
     extra=(--member-bank --member-bank-preflight "$preflight"
       --expected-member-bank-preflight-sha256 54e806715e76b2caa7e877d55b0fecbdc921718386bce845e04367164828624c
