@@ -115,7 +115,62 @@ in its head-training phase was **1,092,567,040 B**. The
 **fails** because packed Recall@1 misses its 85% floor by **0.1427
 percentage points**; it passes the paired gain, mAP nonregression, and time
 criteria. The cache-plus-head numerator is a defined feasibility measure,
-not a complete training or deployment wall. Frozen-encoder head fitting
-cannot replace full-backbone training at the stated quality floor. A reduced
-encoder-update hybrid remains unmeasured and requires a fresh train-only
-selection split and frozen protocol before any tuning or claim.
+not a complete training or deployment wall. This particular frozen-encoder
+probe did not reach its quality floor; other head schedules were not tested.
+A reduced encoder-update hybrid remains unmeasured and would require a fresh
+train-only selection split and frozen protocol before any tuning or claim.
+
+## Three-seed unseen-product gallery check
+
+The earlier [single-seed ArcFace sensitivity check](sop_siglip2_unseen_gallery_diagnostic_2026-09-25.md)
+already showed a heldout-only gallery gain, but it did not test the later
+three-seed matched float arms. A new source-frozen CPU diagnostic on the nine
+existing exports ended successfully as DGX unit
+`sfora-siglip2-unseen-gallery-v2.service`, invocation
+`9493376b0396447ebc4c0b35d7438bf5`. Its
+[receipt](evidence/compact_metric/sop-siglip2-substrate-v1/unseen-gallery-three-seed-v2.json)
+has SHA-256 `87adcb8d10058ca85ad5826954f9a8c1f228e9c5218ba0015fa83d2c77528862`;
+the [journal](evidence/compact_metric/sop-siglip2-substrate-v1/unseen-gallery-three-seed-unit-v2.log)
+has SHA-256 `2fdac5c5cb3e5063fd255c2cd9a60793a9efb73acd07fcc4fb8a58f9cf135499`.
+The diagnostic and its fixed screen were pushed at `0ec1a8db` before these
+quality outputs were read. The first successful
+[receipt](evidence/compact_metric/sop-siglip2-substrate-v1/unseen-gallery-three-seed-v1.json)
+is retained: its provenance field hashed a Torch decorator wrapper instead
+of the wrapped scorer source. A provenance-only correction was pushed at
+`96a2777f` and rerun as v2; all quality, gate, refresh, and input-authority
+fields matched v1 exactly. All nine training receipts and exported embedding
+files passed their SHA-256 checks. This uses the same selected 5,851 SOP TRAIN
+holdout queries and 1,132 products, now with only those unseen-product rows
+in the gallery and self exclusion. It is a retrospective sensitivity check,
+not an independent confirmation or official SOP TEST result.
+
+| Three-seed mean, packed 130 B/row | Bank | Matched float | Original float |
+| --- | ---: | ---: | ---: |
+| Recall@1 | 97.1686% | 96.7128% | 96.6501% |
+| mAP@R | 0.880576 | 0.868607 | 0.867291 |
+
+Bank minus matched float is **+0.4558 percentage points Recall@1**
+(product bootstrap 95% **[+0.2376,+0.6790]** points) and **+0.011968
+mAP@R** (95% **[+0.009545,+0.014506]**). Bank minus the original
+coefficient-8 float control is **+0.5184 points Recall@1** (95%
+**[+0.3168,+0.7232]**) and **+0.013285 mAP@R** (95%
+**[+0.010915,+0.015708]**). The code-frozen port screen required at least
++0.36 points bank-minus-matched Recall@1, a positive product-bootstrap lower
+bound, nonnegative mAP difference, and a positive lower bound versus original
+float; it **survived**. These intervals condition on the selected holdout and
+three seeds. The old full-TRAIN-gallery advantage partly involved trained-on
+fit distractors, yet the bank gain remains positive when they are removed.
+
+The replayed bank schedules had 64,000 sampled image presentations each.
+Across seeds, **18,446 of 53,700 fit rows on average (34.35%)** were never
+refreshed, 19,942 were refreshed once, and 15,312 more than once. Thus the
+bank's initial pretrained geometry remains a substantial part of this method;
+the result does not isolate larger candidate sets from stale features. The
+new diagnostic uses the already validated packed scalar scorer on CPU but
+does not repeat native top-10 parity on its smaller gallery. The earlier
+single-seed sensitivity receipt did verify native top-10 on a smaller gallery,
+and the official evaluator must verify it again for the frozen three-seed
+system. The next decision is to port the frozen full-backbone bank and both
+float controls to official SOP TEST, with every arm's cache, training, export,
+packing, and search costs reported separately. No new training is selected
+from this used holdout.
