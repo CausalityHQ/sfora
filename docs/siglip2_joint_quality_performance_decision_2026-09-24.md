@@ -376,3 +376,19 @@ graph refresh and scheduling. These are engineering kill gates, not predicted
 quality gains. If they pass, the actual three-arm training still must meet
 the existing **≤1.15×** wall and **+1 percentage point** paired holdout R1
 gates before any official-protocol claim.
+
+The [proxy-neighbour coverage preflight](evidence/compact_metric/sop-siglip2-substrate-v1/proxy-neighbor-coverage-v1.json)
+(SHA-256 `5101a8adbae9ebc15c5b7081c2400e9f1a0825db8cc15e22f4d3230b7bde491d`)
+stopped this lane at its first gate. The initial classifier's top-four proxy
+neighbours cover **6,412/12,100 (52.99%)** of the zero-update head's own
+fit errors, above its 50% threshold. The trained classifier's neighbours
+cover only **2,111/4,296 (49.14%)** of ArcFace fit-error impostor products,
+below the required 60%. Initial neighbours also cover **48.81%** of trained
+errors. The probe used the pinned initial PCA/classifier, final checkpoint,
+and fit rows only; it took **6.716 seconds** on GB10 and peaked at
+**932,441,088 bytes** CUDA allocation. Schedule, member-hardness, and cost
+screens are not run after this failed gate. Enlarging top four or using the
+final ArcFace graph to seed a fresh treatment would change the frozen design
+and contaminate the training comparison. The next causal revision must test
+actual member-level negatives or representation geometry with a distinct
+fit-only preregistration.
