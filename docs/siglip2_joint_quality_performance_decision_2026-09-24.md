@@ -280,3 +280,99 @@ a positive product-bootstrap lower bound, mAP@R loss no worse than 0.005,
 training-wall ratio no greater than 1.15, exact native top-10, and a matched
 same-source ArcFace replay. Only then advance to multiple seeds and official
 evaluation.
+
+The registered [fit-only census](evidence/compact_metric/sop-siglip2-substrate-v1/fit-error-census-v1.json)
+(SHA-256 `4947bb6ae8e70153018e07ed05a26777ab0e8286a9c640cdab36f219ffb64f79`)
+then completed on the NVIDIA GB10 in **6.359 seconds**, with **529,820,672
+bytes** peak CUDA allocation and an exact native top-10 check on 32 selected
+fit queries. Of **53,700** fit leave-one-out queries, **4,296** missed top-1.
+The nearest correct mate ranked 2–10 for **3,255/4,296 (75.77%)** errors and
+above 10 for **1,041/4,296 (24.23%)**. The correct product proxy still led
+all classifier proxies for **3,201/4,296 (74.51%)** errors, while only
+**120/4,296 (2.79%)** had a frozen-source impostor cosine at least 0.97.
+The preregistered decision priority therefore selects **revising the
+competitor field** and rejects the planned positive-only `existential_mate`
+arm. This is a fit-product mechanism screen, not a causal proof that a
+competitor-aware loss improves heldout or official-protocol retrieval.
+
+A fit-only [proxy gap follow-up](evidence/compact_metric/sop-siglip2-substrate-v1/fit-proxy-gap-v2.json)
+(SHA-256 `047be0c6dc74eb4c0007eb7a7209d292693e0d7d7f7303498bc50627296e9619`)
+then tested the premise of that ordered gate. The correct proxy leads for
+**51,816/53,700 (96.49%)** fit queries overall, including **48,615/49,404
+(98.40%)** gallery-correct queries and **3,201/4,296 (74.51%)** gallery-error
+queries. Proxy correctness is therefore less common, not enriched, among
+gallery errors. The impostor product proxy ranks at most 10 for
+**3,463/4,296 (80.61%)** errors, including **2,569/3,201 (80.26%)** of the
+proxy-correct errors. The median impostor-proxy rank is 3. Product-level
+mean member-to-mean coherence is **0.8967 median** (10th percentile 0.8103).
+The registered chord-based direction statistic was uninformative: zero errors
+were misaligned, even after tangent-plane projection. These observations
+invalidate the *causal interpretation* of the ordered proxy gate; the raw
+registered outcome remains recorded. No heavy arm is selected from it alone.
+
+Before a new training run, construct a fixed, fit-only confusable-product
+graph from the zero-update PCA-128 head on frozen SigLIP2 features. For each
+fit image, count products represented among its ten closest *negative*
+packed-code neighbours, symmetrise counts, and retain the top four competitor
+products per fit product. A candidate batch schedule may pair eight seed
+products with one graph competitor each (four images per product), keeping the
+ArcFace plus float SmoothAP objective and all serving artifacts identical.
+This is a hard-batch sampling composition of existing ideas, not a new-method
+claim. The graph lane advances only if the frozen top-four list includes the
+trained ArcFace top impostor product for at least **50%** of fit errors and
+if its schedule yields at least **3×** the random schedule's float SmoothAP
+loss on the cached ArcFace fit embeddings, with at least **90%** of pair slots
+filled by graph competitors under a maximum of three visits per product per
+1,000 updates. If these screens fail, do not run the expensive arm. Also
+report the share of trained errors inherited by the frozen PCA head and the
+mutual-error share; neither is an advancement gate.
+
+The [frozen fit graph](evidence/compact_metric/sop-siglip2-substrate-v1/fit-competitor-graph-v1.json)
+(SHA-256 `456579df6f1c3ecdc2071aa4a6a08ea5547b9d07d4e6e471fe5f8e1f2296fdb3`)
+failed its first advancement gate: its top-four competitor list covered
+**2,117/4,296 (49.28%)** of the trained ArcFace error impostor products,
+below the registered **50%** threshold. The graph used the verified initial
+PCA/head hashes, native-exact selected top-10, and only fit products. Its
+build took **9.577 seconds** on GB10, with **188,572,160 bytes** peak CUDA
+allocation. The frozen head already missed **3,860/4,296 (89.85%)** of the
+trained error queries, so those confusions largely predate finetuning. The
+frozen-graph batch arm is stopped before training; the later schedule and
+SmoothAP screens are not run. Increasing the four-neighbour gate after seeing
+this result would change the registered screen. A future online competitor
+field needs a separately frozen design and matched control.
+
+### Next distinct lane: proxy-neighbour batch preflight
+
+The next *preflight* is an online proxy-neighbour batch schedule, not a new
+training run. It retains the ArcFace plus 8×float SmoothAP objective and
+builds each product's top-four neighbour list from current normalized
+classifier proxies, refreshing every 50 training updates. Eight seed products
+each pair with an eligible neighbour to form a 16-product, four-image-per-
+product batch. The graph at initialization comes only from the treatment's
+own initial classifier; the final ArcFace classifier is used for fit-only
+diagnosis and never seeds treatment training. This is established hard-batch
+sampling territory, not a scientific novelty claim.
+
+Freeze 16,000 four-image product tickets before any training: every one of
+10,186 fit products gets one ticket, and a seeded geometry-independent subset
+of 5,814 gets a second. Fix each ticket's image draws and augmentation seed.
+Any treatment and both fresh controls consume identical tickets, changing
+only grouping/order. The controls are the same-ticket random ArcFace plus
+float SmoothAP arm and a same-ticket random ArcFace-only arm; historical
+v10 runs are context rather than matched controls for this changed exposure.
+
+All four preflight gates must pass before training, with no search over graph
+width, refresh interval, quotas, or loss weights: (1) top-four proxy neighbours
+cover at least **60%** of the 4,296 trained error impostor products using the
+trained classifier, and at least **50%** of the zero-update head's own fit
+errors using its initial classifier; (2) a deterministic same-ticket schedule
+fills at least **90%** of 8,000 designated partner slots with an eligible
+neighbour while retaining 16 distinct products per batch; (3) on cached
+trained ArcFace fit embeddings, this schedule yields at least **3×** the
+random schedule's mean float SmoothAP loss and at least **20%** of anchors
+see a sampled negative member outrank their best sampled positive; and (4)
+cached-descriptor timing projects at most **10%** extra training wall for
+graph refresh and scheduling. These are engineering kill gates, not predicted
+quality gains. If they pass, the actual three-arm training still must meet
+the existing **≤1.15×** wall and **+1 percentage point** paired holdout R1
+gates before any official-protocol claim.
