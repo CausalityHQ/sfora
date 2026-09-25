@@ -50,6 +50,20 @@ def test_training_receipt_binds_executed_package_source(
         MODULE.assert_source_imports()
 
 
+def test_training_precision_selects_bf16_without_loss_scaling() -> None:
+    dtype, scaler = MODULE.training_precision("bf16", device="cpu")
+    assert dtype is torch.bfloat16
+    assert not scaler.is_enabled()
+    assert scaler.get_scale() == 1.0
+
+
+def test_training_precision_keeps_fp16_scaling() -> None:
+    dtype, scaler = MODULE.training_precision("fp16", device="cpu")
+    assert dtype is torch.float16
+    assert scaler.is_enabled()
+    assert scaler.get_scale() == MODULE.GRAD_SCALER_INITIAL_SCALE
+
+
 def test_ordered_source_digest_detects_reassigned_feature_rows() -> None:
     ids = np.arange(59_551, dtype=np.int64)
     labels = ids // 5

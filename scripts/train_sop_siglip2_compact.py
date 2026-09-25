@@ -23,6 +23,7 @@ import torch
 import torchvision
 from PIL import Image
 from torch import nn
+from torch.amp.grad_scaler import GradScaler
 from torch.nn import functional as F
 from torch.utils.data import DataLoader, Dataset, Sampler
 from torchvision import transforms
@@ -67,6 +68,22 @@ SOURCE_RELATIVES = (
     "src/sfora/unicom_rank_finish.py",
     "src/sfora/unicom_training.py",
 )
+
+
+def training_precision(
+    choice: str, *, device: str
+) -> tuple[torch.dtype, GradScaler]:
+    """Choose vision autocast and loss scaling as one training recipe."""
+
+    if choice not in {"fp16", "bf16"}:
+        raise ValueError("unsupported SOP SigLIP2 training vision dtype")
+    dtype = torch.float16 if choice == "fp16" else torch.bfloat16
+    scaler = GradScaler(
+        device,
+        init_scale=GRAD_SCALER_INITIAL_SCALE,
+        enabled=choice == "fp16",
+    )
+    return dtype, scaler
 
 
 def sha256(path: Path) -> str:
@@ -502,6 +519,7 @@ def main() -> None:
     parser.add_argument("--batch-size", type=int, default=64)
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--gradient-diagnostic-steps", type=int, default=0)
+    parser.add_argument("--train-vision-dtype", choices=("fp16", "bf16"), default="fp16")
     parser.add_argument("--member-bank", action="store_true")
     parser.add_argument("--member-bank-preflight", type=Path)
     parser.add_argument("--expected-member-bank-preflight-sha256")
@@ -549,6 +567,7 @@ def main() -> None:
             )
         )
         or not torch.cuda.is_available()
+        or (args.train_vision_dtype == "bf16" and not torch.cuda.is_bf16_supported())
         or sha256(args.unicom_l14_archive) != ARCHIVE_SHA256
         or sha256(args.native_library) != NATIVE_SHA256
         or not tileiras
@@ -720,7 +739,7 @@ def main() -> None:
         ],
         weight_decay=0.05,
     )
-    scaler = torch.amp.GradScaler("cuda", init_scale=GRAD_SCALER_INITIAL_SCALE)
+    train_vision_dtype, scaler = training_precision(args.train_vision_dtype, device="cuda")
     masks = torch.arange(OUTPUT_WIDTH, device="cuda", dtype=torch.int64).unsqueeze(0)
     torch.cuda.reset_peak_memory_stats()
     started = time.perf_counter()
@@ -742,7 +761,7 @@ def main() -> None:
         tensors = {key: value.cuda(non_blocking=True) for key, value in batch.items()}
         target = target.cuda(non_blocking=True)
         optimizer.zero_grad(set_to_none=True)
-        with torch.amp.autocast("cuda", dtype=torch.float16):
+        with torch.amp.autocast("cuda", dtype=train_vision_dtype):
             source_features = vision(**tensors).pooler_output
         if source_features is None:
             raise ValueError("SOP SigLIP2 train pooler missing")
@@ -837,6 +856,7 @@ def main() -> None:
             "arm": arm_name,
             "member_bank": args.member_bank,
             "live_head_bank": args.live_head_bank,
+            "train_vision_dtype": args.train_vision_dtype,
         },
         checkpoint_path,
     )
@@ -919,7 +939,12 @@ def main() -> None:
         "optimizer": (
             "AdamW weight_decay 0.05; vision lr 1e-5; head/classifier lr 1e-4; grad clip 1.0"
         ),
-        "precision": "fp32 parameters, fp16 vision autocast, fp32 objective, GradScaler",
+        "precision": (
+            "fp32 parameters, bf16 vision autocast, fp32 objective, no loss scaling"
+            if args.train_vision_dtype == "bf16"
+            else "fp32 parameters, fp16 vision autocast, fp32 objective, GradScaler"
+        ),
+        "train_vision_dtype": args.train_vision_dtype,
         "augmentation": (
             "random resized crop 256 scale 0.8..1.0; random horizontal flip; pinned processor"
         ),
@@ -934,7 +959,9 @@ def main() -> None:
         "first_rank_loss": rank_losses[0] if rank_losses else None,
         "last_rank_loss": rank_losses[-1] if rank_losses else None,
         "rank_coefficient": SIGLIP2_RANK_COEFFICIENT,
-        "grad_scaler_initial_scale": GRAD_SCALER_INITIAL_SCALE,
+        "grad_scaler_initial_scale": (
+            GRAD_SCALER_INITIAL_SCALE if args.train_vision_dtype == "fp16" else 1.0
+        ),
         "training_peak_cuda_allocated_bytes": training_peak_cuda,
         "export_seconds": export_seconds,
         "score_seconds": score_seconds,
