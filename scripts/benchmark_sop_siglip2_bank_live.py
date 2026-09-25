@@ -22,6 +22,7 @@ from sfora.siglip2_compact_serving import Siglip2CompactIndex
 ARCHIVE_SHA256 = "1ba27b2d6b9db39067aa6facd0ef8aafc303c4527f6feabed859b0512c7d921a"
 CONTROL_RECEIPT_SHA256 = "d88167bfcbf8152ee912c8382061afaf248e45fe52ae24cf5f1a5da739477fc3"
 BANK_RECEIPT_SHA256 = "2e73ee0e6252c91d54c815d52581abd0d303de09a56776a2fcd5b5e7908c981c"
+BF16_TRAINER_SHA256 = "ad66b1613f0c1c8373d69a689d1556c9b250527a8045a6b85bec523f99466d23"
 SEED = 179019
 
 
@@ -47,6 +48,50 @@ def summarize_ns(values: list[int]) -> dict[str, float | int]:
         "mean_ms": float(milliseconds.mean()),
         "calls_per_second": float(len(values) / (sum(values) / 1e9)),
     }
+
+
+def validate_bf16_pair(control: dict, bank: dict) -> None:
+    """Require a registered same-seed BF16 control and bank before paired timing."""
+
+    common = (
+        "seed",
+        "source_sha256",
+        "source_files_sha256",
+        "train_vision_dtype",
+        "updates",
+        "schedule_sha256",
+        "first_input_batch_sha256",
+        "initial_head_sha256",
+        "initial_classifier_sha256",
+        "model_file_sha256",
+        "source_archive_sha256",
+        "query_image_ids_sha256",
+        "native_library_sha256",
+        "tileiras_sha256",
+        "precision",
+        "grad_scaler_initial_scale",
+        "fit_images",
+        "holdout_queries",
+        "gallery_images",
+    )
+    if (
+        control.get("seed") not in (179023, 179024, 179025)
+        or control.get("arm") != "arcface"
+        or bank.get("arm") != "float_rank_member_bank"
+        or control.get("source_sha256") != BF16_TRAINER_SHA256
+        or control.get("source_files_sha256", {}).get("scripts/train_sop_siglip2_compact.py")
+        != BF16_TRAINER_SHA256
+        or control.get("train_vision_dtype") != "bf16"
+        or control.get("updates") != 1000
+        or len(control.get("first_input_batch_sha256", [])) != 10
+        or any(control.get(key) != bank.get(key) for key in common)
+        or any(
+            row.get("quality", {}).get("native_top10_exact") is not True
+            or row.get("quality", {}).get("gallery_wire_bytes_per_row") != 130
+            for row in (control, bank)
+        )
+    ):
+        raise ValueError("SOP live BF16 pair authority differs")
 
 
 def image_panel(
@@ -92,6 +137,11 @@ def main() -> None:
     parser.add_argument("--native-library", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--blocks", type=int, default=100)
+    parser.add_argument(
+        "--training-profile", choices=("fp16_selected", "bf16_bank"), default="fp16_selected"
+    )
+    parser.add_argument("--control-receipt-sha256")
+    parser.add_argument("--bank-receipt-sha256")
     args = parser.parse_args()
     if (
         args.output.exists()
@@ -102,13 +152,30 @@ def main() -> None:
     ):
         raise ValueError("SOP live timing authority differs")
     directories = {"control": args.control_dir, "bank": args.bank_dir}
-    expected = {"control": CONTROL_RECEIPT_SHA256, "bank": BANK_RECEIPT_SHA256}
+    if args.training_profile == "bf16_bank":
+        expected = {
+            "control": args.control_receipt_sha256,
+            "bank": args.bank_receipt_sha256,
+        }
+        if any(
+            not isinstance(digest, str)
+            or len(digest) != 64
+            or any(char not in "0123456789abcdef" for char in digest)
+            for digest in expected.values()
+        ):
+            raise ValueError("SOP live BF16 receipt digests differ")
+    else:
+        if args.control_receipt_sha256 is not None or args.bank_receipt_sha256 is not None:
+            raise ValueError("SOP live selected FP16 receipt digests differ")
+        expected = {"control": CONTROL_RECEIPT_SHA256, "bank": BANK_RECEIPT_SHA256}
     receipts = {}
     for arm, directory in directories.items():
         receipt = directory / "receipt.json"
         if sha256(receipt) != expected[arm]:
             raise ValueError("SOP live training receipt differs")
         receipts[arm] = json.loads(receipt.read_text())
+    if args.training_profile == "bf16_bank":
+        validate_bf16_pair(receipts["control"], receipts["bank"])
     if (
         receipts["control"]["query_image_ids_sha256"] != receipts["bank"]["query_image_ids_sha256"]
         or receipts["control"]["model_file_sha256"] != receipts["bank"]["model_file_sha256"]
@@ -176,8 +243,7 @@ def main() -> None:
         "schema": "sfora-sop-siglip2-bank-live-paired-diagnostic-v1",
         "claim_eligible": False,
         "timing_scope": (
-            "preloaded PIL images to exact native top-10; "
-            "no disk read; descriptive p99"
+            "preloaded PIL images to exact native top-10; no disk read; descriptive p99"
         ),
         "hardware": {
             "gpu": torch.cuda.get_device_name(),
@@ -187,8 +253,10 @@ def main() -> None:
         "blocks": args.blocks,
         "source_sha256": sha256(Path(__file__)),
         "source_archive_sha256": ARCHIVE_SHA256,
-        "control_receipt_sha256": CONTROL_RECEIPT_SHA256,
-        "bank_receipt_sha256": BANK_RECEIPT_SHA256,
+        "control_receipt_sha256": expected["control"],
+        "bank_receipt_sha256": expected["bank"],
+        "training_profile": args.training_profile,
+        "seed": receipts["control"]["seed"],
         "query_image_ids": image_ids,
         "query_image_sha256": image_hashes,
         "query_labels": labels,
