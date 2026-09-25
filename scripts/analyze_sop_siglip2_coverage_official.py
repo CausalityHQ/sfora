@@ -12,6 +12,7 @@ import numpy as np
 from compare_sop_siglip2_member_bank_arms import product_bootstrap
 
 DECISION_SHA256 = "ccfdb7055643f2a16124ecab62b30d31a2b025f380319e950cb4a481066f1852"
+OLD_REPORT_SHA256 = "dd7bc98099c67e86cc2d8a074dc4ceed19b65cb162687908335beb1d54d6bd97"
 EVALUATOR_SHA256 = "2324a3e4a13ba1758f25882d28cb4bec430a402a2a630eebac6aedeb09f62b1e"
 ARCHIVE_SHA256 = "1ba27b2d6b9db39067aa6facd0ef8aafc303c4527f6feabed859b0512c7d921a"
 MANIFEST_SHA256 = "28a3ec0561cd83ee426f3d1c301c70799316af91c1e9083a5a1ffdf3414327c1"
@@ -28,6 +29,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     parser.add_argument("--source-archive", required=True, type=Path)
     parser.add_argument("--decision", required=True, type=Path)
+    parser.add_argument("--old-report", required=True, type=Path)
     parser.add_argument("--run-base", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     args = parser.parse_args()
@@ -35,15 +37,23 @@ def main() -> None:
         args.output.exists()
         or sha256(args.source_archive) != ARCHIVE_SHA256
         or sha256(args.decision) != DECISION_SHA256
+        or sha256(args.old_report) != OLD_REPORT_SHA256
     ):
         raise ValueError("coverage official source authority differs")
     decision = json.loads(args.decision.read_text())
+    old_report = json.loads(args.old_report.read_text())
     if (
         decision.get("schema") != "sfora-sop-siglip2-bf16-coverage-replication-v1"
         or decision.get("replication_gate_pass") is not True
         or decision.get("seeds") != list(SEEDS)
     ):
         raise ValueError("coverage official training decision differs")
+    if (
+        old_report.get("schema") != "sfora-sop-siglip2-bf16-official-paired-report-v1"
+        or old_report.get("test_images") != 60_502
+        or old_report.get("seeds") != list(SEEDS)
+    ):
+        raise ValueError("old official report differs")
     with np.load(args.source_archive, allow_pickle=False) as archive:
         labels = np.asarray(archive["test_labels"], dtype=np.int64)
         ids = np.asarray(archive["test_image_ids"], dtype=np.int64)
@@ -61,6 +71,8 @@ def main() -> None:
         old_path = args.run_base / f"sfora-siglip2-bf16-official-{seed}-bank-v1/receipt.json"
         if sha256(source) != training["receipt_sha256"]:
             raise ValueError(f"seed {seed} training receipt differs")
+        if sha256(old_path) != old_report["arms"][str(seed)]["bank"]["official_receipt_sha256"]:
+            raise ValueError(f"seed {seed} old official comparator differs")
         new, old = (json.loads(path.read_text()) for path in (new_path, old_path))
         source_files = new.get("evaluator_source_files_sha256", {})
         if (
@@ -118,11 +130,12 @@ def main() -> None:
         }
     delta = np.mean(deltas, axis=0)
     result = {
-        "schema": "sfora-sop-siglip2-coverage-official-report-v1",
+        "schema": "sfora-sop-siglip2-coverage-official-report-v2",
         "claim_eligible": False,
         "split": "already-observed SOP official TEST, symmetric full gallery, self excluded",
         "source_sha256": sha256(Path(__file__)),
         "decision_sha256": DECISION_SHA256,
+        "old_report_sha256": OLD_REPORT_SHA256,
         "seeds": SEEDS,
         "rows": rows,
         "mean_packed_r1": float(
