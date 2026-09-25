@@ -150,7 +150,7 @@ batch-32 median search falling from about 4.5 to 2.8 ms on one synthetic
 million-row gallery, while batch-1 stays near 1.05 ms. That result neither
 compares encoders nor establishes better-than-published system performance.
 
-## Current checkpoint and next experiment
+## Historical checkpoint, 23 September
 
 The optional OML SOP profile reaches 85.9757% Recall@1 and 0.641825 mAP@R
 at 130 bytes; the previous Sfora SOP path reached 77.0173% and 0.511490.
@@ -173,3 +173,36 @@ and a clean confirmation panel are required before an algorithmic or
 cross-dataset SOTA claim. The existing Lean proofs establish abstract top-k
 exactness and conditional recall and cost bounds; empirical accuracy and
 latency remain measurements.
+
+## Measured continuation, 25 September
+
+The current candidate is a SigLIP2 Large patch16/256 image encoder with a
+PCA-initialized trainable 1024→128 head. The training objective is ArcFace on
+fit-only product proxies plus SmoothAP against a detached full-fit member bank;
+the matched float control uses the same encoder/head/schedule and in-batch
+SmoothAP. Both use BF16 vision autocast, FP32 objective and parameters, AdamW
+(vision 1e-5, head/proxies 1e-4, decay 0.05), and 1,000 updates × 64 images.
+The deployed gallery stores 128 signed int8 coordinates plus an fp16 inverse
+norm: 130 bytes/image. The native scorer ranks the packed score exactly with
+ordinal tie breaks. These are known components; the combination has no
+established novelty claim.
+
+| Dataset and split | Candidate or control | Quality | Cost/performance | Evidence status |
+| --- | --- | --- | --- | --- |
+| SOP official TRAIN, 5,851 held queries/full TRAIN gallery | Coverage bank, 3 seeds | packed R@1 92.4457%, mAP@R 0.767977 | mean 1,150.78 s/64,000 training images; 55.61 images/s; 21.409 GB peak CUDA | [paired replicated holdout](sop_siglip2_coverage_replication_result_2026-09-25.md), verified source-bound, selection split |
+| SOP official TEST, 60,502 symmetric queries, self excluded | Coverage bank, 3 seeds | packed R@1 91.2725%, mAP@R 0.757861 | 130-byte gallery | [exploratory official read](sop_siglip2_coverage_official_result_2026-09-25.md), source-bound; TEST had prior Sfora reads |
+| SOP official TEST, 60,470 gallery rows after 32 held query rows | Selected bank checkpoint vs faithful UNICOM L14/336 | quality assessed separately above | image-to-top10 p50/p95 at batch1: 23.328/26.239 ms vs 36.305/39.055 ms; batch32: 314.683/325.875 ms vs 558.497/568.963 ms | [100-call diagnostic](sop_coverage_vs_fullwidth_unicom_latency_2026-09-25.md), no p99 certification |
+| In-Shop official TRAIN, 2,540 class-disjoint held queries/full 25,882 TRAIN gallery | Bank vs matched float, seed179023 | packed R@1 97.8346% vs 97.2047%; mAP@R 0.774027 vs 0.758778 | 1,151.43 s/23.829 GB CUDA vs 1,137.96 s/21.077 GB for 64,000 images | [one paired exploratory seed](inshop_siglip2_paired_training_gate_2026-09-25.md); four serial runs active |
+| SOP official TEST / In-Shop official query-gallery | UNICOM L14/336 paper | published R@1 91.2% / 96.7% | published full-width descriptor; local SOP latency control above | dated [UNICOM Table 4](https://arxiv.org/abs/2304.05884), not the verified latest frontier |
+
+The first In-Shop TRAIN holdout result is not an official query/gallery score
+and cannot be compared numerically with the paper's 96.7%. The remaining
+three-seed paired gate is active on the DGX Spark; the official 14,218-query /
+12,612-gallery split remains unopened for selection. After the train-only gate,
+evaluate three checkpoints of one frozen selected arm, compare matched local
+quality and image-to-top-k latency, then run the 10,000-call/cell p99 gate if
+both primary quality protocols clear. CUB/Cars transfer and a separately
+validated new method remain required for a broad SOTA/novelty claim. Lean
+currently proves exact selector invariants, conditional score/recall/cost
+bounds, and valid-positive preservation for the bank padding trim; it does
+not prove empirical recall, optimizer success, or physical latency.
