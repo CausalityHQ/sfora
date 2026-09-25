@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import inspect
 import json
 import os
 import resource
@@ -13,6 +14,8 @@ from pathlib import Path
 
 import numpy as np
 import torch
+import train_inshop_siglip2_compact as train_source
+import transformers
 from export_inshop_siglip2_train_features import MODEL_HASHES
 from export_sop_siglip2_train import MODEL_REVISION
 from torch import nn
@@ -24,6 +27,19 @@ from sfora.joint_relational_compaction import PackedInt8Embeddings, pack_int8_un
 from sfora.unicom_inshop import parse_inshop_partition
 
 PARTITION_SHA256 = "cfada103c44df866db5e2ee9ecc2301ca691a4d0cdb3c875fe4051b62570894c"
+
+
+def loaded_helper_paths() -> tuple[Path, ...]:
+    return tuple(
+        Path(inspect.getfile(inspect.unwrap(helper))).resolve()
+        for helper in (train_source, export_all, pack_int8_unit_embeddings, parse_inshop_partition)
+    )
+
+
+def verify_loaded_helper_sources(sources: dict[str, str]) -> None:
+    for path in loaded_helper_paths():
+        if sources.get(str(path)) != sha256(path):
+            raise ValueError(f"In-Shop loaded helper source differs: {path}")
 
 
 @torch.inference_mode()
@@ -157,11 +173,14 @@ def main() -> None:
         or receipt.get("held_rows_sha256") != HELD_SHA256
         or receipt.get("checkpoint_sha256") != sha256(checkpoint_path)
         or receipt.get("quality", {}).get("recall_at_1") is None
+        or receipt.get("hardware", {}).get("torch") != torch.__version__
+        or receipt.get("hardware", {}).get("transformers") != transformers.__version__
         or any(
             sha256(Path(name)) != digest for name, digest in receipt["source_files_sha256"].items()
         )
     ):
         raise ValueError("In-Shop official training receipt differs")
+    verify_loaded_helper_sources(receipt["source_files_sha256"])
     records = parse_inshop_partition(args.dataset_root)
     queries = tuple(row for row in records if row.split == "query")
     gallery = tuple(row for row in records if row.split == "gallery")
