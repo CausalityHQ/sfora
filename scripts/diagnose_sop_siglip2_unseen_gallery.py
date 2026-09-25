@@ -202,7 +202,9 @@ def main() -> None:
         "source_sha256": sha256(Path(__file__)),
         "dependency_source_sha256": {
             "packed_wire": sha256(Path(inspect.getsourcefile(pack_int8_unit_embeddings))),
-            "packed_scorer": sha256(Path(inspect.getsourcefile(score_packed_full_gallery))),
+            "packed_scorer": sha256(
+                Path(inspect.getsourcefile(inspect.unwrap(score_packed_full_gallery)))
+            ),
             "partition": sha256(Path(inspect.getsourcefile(deterministic_class_partition))),
             "schedule": sha256(Path(inspect.getsourcefile(identity_balanced_batches))),
             "bootstrap": sha256(Path(inspect.getsourcefile(product_bootstrap))),
