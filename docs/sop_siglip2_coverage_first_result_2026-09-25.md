@@ -79,3 +79,10 @@ products. At 1,000 updates of 64 and four images per identity, seeds
 179023/179024/179025 each touched all 25,882 rows. Singleton rows are
 repeated within their batch; the In-Shop loss and augmentation handling must
 be checked before a GPU port. This preflight measures schedule coverage only.
+The current bank loss requires another distinct row of the same product, so
+these singleton batches cannot use its rank term. The three schedules contain
+25/37/40 such batches, respectively. The In-Shop port can keep all images in
+ArcFace and make those batches ArcFace-only in **every** paired arm, leaving
+975/963/960 rank-active updates. This avoids dropping TRAIN identities and
+keeps the bank/float learning comparison matched; the rule must be frozen
+before In-Shop quality is read.
