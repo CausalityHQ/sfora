@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections import Counter, defaultdict
+from collections import Counter, defaultdict, deque
 from collections.abc import Sequence
 
 import numpy as np
@@ -17,12 +17,15 @@ def identity_balanced_batches(
     seed: int,
     epoch: int,
     steps: int,
+    coverage_first: bool = False,
 ) -> tuple[tuple[int, ...], ...]:
     """Return a replayable identity-balanced index schedule for one epoch."""
 
     integers = (batch_size, images_per_identity, seed, epoch, steps)
     if any(type(value) is not int for value in integers):
         raise TypeError("rank-finish schedule parameters must be builtin integers")
+    if type(coverage_first) is not bool:
+        raise TypeError("rank-finish coverage mode must be a boolean")
     if (
         batch_size <= 0
         or images_per_identity < 2
@@ -45,10 +48,26 @@ def identity_balanced_batches(
     rng = np.random.Generator(np.random.PCG64(np.random.SeedSequence((seed, epoch))))
     identity_names = tuple(sorted(grouped))
     permutations = {
-        label: list(rng.permutation(grouped[label]).tolist())
-        for label in identity_names
+        label: list(rng.permutation(grouped[label]).tolist()) for label in identity_names
     }
     positions = {label: 0 for label in identity_names}
+    pending = (
+        deque(
+            str(label)
+            for offset in range(
+                (max(map(len, grouped.values())) + images_per_identity - 1) // images_per_identity
+            )
+            for label in rng.permutation(
+                [
+                    name
+                    for name in identity_names
+                    if len(grouped[name]) > offset * images_per_identity
+                ]
+            )
+        )
+        if coverage_first
+        else deque()
+    )
 
     def draw(label: str) -> tuple[int, ...]:
         selected: list[int] = []
@@ -70,14 +89,30 @@ def identity_balanced_batches(
 
     batches = []
     for _ in range(steps):
-        selected_identities = rng.choice(
-            identity_names, size=identities_per_batch, replace=False
-        ).tolist()
-        batch = tuple(
-            index
-            for label in selected_identities
-            for index in draw(str(label))
-        )
+        if coverage_first:
+            selected_identities: list[str] = []
+            while len(selected_identities) < identities_per_batch:
+                for _ in range(len(pending)):
+                    label = pending.popleft()
+                    if label not in selected_identities:
+                        selected_identities.append(label)
+                        break
+                    pending.append(label)
+                else:
+                    remaining = [name for name in identity_names if name not in selected_identities]
+                    selected_identities.extend(
+                        rng.choice(
+                            remaining,
+                            size=identities_per_batch - len(selected_identities),
+                            replace=False,
+                        ).tolist()
+                    )
+                    break
+        else:
+            selected_identities = rng.choice(
+                identity_names, size=identities_per_batch, replace=False
+            ).tolist()
+        batch = tuple(index for label in selected_identities for index in draw(str(label)))
         batches.append(batch)
     return tuple(batches)
 
@@ -112,12 +147,8 @@ def smooth_ap_finish_loss(
     if any(count < 2 for count in counts.values()):
         raise ValueError("rank-finish positive inventory differs")
 
-    normalized = torch.nn.functional.normalize(embeddings.float(), dim=1)[
-        :, :dimensions
-    ]
-    distances = torch.sum(
-        (normalized[:, None, :] - normalized[None, :, :]).square(), dim=2
-    )
+    normalized = torch.nn.functional.normalize(embeddings.float(), dim=1)[:, :dimensions]
+    distances = torch.sum((normalized[:, None, :] - normalized[None, :, :]).square(), dim=2)
     rows = len(labels)
     encoded: dict[object, int] = {}
     label_ids = []
@@ -126,9 +157,7 @@ def smooth_ap_finish_loss(
     label_tensor = torch.tensor(label_ids, device=embeddings.device)
     identity = torch.eye(rows, device=embeddings.device, dtype=torch.bool)
     positive_mask = label_tensor[:, None].eq(label_tensor[None, :]) & ~identity
-    comparisons = torch.sigmoid(
-        (distances[:, :, None] - distances[:, None, :]) / temperature
-    )
+    comparisons = torch.sigmoid((distances[:, :, None] - distances[:, None, :]) / temperature)
     candidate_mask = ~identity
     competitor_mask = candidate_mask[:, None, :] & ~identity[None, :, :]
     rank = 1.0 + (comparisons * competitor_mask).sum(dim=2)

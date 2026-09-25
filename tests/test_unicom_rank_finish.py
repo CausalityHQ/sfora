@@ -56,10 +56,7 @@ def test_identity_balanced_batches_cycle_only_after_identity_inventory() -> None
     for batch in batches:
         for index in batch:
             by_identity.setdefault(labels[index], []).append(index)
-    assert all(
-        len(indices) <= 5 or len(set(indices[:5])) == 5
-        for indices in by_identity.values()
-    )
+    assert all(len(indices) <= 5 or len(set(indices[:5])) == 5 for indices in by_identity.values())
 
 
 def test_identity_balanced_batches_cycle_sparse_identity_images() -> None:
@@ -77,9 +74,25 @@ def test_identity_balanced_batches_cycle_sparse_identity_images() -> None:
     counts = Counter(labels[index] for index in batch)
     assert set(counts.values()) == {4}
     assert all(
-        len(set(index for index in batch if labels[index] == label)) == 2
-        for label in counts
+        len(set(index for index in batch if labels[index] == label)) == 2 for label in counts
     )
+
+
+def test_coverage_first_schedule_visits_each_identity_before_second_pass() -> None:
+    labels = _labels(identity_count=20, images_per_identity=5)
+    arguments = dict(
+        batch_size=40,
+        images_per_identity=4,
+        seed=13,
+        epoch=5,
+        steps=3,
+        coverage_first=True,
+    )
+    batches = identity_balanced_batches(labels, **arguments)
+    assert batches == identity_balanced_batches(labels, **arguments)
+    assert len({index for batch in batches for index in batch}) == 90
+    assert len({labels[index] for batch in batches[:2] for index in batch}) == 20
+    assert all(len(Counter(labels[index] for index in batch)) == 10 for batch in batches)
 
 
 @pytest.mark.parametrize(
@@ -102,9 +115,7 @@ def _smooth_ap_scalar_oracle(
     embeddings: torch.Tensor, labels: tuple[int, ...], *, temperature: float
 ) -> torch.Tensor:
     normalized = torch.nn.functional.normalize(embeddings.float(), dim=1)[:, :512]
-    distances = torch.sum(
-        (normalized[:, None, :] - normalized[None, :, :]) ** 2, dim=2
-    )
+    distances = torch.sum((normalized[:, None, :] - normalized[None, :, :]) ** 2, dim=2)
     average_precisions = []
     for anchor, label in enumerate(labels):
         candidates = [index for index in range(len(labels)) if index != anchor]
@@ -112,24 +123,23 @@ def _smooth_ap_scalar_oracle(
         positive_precisions = []
         for positive in positives:
             competitors = [index for index in candidates if index != positive]
-            rank = 1.0 + torch.stack(
-                [
-                    torch.sigmoid(
-                        (distances[anchor, positive] - distances[anchor, other])
-                        / temperature
-                    )
-                    for other in competitors
-                ]
-            ).sum()
-            positive_competitors = [
-                other for other in positives if other != positive
-            ]
+            rank = (
+                1.0
+                + torch.stack(
+                    [
+                        torch.sigmoid(
+                            (distances[anchor, positive] - distances[anchor, other]) / temperature
+                        )
+                        for other in competitors
+                    ]
+                ).sum()
+            )
+            positive_competitors = [other for other in positives if other != positive]
             positive_rank = 1.0 + (
                 torch.stack(
                     [
                         torch.sigmoid(
-                            (distances[anchor, positive] - distances[anchor, other])
-                            / temperature
+                            (distances[anchor, positive] - distances[anchor, other]) / temperature
                         )
                         for other in positive_competitors
                     ]
@@ -147,9 +157,7 @@ def test_smooth_ap_finish_loss_matches_scalar_deployment_geometry_and_gradients(
     embeddings = torch.randn(8, 768, generator=generator, requires_grad=True)
     labels = (0, 0, 1, 1, 2, 2, 3, 3)
 
-    observed = smooth_ap_finish_loss(
-        embeddings, labels, dimensions=512, temperature=0.01
-    )
+    observed = smooth_ap_finish_loss(embeddings, labels, dimensions=512, temperature=0.01)
     expected = _smooth_ap_scalar_oracle(embeddings, labels, temperature=0.01)
 
     torch.testing.assert_close(observed, expected, rtol=0.0, atol=1e-7)
@@ -168,9 +176,7 @@ def test_smooth_ap_finish_loss_rewards_positive_ordering() -> None:
     reversed_order[2] = torch.tensor([1.0, 0.0] + [0.0] * 766)
     labels = (0, 0, 1, 1)
 
-    assert smooth_ap_finish_loss(perfect, labels) < smooth_ap_finish_loss(
-        reversed_order, labels
-    )
+    assert smooth_ap_finish_loss(perfect, labels) < smooth_ap_finish_loss(reversed_order, labels)
 
 
 @pytest.mark.parametrize(

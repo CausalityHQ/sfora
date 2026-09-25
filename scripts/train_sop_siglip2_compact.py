@@ -527,6 +527,7 @@ def main() -> None:
     parser.add_argument("--gradient-diagnostic-steps", type=int, default=0)
     parser.add_argument("--rank-coefficient", type=float, default=SIGLIP2_RANK_COEFFICIENT)
     parser.add_argument("--train-vision-dtype", choices=("fp16", "bf16"), default="fp16")
+    parser.add_argument("--coverage-first-schedule", action="store_true")
     parser.add_argument("--member-bank", action="store_true")
     parser.add_argument("--member-bank-preflight", type=Path)
     parser.add_argument("--expected-member-bank-preflight-sha256")
@@ -656,6 +657,7 @@ def main() -> None:
             seed=args.seed,
             epoch=1,
             steps=args.updates,
+            coverage_first=args.coverage_first_schedule,
         )
         if args.updates
         else ()
@@ -863,6 +865,7 @@ def main() -> None:
             "member_bank": args.member_bank,
             "live_head_bank": args.live_head_bank,
             "train_vision_dtype": args.train_vision_dtype,
+            "coverage_first_schedule": args.coverage_first_schedule,
         },
         checkpoint_path,
     )
@@ -929,6 +932,7 @@ def main() -> None:
         "initial_head_sha256": initial_head_sha,
         "initial_classifier_sha256": initial_classifier_sha,
         "schedule_sha256": schedule_sha,
+        "coverage_first_schedule": args.coverage_first_schedule,
         "first_input_batch_sha256": first_input_batch_sha256,
         "rank_to_arcface_head_gradient_ratio": rank_to_arcface_head_gradient_ratio,
         "query_image_ids_sha256": hashlib.sha256(ids[held_rows].tobytes()).hexdigest(),

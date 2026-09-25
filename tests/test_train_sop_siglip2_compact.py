@@ -193,7 +193,7 @@ def test_live_head_cost_receipt_rejects_slow_candidate() -> None:
         },
         "source_sha256": {
             "script": "bfcf51e3e6e9fee5ba4a0c45cf144177e8571aa00681236ebaeff9350ec09fb3",
-            "live_loss": "c90ca44a036cfee1998a5ad11362e6f358f013f502ca83ddd92b8318875a5c39",
+            "live_loss": MODULE.sha256(Path(MODULE.live_head_bank_loss.__code__.co_filename)),
             "detached_loss": "a57a1b8cb4722a12dbc8fd255255632b05aff918c8c66e46e5708c2da9e4854a",
         },
     }
