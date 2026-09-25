@@ -1,0 +1,111 @@
+#!/usr/bin/env python3
+"""Reproduce the paired SOP TRAIN live precision quality comparison."""
+
+import hashlib
+import json
+import math
+import os
+from pathlib import Path
+
+import numpy as np
+
+from sfora.representation_ceiling import deterministic_class_partition
+
+BASE = Path("/home/riomus/runs/sfora-siglip2-arcface-1000-v10-55040a7")
+ARCHIVE = Path("/home/riomus/sfora-relational-sop-e1/unicom-l14-sop-v1.npz")
+INPUTS = {
+    "fp32_autocast": (BASE / "live_timing.json", "e7e0a464d9898ff41eb727ca5aaaeb428c7a4d0f79b46dd38c39b7399bd0160a"),
+    "fp16_native": (BASE / "live_timing_fp16.json", "7b879d2a31b9240afb65c3206af587149d746467e69707e34d8545106577e4d4"),
+    "paired_timing": (BASE / "live_timing_precision_pair.json", "fe0b73759e25e4032c5055f1c043c2b8162dc774bc9e8bcac9f7624b997e2360"),
+}
+EXPECTED_ARCHIVE = "1ba27b2d6b9db39067aa6facd0ef8aafc303c4527f6feabed859b0512c7d921a"
+OUTPUT = BASE / "live_precision_quality_bootstrap.json"
+SEED = 179019
+DRAWS = 5000
+
+
+def sha256(path: Path) -> str:
+    with path.open("rb") as stream:
+        return hashlib.file_digest(stream, "sha256").hexdigest()
+
+
+def main() -> None:
+    if sha256(ARCHIVE) != EXPECTED_ARCHIVE or OUTPUT.exists():
+        raise ValueError("SOP precision quality source or output differs")
+    data = {}
+    for name, (path, expected) in INPUTS.items():
+        if sha256(path) != expected:
+            raise ValueError(f"SOP {name} receipt differs")
+        data[name] = json.loads(path.read_text())
+    a = data["fp32_autocast"]
+    b = data["fp16_native"]
+    pair = data["paired_timing"]
+    if (
+        a["training_receipt_sha256"] != b["training_receipt_sha256"]
+        or a["training_receipt_sha256"] != pair["training_receipt_sha256"]
+        or a["training_checkpoint_sha256"] != b["training_checkpoint_sha256"]
+        or a["training_checkpoint_sha256"] != pair["training_checkpoint_sha256"]
+        or a["train_embeddings_sha256"] != b["train_embeddings_sha256"]
+        or a["train_embeddings_sha256"] != pair["train_embeddings_sha256"]
+        or a["live_batch1_quality"]["per_query_cached_r1"]
+        != b["live_batch1_quality"]["per_query_cached_r1"]
+    ):
+        raise ValueError("SOP precision quality pairing differs")
+    with np.load(ARCHIVE, allow_pickle=False) as archive:
+        labels = np.asarray(archive["train_labels"], dtype=np.int64)
+    held = np.asarray(
+        deterministic_class_partition(
+            tuple(map(int, labels)), fit_fraction=0.9, seed=SEED
+        ).validation_row_indexes,
+        dtype=np.int64,
+    )
+    labels = labels[held]
+    fp32 = np.asarray(a["live_batch1_quality"]["per_query_live_r1"], dtype=np.int8)
+    fp16 = np.asarray(b["live_batch1_quality"]["per_query_live_r1"], dtype=np.int8)
+    if labels.shape != (5851,) or fp32.shape != labels.shape or fp16.shape != labels.shape:
+        raise ValueError("SOP precision quality query geometry differs")
+    delta = fp16 - fp32
+    classes, inverse = np.unique(labels, return_inverse=True)
+    counts = np.bincount(inverse)
+    totals = np.bincount(inverse, weights=delta, minlength=len(classes))
+    random = np.random.default_rng(SEED)
+    draws = np.empty(DRAWS, dtype=np.float64)
+    for start in range(0, DRAWS, 512):
+        stop = min(start + 512, DRAWS)
+        selected = random.integers(0, len(classes), size=(stop - start, len(classes)))
+        draws[start:stop] = totals[selected].sum(axis=1) / counts[selected].sum(axis=1)
+    ci = np.quantile(draws, [0.025, 0.975])
+    lost = int(np.count_nonzero(delta == -1))
+    gained = int(np.count_nonzero(delta == 1))
+    discordant = lost + gained
+    tail = sum(math.comb(discordant, i) for i in range(min(lost, gained) + 1))
+    mcnemar_p = min(1.0, 2 * tail / (2**discordant))
+    result = {
+        "schema": "sfora-sop-siglip2-live-precision-quality-paired-v1",
+        "claim_eligible": False,
+        "split": "SOP official TRAIN product-disjoint holdout queries, full TRAIN gallery",
+        "source_sha256": sha256(Path(__file__)),
+        "source_archive_sha256": EXPECTED_ARCHIVE,
+        "inputs_sha256": {key: expected for key, (_, expected) in INPUTS.items()},
+        "seed": SEED,
+        "draws": DRAWS,
+        "bootstrap_unit": "heldout product, sampled with replacement; ratio of sampled correct-query differences to sampled query count",
+        "query_count": len(labels),
+        "heldout_products": len(classes),
+        "fp32_autocast_recall_at_1": float(fp32.mean()),
+        "fp16_native_recall_at_1": float(fp16.mean()),
+        "fp16_minus_fp32_percentage_points": float(delta.mean() * 100),
+        "product_bootstrap_95_ci_percentage_points": (ci * 100).tolist(),
+        "fp32_only_correct": lost,
+        "fp16_only_correct": gained,
+        "exact_two_sided_mcnemar_p": mcnemar_p,
+    }
+    with OUTPUT.open("xb") as stream:
+        stream.write((json.dumps(result, sort_keys=True, allow_nan=False) + "\n").encode())
+        stream.flush()
+        os.fsync(stream.fileno())
+    print(json.dumps(result, sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()
