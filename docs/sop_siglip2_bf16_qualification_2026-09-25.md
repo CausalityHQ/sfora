@@ -24,3 +24,21 @@ control before attributing bank quality to the ranking method. Freeze the
 method and run official SOP TEST and In-Shop only after that new internal
 gate passes. No result from this qualification counts as a quality or SOTA
 measurement.
+
+## Qualification result
+
+The frozen source-pinned diagnostic unit
+`sfora-siglip2-arcface-bf16-qualification-179020-v1.service` (invocation
+`4c323735a1d443b5baae185abb18509f`) completed all 1,000 ArcFace
+updates. Its [receipt](evidence/compact_metric/sop-siglip2-substrate-v1/arcface-bf16-qualification-179020-v1.json)
+has SHA-256 `697c34675afa31b518764ffc14c87a42e1e7ad94cf846c8298d313541d00fa65`,
+matching the remote file, and records trainer SHA-256
+`ad66b1613f0c1c8373d69a689d1556c9b250527a8045a6b85bec523f99466d23`,
+seed 179020, BF16 vision autocast without loss scaling, a 1,000-step schedule,
+and `quality: null`. Training wall was **1,135.365 s** (about **56.37
+images/s** over 64,000 scheduled fit-image presentations); peak allocated GPU
+memory was **21,089,141,248 bytes** on NVIDIA GB10. The final loss was
+5.826611. The [raw journal](evidence/compact_metric/sop-siglip2-substrate-v1/arcface-bf16-qualification-179020-journal-v1.log)
+has SHA-256 `de5524c7c37e50ca88186d6933e08b5b78391447eff6be46e97b04086ab6b2d6`.
+This passes the stated *stability* qualification. It does not measure recall,
+prove BF16 optimal, or turn the failed FP16 replication into a completed gate.

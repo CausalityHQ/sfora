@@ -1,0 +1,26 @@
+Started sfora-siglip2-arcface-bf16-qualification-179020-v1.service - /bin/bash /home/riomus/sfora-siglip2-bf16-qual-v1/scripts/run_sop_siglip2_bf16_qual_179020_dgx.sh.
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  21%|██▏       | 170/792 [00:00<00:00, 1695.14it/s]Loading weights:  61%|██████    | 481/792 [00:00<00:00, 2483.70it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2680.07it/s]
+{"step": 50, "loss": 4.450547218322754, "arcface": 4.450547218322754, "rank": 0.0, "elapsed_seconds": 58.517839037813246}
+{"step": 100, "loss": 7.669950008392334, "arcface": 7.669950008392334, "rank": 0.0, "elapsed_seconds": 114.94769033696502}
+{"step": 150, "loss": 7.405453681945801, "arcface": 7.405453681945801, "rank": 0.0, "elapsed_seconds": 171.55514636216685}
+{"step": 200, "loss": 5.570210933685303, "arcface": 5.570210933685303, "rank": 0.0, "elapsed_seconds": 228.21749608917162}
+{"step": 250, "loss": 8.179388046264648, "arcface": 8.179388046264648, "rank": 0.0, "elapsed_seconds": 284.90839374111965}
+{"step": 300, "loss": 6.372115135192871, "arcface": 6.372115135192871, "rank": 0.0, "elapsed_seconds": 341.58212199714035}
+{"step": 350, "loss": 5.814353942871094, "arcface": 5.814353942871094, "rank": 0.0, "elapsed_seconds": 398.2706248238683}
+{"step": 400, "loss": 5.479272842407227, "arcface": 5.479272842407227, "rank": 0.0, "elapsed_seconds": 454.95129568502307}
+{"step": 450, "loss": 6.2065606117248535, "arcface": 6.2065606117248535, "rank": 0.0, "elapsed_seconds": 511.6597095471807}
+{"step": 500, "loss": 3.8604660034179688, "arcface": 3.8604660034179688, "rank": 0.0, "elapsed_seconds": 568.3675499469973}
+{"step": 550, "loss": 5.708624839782715, "arcface": 5.708624839782715, "rank": 0.0, "elapsed_seconds": 625.0581309860572}
+{"step": 600, "loss": 8.543685913085938, "arcface": 8.543685913085938, "rank": 0.0, "elapsed_seconds": 681.7909190398641}
+{"step": 650, "loss": 4.004846096038818, "arcface": 4.004846096038818, "rank": 0.0, "elapsed_seconds": 738.4918739050627}
+{"step": 700, "loss": 4.403522968292236, "arcface": 4.403522968292236, "rank": 0.0, "elapsed_seconds": 795.231378632132}
+{"step": 750, "loss": 6.898171424865723, "arcface": 6.898171424865723, "rank": 0.0, "elapsed_seconds": 851.9465279257856}
+{"step": 800, "loss": 6.104652404785156, "arcface": 6.104652404785156, "rank": 0.0, "elapsed_seconds": 908.6333974017762}
+{"step": 850, "loss": 5.0326080322265625, "arcface": 5.0326080322265625, "rank": 0.0, "elapsed_seconds": 965.3057419531979}
+{"step": 900, "loss": 5.13516092300415, "arcface": 5.13516092300415, "rank": 0.0, "elapsed_seconds": 1022.0201866501011}
+{"step": 950, "loss": 5.16908073425293, "arcface": 5.16908073425293, "rank": 0.0, "elapsed_seconds": 1078.6590542588383}
+{"step": 1000, "loss": 5.826611042022705, "arcface": 5.826611042022705, "rank": 0.0, "elapsed_seconds": 1135.2919123289175}
+{"arm": "arcface", "training_seconds": 1135.3648013351485, "quality_r1": null}
+sfora-siglip2-arcface-bf16-qualification-179020-v1.service: Consumed 24min 2.840s CPU time, 4.8G memory peak, 0B memory swap peak.
