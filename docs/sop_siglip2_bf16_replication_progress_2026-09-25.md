@@ -58,5 +58,40 @@ freezes the next fit-only diagnostic and matched comparison before its
 coefficient is observed. Seed 179025 began in its own
 serial unit after this unit terminated and the GPU became idle.
 
+Seed 179025 completed in unit
+`sfora-siglip2-bf16-member-bank-seed179025-v1.service` (invocation
+`94aebf0386e7406a914a740c8b7c3479`) with ArcFace, float-rank, and bank
+arms in the frozen order. The unit exited successfully, the native exact
+top-10 authority and matched three-arm checks passed, and the
+[raw journal](evidence/compact_metric/sop-siglip2-substrate-v1/bf16-seed179025-serial-journal-v1.log)
+has SHA-256 `0c036506b1c3dcd692f0347647c6e22edfc1d8e6238877703c2df315edb616d4`.
+
+| Seed 179025 arm | TRAIN holdout Recall@1 | mAP@R | Training wall | Peak allocated GPU | Receipt SHA-256 |
+| --- | ---: | ---: | ---: | ---: | --- |
+| ArcFace | 90.0872% | 0.716969 | 1,137.230 s | 21,089,141,248 B | [78daea82…17130b9](evidence/compact_metric/sop-siglip2-substrate-v1/bf16-seed179025-arcface-v1.json) |
+| In-batch float SmoothAP | 90.5144% | 0.722871 | 1,136.867 s | 21,089,141,248 B | [eaaf08bd…f79e0](evidence/compact_metric/sop-siglip2-substrate-v1/bf16-seed179025-float-rank-v1.json) |
+| Full-fit detached member bank | 91.0955% | 0.739623 | 1,147.036 s | 21,409,459,200 B | [1216edb6…573a39d](evidence/compact_metric/sop-siglip2-substrate-v1/bf16-seed179025-bank-v1.json) |
+
+The [source-bound three-seed gate receipt](evidence/compact_metric/sop-siglip2-substrate-v1/bf16-member-bank-multiseed-v1.json)
+has SHA-256 `70a682d158c914d00505df8d9fd2e53dab5abe3f067a43d472a5fd5d411ad6ce`
+and reports **pass**. Across seeds 179023–179025, bank-minus-float
+Recall@1 is **+0.7691, +0.7007, +0.5811 percentage points**; the arithmetic
+mean is **+0.6836 points** with a **+0.3884 to +0.9818 point** 95% bootstrap
+interval over heldout products. Mean mAP@R gains **+0.017745**, and bank
+training wall including initialization is **1.0044×, 1.0108×, 1.0089×**
+the float arms. Bank-minus-ArcFace mean Recall@1 is **+1.1508 points** with
+a **+0.8398 to +1.4685 point** product-bootstrap interval. Across all three
+seeds, mean packed Recall@1 is **91.2266% bank**, **90.5429% float**, and
+**90.0758% ArcFace**; mean training wall is **1,147.383 s bank**,
+**1,138.211 s float**, and **1,138.925 s ArcFace** on NVIDIA GB10.
+
+The bootstrap interval conditions on these three trained seeds and the
+already-used TRAIN holdout; it does not measure variation over future
+training seeds or establish performance on official TEST. The bank's rank
+term is much larger than the in-batch term at the same nominal coefficient,
+so the passed gate supports this compact *system* on this internal panel,
+not a bank-specific learning-mechanism or new-method claim. The frozen
+fit-only gradient-contribution control is the next causal gate.
+
 No official SOP TEST or In-Shop evaluation has been opened for this SigLIP2
 candidate, and no SOTA or novelty claim follows from this checkpoint.

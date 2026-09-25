@@ -1,0 +1,104 @@
+Started sfora-siglip2-bf16-member-bank-seed179025-v1.service - /bin/bash /home/riomus/sfora-siglip2-bf16-qual-v1/scripts/run_sop_siglip2_bf16_member_bank_seed_dgx.sh 179025.
+RUN BF16 seed=179025 arm=arcface output=/home/riomus/runs/sfora-siglip2-bf16-member-bank-179025-arcface-v1
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  23%|██▎       | 186/792 [00:00<00:00, 1811.80it/s]Loading weights:  65%|██████▍   | 513/792 [00:00<00:00, 2629.88it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2757.16it/s]
+{"step": 50, "loss": 7.409825801849365, "arcface": 7.409825801849365, "rank": 0.0, "elapsed_seconds": 58.87325803888962}
+{"step": 100, "loss": 4.140639305114746, "arcface": 4.140639305114746, "rank": 0.0, "elapsed_seconds": 115.643035559915}
+{"step": 150, "loss": 6.442700386047363, "arcface": 6.442700386047363, "rank": 0.0, "elapsed_seconds": 172.40220223227516}
+{"step": 200, "loss": 8.608908653259277, "arcface": 8.608908653259277, "rank": 0.0, "elapsed_seconds": 229.16551276808605}
+{"step": 250, "loss": 7.549880027770996, "arcface": 7.549880027770996, "rank": 0.0, "elapsed_seconds": 285.9208773318678}
+{"step": 300, "loss": 4.829866409301758, "arcface": 4.829866409301758, "rank": 0.0, "elapsed_seconds": 342.68841301323846}
+{"step": 350, "loss": 5.799652576446533, "arcface": 5.799652576446533, "rank": 0.0, "elapsed_seconds": 399.45758828613907}
+{"step": 400, "loss": 5.914087772369385, "arcface": 5.914087772369385, "rank": 0.0, "elapsed_seconds": 456.23726830491796}
+{"step": 450, "loss": 4.625380516052246, "arcface": 4.625380516052246, "rank": 0.0, "elapsed_seconds": 512.968706889078}
+{"step": 500, "loss": 3.8169806003570557, "arcface": 3.8169806003570557, "rank": 0.0, "elapsed_seconds": 569.7307009659708}
+{"step": 550, "loss": 6.4443135261535645, "arcface": 6.4443135261535645, "rank": 0.0, "elapsed_seconds": 626.5085692452267}
+{"step": 600, "loss": 6.395979881286621, "arcface": 6.395979881286621, "rank": 0.0, "elapsed_seconds": 683.3123103422113}
+{"step": 650, "loss": 6.120932579040527, "arcface": 6.120932579040527, "rank": 0.0, "elapsed_seconds": 740.0497862929478}
+{"step": 700, "loss": 5.82186222076416, "arcface": 5.82186222076416, "rank": 0.0, "elapsed_seconds": 796.8084466252476}
+{"step": 750, "loss": 7.684731483459473, "arcface": 7.684731483459473, "rank": 0.0, "elapsed_seconds": 853.549756674096}
+{"step": 800, "loss": 6.775328636169434, "arcface": 6.775328636169434, "rank": 0.0, "elapsed_seconds": 910.2942043282092}
+{"step": 850, "loss": 8.70571517944336, "arcface": 8.70571517944336, "rank": 0.0, "elapsed_seconds": 967.0077862502076}
+{"step": 900, "loss": 6.555693626403809, "arcface": 6.555693626403809, "rank": 0.0, "elapsed_seconds": 1023.7442985041998}
+{"step": 950, "loss": 5.1546854972839355, "arcface": 5.1546854972839355, "rank": 0.0, "elapsed_seconds": 1080.4796526269056}
+{"step": 1000, "loss": 4.411273002624512, "arcface": 4.411273002624512, "rank": 0.0, "elapsed_seconds": 1137.168642802164}
+{"export_batches": 100}
+{"export_batches": 200}
+{"export_batches": 300}
+{"export_batches": 400}
+{"export_batches": 500}
+{"export_batches": 600}
+{"export_batches": 700}
+{"export_batches": 800}
+{"export_batches": 900}
+{"arm": "arcface", "training_seconds": 1137.2303724712692, "quality_r1": 0.9008716458725005}
+RUN BF16 seed=179025 arm=float_rank output=/home/riomus/runs/sfora-siglip2-bf16-member-bank-179025-float_rank-v1
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:   7%|▋         | 54/792 [00:00<00:01, 538.57it/s]Loading weights:  61%|██████    | 481/792 [00:00<00:00, 2726.85it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2716.09it/s]
+{"step": 50, "loss": 8.091419219970703, "arcface": 7.520854473114014, "rank": 0.07132059335708618, "elapsed_seconds": 59.04834696697071}
+{"step": 100, "loss": 4.435427188873291, "arcface": 4.435420513153076, "rank": 8.344650268554688e-07, "elapsed_seconds": 115.82538480311632}
+{"step": 150, "loss": 6.118670463562012, "arcface": 5.962698936462402, "rank": 0.019496440887451172, "elapsed_seconds": 172.60154727799818}
+{"step": 200, "loss": 8.359302520751953, "arcface": 8.257088661193848, "rank": 0.012776732444763184, "elapsed_seconds": 229.33459254121408}
+{"step": 250, "loss": 7.145809650421143, "arcface": 7.11518669128418, "rank": 0.0038278698921203613, "elapsed_seconds": 286.0894162119366}
+{"step": 300, "loss": 4.571168422698975, "arcface": 4.500428676605225, "rank": 0.00884246826171875, "elapsed_seconds": 342.8233363609761}
+{"step": 350, "loss": 5.948939800262451, "arcface": 5.91921329498291, "rank": 0.003715813159942627, "elapsed_seconds": 399.5491148401052}
+{"step": 400, "loss": 6.316717147827148, "arcface": 6.306207656860352, "rank": 0.0013136863708496094, "elapsed_seconds": 456.27404444804415}
+{"step": 450, "loss": 4.775017738342285, "arcface": 4.775017738342285, "rank": 0.0, "elapsed_seconds": 512.9935806849971}
+{"step": 500, "loss": 3.6579020023345947, "arcface": 3.657867670059204, "rank": 4.291534423828125e-06, "elapsed_seconds": 569.672540018335}
+{"step": 550, "loss": 6.328578948974609, "arcface": 6.182063102722168, "rank": 0.018314480781555176, "elapsed_seconds": 626.4069082662463}
+{"step": 600, "loss": 6.227532863616943, "arcface": 6.172666549682617, "rank": 0.0068582892417907715, "elapsed_seconds": 683.1350402133539}
+{"step": 650, "loss": 6.223143577575684, "arcface": 6.199532508850098, "rank": 0.002951383590698242, "elapsed_seconds": 739.8512360793538}
+{"step": 700, "loss": 5.179719924926758, "arcface": 5.178668022155762, "rank": 0.00013148784637451172, "elapsed_seconds": 796.5291288462467}
+{"step": 750, "loss": 7.464818000793457, "arcface": 7.451239585876465, "rank": 0.0016973018646240234, "elapsed_seconds": 853.2267264002003}
+{"step": 800, "loss": 6.7989959716796875, "arcface": 6.7704057693481445, "rank": 0.003573775291442871, "elapsed_seconds": 909.9193489002064}
+{"step": 850, "loss": 8.266807556152344, "arcface": 8.068306922912598, "rank": 0.02481257915496826, "elapsed_seconds": 966.6283830301836}
+{"step": 900, "loss": 6.3703107833862305, "arcface": 6.3703107833862305, "rank": 0.0, "elapsed_seconds": 1023.3453337359242}
+{"step": 950, "loss": 4.965956687927246, "arcface": 4.965956687927246, "rank": 0.0, "elapsed_seconds": 1080.051419311203}
+{"step": 1000, "loss": 4.37383508682251, "arcface": 4.370270729064941, "rank": 0.0004455447196960449, "elapsed_seconds": 1136.7957508009858}
+{"export_batches": 100}
+{"export_batches": 200}
+{"export_batches": 300}
+{"export_batches": 400}
+{"export_batches": 500}
+{"export_batches": 600}
+{"export_batches": 700}
+{"export_batches": 800}
+{"export_batches": 900}
+{"arm": "float_rank", "training_seconds": 1136.8667970062234, "quality_r1": 0.9051444197573064}
+RUN BF16 seed=179025 arm=bank output=/home/riomus/runs/sfora-siglip2-bf16-member-bank-179025-bank-v1
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  23%|██▎       | 186/792 [00:00<00:00, 1859.72it/s]Loading weights:  65%|██████▍   | 513/792 [00:00<00:00, 2661.31it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2782.75it/s]
+{"step": 50, "loss": 10.769804954528809, "arcface": 7.396583557128906, "rank": 0.4216526746749878, "elapsed_seconds": 59.576536514330655}
+{"step": 100, "loss": 5.348384380340576, "arcface": 4.304444789886475, "rank": 0.1304924488067627, "elapsed_seconds": 116.86915374128148}
+{"step": 150, "loss": 9.355691909790039, "arcface": 6.462102890014648, "rank": 0.36169856786727905, "elapsed_seconds": 174.1574085103348}
+{"step": 200, "loss": 11.84150505065918, "arcface": 8.400801658630371, "rank": 0.43008798360824585, "elapsed_seconds": 231.3677471843548}
+{"step": 250, "loss": 9.929685592651367, "arcface": 7.358152866363525, "rank": 0.321441650390625, "elapsed_seconds": 288.62946003722027}
+{"step": 300, "loss": 6.4365034103393555, "arcface": 4.821867942810059, "rank": 0.2018294334411621, "elapsed_seconds": 345.8075551199727}
+{"step": 350, "loss": 7.959735870361328, "arcface": 5.858852386474609, "rank": 0.26261043548583984, "elapsed_seconds": 403.0352409472689}
+{"step": 400, "loss": 8.237499237060547, "arcface": 6.584743499755859, "rank": 0.20659446716308594, "elapsed_seconds": 460.27974004205316}
+{"step": 450, "loss": 6.3701276779174805, "arcface": 4.372056007385254, "rank": 0.24975895881652832, "elapsed_seconds": 517.4969274541363}
+{"step": 500, "loss": 4.649130344390869, "arcface": 3.412449359893799, "rank": 0.1545851230621338, "elapsed_seconds": 574.7182304142043}
+{"step": 550, "loss": 8.656620025634766, "arcface": 6.01904296875, "rank": 0.3296971321105957, "elapsed_seconds": 631.9386035404168}
+{"step": 600, "loss": 8.023918151855469, "arcface": 5.621621608734131, "rank": 0.300287127494812, "elapsed_seconds": 689.1994185643271}
+{"step": 650, "loss": 8.901424407958984, "arcface": 6.352293968200684, "rank": 0.3186413645744324, "elapsed_seconds": 746.3720587720163}
+{"step": 700, "loss": 8.075348854064941, "arcface": 5.715460777282715, "rank": 0.2949860095977783, "elapsed_seconds": 803.5651584314182}
+{"step": 750, "loss": 9.627168655395508, "arcface": 7.432194709777832, "rank": 0.2743716835975647, "elapsed_seconds": 860.7589251762256}
+{"step": 800, "loss": 8.959273338317871, "arcface": 6.71478271484375, "rank": 0.28056132793426514, "elapsed_seconds": 917.9443283174187}
+{"step": 850, "loss": 10.341096878051758, "arcface": 7.467536926269531, "rank": 0.35919493436813354, "elapsed_seconds": 975.1586195509881}
+{"step": 900, "loss": 8.645118713378906, "arcface": 6.421707630157471, "rank": 0.27792632579803467, "elapsed_seconds": 1032.37435538508}
+{"step": 950, "loss": 5.948040008544922, "arcface": 4.870826721191406, "rank": 0.13465166091918945, "elapsed_seconds": 1089.5573244909756}
+{"step": 1000, "loss": 5.986156463623047, "arcface": 4.4208574295043945, "rank": 0.19566237926483154, "elapsed_seconds": 1146.7678620363586}
+{"export_batches": 100}
+{"export_batches": 200}
+{"export_batches": 300}
+{"export_batches": 400}
+{"export_batches": 500}
+{"export_batches": 600}
+{"export_batches": 700}
+{"export_batches": 800}
+{"export_batches": 900}
+{"arm": "float_rank_member_bank", "training_seconds": 1146.8212972683832, "quality_r1": 0.9109553922406426}
+sfora-siglip2-bf16-member-bank-seed179025-v1.service: Consumed 1h 43min 17.670s CPU time, 12.9G memory peak, 0B memory swap peak.
