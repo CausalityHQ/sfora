@@ -443,18 +443,52 @@ This is a **single-seed internal TRAIN-holdout result**, not a published-frontie
 or official-test result. The bootstrap interval conditions on the trained pair
 and its lower bound is **below +1 point**; only a positive difference, not a
 gain of at least one point at 95% confidence, is established. Also, 53,700
-of 59,551 images in this evaluation gallery are fit-product negatives. A
-new [holdout-only-gallery sensitivity check](sop_siglip2_unseen_gallery_diagnostic_2026-09-25.md)
-is registered to test whether the gain persists when those seen-product
-distractors are removed. Independent Opus 5.5 and GPT-6 Astra read-only audits
+of 59,551 images in this evaluation gallery are fit-product negatives. The
+[holdout-only-gallery sensitivity check](sop_siglip2_unseen_gallery_diagnostic_2026-09-25.md)
+below tests whether the gain persists when those seen-product distractors are
+removed. Independent Opus 5.5 and GPT-6 Astra read-only audits
 accepted the result as an internal screen and identified these interpretation
-limits. A same-source in-batch float-SmoothAP replay is needed
-to attribute any further gain specifically to the bank rather than to adding
-a ranking term. At least three independent paired seeds are required for a
+limits. The same-source in-batch float-SmoothAP replay below tests whether
+the bank adds value beyond a ranking term. At least three independent paired seeds are required for a
 learning-method claim. Cross-batch memory and SmoothAP are prior art, so this
-composition is not described as a novel algorithm. The next gates are the
-holdout-only-gallery sensitivity check, same-source in-batch ablation and
-independent seeds, then frozen official SOP TEST and In-Shop protocols, CUB/Cars transfer,
+composition is not described as a novel algorithm. The next gates after the
+two diagnostics below are independent seeds, then frozen official SOP TEST and In-Shop protocols, CUB/Cars transfer,
 and paired full-pipeline latency/p99/scaling measurements. The published
 UNICOM 91.2% SOP and 96.7% In-Shop numbers remain official-protocol reference
 gates; the 91.8305% internal holdout cannot be compared to them as a win.
+
+### Same-source ranking ablation and unseen-gallery sensitivity, 25 September
+
+The same trainer-source in-batch float-SmoothAP replay completed successfully on
+the NVIDIA GB10 with seed 179019, the same split, initial head/classifier,
+schedule, first ten augmented input batches, and native packed scorer. Its
+verified internal SOP TRAIN full-gallery Recall@1 was **90.7366%**, mAP@R
+**0.726593**, and training wall **1,152.484 s**. Relative to that arm, the
+member bank achieved **+1.0938 percentage points** Recall@1 (paired
+product-bootstrap 95% interval **[+0.6118,+1.5930]**) and **+0.022713**
+mAP@R (interval **[+0.018113,+0.027427]**), with **1.01179×** training wall.
+This is a same-source secondary attribution comparison with no preregistered
+confirmatory threshold, still only one seed on a reused internal split. The
+[float replay receipt](evidence/compact_metric/sop-siglip2-substrate-v1/member-bank-float-1000-v1.json)
+(SHA-256 `99d6492b687fe35be850ccf16b22fe778b0fc82c620f5c3ea0277d8b42139e97`)
+and [paired comparison](evidence/compact_metric/sop-siglip2-substrate-v1/member-bank-vs-float-v1.json)
+(SHA-256 `0c76cf5ca217648527eec76c02cba15953852c69d2bde4dc376834dfde981dfe`)
+retain exact per-query results and source hashes.
+
+The [preregistered holdout-only-gallery sensitivity check](sop_siglip2_unseen_gallery_diagnostic_2026-09-25.md)
+then rescored the saved ArcFace and bank embeddings against **5,851 SOP TRAIN
+holdout images from 1,132 products**, excluding each query itself. The
+verified native top-10 ordinals and scores matched the reference exactly.
+ArcFace reached **96.7527%** Recall@1 and **0.864860** mAP@R; the bank reached
+**97.3509%** and **0.885746**. The bank gain was **+0.5982 points** Recall@1
+(paired product-bootstrap 95% interval **[+0.2761,+0.9317]**) and **+0.020886**
+mAP@R (interval **[+0.017020,+0.024819]**), so the frozen positive-difference
+and mAP non-regression gate passed. Among 558 ArcFace full-gallery top-1
+errors, 504 nearest impostors were fit products and 54 were holdout products.
+The [raw sensitivity receipt](evidence/compact_metric/sop-siglip2-substrate-v1/unseen-gallery-v1.json)
+(SHA-256 `d8203b3ffdfdfd572fd1cb6284eed7e981d48e7288e165bec51209e9eb90088f`)
+binds the source archive, native library, both model receipts, exact outcomes,
+and GPU resource use. This sensitivity supports a real gain among unseen
+products on this internal split, while showing that many full-gallery errors
+involve seen fit-product distractors. It does not establish official SOP TEST,
+In-Shop quality, multi-seed reliability, or a training/serving speed advantage.
