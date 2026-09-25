@@ -181,6 +181,11 @@ def main() -> None:
     receipt = json.loads(args.training_receipt.read_text())
     validate_decision_arm(decision, args.seed, args.arm, receipt_sha, receipt)
     root = Path(__file__).resolve().parents[1]
+    evaluator_files = (
+        "scripts/evaluate_sop_siglip2_official.py",
+        "src/sfora/sop_evaluation.py",
+    )
+    evaluator_manifest = {relative: sha256(root / relative) for relative in evaluator_files}
     if (
         receipt.get("schema") != "sfora-sop-siglip2-compact-full-backbone-v1"
         or receipt.get("source_archive_sha256") != ARCHIVE_SHA256
@@ -277,6 +282,8 @@ def main() -> None:
     native = verify_native(values, labels, args.native_library)
     if native["native_per_query_r1"] != packed_quality["per_query_r1"]:
         raise ValueError("SOP official native recall differs from packed oracle")
+    if {relative: sha256(root / relative) for relative in evaluator_files} != evaluator_manifest:
+        raise ValueError("SOP official evaluator source changed during execution")
     score_seconds = time.perf_counter() - score_started
     result = {
         "schema": "sfora-sop-siglip2-official-test-v1",
@@ -288,6 +295,7 @@ def main() -> None:
         "queries": len(labels),
         "products": len(np.unique(labels)),
         "source_sha256": sha256(Path(__file__)),
+        "evaluator_source_files_sha256": evaluator_manifest,
         "decision_sha256": sha256(args.decision),
         "training_receipt_sha256": receipt_sha,
         "training_checkpoint_sha256": sha256(args.training_checkpoint),
