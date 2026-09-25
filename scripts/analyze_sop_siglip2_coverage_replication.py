@@ -143,6 +143,11 @@ def main() -> None:
             != "54e806715e76b2caa7e877d55b0fecbdc921718386bce845e04367164828624c"
             or bank.get("member_bank_cost_sha256")
             != "8f6867ff4de768ffd3bfa108cb86d7537b913d6ae5cb4f8cb16a43bc87f741a9"
+            or any(
+                receipts[seed][arm].get(key) is not None
+                for arm in ("fixed_float", "matched_float")
+                for key in ("member_bank_preflight_sha256", "member_bank_cost_sha256")
+            )
             or bank["query_image_ids_sha256"] != hashlib.sha256(ids[held].tobytes()).hexdigest()
         ):
             raise ValueError(f"seed {seed} paired authority differs")
@@ -163,7 +168,7 @@ def main() -> None:
         row.get(key) != reference.get(key)
         for seed in SEEDS[1:]
         for row in receipts[seed].values()
-        for key in fixed_keys
+        for key in (*fixed_keys, "hardware")
     ):
         raise ValueError("cross-seed authority differs")
     old_rows = [old["arms"][str(seed)]["bank"] for seed in SEEDS]
