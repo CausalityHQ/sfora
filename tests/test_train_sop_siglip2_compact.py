@@ -120,6 +120,19 @@ def test_member_bank_positive_rows_exclude_self_and_pad() -> None:
     ]
 
 
+def test_member_bank_singleton_row_can_be_left_empty_for_skipped_rank_batches() -> None:
+    classes = np.asarray([2, 1, 2, 3, 2], dtype=np.int64)
+    with pytest.raises(ValueError, match="no positive"):
+        MODULE.member_bank_positive_ordinals(classes)
+    assert MODULE.member_bank_positive_ordinals(classes, allow_singletons=True).tolist() == [
+        [2, 4],
+        [-1, -1],
+        [0, 4],
+        [-1, -1],
+        [0, 2],
+    ]
+
+
 def test_member_bank_refresh_uses_last_augmented_view_for_duplicate_row() -> None:
     rows, positions = MODULE.member_bank_refresh_rows((5, 3, 5, 4, 3))
     assert rows == (3, 4, 5)

@@ -240,7 +240,9 @@ def initialize_head_and_classifier(
     return head, classifier, pca_sha
 
 
-def member_bank_positive_ordinals(class_ids: np.ndarray) -> torch.Tensor:
+def member_bank_positive_ordinals(
+    class_ids: np.ndarray, *, allow_singletons: bool = False
+) -> torch.Tensor:
     """Padded fit ordinals of every other member of each product."""
 
     if class_ids.ndim != 1 or class_ids.dtype != np.int64 or len(class_ids) < 2:
@@ -248,7 +250,11 @@ def member_bank_positive_ordinals(class_ids: np.ndarray) -> torch.Tensor:
     members: dict[int, list[int]] = {}
     for row, class_id in enumerate(class_ids):
         members.setdefault(int(class_id), []).append(row)
-    if any(len(rows) < 2 for rows in members.values()):
+    if (
+        not isinstance(allow_singletons, bool)
+        or (not allow_singletons and any(len(rows) < 2 for rows in members.values()))
+        or max(map(len, members.values())) < 2
+    ):
         raise ValueError("SOP member-bank product has no positive")
     width = max(map(len, members.values())) - 1
     table = torch.full((len(class_ids), width), -1, dtype=torch.long)
