@@ -1,0 +1,42 @@
+COVERAGE OFFICIAL SOP TEST seed=179023 output=/home/riomus/runs/sfora-siglip2-bf16-coverage-official-179023-bank-v1
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:   1%|          | 4/792 [00:00<00:22, 34.87it/s]Loading weights:  62%|██████▏   | 491/792 [00:00<00:00, 2716.39it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2550.64it/s]
+{"export_batches": 100}
+{"export_batches": 200}
+{"export_batches": 300}
+{"export_batches": 400}
+{"export_batches": 500}
+{"export_batches": 600}
+{"export_batches": 700}
+{"export_batches": 800}
+{"export_batches": 900}
+{"seed": 179023, "arm": "bank", "packed_r1": 0.9133747644705961}
+COVERAGE OFFICIAL SOP TEST seed=179024 output=/home/riomus/runs/sfora-siglip2-bf16-coverage-official-179024-bank-v1
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:   1%|          | 4/792 [00:00<00:24, 32.11it/s]Loading weights:  62%|██████▏   | 488/792 [00:00<00:00, 2599.58it/s]Loading weights: 100%|█████████▉| 789/792 [00:00<00:00, 2767.01it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2431.91it/s]
+{"export_batches": 100}
+{"export_batches": 200}
+{"export_batches": 300}
+{"export_batches": 400}
+{"export_batches": 500}
+{"export_batches": 600}
+{"export_batches": 700}
+{"export_batches": 800}
+{"export_batches": 900}
+{"seed": 179024, "arm": "bank", "packed_r1": 0.9125648738884665}
+COVERAGE OFFICIAL SOP TEST seed=179025 output=/home/riomus/runs/sfora-siglip2-bf16-coverage-official-179025-bank-v1
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  38%|███▊      | 297/792 [00:00<00:00, 2961.47it/s]Loading weights:  77%|███████▋  | 609/792 [00:00<00:00, 3048.90it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 3056.11it/s]
+{"export_batches": 100}
+{"export_batches": 200}
+{"export_batches": 300}
+{"export_batches": 400}
+{"export_batches": 500}
+{"export_batches": 600}
+{"export_batches": 700}
+{"export_batches": 800}
+{"export_batches": 900}
+{"seed": 179025, "arm": "bank", "packed_r1": 0.9122343063039239}
