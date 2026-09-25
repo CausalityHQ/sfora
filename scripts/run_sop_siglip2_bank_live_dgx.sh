@@ -14,6 +14,8 @@ if systemctl --user is-active --quiet sfora-siglip2-member-bank-multiseed-v2.ser
   echo "paired live timing requires an idle DGX GPU" >&2
   exit 1
 fi
+exec 9>"$run_base/.sfora-siglip2-gpu.lock"
+flock -n 9 || { echo "SOP SigLIP2 GPU lock is held" >&2; exit 1; }
 
 exec /home/riomus/group-learning/.venv/bin/python \
   "$root/scripts/benchmark_sop_siglip2_bank_live.py" \

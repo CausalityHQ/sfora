@@ -60,7 +60,7 @@ representation geometry, or resource layer failed before revising the method.
 
 This amendment follows an Opus 5.5 review that identified selection bias in
 counting seed 179019. It was made before any new-seed quality outcome existed;
-the first new training run had reached only step 550/1,000. It adds seed
+the first new run was still training and had not begun export or evaluation. It adds seed
 179022 and excludes 179019 from the acceptance arithmetic. Thresholds must
 not change after new-seed quality is read.
 

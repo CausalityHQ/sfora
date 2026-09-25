@@ -13,6 +13,15 @@ export PATH="$(dirname "$CUTILE_TILEIRAS_PATH"):$PATH"
 export PYTHONPATH="$root/src:$root/scripts"
 export HF_HUB_OFFLINE=1
 
+if systemctl --user is-active --quiet sfora-siglip2-member-bank-multiseed-v2.service \
+  || systemctl --user is-active --quiet sfora-siglip2-bank-live-paired-v1.service \
+  || [[ -n "$(nvidia-smi --query-compute-apps=pid --format=csv,noheader)" ]]; then
+  echo "seed22 requires completed first unit and an idle DGX GPU" >&2
+  exit 1
+fi
+exec 9>"$run_base/.sfora-siglip2-gpu.lock"
+flock -n 9 || { echo "SOP SigLIP2 GPU lock is held" >&2; exit 1; }
+
 check_sha() {
   local actual
   actual="$(sha256sum "$1")"
