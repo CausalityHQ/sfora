@@ -48,3 +48,25 @@ mAP@R decline <=0.005, actual wall <=1.15x, and matching native top-10
 semantics. The official SOP TEST and In-Shop panels remain closed to this
 method-selection preflight. Neither a passing coverage nor timing gate is a
 claim of a quality or performance gain.
+
+## Executed gate evidence
+
+The [fit-only coverage receipt](evidence/compact_metric/sop-siglip2-substrate-v1/member-bank-preflight-v1.json)
+(SHA-256 `54e806715e76b2caa7e877d55b0fecbdc921718386bce845e04367164828624c`)
+records **4,127/4,296 = 96.0661%** raw-bank coverage and
+**4,131/4,296 = 96.1592%** reanchored coverage. The frozen branch rule selects
+the raw bank. The completed DGX systemd unit used 6.400 s probe wall and
+131,377,152 bytes peak CUDA allocation. This checks candidate availability
+only; no new model was trained.
+
+The [source-bound timing receipt](evidence/compact_metric/sop-siglip2-substrate-v1/member-bank-step-cost-v2.json)
+(SHA-256 `8f6867ff4de768ffd3bfa108cb86d7537b913d6ae5cb4f8cb16a43bc87f741a9`)
+records 20 timed worst-positive-count steps, median **0.013466 s** for the
+loss-only forward, backward, and 64-row bank write on NVIDIA GB10, with
+562,051,584 bytes peak CUDA allocation. It binds the exact loss source SHA-256
+`a57a1b8cb4722a12dbc8fd255255632b05aff918c8c66e46e5708c2da9e4854a`.
+The first timing job failed before import because the isolated staging package
+lacked its imported modules; the second completed but did not bind the loss
+source. Neither failed/insufficient receipt is used as gate evidence. This
+third job passed the frozen **0.06 s** timing gate. Total training wall remains
+unmeasured until the matched training pair completes.

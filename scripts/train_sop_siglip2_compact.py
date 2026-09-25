@@ -27,6 +27,7 @@ from torch.utils.data import DataLoader, Dataset, Sampler
 from torchvision import transforms
 
 from sfora.cutile_int8 import CutilePackedInt8Gallery
+from sfora.deployed_code_rank import smooth_ap_bank_loss
 from sfora.joint_relational_compaction import pack_int8_unit_embeddings
 from sfora.representation_ceiling import deterministic_class_partition, fit_centered_pca
 from sfora.sop_compact_training import (
@@ -50,6 +51,8 @@ OUTPUT_WIDTH = 128
 IMAGES_PER_IDENTITY = 4
 SIGLIP2_RANK_COEFFICIENT = 8.0
 GRAD_SCALER_INITIAL_SCALE = 128.0
+MEMBER_BANK_PREFLIGHT_SHA256 = "54e806715e76b2caa7e877d55b0fecbdc921718386bce845e04367164828624c"
+MEMBER_BANK_COST_SHA256 = "8f6867ff4de768ffd3bfa108cb86d7537b913d6ae5cb4f8cb16a43bc87f741a9"
 SOURCE_RELATIVES = (
     "scripts/train_sop_siglip2_compact.py",
     "src/sfora/cutile_int8.py",
@@ -208,6 +211,37 @@ def initialize_head_and_classifier(
         pca.mean.numpy().tobytes() + pca.components.numpy().tobytes()
     ).hexdigest()
     return head, classifier, pca_sha
+
+
+def member_bank_positive_ordinals(class_ids: np.ndarray) -> torch.Tensor:
+    """Padded fit ordinals of every other member of each product."""
+
+    if class_ids.ndim != 1 or class_ids.dtype != np.int64 or len(class_ids) < 2:
+        raise ValueError("SOP member-bank classes differ")
+    members: dict[int, list[int]] = {}
+    for row, class_id in enumerate(class_ids):
+        members.setdefault(int(class_id), []).append(row)
+    if any(len(rows) < 2 for rows in members.values()):
+        raise ValueError("SOP member-bank product has no positive")
+    width = max(map(len, members.values())) - 1
+    table = torch.full((len(class_ids), width), -1, dtype=torch.long)
+    for rows in members.values():
+        for row in rows:
+            others = [other for other in rows if other != row]
+            table[row, : len(others)] = torch.tensor(others, dtype=torch.long)
+    return table
+
+
+def member_bank_refresh_rows(
+    batch_ordinals: tuple[int, ...],
+) -> tuple[tuple[int, ...], tuple[int, ...]]:
+    """Refresh each fit member once, using its last augmented batch view."""
+
+    if not batch_ordinals or any(type(row) is not int or row < 0 for row in batch_ordinals):
+        raise ValueError("SOP member-bank refresh batch differs")
+    last_position = {row: position for position, row in enumerate(batch_ordinals)}
+    rows = tuple(sorted(last_position))
+    return rows, tuple(last_position[row] for row in rows)
 
 
 @torch.inference_mode()  # type: ignore[untyped-decorator]
@@ -381,6 +415,11 @@ def main() -> None:
     parser.add_argument("--batch-size", type=int, default=64)
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--gradient-diagnostic-steps", type=int, default=0)
+    parser.add_argument("--member-bank", action="store_true")
+    parser.add_argument("--member-bank-preflight", type=Path)
+    parser.add_argument("--expected-member-bank-preflight-sha256")
+    parser.add_argument("--member-bank-cost-receipt", type=Path)
+    parser.add_argument("--expected-member-bank-cost-sha256")
     parser.add_argument("--evaluate", action="store_true")
     args = parser.parse_args()
     assert_source_imports()
@@ -396,6 +435,18 @@ def main() -> None:
         or args.gradient_diagnostic_steps < 0
         or args.gradient_diagnostic_steps > args.updates
         or (args.arm is CompactTrainingArm.ARCFACE and args.gradient_diagnostic_steps)
+        or (args.member_bank and args.arm is not CompactTrainingArm.FLOAT_RANK)
+        or (args.member_bank != (args.member_bank_preflight is not None))
+        or (args.member_bank != (args.expected_member_bank_preflight_sha256 is not None))
+        or (args.member_bank != (args.member_bank_cost_receipt is not None))
+        or (args.member_bank != (args.expected_member_bank_cost_sha256 is not None))
+        or (
+            args.member_bank
+            and (
+                args.expected_member_bank_preflight_sha256 != MEMBER_BANK_PREFLIGHT_SHA256
+                or args.expected_member_bank_cost_sha256 != MEMBER_BANK_COST_SHA256
+            )
+        )
         or not torch.cuda.is_available()
         or sha256(args.unicom_l14_archive) != ARCHIVE_SHA256
         or sha256(args.native_library) != NATIVE_SHA256
@@ -404,6 +455,33 @@ def main() -> None:
         or any(sha256(args.model_snapshot / name) != value for name, value in MODEL_HASHES.items())
     ):
         raise ValueError("SOP SigLIP2 training authority differs")
+    member_bank_preflight = None
+    if args.member_bank:
+        if sha256(args.member_bank_preflight) != args.expected_member_bank_preflight_sha256:
+            raise ValueError("SOP member-bank preflight hash differs")
+        if sha256(args.member_bank_cost_receipt) != args.expected_member_bank_cost_sha256:
+            raise ValueError("SOP member-bank timing hash differs")
+        member_bank_preflight = json.loads(args.member_bank_preflight.read_text())
+        bank_cost = json.loads(args.member_bank_cost_receipt.read_text())
+        if (
+            member_bank_preflight.get("schema") != "sfora-sop-siglip2-member-bank-preflight-v1"
+            or member_bank_preflight.get("decision") != "raw_bank_allowed"
+            or member_bank_preflight.get("split")
+            != "SOP official TRAIN fit products only, seed 179019"
+        ):
+            raise ValueError("SOP member-bank branch differs")
+        if (
+            bank_cost.get("schema") != "sfora-sop-siglip2-member-bank-step-cost-v1"
+            or bank_cost.get("preflight_sha256") != args.expected_member_bank_preflight_sha256
+            or bank_cost.get("loss_source_sha256")
+            != initial_source_manifest["src/sfora/deployed_code_rank.py"]
+            or bank_cost.get("gate_pass") is not True
+            or bank_cost.get("median_wall_seconds", float("inf")) > 0.06
+            or bank_cost.get("rows") != 53_700
+            or bank_cost.get("anchors") != 64
+            or bank_cost.get("positives_per_anchor") != 11
+        ):
+            raise ValueError("SOP member-bank timing branch differs")
     export_receipt = json.loads((args.candidate_dir / "receipt.json").read_text())
     if (
         export_receipt.get("schema") != "sfora-sop-siglip2-train-feature-export-v1"
@@ -437,6 +515,7 @@ def main() -> None:
     fit_labels = tuple(map(int, labels[fit_rows]))
     names = tuple(sorted(set(fit_labels)))
     class_index = {name: index for index, name in enumerate(names)}
+    fit_class_ids = np.asarray([class_index[label] for label in fit_labels], dtype=np.int64)
     schedule = (
         identity_balanced_batches(
             tuple(map(str, fit_labels)),
@@ -461,6 +540,21 @@ def main() -> None:
         head.weight.detach().numpy().tobytes() + head.bias.detach().numpy().tobytes()
     ).hexdigest()
     initial_classifier_sha = hashlib.sha256(classifier.detach().numpy().tobytes()).hexdigest()
+    if args.member_bank and (
+        member_bank_preflight.get("fit_rows_sha256")
+        != hashlib.sha256(fit_rows.astype("<i8").tobytes()).hexdigest()
+        or member_bank_preflight.get("source_pca_sha256") != pca_sha
+        or member_bank_preflight.get("initial_classifier_sha256") != initial_classifier_sha
+    ):
+        raise ValueError("SOP member-bank geometry differs from preflight")
+    bank_init_started = time.perf_counter()
+    with torch.no_grad():
+        bank_values = (
+            F.normalize(compact_head_features(fit_features, head), dim=1)
+            if args.member_bank
+            else None
+        )
+    bank_init_cpu_seconds = time.perf_counter() - bank_init_started if args.member_bank else 0.0
     import transformers
     from transformers import AutoImageProcessor, AutoModel
 
@@ -483,6 +577,24 @@ def main() -> None:
     vision = vision.float().cuda().train()
     head = head.cuda().train()
     classifier = nn.Parameter(classifier.cuda())
+    bank_init_gpu_started = time.perf_counter()
+    if args.member_bank:
+        bank = bank_values.cuda()
+        positive_table = member_bank_positive_ordinals(fit_class_ids).cuda()
+        if positive_table.shape[1] != bank_cost["positives_per_anchor"]:
+            raise ValueError("SOP member-bank positive width differs from timing gate")
+        schedule_ordinals = torch.tensor(schedule, dtype=torch.long, device="cuda")
+        fit_class_ids_gpu = torch.from_numpy(fit_class_ids).cuda()
+    else:
+        bank = None
+        positive_table = None
+        schedule_ordinals = None
+        fit_class_ids_gpu = None
+    bank_init_seconds = (
+        bank_init_cpu_seconds + time.perf_counter() - bank_init_gpu_started
+        if args.member_bank
+        else 0.0
+    )
     train_dataset = ImageRows(
         tuple(paths[row] for row in fit_rows),
         tuple(class_index[label] for label in fit_labels),
@@ -536,10 +648,20 @@ def main() -> None:
             classifier,
             target,
             masks,
-            arm=args.arm,
+            arm=CompactTrainingArm.ARCFACE if args.member_bank else args.arm,
             arcface_margin=0.3,
             arcface_scale=64.0,
         )
+        if args.member_bank:
+            query_ordinals = schedule_ordinals[step - 1]
+            if not torch.equal(target, fit_class_ids_gpu[query_ordinals]):
+                raise ValueError("SOP member-bank schedule labels differ")
+            rank = smooth_ap_bank_loss(
+                F.normalize(features.float(), dim=1),
+                bank,
+                positive_table[query_ordinals],
+                query_ordinals,
+            )
         loss = control + SIGLIP2_RANK_COEFFICIENT * rank
         if not bool(torch.isfinite(loss)):
             raise ValueError("SOP SigLIP2 train loss is nonfinite")
@@ -565,6 +687,14 @@ def main() -> None:
         scaler.update()
         if scaler.get_scale() < scale_before:
             raise ValueError("SOP SigLIP2 optimizer step skipped")
+        if args.member_bank:
+            refresh_rows, refresh_positions = member_bank_refresh_rows(schedule[step - 1])
+            bank[torch.tensor(refresh_rows, dtype=torch.long, device="cuda")] = F.normalize(
+                features.detach().float()[
+                    torch.tensor(refresh_positions, dtype=torch.long, device="cuda")
+                ],
+                dim=1,
+            )
         torch.cuda.synchronize()
         step_seconds.append(time.perf_counter() - step_started)
         losses.append(float(loss.detach()))
@@ -596,7 +726,8 @@ def main() -> None:
             "classifier": classifier.detach().cpu(),
             "seed": args.seed,
             "updates": args.updates,
-            "arm": args.arm.value,
+            "arm": "float_rank_member_bank" if args.member_bank else args.arm.value,
+            "member_bank": args.member_bank,
         },
         checkpoint_path,
     )
@@ -631,7 +762,10 @@ def main() -> None:
         "schema": "sfora-sop-siglip2-compact-full-backbone-v1",
         "claim_eligible": False,
         "split": "SOP official TRAIN product-disjoint fit/holdout; no TEST rows",
-        "arm": args.arm.value,
+        "arm": "float_rank_member_bank" if args.member_bank else args.arm.value,
+        "member_bank_preflight_sha256": args.expected_member_bank_preflight_sha256,
+        "member_bank_cost_sha256": args.expected_member_bank_cost_sha256,
+        "member_bank_init_seconds": bank_init_seconds,
         "seed": args.seed,
         "updates": args.updates,
         "batch_size": args.batch_size,
@@ -662,7 +796,9 @@ def main() -> None:
         "rank_to_arcface_head_gradient_ratio": rank_to_arcface_head_gradient_ratio,
         "query_image_ids_sha256": hashlib.sha256(ids[held_rows].tobytes()).hexdigest(),
         "training_objective": (
-            "ArcFace margin 0.3 scale 64 plus 8.0 deployed-code SmoothAP"
+            "ArcFace margin 0.3 scale 64 plus 8.0 full-fit float SmoothAP member bank"
+            if args.member_bank
+            else "ArcFace margin 0.3 scale 64 plus 8.0 deployed-code SmoothAP"
             if args.arm is CompactTrainingArm.PACKED_RANK
             else "ArcFace margin 0.3 scale 64"
             if args.arm is CompactTrainingArm.ARCFACE
@@ -676,6 +812,7 @@ def main() -> None:
             "random resized crop 256 scale 0.8..1.0; random horizontal flip; pinned processor"
         ),
         "training_wall_seconds": training_wall,
+        "training_wall_including_member_bank_init_seconds": training_wall + bank_init_seconds,
         "checkpoint_write_seconds": checkpoint_write_seconds,
         "step_seconds": step_seconds,
         "first_loss": losses[0] if losses else None,
@@ -713,7 +850,7 @@ def main() -> None:
     print(
         json.dumps(
             {
-                "arm": args.arm.value,
+                "arm": "float_rank_member_bank" if args.member_bank else args.arm.value,
                 "training_seconds": training_wall,
                 "quality_r1": quality["recall_at_1"] if quality else None,
             }

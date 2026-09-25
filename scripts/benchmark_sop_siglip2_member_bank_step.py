@@ -14,6 +14,7 @@ from pathlib import Path
 import torch
 from torch.nn import functional as F
 
+import sfora.deployed_code_rank as rank_module
 from sfora.deployed_code_rank import smooth_ap_bank_loss
 
 
@@ -65,6 +66,7 @@ def main() -> None:
         "claim_eligible": False,
         "preflight_sha256": args.expected_preflight_sha256,
         "source_sha256": sha256(Path(__file__)),
+        "loss_source_sha256": sha256(Path(rank_module.__file__)),
         "rows": 53_700,
         "anchors": 64,
         "positives_per_anchor": 11,

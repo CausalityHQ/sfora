@@ -84,3 +84,20 @@ def test_packed_full_gallery_uses_lower_ordinal_on_equal_scores() -> None:
         codes, inverse, labels, held, device=torch.device("cpu")
     )
     assert scored["per_query_r1"] == [1.0, 0.0]
+
+
+def test_member_bank_positive_rows_exclude_self_and_pad() -> None:
+    classes = np.asarray([2, 1, 2, 1, 2], dtype=np.int64)
+    assert MODULE.member_bank_positive_ordinals(classes).tolist() == [
+        [2, 4],
+        [3, -1],
+        [0, 4],
+        [1, -1],
+        [0, 2],
+    ]
+
+
+def test_member_bank_refresh_uses_last_augmented_view_for_duplicate_row() -> None:
+    rows, positions = MODULE.member_bank_refresh_rows((5, 3, 5, 4, 3))
+    assert rows == (3, 4, 5)
+    assert positions == (4, 3, 2)
