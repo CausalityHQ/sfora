@@ -3,10 +3,12 @@
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import inspect
 import json
 import os
+import resource
 import time
 from io import BytesIO
 from pathlib import Path
@@ -29,8 +31,16 @@ from sfora.siglip2_compact_serving import Siglip2CompactIndex
 
 
 def main() -> None:
+    total_started = time.perf_counter()
+    parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
+    parser.add_argument("--full", action="store_true")
+    args = parser.parse_args()
     root = Path("/home/riomus/runs")
-    output = root / "sfora-sop-true-freeze-official-batch1-179024-v1.json"
+    output = root / (
+        "sfora-sop-true-freeze-official-batch1-full-179024-v1.json"
+        if args.full
+        else "sfora-sop-true-freeze-official-batch1-179024-v1.json"
+    )
     if output.exists() or not torch.cuda.is_available():
         raise ValueError("SOP batch-1 diagnostic invocation differs")
     imported = {
@@ -65,15 +75,19 @@ def main() -> None:
         relatives = np.asarray(source["test_relative_paths"]).astype(str)
     if labels.shape != (60_502,) or relatives.shape != labels.shape:
         raise ValueError("SOP batch-1 inventory differs")
-    sample = np.sort(np.random.default_rng(20260926).choice(len(labels), 2_048, replace=False))
+    sample = (
+        np.arange(len(labels), dtype=np.int64)
+        if args.full
+        else np.sort(np.random.default_rng(20260926).choice(len(labels), 2_048, replace=False))
+    )
     paths = paths_from_archive(
         Path("/home/riomus/datasets/Stanford_Online_Products"), relatives[sample]
     )
     manifest = manifest_path.read_bytes()
-    reference = np.asarray(
-        json.loads(official_receipt.read_text())["packed_quality"]["per_query_r1"], dtype=np.float64
-    )
-    if reference.shape != labels.shape:
+    official_quality = json.loads(official_receipt.read_text())["packed_quality"]
+    reference = np.asarray(official_quality["per_query_r1"], dtype=np.float64)
+    reference_ap = np.asarray(official_quality["per_query_ap"], dtype=np.float64)
+    if reference.shape != labels.shape or reference_ap.shape != labels.shape:
         raise ValueError("SOP batch-1 reference vector differs")
     embeddings = official / "test_embeddings.npy"
     gallery = pack_int8_unit_embeddings(
@@ -136,6 +150,13 @@ def main() -> None:
     packed = PackedInt8Embeddings(torch.stack(codes), torch.stack(norms))
     g_codes = gallery.codes.float().cuda()
     g_norms = gallery.inverse_norms.float().cuda()
+    g_labels = torch.from_numpy(labels.copy()).cuda()
+    _classes, inverse_labels, counts = np.unique(labels, return_inverse=True, return_counts=True)
+    relevant = counts[inverse_labels] - 1
+    rank_width = max(int(relevant.max()), 1_000)
+    ranks = torch.arange(1, rank_width + 1, device="cuda")
+    oracle_hits = []
+    oracle_ap = []
     max_score_delta = 0.0
     for start in range(0, len(sample), 32):
         stop = start + 32
@@ -150,12 +171,27 @@ def main() -> None:
             max_score_delta,
             float(np.max(np.abs(np.asarray(native_scores[start:stop]) - expected_scores))),
         )
+        if args.full:
+            rows = torch.from_numpy(sample[start:stop].copy()).cuda()
+            scores[torch.arange(len(rows), device="cuda"), rows] = -torch.inf
+            ranked = torch.argsort(scores, dim=1, descending=True, stable=True)[:, :rank_width]
+            matches = g_labels[ranked].eq(g_labels[rows, None])
+            precision = torch.cumsum(matches, dim=1) / ranks[None, :]
+            relevant_rows = torch.from_numpy(relevant[sample[start:stop]].copy()).cuda()
+            valid = ranks[None, :] <= relevant_rows[:, None]
+            ap = (precision * matches * valid).sum(dim=1) / relevant_rows
+            oracle_hits.extend(float(x) for x in matches[:, 0].cpu().tolist())
+            oracle_ap.extend(float(x) for x in ap.cpu().tolist())
     if not np.isfinite(max_score_delta) or max_score_delta > 1e-5:
         raise ValueError("SOP batch-1 native top-10 scores differ")
     interval = product_bootstrap(np.asarray(hits) - reference[sample], labels[sample])
     passed = interval["point"] >= -0.005 and interval["lower_95"] > -0.005
     result = {
-        "schema": "sfora-sop-true-freeze-official-batch1-screen-v1",
+        "schema": (
+            "sfora-sop-true-freeze-official-batch1-full-v1"
+            if args.full
+            else "sfora-sop-true-freeze-official-batch1-screen-v1"
+        ),
         "status": "exploratory previously observed TEST sample",
         "seed": 179024,
         "sample_rows": len(sample),
@@ -168,6 +204,8 @@ def main() -> None:
         "native_top10_exact": True,
         "native_max_score_abs_delta": max_score_delta,
         "query_wall_seconds": query_wall,
+        "peak_cuda_allocated_bytes": torch.cuda.max_memory_allocated(),
+        "peak_parent_host_rss_bytes": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024,
         "source_sha256": digest(Path(__file__)),
         "imported_source_sha256": imported,
         "bootstrap_helper_sha256": digest(Path(inspect.getfile(product_bootstrap))),
@@ -176,6 +214,24 @@ def main() -> None:
         "gallery_embeddings_sha256": digest(embeddings),
         "screen_pass": bool(passed),
     }
+    if args.full:
+        result.pop("screen_pass")
+        if oracle_hits != hits:
+            raise ValueError("SOP batch-1 native R@1 differs from packed oracle")
+        map_interval = product_bootstrap(np.asarray(oracle_ap) - reference_ap, labels)
+        passed = passed and map_interval["point"] >= -0.005
+        result.update(
+            {
+                "batch1_map_at_r": float(np.mean(oracle_ap)),
+                "batch32_reference_map_at_r": float(reference_ap.mean()),
+                "paired_map_product_bootstrap": map_interval,
+                "per_query_r1": oracle_hits,
+                "per_query_ap": oracle_ap,
+                "native_per_query_r1_exact": True,
+                "quality_pass": bool(passed),
+            }
+        )
+    result["total_wall_seconds"] = time.perf_counter() - total_started
     with output.open("xb") as stream:
         stream.write((json.dumps(result, sort_keys=True, allow_nan=False) + "\n").encode())
         stream.flush()
