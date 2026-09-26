@@ -90,7 +90,7 @@ def main() -> None:
     parser.add_argument("--features-dir", type=Path, required=True)
     parser.add_argument("--preflight", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
-    parser.add_argument("--arm", choices=("control", "budget", "freeze"), required=True)
+    parser.add_argument("--arm", choices=("control", "budget", "freeze", "subspace"), required=True)
     parser.add_argument("--updates", type=int, choices=(17, 1_000, 3_000), required=True)
     parser.add_argument("--seed", type=int, choices=(179023, 179024, 179025), default=SEED)
     parser.add_argument("--vision-lr", type=float, choices=(1e-5, 3e-5), default=1e-5)
@@ -102,6 +102,7 @@ def main() -> None:
         or args.output_dir.is_symlink()
         or (args.arm == "budget") != (args.updates == 3_000)
         or (args.vision_lr != 1e-5 and (args.arm != "control" or args.seed == 179023))
+        or (args.arm == "subspace" and (args.seed == 179023 or args.vision_lr != 1e-5))
         or args.workers < 0
         or not torch.cuda.is_available()
         or not torch.cuda.is_bf16_supported()
@@ -227,6 +228,7 @@ def main() -> None:
     )
     dtype, scaler = training_precision("bf16", device="cuda")
     masks = torch.arange(128, device="cuda", dtype=torch.int64).unsqueeze(0)
+    mask_rng = torch.Generator().manual_seed(args.seed + 128_000)
     args.output_dir.mkdir(parents=True, exist_ok=False)
     torch.cuda.reset_peak_memory_stats()
     started = time.perf_counter()
@@ -251,6 +253,9 @@ def main() -> None:
         if source_features is None:
             raise ValueError("In-Shop train pooler missing")
         features = compact_head_features(source_features, head)
+        if args.arm == "subspace":
+            coordinates = torch.randperm(128, generator=mask_rng)[:64].sort().values.cuda()
+            masks = coordinates.unsqueeze(0)
         control = sharded_mask_arcface_loss(
             features.float(), classifier, target, masks, margin=0.3, scale=64.0
         )
@@ -261,14 +266,24 @@ def main() -> None:
                 raise ValueError("In-Shop bank schedule labels differ")
             batch_positives = positives[ordinals]
             batch_width = int((batch_positives >= 0).sum(dim=1).max())
-            rank = member_bank_rank_loss(
-                features,
-                bank,
-                head,
-                batch_positives[:, :batch_width],
-                ordinals,
-                live_head=False,
-            )
+            if args.arm == "subspace":
+                rank = smooth_ap_bank_loss(
+                    torch.nn.functional.normalize(
+                        features.float().index_select(1, coordinates), dim=1
+                    ),
+                    torch.nn.functional.normalize(bank.index_select(1, coordinates), dim=1),
+                    batch_positives[:, :batch_width],
+                    ordinals,
+                )
+            else:
+                rank = member_bank_rank_loss(
+                    features,
+                    bank,
+                    head,
+                    batch_positives[:, :batch_width],
+                    ordinals,
+                    live_head=False,
+                )
         loss = control + RANK_COEFFICIENT * rank
         if not bool(torch.isfinite(loss)):
             raise ValueError("In-Shop training loss nonfinite")
@@ -364,6 +379,7 @@ def main() -> None:
         "workers": args.workers,
         "rank_coefficient": RANK_COEFFICIENT,
         "vision_lr": args.vision_lr,
+        "training_coordinates": 64 if args.arm == "subspace" else 128,
         "rank_inactive_steps": [step for step in inactive if step <= args.updates],
         "rank_active_updates": sum(step not in inactive for step in range(1, args.updates + 1)),
         "source_sha256": sha256(Path(__file__)),
