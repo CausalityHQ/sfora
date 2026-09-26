@@ -10,8 +10,8 @@ head, 130-byte int8+fp16-norm format and exact scorer remain fixed.
 
 Use the existing product-disjoint official-TRAIN split: 13,283 fit images /
 2,004 products and 12,599 held-only symmetric query/gallery images / 1,993
-products, preflight SHA-256
-`d5e22c6a331acbdf3b143b9836597593c2317f9488b99b72f61a4c54baf18eb8`.
+products, seed-179024 preflight SHA-256
+`f9c59db9ed6f0962963b8e203e70f98186f314226acda0f0ebd7b52c11e17034`.
 The seed-179024 archived control has packed R@1 **98.5554%**, mAP@R
 **0.826739**, training wall **1,147.928 s** for 1,000×64 images including
 bank initialization, and peak allocated CUDA **22.554 GB** on DGX Spark GB10.
