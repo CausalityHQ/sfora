@@ -1,0 +1,16 @@
+2026-09-26T15:37:09+02:00 spark-2751 systemd[3489]: Started sfora-inshop-true-freeze-smoke-179024-v1.service - /home/riomus/runs/run_inshop_siglip2_true_freeze_dgx.sh smoke.
+2026-09-26T15:37:09+02:00 spark-2751 run_inshop_siglip2_true_freeze_dgx.sh[219583]: START mode=smoke arm=freeze updates=17
+2026-09-26T15:37:15+02:00 spark-2751 run_inshop_siglip2_true_freeze_dgx.sh[219593]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-26T15:37:15+02:00 spark-2751 run_inshop_siglip2_true_freeze_dgx.sh[219593]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-26T15:37:16+02:00 spark-2751 run_inshop_siglip2_true_freeze_dgx.sh[219593]: [304B blob data]
+2026-09-26T15:37:35+02:00 spark-2751 run_inshop_siglip2_true_freeze_dgx.sh[219593]: {"step": 17, "loss": 5.614594459533691, "elapsed_seconds": 18.928694099653512}
+2026-09-26T15:37:41+02:00 spark-2751 run_inshop_siglip2_true_freeze_dgx.sh[219593]: {"arm": "freeze", "seed": 179024, "training_seconds": 19.008730578701943, "holdout_r1": null}
+2026-09-26T15:37:43+02:00 spark-2751 run_inshop_siglip2_true_freeze_dgx.sh[219583]: DONE arm=freeze receipt_sha256=82c316ce3700da29c85264c2283f9dec01a5c04f0edbd4f1f0be6316a2279c08
+2026-09-26T15:37:43+02:00 spark-2751 run_inshop_siglip2_true_freeze_dgx.sh[219583]: START mode=smoke arm=freeze_emb updates=17
+2026-09-26T15:37:49+02:00 spark-2751 run_inshop_siglip2_true_freeze_dgx.sh[219834]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-26T15:37:49+02:00 spark-2751 run_inshop_siglip2_true_freeze_dgx.sh[219834]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-26T15:37:50+02:00 spark-2751 run_inshop_siglip2_true_freeze_dgx.sh[219834]: [292B blob data]
+2026-09-26T15:38:05+02:00 spark-2751 run_inshop_siglip2_true_freeze_dgx.sh[219834]: {"step": 17, "loss": 5.904797554016113, "elapsed_seconds": 14.768385102972388}
+2026-09-26T15:38:16+02:00 spark-2751 run_inshop_siglip2_true_freeze_dgx.sh[219834]: {"arm": "freeze_emb", "seed": 179024, "training_seconds": 14.828518599271774, "holdout_r1": null}
+2026-09-26T15:38:18+02:00 spark-2751 run_inshop_siglip2_true_freeze_dgx.sh[219583]: DONE arm=freeze_emb receipt_sha256=3bbed5b5c381614461dc324e5c26068b5591039d8d28d7a7ea8f1d97e0fddc2b
+2026-09-26T15:38:18+02:00 spark-2751 systemd[3489]: sfora-inshop-true-freeze-smoke-179024-v1.service: Consumed 1min 51.692s CPU time, 5.9G memory peak, 0B memory swap peak.
