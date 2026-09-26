@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import hashlib
+import inspect
 import json
 import os
 from io import BytesIO
@@ -13,8 +14,23 @@ import numpy as np
 import torch
 from PIL import Image
 
+from sfora import (
+    cutile_int8,
+    joint_relational_compaction,
+    siglip2_compact_serving,
+    sop_compact_training,
+)
 from sfora.joint_relational_compaction import pack_int8_unit_embeddings
 from sfora.siglip2_compact_serving import Siglip2CompactIndex
+
+SOURCE_HASHES = {
+    "siglip2_compact_serving": "700fd6d1e045e135c5298fd8842f6275e68bdd3cec9a158790aa8dce9267c614",
+    "joint_relational_compaction": (
+        "4ca0de1b0579ea6165c81e9057e9afe77e6dd4141f0b4a0adb281de25300de67"
+    ),
+    "cutile_int8": "b7c57022a836774d641a829e6aac71c1d547e3f71136f716d3c9aeeedad11409",
+    "sop_compact_training": "12ccd15c3b943fa519ba37f8d09870b105939872d9279541fc0ab42f20a7ead9",
+}
 
 
 def digest(path: Path) -> str:
@@ -29,17 +45,32 @@ def main() -> None:
     official_receipt_sha = "7f5edf6b8ecb526e8ba29944119035245725055787cb088bd2635cc734b0eb6c"
     training = root / f"sfora-sop-true-freeze-freeze-{seed}-1000-v1"
     official = root / f"sfora-sop-true-freeze-public-official-{seed}-freeze-v1"
-    output = root / "sfora-sop-true-freeze-official-loader-179024-v1.json"
+    output = root / "sfora-sop-true-freeze-official-loader-179024-v2.json"
     if output.exists() or torch.cuda.is_available() is False:
         raise ValueError("official loader invocation differs")
-    with np.load(
-        "/home/riomus/sfora-relational-sop-e1/unicom-l14-sop-v1.npz", allow_pickle=False
-    ) as source:
+    imported = {
+        name: digest(Path(inspect.getfile(module)))
+        for name, module in (
+            ("siglip2_compact_serving", siglip2_compact_serving),
+            ("joint_relational_compaction", joint_relational_compaction),
+            ("cutile_int8", cutile_int8),
+            ("sop_compact_training", sop_compact_training),
+        )
+    }
+    if imported != SOURCE_HASHES:
+        raise ValueError("official loader imported source differs")
+    archive = Path("/home/riomus/sfora-relational-sop-e1/unicom-l14-sop-v1.npz")
+    if digest(archive) != "1ba27b2d6b9db39067aa6facd0ef8aafc303c4527f6feabed859b0512c7d921a":
+        raise ValueError("official loader source archive differs")
+    with np.load(archive, allow_pickle=False) as source:
         relatives = np.asarray(source["test_relative_paths"]).astype(str)[:32]
     from train_sop_siglip2_compact import paths_from_archive
 
     paths = paths_from_archive(Path("/home/riomus/datasets/Stanford_Online_Products"), relatives)
-    manifest = (root / "sfora-sop-reference-b8f85611-179019/sop-test-image-sha256.bin").read_bytes()
+    manifest_path = root / "sfora-sop-reference-b8f85611-179019/sop-test-image-sha256.bin"
+    if digest(manifest_path) != "28a3ec0561cd83ee426f3d1c301c70799316af91c1e9083a5a1ffdf3414327c1":
+        raise ValueError("official loader image manifest differs")
+    manifest = manifest_path.read_bytes()
     images = []
     for row, path in enumerate(paths):
         raw = path.read_bytes()
@@ -91,13 +122,15 @@ def main() -> None:
     exact = (codes[:32] @ codes.T) * inverse[:32, None] * inverse[None, :]
     expected = torch.argsort(exact, dim=1, descending=True, stable=True)[:, :10]
     expected_scores = exact.gather(1, expected).cpu().numpy()
+    if scores.shape != expected_scores.shape or not np.isfinite(scores).all():
+        raise ValueError("official loader top-10 scores differ")
     if not np.array_equal(ordinals, expected.cpu().numpy()):
         raise ValueError("official loader top-10 ordinals differ")
     max_delta = float(np.max(np.abs(scores - expected_scores)))
     if max_delta > 1e-5:
         raise ValueError("official loader top-10 scores differ")
     result = {
-        "schema": "sfora-sop-true-freeze-official-loader-v1",
+        "schema": "sfora-sop-true-freeze-official-loader-v2",
         "seed": seed,
         "arm": "freeze",
         "query_rows": 32,
@@ -106,12 +139,15 @@ def main() -> None:
         "gallery_embeddings_sha256": digest(embeddings),
         "training_receipt_sha256": digest(training_receipt),
         "source_sha256": digest(Path(__file__)),
+        "imported_source_sha256": imported,
+        "source_archive_sha256": digest(archive),
+        "image_manifest_sha256": hashlib.sha256(manifest).hexdigest(),
         "query_packed_exact": True,
         "native_top10_exact": True,
         "max_score_abs_delta": max_delta,
     }
     with output.open("xb") as stream:
-        stream.write((json.dumps(result, sort_keys=True) + "\n").encode())
+        stream.write((json.dumps(result, sort_keys=True, allow_nan=False) + "\n").encode())
         stream.flush()
         os.fsync(stream.fileno())
     print(json.dumps(result))
