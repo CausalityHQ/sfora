@@ -197,6 +197,8 @@ established novelty claim.
 | SOP official TEST, 60,502 symmetric queries, self excluded | Coverage bank, 3 seeds | packed R@1 91.2725%, mAP@R 0.757861 | 130-byte gallery | [exploratory official read](sop_siglip2_coverage_official_result_2026-09-25.md), source-bound; TEST had prior Sfora reads |
 | SOP official TEST, 60,470 gallery rows after 32 held query rows | Selected bank checkpoint vs faithful UNICOM L14/336 | quality assessed separately above | image-to-top10 p50/p95 at batch1: 23.328/26.239 ms vs 36.305/39.055 ms; batch32: 314.683/325.875 ms vs 558.497/568.963 ms | [100-call diagnostic](sop_coverage_vs_fullwidth_unicom_latency_2026-09-25.md), no p99 certification |
 | In-Shop official TRAIN, 2,540 class-disjoint held queries/full 25,882 TRAIN gallery | Bank vs matched float, three seeds | mean packed R@1 97.6640% vs 97.1916%; mAP@R 0.777733 vs 0.760664 | mean 1,150.614 s/55.62 images/s/23.829 GB peak CUDA vs 1,137.119 s/56.28 images/s/21.077 GB per 64,000 images | [completed paired exploratory TRAIN gate](inshop_siglip2_paired_training_gate_2026-09-25.md); bank selected for official query/gallery |
+| In-Shop official TRAIN, 12,599 held-only symmetric queries/gallery, product-disjoint from fit | Lower-stack freeze vs same-source control, seeds 179023/24/25 | mean packed R@1 **98.5977% vs 98.4152%**, +0.1826 pp; pooled product-bootstrap lower +0.0716 pp, but seed 179024 lower −0.0856 pp **fails frozen individual gate** | mean **983.7 vs 1,145.4 s** per 64,000 sampled images; peak CUDA **18.124 vs 22.554 GB** on DGX Spark GB10 | [source-bound exploratory TRAIN replication](inshop_siglip2_unseen_gallery_gate_2026-09-26.md); faster, quality repeatability unresolved, no official promotion |
+| In-Shop same TRAIN held-only symmetric gallery, seed 179024 | Vision LR 3e-5 vs 1e-5 same-source control | packed R@1 **97.9602% vs 98.5554%**, mAP@R **0.796341 vs 0.826739**; paired R@1 −0.5953 pp, 95% interval [−0.8173, −0.3856] | training wall 1,146.22 vs 1,147.93 s; both peak CUDA 22.554 GB | [frozen LR screen](inshop_siglip2_unseen_gallery_gate_2026-09-26.md) failed; no second seed or official read |
 | In-Shop official query/gallery, 14,218/12,612 | Selected bank, three seeds | mean packed R@1 **95.4823%**, mAP@R **0.784502** | 130-byte/image gallery; mean export 143.239 s for query+gallery; native top-10 exact on all queries | [exploratory official readout](inshop_siglip2_official_result_2026-09-25.md); **fails** published 96.7% reference by 1.218 pp |
 | SOP official TEST / In-Shop official query-gallery | UNICOM L14/336 paper | published R@1 91.2% / 96.7% | published full-width descriptor; local SOP latency control above | dated [UNICOM Table 4](https://arxiv.org/abs/2304.05884), not the verified latest frontier |
 
@@ -205,7 +207,9 @@ The In-Shop TRAIN holdout cannot be compared numerically with the paper's
 reference. The SOP true-freeze option passed three paired TRAIN and exploratory
 official TEST seeds, plus the actual public TRAIN query-quality gate in both
 precisions. It failed its In-Shop TRAIN point-estimate gate by one query and is
-not selected there. The separate public batch-32 FP16 official TEST gate now
+not selected there. A distinct In-Shop unseen-gallery freeze recipe reduced
+training cost, but its three-seed individual quality gate failed; raising the
+vision learning rate also failed. The separate public batch-32 FP16 official TEST gate now
 passes all three same-source pairs, and an authenticated production loader
 reproduces 32 TEST image queries against the full official gallery exactly.
 The TEST inventory was previously observed and the loader check covers only
