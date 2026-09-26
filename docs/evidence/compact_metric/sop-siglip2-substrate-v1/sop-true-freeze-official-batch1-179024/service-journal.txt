@@ -1,0 +1,14 @@
+2026-09-26T23:13:28.025691+02:00 spark-2751 systemd[3489]: Started sfora-sop-batch1-screen-179024-v1.service - /usr/bin/flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock /home/riomus/group-learning/.venv/bin/python /home/riomus/sfora-sop-batch1-screen-b333893/scripts/diagnose_sop_true_freeze_batch1.py.
+2026-09-26T23:13:32.895532+02:00 spark-2751 flock[312941]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-26T23:13:32.895532+02:00 spark-2751 flock[312941]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-26T23:13:33.270494+02:00 spark-2751 flock[312941]: [302B blob data]
+2026-09-26T23:13:39.788658+02:00 spark-2751 flock[312941]: {"query_rows": 256}
+2026-09-26T23:13:43.922744+02:00 spark-2751 flock[312941]: {"query_rows": 512}
+2026-09-26T23:13:47.978189+02:00 spark-2751 flock[312941]: {"query_rows": 768}
+2026-09-26T23:13:52.147981+02:00 spark-2751 flock[312941]: {"query_rows": 1024}
+2026-09-26T23:13:56.266696+02:00 spark-2751 flock[312941]: {"query_rows": 1280}
+2026-09-26T23:14:00.435964+02:00 spark-2751 flock[312941]: {"query_rows": 1536}
+2026-09-26T23:14:04.554198+02:00 spark-2751 flock[312941]: {"query_rows": 1792}
+2026-09-26T23:14:08.674463+02:00 spark-2751 flock[312941]: {"query_rows": 2048}
+2026-09-26T23:14:08.872942+02:00 spark-2751 flock[312941]: {"screen_pass": true, "batch1_r1": 0.9248046875, "delta": {"point": 0.0, "lower_95": 0.0, "upper_95": 0.0}}
+2026-09-26T23:14:09.910733+02:00 spark-2751 systemd[3489]: sfora-sop-batch1-screen-179024-v1.service: Consumed 1min 49.537s CPU time, 1.7M memory peak, 0B memory swap peak.
