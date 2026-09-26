@@ -55,6 +55,49 @@ def singleton_batch(labels: tuple[str, ...], batch: tuple[int, ...], singleton: 
     return any(labels[row] in singleton for row in batch)
 
 
+def synthesize_proxy_batch(
+    features: torch.Tensor,
+    proxies: torch.Tensor,
+    labels: torch.Tensor,
+    generator: np.random.Generator,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, np.ndarray, np.ndarray]:
+    """Add same-coefficient mixed embeddings and proxies as virtual classes."""
+
+    if (
+        features.ndim != 2
+        or features.shape != (len(labels), 128)
+        or proxies.ndim != 2
+        or proxies.shape[1] != 128
+        or labels.ndim != 1
+        or labels.dtype != torch.int64
+        or features.device != proxies.device
+        or features.device != labels.device
+    ):
+        raise ValueError("proxy synthesis geometry differs")
+    labels_cpu = labels.detach().cpu().numpy()
+    partners = np.empty(len(labels), dtype="<i8")
+    for row, label in enumerate(labels_cpu):
+        candidates = np.flatnonzero(labels_cpu != label)
+        if not len(candidates):
+            raise ValueError("proxy synthesis needs different classes")
+        partners[row] = candidates[generator.integers(len(candidates))]
+    lambdas = generator.beta(0.4, 0.4, size=len(labels)).astype("<f4")
+    pair = torch.from_numpy(partners).to(device=features.device)
+    weight = torch.from_numpy(lambdas).to(device=features.device)[:, None]
+    synthetic_features = weight * features + (1 - weight) * features[pair]
+    synthetic_proxies = weight * proxies[labels] + (1 - weight) * proxies[labels[pair]]
+    synthetic_labels = torch.arange(
+        len(proxies), len(proxies) + len(labels), device=labels.device, dtype=labels.dtype
+    )
+    return (
+        torch.cat((features, synthetic_features)),
+        torch.cat((proxies, synthetic_proxies)),
+        torch.cat((labels, synthetic_labels)),
+        partners,
+        lambdas,
+    )
+
+
 def source_manifest() -> dict[str, str]:
     used = (
         main,
@@ -91,7 +134,9 @@ def main() -> None:
     parser.add_argument("--preflight", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument(
-        "--arm", choices=("control", "budget", "freeze", "freeze_emb", "subspace"), required=True
+        "--arm",
+        choices=("control", "budget", "freeze", "freeze_emb", "subspace", "proxy_synthesis"),
+        required=True,
     )
     parser.add_argument("--updates", type=int, choices=(17, 1_000, 3_000), required=True)
     parser.add_argument("--seed", type=int, choices=(179023, 179024, 179025), default=SEED)
@@ -234,6 +279,8 @@ def main() -> None:
     dtype, scaler = training_precision("bf16", device="cuda")
     masks = torch.arange(128, device="cuda", dtype=torch.int64).unsqueeze(0)
     mask_rng = torch.Generator().manual_seed(args.seed + 128_000)
+    synthesis_rng = np.random.default_rng(args.seed * 1_000_003 + 8_421)
+    synthesis_digest = hashlib.sha256()
     args.output_dir.mkdir(parents=True, exist_ok=False)
     torch.cuda.reset_peak_memory_stats()
     started = time.perf_counter()
@@ -261,8 +308,15 @@ def main() -> None:
         if args.arm == "subspace":
             coordinates = torch.randperm(128, generator=mask_rng)[:64].sort().values.cuda()
             masks = coordinates.unsqueeze(0)
+        arc_features, arc_proxies, arc_labels = features.float(), classifier, target
+        if args.arm == "proxy_synthesis":
+            arc_features, arc_proxies, arc_labels, partners, lambdas = synthesize_proxy_batch(
+                arc_features, arc_proxies, arc_labels, synthesis_rng
+            )
+            synthesis_digest.update(partners.tobytes())
+            synthesis_digest.update(lambdas.tobytes())
         control = sharded_mask_arcface_loss(
-            features.float(), classifier, target, masks, margin=0.3, scale=64.0
+            arc_features, arc_proxies, arc_labels, masks, margin=0.3, scale=64.0
         )
         rank = control.new_zeros(())
         if step not in inactive:
@@ -385,6 +439,10 @@ def main() -> None:
         "rank_coefficient": RANK_COEFFICIENT,
         "vision_lr": args.vision_lr,
         "training_coordinates": 64 if args.arm == "subspace" else 128,
+        "synthetic_classes_per_step": BATCH_SIZE if args.arm == "proxy_synthesis" else 0,
+        "proxy_synthesis_stream_sha256": (
+            synthesis_digest.hexdigest() if args.arm == "proxy_synthesis" else None
+        ),
         "rank_inactive_steps": [step for step in inactive if step <= args.updates],
         "rank_active_updates": sum(step not in inactive for step in range(1, args.updates + 1)),
         "source_sha256": sha256(Path(__file__)),
