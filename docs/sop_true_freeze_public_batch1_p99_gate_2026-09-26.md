@@ -26,3 +26,11 @@ batch-1 latency but not varied-image p99, load behavior under traffic,
 official TEST gallery timing, or a quality/performance SOTA claim. If the
 gate fails, inspect blockwise contention and profile the actual public call
 before changing the model or scorer.
+
+The first invocation completed all 20 timing blocks but failed before writing
+a receipt: the caller passed NumPy arrays to the shared bootstrap helper,
+whose empty-input guard expects a sequence with a scalar truth value. No
+latency estimate was recovered or selected from that failed invocation. The
+caller now converts the 20×500 samples to lists; a synthetic full-shape
+bootstrap check passes. The rerun uses the same frozen protocol and a new
+output path.

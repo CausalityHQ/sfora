@@ -151,8 +151,8 @@ def main() -> None:
     if args.certify_batch1_p99:
         batch = raw["1"]
         p99 = block_bootstrap_p99_ratio(
-            np.asarray(batch["freeze"], dtype=np.int64).reshape(blocks, 500),
-            np.asarray(batch["control"], dtype=np.int64).reshape(blocks, 500),
+            np.asarray(batch["freeze"], dtype=np.int64).reshape(blocks, 500).tolist(),
+            np.asarray(batch["control"], dtype=np.int64).reshape(blocks, 500).tolist(),
         )
         passed = (
             p99["ci95_upper"] <= 1.05
