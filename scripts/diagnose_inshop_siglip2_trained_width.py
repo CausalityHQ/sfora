@@ -154,7 +154,18 @@ def main() -> None:
         packed_quality["per_query_r1"] != receipt["quality"]["per_query_r1"]
         or abs(packed_quality["map_at_r"] - receipt["quality"]["map_at_r"]) > 1e-8
     ):
-        raise ValueError("In-Shop trained-width packed result fails checkpoint parity")
+        mismatches = sum(
+            a != b
+            for a, b in zip(
+                packed_quality["per_query_r1"], receipt["quality"]["per_query_r1"], strict=True
+            )
+        )
+        raise ValueError(
+            "In-Shop trained-width packed result fails checkpoint parity: "
+            f"r1_mismatches={mismatches}, "
+            f"r1={packed_quality['recall_at_1']}/{receipt['quality']['recall_at_1']}, "
+            f"map={packed_quality['map_at_r']}/{receipt['quality']['map_at_r']}"
+        )
     source_minus_head = product_bootstrap(source_hits - head_hits, held_labels)
     head_minus_packed = product_bootstrap(
         head_hits - np.asarray(packed_quality["per_query_r1"], dtype=np.float64),
