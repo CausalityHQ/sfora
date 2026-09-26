@@ -90,7 +90,9 @@ def main() -> None:
     parser.add_argument("--features-dir", type=Path, required=True)
     parser.add_argument("--preflight", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
-    parser.add_argument("--arm", choices=("control", "budget", "freeze", "subspace"), required=True)
+    parser.add_argument(
+        "--arm", choices=("control", "budget", "freeze", "freeze_emb", "subspace"), required=True
+    )
     parser.add_argument("--updates", type=int, choices=(17, 1_000, 3_000), required=True)
     parser.add_argument("--seed", type=int, choices=(179023, 179024, 179025), default=SEED)
     parser.add_argument("--vision-lr", type=float, choices=(1e-5, 3e-5), default=1e-5)
@@ -103,6 +105,7 @@ def main() -> None:
         or (args.arm == "budget") != (args.updates == 3_000)
         or (args.vision_lr != 1e-5 and (args.arm != "control" or args.seed == 179023))
         or (args.arm == "subspace" and (args.seed == 179023 or args.vision_lr != 1e-5))
+        or (args.arm == "freeze_emb" and (args.seed == 179023 or args.vision_lr != 1e-5))
         or args.workers < 0
         or not torch.cuda.is_available()
         or not torch.cuda.is_bf16_supported()
@@ -198,9 +201,11 @@ def main() -> None:
     vision = full_model.vision_model
     del full_model
     vision = vision.float().cuda().train()
-    if args.arm == "freeze":
+    if args.arm in ("freeze", "freeze_emb"):
         for block in vision.encoder.layers[:12]:
             block.requires_grad_(False)
+    if args.arm == "freeze_emb":
+        vision.embeddings.requires_grad_(False)
     head = head.cuda().train()
     classifier = nn.Parameter(classifier.cuda())
     bank = bank_cpu.cuda()
@@ -394,7 +399,8 @@ def main() -> None:
         "schedule_sha256": schedule_sha,
         "fit_rows": len(fit),
         "held_rows": len(held),
-        "frozen_encoder_blocks": list(range(12)) if args.arm == "freeze" else [],
+        "frozen_encoder_blocks": list(range(12)) if args.arm in ("freeze", "freeze_emb") else [],
+        "frozen_embeddings": args.arm == "freeze_emb",
         "pca_sha256": pca_sha,
         "first_input_batch_sha256": first_input_batch_sha256,
         "training_wall_seconds": training_seconds,
