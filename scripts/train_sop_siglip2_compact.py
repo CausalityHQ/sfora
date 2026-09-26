@@ -538,6 +538,7 @@ def main() -> None:
     parser.add_argument("--rank-coefficient", type=float, default=SIGLIP2_RANK_COEFFICIENT)
     parser.add_argument("--train-vision-dtype", choices=("fp16", "bf16"), default="fp16")
     parser.add_argument("--coverage-first-schedule", action="store_true")
+    parser.add_argument("--freeze-lower-stack", action="store_true")
     parser.add_argument("--member-bank", action="store_true")
     parser.add_argument("--member-bank-preflight", type=Path)
     parser.add_argument("--expected-member-bank-preflight-sha256")
@@ -718,6 +719,10 @@ def main() -> None:
     vision = full_model.vision_model
     del full_model
     vision = vision.float().cuda().train()
+    if args.freeze_lower_stack:
+        vision.embeddings.requires_grad_(False)
+        for block in vision.encoder.layers[:12]:
+            block.requires_grad_(False)
     head = head.cuda().train()
     classifier = nn.Parameter(classifier.cuda())
     bank_init_gpu_started = time.perf_counter()
@@ -876,6 +881,7 @@ def main() -> None:
             "live_head_bank": args.live_head_bank,
             "train_vision_dtype": args.train_vision_dtype,
             "coverage_first_schedule": args.coverage_first_schedule,
+            "freeze_lower_stack": args.freeze_lower_stack,
         },
         checkpoint_path,
     )
@@ -943,6 +949,8 @@ def main() -> None:
         "initial_classifier_sha256": initial_classifier_sha,
         "schedule_sha256": schedule_sha,
         "coverage_first_schedule": args.coverage_first_schedule,
+        "freeze_lower_stack": args.freeze_lower_stack,
+        "frozen_encoder_blocks": list(range(12)) if args.freeze_lower_stack else [],
         "first_input_batch_sha256": first_input_batch_sha256,
         "rank_to_arcface_head_gradient_ratio": rank_to_arcface_head_gradient_ratio,
         "query_image_ids_sha256": hashlib.sha256(ids[held_rows].tobytes()).hexdigest(),
