@@ -30,3 +30,6 @@ def test_seeded_schedule_pairs_and_changes_across_seeds() -> None:
     first = MODULE.schedule(fit, 10, seed=179024)
     assert first == MODULE.schedule(fit, 20, seed=179024)[:10]
     assert first != MODULE.schedule(fit, 10, seed=179025)
+    for seed in (179026, 179027):
+        assert MODULE.schedule(fit, 10, seed=seed) == MODULE.schedule(fit, 20, seed=seed)[:10]
+        assert first != MODULE.schedule(fit, 10, seed=seed)

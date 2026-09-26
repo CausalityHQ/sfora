@@ -68,7 +68,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     parser.add_argument("--dataset-root", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--seed", type=int, choices=(179023, 179024, 179025), default=SEED)
+    parser.add_argument(
+        "--seed", type=int, choices=(179023, 179024, 179025, 179026, 179027), default=SEED
+    )
     args = parser.parse_args()
     if (
         args.output.exists()

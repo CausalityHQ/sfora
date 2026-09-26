@@ -113,7 +113,9 @@ def main() -> None:
         required=True,
     )
     parser.add_argument("--updates", type=int, choices=(17, 1_000, 3_000), required=True)
-    parser.add_argument("--seed", type=int, choices=(179023, 179024, 179025), default=SEED)
+    parser.add_argument(
+        "--seed", type=int, choices=(179023, 179024, 179025, 179026, 179027), default=SEED
+    )
     parser.add_argument("--vision-lr", type=float, choices=(1e-5, 3e-5), default=1e-5)
     parser.add_argument("--preflight-sha256", default=PREFLIGHT_SHA)
     parser.add_argument("--workers", type=int, default=4)
@@ -263,6 +265,8 @@ def main() -> None:
     step_seconds: list[float] = []
     preclip_grad_norms: list[float] = []
     first_input_batch_sha256: list[str] = []
+    rank_active_updates = 0
+    recovered_rank_updates = 0
     for step, (batch, target) in enumerate(loader, start=1):
         step_started = time.perf_counter()
         if step <= 10:
@@ -306,6 +310,7 @@ def main() -> None:
                 rank = valid_anchor_rank_loss(
                     features, bank, head, batch_positives[:, :batch_width], ordinals
                 )
+                recovered_rank_updates += 1
             else:
                 rank = member_bank_rank_loss(
                     features,
@@ -315,6 +320,7 @@ def main() -> None:
                     ordinals,
                     live_head=False,
                 )
+            rank_active_updates += 1
         loss = control + RANK_COEFFICIENT * rank
         if not bool(torch.isfinite(loss)):
             raise ValueError("In-Shop training loss nonfinite")
@@ -353,6 +359,15 @@ def main() -> None:
                 flush=True,
             )
     training_seconds = time.perf_counter() - started
+    expected_recovered = (
+        sum(step <= args.updates for step in inactive) if args.arm == "freeze_emb_rank" else 0
+    )
+    if (
+        recovered_rank_updates != expected_recovered
+        or rank_active_updates
+        != args.updates - sum(step <= args.updates for step in inactive) + expected_recovered
+    ):
+        raise ValueError("In-Shop rank execution count differs")
     training_peak_cuda = torch.cuda.max_memory_allocated()
     if source_manifest() != sources:
         raise ValueError("In-Shop training source changed during execution")
@@ -411,8 +426,17 @@ def main() -> None:
         "rank_coefficient": RANK_COEFFICIENT,
         "vision_lr": args.vision_lr,
         "training_coordinates": 64 if args.arm == "subspace" else 128,
-        "rank_inactive_steps": [step for step in inactive if step <= args.updates],
-        "rank_active_updates": sum(step not in inactive for step in range(1, args.updates + 1)),
+        "rank_inactive_steps": (
+            []
+            if args.arm == "freeze_emb_rank"
+            else [step for step in inactive if step <= args.updates]
+        ),
+        "formerly_rank_inactive_steps": (
+            [step for step in inactive if step <= args.updates]
+            if args.arm == "freeze_emb_rank"
+            else []
+        ),
+        "rank_active_updates": rank_active_updates,
         "source_sha256": sha256(Path(__file__)),
         "source_files_sha256": sources,
         "preflight_sha256": args.preflight_sha256,
@@ -429,9 +453,7 @@ def main() -> None:
         if args.arm in ("freeze", "freeze_emb", "freeze_emb_rank")
         else [],
         "frozen_embeddings": args.arm in ("freeze_emb", "freeze_emb_rank"),
-        "recovered_rank_updates": (
-            sum(step <= args.updates for step in inactive) if args.arm == "freeze_emb_rank" else 0
-        ),
+        "recovered_rank_updates": recovered_rank_updates,
         "pca_sha256": pca_sha,
         "first_input_batch_sha256": first_input_batch_sha256,
         "training_wall_seconds": training_seconds,
