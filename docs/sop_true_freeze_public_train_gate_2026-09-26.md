@@ -16,3 +16,20 @@ Seed 179024 completed on DGX Spark GB10 through the public API. Native top-10 ma
 | FP16 weights, native | 92.3945% | 92.8559% | +0.4615 pp [0.0170, 0.9229] | 0.767503 | 0.777591 |
 
 Both pass the frozen same-seed TRAIN diagnostic. The public batch-32 path changes some descriptor bytes and ranks relative to the batch-64 offline export, so these numbers cannot replace the official TEST offline result. No serving latency or independent TEST serving quality has been certified yet.
+
+## Three-seed public TRAIN result
+
+Seeds 179026 and 179027 then completed serially under the same source and exact native scorer. Every one of the six seed/precision pairs passed the predeclared point and product-bootstrap floor. Raw per-query receipts, decisions and journals are in the corresponding `sop-true-freeze-public-train-{seed}/` evidence directories. All means below average three training seeds on the **same reused TRAIN holdout**; they are not across-dataset or across-seed confidence intervals.
+
+| Precision | Seed | Control R@1 | Freeze R@1 | Paired R@1 difference, 95% product CI | Control mAP@R | Freeze mAP@R |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| FP32 autocast | 179024 | 92.3090% | 92.8901% | +0.5811 pp [0.1215, 1.0530] | 0.767289 | 0.777534 |
+| FP32 autocast | 179026 | 91.9843% | 92.5996% | +0.6153 pp [0.1038, 1.1088] | 0.763138 | 0.775434 |
+| FP32 autocast | 179027 | 92.5312% | 92.7192% | +0.1880 pp [−0.2741, 0.6397] | 0.769529 | 0.777999 |
+| FP32 autocast mean | 3 seeds | 92.2748% | 92.7363% | +0.4615 pp point mean; seed range +0.1880 to +0.6153 pp | 0.766652 | 0.776989 |
+| FP16 native | 179024 | 92.3945% | 92.8559% | +0.4615 pp [0.0170, 0.9229] | 0.767503 | 0.777591 |
+| FP16 native | 179026 | 92.0185% | 92.5825% | +0.5640 pp [0.0689, 1.0445] | 0.763181 | 0.775640 |
+| FP16 native | 179027 | 92.4970% | 92.7363% | +0.2393 pp [−0.2234, 0.6927] | 0.769366 | 0.777672 |
+| FP16 native mean | 3 seeds | 92.3033% | 92.7249% | +0.4216 pp point mean; seed range +0.2393 to +0.5640 pp | 0.766683 | 0.776967 |
+
+Native top-10 matched the packed full-gallery oracle for all 5,851 queries in every receipt. The production flag remains SOP opt-in. The public path has verified TRAIN quality under both precision modes, but promotion still needs full official TEST quality for the actual query/gallery batch configuration and matched batch-1/batch-32 latency; the earlier strict offline-export parity failure remains recorded.

@@ -1,0 +1,26 @@
+Started sfora-sop-freeze-public-train-179027-fp32-v1.service - /bin/bash /home/riomus/runs/run_sop_true_freeze_public_train_pair_dgx.sh 179027 fp32_autocast.
+START public TRAIN seed=179027 arm=control precision=fp32_autocast
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  28%|██▊       | 218/792 [00:00<00:00, 2146.36it/s]Loading weights:  67%|██████▋   | 531/792 [00:00<00:00, 2688.70it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2737.97it/s]
+{"queries_done": 32}
+{"queries_done": 1056}
+{"queries_done": 2080}
+{"queries_done": 3104}
+{"queries_done": 4128}
+{"queries_done": 5152}
+{"seed": 179027, "arm": "control", "precision": "fp32_autocast", "packed_r1": 0.9253119124935908, "packed_map_at_r": 0.7695287962746078}
+DONE public TRAIN seed=179027 arm=control precision=fp32_autocast
+START public TRAIN seed=179027 arm=freeze precision=fp32_autocast
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  34%|███▍      | 268/792 [00:00<00:00, 2652.16it/s]Loading weights:  80%|███████▉  | 633/792 [00:00<00:00, 3212.37it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 3174.79it/s]
+{"queries_done": 32}
+{"queries_done": 1056}
+{"queries_done": 2080}
+{"queries_done": 3104}
+{"queries_done": 4128}
+{"queries_done": 5152}
+{"seed": 179027, "arm": "freeze", "precision": "fp32_autocast", "packed_r1": 0.9271919330029055, "packed_map_at_r": 0.77799867857515}
+DONE public TRAIN seed=179027 arm=freeze precision=fp32_autocast
+sfora-sop-freeze-public-train-179027-fp32-v1.service: Consumed 5min 5.950s CPU time, 3.8G memory peak, 0B memory swap peak.

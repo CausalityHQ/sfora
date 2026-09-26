@@ -1,0 +1,26 @@
+Started sfora-sop-freeze-public-train-179027-fp16-v1.service - /bin/bash /home/riomus/runs/run_sop_true_freeze_public_train_pair_dgx.sh 179027 fp16_native.
+START public TRAIN seed=179027 arm=control precision=fp16_native
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  20%|█▉        | 156/792 [00:00<00:00, 1536.05it/s]Loading weights:  60%|█████▉    | 475/792 [00:00<00:00, 2489.65it/s]Loading weights:  99%|█████████▉| 783/792 [00:00<00:00, 2752.76it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2602.06it/s]
+{"queries_done": 32}
+{"queries_done": 1056}
+{"queries_done": 2080}
+{"queries_done": 3104}
+{"queries_done": 4128}
+{"queries_done": 5152}
+{"seed": 179027, "arm": "control", "precision": "fp16_native", "packed_r1": 0.9249700905828063, "packed_map_at_r": 0.7693659249383404}
+DONE public TRAIN seed=179027 arm=control precision=fp16_native
+START public TRAIN seed=179027 arm=freeze precision=fp16_native
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:   1%|          | 4/792 [00:00<00:21, 36.39it/s]Loading weights:  58%|█████▊    | 457/792 [00:00<00:00, 2575.95it/s]Loading weights:  97%|█████████▋| 766/792 [00:00<00:00, 2793.66it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2479.64it/s]
+{"queries_done": 32}
+{"queries_done": 1056}
+{"queries_done": 2080}
+{"queries_done": 3104}
+{"queries_done": 4128}
+{"queries_done": 5152}
+{"seed": 179027, "arm": "freeze", "precision": "fp16_native", "packed_r1": 0.9273628439582977, "packed_map_at_r": 0.7776715173670161}
+DONE public TRAIN seed=179027 arm=freeze precision=fp16_native
+sfora-sop-freeze-public-train-179027-fp16-v1.service: Consumed 4min 35.181s CPU time, 3.7G memory peak, 0B memory swap peak.
