@@ -1,0 +1,12 @@
+Started sfora-sop-freeze-public-train-179024-freeze-fp32-v1.service - /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/evaluate_sop_true_freeze_public_train.py --seed 179024 --arm freeze --precision fp32_autocast --decision /home/riomus/runs/sfora-sop-true-freeze-decision-179024-v1.json --training-run /home/riomus/runs/sfora-sop-true-freeze-freeze-179024-1000-v1 --source-archive /home/riomus/sfora-relational-sop-e1/unicom-l14-sop-v1.npz --dataset-root /home/riomus/datasets/Stanford_Online_Products --model-snapshot /home/riomus/.cache/huggingface/hub/models--google--siglip2-large-patch16-256/snapshots/787800c8990e6f058423089178e718139608408c --native-library /home/riomus/sfora-rc5-pointer-b7c57022/libsfora_cutile_int8_score_sha39602d0e.so --output /home/riomus/runs/sfora-sop-true-freeze-public-train-179024-freeze-fp32-v1.json.
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  34%|███▍      | 268/792 [00:00<00:00, 2599.57it/s]Loading weights:  76%|███████▌  | 599/792 [00:00<00:00, 3006.45it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2937.83it/s]
+{"queries_done": 32}
+{"queries_done": 1056}
+{"queries_done": 2080}
+{"queries_done": 3104}
+{"queries_done": 4128}
+{"queries_done": 5152}
+{"seed": 179024, "arm": "freeze", "precision": "fp32_autocast", "packed_r1": 0.9289010425568279, "packed_map_at_r": 0.7775336001200468}
+sfora-sop-freeze-public-train-179024-freeze-fp32-v1.service: Consumed 2min 39.315s CPU time, 3.3G memory peak, 0B memory swap peak.
