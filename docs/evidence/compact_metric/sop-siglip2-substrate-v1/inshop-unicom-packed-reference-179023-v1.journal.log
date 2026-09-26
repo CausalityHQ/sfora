@@ -1,0 +1,9 @@
+Started sfora-inshop-unicom-packed-reference-179023-v1.service - /usr/bin/env PYTHONPATH=/home/riomus/runs:/home/riomus/sfora-siglip2-deployed-batch-v1/src:/home/riomus/sfora-siglip2-deployed-batch-v1/scripts /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/diagnose_inshop_unicom_packed_reference.py --dataset-root /home/riomus/datasets/inshop_official_standard --unicom-checkout /home/riomus/UniCOM --checkpoint /home/riomus/.cache/unicom/FP16-ViT-L-14-336px.pt --preflight /home/riomus/runs/inshop-unseen-gallery-preflight-v1.json --sfora-receipt /home/riomus/runs/sfora-inshop-unseen-freeze-179023-v1/receipt.json --sfora-width /home/riomus/runs/sfora-inshop-trained-width-179023-v5.json --output /home/riomus/runs/sfora-inshop-unicom-packed-reference-179023-v1.json.
+/home/riomus/group-learning/.venv/lib/python3.13/site-packages/timm/models/layers/__init__.py:48: FutureWarning: Importing from timm.models.layers is deprecated, please import via timm.layers
+  warnings.warn(f"Importing from {__name__} is deprecated, please import via timm.layers", FutureWarning)
+/home/riomus/UniCOM/unicom/unicom/vision_transformer.py:131: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(True):
+/home/riomus/UniCOM/unicom/unicom/vision_transformer.py:87: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast(True):
+{"unicom_full768_float_r1": 0.9381696960076197, "unicom_pca128_packed_r1": 0.9338836415588538, "unicom_pca128_packed_map_at_r": 0.6668423282964887, "unicom_packed_minus_sfora_packed_product_bootstrap": {"point": -0.05206762441463608, "lower_95": -0.057362423746437706, "upper_95": -0.04706325498051646}}
+sfora-inshop-unicom-packed-reference-179023-v1.service: Consumed 8min 29.971s CPU time, 9.3G memory peak, 0B memory swap peak.
