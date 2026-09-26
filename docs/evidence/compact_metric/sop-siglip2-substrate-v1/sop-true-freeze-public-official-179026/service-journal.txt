@@ -1,0 +1,50 @@
+2026-09-26T22:30:49.783680+02:00 spark-2751 systemd[3489]: Started sfora-sop-freeze-public-official-179026-v1.service - /bin/bash /home/riomus/runs/run_sop_siglip2_true_freeze_public_official_dgx.sh 179026.
+2026-09-26T22:30:50.020378+02:00 spark-2751 bash[298541]: START public official seed=179026 arm=control
+2026-09-26T22:30:55.335216+02:00 spark-2751 bash[298579]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-26T22:30:55.335216+02:00 spark-2751 bash[298579]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-26T22:30:55.857686+02:00 spark-2751 bash[298579]: [308B blob data]
+2026-09-26T22:31:19.308199+02:00 spark-2751 bash[298579]: {"export_batches": 100}
+2026-09-26T22:31:41.152755+02:00 spark-2751 bash[298579]: {"export_batches": 200}
+2026-09-26T22:32:03.033065+02:00 spark-2751 bash[298579]: {"export_batches": 300}
+2026-09-26T22:32:24.982095+02:00 spark-2751 bash[298579]: {"export_batches": 400}
+2026-09-26T22:32:46.917133+02:00 spark-2751 bash[298579]: {"export_batches": 500}
+2026-09-26T22:33:08.834440+02:00 spark-2751 bash[298579]: {"export_batches": 600}
+2026-09-26T22:33:30.791958+02:00 spark-2751 bash[298579]: {"export_batches": 700}
+2026-09-26T22:33:52.765932+02:00 spark-2751 bash[298579]: {"export_batches": 800}
+2026-09-26T22:34:14.763943+02:00 spark-2751 bash[298579]: {"export_batches": 900}
+2026-09-26T22:34:36.768964+02:00 spark-2751 bash[298579]: {"export_batches": 1000}
+2026-09-26T22:34:58.744342+02:00 spark-2751 bash[298579]: {"export_batches": 1100}
+2026-09-26T22:35:20.674048+02:00 spark-2751 bash[298579]: {"export_batches": 1200}
+2026-09-26T22:35:42.590328+02:00 spark-2751 bash[298579]: {"export_batches": 1300}
+2026-09-26T22:36:04.499034+02:00 spark-2751 bash[298579]: {"export_batches": 1400}
+2026-09-26T22:36:26.405988+02:00 spark-2751 bash[298579]: {"export_batches": 1500}
+2026-09-26T22:36:48.323169+02:00 spark-2751 bash[298579]: {"export_batches": 1600}
+2026-09-26T22:37:10.216522+02:00 spark-2751 bash[298579]: {"export_batches": 1700}
+2026-09-26T22:37:32.101177+02:00 spark-2751 bash[298579]: {"export_batches": 1800}
+2026-09-26T22:38:05.616958+02:00 spark-2751 bash[298579]: {"seed": 179026, "arm": "control", "packed_r1": 0.9109781494826618}
+2026-09-26T22:38:07.019934+02:00 spark-2751 bash[298541]: DONE public official seed=179026 arm=control receipt_sha256=862115ee5d1acc2ce7292791ab626d1ffb707d5fb73c1020622871bc32206da6
+2026-09-26T22:38:07.019934+02:00 spark-2751 bash[298541]: START public official seed=179026 arm=freeze
+2026-09-26T22:38:12.290738+02:00 spark-2751 bash[300060]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-26T22:38:12.290738+02:00 spark-2751 bash[300060]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-26T22:38:12.838583+02:00 spark-2751 bash[300060]: [381B blob data]
+2026-09-26T22:38:36.457650+02:00 spark-2751 bash[300060]: {"export_batches": 100}
+2026-09-26T22:38:58.292238+02:00 spark-2751 bash[300060]: {"export_batches": 200}
+2026-09-26T22:39:20.190838+02:00 spark-2751 bash[300060]: {"export_batches": 300}
+2026-09-26T22:39:42.092428+02:00 spark-2751 bash[300060]: {"export_batches": 400}
+2026-09-26T22:40:04.001796+02:00 spark-2751 bash[300060]: {"export_batches": 500}
+2026-09-26T22:40:25.940966+02:00 spark-2751 bash[300060]: {"export_batches": 600}
+2026-09-26T22:40:47.897496+02:00 spark-2751 bash[300060]: {"export_batches": 700}
+2026-09-26T22:41:09.813714+02:00 spark-2751 bash[300060]: {"export_batches": 800}
+2026-09-26T22:41:31.649652+02:00 spark-2751 bash[300060]: {"export_batches": 900}
+2026-09-26T22:41:53.509993+02:00 spark-2751 bash[300060]: {"export_batches": 1000}
+2026-09-26T22:42:15.356257+02:00 spark-2751 bash[300060]: {"export_batches": 1100}
+2026-09-26T22:42:37.217503+02:00 spark-2751 bash[300060]: {"export_batches": 1200}
+2026-09-26T22:42:59.069164+02:00 spark-2751 bash[300060]: {"export_batches": 1300}
+2026-09-26T22:43:20.898217+02:00 spark-2751 bash[300060]: {"export_batches": 1400}
+2026-09-26T22:43:42.736932+02:00 spark-2751 bash[300060]: {"export_batches": 1500}
+2026-09-26T22:44:04.568736+02:00 spark-2751 bash[300060]: {"export_batches": 1600}
+2026-09-26T22:44:26.392635+02:00 spark-2751 bash[300060]: {"export_batches": 1700}
+2026-09-26T22:44:48.229938+02:00 spark-2751 bash[300060]: {"export_batches": 1800}
+2026-09-26T22:45:21.651990+02:00 spark-2751 bash[300060]: {"seed": 179026, "arm": "freeze", "packed_r1": 0.917225876830518}
+2026-09-26T22:45:23.162883+02:00 spark-2751 bash[298541]: DONE public official seed=179026 arm=freeze receipt_sha256=ba6c2cfd49835b093ac94959687aa68dc0ee445a588055aea90e898e10730c04
+2026-09-26T22:45:23.163720+02:00 spark-2751 systemd[3489]: sfora-sop-freeze-public-official-179026-v1.service: Consumed 21min 51.919s CPU time, 3.9G memory peak, 0B memory swap peak.
