@@ -24,6 +24,7 @@ from train_sop_siglip2_compact import make_collate, paths_from_archive
 
 from sfora.cutile_int8 import CutilePackedInt8Gallery
 from sfora.joint_relational_compaction import PackedInt8Embeddings, pack_int8_unit_embeddings
+from sfora.siglip2_compact_serving import Siglip2CompactEncoder
 from sfora.sop_compact_training import compact_head_features
 from sfora.sop_evaluation import score_symmetric
 
@@ -166,9 +167,12 @@ def export_verified(
     *,
     workers: int,
     batch_size: int = 64,
+    inference_precision: str = "fp32_autocast",
 ) -> torch.Tensor:
     if batch_size not in (1, 32, 64):
         raise ValueError("SOP official export batch size differs")
+    if inference_precision not in ("fp32_autocast", "fp16_native"):
+        raise ValueError("SOP official inference precision differs")
     loader = DataLoader(
         dataset,
         batch_size=batch_size,
@@ -182,7 +186,11 @@ def export_verified(
     output = []
     for index, (batch, _labels) in enumerate(loader, start=1):
         tensors = {key: value.cuda(non_blocking=True) for key, value in batch.items()}
-        with torch.amp.autocast("cuda", dtype=torch.float16):
+        if inference_precision == "fp16_native":
+            tensors["pixel_values"] = tensors["pixel_values"].half()
+        with torch.amp.autocast(
+            "cuda", dtype=torch.float16, enabled=inference_precision == "fp32_autocast"
+        ):
             pooled = vision(**tensors).pooler_output
         if pooled is None or pooled.shape != (len(batch["pixel_values"]), 1024):
             raise ValueError("SOP official SigLIP2 pooler differs")
@@ -261,11 +269,17 @@ def main() -> None:
     parser.add_argument("--native-library", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--workers", type=int, default=2)
+    parser.add_argument("--export-batch-size", type=int, default=64)
+    parser.add_argument(
+        "--inference-precision", choices=("fp32_autocast", "fp16_native"), default="fp32_autocast"
+    )
     args = parser.parse_args()
     if (
         args.output_dir.exists()
         or args.output_dir.is_symlink()
         or args.workers < 0
+        or (args.export_batch_size, args.inference_precision)
+        not in ((64, "fp32_autocast"), (32, "fp16_native"))
         or not torch.cuda.is_available()
         or sha256(args.decision) != args.expected_decision_sha256
     ):
@@ -291,6 +305,7 @@ def main() -> None:
         "scripts/train_sop_siglip2_compact.py",
         "src/sfora/cutile_int8.py",
         "src/sfora/joint_relational_compaction.py",
+        "src/sfora/siglip2_compact_serving.py",
         "src/sfora/sop_compact_training.py",
         "src/sfora/sop_evaluation.py",
     )
@@ -372,10 +387,20 @@ def main() -> None:
         raise ValueError("SOP official training checkpoint identity differs")
     vision.load_state_dict(checkpoint["vision"], strict=True)
     head.load_state_dict(checkpoint["head"], strict=True)
+    if args.inference_precision == "fp16_native":
+        vision.half()
     args.output_dir.mkdir(parents=True, exist_ok=False)
     torch.backends.cuda.matmul.allow_tf32 = False
     export_started = time.perf_counter()
-    values = export_verified(dataset, processor, vision, head, workers=args.workers)
+    values = export_verified(
+        dataset,
+        processor,
+        vision,
+        head,
+        workers=args.workers,
+        batch_size=args.export_batch_size,
+        inference_precision=args.inference_precision,
+    )
     export_seconds = time.perf_counter() - export_started
     embeddings = args.output_dir / "test_embeddings.npy"
     np.save(embeddings, values.numpy(), allow_pickle=False)
@@ -385,6 +410,17 @@ def main() -> None:
     float_score_seconds = time.perf_counter() - score_started
     packing_started = time.perf_counter()
     packed = pack_int8_unit_embeddings(values)
+    public_first_batch_packed_exact = None
+    if args.inference_precision == "fp16_native":
+        public = Siglip2CompactEncoder(
+            processor, vision, head, "fp16_native", torch.device("cuda:0")
+        ).encode_images([dataset[row][0] for row in range(32)])
+        public_first_batch_packed_exact = bool(
+            torch.equal(public.codes, packed.codes[:32])
+            and torch.equal(public.inverse_norms, packed.inverse_norms[:32])
+        )
+        if not public_first_batch_packed_exact:
+            raise ValueError("SOP public first-batch packed export differs")
     packing_seconds = time.perf_counter() - packing_started
     packed_score_started = time.perf_counter()
     packed_quality = score_symmetric(
@@ -422,6 +458,9 @@ def main() -> None:
         "test_embeddings_sha256": sha256(embeddings),
         "native_library_sha256": sha256(args.native_library),
         "gallery_wire_bytes_per_row": native["gallery_wire_bytes_per_row"],
+        "export_batch_size": args.export_batch_size,
+        "inference_precision": args.inference_precision,
+        "public_first_batch_packed_exact": public_first_batch_packed_exact,
         "float_quality": float_quality,
         "packed_quality": packed_quality,
         "native_top10_exact": native["native_top10_exact"],
