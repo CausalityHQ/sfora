@@ -1,0 +1,56 @@
+Started sfora-inshop-vision-lr-full-179024-v1.service - /usr/bin/bash /home/riomus/runs/run_inshop_siglip2_vision_lr_dgx.sh 179024 1000.
+START seed=179024 updates=1000 arm=control vision_lr=1e-5
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  17%|█▋        | 138/792 [00:00<00:00, 1377.62it/s]Loading weights:  58%|█████▊    | 457/792 [00:00<00:00, 2442.58it/s]Loading weights:  99%|█████████▊| 781/792 [00:00<00:00, 2786.09it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2613.59it/s]
+{"step": 50, "loss": 6.02227258682251, "elapsed_seconds": 59.18728913925588}
+{"step": 100, "loss": 6.008232116699219, "elapsed_seconds": 116.69738114532083}
+{"step": 150, "loss": 6.200238227844238, "elapsed_seconds": 173.84203068213537}
+{"step": 200, "loss": 6.005570411682129, "elapsed_seconds": 231.1211421303451}
+{"step": 250, "loss": 4.6481733322143555, "elapsed_seconds": 289.49670980125666}
+{"step": 300, "loss": 2.0996296405792236, "elapsed_seconds": 346.94928832212463}
+{"step": 350, "loss": 2.1767756938934326, "elapsed_seconds": 404.0771990120411}
+{"step": 400, "loss": 1.9874520301818848, "elapsed_seconds": 461.10409431438893}
+{"step": 450, "loss": 4.041140079498291, "elapsed_seconds": 518.324616509024}
+{"step": 500, "loss": 3.6516406536102295, "elapsed_seconds": 575.4434705860913}
+{"step": 550, "loss": 1.6883354187011719, "elapsed_seconds": 632.5435653664172}
+{"step": 600, "loss": 0.28181689977645874, "elapsed_seconds": 689.7148007149808}
+{"step": 650, "loss": 3.650364398956299, "elapsed_seconds": 746.7561268489808}
+{"step": 700, "loss": 1.948772668838501, "elapsed_seconds": 803.9179823300801}
+{"step": 750, "loss": 0.9034058451652527, "elapsed_seconds": 860.9956769961864}
+{"step": 800, "loss": 1.3643574714660645, "elapsed_seconds": 918.0641900240444}
+{"step": 850, "loss": 2.6390249729156494, "elapsed_seconds": 975.162749061361}
+{"step": 900, "loss": 0.4113500118255615, "elapsed_seconds": 1032.1961964662187}
+{"step": 950, "loss": 0.9818574786186218, "elapsed_seconds": 1089.3192645390518}
+{"step": 1000, "loss": 0.8487743139266968, "elapsed_seconds": 1146.2909903321415}
+{"export_batches": 100}
+{"arm": "control", "seed": 179024, "training_seconds": 1146.3826379603706, "holdout_r1": 0.9855544090800857}
+DONE seed=179024 updates=1000 arm=control receipt_sha256=c240755f35566038104a8f671c3fab86d1b12658bec55fe666d0df84e707160b
+START seed=179024 updates=1000 arm=lr3x vision_lr=3e-5
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  21%|██▏       | 170/792 [00:00<00:00, 1671.54it/s]Loading weights:  61%|██████    | 481/792 [00:00<00:00, 2493.12it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2674.90it/s]
+{"step": 50, "loss": 8.087648391723633, "elapsed_seconds": 59.622602065093815}
+{"step": 100, "loss": 8.854730606079102, "elapsed_seconds": 116.72316329274327}
+{"step": 150, "loss": 9.059077262878418, "elapsed_seconds": 173.76594952307642}
+{"step": 200, "loss": 8.082761764526367, "elapsed_seconds": 230.9886771067977}
+{"step": 250, "loss": 5.997180938720703, "elapsed_seconds": 289.260905793868}
+{"step": 300, "loss": 3.9372260570526123, "elapsed_seconds": 346.6104040588252}
+{"step": 350, "loss": 2.4650983810424805, "elapsed_seconds": 403.61955276690423}
+{"step": 400, "loss": 3.639132022857666, "elapsed_seconds": 460.53908895980567}
+{"step": 450, "loss": 4.409701347351074, "elapsed_seconds": 517.6916063288227}
+{"step": 500, "loss": 4.895182132720947, "elapsed_seconds": 574.7467329250649}
+{"step": 550, "loss": 2.6218385696411133, "elapsed_seconds": 631.7533382200636}
+{"step": 600, "loss": 0.6629654169082642, "elapsed_seconds": 688.8119480679743}
+{"step": 650, "loss": 4.444548606872559, "elapsed_seconds": 745.7270243391395}
+{"step": 700, "loss": 2.407991409301758, "elapsed_seconds": 802.7464405889623}
+{"step": 750, "loss": 1.5922714471817017, "elapsed_seconds": 859.7102633421309}
+{"step": 800, "loss": 1.8212542533874512, "elapsed_seconds": 916.6839176667854}
+{"step": 850, "loss": 3.335285186767578, "elapsed_seconds": 973.6324748410843}
+{"step": 900, "loss": 1.5730311870574951, "elapsed_seconds": 1030.591916766949}
+{"step": 950, "loss": 1.8173229694366455, "elapsed_seconds": 1087.6802634140477}
+{"step": 1000, "loss": 1.2326350212097168, "elapsed_seconds": 1144.594584220089}
+{"export_batches": 100}
+{"arm": "control", "seed": 179024, "training_seconds": 1144.682952255942, "holdout_r1": 0.9796015556790222}
+DONE seed=179024 updates=1000 arm=lr3x receipt_sha256=16a46ba17cf1778fdc3cdf628ca3854d8c15c7aaa09521b30c8473de0a0f8029
+sfora-inshop-vision-lr-full-179024-v1.service: Consumed 49min 17.918s CPU time, 10.2G memory peak, 0B memory swap peak.
