@@ -1,0 +1,16 @@
+Started sfora-inshop-vision-lr-smoke-179024-v1.service - /usr/bin/bash /home/riomus/runs/run_inshop_siglip2_vision_lr_dgx.sh 179024 17.
+START seed=179024 updates=17 arm=control vision_lr=1e-5
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  21%|██        | 167/792 [00:00<00:00, 1669.77it/s]Loading weights:  57%|█████▋    | 449/792 [00:00<00:00, 2343.22it/s]Loading weights: 100%|█████████▉| 789/792 [00:00<00:00, 2815.73it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2629.51it/s]
+{"step": 17, "loss": 5.933194160461426, "elapsed_seconds": 21.793605210259557}
+{"arm": "control", "seed": 179024, "training_seconds": 21.87320287246257, "holdout_r1": null}
+DONE seed=179024 updates=17 arm=control receipt_sha256=5f90c6a9ecaeeff0a4afbe057b00a3c448636561510f648c408a0b8ef6f044a8
+START seed=179024 updates=17 arm=lr3x vision_lr=3e-5
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:   1%|          | 4/792 [00:00<00:22, 34.32it/s]Loading weights:  59%|█████▉    | 466/792 [00:00<00:00, 2559.16it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2510.52it/s]
+{"step": 17, "loss": 8.7876558303833, "elapsed_seconds": 21.7176074096933}
+{"arm": "control", "seed": 179024, "training_seconds": 21.800460231956095, "holdout_r1": null}
+DONE seed=179024 updates=17 arm=lr3x receipt_sha256=d7d2968d12defd7021585a739807d4d8810c95a3f93c3bd0475eb1976a9810c3
+sfora-inshop-vision-lr-smoke-179024-v1.service: Consumed 1min 55.012s CPU time, 7.0G memory peak, 0B memory swap peak.
