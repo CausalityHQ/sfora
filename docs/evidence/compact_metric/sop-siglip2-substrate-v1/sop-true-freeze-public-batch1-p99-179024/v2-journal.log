@@ -1,0 +1,17 @@
+Started sfora-sop-true-freeze-public-batch1-p99-179024-v2.service - /usr/bin/flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/benchmark_sop_true_freeze_public_latency_p99_a220a7ad.py --certify-batch1-p99 --precision fp16_native --decision /home/riomus/runs/sfora-sop-true-freeze-decision-179024-v1.json --runs /home/riomus/runs --source-archive /home/riomus/sfora-relational-sop-e1/unicom-l14-sop-v1.npz --dataset-root /home/riomus/datasets/Stanford_Online_Products --model-snapshot /home/riomus/.cache/huggingface/hub/models--google--siglip2-large-patch16-256/snapshots/787800c8990e6f058423089178e718139608408c --native-library /home/riomus/sfora-rc5-pointer-b7c57022/libsfora_cutile_int8_score_sha39602d0e.so --output /home/riomus/runs/sfora-sop-true-freeze-public-batch1-p99-179024-v2.json.
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:   3%|▎         | 20/792 [00:00<00:03, 199.97it/s]Loading weights:  53%|█████▎    | 419/792 [00:00<00:00, 2414.81it/s]Loading weights:  96%|█████████▋| 763/792 [00:00<00:00, 2880.14it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2530.52it/s]
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  36%|███▌      | 286/792 [00:00<00:00, 2855.84it/s]Loading weights:  80%|████████  | 635/792 [00:00<00:00, 3216.34it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 3212.79it/s]
+{"batch": 1, "blocks_done": 2}
+{"batch": 1, "blocks_done": 4}
+{"batch": 1, "blocks_done": 6}
+{"batch": 1, "blocks_done": 8}
+{"batch": 1, "blocks_done": 10}
+{"batch": 1, "blocks_done": 12}
+{"batch": 1, "blocks_done": 14}
+{"batch": 1, "blocks_done": 16}
+{"batch": 1, "blocks_done": 18}
+{"batch": 1, "blocks_done": 20}
+{"precision": "fp16_native", "latency_pass": true, "timing": {"1": {"control": 18.2968162, "freeze": 18.3329007}}}
+sfora-sop-true-freeze-public-batch1-p99-179024-v2.service: Consumed 15min 15.641s CPU time, 3.6G memory peak, 0B memory swap peak.

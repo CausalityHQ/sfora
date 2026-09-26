@@ -1,0 +1,31 @@
+Started sfora-sop-true-freeze-public-batch1-p99-179024-v1.service - /usr/bin/flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/benchmark_sop_true_freeze_public_latency_p99_750f75ef.py --certify-batch1-p99 --precision fp16_native --decision /home/riomus/runs/sfora-sop-true-freeze-decision-179024-v1.json --runs /home/riomus/runs --source-archive /home/riomus/sfora-relational-sop-e1/unicom-l14-sop-v1.npz --dataset-root /home/riomus/datasets/Stanford_Online_Products --model-snapshot /home/riomus/.cache/huggingface/hub/models--google--siglip2-large-patch16-256/snapshots/787800c8990e6f058423089178e718139608408c --native-library /home/riomus/sfora-rc5-pointer-b7c57022/libsfora_cutile_int8_score_sha39602d0e.so --output /home/riomus/runs/sfora-sop-true-freeze-public-batch1-p99-179024-v1.json.
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:   1%|          | 4/792 [00:00<00:23, 32.95it/s]Loading weights:  57%|█████▋    | 449/792 [00:00<00:00, 2416.09it/s]Loading weights:  91%|█████████▏| 723/792 [00:00<00:00, 2542.63it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2305.47it/s]
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  41%|████      | 324/792 [00:00<00:00, 3220.32it/s]Loading weights:  87%|████████▋ | 688/792 [00:00<00:00, 3458.23it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 3427.05it/s]
+{"batch": 1, "blocks_done": 2}
+{"batch": 1, "blocks_done": 4}
+{"batch": 1, "blocks_done": 6}
+{"batch": 1, "blocks_done": 8}
+{"batch": 1, "blocks_done": 10}
+{"batch": 1, "blocks_done": 12}
+{"batch": 1, "blocks_done": 14}
+{"batch": 1, "blocks_done": 16}
+{"batch": 1, "blocks_done": 18}
+{"batch": 1, "blocks_done": 20}
+Traceback (most recent call last):
+  File "/home/riomus/runs/benchmark_sop_true_freeze_public_latency_p99_750f75ef.py", line 211, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/benchmark_sop_true_freeze_public_latency_p99_750f75ef.py", line 153, in main
+    p99 = block_bootstrap_p99_ratio(
+        np.asarray(batch["freeze"], dtype=np.int64).reshape(blocks, 500),
+        np.asarray(batch["control"], dtype=np.int64).reshape(blocks, 500),
+    )
+  File "/home/riomus/sfora-sop-batch1-full-43b66ad/scripts/paired_latency_certification.py", line 45, in block_bootstrap_p99_ratio
+    if len(candidate) != len(reference) or not candidate:
+                                               ^^^^^^^^^
+ValueError: The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()
+sfora-sop-true-freeze-public-batch1-p99-179024-v1.service: Main process exited, code=exited, status=1/FAILURE
+sfora-sop-true-freeze-public-batch1-p99-179024-v1.service: Failed with result 'exit-code'.
+sfora-sop-true-freeze-public-batch1-p99-179024-v1.service: Consumed 15min 13.789s CPU time, 3.6G memory peak, 0B memory swap peak.
