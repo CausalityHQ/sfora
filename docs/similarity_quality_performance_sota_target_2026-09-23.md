@@ -190,6 +190,7 @@ established novelty claim.
 | Dataset and split | Candidate or control | Quality | Cost/performance | Evidence status |
 | --- | --- | --- | --- | --- |
 | SOP official TRAIN, 5,851 held queries/full TRAIN gallery | Coverage bank, 3 seeds | packed R@1 92.4457%, mAP@R 0.767977 | mean 1,150.78 s/64,000 training images; 55.61 images/s; 21.409 GB peak CUDA | [paired replicated holdout](sop_siglip2_coverage_replication_result_2026-09-25.md), verified source-bound, selection split |
+| SOP official TRAIN, 5,851 held queries/full 59,551 TRAIN gallery | True lower-stack freeze vs same-source full-train bank control, seeds 179024/26/27 | mean packed R@1 **92.6850% vs 92.2691%**; mAP@R **0.777123 vs 0.766649**; each seed passes its frozen paired gate | mean **752.464 vs 1,151.417 s** per 64,000 images; **85.05 vs 55.58 images/s**; peak CUDA **11.795 vs 21.409 GB** on DGX Spark GB10; 130 bytes/gallery image | [source-bound paired decisions and receipts](sop_true_freeze_gate_2026-09-26.md), verified exploratory TRAIN-only; opt-in trainer flag, no official or SOTA claim |
 | SOP official TEST, 60,502 symmetric queries, self excluded | Coverage bank, 3 seeds | packed R@1 91.2725%, mAP@R 0.757861 | 130-byte gallery | [exploratory official read](sop_siglip2_coverage_official_result_2026-09-25.md), source-bound; TEST had prior Sfora reads |
 | SOP official TEST, 60,470 gallery rows after 32 held query rows | Selected bank checkpoint vs faithful UNICOM L14/336 | quality assessed separately above | image-to-top10 p50/p95 at batch1: 23.328/26.239 ms vs 36.305/39.055 ms; batch32: 314.683/325.875 ms vs 558.497/568.963 ms | [100-call diagnostic](sop_coverage_vs_fullwidth_unicom_latency_2026-09-25.md), no p99 certification |
 | In-Shop official TRAIN, 2,540 class-disjoint held queries/full 25,882 TRAIN gallery | Bank vs matched float, three seeds | mean packed R@1 97.6640% vs 97.1916%; mAP@R 0.777733 vs 0.760664 | mean 1,150.614 s/55.62 images/s/23.829 GB peak CUDA vs 1,137.119 s/56.28 images/s/21.077 GB per 64,000 images | [completed paired exploratory TRAIN gate](inshop_siglip2_paired_training_gate_2026-09-25.md); bank selected for official query/gallery |
@@ -198,10 +199,12 @@ established novelty claim.
 
 The In-Shop TRAIN holdout cannot be compared numerically with the paper's
 96.7%. The frozen bank selection produced a 95.4823% official mean, below that
-reference. A TRAIN-only held-gallery diagnostic is next to test why validation
-overpredicted quality. Revise the representation/training layer if the gap
-persists, then compare matched local image-to-top-k latency; the 10,000-call/cell
-p99 gate follows only when both primary quality protocols clear. CUB/Cars
+reference. The new SOP true-freeze option passed three TRAIN-only paired seeds;
+the same option failed its In-Shop TRAIN point-estimate gate by one query and
+is not selected there. A separately frozen SOP official-quality read and matched
+serving latency gate are next for that opt-in option. A distinct In-Shop
+representation or training change is needed to address the official gap before
+any cross-dataset SOTA claim. CUB/Cars
 transfer and a separately validated new method remain required for a broad
 SOTA/novelty claim. Lean
 currently proves exact selector invariants, conditional score/recall/cost
