@@ -19,7 +19,7 @@ TRAINER_SHA = "c5b8786c352ce6c8bedce9a5963ef43e2c18db61974e3c141c698227a23f1b3c"
 ARCHIVE_SHA = "1ba27b2d6b9db39067aa6facd0ef8aafc303c4527f6feabed859b0512c7d921a"
 NATIVE_SHA = "39602d0e4e8b0d5ec441be460ad7f18e288241bef19fb6e6c5df14f4033ac73c"
 PREFLIGHT_SHA = "54e806715e76b2caa7e877d55b0fecbdc921718386bce845e04367164828624c"
-COST_SHA = "8f6867ff4de768ffd3fba108cb86d7537b913d6ae5cb4f8cb16a43bc87f741a9"
+COST_SHA = "8f6867ff4de768ffd3bfa108cb86d7537b913d6ae5cb4f8cb16a43bc87f741a9"
 
 
 def sha256(path: Path) -> str:
@@ -34,6 +34,7 @@ def main() -> None:
     parser.add_argument("--control", type=Path, required=True)
     parser.add_argument("--treatment", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--seed", type=int, default=179024, choices=(179024, 179026, 179027))
     args = parser.parse_args()
     if (
         args.output.exists()
@@ -54,7 +55,7 @@ def main() -> None:
             or r.get("arm") != "float_rank_member_bank"
             or r.get("member_bank_preflight_sha256") != PREFLIGHT_SHA
             or r.get("member_bank_cost_sha256") != COST_SHA
-            or r.get("seed") != 179024
+            or r.get("seed") != args.seed
             or r.get("updates") != 1000
             or r.get("batch_size") != 64
             or r.get("train_vision_dtype") != "bf16"
@@ -149,7 +150,7 @@ def main() -> None:
     report = {
         "schema": "sfora-sop-true-freeze-paired-train-only-v1",
         "claim_eligible": False,
-        "seed": 179024,
+        "seed": args.seed,
         "held_queries": len(held),
         "paired_product_bootstrap": intervals,
         "quality_pass": quality_pass,

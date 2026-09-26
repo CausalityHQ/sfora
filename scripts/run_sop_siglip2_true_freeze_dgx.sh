@@ -20,6 +20,8 @@ export PYTHONPATH="$ROOT/src:$ROOT/scripts"
 export HF_HUB_OFFLINE=1
 
 mode="${1:?smoke or full required}"
+seed="${2:-179024}"
+case "$seed" in 179024|179026|179027) ;; *) exit 2 ;; esac
 case "$mode" in smoke) updates=17 ;; full) updates=1000 ;; *) exit 2 ;; esac
 check_sha() { test "$(sha256sum "$1" | cut -d' ' -f1)" = "$2"; }
 check_sha "$ROOT/scripts/train_sop_siglip2_compact.py" "$TRAINER_SHA"
@@ -31,10 +33,10 @@ test -z "$(nvidia-smi --query-compute-apps=pid --format=csv,noheader)"
 exec 9>"$RUNS/.sfora-siglip2-gpu.lock"
 flock -n 9
 for arm in control freeze; do
-  test ! -e "$RUNS/sfora-sop-true-freeze-$arm-179024-$updates-v1"
+  test ! -e "$RUNS/sfora-sop-true-freeze-$arm-$seed-$updates-v1"
 done
 for arm in control freeze; do
-  output="$RUNS/sfora-sop-true-freeze-$arm-179024-$updates-v1"
+  output="$RUNS/sfora-sop-true-freeze-$arm-$seed-$updates-v1"
   extra=()
   if [[ "$arm" == freeze ]]; then extra=(--freeze-lower-stack); fi
   if [[ "$mode" == full ]]; then extra+=(--evaluate); fi
@@ -43,7 +45,7 @@ for arm in control freeze; do
     --model-snapshot "$model" --candidate-dir "$RUNS/sfora-siglip2-train-28e19203" \
     --unicom-l14-archive "$archive" --dataset-root /home/riomus/datasets/Stanford_Online_Products \
     --native-library "$native" --output-dir "$output" --arm float_rank \
-    --seed 179024 --updates "$updates" --batch-size 64 --workers 2 \
+    --seed "$seed" --updates "$updates" --batch-size 64 --workers 2 \
     --rank-coefficient 8.0 --train-vision-dtype bf16 --coverage-first-schedule \
     --member-bank --member-bank-preflight "$preflight" \
     --expected-member-bank-preflight-sha256 "$PREFLIGHT_SHA" \

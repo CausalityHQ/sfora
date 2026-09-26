@@ -1,0 +1,72 @@
+2026-09-26T16:12:52+02:00 spark-2751 systemd[3489]: Started sfora-sop-true-freeze-full-179024-v1.service - /home/riomus/sfora-sop-true-freeze-v1/scripts/run_sop_siglip2_true_freeze_dgx.sh full.
+2026-09-26T16:12:52+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[231813]: START mode=full arm=control updates=1000
+2026-09-26T16:13:01+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[231842]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-26T16:13:01+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[231842]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-26T16:13:01+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[231842]: [306B blob data]
+2026-09-26T16:14:01+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[231842]: {"step": 50, "loss": 8.99258041381836, "arcface": 6.448550701141357, "rank": 0.31800377368927, "elapsed_seconds": 59.40269992407411}
+2026-09-26T16:14:59+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[231842]: {"step": 100, "loss": 9.083438873291016, "arcface": 6.431912422180176, "rank": 0.33144086599349976, "elapsed_seconds": 116.84339219424874}
+2026-09-26T16:15:56+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[231842]: {"step": 150, "loss": 9.007739067077637, "arcface": 6.571292877197266, "rank": 0.3045557737350464, "elapsed_seconds": 174.37292760098353}
+2026-09-26T16:16:54+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[231842]: {"step": 200, "loss": 7.072347640991211, "arcface": 4.801155090332031, "rank": 0.28389906883239746, "elapsed_seconds": 231.90791113022715}
+2026-09-26T16:17:51+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[231842]: {"step": 250, "loss": 9.022698402404785, "arcface": 6.575834274291992, "rank": 0.3058580160140991, "elapsed_seconds": 289.4571349620819}
+2026-09-26T16:18:49+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[231842]: {"step": 300, "loss": 9.701881408691406, "arcface": 6.887167930603027, "rank": 0.35183918476104736, "elapsed_seconds": 347.0184696689248}
+2026-09-26T16:19:46+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[231842]: {"step": 350, "loss": 7.227343559265137, "arcface": 5.550166606903076, "rank": 0.20964711904525757, "elapsed_seconds": 404.5920854629949}
+2026-09-26T16:20:44+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[231842]: {"step": 400, "loss": 7.932056427001953, "arcface": 5.8036956787109375, "rank": 0.26604509353637695, "elapsed_seconds": 462.1843889551237}
+2026-09-26T16:21:42+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[231842]: {"step": 450, "loss": 11.147588729858398, "arcface": 7.610710620880127, "rank": 0.44210970401763916, "elapsed_seconds": 519.7810040451586}
+2026-09-26T16:22:39+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[231842]: {"step": 500, "loss": 6.351982116699219, "arcface": 4.388909339904785, "rank": 0.2453840970993042, "elapsed_seconds": 577.3721676329151}
+2026-09-26T16:23:37+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[231842]: {"step": 550, "loss": 10.263930320739746, "arcface": 7.36824893951416, "rank": 0.36196017265319824, "elapsed_seconds": 634.9699218091555}
+2026-09-26T16:24:34+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[231842]: {"step": 600, "loss": 7.651056289672852, "arcface": 5.8489556312561035, "rank": 0.2252625823020935, "elapsed_seconds": 692.5809461749159}
+2026-09-26T16:25:32+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[231842]: {"step": 650, "loss": 7.990644454956055, "arcface": 5.466012001037598, "rank": 0.31557905673980713, "elapsed_seconds": 750.1603410793468}
+2026-09-26T16:26:30+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[231842]: {"step": 700, "loss": 7.951240062713623, "arcface": 6.120522975921631, "rank": 0.22883963584899902, "elapsed_seconds": 807.7791926260106}
+2026-09-26T16:27:27+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[231842]: {"step": 750, "loss": 9.254148483276367, "arcface": 7.205826759338379, "rank": 0.25604015588760376, "elapsed_seconds": 865.3522218451835}
+2026-09-26T16:28:25+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[231842]: {"step": 800, "loss": 8.229207992553711, "arcface": 6.093565940856934, "rank": 0.2669551968574524, "elapsed_seconds": 922.96920073824}
+2026-09-26T16:29:22+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[231842]: {"step": 850, "loss": 7.863691806793213, "arcface": 6.073065757751465, "rank": 0.2238282561302185, "elapsed_seconds": 980.5431248690002}
+2026-09-26T16:30:20+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[231842]: {"step": 900, "loss": 10.682365417480469, "arcface": 7.916078090667725, "rank": 0.3457859754562378, "elapsed_seconds": 1038.1557042840868}
+2026-09-26T16:31:18+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[231842]: {"step": 950, "loss": 11.396465301513672, "arcface": 8.38468074798584, "rank": 0.376473069190979, "elapsed_seconds": 1095.7915188521147}
+2026-09-26T16:32:15+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[231842]: {"step": 1000, "loss": 6.883210182189941, "arcface": 5.125170707702637, "rank": 0.21975493431091309, "elapsed_seconds": 1153.3991933790967}
+2026-09-26T16:33:00+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[231842]: {"export_batches": 100}
+2026-09-26T16:33:33+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[231842]: {"export_batches": 200}
+2026-09-26T16:34:07+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[231842]: {"export_batches": 300}
+2026-09-26T16:34:41+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[231842]: {"export_batches": 400}
+2026-09-26T16:35:15+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[231842]: {"export_batches": 500}
+2026-09-26T16:35:48+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[231842]: {"export_batches": 600}
+2026-09-26T16:36:25+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[231842]: {"export_batches": 700}
+2026-09-26T16:36:59+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[231842]: {"export_batches": 800}
+2026-09-26T16:37:32+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[231842]: {"export_batches": 900}
+2026-09-26T16:37:47+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[231842]: {"arm": "float_rank_member_bank", "training_seconds": 1153.444369228091, "quality_r1": 0.9230900700734918}
+2026-09-26T16:37:49+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[231813]: DONE arm=control receipt_sha256=1bc737d77ea19b40b74ca6ca967923696403c656c42c17930ace732f8ca0965f
+2026-09-26T16:37:49+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[231813]: START mode=full arm=freeze updates=1000
+2026-09-26T16:37:57+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[232714]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-26T16:37:57+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[232714]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-26T16:37:58+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[232714]: [300B blob data]
+2026-09-26T16:38:38+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[232714]: {"step": 50, "loss": 8.346595764160156, "arcface": 5.927192211151123, "rank": 0.3024253845214844, "elapsed_seconds": 39.46602419111878}
+2026-09-26T16:39:15+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[232714]: {"step": 100, "loss": 8.467352867126465, "arcface": 5.961504936218262, "rank": 0.3132309913635254, "elapsed_seconds": 76.99521190719679}
+2026-09-26T16:39:53+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[232714]: {"step": 150, "loss": 8.21692943572998, "arcface": 5.838327884674072, "rank": 0.2973251938819885, "elapsed_seconds": 114.51630501821637}
+2026-09-26T16:40:31+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[232714]: {"step": 200, "loss": 6.355249881744385, "arcface": 4.250253200531006, "rank": 0.26312458515167236, "elapsed_seconds": 152.04644121183082}
+2026-09-26T16:41:08+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[232714]: {"step": 250, "loss": 8.739566802978516, "arcface": 6.306251525878906, "rank": 0.30416446924209595, "elapsed_seconds": 189.5300685861148}
+2026-09-26T16:41:46+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[232714]: {"step": 300, "loss": 8.762763977050781, "arcface": 6.158820152282715, "rank": 0.3254930377006531, "elapsed_seconds": 227.0417556031607}
+2026-09-26T16:42:23+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[232714]: {"step": 350, "loss": 6.913295269012451, "arcface": 5.2869768142700195, "rank": 0.20328980684280396, "elapsed_seconds": 264.5721331401728}
+2026-09-26T16:43:01+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[232714]: {"step": 400, "loss": 7.38866662979126, "arcface": 5.313154220581055, "rank": 0.25943905115127563, "elapsed_seconds": 302.15115604689345}
+2026-09-26T16:43:38+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[232714]: {"step": 450, "loss": 10.63486099243164, "arcface": 7.162735939025879, "rank": 0.43401557207107544, "elapsed_seconds": 339.6514828130603}
+2026-09-26T16:44:16+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[232714]: {"step": 500, "loss": 5.97181510925293, "arcface": 3.960108995437622, "rank": 0.25146323442459106, "elapsed_seconds": 377.18127232883126}
+2026-09-26T16:44:53+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[232714]: {"step": 550, "loss": 9.604060173034668, "arcface": 6.745319843292236, "rank": 0.35734254121780396, "elapsed_seconds": 414.6818194449879}
+2026-09-26T16:45:31+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[232714]: {"step": 600, "loss": 6.797215461730957, "arcface": 5.095998764038086, "rank": 0.2126520872116089, "elapsed_seconds": 452.18812620686367}
+2026-09-26T16:46:08+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[232714]: {"step": 650, "loss": 7.656527996063232, "arcface": 5.36443567276001, "rank": 0.28651154041290283, "elapsed_seconds": 489.73426797799766}
+2026-09-26T16:46:46+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[232714]: {"step": 700, "loss": 7.505889892578125, "arcface": 5.716337203979492, "rank": 0.2236940860748291, "elapsed_seconds": 527.2348898649216}
+2026-09-26T16:47:23+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[232714]: {"step": 750, "loss": 8.646413803100586, "arcface": 6.73783540725708, "rank": 0.238572359085083, "elapsed_seconds": 564.7467745081522}
+2026-09-26T16:48:01+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[232714]: {"step": 800, "loss": 7.400933742523193, "arcface": 5.497372150421143, "rank": 0.23794519901275635, "elapsed_seconds": 602.2532951738685}
+2026-09-26T16:48:38+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[232714]: {"step": 850, "loss": 7.164788722991943, "arcface": 5.43641471862793, "rank": 0.2160467505455017, "elapsed_seconds": 639.7523307949305}
+2026-09-26T16:49:16+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[232714]: {"step": 900, "loss": 10.82807731628418, "arcface": 7.966791152954102, "rank": 0.35766077041625977, "elapsed_seconds": 677.2714333860204}
+2026-09-26T16:49:53+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[232714]: {"step": 950, "loss": 11.27686882019043, "arcface": 8.374031066894531, "rank": 0.3628547191619873, "elapsed_seconds": 714.7592551568523}
+2026-09-26T16:50:31+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[232714]: {"step": 1000, "loss": 6.978483200073242, "arcface": 5.331883430480957, "rank": 0.20582497119903564, "elapsed_seconds": 752.2490513632074}
+2026-09-26T16:51:10+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[232714]: {"export_batches": 100}
+2026-09-26T16:51:44+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[232714]: {"export_batches": 200}
+2026-09-26T16:52:17+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[232714]: {"export_batches": 300}
+2026-09-26T16:52:51+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[232714]: {"export_batches": 400}
+2026-09-26T16:53:24+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[232714]: {"export_batches": 500}
+2026-09-26T16:53:58+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[232714]: {"export_batches": 600}
+2026-09-26T16:54:34+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[232714]: {"export_batches": 700}
+2026-09-26T16:55:08+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[232714]: {"export_batches": 800}
+2026-09-26T16:55:41+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[232714]: {"export_batches": 900}
+2026-09-26T16:55:55+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[232714]: {"arm": "float_rank_member_bank", "training_seconds": 752.327597763855, "quality_r1": 0.9282173987352589}
+2026-09-26T16:55:57+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[231813]: DONE arm=freeze receipt_sha256=07b4716b42d1291b9c195774ebd48d9df89a3b578ee54efdb94662c5e125d1c5
+2026-09-26T16:55:57+02:00 spark-2751 systemd[3489]: sfora-sop-true-freeze-full-179024-v1.service: Consumed 1h 2min 5.629s CPU time, 3.5G memory peak, 0B memory swap peak.
