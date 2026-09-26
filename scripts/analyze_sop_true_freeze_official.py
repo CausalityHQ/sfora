@@ -39,6 +39,7 @@ def sha256(path: Path) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     parser.add_argument("--seed", type=int, choices=tuple(DECISION_SHA), required=True)
+    parser.add_argument("--mode", choices=("offline", "public"), default="offline")
     parser.add_argument("--source-root", type=Path, required=True)
     parser.add_argument("--source-archive", type=Path, required=True)
     parser.add_argument("--decision", type=Path, required=True)
@@ -68,13 +69,19 @@ def main() -> None:
     ids_sha = hashlib.sha256(ids.tobytes()).hexdigest()
     rows = {}
     vectors = {}
+    source_files_expected = SOURCE_FILES | (
+        {"src/sfora/siglip2_compact_serving.py"} if args.mode == "public" else set()
+    )
+    run_name = (
+        "sfora-sop-true-freeze-public-official"
+        if args.mode == "public"
+        else "sfora-sop-true-freeze-official"
+    )
     for arm in ("control", "freeze"):
         training_path = (
             args.run_base / f"sfora-sop-true-freeze-{arm}-{args.seed}-1000-v1/receipt.json"
         )
-        official_path = (
-            args.run_base / f"sfora-sop-true-freeze-official-{args.seed}-{arm}-v1/receipt.json"
-        )
+        official_path = args.run_base / f"{run_name}-{args.seed}-{arm}-v1/receipt.json"
         if sha256(training_path) != decision["arms"][arm]["receipt_sha256"]:
             raise ValueError(f"SOP seed {args.seed} {arm} training receipt differs")
         training = json.loads(training_path.read_text())
@@ -97,12 +104,20 @@ def main() -> None:
             or official.get("native_per_query_r1_equal") is not True
             or official.get("gallery_wire_bytes_per_row") != 130
             or not isinstance(source_files, dict)
-            or set(source_files) != SOURCE_FILES
+            or set(source_files) != source_files_expected
             or any(
                 sha256(args.source_root / name) != digest for name, digest in source_files.items()
             )
             or official.get("source_sha256")
             != source_files["scripts/evaluate_sop_siglip2_official.py"]
+            or (
+                args.mode == "public"
+                and (
+                    official.get("inference_precision") != "fp16_native"
+                    or official.get("export_batch_size") != 32
+                    or official.get("public_first_batch_packed_exact") is not True
+                )
+            )
         ):
             raise ValueError(f"SOP seed {args.seed} {arm} official receipt differs")
         quality = official["packed_quality"]
@@ -136,9 +151,14 @@ def main() -> None:
         and intervals["map_at_r"]["point"] >= 0
     )
     result = {
-        "schema": "sfora-sop-true-freeze-official-paired-v1",
+        "schema": (
+            "sfora-sop-true-freeze-public-official-paired-v1"
+            if args.mode == "public"
+            else "sfora-sop-true-freeze-official-paired-v1"
+        ),
         "claim_eligible": False,
         "seed": args.seed,
+        "mode": args.mode,
         "split": "already-observed SOP official TEST, symmetric full gallery, self excluded",
         "decision_sha256": DECISION_SHA[args.seed],
         "source_archive_sha256": ARCHIVE_SHA,
