@@ -1,0 +1,14 @@
+Started sfora-inshop-valid-anchor-smoke-179024-v2.service - /usr/bin/bash /home/riomus/runs/run_inshop_valid_anchor_rank_dgx_57981249.sh smoke.
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:   1%|          | 4/792 [00:00<00:20, 39.13it/s]Loading weights:  54%|█████▎    | 425/792 [00:00<00:00, 2458.19it/s]Loading weights:  97%|█████████▋| 769/792 [00:00<00:00, 2900.14it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2551.95it/s]
+{"step": 17, "loss": 5.904797554016113, "elapsed_seconds": 14.678790321573615}
+{"arm": "freeze_emb", "seed": 179024, "training_seconds": 14.742059354670346, "holdout_r1": null}
+DONE arm=freeze_emb updates=17 receipt_sha256=ba46dfd256980e3ad602d7d53724ae432de93319a5a5d905bdb63d0f604773e7
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  28%|██▊       | 218/792 [00:00<00:00, 2107.63it/s]Loading weights:  68%|██████▊   | 542/792 [00:00<00:00, 2763.11it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2816.13it/s]
+{"step": 17, "loss": 5.900693893432617, "elapsed_seconds": 14.704539471771568}
+{"arm": "freeze_emb_rank", "seed": 179024, "training_seconds": 14.771245474927127, "holdout_r1": null}
+DONE arm=freeze_emb_rank updates=17 receipt_sha256=97d2572d2de71246f9e4f418f8bdaa761fa61270d09e5cec2f1fef6db89b7da3
+sfora-inshop-valid-anchor-smoke-179024-v2.service: Consumed 1min 46.923s CPU time, 6.9G memory peak, 0B memory swap peak.

@@ -55,6 +55,23 @@ def singleton_batch(labels: tuple[str, ...], batch: tuple[int, ...], singleton: 
     return any(labels[row] in singleton for row in batch)
 
 
+def valid_anchor_rank_loss(
+    features: torch.Tensor,
+    bank: torch.Tensor,
+    head: nn.Linear,
+    positives: torch.Tensor,
+    ordinals: torch.Tensor,
+) -> torch.Tensor:
+    """Rank eligible anchors while keeping the original batch denominator."""
+
+    valid = (positives >= 0).any(dim=1)
+    if not bool(valid.any()):
+        raise ValueError("rank batch has no valid anchor")
+    return member_bank_rank_loss(
+        features[valid], bank, head, positives[valid], ordinals[valid], live_head=False
+    ) * (valid.sum() / len(valid))
+
+
 def source_manifest() -> dict[str, str]:
     used = (
         main,
@@ -91,7 +108,9 @@ def main() -> None:
     parser.add_argument("--preflight", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument(
-        "--arm", choices=("control", "budget", "freeze", "freeze_emb", "subspace"), required=True
+        "--arm",
+        choices=("control", "budget", "freeze", "freeze_emb", "freeze_emb_rank", "subspace"),
+        required=True,
     )
     parser.add_argument("--updates", type=int, choices=(17, 1_000, 3_000), required=True)
     parser.add_argument("--seed", type=int, choices=(179023, 179024, 179025), default=SEED)
@@ -105,7 +124,10 @@ def main() -> None:
         or (args.arm == "budget") != (args.updates == 3_000)
         or (args.vision_lr != 1e-5 and (args.arm != "control" or args.seed == 179023))
         or (args.arm == "subspace" and (args.seed == 179023 or args.vision_lr != 1e-5))
-        or (args.arm == "freeze_emb" and (args.seed == 179023 or args.vision_lr != 1e-5))
+        or (
+            args.arm in ("freeze_emb", "freeze_emb_rank")
+            and (args.seed == 179023 or args.vision_lr != 1e-5)
+        )
         or args.workers < 0
         or not torch.cuda.is_available()
         or not torch.cuda.is_bf16_supported()
@@ -201,10 +223,10 @@ def main() -> None:
     vision = full_model.vision_model
     del full_model
     vision = vision.float().cuda().train()
-    if args.arm in ("freeze", "freeze_emb"):
+    if args.arm in ("freeze", "freeze_emb", "freeze_emb_rank"):
         for block in vision.encoder.layers[:12]:
             block.requires_grad_(False)
-    if args.arm == "freeze_emb":
+    if args.arm in ("freeze_emb", "freeze_emb_rank"):
         vision.embeddings.requires_grad_(False)
     head = head.cuda().train()
     classifier = nn.Parameter(classifier.cuda())
@@ -265,7 +287,7 @@ def main() -> None:
             features.float(), classifier, target, masks, margin=0.3, scale=64.0
         )
         rank = control.new_zeros(())
-        if step not in inactive:
+        if step not in inactive or args.arm == "freeze_emb_rank":
             ordinals = schedule_gpu[step - 1]
             if not torch.equal(target, class_ids_gpu[ordinals]):
                 raise ValueError("In-Shop bank schedule labels differ")
@@ -279,6 +301,10 @@ def main() -> None:
                     torch.nn.functional.normalize(bank.index_select(1, coordinates), dim=1),
                     batch_positives[:, :batch_width],
                     ordinals,
+                )
+            elif step in inactive:
+                rank = valid_anchor_rank_loss(
+                    features, bank, head, batch_positives[:, :batch_width], ordinals
                 )
             else:
                 rank = member_bank_rank_loss(
@@ -399,8 +425,13 @@ def main() -> None:
         "schedule_sha256": schedule_sha,
         "fit_rows": len(fit),
         "held_rows": len(held),
-        "frozen_encoder_blocks": list(range(12)) if args.arm in ("freeze", "freeze_emb") else [],
-        "frozen_embeddings": args.arm == "freeze_emb",
+        "frozen_encoder_blocks": list(range(12))
+        if args.arm in ("freeze", "freeze_emb", "freeze_emb_rank")
+        else [],
+        "frozen_embeddings": args.arm in ("freeze_emb", "freeze_emb_rank"),
+        "recovered_rank_updates": (
+            sum(step <= args.updates for step in inactive) if args.arm == "freeze_emb_rank" else 0
+        ),
         "pca_sha256": pca_sha,
         "first_input_batch_sha256": first_input_batch_sha256,
         "training_wall_seconds": training_seconds,

@@ -1,0 +1,28 @@
+Started sfora-inshop-valid-anchor-full-179024-v1.service - /usr/bin/bash /home/riomus/runs/run_inshop_valid_anchor_rank_dgx_57981249.sh full.
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:   1%|          | 4/792 [00:00<00:22, 35.17it/s]Loading weights:  63%|██████▎   | 499/792 [00:00<00:00, 2765.14it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2694.44it/s]
+{"step": 50, "loss": 6.1196746826171875, "elapsed_seconds": 39.04642892908305}
+{"step": 100, "loss": 4.8518967628479, "elapsed_seconds": 76.09285110607743}
+{"step": 150, "loss": 6.379693984985352, "elapsed_seconds": 113.16616377327591}
+{"step": 200, "loss": 5.972174644470215, "elapsed_seconds": 150.49784573027864}
+{"step": 250, "loss": 3.5712037086486816, "elapsed_seconds": 188.98783044936135}
+{"step": 300, "loss": 1.7433112859725952, "elapsed_seconds": 226.4971415293403}
+{"step": 350, "loss": 2.2428202629089355, "elapsed_seconds": 263.65472145332024}
+{"step": 400, "loss": 2.157978057861328, "elapsed_seconds": 300.7747095283121}
+{"step": 450, "loss": 3.5484986305236816, "elapsed_seconds": 338.0994136710651}
+{"step": 500, "loss": 3.7242727279663086, "elapsed_seconds": 375.28999443212524}
+{"step": 550, "loss": 1.7613012790679932, "elapsed_seconds": 412.4607438631356}
+{"step": 600, "loss": 0.22226077318191528, "elapsed_seconds": 449.71945202117786}
+{"step": 650, "loss": 2.974519968032837, "elapsed_seconds": 486.82679501129314}
+{"step": 700, "loss": 1.6699600219726562, "elapsed_seconds": 524.0505541050807}
+{"step": 750, "loss": 1.039208173751831, "elapsed_seconds": 561.2660155161284}
+{"step": 800, "loss": 1.7891321182250977, "elapsed_seconds": 598.4330432233401}
+{"step": 850, "loss": 2.658712863922119, "elapsed_seconds": 635.627036051359}
+{"step": 900, "loss": 0.6664736270904541, "elapsed_seconds": 672.7625073562376}
+{"step": 950, "loss": 0.7393832206726074, "elapsed_seconds": 709.9600836099125}
+{"step": 1000, "loss": 0.9816608428955078, "elapsed_seconds": 747.0775553532876}
+{"export_batches": 100}
+{"arm": "freeze_emb_rank", "seed": 179024, "training_seconds": 747.1374226589687, "holdout_r1": 0.9862687514882134}
+DONE arm=freeze_emb_rank updates=1000 receipt_sha256=32c24be4a882602db8a16248ee8d7d05baad756c5ee80c196323ca304a02d6bd
+sfora-inshop-valid-anchor-full-179024-v1.service: Consumed 17min 57.166s CPU time, 8.3G memory peak, 0B memory swap peak.
