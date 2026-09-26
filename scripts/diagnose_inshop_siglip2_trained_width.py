@@ -110,8 +110,14 @@ def main() -> None:
     vision = full_model.vision_model
     del full_model
     checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
+    vision = vision.float()
     vision.load_state_dict(checkpoint["vision"], strict=True)
-    vision = vision.float().cuda().eval()
+    if any(
+        not torch.equal(value, checkpoint["vision"][name])
+        for name, value in vision.state_dict().items()
+    ):
+        raise ValueError("In-Shop trained-width checkpoint was rounded during load")
+    vision = vision.cuda().eval()
     head = nn.Linear(1024, 128)
     head.load_state_dict(checkpoint["head"], strict=True)
     head = head.float().cuda().eval()
@@ -163,7 +169,7 @@ def main() -> None:
         )
     )
     map_delta = packed_quality["map_at_r"] - receipt["quality"]["map_at_r"]
-    if mismatches > 10 or abs(map_delta) > 0.0005:
+    if mismatches or abs(map_delta) > 1e-8:
         raise ValueError(
             "In-Shop trained-width packed result fails checkpoint parity: "
             f"r1_mismatches={mismatches}, "
