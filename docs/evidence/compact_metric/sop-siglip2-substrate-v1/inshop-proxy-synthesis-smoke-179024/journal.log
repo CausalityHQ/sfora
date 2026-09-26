@@ -1,0 +1,14 @@
+Started sfora-inshop-proxy-synthesis-smoke-179024-v1.service - /bin/bash /home/riomus/runs/run_inshop_proxy_synthesis_dgx_03f09947.sh smoke.
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  22%|██▏       | 176/792 [00:00<00:00, 1757.20it/s]Loading weights:  63%|██████▎   | 501/792 [00:00<00:00, 2632.88it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2789.73it/s]
+{"step": 17, "loss": 5.933194160461426, "elapsed_seconds": 21.84828373696655}
+{"arm": "control", "seed": 179024, "training_seconds": 21.904796632938087, "holdout_r1": null}
+DONE arm=control updates=17 receipt_sha256=7f13cbaadbeefceca5e0166c43b75f0175cf982e3fc62f2cc31f98f690f8964d
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  22%|██▏       | 176/792 [00:00<00:00, 1756.14it/s]Loading weights:  65%|██████▌   | 515/792 [00:00<00:00, 2704.91it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2815.92it/s]
+{"step": 17, "loss": 16.44144058227539, "elapsed_seconds": 21.68669780297205}
+{"arm": "proxy_synthesis", "seed": 179024, "training_seconds": 21.752157396171242, "holdout_r1": null}
+DONE arm=proxy_synthesis updates=17 receipt_sha256=9acabe1d290f95e37812909e52f1940725a76b92989c72dd7f83c60e5801e489
+sfora-inshop-proxy-synthesis-smoke-179024-v1.service: Consumed 2min 1.836s CPU time, 6.9G memory peak, 0B memory swap peak.

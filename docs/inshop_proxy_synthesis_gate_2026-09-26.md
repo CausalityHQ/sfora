@@ -55,3 +55,25 @@ this specific arm, and another coefficient or margin requires a new causal
 proposal. Official TEST has already been observed and cannot select this
 arm. Even a TRAIN pass would not prove the published reference is beaten;
 image-to-top-k latency remains a separate production check.
+
+## Seed-179024 smoke decision
+
+The serial DGX Spark GB10 smoke service ended successfully after both arms
+completed 17 finite updates. The new control reproduced the archived old
+control's first/last loss, all 17 preclip norms, and every checkpoint tensor:
+**400/400 vision, 2/2 head and the classifier**. Treatment changed all
+those tensor groups. The first ten image-input hashes, schedule, fit/held
+rows, pretrained snapshot, PCA and feature-cache hashes match between arms.
+Treatment generated 64 virtual classes on each step with a recorded coefficient
+stream hash. Control versus treatment wall including bank initialization was
+**23.440 vs 23.190 s** and peak allocated CUDA **21.811 vs 21.814 GB**;
+both 10% cost checks pass. This is functionality and cost evidence, not a
+retrieval-quality result. The 1,000-update seed-179024 arm is authorized by
+the prewritten smoke gate.
+
+The [control receipt](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-proxy-synthesis-smoke-179024/control.json)
+SHA-256 is `7f13cbaadbeefceca5e0166c43b75f0175cf982e3fc62f2cc31f98f690f8964d`;
+the [treatment receipt](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-proxy-synthesis-smoke-179024/treatment.json)
+SHA-256 is `9acabe1d290f95e37812909e52f1940725a76b92989c72dd7f83c60e5801e489`;
+the [terminal journal](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-proxy-synthesis-smoke-179024/journal.log)
+SHA-256 is `a68042af8cee6acfa2b7ce9a6316b6b4761e4d162462a87ada0cc3da677f79a0`.
