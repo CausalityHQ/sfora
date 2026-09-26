@@ -1,0 +1,27 @@
+Started sfora-sop-freeze-public-latency-179024-fp32-v1.service - /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/benchmark_sop_true_freeze_public_latency.py --precision fp32_autocast --decision /home/riomus/runs/sfora-sop-true-freeze-decision-179024-v1.json --runs /home/riomus/runs --source-archive /home/riomus/sfora-relational-sop-e1/unicom-l14-sop-v1.npz --dataset-root /home/riomus/datasets/Stanford_Online_Products --model-snapshot /home/riomus/.cache/huggingface/hub/models--google--siglip2-large-patch16-256/snapshots/787800c8990e6f058423089178e718139608408c --native-library /home/riomus/sfora-rc5-pointer-b7c57022/libsfora_cutile_int8_score_sha39602d0e.so --output /home/riomus/runs/sfora-sop-true-freeze-public-latency-179024-fp32-v1.json.
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  10%|▉         | 79/792 [00:00<00:00, 788.69it/s]Loading weights:  61%|██████    | 481/792 [00:00<00:00, 2670.78it/s]Loading weights:  98%|█████████▊| 780/792 [00:00<00:00, 2811.61it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2599.80it/s]
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  28%|██▊       | 222/792 [00:00<00:00, 2184.99it/s]Loading weights:  74%|███████▍  | 587/792 [00:00<00:00, 3035.86it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 3019.14it/s]
+{"batch": 1, "blocks_done": 20}
+{"batch": 1, "blocks_done": 40}
+{"batch": 1, "blocks_done": 60}
+{"batch": 1, "blocks_done": 80}
+{"batch": 1, "blocks_done": 100}
+{"batch": 1, "blocks_done": 120}
+{"batch": 1, "blocks_done": 140}
+{"batch": 1, "blocks_done": 160}
+{"batch": 1, "blocks_done": 180}
+{"batch": 1, "blocks_done": 200}
+{"batch": 32, "blocks_done": 20}
+{"batch": 32, "blocks_done": 40}
+{"batch": 32, "blocks_done": 60}
+{"batch": 32, "blocks_done": 80}
+{"batch": 32, "blocks_done": 100}
+{"batch": 32, "blocks_done": 120}
+{"batch": 32, "blocks_done": 140}
+{"batch": 32, "blocks_done": 160}
+{"batch": 32, "blocks_done": 180}
+{"batch": 32, "blocks_done": 200}
+{"precision": "fp32_autocast", "latency_pass": true, "batch1": {"control": 28.4130811, "freeze": 28.345582899999997}, "batch32": {"control": 363.99253569999996, "freeze": 363.9906663}}
+sfora-sop-freeze-public-latency-179024-fp32-v1.service: Consumed 10min 30.256s CPU time, 3.6G memory peak, 0B memory swap peak.

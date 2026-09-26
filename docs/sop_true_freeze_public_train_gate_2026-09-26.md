@@ -37,3 +37,16 @@ Native top-10 matched the packed full-gallery oracle for all 5,851 queries in ev
 ## Matched serving latency protocol, frozen before timing
 
 Measure the seed 179024 same-source control and freeze public indexes on the existing DGX Spark GB10, with their own pinned 59,551-row TRAIN galleries and identical 32 query image bytes. Run `fp32_autocast` and `fp16_native` in separate serial jobs. For each precision, load both indexes before timing, verify their training receipts and native scorer, warm each at batch 1 and batch 32, then use 200 four-call ABBA/BAAB balanced blocks at each batch size. Every call includes file read, PIL decode, processor, encoder, packing and exact native top-10; synchronize CUDA at the call boundary. Record raw nanoseconds, p50/p95, cold index load seconds, peak CUDA memory, query IDs and image hashes, and output hashes. A cell needs at least 400 calls, and neither arm may have p95 more than 5% above its matched control. Treat p50/p95 as diagnostics, not p99 certification. A p99 claim requires at least 10,000 calls per arm and the separate paired-block bootstrap protocol. This timing rule is exploratory and does not override the failed strict parity or replace official TEST serving quality.
+
+## Measured public latency on DGX Spark GB10
+
+Both precision jobs completed all 200 balanced blocks per batch size, 400 measured calls per arm and cell, with stable output hashes. Both passed the frozen p95 nonregression rule. Raw nanoseconds, cold-load times, query hashes, model/scorer/source hashes, and service journals are in `docs/evidence/compact_metric/sop-siglip2-substrate-v1/sop-true-freeze-public-latency-179024/`.
+
+| Precision | Batch | Control p50/p95 | Freeze p50/p95 | Unit | Paired-index peak CUDA allocation |
+| --- | ---: | ---: | ---: | --- | ---: |
+| FP32 autocast | 1 | 25.642/28.413 | 25.650/28.346 | ms per image-to-top-10 call | 2.580 GB |
+| FP32 autocast | 32 | 336.145/363.993 | 337.448/363.991 | ms per 32-image-to-top-10 call | 2.858 GB |
+| FP16 native | 1 | 16.146/18.902 | 16.253/19.000 | ms per image-to-top-10 call | 1.308 GB |
+| FP16 native | 32 | 287.522/311.926 | 287.423/312.903 | ms per 32-image-to-top-10 call | 1.515 GB |
+
+Peak allocation is for the two simultaneously loaded indexes plus active batch, not a per-index figure. Cold index load was control/freeze 4.90/2.90 seconds at FP32 and 4.80/3.03 seconds at FP16; the control-first order and warm file cache confound that comparison. No p99 or scaling certification follows from 400 calls. Freezing has no meaningful measured serving speed effect, as expected for the same inference architecture; the training-time and peak-memory benefit is separate. The public default `fp16_native` is faster and lower-memory than FP32 here, but its descriptor bytes differ from the offline official TEST export. Promotion still needs official TEST quality measured through this actual precision/batch path and an explicit production gallery source.
