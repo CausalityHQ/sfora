@@ -42,12 +42,14 @@ def split(labels: tuple[str, ...]) -> tuple[tuple[int, ...], tuple[int, ...]]:
     )
 
 
-def schedule(labels: tuple[str, ...], updates: int) -> tuple[tuple[int, ...], ...]:
+def schedule(
+    labels: tuple[str, ...], updates: int, *, seed: int = SEED
+) -> tuple[tuple[int, ...], ...]:
     return identity_balanced_batches(
         labels,
         batch_size=BATCH,
         images_per_identity=4,
-        seed=SEED,
+        seed=seed,
         epoch=1,
         steps=updates,
         coverage_first=True,
@@ -66,6 +68,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     parser.add_argument("--dataset-root", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--seed", type=int, choices=(179023, 179024, 179025), default=SEED)
     args = parser.parse_args()
     if (
         args.output.exists()
@@ -90,7 +93,7 @@ def main() -> None:
         raise ValueError("In-Shop unseen-gallery split differs")
     schedules = {}
     for updates in (1_000, 3_000):
-        batches = schedule(fit_labels, updates)
+        batches = schedule(fit_labels, updates, seed=args.seed)
         inactive = [
             step
             for step, batch in enumerate(batches, 1)
@@ -118,7 +121,7 @@ def main() -> None:
         "held_products": len(set(held_labels)),
         "fit_sha256": digest_rows(fit),
         "held_sha256": digest_rows(held),
-        "seed": SEED,
+        "seed": args.seed,
         "schedules": schedules,
         "source_sha256": sha256(Path(__file__)),
     }

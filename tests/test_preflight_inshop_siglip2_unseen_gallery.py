@@ -22,3 +22,11 @@ def test_split_and_schedule_prefix() -> None:
     assert {labels[i] for i in fit}.isdisjoint(labels[i] for i in held)
     fit_labels = tuple(labels[i] for i in fit)
     assert MODULE.schedule(fit_labels, 10) == MODULE.schedule(fit_labels, 20)[:10]
+
+
+def test_seeded_schedule_pairs_and_changes_across_seeds() -> None:
+    labels = tuple(name for i in range(40) for name in (str(i), str(i)))
+    fit = tuple(labels[i] for i in MODULE.split(labels)[0])
+    first = MODULE.schedule(fit, 10, seed=179024)
+    assert first == MODULE.schedule(fit, 20, seed=179024)[:10]
+    assert first != MODULE.schedule(fit, 10, seed=179025)

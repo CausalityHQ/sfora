@@ -39,6 +39,7 @@ from train_sop_siglip2_compact import (
 
 from sfora.deployed_code_rank import smooth_ap_bank_loss
 from sfora.joint_relational_compaction import pack_int8_unit_embeddings
+from sfora.representation_ceiling import fit_centered_pca
 from sfora.sop_compact_training import compact_head_features
 from sfora.unicom_inshop import parse_inshop_partition
 from sfora.unicom_rank_finish import identity_balanced_batches
@@ -66,6 +67,7 @@ def source_manifest() -> dict[str, str]:
         identity_balanced_batches,
         sharded_mask_arcface_loss,
         initialize_head_and_classifier,
+        fit_centered_pca,
         member_bank_positive_ordinals,
         member_bank_rank_loss,
         export_all,
@@ -76,7 +78,7 @@ def source_manifest() -> dict[str, str]:
         for function in used
         if (filename := sys.modules[function.__module__].__file__) is not None
     }
-    if len(paths) != 9:
+    if len(paths) != 10:
         raise ValueError("In-Shop source manifest differs")
     return {str(path): sha256(path) for path in sorted(paths)}
 
@@ -90,6 +92,8 @@ def main() -> None:
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--arm", choices=("control", "budget", "freeze"), required=True)
     parser.add_argument("--updates", type=int, choices=(17, 1_000, 3_000), required=True)
+    parser.add_argument("--seed", type=int, choices=(179023, 179024, 179025), default=SEED)
+    parser.add_argument("--preflight-sha256", default=PREFLIGHT_SHA)
     parser.add_argument("--workers", type=int, default=4)
     args = parser.parse_args()
     if (
@@ -104,7 +108,7 @@ def main() -> None:
         or any(
             sha256(args.model_snapshot / name) != digest for name, digest in MODEL_HASHES.items()
         )
-        or sha256(args.preflight) != PREFLIGHT_SHA
+        or sha256(args.preflight) != args.preflight_sha256
     ):
         raise ValueError("In-Shop paired training authority differs")
     sources = source_manifest()
@@ -112,6 +116,7 @@ def main() -> None:
     cache = json.loads((args.features_dir / "receipt.json").read_text())
     if (
         preflight.get("schema") != "sfora-inshop-siglip2-unseen-gallery-preflight-v1"
+        or preflight.get("seed") != args.seed
         or preflight.get("partition_sha256") != PARTITION_SHA
         or cache.get("schema") != "sfora-inshop-siglip2-train-feature-export-v1"
         or cache.get("partition_sha256") != PARTITION_SHA
@@ -143,8 +148,8 @@ def main() -> None:
     counts = Counter(fit_labels)
     singleton = {name for name, count in counts.items() if count == 1}
     schedule_updates = 3_000 if args.arm == "budget" else 1_000
-    batches = schedule(fit_labels, schedule_updates)
-    if args.arm == "budget" and batches[:1_000] != schedule(fit_labels, 1_000):
+    batches = schedule(fit_labels, schedule_updates, seed=args.seed)
+    if args.arm == "budget" and batches[:1_000] != schedule(fit_labels, 1_000, seed=args.seed):
         raise ValueError("In-Shop budget schedule does not extend control")
     schedule_sha = hashlib.sha256(np.asarray(batches, dtype="<i4").tobytes()).hexdigest()
     inactive = tuple(
@@ -160,9 +165,9 @@ def main() -> None:
         or len({row for batch in batches for row in batch}) != len(fit)
     ):
         raise ValueError("In-Shop paired training schedule differs")
-    torch.manual_seed(SEED)
-    np.random.seed(SEED)
-    random.seed(SEED)
+    torch.manual_seed(args.seed)
+    np.random.seed(args.seed)
+    random.seed(args.seed)
     torch.set_num_threads(16)
     torch.backends.cuda.matmul.allow_tf32 = False
     features_cpu = torch.from_numpy(np.asarray(source[list(fit)]).copy()).float()
@@ -207,7 +212,7 @@ def main() -> None:
         batch_sampler=FixedBatches(batches[: args.updates]),
         num_workers=args.workers,
         pin_memory=True,
-        generator=torch.Generator().manual_seed(SEED),
+        generator=torch.Generator().manual_seed(args.seed),
         collate_fn=make_collate(processor),
     )
     optimizer = torch.optim.AdamW(
@@ -225,6 +230,7 @@ def main() -> None:
     started = time.perf_counter()
     losses: list[float] = []
     step_seconds: list[float] = []
+    preclip_grad_norms: list[float] = []
     first_input_batch_sha256: list[str] = []
     for step, (batch, target) in enumerate(loader, start=1):
         step_started = time.perf_counter()
@@ -266,11 +272,12 @@ def main() -> None:
             raise ValueError("In-Shop training loss nonfinite")
         scaler.scale(loss).backward()  # type: ignore[no-untyped-call]
         scaler.unscale_(optimizer)
-        torch.nn.utils.clip_grad_norm_(
+        preclip_grad_norm = torch.nn.utils.clip_grad_norm_(
             list(vision.parameters()) + list(head.parameters()) + [classifier],
             1.0,
             error_if_nonfinite=True,
         )
+        preclip_grad_norms.append(float(preclip_grad_norm))
         before = scaler.get_scale()
         scaler.step(optimizer)
         scaler.update()
@@ -307,7 +314,7 @@ def main() -> None:
             "vision": {key: value.detach().cpu() for key, value in vision.state_dict().items()},
             "head": {key: value.detach().cpu() for key, value in head.state_dict().items()},
             "classifier": classifier.detach().cpu(),
-            "seed": SEED,
+            "seed": args.seed,
             "arm": args.arm,
             "updates": args.updates,
         },
@@ -348,15 +355,16 @@ def main() -> None:
         "claim_eligible": False,
         "split": "official In-Shop TRAIN; product-disjoint half split; held-only symmetric gallery",
         "arm": args.arm,
-        "seed": SEED,
+        "seed": args.seed,
         "updates": args.updates,
         "batch_size": BATCH_SIZE,
+        "workers": args.workers,
         "rank_coefficient": RANK_COEFFICIENT,
         "rank_inactive_steps": [step for step in inactive if step <= args.updates],
         "rank_active_updates": sum(step not in inactive for step in range(1, args.updates + 1)),
         "source_sha256": sha256(Path(__file__)),
         "source_files_sha256": sources,
-        "preflight_sha256": PREFLIGHT_SHA,
+        "preflight_sha256": args.preflight_sha256,
         "feature_receipt_sha256": sha256(args.features_dir / "receipt.json"),
         "features_sha256": cache["features_sha256"],
         "partition_sha256": PARTITION_SHA,
@@ -373,6 +381,7 @@ def main() -> None:
         "training_wall_including_member_bank_init_seconds": training_seconds + bank_init_seconds,
         "member_bank_init_seconds": bank_init_seconds,
         "step_seconds": step_seconds,
+        "preclip_grad_norms": preclip_grad_norms,
         "first_loss": losses[0],
         "last_loss": losses[-1],
         "training_peak_cuda_allocated_bytes": training_peak_cuda,
@@ -395,7 +404,7 @@ def main() -> None:
         json.dumps(
             {
                 "arm": args.arm,
-                "seed": SEED,
+                "seed": args.seed,
                 "training_seconds": training_seconds,
                 "holdout_r1": quality["recall_at_1"] if quality else None,
             }

@@ -20,6 +20,29 @@ TRAINER_SHA = "7acea65835a5c079c4b8ad625e0144f41943cf24506ac3265444d77c540f25e3"
 ARMS = ("control", "freeze", "budget")
 
 
+def paired_gate(
+    control_r1: np.ndarray,
+    freeze_r1: np.ndarray,
+    control_ap: np.ndarray,
+    freeze_ap: np.ndarray,
+    labels: np.ndarray,
+) -> dict[str, object]:
+    arrays = (control_r1, freeze_r1, control_ap, freeze_ap)
+    if (
+        any(values.shape != labels.shape or not np.isfinite(values).all() for values in arrays)
+        or any(np.any((values != 0) & (values != 1)) for values in arrays[:2])
+        or any(np.any((values < 0) | (values > 1)) for values in arrays[2:])
+    ):
+        raise ValueError("In-Shop paired metric vectors differ")
+    r1 = product_bootstrap(freeze_r1 - control_r1, labels)
+    ap = product_bootstrap(freeze_ap - control_ap, labels)
+    return {
+        "r1_product_bootstrap": r1,
+        "map_at_r_product_bootstrap": ap,
+        "gate_pass": r1["lower_95"] > 0 and ap["point"] >= -0.005,
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     parser.add_argument("--dataset-root", type=Path, required=True)
