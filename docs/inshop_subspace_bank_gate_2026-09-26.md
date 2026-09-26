@@ -13,3 +13,17 @@ Gate, fixed before treatment results:
 The saved baseline control (seed 179024) is packed R@1 98.5554%, mAP@R 0.826739, 1,147.93 s including bank initialization per 64,000 sampled images, and 22.554 GB peak allocated CUDA on DGX Spark GB10. Its old trainer receipt and checkpoint are source-bound; the smoke replay audits behavioral identity under the new source. Serving format and scorer are unchanged by the treatment; image-to-top-k latency and official quality require separate validation if the quality gate passes.
 
 The serial [smoke control](evidence/compact_metric/sop-siglip2-substrate-v1/subspace-smoke-179024/control.json) and [subspace](evidence/compact_metric/sop-siglip2-substrate-v1/subspace-smoke-179024/subspace.json) receipts have SHA-256 `baad752aa30f88d7901d682b13c57fde9cd4a0f390066d9cee811f13fc0851ab` and `fc60d87fb953ef97acda86a98d15286ef85e75348b1bd0928bc589dc2b41af20`; the [terminal journal](evidence/compact_metric/sop-siglip2-substrate-v1/subspace-smoke-179024/journal.log) has SHA-256 `b579e229cdb134a067f8ba9284485aa1edf6f8073eae7291a94d0be17d2bef8f`. New control exactly reproduced the archived 17-step control's first/last losses, all 17 pre-clip gradient norms, 400/400 vision tensors, 2/2 head tensors and classifier tensor. Paired input, schedule, fit/held, PCA, model and feature-cache hashes match. Treatment changed all those learned tensor groups and completed 17 finite updates. Control versus treatment wall including bank init was 23.1303 versus 23.1789 s; peak allocated CUDA was 21,811,052,032 versus 21,813,409,792 bytes. The bounded smoke passes the functionality and 10% cost gate; it does not measure retrieval quality.
+
+## Frozen seed-179024 result
+
+The sole full DGX Spark service completed 1,000 finite treatment updates, held-image export and packed scoring with terminal exit 0. The [source-bound treatment receipt](evidence/compact_metric/sop-siglip2-substrate-v1/subspace-full-179024/treatment.json) has SHA-256 `4b9595645228320435842155c2130a5d4c424abc023dd274978001ef7edc7ce2`; the [frozen decision](evidence/compact_metric/sop-siglip2-substrate-v1/subspace-full-179024/decision.json) has SHA-256 `758bfeb59e00d0d5ee129cf09e3579a1893d599fba0c99e4152bf5ae5e88d250`; the [terminal journal](evidence/compact_metric/sop-siglip2-substrate-v1/subspace-full-179024/journal.log) has SHA-256 `bf56f76a77d4e26f855e3c333ef4468b8efa217cf7f5d6de3d6208ed70cbf213`.
+
+| TRAIN-only 12,599-image held gallery, seed 179024 | Control | Coordinate-subspace treatment |
+| --- | ---: | ---: |
+| Packed Recall@1 | **98.5554%** | 98.0871% |
+| Packed mAP@R | **0.826739** | 0.825250 |
+| Training wall incl. bank initialization per 64,000 sampled images | 1,147.928 s | 1,148.004 s |
+| Training throughput | 55.75 images/s | 55.75 images/s |
+| Peak allocated CUDA on DGX Spark GB10 | 22.554 GB | 22.556 GB |
+
+The paired packed Recall@1 change is **−0.4683 percentage points**, product-bootstrap 95% interval **[−0.6649, −0.2667] points**. The mAP@R change is −0.001489, within its frozen floor, and both resource limits pass. The required positive Recall@1 lower bound fails decisively. **Reject this masked-bank objective as a production recipe; stop before seed 179025 and do not use official TEST for it.** The experiment branch remains source-bound for reproduction, but the production default and public serving path do not select it. This negative result is specific to a random 64-of-128 mask under this recipe, seed and TRAIN-only proxy; it does not establish a general theorem about subspace training.

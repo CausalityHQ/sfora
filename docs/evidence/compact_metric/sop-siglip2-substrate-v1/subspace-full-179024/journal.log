@@ -1,0 +1,29 @@
+2026-09-26T15:09:55+02:00 spark-2751 systemd[3489]: Started sfora-inshop-subspace-full-179024-v1.service - /home/riomus/runs/run_inshop_siglip2_subspace_dgx.sh full.
+2026-09-26T15:09:55+02:00 spark-2751 run_inshop_siglip2_subspace_dgx.sh[212997]: START mode=full arm=subspace updates=1000
+2026-09-26T15:10:01+02:00 spark-2751 run_inshop_siglip2_subspace_dgx.sh[213007]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-26T15:10:01+02:00 spark-2751 run_inshop_siglip2_subspace_dgx.sh[213007]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-26T15:10:02+02:00 spark-2751 run_inshop_siglip2_subspace_dgx.sh[213007]: [304B blob data]
+2026-09-26T15:11:01+02:00 spark-2751 run_inshop_siglip2_subspace_dgx.sh[213007]: {"step": 50, "loss": 8.91048812866211, "elapsed_seconds": 59.246347435284406}
+2026-09-26T15:11:59+02:00 spark-2751 run_inshop_siglip2_subspace_dgx.sh[213007]: {"step": 100, "loss": 7.88461446762085, "elapsed_seconds": 116.3107799179852}
+2026-09-26T15:12:56+02:00 spark-2751 run_inshop_siglip2_subspace_dgx.sh[213007]: {"step": 150, "loss": 8.46480941772461, "elapsed_seconds": 173.41120252292603}
+2026-09-26T15:13:53+02:00 spark-2751 run_inshop_siglip2_subspace_dgx.sh[213007]: {"step": 200, "loss": 8.540143966674805, "elapsed_seconds": 230.711877677124}
+2026-09-26T15:14:51+02:00 spark-2751 run_inshop_siglip2_subspace_dgx.sh[213007]: {"step": 250, "loss": 5.661124229431152, "elapsed_seconds": 289.0904872370884}
+2026-09-26T15:15:49+02:00 spark-2751 run_inshop_siglip2_subspace_dgx.sh[213007]: {"step": 300, "loss": 3.4063949584960938, "elapsed_seconds": 346.61926183803007}
+2026-09-26T15:16:46+02:00 spark-2751 run_inshop_siglip2_subspace_dgx.sh[213007]: {"step": 350, "loss": 3.085244655609131, "elapsed_seconds": 403.7847957909107}
+2026-09-26T15:17:43+02:00 spark-2751 run_inshop_siglip2_subspace_dgx.sh[213007]: {"step": 400, "loss": 4.7297844886779785, "elapsed_seconds": 460.8849139348604}
+2026-09-26T15:18:40+02:00 spark-2751 run_inshop_siglip2_subspace_dgx.sh[213007]: {"step": 450, "loss": 5.884401321411133, "elapsed_seconds": 518.196250623092}
+2026-09-26T15:19:38+02:00 spark-2751 run_inshop_siglip2_subspace_dgx.sh[213007]: {"step": 500, "loss": 5.321694850921631, "elapsed_seconds": 575.3568127802573}
+2026-09-26T15:20:35+02:00 spark-2751 run_inshop_siglip2_subspace_dgx.sh[213007]: {"step": 550, "loss": 4.223229885101318, "elapsed_seconds": 632.4369213902391}
+2026-09-26T15:21:32+02:00 spark-2751 run_inshop_siglip2_subspace_dgx.sh[213007]: {"step": 600, "loss": 0.5953885316848755, "elapsed_seconds": 689.6227744058706}
+2026-09-26T15:22:29+02:00 spark-2751 run_inshop_siglip2_subspace_dgx.sh[213007]: {"step": 650, "loss": 5.6217570304870605, "elapsed_seconds": 746.6807893090881}
+2026-09-26T15:23:26+02:00 spark-2751 run_inshop_siglip2_subspace_dgx.sh[213007]: {"step": 700, "loss": 4.967641353607178, "elapsed_seconds": 803.8561560348608}
+2026-09-26T15:24:23+02:00 spark-2751 run_inshop_siglip2_subspace_dgx.sh[213007]: {"step": 750, "loss": 1.4285008907318115, "elapsed_seconds": 860.9392332322896}
+2026-09-26T15:25:20+02:00 spark-2751 run_inshop_siglip2_subspace_dgx.sh[213007]: {"step": 800, "loss": 2.4760632514953613, "elapsed_seconds": 918.0358453122899}
+2026-09-26T15:26:17+02:00 spark-2751 run_inshop_siglip2_subspace_dgx.sh[213007]: {"step": 850, "loss": 5.009456634521484, "elapsed_seconds": 975.1550327511504}
+2026-09-26T15:27:15+02:00 spark-2751 run_inshop_siglip2_subspace_dgx.sh[213007]: {"step": 900, "loss": 2.573823928833008, "elapsed_seconds": 1032.2775562489405}
+2026-09-26T15:28:12+02:00 spark-2751 run_inshop_siglip2_subspace_dgx.sh[213007]: {"step": 950, "loss": 4.267035961151123, "elapsed_seconds": 1089.4364376519807}
+2026-09-26T15:29:09+02:00 spark-2751 run_inshop_siglip2_subspace_dgx.sh[213007]: {"step": 1000, "loss": 2.6303045749664307, "elapsed_seconds": 1146.4491302589886}
+2026-09-26T15:29:48+02:00 spark-2751 run_inshop_siglip2_subspace_dgx.sh[213007]: {"export_batches": 100}
+2026-09-26T15:30:22+02:00 spark-2751 run_inshop_siglip2_subspace_dgx.sh[213007]: {"arm": "subspace", "seed": 179024, "training_seconds": 1146.5246074791066, "holdout_r1": 0.9808714977379157}
+2026-09-26T15:30:24+02:00 spark-2751 run_inshop_siglip2_subspace_dgx.sh[212997]: DONE arm=subspace receipt_sha256=4b9595645228320435842155c2130a5d4c424abc023dd274978001ef7edc7ce2
+2026-09-26T15:30:24+02:00 spark-2751 systemd[3489]: sfora-inshop-subspace-full-179024-v1.service: Consumed 25min 2.456s CPU time, 10.1G memory peak, 0B memory swap peak.
