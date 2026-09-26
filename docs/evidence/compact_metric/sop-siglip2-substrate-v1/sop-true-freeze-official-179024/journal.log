@@ -1,0 +1,32 @@
+Started sfora-sop-true-freeze-official-179024-v1.service - /bin/bash /home/riomus/runs/run_sop_siglip2_true_freeze_official_dgx.sh 179024.
+START official seed=179024 arm=control
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:   6%|▌         | 45/792 [00:00<00:01, 449.78it/s]Loading weights:  52%|█████▏    | 411/792 [00:00<00:00, 2326.07it/s]Loading weights:  90%|█████████ | 715/792 [00:00<00:00, 2624.84it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2407.55it/s]
+{"export_batches": 100}
+{"export_batches": 200}
+{"export_batches": 300}
+{"export_batches": 400}
+{"export_batches": 500}
+{"export_batches": 600}
+{"export_batches": 700}
+{"export_batches": 800}
+{"export_batches": 900}
+{"seed": 179024, "arm": "control", "packed_r1": 0.9125648738884665}
+DONE official seed=179024 arm=control receipt_sha256=8edca61bf055e67eb4b74fecd69dd57cd2a00679eea975afc2fb3d5706a48953
+START official seed=179024 arm=freeze
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:   1%|          | 4/792 [00:00<00:22, 34.51it/s]Loading weights:  60%|█████▉    | 475/792 [00:00<00:00, 2604.75it/s]Loading weights:  98%|█████████▊| 775/792 [00:00<00:00, 2774.95it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2451.38it/s]
+{"export_batches": 100}
+{"export_batches": 200}
+{"export_batches": 300}
+{"export_batches": 400}
+{"export_batches": 500}
+{"export_batches": 600}
+{"export_batches": 700}
+{"export_batches": 800}
+{"export_batches": 900}
+{"seed": 179024, "arm": "freeze", "packed_r1": 0.916597798419887}
+DONE official seed=179024 arm=freeze receipt_sha256=914fa0e4bf5608cbefe3f3d50289032195aa9b97616de420146911102b318c16
+sfora-sop-true-freeze-official-179024-v1.service: Consumed 21min 33.274s CPU time, 7.5G memory peak, 0B memory swap peak.
