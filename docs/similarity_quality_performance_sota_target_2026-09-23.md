@@ -191,6 +191,8 @@ established novelty claim.
 | --- | --- | --- | --- | --- |
 | SOP official TRAIN, 5,851 held queries/full TRAIN gallery | Coverage bank, 3 seeds | packed R@1 92.4457%, mAP@R 0.767977 | mean 1,150.78 s/64,000 training images; 55.61 images/s; 21.409 GB peak CUDA | [paired replicated holdout](sop_siglip2_coverage_replication_result_2026-09-25.md), verified source-bound, selection split |
 | SOP official TRAIN, 5,851 held queries/full 59,551 TRAIN gallery | True lower-stack freeze vs same-source full-train bank control, seeds 179024/26/27 | mean packed R@1 **92.6850% vs 92.2691%**; mAP@R **0.777123 vs 0.766649**; each seed passes its frozen paired gate | mean **752.464 vs 1,151.417 s** per 64,000 images; **85.05 vs 55.58 images/s**; peak CUDA **11.795 vs 21.409 GB** on DGX Spark GB10; 130 bytes/gallery image | [source-bound paired decisions and receipts](sop_true_freeze_gate_2026-09-26.md), verified exploratory TRAIN-only; opt-in trainer flag, no official or SOTA claim |
+| SOP official TEST, 60,502 symmetric queries/full TEST gallery, self excluded | True lower-stack freeze vs same-source full-train bank control, 3 paired seeds | mean packed R@1 **91.7342% vs 91.1810%**; mAP@R **0.768144 vs 0.756578**; each seed passes frozen paired gate | 130 bytes/gallery image; mean export **321.33 vs 322.61 s** on DGX Spark GB10 | [source-bound six-checkpoint official read](sop_true_freeze_official_gate_2026-09-26.md), verified exploratory; TEST previously observed, offline batch-64 export, not a SOTA or deployed-quality claim |
+| SOP official TRAIN, 5,851 held queries/full 59,551 TRAIN gallery | Public API batch-32 query path, freeze vs same-source control, 3 paired seeds | FP32 autocast mean packed R@1 **92.7363% vs 92.2748%**, mAP@R **0.776989 vs 0.766652**; default FP16 mean R@1 **92.7249% vs 92.3033%**, mAP@R **0.776967 vs 0.766683** | Seed 179024 matched image-to-top-10 p50/p95 batch1 FP16: **16.253/19.000 vs 16.146/18.902 ms**; batch32 **287.423/312.903 vs 287.522/311.926 ms** per batch; 400 calls/arm/cell on DGX Spark GB10, no p99 | [actual public path TRAIN quality and latency](sop_true_freeze_public_train_gate_2026-09-26.md), verified exploratory; strict batch-64 offline-export parity failed, so official deployed quality awaits separate validation |
 | SOP official TEST, 60,502 symmetric queries, self excluded | Coverage bank, 3 seeds | packed R@1 91.2725%, mAP@R 0.757861 | 130-byte gallery | [exploratory official read](sop_siglip2_coverage_official_result_2026-09-25.md), source-bound; TEST had prior Sfora reads |
 | SOP official TEST, 60,470 gallery rows after 32 held query rows | Selected bank checkpoint vs faithful UNICOM L14/336 | quality assessed separately above | image-to-top10 p50/p95 at batch1: 23.328/26.239 ms vs 36.305/39.055 ms; batch32: 314.683/325.875 ms vs 558.497/568.963 ms | [100-call diagnostic](sop_coverage_vs_fullwidth_unicom_latency_2026-09-25.md), no p99 certification |
 | In-Shop official TRAIN, 2,540 class-disjoint held queries/full 25,882 TRAIN gallery | Bank vs matched float, three seeds | mean packed R@1 97.6640% vs 97.1916%; mAP@R 0.777733 vs 0.760664 | mean 1,150.614 s/55.62 images/s/23.829 GB peak CUDA vs 1,137.119 s/56.28 images/s/21.077 GB per 64,000 images | [completed paired exploratory TRAIN gate](inshop_siglip2_paired_training_gate_2026-09-25.md); bank selected for official query/gallery |
@@ -199,10 +201,12 @@ established novelty claim.
 
 The In-Shop TRAIN holdout cannot be compared numerically with the paper's
 96.7%. The frozen bank selection produced a 95.4823% official mean, below that
-reference. The new SOP true-freeze option passed three TRAIN-only paired seeds;
-the same option failed its In-Shop TRAIN point-estimate gate by one query and
-is not selected there. A separately frozen SOP official-quality read and matched
-serving latency gate are next for that opt-in option. A distinct In-Shop
+reference. The SOP true-freeze option passed three paired TRAIN and exploratory
+official TEST seeds, plus the actual public TRAIN query-quality gate in both
+precisions. It failed its In-Shop TRAIN point-estimate gate by one query and is
+not selected there. The public batch-32 query path differs from the batch-64
+offline TEST export, so an actual public-path official TEST quality gate and
+production gallery source are still required before checkpoint promotion. A distinct In-Shop
 representation or training change is needed to address the official gap before
 any cross-dataset SOTA claim. CUB/Cars
 transfer and a separately validated new method remain required for a broad
