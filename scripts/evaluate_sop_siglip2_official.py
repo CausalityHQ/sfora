@@ -32,6 +32,8 @@ TEST_IMAGE_MANIFEST_SHA256 = "28a3ec0561cd83ee426f3d1c301c70799316af91c1e9083a5a
 ARMS = {"arcface": "arcface", "float_rank": "float_rank", "bank": "float_rank_member_bank"}
 REPLICATION_SEEDS = (179020, 179021, 179022)
 BF16_SEEDS = (179023, 179024, 179025)
+TRUE_FREEZE_SEEDS = (179024, 179026, 179027)
+TRUE_FREEZE_TRAINER_SHA256 = "c5b8786c352ce6c8bedce9a5963ef43e2c18db61974e3c141c698227a23f1b3c"
 BF16_ARMS = {
     "bank": (
         "float_rank_member_bank",
@@ -100,6 +102,25 @@ def validate_decision_arm(
             == "400f6ef2d992e449ff7eabf53c2982b88db0889df0586bbf94875a1b04a6e118"
             and receipt.get("train_vision_dtype") == "bf16"
             and receipt.get("updates") == 1_000
+        )
+    elif schema == "sfora-sop-true-freeze-paired-train-only-v1":
+        expected_arm = "float_rank_member_bank" if arm in ("control", "freeze") else None
+        frozen = arm == "freeze"
+        valid = (
+            expected_arm is not None
+            and decision.get("claim_eligible") is False
+            and decision.get("advance_fresh_seeds") is True
+            and decision.get("quality_pass") is True
+            and decision.get("cost_pass") is True
+            and seed in TRUE_FREEZE_SEEDS
+            and decision.get("seed") == seed
+            and decision.get("arms", {}).get(arm, {}).get("receipt_sha256") == receipt_sha256
+            and receipt.get("source_sha256") == TRUE_FREEZE_TRAINER_SHA256
+            and receipt.get("rank_coefficient") == 8.0
+            and receipt.get("train_vision_dtype") == "bf16"
+            and receipt.get("updates") == 1_000
+            and receipt.get("freeze_lower_stack") is frozen
+            and receipt.get("frozen_encoder_blocks") == (list(range(12)) if frozen else [])
         )
     else:
         expected_arm = None
@@ -226,7 +247,9 @@ def main() -> None:
     parser.add_argument("--expected-decision-sha256", required=True)
     parser.add_argument("--seed", type=int, required=True)
     parser.add_argument(
-        "--arm", choices=tuple(ARMS) + ("matched_float", "original_float"), required=True
+        "--arm",
+        choices=tuple(ARMS) + ("matched_float", "original_float", "control", "freeze"),
+        required=True,
     )
     parser.add_argument("--training-receipt", type=Path, required=True)
     parser.add_argument("--training-checkpoint", type=Path, required=True)
@@ -257,6 +280,7 @@ def main() -> None:
         in (
             "sfora-sop-siglip2-bf16-rankmatched-float-v1",
             "sfora-sop-siglip2-bf16-coverage-replication-v1",
+            "sfora-sop-true-freeze-paired-train-only-v1",
         )
         and args.training_source_root is None
     ):

@@ -119,6 +119,45 @@ def test_coverage_decision_accepts_only_pinned_bank() -> None:
         validate_decision_arm({**decision, "replication_gate_pass": False}, 179025, "bank", "a" * 64, receipt)
 
 
+def test_true_freeze_decision_binds_both_paired_arms() -> None:
+    decision = {
+        "schema": "sfora-sop-true-freeze-paired-train-only-v1",
+        "claim_eligible": False,
+        "seed": 179026,
+        "advance_fresh_seeds": True,
+        "quality_pass": True,
+        "cost_pass": True,
+        "arms": {
+            "control": {"receipt_sha256": "a" * 64},
+            "freeze": {"receipt_sha256": "b" * 64},
+        },
+    }
+    receipt = {
+        "seed": 179026,
+        "arm": "float_rank_member_bank",
+        "source_sha256": "c5b8786c352ce6c8bedce9a5963ef43e2c18db61974e3c141c698227a23f1b3c",
+        "rank_coefficient": 8.0,
+        "train_vision_dtype": "bf16",
+        "updates": 1_000,
+        "freeze_lower_stack": True,
+        "frozen_encoder_blocks": list(range(12)),
+        "quality": {"native_top10_exact": True},
+    }
+    assert (
+        validate_decision_arm(decision, 179026, "freeze", "b" * 64, receipt)
+        == "float_rank_member_bank"
+    )
+    control = {**receipt, "freeze_lower_stack": False, "frozen_encoder_blocks": []}
+    assert (
+        validate_decision_arm(decision, 179026, "control", "a" * 64, control)
+        == "float_rank_member_bank"
+    )
+    with pytest.raises(ValueError, match="gate"):
+        validate_decision_arm(decision, 179026, "freeze", "b" * 64, control)
+    with pytest.raises(ValueError, match="gate"):
+        validate_decision_arm(decision, 179026, "freeze", "a" * 64, receipt)
+
+
 def test_verified_rows_reject_changed_image_bytes(tmp_path: Path) -> None:
     path = tmp_path / "image.png"
     Image.new("RGB", (3, 2), color=(10, 20, 30)).save(path)
