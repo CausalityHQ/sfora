@@ -93,6 +93,7 @@ def main() -> None:
     parser.add_argument("--arm", choices=("control", "budget", "freeze"), required=True)
     parser.add_argument("--updates", type=int, choices=(17, 1_000, 3_000), required=True)
     parser.add_argument("--seed", type=int, choices=(179023, 179024, 179025), default=SEED)
+    parser.add_argument("--vision-lr", type=float, choices=(1e-5, 3e-5), default=1e-5)
     parser.add_argument("--preflight-sha256", default=PREFLIGHT_SHA)
     parser.add_argument("--workers", type=int, default=4)
     args = parser.parse_args()
@@ -100,6 +101,7 @@ def main() -> None:
         args.output_dir.exists()
         or args.output_dir.is_symlink()
         or (args.arm == "budget") != (args.updates == 3_000)
+        or (args.vision_lr != 1e-5 and (args.arm != "control" or args.seed == 179023))
         or args.workers < 0
         or not torch.cuda.is_available()
         or not torch.cuda.is_bf16_supported()
@@ -217,7 +219,7 @@ def main() -> None:
     )
     optimizer = torch.optim.AdamW(
         [
-            {"params": vision.parameters(), "lr": 1e-5},
+            {"params": vision.parameters(), "lr": args.vision_lr},
             {"params": head.parameters(), "lr": 1e-4},
             {"params": [classifier], "lr": 1e-4},
         ],
@@ -317,6 +319,7 @@ def main() -> None:
             "seed": args.seed,
             "arm": args.arm,
             "updates": args.updates,
+            "vision_lr": args.vision_lr,
         },
         checkpoint_path,
     )
@@ -360,6 +363,7 @@ def main() -> None:
         "batch_size": BATCH_SIZE,
         "workers": args.workers,
         "rank_coefficient": RANK_COEFFICIENT,
+        "vision_lr": args.vision_lr,
         "rank_inactive_steps": [step for step in inactive if step <= args.updates],
         "rank_active_updates": sum(step not in inactive for step in range(1, args.updates + 1)),
         "source_sha256": sha256(Path(__file__)),
