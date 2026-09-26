@@ -1,0 +1,28 @@
+Started sfora-inshop-proxy-synthesis-full-179024-v1.service - /bin/bash /home/riomus/runs/run_inshop_proxy_synthesis_dgx_03f09947.sh full.
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  26%|██▌       | 202/792 [00:00<00:00, 1955.54it/s]Loading weights:  67%|██████▋   | 531/792 [00:00<00:00, 2723.92it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2727.89it/s]
+{"step": 50, "loss": 15.24324893951416, "elapsed_seconds": 59.20224313111976}
+{"step": 100, "loss": 15.16525936126709, "elapsed_seconds": 116.27469261409715}
+{"step": 150, "loss": 15.662962913513184, "elapsed_seconds": 173.3810172160156}
+{"step": 200, "loss": 15.719403266906738, "elapsed_seconds": 230.6606952790171}
+{"step": 250, "loss": 14.950630187988281, "elapsed_seconds": 288.99409536924213}
+{"step": 300, "loss": 13.191890716552734, "elapsed_seconds": 346.4767156089656}
+{"step": 350, "loss": 13.452198028564453, "elapsed_seconds": 403.6127319438383}
+{"step": 400, "loss": 13.523789405822754, "elapsed_seconds": 460.6386913768947}
+{"step": 450, "loss": 15.289628028869629, "elapsed_seconds": 517.919551237952}
+{"step": 500, "loss": 13.81605052947998, "elapsed_seconds": 575.0460220309906}
+{"step": 550, "loss": 14.244586944580078, "elapsed_seconds": 632.126664805226}
+{"step": 600, "loss": 13.242399215698242, "elapsed_seconds": 689.3152913702652}
+{"step": 650, "loss": 14.105724334716797, "elapsed_seconds": 746.3936844379641}
+{"step": 700, "loss": 13.342916488647461, "elapsed_seconds": 803.5221420531161}
+{"step": 750, "loss": 13.100319862365723, "elapsed_seconds": 860.5710024940781}
+{"step": 800, "loss": 11.983996391296387, "elapsed_seconds": 917.6143925781362}
+{"step": 850, "loss": 13.295244216918945, "elapsed_seconds": 974.6967287869193}
+{"step": 900, "loss": 12.487676620483398, "elapsed_seconds": 1031.7773875668645}
+{"step": 950, "loss": 12.596269607543945, "elapsed_seconds": 1088.8960146079771}
+{"step": 1000, "loss": 12.124720573425293, "elapsed_seconds": 1145.9153834432364}
+{"export_batches": 100}
+{"arm": "proxy_synthesis", "seed": 179024, "training_seconds": 1145.9806480160914, "holdout_r1": 0.9767441860465116}
+DONE arm=proxy_synthesis updates=1000 receipt_sha256=ff1c0d9c353aa69dc7763ad99747d9ce47b4a804c45fc6c126b55c1f928ffa5c
+sfora-inshop-proxy-synthesis-full-179024-v1.service: Consumed 24min 46.196s CPU time, 10.0G memory peak, 0B memory swap peak.

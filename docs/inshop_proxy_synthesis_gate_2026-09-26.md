@@ -13,7 +13,7 @@ Use the existing product-disjoint official-TRAIN split: 13,283 fit images /
 products, seed-179024 preflight SHA-256
 `f9c59db9ed6f0962963b8e203e70f98186f314226acda0f0ebd7b52c11e17034`.
 The seed-179024 archived control has packed R@1 **98.5554%**, mAP@R
-**0.826739**, training wall **1,147.928 s** for 1,000×64 images including
+**0.826739**, training wall **1,146.916 s** for 1,000×64 images including
 bank initialization, and peak allocated CUDA **22.554 GB** on DGX Spark GB10.
 Its receipt SHA-256 is
 `e5635e8839420e151562f01d2826e471fdfedf0858e72b8bde964ad0900af0da`.
@@ -77,3 +77,42 @@ the [treatment receipt](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-
 SHA-256 is `9acabe1d290f95e37812909e52f1940725a76b92989c72dd7f83c60e5801e489`;
 the [terminal journal](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-proxy-synthesis-smoke-179024/journal.log)
 SHA-256 is `a68042af8cee6acfa2b7ce9a6316b6b4761e4d162462a87ada0cc3da677f79a0`.
+
+## Seed-179024 full held-gallery decision
+
+The single full treatment ended successfully on DGX Spark GB10, invocation
+`41333319a75e4ecf9b1d4a505203379d`, with 1,000 finite updates. Its
+checkpoint hash matched the receipt. The [source-bound decision](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-proxy-synthesis-full-179024/decision.json)
+verified the official partition, preflight, common source hashes, paired inputs,
+full per-query vectors, both checkpoint hashes, and training cost. It compares
+the archived same-seed control with the treatment on **12,599 official TRAIN
+held-only symmetric queries/gallery**:
+
+| Arm | Packed R@1 | mAP@R | Training wall, 64,000 images | Images/s | Peak allocated CUDA |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Control | 98.5554% | 0.826739 | 1,146.916 s | 55.802 | 22.554 GB |
+| Proxy Synthesis | 97.6744% | 0.819016 | 1,147.444 s | 55.776 | 22.557 GB |
+
+The paired product-bootstrap R@1 difference is **−0.8810 percentage points**,
+95% interval **[−1.1025, −0.6504] pp**. mAP@R difference is **−0.007723**,
+which also misses the frozen −0.005 floor. Wall ratio is **1.00046** and
+peak-CUDA ratio **1.00014**; cost passes but quality fails decisively.
+`advance_next_seed=false`: stop this arm before seed 179025 and any additional
+official TEST read. This is a negative TRAIN-only result, not a SOTA comparison.
+The tested trainer is preserved at Git commit `ed85ff27`, file SHA-256
+`a9172a0b439238cd943d9d9e0aaed614c5c508bb94db4b1190b6aa87ad8cf2a6`.
+The failed arm was removed from the selectable trainer; the archived source,
+receipts, and analyzer retain reproducibility. This rejects the tested
+pre-normalization, equal-weight synthetic ArcFace recipe on this base, not all
+possible Proxy Synthesis formulations. Mixing before normalization and averaging
+64 synthetic with 64 real loss rows also changed angular geometry and the
+real ArcFace contribution, so those mechanisms are unresolved.
+
+The [treatment receipt](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-proxy-synthesis-full-179024/receipt.json)
+SHA-256 is `ff1c0d9c353aa69dc7763ad99747d9ce47b4a804c45fc6c126b55c1f928ffa5c`;
+the treatment checkpoint SHA-256 is
+`bdd36da82bd6d1ba7ddf7d6b4edfe786af109fe619bb47096dad4e55c7cd81a0`;
+the decision SHA-256 is
+`c3598ed063b70ac78a8cca7954f5b6ec1a2ca692bd46fc7ff250f39e84b07e1c`;
+the [terminal journal](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-proxy-synthesis-full-179024/journal.log)
+SHA-256 is `a8c2465c6f903fef795f8cbb6f1e62758b039caa4ca90fed3b9fd6ddcc3dccf1`.
