@@ -1,0 +1,16 @@
+2026-09-26T16:10:21+02:00 spark-2751 systemd[3489]: Started sfora-sop-true-freeze-smoke-179024-v1.service - /home/riomus/sfora-sop-true-freeze-v1/scripts/run_sop_siglip2_true_freeze_dgx.sh smoke.
+2026-09-26T16:10:21+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[229993]: START mode=smoke arm=control updates=17
+2026-09-26T16:10:30+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[230019]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-26T16:10:30+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[230019]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-26T16:10:31+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[230019]: [304B blob data]
+2026-09-26T16:10:53+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[230019]: {"step": 17, "loss": 10.124004364013672, "arcface": 6.9072113037109375, "rank": 0.4020991921424866, "elapsed_seconds": 21.698914726730436}
+2026-09-26T16:10:58+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[230019]: {"arm": "float_rank_member_bank", "training_seconds": 21.753138061147183, "quality_r1": null}
+2026-09-26T16:11:00+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[229993]: DONE arm=control receipt_sha256=2e6247fccddcda53a8ba01a2a717a74b546ca46bf7a0918bfe793878a2124b65
+2026-09-26T16:11:00+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[229993]: START mode=smoke arm=freeze updates=17
+2026-09-26T16:11:09+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[230214]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-26T16:11:09+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[230214]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-26T16:11:10+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[230214]: [306B blob data]
+2026-09-26T16:11:25+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[230214]: {"step": 17, "loss": 8.634047508239746, "arcface": 5.468448638916016, "rank": 0.3956998586654663, "elapsed_seconds": 14.6432588621974}
+2026-09-26T16:11:30+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[230214]: {"arm": "float_rank_member_bank", "training_seconds": 14.697384450118989, "quality_r1": null}
+2026-09-26T16:11:32+02:00 spark-2751 run_sop_siglip2_true_freeze_dgx.sh[229993]: DONE arm=freeze receipt_sha256=cca122358124f327892ac812435f5be4d699b431b1439c66a70b35986e47ad82
+2026-09-26T16:11:32+02:00 spark-2751 systemd[3489]: sfora-sop-true-freeze-smoke-179024-v1.service: Consumed 2min 38.648s CPU time, 5.8G memory peak, 0B memory swap peak.
