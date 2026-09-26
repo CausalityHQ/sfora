@@ -1,0 +1,16 @@
+2026-09-26T15:07:23+02:00 spark-2751 systemd[3489]: Started sfora-inshop-subspace-smoke-179024-v1.service - /home/riomus/runs/run_inshop_siglip2_subspace_dgx.sh smoke.
+2026-09-26T15:07:23+02:00 spark-2751 run_inshop_siglip2_subspace_dgx.sh[210455]: START mode=smoke arm=control updates=17
+2026-09-26T15:07:29+02:00 spark-2751 run_inshop_siglip2_subspace_dgx.sh[210465]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-26T15:07:29+02:00 spark-2751 run_inshop_siglip2_subspace_dgx.sh[210465]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-26T15:07:30+02:00 spark-2751 run_inshop_siglip2_subspace_dgx.sh[210465]: [300B blob data]
+2026-09-26T15:07:52+02:00 spark-2751 run_inshop_siglip2_subspace_dgx.sh[210465]: {"step": 17, "loss": 5.933194160461426, "elapsed_seconds": 21.546412069816142}
+2026-09-26T15:07:57+02:00 spark-2751 run_inshop_siglip2_subspace_dgx.sh[210465]: {"arm": "control", "seed": 179024, "training_seconds": 21.643306849058717, "holdout_r1": null}
+2026-09-26T15:07:59+02:00 spark-2751 run_inshop_siglip2_subspace_dgx.sh[210455]: DONE arm=control receipt_sha256=baad752aa30f88d7901d682b13c57fde9cd4a0f390066d9cee811f13fc0851ab
+2026-09-26T15:07:59+02:00 spark-2751 run_inshop_siglip2_subspace_dgx.sh[210455]: START mode=smoke arm=subspace updates=17
+2026-09-26T15:08:05+02:00 spark-2751 run_inshop_siglip2_subspace_dgx.sh[211256]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-26T15:08:05+02:00 spark-2751 run_inshop_siglip2_subspace_dgx.sh[211256]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-26T15:08:06+02:00 spark-2751 run_inshop_siglip2_subspace_dgx.sh[211256]: [294B blob data]
+2026-09-26T15:08:28+02:00 spark-2751 run_inshop_siglip2_subspace_dgx.sh[211256]: {"step": 17, "loss": 7.839732646942139, "elapsed_seconds": 21.550941387191415}
+2026-09-26T15:08:33+02:00 spark-2751 run_inshop_siglip2_subspace_dgx.sh[211256]: {"arm": "subspace", "seed": 179024, "training_seconds": 21.629885285161436, "holdout_r1": null}
+2026-09-26T15:08:34+02:00 spark-2751 run_inshop_siglip2_subspace_dgx.sh[210455]: DONE arm=subspace receipt_sha256=fc60d87fb953ef97acda86a98d15286ef85e75348b1bd0928bc589dc2b41af20
+2026-09-26T15:08:34+02:00 spark-2751 systemd[3489]: sfora-inshop-subspace-smoke-179024-v1.service: Consumed 1min 54.183s CPU time, 6.9G memory peak, 0B memory swap peak.
