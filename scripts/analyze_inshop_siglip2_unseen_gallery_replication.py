@@ -8,6 +8,7 @@ import json
 import math
 import os
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 from analyze_inshop_siglip2_unseen_gallery import paired_gate
@@ -19,6 +20,11 @@ from sfora.unicom_inshop import parse_inshop_partition
 SEEDS = (179023, 179024, 179025)
 NEW_SEEDS = SEEDS[1:]
 ARMS = ("control", "freeze")
+
+
+def clipped_steps(receipt: dict[str, Any]) -> int | None:
+    norms = receipt.get("preclip_grad_norms")
+    return None if norms is None else sum(value > 1 for value in norms)
 
 
 def main() -> None:
@@ -197,9 +203,7 @@ def main() -> None:
                     "training_wall_including_member_bank_init_seconds"
                 ],
                 "peak_cuda_allocated_bytes": receipts[arm]["training_peak_cuda_allocated_bytes"],
-                "clipped_steps": sum(
-                    value > 1 for value in receipts[arm].get("preclip_grad_norms", ())
-                ),
+                "clipped_steps": clipped_steps(receipts[arm]),
             }
             for arm in ARMS
         }

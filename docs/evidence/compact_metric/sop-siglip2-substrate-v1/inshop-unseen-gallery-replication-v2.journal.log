@@ -1,0 +1,108 @@
+2026-09-26T12:00:40+02:00 spark-2751 bash[158487]: START unseen-gallery replication seed=179024 arm=control
+2026-09-26T12:00:45+02:00 spark-2751 bash[158500]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-26T12:00:45+02:00 spark-2751 bash[158500]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-26T12:00:46+02:00 spark-2751 bash[158500]: [292B blob data]
+2026-09-26T12:01:46+02:00 spark-2751 bash[158500]: {"step": 50, "loss": 6.02227258682251, "elapsed_seconds": 59.21454389207065}
+2026-09-26T12:02:43+02:00 spark-2751 bash[158500]: {"step": 100, "loss": 6.008232116699219, "elapsed_seconds": 116.26854072511196}
+2026-09-26T12:03:40+02:00 spark-2751 bash[158500]: {"step": 150, "loss": 6.200238227844238, "elapsed_seconds": 173.33423979580402}
+2026-09-26T12:04:37+02:00 spark-2751 bash[158500]: {"step": 200, "loss": 6.005570411682129, "elapsed_seconds": 230.63291537202895}
+2026-09-26T12:05:35+02:00 spark-2751 bash[158500]: {"step": 250, "loss": 4.6481733322143555, "elapsed_seconds": 288.97885464318097}
+2026-09-26T12:06:33+02:00 spark-2751 bash[158500]: {"step": 300, "loss": 2.0996296405792236, "elapsed_seconds": 346.436394427903}
+2026-09-26T12:07:30+02:00 spark-2751 bash[158500]: {"step": 350, "loss": 2.1767756938934326, "elapsed_seconds": 403.5712455702014}
+2026-09-26T12:08:27+02:00 spark-2751 bash[158500]: {"step": 400, "loss": 1.9874520301818848, "elapsed_seconds": 460.57187394285575}
+2026-09-26T12:09:24+02:00 spark-2751 bash[158500]: {"step": 450, "loss": 4.041140079498291, "elapsed_seconds": 517.8409257829189}
+2026-09-26T12:10:21+02:00 spark-2751 bash[158500]: {"step": 500, "loss": 3.6516406536102295, "elapsed_seconds": 574.9685854748823}
+2026-09-26T12:11:18+02:00 spark-2751 bash[158500]: {"step": 550, "loss": 1.6883354187011719, "elapsed_seconds": 632.0411086138338}
+2026-09-26T12:12:16+02:00 spark-2751 bash[158500]: {"step": 600, "loss": 0.28181689977645874, "elapsed_seconds": 689.1783504798077}
+2026-09-26T12:13:13+02:00 spark-2751 bash[158500]: {"step": 650, "loss": 3.650364398956299, "elapsed_seconds": 746.1927831522189}
+2026-09-26T12:14:10+02:00 spark-2751 bash[158500]: {"step": 700, "loss": 1.948772668838501, "elapsed_seconds": 803.259431086015}
+2026-09-26T12:15:07+02:00 spark-2751 bash[158500]: {"step": 750, "loss": 0.9034058451652527, "elapsed_seconds": 860.2621028358117}
+2026-09-26T12:16:04+02:00 spark-2751 bash[158500]: {"step": 800, "loss": 1.3643574714660645, "elapsed_seconds": 917.3119089337997}
+2026-09-26T12:17:01+02:00 spark-2751 bash[158500]: {"step": 850, "loss": 2.6390249729156494, "elapsed_seconds": 974.3183181891218}
+2026-09-26T12:17:58+02:00 spark-2751 bash[158500]: {"step": 900, "loss": 0.4113500118255615, "elapsed_seconds": 1031.3072077352554}
+2026-09-26T12:18:55+02:00 spark-2751 bash[158500]: {"step": 950, "loss": 0.9818574786186218, "elapsed_seconds": 1088.4017317909747}
+2026-09-26T12:19:52+02:00 spark-2751 bash[158500]: {"step": 1000, "loss": 0.8487743139266968, "elapsed_seconds": 1145.348615565803}
+2026-09-26T12:20:37+02:00 spark-2751 bash[158500]: {"export_batches": 100}
+2026-09-26T12:21:11+02:00 spark-2751 bash[158500]: {"arm": "control", "seed": 179024, "training_seconds": 1145.4198462371714, "holdout_r1": 0.9855544090800857}
+2026-09-26T12:21:13+02:00 spark-2751 bash[158487]: DONE unseen-gallery replication seed=179024 arm=control receipt_sha256=e5635e8839420e151562f01d2826e471fdfedf0858e72b8bde964ad0900af0da
+2026-09-26T12:21:13+02:00 spark-2751 bash[158487]: START unseen-gallery replication seed=179024 arm=freeze
+2026-09-26T12:21:19+02:00 spark-2751 bash[162583]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-26T12:21:19+02:00 spark-2751 bash[162583]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-26T12:21:19+02:00 spark-2751 bash[162583]: [296B blob data]
+2026-09-26T12:22:11+02:00 spark-2751 bash[162583]: {"step": 50, "loss": 6.0621418952941895, "elapsed_seconds": 51.36437967699021}
+2026-09-26T12:23:00+02:00 spark-2751 bash[162583]: {"step": 100, "loss": 4.8511247634887695, "elapsed_seconds": 100.40210502780974}
+2026-09-26T12:23:49+02:00 spark-2751 bash[162583]: {"step": 150, "loss": 6.194888591766357, "elapsed_seconds": 149.3230434320867}
+2026-09-26T12:24:38+02:00 spark-2751 bash[162583]: {"step": 200, "loss": 6.1971259117126465, "elapsed_seconds": 198.4661037628539}
+2026-09-26T12:25:29+02:00 spark-2751 bash[162583]: {"step": 250, "loss": 3.788987159729004, "elapsed_seconds": 248.66307190386578}
+2026-09-26T12:26:18+02:00 spark-2751 bash[162583]: {"step": 300, "loss": 1.9225058555603027, "elapsed_seconds": 297.9837379939854}
+2026-09-26T12:27:07+02:00 spark-2751 bash[162583]: {"step": 350, "loss": 2.346670627593994, "elapsed_seconds": 346.909830825869}
+2026-09-26T12:27:56+02:00 spark-2751 bash[162583]: {"step": 400, "loss": 1.9344784021377563, "elapsed_seconds": 395.7946976609528}
+2026-09-26T12:28:45+02:00 spark-2751 bash[162583]: {"step": 450, "loss": 3.632140636444092, "elapsed_seconds": 444.8738011820242}
+2026-09-26T12:29:34+02:00 spark-2751 bash[162583]: {"step": 500, "loss": 3.6439356803894043, "elapsed_seconds": 493.7724125147797}
+2026-09-26T12:30:23+02:00 spark-2751 bash[162583]: {"step": 550, "loss": 1.8211805820465088, "elapsed_seconds": 542.6179199907929}
+2026-09-26T12:31:12+02:00 spark-2751 bash[162583]: {"step": 600, "loss": 0.15737521648406982, "elapsed_seconds": 591.6063340427354}
+2026-09-26T12:32:00+02:00 spark-2751 bash[162583]: {"step": 650, "loss": 3.2625725269317627, "elapsed_seconds": 640.467284233775}
+2026-09-26T12:32:49+02:00 spark-2751 bash[162583]: {"step": 700, "loss": 1.7046372890472412, "elapsed_seconds": 689.4425749848597}
+2026-09-26T12:33:38+02:00 spark-2751 bash[162583]: {"step": 750, "loss": 0.6804749369621277, "elapsed_seconds": 738.3104571499862}
+2026-09-26T12:34:27+02:00 spark-2751 bash[162583]: {"step": 800, "loss": 1.4680323600769043, "elapsed_seconds": 787.2302027018741}
+2026-09-26T12:35:16+02:00 spark-2751 bash[162583]: {"step": 850, "loss": 2.575700283050537, "elapsed_seconds": 836.1608961317688}
+2026-09-26T12:36:05+02:00 spark-2751 bash[162583]: {"step": 900, "loss": 0.6745305061340332, "elapsed_seconds": 885.0895338370465}
+2026-09-26T12:36:54+02:00 spark-2751 bash[162583]: {"step": 950, "loss": 0.8364064693450928, "elapsed_seconds": 934.0309203090146}
+2026-09-26T12:37:43+02:00 spark-2751 bash[162583]: {"step": 1000, "loss": 0.8644526600837708, "elapsed_seconds": 982.9053388647735}
+2026-09-26T12:38:23+02:00 spark-2751 bash[162583]: {"export_batches": 100}
+2026-09-26T12:38:57+02:00 spark-2751 bash[162583]: {"arm": "freeze", "seed": 179024, "training_seconds": 982.9841892668046, "holdout_r1": 0.9864274942455751}
+2026-09-26T12:38:59+02:00 spark-2751 bash[158487]: DONE unseen-gallery replication seed=179024 arm=freeze receipt_sha256=14049b181066b35a0bec216e577932f8af9b792cf187a7a2fdddf5e4c5eee1c9
+2026-09-26T12:38:59+02:00 spark-2751 bash[158487]: START unseen-gallery replication seed=179025 arm=control
+2026-09-26T12:39:05+02:00 spark-2751 bash[166427]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-26T12:39:05+02:00 spark-2751 bash[166427]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-26T12:39:05+02:00 spark-2751 bash[166427]: [292B blob data]
+2026-09-26T12:40:05+02:00 spark-2751 bash[166427]: {"step": 50, "loss": 3.7041079998016357, "elapsed_seconds": 59.432124506216496}
+2026-09-26T12:41:02+02:00 spark-2751 bash[166427]: {"step": 100, "loss": 6.018825531005859, "elapsed_seconds": 116.38637740537524}
+2026-09-26T12:41:59+02:00 spark-2751 bash[166427]: {"step": 150, "loss": 6.806504249572754, "elapsed_seconds": 173.48602309124544}
+2026-09-26T12:42:57+02:00 spark-2751 bash[166427]: {"step": 200, "loss": 6.68088436126709, "elapsed_seconds": 230.62425366602838}
+2026-09-26T12:43:55+02:00 spark-2751 bash[166427]: {"step": 250, "loss": 3.2818779945373535, "elapsed_seconds": 288.9418008211069}
+2026-09-26T12:44:52+02:00 spark-2751 bash[166427]: {"step": 300, "loss": 2.88360857963562, "elapsed_seconds": 346.29361136443913}
+2026-09-26T12:45:49+02:00 spark-2751 bash[166427]: {"step": 350, "loss": 2.0942492485046387, "elapsed_seconds": 403.2950710202567}
+2026-09-26T12:46:46+02:00 spark-2751 bash[166427]: {"step": 400, "loss": 1.6556956768035889, "elapsed_seconds": 460.2728317673318}
+2026-09-26T12:47:43+02:00 spark-2751 bash[166427]: {"step": 450, "loss": 1.75529944896698, "elapsed_seconds": 517.3166462234221}
+2026-09-26T12:48:40+02:00 spark-2751 bash[166427]: {"step": 500, "loss": 1.2119104862213135, "elapsed_seconds": 574.3384928461164}
+2026-09-26T12:49:37+02:00 spark-2751 bash[166427]: {"step": 550, "loss": 2.9801790714263916, "elapsed_seconds": 631.2823478854261}
+2026-09-26T12:50:34+02:00 spark-2751 bash[166427]: {"step": 600, "loss": 3.684457540512085, "elapsed_seconds": 688.2982876533642}
+2026-09-26T12:51:31+02:00 spark-2751 bash[166427]: {"step": 650, "loss": 0.8989460468292236, "elapsed_seconds": 745.3391612004489}
+2026-09-26T12:52:28+02:00 spark-2751 bash[166427]: {"step": 700, "loss": 0.8302630186080933, "elapsed_seconds": 802.2708851741627}
+2026-09-26T12:53:25+02:00 spark-2751 bash[166427]: {"step": 750, "loss": 1.9273688793182373, "elapsed_seconds": 859.3385862843134}
+2026-09-26T12:54:22+02:00 spark-2751 bash[166427]: {"step": 800, "loss": 1.0173883438110352, "elapsed_seconds": 916.2570186113007}
+2026-09-26T12:55:19+02:00 spark-2751 bash[166427]: {"step": 850, "loss": 1.9827126264572144, "elapsed_seconds": 973.1852230164222}
+2026-09-26T12:56:16+02:00 spark-2751 bash[166427]: {"step": 900, "loss": 0.48462074995040894, "elapsed_seconds": 1030.0438466030173}
+2026-09-26T12:57:13+02:00 spark-2751 bash[166427]: {"step": 950, "loss": 0.3165223002433777, "elapsed_seconds": 1087.007167009171}
+2026-09-26T12:58:10+02:00 spark-2751 bash[166427]: {"step": 1000, "loss": 0.755630373954773, "elapsed_seconds": 1143.9214570224285}
+2026-09-26T12:58:50+02:00 spark-2751 bash[166427]: {"export_batches": 100}
+2026-09-26T12:59:23+02:00 spark-2751 bash[166427]: {"arm": "control", "seed": 179025, "training_seconds": 1143.9986460991204, "holdout_r1": 0.9837288673704262}
+2026-09-26T12:59:25+02:00 spark-2751 bash[158487]: DONE unseen-gallery replication seed=179025 arm=control receipt_sha256=b1a45f9aad81569b7d80e6b671c6b3b57e4d18762722b76e5c92d364919bcd50
+2026-09-26T12:59:25+02:00 spark-2751 bash[158487]: START unseen-gallery replication seed=179025 arm=freeze
+2026-09-26T12:59:31+02:00 spark-2751 bash[171126]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-26T12:59:31+02:00 spark-2751 bash[171126]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-26T12:59:32+02:00 spark-2751 bash[171126]: [381B blob data]
+2026-09-26T13:00:23+02:00 spark-2751 bash[171126]: {"step": 50, "loss": 3.3997793197631836, "elapsed_seconds": 51.24235271476209}
+2026-09-26T13:01:12+02:00 spark-2751 bash[171126]: {"step": 100, "loss": 5.346617221832275, "elapsed_seconds": 100.12080230563879}
+2026-09-26T13:02:01+02:00 spark-2751 bash[171126]: {"step": 150, "loss": 6.458266258239746, "elapsed_seconds": 149.09122674167156}
+2026-09-26T13:02:50+02:00 spark-2751 bash[171126]: {"step": 200, "loss": 6.562267780303955, "elapsed_seconds": 198.18164129601792}
+2026-09-26T13:03:40+02:00 spark-2751 bash[171126]: {"step": 250, "loss": 3.497741222381592, "elapsed_seconds": 248.42474285000935}
+2026-09-26T13:04:30+02:00 spark-2751 bash[171126]: {"step": 300, "loss": 3.087517499923706, "elapsed_seconds": 297.7280277078971}
+2026-09-26T13:05:19+02:00 spark-2751 bash[171126]: {"step": 350, "loss": 2.0095090866088867, "elapsed_seconds": 346.61334739997983}
+2026-09-26T13:06:08+02:00 spark-2751 bash[171126]: {"step": 400, "loss": 1.7609184980392456, "elapsed_seconds": 395.48049463983625}
+2026-09-26T13:06:56+02:00 spark-2751 bash[171126]: {"step": 450, "loss": 2.1609630584716797, "elapsed_seconds": 444.386273836717}
+2026-09-26T13:07:45+02:00 spark-2751 bash[171126]: {"step": 500, "loss": 0.8653241395950317, "elapsed_seconds": 493.28768979990855}
+2026-09-26T13:08:34+02:00 spark-2751 bash[171126]: {"step": 550, "loss": 2.5517730712890625, "elapsed_seconds": 542.1078839739785}
+2026-09-26T13:09:23+02:00 spark-2751 bash[171126]: {"step": 600, "loss": 3.6567435264587402, "elapsed_seconds": 591.0093011357822}
+2026-09-26T13:10:12+02:00 spark-2751 bash[171126]: {"step": 650, "loss": 1.2537097930908203, "elapsed_seconds": 639.9240654017776}
+2026-09-26T13:11:01+02:00 spark-2751 bash[171126]: {"step": 700, "loss": 0.6966729164123535, "elapsed_seconds": 688.7143130339682}
+2026-09-26T13:11:50+02:00 spark-2751 bash[171126]: {"step": 750, "loss": 2.0686798095703125, "elapsed_seconds": 737.6095290537924}
+2026-09-26T13:12:39+02:00 spark-2751 bash[171126]: {"step": 800, "loss": 0.9817107915878296, "elapsed_seconds": 786.4811291946098}
+2026-09-26T13:13:27+02:00 spark-2751 bash[171126]: {"step": 850, "loss": 1.7045745849609375, "elapsed_seconds": 835.3901292956434}
+2026-09-26T13:14:16+02:00 spark-2751 bash[171126]: {"step": 900, "loss": 0.3406469225883484, "elapsed_seconds": 884.2525115488097}
+2026-09-26T13:15:05+02:00 spark-2751 bash[171126]: {"step": 950, "loss": 0.31695154309272766, "elapsed_seconds": 933.2013347647153}
+2026-09-26T13:15:54+02:00 spark-2751 bash[171126]: {"step": 1000, "loss": 0.555118978023529, "elapsed_seconds": 982.132295941934}
+2026-09-26T13:16:34+02:00 spark-2751 bash[171126]: {"export_batches": 100}
+2026-09-26T13:17:08+02:00 spark-2751 bash[171126]: {"arm": "freeze", "seed": 179025, "training_seconds": 982.2120275730267, "holdout_r1": 0.9855544090800857}
+2026-09-26T13:17:10+02:00 spark-2751 bash[158487]: DONE unseen-gallery replication seed=179025 arm=freeze receipt_sha256=f9c613263321a140a46629b8dfb592ea328f72c816aae8cde6517e1ad4947479
