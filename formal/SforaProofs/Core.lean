@@ -202,6 +202,20 @@ theorem mem_topK_of_subset {f : ι → β} {T S : Finset ι} {k : ℕ} {x : ι} 
   rw [mem_topK] at *
   exact ⟨hx, lt_of_le_of_lt (Finset.card_le_card (Finset.filter_subset_filter _ h)) hS.2⟩
 
+/-- Adding rows that are all negatives cannot turn a wrong top-1 label into a
+    correct one. The score and lower-ordinal tie rule are unchanged. -/
+theorem top1_positive_of_subset_negatives {f : ι → β} {T S : Finset ι}
+    (positive : ι → Prop) (hsub : T ⊆ S)
+    (hnew : ∀ x ∈ S, x ∉ T → ¬ positive x)
+    (hcorrect : ∃ x ∈ topK f S 1, positive x) :
+    ∃ x ∈ topK f T 1, positive x := by
+  obtain ⟨x, hx, hp⟩ := hcorrect
+  have hxS : x ∈ S := topK_subset f S 1 hx
+  have hxT : x ∈ T := by
+    by_contra hnot
+    exact (hnew x hxS hnot) hp
+  exact ⟨x, mem_topK_of_subset hsub hxT hx, hp⟩
+
 theorem topK_merge {κ : Type*} (f : ι → β) (I : Finset κ) (B : κ → Finset ι) (S : Finset ι)
     (k : ℕ) (hsub : ∀ i ∈ I, B i ⊆ S) (hcov : ∀ x ∈ S, ∃ i ∈ I, x ∈ B i) :
     topK f (I.biUnion (fun i => topK f (B i) k)) k = topK f S k := by

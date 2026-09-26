@@ -106,6 +106,12 @@ eligible query-gallery pair, then count the certified margins. The existing
 inverse-norm bound alone compares scores of quantized codes and does not bound
 the original float descriptor against its quantized code.
 
+`top1_positive_of_subset_negatives` proves that adding only negative gallery
+rows cannot turn a wrong top-1 label into a correct one under the fixed scorer
+and ordinal tie rule. It supports the In-Shop TRAIN diagnostic's attribution of
+additional errors to fit-class distractors. It does not prove that a training
+recipe transfers to the official unseen-class gallery or bound its recall.
+
 For one finite SOP TRAIN product-disjoint holdout, the
 [SigLIP2 ArcFace score-pair receipt](../docs/evidence/compact_metric/sop-siglip2-substrate-v1/float-packed-margin-certificate-v1.json)
 measures the maximum fp32 float-to-packed formula score error against every
