@@ -86,6 +86,7 @@ def main() -> None:
         or len(held) != 12_599
     ):
         raise ValueError("In-Shop trained-width split differs")
+    torch.backends.cuda.matmul.allow_tf32 = False
     import transformers
 
     processor = transformers.AutoImageProcessor.from_pretrained(  # type: ignore[no-untyped-call]
@@ -157,7 +158,7 @@ def main() -> None:
         )
     )
     map_delta = packed_quality["map_at_r"] - receipt["quality"]["map_at_r"]
-    if mismatches > 10 or abs(map_delta) > 0.0005:
+    if mismatches or abs(map_delta) > 1e-8:
         raise ValueError(
             "In-Shop trained-width packed result fails checkpoint parity: "
             f"r1_mismatches={mismatches}, "
