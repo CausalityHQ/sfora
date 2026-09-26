@@ -38,6 +38,50 @@ def _sha256(path: Path) -> str:
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
+def _verified_official_gallery(
+    receipt_path: Path,
+    embeddings: Path,
+    expected_receipt_sha256: str,
+    training_receipt_sha256: str,
+    checkpoint_sha256: str,
+    native_library_sha256: str,
+    precision: InferencePrecision,
+) -> tuple[Path, int]:
+    """Bind a pinned official gallery to the loaded checkpoint and query arithmetic."""
+
+    if (
+        not isinstance(receipt_path, Path)
+        or not isinstance(embeddings, Path)
+        or not isinstance(expected_receipt_sha256, str)
+        or len(expected_receipt_sha256) != 64
+        or any(char not in "0123456789abcdef" for char in expected_receipt_sha256)
+        or not receipt_path.is_file()
+        or not embeddings.is_file()
+        or _sha256(receipt_path) != expected_receipt_sha256
+    ):
+        raise ValueError("trained SigLIP2 official gallery authority differs")
+    receipt = json.loads(receipt_path.read_text())
+    rows = receipt.get("queries")
+    if (
+        receipt.get("schema") != "sfora-sop-siglip2-official-test-v1"
+        or receipt.get("training_receipt_sha256") != training_receipt_sha256
+        or receipt.get("training_checkpoint_sha256") != checkpoint_sha256
+        or receipt.get("native_library_sha256") != native_library_sha256
+        or receipt.get("test_embeddings_sha256") != _sha256(embeddings)
+        or precision != "fp16_native"
+        or receipt.get("inference_precision") != precision
+        or receipt.get("export_batch_size") != 32
+        or receipt.get("public_first_batch_packed_exact") is not True
+        or receipt.get("native_top10_exact") is not True
+        or receipt.get("native_per_query_r1_equal") is not True
+        or receipt.get("gallery_wire_bytes_per_row") != 130
+        or type(rows) is not int
+        or rows < 10
+    ):
+        raise ValueError("trained SigLIP2 official gallery authority differs")
+    return embeddings, rows
+
+
 class Siglip2CompactEncoder:
     """A trained 1024→128 SigLIP2 image encoder with an explicit precision mode."""
 
@@ -121,6 +165,9 @@ class Siglip2CompactIndex:
         native_library: Path,
         expected_receipt_sha256: str,
         precision: InferencePrecision = "fp16_native",
+        official_gallery_receipt: Path | None = None,
+        official_gallery_embeddings: Path | None = None,
+        expected_official_gallery_receipt_sha256: str | None = None,
     ) -> Siglip2CompactIndex:
         """Load trusted artifacts bound to an independently pinned receipt digest."""
 
@@ -176,6 +223,29 @@ class Siglip2CompactIndex:
             )
         ):
             raise ValueError("trained SigLIP2 serving receipt authority differs")
+        official_args = (
+            official_gallery_receipt,
+            official_gallery_embeddings,
+            expected_official_gallery_receipt_sha256,
+        )
+        if any(value is not None for value in official_args):
+            if (
+                not isinstance(official_gallery_receipt, Path)
+                or not isinstance(official_gallery_embeddings, Path)
+                or not isinstance(expected_official_gallery_receipt_sha256, str)
+            ):
+                raise ValueError("trained SigLIP2 official gallery authority differs")
+            gallery_path, gallery_rows = _verified_official_gallery(
+                official_gallery_receipt,
+                official_gallery_embeddings,
+                expected_official_gallery_receipt_sha256,
+                expected_receipt_sha256,
+                receipt["checkpoint_sha256"],
+                receipt["native_library_sha256"],
+                precision,
+            )
+        else:
+            gallery_path, gallery_rows = train_embeddings, receipt.get("gallery_images")
         from transformers import AutoImageProcessor, AutoModel
 
         processor = AutoImageProcessor.from_pretrained(
@@ -206,12 +276,8 @@ class Siglip2CompactIndex:
         head.load_state_dict(checkpoint["head"], strict=True)
         if precision == "fp16_native":
             vision.half()
-        values = np.load(train_embeddings, mmap_mode="r", allow_pickle=False)
-        if (
-            values.dtype != np.float32
-            or values.ndim != 2
-            or values.shape != (receipt.get("gallery_images"), 128)
-        ):
+        values = np.load(gallery_path, mmap_mode="r", allow_pickle=False)
+        if values.dtype != np.float32 or values.ndim != 2 or values.shape != (gallery_rows, 128):
             raise ValueError("trained SigLIP2 serving gallery geometry differs")
         packed_gallery = pack_int8_unit_embeddings(torch.from_numpy(np.asarray(values).copy()))
         gallery = CutilePackedInt8Gallery.open_packed(native_library, packed_gallery)

@@ -12,7 +12,11 @@ import pytest
 import torch
 from PIL import Image
 
-from sfora.siglip2_compact_serving import Siglip2CompactEncoder, Siglip2CompactIndex
+from sfora.siglip2_compact_serving import (
+    Siglip2CompactEncoder,
+    Siglip2CompactIndex,
+    _verified_official_gallery,
+)
 
 
 class BasisProcessor:
@@ -149,4 +153,39 @@ def test_artifact_loader_rejects_unpinned_receipt(tmp_path: Path) -> None:
             train_embeddings=tmp_path / "embeddings.npy",
             native_library=tmp_path / "native.so",
             expected_receipt_sha256="0" * 64,
+        )
+
+
+def test_official_gallery_must_match_checkpoint_precision_and_pinned_bytes(tmp_path: Path) -> None:
+    embeddings = tmp_path / "test_embeddings.npy"
+    np.save(embeddings, np.ones((10, 128), dtype=np.float32), allow_pickle=False)
+    digest = hashlib.sha256(embeddings.read_bytes()).hexdigest()
+    receipt = tmp_path / "official.json"
+    payload = {
+        "schema": "sfora-sop-siglip2-official-test-v1",
+        "training_receipt_sha256": "a" * 64,
+        "training_checkpoint_sha256": "b" * 64,
+        "native_library_sha256": "c" * 64,
+        "test_embeddings_sha256": digest,
+        "queries": 10,
+        "export_batch_size": 32,
+        "inference_precision": "fp16_native",
+        "public_first_batch_packed_exact": True,
+        "native_top10_exact": True,
+        "native_per_query_r1_equal": True,
+        "gallery_wire_bytes_per_row": 130,
+    }
+    receipt.write_text(json.dumps(payload))
+    expected = hashlib.sha256(receipt.read_bytes()).hexdigest()
+    assert _verified_official_gallery(
+        receipt, embeddings, expected, "a" * 64, "b" * 64, "c" * 64, "fp16_native"
+    ) == (embeddings, 10)
+    with pytest.raises(ValueError, match="official gallery authority"):
+        _verified_official_gallery(
+            receipt, embeddings, expected, "a" * 64, "b" * 64, "c" * 64, "fp32_autocast"
+        )
+    embeddings.write_bytes(b"tampered")
+    with pytest.raises(ValueError, match="official gallery authority"):
+        _verified_official_gallery(
+            receipt, embeddings, expected, "a" * 64, "b" * 64, "c" * 64, "fp16_native"
         )
