@@ -25,6 +25,8 @@ def digest(path: Path) -> str:
 def main() -> None:
     root = Path("/home/riomus/runs")
     seed = 179024
+    training_receipt_sha = "07b4716b42d1291b9c195774ebd48d9df89a3b578ee54efdb94662c5e125d1c5"
+    official_receipt_sha = "7f5edf6b8ecb526e8ba29944119035245725055787cb088bd2635cc734b0eb6c"
     training = root / f"sfora-sop-true-freeze-freeze-{seed}-1000-v1"
     official = root / f"sfora-sop-true-freeze-public-official-{seed}-freeze-v1"
     output = root / "sfora-sop-true-freeze-official-loader-179024-v1.json"
@@ -47,6 +49,11 @@ def main() -> None:
             images.append(image.convert("RGB"))
     training_receipt = training / "receipt.json"
     official_receipt = official / "receipt.json"
+    if (
+        digest(training_receipt) != training_receipt_sha
+        or digest(official_receipt) != official_receipt_sha
+    ):
+        raise ValueError("official loader pinned receipt differs")
     checkpoint = training / "checkpoint.pt"
     embeddings = official / "test_embeddings.npy"
     library = Path(
@@ -62,11 +69,11 @@ def main() -> None:
         training_checkpoint=checkpoint,
         train_embeddings=training / "train_embeddings.npy",
         native_library=library,
-        expected_receipt_sha256=digest(training_receipt),
+        expected_receipt_sha256=training_receipt_sha,
         precision="fp16_native",
         official_gallery_receipt=official_receipt,
         official_gallery_embeddings=embeddings,
-        expected_official_gallery_receipt_sha256=digest(official_receipt),
+        expected_official_gallery_receipt_sha256=official_receipt_sha,
     ) as index:
         assert index.encoder is not None
         query = index.encoder.encode_images(images)
