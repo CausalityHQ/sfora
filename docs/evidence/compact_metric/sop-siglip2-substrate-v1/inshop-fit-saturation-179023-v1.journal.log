@@ -1,0 +1,9 @@
+2026-09-26T09:48:03+02:00 spark-2751 systemd[3489]: Started sfora-inshop-siglip2-fit-saturation-179023-v1.service - /usr/bin/env PYTHONPATH=/home/riomus/runs:/home/riomus/sfora-siglip2-deployed-batch-v1/src:/home/riomus/sfora-siglip2-deployed-batch-v1/scripts HF_HUB_OFFLINE=1 /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/diagnose_inshop_siglip2_fit_saturation.py --dataset-root /home/riomus/datasets/inshop_official_standard --model-snapshot /home/riomus/.cache/huggingface/hub/models--google--siglip2-large-patch16-256/snapshots/787800c8990e6f058423089178e718139608408c --training-dir /home/riomus/runs/sfora-inshop-siglip2-bank-179023-v1 --output /home/riomus/runs/sfora-inshop-siglip2-fit-saturation-179023-v1.json.
+2026-09-26T09:48:07+02:00 spark-2751 env[124452]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-26T09:48:07+02:00 spark-2751 env[124452]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-26T09:48:08+02:00 spark-2751 env[124452]: [389B blob data]
+2026-09-26T09:48:54+02:00 spark-2751 env[124452]: {"export_batches": 100}
+2026-09-26T09:49:27+02:00 spark-2751 env[124452]: {"export_batches": 200}
+2026-09-26T09:50:01+02:00 spark-2751 env[124452]: {"export_batches": 300}
+2026-09-26T09:50:24+02:00 spark-2751 env[124452]: {"fit_r1": 0.9936133733390484, "lower_drift": 0.005607278007064783, "upper_drift": 0.004807105750194807}
+2026-09-26T09:50:25+02:00 spark-2751 systemd[3489]: sfora-inshop-siglip2-fit-saturation-179023-v1.service: Consumed 3min 31.926s CPU time, 8.9G memory peak, 0B memory swap peak.
