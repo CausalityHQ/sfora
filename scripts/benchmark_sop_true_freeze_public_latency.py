@@ -15,6 +15,7 @@ from typing import Any
 
 import numpy as np
 import torch
+from paired_latency_certification import block_bootstrap_p99_ratio
 from PIL import Image
 
 from sfora.siglip2_compact_serving import Siglip2CompactIndex
@@ -38,6 +39,7 @@ def main() -> None:
     parser.add_argument("--model-snapshot", type=Path, required=True)
     parser.add_argument("--native-library", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--certify-batch1-p99", action="store_true")
     args = parser.parse_args()
     if (
         args.output.exists()
@@ -67,11 +69,13 @@ def main() -> None:
         paths.append(path)
         image_hashes.append(sha256(path))
     load_seconds = {}
+    sizes = (1,) if args.certify_batch1_p99 else (1, 32)
+    blocks = 20 if args.certify_batch1_p99 else 200
+    repeats = 250 if args.certify_batch1_p99 else 1
     raw: dict[str, dict[str, list[int]]] = {
-        "1": {"control": [], "freeze": []},
-        "32": {"control": [], "freeze": []},
+        str(size): {"control": [], "freeze": []} for size in sizes
     }
-    results: dict[str, dict[str, Any]] = {"1": {}, "32": {}}
+    results: dict[str, dict[str, Any]] = {str(size): {} for size in sizes}
     with ExitStack() as stack:
         indexes = {}
         for arm in ("control", "freeze"):
@@ -110,26 +114,29 @@ def main() -> None:
                 raise ValueError("SOP latency result changed across calls")
             return elapsed
 
-        for size in (1, 32):
+        for size in sizes:
             for arm in ("control", "freeze"):
                 for _ in range(5):
                     call(arm, size)
             torch.cuda.reset_peak_memory_stats()
-            for block in range(200):
+            for block in range(blocks):
                 order = (
                     ("control", "freeze", "freeze", "control")
                     if block % 2 == 0
                     else ("freeze", "control", "control", "freeze")
                 )
-                for arm in order:
-                    raw[str(size)][arm].append(call(arm, size))
-                if block % 20 == 19:
+                for _ in range(repeats):
+                    for arm in order:
+                        raw[str(size)][arm].append(call(arm, size))
+                if block % max(1, blocks // 10) == max(1, blocks // 10) - 1:
                     print(json.dumps({"batch": size, "blocks_done": block + 1}), flush=True)
-            if any(len(raw[str(size)][arm]) != 400 for arm in ("control", "freeze")):
+            if any(
+                len(raw[str(size)][arm]) != blocks * repeats * 2 for arm in ("control", "freeze")
+            ):
                 raise ValueError("SOP latency call count differs")
             results[str(size)]["peak_cuda_bytes"] = torch.cuda.max_memory_allocated()
     summary: dict[str, dict[str, Any]] = {}
-    for batch_label in ("1", "32"):
+    for batch_label in map(str, sizes):
         summary[batch_label] = {}
         for arm in ("control", "freeze"):
             milliseconds = np.asarray(raw[batch_label][arm], dtype=np.float64) / 1e6
@@ -141,17 +148,35 @@ def main() -> None:
                 "raw_ns": raw[batch_label][arm],
             }
         summary[batch_label]["peak_cuda_bytes"] = results[batch_label]["peak_cuda_bytes"]
-    passed = all(
-        summary[size]["freeze"]["p95_ms"] <= 1.05 * summary[size]["control"]["p95_ms"]
-        for size in ("1", "32")
-    )
+    if args.certify_batch1_p99:
+        batch = raw["1"]
+        p99 = block_bootstrap_p99_ratio(
+            np.asarray(batch["freeze"], dtype=np.int64).reshape(blocks, 500),
+            np.asarray(batch["control"], dtype=np.int64).reshape(blocks, 500),
+        )
+        passed = (
+            p99["ci95_upper"] <= 1.05
+            and p99["point_p50_ratio"] <= 1.05
+            and p99["mean_latency_ratio"] <= 1.05
+        )
+        summary["1"]["p99_nonregression"] = p99
+    else:
+        passed = all(
+            summary[size]["freeze"]["p95_ms"] <= 1.05 * summary[size]["control"]["p95_ms"]
+            for size in ("1", "32")
+        )
     result = {
-        "schema": "sfora-sop-true-freeze-public-latency-v1",
+        "schema": (
+            "sfora-sop-true-freeze-public-batch1-p99-v1"
+            if args.certify_batch1_p99
+            else "sfora-sop-true-freeze-public-latency-v1"
+        ),
         "claim_eligible": False,
         "seed": 179024,
         "precision": args.precision,
         "latency_pass": bool(passed),
         "source_sha256": sha256(Path(__file__)),
+        "latency_helper_sha256": sha256(Path(block_bootstrap_p99_ratio.__code__.co_filename)),
         "source_archive_sha256": ARCHIVE_SHA,
         "decision_sha256": sha256(args.decision),
         "native_library_sha256": NATIVE_SHA,
@@ -170,8 +195,12 @@ def main() -> None:
             {
                 "precision": args.precision,
                 "latency_pass": passed,
-                "batch1": {arm: summary["1"][arm]["p95_ms"] for arm in ("control", "freeze")},
-                "batch32": {arm: summary["32"][arm]["p95_ms"] for arm in ("control", "freeze")},
+                "timing": {
+                    str(size): {
+                        arm: summary[str(size)][arm]["p95_ms"] for arm in ("control", "freeze")
+                    }
+                    for size in sizes
+                },
             }
         ),
         flush=True,
