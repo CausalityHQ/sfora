@@ -27,6 +27,7 @@ from sfora.unicom_inshop import parse_inshop_partition
 RECEIPT_SHA = "d97a2cd402f29fe81d292880b38ae3fb1fddf9ca162c67b96d9a5b0528eb8f5c"
 CHECKPOINT_SHA = "28b84beaad72ab04c0f9ac9d9e32a0a5b712d3733dd3d4402b0d135130dfbda8"
 PREFLIGHT_SHA = "d5e22c6a331acbdf3b143b9836597593c2317f9488b99b72f61a4c54baf18eb8"
+TRAIN_HELPER_SHA = "e2f7f8d16e2850a51aa85a3d3f4e04a80ee2a48681dcac55306fd792c8f19ba6"
 
 
 @torch.inference_mode()
@@ -61,6 +62,7 @@ def main() -> None:
     args = parser.parse_args()
     receipt_path = args.run / "receipt.json"
     checkpoint_path = args.run / "checkpoint.pt"
+    helper_file = sys.modules[export_all.__module__].__file__
     if (
         args.output.exists()
         or not torch.cuda.is_available()
@@ -68,6 +70,9 @@ def main() -> None:
         or sha256(args.preflight) != PREFLIGHT_SHA
         or sha256(receipt_path) != RECEIPT_SHA
         or sha256(checkpoint_path) != CHECKPOINT_SHA
+        or score_packed_full_gallery.__module__ != export_all.__module__
+        or helper_file is None
+        or sha256(Path(helper_file)) != TRAIN_HELPER_SHA
         or args.model_snapshot.resolve().name != MODEL_REVISION
         or any(
             sha256(args.model_snapshot / name) != digest for name, digest in MODEL_HASHES.items()
@@ -200,10 +205,8 @@ def main() -> None:
         "model_file_sha256": MODEL_HASHES,
         "script_sha256": sha256(Path(__file__)),
         "helper_sha256": {
-            "export_all": sha256(Path(export_all.__code__.co_filename)),
-            "score_packed_full_gallery": sha256(
-                Path(score_packed_full_gallery.__code__.co_filename)
-            ),
+            "export_all": TRAIN_HELPER_SHA,
+            "score_packed_full_gallery": TRAIN_HELPER_SHA,
             "product_bootstrap": sha256(Path(product_bootstrap.__code__.co_filename)),
             "pack_int8_unit_embeddings": sha256(
                 Path(pack_int8_unit_embeddings.__code__.co_filename)
