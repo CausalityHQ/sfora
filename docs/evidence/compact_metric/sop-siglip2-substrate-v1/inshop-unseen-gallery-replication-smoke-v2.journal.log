@@ -1,0 +1,28 @@
+2026-09-26T11:54:02+02:00 spark-2751 bash[155132]: START unseen-gallery replication smoke seed=179024 arm=control
+2026-09-26T11:54:08+02:00 spark-2751 bash[155145]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-26T11:54:08+02:00 spark-2751 bash[155145]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-26T11:54:09+02:00 spark-2751 bash[155145]: [300B blob data]
+2026-09-26T11:54:31+02:00 spark-2751 bash[155145]: {"step": 17, "loss": 5.933194160461426, "elapsed_seconds": 21.69630594085902}
+2026-09-26T11:54:36+02:00 spark-2751 bash[155145]: {"arm": "control", "seed": 179024, "training_seconds": 21.77849107887596, "holdout_r1": null}
+2026-09-26T11:54:38+02:00 spark-2751 bash[155132]: DONE unseen-gallery replication smoke seed=179024 arm=control receipt_sha256=af4e9504e3d8536025fae903e36df9ad0e8ddca7c9510d00d78405ebfe1b493b
+2026-09-26T11:54:38+02:00 spark-2751 bash[155132]: START unseen-gallery replication smoke seed=179024 arm=freeze
+2026-09-26T11:54:44+02:00 spark-2751 bash[155379]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-26T11:54:44+02:00 spark-2751 bash[155379]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-26T11:54:44+02:00 spark-2751 bash[155379]: [292B blob data]
+2026-09-26T11:55:04+02:00 spark-2751 bash[155379]: {"step": 17, "loss": 5.614594459533691, "elapsed_seconds": 18.940090931952}
+2026-09-26T11:55:09+02:00 spark-2751 bash[155379]: {"arm": "freeze", "seed": 179024, "training_seconds": 19.038082575891167, "holdout_r1": null}
+2026-09-26T11:55:11+02:00 spark-2751 bash[155132]: DONE unseen-gallery replication smoke seed=179024 arm=freeze receipt_sha256=088e29ef291b1e6a328d56df584be3a36f2a6e2ef87a2dfd4dde3333a92e5a3f
+2026-09-26T11:55:11+02:00 spark-2751 bash[155132]: START unseen-gallery replication smoke seed=179025 arm=control
+2026-09-26T11:55:17+02:00 spark-2751 bash[155800]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-26T11:55:17+02:00 spark-2751 bash[155800]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-26T11:55:17+02:00 spark-2751 bash[155800]: [304B blob data]
+2026-09-26T11:55:39+02:00 spark-2751 bash[155800]: {"step": 17, "loss": 7.3133463859558105, "elapsed_seconds": 21.688277095090598}
+2026-09-26T11:55:51+02:00 spark-2751 bash[155800]: {"arm": "control", "seed": 179025, "training_seconds": 21.74440705217421, "holdout_r1": null}
+2026-09-26T11:55:53+02:00 spark-2751 bash[155132]: DONE unseen-gallery replication smoke seed=179025 arm=control receipt_sha256=630b173255610fc97fc632d627f27f719612770245acc6cfafb269f5dbb3cfd7
+2026-09-26T11:55:53+02:00 spark-2751 bash[155132]: START unseen-gallery replication smoke seed=179025 arm=freeze
+2026-09-26T11:55:59+02:00 spark-2751 bash[156027]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-26T11:55:59+02:00 spark-2751 bash[156027]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-26T11:55:59+02:00 spark-2751 bash[156027]: [294B blob data]
+2026-09-26T11:56:18+02:00 spark-2751 bash[156027]: {"step": 17, "loss": 6.31559944152832, "elapsed_seconds": 18.838960589841008}
+2026-09-26T11:56:24+02:00 spark-2751 bash[156027]: {"arm": "freeze", "seed": 179025, "training_seconds": 18.92349266074598, "holdout_r1": null}
+2026-09-26T11:56:26+02:00 spark-2751 bash[155132]: DONE unseen-gallery replication smoke seed=179025 arm=freeze receipt_sha256=b5d7b7cb09165ab593f97eba456cadbaf859649f3fb37fdaa35a412f9d12fbd7
