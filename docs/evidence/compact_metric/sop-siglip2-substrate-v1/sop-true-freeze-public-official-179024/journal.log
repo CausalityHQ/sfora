@@ -1,0 +1,50 @@
+Started sfora-sop-freeze-public-official-179024-v1.service - /bin/bash /home/riomus/runs/run_sop_siglip2_true_freeze_public_official_dgx.sh 179024.
+START public official seed=179024 arm=control
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  23%|██▎       | 185/792 [00:00<00:00, 1839.96it/s]Loading weights:  63%|██████▎   | 497/792 [00:00<00:00, 2580.30it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2639.40it/s]
+{"export_batches": 100}
+{"export_batches": 200}
+{"export_batches": 300}
+{"export_batches": 400}
+{"export_batches": 500}
+{"export_batches": 600}
+{"export_batches": 700}
+{"export_batches": 800}
+{"export_batches": 900}
+{"export_batches": 1000}
+{"export_batches": 1100}
+{"export_batches": 1200}
+{"export_batches": 1300}
+{"export_batches": 1400}
+{"export_batches": 1500}
+{"export_batches": 1600}
+{"export_batches": 1700}
+{"export_batches": 1800}
+{"seed": 179024, "arm": "control", "packed_r1": 0.9124326468546494}
+DONE public official seed=179024 arm=control receipt_sha256=7ad8438e9fe71d67c39d571e61083518ef09062fae203f126e6a0911871f4263
+START public official seed=179024 arm=freeze
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  24%|██▎       | 188/792 [00:00<00:00, 1820.54it/s]Loading weights:  62%|██████▏   | 494/792 [00:00<00:00, 2539.89it/s]Loading weights:  99%|█████████▉| 787/792 [00:00<00:00, 2697.57it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2596.27it/s]
+{"export_batches": 100}
+{"export_batches": 200}
+{"export_batches": 300}
+{"export_batches": 400}
+{"export_batches": 500}
+{"export_batches": 600}
+{"export_batches": 700}
+{"export_batches": 800}
+{"export_batches": 900}
+{"export_batches": 1000}
+{"export_batches": 1100}
+{"export_batches": 1200}
+{"export_batches": 1300}
+{"export_batches": 1400}
+{"export_batches": 1500}
+{"export_batches": 1600}
+{"export_batches": 1700}
+{"export_batches": 1800}
+{"seed": 179024, "arm": "freeze", "packed_r1": 0.9166639119367955}
+DONE public official seed=179024 arm=freeze receipt_sha256=7f5edf6b8ecb526e8ba29944119035245725055787cb088bd2635cc734b0eb6c
+sfora-sop-freeze-public-official-179024-v1.service: Consumed 21min 41.769s CPU time, 4.0G memory peak, 0B memory swap peak.
