@@ -11,6 +11,7 @@ import torch
 sys.path.insert(0, str(Path(__file__).parents[1] / "scripts"))
 import train_inshop_siglip2_unseen_gallery as trainer  # noqa: E402
 from analyze_inshop_valid_anchor_rank import positive_training_costs  # noqa: E402
+from preflight_inshop_siglip2_unseen_gallery import schedule  # noqa: E402
 from train_sop_siglip2_compact import member_bank_rank_loss  # noqa: E402
 
 
@@ -48,3 +49,12 @@ def test_valid_anchor_gate_rejects_invalid_costs() -> None:
     ):
         with pytest.raises(ValueError, match="training cost"):
             positive_training_costs({**good, key: bad})
+
+
+def test_equal_wall_extension_uses_frozen_three_thousand_step_prefix() -> None:
+    labels = tuple(str(i) for i in range(16) for _ in range(4))
+    assert trainer.schedule_horizon(1_000) == 1_000
+    assert trainer.schedule_horizon(1_533) == 3_000
+    assert schedule(labels, 3_000, seed=179024)[:1_533] == schedule(
+        labels, 1_533, seed=179024
+    )

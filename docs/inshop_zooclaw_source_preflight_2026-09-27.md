@@ -12,6 +12,20 @@
 > The full baseline-cost replay planned below is cancelled because it would
 > diagnose a comparison that was never valid.
 
+Full ordered TRAIN image-content audits confirm a corpus change. For each of
+25,882 TRAIN rows, SHA-256 was taken over image bytes; the ordered accumulator
+received the relative path, a null byte, 8-byte little-endian file size, and
+raw 32-byte image digest. The standard `inshop_official_standard` root gave
+`2415bad59f265faa6c87c6788d709ae6525a06fc809af324e8abfaaf39c93c3e`
+over **415,645,393 bytes**; `inshop`/`img_highres` gave
+`42a0a5bbfe39063d0cdf693fe1790f10e055d7461a5bbed2ad05d4ec8022a653`
+over **4,195,757,182 bytes**. Both partition SHA-256 values equal
+`cfada103c44df866db5e2ee9ecc2301ca691a4d0cdb3c875fe4051b62570894c`.
+The other standard root, `In-shop Clothes Retrieval Benchmark`, matched
+`inshop_official_standard` over all 52,712 ordered rows: digest
+`608373be84bc4e5b95e3c6f87e712e4d1ca53299e6f59d1627d033a70128f8fe`
+and **842,962,844 bytes** under the same path/size/content encoding.
+
 ## Correct-corpus rerun frozen before execution
 
 Run the **unchanged** pinned ZooClaw source script and checkpoint on

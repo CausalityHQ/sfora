@@ -116,6 +116,10 @@ def source_manifest() -> dict[str, str]:
     return {str(path): sha256(path) for path in sorted(paths)}
 
 
+def schedule_horizon(updates: int) -> int:
+    return 3_000 if updates > 1_000 else 1_000
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     parser.add_argument("--dataset-root", type=Path, required=True)
@@ -137,7 +141,9 @@ def main() -> None:
         ),
         required=True,
     )
-    parser.add_argument("--updates", type=int, choices=(17, 100, 1_000, 3_000), required=True)
+    parser.add_argument(
+        "--updates", type=int, choices=(17, 100, 1_000, 1_533, 3_000), required=True
+    )
     parser.add_argument(
         "--seed", type=int, choices=(179023, 179024, 179025, 179026, 179027), default=SEED
     )
@@ -152,6 +158,10 @@ def main() -> None:
         args.output_dir.exists()
         or args.output_dir.is_symlink()
         or (args.arm == "budget") != (args.updates == 3_000)
+        or (
+            args.updates == 1_533
+            and (args.arm != "freeze_emb" or args.seed not in (179024, 179026))
+        )
         or (args.vision_lr != 1e-5 and (args.arm != "control" or args.seed == 179023))
         or (args.arm == "subspace" and (args.seed == 179023 or args.vision_lr != 1e-5))
         or (
@@ -247,9 +257,11 @@ def main() -> None:
     class_ids = np.asarray([class_index[label] for label in fit_labels], dtype=np.int64)
     counts = Counter(fit_labels)
     singleton = {name for name, count in counts.items() if count == 1}
-    schedule_updates = 3_000 if args.arm == "budget" else 1_000
+    schedule_updates = schedule_horizon(args.updates)
     batches = schedule(fit_labels, schedule_updates, seed=args.seed)
-    if args.arm == "budget" and batches[:1_000] != schedule(fit_labels, 1_000, seed=args.seed):
+    if schedule_updates == 3_000 and batches[:1_000] != schedule(
+        fit_labels, 1_000, seed=args.seed
+    ):
         raise ValueError("In-Shop budget schedule does not extend control")
     schedule_sha = hashlib.sha256(np.asarray(batches, dtype="<i4").tobytes()).hexdigest()
     inactive = tuple(
@@ -543,6 +555,9 @@ def main() -> None:
         "bank_width": bank.shape[1],
         "held_rows_sha256": held_sha,
         "schedule_sha256": schedule_sha,
+        "executed_schedule_sha256": hashlib.sha256(
+            np.asarray(batches[: args.updates], dtype="<i4").tobytes()
+        ).hexdigest(),
         "fit_rows": len(fit),
         "held_rows": len(held),
         "frozen_encoder_blocks": list(range(args.freeze_first_blocks))
