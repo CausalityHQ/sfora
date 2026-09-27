@@ -27,3 +27,17 @@ Frozen Cars evaluator SHA-256:
 `1ceda37a0ef83c2025525053ca58813869427cf48f012cdb95a64ddd64807f83`.
 The [serial DGX launcher](../scripts/run_sop_siglip2_cars_transfer_dgx.sh)
 uses the existing Sfora GPU lock and refuses an occupied GPU.
+
+The first invocation (`sfora-sop-cars-transfer-public-v1`,
+`0ce2281c3df74a95b154c670c4722e8f`) stopped during its first image
+export, before any quality receipt. Exactly **one** of 8,131 evaluation
+images is 4912×3264 = 16,032,768 source pixels, exceeding the public
+encoder's old 16,000,000-pixel guard by 32,768. The largest image is that
+same row; the [failed journal](evidence/compact_metric/sop-siglip2-substrate-v1/sop-cars-transfer-public-v1/failed-v1-journal.log)
+is preserved. The production guard now permits **16 Mi pixels
+(16,777,216)**, without image resampling or changes to the SigLIP2 processor,
+model, head, score arithmetic, checkpoint, labels or frozen comparison.
+A new test covers this exact camera size; the prior 4097×4097 rejection test
+still passes. The corrected serving source SHA-256 is
+`3db70cb77f0f1b2a5a7b9dcddf4cd7791b8fdcfd9ece5dccc33e63d766bcbe86`.
+The original source hash remains in the failed invocation's code history.

@@ -23,7 +23,7 @@ from sfora.sop_compact_training import compact_head_features
 
 InferencePrecision = Literal["fp32_autocast", "fp16_native"]
 _MAX_QUERY_IMAGES = 32
-_MAX_IMAGE_PIXELS = 16_000_000
+_MAX_IMAGE_PIXELS = 16_777_216
 # ponytail: cap preprocessing source pixels; tune only after measuring gallery RSS and latency.
 _MAX_PREPROCESS_BATCH_PIXELS = 64_000_000
 
@@ -244,7 +244,7 @@ class Siglip2CompactEncoder:
         if len(images) > _MAX_QUERY_IMAGES:
             raise ValueError("trained SigLIP2 serving batch limit is 32 images")
         if any(image.width * image.height > _MAX_IMAGE_PIXELS for image in images):
-            raise ValueError("trained SigLIP2 serving pixel limit is 16000000")
+            raise ValueError(f"trained SigLIP2 serving pixel limit is {_MAX_IMAGE_PIXELS}")
         if sum(image.width * image.height for image in images) > _MAX_PREPROCESS_BATCH_PIXELS:
             pieces = [
                 self.processor(images=[image.convert("RGB")], return_tensors="pt")

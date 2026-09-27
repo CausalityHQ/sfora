@@ -1,0 +1,19 @@
+Sep 27 21:05:56 spark-2751 systemd[3489]: Started sfora-sop-cars-transfer-public-v1.service - /bin/bash /home/riomus/runs/sfora-sop-cars-transfer-public-v1/scripts/run_sop_siglip2_cars_transfer_dgx.sh.
+Sep 27 21:05:57 spark-2751 bash[666161]: Using the latest cached version of the dataset since tanganke/stanford_cars couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Sep 27 21:05:57 spark-2751 bash[666161]: Found the latest cached dataset configuration 'default' at /home/riomus/.cache/huggingface/datasets/tanganke___stanford_cars/default/0.0.0/9abf6cf7d6dfa7b95152a0d6e791ea9435b47a40 (last modified on Sun Aug 30 17:20:30 2026).
+Sep 27 21:06:05 spark-2751 bash[666161]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+Sep 27 21:06:05 spark-2751 bash[666161]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Sep 27 21:07:13 spark-2751 bash[666161]: Traceback (most recent call last):
+Sep 27 21:07:13 spark-2751 bash[666161]:   File "/home/riomus/runs/sfora-sop-cars-transfer-public-v1/scripts/verify_sop_siglip2_cars_transfer.py", line 168, in <module>
+Sep 27 21:07:13 spark-2751 bash[666161]:     main()
+Sep 27 21:07:13 spark-2751 bash[666161]:     ~~~~^^
+Sep 27 21:07:13 spark-2751 bash[666161]:   File "/home/riomus/runs/sfora-sop-cars-transfer-public-v1/scripts/verify_sop_siglip2_cars_transfer.py", line 121, in main
+Sep 27 21:07:13 spark-2751 bash[666161]:     packed = encoder.encode_images(images)
+Sep 27 21:07:13 spark-2751 bash[666161]:   File "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/utils/_contextlib.py", line 124, in decorate_context
+Sep 27 21:07:13 spark-2751 bash[666161]:     return func(*args, **kwargs)
+Sep 27 21:07:13 spark-2751 bash[666161]:   File "/home/riomus/runs/sfora-sop-cars-transfer-public-v1/src/sfora/siglip2_compact_serving.py", line 247, in encode_images
+Sep 27 21:07:13 spark-2751 bash[666161]:     raise ValueError("trained SigLIP2 serving pixel limit is 16000000")
+Sep 27 21:07:13 spark-2751 bash[666161]: ValueError: trained SigLIP2 serving pixel limit is 16000000
+Sep 27 21:07:14 spark-2751 systemd[3489]: sfora-sop-cars-transfer-public-v1.service: Main process exited, code=exited, status=1/FAILURE
+Sep 27 21:07:14 spark-2751 systemd[3489]: sfora-sop-cars-transfer-public-v1.service: Failed with result 'exit-code'.
+Sep 27 21:07:14 spark-2751 systemd[3489]: sfora-sop-cars-transfer-public-v1.service: Consumed 3min 4.470s CPU time, 5.7G memory peak, 0B memory swap peak.

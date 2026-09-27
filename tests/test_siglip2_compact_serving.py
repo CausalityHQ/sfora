@@ -291,6 +291,17 @@ def test_serving_rejects_oversized_image_before_processing() -> None:
         encoder.encode_images([Image.new("RGB", (4097, 4097))])
 
 
+def test_serving_accepts_sixteen_megapixel_camera_image() -> None:
+    encoder = Siglip2CompactEncoder(
+        BasisProcessor(),
+        EchoVision(),
+        torch.nn.Linear(1024, 128),
+        "fp32_autocast",
+        torch.device("cpu"),
+    )
+    assert encoder.encode_images([Image.new("RGB", (4912, 3264))]).codes.shape == (1, 128)
+
+
 def test_serving_releases_owned_encoder_and_rejects_search_after_close() -> None:
     head = torch.nn.Linear(1024, 128)
     encoder = Siglip2CompactEncoder(
