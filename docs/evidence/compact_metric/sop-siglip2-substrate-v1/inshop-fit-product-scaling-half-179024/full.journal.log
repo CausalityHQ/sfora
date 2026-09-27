@@ -1,0 +1,27 @@
+Started sfora-inshop-fit-scaling-half-179024-full-v1.service - /usr/bin/flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock /usr/bin/env PYTHONPATH=/home/riomus/runs/sfora-inshop-fit-scaling-179024-v1:/home/riomus/runs:/home/riomus/sfora-siglip2-deployed-batch-v1/src:/home/riomus/sfora-siglip2-deployed-batch-v1/scripts HF_HUB_OFFLINE=1 /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-inshop-fit-scaling-179024-v1/train_inshop_siglip2_unseen_gallery.py --dataset-root /home/riomus/datasets/inshop_official_standard --model-snapshot /home/riomus/.cache/huggingface/hub/models--google--siglip2-large-patch16-256/snapshots/787800c8990e6f058423089178e718139608408c --features-dir /home/riomus/runs/sfora-inshop-siglip2-train-features-v1 --preflight /home/riomus/runs/inshop-unseen-gallery-preflight-179024-v2.json --preflight-sha256 f9c59db9ed6f0962963b8e203e70f98186f314226acda0f0ebd7b52c11e17034 --output-dir /home/riomus/runs/sfora-inshop-fit-scaling-half-179024-1000-v1 --seed 179024 --arm freeze_emb --updates 1000 --half-fit-products.
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:   1%|          | 4/792 [00:00<00:24, 32.17it/s]Loading weights:  67%|██████▋   | 531/792 [00:00<00:00, 2823.69it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2549.38it/s]
+{"step": 50, "loss": 2.900923728942871, "elapsed_seconds": 38.739087578840554}
+{"step": 100, "loss": 5.955666542053223, "elapsed_seconds": 75.60949214501306}
+{"step": 150, "loss": 2.155224323272705, "elapsed_seconds": 112.93194240191951}
+{"step": 200, "loss": 1.5060293674468994, "elapsed_seconds": 149.99665402714163}
+{"step": 250, "loss": 1.750676155090332, "elapsed_seconds": 187.0959674869664}
+{"step": 300, "loss": 1.6642532348632812, "elapsed_seconds": 224.23309763614088}
+{"step": 350, "loss": 1.2942216396331787, "elapsed_seconds": 261.23392525920644}
+{"step": 400, "loss": 1.297184944152832, "elapsed_seconds": 298.2056372691877}
+{"step": 450, "loss": 0.11290990561246872, "elapsed_seconds": 335.1930574281141}
+{"step": 500, "loss": 0.16951976716518402, "elapsed_seconds": 372.2091719941236}
+{"step": 550, "loss": 0.26614564657211304, "elapsed_seconds": 409.3459270899184}
+{"step": 600, "loss": 0.6832549571990967, "elapsed_seconds": 446.44520319625735}
+{"step": 650, "loss": 0.10604071617126465, "elapsed_seconds": 483.59499080711976}
+{"step": 700, "loss": 0.14395612478256226, "elapsed_seconds": 520.711906015873}
+{"step": 750, "loss": 0.16147036850452423, "elapsed_seconds": 557.799151121173}
+{"step": 800, "loss": 0.059574879705905914, "elapsed_seconds": 594.8456942779012}
+{"step": 850, "loss": 0.0963543951511383, "elapsed_seconds": 631.8773511801846}
+{"step": 900, "loss": 0.1782209873199463, "elapsed_seconds": 668.9686779682525}
+{"step": 950, "loss": 0.14587540924549103, "elapsed_seconds": 706.0648943530396}
+{"step": 1000, "loss": 0.11924326419830322, "elapsed_seconds": 743.1239584628493}
+{"export_batches": 100}
+{"arm": "freeze_emb", "seed": 179024, "training_seconds": 743.2148652239703, "holdout_r1": 0.9818239542820859}
+sfora-inshop-fit-scaling-half-179024-full-v1.service: Consumed 17min 47.930s CPU time, 10.0G memory peak, 0B memory swap peak.
