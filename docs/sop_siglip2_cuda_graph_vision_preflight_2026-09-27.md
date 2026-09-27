@@ -69,3 +69,28 @@ path must be bitwise equal and p95 no more than 1.05× eager over at least 100
 calls per arm. Peak allocated CUDA must stay below 3 GB. A failure removes the
 opt-in path. A pass only authorizes the varied-image 10,000-call batch-1 p99
 gate and concurrency review; it is not a quality or SOTA claim.
+
+## Public-path result and final promotion gate
+
+The frozen public-path screen completed on the DGX Spark GB10, invocation
+`7bb2f32c7dea40f6b52b9bdfad4f725f`, with receipt SHA-256
+`c90a477dcf1f357bb577bbeb916502bfac5a7867a5f8f527865ec4a06a45ffc2`
+at `docs/evidence/compact_metric/sop-siglip2-substrate-v1/cuda-graph-public-v1/receipt.json`.
+On the first 32 SOP TRAIN images and the same 59,551-image TRAIN gallery,
+batch-1 full-call p50 was 16.373 ms eager versus 15.072 ms graph; p95 was
+19.072 versus 17.739 ms (400 calls/arm). Batch-32 p95 was 290.932 versus
+286.654 ms (100 calls/arm). Peak allocated CUDA was 1,582,993,408 bytes.
+All frozen gates and bitwise packed/top-10 checks passed. These are
+exploratory TRAIN serving measurements, not official TEST quality or a SOTA
+claim.
+
+Before promoting the opt-in path, run 10,000 distinct SOP TRAIN images through
+both indexes, including JPEG read/decode in each timed public call. Alternate
+arm order per image, check exact top-10 ordinals and scores for every image,
+record every synchronized wall time, and require graph p50 ≤0.95× eager and
+graph p99 ≤ eager p99. Retain the same source/checkpoint/gallery/precision,
+20 threads and <3 GB peak CUDA ceiling. Also run concurrent calls to one graph
+index from four workers on 100 of those images, checking exact top-10 against
+the serial outputs. Its lifecycle lock deliberately serializes calls; the
+concurrency check is a correctness gate, not a throughput claim. Failure at
+either gate keeps the default eager path and withdraws this opt-in candidate.
