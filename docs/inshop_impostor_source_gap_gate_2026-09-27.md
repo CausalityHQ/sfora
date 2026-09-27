@@ -39,3 +39,20 @@ or correctly labelled. Both exploratory thresholds pass, permitting a frozen
 specific-impostor **TRAIN-only** learning screen. The result does not prove
 that such a term improves R@1, mAP@R, training cost, or public serving speed;
 no trainer or production serving code changed in this run.
+
+## Same-role pretrained-source control
+
+A separate [source-bound script](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-source-rank-179026/source_rank.py)
+with SHA-256 `f03a65ac9ce9abc692b074bc205dbece6927f018bc81d6d8c6315f400e07309a`
+used the pinned untrained 1,024-D SigLIP2 source cache and the same TRAIN
+6,354-query/6,245-gallery roles. Its [raw receipt](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-source-rank-179026/receipt.json)
+has SHA-256 `77ce284af0b15259127ef33fe8d046554040a977772e84c04e13aaeca6e29eb8`;
+the [journal](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-source-rank-179026/service-journal.txt)
+has SHA-256 `636ca0741a128d22992487adc54f86e2d006725215fcbb4c31cbb3d9012111be`.
+The service exited 0 and an independent replay checked all 6,354 hit flags
+and paired counts. Pretrained source R@1 was **79.4775%**, compared with
+**97.6235%** for the trained 128-D packed model: it rescued 15 of the 151
+trained misses but lost 1,168 trained hits. This is a float 1,024-D
+diagnostic, not an equal-byte or public serving baseline. It rules out using
+the pretrained source ranking itself as the next quality treatment; the
+specific trained impostor margin remains the candidate for a paired screen.

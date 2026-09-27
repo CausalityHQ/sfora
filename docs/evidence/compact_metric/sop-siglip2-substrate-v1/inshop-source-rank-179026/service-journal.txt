@@ -1,0 +1,3 @@
+Started sfora-inshop-source-rank-179026-v1.service - /usr/bin/flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock /usr/bin/env PYTHONPATH=/home/riomus/runs:/home/riomus/sfora-siglip2-deployed-batch-v1/src /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-inshop-source-rank-179026-v1/source_rank.py.
+{"pretrained_source_r1": 0.794774944916588, "source_loses_packed_hits": 1168, "source_recovers_packed_misses": 15, "trained_packed_r1": 0.9762354422411079}
+sfora-inshop-source-rank-179026-v1.service: Consumed 5.923s CPU time.
