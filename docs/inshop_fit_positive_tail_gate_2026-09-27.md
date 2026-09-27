@@ -47,3 +47,39 @@ and score took **70.675 s** on DGX Spark GB10; peak PyTorch allocated CUDA was
 13,271 unique eligible ordinals, the count/fraction/decision and corrected
 source SHA. This result permits a separately frozen paired TRAIN-only loss
 screen; it does not support an official quality or method claim.
+
+## Frozen F1 paired TRAIN screen
+
+The treatment changes only the detached-bank rank loss: for each eligible
+anchor, add `0.25 × mean[0.05 × softplus((best_negative − worst_positive +
+0.02) / 0.05)]` to the existing SmoothAP term. Positives and negatives are
+the same fit-bank rows already scored by SmoothAP; the anchor itself and padded
+positive ordinals are excluded. The coefficient, margin and temperature match
+the earlier rejected best-positive impostor screen, isolating which positive
+is moved. This is prior-art-like batch-hard ranking, with no novelty claim.
+
+Run paired seed-179026 `freeze_emb` control and opt-in worst-positive treatment
+on DGX Spark, 17-update smoke then 100-update TRAIN screen. Hold fixed the
+SigLIP2 Large/256 source, 13,283 fit products' images, 12,599 product-disjoint
+held images, PCA head, 128-D output, BF16, batch64 schedule, augmentations,
+ArcFace, bank refresh, optimizer and learning rates, native 130-byte packed
+scorer and fixed 6,354-query/6,245-gallery TRAIN roles. Both arms must have
+the same schedule/PCA/model hashes and first ten input batch hashes; source
+files may differ only in the explicit loss option and its scoring receipt.
+No official query/gallery row is used.
+
+Smoke must finish 17 finite optimizer steps with no skip, correct checkpoint
+geometry and rank-call counts, treatment/control wall ≤1.10 and peak PyTorch
+allocated CUDA ≤1.05. Failure stops before the 100-update pair. The 100-update
+pair must repeat those authority/finiteness checks. Define `a` for each fixed
+TRAIN-role query as the number of same-product images in the **full 12,599-row
+held gallery**, excluding the query, whose packed score is strictly greater
+than that query's best different-product score in the same full gallery.
+The primary mechanism gate requires treatment minus control `Pr(a≥3)` among
+the 6,354 fixed-role queries to be ≥**+1.0 percentage point**, with a paired
+product-cluster bootstrap 95% lower bound above zero. Guardrails require
+fixed-role packed R@1 delta ≥**−0.15 pp**, symmetric held packed mAP@R delta
+≥**−0.002**, training wall ratio ≤**1.02**, and peak PyTorch allocated CUDA
+ratio ≤**1.005**. A failure stops this treatment before more seeds, official
+evaluation or production promotion. A pass permits a separate frozen
+independent-seed full-budget TRAIN gate; it does not establish quality or SOTA.
