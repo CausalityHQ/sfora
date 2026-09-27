@@ -1,0 +1,68 @@
+2026-09-27T18:39:34+02:00 spark-2751 systemd[3489]: Started sfora-inshop-equal-wall-179024-v1.service - /usr/bin/flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock /bin/bash /home/riomus/runs/sfora-inshop-equal-wall-v1/run_inshop_equal_wall_true_freeze_dgx.sh.
+2026-09-27T18:39:35+02:00 spark-2751 flock[620766]: standard In-Shop pixel manifest: 608373be84bc4e5b95e3c6f87e712e4d1ca53299e6f59d1627d033a70128f8fe
+2026-09-27T18:39:35+02:00 spark-2751 flock[620754]: START arm=control updates=1000
+2026-09-27T18:39:42+02:00 spark-2751 flock[620776]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-27T18:39:42+02:00 spark-2751 flock[620776]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-27T18:39:42+02:00 spark-2751 flock[620776]: [300B blob data]
+2026-09-27T18:40:42+02:00 spark-2751 flock[620776]: {"step": 50, "loss": 6.02227258682251, "elapsed_seconds": 59.88677846826613}
+2026-09-27T18:41:40+02:00 spark-2751 flock[620776]: {"step": 100, "loss": 6.008232116699219, "elapsed_seconds": 117.07061337307096}
+2026-09-27T18:42:37+02:00 spark-2751 flock[620776]: {"step": 150, "loss": 6.200238227844238, "elapsed_seconds": 174.2344897892326}
+2026-09-27T18:43:34+02:00 spark-2751 flock[620776]: {"step": 200, "loss": 6.005570411682129, "elapsed_seconds": 231.6475938661024}
+2026-09-27T18:44:33+02:00 spark-2751 flock[620776]: {"step": 250, "loss": 4.6481733322143555, "elapsed_seconds": 290.49882384203374}
+2026-09-27T18:45:31+02:00 spark-2751 flock[620776]: {"step": 300, "loss": 2.0996296405792236, "elapsed_seconds": 348.4388894843869}
+2026-09-27T18:46:28+02:00 spark-2751 flock[620776]: {"step": 350, "loss": 2.1767756938934326, "elapsed_seconds": 405.78558697225526}
+2026-09-27T18:47:25+02:00 spark-2751 flock[620776]: {"step": 400, "loss": 1.9874520301818848, "elapsed_seconds": 463.05412262817845}
+2026-09-27T18:48:23+02:00 spark-2751 flock[620776]: {"step": 450, "loss": 4.041140079498291, "elapsed_seconds": 520.5189983323216}
+2026-09-27T18:49:20+02:00 spark-2751 flock[620776]: {"step": 500, "loss": 3.6516406536102295, "elapsed_seconds": 577.7483255374245}
+2026-09-27T18:50:17+02:00 spark-2751 flock[620776]: {"step": 550, "loss": 1.6883354187011719, "elapsed_seconds": 634.9440653412603}
+2026-09-27T18:51:15+02:00 spark-2751 flock[620776]: {"step": 600, "loss": 0.28181689977645874, "elapsed_seconds": 692.2423140271567}
+2026-09-27T18:52:12+02:00 spark-2751 flock[620776]: {"step": 650, "loss": 3.650364398956299, "elapsed_seconds": 749.4027348021045}
+2026-09-27T18:53:09+02:00 spark-2751 flock[620776]: {"step": 700, "loss": 1.948772668838501, "elapsed_seconds": 806.6861647283658}
+2026-09-27T18:54:06+02:00 spark-2751 flock[620776]: {"step": 750, "loss": 0.9034058451652527, "elapsed_seconds": 863.9119935333729}
+2026-09-27T18:55:04+02:00 spark-2751 flock[620776]: {"step": 800, "loss": 1.3643574714660645, "elapsed_seconds": 921.1007101112045}
+2026-09-27T18:56:01+02:00 spark-2751 flock[620776]: {"step": 850, "loss": 2.6390249729156494, "elapsed_seconds": 978.2965977704152}
+2026-09-27T18:56:58+02:00 spark-2751 flock[620776]: {"step": 900, "loss": 0.4113500118255615, "elapsed_seconds": 1035.471589843277}
+2026-09-27T18:57:55+02:00 spark-2751 flock[620776]: {"step": 950, "loss": 0.9818574786186218, "elapsed_seconds": 1092.7122707460076}
+2026-09-27T18:58:52+02:00 spark-2751 flock[620776]: {"step": 1000, "loss": 0.8487743139266968, "elapsed_seconds": 1149.8700368441641}
+2026-09-27T18:59:32+02:00 spark-2751 flock[620776]: {"export_batches": 100}
+2026-09-27T19:00:05+02:00 spark-2751 flock[620776]: {"arm": "control", "seed": 179024, "training_seconds": 1149.935801435262, "holdout_r1": 0.9855544090800857}
+2026-09-27T19:00:07+02:00 spark-2751 flock[620754]: DONE arm=control receipt_sha256=420099def5528239e50cd65fe4c3451168c4352a486e7a5e357d4a08177ee9bc
+2026-09-27T19:00:07+02:00 spark-2751 flock[620754]: START arm=freeze_emb updates=1533
+2026-09-27T19:00:14+02:00 spark-2751 flock[624565]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-27T19:00:14+02:00 spark-2751 flock[624565]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-27T19:00:15+02:00 spark-2751 flock[624565]: [300B blob data]
+2026-09-27T19:00:54+02:00 spark-2751 flock[624565]: {"step": 50, "loss": 6.162699222564697, "elapsed_seconds": 39.10829716408625}
+2026-09-27T19:01:31+02:00 spark-2751 flock[624565]: {"step": 100, "loss": 4.807068824768066, "elapsed_seconds": 76.17519418895245}
+2026-09-27T19:02:08+02:00 spark-2751 flock[624565]: {"step": 150, "loss": 6.3415141105651855, "elapsed_seconds": 113.17877320572734}
+2026-09-27T19:02:46+02:00 spark-2751 flock[624565]: {"step": 200, "loss": 5.896902561187744, "elapsed_seconds": 150.3843138627708}
+2026-09-27T19:03:24+02:00 spark-2751 flock[624565]: {"step": 250, "loss": 3.5467801094055176, "elapsed_seconds": 188.67644257098436}
+2026-09-27T19:04:01+02:00 spark-2751 flock[624565]: {"step": 300, "loss": 1.6873319149017334, "elapsed_seconds": 226.14345062989742}
+2026-09-27T19:04:39+02:00 spark-2751 flock[624565]: {"step": 350, "loss": 2.180612802505493, "elapsed_seconds": 263.232131451834}
+2026-09-27T19:05:16+02:00 spark-2751 flock[624565]: {"step": 400, "loss": 2.090547561645508, "elapsed_seconds": 300.2630073078908}
+2026-09-27T19:05:53+02:00 spark-2751 flock[624565]: {"step": 450, "loss": 3.593449115753174, "elapsed_seconds": 337.5280563728884}
+2026-09-27T19:06:30+02:00 spark-2751 flock[624565]: {"step": 500, "loss": 3.7747912406921387, "elapsed_seconds": 374.59579268377274}
+2026-09-27T19:07:07+02:00 spark-2751 flock[624565]: {"step": 550, "loss": 1.7983980178833008, "elapsed_seconds": 411.65636823000386}
+2026-09-27T19:07:44+02:00 spark-2751 flock[624565]: {"step": 600, "loss": 0.1578105390071869, "elapsed_seconds": 448.84422385971993}
+2026-09-27T19:08:21+02:00 spark-2751 flock[624565]: {"step": 650, "loss": 3.08833646774292, "elapsed_seconds": 485.8648265050724}
+2026-09-27T19:08:58+02:00 spark-2751 flock[624565]: {"step": 700, "loss": 1.712844967842102, "elapsed_seconds": 522.9891825057566}
+2026-09-27T19:09:35+02:00 spark-2751 flock[624565]: {"step": 750, "loss": 0.8594074249267578, "elapsed_seconds": 560.0369063350372}
+2026-09-27T19:10:12+02:00 spark-2751 flock[624565]: {"step": 800, "loss": 1.785582184791565, "elapsed_seconds": 597.0722833019681}
+2026-09-27T19:10:49+02:00 spark-2751 flock[624565]: {"step": 850, "loss": 2.803530693054199, "elapsed_seconds": 634.15953145409}
+2026-09-27T19:11:27+02:00 spark-2751 flock[624565]: {"step": 900, "loss": 0.688064455986023, "elapsed_seconds": 671.2340472498909}
+2026-09-27T19:12:04+02:00 spark-2751 flock[624565]: {"step": 950, "loss": 0.8019454479217529, "elapsed_seconds": 708.3709361939691}
+2026-09-27T19:12:41+02:00 spark-2751 flock[624565]: {"step": 1000, "loss": 0.7727598547935486, "elapsed_seconds": 745.3898870027624}
+2026-09-27T19:13:18+02:00 spark-2751 flock[624565]: {"step": 1050, "loss": 1.2008775472640991, "elapsed_seconds": 782.4501585639082}
+2026-09-27T19:13:55+02:00 spark-2751 flock[624565]: {"step": 1100, "loss": 0.2870035469532013, "elapsed_seconds": 819.4959085271694}
+2026-09-27T19:14:32+02:00 spark-2751 flock[624565]: {"step": 1150, "loss": 0.45925021171569824, "elapsed_seconds": 856.4882712741382}
+2026-09-27T19:15:09+02:00 spark-2751 flock[624565]: {"step": 1200, "loss": 0.21511055529117584, "elapsed_seconds": 893.6192374108359}
+2026-09-27T19:15:46+02:00 spark-2751 flock[624565]: {"step": 1250, "loss": 0.3045041263103485, "elapsed_seconds": 930.7902762708254}
+2026-09-27T19:16:23+02:00 spark-2751 flock[624565]: {"step": 1300, "loss": 0.4281882047653198, "elapsed_seconds": 967.857217730023}
+2026-09-27T19:17:00+02:00 spark-2751 flock[624565]: {"step": 1350, "loss": 0.18972468376159668, "elapsed_seconds": 1004.8937657098286}
+2026-09-27T19:17:37+02:00 spark-2751 flock[624565]: {"step": 1400, "loss": 0.6312698125839233, "elapsed_seconds": 1041.911209025886}
+2026-09-27T19:18:14+02:00 spark-2751 flock[624565]: {"step": 1450, "loss": 0.5620744228363037, "elapsed_seconds": 1078.966513009742}
+2026-09-27T19:18:51+02:00 spark-2751 flock[624565]: {"step": 1500, "loss": 0.2747900187969208, "elapsed_seconds": 1116.0586713938974}
+2026-09-27T19:19:16+02:00 spark-2751 flock[624565]: {"step": 1533, "loss": 0.20771513879299164, "elapsed_seconds": 1140.4874740978703}
+2026-09-27T19:20:00+02:00 spark-2751 flock[624565]: {"export_batches": 100}
+2026-09-27T19:20:33+02:00 spark-2751 flock[624565]: {"arm": "freeze_emb", "seed": 179024, "training_seconds": 1140.5285644000396, "holdout_r1": 0.9847606952932773}
+2026-09-27T19:20:35+02:00 spark-2751 flock[620754]: DONE arm=freeze_emb receipt_sha256=91c6847879d683e7793caf04ccdf537124cf691be1153d7861b2276c9cd6dcc5
+2026-09-27T19:20:35+02:00 spark-2751 systemd[3489]: sfora-inshop-equal-wall-179024-v1.service: Consumed 50min 56.474s CPU time, 10.2G memory peak, 0B memory swap peak.

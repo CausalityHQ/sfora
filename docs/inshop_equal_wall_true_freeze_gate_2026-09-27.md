@@ -61,3 +61,39 @@ been inspected repeatedly; even a pass remains exploratory and cannot
 authorize a SOTA claim or a production default. Serving architecture and
 130-byte gallery format stay fixed, but public latency for the resulting
 checkpoint must be measured before promotion.
+
+## Terminal seed-179024 result
+
+The sole locked DGX Spark GB10 unit `sfora-inshop-equal-wall-179024-v1`
+(invocation `155cc1935c82421dbda6259f9e2de916`) exited 0 after both arms.
+The launcher verified the full standard-pixel manifest before training. The
+[control](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-equal-wall-179024-v1/control.json)
+receipt SHA-256 is `420099def5528239e50cd65fe4c3451168c4352a486e7a5e357d4a08177ee9bc`;
+[treatment](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-equal-wall-179024-v1/treatment.json)
+is `91c6847879d683e7793caf04ccdf537124cf691be1153d7861b2276c9cd6dcc5`;
+[paired decision](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-equal-wall-179024-v1/decision.json)
+is `c3f7279718690385b71ecc3d0d2ba59940ea160af63a0caf81f63a7350155d4e`;
+[terminal journal](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-equal-wall-179024-v1/journal.log)
+is `846504c3aee2f2729cbeb2436ed247cc826099fbc0010f25e8cee604cb3db388`.
+The analyzer verified the source files, seed, split, first ten input batches,
+PCA initialization, full and executed schedule digests, 1,000/1,533 finite
+step receipts, checkpoints, per-query vectors and scorer output. The fresh
+control's packed quality exactly matches the archived same-seed control.
+
+| Official TRAIN, 12,599 held-only self-excluded queries | New control, 1,000 updates | True freeze, 1,533 updates |
+| --- | ---: | ---: |
+| Packed R@1 | **98.5554%** | **98.4761%** |
+| Packed mAP@R | **0.826739** | **0.842585** |
+| Training wall including bank setup | **1,151.440 s** | **1,142.074 s** |
+| Training throughput including setup | **55.58 images/s**, 64,000 images | **85.91 images/s**, 98,112 images |
+| Peak allocated CUDA | **22.554 GB** | **12.941 GB** |
+
+Treatment minus control R@1 was **−0.07937 percentage points**, paired
+product-bootstrap 95% **[−0.27599, +0.11431] pp**. mAP@R improved
+**+0.015846**, paired interval **[+0.011813, +0.020213]**. Wall ratio was
+**0.9919** and peak CUDA ratio **0.5738**. The mAP, wall and memory gates
+pass, but R@1 lower confidence bound is below zero; the frozen joint gate
+fails (`advance_seed179026=false`). Stop before seed 179026, another update
+budget, official query/gallery or production promotion. This establishes a
+same-cost mAP gain on this repeatedly inspected TRAIN panel, not a verified
+R@1 improvement or a public serving result.
