@@ -66,9 +66,11 @@ and `f8c03cb63c3dcd03fc14e53e5788cf2439a04959af442b6614c79fc4d79cf545`.
 
 The sole serial DGX Spark GB10 service then completed both 100-update arms,
 held-image export and packed scoring with exit 0. The
-[source-bound decision](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-depth22-179026-v1/decision.json)
+[source-bound decision](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-depth22-179026-v1/decision-v2.json)
 verified identical fit/held rows, schedule, first-ten image inputs, model
-files, scorer, source and checkpoint hashes. On the same 12,599 product-disjoint
+files, imported source manifest and checkpoint hashes. The v2 audit adds an
+explicit shared-source-manifest equality check; the measured gate is unchanged.
+On the same 12,599 product-disjoint
 official **TRAIN** held-only symmetric queries/gallery:
 
 | Arm | Packed R@1 | mAP@R | Training wall, 6,400 images | Images/s | Peak allocated CUDA |
@@ -89,5 +91,7 @@ receipt SHA-256 values are `3da086a15c4ec25b6255d300da13d0220d5311fd6d5babff62d8
 and `6ed19555bd00a226af98aa1caeb261a8c1d0ef057a365ebc413cc97aef5cb160`.
 The [terminal journal](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-depth22-179026-v1/paired.journal.log)
 SHA-256 is `deadc3aa0ab826167a552f4741f518720804cdb8a8c17eb6a4c3352c59e5b30e`;
-the [decision](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-depth22-179026-v1/decision.json)
-SHA-256 is `49d3e2bf1caf750e5669004b32857860437ab001f705e905414d973de871fac5`.
+the [v2 decision](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-depth22-179026-v1/decision-v2.json)
+SHA-256 is `e98c6a3368a50940448efcd33ea581616ebd2b8e24c6cd034f27238e7540b963`.
+The original [v1 decision](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-depth22-179026-v1/decision.json)
+SHA-256 is `49d3e2bf1caf750e5669004b328af5e905c414d973de871fac5f5a7956cf2174`.

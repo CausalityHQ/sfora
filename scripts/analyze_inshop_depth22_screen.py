@@ -90,6 +90,7 @@ def main() -> None:
             ):
                 raise ValueError(f"In-Shop depth {depth} quality differs")
     shared = (
+        "source_files_sha256",
         "model_file_sha256",
         "partition_sha256",
         "fit_rows_sha256",
