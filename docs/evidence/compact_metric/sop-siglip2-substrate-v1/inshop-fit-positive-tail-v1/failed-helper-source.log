@@ -1,0 +1,11 @@
+2026-09-27T17:02:05+02:00 spark-2751 systemd[3489]: Started sfora-inshop-fit-positive-tail-v2.service - /usr/bin/flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock /usr/bin/env PYTHONPATH=/home/riomus/runs/sfora-inshop-fit-positive-tail-v1:/home/riomus/runs:/home/riomus/sfora-siglip2-deployed-batch-v1/src /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-inshop-fit-positive-tail-v1/probe.py --dataset-root "/home/riomus/datasets/In-shop Clothes Retrieval Benchmark" --model-snapshot /home/riomus/.cache/huggingface/hub/models--google--siglip2-large-patch16-256/snapshots/787800c8990e6f058423089178e718139608408c --run /home/riomus/runs/sfora-inshop-valid-anchor-confirm-freeze_emb-179026-v1 --output /home/riomus/runs/sfora-inshop-fit-positive-tail-v1/receipt.json.
+2026-09-27T17:02:06+02:00 spark-2751 flock[584424]: Traceback (most recent call last):
+2026-09-27T17:02:06+02:00 spark-2751 flock[584424]:   File "/home/riomus/runs/sfora-inshop-fit-positive-tail-v1/probe.py", line 177, in <module>
+2026-09-27T17:02:06+02:00 spark-2751 flock[584424]:     main()
+2026-09-27T17:02:06+02:00 spark-2751 flock[584424]:     ~~~~^^
+2026-09-27T17:02:06+02:00 spark-2751 flock[584424]:   File "/home/riomus/runs/sfora-inshop-fit-positive-tail-v1/probe.py", line 84, in main
+2026-09-27T17:02:06+02:00 spark-2751 flock[584424]:     raise ValueError("positive-tail authority differs")
+2026-09-27T17:02:06+02:00 spark-2751 flock[584424]: ValueError: positive-tail authority differs
+2026-09-27T17:02:07+02:00 spark-2751 systemd[3489]: sfora-inshop-fit-positive-tail-v2.service: Main process exited, code=exited, status=1/FAILURE
+2026-09-27T17:02:07+02:00 spark-2751 systemd[3489]: sfora-inshop-fit-positive-tail-v2.service: Failed with result 'exit-code'.
+2026-09-27T17:02:07+02:00 spark-2751 systemd[3489]: sfora-inshop-fit-positive-tail-v2.service: Consumed 4.749s CPU time.

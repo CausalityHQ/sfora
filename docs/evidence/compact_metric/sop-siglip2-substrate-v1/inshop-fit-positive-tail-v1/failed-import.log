@@ -1,0 +1,10 @@
+2026-09-27T17:01:19+02:00 spark-2751 systemd[3489]: Started sfora-inshop-fit-positive-tail-v1.service - /usr/bin/flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock /usr/bin/env PYTHONPATH=/home/riomus/runs:/home/riomus/sfora-siglip2-deployed-batch-v1/src /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-inshop-fit-positive-tail-v1/probe.py --dataset-root "/home/riomus/datasets/In-shop Clothes Retrieval Benchmark" --model-snapshot /home/riomus/.cache/huggingface/hub/models--google--siglip2-large-patch16-256/snapshots/787800c8990e6f058423089178e718139608408c --run /home/riomus/runs/sfora-inshop-valid-anchor-confirm-freeze_emb-179026-v1 --output /home/riomus/runs/sfora-inshop-fit-positive-tail-v1/receipt.json.
+2026-09-27T17:01:20+02:00 spark-2751 flock[583489]: Traceback (most recent call last):
+2026-09-27T17:01:20+02:00 spark-2751 flock[583489]:   File "/home/riomus/runs/sfora-inshop-fit-positive-tail-v1/probe.py", line 17, in <module>
+2026-09-27T17:01:20+02:00 spark-2751 flock[583489]:     from export_inshop_siglip2_train_features import MODEL_HASHES
+2026-09-27T17:01:20+02:00 spark-2751 flock[583489]:   File "/home/riomus/runs/export_inshop_siglip2_train_features.py", line 16, in <module>
+2026-09-27T17:01:20+02:00 spark-2751 flock[583489]:     from export_sop_siglip2_train import MODEL_FILES, MODEL_REVISION, export_features, sha256
+2026-09-27T17:01:20+02:00 spark-2751 flock[583489]: ModuleNotFoundError: No module named 'export_sop_siglip2_train'
+2026-09-27T17:01:20+02:00 spark-2751 systemd[3489]: sfora-inshop-fit-positive-tail-v1.service: Main process exited, code=exited, status=1/FAILURE
+2026-09-27T17:01:20+02:00 spark-2751 systemd[3489]: sfora-inshop-fit-positive-tail-v1.service: Failed with result 'exit-code'.
+2026-09-27T17:01:20+02:00 spark-2751 systemd[3489]: sfora-inshop-fit-positive-tail-v1.service: Consumed 2.014s CPU time.

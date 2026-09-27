@@ -1,0 +1,8 @@
+2026-09-27T17:03:13+02:00 spark-2751 systemd[3489]: Started sfora-inshop-fit-positive-tail-v3.service - /usr/bin/flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock /usr/bin/env PYTHONPATH=/home/riomus/runs/sfora-inshop-fit-positive-tail-v1:/home/riomus/runs:/home/riomus/sfora-siglip2-deployed-batch-v1/src /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-inshop-fit-positive-tail-v1/probe.py --dataset-root "/home/riomus/datasets/In-shop Clothes Retrieval Benchmark" --model-snapshot /home/riomus/.cache/huggingface/hub/models--google--siglip2-large-patch16-256/snapshots/787800c8990e6f058423089178e718139608408c --run /home/riomus/runs/sfora-inshop-valid-anchor-confirm-freeze_emb-179026-v1 --output /home/riomus/runs/sfora-inshop-fit-positive-tail-v1/receipt.json.
+2026-09-27T17:03:18+02:00 spark-2751 flock[585648]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-27T17:03:18+02:00 spark-2751 flock[585648]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-27T17:03:18+02:00 spark-2751 flock[585648]: [381B blob data]
+2026-09-27T17:03:53+02:00 spark-2751 flock[585648]: {"export_batches": 100}
+2026-09-27T17:04:27+02:00 spark-2751 flock[585648]: {"export_batches": 200}
+2026-09-27T17:04:30+02:00 spark-2751 flock[585648]: {"eligible": 13271, "tail": 2506, "advance": true}
+2026-09-27T17:04:31+02:00 spark-2751 systemd[3489]: sfora-inshop-fit-positive-tail-v3.service: Consumed 2min 4.423s CPU time, 8.7G memory peak, 0B memory swap peak.
