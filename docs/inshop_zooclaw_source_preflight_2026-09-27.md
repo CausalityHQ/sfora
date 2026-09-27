@@ -29,6 +29,34 @@ receipt or establish training/public serving performance. Stop before training
 or official query/gallery if any gate fails. Record the full invocation,
 source/model/receipt/journal hashes and exact corpus root.
 
+### Terminal correct-corpus result
+
+The sole GPU-locked scoring unit `sfora-inshop-zooclaw-source-official-v2`
+exited 0, invocation `68ac9b6fb2974bd9bb539127ac608607`, on the standard
+retrieval corpus. A prior `v1` launch exited before data access because its
+Python path lacked one imported helper; an import smoke passed before `v2`.
+The [receipt](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-zooclaw-source-official-v1/receipt.json)
+SHA-256 is `9cdfc7d794d2b41d4af5b4f70d4055b7422e90d12900bccc29057c8dbb2898bb`;
+the [journal](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-zooclaw-source-official-v1/journal.log)
+SHA-256 is `0785f0198d0bfacfad56875530cfadf1f91d6d4488f5430f26f6b8d8f811c2c5`.
+Source script SHA-256 remained
+`a8425264abed52c59305b3017f8dfd296270d7cbc04b233cc888ea202ab00b9f`;
+corrected parser SHA-256 was
+`635d300c66b2bebe7753707c9196d4735a97f07c7dd999f186f9b9b1251b7f1f`.
+
+| Official TRAIN, 12,599 product-disjoint held-only self-excluded queries | ZooClaw source | 22-block SigLIP2 source | Gate |
+| --- | ---: | ---: | --- |
+| Packed R@1 | **85.3084%** | **87.1736%** | −1.8652 pp; fail nonregression |
+| Packed mAP@R | **0.487035** | **0.508923** | −0.021888; paired product-bootstrap 95% **[−0.028295, −0.015558]**; fail |
+| 25,882-image export | **166.250 s** | **216.163 s** historical 24-block export | pass feasibility bound, but sequential/unpaired |
+| Peak PyTorch allocated CUDA | **1.172 GB** | not paired | pass <10 GB |
+
+`advance_training=false`. The apparent high-resolution quality advantage
+reverses on standard retrieval pixels. Stop this source before training,
+official query/gallery, or public API promotion. The source is externally
+pretrained on proprietary data, so even a passing TRAIN screen would not
+establish a novel Sfora learning method or SOTA.
+
 The paired worst-positive loss and acquisition-group falsifier failed their
 frozen TRAIN gates. A different representation source is the next distinct
 quality/efficiency possibility. [ZooClaw-FashionSigLIP2](https://arxiv.org/abs/2606.27708)
