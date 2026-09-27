@@ -128,6 +128,18 @@ removed with type-only comments. Thus this is a measured production serving
 increment for the pinned runtime, while repo-wide type-check cleanliness
 remains a separate release gap.
 
+## In-Shop latency pilot before tail certification
+
+Before paying for the full tail run, use the same pinned TRAIN checkpoint and
+gallery on 64 evenly spaced images from the parity-certified 640. Alternate
+ABBA/BAAB to make 128 full decode-to-top-10 calls per arm, checking exact
+packed/top-10 output before and during timing. Stop this In-Shop latency lane
+unless the timed pilot finishes within **60 s**, direct/control p50 ≤0.95,
+and p95 ≤0.98. These point estimates are only an early-stop screen, not p99
+evidence. The frozen
+[`probe_inshop_siglip2_direct_latency_pilot.py`](../scripts/probe_inshop_siglip2_direct_latency_pilot.py)
+SHA-256 is `2aee9e1a9ffb08678d003a2b4064748c19292796b88bbb4108642d53941fd6e7`.
+
 ## Frozen In-Shop public latency gate
 
 With exact transfer parity established, run one paired full image-to-top-10
