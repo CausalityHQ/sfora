@@ -53,6 +53,14 @@ all 640 batch-1 calls and 20 batch-32 calls. Twenty alternating ABBA/BAAB
 blocks make 10,000 full decode-to-top-10 calls per arm at batch 1. Promotion
 requires direct/control p50 ≤0.95, p99 point ratio ≤1.00, and paired-block
 bootstrap p99 ratio upper 95% ≤1.05. A 200-call/arm batch-32 diagnostic must
-keep p95 ≤1.10× control. The receipt also records throughput, gallery load,
-peak CUDA and parent RSS; the serving source is runtime and preprocessor
+keep p95 ≤1.10× control. The receipt also records throughput, peak CUDA and
+parent RSS; the serving source is runtime and preprocessor
 config guarded, and batch 32 keeps the existing processor path.
+
+For In-Shop transfer parity, use the seed-179026 true-freeze TRAIN checkpoint
+and fixed 6,354-query/6,245-gallery product-disjoint held roles. Take 640
+evenly spaced query-role ordinals; compare baseline and direct packed codes,
+inverse norms, and native top-10 ordinal/score bytes against the same built
+gallery. Any mismatch rejects production promotion. The frozen
+[`certify_inshop_siglip2_direct_parity.py`](../scripts/certify_inshop_siglip2_direct_parity.py)
+source SHA-256 is `0af157967734e2aca4b65d4667e4bae32a853063ecd74d40e58aa6f937686ba5`.
