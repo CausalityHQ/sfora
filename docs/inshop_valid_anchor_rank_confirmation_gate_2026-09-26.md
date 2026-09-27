@@ -60,3 +60,54 @@ seed 179027 [preflight](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-
 SHA-256 is `45d9fb0cd46844dccc9b25673634f047475f62991d42b3e61069d3823574d80b`.
 Both use the same fit/held product rows; their distinct 1,000-update schedules
 contain **77** and **96** formerly inactive rank steps, respectively.
+
+## Terminal decision, 27 September 2026
+
+Both paired seed runs finished with finite training, complete source and
+checkpoint receipts, matching within-seed inputs, and the expected rank-call
+counters. The seed-179027 DGX Spark GB10 service invocation
+`6ed8097643d14bb29d53765654ef52e5` exited successfully after treatment
+then baseline. The [frozen analyzer](../scripts/analyze_inshop_valid_anchor_confirmation.py)
+SHA-256 is `4747c360783b122f1b7b4faa2874d23f0ccf7c8d92e1492aa302be202c203b4a`.
+All scores below use packed exact top-k on the official In-Shop **TRAIN**
+product-disjoint held-only symmetric 12,599-query/gallery panel. Costs are for
+64,000 sampled training images on that DGX.
+
+| Seed | Packed R@1, treatment vs paired baseline | mAP@R, treatment vs baseline | Paired R@1 delta, product-bootstrap 95% interval | Training wall, treatment vs baseline | Peak allocated CUDA |
+| --- | --- | --- | --- | --- | --- |
+| 179026 | 98.6824% vs 98.5237% (+20 queries) | 0.843425 vs 0.841910 | +0.15874 pp, [+0.06246, +0.25749] pp | 748.729 vs 746.384 s | both 12.939 GB |
+| 179027 | 98.5475% vs 98.6269% (−10 queries) | 0.841409 vs 0.838588 | −0.07937 pp, [−0.18099, +0.01633] pp | 749.300 vs 748.226 s | both 12.939 GB |
+
+The pooled per-query paired R@1 delta is **+0.03969 pp**, product-bootstrap
+95% **[−0.03148, +0.10852] pp**. Mean mAP@R delta is **+0.002168**. Both
+cost ratios stay below 1.004, but seed 179027 violates the frozen positive
+R@1 rule and the pooled lower bound is below zero. The [decision receipt](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-valid-anchor-confirmation-decision.json)
+SHA-256 is `9da81734711a34cd8fc6817a159550f88221392aa306add0fe7ff872e608ccb9`.
+The gate **fails**. Keep `freeze_emb_rank` opt-in; do not change the In-Shop
+training default or evaluate this arm on official TEST. This held panel has
+already informed method selection, so even the positive seed is exploratory.
+The product bootstrap conditions on the two trained checkpoints; it does not
+measure training-seed uncertainty. Independent Claude Opus 5.5 and GPT-6 Astra
+terminal reviews (`7455d5fc7daf4caf`) found no defect that changes the
+decision. The next learning gate should treat paired seed deltas as its unit
+of inference.
+
+Raw [seed-179026 receipts and journal](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-valid-anchor-confirmation-179026/)
+have baseline/treatment receipt SHA-256
+`76f1293ac158f64f1e98a9412033ca37667a2baaadb592bf6051d92b61c9c8cc` /
+`7a243b8f8d85fe48f4b4258b66f7afe254135c5d3603310004d0c1521bf9091d`.
+Raw [seed-179027 receipts and journal](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-valid-anchor-confirmation-179027/)
+have baseline/treatment receipt SHA-256
+`48f5de680f2b86738d7632b2068abc101c115176cb34258871d39399e4ebba7c` /
+`4e45514f23682970b0e9855f5428aed1b6f6b4e1112680eb23b9f28c044f7465`;
+journal SHA-256 is
+`b8816c9c90dd5b18665889a05fe21d7dc5ec40ab33013c69c59c6a2e7bbc5192`.
+All four remote checkpoint hashes were independently checked against their
+receipts. The seed-179027 baseline/treatment checkpoint SHA-256 values are
+`4816912a52ed939e4461ba566abfcc0f3e4994b839ddc90e9c68355c554869a0` /
+`96269629f75ff3d78f386ab97293ba9b67d6b72959b48f30326b9f91cfbf7de1`.
+The shared remote SOP training helper is the exact
+`scripts/train_sop_siglip2_compact.py` blob from Git `e2ea109b` (SHA-256
+`e2f7f8d16e2850a51aa85a3d3f4e04a80ee2a48681dcac55306fd792c8f19ba6`);
+the current checkout later added a SOP-only freeze flag. Its imported rank
+function is unchanged.

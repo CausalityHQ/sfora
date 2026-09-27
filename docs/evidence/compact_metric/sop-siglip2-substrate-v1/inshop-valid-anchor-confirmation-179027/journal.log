@@ -1,0 +1,52 @@
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  24%|██▎       | 188/792 [00:00<00:00, 1879.36it/s]Loading weights:  66%|██████▋   | 526/792 [00:00<00:00, 2753.88it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2841.47it/s]
+{"step": 50, "loss": 4.565038681030273, "elapsed_seconds": 39.31090182578191}
+{"step": 100, "loss": 4.7041168212890625, "elapsed_seconds": 76.46571995969862}
+{"step": 150, "loss": 4.988066673278809, "elapsed_seconds": 113.74012015480548}
+{"step": 200, "loss": 6.564663887023926, "elapsed_seconds": 151.15943208197132}
+{"step": 250, "loss": 4.3361430168151855, "elapsed_seconds": 189.734643493779}
+{"step": 300, "loss": 3.2301008701324463, "elapsed_seconds": 227.3704228065908}
+{"step": 350, "loss": 2.4603586196899414, "elapsed_seconds": 264.6650392389856}
+{"step": 400, "loss": 1.4559662342071533, "elapsed_seconds": 301.8855029977858}
+{"step": 450, "loss": 1.7842438220977783, "elapsed_seconds": 339.08055939991027}
+{"step": 500, "loss": 2.126474618911743, "elapsed_seconds": 376.31196074094623}
+{"step": 550, "loss": 0.8131086230278015, "elapsed_seconds": 413.4765702956356}
+{"step": 600, "loss": 0.9324811697006226, "elapsed_seconds": 450.62685484299436}
+{"step": 650, "loss": 0.7241248488426208, "elapsed_seconds": 487.72313893493265}
+{"step": 700, "loss": 1.531194806098938, "elapsed_seconds": 524.9495148789138}
+{"step": 750, "loss": 1.0518295764923096, "elapsed_seconds": 562.1408896986395}
+{"step": 800, "loss": 0.3068251311779022, "elapsed_seconds": 599.3494414016604}
+{"step": 850, "loss": 0.29505422711372375, "elapsed_seconds": 636.3662699009292}
+{"step": 900, "loss": 0.572645902633667, "elapsed_seconds": 673.4591159038246}
+{"step": 950, "loss": 0.3457392156124115, "elapsed_seconds": 710.5966463447548}
+{"step": 1000, "loss": 0.7100929617881775, "elapsed_seconds": 747.6746711009182}
+{"export_batches": 100}
+{"arm": "freeze_emb_rank", "seed": 179027, "training_seconds": 747.7569578276016, "holdout_r1": 0.9854750377014049}
+DONE seed=179027 arm=freeze_emb_rank receipt_sha256=4e45514f23682970b0e9855f5428aed1b6f6b4e1112680eb23b9f28c044f7465
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  16%|█▌        | 127/792 [00:00<00:00, 1258.14it/s]Loading weights:  59%|█████▊    | 465/792 [00:00<00:00, 2497.95it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2660.90it/s]
+{"step": 50, "loss": 2.374708652496338, "elapsed_seconds": 39.38006255496293}
+{"step": 100, "loss": 4.766510963439941, "elapsed_seconds": 76.47052047401667}
+{"step": 150, "loss": 4.993797302246094, "elapsed_seconds": 113.72308337176219}
+{"step": 200, "loss": 6.5989789962768555, "elapsed_seconds": 151.07481043878943}
+{"step": 250, "loss": 4.370430946350098, "elapsed_seconds": 189.54225712874904}
+{"step": 300, "loss": 3.1553902626037598, "elapsed_seconds": 227.0966571699828}
+{"step": 350, "loss": 2.421828031539917, "elapsed_seconds": 264.2923189071007}
+{"step": 400, "loss": 1.1898396015167236, "elapsed_seconds": 301.4398975907825}
+{"step": 450, "loss": 1.8691905736923218, "elapsed_seconds": 338.57574185403064}
+{"step": 500, "loss": 2.126798152923584, "elapsed_seconds": 375.7351701227017}
+{"step": 550, "loss": 0.803878903388977, "elapsed_seconds": 412.82629111083224}
+{"step": 600, "loss": 1.0255528688430786, "elapsed_seconds": 449.9212249419652}
+{"step": 650, "loss": 0.7124866843223572, "elapsed_seconds": 486.9540974861011}
+{"step": 700, "loss": 1.6781184673309326, "elapsed_seconds": 524.1290156790055}
+{"step": 750, "loss": 1.1222925186157227, "elapsed_seconds": 561.2544397739694}
+{"step": 800, "loss": 0.2785477638244629, "elapsed_seconds": 598.4503981508315}
+{"step": 850, "loss": 0.31625646352767944, "elapsed_seconds": 635.4328333227895}
+{"step": 900, "loss": 0.5972113609313965, "elapsed_seconds": 672.516178668011}
+{"step": 950, "loss": 0.42578572034835815, "elapsed_seconds": 709.5672660861164}
+{"step": 1000, "loss": 0.5977954268455505, "elapsed_seconds": 746.6223154109903}
+{"export_batches": 100}
+{"arm": "freeze_emb", "seed": 179027, "training_seconds": 746.7009195298888, "holdout_r1": 0.9862687514882134}
+DONE seed=179027 arm=freeze_emb receipt_sha256=48f5de680f2b86738d7632b2068abc101c115176cb34258871d39399e4ebba7c

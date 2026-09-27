@@ -1,0 +1,54 @@
+Started sfora-inshop-valid-anchor-confirm-179026-v1.service - /usr/bin/bash /home/riomus/runs/sfora-valid-anchor-confirmation-179026-27/run_pair.sh 179026.
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  26%|██▌       | 202/792 [00:00<00:00, 1979.79it/s]Loading weights:  67%|██████▋   | 529/792 [00:00<00:00, 2696.62it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2802.89it/s]
+{"step": 50, "loss": 7.253352642059326, "elapsed_seconds": 38.905536061152816}
+{"step": 100, "loss": 3.9247913360595703, "elapsed_seconds": 75.7505493699573}
+{"step": 150, "loss": 3.941990613937378, "elapsed_seconds": 112.83817476499826}
+{"step": 200, "loss": 5.746153831481934, "elapsed_seconds": 150.03285304410383}
+{"step": 250, "loss": 2.434159755706787, "elapsed_seconds": 188.46684710634872}
+{"step": 300, "loss": 3.103957176208496, "elapsed_seconds": 225.7958993781358}
+{"step": 350, "loss": 1.3886785507202148, "elapsed_seconds": 262.8437486332841}
+{"step": 400, "loss": 2.4145848751068115, "elapsed_seconds": 299.8543396801688}
+{"step": 450, "loss": 3.7485315799713135, "elapsed_seconds": 336.9266273640096}
+{"step": 500, "loss": 2.761895179748535, "elapsed_seconds": 374.06247676629573}
+{"step": 550, "loss": 0.9199060201644897, "elapsed_seconds": 411.1773287621327}
+{"step": 600, "loss": 2.393880844116211, "elapsed_seconds": 448.3223985042423}
+{"step": 650, "loss": 0.29407647252082825, "elapsed_seconds": 485.39965588320047}
+{"step": 700, "loss": 0.5990939736366272, "elapsed_seconds": 522.4091557003558}
+{"step": 750, "loss": 1.3662420511245728, "elapsed_seconds": 559.4231922463514}
+{"step": 800, "loss": 1.1993916034698486, "elapsed_seconds": 596.4796052332968}
+{"step": 850, "loss": 0.586422324180603, "elapsed_seconds": 633.5216871560551}
+{"step": 900, "loss": 2.1002163887023926, "elapsed_seconds": 670.586127419956}
+{"step": 950, "loss": 0.3866824805736542, "elapsed_seconds": 707.7211808483116}
+{"step": 1000, "loss": 0.8151788711547852, "elapsed_seconds": 744.8533603129908}
+{"export_batches": 100}
+{"arm": "freeze_emb", "seed": 179026, "training_seconds": 744.9214513613842, "holdout_r1": 0.9852369235653623}
+DONE seed=179026 arm=freeze_emb receipt_sha256=76f1293ac158f64f1e98a9412033ca37667a2baaadb592bf6051d92b61c9c8cc
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:   7%|▋         | 57/792 [00:00<00:01, 569.05it/s]Loading weights:  59%|█████▊    | 465/792 [00:00<00:00, 2617.61it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2633.50it/s]
+{"step": 50, "loss": 7.261878967285156, "elapsed_seconds": 39.4993589380756}
+{"step": 100, "loss": 4.012345790863037, "elapsed_seconds": 76.6820402010344}
+{"step": 150, "loss": 3.962545871734619, "elapsed_seconds": 113.92908275406808}
+{"step": 200, "loss": 5.7228684425354, "elapsed_seconds": 151.21615398675203}
+{"step": 250, "loss": 2.4040136337280273, "elapsed_seconds": 189.6920225750655}
+{"step": 300, "loss": 3.02095890045166, "elapsed_seconds": 227.24459537584335}
+{"step": 350, "loss": 1.3291471004486084, "elapsed_seconds": 264.41747554484755}
+{"step": 400, "loss": 2.403635025024414, "elapsed_seconds": 301.5259711649269}
+{"step": 450, "loss": 3.875305652618408, "elapsed_seconds": 338.64825959596783}
+{"step": 500, "loss": 2.7518458366394043, "elapsed_seconds": 375.827030105982}
+{"step": 550, "loss": 1.1757868528366089, "elapsed_seconds": 412.988309643697}
+{"step": 600, "loss": 2.3532280921936035, "elapsed_seconds": 450.1888100747019}
+{"step": 650, "loss": 0.29944008588790894, "elapsed_seconds": 487.3046670318581}
+{"step": 700, "loss": 0.6019047498703003, "elapsed_seconds": 524.3904379177839}
+{"step": 750, "loss": 1.3812497854232788, "elapsed_seconds": 561.4267027969472}
+{"step": 800, "loss": 1.3329637050628662, "elapsed_seconds": 598.4994748276658}
+{"step": 850, "loss": 0.6550198197364807, "elapsed_seconds": 635.6680387007073}
+{"step": 900, "loss": 2.098834276199341, "elapsed_seconds": 672.7767825666815}
+{"step": 950, "loss": 0.42373234033584595, "elapsed_seconds": 709.9445791458711}
+{"step": 1000, "loss": 0.7784948348999023, "elapsed_seconds": 747.1364048328251}
+{"export_batches": 100}
+{"arm": "freeze_emb_rank", "seed": 179026, "training_seconds": 747.2150323577225, "holdout_r1": 0.9868243511389793}
+DONE seed=179026 arm=freeze_emb_rank receipt_sha256=7a243b8f8d85fe48f4b4258b66f7afe254135c5d3603310004d0c1521bf9091d
+sfora-inshop-valid-anchor-confirm-179026-v1.service: Consumed 35min 47.257s CPU time, 10.1G memory peak, 0B memory swap peak.
