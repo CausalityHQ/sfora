@@ -98,6 +98,7 @@ def smooth_ap_bank_loss(
     self_ordinals: torch.Tensor,
     *,
     temperature: float = 0.01,
+    truncate_at_r: bool = False,
 ) -> torch.Tensor:
     """SmoothAP against detached full-bank candidates in O(B x P x N).
 
@@ -121,6 +122,7 @@ def smooth_ap_bank_loss(
         or anchors.device != self_ordinals.device
         or type(temperature) is not float
         or temperature <= 0.0
+        or type(truncate_at_r) is not bool
         or bool((self_ordinals < 0).any())
         or bool((self_ordinals >= len(bank)).any())
         or bool((positive_ordinals < -1).any())
@@ -150,6 +152,10 @@ def smooth_ap_bank_loss(
             * valid[:, None, :]
         ).sum(dim=2)
         precision = positive_rank / candidate_rank
+        if truncate_at_r:
+            precision = precision * torch.sigmoid(
+                valid.sum(dim=1, keepdim=True) + 0.5 - candidate_rank
+            )
         return 1.0 - ((precision * valid).sum(dim=1) / valid.sum(dim=1)).mean()
 
 

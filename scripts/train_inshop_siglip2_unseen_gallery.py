@@ -123,7 +123,15 @@ def main() -> None:
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument(
         "--arm",
-        choices=("control", "budget", "freeze", "freeze_emb", "freeze_emb_rank", "subspace"),
+        choices=(
+            "control",
+            "budget",
+            "freeze",
+            "freeze_emb",
+            "freeze_emb_rank",
+            "freeze_emb_mapr",
+            "subspace",
+        ),
         required=True,
     )
     parser.add_argument("--updates", type=int, choices=(17, 100, 1_000, 3_000), required=True)
@@ -144,7 +152,7 @@ def main() -> None:
         or (args.vision_lr != 1e-5 and (args.arm != "control" or args.seed == 179023))
         or (args.arm == "subspace" and (args.seed == 179023 or args.vision_lr != 1e-5))
         or (
-            args.arm in ("freeze_emb", "freeze_emb_rank")
+            args.arm in ("freeze_emb", "freeze_emb_rank", "freeze_emb_mapr")
             and (args.seed == 179023 or args.vision_lr != 1e-5)
         )
         or args.workers < 0
@@ -159,7 +167,17 @@ def main() -> None:
         or (
             args.freeze_first_blocks == 16
             and (
-                args.arm != "freeze_emb"
+                args.arm not in ("freeze_emb", "freeze_emb_mapr")
+                or args.seed != 179024
+                or args.updates not in (17, 1_000)
+                or args.half_fit_products
+                or args.tail_blocks_to_drop
+            )
+        )
+        or (
+            args.arm == "freeze_emb_mapr"
+            and (
+                args.freeze_first_blocks != 16
                 or args.seed != 179024
                 or args.updates not in (17, 1_000)
                 or args.half_fit_products
@@ -278,10 +296,10 @@ def main() -> None:
             list(vision.encoder.layers[: -args.tail_blocks_to_drop])
         )
     vision = vision.float().cuda().train()
-    if args.arm in ("freeze", "freeze_emb", "freeze_emb_rank"):
+    if args.arm in ("freeze", "freeze_emb", "freeze_emb_rank", "freeze_emb_mapr"):
         for block in vision.encoder.layers[: args.freeze_first_blocks]:
             block.requires_grad_(False)
-    if args.arm in ("freeze_emb", "freeze_emb_rank"):
+    if args.arm in ("freeze_emb", "freeze_emb_rank", "freeze_emb_mapr"):
         vision.embeddings.requires_grad_(False)
     head = head.cuda().train()
     classifier = nn.Parameter(classifier.cuda())
@@ -372,6 +390,7 @@ def main() -> None:
                     batch_positives[:, :batch_width],
                     ordinals,
                     live_head=False,
+                    truncate_at_r=args.arm == "freeze_emb_mapr",
                 )
             rank_active_updates += 1
         loss = control + RANK_COEFFICIENT * rank
@@ -510,9 +529,9 @@ def main() -> None:
         "fit_rows": len(fit),
         "held_rows": len(held),
         "frozen_encoder_blocks": list(range(args.freeze_first_blocks))
-        if args.arm in ("freeze", "freeze_emb", "freeze_emb_rank")
+        if args.arm in ("freeze", "freeze_emb", "freeze_emb_rank", "freeze_emb_mapr")
         else [],
-        "frozen_embeddings": args.arm in ("freeze_emb", "freeze_emb_rank"),
+        "frozen_embeddings": args.arm in ("freeze_emb", "freeze_emb_rank", "freeze_emb_mapr"),
         "recovered_rank_updates": recovered_rank_updates,
         "pca_sha256": pca_sha,
         "first_input_batch_sha256": first_input_batch_sha256,

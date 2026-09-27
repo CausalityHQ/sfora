@@ -8,6 +8,7 @@ from torch.nn import functional as F
 
 from sfora.deployed_code_rank import (
     packed_cosine_ste,
+    smooth_ap_bank_loss,
     smooth_ap_float_loss,
     smooth_ap_packed_loss,
 )
@@ -76,6 +77,22 @@ def test_float_control_preserves_128d_smooth_ap_objective() -> None:
     assert features.grad is not None
     assert torch.isfinite(features.grad).all()
     assert torch.count_nonzero(features.grad) > 0
+
+
+def test_bank_mapr_cutoff_has_finite_gradient_and_keeps_default_loss() -> None:
+    torch.manual_seed(31)
+    bank = F.normalize(torch.randn(8, 128), dim=1)
+    anchors = bank[[0, 4]].clone().requires_grad_()
+    positives = torch.tensor([[1, 2, 3], [5, 6, 7]], dtype=torch.long)
+    self_rows = torch.tensor([0, 4], dtype=torch.long)
+    full = smooth_ap_bank_loss(anchors, bank, positives, self_rows)
+    explicit_full = smooth_ap_bank_loss(anchors, bank, positives, self_rows, truncate_at_r=False)
+    cut = smooth_ap_bank_loss(anchors, bank, positives, self_rows, truncate_at_r=True)
+    assert torch.equal(full, explicit_full)
+    assert torch.isfinite(cut) and cut > full
+    cut.backward()
+    assert anchors.grad is not None and torch.isfinite(anchors.grad).all()
+    assert torch.count_nonzero(anchors.grad) > 0
 
 
 @pytest.mark.parametrize(

@@ -314,12 +314,17 @@ def member_bank_rank_loss(
     self_ordinals: torch.Tensor,
     *,
     live_head: bool,
+    truncate_at_r: bool = False,
 ) -> torch.Tensor:
+    if live_head and truncate_at_r:
+        raise ValueError("rank cutoff requires the detached bank")
     unit_anchors = F.normalize(anchors.float(), dim=1)
     return (
         live_head_bank_loss(unit_anchors, bank, head, positive_ordinals, self_ordinals)
         if live_head
-        else smooth_ap_bank_loss(unit_anchors, bank, positive_ordinals, self_ordinals)
+        else smooth_ap_bank_loss(
+            unit_anchors, bank, positive_ordinals, self_ordinals, truncate_at_r=truncate_at_r
+        )
     )
 
 
