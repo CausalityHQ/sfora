@@ -1,0 +1,30 @@
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:   1%|          | 4/792 [00:00<00:22, 35.15it/s]Loading weights:  58%|█████▊    | 459/792 [00:00<00:00, 2530.15it/s]Loading weights:  95%|█████████▌| 755/792 [00:00<00:00, 2691.40it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2427.95it/s]
+{"export_batches": 100}
+thread '<unnamed>' (567341) panicked at /home/riomus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cutile-compiler-0.1.1/src/cuda_tile_runtime_utils.rs:87:13:
+Failed to launch tileiras for /tmp/696c98da-0a54-4efb-9de4-773bfbc83ee3.bc: No such file or directory (os error 2)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-inshop-trained-token-mean-v1/probe_inshop_trained_token_mean.py", line 263, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/sfora-inshop-trained-token-mean-v1/probe_inshop_trained_token_mean.py", line 183, in main
+    asymmetric = packed_hits(values.numpy(), labels, query, gallery, args.native_library)
+  File "/home/riomus/runs/sfora-inshop-trained-token-mean-v1/score_inshop_crop_view_pair.py", line 66, in packed_hits
+    ordinals, scores = index.search_packed(query_pack)
+                       ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-inshop-trained-token-mean-v1/src/sfora/cutile_int8.py", line 200, in search_packed
+    return self.search(
+           ~~~~~~~~~~~^
+        embeddings.codes.numpy(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^
+        embeddings.inverse_norms.numpy(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        k=k,
+        ^^^^
+    )
+    ^
+  File "/home/riomus/runs/sfora-inshop-trained-token-mean-v1/src/sfora/cutile_int8.py", line 181, in search
+    raise RuntimeError(f"{_ERROR}: search status {status}")
+RuntimeError: cuTile packed-int8 scorer failed: search status 3
