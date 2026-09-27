@@ -1,0 +1,25 @@
+Started sfora-sop-direct-public-v1.service - Sfora SOP exact direct public paired gate.
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+{"batch": 1, "blocks_done": 1}
+{"batch": 1, "blocks_done": 2}
+{"batch": 1, "blocks_done": 3}
+{"batch": 1, "blocks_done": 4}
+{"batch": 1, "blocks_done": 5}
+{"batch": 1, "blocks_done": 6}
+{"batch": 1, "blocks_done": 7}
+{"batch": 1, "blocks_done": 8}
+{"batch": 1, "blocks_done": 9}
+{"batch": 1, "blocks_done": 10}
+{"batch": 1, "blocks_done": 11}
+{"batch": 1, "blocks_done": 12}
+{"batch": 1, "blocks_done": 13}
+{"batch": 1, "blocks_done": 14}
+{"batch": 1, "blocks_done": 15}
+{"batch": 1, "blocks_done": 16}
+{"batch": 1, "blocks_done": 17}
+{"batch": 1, "blocks_done": 18}
+{"batch": 1, "blocks_done": 19}
+{"batch": 1, "blocks_done": 20}
+{"batch32_statistics": {"baseline": {"images_per_second": 108.73146041325967, "mean_ms": 294.30304604, "p50_ms": 285.366653, "p95_ms": 342.30161944999844, "p99_ms": 474.174079}, "direct": {"images_per_second": 107.64398721081352, "mean_ms": 297.27624207499997, "p50_ms": 289.999328, "p95_ms": 340.6035269499985, "p99_ms": 475.54219}}, "certification": {"blocks": 20, "bootstrap_draws": 5000, "bootstrap_seed": 179019, "calls_per_block": 500, "candidate_p50_ns": 13403769, "candidate_p99_ns": 17828902, "ci95_lower": 0.8351329741386324, "ci95_upper": 0.9503072622130649, "ci_interpretation": "conditional on exchangeable consecutive AB/BA superblocks", "latency_gate_passed": true, "latency_gate_rule": "p99 ratio block-bootstrap upper 95% < 1; p50 and mean latency ratios <= 1; one-sided paired-superblock p99 sign p < 0.05", "mean_latency_ratio": 0.823319976468848, "one_sided_sign_p": 0.0009765625, "point_p50_ratio": 0.8176201646028782, "point_ratio": 0.8525333059562276, "reference_p50_ns": 16393638, "reference_p99_ns": 20912851, "superblock_p99_wins": 10, "superblocks": 10}, "passed": true, "statistics": {"baseline": {"images_per_second": 59.64483400655333, "mean_ms": 16.7659113594, "p50_ms": 16.3940545, "p95_ms": 19.223900349999997, "p99_ms": 20.916068}, "direct": {"images_per_second": 72.44429348400502, "mean_ms": 13.8037097459, "p50_ms": 13.4038005, "p95_ms": 16.009449399999998, "p99_ms": 17.87879}}}
+sfora-sop-direct-public-v1.service: Consumed 17min 46.247s CPU time, 3.1G memory peak, 0B memory swap peak.

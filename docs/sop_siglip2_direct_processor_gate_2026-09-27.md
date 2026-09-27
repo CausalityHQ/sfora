@@ -64,3 +64,32 @@ inverse norms, and native top-10 ordinal/score bytes against the same built
 gallery. Any mismatch rejects production promotion. The frozen
 [`certify_inshop_siglip2_direct_parity.py`](../scripts/certify_inshop_siglip2_direct_parity.py)
 source SHA-256 is `0af157967734e2aca4b65d4667e4bae32a853063ecd74d40e58aa6f937686ba5`.
+
+## Terminal SOP public result
+
+The sole DGX Spark GB10 unit `sfora-sop-direct-public-v1` (invocation
+`0beb4fb1347d4914969bbf4eec91e814`) exited 0. Its
+[raw receipt](evidence/compact_metric/sop-siglip2-substrate-v1/sop-direct-public-v1/receipt.json)
+has SHA-256 `379ef1d8be37001b485679d7ccd1194339cae83b93af0ae401b27ea68f64f495`;
+the [journal](evidence/compact_metric/sop-siglip2-substrate-v1/sop-direct-public-v1/journal.log)
+has SHA-256 `9d31c5be05c4d269da5b49f5afa9d52ed171503b7798dd4e02c8bed064467cf5`.
+The receipt binds the staged serving source SHA-256
+`639e7bcbaef4ee2901220272a851a1c2c9d70c95f727568b99f5870a171ff1c4`.
+An independent local replay verified source digests, all 20 × 500 raw
+call samples per arm, quantiles and paired bootstrap output.
+
+| Full SOP TRAIN image-to-top-10, seed 179024, 59,551-row gallery | Baseline processor | Direct processor |
+| --- | ---: | ---: |
+| Batch-1 p50 / p95 / p99, ms, 10,000 calls/arm | 16.394 / 19.224 / 20.916 | **13.404 / 16.009 / 17.879** |
+| Batch-1 mean, ms / throughput, images/s | 16.766 / 59.64 | **13.804 / 72.44** |
+| Batch-32 p50 / p95 / p99, ms, 200 calls/arm | 285.367 / 342.302 / 474.174 | 289.999 / **340.604** / 475.542 |
+
+All 640 batch-1 and 20 batch-32 packed codes, inverse norms and native
+top-10 ordinal/score arrays were exact. The paired batch-1 p99 ratio was
+**0.8525**, with block-bootstrap 95% interval **[0.8351, 0.9503]** and
+paired-superblock sign p **0.00098**. The frozen public gate passed; the
+batch-32 p95 ratio was **0.9950**, within its nonregression floor. Peak
+PyTorch CUDA allocation was **882,524,672 bytes** and peak parent host RSS
+**3,875,676,160 bytes**, including model and gallery load. This is a
+same-checkpoint local speed improvement, not a matched external SOTA claim.
+In-Shop parity and clean-package checks remain release gates.
