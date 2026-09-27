@@ -1,0 +1,24 @@
+2026-09-27T05:14:52+02:00 spark-2751 systemd[3489]: Started sfora-sop-public-stage-profile-179024-v1.service - /usr/bin/flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock /usr/bin/env PYTHONPATH=/home/riomus/sfora-siglip2-deployed-batch-v1/src CUTILE_TILEIRAS_PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/tileiras HF_HUB_OFFLINE=1 PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin:/usr/local/bin:/usr/bin:/bin /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-sop-stage-profile-179024-v1/profile_sop_siglip2_public_stages.py --decision /home/riomus/runs/sfora-sop-true-freeze-decision-179024-v1.json --runs /home/riomus/runs --source-archive /home/riomus/sfora-relational-sop-e1/unicom-l14-sop-v1.npz --dataset-root /home/riomus/datasets/Stanford_Online_Products --model-snapshot /home/riomus/.cache/huggingface/hub/models--google--siglip2-large-patch16-256/snapshots/787800c8990e6f058423089178e718139608408c --native-library /home/riomus/sfora-rc5-pointer-b7c57022/libsfora_cutile_int8_score_sha39602d0e.so --output /home/riomus/runs/sfora-sop-stage-profile-179024-v1/receipt.json.
+2026-09-27T05:14:59+02:00 spark-2751 flock[420637]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-27T05:14:59+02:00 spark-2751 flock[420637]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-27T05:14:59+02:00 spark-2751 flock[420637]: [381B blob data]
+2026-09-27T05:15:02+02:00 spark-2751 flock[420637]: Traceback (most recent call last):
+2026-09-27T05:15:02+02:00 spark-2751 flock[420637]:   File "/home/riomus/runs/sfora-sop-stage-profile-179024-v1/profile_sop_siglip2_public_stages.py", line 171, in <module>
+2026-09-27T05:15:02+02:00 spark-2751 flock[420637]:     main()
+2026-09-27T05:15:02+02:00 spark-2751 flock[420637]:     ~~~~^^
+2026-09-27T05:15:02+02:00 spark-2751 flock[420637]:   File "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/utils/_contextlib.py", line 124, in decorate_context
+2026-09-27T05:15:02+02:00 spark-2751 flock[420637]:     return func(*args, **kwargs)
+2026-09-27T05:15:02+02:00 spark-2751 flock[420637]:   File "/home/riomus/runs/sfora-sop-stage-profile-179024-v1/profile_sop_siglip2_public_stages.py", line 140, in main
+2026-09-27T05:15:02+02:00 spark-2751 flock[420637]:     for name, start, stop in zip(
+2026-09-27T05:15:02+02:00 spark-2751 flock[420637]:                              ~~~^
+2026-09-27T05:15:02+02:00 spark-2751 flock[420637]:         ("decode", "processor", "transfer", "vision", "head_pack", "search"),
+2026-09-27T05:15:02+02:00 spark-2751 flock[420637]:         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-09-27T05:15:02+02:00 spark-2751 flock[420637]:     ...<2 lines>...
+2026-09-27T05:15:02+02:00 spark-2751 flock[420637]:         strict=True,
+2026-09-27T05:15:02+02:00 spark-2751 flock[420637]:         ^^^^^^^^^^^^
+2026-09-27T05:15:02+02:00 spark-2751 flock[420637]:     ):
+2026-09-27T05:15:02+02:00 spark-2751 flock[420637]:     ^
+2026-09-27T05:15:02+02:00 spark-2751 flock[420637]: ValueError: zip() argument 2 is longer than argument 1
+2026-09-27T05:15:03+02:00 spark-2751 systemd[3489]: sfora-sop-public-stage-profile-179024-v1.service: Main process exited, code=exited, status=1/FAILURE
+2026-09-27T05:15:03+02:00 spark-2751 systemd[3489]: sfora-sop-public-stage-profile-179024-v1.service: Failed with result 'exit-code'.
+2026-09-27T05:15:03+02:00 spark-2751 systemd[3489]: sfora-sop-public-stage-profile-179024-v1.service: Consumed 16.844s CPU time, 1.6G memory peak, 0B memory swap peak.
