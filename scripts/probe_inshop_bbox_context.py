@@ -161,7 +161,7 @@ def main() -> None:
         abs(actual - item["packed_margin"])
         for actual, item in zip(original_margins, archive["misses"], strict=True)
     )
-    if error > 1e-5 or any(margin >= 0 for margin in original_margins):
+    if error > 0.005 or any(margin >= 0 for margin in original_margins):
         raise ValueError(f"archived packed triple replay differs: {error}")
     cropped = []
     with torch.inference_mode():

@@ -1,0 +1,10 @@
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:   1%|          | 4/792 [00:00<00:21, 36.57it/s]Loading weights:  53%|█████▎    | 420/792 [00:00<00:00, 2366.81it/s]Loading weights:  89%|████████▉ | 707/792 [00:00<00:00, 2576.00it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2352.98it/s]
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-inshop-bbox-context-v1/probe_inshop_bbox_context.py", line 225, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/sfora-inshop-bbox-context-v1/probe_inshop_bbox_context.py", line 165, in main
+    raise ValueError(f"archived packed triple replay differs: {error}")
+ValueError: archived packed triple replay differs: 0.002361387014389038
