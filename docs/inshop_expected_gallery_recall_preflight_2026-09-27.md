@@ -33,3 +33,30 @@ same counts and stability on the two other archived `freeze_emb` seeds, then
 a separately frozen paired TRAIN training gate. No current SOTA or novelty
 claim follows. The sole DGX Spark remains occupied by the serial serving
 p99 job; this probe must wait for that job to close.
+
+## Terminal TRAIN-only result
+
+After the serving job closed, the sole DGX Spark GB10 probe exited 0. Its
+[raw receipt](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-expected-gallery-179026/receipt.json)
+has SHA-256 `d48e2c382fcfb7aa4807b00cc8b2a76fe098aebfa77334dbc2fd8402d36b46a4`;
+the [service journal](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-expected-gallery-179026/service-journal.txt)
+has SHA-256 `c10f5c81c837a698a42bc49a1e9d8b53b76177aa67ff980d0a5825eb03f3d36c`.
+Hashes of all 12,599 held image bytes were recorded; the checkpoint, parser,
+packing source and prior pose receipt were pinned. The re-export replayed the
+prior packed full and asymmetric R@1 exactly. Independent local recomputation
+checked every query's
+combination formula and all three frozen thresholds.
+
+| In-Shop official TRAIN held-only, seed 179026 | Result | Frozen gate |
+| --- | ---: | ---: |
+| Fixed-negative predicted asymmetric packed R@1 | 96.5051% | Prediction error ≤0.4 pp |
+| Actual 6,354-query/6,245-gallery asymmetric packed R@1 | 97.6235% | **Error 1.1184 pp; fail** |
+| Queries with 1–2 positives above best full-gallery impostor | 729/6,354 = 11.4731% | ≥3%; pass |
+| Below-impostor positives near boundary on those queries | 391/2,579 = 15.1609% | ≥30%; **fail** |
+
+The fixed-negative surrogate is too pessimistic for this gallery because the
+actual subset also removes negatives; the predeclared near-boundary lever is
+too small. The proposed expected-gallery rank loss stops **before any trainer
+change, second-seed export or training**. This is a falsified method candidate,
+not a model-quality regression. Export took 67.442 s and scoring 0.208 s;
+peak allocated CUDA memory was 1.886 GB. No official TEST data was used.
