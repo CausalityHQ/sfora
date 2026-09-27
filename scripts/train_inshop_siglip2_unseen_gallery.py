@@ -135,6 +135,7 @@ def main() -> None:
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--half-fit-products", action="store_true")
     parser.add_argument("--tail-blocks-to-drop", type=int, choices=(0, 2), default=0)
+    parser.add_argument("--freeze-first-blocks", type=int, choices=(12, 16), default=12)
     args = parser.parse_args()
     if (
         args.output_dir.exists()
@@ -154,6 +155,16 @@ def main() -> None:
         or (
             args.tail_blocks_to_drop
             and (args.arm != "freeze_emb" or args.seed != 179026 or args.updates not in (17, 100))
+        )
+        or (
+            args.freeze_first_blocks == 16
+            and (
+                args.arm != "freeze_emb"
+                or args.seed != 179024
+                or args.updates not in (17, 1_000)
+                or args.half_fit_products
+                or args.tail_blocks_to_drop
+            )
         )
         or not torch.cuda.is_available()
         or not torch.cuda.is_bf16_supported()
@@ -182,6 +193,13 @@ def main() -> None:
     records = parse_inshop_partition(args.dataset_root)
     train = tuple(row for row in records if row.split == "train")
     labels = tuple(row.label for row in train)
+    ordered_rows_sha = hashlib.sha256(
+        "\n".join(
+            f"{row.label}\0{row.image_path.relative_to(args.dataset_root)}" for row in train
+        ).encode()
+    ).hexdigest()
+    if cache.get("ordered_rows_sha256") != ordered_rows_sha:
+        raise ValueError("In-Shop cached features do not match training row order")
     full_fit, held = split(labels)
     fit_sha = digest_rows(full_fit)
     held_sha = digest_rows(held)
@@ -261,7 +279,7 @@ def main() -> None:
         )
     vision = vision.float().cuda().train()
     if args.arm in ("freeze", "freeze_emb", "freeze_emb_rank"):
-        for block in vision.encoder.layers[:12]:
+        for block in vision.encoder.layers[: args.freeze_first_blocks]:
             block.requires_grad_(False)
     if args.arm in ("freeze_emb", "freeze_emb_rank"):
         vision.embeddings.requires_grad_(False)
@@ -418,6 +436,7 @@ def main() -> None:
             "vision_lr": args.vision_lr,
             "half_fit_products": args.half_fit_products,
             "tail_blocks_dropped": args.tail_blocks_to_drop,
+            "freeze_first_blocks": args.freeze_first_blocks,
         },
         checkpoint_path,
     )
@@ -485,11 +504,12 @@ def main() -> None:
         "full_fit_rows_sha256": digest_rows(full_fit),
         "half_fit_products": args.half_fit_products,
         "tail_blocks_dropped": args.tail_blocks_to_drop,
+        "freeze_first_blocks": args.freeze_first_blocks,
         "held_rows_sha256": held_sha,
         "schedule_sha256": schedule_sha,
         "fit_rows": len(fit),
         "held_rows": len(held),
-        "frozen_encoder_blocks": list(range(12))
+        "frozen_encoder_blocks": list(range(args.freeze_first_blocks))
         if args.arm in ("freeze", "freeze_emb", "freeze_emb_rank")
         else [],
         "frozen_embeddings": args.arm in ("freeze_emb", "freeze_emb_rank"),
