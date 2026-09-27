@@ -1,0 +1,47 @@
+Starting sfora-sop-serving-threads-179024-v1.service - /usr/bin/flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock /usr/bin/env PYTHONPATH=/home/riomus/sfora-siglip2-deployed-batch-v1/src CUTILE_TILEIRAS_PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/tileiras PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin:/usr/local/bin:/usr/bin:/bin HF_HUB_OFFLINE=1 /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-sop-serving-threads-179024-v1/benchmark.py --decision /home/riomus/runs/sfora-sop-true-freeze-decision-179024-v1.json --runs /home/riomus/runs --source-archive /home/riomus/sfora-relational-sop-e1/unicom-l14-sop-v1.npz --dataset-root /home/riomus/datasets/Stanford_Online_Products --model-snapshot /home/riomus/.cache/huggingface/hub/models--google--siglip2-large-patch16-256/snapshots/787800c8990e6f058423089178e718139608408c --native-library /home/riomus/sfora-rc5-pointer-b7c57022/libsfora_cutile_int8_score_sha39602d0e.so --output /home/riomus/runs/sfora-sop-serving-threads-179024-v1/receipt.json...
+Started sfora-sop-serving-threads-179024-v1.service - /usr/bin/flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock /usr/bin/env PYTHONPATH=/home/riomus/sfora-siglip2-deployed-batch-v1/src CUTILE_TILEIRAS_PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/tileiras PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin:/usr/local/bin:/usr/bin:/bin HF_HUB_OFFLINE=1 /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-sop-serving-threads-179024-v1/benchmark.py --decision /home/riomus/runs/sfora-sop-true-freeze-decision-179024-v1.json --runs /home/riomus/runs --source-archive /home/riomus/sfora-relational-sop-e1/unicom-l14-sop-v1.npz --dataset-root /home/riomus/datasets/Stanford_Online_Products --model-snapshot /home/riomus/.cache/huggingface/hub/models--google--siglip2-large-patch16-256/snapshots/787800c8990e6f058423089178e718139608408c --native-library /home/riomus/sfora-rc5-pointer-b7c57022/libsfora_cutile_int8_score_sha39602d0e.so --output /home/riomus/runs/sfora-sop-serving-threads-179024-v1/receipt.json.
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  28%|██▊       | 218/792 [00:00<00:00, 2162.60it/s]Loading weights:  71%|███████   | 560/792 [00:00<00:00, 2884.68it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2815.73it/s]
+{"batch": 1, "blocks_done": 1}
+{"batch": 1, "blocks_done": 2}
+{"batch": 1, "blocks_done": 3}
+{"batch": 1, "blocks_done": 4}
+{"batch": 1, "blocks_done": 5}
+{"batch": 1, "blocks_done": 6}
+{"batch": 1, "blocks_done": 7}
+{"batch": 1, "blocks_done": 8}
+{"batch": 1, "blocks_done": 9}
+{"batch": 1, "blocks_done": 10}
+{"batch": 1, "blocks_done": 11}
+{"batch": 1, "blocks_done": 12}
+{"batch": 1, "blocks_done": 13}
+{"batch": 1, "blocks_done": 14}
+{"batch": 1, "blocks_done": 15}
+{"batch": 1, "blocks_done": 16}
+{"batch": 1, "blocks_done": 17}
+{"batch": 1, "blocks_done": 18}
+{"batch": 1, "blocks_done": 19}
+{"batch": 1, "blocks_done": 20}
+{"batch": 32, "blocks_done": 1}
+{"batch": 32, "blocks_done": 2}
+{"batch": 32, "blocks_done": 3}
+{"batch": 32, "blocks_done": 4}
+{"batch": 32, "blocks_done": 5}
+{"batch": 32, "blocks_done": 6}
+{"batch": 32, "blocks_done": 7}
+{"batch": 32, "blocks_done": 8}
+{"batch": 32, "blocks_done": 9}
+{"batch": 32, "blocks_done": 10}
+{"batch": 32, "blocks_done": 11}
+{"batch": 32, "blocks_done": 12}
+{"batch": 32, "blocks_done": 13}
+{"batch": 32, "blocks_done": 14}
+{"batch": 32, "blocks_done": 15}
+{"batch": 32, "blocks_done": 16}
+{"batch": 32, "blocks_done": 17}
+{"batch": 32, "blocks_done": 18}
+{"batch": 32, "blocks_done": 19}
+{"batch": 32, "blocks_done": 20}
+{"advance_p99_certification": true, "timing": {"1": {"baseline": {"images_per_second": 61.16358107661878, "mean_ms": 16.349598607500003, "p50_ms": 16.202659500000003, "p95_ms": 18.907041349999997}, "single": {"images_per_second": 95.00934937127255, "mean_ms": 10.52527995, "p50_ms": 10.3528865, "p95_ms": 11.2191718}}, "32": {"baseline": {"images_per_second": 113.04256108467453, "mean_ms": 283.079219835, "p50_ms": 284.217363, "p95_ms": 309.60452144999994}, "single": {"images_per_second": 116.37069298301483, "mean_ms": 274.98332423499994, "p50_ms": 275.3354525, "p95_ms": 279.0288887}}}}
+sfora-sop-serving-threads-179024-v1.service: Consumed 10min 2.055s CPU time, 3.3G memory peak, 0B memory swap peak.
