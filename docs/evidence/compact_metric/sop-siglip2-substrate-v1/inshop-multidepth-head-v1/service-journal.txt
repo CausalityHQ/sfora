@@ -1,0 +1,4 @@
+2026-09-27T10:12:15+02:00 spark-2751 systemd[3489]: Started sfora-inshop-multidepth-head-v1.service - /bin/bash /home/riomus/runs/sfora-inshop-multidepth-head-v1/run_inshop_multidepth_head_dgx.sh.
+2026-09-27T10:12:22+02:00 spark-2751 bash[512155]: {"r1": 0.8446702119215811, "mapr": 0.48813442759820935, "advance": false}
+2026-09-27T10:12:23+02:00 spark-2751 bash[512148]: DONE receipt_sha256=88a247c45c1c7567ae5aa92eb3dfd9a084281a9794887065a14815da8c1a0b42
+2026-09-27T10:12:23+02:00 spark-2751 systemd[3489]: sfora-inshop-multidepth-head-v1.service: Consumed 51.140s CPU time.
