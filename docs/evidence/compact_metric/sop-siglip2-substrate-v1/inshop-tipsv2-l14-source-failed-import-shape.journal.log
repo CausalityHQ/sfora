@@ -1,0 +1,30 @@
+Started sfora-inshop-tipsv2-l14-source-v1.service - /usr/bin/flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock /usr/bin/env XFORMERS_DISABLED=1 PYTHONPATH=/home/riomus/sfora-siglip2-export-28e19203/scripts:/home/riomus/sfora-siglip2-deployed-batch-v1/src HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-tipsv2-l14-vision-v1/probe_inshop_tipsv2_l14_source.py --dataset-root "/home/riomus/datasets/In-shop Clothes Retrieval Benchmark" --upstream-source /home/riomus/runs/sfora-tipsv2-l14-vision-v1/image_encoder.py --checkpoint /home/riomus/runs/sfora-tipsv2-l14-vision-v1/checkpoint.npz --baseline /home/riomus/runs/sfora-inshop-cross-depth-head-v1/result/receipt.json --output-dir /home/riomus/runs/sfora-tipsv2-l14-vision-v1/output.
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-tipsv2-l14-vision-v1/probe_inshop_tipsv2_l14_source.py", line 17, in <module>
+    from compare_sop_siglip2_member_bank_arms import product_bootstrap
+ModuleNotFoundError: No module named 'compare_sop_siglip2_member_bank_arms'
+sfora-inshop-tipsv2-l14-source-v1.service: Main process exited, code=exited, status=1/FAILURE
+sfora-inshop-tipsv2-l14-source-v1.service: Failed with result 'exit-code'.
+sfora-inshop-tipsv2-l14-source-v1.service: Consumed 1.999s CPU time.
+Started sfora-inshop-tipsv2-l14-source-v2.service - /usr/bin/flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock /usr/bin/env XFORMERS_DISABLED=1 PYTHONPATH=/home/riomus/runs/sfora-inshop-multidepth-head-v1:/home/riomus/sfora-siglip2-export-28e19203/scripts:/home/riomus/sfora-siglip2-deployed-batch-v1/src HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-tipsv2-l14-vision-v1/probe_inshop_tipsv2_l14_source.py --dataset-root "/home/riomus/datasets/In-shop Clothes Retrieval Benchmark" --upstream-source /home/riomus/runs/sfora-tipsv2-l14-vision-v1/image_encoder.py --checkpoint /home/riomus/runs/sfora-tipsv2-l14-vision-v1/checkpoint.npz --baseline /home/riomus/runs/sfora-inshop-cross-depth-head-v1/result/receipt.json --output-dir /home/riomus/runs/sfora-tipsv2-l14-vision-v1/output.
+/home/riomus/runs/sfora-tipsv2-l14-vision-v1/image_encoder.py:169: UserWarning: xFormers is disabled (SwiGLU)
+  warnings.warn("xFormers is disabled (SwiGLU)")
+/home/riomus/runs/sfora-tipsv2-l14-vision-v1/image_encoder.py:175: UserWarning: xFormers is not available (SwiGLU)
+  warnings.warn("xFormers is not available (SwiGLU)")
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-tipsv2-l14-vision-v1/probe_inshop_tipsv2_l14_source.py", line 164, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/sfora-tipsv2-l14-vision-v1/probe_inshop_tipsv2_l14_source.py", line 98, in main
+    export_features(rows, encode, args.output_dir / "train_features.npy", width=1024, batch_size=32)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/sfora-siglip2-export-28e19203/scripts/export_sop_siglip2_train.py", line 73, in export_features
+    values = encode(batch)
+  File "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/utils/_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+  File "/home/riomus/runs/sfora-tipsv2-l14-vision-v1/probe_inshop_tipsv2_l14_source.py", line 95, in encode
+    raise ValueError("TIPSv2 second CLS geometry differs")
+ValueError: TIPSv2 second CLS geometry differs
+sfora-inshop-tipsv2-l14-source-v2.service: Main process exited, code=exited, status=1/FAILURE
+sfora-inshop-tipsv2-l14-source-v2.service: Failed with result 'exit-code'.
+sfora-inshop-tipsv2-l14-source-v2.service: Consumed 13.840s CPU time, 2.7G memory peak, 0B memory swap peak.

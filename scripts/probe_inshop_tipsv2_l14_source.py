@@ -91,9 +91,9 @@ def main() -> None:
             with Image.open(row.image_path) as image:
                 pixels.append(transform(image.convert("RGB")))
         _, synthetic_caption_cls, _ = model(torch.stack(pixels).cuda().half())
-        if synthetic_caption_cls.shape != (len(pixels), 1024):
+        if synthetic_caption_cls.shape != (len(pixels), 1, 1024):
             raise ValueError("TIPSv2 second CLS geometry differs")
-        return synthetic_caption_cls.float().cpu().numpy()
+        return synthetic_caption_cls[:, 0].float().cpu().numpy()
 
     export_features(rows, encode, args.output_dir / "train_features.npy", width=1024, batch_size=32)
     torch.cuda.synchronize()
