@@ -64,8 +64,8 @@ SigLIP2 Large/256 source, 13,283 fit products' images, 12,599 product-disjoint
 held images, PCA head, 128-D output, BF16, batch64 schedule, augmentations,
 ArcFace, bank refresh, optimizer and learning rates, native 130-byte packed
 scorer and fixed 6,354-query/6,245-gallery TRAIN roles. Both arms must have
-the same schedule/PCA/model hashes and first ten input batch hashes; source
-files may differ only in the explicit loss option and its scoring receipt.
+the same schedule/PCA/model, source-file and first-ten input batch hashes;
+only the explicit loss arm differs.
 No official query/gallery row is used.
 
 Smoke must finish 17 finite optimizer steps with no skip, correct checkpoint

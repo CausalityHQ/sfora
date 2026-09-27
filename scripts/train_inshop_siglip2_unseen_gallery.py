@@ -133,6 +133,7 @@ def main() -> None:
             "freeze_emb_rank",
             "freeze_emb_mapr",
             "freeze_emb_live",
+            "freeze_emb_tail",
             "subspace",
         ),
         required=True,
@@ -155,7 +156,14 @@ def main() -> None:
         or (args.vision_lr != 1e-5 and (args.arm != "control" or args.seed == 179023))
         or (args.arm == "subspace" and (args.seed == 179023 or args.vision_lr != 1e-5))
         or (
-            args.arm in ("freeze_emb", "freeze_emb_rank", "freeze_emb_mapr", "freeze_emb_live")
+            args.arm
+            in (
+                "freeze_emb",
+                "freeze_emb_rank",
+                "freeze_emb_mapr",
+                "freeze_emb_live",
+                "freeze_emb_tail",
+            )
             and (args.seed == 179023 or args.vision_lr != 1e-5)
         )
         or args.workers < 0
@@ -190,6 +198,16 @@ def main() -> None:
         or (
             args.arm == "freeze_emb_live"
             and (args.freeze_first_blocks != 16 or args.seed != 179024)
+        )
+        or (
+            args.arm == "freeze_emb_tail"
+            and (
+                args.seed != 179026
+                or args.updates not in (17, 100)
+                or args.half_fit_products
+                or args.tail_blocks_to_drop
+                or args.freeze_first_blocks != 12
+            )
         )
         or not torch.cuda.is_available()
         or not torch.cuda.is_bf16_supported()
@@ -283,7 +301,9 @@ def main() -> None:
     from transformers import AutoImageProcessor, AutoModel
 
     processor = AutoImageProcessor.from_pretrained(  # type: ignore[no-untyped-call]
-        args.model_snapshot, local_files_only=True, backend="torchvision"
+        args.model_snapshot / "preprocessor_config.json",
+        local_files_only=True,
+        backend="torchvision",
     )
     if (
         type(processor).__name__ != "SiglipImageProcessor"
@@ -310,10 +330,17 @@ def main() -> None:
         "freeze_emb_rank",
         "freeze_emb_mapr",
         "freeze_emb_live",
+        "freeze_emb_tail",
     ):
         for block in vision.encoder.layers[: args.freeze_first_blocks]:
             block.requires_grad_(False)
-    if args.arm in ("freeze_emb", "freeze_emb_rank", "freeze_emb_mapr", "freeze_emb_live"):
+    if args.arm in (
+        "freeze_emb",
+        "freeze_emb_rank",
+        "freeze_emb_mapr",
+        "freeze_emb_live",
+        "freeze_emb_tail",
+    ):
         vision.embeddings.requires_grad_(False)
     head = head.cuda().train()
     classifier = nn.Parameter(classifier.cuda())
@@ -405,6 +432,7 @@ def main() -> None:
                     ordinals,
                     live_head=live_head,
                     truncate_at_r=args.arm == "freeze_emb_mapr",
+                    worst_positive_hinge=args.arm == "freeze_emb_tail",
                 )
             rank_active_updates += 1
         loss = control + RANK_COEFFICIENT * rank
@@ -477,6 +505,7 @@ def main() -> None:
     quality = None
     export_seconds = None
     score_seconds = None
+    held_embeddings_sha = None
     if args.updates >= 100:
         export_started = time.perf_counter()
         values = export_all(
@@ -489,6 +518,10 @@ def main() -> None:
             batch_size=BATCH_SIZE,
         )
         export_seconds = time.perf_counter() - export_started
+        if args.updates == 100:
+            held_embeddings_path = args.output_dir / "held_embeddings.npy"
+            np.save(held_embeddings_path, values.numpy())
+            held_embeddings_sha = sha256(held_embeddings_path)
         packed = pack_int8_unit_embeddings(values)
         held_labels = tuple(labels[row] for row in held)
         encoded = {name: index for index, name in enumerate(sorted(set(held_labels)))}
@@ -514,6 +547,7 @@ def main() -> None:
         "batch_size": BATCH_SIZE,
         "workers": args.workers,
         "rank_coefficient": RANK_COEFFICIENT,
+        "worst_positive_hinge": args.arm == "freeze_emb_tail",
         "vision_lr": args.vision_lr,
         "training_coordinates": 64 if args.arm == "subspace" else 128,
         "rank_inactive_steps": (
@@ -547,10 +581,23 @@ def main() -> None:
         "held_rows": len(held),
         "frozen_encoder_blocks": list(range(args.freeze_first_blocks))
         if args.arm
-        in ("freeze", "freeze_emb", "freeze_emb_rank", "freeze_emb_mapr", "freeze_emb_live")
+        in (
+            "freeze",
+            "freeze_emb",
+            "freeze_emb_rank",
+            "freeze_emb_mapr",
+            "freeze_emb_live",
+            "freeze_emb_tail",
+        )
         else [],
         "frozen_embeddings": args.arm
-        in ("freeze_emb", "freeze_emb_rank", "freeze_emb_mapr", "freeze_emb_live"),
+        in (
+            "freeze_emb",
+            "freeze_emb_rank",
+            "freeze_emb_mapr",
+            "freeze_emb_live",
+            "freeze_emb_tail",
+        ),
         "recovered_rank_updates": recovered_rank_updates,
         "pca_sha256": pca_sha,
         "first_input_batch_sha256": first_input_batch_sha256,
@@ -565,6 +612,7 @@ def main() -> None:
         "peak_parent_host_rss_bytes": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024,
         "export_seconds": export_seconds,
         "score_seconds": score_seconds,
+        "held_embeddings_sha256": held_embeddings_sha,
         "quality": quality,
         "checkpoint_sha256": sha256(checkpoint_path),
         "hardware": {
