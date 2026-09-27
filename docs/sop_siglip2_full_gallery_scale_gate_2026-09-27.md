@@ -56,5 +56,31 @@ forward. On that worst batch, standalone per-image versus batched processor
 pixels were bitwise equal. A [source-level paired check](evidence/compact_metric/sop-siglip2-substrate-v1/sop-public-scale-train-v3/large-batch-journal.log)
 found packed codes and inverse norms bitwise equal; peak RSS through the bounded
 path was **4.575 GB** versus **6.130 GB** after the original full-batch
-preprocessing in the same process. Version 3 will rerun the unchanged full
-TRAIN scale thresholds on this repaired public code before qualification.
+preprocessing in the same process. The committed
+[check script](evidence/compact_metric/sop-siglip2-substrate-v1/sop-public-scale-train-v3/large_batch_check.py)
+is byte-identical to the executed `check_large_batch_fix.py` (SHA-256
+`a3de8f32bdb4e51696004663cc78f00eb3c8db32756644d8ffe5b49b48e2e6e3`).
+
+## Version 3 qualified result
+
+The source-bound version 3 unit (`81f77b5d47d141028a8daa79be419666`)
+exited successfully. Its [receipt](evidence/compact_metric/sop-siglip2-substrate-v1/sop-public-scale-train-v3/receipt.json)
+has SHA-256 `3d691c74b179c69c013947dd150032846da8390dc7d432e4c2af2330a1f4559a`;
+the [terminal journal](evidence/compact_metric/sop-siglip2-substrate-v1/sop-public-scale-train-v3/journal.log)
+confirms the original invocation. The serving source and script hashes match
+the receipt. All **59,551 SOP TRAIN** gallery images built in **540.127 s**;
+the 130-byte/row gallery occupies **7,741,630 bytes**. Public top-10 ordinals
+and scores equal the independent packed-matrix oracle for 32 TRAIN queries
+(maximum score error **0.0**). Across 1,000 distinct TRAIN image byte hashes,
+synchronized batch-1 image-to-top-10 p50/p95/p99 was
+**15.174/16.733/17.762 ms**; batch-32 throughput was **112.876 images/s**.
+Model load took **6.442 s**. Peak post-load PyTorch allocated CUDA was
+**0.937 GB**, and peak parent RSS was **4.712 GB** on DGX Spark GB10.
+The unchanged five frozen gates all pass. This qualifies the opt-in full-gallery
+public serving configuration at this scale; it does not measure TEST retrieval
+quality or establish a state-of-the-art claim. The timing covers warm, serial
+local calls on the **first 1,000 distinct TRAIN image hashes** with 20 PyTorch
+CPU threads and no batch-1 CUDA graph; it is not a concurrency, cold-start, or
+worst-resolution bound. Exact top-10 means scorer parity for the produced codes.
+FP16 codes can vary with model-forward batch composition, so this gate does not
+establish batch-invariant encoding or a full-gallery bytewise replay.

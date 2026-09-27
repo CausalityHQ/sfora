@@ -1,0 +1,5 @@
+Sep 27 20:31:11 spark-2751 systemd[3489]: Started sfora-sop-public-scale-train-v3.service - /bin/bash /home/riomus/runs/sfora-sop-public-scale-train-v3/scripts/run_sop_siglip2_gallery_scale_dgx.sh.
+Sep 27 20:31:18 spark-2751 bash[655412]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+Sep 27 20:31:18 spark-2751 bash[655412]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Sep 27 20:40:50 spark-2751 bash[655412]: {"gates": {"top10_exact": true, "build": true, "batch1_p99": true, "peak_cuda": true, "peak_rss": true}, "build_s": 540.1270661577582, "p99_ms": 17.761860749999997}
+Sep 27 20:40:51 spark-2751 systemd[3489]: sfora-sop-public-scale-train-v3.service: Consumed 22min 33.637s CPU time, 4.0G memory peak, 0B memory swap peak.
