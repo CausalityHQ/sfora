@@ -5,8 +5,13 @@ mAP@R against first-12-freeze on 12,599 product-disjoint official **TRAIN**
 held queries/gallery. Its detached 128-D member bank stores head projections
 made at earlier optimizer steps. The existing `live_head_bank_loss` instead
 stores 1024-D source features and projects every candidate with the current
-head, giving the head current candidate-side gradients. This tests one
-specific staleness mechanism without a new model, scorer, loss coefficient,
+head, giving the head current candidate-side gradients. This changes both
+projection freshness and the gradient path; the first-12-freeze baseline also
+uses a detached bank, so this arm cannot isolate the cause of its quality gap.
+After 100 × 64 scheduled images, at most 6,400 of 13,283 source-bank rows can
+have been refreshed, so at least 6,883 rows still use pretrained cached
+encoder features; live projection cannot remove that encoder-side staleness.
+It tests an alternative bank construction without a new model, scorer, loss coefficient,
 optimizer, batch schedule or serving path. It is prior art, not a novel
 similarity-learning claim. An isolated SOP GB10 loss-plus-backward cost screen
 measured live-head p95 19.950 ms versus detached 14.074 ms on a 53,700-row
@@ -41,6 +46,6 @@ The 17-update live-head smoke exited successfully. Its [receipt](evidence/compac
 The serial 100-update pair exited successfully on DGX Spark GB10. The [source-bound decision](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-live-head-179024-v1/decision-100.json) has SHA-256 `e5f49c37aa2416f3ea63e8bb8e880f0ced0ab8405a0e01eb75b9f36a92a6c7de`; both checkpoint hashes and 12,599 per-query packed metrics validated. The detached [control receipt](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-live-head-179024-v1/control-100.json) SHA-256 is `b5b86747f4cdd0701b5e4ac9727eec04e286c3961a8a166eb722c4bbd27f1f39`; the [live receipt](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-live-head-179024-v1/live-100.json) SHA-256 is `aa3a6b1c9d69f230ab52f5b152e9820c7af241c643d9997dbb0b3c42a85a58f8`.
 The [serial DGX journal](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-live-head-179024-v1/serial-journal.log) has SHA-256 `07184c3357e89312c880e87648a5f9ea6cf05ec76d7e029b765beacad0ed9fd7`.
 
-On the 12,599 official **TRAIN** held-only symmetric queries/gallery, detached packed R@1 was **96.6347%**, mAP@R **0.754387**; live packed R@1 was **96.7934%**, mAP@R **0.756088**. Live minus detached mAP@R was **+0.001701**, paired product-bootstrap 95% **[+0.001001, +0.002412]**; R@1 gained **0.1587 percentage points**. Training wall including bank initialization was **64.966 vs 64.498 s** for 6,400 images (**98.51 vs 99.23 images/s**), ratio **1.0073**; peak allocated CUDA was **9.807 vs 9.745 GB**, ratio **1.0063**. Both had 90 active rank updates.
+On the 12,599 official **TRAIN** held-only symmetric queries/gallery, detached packed R@1 was **96.6347%**, mAP@R **0.754387**; live packed R@1 was **96.7934%**, mAP@R **0.756088**. Live minus detached mAP@R was **+0.001701**, paired product-bootstrap 95% **[+0.001001, +0.002412]**; R@1 gained **0.1587 percentage points**. The interval resamples held products, not training seeds; this is a single-seed exploratory effect. Recorded training plus shared setup was **64.966 vs 64.498 s** for 6,400 images (**98.51 vs 99.23 images/s**), ratio **1.0073**; the receipt field named `member_bank_init_seconds` includes model loading as well as bank initialization. Peak allocated CUDA was **9.807 vs 9.745 GB**, ratio **1.0063**. Both had 90 active rank updates.
 
-The positive mAP gain fails the frozen **+0.004** point threshold. Stop this arm before 1,000 updates, replication, or official TEST. Keep detached bank as the production training choice; retain the opt-in live-head arm only for source-bound reproducibility. The 24-block serving path is identical, so this screen provides no serving-latency improvement or SOTA claim.
+The positive mAP gain fails the frozen **+0.004** point threshold. Stop this arm before 1,000 updates, replication, or official TEST. Keep the existing first-12-freeze baseline as the In-Shop training choice; do not promote either first-16-freeze arm. Retain the opt-in live-head arm only for source-bound reproducibility. The 24-block serving path is identical, so this screen provides no serving-latency improvement or SOTA claim.
