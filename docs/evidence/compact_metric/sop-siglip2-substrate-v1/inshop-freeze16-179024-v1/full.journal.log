@@ -1,0 +1,27 @@
+Started sfora-inshop-freeze16-full-179024-v1.service - /usr/bin/flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock /usr/bin/env PYTHONPATH=/home/riomus/runs/sfora-inshop-freeze16-179024-v1:/home/riomus/runs:/home/riomus/sfora-siglip2-deployed-batch-v1/src:/home/riomus/sfora-siglip2-deployed-batch-v1/scripts HF_HUB_OFFLINE=1 /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-inshop-freeze16-179024-v1/train_inshop_siglip2_unseen_gallery.py --dataset-root /home/riomus/datasets/inshop_official_standard --model-snapshot /home/riomus/.cache/huggingface/hub/models--google--siglip2-large-patch16-256/snapshots/787800c8990e6f058423089178e718139608408c --features-dir /home/riomus/runs/sfora-inshop-siglip2-train-features-v1 --preflight /home/riomus/runs/inshop-unseen-gallery-preflight-179024-v2.json --preflight-sha256 f9c59db9ed6f0962963b8e203e70f98186f314226acda0f0ebd7b52c11e17034 --output-dir /home/riomus/runs/sfora-inshop-freeze16-179024-1000-v1 --seed 179024 --arm freeze_emb --updates 1000 --freeze-first-blocks 16.
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  19%|█▉        | 151/792 [00:00<00:00, 1509.62it/s]Loading weights:  63%|██████▎   | 496/792 [00:00<00:00, 2645.40it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2709.49it/s]
+{"step": 50, "loss": 6.529430389404297, "elapsed_seconds": 32.528768254909664}
+{"step": 100, "loss": 5.170769691467285, "elapsed_seconds": 63.119857667945325}
+{"step": 150, "loss": 6.258003234863281, "elapsed_seconds": 93.7185086752288}
+{"step": 200, "loss": 6.3323540687561035, "elapsed_seconds": 124.6188939101994}
+{"step": 250, "loss": 3.77933931350708, "elapsed_seconds": 156.57583537325263}
+{"step": 300, "loss": 1.8666410446166992, "elapsed_seconds": 187.66051649209112}
+{"step": 350, "loss": 2.320591926574707, "elapsed_seconds": 218.33040852518752}
+{"step": 400, "loss": 2.180697441101074, "elapsed_seconds": 248.9856358920224}
+{"step": 450, "loss": 4.141756534576416, "elapsed_seconds": 279.89265719009563}
+{"step": 500, "loss": 4.450026512145996, "elapsed_seconds": 310.6316937170923}
+{"step": 550, "loss": 1.9353805780410767, "elapsed_seconds": 341.32656040694565}
+{"step": 600, "loss": 0.16379764676094055, "elapsed_seconds": 372.1070755631663}
+{"step": 650, "loss": 3.2684431076049805, "elapsed_seconds": 402.754114957992}
+{"step": 700, "loss": 2.448225498199463, "elapsed_seconds": 433.47771319001913}
+{"step": 750, "loss": 0.9205102920532227, "elapsed_seconds": 464.1456465101801}
+{"step": 800, "loss": 1.79140305519104, "elapsed_seconds": 494.86709079518914}
+{"step": 850, "loss": 3.0707039833068848, "elapsed_seconds": 525.5631138202734}
+{"step": 900, "loss": 1.1966041326522827, "elapsed_seconds": 556.2529317880981}
+{"step": 950, "loss": 0.9484266638755798, "elapsed_seconds": 586.9905756791122}
+{"step": 1000, "loss": 0.8162714838981628, "elapsed_seconds": 617.5824016178958}
+{"export_batches": 100}
+{"arm": "freeze_emb", "seed": 179024, "training_seconds": 617.6579966489226, "holdout_r1": 0.9846019525359155}
+sfora-inshop-freeze16-full-179024-v1.service: Consumed 15min 57.106s CPU time, 8.9G memory peak, 0B memory swap peak.
