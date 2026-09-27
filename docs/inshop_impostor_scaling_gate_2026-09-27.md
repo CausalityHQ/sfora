@@ -64,3 +64,16 @@ The public encoder export took **100.595 s**, packed score diagnostic
 diagnostic costs, not measured production image-to-top-k latency. Keep the
 current opt-in checkpoint loader and packed scorer; do not promote a new
 In-Shop default or launch another loss arm based on a linear scaling premise.
+
+An independent replay of already committed seed-179026 and seed-179027
+true-freeze baseline receipts (SHA-256
+`76f1293ac158f64f1e98a9412033ca37667a2baaadb592bf6051d92b61c9c8cc`
+and `48f5de680f2b86738d7632b2068abc101c115176cb34258871d39399e4ebba7c`)
+compared their **same 12,599 held-only symmetric query** hit vectors. Both
+receipts have the same held-row digest. Seed 179026 misses 186, seed 179027
+misses 173, with **131 shared misses**, 55 rescued only by seed 179027 and
+42 rescued only by seed 179026. Thus a hypothetical per-query oracle over
+the two seeds would still miss 131/12,599; it is neither a deployable
+single-encoder result nor evidence of an official-scale ceiling. This
+overlap, together with diffuse top impostors, does not identify a causal
+training change that meets the joint quality and cost target.
