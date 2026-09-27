@@ -84,7 +84,7 @@ All frozen gates and bitwise packed/top-10 checks passed. These are
 exploratory TRAIN serving measurements, not official TEST quality or a SOTA
 claim.
 
-Before promoting the opt-in path, run 10,000 distinct SOP TRAIN images through
+Before promoting the opt-in path, run 10,000 distinct SOP TRAIN paths through
 both indexes, including JPEG read/decode in each timed public call. Alternate
 arm order per image, check exact top-10 ordinals and scores for every image,
 record every synchronized wall time, and require graph p50 ≤0.95× eager and
@@ -92,5 +92,42 @@ graph p99 ≤ eager p99. Retain the same source/checkpoint/gallery/precision,
 20 threads and <3 GB peak CUDA ceiling. Also run concurrent calls to one graph
 index from four workers on 100 of those images, checking exact top-10 against
 the serial outputs. Its lifecycle lock deliberately serializes calls; the
-concurrency check is a correctness gate, not a throughput claim. Failure at
+concurrency check verifies the index's call serialisation, not overlapping
+graph replay or a throughput claim. Failure at
 either gate keeps the default eager path and withdraws this opt-in candidate.
+
+The frozen final gate passed on the same DGX Spark GB10, invocation
+`a043c35d365a4a4cb169a7e6bca614c1`. The [raw receipt](evidence/compact_metric/sop-siglip2-substrate-v1/cuda-graph-public-v1/p99-receipt.json)
+has SHA-256 `7237d9eaeeaa0acf7f1aa1bce63ce7b6102c9d2f720f7a263027ff5d9ce946df`.
+The [terminal journal](evidence/compact_metric/sop-siglip2-substrate-v1/cuda-graph-public-v1/p99-service-journal.log)
+has SHA-256 `bb8b8d66fe0c7c784e1b35932a91eddb750be64a4eaba6bfd0ac83332f4adbf2`.
+For 10,000 distinct SOP TRAIN paths (9,746 unique image byte hashes), eager
+versus graph full-call p50 was
+**16.368 vs 15.405 ms** and p99 **20.113 vs 19.085 ms**. Every paired top-10
+ordinal and score row matched exactly. Four concurrent workers returned the
+same top-10 for 100 selected images as the serial calls. Peak allocated CUDA
+was **1,504,481,280 bytes**. Both p50 and p99 speed gates and the concurrency
+and resource gates passed for that source. The default stays eager and batch
+2–32 stays eager. This is one GB10/runtime/checkpoint/gallery configuration,
+not a general GPU speed guarantee or a new retrieval-quality measurement. The
+CUDA figure is post-construction peak *PyTorch allocated* memory of the
+two-index benchmark process, not total startup or reserved GPU memory.
+
+## Review correction and v2 qualification
+
+Independent Opus/Astra review found that capture inherited an ambient BF16
+autocast context even when `precision="fp16_native"`. A new GPU regression
+reproduced the bug (BF16 captured pooler) before the fix and passed after
+capture explicitly disabled CUDA autocast. The capture now selects its own
+CUDA device and rejects input shapes that could broadcast into the static
+buffer. The v1 receipts remain valid measurements of default-context capture,
+but they do not qualify that old source for arbitrary application contexts.
+Also, the first 10,000 TRAIN paths contained only 9,746 unique image byte
+hashes. The corrected v2 gate skips duplicate bytes in archive order until it
+has 10,000 unique images. It carries forward the same bitwise packed/top-10,
+p50, p95, p99, batch-32, concurrency and <3 GB post-construction PyTorch
+allocated gates; a source-bound v2 public screen must pass before v2 p99.
+Graph index construction is supported during quiescent startup, before
+concurrent CUDA requests; captured vision weights must remain on their device
+for the index lifetime. No hot replacement is qualified. The v2 result will
+decide whether to expose the opt-in path as qualified on this configuration.

@@ -64,16 +64,29 @@ def main() -> None:
     torch.set_num_threads(20)
     torch.backends.cuda.matmul.allow_tf32 = False
     with np.load(args.source_archive, allow_pickle=False) as source:
-        relatives = tuple(
-            PurePosixPath(str(value)) for value in source["train_relative_paths"][:10_000]
-        )
-    if len(relatives) != 10_000 or any(
-        path.is_absolute() or ".." in path.parts or not path.parts for path in relatives
-    ):
-        raise ValueError("SOP CUDA graph p99 image paths differ")
-    paths = [args.dataset_root.joinpath(*path.parts) for path in relatives]
-    if any(not path.is_file() or path.is_symlink() for path in paths):
-        raise ValueError("SOP CUDA graph p99 image missing")
+        inventory = source["train_relative_paths"]
+        paths = []
+        image_hashes = []
+        selected_rows = []
+        seen = set()
+        for row, value in enumerate(inventory):
+            relative = PurePosixPath(str(value))
+            if relative.is_absolute() or ".." in relative.parts or not relative.parts:
+                raise ValueError("SOP CUDA graph p99 image path differs")
+            path = args.dataset_root.joinpath(*relative.parts)
+            if not path.is_file() or path.is_symlink():
+                raise ValueError("SOP CUDA graph p99 image missing")
+            digest = sha256(path)
+            if digest in seen:
+                continue
+            seen.add(digest)
+            paths.append(path)
+            image_hashes.append(digest)
+            selected_rows.append(row)
+            if len(paths) == 10_000:
+                break
+    if len(paths) != 10_000:
+        raise ValueError("SOP CUDA graph p99 unique image count differs")
     common = dict(
         model_snapshot=args.model_snapshot,
         training_receipt=args.receipt,
@@ -128,13 +141,14 @@ def main() -> None:
         "peak_cuda": peak < 3_000_000_000,
     }
     report = {
-        "schema": "sfora-sop-siglip2-cuda-graph-p99-v1",
+        "schema": "sfora-sop-siglip2-cuda-graph-p99-v2",
         "claim_eligible": False,
         "source_sha256": sha256(Path(__file__)),
         "serving_sha256": SERVING_SHA,
         "public_receipt_sha256": PUBLIC_SHA,
         "source_archive_sha256": ARCHIVE_SHA,
-        "image_sha256": [sha256(path) for path in paths],
+        "image_sha256": image_hashes,
+        "source_archive_rows": selected_rows,
         "raw_ns": raw,
         "summary": summary,
         "gates": gates,

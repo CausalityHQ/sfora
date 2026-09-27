@@ -22,7 +22,7 @@ from sfora.siglip2_compact_serving import Siglip2CompactIndex
 ARCHIVE_SHA = "1ba27b2d6b9db39067aa6facd0ef8aafc303c4527f6feabed859b0512c7d921a"
 RECEIPT_SHA = "07b4716b42d1291b9c195774ebd48d9df89a3b578ee54efdb94662c5e125d1c5"
 NATIVE_SHA = "39602d0e4e8b0d5ec441be460ad7f18e288241bef19fb6e6c5df14f4033ac73c"
-SERVING_SHA = "583d4dfc61888226dd228e29bfc793970431b3f90ba714b157af048de13e39ff"
+SERVING_SHA = "0616ef30da0a33741a38fe390f834a0431b1885cd18bc40ea6ed593e2749e9ad"
 
 
 def sha256(path: Path) -> str:
@@ -150,7 +150,7 @@ def main() -> None:
         "peak_cuda": peak < 3_000_000_000,
     }
     report = {
-        "schema": "sfora-sop-siglip2-cuda-graph-public-screen-v1",
+        "schema": "sfora-sop-siglip2-cuda-graph-public-screen-v2",
         "claim_eligible": False,
         "source_sha256": sha256(Path(__file__)),
         "serving_sha256": SERVING_SHA,

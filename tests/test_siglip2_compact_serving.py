@@ -90,6 +90,57 @@ def test_cuda_graph_opt_in_requires_native_fp16_cuda() -> None:
         )
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires CUDA graph support")
+def test_cuda_graph_capture_ignores_ambient_autocast_and_preserves_eager_output() -> None:
+    class Processor:
+        def __call__(self, *, images: list[Image.Image], return_tensors: str) -> dict:
+            assert return_tensors == "pt"
+            return {"pixel_values": torch.ones((len(images), 3, 256, 256))}
+
+    class Vision(torch.nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.projection = torch.nn.Linear(3, 1024, bias=False).half()
+
+        def forward(self, *, pixel_values: torch.Tensor) -> SimpleNamespace:
+            return SimpleNamespace(pooler_output=self.projection(pixel_values.mean(dim=(2, 3))))
+
+    torch.backends.cuda.matmul.allow_tf32 = False
+    torch.manual_seed(17)
+    vision = Vision().cuda().eval()
+    head = torch.nn.Linear(1024, 128).cuda().eval()
+    processor = Processor()
+    eager = Siglip2CompactEncoder(processor, vision, head, "fp16_native", torch.device("cuda:0"))
+    with torch.amp.autocast("cuda", dtype=torch.bfloat16):
+        graph = Siglip2CompactEncoder(
+            processor, vision, head, "fp16_native", torch.device("cuda:0"), cuda_graph_batch1=True
+        )
+    assert graph._batch1_graph is not None
+    assert graph._batch1_graph[2].dtype == torch.float16
+    for count in (1, 2):
+        images = [Image.new("RGB", (2, 2)) for _ in range(count)]
+        first, second = eager.encode_images(images), graph.encode_images(images)
+        assert torch.equal(first.codes, second.codes)
+        assert torch.equal(first.inverse_norms, second.inverse_norms)
+
+
+def test_cuda_graph_rejects_broadcastable_pixel_shape() -> None:
+    class WrongShapeProcessor:
+        def __call__(self, *, images: list[Image.Image], return_tensors: str) -> dict:
+            return {"pixel_values": torch.ones((len(images), 3, 1, 1))}
+
+    encoder = Siglip2CompactEncoder(
+        WrongShapeProcessor(),
+        EchoVision(),
+        torch.nn.Linear(1024, 128),
+        "fp16_native",
+        torch.device("cpu"),
+    )
+    encoder._batch1_graph = (torch.zeros((1, 3, 256, 256)), None, torch.zeros((1, 1024)))
+    with pytest.raises(ValueError, match="pixel geometry"):
+        encoder.encode_images([Image.new("RGB", (2, 2))])
+
+
 def test_serving_rejects_oversized_image_before_processing() -> None:
     head = torch.nn.Linear(1024, 128)
     encoder = Siglip2CompactEncoder(

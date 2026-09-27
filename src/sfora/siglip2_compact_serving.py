@@ -123,16 +123,17 @@ class Siglip2CompactEncoder:
 
     @torch.inference_mode()
     def _capture_batch1_graph(self) -> tuple[torch.Tensor, torch.cuda.CUDAGraph, torch.Tensor]:
-        pixels = torch.zeros((1, 3, 256, 256), device=self.device, dtype=torch.float16)
-        side = torch.cuda.Stream(device=self.device)
-        side.wait_stream(torch.cuda.current_stream(self.device))
-        with torch.cuda.stream(side):
-            for _ in range(5):
-                self.vision(pixel_values=pixels)
-        torch.cuda.current_stream(self.device).wait_stream(side)
-        graph = torch.cuda.CUDAGraph()
-        with torch.cuda.graph(graph):
-            pooled = self.vision(pixel_values=pixels).pooler_output
+        with torch.cuda.device(self.device), torch.amp.autocast("cuda", enabled=False):
+            pixels = torch.zeros((1, 3, 256, 256), device=self.device, dtype=torch.float16)
+            side = torch.cuda.Stream(device=self.device)
+            side.wait_stream(torch.cuda.current_stream(self.device))
+            with torch.cuda.stream(side):
+                for _ in range(5):
+                    self.vision(pixel_values=pixels)
+            torch.cuda.current_stream(self.device).wait_stream(side)
+            graph = torch.cuda.CUDAGraph()
+            with torch.cuda.graph(graph):
+                pooled = self.vision(pixel_values=pixels).pooler_output
         if pooled is None or pooled.shape != (1, 1024):
             raise ValueError("CUDA graph pooler geometry differs")
         return pixels, graph, pooled
@@ -169,6 +170,8 @@ class Siglip2CompactEncoder:
             pixels = pixels.to(dtype=torch.float16)
         if self._batch1_graph is not None and len(images) == 1:
             static, graph, pooled = self._batch1_graph
+            if pixels.shape != static.shape:
+                raise ValueError("CUDA graph pixel geometry differs")
             with self._batch1_lock:
                 static.copy_(pixels)
                 graph.replay()
