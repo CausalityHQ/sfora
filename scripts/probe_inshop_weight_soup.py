@@ -160,7 +160,7 @@ def main() -> None:
     gates = {
         "symmetric_best_plus_0_1pp": quality["recall_at_1"] >= max(receipt["quality"]["recall_at_1"] for receipt in receipts) + 0.001,
         "paired_lower_positive": paired["lower_95"] > 0,
-        "mapr_no_regression": quality["map_at_r"] >= np.mean([receipt["quality"]["map_at_r"] for receipt in receipts]),
+        "mapr_no_regression": quality["map_at_r"] >= float(np.mean([receipt["quality"]["map_at_r"] for receipt in receipts])),
         "asymmetric_no_regression": asymmetric_r1 >= 6203 / 6354,
     }
     report = {
@@ -185,8 +185,9 @@ def main() -> None:
     }
     if sha256(Path(__file__)) != report["source_sha256"]:
         raise ValueError("soup source changed during run")
+    payload = (json.dumps(report, sort_keys=True, allow_nan=False) + "\n").encode()
     with args.output.open("xb") as stream:
-        stream.write((json.dumps(report, sort_keys=True, allow_nan=False) + "\n").encode())
+        stream.write(payload)
         stream.flush()
         os.fsync(stream.fileno())
     print(json.dumps({"r1": quality["recall_at_1"], "mapr": quality["map_at_r"], "asymmetric_r1": asymmetric_r1, "advance": report["advance"]}), flush=True)

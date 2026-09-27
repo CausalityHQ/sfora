@@ -1,0 +1,26 @@
+2026-09-27T11:03:10.993750+02:00 spark-2751 systemd[3489]: Started sfora-inshop-weight-soup-v1.service - Sfora frozen In-Shop checkpoint-average TRAIN screen.
+2026-09-27T11:03:18.335275+02:00 spark-2751 flock[531159]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-27T11:03:18.335275+02:00 spark-2751 flock[531159]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-27T11:03:18.859230+02:00 spark-2751 flock[531159]: [389B blob data]
+2026-09-27T11:03:53.951355+02:00 spark-2751 flock[531159]: {"export_batches": 100}
+2026-09-27T11:04:27.129357+02:00 spark-2751 flock[531159]: Traceback (most recent call last):
+2026-09-27T11:04:27.130111+02:00 spark-2751 flock[531159]:   File "/home/riomus/runs/sfora-inshop-weight-soup-v1/probe_inshop_weight_soup.py", line 196, in <module>
+2026-09-27T11:04:27.130111+02:00 spark-2751 flock[531159]:     main()
+2026-09-27T11:04:27.130111+02:00 spark-2751 flock[531159]:     ~~~~^^
+2026-09-27T11:04:27.130111+02:00 spark-2751 flock[531159]:   File "/home/riomus/runs/sfora-inshop-weight-soup-v1/probe_inshop_weight_soup.py", line 189, in main
+2026-09-27T11:04:27.130111+02:00 spark-2751 flock[531159]:     stream.write((json.dumps(report, sort_keys=True, allow_nan=False) + "\n").encode())
+2026-09-27T11:04:27.130111+02:00 spark-2751 flock[531159]:                   ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-09-27T11:04:27.130111+02:00 spark-2751 flock[531159]:   File "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/lib/python3.13/json/__init__.py", line 238, in dumps
+2026-09-27T11:04:27.130111+02:00 spark-2751 flock[531159]:     **kw).encode(obj)
+2026-09-27T11:04:27.130111+02:00 spark-2751 flock[531159]:           ~~~~~~^^^^^
+2026-09-27T11:04:27.130111+02:00 spark-2751 flock[531159]:   File "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/lib/python3.13/json/encoder.py", line 200, in encode
+2026-09-27T11:04:27.130111+02:00 spark-2751 flock[531159]:     chunks = self.iterencode(o, _one_shot=True)
+2026-09-27T11:04:27.130111+02:00 spark-2751 flock[531159]:   File "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/lib/python3.13/json/encoder.py", line 261, in iterencode
+2026-09-27T11:04:27.130111+02:00 spark-2751 flock[531159]:     return _iterencode(o, 0)
+2026-09-27T11:04:27.130111+02:00 spark-2751 flock[531159]:   File "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/lib/python3.13/json/encoder.py", line 180, in default
+2026-09-27T11:04:27.130111+02:00 spark-2751 flock[531159]:     raise TypeError(f'Object of type {o.__class__.__name__} '
+2026-09-27T11:04:27.130111+02:00 spark-2751 flock[531159]:                     f'is not JSON serializable')
+2026-09-27T11:04:27.130520+02:00 spark-2751 flock[531159]: TypeError: Object of type bool is not JSON serializable
+2026-09-27T11:04:28.562765+02:00 spark-2751 systemd[3489]: sfora-inshop-weight-soup-v1.service: Main process exited, code=exited, status=1/FAILURE
+2026-09-27T11:04:28.562885+02:00 spark-2751 systemd[3489]: sfora-inshop-weight-soup-v1.service: Failed with result 'exit-code'.
+2026-09-27T11:04:28.563132+02:00 spark-2751 systemd[3489]: sfora-inshop-weight-soup-v1.service: Consumed 2min 11.276s CPU time, 11.6G memory peak, 0B memory swap peak.
