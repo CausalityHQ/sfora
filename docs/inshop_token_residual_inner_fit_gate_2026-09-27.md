@@ -48,3 +48,40 @@ would justify adapting the real training path, then measuring paired outer
 TRAIN quality, total training cost, native top-k equality, and public
 image-to-top-k latency. Failure retires this rank-16 mean-token adapter; do
 not choose another rank, step count, or loss on the same inner validation.
+
+## Terminal inner-fit result
+
+The first DGX Spark GB10 service stopped at the packed scorer's positive
+inventory guard after shared export, before any adapter fit or quality score.
+Its [failed journal](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-token-residual-inner-fit-v1/failed-singleton.journal.log)
+has SHA-256 `933539ec31369ed9e79c6b77e1d41b83434a501265a64c46c094b451492878fb`.
+The corrected source excluded the five singleton query rows as declared above.
+The successful unit exited 0 (invocation `7735b35bd1ae40eea9d44e413dfd9314`).
+Its [decision receipt](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-token-residual-inner-fit-v1/receipt.json)
+has SHA-256 `e7db2cc07a59dd54996854d6105d7b544a6a90e8096f25b959c60f99df05d9a8`;
+the [seed-17 paired receipt](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-token-residual-inner-fit-v1/seed-17.json)
+has SHA-256 `7a2dba6c47d2a3b76fed7cb533271de5bdd34e1bc29e92f557689c591eacf667`;
+the [terminal journal](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-token-residual-inner-fit-v1/service-journal.log)
+has SHA-256 `cec7ab41e983e8e514c5dedcbb41fe856affed79bdfff3a83b781ed2e172399c`.
+The corrected gate script SHA-256 is
+`4ac93cd8c295697218757898ee5d54bc1b6a59d22add6b1243909f66294cc78f`.
+
+| 6,514 inner-fit unseen-product images, seed 17 | Base | Aligned-token adapter | Deranged-token control |
+| --- | ---: | ---: | ---: |
+| Self-excluded packed Recall@1 | **98.9100%** | **98.9254%** | **98.8793%** |
+| Packed mAP@R | **0.849110** | **0.850055** | **0.847670** |
+| Adapter fit wall | — | **1.157 s** | **0.877 s** |
+| Peak allocated CUDA after export | — | **68,748,800 bytes** | **68,748,800 bytes** |
+
+Aligned-token minus base is **+0.01535 percentage points** Recall@1: one net
+query out of 6,514. Its product-bootstrap 95% lower bound is **−0.06168 pp**.
+The mAP@R gain is **+0.000945**, below the frozen **+0.002** seed-17 floor;
+aligned minus deranged mAP@R is **+0.002385**, below the eventual +0.003
+gate. The shared checkpoint export took **70.755 s**. Both adapter arms fit
+well under the cost bounds, but this quality signal is too small and uncertain.
+
+The written early stop ended the screen after seed 17. Seeds 23/29, the
+12,599-image outer held panel and official query/gallery were not read. Do
+not add this rank-16 mean-token adapter to training or serving; it cannot
+justify the extra inference path from these results. The source-bound failure
+and success remain separate so the corrected inventory is auditable.
