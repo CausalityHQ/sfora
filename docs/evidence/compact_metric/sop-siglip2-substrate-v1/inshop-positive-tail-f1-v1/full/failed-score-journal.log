@@ -1,0 +1,31 @@
+2026-09-27T17:25:15+02:00 spark-2751 systemd[3489]: Started sfora-inshop-positive-tail-score100-v1.service - /usr/bin/flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock /usr/bin/env PYTHONPATH=/home/riomus/runs/sfora-inshop-positive-tail-f1-v1:/home/riomus/runs/sfora-inshop-positive-tail-f1-v1/src /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-inshop-positive-tail-f1-v1/score_inshop_positive_tail_pair.py --dataset-root "/home/riomus/datasets/In-shop Clothes Retrieval Benchmark" --runs-root /home/riomus/runs/sfora-inshop-positive-tail-f1-v1 --native-library /home/riomus/sfora-rc5-pointer-b7c57022/libsfora_cutile_int8_score_sha39602d0e.so --output /home/riomus/runs/sfora-inshop-positive-tail-f1-v1/pair-score.json.
+2026-09-27T17:25:17+02:00 spark-2751 flock[595854]: thread '<unnamed>' (595854) panicked at /home/riomus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cutile-compiler-0.1.1/src/cuda_tile_runtime_utils.rs:87:13:
+2026-09-27T17:25:17+02:00 spark-2751 flock[595854]: Failed to launch tileiras for /tmp/c7983f52-217f-4278-8653-6428018bad08.bc: No such file or directory (os error 2)
+2026-09-27T17:25:17+02:00 spark-2751 flock[595854]: note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+2026-09-27T17:25:17+02:00 spark-2751 flock[595854]: Traceback (most recent call last):
+2026-09-27T17:25:17+02:00 spark-2751 flock[595854]:   File "/home/riomus/runs/sfora-inshop-positive-tail-f1-v1/score_inshop_positive_tail_pair.py", line 178, in <module>
+2026-09-27T17:25:17+02:00 spark-2751 flock[595854]:     main()
+2026-09-27T17:25:17+02:00 spark-2751 flock[595854]:     ~~~~^^
+2026-09-27T17:25:17+02:00 spark-2751 flock[595854]:   File "/home/riomus/runs/sfora-inshop-positive-tail-f1-v1/score_inshop_positive_tail_pair.py", line 113, in main
+2026-09-27T17:25:17+02:00 spark-2751 flock[595854]:     hits[arm] = packed_hits(values, labels, query, gallery, args.native_library)
+2026-09-27T17:25:17+02:00 spark-2751 flock[595854]:                 ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-09-27T17:25:17+02:00 spark-2751 flock[595854]:   File "/home/riomus/runs/sfora-inshop-positive-tail-f1-v1/score_inshop_crop_view_pair.py", line 66, in packed_hits
+2026-09-27T17:25:17+02:00 spark-2751 flock[595854]:     ordinals, scores = index.search_packed(query_pack)
+2026-09-27T17:25:17+02:00 spark-2751 flock[595854]:                        ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+2026-09-27T17:25:17+02:00 spark-2751 flock[595854]:   File "/home/riomus/runs/sfora-inshop-positive-tail-f1-v1/src/sfora/cutile_int8.py", line 200, in search_packed
+2026-09-27T17:25:17+02:00 spark-2751 flock[595854]:     return self.search(
+2026-09-27T17:25:17+02:00 spark-2751 flock[595854]:            ~~~~~~~~~~~^
+2026-09-27T17:25:17+02:00 spark-2751 flock[595854]:         embeddings.codes.numpy(),
+2026-09-27T17:25:17+02:00 spark-2751 flock[595854]:         ^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-09-27T17:25:17+02:00 spark-2751 flock[595854]:         embeddings.inverse_norms.numpy(),
+2026-09-27T17:25:17+02:00 spark-2751 flock[595854]:         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-09-27T17:25:17+02:00 spark-2751 flock[595854]:         k=k,
+2026-09-27T17:25:17+02:00 spark-2751 flock[595854]:         ^^^^
+2026-09-27T17:25:17+02:00 spark-2751 flock[595854]:     )
+2026-09-27T17:25:17+02:00 spark-2751 flock[595854]:     ^
+2026-09-27T17:25:17+02:00 spark-2751 flock[595854]:   File "/home/riomus/runs/sfora-inshop-positive-tail-f1-v1/src/sfora/cutile_int8.py", line 181, in search
+2026-09-27T17:25:17+02:00 spark-2751 flock[595854]:     raise RuntimeError(f"{_ERROR}: search status {status}")
+2026-09-27T17:25:17+02:00 spark-2751 flock[595854]: RuntimeError: cuTile packed-int8 scorer failed: search status 3
+2026-09-27T17:25:17+02:00 spark-2751 systemd[3489]: sfora-inshop-positive-tail-score100-v1.service: Main process exited, code=exited, status=1/FAILURE
+2026-09-27T17:25:17+02:00 spark-2751 systemd[3489]: sfora-inshop-positive-tail-score100-v1.service: Failed with result 'exit-code'.
+2026-09-27T17:25:17+02:00 spark-2751 systemd[3489]: sfora-inshop-positive-tail-score100-v1.service: Consumed 5.319s CPU time.

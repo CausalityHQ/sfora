@@ -83,3 +83,56 @@ fixed-role packed R@1 delta ≥**−0.15 pp**, symmetric held packed mAP@R delta
 ratio ≤**1.005**. A failure stops this treatment before more seeds, official
 evaluation or production promotion. A pass permits a separate frozen
 independent-seed full-budget TRAIN gate; it does not establish quality or SOTA.
+
+## Terminal F1 result
+
+The paired 17-update DGX Spark GB10 smokes exited 0. Their
+[control](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-positive-tail-f1-v1/smoke/control.json)
+and [treatment](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-positive-tail-f1-v1/smoke/treatment.json)
+receipt SHA-256 values are `bdb385375a699718e069d4af5b6172adfbdd2cf62ab38b3d9101fb12bce47fbc`
+and `908cfae29fa75eade88473f4afb0d8287dfaae2d87bbf3ed601f7a2ad69c32d4`;
+their [journal](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-positive-tail-f1-v1/smoke/journal.log)
+has SHA-256 `9ac99a56c44248e21dee57a515afcb04a871b43a946b5498da07f6e1e8a32890`.
+Source, schedule, PCA, rows, first-ten inputs and 14 rank-active steps matched.
+Both losses and gradients were finite. Treatment/control training wall was
+**0.9960×** and peak allocated CUDA **1.0003×**. Checkpoint audit found
+400 vision and two head tensors in each arm, 195 frozen vision tensors equal
+and 205 upper tensors changed. The frozen smoke gates passed.
+
+Both 100-update runs then completed 100 finite updates and identical
+89 rank-active steps. Their [control](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-positive-tail-f1-v1/full/control.json)
+and [treatment](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-positive-tail-f1-v1/full/treatment.json)
+receipt SHA-256 values are `1832d35513b2954936237c1e306b2ff3f0e2bb3e466a908823310642db916ef9`
+and `33789dba69cf7a61afd2c0be67508c8d31e2a69cf977efaeaa00ef381bea777b`;
+the [training journal](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-positive-tail-f1-v1/full/training-journal.log)
+has SHA-256 `7852bb75fe690004fb9ff58f15b2893669aad1a2148a5fc773e696f1953b7a49`.
+All paired input, source and schedule hashes matched. A scorer unit first
+failed before writing a result because `tileiras` was absent from its isolated
+environment; its [journal](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-positive-tail-f1-v1/full/failed-score-journal.log)
+has SHA-256 `bb4641dc238c83c43db7e3c66a4cf2cb2f712df595332fe7dbf7839af5112ec8`.
+The corrected scorer unit exited 0 (invocation
+`dbd322b8f6f94c5f99a1464c5ca98911`) with the pinned native scorer and
+`tileiras` binary. Its [raw paired result](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-positive-tail-f1-v1/full/pair-score.json)
+has SHA-256 `726d9dfd72b9ca7e8f2594bb7d0a503da4109f8b8e34bef14142f077aab22784`;
+the [terminal scorer journal](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-positive-tail-f1-v1/full/success-score-journal.log)
+has SHA-256 `c3f48f1ac74391799093bcbe405a9d5b6405bd32a17296a0118fe5c8bb2b1e0a`.
+
+| Seed 179026, official TRAIN product-disjoint held panel | Control | Worst-positive treatment | Frozen gate |
+| --- | ---: | ---: | --- |
+| Fixed-role `a≥3`, 6,354 queries/full 12,599 held gallery | **5,131/6,354 = 80.7523%** | **5,123/6,354 = 80.6264%** | **−0.1259 pp**, product-bootstrap lower **−0.4284 pp**; fail ≥+1.0 pp and lower>0 |
+| Fixed-role native packed Recall@1, 6,354 queries/6,245 gallery | **6,068/6,354 = 95.4989%** | **6,074/6,354 = 95.5933%** | +0.0944 pp; pass nonregression guard |
+| Symmetric packed Recall@1 / mAP@R, 12,599 self-excluded held rows | **97.3411% / 0.775415** | **97.3014% / 0.775028** | mAP delta **−0.000387**; pass guard |
+| Training wall including bank init, 6,400 sampled images | **77.405 s / 82.68 images/s** | **77.803 s / 82.26 images/s** | ratio **1.0051×**; pass ≤1.02× |
+| Peak PyTorch allocated CUDA, DGX Spark GB10 | **12.939 GB** | **12.942 GB** | ratio **1.0003×**; pass ≤1.005× |
+
+Local replay re-aggregated the 6,354 per-query hit and coverage entries from
+the DGX scorer receipt and verified source/receipt hashes and the conjunction
+of the frozen gates. The held embeddings remain on DGX, bound by the training
+receipt hashes; they were not rescored locally. The primary
+mechanism gate fails despite six net fixed-role R@1 rescues. Stop the
+worst-positive treatment before other seeds, 1,000-update training, official
+query/gallery or production promotion. The predeclared 100-update mechanism
+readout is only an exploratory TRAIN decision; it does not prove the loss
+cannot help at another budget or on another dataset. Remove the opt-in
+production loss path after archiving the result; commit `af2aaf71` preserves
+the exact experiment source for replay.
