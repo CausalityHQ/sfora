@@ -139,7 +139,7 @@ def main() -> None:
             if step >= 5:
                 for name, start, stop in zip(
                     ("decode", "processor", "transfer", "vision", "head_pack", "search"),
-                    times,
+                    times[:-1],
                     times[1:],
                     strict=True,
                 ):
