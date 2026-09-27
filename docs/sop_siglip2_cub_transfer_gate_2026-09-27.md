@@ -65,7 +65,10 @@ deltas over the three training seeds first, then resamples the 100 classes
 bootstrap 95% **[+1.2835, +2.9603] pp**; mAP@R gain is **+0.014695**.
 Its class-bootstrap 95% mAP@R interval is **[+0.010963, +0.018437]**.
 The interval conditions on these three trained checkpoints and does not
-measure training-seed uncertainty. All six runs used the same authenticated
+measure training-seed uncertainty. A separate descriptive Student-t interval
+across the **three paired training-seed deltas** is **[+1.4989, +2.7438] pp**
+for R@1 and **[+0.010824, +0.018565]** for mAP@R; with only three seeds it
+is a coarse check, not an untouched confirmation. All six runs used the same authenticated
 CUB image inventory, public serving source, 130-byte packed format, and
 **770,120-byte** gallery. Peak PyTorch allocated CUDA was **0.883 GB** in each;
 model load was 5.535–6.550 s. Their training cost is the previously measured
@@ -73,6 +76,16 @@ SOP three-seed mean **752.464 versus 1,151.417 s** per 64,000 sampled images
 for freeze versus control; CUB itself was not trained here. This check does
 not measure CUB batch-1 public image-to-top-k latency or establish a CUB SOTA
 claim.
+
+The [ordered class labels](evidence/compact_metric/sop-siglip2-substrate-v1/sop-cub-transfer-public-v1/labels.json),
+SHA-256 `7e654434a348391ae5fbe016d3c75911029fa496aa46968254b168f40b980d17`,
+are bundled with the receipts. The pinned
+[label exporter](../scripts/archive_sop_transfer_labels.py) SHA-256 is
+`9efec14518c384c9c6cb48df012585e3ae666864a4f68c9bdbd95075d9979ab9`.
+The [local bundle verifier](../scripts/verify_sop_transfer_decision_bundle.py)
+SHA-256 `dfc628e985a88b0e457bf2d4b7fde81c2e4ad2f219d038296cc753c4f6aea8be`
+replayed both paired intervals from the bundled labels and per-query receipts,
+without the DGX dataset cache.
 
 The six raw receipt SHA-256 values in seed/arm order are:
 

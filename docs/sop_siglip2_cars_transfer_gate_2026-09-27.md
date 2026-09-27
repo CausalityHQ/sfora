@@ -68,9 +68,15 @@ points**, class-cluster bootstrap 95% **[−0.2793, +0.6628] pp**. The interval
 includes zero and seed 179024 regresses, so Cars does **not** establish a
 repeatable Recall@1 gain. Mean mAP@R rises **+0.009477**, class-bootstrap 95%
 **[+0.005968, +0.013181]**. These intervals condition on the three trained
-checkpoints and do not measure training-seed uncertainty. The consistent CUB
-R@1 gain therefore does not establish broad transfer. Keep the SOP freeze arm
-opt-in; do not promote it as an all-dataset training default on these results.
+checkpoints and do not measure training-seed uncertainty. A descriptive
+Student-t interval across the **three paired training-seed deltas** is
+**[−0.7825, +1.1597] pp** for R@1 and **[−0.016700, +0.035654]** for mAP@R.
+Both include zero; seed 179024 also regresses on mAP@R. The consistent CUB
+R@1 gain therefore does not establish broad transfer. Cars zero-shot transfer
+cannot determine whether freezing is a better Cars training recipe. Keep the
+SOP freeze checkpoint explicitly selectable in the SOP recipe; do not silently
+change a global training default. An all-dataset training default is unsupported,
+especially with the separately failed In-Shop training-recipe gate.
 
 All six receipts have the same pinned Cars image-byte manifest and production
 serving SHA. The gallery wire size is **1,057,030 bytes** (8,131×130), and
@@ -80,6 +86,16 @@ The previously measured SOP training cost for these checkpoints remains
 **752.464 versus 1,151.417 s** per 64,000 sampled images for freeze versus
 control. No Cars training, Cars serving p99, In-Shop quality, or SOTA claim
 follows from this zero-shot check.
+
+The [ordered class labels](evidence/compact_metric/sop-siglip2-substrate-v1/sop-cars-transfer-public-v1/labels.json),
+SHA-256 `f747d347c11b722591bb5059d3e83de0cc69a2ae1192a79da84c129195b71326`,
+are bundled with the receipts. The pinned
+[label exporter](../scripts/archive_sop_transfer_labels.py) SHA-256 is
+`9efec14518c384c9c6cb48df012585e3ae666864a4f68c9bdbd95075d9979ab9`.
+The [local bundle verifier](../scripts/verify_sop_transfer_decision_bundle.py)
+SHA-256 `dfc628e985a88b0e457bf2d4b7fde81c2e4ad2f219d038296cc753c4f6aea8be`
+replayed both paired intervals from the bundled labels and per-query receipts,
+without the DGX dataset cache.
 
 | Seed | Control raw receipt SHA-256 | Freeze raw receipt SHA-256 |
 | --- | --- | --- |
