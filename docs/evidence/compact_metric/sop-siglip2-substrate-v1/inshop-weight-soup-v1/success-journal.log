@@ -1,0 +1,7 @@
+2026-09-27T11:05:37.668661+02:00 spark-2751 systemd[3489]: Started sfora-inshop-weight-soup-v2.service - Sfora frozen In-Shop checkpoint-average TRAIN screen.
+2026-09-27T11:05:45.027143+02:00 spark-2751 flock[532888]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-27T11:05:45.027143+02:00 spark-2751 flock[532888]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-27T11:05:45.507425+02:00 spark-2751 flock[532888]: [304B blob data]
+2026-09-27T11:06:20.136162+02:00 spark-2751 flock[532888]: {"export_batches": 100}
+2026-09-27T11:06:53.074956+02:00 spark-2751 flock[532888]: {"r1": 0.9861893801095325, "mapr": 0.847175217101059, "asymmetric_r1": 0.9803273528485993, "advance": false}
+2026-09-27T11:06:54.577355+02:00 spark-2751 systemd[3489]: sfora-inshop-weight-soup-v2.service: Consumed 2min 6.378s CPU time, 13.0G memory peak, 0B memory swap peak.
