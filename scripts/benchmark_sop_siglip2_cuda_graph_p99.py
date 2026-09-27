@@ -25,7 +25,7 @@ from benchmark_sop_siglip2_cuda_graph_public import (
 import sfora.siglip2_compact_serving as serving
 from sfora.siglip2_compact_serving import Siglip2CompactIndex
 
-PUBLIC_SHA = "c90a477dcf1f357bb577bbeb916502bfac5a7867a5f8f527865ec4a06a45ffc2"
+PUBLIC_SHA = "2a0f562f1a47b2888e8e925649a44641b8275ef2c19dace7ab6de581e68920d8"
 
 
 def percentiles(values: list[int]) -> dict[str, float]:

@@ -131,3 +131,15 @@ Graph index construction is supported during quiescent startup, before
 concurrent CUDA requests; captured vision weights must remain on their device
 for the index lifetime. No hot replacement is qualified. The v2 result will
 decide whether to expose the opt-in path as qualified on this configuration.
+
+The corrected-source public screen passed on GB10, invocation
+`dd8c1db1d03744199069024029235d58`. Its [receipt](evidence/compact_metric/sop-siglip2-substrate-v1/cuda-graph-public-v2/receipt.json)
+SHA-256 is `2a0f562f1a47b2888e8e925649a44641b8275ef2c19dace7ab6de581e68920d8`;
+the [journal](evidence/compact_metric/sop-siglip2-substrate-v1/cuda-graph-public-v2/service-journal.log)
+SHA-256 is `1d22a185196e655a1c0953711241ce85dfaca10c3a7f366ab730f9f68fbd565c`.
+On the same first 32 TRAIN image paths, batch-1 full-call p50 was **16.390
+vs 15.246 ms** and p95 **18.931 vs 17.427 ms** eager versus graph (400
+calls/arm). Batch-32 p95 was **298.876 vs 292.045 ms** (100 calls/arm).
+Bitwise packed/top-10, latency and allocated-memory gates all passed;
+post-construction peak PyTorch allocated was **1,582,993,408 bytes**. This
+authorizes the prewritten v2 unique-content p99 gate, not release yet.
