@@ -16,7 +16,7 @@ checkpoint, dataset partition, held roles, archived miss receipt, box file and
 every image path by digest. Export each of the at most 453 distinct original
 images through the same FP16-autocast trained export and reproduce the
 archived packed positive-minus-impostor margin to `1e-5` for every triple.
-Then crop each image to its released garment box (inclusive coordinates),
+Then crop each image to its released garment box (1-based inclusive coordinates),
 center on a neutral grey square, process at the pinned 256-pixel resolution,
 and encode with the **unchanged** checkpoint/head. Pack with the existing
 signed-Int8 plus f16 inverse norm and score the same triple. No crop

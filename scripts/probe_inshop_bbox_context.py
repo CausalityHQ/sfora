@@ -52,9 +52,9 @@ def boxes_from_file(path: Path) -> dict[str, tuple[int, int, int, int]]:
 
 def boxed_image(image: Image.Image, box: tuple[int, int, int, int]) -> Image.Image:
     x1, y1, x2, y2 = box
-    if not (0 <= x1 < x2 < image.width and 0 <= y1 < y2 < image.height):
+    if not (1 <= x1 < x2 <= image.width and 1 <= y1 < y2 <= image.height):
         raise ValueError("In-Shop garment box differs")
-    crop = image.convert("RGB").crop((x1, y1, x2 + 1, y2 + 1))
+    crop = image.convert("RGB").crop((x1 - 1, y1 - 1, x2, y2))
     side = max(crop.size)
     square = Image.new("RGB", (side, side), (127, 127, 127))
     square.paste(crop, ((side - crop.width) // 2, (side - crop.height) // 2))
