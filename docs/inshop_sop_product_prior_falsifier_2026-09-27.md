@@ -108,3 +108,31 @@ quality. Only paired full-budget seeds and official independent evaluation
 can support a deployed quality claim. Charge SOP acquisition and new cache
 export separately from In-Shop fine-tuning; unchanged architecture only
 motivates, but does not replace, a new serving latency measurement.
+
+## Terminal 17-update integrity result and next cheap falsifier
+
+The first systemd invocation `fe541272d0ef45e6b27f3091e08325ee`
+completed its control training, then stopped on a replay-script
+`KeyError`: the archived control receipt predates the
+`executed_schedule_sha256` field. Its first ten input hashes, full schedule
+hash and cache hash matched. The resumed unit
+`72de9cb945484444ba91e4fafba9e50f` reused that terminal control,
+exported the new SOP source cache, and completed treatment. The
+[analysis receipt](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-sop-warmstart-smoke-v1/analysis.json)
+SHA-256 is `6f584ab981857215e8ad44092e9e4a70d961c01faa40230e8ecdd8c4fdd53f0b`.
+All frozen checks passed: exact paired input/schedule hashes, 17 finite
+gradients and losses per arm, no skipped step, strict checkpoint hashes,
+frozen embeddings/lower twelve blocks equal their own loaded initialization,
+and changed upper weights. Control/treatment training took **15.006/14.835 s**
+with **12,196,663,296 bytes** peak allocated CUDA each; wall ratio 0.98865,
+CUDA ratio 1.0. The SOP cache export took **213.095 s**, separate from
+training. This gate is GO for a quality falsifier, not evidence of retrieval
+improvement.
+
+Before a 100-update training run, score the two already acquired source
+caches through one identical float-1024D normalized-cosine scorer on the same
+fixed official In-Shop TRAIN 6,354-query/6,245-gallery held roles. This
+removes the previous export-path confound without another encoder pass.
+Advance only if SOP-cache R@1 beats pretrained-cache R@1 by at least **+1.00
+point**, product-cluster paired bootstrap 95% lower endpoint is positive,
+and mAP@R does not decrease. Otherwise KILL transfer before more training.
