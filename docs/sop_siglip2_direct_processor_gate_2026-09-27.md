@@ -140,6 +140,17 @@ evidence. The frozen
 [`probe_inshop_siglip2_direct_latency_pilot.py`](../scripts/probe_inshop_siglip2_direct_latency_pilot.py)
 SHA-256 is `2aee9e1a9ffb08678d003a2b4064748c19292796b88bbb4108642d53941fd6e7`.
 
+The sole DGX Spark GB10 pilot unit (invocation
+`f68956c4a2ed428f9868e0865db9b1e7`) exited 0. Its
+[receipt](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-direct-pilot-v1/receipt.json)
+SHA-256 is `58aef72d3f4d7e3d252d7989b2f3fa5b5d0e30271b264e4d9da305cb9af7f2b3`;
+the [journal](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-direct-pilot-v1/journal.log)
+SHA-256 is `6bb1046953e606910722ad2d88884928f7f16a73e5566bd11f9e806a9f663d92`.
+On 128 full calls per arm, baseline/direct p50 was **14.553/12.720 ms**
+and p95 **17.248/15.407 ms**. The paired timing segment took **3.566 s**;
+packed/top-10 outputs were exact. The frozen pilot passes and authorizes one
+full p99 gate. These 128-call p99 values are not certification.
+
 ## Frozen In-Shop public latency gate
 
 With exact transfer parity established, run one paired full image-to-top-10

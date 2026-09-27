@@ -1,0 +1,5 @@
+Started sfora-inshop-direct-pilot-v1.service - Sfora In-Shop direct p99 early-stop pilot.
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+{"advance_p99": true, "statistics": {"baseline": {"p50_ms": 14.552864, "p95_ms": 17.247749749999997, "p99_ms": 17.749336, "mean_ms": 14.8305981171875, "images_per_second": 67.42816386084108}, "direct": {"p50_ms": 12.720105, "p95_ms": 15.406811349999998, "p99_ms": 16.004129, "mean_ms": 13.0014974921875, "images_per_second": 76.91421704314386}}, "timing_wall_seconds": 3.5657846806570888}
+sfora-inshop-direct-pilot-v1.service: Consumed 1min 55.628s CPU time, 3.3G memory peak, 0B memory swap peak.
