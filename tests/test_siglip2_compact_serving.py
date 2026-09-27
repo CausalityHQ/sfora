@@ -125,14 +125,37 @@ def test_custom_image_gallery_uses_bounded_encoder_batches(
         return gallery
 
     monkeypatch.setattr(CutilePackedInt8Gallery, "open_packed", open_packed)
+    (tmp_path / "native.so").write_bytes(b"test backend")
     index = Siglip2CompactIndex.from_image_paths(
         encoder=encoder, native_library=tmp_path / "native.so", image_paths=paths
     )
     assert len(observed) == 1
     assert observed[0].codes.shape == (33, 128)
     assert observed[0].inverse_norms.shape == (33,)
+    assert [int(row.argmax()) for row in observed[0].codes] == [row % 32 for row in range(33)]
     index.close()
     assert gallery.closed
+
+
+def test_custom_gallery_rejects_invalid_files_before_encoding(tmp_path: Path) -> None:
+    encoder = Siglip2CompactEncoder(
+        BasisProcessor(),
+        EchoVision(),
+        torch.nn.Linear(1024, 128),
+        "fp32_autocast",
+        torch.device("cpu"),
+    )
+    missing = (tmp_path / "missing.png",) * 10
+    with pytest.raises(ValueError, match="custom gallery authority"):
+        Siglip2CompactIndex.from_image_paths(
+            encoder=encoder, native_library=Path("relative.so"), image_paths=missing
+        )
+    library = tmp_path / "native.so"
+    library.write_bytes(b"test backend")
+    with pytest.raises(ValueError, match="custom gallery authority"):
+        Siglip2CompactIndex.from_image_paths(
+            encoder=encoder, native_library=library, image_paths=missing
+        )
 
 
 def test_custom_gallery_rejects_mixed_official_selection_before_model_load(tmp_path: Path) -> None:

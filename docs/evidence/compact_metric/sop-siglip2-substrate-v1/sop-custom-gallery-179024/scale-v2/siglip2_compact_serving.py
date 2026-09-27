@@ -303,7 +303,7 @@ class Siglip2CompactIndex:
             )
         else:
             gallery_path, gallery_rows = train_embeddings, receipt.get("gallery_images")
-        from transformers import AutoConfig, AutoImageProcessor, SiglipVisionModel
+        from transformers import AutoImageProcessor, AutoModel
 
         processor = AutoImageProcessor.from_pretrained(
             model_snapshot, local_files_only=True, backend="torchvision"
@@ -315,12 +315,13 @@ class Siglip2CompactIndex:
             or processor.resample != 2
         ):
             raise ValueError("trained SigLIP2 serving processor differs")
-        config = AutoConfig.from_pretrained(model_snapshot, local_files_only=True)
-        device = torch.device("cuda:0")
-        vision = (
-            SiglipVisionModel(config.vision_config).to(device=device, dtype=torch.float32).eval()
+        model = AutoModel.from_pretrained(
+            model_snapshot, local_files_only=True, use_safetensors=True, dtype=torch.float16
         )
-        head = nn.Linear(1024, 128).to(device=device, dtype=torch.float32).eval()
+        device = torch.device("cuda:0")
+        vision = model.vision_model.float().to(device).eval()
+        del model
+        head = nn.Linear(1024, 128).to(device).eval()
         checkpoint = torch.load(training_checkpoint, map_location="cpu", weights_only=True)
         if (
             checkpoint.get("arm") != receipt.get("arm")

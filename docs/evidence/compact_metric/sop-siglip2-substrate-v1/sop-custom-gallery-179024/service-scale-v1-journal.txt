@@ -1,0 +1,14 @@
+Started sfora-sop-custom-gallery-scale-179024-v1.service - /bin/bash /home/riomus/runs/sfora-sop-custom-gallery-scale-179024-v1/run-scale.sh.
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:   1%|          | 4/792 [00:00<00:19, 39.67it/s]Loading weights:  52%|█████▏    | 411/792 [00:00<00:00, 2384.78it/s]Loading weights:  90%|█████████ | 715/792 [00:00<00:00, 2681.88it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2373.66it/s]
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-sop-custom-gallery-scale-179024-v1/verify_scale.py", line 219, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/sfora-sop-custom-gallery-scale-179024-v1/verify_scale.py", line 168, in main
+    raise ValueError("SOP scale custom-gallery gate fails")
+ValueError: SOP scale custom-gallery gate fails
+sfora-sop-custom-gallery-scale-179024-v1.service: Main process exited, code=exited, status=1/FAILURE
+sfora-sop-custom-gallery-scale-179024-v1.service: Failed with result 'exit-code'.
+sfora-sop-custom-gallery-scale-179024-v1.service: Consumed 20min 56.971s CPU time, 5.1G memory peak, 0B memory swap peak.

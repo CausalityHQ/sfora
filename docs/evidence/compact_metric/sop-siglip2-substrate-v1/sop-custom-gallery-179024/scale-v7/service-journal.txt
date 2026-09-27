@@ -1,0 +1,6 @@
+Starting sfora-sop-custom-gallery-scale-179024-v7.service - /bin/bash /home/riomus/runs/sfora-sop-custom-gallery-scale-179024-v7/run-scale.sh...
+Started sfora-sop-custom-gallery-scale-179024-v7.service - /bin/bash /home/riomus/runs/sfora-sop-custom-gallery-scale-179024-v7/run-scale.sh.
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+{"gallery_build_wall_seconds": 546.0457666511647, "gallery_rows": 59551, "max_score_abs_delta": 0.0, "one_batch32_search_wall_seconds": 0.26450133603066206, "peak_cuda_allocated_bytes": 1266973184, "peak_parent_host_rss_bytes": 5776392192, "sample_rows_exact": 95}
+sfora-sop-custom-gallery-scale-179024-v7.service: Consumed 20min 22.439s CPU time, 4.9G memory peak, 0B memory swap peak.

@@ -317,10 +317,10 @@ class Siglip2CompactIndex:
             raise ValueError("trained SigLIP2 serving processor differs")
         config = AutoConfig.from_pretrained(model_snapshot, local_files_only=True)
         device = torch.device("cuda:0")
-        vision = (
-            SiglipVisionModel(config.vision_config).to(device=device, dtype=torch.float32).eval()
-        )
-        head = nn.Linear(1024, 128).to(device=device, dtype=torch.float32).eval()
+        with torch.device("meta"):
+            vision = SiglipVisionModel(config.vision_config)
+        vision = vision.to_empty(device=device).eval()
+        head = nn.Linear(1024, 128).to(device).eval()
         checkpoint = torch.load(training_checkpoint, map_location="cpu", weights_only=True)
         if (
             checkpoint.get("arm") != receipt.get("arm")

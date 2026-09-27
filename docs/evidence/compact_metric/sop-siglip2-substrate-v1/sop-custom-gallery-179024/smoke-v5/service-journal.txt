@@ -1,0 +1,6 @@
+Starting sfora-sop-custom-gallery-smoke-179024-v5.service - /bin/bash /home/riomus/runs/sfora-sop-custom-gallery-smoke-179024-v5/run.sh...
+Started sfora-sop-custom-gallery-smoke-179024-v5.service - /bin/bash /home/riomus/runs/sfora-sop-custom-gallery-smoke-179024-v5/run.sh.
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+{"gallery_build_wall_seconds": 4.615047438070178, "max_score_abs_delta": 0.0, "one_batch32_search_wall_seconds": 0.24946736311540008, "public_top10_exact": true}
+sfora-sop-custom-gallery-smoke-179024-v5.service: Consumed 13.120s CPU time.
