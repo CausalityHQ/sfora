@@ -17,16 +17,7 @@ import torch
 from export_inshop_siglip2_train_features import MODEL_HASHES
 from export_sop_siglip2_train import MODEL_REVISION
 from preflight_inshop_siglip2_unseen_gallery import PARTITION_SHA, digest_rows, split
-from probe_inshop_weight_soup import (
-    CHECKPOINT_SHAS,
-    FIT_SHA,
-    GALLERY_SHA,
-    HELD_SHA,
-    QUERY_SHA,
-    SEEDS,
-    asymmetric_rows,
-)
-from score_inshop_crop_view_pair import NATIVE_SHA, bootstrap_lower, packed_hits, sha256
+from score_inshop_crop_view_pair import NATIVE_SHA, bootstrap_lower, packed_hits, roles, sha256
 from train_sop_siglip2_compact import export_all, score_packed_full_gallery
 
 from sfora.joint_relational_compaction import pack_int8_unit_embeddings
@@ -34,6 +25,15 @@ from sfora.sop_compact_training import compact_head_features
 from sfora.unicom_inshop import parse_inshop_partition
 
 SEED_ORDER = (179026, 179024, 179027)
+CHECKPOINT_SHAS = {
+    179024: "dc5025998a3ea1902cb8251dedb1a4d4fd2659ffc20413c3425178b3e311f376",
+    179026: "ad58838e2492cd664a447308317b11a53f362a4c5a36a99f28978f32a3b71089",
+    179027: "4816912a52ed939e4461ba566abfcc0f3e4994b839ddc90e9c68355c554869a0",
+}
+FIT_SHA = "f23783a513f0bce23c4ea6126f8a868ee600fe88a23a5e797778a2a508ca89be"
+HELD_SHA = "9b1151e8cf65343682bd10b92885e79447d418ee6c664e2c005efccf7ebb5d1b"
+QUERY_SHA = "89f1dacd6dd94147578c46b2a6830655a17d1979bf58f021ddd49ecf4549ac68"
+GALLERY_SHA = "e7114b2c24bfe9625a47d698729c8c4e09de18b16541e7919e7983baed7290c3"
 
 
 def save_new(path: Path, value: dict[str, Any]) -> None:
@@ -64,9 +64,11 @@ def main() -> None:
     ):
         raise ValueError("trained-token source authority differs")
     sources = {}
-    for seed, checkpoint, receipt in zip(SEEDS, args.checkpoint, args.receipt, strict=True):
+    for seed, checkpoint, receipt in zip(
+        sorted(CHECKPOINT_SHAS), args.checkpoint, args.receipt, strict=True
+    ):
         meta = json.loads(receipt.read_text())
-        expected = CHECKPOINT_SHAS[SEEDS.index(seed)]
+        expected = CHECKPOINT_SHAS[seed]
         if (
             sha256(checkpoint) != expected
             or meta.get("checkpoint_sha256") != expected
@@ -92,7 +94,7 @@ def main() -> None:
     labels = tuple(train[row].label for row in held)
     classes = {label: row for row, label in enumerate(sorted(set(labels)))}
     label_ids = torch.tensor([classes[label] for label in labels], dtype=torch.int64)
-    query, gallery = asymmetric_rows(paths, labels, args.dataset_root)
+    query, gallery = roles(labels, paths, args.dataset_root)
     if (len(query), len(gallery)) != (6_354, 6_245):
         raise ValueError("trained-token fixed roles differ")
     if any(
@@ -236,7 +238,6 @@ def main() -> None:
             "helper_source_sha256": {
                 name: sha256(Path(importlib.import_module(name).__file__))
                 for name in (
-                    "probe_inshop_weight_soup",
                     "score_inshop_crop_view_pair",
                     "train_sop_siglip2_compact",
                     "sfora.joint_relational_compaction",
