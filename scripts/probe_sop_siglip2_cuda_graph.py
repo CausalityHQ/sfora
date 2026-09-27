@@ -14,11 +14,16 @@ import numpy as np
 import torch
 from PIL import Image
 
-from export_sop_siglip2_train import MODEL_HASHES, MODEL_REVISION
+from export_sop_siglip2_train import MODEL_REVISION
 
 ARCHIVE_SHA = "1ba27b2d6b9db39067aa6facd0ef8aafc303c4527f6feabed859b0512c7d921a"
 RECEIPT_SHA = "07b4716b42d1291b9c195774ebd48d9df89a3b578ee54efdb94662c5e125d1c5"
 CHECKPOINT_SHA = "2c838561b6c23242d74eb29329fd026cc8fba9bf965dcc4529348028dfe6d172"
+MODEL_HASHES = {
+    "config.json": "172e39dbf0143b8fe22d2f08921730eb8c397967e58cb37d133161e28aa34104",
+    "preprocessor_config.json": "d14ba2ee3fd816f3de8abaddc31953565128eaf37c73ad4bed32101a98465aff",
+    "model.safetensors": "fa34f822f016dbb167d8d0e3a8af99b5e199aa28573360d4295252b9ec418e2a",
+}
 
 
 def sha256(path: Path) -> str:
