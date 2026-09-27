@@ -80,3 +80,22 @@ same DGX Spark GB10, and record synchronized per-batch samples and allocated
 CUDA peak. This short diagnostic has no quality read, p99 certification, or
 advance gate. Its source is
 [`diagnose_inshop_zooclaw_stage_cost.py`](../scripts/diagnose_inshop_zooclaw_stage_cost.py).
+
+The first short profile exited 0 (invocation
+`07483ab3c82448eaa246d663ec40dc7a`). Its [receipt](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-zooclaw-stage-v1/receipt.json)
+SHA-256 is `b428baa8e49d998b358b87d46abeb91d47394da8929b2cd74bd7c44723263126`;
+the [journal](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-zooclaw-stage-v1/journal.log)
+SHA-256 is `decae800453eec613a24b4a00a35e7812d8e504d1aacc6f39c1dada97d9a5820`.
+On these ten batches, mean full stages were **0.303684 s/batch** for fashion
+versus **0.339007 s/batch** for SigLIP2 Large. Fashion vision was faster
+(**0.160325 vs 0.211309 s/batch**), while its processor was slower
+(**0.084803 vs 0.071796 s/batch**). This subset conflicts with the full
+export-cost contrast, so it is insufficient to infer production speed.
+
+Before another cost conclusion, repeat the same pinned stage script with its
+`--spread` selector on 320 evenly spaced official TRAIN images, still ten
+batch-32 samples after one untimed warmup. This changes only the metadata-
+selected diagnostic sample and reads no quality. If it agrees with the first
+profile, the historical full-export comparison remains unmatched and requires
+a new full paired cost gate; if it disagrees, diagnose the image-distribution
+effect before changing production preprocessing.

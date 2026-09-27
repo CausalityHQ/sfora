@@ -88,6 +88,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     for name in ("dataset-root", "siglip-snapshot", "fashion-snapshot", "output"):
         parser.add_argument(f"--{name}", type=Path, required=True)
+    parser.add_argument("--spread", action="store_true")
     args = parser.parse_args()
     expected = {
         "config.json": CONFIG_SHA,
@@ -109,7 +110,8 @@ def main() -> None:
     rows = tuple(row for row in parse_inshop_partition(args.dataset_root) if row.split == "train")
     if len(rows) != 25_882:
         raise ValueError("In-Shop TRAIN inventory differs")
-    paths = tuple(row.image_path for row in rows[:320])
+    indexes = np.linspace(0, len(rows) - 1, 320, dtype=int) if args.spread else range(320)
+    paths = tuple(rows[index].image_path for index in indexes)
     torch.set_num_threads(16)
     torch.backends.cuda.matmul.allow_tf32 = False
     report = {
@@ -117,7 +119,11 @@ def main() -> None:
         "claim_eligible": False,
         "source_sha256": sha256(Path(__file__)),
         "partition_sha256": PARTITION_SHA,
-        "sample": "first 320 official TRAIN images, 10 batches of 32; sequential arms",
+        "sample": (
+            "320 evenly spaced official TRAIN images, 10 batches of 32; sequential arms"
+            if args.spread
+            else "first 320 official TRAIN images, 10 batches of 32; sequential arms"
+        ),
         "siglip_large_256": measure(args.siglip_snapshot, paths, fashion=False),
     }
     torch.cuda.empty_cache()
