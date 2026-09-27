@@ -6,6 +6,7 @@ import hashlib
 import json
 from pathlib import Path
 from types import SimpleNamespace
+from typing import cast
 
 import numpy as np
 import pytest
@@ -93,7 +94,9 @@ def test_cuda_graph_opt_in_requires_native_fp16_cuda() -> None:
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires CUDA graph support")
 def test_cuda_graph_capture_ignores_ambient_autocast_and_preserves_eager_output() -> None:
     class Processor:
-        def __call__(self, *, images: list[Image.Image], return_tensors: str) -> dict:
+        def __call__(
+            self, *, images: list[Image.Image], return_tensors: str
+        ) -> dict[str, torch.Tensor]:
             assert return_tensors == "pt"
             return {"pixel_values": torch.ones((len(images), 3, 256, 256))}
 
@@ -111,7 +114,7 @@ def test_cuda_graph_capture_ignores_ambient_autocast_and_preserves_eager_output(
     head = torch.nn.Linear(1024, 128).cuda().eval()
     processor = Processor()
     eager = Siglip2CompactEncoder(processor, vision, head, "fp16_native", torch.device("cuda:0"))
-    with torch.amp.autocast("cuda", dtype=torch.bfloat16):
+    with torch.autocast("cuda", dtype=torch.bfloat16):
         graph = Siglip2CompactEncoder(
             processor, vision, head, "fp16_native", torch.device("cuda:0"), cuda_graph_batch1=True
         )
@@ -126,7 +129,9 @@ def test_cuda_graph_capture_ignores_ambient_autocast_and_preserves_eager_output(
 
 def test_cuda_graph_rejects_broadcastable_pixel_shape() -> None:
     class WrongShapeProcessor:
-        def __call__(self, *, images: list[Image.Image], return_tensors: str) -> dict:
+        def __call__(
+            self, *, images: list[Image.Image], return_tensors: str
+        ) -> dict[str, torch.Tensor]:
             return {"pixel_values": torch.ones((len(images), 3, 1, 1))}
 
     encoder = Siglip2CompactEncoder(
@@ -136,7 +141,11 @@ def test_cuda_graph_rejects_broadcastable_pixel_shape() -> None:
         "fp16_native",
         torch.device("cpu"),
     )
-    encoder._batch1_graph = (torch.zeros((1, 3, 256, 256)), None, torch.zeros((1, 1024)))
+    encoder._batch1_graph = (
+        torch.zeros((1, 3, 256, 256)),
+        cast(torch.cuda.CUDAGraph, None),
+        torch.zeros((1, 1024)),
+    )
     with pytest.raises(ValueError, match="pixel geometry"):
         encoder.encode_images([Image.new("RGB", (2, 2))])
 
