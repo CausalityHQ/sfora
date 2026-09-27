@@ -216,6 +216,26 @@ theorem top1_positive_of_subset_negatives {f : ι → β} {T S : Finset ι}
     exact (hnew x hxS hnot) hp
   exact ⟨x, mem_topK_of_subset hsub hxT hx, hp⟩
 
+/-- Removing only positive rows cannot turn a wrong top-1 label into a correct
+    one under the fixed score and ordinal tie rule. -/
+theorem top1_positive_of_superset_positives {f : ι → β} {T S : Finset ι}
+    (positive : ι → Prop) (hsub : T ⊆ S)
+    (hnew : ∀ x ∈ S, x ∉ T → positive x)
+    (hcorrect : ∃ x ∈ topK f T 1, positive x) :
+    ∃ y ∈ topK f S 1, positive y := by
+  obtain ⟨x, hx, hp⟩ := hcorrect
+  have hxT : x ∈ T := topK_subset f T 1 hx
+  have hSpos : 0 < S.card := Finset.card_pos.mpr ⟨x, hsub hxT⟩
+  have hcardS : (topK f S 1).card = 1 := by rw [card_topK]; omega
+  obtain ⟨y, hy⟩ := Finset.card_pos.mp (by omega : 0 < (topK f S 1).card)
+  refine ⟨y, hy, ?_⟩
+  by_cases hyT : y ∈ T
+  · have hyTopT := mem_topK_of_subset hsub hyT hy
+    have hcardT : (topK f T 1).card ≤ 1 := by rw [card_topK]; omega
+    have hxy := (Finset.card_le_one.mp hcardT) x hx y hyTopT
+    exact hxy ▸ hp
+  · exact hnew y (topK_subset f S 1 hy) hyT
+
 theorem topK_merge {κ : Type*} (f : ι → β) (I : Finset κ) (B : κ → Finset ι) (S : Finset ι)
     (k : ℕ) (hsub : ∀ i ∈ I, B i ⊆ S) (hcov : ∀ x ∈ S, ∃ i ∈ I, x ∈ B i) :
     topK f (I.biUnion (fun i => topK f (B i) k)) k = topK f S k := by

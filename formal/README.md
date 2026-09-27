@@ -111,6 +111,11 @@ rows cannot turn a wrong top-1 label into a correct one under the fixed scorer
 and ordinal tie rule. It supports the In-Shop TRAIN diagnostic's attribution of
 additional errors to fit-class distractors. It does not prove that a training
 recipe transfers to the official unseen-class gallery or bound its recall.
+The dual `top1_positive_of_superset_positives` proves that removing only
+positive rows cannot create a top-1 hit. Together these give the two exact
+directions of gallery-composition monotonicity when one label class is fixed;
+they do not model changes to encoded scores, gallery size distribution, or
+the empirical frequency of affected queries.
 
 For one finite SOP TRAIN product-disjoint holdout, the
 [SigLIP2 ArcFace score-pair receipt](../docs/evidence/compact_metric/sop-siglip2-substrate-v1/float-packed-margin-certificate-v1.json)
