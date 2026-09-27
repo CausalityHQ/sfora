@@ -1,0 +1,5 @@
+2026-09-27T09:55:05+02:00 spark-2751 systemd[3489]: Started sfora-inshop-dinov2-source-v1.service - /bin/bash /home/riomus/runs/sfora-inshop-dinov2-source-v1/run_inshop_dinov2_source_dgx.sh.
+2026-09-27T09:55:08+02:00 spark-2751 bash[508581]: Loading weights:   0%|          | 0/439 [00:00<?, ?it/s]Loading weights:  74%|███████▍  | 325/439 [00:00<00:00, 3242.30it/s]Loading weights: 100%|██████████| 439/439 [00:00<00:00, 3295.85it/s]
+2026-09-27T09:58:22+02:00 spark-2751 bash[508581]: {"r1": 0.4347170410350028, "mapr": 0.11399402903593217, "encode_s": 191.53456409135833, "advance": false}
+2026-09-27T09:58:23+02:00 spark-2751 bash[508574]: DONE receipt_sha256=64343ad8744ec2784c37c5700fc7daeed37107e37af2e4ba96eff4b8d61ca3ac
+2026-09-27T09:58:23+02:00 spark-2751 systemd[3489]: sfora-inshop-dinov2-source-v1.service: Consumed 5min 20.360s CPU time, 1.7G memory peak, 0B memory swap peak.
