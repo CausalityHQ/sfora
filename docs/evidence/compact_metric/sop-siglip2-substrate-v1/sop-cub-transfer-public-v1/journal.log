@@ -1,0 +1,10 @@
+Sep 27 20:52:42 spark-2751 systemd[3489]: Started sfora-sop-cub-transfer-public-v2.service - /bin/bash /home/riomus/runs/sfora-sop-cub-transfer-public-v1/scripts/run_sop_siglip2_cub_transfer_dgx.sh.
+Sep 27 20:52:54 spark-2751 bash[662080]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+Sep 27 20:52:54 spark-2751 bash[662080]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Sep 27 20:53:54 spark-2751 bash[662080]: 179024 control R1=0.689737 mAP@R=0.256451
+Sep 27 20:54:57 spark-2751 bash[662080]: 179024 freeze R1=0.708812 mAP@R=0.271443
+Sep 27 20:56:01 spark-2751 bash[662080]: 179026 control R1=0.685179 mAP@R=0.250192
+Sep 27 20:57:04 spark-2751 bash[662080]: 179026 freeze R1=0.709149 mAP@R=0.266275
+Sep 27 20:58:07 spark-2751 bash[662080]: 179027 control R1=0.681128 mAP@R=0.251273
+Sep 27 20:59:11 spark-2751 bash[662080]: 179027 freeze R1=0.701722 mAP@R=0.264282
+Sep 27 20:59:12 spark-2751 systemd[3489]: sfora-sop-cub-transfer-public-v2.service: Consumed 15min 18.486s CPU time, 5.1G memory peak, 0B memory swap peak.

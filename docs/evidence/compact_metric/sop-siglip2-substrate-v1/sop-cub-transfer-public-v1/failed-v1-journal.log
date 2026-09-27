@@ -1,0 +1,10 @@
+Sep 27 20:51:29 spark-2751 systemd[3489]: Started sfora-sop-cub-transfer-public-v1.service - /bin/bash /home/riomus/runs/sfora-sop-cub-transfer-public-v1/scripts/run_sop_siglip2_cub_transfer_dgx.sh.
+Sep 27 20:51:29 spark-2751 bash[661317]: Traceback (most recent call last):
+Sep 27 20:51:29 spark-2751 bash[661317]:   File "/home/riomus/runs/sfora-sop-cub-transfer-public-v1/scripts/verify_sop_siglip2_cub_transfer.py", line 14, in <module>
+Sep 27 20:51:29 spark-2751 bash[661317]:     from export_unicom_cub_embeddings import (
+Sep 27 20:51:29 spark-2751 bash[661317]:     ...<4 lines>...
+Sep 27 20:51:29 spark-2751 bash[661317]:     )
+Sep 27 20:51:29 spark-2751 bash[661317]: ModuleNotFoundError: No module named 'export_unicom_cub_embeddings'
+Sep 27 20:51:30 spark-2751 systemd[3489]: sfora-sop-cub-transfer-public-v1.service: Main process exited, code=exited, status=1/FAILURE
+Sep 27 20:51:30 spark-2751 systemd[3489]: sfora-sop-cub-transfer-public-v1.service: Failed with result 'exit-code'.
+Sep 27 20:51:30 spark-2751 systemd[3489]: sfora-sop-cub-transfer-public-v1.service: Consumed 2.089s CPU time, 2.7M memory peak, 0B memory swap peak.
