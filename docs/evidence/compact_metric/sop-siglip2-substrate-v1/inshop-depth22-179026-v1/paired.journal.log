@@ -1,0 +1,18 @@
+Started sfora-inshop-depth22-paired-179026-100-v1.service - /usr/bin/flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock /bin/bash /home/riomus/runs/sfora-inshop-depth22-179026-v1/run_inshop_depth22_screen_dgx.sh.
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  22%|██▏       | 176/792 [00:00<00:00, 1758.17it/s]Loading weights:  63%|██████▎   | 497/792 [00:00<00:00, 2596.55it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2734.89it/s]
+{"step": 50, "loss": 7.253352642059326, "elapsed_seconds": 39.159278261009604}
+{"step": 100, "loss": 3.9247913360595703, "elapsed_seconds": 76.2287100837566}
+{"export_batches": 100}
+{"arm": "freeze_emb", "seed": 179026, "training_seconds": 76.31749929394573, "holdout_r1": 0.9734105881419161}
+DONE depth=0 receipt_sha256=3da086a15c4ec25b6255d300da13d0220d5311fd6d5babff62d8aaa872ca0e03
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:   1%|          | 4/792 [00:00<00:22, 34.59it/s]Loading weights:  65%|██████▍   | 513/792 [00:00<00:00, 2767.45it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2653.38it/s]
+{"step": 50, "loss": 7.439990043640137, "elapsed_seconds": 34.665055103134364}
+{"step": 100, "loss": 3.7886886596679688, "elapsed_seconds": 67.18694425094873}
+{"export_batches": 100}
+{"arm": "freeze_emb", "seed": 179026, "training_seconds": 67.2477505961433, "holdout_r1": 0.97190253194698}
+DONE depth=2 receipt_sha256=6ed19555bd00a226af98aa1caeb261a8c1d0ef057a365ebc413cc97aef5cb160
+sfora-inshop-depth22-paired-179026-100-v1.service: Consumed 7min 28.517s CPU time, 10.1G memory peak, 0B memory swap peak.

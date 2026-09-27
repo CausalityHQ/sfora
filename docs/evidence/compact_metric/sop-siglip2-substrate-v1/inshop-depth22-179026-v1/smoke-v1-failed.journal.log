@@ -1,0 +1,16 @@
+Started sfora-inshop-depth22-smoke-179026-v1.service - /usr/bin/flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock /usr/bin/env PYTHONPATH=/home/riomus/runs/sfora-inshop-depth22-179026-v1:/home/riomus/runs/sfora-valid-anchor-confirmation-179026-27:/home/riomus/sfora-siglip2-deployed-batch-v1/src:/home/riomus/sfora-siglip2-deployed-batch-v1/scripts HF_HUB_OFFLINE=1 /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-inshop-depth22-179026-v1/train_inshop_siglip2_unseen_gallery.py --dataset-root /home/riomus/datasets/inshop_official_standard --model-snapshot /home/riomus/.cache/huggingface/hub/models--google--siglip2-large-patch16-256/snapshots/787800c8990e6f058423089178e718139608408c --features-dir /home/riomus/runs/sfora-inshop-depth22-features-v1 --preflight /home/riomus/runs/sfora-valid-anchor-confirmation-179026-27/preflight-179026.json --preflight-sha256 4a621d82688d2a6c1bfd78c0c0cd2d3f5d7b810ffcb34f9fbb200e3f8d64a254 --output-dir /home/riomus/runs/sfora-inshop-depth22-179026-17-v1 --seed 179026 --arm freeze_emb --updates 17 --tail-blocks-to-drop 2.
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-inshop-depth22-179026-v1/train_inshop_siglip2_unseen_gallery.py", line 536, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/sfora-inshop-depth22-179026-v1/train_inshop_siglip2_unseen_gallery.py", line 233, in main
+    head, classifier, pca_sha = initialize_head_and_classifier(
+                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        features_cpu, tuple(class_ids.tolist()), allow_singletons=True
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+TypeError: initialize_head_and_classifier() got an unexpected keyword argument 'allow_singletons'
+sfora-inshop-depth22-smoke-179026-v1.service: Main process exited, code=exited, status=1/FAILURE
+sfora-inshop-depth22-smoke-179026-v1.service: Failed with result 'exit-code'.
+sfora-inshop-depth22-smoke-179026-v1.service: Consumed 7.078s CPU time.
