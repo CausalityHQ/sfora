@@ -141,15 +141,16 @@ class ImageRows(Dataset):  # type: ignore[misc]
         labels: tuple[int, ...],
         *,
         augment: bool,
+        crop_scale_min: float = 0.8,
     ) -> None:
-        if not paths or len(paths) != len(labels):
+        if not paths or len(paths) != len(labels) or crop_scale_min not in (0.25, 0.8):
             raise ValueError("SOP SigLIP2 image rows differ")
         self.paths = paths
         self.labels = labels
         self.augment = (
             transforms.Compose(
                 [
-                    transforms.RandomResizedCrop(256, scale=(0.8, 1.0)),
+                    transforms.RandomResizedCrop(256, scale=(crop_scale_min, 1.0)),
                     transforms.RandomHorizontalFlip(),
                 ]
             )
