@@ -55,6 +55,20 @@ def singleton_batch(labels: tuple[str, ...], batch: tuple[int, ...], singleton: 
     return any(labels[row] in singleton for row in batch)
 
 
+def half_fit_products(labels: tuple[str, ...], fit: tuple[int, ...]) -> tuple[int, ...]:
+    """Keep a deterministic nested half of the existing fit products."""
+
+    names = sorted(
+        {labels[row] for row in fit},
+        key=lambda name: (
+            hashlib.sha256(b"sfora-inshop-fit-half-v1\0" + name.encode()).digest(),
+            name,
+        ),
+    )
+    selected = set(names[: len(names) // 2])
+    return tuple(row for row in fit if labels[row] in selected)
+
+
 def valid_anchor_rank_loss(
     features: torch.Tensor,
     bank: torch.Tensor,
@@ -119,6 +133,7 @@ def main() -> None:
     parser.add_argument("--vision-lr", type=float, choices=(1e-5, 3e-5), default=1e-5)
     parser.add_argument("--preflight-sha256", default=PREFLIGHT_SHA)
     parser.add_argument("--workers", type=int, default=4)
+    parser.add_argument("--half-fit-products", action="store_true")
     args = parser.parse_args()
     if (
         args.output_dir.exists()
@@ -131,6 +146,10 @@ def main() -> None:
             and (args.seed == 179023 or args.vision_lr != 1e-5)
         )
         or args.workers < 0
+        or (
+            args.half_fit_products
+            and (args.arm != "freeze_emb" or args.seed != 179024 or args.updates not in (17, 1_000))
+        )
         or not torch.cuda.is_available()
         or not torch.cuda.is_bf16_supported()
         or sha256(args.dataset_root / "Eval/list_eval_partition.txt") != PARTITION_SHA
@@ -157,17 +176,19 @@ def main() -> None:
     records = parse_inshop_partition(args.dataset_root)
     train = tuple(row for row in records if row.split == "train")
     labels = tuple(row.label for row in train)
-    fit, held = split(labels)
-    fit_sha = digest_rows(fit)
+    full_fit, held = split(labels)
+    fit_sha = digest_rows(full_fit)
     held_sha = digest_rows(held)
     if (
         len(train) != 25_882
-        or len(fit) != 13_283
+        or len(full_fit) != 13_283
         or len(held) != 12_599
         or preflight.get("fit_sha256") != fit_sha
         or preflight.get("held_sha256") != held_sha
     ):
         raise ValueError("In-Shop paired training class split differs")
+    fit = half_fit_products(labels, full_fit) if args.half_fit_products else full_fit
+    fit_sha = digest_rows(fit)
     source = np.load(args.features_dir / "train_features.npy", mmap_mode="r")
     if source.shape != (len(train), 1024) or source.dtype != np.float32:
         raise ValueError("In-Shop feature geometry differs")
@@ -189,11 +210,13 @@ def main() -> None:
     )
     expected = preflight["schedules"][str(schedule_updates)]
     if (
-        schedule_sha != expected["sha256"]
-        or list(inactive) != expected["rank_inactive_steps"]
-        or len(batches) - len(inactive) != expected["rank_active_updates"]
-        or len({row for batch in batches for row in batch}) != len(fit)
-    ):
+        not args.half_fit_products
+        and (
+            schedule_sha != expected["sha256"]
+            or list(inactive) != expected["rank_inactive_steps"]
+            or len(batches) - len(inactive) != expected["rank_active_updates"]
+        )
+    ) or len({row for batch in batches for row in batch}) != len(fit):
         raise ValueError("In-Shop paired training schedule differs")
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
@@ -381,6 +404,7 @@ def main() -> None:
             "arm": args.arm,
             "updates": args.updates,
             "vision_lr": args.vision_lr,
+            "half_fit_products": args.half_fit_products,
         },
         checkpoint_path,
     )
@@ -445,6 +469,8 @@ def main() -> None:
         "partition_sha256": PARTITION_SHA,
         "model_file_sha256": MODEL_HASHES,
         "fit_rows_sha256": fit_sha,
+        "full_fit_rows_sha256": digest_rows(full_fit),
+        "half_fit_products": args.half_fit_products,
         "held_rows_sha256": held_sha,
         "schedule_sha256": schedule_sha,
         "fit_rows": len(fit),
