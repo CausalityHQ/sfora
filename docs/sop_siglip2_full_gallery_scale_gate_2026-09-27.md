@@ -22,3 +22,10 @@ throughput, p50/p95/p99, model load, build time, and gallery wire bytes.
 This is a TRAIN-only public serving qualification. No SOP TEST quality or
 state-of-the-art claim can be inferred from it. A failed threshold keeps this
 full-gallery configuration unqualified and directs a code-level bottleneck fix.
+
+The first invocation (`385f78d86fcd4756b584de551d1f802c`) exited before
+model load: its script assumed the first 1,000 archive paths had distinct
+image bytes. They do not. The [failed journal](evidence/compact_metric/sop-siglip2-substrate-v1/sop-public-scale-train-v2/failed-v1-journal.log)
+is retained. Version 2 selects the first 1,000 distinct byte hashes while
+computing the unchanged full-gallery digest; all thresholds and artifacts
+above remain frozen. No quality or latency was observed in version 1.

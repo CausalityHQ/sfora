@@ -20,7 +20,7 @@ from train_sop_siglip2_compact import paths_from_archive
 from sfora.cutile_int8 import CutilePackedInt8Gallery
 from sfora.siglip2_compact_serving import Siglip2CompactEncoder, Siglip2CompactIndex
 
-RUN = Path("/home/riomus/runs/sfora-sop-public-scale-train-v1")
+RUN = Path("/home/riomus/runs/sfora-sop-public-scale-train-v2")
 TRAINING = Path("/home/riomus/runs/sfora-sop-true-freeze-freeze-179024-1000-v1")
 ARCHIVE = Path("/home/riomus/sfora-relational-sop-e1/unicom-l14-sop-v1.npz")
 DATA = Path("/home/riomus/datasets/Stanford_Online_Products")
@@ -58,11 +58,16 @@ def main() -> None:
     if len(paths) != 59_551:
         raise ValueError("SOP TRAIN gallery inventory differs")
     gallery_digest = hashlib.sha256()
+    unique = []
+    seen = set()
     for path in paths:
-        gallery_digest.update(bytes.fromhex(sha(path)))
-    unique = paths[:1_000]
-    if len({sha(path) for path in unique}) != 1_000:
-        raise ValueError("SOP latency image bytes are not distinct")
+        digest = sha(path)
+        gallery_digest.update(bytes.fromhex(digest))
+        if digest not in seen and len(unique) < 1_000:
+            seen.add(digest)
+            unique.append(path)
+    if len(unique) != 1_000:
+        raise ValueError("SOP latency image byte inventory differs")
     torch.set_num_threads(20)
     torch.backends.cuda.matmul.allow_tf32 = False
     load_started = time.perf_counter()

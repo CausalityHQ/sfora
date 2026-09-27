@@ -1,0 +1,11 @@
+2026-09-27T19:52:32+02:00 spark-2751 systemd[3489]: Started sfora-sop-public-scale-train-v1.service - /bin/bash /home/riomus/runs/sfora-sop-public-scale-train-v1/scripts/run_sop_siglip2_gallery_scale_dgx.sh.
+2026-09-27T19:52:38+02:00 spark-2751 bash[644808]: Traceback (most recent call last):
+2026-09-27T19:52:38+02:00 spark-2751 bash[644808]:   File "/home/riomus/runs/sfora-sop-public-scale-train-v1/scripts/verify_sop_siglip2_gallery_scale.py", line 178, in <module>
+2026-09-27T19:52:38+02:00 spark-2751 bash[644808]:     main()
+2026-09-27T19:52:38+02:00 spark-2751 bash[644808]:     ~~~~^^
+2026-09-27T19:52:38+02:00 spark-2751 bash[644808]:   File "/home/riomus/runs/sfora-sop-public-scale-train-v1/scripts/verify_sop_siglip2_gallery_scale.py", line 65, in main
+2026-09-27T19:52:38+02:00 spark-2751 bash[644808]:     raise ValueError("SOP latency image bytes are not distinct")
+2026-09-27T19:52:38+02:00 spark-2751 bash[644808]: ValueError: SOP latency image bytes are not distinct
+2026-09-27T19:52:39+02:00 spark-2751 systemd[3489]: sfora-sop-public-scale-train-v1.service: Main process exited, code=exited, status=1/FAILURE
+2026-09-27T19:52:39+02:00 spark-2751 systemd[3489]: sfora-sop-public-scale-train-v1.service: Failed with result 'exit-code'.
+2026-09-27T19:52:39+02:00 spark-2751 systemd[3489]: sfora-sop-public-scale-train-v1.service: Consumed 7.903s CPU time, 567.9M memory peak, 0B memory swap peak.
