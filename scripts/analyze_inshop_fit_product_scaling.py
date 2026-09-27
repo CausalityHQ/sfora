@@ -45,12 +45,12 @@ def main() -> None:
     baseline_helpers = {
         Path(path).name: digest
         for path, digest in baseline["source_files_sha256"].items()
-        if Path(path).name != "train_inshop_siglip2_unseen_gallery.py"
+        if not Path(path).name.startswith("train_inshop_siglip2_unseen_gallery")
     }
     half_helpers = {
         Path(path).name: digest
         for path, digest in half["source_files_sha256"].items()
-        if Path(path).name != "train_inshop_siglip2_unseen_gallery.py"
+        if not Path(path).name.startswith("train_inshop_siglip2_unseen_gallery")
     }
     shared = (
         "preflight_sha256",
