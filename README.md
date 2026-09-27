@@ -403,6 +403,11 @@ below; and (2) an **end-to-end method** API (`sfora.method` / `sfora.benchmark`)
 trains a backbone from composable, type-safe bricks, shown further down.
 The trained SigLIP2 image-to-top-10 deployment also accepts an ordered user
 image gallery through [`Siglip2CompactIndex.from_artifacts`](docs/sop_siglip2_custom_gallery_gate_2026-09-27.md).
+For native-FP16 single-image serving on a DGX Spark GB10, pass
+`cuda_graph_batch1=True` to `from_artifacts` during quiescent startup. The
+[source-bound serving gate](docs/sop_siglip2_cuda_graph_vision_preflight_2026-09-27.md)
+records exact top-10 parity and the measured latency scope; other batch sizes
+and the default use eager execution.
 
 ### Frozen-embedding projection (you already have vectors)
 

@@ -1,0 +1,13 @@
+2026-09-27T11:45:28+02:00 spark-2751 flock[546832]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-27T11:45:28+02:00 spark-2751 flock[546832]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-27T11:46:11+02:00 spark-2751 flock[546832]: {"images_done": 1000}
+2026-09-27T11:46:43+02:00 spark-2751 flock[546832]: {"images_done": 2000}
+2026-09-27T11:47:15+02:00 spark-2751 flock[546832]: {"images_done": 3000}
+2026-09-27T11:47:47+02:00 spark-2751 flock[546832]: {"images_done": 4000}
+2026-09-27T11:48:19+02:00 spark-2751 flock[546832]: {"images_done": 5000}
+2026-09-27T11:48:51+02:00 spark-2751 flock[546832]: {"images_done": 6000}
+2026-09-27T11:49:23+02:00 spark-2751 flock[546832]: {"images_done": 7000}
+2026-09-27T11:49:55+02:00 spark-2751 flock[546832]: {"images_done": 8000}
+2026-09-27T11:50:27+02:00 spark-2751 flock[546832]: {"images_done": 9000}
+2026-09-27T11:50:59+02:00 spark-2751 flock[546832]: {"images_done": 10000}
+2026-09-27T11:51:04+02:00 spark-2751 flock[546832]: {"summary": {"eager": {"p50_ms": 16.310722, "p95_ms": 18.9017759, "p99_ms": 19.998996100000003}, "graph": {"p50_ms": 15.385486, "p95_ms": 17.9272173, "p99_ms": 19.07037516}}, "gates": {"p50": true, "p99": true, "concurrency_exact": true, "peak_cuda": true}}

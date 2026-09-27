@@ -143,3 +143,25 @@ calls/arm). Batch-32 p95 was **298.876 vs 292.045 ms** (100 calls/arm).
 Bitwise packed/top-10, latency and allocated-memory gates all passed;
 post-construction peak PyTorch allocated was **1,582,993,408 bytes**. This
 authorizes the prewritten v2 unique-content p99 gate, not release yet.
+
+The unique-content gate passed on GB10, invocation
+`1da9687ae79840a1a43bb233c0caee12`. The [v2 raw receipt](evidence/compact_metric/sop-siglip2-substrate-v1/cuda-graph-public-v2/p99-receipt.json)
+SHA-256 is `2326a5ffd79cf47dd4f4939ec524a0d711db6c0ff699e573f270bc38b369802a`;
+the [terminal journal](evidence/compact_metric/sop-siglip2-substrate-v1/cuda-graph-public-v2/p99-service-journal.log)
+SHA-256 is `b8cdb45b79194cbe5570942867eea2c7d48fec7470bb9bfa365165c76ce21c97`.
+There are exactly **10,000 unique image byte hashes** and 10,000 calls per
+arm. Eager versus graph full-call p50 was **16.311 vs 15.385 ms**, p95
+**18.902 vs 17.927 ms**, and p99 **19.999 vs 19.070 ms**. Every paired
+top-10 ordinal and score row matched exactly. The four-worker 100-query
+serialisation check passed. Post-construction peak PyTorch allocated was
+**1,504,481,280 bytes**. All frozen v2 gates pass.
+
+**Production decision:** expose `cuda_graph_batch1=True` as an opt-in for
+`Siglip2CompactIndex.from_artifacts` with native FP16 on the qualified GB10
+configuration. Its default remains eager; calls with 2–32 images remain eager.
+Construct the graph index during quiescent startup and do not move or replace
+its captured vision weights. The 10,000-call p99 is synchronized idle-GPU
+latency against the SOP TRAIN gallery, not a loaded-service or external-image
+latency guarantee. Exact top-10 parity against the same eager checkpoint
+supports unchanged rankings on the measured inputs; no official TEST metric
+or SOTA claim is added by this serving change.
