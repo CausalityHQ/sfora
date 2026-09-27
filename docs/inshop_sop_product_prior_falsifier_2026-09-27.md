@@ -258,3 +258,18 @@ regressions and product-bootstrap 95% **[−0.2417,+0.3016] points**. The
 predeclared first-seed gross-failure rule did **not** trigger. This seed
 alone does not establish a quality gain; run paired seeds 179025 and 179026
 under the same frozen method before the three-seed promotion decision.
+
+## Second full-budget seed: 179025
+
+The sole serial DGX unit `2ea930a4f20b43b9b81e8710143d17bb` exited 0.
+Its [paired receipt](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-sop-warmstart-full-179025-v1/paired_quality.json)
+SHA-256 is `72e02632b7d88b8d718084170b6f6a87a4c00507ebae7ff1ee246fde20a418f5`.
+On fixed TRAIN held roles, control/treatment asymmetric packed R@1 was
+**97.5134%/97.7652%**, mAP@R **0.845797/0.855434**;
+symmetric R@1 **98.5237%/98.7221%**, mAP@R **0.837601/0.845764**.
+The paired asymmetric gain was **+0.2518 point**, product-bootstrap 95%
+**[−0.0323,+0.5455] points**, with 54 rescues and 38 regressions.
+Training took **745.578/743.864 s** per 64,000 images, with
+**12,938,664,960 B** peak allocated CUDA in both arms. Local receipt replay
+verified the per-query means and hashes. This is individually inconclusive;
+run the final fixed pair, seed 179026, before applying the frozen aggregate.
