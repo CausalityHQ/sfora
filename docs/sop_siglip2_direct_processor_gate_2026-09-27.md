@@ -93,3 +93,37 @@ PyTorch CUDA allocation was **882,524,672 bytes** and peak parent host RSS
 **3,875,676,160 bytes**, including model and gallery load. This is a
 same-checkpoint local speed improvement, not a matched external SOTA claim.
 In-Shop parity and clean-package checks remain release gates.
+
+## Terminal In-Shop transfer parity
+
+The sole DGX Spark GB10 unit `sfora-inshop-direct-parity-v1` (invocation
+`fbb12aaa0ec34eea9ffc15aed5d2f9aa`) exited 0. Its
+[raw receipt](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-direct-public-parity-v1/receipt.json)
+has SHA-256 `09a426dd90911afe271e61eb6b026dd5fbbee98ed02ef48f110beffb54f9055d`;
+the [journal](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-direct-public-parity-v1/journal.log)
+has SHA-256 `1bc1bcd05bb57c5d60d77a0dfc792dd08c3dd0cbbe48338d2cdfa575e25456b5`.
+All **640/640** selected official In-Shop TRAIN held query images produced
+identical packed codes, inverse norms, native top-10 ordinals and score bytes
+between baseline and direct paths against the same **6,245-row** gallery.
+This is exact output parity, not a new In-Shop quality or latency measurement.
+The gallery uses **811,850 wire bytes**; peak PyTorch CUDA allocation was
+**1,266,973,184 bytes**, and peak parent host RSS was **4,060,184,576 bytes**
+including model and gallery construction.
+
+The measured serving source SHA-256 was
+`639e7bcbaef4ee2901220272a851a1c2c9d70c95f727568b99f5870a171ff1c4`.
+The production edit adds only a mypy suppression comment on that measured
+return statement (production SHA-256
+`ef454200ca17b80917fe7aa52cf232703779d21af7e8ffe0d25f8e811724bc62`);
+an AST comparison confirms identical executable code. The focused serving
+tests pass **18**, with **one** CUDA graph skip on the local CPU host.
+The local wheel `sfora-0.3.0rc4-py3-none-any.whl` built successfully with
+SHA-256 `98be87f65e030902d48f0544e45baab67243ed40674dd7cf50228c6d2a373ea0`;
+the serving module inside has the production source SHA-256 above. The full
+local pytest suite passed **5,549 tests**, with **13 skips**. Ruff formatting
+and lint passed for the changed source, tests and gate scripts. The local mypy
+run still reports 12 errors in these two touched files, all on lines present
+before this edit; the two errors introduced by the initial direct path were
+removed with type-only comments. Thus this is a measured production serving
+increment for the pinned runtime, while repo-wide type-check cleanliness
+remains a separate release gap.

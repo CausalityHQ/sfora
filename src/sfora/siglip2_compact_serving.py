@@ -26,6 +26,28 @@ _MAX_QUERY_IMAGES = 32
 _MAX_IMAGE_PIXELS = 16_777_216
 # ponytail: cap preprocessing source pixels; tune only after measuring gallery RSS and latency.
 _MAX_PREPROCESS_BATCH_PIXELS = 64_000_000
+_DIRECT_PROCESSOR_SHA = "d14ba2ee3fd816f3de8abaddc31953565128eaf37c73ad4bed32101a98465aff"
+
+
+def _direct_processor_supported(digest: str) -> bool:
+    import torchvision
+    import transformers
+
+    return (
+        digest == _DIRECT_PROCESSOR_SHA
+        and transformers.__version__ == "5.12.1"
+        and torchvision.__version__ == "0.27.1+cu130"
+        and torch.__version__ == "2.12.1+cu130"
+    )
+
+
+def _direct_preprocess(image: Any) -> torch.Tensor:
+    from torchvision.transforms import InterpolationMode
+    from torchvision.transforms.v2 import functional as tvf
+
+    pixels = tvf.pil_to_tensor(image.convert("RGB")).unsqueeze(0)
+    pixels = tvf.resize(pixels, [256, 256], InterpolationMode.BILINEAR, antialias=True)
+    return tvf.normalize(pixels.float(), [127.5] * 3, [127.5] * 3)  # type: ignore[no-any-return]
 
 
 class PackedGallery(Protocol):
@@ -96,6 +118,7 @@ class Siglip2CompactEncoder:
         precision: InferencePrecision,
         device: torch.device,
         cuda_graph_batch1: bool = False,
+        _use_direct_preprocess: bool = False,
     ) -> None:
         if (
             precision not in ("fp32_autocast", "fp16_native")
@@ -106,6 +129,7 @@ class Siglip2CompactEncoder:
             or not callable(processor)
             or not isinstance(vision, nn.Module)
             or type(cuda_graph_batch1) is not bool
+            or type(_use_direct_preprocess) is not bool
         ):
             raise ValueError("trained SigLIP2 serving geometry differs")
         if cuda_graph_batch1 and (
@@ -121,6 +145,7 @@ class Siglip2CompactEncoder:
         self.precision = precision
         self.device = device
         self._batch1_lock = threading.Lock()
+        self._use_direct_preprocess = _use_direct_preprocess
         self._batch1_graph = self._capture_batch1_graph() if cuda_graph_batch1 else None
 
     @classmethod
@@ -204,7 +229,17 @@ class Siglip2CompactEncoder:
         head.load_state_dict(state["head"], strict=True)
         if precision == "fp16_native":
             vision.half()
-        return cls(processor, vision, head, precision, device, cuda_graph_batch1)
+        return cls(
+            processor,
+            vision,
+            head,
+            precision,
+            device,
+            cuda_graph_batch1,
+            _use_direct_preprocess=_direct_processor_supported(
+                model_file_sha256["preprocessor_config.json"]
+            ),
+        )
 
     @torch.inference_mode()
     def _capture_batch1_graph(self) -> tuple[torch.Tensor, torch.cuda.CUDAGraph, torch.Tensor]:
@@ -245,7 +280,9 @@ class Siglip2CompactEncoder:
             raise ValueError("trained SigLIP2 serving batch limit is 32 images")
         if any(image.width * image.height > _MAX_IMAGE_PIXELS for image in images):
             raise ValueError(f"trained SigLIP2 serving pixel limit is {_MAX_IMAGE_PIXELS}")
-        if sum(image.width * image.height for image in images) > _MAX_PREPROCESS_BATCH_PIXELS:
+        if self._use_direct_preprocess and len(images) == 1:
+            batch = {"pixel_values": _direct_preprocess(images[0])}
+        elif sum(image.width * image.height for image in images) > _MAX_PREPROCESS_BATCH_PIXELS:
             pieces = [
                 self.processor(images=[image.convert("RGB")], return_tensors="pt")
                 for image in images
@@ -486,7 +523,15 @@ class Siglip2CompactIndex:
         if precision == "fp16_native":
             vision.half()
         encoder = Siglip2CompactEncoder(
-            processor, vision, head, precision, device, cuda_graph_batch1=cuda_graph_batch1
+            processor,
+            vision,
+            head,
+            precision,
+            device,
+            cuda_graph_batch1=cuda_graph_batch1,
+            _use_direct_preprocess=_direct_processor_supported(
+                model_hashes["preprocessor_config.json"]
+            ),
         )
         if custom_gallery_image_paths is not None:
             return cls.from_image_paths(

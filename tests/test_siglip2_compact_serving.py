@@ -20,8 +20,38 @@ from sfora.joint_relational_compaction import PackedInt8Embeddings
 from sfora.siglip2_compact_serving import (
     Siglip2CompactEncoder,
     Siglip2CompactIndex,
+    _direct_preprocess,
     _verified_official_gallery,
 )
+
+
+def test_direct_processor_pixels_match_pinned_torchvision(tmp_path: Path) -> None:
+    from transformers import AutoImageProcessor
+
+    config = {
+        "image_processor_type": "SiglipImageProcessor",
+        "size": {"height": 256, "width": 256},
+        "resample": 2,
+        "do_resize": True,
+        "do_rescale": True,
+        "rescale_factor": 1 / 255,
+        "do_normalize": True,
+        "image_mean": [0.5] * 3,
+        "image_std": [0.5] * 3,
+    }
+    path = tmp_path / "preprocessor_config.json"
+    path.write_text(json.dumps(config))
+    processor = AutoImageProcessor.from_pretrained(  # type: ignore[no-untyped-call]
+        path, local_files_only=True, backend="torchvision"
+    )
+    for shape in ((320, 400), (77, 105), (888, 1101)):
+        image = Image.fromarray(
+            np.random.default_rng(shape[0]).integers(
+                0, 256, (shape[1], shape[0], 3), dtype=np.uint8
+            )
+        )
+        expected = processor(images=[image.convert("RGB")], return_tensors="pt")["pixel_values"]
+        assert torch.equal(_direct_preprocess(image), expected)
 
 
 class BasisProcessor:

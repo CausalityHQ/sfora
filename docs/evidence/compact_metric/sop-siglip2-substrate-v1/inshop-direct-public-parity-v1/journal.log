@@ -1,0 +1,9 @@
+Started sfora-inshop-direct-parity-v1.service - Sfora In-Shop direct public parity.
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+{"exact": 160}
+{"exact": 320}
+{"exact": 480}
+{"exact": 640}
+{"exact": 640, "gallery_rows": 6245}
+sfora-inshop-direct-parity-v1.service: Consumed 2min 23.740s CPU time, 3.4G memory peak, 0B memory swap peak.
