@@ -15,26 +15,30 @@ checkpoint=/home/riomus/runs/sfora-sop-true-freeze-freeze-179024-1000-v1/checkpo
 checkpoint_sha=2c838561b6c23242d74eb29329fd026cc8fba9bf965dcc4529348028dfe6d172
 base=/home/riomus/runs
 
-"$python" train_inshop_siglip2_unseen_gallery.py \
-  --dataset-root "$dataset" --model-snapshot "$snapshot" --features-dir "$source" \
-  --preflight "$preflight" --preflight-sha256 "$preflight_sha" \
-  --arm freeze_emb --updates 17 --seed 179024 \
-  --output-dir "$base/sfora-inshop-sop-warmstart-control-179024-17-v1"
+if [[ ! -f "$base/sfora-inshop-sop-warmstart-control-179024-17-v1/receipt.json" ]]; then
+  "$python" train_inshop_siglip2_unseen_gallery.py \
+    --dataset-root "$dataset" --model-snapshot "$snapshot" --features-dir "$source" \
+    --preflight "$preflight" --preflight-sha256 "$preflight_sha" \
+    --arm freeze_emb --updates 17 --seed 179024 \
+    --output-dir "$base/sfora-inshop-sop-warmstart-control-179024-17-v1"
+fi
 "$python" - <<'PY'
 import json
 from pathlib import Path
 a = json.loads(Path('/home/riomus/runs/sfora-inshop-true-freeze-freeze_emb-179024-17-v1/receipt.json').read_text())
 b = json.loads(Path('/home/riomus/runs/sfora-inshop-sop-warmstart-control-179024-17-v1/receipt.json').read_text())
 assert a['first_input_batch_sha256'] == b['first_input_batch_sha256']
-assert a['executed_schedule_sha256'] == b['executed_schedule_sha256']
+assert a['schedule_sha256'] == b['schedule_sha256']
 assert a['features_sha256'] == b['features_sha256']
 print('archived control batch/schedule/cache replay verified', flush=True)
 PY
 
-"$python" export_inshop_siglip2_train_features.py \
-  --dataset-root "$dataset" --model-snapshot "$snapshot" \
-  --vision-init-checkpoint "$checkpoint" --vision-init-sha256 "$checkpoint_sha" \
-  --output-dir "$base/sfora-inshop-sop-warmstart-cache-v1"
+if [[ ! -f "$base/sfora-inshop-sop-warmstart-cache-v1/receipt.json" ]]; then
+  "$python" export_inshop_siglip2_train_features.py \
+    --dataset-root "$dataset" --model-snapshot "$snapshot" \
+    --vision-init-checkpoint "$checkpoint" --vision-init-sha256 "$checkpoint_sha" \
+    --output-dir "$base/sfora-inshop-sop-warmstart-cache-v1"
+fi
 "$python" train_inshop_siglip2_unseen_gallery.py \
   --dataset-root "$dataset" --model-snapshot "$snapshot" \
   --features-dir "$base/sfora-inshop-sop-warmstart-cache-v1" \
