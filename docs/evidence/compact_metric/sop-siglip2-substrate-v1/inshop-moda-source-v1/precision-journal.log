@@ -1,0 +1,4 @@
+2026-09-27T19:45:45+02:00 spark-2751 systemd[3489]: Started sfora-inshop-moda-precision-v1.service - /bin/bash -c "exec 9>/home/riomus/runs/.sfora-siglip2-gpu.lock; flock -n 9; export PYTHONPATH=/home/riomus/runs/moda-openclip-3.3.0:/home/riomus/runs/sfora-inshop-moda-source-v1/src:/home/riomus/runs/sfora-inshop-moda-source-v1/scripts; exec /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-inshop-moda-source-v1/check_moda_precision.py".
+2026-09-27T19:45:49+02:00 spark-2751 bash[642860]: WARNING:root:No pretrained weights loaded for model 'ViT-B-16-SigLIP'. Model initialized randomly.
+2026-09-27T19:45:51+02:00 spark-2751 bash[642860]: {"rows": 32, "minimum_cosine": 0.9999915361404419, "mean_cosine": 0.9999974966049194, "maximum_l2": 0.004112257156521082}
+2026-09-27T19:45:52+02:00 spark-2751 systemd[3489]: sfora-inshop-moda-precision-v1.service: Consumed 13.282s CPU time.

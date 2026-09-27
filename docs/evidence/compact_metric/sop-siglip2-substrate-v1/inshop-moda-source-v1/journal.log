@@ -1,0 +1,4 @@
+2026-09-27T19:40:12+02:00 spark-2751 systemd[3489]: Started sfora-inshop-moda-source-v1.service - /bin/bash /home/riomus/runs/sfora-inshop-moda-source-v1/scripts/run_inshop_moda_source_dgx.sh.
+2026-09-27T19:40:17+02:00 spark-2751 bash[640317]: WARNING:root:No pretrained weights loaded for model 'ViT-B-16-SigLIP'. Model initialized randomly.
+2026-09-27T19:42:11+02:00 spark-2751 bash[640317]: {"r1": 0.521628700690531, "mapr": 0.21467318526473633, "encode_s": 112.51856875699013, "advance": false}
+2026-09-27T19:42:12+02:00 spark-2751 systemd[3489]: sfora-inshop-moda-source-v1.service: Consumed 8min 33.606s CPU time, 1.6G memory peak, 0B memory swap peak.

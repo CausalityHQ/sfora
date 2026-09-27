@@ -1,0 +1,3 @@
+2026-09-27T19:43:58+02:00 spark-2751 systemd[3489]: Started sfora-inshop-moda-raw-v1.service - /bin/bash -c "exec 9>/home/riomus/runs/.sfora-siglip2-gpu.lock; flock -n 9; export PYTHONPATH=/home/riomus/runs/sfora-inshop-moda-source-v1/src:/home/riomus/runs/sfora-inshop-moda-source-v1/scripts; exec /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-inshop-moda-source-v1/diagnose_moda_raw.py".
+2026-09-27T19:44:01+02:00 spark-2751 bash[641696]: {"raw_float768_r1": 0.5384554329708707, "raw_float768_map_at_r": 0.21991387527661552, "packed128_r1": 0.521628700690531, "packed128_map_at_r": 0.21467318526473633}
+2026-09-27T19:44:01+02:00 spark-2751 systemd[3489]: sfora-inshop-moda-raw-v1.service: Consumed 5.674s CPU time.
