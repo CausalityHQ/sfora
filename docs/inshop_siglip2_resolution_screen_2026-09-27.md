@@ -8,6 +8,7 @@ screen on the already-selected official In-Shop **TRAIN** held-only symmetric
 
 The [source-bound probe](../scripts/probe_inshop_siglip2_resolution.py)
 (SHA-256 `0d2ee04d5da800b2e580a7279f8232d5d0ed590d73beae9d17347747a3149597`)
+is preserved at Git `a5b855d0`. It
 loaded the seed-179026 `freeze_emb` checkpoint, re-encoded the same held images
 at 256 and 192 pixels, and used the same 128-D int8 packed exact scorer.
 At 192 it used the model's positional-embedding interpolation. The 256 replay
@@ -36,3 +37,31 @@ The full [per-query report](evidence/compact_metric/sop-siglip2-substrate-v1/ins
 SHA-256 is `fdf12abff9bc170d89536b2caf607f10e5aa7a95300365c25f658095f123c873`;
 the [terminal journal](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-resolution-probe-179026-v1.journal.log)
 SHA-256 is `be09d7c41c51520111cf7a8af2f623c00b5560a74e05ce4be3224703012a7c23`.
+
+## Final 224-pixel screen
+
+The same checkpoint and TRAIN held panel were replayed with the generalized
+[probe source](../scripts/probe_inshop_siglip2_resolution.py) SHA-256
+`79fb303fceb8d3a72b18326c99a53f8ba20ca5c6e8a277364a2964721408ab81`.
+The DGX Spark GB10 service
+`sfora-inshop-resolution-probe-224-179026-v1.service`, invocation
+`af11bb63c9a34d369c0b934ea30627af`, exited successfully. The 256-pixel
+packed R@1 again matched the frozen receipt exactly.
+
+| Input | Packed R@1 | mAP@R | Full 12,599-image export wall |
+| --- | ---: | ---: | ---: |
+| 256 pixels | 98.5237% | 0.841910 | 67.623 s |
+| 224 pixels | 97.7697% | 0.801486 | 81.908 s |
+
+The 224-pixel treatment loses **95 net correct queries** (47 gained, 142
+lost), or **0.7540 percentage points** R@1. It fails the frozen 0.5-point
+feasibility screen. The one-pass export was slower, but sequential export
+walls do not establish public image-to-top-k latency. Stop the resize lane;
+no 192/224 production change or distillation run is justified from this
+selected TRAIN panel. A different encoder/training change needs its own
+paired quality and deployed-latency gates.
+
+The full [224 per-query report](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-resolution-probe-224-179026-v1.json)
+SHA-256 is `9b4550ceb6ff23b9b6473539040dbd818be472eb8467c37ed93e97f2cde79d29`;
+the [terminal journal](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-resolution-probe-224-179026-v1.journal.log)
+SHA-256 is `c8faf7d53cd0ca14553596b1f8448b98f247be6da4aa4fd91d7cb4820097393a`.

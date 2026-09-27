@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""TRAIN-only packed-quality feasibility screen for 192-pixel SigLIP2 inference."""
+"""TRAIN-only packed-quality feasibility screen for resized SigLIP2 inference."""
 
 from __future__ import annotations
 
@@ -34,6 +34,7 @@ class ResizedVision(torch.nn.Module):
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
+    parser.add_argument("--candidate-size", type=int, choices=(192, 224), required=True)
     for name in (
         "dataset-root",
         "model-snapshot",
@@ -96,7 +97,7 @@ def main() -> None:
     label_ids = torch.tensor([classes[label] for label in labels])
     quality = {}
     export_wall = {}
-    for size in (256, 192):
+    for size in (256, args.candidate_size):
         processor.size = {"height": size, "width": size}
         started = time.perf_counter()
         values = export_all(
@@ -124,6 +125,7 @@ def main() -> None:
         "schema": "sfora-inshop-train-only-resolution-probe-v1",
         "claim_eligible": False,
         "seed": SEED,
+        "candidate_size": args.candidate_size,
         "checkpoint_sha256": receipt["checkpoint_sha256"],
         "baseline_receipt_sha256": sha256(args.baseline_receipt),
         "preflight_sha256": PREFLIGHT_SHA,
