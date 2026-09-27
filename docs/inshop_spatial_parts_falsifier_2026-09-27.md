@@ -26,3 +26,25 @@ a retrieval result: rescues can be offset by false hits elsewhere. Failure
 ends this part lane. Success permits one separately frozen TRAIN full-gallery
 paired packed-quality and image-to-top-k cost gate, with unchanged training
 recipe and scorer control. Neither outcome licenses an official or SOTA claim.
+
+## Terminal result
+
+The sole DGX Spark GB10 unit `sfora-inshop-spatial-parts-v1` (invocation
+`912b00093fa9474590c67f05543f1871`) exited 0. Its
+[raw receipt](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-spatial-parts-v1/receipt.json)
+has SHA-256 `85812078f2273cdd1f8e555e36fa5b5b75738c51f8212997206df0ce0d68e181`;
+the [journal](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-spatial-parts-v1/journal.log)
+has SHA-256 `618b4e4400149db5284c003fdf1ae226c863fb3ceb8de9e54a61d6d65892d7a4`.
+The source SHA-256 is
+`71da3788e2dc50c6abb5333318d5702355d90ad23d4c9fc3ab16b79e11ed8577`.
+It exported **409 distinct TRAIN-held images** for the fixed 151 triples.
+The positive part score beat the archived impostor in **50/151** misses
+(33.11%), well below the frozen 99/151 floor. The median part margin was
+**−0.006734**, below +0.02. Export and scoring took **3.363 s** after model
+load; peak allocated CUDA was **1,886,321,152 bytes**. Local replay checked
+the receipt source digest, all 151 margins, win count, median and decision.
+
+**Decision:** reject this fixed spatial-part match and stop before a full
+gallery export, new training, official evaluation or production serving edit.
+This only falsifies the specified four-quadrant, shared-head score; it says
+nothing about other local representations.
