@@ -29,3 +29,32 @@ image bytes. They do not. The [failed journal](evidence/compact_metric/sop-sigli
 is retained. Version 2 selects the first 1,000 distinct byte hashes while
 computing the unchanged full-gallery digest; all thresholds and artifacts
 above remain frozen. No quality or latency was observed in version 1.
+
+## Version 2 result and source-level repair
+
+The version 2 unit (`e3a6c79b805448c7bf338b4662b0baea`) wrote its
+[receipt](evidence/compact_metric/sop-siglip2-substrate-v1/sop-public-scale-train-v2/receipt.json),
+SHA-256 `2b6e59d1c6e6d009e496b2b0261b185a139f17c54414bd861b7b5ee5f0857053`,
+then exited 1 on the frozen RSS floor. All 59,551 TRAIN images built in
+**535.276 s**. The 7,741,630-byte gallery produced exact packed top-10
+ordinals and scores for 32 TRAIN queries (maximum score error 0.0). Across
+1,000 distinct TRAIN query byte hashes, synchronized image-to-top-10
+p50/p95/p99 was **15.786/18.521/19.978 ms**, and batch-32 throughput was
+**112.51 images/s**. Post-load peak allocated CUDA was **0.937 GB**.
+Peak parent RSS **6.194 GB** exceeded the frozen **6.0 GB** limit by 0.194 GB;
+the [terminal journal](evidence/compact_metric/sop-siglip2-substrate-v1/sop-public-scale-train-v2/journal.log)
+records the nonzero exit. Thus full-gallery serving was not qualified.
+
+The loader alone peaked at 3.857 GB RSS and the first 10,000 encodes stayed
+near 4.006 GB in a separate [profile](evidence/compact_metric/sop-siglip2-substrate-v1/sop-public-scale-train-v3/profile-encode-journal.log).
+The largest later 32-image batch contains **162,171,603 source pixels**.
+Splitting its model inference into smaller batches changed 31 of 32 packed
+rows, so that remedy was discarded. The production encoder now preprocesses
+images individually only when their combined source pixels exceed 64 million,
+then concatenates the exact processed pixels for the unchanged 32-image model
+forward. On that worst batch, standalone per-image versus batched processor
+pixels were bitwise equal. A [source-level paired check](evidence/compact_metric/sop-siglip2-substrate-v1/sop-public-scale-train-v3/large-batch-journal.log)
+found packed codes and inverse norms bitwise equal; peak RSS through the bounded
+path was **4.575 GB** versus **6.130 GB** after the original full-batch
+preprocessing in the same process. Version 3 will rerun the unchanged full
+TRAIN scale thresholds on this repaired public code before qualification.

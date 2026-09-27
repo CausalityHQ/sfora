@@ -1,0 +1,10 @@
+2026-09-27T20:09:21+02:00 spark-2751 systemd[3489]: Started sfora-sop-encode-rss-v1.service - /bin/bash -c "exec 9>/home/riomus/runs/.sfora-siglip2-gpu.lock; flock -n 9; export PYTHONPATH=/home/riomus/runs/sfora-sop-public-scale-train-v2/src:/home/riomus/runs/sfora-sop-public-scale-train-v2/scripts; export CUTILE_TILEIRAS_PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/tileiras; exec /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-sop-public-scale-train-v2/profile_encode_rss.py".
+2026-09-27T20:09:26+02:00 spark-2751 bash[650913]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-27T20:09:26+02:00 spark-2751 bash[650913]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-27T20:09:29+02:00 spark-2751 bash[650913]: {"images": 0, "current": 3137130496, "peak": 3857498112}
+2026-09-27T20:09:47+02:00 spark-2751 bash[650913]: {"images": 2016, "current": 3960184832, "peak": 3959422976}
+2026-09-27T20:10:05+02:00 spark-2751 bash[650913]: {"images": 4000, "current": 3980107776, "peak": 4005765120}
+2026-09-27T20:10:22+02:00 spark-2751 bash[650913]: {"images": 6016, "current": 3970420736, "peak": 4005765120}
+2026-09-27T20:10:40+02:00 spark-2751 bash[650913]: {"images": 8000, "current": 3973251072, "peak": 4005765120}
+2026-09-27T20:10:57+02:00 spark-2751 bash[650913]: {"images": 10000, "current": 3986235392, "peak": 4005765120}
+2026-09-27T20:10:58+02:00 spark-2751 systemd[3489]: sfora-sop-encode-rss-v1.service: Consumed 3min 39.027s CPU time, 3.3G memory peak, 0B memory swap peak.

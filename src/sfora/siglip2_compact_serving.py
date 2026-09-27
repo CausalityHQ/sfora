@@ -24,6 +24,8 @@ from sfora.sop_compact_training import compact_head_features
 InferencePrecision = Literal["fp32_autocast", "fp16_native"]
 _MAX_QUERY_IMAGES = 32
 _MAX_IMAGE_PIXELS = 16_000_000
+# ponytail: cap preprocessing source pixels; tune only after measuring gallery RSS and latency.
+_MAX_PREPROCESS_BATCH_PIXELS = 64_000_000
 
 
 class PackedGallery(Protocol):
@@ -243,9 +245,18 @@ class Siglip2CompactEncoder:
             raise ValueError("trained SigLIP2 serving batch limit is 32 images")
         if any(image.width * image.height > _MAX_IMAGE_PIXELS for image in images):
             raise ValueError("trained SigLIP2 serving pixel limit is 16000000")
-        batch = self.processor(
-            images=[image.convert("RGB") for image in images], return_tensors="pt"
-        )
+        if sum(image.width * image.height for image in images) > _MAX_PREPROCESS_BATCH_PIXELS:
+            pieces = [
+                self.processor(images=[image.convert("RGB")], return_tensors="pt")
+                for image in images
+            ]
+            if any(set(piece) != {"pixel_values"} for piece in pieces):
+                raise ValueError("trained SigLIP2 serving processor geometry differs")
+            batch = {"pixel_values": torch.cat([piece["pixel_values"] for piece in pieces])}
+        else:
+            batch = self.processor(
+                images=[image.convert("RGB") for image in images], return_tensors="pt"
+            )
         if set(batch) != {"pixel_values"}:
             raise ValueError("trained SigLIP2 serving processor geometry differs")
         pixels = batch["pixel_values"].to(device=self.device)

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-run=/home/riomus/runs/sfora-sop-public-scale-train-v2
+run=/home/riomus/runs/sfora-sop-public-scale-train-v3
 export PYTHONPATH="$run/src:$run/scripts"
 export HF_HUB_OFFLINE=1
 export CUTILE_TILEIRAS_PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/tileiras

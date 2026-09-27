@@ -14,6 +14,7 @@ import pytest
 import torch
 from PIL import Image
 
+import sfora.siglip2_compact_serving as serving
 from sfora.cutile_int8 import CutilePackedInt8Gallery
 from sfora.joint_relational_compaction import PackedInt8Embeddings
 from sfora.siglip2_compact_serving import (
@@ -170,6 +171,44 @@ def test_serving_rejects_empty_query_batch() -> None:
     )
     with pytest.raises(ValueError, match="nonempty"):
         encoder.encode_images([])
+
+
+def test_large_pixel_batch_preprocesses_separately_with_identical_codes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class ColorProcessor:
+        def __init__(self) -> None:
+            self.calls: list[int] = []
+
+        def __call__(
+            self, *, images: list[Image.Image], return_tensors: str
+        ) -> dict[str, torch.Tensor]:
+            assert return_tensors == "pt"
+            self.calls.append(len(images))
+            values = torch.zeros((len(images), 1024))
+            for row, image in enumerate(images):
+                values[row, image.getpixel((0, 0))[0]] = 1
+            return {"pixel_values": values}
+
+    processor = ColorProcessor()
+    head = torch.nn.Linear(1024, 128)
+    with torch.no_grad():
+        head.weight.zero_()
+        head.weight[:, :128] = torch.eye(128)
+        head.bias.zero_()
+    encoder = Siglip2CompactEncoder(
+        processor, EchoVision(), head, "fp32_autocast", torch.device("cpu")
+    )
+    images = [Image.new("RGB", (2, 2), (row, 0, 0)) for row in range(3)]
+    monkeypatch.setattr(serving, "_MAX_PREPROCESS_BATCH_PIXELS", 8)
+    separate = encoder.encode_images(images)
+    assert processor.calls == [1, 1, 1]
+    processor.calls.clear()
+    monkeypatch.setattr(serving, "_MAX_PREPROCESS_BATCH_PIXELS", 100)
+    together = encoder.encode_images(images)
+    assert processor.calls == [3]
+    assert torch.equal(separate.codes, together.codes)
+    assert torch.equal(separate.inverse_norms, together.inverse_norms)
 
 
 def test_cuda_graph_opt_in_requires_native_fp16_cuda() -> None:

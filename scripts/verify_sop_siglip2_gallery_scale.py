@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import resource
 import time
 from contextlib import ExitStack
@@ -20,17 +19,22 @@ from train_sop_siglip2_compact import paths_from_archive
 from sfora.cutile_int8 import CutilePackedInt8Gallery
 from sfora.siglip2_compact_serving import Siglip2CompactEncoder, Siglip2CompactIndex
 
-RUN = Path("/home/riomus/runs/sfora-sop-public-scale-train-v2")
+RUN = Path("/home/riomus/runs/sfora-sop-public-scale-train-v3")
 TRAINING = Path("/home/riomus/runs/sfora-sop-true-freeze-freeze-179024-1000-v1")
 ARCHIVE = Path("/home/riomus/sfora-relational-sop-e1/unicom-l14-sop-v1.npz")
 DATA = Path("/home/riomus/datasets/Stanford_Online_Products")
-MODEL = Path("/home/riomus/.cache/huggingface/hub/models--google--siglip2-large-patch16-256/snapshots/787800c8990e6f058423089178e718139608408c")
-LIBRARY = Path("/home/riomus/sfora-rc5-pointer-b7c57022/libsfora_cutile_int8_score_sha39602d0e.so")
+MODEL = Path(
+    "/home/riomus/.cache/huggingface/hub/models--google--siglip2-large-patch16-256/"
+    "snapshots/787800c8990e6f058423089178e718139608408c"
+)
+LIBRARY = Path(
+    "/home/riomus/sfora-rc5-pointer-b7c57022/libsfora_cutile_int8_score_sha39602d0e.so"
+)
 RECEIPT_SHA = "07b4716b42d1291b9c195774ebd48d9df89a3b578ee54efdb94662c5e125d1c5"
 CHECKPOINT_SHA = "2c838561b6c23242d74eb29329fd026cc8fba9bf965dcc4529348028dfe6d172"
 ARCHIVE_SHA = "1ba27b2d6b9db39067aa6facd0ef8aafc303c4527f6feabed859b0512c7d921a"
 LIBRARY_SHA = "39602d0e4e8b0d5ec441be460ad7f18e288241bef19fb6e6c5df14f4033ac73c"
-SERVING_SHA = "6aa084e340c1f8ceb17fe3ed4a5ab2dcacbca84a30b4c6443bc1b466042cba2d"
+SERVING_SHA = "5fcf261053136c916e0fe6c51119036b8114ea3f599d69c1080d7225d3ebe73a"
 
 
 def sha(path: Path) -> str:
@@ -47,7 +51,8 @@ def main() -> None:
         or sha(TRAINING / "checkpoint.pt") != CHECKPOINT_SHA
         or sha(ARCHIVE) != ARCHIVE_SHA
         or sha(LIBRARY) != LIBRARY_SHA
-        or sha(Path(__import__("sfora.siglip2_compact_serving", fromlist=["x"]).__file__)) != SERVING_SHA
+        or sha(Path(__import__("sfora.siglip2_compact_serving", fromlist=["x"]).__file__))
+        != SERVING_SHA
     ):
         raise ValueError("SOP public scale authority differs")
     training = json.loads((TRAINING / "receipt.json").read_text())
@@ -131,7 +136,9 @@ def main() -> None:
         throughput_started = time.perf_counter()
         for start in range(0, len(unique), 32):
             with ExitStack() as stack:
-                images = [stack.enter_context(Image.open(path)) for path in unique[start : start + 32]]
+                images = [
+                    stack.enter_context(Image.open(path)) for path in unique[start : start + 32]
+                ]
                 index.search_images(images)
         torch.cuda.synchronize()
         throughput_wall = time.perf_counter() - throughput_started
@@ -174,7 +181,10 @@ def main() -> None:
         "hardware": {"gpu": torch.cuda.get_device_name(), "torch": torch.__version__},
     }
     output.write_text(json.dumps(result, sort_keys=True, allow_nan=False) + "\n")
-    print(json.dumps({"gates": gates, "build_s": build_wall, "p99_ms": percentiles["p99_ms"]}), flush=True)
+    print(
+        json.dumps({"gates": gates, "build_s": build_wall, "p99_ms": percentiles["p99_ms"]}),
+        flush=True,
+    )
     if not result["advance"]:
         raise SystemExit(1)
 
