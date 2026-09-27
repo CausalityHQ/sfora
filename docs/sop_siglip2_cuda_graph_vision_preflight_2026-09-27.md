@@ -22,3 +22,29 @@ exact packed top-10 and varied-image public p50/p95/p99 screen with a
 single-threaded serving wrapper and explicit capture lifecycle. Failure stops
 before production code. Neither case changes training throughput or retrieval
 quality.
+
+## Terminal isolated-stage result
+
+The sole DGX Spark GB10 service `sfora-sop-cuda-graph-vision-v1.service`
+completed successfully (invocation `d1d7559c80c642219cdb94f0c579d53a`).
+Its [receipt](evidence/compact_metric/sop-siglip2-substrate-v1/sop-cuda-graph-vision-v1/receipt.json)
+has SHA-256 `408699dda7c7a2aeba400ddd0895c6df2c7bc7621394650b67af8bde8eb7efc8`;
+the [journal](evidence/compact_metric/sop-siglip2-substrate-v1/sop-cuda-graph-vision-v1/service.journal.log)
+has SHA-256 `e759d51b2bb5b7f18f4537505803ab56ad2d8e279b2167aa2b8bd3dac093526e`.
+The source script SHA-256 is
+`3e5486e3a43c796e7fdcc34446e6b8d4c2073be629aa346247c197b17d7d8abd`.
+All 32 batch-1 and all 32 batch-32 pooled outputs were bitwise equal to eager.
+Each arm had 400 synchronized calls per batch size.
+
+| Isolated FP16 vision, SOP TRAIN pixels | Eager p50/p95 | Graph p50/p95 | Frozen gate |
+| --- | ---: | ---: | --- |
+| Batch 1 | 8.043/8.564 ms | **7.161/7.707 ms** | p50 ratio **0.8903**, pass ≤0.90 |
+| Batch 32 | 214.839/217.444 ms | 214.862/216.856 ms | p95 ratio **0.9973**, pass ≤1.05 |
+
+Peak allocated CUDA was **995,443,712 bytes**, below 3 GB. The three frozen
+gates pass. This authorizes the opt-in single-batch public-path implementation
+and varied-image top-10/tail screen. Batch-32 graph capture adds no material
+median speed here; retain eager batch-32 in the candidate. The measured
+batch-1 vision saving is **0.882 ms**, so a full-call speed gain remains
+uncertain until JPEG decode, preprocessing, packing and native search are
+included. No training or quality metric was measured in this probe.

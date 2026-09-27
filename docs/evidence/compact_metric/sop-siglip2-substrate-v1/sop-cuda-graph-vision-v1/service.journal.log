@@ -1,0 +1,6 @@
+2026-09-27T11:14:00.430765+02:00 spark-2751 systemd[3489]: Started sfora-sop-cuda-graph-vision-v1.service - Sfora frozen SOP CUDA graph vision preflight.
+2026-09-27T11:14:04.842921+02:00 spark-2751 flock[536486]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-27T11:14:04.842921+02:00 spark-2751 flock[536486]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-27T11:14:15.624033+02:00 spark-2751 flock[536486]: {"batch": 1, "eager": {"p50_ms": 8.042655, "p95_ms": 8.56361285, "mean_ms": 8.1100927275}, "graph": {"p50_ms": 7.160508, "p95_ms": 7.70656755, "mean_ms": 7.237473925}}
+2026-09-27T11:17:08.524591+02:00 spark-2751 flock[536486]: {"batch": 32, "eager": {"p50_ms": 214.8391655, "p95_ms": 217.4444809, "mean_ms": 214.18735240750001}, "graph": {"p50_ms": 214.8619165, "p95_ms": 216.855631, "mean_ms": 214.25494571}}
+2026-09-27T11:17:09.414644+02:00 spark-2751 systemd[3489]: sfora-sop-cuda-graph-vision-v1.service: Consumed 3min 14.371s CPU time, 2.5G memory peak, 0B memory swap peak.
