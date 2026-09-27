@@ -136,3 +136,39 @@ removes the previous export-path confound without another encoder pass.
 Advance only if SOP-cache R@1 beats pretrained-cache R@1 by at least **+1.00
 point**, product-cluster paired bootstrap 95% lower endpoint is positive,
 and mAP@R does not decrease. Otherwise KILL transfer before more training.
+
+## Terminal matched-cache source result and frozen 100-update gate
+
+The sole matched-cache scorer unit `6c93b67f87c54f2dbdb9c6ba91e52dd0`
+exited 0. Its [receipt](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-sop-warmstart-smoke-v1/matched_source_quality.json)
+SHA-256 is `d57e2acbf8dbe559d7b9f7dced64df90d2fe32c8c56f020d08ced1c1a6c9ca82`.
+On the identical 6,354-query/6,245-gallery TRAIN roles, pretrained cache
+R@1/mAP@R was **79.4775%/0.508068** and SOP cache was
+**88.5741%/0.633079**. Paired R@1 gain was **+9.0966 points**, product
+bootstrap 95% **[+8.2206,+9.9984] points**, 655 wins/77 losses.
+The frozen +1-point/positive-lower/mAP guard passed. This is matched
+source-only evidence; it does not predict the 128-D trained packed result.
+
+Now train paired control/SOP treatment `freeze_emb`, seed 179024, **100
+updates** each. The same official TRAIN fit products, preflight, input batches,
+schedule, BF16 training, augmentation, optimizer, 128-D PCA head construction,
+bank algorithm and code must be used; each arm has a cache coherent with its
+vision initialization. Save held 128-D embeddings and score the fixed
+asymmetric held roles using packed int8 cosine with stable gallery ordinal
+ties, plus the trainer's symmetric held-gallery score. Freeze these
+**KILL-only** rules before running:
+
+- Check all 100 gradients and losses finite, no skipped step, exact first-ten
+  batch/schedule parity, cache/checkpoint hashes, and strict checkpoint load.
+- Advance only if treatment asymmetric packed R@1 exceeds paired control by
+  at least **+0.30 percentage point**, the product-cluster paired bootstrap
+  95% lower endpoint is positive, and asymmetric mAP@R does not decline.
+- Symmetric held R@1 may decline by at most **0.30 point** and symmetric
+  mAP@R by at most **0.003**; treatment training wall and peak allocated CUDA
+  may each be at most **1.20×** control. Any failure KILLs the lane before
+  full-budget training.
+
+Passing this gate permits paired 1,000-update seeds only; it is neither
+model selection on official TEST nor a SOTA claim. Report source SOP
+acquisition, 213.095 s treatment cache export, In-Shop training and serving
+cost separately.

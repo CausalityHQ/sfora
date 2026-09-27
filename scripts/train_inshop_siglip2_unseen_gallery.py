@@ -512,6 +512,7 @@ def main() -> None:
             batch_size=BATCH_SIZE,
         )
         export_seconds = time.perf_counter() - export_started
+        np.save(args.output_dir / "held_values.npy", values.numpy())
         packed = pack_int8_unit_embeddings(values)
         held_labels = tuple(labels[row] for row in held)
         encoded = {name: index for index, name in enumerate(sorted(set(held_labels)))}
@@ -592,6 +593,7 @@ def main() -> None:
         "peak_parent_host_rss_bytes": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024,
         "export_seconds": export_seconds,
         "score_seconds": score_seconds,
+        "held_values_sha256": sha256(args.output_dir / "held_values.npy") if quality else None,
         "quality": quality,
         "checkpoint_sha256": sha256(checkpoint_path),
         "hardware": {
