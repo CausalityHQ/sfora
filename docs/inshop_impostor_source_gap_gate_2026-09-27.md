@@ -128,5 +128,5 @@ their SHA-256 values in the raw receipts.
 **Decision:** reject this specific-impostor loss and stop before other seeds,
 1,000-update training, official TEST, or serving promotion. It failed both
 quality gates even though the incremental training cost was small. The
-experimental implementation is retained only in the source-bound evidence
-commit, then removed from the production library path.
+experimental implementation is retained only in source-bound evidence commit
+`a2fb2bb9`, then removed from the production library path.
