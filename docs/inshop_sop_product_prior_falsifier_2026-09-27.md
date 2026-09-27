@@ -38,3 +38,35 @@ optimizer, input schedule, scorer and update budget stay matched. Charge the
 SOP checkpoint's acquisition cost explicitly, including any amortization
 across deployed datasets. Requalify quality and full image-to-top-k latency
 for a changed checkpoint; architecture identity alone does not certify speed.
+
+## Terminal TRAIN-only source result
+
+The sole DGX Spark GB10 unit `sfora-inshop-sop-product-prior-v1`
+(invocation `ccf45f7a87fe48468221f6d2719835c6`) exited 0. Its
+[raw receipt](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-sop-product-prior-v1/receipt.json)
+has SHA-256 `8c4dca4f93b1a9aaec590dc0f63efdcc4be324a47736232fa6dc3d5ef0832ca8`;
+the [journal](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-sop-product-prior-v1/journal.log)
+has SHA-256 `794600cde86014e90ab9f7de53d230564c009405d4cb93ccb14aa34c76fda663`.
+The source SHA-256 is
+`cc07f4f0ec695e66f41919f01eab0c98199ddc24b13e41b4e5645b4dada8970c`.
+The pretrained control's **6,354 per-query R@1 flags** replayed its earlier
+source-rank receipt exactly. Local replay checked the per-query means,
+source digest and frozen decision.
+
+| Official In-Shop TRAIN held roles, float 1,024-D source | Pretrained SigLIP2 | SOP product-prior vision |
+| --- | ---: | ---: |
+| R@1, 6,354 queries / 6,245 gallery | **79.4775%** | **88.5899%** |
+| mAP@R | **0.508068** | **0.633295** |
+| Paired query flips | — | **656** wins, **77** losses |
+
+The paired R@1 gain is **+9.1124 percentage points**, product-cluster
+bootstrap 95% **[+8.2336, +10.0081] points**. The fixed +1.00-point,
+positive-lower-bound and nondecreasing-mAP rules pass. SOP-source export took
+**67.721 s**; total source screening took **70.186 s**, with peak allocated
+CUDA **1,885,763,584 bytes**. These are source descriptors before any
+In-Shop fitting and before the 128-D packed head. They justify a matched
+warm-start training smoke, but do not estimate its final quality, training
+cost or public image-to-top-k latency. The existing In-Shop trainer initializes
+its PCA head and detached bank from the pretrained source cache; the treatment
+must first acquire its **own SOP-source fit cache** so head/bank and encoder
+come from the same initialization. Its cache cost must be charged.
