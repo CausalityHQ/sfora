@@ -28,6 +28,31 @@ def test_bank_loss_backpropagates_through_anchors() -> None:
     assert anchors.grad.abs().sum() > 0
 
 
+def test_hard_impostor_term_uses_all_negatives_with_padded_positives() -> None:
+    bank = F.normalize(
+        torch.tensor([[1.0, 0.0], [0.9, 0.1], [0.0, 1.0], [0.1, 0.9], [0.7, 0.3]]),
+        dim=1,
+    )
+    anchors = bank[[4, 3]].clone().requires_grad_()
+    positives = torch.tensor([[1, -1], [2, -1]])
+    self_rows = torch.tensor([4, 3])
+    actual = smooth_ap_bank_loss(anchors, bank, positives, self_rows, hard_impostor=True)
+    baseline = smooth_ap_bank_loss(anchors, bank, positives, self_rows)
+    expected_terms = []
+    for row, positive in ((4, 1), (3, 2)):
+        score = anchors[len(expected_terms)] @ bank.T
+        best_negative = torch.stack(
+            [score[other] for other in range(len(bank)) if other not in (row, positive)]
+        ).max()
+        expected_terms.append(0.05 * F.softplus((best_negative - score[positive] + 0.02) / 0.05))
+    expected = baseline + 0.25 * torch.stack(expected_terms).mean()
+    torch.testing.assert_close(actual, expected)
+    torch.testing.assert_close(
+        torch.autograd.grad(actual, anchors, retain_graph=True)[0],
+        torch.autograd.grad(expected, anchors)[0],
+    )
+
+
 def test_trimming_unused_positive_padding_preserves_loss_and_gradient() -> None:
     torch.manual_seed(179026)
     bank = F.normalize(torch.randn(9, 128), dim=1)

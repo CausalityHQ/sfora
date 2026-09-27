@@ -1,0 +1,49 @@
+2026-09-27T07:55:45+02:00 spark-2751 systemd[3489]: Started sfora-inshop-impostor-smoke-179026-v1.service - /bin/bash /home/riomus/runs/sfora-inshop-impostor-179026-v1/run-smoke.sh.
+2026-09-27T07:55:51+02:00 spark-2751 bash[469180]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-27T07:55:51+02:00 spark-2751 bash[469180]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-27T07:55:52+02:00 spark-2751 bash[469180]: [294B blob data]
+2026-09-27T07:55:54+02:00 spark-2751 bash[469180]: Traceback (most recent call last):
+2026-09-27T07:55:54+02:00 spark-2751 bash[469180]:   File "/home/riomus/runs/sfora-inshop-impostor-179026-v1/trainer.py", line 634, in <module>
+2026-09-27T07:55:54+02:00 spark-2751 bash[469180]:     main()
+2026-09-27T07:55:54+02:00 spark-2751 bash[469180]:     ~~~~^^
+2026-09-27T07:55:54+02:00 spark-2751 bash[469180]:   File "/home/riomus/runs/sfora-inshop-impostor-179026-v1/trainer.py", line 423, in main
+2026-09-27T07:55:54+02:00 spark-2751 bash[469180]:     rank = member_bank_rank_loss(
+2026-09-27T07:55:54+02:00 spark-2751 bash[469180]:         features,
+2026-09-27T07:55:54+02:00 spark-2751 bash[469180]:     ...<5 lines>...
+2026-09-27T07:55:54+02:00 spark-2751 bash[469180]:         truncate_at_r=args.arm == "freeze_emb_mapr",
+2026-09-27T07:55:54+02:00 spark-2751 bash[469180]:     )
+2026-09-27T07:55:54+02:00 spark-2751 bash[469180]: TypeError: member_bank_rank_loss() got an unexpected keyword argument 'truncate_at_r'
+2026-09-27T07:55:55+02:00 spark-2751 systemd[3489]: sfora-inshop-impostor-smoke-179026-v1.service: Main process exited, code=exited, status=1/FAILURE
+2026-09-27T07:55:55+02:00 spark-2751 systemd[3489]: sfora-inshop-impostor-smoke-179026-v1.service: Failed with result 'exit-code'.
+2026-09-27T07:55:55+02:00 spark-2751 systemd[3489]: sfora-inshop-impostor-smoke-179026-v1.service: Consumed 30.184s CPU time, 4.9G memory peak, 0B memory swap peak.
+2026-09-27T07:56:35+02:00 spark-2751 systemd[3489]: Started sfora-inshop-impostor-smoke-179026-v2.service - /bin/bash /home/riomus/runs/sfora-inshop-impostor-179026-v1/run-smoke.sh.
+2026-09-27T07:56:41+02:00 spark-2751 bash[470512]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-27T07:56:41+02:00 spark-2751 bash[470512]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-27T07:56:41+02:00 spark-2751 bash[470512]: [300B blob data]
+2026-09-27T07:56:56+02:00 spark-2751 bash[470512]: {"step": 17, "loss": 4.974617958068848, "elapsed_seconds": 14.530714104883373}
+2026-09-27T07:57:02+02:00 spark-2751 bash[470512]: {"arm": "freeze_emb", "seed": 179026, "training_seconds": 14.603907224722207, "holdout_r1": null}
+2026-09-27T07:57:10+02:00 spark-2751 bash[470934]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-27T07:57:10+02:00 spark-2751 bash[470934]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-27T07:57:10+02:00 spark-2751 bash[470934]: [304B blob data]
+2026-09-27T07:57:25+02:00 spark-2751 bash[470934]: {"step": 17, "loss": 5.001004219055176, "elapsed_seconds": 14.593005364760756}
+2026-09-27T07:57:31+02:00 spark-2751 bash[470934]: {"arm": "freeze_emb_impostor", "seed": 179026, "training_seconds": 14.675306217744946, "holdout_r1": null}
+2026-09-27T07:57:32+02:00 spark-2751 systemd[3489]: sfora-inshop-impostor-smoke-179026-v2.service: Consumed 1min 41.579s CPU time, 6.9G memory peak, 0B memory swap peak.
+2026-09-27T07:58:00+02:00 spark-2751 systemd[3489]: Started sfora-inshop-impostor-pair-179026-v1.service - /bin/bash /home/riomus/runs/sfora-inshop-impostor-179026-v1/run-pair.sh 100.
+2026-09-27T07:58:06+02:00 spark-2751 bash[472425]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-27T07:58:06+02:00 spark-2751 bash[472425]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-27T07:58:07+02:00 spark-2751 bash[472425]: [300B blob data]
+2026-09-27T07:58:46+02:00 spark-2751 bash[472425]: {"step": 50, "loss": 7.253352642059326, "elapsed_seconds": 39.049388389103115}
+2026-09-27T07:59:23+02:00 spark-2751 bash[472425]: {"step": 100, "loss": 3.9247913360595703, "elapsed_seconds": 75.90021909633651}
+2026-09-27T08:00:03+02:00 spark-2751 bash[472425]: {"export_batches": 100}
+2026-09-27T08:00:36+02:00 spark-2751 bash[472425]: {"arm": "freeze_emb", "seed": 179026, "training_seconds": 75.98740486521274, "holdout_r1": 0.9734105881419161}
+2026-09-27T08:00:44+02:00 spark-2751 bash[473835]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-27T08:00:44+02:00 spark-2751 bash[473835]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-27T08:00:45+02:00 spark-2751 bash[473835]: [304B blob data]
+2026-09-27T08:01:25+02:00 spark-2751 bash[473835]: {"step": 50, "loss": 7.314097881317139, "elapsed_seconds": 39.29097370617092}
+2026-09-27T08:02:02+02:00 spark-2751 bash[473835]: {"step": 100, "loss": 4.023437023162842, "elapsed_seconds": 76.39661381114274}
+2026-09-27T08:02:44+02:00 spark-2751 bash[473835]: {"export_batches": 100}
+2026-09-27T08:03:18+02:00 spark-2751 bash[473835]: {"arm": "freeze_emb_impostor", "seed": 179026, "training_seconds": 76.46075119590387, "holdout_r1": 0.9720612747043416}
+2026-09-27T08:03:20+02:00 spark-2751 systemd[3489]: sfora-inshop-impostor-pair-179026-v1.service: Consumed 7min 40.044s CPU time, 11.1G memory peak, 0B memory swap peak.
+2026-09-27T08:03:52+02:00 spark-2751 systemd[3489]: Started sfora-inshop-impostor-score-179026-v1.service - /bin/bash -lc "exec 9>/home/riomus/runs/.sfora-siglip2-gpu.lock; flock -n 9; export PYTHONPATH=/home/riomus/runs/sfora-inshop-impostor-179026-v1/src:/home/riomus/runs:/home/riomus/sfora-siglip2-deployed-batch-v1/scripts; exec /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-inshop-impostor-179026-v1/score_pair.py --execute".
+2026-09-27T08:03:54+02:00 spark-2751 bash[475442]: {"claim_eligible": false, "control_r1": 0.9549889833175952, "gallery_rows": 6245, "gallery_sha256": "e7114b2c24bfe9625a47d698729c8c4e09de18b16541e7919e7983baed7290c3", "gate_pass": false, "query_rows": 6354, "query_sha256": "89f1dacd6dd94147578c46b2a6830655a17d1979bf58f021ddd49ecf4549ac68", "r1_delta": -0.00015738117721120554, "r1_delta_product_bootstrap_95": [-0.0019078356823142835, 0.0016882496190556305], "receipt_sha256": {"freeze_emb": "73aaa5b87350ea76b97bb3f3e28ee440d9adc8149be2879acd7c70c5666506aa", "freeze_emb_impostor": "815ee169f71a630299083740ffc969c74ee298289a48f09f9e9d7e98b53b9a6f"}, "schema": "sfora-inshop-impostor-paired-100-train-v1", "source_sha256": "bc9850e2ee8e9c2122be25fc7533b285c183b359777fd224296fef7a3fafafc0", "symmetric_map_at_r_delta": -0.003504508847686494, "training_peak_cuda_ratio": 1.0002628326810001, "training_wall_ratio": 1.0062292735425136, "treatment_r1": 0.954831602140384}
+2026-09-27T08:03:55+02:00 spark-2751 systemd[3489]: sfora-inshop-impostor-score-179026-v1.service: Consumed 5.423s CPU time.

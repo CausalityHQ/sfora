@@ -133,6 +133,7 @@ def main() -> None:
             "freeze_emb_rank",
             "freeze_emb_mapr",
             "freeze_emb_live",
+            "freeze_emb_impostor",
             "subspace",
         ),
         required=True,
@@ -155,7 +156,14 @@ def main() -> None:
         or (args.vision_lr != 1e-5 and (args.arm != "control" or args.seed == 179023))
         or (args.arm == "subspace" and (args.seed == 179023 or args.vision_lr != 1e-5))
         or (
-            args.arm in ("freeze_emb", "freeze_emb_rank", "freeze_emb_mapr", "freeze_emb_live")
+            args.arm
+            in (
+                "freeze_emb",
+                "freeze_emb_rank",
+                "freeze_emb_mapr",
+                "freeze_emb_live",
+                "freeze_emb_impostor",
+            )
             and (args.seed == 179023 or args.vision_lr != 1e-5)
         )
         or args.workers < 0
@@ -310,10 +318,17 @@ def main() -> None:
         "freeze_emb_rank",
         "freeze_emb_mapr",
         "freeze_emb_live",
+        "freeze_emb_impostor",
     ):
         for block in vision.encoder.layers[: args.freeze_first_blocks]:
             block.requires_grad_(False)
-    if args.arm in ("freeze_emb", "freeze_emb_rank", "freeze_emb_mapr", "freeze_emb_live"):
+    if args.arm in (
+        "freeze_emb",
+        "freeze_emb_rank",
+        "freeze_emb_mapr",
+        "freeze_emb_live",
+        "freeze_emb_impostor",
+    ):
         vision.embeddings.requires_grad_(False)
     head = head.cuda().train()
     classifier = nn.Parameter(classifier.cuda())
@@ -390,6 +405,14 @@ def main() -> None:
                     torch.nn.functional.normalize(bank.index_select(1, coordinates), dim=1),
                     batch_positives[:, :batch_width],
                     ordinals,
+                )
+            elif args.arm == "freeze_emb_impostor":
+                rank = smooth_ap_bank_loss(
+                    torch.nn.functional.normalize(features.float(), dim=1),
+                    bank,
+                    batch_positives[:, :batch_width],
+                    ordinals,
+                    hard_impostor=True,
                 )
             elif step in inactive:
                 rank = valid_anchor_rank_loss(
@@ -489,6 +512,7 @@ def main() -> None:
             batch_size=BATCH_SIZE,
         )
         export_seconds = time.perf_counter() - export_started
+        np.save(args.output_dir / "held_embeddings.npy", values, allow_pickle=False)
         packed = pack_int8_unit_embeddings(values)
         held_labels = tuple(labels[row] for row in held)
         encoded = {name: index for index, name in enumerate(sorted(set(held_labels)))}
@@ -547,10 +571,23 @@ def main() -> None:
         "held_rows": len(held),
         "frozen_encoder_blocks": list(range(args.freeze_first_blocks))
         if args.arm
-        in ("freeze", "freeze_emb", "freeze_emb_rank", "freeze_emb_mapr", "freeze_emb_live")
+        in (
+            "freeze",
+            "freeze_emb",
+            "freeze_emb_rank",
+            "freeze_emb_mapr",
+            "freeze_emb_live",
+            "freeze_emb_impostor",
+        )
         else [],
         "frozen_embeddings": args.arm
-        in ("freeze_emb", "freeze_emb_rank", "freeze_emb_mapr", "freeze_emb_live"),
+        in (
+            "freeze_emb",
+            "freeze_emb_rank",
+            "freeze_emb_mapr",
+            "freeze_emb_live",
+            "freeze_emb_impostor",
+        ),
         "recovered_rank_updates": recovered_rank_updates,
         "pca_sha256": pca_sha,
         "first_input_batch_sha256": first_input_batch_sha256,
@@ -567,6 +604,9 @@ def main() -> None:
         "score_seconds": score_seconds,
         "quality": quality,
         "checkpoint_sha256": sha256(checkpoint_path),
+        "held_embeddings_sha256": sha256(args.output_dir / "held_embeddings.npy")
+        if quality
+        else None,
         "hardware": {
             "gpu": torch.cuda.get_device_name(),
             "torch": torch.__version__,

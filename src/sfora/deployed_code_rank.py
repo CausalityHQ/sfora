@@ -99,6 +99,7 @@ def smooth_ap_bank_loss(
     *,
     temperature: float = 0.01,
     truncate_at_r: bool = False,
+    hard_impostor: bool = False,
 ) -> torch.Tensor:
     """SmoothAP against detached full-bank candidates in O(B x P x N).
 
@@ -123,6 +124,7 @@ def smooth_ap_bank_loss(
         or type(temperature) is not float
         or temperature <= 0.0
         or type(truncate_at_r) is not bool
+        or type(hard_impostor) is not bool
         or bool((self_ordinals < 0).any())
         or bool((self_ordinals >= len(bank)).any())
         or bool((positive_ordinals < -1).any())
@@ -156,7 +158,20 @@ def smooth_ap_bank_loss(
             precision = precision * torch.sigmoid(
                 valid.sum(dim=1, keepdim=True) + 0.5 - candidate_rank
             )
-        return 1.0 - ((precision * valid).sum(dim=1) / valid.sum(dim=1)).mean()
+        loss = 1.0 - ((precision * valid).sum(dim=1) / valid.sum(dim=1)).mean()
+        if hard_impostor:
+            positive_mask = torch.zeros_like(scores, dtype=torch.int32)
+            positive_mask.scatter_add_(1, safe, valid.to(torch.int32))
+            negative_valid = candidate_valid & (positive_mask == 0)
+            if not bool(negative_valid.any(dim=1).all()):
+                raise ValueError("bank rank needs an impostor for every anchor")
+            best_negative = scores.masked_fill(~negative_valid, -torch.inf).max(dim=1).values
+            best_positive = positive_scores.masked_fill(~valid, -torch.inf).max(dim=1).values
+            loss = (
+                loss
+                + 0.25 * (0.05 * F.softplus((best_negative - best_positive + 0.02) / 0.05)).mean()
+            )
+        return loss
 
 
 def smooth_ap_packed_loss(
