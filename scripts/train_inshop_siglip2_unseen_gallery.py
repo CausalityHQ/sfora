@@ -16,7 +16,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
-from export_inshop_siglip2_train_features import MODEL_HASHES
+from export_inshop_siglip2_train_features import MODEL_HASHES, load_vision_init
 from export_sop_siglip2_train import MODEL_REVISION
 from preflight_inshop_siglip2_unseen_gallery import PARTITION_SHA, digest_rows, schedule, split
 from torch import nn
@@ -50,6 +50,11 @@ SEED = 179023
 BATCH_SIZE = 64
 RANK_COEFFICIENT = 8.0
 PREFLIGHT_SHA = "d5e22c6a331acbdf3b143b9836597593c2317f9488b99b72f61a4c54baf18eb8"
+
+
+def validate_cache_vision_init(cache: dict, expected_sha256: str | None) -> None:
+    if cache.get("vision_init_sha256") != expected_sha256:
+        raise ValueError("In-Shop cache vision initialization differs")
 
 
 def singleton_batch(labels: tuple[str, ...], batch: tuple[int, ...], singleton: set[str]) -> bool:
@@ -90,6 +95,7 @@ def valid_anchor_rank_loss(
 def source_manifest() -> dict[str, str]:
     used = (
         main,
+        load_vision_init,
         split,
         schedule,
         smooth_ap_bank_loss,
@@ -111,7 +117,7 @@ def source_manifest() -> dict[str, str]:
         for function in used
         if (filename := sys.modules[function.__module__].__file__) is not None
     }
-    if len(paths) != 11:
+    if len(paths) != 12:
         raise ValueError("In-Shop source manifest differs")
     return {str(path): sha256(path) for path in sorted(paths)}
 
@@ -125,6 +131,8 @@ def main() -> None:
     parser.add_argument("--dataset-root", type=Path, required=True)
     parser.add_argument("--model-snapshot", type=Path, required=True)
     parser.add_argument("--features-dir", type=Path, required=True)
+    parser.add_argument("--vision-init-checkpoint", type=Path)
+    parser.add_argument("--vision-init-sha256")
     parser.add_argument("--preflight", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument(
@@ -157,6 +165,7 @@ def main() -> None:
     if (
         args.output_dir.exists()
         or args.output_dir.is_symlink()
+        or (args.vision_init_checkpoint is None) != (args.vision_init_sha256 is None)
         or (args.arm == "budget") != (args.updates == 3_000)
         or (
             args.updates == 1_533
@@ -214,6 +223,7 @@ def main() -> None:
     sources = source_manifest()
     preflight = json.loads(args.preflight.read_text())
     cache = json.loads((args.features_dir / "receipt.json").read_text())
+    validate_cache_vision_init(cache, args.vision_init_sha256)
     if (
         preflight.get("schema") != "sfora-inshop-siglip2-unseen-gallery-preflight-v1"
         or preflight.get("seed") != args.seed
@@ -259,9 +269,7 @@ def main() -> None:
     singleton = {name for name, count in counts.items() if count == 1}
     schedule_updates = schedule_horizon(args.updates)
     batches = schedule(fit_labels, schedule_updates, seed=args.seed)
-    if schedule_updates == 3_000 and batches[:1_000] != schedule(
-        fit_labels, 1_000, seed=args.seed
-    ):
+    if schedule_updates == 3_000 and batches[:1_000] != schedule(fit_labels, 1_000, seed=args.seed):
         raise ValueError("In-Shop budget schedule does not extend control")
     schedule_sha = hashlib.sha256(np.asarray(batches, dtype="<i4").tobytes()).hexdigest()
     inactive = tuple(
@@ -315,6 +323,8 @@ def main() -> None:
         vision.encoder.layers = nn.ModuleList(
             list(vision.encoder.layers[: -args.tail_blocks_to_drop])
         )
+    if args.vision_init_checkpoint is not None:
+        load_vision_init(vision, args.vision_init_checkpoint, args.vision_init_sha256)
     vision = vision.float().cuda().train()
     if args.arm in (
         "freeze",
@@ -479,6 +489,7 @@ def main() -> None:
             "arm": args.arm,
             "updates": args.updates,
             "vision_lr": args.vision_lr,
+            "vision_init_sha256": args.vision_init_sha256,
             "half_fit_products": args.half_fit_products,
             "tail_blocks_dropped": args.tail_blocks_to_drop,
             "freeze_first_blocks": args.freeze_first_blocks,
@@ -527,6 +538,7 @@ def main() -> None:
         "workers": args.workers,
         "rank_coefficient": RANK_COEFFICIENT,
         "vision_lr": args.vision_lr,
+        "vision_init_sha256": args.vision_init_sha256,
         "training_coordinates": 64 if args.arm == "subspace" else 128,
         "rank_inactive_steps": (
             []

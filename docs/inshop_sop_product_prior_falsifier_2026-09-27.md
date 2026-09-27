@@ -70,3 +70,41 @@ cost or public image-to-top-k latency. The existing In-Shop trainer initializes
 its PCA head and detached bank from the pretrained source cache; the treatment
 must first acquire its **own SOP-source fit cache** so head/bank and encoder
 come from the same initialization. Its cache cost must be charged.
+
+## Frozen paired 17-update training integrity gate
+
+The source screen used different image processor and precision paths across
+arms, so its +9.1124-point difference is not a weights-only causal estimate.
+Before training, export the SOP-vision source cache through the **same**
+`export_inshop_siglip2_train_features.py` path that made the pretrained control
+cache: pinned model snapshot, default processor, FP16 weights, batch 32, all
+25,882 official TRAIN rows. Require the SOP vision checkpoint SHA-256 above
+in the cache receipt and trainer, strict state loading, exact row/model/cache
+hashes, and no overlap with another DGX GPU unit. The treatment PCA head,
+proxies, and detached bank must all derive from its own SOP cache.
+
+Run paired `freeze_emb` 17-update jobs, seed 179024, with the same source code,
+dataset, preflight, augmentation schedule, processor, LR, optimizer, worker
+count, and BF16 train precision. The control uses the archived pretrained
+cache; the treatment uses the new SOP cache. The only experimental change is
+the coherent encoder/source initialization. Freeze these **KILL-only** rules:
+
+- Both finish 17/17 updates with finite losses and preclip gradients and no
+  optimizer skip; their first ten input-batch hashes and executed schedule
+  hash match exactly.
+- Each checkpoint reloads strictly. Embeddings and lower twelve blocks equal
+  that arm's actual loaded initialization, and at least one trainable upper
+  tensor changes. The treatment cache SHA and vision checkpoint SHA agree
+  with its receipt. Any mismatch kills the lane before 100 updates.
+- Treatment 17-update training wall and peak allocated CUDA must each be at
+  most 1.20 times the paired control. This screens gross runtime regressions;
+  it does not establish an optimized training cost.
+
+The 17-update gate has **no quality promotion rule**. If it passes, freeze a
+separate paired 100-update TRAIN-held packed R@1/mAP@R gate, with both fixed
+asymmetric query/gallery roles and symmetric held-gallery guard, before
+launching it. The 100-update read can kill this lane, never prove final
+quality. Only paired full-budget seeds and official independent evaluation
+can support a deployed quality claim. Charge SOP acquisition and new cache
+export separately from In-Shop fine-tuning; unchanged architecture only
+motivates, but does not replace, a new serving latency measurement.

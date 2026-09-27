@@ -25,15 +25,25 @@ MODEL_HASHES = {
 }
 
 
+def load_vision_init(vision: torch.nn.Module, checkpoint: Path, expected_sha256: str) -> None:
+    if len(expected_sha256) != 64 or sha256(checkpoint) != expected_sha256:
+        raise ValueError("In-Shop vision checkpoint SHA differs")
+    state = torch.load(checkpoint, map_location="cpu", weights_only=True)["vision"]
+    vision.load_state_dict(state, strict=True)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     parser.add_argument("--dataset-root", required=True, type=Path)
     parser.add_argument("--model-snapshot", required=True, type=Path)
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument("--tail-blocks-to-drop", type=int, choices=(0, 2), default=0)
+    parser.add_argument("--vision-init-checkpoint", type=Path)
+    parser.add_argument("--vision-init-sha256")
     args = parser.parse_args()
     if (
         args.output_dir.exists()
+        or (args.vision_init_checkpoint is None) != (args.vision_init_sha256 is None)
         or args.model_snapshot.resolve().name != MODEL_REVISION
         or sha256(args.dataset_root / "Eval/list_eval_partition.txt") != PARTITION_SHA256
         or tuple(MODEL_FILES) != tuple(MODEL_HASHES)
@@ -62,6 +72,8 @@ def main() -> None:
         model.vision_model.encoder.layers = torch.nn.ModuleList(
             list(model.vision_model.encoder.layers[: -args.tail_blocks_to_drop])
         )
+    if args.vision_init_checkpoint is not None:
+        load_vision_init(model.vision_model, args.vision_init_checkpoint, args.vision_init_sha256)
     model = model.cuda().eval()
     args.output_dir.mkdir(parents=True, exist_ok=False)
     torch.cuda.reset_peak_memory_stats()
@@ -89,6 +101,7 @@ def main() -> None:
         "products": len({row.label for row in rows}),
         "width": 1024,
         "tail_blocks_dropped": args.tail_blocks_to_drop,
+        "vision_init_sha256": args.vision_init_sha256,
         "batch_size": 32,
         "partition_sha256": PARTITION_SHA256,
         "model_revision": MODEL_REVISION,
