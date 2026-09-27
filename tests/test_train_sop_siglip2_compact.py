@@ -26,13 +26,6 @@ class PixelOnlyProcessor:
         return {"pixel_values": torch.zeros((len(images), 3, 256, 256))}
 
 
-def test_image_rows_crop_floor_is_explicit_and_default_is_preserved() -> None:
-    default = MODULE.ImageRows((Path("unused.jpg"),), (1,), augment=True)
-    wider = MODULE.ImageRows((Path("unused.jpg"),), (1,), augment=True, crop_scale_min=0.25)
-    assert default.augment.transforms[0].scale == (0.8, 1.0)
-    assert wider.augment.transforms[0].scale == (0.25, 1.0)
-
-
 def test_collate_accepts_pinned_pixel_only_processor() -> None:
     rows = [(Image.new("RGB", (32, 32)), 1), (Image.new("RGB", (32, 32)), 2)]
     batch, labels = MODULE.make_collate(PixelOnlyProcessor())(rows)

@@ -58,3 +58,47 @@ independent-seed TRAIN confirmation. A failure stops the crop treatment before
 official query/gallery or production promotion. These thresholds are fixed
 before either arm trains; the official query/gallery split is closed to this
 selection.
+
+## Terminal paired TRAIN result
+
+The first control smoke failed at import before any optimizer update because a
+transitive repository script was absent from the isolated remote staging. Its
+[journal](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-crop-view-twin-v1/smoke/failed-import.journal.log)
+has SHA-256 `3ad740f21406068e55e4df40ce76d8d024e621b2056353290dd5266bea4ebc0e`.
+After staging the file and confirming the import, both 17-update services
+exited 0. Their
+[control](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-crop-view-twin-v1/smoke/control.json)
+and [treatment](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-crop-view-twin-v1/smoke/treatment.json)
+receipt SHA-256 values are `861115637d56907383b566946c037438bf4745128018512d95240b3ad38ab10d`
+and `95707f5590abf2ca6cff2ea73a3e9be633490dd4c19cb67d2ecb62fe616702c3`.
+The source, schedule, split, feature cache and PCA head hashes matched;
+the first ten input hashes differed as designed. Losses and gradients were
+finite, training wall ratio was **1.0332**, and peak CUDA ratio **1.0000**,
+passing the frozen smoke cost gates.
+
+Both serial 100-update DGX services and the native packed score service exited
+0. The [control receipt](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-crop-view-twin-v1/full/control.json),
+[treatment receipt](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-crop-view-twin-v1/full/treatment.json)
+and [paired native score](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-crop-view-twin-v1/full/paired-score.json)
+have SHA-256 `8807d985bfbac8dab26a2f1a7dc482b19ad9a3d3771b0bf0bda3650da8840a7c`,
+`55adc855411557a5492db151842d6bc9d21ae296d2eab3f54bb359f5e4f9c9e0`
+and `cc2115323b8a3e6769994ca0cd94fd25e4dc6cb97da8cbf96a44ec8e92c42403`.
+Their source-bound journals are adjacent to the receipts. The same checkpoint
+architecture, data, schedule, budget and scorer were used for both arms.
+
+| TRAIN held metric, control → crop treatment | Measured | Frozen decision |
+| --- | ---: | --- |
+| Additional/full/flat fixed-role packed R@1 delta, 2,223 queries | **−0.1799 pp**, product-bootstrap 95% lower **−0.7756 pp** | Fail: below +0.45 pp and lower≤0 |
+| Front/side/back fixed-role packed R@1 delta | **+0.1452 pp** | Pass: above −0.10 pp |
+| All 6,354 fixed-role packed R@1 delta | **+0.0315 pp** | Pass: above −0.15 pp |
+| Symmetric 12,599-query packed mAP@R | **0.775415 → 0.770336** (−0.005079) | Fail: below −0.002 floor |
+| Training wall including bank initialization, treatment/control | **0.9993×** | Pass: ≤1.02× |
+| Peak allocated CUDA, treatment/control | **1.0000×** | Pass: ≤1.005× |
+
+The association between framing and misses was real on these TRAIN roles, but
+widening the random crop did not improve the targeted ranking after 100
+updates. Stop this arm before new seeds, full-budget training or official
+query/gallery evaluation. The experimental crop option is removed from the
+trainer; the source at the frozen experiment commit and raw receipts remain
+available for audit. This is a negative result, not a revised quality or SOTA
+claim.

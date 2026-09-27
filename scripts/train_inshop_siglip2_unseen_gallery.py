@@ -147,7 +147,6 @@ def main() -> None:
     parser.add_argument("--half-fit-products", action="store_true")
     parser.add_argument("--tail-blocks-to-drop", type=int, choices=(0, 2), default=0)
     parser.add_argument("--freeze-first-blocks", type=int, choices=(12, 16), default=12)
-    parser.add_argument("--crop-scale-min", type=float, choices=(0.25, 0.8), default=0.8)
     args = parser.parse_args()
     if (
         args.output_dir.exists()
@@ -191,17 +190,6 @@ def main() -> None:
         or (
             args.arm == "freeze_emb_live"
             and (args.freeze_first_blocks != 16 or args.seed != 179024)
-        )
-        or (
-            args.crop_scale_min != 0.8
-            and (
-                args.arm != "freeze_emb"
-                or args.seed != 179026
-                or args.updates not in (17, 100)
-                or args.half_fit_products
-                or args.tail_blocks_to_drop
-                or args.freeze_first_blocks != 12
-            )
         )
         or not torch.cuda.is_available()
         or not torch.cuda.is_bf16_supported()
@@ -335,12 +323,7 @@ def main() -> None:
     class_ids_gpu = torch.from_numpy(class_ids).cuda()
     bank_init_seconds = time.perf_counter() - bank_started
     paths = tuple(row.image_path for row in train)
-    dataset = ImageRows(
-        tuple(paths[row] for row in fit),
-        tuple(class_ids.tolist()),
-        augment=True,
-        crop_scale_min=args.crop_scale_min,
-    )
+    dataset = ImageRows(tuple(paths[row] for row in fit), tuple(class_ids.tolist()), augment=True)
     loader = DataLoader(
         dataset,
         batch_sampler=FixedBatches(batches[: args.updates]),
@@ -487,7 +470,6 @@ def main() -> None:
             "half_fit_products": args.half_fit_products,
             "tail_blocks_dropped": args.tail_blocks_to_drop,
             "freeze_first_blocks": args.freeze_first_blocks,
-            "crop_scale_min": args.crop_scale_min,
             "live_head_bank": live_head,
         },
         checkpoint_path,
@@ -495,7 +477,6 @@ def main() -> None:
     quality = None
     export_seconds = None
     score_seconds = None
-    held_embeddings_sha256 = None
     if args.updates >= 100:
         export_started = time.perf_counter()
         values = export_all(
@@ -508,9 +489,6 @@ def main() -> None:
             batch_size=BATCH_SIZE,
         )
         export_seconds = time.perf_counter() - export_started
-        embeddings_path = args.output_dir / "held_embeddings.npy"
-        np.save(embeddings_path, values.numpy())
-        held_embeddings_sha256 = sha256(embeddings_path)
         packed = pack_int8_unit_embeddings(values)
         held_labels = tuple(labels[row] for row in held)
         encoded = {name: index for index, name in enumerate(sorted(set(held_labels)))}
@@ -561,7 +539,6 @@ def main() -> None:
         "half_fit_products": args.half_fit_products,
         "tail_blocks_dropped": args.tail_blocks_to_drop,
         "freeze_first_blocks": args.freeze_first_blocks,
-        "crop_scale_min": args.crop_scale_min,
         "live_head_bank": live_head,
         "bank_width": bank.shape[1],
         "held_rows_sha256": held_sha,
@@ -588,7 +565,6 @@ def main() -> None:
         "peak_parent_host_rss_bytes": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024,
         "export_seconds": export_seconds,
         "score_seconds": score_seconds,
-        "held_embeddings_sha256": held_embeddings_sha256,
         "quality": quality,
         "checkpoint_sha256": sha256(checkpoint_path),
         "hardware": {

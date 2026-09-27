@@ -1,0 +1,7 @@
+2026-09-27T12:17:20+02:00 spark-2751 flock[555435]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-27T12:17:20+02:00 spark-2751 flock[555435]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-27T12:17:20+02:00 spark-2751 flock[555435]: [300B blob data]
+2026-09-27T12:18:00+02:00 spark-2751 flock[555435]: {"step": 50, "loss": 9.043176651000977, "elapsed_seconds": 39.04157163016498}
+2026-09-27T12:18:37+02:00 spark-2751 flock[555435]: {"step": 100, "loss": 6.2594804763793945, "elapsed_seconds": 75.99568116432056}
+2026-09-27T12:19:15+02:00 spark-2751 flock[555435]: {"export_batches": 100}
+2026-09-27T12:19:49+02:00 spark-2751 flock[555435]: {"arm": "freeze_emb", "seed": 179026, "training_seconds": 76.08830561721697, "holdout_r1": 0.9712675609175332}

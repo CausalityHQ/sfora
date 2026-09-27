@@ -1,0 +1,8 @@
+2026-09-27T12:10:51+02:00 spark-2751 flock[551650]: Traceback (most recent call last):
+2026-09-27T12:10:51+02:00 spark-2751 flock[551650]:   File "/home/riomus/runs/sfora-inshop-crop-train-v1/train_inshop_siglip2_unseen_gallery.py", line 19, in <module>
+2026-09-27T12:10:51+02:00 spark-2751 flock[551650]:     from export_inshop_siglip2_train_features import MODEL_HASHES
+2026-09-27T12:10:51+02:00 spark-2751 flock[551650]:   File "/home/riomus/runs/sfora-inshop-crop-train-v1/export_inshop_siglip2_train_features.py", line 16, in <module>
+2026-09-27T12:10:51+02:00 spark-2751 flock[551650]:     from export_sop_siglip2_train import MODEL_FILES, MODEL_REVISION, export_features, sha256
+2026-09-27T12:10:51+02:00 spark-2751 flock[551650]:   File "/home/riomus/runs/sfora-inshop-crop-train-v1/export_sop_siglip2_train.py", line 19, in <module>
+2026-09-27T12:10:51+02:00 spark-2751 flock[551650]:     from export_unicom_sop_embeddings import SopRecord, _parse_split
+2026-09-27T12:10:51+02:00 spark-2751 flock[551650]: ModuleNotFoundError: No module named 'export_unicom_sop_embeddings'
