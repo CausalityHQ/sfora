@@ -59,3 +59,22 @@ older asymmetric receipt's 32-bit row hashes with the preflight's 64-bit
 row digest. That [failed journal](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-pose-positive-gap-179026-v1-failed.journal.log)
 SHA-256 is `5ff4fe041563e26d7a40592c23736a25cbafd3a0ac77e1a22fca71325506dafe`;
 no quality was read from it.
+
+## Positive-only subset loss check
+
+A later Fable consultation (`4cf4fb993ee64421`) proposed an analytic
+expected-miss loss that randomly thins **only positives** while retaining
+every negative. That is not the In-Shop query/gallery protocol: gallery-role
+assignment removes negative images too. The existing fixed-split receipt
+already gives a decisive bound on this approximation without another export.
+Of 6,354 queries, the full gallery has 6,248 top-1 hits; 78 of those become
+misses in the thinned gallery. Adding its removed negatives back cannot turn
+any of those 78 misses into hits, so positive-only thinning has at most
+`(6248 - 78) / 6354 = 97.1042%` top-1 accuracy on this same split. The
+actual gallery-role result is `6203 / 6354 = 97.6235%`, at least **0.5194
+percentage points** higher; 33 full-gallery misses were rescued by negative
+removal. The proposed positive-only expectation is therefore a conservative
+surrogate, not an exact expectation of In-Shop gallery-role recall. Do not
+promote it as a protocol-matched method or run its full training gate on that
+premise. This fixed-split inequality does not quantify variation over random
+role draws or rule out a different positive-side loss.
