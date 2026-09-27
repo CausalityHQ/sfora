@@ -7,6 +7,7 @@ import json
 import os
 import threading
 from collections.abc import Sequence
+from contextlib import ExitStack
 from pathlib import Path
 from typing import Any, Literal, Protocol
 
@@ -155,6 +156,38 @@ class Siglip2CompactIndex:
         self._lifecycle_lock = threading.RLock()
 
     @classmethod
+    def from_image_paths(
+        cls,
+        *,
+        encoder: Siglip2CompactEncoder,
+        native_library: Path,
+        image_paths: Sequence[Path],
+    ) -> Siglip2CompactIndex:
+        """Encode a user gallery in ordinal order and open exact native top-10."""
+
+        from PIL import Image
+
+        if (
+            not isinstance(encoder, Siglip2CompactEncoder)
+            or not isinstance(native_library, Path)
+            or not isinstance(image_paths, Sequence)
+            or len(image_paths) < 10
+            or any(not isinstance(path, Path) for path in image_paths)
+        ):
+            raise ValueError("trained SigLIP2 custom gallery authority differs")
+        codes = torch.empty((len(image_paths), 128), dtype=torch.int8)
+        inverse_norms = torch.empty(len(image_paths), dtype=torch.float16)
+        for start in range(0, len(image_paths), _MAX_QUERY_IMAGES):
+            stop = min(start + _MAX_QUERY_IMAGES, len(image_paths))
+            with ExitStack() as stack:
+                images = [stack.enter_context(Image.open(path)) for path in image_paths[start:stop]]
+                chunk = encoder.encode_images(images)
+            codes[start:stop] = chunk.codes
+            inverse_norms[start:stop] = chunk.inverse_norms
+        packed = PackedInt8Embeddings(codes, inverse_norms)
+        return cls(encoder, CutilePackedInt8Gallery.open_packed(native_library, packed))
+
+    @classmethod
     def from_artifacts(
         cls,
         *,
@@ -168,9 +201,24 @@ class Siglip2CompactIndex:
         official_gallery_receipt: Path | None = None,
         official_gallery_embeddings: Path | None = None,
         expected_official_gallery_receipt_sha256: str | None = None,
+        custom_gallery_image_paths: Sequence[Path] | None = None,
     ) -> Siglip2CompactIndex:
         """Load trusted artifacts bound to an independently pinned receipt digest."""
 
+        if custom_gallery_image_paths is not None and (
+            not isinstance(custom_gallery_image_paths, Sequence)
+            or any(
+                value is not None
+                for value in (
+                    official_gallery_receipt,
+                    official_gallery_embeddings,
+                    expected_official_gallery_receipt_sha256,
+                )
+            )
+            or len(custom_gallery_image_paths) < 10
+            or any(not isinstance(path, Path) for path in custom_gallery_image_paths)
+        ):
+            raise ValueError("trained SigLIP2 custom gallery selection differs")
         if (
             len(expected_receipt_sha256) != 64
             or any(char not in "0123456789abcdef" for char in expected_receipt_sha256)
@@ -228,7 +276,9 @@ class Siglip2CompactIndex:
             official_gallery_embeddings,
             expected_official_gallery_receipt_sha256,
         )
-        if any(value is not None for value in official_args):
+        if custom_gallery_image_paths is not None:
+            gallery_path, gallery_rows = None, None
+        elif any(value is not None for value in official_args):
             if (
                 not isinstance(official_gallery_receipt, Path)
                 or not isinstance(official_gallery_embeddings, Path)
@@ -276,12 +326,20 @@ class Siglip2CompactIndex:
         head.load_state_dict(checkpoint["head"], strict=True)
         if precision == "fp16_native":
             vision.half()
+        encoder = Siglip2CompactEncoder(processor, vision, head, precision, device)
+        if custom_gallery_image_paths is not None:
+            return cls.from_image_paths(
+                encoder=encoder,
+                native_library=native_library,
+                image_paths=custom_gallery_image_paths,
+            )
+        if gallery_path is None or gallery_rows is None:
+            raise ValueError("trained SigLIP2 gallery selection differs")
         values = np.load(gallery_path, mmap_mode="r", allow_pickle=False)
         if values.dtype != np.float32 or values.ndim != 2 or values.shape != (gallery_rows, 128):
             raise ValueError("trained SigLIP2 serving gallery geometry differs")
         packed_gallery = pack_int8_unit_embeddings(torch.from_numpy(np.asarray(values).copy()))
         gallery = CutilePackedInt8Gallery.open_packed(native_library, packed_gallery)
-        encoder = Siglip2CompactEncoder(processor, vision, head, precision, device)
         return cls(encoder, gallery)
 
     def search_images(self, images: Sequence[Any]) -> tuple[NDArray[np.int64], NDArray[np.float32]]:

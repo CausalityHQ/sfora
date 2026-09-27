@@ -401,6 +401,8 @@ evaluation protocol.
 (`SforaProjector` / `sfora.compose`) for when you already have vectors, shown just
 below; and (2) an **end-to-end method** API (`sfora.method` / `sfora.benchmark`) that
 trains a backbone from composable, type-safe bricks, shown further down.
+The trained SigLIP2 image-to-top-10 deployment also accepts an ordered user
+image gallery through [`Siglip2CompactIndex.from_artifacts`](docs/sop_siglip2_custom_gallery_gate_2026-09-27.md).
 
 ### Frozen-embedding projection (you already have vectors)
 

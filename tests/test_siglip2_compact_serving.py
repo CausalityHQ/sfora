@@ -12,6 +12,8 @@ import pytest
 import torch
 from PIL import Image
 
+from sfora.cutile_int8 import CutilePackedInt8Gallery
+from sfora.joint_relational_compaction import PackedInt8Embeddings
 from sfora.siglip2_compact_serving import (
     Siglip2CompactEncoder,
     Siglip2CompactIndex,
@@ -97,6 +99,54 @@ def test_serving_releases_owned_encoder_and_rejects_search_after_close() -> None
     assert index.encoder is None
     with pytest.raises(RuntimeError, match="closed"):
         index.search_images([Image.new("RGB", (2, 2))])
+
+
+def test_custom_image_gallery_uses_bounded_encoder_batches(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    head = torch.nn.Linear(1024, 128)
+    with torch.no_grad():
+        head.weight.zero_()
+        head.weight[:, :128] = torch.eye(128)
+        head.bias.zero_()
+    encoder = Siglip2CompactEncoder(
+        BasisProcessor(), EchoVision(), head, "fp32_autocast", torch.device("cpu")
+    )
+    paths = []
+    for row in range(33):
+        path = tmp_path / f"{row}.png"
+        Image.new("RGB", (2, 2), (row, 0, 0)).save(path)
+        paths.append(path)
+    gallery = RecordingGallery()
+    observed: list[PackedInt8Embeddings] = []
+
+    def open_packed(_library: Path, packed: PackedInt8Embeddings) -> RecordingGallery:
+        observed.append(packed)
+        return gallery
+
+    monkeypatch.setattr(CutilePackedInt8Gallery, "open_packed", open_packed)
+    index = Siglip2CompactIndex.from_image_paths(
+        encoder=encoder, native_library=tmp_path / "native.so", image_paths=paths
+    )
+    assert len(observed) == 1
+    assert observed[0].codes.shape == (33, 128)
+    assert observed[0].inverse_norms.shape == (33,)
+    index.close()
+    assert gallery.closed
+
+
+def test_custom_gallery_rejects_mixed_official_selection_before_model_load(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="custom gallery selection"):
+        Siglip2CompactIndex.from_artifacts(
+            model_snapshot=tmp_path,
+            training_receipt=tmp_path / "missing.json",
+            training_checkpoint=tmp_path / "missing.pt",
+            train_embeddings=tmp_path / "missing.npy",
+            native_library=tmp_path / "missing.so",
+            expected_receipt_sha256="0" * 64,
+            custom_gallery_image_paths=(tmp_path,) * 10,
+            official_gallery_receipt=tmp_path / "official.json",
+        )
 
 
 def test_artifact_loader_rejects_checkpoint_hash_before_model_load(

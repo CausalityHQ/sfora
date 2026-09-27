@@ -1,0 +1,6 @@
+2026-09-27T08:15:54+02:00 spark-2751 systemd[3489]: Started sfora-sop-custom-gallery-179024-v1.service - /bin/bash /home/riomus/runs/sfora-sop-custom-gallery-179024-v1/run.sh.
+2026-09-27T08:15:58+02:00 spark-2751 bash[479425]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-27T08:15:58+02:00 spark-2751 bash[479425]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-27T08:15:59+02:00 spark-2751 bash[479425]: [381B blob data]
+2026-09-27T08:16:03+02:00 spark-2751 bash[479425]: {"gallery_build_wall_seconds": 5.5502630402334034, "max_score_abs_delta": 0.0, "one_batch32_search_wall_seconds": 0.2668221415951848, "public_top10_exact": true}
+2026-09-27T08:16:04+02:00 spark-2751 systemd[3489]: sfora-sop-custom-gallery-179024-v1.service: Consumed 19.562s CPU time, 2.1G memory peak, 0B memory swap peak.
