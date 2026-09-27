@@ -55,3 +55,29 @@ more than twice the observed 0.0023614 and four times smaller than the
 candidate's +0.02 median floor. The crop win and margin thresholds stay
 exactly as above. If the amended guard fails, stop without a crop result;
 do not relax it again.
+
+## Terminal crop screen
+
+The repaired sole DGX Spark GB10 unit `sfora-inshop-bbox-context-v2`
+(invocation `21ed4bbfc792439b9e56d11293e59b2c`) exited 0. Its
+[raw receipt](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-bbox-context-v1/receipt.json)
+has SHA-256 `59d03c2f46a10db0331736a9463dda1c85a7ed7c37a6484a117d46f485163fdc`;
+the [journal](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-bbox-context-v1/success.journal.log)
+has SHA-256 `58a213926dac840690fb6f9daaebba6f4b4a10b023db9754ef4054de1cf4cbdb`.
+The executed source SHA-256 is
+`810c0e64bdfb5a35354126f72160b12d400442864bf26a07754f95ba8aad8cd3`.
+All **151** original-image triples remained misses; maximum archived-margin
+drift was **0.0023614**, within the amended 0.005 guard.
+
+Cropping the **409 distinct TRAIN-held images** to their released garment
+boxes made the positive outrank the archived impostor in **86/151** triples
+(56.95%), below the frozen **90/151** rule. The median cropped margin was
+**+0.026241**, above its +0.02 rule, but both were required. Export and
+scoring took **7.241 s** after model load; peak allocated CUDA was
+**1,886,321,152 bytes**. Local replay checked all 151 cropped margins,
+the win count, median, source digest and decision.
+
+**Decision:** stop this box-context lane before attention supervision,
+full-gallery reranking, paired training, official evaluation or a serving
+change. The stress test does not establish that garment context is absent;
+it only fails the predeclared minimum headroom for this exact candidate.
