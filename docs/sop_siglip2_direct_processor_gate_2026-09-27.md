@@ -127,3 +127,18 @@ before this edit; the two errors introduced by the initial direct path were
 removed with type-only comments. Thus this is a measured production serving
 increment for the pinned runtime, while repo-wide type-check cleanliness
 remains a separate release gap.
+
+## Frozen In-Shop public latency gate
+
+With exact transfer parity established, run one paired full image-to-top-10
+measurement on the **same** seed-179026 In-Shop TRAIN checkpoint, fixed
+6,245-row gallery and 640 parity-certified query images. At 20 CPU threads,
+use 20 alternating ABBA/BAAB blocks with 500 batch-1 calls per arm in each
+block. The direct arm must keep packed/top-10 bytes equal on every timed call,
+lower p50 by at least 5%, have p99 point ratio ≤1.0 and paired-block
+bootstrap upper 95% p99 ratio ≤1.05. A 200-call/arm batch-32 diagnostic
+must keep p95 ≤1.10× control. Record gallery build, load, throughput, peak
+CUDA, RSS, raw calls and source hashes. This qualifies local serving cost,
+not official In-Shop quality or an external SOTA comparison. Frozen
+[`certify_inshop_siglip2_direct_p99.py`](../scripts/certify_inshop_siglip2_direct_p99.py)
+SHA-256: `88081e64584171920d7bf55809152374da3435792f0f0a2abbdd5a4c0dec7454`.
