@@ -99,7 +99,6 @@ def smooth_ap_bank_loss(
     *,
     temperature: float = 0.01,
     truncate_at_r: bool = False,
-    worst_positive_hinge: bool = False,
 ) -> torch.Tensor:
     """SmoothAP against detached full-bank candidates in O(B x P x N).
 
@@ -124,7 +123,6 @@ def smooth_ap_bank_loss(
         or type(temperature) is not float
         or temperature <= 0.0
         or type(truncate_at_r) is not bool
-        or type(worst_positive_hinge) is not bool
         or bool((self_ordinals < 0).any())
         or bool((self_ordinals >= len(bank)).any())
         or bool((positive_ordinals < -1).any())
@@ -158,23 +156,7 @@ def smooth_ap_bank_loss(
             precision = precision * torch.sigmoid(
                 valid.sum(dim=1, keepdim=True) + 0.5 - candidate_rank
             )
-        loss = 1.0 - ((precision * valid).sum(dim=1) / valid.sum(dim=1)).mean()
-        if worst_positive_hinge:
-            negative_valid = candidate_valid.clone()
-            negative_valid.scatter_(
-                1, torch.where(valid, positive_ordinals, self_ordinals[:, None]), False
-            )
-            best_negative = scores.masked_fill(~negative_valid, -torch.inf).max(dim=1).values
-            worst_positive = positive_scores.masked_fill(~valid, torch.inf).min(dim=1).values
-            loss = (
-                loss
-                + 0.25
-                * (
-                    0.05
-                    * torch.nn.functional.softplus((best_negative - worst_positive + 0.02) / 0.05)
-                ).mean()
-            )
-        return loss
+        return 1.0 - ((precision * valid).sum(dim=1) / valid.sum(dim=1)).mean()
 
 
 def smooth_ap_packed_loss(

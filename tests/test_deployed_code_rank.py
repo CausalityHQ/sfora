@@ -95,24 +95,6 @@ def test_bank_mapr_cutoff_has_finite_gradient_and_keeps_default_loss() -> None:
     assert torch.count_nonzero(anchors.grad) > 0
 
 
-def test_bank_worst_positive_hinge_uses_weakest_positive_and_has_gradient() -> None:
-    torch.manual_seed(37)
-    bank = F.normalize(torch.randn(8, 128), dim=1)
-    anchors = bank[[0, 4]].clone().requires_grad_()
-    positives = torch.tensor([[1, 2, 3, -1], [5, 6, 7, -1]], dtype=torch.long)
-    self_rows = torch.tensor([0, 4], dtype=torch.long)
-    base = smooth_ap_bank_loss(anchors, bank, positives, self_rows)
-    observed = smooth_ap_bank_loss(anchors, bank, positives, self_rows, worst_positive_hinge=True)
-    scores = anchors.detach() @ bank.T
-    worst = torch.stack([scores[0, 1:4].min(), scores[1, 5:8].min()])
-    best = torch.stack([scores[0, 4:].max(), scores[1, :4].max()])
-    expected = 0.25 * (0.05 * F.softplus((best - worst + 0.02) / 0.05)).mean()
-    torch.testing.assert_close(observed - base, expected)
-    observed.backward()
-    assert anchors.grad is not None and torch.isfinite(anchors.grad).all()
-    assert torch.count_nonzero(anchors.grad) > 0
-
-
 @pytest.mark.parametrize(
     "features,labels",
     [
