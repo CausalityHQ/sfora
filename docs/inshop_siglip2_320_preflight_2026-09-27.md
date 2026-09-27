@@ -30,3 +30,32 @@ Only a latency pass permits a separately frozen paired training gate.
 No extrapolated official score, current SOTA claim, or learned-method claim
 follows from this single selected TRAIN checkpoint. The 320 source, model,
 checkpoint, partition, roles, raw receipt and service journal must be hashed.
+
+## Terminal result
+
+The sole DGX Spark GB10 unit
+`sfora-inshop-resolution-320-179026-v1.service` (invocation
+`842960f8fdd94c74b8fe94fa02d458df`) exited 0. The [raw receipt](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-resolution-320-179026-v1/receipt.json)
+has SHA-256 `4345d1f01ba482b1d22b80083f43b48e731c6ecee3494a6abb46f0251559a8ce`;
+the [journal](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-resolution-320-179026-v1/service-journal.txt)
+has SHA-256 `0c1a2d44c10109dddbe8294614fca6cbe21f3589913a10e30f0000ce162167e8`.
+The source SHA-256 was `472ef522722634172b787d4ae3fa46148cf19d392fe13c24bde46de9d740f979`.
+Local replay checked all 6,354 hit flags, counts, hashes and the recorded gate.
+
+| Input | Fixed asymmetric packed R@1, 6,354 queries / 6,245 gallery | Symmetric packed R@1 / mAP@R, 12,599 held images | Full export wall |
+| --- | ---: | ---: | ---: |
+| 256 pixels, same checkpoint | 6,203 hits = **97.6235%** | **98.5237% / 0.841910** | **67.265 s** |
+| 320 pixels, interpolated positions | 6,178 hits = **97.2301%** | **98.3411% / 0.824011** | **102.809 s** |
+
+The asymmetric loss is **25 net hits, −0.3935 percentage points** (46 gained,
+71 lost), inside the frozen −0.5-point floor. The symmetric mAP@R loss is
+**0.017899**, and one-pass export is **52.8% slower**. The export timing is
+sequential and does not establish public image-to-top-10 latency.
+
+**Decision:** the numerical quality floor permits a later latency screen,
+but this candidate has no measured quality gain and materially worsens mAP@R
+at higher encoding cost. Stop the 320 resolution treatment before training
+or production changes. A future, separately frozen 320 training experiment
+would need a distinct reason to expect the training effect to reverse both
+quality losses; this one-checkpoint probe does not supply it. The official
+In-Shop quality gap remains open.
