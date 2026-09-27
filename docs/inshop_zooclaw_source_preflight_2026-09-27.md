@@ -99,3 +99,24 @@ selected diagnostic sample and reads no quality. If it agrees with the first
 profile, the historical full-export comparison remains unmatched and requires
 a new full paired cost gate; if it disagrees, diagnose the image-distribution
 effect before changing production preprocessing.
+
+The spread profile also exited 0 (invocation
+`060159ec4be4453e9d307480b65e6d3f`). Its [receipt](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-zooclaw-stage-v2/receipt.json)
+SHA-256 is `d6012af5e52720fbb9f76c75b9a865230be0c2dbbbf1ed524b248d19422ce2b4`;
+the [journal](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-zooclaw-stage-v2/journal.log)
+SHA-256 is `715afb375af75365897c68235b63b91cf89eb4cf55d9ff786112b6e7d5f4c405`.
+Mean total stages were **0.310970 vs 0.344294 s/batch** for fashion versus
+SigLIP2 Large; vision **0.160444 vs 0.210867 s/batch**, processor
+**0.090520 vs 0.074470 s/batch**. The second sample reproduces the first
+profile's direction. Neither 320-image result revises the failed full-export
+gate or establishes public image-to-top-k latency.
+
+The next cost diagnosis is one unchanged full 25,882-TRAIN-image replay of
+the pinned SigLIP2 Large/256 source exporter on this current DGX stack. Its
+source and export helper hashes are
+`30f46c7536f546a264295da9c22de9cde0738bd02f5ca1bd51dcd1a9b8a659b6`
+and `e407b393ea94f1abd2cffffdc9cd61081da82de232e9b8037af7cd7cca32db2c`.
+The replay tests whether the historical **216.163 s** is reproducible now;
+it has no quality scoring or advancement rule. A slower current baseline
+would explain why the short paired profiles and historical unpaired exports
+disagree, but would not retroactively pass the frozen source screen.
