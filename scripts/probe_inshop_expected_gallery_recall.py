@@ -21,6 +21,8 @@ from export_sop_siglip2_train import MODEL_REVISION
 from preflight_inshop_siglip2_unseen_gallery import PARTITION_SHA, digest_rows, sha256, split
 from train_sop_siglip2_compact import export_all
 
+import sfora.joint_relational_compaction as packing_module
+import sfora.unicom_inshop as partition_module
 from sfora.joint_relational_compaction import pack_int8_unit_embeddings
 from sfora.unicom_inshop import parse_inshop_partition
 
@@ -30,6 +32,8 @@ HELPER_SHA = "e2f7f8d16e2850a51aa85a3d3f4e04a80ee2a48681dcac55306fd792c8f19ba6"
 QUERY_SHA = "89f1dacd6dd94147578c46b2a6830655a17d1979bf58f021ddd49ecf4549ac68"
 GALLERY_SHA = "e7114b2c24bfe9625a47d698729c8c4e09de18b16541e7919e7983baed7290c3"
 POSE_RECEIPT_SHA = "a64b428572c1cd94ce24e2d6dd9c5681af9aa971057cb0302fe9b3768b4b4f8a"
+PACKING_SHA = "4ca0de1b0579ea6165c81e9057e9afe77e6dd4141f0b4a0adb281de25300de67"
+PARSER_SHA = "526fd06c9c26a30144a6777a877436d8fa7584d8144de88cb9be2b744e71c503"
 
 
 def correct(
@@ -81,6 +85,8 @@ def main() -> None:
         )
         or helper is None
         or sha256(Path(helper)) != HELPER_SHA
+        or sha256(Path(packing_module.__file__)) != PACKING_SHA
+        or sha256(Path(partition_module.__file__)) != PARSER_SHA
         or not torch.cuda.is_available()
     ):
         raise ValueError("In-Shop expected-gallery authority differs")
@@ -93,6 +99,7 @@ def main() -> None:
         raise ValueError("In-Shop expected-gallery held split differs")
     labels = tuple(train[index].label for index in held)
     paths = tuple(train[index].image_path for index in held)
+    image_hashes = [sha256(path) for path in paths]
     grouped: dict[str, list[int]] = defaultdict(list)
     for index, label in enumerate(labels):
         grouped[label].append(index)
@@ -215,6 +222,9 @@ def main() -> None:
         "pose_receipt_sha256": POSE_RECEIPT_SHA,
         "preflight_sha256": PREFLIGHT_SHA,
         "partition_sha256": PARTITION_SHA,
+        "packing_source_sha256": PACKING_SHA,
+        "partition_parser_sha256": PARSER_SHA,
+        "held_image_sha256": image_hashes,
         "query_rows": len(query),
         "gallery_rows": len(gallery),
         "full_r1": sum(full_hits) / len(query),
