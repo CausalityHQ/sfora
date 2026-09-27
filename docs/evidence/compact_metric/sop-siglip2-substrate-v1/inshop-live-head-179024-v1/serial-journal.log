@@ -1,0 +1,28 @@
+2026-09-27T04:52:19+02:00 spark-2751 systemd[3489]: Started sfora-inshop-live-head-smoke-179024-v1.service - /bin/bash /home/riomus/runs/sfora-inshop-live-head-179024-v1/run_inshop_live_head_bank_dgx.sh smoke.
+2026-09-27T04:52:25+02:00 spark-2751 bash[412433]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-27T04:52:25+02:00 spark-2751 bash[412433]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-27T04:52:26+02:00 spark-2751 bash[412433]: [292B blob data]
+2026-09-27T04:52:39+02:00 spark-2751 bash[412433]: {"step": 17, "loss": 5.61525297164917, "elapsed_seconds": 12.449562477879226}
+2026-09-27T04:52:45+02:00 spark-2751 bash[412433]: {"arm": "freeze_emb_live", "seed": 179024, "training_seconds": 12.528089489787817, "holdout_r1": null}
+2026-09-27T04:52:47+02:00 spark-2751 bash[412417]: DONE arm=freeze_emb_live updates=17 receipt_sha256=2377c0d0cd8183580a56081ca8a8dbb6aa5db1923dbd451173418797aad2e59c
+2026-09-27T04:52:47+02:00 spark-2751 systemd[3489]: sfora-inshop-live-head-smoke-179024-v1.service: Consumed 49.246s CPU time, 5.7G memory peak, 0B memory swap peak.
+2026-09-27T04:53:15+02:00 spark-2751 systemd[3489]: Started sfora-inshop-live-head-control100-179024-v1.service - /bin/bash /home/riomus/runs/sfora-inshop-live-head-179024-v1/run_inshop_live_head_bank_dgx.sh control100.
+2026-09-27T04:53:21+02:00 spark-2751 bash[414001]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-27T04:53:21+02:00 spark-2751 bash[414001]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-27T04:53:21+02:00 spark-2751 bash[414001]: [300B blob data]
+2026-09-27T04:53:54+02:00 spark-2751 bash[414001]: {"step": 50, "loss": 6.529430389404297, "elapsed_seconds": 32.402905211783946}
+2026-09-27T04:54:25+02:00 spark-2751 bash[414001]: {"step": 100, "loss": 5.170769691467285, "elapsed_seconds": 62.93009307002649}
+2026-09-27T04:55:03+02:00 spark-2751 bash[414001]: {"export_batches": 100}
+2026-09-27T04:55:36+02:00 spark-2751 bash[414001]: {"arm": "freeze_emb", "seed": 179024, "training_seconds": 63.02064386475831, "holdout_r1": 0.9663465354393206}
+2026-09-27T04:55:38+02:00 spark-2751 bash[413985]: DONE arm=freeze_emb updates=100 receipt_sha256=b5b86747f4cdd0701b5e4ac9727eec04e286c3961a8a166eb722c4bbd27f1f39
+2026-09-27T04:55:38+02:00 spark-2751 systemd[3489]: sfora-inshop-live-head-control100-179024-v1.service: Consumed 3min 30.591s CPU time, 10.2G memory peak, 0B memory swap peak.
+2026-09-27T04:56:08+02:00 spark-2751 systemd[3489]: Started sfora-inshop-live-head-live100-179024-v1.service - /bin/bash /home/riomus/runs/sfora-inshop-live-head-179024-v1/run_inshop_live_head_bank_dgx.sh live100.
+2026-09-27T04:56:14+02:00 spark-2751 bash[415437]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-27T04:56:14+02:00 spark-2751 bash[415437]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-27T04:56:14+02:00 spark-2751 bash[415437]: [304B blob data]
+2026-09-27T04:56:48+02:00 spark-2751 bash[415437]: {"step": 50, "loss": 6.475165367126465, "elapsed_seconds": 32.61805699206889}
+2026-09-27T04:57:18+02:00 spark-2751 bash[415437]: {"step": 100, "loss": 5.16460657119751, "elapsed_seconds": 63.39074089098722}
+2026-09-27T04:58:01+02:00 spark-2751 bash[415437]: {"export_batches": 100}
+2026-09-27T04:58:35+02:00 spark-2751 bash[415437]: {"arm": "freeze_emb_live", "seed": 179024, "training_seconds": 63.454954837914556, "holdout_r1": 0.9679339630129375}
+2026-09-27T04:58:36+02:00 spark-2751 bash[415421]: DONE arm=freeze_emb_live updates=100 receipt_sha256=aa3a6b1c9d69f230ab52f5b152e9820c7af241c643d9997dbb0b3c42a85a58f8
+2026-09-27T04:58:36+02:00 spark-2751 systemd[3489]: sfora-inshop-live-head-live100-179024-v1.service: Consumed 3min 39.310s CPU time, 9.6G memory peak, 0B memory swap peak.
