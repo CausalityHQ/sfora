@@ -37,3 +37,21 @@ implementation and thresholds before reading its output. A later treatment
 would need a matched TRAIN-only multi-seed quality and cost gate; F0a alone
 does not authorize one. Keep the published official In-Shop 96.7% UNICOM
 Recall@1 reference separate from this TRAIN stratum.
+
+## Terminal F0a result
+
+The pinned CPU-only DGX Spark script exited 0. Its [raw receipt](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-acquisition-f0a-v1/receipt.json)
+has SHA-256 `839cf0b8f27f4c60ab5229dc653354fe091ed66a01e65a97a85acdfd4494110c`.
+The script, partition, archived packed-hit receipt, and fixed role hashes all
+matched their frozen values. Of 6,354 queries, 191 lack a same-group positive
+in the 6,245-image gallery. They account for **10/151 = 6.6225%** packed misses,
+far below the 35% target-presence floor. Their R@1 is **94.7644%** versus
+**97.7122%** for queries with a same-group positive; the miss-rate enrichment
+passes 2×, but the frozen conjunction fails. Even perfect rescue of these ten
+misses would add only **10/6,354 = 0.1574 pp** on these roles.
+
+`advance_f0b=false`: do not re-export embeddings, alter supervision targets,
+run treatment seeds, or read official query/gallery. This rejects the proposed
+acquisition-group mechanism on the fixed TRAIN roles, not the older audit's
+finding or the value of cross-group retrieval as a separate task. No training,
+CUDA peak, or public image-to-top-k latency changed.
