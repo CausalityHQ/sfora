@@ -10,11 +10,11 @@ import os
 from pathlib import Path
 
 import numpy as np
-from measure_fragmentation_acquisition_alignment import _parse
 from preflight_inshop_siglip2_unseen_gallery import split
 from score_inshop_crop_view_pair import GALLERY_SHA, QUERY_SHA, roles, sha256
 
 from sfora.unicom_inshop import parse_inshop_partition
+from sfora.unicom_probe import _acquisition_series
 
 PARTITION_SHA = "cfada103c44df866db5e2ee9ecc2301ca691a4d0cdb3c875fe4051b62570894c"
 RECEIPT_SHA = "d48e2c382fcfb7aa4807b00cc8b2a76fe098aebfa77334dbc2fd8402d36b46a4"
@@ -53,7 +53,7 @@ def main() -> None:
         or hashlib.sha256(np.asarray(gallery, dtype="<i4").tobytes()).hexdigest() != GALLERY_SHA
     ):
         raise ValueError("In-Shop acquisition screen role hashes differ")
-    series = tuple(_parse(path)[0] for path in paths)
+    series = tuple(_acquisition_series(train[row]) for row in held)
     gallery_series: dict[str, set[str]] = {}
     for row in gallery:
         gallery_series.setdefault(labels[row], set()).add(series[row])

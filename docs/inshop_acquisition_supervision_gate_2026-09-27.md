@@ -6,7 +6,7 @@ products when the held gallery has no image from the query's acquisition
 group. The July [acquisition audit](inshop_acquisition_audit.md) found a large
 same-group cosine effect in an older model; it does not establish the effect
 for the current SigLIP2 checkpoint. Here `group` means the filename's first
-token, as parsed by the existing `_parse` helper. It is not a verified camera
+token, as parsed by the existing `_acquisition_series` helper. It is not a verified camera
 or wearer identity.
 
 ## Frozen F0a decision, before reading the stratum
