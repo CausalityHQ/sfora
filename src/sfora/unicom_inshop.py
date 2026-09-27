@@ -21,6 +21,11 @@ def parse_inshop_partition(
     expected_counts: tuple[int, int, int] | None = EXPECTED_COUNTS,
 ) -> tuple[InshopRecord, ...]:
     dataset_root = Path(dataset_root)
+    image_tree = (dataset_root / "Img" / "img").resolve()
+    if "img_highres" in {part.lower() for part in image_tree.parts}:
+        raise ValueError(
+            f"In-Shop retrieval requires standard Img/img.zip, not img_highres: {image_tree}"
+        )
     partition = dataset_root / "Eval" / "list_eval_partition.txt"
     lines = partition.read_text(encoding="utf-8").splitlines()
     if len(lines) < 3:

@@ -134,6 +134,21 @@ def test_parse_partition_preserves_official_row_order_and_labels(tmp_path: Path)
     ]
 
 
+def test_parse_partition_rejects_highres_ancestor(tmp_path: Path) -> None:
+    highres = tmp_path / "img_highres"
+    highres.mkdir()
+    (highres / "a.jpg").write_bytes(b"pixel")
+    root = tmp_path / "dataset"
+    (root / "Eval").mkdir(parents=True)
+    (root / "Img").mkdir()
+    (root / "Img" / "img").symlink_to(highres, target_is_directory=True)
+    (root / "Eval" / "list_eval_partition.txt").write_text(
+        "1\nimage_name item_id evaluation_status\nimg/a.jpg item_1 train\n"
+    )
+    with pytest.raises(ValueError, match="img_highres"):
+        _load_script().parse_inshop_partition(root, expected_counts=None)
+
+
 def test_export_embeddings_batches_in_official_order_and_roundtrips(tmp_path: Path) -> None:
     module = _load_script()
     records = _records(module, tmp_path)

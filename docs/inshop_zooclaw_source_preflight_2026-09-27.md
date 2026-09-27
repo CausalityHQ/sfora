@@ -1,5 +1,34 @@
 # Fashion-pretrained source screen on In-Shop TRAIN, 27 September 2026
 
+> **RETRACTED as a matched In-Shop comparison.** The ZooClaw run below used
+> `/home/riomus/datasets/inshop/Img/img`, a symlink to the 8.3 GB
+> `img_highres` parsing corpus. Its SigLIP2 reference used the official 941 MB
+> `img.zip` retrieval corpus at `inshop_official_standard`. The partition and
+> filenames matched, but image bytes differ (for example
+> `WOMEN/Dresses/id_00000002/02_1_front.jpg`: 265,185 vs 24,097 bytes).
+> Neither the apparent quality gain nor the 284.868/216.163 s cost ratio is a
+> matched result. Raw receipts remain for audit; do not promote or cite the
+> numerical comparison. The shared partition parser now rejects this symlink.
+> The full baseline-cost replay planned below is cancelled because it would
+> diagnose a comparison that was never valid.
+
+## Correct-corpus rerun frozen before execution
+
+Run the **unchanged** pinned ZooClaw source script and checkpoint on
+`/home/riomus/datasets/inshop_official_standard`, whose `Img/img` is the
+standard 941 MB retrieval image corpus used by the frozen 22-block SigLIP2
+reference. Use the corrected partition parser; require partition SHA
+`cfada103c44df866db5e2ee9ecc2301ca691a4d0cdb3c875fe4051b62570894c`
+and the same fit/held row digests. Keep the original fit-only PCA-128,
+signed-int8/f16 pack, exact scorer, paired product bootstrap, and frozen
+thresholds: mAP@R delta ≥+0.005 with 95% lower >0, R@1 nonregression,
+25,882-image export ≤216.163 s, and allocated CUDA <10 GB. The reference
+quality numbers are 87.1736% R@1 and 0.508923 mAP@R on this same corpus.
+This is a new exploratory TRAIN-only screen; it cannot rehabilitate the old
+receipt or establish training/public serving performance. Stop before training
+or official query/gallery if any gate fails. Record the full invocation,
+source/model/receipt/journal hashes and exact corpus root.
+
 The paired worst-positive loss and acquisition-group falsifier failed their
 frozen TRAIN gates. A different representation source is the next distinct
 quality/efficiency possibility. [ZooClaw-FashionSigLIP2](https://arxiv.org/abs/2606.27708)
