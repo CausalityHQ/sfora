@@ -40,3 +40,19 @@ direct p50 **4.342712 vs 2.686296 ms** (−38.1%) and p95 **5.816719 vs
 All frozen screen gates pass. This is processor-only; public
 image-to-top-k speed, native top-10 parity and In-Shop transfer remain to be
 verified before production promotion.
+
+## Paired public gate
+
+The fixed follow-up runs the same seed-179024 SOP checkpoint, full 59,551-row
+TRAIN gallery, native scorer and 640 distinct TRAIN query images at 20 CPU
+threads on DGX Spark GB10. The source-bound script
+[`certify_sop_siglip2_direct_public.py`](../scripts/certify_sop_siglip2_direct_public.py)
+has SHA-256 `19a3f4423f883df607729bb0f951362eec939af2197aa3a7c9e77cd3446a9817`.
+It requires exact packed codes, inverse norms, top-10 ordinals and scores for
+all 640 batch-1 calls and 20 batch-32 calls. Twenty alternating ABBA/BAAB
+blocks make 10,000 full decode-to-top-10 calls per arm at batch 1. Promotion
+requires direct/control p50 ≤0.95, p99 point ratio ≤1.00, and paired-block
+bootstrap p99 ratio upper 95% ≤1.05. A 200-call/arm batch-32 diagnostic must
+keep p95 ≤1.10× control. The receipt also records throughput, gallery load,
+peak CUDA and parent RSS; the serving source is runtime and preprocessor
+config guarded, and batch 32 keeps the existing processor path.
