@@ -34,6 +34,14 @@ class BasisProcessor:
 def test_encoder_loads_pinned_checkpoint_for_custom_gallery(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    class WeightVision(torch.nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.scale = torch.nn.Parameter(torch.tensor(1.0))
+
+        def forward(self, *, pixel_values: torch.Tensor) -> SimpleNamespace:
+            return SimpleNamespace(pooler_output=pixel_values * self.scale)
+
     class SiglipImageProcessor(BasisProcessor):
         size = {"height": 256, "width": 256}
         resample = 2
@@ -43,18 +51,32 @@ def test_encoder_loads_pinned_checkpoint_for_custom_gallery(
         path = tmp_path / name
         path.write_bytes(name.encode())
         files[name] = hashlib.sha256(path.read_bytes()).hexdigest()
+    (tmp_path / "processor_config.json").write_text('{"image_processor":{"image_mean":[0,0,0]}}')
+    vision = WeightVision()
+    with torch.no_grad():
+        vision.scale.fill_(2)
     head = torch.nn.Linear(1024, 128)
+    with torch.no_grad():
+        head.weight.zero_()
+        head.weight[0, 0] = 1
+        head.bias.zero_()
     checkpoint = tmp_path / "checkpoint.pt"
-    torch.save({"vision": {}, "head": head.state_dict()}, checkpoint)
+    torch.save({"vision": vision.state_dict(), "head": head.state_dict()}, checkpoint)
     digest = hashlib.sha256(checkpoint.read_bytes()).hexdigest()
     fake_transformers = ModuleType("transformers")
+    processor_paths: list[Path] = []
+
+    def processor_from_pretrained(path: Path, **_kwargs: object) -> SiglipImageProcessor:
+        processor_paths.append(path)
+        return SiglipImageProcessor()
+
     fake_transformers.AutoImageProcessor = SimpleNamespace(  # type: ignore[attr-defined]
-        from_pretrained=lambda *args, **kwargs: SiglipImageProcessor()
+        from_pretrained=processor_from_pretrained
     )
     fake_transformers.AutoConfig = SimpleNamespace(  # type: ignore[attr-defined]
         from_pretrained=lambda *args, **kwargs: SimpleNamespace(vision_config=None)
     )
-    fake_transformers.SiglipVisionModel = lambda config: EchoVision()  # type: ignore[attr-defined]
+    fake_transformers.SiglipVisionModel = lambda config: WeightVision()  # type: ignore[attr-defined]
     monkeypatch.setitem(sys.modules, "transformers", fake_transformers)
     with pytest.raises(ValueError, match="checkpoint digest"):
         Siglip2CompactEncoder.from_checkpoint(
@@ -62,6 +84,15 @@ def test_encoder_loads_pinned_checkpoint_for_custom_gallery(
             checkpoint=checkpoint,
             expected_checkpoint_sha256="0" * 64,
             model_file_sha256=files,
+            precision="fp32_autocast",
+            device=torch.device("cpu"),
+        )
+    with pytest.raises(ValueError, match="model snapshot digest"):
+        Siglip2CompactEncoder.from_checkpoint(
+            model_snapshot=tmp_path,
+            checkpoint=checkpoint,
+            expected_checkpoint_sha256=digest,
+            model_file_sha256={**files, "config.json": "0" * 64},
             precision="fp32_autocast",
             device=torch.device("cpu"),
         )
@@ -73,7 +104,23 @@ def test_encoder_loads_pinned_checkpoint_for_custom_gallery(
         precision="fp32_autocast",
         device=torch.device("cpu"),
     )
+    assert processor_paths == [tmp_path / "preprocessor_config.json"]
+    assert torch.equal(encoder.vision.state_dict()["scale"], vision.state_dict()["scale"])
+    assert torch.equal(encoder.head.weight, head.weight)
     assert encoder.encode_images([Image.new("RGB", (2, 2))]).codes.shape == (1, 128)
+    with torch.no_grad():
+        head.weight[0, 0] = float("nan")
+    nonfinite = tmp_path / "nonfinite.pt"
+    torch.save({"vision": vision.state_dict(), "head": head.state_dict()}, nonfinite)
+    with pytest.raises(ValueError, match="checkpoint weights"):
+        Siglip2CompactEncoder.from_checkpoint(
+            model_snapshot=tmp_path,
+            checkpoint=nonfinite,
+            expected_checkpoint_sha256=hashlib.sha256(nonfinite.read_bytes()).hexdigest(),
+            model_file_sha256=files,
+            precision="fp32_autocast",
+            device=torch.device("cpu"),
+        )
 
 
 class EchoVision(torch.nn.Module):
@@ -273,6 +320,27 @@ def test_custom_gallery_rejects_invalid_files_before_encoding(tmp_path: Path) ->
     with pytest.raises(ValueError, match="custom gallery authority"):
         Siglip2CompactIndex.from_image_paths(
             encoder=encoder, native_library=library, image_paths=missing
+        )
+
+
+def test_custom_gallery_rejects_unpinned_native_binary(tmp_path: Path) -> None:
+    encoder = Siglip2CompactEncoder(
+        BasisProcessor(),
+        EchoVision(),
+        torch.nn.Linear(1024, 128),
+        "fp32_autocast",
+        torch.device("cpu"),
+    )
+    library = tmp_path / "native.so"
+    library.write_bytes(b"candidate")
+    image = tmp_path / "image.png"
+    Image.new("RGB", (2, 2)).save(image)
+    with pytest.raises(ValueError, match="custom gallery authority"):
+        Siglip2CompactIndex.from_image_paths(
+            encoder=encoder,
+            native_library=library,
+            image_paths=[image] * 10,
+            expected_native_library_sha256="0" * 64,
         )
 
 

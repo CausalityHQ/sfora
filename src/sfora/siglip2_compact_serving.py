@@ -172,7 +172,9 @@ class Siglip2CompactEncoder:
         from transformers import AutoConfig, AutoImageProcessor, SiglipVisionModel
 
         processor = AutoImageProcessor.from_pretrained(
-            model_snapshot, local_files_only=True, backend="torchvision"
+            model_snapshot / "preprocessor_config.json",
+            local_files_only=True,
+            backend="torchvision",
         )
         if (
             type(processor).__name__ != "SiglipImageProcessor"
@@ -181,9 +183,6 @@ class Siglip2CompactEncoder:
             or processor.resample != 2
         ):
             raise ValueError("trained SigLIP2 checkpoint processor differs")
-        config = AutoConfig.from_pretrained(model_snapshot, local_files_only=True)
-        vision = SiglipVisionModel(config.vision_config).to(device=device, dtype=torch.float32)
-        head = nn.Linear(1024, 128).to(device=device, dtype=torch.float32)
         state = torch.load(checkpoint, map_location="cpu", weights_only=True)
         if (
             not isinstance(state, dict)
@@ -196,6 +195,9 @@ class Siglip2CompactEncoder:
             )
         ):
             raise ValueError("trained SigLIP2 checkpoint weights differ")
+        config = AutoConfig.from_pretrained(model_snapshot, local_files_only=True)
+        vision = SiglipVisionModel(config.vision_config).to(device=device, dtype=torch.float32)
+        head = nn.Linear(1024, 128).to(device=device, dtype=torch.float32)
         vision.load_state_dict(state["vision"], strict=True)
         head.load_state_dict(state["head"], strict=True)
         if precision == "fp16_native":
@@ -282,6 +284,7 @@ class Siglip2CompactIndex:
         encoder: Siglip2CompactEncoder,
         native_library: Path,
         image_paths: Sequence[Path],
+        expected_native_library_sha256: str | None = None,
     ) -> Siglip2CompactIndex:
         """Encode a user gallery in ordinal order and open exact native top-10."""
 
@@ -292,6 +295,17 @@ class Siglip2CompactIndex:
             or not isinstance(native_library, Path)
             or not native_library.is_absolute()
             or not native_library.is_file()
+            or (
+                expected_native_library_sha256 is not None
+                and (
+                    not isinstance(expected_native_library_sha256, str)
+                    or len(expected_native_library_sha256) != 64
+                    or any(
+                        char not in "0123456789abcdef" for char in expected_native_library_sha256
+                    )
+                    or _sha256(native_library) != expected_native_library_sha256
+                )
+            )
             or not isinstance(image_paths, Sequence)
             or len(image_paths) < 10
             or any(not isinstance(path, Path) or not path.is_file() for path in image_paths)
@@ -432,7 +446,9 @@ class Siglip2CompactIndex:
         from transformers import AutoConfig, AutoImageProcessor, SiglipVisionModel
 
         processor = AutoImageProcessor.from_pretrained(
-            model_snapshot, local_files_only=True, backend="torchvision"
+            model_snapshot / "preprocessor_config.json",
+            local_files_only=True,
+            backend="torchvision",
         )
         if (
             type(processor).__name__ != "SiglipImageProcessor"

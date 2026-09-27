@@ -403,6 +403,44 @@ below; and (2) an **end-to-end method** API (`sfora.method` / `sfora.benchmark`)
 trains a backbone from composable, type-safe bricks, shown further down.
 The trained SigLIP2 image-to-top-10 deployment also accepts an ordered user
 image gallery through [`Siglip2CompactIndex.from_artifacts`](docs/sop_siglip2_custom_gallery_gate_2026-09-27.md).
+For a trained checkpoint from another dataset, load its encoder with
+`Siglip2CompactEncoder.from_checkpoint` and build that same custom gallery:
+
+```python
+import hashlib
+import json
+import os
+from pathlib import Path
+
+import torch
+from PIL import Image
+from sfora.siglip2_compact_serving import Siglip2CompactEncoder, Siglip2CompactIndex
+
+receipt_bytes = Path("training-receipt.json").read_bytes()
+if hashlib.sha256(receipt_bytes).hexdigest() != os.environ["SFORA_RECEIPT_SHA256"]:
+    raise ValueError("training receipt digest differs")
+receipt = json.loads(receipt_bytes)
+gallery_image_files = sorted(Path("gallery").glob("*.jpg"))
+encoder = Siglip2CompactEncoder.from_checkpoint(
+    model_snapshot=Path("siglip2-large-patch16-256"),
+    checkpoint=Path("checkpoint.pt"),
+    expected_checkpoint_sha256=receipt["checkpoint_sha256"],
+    model_file_sha256=receipt["model_file_sha256"],
+    precision="fp16_native",
+    device=torch.device("cuda:0"),
+)
+with Siglip2CompactIndex.from_image_paths(
+    encoder=encoder, native_library=Path("/absolute/path/to/libsfora_cutile_int8_score.so"),
+    image_paths=[Path(name) for name in gallery_image_files],
+    expected_native_library_sha256=os.environ["SFORA_NATIVE_LIBRARY_SHA256"],
+) as index:
+    with Image.open("external-query.jpg") as query:
+        ordinals, scores = index.search_images([query])
+```
+
+The gallery order defines returned ordinals. Pin the receipt and native
+library digests in deployment; the [In-Shop TRAIN qualification](docs/inshop_public_checkpoint_loader_gate_2026-09-27.md)
+covers one checkpoint and DGX Spark configuration, not a SOTA claim.
 For native-FP16 single-image serving on a DGX Spark GB10, pass
 `cuda_graph_batch1=True` to `from_artifacts` during quiescent startup. The
 [source-bound serving gate](docs/sop_siglip2_cuda_graph_vision_preflight_2026-09-27.md)

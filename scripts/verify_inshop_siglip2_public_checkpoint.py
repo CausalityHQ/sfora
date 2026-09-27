@@ -106,6 +106,7 @@ def main() -> None:
         encoder=encoder,
         native_library=args.native_library,
         image_paths=[paths[row] for row in gallery],
+        expected_native_library_sha256=NATIVE_SHA,
     ) as index:
         torch.cuda.synchronize()
         build_wall = time.perf_counter() - started
@@ -218,6 +219,8 @@ def main() -> None:
         ),
         flush=True,
     )
+    if not result["advance"]:
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":
