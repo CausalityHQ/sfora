@@ -68,3 +68,15 @@ training arm, official query/gallery read, or production promotion. The
 receipt is an exploratory source result, not a trained-model or public
 image-to-top-k comparison. The cost gap motivates a separate exactness-pinned
 stage profile; no later optimization may retroactively change this decision.
+
+## Frozen exact-path cost diagnosis
+
+Before changing preprocessing or encoder code, time decode, pinned processor,
+host-to-device transfer and vision forward separately for both pinned sources
+on the **first 320 official TRAIN images** in partition order, ten batches of
+32 after one untimed warmup batch per arm. Use the exact image processors and
+forward calls from the source-export paths, run the arms sequentially on the
+same DGX Spark GB10, and record synchronized per-batch samples and allocated
+CUDA peak. This short diagnostic has no quality read, p99 certification, or
+advance gate. Its source is
+[`diagnose_inshop_zooclaw_stage_cost.py`](../scripts/diagnose_inshop_zooclaw_stage_cost.py).
