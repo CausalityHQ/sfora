@@ -1,0 +1,13 @@
+Started sfora-sop-processor-direct-v1.service - /usr/bin/flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-sop-processor-direct-v1/probe_sop_siglip2_processor_v2.py --source-archive /home/riomus/sfora-relational-sop-e1/unicom-l14-sop-v1.npz --dataset-root /home/riomus/datasets/Stanford_Online_Products --model-snapshot /home/riomus/.cache/huggingface/hub/models--google--siglip2-large-patch16-256/snapshots/787800c8990e6f058423089178e718139608408c --output /home/riomus/runs/sfora-sop-processor-direct-v1/receipt.json.
+{"checked": 1000, "mismatches": 0}
+{"checked": 2000, "mismatches": 0}
+{"checked": 3000, "mismatches": 0}
+{"checked": 4000, "mismatches": 0}
+{"checked": 5000, "mismatches": 0}
+{"checked": 6000, "mismatches": 0}
+{"checked": 7000, "mismatches": 0}
+{"checked": 8000, "mismatches": 0}
+{"checked": 9000, "mismatches": 0}
+{"checked": 10000, "mismatches": 0}
+{"advance": true, "archive_sha256": "1ba27b2d6b9db39067aa6facd0ef8aafc303c4527f6feabed859b0512c7d921a", "claim_eligible": false, "gates": {"exact": true, "p50": true, "p95": true, "rss": true}, "hardware": {"cpu": 20, "torch": "2.12.1+cu130"}, "mismatch_count": 0, "peak_rss_bytes": 886628352, "processor_sha256": "d14ba2ee3fd816f3de8abaddc31953565128eaf37c73ad4bed32101a98465aff", "schema": "sfora-sop-siglip2-direct-processor-train-v1", "source_sha256": "ae6db5e2bbc49353315801cd4cddebabc8f7f7bc6a88df0e001c686206fd0d95", "timing": {"control": {"p50_ms": 4.342712000000001, "p95_ms": 5.8167192}, "direct": {"p50_ms": 2.686296, "p95_ms": 4.084796}}, "timing_calls_per_arm": 2000, "unique_image_count": 10000}
+sfora-sop-processor-direct-v1.service: Consumed 10min 4.595s CPU time, 532.8M memory peak, 0B memory swap peak.

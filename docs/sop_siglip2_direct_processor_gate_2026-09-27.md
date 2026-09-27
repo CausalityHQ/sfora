@@ -25,3 +25,18 @@ serving cost only; retrieval quality and training cost are unchanged by an
 exact pixel transformation.
 
 Frozen source SHA-256: `ae6db5e2bbc49353315801cd4cddebabc8f7f7bc6a88df0e001c686206fd0d95`.
+
+## Terminal processor screen
+
+The sole DGX Spark GB10 unit exited 0, invocation
+`bdc92634171743e780bbfe900b676bfe`. Its [raw receipt](evidence/compact_metric/sop-siglip2-substrate-v1/sop-processor-direct-v1/receipt.json)
+has SHA-256 `8186e99d85ec1aeff526a046fe5a8fa3e38af516979215c4200fd83f9bfd35f7`;
+the [journal](evidence/compact_metric/sop-siglip2-substrate-v1/sop-processor-direct-v1/journal.log)
+has SHA-256 `b8d705a6317c788bc6d9ea52739f3f0f0381976e371d634ca4db33630bb022c7`.
+All **10,000/10,000** unique-byte SOP TRAIN images produced bitwise equal
+`pixel_values`. The 2,000-call/arm paired screen measured control versus
+direct p50 **4.342712 vs 2.686296 ms** (−38.1%) and p95 **5.816719 vs
+4.084796 ms** (−29.8%). Combined peak RSS was **886,628,352 bytes**.
+All frozen screen gates pass. This is processor-only; public
+image-to-top-k speed, native top-10 parity and In-Shop transfer remain to be
+verified before production promotion.
