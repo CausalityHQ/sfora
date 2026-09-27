@@ -63,10 +63,11 @@ def main() -> None:
         args.model_snapshot, local_files_only=True, backend="torchvision"
     )
     if (
-        processor.size != {"height": 256, "width": 256}
+        {key: value for key, value in processor.size.items() if value is not None}
+        != {"height": 256, "width": 256}
         or processor.resample != 2
-        or processor.image_mean != [0.5] * 3
-        or processor.image_std != [0.5] * 3
+        or tuple(processor.image_mean) != (0.5,) * 3
+        or tuple(processor.image_std) != (0.5,) * 3
     ):
         raise ValueError("SOP processor configuration differs")
     table = lookup(processor)
