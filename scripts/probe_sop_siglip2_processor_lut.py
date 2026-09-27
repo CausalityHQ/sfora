@@ -63,8 +63,8 @@ def main() -> None:
         args.model_snapshot, local_files_only=True, backend="torchvision"
     )
     if (
-        {key: value for key, value in processor.size.items() if value is not None}
-        != {"height": 256, "width": 256}
+        processor.size.height != 256
+        or processor.size.width != 256
         or processor.resample != 2
         or tuple(processor.image_mean) != (0.5,) * 3
         or tuple(processor.image_std) != (0.5,) * 3
