@@ -1,0 +1,16 @@
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  28%|██▊       | 218/792 [00:00<00:00, 2170.72it/s]Loading weights:  68%|██████▊   | 539/792 [00:00<00:00, 2771.72it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2886.64it/s]
+{"step": 50, "loss": 6.162699222564697, "elapsed_seconds": 38.855792589019984}
+{"step": 100, "loss": 4.807068824768066, "elapsed_seconds": 75.8327747429721}
+{"export_batches": 100}
+{"arm": "freeze_emb", "seed": 179024, "training_seconds": 75.90897928597406, "holdout_r1": 0.9712675609175332}
+100-update control first-ten input and schedule replay verified
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  29%|██▊       | 226/792 [00:00<00:00, 2212.21it/s]Loading weights:  73%|███████▎  | 577/792 [00:00<00:00, 2937.09it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2994.14it/s]
+{"step": 50, "loss": 4.1665544509887695, "elapsed_seconds": 39.20457641920075}
+{"step": 100, "loss": 3.5055556297302246, "elapsed_seconds": 76.33859395375475}
+{"export_batches": 100}
+{"arm": "freeze_emb", "seed": 179024, "training_seconds": 76.41310116508976, "holdout_r1": 0.9769029288038733}
+{"r1_gain_percentage_points": 0.8813345923827509, "r1_paired_product_bootstrap_95_pp": [0.5145784619921173, 1.245781405443648], "training_wall_ratio": 1.0066411363169105, "gate_passed": true}

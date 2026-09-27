@@ -172,3 +172,59 @@ Passing this gate permits paired 1,000-update seeds only; it is neither
 model selection on official TEST nor a SOTA claim. Report source SOP
 acquisition, 213.095 s treatment cache export, In-Shop training and serving
 cost separately.
+
+## Terminal 100-update packed result
+
+The sole serial DGX Spark GB10 unit `dc563d6653b84d40bcfddbed4b294ec5`
+exited 0. Its [paired packed receipt](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-sop-warmstart-100-v1/packed_quality.json)
+SHA-256 is `7c2b94d9a1c8be2b3ea8b88a5bbf7e20fba8ba0065e0ddb2f6476949796b844f`;
+control/treatment raw receipt SHA-256 values are
+`00f33944da4e637e2b2f7fb8fa7ca8666a583dfddb05cf3c368461553fb8e4f8`
+and `83039e1df17c92ab1c496a26ebf4e3eb9a83e21d7dda9a0bc3ffb5c7a278843c`.
+Local replay checked all 6,354 packed per-query hits and source hashes.
+
+| Official In-Shop TRAIN product-disjoint held panel | Pretrained-init control | SOP warm start |
+| --- | ---: | ---: |
+| Fixed asymmetric 6,354-query/6,245-gallery packed R@1 | **95.1999%** | **96.0812%** |
+| Fixed asymmetric packed mAP@R | **0.779876** | **0.797888** |
+| Symmetric 12,599-image packed R@1 | **97.1268%** | **97.6903%** |
+| Symmetric packed mAP@R | **0.765838** | **0.786912** |
+| 100-update training wall | **75.909 s** | **76.413 s** |
+| Held export wall | **66.320 s** | **66.530 s** |
+| Peak allocated CUDA during training | **12,939,458,560 B** | **12,939,458,560 B** |
+
+Asymmetric R@1 improved **+0.8813 point**, paired product-bootstrap 95%
+**[+0.5146,+1.2458] points**, with 89 query rescues and 33 regressions.
+The frozen quality, uncertainty, symmetric and ≤1.20× cost rules pass.
+This is repeatedly inspected TRAIN-held evidence at an early 100-update
+budget. It authorizes the predeclared full-budget paired seed gate; it does
+not establish official query/gallery quality, a final training speed win,
+deployed image-to-top-k latency or SOTA.
+
+## Frozen full-budget paired seed gate
+
+Use the already fixed official In-Shop TRAIN product-disjoint fit/held split,
+fixed asymmetric roles, `freeze_emb` architecture, coherent pretrained/SOP
+source caches, unchanged schedule and BF16 training. Train **1,000 updates**
+for paired seeds **179024, 179025 and 179026**, with the same source commit,
+processor, fit rows, optimizer, LR, scorer and per-seed input batches; do not
+select the best checkpoint or seed. The SOP vision source remains the pinned
+seed-179024 product checkpoint for all treatment seeds. Run the six jobs
+serially behind the one DGX lock. For each pair report 128-D int8 packed
+asymmetric R@1/mAP@R with per-query product-bootstrap uncertainty, symmetric
+R@1/mAP@R, train wall/images per second/peak CUDA, export time and source
+cache cost. Require strict source/receipt/checkpoint hashes, finite updates,
+exact paired input hashes and schedule; any integrity failure stops.
+
+The first seed can **KILL only** if treatment asymmetric R@1 is at least
+**0.50 point below** its paired control or mAP@R at least **0.010 below**.
+Otherwise run the remaining two paired seeds regardless of first-seed
+quality. For all three fixed seeds, advance only if treatment mean
+asymmetric R@1 exceeds control mean by at least **+0.30 point**, paired
+product/seed clustered 95% lower bound is positive, mean asymmetric mAP@R
+does not decline, no seed regresses R@1 by more than 0.50 point, and
+treatment mean train wall and peak allocated CUDA are each ≤1.20× control.
+This is a TRAIN-held promotion gate to official *exploratory* qualification
+and same-checkpoint public serving measurement, not a SOTA conclusion.
+The SOP vision acquisition cost must be counted once and reported both in
+total and amortized form; the 213.095 s treatment cache was acquired once.
