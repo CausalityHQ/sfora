@@ -273,3 +273,39 @@ Training took **745.578/743.864 s** per 64,000 images, with
 **12,938,664,960 B** peak allocated CUDA in both arms. Local receipt replay
 verified the per-query means and hashes. This is individually inconclusive;
 run the final fixed pair, seed 179026, before applying the frozen aggregate.
+
+## Third seed and final frozen decision: KILL
+
+The final serial DGX unit `7fb119268dc149d2b96b006f224ad3d7` exited 0.
+Its [seed-179026 paired receipt](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-sop-warmstart-full-179026-v1/paired_quality.json)
+SHA-256 is `975ab77586f986eb528cc3a2418b50e23df20abe7574fbc48f4246a25c037249`.
+Control/treatment asymmetric packed R@1 was **97.6235%/97.7337%**,
+mAP@R **0.851449/0.858338**. Training wall was **745.063/747.336 s**
+per 64,000 images; peak allocated CUDA was **12,938,664,960 B** each.
+Its R@1 gain **+0.1102 point** had product-bootstrap 95%
+**[−0.1761,+0.3898] points**.
+
+The [frozen three-seed aggregate](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-sop-warmstart-full-aggregate-v1.json)
+SHA-256 is `23098dedb1d45427427676cb6da2bce3764e445d986ce287fbb89027bac1e18e`.
+Independent local replay reconstructed the TRAIN roles from the pinned
+partition, all three per-query deltas, the same seed/product cluster draws,
+point mean and decision.
+
+| Three fixed seeds, official In-Shop TRAIN held roles | Pretrained-init control | SOP warm start |
+| --- | ---: | ---: |
+| Mean asymmetric packed R@1 | **97.6131%** | **97.7442%** |
+| Mean asymmetric packed mAP@R | **0.848728** | **0.855578** |
+| Mean training wall / 64,000 images per seed | **745.164 s** | **745.091 s** |
+| Mean peak allocated CUDA | **12.939 GB** | **12.939 GB** |
+| Changed-checkpoint public p50/p95/p99/QPS | unmeasured | unmeasured |
+
+Mean R@1 gain was **+0.1312 point**, seed/product-cluster bootstrap 95%
+**[−0.1238,+0.3872] points**. It fails the predeclared **+0.30-point**
+floor and **positive lower bound**, despite higher mAP@R and matched cost.
+**KILL this warm-start quality lane**: do not promote a checkpoint, launch
+an official query/gallery read, certify its p99 or retune the budget/seed.
+The optional hash-bound trainer initialization remains usable, but is not
+the production default. The exact direct-processor serving increment stays
+shipped. Source SOP acquisition was **752.328 s** once, and treatment cache
+export **213.095 s** once, in addition to the In-Shop training cost; these
+cannot be omitted from a total-training claim. No SOTA claim follows.
