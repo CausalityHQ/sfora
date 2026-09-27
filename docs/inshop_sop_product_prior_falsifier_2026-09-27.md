@@ -224,6 +224,12 @@ asymmetric R@1 exceeds control mean by at least **+0.30 point**, paired
 product/seed clustered 95% lower bound is positive, mean asymmetric mAP@R
 does not decline, no seed regresses R@1 by more than 0.50 point, and
 treatment mean train wall and peak allocated CUDA are each ≤1.20× control.
+For that interval, use 5,000 deterministic bootstrap draws (seed 179019):
+resample the three paired training seeds with replacement, then resample
+held product identities with replacement using the **same product draw** for
+all selected seeds; compute each draw's query-count-weighted mean paired
+R@1 delta and take its 2.5%/97.5% quantiles. Keep the fixed three-seed
+point mean regardless of the interval. No TEST outcomes enter this rule.
 This is a TRAIN-held promotion gate to official *exploratory* qualification
 and same-checkpoint public serving measurement, not a SOTA conclusion.
 The SOP vision acquisition cost must be counted once and reported both in
