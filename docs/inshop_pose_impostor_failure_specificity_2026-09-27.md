@@ -26,3 +26,32 @@ rejected because it reuses the previously rejected held proxy.
 This probe uses one full export on the existing DGX Spark GB10 under the shared
 GPU lock. The exact source, model, checkpoint, split and miss receipt are
 checked before scoring. No production path changes on this diagnostic.
+
+## Terminal result
+
+The sole DGX unit `sfora-inshop-pose-failure-specificity-v1.service`
+(invocation `2a870fb000414a79b133408c4b601847`) exited 0. The
+[result](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-pose-failure-specificity-179026.json)
+SHA-256 is `cd6121cbbff59238a67512e4ab64c6569e0093344008d0b94e03a39a1e535710`;
+the [journal](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-pose-failure-specificity-179026.journal.log)
+SHA-256 is `7bec27ad37325bb06c1be2447e6b48ad84d22106b91643c0888fafa7c8d3648a`.
+The run replayed the prior 151 misses and their exact top-impostor row ordinals.
+An independent aggregate calculation reproduced the stratified odds ratio.
+
+| Fixed TRAIN held 6,354-query/6,245-gallery roles | Same-pose top impostor | Different-pose top impostor |
+| --- | ---: | ---: |
+| Misses, excluding flat | 56 | 89 |
+| Hits, excluding flat | 1,671 | 4,456 |
+| Misses, flat only | 5 | 1 |
+| Hits, flat only | 25 | 51 |
+
+The flat-excluded query-pose-stratified miss odds ratio is **1.729**;
+the seeded product-cluster bootstrap 95% interval is **[1.225, 2.432]**.
+Its lower bound fails the frozen **>1.3** requirement. Export wall was
+**67.373 s** on DGX Spark GB10; training, image-to-top-k latency and
+production quality were not measured by this diagnostic.
+
+**Decision:** stop the pose-conditioned bank-negative lane before loss code,
+training or an official TEST read. The original gallery-frequency enrichment
+was real on this proxy but did not provide sufficiently strong
+failure-specific evidence. The rejected 20-draw/k=2 selector remains rejected.
