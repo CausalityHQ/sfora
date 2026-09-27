@@ -133,6 +133,6 @@ mechanism gate fails despite six net fixed-role R@1 rescues. Stop the
 worst-positive treatment before other seeds, 1,000-update training, official
 query/gallery or production promotion. The predeclared 100-update mechanism
 readout is only an exploratory TRAIN decision; it does not prove the loss
-cannot help at another budget or on another dataset. Remove the opt-in
-production loss path after archiving the result; commit `af2aaf71` preserves
-the exact experiment source for replay.
+cannot help at another budget or on another dataset. The opt-in production
+loss path was removed in `97b4dceb`; commit `af2aaf71` preserves the exact
+experiment source for replay.
