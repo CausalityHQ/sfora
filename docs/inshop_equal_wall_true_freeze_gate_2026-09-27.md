@@ -31,6 +31,8 @@ on the requested update total: the trainer uses fixed per-group rates. The
 only treatment changes are the lower-stack and embedding freeze plus update
 count; no causal claim isolates either component. Code source SHA-256:
 `de7a3fde54decd78c0c42aa29973c8c714d01c4a85a6a6ce1d19358642470801`.
+The [serial DGX launcher](../scripts/run_inshop_equal_wall_true_freeze_dgx.sh)
+SHA-256 is `33ecbecec132deb2925a15460311faf0e1113d67b205e1bc44a445d474723eb2`.
 
 Before scoring, verify source/model/cache/preflight hashes, the standard
 pixel corpus, matched split, PCA initialization, first ten input batches,
