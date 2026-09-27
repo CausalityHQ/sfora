@@ -1,0 +1,12 @@
+Sep 27 21:10:00 spark-2751 systemd[3489]: Started sfora-sop-cars-transfer-public-v2.service - /bin/bash /home/riomus/runs/sfora-sop-cars-transfer-public-v1/scripts/run_sop_siglip2_cars_transfer_dgx.sh.
+Sep 27 21:10:01 spark-2751 bash[667623]: Using the latest cached version of the dataset since tanganke/stanford_cars couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Sep 27 21:10:01 spark-2751 bash[667623]: Found the latest cached dataset configuration 'default' at /home/riomus/.cache/huggingface/datasets/tanganke___stanford_cars/default/0.0.0/9abf6cf7d6dfa7b95152a0d6e791ea9435b47a40 (last modified on Sun Aug 30 17:20:30 2026).
+Sep 27 21:10:07 spark-2751 bash[667623]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+Sep 27 21:10:07 spark-2751 bash[667623]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Sep 27 21:11:43 spark-2751 bash[667623]: 179024 control R1=0.885377 mAP@R=0.263069
+Sep 27 21:13:21 spark-2751 bash[667623]: 179024 freeze R1=0.882794 mAP@R=0.260634
+Sep 27 21:14:57 spark-2751 bash[667623]: 179026 control R1=0.869389 mAP@R=0.234664
+Sep 27 21:16:36 spark-2751 bash[667623]: 179026 freeze R1=0.874062 mAP@R=0.252245
+Sep 27 21:18:13 spark-2751 bash[667623]: 179027 control R1=0.877014 mAP@R=0.241833
+Sep 27 21:19:52 spark-2751 bash[667623]: 179027 freeze R1=0.880580 mAP@R=0.255118
+Sep 27 21:19:54 spark-2751 systemd[3489]: sfora-sop-cars-transfer-public-v2.service: Consumed 24min 4.868s CPU time, 5.3G memory peak, 0B memory swap peak.

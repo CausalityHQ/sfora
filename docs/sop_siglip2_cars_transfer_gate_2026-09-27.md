@@ -41,3 +41,48 @@ A new test covers this exact camera size; the prior 4097×4097 rejection test
 still passes. The corrected serving source SHA-256 is
 `3db70cb77f0f1b2a5a7b9dcddf4cd7791b8fdcfd9ece5dccc33e63d766bcbe86`.
 The original source hash remains in the failed invocation's code history.
+
+## Terminal result
+
+The corrected unit (`sfora-sop-cars-transfer-public-v2`, invocation
+`0cf4d3114da24301852fd70e591e5548`) exited successfully after all six
+fixed arms. Its [journal](evidence/compact_metric/sop-siglip2-substrate-v1/sop-cars-transfer-public-v1/journal.log)
+SHA-256 is `90fa03797b9a3316fd9583056fbf7c2f2bf2dbbe109bc40a80be478f23291fd7`;
+every receipt is retained. Same-source paired rows below use the
+**8,131 Cars196 classes 98–195 evaluation images** as self-excluded queries
+and gallery, with 98 unseen classes.
+
+| Seed | Control packed R@1 / mAP@R | Freeze packed R@1 / mAP@R | Control / freeze batch-32 export wall |
+| --- | ---: | ---: | ---: |
+| 179024 | 88.5377% / 0.263069 | 88.2794% / 0.260634 | 93.257 / 90.767 s |
+| 179026 | 86.9389% / 0.234664 | 87.4062% / 0.252245 | 89.719 / 92.600 s |
+| 179027 | 87.7014% / 0.241833 | 88.0580% / 0.255118 | 91.079 / 92.257 s |
+| Three-seed mean | **87.7260% / 0.246522** | **87.9146% / 0.255999** | **91.352 / 91.875 s** |
+
+The [paired decision](evidence/compact_metric/sop-siglip2-substrate-v1/sop-cars-transfer-public-v1/decision.json)
+SHA-256 is `da752c850304936e93dbfbca30622681fd21c5467d7e6aa3179485d1340f4a0a`.
+Its [analyzer](../scripts/analyze_sop_siglip2_cars_transfer.py) SHA-256 is
+`8e52e6e81d94a67524c9077a5062b2e804f4ff38ba5388a7d5126e4735ce9bba`.
+The frozen three-seed mean paired R@1 difference is **+0.1886 percentage
+points**, class-cluster bootstrap 95% **[−0.2793, +0.6628] pp**. The interval
+includes zero and seed 179024 regresses, so Cars does **not** establish a
+repeatable Recall@1 gain. Mean mAP@R rises **+0.009477**, class-bootstrap 95%
+**[+0.005968, +0.013181]**. These intervals condition on the three trained
+checkpoints and do not measure training-seed uncertainty. The consistent CUB
+R@1 gain therefore does not establish broad transfer. Keep the SOP freeze arm
+opt-in; do not promote it as an all-dataset training default on these results.
+
+All six receipts have the same pinned Cars image-byte manifest and production
+serving SHA. The gallery wire size is **1,057,030 bytes** (8,131×130), and
+peak PyTorch allocated CUDA was **0.883 GB** for every arm. Model load took
+5.623–6.596 s; export wall is not public batch-1 image-to-top-k latency.
+The previously measured SOP training cost for these checkpoints remains
+**752.464 versus 1,151.417 s** per 64,000 sampled images for freeze versus
+control. No Cars training, Cars serving p99, In-Shop quality, or SOTA claim
+follows from this zero-shot check.
+
+| Seed | Control raw receipt SHA-256 | Freeze raw receipt SHA-256 |
+| --- | --- | --- |
+| 179024 | [raw](evidence/compact_metric/sop-siglip2-substrate-v1/sop-cars-transfer-public-v1/179024-control.json) `933299d1e09fc454d91ecd7d69e13f565c2c638e1b2c90f2402e2cd9725c1168` | [raw](evidence/compact_metric/sop-siglip2-substrate-v1/sop-cars-transfer-public-v1/179024-freeze.json) `8929d99e1cd7e229639109fe142f5f4d3b3951720894d3d6bb6572505b36ab55` |
+| 179026 | [raw](evidence/compact_metric/sop-siglip2-substrate-v1/sop-cars-transfer-public-v1/179026-control.json) `1848c1988b5405cf7799917aff709587983f99ccaeac2153c82a4dcb97978f47` | [raw](evidence/compact_metric/sop-siglip2-substrate-v1/sop-cars-transfer-public-v1/179026-freeze.json) `1f4c9092c2f76563c5d472cdef915a64a806a900ff7258c138dfbc87744d1972` |
+| 179027 | [raw](evidence/compact_metric/sop-siglip2-substrate-v1/sop-cars-transfer-public-v1/179027-control.json) `1189467e67edfd314f81a343de02e69f4d13249871eefb77af1ca68aaa8ea508` | [raw](evidence/compact_metric/sop-siglip2-substrate-v1/sop-cars-transfer-public-v1/179027-freeze.json) `bd1d68a03f8648f329b399eb5d35254cdb9034a5967bcc3b0b70ff61708e2b84` |
