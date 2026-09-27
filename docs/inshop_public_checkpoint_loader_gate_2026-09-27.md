@@ -82,3 +82,32 @@ The v1 receipt remains a real measurement of the prior source, but production
 promotion requires one v2 rerun with these corrected files, the same frozen
 TRAIN roles, precision, scorer, latency inventory and thresholds. Record v2
 source digests and a distinct terminal receipt; preserve v1 evidence.
+
+The v2 unit exited 0 (invocation `df75aab2efc64e669bf37c852e7511bd`).
+Its [raw receipt](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-public-checkpoint-v2/receipt.json)
+has SHA-256 `bdc8b3ba1686687fb1d0f8d699c5d4c56b74a37fb84a51ed1de4fdc31bd6dc47`;
+the [terminal journal](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-public-checkpoint-v2/service-journal.log)
+has SHA-256 `1e4cb6430c4de7a58558099e0e01a84b53410be5b6aa58bad488ad0ddeb86b9d`.
+The qualified serving and gate script SHA-256 values are respectively
+`6aa084e340c1f8ceb17fe3ed4a5ab2dcacbca84a30b4c6443bc1b466042cba2d`
+and `ab5656b9ee2e4cca2eae3b4829dd95fdc799bbbbd412d6a582360ed09c1a3dac`.
+
+All 6,354 per-query hit flags are identical between v1 and v2. The corrected
+public path again gives **6,203/6,354 = 97.6235%** R@1 versus the archived
+training export, with two paired flips and a **−0.0470 pp** product-bootstrap
+lower bound. One 6,245-image gallery build took **49.778 s**; all 6,354
+batch-32 queries took **52.908 s = 120.10 images/s**. On 1,000 distinct
+batch-1 image calls, p50/p95/p99 were **14.676/17.276/18.366 ms**.
+Post-load peak PyTorch allocated CUDA was **882,524,672 bytes**; gallery wire
+size was **811,850 bytes**. Every frozen gate passed. This qualifies the
+processor-pinned, native-library-pinned eager FP16 path on this one DGX
+configuration. The latency sample was single-threaded, GPU-synchronized and
+page-cache warm; it includes JPEG decode and native search, and the CUDA
+number excludes context and native allocations. Neither official query/gallery
+quality nor a matched UNICOM latency result was measured here.
+
+The corrected source also passed **16/16** focused serving tests on DGX
+Spark CUDA and **15/15** locally (one CUDA graph test skipped without a GPU).
+The Python wheel built successfully. Replaying the raw v2 receipt reproduced
+6,203 hits, all 1,000 latency quantiles, its source hashes and all six
+predeclared gate booleans.

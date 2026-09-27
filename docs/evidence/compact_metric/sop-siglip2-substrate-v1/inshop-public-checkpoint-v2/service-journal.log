@@ -1,0 +1,3 @@
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+{"r1": 0.9762354422411079, "delta_pp": 0.0, "timing": {"p50_ms": 14.676242, "p95_ms": 17.2758198, "p99_ms": 18.36557039}, "gates": {"quality_point": true, "quality_lower": true, "p50": true, "p99": true, "build": true, "peak_cuda": true}}
