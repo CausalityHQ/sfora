@@ -4,8 +4,9 @@ The current detached-bank SmoothAP objective improves the saturated symmetric
 In-Shop TRAIN gallery but the selected three-seed official query/gallery mean
 remains 95.4823% packed R@1. A proposed replacement weights positives by the
 chance that a gallery subset contains no positive above the top impostor.
-This is a *candidate*, not an established novel method: random-gallery rank-1
-averaging has prior art, and the official gallery removes negatives as well as
+This is a *candidate*, not an established novel method: [random-gallery
+rank-1 averaging has prior art](https://people.cs.umass.edu/~elm/papers/Erdos.pdf),
+and the official gallery removes negatives as well as
 positives. Holding negatives fixed makes the proposed positive-subset miss
 probability an upper bound under uniform random positive and negative
 subsampling, not an exact official-protocol probability.
