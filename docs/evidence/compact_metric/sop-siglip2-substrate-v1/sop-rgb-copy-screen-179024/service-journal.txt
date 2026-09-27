@@ -1,0 +1,3 @@
+Started sfora-sop-rgb-copy-screen-179024-v1.service - /usr/bin/flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock /usr/bin/env HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-sop-rgb-copy-screen-179024-v1/screen.py.
+{"1": {"copy": {"mean_ms": 0.6680575449999999, "p50_ms": 0.432976, "p95_ms": 2.55835905}, "reuse": {"mean_ms": 0.6746593375000001, "p50_ms": 0.366344, "p95_ms": 2.9551261999999934}}, "32": {"copy": {"mean_ms": 41.358488207499995, "p50_ms": 36.9831845, "p95_ms": 70.49808674999997}, "reuse": {"mean_ms": 38.63489095, "p50_ms": 34.4572015, "p95_ms": 68.5548742}}}
+sfora-sop-rgb-copy-screen-179024-v1.service: Consumed 6min 19.902s CPU time, 744.1M memory peak, 0B memory swap peak.

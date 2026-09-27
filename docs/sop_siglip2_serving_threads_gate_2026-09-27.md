@@ -110,3 +110,26 @@ measurement for one model, gallery, and process; it does not establish
 concurrent-service or dataset-general tail behavior. The next production work
 must address measured preprocessing cost without silently changing the global
 PyTorch thread count.
+
+## Redundant RGB-copy processor screen
+
+The same processor receives already-RGB images from the public decode path,
+but the serving encoder copies each one with `image.convert("RGB")` first.
+A one-line skip of that copy preserved exact processor `pixel_values` on 32
+distinct SOP TRAIN images. The [CPU-only screen source](evidence/compact_metric/sop-siglip2-substrate-v1/sop-rgb-copy-screen-179024/screen.py)
+has SHA-256 `44c20889628fb2e5f3a1920922bfcec1148f6f06effe658024b16ef52358e5dd`;
+its [raw receipt](evidence/compact_metric/sop-siglip2-substrate-v1/sop-rgb-copy-screen-179024/receipt.json)
+has SHA-256 `2b93a921bd9b7a2aeb505151283fef5e93f23b6679e2c1880d6cbcd7ac7a0fef`.
+The [terminal journal](evidence/compact_metric/sop-siglip2-substrate-v1/sop-rgb-copy-screen-179024/service-journal.txt)
+has SHA-256 `debc3824fe2163d5de1a82f34a8984cbb9c9d28bd023b9c7c574b937bb2ec8df`.
+The service exited 0; local replay checked 400 samples per arm and batch.
+
+| Processor-only, 20 intra-op threads | Copy RGB | Reuse RGB | Frozen screen |
+| --- | ---: | ---: | --- |
+| Batch 1 p50 / p95 | 0.433 / 2.558 ms | 0.366 / 2.955 ms | **Fail**: p95 rises 15.5%, against ≥5% improvement rule |
+| Batch 32 p50 / p95 | 36.983 / 70.498 ms | 34.457 / 68.555 ms | p95 nonregressing |
+
+The batch-1 screen failure stops this path before a public image-to-top-k or
+p99 run. The proposed code change and its local test were reverted; the
+existing serving API and conversion behavior remain in production. These
+processor-only timings do not establish a whole-call speed or quality gain.
