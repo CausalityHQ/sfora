@@ -1,0 +1,49 @@
+Starting sfora-sop-serving-threads-p99-179024-v1.service - /usr/bin/flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock /usr/bin/env PYTHONPATH=/home/riomus/sfora-siglip2-deployed-batch-v1/src CUTILE_TILEIRAS_PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/tileiras PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin:/usr/local/bin:/usr/bin:/bin HF_HUB_OFFLINE=1 /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-sop-serving-threads-p99-179024-v1/certify_sop_siglip2_serving_threads_p99.py --decision /home/riomus/runs/sfora-sop-true-freeze-decision-179024-v1.json --runs /home/riomus/runs --source-archive /home/riomus/sfora-relational-sop-e1/unicom-l14-sop-v1.npz --dataset-root /home/riomus/datasets/Stanford_Online_Products --model-snapshot /home/riomus/.cache/huggingface/hub/models--google--siglip2-large-patch16-256/snapshots/787800c8990e6f058423089178e718139608408c --native-library /home/riomus/sfora-rc5-pointer-b7c57022/libsfora_cutile_int8_score_sha39602d0e.so --screen-receipt /home/riomus/runs/sfora-sop-serving-threads-179024-v1/receipt.json --output /home/riomus/runs/sfora-sop-serving-threads-p99-179024-v1/receipt.json...
+Started sfora-sop-serving-threads-p99-179024-v1.service - /usr/bin/flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock /usr/bin/env PYTHONPATH=/home/riomus/sfora-siglip2-deployed-batch-v1/src CUTILE_TILEIRAS_PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/tileiras PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin:/usr/local/bin:/usr/bin:/bin HF_HUB_OFFLINE=1 /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-sop-serving-threads-p99-179024-v1/certify_sop_siglip2_serving_threads_p99.py --decision /home/riomus/runs/sfora-sop-true-freeze-decision-179024-v1.json --runs /home/riomus/runs --source-archive /home/riomus/sfora-relational-sop-e1/unicom-l14-sop-v1.npz --dataset-root /home/riomus/datasets/Stanford_Online_Products --model-snapshot /home/riomus/.cache/huggingface/hub/models--google--siglip2-large-patch16-256/snapshots/787800c8990e6f058423089178e718139608408c --native-library /home/riomus/sfora-rc5-pointer-b7c57022/libsfora_cutile_int8_score_sha39602d0e.so --screen-receipt /home/riomus/runs/sfora-sop-serving-threads-179024-v1/receipt.json --output /home/riomus/runs/sfora-sop-serving-threads-p99-179024-v1/receipt.json.
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:   1%|          | 4/792 [00:00<00:23, 33.20it/s]Loading weights:  60%|█████▉    | 473/792 [00:00<00:00, 2544.21it/s]Loading weights: 100%|█████████▉| 789/792 [00:00<00:00, 2797.27it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2450.95it/s]
+{"batch": 1, "blocks_done": 1}
+{"batch": 1, "blocks_done": 2}
+{"batch": 1, "blocks_done": 3}
+{"batch": 1, "blocks_done": 4}
+{"batch": 1, "blocks_done": 5}
+{"batch": 1, "blocks_done": 6}
+{"batch": 1, "blocks_done": 7}
+{"batch": 1, "blocks_done": 8}
+{"batch": 1, "blocks_done": 9}
+{"batch": 1, "blocks_done": 10}
+{"batch": 1, "blocks_done": 11}
+{"batch": 1, "blocks_done": 12}
+{"batch": 1, "blocks_done": 13}
+{"batch": 1, "blocks_done": 14}
+{"batch": 1, "blocks_done": 15}
+{"batch": 1, "blocks_done": 16}
+{"batch": 1, "blocks_done": 17}
+{"batch": 1, "blocks_done": 18}
+{"batch": 1, "blocks_done": 19}
+{"batch": 1, "blocks_done": 20}
+{"batch": 1, "certification_passed": true}
+{"batch": 32, "blocks_done": 1}
+{"batch": 32, "blocks_done": 2}
+{"batch": 32, "blocks_done": 3}
+{"batch": 32, "blocks_done": 4}
+{"batch": 32, "blocks_done": 5}
+{"batch": 32, "blocks_done": 6}
+{"batch": 32, "blocks_done": 7}
+{"batch": 32, "blocks_done": 8}
+{"batch": 32, "blocks_done": 9}
+{"batch": 32, "blocks_done": 10}
+{"batch": 32, "blocks_done": 11}
+{"batch": 32, "blocks_done": 12}
+{"batch": 32, "blocks_done": 13}
+{"batch": 32, "blocks_done": 14}
+{"batch": 32, "blocks_done": 15}
+{"batch": 32, "blocks_done": 16}
+{"batch": 32, "blocks_done": 17}
+{"batch": 32, "blocks_done": 18}
+{"batch": 32, "blocks_done": 19}
+{"batch": 32, "blocks_done": 20}
+{"batch": 32, "certification_passed": false}
+{"certification": {"1": {"blocks": 20, "bootstrap_draws": 5000, "bootstrap_seed": 179019, "calls_per_block": 500, "candidate_p50_ns": 10674055, "candidate_p99_ns": 17025784, "ci95_lower": 0.6025511389667748, "ci95_upper": 0.9708813574427024, "ci_interpretation": "conditional on exchangeable consecutive AB/BA superblocks", "latency_gate_passed": true, "latency_gate_rule": "p99 ratio block-bootstrap upper 95% < 1; p50 and mean latency ratios <= 1; one-sided paired-superblock p99 sign p < 0.05", "mean_latency_ratio": 0.6615205439485145, "one_sided_sign_p": 0.0107421875, "point_p50_ratio": 0.6485395510177868, "point_ratio": 0.814243833301618, "reference_p50_ns": 16458603, "reference_p99_ns": 20909933, "superblock_p99_wins": 9, "superblocks": 10}, "32": {"blocks": 20, "bootstrap_draws": 5000, "bootstrap_seed": 179019, "calls_per_block": 500, "candidate_p50_ns": 279001402, "candidate_p99_ns": 442385271, "ci95_lower": 0.8922061790175408, "ci95_upper": 1.0078086699745823, "ci_interpretation": "conditional on exchangeable consecutive AB/BA superblocks", "latency_gate_passed": false, "latency_gate_rule": "p99 ratio block-bootstrap upper 95% < 1; p50 and mean latency ratios <= 1; one-sided paired-superblock p99 sign p < 0.05", "mean_latency_ratio": 0.9854126269223263, "one_sided_sign_p": 0.0009765625, "point_p50_ratio": 0.9776456043382298, "point_ratio": 1.0078086699745823, "reference_p50_ns": 285380920, "reference_p99_ns": 438957596, "superblock_p99_wins": 10, "superblocks": 10}}, "statistics": {"1": {"baseline": {"images_per_second": 59.489661578820254, "mean_ms": 16.809643448299997, "p50_ms": 16.4586125, "p95_ms": 19.2137301, "p99_ms": 20.913856}, "single": {"images_per_second": 89.92866831275654, "mean_ms": 11.1199244775, "p50_ms": 10.674071, "p95_ms": 11.7643992, "p99_ms": 17.0298}}, "32": {"baseline": {"images_per_second": 109.36807327376941, "mean_ms": 292.58995831349995, "p50_ms": 285.38401799999997, "p95_ms": 351.53160309996866, "p99_ms": 439.040522}, "single": {"images_per_second": 110.98708326414632, "mean_ms": 288.3218394328, "p50_ms": 279.002253, "p95_ms": 329.96560694991973, "p99_ms": 442.387512}}}}
+sfora-sop-serving-threads-p99-179024-v1.service: Consumed 2h 50min 48.987s CPU time, 3.3G memory peak, 0B memory swap peak.

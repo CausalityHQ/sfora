@@ -82,3 +82,31 @@ process** recommendation for `torch.set_num_threads(1)`; it does not authorize
 a silent Sfora library side effect, a concurrency or scale claim, or a new
 retrieval-quality claim. A failure closes this runtime lane and redirects work
 to the next measured bottleneck.
+
+## Terminal varied-image certification
+
+The original DGX Spark GB10 service exited 0 after all 20 blocks at both
+batch sizes. Its [raw receipt](evidence/compact_metric/sop-siglip2-substrate-v1/sop-serving-threads-p99-179024/receipt.json)
+has SHA-256 `e42833754ff7b427c9976e7ffdeb70dd6b9f80e14941011b780c69ebfc07d2ac`;
+the [service journal](evidence/compact_metric/sop-siglip2-substrate-v1/sop-serving-threads-p99-179024/service-journal.txt)
+has SHA-256 `bd94eb606d57dc959e92f18c6783fa7f119a95d038055afe7b45b6f3cd93b525`.
+An independent local replay checked 20 × 500 raw calls per arm and batch,
+all summary metrics, and both 5,000-draw paired-block bootstraps. All 640
+varied TRAIN images retained exact packed codes, inverse norms, native top-10
+ordinals and scores across settings.
+
+| SOP TRAIN public image-to-top-10 | 20 threads | 1 thread | Frozen p99 gate |
+| --- | ---: | ---: | --- |
+| Batch 1 p50 / p95 / p99 | 16.459 / 19.214 / 20.914 ms | 10.674 / 11.764 / 17.030 ms | Pass; p99 ratio 0.8142, bootstrap 95% [0.6026, 0.9709] |
+| Batch 32 p50 / p95 / p99 | 285.384 / 351.532 / 439.041 ms | 279.002 / 329.966 / 442.388 ms | **Fail**; p99 ratio 1.0078, bootstrap 95% [0.8922, 1.0078] |
+| Batch 32 throughput | 109.37 images/s | 110.99 images/s | Nonregressing, but does not override p99 failure |
+
+The batch-32 global p99 regresses by 3.347 ms despite lower median, p95 and
+mean latency. Its p99 uncertainty upper bound also exceeds 1. Therefore the
+predeclared joint gate fails, and **one intra-op thread is not promoted as a
+Sfora serving-process recommendation**. Keep the existing 20-thread process
+setting for this configuration. This is a varied-image, idle-GPU TRAIN
+measurement for one model, gallery, and process; it does not establish
+concurrent-service or dataset-general tail behavior. The next production work
+must address measured preprocessing cost without silently changing the global
+PyTorch thread count.
