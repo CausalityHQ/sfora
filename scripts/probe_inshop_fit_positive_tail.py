@@ -69,12 +69,13 @@ def main() -> None:
     args = parser.parse_args()
     receipt_path = args.run / "receipt.json"
     checkpoint_path = args.run / "checkpoint.pt"
-    helper = Path(export_all.__code__.co_filename)
+    helper_file = sys.modules[export_all.__module__].__file__
     if (
         args.output.exists()
         or not torch.cuda.is_available()
         or sha256(receipt_path) != RECEIPT_SHA
-        or sha256(helper) != TRAIN_HELPER_SHA
+        or helper_file is None
+        or sha256(Path(helper_file)) != TRAIN_HELPER_SHA
         or sha256(args.dataset_root / "Eval/list_eval_partition.txt") != PARTITION_SHA
         or args.model_snapshot.resolve().name != MODEL_REVISION
         or any(
