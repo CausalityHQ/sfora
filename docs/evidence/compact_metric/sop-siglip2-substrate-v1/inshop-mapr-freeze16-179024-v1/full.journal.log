@@ -1,0 +1,28 @@
+Started sfora-inshop-mapr-freeze16-full-179024-v1.service - /bin/bash /home/riomus/runs/sfora-inshop-mapr-freeze16-179024-v1/run_inshop_mapr_freeze16_dgx.sh full.
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:   1%|          | 4/792 [00:00<00:19, 39.41it/s]Loading weights:  63%|██████▎   | 499/792 [00:00<00:00, 2909.41it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2777.78it/s]
+{"step": 50, "loss": 7.878896713256836, "elapsed_seconds": 32.48495712503791}
+{"step": 100, "loss": 6.456630706787109, "elapsed_seconds": 63.00573696009815}
+{"step": 150, "loss": 7.497098922729492, "elapsed_seconds": 93.52415570197627}
+{"step": 200, "loss": 7.205299377441406, "elapsed_seconds": 124.33404558012262}
+{"step": 250, "loss": 5.381330490112305, "elapsed_seconds": 156.23469932517037}
+{"step": 300, "loss": 3.4359264373779297, "elapsed_seconds": 187.25170525722206}
+{"step": 350, "loss": 3.576500654220581, "elapsed_seconds": 217.9248568508774}
+{"step": 400, "loss": 3.6424217224121094, "elapsed_seconds": 248.51527029601857}
+{"step": 450, "loss": 5.749483108520508, "elapsed_seconds": 279.33997114608064}
+{"step": 500, "loss": 5.88116979598999, "elapsed_seconds": 309.99697879794985}
+{"step": 550, "loss": 3.5010628700256348, "elapsed_seconds": 340.6334092891775}
+{"step": 600, "loss": 0.159845769405365, "elapsed_seconds": 371.3790768212639}
+{"step": 650, "loss": 4.7459235191345215, "elapsed_seconds": 401.98932176316157}
+{"step": 700, "loss": 4.016664981842041, "elapsed_seconds": 432.6942322659306}
+{"step": 750, "loss": 0.9343770742416382, "elapsed_seconds": 463.31305461004376}
+{"step": 800, "loss": 3.14406681060791, "elapsed_seconds": 493.98720127902925}
+{"step": 850, "loss": 4.5193939208984375, "elapsed_seconds": 524.7479566722177}
+{"step": 900, "loss": 2.4154696464538574, "elapsed_seconds": 555.5256673810072}
+{"step": 950, "loss": 2.2903761863708496, "elapsed_seconds": 586.3528579319827}
+{"step": 1000, "loss": 2.3202271461486816, "elapsed_seconds": 617.0690133231692}
+{"export_batches": 100}
+{"arm": "freeze_emb_mapr", "seed": 179024, "training_seconds": 617.1436039372347, "holdout_r1": 0.9841257242638305}
+DONE updates=1000 receipt_sha256=ed8eaa9f1adbc09794b0ef41136bca36f3fe8f2daaf73aed947607fab9a68259
+sfora-inshop-mapr-freeze16-full-179024-v1.service: Consumed 15min 48.420s CPU time, 10.0G memory peak, 0B memory swap peak.

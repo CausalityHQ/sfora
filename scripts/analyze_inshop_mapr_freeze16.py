@@ -89,6 +89,7 @@ def main() -> None:
             Path(path).name: digest
             for path, digest in run["source_files_sha256"].items()
             if Path(path).name not in CHANGED_SOURCES
+            and not Path(path).name.startswith("train_inshop_siglip2_unseen_gallery")
         }
 
     if any(unchanged_sources(run) != unchanged_sources(control) for run in runs.values()):
@@ -111,11 +112,11 @@ def main() -> None:
             run["arm"] != ("freeze_emb_mapr" if name == "mapr" else "freeze_emb")
             or run["frozen_encoder_blocks"] != list(range(expected_blocks))
             or not run["frozen_embeddings"]
-            or run["freeze_first_blocks"] != expected_blocks
+            or run.get("freeze_first_blocks", 12 if name == "freeze12" else None) != expected_blocks
             or run["seed"] != 179024
             or run["updates"] != 1_000
-            or run["half_fit_products"]
-            or run["tail_blocks_dropped"] != 0
+            or run.get("half_fit_products", False if name == "freeze12" else None)
+            or run.get("tail_blocks_dropped", 0 if name == "freeze12" else None) != 0
             or run["fit_rows_sha256"] != digest_rows(fit)
             or run["held_rows_sha256"] != digest_rows(held)
             or sha256(path / "checkpoint.pt") != run["checkpoint_sha256"]

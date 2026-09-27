@@ -1,0 +1,8 @@
+Started sfora-inshop-mapr-freeze16-smoke-179024-v1.service - /bin/bash /home/riomus/runs/sfora-inshop-mapr-freeze16-179024-v1/run_inshop_mapr_freeze16_dgx.sh smoke.
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:   1%|          | 4/792 [00:00<00:25, 30.85it/s]Loading weights:  64%|██████▎   | 503/792 [00:00<00:00, 2630.31it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2489.99it/s]
+{"step": 17, "loss": 6.872125625610352, "elapsed_seconds": 12.423523503821343}
+{"arm": "freeze_emb_mapr", "seed": 179024, "training_seconds": 12.513483146205544, "holdout_r1": null}
+DONE updates=17 receipt_sha256=b9254d09c79af37075037cd9d618eb2e1ea7662a9d9cead5a5bad6c39ee7e7e3
+sfora-inshop-mapr-freeze16-smoke-179024-v1.service: Consumed 47.143s CPU time, 5.8G memory peak, 0B memory swap peak.
