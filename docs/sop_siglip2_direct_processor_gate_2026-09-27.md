@@ -165,3 +165,32 @@ CUDA, RSS, raw calls and source hashes. This qualifies local serving cost,
 not official In-Shop quality or an external SOTA comparison. Frozen
 [`certify_inshop_siglip2_direct_p99.py`](../scripts/certify_inshop_siglip2_direct_p99.py)
 SHA-256: `88081e64584171920d7bf55809152374da3435792f0f0a2abbdd5a4c0dec7454`.
+
+## Terminal In-Shop public latency result
+
+The sole DGX Spark GB10 unit `sfora-inshop-direct-p99-v1` (invocation
+`489552b559b54530a2e6678d55d7fabf`) exited 0. Its
+[raw receipt](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-direct-p99-v1/receipt.json)
+has SHA-256 `7ecf15f673f86521b2fb1fde4d219d777b6642a5f0c2722337e90cead384d1f0`;
+the [journal](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-direct-p99-v1/journal.log)
+has SHA-256 `e69a084ec9b53e83fb1259fb6b1d10dd4caf670a8bb490932bfb361c4091635e`.
+The receipt binds the production serving source SHA-256
+`ef454200ca17b80917fe7aa52cf232703779d21af7e8ffe0d25f8e811724bc62`.
+An independent local replay checked every raw block, all quantiles and the
+paired-block bootstrap result.
+
+| Full In-Shop TRAIN image-to-top-10, seed 179026, 6,245-row gallery | Baseline processor | Direct processor |
+| --- | ---: | ---: |
+| Batch-1 p50 / p95 / p99, ms, 10,000 calls/arm | 14.701 / 17.249 / 18.394 | **12.711 / 14.908 / 15.832** |
+| Batch-1 mean, ms / throughput, images/s | 14.860 / 67.29 | **12.838 / 77.89** |
+| Batch-32 p50 / p95 / p99, ms, 200 calls/arm | 255.352 / 276.595 / 284.955 | 255.175 / **274.097** / 285.205 |
+
+Every timed call preserved the fixed exact top-10 digest. The batch-1 p99
+ratio was **0.8608**, with conditional paired-block bootstrap 95% interval
+**[0.8557, 0.8651]** and paired-superblock sign p **0.00098**. The frozen
+batch-1 and batch-32 gates pass. Model load took **6.945 s** and the
+6,245-row gallery build **50.112 s**; the gallery wire is **811,850 bytes**.
+Peak allocated CUDA was **882,524,672 bytes** and parent RSS
+**4,086,751,232 bytes**. This closes same-checkpoint In-Shop local serving
+transfer; it does not resolve the In-Shop quality gap or establish a matched
+external full-pipeline SOTA win.

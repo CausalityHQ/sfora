@@ -1,0 +1,23 @@
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+{"batch": 1, "blocks_done": 1}
+{"batch": 1, "blocks_done": 2}
+{"batch": 1, "blocks_done": 3}
+{"batch": 1, "blocks_done": 4}
+{"batch": 1, "blocks_done": 5}
+{"batch": 1, "blocks_done": 6}
+{"batch": 1, "blocks_done": 7}
+{"batch": 1, "blocks_done": 8}
+{"batch": 1, "blocks_done": 9}
+{"batch": 1, "blocks_done": 10}
+{"batch": 1, "blocks_done": 11}
+{"batch": 1, "blocks_done": 12}
+{"batch": 1, "blocks_done": 13}
+{"batch": 1, "blocks_done": 14}
+{"batch": 1, "blocks_done": 15}
+{"batch": 1, "blocks_done": 16}
+{"batch": 1, "blocks_done": 17}
+{"batch": 1, "blocks_done": 18}
+{"batch": 1, "blocks_done": 19}
+{"batch": 1, "blocks_done": 20}
+{"batch32_statistics": {"baseline": {"images_per_second": 124.37486174268096, "mean_ms": 257.286718165, "p50_ms": 255.352197, "p95_ms": 276.59532205, "p99_ms": 284.954824}, "direct": {"images_per_second": 124.5102012523317, "mean_ms": 257.007053865, "p50_ms": 255.174939, "p95_ms": 274.09731204999997, "p99_ms": 285.204766}}, "certification": {"blocks": 20, "bootstrap_draws": 5000, "bootstrap_seed": 179019, "calls_per_block": 500, "candidate_p50_ns": 12711454, "candidate_p99_ns": 15831134, "ci95_lower": 0.8557060789544172, "ci95_upper": 0.8650986363996184, "ci_interpretation": "conditional on exchangeable consecutive AB/BA superblocks", "latency_gate_passed": true, "latency_gate_rule": "p99 ratio block-bootstrap upper 95% < 1; p50 and mean latency ratios <= 1; one-sided paired-superblock p99 sign p < 0.05", "mean_latency_ratio": 0.8639162454496808, "one_sided_sign_p": 0.0009765625, "point_p50_ratio": 0.8646597065554116, "point_ratio": 0.860832356016934, "reference_p50_ns": 14701106, "reference_p99_ns": 18390496, "superblock_p99_wins": 10, "superblocks": 10}, "passed": true, "statistics": {"baseline": {"images_per_second": 67.2941559529223, "mean_ms": 14.8601314013, "p50_ms": 14.7011325, "p95_ms": 17.24872655, "p99_ms": 18.394486}, "direct": {"images_per_second": 77.89430550399561, "mean_ms": 12.8379089271, "p50_ms": 12.7114545, "p95_ms": 14.90770675, "p99_ms": 15.831521}}}
