@@ -234,3 +234,27 @@ This is a TRAIN-held promotion gate to official *exploratory* qualification
 and same-checkpoint public serving measurement, not a SOTA conclusion.
 The SOP vision acquisition cost must be counted once and reported both in
 total and amortized form; the 213.095 s treatment cache was acquired once.
+
+## First full-budget seed: 179024
+
+The sole serial DGX unit `197a588a729d44368921f6093bbf631b` exited 0.
+The [paired TRAIN-held receipt](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-sop-warmstart-full-179024-v1/paired_quality.json)
+SHA-256 is `bb52c46b2d0c6528061b257c8af15433b0901ac839e2cfb8da6eb15c76c0232c`.
+Local replay checked all 6,354 paired packed R@1 flags, input/receipt
+bindings and the frozen gross-failure decision.
+
+| Seed 179024, 1,000 updates, official In-Shop TRAIN held | Pretrained-init control | SOP warm start |
+| --- | ---: | ---: |
+| Fixed asymmetric packed R@1 | **97.7022%** | **97.7337%** |
+| Fixed asymmetric packed mAP@R | **0.848940** | **0.852964** |
+| Symmetric held packed R@1 | **98.5475%** | **98.6427%** |
+| Symmetric held packed mAP@R | **0.839099** | **0.842063** |
+| Training wall / 64,000 images | **744.850 s** | **744.074 s** |
+| Held export wall | **66.417 s** | **66.236 s** |
+| Peak allocated CUDA | **12,939,458,560 B** | **12,939,458,560 B** |
+
+Asymmetric R@1 gain was just **+0.0315 point**, with 39 rescues and 37
+regressions and product-bootstrap 95% **[−0.2417,+0.3016] points**. The
+predeclared first-seed gross-failure rule did **not** trigger. This seed
+alone does not establish a quality gain; run paired seeds 179025 and 179026
+under the same frozen method before the three-seed promotion decision.
