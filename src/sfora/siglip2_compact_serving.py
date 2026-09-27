@@ -6,7 +6,7 @@ import hashlib
 import json
 import os
 import threading
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from contextlib import ExitStack
 from pathlib import Path
 from typing import Any, Literal, Protocol
@@ -120,6 +120,87 @@ class Siglip2CompactEncoder:
         self.device = device
         self._batch1_lock = threading.Lock()
         self._batch1_graph = self._capture_batch1_graph() if cuda_graph_batch1 else None
+
+    @classmethod
+    def from_checkpoint(
+        cls,
+        *,
+        model_snapshot: Path,
+        checkpoint: Path,
+        expected_checkpoint_sha256: str,
+        model_file_sha256: Mapping[str, str],
+        precision: InferencePrecision,
+        device: torch.device,
+        cuda_graph_batch1: bool = False,
+    ) -> Siglip2CompactEncoder:
+        """Load a pinned trained encoder for any gallery built with ``from_image_paths``."""
+
+        if (
+            not isinstance(checkpoint, Path)
+            or not checkpoint.is_file()
+            or not isinstance(expected_checkpoint_sha256, str)
+            or len(expected_checkpoint_sha256) != 64
+            or any(char not in "0123456789abcdef" for char in expected_checkpoint_sha256)
+            or _sha256(checkpoint) != expected_checkpoint_sha256
+        ):
+            raise ValueError("trained SigLIP2 checkpoint digest differs")
+        if (
+            not isinstance(model_snapshot, Path)
+            or not isinstance(model_file_sha256, Mapping)
+            or set(model_file_sha256)
+            != {"config.json", "preprocessor_config.json", "model.safetensors"}
+            or any(
+                not isinstance(digest, str)
+                or len(digest) != 64
+                or any(char not in "0123456789abcdef" for char in digest)
+                or not (model_snapshot / name).is_file()
+                or _sha256(model_snapshot / name) != digest
+                for name, digest in model_file_sha256.items()
+            )
+        ):
+            raise ValueError("trained SigLIP2 model snapshot digest differs")
+        if (
+            precision not in ("fp32_autocast", "fp16_native")
+            or type(device) is not torch.device
+            or (precision == "fp16_native" and device.type != "cuda")
+            or (
+                device.type == "cuda"
+                and (not torch.cuda.is_available() or torch.backends.cuda.matmul.allow_tf32)
+            )
+        ):
+            raise ValueError("trained SigLIP2 checkpoint runtime differs")
+        from transformers import AutoConfig, AutoImageProcessor, SiglipVisionModel
+
+        processor = AutoImageProcessor.from_pretrained(
+            model_snapshot, local_files_only=True, backend="torchvision"
+        )
+        if (
+            type(processor).__name__ != "SiglipImageProcessor"
+            or processor.size.get("height") != 256
+            or processor.size.get("width") != 256
+            or processor.resample != 2
+        ):
+            raise ValueError("trained SigLIP2 checkpoint processor differs")
+        config = AutoConfig.from_pretrained(model_snapshot, local_files_only=True)
+        vision = SiglipVisionModel(config.vision_config).to(device=device, dtype=torch.float32)
+        head = nn.Linear(1024, 128).to(device=device, dtype=torch.float32)
+        state = torch.load(checkpoint, map_location="cpu", weights_only=True)
+        if (
+            not isinstance(state, dict)
+            or not isinstance(state.get("vision"), dict)
+            or not isinstance(state.get("head"), dict)
+            or any(
+                not isinstance(value, torch.Tensor) or not bool(torch.isfinite(value).all())
+                for group in (state["vision"], state["head"])
+                for value in group.values()
+            )
+        ):
+            raise ValueError("trained SigLIP2 checkpoint weights differ")
+        vision.load_state_dict(state["vision"], strict=True)
+        head.load_state_dict(state["head"], strict=True)
+        if precision == "fp16_native":
+            vision.half()
+        return cls(processor, vision, head, precision, device, cuda_graph_batch1)
 
     @torch.inference_mode()
     def _capture_batch1_graph(self) -> tuple[torch.Tensor, torch.cuda.CUDAGraph, torch.Tensor]:

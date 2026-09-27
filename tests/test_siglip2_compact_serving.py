@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import sys
 from pathlib import Path
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 from typing import cast
 
 import numpy as np
@@ -28,6 +29,51 @@ class BasisProcessor:
     ) -> dict[str, torch.Tensor]:
         assert return_tensors == "pt"
         return {"pixel_values": torch.eye(1024)[: len(images)]}
+
+
+def test_encoder_loads_pinned_checkpoint_for_custom_gallery(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    class SiglipImageProcessor(BasisProcessor):
+        size = {"height": 256, "width": 256}
+        resample = 2
+
+    files = {}
+    for name in ("config.json", "preprocessor_config.json", "model.safetensors"):
+        path = tmp_path / name
+        path.write_bytes(name.encode())
+        files[name] = hashlib.sha256(path.read_bytes()).hexdigest()
+    head = torch.nn.Linear(1024, 128)
+    checkpoint = tmp_path / "checkpoint.pt"
+    torch.save({"vision": {}, "head": head.state_dict()}, checkpoint)
+    digest = hashlib.sha256(checkpoint.read_bytes()).hexdigest()
+    fake_transformers = ModuleType("transformers")
+    fake_transformers.AutoImageProcessor = SimpleNamespace(  # type: ignore[attr-defined]
+        from_pretrained=lambda *args, **kwargs: SiglipImageProcessor()
+    )
+    fake_transformers.AutoConfig = SimpleNamespace(  # type: ignore[attr-defined]
+        from_pretrained=lambda *args, **kwargs: SimpleNamespace(vision_config=None)
+    )
+    fake_transformers.SiglipVisionModel = lambda config: EchoVision()  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "transformers", fake_transformers)
+    with pytest.raises(ValueError, match="checkpoint digest"):
+        Siglip2CompactEncoder.from_checkpoint(
+            model_snapshot=tmp_path,
+            checkpoint=checkpoint,
+            expected_checkpoint_sha256="0" * 64,
+            model_file_sha256=files,
+            precision="fp32_autocast",
+            device=torch.device("cpu"),
+        )
+    encoder = Siglip2CompactEncoder.from_checkpoint(
+        model_snapshot=tmp_path,
+        checkpoint=checkpoint,
+        expected_checkpoint_sha256=digest,
+        model_file_sha256=files,
+        precision="fp32_autocast",
+        device=torch.device("cpu"),
+    )
+    assert encoder.encode_images([Image.new("RGB", (2, 2))]).codes.shape == (1, 128)
 
 
 class EchoVision(torch.nn.Module):
