@@ -126,7 +126,7 @@ def main() -> None:
         choices=("control", "budget", "freeze", "freeze_emb", "freeze_emb_rank", "subspace"),
         required=True,
     )
-    parser.add_argument("--updates", type=int, choices=(17, 1_000, 3_000), required=True)
+    parser.add_argument("--updates", type=int, choices=(17, 100, 1_000, 3_000), required=True)
     parser.add_argument(
         "--seed", type=int, choices=(179023, 179024, 179025, 179026, 179027), default=SEED
     )
@@ -134,6 +134,7 @@ def main() -> None:
     parser.add_argument("--preflight-sha256", default=PREFLIGHT_SHA)
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--half-fit-products", action="store_true")
+    parser.add_argument("--tail-blocks-to-drop", type=int, choices=(0, 2), default=0)
     args = parser.parse_args()
     if (
         args.output_dir.exists()
@@ -149,6 +150,10 @@ def main() -> None:
         or (
             args.half_fit_products
             and (args.arm != "freeze_emb" or args.seed != 179024 or args.updates not in (17, 1_000))
+        )
+        or (
+            args.tail_blocks_to_drop
+            and (args.arm != "freeze_emb" or args.seed != 179026 or args.updates not in (17, 100))
         )
         or not torch.cuda.is_available()
         or not torch.cuda.is_bf16_supported()
@@ -170,6 +175,7 @@ def main() -> None:
         or cache.get("schema") != "sfora-inshop-siglip2-train-feature-export-v1"
         or cache.get("partition_sha256") != PARTITION_SHA
         or cache.get("model_file_sha256") != MODEL_HASHES
+        or cache.get("tail_blocks_dropped", 0) != args.tail_blocks_to_drop
         or sha256(args.features_dir / "train_features.npy") != cache.get("features_sha256")
     ):
         raise ValueError("In-Shop paired training inputs differ")
@@ -247,6 +253,12 @@ def main() -> None:
     )
     vision = full_model.vision_model
     del full_model
+    if len(vision.encoder.layers) != 24:
+        raise ValueError("In-Shop SigLIP2 encoder depth differs")
+    if args.tail_blocks_to_drop:
+        vision.encoder.layers = nn.ModuleList(
+            list(vision.encoder.layers[: -args.tail_blocks_to_drop])
+        )
     vision = vision.float().cuda().train()
     if args.arm in ("freeze", "freeze_emb", "freeze_emb_rank"):
         for block in vision.encoder.layers[:12]:
@@ -405,13 +417,14 @@ def main() -> None:
             "updates": args.updates,
             "vision_lr": args.vision_lr,
             "half_fit_products": args.half_fit_products,
+            "tail_blocks_dropped": args.tail_blocks_to_drop,
         },
         checkpoint_path,
     )
     quality = None
     export_seconds = None
     score_seconds = None
-    if args.updates >= 1_000:
+    if args.updates >= 100:
         export_started = time.perf_counter()
         values = export_all(
             vision,
@@ -471,6 +484,7 @@ def main() -> None:
         "fit_rows_sha256": fit_sha,
         "full_fit_rows_sha256": digest_rows(full_fit),
         "half_fit_products": args.half_fit_products,
+        "tail_blocks_dropped": args.tail_blocks_to_drop,
         "held_rows_sha256": held_sha,
         "schedule_sha256": schedule_sha,
         "fit_rows": len(fit),

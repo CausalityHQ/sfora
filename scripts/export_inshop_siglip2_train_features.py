@@ -30,6 +30,7 @@ def main() -> None:
     parser.add_argument("--dataset-root", required=True, type=Path)
     parser.add_argument("--model-snapshot", required=True, type=Path)
     parser.add_argument("--output-dir", required=True, type=Path)
+    parser.add_argument("--tail-blocks-to-drop", type=int, choices=(0, 2), default=0)
     args = parser.parse_args()
     if (
         args.output_dir.exists()
@@ -52,13 +53,16 @@ def main() -> None:
     torch.set_num_threads(16)
     torch.backends.cuda.matmul.allow_tf32 = False
     processor = AutoImageProcessor.from_pretrained(args.model_snapshot, local_files_only=True)
-    model = (
-        AutoModel.from_pretrained(
-            args.model_snapshot, local_files_only=True, use_safetensors=True, dtype=torch.float16
-        )
-        .cuda()
-        .eval()
+    model = AutoModel.from_pretrained(
+        args.model_snapshot, local_files_only=True, use_safetensors=True, dtype=torch.float16
     )
+    if len(model.vision_model.encoder.layers) != 24:
+        raise ValueError("In-Shop SigLIP2 encoder depth differs")
+    if args.tail_blocks_to_drop:
+        model.vision_model.encoder.layers = torch.nn.ModuleList(
+            list(model.vision_model.encoder.layers[: -args.tail_blocks_to_drop])
+        )
+    model = model.cuda().eval()
     args.output_dir.mkdir(parents=True, exist_ok=False)
     torch.cuda.reset_peak_memory_stats()
     started = time.perf_counter()
@@ -84,6 +88,7 @@ def main() -> None:
         "rows": len(rows),
         "products": len({row.label for row in rows}),
         "width": 1024,
+        "tail_blocks_dropped": args.tail_blocks_to_drop,
         "batch_size": 32,
         "partition_sha256": PARTITION_SHA256,
         "model_revision": MODEL_REVISION,
