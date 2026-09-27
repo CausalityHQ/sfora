@@ -93,6 +93,7 @@ class Siglip2CompactEncoder:
         head: nn.Linear,
         precision: InferencePrecision,
         device: torch.device,
+        cuda_graph_batch1: bool = False,
     ) -> None:
         if (
             precision not in ("fp32_autocast", "fp16_native")
@@ -102,13 +103,47 @@ class Siglip2CompactEncoder:
             or head.out_features != 128
             or not callable(processor)
             or not isinstance(vision, nn.Module)
+            or type(cuda_graph_batch1) is not bool
         ):
             raise ValueError("trained SigLIP2 serving geometry differs")
+        if cuda_graph_batch1 and (
+            precision != "fp16_native"
+            or device.type != "cuda"
+            or not torch.cuda.is_available()
+            or torch.backends.cuda.matmul.allow_tf32
+        ):
+            raise ValueError("CUDA graph requires native FP16 CUDA with TF32 disabled")
         self.processor = processor
         self.vision = vision.eval()
         self.head = head.eval()
         self.precision = precision
         self.device = device
+        self._batch1_lock = threading.Lock()
+        self._batch1_graph = self._capture_batch1_graph() if cuda_graph_batch1 else None
+
+    @torch.inference_mode()
+    def _capture_batch1_graph(self) -> tuple[torch.Tensor, torch.cuda.CUDAGraph, torch.Tensor]:
+        pixels = torch.zeros((1, 3, 256, 256), device=self.device, dtype=torch.float16)
+        side = torch.cuda.Stream(device=self.device)
+        side.wait_stream(torch.cuda.current_stream(self.device))
+        with torch.cuda.stream(side):
+            for _ in range(5):
+                self.vision(pixel_values=pixels)
+        torch.cuda.current_stream(self.device).wait_stream(side)
+        graph = torch.cuda.CUDAGraph()
+        with torch.cuda.graph(graph):
+            pooled = self.vision(pixel_values=pixels).pooler_output
+        if pooled is None or pooled.shape != (1, 1024):
+            raise ValueError("CUDA graph pooler geometry differs")
+        return pixels, graph, pooled
+
+    def _pack_pooled(self, pooled: torch.Tensor | None, count: int) -> PackedInt8Embeddings:
+        if pooled is None or pooled.shape != (count, 1024):
+            raise ValueError("trained SigLIP2 serving pooler geometry differs")
+        features = F.normalize(compact_head_features(pooled, self.head), dim=1).cpu()
+        if not bool(torch.isfinite(features).all()):
+            raise ValueError("trained SigLIP2 serving features are nonfinite")
+        return pack_int8_unit_embeddings(features)
 
     @torch.inference_mode()
     def encode_images(self, images: Sequence[Any]) -> PackedInt8Embeddings:
@@ -132,18 +167,19 @@ class Siglip2CompactEncoder:
         pixels = batch["pixel_values"].to(device=self.device)
         if self.precision == "fp16_native":
             pixels = pixels.to(dtype=torch.float16)
+        if self._batch1_graph is not None and len(images) == 1:
+            static, graph, pooled = self._batch1_graph
+            with self._batch1_lock:
+                static.copy_(pixels)
+                graph.replay()
+                return self._pack_pooled(pooled, 1)
         with torch.amp.autocast(
             self.device.type,
             dtype=torch.float16,
             enabled=self.precision == "fp32_autocast" and self.device.type == "cuda",
         ):
             pooled = self.vision(pixel_values=pixels).pooler_output
-        if pooled is None or pooled.shape != (len(images), 1024):
-            raise ValueError("trained SigLIP2 serving pooler geometry differs")
-        features = F.normalize(compact_head_features(pooled, self.head), dim=1).cpu()
-        if not bool(torch.isfinite(features).all()):
-            raise ValueError("trained SigLIP2 serving features are nonfinite")
-        return pack_int8_unit_embeddings(features)
+        return self._pack_pooled(pooled, len(images))
 
 
 class Siglip2CompactIndex:
@@ -200,6 +236,7 @@ class Siglip2CompactIndex:
         native_library: Path,
         expected_receipt_sha256: str,
         precision: InferencePrecision = "fp16_native",
+        cuda_graph_batch1: bool = False,
         official_gallery_receipt: Path | None = None,
         official_gallery_embeddings: Path | None = None,
         expected_official_gallery_receipt_sha256: str | None = None,
@@ -233,7 +270,12 @@ class Siglip2CompactIndex:
             or _sha256(training_receipt) != expected_receipt_sha256
         ):
             raise ValueError("trained SigLIP2 serving receipt digest differs")
-        if precision not in ("fp32_autocast", "fp16_native") or not torch.cuda.is_available():
+        if (
+            precision not in ("fp32_autocast", "fp16_native")
+            or not torch.cuda.is_available()
+            or type(cuda_graph_batch1) is not bool
+            or (cuda_graph_batch1 and precision != "fp16_native")
+        ):
             raise ValueError("trained SigLIP2 serving needs CUDA and a supported precision")
         if any(
             not isinstance(path, Path) or not path.is_file()
@@ -332,7 +374,9 @@ class Siglip2CompactIndex:
         head.load_state_dict(checkpoint["head"], strict=True)
         if precision == "fp16_native":
             vision.half()
-        encoder = Siglip2CompactEncoder(processor, vision, head, precision, device)
+        encoder = Siglip2CompactEncoder(
+            processor, vision, head, precision, device, cuda_graph_batch1=cuda_graph_batch1
+        )
         if custom_gallery_image_paths is not None:
             return cls.from_image_paths(
                 encoder=encoder,

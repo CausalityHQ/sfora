@@ -48,3 +48,24 @@ median speed here; retain eager batch-32 in the candidate. The measured
 batch-1 vision saving is **0.882 ms**, so a full-call speed gain remains
 uncertain until JPEG decode, preprocessing, packing and native search are
 included. No training or quality metric was measured in this probe.
+
+## Public-path candidate gate
+
+The opt-in `cuda_graph_batch1=True` candidate captures only the FP16 vision
+forward at encoder construction and uses it only for one-image calls. The
+existing index lock and an encoder lock protect the static graph buffer through
+packing. Batch sizes 2–32 use the existing eager path. Keep the seed-179024
+checkpoint, 59,551-image SOP TRAIN gallery, native exact scorer, FP16 arithmetic
+and 20 intra-op threads fixed.
+
+Before any production promotion, compare opt-in and default indexes in one
+DGX process on the authenticated first 32 TRAIN images. Require bitwise equal
+packed codes, inverse norms, top-10 ordinals and scores for every single-image
+call and the full 32-image batch. Interleave 20 ABBA/BAAB blocks of 10
+whole-call timings per position, including JPEG read/decode, preprocessing,
+host-to-GPU transfer, vision, packing and native search: 400 calls per arm at
+batch 1. Require graph batch-1 p50 ≤0.95× eager and p95 no higher; batch-32
+path must be bitwise equal and p95 no more than 1.05× eager over at least 100
+calls per arm. Peak allocated CUDA must stay below 3 GB. A failure removes the
+opt-in path. A pass only authorizes the varied-image 10,000-call batch-1 p99
+gate and concurrency review; it is not a quality or SOTA claim.

@@ -78,6 +78,18 @@ def test_serving_rejects_empty_query_batch() -> None:
         encoder.encode_images([])
 
 
+def test_cuda_graph_opt_in_requires_native_fp16_cuda() -> None:
+    with pytest.raises(ValueError, match="CUDA graph requires native FP16 CUDA"):
+        Siglip2CompactEncoder(
+            BasisProcessor(),
+            EchoVision(),
+            torch.nn.Linear(1024, 128),
+            "fp32_autocast",
+            torch.device("cpu"),
+            cuda_graph_batch1=True,
+        )
+
+
 def test_serving_rejects_oversized_image_before_processing() -> None:
     head = torch.nn.Linear(1024, 128)
     encoder = Siglip2CompactEncoder(
