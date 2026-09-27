@@ -39,6 +39,7 @@ from train_sop_siglip2_compact import (
 
 from sfora.deployed_code_rank import smooth_ap_bank_loss
 from sfora.joint_relational_compaction import pack_int8_unit_embeddings
+from sfora.live_head_bank import live_head_bank_loss
 from sfora.representation_ceiling import fit_centered_pca
 from sfora.sop_compact_training import compact_head_features
 from sfora.unicom_inshop import parse_inshop_partition
@@ -92,6 +93,7 @@ def source_manifest() -> dict[str, str]:
         split,
         schedule,
         smooth_ap_bank_loss,
+        live_head_bank_loss,
         pack_int8_unit_embeddings,
         compact_head_features,
         parse_inshop_partition,
@@ -109,7 +111,7 @@ def source_manifest() -> dict[str, str]:
         for function in used
         if (filename := sys.modules[function.__module__].__file__) is not None
     }
-    if len(paths) != 10:
+    if len(paths) != 11:
         raise ValueError("In-Shop source manifest differs")
     return {str(path): sha256(path) for path in sorted(paths)}
 
@@ -130,6 +132,7 @@ def main() -> None:
             "freeze_emb",
             "freeze_emb_rank",
             "freeze_emb_mapr",
+            "freeze_emb_live",
             "subspace",
         ),
         required=True,
@@ -152,7 +155,7 @@ def main() -> None:
         or (args.vision_lr != 1e-5 and (args.arm != "control" or args.seed == 179023))
         or (args.arm == "subspace" and (args.seed == 179023 or args.vision_lr != 1e-5))
         or (
-            args.arm in ("freeze_emb", "freeze_emb_rank", "freeze_emb_mapr")
+            args.arm in ("freeze_emb", "freeze_emb_rank", "freeze_emb_mapr", "freeze_emb_live")
             and (args.seed == 179023 or args.vision_lr != 1e-5)
         )
         or args.workers < 0
@@ -167,9 +170,9 @@ def main() -> None:
         or (
             args.freeze_first_blocks == 16
             and (
-                args.arm not in ("freeze_emb", "freeze_emb_mapr")
+                args.arm not in ("freeze_emb", "freeze_emb_mapr", "freeze_emb_live")
                 or args.seed != 179024
-                or args.updates not in (17, 1_000)
+                or args.updates not in (17, 100, 1_000)
                 or args.half_fit_products
                 or args.tail_blocks_to_drop
             )
@@ -183,6 +186,10 @@ def main() -> None:
                 or args.half_fit_products
                 or args.tail_blocks_to_drop
             )
+        )
+        or (
+            args.arm == "freeze_emb_live"
+            and (args.freeze_first_blocks != 16 or args.seed != 179024)
         )
         or not torch.cuda.is_available()
         or not torch.cuda.is_bf16_supported()
@@ -270,7 +277,8 @@ def main() -> None:
         features_cpu, tuple(class_ids.tolist()), allow_singletons=True
     )
     bank_started = time.perf_counter()
-    bank_cpu = member_bank_initial_values(features_cpu, head, live_head=False)
+    live_head = args.arm == "freeze_emb_live"
+    bank_cpu = member_bank_initial_values(features_cpu, head, live_head=live_head)
     import transformers
     from transformers import AutoImageProcessor, AutoModel
 
@@ -296,10 +304,16 @@ def main() -> None:
             list(vision.encoder.layers[: -args.tail_blocks_to_drop])
         )
     vision = vision.float().cuda().train()
-    if args.arm in ("freeze", "freeze_emb", "freeze_emb_rank", "freeze_emb_mapr"):
+    if args.arm in (
+        "freeze",
+        "freeze_emb",
+        "freeze_emb_rank",
+        "freeze_emb_mapr",
+        "freeze_emb_live",
+    ):
         for block in vision.encoder.layers[: args.freeze_first_blocks]:
             block.requires_grad_(False)
-    if args.arm in ("freeze_emb", "freeze_emb_rank", "freeze_emb_mapr"):
+    if args.arm in ("freeze_emb", "freeze_emb_rank", "freeze_emb_mapr", "freeze_emb_live"):
         vision.embeddings.requires_grad_(False)
     head = head.cuda().train()
     classifier = nn.Parameter(classifier.cuda())
@@ -389,7 +403,7 @@ def main() -> None:
                     head,
                     batch_positives[:, :batch_width],
                     ordinals,
-                    live_head=False,
+                    live_head=live_head,
                     truncate_at_r=args.arm == "freeze_emb_mapr",
                 )
             rank_active_updates += 1
@@ -414,7 +428,7 @@ def main() -> None:
             source_features,
             features,
             torch.tensor(refresh_positions, device="cuda"),
-            live_head=False,
+            live_head=live_head,
         )
         torch.cuda.synchronize()
         step_seconds.append(time.perf_counter() - step_started)
@@ -456,6 +470,7 @@ def main() -> None:
             "half_fit_products": args.half_fit_products,
             "tail_blocks_dropped": args.tail_blocks_to_drop,
             "freeze_first_blocks": args.freeze_first_blocks,
+            "live_head_bank": live_head,
         },
         checkpoint_path,
     )
@@ -524,14 +539,18 @@ def main() -> None:
         "half_fit_products": args.half_fit_products,
         "tail_blocks_dropped": args.tail_blocks_to_drop,
         "freeze_first_blocks": args.freeze_first_blocks,
+        "live_head_bank": live_head,
+        "bank_width": bank.shape[1],
         "held_rows_sha256": held_sha,
         "schedule_sha256": schedule_sha,
         "fit_rows": len(fit),
         "held_rows": len(held),
         "frozen_encoder_blocks": list(range(args.freeze_first_blocks))
-        if args.arm in ("freeze", "freeze_emb", "freeze_emb_rank", "freeze_emb_mapr")
+        if args.arm
+        in ("freeze", "freeze_emb", "freeze_emb_rank", "freeze_emb_mapr", "freeze_emb_live")
         else [],
-        "frozen_embeddings": args.arm in ("freeze_emb", "freeze_emb_rank", "freeze_emb_mapr"),
+        "frozen_embeddings": args.arm
+        in ("freeze_emb", "freeze_emb_rank", "freeze_emb_mapr", "freeze_emb_live"),
         "recovered_rank_updates": recovered_rank_updates,
         "pca_sha256": pca_sha,
         "first_input_batch_sha256": first_input_batch_sha256,
