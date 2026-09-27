@@ -1,0 +1,22 @@
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  30%|██▉       | 234/792 [00:00<00:00, 2281.89it/s]Loading weights:  70%|██████▉   | 553/792 [00:00<00:00, 2799.44it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2776.93it/s]
+{"export_batches": 100}
+{"export_batches": 200}
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-inshop-token-residual-inner-fit-v1/probe.py", line 370, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/sfora-inshop-token-residual-inner-fit-v1/probe.py", line 264, in main
+    baseline = score(base_val, val_labels)
+  File "/home/riomus/runs/sfora-inshop-token-residual-inner-fit-v1/probe.py", line 101, in score
+    result = score_packed_full_gallery(
+        packed.codes.float(),
+    ...<3 lines>...
+        device=torch.device("cuda"),
+    )
+  File "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/utils/_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+  File "/home/riomus/runs/sfora-inshop-token-residual-inner-fit-v1/train_sop_siglip2_compact.py", line 436, in score_packed_full_gallery
+    raise ValueError("SOP SigLIP2 packed scoring positive inventory differs")
+ValueError: SOP SigLIP2 packed scoring positive inventory differs

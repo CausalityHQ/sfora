@@ -10,6 +10,7 @@ import math
 import os
 import sys
 import time
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
@@ -188,11 +189,15 @@ def main() -> None:
     half_fit = half_fit_products(labels, full_fit)
     half_set = set(half_fit)
     inner_val = tuple(row for row in full_fit if row not in half_set)
+    inner_counts = Counter(labels[row] for row in inner_val)
+    scored_val = tuple(row for row in inner_val if inner_counts[labels[row]] > 1)
     if (
         len(train) != 25_882
         or len(full_fit) != 13_283
         or len(half_fit) != 6_764
         or len(inner_val) != 6_519
+        or len(scored_val) != 6_514
+        or len(set(labels[row] for row in scored_val)) != 997
         or len(outer_held) != 12_599
         or digest_rows(full_fit) != FULL_FIT_SHA
         or digest_rows(half_fit) != HALF_FIT_SHA
@@ -255,10 +260,10 @@ def main() -> None:
     torch.cuda.empty_cache()
     positions = {row: i for i, row in enumerate(full_fit)}
     fit_positions = torch.tensor([positions[row] for row in half_fit])
-    val_positions = torch.tensor([positions[row] for row in inner_val])
+    val_positions = torch.tensor([positions[row] for row in scored_val])
     classes = {name: i for i, name in enumerate(sorted(set(labels[row] for row in full_fit)))}
     fit_labels = torch.tensor([classes[labels[row]] for row in half_fit])
-    val_labels = torch.tensor([classes[labels[row]] for row in inner_val])
+    val_labels = torch.tensor([classes[labels[row]] for row in scored_val])
     base_fit, base_val = base[fit_positions], base[val_positions]
     token_fit, token_val = token[fit_positions], token[val_positions]
     baseline = score(base_val, val_labels)
@@ -307,7 +312,7 @@ def main() -> None:
         if seed == 17 and (report["recall_delta_pp"] <= 0 or report["map_delta"] < 0.002):
             break
     mean_delta = np.mean(np.stack(deltas), axis=0)
-    lower = 100 * bootstrap_lower(mean_delta, np.asarray([labels[row] for row in inner_val]))
+    lower = 100 * bootstrap_lower(mean_delta, np.asarray([labels[row] for row in scored_val]))
     mean_map = float(np.mean([row["map_delta"] for row in reports]))
     mean_donor_gap = float(
         np.mean(
@@ -351,7 +356,8 @@ def main() -> None:
             "full_fit_sha256": FULL_FIT_SHA,
             "half_fit_sha256": HALF_FIT_SHA,
             "outer_held_sha256": HELD_SHA,
-            "inner_validation_rows": len(inner_val),
+            "inner_validation_rows": len(scored_val),
+            "singleton_rows_excluded_from_scoring": len(inner_val) - len(scored_val),
             "baseline": baseline,
             "export_wall_seconds": export_wall,
             "seeds_run": [row["seed"] for row in reports],

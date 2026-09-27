@@ -9,6 +9,15 @@ images from 1,002 products in the original 13,283-image fit partition unseen
 by that backbone. Do not export, train on, or score the separate 12,599-image
 outer held partition or official query/gallery split in this screen.
 
+Before any quality read, the first unit exposed a scorer eligibility issue:
+the inner-validation half has five singleton products (one image each), so a
+self-excluded query has no positive. The unit stopped at the scorer's positive
+inventory guard before training an adapter or scoring quality. Metadata-only
+counts fix the scoring inventory at **6,514 images / 997 products** by removing
+those five singleton rows; the 6,764-image adapter fit set is unchanged. The
+failed invocation journal will be retained. This correction was frozen before
+the first valid score.
+
 On one shared checkpoint forward, save the normalized 128-D base head and the
 mean of its final 256 patch tokens for all 13,283 original fit images. Train
 only a rank-16 residual map over the token means on the half-fit products:
@@ -21,7 +30,7 @@ a fixed label-blind derangement of token means separately within train and
 inner-validation rows. Keep initialization and image-index schedule identical
 between treatment and control. Train adapter seeds 17, 23, 29 in order.
 
-Score the 6,519 inner-validation images as a self-excluded symmetric gallery
+Score the 6,514 eligible inner-validation images as a self-excluded symmetric gallery
 using the existing 128-D int8 plus fp16 inverse-norm packer and packed ranking
 reference. A seed-17 treatment that does not improve base packed Recall@1,
 or improves mAP@R by less than 0.002, stops before the other adapter seeds.
