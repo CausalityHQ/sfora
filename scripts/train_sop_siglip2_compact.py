@@ -214,7 +214,9 @@ def initialize_head_and_classifier(
     allow_singletons: bool = False,
 ) -> tuple[nn.Linear, nn.Parameter, str]:
     if (
-        fit_features.shape != (len(fit_labels), WIDTH)
+        fit_features.ndim != 2
+        or fit_features.shape[0] != len(fit_labels)
+        or fit_features.shape[1] not in (768, WIDTH)
         or fit_features.device.type != "cpu"
         or fit_features.dtype != torch.float32
         or not bool(torch.isfinite(fit_features).all())
@@ -223,7 +225,7 @@ def initialize_head_and_classifier(
         raise ValueError("SOP SigLIP2 initialization inventory differs")
     normalized = F.normalize(fit_features, dim=1)
     pca = fit_centered_pca(normalized, dimensions=OUTPUT_WIDTH)
-    head = nn.Linear(WIDTH, OUTPUT_WIDTH)
+    head = nn.Linear(fit_features.shape[1], OUTPUT_WIDTH)
     with torch.no_grad():
         head.weight.copy_(pca.components)
         head.bias.copy_(-(pca.components @ pca.mean))

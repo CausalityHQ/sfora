@@ -37,6 +37,19 @@ def product_sham(teacher):
     return teacher.reshape(-1, 2, teacher.shape[1]).roll(1, 0).reshape_as(teacher).contiguous()
 
 
+def label_preserving_sham(teacher, labels):
+    """Rotate entire products only among groups with the same batch multiplicity."""
+    groups = {}
+    for label in sorted(set(labels.tolist())):
+        rows = (labels == label).nonzero().flatten()
+        groups.setdefault(len(rows), []).append(rows)
+    permutation = torch.arange(len(labels), device=labels.device)
+    for members in groups.values():
+        for index, rows in enumerate(members):
+            permutation[rows] = members[(index - 1) % len(members)]
+    return teacher[permutation].contiguous()
+
+
 def information(teacher, sham, temperature=0.20):
     mask = ~torch.eye(len(teacher), dtype=torch.bool, device=teacher.device)
     logits = (teacher @ teacher.T)[mask].reshape(len(teacher), -1) / temperature

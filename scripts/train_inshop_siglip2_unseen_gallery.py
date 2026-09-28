@@ -20,6 +20,9 @@ from export_inshop_siglip2_train_features import MODEL_HASHES, load_vision_init
 from export_sop_siglip2_train import MODEL_REVISION
 from preflight_inshop_siglip2_unseen_gallery import PARTITION_SHA, digest_rows, schedule, split
 from probe_inshop_source_classifier import unused_gradient
+from probe_inshop_spatial_parts import CHECKPOINT_SHA
+from probe_inshop_teacher_transfer import label_preserving_sham
+from siglip2_base_authority import BASE_HASHES, BASE_REVISION, TRANSFER_SMOKE_SHA
 from torch import nn
 from torch.utils.data import DataLoader
 from train_sop_siglip2_compact import (
@@ -43,6 +46,7 @@ from sfora.joint_relational_compaction import pack_int8_unit_embeddings
 from sfora.live_head_bank import live_head_bank_loss
 from sfora.representation_ceiling import fit_centered_pca
 from sfora.sop_compact_training import compact_head_features
+from sfora.teacher_anchored_distillation import cross_dimensional_relational_distillation_loss
 from sfora.unicom_inshop import parse_inshop_partition
 from sfora.unicom_rank_finish import identity_balanced_batches
 from sfora.unicom_training import sharded_mask_arcface_loss
@@ -113,13 +117,15 @@ def source_manifest() -> dict[str, str]:
         export_all,
         score_packed_full_gallery,
         unused_gradient,
+        label_preserving_sham,
+        cross_dimensional_relational_distillation_loss,
     )
     paths = {
         Path(filename).resolve()
         for function in used
         if (filename := sys.modules[function.__module__].__file__) is not None
     }
-    if len(paths) != 13:
+    if len(paths) != 15:
         raise ValueError("In-Shop source manifest differs")
     return {str(path): sha256(path) for path in sorted(paths)}
 
@@ -286,7 +292,47 @@ def main() -> None:
     parser.add_argument("--freeze-first-blocks", type=int, choices=(12, 16), default=12)
     parser.add_argument("--source-centroid-smoke", choices=("control", "auxiliary"))
     parser.add_argument("--source-centroid-receipt", type=Path)
+    parser.add_argument("--teacher-transfer", choices=("control", "true", "sham"))
+    parser.add_argument("--teacher-transfer-smoke-receipt", type=Path)
+    parser.add_argument("--teacher-model-snapshot", type=Path)
+    parser.add_argument("--teacher-checkpoint", type=Path)
     args = parser.parse_args()
+    transfer = args.teacher_transfer is not None
+    if transfer:
+        if (
+            args.arm != "control"
+            or args.seed != 179024
+            or args.updates != 100
+            or args.half_fit_products
+            or args.tail_blocks_to_drop
+            or args.vision_init_checkpoint
+            or args.source_centroid_smoke
+            or args.teacher_transfer_smoke_receipt is None
+            or sha256(args.teacher_transfer_smoke_receipt) != TRANSFER_SMOKE_SHA
+            or args.teacher_checkpoint is None
+            or sha256(args.teacher_checkpoint) != CHECKPOINT_SHA
+            or args.teacher_model_snapshot is None
+            or args.teacher_model_snapshot.name != MODEL_REVISION
+            or any(
+                sha256(args.teacher_model_snapshot / name) != digest
+                for name, digest in MODEL_HASHES.items()
+            )
+        ):
+            raise ValueError("teacher transfer protocol authority differs")
+    elif any(
+        value is not None
+        for value in (
+            args.teacher_transfer_smoke_receipt,
+            args.teacher_model_snapshot,
+            args.teacher_checkpoint,
+        )
+    ):
+        raise ValueError("teacher options require transfer method")
+    model_revision, model_hashes, source_width, depth = (
+        (BASE_REVISION, BASE_HASHES, 768, 12)
+        if transfer
+        else (MODEL_REVISION, MODEL_HASHES, 1024, 24)
+    )
     if (
         args.output_dir.exists()
         or ((args.source_centroid_smoke is None) != (args.source_centroid_receipt is None))
@@ -351,9 +397,9 @@ def main() -> None:
         or not torch.cuda.is_available()
         or not torch.cuda.is_bf16_supported()
         or sha256(args.dataset_root / "Eval/list_eval_partition.txt") != PARTITION_SHA
-        or args.model_snapshot.resolve().name != MODEL_REVISION
+        or args.model_snapshot.resolve().name != model_revision
         or any(
-            sha256(args.model_snapshot / name) != digest for name, digest in MODEL_HASHES.items()
+            sha256(args.model_snapshot / name) != digest for name, digest in model_hashes.items()
         )
         or sha256(args.preflight) != args.preflight_sha256
     ):
@@ -368,7 +414,7 @@ def main() -> None:
         or preflight.get("partition_sha256") != PARTITION_SHA
         or cache.get("schema") != "sfora-inshop-siglip2-train-feature-export-v1"
         or cache.get("partition_sha256") != PARTITION_SHA
-        or cache.get("model_file_sha256") != MODEL_HASHES
+        or cache.get("model_file_sha256") != model_hashes
         or cache.get("tail_blocks_dropped", 0) != args.tail_blocks_to_drop
         or sha256(args.features_dir / "train_features.npy") != cache.get("features_sha256")
     ):
@@ -397,8 +443,12 @@ def main() -> None:
     fit = half_fit_products(labels, full_fit) if args.half_fit_products else full_fit
     fit_sha = digest_rows(fit)
     source = np.load(args.features_dir / "train_features.npy", mmap_mode="r")
-    if source.shape != (len(train), 1024) or source.dtype != np.float32:
+    if source.shape != (len(train), source_width) or source.dtype != np.float32:
         raise ValueError("In-Shop feature geometry differs")
+    if transfer and (
+        cache.get("exported_fit_only") is not True or cache.get("fit_sha256") != fit_sha
+    ):
+        raise ValueError("student fit-only cache authority differs")
     fit_labels = tuple(labels[row] for row in fit)
     names = tuple(sorted(set(fit_labels)))
     class_index = {name: index for index, name in enumerate(names)}
@@ -469,11 +519,14 @@ def main() -> None:
     ):
         raise ValueError("In-Shop processor differs")
     full_model = AutoModel.from_pretrained(
-        args.model_snapshot, local_files_only=True, use_safetensors=True, dtype=torch.float16
+        args.model_snapshot,
+        local_files_only=True,
+        use_safetensors=True,
+        dtype=torch.float32 if transfer else torch.float16,
     )
     vision = full_model.vision_model
     del full_model
-    if len(vision.encoder.layers) != 24:
+    if len(vision.encoder.layers) != depth:
         raise ValueError("In-Shop SigLIP2 encoder depth differs")
     if args.tail_blocks_to_drop:
         vision.encoder.layers = nn.ModuleList(
@@ -482,6 +535,31 @@ def main() -> None:
     if args.vision_init_checkpoint is not None:
         load_vision_init(vision, args.vision_init_checkpoint, args.vision_init_sha256)
     vision = vision.float().cuda().train()
+    teacher = teacher_head = None
+    if transfer and args.teacher_transfer != "control":
+        from transformers import AutoConfig, SiglipVisionModel
+
+        teacher = SiglipVisionModel(
+            AutoConfig.from_pretrained(
+                args.teacher_model_snapshot, local_files_only=True
+            ).vision_config
+        ).float()
+        teacher_head = nn.Linear(1024, 128)
+        teacher_state = torch.load(args.teacher_checkpoint, map_location="cpu", weights_only=True)
+        teacher.load_state_dict(teacher_state["vision"], strict=True)
+        teacher_head.load_state_dict(teacher_state["head"], strict=True)
+        if any(
+            not torch.equal(value, teacher_state["vision"][name])
+            for name, value in teacher.state_dict().items()
+        ) or any(
+            not torch.equal(value, teacher_state["head"][name])
+            for name, value in teacher_head.state_dict().items()
+        ):
+            raise ValueError("teacher FP32 load parity differs")
+        del teacher_state
+        teacher = teacher.cuda().eval().requires_grad_(False)
+        teacher_head = teacher_head.cuda().eval().requires_grad_(False)
+        torch.manual_seed(args.seed)
     if args.arm in (
         "freeze",
         "freeze_emb",
@@ -532,10 +610,12 @@ def main() -> None:
     recovered_rank_updates = 0
     smoke_probes = []
     auxiliary_losses = []
+    transfer_losses = []
+    teacher_forward_seconds = []
     fixed_smoke_batch = None
     for step, (batch, target) in enumerate(loader, start=1):
         step_started = time.perf_counter()
-        if step <= 10 or args.source_centroid_smoke:
+        if step <= 10 or args.source_centroid_smoke or transfer:
             digest = hashlib.sha256()
             for key in sorted(batch):
                 digest.update(key.encode())
@@ -589,6 +669,28 @@ def main() -> None:
                 )
             rank_active_updates += 1
         loss = control + RANK_COEFFICIENT * rank
+        if teacher is not None:
+            teacher_started = time.perf_counter()
+            with torch.no_grad(), torch.amp.autocast("cuda", dtype=dtype):
+                teacher_source = teacher(**tensors).pooler_output
+            teacher_codes = (
+                torch.nn.functional.normalize(
+                    compact_head_features(teacher_source, teacher_head), dim=1
+                )
+                .detach()
+                .contiguous()
+            )
+            torch.cuda.synchronize()
+            teacher_forward_seconds.append(time.perf_counter() - teacher_started)
+            if args.teacher_transfer == "sham":
+                teacher_codes = label_preserving_sham(teacher_codes, target)
+            relation = cross_dimensional_relational_distillation_loss(
+                torch.nn.functional.normalize(features.float(), dim=1).contiguous(),
+                teacher_codes,
+                temperatures=(0.20,),
+            )
+            transfer_losses.append(float(relation.detach()))
+            loss = loss + 0.1 * relation
         if args.source_centroid_smoke:
             if step == 1:
                 fixed_smoke_batch = (tensors, target)
@@ -632,7 +734,7 @@ def main() -> None:
         before = scaler.get_scale()
         scaler.step(optimizer)
         scaler.update()
-        if args.source_centroid_smoke and any(
+        if (args.source_centroid_smoke or transfer) and any(
             not torch.isfinite(parameter).all()
             for parameter in list(vision.parameters()) + list(head.parameters()) + [classifier]
         ):
@@ -707,6 +809,10 @@ def main() -> None:
                 "seed": args.seed,
                 "arm": args.arm,
                 "updates": args.updates,
+                "teacher_transfer": args.teacher_transfer,
+                "model_revision": model_revision,
+                "source_width": source_width,
+                "teacher_checkpoint_sha256": CHECKPOINT_SHA if transfer else None,
                 "vision_lr": args.vision_lr,
                 "vision_init_sha256": args.vision_init_sha256,
                 "half_fit_products": args.half_fit_products,
@@ -777,7 +883,11 @@ def main() -> None:
         "feature_receipt_sha256": sha256(args.features_dir / "receipt.json"),
         "features_sha256": cache["features_sha256"],
         "partition_sha256": PARTITION_SHA,
-        "model_file_sha256": MODEL_HASHES,
+        "model_file_sha256": model_hashes,
+        "teacher_transfer": args.teacher_transfer,
+        "teacher_checkpoint_sha256": CHECKPOINT_SHA if transfer else None,
+        "teacher_transfer_losses": transfer_losses,
+        "teacher_forward_seconds": teacher_forward_seconds,
         "fit_rows_sha256": fit_sha,
         "full_fit_rows_sha256": digest_rows(full_fit),
         "half_fit_products": args.half_fit_products,
@@ -808,7 +918,7 @@ def main() -> None:
         "preclip_grad_norms": preclip_grad_norms,
         "first_loss": losses[0],
         "last_loss": losses[-1],
-        "all_step_losses": losses if args.source_centroid_smoke else None,
+        "all_step_losses": losses if args.source_centroid_smoke or transfer else None,
         "source_centroid_smoke": args.source_centroid_smoke,
         "source_centroid_probes": smoke_probes,
         "source_centroid_auxiliary_losses": auxiliary_losses,

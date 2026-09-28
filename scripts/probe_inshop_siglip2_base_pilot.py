@@ -15,18 +15,12 @@ from export_sop_siglip2_train import MODEL_REVISION
 from PIL import Image
 from preflight_inshop_siglip2_unseen_gallery import digest_rows, split
 from score_inshop_crop_view_pair import PARTITION_SHA, bootstrap_lower, sha256
+from siglip2_base_authority import BASE_HASHES, BASE_REVISION
 from transformers import AutoImageProcessor, AutoModel
 
 from sfora.joint_relational_compaction import pack_int8_unit_embeddings
 from sfora.representation_ceiling import fit_centered_pca
 from sfora.unicom_inshop import parse_inshop_partition
-
-BASE_REVISION = "3f9f96cb90da5dbc758b01813f2f6f1aee24c1ab"
-BASE_HASHES = {
-    "config.json": "7b5aedcb8893e31376e129c1ffd7a5392f1a806dbc793ce53eda220c2ec59edf",
-    "model.safetensors": "6125cacc01fa93bdc98a0c5101cefcd69b2ed1f8ab4f38d86f4ad5984f5dc863",
-    "preprocessor_config.json": "d14ba2ee3fd816f3de8abaddc31953565128eaf37c73ad4bed32101a98465aff",
-}
 
 
 def packed_hits(query, gallery):
