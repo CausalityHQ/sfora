@@ -102,3 +102,39 @@ record to call the existing `parameter_digest` helper. Preserve the original
 receipt without rewriting its KILL label. A new source-pinned, uniquely named
 v2 pair is allowed once; all original acceptance thresholds, inputs,
 architecture and initialization remain fixed. No gate relaxation.
+
+## Terminal v2: GO to separately frozen100 quality gate
+
+Sole repaired unit `sfora-inshop-centroid-pca-smoke-v2`, invocation
+`ebc87cfb982e4b7fbe6d6be94ec451b7`, exited0; whole pair **92.782331 s**.
+Receipt SHA-256:
+`9ae62ed93a7546e4d71b11b12a145bdca23908ec781e60731340d44fd9744e1f`.
+All16 criteria pass and independent terminal replay verifies the pixel,
+geometry, live-public parity, finite-state and cost rules. Both arms have
+17 stable actual encoder updates; no held/official query or quality read.
+
+| Official TRAIN fit17, DGX Spark GB10 | Native image-PCA | Product-mean PCA |
+| --- | ---: | ---: |
+| Training wall excluding bank/initializer | 15.862303 s | 15.974447 s |
+| Training wall including bank initialization | 17.238077 s | 17.265319 s |
+| Sampled images/s including bank initialization | 63.1161 | 63.0165 |
+| Peak allocated CUDA | 12,246,201,856 bytes | 12,246,201,856 bytes |
+| Median update wall, steps2–17 | 0.833352 s | 0.835514 s |
+| Head/proxy initializer wall, reported separately | 1.238468 s | 0.487583 s |
+| Initial→terminal compact variance | 0.851326→0.902825 | 0.863861→0.913763 |
+| Initial→terminal effective rank | 24.230318→23.549534 | 23.432932→23.315868 |
+| Live terminal→public reload codes/norms, 64fit/two32 batches | Exact | Exact |
+
+The 17 input batches, source/model/fit/schedule hashes and initial vision
+match exactly. The native PCA/head/bank authorities and all17 losses replay.
+Head/proxy/bank initialization changes only as declared. Cost observations
+are a short mechanical screen, not hardware latency or convergence evidence;
+neither arm has image-to-top-k p50/p95/p99/QPS or unseen quality from this run.
+
+Raw receipts, logs and terminal replay are in
+`docs/evidence/compact_metric/sop-siglip2-substrate-v1/inshop-centroid-pca-smoke-v2/`;
+full initializers/checkpoints remain at the corresponding remote result root.
+Next: a fresh paired100 source-pinned run on fixed6,354 query/6,245 gallery
+TRAIN roles, native128 packed scorer, R@1 nonnegative point and mAP@R>=+0.5pp
+with conditional lower>0, plus cost guards. Declare its exact protocol before
+execution. No seeds, official read or production default until it qualifies.
