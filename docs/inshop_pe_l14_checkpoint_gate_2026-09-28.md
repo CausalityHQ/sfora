@@ -82,3 +82,22 @@ code/input/parameters/helper are unchanged; this intervention changes GPU
 kernel determinism only. Only PASS permits separately frozen deterministic
 B64 checkpoint mechanics with the original cost/resource/quality floors.
 No default-backend candidate retry or relaxation.
+
+## Deterministic actual native GPU parity PASS; mechanics frozen
+
+One deterministicGPU inv8e2d7da324534ee2a237add85d3b3c2d original22038
+exit0/14.80s: baselineAA and checkpointAB outputs/loss/ALL161gradients EXACT,
+source/frozen/foreign state and normal serving exact. PeakCUDA2,055,316,480B,
+zero optimizer/held/quality. Per-param comparisons saved before guards.
+No gradient threshold, dtype, source or input relaxation. This is GPU parity,
+not a B64 memory or training speed measurement. Installed Torch checkpoint
+SHAc528c5b4dd76950f43984e51af80d5ff128008661cbd4f1ae79307d2a986542d pinned.
+
+New deterministic checkpoint driver/launcher and CPU/GPU parity receipts are
+bound by externally pinned checkpoint-execution.json. Original CPU initializer
+and source files untouched. Driver sets deterministic algorithms, requires
+pre-CUDA CUBLAS_WORKSPACE_CONFIG=:4096:8 and pins qualified parity source.
+Log exact allocator/phase before all guards, including forward/backward/
+optimizer/update validation. ONE fresh17B64 mechanics120s thenfresh100300s
+only if all unchanged gates pass; mechanicsstate alwaysdiscard. Fresh100
+must pin exact17receipt+sameexecutionauthority/initializer. No job duplicates.

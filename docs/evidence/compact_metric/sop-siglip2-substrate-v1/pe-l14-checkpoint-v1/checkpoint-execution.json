@@ -1,0 +1,16 @@
+{
+  "code": {
+    "train_pe_l14_checkpoint.py": "5a6c6d1171eb9c2386d07bba18eb10f0c07dcca6a0a3ed8637ba1a56711378b9",
+    "run_pe_l14_checkpoint.sh": "d161557e76948682de3bb557de924dc1e776560af877e4dccfc9e1476ff1af59",
+    "pe_l14_checkpoint.py": "e628e46b9b36501b30844ea266e14b7e5dd0ecc5de37486e8810bd173e60bedb",
+    "check_pe_l14_checkpoint.py": "36cc96cfc16913c132d6a55505c1cb80484828e1c098fc2400397939afba4dcf",
+    "probe_pe_l14_checkpoint_parity.py": "60ec0dedd3eb15d18546e5d0c9e67a2c28a4e18853a2fb5b574bc44aa73c527f",
+    "probe_pe_l14_deterministic_checkpoint.py": "b965639a98cb992241472fb9dbc18ecf05fb9c1373fabe58b5f3d6a5741e3ef7"
+  },
+  "cpu_parity_sha256": "80870e33c218ffd68afb433d00b5a0b17f0cfc0df4875b01d9dfca3153501067",
+  "gpu_parity_sha256": "3df2fc41cd5c04ade1a359506bd9cae41811573de1791374fae1ef3758070839",
+  "torch_checkpoint_sha256": "c528c5b4dd76950f43984e51af80d5ff128008661cbd4f1ae79307d2a986542d",
+  "initialization_preflight_sha256": "be5a8bdcfd1749340f220d5669cebfb1c0d8b30d3c08667a0b72a4fb38701277",
+  "deterministic_algorithms": true,
+  "cublas_workspace_config": ":4096:8"
+}

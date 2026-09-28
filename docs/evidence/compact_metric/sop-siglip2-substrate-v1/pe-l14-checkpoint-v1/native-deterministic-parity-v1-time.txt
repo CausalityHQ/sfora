@@ -1,0 +1,23 @@
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-pe-l14-checkpoint-v1/probe_pe_l14_deterministic_checkpoint.py --device cuda --output /home/riomus/runs/sfora-pe-l14-checkpoint-v1/native-deterministic-parity.json --script-sha256 b965639a98cb992241472fb9dbc18ecf05fb9c1373fabe58b5f3d6a5741e3ef7 --checkpoint-helper-sha256 e628e46b9b36501b30844ea266e14b7e5dd0ecc5de37486e8810bd173e60bedb"
+	User time (seconds): 18.99
+	System time (seconds): 2.61
+	Percent of CPU this job got: 146%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:14.80
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 4955408
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 3
+	Minor (reclaiming a frame) page faults: 589873
+	Voluntary context switches: 18184
+	Involuntary context switches: 330
+	Swaps: 0
+	File system inputs: 520
+	File system outputs: 120
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
