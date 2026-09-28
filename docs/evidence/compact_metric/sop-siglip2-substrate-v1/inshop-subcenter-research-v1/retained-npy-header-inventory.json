@@ -1,0 +1,2508 @@
+{
+  "scope": "recursive runs non-symlink NPY/NPZ files below128MiB, headers only; excludes PT/checkpoints and other directories",
+  "records": [
+    {
+      "path": "/home/riomus/runs/oml-inshop-baseline-c1fc-v1/oml-vits16-inshop-features.npz",
+      "bytes": 81939842,
+      "member": "query_recall_at_1.npy",
+      "descr": "|b1",
+      "fortran_order": false,
+      "shape": [
+        14218
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/oml-inshop-baseline-c1fc-v1/oml-vits16-inshop-features.npz",
+      "bytes": 81939842,
+      "member": "query_ap_at_r.npy",
+      "descr": "<f8",
+      "fortran_order": false,
+      "shape": [
+        14218
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/oml-inshop-baseline-c1fc-v1/oml-vits16-inshop-features.npz",
+      "bytes": 81939842,
+      "member": "train_features.npy",
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        25882,
+        384
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/oml-inshop-baseline-c1fc-v1/oml-vits16-inshop-features.npz",
+      "bytes": 81939842,
+      "member": "train_labels.npy",
+      "descr": "<i8",
+      "fortran_order": false,
+      "shape": [
+        25882
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/oml-inshop-baseline-c1fc-v1/oml-vits16-inshop-features.npz",
+      "bytes": 81939842,
+      "member": "train_ids.npy",
+      "descr": "<i8",
+      "fortran_order": false,
+      "shape": [
+        25882
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/oml-inshop-baseline-c1fc-v1/oml-vits16-inshop-features.npz",
+      "bytes": 81939842,
+      "member": "query_features.npy",
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        14218,
+        384
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/oml-inshop-baseline-c1fc-v1/oml-vits16-inshop-features.npz",
+      "bytes": 81939842,
+      "member": "query_labels.npy",
+      "descr": "<i8",
+      "fortran_order": false,
+      "shape": [
+        14218
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/oml-inshop-baseline-c1fc-v1/oml-vits16-inshop-features.npz",
+      "bytes": 81939842,
+      "member": "query_ids.npy",
+      "descr": "<i8",
+      "fortran_order": false,
+      "shape": [
+        14218
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/oml-inshop-baseline-c1fc-v1/oml-vits16-inshop-features.npz",
+      "bytes": 81939842,
+      "member": "gallery_features.npy",
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        12612,
+        384
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/oml-inshop-baseline-c1fc-v1/oml-vits16-inshop-features.npz",
+      "bytes": 81939842,
+      "member": "gallery_labels.npy",
+      "descr": "<i8",
+      "fortran_order": false,
+      "shape": [
+        12612
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/oml-inshop-baseline-c1fc-v1/oml-vits16-inshop-features.npz",
+      "bytes": 81939842,
+      "member": "gallery_ids.npy",
+      "descr": "<i8",
+      "fortran_order": false,
+      "shape": [
+        12612
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/oml-sop-compact-c1fc-v3/per-query.npz",
+      "bytes": 2905654,
+      "member": "source_ap.npy",
+      "descr": "<f8",
+      "fortran_order": false,
+      "shape": [
+        60502
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/oml-sop-compact-c1fc-v3/per-query.npz",
+      "bytes": 2905654,
+      "member": "source_r1.npy",
+      "descr": "<f8",
+      "fortran_order": false,
+      "shape": [
+        60502
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/oml-sop-compact-c1fc-v3/per-query.npz",
+      "bytes": 2905654,
+      "member": "pca_int8_ap.npy",
+      "descr": "<f8",
+      "fortran_order": false,
+      "shape": [
+        60502
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/oml-sop-compact-c1fc-v3/per-query.npz",
+      "bytes": 2905654,
+      "member": "pca_int8_r1.npy",
+      "descr": "<f8",
+      "fortran_order": false,
+      "shape": [
+        60502
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/oml-sop-compact-c1fc-v3/per-query.npz",
+      "bytes": 2905654,
+      "member": "selected_int8_ap.npy",
+      "descr": "<f8",
+      "fortran_order": false,
+      "shape": [
+        60502
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/oml-sop-compact-c1fc-v3/per-query.npz",
+      "bytes": 2905654,
+      "member": "selected_int8_r1.npy",
+      "descr": "<f8",
+      "fortran_order": false,
+      "shape": [
+        60502
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-centroid-pca-100-v1/result/control/held_values.npy",
+      "bytes": 6450816,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        12599,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-centroid-pca-100-v1/result/products/held_values.npy",
+      "bytes": 6450816,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        12599,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-centroid-pca-confirmation-v1/result/179028/control/held_values.npy",
+      "bytes": 6450816,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        12599,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-centroid-pca-confirmation-v1/result/179028/products/held_values.npy",
+      "bytes": 6450816,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        12599,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-centroid-pca-confirmation-v1/result/179029/control/held_values.npy",
+      "bytes": 6450816,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        12599,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-centroid-pca-confirmation-v1/result/179029/products/held_values.npy",
+      "bytes": 6450816,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        12599,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-crop-train-v1/control-100/held_embeddings.npy",
+      "bytes": 6450816,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        12599,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-crop-train-v1/treatment-100/held_embeddings.npy",
+      "bytes": 6450816,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        12599,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-cross-depth-head-v1/result/transferred_head.npz",
+      "bytes": 525306,
+      "member": "weight.npy",
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        128,
+        1024
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-cross-depth-head-v1/result/transferred_head.npz",
+      "bytes": 525306,
+      "member": "bias.npy",
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-depth22-features-v1/train_features.npy",
+      "bytes": 106012800,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        25882,
+        1024
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-dinov2-source-v1/output/train_features.npy",
+      "bytes": 106012800,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        25882,
+        1024
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-direct-width-quality100-v1/result/128/held_codes.npy",
+      "bytes": 1612800,
+      "member": null,
+      "descr": "|i1",
+      "fortran_order": false,
+      "shape": [
+        12599,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-direct-width-quality100-v1/result/128/held_inverse_norms.npy",
+      "bytes": 25326,
+      "member": null,
+      "descr": "<f2",
+      "fortran_order": false,
+      "shape": [
+        12599
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-direct-width-quality100-v1/result/128/held_values.npy",
+      "bytes": 6450816,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        12599,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-direct-width-quality100-v1/result/256/held_values.npy",
+      "bytes": 12901504,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        12599,
+        256
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-direct-width-quality1000-v1/result/128/held_codes.npy",
+      "bytes": 1612800,
+      "member": null,
+      "descr": "|i1",
+      "fortran_order": false,
+      "shape": [
+        12599,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-direct-width-quality1000-v1/result/128/held_inverse_norms.npy",
+      "bytes": 25326,
+      "member": null,
+      "descr": "<f2",
+      "fortran_order": false,
+      "shape": [
+        12599
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-direct-width-quality1000-v1/result/128/held_values.npy",
+      "bytes": 6450816,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        12599,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-direct-width-quality1000-v1/result/256/held_codes.npy",
+      "bytes": 3225472,
+      "member": null,
+      "descr": "|i1",
+      "fortran_order": false,
+      "shape": [
+        12599,
+        256
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-direct-width-quality1000-v1/result/256/held_inverse_norms.npy",
+      "bytes": 25326,
+      "member": null,
+      "descr": "<f2",
+      "fortran_order": false,
+      "shape": [
+        12599
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-direct-width-quality1000-v1/result/256/held_values.npy",
+      "bytes": 12901504,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        12599,
+        256
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-impostor-179026-v1/freeze_emb-100/held_embeddings.npy",
+      "bytes": 6450816,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        12599,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-impostor-179026-v1/freeze_emb_impostor-100/held_embeddings.npy",
+      "bytes": 6450816,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        12599,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-moda-source-v1/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "mean.npy",
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        768
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-moda-source-v1/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "components.npy",
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        128,
+        768
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-moda-source-v1/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "schema.npy",
+      "descr": "<U49",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-moda-source-v1/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "step.npy",
+      "descr": "<i8",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-moda-source-v1/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "fullwidth_checkpoint_sha256.npy",
+      "descr": "<U64",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-moda-source-v1/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "fit_row_indexes_sha256.npy",
+      "descr": "<U64",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-moda-source-v1/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "input_geometry.npy",
+      "descr": "<U40",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-moda-source-v1/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "output_geometry.npy",
+      "descr": "<U62",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-moda-source-v1/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "trained_features_sha256.npy",
+      "descr": "<U64",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-moda-source-v1/docs/evidence/compact_metric/sop-siglip2-substrate-v1/inshop-cross-depth-head-v1/transferred_head.npz",
+      "bytes": 525306,
+      "member": "weight.npy",
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        128,
+        1024
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-moda-source-v1/docs/evidence/compact_metric/sop-siglip2-substrate-v1/inshop-cross-depth-head-v1/transferred_head.npz",
+      "bytes": 525306,
+      "member": "bias.npy",
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-moda-source-v1/docs/evidence/compact_metric/sop-siglip2-substrate-v1/sop-true-freeze-public-train-179024/held-labels.npy",
+      "bytes": 46936,
+      "member": null,
+      "descr": "<i8",
+      "fortran_order": false,
+      "shape": [
+        5851
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-moda-source-v1/docs/evidence/compact_metric/sop-siglip2-substrate-v1/sop-true-freeze-public-train-179026/held-labels.npy",
+      "bytes": 46936,
+      "member": null,
+      "descr": "<i8",
+      "fortran_order": false,
+      "shape": [
+        5851
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-moda-source-v1/docs/evidence/compact_metric/sop-siglip2-substrate-v1/sop-true-freeze-public-train-179027/held-labels.npy",
+      "bytes": 46936,
+      "member": null,
+      "descr": "<i8",
+      "fortran_order": false,
+      "shape": [
+        5851
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-moda-source-v1/result/train_features.npy",
+      "bytes": 79509632,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        25882,
+        768
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-positive-tail-f1-v1/control-100/held_embeddings.npy",
+      "bytes": 6450816,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        12599,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-positive-tail-f1-v1/treatment-100/held_embeddings.npy",
+      "bytes": 6450816,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        12599,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-siglip2-train-features-v1/train_features.npy",
+      "bytes": 106012800,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        25882,
+        1024
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-sop-warmstart-cache-v1/train_features.npy",
+      "bytes": 106012800,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        25882,
+        1024
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-sop-warmstart-control-179024-100-v1/held_values.npy",
+      "bytes": 6450816,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        12599,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-sop-warmstart-control-179024-1000-v1/held_values.npy",
+      "bytes": 6450816,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        12599,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-sop-warmstart-control-179025-1000-v1/held_values.npy",
+      "bytes": 6450816,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        12599,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-sop-warmstart-control-179026-1000-v1/held_values.npy",
+      "bytes": 6450816,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        12599,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-sop-warmstart-treatment-179024-100-v1/held_values.npy",
+      "bytes": 6450816,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        12599,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-sop-warmstart-treatment-179024-1000-v1/held_values.npy",
+      "bytes": 6450816,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        12599,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-sop-warmstart-treatment-179025-1000-v1/held_values.npy",
+      "bytes": 6450816,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        12599,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-sop-warmstart-treatment-179026-1000-v1/held_values.npy",
+      "bytes": 6450816,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        12599,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-source-main-100-v1/result/control/held_values.npy",
+      "bytes": 6450816,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        12599,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-source-main-100-v1/result/source/held_values.npy",
+      "bytes": 6450816,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        12599,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-teacher-transfer-100-v1/result/cache/fit_features.npy",
+      "bytes": 40805504,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        13283,
+        768
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-teacher-transfer-100-v1/result/cache/train_features.npy",
+      "bytes": 79509632,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        25882,
+        768
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-teacher-transfer-100-v1/result/control/held_values.npy",
+      "bytes": 6450816,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        12599,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-teacher-transfer-100-v1/result/true/held_values.npy",
+      "bytes": 6450816,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        12599,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-wide-head-100-v1/result/control/held_values.npy",
+      "bytes": 6450816,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        12599,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-zooclaw-source-official-v1/result/train_features.npy",
+      "bytes": 79509632,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        25882,
+        768
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-inshop-zooclaw-source-v1/result/train_features.npy",
+      "bytes": 79509632,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        25882,
+        768
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g0-2eb1aa32/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "mean.npy",
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        768
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g0-2eb1aa32/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "components.npy",
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        128,
+        768
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g0-2eb1aa32/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "schema.npy",
+      "descr": "<U49",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g0-2eb1aa32/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "step.npy",
+      "descr": "<i8",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g0-2eb1aa32/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "fullwidth_checkpoint_sha256.npy",
+      "descr": "<U64",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g0-2eb1aa32/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "fit_row_indexes_sha256.npy",
+      "descr": "<U64",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g0-2eb1aa32/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "input_geometry.npy",
+      "descr": "<U40",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g0-2eb1aa32/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "output_geometry.npy",
+      "descr": "<U62",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g0-2eb1aa32/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "trained_features_sha256.npy",
+      "descr": "<U64",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g1-ea170247/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "mean.npy",
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        768
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g1-ea170247/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "components.npy",
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        128,
+        768
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g1-ea170247/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "schema.npy",
+      "descr": "<U49",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g1-ea170247/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "step.npy",
+      "descr": "<i8",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g1-ea170247/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "fullwidth_checkpoint_sha256.npy",
+      "descr": "<U64",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g1-ea170247/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "fit_row_indexes_sha256.npy",
+      "descr": "<U64",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g1-ea170247/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "input_geometry.npy",
+      "descr": "<U40",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g1-ea170247/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "output_geometry.npy",
+      "descr": "<U62",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g1-ea170247/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "trained_features_sha256.npy",
+      "descr": "<U64",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g2-4e888f5e/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "mean.npy",
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        768
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g2-4e888f5e/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "components.npy",
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        128,
+        768
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g2-4e888f5e/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "schema.npy",
+      "descr": "<U49",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g2-4e888f5e/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "step.npy",
+      "descr": "<i8",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g2-4e888f5e/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "fullwidth_checkpoint_sha256.npy",
+      "descr": "<U64",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g2-4e888f5e/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "fit_row_indexes_sha256.npy",
+      "descr": "<U64",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g2-4e888f5e/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "input_geometry.npy",
+      "descr": "<U40",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g2-4e888f5e/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "output_geometry.npy",
+      "descr": "<U62",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g2-4e888f5e/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "trained_features_sha256.npy",
+      "descr": "<U64",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g3-06efdc6d/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "mean.npy",
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        768
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g3-06efdc6d/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "components.npy",
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        128,
+        768
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g3-06efdc6d/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "schema.npy",
+      "descr": "<U49",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g3-06efdc6d/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "step.npy",
+      "descr": "<i8",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g3-06efdc6d/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "fullwidth_checkpoint_sha256.npy",
+      "descr": "<U64",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g3-06efdc6d/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "fit_row_indexes_sha256.npy",
+      "descr": "<U64",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g3-06efdc6d/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "input_geometry.npy",
+      "descr": "<U40",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g3-06efdc6d/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "output_geometry.npy",
+      "descr": "<U62",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g3-06efdc6d/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "trained_features_sha256.npy",
+      "descr": "<U64",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g4-cd1fcb24/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "mean.npy",
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        768
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g4-cd1fcb24/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "components.npy",
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        128,
+        768
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g4-cd1fcb24/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "schema.npy",
+      "descr": "<U49",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g4-cd1fcb24/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "step.npy",
+      "descr": "<i8",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g4-cd1fcb24/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "fullwidth_checkpoint_sha256.npy",
+      "descr": "<U64",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g4-cd1fcb24/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "fit_row_indexes_sha256.npy",
+      "descr": "<U64",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g4-cd1fcb24/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "input_geometry.npy",
+      "descr": "<U40",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g4-cd1fcb24/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "output_geometry.npy",
+      "descr": "<U62",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-resolution-g4-cd1fcb24/docs/evidence/compact_metric/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "trained_features_sha256.npy",
+      "descr": "<U64",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-arcface-1000-v10-55040a7/train_embeddings.npy",
+      "bytes": 30490240,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        59551,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-bf16-coverage-179023-bank-v1/train_embeddings.npy",
+      "bytes": 30490240,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        59551,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-bf16-coverage-179023-fixed_float-v1/train_embeddings.npy",
+      "bytes": 30490240,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        59551,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-bf16-coverage-179023-matched_float-v1/train_embeddings.npy",
+      "bytes": 30490240,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        59551,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-bf16-coverage-179024-bank-v1/train_embeddings.npy",
+      "bytes": 30490240,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        59551,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-bf16-coverage-179024-fixed_float-v1/train_embeddings.npy",
+      "bytes": 30490240,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        59551,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-bf16-coverage-179024-matched_float-v1/train_embeddings.npy",
+      "bytes": 30490240,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        59551,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-bf16-coverage-179025-bank-v1/train_embeddings.npy",
+      "bytes": 30490240,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        59551,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-bf16-coverage-179025-fixed_float-v1/train_embeddings.npy",
+      "bytes": 30490240,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        59551,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-bf16-coverage-179025-matched_float-v1/train_embeddings.npy",
+      "bytes": 30490240,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        59551,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-bf16-coverage-official-179023-bank-v1/test_embeddings.npy",
+      "bytes": 30977152,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        60502,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-bf16-coverage-official-179024-bank-v1/test_embeddings.npy",
+      "bytes": 30977152,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        60502,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-bf16-coverage-official-179025-bank-v1/test_embeddings.npy",
+      "bytes": 30977152,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        60502,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-bf16-member-bank-179023-arcface-v1/train_embeddings.npy",
+      "bytes": 30490240,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        59551,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-bf16-member-bank-179023-bank-v1/train_embeddings.npy",
+      "bytes": 30490240,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        59551,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-bf16-member-bank-179023-float_rank-v1/train_embeddings.npy",
+      "bytes": 30490240,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        59551,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-bf16-member-bank-179024-arcface-v1/train_embeddings.npy",
+      "bytes": 30490240,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        59551,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-bf16-member-bank-179024-bank-v1/train_embeddings.npy",
+      "bytes": 30490240,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        59551,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-bf16-member-bank-179024-float_rank-v1/train_embeddings.npy",
+      "bytes": 30490240,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        59551,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-bf16-member-bank-179025-arcface-v1/train_embeddings.npy",
+      "bytes": 30490240,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        59551,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-bf16-member-bank-179025-bank-v1/train_embeddings.npy",
+      "bytes": 30490240,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        59551,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-bf16-member-bank-179025-float_rank-v1/train_embeddings.npy",
+      "bytes": 30490240,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        59551,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-bf16-official-179023-bank-v1/test_embeddings.npy",
+      "bytes": 30977152,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        60502,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-bf16-official-179023-matched_float-v1/test_embeddings.npy",
+      "bytes": 30977152,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        60502,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-bf16-official-179023-original_float-v1/test_embeddings.npy",
+      "bytes": 30977152,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        60502,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-bf16-official-179024-bank-v1/test_embeddings.npy",
+      "bytes": 30977152,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        60502,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-bf16-official-179024-matched_float-v1/test_embeddings.npy",
+      "bytes": 30977152,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        60502,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-bf16-official-179024-original_float-v1/test_embeddings.npy",
+      "bytes": 30977152,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        60502,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-bf16-official-179025-bank-v1/test_embeddings.npy",
+      "bytes": 30977152,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        60502,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-bf16-official-179025-matched_float-v1/test_embeddings.npy",
+      "bytes": 30977152,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        60502,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-bf16-official-179025-original_float-v1/test_embeddings.npy",
+      "bytes": 30977152,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        60502,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-bf16-rankmatched-179023-float-v1/train_embeddings.npy",
+      "bytes": 30490240,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        59551,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-bf16-rankmatched-179024-float-v1/train_embeddings.npy",
+      "bytes": 30490240,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        59551,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-bf16-rankmatched-179025-float-v1/train_embeddings.npy",
+      "bytes": 30490240,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        59551,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-deployed-batch-quality-v1/query_batch1.npy",
+      "bytes": 30977152,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        60502,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-deployed-batch-quality-v1/query_batch32.npy",
+      "bytes": 30977152,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        60502,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-float_rank-1000-v10-55040a7/train_embeddings.npy",
+      "bytes": 30490240,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        59551,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-member-bank-control-1000-v1/train_embeddings.npy",
+      "bytes": 30490240,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        59551,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-member-bank-float-1000-v1/train_embeddings.npy",
+      "bytes": 30490240,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        59551,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-member-bank-multiseed-179020-bank-v1/train_embeddings.npy",
+      "bytes": 30490240,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        59551,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-member-bank-multiseed-179020-float_rank-v1/train_embeddings.npy",
+      "bytes": 30490240,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        59551,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-member-bank-treatment-1000-v1/train_embeddings.npy",
+      "bytes": 30490240,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        59551,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-packed_rank-1000-v10-55040a7/train_embeddings.npy",
+      "bytes": 30490240,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        59551,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-preflight-28e19203/train_features.npy",
+      "bytes": 8320,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        2,
+        1024
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-preflight-3f5cbb7f/train_features.npy",
+      "bytes": 8320,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        2,
+        1024
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-step0-v10-82ca485/train_embeddings.npy",
+      "bytes": 30490240,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        59551,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-step0-v7-55040a7/train_embeddings.npy",
+      "bytes": 30490240,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        59551,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-siglip2-train-eval-smoke-v3-55040a7/train_embeddings.npy",
+      "bytes": 30490240,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        59551,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/arcface-seed179019-53760.cars-factorial-v2.features.npz",
+      "bytes": 16849514,
+      "member": "baseline.npy",
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        8131,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/arcface-seed179019-53760.cars-factorial-v2.features.npz",
+      "bytes": 16849514,
+      "member": "trained.npy",
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        8131,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/arcface-seed179019-53760.cars-factorial-v2.features.npz",
+      "bytes": 16849514,
+      "member": "pretrained_trained_head.npy",
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        8131,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/arcface-seed179019-53760.cars-factorial-v2.features.npz",
+      "bytes": 16849514,
+      "member": "trained_initial_head.npy",
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        8131,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/arcface-seed179019-53760.cars-factorial-v2.features.npz",
+      "bytes": 16849514,
+      "member": "labels.npy",
+      "descr": "<i8",
+      "fortran_order": false,
+      "shape": [
+        8131
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/arcface-seed179019-53760.cars-factorial-v2.features.npz",
+      "bytes": 16849514,
+      "member": "source_rows.npy",
+      "descr": "<i8",
+      "fortran_order": false,
+      "shape": [
+        8131,
+        2
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/arcface-seed179019-53760.cars-factorial-v2.features.npz",
+      "bytes": 16849514,
+      "member": "manifest_sha256.npy",
+      "descr": "<U64",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/arcface-seed179019-53760.cars-transfer-v1.features.npz",
+      "bytes": 8522820,
+      "member": "baseline.npy",
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        8131,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/arcface-seed179019-53760.cars-transfer-v1.features.npz",
+      "bytes": 8522820,
+      "member": "trained.npy",
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        8131,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/arcface-seed179019-53760.cars-transfer-v1.features.npz",
+      "bytes": 8522820,
+      "member": "labels.npy",
+      "descr": "<i8",
+      "fortran_order": false,
+      "shape": [
+        8131
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/arcface-seed179019-53760.cars-transfer-v1.features.npz",
+      "bytes": 8522820,
+      "member": "source_rows.npy",
+      "descr": "<i8",
+      "fortran_order": false,
+      "shape": [
+        8131,
+        2
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/arcface-seed179019-53760.cars-transfer-v1.features.npz",
+      "bytes": 8522820,
+      "member": "manifest_sha256.npy",
+      "descr": "<U64",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/arcface-seed179019-53760.cub-factorial-v2.features.npz",
+      "bytes": 12229214,
+      "member": "baseline.npy",
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        5924,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/arcface-seed179019-53760.cub-factorial-v2.features.npz",
+      "bytes": 12229214,
+      "member": "trained.npy",
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        5924,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/arcface-seed179019-53760.cub-factorial-v2.features.npz",
+      "bytes": 12229214,
+      "member": "pretrained_trained_head.npy",
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        5924,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/arcface-seed179019-53760.cub-factorial-v2.features.npz",
+      "bytes": 12229214,
+      "member": "trained_initial_head.npy",
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        5924,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/arcface-seed179019-53760.cub-factorial-v2.features.npz",
+      "bytes": 12229214,
+      "member": "labels.npy",
+      "descr": "<i8",
+      "fortran_order": false,
+      "shape": [
+        5924
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/arcface-seed179019-53760.cub-factorial-v2.features.npz",
+      "bytes": 12229214,
+      "member": "image_ids.npy",
+      "descr": "<i8",
+      "fortran_order": false,
+      "shape": [
+        5924
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/arcface-seed179019-53760.cub-factorial-v2.features.npz",
+      "bytes": 12229214,
+      "member": "manifest_sha256.npy",
+      "descr": "<U64",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/arcface-seed179019-53760.cub-transfer-v1.features.npz",
+      "bytes": 6162488,
+      "member": "baseline.npy",
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        5924,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/arcface-seed179019-53760.cub-transfer-v1.features.npz",
+      "bytes": 6162488,
+      "member": "trained.npy",
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        5924,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/arcface-seed179019-53760.cub-transfer-v1.features.npz",
+      "bytes": 6162488,
+      "member": "labels.npy",
+      "descr": "<i8",
+      "fortran_order": false,
+      "shape": [
+        5924
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/arcface-seed179019-53760.cub-transfer-v1.features.npz",
+      "bytes": 6162488,
+      "member": "image_ids.npy",
+      "descr": "<i8",
+      "fortran_order": false,
+      "shape": [
+        5924
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/arcface-seed179019-53760.cub-transfer-v1.features.npz",
+      "bytes": 6162488,
+      "member": "manifest_sha256.npy",
+      "descr": "<U64",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/matched-step8000-pca128-v2.npz",
+      "bytes": 1192410,
+      "member": "fullwidth_head_mean.npy",
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        768
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/matched-step8000-pca128-v2.npz",
+      "bytes": 1192410,
+      "member": "fullwidth_head_components.npy",
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        128,
+        768
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/matched-step8000-pca128-v2.npz",
+      "bytes": 1192410,
+      "member": "fullwidth_source_mean.npy",
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        768
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/matched-step8000-pca128-v2.npz",
+      "bytes": 1192410,
+      "member": "fullwidth_source_components.npy",
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        128,
+        768
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/matched-step8000-pca128-v2.npz",
+      "bytes": 1192410,
+      "member": "compact_source_mean.npy",
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        768
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/matched-step8000-pca128-v2.npz",
+      "bytes": 1192410,
+      "member": "compact_source_components.npy",
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        128,
+        768
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/matched-step8000-pca128-v2.npz",
+      "bytes": 1192410,
+      "member": "step.npy",
+      "descr": "<i8",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/matched-step8000-pca128-v2.npz",
+      "bytes": 1192410,
+      "member": "fullwidth_checkpoint_sha256.npy",
+      "descr": "<U64",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/matched-step8000-pca128-v2.npz",
+      "bytes": 1192410,
+      "member": "compact_checkpoint_sha256.npy",
+      "descr": "<U64",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/matched-step8000-pca128-v2.npz",
+      "bytes": 1192410,
+      "member": "fit_row_indexes_sha256.npy",
+      "descr": "<U64",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/sop-compact-step48000-train-features-v1.npz",
+      "bytes": 27957640,
+      "member": "train_embeddings.npy",
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        59551,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/sop-compact-step48000-train-features-v1.npz",
+      "bytes": 27957640,
+      "member": "train_labels.npy",
+      "descr": "<i8",
+      "fortran_order": false,
+      "shape": [
+        59551
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/sop-compact-step48000-train-features-v1.npz",
+      "bytes": 27957640,
+      "member": "train_image_ids.npy",
+      "descr": "<i8",
+      "fortran_order": false,
+      "shape": [
+        59551
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/sop-compact-step48000-train-features-v1.npz",
+      "bytes": 27957640,
+      "member": "metadata_json.npy",
+      "descr": "<U1955",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "mean.npy",
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        768
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "components.npy",
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        128,
+        768
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "schema.npy",
+      "descr": "<U49",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "step.npy",
+      "descr": "<i8",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "fullwidth_checkpoint_sha256.npy",
+      "descr": "<U64",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "fit_row_indexes_sha256.npy",
+      "descr": "<U64",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "input_geometry.npy",
+      "descr": "<U40",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "output_geometry.npy",
+      "descr": "<U62",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-reference-b8f85611-179019/sop-fullwidth-step48000-fit-pca128-v1.npz",
+      "bytes": 370347,
+      "member": "trained_features_sha256.npy",
+      "descr": "<U64",
+      "fortran_order": false,
+      "shape": []
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-true-freeze-control-179024-1000-v1/train_embeddings.npy",
+      "bytes": 30490240,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        59551,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-true-freeze-control-179026-1000-v1/train_embeddings.npy",
+      "bytes": 30490240,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        59551,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-true-freeze-control-179027-1000-v1/train_embeddings.npy",
+      "bytes": 30490240,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        59551,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-true-freeze-freeze-179024-1000-v1/train_embeddings.npy",
+      "bytes": 30490240,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        59551,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-true-freeze-freeze-179026-1000-v1/train_embeddings.npy",
+      "bytes": 30490240,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        59551,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-true-freeze-freeze-179027-1000-v1/train_embeddings.npy",
+      "bytes": 30490240,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        59551,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-true-freeze-official-179024-control-v1/test_embeddings.npy",
+      "bytes": 30977152,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        60502,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-true-freeze-official-179024-freeze-v1/test_embeddings.npy",
+      "bytes": 30977152,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        60502,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-true-freeze-official-179026-control-v1/test_embeddings.npy",
+      "bytes": 30977152,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        60502,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-true-freeze-official-179026-freeze-v1/test_embeddings.npy",
+      "bytes": 30977152,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        60502,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-true-freeze-official-179027-control-v1/test_embeddings.npy",
+      "bytes": 30977152,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        60502,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-true-freeze-official-179027-freeze-v1/test_embeddings.npy",
+      "bytes": 30977152,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        60502,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-true-freeze-public-official-179024-control-v1/test_embeddings.npy",
+      "bytes": 30977152,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        60502,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-true-freeze-public-official-179024-freeze-v1/test_embeddings.npy",
+      "bytes": 30977152,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        60502,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-true-freeze-public-official-179026-control-v1/test_embeddings.npy",
+      "bytes": 30977152,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        60502,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-true-freeze-public-official-179026-freeze-v1/test_embeddings.npy",
+      "bytes": 30977152,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        60502,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-true-freeze-public-official-179027-control-v1/test_embeddings.npy",
+      "bytes": 30977152,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        60502,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-true-freeze-public-official-179027-freeze-v1/test_embeddings.npy",
+      "bytes": 30977152,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        60502,
+        128
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-sop-true-freeze-public-train-held-labels-v1.npy",
+      "bytes": 46936,
+      "member": null,
+      "descr": "<i8",
+      "fortran_order": false,
+      "shape": [
+        5851
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/sfora-tipsv2-l14-vision-v1/output/train_features.npy",
+      "bytes": 106012800,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        25882,
+        1024
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/unicom-fepf-059b449503e7c16055f41dd4bd83380f7bade27f/exploratory-control-stage4/evaluation-epoch-0004-gallery.npy",
+      "bytes": 13624448,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        4435,
+        768
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/unicom-fepf-059b449503e7c16055f41dd4bd83380f7bade27f/exploratory-control-stage4/evaluation-epoch-0004-query.npy",
+      "bytes": 2448512,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        797,
+        768
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/unicom-fepf-816864cb3710bd39c6b431d0fa5cd84b8920c229/exploratory-control-stage4/evaluation-epoch-0004-gallery.npy",
+      "bytes": 13624448,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        4435,
+        768
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/unicom-fepf-816864cb3710bd39c6b431d0fa5cd84b8920c229/exploratory-control-stage4/evaluation-epoch-0004-query.npy",
+      "bytes": 2448512,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        797,
+        768
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/unicom-fepf-9b652e445796ae67791702aaff80f02f5dc3db25/exploratory-control-stage4/evaluation-epoch-0004-gallery.npy",
+      "bytes": 13624448,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        4435,
+        768
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/unicom-fepf-9b652e445796ae67791702aaff80f02f5dc3db25/exploratory-control-stage4/evaluation-epoch-0004-query.npy",
+      "bytes": 2448512,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        797,
+        768
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/unicom-fepf-ecf5b6c7ec0259243970ecfee5f254e5f5a9d423/exploratory-candidate-stage4/evaluation-epoch-0004-gallery.npy",
+      "bytes": 13624448,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        4435,
+        768
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/unicom-fepf-ecf5b6c7ec0259243970ecfee5f254e5f5a9d423/exploratory-candidate-stage4/evaluation-epoch-0004-query.npy",
+      "bytes": 2448512,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        797,
+        768
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/unicom-fepf-ecf5b6c7ec0259243970ecfee5f254e5f5a9d423/exploratory-control-stage4/evaluation-epoch-0004-gallery.npy",
+      "bytes": 13624448,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        4435,
+        768
+      ]
+    },
+    {
+      "path": "/home/riomus/runs/unicom-fepf-ecf5b6c7ec0259243970ecfee5f254e5f5a9d423/exploratory-control-stage4/evaluation-epoch-0004-query.npy",
+      "bytes": 2448512,
+      "member": null,
+      "descr": "<f4",
+      "fortran_order": false,
+      "shape": [
+        797,
+        768
+      ]
+    }
+  ],
+  "matching_shapes": []
+}

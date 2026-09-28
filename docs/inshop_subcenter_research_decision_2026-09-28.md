@@ -69,3 +69,11 @@ The checkpoint alone does not supply those embeddings. No new encoder export is
 authorized by this research result. Opus's proposed held-series odds-ratio read
 is deferred: held association cannot establish fit-gradient conflict or license
 new post-hoc rescue thresholds. No reopening, extra seeds, or loss sweep follows.
+
+A subsequent read-only recursive inventory under DGX `/home/riomus/runs`
+read247 array headers across142 regular NPY/NPZ files below128MiB and found
+no13283×128 array. The
+[header inventory](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-subcenter-research-v1/retained-npy-header-inventory.json)
+does not inspect PT/checkpoint tensors, larger files, or other directories.
+No array payload, held outcome, encoder, or optimizer was evaluated. It narrows
+the retained-export availability gap without asserting universal absence.
