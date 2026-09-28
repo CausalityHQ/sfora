@@ -70,3 +70,11 @@ consequential critique. A later positive result still needs paired seeds,
 protocol-matched SOP/In-Shop official qualification, CUB/Cars transfer and
 matched full-pipeline serving gates. Closed Base and other failed routes remain
 closed. The full production joint objective is active and unmet.
+
+The final import audit additionally qualified one lazy-loaded module,
+`einops/_torch_specific.py`, beyond the startup list. All startup hashes remained
+unchanged; this extra file exactly matches the hash-verified einops0.8.1 wheel.
+The replay now explicitly checks startup authority plus that wheel entry and
+passed again. No pilot executable, source features, quality gate or measured
+result changed. The initial whole-dictionary equality assumption was too strict;
+there was no source substitution.

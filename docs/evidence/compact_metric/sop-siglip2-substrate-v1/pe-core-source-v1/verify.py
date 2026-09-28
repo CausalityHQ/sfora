@@ -2,6 +2,7 @@
 import hashlib
 import json
 import sys
+import zipfile
 from pathlib import Path
 
 import numpy as np
@@ -12,6 +13,15 @@ from sfora.representation_ceiling import fit_centered_pca
 
 root = Path(sys.argv[1])
 r = json.loads((root / 'pilot.json').read_text())
+startup = json.loads((root / 'pilot-code-authority.json').read_text())
+assert all(r['code_authority'].get(name) == expected for name, expected in startup.items())
+late = {name: value for name, value in r['code_authority'].items() if name not in startup}
+assert set(late) == {'isolated-deps/einops/_torch_specific.py'}
+wheel = json.loads((root / 'einops-wheel.json').read_text())
+with (root / wheel['filename']).open('rb') as stream:
+    assert hashlib.file_digest(stream, 'sha256').hexdigest() == wheel['sha256']
+with zipfile.ZipFile(root / wheel['filename']) as archive:
+    assert hashlib.sha256(archive.read('einops/_torch_specific.py')).hexdigest() == next(iter(late.values()))
 with (root / 'pilot.features.npz').open('rb') as f:
     assert hashlib.file_digest(f, 'sha256').hexdigest() == r['features_sha256']
 torch.set_num_threads(8)
