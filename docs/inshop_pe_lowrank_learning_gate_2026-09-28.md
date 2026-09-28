@@ -77,9 +77,27 @@ with the original authenticated role hashes. No official scoring or selection.
 
 The small bare-parameter/Linear CPU fixture has passed zero-B gradients,
 autocast-disabled FP32 materialization, nonzero merge and strict save/reload.
-Its initial RED was missing helper module; GREEN on DGX exit0. This does not
-replace native CPU qualification, which is still pending. Isolated code root:
-`/home/riomus/runs/sfora-pe-lowrank-v1`. No GPU job has been selected/launched.
+Its initial RED was missing helper module; GREEN on DGX exit0. Actual native
+CPU qualification now passed (invocation2515165e7457443c8cacfd45cc3bf676,
+exit0): 9.50s process wall, 1,953,412KiB maximum RSS. Both TRAIN-fit-only
+inputs reproduced source outputs bitwise at B=0; all24 sites/48 factors
+qualified connected B gradients, zero initial A gradients and later nonzero
+A data gradients. Frozen prefix/foreign rotary/originals stayed exact. A
+synthetic nonzero fixture merged with exact native output, restored all163
+native keys/shapes, and reproduced updated output bitwise after strict save
+and fresh native reload. No optimizer, CUDA or held images were used.
+[Raw native receipt](evidence/compact_metric/sop-siglip2-substrate-v1/lowrank-learning-research-v1/native-cpu-v1.json).
+Isolated code root: `/home/riomus/runs/sfora-pe-lowrank-v1`.
+Concrete17-step implementation review f9ed1be2d0904b09 completed: Opus
+8b51c8e6d74a4463 conditional GO; Astra58a1d25a642e4bb4 required resource fixes.
+Verified and corrected mandatory new-file/CPU-receipt hash binding, retained
+qualification hash in attempt, canonical plus legacy lifetime locks, post-merge
+and strict-loaded GPU peak checks, whole-attempt119s runtime+1s shutdown,
+8GiB RAM/no swap. The current executable additionally verifies nonzero dense
+data gradients, group movement, post-load/final executing authority, and actual
+updated-checkpoint GPU strict reload rather than only in-memory merge. Trained
+state is discarded. All method/quality/cost floors remain frozen. CPU actual
+startup passed before CUDA; one17-update mechanics attempt is next.
 
 ## Frozen TRAIN100 advance rule
 

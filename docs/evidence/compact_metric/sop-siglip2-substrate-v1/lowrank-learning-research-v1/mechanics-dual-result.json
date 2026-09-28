@@ -1,0 +1,699 @@
+{
+  "id": "f9ed1be2d0904b09",
+  "status": "completed",
+  "started_at": 1790625080,
+  "agent": "sfora/emafactorial",
+  "force_reason": "New terminal native CPU qualification plus new concrete 17-update GPU implementation needs execution-integrity review; prior dual28efdc35b5464386 reviewed method/research before native qualification, not this executable. No duplicate research or active reviews.",
+  "rolling_6h_count": 11,
+  "prompt_preview": "Read-only implementation review before one bounded GPU attempt. Repository /home/rb/worktrees/sfora-positive-causality. Frozen method docs/inshop_pe_lowrank_learning_gate_2026-09-28.md; new scripts/probe_pe_lowrank_mechanics.py; helper scripts/pe_lowrank_adaptation.py; actual native CPU qualifier scripts/qualify_pe_lowrank_native_cpu.py and terminal evidence docs/evidence/compact_metric/sop-siglip2-substrate-v1/lowrank-learning-research-v1/native-cpu-v1.json +time/log. Actual native CPU bitwise zero-B source, A0/Bnonzero+laterAdata grads, freeze/W0/foreignrope, merge and fresh native strict reload PASS9.50s maxRSS1953412KiB, native163keys. GPU NOT launched. Review only executable blocking integrity bugs and necessary corrections, not reopen rank/LR/recipe, Fable premise or invent probes. Is the 17-step implementation safe/correct under120s/8GiB/<10GBcuda, exclusive output and lifetime flock? Plan launcher systemd-run --user RuntimeMaxSec120 MemoryMax8G KillModecontrolgroup wrapping /usr/bin/flock -n /home/riomus/.sfora-siglip2-gpu.lock /usr/bin/time -v python script --authority pinnedNEWcode/nativeCPUreceipt hashes --output newdir. Median3-17<=.71769696s including inheritedinput path/guards; stopfail and discardtrainedstate; noheld read. Identify missing coverage/parity/authority/rootcause, concrete edits. Note freezer must run before register, A firstdatagrad0, factors LR1e-4 vs native1e-5, inheritedFP16scaler128; already qualified actual nativeCPU. Read trainer original scripts/train_inshop_pe_pair.py comparison. Both controls archived and no GPU active. Do not edit. Return GO or specific blockers.",
+  "prompt_sha256": "d9fb629c8e324e9720991f096f73015b0b8455e4a7dcab0f935b9296112616b1",
+  "prompt_bytes": 1627,
+  "fingerprint": "b4cee024400790368eb926e48a291cb96ef8ae46ff16f2d316adbd1006258fbb",
+  "evidence": {
+    "git_commit": "3f826d1a321720482b322bbcfa96edbb6695732c",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "dff5ef7ae8759ada983c13ec0bde705bd100ad2127301369e5d7bb3bff6208de",
+    "worktree_sha256": "570628bd6e123f4cba8090ce22bc86e4aeb8514b56bc862fa32e24a719d92890",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "reviewers": [
+    {
+      "role": "research_critic",
+      "id": "8b51c8e6d74a4463",
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "fallbacks": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "agent": "sfora/emafactorial",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1790625080,
+      "timeout_seconds": 1200,
+      "deadline_at": 1790626280,
+      "budget_usd": 4,
+      "prompt_preview": "Act as the independent research and first-principles critic. Challenge assumptions, compare alternatives and prior art, and identify missing evidence. Do not edit files.\n\nMaterial to critique:\nRead-only implementation review before one bounded GPU attempt. Repository /home/rb/worktrees/sfora-positive-causality. Frozen method docs/inshop_pe_lowrank_learning_gate_2026-09-28.md; new scripts/probe_pe_lowrank_mechanics.py; helper scripts/pe_lowrank_adaptation.py; actual native CPU qualifier scripts/qualify_pe_lowrank_native_cpu.py and terminal evidence docs/evidence/compact_metric/sop-siglip2-substrate-v1/lowrank-learning-research-v1/native-cpu-v1.json +time/log. Actual native CPU bitwise zero-B source, A0/Bnonzero+laterAdata grads, freeze/W0/foreignrope, merge and fresh native strict reload PASS9.50s maxRSS1953412KiB, native163keys. GPU NOT launched. Review only executable blocking integrity bugs and necessary corrections, not reopen rank/LR/recipe, Fable premise or invent probes. Is the 17-step implementation safe/correct under120s/8GiB/<10GBcuda, exclusive output and lifetime flock? Plan launcher systemd-run --user RuntimeMaxSec120 MemoryMax8G KillModecontrolgroup wrapping /usr/bin/flock -n /home/riomus/.sfora-siglip2-gpu.lock /usr/bin/time -v python script --authority pinnedNEWcode/nativeCPUreceipt hashes --output newdir. Median3-17<=.71769696s including inheritedinput path/guards; stopfail and discardtrainedstate; noheld read. Identify missing coverage/parity/authority/rootcause, concrete edits. Note freezer must run before register, A firstdatagrad0, factors LR1e-4 vs native1e-5, inheritedFP16scaler128; already qualified actual nativeCPU. Read trainer original scripts/train_inshop_pe_pair.py comparison. Both controls archived and no GPU active. Do not edit. Return GO or specific blockers.",
+      "prompt_sha256": "f6393d04766771fcb176cfd03b9a8eecb23bcbe90a44852cb8734f1d1ed042c2",
+      "prompt_bytes": 1997,
+      "fingerprint": "7f0ba72c1a6679b1967ef3c67da7082ef1afa44f7b228a4b01476d78555172eb",
+      "evidence": {
+        "git_commit": "3f826d1a321720482b322bbcfa96edbb6695732c",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "dff5ef7ae8759ada983c13ec0bde705bd100ad2127301369e5d7bb3bff6208de",
+        "worktree_sha256": "570628bd6e123f4cba8090ce22bc86e4aeb8514b56bc862fa32e24a719d92890",
+        "worktree_evidence_truncated": false,
+        "active_goal": {
+          "id": "goal-1790540789-1790540789754989478-2322852",
+          "agent": "sfora/emafactorial",
+          "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+          "status": "queued",
+          "revision": 1,
+          "actor": "operator",
+          "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+          "created_at": 1790540789,
+          "updated_at": 1790540789
+        }
+      },
+      "previous_fingerprint": "b579b28a8565c98e21f2dc89562d948145b5eca8f116c65ce552ce3dbf7a710d",
+      "reused": false,
+      "critique_id": "f9ed1be2d0904b09",
+      "critique_role": "research_critic",
+      "systemd_unit": "devbox-consult-8b51c8e6d74a4463.service",
+      "pid": 3510681,
+      "pgid": 3510681,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5",
+          "budget_usd": 4,
+          "timeout_seconds": 1200,
+          "started_at": 1790625080
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1790625240,
+      "event_cursor": 22,
+      "events": [
+        {
+          "seq": 1,
+          "at": 1790625080,
+          "provider": "claude",
+          "kind": "phase",
+          "label": "Claude consultation attempt",
+          "detail": "claude-opus-5-5 · $4 cap · 1200s remaining"
+        },
+        {
+          "seq": 2,
+          "at": 1790625080,
+          "provider": "claude",
+          "kind": "phase",
+          "label": "Claude consultation started"
+        },
+        {
+          "seq": 3,
+          "at": 1790625083,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 4,
+          "at": 1790625087,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 5,
+          "at": 1790625087,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 6,
+          "at": 1790625091,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 7,
+          "at": 1790625093,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 8,
+          "at": 1790625181,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 9,
+          "at": 1790625188,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 10,
+          "at": 1790625188,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 11,
+          "at": 1790625227,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 12,
+          "at": 1790625228,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 13,
+          "at": 1790625229,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 14,
+          "at": 1790625230,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 15,
+          "at": 1790625232,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 16,
+          "at": 1790625233,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 17,
+          "at": 1790625234,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 18,
+          "at": 1790625235,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 19,
+          "at": 1790625236,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 20,
+          "at": 1790625237,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 21,
+          "at": 1790625238,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 22,
+          "at": 1790625239,
+          "provider": "claude",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": false,
+      "provider_events": {
+        "claude": [
+          {
+            "seq": 15,
+            "at": 1790625232,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 16,
+            "at": 1790625233,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 17,
+            "at": 1790625234,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 18,
+            "at": 1790625235,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 19,
+            "at": 1790625236,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 20,
+            "at": 1790625237,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 21,
+            "at": 1790625238,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 22,
+            "at": 1790625239,
+            "provider": "claude",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "**Verdict: conditional GO.** There are two blockers, both fixable in a few lines and neither touching the frozen method. Once they're fixed, launch exactly once. I edited nothing.\n\n## Blockers\n\n1. **The lock path doesn't match the other launchers.** Your plan locks `/home/riomus/.sfora-siglip2-gpu.lock`. Every launcher in the repo uses `/home/riomus/runs/.sfora-siglip2-gpu.lock` instead (for example `scripts/run_inshop_spatial_parts_dgx.sh:8` and `scripts/run_sop_siglip2_true_freeze_dgx.sh:33`). A different file excludes nothing, so `flock -n` would succeed even while another GPU job holds the real lock. Use the `runs/` path. The `.devbox` rollover note at line 131 has the same missing `runs/`, so don't copy it from there.\n\n2. **Nothing in the probe ties it to the CPU qualification** (`scripts/probe_pe_lowrank_mechanics.py:27-34`).\n   - You pass in the `--authority` file, and the probe checks whatever names it lists. It never requires a particular set of names. An authority that lists only `native-cpu-v1.json` would pass, and the probe script itself is never required to be listed.\n   - The CPU receipt records the helper hash it qualified (`authority[\"pe_lowrank_adaptation.py\"] = f7a40b67…`). The probe checks only `[\"pass\"]`, so a helper changed after qualification would still run.\n   - `code.pop(...)` removes the CPU receipt hash before `attempt.json` is written, so the attempt record never names the qualification it depends on.\n\n   Minimal edit (all three current hashes match on disk: helper `f7a40b67…`, probe `d7913133…`, evidence receipt `22f2d836…`):\n   ```python\n   assert set(code) == {\"probe_pe_lowrank_mechanics.py\", \"pe_lowrank_adaptation.py\", \"native-cpu-v1.json\"}\n   cpu = json.loads(cpu_result.read_text())\n   assert cpu[\"pass\"] and cpu[\"authority\"][\"pe_lowrank_adaptation.py\"] == code[\"pe_lowrank_adaptation.py\"]\n   pair.smoke.save(args.output / \"attempt.json\", {\"code\": dict(code), \"updates\": 17})  # save before pop\n   ```\n\n## Launcher corrections (needed, not code bugs)\n- `systemd-run --user` returns immediately unless you add `--wait --collect`. Also add `-p MemorySwapMax=0`; without it the 8 GiB cap limits RAM but lets the job swap past it.\n- Call the venv interpreter by absolute path (`/home/riomus/group-learning/.venv/bin/python`, as the other launchers do). The bare `python` on your planned command line may not resolve inside a user unit.\n- Set `CUDA_VISIBLE_DEVICES=0`, and copy the receipt into the isolated root as exactly `native-cpu-v1.json` with sha `22f2d836…`.\n\n## Checked and correct\n- **Parity with the trainer:** same seed and TF32 off, scaler 128 with an assert, and the same zero_grad → autocast → loss → scale → unscale → clip(1, error_if_nonfinite) → step → skip-check → bank refresh order. The per-step finite checks on parameters, optimizer state and bank match, as does `cuda_budget` (<10e9 allocated). For PE, `smoke.encode` is literally `vision(x)`, so calling `vision(x)` directly is equivalent.\n- **Freeze order:** `freeze_prefix` runs before `install`, and the inventory is compared to the frozen initializers. `.cuda()` runs after install and before the optimizer is built. Parameters keep their identity, so the optimizer covers all 48 factors plus the dense, head and classifier parameters.\n- **Gradients:**\n  - Step 1: A's gradient is exactly zero (B is zero), and B's gradient is nonzero at all 24 sites.\n  - Steps 2 and 17: A's gradient is nonzero. The trainer's grad-presence rule is enforced.\n  - The frozen weights, prefix and rotary state are digested and compared at the end.\n- **Cost timing:** timing starts before `augmented_images`, as in the trainer, and it checks the RGB hash per step against the archived `pe.json`. Extra per-step syncs are about milliseconds, and the step-17 diagnostic is one sample in a median of 15. Any bias makes the gate stricter, not looser. The cost numbers are written to `training.json` before the gate assert.\n- **No held quality read, trained state discarded:** no checkpoint is saved, `mkdir(exist_ok=False)` makes the output exclusive, and no held manifest is touched.\n- **Budget:** the CPU run was 9.5 s with 1.95 GB peak memory. Startup plus 17 steps of about 0.7 s fits comfortably in 120 s / 8 GiB.\n\n## Not blocking, but worth knowing\n- The frozen doc asks for \"updated merged-checkpoint parity\". The probe only merges in memory and requires bitwise equality under fp16 autocast. That should hold (same GPU, same fp32 materialization, TF32 off), and strict reload was already qualified on CPU. Either reword the receipt claim to \"in-memory merge\", or accept that strict reload on GPU is deferred to the 100-update pilot, which requires it anyway.\n- If `torch.equal` fails there, treat it as a stop, as frozen. Don't relax it to a cosine check afterwards.\n- There's no end-of-run re-check of loaded code (the trainer calls `smoke.authority()`). The startup check covers this for a 17-step run.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "claude": "**Verdict: conditional GO.** There are two blockers, both fixable in a few lines and neither touching the frozen method. Once they're fixed, launch exactly once. I edited nothing.\n\n## Blockers\n\n1. **The lock path doesn't match the other launchers.** Your plan locks `/home/riomus/.sfora-siglip2-gpu.lock`. Every launcher in the repo uses `/home/riomus/runs/.sfora-siglip2-gpu.lock` instead (for example `scripts/run_inshop_spatial_parts_dgx.sh:8` and `scripts/run_sop_siglip2_true_freeze_dgx.sh:33`). A different file excludes nothing, so `flock -n` would succeed even while another GPU job holds the real lock. Use the `runs/` path. The `.devbox` rollover note at line 131 has the same missing `runs/`, so don't copy it from there.\n\n2. **Nothing in the probe ties it to the CPU qualification** (`scripts/probe_pe_lowrank_mechanics.py:27-34`).\n   - You pass in the `--authority` file, and the probe checks whatever names it lists. It never requires a particular set of names. An authority that lists only `native-cpu-v1.json` would pass, and the probe script itself is never required to be listed.\n   - The CPU receipt records the helper hash it qualified (`authority[\"pe_lowrank_adaptation.py\"] = f7a40b67…`). The probe checks only `[\"pass\"]`, so a helper changed after qualification would still run.\n   - `code.pop(...)` removes the CPU receipt hash before `attempt.json` is written, so the attempt record never names the qualification it depends on.\n\n   Minimal edit (all three current hashes match on disk: helper `f7a40b67…`, probe `d7913133…`, evidence receipt `22f2d836…`):\n   ```python\n   assert set(code) == {\"probe_pe_lowrank_mechanics.py\", \"pe_lowrank_adaptation.py\", \"native-cpu-v1.json\"}\n   cpu = json.loads(cpu_result.read_text())\n   assert cpu[\"pass\"] and cpu[\"authority\"][\"pe_lowrank_adaptation.py\"] == code[\"pe_lowrank_adaptation.py\"]\n   pair.smoke.save(args.output / \"attempt.json\", {\"code\": dict(code), \"updates\": 17})  # save before pop\n   ```\n\n## Launcher corrections (needed, not code bugs)\n- `systemd-run --user` returns immediately unless you add `--wait --collect`. Also add `-p MemorySwapMax=0`; without it the 8 GiB cap limits RAM but lets the job swap past it.\n- Call the venv interpreter by absolute path (`/home/riomus/group-learning/.venv/bin/python`, as the other launchers do). The bare `python` on your planned command line may not resolve inside a user unit.\n- Set `CUDA_VISIBLE_DEVICES=0`, and copy the receipt into the isolated root as exactly `native-cpu-v1.json` with sha `22f2d836…`.\n\n## Checked and correct\n- **Parity with the trainer:** same seed and TF32 off, scaler 128 with an assert, and the same zero_grad → autocast → loss → scale → unscale → clip(1, error_if_nonfinite) → step → skip-check → bank refresh order. The per-step finite checks on parameters, optimizer state and bank match, as does `cuda_budget` (<10e9 allocated). For PE, `smoke.encode` is literally `vision(x)`, so calling `vision(x)` directly is equivalent.\n- **Freeze order:** `freeze_prefix` runs before `install`, and the inventory is compared to the frozen initializers. `.cuda()` runs after install and before the optimizer is built. Parameters keep their identity, so the optimizer covers all 48 factors plus the dense, head and classifier parameters.\n- **Gradients:**\n  - Step 1: A's gradient is exactly zero (B is zero), and B's gradient is nonzero at all 24 sites.\n  - Steps 2 and 17: A's gradient is nonzero. The trainer's grad-presence rule is enforced.\n  - The frozen weights, prefix and rotary state are digested and compared at the end.\n- **Cost timing:** timing starts before `augmented_images`, as in the trainer, and it checks the RGB hash per step against the archived `pe.json`. Extra per-step syncs are about milliseconds, and the step-17 diagnostic is one sample in a median of 15. Any bias makes the gate stricter, not looser. The cost numbers are written to `training.json` before the gate assert.\n- **No held quality read, trained state discarded:** no checkpoint is saved, `mkdir(exist_ok=False)` makes the output exclusive, and no held manifest is touched.\n- **Budget:** the CPU run was 9.5 s with 1.95 GB peak memory. Startup plus 17 steps of about 0.7 s fits comfortably in 120 s / 8 GiB.\n\n## Not blocking, but worth knowing\n- The frozen doc asks for \"updated merged-checkpoint parity\". The probe only merges in memory and requires bitwise equality under fp16 autocast. That should hold (same GPU, same fp32 materialization, TF32 off), and strict reload was already qualified on CPU. Either reword the receipt claim to \"in-memory merge\", or accept that strict reload on GPU is deferred to the 100-update pilot, which requires it anyway.\n- If `torch.equal` fails there, treat it as a stop, as frozen. Don't relax it to a cosine check afterwards.\n- There's no end-of-run re-check of loaded code (the trainer calls `smoke.authority()`). The startup check covers this for a 17-step run."
+      },
+      "providers_used": [
+        "claude"
+      ],
+      "active_provider": "claude",
+      "phase": "Consultation completed",
+      "input_bytes": 1997,
+      "output_bytes": 4951,
+      "elapsed_seconds": 160,
+      "progress": "devbox-ask: claude consult still running (0m 30s)\ndevbox-ask: claude consult still running (1m 00s)\ndevbox-ask: claude consult still running (1m 30s)\ndevbox-ask: claude consult still running (2m 00s)\ndevbox-ask: claude consult still running (2m 30s)",
+      "progress_truncated": false,
+      "result": "**Verdict: conditional GO.** There are two blockers, both fixable in a few lines and neither touching the frozen method. Once they're fixed, launch exactly once. I edited nothing.\n\n## Blockers\n\n1. **The lock path doesn't match the other launchers.** Your plan locks `/home/riomus/.sfora-siglip2-gpu.lock`. Every launcher in the repo uses `/home/riomus/runs/.sfora-siglip2-gpu.lock` instead (for example `scripts/run_inshop_spatial_parts_dgx.sh:8` and `scripts/run_sop_siglip2_true_freeze_dgx.sh:33`). A different file excludes nothing, so `flock -n` would succeed even while another GPU job holds the real lock. Use the `runs/` path. The `.devbox` rollover note at line 131 has the same missing `runs/`, so don't copy it from there.\n\n2. **Nothing in the probe ties it to the CPU qualification** (`scripts/probe_pe_lowrank_mechanics.py:27-34`).\n   - You pass in the `--authority` file, and the probe checks whatever names it lists. It never requires a particular set of names. An authority that lists only `native-cpu-v1.json` would pass, and the probe script itself is never required to be listed.\n   - The CPU receipt records the helper hash it qualified (`authority[\"pe_lowrank_adaptation.py\"] = f7a40b67…`). The probe checks only `[\"pass\"]`, so a helper changed after qualification would still run.\n   - `code.pop(...)` removes the CPU receipt hash before `attempt.json` is written, so the attempt record never names the qualification it depends on.\n\n   Minimal edit (all three current hashes match on disk: helper `f7a40b67…`, probe `d7913133…`, evidence receipt `22f2d836…`):\n   ```python\n   assert set(code) == {\"probe_pe_lowrank_mechanics.py\", \"pe_lowrank_adaptation.py\", \"native-cpu-v1.json\"}\n   cpu = json.loads(cpu_result.read_text())\n   assert cpu[\"pass\"] and cpu[\"authority\"][\"pe_lowrank_adaptation.py\"] == code[\"pe_lowrank_adaptation.py\"]\n   pair.smoke.save(args.output / \"attempt.json\", {\"code\": dict(code), \"updates\": 17})  # save before pop\n   ```\n\n## Launcher corrections (needed, not code bugs)\n- `systemd-run --user` returns immediately unless you add `--wait --collect`. Also add `-p MemorySwapMax=0`; without it the 8 GiB cap limits RAM but lets the job swap past it.\n- Call the venv interpreter by absolute path (`/home/riomus/group-learning/.venv/bin/python`, as the other launchers do). The bare `python` on your planned command line may not resolve inside a user unit.\n- Set `CUDA_VISIBLE_DEVICES=0`, and copy the receipt into the isolated root as exactly `native-cpu-v1.json` with sha `22f2d836…`.\n\n## Checked and correct\n- **Parity with the trainer:** same seed and TF32 off, scaler 128 with an assert, and the same zero_grad → autocast → loss → scale → unscale → clip(1, error_if_nonfinite) → step → skip-check → bank refresh order. The per-step finite checks on parameters, optimizer state and bank match, as does `cuda_budget` (<10e9 allocated). For PE, `smoke.encode` is literally `vision(x)`, so calling `vision(x)` directly is equivalent.\n- **Freeze order:** `freeze_prefix` runs before `install`, and the inventory is compared to the frozen initializers. `.cuda()` runs after install and before the optimizer is built. Parameters keep their identity, so the optimizer covers all 48 factors plus the dense, head and classifier parameters.\n- **Gradients:**\n  - Step 1: A's gradient is exactly zero (B is zero), and B's gradient is nonzero at all 24 sites.\n  - Steps 2 and 17: A's gradient is nonzero. The trainer's grad-presence rule is enforced.\n  - The frozen weights, prefix and rotary state are digested and compared at the end.\n- **Cost timing:** timing starts before `augmented_images`, as in the trainer, and it checks the RGB hash per step against the archived `pe.json`. Extra per-step syncs are about milliseconds, and the step-17 diagnostic is one sample in a median of 15. Any bias makes the gate stricter, not looser. The cost numbers are written to `training.json` before the gate assert.\n- **No held quality read, trained state discarded:** no checkpoint is saved, `mkdir(exist_ok=False)` makes the output exclusive, and no held manifest is touched.\n- **Budget:** the CPU run was 9.5 s with 1.95 GB peak memory. Startup plus 17 steps of about 0.7 s fits comfortably in 120 s / 8 GiB.\n\n## Not blocking, but worth knowing\n- The frozen doc asks for \"updated merged-checkpoint parity\". The probe only merges in memory and requires bitwise equality under fp16 autocast. That should hold (same GPU, same fp32 materialization, TF32 off), and strict reload was already qualified on CPU. Either reword the receipt claim to \"in-memory merge\", or accept that strict reload on GPU is deferred to the 100-update pilot, which requires it anyway.\n- If `torch.equal` fails there, treat it as a stop, as frozen. Don't relax it to a cosine check afterwards.\n- There's no end-of-run re-check of loaded code (the trainer calls `smoke.authority()`). The startup check covers this for a 17-step run.",
+      "result_truncated": false
+    },
+    {
+      "role": "engineering_critic",
+      "id": "58a1d25a642e4bb4",
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "fallbacks": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "agent": "sfora/emafactorial",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1790625080,
+      "timeout_seconds": 1200,
+      "deadline_at": 1790626280,
+      "budget_usd": null,
+      "prompt_preview": "Act as the independent adversarial engineering and release critic. Inspect correctness, failure modes, security, operability, tests, and UX. Prioritize concrete findings with evidence. Do not edit files.\n\nMaterial to critique:\nRead-only implementation review before one bounded GPU attempt. Repository /home/rb/worktrees/sfora-positive-causality. Frozen method docs/inshop_pe_lowrank_learning_gate_2026-09-28.md; new scripts/probe_pe_lowrank_mechanics.py; helper scripts/pe_lowrank_adaptation.py; actual native CPU qualifier scripts/qualify_pe_lowrank_native_cpu.py and terminal evidence docs/evidence/compact_metric/sop-siglip2-substrate-v1/lowrank-learning-research-v1/native-cpu-v1.json +time/log. Actual native CPU bitwise zero-B source, A0/Bnonzero+laterAdata grads, freeze/W0/foreignrope, merge and fresh native strict reload PASS9.50s maxRSS1953412KiB, native163keys. GPU NOT launched. Review only executable blocking integrity bugs and necessary corrections, not reopen rank/LR/recipe, Fable premise or invent probes. Is the 17-step implementation safe/correct under120s/8GiB/<10GBcuda, exclusive output and lifetime flock? Plan launcher systemd-run --user RuntimeMaxSec120 MemoryMax8G KillModecontrolgroup wrapping /usr/bin/flock -n /home/riomus/.sfora-siglip2-gpu.lock /usr/bin/time -v python script --authority pinnedNEWcode/nativeCPUreceipt hashes --output newdir. Median3-17<=.71769696s including inheritedinput path/guards; stopfail and discardtrainedstate; noheld read. Identify missing coverage/parity/authority/rootcause, concrete edits. Note freezer must run before register, A firstdatagrad0, factors LR1e-4 vs native1e-5, inheritedFP16scaler128; already qualified actual nativeCPU. Read trainer original scripts/train_inshop_pe_pair.py comparison. Both controls archived and no GPU active. Do not edit. Return GO or specific blockers.",
+      "prompt_sha256": "ad1f052c2b75c6a358b69821e672b754064ce05a197e3650fd0d4123888bf7d4",
+      "prompt_bytes": 2031,
+      "fingerprint": "011e00baf76acc0af15f7f82b790662caa495083ebef14080524a9c291e8defc",
+      "evidence": {
+        "git_commit": "3f826d1a321720482b322bbcfa96edbb6695732c",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "dff5ef7ae8759ada983c13ec0bde705bd100ad2127301369e5d7bb3bff6208de",
+        "worktree_sha256": "570628bd6e123f4cba8090ce22bc86e4aeb8514b56bc862fa32e24a719d92890",
+        "worktree_evidence_truncated": false,
+        "active_goal": {
+          "id": "goal-1790540789-1790540789754989478-2322852",
+          "agent": "sfora/emafactorial",
+          "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+          "status": "queued",
+          "revision": 1,
+          "actor": "operator",
+          "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+          "created_at": 1790540789,
+          "updated_at": 1790540789
+        }
+      },
+      "previous_fingerprint": "7f0ba72c1a6679b1967ef3c67da7082ef1afa44f7b228a4b01476d78555172eb",
+      "reused": false,
+      "critique_id": "f9ed1be2d0904b09",
+      "critique_role": "engineering_critic",
+      "systemd_unit": "devbox-consult-58a1d25a642e4bb4.service",
+      "pid": 3510720,
+      "pgid": 3510720,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra",
+          "budget_usd": null,
+          "timeout_seconds": 1200,
+          "started_at": 1790625080
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1790625202,
+      "event_cursor": 40,
+      "events": [
+        {
+          "seq": 17,
+          "at": 1790625104,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 18,
+          "at": 1790625104,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 19,
+          "at": 1790625112,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 20,
+          "at": 1790625118,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 21,
+          "at": 1790625118,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 22,
+          "at": 1790625119,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 23,
+          "at": 1790625119,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 24,
+          "at": 1790625119,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 25,
+          "at": 1790625119,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 26,
+          "at": 1790625135,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 27,
+          "at": 1790625135,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 28,
+          "at": 1790625146,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 29,
+          "at": 1790625156,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 30,
+          "at": 1790625162,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 31,
+          "at": 1790625162,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 1"
+        },
+        {
+          "seq": 32,
+          "at": 1790625179,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 33,
+          "at": 1790625179,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 34,
+          "at": 1790625184,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 35,
+          "at": 1790625187,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 36,
+          "at": 1790625187,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 37,
+          "at": 1790625192,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 38,
+          "at": 1790625192,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 39,
+          "at": 1790625202,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 40,
+          "at": 1790625202,
+          "provider": "codex",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": true,
+      "provider_events": {
+        "codex": [
+          {
+            "seq": 33,
+            "at": 1790625179,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 34,
+            "at": 1790625184,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 35,
+            "at": 1790625187,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 36,
+            "at": 1790625187,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 37,
+            "at": 1790625192,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 38,
+            "at": 1790625192,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 39,
+            "at": 1790625202,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 40,
+            "at": 1790625202,
+            "provider": "codex",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "**NO-GO until two resource-bound corrections:**\n\n1. **CUDA limit stops being checked before merge verification.** The last check is at [line 196](/home/rb/worktrees/sfora-positive-causality/scripts/probe_pe_lowrank_mechanics.py:196); updated inference, merge, and merged inference subsequently allocate CUDA memory, then write `pass: true`. Add `pair.cuda_budget(\"pe\")` after merged inference and record the final lifetime peak in the receipt. The current recorded peak excludes this phase.\n\n2. **The proposed launcher does not enforce a hard 120-second termination.** `RuntimeMaxSec=120` initiates shutdown; `KillMode=control-group` controls which processes receive signals, not the shutdown grace period. Add `KillSignal=SIGKILL` for this disposable attempt, or explicitly budget termination grace within 120 seconds. Require successful unit/process exit alongside the receipt.\n\nOtherwise, no blocking training-path defect found: freeze-before-registration, factor coverage/LRs, first/later gradients, inherited inputs/objectives, scaler checks, timed guards, exclusive output, and lifetime flock are consistent. Native CPU evidence matches current helper/qualifier hashes and confirms exit 0, native merge, and fresh strict reload.\n\nNo edits or GPU execution.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "codex": "**NO-GO until two resource-bound corrections:**\n\n1. **CUDA limit stops being checked before merge verification.** The last check is at [line 196](/home/rb/worktrees/sfora-positive-causality/scripts/probe_pe_lowrank_mechanics.py:196); updated inference, merge, and merged inference subsequently allocate CUDA memory, then write `pass: true`. Add `pair.cuda_budget(\"pe\")` after merged inference and record the final lifetime peak in the receipt. The current recorded peak excludes this phase.\n\n2. **The proposed launcher does not enforce a hard 120-second termination.** `RuntimeMaxSec=120` initiates shutdown; `KillMode=control-group` controls which processes receive signals, not the shutdown grace period. Add `KillSignal=SIGKILL` for this disposable attempt, or explicitly budget termination grace within 120 seconds. Require successful unit/process exit alongside the receipt.\n\nOtherwise, no blocking training-path defect found: freeze-before-registration, factor coverage/LRs, first/later gradients, inherited inputs/objectives, scaler checks, timed guards, exclusive output, and lifetime flock are consistent. Native CPU evidence matches current helper/qualifier hashes and confirms exit 0, native merge, and fresh strict reload.\n\nNo edits or GPU execution."
+      },
+      "providers_used": [
+        "codex"
+      ],
+      "active_provider": "codex",
+      "phase": "Consultation completed",
+      "input_bytes": 2031,
+      "output_bytes": 1263,
+      "elapsed_seconds": 122,
+      "progress": "Reading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)\ndevbox-ask: codex consult still running (1m 30s)\ndevbox-ask: codex consult still running (2m 00s)",
+      "progress_truncated": false,
+      "result": "**NO-GO until two resource-bound corrections:**\n\n1. **CUDA limit stops being checked before merge verification.** The last check is at [line 196](/home/rb/worktrees/sfora-positive-causality/scripts/probe_pe_lowrank_mechanics.py:196); updated inference, merge, and merged inference subsequently allocate CUDA memory, then write `pass: true`. Add `pair.cuda_budget(\"pe\")` after merged inference and record the final lifetime peak in the receipt. The current recorded peak excludes this phase.\n\n2. **The proposed launcher does not enforce a hard 120-second termination.** `RuntimeMaxSec=120` initiates shutdown; `KillMode=control-group` controls which processes receive signals, not the shutdown grace period. Add `KillSignal=SIGKILL` for this disposable attempt, or explicitly budget termination grace within 120 seconds. Require successful unit/process exit alongside the receipt.\n\nOtherwise, no blocking training-path defect found: freeze-before-registration, factor coverage/LRs, first/later gradients, inherited inputs/objectives, scaler checks, timed guards, exclusive output, and lifetime flock are consistent. Native CPU evidence matches current helper/qualifier hashes and confirms exit 0, native merge, and fresh strict reload.\n\nNo edits or GPU execution.",
+      "result_truncated": false
+    }
+  ],
+  "reused": false,
+  "elapsed_seconds": 160,
+  "input_bytes": 1627,
+  "output_bytes": 6214
+}
