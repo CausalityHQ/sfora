@@ -38,3 +38,11 @@ freeze actual native FP16/source and hardware cost gates before learning.
 Then a genuinely useful learned checkpoint must pass TRAIN quality/uncertainty,
 updated serving parity/full-call latency and fresh official/transfer gates.
 The complete product goal remains active and unmet.
+
+## Terminal source PASS
+
+Sole acquisition/sourceCPU attempt completed68.81s whole/4,439,496KiB process
+RSS/no swap, exit0.307strict visual keys/317,151,232params, authenticated
+2TRAIN-fit native224forward/source state unchanged. NoGPU/optimizer/held/
+quality. Independentreceipt/hash/cost auditPASS. No jobs active.
+[Measured result and next prerequisites](inshop_pe_l14_source_result_2026-09-28.md).

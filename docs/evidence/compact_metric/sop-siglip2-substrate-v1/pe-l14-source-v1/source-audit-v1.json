@@ -1,0 +1,19 @@
+{
+  "pass": true,
+  "receipt_sha256": "6038ad876a209b3ae29925427ef6d54c7f23ff084be3863bb8fb74158bb052f7",
+  "checks": [
+    "public pinned HF metadata",
+    "exact weight bytes/hash post-run",
+    "native/script/helper authority",
+    "strict CPU source receipt",
+    "fixed224 native actual forward and no state change",
+    "TRAIN fit only/no quality/no GPU/no optimizer",
+    "original execution exit0/68.81s/no swap/host limit"
+  ],
+  "peak_process_rss_kib": 4439496,
+  "whole_seconds": 68.81,
+  "invocation_id": "ddc494a42a574220a37a5bbbe17db11f",
+  "original_exec_session": 23041,
+  "original_exec_exit": 0,
+  "repeated_model_forward": false
+}

@@ -1,0 +1,23 @@
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-pe-l14-v1/acquire_pe_l14.py --source-manifest-sha256 a56781a21ca57fa8697961a5383ec32cb651907b4809c4f5cb12b9f37d227346 --script-sha256 07c85660523261c58ae8f2974f10d6edd4aa1fbcc2a9d12d2c28228f02a93798"
+	User time (seconds): 21.86
+	System time (seconds): 7.63
+	Percent of CPU this job got: 42%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:08.81
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 4439496
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 838426
+	Voluntary context switches: 184683
+	Involuntary context switches: 2008
+	Swaps: 0
+	File system inputs: 752
+	File system outputs: 5244296
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

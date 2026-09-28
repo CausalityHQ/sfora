@@ -7,6 +7,17 @@ training, signed-int8 gallery codes with f16 inverse norms (130 bytes per
 image), and an exact native CUDA top-10 scorer. Apache Arrow is not in the
 training or retrieval path.
 
+## 28 September: fixed224 PE-L14 source PASS; quality/cost unmeasured
+
+One pinned public acquisition and native CPU source qualification passed:
+307strict visual keys/317,151,232parameters,2authenticated In-Shop TRAIN-fit
+224inputs/1024outputs retaining336pretrained config and unchanged weights.
+68.81s whole/4,439,496KiB process RSS/no swap; zero GPU/optimizer/held/quality.
+Independent receipt/metadata/authority/cost auditPASS. No active jobs.
+Next fixed FP16/native hardware cost prerequisite, own full-fit initialization
+and a useful TRAIN pilot; updated serving/fresh official gates still mandatory.
+[Convergence row and evidence](inshop_pe_l14_source_result_2026-09-28.md).
+
 ## 28 September: native matrix-Muon terminal quality KILL
 
 One17step PASS then onefresh100 TRAIN pilot: In-Shop TRAIN-held6354q/6245g,

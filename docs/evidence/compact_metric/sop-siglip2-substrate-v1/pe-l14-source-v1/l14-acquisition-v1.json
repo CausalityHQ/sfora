@@ -1,0 +1,49 @@
+{
+  "pass": true,
+  "checkpoint": "/home/riomus/.cache/huggingface/hub/models--facebook--PE-Core-L14-336/snapshots/bafb0f76541d399057e980a25947f67acec76575/PE-Core-L14-336.pt",
+  "revision": "bafb0f76541d399057e980a25947f67acec76575",
+  "weight_sha256": "0cdab5b338cbaa1e7a5dcd1b2fb4c9f4d5df1abd289564658edbab64a650e7e8",
+  "weight_bytes": 2684747432,
+  "vision_parameters": 317151232,
+  "strict_visual_keys": 307,
+  "checkpoint_visual_dtypes": [
+    "torch.float32"
+  ],
+  "parameter_dtype": "torch.float32",
+  "pretrained_image_size": 336,
+  "actual_input_size": 224,
+  "actual_output_shape": [
+    2,
+    1024
+  ],
+  "source_weights_unchanged": true,
+  "fit_rows": [
+    {
+      "train_row": 0,
+      "product": "id_00000002",
+      "relative_path": "Img/img/WOMEN/Dresses/id_00000002/02_1_front.jpg",
+      "image_sha256": "911c812d3ada97475e10744ef181824016b3cbcc003c60744c8c0b1a59689cd4"
+    },
+    {
+      "train_row": 1,
+      "product": "id_00000002",
+      "relative_path": "Img/img/WOMEN/Dresses/id_00000002/02_2_side.jpg",
+      "image_sha256": "97445425034fd01361a7072b2d6ec9b6d1b8fc39a0911c0e49e4d1bbd3630707"
+    }
+  ],
+  "processor_pixels_sha256": "74bd385d812924f40066eac75553fc36d4137f25afe65fa20399dd5842361f74",
+  "source_state_sha256": "7a18b8733d4c49effb89e7ed5361bb84a28402ea7ca24b9a56b24695ee5d77cb",
+  "foreign_rope_sha256": "e09f93927947b3fa8be67b854360a620e424fdd07e07bdb9a0df11ad1ae308f8",
+  "foreign_grid_sha256": "97e172d1051f290e2b21e5081a2781328e8da16d0de47ee2512ba535f290f702",
+  "script_sha256": "07c85660523261c58ae8f2974f10d6edd4aa1fbcc2a9d12d2c28228f02a93798",
+  "source_manifest_sha256": "a56781a21ca57fa8697961a5383ec32cb651907b4809c4f5cb12b9f37d227346",
+  "helper_sha256": {
+    "pe_core_authority.py": "b84697d272198c72fd2161d8018dd5b3de8f3a89880536163ea1e16a37e688ba",
+    "probe_inshop_pe_training_smoke.py": "45d89389e02231434b073734e22a309189f7f6c566d2da87b703f7ff06001954"
+  },
+  "seconds": 67.38089307723567,
+  "optimizer_updates": 0,
+  "held_images": 0,
+  "cuda_used": false,
+  "quality_read": false
+}
