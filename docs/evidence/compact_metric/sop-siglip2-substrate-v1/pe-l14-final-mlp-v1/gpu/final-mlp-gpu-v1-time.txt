@@ -1,0 +1,23 @@
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-pe-l14-final-mlp-v1/qualify_pe_l14_final_mlp_gpu.py --cpu-preflight-sha256 3a103b1c2b2f59017464bea022538feaddfa9853448cab23cc1f6691d42df33e --execution-sha256 546b4181bdfd98e09b0151a76f9cf4c0e47d15081dbbeee658dd206c0622a0b1"
+	User time (seconds): 18.58
+	System time (seconds): 2.64
+	Percent of CPU this job got: 122%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:17.37
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 5313460
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 560512
+	Voluntary context switches: 9067
+	Involuntary context switches: 390
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 2479192
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
