@@ -1,0 +1,37 @@
+{
+  "baseline_receipt_sha256": "76f1293ac158f64f1e98a9412033ca37667a2baaadb592bf6051d92b61c9c8cc",
+  "claim_eligible": false,
+  "cpu_wall_seconds": 0.35612536408007145,
+  "decision": "KILL_SYSTEMATIC_WITHIN_PRODUCT_UNDEREXPOSURE",
+  "images_or_features_read": 0,
+  "new_quality_evaluations": 0,
+  "new_training_updates": 0,
+  "schedule_sha256": "8275a3e42897ccff31bd522e635d81001f02085a672a68f0f67355c90e6b5a0f",
+  "schema": "sfora-tail-exposure-diagnostic-v1",
+  "seed": 179026,
+  "serving_latency_measured": false,
+  "source_sha256": "3f4fe14b2167dad26ccce38a0d51da460e21ad502c2b2e3f753cd5967cdc3639",
+  "tail_receipt_sha256": "953be9e6eab846f22e3e187f043eebfaf3161af0bbe4a752f6c68987ffb7fb49",
+  "windows": {
+    "100": {
+      "eligible_anchors_in_visited_products": 9402,
+      "mean_other_normalized_rank_exposure": 0.9948920585967618,
+      "mean_tail_normalized_rank_exposure": 1.024537037037037,
+      "other_mean_raw_rank_exposure": 0.6811873554356207,
+      "rank_active_steps": 89,
+      "tail_anchors_in_visited_products": 1620,
+      "tail_mean_raw_rank_exposure": 0.24382716049382716,
+      "tail_zero_rank_exposure_fraction": 0.7561728395061729
+    },
+    "1000": {
+      "eligible_anchors_in_visited_products": 13271,
+      "mean_other_normalized_rank_exposure": 1.0011701060961327,
+      "mean_tail_normalized_rank_exposure": 0.9949735865423509,
+      "other_mean_raw_rank_exposure": 4.97993497445425,
+      "rank_active_steps": 923,
+      "tail_anchors_in_visited_products": 2506,
+      "tail_mean_raw_rank_exposure": 2.179968076616121,
+      "tail_zero_rank_exposure_fraction": 0.009177972865123703
+    }
+  }
+}

@@ -1,0 +1,75 @@
+import hashlib
+import json
+import time
+from collections import Counter
+from pathlib import Path
+
+import numpy as np
+from preflight_inshop_siglip2_unseen_gallery import digest_rows, digest_schedule, schedule, split
+
+started = time.perf_counter()
+root = Path('docs/evidence/compact_metric/sop-siglip2-substrate-v1')
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+tail_path = root / 'inshop-fit-positive-tail-v1/receipt.json'
+baseline_path = root / 'inshop-valid-anchor-confirmation-179026/baseline.json'
+assert sha(tail_path) == '953be9e6eab846f22e3e187f043eebfaf3161af0bbe4a752f6c68987ffb7fb49'
+assert sha(baseline_path) == '76f1293ac158f64f1e98a9412033ca37667a2baaadb592bf6051d92b61c9c8cc'
+tail = json.loads(tail_path.read_text())
+baseline = json.loads(baseline_path.read_text())
+partition = Path('/tmp/sfora-inshop-partition-replay.txt')
+assert sha(partition) == 'cfada103c44df866db5e2ee9ecc2301ca691a4d0cdb3c875fe4051b62570894c'
+rows = [s.split() for s in partition.read_text().splitlines()[2:] if s.split()[-1] == 'train']
+labels = tuple(x[1] for x in rows)
+fit, _ = split(labels)
+assert digest_rows(fit) == tail['fit_rows_sha256']
+fit_labels = tuple(labels[i] for i in fit)
+batches = schedule(fit_labels, 1000, seed=179026)
+assert digest_schedule(batches) == baseline['schedule_sha256']
+counts = Counter(fit_labels)
+eligible = np.array(tail['query_ordinals'])
+margins = np.array(tail['margins'])
+assert len(set(eligible)) == 13271 and int(sum(margins > .03)) == 2506
+assert all(counts[fit_labels[i]] > 1 for i in eligible)
+names = sorted(set(fit_labels))
+mapping = {label: i for i, label in enumerate(names)}
+ids = np.array([mapping[label] for label in fit_labels])
+sizes = np.bincount(ids)
+windows = {}
+for stop in (100, 1000):
+    exposure = np.zeros(len(fit), dtype=np.int64)
+    active = 0
+    for batch in batches[:stop]:
+        if min(counts[fit_labels[i]] for i in batch) < 2:
+            continue
+        np.add.at(exposure, list(batch), 1)
+        active += 1
+    means = np.bincount(ids, weights=exposure) / sizes
+    visited = means[ids[eligible]] > 0
+    targets = eligible[visited]
+    normalized = exposure[targets] / means[ids[targets]]
+    flags = margins[visited] > .03
+    windows[str(stop)] = {
+        'rank_active_steps': active,
+        'eligible_anchors_in_visited_products': int(visited.sum()),
+        'tail_anchors_in_visited_products': int(flags.sum()),
+        'mean_tail_normalized_rank_exposure': float(np.mean(normalized[flags])),
+        'mean_other_normalized_rank_exposure': float(np.mean(normalized[~flags])),
+        'tail_zero_rank_exposure_fraction': float(np.mean(exposure[targets[flags]] == 0)),
+        'tail_mean_raw_rank_exposure': float(np.mean(exposure[targets[flags]])),
+        'other_mean_raw_rank_exposure': float(np.mean(exposure[targets[~flags]])),
+    }
+ratio = windows['1000']['mean_tail_normalized_rank_exposure']
+result = {
+    'schema': 'sfora-tail-exposure-diagnostic-v1', 'seed': 179026,
+    'baseline_receipt_sha256': sha(baseline_path), 'tail_receipt_sha256': sha(tail_path),
+    'schedule_sha256': digest_schedule(batches), 'source_sha256': sha(Path(__file__)),
+    'windows': windows,
+    'decision': 'GO_SAMPLER_DESIGN' if ratio <= .8 else 'KILL_SYSTEMATIC_WITHIN_PRODUCT_UNDEREXPOSURE',
+    'cpu_wall_seconds': time.perf_counter() - started, 'images_or_features_read': 0,
+    'new_quality_evaluations': 0, 'new_training_updates': 0,
+    'serving_latency_measured': False, 'claim_eligible': False,
+}
+output = root / 'inshop-tail-exposure-diagnostic-v1/receipt.json'
+assert not output.exists()
+output.write_text(json.dumps(result, indent=2, sort_keys=True) + '\n')
+print(json.dumps(result))

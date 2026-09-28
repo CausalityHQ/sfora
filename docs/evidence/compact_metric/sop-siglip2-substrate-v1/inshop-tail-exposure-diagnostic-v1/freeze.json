@@ -1,0 +1,14 @@
+{
+  "frozen_at": 1790581690.6604187,
+  "go_if_full_budget_mean_tail_normalized_exposure_at_most": 0.8,
+  "inputs": "pinned TRAIN fit positive-tail receipt and source-bound native training baseline",
+  "kill_scope": "systematic within-product rank underexposure of the diagnosed tail at this fixed native schedule; not every hardness-aware sampler",
+  "no_cpu_training_or_gpu_escalation_on_kill": true,
+  "no_feature_image_quality_training_reads": true,
+  "prefix_diagnostic": 100,
+  "rank_exposure": "count row appearances only in native rank-active batches; normalize each row count by eligible non-singleton product mean",
+  "schedule_updates": 1000,
+  "schema": "sfora-tail-exposure-freeze-v1",
+  "seed": 179026,
+  "tail": "final trained fit margin >.03; diagnosed exposure retrospectively, not a new quality selection"
+}

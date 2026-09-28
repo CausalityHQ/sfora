@@ -1,0 +1,19 @@
+{
+  "failures": [
+    {
+      "exit_code": 1,
+      "stage": "schedule authority field lookup",
+      "error": "KeyError: executed_schedule_sha256",
+      "fix": "use actual source-bound receipt field schedule_sha256",
+      "before_exposure_result": true
+    },
+    {
+      "exit_code": 1,
+      "stage": "count first rank-active batch",
+      "error": "numpy.add.at treats tuple of64 indices as multidimensional index",
+      "fix": "use list(batch) for one-dimensional repeated-index accumulation",
+      "before_exposure_result": true
+    }
+  ],
+  "criteria_changed": false
+}
