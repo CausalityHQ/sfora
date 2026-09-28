@@ -1,0 +1,51 @@
+{
+  "receipt_sha256": "5334209bf78c70b08e0dd20bd55572e57130f2b31ef5570ebdc2ce5c535b2333",
+  "checks": {
+    "decision": true,
+    "source": true,
+    "same_pixels": true,
+    "same_pca": true,
+    "whole_budget": true,
+    "cost": true,
+    "128_sources": true,
+    "128_updates": true,
+    "128_hashes": true,
+    "128_geometry": true,
+    "128_private_reload": true,
+    "128_no_quality": true,
+    "256_sources": true,
+    "256_updates": true,
+    "256_hashes": true,
+    "256_geometry": true,
+    "256_private_reload": true,
+    "256_no_quality": true
+  },
+  "summary": {
+    "128": {
+      "training_seconds": 16.003651032224298,
+      "train_plus_bank_seconds": 16.85973792336881,
+      "images_per_second": 64.53243846050262,
+      "median_step_seconds": 0.83509068377316,
+      "peak_cuda_bytes": 12246201856,
+      "checkpoint_sha256": "731500afc2011a3101f47e60e94faa1b81f99a58fa9a29e174182835906eca9b",
+      "fixture_sha256": "e0215a9b8b77e1204f6a5e27a5e9e3765cc827aca1196e4086f383a2a1b044b5"
+    },
+    "256": {
+      "training_seconds": 16.121083421632648,
+      "train_plus_bank_seconds": 16.877092885784805,
+      "images_per_second": 64.46607880652229,
+      "median_step_seconds": 0.837716500274837,
+      "peak_cuda_bytes": 12259986944,
+      "checkpoint_sha256": "e06fb42ee9858a9b33f7ca9536f5a0ded9168a1466bc934aab57191c6541c787",
+      "fixture_sha256": "2bb80252f1c99d5eddf332f408c41a2b4a01df4b75efcffb59c5ba29ab2e5602"
+    }
+  },
+  "invocation": "f6901805c7c04e6f868627c9802bddc2",
+  "terminal": {
+    "ActiveState": "inactive",
+    "MainPID": 0,
+    "Result": "success",
+    "ExecMainStatus": 0
+  },
+  "limitations": "Independent source/metadata/history/decision replay; actual private reload run by original GPU child, not repeated here."
+}
