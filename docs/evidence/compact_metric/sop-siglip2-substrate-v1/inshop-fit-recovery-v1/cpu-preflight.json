@@ -1,0 +1,17 @@
+{
+  "claim_eligible": false,
+  "decision": "PASS_CPU_AUTHORITY_ONLY",
+  "fit_rows": 13283,
+  "fit_products": 2004,
+  "expected_feature_sha256": "ea78db9abaf5200bc9952caef8fecd5cd7c38dd29f8cd33ad55de00bd8e1371b",
+  "checkpoint_sha256": "ad58838e2492cd664a447308317b11a53f362a4c5a36a99f28978f32a3b71089",
+  "fit_rows_sha256": "f23783a513f0bce23c4ea6126f8a868ee600fe88a23a5e797778a2a508ca89be",
+  "pinned_export_helper_sha256": "e2f7f8d16e2850a51aa85a3d3f4e04a80ee2a48681dcac55306fd792c8f19ba6",
+  "classifier_shape": [
+    2004,
+    128
+  ],
+  "wall_seconds": 2.746357914991677,
+  "cuda_visible_devices": "",
+  "source_sha256": "0016e34186bfedee16c0e9c3f00dc4f915a704a93a0d49123aee1b6ece852d83"
+}

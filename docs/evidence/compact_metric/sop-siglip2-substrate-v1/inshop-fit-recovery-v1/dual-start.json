@@ -1,0 +1,71 @@
+{
+  "id": "62c6e60d326d4554",
+  "status": "running",
+  "started_at": 1790603924,
+  "agent": "sfora/emafactorial",
+  "force_reason": "New terminal CPU authority preflight establishes exact checkpoint/helper/fit/classifier availability for a bounded missing-artifact recovery, distinct from the rejected K3 training proposal and native release reviews.",
+  "rolling_6h_count": 4,
+  "prompt_preview": "READ-ONLY review of ONE bounded missing TRAIN artifact recovery, NOT a new training/loss method. Repo /home/rb/worktrees/sfora-positive-causality HEAD87828695. Read new docs/inshop_fit_recovery_gate_2026-09-28.md and docs/evidence/compact_metric/sop-siglip2-substrate-v1/inshop-fit-recovery-v1/{cpu-preflight.json,cpu.log,cpu-time.txt,preflight.py}; existing scripts/probe_inshop_fit_positive_tail.py originalSHA1f655cebb7155c1b980bb5222ac3894b582f916f4c9c85a2cc203f14d1978b69; docs/inshop_subcenter_research_decision_2026-09-28.md plus prior dual5387e72d01a84e6a and docs/inshop_fit_positive_tail_gate_2026-09-27.md. Do NOT edit/run tests/GPU/training/downloads/consultations/workers/contactoperator. New CPUpreflight be07d9edac0441f3817e28c746699894 CUDAhidden passed4.80s2313448KiB, independently originaltrainingreceiptSHA76f129...8cc/checkpointad58838e2492cd664a447308317b11a53f362a4c5a36a99f28978f32a3b71089/modelhashes/helpere2f7f8d16e2850a51aa85a3d3f4e04a80ee2a48681dcac55306fd792c8f19ba6/tailreceipt953be9...b49/partition/13283TRAINfit rowsdigestf23783...be/2004prod/sortedclasscodec/classifier2004x128/head128x1024/fitpaths allmatch. Remoteoriginalhelper stillavailable byteidentical /home/riomus/runs/train_sop_siglip2_compact.py; checkpointNOmemberbank, priorNPheaderinventory142files247arraysno13283x128. Missingtensorblocks Astra's previouslysuggestedconvergedstaticfit-gradientread, but earlierreview didnotauthorize encoderexport. NEWplan changesonlyartifactpersistence byoptionalbranch inexistingprobe; entireauthority/fit/exportprofile SAME, exportonlysamefitpaths noheld/test, stop BEFOREmargincompute/statreads, requireRAWfeaturedataSHAea78db9abaf5200bc9952caef8fecd5cd7c38dd29f8cd33ad55de00bd8e1371b EXACT elseFAILstopnoalternativeprecision/hash/rerun. Samefp16visionautocast/f32headunitdescriptors,bs64workers4evalTF32off. Onlyafterexactmatch saveexclusiveNPY+sidecarwithhashes/cost; CPUwriter checks match/mismatch/overwrite beforeGPU. One150s14Ghost sharedGPUlock, assertCUDApeak<=old1886321152+1GiB; oldexport+tail70.675s/8.7Ghostpeak known. Alljobs/consultsterminal nowDGXidle; noGPUrecoverylaunched. Fulljointgoalunmet, publishedqualityunchanged, allfailedwidth/scale/teacher/pool/crop/loss/K3-sham arms stayclosed. ArtifactrecoverydoesNOTlicense K3/gradientintervention/newtraining/officialread. FutureCPUstaticgradient woulduseevalunitfeatures/freshbank andmustNOTpretendactualBF16augmentedtraining/stalebankgradient. Question: does this narrowlybounded exactartifactrecovery warrantONEGPUpass underuser noendlessprobes, or ispremise/utility/authorityinvalid? Approveconditionalonconcretewriterchecks orrejectspecificmissingdependency. Inspectexporthelper/math/profile/code/callers andcurrentreceipt; do NOT offerlossrescuetuninglist. Sourcepredicate mustpinoldreceipt, fit, checkpoint, tensorhash; resultneedsseparatelyfrozenCPUreadbeforeanytraining. Protectedtopk dirty1ae7...587 remainsuntouchedunstaged. This is artifactavailability work usingAstra'sexistingread suggestion, not novelresearch; noFableinventionrequest orK3recipe re-review.",
+  "prompt_sha256": "dd02d8bfac61dfd755644a7199af1d3cee51c536fa864e35b5e6bb084f4eee77",
+  "prompt_bytes": 3072,
+  "fingerprint": "1f6aa3cb4073cc5bedde9815d02ad4dedd2837d0baf15e374a88c5e15dcaecc8",
+  "evidence": {
+    "git_commit": "8782869585c39a9b45d72567a5453c9aabfe4a92",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "e91a271227db84eee646a880202d3ec5042b87bc7d786bf1e085bb7425037c92",
+    "worktree_sha256": "5a6f6a99b0adb2f1457f89fef67c0978b282d68bf911fd5ec01d15788cf69436",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "reviewers": [
+    {
+      "role": "research_critic",
+      "id": "2e5c3dcb245347d6",
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "fallbacks": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ]
+    },
+    {
+      "role": "engineering_critic",
+      "id": "278902c83ff2473c",
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "fallbacks": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ]
+    }
+  ],
+  "reused": false,
+  "next": "Continue independent work, then call critique_wait or critique_status with this id."
+}

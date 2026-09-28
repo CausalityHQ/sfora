@@ -1,5 +1,18 @@
 # Joint quality and performance decision, first training-code gate
 
+## 28 September missing fit tensor: recovery deferred before GPU
+
+CPU authority preflight verified the exact seed179026 checkpoint, classifier,
+model/helper and13283 TRAIN fit paths in4.80s with CUDA hidden. The tensor
+remains absent. A proposed strict raw-hash recovery received split reviews:
+Opus rejects utility without a decision-bearing follow-up; Astra conditionally
+permits acquisition with additional persistence checks. Reconciliation defers
+the GPU pass. The tested prototype was removed from the tracked probe and
+retained only as evidence; no tensor, encoder result, gradient read or new
+training arm was produced. [Decision and full reviews](inshop_fit_recovery_gate_2026-09-28.md).
+No reuse of the initialization conflict floor for a different numerical profile,
+and no reopening of K3/sham or other failed recipes. The full goal remains unmet.
+
 ## 28 September matched native and thread gates completed
 
 The59551-row synthetic matched comparison passed456 exact scalar-bit checks

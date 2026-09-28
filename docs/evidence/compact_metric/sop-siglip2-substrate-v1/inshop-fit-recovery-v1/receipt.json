@@ -1,0 +1,22 @@
+{
+  "schema": "sfora-fit-recovery-preflight-v1",
+  "claim_eligible": false,
+  "decision": "DEFER_RECOVERY_NO_GPU_LAUNCH",
+  "recovery_gpu_launched": false,
+  "cpu_preflight_invocation": "be07d9edac0441f3817e28c746699894",
+  "cpu_writer_invocation": "bf90910611a640d5bb11dd833ee9a2cd",
+  "dual_review": "62c6e60d326d4554",
+  "original_probe_restored_sha256": "1f655cebb7155c1b980bb5222ac3894b582f916f4c9c85a2cc203f14d1978b69",
+  "source_base_commit": "87828695",
+  "files_sha256": {
+    "cpu-preflight.json": "751d4ce40668c3dcd96c14e34a998fe9e891919e215dbc51a1783540ff885caa",
+    "cpu-time.txt": "adfdec537c698704c56cb632c2bce62a9cbb35b4ab7e0b2c761c0f69c21108a4",
+    "cpu.log": "ad33f05a44ed3e4a1cffe055fe44e42c3a9d2e1c6db5f80e82923c2b76dc88f9",
+    "dual-result.json": "14e924cf990571eec97e66055c3528f3b848c4ec1a8e6435c2d84bb8873004d7",
+    "dual-start.json": "a1c322cc8b6193dcb56184810075d063261c424c0e946a8fc470782f7c0edc66",
+    "preflight.py": "0016e34186bfedee16c0e9c3f00dc4f915a704a93a0d49123aee1b6ece852d83",
+    "unshipped-recover.py": "484fff69c317bbfc58376d3a720599a428cd63a63bea7470331f052f137e7510",
+    "writer-time.txt": "00bd5883e2c8045f0f5d10b5dade8e6f596c826a54f3a0e1157a9c3208da2c7a",
+    "writer.log": "2f3aa3fd807124f853975ae9b6a059a71b92e37c9d71d224b7d47c0cfa866f06"
+  }
+}
