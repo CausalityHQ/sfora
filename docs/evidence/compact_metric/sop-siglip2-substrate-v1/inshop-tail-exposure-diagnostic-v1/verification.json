@@ -1,0 +1,17 @@
+{
+  "images_or_features_read": 0,
+  "receipt_sha256": "b6b5019331bdf77efac7af442e21823a4076ccd55cf4d3704f974b4430ed0292",
+  "schema": "sfora-tail-exposure-independent-replay-v1",
+  "windows": {
+    "100": {
+      "counter_replay_matches_within_1e-14": true,
+      "rank_active_steps": 89,
+      "summed_row_appearances": 5696
+    },
+    "1000": {
+      "counter_replay_matches_within_1e-14": true,
+      "rank_active_steps": 923,
+      "summed_row_appearances": 59072
+    }
+  }
+}
