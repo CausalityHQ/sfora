@@ -1,8 +1,9 @@
 # Fixed rank32 PE adaptation gate
 
-Decision: conditional GO for native CPU qualification, one17-step GPU
-mechanics attempt, then one100-update TRAIN feasibility pilot if mechanics
-and cost pass. This is a new complete training procedure, not approximation
+Decision: TERMINAL KILL after native CPU and17-step mechanics passed,
+then the sole fresh100-update TRAIN pilot failed quality.
+[Measured outcome](inshop_pe_lowrank_pilot_result_2026-09-28.md).
+The following preserves the original frozen procedure and thresholds. This is a new complete training procedure, not approximation
 of the stopped dense delta or an extension of the old PE100 recipe. No rank,
 LR, prefix, budget, precision or epoch rescue after an outcome.
 
@@ -99,7 +100,7 @@ updated-checkpoint GPU strict reload rather than only in-memory merge. Trained
 state is discarded. All method/quality/cost floors remain frozen. CPU actual
 startup passed before CUDA. The sole17-update attempt then passed; see
 [measured native result](inshop_pe_lowrank_mechanics_result_2026-09-28.md).
-No100-update pilot has been launched.
+The sole100-update pilot is terminal; all quality floors failed.
 
 ## Frozen TRAIN100 advance rule
 

@@ -1,0 +1,2 @@
+Sep 28 22:07:45 spark-2751 systemd[3489]: Started sfora-pe-lowrank-pilot-audit-v1.service - /usr/bin/time -v -o /home/riomus/runs/sfora-pe-lowrank-v1/pilot-audit-v1-time.txt /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-pe-lowrank-v1/audit_pe_lowrank_pilot.py --output /home/riomus/runs/sfora-pe-lowrank-pilot-100-v1 --receipt-sha256 e5f90af55c5f3f004f6d06f9831430a1a304e5f6a90195b9eee4c2c62e6b4f7a.
+Sep 28 22:07:53 spark-2751 systemd[3489]: sfora-pe-lowrank-pilot-audit-v1.service: Consumed 13.249s CPU time, 508.0K memory peak, 0B memory swap peak.

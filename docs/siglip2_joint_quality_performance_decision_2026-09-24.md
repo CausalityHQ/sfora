@@ -7,21 +7,20 @@ training, signed-int8 gallery codes with f16 inverse norms (130 bytes per
 image), and an exact native CUDA top-10 scorer. Apache Arrow is not in the
 training or retrieval path.
 
-## 28 September: fixed-rank learning selected for native mechanics qualification
+## 28 September: fixed-rank native learning terminal KILL
 
-The prior rank32 endpoint approximation STOP does not test low-rank learning.
-New Fable STOP grounds were independently checked against saved endpoints,
-a closed-form counterexample and primary abstracts; its near-certain quality
-failure claim is unsupported. Opus/Astra both conditional GO for one fixed
-rank32 PE upper-block procedure. Native shapes/counts authenticated; small
-CPU bare/Linear fixture, actual native CPU qualification, and one17-update
-DGX mechanics attempt all passed. The latter measured median update3–17
-0.523402s (frozen ceiling0.717697s), lifetime peakCUDA4,910,489,088B,
-19.10s process wall and3,476,892KiB host RSS. Frozen originals/prefix/foreign
-rotary, first/later factor gradients, all17 RGB/control hashes and updated
-merged strict-loaded GPU output parity passed. Trained state discarded.
-No held quality or serving result from this method yet.
-[Native measured result](inshop_pe_lowrank_mechanics_result_2026-09-28.md). [Frozen method and gates](inshop_pe_lowrank_learning_gate_2026-09-28.md).
+One reviewed procedure completed CPU,17-step mechanics and fresh100-update
+TRAIN pilot without further research or threshold changes. In-Shop TRAIN-held
+6354q/6245g/1993products packed R1/MAP candidate93.988039/73.308299% versus
+archived dense PE95.073969/76.391592% and Large95.672018/78.623712%.
+Paired candidate−densePE product95 intervals are wholly negative: R1
+[−1.427247,−.771321]pp, MAP[−3.406621,−2.763109]pp. Training median3–100
+.541348s passes.717697s ceiling, whole171.92s/3,522,020KiB RSS and
+4,910,489,088B lifetime CUDA. Updated strict-loaded full-held vector/packed
+parity and independent CPU score/checkpoint replay passed. Public latency
+unmeasured. Close this exact procedure; no serving promotion or rescue.
+[Convergence row, evidence and selected next native encoder-optimizer intervention](inshop_pe_lowrank_pilot_result_2026-09-28.md).
+The full joint product goal remains active and unmet. No jobs are active.
 
 ## 28 September: exact normalization lookup fails the combined CPU gate
 
