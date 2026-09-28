@@ -1,0 +1,12 @@
+{
+  "actual_gate_replayed": true,
+  "matrix_inventory_and_early_stop": true,
+  "original_invocation": "272d5a80895d4761bdd0204de5012b62",
+  "quality_or_latency_verified": false,
+  "rank32_relative_frobenius_residual": 0.7706012214387515,
+  "receipt_sha256": "4b7a111bef904be4c9cf657738804415f8ff35b93f70d282295f234090831069",
+  "schema": "sfora-native-delta-rank32-verification-v1",
+  "source_matches_prior_freeze": true,
+  "svd_spectrum_independently_recomputed": false,
+  "terminal_exit_code": 0
+}
