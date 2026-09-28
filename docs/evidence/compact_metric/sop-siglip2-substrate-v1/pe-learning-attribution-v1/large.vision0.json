@@ -1,0 +1,12 @@
+{
+  "features_sha256": "0b3969ac59fd915e07db7c3d38e16fd3aa1b495ddb180396b8364a6e5eaa2ccf",
+  "state_sha256": "856f959eba56f316eccadddc0a0ff8b6b069501971ac95b633fb4d6194ccf342",
+  "fp16_fp32_cosine": [
+    0.9999840259552002,
+    0.9999927878379822,
+    0.999987006187439,
+    0.999964714050293
+  ],
+  "peak_cuda_allocated_bytes": 1593080832,
+  "state_wall_seconds": 119.14123468333855
+}

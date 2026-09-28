@@ -1,0 +1,9 @@
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 10278.76it/s]
+{"arm": "large", "vision": "0", "fp16_fp32_cosine": [0.9999840259552002, 0.9999927878379822, 0.999987006187439, 0.999964714050293]}
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 15034.78it/s]
+{"arm": "large", "vision": "1", "fp16_fp32_cosine": [0.999983549118042, 0.9999917149543762, 0.9999842047691345, 0.999969482421875]}
+{"arm": "pe", "vision": "0", "fp16_fp32_cosine": [0.999948263168335, 0.9999194741249084, 0.9999754428863525, 0.9999645352363586]}
+{"arm": "pe", "vision": "1", "fp16_fp32_cosine": [0.9998891949653625, 0.999941349029541, 0.9999605417251587, 0.999965250492096]}
+{"parity": {"large": 0.9999999999999998, "pe": 0.9999999999999998}, "states": {"large.00": {"recall_at_1": 0.7554296506137866, "map_at_r": 0.4805538863571566}, "large.01": {"recall_at_1": 0.7631413282971357, "map_at_r": 0.49054684009471}, "large.10": {"recall_at_1": 0.9568775574441297, "map_at_r": 0.7838350230426905}, "large.11": {"recall_at_1": 0.9567201762669185, "map_at_r": 0.786237120041187}, "pe.00": {"recall_at_1": 0.8079949638023293, "map_at_r": 0.5232732343819941}, "pe.01": {"recall_at_1": 0.819326408561536, "map_at_r": 0.5381611397638018}, "pe.10": {"recall_at_1": 0.950267548001259, "map_at_r": 0.7607815265708284}, "pe.11": {"recall_at_1": 0.9507396915328926, "map_at_r": 0.7639159219120217}}}
