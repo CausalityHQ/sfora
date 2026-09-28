@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import inspect
 import json
 import os
 import time
@@ -174,7 +175,9 @@ def main() -> None:
         "original_margin_max_abs_replay_error": replay_error,
         "source_sha256": sha256(Path(__file__)),
         "source_files_sha256": {
-            str(Path(function.__code__.co_filename)): sha256(Path(function.__code__.co_filename))
+            str(Path(inspect.getsourcefile(inspect.unwrap(function)))): sha256(
+                Path(inspect.getsourcefile(inspect.unwrap(function)))
+            )
             for function in (export_all, scores, compact_head_features, parse_inshop_partition)
         },
         "partition_sha256": PARTITION_SHA,

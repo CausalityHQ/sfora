@@ -42,3 +42,38 @@ focuses on unnormalized feature-radius shifts and virtual classes. Sfora's
 source/head/classifier cosine normalization removes that raw-radius channel;
 do not adopt its radius explanation without a distinct angular mechanism.
 These primary-source checks do not certify the latest published frontier.
+
+## Terminal decision: KILL
+
+The original DGX Spark unit `sfora-inshop-raw-token-match-v1`, invocation
+`4462068e430e49dcad0f59610a380e22`, exited 0 and GPU inspection is idle.
+Only this one export ran; no training or full-gallery expansion followed.
+
+| Official TRAIN previously observed miss panel | Result | Gate |
+|---|---:|---|
+| Raw-token positive-over-impostor triples | 53/151 (35.10%) vs global-head baseline 0/151 by panel construction | KILL: below 99/151 |
+| Median raw-token margin | -0.0211086 | KILL: below +0.02 |
+| Original packed maximum margin replay error | 0.00236139; every original triple still a miss | Authority passes |
+| 409-image export and scoring wall | 7.423162 s | Resource check, not serving latency |
+| Main-function wall, including authority/setup | 13.138305 s | External process timeout also enforced at 60 s |
+| Peak allocated CUDA | 2,158,002,688 bytes | Below 4 GB |
+| R@1, mAP@R, training cost, image-to-top-k p50/p95/p99/QPS | Not measured | No new claim |
+
+Receipt `inshop-raw-token-match-v1/receipt.json` SHA-256
+`ca96102c7f43c75da8a656af65d01086bcf6acf899e2b494ef2b637ea5bc7f05`.
+Independent replay checked all 151 margins, count, median, numerical/resource
+guards and decision. The raw field `whole_process_wall_seconds` actually
+starts inside `main` after imports; it must be reported as main-function wall.
+The external timeout governs the full child, and the preserved unit journal
+records normal closure within that cap.
+
+The first source inventory incorrectly resolved decorated `export_all` to
+Torch's decorator file. The supplemental `export-helper-audit.json` resolves
+the underlying archived module with `inspect.unwrap`, SHA-256
+`ebc0986f112eb8ba72943595ac6ef93f5328c0bed105c2990cb8c70d7b3b0495`.
+The source inventory now unwraps decorated helpers; this metadata fix did not
+rerun or alter the original numerical experiment. The original script SHA
+and receipt remain intact. Raw local nearest matching provides insufficient
+headroom for this fixed route. Do not train it, change matching/pooling knobs
+on this panel, or call these rescues full-gallery quality. Production package
+and serving bytes are unchanged; the joint target remains unmet.
