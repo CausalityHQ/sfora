@@ -46,3 +46,17 @@ production SOP/InShop joint quality+matched public speed target remains open.
 
 [CPU raw authority](evidence/compact_metric/sop-siglip2-substrate-v1/pe-l14-prefetch-v1/cpu-preflight.json),
 [actual CPU qualification](evidence/compact_metric/sop-siglip2-substrate-v1/pe-l14-prefetch-v1/prefetch-cpu-v1.log).
+
+## Sole17 mechanics PASS
+
+Original70007 collectedexit0: median3–17 **0.6378182559274137s**, training
+wall including first fill/last drain11.336585931945592s, whole26.96s,
+5,609,044KiB hostRSS/no swap, allocatedCUDApeak3,810,310,656B including
+native strict reload. All17RGB/scales128/frozen source/data gradients/group
+movement/CPU RNG/updated encoder AND compacthead strict GPU parity pass.
+All72 executing files unchanged;17 checkpoint deleted/state discarded.
+No held/quality read. Full production goal remains unmet.
+
+MechanicsPASS receiptSHA
+02fb166be9ca2ef26fd7af59f6fea14e6f93b461e16e305d2ad234948956ec6b
+licenses ONE fresh100TRAINpilot300s under the same frozen execution authority.
