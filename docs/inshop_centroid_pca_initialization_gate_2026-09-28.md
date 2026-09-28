@@ -34,3 +34,29 @@ gradient, stability, cost and public reload checks. It does not license a
 held-quality read, production default, official read or quality claim. All
 deployable geometry remains 128D; no serving-cost equality is inferred for
 a future checkpoint. Generalization and production gates remain required.
+
+## Terminal CPU F0: GO to smoke design only
+
+The original local CPU process (session `76340`) exited 0 in **5.402698 s**.
+Receipt SHA-256:
+`0d6a2418429bf90cf1e0f4fce5aa7d3a11e74fa77e44888014998f8e656d6df6`.
+No DGX or GPU work, encoder, held outcome or official read was used.
+
+| TRAIN-fit prototype panel, 512 queries | Hits | Accuracy |
+| --- | ---: | ---: |
+| Matched ordinary PCA-128 | 434 | 84.765625% |
+| Product-mean PCA-128 | 441 | 86.132813% |
+| Shuffled-label product-mean PCA-128 | 433 | 84.570313% |
+
+Treatment minus native: **+1.367188 pp**, conditional 95% interval
+**[+0.390625, +2.539063] pp**. Treatment minus sham: **+1.562500 pp**,
+**[+0.390625, +2.734375] pp**. All frozen criteria pass. Independent
+row-by-row paired bootstrap generation reproduces all 5,000 draws' interval
+endpoints exactly; count and executed-source hashes match. The synthetic
+within-product cancellation check passes; Ruff/diff checks are clean.
+
+This is supervised FIT-source prototype classification, not a packed scorer
+or unseen-product metric. It cannot quantify an expected production gain.
+Proceed only to a reviewed, frozen actual-encoder 17-update smoke; any later
+full-fit initializer refit must be declared before execution and cannot be
+substituted for this query-excluded F0 evidence.

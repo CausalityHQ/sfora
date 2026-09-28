@@ -213,6 +213,7 @@ def initialize_head_and_classifier(
     *,
     allow_singletons: bool = False,
     output_dim: int = OUTPUT_WIDTH,
+    pca_basis: str = "images",
 ) -> tuple[nn.Linear, nn.Parameter, str]:
     if (
         fit_features.ndim != 2
@@ -224,17 +225,24 @@ def initialize_head_and_classifier(
         or not isinstance(allow_singletons, bool)
         or type(output_dim) is not int
         or output_dim not in (128, 256)
+        or pca_basis not in ("images", "products")
     ):
         raise ValueError("SOP SigLIP2 initialization inventory differs")
     normalized = F.normalize(fit_features, dim=1)
-    pca = fit_centered_pca(normalized, dimensions=output_dim)
+    names = tuple(sorted(set(fit_labels)))
+    indexes = {label: index for index, label in enumerate(names)}
+    basis = normalized
+    if pca_basis == "products":
+        class_ids = torch.tensor([indexes[label] for label in fit_labels])
+        source_sums = torch.zeros(len(names), normalized.shape[1])
+        source_sums.index_add_(0, class_ids, normalized)
+        basis = source_sums / torch.bincount(class_ids)[:, None]
+    pca = fit_centered_pca(basis, dimensions=output_dim)
     head = nn.Linear(fit_features.shape[1], output_dim)
     with torch.no_grad():
         head.weight.copy_(pca.components)
         head.bias.copy_(-(pca.components @ pca.mean))
     projected = pca.apply(normalized)
-    names = tuple(sorted(set(fit_labels)))
-    indexes = {label: index for index, label in enumerate(names)}
     sums = torch.zeros(len(names), output_dim)
     counts = torch.zeros(len(names), dtype=torch.int64)
     for row, label in enumerate(fit_labels):
@@ -244,7 +252,9 @@ def initialize_head_and_classifier(
         raise ValueError("SOP SigLIP2 class proxy inventory differs")
     classifier = nn.Parameter(F.normalize(sums, dim=1))
     pca_sha = hashlib.sha256(
-        pca.mean.numpy().tobytes() + pca.components.numpy().tobytes()
+        (b"product-mean-pca-v1\0" if pca_basis == "products" else b"")
+        + pca.mean.numpy().tobytes()
+        + pca.components.numpy().tobytes()
     ).hexdigest()
     return head, classifier, pca_sha
 

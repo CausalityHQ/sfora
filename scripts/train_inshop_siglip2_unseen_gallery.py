@@ -528,7 +528,35 @@ def main() -> None:
     parser.add_argument("--source-main-smoke", choices=("control", "source"))
     parser.add_argument("--source-main-receipt", type=Path)
     parser.add_argument("--source-main-qualification", type=Path)
+    parser.add_argument("--centroid-pca-smoke", choices=("control", "products"))
+    parser.add_argument("--centroid-pca-receipt", type=Path)
     args = parser.parse_args()
+    centroid_smoke = args.centroid_pca_smoke is not None
+    if centroid_smoke and (
+        args.arm != "freeze_emb"
+        or args.seed != 179024
+        or args.updates != 17
+        or args.training_width != 128
+        or args.freeze_first_blocks != 12
+        or args.vision_lr != 1e-5
+        or args.workers != 4
+        or args.half_fit_products
+        or args.tail_blocks_to_drop
+        or args.vision_init_checkpoint
+        or args.source_centroid_smoke
+        or args.teacher_transfer
+        or args.wide_head_smoke_receipt
+        or args.wide_head_qualification
+        or args.source_main_smoke
+        or args.source_main_receipt
+        or args.source_main_qualification
+        or args.centroid_pca_receipt is None
+        or sha256(args.centroid_pca_receipt)
+        != "0d6a2418429bf90cf1e0f4fce5aa7d3a11e74fa77e44888014998f8e656d6df6"
+    ):
+        raise ValueError("centroid PCA smoke authority differs")
+    if not centroid_smoke and args.centroid_pca_receipt is not None:
+        raise ValueError("centroid PCA receipt without smoke")
     source_main_smoke = args.source_main_smoke is not None
     source_main_quality = args.source_main_qualification is not None
     if source_main_quality and (
@@ -779,8 +807,44 @@ def main() -> None:
     features_cpu = torch.from_numpy(np.asarray(source[list(fit)]).copy()).float()
     head_init_started = time.perf_counter()
     head, classifier, pca_sha = initialize_head_and_classifier(
-        features_cpu, tuple(class_ids.tolist()), allow_singletons=True
+        features_cpu,
+        tuple(class_ids.tolist()),
+        allow_singletons=True,
+        pca_basis="products" if args.centroid_pca_smoke == "products" else "images",
     )
+    centroid_initializer = None
+    if centroid_smoke:
+        unit = torch.nn.functional.normalize(features_cpu, dim=1)
+        ids = torch.from_numpy(class_ids)
+        counts = torch.bincount(ids, minlength=len(names))
+        if not bool((counts > 0).all()):
+            raise ValueError("centroid PCA missing fit product")
+        sums = torch.zeros(len(names), unit.shape[1])
+        sums.index_add_(0, ids, unit)
+        image_mean = unit.double().mean(0).float()
+        product_mean = (sums / counts[:, None]).double().mean(0).float()
+        mean = product_mean if args.centroid_pca_smoke == "products" else image_mean
+        if not torch.allclose(
+            head.bias.detach(), -(head.weight.detach() @ mean), atol=1e-7, rtol=0
+        ):
+            raise ValueError("centroid PCA recovered center differs")
+        centroid_initializer = {
+            "basis": "products" if args.centroid_pca_smoke == "products" else "images",
+            "mean": mean,
+            "components": head.weight.detach().clone(),
+            "class_counts": counts,
+            "fit_rows_sha256": fit_sha,
+            "features_sha256": cache["features_sha256"],
+            "pca_sha256": pca_sha,
+            "singleton_products": int((counts == 1).sum()),
+            "center_distance": float((product_mean - image_mean).norm()),
+            "projected_center_distance": float((head.weight @ (product_mean - image_mean)).norm()),
+            "median_raw_projection_norm": float(head(unit).norm(dim=1).median()),
+            "head_sha256": hashlib.sha256(
+                head.weight.detach().numpy().tobytes() + head.bias.detach().numpy().tobytes()
+            ).hexdigest(),
+            "classifier_sha256": hashlib.sha256(classifier.detach().numpy().tobytes()).hexdigest(),
+        }
     if args.training_width == 256:
         narrow_weight = head.weight.detach().clone()
         with torch.random.fork_rng(devices=[]):
@@ -904,6 +968,14 @@ def main() -> None:
     if source_main_smoke:
         source_main_init["bank_sha256"] = hashlib.sha256(bank_cpu.numpy().tobytes()).hexdigest()
         source_main_init["vision_sha256"] = parameter_digest(vision, frozen=False)
+    if centroid_smoke:
+        if not torch.isfinite(bank_cpu).all() or not (bank_cpu.norm(dim=1) > 0).all():
+            raise ValueError("centroid PCA initial bank differs")
+        if not torch.isfinite(classifier).all() or not (classifier.norm(dim=1) > 0).all():
+            raise ValueError("centroid PCA initial classifier differs")
+        centroid_initializer["bank_sha256"] = hashlib.sha256(bank_cpu.numpy().tobytes()).hexdigest()
+        centroid_initializer["vision_sha256"] = parameter_digest(vision, frozen=False)
+        centroid_initializer["initializer_seconds"] = head_init_seconds
     positives = member_bank_positive_ordinals(class_ids, allow_singletons=True).cuda()
     schedule_gpu = torch.tensor(batches, dtype=torch.long, device="cuda")
     class_ids_gpu = torch.from_numpy(class_ids).cuda()
@@ -930,11 +1002,13 @@ def main() -> None:
     masks = torch.arange(args.training_width, device="cuda", dtype=torch.int64).unsqueeze(0)
     mask_rng = torch.Generator().manual_seed(args.seed + 128_000)
     args.output_dir.mkdir(parents=True, exist_ok=False)
+    if centroid_smoke:
+        torch.save(centroid_initializer, args.output_dir / "centroid_pca_initializer.pt")
     if source_main_smoke:
         (args.output_dir / "source_main_initializer.json").write_text(
             json.dumps(source_main_init, sort_keys=True, allow_nan=False) + "\n"
         )
-    mechanics_smoke = wide_smoke or source_main_smoke
+    mechanics_smoke = wide_smoke or source_main_smoke or centroid_smoke
     torch.cuda.reset_peak_memory_stats()
     started = time.perf_counter()
     losses: list[float] = []
@@ -972,7 +1046,7 @@ def main() -> None:
         if source_features is None:
             raise ValueError("In-Shop train pooler missing")
         features = compact_head_features(source_features, head, output_dim=args.training_width)
-        if wide_smoke and step == 1:
+        if (wide_smoke or centroid_smoke) and step == 1:
             fixed_smoke_batch = tensors, target
             width_initial_geometry = width_geometry(features.detach())
         if args.arm == "subspace":
@@ -1215,7 +1289,7 @@ def main() -> None:
         or initial_trainable_sha == parameter_digest(vision, frozen=False)
     ):
         raise ValueError("wide smoke frozen/update authority differs")
-    if wide_smoke:
+    if wide_smoke or centroid_smoke:
         vision.eval()
         with torch.no_grad(), torch.autocast("cuda", dtype=dtype):
             pooled = vision(**fixed_smoke_batch[0]).pooler_output
@@ -1290,6 +1364,7 @@ def main() -> None:
                 if mechanics_smoke
                 else None,
                 "source_main_smoke": args.source_main_smoke,
+                "centroid_pca_initializer": centroid_initializer,
                 "source_main_initializer": source_main_init,
                 "source_main_mean": source_mean.detach().cpu() if source_main_smoke else None,
                 "training_width": args.training_width,
@@ -1325,6 +1400,37 @@ def main() -> None:
         )
     quality = None
     matched_parity = None
+    if centroid_smoke:
+        live_reference = pack_int8_unit_embeddings(
+            export_all(
+                vision,
+                head,
+                tuple(paths[row] for row in fit[:64]),
+                tuple(range(64)),
+                processor,
+                workers=args.workers,
+                batch_size=32,
+            )
+        )
+        saved = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
+        if any(
+            not torch.equal(value.detach().cpu(), saved[name][key])
+            for name, module in (("vision", vision), ("head", head))
+            for key, value in module.state_dict().items()
+        ):
+            raise ValueError("centroid PCA saved terminal tensors differ")
+        del saved
+        matched_parity = matched_checkpoint_checks(
+            args.model_snapshot,
+            checkpoint_path,
+            checkpoint_path,
+            sha256(checkpoint_path),
+            sha256(checkpoint_path),
+            tuple(paths[row] for row in fit[:64]),
+            live_reference=live_reference,
+        )
+        if not all(matched_parity.values()):
+            raise ValueError("centroid PCA live public32 parity failed")
     if source_main_smoke:
         if args.source_main_smoke == "source" and (
             source_main_probes[-1]["main_encoder_gradient_norm"]
@@ -1404,6 +1510,14 @@ def main() -> None:
         "claim_eligible": False,
         "split": "official In-Shop TRAIN; product-disjoint half split; held-only symmetric gallery",
         "arm": args.arm,
+        "centroid_pca_smoke": args.centroid_pca_smoke,
+        "centroid_pca_initializer": {
+            key: value
+            for key, value in centroid_initializer.items()
+            if not isinstance(value, torch.Tensor)
+        }
+        if centroid_smoke
+        else None,
         "seed": args.seed,
         "updates": args.updates,
         "batch_size": BATCH_SIZE,

@@ -22,7 +22,9 @@ from sfora.sop_compact_training import compact_head_features
 from sfora.unicom_inshop import parse_inshop_partition
 
 
-def matched_checkpoint_checks(model_snapshot, raw, checkpoint, raw_sha, folded_sha, image_paths):
+def matched_checkpoint_checks(
+    model_snapshot, raw, checkpoint, raw_sha, folded_sha, image_paths, *, live_reference=None
+):
     if sha256(raw) != raw_sha or len(image_paths) != 64:
         raise ValueError("matched checkpoint authority differs")
     encoder = Siglip2CompactEncoder.from_checkpoint(
@@ -64,12 +66,16 @@ def matched_checkpoint_checks(model_snapshot, raw, checkpoint, raw_sha, folded_s
             expected.append(F.normalize(compact_head_features(pooled, folded), dim=1).cpu())
     reference = pack_int8_unit_embeddings(torch.cat(expected))
     codes, norms = packed_fit_images(encoder, images)
-    return {
+    checks = {
         "same_parent_vision": same_vision,
         "same_folded_head": same_head,
         "exact_codes": torch.equal(codes, reference.codes),
         "exact_inverse_norms": torch.equal(norms, reference.inverse_norms),
     }
+    if live_reference is not None:
+        checks["exact_live_codes"] = torch.equal(codes, live_reference.codes)
+        checks["exact_live_inverse_norms"] = torch.equal(norms, live_reference.inverse_norms)
+    return checks
 
 
 def main():
