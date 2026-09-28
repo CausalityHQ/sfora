@@ -838,11 +838,11 @@ def main() -> None:
             "pca_sha256": pca_sha,
             "singleton_products": int((counts == 1).sum()),
             "center_distance": float((product_mean - image_mean).norm()),
-            "projected_center_distance": float((head.weight @ (product_mean - image_mean)).norm()),
-            "median_raw_projection_norm": float(head(unit).norm(dim=1).median()),
-            "head_sha256": hashlib.sha256(
-                head.weight.detach().numpy().tobytes() + head.bias.detach().numpy().tobytes()
-            ).hexdigest(),
+            "projected_center_distance": float(
+                (head.weight.detach() @ (product_mean - image_mean)).norm()
+            ),
+            "median_raw_projection_norm": float(head(unit).detach().norm(dim=1).median()),
+            "head_sha256": parameter_digest(head, frozen=False),
             "classifier_sha256": hashlib.sha256(classifier.detach().numpy().tobytes()).hexdigest(),
         }
     if args.training_width == 256:

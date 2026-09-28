@@ -83,3 +83,22 @@ serving-compatible processor before public reload. Compare exact codes and
 f16 inverse norms, alongside exact saved/live tensors and existing parent
 state checks. The common parity helper now accepts this independent live
 reference; it does not use reloaded vision as the sole reference for this gate.
+
+## Native authority repair before treatment execution
+
+Original unit `sfora-inshop-centroid-pca-smoke-v1`, invocation
+`b3173d16f99648d3b9d25abec6b5c775`, exited0 after **50.641871 s** with the
+native arm only. It stopped because the new head hash concatenated raw
+weight/bias bytes while the reference used the existing named-parameter
+digest. All17 native pixels/losses, finite state, geometry and exact live
+packed/public parity passed. No treatment optimizer update or quality read
+occurred. This is a verifier defect, not a candidate quality rejection.
+
+Independent reconstruction from the saved initial PCA tensors reproduces
+the reference canonical head hash
+`398ea349f25a5c9deeaa21adc5679356022277417a2f6f4e49121d1949817695`
+exactly. PCA, bank and initial vision hashes also match. Correct the new
+record to call the existing `parameter_digest` helper. Preserve the original
+receipt without rewriting its KILL label. A new source-pinned, uniquely named
+v2 pair is allowed once; all original acceptance thresholds, inputs,
+architecture and initialization remain fixed. No gate relaxation.
