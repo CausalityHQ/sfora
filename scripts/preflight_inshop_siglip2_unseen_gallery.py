@@ -69,7 +69,10 @@ def main() -> None:
     parser.add_argument("--dataset-root", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument(
-        "--seed", type=int, choices=(179023, 179024, 179025, 179026, 179027), default=SEED
+        "--seed",
+        type=int,
+        choices=(179023, 179024, 179025, 179026, 179027, 179028, 179029, 179030),
+        default=SEED,
     )
     args = parser.parse_args()
     if (

@@ -25,7 +25,15 @@ def main():
         "output-dir",
     ):
         parser.add_argument(f"--{name}", type=Path, required=True)
+    parser.add_argument("--confirmation", type=Path)
     args = parser.parse_args()
+    seed = 179028 if args.confirmation else 179024
+    if (
+        args.confirmation
+        and sha256(args.confirmation)
+        != "d6f0d09de37c9121f6358a95514fb312f04d56800d719045b6e09132c508c214"
+    ):
+        raise ValueError("centroid smoke confirmation authority differs")
     if (
         args.output_dir.exists()
         or sha256(args.native_control)
@@ -53,13 +61,13 @@ def main():
             "--updates",
             "17",
             "--seed",
-            "179024",
+            str(seed),
             "--workers",
             "4",
             "--centroid-pca-smoke",
             name,
-            "--centroid-pca-receipt",
-            str(args.cached_gate),
+            "--centroid-pca-confirmation" if args.confirmation else "--centroid-pca-receipt",
+            str(args.confirmation or args.cached_gate),
             "--output-dir",
             str(args.output_dir / name),
         ]
@@ -99,12 +107,13 @@ def main():
             for key, fraction in (("variance", 0.5), ("effective_rank", 0.8))
         )
         if name == "control":
-            criteria["native_pixels"] = (
-                current["first_input_batch_sha256"] == previous["first_input_batch_sha256"]
-            )
-            criteria["native_losses"] = np.allclose(
-                current["all_step_losses"], previous["all_step_losses"], rtol=0, atol=1e-5
-            )
+            if not args.confirmation:
+                criteria["native_pixels"] = (
+                    current["first_input_batch_sha256"] == previous["first_input_batch_sha256"]
+                )
+                criteria["native_losses"] = np.allclose(
+                    current["all_step_losses"], previous["all_step_losses"], rtol=0, atol=1e-5
+                )
             criteria["native_initializer"] = (
                 current["pca_sha256"] == previous["pca_sha256"]
                 and current["centroid_pca_initializer"]["vision_sha256"]
@@ -117,7 +126,7 @@ def main():
         print(json.dumps({"terminal_arm": name, "criteria": criteria}), flush=True)
         if not all(criteria.values()):
             break
-    if "products" in arms:
+    if {"control", "products"} <= arms.keys():
         control, product = arms["control"], arms["products"]
         criteria["paired_pixels17"] = (
             len(control["first_input_batch_sha256"]) == 17
@@ -149,7 +158,11 @@ def main():
     result = {
         "schema": "sfora-inshop-centroid-pca-smoke-v1",
         "claim_eligible": False,
-        "decision": "GO_FROZEN_100_GATE" if len(arms) == 2 and all(criteria.values()) else "KILL",
+        "decision": ("GO_FROZEN_SEED_GATE" if args.confirmation else "GO_FROZEN_100_GATE")
+        if len(arms) == 2 and all(criteria.values())
+        else "KILL",
+        "seed": seed,
+        "confirmation_sha256": sha256(args.confirmation) if args.confirmation else None,
         "criteria": {key: bool(value) for key, value in criteria.items()},
         "arms": arms,
         "quality": None,

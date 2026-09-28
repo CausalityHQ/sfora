@@ -508,7 +508,10 @@ def main() -> None:
         "--updates", type=int, choices=(17, 100, 1_000, 1_533, 3_000), required=True
     )
     parser.add_argument(
-        "--seed", type=int, choices=(179023, 179024, 179025, 179026, 179027), default=SEED
+        "--seed",
+        type=int,
+        choices=(179023, 179024, 179025, 179026, 179027, 179028, 179029, 179030),
+        default=SEED,
     )
     parser.add_argument("--vision-lr", type=float, choices=(1e-5, 3e-5), default=1e-5)
     parser.add_argument("--preflight-sha256", default=PREFLIGHT_SHA)
@@ -531,9 +534,21 @@ def main() -> None:
     parser.add_argument("--centroid-pca-smoke", choices=("control", "products"))
     parser.add_argument("--centroid-pca-receipt", type=Path)
     parser.add_argument("--centroid-pca-qualification", type=Path)
+    parser.add_argument("--centroid-pca-confirmation", type=Path)
     args = parser.parse_args()
     centroid_smoke = args.centroid_pca_smoke is not None
     centroid_quality = args.centroid_pca_qualification is not None
+    centroid_confirmation = args.centroid_pca_confirmation is not None
+    if centroid_confirmation and (
+        not centroid_smoke
+        or args.centroid_pca_receipt is not None
+        or centroid_quality
+        or sha256(args.centroid_pca_confirmation)
+        != "d6f0d09de37c9121f6358a95514fb312f04d56800d719045b6e09132c508c214"
+    ):
+        raise ValueError("centroid PCA seed confirmation differs")
+    if args.seed in (179028, 179029, 179030) and not centroid_confirmation:
+        raise ValueError("fresh centroid seed requires positive confirmation authority")
     if centroid_quality and (
         not centroid_smoke
         or args.centroid_pca_receipt is not None
@@ -543,8 +558,9 @@ def main() -> None:
         raise ValueError("centroid PCA100 qualification differs")
     if centroid_smoke and (
         args.arm != "freeze_emb"
-        or args.seed != 179024
-        or args.updates != (100 if centroid_quality else 17)
+        or args.seed not in ((179028, 179029, 179030) if centroid_confirmation else (179024,))
+        or args.updates
+        not in ((17, 1000) if centroid_confirmation else (100,) if centroid_quality else (17,))
         or args.training_width != 128
         or args.freeze_first_blocks != 12
         or args.vision_lr != 1e-5
@@ -561,6 +577,7 @@ def main() -> None:
         or args.source_main_qualification
         or (
             not centroid_quality
+            and not centroid_confirmation
             and (
                 args.centroid_pca_receipt is None
                 or sha256(args.centroid_pca_receipt)
@@ -990,6 +1007,22 @@ def main() -> None:
         centroid_initializer["bank_sha256"] = hashlib.sha256(bank_cpu.numpy().tobytes()).hexdigest()
         centroid_initializer["vision_sha256"] = parameter_digest(vision, frozen=False)
         centroid_initializer["initializer_seconds"] = head_init_seconds
+        if centroid_confirmation:
+            arm_receipt = (
+                args.centroid_pca_confirmation.parent / args.centroid_pca_smoke / "receipt.json"
+            )
+            qualification = json.loads(args.centroid_pca_confirmation.read_text())
+            if (
+                sha256(arm_receipt)
+                != qualification["training_receipt_sha256"][args.centroid_pca_smoke]
+            ):
+                raise ValueError("centroid confirmation initializer receipt differs")
+            qualified = json.loads(arm_receipt.read_text())["centroid_pca_initializer"]
+            if any(
+                centroid_initializer[key] != qualified[key]
+                for key in ("head_sha256", "classifier_sha256", "bank_sha256", "vision_sha256")
+            ):
+                raise ValueError("fresh centroid initializer differs from qualified100")
     positives = member_bank_positive_ordinals(class_ids, allow_singletons=True).cuda()
     schedule_gpu = torch.tensor(batches, dtype=torch.long, device="cuda")
     class_ids_gpu = torch.from_numpy(class_ids).cuda()
@@ -1270,6 +1303,8 @@ def main() -> None:
             torch.tensor(refresh_positions, device="cuda"),
             live_head=live_head,
         )
+        if mechanics_smoke and not bool(torch.isfinite(bank).all()):
+            raise ValueError("mechanics bank nonfinite after refresh")
         torch.cuda.synchronize()
         step_seconds.append(time.perf_counter() - step_started)
         losses.append(float(loss.detach()))
@@ -1501,7 +1536,7 @@ def main() -> None:
             processor,
             workers=args.workers,
             batch_size=32
-            if width_quality or source_main_quality or centroid_quality
+            if width_quality or source_main_quality or centroid_quality or centroid_confirmation
             else BATCH_SIZE,
         )
         export_seconds = time.perf_counter() - export_started
@@ -1527,6 +1562,9 @@ def main() -> None:
         "split": "official In-Shop TRAIN; product-disjoint half split; held-only symmetric gallery",
         "arm": args.arm,
         "centroid_pca_smoke": args.centroid_pca_smoke,
+        "centroid_confirmation_sha256": sha256(args.centroid_pca_confirmation)
+        if centroid_confirmation
+        else None,
         "centroid_pca_initializer": {
             key: value
             for key, value in centroid_initializer.items()
@@ -1567,7 +1605,7 @@ def main() -> None:
         if width_quality
         else None,
         "export_batch_size": 32
-        if width_quality or source_main_quality or centroid_quality
+        if width_quality or source_main_quality or centroid_quality or centroid_confirmation
         else BATCH_SIZE,
         "matched_public32_parity": matched_parity,
         "width_history": width_history,
