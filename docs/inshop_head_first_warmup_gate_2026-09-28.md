@@ -35,3 +35,29 @@ cost smoke; it does not automatically authorize100/1000 image updates. A
 later matched-seed TRAIN gate must account for6400 extra cached exposures,
 warm-up wall and memory, full training cost, selection uncertainty and a new
 independent holdout. No official labels or scores are read by this screen.
+
+## Terminal CPU decision: KILL
+
+The single original process exited0. Frozen protocol/code was pushed at
+`cf1aa595` before the receipt was read. Receipt
+`docs/evidence/compact_metric/sop-siglip2-substrate-v1/inshop-head-first-cache-v1.json`
+SHA-256 `1fcdb6d3a7474b8ee48aa2d623e45c42e8c3a1520ded3c94480c75f297a568ed`.
+
+| Official In-Shop TRAIN fit only | Measured cached result | Decision |
+|---|---:|---|
+| Same17 batches/1,088 nominal raw-source probes, full objective | Median warm/initial gradient norm0.9880844; only1.19156% reduction | KILL: needs<=0.75 |
+| Same probes' native ArcFace | Mean loss ratio0.8590362;14.09638% reduction | KILL: needs<=0.8 |
+| Compact centered variance | Warm/initial0.9911187 | Pass collapse guard |
+| Compact participation rank | Warm/initial1.0877785 | Pass collapse guard |
+|100 cached head-only steps/6,400 exposures plus diagnostics | CPU main wall7.112750s | Pass<=120s; no encoder training cost inferred |
+| R@1/mAP@R, encoder VRAM, image-to-top-k p50/p95/p99/QPS | Not measured | No quality/performance claim |
+
+Independent receipt replay verified100 losses,17 native-loss entries and
+1,088 source norms per arm, exact paired ratios, all criteria and decision.
+The runnable check passed: warm-up changed downstream weights while leaving
+the source without gradients. Ruff passes. The original fit/PCA/cache/
+partition/schedule hashes match authority. No GPU job, official read,
+production edit or package rebuild was performed. Increasing warm-up steps
+or rate after this read is not permitted for this fixed configuration.
+The result rejects the predicted large pressure relief; it does not establish
+that all head-first training algorithms are ineffective. Goal remains active.
