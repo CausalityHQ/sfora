@@ -1,0 +1,202 @@
+{
+  "checkpoint_sha256": "655dc91c049391118ffc2fc98b370971962b20ef8c39ea7d362a595ec83635fb",
+  "scope": "actual saved PE upper-block matrix inventory only; no model forward, factor fitting or quality",
+  "matrices": {
+    "transformer.resblocks.6.attn.in_proj_weight": {
+      "shape": [
+        2304,
+        768
+      ],
+      "dense_elements": 1769472,
+      "rank32_factor_elements": 98304
+    },
+    "transformer.resblocks.6.attn.out_proj.weight": {
+      "shape": [
+        768,
+        768
+      ],
+      "dense_elements": 589824,
+      "rank32_factor_elements": 49152
+    },
+    "transformer.resblocks.6.mlp.c_fc.weight": {
+      "shape": [
+        3072,
+        768
+      ],
+      "dense_elements": 2359296,
+      "rank32_factor_elements": 122880
+    },
+    "transformer.resblocks.6.mlp.c_proj.weight": {
+      "shape": [
+        768,
+        3072
+      ],
+      "dense_elements": 2359296,
+      "rank32_factor_elements": 122880
+    },
+    "transformer.resblocks.7.attn.in_proj_weight": {
+      "shape": [
+        2304,
+        768
+      ],
+      "dense_elements": 1769472,
+      "rank32_factor_elements": 98304
+    },
+    "transformer.resblocks.7.attn.out_proj.weight": {
+      "shape": [
+        768,
+        768
+      ],
+      "dense_elements": 589824,
+      "rank32_factor_elements": 49152
+    },
+    "transformer.resblocks.7.mlp.c_fc.weight": {
+      "shape": [
+        3072,
+        768
+      ],
+      "dense_elements": 2359296,
+      "rank32_factor_elements": 122880
+    },
+    "transformer.resblocks.7.mlp.c_proj.weight": {
+      "shape": [
+        768,
+        3072
+      ],
+      "dense_elements": 2359296,
+      "rank32_factor_elements": 122880
+    },
+    "transformer.resblocks.8.attn.in_proj_weight": {
+      "shape": [
+        2304,
+        768
+      ],
+      "dense_elements": 1769472,
+      "rank32_factor_elements": 98304
+    },
+    "transformer.resblocks.8.attn.out_proj.weight": {
+      "shape": [
+        768,
+        768
+      ],
+      "dense_elements": 589824,
+      "rank32_factor_elements": 49152
+    },
+    "transformer.resblocks.8.mlp.c_fc.weight": {
+      "shape": [
+        3072,
+        768
+      ],
+      "dense_elements": 2359296,
+      "rank32_factor_elements": 122880
+    },
+    "transformer.resblocks.8.mlp.c_proj.weight": {
+      "shape": [
+        768,
+        3072
+      ],
+      "dense_elements": 2359296,
+      "rank32_factor_elements": 122880
+    },
+    "transformer.resblocks.9.attn.in_proj_weight": {
+      "shape": [
+        2304,
+        768
+      ],
+      "dense_elements": 1769472,
+      "rank32_factor_elements": 98304
+    },
+    "transformer.resblocks.9.attn.out_proj.weight": {
+      "shape": [
+        768,
+        768
+      ],
+      "dense_elements": 589824,
+      "rank32_factor_elements": 49152
+    },
+    "transformer.resblocks.9.mlp.c_fc.weight": {
+      "shape": [
+        3072,
+        768
+      ],
+      "dense_elements": 2359296,
+      "rank32_factor_elements": 122880
+    },
+    "transformer.resblocks.9.mlp.c_proj.weight": {
+      "shape": [
+        768,
+        3072
+      ],
+      "dense_elements": 2359296,
+      "rank32_factor_elements": 122880
+    },
+    "transformer.resblocks.10.attn.in_proj_weight": {
+      "shape": [
+        2304,
+        768
+      ],
+      "dense_elements": 1769472,
+      "rank32_factor_elements": 98304
+    },
+    "transformer.resblocks.10.attn.out_proj.weight": {
+      "shape": [
+        768,
+        768
+      ],
+      "dense_elements": 589824,
+      "rank32_factor_elements": 49152
+    },
+    "transformer.resblocks.10.mlp.c_fc.weight": {
+      "shape": [
+        3072,
+        768
+      ],
+      "dense_elements": 2359296,
+      "rank32_factor_elements": 122880
+    },
+    "transformer.resblocks.10.mlp.c_proj.weight": {
+      "shape": [
+        768,
+        3072
+      ],
+      "dense_elements": 2359296,
+      "rank32_factor_elements": 122880
+    },
+    "transformer.resblocks.11.attn.in_proj_weight": {
+      "shape": [
+        2304,
+        768
+      ],
+      "dense_elements": 1769472,
+      "rank32_factor_elements": 98304
+    },
+    "transformer.resblocks.11.attn.out_proj.weight": {
+      "shape": [
+        768,
+        768
+      ],
+      "dense_elements": 589824,
+      "rank32_factor_elements": 49152
+    },
+    "transformer.resblocks.11.mlp.c_fc.weight": {
+      "shape": [
+        3072,
+        768
+      ],
+      "dense_elements": 2359296,
+      "rank32_factor_elements": 122880
+    },
+    "transformer.resblocks.11.mlp.c_proj.weight": {
+      "shape": [
+        768,
+        3072
+      ],
+      "dense_elements": 2359296,
+      "rank32_factor_elements": 122880
+    }
+  },
+  "matrix_count": 24,
+  "dense_elements": 42467328,
+  "rank32_factor_elements": 2359296,
+  "claim_eligible": false
+}

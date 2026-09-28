@@ -6,6 +6,24 @@ These are verified published numbers, not new local measurements. No weights,
 images or embeddings were downloaded, no inference/training ran, and no closed
 training recipe is reopened by this screen.
 
+Additional accessible primary-source checks: [STIR arXiv2304.13393v1](https://arxiv.org/html/2304.13393v1)
+Table1 reports embedding-only ViT-Triplet SOP/In-Shop R@1 of86.5%/92.1%;
+STIR-Symmetric with5 reranked image candidates reports88.3%/95.0%.
+Neither exceeds the existing dated UNICOM gates. The second row includes
+pixel-level pairwise reranking and must be identified as a different serving
+pipeline. Table2 uses mAP@5/@10, not our mAP@R. These are published values,
+not reproduced measurements or a hardware-matched latency comparison.
+
+[AE-SVC, ICLR2025/arXiv2410.07022v2](https://arxiv.org/html/2410.07022v2)
+states that its projection/distillation is fitted to the reference corpus,
+with queries unavailable, and reports main results as mAP@k curves and search
+operation counts. This does not supply a qualified stronger supervised
+TRAIN-only official R@1 target or measured image-to-result latency. No AE-SVC
+training/head/whitening intervention is selected from this check. The first
+ICLR proceedings PDF fetch timed out; the accessible arXivv2 text supplied
+the protocol check, without retrying the failed endpoint. These two checks
+still do not certify the complete current published frontier.
+
 | Primary source and version | SOP TEST R@1 (%) | In-Shop official query/gallery R@1 (%) | Qualification |
 | --- | ---: | ---: | --- |
 | [UNICOM, arXiv2304.05884v1](https://arxiv.org/html/2304.05884v1), Table4 | 91.2 | 96.7 | Supervised ViT-L/14-336; strongest verified values among these screened tables |
