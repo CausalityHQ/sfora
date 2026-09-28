@@ -1,0 +1,33 @@
+{
+  "receipt_sha256": "1ac62b0edda6dd93bc808a8d2bb81fef7c89cc1c4eaef816d276c4fecb2a555f",
+  "checks": {
+    "source": true,
+    "inventory": true,
+    "roles": true,
+    "query_hash": true,
+    "gallery_hash": true,
+    "128_updates": true,
+    "128_means": true,
+    "256_updates": true,
+    "256_means": true,
+    "recall_bootstrap": true,
+    "map_bootstrap": true,
+    "decision": true
+  },
+  "replayed_deltas": {
+    "recall": {
+      "point": 0.017151162790697675,
+      "lower95": 0.01184230664161509,
+      "upper95": 0.022554243693592504
+    },
+    "map": {
+      "point": 0.027866651437943802,
+      "lower95": 0.02435777386532861,
+      "upper95": 0.031634767564271055
+    }
+  },
+  "rescues": 70,
+  "regressions": 11,
+  "verification_erratum": "First row-hash replay used i4; authoritative digest_rows uses i8. Corrected verifier only, no experiment rerun.",
+  "limitations": "Independent metadata/per-query mean/bootstrap/decision replay; actual head weights and validation embeddings not saved or rescored."
+}

@@ -1,0 +1,3 @@
+{"dim": 128, "recall": 0.8694767441860465, "map": 0.626623049495758, "train_seconds": 6.046523123048246}
+{"dim": 256, "recall": 0.8866279069767442, "map": 0.6544897009337017, "train_seconds": 5.6142803858965635}
+{"decision": "GO_REVIEW_ONLY", "deltas": {"recall": {"point": 0.017151162790697675, "lower95": 0.01184230664161509, "upper95": 0.022554243693592504}, "map": {"point": 0.027866651437943802, "lower95": 0.02435777386532861, "upper95": 0.031634767564271055}}, "criteria": {"recall": true, "map": true, "cost": true, "whole_budget": true}}
