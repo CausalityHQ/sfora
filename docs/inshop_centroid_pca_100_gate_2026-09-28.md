@@ -50,3 +50,48 @@ on any failed acceptance rule. No extra seed, longer budget, initializer
 retune or official read after a failure. A pass permits only a separately
 frozen paired-seed quality gate; no product default or SOTA claim. Serving
 latency/QPS is unmeasured for these checkpoints; no serving-cost projection.
+
+## Terminal: GO to paired-seed design
+
+Sole DGX unit `sfora-inshop-centroid-pca-100-v1`, invocation
+`5176c5b8f4fc41799d26e7a6ce80806d`, exited0. Whole campaign **457.250924s**;
+receipt SHA-256
+`d6f0d09de37c9121f6358a95514fb312f04d56800d719045b6e09132c508c214`.
+Both arms completed100 stable encoder updates, all100 input batches match,
+and the qualified17 prefixes and initializer hashes replay. Exact saved/live
+tensors and live terminal/public packed codes/norms pass at two32 fit batches.
+
+| Official TRAIN held6,354q/6,245g, seed179024, same Large256/native128 | Image-PCA control | Product-mean PCA |
+| --- | ---: | ---: |
+| Packed R@1 | **95.247088%** | **95.687756%** |
+| Packed mAP@R | **0.7798550375** | **0.7918794856** |
+| Training wall excluding bank/init | 86.345588s | 86.045028s |
+| Training wall including bank initialization | 87.667472s | 87.269351s |
+| Images/s including bank initialization,6,400 samples | 73.0031 | 73.3362 |
+| Peak allocated CUDA | 12,988,997,120 bytes | 12,988,997,120 bytes |
+| Median step2–100 | 0.843707s | 0.841400s |
+| Initializer wall, reported separately | 1.453019s | 0.478495s |
+| Held feature export wall | 109.402426s | 108.949881s |
+| Whole child arm | 224.117898s | 220.830331s |
+
+Paired R@1 gain: **+0.440667pp**, conditional product95% interval
+**[+0.192305,+0.694874]pp**. Paired mAP@R gain: **+1.202445pp**,
+**[+0.995367,+1.415658]pp**. All nine acceptance rules pass. Independent
+row-by-row generation verifies both5,000-draw product-bootstrap interval
+endpoints exactly. The native arm's6,354 hit/AP vectors are identical to
+the earlier source-MAIN native100 control. Source/checkpoint/role authority
+and all100 finite steps are preserved in raw receipts and logs.
+
+**Product decision:** keep the fixed product-mean initializer as experimental
+training functionality; stop initialization/covariance/loss search. Freeze
+one full-budget paired-seed confirmation before promotion. This result is
+an exploratory single-seed100-update effect on previously observed TRAIN
+identities; it does not establish full-budget, seed-independent, official,
+SOP/CUB/Cars-transfer or SOTA quality. No image-to-top-k latency/QPS was
+measured and export wall is not serving latency. All production defaults
+remain native pending the joint quality/cost/public-serving gates.
+
+Evidence is under
+`docs/evidence/compact_metric/sop-siglip2-substrate-v1/inshop-centroid-pca-100-v1/`.
+Both raw checkpoints, full initializers and held feature arrays remain at
+`/home/riomus/runs/sfora-inshop-centroid-pca-100-v1/result/`.

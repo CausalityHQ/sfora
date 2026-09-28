@@ -1,0 +1,9 @@
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  22%|██▏       | 172/792 [00:00<00:00, 1638.24it/s]Loading weights:  62%|██████▏   | 489/792 [00:00<00:00, 2516.78it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2625.20it/s]
+{"step": 50, "loss": 6.133350849151611, "elapsed_seconds": 43.73206387180835}
+{"step": 100, "loss": 4.628491401672363, "elapsed_seconds": 85.97616365272552}
+{"export_batches": 100}
+{"export_batches": 200}
+{"export_batches": 300}
+{"arm": "freeze_emb", "seed": 179024, "training_seconds": 86.04502799082547, "holdout_r1": 0.9745217874434479}
