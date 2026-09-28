@@ -1,5 +1,17 @@
 # Joint quality and performance decision, first training-code gate
 
+## 28 September control precision cause verified; native FP16 proposal ready
+
+Forward-only same4 In-Shop TRAIN-fit control rows: Large FP16/FP32 cosine
+minimum0.9999095201 passes unchanged0.999; BF16/FP320.9974756241 fails,
+cachedFP16/freshFP16≥0.9999963045 passes; BF16 train/eval byte-identical.
+Originalweightsunchanged;15.85swhole/2,508,016KiBhost/1,938,665,472BallocatedCUDA.
+Independent saved-vector replayPASS. Nooptimizer/quality/PEforward.
+[Numerical result](inshop_large_precision_diagnostic_result_2026-09-28.md).
+Matched FP16+nativeGradScaler128 successor CPU8.65s passed unchangedinitializers,
+source/objective/pixel/freeze/scaler/startup fixtures; bothcriticsGO one bounded
+mechanicsrun only. BF16closed, floors/caps/objective unchanged.
+
 ## 28 September PE image-training mechanics: stop before optimizer
 
 The sole bounded DGX pair exited1 at the Large control's initial cosine guard,

@@ -31,6 +31,7 @@ from train_sop_siglip2_compact import (
     member_bank_rank_loss,
     member_bank_refresh_rows,
     member_bank_refresh_values,
+    training_precision,
 )
 
 
@@ -60,6 +61,7 @@ def save(path, value):
 
 
 def check_startup(args, frozen):
+    assert args.vision_precision == frozen["vision_precision"]
     root = args.root.resolve()
     for name, value in frozen["code"].items():
         path = (root / name).resolve()
@@ -73,6 +75,21 @@ def check_startup(args, frozen):
 
 
 def metadata(args):
+    _, scaler = training_precision(args.vision_precision, device="cpu")
+    scalar = nn.Parameter(torch.tensor([2.0]))
+    optimizer = torch.optim.SGD([scalar], lr=0.01)
+    scaler.scale(scalar.square().sum()).backward()
+    scaler.unscale_(optimizer)
+    assert torch.equal(scalar.grad, torch.tensor([4.0]))
+    scale = scaler.get_scale()
+    assert scale == (128.0 if args.vision_precision == "fp16" else 1.0)
+    query = torch.arange(12, dtype=torch.float64).reshape(4, 3) / 12
+    key = query.flip(0)
+    bias = torch.ones(3, dtype=torch.float64, requires_grad=True)
+    base = (query @ key.T).softmax(-1)
+    shifted = (query @ (key + bias).T).softmax(-1)
+    assert torch.allclose(base, shifted, atol=1e-12, rtol=0)
+    assert torch.autograd.grad(shifted[0, 0], bias)[0].abs().max() < 1e-12
     p = json.loads((args.root / "cpu-preflight-v2.json").read_text())
     report = json.loads((args.root / "pilot.json").read_text())
     assert report["advance"] and sha(args.root / "pilot.features.npz") == report["features_sha256"]
@@ -169,6 +186,8 @@ def metadata(args):
         "presentations": 1024,
         "claim_eligible": False,
         "quality_read": False,
+        "vision_precision": args.vision_precision,
+        "grad_scaler_initial_scale": scale,
     }
     save(args.output / "preflight.json", result)
     print("PASS initializers, distinct-valued duplicate fixture and frozen coverage/code authority")
@@ -226,7 +245,12 @@ def gradients(vision, head, classifier, arm):
         assert (p.grad is None) == (not p.requires_grad), name
         if p.grad is not None:
             norm = float(p.grad.detach().float().norm())
-            assert np.isfinite(norm) and norm > 0, name
+            null_key_bias = (
+                arm == "large"
+                and name.startswith("encoder.layers.")
+                and name.endswith(".self_attn.k_proj.bias")
+            )
+            assert np.isfinite(norm) and (norm > 0 or null_key_bias), name
             result[name] = norm
     return result
 
@@ -273,45 +297,50 @@ def run_arm(args, arm, frozen):
         ],
         weight_decay=0.05,
     )
+    dtype, scaler = training_precision(args.vision_precision, device="cuda")
+    assert scaler.get_scale() == frozen["grad_scaler_initial_scale"]
     subset = frozen["updated_rows"][:4]
     check_pixels = torch.stack([pixels[i] for i in subset]).cuda()
     with torch.no_grad():
         fp32 = encode(vision, check_pixels, arm).float()
-        with torch.autocast("cuda", dtype=torch.bfloat16):
-            bf16 = encode(vision, check_pixels, arm).float()
+        with torch.autocast("cuda", dtype=dtype):
+            precision = encode(vision, check_pixels, arm).float()
         cached = torch.from_numpy(
             np.load(args.root / "pilot.features.npz", allow_pickle=False)[arm][subset]
         ).cuda()
-        cos32 = F.cosine_similarity(fp32, bf16).tolist()
-        coscache = F.cosine_similarity(cached, bf16).tolist()
+        cos32 = F.cosine_similarity(fp32, precision).tolist()
+        coscache = F.cosine_similarity(cached, precision).tolist()
         print(
             json.dumps(
                 {
                     "arm": arm,
                     "rows": subset,
-                    "bf16_fp32_cosine": cos32,
-                    "cache_fp16_bf16_cosine": coscache,
+                    "vision_precision": args.vision_precision,
+                    "precision_fp32_cosine": cos32,
+                    "cache_fp16_precision_cosine": coscache,
                 }
             ),
             flush=True,
         )
         assert min(cos32) >= 0.999 and min(coscache) >= 0.999
         readout_difference = float(
-            (compact_head_features(cached, head) - compact_head_features(bf16, head)).abs().max()
+            (compact_head_features(cached, head) - compact_head_features(precision, head))
+            .abs()
+            .max()
         )
-    del check_pixels, fp32, bf16, cached
+    del check_pixels, fp32, precision, cached
     initial_frozen = digest(frozen_state(vision, arm, inventory))
     initial_groups = {
         name: digest(values) for name, values in groups(vision, head, classifier, arm).items()
     }
-    losses, seconds, preclip, diagnostics = [], [], [], []
+    losses, seconds, preclip, diagnostics, scales = [], [], [], [], []
     for step, batch in enumerate(frozen["batches"], 1):
         index = torch.tensor(batch, device="cuda")
         torch.cuda.synchronize()
         tick = time.perf_counter()
         x = torch.stack([pixels[i] for i in batch]).cuda()
         optimizer.zero_grad(set_to_none=True)
-        with torch.autocast("cuda", dtype=torch.bfloat16):
+        with torch.autocast("cuda", dtype=dtype):
             source = encode(vision, x, arm)
         raw = compact_head_features(source, head)
         ce = sharded_mask_arcface_loss(
@@ -325,9 +354,14 @@ def run_arm(args, arm, frozen):
         rank = member_bank_rank_loss(raw, bank, head, positives[index], index, live_head=False)
         loss = ce + 8 * rank
         assert torch.isfinite(loss)
-        loss.backward()
+        scaler.scale(loss).backward()
+        scaler.unscale_(optimizer)
         norm = torch.nn.utils.clip_grad_norm_(params, 1, error_if_nonfinite=True)
-        optimizer.step()
+        scale_before = scaler.get_scale()
+        scaler.step(optimizer)
+        scaler.update()
+        assert scaler.get_scale() >= scale_before, "optimizer update skipped"
+        scales.append(scaler.get_scale())
         rows, positions = member_bank_refresh_rows(tuple(batch))
         bank[torch.tensor(rows, device="cuda")] = member_bank_refresh_values(
             source, raw, torch.tensor(positions, device="cuda"), live_head=False
@@ -378,8 +412,18 @@ def run_arm(args, arm, frozen):
         "step_seconds": seconds,
         "preclip_norms": preclip,
         "pixel_sha256": pixel_sha,
-        "bf16_fp32_cosine": cos32,
-        "cache_fp16_bf16_cosine": coscache,
+        "vision_precision": args.vision_precision,
+        "grad_scaler_scales": scales,
+        "null_key_bias_parameters": [
+            n
+            for n, p in vision.named_parameters()
+            if arm == "large"
+            and p.requires_grad
+            and n.startswith("encoder.layers.")
+            and n.endswith(".self_attn.k_proj.bias")
+        ],
+        "precision_fp32_cosine": cos32,
+        "cache_fp16_precision_cosine": coscache,
         "readout_max_abs_delta": readout_difference,
         "median_step_3_16_seconds": float(np.median(seconds[2:])),
         "peak_cuda_allocated_bytes": peak,
@@ -396,6 +440,7 @@ def main():
         parser.add_argument("--" + name, type=Path, required=True)
     parser.add_argument("--preflight-only", action="store_true")
     parser.add_argument("--check-startup-only", action="store_true")
+    parser.add_argument("--vision-precision", choices=("bf16", "fp16"), default="bf16")
     args = parser.parse_args()
     torch.set_num_threads(8)
     torch.manual_seed(179032)

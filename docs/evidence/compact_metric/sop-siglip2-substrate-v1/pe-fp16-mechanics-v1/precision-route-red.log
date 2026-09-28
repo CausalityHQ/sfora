@@ -1,0 +1,6 @@
+usage: probe_inshop_pe_training_smoke.py [-h] --root ROOT
+                                         --dataset-root DATASET_ROOT
+                                         --large-snapshot LARGE_SNAPSHOT
+                                         --output OUTPUT [--preflight-only]
+                                         [--check-startup-only]
+probe_inshop_pe_training_smoke.py: error: unrecognized arguments: --vision-precision fp16

@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-pe-fp16-mechanics-v1/probe_inshop_pe_training_smoke.py", line 507, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/sfora-pe-fp16-mechanics-v1/probe_inshop_pe_training_smoke.py", line 455, in main
+    check_startup(args, frozen)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-pe-fp16-mechanics-v1/probe_inshop_pe_training_smoke.py", line 64, in check_startup
+    assert args.vision_precision == frozen["vision_precision"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
