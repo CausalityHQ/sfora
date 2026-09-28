@@ -41,18 +41,21 @@ def score(
     labels: tuple[str, ...],
     query: list[int],
     gallery: list[int],
+    *,
+    device: torch.device | None = None,
 ) -> dict[str, object]:
-    if values.shape != (len(labels), 1024) or not bool(torch.isfinite(values).all()):
+    if values.ndim != 2 or values.shape[0] != len(labels) or not bool(torch.isfinite(values).all()):
         raise ValueError("source feature geometry differs")
-    code = torch.nn.functional.normalize(values.float(), dim=1).cuda()
+    device = device or torch.device("cuda")
+    code = torch.nn.functional.normalize(values.float(), dim=1).to(device)
     names = {name: idx for idx, name in enumerate(sorted(set(labels)))}
-    classes = torch.tensor([names[name] for name in labels], device="cuda")
+    classes = torch.tensor([names[name] for name in labels], device=device)
     gallery_ids = classes[gallery]
     relevant = torch.bincount(gallery_ids)[classes[query]]
     if int(relevant.min()) < 1:
         raise ValueError("In-Shop source positive inventory differs")
     width = int(relevant.max())
-    ranks = torch.arange(1, width + 1, device="cuda")
+    ranks = torch.arange(1, width + 1, device=device)
     per_hit: list[int] = []
     per_ap: list[float] = []
     for start in range(0, len(query), 128):

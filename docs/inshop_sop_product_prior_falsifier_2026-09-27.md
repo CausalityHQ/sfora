@@ -309,3 +309,23 @@ the production default. The exact direct-processor serving increment stays
 shipped. Source SOP acquisition was **752.328 s** once, and treatment cache
 export **213.095 s** once, in addition to the In-Shop training cost; these
 cannot be omitted from a total-training claim. No SOTA claim follows.
+
+## Terminal review and cheapest next diagnostic (frozen before scoring)
+
+Opus 5.5 and GPT-6 Astra review group `e71fc0e081a54217` both attested
+KILL. Each seed's gain is below +0.30 point, independently of the interval.
+mAP improved in all seeds but has no preregistered uncertainty qualification.
+Aggregate validation now authenticates training receipts/manifests and
+per-query values before decision; original receipts remain immutable.
+
+First run CPU-only full-gallery float-128 versus packed-128 on **all six**
+saved held embedding arrays, pinned to their receipts and the same TRAIN
+roles, stable gallery ordinal ties and mAP@R. No encoder export or fit.
+Replayed packed per-query hits/AP must exactly match archived values.
+Packing work is permitted only if treatment three-seed mean float-minus-packed
+R@1 is at least +0.30 point with a positive paired seed/product-bootstrap
+95% lower bound and nondecreasing mAP@R. Otherwise KILL packing as the next
+quality intervention. Report rescues and regressions per seed and the
+84 treatment-persistent misses (64 missed by all six runs); a selected
+triplet win is not full-gallery retrieval success. Raw-space cosine loss
+does not establish information erasure or validate low-rank adaptation.
