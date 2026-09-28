@@ -7,6 +7,17 @@ training, signed-int8 gallery codes with f16 inverse norms (130 bytes per
 image), and an exact native CUDA top-10 scorer. Apache Arrow is not in the
 training or retrieval path.
 
+## 28 September: preprocessing worker stopped at CPU screen
+
+One persistent one-thread spawn worker preserved exact public pixels/strides
+but failed both frozen CPU gates against the 20-thread parent. SOP TRAIN
+preprocessing median/p95 in ms: batch1 parent1.759/2.375 versus worker2.702/5.261;
+batch32 parent45.116/77.018 versus worker89.332/92.064. Full IPC is included;
+decode, encoder and search are excluded. Raw timing replay passed, exit0,
+9.35s and1,177,056KiB maximum RSS. No new quality, end-to-end speed, p99 or
+GPU result; no API integration or worker tuning follows. The initial control
+layout guard was corrected before any timing read. [Result and receipts](sop_preprocessing_worker_result_2026-09-28.md).
+
 ## 28 September: displacement-to-LR gate rejected before corpus/GPU work
 
 Actual saved native-group geometry shows median relative PE tail-block updates0.212091% versus Large0.145991%; this is not matched functional movement. The subsequent Fable proposal used raw angular displacement to set an LR multiplier and infer capacity from failure. A cheap signed-permutation counterexample preserves float and packed geometry despite90-degree displacement; corrected Adam also exceeds both proposed LR bounds. Opus/Astra unanimously STOP. No F0 corpus scores, LR change, extra epochs or GPU job followed. [Research decision and primary-source checks](inshop_pe_adaptation_research_decision_2026-09-28.md). Optimization versus capacity stays unresolved; no new quality/speed measurement or surviving intervention. Full production goal remains active.

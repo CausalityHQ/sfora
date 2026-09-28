@@ -1,0 +1,22 @@
+{
+  "receipt_sha256": "6be3b3cb21016ab5f602543c40272760ccba10e931c24cb6d89260c120889cbe",
+  "invocation_id": "ad5bb69fe30a47de91f1d4f6f5eccde2",
+  "stdlib_raw_replay": "PASS",
+  "calls_per_arm_per_size": 20,
+  "checks": {
+    "1": {
+      "p95_ratio": 2.215436957109491,
+      "median_savings_ms": -0.9425790000000003,
+      "median_floor_ms": 0.81,
+      "pass": false
+    },
+    "32": {
+      "p95_ratio": 1.1953668451708095,
+      "median_savings_ms": -44.215635500000005,
+      "median_floor_ms": 14.21,
+      "pass": false
+    }
+  },
+  "decision": "KILL_CPU_STAGE_OR_IPC",
+  "method_result": "negative; no GPU/API advancement"
+}

@@ -1,0 +1,2 @@
+Sep 28 21:08:09 spark-2751 systemd[3489]: Started sfora-preprocessing-worker-cpu-v2.service - /usr/bin/time -v -o /home/riomus/runs/sfora-preprocessing-worker-v1/worker-cpu-v2-time.txt /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-preprocessing-worker-v1/probe_sop_preprocessing_worker.py /home/riomus/runs/sfora-preprocessing-worker-v1/worker-cpu-v2.json.
+Sep 28 21:08:19 spark-2751 systemd[3489]: sfora-preprocessing-worker-cpu-v2.service: Consumed 23.672s CPU time, 1.3G memory peak, 0B memory swap peak.
