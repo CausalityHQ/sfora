@@ -113,3 +113,12 @@ export/read held outcomes during this smoke. Any failure kills this fixed
 configuration without coefficient or temperature search. A pass requires a
 separately frozen TRAIN-held protocol before more training; it does not
 automatically authorize a 100/1000-update run or any official read.
+
+The paired launcher executes control first and applies the same strength,
+saturation and dominance rules to its auxiliary diagnostic. If those probes
+already reject the fixed configuration, it stops before the auxiliary arm.
+The 120-second cap includes subprocess imports, both setups and diagnostics;
+on timeout the whole active child process group is killed, and the original
+wrapper writes a terminal KILL receipt. The smoke omits checkpoint saving
+and all held exports. Raw per-arm logs, initial/terminal probes and receipts
+remain preserved even on early rejection.

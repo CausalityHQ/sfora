@@ -22,6 +22,37 @@ class CompactTrainingArm(StrEnum):
     PACKED_RANK = "packed_rank"
 
 
+def frozen_source_centroid_loss(
+    source: torch.Tensor,
+    mean: torch.Tensor,
+    prototypes: torch.Tensor,
+    target: torch.Tensor,
+) -> torch.Tensor:
+    """Training-only cosine CE64 against fixed, fit-centered source prototypes."""
+    if (
+        source.ndim != 2
+        or mean.shape != (source.shape[1],)
+        or prototypes.ndim != 2
+        or prototypes.shape[1] != source.shape[1]
+        or not all(torch.isfinite(value).all() for value in (source, mean, prototypes))
+        or bool((source.float().norm(dim=1) == 0).any())
+        or bool((prototypes.float().norm(dim=1) == 0).any())
+    ):
+        raise ValueError("frozen source centroid geometry differs")
+    with torch.autocast(device_type=source.device.type, enabled=False):
+        centered = F.normalize(source.float(), dim=1) - mean.detach().float()
+        if bool((centered.norm(dim=1) == 0).any()):
+            raise ValueError("frozen source centered vector is zero")
+        return sharded_mask_arcface_loss(
+            centered,
+            prototypes.detach().float(),
+            target,
+            torch.arange(source.shape[1], device=source.device).unsqueeze(0),
+            margin=0,
+            scale=64,
+        )
+
+
 def compact_head_features(
     source: torch.Tensor, head: nn.Linear, *, output_dim: int = 128
 ) -> torch.Tensor:
