@@ -15,6 +15,7 @@ import torch
 from export_inshop_siglip2_train_features import MODEL_HASHES
 from export_sop_siglip2_train import MODEL_REVISION
 from preflight_inshop_siglip2_unseen_gallery import digest_rows, split
+from probe_inshop_bbox_context import scores
 from score_inshop_crop_view_pair import GALLERY_SHA, PARTITION_SHA, QUERY_SHA, roles, sha256
 from train_sop_siglip2_compact import export_all
 
@@ -32,10 +33,20 @@ def part_score(query: torch.Tensor, gallery: torch.Tensor) -> float:
     return float((query @ gallery.T).amax(dim=1).mean())
 
 
+def token_score(query: torch.Tensor, gallery: torch.Tensor) -> float:
+    """Symmetric nearest-token cosine; token positions need not correspond."""
+    if query.shape != gallery.shape or query.shape != (256, 1024):
+        raise ValueError("raw token geometry differs")
+    cosine = query @ gallery.T
+    return float((cosine.amax(1).mean() + cosine.amax(0).mean()) / 2)
+
+
 def main() -> None:
+    whole_started = time.perf_counter()
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     for name in ("dataset-root", "model-snapshot", "checkpoint", "misses", "output"):
         parser.add_argument(f"--{name}", type=Path, required=True)
+    parser.add_argument("--raw-token-match", action="store_true")
     args = parser.parse_args()
     if (
         args.output.exists()
@@ -99,14 +110,17 @@ def main() -> None:
         tokens = output.last_hidden_state
         if tokens is None or tokens.ndim != 3 or tokens.shape[1:] != (256, 1024):
             raise ValueError("final patch grid differs")
-        blocks = tokens.float().reshape(-1, 2, 8, 2, 8, 1024).mean(dim=(2, 4))
-        pooled_parts.append(blocks.reshape(-1, 4, 1024).cpu())
+        if args.raw_token_match:
+            pooled_parts.append(tokens.float().cpu())
+        else:
+            blocks = tokens.float().reshape(-1, 2, 8, 2, 8, 1024).mean(dim=(2, 4))
+            pooled_parts.append(blocks.reshape(-1, 4, 1024).cpu())
 
     torch.cuda.reset_peak_memory_stats()
     started = time.perf_counter()
     hook = vision.register_forward_hook(capture)
     try:
-        export_all(
+        original = export_all(
             vision,
             head,
             tuple(paths[row] for row in selected),
@@ -118,25 +132,55 @@ def main() -> None:
     finally:
         hook.remove()
     source = torch.cat(pooled_parts)
-    if source.shape != (len(selected), 4, 1024) or not bool(torch.isfinite(source).all()):
+    parts_count = 256 if args.raw_token_match else 4
+    if source.shape != (len(selected), parts_count, 1024) or not bool(torch.isfinite(source).all()):
         raise ValueError("part source geometry differs")
     parts = []
     with torch.inference_mode():
         for chunk in source.split(64):
-            projected = compact_head_features(chunk.reshape(-1, 1024).cuda(), head)
-            parts.append(torch.nn.functional.normalize(projected, dim=1).reshape(-1, 4, 128).cpu())
+            if args.raw_token_match:
+                if bool((chunk.norm(dim=2) == 0).any()):
+                    raise ValueError("raw token norm is zero")
+                parts.append(torch.nn.functional.normalize(chunk.cuda(), dim=2))
+            else:
+                projected = compact_head_features(chunk.reshape(-1, 1024).cuda(), head)
+                parts.append(
+                    torch.nn.functional.normalize(projected, dim=1).reshape(-1, 4, 128).cpu()
+                )
     projected = torch.cat(parts)
     positions = {row: place for place, row in enumerate(selected)}
+    replay_error = None
+    if args.raw_token_match:
+        original_margins = scores(original, triples, positions)
+        replay_error = max(
+            abs(actual - row["packed_margin"])
+            for actual, row in zip(original_margins, misses["misses"], strict=True)
+        )
+        if replay_error > 0.005 or any(value >= 0 for value in original_margins):
+            raise ValueError("original packed miss authority differs")
+    score = token_score if args.raw_token_match else part_score
     margins = [
-        part_score(projected[positions[q]], projected[positions[p]])
-        - part_score(projected[positions[q]], projected[positions[n]])
+        score(projected[positions[q]], projected[positions[p]])
+        - score(projected[positions[q]], projected[positions[n]])
         for q, p, n in triples
     ]
     wins = sum(value > 0 for value in margins)
     median = float(np.median(margins))
     report = {
-        "schema": "sfora-inshop-spatial-parts-falsifier-v1",
+        "schema": "sfora-inshop-raw-token-match-v1"
+        if args.raw_token_match
+        else "sfora-inshop-spatial-parts-falsifier-v1",
+        "raw_token_match": args.raw_token_match,
+        "original_margin_max_abs_replay_error": replay_error,
         "source_sha256": sha256(Path(__file__)),
+        "source_files_sha256": {
+            str(Path(function.__code__.co_filename)): sha256(Path(function.__code__.co_filename))
+            for function in (export_all, scores, compact_head_features, parse_inshop_partition)
+        },
+        "partition_sha256": PARTITION_SHA,
+        "held_rows_sha256": HELD_SHA,
+        "query_rows_sha256": QUERY_SHA,
+        "gallery_rows_sha256": GALLERY_SHA,
         "checkpoint_sha256": CHECKPOINT_SHA,
         "misses_sha256": MISSES_SHA,
         "split": "official TRAIN held product-disjoint fixed roles",
@@ -150,6 +194,13 @@ def main() -> None:
         "peak_cuda_allocated_bytes": torch.cuda.max_memory_allocated(),
         "claim_eligible": False,
     }
+    report["whole_process_wall_seconds"] = time.perf_counter() - whole_started
+    if args.raw_token_match:
+        report["advance"] = (
+            report["advance"]
+            and report["whole_process_wall_seconds"] <= 60
+            and report["peak_cuda_allocated_bytes"] <= 4_000_000_000
+        )
     with args.output.open("xb") as stream:
         stream.write((json.dumps(report, sort_keys=True, allow_nan=False) + "\n").encode())
         stream.flush()
