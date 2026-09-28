@@ -1,0 +1,8 @@
+Running as unit: sfora-pe-l14-native-pool-cpu-v2.service; invocation ID: bc5760213f244da98c40bdf52bb97625
+PASS actual native pool gradients, frozen complement, output identity, perturbed strict roundtrip/boundary/head parity; no updates/quality
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 18.062s
+CPU time consumed: 52.160s
+Memory peak: 752.0K
+Memory swap peak: 0B

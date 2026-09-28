@@ -1,0 +1,713 @@
+{
+  "id": "50236cf153ff48d0",
+  "status": "completed",
+  "started_at": 1790634962,
+  "agent": "sfora/emafactorial",
+  "force_reason": "Fresh terminal native L14 fixed-readout TRAIN100 quality KILL e3e36043 (87.2836/61.8879 vs dense95.074/76.392), after closing LoRA/Muon and L14 resource/cost procedures. New consequential boundary: learned existing native pool with immutable trunk; exact shared-token updated-pool full-held parity under unchanged300s needs independent critique. No duplicate active consultation or research; prior reviews cover different B16 LoRA procedures.",
+  "rolling_6h_count": 6,
+  "prompt_preview": "Read-only narrow consequential design review; do not edit, run training/tests, use GPU, launch workers, or propose new architecture/research/alternatives. Repository /home/rb/worktrees/sfora-positive-causality HEAD e3e36043. Read docs/inshop_pe_l14_native_pool_gate_2026-09-29.md (new concrete spec), docs/inshop_pe_l14_prefetch_result_2026-09-29.md, scripts/train_pe_l14_prefetch.py, pe_l14_readout.py, pe_l14_training.py. Native source on DGX can be inspected read-only via ssh riomus@spark-2751 /home/riomus/runs/sfora-pe-l14-prefetch-v1/core/vision_encoder/pe.py:45\u201385,495\u2013540 and rope.py. No current GPU jobs. Fixed frozenL14+linearhead100 completed cost .6362088s PASS, strictloaded actualnativefullheld parity PASS, R1 87.2836/MAP61.8879 QUALITY KILL vs archiveddense95.074/76.392; CPU savedstate/score/CI replayPASS. Saved128 floatonly87.441/61.966 excludespackinggap. Next ONE known-method native attn_pool learning; all24trunk/ln/position/proj/foreignfrozen. Sameactualpixels/data/schedule/loss/optimizer prescriptions, 120/300s8Gnoswap10GB/.71769696 cost +qualityfloors andbothpairedproduct95positivity frozen. New exact parity explicitly qualifies removable pool forward hook: strict native fullmodel runs once each actualheld image, live updated nativepool consumes SAME actual postln_posttokens, exactnativepool thenproj thennormalizedheadoutputs, wholelive/reloadstate+foreign/coreidentity; no alternate/cachedtrunk/no globalmonkeypatch. This adapts learned-pool boundary, so oldallencoderimmutableargument is invalid. CPU actual poolgrads/frozeninventory/hookbitparity and GPUfit-only temp-perturbation strictreload before17; fresh100onlyPASS/discard17. Critique executable integrity/cost/quality gates and whether boundary equivalence is sound at exact predicates. Identify necessary minimal fixes, native MHA/autocast/hooks/state pitfalls and any prior CLOSED-arm overlap; no novelty/speed/quality forecasts. Conditional GO/STOP for this specific bounded procedure only, not production. Parent will verify and implement while you review independent spec.",
+  "prompt_sha256": "5037de1f19fef8e4e97f4acbcea8a8a9496df823ef2adaaf7765e744604ed807",
+  "prompt_bytes": 2076,
+  "fingerprint": "6f84f119762af7be91637fb49dcd74cc3805e4d038033e5f2f11ddcab7c4478b",
+  "evidence": {
+    "git_commit": "e3e3604393abea41e5bac98a4324396312b05972",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "243551919d7f9fe9682b53cf20dd46a13b48cc26d26362a45f0ce3c1ee9b3149",
+    "worktree_sha256": "4ed8764703e5799c661f7bafc3f6504046f38939474c0de94fbe459021248da2",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "reviewers": [
+    {
+      "role": "research_critic",
+      "id": "704739590a244f48",
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "fallbacks": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "agent": "sfora/emafactorial",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1790634962,
+      "timeout_seconds": 1200,
+      "deadline_at": 1790636162,
+      "budget_usd": 4,
+      "prompt_preview": "Act as the independent research and first-principles critic. Challenge assumptions, compare alternatives and prior art, and identify missing evidence. Do not edit files.\n\nMaterial to critique:\nRead-only narrow consequential design review; do not edit, run training/tests, use GPU, launch workers, or propose new architecture/research/alternatives. Repository /home/rb/worktrees/sfora-positive-causality HEAD e3e36043. Read docs/inshop_pe_l14_native_pool_gate_2026-09-29.md (new concrete spec), docs/inshop_pe_l14_prefetch_result_2026-09-29.md, scripts/train_pe_l14_prefetch.py, pe_l14_readout.py, pe_l14_training.py. Native source on DGX can be inspected read-only via ssh riomus@spark-2751 /home/riomus/runs/sfora-pe-l14-prefetch-v1/core/vision_encoder/pe.py:45\u201385,495\u2013540 and rope.py. No current GPU jobs. Fixed frozenL14+linearhead100 completed cost .6362088s PASS, strictloaded actualnativefullheld parity PASS, R1 87.2836/MAP61.8879 QUALITY KILL vs archiveddense95.074/76.392; CPU savedstate/score/CI replayPASS. Saved128 floatonly87.441/61.966 excludespackinggap. Next ONE known-method native attn_pool learning; all24trunk/ln/position/proj/foreignfrozen. Sameactualpixels/data/schedule/loss/optimizer prescriptions, 120/300s8Gnoswap10GB/.71769696 cost +qualityfloors andbothpairedproduct95positivity frozen. New exact parity explicitly qualifies removable pool forward hook: strict native fullmodel runs once each actualheld image, live updated nativepool consumes SAME actual postln_posttokens, exactnativepool thenproj thennormalizedheadoutputs, wholelive/reloadstate+foreign/coreidentity; no alternate/cachedtrunk/no globalmonkeypatch. This adapts learned-pool boundary, so oldallencoderimmutableargument is invalid. CPU actual poolgrads/frozeninventory/hookbitparity and GPUfit-only temp-perturbation strictreload before17; fresh100onlyPASS/discard17. Critique executable integrity/cost/quality gates and whether boundary equivalence is sound at exact predicates. Identify necessary minimal fixes, native MHA/autocast/hooks/state pitfalls and any prior CLOSED-arm overlap; no novelty/speed/quality forecasts. Conditional GO/STOP for this specific bounded procedure only, not production. Parent will verify and implement while you review independent spec.",
+      "prompt_sha256": "efee2eda9169cc151b0c1dad84bad0f318b5c085e18c1970fa2eeec998af0f6f",
+      "prompt_bytes": 2446,
+      "fingerprint": "a6b2654fae5c568e8dbad62e011eccf50d1107dd5460ae125622ef2040b4dbc5",
+      "evidence": {
+        "git_commit": "e3e3604393abea41e5bac98a4324396312b05972",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "243551919d7f9fe9682b53cf20dd46a13b48cc26d26362a45f0ce3c1ee9b3149",
+        "worktree_sha256": "4ed8764703e5799c661f7bafc3f6504046f38939474c0de94fbe459021248da2",
+        "worktree_evidence_truncated": false,
+        "active_goal": {
+          "id": "goal-1790540789-1790540789754989478-2322852",
+          "agent": "sfora/emafactorial",
+          "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+          "status": "queued",
+          "revision": 1,
+          "actor": "operator",
+          "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+          "created_at": 1790540789,
+          "updated_at": 1790540789
+        }
+      },
+      "previous_fingerprint": "7f0ba72c1a6679b1967ef3c67da7082ef1afa44f7b228a4b01476d78555172eb",
+      "reused": false,
+      "critique_id": "50236cf153ff48d0",
+      "critique_role": "research_critic",
+      "systemd_unit": "devbox-consult-704739590a244f48.service",
+      "pid": 1926377,
+      "pgid": 1926377,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5",
+          "budget_usd": 4,
+          "timeout_seconds": 1200,
+          "started_at": 1790634962
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1790635138,
+      "event_cursor": 40,
+      "events": [
+        {
+          "seq": 17,
+          "at": 1790635114,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 18,
+          "at": 1790635115,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 19,
+          "at": 1790635116,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 20,
+          "at": 1790635117,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 21,
+          "at": 1790635118,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 22,
+          "at": 1790635119,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 23,
+          "at": 1790635120,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 24,
+          "at": 1790635121,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 25,
+          "at": 1790635122,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 26,
+          "at": 1790635123,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 27,
+          "at": 1790635124,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 28,
+          "at": 1790635126,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 29,
+          "at": 1790635127,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 30,
+          "at": 1790635128,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 31,
+          "at": 1790635129,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 32,
+          "at": 1790635130,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 33,
+          "at": 1790635131,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 34,
+          "at": 1790635132,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 35,
+          "at": 1790635133,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 36,
+          "at": 1790635134,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 37,
+          "at": 1790635135,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 38,
+          "at": 1790635136,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 39,
+          "at": 1790635137,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 40,
+          "at": 1790635137,
+          "provider": "claude",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": true,
+      "provider_events": {
+        "claude": [
+          {
+            "seq": 33,
+            "at": 1790635131,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 34,
+            "at": 1790635132,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 35,
+            "at": 1790635133,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 36,
+            "at": 1790635134,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 37,
+            "at": 1790635135,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 38,
+            "at": 1790635136,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 39,
+            "at": 1790635137,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 40,
+            "at": 1790635137,
+            "provider": "claude",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "**Verdict: conditional GO** for this bounded procedure only (CPU qualification \u2192 one 17-update discard run \u2192 one fresh 100-update pilot), provided fixes F1\u2013F5 are made before any GPU time. The boundary-equivalence argument holds at the stated predicates. The GO depends on the parity and the live/loaded reference check being built as the spec describes. Simply extending `train_pe_l14_prefetch.py` would not do that.\n\n## Is the boundary equivalence sound?\n\nYes, with one caveat.\n\nWhat gets scored is the strict-loaded full native model S(x) = proj_s(pool_s(T_s(x))). The hook proves, on every held image, that the live pool gives the same output as the strict pool on the trunk tokens the strict model actually produced, T_s(x). Frozen-complement identity then gives proj_l = proj_s. So \"live pool on a strict trunk\" equals the strict output bitwise.\n\nThe caveat: the step from strict trunk tokens to live trunk tokens (T_l = T_s) is argued from state identity, the same code and the same context. It is measured only once, by the last-B64 full live-versus-strict comparison. That is acceptable, because the scored artifact is the loaded model and the parity only has to show the trained model is the saved one. Register the last-B64 comparison as the only direct measurement of T_l = T_s, not as something the hook covers.\n\nNative pooling behaves the same in the live and strict copies:\n- **Source:** `AttentionPooling` is at `pe.py:45\u201385`. `attn_pooler_heads` is 8 by default and not set in the L14 config (`pe.py:312`), so measure it; don't assume 16.\n- **No MHA fast path:** the pool query isn't the key, so the fast path can't trigger. It is also excluded under autocast. Both copies take `F.multi_head_attention_forward` \u2192 SDPA in eval mode.\n- **No dropout:** no DropPath (`drop_path=0`) and MHA dropout is 0, so train/eval mode doesn't change the numbers.\n- **Dtypes are the same in both copies:**\n  - Under autocast, `ln_post` outputs fp32.\n  - `probe.to(x.dtype)` keeps the probe in fp32.\n  - The attention and MLP run in fp16, so the pool output and the `@proj` result are fp16.\n\n## Required fixes (all small, all in code the spec already implies)\n\n**F1 \u2014 the existing live/loaded check is vacuous.** In `train_pe_l14_prefetch.py`, `live = loaded.copy()`. Both `minimum_cosine` and `live_quality` compare the loaded vectors with a copy of themselves. Even before that, `encode_verified` feeds the fresh model's source into both heads, so only the head was ever compared. The spec requires that \"reference packed hits/AP must agree for actual live/loaded vectors\". To meet that, the hook must produce and keep a separate live array: live pool \u2192 live `proj` (under the same autocast) \u2192 live head \u2192 normalize. Score it separately. Don't cite the prior run's \"packed per-query parity passed\" as evidence of live/loaded agreement.\n\n**F2 \u2014 gradient clipping and parameter groups must include the pool.**\n- `params` is currently head + classifier, so `clip_grad_norm_(params, 1)` would leave the pool unclipped. That contradicts \"globalclip1\".\n- Add a pool AdamW group at 1e-5.\n- Add a pool entry to `initial_groups`/`final_group_sha256` so \"group movement\" covers the pool.\n- `readout.freeze` asserts `not trainable and len(frozen)==308`. Replace it with a measured `attn_pool.*` inventory (11 tensors expected) and a check that its complement equals the original frozen set.\n\n**F3 \u2014 split the frozen digest.** `readout.frozen_state` digests the entire `state_dict()`, so after training `assert digest(frozen_state(fresh)) == frozen_sha` would fail. Or, if it is rebased, it would stop checking anything. Instead:\n- Compute the complement digest on the original CPU state, excluding `attn_pool.*` and including rope, rope freq and the grid.\n- Assert it for the live model after training and for the fresh model after reload.\n- Assert the pool digest is equal between live and loaded.\n- Carry over the existing \"full state keys match\" check.\n\n**F4 \u2014 the training forward must leave `no_grad`, and that must be proven cheaply.** The current `with torch.no_grad(), autocast: source = vision(x)` has to become autocast only. Then the frozen trunk records no graph only because no trunk tensor requires grad. Add these checks:\n- **CPU qualification and the 17-update run:** a hook assertion that the pool's input tokens have `requires_grad False` and `grad_fn None`. Otherwise a stray trainable tensor (for example rope) would silently record the whole trunk graph, and memory/cost would look like the closed half12 arm.\n- **Every update:** keep the existing assertion `(p.grad is None) == (not p.requires_grad)`.\n- `member_bank_refresh_values` already detaches, so the bank is safe.\n\n**F5 \u2014 hook hygiene at exact predicates:**\n- Use `register_forward_hook` on `fresh.attn_pool` only. The hook must return `None`; any other return value replaces the pool output.\n- Count calls per batch and require exactly one, then reset.\n- Take `args[0]`; reject kwargs or a missing argument, and check the shape is (B, 257, 1024) and fp32.\n- Run the live pool inside the hook. It then inherits the strict forward's `inference_mode` and autocast, which removes any context mismatch.\n- Keep the live-`proj` matmul inside the same autocast block. Compare the squeezed pool output bitwise, then the source against the strict output bitwise.\n- Remove the hook in `finally`. Before any held image, assert `fresh._forward_hooks` is empty on every module except the registered handle.\n- Keep the hook out of the timed training path. The spec already places it only in qualification and held evaluation.\n\n## Pitfalls to record rather than fix\n\n- **SDPA backward determinism on the new surface.** The pool's attention backward (query length 1, 8 heads) has not been exercised under `use_deterministic_algorithms(True)`. The previous readout arm had no attention backward. The closed half12 arm covered trunk SDPA backward, not this path. Record the SDPA backend and whether any warning or error fired in the 17-update receipt. Don't claim the 17-update and 100-update trajectories are the same unless measured.\n- **Weight decay on the probe and LayerNorm.** AdamW decay 0.05 will apply to `probe` and the pool LayerNorm. Verify this matches the densePE vision group composition in the archived control (\"same prescriptions\"). Don't create new no-decay groups.\n- **The perturbation test mutates the live model.** Restore via `copy_` under `no_grad`, and prove restoration by pool digest equal to the original before the 17-update run. Also confirm optimizer state is empty afterwards. Alternatively, perturb a deep copy saved into a scratch file.\n- **Wall-clock headroom is thin.** The previous 100-update run used 262.87 s of the 300 s cap. Per-image live-pool work plus the additional digests add held-evaluation time. There is no rescue path, so an over-cap run is a terminal fail by design. Just make sure the receipt records whether a failure was cost or time, so it isn't misread as a parity failure.\n- **The 100-update gate needs both checks.** The GPU 17-update mechanics must check both the \"no frozen gradient\" condition and \"pool gradient > 0\" at steps 1 and 17. Without both, pool learning is only demonstrated at step 100.\n\n## Overlap with closed arms\n\n- **No procedural overlap with the closed arms:**\n  - The half12 arm (blocks 12\u201323 + pool + proj) was closed for a CUDA resource/cost failure, not on quality.\n  - The frozen readout arm was closed on quality.\n  - The pool-only arm is a strict subset of half12's trainable set, but a different procedure. The spec correctly bars reusing any of their state.\n- **Nearest conceptual neighbour:** the 2026-09-28 nonlinear-scope proposal (GELU residual on cached frozen Large 1024-D features). It was never approved as a launch gate and runs on a different source. The pool arm uses live native tokens, not cached pooled features, so there's no duplicated measurement.\n- **Wording for the eventual write-up:** a trunk-frozen pool adaptation is equivalent to a nonlinear head on post-`ln_post` tokens. Describe it that way, not as trunk adaptation, if it's reported.\n\nI made no edits, ran no training or tests, and used no GPU. The only DGX access was reading source over SSH.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "claude": "**Verdict: conditional GO** for this bounded procedure only (CPU qualification \u2192 one 17-update discard run \u2192 one fresh 100-update pilot), provided fixes F1\u2013F5 are made before any GPU time. The boundary-equivalence argument holds at the stated predicates. The GO depends on the parity and the live/loaded reference check being built as the spec describes. Simply extending `train_pe_l14_prefetch.py` would not do that.\n\n## Is the boundary equivalence sound?\n\nYes, with one caveat.\n\nWhat gets scored is the strict-loaded full native model S(x) = proj_s(pool_s(T_s(x))). The hook proves, on every held image, that the live pool gives the same output as the strict pool on the trunk tokens the strict model actually produced, T_s(x). Frozen-complement identity then gives proj_l = proj_s. So \"live pool on a strict trunk\" equals the strict output bitwise.\n\nThe caveat: the step from strict trunk tokens to live trunk tokens (T_l = T_s) is argued from state identity, the same code and the same context. It is measured only once, by the last-B64 full live-versus-strict comparison. That is acceptable, because the scored artifact is the loaded model and the parity only has to show the trained model is the saved one. Register the last-B64 comparison as the only direct measurement of T_l = T_s, not as something the hook covers.\n\nNative pooling behaves the same in the live and strict copies:\n- **Source:** `AttentionPooling` is at `pe.py:45\u201385`. `attn_pooler_heads` is 8 by default and not set in the L14 config (`pe.py:312`), so measure it; don't assume 16.\n- **No MHA fast path:** the pool query isn't the key, so the fast path can't trigger. It is also excluded under autocast. Both copies take `F.multi_head_attention_forward` \u2192 SDPA in eval mode.\n- **No dropout:** no DropPath (`drop_path=0`) and MHA dropout is 0, so train/eval mode doesn't change the numbers.\n- **Dtypes are the same in both copies:**\n  - Under autocast, `ln_post` outputs fp32.\n  - `probe.to(x.dtype)` keeps the probe in fp32.\n  - The attention and MLP run in fp16, so the pool output and the `@proj` result are fp16.\n\n## Required fixes (all small, all in code the spec already implies)\n\n**F1 \u2014 the existing live/loaded check is vacuous.** In `train_pe_l14_prefetch.py`, `live = loaded.copy()`. Both `minimum_cosine` and `live_quality` compare the loaded vectors with a copy of themselves. Even before that, `encode_verified` feeds the fresh model's source into both heads, so only the head was ever compared. The spec requires that \"reference packed hits/AP must agree for actual live/loaded vectors\". To meet that, the hook must produce and keep a separate live array: live pool \u2192 live `proj` (under the same autocast) \u2192 live head \u2192 normalize. Score it separately. Don't cite the prior run's \"packed per-query parity passed\" as evidence of live/loaded agreement.\n\n**F2 \u2014 gradient clipping and parameter groups must include the pool.**\n- `params` is currently head + classifier, so `clip_grad_norm_(params, 1)` would leave the pool unclipped. That contradicts \"globalclip1\".\n- Add a pool AdamW group at 1e-5.\n- Add a pool entry to `initial_groups`/`final_group_sha256` so \"group movement\" covers the pool.\n- `readout.freeze` asserts `not trainable and len(frozen)==308`. Replace it with a measured `attn_pool.*` inventory (11 tensors expected) and a check that its complement equals the original frozen set.\n\n**F3 \u2014 split the frozen digest.** `readout.frozen_state` digests the entire `state_dict()`, so after training `assert digest(frozen_state(fresh)) == frozen_sha` would fail. Or, if it is rebased, it would stop checking anything. Instead:\n- Compute the complement digest on the original CPU state, excluding `attn_pool.*` and including rope, rope freq and the grid.\n- Assert it for the live model after training and for the fresh model after reload.\n- Assert the pool digest is equal between live and loaded.\n- Carry over the existing \"full state keys match\" check.\n\n**F4 \u2014 the training forward must leave `no_grad`, and that must be proven cheaply.** The current `with torch.no_grad(), autocast: source = vision(x)` has to become autocast only. Then the frozen trunk records no graph only because no trunk tensor requires grad. Add these checks:\n- **CPU qualification and the 17-update run:** a hook assertion that the pool's input tokens have `requires_grad False` and `grad_fn None`. Otherwise a stray trainable tensor (for example rope) would silently record the whole trunk graph, and memory/cost would look like the closed half12 arm.\n- **Every update:** keep the existing assertion `(p.grad is None) == (not p.requires_grad)`.\n- `member_bank_refresh_values` already detaches, so the bank is safe.\n\n**F5 \u2014 hook hygiene at exact predicates:**\n- Use `register_forward_hook` on `fresh.attn_pool` only. The hook must return `None`; any other return value replaces the pool output.\n- Count calls per batch and require exactly one, then reset.\n- Take `args[0]`; reject kwargs or a missing argument, and check the shape is (B, 257, 1024) and fp32.\n- Run the live pool inside the hook. It then inherits the strict forward's `inference_mode` and autocast, which removes any context mismatch.\n- Keep the live-`proj` matmul inside the same autocast block. Compare the squeezed pool output bitwise, then the source against the strict output bitwise.\n- Remove the hook in `finally`. Before any held image, assert `fresh._forward_hooks` is empty on every module except the registered handle.\n- Keep the hook out of the timed training path. The spec already places it only in qualification and held evaluation.\n\n## Pitfalls to record rather than fix\n\n- **SDPA backward determinism on the new surface.** The pool's attention backward (query length 1, 8 heads) has not been exercised under `use_deterministic_algorithms(True)`. The previous readout arm had no attention backward. The closed half12 arm covered trunk SDPA backward, not this path. Record the SDPA backend and whether any warning or error fired in the 17-update receipt. Don't claim the 17-update and 100-update trajectories are the same unless measured.\n- **Weight decay on the probe and LayerNorm.** AdamW decay 0.05 will apply to `probe` and the pool LayerNorm. Verify this matches the densePE vision group composition in the archived control (\"same prescriptions\"). Don't create new no-decay groups.\n- **The perturbation test mutates the live model.** Restore via `copy_` under `no_grad`, and prove restoration by pool digest equal to the original before the 17-update run. Also confirm optimizer state is empty afterwards. Alternatively, perturb a deep copy saved into a scratch file.\n- **Wall-clock headroom is thin.** The previous 100-update run used 262.87 s of the 300 s cap. Per-image live-pool work plus the additional digests add held-evaluation time. There is no rescue path, so an over-cap run is a terminal fail by design. Just make sure the receipt records whether a failure was cost or time, so it isn't misread as a parity failure.\n- **The 100-update gate needs both checks.** The GPU 17-update mechanics must check both the \"no frozen gradient\" condition and \"pool gradient > 0\" at steps 1 and 17. Without both, pool learning is only demonstrated at step 100.\n\n## Overlap with closed arms\n\n- **No procedural overlap with the closed arms:**\n  - The half12 arm (blocks 12\u201323 + pool + proj) was closed for a CUDA resource/cost failure, not on quality.\n  - The frozen readout arm was closed on quality.\n  - The pool-only arm is a strict subset of half12's trainable set, but a different procedure. The spec correctly bars reusing any of their state.\n- **Nearest conceptual neighbour:** the 2026-09-28 nonlinear-scope proposal (GELU residual on cached frozen Large 1024-D features). It was never approved as a launch gate and runs on a different source. The pool arm uses live native tokens, not cached pooled features, so there's no duplicated measurement.\n- **Wording for the eventual write-up:** a trunk-frozen pool adaptation is equivalent to a nonlinear head on post-`ln_post` tokens. Describe it that way, not as trunk adaptation, if it's reported.\n\nI made no edits, ran no training or tests, and used no GPU. The only DGX access was reading source over SSH."
+      },
+      "providers_used": [
+        "claude"
+      ],
+      "active_provider": "claude",
+      "phase": "Consultation completed",
+      "input_bytes": 2446,
+      "output_bytes": 8240,
+      "elapsed_seconds": 176,
+      "progress": "devbox-ask: claude consult still running (0m 30s)\ndevbox-ask: claude consult still running (1m 00s)\ndevbox-ask: claude consult still running (1m 30s)\ndevbox-ask: claude consult still running (2m 00s)\ndevbox-ask: claude consult still running (2m 30s)",
+      "progress_truncated": false,
+      "result": "**Verdict: conditional GO** for this bounded procedure only (CPU qualification \u2192 one 17-update discard run \u2192 one fresh 100-update pilot), provided fixes F1\u2013F5 are made before any GPU time. The boundary-equivalence argument holds at the stated predicates. The GO depends on the parity and the live/loaded reference check being built as the spec describes. Simply extending `train_pe_l14_prefetch.py` would not do that.\n\n## Is the boundary equivalence sound?\n\nYes, with one caveat.\n\nWhat gets scored is the strict-loaded full native model S(x) = proj_s(pool_s(T_s(x))). The hook proves, on every held image, that the live pool gives the same output as the strict pool on the trunk tokens the strict model actually produced, T_s(x). Frozen-complement identity then gives proj_l = proj_s. So \"live pool on a strict trunk\" equals the strict output bitwise.\n\nThe caveat: the step from strict trunk tokens to live trunk tokens (T_l = T_s) is argued from state identity, the same code and the same context. It is measured only once, by the last-B64 full live-versus-strict comparison. That is acceptable, because the scored artifact is the loaded model and the parity only has to show the trained model is the saved one. Register the last-B64 comparison as the only direct measurement of T_l = T_s, not as something the hook covers.\n\nNative pooling behaves the same in the live and strict copies:\n- **Source:** `AttentionPooling` is at `pe.py:45\u201385`. `attn_pooler_heads` is 8 by default and not set in the L14 config (`pe.py:312`), so measure it; don't assume 16.\n- **No MHA fast path:** the pool query isn't the key, so the fast path can't trigger. It is also excluded under autocast. Both copies take `F.multi_head_attention_forward` \u2192 SDPA in eval mode.\n- **No dropout:** no DropPath (`drop_path=0`) and MHA dropout is 0, so train/eval mode doesn't change the numbers.\n- **Dtypes are the same in both copies:**\n  - Under autocast, `ln_post` outputs fp32.\n  - `probe.to(x.dtype)` keeps the probe in fp32.\n  - The attention and MLP run in fp16, so the pool output and the `@proj` result are fp16.\n\n## Required fixes (all small, all in code the spec already implies)\n\n**F1 \u2014 the existing live/loaded check is vacuous.** In `train_pe_l14_prefetch.py`, `live = loaded.copy()`. Both `minimum_cosine` and `live_quality` compare the loaded vectors with a copy of themselves. Even before that, `encode_verified` feeds the fresh model's source into both heads, so only the head was ever compared. The spec requires that \"reference packed hits/AP must agree for actual live/loaded vectors\". To meet that, the hook must produce and keep a separate live array: live pool \u2192 live `proj` (under the same autocast) \u2192 live head \u2192 normalize. Score it separately. Don't cite the prior run's \"packed per-query parity passed\" as evidence of live/loaded agreement.\n\n**F2 \u2014 gradient clipping and parameter groups must include the pool.**\n- `params` is currently head + classifier, so `clip_grad_norm_(params, 1)` would leave the pool unclipped. That contradicts \"globalclip1\".\n- Add a pool AdamW group at 1e-5.\n- Add a pool entry to `initial_groups`/`final_group_sha256` so \"group movement\" covers the pool.\n- `readout.freeze` asserts `not trainable and len(frozen)==308`. Replace it with a measured `attn_pool.*` inventory (11 tensors expected) and a check that its complement equals the original frozen set.\n\n**F3 \u2014 split the frozen digest.** `readout.frozen_state` digests the entire `state_dict()`, so after training `assert digest(frozen_state(fresh)) == frozen_sha` would fail. Or, if it is rebased, it would stop checking anything. Instead:\n- Compute the complement digest on the original CPU state, excluding `attn_pool.*` and including rope, rope freq and the grid.\n- Assert it for the live model after training and for the fresh model after reload.\n- Assert the pool digest is equal between live and loaded.\n- Carry over the existing \"full state keys match\" check.\n\n**F4 \u2014 the training forward must leave `no_grad`, and that must be proven cheaply.** The current `with torch.no_grad(), autocast: source = vision(x)` has to become autocast only. Then the frozen trunk records no graph only because no trunk tensor requires grad. Add these checks:\n- **CPU qualification and the 17-update run:** a hook assertion that the pool's input tokens have `requires_grad False` and `grad_fn None`. Otherwise a stray trainable tensor (for example rope) would silently record the whole trunk graph, and memory/cost would look like the closed half12 arm.\n- **Every update:** keep the existing assertion `(p.grad is None) == (not p.requires_grad)`.\n- `member_bank_refresh_values` already detaches, so the bank is safe.\n\n**F5 \u2014 hook hygiene at exact predicates:**\n- Use `register_forward_hook` on `fresh.attn_pool` only. The hook must return `None`; any other return value replaces the pool output.\n- Count calls per batch and require exactly one, then reset.\n- Take `args[0]`; reject kwargs or a missing argument, and check the shape is (B, 257, 1024) and fp32.\n- Run the live pool inside the hook. It then inherits the strict forward's `inference_mode` and autocast, which removes any context mismatch.\n- Keep the live-`proj` matmul inside the same autocast block. Compare the squeezed pool output bitwise, then the source against the strict output bitwise.\n- Remove the hook in `finally`. Before any held image, assert `fresh._forward_hooks` is empty on every module except the registered handle.\n- Keep the hook out of the timed training path. The spec already places it only in qualification and held evaluation.\n\n## Pitfalls to record rather than fix\n\n- **SDPA backward determinism on the new surface.** The pool's attention backward (query length 1, 8 heads) has not been exercised under `use_deterministic_algorithms(True)`. The previous readout arm had no attention backward. The closed half12 arm covered trunk SDPA backward, not this path. Record the SDPA backend and whether any warning or error fired in the 17-update receipt. Don't claim the 17-update and 100-update trajectories are the same unless measured.\n- **Weight decay on the probe and LayerNorm.** AdamW decay 0.05 will apply to `probe` and the pool LayerNorm. Verify this matches the densePE vision group composition in the archived control (\"same prescriptions\"). Don't create new no-decay groups.\n- **The perturbation test mutates the live model.** Restore via `copy_` under `no_grad`, and prove restoration by pool digest equal to the original before the 17-update run. Also confirm optimizer state is empty afterwards. Alternatively, perturb a deep copy saved into a scratch file.\n- **Wall-clock headroom is thin.** The previous 100-update run used 262.87 s of the 300 s cap. Per-image live-pool work plus the additional digests add held-evaluation time. There is no rescue path, so an over-cap run is a terminal fail by design. Just make sure the receipt records whether a failure was cost or time, so it isn't misread as a parity failure.\n- **The 100-update gate needs both checks.** The GPU 17-update mechanics must check both the \"no frozen gradient\" condition and \"pool gradient > 0\" at steps 1 and 17. Without both, pool learning is only demonstrated at step 100.\n\n## Overlap with closed arms\n\n- **No procedural overlap with the closed arms:**\n  - The half12 arm (blocks 12\u201323 + pool + proj) was closed for a CUDA resource/cost failure, not on quality.\n  - The frozen readout arm was closed on quality.\n  - The pool-only arm is a strict subset of half12's trainable set, but a different procedure. The spec correctly bars reusing any of their state.\n- **Nearest conceptual neighbour:** the 2026-09-28 nonlinear-scope proposal (GELU residual on cached frozen Large 1024-D features). It was never approved as a launch gate and runs on a different source. The pool arm uses live native tokens, not cached pooled features, so there's no duplicated measurement.\n- **Wording for the eventual write-up:** a trunk-frozen pool adaptation is equivalent to a nonlinear head on post-`ln_post` tokens. Describe it that way, not as trunk adaptation, if it's reported.\n\nI made no edits, ran no training or tests, and used no GPU. The only DGX access was reading source over SSH.",
+      "result_truncated": false
+    },
+    {
+      "role": "engineering_critic",
+      "id": "e38ab0ce154d4980",
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "fallbacks": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "agent": "sfora/emafactorial",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1790634962,
+      "timeout_seconds": 1200,
+      "deadline_at": 1790636162,
+      "budget_usd": null,
+      "prompt_preview": "Act as the independent adversarial engineering and release critic. Inspect correctness, failure modes, security, operability, tests, and UX. Prioritize concrete findings with evidence. Do not edit files.\n\nMaterial to critique:\nRead-only narrow consequential design review; do not edit, run training/tests, use GPU, launch workers, or propose new architecture/research/alternatives. Repository /home/rb/worktrees/sfora-positive-causality HEAD e3e36043. Read docs/inshop_pe_l14_native_pool_gate_2026-09-29.md (new concrete spec), docs/inshop_pe_l14_prefetch_result_2026-09-29.md, scripts/train_pe_l14_prefetch.py, pe_l14_readout.py, pe_l14_training.py. Native source on DGX can be inspected read-only via ssh riomus@spark-2751 /home/riomus/runs/sfora-pe-l14-prefetch-v1/core/vision_encoder/pe.py:45\u201385,495\u2013540 and rope.py. No current GPU jobs. Fixed frozenL14+linearhead100 completed cost .6362088s PASS, strictloaded actualnativefullheld parity PASS, R1 87.2836/MAP61.8879 QUALITY KILL vs archiveddense95.074/76.392; CPU savedstate/score/CI replayPASS. Saved128 floatonly87.441/61.966 excludespackinggap. Next ONE known-method native attn_pool learning; all24trunk/ln/position/proj/foreignfrozen. Sameactualpixels/data/schedule/loss/optimizer prescriptions, 120/300s8Gnoswap10GB/.71769696 cost +qualityfloors andbothpairedproduct95positivity frozen. New exact parity explicitly qualifies removable pool forward hook: strict native fullmodel runs once each actualheld image, live updated nativepool consumes SAME actual postln_posttokens, exactnativepool thenproj thennormalizedheadoutputs, wholelive/reloadstate+foreign/coreidentity; no alternate/cachedtrunk/no globalmonkeypatch. This adapts learned-pool boundary, so oldallencoderimmutableargument is invalid. CPU actual poolgrads/frozeninventory/hookbitparity and GPUfit-only temp-perturbation strictreload before17; fresh100onlyPASS/discard17. Critique executable integrity/cost/quality gates and whether boundary equivalence is sound at exact predicates. Identify necessary minimal fixes, native MHA/autocast/hooks/state pitfalls and any prior CLOSED-arm overlap; no novelty/speed/quality forecasts. Conditional GO/STOP for this specific bounded procedure only, not production. Parent will verify and implement while you review independent spec.",
+      "prompt_sha256": "7a468f70e681c2de86ba79166321b301c8e9a8547b6c17ee7f87817eba219806",
+      "prompt_bytes": 2480,
+      "fingerprint": "4657ebc74675f162f14e1a3f17958c8b346dd49e32c8541d3cb896982b605cc1",
+      "evidence": {
+        "git_commit": "e3e3604393abea41e5bac98a4324396312b05972",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "243551919d7f9fe9682b53cf20dd46a13b48cc26d26362a45f0ce3c1ee9b3149",
+        "worktree_sha256": "4ed8764703e5799c661f7bafc3f6504046f38939474c0de94fbe459021248da2",
+        "worktree_evidence_truncated": false,
+        "active_goal": {
+          "id": "goal-1790540789-1790540789754989478-2322852",
+          "agent": "sfora/emafactorial",
+          "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+          "status": "queued",
+          "revision": 1,
+          "actor": "operator",
+          "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+          "created_at": 1790540789,
+          "updated_at": 1790540789
+        }
+      },
+      "previous_fingerprint": "a6b2654fae5c568e8dbad62e011eccf50d1107dd5460ae125622ef2040b4dbc5",
+      "reused": false,
+      "critique_id": "50236cf153ff48d0",
+      "critique_role": "engineering_critic",
+      "systemd_unit": "devbox-consult-e38ab0ce154d4980.service",
+      "pid": 1926464,
+      "pgid": 1926464,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra",
+          "budget_usd": null,
+          "timeout_seconds": 1200,
+          "started_at": 1790634962
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1790635070,
+      "event_cursor": 28,
+      "events": [
+        {
+          "seq": 5,
+          "at": 1790634972,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 6,
+          "at": 1790634972,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 7,
+          "at": 1790634972,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 8,
+          "at": 1790634972,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 9,
+          "at": 1790634978,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 10,
+          "at": 1790634979,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 2"
+        },
+        {
+          "seq": 11,
+          "at": 1790634986,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 12,
+          "at": 1790634991,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 13,
+          "at": 1790634992,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 14,
+          "at": 1790634993,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 15,
+          "at": 1790634999,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 16,
+          "at": 1790635005,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 17,
+          "at": 1790635005,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 18,
+          "at": 1790635005,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 19,
+          "at": 1790635006,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 20,
+          "at": 1790635014,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 21,
+          "at": 1790635015,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 22,
+          "at": 1790635022,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 23,
+          "at": 1790635025,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 24,
+          "at": 1790635025,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 25,
+          "at": 1790635033,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 26,
+          "at": 1790635033,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 27,
+          "at": 1790635070,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 28,
+          "at": 1790635070,
+          "provider": "codex",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": true,
+      "provider_events": {
+        "codex": [
+          {
+            "seq": 21,
+            "at": 1790635015,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 22,
+            "at": 1790635022,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 23,
+            "at": 1790635025,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 24,
+            "at": 1790635025,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 25,
+            "at": 1790635033,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 26,
+            "at": 1790635033,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 27,
+            "at": 1790635070,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 28,
+            "at": 1790635070,
+            "provider": "codex",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "**Conditional GO for this bounded design; STOP launch until the implementation satisfies the predicates below.** The shared-token equivalence argument is sound for the inspected native source. The existing runner does not yet implement it.\n\n1. **High \u2014 inherited training code cannot learn the pool.** [readout.freeze](/home/rb/worktrees/sfora-positive-causality/scripts/pe_l14_readout.py:19) freezes everything; [optimizer construction](/home/rb/worktrees/sfora-positive-causality/scripts/train_pe_l14_prefetch.py:123) includes only head/proxies; [source forward](/home/rb/worktrees/sfora-positive-causality/scripts/train_pe_l14_prefetch.py:196) runs under `no_grad`. All three must change together. Enable exactly `attn_pool.*`, retain a normal autograd-enabled native forward, include pool parameters in AdamW and global clipping, and verify exact optimizer coverage. Do not reuse [l14.freeze](/home/rb/worktrees/sfora-positive-causality/scripts/pe_l14_training.py:82), which enables half the transformer plus other output parameters. These are implementation prerequisites, not objections to the proposed allocation.\n\n2. **High \u2014 old held-parity evidence is insufficient for the changed boundary.** [encode_verified](/home/rb/worktrees/sfora-positive-causality/scripts/train_pe_l14_prefetch.py:406) compares two heads using one loaded source, then [copies loaded vectors into \u201clive\u201d](/home/rb/worktrees/sfora-positive-causality/scripts/train_pe_l14_prefetch.py:433). That does not exercise the updated live pool. The replacement must compute each live vector from the live pool\u2019s actual hook-token input and live projection/head; compare it against the strict-native vector before retaining actual paired vectors for packed scoring. Replace the inherited `whole_encoder_unchanged` receipt claim with the precise frozen-complement and learned-boundary predicates.\n\n3. **Medium \u2014 resource and cost language needs two explicit predicates.** [Gate lines 36\u201344](/home/rb/worktrees/sfora-positive-causality/docs/inshop_pe_l14_native_pool_gate_2026-09-29.md:36) introduce GPU qualification without stating its own wall/resource/lock envelope, and explicitly name only the 17-step median threshold. Freeze whether qualification is inside the 120-second mechanics envelope or separately bounded, with both lifetime locks and resource limits. Explicitly retain **median steps 3\u2013100 \u2264 .71769696 seconds before held decoding**, as the existing runner already does. Mechanics PASS alone cannot establish pilot cost PASS. Accept receipts only with successful terminal process/resource evidence.\n\n4. **Medium \u2014 make temporary perturbation qualification non-vacuous.** [The spec](/home/rb/worktrees/sfora-positive-causality/docs/inshop_pe_l14_native_pool_gate_2026-09-29.md:31) requires perturbation, reload equality and restoration, but does not explicitly require the perturbation to change observable pool/source output. FP16 rounding can conceal a small change; equal restored/original models can also falsely satisfy an inadequately wired comparison. Require changed pool state **and changed fit-only output**, exact live/reloaded updated equality, then exact restoration. Snapshot tensors with independent storage: a shallow `state_dict()` is not a restoration snapshot.\n\nThe native-source details support the boundary, with these implementation constraints:\n\n- DGX `pe.py:80\u201387` returns pool output shaped `[B,1,D]`; `_pool` applies **`squeeze(1)`** at line 493, then `forward` applies `@ self.proj` at line 540. Reproduce that exact sequence. An unsqueezed result can normalize across the wrong dimension or broadcast silently.\n- Native attention uses `MultiheadAttention(q,x,x,need_weights=False)`, with a learned probe cast to token dtype. Preserve that call and native parameterization. Compare both pools in the same evaluation, inference and autocast context; do not substitute attention kernels or convert pool weights to FP16.\n- Keep pool/projection arithmetic inside encoder autocast. Keep compact-head arithmetic outside it, matching the existing runner. Moving the head into the hook\u2019s autocast context changes the qualified computation.\n- The observer hook must return `None`, never mutate tokens/output, count exactly one invocation per forward, and release captured tensors after each batch. Remove it in `finally`.\n- `Rope2D` is a plain object; ordinary strict model loading and `.cuda()` do not establish its complete identity. Its grid update is keyed by grid size. Preserve separate foreign-state restoration and verify grid, frequency values/device and all block aliases after actual forward. Include relevant nonpersistent rotary buffers and runtime configuration in the stated identity checks.\n\n**Boundary conclusion:** identical authenticated trunk code, configuration, execution context, frozen state and foreign state, combined with the loaded model\u2019s actual post-`ln_post` inputs and exact live/loaded pool\u2192projection\u2192head equality, cover this changed boundary. A second complete held trunk pass is unnecessary under those predicates. Tensor-state equality alone would be insufficient.\n\n**Quality and prior closures:** the existing numeric floors and paired product-bootstrap implementation match the proposed conjunction; retain both positive lower bounds, query uncertainty and independent CPU replay. In the inspected history, pool parameters also trained in the closed half12 procedures, but I found no identical pool-only L14 arm. This does not reopen those procedures or the fixed-readout quality KILL.\n\nRead-only inspection included the DGX native source. No edits, tests, training, GPU computation or workers were performed. This is design approval with implementation conditions, not execution or production certification.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "codex": "**Conditional GO for this bounded design; STOP launch until the implementation satisfies the predicates below.** The shared-token equivalence argument is sound for the inspected native source. The existing runner does not yet implement it.\n\n1. **High \u2014 inherited training code cannot learn the pool.** [readout.freeze](/home/rb/worktrees/sfora-positive-causality/scripts/pe_l14_readout.py:19) freezes everything; [optimizer construction](/home/rb/worktrees/sfora-positive-causality/scripts/train_pe_l14_prefetch.py:123) includes only head/proxies; [source forward](/home/rb/worktrees/sfora-positive-causality/scripts/train_pe_l14_prefetch.py:196) runs under `no_grad`. All three must change together. Enable exactly `attn_pool.*`, retain a normal autograd-enabled native forward, include pool parameters in AdamW and global clipping, and verify exact optimizer coverage. Do not reuse [l14.freeze](/home/rb/worktrees/sfora-positive-causality/scripts/pe_l14_training.py:82), which enables half the transformer plus other output parameters. These are implementation prerequisites, not objections to the proposed allocation.\n\n2. **High \u2014 old held-parity evidence is insufficient for the changed boundary.** [encode_verified](/home/rb/worktrees/sfora-positive-causality/scripts/train_pe_l14_prefetch.py:406) compares two heads using one loaded source, then [copies loaded vectors into \u201clive\u201d](/home/rb/worktrees/sfora-positive-causality/scripts/train_pe_l14_prefetch.py:433). That does not exercise the updated live pool. The replacement must compute each live vector from the live pool\u2019s actual hook-token input and live projection/head; compare it against the strict-native vector before retaining actual paired vectors for packed scoring. Replace the inherited `whole_encoder_unchanged` receipt claim with the precise frozen-complement and learned-boundary predicates.\n\n3. **Medium \u2014 resource and cost language needs two explicit predicates.** [Gate lines 36\u201344](/home/rb/worktrees/sfora-positive-causality/docs/inshop_pe_l14_native_pool_gate_2026-09-29.md:36) introduce GPU qualification without stating its own wall/resource/lock envelope, and explicitly name only the 17-step median threshold. Freeze whether qualification is inside the 120-second mechanics envelope or separately bounded, with both lifetime locks and resource limits. Explicitly retain **median steps 3\u2013100 \u2264 .71769696 seconds before held decoding**, as the existing runner already does. Mechanics PASS alone cannot establish pilot cost PASS. Accept receipts only with successful terminal process/resource evidence.\n\n4. **Medium \u2014 make temporary perturbation qualification non-vacuous.** [The spec](/home/rb/worktrees/sfora-positive-causality/docs/inshop_pe_l14_native_pool_gate_2026-09-29.md:31) requires perturbation, reload equality and restoration, but does not explicitly require the perturbation to change observable pool/source output. FP16 rounding can conceal a small change; equal restored/original models can also falsely satisfy an inadequately wired comparison. Require changed pool state **and changed fit-only output**, exact live/reloaded updated equality, then exact restoration. Snapshot tensors with independent storage: a shallow `state_dict()` is not a restoration snapshot.\n\nThe native-source details support the boundary, with these implementation constraints:\n\n- DGX `pe.py:80\u201387` returns pool output shaped `[B,1,D]`; `_pool` applies **`squeeze(1)`** at line 493, then `forward` applies `@ self.proj` at line 540. Reproduce that exact sequence. An unsqueezed result can normalize across the wrong dimension or broadcast silently.\n- Native attention uses `MultiheadAttention(q,x,x,need_weights=False)`, with a learned probe cast to token dtype. Preserve that call and native parameterization. Compare both pools in the same evaluation, inference and autocast context; do not substitute attention kernels or convert pool weights to FP16.\n- Keep pool/projection arithmetic inside encoder autocast. Keep compact-head arithmetic outside it, matching the existing runner. Moving the head into the hook\u2019s autocast context changes the qualified computation.\n- The observer hook must return `None`, never mutate tokens/output, count exactly one invocation per forward, and release captured tensors after each batch. Remove it in `finally`.\n- `Rope2D` is a plain object; ordinary strict model loading and `.cuda()` do not establish its complete identity. Its grid update is keyed by grid size. Preserve separate foreign-state restoration and verify grid, frequency values/device and all block aliases after actual forward. Include relevant nonpersistent rotary buffers and runtime configuration in the stated identity checks.\n\n**Boundary conclusion:** identical authenticated trunk code, configuration, execution context, frozen state and foreign state, combined with the loaded model\u2019s actual post-`ln_post` inputs and exact live/loaded pool\u2192projection\u2192head equality, cover this changed boundary. A second complete held trunk pass is unnecessary under those predicates. Tensor-state equality alone would be insufficient.\n\n**Quality and prior closures:** the existing numeric floors and paired product-bootstrap implementation match the proposed conjunction; retain both positive lower bounds, query uncertainty and independent CPU replay. In the inspected history, pool parameters also trained in the closed half12 procedures, but I found no identical pool-only L14 arm. This does not reopen those procedures or the fixed-readout quality KILL.\n\nRead-only inspection included the DGX native source. No edits, tests, training, GPU computation or workers were performed. This is design approval with implementation conditions, not execution or production certification."
+      },
+      "providers_used": [
+        "codex"
+      ],
+      "active_provider": "codex",
+      "phase": "Consultation completed",
+      "input_bytes": 2480,
+      "output_bytes": 5782,
+      "elapsed_seconds": 108,
+      "progress": "Reading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)\ndevbox-ask: codex consult still running (1m 30s)",
+      "progress_truncated": false,
+      "result": "**Conditional GO for this bounded design; STOP launch until the implementation satisfies the predicates below.** The shared-token equivalence argument is sound for the inspected native source. The existing runner does not yet implement it.\n\n1. **High \u2014 inherited training code cannot learn the pool.** [readout.freeze](/home/rb/worktrees/sfora-positive-causality/scripts/pe_l14_readout.py:19) freezes everything; [optimizer construction](/home/rb/worktrees/sfora-positive-causality/scripts/train_pe_l14_prefetch.py:123) includes only head/proxies; [source forward](/home/rb/worktrees/sfora-positive-causality/scripts/train_pe_l14_prefetch.py:196) runs under `no_grad`. All three must change together. Enable exactly `attn_pool.*`, retain a normal autograd-enabled native forward, include pool parameters in AdamW and global clipping, and verify exact optimizer coverage. Do not reuse [l14.freeze](/home/rb/worktrees/sfora-positive-causality/scripts/pe_l14_training.py:82), which enables half the transformer plus other output parameters. These are implementation prerequisites, not objections to the proposed allocation.\n\n2. **High \u2014 old held-parity evidence is insufficient for the changed boundary.** [encode_verified](/home/rb/worktrees/sfora-positive-causality/scripts/train_pe_l14_prefetch.py:406) compares two heads using one loaded source, then [copies loaded vectors into \u201clive\u201d](/home/rb/worktrees/sfora-positive-causality/scripts/train_pe_l14_prefetch.py:433). That does not exercise the updated live pool. The replacement must compute each live vector from the live pool\u2019s actual hook-token input and live projection/head; compare it against the strict-native vector before retaining actual paired vectors for packed scoring. Replace the inherited `whole_encoder_unchanged` receipt claim with the precise frozen-complement and learned-boundary predicates.\n\n3. **Medium \u2014 resource and cost language needs two explicit predicates.** [Gate lines 36\u201344](/home/rb/worktrees/sfora-positive-causality/docs/inshop_pe_l14_native_pool_gate_2026-09-29.md:36) introduce GPU qualification without stating its own wall/resource/lock envelope, and explicitly name only the 17-step median threshold. Freeze whether qualification is inside the 120-second mechanics envelope or separately bounded, with both lifetime locks and resource limits. Explicitly retain **median steps 3\u2013100 \u2264 .71769696 seconds before held decoding**, as the existing runner already does. Mechanics PASS alone cannot establish pilot cost PASS. Accept receipts only with successful terminal process/resource evidence.\n\n4. **Medium \u2014 make temporary perturbation qualification non-vacuous.** [The spec](/home/rb/worktrees/sfora-positive-causality/docs/inshop_pe_l14_native_pool_gate_2026-09-29.md:31) requires perturbation, reload equality and restoration, but does not explicitly require the perturbation to change observable pool/source output. FP16 rounding can conceal a small change; equal restored/original models can also falsely satisfy an inadequately wired comparison. Require changed pool state **and changed fit-only output**, exact live/reloaded updated equality, then exact restoration. Snapshot tensors with independent storage: a shallow `state_dict()` is not a restoration snapshot.\n\nThe native-source details support the boundary, with these implementation constraints:\n\n- DGX `pe.py:80\u201387` returns pool output shaped `[B,1,D]`; `_pool` applies **`squeeze(1)`** at line 493, then `forward` applies `@ self.proj` at line 540. Reproduce that exact sequence. An unsqueezed result can normalize across the wrong dimension or broadcast silently.\n- Native attention uses `MultiheadAttention(q,x,x,need_weights=False)`, with a learned probe cast to token dtype. Preserve that call and native parameterization. Compare both pools in the same evaluation, inference and autocast context; do not substitute attention kernels or convert pool weights to FP16.\n- Keep pool/projection arithmetic inside encoder autocast. Keep compact-head arithmetic outside it, matching the existing runner. Moving the head into the hook\u2019s autocast context changes the qualified computation.\n- The observer hook must return `None`, never mutate tokens/output, count exactly one invocation per forward, and release captured tensors after each batch. Remove it in `finally`.\n- `Rope2D` is a plain object; ordinary strict model loading and `.cuda()` do not establish its complete identity. Its grid update is keyed by grid size. Preserve separate foreign-state restoration and verify grid, frequency values/device and all block aliases after actual forward. Include relevant nonpersistent rotary buffers and runtime configuration in the stated identity checks.\n\n**Boundary conclusion:** identical authenticated trunk code, configuration, execution context, frozen state and foreign state, combined with the loaded model\u2019s actual post-`ln_post` inputs and exact live/loaded pool\u2192projection\u2192head equality, cover this changed boundary. A second complete held trunk pass is unnecessary under those predicates. Tensor-state equality alone would be insufficient.\n\n**Quality and prior closures:** the existing numeric floors and paired product-bootstrap implementation match the proposed conjunction; retain both positive lower bounds, query uncertainty and independent CPU replay. In the inspected history, pool parameters also trained in the closed half12 procedures, but I found no identical pool-only L14 arm. This does not reopen those procedures or the fixed-readout quality KILL.\n\nRead-only inspection included the DGX native source. No edits, tests, training, GPU computation or workers were performed. This is design approval with implementation conditions, not execution or production certification.",
+      "result_truncated": false
+    }
+  ],
+  "reused": false,
+  "finished_at": 1790635212,
+  "elapsed_seconds": 176,
+  "input_bytes": 2076,
+  "output_bytes": 14022
+}
