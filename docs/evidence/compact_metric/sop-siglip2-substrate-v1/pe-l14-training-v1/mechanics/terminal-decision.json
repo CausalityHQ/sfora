@@ -1,0 +1,22 @@
+{
+  "decision": "KILL_NATIVE_CUDA_RESOURCE",
+  "invocation_id": "beff79d85a4e45238c4e88c6bb6d531d",
+  "original_session": 7527,
+  "original_exit": 1,
+  "whole_seconds": 15.78,
+  "max_process_rss_kib": 3999816,
+  "completed_optimizer_updates_before_guard": 1,
+  "completed_recorded_step_times": 0,
+  "peak_cuda_allocated_bytes_verified_lower_bound": 10000000000,
+  "exact_peak_cuda_allocated_bytes": null,
+  "step_median_seconds": null,
+  "quality": null,
+  "quality_read": false,
+  "updated_checkpoint_reload_executed": false,
+  "training_state_discarded": true,
+  "pilot_launched": false,
+  "cpupreflight_and_source_code_authority_pass": true,
+  "calibration_minimum_cosine": 0.9998070597648621,
+  "cuda_guard_vs_oom": "configured allocated-memory assertion; no OOM exception/cgroup termination",
+  "remaining_gpu_processes": 0
+}

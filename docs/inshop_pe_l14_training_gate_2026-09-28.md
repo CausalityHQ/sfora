@@ -64,3 +64,12 @@ fixture GREEN; Ruff/bash syntax PASS. Frozen initializer preflightSHA
 be5a8bdcfd1749340f220d5669cebfb1c0d8b30d3c08667a0b72a4fb38701277.
 Pilot must pin exact17PASS receipt SHA and same initializer preflight; no
 mechanics checkpoint may remain. Calibration values persist before guards.
+
+## Terminal uncheckpointed native CUDA resource KILL
+
+Sole17step attempt stopped after first optimizer update at >=10GB allocated
+CUDA guard, before any timing record or held read; original7527 exit1,
+invbeff79d85a4e45238c4e88c6bb6d531d15.78s whole/3,999,816KiB processRSS.
+Exact peak allocator counter was not logged; do not report invented values.
+No checkpoint/pilot; state discarded, DGXidle. Close this uncheckpointed
+procedure. [Evidence and one next checkpoint-execution intervention](inshop_pe_l14_training_result_2026-09-28.md).

@@ -1,0 +1,13 @@
+RuntimeMaxUSec=1min 59s
+Result=exit-code
+ExecMainStatus=1
+MemoryMax=8589934592
+MemorySwapMax=0
+InvocationID=beff79d85a4e45238c4e88c6bb6d531d
+9bbb9125c5fa62d17737bb598fac9eb05dfe81f5de3af5d25e15d4d752262ae3  /home/riomus/runs/sfora-pe-l14-v1/train_pe_l14.py
+af9dd031f1d8eb6408bd9d8c374de701d86bb658e45525c9082010d3b3901613  /home/riomus/runs/sfora-pe-l14-v1/pe_l14_training.py
+e3378d414cb1950950ca6ec2301de5a0f4ec0038050851b07b86f88a27e28d7a  /home/riomus/runs/sfora-pe-l14-v1/run_pe_l14_training.sh
+be5a8bdcfd1749340f220d5669cebfb1c0d8b30d3c08667a0b72a4fb38701277  /home/riomus/runs/sfora-pe-l14-init-v1/preflight.json
+5e47299f0474195ecda4971e75733fb235c39869ef58890454cc7f785b9089e3  /home/riomus/runs/sfora-pe-l14-init-v1/initializers.npz
+NO_MECHANICS_CHECKPOINT
+NO_PILOT

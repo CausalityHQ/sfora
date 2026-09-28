@@ -7,6 +7,18 @@ training, signed-int8 gallery codes with f16 inverse norms (130 bytes per
 image), and an exact native CUDA top-10 scorer. Apache Arrow is not in the
 training or retrieval path.
 
+## 28 September: L14 uncheckpointed native mechanics resource KILL
+
+Actual CPU owninitializer/source/half12 inventory PASS11.30s. Sole17step
+GPU attempt stopped at first update allocatedCUDA>=10GB guard,15.78s whole/
+3,999,816KiB processRSS/no swap,exit1. Exactpeak unlogged; no stepmedian,
+trainedcheckpoint, held/quality read or100pilot. DGXidle. This is a verified
+resource blocker, not L14 quality KILL. Close uncheckpointed execution;
+next one non-reentrant activation-checkpoint intervention preserving source/
+parameters/objective, actual native output/gradient parity and unchanged
+resource/cost/quality gates. Full joint product goalactive/unmet.
+[Convergence row and reproducible evidence](inshop_pe_l14_training_result_2026-09-28.md).
+
 ## 28 September: own L14 full-fit FP16 source cache qualified
 
 One GPU acquisition and independent saved-cache CPU replayPASS:13283In-Shop
