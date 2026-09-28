@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    import json,torch,numpy as np; import probe_inshop_pe_core_pilot as p; assert p.lower_bound(np.zeros(512))==0; assert p.lower_bound(np.ones(512))==1; x=torch.zeros(2,128); x[:,0]=1; assert p.packed_hits(x,x).tolist()==[1,0]; json.dump(p.code_authority(),open("pilot-code-authority.json","x"),indent=2); print("PASS PCG64 product bootstrap endpoints, packed lower-ordinal ties and frozen executable/import authority")
+                                                                                                                                                                                                                                               ~~~~~~~~~~~~~~~~^^
+  File "/home/riomus/runs/sfora-pe-core-source-v1/probe_inshop_pe_core_pilot.py", line 34, in code_authority
+    str(Path(module.__file__).resolve().relative_to(root)): sha(module.__file__)
+                                                            ~~~^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-pe-core-source-v1/pe_core_authority.py", line 19, in sha
+    with Path(path).open("rb") as stream:
+         ~~~~~~~~~~~~~~~^^^^^^
+  File "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/lib/python3.13/pathlib/_local.py", line 537, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '_classes.py'

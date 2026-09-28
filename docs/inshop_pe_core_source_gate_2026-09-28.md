@@ -110,3 +110,31 @@ geometry/tie ordering and anchored visual-state/missing-key/collision rejection.
 These are source/fixture checks, not loaded-checkpoint numerical qualification.
 Acquisition may now run once under600s/8GiB CPU limits, then strict validation;
 GPU remains gated on actual acquired-state authority and a frozen pilot.
+
+## Acquisition complete; executable GPU gate ready
+
+Original CPU unit`2df2eaa9752a4f6f98aaae324e5ef005` finished exit0 in33.96s,
+1868972KiB maximum process RSS. The pinned1.790GB file matched its SHA and
+all163 visual entries loaded strictly, finite, original FP32; the vision model
+has93672960 counted parameters. No GPU/quality was used by acquisition.
+Native CPU preflight v2 finished3.38s; versions and1024 image hashes are frozen.
+
+`scripts/probe_inshop_pe_core_pilot.py` implements the corrected prospective
+pilot. Its executable/import manifest and CPU log are archived. One CPU check
+passed PCG64 bootstrap endpoints and exact packed lower-ordinal ties. The first
+manifest capture caught Torch's virtual `_classes.py` pseudo-module; metadata
+hashing now skips paths that are not real files. This was resolved before any
+GPU/quality, without changing the numerical or decision protocol. Ruff passed.
+
+The CPU check can be repeated with CUDA hidden and the isolated native/source/
+dependency paths on PYTHONPATH by importing the pilot, asserting
+`lower_bound(np.zeros(512))==0`, `lower_bound(np.ones(512))==1`, and
+`packed_hits(x,x).tolist()==[1,0]` for two unit128 rows both equal to coordinate0.
+Calling `code_authority()` checks every real imported file in the probe root.
+The saved manifest is required unchanged before GPU initialization.
+
+The prospective launcher will enforce120s whole process/8GiB host, exclusive
+shared GPU lock; initial allocation peak is retained. Timing keeps separate
+native224/256 tensors. Raw source matrices, packed hits, calls and bootstrap
+inputs are retained for independent replay. No outcome or serving claim exists
+yet, and no closed checkpoint route is reopened.
