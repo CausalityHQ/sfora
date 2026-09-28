@@ -1,0 +1,2 @@
+{"phase": "parity-complete", "peak_cuda_allocated_bytes": 2055316480}
+COMPLETE identical native baseline repeatability diagnostic; no candidate or optimizer update

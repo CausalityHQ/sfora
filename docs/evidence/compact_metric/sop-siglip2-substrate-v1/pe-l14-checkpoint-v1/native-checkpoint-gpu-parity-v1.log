@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-pe-l14-checkpoint-v1/probe_pe_l14_checkpoint_parity.py", line 179, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/sfora-pe-l14-checkpoint-v1/probe_pe_l14_checkpoint_parity.py", line 123, in main
+    assert all(
+           ~~~^
+        torch.equal(a, b) for a, b in zip(baseline[3], candidate[3], strict=True)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+AssertionError

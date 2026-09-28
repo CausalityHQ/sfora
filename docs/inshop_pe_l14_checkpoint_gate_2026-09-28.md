@@ -53,3 +53,32 @@ Actualnative317m L14 source/compact/loss and ALL161trainable parameter
 gradients EXACT with inputrequires_gradFalse. Native state/frozenforeign
 rotary/normal serving output exact, zerooptimizer/held/quality. Rawreceipt
 and cost retained. GPUFP16 native parity is still unmeasured.
+
+## Default GPU exact-gradient procedure stopped; baseline nondeterministic
+
+SoleGPUFP16 parity attempt original6656 inv5fb3755f3b644ab2a4358866d89aaf4c
+exit1/17.43s; source/compact/loss exact and both gradient sets finite/nonzero,
+but gradient bitwise equality failed. Differences were not saved; no B64
+mechanics, optimizer update, quality read or peak-memory claim. Close this
+default-backend exact-gradient procedure; do not relax its predicate.
+
+One separate unchanged-baseline repeatability diagnostic original59607,
+inv5280df0acc9547c0932003cef21803ec, exited0 in20.03s: two identical native
+FP16/scaled128 passes WITHOUT checkpoint candidate have133/161different
+gradients, maxabs.03125 and maxrelativeL2.0016199522, CUDApeak2,055,316,480B.
+Output/compact/loss/state/serving exact; no optimizer/held/quality. This
+establishes baseline GPU backward nonrepeatability; it does not isolate which
+kernel caused it or quantify the earlier candidate gradient differences.
+
+ONE next GPU execution intervention: deterministic Torch algorithms with
+CUBLAS_WORKSPACE_CONFIG=:4096:8 set before process/CUDA startup. Same native
+FP16/scaled128,2TRAIN-fit images, own initialization/loss and helper code.
+Require two uncheckpointed baseline passes exact BEFORE exact checkpoint
+output/loss/ALL161grad comparison. Save per-parameter comparison and peak
+before assertions. One120s8GiB/no swap/<10GBboth-lock service, no updates/
+held/quality, no tolerance or precision relaxation; error if deterministic
+kernels unavailable. Reuse actualCPU replay qualification because its native
+code/input/parameters/helper are unchanged; this intervention changes GPU
+kernel determinism only. Only PASS permits separately frozen deterministic
+B64 checkpoint mechanics with the original cost/resource/quality floors.
+No default-backend candidate retry or relaxation.
