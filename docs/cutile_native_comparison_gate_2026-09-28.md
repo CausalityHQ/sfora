@@ -37,3 +37,16 @@ check passed0.96s/432576KiB RSS, exit0, CUDA hidden. Original invocations
 The candidate remains untouched and unstaged; shared FFI size validation,
 sequential cross-thread cache coverage and full assurance remain release gates.
 The joint SOP/In-Shop quality and full-pipeline speed goal remains unmet.
+
+## Build-authority correction before GPU launch
+
+The first CPU controller exited0 in1.82s, but its two libraries had identical
+hashes: the candidate build said `Finished` without recompiling. Both snapshots'
+source mtimes were identical and Cargo's shared target reused the crate output
+across roots; its dependency file changed to the candidate path without a new
+compile. This invalidates the candidate binary authority, not the frozen method.
+Retain this failed check. Invalidate only this crate's release build output and
+rebuild the candidate offline, with a238s cap so total CPU caps remain240s.
+Require an actual candidate compilation and different final library hashes
+before GPU launch. No fixture, arithmetic, performance threshold or process
+order changes; no GPU retry is authorized by this correction.
