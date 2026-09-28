@@ -119,3 +119,24 @@ checkpoint serving qualification, rather than production promotion. A failure
 closes this configuration without sweeps, retries, prefix extension, additional
 epochs or official evaluation. The complete SOP/In-Shop quality-and-speed goal
 remains active and unmet; protected Rust work remains untouched.
+
+## Concrete100-update execution checkpoint
+
+`train_pe_lowrank_100.py` reuses the qualified17-update implementation with
+100 archived batches, identical method/optimizer/precision and first/later
+data-gradient/frozen-original audits. The CPU-only startup validates required
+code hashes, native CPU/17-update pass receipts and unchanged historical
+control authority; no additional review or research is required.
+`run_pe_lowrank_100.sh` holds both existing lock names for the lifetime, caps
+299s runtime+1s shutdown,8GiB host/no swap and<10GB CUDA allocation.
+It reads held images only after the100-update cost gate passes, exports
+in-process updated outputs, merges and strictly saves/reloads native+head
+weights, exports all held outputs again and verifies cosine and per-query
+packed hit/AP parity. The scored candidate is the strict-loaded model.
+Retain raw per-query outcomes and paired product-bootstrap bounds versus
+archived dense PE. A valid negative gate writes a terminal KILL receipt;
+no extension, changed threshold or alternative arm is authorized by this run.
+The prior goal turn was progress (nativeCPU+17updates and actual reload
+qualification), not a quality gain. Operator convergence directive: finish
+this reviewed procedure to one measured GO/KILL, no further research/critique
+or unrelated work while these prerequisites can be closed.

@@ -1,0 +1,8 @@
+Running as unit: sfora-pe-lowrank-pilot-startup-v1.service; invocation ID: 90340d06b508448ca609f5b3bdb7bdd6
+PASS native CPU receipt binding, required authority set and archived controls; no CUDA
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 5.325s
+CPU time consumed: 7.887s
+Memory peak: 508.0K
+Memory swap peak: 0B
