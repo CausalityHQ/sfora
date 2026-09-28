@@ -146,6 +146,20 @@ def test_classifier_can_keep_singleton_product_for_arcface_only_batches() -> Non
     assert len(digest) == 64
 
 
+def test_wide_initialization_and_detached_bank_keep_unit_source_geometry() -> None:
+    torch.set_num_threads(2)
+    features = torch.randn(258, 1024, generator=torch.Generator().manual_seed(179024))
+    labels = tuple(row // 2 for row in range(258))
+    narrow, _, _ = MODULE.initialize_head_and_classifier(features, labels)
+    wide, classifier, _ = MODULE.initialize_head_and_classifier(features, labels, output_dim=256)
+    assert wide.weight.shape == (256, 1024) and classifier.shape == (129, 256)
+    assert torch.equal(wide.weight[:128], narrow.weight)
+    bank = MODULE.member_bank_initial_values(features, wide, live_head=False, output_dim=256)
+    torch.testing.assert_close(bank, F.normalize(wide(F.normalize(features, dim=1)), dim=1))
+    with pytest.raises(ValueError, match="inventory"):
+        MODULE.initialize_head_and_classifier(features, labels, output_dim=512)
+
+
 def test_member_bank_refresh_uses_last_augmented_view_for_duplicate_row() -> None:
     rows, positions = MODULE.member_bank_refresh_rows((5, 3, 5, 4, 3))
     assert rows == (3, 4, 5)

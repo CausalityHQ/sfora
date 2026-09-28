@@ -36,7 +36,7 @@ def compact_head_features(
         or bool((torch.linalg.vector_norm(source.float(), dim=1) == 0).any())
         or type(head) is not nn.Linear
         or head.in_features != source.shape[1]
-        or output_dim not in (128, 768)
+        or output_dim not in (128, 256, 768)
         or (output_dim == 768 and source.shape[1] != 768)
         or head.out_features != output_dim
         or source.device != head.weight.device

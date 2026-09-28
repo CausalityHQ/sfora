@@ -212,6 +212,7 @@ def initialize_head_and_classifier(
     fit_labels: tuple[int, ...],
     *,
     allow_singletons: bool = False,
+    output_dim: int = OUTPUT_WIDTH,
 ) -> tuple[nn.Linear, nn.Parameter, str]:
     if (
         fit_features.ndim != 2
@@ -221,18 +222,20 @@ def initialize_head_and_classifier(
         or fit_features.dtype != torch.float32
         or not bool(torch.isfinite(fit_features).all())
         or not isinstance(allow_singletons, bool)
+        or type(output_dim) is not int
+        or output_dim not in (128, 256)
     ):
         raise ValueError("SOP SigLIP2 initialization inventory differs")
     normalized = F.normalize(fit_features, dim=1)
-    pca = fit_centered_pca(normalized, dimensions=OUTPUT_WIDTH)
-    head = nn.Linear(fit_features.shape[1], OUTPUT_WIDTH)
+    pca = fit_centered_pca(normalized, dimensions=output_dim)
+    head = nn.Linear(fit_features.shape[1], output_dim)
     with torch.no_grad():
         head.weight.copy_(pca.components)
         head.bias.copy_(-(pca.components @ pca.mean))
     projected = pca.apply(normalized)
     names = tuple(sorted(set(fit_labels)))
     indexes = {label: index for index, label in enumerate(names)}
-    sums = torch.zeros(len(names), OUTPUT_WIDTH)
+    sums = torch.zeros(len(names), output_dim)
     counts = torch.zeros(len(names), dtype=torch.int64)
     for row, label in enumerate(fit_labels):
         sums[indexes[label]] += projected[row]
@@ -284,7 +287,7 @@ def member_bank_refresh_rows(
 
 
 def member_bank_initial_values(
-    source: torch.Tensor, head: nn.Linear, *, live_head: bool
+    source: torch.Tensor, head: nn.Linear, *, live_head: bool, output_dim: int = OUTPUT_WIDTH
 ) -> torch.Tensor:
     """Initialize cached rows in the geometry selected for this bank arm."""
 
@@ -292,7 +295,7 @@ def member_bank_initial_values(
         return (
             F.normalize(source.float(), dim=1)
             if live_head
-            else F.normalize(compact_head_features(source, head), dim=1)
+            else F.normalize(compact_head_features(source, head, output_dim=output_dim), dim=1)
         )
 
 

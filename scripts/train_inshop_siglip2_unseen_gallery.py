@@ -22,6 +22,7 @@ from preflight_inshop_siglip2_unseen_gallery import PARTITION_SHA, digest_rows, 
 from probe_inshop_source_classifier import unused_gradient
 from probe_inshop_spatial_parts import CHECKPOINT_SHA
 from probe_inshop_teacher_transfer import label_preserving_sham
+from probe_inshop_wide_training_head import fold_uncentered_head
 from siglip2_base_authority import BASE_HASHES, BASE_REVISION, TRANSFER_SMOKE_SHA
 from torch import nn
 from torch.utils.data import DataLoader
@@ -46,7 +47,10 @@ from sfora.joint_relational_compaction import pack_int8_unit_embeddings
 from sfora.live_head_bank import live_head_bank_loss
 from sfora.representation_ceiling import fit_centered_pca
 from sfora.sop_compact_training import compact_head_features
-from sfora.teacher_anchored_distillation import cross_dimensional_relational_distillation_loss
+from sfora.teacher_anchored_distillation import (
+    cross_dimensional_relational_distillation_loss,
+    embedding_geometry_diagnostics,
+)
 from sfora.unicom_inshop import parse_inshop_partition
 from sfora.unicom_rank_finish import identity_balanced_batches
 from sfora.unicom_training import sharded_mask_arcface_loss
@@ -119,19 +123,133 @@ def source_manifest() -> dict[str, str]:
         unused_gradient,
         label_preserving_sham,
         cross_dimensional_relational_distillation_loss,
+        fold_uncentered_head,
     )
     paths = {
         Path(filename).resolve()
         for function in used
         if (filename := sys.modules[function.__module__].__file__) is not None
     }
-    if len(paths) != 15:
+    if len(paths) != 16:
         raise ValueError("In-Shop source manifest differs")
     return {str(path): sha256(path) for path in sorted(paths)}
 
 
 def schedule_horizon(updates: int) -> int:
     return 3_000 if updates > 1_000 else 1_000
+
+
+def parameter_digest(module, *, frozen):
+    digest = hashlib.sha256()
+    for name, value in module.named_parameters():
+        if value.requires_grad != frozen:
+            digest.update(name.encode())
+            digest.update(value.detach().cpu().contiguous().numpy().tobytes())
+    return digest.hexdigest()
+
+
+def gradient_norm(parameters):
+    return float(
+        torch.stack(
+            [
+                parameter.grad.detach().float().norm().square()
+                for parameter in parameters
+                if parameter.grad is not None
+            ]
+        )
+        .sum()
+        .sqrt()
+    )
+
+
+def width_geometry(features):
+    unit = torch.nn.functional.normalize(features.float(), dim=1).detach().cpu().contiguous()
+    if not torch.isfinite(unit).all() or bool((features.float().norm(dim=1) <= 1e-10).any()):
+        raise ValueError("wide smoke projected vector degenerate")
+    return {
+        "variance": float(unit.var(0, correction=0).sum()),
+        "effective_rank": embedding_geometry_diagnostics(unit).effective_rank,
+    }
+
+
+@torch.no_grad()
+def calibrate_smoke_fold(vision, head, paths, processor, destination, workers, rows_sha):
+    """Fit once on the fixed2048 TRAIN-fit images, never the held gallery."""
+    loader = DataLoader(
+        ImageRows(paths, tuple(range(len(paths))), augment=False),
+        batch_size=64,
+        shuffle=False,
+        num_workers=workers,
+        collate_fn=make_collate(processor),
+    )
+    outputs, first_source = [], None
+    for batch, _ in loader:
+        tensors = {key: value.cuda() for key, value in batch.items()}
+        with torch.autocast("cuda", dtype=torch.float16):
+            pooled = vision(**tensors).pooler_output
+        outputs.append(
+            torch.nn.functional.normalize(
+                compact_head_features(pooled, head, output_dim=256), dim=1
+            ).cpu()
+        )
+        if first_source is None:
+            first_source = pooled.cpu()
+    values = torch.cat(outputs)
+    _, singular, right = torch.linalg.svd(values.double(), full_matrices=False)
+    if not torch.isfinite(singular).all() or singular[127] <= 1e-10:
+        raise ValueError("wide smoke compactor rank differs")
+    components = right[:128].clone()
+    for row in components:
+        if row[row.abs().argmax()] < 0:
+            row.neg_()
+    components = components.float().contiguous()
+    if not torch.allclose(components @ components.T, torch.eye(128), atol=2e-5, rtol=0):
+        raise ValueError("wide smoke compactor orthogonality differs")
+    wide_cpu = nn.Linear(1024, 256)
+    wide_cpu.load_state_dict({name: value.cpu() for name, value in head.state_dict().items()})
+    folded = fold_uncentered_head(wide_cpu, components)
+    source = torch.nn.functional.normalize(first_source.float(), dim=1)
+    composed = torch.nn.functional.normalize(
+        torch.nn.functional.normalize(wide_cpu(source), dim=1) @ components.T, dim=1
+    )
+    folded_values = torch.nn.functional.normalize(folded(source), dim=1)
+    error = float((composed - folded_values).abs().max())
+    if error > 1e-5 or bool((folded(source).norm(dim=1) <= 1e-10).any()):
+        raise ValueError("wide smoke fold identity differs")
+    folded_gpu = folded.cuda()
+    folded_values = torch.nn.functional.normalize(
+        compact_head_features(first_source.cuda(), folded_gpu), dim=1
+    ).cpu()
+    composed = torch.nn.functional.normalize(
+        torch.nn.functional.normalize(
+            compact_head_features(first_source.cuda(), head, output_dim=256), dim=1
+        )
+        @ components.cuda().T,
+        dim=1,
+    ).cpu()
+    error = max(error, float((composed - folded_values).abs().max()))
+    if error > 1e-5:
+        raise ValueError("wide smoke GPU fold identity differs")
+    state = torch.load(destination / "checkpoint.pt", map_location="cpu", weights_only=True)
+    state["head"] = {name: value.cpu() for name, value in folded.state_dict().items()}
+    state["compactor"] = components
+    state["calibration_rows_sha256"] = rows_sha
+    state["parent_checkpoint_sha256"] = sha256(destination / "checkpoint.pt")
+    torch.save(state, destination / "folded_checkpoint.pt")
+    torch.save(
+        {"pooled": first_source, "folded": folded_values, "composed": composed},
+        destination / "fold_probe.pt",
+    )
+    return {
+        "fit_rows": len(paths),
+        "fit_rows_sha256": rows_sha,
+        "singular_values": singular.tolist(),
+        "retained_energy": float(singular[:128].square().sum() / singular.square().sum()),
+        "compactor_sha256": hashlib.sha256(components.numpy().tobytes()).hexdigest(),
+        "fold_error": error,
+        "serving_width": 128,
+        "folded_checkpoint_sha256": sha256(destination / "folded_checkpoint.pt"),
+    }
 
 
 def frozen_source_centroid_loss(
@@ -296,8 +414,28 @@ def main() -> None:
     parser.add_argument("--teacher-transfer-smoke-receipt", type=Path)
     parser.add_argument("--teacher-model-snapshot", type=Path)
     parser.add_argument("--teacher-checkpoint", type=Path)
+    parser.add_argument("--training-width", type=int, choices=(128, 256), default=128)
+    parser.add_argument("--wide-head-smoke-receipt", type=Path)
     args = parser.parse_args()
     transfer = args.teacher_transfer is not None
+    wide_smoke = args.wide_head_smoke_receipt is not None
+    if (args.training_width != 128 and not wide_smoke) or (
+        wide_smoke
+        and (
+            args.arm != "freeze_emb"
+            or args.seed != 179024
+            or args.updates != 17
+            or args.freeze_first_blocks != 12
+            or args.half_fit_products
+            or args.tail_blocks_to_drop
+            or args.vision_init_checkpoint
+            or args.source_centroid_smoke
+            or transfer
+            or sha256(args.wide_head_smoke_receipt)
+            != "2698063c7c5720b85dbd643bde678d61550c6a65dffbb4c598910d49779d474e"
+        )
+    ):
+        raise ValueError("wide head smoke authority differs")
     if transfer:
         if (
             args.arm != "control"
@@ -484,6 +622,14 @@ def main() -> None:
     head, classifier, pca_sha = initialize_head_and_classifier(
         features_cpu, tuple(class_ids.tolist()), allow_singletons=True
     )
+    if args.training_width == 256:
+        narrow_weight = head.weight.detach().clone()
+        with torch.random.fork_rng(devices=[]):
+            head, classifier, pca_sha = initialize_head_and_classifier(
+                features_cpu, tuple(class_ids.tolist()), allow_singletons=True, output_dim=256
+            )
+        if not torch.equal(head.weight[:128], narrow_weight):
+            raise ValueError("wide initialization changes native subspace")
     source_mean = source_prototypes = None
     source_sham_index = None
     if args.source_centroid_smoke:
@@ -504,7 +650,9 @@ def main() -> None:
         source_prototypes = torch.nn.functional.normalize(sums, dim=1).cuda()
     bank_started = time.perf_counter()
     live_head = args.arm == "freeze_emb_live"
-    bank_cpu = member_bank_initial_values(features_cpu, head, live_head=live_head)
+    bank_cpu = member_bank_initial_values(
+        features_cpu, head, live_head=live_head, output_dim=args.training_width
+    )
     import transformers
     from transformers import AutoImageProcessor, AutoModel
 
@@ -597,7 +745,7 @@ def main() -> None:
         weight_decay=0.05,
     )
     dtype, scaler = training_precision("bf16", device="cuda")
-    masks = torch.arange(128, device="cuda", dtype=torch.int64).unsqueeze(0)
+    masks = torch.arange(args.training_width, device="cuda", dtype=torch.int64).unsqueeze(0)
     mask_rng = torch.Generator().manual_seed(args.seed + 128_000)
     args.output_dir.mkdir(parents=True, exist_ok=False)
     torch.cuda.reset_peak_memory_stats()
@@ -613,9 +761,14 @@ def main() -> None:
     transfer_losses = []
     teacher_forward_seconds = []
     fixed_smoke_batch = None
+    width_history = []
+    width_initial_geometry = None
+    frozen_sha = parameter_digest(vision, frozen=True) if wide_smoke else None
+    initial_trainable_sha = parameter_digest(vision, frozen=False) if wide_smoke else None
+    started = time.perf_counter()
     for step, (batch, target) in enumerate(loader, start=1):
         step_started = time.perf_counter()
-        if step <= 10 or args.source_centroid_smoke or transfer:
+        if step <= 10 or args.source_centroid_smoke or transfer or wide_smoke:
             digest = hashlib.sha256()
             for key in sorted(batch):
                 digest.update(key.encode())
@@ -629,7 +782,10 @@ def main() -> None:
             source_features = vision(**tensors).pooler_output
         if source_features is None:
             raise ValueError("In-Shop train pooler missing")
-        features = compact_head_features(source_features, head)
+        features = compact_head_features(source_features, head, output_dim=args.training_width)
+        if wide_smoke and step == 1:
+            fixed_smoke_batch = tensors, target
+            width_initial_geometry = width_geometry(features.detach())
         if args.arm == "subspace":
             coordinates = torch.randperm(128, generator=mask_rng)[:64].sort().values.cuda()
             masks = coordinates.unsqueeze(0)
@@ -725,6 +881,21 @@ def main() -> None:
             raise ValueError("In-Shop training loss nonfinite")
         scaler.scale(loss).backward()  # type: ignore[no-untyped-call]
         scaler.unscale_(optimizer)
+        if wide_smoke:
+            width_history.append(
+                {
+                    "arcface": float(control.detach()),
+                    "bank": float(rank.detach()),
+                    "group_gradient_norms": {
+                        name: gradient_norm(parameters)
+                        for name, parameters in (
+                            ("vision", vision.parameters()),
+                            ("head", head.parameters()),
+                            ("classifier", (classifier,)),
+                        )
+                    },
+                }
+            )
         preclip_grad_norm = torch.nn.utils.clip_grad_norm_(
             list(vision.parameters()) + list(head.parameters()) + [classifier],
             1.0,
@@ -734,11 +905,21 @@ def main() -> None:
         before = scaler.get_scale()
         scaler.step(optimizer)
         scaler.update()
-        if (args.source_centroid_smoke or transfer) and any(
+        if (args.source_centroid_smoke or transfer or wide_smoke) and any(
             not torch.isfinite(parameter).all()
             for parameter in list(vision.parameters()) + list(head.parameters()) + [classifier]
         ):
             raise ValueError("source smoke parameter nonfinite")
+        if wide_smoke and (
+            not torch.isfinite(bank).all()
+            or any(
+                not torch.isfinite(value).all()
+                for state in optimizer.state.values()
+                for value in state.values()
+                if isinstance(value, torch.Tensor)
+            )
+        ):
+            raise ValueError("wide smoke optimizer/bank nonfinite")
         if scaler.get_scale() < before:
             raise ValueError("In-Shop optimizer step skipped")
         refresh_rows, refresh_positions = member_bank_refresh_rows(batches[step - 1])
@@ -775,6 +956,19 @@ def main() -> None:
     ):
         raise ValueError("In-Shop rank execution count differs")
     training_peak_cuda = torch.cuda.max_memory_allocated()
+    width_terminal_geometry = None
+    if wide_smoke:
+        if frozen_sha != parameter_digest(
+            vision, frozen=True
+        ) or initial_trainable_sha == parameter_digest(vision, frozen=False):
+            raise ValueError("wide smoke frozen/update authority differs")
+        vision.eval()
+        with torch.no_grad(), torch.autocast("cuda", dtype=dtype):
+            pooled = vision(**fixed_smoke_batch[0]).pooler_output
+        with torch.no_grad():
+            width_terminal_geometry = width_geometry(
+                compact_head_features(pooled, head, output_dim=args.training_width)
+            )
     if args.source_centroid_smoke:
         tensors, target = fixed_smoke_batch
         smoke_probes.append(
@@ -805,6 +999,7 @@ def main() -> None:
             {
                 "vision": {key: value.detach().cpu() for key, value in vision.state_dict().items()},
                 "head": {key: value.detach().cpu() for key, value in head.state_dict().items()},
+                "training_width": args.training_width,
                 "classifier": classifier.detach().cpu(),
                 "seed": args.seed,
                 "arm": args.arm,
@@ -821,6 +1016,17 @@ def main() -> None:
                 "live_head_bank": live_head,
             },
             checkpoint_path,
+        )
+    width_fold = None
+    if wide_smoke and args.training_width == 256:
+        width_fold = calibrate_smoke_fold(
+            vision,
+            head,
+            tuple(paths[row] for row in fit[:2048]),
+            processor,
+            args.output_dir,
+            args.workers,
+            digest_rows(fit[:2048]),
         )
     quality = None
     export_seconds = None
@@ -885,6 +1091,12 @@ def main() -> None:
         "partition_sha256": PARTITION_SHA,
         "model_file_sha256": model_hashes,
         "teacher_transfer": args.teacher_transfer,
+        "training_width": args.training_width,
+        "wide_head_smoke": wide_smoke,
+        "width_history": width_history,
+        "width_initial_geometry": width_initial_geometry,
+        "width_terminal_geometry": width_terminal_geometry,
+        "width_fold": width_fold,
         "teacher_checkpoint_sha256": CHECKPOINT_SHA if transfer else None,
         "teacher_transfer_losses": transfer_losses,
         "teacher_forward_seconds": teacher_forward_seconds,
@@ -918,7 +1130,7 @@ def main() -> None:
         "preclip_grad_norms": preclip_grad_norms,
         "first_loss": losses[0],
         "last_loss": losses[-1],
-        "all_step_losses": losses if args.source_centroid_smoke or transfer else None,
+        "all_step_losses": losses if args.source_centroid_smoke or transfer or wide_smoke else None,
         "source_centroid_smoke": args.source_centroid_smoke,
         "source_centroid_probes": smoke_probes,
         "source_centroid_auxiliary_losses": auxiliary_losses,

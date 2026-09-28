@@ -76,6 +76,17 @@ def test_compact_head_accepts_siglip2_width_and_backpropagates():
     assert head.weight.grad is not None and bool(torch.isfinite(head.weight.grad).all())
 
 
+def test_wide_training_head_requires_explicit_dimension():
+    source = torch.randn(4, 1024, requires_grad=True)
+    head = torch.nn.Linear(1024, 256)
+    with pytest.raises(ValueError, match="geometry"):
+        compact_head_features(source, head)
+    projected = compact_head_features(source, head, output_dim=256)
+    assert projected.shape == (4, 256)
+    projected.square().sum().backward()
+    assert source.grad is not None and bool(torch.isfinite(source.grad).all())
+
+
 @pytest.mark.parametrize("arm", tuple(CompactTrainingArm))
 def test_compact_terms_reconstruct_total_without_extra_objective(arm):
     features, weights, labels, masks = _batch()
