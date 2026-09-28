@@ -43,12 +43,16 @@ def self_check():
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--self-check", action="store_true")
+    parser.add_argument("--initialization-only", action="store_true")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     if args.self_check:
         self_check()
         return
     assert args.output is not None and not args.output.exists()
+    artifacts = args.output.with_suffix("")
+    if args.initialization_only:
+        artifacts.mkdir(exist_ok=False)
     torch.set_num_threads(8)
     torch.manual_seed(179034)
     started = time.perf_counter()
@@ -94,7 +98,7 @@ def main():
         bank = member_bank_initial_values(source, head, live_head=False, output_dim=dim)
         optimizer = torch.optim.AdamW([head.weight, head.bias, proxies], lr=1e-4, weight_decay=.05)
         losses, gradients = [], []
-        for batch in batches:
+        for batch in (() if args.initialization_only else batches):
             indexes = torch.tensor(batch)
             optimizer.zero_grad(set_to_none=True)
             projected = compact_head_features(source[indexes], head, output_dim=dim)
@@ -117,6 +121,12 @@ def main():
             padding_check(values,held_labels,query,gallery,quality)
             assert quality["recall_at_1"] >= .8
         result["arms"][str(dim)] = {"quality":quality,"init_and_training_seconds":cost,"updates":len(losses),"losses":losses,"gradient_norms":gradients,"initial_pca_sha256":pca_sha,"wire_bytes_per_row":dim+2,"parameters":sum(p.numel() for p in (head.weight,head.bias,proxies))}
+        if args.initialization_only:
+            values_path = artifacts / f"values{dim}.npy"
+            head_path = artifacts / f"head{dim}.pt"
+            np.save(values_path, values)
+            torch.save(head.state_dict(), head_path)
+            result["arms"][str(dim)].update(values_path=str(values_path), values_sha256=sha256(values_path), head_path=str(head_path), head_sha256=sha256(head_path))
         print(json.dumps({"dim":dim,"recall":quality["recall_at_1"],"map":quality["map_at_r"],"train_seconds":cost}),flush=True)
     a,b = (result["arms"][str(dim)] for dim in (128,256))
     qlabels = np.asarray([held_labels[i] for i in query])
@@ -126,7 +136,15 @@ def main():
         result["deltas"][metric] = {"point":float(delta.mean()),"lower95":bootstrap_lower(delta,qlabels),"upper95":-bootstrap_lower(-delta,qlabels)}
     d=result["deltas"]
     result["criteria"]={"recall":d["recall"]["point"]>=.005 and d["recall"]["lower95"]>0,"map":d["map"]["point"]>=.01 and d["map"]["lower95"]>0,"cost":b["init_and_training_seconds"]<=1.5*a["init_and_training_seconds"],"whole_budget":time.perf_counter()-started<=120}
-    result["decision"]="GO_REVIEW_ONLY" if all(result["criteria"].values()) else "KILL_DEPLOYED256_CACHED"
+    if args.initialization_only:
+        with torch.no_grad():
+            unit = F.normalize(held,dim=1).numpy()
+        result["unit1024_quality"] = packed_quality(unit,held_labels,query,gallery,device=torch.device("cpu"))
+        unit_path = artifacts / "values1024.npy"
+        np.save(unit_path,unit)
+        result.update(schema="sfora-inshop-deployed256-step0-v1", decision="ATTRIBUTION_ONLY", criteria=None, unit1024_values_path=str(unit_path), unit1024_values_sha256=sha256(unit_path))
+    else:
+        result["decision"]="GO_REVIEW_ONLY" if all(result["criteria"].values()) else "KILL_DEPLOYED256_CACHED"
     result["cpu_wall_seconds"]=time.perf_counter()-started
     args.output.write_text(json.dumps(result,indent=2)+"\n")
     print(json.dumps({"decision":result["decision"],"deltas":d,"criteria":result["criteria"]}),flush=True)

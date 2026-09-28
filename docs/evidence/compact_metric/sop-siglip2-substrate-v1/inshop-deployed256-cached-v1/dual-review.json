@@ -1,0 +1,667 @@
+{
+  "id": "7e10a8fc8fa24171",
+  "status": "completed",
+  "started_at": 1790587718,
+  "agent": "",
+  "force_reason": "New terminal adf61525 gives fresh direct-deployed256 cached R1 +1.715pp with positive paired CI and mAP +.02787; deciding a wider native/public format and real-encoder GPU gate is consequential and causally distinct from the earlier closed256-to-folded128 calibration arm. No same-question consultation is live; original cooldown call started no job. Operator requires Opus5.5/Astra at such terminal decisions.",
+  "rolling_6h_count": 4,
+  "prompt_preview": "Read-only independent GO/KILL design review, Sfora /home/rb/worktrees/sfora-positive-causality master adf61525. Do not edit, launch work/downloads, or send operator messages. Recent8consultations allterminal; DGXidle. New terminal docs/inshop_deployed256_cached_gate_2026-09-28.md, docs/inshop_deployed256_cached_result_2026-09-28.md, scripts/probe_inshop_deployed256_cached.py, raw docs/evidence/compact_metric/sop-siglip2-substrate-v1/inshop-deployed256-cached-v1/{receipt,verification}.json. ReceiptSHA1ac62b0edda6dd93bc808a8d2bb81fef7c89cc1c4eaef816d276c4fecb2a555f. FRESH seed179034 native128 vs DIRECT RETAINED256 cachedheads; no fold/calibration/newencoder. Same100x64coveragebatches,ArcFace.3/64+8bank,AdamW1e-4/.05clip1; pretrainedSiglip1024cache;6757originalTRAINfit-innerimages995prod, internal3440q3074g997disjointprod. Packedoracle R1.8694767442->.8866279070 (+1.715116pp95[1.184231,2.255424]),map.6266230495->.6544897009 (+.02786665 CI[.02435777,.03163477]);70rescues11regress. CPUinit+headtrain6.0465/5.6143s,candidate second/warm NOTspeedclaim;whole13.253sec. PCAfirst128weights+biasexact; native128zeropaddedto256codes/norm/everyhitAPexact. Source/roles/means/bootstrap/decisionreplaypassed, but actualheads/heldembeddingsnotretained orindependentlyrescored. Onefixedseed/reusedinnerfitpanel: NOouterheld/official/encoder/GPUqualityread. Inspect code for bugs/protocol/numerical leakage before approving furtherwork. PRIOR docs/inshop_wide_head_100_gate_2026-09-28.md fixed256supervision->fitcalibrate-fold128 was KILL504sec/280childbudget, wideheldqualityUNMEASURED; doNOTreopen rawcheckpoint/missingresult orrelaxitsgate. Thiscandidate DIRECTDEPLOY256 avoids calibration/retainscoordinates but258vs130Brow/proxies/bankdouble. Goal jointstrongestSOP+Inshopmatchedquality/speed, not fixed128contract; noSOTA claim. Existing initialize_head_and_classifier(output_dim=256), compact_head_features(output_dim=256), member_bank_initial_values(output_dim=256), generic pack/oracle already support256. Currentpublicloader siglip2_compact_serving.py/CuTile cutile_int8.py HARD128; no native256 orservingparity. Biglegacy scripts/train_inshop_siglip2_unseen_gallery.py ties --training-width256 to wide_smokeauthority/postfitcalibrate/export128. QUESTION: Is thispositive sufficientfor ONEbounded realencoder direct256 matched mechanics smoke, then separatelyfrozen100updatepaired TRAINquality before native/public256format implementation? Recommend smallestexistinghelper reuse, finite/frozen/input/update/actualFP16batch32packed-checkpointreload mechanics guard, cheap100sec/17steporless cap; nextusefulquality/resourcefloorandkill. Same originalfit/freeze_emb12 BF16/pixels/roles, no source/loss/width/compactorsearch. Pointout any invalidassumptions. Actual256nativepackedties/parity/fullimage-to-topk latency and independentmultiseed/transfer/officialqualification requiredlater. No projection fromcached +1.715pp toofficialgap. DoNOTassert raw1024failure rulesout widerTRAINEDhead, or all128capacity exhausted. Donotbuildnewunboundedtrainer or researchplan. Opus5.5andAstra consequentialreview requested.",
+  "prompt_sha256": "42225b760130194b5c807d22f9782ce58370898e93ef59db652074c427fbccce",
+  "prompt_bytes": 3117,
+  "fingerprint": "d5a1728e448f413a1ce9b95a96e334f9c5b9988b0021670da917d1e77121664b",
+  "evidence": {
+    "git_commit": "adf615253ebec7fb0b103f61be6f61691438231d",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+    "worktree_sha256": "462dfce4182214266285cbc8fef20aa0b45c46ac53a04963a679d266796953ab",
+    "worktree_evidence_truncated": false,
+    "active_goal": null
+  },
+  "reviewers": [
+    {
+      "role": "research_critic",
+      "id": "c51549b81b784643",
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "fallbacks": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "agent": "",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1790587718,
+      "timeout_seconds": 1200,
+      "deadline_at": 1790588918,
+      "budget_usd": 4,
+      "prompt_preview": "Act as the independent research and first-principles critic. Challenge assumptions, compare alternatives and prior art, and identify missing evidence. Do not edit files.\n\nMaterial to critique:\nRead-only independent GO/KILL design review, Sfora /home/rb/worktrees/sfora-positive-causality master adf61525. Do not edit, launch work/downloads, or send operator messages. Recent8consultations allterminal; DGXidle. New terminal docs/inshop_deployed256_cached_gate_2026-09-28.md, docs/inshop_deployed256_cached_result_2026-09-28.md, scripts/probe_inshop_deployed256_cached.py, raw docs/evidence/compact_metric/sop-siglip2-substrate-v1/inshop-deployed256-cached-v1/{receipt,verification}.json. ReceiptSHA1ac62b0edda6dd93bc808a8d2bb81fef7c89cc1c4eaef816d276c4fecb2a555f. FRESH seed179034 native128 vs DIRECT RETAINED256 cachedheads; no fold/calibration/newencoder. Same100x64coveragebatches,ArcFace.3/64+8bank,AdamW1e-4/.05clip1; pretrainedSiglip1024cache;6757originalTRAINfit-innerimages995prod, internal3440q3074g997disjointprod. Packedoracle R1.8694767442->.8866279070 (+1.715116pp95[1.184231,2.255424]),map.6266230495->.6544897009 (+.02786665 CI[.02435777,.03163477]);70rescues11regress. CPUinit+headtrain6.0465/5.6143s,candidate second/warm NOTspeedclaim;whole13.253sec. PCAfirst128weights+biasexact; native128zeropaddedto256codes/norm/everyhitAPexact. Source/roles/means/bootstrap/decisionreplaypassed, but actualheads/heldembeddingsnotretained orindependentlyrescored. Onefixedseed/reusedinnerfitpanel: NOouterheld/official/encoder/GPUqualityread. Inspect code for bugs/protocol/numerical leakage before approving furtherwork. PRIOR docs/inshop_wide_head_100_gate_2026-09-28.md fixed256supervision->fitcalibrate-fold128 was KILL504sec/280childbudget, wideheldqualityUNMEASURED; doNOTreopen rawcheckpoint/missingresult orrelaxitsgate. Thiscandidate DIRECTDEPLOY256 avoids calibration/retainscoordinates but258vs130Brow/proxies/bankdouble. Goal jointstrongestSOP+Inshopmatchedquality/speed, not fixed128contract; noSOTA claim. Existing initialize_head_and_classifier(output_dim=256), compact_head_features(output_dim=256), member_bank_initial_values(output_dim=256), generic pack/oracle already support256. Currentpublicloader siglip2_compact_serving.py/CuTile cutile_int8.py HARD128; no native256 orservingparity. Biglegacy scripts/train_inshop_siglip2_unseen_gallery.py ties --training-width256 to wide_smokeauthority/postfitcalibrate/export128. QUESTION: Is thispositive sufficientfor ONEbounded realencoder direct256 matched mechanics smoke, then separatelyfrozen100updatepaired TRAINquality before native/public256format implementation? Recommend smallestexistinghelper reuse, finite/frozen/input/update/actualFP16batch32packed-checkpointreload mechanics guard, cheap100sec/17steporless cap; nextusefulquality/resourcefloorandkill. Same originalfit/freeze_emb12 BF16/pixels/roles, no source/loss/width/compactorsearch. Pointout any invalidassumptions. Actual256nativepackedties/parity/fullimage-to-topk latency and independentmultiseed/transfer/officialqualification requiredlater. No projection fromcached +1.715pp toofficialgap. DoNOTassert raw1024failure rulesout widerTRAINEDhead, or all128capacity exhausted. Donotbuildnewunboundedtrainer or researchplan. Opus5.5andAstra consequentialreview requested.",
+      "prompt_sha256": "d5ab083639a4bf99149aae9968f31ecec2d553ee8290b7fd5d28700326ff5371",
+      "prompt_bytes": 3446,
+      "fingerprint": "8dfb5bb3106b867722e85f852304f9ce4ef0d3526a6a9f1a060464a5bbb2bc10",
+      "evidence": {
+        "git_commit": "adf615253ebec7fb0b103f61be6f61691438231d",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+        "worktree_sha256": "462dfce4182214266285cbc8fef20aa0b45c46ac53a04963a679d266796953ab",
+        "worktree_evidence_truncated": false,
+        "active_goal": null
+      },
+      "previous_fingerprint": "8b764999b6232f8ca7a7eae5acf7a886c25b04999b9c427724182c2ebf69531f",
+      "reused": false,
+      "critique_id": "7e10a8fc8fa24171",
+      "critique_role": "research_critic",
+      "systemd_unit": "devbox-consult-c51549b81b784643.service",
+      "pid": 130712,
+      "pgid": 130712,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5",
+          "budget_usd": 4,
+          "timeout_seconds": 1200,
+          "started_at": 1790587718
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1790587807,
+      "event_cursor": 28,
+      "events": [
+        {
+          "seq": 5,
+          "at": 1790587726,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 6,
+          "at": 1790587734,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 7,
+          "at": 1790587742,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 8,
+          "at": 1790587770,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 9,
+          "at": 1790587777,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 10,
+          "at": 1790587777,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 11,
+          "at": 1790587790,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 12,
+          "at": 1790587791,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 13,
+          "at": 1790587792,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 14,
+          "at": 1790587793,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 15,
+          "at": 1790587794,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 16,
+          "at": 1790587795,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 17,
+          "at": 1790587796,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 18,
+          "at": 1790587797,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 19,
+          "at": 1790587798,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 20,
+          "at": 1790587799,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 21,
+          "at": 1790587800,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 22,
+          "at": 1790587801,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 23,
+          "at": 1790587802,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 24,
+          "at": 1790587803,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 25,
+          "at": 1790587804,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 26,
+          "at": 1790587805,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 27,
+          "at": 1790587806,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 28,
+          "at": 1790587807,
+          "provider": "claude",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": true,
+      "provider_events": {
+        "claude": [
+          {
+            "seq": 21,
+            "at": 1790587800,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 22,
+            "at": 1790587801,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 23,
+            "at": 1790587802,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 24,
+            "at": 1790587803,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 25,
+            "at": 1790587804,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 26,
+            "at": 1790587805,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 27,
+            "at": 1790587806,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 28,
+            "at": 1790587807,
+            "provider": "claude",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "**Verdict: CONDITIONAL GO.** The positive is enough to fund one bounded real-encoder direct-256 mechanics smoke, followed by one frozen 100-update paired TRAIN quality read. It is not yet enough evidence for native or public 256 format work. Before any GPU time, I recommend one cheap CPU control, because the current evidence can't say whether training contributed anything.\n\n## Code / protocol / leakage audit (`scripts/probe_inshop_deployed256_cached.py`)\nI found no leakage and no scorer bug:\n- **Fit-only initialization.** PCA, bias and proxies are fitted on the 6757 fit rows only (`initialize_head_and_classifier` gets `source` = training).\n- **Bank stays in the fit set.** The member bank and positive ordinals index fit rows only. Held embeddings are computed once, under `no_grad`, after training.\n- **Disjointness is asserted.** Training and validation products are disjoint, and nothing overlaps the outer split.\n- **The scorer is exact at 256.** `packed_quality` computes int8 code products in fp32. The largest possible value, 256·127² ≈ 4.1M, is below 2²⁴, so scores are exact. Ties are broken with a stable sort, and the padding control confirms the scorer is dimension-agnostic.\n- **Randomness is effectively schedule-only.** Nothing in the run draws from `torch.manual_seed` except, possibly, the batch schedule, and that is seeded explicitly. PCA is deterministic, so the \"one fixed seed\" is really one fixed schedule. More schedule seeds cost only seconds of CPU.\n\n## Invalid or unsupported assumptions\n1. **\"Training confirmed width helps\" is not shown.** Both heads start as PCA-k, and per-batch loss *rises* over the 100 updates (128: 5.36→6.08, 256: 4.85→5.50; mid-run peaks around 7.8–8.4). At lr 1e-4, 100 AdamW steps move each weight by at most about 1e-2, so the +1.7pp may be mostly the frozen-substrate PCA-128 vs PCA-256 truncation gap. **Missing control:** the step-0 packed R@1/mAP for PCA-128, PCA-256 and unit-1024 on the same panel. This costs seconds on CPU and is not a new selection panel.\n   - If step-0 Δ is about the same as trained Δ, the signal is \"the frozen substrate has more than 128 dimensions of information\". That is expected, and it transfers weakly to fine-tuning.\n2. **A frozen source is the most favourable case for extra width.** A fine-tuned encoder can concentrate information into 128 dimensions; a frozen cache cannot. Expect the gap to shrink with the real encoder. Repo priors are around +0.85pp (B/16 768 vs 128) and +0.013–0.018 mAP on SOP (`docs/learned_width_int4_result_2026-09-20.md`).\n3. **Native 128 is not the only byte-matched comparator.** That same doc already shows **direct256 int4 at 128 B** beating direct128 int8 on SOP by +0.0178 mAP, with a float→int4 loss of 0.002. At 258 B, the fair question is whether the width gain survives int4 at 130 B, versus int8 at 258 B. Both need format work, and int4 keeps the current row budget.\n   - Serving was previously measured as decode/encoder-bound, with search under 3% of time. So the 258 B cost is mostly RAM and bank memory, not latency. That is still unmeasured here.\n4. **\"Avoids calibration\" is true only for the cached probe.** In `train_inshop_siglip2_unseen_gallery.py`, `--training-width 256` is locked to the `wide_smoke`, calibrate-fold and export-128 path (lines 528, 635–639, `calibrate_fit_fold` at 173). A direct-256 real run needs a narrow bypass there, not a new trainer. The bypass must not reuse or relax the killed gate's authority.\n5. **The 100-update read is asymmetric evidence.** From PCA init, an early read is dominated by the initial truncation gap. A 100-update positive does not show the gain persists (the earlier In-Shop loss was still falling at 1k updates). A 100-update negative is a clean kill.\n\n## Recommended sequence (smallest reuse)\n**0. CPU, under 60 s.** Add the step-0 PCA-128 / PCA-256 control and two more schedule seeds to the existing probe (a flag, not a new script). Also score the already-trained 256 embeddings with the existing int4 packer from the learned-width work, if it is importable.\n- **Kill** if trained Δ minus step-0 Δ is ≤ 0 on R@1 with a CI that includes 0 *and* the step-0 Δ is under 0.5pp. In that case neither the substrate nor the training supports width.\n\n**1. Mechanics smoke.** Reuse the `freeze_emb` arm of `train_inshop_siglip2_unseen_gallery.py` with `--training-width 256`. Add a single `--deploy-width 256` gate that skips `calibrate_fit_fold` and export-128, plus the existing helpers (`initialize_head_and_classifier`, `compact_head_features`, `member_bank_initial_values`, `pack_int8_unit_embeddings`, `packed_quality`). Run it paired against native 128 with the same seed, batches, BF16, pixels and roles. Limits: **17 updates per arm, 100 s wall cap per arm**. Guards:\n- All losses, gradient norms, parameters and bank values are finite.\n- The frozen-block (emb + 12 blocks) parameter hash is unchanged; the trainable hash has changed.\n- The first 128 rows of the 256 PCA init equal the 128 init.\n- The input pixel/batch schedule hash is identical across arms.\n- After checkpoint save and reload, FP16 batch-32 embeddings of a fixed 32-image set reproduce the pre-save packed codes exactly (or at a pre-stated 1-LSB flip rate ≤ 1e-3), with inverse norms equal and 258 B per row.\n- Record step time and peak VRAM for both arms. **Kill** if the 256 step time exceeds 1.15× the 128 step time or peak VRAM exceeds 1.25×.\n- No quality read in this step.\n\n**2. Frozen paired TRAIN quality.** 100 updates per arm, same panel, with the gate frozen before the run:\n- GO only if packed R@1 Δ ≥ +0.5pp with product-bootstrap lower bound > 0, **and** mAP@R Δ ≥ +0.01 with lower bound > 0.\n- Report the int4 130 B score of the same 256 embeddings alongside, descriptively.\n- Kill on any miss, and do not widen the gate afterwards.\n- This panel has already been observed, so label the read exploratory.\n\n**3. Only after step 2 passes:** native 256 (or int4) packed parity and tie checks, image-to-top-k latency, then independent multi-seed, transfer and official qualification.\n\n## Not claimable\n- An official-gap projection from +1.715pp.\n- Novelty: width-vs-quality is standard metric-learning knowledge.\n- Speed: arm order confounds the timings.\n- That 128 capacity is exhausted, or that the raw-1024 failure rules out a wider trained head.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "claude": "**Verdict: CONDITIONAL GO.** The positive is enough to fund one bounded real-encoder direct-256 mechanics smoke, followed by one frozen 100-update paired TRAIN quality read. It is not yet enough evidence for native or public 256 format work. Before any GPU time, I recommend one cheap CPU control, because the current evidence can't say whether training contributed anything.\n\n## Code / protocol / leakage audit (`scripts/probe_inshop_deployed256_cached.py`)\nI found no leakage and no scorer bug:\n- **Fit-only initialization.** PCA, bias and proxies are fitted on the 6757 fit rows only (`initialize_head_and_classifier` gets `source` = training).\n- **Bank stays in the fit set.** The member bank and positive ordinals index fit rows only. Held embeddings are computed once, under `no_grad`, after training.\n- **Disjointness is asserted.** Training and validation products are disjoint, and nothing overlaps the outer split.\n- **The scorer is exact at 256.** `packed_quality` computes int8 code products in fp32. The largest possible value, 256·127² ≈ 4.1M, is below 2²⁴, so scores are exact. Ties are broken with a stable sort, and the padding control confirms the scorer is dimension-agnostic.\n- **Randomness is effectively schedule-only.** Nothing in the run draws from `torch.manual_seed` except, possibly, the batch schedule, and that is seeded explicitly. PCA is deterministic, so the \"one fixed seed\" is really one fixed schedule. More schedule seeds cost only seconds of CPU.\n\n## Invalid or unsupported assumptions\n1. **\"Training confirmed width helps\" is not shown.** Both heads start as PCA-k, and per-batch loss *rises* over the 100 updates (128: 5.36→6.08, 256: 4.85→5.50; mid-run peaks around 7.8–8.4). At lr 1e-4, 100 AdamW steps move each weight by at most about 1e-2, so the +1.7pp may be mostly the frozen-substrate PCA-128 vs PCA-256 truncation gap. **Missing control:** the step-0 packed R@1/mAP for PCA-128, PCA-256 and unit-1024 on the same panel. This costs seconds on CPU and is not a new selection panel.\n   - If step-0 Δ is about the same as trained Δ, the signal is \"the frozen substrate has more than 128 dimensions of information\". That is expected, and it transfers weakly to fine-tuning.\n2. **A frozen source is the most favourable case for extra width.** A fine-tuned encoder can concentrate information into 128 dimensions; a frozen cache cannot. Expect the gap to shrink with the real encoder. Repo priors are around +0.85pp (B/16 768 vs 128) and +0.013–0.018 mAP on SOP (`docs/learned_width_int4_result_2026-09-20.md`).\n3. **Native 128 is not the only byte-matched comparator.** That same doc already shows **direct256 int4 at 128 B** beating direct128 int8 on SOP by +0.0178 mAP, with a float→int4 loss of 0.002. At 258 B, the fair question is whether the width gain survives int4 at 130 B, versus int8 at 258 B. Both need format work, and int4 keeps the current row budget.\n   - Serving was previously measured as decode/encoder-bound, with search under 3% of time. So the 258 B cost is mostly RAM and bank memory, not latency. That is still unmeasured here.\n4. **\"Avoids calibration\" is true only for the cached probe.** In `train_inshop_siglip2_unseen_gallery.py`, `--training-width 256` is locked to the `wide_smoke`, calibrate-fold and export-128 path (lines 528, 635–639, `calibrate_fit_fold` at 173). A direct-256 real run needs a narrow bypass there, not a new trainer. The bypass must not reuse or relax the killed gate's authority.\n5. **The 100-update read is asymmetric evidence.** From PCA init, an early read is dominated by the initial truncation gap. A 100-update positive does not show the gain persists (the earlier In-Shop loss was still falling at 1k updates). A 100-update negative is a clean kill.\n\n## Recommended sequence (smallest reuse)\n**0. CPU, under 60 s.** Add the step-0 PCA-128 / PCA-256 control and two more schedule seeds to the existing probe (a flag, not a new script). Also score the already-trained 256 embeddings with the existing int4 packer from the learned-width work, if it is importable.\n- **Kill** if trained Δ minus step-0 Δ is ≤ 0 on R@1 with a CI that includes 0 *and* the step-0 Δ is under 0.5pp. In that case neither the substrate nor the training supports width.\n\n**1. Mechanics smoke.** Reuse the `freeze_emb` arm of `train_inshop_siglip2_unseen_gallery.py` with `--training-width 256`. Add a single `--deploy-width 256` gate that skips `calibrate_fit_fold` and export-128, plus the existing helpers (`initialize_head_and_classifier`, `compact_head_features`, `member_bank_initial_values`, `pack_int8_unit_embeddings`, `packed_quality`). Run it paired against native 128 with the same seed, batches, BF16, pixels and roles. Limits: **17 updates per arm, 100 s wall cap per arm**. Guards:\n- All losses, gradient norms, parameters and bank values are finite.\n- The frozen-block (emb + 12 blocks) parameter hash is unchanged; the trainable hash has changed.\n- The first 128 rows of the 256 PCA init equal the 128 init.\n- The input pixel/batch schedule hash is identical across arms.\n- After checkpoint save and reload, FP16 batch-32 embeddings of a fixed 32-image set reproduce the pre-save packed codes exactly (or at a pre-stated 1-LSB flip rate ≤ 1e-3), with inverse norms equal and 258 B per row.\n- Record step time and peak VRAM for both arms. **Kill** if the 256 step time exceeds 1.15× the 128 step time or peak VRAM exceeds 1.25×.\n- No quality read in this step.\n\n**2. Frozen paired TRAIN quality.** 100 updates per arm, same panel, with the gate frozen before the run:\n- GO only if packed R@1 Δ ≥ +0.5pp with product-bootstrap lower bound > 0, **and** mAP@R Δ ≥ +0.01 with lower bound > 0.\n- Report the int4 130 B score of the same 256 embeddings alongside, descriptively.\n- Kill on any miss, and do not widen the gate afterwards.\n- This panel has already been observed, so label the read exploratory.\n\n**3. Only after step 2 passes:** native 256 (or int4) packed parity and tie checks, image-to-top-k latency, then independent multi-seed, transfer and official qualification.\n\n## Not claimable\n- An official-gap projection from +1.715pp.\n- Novelty: width-vs-quality is standard metric-learning knowledge.\n- Speed: arm order confounds the timings.\n- That 128 capacity is exhausted, or that the raw-1024 failure rules out a wider trained head."
+      },
+      "providers_used": [
+        "claude"
+      ],
+      "active_provider": "claude",
+      "phase": "Consultation completed",
+      "input_bytes": 3446,
+      "output_bytes": 6370,
+      "elapsed_seconds": 89,
+      "progress": "devbox-ask: claude consult still running (0m 30s)\ndevbox-ask: claude consult still running (1m 00s)",
+      "progress_truncated": false,
+      "result": "**Verdict: CONDITIONAL GO.** The positive is enough to fund one bounded real-encoder direct-256 mechanics smoke, followed by one frozen 100-update paired TRAIN quality read. It is not yet enough evidence for native or public 256 format work. Before any GPU time, I recommend one cheap CPU control, because the current evidence can't say whether training contributed anything.\n\n## Code / protocol / leakage audit (`scripts/probe_inshop_deployed256_cached.py`)\nI found no leakage and no scorer bug:\n- **Fit-only initialization.** PCA, bias and proxies are fitted on the 6757 fit rows only (`initialize_head_and_classifier` gets `source` = training).\n- **Bank stays in the fit set.** The member bank and positive ordinals index fit rows only. Held embeddings are computed once, under `no_grad`, after training.\n- **Disjointness is asserted.** Training and validation products are disjoint, and nothing overlaps the outer split.\n- **The scorer is exact at 256.** `packed_quality` computes int8 code products in fp32. The largest possible value, 256·127² ≈ 4.1M, is below 2²⁴, so scores are exact. Ties are broken with a stable sort, and the padding control confirms the scorer is dimension-agnostic.\n- **Randomness is effectively schedule-only.** Nothing in the run draws from `torch.manual_seed` except, possibly, the batch schedule, and that is seeded explicitly. PCA is deterministic, so the \"one fixed seed\" is really one fixed schedule. More schedule seeds cost only seconds of CPU.\n\n## Invalid or unsupported assumptions\n1. **\"Training confirmed width helps\" is not shown.** Both heads start as PCA-k, and per-batch loss *rises* over the 100 updates (128: 5.36→6.08, 256: 4.85→5.50; mid-run peaks around 7.8–8.4). At lr 1e-4, 100 AdamW steps move each weight by at most about 1e-2, so the +1.7pp may be mostly the frozen-substrate PCA-128 vs PCA-256 truncation gap. **Missing control:** the step-0 packed R@1/mAP for PCA-128, PCA-256 and unit-1024 on the same panel. This costs seconds on CPU and is not a new selection panel.\n   - If step-0 Δ is about the same as trained Δ, the signal is \"the frozen substrate has more than 128 dimensions of information\". That is expected, and it transfers weakly to fine-tuning.\n2. **A frozen source is the most favourable case for extra width.** A fine-tuned encoder can concentrate information into 128 dimensions; a frozen cache cannot. Expect the gap to shrink with the real encoder. Repo priors are around +0.85pp (B/16 768 vs 128) and +0.013–0.018 mAP on SOP (`docs/learned_width_int4_result_2026-09-20.md`).\n3. **Native 128 is not the only byte-matched comparator.** That same doc already shows **direct256 int4 at 128 B** beating direct128 int8 on SOP by +0.0178 mAP, with a float→int4 loss of 0.002. At 258 B, the fair question is whether the width gain survives int4 at 130 B, versus int8 at 258 B. Both need format work, and int4 keeps the current row budget.\n   - Serving was previously measured as decode/encoder-bound, with search under 3% of time. So the 258 B cost is mostly RAM and bank memory, not latency. That is still unmeasured here.\n4. **\"Avoids calibration\" is true only for the cached probe.** In `train_inshop_siglip2_unseen_gallery.py`, `--training-width 256` is locked to the `wide_smoke`, calibrate-fold and export-128 path (lines 528, 635–639, `calibrate_fit_fold` at 173). A direct-256 real run needs a narrow bypass there, not a new trainer. The bypass must not reuse or relax the killed gate's authority.\n5. **The 100-update read is asymmetric evidence.** From PCA init, an early read is dominated by the initial truncation gap. A 100-update positive does not show the gain persists (the earlier In-Shop loss was still falling at 1k updates). A 100-update negative is a clean kill.\n\n## Recommended sequence (smallest reuse)\n**0. CPU, under 60 s.** Add the step-0 PCA-128 / PCA-256 control and two more schedule seeds to the existing probe (a flag, not a new script). Also score the already-trained 256 embeddings with the existing int4 packer from the learned-width work, if it is importable.\n- **Kill** if trained Δ minus step-0 Δ is ≤ 0 on R@1 with a CI that includes 0 *and* the step-0 Δ is under 0.5pp. In that case neither the substrate nor the training supports width.\n\n**1. Mechanics smoke.** Reuse the `freeze_emb` arm of `train_inshop_siglip2_unseen_gallery.py` with `--training-width 256`. Add a single `--deploy-width 256` gate that skips `calibrate_fit_fold` and export-128, plus the existing helpers (`initialize_head_and_classifier`, `compact_head_features`, `member_bank_initial_values`, `pack_int8_unit_embeddings`, `packed_quality`). Run it paired against native 128 with the same seed, batches, BF16, pixels and roles. Limits: **17 updates per arm, 100 s wall cap per arm**. Guards:\n- All losses, gradient norms, parameters and bank values are finite.\n- The frozen-block (emb + 12 blocks) parameter hash is unchanged; the trainable hash has changed.\n- The first 128 rows of the 256 PCA init equal the 128 init.\n- The input pixel/batch schedule hash is identical across arms.\n- After checkpoint save and reload, FP16 batch-32 embeddings of a fixed 32-image set reproduce the pre-save packed codes exactly (or at a pre-stated 1-LSB flip rate ≤ 1e-3), with inverse norms equal and 258 B per row.\n- Record step time and peak VRAM for both arms. **Kill** if the 256 step time exceeds 1.15× the 128 step time or peak VRAM exceeds 1.25×.\n- No quality read in this step.\n\n**2. Frozen paired TRAIN quality.** 100 updates per arm, same panel, with the gate frozen before the run:\n- GO only if packed R@1 Δ ≥ +0.5pp with product-bootstrap lower bound > 0, **and** mAP@R Δ ≥ +0.01 with lower bound > 0.\n- Report the int4 130 B score of the same 256 embeddings alongside, descriptively.\n- Kill on any miss, and do not widen the gate afterwards.\n- This panel has already been observed, so label the read exploratory.\n\n**3. Only after step 2 passes:** native 256 (or int4) packed parity and tie checks, image-to-top-k latency, then independent multi-seed, transfer and official qualification.\n\n## Not claimable\n- An official-gap projection from +1.715pp.\n- Novelty: width-vs-quality is standard metric-learning knowledge.\n- Speed: arm order confounds the timings.\n- That 128 capacity is exhausted, or that the raw-1024 failure rules out a wider trained head.",
+      "result_truncated": false
+    },
+    {
+      "role": "engineering_critic",
+      "id": "06ea076aeae04510",
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "fallbacks": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "agent": "",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1790587718,
+      "timeout_seconds": 1200,
+      "deadline_at": 1790588918,
+      "budget_usd": null,
+      "prompt_preview": "Act as the independent adversarial engineering and release critic. Inspect correctness, failure modes, security, operability, tests, and UX. Prioritize concrete findings with evidence. Do not edit files.\n\nMaterial to critique:\nRead-only independent GO/KILL design review, Sfora /home/rb/worktrees/sfora-positive-causality master adf61525. Do not edit, launch work/downloads, or send operator messages. Recent8consultations allterminal; DGXidle. New terminal docs/inshop_deployed256_cached_gate_2026-09-28.md, docs/inshop_deployed256_cached_result_2026-09-28.md, scripts/probe_inshop_deployed256_cached.py, raw docs/evidence/compact_metric/sop-siglip2-substrate-v1/inshop-deployed256-cached-v1/{receipt,verification}.json. ReceiptSHA1ac62b0edda6dd93bc808a8d2bb81fef7c89cc1c4eaef816d276c4fecb2a555f. FRESH seed179034 native128 vs DIRECT RETAINED256 cachedheads; no fold/calibration/newencoder. Same100x64coveragebatches,ArcFace.3/64+8bank,AdamW1e-4/.05clip1; pretrainedSiglip1024cache;6757originalTRAINfit-innerimages995prod, internal3440q3074g997disjointprod. Packedoracle R1.8694767442->.8866279070 (+1.715116pp95[1.184231,2.255424]),map.6266230495->.6544897009 (+.02786665 CI[.02435777,.03163477]);70rescues11regress. CPUinit+headtrain6.0465/5.6143s,candidate second/warm NOTspeedclaim;whole13.253sec. PCAfirst128weights+biasexact; native128zeropaddedto256codes/norm/everyhitAPexact. Source/roles/means/bootstrap/decisionreplaypassed, but actualheads/heldembeddingsnotretained orindependentlyrescored. Onefixedseed/reusedinnerfitpanel: NOouterheld/official/encoder/GPUqualityread. Inspect code for bugs/protocol/numerical leakage before approving furtherwork. PRIOR docs/inshop_wide_head_100_gate_2026-09-28.md fixed256supervision->fitcalibrate-fold128 was KILL504sec/280childbudget, wideheldqualityUNMEASURED; doNOTreopen rawcheckpoint/missingresult orrelaxitsgate. Thiscandidate DIRECTDEPLOY256 avoids calibration/retainscoordinates but258vs130Brow/proxies/bankdouble. Goal jointstrongestSOP+Inshopmatchedquality/speed, not fixed128contract; noSOTA claim. Existing initialize_head_and_classifier(output_dim=256), compact_head_features(output_dim=256), member_bank_initial_values(output_dim=256), generic pack/oracle already support256. Currentpublicloader siglip2_compact_serving.py/CuTile cutile_int8.py HARD128; no native256 orservingparity. Biglegacy scripts/train_inshop_siglip2_unseen_gallery.py ties --training-width256 to wide_smokeauthority/postfitcalibrate/export128. QUESTION: Is thispositive sufficientfor ONEbounded realencoder direct256 matched mechanics smoke, then separatelyfrozen100updatepaired TRAINquality before native/public256format implementation? Recommend smallestexistinghelper reuse, finite/frozen/input/update/actualFP16batch32packed-checkpointreload mechanics guard, cheap100sec/17steporless cap; nextusefulquality/resourcefloorandkill. Same originalfit/freeze_emb12 BF16/pixels/roles, no source/loss/width/compactorsearch. Pointout any invalidassumptions. Actual256nativepackedties/parity/fullimage-to-topk latency and independentmultiseed/transfer/officialqualification requiredlater. No projection fromcached +1.715pp toofficialgap. DoNOTassert raw1024failure rulesout widerTRAINEDhead, or all128capacity exhausted. Donotbuildnewunboundedtrainer or researchplan. Opus5.5andAstra consequentialreview requested.",
+      "prompt_sha256": "daddc1caf017ae6876940c9dde1bfbca95845469b54fca49925a62d731ad9a74",
+      "prompt_bytes": 3480,
+      "fingerprint": "a7e44611ac9cc29216ccbd6e94bd360eb00fc189008436c8549000f5b0fdb4ec",
+      "evidence": {
+        "git_commit": "adf615253ebec7fb0b103f61be6f61691438231d",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+        "worktree_sha256": "462dfce4182214266285cbc8fef20aa0b45c46ac53a04963a679d266796953ab",
+        "worktree_evidence_truncated": false,
+        "active_goal": null
+      },
+      "previous_fingerprint": "8dfb5bb3106b867722e85f852304f9ce4ef0d3526a6a9f1a060464a5bbb2bc10",
+      "reused": false,
+      "critique_id": "7e10a8fc8fa24171",
+      "critique_role": "engineering_critic",
+      "systemd_unit": "devbox-consult-06ea076aeae04510.service",
+      "pid": 130746,
+      "pgid": 130746,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra",
+          "budget_usd": null,
+          "timeout_seconds": 1200,
+          "started_at": 1790587718
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1790587827,
+      "event_cursor": 22,
+      "events": [
+        {
+          "seq": 1,
+          "at": 1790587718,
+          "provider": "codex",
+          "kind": "phase",
+          "label": "Codex consultation attempt",
+          "detail": "gpt-6-astra · no provider cap · 1200s remaining"
+        },
+        {
+          "seq": 2,
+          "at": 1790587718,
+          "provider": "codex",
+          "kind": "phase",
+          "label": "Codex consultation started"
+        },
+        {
+          "seq": 3,
+          "at": 1790587719,
+          "provider": "codex",
+          "kind": "phase",
+          "label": "Codex turn started"
+        },
+        {
+          "seq": 4,
+          "at": 1790587724,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 5,
+          "at": 1790587726,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 6,
+          "at": 1790587726,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 7,
+          "at": 1790587731,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 8,
+          "at": 1790587732,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 9,
+          "at": 1790587738,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 10,
+          "at": 1790587738,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 11,
+          "at": 1790587744,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 12,
+          "at": 1790587752,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 13,
+          "at": 1790587752,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 14,
+          "at": 1790587761,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 15,
+          "at": 1790587761,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 16,
+          "at": 1790587771,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 17,
+          "at": 1790587771,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 18,
+          "at": 1790587779,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 19,
+          "at": 1790587784,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 20,
+          "at": 1790587784,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 21,
+          "at": 1790587827,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 22,
+          "at": 1790587827,
+          "provider": "codex",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": false,
+      "provider_events": {
+        "codex": [
+          {
+            "seq": 15,
+            "at": 1790587761,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 16,
+            "at": 1790587771,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 17,
+            "at": 1790587771,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 18,
+            "at": 1790587779,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 19,
+            "at": 1790587784,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 20,
+            "at": 1790587784,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 21,
+            "at": 1790587827,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 22,
+            "at": 1790587827,
+            "provider": "codex",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "**GO, conditionally, for one bounded paired real-encoder mechanics smoke. KILL any immediate release, public256 implementation, or quality claim.** I found no cached-code defect that invalidates this limited progression.\n\nThe receipt SHA256 matches the supplied value. Inspection supports fit-only initialization, product-disjoint internal validation, matched schedules, correct mAP@R arithmetic, and paired product-bootstrap computation. This remains exploratory evidence from one seed and a reused panel.\n\nConcrete findings, ordered by consequence:\n\n1. **The existing 256 training flag implements the wrong experiment.** Its authority checks require the old wide workflow, and its terminal path invokes calibration/folding. Simply running `--training-width=256` reopens the killed method. Add an explicitly gated direct256 route while preserving the old gate unchanged. Evidence: [authority checks](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_siglip2_unseen_gallery.py:635), [mandatory folding](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_siglip2_unseen_gallery.py:1439).\n\n2. **Export is also hard128—not just public serving.** `export_all()` calls `compact_head_features()` with its default128 and checks against `OUTPUT_WIDTH`. Bypassing folding alone will fail export. The smallest repair is an explicit export dimension defaulting to128, with256 allowed only through the new experimental authority. Reuse the existing initializer, bank, losses, preprocessing and packer. Evidence: [export implementation](/home/rb/worktrees/sfora-positive-causality/scripts/train_sop_siglip2_compact.py:388).\n\n3. **Independent verification cannot establish the reported retrieval scores from tensors.** Only per-query outcomes survive; the trained heads and held embeddings were discarded. The padding check validates extension of128 arithmetic, not independently computed256 retrieval. This is acceptable for smoke authorization, insufficient for promotion. Save checkpoints and held embeddings or packed codes in the next quality gate. Evidence: [probe output](/home/rb/worktrees/sfora-positive-causality/scripts/probe_inshop_deployed256_cached.py:113), [verification limitation](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/inshop-deployed256-cached-v1/verification.json).\n\n4. **The cached budget check does not enforce a deadline.** It evaluates elapsed time after both arms and scoring. The next smoke needs an external watchdog covering setup, training, save and reload—not merely a training timer. Persist terminal training evidence before export and an explicit failure receipt on timeout. Evidence: [post-hoc budget check](/home/rb/worktrees/sfora-positive-causality/scripts/probe_inshop_deployed256_cached.py:128).\n\n5. **“FP16 parity” needs a precise definition.** Existing export uses FP32 parameters with FP16 vision autocast; public serving separately supports native-FP16 parameters. These are distinct numerical profiles. Compare live/reloaded models using exactly the same declared profile, preprocessing and batch32. Do not label private256 reload equality as public-serving parity. Evidence: [export precision](/home/rb/worktrees/sfora-positive-causality/scripts/train_sop_siglip2_compact.py:412), [serving precision paths](/home/rb/worktrees/sfora-positive-causality/src/sfora/siglip2_compact_serving.py:300).\n\nI recommend freezing this smoke before implementation:\n\n- One fresh128/direct256 pair, **at most17 updates each and100 seconds total**, externally enforced; no downloads, calibration or held-quality evaluation.\n- Original fit, `freeze_emb`/first12, BF16 training, original schedule and singleton behavior. Match every actual pixel/target hash; preserve initialization RNG and require identical leading128 PCA weights **and bias**.\n- Require finite losses, gradients, parameters, optimizer state and refreshed bank; exact frozen-parameter preservation; changed trainable encoder; exact successful-update counts. Reject degenerate outputs or terminal variance/effective rank below50% of initialization.\n- Save/reload actual256 tensors with `weights_only=True`; require exact packed codes and FP16 inverse norms on the same64 fit images processed as two batch32 batches. Retain the fixture and checkpoint hashes.\n- Any failed guard or deadline means KILL this attempt, without extending its budget.\n\nOnly after that passes, separately freeze the100-update paired TRAIN-quality gate. My proposed continuation floor is **R@1 gain≥0.5 percentage points and mAP@R gain≥0.01, both paired95% lower bounds>0**, with native R@1≥92.2% as the existing recipe-validity floor. Keep training wall and median step≤1.10×control, peak training allocation≤control+1GiB, and the existing600-second total/280-second child caps. Include export costs; save tensors for independent rescoring. These are proposed new direct256 criteria, not changes to the killed folded gate.\n\nThe cached gain does not predict encoder-trained gain, official performance, SOP transfer or speed. Doubling row storage remains a real deployment cost. Native256 tie behavior, public-loader compatibility, full image-to-top-k latency, independent seeds and transfer/official qualification remain later blockers.\n\nNo files changed, experiments/tests launched, or operator messages sent. This is my independent engineering assessment, not a claim that both requested reviewers have approved.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "codex": "**GO, conditionally, for one bounded paired real-encoder mechanics smoke. KILL any immediate release, public256 implementation, or quality claim.** I found no cached-code defect that invalidates this limited progression.\n\nThe receipt SHA256 matches the supplied value. Inspection supports fit-only initialization, product-disjoint internal validation, matched schedules, correct mAP@R arithmetic, and paired product-bootstrap computation. This remains exploratory evidence from one seed and a reused panel.\n\nConcrete findings, ordered by consequence:\n\n1. **The existing 256 training flag implements the wrong experiment.** Its authority checks require the old wide workflow, and its terminal path invokes calibration/folding. Simply running `--training-width=256` reopens the killed method. Add an explicitly gated direct256 route while preserving the old gate unchanged. Evidence: [authority checks](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_siglip2_unseen_gallery.py:635), [mandatory folding](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_siglip2_unseen_gallery.py:1439).\n\n2. **Export is also hard128—not just public serving.** `export_all()` calls `compact_head_features()` with its default128 and checks against `OUTPUT_WIDTH`. Bypassing folding alone will fail export. The smallest repair is an explicit export dimension defaulting to128, with256 allowed only through the new experimental authority. Reuse the existing initializer, bank, losses, preprocessing and packer. Evidence: [export implementation](/home/rb/worktrees/sfora-positive-causality/scripts/train_sop_siglip2_compact.py:388).\n\n3. **Independent verification cannot establish the reported retrieval scores from tensors.** Only per-query outcomes survive; the trained heads and held embeddings were discarded. The padding check validates extension of128 arithmetic, not independently computed256 retrieval. This is acceptable for smoke authorization, insufficient for promotion. Save checkpoints and held embeddings or packed codes in the next quality gate. Evidence: [probe output](/home/rb/worktrees/sfora-positive-causality/scripts/probe_inshop_deployed256_cached.py:113), [verification limitation](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/inshop-deployed256-cached-v1/verification.json).\n\n4. **The cached budget check does not enforce a deadline.** It evaluates elapsed time after both arms and scoring. The next smoke needs an external watchdog covering setup, training, save and reload—not merely a training timer. Persist terminal training evidence before export and an explicit failure receipt on timeout. Evidence: [post-hoc budget check](/home/rb/worktrees/sfora-positive-causality/scripts/probe_inshop_deployed256_cached.py:128).\n\n5. **“FP16 parity” needs a precise definition.** Existing export uses FP32 parameters with FP16 vision autocast; public serving separately supports native-FP16 parameters. These are distinct numerical profiles. Compare live/reloaded models using exactly the same declared profile, preprocessing and batch32. Do not label private256 reload equality as public-serving parity. Evidence: [export precision](/home/rb/worktrees/sfora-positive-causality/scripts/train_sop_siglip2_compact.py:412), [serving precision paths](/home/rb/worktrees/sfora-positive-causality/src/sfora/siglip2_compact_serving.py:300).\n\nI recommend freezing this smoke before implementation:\n\n- One fresh128/direct256 pair, **at most17 updates each and100 seconds total**, externally enforced; no downloads, calibration or held-quality evaluation.\n- Original fit, `freeze_emb`/first12, BF16 training, original schedule and singleton behavior. Match every actual pixel/target hash; preserve initialization RNG and require identical leading128 PCA weights **and bias**.\n- Require finite losses, gradients, parameters, optimizer state and refreshed bank; exact frozen-parameter preservation; changed trainable encoder; exact successful-update counts. Reject degenerate outputs or terminal variance/effective rank below50% of initialization.\n- Save/reload actual256 tensors with `weights_only=True`; require exact packed codes and FP16 inverse norms on the same64 fit images processed as two batch32 batches. Retain the fixture and checkpoint hashes.\n- Any failed guard or deadline means KILL this attempt, without extending its budget.\n\nOnly after that passes, separately freeze the100-update paired TRAIN-quality gate. My proposed continuation floor is **R@1 gain≥0.5 percentage points and mAP@R gain≥0.01, both paired95% lower bounds>0**, with native R@1≥92.2% as the existing recipe-validity floor. Keep training wall and median step≤1.10×control, peak training allocation≤control+1GiB, and the existing600-second total/280-second child caps. Include export costs; save tensors for independent rescoring. These are proposed new direct256 criteria, not changes to the killed folded gate.\n\nThe cached gain does not predict encoder-trained gain, official performance, SOP transfer or speed. Doubling row storage remains a real deployment cost. Native256 tie behavior, public-loader compatibility, full image-to-top-k latency, independent seeds and transfer/official qualification remain later blockers.\n\nNo files changed, experiments/tests launched, or operator messages sent. This is my independent engineering assessment, not a claim that both requested reviewers have approved."
+      },
+      "providers_used": [
+        "codex"
+      ],
+      "active_provider": "codex",
+      "phase": "Consultation completed",
+      "input_bytes": 3480,
+      "output_bytes": 5474,
+      "elapsed_seconds": 109,
+      "progress": "Reading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)\ndevbox-ask: codex consult still running (1m 30s)",
+      "progress_truncated": false,
+      "result": "**GO, conditionally, for one bounded paired real-encoder mechanics smoke. KILL any immediate release, public256 implementation, or quality claim.** I found no cached-code defect that invalidates this limited progression.\n\nThe receipt SHA256 matches the supplied value. Inspection supports fit-only initialization, product-disjoint internal validation, matched schedules, correct mAP@R arithmetic, and paired product-bootstrap computation. This remains exploratory evidence from one seed and a reused panel.\n\nConcrete findings, ordered by consequence:\n\n1. **The existing 256 training flag implements the wrong experiment.** Its authority checks require the old wide workflow, and its terminal path invokes calibration/folding. Simply running `--training-width=256` reopens the killed method. Add an explicitly gated direct256 route while preserving the old gate unchanged. Evidence: [authority checks](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_siglip2_unseen_gallery.py:635), [mandatory folding](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_siglip2_unseen_gallery.py:1439).\n\n2. **Export is also hard128—not just public serving.** `export_all()` calls `compact_head_features()` with its default128 and checks against `OUTPUT_WIDTH`. Bypassing folding alone will fail export. The smallest repair is an explicit export dimension defaulting to128, with256 allowed only through the new experimental authority. Reuse the existing initializer, bank, losses, preprocessing and packer. Evidence: [export implementation](/home/rb/worktrees/sfora-positive-causality/scripts/train_sop_siglip2_compact.py:388).\n\n3. **Independent verification cannot establish the reported retrieval scores from tensors.** Only per-query outcomes survive; the trained heads and held embeddings were discarded. The padding check validates extension of128 arithmetic, not independently computed256 retrieval. This is acceptable for smoke authorization, insufficient for promotion. Save checkpoints and held embeddings or packed codes in the next quality gate. Evidence: [probe output](/home/rb/worktrees/sfora-positive-causality/scripts/probe_inshop_deployed256_cached.py:113), [verification limitation](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/inshop-deployed256-cached-v1/verification.json).\n\n4. **The cached budget check does not enforce a deadline.** It evaluates elapsed time after both arms and scoring. The next smoke needs an external watchdog covering setup, training, save and reload—not merely a training timer. Persist terminal training evidence before export and an explicit failure receipt on timeout. Evidence: [post-hoc budget check](/home/rb/worktrees/sfora-positive-causality/scripts/probe_inshop_deployed256_cached.py:128).\n\n5. **“FP16 parity” needs a precise definition.** Existing export uses FP32 parameters with FP16 vision autocast; public serving separately supports native-FP16 parameters. These are distinct numerical profiles. Compare live/reloaded models using exactly the same declared profile, preprocessing and batch32. Do not label private256 reload equality as public-serving parity. Evidence: [export precision](/home/rb/worktrees/sfora-positive-causality/scripts/train_sop_siglip2_compact.py:412), [serving precision paths](/home/rb/worktrees/sfora-positive-causality/src/sfora/siglip2_compact_serving.py:300).\n\nI recommend freezing this smoke before implementation:\n\n- One fresh128/direct256 pair, **at most17 updates each and100 seconds total**, externally enforced; no downloads, calibration or held-quality evaluation.\n- Original fit, `freeze_emb`/first12, BF16 training, original schedule and singleton behavior. Match every actual pixel/target hash; preserve initialization RNG and require identical leading128 PCA weights **and bias**.\n- Require finite losses, gradients, parameters, optimizer state and refreshed bank; exact frozen-parameter preservation; changed trainable encoder; exact successful-update counts. Reject degenerate outputs or terminal variance/effective rank below50% of initialization.\n- Save/reload actual256 tensors with `weights_only=True`; require exact packed codes and FP16 inverse norms on the same64 fit images processed as two batch32 batches. Retain the fixture and checkpoint hashes.\n- Any failed guard or deadline means KILL this attempt, without extending its budget.\n\nOnly after that passes, separately freeze the100-update paired TRAIN-quality gate. My proposed continuation floor is **R@1 gain≥0.5 percentage points and mAP@R gain≥0.01, both paired95% lower bounds>0**, with native R@1≥92.2% as the existing recipe-validity floor. Keep training wall and median step≤1.10×control, peak training allocation≤control+1GiB, and the existing600-second total/280-second child caps. Include export costs; save tensors for independent rescoring. These are proposed new direct256 criteria, not changes to the killed folded gate.\n\nThe cached gain does not predict encoder-trained gain, official performance, SOP transfer or speed. Doubling row storage remains a real deployment cost. Native256 tie behavior, public-loader compatibility, full image-to-top-k latency, independent seeds and transfer/official qualification remain later blockers.\n\nNo files changed, experiments/tests launched, or operator messages sent. This is my independent engineering assessment, not a claim that both requested reviewers have approved.",
+      "result_truncated": false
+    }
+  ],
+  "reused": false,
+  "finished_at": 1790587843,
+  "elapsed_seconds": 109,
+  "input_bytes": 3117,
+  "output_bytes": 11844
+}
