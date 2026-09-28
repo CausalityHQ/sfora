@@ -1,5 +1,9 @@
 # Native PE hidden-matrix optimizer gate
 
+TERMINAL quality KILL after the sole fresh100-update pilot.
+[Verified outcome](inshop_pe_native_muon_result_2026-09-28.md).
+The following preserves the frozen procedure.
+
 One selected next intervention after the rank32 procedure's verified quality
 KILL: change the native encoder matrix optimizer while keeping all dense
 native coordinates available. This tests the encoder-adaptation layer

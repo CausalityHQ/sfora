@@ -7,6 +7,19 @@ training, signed-int8 gallery codes with f16 inverse norms (130 bytes per
 image), and an exact native CUDA top-10 scorer. Apache Arrow is not in the
 training or retrieval path.
 
+## 28 September: native matrix-Muon terminal quality KILL
+
+One17step PASS then onefresh100 TRAIN pilot: In-Shop TRAIN-held6354q/6245g,
+1993products packedR1/MAP94.397230/73.952379% vs historicaldensePE
+95.073969/76.391592 andLarge95.672018/78.623712%. Product95candidate−PE
+intervals whollynegative: R1[−1.007029,−.348130]pp andMAP[−2.755907,−2.133327]pp.
+CostPASSmedian3–100.573917s;whole171.90s,peakCUDA5,050,932,736B;updated
+full-held strictloadedvector/packedparity and independentCPUcheckpoint/
+score/uncertainty replayPASS. Publiclatencyunmeasured. Closefixedprocedure,
+no optimizer/LR/NS/prefix/epoch rescue; productgoalactive. One next native
+PE-L14 fixed224 representation hypothesis selected, source/cost gates pending.
+[Convergence row and raw evidence](inshop_pe_native_muon_result_2026-09-28.md).
+
 ## 28 September: fixed-rank native learning terminal KILL
 
 One reviewed procedure completed CPU,17-step mechanics and fresh100-update
