@@ -37,17 +37,91 @@ VALIDATION_SHA = "abc407cbfb1eb6ba4fbbf067223a829e36ee2ccb7bfa4134e45deef9991256
 GROUP_A = {"Dresses", "Skirts", "Rompers_Jumpsuits", "Pants", "Shorts", "Denim", "Leggings"}
 
 
-def shuffled_b_labels(labels, protected):
+def shuffled_b_labels(labels, protected, seed=SEED):
     result = labels.copy()
     indexes = np.flatnonzero(~protected)
-    result[indexes] = labels[np.random.default_rng(SEED).permutation(indexes)]
+    result[indexes] = labels[np.random.default_rng(seed).permutation(indexes)]
     return result
+
+
+def joint_class_ids(target, external):
+    labels = tuple("inshop:" + str(i) for i in target) + tuple("sop:" + str(i) for i in external)
+    mapping = {name: i for i, name in enumerate(sorted(set(labels)))}
+    return np.asarray([mapping[name] for name in labels], dtype=np.int64)
+
+
+def joint_self_check():
+    ids = joint_class_ids(("1", "1", "2", "2"), ("1", "1", "2", "2"))
+    assert len(set(ids)) == 4 and not set(ids[:4]) & set(ids[4:])
+    protected = np.arange(len(ids)) < 4
+    shuffled = shuffled_b_labels(ids, protected, seed=179033)
+    assert np.array_equal(ids[:4], shuffled[:4]) and Counter(ids) == Counter(shuffled)
+    assert np.array_equal(ids, joint_class_ids(("1", "1", "2", "2"), ("1", "1", "2", "2")))
+
+
+def joint_data(inventory_path, sop_cache_path, sop_metadata_path, labels, cache, fit, outer):
+    if sha256(inventory_path) != "853bdac748c891e90804a52199fd90a007e0492c7041245a650dc768fec5237b":
+        raise ValueError("joint inventory authority differs")
+    inventory = json.loads(inventory_path.read_text())
+    if (
+        sha256(sop_cache_path) != inventory["sop_features_sha256"]
+        or sha256(sop_metadata_path) != inventory["sop_metadata_sha256"]
+    ):
+        raise ValueError("joint SOP source authority differs")
+    sop = np.load(sop_cache_path, mmap_mode="r", allow_pickle=False)
+    sop_rows = [line.split() for line in sop_metadata_path.read_text().splitlines()[1:]]
+    target_rows = tuple(inventory["inshop_training_rows"])
+    validation = tuple(inventory["inshop_validation_rows"])
+    external_rows = tuple(inventory["sop_external_rows"])
+    if (
+        sop.shape != (59551, 1024)
+        or sop.dtype != np.float32
+        or len(sop_rows) != 59551
+        or len(target_rows) != 6757
+        or len(validation) != 6514
+        or len(external_rows) != 5190
+        or len(set(target_rows)) != 6757
+        or len(set(validation)) != 6514
+        or len(set(external_rows)) != 5190
+        or not set(target_rows + validation) <= set(fit)
+        or set(target_rows + validation) & set(outer)
+        or set(labels[i] for i in target_rows) & set(labels[i] for i in validation)
+    ):
+        raise ValueError("joint fit-only inventories differ")
+    source = torch.from_numpy(np.concatenate((cache[list(target_rows)], sop[list(external_rows)])))
+    if not bool(torch.isfinite(source).all()):
+        raise ValueError("joint source nonfinite")
+    classes = joint_class_ids(
+        tuple(labels[i] for i in target_rows), tuple(sop_rows[i][1] for i in external_rows)
+    )
+    a = np.arange(len(source)) < len(target_rows)
+    if len(set(classes[a])) != 995 or len(set(classes[~a])) != 995:
+        raise ValueError("joint class counts differ")
+    return source, torch.from_numpy(cache[list(validation)].copy()), a, classes, validation
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
-    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--output", type=Path)
+    parser.add_argument("--joint-self-check", action="store_true")
+    parser.add_argument("--joint-inventory", type=Path)
+    parser.add_argument("--sop-cache", type=Path)
+    parser.add_argument("--sop-metadata", type=Path)
+    parser.add_argument(
+        "--inshop-cache", type=Path, default=Path("/tmp/sfora-inshop-pretrained-features.npy")
+    )
+    parser.add_argument(
+        "--partition", type=Path, default=Path("/tmp/sfora-inshop-partition-replay.txt")
+    )
     args = parser.parse_args()
+    if args.joint_self_check:
+        joint_self_check()
+        return
+    if args.output is None or (
+        args.joint_inventory and (args.sop_cache is None or args.sop_metadata is None)
+    ):
+        parser.error("output and joint data paths required")
+    seed = 179033 if args.joint_inventory else SEED
     if args.output.exists():
         raise ValueError("pooling output already exists")
     started = time.perf_counter()
@@ -56,11 +130,21 @@ def main():
         "arms": {},
         "claim_eligible": False,
         "updates_per_arm": STEPS,
-        "seed": SEED,
+        "seed": seed,
         "dataset_split": "In-Shop TRAIN original fit only; internal product-disjoint A validation",
         "serving_latency_measured": False,
         "encoder_training": False,
     }
+    if args.joint_inventory:
+        result.update(
+            {
+                "schema": "sfora-sop-inshop-joint-cached-f1-v1",
+                "dataset_split": "In-Shop TRAIN fit internal holdout; external SOP TRAIN fit",
+                "joint_inventory_sha256": sha256(args.joint_inventory),
+                "sop_cache_sha256": sha256(args.sop_cache),
+                "sop_metadata_sha256": sha256(args.sop_metadata),
+            }
+        )
     args.output.parent.mkdir(parents=True, exist_ok=True)
 
     def deadline(_signum, _frame):
@@ -70,9 +154,9 @@ def main():
     signal.alarm(120)
     try:
         torch.set_num_threads(8)
-        torch.manual_seed(SEED)
-        partition = Path("/tmp/sfora-inshop-partition-replay.txt")
-        cache_path = Path("/tmp/sfora-inshop-pretrained-features.npy")
+        torch.manual_seed(seed)
+        partition = args.partition
+        cache_path = args.inshop_cache
         if sha256(partition) != PARTITION_SHA or sha256(cache_path) != SOURCE_CACHE_SHA:
             raise ValueError("pooling cache/partition authority differs")
         rows = [
@@ -89,7 +173,9 @@ def main():
         inner, held = split(tuple(labels[i] for i in eligible))
         training = tuple(eligible[i] for i in inner)
         validation = tuple(eligible[i] for i in held if domains[labels[eligible[i]]] == {"A"})
-        if digest_rows(training) != INNER_SHA or digest_rows(validation) != VALIDATION_SHA:
+        if not args.joint_inventory and (
+            digest_rows(training) != INNER_SHA or digest_rows(validation) != VALIDATION_SHA
+        ):
             raise ValueError("pooling internal split differs")
         counts = Counter(labels[i] for i in training)
         # Native member-bank anchors require another image of the same product.
@@ -106,14 +192,22 @@ def main():
         names = sorted(set(labels[i] for i in training))
         mapping = {label: i for i, label in enumerate(names)}
         classes = np.asarray([mapping[labels[i]] for i in training], dtype=np.int64)
-        sham = shuffled_b_labels(classes, a)
+        if args.joint_inventory:
+            source, validation_source, a, classes, validation = joint_data(
+                args.joint_inventory, args.sop_cache, args.sop_metadata, labels, cache, fit, outer
+            )
+            training = tuple(range(len(source)))
+            a_indexes, b_indexes = np.flatnonzero(a), np.flatnonzero(~a)
+        sham = shuffled_b_labels(classes, a, seed=seed)
         assert np.array_equal(sham[a], classes[a]) and Counter(sham) == Counter(classes)
+        if args.joint_inventory and float(np.mean(sham[~a] != classes[~a])) < 0.9:
+            raise ValueError("joint sham changes too few external labels")
         common, _, pca_sha = initialize_head_and_classifier(source[a_indexes], tuple(classes[a]))
         batches_a = identity_balanced_batches(
             tuple(str(i) for i in classes[a]),
             batch_size=64,
             images_per_identity=4,
-            seed=SEED,
+            seed=seed,
             epoch=1,
             steps=STEPS,
             coverage_first=True,
@@ -122,7 +216,7 @@ def main():
             tuple(str(i) for i in classes[~a]),
             batch_size=32,
             images_per_identity=4,
-            seed=SEED + 1,
+            seed=seed + 1,
             epoch=1,
             steps=STEPS,
             coverage_first=True,
@@ -138,6 +232,8 @@ def main():
         query = sorted(i for group in members.values() for i in group[::2])
         gallery = sorted(i for group in members.values() for i in group[1::2])
         assert all(len(group) >= 2 for group in members.values())
+        if args.joint_inventory and (len(query), len(gallery), len(members)) != (3440, 3074, 997):
+            raise ValueError("joint internal held roles differ")
         result.update(
             {
                 "source_cache_sha256": SOURCE_CACHE_SHA,
@@ -271,7 +367,11 @@ def main():
                 "criteria": criteria,
                 "decision": "GO_JOINT_ENCODER_SMOKE_DESIGN"
                 if all(criteria.values())
-                else "KILL_CATEGORY_POOLING_PROXY",
+                else (
+                    "KILL_ACTUAL_JOINT_CACHED_PROXY"
+                    if args.joint_inventory
+                    else "KILL_CATEGORY_POOLING_PROXY"
+                ),
             }
         )
     except TimeoutError as error:
