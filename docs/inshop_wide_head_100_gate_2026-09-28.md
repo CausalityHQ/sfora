@@ -70,3 +70,63 @@ licenses separately frozen paired-seed TRAIN confirmation and independent
 transfer/holdout qualification. Production default128/checkpoint stays unchanged.
 No new consultation: both existing consequential reviewers already authorized
 this progression only after mechanics and a separately frozen TRAIN gate.
+
+## Terminal KILL: synchronous calibration/export exceeded the budget
+
+Original sole Spark unit `sfora-inshop-wide-head-100-v1`, invocation
+`a74cf1a689524310bf79eb68cb41ced9`, exited1 after504.198434s. Original wide child
+hit its frozen280s timeout during held export, after100 successful updates,
+all-fit calibration, folded checkpoint save and guarded matched32 public
+parity. No deadline extension, rerun, other seed, full training, official read
+or latency run was made. This fixed configuration is **KILL_CHILD_BUDGET**.
+It does not establish a negative quality delta: wide held quality is missing.
+
+| In-Shop observed TRAIN held6354q/6245g,seed179024,100×64 | Native128 | Wide256→128 |
+|---|---:|---:|
+| Packed R@1,% |95.24708845|Not measured|
+| Packed mAP@R |0.7798550375|Not measured|
+| Completed stable updates |100|100,checkpoint/log verified|
+| Training wall,s |86.246912|Final timer not saved;step100 elapsed87.237491s|
+| Training images/s |74.2056|Not measured|
+| Peak training CUDA allocation,bytes |12988997120|Not saved|
+| Held export wall,s |108.199935|Incomplete|
+| Whole arm,s |215.460574|Exceeded280s child cap|
+| End-to-end p50/p95/p99/QPS |Not measured|Not measured|
+
+Native first17 loss and input-hash arrays exactly replay the earlier archived
+control. Native100 held arrays and all100 actual input hashes are preserved.
+Wide raw/folded checkpoints are finite, metadata says100 updates, folded
+head128×1024 and all-fit rowsSHA
+`f23783a513f0bce23c4ea6126f8a868ee600fe88a23a5e797778a2a508ca89be`.
+First64 matched32 two-stage/fold normalized fixture maxerror2.235174e-7.
+Wide's actual100 input hashes, final timing and peak allocation were held in
+memory until the terminal receipt and lost on timeout; do not infer or invent
+them. Reconciled posthoc terminal receiptSHA
+`03329e30422196c8be32d8221d18d520dd0c0722a5914203cd52f6e5c557f9bd`;
+it is labelled posthoc and records null wide quality/timing/VRAM.
+
+Preserved remote artifacts under
+`/home/riomus/runs/sfora-inshop-wide-head-100-v1/result/wide/`:
+rawcheckpointSHA
+`bbca4c23fb8da5e9b80170894a060644ee115c7722463b95fe8eb035bfbf1673`,
+foldedcheckpointSHA
+`ada2207d0acaaa481a2a974927bb911fc9585a127cdef286109c8918624a6ab6`.
+Logs/finished native receipt/packed per-query results/raw artifact audit are
+archived in `evidence/compact_metric/sop-siglip2-substrate-v1/inshop-wide-head-100-v1/`.
+
+Root cost: the method requires another **all-fit trained encoder pass** before
+the ordinary held export. The matched public32 profile actually took108.20s
+just to export12599 native held images. The whole wide path could not finish
+within280s. Calibration's exact wall was not durably saved; no projected number
+is reported as measured. Retain native128 production default; reject this
+synchronous calibrate-after-training workflow for the current gate.
+
+Production-oriented repair to evidence durability: checkpoint now saves
+training losses/input hashes/cost/VRAM/source authority before calibration or
+export, and the paired runner writes an explicit failed-child receipt before
+raising. One regression verifies a timeout preserves completed control results
+and never creates wide quality. These repairs do not rerun or change the failed
+arm, loosen the gate, or claim a joint quality/speed win. Any next learning arm
+must use a causally different TRAIN-only mechanism without a post-fit encoder
+calibration pass; start with a cheap source/gradient falsifier, no new source or
+compactor search. Spark/reviews are terminal and idle.

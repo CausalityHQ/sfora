@@ -18,6 +18,30 @@ from score_inshop_crop_view_pair import GALLERY_SHA, QUERY_SHA, bootstrap_lower,
 from sfora.unicom_inshop import parse_inshop_partition
 
 
+def record_child_failure(output_dir, name, error, quality, hashes, elapsed):
+    result = {
+        "schema": "sfora-inshop-wide-main-head-100-v1",
+        "claim_eligible": False,
+        "decision": "KILL_CHILD_BUDGET"
+        if isinstance(error, subprocess.TimeoutExpired)
+        else "KILL_CHILD_FAILURE",
+        "failed_arm": name,
+        "exception": type(error).__name__,
+        "child_timeout_seconds": getattr(error, "timeout", None),
+        "last_completed_quality": {
+            arm: {key: value[key] for key in ("recall_at_1", "map_at_r")}
+            for arm, value in quality.items()
+        },
+        "training_receipt_sha256": hashes,
+        "main_wall_seconds": elapsed,
+        "failed_arm_quality": None,
+    }
+    (output_dir / "receipt.json").write_text(
+        json.dumps(result, sort_keys=True, allow_nan=False) + "\n"
+    )
+    return result
+
+
 def main():
     started = time.perf_counter()
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
@@ -84,14 +108,20 @@ def main():
             str(args.qualification),
         ]
         torch.cuda.empty_cache()
-        with (args.output_dir / f"{name}.log").open("wb") as log:
-            subprocess.run(
-                command,
-                stdout=log,
-                stderr=subprocess.STDOUT,
-                check=True,
-                timeout=min(280, max(1, 600 - (time.perf_counter() - started))),
+        try:
+            with (args.output_dir / f"{name}.log").open("wb") as log:
+                subprocess.run(
+                    command,
+                    stdout=log,
+                    stderr=subprocess.STDOUT,
+                    check=True,
+                    timeout=min(280, max(1, 600 - (time.perf_counter() - started))),
+                )
+        except (subprocess.TimeoutExpired, subprocess.CalledProcessError) as error:
+            record_child_failure(
+                args.output_dir, name, error, quality, hashes, time.perf_counter() - started
             )
+            raise
         receipt_path = destination / "receipt.json"
         receipt = json.loads(receipt_path.read_text())
         values_path = destination / "held_values.npy"

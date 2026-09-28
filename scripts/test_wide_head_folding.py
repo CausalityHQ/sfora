@@ -1,7 +1,10 @@
+import json
+import subprocess
 from types import SimpleNamespace
 
 import torch
 from probe_inshop_wide_training_head import fold_uncentered_head
+from run_inshop_wide_head_100 import record_child_failure
 from run_inshop_wide_head_smoke import packed_fit_images
 
 
@@ -33,3 +36,18 @@ def test_fixed64_fit_probe_obeys_public32_batch_limit():
     codes, norms = packed_fit_images(Encoder(), list(range(64)))
     assert batches == [32, 32]
     assert codes.flatten().tolist() == list(range(64)) and norms.shape == (64,)
+
+
+def test_timeout_receipt_preserves_control_and_never_invents_wide_quality(tmp_path):
+    record_child_failure(
+        tmp_path,
+        "wide",
+        subprocess.TimeoutExpired(["train"], 280),
+        {"control": {"recall_at_1": 0.95, "map_at_r": 0.78}},
+        {"control": "receipt-sha"},
+        503,
+    )
+    saved = json.loads((tmp_path / "receipt.json").read_text())
+    assert saved["decision"] == "KILL_CHILD_BUDGET" and saved["failed_arm_quality"] is None
+    assert saved["last_completed_quality"] == {"control": {"recall_at_1": 0.95, "map_at_r": 0.78}}
+    assert saved["child_timeout_seconds"] == 280

@@ -1031,6 +1031,18 @@ def main() -> None:
             {
                 "vision": {key: value.detach().cpu() for key, value in vision.state_dict().items()},
                 "head": {key: value.detach().cpu() for key, value in head.state_dict().items()},
+                "training_evidence": {
+                    "updates": args.updates,
+                    "first_input_batch_sha256": first_input_batch_sha256,
+                    "all_step_losses": losses,
+                    "training_wall_seconds": training_seconds,
+                    "training_peak_cuda_allocated_bytes": training_peak_cuda,
+                    "source_files_sha256": sources,
+                    "fit_rows_sha256": fit_sha,
+                    "schedule_sha256": schedule_sha,
+                }
+                if wide_smoke
+                else None,
                 "training_width": args.training_width,
                 "classifier": classifier.detach().cpu(),
                 "seed": args.seed,

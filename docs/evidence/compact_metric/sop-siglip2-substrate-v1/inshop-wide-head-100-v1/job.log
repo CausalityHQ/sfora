@@ -1,0 +1,30 @@
+{"terminal": "control", "r1": 0.952470884482216, "map_at_r": 0.7798550374654079, "elapsed": 222.32639223895967}
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-inshop-wide-head-100-v1/code/scripts/run_inshop_wide_head_100.py", line 239, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/sfora-inshop-wide-head-100-v1/code/scripts/run_inshop_wide_head_100.py", line 88, in main
+    subprocess.run(
+    ~~~~~~~~~~~~~~^
+        command,
+        ^^^^^^^^
+    ...<3 lines>...
+        timeout=min(280, max(1, 600 - (time.perf_counter() - started))),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/lib/python3.13/subprocess.py", line 556, in run
+    stdout, stderr = process.communicate(input, timeout=timeout)
+                     ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/lib/python3.13/subprocess.py", line 1222, in communicate
+    stdout, stderr = self._communicate(input, endtime, timeout)
+                     ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/lib/python3.13/subprocess.py", line 2154, in _communicate
+    self.wait(timeout=self._remaining_time(endtime))
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/lib/python3.13/subprocess.py", line 1280, in wait
+    return self._wait(timeout=timeout)
+           ~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/lib/python3.13/subprocess.py", line 2058, in _wait
+    raise TimeoutExpired(self.args, timeout)
+subprocess.TimeoutExpired: Command '['/home/riomus/group-learning/.venv/bin/python', '/home/riomus/runs/sfora-inshop-wide-head-100-v1/code/scripts/train_inshop_siglip2_unseen_gallery.py', '--dataset-root', '/home/riomus/datasets/In-shop Clothes Retrieval Benchmark', '--model-snapshot', '/home/riomus/.cache/huggingface/hub/models--google--siglip2-large-patch16-256/snapshots/787800c8990e6f058423089178e718139608408c', '--features-dir', '/home/riomus/runs/sfora-inshop-siglip2-train-features-v1', '--preflight', '/home/riomus/runs/inshop-unseen-gallery-preflight-179024-v2.json', '--preflight-sha256', 'f9c59db9ed6f0962963b8e203e70f98186f314226acda0f0ebd7b52c11e17034', '--output-dir', '/home/riomus/runs/sfora-inshop-wide-head-100-v1/result/wide', '--arm', 'freeze_emb', '--updates', '100', '--seed', '179024', '--training-width', '256', '--wide-head-qualification', '/home/riomus/runs/sfora-inshop-wide-head-100-v1/qualification.json']' timed out after 280 seconds
