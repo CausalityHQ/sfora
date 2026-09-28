@@ -1,0 +1,8 @@
+Running as unit: sfora-pe-l14-final-mlp-cpu-audit-v1.service; invocation ID: 2403b07e8f7949f5bbfbd87f720bc5a5
+PASS actual frozen checkpoint, bank, 100 RGB/scaler records, packed held scores, product/query uncertainty and decision replay
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 12.604s
+CPU time consumed: 20.628s
+Memory peak: 256.0K
+Memory swap peak: 0B

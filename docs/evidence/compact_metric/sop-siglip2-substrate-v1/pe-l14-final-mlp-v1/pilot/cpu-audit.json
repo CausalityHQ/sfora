@@ -1,0 +1,29 @@
+{
+  "pass": true,
+  "advance": false,
+  "receipt_sha256": "2931632e2a403d1fc489c121f7e283d18ffeed8e6bc13a53dd954f89f54f32ad",
+  "paired_intervals": {
+    "per_query_r1": {
+      "product95": [
+        -0.026874173932353203,
+        -0.015585274615847229
+      ],
+      "query95": [
+        -0.02675480012590494,
+        -0.016052880075542966
+      ]
+    },
+    "per_query_ap": {
+      "product95": [
+        -0.052055154104383196,
+        -0.039312148225444966
+      ],
+      "query95": [
+        -0.05046417023006007,
+        -0.040940475337800056
+      ]
+    }
+  },
+  "quality_read": "TRAIN-held saved-score replay only",
+  "auditor_sha256": "ab858a7b4fbdbaf50869e35ea9cadf317599da03af6fdf1f5faf66d045a5c099"
+}

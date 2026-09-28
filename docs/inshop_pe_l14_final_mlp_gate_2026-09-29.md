@@ -29,3 +29,7 @@ NewMLPtrainingdriver exact15native+head2proxy1/18tensorsAdamWglobalclip, frozenc
 ## Sole17 mechanics PASS
 
 Original67619 collectedexit0 in29.94s/5,602,112KiB/no swap, allocatedCUDApeak3,810,310,656B includingupdatednative strictreload. Median3–17 **0.6740792361088097s** <=0.71769696, trainingfill/drain12.0105710058s. Original17RGB/pixel authority/scales128/no skips, all18 activefirstlast gradients positive/four groupsMLP-pool-head-proxymoved, nativeattention/norm/otherfrozencomplement exact, preblock/MLPnograd+poolgraph17calls, finalselfattentionbackwardempty/poolFlash. Wholeupdatednative/foreign/runtime/head reload andactualwholelastB64 encoder+normalizedhead outputsbitwiseEXACT. All85 executingfiles postrununchanged. Checkpointdeleted/stateDISCARDED; noheld/quality. Independentstdlib source-role/data/scaler/gradient/group/median/resource/receipt replayPASS. ReceiptSHA5cbbfc188e1291c969c82cce7a53463e70b97ca3b41c481c84a99ce03d7f5d6a licensesONEfresh100TRAINpilot300s/samefloors. No cost/quality projection.
+
+## Terminal100 qualityKILL
+
+Original27781 exited0. ActualTRAIN-heldR1/MAP92.9493233/71.8273916%, median0.677818206s costPASS, bothfloors andpairedproductboundsfailed. Native updated/reload/fullheldactualsharedsuffix/head/packedparity andCPUaudit52800PASS. No official/promotion/continuedtraining. FullproductiongoalACTIVE. See [terminalresult](inshop_pe_l14_final_mlp_result_2026-09-29.md).
