@@ -1,0 +1,713 @@
+{
+  "id": "deaf616c05364878",
+  "status": "completed",
+  "started_at": 1790615821,
+  "agent": "sfora/emafactorial",
+  "force_reason": "New terminal full-fit source acquisition and full-fit CPU qualification now enable a consequential actual augmented training/held-quality executable, distinct from prior 16-update numerical mechanics critique. One combined design/code review before first GPU optimizer on full-fit recipe; no duplicate question or active reviewers.",
+  "rolling_6h_count": 10,
+  "prompt_preview": "Read-only consequential review; do not edit, launch GPU jobs or start consultations. Repository /home/rb/worktrees/sfora-positive-causality on master dddd6888, protected dirty rust/sfora-cutile-int8-score/src/topk.rs must stay untouched. Review this new actual-image TRAIN feasibility gate and executable for blockers before ONE bounded DGX run. Read docs/inshop_pe_augmented_training_gate_2026-09-28.md, docs/superpowers/plans/2026-09-28-pe-augmented-training.md, scripts/train_inshop_pe_pair.py (SHA51fbc8db8084b71b1192fcafe2d524113690bb0b3031eb42979eaa619c46256d), scripts/check_inshop_pe_pair.py, reused scripts/probe_inshop_pe_training_smoke.py, pe_core_training.py, train_sop_siglip2_compact.py initializer/bank/scaler/ImageRows, score_inshop_crop_view_pair.py roles/bootstrap and compare_inshop_sop_warmstart_100.py packed_quality. Evidence: docs/inshop_pe_fp16_training_result_2026-09-28.md qualified actual16x64 native FP16+GradScaler128/freeze integrity (PEmedian385.837ms vsLarge793.662ms; no quality); docs/inshop_pe_fullfit_cache_result_2026-09-28.md and raw pe-fullfit-cache-v1 verified complete original source caches all13283fit rows (heldexcluded) with CPUactualmatrixaudit. NEW docs/evidence/compact_metric/sop-siglip2-substrate-v1/pe-augmented-100-v1/preflight-v1.json and augmented-preflight-v1 logs/time: CPU preflight passed14.24s, ownfullfitPCA128/proxies/bank, complete cached-loss VJP finite/nonzero, strictsource/freeze inventories and identicalfirstaugmentedRGBhash; 100prefix179032 schedule6192distinctimages1600products6400presentations91rankactive9singletoninactive. Seed/per-step CPU generatoronly fork_rng restore; native224/256afterSAMERGB. Prior full goal unmet, onlysource/systemcontrast notbackbone-only/SOTA claim. 100updatessameAdam/loss/halfprefix/scaler128 matchedschedule, everyfiniteAdam/parameter/bankcheck andfirstlastfullgradients/group/frozenforeignrope+grid; calibrate4F16F32/cache floors.999 beforeoptimizer. Stream input files with hashes, initializer/externalpreflight/code hashes startup beforeCUDA. OriginalFP32 weights unchanged. Actualcheckpoints+held128vectors, frozen6354q6245gTRAINheld packedR1/mAP@Rpairedproduct/querybootstrap (noofficial). Whole600s8GiBhost Large16GB PE10GB/cleanup8MiB sharedflock; norescues. Grossstop PEcontrolR1delta<-0.5pp ormapdelta<-1pp orguardedtrainingmedianratio>.8, passageonlylicensesseparate1000proposal. Existing emulated packed score helper is inherited; no kernel modification. Check actual code/dataflow vs gates, singleton/no-skip/bank alias semantics, CUDA memory/closure cleanup, CPU/RNG/image matching and source/manifest/executable integrity, held leakage/stabletie/AP, interpretation/cost. Give specific blockers with locations, distinguish requiredfixes fromoptional, final GO/STOP for this bounded feasibility run. Do not require official benchmarks or fullgoal achievement before a TRAIN feasibility experiment. Sourceacquisition/CPU qualification terminal, DGXidle; GPUtrainingNOTlaunched.",
+  "prompt_sha256": "9dad2bacc2cbe96e9cad7464f6d4350531eded1e1c77df7c262328bfa0da3479",
+  "prompt_bytes": 2993,
+  "fingerprint": "72135ae9542c2afd99f2322e1bf7ad2d77bc48302aba8bbec16a9d868874ddaf",
+  "evidence": {
+    "git_commit": "dddd68880f288f3a207a38ab48283428593df287",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "4cbd82f649f060afb218307ae3a830b4d63e4721d2bd80d44158d4b1e261f7e4",
+    "worktree_sha256": "ea52b3e7ad3714a2f2f4bb41c543fd2d4eb9941c9de4f89fc78943becc86f137",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "reviewers": [
+    {
+      "role": "research_critic",
+      "id": "fa6febcc8e244fae",
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "fallbacks": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "agent": "sfora/emafactorial",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1790615821,
+      "timeout_seconds": 1200,
+      "deadline_at": 1790617021,
+      "budget_usd": 4,
+      "prompt_preview": "Act as the independent research and first-principles critic. Challenge assumptions, compare alternatives and prior art, and identify missing evidence. Do not edit files.\n\nMaterial to critique:\nRead-only consequential review; do not edit, launch GPU jobs or start consultations. Repository /home/rb/worktrees/sfora-positive-causality on master dddd6888, protected dirty rust/sfora-cutile-int8-score/src/topk.rs must stay untouched. Review this new actual-image TRAIN feasibility gate and executable for blockers before ONE bounded DGX run. Read docs/inshop_pe_augmented_training_gate_2026-09-28.md, docs/superpowers/plans/2026-09-28-pe-augmented-training.md, scripts/train_inshop_pe_pair.py (SHA51fbc8db8084b71b1192fcafe2d524113690bb0b3031eb42979eaa619c46256d), scripts/check_inshop_pe_pair.py, reused scripts/probe_inshop_pe_training_smoke.py, pe_core_training.py, train_sop_siglip2_compact.py initializer/bank/scaler/ImageRows, score_inshop_crop_view_pair.py roles/bootstrap and compare_inshop_sop_warmstart_100.py packed_quality. Evidence: docs/inshop_pe_fp16_training_result_2026-09-28.md qualified actual16x64 native FP16+GradScaler128/freeze integrity (PEmedian385.837ms vsLarge793.662ms; no quality); docs/inshop_pe_fullfit_cache_result_2026-09-28.md and raw pe-fullfit-cache-v1 verified complete original source caches all13283fit rows (heldexcluded) with CPUactualmatrixaudit. NEW docs/evidence/compact_metric/sop-siglip2-substrate-v1/pe-augmented-100-v1/preflight-v1.json and augmented-preflight-v1 logs/time: CPU preflight passed14.24s, ownfullfitPCA128/proxies/bank, complete cached-loss VJP finite/nonzero, strictsource/freeze inventories and identicalfirstaugmentedRGBhash; 100prefix179032 schedule6192distinctimages1600products6400presentations91rankactive9singletoninactive. Seed/per-step CPU generatoronly fork_rng restore; native224/256afterSAMERGB. Prior full goal unmet, onlysource/systemcontrast notbackbone-only/SOTA claim. 100updatessameAdam/loss/halfprefix/scaler128 matchedschedule, everyfiniteAdam/parameter/bankcheck andfirstlastfullgradients/group/frozenforeignrope+grid; calibrate4F16F32/cache floors.999 beforeoptimizer. Stream input files with hashes, initializer/externalpreflight/code hashes startup beforeCUDA. OriginalFP32 weights unchanged. Actualcheckpoints+held128vectors, frozen6354q6245gTRAINheld packedR1/mAP@Rpairedproduct/querybootstrap (noofficial). Whole600s8GiBhost Large16GB PE10GB/cleanup8MiB sharedflock; norescues. Grossstop PEcontrolR1delta<-0.5pp ormapdelta<-1pp orguardedtrainingmedianratio>.8, passageonlylicensesseparate1000proposal. Existing emulated packed score helper is inherited; no kernel modification. Check actual code/dataflow vs gates, singleton/no-skip/bank alias semantics, CUDA memory/closure cleanup, CPU/RNG/image matching and source/manifest/executable integrity, held leakage/stabletie/AP, interpretation/cost. Give specific blockers with locations, distinguish requiredfixes fromoptional, final GO/STOP for this bounded feasibility run. Do not require official benchmarks or fullgoal achievement before a TRAIN feasibility experiment. Sourceacquisition/CPU qualification terminal, DGXidle; GPUtrainingNOTlaunched.",
+      "prompt_sha256": "a1e3e8a9f9fb191656fe9ec9ffad6d29fd79b4ef8e72efa6f57dcf2cbee22c76",
+      "prompt_bytes": 3363,
+      "fingerprint": "c03de252c90f07ce71127a2644297e962bab7721cb576a75fd62d3c391599671",
+      "evidence": {
+        "git_commit": "dddd68880f288f3a207a38ab48283428593df287",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "4cbd82f649f060afb218307ae3a830b4d63e4721d2bd80d44158d4b1e261f7e4",
+        "worktree_sha256": "ea52b3e7ad3714a2f2f4bb41c543fd2d4eb9941c9de4f89fc78943becc86f137",
+        "worktree_evidence_truncated": false,
+        "active_goal": {
+          "id": "goal-1790540789-1790540789754989478-2322852",
+          "agent": "sfora/emafactorial",
+          "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+          "status": "queued",
+          "revision": 1,
+          "actor": "operator",
+          "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+          "created_at": 1790540789,
+          "updated_at": 1790540789
+        }
+      },
+      "previous_fingerprint": "717fe77bf8c29b630931171a550ea2ad0df1297fa60cff6612ae5a4ce8a7eb10",
+      "reused": false,
+      "critique_id": "deaf616c05364878",
+      "critique_role": "research_critic",
+      "systemd_unit": "devbox-consult-fa6febcc8e244fae.service",
+      "pid": 925123,
+      "pgid": 925123,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5",
+          "budget_usd": 4,
+          "timeout_seconds": 1200,
+          "started_at": 1790615821
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1790616030,
+      "event_cursor": 28,
+      "events": [
+        {
+          "seq": 5,
+          "at": 1790615828,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 6,
+          "at": 1790615832,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 7,
+          "at": 1790615835,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 8,
+          "at": 1790615836,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 9,
+          "at": 1790615903,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 10,
+          "at": 1790615903,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 11,
+          "at": 1790615908,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 12,
+          "at": 1790615913,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 13,
+          "at": 1790615917,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 14,
+          "at": 1790615985,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 15,
+          "at": 1790616016,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 16,
+          "at": 1790616017,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 17,
+          "at": 1790616018,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 18,
+          "at": 1790616019,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 19,
+          "at": 1790616020,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 20,
+          "at": 1790616021,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 21,
+          "at": 1790616022,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 22,
+          "at": 1790616023,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 23,
+          "at": 1790616024,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 24,
+          "at": 1790616025,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 25,
+          "at": 1790616026,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 26,
+          "at": 1790616027,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 27,
+          "at": 1790616028,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 28,
+          "at": 1790616029,
+          "provider": "claude",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": true,
+      "provider_events": {
+        "claude": [
+          {
+            "seq": 21,
+            "at": 1790616022,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 22,
+            "at": 1790616023,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 23,
+            "at": 1790616024,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 24,
+            "at": 1790616025,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 25,
+            "at": 1790616026,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 26,
+            "at": 1790616027,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 27,
+            "at": 1790616028,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 28,
+            "at": 1790616029,
+            "provider": "claude",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "**Verdict: GO for the one bounded 100-update DGX pair. I found no blocking defects.**\n\nThis was read-only. I didn't edit anything, touch `topk.rs`, launch GPU jobs or start consultations. I checked HEAD `dddd6888` and `scripts/train_inshop_pe_pair.py` SHA `51fbc8db\u2026`, which matches `preflight-v1.json`.\n\n## What the code does correctly\n- **Roles and leakage:** fit and held rows are rebuilt from the official partition, and the fit rows must match the cache manifest (`train_inshop_pe_pair.py:100-101`). The query/gallery ordinal hashes are checked (`:116-120`). Head, proxies and bank come from fit caches only. Query and gallery are disjoint, so a query can never match itself.\n- **Scoring:** `packed_quality` sorts stably and computes AP up to R, where R is each query's positive count in the gallery (`compare_inshop_sop_warmstart_100.py:59-63`). That is correct mAP@R. The bootstrap is 5,000 fixed-seed resamples, ratio-of-sums, for both product and query resampling.\n- **Singleton policy:** the whole-batch rank-off rule really is inherited (`preflight_inshop_siglip2_coverage.py:80,114`). It is applied to both arms (`:298-304`), which gives 91 rank-active and 9 inactive batches. Steps 1 and 100 are both rank-active, so the first/last gradient inventories exercise the bank path.\n- **Bank:** refreshed only after a successful optimizer step, from detached pre-update projected vectors, and the last duplicate view wins. Up to 4 duplicates per batch is harmless because the rank loss scores against the bank and excludes the image's own row.\n- **Augmentation and RNG:** only the CPU generator is forked and seeded per step (`:39-41`). `RandomResizedCrop` and flip draw only from that generator, and the same RGB is then passed to each native processor. The first RGB and pixel hashes are frozen, and all 100 RGB hashes are compared across arms. PE-Core-B16 has no drop-path (default 0.0) and SDPA dropout is 0, so `.train()` adds no unseeded GPU randomness to training or calibration.\n- **Precision and freezing:** clipping with `error_if_nonfinite` plus the scale-drop assert means any overflow stops the run rather than skipping a step, as declared. The frozen digest is taken after calibration, so the warmed PE rope/grid is included.\n- **Resources:** my estimate is about 380\u2013420 s against the 600 s cap. It adds up held export at the measured 112 and 249 img/s (about 113 s for Large, 51 s for PE), training at about 105 s and 60 s, plus loading and checkpoint saves. RSS was 3.3 GB in preflight and 2.8 GB in the cache run, against 8 GiB.\n\n## Blockers\nNone.\n\n## Recommended fixes\nThese are cheap, but any code change means redoing the CPU preflight, since the script hash is frozen in it.\n1. **Module-origin gap (`:496-497`).** The end check uses `set(current) <= frozen` and `current.get(n, h) == h`. If `sfora` or `core` were imported from somewhere outside `--root` (for example the venv), those keys would be missing and the check would still pass, while `check_startup` only hashes files under root. The fix is `assert set(current) == set(frozen[\"code\"])` and writing `current` into the receipt. If you don't re-preflight, launch with exactly the preflight command, working directory and `PYTHONPATH`, and record `sfora.__file__` from that environment first.\n2. **Split the step timing.** Record CPU input time (hash, decode, augment, preprocess) separately from GPU time, alongside the gate's guarded total. Serial decode adds the same absolute time to both arms and pushes the ratio towards 1. The per-tensor finite-check syncs (`:318-331`) scale with parameter count and favour PE. The margin is large (0.486 without input loading; I estimate 0.55\u20130.65 with it), but a split makes the ratio attributable.\n3. **Pre-launch artifact check.** Also assert that `{arm}.pt`, `.held.npy` and `.json` are absent at startup. `torch.save` overwrites silently, and `export_features`/`save` only reject existing files after training has already run. Irrelevant under the no-retry rule, but cheap.\n4. Optionally, hash every scheduled and held file once before the Large arm to warm the page cache evenly, since Large runs first.\n\n## Interpretation risks\nRecord these in the result doc; they aren't fixes.\n- **Quality will mostly reflect the starting point.** 100 updates is about 0.48 epoch at a vision learning rate of 1e-5, starting from each source's own PCA-128 head and proxies. The held comparison will largely reflect source quality at initialization, not how each arm responds to training. Neither the run nor the offline audit can currently separate the two. A step-0 held evaluation per arm fixes that: original weights plus `initializers.npz`, deterministic, runnable offline afterwards, and it doesn't need to fit in this 600 s run. I'd add it to the post-run audit.\n- **The \u22120.5 pp R@1 threshold is within noise.** The paired SE on 6,354 queries is roughly 0.35\u20130.5 pp, and wider with product clustering. A STOP or PASS decided within about 1 pp of a threshold should be reported with its intervals as a point-estimate outcome, not as a demonstrated difference. There is no rescue either way.\n- **The cost ratio carries little information.** The prior GPU-only 0.486 all but guarantees \u2264 0.8. Quality is the real test.\n- **Scope:** a PASS only licenses writing the separate 1,000-update proposal. It says nothing about SOTA or about the backbone alone, which the gate text already states.\n\n**GO** as frozen. If you apply fix 1 or 2, re-run the CPU preflight and startup check, then launch without further review.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "claude": "**Verdict: GO for the one bounded 100-update DGX pair. I found no blocking defects.**\n\nThis was read-only. I didn't edit anything, touch `topk.rs`, launch GPU jobs or start consultations. I checked HEAD `dddd6888` and `scripts/train_inshop_pe_pair.py` SHA `51fbc8db\u2026`, which matches `preflight-v1.json`.\n\n## What the code does correctly\n- **Roles and leakage:** fit and held rows are rebuilt from the official partition, and the fit rows must match the cache manifest (`train_inshop_pe_pair.py:100-101`). The query/gallery ordinal hashes are checked (`:116-120`). Head, proxies and bank come from fit caches only. Query and gallery are disjoint, so a query can never match itself.\n- **Scoring:** `packed_quality` sorts stably and computes AP up to R, where R is each query's positive count in the gallery (`compare_inshop_sop_warmstart_100.py:59-63`). That is correct mAP@R. The bootstrap is 5,000 fixed-seed resamples, ratio-of-sums, for both product and query resampling.\n- **Singleton policy:** the whole-batch rank-off rule really is inherited (`preflight_inshop_siglip2_coverage.py:80,114`). It is applied to both arms (`:298-304`), which gives 91 rank-active and 9 inactive batches. Steps 1 and 100 are both rank-active, so the first/last gradient inventories exercise the bank path.\n- **Bank:** refreshed only after a successful optimizer step, from detached pre-update projected vectors, and the last duplicate view wins. Up to 4 duplicates per batch is harmless because the rank loss scores against the bank and excludes the image's own row.\n- **Augmentation and RNG:** only the CPU generator is forked and seeded per step (`:39-41`). `RandomResizedCrop` and flip draw only from that generator, and the same RGB is then passed to each native processor. The first RGB and pixel hashes are frozen, and all 100 RGB hashes are compared across arms. PE-Core-B16 has no drop-path (default 0.0) and SDPA dropout is 0, so `.train()` adds no unseeded GPU randomness to training or calibration.\n- **Precision and freezing:** clipping with `error_if_nonfinite` plus the scale-drop assert means any overflow stops the run rather than skipping a step, as declared. The frozen digest is taken after calibration, so the warmed PE rope/grid is included.\n- **Resources:** my estimate is about 380\u2013420 s against the 600 s cap. It adds up held export at the measured 112 and 249 img/s (about 113 s for Large, 51 s for PE), training at about 105 s and 60 s, plus loading and checkpoint saves. RSS was 3.3 GB in preflight and 2.8 GB in the cache run, against 8 GiB.\n\n## Blockers\nNone.\n\n## Recommended fixes\nThese are cheap, but any code change means redoing the CPU preflight, since the script hash is frozen in it.\n1. **Module-origin gap (`:496-497`).** The end check uses `set(current) <= frozen` and `current.get(n, h) == h`. If `sfora` or `core` were imported from somewhere outside `--root` (for example the venv), those keys would be missing and the check would still pass, while `check_startup` only hashes files under root. The fix is `assert set(current) == set(frozen[\"code\"])` and writing `current` into the receipt. If you don't re-preflight, launch with exactly the preflight command, working directory and `PYTHONPATH`, and record `sfora.__file__` from that environment first.\n2. **Split the step timing.** Record CPU input time (hash, decode, augment, preprocess) separately from GPU time, alongside the gate's guarded total. Serial decode adds the same absolute time to both arms and pushes the ratio towards 1. The per-tensor finite-check syncs (`:318-331`) scale with parameter count and favour PE. The margin is large (0.486 without input loading; I estimate 0.55\u20130.65 with it), but a split makes the ratio attributable.\n3. **Pre-launch artifact check.** Also assert that `{arm}.pt`, `.held.npy` and `.json` are absent at startup. `torch.save` overwrites silently, and `export_features`/`save` only reject existing files after training has already run. Irrelevant under the no-retry rule, but cheap.\n4. Optionally, hash every scheduled and held file once before the Large arm to warm the page cache evenly, since Large runs first.\n\n## Interpretation risks\nRecord these in the result doc; they aren't fixes.\n- **Quality will mostly reflect the starting point.** 100 updates is about 0.48 epoch at a vision learning rate of 1e-5, starting from each source's own PCA-128 head and proxies. The held comparison will largely reflect source quality at initialization, not how each arm responds to training. Neither the run nor the offline audit can currently separate the two. A step-0 held evaluation per arm fixes that: original weights plus `initializers.npz`, deterministic, runnable offline afterwards, and it doesn't need to fit in this 600 s run. I'd add it to the post-run audit.\n- **The \u22120.5 pp R@1 threshold is within noise.** The paired SE on 6,354 queries is roughly 0.35\u20130.5 pp, and wider with product clustering. A STOP or PASS decided within about 1 pp of a threshold should be reported with its intervals as a point-estimate outcome, not as a demonstrated difference. There is no rescue either way.\n- **The cost ratio carries little information.** The prior GPU-only 0.486 all but guarantees \u2264 0.8. Quality is the real test.\n- **Scope:** a PASS only licenses writing the separate 1,000-update proposal. It says nothing about SOTA or about the backbone alone, which the gate text already states.\n\n**GO** as frozen. If you apply fix 1 or 2, re-run the CPU preflight and startup check, then launch without further review."
+      },
+      "providers_used": [
+        "claude"
+      ],
+      "active_provider": "claude",
+      "phase": "Consultation completed",
+      "input_bytes": 3363,
+      "output_bytes": 5547,
+      "elapsed_seconds": 209,
+      "progress": "devbox-ask: claude consult still running (0m 30s)\ndevbox-ask: claude consult still running (1m 00s)\ndevbox-ask: claude consult still running (1m 30s)\ndevbox-ask: claude consult still running (2m 00s)\ndevbox-ask: claude consult still running (2m 30s)\ndevbox-ask: claude consult still running (3m 00s)",
+      "progress_truncated": false,
+      "result": "**Verdict: GO for the one bounded 100-update DGX pair. I found no blocking defects.**\n\nThis was read-only. I didn't edit anything, touch `topk.rs`, launch GPU jobs or start consultations. I checked HEAD `dddd6888` and `scripts/train_inshop_pe_pair.py` SHA `51fbc8db\u2026`, which matches `preflight-v1.json`.\n\n## What the code does correctly\n- **Roles and leakage:** fit and held rows are rebuilt from the official partition, and the fit rows must match the cache manifest (`train_inshop_pe_pair.py:100-101`). The query/gallery ordinal hashes are checked (`:116-120`). Head, proxies and bank come from fit caches only. Query and gallery are disjoint, so a query can never match itself.\n- **Scoring:** `packed_quality` sorts stably and computes AP up to R, where R is each query's positive count in the gallery (`compare_inshop_sop_warmstart_100.py:59-63`). That is correct mAP@R. The bootstrap is 5,000 fixed-seed resamples, ratio-of-sums, for both product and query resampling.\n- **Singleton policy:** the whole-batch rank-off rule really is inherited (`preflight_inshop_siglip2_coverage.py:80,114`). It is applied to both arms (`:298-304`), which gives 91 rank-active and 9 inactive batches. Steps 1 and 100 are both rank-active, so the first/last gradient inventories exercise the bank path.\n- **Bank:** refreshed only after a successful optimizer step, from detached pre-update projected vectors, and the last duplicate view wins. Up to 4 duplicates per batch is harmless because the rank loss scores against the bank and excludes the image's own row.\n- **Augmentation and RNG:** only the CPU generator is forked and seeded per step (`:39-41`). `RandomResizedCrop` and flip draw only from that generator, and the same RGB is then passed to each native processor. The first RGB and pixel hashes are frozen, and all 100 RGB hashes are compared across arms. PE-Core-B16 has no drop-path (default 0.0) and SDPA dropout is 0, so `.train()` adds no unseeded GPU randomness to training or calibration.\n- **Precision and freezing:** clipping with `error_if_nonfinite` plus the scale-drop assert means any overflow stops the run rather than skipping a step, as declared. The frozen digest is taken after calibration, so the warmed PE rope/grid is included.\n- **Resources:** my estimate is about 380\u2013420 s against the 600 s cap. It adds up held export at the measured 112 and 249 img/s (about 113 s for Large, 51 s for PE), training at about 105 s and 60 s, plus loading and checkpoint saves. RSS was 3.3 GB in preflight and 2.8 GB in the cache run, against 8 GiB.\n\n## Blockers\nNone.\n\n## Recommended fixes\nThese are cheap, but any code change means redoing the CPU preflight, since the script hash is frozen in it.\n1. **Module-origin gap (`:496-497`).** The end check uses `set(current) <= frozen` and `current.get(n, h) == h`. If `sfora` or `core` were imported from somewhere outside `--root` (for example the venv), those keys would be missing and the check would still pass, while `check_startup` only hashes files under root. The fix is `assert set(current) == set(frozen[\"code\"])` and writing `current` into the receipt. If you don't re-preflight, launch with exactly the preflight command, working directory and `PYTHONPATH`, and record `sfora.__file__` from that environment first.\n2. **Split the step timing.** Record CPU input time (hash, decode, augment, preprocess) separately from GPU time, alongside the gate's guarded total. Serial decode adds the same absolute time to both arms and pushes the ratio towards 1. The per-tensor finite-check syncs (`:318-331`) scale with parameter count and favour PE. The margin is large (0.486 without input loading; I estimate 0.55\u20130.65 with it), but a split makes the ratio attributable.\n3. **Pre-launch artifact check.** Also assert that `{arm}.pt`, `.held.npy` and `.json` are absent at startup. `torch.save` overwrites silently, and `export_features`/`save` only reject existing files after training has already run. Irrelevant under the no-retry rule, but cheap.\n4. Optionally, hash every scheduled and held file once before the Large arm to warm the page cache evenly, since Large runs first.\n\n## Interpretation risks\nRecord these in the result doc; they aren't fixes.\n- **Quality will mostly reflect the starting point.** 100 updates is about 0.48 epoch at a vision learning rate of 1e-5, starting from each source's own PCA-128 head and proxies. The held comparison will largely reflect source quality at initialization, not how each arm responds to training. Neither the run nor the offline audit can currently separate the two. A step-0 held evaluation per arm fixes that: original weights plus `initializers.npz`, deterministic, runnable offline afterwards, and it doesn't need to fit in this 600 s run. I'd add it to the post-run audit.\n- **The \u22120.5 pp R@1 threshold is within noise.** The paired SE on 6,354 queries is roughly 0.35\u20130.5 pp, and wider with product clustering. A STOP or PASS decided within about 1 pp of a threshold should be reported with its intervals as a point-estimate outcome, not as a demonstrated difference. There is no rescue either way.\n- **The cost ratio carries little information.** The prior GPU-only 0.486 all but guarantees \u2264 0.8. Quality is the real test.\n- **Scope:** a PASS only licenses writing the separate 1,000-update proposal. It says nothing about SOTA or about the backbone alone, which the gate text already states.\n\n**GO** as frozen. If you apply fix 1 or 2, re-run the CPU preflight and startup check, then launch without further review.",
+      "result_truncated": false
+    },
+    {
+      "role": "engineering_critic",
+      "id": "aaabee4c29834db4",
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "fallbacks": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "agent": "sfora/emafactorial",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1790615821,
+      "timeout_seconds": 1200,
+      "deadline_at": 1790617021,
+      "budget_usd": null,
+      "prompt_preview": "Act as the independent adversarial engineering and release critic. Inspect correctness, failure modes, security, operability, tests, and UX. Prioritize concrete findings with evidence. Do not edit files.\n\nMaterial to critique:\nRead-only consequential review; do not edit, launch GPU jobs or start consultations. Repository /home/rb/worktrees/sfora-positive-causality on master dddd6888, protected dirty rust/sfora-cutile-int8-score/src/topk.rs must stay untouched. Review this new actual-image TRAIN feasibility gate and executable for blockers before ONE bounded DGX run. Read docs/inshop_pe_augmented_training_gate_2026-09-28.md, docs/superpowers/plans/2026-09-28-pe-augmented-training.md, scripts/train_inshop_pe_pair.py (SHA51fbc8db8084b71b1192fcafe2d524113690bb0b3031eb42979eaa619c46256d), scripts/check_inshop_pe_pair.py, reused scripts/probe_inshop_pe_training_smoke.py, pe_core_training.py, train_sop_siglip2_compact.py initializer/bank/scaler/ImageRows, score_inshop_crop_view_pair.py roles/bootstrap and compare_inshop_sop_warmstart_100.py packed_quality. Evidence: docs/inshop_pe_fp16_training_result_2026-09-28.md qualified actual16x64 native FP16+GradScaler128/freeze integrity (PEmedian385.837ms vsLarge793.662ms; no quality); docs/inshop_pe_fullfit_cache_result_2026-09-28.md and raw pe-fullfit-cache-v1 verified complete original source caches all13283fit rows (heldexcluded) with CPUactualmatrixaudit. NEW docs/evidence/compact_metric/sop-siglip2-substrate-v1/pe-augmented-100-v1/preflight-v1.json and augmented-preflight-v1 logs/time: CPU preflight passed14.24s, ownfullfitPCA128/proxies/bank, complete cached-loss VJP finite/nonzero, strictsource/freeze inventories and identicalfirstaugmentedRGBhash; 100prefix179032 schedule6192distinctimages1600products6400presentations91rankactive9singletoninactive. Seed/per-step CPU generatoronly fork_rng restore; native224/256afterSAMERGB. Prior full goal unmet, onlysource/systemcontrast notbackbone-only/SOTA claim. 100updatessameAdam/loss/halfprefix/scaler128 matchedschedule, everyfiniteAdam/parameter/bankcheck andfirstlastfullgradients/group/frozenforeignrope+grid; calibrate4F16F32/cache floors.999 beforeoptimizer. Stream input files with hashes, initializer/externalpreflight/code hashes startup beforeCUDA. OriginalFP32 weights unchanged. Actualcheckpoints+held128vectors, frozen6354q6245gTRAINheld packedR1/mAP@Rpairedproduct/querybootstrap (noofficial). Whole600s8GiBhost Large16GB PE10GB/cleanup8MiB sharedflock; norescues. Grossstop PEcontrolR1delta<-0.5pp ormapdelta<-1pp orguardedtrainingmedianratio>.8, passageonlylicensesseparate1000proposal. Existing emulated packed score helper is inherited; no kernel modification. Check actual code/dataflow vs gates, singleton/no-skip/bank alias semantics, CUDA memory/closure cleanup, CPU/RNG/image matching and source/manifest/executable integrity, held leakage/stabletie/AP, interpretation/cost. Give specific blockers with locations, distinguish requiredfixes fromoptional, final GO/STOP for this bounded feasibility run. Do not require official benchmarks or fullgoal achievement before a TRAIN feasibility experiment. Sourceacquisition/CPU qualification terminal, DGXidle; GPUtrainingNOTlaunched.",
+      "prompt_sha256": "7a7dae616430d14cd913e6a62087c58c09389718eec19c55f468c3eb797ea9f6",
+      "prompt_bytes": 3397,
+      "fingerprint": "1180c64a0001d247fb4208641eee42e6e15a52f66cdbb8357cbe3c521e6a08ba",
+      "evidence": {
+        "git_commit": "dddd68880f288f3a207a38ab48283428593df287",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "4cbd82f649f060afb218307ae3a830b4d63e4721d2bd80d44158d4b1e261f7e4",
+        "worktree_sha256": "ea52b3e7ad3714a2f2f4bb41c543fd2d4eb9941c9de4f89fc78943becc86f137",
+        "worktree_evidence_truncated": false,
+        "active_goal": {
+          "id": "goal-1790540789-1790540789754989478-2322852",
+          "agent": "sfora/emafactorial",
+          "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+          "status": "queued",
+          "revision": 1,
+          "actor": "operator",
+          "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+          "created_at": 1790540789,
+          "updated_at": 1790540789
+        }
+      },
+      "previous_fingerprint": "c03de252c90f07ce71127a2644297e962bab7721cb576a75fd62d3c391599671",
+      "reused": false,
+      "critique_id": "deaf616c05364878",
+      "critique_role": "engineering_critic",
+      "systemd_unit": "devbox-consult-aaabee4c29834db4.service",
+      "pid": 925161,
+      "pgid": 925161,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra",
+          "budget_usd": null,
+          "timeout_seconds": 1200,
+          "started_at": 1790615821
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1790615966,
+      "event_cursor": 30,
+      "events": [
+        {
+          "seq": 7,
+          "at": 1790615835,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 8,
+          "at": 1790615835,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 9,
+          "at": 1790615840,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 10,
+          "at": 1790615840,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 11,
+          "at": 1790615845,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 12,
+          "at": 1790615845,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 13,
+          "at": 1790615845,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 14,
+          "at": 1790615845,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 15,
+          "at": 1790615850,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 16,
+          "at": 1790615858,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 17,
+          "at": 1790615860,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 18,
+          "at": 1790615860,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 19,
+          "at": 1790615860,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 20,
+          "at": 1790615875,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 21,
+          "at": 1790615878,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 22,
+          "at": 1790615888,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 23,
+          "at": 1790615888,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 2"
+        },
+        {
+          "seq": 24,
+          "at": 1790615921,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 25,
+          "at": 1790615921,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 26,
+          "at": 1790615928,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 27,
+          "at": 1790615933,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 28,
+          "at": 1790615933,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 29,
+          "at": 1790615965,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 30,
+          "at": 1790615966,
+          "provider": "codex",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": true,
+      "provider_events": {
+        "codex": [
+          {
+            "seq": 23,
+            "at": 1790615888,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 2"
+          },
+          {
+            "seq": 24,
+            "at": 1790615921,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 25,
+            "at": 1790615921,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 26,
+            "at": 1790615928,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 27,
+            "at": 1790615933,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 28,
+            "at": 1790615933,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 29,
+            "at": 1790615965,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 30,
+            "at": 1790615966,
+            "provider": "codex",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "**STOP for launch as currently packaged.** The training design is reasonable for this bounded TRAIN feasibility experiment, but three release safeguards need closing.\n\n1. **Required: authenticate the executing trainer before CUDA.** [Startup](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_pe_pair.py:62) hashes files under `args.root`, without checking that the executing trainer and imported modules match those files. The inherited mechanics authority does not contain this new trainer. Its executing-code comparison happens only [after both arms](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_pe_pair.py:495). A changed trainer launched from another directory can therefore consume the GPU budget before rejection. I reproduced this with an isolated, in-memory execution of the startup function. Check executing paths/hashes at startup and add a regression case with valid root files but a mismatched executing copy; the [existing test](/home/rb/worktrees/sfora-positive-causality/scripts/check_inshop_pe_pair.py:40) only tests an incorrect preflight hash. Also authenticate both model sources before starting Large: PE checkpoint validation currently occurs when PE loads.\n\n2. **Required launch evidence: enforce the resource envelope externally.** The submitted evidence contains CPU preflight records, but no launcher for this pair. [The executable](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_pe_pair.py:453) has no lock or enforced host/time limit; its 600-second assertion runs after completion, excludes startup, and RSS is merely recorded. CUDA peaks are checked [after training and held scoring](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_pe_pair.py:421). Freeze a launcher with the shared lock, whole-process 600-second termination, 8-GiB memory limit, and durable terminal logs. The previous cache launcher provides an existing pattern. Check CUDA peaks during training and evaluation so exceeding a budget stops subsequent work.\n\n3. **Required: reject partial-run outputs before any training.** [Startup](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_pe_pair.py:453) rejects only an existing final receipt. Following an interrupted attempt, another invocation can retrain Large and [overwrite `large.pt`](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_pe_pair.py:359), then fail because held vectors or the exclusive JSON receipt already exist. That destroys checkpoint-to-receipt correspondence and violates the one-attempt policy. Reject existing arm artifacts before CUDA and reserve the attempt exclusively in the launcher or executable.\n\nThe inspected learning and evaluation paths otherwise support proceeding once those safeguards are closed:\n\n- Manifest replay confirmed **6,192 distinct images, 1,600 products, 6,400 presentations, and 91 active/9 inactive rank batches**.\n- Fit/held products and paths are disjoint; query/gallery roles are disjoint, complete, and reproduce the frozen ordinal hashes.\n- CPU-only augmentation seeding restores RNG state and produces shared RGB views before native preprocessing.\n- Singleton batches retain CE and bank refresh. Refresh follows successful optimizer stepping, uses detached pre-update projections, and resolves duplicates by last position.\n- Packed evaluation uses stable ordering; AP truncation and paired bootstrap construction are consistent with the stated protocol. No kernel change is needed.\n- I found no obvious cross-arm CUDA reference leak in the local evaluation closure.\n\n**Optional:** persist step diagnostics incrementally; currently most are lost on interruption. Release optimizer state and final training tensors before held inference to reduce evaluation residency.\n\nThe executable SHA matches the supplied value. This was static inspection plus CPU metadata/startup checks, not a rerun of the dependency-heavy fixture or GPU mechanics. No files were edited, GPU jobs launched, or consultations started.\n\nAfter the required fixes and launcher freeze, **GO for one bounded feasibility run**\u2014with the independent checkpoint and score replay still required before claiming PASS. Official benchmarks and full-goal achievement are not prerequisites.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "codex": "**STOP for launch as currently packaged.** The training design is reasonable for this bounded TRAIN feasibility experiment, but three release safeguards need closing.\n\n1. **Required: authenticate the executing trainer before CUDA.** [Startup](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_pe_pair.py:62) hashes files under `args.root`, without checking that the executing trainer and imported modules match those files. The inherited mechanics authority does not contain this new trainer. Its executing-code comparison happens only [after both arms](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_pe_pair.py:495). A changed trainer launched from another directory can therefore consume the GPU budget before rejection. I reproduced this with an isolated, in-memory execution of the startup function. Check executing paths/hashes at startup and add a regression case with valid root files but a mismatched executing copy; the [existing test](/home/rb/worktrees/sfora-positive-causality/scripts/check_inshop_pe_pair.py:40) only tests an incorrect preflight hash. Also authenticate both model sources before starting Large: PE checkpoint validation currently occurs when PE loads.\n\n2. **Required launch evidence: enforce the resource envelope externally.** The submitted evidence contains CPU preflight records, but no launcher for this pair. [The executable](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_pe_pair.py:453) has no lock or enforced host/time limit; its 600-second assertion runs after completion, excludes startup, and RSS is merely recorded. CUDA peaks are checked [after training and held scoring](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_pe_pair.py:421). Freeze a launcher with the shared lock, whole-process 600-second termination, 8-GiB memory limit, and durable terminal logs. The previous cache launcher provides an existing pattern. Check CUDA peaks during training and evaluation so exceeding a budget stops subsequent work.\n\n3. **Required: reject partial-run outputs before any training.** [Startup](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_pe_pair.py:453) rejects only an existing final receipt. Following an interrupted attempt, another invocation can retrain Large and [overwrite `large.pt`](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_pe_pair.py:359), then fail because held vectors or the exclusive JSON receipt already exist. That destroys checkpoint-to-receipt correspondence and violates the one-attempt policy. Reject existing arm artifacts before CUDA and reserve the attempt exclusively in the launcher or executable.\n\nThe inspected learning and evaluation paths otherwise support proceeding once those safeguards are closed:\n\n- Manifest replay confirmed **6,192 distinct images, 1,600 products, 6,400 presentations, and 91 active/9 inactive rank batches**.\n- Fit/held products and paths are disjoint; query/gallery roles are disjoint, complete, and reproduce the frozen ordinal hashes.\n- CPU-only augmentation seeding restores RNG state and produces shared RGB views before native preprocessing.\n- Singleton batches retain CE and bank refresh. Refresh follows successful optimizer stepping, uses detached pre-update projections, and resolves duplicates by last position.\n- Packed evaluation uses stable ordering; AP truncation and paired bootstrap construction are consistent with the stated protocol. No kernel change is needed.\n- I found no obvious cross-arm CUDA reference leak in the local evaluation closure.\n\n**Optional:** persist step diagnostics incrementally; currently most are lost on interruption. Release optimizer state and final training tensors before held inference to reduce evaluation residency.\n\nThe executable SHA matches the supplied value. This was static inspection plus CPU metadata/startup checks, not a rerun of the dependency-heavy fixture or GPU mechanics. No files were edited, GPU jobs launched, or consultations started.\n\nAfter the required fixes and launcher freeze, **GO for one bounded feasibility run**\u2014with the independent checkpoint and score replay still required before claiming PASS. Official benchmarks and full-goal achievement are not prerequisites."
+      },
+      "providers_used": [
+        "codex"
+      ],
+      "active_provider": "codex",
+      "phase": "Consultation completed",
+      "input_bytes": 3397,
+      "output_bytes": 4254,
+      "elapsed_seconds": 145,
+      "progress": "Reading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)\ndevbox-ask: codex consult still running (1m 30s)\ndevbox-ask: codex consult still running (2m 00s)",
+      "progress_truncated": false,
+      "result": "**STOP for launch as currently packaged.** The training design is reasonable for this bounded TRAIN feasibility experiment, but three release safeguards need closing.\n\n1. **Required: authenticate the executing trainer before CUDA.** [Startup](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_pe_pair.py:62) hashes files under `args.root`, without checking that the executing trainer and imported modules match those files. The inherited mechanics authority does not contain this new trainer. Its executing-code comparison happens only [after both arms](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_pe_pair.py:495). A changed trainer launched from another directory can therefore consume the GPU budget before rejection. I reproduced this with an isolated, in-memory execution of the startup function. Check executing paths/hashes at startup and add a regression case with valid root files but a mismatched executing copy; the [existing test](/home/rb/worktrees/sfora-positive-causality/scripts/check_inshop_pe_pair.py:40) only tests an incorrect preflight hash. Also authenticate both model sources before starting Large: PE checkpoint validation currently occurs when PE loads.\n\n2. **Required launch evidence: enforce the resource envelope externally.** The submitted evidence contains CPU preflight records, but no launcher for this pair. [The executable](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_pe_pair.py:453) has no lock or enforced host/time limit; its 600-second assertion runs after completion, excludes startup, and RSS is merely recorded. CUDA peaks are checked [after training and held scoring](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_pe_pair.py:421). Freeze a launcher with the shared lock, whole-process 600-second termination, 8-GiB memory limit, and durable terminal logs. The previous cache launcher provides an existing pattern. Check CUDA peaks during training and evaluation so exceeding a budget stops subsequent work.\n\n3. **Required: reject partial-run outputs before any training.** [Startup](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_pe_pair.py:453) rejects only an existing final receipt. Following an interrupted attempt, another invocation can retrain Large and [overwrite `large.pt`](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_pe_pair.py:359), then fail because held vectors or the exclusive JSON receipt already exist. That destroys checkpoint-to-receipt correspondence and violates the one-attempt policy. Reject existing arm artifacts before CUDA and reserve the attempt exclusively in the launcher or executable.\n\nThe inspected learning and evaluation paths otherwise support proceeding once those safeguards are closed:\n\n- Manifest replay confirmed **6,192 distinct images, 1,600 products, 6,400 presentations, and 91 active/9 inactive rank batches**.\n- Fit/held products and paths are disjoint; query/gallery roles are disjoint, complete, and reproduce the frozen ordinal hashes.\n- CPU-only augmentation seeding restores RNG state and produces shared RGB views before native preprocessing.\n- Singleton batches retain CE and bank refresh. Refresh follows successful optimizer stepping, uses detached pre-update projections, and resolves duplicates by last position.\n- Packed evaluation uses stable ordering; AP truncation and paired bootstrap construction are consistent with the stated protocol. No kernel change is needed.\n- I found no obvious cross-arm CUDA reference leak in the local evaluation closure.\n\n**Optional:** persist step diagnostics incrementally; currently most are lost on interruption. Release optimizer state and final training tensors before held inference to reduce evaluation residency.\n\nThe executable SHA matches the supplied value. This was static inspection plus CPU metadata/startup checks, not a rerun of the dependency-heavy fixture or GPU mechanics. No files were edited, GPU jobs launched, or consultations started.\n\nAfter the required fixes and launcher freeze, **GO for one bounded feasibility run**\u2014with the independent checkpoint and score replay still required before claiming PASS. Official benchmarks and full-goal achievement are not prerequisites.",
+      "result_truncated": false
+    }
+  ],
+  "reused": false,
+  "finished_at": 1790616031,
+  "elapsed_seconds": 209,
+  "input_bytes": 2993,
+  "output_bytes": 9801
+}

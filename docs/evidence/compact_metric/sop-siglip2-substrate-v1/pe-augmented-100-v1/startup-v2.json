@@ -1,0 +1,5 @@
+{
+  "valid_root_startup_pass": true,
+  "copied_executing_trainer_rejected_before_cuda": true,
+  "quality_read": false
+}

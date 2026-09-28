@@ -1,0 +1,71 @@
+{
+  "id": "deaf616c05364878",
+  "status": "running",
+  "started_at": 1790615821,
+  "agent": "sfora/emafactorial",
+  "force_reason": "New terminal full-fit source acquisition and full-fit CPU qualification now enable a consequential actual augmented training/held-quality executable, distinct from prior 16-update numerical mechanics critique. One combined design/code review before first GPU optimizer on full-fit recipe; no duplicate question or active reviewers.",
+  "rolling_6h_count": 10,
+  "prompt_preview": "Read-only consequential review; do not edit, launch GPU jobs or start consultations. Repository /home/rb/worktrees/sfora-positive-causality on master dddd6888, protected dirty rust/sfora-cutile-int8-score/src/topk.rs must stay untouched. Review this new actual-image TRAIN feasibility gate and executable for blockers before ONE bounded DGX run. Read docs/inshop_pe_augmented_training_gate_2026-09-28.md, docs/superpowers/plans/2026-09-28-pe-augmented-training.md, scripts/train_inshop_pe_pair.py (SHA51fbc8db8084b71b1192fcafe2d524113690bb0b3031eb42979eaa619c46256d), scripts/check_inshop_pe_pair.py, reused scripts/probe_inshop_pe_training_smoke.py, pe_core_training.py, train_sop_siglip2_compact.py initializer/bank/scaler/ImageRows, score_inshop_crop_view_pair.py roles/bootstrap and compare_inshop_sop_warmstart_100.py packed_quality. Evidence: docs/inshop_pe_fp16_training_result_2026-09-28.md qualified actual16x64 native FP16+GradScaler128/freeze integrity (PEmedian385.837ms vsLarge793.662ms; no quality); docs/inshop_pe_fullfit_cache_result_2026-09-28.md and raw pe-fullfit-cache-v1 verified complete original source caches all13283fit rows (heldexcluded) with CPUactualmatrixaudit. NEW docs/evidence/compact_metric/sop-siglip2-substrate-v1/pe-augmented-100-v1/preflight-v1.json and augmented-preflight-v1 logs/time: CPU preflight passed14.24s, ownfullfitPCA128/proxies/bank, complete cached-loss VJP finite/nonzero, strictsource/freeze inventories and identicalfirstaugmentedRGBhash; 100prefix179032 schedule6192distinctimages1600products6400presentations91rankactive9singletoninactive. Seed/per-step CPU generatoronly fork_rng restore; native224/256afterSAMERGB. Prior full goal unmet, onlysource/systemcontrast notbackbone-only/SOTA claim. 100updatessameAdam/loss/halfprefix/scaler128 matchedschedule, everyfiniteAdam/parameter/bankcheck andfirstlastfullgradients/group/frozenforeignrope+grid; calibrate4F16F32/cache floors.999 beforeoptimizer. Stream input files with hashes, initializer/externalpreflight/code hashes startup beforeCUDA. OriginalFP32 weights unchanged. Actualcheckpoints+held128vectors, frozen6354q6245gTRAINheld packedR1/mAP@Rpairedproduct/querybootstrap (noofficial). Whole600s8GiBhost Large16GB PE10GB/cleanup8MiB sharedflock; norescues. Grossstop PEcontrolR1delta<-0.5pp ormapdelta<-1pp orguardedtrainingmedianratio>.8, passageonlylicensesseparate1000proposal. Existing emulated packed score helper is inherited; no kernel modification. Check actual code/dataflow vs gates, singleton/no-skip/bank alias semantics, CUDA memory/closure cleanup, CPU/RNG/image matching and source/manifest/executable integrity, held leakage/stabletie/AP, interpretation/cost. Give specific blockers with locations, distinguish requiredfixes fromoptional, final GO/STOP for this bounded feasibility run. Do not require official benchmarks or fullgoal achievement before a TRAIN feasibility experiment. Sourceacquisition/CPU qualification terminal, DGXidle; GPUtrainingNOTlaunched.",
+  "prompt_sha256": "9dad2bacc2cbe96e9cad7464f6d4350531eded1e1c77df7c262328bfa0da3479",
+  "prompt_bytes": 2993,
+  "fingerprint": "72135ae9542c2afd99f2322e1bf7ad2d77bc48302aba8bbec16a9d868874ddaf",
+  "evidence": {
+    "git_commit": "dddd68880f288f3a207a38ab48283428593df287",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "4cbd82f649f060afb218307ae3a830b4d63e4721d2bd80d44158d4b1e261f7e4",
+    "worktree_sha256": "ea52b3e7ad3714a2f2f4bb41c543fd2d4eb9941c9de4f89fc78943becc86f137",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "reviewers": [
+    {
+      "role": "research_critic",
+      "id": "fa6febcc8e244fae",
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "fallbacks": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ]
+    },
+    {
+      "role": "engineering_critic",
+      "id": "aaabee4c29834db4",
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "fallbacks": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ]
+    }
+  ],
+  "reused": false,
+  "next": "Continue independent work, then call critique_wait or critique_status with this id."
+}

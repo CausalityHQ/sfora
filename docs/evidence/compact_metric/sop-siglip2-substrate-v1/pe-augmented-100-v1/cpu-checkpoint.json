@@ -1,0 +1,15 @@
+{
+  "preflight_v1_invocation_id": "1821be109830469b9d7b72b5088270e0",
+  "preflight_v2_invocation_id": "5bcb8834ad884c7f9090f3cd5dc5b603",
+  "preflight_v2_exit_status": 0,
+  "initializers_byte_identical_v1_v2": true,
+  "initializers_sha256": "d0118caf6a87d779e892e70a3e3ad5f1026bfa783f661d0e3a53c5147ce880a6",
+  "preflight_v2_sha256": "41b5fe09448163d755d278131427a1d5bc4663855d544501487489fbe0813293",
+  "trainer_sha256": "0963cc443ef29e7d821275f4068f760dd6ed51b7ab69aa98bf0030ccf9676ecf",
+  "fixture_pass": true,
+  "executing_copy_and_partial_artifact_rejection_pass": true,
+  "review_group": "deaf616c05364878",
+  "review_conditions_closed": true,
+  "gpu_launched": false,
+  "quality_read": false
+}
