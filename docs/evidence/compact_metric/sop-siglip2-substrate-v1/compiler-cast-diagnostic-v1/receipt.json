@@ -1,0 +1,28 @@
+{
+  "schema": "sfora-compiler-fp16-casts-v1",
+  "seed": 179059001,
+  "shape": [
+    32,
+    257,
+    1024
+  ],
+  "entries": 8421376,
+  "results": {
+    "default": {
+      "mismatched_entries": 3687581,
+      "max_abs_error": 0.00390625,
+      "rms_error": 0.0004433303838595748,
+      "compile_and_call_seconds": 1.5795807517133653
+    },
+    "preserve_casts": {
+      "mismatched_entries": 346,
+      "max_abs_error": 0.001953125,
+      "rms_error": 4.0858035390556324e-06,
+      "compile_and_call_seconds": 0.23067506682127714
+    }
+  },
+  "decision": "KILL_CAST_REPAIR",
+  "torch": "2.12.1+cu130",
+  "gpu": "NVIDIA GB10",
+  "limitations": "Synthetic diagnostic, not actual model/packed parity, recall or latency."
+}

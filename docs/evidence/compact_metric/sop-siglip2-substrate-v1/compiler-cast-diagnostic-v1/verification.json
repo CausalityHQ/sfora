@@ -1,0 +1,20 @@
+{
+  "checks": {
+    "shape": true,
+    "kill_replay": true,
+    "no_quality_latency": true,
+    "counts": true
+  },
+  "receipt_sha256": "e2bc75ec5b19e12a3602aa9c71b6f83c0c1be89cd23ea21e2f91103a51022b65",
+  "source_sha256": "a80df912ade13a68a87de53b3ac38e27ec3ac75144ce7e237cc17a95b17b4f79",
+  "invocation_id": "2caf2e1657744e4285e92dee88f4fb90",
+  "terminal": {
+    "MainPID": 0,
+    "ActiveState": "inactive",
+    "Result": "success",
+    "ExecMainStatus": 0
+  },
+  "rms_reduction_factor": 108.50506629157296,
+  "max_error_ratio": 0.5,
+  "limitations": "Metadata/decision/source replay only; actual synthetic tensors not retained."
+}
