@@ -18,9 +18,11 @@ from score_inshop_crop_view_pair import GALLERY_SHA, QUERY_SHA, bootstrap_lower,
 from sfora.unicom_inshop import parse_inshop_partition
 
 
-def record_child_failure(output_dir, name, error, quality, hashes, elapsed):
+def record_child_failure(output_dir, name, error, quality, hashes, elapsed, *, source_main=False):
     result = {
-        "schema": "sfora-inshop-wide-main-head-100-v1",
+        "schema": "sfora-inshop-source-main-100-v1"
+        if source_main
+        else "sfora-inshop-wide-main-head-100-v1",
         "claim_eligible": False,
         "decision": "KILL_CHILD_BUDGET"
         if isinstance(error, subprocess.TimeoutExpired)
@@ -54,11 +56,13 @@ def main():
         "output-dir",
     ):
         parser.add_argument(f"--{name}", type=Path, required=True)
+    parser.add_argument("--source-main", action="store_true")
     args = parser.parse_args()
-    if (
-        args.output_dir.exists()
-        or sha256(args.qualification)
-        != "eb4c8c1bf2a059277b92493fc71612d1f4ce9b53504c3ae1d6346155bf01591e"
+    proposal = "source" if args.source_main else "wide"
+    if args.output_dir.exists() or sha256(args.qualification) != (
+        "552859f6fad15f093ec1d540391b594fd9ff7ea0458fe942c5523d3ebc3a4c9b"
+        if args.source_main
+        else "eb4c8c1bf2a059277b92493fc71612d1f4ce9b53504c3ae1d6346155bf01591e"
     ):
         raise ValueError("wide100 authority/output differs")
     args.output_dir.mkdir(parents=True)
@@ -79,7 +83,7 @@ def main():
         raise ValueError("wide100 held roles differ")
     qlabels = np.asarray([labels[row] for row in query])
     arms, quality, hashes = {}, {}, {}
-    for name, width in (("control", 128), ("wide", 256)):
+    for name, width in (("control", 128), (proposal, 128 if args.source_main else 256)):
         destination = args.output_dir / name
         command = [
             sys.executable,
@@ -107,6 +111,13 @@ def main():
             "--wide-head-qualification",
             str(args.qualification),
         ]
+        if args.source_main:
+            command[-2:] = [
+                "--source-main-smoke",
+                name,
+                "--source-main-qualification",
+                str(args.qualification),
+            ]
         torch.cuda.empty_cache()
         try:
             with (args.output_dir / f"{name}.log").open("wb") as log:
@@ -119,7 +130,13 @@ def main():
                 )
         except (subprocess.TimeoutExpired, subprocess.CalledProcessError) as error:
             record_child_failure(
-                args.output_dir, name, error, quality, hashes, time.perf_counter() - started
+                args.output_dir,
+                name,
+                error,
+                quality,
+                hashes,
+                time.perf_counter() - started,
+                source_main=args.source_main,
             )
             raise
         receipt_path = destination / "receipt.json"
@@ -139,6 +156,14 @@ def main():
             or not all(receipt["matched_public32_parity"].values())
         ):
             raise ValueError("wide100 update/export/parity inventory differs")
+        if args.source_main:
+            smoke = json.loads(args.qualification.read_text())["arms"][name]
+            if receipt["first_input_batch_sha256"][:17] != smoke[
+                "first_input_batch_sha256"
+            ] or not np.allclose(
+                receipt["all_step_losses"][:17], smoke["all_step_losses"], rtol=0, atol=1e-5
+            ):
+                raise ValueError("source MAIN100 prefix differs from qualified17")
         if arms:
             paired = (
                 "source_sha256",
@@ -183,14 +208,14 @@ def main():
                 + "\n"
             )
             return
-    delta = np.asarray(quality["wide"]["per_query_r1"]) - np.asarray(
+    delta = np.asarray(quality[proposal]["per_query_r1"]) - np.asarray(
         quality["control"]["per_query_r1"]
     )
-    ap_delta = np.asarray(quality["wide"]["per_query_ap"]) - np.asarray(
+    ap_delta = np.asarray(quality[proposal]["per_query_ap"]) - np.asarray(
         quality["control"]["per_query_ap"]
     )
     lower = bootstrap_lower(ap_delta, qlabels)
-    control, wide = arms["control"], arms["wide"]
+    control, wide = arms["control"], arms[proposal]
     criteria = {
         "map_gain": float(ap_delta.mean()) >= 0.01,
         "map_lower": lower > 0,
@@ -201,7 +226,7 @@ def main():
         "memory": wide["training_peak_cuda_allocated_bytes"]
         <= control["training_peak_cuda_allocated_bytes"] + 2**30,
         "whole_arm_calibration_cost": wide["whole_arm_wall_seconds"]
-        <= 2 * control["whole_arm_wall_seconds"],
+        <= (1.15 if args.source_main else 2) * control["whole_arm_wall_seconds"],
         "no_collapse": all(
             wide["width_terminal_geometry"][k] >= 0.5 * wide["width_initial_geometry"][k]
             for k in ("variance", "effective_rank")
@@ -209,7 +234,10 @@ def main():
         "whole_budget": time.perf_counter() - started <= 600,
     }
     result = {
-        "schema": "sfora-inshop-wide-main-head-100-v1",
+        "schema": "sfora-inshop-source-main-100-v1"
+        if args.source_main
+        else "sfora-inshop-wide-main-head-100-v1",
+        "source_main": args.source_main,
         "claim_eligible": False,
         "evaluation_exposure": "observed officialTRAIN held identities; exploratory",
         "decision": "GO_PAIRED_SEED_GATE_DESIGN" if all(criteria.values()) else "KILL",

@@ -527,12 +527,21 @@ def main() -> None:
     parser.add_argument("--wide-head-qualification", type=Path)
     parser.add_argument("--source-main-smoke", choices=("control", "source"))
     parser.add_argument("--source-main-receipt", type=Path)
+    parser.add_argument("--source-main-qualification", type=Path)
     args = parser.parse_args()
     source_main_smoke = args.source_main_smoke is not None
+    source_main_quality = args.source_main_qualification is not None
+    if source_main_quality and (
+        not source_main_smoke
+        or args.source_main_receipt is not None
+        or sha256(args.source_main_qualification)
+        != "552859f6fad15f093ec1d540391b594fd9ff7ea0458fe942c5523d3ebc3a4c9b"
+    ):
+        raise ValueError("source MAIN100 qualification differs")
     if source_main_smoke and (
         args.arm != "freeze_emb"
         or args.seed != 179024
-        or args.updates != 17
+        or args.updates != (100 if source_main_quality else 17)
         or args.freeze_first_blocks != 12
         or args.training_width != 128
         or args.vision_lr != 1e-5
@@ -544,9 +553,14 @@ def main() -> None:
         or args.teacher_transfer
         or args.wide_head_smoke_receipt
         or args.wide_head_qualification
-        or args.source_main_receipt is None
-        or sha256(args.source_main_receipt)
-        != "f5bec2865b8aeb86f66003ada0dc5902616d98e043a3d3b8e1716ead95c41203"
+        or (
+            not source_main_quality
+            and (
+                args.source_main_receipt is None
+                or sha256(args.source_main_receipt)
+                != "f5bec2865b8aeb86f66003ada0dc5902616d98e043a3d3b8e1716ead95c41203"
+            )
+        )
     ):
         raise ValueError("source MAIN smoke authority differs")
     if not source_main_smoke and args.source_main_receipt is not None:
@@ -1366,7 +1380,7 @@ def main() -> None:
             tuple(range(len(held))),
             processor,
             workers=args.workers,
-            batch_size=32 if width_quality else BATCH_SIZE,
+            batch_size=32 if width_quality or source_main_quality else BATCH_SIZE,
         )
         export_seconds = time.perf_counter() - export_started
         np.save(args.output_dir / "held_values.npy", values.numpy())
@@ -1422,7 +1436,7 @@ def main() -> None:
         "wide_head_qualification_sha256": sha256(args.wide_head_qualification)
         if width_quality
         else None,
-        "export_batch_size": 32 if width_quality else BATCH_SIZE,
+        "export_batch_size": 32 if width_quality or source_main_quality else BATCH_SIZE,
         "matched_public32_parity": matched_parity,
         "width_history": width_history,
         "width_initial_geometry": width_initial_geometry,

@@ -1,0 +1,1 @@
+{"encoder_gradient_cosine": 0.3723137378692627, "geometry": {"effective_rank": 24.230318069458008, "variance": 0.8513256907463074}, "main_encoder_gradient_norm": 111.05279541015625, "main_rank_norm_ratio": 2.426924228668213, "outside_span_norm_fraction": 0.0015200376510620117, "rank8_encoder_gradient_norm": 45.75865936279297, "saturated_target_fraction": 0.21875}

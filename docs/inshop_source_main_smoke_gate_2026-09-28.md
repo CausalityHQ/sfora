@@ -55,3 +55,18 @@ CPU implementation verification: one new regression checks native loss/gradient
 equality, no mean/head MAIN gradient and real active-to-inactive AdamW state
 preservation; focused source-centroid/fold regressions6/6 pass. No package source
 changes; existing clean wheel authority remains valid.
+
+## Terminal GO mechanics only
+
+Unit `sfora-inshop-source-main-smoke-v1-exec`, invocation
+`8c83cf24c73b431abbeaf35aa1b84031`, exit0; whole pair89.766339920s.
+Native/source diagnostic-inclusive training19.029270107/18.541105672s,
+57.17508/58.68043 images/s; peak20,227,696,640/20,264,168,960bytes. All gates
+passed. Source head Adam counters15/15, control17/17; singleton2/7 exact inactive
+state. Initial head/bank/vision and all17 pixels exact; public32 exact both arms.
+Source MAIN encoder norm93.40685->60.48058; compact variance.85132569->.88931948,
+effective rank24.23032->23.39125. No held quality or serving latency measured.
+ReceiptSHA552859f6fad15f093ec1d540391b594fd9ff7ea0458fe942c5523d3ebc3a4c9b.
+Earlier setup unit `sfora-inshop-source-main-smoke-v1`, invocation
+`b92aaa3cca07488a9cb4f376bdd93304`, exit127: deployment parent absent, no
+Python/GPU execution. Deployment repaired before the single actual paired run.
