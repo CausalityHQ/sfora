@@ -1,0 +1,14 @@
+{
+  "pass": true,
+  "advance": false,
+  "quality_read": false,
+  "receipt_sha256": "e5a483bb88cb1a668267a7a8940dbc6d8adaa3f4ef5ffb0d00ee7d211250e985",
+  "median_step_3_17_seconds": 0.7228258489631116,
+  "positive_gradient_tensors_per_diagnostic": 26,
+  "original_rgb_matches": 17,
+  "all_four_groups_moved": true,
+  "source_frozen_complement_receipt_matches": true,
+  "resource_exit_verified": "25.14s;4139924KiB RSS;no swap;exit0;allocatedCUDA4186396672B",
+  "remote_postrun_verified": "all82 executing file hashes unchanged;no pe.pt/held/pilot;GPU idle",
+  "audit_scope": "stdlib receipt/data/cost/gradient/movement replay; no model-quality or post-training reload evidence"
+}
