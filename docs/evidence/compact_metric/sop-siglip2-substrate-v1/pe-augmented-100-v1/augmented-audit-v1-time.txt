@@ -1,0 +1,23 @@
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python audit_inshop_pe_pair.py --root /home/riomus/runs/sfora-pe-augmented-pair-v1 --cache /home/riomus/runs/sfora-pe-fullfit-cache-v3 --output /home/riomus/runs/sfora-pe-augmented-100-v2 --dataset-root /home/riomus/datasets/inshop_official_standard --large-snapshot /home/riomus/.cache/huggingface/hub/models--google--siglip2-large-patch16-256/snapshots/787800c8990e6f058423089178e718139608408c --mechanics-dir /home/riomus/runs/sfora-pe-fp16-smoke-v1 --preflight-sha256 41b5fe09448163d755d278131427a1d5bc4663855d544501487489fbe0813293 --receipt-sha256 d02a1c176f023e81bd9a0bb526ff3294e677e88dcc0724b9306e1ca884177dbb"
+	User time (seconds): 19.39
+	System time (seconds): 2.38
+	Percent of CPU this job got: 171%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:12.66
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 3760552
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 17434
+	Minor (reclaiming a frame) page faults: 476860
+	Voluntary context switches: 99735
+	Involuntary context switches: 548
+	Swaps: 0
+	File system inputs: 1184
+	File system outputs: 32
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

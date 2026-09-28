@@ -1,5 +1,20 @@
 # Joint quality and performance decision, first training-code gate
 
+## 28 September native augmented PE pair: quality STOP, no longer run
+
+Independent actual checkpoint and CPU packed-score/CI replay PASS, but the
+frozen100-update source replacement fails BOTH TRAIN-held quality guards.
+Matched6,354query/6,245gallery: Large R@1 95.6720176%/mAP@R78.6237120%,
+PE95.0739692%/76.3915922%; deltas-0.5980485/-2.2321198pp. Product95% CIs
+[-1.1278284,-0.0628923]/[-2.8561202,-1.5916740]pp. Guarded-step median
+897.1212→559.6408ms ratio.6238184584 passescost; CUDA12,938,073,088→5,222,738,944B,
+cleanup0Bboth. Whole343.76s/3,566,116KiB; CPUaudit12.66s/3,760,552KiB.
+No1000extension/threshold orrecipe rescue/official evaluation. Alljobs terminal,
+DGXidle. Underlying source-versus-PCA quality cause is not yet identified;
+next fixed CPU cached-fit counterfactual separates native1024 source and
+frozen128projection without new training/inference. No serving claim.
+[Paired TRAIN quality result](inshop_pe_augmented_training_result_2026-09-28.md).
+
 ## 28 September complete PE/Large TRAIN-fit caches verified
 
 Both original-source FP16 exports and independent saved-matrix CPU replay PASS

@@ -1,0 +1,47 @@
+{
+  "arms": {
+    "large": {
+      "checkpoint_sha256": "f5fbf0e8eb3492274b6febeb6fd06a4b0d8b0fce4c7170069f3fa0d7b0a8df4d",
+      "held_sha256": "d09ed77338a87f5a92d663304c509667c6011d6771c818cb436b7948ae54e5b5",
+      "changed_groups": [
+        "block12",
+        "block13",
+        "block14",
+        "block15",
+        "block16",
+        "block17",
+        "block18",
+        "block19",
+        "block20",
+        "block21",
+        "block22",
+        "block23",
+        "classifier",
+        "compact_head",
+        "head",
+        "post_layernorm"
+      ]
+    },
+    "pe": {
+      "checkpoint_sha256": "655dc91c049391118ffc2fc98b370971962b20ef8c39ea7d362a595ec83635fb",
+      "held_sha256": "01d3be1e5e5226d26039692753c43bf0f1f3fa87f478f474fb0e00f414be9b65",
+      "changed_groups": [
+        "attn_pool",
+        "block10",
+        "block11",
+        "block6",
+        "block7",
+        "block8",
+        "block9",
+        "classifier",
+        "compact_head",
+        "ln_post",
+        "proj"
+      ]
+    }
+  },
+  "pass": true,
+  "decision": "STOP",
+  "quality_read": "TRAIN-held score replay only",
+  "claim_eligible": false
+}

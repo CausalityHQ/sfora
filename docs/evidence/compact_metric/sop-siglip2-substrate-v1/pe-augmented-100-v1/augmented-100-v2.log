@@ -1,0 +1,26 @@
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 10103.28it/s]
+{"arm": "large", "calibration": {"fp16_fp32": [0.9999905228614807, 0.999983012676239, 0.9999576807022095, 0.9999924898147583], "cached_fresh_fp16": [0.9999966025352478, 0.9999984502792358, 0.999997615814209, 0.9999980926513672]}}
+{"arm": "large", "step": 10, "loss": 6.529049873352051}
+{"arm": "large", "step": 20, "loss": 5.1357421875}
+{"arm": "large", "step": 30, "loss": 4.8234543800354}
+{"arm": "large", "step": 40, "loss": 6.190598011016846}
+{"arm": "large", "step": 50, "loss": 4.407040596008301}
+{"arm": "large", "step": 60, "loss": 5.945805549621582}
+{"arm": "large", "step": 70, "loss": 4.3231425285339355}
+{"arm": "large", "step": 80, "loss": 5.690267086029053}
+{"arm": "large", "step": 90, "loss": 6.904301166534424}
+{"arm": "large", "step": 100, "loss": 4.592966079711914}
+{"arm": "pe", "calibration": {"fp16_fp32": [0.9999904036521912, 0.9999868273735046, 0.999985933303833, 0.9999911785125732], "cached_fresh_fp16": [0.9999979734420776, 0.9999973773956299, 0.9999976754188538, 0.9999967813491821]}}
+{"arm": "pe", "step": 10, "loss": 4.149235725402832}
+{"arm": "pe", "step": 20, "loss": 4.683699607849121}
+{"arm": "pe", "step": 30, "loss": 3.262373924255371}
+{"arm": "pe", "step": 40, "loss": 5.586496353149414}
+{"arm": "pe", "step": 50, "loss": 3.629340648651123}
+{"arm": "pe", "step": 60, "loss": 5.44605827331543}
+{"arm": "pe", "step": 70, "loss": 3.4899797439575195}
+{"arm": "pe", "step": 80, "loss": 5.191011428833008}
+{"arm": "pe", "step": 90, "loss": 6.2767534255981445}
+{"arm": "pe", "step": 100, "loss": 4.644382953643799}
+{"decision": "STOP", "paired": {"r1": {"delta_pp": -0.598048473402581, "product_bootstrap_95_pp": [-1.127828384813491, -0.06289234044698269], "query_bootstrap_95_pp": [-1.1020616934214666, -0.12590494176896444]}, "map_at_r": {"delta_pp": -2.232119813971843, "product_bootstrap_95_pp": [-2.856120176737778, -1.591674024689439], "query_bootstrap_95_pp": [-2.699812448564196, -1.7773004629893119]}}, "step_time_ratio": 0.623818458401928}
