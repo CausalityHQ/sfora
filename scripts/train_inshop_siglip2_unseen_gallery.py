@@ -24,6 +24,7 @@ from probe_inshop_spatial_parts import CHECKPOINT_SHA
 from probe_inshop_teacher_transfer import label_preserving_sham
 from probe_inshop_wide_training_head import fold_uncentered_head
 from qualify_inshop_wide_checkpoint import matched_checkpoint_checks
+from direct_inshop_width import validate_direct_width, direct_checkpoint_checks
 from run_inshop_wide_head_smoke import packed_fit_images
 from siglip2_base_authority import BASE_HASHES, BASE_REVISION, TRANSFER_SMOKE_SHA
 from torch import nn
@@ -104,7 +105,7 @@ def valid_anchor_rank_loss(
     ) * (valid.sum() / len(valid))
 
 
-def source_manifest() -> dict[str, str]:
+def source_manifest(*, include_direct: bool = False) -> dict[str, str]:
     used = (
         main,
         load_vision_init,
@@ -138,6 +139,8 @@ def source_manifest() -> dict[str, str]:
     }
     if len(paths) != 19:
         raise ValueError("In-Shop source manifest differs")
+    if include_direct:
+        paths.add(Path(sys.modules[direct_checkpoint_checks.__module__].__file__).resolve())
     return {str(path): sha256(path) for path in sorted(paths)}
 
 
@@ -526,6 +529,7 @@ def main() -> None:
     parser.add_argument("--teacher-model-snapshot", type=Path)
     parser.add_argument("--teacher-checkpoint", type=Path)
     parser.add_argument("--training-width", type=int, choices=(128, 256), default=128)
+    parser.add_argument("--direct-width-receipt", type=Path)
     parser.add_argument("--wide-head-smoke-receipt", type=Path)
     parser.add_argument("--wide-head-qualification", type=Path)
     parser.add_argument("--source-main-smoke", choices=("control", "source"))
@@ -536,6 +540,9 @@ def main() -> None:
     parser.add_argument("--centroid-pca-qualification", type=Path)
     parser.add_argument("--centroid-pca-confirmation", type=Path)
     args = parser.parse_args()
+    direct_width = args.direct_width_receipt is not None
+    if direct_width:
+        validate_direct_width(args)
     centroid_smoke = args.centroid_pca_smoke is not None
     centroid_quality = args.centroid_pca_qualification is not None
     centroid_confirmation = args.centroid_pca_confirmation is not None
@@ -633,7 +640,7 @@ def main() -> None:
     ):
         raise ValueError("wide100 qualification authority differs")
     wide_smoke = args.wide_head_smoke_receipt is not None or width_quality
-    if (args.training_width != 128 and not wide_smoke) or (
+    if (args.training_width != 128 and not (wide_smoke or direct_width)) or (
         wide_smoke
         and (
             args.arm != "freeze_emb"
@@ -759,7 +766,7 @@ def main() -> None:
         or sha256(args.preflight) != args.preflight_sha256
     ):
         raise ValueError("In-Shop paired training authority differs")
-    sources = source_manifest()
+    sources = source_manifest(include_direct=direct_width)
     preflight = json.loads(args.preflight.read_text())
     cache = json.loads((args.features_dir / "receipt.json").read_text())
     validate_cache_vision_init(cache, args.vision_init_sha256)
@@ -878,12 +885,18 @@ def main() -> None:
         }
     if args.training_width == 256:
         narrow_weight = head.weight.detach().clone()
+        narrow_bias = head.bias.detach().clone()
         with torch.random.fork_rng(devices=[]):
             head, classifier, pca_sha = initialize_head_and_classifier(
                 features_cpu, tuple(class_ids.tolist()), allow_singletons=True, output_dim=256
             )
         if not torch.equal(head.weight[:128], narrow_weight):
             raise ValueError("wide initialization changes native subspace")
+        if direct_width and not torch.equal(head.bias[:128], narrow_bias):
+            raise ValueError("direct-width initialization changes native bias")
+    direct_initial_rows_sha = hashlib.sha256(
+        head.weight.detach()[:128].numpy().tobytes() + head.bias.detach()[:128].numpy().tobytes()
+    ).hexdigest() if direct_width else None
     head_init_seconds = time.perf_counter() - head_init_started
     source_mean = source_prototypes = None
     source_sham_index = None
@@ -1055,7 +1068,7 @@ def main() -> None:
         (args.output_dir / "source_main_initializer.json").write_text(
             json.dumps(source_main_init, sort_keys=True, allow_nan=False) + "\n"
         )
-    mechanics_smoke = wide_smoke or source_main_smoke or centroid_smoke
+    mechanics_smoke = wide_smoke or source_main_smoke or centroid_smoke or direct_width
     torch.cuda.reset_peak_memory_stats()
     started = time.perf_counter()
     losses: list[float] = []
@@ -1093,7 +1106,7 @@ def main() -> None:
         if source_features is None:
             raise ValueError("In-Shop train pooler missing")
         features = compact_head_features(source_features, head, output_dim=args.training_width)
-        if (wide_smoke or centroid_smoke) and step == 1:
+        if (wide_smoke or centroid_smoke or direct_width) and step == 1:
             fixed_smoke_batch = tensors, target
             width_initial_geometry = width_geometry(features.detach())
         if args.arm == "subspace":
@@ -1333,12 +1346,14 @@ def main() -> None:
         raise ValueError("In-Shop rank execution count differs")
     training_peak_cuda = torch.cuda.max_memory_allocated()
     width_terminal_geometry = None
+    terminal_frozen_sha = parameter_digest(vision, frozen=True) if mechanics_smoke else None
+    terminal_trainable_sha = parameter_digest(vision, frozen=False) if mechanics_smoke else None
     if mechanics_smoke and (
-        frozen_sha != parameter_digest(vision, frozen=True)
-        or initial_trainable_sha == parameter_digest(vision, frozen=False)
+        frozen_sha != terminal_frozen_sha
+        or initial_trainable_sha == terminal_trainable_sha
     ):
         raise ValueError("wide smoke frozen/update authority differs")
-    if wide_smoke or centroid_smoke:
+    if wide_smoke or centroid_smoke or direct_width:
         vision.eval()
         with torch.no_grad(), torch.autocast("cuda", dtype=dtype):
             pooled = vision(**fixed_smoke_batch[0]).pooler_output
@@ -1387,7 +1402,7 @@ def main() -> None:
         (args.output_dir / "source_probe_terminal.json").write_text(
             json.dumps(smoke_probes[-1], sort_keys=True, allow_nan=False) + "\n"
         )
-    if source_manifest() != sources:
+    if source_manifest(include_direct=direct_width) != sources:
         raise ValueError("In-Shop training source changed during execution")
     checkpoint_path = args.output_dir / "checkpoint.pt"
     if not args.source_centroid_smoke:
@@ -1449,6 +1464,12 @@ def main() -> None:
         )
     quality = None
     matched_parity = None
+    direct_parity = None
+    if direct_width:
+        direct_parity = direct_checkpoint_checks(
+            vision, head, processor, checkpoint_path,
+            tuple(paths[row] for row in fit[:64]), args.output_dir,
+        )
     if centroid_smoke:
         live_reference = pack_int8_unit_embeddings(
             export_all(
@@ -1554,7 +1575,7 @@ def main() -> None:
             device=torch.device("cuda"),
         )
         score_seconds = time.perf_counter() - score_started
-    if source_manifest() != sources:
+    if source_manifest(include_direct=direct_width) != sources:
         raise ValueError("In-Shop evaluation source changed during execution")
     receipt = {
         "schema": "sfora-inshop-siglip2-unseen-gallery-train-v1",
@@ -1579,7 +1600,7 @@ def main() -> None:
         "rank_coefficient": RANK_COEFFICIENT,
         "vision_lr": args.vision_lr,
         "vision_init_sha256": args.vision_init_sha256,
-        "training_coordinates": 64 if args.arm == "subspace" else 128,
+        "training_coordinates": 64 if args.arm == "subspace" else args.training_width,
         "rank_inactive_steps": (
             []
             if args.arm == "freeze_emb_rank"
@@ -1600,6 +1621,10 @@ def main() -> None:
         "model_file_sha256": model_hashes,
         "teacher_transfer": args.teacher_transfer,
         "training_width": args.training_width,
+        "direct_width_smoke": direct_width,
+        "direct_width_receipt_sha256": sha256(args.direct_width_receipt) if direct_width else None,
+        "direct_initial_rows_sha256": direct_initial_rows_sha,
+        "private_native_fp16_reload": direct_parity,
         "wide_head_smoke": wide_smoke,
         "wide_head_qualification_sha256": sha256(args.wide_head_qualification)
         if width_quality
@@ -1611,6 +1636,10 @@ def main() -> None:
         "width_history": width_history,
         "width_initial_geometry": width_initial_geometry,
         "width_terminal_geometry": width_terminal_geometry,
+        "mechanics_frozen_sha256": frozen_sha,
+        "mechanics_terminal_frozen_sha256": terminal_frozen_sha,
+        "mechanics_initial_trainable_sha256": initial_trainable_sha,
+        "mechanics_terminal_trainable_sha256": terminal_trainable_sha,
         "width_fold": width_fold,
         "teacher_checkpoint_sha256": CHECKPOINT_SHA if transfer else None,
         "teacher_transfer_losses": transfer_losses,
