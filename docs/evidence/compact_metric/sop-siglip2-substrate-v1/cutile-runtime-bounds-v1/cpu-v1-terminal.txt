@@ -1,0 +1,11 @@
+RuntimeMaxUSec=3min
+Result=exit-code
+ExecMainStartTimestamp=Mon 2026-09-28 14:59:24 CEST
+ExecMainExitTimestamp=Mon 2026-09-28 14:59:30 CEST
+ExecMainStatus=101
+MemoryPeak=[not set]
+CPUUsageNSec=90134484000
+MemoryMax=8589934592
+ActiveState=failed
+SubState=failed
+InvocationID=6dbd417051414d5b91329ad43d4e44cc

@@ -1,0 +1,4 @@
+2026-09-28T14:59:24+02:00 spark-2751 systemd[3489]: Started sfora-cutile-runtime-bounds-cpu-v1.service - /usr/bin/env CUDA_VISIBLE_DEVICES= CARGO_TARGET_DIR=/home/riomus/cutile-rs-c299d449/target CUDA_PATH=/usr/local/cuda-13.0 BINDGEN_EXTRA_CLANG_ARGS=-I/usr/lib/gcc/aarch64-linux-gnu/13/include PATH=/home/riomus/.cargo/bin:/usr/local/cuda-13.0/bin:/usr/bin:/bin /usr/bin/time -v -o /home/riomus/runs/sfora-cutile-runtime-bounds-v1/cpu-time.txt /home/riomus/.cargo/bin/cargo test -p sfora-cutile-int8-score --release --offline --locked --lib --no-run.
+2026-09-28T14:59:30+02:00 spark-2751 systemd[3489]: sfora-cutile-runtime-bounds-cpu-v1.service: Main process exited, code=exited, status=101/n/a
+2026-09-28T14:59:30+02:00 spark-2751 systemd[3489]: sfora-cutile-runtime-bounds-cpu-v1.service: Failed with result 'exit-code'.
+2026-09-28T14:59:30+02:00 spark-2751 systemd[3489]: sfora-cutile-runtime-bounds-cpu-v1.service: Consumed 1min 30.134s CPU time.

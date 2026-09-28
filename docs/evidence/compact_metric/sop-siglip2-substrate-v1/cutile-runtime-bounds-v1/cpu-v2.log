@@ -1,0 +1,9 @@
+   Compiling cuda-bindings v0.1.1
+   Compiling cuda-core v0.1.1
+   Compiling cuda-async v0.1.1
+   Compiling cutile-compiler v0.1.1
+   Compiling cutile-macro v0.1.1
+   Compiling cutile v0.1.1
+   Compiling sfora-cutile-int8-score v0.1.0 (/home/riomus/runs/sfora-cutile-runtime-bounds-v1/rust/sfora-cutile-int8-score)
+    Finished `release` profile [optimized] target(s) in 11.84s
+  Executable unittests src/lib.rs (/home/riomus/cutile-rs-c299d449/target/release/deps/sfora_cutile_int8_score-31028a1d4def638e)

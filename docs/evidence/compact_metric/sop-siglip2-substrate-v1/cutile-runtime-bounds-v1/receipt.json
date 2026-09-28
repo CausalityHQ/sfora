@@ -1,0 +1,84 @@
+{
+  "schema": "sfora-cutile-runtime-bounds-verification-v1",
+  "claim_eligible": false,
+  "decision": "PASS_EXISTING_GPU_EXACTNESS_GATE",
+  "source_commit": "ddbaa0ff00b798670f053b5bdb0ccb4e3ec73ccb",
+  "archive_sha256": "651e07194e9829fadd2d0062c1378cc28f4b64d67da73c0597e0b06b0b917594",
+  "topk_sha256": "1ae7f50aa3d222dbc6c6489c4c344ce836d01b895e05341d368db35c6d0cb587",
+  "binary_sha256": "5539fee25b6602dd0402f82b656be57ca85c666eeb0f635b2ed1428263e9d3df",
+  "tileiras_sha256": "92499512a869b96b3a38c6763b1fe3e6a00c16e4a29385cd9cf740dffa18b444",
+  "tileiras_version": "13.3.36",
+  "cpu_failed_invocation": "6dbd417051414d5b91329ad43d4e44cc",
+  "cpu_pass_invocation": "df9cdc21241542b48841a755d757cfd3",
+  "gpu_invocation": "82b332b8240540e683cf907b0a8299ea",
+  "launch_controls": {
+    "cpu_caps_seconds": [
+      180,
+      170
+    ],
+    "gpu_cap_seconds": 300,
+    "host_memory_max_bytes": 8589934592,
+    "gpu_lock": "/home/riomus/runs/.sfora-siglip2-gpu.lock",
+    "authority": "recorded native launch arguments; transient units unloaded before final snapshots"
+  },
+  "observed": {
+    "failed_cpu_exit": 101,
+    "failed_cpu_wall_seconds": 6.24,
+    "passed_cpu_exit": 0,
+    "passed_cpu_wall_seconds": 11.85,
+    "passed_cpu_max_rss_kib": 932248,
+    "gpu_exit": 0,
+    "gpu_wall_seconds": 12.27,
+    "gpu_test_report_seconds": 12.22,
+    "gpu_max_rss_kib": 203332,
+    "gpu_passed_tests": 4,
+    "gpu_failed_tests": 0,
+    "device_batches": [
+      1,
+      32
+    ],
+    "device_gallery_bounds": [
+      10,
+      127,
+      128,
+      129,
+      132,
+      136,
+      257,
+      4097
+    ],
+    "split_gallery_bounds": [
+      10,
+      128,
+      129,
+      132,
+      136
+    ]
+  },
+  "not_measured": [
+    "independent GPU oracle replay",
+    "total cgroup peak memory",
+    "CUDA peak VRAM",
+    "isolated cold compilation",
+    "compilation-reuse counts",
+    "hot/full-call latency",
+    "quality on any dataset",
+    "speed versus baseline"
+  ],
+  "files_sha256": {
+    "candidate.patch": "00911c80f5be719ebcd9df54b4c213222c6d030d5adf1f4199f67ec5c18c580d",
+    "cpu.log": "22ac5eb0d00155f7d0f01e6ff58765919a9992ab8df14ba137779a38d981ce74",
+    "gpu-time.txt": "557b9a3df34a8b0b23722f44de3a17d724cab9f7ae4a4e682d02fe99b3209d7d",
+    "cpu-v2.log": "cd24bc6487cd4040c4f44d9af68dd2fa4671a5e8acfa05fa0dc6bd79071fdf06",
+    "cpu-v1-terminal.txt": "0069df03326f4a20300ad4db9b4ec5c13dc9dae4d6f56ed7467b2c459d4606b5",
+    "source-manifest.json": "6b6a684c1368bbe936e134b5de3abe07581f51a3012aa8c664821bb64f586733",
+    "cpu-v2-terminal.txt": "f9cacfb9187adb111d8b0c0fa7c0b1b610822c4c3e069a72a83b3c2e18976b88",
+    "cpu-time.txt": "223a769c01f82d352df27329bdef3a092bf766cfead950e9bc3611f2b9bc6795",
+    "gpu-v1-journal.txt": "40da862f2a968fcd4f2ecf62c65a6096e084254b14b297c6c6df02f71bdf3bda",
+    "gpu-v1-terminal.txt": "f9cacfb9187adb111d8b0c0fa7c0b1b610822c4c3e069a72a83b3c2e18976b88",
+    "cpu-v2-journal.txt": "90893935c2feb222bc6baaa57976b72324c4bec3a81fcc6957c3498a0f5c0ab0",
+    "gpu.log": "8f17cd672baecb19505e5545c33a25620b5bd5fa378d9fd79ced4320c2e4e936",
+    "cpu-v1-journal.txt": "ed836c3d44783edf2b6bc7c0ea8bfc0f64c6cd2bc27297393ce82b40f1cb4c2d",
+    "cpu-v2-time.txt": "28f2dad2baccdee437763c14d492fcc5901c300c9ad1e7a18c5935d2bd87ac96"
+  }
+}

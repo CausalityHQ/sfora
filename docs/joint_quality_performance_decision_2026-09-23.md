@@ -1,5 +1,16 @@
 # Joint quality and performance decision, first training-code gate
 
+## 28 September preserved runtime-bound kernel: exactness gate passes
+
+After a corrected offline CPU build, the existing uncommitted Rust candidate
+passed all four selected tests on DGX: exact device top10 across both batches,
+all eight gallery bounds and ties, fused/split parity, and ordinal authority.
+Original GPU process wall12.27s; GNU maximum RSS203332KiB. Synthetic tests,
+not dataset quality or search/full-call latency. Compilation reuse and isolated
+cold compilation remain unmeasured. Candidate is unchanged, unstaged and
+unpromoted; the full joint goal remains unmet.
+[Recorded gate, raw evidence and next requirements](cutile_runtime_bounds_gate_2026-09-28.md).
+
 ## 28 September post-convergence research: no new training arm
 
 New Fable research proposed sub-center classifier geometry. Independent pinned

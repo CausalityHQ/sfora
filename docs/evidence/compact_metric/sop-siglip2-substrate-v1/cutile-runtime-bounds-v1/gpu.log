@@ -1,0 +1,9 @@
+
+running 4 tests
+test topk::tests::device_top_ten_matches_scalar_across_boundaries_batches_and_ties ... ok
+test topk::tests::diagnostic_split_preserves_exact_scores_and_stable_ordinals ... ok
+test topk::tests::gallery_row_limit_preserves_signed_ordinals_and_padded_shape ... ok
+test topk::tests::output_ordinal_rejects_placeholders_and_out_of_gallery_values ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 12.22s
+
