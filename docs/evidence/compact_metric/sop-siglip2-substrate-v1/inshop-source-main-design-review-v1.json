@@ -1,0 +1,684 @@
+{
+  "id": "0056bc341ded4f98",
+  "status": "completed",
+  "started_at": 1790567884,
+  "agent": "",
+  "force_reason": "New terminal fixed-wide method KILL on frozen280s budget plus a causally distinct calibration-free full-source MAIN/compact-rank cached gradient gate PASS. Prior critique579a7c2e61c745dd is terminal and addressed different256→postfitSVD128 method. Consequential new training-topology decision before any encoder/GPU work.",
+  "rolling_6h_count": 6,
+  "prompt_preview": "READ ONLY; no edits/jobs/operator contact. Sfora repo /home/rb/worktrees/sfora-positive-causality master6e6de583 (priorc857c4f7). Goal joint deployable SOP+InShop strongest-comparable quality AND matched image-to-top-k speed, unmet. Review ONE prospective source-main topology, not alternatives brainstorm. Read docs/inshop_source_main_gradient_gate_2026-09-28.md, scripts/probe_inshop_source_main.py, new receipt docs/evidence/compact_metric/sop-siglip2-substrate-v1/inshop-source-main-cache-v1.json SHAf5bec2865b8aeb86f66003ada0dc5902616d98e043a3d3b8e1716ead95c41203; scripts/train_inshop_siglip2_unseen_gallery.py; native objectives/serving. Prior source-centroid auxCE64 m0 fixedproxies weight.1 saturated<1%encoder pressure,KILL. Prior fixed256MAIN→postfitSVD128 method now CLOSED KILL_CHILD_BUDGET: docs/inshop_wide_head_100_gate_2026-09-28.md; originalunit a74cf1a689524310bf79eb68cb41ced9 EXIT1 afterwide child280s,100stableupdates+all-fitcalibrationfoldsave butheldexportincomplete. Native128 fresh observedTRAIN6354q6245g R1 .952470884,mAP@R.779855037,train86.247s,heldexport108.2s; extraallfitencoder pass is costly. No widequality or deadline change/rerun. New distinct method REMOVES postfitcalibration: baseline L=ArcFace(H128(normalize(z)),P128)+8bank128; proposal L=ArcFace(normalize(normalize(z)-mu_fit),learnableP1024)+8bank128(H128(normalize(z))). mu fixed from originalfit source, P1024 from centered-unit classsums. Originalnative trainablePCA128head/bank kept, head learns rank ONLY, encoder seesboth, classifier1024 learns MAIN ArcFace SAME.3/64. NO extraaux,teacher,readoutC,width/compactor search,newmodelorserving changes. Cachedfirst17/1088samefit rows allguardsPASS:unused total source normfrac29.0936%,main/total73.1593%,total/native.9303555, rank-only head/native totalheadgradnorm.4134365 across15active; classifiergradfinite/nonzero17,2singleton batchesheadgradNoneexpected,5.261sCPU. This does NOT prove encoder connectivity/quality. Decide conditionalGO/KILL for one <=120s paired17update actualencoder smoke using native128 vs source-main, same Large1024 first12+emb frozen/BF16/optimizer groups/LRs/globalclip1/schedulepixel hashes/provenance. SourceMAIN outputs1024,classifierwidth1024,masks1024; servinghead/bank remain128 and serve unchanged native1024→128 schema. Review source centering gradient, proxy gradient/nativeArcFace straight-through compatibility, rank-only head collapse/singleton head optimizer semantics, initialization/loaderRNG, clipping confounds, compute/memory cost and checkpoint authority. Must not accidentally use native compact features for source classifier, not require head grad on singleton-inactive steps. Reuse existing functions/sourcecentroid recipe where semantically compatible (its m0/proxy detach cannot carry newMAIN). Proposed17 smoke finite+stable/frozen-exact/actualencoder+headgradientroutes/init-terminalgeometry/pairedpixels/cost≤1.10native&+1GiB/rawnative128reload exact/public32. Native100previous280capserving108.2s; no extraallfitpass here. Positive17 only permits separately frozen100packedTRAIN gate; no held/official/fulltrain/latency now. Return concise consequentialdecision/must-fix issues and minimalimplementation/gates; no newhypotheses or permission handoff. Distinguish derivative/prototype geometry/confounds from actualnovelty; do not market SOTA.",
+  "prompt_sha256": "341f592c81f4d91cc8d688dabf482dbcedf1aac60626df4daebadffd7ce72a87",
+  "prompt_bytes": 3353,
+  "fingerprint": "22a6d8bf14a23fdb43502b19b2246a38076394ada230ae18c1f289c4a7cd8473",
+  "evidence": {
+    "git_commit": "6e6de5838907ede75ea77f4357220eb4e3fc8021",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "065fd04ea8aa15888338e0d661297b9b06c689a268e763b58eb73eb7b565d09b",
+    "worktree_sha256": "de8bb24b60143e9c7137a4a2561587789bc7be62d12f1f43b7019950b6a89907",
+    "worktree_evidence_truncated": false,
+    "active_goal": null
+  },
+  "reviewers": [
+    {
+      "role": "research_critic",
+      "id": "7d3049869ed6414f",
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "fallbacks": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "agent": "",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1790567884,
+      "timeout_seconds": 1200,
+      "deadline_at": 1790569084,
+      "budget_usd": 4,
+      "prompt_preview": "Act as the independent research and first-principles critic. Challenge assumptions, compare alternatives and prior art, and identify missing evidence. Do not edit files.\n\nMaterial to critique:\nREAD ONLY; no edits/jobs/operator contact. Sfora repo /home/rb/worktrees/sfora-positive-causality master6e6de583 (priorc857c4f7). Goal joint deployable SOP+InShop strongest-comparable quality AND matched image-to-top-k speed, unmet. Review ONE prospective source-main topology, not alternatives brainstorm. Read docs/inshop_source_main_gradient_gate_2026-09-28.md, scripts/probe_inshop_source_main.py, new receipt docs/evidence/compact_metric/sop-siglip2-substrate-v1/inshop-source-main-cache-v1.json SHAf5bec2865b8aeb86f66003ada0dc5902616d98e043a3d3b8e1716ead95c41203; scripts/train_inshop_siglip2_unseen_gallery.py; native objectives/serving. Prior source-centroid auxCE64 m0 fixedproxies weight.1 saturated<1%encoder pressure,KILL. Prior fixed256MAIN→postfitSVD128 method now CLOSED KILL_CHILD_BUDGET: docs/inshop_wide_head_100_gate_2026-09-28.md; originalunit a74cf1a689524310bf79eb68cb41ced9 EXIT1 afterwide child280s,100stableupdates+all-fitcalibrationfoldsave butheldexportincomplete. Native128 fresh observedTRAIN6354q6245g R1 .952470884,mAP@R.779855037,train86.247s,heldexport108.2s; extraallfitencoder pass is costly. No widequality or deadline change/rerun. New distinct method REMOVES postfitcalibration: baseline L=ArcFace(H128(normalize(z)),P128)+8bank128; proposal L=ArcFace(normalize(normalize(z)-mu_fit),learnableP1024)+8bank128(H128(normalize(z))). mu fixed from originalfit source, P1024 from centered-unit classsums. Originalnative trainablePCA128head/bank kept, head learns rank ONLY, encoder seesboth, classifier1024 learns MAIN ArcFace SAME.3/64. NO extraaux,teacher,readoutC,width/compactor search,newmodelorserving changes. Cachedfirst17/1088samefit rows allguardsPASS:unused total source normfrac29.0936%,main/total73.1593%,total/native.9303555, rank-only head/native totalheadgradnorm.4134365 across15active; classifiergradfinite/nonzero17,2singleton batchesheadgradNoneexpected,5.261sCPU. This does NOT prove encoder connectivity/quality. Decide conditionalGO/KILL for one <=120s paired17update actualencoder smoke using native128 vs source-main, same Large1024 first12+emb frozen/BF16/optimizer groups/LRs/globalclip1/schedulepixel hashes/provenance. SourceMAIN outputs1024,classifierwidth1024,masks1024; servinghead/bank remain128 and serve unchanged native1024→128 schema. Review source centering gradient, proxy gradient/nativeArcFace straight-through compatibility, rank-only head collapse/singleton head optimizer semantics, initialization/loaderRNG, clipping confounds, compute/memory cost and checkpoint authority. Must not accidentally use native compact features for source classifier, not require head grad on singleton-inactive steps. Reuse existing functions/sourcecentroid recipe where semantically compatible (its m0/proxy detach cannot carry newMAIN). Proposed17 smoke finite+stable/frozen-exact/actualencoder+headgradientroutes/init-terminalgeometry/pairedpixels/cost≤1.10native&+1GiB/rawnative128reload exact/public32. Native100previous280capserving108.2s; no extraallfitpass here. Positive17 only permits separately frozen100packedTRAIN gate; no held/official/fulltrain/latency now. Return concise consequentialdecision/must-fix issues and minimalimplementation/gates; no newhypotheses or permission handoff. Distinguish derivative/prototype geometry/confounds from actualnovelty; do not market SOTA.",
+      "prompt_sha256": "bed418f585211dbca39bd2053c6aada9bc29334a89c55e107a513dc7954f6e34",
+      "prompt_bytes": 3682,
+      "fingerprint": "8b8db1dc98be441851bd2176a0cfde59b590c97f07d81a59d8f2f3d69ab72f2f",
+      "evidence": {
+        "git_commit": "6e6de5838907ede75ea77f4357220eb4e3fc8021",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "065fd04ea8aa15888338e0d661297b9b06c689a268e763b58eb73eb7b565d09b",
+        "worktree_sha256": "de8bb24b60143e9c7137a4a2561587789bc7be62d12f1f43b7019950b6a89907",
+        "worktree_evidence_truncated": false,
+        "active_goal": null
+      },
+      "previous_fingerprint": "b32524d2974feef2274d0a137f9eccf8bf52abbc07c033e6389b6b6326bf72c3",
+      "reused": false,
+      "critique_id": "0056bc341ded4f98",
+      "critique_role": "research_critic",
+      "systemd_unit": "devbox-consult-7d3049869ed6414f.service",
+      "pid": 2681423,
+      "pgid": 2681423,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5",
+          "budget_usd": 4,
+          "timeout_seconds": 1200,
+          "started_at": 1790567884
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1790568020,
+      "event_cursor": 29,
+      "events": [
+        {
+          "seq": 6,
+          "at": 1790567903,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 7,
+          "at": 1790567906,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 8,
+          "at": 1790567908,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 9,
+          "at": 1790567909,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 10,
+          "at": 1790567920,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 11,
+          "at": 1790567920,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 12,
+          "at": 1790567923,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 13,
+          "at": 1790567970,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 14,
+          "at": 1790568004,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 15,
+          "at": 1790568005,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 16,
+          "at": 1790568006,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 17,
+          "at": 1790568007,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 18,
+          "at": 1790568008,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 19,
+          "at": 1790568009,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 20,
+          "at": 1790568010,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 21,
+          "at": 1790568011,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 22,
+          "at": 1790568012,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 23,
+          "at": 1790568013,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 24,
+          "at": 1790568014,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 25,
+          "at": 1790568015,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 26,
+          "at": 1790568016,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 27,
+          "at": 1790568017,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 28,
+          "at": 1790568018,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 29,
+          "at": 1790568020,
+          "provider": "claude",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": true,
+      "provider_events": {
+        "claude": [
+          {
+            "seq": 22,
+            "at": 1790568012,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 23,
+            "at": 1790568013,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 24,
+            "at": 1790568014,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 25,
+            "at": 1790568015,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 26,
+            "at": 1790568016,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 27,
+            "at": 1790568017,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 28,
+            "at": 1790568018,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 29,
+            "at": 1790568020,
+            "provider": "claude",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "**Decision: conditional GO** for one ≤120 s paired 17-update actual-encoder smoke (native128 vs source-MAIN). The cached gate shows that gradient can reach the encoder at initialisation. It says nothing about quality. The design is derivative. It is a decoupled classification head in which ArcFace runs on the 1024-D backbone output with imprinted class-mean proxies (weight imprinting, Qi et al. 2018), and a separate projection head is trained only by the metric loss (XBM/SmoothAP bank). That makes it a composition of known parts, not a novel method. Class signal reaches the 128-byte code only through encoder change plus the head rotating under rank loss. Only the frozen 100-update packed TRAIN gate can say whether that happens.\n\n## What the cached receipt does and doesn't show (SHA verified `f5bec286…`)\n- **Saturated tail.** The main/total median of 0.73 hides a tail: 10% of rows are below 1e-3, 16% below 1e-2 and 29% below 0.1. Proxies are class sums that include the row itself, computed on clean features. Singletons therefore start at cos≈1, which is exactly the saturation mechanism that killed the earlier source-centroid run. Native P128 is imprinted the same way, so the pairing is fair. But the saturated fraction must be tracked over the smoke, because learnable 1024-D proxies can memorise quickly.\n- **Unused-route metric.** 29% of the source gradient falls outside the served span. That fraction is either the mechanism working or spend the served head never sees; the cache can't tell which. `unused_gradient` also assumes orthonormal head rows. That holds only at initialisation, so after step 1 use the QR basis, as `source_smoke_probe` already does.\n- **Head ratio.** The median head ratio of 0.41 is measured on the PCA initialisation with clean features only.\n\n## Must-fix before the smoke\n1. **Input authority.** Source-MAIN must consume `source_features` (pooler 1024) as `.float()` with autocast disabled, and never `features`. Assert width 1024 and assert that `autograd.grad(source_main, head.parameters(), allow_unused=True)` is all None, the inverse of the existing aux-reached-head guard at `train_inshop_siglip2_unseen_gallery.py:341`.\n2. **Replace, not add.** In the proposal arm:\n   - No P128 ArcFace term in the loss.\n   - P1024 takes the classifier's slot in the third optimizer group (lr 1e-4, decay 0.05).\n   - Still call `initialize_head_and_classifier` so the RNG stream, head and bank are identical, then discard P128.\n   - Build mu/P1024 exactly as the existing source-centroid block (~L668–680), with no detach, wrapped as a `nn.Parameter`.\n   - Write a new loss function; don't reuse `frozen_source_centroid_loss`, because it detaches prototypes and uses margin 0. The loss is `sharded_mask_arcface_loss(normalize(normalize(z)−mu), P1024, t, arange(1024), .3, 64)`.\n   - Keep the zero-norm guard for `u−mu`. The centering Jacobian `(I−ccᵀ)/‖u−mu‖` amplifies gradient by `1/‖u−mu‖`.\n   - Straight-through: the margin is applied under `no_grad` (`unicom_training.py:176`), which is the same semantics as native, so it is compatible.\n3. **Head semantics on inactive steps.** Leave the grad as None; do not zero-fill it. A zero grad would still apply decay and moment decay. Assert `head.weight.grad is None` exactly on the 2 inactive steps and finite and nonzero on the 15 active ones. Record that head Adam `step` equals the active count while vision's equals 17. That divergence is expected, not a bug.\n4. **Clipping confound.** Clip still covers vision+head+classifier, and P1024 grad norm is about 4–5 at init. Extend the `wide_smoke` per-group preclip-norm logging (L925) to this flag in both arms, and log the clip coefficient per step. Under Adam, only step-to-step variation in the clip coefficient changes updates, so this confound is weak. Report it; don't tune it.\n5. **Proxy-rate confound.** The same element-wise lr on 1024-D unit proxies rotates them about √8≈2.8× faster than on 128-D. Name this as part of the method; don't retune it.\n6. **Stale mu.** Log `‖mean(unit batch) − mu‖` for each step.\n7. **Provenance.** The receipt has no mu/P1024 hash. Record both now, recomputed from the pinned cache before any image read.\n8. **Checkpoint authority.** The serving checkpoint is `vision`+`head` only, with the exact native key set and schema. mu/P1024 go in a separate training-only file or as receipt hashes. Raw reload must be exact, and public32 packed bytes and f16 inverse norms must match in-process on the native schema.\n9. **Diagnostic cost.** Run any extra-backward diagnostic (a `source_smoke_probe`-style split) on the fixed step-1 batch in both arms, outside the timed steps.\n\n## 17-update smoke gates (all must pass; failure KILLs this configuration with no retuning)\n- Finite losses, parameters, optimizer state and bank every step. No skipped steps. Frozen digest exact and trainable digest changed.\n- All 17 `first_input_batch_sha256` equal across arms. Initial head, bank, schedule, partition, cache and model hashes equal.\n- On the fixed step-1 batch:\n  - Source-MAIN's vision-gradient norm is nonzero and ≥0.1× the rank term's vision-gradient norm.\n  - Head gradient from source-MAIN is None.\n  - Head gradient from rank is nonzero.\n- At the terminal on the same fixed batch:\n  - Source-MAIN vision-gradient norm is ≥0.25× its initial value, the saturation-collapse kill.\n  - Record `saturated_target_fraction` in both arms; reuse the `source_smoke_probe` probability code.\n  - Compact `effective_rank` and `width_geometry` at the terminal are ≥0.9× the initial values (rank-only head collapse check).\n- Median step time ≤1.10× native, excluding step 1. Peak CUDA ≤ native + 1 GiB. P1024 plus Adam state is about 25 MB, so any overshoot means a code bug.\n- Raw native-schema reload is exact and public32 parity passes.\n\nA pass permits only the separately frozen 100-update packed TRAIN gate: no held, official or full-training runs, no latency work, and no SOTA framing. Nothing was edited or run beyond reading files and recomputing statistics from the receipt.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "claude": "**Decision: conditional GO** for one ≤120 s paired 17-update actual-encoder smoke (native128 vs source-MAIN). The cached gate shows that gradient can reach the encoder at initialisation. It says nothing about quality. The design is derivative. It is a decoupled classification head in which ArcFace runs on the 1024-D backbone output with imprinted class-mean proxies (weight imprinting, Qi et al. 2018), and a separate projection head is trained only by the metric loss (XBM/SmoothAP bank). That makes it a composition of known parts, not a novel method. Class signal reaches the 128-byte code only through encoder change plus the head rotating under rank loss. Only the frozen 100-update packed TRAIN gate can say whether that happens.\n\n## What the cached receipt does and doesn't show (SHA verified `f5bec286…`)\n- **Saturated tail.** The main/total median of 0.73 hides a tail: 10% of rows are below 1e-3, 16% below 1e-2 and 29% below 0.1. Proxies are class sums that include the row itself, computed on clean features. Singletons therefore start at cos≈1, which is exactly the saturation mechanism that killed the earlier source-centroid run. Native P128 is imprinted the same way, so the pairing is fair. But the saturated fraction must be tracked over the smoke, because learnable 1024-D proxies can memorise quickly.\n- **Unused-route metric.** 29% of the source gradient falls outside the served span. That fraction is either the mechanism working or spend the served head never sees; the cache can't tell which. `unused_gradient` also assumes orthonormal head rows. That holds only at initialisation, so after step 1 use the QR basis, as `source_smoke_probe` already does.\n- **Head ratio.** The median head ratio of 0.41 is measured on the PCA initialisation with clean features only.\n\n## Must-fix before the smoke\n1. **Input authority.** Source-MAIN must consume `source_features` (pooler 1024) as `.float()` with autocast disabled, and never `features`. Assert width 1024 and assert that `autograd.grad(source_main, head.parameters(), allow_unused=True)` is all None, the inverse of the existing aux-reached-head guard at `train_inshop_siglip2_unseen_gallery.py:341`.\n2. **Replace, not add.** In the proposal arm:\n   - No P128 ArcFace term in the loss.\n   - P1024 takes the classifier's slot in the third optimizer group (lr 1e-4, decay 0.05).\n   - Still call `initialize_head_and_classifier` so the RNG stream, head and bank are identical, then discard P128.\n   - Build mu/P1024 exactly as the existing source-centroid block (~L668–680), with no detach, wrapped as a `nn.Parameter`.\n   - Write a new loss function; don't reuse `frozen_source_centroid_loss`, because it detaches prototypes and uses margin 0. The loss is `sharded_mask_arcface_loss(normalize(normalize(z)−mu), P1024, t, arange(1024), .3, 64)`.\n   - Keep the zero-norm guard for `u−mu`. The centering Jacobian `(I−ccᵀ)/‖u−mu‖` amplifies gradient by `1/‖u−mu‖`.\n   - Straight-through: the margin is applied under `no_grad` (`unicom_training.py:176`), which is the same semantics as native, so it is compatible.\n3. **Head semantics on inactive steps.** Leave the grad as None; do not zero-fill it. A zero grad would still apply decay and moment decay. Assert `head.weight.grad is None` exactly on the 2 inactive steps and finite and nonzero on the 15 active ones. Record that head Adam `step` equals the active count while vision's equals 17. That divergence is expected, not a bug.\n4. **Clipping confound.** Clip still covers vision+head+classifier, and P1024 grad norm is about 4–5 at init. Extend the `wide_smoke` per-group preclip-norm logging (L925) to this flag in both arms, and log the clip coefficient per step. Under Adam, only step-to-step variation in the clip coefficient changes updates, so this confound is weak. Report it; don't tune it.\n5. **Proxy-rate confound.** The same element-wise lr on 1024-D unit proxies rotates them about √8≈2.8× faster than on 128-D. Name this as part of the method; don't retune it.\n6. **Stale mu.** Log `‖mean(unit batch) − mu‖` for each step.\n7. **Provenance.** The receipt has no mu/P1024 hash. Record both now, recomputed from the pinned cache before any image read.\n8. **Checkpoint authority.** The serving checkpoint is `vision`+`head` only, with the exact native key set and schema. mu/P1024 go in a separate training-only file or as receipt hashes. Raw reload must be exact, and public32 packed bytes and f16 inverse norms must match in-process on the native schema.\n9. **Diagnostic cost.** Run any extra-backward diagnostic (a `source_smoke_probe`-style split) on the fixed step-1 batch in both arms, outside the timed steps.\n\n## 17-update smoke gates (all must pass; failure KILLs this configuration with no retuning)\n- Finite losses, parameters, optimizer state and bank every step. No skipped steps. Frozen digest exact and trainable digest changed.\n- All 17 `first_input_batch_sha256` equal across arms. Initial head, bank, schedule, partition, cache and model hashes equal.\n- On the fixed step-1 batch:\n  - Source-MAIN's vision-gradient norm is nonzero and ≥0.1× the rank term's vision-gradient norm.\n  - Head gradient from source-MAIN is None.\n  - Head gradient from rank is nonzero.\n- At the terminal on the same fixed batch:\n  - Source-MAIN vision-gradient norm is ≥0.25× its initial value, the saturation-collapse kill.\n  - Record `saturated_target_fraction` in both arms; reuse the `source_smoke_probe` probability code.\n  - Compact `effective_rank` and `width_geometry` at the terminal are ≥0.9× the initial values (rank-only head collapse check).\n- Median step time ≤1.10× native, excluding step 1. Peak CUDA ≤ native + 1 GiB. P1024 plus Adam state is about 25 MB, so any overshoot means a code bug.\n- Raw native-schema reload is exact and public32 parity passes.\n\nA pass permits only the separately frozen 100-update packed TRAIN gate: no held, official or full-training runs, no latency work, and no SOTA framing. Nothing was edited or run beyond reading files and recomputing statistics from the receipt."
+      },
+      "providers_used": [
+        "claude"
+      ],
+      "active_provider": "claude",
+      "phase": "Consultation completed",
+      "input_bytes": 3682,
+      "output_bytes": 6103,
+      "elapsed_seconds": 136,
+      "progress": "devbox-ask: claude consult still running (0m 30s)\ndevbox-ask: claude consult still running (1m 00s)\ndevbox-ask: claude consult still running (1m 30s)\ndevbox-ask: claude consult still running (2m 00s)",
+      "progress_truncated": false,
+      "result": "**Decision: conditional GO** for one ≤120 s paired 17-update actual-encoder smoke (native128 vs source-MAIN). The cached gate shows that gradient can reach the encoder at initialisation. It says nothing about quality. The design is derivative. It is a decoupled classification head in which ArcFace runs on the 1024-D backbone output with imprinted class-mean proxies (weight imprinting, Qi et al. 2018), and a separate projection head is trained only by the metric loss (XBM/SmoothAP bank). That makes it a composition of known parts, not a novel method. Class signal reaches the 128-byte code only through encoder change plus the head rotating under rank loss. Only the frozen 100-update packed TRAIN gate can say whether that happens.\n\n## What the cached receipt does and doesn't show (SHA verified `f5bec286…`)\n- **Saturated tail.** The main/total median of 0.73 hides a tail: 10% of rows are below 1e-3, 16% below 1e-2 and 29% below 0.1. Proxies are class sums that include the row itself, computed on clean features. Singletons therefore start at cos≈1, which is exactly the saturation mechanism that killed the earlier source-centroid run. Native P128 is imprinted the same way, so the pairing is fair. But the saturated fraction must be tracked over the smoke, because learnable 1024-D proxies can memorise quickly.\n- **Unused-route metric.** 29% of the source gradient falls outside the served span. That fraction is either the mechanism working or spend the served head never sees; the cache can't tell which. `unused_gradient` also assumes orthonormal head rows. That holds only at initialisation, so after step 1 use the QR basis, as `source_smoke_probe` already does.\n- **Head ratio.** The median head ratio of 0.41 is measured on the PCA initialisation with clean features only.\n\n## Must-fix before the smoke\n1. **Input authority.** Source-MAIN must consume `source_features` (pooler 1024) as `.float()` with autocast disabled, and never `features`. Assert width 1024 and assert that `autograd.grad(source_main, head.parameters(), allow_unused=True)` is all None, the inverse of the existing aux-reached-head guard at `train_inshop_siglip2_unseen_gallery.py:341`.\n2. **Replace, not add.** In the proposal arm:\n   - No P128 ArcFace term in the loss.\n   - P1024 takes the classifier's slot in the third optimizer group (lr 1e-4, decay 0.05).\n   - Still call `initialize_head_and_classifier` so the RNG stream, head and bank are identical, then discard P128.\n   - Build mu/P1024 exactly as the existing source-centroid block (~L668–680), with no detach, wrapped as a `nn.Parameter`.\n   - Write a new loss function; don't reuse `frozen_source_centroid_loss`, because it detaches prototypes and uses margin 0. The loss is `sharded_mask_arcface_loss(normalize(normalize(z)−mu), P1024, t, arange(1024), .3, 64)`.\n   - Keep the zero-norm guard for `u−mu`. The centering Jacobian `(I−ccᵀ)/‖u−mu‖` amplifies gradient by `1/‖u−mu‖`.\n   - Straight-through: the margin is applied under `no_grad` (`unicom_training.py:176`), which is the same semantics as native, so it is compatible.\n3. **Head semantics on inactive steps.** Leave the grad as None; do not zero-fill it. A zero grad would still apply decay and moment decay. Assert `head.weight.grad is None` exactly on the 2 inactive steps and finite and nonzero on the 15 active ones. Record that head Adam `step` equals the active count while vision's equals 17. That divergence is expected, not a bug.\n4. **Clipping confound.** Clip still covers vision+head+classifier, and P1024 grad norm is about 4–5 at init. Extend the `wide_smoke` per-group preclip-norm logging (L925) to this flag in both arms, and log the clip coefficient per step. Under Adam, only step-to-step variation in the clip coefficient changes updates, so this confound is weak. Report it; don't tune it.\n5. **Proxy-rate confound.** The same element-wise lr on 1024-D unit proxies rotates them about √8≈2.8× faster than on 128-D. Name this as part of the method; don't retune it.\n6. **Stale mu.** Log `‖mean(unit batch) − mu‖` for each step.\n7. **Provenance.** The receipt has no mu/P1024 hash. Record both now, recomputed from the pinned cache before any image read.\n8. **Checkpoint authority.** The serving checkpoint is `vision`+`head` only, with the exact native key set and schema. mu/P1024 go in a separate training-only file or as receipt hashes. Raw reload must be exact, and public32 packed bytes and f16 inverse norms must match in-process on the native schema.\n9. **Diagnostic cost.** Run any extra-backward diagnostic (a `source_smoke_probe`-style split) on the fixed step-1 batch in both arms, outside the timed steps.\n\n## 17-update smoke gates (all must pass; failure KILLs this configuration with no retuning)\n- Finite losses, parameters, optimizer state and bank every step. No skipped steps. Frozen digest exact and trainable digest changed.\n- All 17 `first_input_batch_sha256` equal across arms. Initial head, bank, schedule, partition, cache and model hashes equal.\n- On the fixed step-1 batch:\n  - Source-MAIN's vision-gradient norm is nonzero and ≥0.1× the rank term's vision-gradient norm.\n  - Head gradient from source-MAIN is None.\n  - Head gradient from rank is nonzero.\n- At the terminal on the same fixed batch:\n  - Source-MAIN vision-gradient norm is ≥0.25× its initial value, the saturation-collapse kill.\n  - Record `saturated_target_fraction` in both arms; reuse the `source_smoke_probe` probability code.\n  - Compact `effective_rank` and `width_geometry` at the terminal are ≥0.9× the initial values (rank-only head collapse check).\n- Median step time ≤1.10× native, excluding step 1. Peak CUDA ≤ native + 1 GiB. P1024 plus Adam state is about 25 MB, so any overshoot means a code bug.\n- Raw native-schema reload is exact and public32 parity passes.\n\nA pass permits only the separately frozen 100-update packed TRAIN gate: no held, official or full-training runs, no latency work, and no SOTA framing. Nothing was edited or run beyond reading files and recomputing statistics from the receipt.",
+      "result_truncated": false
+    },
+    {
+      "role": "engineering_critic",
+      "id": "e73924f282d643cc",
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "fallbacks": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "agent": "",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1790567884,
+      "timeout_seconds": 1200,
+      "deadline_at": 1790569084,
+      "budget_usd": null,
+      "prompt_preview": "Act as the independent adversarial engineering and release critic. Inspect correctness, failure modes, security, operability, tests, and UX. Prioritize concrete findings with evidence. Do not edit files.\n\nMaterial to critique:\nREAD ONLY; no edits/jobs/operator contact. Sfora repo /home/rb/worktrees/sfora-positive-causality master6e6de583 (priorc857c4f7). Goal joint deployable SOP+InShop strongest-comparable quality AND matched image-to-top-k speed, unmet. Review ONE prospective source-main topology, not alternatives brainstorm. Read docs/inshop_source_main_gradient_gate_2026-09-28.md, scripts/probe_inshop_source_main.py, new receipt docs/evidence/compact_metric/sop-siglip2-substrate-v1/inshop-source-main-cache-v1.json SHAf5bec2865b8aeb86f66003ada0dc5902616d98e043a3d3b8e1716ead95c41203; scripts/train_inshop_siglip2_unseen_gallery.py; native objectives/serving. Prior source-centroid auxCE64 m0 fixedproxies weight.1 saturated<1%encoder pressure,KILL. Prior fixed256MAIN→postfitSVD128 method now CLOSED KILL_CHILD_BUDGET: docs/inshop_wide_head_100_gate_2026-09-28.md; originalunit a74cf1a689524310bf79eb68cb41ced9 EXIT1 afterwide child280s,100stableupdates+all-fitcalibrationfoldsave butheldexportincomplete. Native128 fresh observedTRAIN6354q6245g R1 .952470884,mAP@R.779855037,train86.247s,heldexport108.2s; extraallfitencoder pass is costly. No widequality or deadline change/rerun. New distinct method REMOVES postfitcalibration: baseline L=ArcFace(H128(normalize(z)),P128)+8bank128; proposal L=ArcFace(normalize(normalize(z)-mu_fit),learnableP1024)+8bank128(H128(normalize(z))). mu fixed from originalfit source, P1024 from centered-unit classsums. Originalnative trainablePCA128head/bank kept, head learns rank ONLY, encoder seesboth, classifier1024 learns MAIN ArcFace SAME.3/64. NO extraaux,teacher,readoutC,width/compactor search,newmodelorserving changes. Cachedfirst17/1088samefit rows allguardsPASS:unused total source normfrac29.0936%,main/total73.1593%,total/native.9303555, rank-only head/native totalheadgradnorm.4134365 across15active; classifiergradfinite/nonzero17,2singleton batchesheadgradNoneexpected,5.261sCPU. This does NOT prove encoder connectivity/quality. Decide conditionalGO/KILL for one <=120s paired17update actualencoder smoke using native128 vs source-main, same Large1024 first12+emb frozen/BF16/optimizer groups/LRs/globalclip1/schedulepixel hashes/provenance. SourceMAIN outputs1024,classifierwidth1024,masks1024; servinghead/bank remain128 and serve unchanged native1024→128 schema. Review source centering gradient, proxy gradient/nativeArcFace straight-through compatibility, rank-only head collapse/singleton head optimizer semantics, initialization/loaderRNG, clipping confounds, compute/memory cost and checkpoint authority. Must not accidentally use native compact features for source classifier, not require head grad on singleton-inactive steps. Reuse existing functions/sourcecentroid recipe where semantically compatible (its m0/proxy detach cannot carry newMAIN). Proposed17 smoke finite+stable/frozen-exact/actualencoder+headgradientroutes/init-terminalgeometry/pairedpixels/cost≤1.10native&+1GiB/rawnative128reload exact/public32. Native100previous280capserving108.2s; no extraallfitpass here. Positive17 only permits separately frozen100packedTRAIN gate; no held/official/fulltrain/latency now. Return concise consequentialdecision/must-fix issues and minimalimplementation/gates; no newhypotheses or permission handoff. Distinguish derivative/prototype geometry/confounds from actualnovelty; do not market SOTA.",
+      "prompt_sha256": "4bd1d5194e3e5b27c22de3d1876267f301eda2e8d088a16f6cbd30994793ddd3",
+      "prompt_bytes": 3716,
+      "fingerprint": "22ee4dcf719a2b2b31a5f1d91b478796d08ce9cae15fbe472696f5f71a73b299",
+      "evidence": {
+        "git_commit": "6e6de5838907ede75ea77f4357220eb4e3fc8021",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "065fd04ea8aa15888338e0d661297b9b06c689a268e763b58eb73eb7b565d09b",
+        "worktree_sha256": "de8bb24b60143e9c7137a4a2561587789bc7be62d12f1f43b7019950b6a89907",
+        "worktree_evidence_truncated": false,
+        "active_goal": null
+      },
+      "previous_fingerprint": "8b8db1dc98be441851bd2176a0cfde59b590c97f07d81a59d8f2f3d69ab72f2f",
+      "reused": false,
+      "critique_id": "0056bc341ded4f98",
+      "critique_role": "engineering_critic",
+      "systemd_unit": "devbox-consult-e73924f282d643cc.service",
+      "pid": 2681455,
+      "pgid": 2681455,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra",
+          "budget_usd": null,
+          "timeout_seconds": 1200,
+          "started_at": 1790567884
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1790567985,
+      "event_cursor": 40,
+      "events": [
+        {
+          "seq": 17,
+          "at": 1790567906,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 18,
+          "at": 1790567906,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 19,
+          "at": 1790567906,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 20,
+          "at": 1790567916,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 21,
+          "at": 1790567916,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 22,
+          "at": 1790567916,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 23,
+          "at": 1790567916,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 24,
+          "at": 1790567916,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 25,
+          "at": 1790567916,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 26,
+          "at": 1790567925,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 27,
+          "at": 1790567925,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 28,
+          "at": 1790567925,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 29,
+          "at": 1790567925,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 30,
+          "at": 1790567925,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 31,
+          "at": 1790567925,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 1"
+        },
+        {
+          "seq": 32,
+          "at": 1790567930,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 33,
+          "at": 1790567939,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 34,
+          "at": 1790567939,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 35,
+          "at": 1790567940,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 36,
+          "at": 1790567940,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 37,
+          "at": 1790567940,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 38,
+          "at": 1790567940,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 39,
+          "at": 1790567984,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 40,
+          "at": 1790567985,
+          "provider": "codex",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": true,
+      "provider_events": {
+        "codex": [
+          {
+            "seq": 33,
+            "at": 1790567939,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 34,
+            "at": 1790567939,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 35,
+            "at": 1790567940,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 36,
+            "at": 1790567940,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 37,
+            "at": 1790567940,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 38,
+            "at": 1790567940,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 39,
+            "at": 1790567984,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 40,
+            "at": 1790567985,
+            "provider": "codex",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "**Conditional GO for exactly one ≤120-second paired 17-update encoder smoke. No release GO.** The receipt SHA matches the supplied digest, its probe-source hash matches the current script, and all cached guards pass. This supports testing the topology—not quality, encoder connectivity, or matched serving speed.\n\nMust-fix implementation and gate issues:\n\n1. **Route MAIN explicitly from source1024.** The current trainer classifies compact `features` with masks tied to `training_width`; changing that width would also change the head/bank. Keep serving width128 and separately assert MAIN input1024, classifier `[2004,1024]`, masks `[1,1024]`. Reuse native ArcFace directly at `.3/64`. The [centroid helper](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_siglip2_unseen_gallery.py:274) is incompatible: it detaches proxies and uses margin zero. Initialize learnable proxies before constructing AdamW, ensuring the optimizer owns the actual replacement parameter.\n\n2. **Centering is valid, but its gradient has a conditioning risk.** For `u=normalize(z)` and `v=normalize(u−μ)`, away from normalization clamps,\n   `∂v/∂z=(I−vvᵀ)(I−uuᵀ)/(‖u−μ‖‖z‖)`.\n   Fixed fit-only μ preserves per-example gradients; small centered norms amplify them. Check finite/nondegenerate source, centered vectors, proxy sums and compact outputs. Preserve the [native straight-through margin](/home/rb/worktrees/sfora-positive-causality/src/sfora/unicom_training.py:173): the margin changes forward logits under `no_grad`, while gradients flow through cosine logits to **both** source and proxies. A conventional differentiable ArcFace replacement would change the experiment.\n\n3. **Singleton steps require genuine optimizer inactivity for the head.** Receipt steps **2 and 7** correctly have no head gradient. With existing `zero_grad(set_to_none=True)`, AdamW must leave head weights, bias, moments and step counters unchanged on those steps. Do not manufacture zero gradients: those can permit momentum/decay updates. The existing [gradient logger](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_siglip2_unseen_gallery.py:157) calls `torch.stack([])` when every gradient is absent; handle that expected state explicitly. Require finite/nonzero head gradients on the other15 steps and classifier gradients on all17.\n\n4. **Cache pressure is not encoder pressure or isolated dimensionality evidence.** The cached head ratio measures only `head.weight`, before clipping and without optimizer updates. Measure MAIN and weighted-rank gradients separately on actual trainable encoder parameters, plus total/head/classifier norms, at initialization and termination. Record branch cosine and global clipping multipliers; norm ratios are not additive contribution percentages. Do not inherit the auxiliary runner’s “dominant auxiliary” rejection or automatically demand its ±10% clipping match: replacing MAIN deliberately changes clipping. Also, [native initialization](/home/rb/worktrees/sfora-positive-causality/scripts/train_sop_siglip2_compact.py:234) sums projected vectors, whereas this proposal sums centered **unit** source vectors. Prototype weighting, classifier width and removal of head classification all change together. This is a distinct training configuration, not evidence of algorithmic novelty.\n\n5. **Preserve pairing and make collapse checks comparable.** Call the native128 initializer identically in both arms; construct source proxies deterministically without extra random modules. Retain loader generator, workers, model-loading order and all17 pixel/target hashes. Check exact initial head/bank/vision agreement, exact frozen parameters, and changed trainable encoder parameters. Evaluate initial/terminal compact geometry on identical fit pixels in the same mode; the [wide path currently mixes training-mode initialization with eval-mode termination](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_siglip2_unseen_gallery.py:817). Freeze the collapse threshold before execution; retaining at least50% of initial normalized variance/effective rank is a reasonable existing guard, not a quality test.\n\n6. **Checkpoint and timing authority must survive failure.** The [centroid path suppresses checkpoint saving](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_siglip2_unseen_gallery.py:1029); do not inherit that. Save raw vision/native128 head plus method identity, fixed-mean/proxy initialization hashes, all17 inputs/losses, costs and source manifest before reload checks. Keep checkpoint/model hashes and `weights_only=True`. Compare saved tensors against the terminal in-memory model, then reload through the unchanged public loader and require exact packed codes/f16 norms at matched batch32. The existing parity helper alone compares checkpoint-derived objects, so it does not establish that the checkpoint captured the terminal model.\n\nMinimal execution gate: one serial native/source pair, unchanged freeze/BF16/LRs/AdamW/globalclip1/bank-refresh policy;17 successful finite updates; verified gradient routes and singleton semantics; stable compact geometry; diagnostic-inclusive training wall and median step ≤1.10×native; peak allocation ≤native+1GiB; whole pair—including setup, checkpointing and public32 checks—≤120s under an external watchdog. Persist completed-arm evidence and an explicit failure receipt on timeout. No all-fit encoder pass.\n\nBefore that run, add one small regression covering MAIN source/proxy gradient parity, absent MAIN→head/mean gradients, and active→inactive AdamW head preservation. Existing centroid tests intentionally verify the opposite proxy behavior.\n\nAny failed gate **KILLs this fixed configuration**. A pass permits only the separately frozen100-update packed TRAIN gate. The joint SOP/InShop quality-and-speed goal remains unmet; unchanged serving shape does not establish latency or retrieval quality.\n\nRead-only inspection completed; no edits, training/test jobs, or operator contact.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "codex": "**Conditional GO for exactly one ≤120-second paired 17-update encoder smoke. No release GO.** The receipt SHA matches the supplied digest, its probe-source hash matches the current script, and all cached guards pass. This supports testing the topology—not quality, encoder connectivity, or matched serving speed.\n\nMust-fix implementation and gate issues:\n\n1. **Route MAIN explicitly from source1024.** The current trainer classifies compact `features` with masks tied to `training_width`; changing that width would also change the head/bank. Keep serving width128 and separately assert MAIN input1024, classifier `[2004,1024]`, masks `[1,1024]`. Reuse native ArcFace directly at `.3/64`. The [centroid helper](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_siglip2_unseen_gallery.py:274) is incompatible: it detaches proxies and uses margin zero. Initialize learnable proxies before constructing AdamW, ensuring the optimizer owns the actual replacement parameter.\n\n2. **Centering is valid, but its gradient has a conditioning risk.** For `u=normalize(z)` and `v=normalize(u−μ)`, away from normalization clamps,\n   `∂v/∂z=(I−vvᵀ)(I−uuᵀ)/(‖u−μ‖‖z‖)`.\n   Fixed fit-only μ preserves per-example gradients; small centered norms amplify them. Check finite/nondegenerate source, centered vectors, proxy sums and compact outputs. Preserve the [native straight-through margin](/home/rb/worktrees/sfora-positive-causality/src/sfora/unicom_training.py:173): the margin changes forward logits under `no_grad`, while gradients flow through cosine logits to **both** source and proxies. A conventional differentiable ArcFace replacement would change the experiment.\n\n3. **Singleton steps require genuine optimizer inactivity for the head.** Receipt steps **2 and 7** correctly have no head gradient. With existing `zero_grad(set_to_none=True)`, AdamW must leave head weights, bias, moments and step counters unchanged on those steps. Do not manufacture zero gradients: those can permit momentum/decay updates. The existing [gradient logger](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_siglip2_unseen_gallery.py:157) calls `torch.stack([])` when every gradient is absent; handle that expected state explicitly. Require finite/nonzero head gradients on the other15 steps and classifier gradients on all17.\n\n4. **Cache pressure is not encoder pressure or isolated dimensionality evidence.** The cached head ratio measures only `head.weight`, before clipping and without optimizer updates. Measure MAIN and weighted-rank gradients separately on actual trainable encoder parameters, plus total/head/classifier norms, at initialization and termination. Record branch cosine and global clipping multipliers; norm ratios are not additive contribution percentages. Do not inherit the auxiliary runner’s “dominant auxiliary” rejection or automatically demand its ±10% clipping match: replacing MAIN deliberately changes clipping. Also, [native initialization](/home/rb/worktrees/sfora-positive-causality/scripts/train_sop_siglip2_compact.py:234) sums projected vectors, whereas this proposal sums centered **unit** source vectors. Prototype weighting, classifier width and removal of head classification all change together. This is a distinct training configuration, not evidence of algorithmic novelty.\n\n5. **Preserve pairing and make collapse checks comparable.** Call the native128 initializer identically in both arms; construct source proxies deterministically without extra random modules. Retain loader generator, workers, model-loading order and all17 pixel/target hashes. Check exact initial head/bank/vision agreement, exact frozen parameters, and changed trainable encoder parameters. Evaluate initial/terminal compact geometry on identical fit pixels in the same mode; the [wide path currently mixes training-mode initialization with eval-mode termination](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_siglip2_unseen_gallery.py:817). Freeze the collapse threshold before execution; retaining at least50% of initial normalized variance/effective rank is a reasonable existing guard, not a quality test.\n\n6. **Checkpoint and timing authority must survive failure.** The [centroid path suppresses checkpoint saving](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_siglip2_unseen_gallery.py:1029); do not inherit that. Save raw vision/native128 head plus method identity, fixed-mean/proxy initialization hashes, all17 inputs/losses, costs and source manifest before reload checks. Keep checkpoint/model hashes and `weights_only=True`. Compare saved tensors against the terminal in-memory model, then reload through the unchanged public loader and require exact packed codes/f16 norms at matched batch32. The existing parity helper alone compares checkpoint-derived objects, so it does not establish that the checkpoint captured the terminal model.\n\nMinimal execution gate: one serial native/source pair, unchanged freeze/BF16/LRs/AdamW/globalclip1/bank-refresh policy;17 successful finite updates; verified gradient routes and singleton semantics; stable compact geometry; diagnostic-inclusive training wall and median step ≤1.10×native; peak allocation ≤native+1GiB; whole pair—including setup, checkpointing and public32 checks—≤120s under an external watchdog. Persist completed-arm evidence and an explicit failure receipt on timeout. No all-fit encoder pass.\n\nBefore that run, add one small regression covering MAIN source/proxy gradient parity, absent MAIN→head/mean gradients, and active→inactive AdamW head preservation. Existing centroid tests intentionally verify the opposite proxy behavior.\n\nAny failed gate **KILLs this fixed configuration**. A pass permits only the separately frozen100-update packed TRAIN gate. The joint SOP/InShop quality-and-speed goal remains unmet; unchanged serving shape does not establish latency or retrieval quality.\n\nRead-only inspection completed; no edits, training/test jobs, or operator contact."
+      },
+      "providers_used": [
+        "codex"
+      ],
+      "active_provider": "codex",
+      "phase": "Consultation completed",
+      "input_bytes": 3716,
+      "output_bytes": 6058,
+      "elapsed_seconds": 101,
+      "progress": "Reading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)\ndevbox-ask: codex consult still running (1m 30s)",
+      "progress_truncated": false,
+      "result": "**Conditional GO for exactly one ≤120-second paired 17-update encoder smoke. No release GO.** The receipt SHA matches the supplied digest, its probe-source hash matches the current script, and all cached guards pass. This supports testing the topology—not quality, encoder connectivity, or matched serving speed.\n\nMust-fix implementation and gate issues:\n\n1. **Route MAIN explicitly from source1024.** The current trainer classifies compact `features` with masks tied to `training_width`; changing that width would also change the head/bank. Keep serving width128 and separately assert MAIN input1024, classifier `[2004,1024]`, masks `[1,1024]`. Reuse native ArcFace directly at `.3/64`. The [centroid helper](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_siglip2_unseen_gallery.py:274) is incompatible: it detaches proxies and uses margin zero. Initialize learnable proxies before constructing AdamW, ensuring the optimizer owns the actual replacement parameter.\n\n2. **Centering is valid, but its gradient has a conditioning risk.** For `u=normalize(z)` and `v=normalize(u−μ)`, away from normalization clamps,\n   `∂v/∂z=(I−vvᵀ)(I−uuᵀ)/(‖u−μ‖‖z‖)`.\n   Fixed fit-only μ preserves per-example gradients; small centered norms amplify them. Check finite/nondegenerate source, centered vectors, proxy sums and compact outputs. Preserve the [native straight-through margin](/home/rb/worktrees/sfora-positive-causality/src/sfora/unicom_training.py:173): the margin changes forward logits under `no_grad`, while gradients flow through cosine logits to **both** source and proxies. A conventional differentiable ArcFace replacement would change the experiment.\n\n3. **Singleton steps require genuine optimizer inactivity for the head.** Receipt steps **2 and 7** correctly have no head gradient. With existing `zero_grad(set_to_none=True)`, AdamW must leave head weights, bias, moments and step counters unchanged on those steps. Do not manufacture zero gradients: those can permit momentum/decay updates. The existing [gradient logger](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_siglip2_unseen_gallery.py:157) calls `torch.stack([])` when every gradient is absent; handle that expected state explicitly. Require finite/nonzero head gradients on the other15 steps and classifier gradients on all17.\n\n4. **Cache pressure is not encoder pressure or isolated dimensionality evidence.** The cached head ratio measures only `head.weight`, before clipping and without optimizer updates. Measure MAIN and weighted-rank gradients separately on actual trainable encoder parameters, plus total/head/classifier norms, at initialization and termination. Record branch cosine and global clipping multipliers; norm ratios are not additive contribution percentages. Do not inherit the auxiliary runner’s “dominant auxiliary” rejection or automatically demand its ±10% clipping match: replacing MAIN deliberately changes clipping. Also, [native initialization](/home/rb/worktrees/sfora-positive-causality/scripts/train_sop_siglip2_compact.py:234) sums projected vectors, whereas this proposal sums centered **unit** source vectors. Prototype weighting, classifier width and removal of head classification all change together. This is a distinct training configuration, not evidence of algorithmic novelty.\n\n5. **Preserve pairing and make collapse checks comparable.** Call the native128 initializer identically in both arms; construct source proxies deterministically without extra random modules. Retain loader generator, workers, model-loading order and all17 pixel/target hashes. Check exact initial head/bank/vision agreement, exact frozen parameters, and changed trainable encoder parameters. Evaluate initial/terminal compact geometry on identical fit pixels in the same mode; the [wide path currently mixes training-mode initialization with eval-mode termination](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_siglip2_unseen_gallery.py:817). Freeze the collapse threshold before execution; retaining at least50% of initial normalized variance/effective rank is a reasonable existing guard, not a quality test.\n\n6. **Checkpoint and timing authority must survive failure.** The [centroid path suppresses checkpoint saving](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_siglip2_unseen_gallery.py:1029); do not inherit that. Save raw vision/native128 head plus method identity, fixed-mean/proxy initialization hashes, all17 inputs/losses, costs and source manifest before reload checks. Keep checkpoint/model hashes and `weights_only=True`. Compare saved tensors against the terminal in-memory model, then reload through the unchanged public loader and require exact packed codes/f16 norms at matched batch32. The existing parity helper alone compares checkpoint-derived objects, so it does not establish that the checkpoint captured the terminal model.\n\nMinimal execution gate: one serial native/source pair, unchanged freeze/BF16/LRs/AdamW/globalclip1/bank-refresh policy;17 successful finite updates; verified gradient routes and singleton semantics; stable compact geometry; diagnostic-inclusive training wall and median step ≤1.10×native; peak allocation ≤native+1GiB; whole pair—including setup, checkpointing and public32 checks—≤120s under an external watchdog. Persist completed-arm evidence and an explicit failure receipt on timeout. No all-fit encoder pass.\n\nBefore that run, add one small regression covering MAIN source/proxy gradient parity, absent MAIN→head/mean gradients, and active→inactive AdamW head preservation. Existing centroid tests intentionally verify the opposite proxy behavior.\n\nAny failed gate **KILLs this fixed configuration**. A pass permits only the separately frozen100-update packed TRAIN gate. The joint SOP/InShop quality-and-speed goal remains unmet; unchanged serving shape does not establish latency or retrieval quality.\n\nRead-only inspection completed; no edits, training/test jobs, or operator contact.",
+      "result_truncated": false
+    }
+  ],
+  "reused": false,
+  "finished_at": 1790568243,
+  "elapsed_seconds": 136,
+  "input_bytes": 3353,
+  "output_bytes": 12161
+}

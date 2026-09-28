@@ -155,17 +155,8 @@ def parameter_digest(module, *, frozen):
 
 
 def gradient_norm(parameters):
-    return float(
-        torch.stack(
-            [
-                parameter.grad.detach().float().norm().square()
-                for parameter in parameters
-                if parameter.grad is not None
-            ]
-        )
-        .sum()
-        .sqrt()
-    )
+    values = [p.grad.detach().float().norm().square() for p in parameters if p.grad is not None]
+    return float(torch.stack(values).sum().sqrt()) if values else 0.0
 
 
 def width_geometry(features):
@@ -269,6 +260,33 @@ def calibrate_fit_fold(vision, head, paths, processor, destination, workers, row
         "serving_width": 128,
         "folded_checkpoint_sha256": sha256(destination / "folded_checkpoint.pt"),
     }
+
+
+def source_main_arcface_loss(source, mean, classifier, target):
+    """Replace compact MAIN with learnable source1024 native straight-through ArcFace."""
+    if (
+        source.ndim != 2
+        or source.shape[1] != 1024
+        or mean.shape != (1024,)
+        or classifier.ndim != 2
+        or classifier.shape[1] != 1024
+        or not all(torch.isfinite(value).all() for value in (source, mean, classifier))
+        or bool((source.float().norm(dim=1) <= 1e-10).any())
+        or bool((classifier.float().norm(dim=1) <= 1e-10).any())
+    ):
+        raise ValueError("source MAIN geometry differs")
+    with torch.autocast(device_type=source.device.type, enabled=False):
+        centered = torch.nn.functional.normalize(source.float(), dim=1) - mean.detach().float()
+        if bool((centered.norm(dim=1) <= 1e-10).any()):
+            raise ValueError("source MAIN centered vector degenerate")
+        return sharded_mask_arcface_loss(
+            centered,
+            classifier.float(),
+            target,
+            torch.arange(1024, device=source.device).unsqueeze(0),
+            margin=0.3,
+            scale=64,
+        )
 
 
 def frozen_source_centroid_loss(
@@ -391,6 +409,77 @@ def source_smoke_probe(
     return report
 
 
+def source_main_probe(
+    vision, head, classifier, mean, tensors, target, bank, positives, ordinals, *, source_main
+):
+    """Fixed fit pixels, eval mode in both probes; no optimizer or RNG mutation."""
+    was_training = vision.training
+    vision.eval()
+    with torch.autocast("cuda", dtype=torch.bfloat16):
+        source = vision(**tensors).pooler_output
+    features = compact_head_features(source, head)
+    main = (
+        source_main_arcface_loss(source, mean, classifier, target)
+        if source_main
+        else sharded_mask_arcface_loss(
+            features.float(),
+            classifier,
+            target,
+            torch.arange(128, device="cuda").unsqueeze(0),
+            margin=0.3,
+            scale=64,
+        )
+    )
+    width = int((positives >= 0).sum(1).max())
+    rank = 8 * member_bank_rank_loss(
+        features, bank, head, positives[:, :width], ordinals, live_head=False
+    )
+    parameters = tuple(p for p in vision.parameters() if p.requires_grad)
+    main_grad = torch.autograd.grad(
+        main, parameters + tuple(head.parameters()), retain_graph=True, allow_unused=True
+    )
+    rank_grad = torch.autograd.grad(
+        rank, parameters + tuple(head.parameters()), retain_graph=True, allow_unused=True
+    )
+    if source_main and any(g is not None for g in main_grad[len(parameters) :]):
+        raise ValueError("source MAIN reached compact head")
+    if any(g is None or not g.isfinite().all() for g in main_grad[: len(parameters)] + rank_grad):
+        raise ValueError("source MAIN actual encoder/rank gradient missing")
+    a = main_grad[: len(parameters)]
+    b = rank_grad[: len(parameters)]
+    norm_a = torch.stack([g.float().square().sum() for g in a]).sum().sqrt()
+    norm_b = torch.stack([g.float().square().sum() for g in b]).sum().sqrt()
+    if not bool(torch.isfinite(norm_a) & torch.isfinite(norm_b)) or min(norm_a, norm_b) <= 0:
+        raise ValueError("source MAIN branch norm degenerate")
+    cosine = torch.stack([(x.float() * y.float()).sum() for x, y in zip(a, b, strict=True)]).sum()
+    del main_grad, rank_grad, a, b
+    with torch.no_grad():
+        unit = torch.nn.functional.normalize(source.float(), dim=1)
+        main_input = (
+            torch.nn.functional.normalize(unit - mean, dim=1)
+            if source_main
+            else torch.nn.functional.normalize(features.float(), dim=1)
+        )
+        logits = 64 * (main_input @ torch.nn.functional.normalize(classifier.float(), dim=1).T)
+        probabilities = logits.softmax(1)[torch.arange(len(target), device="cuda"), target]
+    source_grad = torch.autograd.grad(main + rank, source)[0].float()
+    basis = torch.linalg.qr(head.weight.detach().T, mode="reduced").Q.T
+    unused = unused_gradient(source_grad, basis, unit)
+    report = {
+        "main_encoder_gradient_norm": float(norm_a),
+        "rank8_encoder_gradient_norm": float(norm_b),
+        "main_rank_norm_ratio": float(norm_a / norm_b),
+        "encoder_gradient_cosine": float(cosine / (norm_a * norm_b)),
+        "saturated_target_fraction": float((probabilities > 1 - 1e-6).float().mean()),
+        "outside_span_norm_fraction": float(
+            (unused.norm(dim=1) / source_grad.norm(dim=1).clamp_min(1e-30)).median()
+        ),
+        "geometry": width_geometry(features),
+    }
+    vision.train(was_training)
+    return report
+
+
 def main() -> None:
     entire_started = time.perf_counter()
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
@@ -436,7 +525,32 @@ def main() -> None:
     parser.add_argument("--training-width", type=int, choices=(128, 256), default=128)
     parser.add_argument("--wide-head-smoke-receipt", type=Path)
     parser.add_argument("--wide-head-qualification", type=Path)
+    parser.add_argument("--source-main-smoke", choices=("control", "source"))
+    parser.add_argument("--source-main-receipt", type=Path)
     args = parser.parse_args()
+    source_main_smoke = args.source_main_smoke is not None
+    if source_main_smoke and (
+        args.arm != "freeze_emb"
+        or args.seed != 179024
+        or args.updates != 17
+        or args.freeze_first_blocks != 12
+        or args.training_width != 128
+        or args.vision_lr != 1e-5
+        or args.workers != 4
+        or args.half_fit_products
+        or args.tail_blocks_to_drop
+        or args.vision_init_checkpoint
+        or args.source_centroid_smoke
+        or args.teacher_transfer
+        or args.wide_head_smoke_receipt
+        or args.wide_head_qualification
+        or args.source_main_receipt is None
+        or sha256(args.source_main_receipt)
+        != "f5bec2865b8aeb86f66003ada0dc5902616d98e043a3d3b8e1716ead95c41203"
+    ):
+        raise ValueError("source MAIN smoke authority differs")
+    if not source_main_smoke and args.source_main_receipt is not None:
+        raise ValueError("source MAIN receipt without smoke")
     transfer = args.teacher_transfer is not None
     width_quality = args.wide_head_qualification is not None
     if width_quality and (
@@ -680,6 +794,25 @@ def main() -> None:
         sums = torch.zeros(len(names), 1024)
         sums.index_add_(0, torch.from_numpy(class_ids), centered)
         source_prototypes = torch.nn.functional.normalize(sums, dim=1).cuda()
+    source_main_init = None
+    if source_main_smoke:
+        unit = torch.nn.functional.normalize(features_cpu, dim=1)
+        mean_cpu = unit.mean(0)
+        sums = torch.zeros(len(names), 1024)
+        sums.index_add_(
+            0, torch.from_numpy(class_ids), torch.nn.functional.normalize(unit - mean_cpu, dim=1)
+        )
+        if not torch.isfinite(sums).all() or bool((sums.norm(dim=1) <= 1e-10).any()):
+            raise ValueError("source MAIN proxy initialization degenerate")
+        proxy_cpu = torch.nn.functional.normalize(sums, dim=1)
+        source_mean = mean_cpu.cuda()
+        source_main_init = {
+            "mean_sha256": hashlib.sha256(mean_cpu.numpy().tobytes()).hexdigest(),
+            "proxy_sha256": hashlib.sha256(proxy_cpu.numpy().tobytes()).hexdigest(),
+            "head_sha256": parameter_digest(head, frozen=False),
+        }
+        if args.source_main_smoke == "source":
+            classifier = proxy_cpu
     bank_started = time.perf_counter()
     live_head = args.arm == "freeze_emb_live"
     bank_cpu = member_bank_initial_values(
@@ -754,6 +887,9 @@ def main() -> None:
     head = head.cuda().train()
     classifier = nn.Parameter(classifier.cuda())
     bank = bank_cpu.cuda()
+    if source_main_smoke:
+        source_main_init["bank_sha256"] = hashlib.sha256(bank_cpu.numpy().tobytes()).hexdigest()
+        source_main_init["vision_sha256"] = parameter_digest(vision, frozen=False)
     positives = member_bank_positive_ordinals(class_ids, allow_singletons=True).cuda()
     schedule_gpu = torch.tensor(batches, dtype=torch.long, device="cuda")
     class_ids_gpu = torch.from_numpy(class_ids).cuda()
@@ -780,6 +916,11 @@ def main() -> None:
     masks = torch.arange(args.training_width, device="cuda", dtype=torch.int64).unsqueeze(0)
     mask_rng = torch.Generator().manual_seed(args.seed + 128_000)
     args.output_dir.mkdir(parents=True, exist_ok=False)
+    if source_main_smoke:
+        (args.output_dir / "source_main_initializer.json").write_text(
+            json.dumps(source_main_init, sort_keys=True, allow_nan=False) + "\n"
+        )
+    mechanics_smoke = wide_smoke or source_main_smoke
     torch.cuda.reset_peak_memory_stats()
     started = time.perf_counter()
     losses: list[float] = []
@@ -795,12 +936,14 @@ def main() -> None:
     fixed_smoke_batch = None
     width_history = []
     width_initial_geometry = None
-    frozen_sha = parameter_digest(vision, frozen=True) if wide_smoke else None
-    initial_trainable_sha = parameter_digest(vision, frozen=False) if wide_smoke else None
+    source_main_probes = []
+    singleton_head_checks = []
+    frozen_sha = parameter_digest(vision, frozen=True) if mechanics_smoke else None
+    initial_trainable_sha = parameter_digest(vision, frozen=False) if mechanics_smoke else None
     started = time.perf_counter()
     for step, (batch, target) in enumerate(loader, start=1):
         step_started = time.perf_counter()
-        if step <= 10 or args.source_centroid_smoke or transfer or wide_smoke:
+        if step <= 10 or args.source_centroid_smoke or transfer or mechanics_smoke:
             digest = hashlib.sha256()
             for key in sorted(batch):
                 digest.update(key.encode())
@@ -821,8 +964,12 @@ def main() -> None:
         if args.arm == "subspace":
             coordinates = torch.randperm(128, generator=mask_rng)[:64].sort().values.cuda()
             masks = coordinates.unsqueeze(0)
-        control = sharded_mask_arcface_loss(
-            features.float(), classifier, target, masks, margin=0.3, scale=64.0
+        control = (
+            source_main_arcface_loss(source_features, source_mean, classifier, target)
+            if args.source_main_smoke == "source"
+            else sharded_mask_arcface_loss(
+                features.float(), classifier, target, masks, margin=0.3, scale=64.0
+            )
         )
         rank = control.new_zeros(())
         if step not in inactive or args.arm == "freeze_emb_rank":
@@ -856,6 +1003,37 @@ def main() -> None:
                     truncate_at_r=args.arm == "freeze_emb_mapr",
                 )
             rank_active_updates += 1
+        if source_main_smoke and step == 1:
+            fixed_smoke_batch = tensors, target
+            source_main_probes.append(
+                source_main_probe(
+                    vision,
+                    head,
+                    classifier,
+                    source_mean,
+                    tensors,
+                    target,
+                    bank,
+                    positives[schedule_gpu[0]],
+                    schedule_gpu[0],
+                    source_main=args.source_main_smoke == "source",
+                )
+            )
+            if source_main_probes[0]["main_rank_norm_ratio"] < 0.1:
+                raise ValueError("source MAIN initial encoder pressure failed")
+            width_initial_geometry = source_main_probes[0]["geometry"]
+            (args.output_dir / "source_main_initial.json").write_text(
+                json.dumps(source_main_probes[0], sort_keys=True, allow_nan=False) + "\n"
+            )
+        inactive_head = args.source_main_smoke == "source" and step in inactive
+        head_before = (
+            [
+                (p.detach().clone(), {k: v.clone() for k, v in optimizer.state[p].items()})
+                for p in head.parameters()
+            ]
+            if inactive_head
+            else None
+        )
         loss = control + RANK_COEFFICIENT * rank
         if teacher is not None:
             teacher_started = time.perf_counter()
@@ -913,11 +1091,21 @@ def main() -> None:
             raise ValueError("In-Shop training loss nonfinite")
         scaler.scale(loss).backward()  # type: ignore[no-untyped-call]
         scaler.unscale_(optimizer)
-        if wide_smoke:
+        if mechanics_smoke:
             width_history.append(
                 {
                     "arcface": float(control.detach()),
                     "bank": float(rank.detach()),
+                    "source_mean_batch_distance": float(
+                        (
+                            torch.nn.functional.normalize(
+                                source_features.detach().float(), dim=1
+                            ).mean(0)
+                            - source_mean
+                        ).norm()
+                    )
+                    if source_main_smoke
+                    else None,
                     "group_gradient_norms": {
                         name: gradient_norm(parameters)
                         for name, parameters in (
@@ -928,6 +1116,15 @@ def main() -> None:
                     },
                 }
             )
+        if source_main_smoke:
+            norms = width_history[-1]["group_gradient_norms"]
+            if norms["vision"] <= 0 or norms["classifier"] <= 0:
+                raise ValueError("source MAIN missing encoder/classifier gradient")
+            if inactive_head:
+                if any(p.grad is not None for p in head.parameters()):
+                    raise ValueError("singleton head gradient must be absent")
+            elif norms["head"] <= 0:
+                raise ValueError("rank-active head gradient missing")
         preclip_grad_norm = torch.nn.utils.clip_grad_norm_(
             list(vision.parameters()) + list(head.parameters()) + [classifier],
             1.0,
@@ -937,12 +1134,22 @@ def main() -> None:
         before = scaler.get_scale()
         scaler.step(optimizer)
         scaler.update()
-        if (args.source_centroid_smoke or transfer or wide_smoke) and any(
+        if inactive_head:
+            unchanged = all(
+                torch.equal(p.detach(), old)
+                and set(optimizer.state[p]) == set(state)
+                and all(torch.equal(v, state[k]) for k, v in optimizer.state[p].items())
+                for p, (old, state) in zip(head.parameters(), head_before, strict=True)
+            )
+            singleton_head_checks.append({"step": step, "unchanged": unchanged})
+            if not unchanged:
+                raise ValueError("singleton AdamW head state changed")
+        if (args.source_centroid_smoke or transfer or mechanics_smoke) and any(
             not torch.isfinite(parameter).all()
             for parameter in list(vision.parameters()) + list(head.parameters()) + [classifier]
         ):
             raise ValueError("source smoke parameter nonfinite")
-        if wide_smoke and (
+        if mechanics_smoke and (
             not torch.isfinite(bank).all()
             or any(
                 not torch.isfinite(value).all()
@@ -989,11 +1196,12 @@ def main() -> None:
         raise ValueError("In-Shop rank execution count differs")
     training_peak_cuda = torch.cuda.max_memory_allocated()
     width_terminal_geometry = None
+    if mechanics_smoke and (
+        frozen_sha != parameter_digest(vision, frozen=True)
+        or initial_trainable_sha == parameter_digest(vision, frozen=False)
+    ):
+        raise ValueError("wide smoke frozen/update authority differs")
     if wide_smoke:
-        if frozen_sha != parameter_digest(
-            vision, frozen=True
-        ) or initial_trainable_sha == parameter_digest(vision, frozen=False):
-            raise ValueError("wide smoke frozen/update authority differs")
         vision.eval()
         with torch.no_grad(), torch.autocast("cuda", dtype=dtype):
             pooled = vision(**fixed_smoke_batch[0]).pooler_output
@@ -1001,6 +1209,25 @@ def main() -> None:
             width_terminal_geometry = width_geometry(
                 compact_head_features(pooled, head, output_dim=args.training_width)
             )
+    if source_main_smoke:
+        diagnostic_started = time.perf_counter()
+        source_main_probes.append(
+            source_main_probe(
+                vision,
+                head,
+                classifier,
+                source_mean,
+                fixed_smoke_batch[0],
+                fixed_smoke_batch[1],
+                bank,
+                positives[schedule_gpu[0]],
+                schedule_gpu[0],
+                source_main=args.source_main_smoke == "source",
+            )
+        )
+        width_terminal_geometry = source_main_probes[-1]["geometry"]
+        training_peak_cuda = torch.cuda.max_memory_allocated()
+        training_seconds += time.perf_counter() - diagnostic_started
     if args.source_centroid_smoke:
         tensors, target = fixed_smoke_batch
         smoke_probes.append(
@@ -1040,9 +1267,17 @@ def main() -> None:
                     "source_files_sha256": sources,
                     "fit_rows_sha256": fit_sha,
                     "schedule_sha256": schedule_sha,
+                    "source_main_probes": source_main_probes,
+                    "singleton_head_checks": singleton_head_checks,
+                    "gradient_history": width_history,
+                    "step_seconds": step_seconds,
+                    "preclip_grad_norms": preclip_grad_norms,
                 }
-                if wide_smoke
+                if mechanics_smoke
                 else None,
+                "source_main_smoke": args.source_main_smoke,
+                "source_main_initializer": source_main_init,
+                "source_main_mean": source_mean.detach().cpu() if source_main_smoke else None,
                 "training_width": args.training_width,
                 "classifier": classifier.detach().cpu(),
                 "seed": args.seed,
@@ -1076,6 +1311,34 @@ def main() -> None:
         )
     quality = None
     matched_parity = None
+    if source_main_smoke:
+        if args.source_main_smoke == "source" and (
+            source_main_probes[-1]["main_encoder_gradient_norm"]
+            < 0.25 * source_main_probes[0]["main_encoder_gradient_norm"]
+            or any(
+                width_terminal_geometry[key] < 0.9 * width_initial_geometry[key]
+                for key in ("variance", "effective_rank")
+            )
+        ):
+            raise ValueError("source MAIN terminal pressure/geometry gate failed")
+        saved = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
+        if any(
+            not torch.equal(value.detach().cpu(), saved[name][key])
+            for name, module in (("vision", vision), ("head", head))
+            for key, value in module.state_dict().items()
+        ):
+            raise ValueError("saved checkpoint differs from terminal model")
+        del saved
+        matched_parity = matched_checkpoint_checks(
+            args.model_snapshot,
+            checkpoint_path,
+            checkpoint_path,
+            sha256(checkpoint_path),
+            sha256(checkpoint_path),
+            tuple(paths[row] for row in fit[:64]),
+        )
+        if not all(matched_parity.values()):
+            raise ValueError("source MAIN native public32 parity failed")
     if width_quality:
         deployed_path = (
             args.output_dir / "folded_checkpoint.pt"
@@ -1199,7 +1462,16 @@ def main() -> None:
         "preclip_grad_norms": preclip_grad_norms,
         "first_loss": losses[0],
         "last_loss": losses[-1],
-        "all_step_losses": losses if args.source_centroid_smoke or transfer or wide_smoke else None,
+        "all_step_losses": losses
+        if args.source_centroid_smoke or transfer or mechanics_smoke
+        else None,
+        "source_main_smoke": args.source_main_smoke,
+        "source_main_initializer": source_main_init,
+        "source_main_probes": source_main_probes,
+        "singleton_head_checks": singleton_head_checks,
+        "optimizer_head_steps": [int(optimizer.state[p]["step"]) for p in head.parameters()]
+        if source_main_smoke
+        else None,
         "source_centroid_smoke": args.source_centroid_smoke,
         "source_centroid_probes": smoke_probes,
         "source_centroid_auxiliary_losses": auxiliary_losses,
