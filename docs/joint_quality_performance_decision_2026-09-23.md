@@ -1,5 +1,18 @@
 # Joint quality and performance decision, first training-code gate
 
+## 28 September direct256 convergence gate: close the fixed width arm
+
+The original matched1000-update seed179024 pair completed; independent
+saved-tensor rescoring and metadata/CI replay verified its frozen **KILL**.
+On the previously observed In-Shop TRAIN6354query/6245gallery panel,
+128→256 packed R@1 was97.6550→97.8911% (+0.2361pp, product95%[0,+0.4774]pp),
+mAP@R0.849169→0.857199 (+0.008029,95%[+0.005254,+0.010909]). Both frozen
+point floors (+0.5pp/+0.01) failed. Training+bank wall849.212→851.959s and
+all protocol/mechanics/cost guards passed; whole run1921.294s. Full serving
+latency was not measured. No further seeds or public/native256 implementation
+for this fixed recipe; production128 and the full joint goal remain unchanged.
+[Verified decision table and next gate](inshop_direct256_quality1000_result_2026-09-28.md).
+
 ## 24 September public L-class substrate: advance to matched training
 
 The [frozen preregistration](superpowers/specs/2026-09-24-siglip2-l-substrate-screen-prereg.md)

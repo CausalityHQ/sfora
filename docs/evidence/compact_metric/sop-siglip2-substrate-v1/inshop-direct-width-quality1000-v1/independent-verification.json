@@ -1,0 +1,21 @@
+{
+  "receipt_sha256": "8a25d14a58e9914d93a34809879edca71925ec09d6d834a4150d702bff9213cc",
+  "arms": {
+    "128": {
+      "queries_checked": 6354,
+      "recall_at_1": 0.9765502045955303,
+      "map_at_r": 0.8491693942502837,
+      "max_ap_absolute_error": 1.1920928955078125e-07,
+      "repacked_codes_and_norms_exact": true
+    },
+    "256": {
+      "queries_checked": 6354,
+      "recall_at_1": 0.9789109222536985,
+      "map_at_r": 0.8571986284457747,
+      "max_ap_absolute_error": 9.934107458864361e-08,
+      "repacked_codes_and_norms_exact": true
+    }
+  },
+  "method": "All queries independently scored by NumPy float32 integer-exact dots, declared float32 norm multiplication order, stable sorting; compare every R1/AP and repack saved embeddings.",
+  "seconds": 3.6625623498111963
+}
