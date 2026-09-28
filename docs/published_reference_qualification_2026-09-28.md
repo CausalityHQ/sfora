@@ -64,3 +64,26 @@ DGX compute-process query was empty at this checkpoint. All prior Rust tests,
 thread/cache gates, artifact preflight and reviews are terminal. The protected
 runtime top-k source remains unchanged and unpromoted. Full joint goal remains
 active and unmet; this turn provides reference verification, not quality gain.
+
+## Fresh author/publisher route, 28 September evening
+
+The authors' [CAU lab publication page](https://sites.google.com/view/cau-cvml/cvmlcau/journal)
+links ESA directly to [IEEE document11269835](https://ieeexplore.ieee.org/document/11269835).
+That publisher endpoint returned a JavaScript/robot-verification page; its normal
+public stamp endpoint was inaccessible through the browser. No new numerical
+table was recovered. The old failed institutional bitstream was not retried.
+
+The same author page identified a further paper,
+[Confidence Controls Deep Metric Learning](https://link.springer.com/article/10.1007/s10994-026-07032-y),
+published31 March2026, Machine Learning115 article77. The publisher exposes an
+abstract and subscription preview, not protocol-qualified result tables. Public
+table1/2 endpoints were inaccessible. No accessible preprint emerged from the
+bounded exact-title search. SOP/In-Shop values, model/pretraining, dimensions,
+official protocol and full-system speed remain unverified for this paper.
+The abstract's relative improvement claim is not an absolute benchmark value
+and cannot define or clear either production quality gate.
+
+Neither route certifies the global frontier or changes the dated numerical
+references. No purchase, credentials, training, model selection or production
+change followed. These exact failed publisher routes are recorded to avoid
+repeating them as fresh evidence in later turns.
