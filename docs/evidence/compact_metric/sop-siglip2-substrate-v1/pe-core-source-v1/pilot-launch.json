@@ -1,0 +1,11 @@
+{
+  "freeze_commit": "0699cd3b",
+  "unit": "sfora-pe-core-pilot-v1",
+  "invocation_id": "336ca2d13ca74be09f8cf5c7b629506e",
+  "runtime_max_seconds": 120,
+  "memory_max_bytes": 8589934592,
+  "cuda_max_allocated_bytes_gate": 10000000000,
+  "shared_gpu_lock": "/home/riomus/.sfora-siglip2-gpu.lock",
+  "whole_process_caps": true,
+  "cuda_visible_devices": "0"
+}

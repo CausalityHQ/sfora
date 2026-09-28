@@ -1,5 +1,19 @@
 # Joint quality and performance decision, first training-code gate
 
+## 28 September PE-Core source prototype: prospective gates pass
+
+In-Shop official TRAIN fit-only512 query/gallery prototype pairs, packed R@1:
+PE-Core-B16-22476.3672% versus pretrained SigLIP2 Large/25674.6094%; paired
+product-bootstrap95 lower−1.9531 percentage points on+1.7578-point delta.
+This passes the frozen gross-deficit screen; positive quality is unproved.
+Batch32 encoder-only median70.4535 versus262.6272ms (10 calls/arm); ratio.2683.
+No full-pipeline speed or official result. Original-state FP32 loading, native
+processors and PE FP16-v-FP32 cosine≥.999 passed. DGX GPU pilot32.41s wall,
+2954288KiB processRSS/2030565888 bytes peak allocatedCUDA, exit0; saved-source
+packed-hit/uncertainty/timing replay passed. Next only a separately frozen TRAIN
+full-cache/image-training feasibility proposal, not production promotion.
+[Result and authoritative receipts](inshop_pe_core_source_result_2026-09-28.md).
+
 ## 28 September cached nonlinear activation placement: rejected
 
 Frozen seed17 TRAIN inner validation (6632 queries,6638 gallery rows): packed
