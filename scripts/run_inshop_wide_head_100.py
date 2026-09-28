@@ -18,9 +18,13 @@ from score_inshop_crop_view_pair import GALLERY_SHA, QUERY_SHA, bootstrap_lower,
 from sfora.unicom_inshop import parse_inshop_partition
 
 
-def record_child_failure(output_dir, name, error, quality, hashes, elapsed, *, source_main=False):
+def record_child_failure(
+    output_dir, name, error, quality, hashes, elapsed, *, source_main=False, centroid_pca=False
+):
     result = {
-        "schema": "sfora-inshop-source-main-100-v1"
+        "schema": "sfora-inshop-centroid-pca-100-v1"
+        if centroid_pca
+        else "sfora-inshop-source-main-100-v1"
         if source_main
         else "sfora-inshop-wide-main-head-100-v1",
         "claim_eligible": False,
@@ -57,12 +61,20 @@ def main():
     ):
         parser.add_argument(f"--{name}", type=Path, required=True)
     parser.add_argument("--source-main", action="store_true")
+    parser.add_argument("--centroid-pca", action="store_true")
     args = parser.parse_args()
-    proposal = "source" if args.source_main else "wide"
-    if args.output_dir.exists() or sha256(args.qualification) != (
-        "552859f6fad15f093ec1d540391b594fd9ff7ea0458fe942c5523d3ebc3a4c9b"
-        if args.source_main
-        else "eb4c8c1bf2a059277b92493fc71612d1f4ce9b53504c3ae1d6346155bf01591e"
+    proposal = "products" if args.centroid_pca else "source" if args.source_main else "wide"
+    if (
+        (args.source_main and args.centroid_pca)
+        or args.output_dir.exists()
+        or sha256(args.qualification)
+        != (
+            "9ae62ed93a7546e4d71b11b12a145bdca23908ec781e60731340d44fd9744e1f"
+            if args.centroid_pca
+            else "552859f6fad15f093ec1d540391b594fd9ff7ea0458fe942c5523d3ebc3a4c9b"
+            if args.source_main
+            else "eb4c8c1bf2a059277b92493fc71612d1f4ce9b53504c3ae1d6346155bf01591e"
+        )
     ):
         raise ValueError("wide100 authority/output differs")
     args.output_dir.mkdir(parents=True)
@@ -83,7 +95,10 @@ def main():
         raise ValueError("wide100 held roles differ")
     qlabels = np.asarray([labels[row] for row in query])
     arms, quality, hashes = {}, {}, {}
-    for name, width in (("control", 128), (proposal, 128 if args.source_main else 256)):
+    for name, width in (
+        ("control", 128),
+        (proposal, 128 if args.source_main or args.centroid_pca else 256),
+    ):
         destination = args.output_dir / name
         command = [
             sys.executable,
@@ -118,6 +133,13 @@ def main():
                 "--source-main-qualification",
                 str(args.qualification),
             ]
+        if args.centroid_pca:
+            command[-2:] = [
+                "--centroid-pca-smoke",
+                name,
+                "--centroid-pca-qualification",
+                str(args.qualification),
+            ]
         torch.cuda.empty_cache()
         try:
             with (args.output_dir / f"{name}.log").open("wb") as log:
@@ -137,6 +159,7 @@ def main():
                 hashes,
                 time.perf_counter() - started,
                 source_main=args.source_main,
+                centroid_pca=args.centroid_pca,
             )
             raise
         receipt_path = destination / "receipt.json"
@@ -156,7 +179,7 @@ def main():
             or not all(receipt["matched_public32_parity"].values())
         ):
             raise ValueError("wide100 update/export/parity inventory differs")
-        if args.source_main:
+        if args.source_main or args.centroid_pca:
             smoke = json.loads(args.qualification.read_text())["arms"][name]
             if receipt["first_input_batch_sha256"][:17] != smoke[
                 "first_input_batch_sha256"
@@ -164,6 +187,15 @@ def main():
                 receipt["all_step_losses"][:17], smoke["all_step_losses"], rtol=0, atol=1e-5
             ):
                 raise ValueError("source MAIN100 prefix differs from qualified17")
+            if args.centroid_pca and (
+                receipt["pca_sha256"] != smoke["pca_sha256"]
+                or any(
+                    receipt["centroid_pca_initializer"][key]
+                    != smoke["centroid_pca_initializer"][key]
+                    for key in ("head_sha256", "classifier_sha256", "bank_sha256", "vision_sha256")
+                )
+            ):
+                raise ValueError("centroid PCA100 initializer differs from qualified17")
         if arms:
             paired = (
                 "source_sha256",
@@ -217,7 +249,7 @@ def main():
     lower = bootstrap_lower(ap_delta, qlabels)
     control, wide = arms["control"], arms[proposal]
     criteria = {
-        "map_gain": float(ap_delta.mean()) >= 0.01,
+        "map_gain": float(ap_delta.mean()) >= (0.005 if args.centroid_pca else 0.01),
         "map_lower": lower > 0,
         "r1_guard": float(delta.mean()) >= 0,
         "training_cost": wide["training_wall_seconds"] <= 1.10 * control["training_wall_seconds"],
@@ -233,11 +265,33 @@ def main():
         ),
         "whole_budget": time.perf_counter() - started <= 600,
     }
+    if args.centroid_pca:
+        criteria.update(
+            {
+                "training_cost": wide["training_wall_including_member_bank_init_seconds"]
+                <= 1.05 * control["training_wall_including_member_bank_init_seconds"],
+                "median_step": float(np.median(wide["step_seconds"][1:]))
+                <= 1.05 * float(np.median(control["step_seconds"][1:])),
+                "memory": wide["training_peak_cuda_allocated_bytes"]
+                <= 1.005 * control["training_peak_cuda_allocated_bytes"],
+                "whole_arm_calibration_cost": wide["whole_arm_wall_seconds"]
+                <= 1.10 * control["whole_arm_wall_seconds"],
+                "no_collapse": all(
+                    arm["width_terminal_geometry"][key]
+                    >= fraction * arm["width_initial_geometry"][key]
+                    for arm in (control, wide)
+                    for key, fraction in (("variance", 0.5), ("effective_rank", 0.8))
+                ),
+            }
+        )
     result = {
-        "schema": "sfora-inshop-source-main-100-v1"
+        "schema": "sfora-inshop-centroid-pca-100-v1"
+        if args.centroid_pca
+        else "sfora-inshop-source-main-100-v1"
         if args.source_main
         else "sfora-inshop-wide-main-head-100-v1",
         "source_main": args.source_main,
+        "centroid_pca": args.centroid_pca,
         "claim_eligible": False,
         "evaluation_exposure": "observed officialTRAIN held identities; exploratory",
         "decision": "GO_PAIRED_SEED_GATE_DESIGN" if all(criteria.values()) else "KILL",
@@ -255,6 +309,7 @@ def main():
                 k: r[k]
                 for k in (
                     "training_wall_seconds",
+                    "training_wall_including_member_bank_init_seconds",
                     "whole_arm_wall_seconds",
                     "training_peak_cuda_allocated_bytes",
                     "export_seconds",

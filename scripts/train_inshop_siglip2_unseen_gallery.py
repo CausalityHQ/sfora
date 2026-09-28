@@ -530,12 +530,21 @@ def main() -> None:
     parser.add_argument("--source-main-qualification", type=Path)
     parser.add_argument("--centroid-pca-smoke", choices=("control", "products"))
     parser.add_argument("--centroid-pca-receipt", type=Path)
+    parser.add_argument("--centroid-pca-qualification", type=Path)
     args = parser.parse_args()
     centroid_smoke = args.centroid_pca_smoke is not None
+    centroid_quality = args.centroid_pca_qualification is not None
+    if centroid_quality and (
+        not centroid_smoke
+        or args.centroid_pca_receipt is not None
+        or sha256(args.centroid_pca_qualification)
+        != "9ae62ed93a7546e4d71b11b12a145bdca23908ec781e60731340d44fd9744e1f"
+    ):
+        raise ValueError("centroid PCA100 qualification differs")
     if centroid_smoke and (
         args.arm != "freeze_emb"
         or args.seed != 179024
-        or args.updates != 17
+        or args.updates != (100 if centroid_quality else 17)
         or args.training_width != 128
         or args.freeze_first_blocks != 12
         or args.vision_lr != 1e-5
@@ -550,9 +559,14 @@ def main() -> None:
         or args.source_main_smoke
         or args.source_main_receipt
         or args.source_main_qualification
-        or args.centroid_pca_receipt is None
-        or sha256(args.centroid_pca_receipt)
-        != "0d6a2418429bf90cf1e0f4fce5aa7d3a11e74fa77e44888014998f8e656d6df6"
+        or (
+            not centroid_quality
+            and (
+                args.centroid_pca_receipt is None
+                or sha256(args.centroid_pca_receipt)
+                != "0d6a2418429bf90cf1e0f4fce5aa7d3a11e74fa77e44888014998f8e656d6df6"
+            )
+        )
     ):
         raise ValueError("centroid PCA smoke authority differs")
     if not centroid_smoke and args.centroid_pca_receipt is not None:
@@ -1486,7 +1500,9 @@ def main() -> None:
             tuple(range(len(held))),
             processor,
             workers=args.workers,
-            batch_size=32 if width_quality or source_main_quality else BATCH_SIZE,
+            batch_size=32
+            if width_quality or source_main_quality or centroid_quality
+            else BATCH_SIZE,
         )
         export_seconds = time.perf_counter() - export_started
         np.save(args.output_dir / "held_values.npy", values.numpy())
@@ -1550,7 +1566,9 @@ def main() -> None:
         "wide_head_qualification_sha256": sha256(args.wide_head_qualification)
         if width_quality
         else None,
-        "export_batch_size": 32 if width_quality or source_main_quality else BATCH_SIZE,
+        "export_batch_size": 32
+        if width_quality or source_main_quality or centroid_quality
+        else BATCH_SIZE,
         "matched_public32_parity": matched_parity,
         "width_history": width_history,
         "width_initial_geometry": width_initial_geometry,
