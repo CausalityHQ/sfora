@@ -1,5 +1,17 @@
 # Joint quality and performance decision, first training-code gate
 
+## 28 September post-convergence research: no new training arm
+
+New Fable research proposed sub-center classifier geometry. Independent pinned
+fit-census replay found product-size confounding and corrected its counts;
+the existing initial objective-conflict screen already failed its material
+floor. Opus5.5 and Astra rejected the proposed cached training controls.
+Matching converged fit embeddings were not found in the checked DGX artifacts.
+No classifier change, encoder export, held read, or training follows this
+recommendation. This closes this proposed screen, not classifier geometry
+generally. The joint goal remains unmet.
+[Verified research decision and prerequisites](inshop_subcenter_research_decision_2026-09-28.md).
+
 ## 28 September batch32 processor CPU falsifier: stop before GPU work
 
 On1024 unique-byte SOP TRAIN images at20 CPU threads, concatenating the
@@ -1234,6 +1246,27 @@ In-Shop result or matched end-to-end latency measurement. Its zero-shot
 adaptation budget differs from supervised UNICOM and Sfora; these rows are
 additional reference context, not weaker replacement supervised gates.
 This check does not establish an exhaustive2026 frontier or certify SOTA.
+
+A further September28 check resolved a search hit for
+[Contextual Similarity Optimization, ICML2023](https://proceedings.mlr.press/v202/liao23b/liao23b.pdf):
+its Table8 reports90.7% In-Shop R@1 and97.8% R@10, not97.8% R@1.
+SectionI.2 uses the standard25882TRAIN/14218query/12612gallery protocol;
+search recency labels do not change the paper's2023 publication date.
+[LookBench v3, April2026](https://arxiv.org/html/2601.14706v3) evaluates
+LookBench and Fashion200K, not a stronger protocol-matched SOP/In-Shop result.
+Neither replaces the audited UNICOM reference. This limited check leaves
+exhaustive strongest-reference and matched full-pipeline speed qualification
+outstanding; no local quality measurement or benchmark threshold changed.
+
+GR-Lite also remains unqualified as a replacement source. The
+[paper's Table2 and AppendixC](https://arxiv.org/html/2601.14706v3)
+include DeepFashion training data without certifying the In-Shop TRAIN boundary
+and specify the DINOv3 license. The
+[released card](https://huggingface.co/srpone/gr-lite/tree/a8057f8aadaaab91670ad37949f6e1b5aa187e29)
+labels Apache2.0 and exposes 1024-D CLS output, whereas Section4.1 describes
+512-D projection. This metadata check downloaded no weights and ran no model.
+It establishes unresolved provenance and release differences, not proven
+contamination, infringement, quality, or a way around upstream access controls.
 
 The OML float source rescored with the same stable-ordinal evaluator remains
 86.5575% Recall@1 and 0.654393 mAP@R, with

@@ -1,0 +1,327 @@
+{
+  "id": "b347ee2c978b4eb8",
+  "provider": "fable",
+  "model": "claude-fable-5-1",
+  "fallbacks": [
+    {
+      "provider": "fable",
+      "model": "claude-fable-5-1"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-6-sol"
+    }
+  ],
+  "agent": "sfora/emafactorial",
+  "cwd": "/home/rb/worktrees/sfora-positive-causality",
+  "status": "completed",
+  "runner_started": true,
+  "started_at": 1790598995,
+  "timeout_seconds": 1800,
+  "deadline_at": 1790600795,
+  "budget_usd": 6,
+  "prompt_preview": "READ-ONLY new research/invention after NEW terminal evidence, not a replay of prior ae2da85c13b04bee. Repository /home/rb/worktrees/sfora-positive-causality master201594e6. Do not edit, launch tests/training/GPU/downloads/consultations/workers, or contact operator. All same-repo consultations terminal; DGX idle. Full user goal is production library joint strongest protocol-matched SOP AND In-Shop quality plus faster matched full image-to-topk, actual128 int8+FP16norm exact packed scoring/ties. NEW causal capacity result docs/inshop_direct256_quality1000_result_2026-09-28.md and raw evidence .../inshop-direct-width-quality1000-v1: matched fresh seed179024, original TRAIN fit13283images/2004prod, outerheld12599/1993 fixed6354q6245g, freeze12+embeddings SigLIP2Large256, 1000x64, same BF16/nativeFP16export32. Native128 R1.9765502/map.84916939 -> direct256 .9789109/.85719863; delta+.23607pp CI[0,+.4774] /+.008029 CI[+.005254,+.010909], both frozen+.5pp/+.01 floors FAIL. Gain shrank from100steps+.80264pp/+.01683. ALLmechanics/finite/source/pixel/cost passed; training848.3/851.2s, 12.99/13.00GB CUDA; no serving256 promotion. Independently rescored everyquery savedtensors. Cannot extend recipe/relax gate/extra seeds/width/loss sweep. NEW docs/sop_direct_batch32_cpu_result_2026-09-28.md exactscalar-directconcat32 gives processor38.03->95.19ms median KILL14s; noGPU. Serving batch1direct+graph qualified earlier samecheckpoint but no matchedexternal speedwin; b32encoder dominates. Priorcompiler fullgraph changes129packedentries; castrepair synthetic alsoKILL docs/compiler_fp16_cast_diagnostic_2026-09-28.md. Need ONE new causally distinct TRAIN-only quality mechanism that could retain one-model fast serving, grounded in newcapacity-convergence outcome and actual code/evidence, not another broad recipe search. Audit closed ledger before recommendation: docs/inshop_next_mechanism_review_decision_2026-09-28.md explicitly rejects your old allTRAIN scaling/hardquartile reopening (scaling+.3651pp missed+.4, hardnessinstrumentfailed3x/100). Source/backbones DINOv2/TIPS/MODA/zooclaw/description; pooling mean/spatial/rawpatch/fourquery; pixelcrop/color/acquisition; sampling/rank/worstpositive/repeatcoverage; PCAcentroid/head/soup/teachertransfer/freezedepth all already have docs, inspect relevant exact verdicts not infer universalimpossibility. DINOv3 legitimate credential prerequisite was reported, grantunknown; cannot bypass. Source files scripts/train_inshop_siglip2_unseen_gallery.py, train_sop_siglip2_compact.py, src/sfora/siglip2_compact_serving.py, unicom_rank_finish.py. A mechanism must change responsible layer, be a different algorithm rather than hyperparameter tweak, and have a concrete independently testable causal TRAIN signal using existing fit-only artifacts beforeGPU. Known method okay; do not invent novelty/SOTA. Include negative/sham control where necessary, cheapest bounded CPU falsifier and predeclared meaningful materialfloor, no arbitrary oldgate rescue, preserve fit/held/seeds/exposure/scorer and actualpackedquality. Read primary research if needed; cite precise sources. Return ONE supported candidate with minimal code hook, or clearly no candidate and exact missing causal evidence/access; don't claim no algorithms exist. Separate measurements from conjecture; no officialquality/scaleforecast or architecture-based latency promises. This is a new decision based on terminal1000convergence/processor evidence, not authorization to run experiments.",
+  "prompt_sha256": "d022b083aa4d36b3336d9cf3fe0af4d51aa33e3879ffd96c194921d847d8f388",
+  "prompt_bytes": 3684,
+  "fingerprint": "f558865e5fe78da842f0ba581cb72bd0d20cafd77ffc260f9543ed0ab2282b4f",
+  "evidence": {
+    "git_commit": "201594e688b2082ff580c50e1bf05c9ccc3d89a6",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+    "worktree_sha256": "1ac58fd55291bf96c124ac5c084c92956d3ecc3ab3bf8e6d1332a38bcdae1734",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "previous_fingerprint": "089f01550ef650c0dab25049a980d87ee8e4beec0d0331b2a818def3a67810fc",
+  "reused": false,
+  "systemd_unit": "devbox-consult-b347ee2c978b4eb8.service",
+  "pid": 1134530,
+  "pgid": 1134530,
+  "attempt": 1,
+  "attempts": [
+    {
+      "provider": "fable",
+      "model": "claude-fable-5-1"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-6-sol"
+    }
+  ],
+  "attempt_history": [
+    {
+      "provider": "fable",
+      "model": "claude-fable-5-1",
+      "budget_usd": 6,
+      "timeout_seconds": 1800,
+      "started_at": 1790598995
+    }
+  ],
+  "exit_code": 0,
+  "finished_at": 1790599521,
+  "event_cursor": 57,
+  "events": [
+    {
+      "seq": 34,
+      "at": 1790599497,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 35,
+      "at": 1790599498,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 36,
+      "at": 1790599499,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 37,
+      "at": 1790599500,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 38,
+      "at": 1790599501,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 39,
+      "at": 1790599502,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 40,
+      "at": 1790599503,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 41,
+      "at": 1790599504,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 42,
+      "at": 1790599505,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 43,
+      "at": 1790599506,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 44,
+      "at": 1790599507,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 45,
+      "at": 1790599508,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 46,
+      "at": 1790599509,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 47,
+      "at": 1790599510,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 48,
+      "at": 1790599511,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 49,
+      "at": 1790599512,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 50,
+      "at": 1790599513,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 51,
+      "at": 1790599514,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 52,
+      "at": 1790599515,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 53,
+      "at": 1790599516,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 54,
+      "at": 1790599517,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 55,
+      "at": 1790599518,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 56,
+      "at": 1790599519,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 57,
+      "at": 1790599521,
+      "provider": "fable",
+      "kind": "phase",
+      "label": "Consultation completed",
+      "detail": "exit 0"
+    }
+  ],
+  "events_truncated": true,
+  "provider_events": {
+    "fable": [
+      {
+        "seq": 50,
+        "at": 1790599513,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 51,
+        "at": 1790599514,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 52,
+        "at": 1790599515,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 53,
+        "at": 1790599516,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 54,
+        "at": 1790599517,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 55,
+        "at": 1790599518,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 56,
+        "at": 1790599519,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 57,
+        "at": 1790599521,
+        "provider": "fable",
+        "kind": "phase",
+        "label": "Consultation completed",
+        "detail": "exit 0"
+      }
+    ]
+  },
+  "partial_result_truncated": false,
+  "providers_used": [
+    "fable"
+  ],
+  "active_provider": "fable",
+  "phase": "Consultation completed",
+  "input_bytes": 3684,
+  "output_bytes": 8573,
+  "elapsed_seconds": 526,
+  "progress_truncated": false,
+  "result": "**Recommendation: one candidate survives the audit. Sub-center ArcFace at the fit-product classifier layer, falsified first on the existing cached fit-inner CPU format with a sham-assignment control.** No edits, jobs, or consultations were made. The ledger audit and the new measurement it rests on are below, with measurement and conjecture kept apart.\n\n## What the new terminal evidence says, and what it does not\n\n**Measured.** The direct256 arm shows the width advantage decaying with training, from +0.80 pp at 100 updates to +0.24 pp at 1000, with only 40 rescues against 25 regressions. Every closed objective-side arm on this recipe moved held R@1 by less than ±0.3 pp: specific-impostor hinge (−0.02 pp), worst-positive hinge (killed), valid-anchor, mAP-aligned, teacher transfer, head-first warm-up, gradient projection, repeat coverage, fit-product scaling (+0.37 pp). So on this fixed budget, the 128-dimensional head is not the binding layer at convergence, and reweighting which *pairs* get gradient is not either.\n\n**Not measured.** Fit-set best-positive Recall@1 for the current checkpoint is not recorded anywhere in the lane. The 99.36% figure belongs to the older 23,342-image model. So a fit-versus-held generalization gap cannot be asserted, and parameter-space regularizers (L2-SP, sharpness-aware minimization, soups) have no fit-side causal signal to point to. Their prior mentions are all in the August UNICOM proposal lanes, not verdicts on this recipe.\n\n## The one fit-only signal that is new\n\nThe fit-positive-tail receipt (seed 179026, 1000 updates, 13,271 eligible fit anchors, worst-positive margins) has never been stratified by product structure. I did that with stdlib only, joining the receipt's query ordinals to the pinned partition replay at `/tmp/sfora-inshop-partition-replay.txt`. The partition hash was not re-asserted in my census because that assertion sat behind a numpy import that this box lacks. The file is the one the archived verifiers read.\n\nTail means a different-product image scores above the anchor's worst same-product image by more than 0.03. Series is the filename's first token, the same \"acquisition group\" the ledger's helper parses.\n\n| Product size × series count | Eligible anchors | Tail rate | Median margin |\n|---|---:|---:|---:|\n| ≤4 images, 1 series | 3,862 | 0.3–1.0% | −0.24 to −0.29 |\n| 5–6 images, 1 series | 1,668 | 3.6–11% | −0.16 to −0.18 |\n| 7–8 images, 2 series | 1,902 | 8–12% | −0.12 to −0.14 |\n| 9–10 images, 2 series | 1,057 | 18–20% | −0.06 to −0.08 |\n| 10+ images, ≥3 series | 4,471 | **44.3%** | **−0.001** |\n\nPose is not the driver: tail rates by pose are 16–22% for every pose except the tiny `flat` class. All 356 fit products with 9 or more images are multi-series, and held products have the same series composition (1,362 single-series, 400 two-series, 135 three-series). The `flat`-only census and the by-pose table were also computed.\n\n**Measured conclusion.** At the end of the fixed 64,000-presentation budget, the unresolved fit rank structure is concentrated almost entirely in multi-series products, where the median anchor has a negative sitting at its worst positive. A third of the fit anchors live in this stratum.\n\n**Conjecture, not measured.** The single class proxy per product in `sharded_mask_arcface_loss` (margin 0.3, scale 64, one proxy per 2,004 products, class-mean initialized) is the term that pulls all series of a product to one center. On a fixed budget, that gradient is spent on cross-series compression of large fit products, and it shapes the upper 12 blocks toward series-collapsing features that unseen products do not benefit from. The bank SmoothAP term keeps all same-product images as ranked positives either way, so the deployed positive semantics and the mAP@R target are untouched.\n\n## Why this is causally distinct from the closed ledger\n\n- The worst-positive hinge (killed) and repeat-coverage (killed) *added* pressure on exactly these anchors. This candidate *removes* a competing pull instead. Opposite sign, different layer (classifier geometry, not pair weighting or sampling).\n- The acquisition-group held lane was killed because only 10 of 151 held misses lack a same-series positive. That kills \"learn cross-series retrieval\" as the mechanism. It does not test this one, whose claimed path is freed budget and less distorted geometry, not cross-series recall. The held misses are 44% close-margin same-series confusions, which is what freed budget would have to fix. That link is the conjecture the falsifier tests.\n- Proxy Synthesis, asymmetric proxy, centroid-PCA, and live-head bank changed proxy *initialization*, *virtual classes*, or bank freshness, not the number of centers a real class may occupy.\n- The only prior sub-center verdict in the repository is sub-center Proxy Anchor on the July substrate, recorded as a Gate 2 failure at `docs/method_search_verdict.md:533` (0.675 vs 0.695). That is a real negative for a different loss, backbone, and data regime. It is not evidence about ArcFace on SigLIP2 with this budget, and it should be cited as a caution in the freeze, not as closure.\n\n## The mechanism and the minimal hook\n\nSub-center ArcFace, Deng, Guo, Liu, Gong, Zafeiriou, ECCV 2020, arXiv 2010.05350. Each class holds K proxies. The class logit is the maximum cosine over its K sub-centers; margin and cross-entropy are applied to that logit. Only the nearest sub-center receives the pull. The paper's own caveat applies and must be in the freeze: on clean single-modal data K>1 slightly *hurt* until non-dominant sub-centers were dropped. Here the multi-modality is real colour or series variation, which is the case the method was built for.\n\nHook, all training-only, serving untouched:\n\n- `src/sfora/unicom_training.py` `sharded_mask_arcface_logits`: accept `subcenters: int = 1`; the weight tensor becomes `(C·K, D)`; after the shard concatenation, `logits.view(B, C, K).amax(-1)` before the existing margin and clamp.\n- `scripts/train_inshop_siglip2_unseen_gallery.py` around line 931: replicate the class-mean proxy K times with a small deterministic jitter so the sub-centers can separate. Classifier grows from 2,004×128 to 6,012×128. Nothing else in the loss, bank, schedule, optimizer, freeze, PCA head, or scorer changes.\n\n## Cheapest bounded falsifier before any GPU work\n\nUse the existing cached fit-inner CPU format already used by head-first and repeat-coverage F1: pinned pretrained fit cache, fit-inner split (6,757 fit images, 995 products; 3,440 query, 3,074 gallery on 997 disjoint validation products), same head, bank, schedule, packed scorer. Three arms:\n\n1. **Native**, K=1.\n2. **Treatment**, K=3, nearest-sub-center assignment.\n3. **Sham**, K=3 with a fixed random sub-center assigned to each fit image at start. Same parameter count and initialization, no adaptive modality selection. This separates \"more proxies\" from \"the class may occupy several centers.\"\n\nPredeclare before running:\n\n- Mechanism signal on fit only: among multi-series fit products, the fraction whose images occupy at least two sub-centers, and the series purity of that occupancy, must exceed the sham arm's values. If treatment assignments do not split multi-series products better than random, the mechanism is absent. Kill.\n- Quality on the inner validation, packed scorer: treatment minus native R@1 at least +0.5 pp with paired product-bootstrap lower bound above zero, mAP@R not below native minus 0.002, and sham minus native inside its own interval. These reuse the lane's existing effect-size floors rather than a new number.\n- Cost guard: CPU wall within 1.10× of native.\n\nA pass authorizes only one frozen paired 100-update GPU arm on seed 179024 under the same +0.5 pp and +0.01 floors the direct256 arm just failed, then the standard 1000-update confirmation. A fail closes the classifier-geometry layer for this recipe. The cached-head regime sits near 87% and is not the encoder regime, so a cached pass is a mechanism result, not a quality forecast.\n\n## What I could not do here\n\nNo numpy exists on this box and downloads are prohibited, so I did not rescore the saved held tensors locally. Two cheap fit-side reads that would sharpen the freeze remain undone: the current checkpoint's fit best-positive Recall@1, and for each tail anchor whether its worst positive lies in a different series. Both are computable on the DGX from the retained seed-179026 fit export in well under a minute of CPU. Neither is required to run the cached falsifier above.",
+  "result_truncated": false
+}

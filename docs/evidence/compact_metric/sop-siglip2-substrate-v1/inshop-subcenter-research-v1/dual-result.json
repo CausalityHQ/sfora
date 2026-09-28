@@ -1,0 +1,715 @@
+{
+  "id": "5387e72d01a84e6a",
+  "status": "completed",
+  "started_at": 1790599678,
+  "agent": "sfora/emafactorial",
+  "force_reason": "New terminal526s Fable research result proposes causally distinct sub-center classifier geometry after width1000+CPUservingKILL; independently pinned fit census reveals product-size confound and invalid sham. Prior dual reviews only gated width, all terminal; this is first review of this concrete new mechanism, before any experiment.",
+  "rolling_6h_count": 1,
+  "prompt_preview": "READ-ONLY consequential review of NEW terminal Fable research b347ee2c978b4eb8, not duplicate prior width reviews. Repo /home/rb/worktrees/sfora-positive-causality master201594e6; no edits/jobs/training/GPU/downloads/workers/consults/operatorcontact. Full target strongest protocol-matched SOP+InShop AND faster fullimage-topk, serving128exactpackedunchanged. Evidence docs/evidence/compact_metric/sop-siglip2-substrate-v1/inshop-subcenter-research-v1/{fable-result.json,census.json,verify_census.py}; independently verified partitionSHAcfada103c44df866db5e2ee9ecc2301ca691a4d0cdb3c875fe4051b62570894c +rawtailSHA953be9e6eab846f22e3e187f043eebfaf3161af0bbe4a752f6c68987ffb7fb49 +fitdigest. Rawtail1790261000 fit13283/2004 uses float128 normalized selfexcluded bestnegative MINsameproductpositive. 2506/13271 tail>.03. FableproposesK3subcenterArcface maxclasslogit proxygeometry while rankbank staysallpositive; cachedhead native/K3/forcedrandomassignmentsham100stepCPU thenGPU100/1000 if quality. Independentcensus confirms n>=10 series>=3 1982/4471 44.3301% median-.001175; 9or10+2series actually193/988 not1057. Mechanistic concern minimumpositive orderstat getsworseasproductsizegrows, filenameseriesNOTprovenlatentmode/color/noise; at SAME n6 one11.11%two5.56%,n9two20.25%three0%,n10two18.60%three7.27%,n13three48.08%four7.69%, direction inconsistent. No actualproxy-vs-rankgradientconflict demonstrated. Fable wrongly calls widths resultproof128notbinding ratherthan fixedrecipegatefailed; says all objectivearms<.3 then +.37; cannotgeneralize. Fableciteswrongarxiv2010.05350 (landmarkthirdplace), correctprimary ECCV https://www.ecva.net/papers/eccv_2020/papers_ECCV/papers/123560715.pdf (noiseisolation/dropnondominant, notprooffashioneffect). ClosedsubcenterProxyAnchor July CUBnegative docs/method_search_verdict.md:533 mustpreserve; docs/inshop_next_mechanism_review_decision_2026-09-28.md rejectsallTRAIN/hardquartile, docs/inshop_direct256_quality1000_result_2026-09-28.mdwidthterminalKILL, docs/inshop_multiquery_design_decision_2026-09-28.md4slotclosed. Currentclassifier src/sfora/unicom_training.py sharded_mask_arcface_logits perclasscoordinate masks with shards; doNOTblindly .view(C,K) after randomized proxy-coordinate splits without preservingclassassignment andK1exact behavior. Fablesham fixedimage randompositiveproxy changesobjective ratherthanvalidmatchedmaxlogit null; shamdeltainsideownCI vacuous; fractionoccupancy>random mayunreachable; rejectshamiffaulty. No candidateimplemented, no GPUauthorized. Question: Does NEW observedcensus supply credible causallydistinct mechanism worthy ONEbounded fit-only CPU falsifier underuser noendlessloss/probes? Approveonly ifminimalcorrectfalsifier with materialfixedfloors actuallyidentifies geometryconflict, or REJECT/DEFER with exactmissingcausalread computableexistingartifacts (notnew sweep). Distinguish knownmethod/repoevidence/conjecture, scopeclosedarmsnotuniversalfailure. Providecleardecision+smallestnextaction, noadditionalhypothesislist; independentlyinspectcode/ledger.",
+  "prompt_sha256": "799471b35d2845b82f52c7fc70ef3f557cfbfa7eb9406239a3015c90d2168620",
+  "prompt_bytes": 3054,
+  "fingerprint": "7faa1d5ef7ba646a0ccbf9e316b680fdba8c4aa93482df998e99658a655091d1",
+  "evidence": {
+    "git_commit": "201594e688b2082ff580c50e1bf05c9ccc3d89a6",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "d6650a735738f322c952c6b9bb8fea0b3d16b47e9ed4bd519e68fe48848e8547",
+    "worktree_sha256": "073b5698297e88fdcb5ee70d9757e51cf3775c7b99ea21547d90168ec1652e82",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "reviewers": [
+    {
+      "role": "research_critic",
+      "id": "898e6b975a2644fb",
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "fallbacks": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "agent": "sfora/emafactorial",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1790599678,
+      "timeout_seconds": 1200,
+      "deadline_at": 1790600878,
+      "budget_usd": 4,
+      "prompt_preview": "Act as the independent research and first-principles critic. Challenge assumptions, compare alternatives and prior art, and identify missing evidence. Do not edit files.\n\nMaterial to critique:\nREAD-ONLY consequential review of NEW terminal Fable research b347ee2c978b4eb8, not duplicate prior width reviews. Repo /home/rb/worktrees/sfora-positive-causality master201594e6; no edits/jobs/training/GPU/downloads/workers/consults/operatorcontact. Full target strongest protocol-matched SOP+InShop AND faster fullimage-topk, serving128exactpackedunchanged. Evidence docs/evidence/compact_metric/sop-siglip2-substrate-v1/inshop-subcenter-research-v1/{fable-result.json,census.json,verify_census.py}; independently verified partitionSHAcfada103c44df866db5e2ee9ecc2301ca691a4d0cdb3c875fe4051b62570894c +rawtailSHA953be9e6eab846f22e3e187f043eebfaf3161af0bbe4a752f6c68987ffb7fb49 +fitdigest. Rawtail1790261000 fit13283/2004 uses float128 normalized selfexcluded bestnegative MINsameproductpositive. 2506/13271 tail>.03. FableproposesK3subcenterArcface maxclasslogit proxygeometry while rankbank staysallpositive; cachedhead native/K3/forcedrandomassignmentsham100stepCPU thenGPU100/1000 if quality. Independentcensus confirms n>=10 series>=3 1982/4471 44.3301% median-.001175; 9or10+2series actually193/988 not1057. Mechanistic concern minimumpositive orderstat getsworseasproductsizegrows, filenameseriesNOTprovenlatentmode/color/noise; at SAME n6 one11.11%two5.56%,n9two20.25%three0%,n10two18.60%three7.27%,n13three48.08%four7.69%, direction inconsistent. No actualproxy-vs-rankgradientconflict demonstrated. Fable wrongly calls widths resultproof128notbinding ratherthan fixedrecipegatefailed; says all objectivearms<.3 then +.37; cannotgeneralize. Fableciteswrongarxiv2010.05350 (landmarkthirdplace), correctprimary ECCV https://www.ecva.net/papers/eccv_2020/papers_ECCV/papers/123560715.pdf (noiseisolation/dropnondominant, notprooffashioneffect). ClosedsubcenterProxyAnchor July CUBnegative docs/method_search_verdict.md:533 mustpreserve; docs/inshop_next_mechanism_review_decision_2026-09-28.md rejectsallTRAIN/hardquartile, docs/inshop_direct256_quality1000_result_2026-09-28.mdwidthterminalKILL, docs/inshop_multiquery_design_decision_2026-09-28.md4slotclosed. Currentclassifier src/sfora/unicom_training.py sharded_mask_arcface_logits perclasscoordinate masks with shards; doNOTblindly .view(C,K) after randomized proxy-coordinate splits without preservingclassassignment andK1exact behavior. Fablesham fixedimage randompositiveproxy changesobjective ratherthanvalidmatchedmaxlogit null; shamdeltainsideownCI vacuous; fractionoccupancy>random mayunreachable; rejectshamiffaulty. No candidateimplemented, no GPUauthorized. Question: Does NEW observedcensus supply credible causallydistinct mechanism worthy ONEbounded fit-only CPU falsifier underuser noendlessloss/probes? Approveonly ifminimalcorrectfalsifier with materialfixedfloors actuallyidentifies geometryconflict, or REJECT/DEFER with exactmissingcausalread computableexistingartifacts (notnew sweep). Distinguish knownmethod/repoevidence/conjecture, scopeclosedarmsnotuniversalfailure. Providecleardecision+smallestnextaction, noadditionalhypothesislist; independentlyinspectcode/ledger.",
+      "prompt_sha256": "0be9ae914b666e9410f3b30df9dd1b0f8d2b70259e4f19531cfeecb4672bcb41",
+      "prompt_bytes": 3424,
+      "fingerprint": "8fd31dd5a550c24a8b32ac8d1a5cd0d6f5066f9b709c2b918f2ea2fd2ca76093",
+      "evidence": {
+        "git_commit": "201594e688b2082ff580c50e1bf05c9ccc3d89a6",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "d6650a735738f322c952c6b9bb8fea0b3d16b47e9ed4bd519e68fe48848e8547",
+        "worktree_sha256": "073b5698297e88fdcb5ee70d9757e51cf3775c7b99ea21547d90168ec1652e82",
+        "worktree_evidence_truncated": false,
+        "active_goal": {
+          "id": "goal-1790540789-1790540789754989478-2322852",
+          "agent": "sfora/emafactorial",
+          "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+          "status": "queued",
+          "revision": 1,
+          "actor": "operator",
+          "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+          "created_at": 1790540789,
+          "updated_at": 1790540789
+        }
+      },
+      "previous_fingerprint": "f558865e5fe78da842f0ba581cb72bd0d20cafd77ffc260f9543ed0ab2282b4f",
+      "reused": false,
+      "critique_id": "5387e72d01a84e6a",
+      "critique_role": "research_critic",
+      "systemd_unit": "devbox-consult-898e6b975a2644fb.service",
+      "pid": 1287402,
+      "pgid": 1287402,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5",
+          "budget_usd": 4,
+          "timeout_seconds": 1200,
+          "started_at": 1790599678
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1790599795,
+      "event_cursor": 29,
+      "events": [
+        {
+          "seq": 6,
+          "at": 1790599689,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 7,
+          "at": 1790599693,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 8,
+          "at": 1790599700,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 9,
+          "at": 1790599700,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 10,
+          "at": 1790599705,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 11,
+          "at": 1790599728,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 12,
+          "at": 1790599733,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 13,
+          "at": 1790599743,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 14,
+          "at": 1790599748,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 15,
+          "at": 1790599781,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 16,
+          "at": 1790599782,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 17,
+          "at": 1790599783,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 18,
+          "at": 1790599784,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 19,
+          "at": 1790599785,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 20,
+          "at": 1790599786,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 21,
+          "at": 1790599787,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 22,
+          "at": 1790599788,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 23,
+          "at": 1790599789,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 24,
+          "at": 1790599790,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 25,
+          "at": 1790599791,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 26,
+          "at": 1790599792,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 27,
+          "at": 1790599793,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 28,
+          "at": 1790599794,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 29,
+          "at": 1790599794,
+          "provider": "claude",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": true,
+      "provider_events": {
+        "claude": [
+          {
+            "seq": 22,
+            "at": 1790599788,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 23,
+            "at": 1790599789,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 24,
+            "at": 1790599790,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 25,
+            "at": 1790599791,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 26,
+            "at": 1790599792,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 27,
+            "at": 1790599793,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 28,
+            "at": 1790599794,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 29,
+            "at": 1790599794,
+            "provider": "claude",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "**Decision: reject.** The new census does not show a mechanism that is causally distinct from what's already closed, so it doesn't justify a CPU falsifier. Reopening would take one existing-artifact read, described at the end, and on current evidence that read isn't needed.\n\nI made no edits and started no jobs, training, GPU work, downloads, consults or operator contact. Everything below comes from inspecting the repo and its receipts.\n\n## What I checked independently\n- **Census replay.** It matches your figures. The ≥10-image, ≥3-series stratum is 1982/4471 tail anchors (44.33%, median −0.001175). The 9–10-image, 2-series stratum is **193/988**, built from 558 + 430 anchors. Fable's 1,057 is wrong.\n- **Fable also skipped a hash check.** It says it did not re-check the partition hash. The replay (`verify_census.py`) does.\n\n## Why the census does not support the mechanism\n1. **Product size explains the signal.** The census metric is the *minimum* positive, and that gets lower as a product has more images, whatever the model. The median margin falls smoothly with size inside single-series products: −0.238 at 4 images, −0.184 at 5, −0.166 at 6. At 6 images, two series (−0.164) look the same as one (−0.166).\n2. **At matched size, more series mostly means *less* tail**, which is the opposite of the claimed mechanism:\n\n   | Images | Tail rate by series count |\n   |---|---|\n   | 6 | 1 series 11.1% vs 2 series 5.6% |\n   | 9 | 2 series 20.3% vs 3 series 0% |\n   | 10 | 2 series 18.6% vs 3 series 7.3% |\n   | 13 | the only case in Fable's direction |\n\n   The 44% headline is a stratum defined by product size, not by acquisition series.\n3. **The proxy-versus-rank conflict was already measured, and it's absent.** `docs/inshop_objective_conflict_gate_2026-09-28.md` tested exactly this: native ArcFace (margin 0.3, scale 64) against bank SmoothAP gradients on the same fit cache and schedule.\n   - Only 12/960 rows (1.25%) were opposed; median cosine 0.62. It was killed at a 25% floor.\n   - The rank signal was material: norm ratio 0.51.\n   - Fable doesn't cite this. The only gap left is at the converged checkpoint, which Fable also didn't measure. So \"removes a competing pull\" is conjecture that contradicts the only measurement we have.\n4. **The census measures the wrong quantity for the target.** The census tracks the worst positive; held R@1 depends on the best positive. The held acquisition read (`inshop_acquisition_supervision_gate_2026-09-27.md`) found only 10 of 151 misses lack a same-series gallery positive. Nothing links the fit worst-positive tail to held R@1 misses.\n5. **The ledger is misread.**\n   - The width result is a failed gate on a fixed recipe, not proof that 128 dimensions aren't binding.\n   - \"All objective arms under ±0.3 pp\" contradicts the +0.37 pp that Fable lists in the same sentence.\n   - The July sub-center Proxy Anchor negative (`docs/method_search_verdict.md:533`) is correctly scoped as a CUB result with a different loss. It doesn't close this lane, but it adds nothing in favour either.\n6. **The citation is wrong.** Fable cites arXiv 2010.05350 (I didn't re-verify that ID offline). The correct primary source is the ECCV 2020 paper you named. That paper's mechanism is isolating noisy samples and dropping non-dominant sub-centers. It is not a claim about fashion colour or series modes.\n\n## If the falsifier were ever run, its design is faulty\n- **The sham doesn't match the treatment.** A fixed random sub-center per image effectively splits each product into three random pseudo-classes. That changes the objective, so it is not a null for \"max-logit over K sub-centers.\"\n  - The honest null is a within-product series-label permutation of the treatment's *own* assignments, compared on purity.\n  - \"Sham inside its own confidence interval\" can't fail, so it tests nothing.\n- **The code hook works only with one shard.**\n  - `sharded_mask_arcface_logits` slices weight rows into contiguous shards (`_class_slices`) and applies a coordinate mask per shard (`unicom_training.py:118-180`). In the trainer (`train_inshop_siglip2_unseen_gallery.py:1115`) that's one shard with a random 64-of-128 mask per step.\n  - Swapping the weights for a C·K matrix and calling `.view(B,C,K)` is only valid with one shard and class-major order. With more shards, a product's sub-centers could land in different shards, and the max would compare cosines taken over different coordinates.\n  - The target margin must go on the chosen sub-center after the max. K=1 must reproduce today's logits bit-for-bit.\n- **Occupancy may be unreachable.** \"Occupancy above random\" may never happen once jitter is added to a class-mean initialisation, because the dominant sub-center wins.\n\n## Smallest next action\nRecord this as a reject. Keep the classifier-geometry layer closed for this recipe, scoped to this census and not claimed as universal. Launch no arm.\n\n**The one read that could reopen it,** using existing artifacts, CPU-only on the DGX (this box has no numpy):\n- **Inputs:** the expected-gallery receipt (`inshop-expected-gallery-179026/receipt.json`, same checkpoint `ad58838e…`), which has per-query `actual_proxy_per_query_r1` and `positive_counts`. Add the pinned partition, the existing `roles()` helper and `_acquisition_series`.\n- **Computation:** the held packed-miss rate by series count within product-size bins (Mantel–Haenszel).\n- **Reopen only if both hold:** a size-adjusted odds ratio of at least 2 with a lower 95% bound above 1, and at least 32 of the 151 misses (+0.5 pp on 6,354 queries) in the multi-series stratum.\n- If either fails, the geometry conflict has no route to held quality, and the lane stays closed.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "claude": "**Decision: reject.** The new census does not show a mechanism that is causally distinct from what's already closed, so it doesn't justify a CPU falsifier. Reopening would take one existing-artifact read, described at the end, and on current evidence that read isn't needed.\n\nI made no edits and started no jobs, training, GPU work, downloads, consults or operator contact. Everything below comes from inspecting the repo and its receipts.\n\n## What I checked independently\n- **Census replay.** It matches your figures. The ≥10-image, ≥3-series stratum is 1982/4471 tail anchors (44.33%, median −0.001175). The 9–10-image, 2-series stratum is **193/988**, built from 558 + 430 anchors. Fable's 1,057 is wrong.\n- **Fable also skipped a hash check.** It says it did not re-check the partition hash. The replay (`verify_census.py`) does.\n\n## Why the census does not support the mechanism\n1. **Product size explains the signal.** The census metric is the *minimum* positive, and that gets lower as a product has more images, whatever the model. The median margin falls smoothly with size inside single-series products: −0.238 at 4 images, −0.184 at 5, −0.166 at 6. At 6 images, two series (−0.164) look the same as one (−0.166).\n2. **At matched size, more series mostly means *less* tail**, which is the opposite of the claimed mechanism:\n\n   | Images | Tail rate by series count |\n   |---|---|\n   | 6 | 1 series 11.1% vs 2 series 5.6% |\n   | 9 | 2 series 20.3% vs 3 series 0% |\n   | 10 | 2 series 18.6% vs 3 series 7.3% |\n   | 13 | the only case in Fable's direction |\n\n   The 44% headline is a stratum defined by product size, not by acquisition series.\n3. **The proxy-versus-rank conflict was already measured, and it's absent.** `docs/inshop_objective_conflict_gate_2026-09-28.md` tested exactly this: native ArcFace (margin 0.3, scale 64) against bank SmoothAP gradients on the same fit cache and schedule.\n   - Only 12/960 rows (1.25%) were opposed; median cosine 0.62. It was killed at a 25% floor.\n   - The rank signal was material: norm ratio 0.51.\n   - Fable doesn't cite this. The only gap left is at the converged checkpoint, which Fable also didn't measure. So \"removes a competing pull\" is conjecture that contradicts the only measurement we have.\n4. **The census measures the wrong quantity for the target.** The census tracks the worst positive; held R@1 depends on the best positive. The held acquisition read (`inshop_acquisition_supervision_gate_2026-09-27.md`) found only 10 of 151 misses lack a same-series gallery positive. Nothing links the fit worst-positive tail to held R@1 misses.\n5. **The ledger is misread.**\n   - The width result is a failed gate on a fixed recipe, not proof that 128 dimensions aren't binding.\n   - \"All objective arms under ±0.3 pp\" contradicts the +0.37 pp that Fable lists in the same sentence.\n   - The July sub-center Proxy Anchor negative (`docs/method_search_verdict.md:533`) is correctly scoped as a CUB result with a different loss. It doesn't close this lane, but it adds nothing in favour either.\n6. **The citation is wrong.** Fable cites arXiv 2010.05350 (I didn't re-verify that ID offline). The correct primary source is the ECCV 2020 paper you named. That paper's mechanism is isolating noisy samples and dropping non-dominant sub-centers. It is not a claim about fashion colour or series modes.\n\n## If the falsifier were ever run, its design is faulty\n- **The sham doesn't match the treatment.** A fixed random sub-center per image effectively splits each product into three random pseudo-classes. That changes the objective, so it is not a null for \"max-logit over K sub-centers.\"\n  - The honest null is a within-product series-label permutation of the treatment's *own* assignments, compared on purity.\n  - \"Sham inside its own confidence interval\" can't fail, so it tests nothing.\n- **The code hook works only with one shard.**\n  - `sharded_mask_arcface_logits` slices weight rows into contiguous shards (`_class_slices`) and applies a coordinate mask per shard (`unicom_training.py:118-180`). In the trainer (`train_inshop_siglip2_unseen_gallery.py:1115`) that's one shard with a random 64-of-128 mask per step.\n  - Swapping the weights for a C·K matrix and calling `.view(B,C,K)` is only valid with one shard and class-major order. With more shards, a product's sub-centers could land in different shards, and the max would compare cosines taken over different coordinates.\n  - The target margin must go on the chosen sub-center after the max. K=1 must reproduce today's logits bit-for-bit.\n- **Occupancy may be unreachable.** \"Occupancy above random\" may never happen once jitter is added to a class-mean initialisation, because the dominant sub-center wins.\n\n## Smallest next action\nRecord this as a reject. Keep the classifier-geometry layer closed for this recipe, scoped to this census and not claimed as universal. Launch no arm.\n\n**The one read that could reopen it,** using existing artifacts, CPU-only on the DGX (this box has no numpy):\n- **Inputs:** the expected-gallery receipt (`inshop-expected-gallery-179026/receipt.json`, same checkpoint `ad58838e…`), which has per-query `actual_proxy_per_query_r1` and `positive_counts`. Add the pinned partition, the existing `roles()` helper and `_acquisition_series`.\n- **Computation:** the held packed-miss rate by series count within product-size bins (Mantel–Haenszel).\n- **Reopen only if both hold:** a size-adjusted odds ratio of at least 2 with a lower 95% bound above 1, and at least 32 of the 151 misses (+0.5 pp on 6,354 queries) in the multi-series stratum.\n- If either fails, the geometry conflict has no route to held quality, and the lane stays closed."
+      },
+      "providers_used": [
+        "claude"
+      ],
+      "active_provider": "claude",
+      "phase": "Consultation completed",
+      "input_bytes": 3424,
+      "output_bytes": 5708,
+      "elapsed_seconds": 117,
+      "progress": "devbox-ask: claude consult still running (0m 30s)\ndevbox-ask: claude consult still running (1m 00s)\ndevbox-ask: claude consult still running (1m 30s)",
+      "progress_truncated": false,
+      "result": "**Decision: reject.** The new census does not show a mechanism that is causally distinct from what's already closed, so it doesn't justify a CPU falsifier. Reopening would take one existing-artifact read, described at the end, and on current evidence that read isn't needed.\n\nI made no edits and started no jobs, training, GPU work, downloads, consults or operator contact. Everything below comes from inspecting the repo and its receipts.\n\n## What I checked independently\n- **Census replay.** It matches your figures. The ≥10-image, ≥3-series stratum is 1982/4471 tail anchors (44.33%, median −0.001175). The 9–10-image, 2-series stratum is **193/988**, built from 558 + 430 anchors. Fable's 1,057 is wrong.\n- **Fable also skipped a hash check.** It says it did not re-check the partition hash. The replay (`verify_census.py`) does.\n\n## Why the census does not support the mechanism\n1. **Product size explains the signal.** The census metric is the *minimum* positive, and that gets lower as a product has more images, whatever the model. The median margin falls smoothly with size inside single-series products: −0.238 at 4 images, −0.184 at 5, −0.166 at 6. At 6 images, two series (−0.164) look the same as one (−0.166).\n2. **At matched size, more series mostly means *less* tail**, which is the opposite of the claimed mechanism:\n\n   | Images | Tail rate by series count |\n   |---|---|\n   | 6 | 1 series 11.1% vs 2 series 5.6% |\n   | 9 | 2 series 20.3% vs 3 series 0% |\n   | 10 | 2 series 18.6% vs 3 series 7.3% |\n   | 13 | the only case in Fable's direction |\n\n   The 44% headline is a stratum defined by product size, not by acquisition series.\n3. **The proxy-versus-rank conflict was already measured, and it's absent.** `docs/inshop_objective_conflict_gate_2026-09-28.md` tested exactly this: native ArcFace (margin 0.3, scale 64) against bank SmoothAP gradients on the same fit cache and schedule.\n   - Only 12/960 rows (1.25%) were opposed; median cosine 0.62. It was killed at a 25% floor.\n   - The rank signal was material: norm ratio 0.51.\n   - Fable doesn't cite this. The only gap left is at the converged checkpoint, which Fable also didn't measure. So \"removes a competing pull\" is conjecture that contradicts the only measurement we have.\n4. **The census measures the wrong quantity for the target.** The census tracks the worst positive; held R@1 depends on the best positive. The held acquisition read (`inshop_acquisition_supervision_gate_2026-09-27.md`) found only 10 of 151 misses lack a same-series gallery positive. Nothing links the fit worst-positive tail to held R@1 misses.\n5. **The ledger is misread.**\n   - The width result is a failed gate on a fixed recipe, not proof that 128 dimensions aren't binding.\n   - \"All objective arms under ±0.3 pp\" contradicts the +0.37 pp that Fable lists in the same sentence.\n   - The July sub-center Proxy Anchor negative (`docs/method_search_verdict.md:533`) is correctly scoped as a CUB result with a different loss. It doesn't close this lane, but it adds nothing in favour either.\n6. **The citation is wrong.** Fable cites arXiv 2010.05350 (I didn't re-verify that ID offline). The correct primary source is the ECCV 2020 paper you named. That paper's mechanism is isolating noisy samples and dropping non-dominant sub-centers. It is not a claim about fashion colour or series modes.\n\n## If the falsifier were ever run, its design is faulty\n- **The sham doesn't match the treatment.** A fixed random sub-center per image effectively splits each product into three random pseudo-classes. That changes the objective, so it is not a null for \"max-logit over K sub-centers.\"\n  - The honest null is a within-product series-label permutation of the treatment's *own* assignments, compared on purity.\n  - \"Sham inside its own confidence interval\" can't fail, so it tests nothing.\n- **The code hook works only with one shard.**\n  - `sharded_mask_arcface_logits` slices weight rows into contiguous shards (`_class_slices`) and applies a coordinate mask per shard (`unicom_training.py:118-180`). In the trainer (`train_inshop_siglip2_unseen_gallery.py:1115`) that's one shard with a random 64-of-128 mask per step.\n  - Swapping the weights for a C·K matrix and calling `.view(B,C,K)` is only valid with one shard and class-major order. With more shards, a product's sub-centers could land in different shards, and the max would compare cosines taken over different coordinates.\n  - The target margin must go on the chosen sub-center after the max. K=1 must reproduce today's logits bit-for-bit.\n- **Occupancy may be unreachable.** \"Occupancy above random\" may never happen once jitter is added to a class-mean initialisation, because the dominant sub-center wins.\n\n## Smallest next action\nRecord this as a reject. Keep the classifier-geometry layer closed for this recipe, scoped to this census and not claimed as universal. Launch no arm.\n\n**The one read that could reopen it,** using existing artifacts, CPU-only on the DGX (this box has no numpy):\n- **Inputs:** the expected-gallery receipt (`inshop-expected-gallery-179026/receipt.json`, same checkpoint `ad58838e…`), which has per-query `actual_proxy_per_query_r1` and `positive_counts`. Add the pinned partition, the existing `roles()` helper and `_acquisition_series`.\n- **Computation:** the held packed-miss rate by series count within product-size bins (Mantel–Haenszel).\n- **Reopen only if both hold:** a size-adjusted odds ratio of at least 2 with a lower 95% bound above 1, and at least 32 of the 151 misses (+0.5 pp on 6,354 queries) in the multi-series stratum.\n- If either fails, the geometry conflict has no route to held quality, and the lane stays closed.",
+      "result_truncated": false
+    },
+    {
+      "role": "engineering_critic",
+      "id": "5ba89206fa4f48f1",
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "fallbacks": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "agent": "sfora/emafactorial",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1790599678,
+      "timeout_seconds": 1200,
+      "deadline_at": 1790600878,
+      "budget_usd": null,
+      "prompt_preview": "Act as the independent adversarial engineering and release critic. Inspect correctness, failure modes, security, operability, tests, and UX. Prioritize concrete findings with evidence. Do not edit files.\n\nMaterial to critique:\nREAD-ONLY consequential review of NEW terminal Fable research b347ee2c978b4eb8, not duplicate prior width reviews. Repo /home/rb/worktrees/sfora-positive-causality master201594e6; no edits/jobs/training/GPU/downloads/workers/consults/operatorcontact. Full target strongest protocol-matched SOP+InShop AND faster fullimage-topk, serving128exactpackedunchanged. Evidence docs/evidence/compact_metric/sop-siglip2-substrate-v1/inshop-subcenter-research-v1/{fable-result.json,census.json,verify_census.py}; independently verified partitionSHAcfada103c44df866db5e2ee9ecc2301ca691a4d0cdb3c875fe4051b62570894c +rawtailSHA953be9e6eab846f22e3e187f043eebfaf3161af0bbe4a752f6c68987ffb7fb49 +fitdigest. Rawtail1790261000 fit13283/2004 uses float128 normalized selfexcluded bestnegative MINsameproductpositive. 2506/13271 tail>.03. FableproposesK3subcenterArcface maxclasslogit proxygeometry while rankbank staysallpositive; cachedhead native/K3/forcedrandomassignmentsham100stepCPU thenGPU100/1000 if quality. Independentcensus confirms n>=10 series>=3 1982/4471 44.3301% median-.001175; 9or10+2series actually193/988 not1057. Mechanistic concern minimumpositive orderstat getsworseasproductsizegrows, filenameseriesNOTprovenlatentmode/color/noise; at SAME n6 one11.11%two5.56%,n9two20.25%three0%,n10two18.60%three7.27%,n13three48.08%four7.69%, direction inconsistent. No actualproxy-vs-rankgradientconflict demonstrated. Fable wrongly calls widths resultproof128notbinding ratherthan fixedrecipegatefailed; says all objectivearms<.3 then +.37; cannotgeneralize. Fableciteswrongarxiv2010.05350 (landmarkthirdplace), correctprimary ECCV https://www.ecva.net/papers/eccv_2020/papers_ECCV/papers/123560715.pdf (noiseisolation/dropnondominant, notprooffashioneffect). ClosedsubcenterProxyAnchor July CUBnegative docs/method_search_verdict.md:533 mustpreserve; docs/inshop_next_mechanism_review_decision_2026-09-28.md rejectsallTRAIN/hardquartile, docs/inshop_direct256_quality1000_result_2026-09-28.mdwidthterminalKILL, docs/inshop_multiquery_design_decision_2026-09-28.md4slotclosed. Currentclassifier src/sfora/unicom_training.py sharded_mask_arcface_logits perclasscoordinate masks with shards; doNOTblindly .view(C,K) after randomized proxy-coordinate splits without preservingclassassignment andK1exact behavior. Fablesham fixedimage randompositiveproxy changesobjective ratherthanvalidmatchedmaxlogit null; shamdeltainsideownCI vacuous; fractionoccupancy>random mayunreachable; rejectshamiffaulty. No candidateimplemented, no GPUauthorized. Question: Does NEW observedcensus supply credible causallydistinct mechanism worthy ONEbounded fit-only CPU falsifier underuser noendlessloss/probes? Approveonly ifminimalcorrectfalsifier with materialfixedfloors actuallyidentifies geometryconflict, or REJECT/DEFER with exactmissingcausalread computableexistingartifacts (notnew sweep). Distinguish knownmethod/repoevidence/conjecture, scopeclosedarmsnotuniversalfailure. Providecleardecision+smallestnextaction, noadditionalhypothesislist; independentlyinspectcode/ledger.",
+      "prompt_sha256": "c78f133670a1741971a6dc56b4de63817c63e2a7da45df40f3c257f1bd9da759",
+      "prompt_bytes": 3458,
+      "fingerprint": "388029cb91b8de64c7bbcc64d9fef405140932a25ac1476aca3e62fde6196add",
+      "evidence": {
+        "git_commit": "201594e688b2082ff580c50e1bf05c9ccc3d89a6",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "d6650a735738f322c952c6b9bb8fea0b3d16b47e9ed4bd519e68fe48848e8547",
+        "worktree_sha256": "073b5698297e88fdcb5ee70d9757e51cf3775c7b99ea21547d90168ec1652e82",
+        "worktree_evidence_truncated": false,
+        "active_goal": {
+          "id": "goal-1790540789-1790540789754989478-2322852",
+          "agent": "sfora/emafactorial",
+          "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+          "status": "queued",
+          "revision": 1,
+          "actor": "operator",
+          "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+          "created_at": 1790540789,
+          "updated_at": 1790540789
+        }
+      },
+      "previous_fingerprint": "8fd31dd5a550c24a8b32ac8d1a5cd0d6f5066f9b709c2b918f2ea2fd2ca76093",
+      "reused": false,
+      "critique_id": "5387e72d01a84e6a",
+      "critique_role": "engineering_critic",
+      "systemd_unit": "devbox-consult-5ba89206fa4f48f1.service",
+      "pid": 1287431,
+      "pgid": 1287431,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra",
+          "budget_usd": null,
+          "timeout_seconds": 1200,
+          "started_at": 1790599678
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1790599813,
+      "event_cursor": 46,
+      "events": [
+        {
+          "seq": 23,
+          "at": 1790599727,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 2"
+        },
+        {
+          "seq": 24,
+          "at": 1790599727,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 25,
+          "at": 1790599728,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 26,
+          "at": 1790599738,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 27,
+          "at": 1790599738,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 28,
+          "at": 1790599738,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 29,
+          "at": 1790599738,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 30,
+          "at": 1790599738,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 31,
+          "at": 1790599738,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 32,
+          "at": 1790599738,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 33,
+          "at": 1790599738,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 34,
+          "at": 1790599755,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 35,
+          "at": 1790599755,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 36,
+          "at": 1790599755,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 37,
+          "at": 1790599755,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 38,
+          "at": 1790599756,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 39,
+          "at": 1790599756,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 40,
+          "at": 1790599756,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 41,
+          "at": 1790599757,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 42,
+          "at": 1790599773,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 43,
+          "at": 1790599775,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 44,
+          "at": 1790599776,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 45,
+          "at": 1790599813,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 46,
+          "at": 1790599813,
+          "provider": "codex",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": true,
+      "provider_events": {
+        "codex": [
+          {
+            "seq": 39,
+            "at": 1790599756,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 40,
+            "at": 1790599756,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 41,
+            "at": 1790599757,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 42,
+            "at": 1790599773,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 43,
+            "at": 1790599775,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 44,
+            "at": 1790599776,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 45,
+            "at": 1790599813,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 46,
+            "at": 1790599813,
+            "provider": "codex",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "**REJECT the proposed three-arm CPU training falsifier; DEFER sub-center ArcFace pending a direct geometry-conflict read.** The new census is reproducible descriptive evidence, but it does not establish the claimed mechanism.\n\n1. **High — the census does not identify harmful single-proxy compression.** I replayed [verify_census.py](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/inshop-subcenter-research-v1/verify_census.py) against the pinned partition: its output exactly matches `census.json`, including the hashes. The large stratum has 1,982/4,471 tail anchors, but those represent **237 products**, not 4,471 independent observations. Taking the minimum over more positives creates a product-size confound. Within fixed sizes, the series association reverses repeatedly. The corrected two-series, nine/ten-image count is **193/988**, not 1,057 anchors. Filename series does not establish latent modes, colour variation, or annotation noise.\n\n2. **High — the proposed controls cannot establish the mechanism.** Forced random positive-proxy assignment changes the target-logit rule relative to max-over-subcenters. Equal parameter count does not make this a matched null. “Sham delta inside its own interval” supplies no meaningful equivalence test. Occupancy is also a poor gate: with independent uniform assignment to three proxies, a ten-image product already occupies at least two with probability **99.995%**. Requiring treatment to exceed random occupancy can reject meaningful specialization. Series purity, meanwhile, rewards agreement with an unvalidated metadata surrogate. These defects invalidate the proposed falsifier, not sub-center methods generally. See the [research recommendation](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/inshop-subcenter-research-v1/fable-result.json).\n\n3. **High — the minimal code hook is incomplete.** [The shared classifier](/home/rb/worktrees/sfora-positive-causality/src/sfora/unicom_training.py:129) partitions **weight rows** into contiguous shards before applying coordinate masks. Expanding rows from `C` to `C*K` can split one class’s centers across different masks. A subsequent reshape preserves row grouping but does not repair that geometry. The current In-Shop baseline uses one full-coordinate mask, so this is a shared-function regression risk rather than an existing baseline defect. Fable also points at line 931, which belongs to the optional **source-MAIN** initializer, not ordinary compact-classifier initialization. Any eventual implementation needs explicit class-to-shard preservation and exact K=1 forward/backward compatibility; existing tests do not cover K>1.\n\n4. **High — cached-head improvement would not demonstrate the asserted encoder mechanism.** Fable claims freed optimization effort in the upper encoder blocks, but its experiment trains on fixed pretrained features. Even passing its quality floors would not show that current single-proxy gradients oppose the all-positive rank objective. Conversely, failure cannot “close the classifier-geometry layer.” That conclusion would exceed the experiment’s scope.\n\n5. **Medium — the ledger supports bounded closure, not saturation or universal failure.** The [direct256 result](/home/rb/worktrees/sfora-positive-causality/docs/inshop_direct256_quality1000_result_2026-09-28.md) failed fixed material floors; it does not prove 128 dimensions are nonbinding. “Every objective arm below ±0.3 pp” also contradicts the cited +0.37 pp scaling result. Preserve the [July sub-center Proxy Anchor negative](/home/rb/worktrees/sfora-positive-causality/docs/method_search_verdict.md:533), without treating it as an ArcFace impossibility result. Failed scaling/hardness and four-slot readout arms remain closed. Sub-center ArcFace is a known method; its usefulness for this fashion geometry remains conjecture.\n\n**Smallest next action:** establish availability of the exact retained seed-179026 fit tensor and matching classifier, then perform **one static fit-only gradient read, with no optimizer updates**.\n\nFor each anchor, compute the actual implemented ArcFace gradient \\(g_A\\) and weighted all-positive rank gradient \\(g_R\\) with respect to the same embedding. Report the signed interaction \\(g_A\\cdot g_R\\), relative gradient magnitudes, and product-level concentration among tail anchors, conditioned on product size. Negative interaction means an infinitesimal ArcFace descent step locally increases the rank loss. Include the worst-positive series relationship in that same read; series association alone is insufficient. This would identify local objective conflict, **not yet prove encoder harm or K=3 relief**.\n\nThere is a concrete prerequisite: [the tail probe](/home/rb/worktrees/sfora-positive-causality/scripts/probe_inshop_fit_positive_tail.py:146) stores margins and a feature hash, **but does not persist the features**. [The checkpoint writer](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_siglip2_unseen_gallery.py:1411) does save classifier weights. The reviewed artifacts therefore do not substantiate Fable’s claim that the necessary fit export is retained. If it is unavailable, stop at that evidence gap; aggregate margins cannot reconstruct gradient conflict.\n\nNo training arm or GPU escalation is justified yet. Serving128/exact-packed behavior remains unchanged, and neither stronger joint SOP/In-Shop quality nor faster full image-to-top-k follows from this proposal. No files were edited or training, consultations, workers, downloads, or operator contact initiated.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "codex": "**REJECT the proposed three-arm CPU training falsifier; DEFER sub-center ArcFace pending a direct geometry-conflict read.** The new census is reproducible descriptive evidence, but it does not establish the claimed mechanism.\n\n1. **High — the census does not identify harmful single-proxy compression.** I replayed [verify_census.py](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/inshop-subcenter-research-v1/verify_census.py) against the pinned partition: its output exactly matches `census.json`, including the hashes. The large stratum has 1,982/4,471 tail anchors, but those represent **237 products**, not 4,471 independent observations. Taking the minimum over more positives creates a product-size confound. Within fixed sizes, the series association reverses repeatedly. The corrected two-series, nine/ten-image count is **193/988**, not 1,057 anchors. Filename series does not establish latent modes, colour variation, or annotation noise.\n\n2. **High — the proposed controls cannot establish the mechanism.** Forced random positive-proxy assignment changes the target-logit rule relative to max-over-subcenters. Equal parameter count does not make this a matched null. “Sham delta inside its own interval” supplies no meaningful equivalence test. Occupancy is also a poor gate: with independent uniform assignment to three proxies, a ten-image product already occupies at least two with probability **99.995%**. Requiring treatment to exceed random occupancy can reject meaningful specialization. Series purity, meanwhile, rewards agreement with an unvalidated metadata surrogate. These defects invalidate the proposed falsifier, not sub-center methods generally. See the [research recommendation](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/inshop-subcenter-research-v1/fable-result.json).\n\n3. **High — the minimal code hook is incomplete.** [The shared classifier](/home/rb/worktrees/sfora-positive-causality/src/sfora/unicom_training.py:129) partitions **weight rows** into contiguous shards before applying coordinate masks. Expanding rows from `C` to `C*K` can split one class’s centers across different masks. A subsequent reshape preserves row grouping but does not repair that geometry. The current In-Shop baseline uses one full-coordinate mask, so this is a shared-function regression risk rather than an existing baseline defect. Fable also points at line 931, which belongs to the optional **source-MAIN** initializer, not ordinary compact-classifier initialization. Any eventual implementation needs explicit class-to-shard preservation and exact K=1 forward/backward compatibility; existing tests do not cover K>1.\n\n4. **High — cached-head improvement would not demonstrate the asserted encoder mechanism.** Fable claims freed optimization effort in the upper encoder blocks, but its experiment trains on fixed pretrained features. Even passing its quality floors would not show that current single-proxy gradients oppose the all-positive rank objective. Conversely, failure cannot “close the classifier-geometry layer.” That conclusion would exceed the experiment’s scope.\n\n5. **Medium — the ledger supports bounded closure, not saturation or universal failure.** The [direct256 result](/home/rb/worktrees/sfora-positive-causality/docs/inshop_direct256_quality1000_result_2026-09-28.md) failed fixed material floors; it does not prove 128 dimensions are nonbinding. “Every objective arm below ±0.3 pp” also contradicts the cited +0.37 pp scaling result. Preserve the [July sub-center Proxy Anchor negative](/home/rb/worktrees/sfora-positive-causality/docs/method_search_verdict.md:533), without treating it as an ArcFace impossibility result. Failed scaling/hardness and four-slot readout arms remain closed. Sub-center ArcFace is a known method; its usefulness for this fashion geometry remains conjecture.\n\n**Smallest next action:** establish availability of the exact retained seed-179026 fit tensor and matching classifier, then perform **one static fit-only gradient read, with no optimizer updates**.\n\nFor each anchor, compute the actual implemented ArcFace gradient \\(g_A\\) and weighted all-positive rank gradient \\(g_R\\) with respect to the same embedding. Report the signed interaction \\(g_A\\cdot g_R\\), relative gradient magnitudes, and product-level concentration among tail anchors, conditioned on product size. Negative interaction means an infinitesimal ArcFace descent step locally increases the rank loss. Include the worst-positive series relationship in that same read; series association alone is insufficient. This would identify local objective conflict, **not yet prove encoder harm or K=3 relief**.\n\nThere is a concrete prerequisite: [the tail probe](/home/rb/worktrees/sfora-positive-causality/scripts/probe_inshop_fit_positive_tail.py:146) stores margins and a feature hash, **but does not persist the features**. [The checkpoint writer](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_siglip2_unseen_gallery.py:1411) does save classifier weights. The reviewed artifacts therefore do not substantiate Fable’s claim that the necessary fit export is retained. If it is unavailable, stop at that evidence gap; aggregate margins cannot reconstruct gradient conflict.\n\nNo training arm or GPU escalation is justified yet. Serving128/exact-packed behavior remains unchanged, and neither stronger joint SOP/In-Shop quality nor faster full image-to-top-k follows from this proposal. No files were edited or training, consultations, workers, downloads, or operator contact initiated."
+      },
+      "providers_used": [
+        "codex"
+      ],
+      "active_provider": "codex",
+      "phase": "Consultation completed",
+      "input_bytes": 3458,
+      "output_bytes": 5675,
+      "elapsed_seconds": 135,
+      "progress": "Reading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)\ndevbox-ask: codex consult still running (1m 30s)\ndevbox-ask: codex consult still running (2m 00s)",
+      "progress_truncated": false,
+      "result": "**REJECT the proposed three-arm CPU training falsifier; DEFER sub-center ArcFace pending a direct geometry-conflict read.** The new census is reproducible descriptive evidence, but it does not establish the claimed mechanism.\n\n1. **High — the census does not identify harmful single-proxy compression.** I replayed [verify_census.py](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/inshop-subcenter-research-v1/verify_census.py) against the pinned partition: its output exactly matches `census.json`, including the hashes. The large stratum has 1,982/4,471 tail anchors, but those represent **237 products**, not 4,471 independent observations. Taking the minimum over more positives creates a product-size confound. Within fixed sizes, the series association reverses repeatedly. The corrected two-series, nine/ten-image count is **193/988**, not 1,057 anchors. Filename series does not establish latent modes, colour variation, or annotation noise.\n\n2. **High — the proposed controls cannot establish the mechanism.** Forced random positive-proxy assignment changes the target-logit rule relative to max-over-subcenters. Equal parameter count does not make this a matched null. “Sham delta inside its own interval” supplies no meaningful equivalence test. Occupancy is also a poor gate: with independent uniform assignment to three proxies, a ten-image product already occupies at least two with probability **99.995%**. Requiring treatment to exceed random occupancy can reject meaningful specialization. Series purity, meanwhile, rewards agreement with an unvalidated metadata surrogate. These defects invalidate the proposed falsifier, not sub-center methods generally. See the [research recommendation](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/inshop-subcenter-research-v1/fable-result.json).\n\n3. **High — the minimal code hook is incomplete.** [The shared classifier](/home/rb/worktrees/sfora-positive-causality/src/sfora/unicom_training.py:129) partitions **weight rows** into contiguous shards before applying coordinate masks. Expanding rows from `C` to `C*K` can split one class’s centers across different masks. A subsequent reshape preserves row grouping but does not repair that geometry. The current In-Shop baseline uses one full-coordinate mask, so this is a shared-function regression risk rather than an existing baseline defect. Fable also points at line 931, which belongs to the optional **source-MAIN** initializer, not ordinary compact-classifier initialization. Any eventual implementation needs explicit class-to-shard preservation and exact K=1 forward/backward compatibility; existing tests do not cover K>1.\n\n4. **High — cached-head improvement would not demonstrate the asserted encoder mechanism.** Fable claims freed optimization effort in the upper encoder blocks, but its experiment trains on fixed pretrained features. Even passing its quality floors would not show that current single-proxy gradients oppose the all-positive rank objective. Conversely, failure cannot “close the classifier-geometry layer.” That conclusion would exceed the experiment’s scope.\n\n5. **Medium — the ledger supports bounded closure, not saturation or universal failure.** The [direct256 result](/home/rb/worktrees/sfora-positive-causality/docs/inshop_direct256_quality1000_result_2026-09-28.md) failed fixed material floors; it does not prove 128 dimensions are nonbinding. “Every objective arm below ±0.3 pp” also contradicts the cited +0.37 pp scaling result. Preserve the [July sub-center Proxy Anchor negative](/home/rb/worktrees/sfora-positive-causality/docs/method_search_verdict.md:533), without treating it as an ArcFace impossibility result. Failed scaling/hardness and four-slot readout arms remain closed. Sub-center ArcFace is a known method; its usefulness for this fashion geometry remains conjecture.\n\n**Smallest next action:** establish availability of the exact retained seed-179026 fit tensor and matching classifier, then perform **one static fit-only gradient read, with no optimizer updates**.\n\nFor each anchor, compute the actual implemented ArcFace gradient \\(g_A\\) and weighted all-positive rank gradient \\(g_R\\) with respect to the same embedding. Report the signed interaction \\(g_A\\cdot g_R\\), relative gradient magnitudes, and product-level concentration among tail anchors, conditioned on product size. Negative interaction means an infinitesimal ArcFace descent step locally increases the rank loss. Include the worst-positive series relationship in that same read; series association alone is insufficient. This would identify local objective conflict, **not yet prove encoder harm or K=3 relief**.\n\nThere is a concrete prerequisite: [the tail probe](/home/rb/worktrees/sfora-positive-causality/scripts/probe_inshop_fit_positive_tail.py:146) stores margins and a feature hash, **but does not persist the features**. [The checkpoint writer](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_siglip2_unseen_gallery.py:1411) does save classifier weights. The reviewed artifacts therefore do not substantiate Fable’s claim that the necessary fit export is retained. If it is unavailable, stop at that evidence gap; aggregate margins cannot reconstruct gradient conflict.\n\nNo training arm or GPU escalation is justified yet. Serving128/exact-packed behavior remains unchanged, and neither stronger joint SOP/In-Shop quality nor faster full image-to-top-k follows from this proposal. No files were edited or training, consultations, workers, downloads, or operator contact initiated.",
+      "result_truncated": false
+    }
+  ],
+  "reused": false,
+  "finished_at": 1790599813,
+  "elapsed_seconds": 135,
+  "input_bytes": 3054,
+  "output_bytes": 11383
+}

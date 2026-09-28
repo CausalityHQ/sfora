@@ -1,0 +1,71 @@
+{
+  "id": "5387e72d01a84e6a",
+  "status": "running",
+  "started_at": 1790599678,
+  "agent": "sfora/emafactorial",
+  "force_reason": "New terminal526s Fable research result proposes causally distinct sub-center classifier geometry after width1000+CPUservingKILL; independently pinned fit census reveals product-size confound and invalid sham. Prior dual reviews only gated width, all terminal; this is first review of this concrete new mechanism, before any experiment.",
+  "rolling_6h_count": 1,
+  "prompt_preview": "READ-ONLY consequential review of NEW terminal Fable research b347ee2c978b4eb8, not duplicate prior width reviews. Repo /home/rb/worktrees/sfora-positive-causality master201594e6; no edits/jobs/training/GPU/downloads/workers/consults/operatorcontact. Full target strongest protocol-matched SOP+InShop AND faster fullimage-topk, serving128exactpackedunchanged. Evidence docs/evidence/compact_metric/sop-siglip2-substrate-v1/inshop-subcenter-research-v1/{fable-result.json,census.json,verify_census.py}; independently verified partitionSHAcfada103c44df866db5e2ee9ecc2301ca691a4d0cdb3c875fe4051b62570894c +rawtailSHA953be9e6eab846f22e3e187f043eebfaf3161af0bbe4a752f6c68987ffb7fb49 +fitdigest. Rawtail1790261000 fit13283/2004 uses float128 normalized selfexcluded bestnegative MINsameproductpositive. 2506/13271 tail>.03. FableproposesK3subcenterArcface maxclasslogit proxygeometry while rankbank staysallpositive; cachedhead native/K3/forcedrandomassignmentsham100stepCPU thenGPU100/1000 if quality. Independentcensus confirms n>=10 series>=3 1982/4471 44.3301% median-.001175; 9or10+2series actually193/988 not1057. Mechanistic concern minimumpositive orderstat getsworseasproductsizegrows, filenameseriesNOTprovenlatentmode/color/noise; at SAME n6 one11.11%two5.56%,n9two20.25%three0%,n10two18.60%three7.27%,n13three48.08%four7.69%, direction inconsistent. No actualproxy-vs-rankgradientconflict demonstrated. Fable wrongly calls widths resultproof128notbinding ratherthan fixedrecipegatefailed; says all objectivearms<.3 then +.37; cannotgeneralize. Fableciteswrongarxiv2010.05350 (landmarkthirdplace), correctprimary ECCV https://www.ecva.net/papers/eccv_2020/papers_ECCV/papers/123560715.pdf (noiseisolation/dropnondominant, notprooffashioneffect). ClosedsubcenterProxyAnchor July CUBnegative docs/method_search_verdict.md:533 mustpreserve; docs/inshop_next_mechanism_review_decision_2026-09-28.md rejectsallTRAIN/hardquartile, docs/inshop_direct256_quality1000_result_2026-09-28.mdwidthterminalKILL, docs/inshop_multiquery_design_decision_2026-09-28.md4slotclosed. Currentclassifier src/sfora/unicom_training.py sharded_mask_arcface_logits perclasscoordinate masks with shards; doNOTblindly .view(C,K) after randomized proxy-coordinate splits without preservingclassassignment andK1exact behavior. Fablesham fixedimage randompositiveproxy changesobjective ratherthanvalidmatchedmaxlogit null; shamdeltainsideownCI vacuous; fractionoccupancy>random mayunreachable; rejectshamiffaulty. No candidateimplemented, no GPUauthorized. Question: Does NEW observedcensus supply credible causallydistinct mechanism worthy ONEbounded fit-only CPU falsifier underuser noendlessloss/probes? Approveonly ifminimalcorrectfalsifier with materialfixedfloors actuallyidentifies geometryconflict, or REJECT/DEFER with exactmissingcausalread computableexistingartifacts (notnew sweep). Distinguish knownmethod/repoevidence/conjecture, scopeclosedarmsnotuniversalfailure. Providecleardecision+smallestnextaction, noadditionalhypothesislist; independentlyinspectcode/ledger.",
+  "prompt_sha256": "799471b35d2845b82f52c7fc70ef3f557cfbfa7eb9406239a3015c90d2168620",
+  "prompt_bytes": 3054,
+  "fingerprint": "7faa1d5ef7ba646a0ccbf9e316b680fdba8c4aa93482df998e99658a655091d1",
+  "evidence": {
+    "git_commit": "201594e688b2082ff580c50e1bf05c9ccc3d89a6",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "d6650a735738f322c952c6b9bb8fea0b3d16b47e9ed4bd519e68fe48848e8547",
+    "worktree_sha256": "073b5698297e88fdcb5ee70d9757e51cf3775c7b99ea21547d90168ec1652e82",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "reviewers": [
+    {
+      "role": "research_critic",
+      "id": "898e6b975a2644fb",
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "fallbacks": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ]
+    },
+    {
+      "role": "engineering_critic",
+      "id": "5ba89206fa4f48f1",
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "fallbacks": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ]
+    }
+  ],
+  "reused": false,
+  "next": "Continue independent work, then call critique_wait or critique_status with this id."
+}
