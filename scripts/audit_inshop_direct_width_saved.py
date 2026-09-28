@@ -67,7 +67,8 @@ def main():
             with safe_open(args.model_snapshot/'model.safetensors',framework='pt',device='cpu') as base:
                 for name,value in saved['vision'].items():
                     assert value.dtype==torch.float32 and torch.isfinite(value).all()
-                    original=base.get_tensor('vision_model.'+name).float()
+                    # Native trainer loads FP16, then expands to FP32 before training.
+                    original=base.get_tensor('vision_model.'+name).half().float()
                     if frozen(name):
                         assert torch.equal(value,original),name
                         frozen_count+=1
