@@ -6,7 +6,8 @@ measurements, not current public or independent latency qualification. Even
 eliminating that transfer stage would save only0.196% of whole latency; it
 does not justify a transfer/cast intervention against a5% full-call floor.
 The receipt is
-`sop-true-freeze-serving-179024/sfora-sop-true-freeze-serving-179024-freeze-fp16-v1.json`.
+`train-arcface-live-fp16-v2.json`. The first committed draft named a later
+parity-only receipt incorrectly; this source correction precedes the screen.
 
 One selected serving intervention: for batch32 concatenate the existing
 qualified `_direct_preprocess` results in input order instead of calling
