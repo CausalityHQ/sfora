@@ -1,5 +1,17 @@
 # Joint quality and performance decision, first training-code gate
 
+## 28 September published targets: verified screen, frontier still unqualified
+
+A bounded primary-source screen confirms UNICOM's supervised Table4 SOP91.2%
+and In-Shop96.7% R@1. Three Things' best SOP90.8% has no In-Shop result;
+CHEST's best SOP88.2%/In-Shop94.5% are below those dated gates. The newer
+IEEE Access paper's comparison table remains unverified after browser render
+failures and HTTP404 on the institutional PDF URL. These are published values,
+not new local results, and this screen does not certify the global frontier.
+[Sources, protocol boundaries and remaining gates](published_reference_qualification_2026-09-28.md).
+No quality arm, GPU export or official read follows automatically. The full
+joint goal remains active and unmet.
+
 ## 28 September missing fit tensor: recovery deferred before GPU
 
 CPU authority preflight verified the exact seed179026 checkpoint, classifier,
