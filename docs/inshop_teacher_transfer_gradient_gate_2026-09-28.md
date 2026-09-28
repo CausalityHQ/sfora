@@ -74,3 +74,53 @@ every update, initial/terminal encoder/head relation route, unchanged teacher
 probe codes, nonzero encoder/head update difference true versus main, and
 treatment update p50≤3×baseline; aggregate imports/loading/diagnostics≤120s
 and CUDA peak<16GiB. No immediate quality or monotonic KL criterion is added.
+
+## Three-arm terminal: GO to independent gate design, not promotion
+
+Original unit `sfora-inshop-teacher-transfer-smoke-v1`, invocation
+`394499856d9e4472ba88da03368ebfd5`, exited0. All24 updates were stable;
+all geometry, initial/terminal route, teacher parity, resource and overhead
+guards passed. The panel contains only original official TRAIN fit products.
+
+| Fixed256-image fit smoke | Main-only control | True teacher | Pair-preserving sham |
+|---|---:|---:|---:|
+| Stable updates / image exposures |8 /256|8 /256|8 /256|
+| Student update p50, ms |256.213628|256.013904|254.697266|
+| Sum of eight measured update walls, s |2.116812|2.050237|2.040817|
+| Image exposures / measured update second |120.9366|124.8636|125.4400|
+| Terminal fixed-probe effective rank |18.559618|18.599829|18.469995|
+| First/last sampled teacher KL, nats |0.187110 /0.267903|0.187110 /0.193562|0.314067 /0.315973|
+| Packed held R@1 / mAP@R |Not measured|Not measured|Not measured|
+| Image-to-top-k p50/p95/p99/QPS |Not measured|Not measured|Not measured|
+
+The KL samples use different update batches, so these endpoints are not a
+fixed-probe learning curve. True-teacher loss did not monotonically decrease;
+the preregistered smoke did not require that or true-arm quality superiority.
+Encoder/head parameter-witness difference norms versus control were
+0.00965788/0.02803450, establishing distinct optimizer effects, not utility.
+
+Combined main-function wall23.667147s, all-phase allocated peak
+6,679,239,680bytes; common256-image teacher-target generation2.121071s.
+Imports are covered by the external120-second timeout; the main timer starts
+after imports. Training-loop throughput excludes common target generation,
+initialization, wiring and geometry diagnostics; it is not full training cost
+or a speed claim. No confidence intervals, multi-seed evidence, held quality,
+serving tails, official test reads or deployable Base checkpoint result exist.
+
+Receipt `inshop-teacher-transfer-smoke-v1/receipt.json` SHA
+`4a3d01143a2036575c19d71fda93bf7524b9b6b8bf42627f2ae60494b6083fb3`.
+Independent receipt replay checked source hash,24 loss histories, update
+counts, all declared guards and decision; journal preserves original exit.
+One sham/gradient check and Ruff pass. Both DGX units and both critics are
+terminal; no active GPU/consultation remains. Production package is unchanged.
+
+Next is one prospectively frozen product-disjoint TRAIN retrieval gate for
+this same teacher-transfer method, comparing main-only control, true teacher
+and sham at matched student budget/scorer, with the Large product baseline.
+Original TRAIN held products have been observed by earlier experiments:
+reuse is exploratory, not independent confirmation or SOTA. A real quality
+gate must state that exposure and reserve later confirmation before any
+official or serving certification. Count Base fit-cache acquisition and
+teacher original training/target-generation costs, stop gross deficits at
+the earliest scheduled checkpoint, then paired seeds only if useful. No
+new hypothesis, temperature/coefficient search or frozen-source reopening.
