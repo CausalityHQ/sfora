@@ -1,0 +1,1 @@
+CPU startup v1 original69035 exit1. Shell cut quoting error supplied an empty execution SHA; exact execution authority assertion rejected it before CUDA/output allocation. No native job or model state changed. V2 passes the literal verified SHA. Tool transcript retains exact traceback.
