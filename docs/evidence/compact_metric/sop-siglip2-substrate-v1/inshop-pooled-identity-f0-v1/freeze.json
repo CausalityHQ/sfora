@@ -1,0 +1,31 @@
+{
+  "adaptive_budget": false,
+  "arm_order": [
+    "control",
+    "pooled",
+    "sham"
+  ],
+  "batch": 64,
+  "controls": "A-only64 rows vs common32A+32B; true/sham same B feature rows and class counts, B image labels shuffled",
+  "cpu_budget_seconds": 120,
+  "domains": "A Dresses Skirts Rompers_Jumpsuits Pants Shorts Denim Leggings; B other categories; product atomic",
+  "encoder_training": false,
+  "frozen_at_unix": 1790581201.719028,
+  "go_recall_gain_vs_control": 0.003,
+  "go_recall_gain_vs_sham": 0.002,
+  "go_requirements": "both product-cluster bootstrap5000 lower95>0, both mAP nonregressing, all three100 stable updates before any quality comparison",
+  "head": "common A-only native image-PCA128 initialization, trainable Linear",
+  "kill_scope": "this synthetic category pooling proxy at fixed cached-feature budget; cannot rule out all joint SOP/InShop encoder training",
+  "next_if_go": "design actual joint-dataset encoder smoke with separate coverage/cost/protocol gates; no immediate promotion",
+  "objective": "native ArcFace m=.3 s=64 plus detached native member bank SmoothAP coefficient8",
+  "official_quality_read": false,
+  "optimizer": "AdamW lr1e-4 weight_decay.05 clip1",
+  "schema": "sfora-category-pooling-f0-freeze-v1",
+  "seed": 179031,
+  "serving_claim_eligible": false,
+  "source": "frozen pretrained SigLIP2 Large/256 1024D",
+  "source_sha256": "67c289431b03a1a9e979499b60eb4c856846a6c0c97ab40a00c45c680fb9d77c",
+  "steps_per_arm": 100,
+  "threads": 8,
+  "validation": "original TRAIN-fit only, internal product-disjoint A validation; alternating query/gallery by metadata order"
+}
