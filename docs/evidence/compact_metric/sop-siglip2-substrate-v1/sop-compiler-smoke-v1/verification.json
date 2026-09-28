@@ -1,0 +1,20 @@
+{
+  "receipt_sha256": "680d2977c2c6fba61db6219b7b6c459f9ea6737ceba7625b557ba07316ee20b5",
+  "checks": {
+    "runtime_source_bound": true,
+    "public_source_bound": true,
+    "frozen_artifacts": true,
+    "batch_gallery": true,
+    "parity_failure": true,
+    "early_stop": true,
+    "resource": true
+  },
+  "invocation_id": "61c112ee9e1f480a81819e2591de309e",
+  "terminal": {
+    "MainPID": 0,
+    "ActiveState": "inactive",
+    "Result": "success",
+    "ExecMainStatus": 0
+  },
+  "limitations": "Independent metadata/source/decision replay; actual output tensors not retained or rescored."
+}
