@@ -1,0 +1,713 @@
+{
+  "id": "273b5dd2ab2146c8",
+  "status": "completed",
+  "started_at": 1790637557,
+  "agent": "sfora/emafactorial",
+  "force_reason": "New verified terminal pool-only quality KILL aa9df3b8 changes learned native boundary from pool to final transformer block; narrow consequential review of this exact frozen next method, not repeated pool review or research.",
+  "rolling_6h_count": 6,
+  "prompt_preview": "Read-only narrow design critique. Do not edit/run tests/training/GPU/workers or propose architecture alternatives/research. Repo /home/rb/worktrees/sfora-positive-causality HEAD aa9df3b8; read docs/inshop_pe_l14_final_block_gate_2026-09-29.md NEW concrete spec and docs/inshop_pe_l14_native_pool_result_2026-09-29.md, helpers scripts/pe_l14_native_pool.py, pe_l14_readout.py, pe_l14_training.py. Native source DGX read-only ssh riomus@spark-2751 /home/riomus/runs/sfora-pe-l14-native-pool-v1/core/vision_encoder/pe.py and rope.py. New choice is one FINAL native transformer block index23 plus existing nativepool/head/proxies; other23 frozen, source/data/init/rates/precision/schedule/cost/quality/resource gates unchanged. CPUqualification underway independently. Prior pool-only100: cost.657359s PASS R1/MAP91.3755/68.0998 QUALITYKILL versus historicdense95.074/76.392; native/packed/CPUauditPASS. Frozenreadout87.284/61.888. Full product goalactive. We want useful token adaptation not closed upper12 retry or prefix-depth sweep. Review specific native shared-prefix exact boundary: only strictloaded finalblock hook with kwargs, actual graph-freeF32(B,257,1024) tokens from frozen23blockprefix→LIVE finalblock under same autocast→exactblockoutput→live ln_post/native_pool/proj→exactactualstrictnativeforward; compactheadOUTSIDEautocast, separatelyactualretainedvectors/packedscoring; no duplicate fullprefix everyheld; direct lastB64 wholelive/native comparison mandatory; wholeupdatedstate/frozencomplement/foreignrotary/runtimeidentity beforehook andfinallycleanup. Traininggraphguard moves BEFOREfinalblock because poolinputnowmustcarrygradient. Native307keys unchanged. ActualCPU allactivegradpositive/noothers/sourceinvariance/bothblockandpoolobservabletempcloneperturbation/reload/restoration then separateFP16GPUqual before17; all original119+1/299+1s8Gnoswap10GBbothlocks, median3-17/3-100<=.71769696, discard17, originalqualityfloors andbothproduct95>0, CPUaudit. Give conditionalGO or exact executable blockers/minimal corrections, attention/rotary/autocast/hook/determinism pitfalls, prior CLOSED-arm identicaloverlap if any. No cost/quality forecasts or extra research. Parent implements minimalCPUqualification while you inspect spec.",
+  "prompt_sha256": "671f5d1d1729510211bdfeda33e6e3e8000e5bf528d2e3e36e342b0aacaea90f",
+  "prompt_bytes": 2259,
+  "fingerprint": "cc3622112e2bfb292cfc68bc3d80cf6a0663755937ae9bdf75f0a1df7c256ac7",
+  "evidence": {
+    "git_commit": "aa9df3b8b461cdf1646e080ee82138ba9d03c773",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "18c4c3077c8bbc421f2846d854cf45eb3a28c318e9ee87c900a41032ea425d3e",
+    "worktree_sha256": "7c0d5f471f982219bae0f6dca7a973e187d82b5c581b43577217a51544cd2827",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "reviewers": [
+    {
+      "role": "research_critic",
+      "id": "b7db5cf62b654a70",
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "fallbacks": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "agent": "sfora/emafactorial",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1790637557,
+      "timeout_seconds": 1200,
+      "deadline_at": 1790638757,
+      "budget_usd": 4,
+      "prompt_preview": "Act as the independent research and first-principles critic. Challenge assumptions, compare alternatives and prior art, and identify missing evidence. Do not edit files.\n\nMaterial to critique:\nRead-only narrow design critique. Do not edit/run tests/training/GPU/workers or propose architecture alternatives/research. Repo /home/rb/worktrees/sfora-positive-causality HEAD aa9df3b8; read docs/inshop_pe_l14_final_block_gate_2026-09-29.md NEW concrete spec and docs/inshop_pe_l14_native_pool_result_2026-09-29.md, helpers scripts/pe_l14_native_pool.py, pe_l14_readout.py, pe_l14_training.py. Native source DGX read-only ssh riomus@spark-2751 /home/riomus/runs/sfora-pe-l14-native-pool-v1/core/vision_encoder/pe.py and rope.py. New choice is one FINAL native transformer block index23 plus existing nativepool/head/proxies; other23 frozen, source/data/init/rates/precision/schedule/cost/quality/resource gates unchanged. CPUqualification underway independently. Prior pool-only100: cost.657359s PASS R1/MAP91.3755/68.0998 QUALITYKILL versus historicdense95.074/76.392; native/packed/CPUauditPASS. Frozenreadout87.284/61.888. Full product goalactive. We want useful token adaptation not closed upper12 retry or prefix-depth sweep. Review specific native shared-prefix exact boundary: only strictloaded finalblock hook with kwargs, actual graph-freeF32(B,257,1024) tokens from frozen23blockprefix→LIVE finalblock under same autocast→exactblockoutput→live ln_post/native_pool/proj→exactactualstrictnativeforward; compactheadOUTSIDEautocast, separatelyactualretainedvectors/packedscoring; no duplicate fullprefix everyheld; direct lastB64 wholelive/native comparison mandatory; wholeupdatedstate/frozencomplement/foreignrotary/runtimeidentity beforehook andfinallycleanup. Traininggraphguard moves BEFOREfinalblock because poolinputnowmustcarrygradient. Native307keys unchanged. ActualCPU allactivegradpositive/noothers/sourceinvariance/bothblockandpoolobservabletempcloneperturbation/reload/restoration then separateFP16GPUqual before17; all original119+1/299+1s8Gnoswap10GBbothlocks, median3-17/3-100<=.71769696, discard17, originalqualityfloors andbothproduct95>0, CPUaudit. Give conditionalGO or exact executable blockers/minimal corrections, attention/rotary/autocast/hook/determinism pitfalls, prior CLOSED-arm identicaloverlap if any. No cost/quality forecasts or extra research. Parent implements minimalCPUqualification while you inspect spec.",
+      "prompt_sha256": "c2ea80168828d125c682b14b65a6767ec8296b35b58bf5bc3e54a20771665c5b",
+      "prompt_bytes": 2629,
+      "fingerprint": "ecc6c7971c047cf9ae6e3ca7a335f5be0b50a8862facb29f36c4d84ff93be52c",
+      "evidence": {
+        "git_commit": "aa9df3b8b461cdf1646e080ee82138ba9d03c773",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "18c4c3077c8bbc421f2846d854cf45eb3a28c318e9ee87c900a41032ea425d3e",
+        "worktree_sha256": "7c0d5f471f982219bae0f6dca7a973e187d82b5c581b43577217a51544cd2827",
+        "worktree_evidence_truncated": false,
+        "active_goal": {
+          "id": "goal-1790540789-1790540789754989478-2322852",
+          "agent": "sfora/emafactorial",
+          "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+          "status": "queued",
+          "revision": 1,
+          "actor": "operator",
+          "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+          "created_at": 1790540789,
+          "updated_at": 1790540789
+        }
+      },
+      "previous_fingerprint": "a6b2654fae5c568e8dbad62e011eccf50d1107dd5460ae125622ef2040b4dbc5",
+      "reused": false,
+      "critique_id": "273b5dd2ab2146c8",
+      "critique_role": "research_critic",
+      "systemd_unit": "devbox-consult-b7db5cf62b654a70.service",
+      "pid": 2533539,
+      "pgid": 2533539,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5",
+          "budget_usd": 4,
+          "timeout_seconds": 1199,
+          "started_at": 1790637558
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1790637698,
+      "event_cursor": 26,
+      "events": [
+        {
+          "seq": 3,
+          "at": 1790637561,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 4,
+          "at": 1790637562,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 5,
+          "at": 1790637566,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 6,
+          "at": 1790637606,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 7,
+          "at": 1790637615,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 8,
+          "at": 1790637639,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 9,
+          "at": 1790637680,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 10,
+          "at": 1790637681,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 11,
+          "at": 1790637682,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 12,
+          "at": 1790637683,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 13,
+          "at": 1790637684,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 14,
+          "at": 1790637685,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 15,
+          "at": 1790637686,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 16,
+          "at": 1790637687,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 17,
+          "at": 1790637688,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 18,
+          "at": 1790637689,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 19,
+          "at": 1790637690,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 20,
+          "at": 1790637691,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 21,
+          "at": 1790637692,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 22,
+          "at": 1790637693,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 23,
+          "at": 1790637694,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 24,
+          "at": 1790637695,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 25,
+          "at": 1790637696,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 26,
+          "at": 1790637697,
+          "provider": "claude",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": true,
+      "provider_events": {
+        "claude": [
+          {
+            "seq": 19,
+            "at": 1790637690,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 20,
+            "at": 1790637691,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 21,
+            "at": 1790637692,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 22,
+            "at": 1790637693,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 23,
+            "at": 1790637694,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 24,
+            "at": 1790637695,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 25,
+            "at": 1790637696,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 26,
+            "at": 1790637697,
+            "provider": "claude",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "The final-block choice holds up. I found one executable blocker in the spec and several minimal corrections. I only read the spec, the result doc, the three helpers, the native-pool train script and the native `pe.py`/`rope.py`/`config.py` on the DGX; I ran and edited nothing.\n\n## Verdict: conditional GO\n\nIt becomes GO once B1 below is fixed and C1–C6 are folded into the CPU qualification you are already running.\n\n### B1 — blocker: the spec says to reuse `pe_l14_native_pool` unchanged, but that can't work\n`scripts/pe_l14_native_pool.py` hard-codes the pool as the only trainable part in three places:\n- `freeze()` enables only `attn_pool`. The final block `transformer.resblocks.23.*` would get no gradient, so the \"every active gradient positive\" check fails.\n- `frozen_state()` removes only `attn_pool.*` from the frozen complement. So `resblocks.23.*` stays in the frozen digest. After any update, `frozen_sha == info[\"frozen_complement_sha256\"]` fails (`train_pe_l14_native_pool.py:180`), as does the post-reload frozen comparison.\n- `verified_features()` hooks `loaded.attn_pool` and calls `assert_frozen_tokens` on the pool input. Once block 23 is live, the loaded model's pool input comes from the updated block, so this checks the wrong boundary.\n\n**Minimal fix:** add a sibling helper. Keep the existing file byte-identical, because its hash is part of the prior receipt. The new helper should:\n- freeze everything, then enable `transformer.resblocks[23]` and `attn_pool`.\n- exclude `transformer.resblocks.23.` and `attn_pool.` from the frozen complement. Keep the `rope.runtime.*` buffers in it, and keep `ln_post` and `proj` in it (both frozen).\n- hook the loaded final block as described in C1.\n\nThe spec text \"Reuse pe_l14_native_pool … unchanged\" needs to become \"reuse `runtime_identity` and `assert_frozen_tokens`; new freeze, frozen-state and verification helper\".\n\n### Corrections and pitfalls, each checked against the native source\n\n- **C1 — the hook must capture kwargs.** `Transformer.forward` calls `r(x, attn_mask=attn_mask)`, so `attn_mask` arrives as a keyword argument.\n  - Use `register_forward_hook(fn, with_kwargs=True)`, whose signature is `(module, args, kwargs, output)`.\n  - Assert `len(args)==1` and `kwargs=={\"attn_mask\": None}`, then call `live.transformer.resblocks[23](args[0], **kwargs)`.\n  - The loop breaks at `stop_idx=23`, so there is exactly one call per batch.\n  - Assert `live` has no hooks before the call, so the live block can't re-enter any observer.\n\n- **C2 — assert gradient checkpointing is off, on both models.** Assert `transformer.grad_checkpointing is False`. The checkpointed branch calls `checkpoint(r, x, None, None, attn_mask)`, which passes four positional arguments to `forward(x, attn_mask)`. It would raise a TypeError and bypass the kwargs boundary.\n\n- **C3 — rotary state.** `Rope2D` is a plain Python object, not an `nn.Module`. So `.cuda()` and `state_dict` don't cover it, and each block reads `self.freq` from its own model's rope, set by `update_grid` during that model's forward.\n  - The live final block uses `live.rope.freq`, which the hook path never refreshes.\n  - Before registering the hook, assert all of: `live.rope is not loaded.rope`, every live block's `attn.rope is live.rope`, `torch.equal(live.rope.freq, loaded.rope.freq)`, the same device, and `grid_size==(16,16)`.\n  - Rotary runs with CUDA autocast off (`apply_rotary_emb`), so dtype handling matches on both sides.\n\n- **C4 — move the training guard.** Put the guard as a pre-hook on block 23 and assert `(64,257,1024)`, F32 dtype, `requires_grad` False and `grad_fn` None.\n  - The F32 part holds by construction: the residual adds an FP16 attention/MLP branch to an F32 stream, and `ls_*` is Identity because `ls_init_value` is None for PE-Core-L14-336.\n  - Delete the old pool guard: the pool's input now legitimately carries gradient.\n  - Also assert that the pool's input `requires_grad` is True on step 1. That positively shows the graph now reaches the pool through block 23.\n  - `drop_path` defaults to 0.0, so DropPath is Identity. `SelfAttention` uses a hard-coded `dropout_p=0.0`. The frozen prefix has nothing stochastic even in `.train()` mode.\n\n- **C5 — do the perturbation checks outside a shared autocast region.** The autocast cast cache keeps FP16 copies of leaf tensors that have `requires_grad`, until the region exits.\n  - If a clone is perturbed in place inside the same `with autocast` that held the earlier forward, the stale FP16 weight can hide the change. That breaks either the positive check or the restoration check.\n  - Each perturb → forward → restore must use its own fresh `torch.autocast` context. The training loop is already scoped per step, so it is safe.\n  - Also run the negative controls: perturbing the live block must make the block-output equality fail, and perturbing the live pool must make the final projection equality fail. Both on CPU and on the actual FP16 GPU, as the spec says.\n\n- **C6 — determinism claim wording.** Block 23 will produce an SDPA backward over 257 query tokens, most likely `ScaledDotProductFlashAttentionBackward0`.\n  - \"Deterministic mode on, no warning\" does not by itself show the FlashAttention dQ accumulation is bitwise reproducible. I did not check whether PyTorch routes the deterministic flag into the flash backward.\n  - Reload and parity are forward-only, so they are unaffected. The receipt should record the backward node and say \"no determinism warning\", not \"bitwise-reproducible training\".\n\n**Minor:** the positive-gradient check must be per tensor. Block 23 has 12 tensors because `ls_*` are Identity; list them explicitly. Don't check per slice: the key-bias part of `in_proj_bias` can legitimately carry little gradient. Rotary makes that part position-dependent, so it isn't strictly zero.\n\n### Overlap with prior closed arms\n- **Closed upper12 arm:** its `freeze` (`pe_l14_training.py:82`) trained blocks 12–23 plus `ln_post`, `proj`, `attn_pool` and the head. The new arm is a strict subset of that trainable set, with `ln_post` and `proj` frozen. They overlap but are not identical.\n- **Pool-only arm:** the new arm is a strict superset, adding block 23.\n- Neither arm is duplicated, and there is no prefix-depth sweep as long as index 23 is the only choice.\n\n### Boundary logic\nHeld verification runs one live block plus the tail on the loaded model's actual frozen-prefix tokens, then does the mandatory direct full-model last-B64 comparison. That is sound, provided you first assert that the whole state is identical, that `runtime_identity(live)==runtime_identity(loaded)`, and that there are no hooks. It correctly avoids claiming the live prefix ran on every held image.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "claude": "The final-block choice holds up. I found one executable blocker in the spec and several minimal corrections. I only read the spec, the result doc, the three helpers, the native-pool train script and the native `pe.py`/`rope.py`/`config.py` on the DGX; I ran and edited nothing.\n\n## Verdict: conditional GO\n\nIt becomes GO once B1 below is fixed and C1–C6 are folded into the CPU qualification you are already running.\n\n### B1 — blocker: the spec says to reuse `pe_l14_native_pool` unchanged, but that can't work\n`scripts/pe_l14_native_pool.py` hard-codes the pool as the only trainable part in three places:\n- `freeze()` enables only `attn_pool`. The final block `transformer.resblocks.23.*` would get no gradient, so the \"every active gradient positive\" check fails.\n- `frozen_state()` removes only `attn_pool.*` from the frozen complement. So `resblocks.23.*` stays in the frozen digest. After any update, `frozen_sha == info[\"frozen_complement_sha256\"]` fails (`train_pe_l14_native_pool.py:180`), as does the post-reload frozen comparison.\n- `verified_features()` hooks `loaded.attn_pool` and calls `assert_frozen_tokens` on the pool input. Once block 23 is live, the loaded model's pool input comes from the updated block, so this checks the wrong boundary.\n\n**Minimal fix:** add a sibling helper. Keep the existing file byte-identical, because its hash is part of the prior receipt. The new helper should:\n- freeze everything, then enable `transformer.resblocks[23]` and `attn_pool`.\n- exclude `transformer.resblocks.23.` and `attn_pool.` from the frozen complement. Keep the `rope.runtime.*` buffers in it, and keep `ln_post` and `proj` in it (both frozen).\n- hook the loaded final block as described in C1.\n\nThe spec text \"Reuse pe_l14_native_pool … unchanged\" needs to become \"reuse `runtime_identity` and `assert_frozen_tokens`; new freeze, frozen-state and verification helper\".\n\n### Corrections and pitfalls, each checked against the native source\n\n- **C1 — the hook must capture kwargs.** `Transformer.forward` calls `r(x, attn_mask=attn_mask)`, so `attn_mask` arrives as a keyword argument.\n  - Use `register_forward_hook(fn, with_kwargs=True)`, whose signature is `(module, args, kwargs, output)`.\n  - Assert `len(args)==1` and `kwargs=={\"attn_mask\": None}`, then call `live.transformer.resblocks[23](args[0], **kwargs)`.\n  - The loop breaks at `stop_idx=23`, so there is exactly one call per batch.\n  - Assert `live` has no hooks before the call, so the live block can't re-enter any observer.\n\n- **C2 — assert gradient checkpointing is off, on both models.** Assert `transformer.grad_checkpointing is False`. The checkpointed branch calls `checkpoint(r, x, None, None, attn_mask)`, which passes four positional arguments to `forward(x, attn_mask)`. It would raise a TypeError and bypass the kwargs boundary.\n\n- **C3 — rotary state.** `Rope2D` is a plain Python object, not an `nn.Module`. So `.cuda()` and `state_dict` don't cover it, and each block reads `self.freq` from its own model's rope, set by `update_grid` during that model's forward.\n  - The live final block uses `live.rope.freq`, which the hook path never refreshes.\n  - Before registering the hook, assert all of: `live.rope is not loaded.rope`, every live block's `attn.rope is live.rope`, `torch.equal(live.rope.freq, loaded.rope.freq)`, the same device, and `grid_size==(16,16)`.\n  - Rotary runs with CUDA autocast off (`apply_rotary_emb`), so dtype handling matches on both sides.\n\n- **C4 — move the training guard.** Put the guard as a pre-hook on block 23 and assert `(64,257,1024)`, F32 dtype, `requires_grad` False and `grad_fn` None.\n  - The F32 part holds by construction: the residual adds an FP16 attention/MLP branch to an F32 stream, and `ls_*` is Identity because `ls_init_value` is None for PE-Core-L14-336.\n  - Delete the old pool guard: the pool's input now legitimately carries gradient.\n  - Also assert that the pool's input `requires_grad` is True on step 1. That positively shows the graph now reaches the pool through block 23.\n  - `drop_path` defaults to 0.0, so DropPath is Identity. `SelfAttention` uses a hard-coded `dropout_p=0.0`. The frozen prefix has nothing stochastic even in `.train()` mode.\n\n- **C5 — do the perturbation checks outside a shared autocast region.** The autocast cast cache keeps FP16 copies of leaf tensors that have `requires_grad`, until the region exits.\n  - If a clone is perturbed in place inside the same `with autocast` that held the earlier forward, the stale FP16 weight can hide the change. That breaks either the positive check or the restoration check.\n  - Each perturb → forward → restore must use its own fresh `torch.autocast` context. The training loop is already scoped per step, so it is safe.\n  - Also run the negative controls: perturbing the live block must make the block-output equality fail, and perturbing the live pool must make the final projection equality fail. Both on CPU and on the actual FP16 GPU, as the spec says.\n\n- **C6 — determinism claim wording.** Block 23 will produce an SDPA backward over 257 query tokens, most likely `ScaledDotProductFlashAttentionBackward0`.\n  - \"Deterministic mode on, no warning\" does not by itself show the FlashAttention dQ accumulation is bitwise reproducible. I did not check whether PyTorch routes the deterministic flag into the flash backward.\n  - Reload and parity are forward-only, so they are unaffected. The receipt should record the backward node and say \"no determinism warning\", not \"bitwise-reproducible training\".\n\n**Minor:** the positive-gradient check must be per tensor. Block 23 has 12 tensors because `ls_*` are Identity; list them explicitly. Don't check per slice: the key-bias part of `in_proj_bias` can legitimately carry little gradient. Rotary makes that part position-dependent, so it isn't strictly zero.\n\n### Overlap with prior closed arms\n- **Closed upper12 arm:** its `freeze` (`pe_l14_training.py:82`) trained blocks 12–23 plus `ln_post`, `proj`, `attn_pool` and the head. The new arm is a strict subset of that trainable set, with `ln_post` and `proj` frozen. They overlap but are not identical.\n- **Pool-only arm:** the new arm is a strict superset, adding block 23.\n- Neither arm is duplicated, and there is no prefix-depth sweep as long as index 23 is the only choice.\n\n### Boundary logic\nHeld verification runs one live block plus the tail on the loaded model's actual frozen-prefix tokens, then does the mandatory direct full-model last-B64 comparison. That is sound, provided you first assert that the whole state is identical, that `runtime_identity(live)==runtime_identity(loaded)`, and that there are no hooks. It correctly avoids claiming the live prefix ran on every held image."
+      },
+      "providers_used": [
+        "claude"
+      ],
+      "active_provider": "claude",
+      "phase": "Consultation completed",
+      "input_bytes": 2629,
+      "output_bytes": 6742,
+      "elapsed_seconds": 141,
+      "progress": "devbox-ask: claude consult still running (0m 30s)\ndevbox-ask: claude consult still running (1m 00s)\ndevbox-ask: claude consult still running (1m 30s)\ndevbox-ask: claude consult still running (2m 00s)",
+      "progress_truncated": false,
+      "result": "The final-block choice holds up. I found one executable blocker in the spec and several minimal corrections. I only read the spec, the result doc, the three helpers, the native-pool train script and the native `pe.py`/`rope.py`/`config.py` on the DGX; I ran and edited nothing.\n\n## Verdict: conditional GO\n\nIt becomes GO once B1 below is fixed and C1–C6 are folded into the CPU qualification you are already running.\n\n### B1 — blocker: the spec says to reuse `pe_l14_native_pool` unchanged, but that can't work\n`scripts/pe_l14_native_pool.py` hard-codes the pool as the only trainable part in three places:\n- `freeze()` enables only `attn_pool`. The final block `transformer.resblocks.23.*` would get no gradient, so the \"every active gradient positive\" check fails.\n- `frozen_state()` removes only `attn_pool.*` from the frozen complement. So `resblocks.23.*` stays in the frozen digest. After any update, `frozen_sha == info[\"frozen_complement_sha256\"]` fails (`train_pe_l14_native_pool.py:180`), as does the post-reload frozen comparison.\n- `verified_features()` hooks `loaded.attn_pool` and calls `assert_frozen_tokens` on the pool input. Once block 23 is live, the loaded model's pool input comes from the updated block, so this checks the wrong boundary.\n\n**Minimal fix:** add a sibling helper. Keep the existing file byte-identical, because its hash is part of the prior receipt. The new helper should:\n- freeze everything, then enable `transformer.resblocks[23]` and `attn_pool`.\n- exclude `transformer.resblocks.23.` and `attn_pool.` from the frozen complement. Keep the `rope.runtime.*` buffers in it, and keep `ln_post` and `proj` in it (both frozen).\n- hook the loaded final block as described in C1.\n\nThe spec text \"Reuse pe_l14_native_pool … unchanged\" needs to become \"reuse `runtime_identity` and `assert_frozen_tokens`; new freeze, frozen-state and verification helper\".\n\n### Corrections and pitfalls, each checked against the native source\n\n- **C1 — the hook must capture kwargs.** `Transformer.forward` calls `r(x, attn_mask=attn_mask)`, so `attn_mask` arrives as a keyword argument.\n  - Use `register_forward_hook(fn, with_kwargs=True)`, whose signature is `(module, args, kwargs, output)`.\n  - Assert `len(args)==1` and `kwargs=={\"attn_mask\": None}`, then call `live.transformer.resblocks[23](args[0], **kwargs)`.\n  - The loop breaks at `stop_idx=23`, so there is exactly one call per batch.\n  - Assert `live` has no hooks before the call, so the live block can't re-enter any observer.\n\n- **C2 — assert gradient checkpointing is off, on both models.** Assert `transformer.grad_checkpointing is False`. The checkpointed branch calls `checkpoint(r, x, None, None, attn_mask)`, which passes four positional arguments to `forward(x, attn_mask)`. It would raise a TypeError and bypass the kwargs boundary.\n\n- **C3 — rotary state.** `Rope2D` is a plain Python object, not an `nn.Module`. So `.cuda()` and `state_dict` don't cover it, and each block reads `self.freq` from its own model's rope, set by `update_grid` during that model's forward.\n  - The live final block uses `live.rope.freq`, which the hook path never refreshes.\n  - Before registering the hook, assert all of: `live.rope is not loaded.rope`, every live block's `attn.rope is live.rope`, `torch.equal(live.rope.freq, loaded.rope.freq)`, the same device, and `grid_size==(16,16)`.\n  - Rotary runs with CUDA autocast off (`apply_rotary_emb`), so dtype handling matches on both sides.\n\n- **C4 — move the training guard.** Put the guard as a pre-hook on block 23 and assert `(64,257,1024)`, F32 dtype, `requires_grad` False and `grad_fn` None.\n  - The F32 part holds by construction: the residual adds an FP16 attention/MLP branch to an F32 stream, and `ls_*` is Identity because `ls_init_value` is None for PE-Core-L14-336.\n  - Delete the old pool guard: the pool's input now legitimately carries gradient.\n  - Also assert that the pool's input `requires_grad` is True on step 1. That positively shows the graph now reaches the pool through block 23.\n  - `drop_path` defaults to 0.0, so DropPath is Identity. `SelfAttention` uses a hard-coded `dropout_p=0.0`. The frozen prefix has nothing stochastic even in `.train()` mode.\n\n- **C5 — do the perturbation checks outside a shared autocast region.** The autocast cast cache keeps FP16 copies of leaf tensors that have `requires_grad`, until the region exits.\n  - If a clone is perturbed in place inside the same `with autocast` that held the earlier forward, the stale FP16 weight can hide the change. That breaks either the positive check or the restoration check.\n  - Each perturb → forward → restore must use its own fresh `torch.autocast` context. The training loop is already scoped per step, so it is safe.\n  - Also run the negative controls: perturbing the live block must make the block-output equality fail, and perturbing the live pool must make the final projection equality fail. Both on CPU and on the actual FP16 GPU, as the spec says.\n\n- **C6 — determinism claim wording.** Block 23 will produce an SDPA backward over 257 query tokens, most likely `ScaledDotProductFlashAttentionBackward0`.\n  - \"Deterministic mode on, no warning\" does not by itself show the FlashAttention dQ accumulation is bitwise reproducible. I did not check whether PyTorch routes the deterministic flag into the flash backward.\n  - Reload and parity are forward-only, so they are unaffected. The receipt should record the backward node and say \"no determinism warning\", not \"bitwise-reproducible training\".\n\n**Minor:** the positive-gradient check must be per tensor. Block 23 has 12 tensors because `ls_*` are Identity; list them explicitly. Don't check per slice: the key-bias part of `in_proj_bias` can legitimately carry little gradient. Rotary makes that part position-dependent, so it isn't strictly zero.\n\n### Overlap with prior closed arms\n- **Closed upper12 arm:** its `freeze` (`pe_l14_training.py:82`) trained blocks 12–23 plus `ln_post`, `proj`, `attn_pool` and the head. The new arm is a strict subset of that trainable set, with `ln_post` and `proj` frozen. They overlap but are not identical.\n- **Pool-only arm:** the new arm is a strict superset, adding block 23.\n- Neither arm is duplicated, and there is no prefix-depth sweep as long as index 23 is the only choice.\n\n### Boundary logic\nHeld verification runs one live block plus the tail on the loaded model's actual frozen-prefix tokens, then does the mandatory direct full-model last-B64 comparison. That is sound, provided you first assert that the whole state is identical, that `runtime_identity(live)==runtime_identity(loaded)`, and that there are no hooks. It correctly avoids claiming the live prefix ran on every held image.",
+      "result_truncated": false
+    },
+    {
+      "role": "engineering_critic",
+      "id": "8d5e12d3919c437d",
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "fallbacks": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "agent": "sfora/emafactorial",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1790637557,
+      "timeout_seconds": 1200,
+      "deadline_at": 1790638757,
+      "budget_usd": null,
+      "prompt_preview": "Act as the independent adversarial engineering and release critic. Inspect correctness, failure modes, security, operability, tests, and UX. Prioritize concrete findings with evidence. Do not edit files.\n\nMaterial to critique:\nRead-only narrow design critique. Do not edit/run tests/training/GPU/workers or propose architecture alternatives/research. Repo /home/rb/worktrees/sfora-positive-causality HEAD aa9df3b8; read docs/inshop_pe_l14_final_block_gate_2026-09-29.md NEW concrete spec and docs/inshop_pe_l14_native_pool_result_2026-09-29.md, helpers scripts/pe_l14_native_pool.py, pe_l14_readout.py, pe_l14_training.py. Native source DGX read-only ssh riomus@spark-2751 /home/riomus/runs/sfora-pe-l14-native-pool-v1/core/vision_encoder/pe.py and rope.py. New choice is one FINAL native transformer block index23 plus existing nativepool/head/proxies; other23 frozen, source/data/init/rates/precision/schedule/cost/quality/resource gates unchanged. CPUqualification underway independently. Prior pool-only100: cost.657359s PASS R1/MAP91.3755/68.0998 QUALITYKILL versus historicdense95.074/76.392; native/packed/CPUauditPASS. Frozenreadout87.284/61.888. Full product goalactive. We want useful token adaptation not closed upper12 retry or prefix-depth sweep. Review specific native shared-prefix exact boundary: only strictloaded finalblock hook with kwargs, actual graph-freeF32(B,257,1024) tokens from frozen23blockprefix→LIVE finalblock under same autocast→exactblockoutput→live ln_post/native_pool/proj→exactactualstrictnativeforward; compactheadOUTSIDEautocast, separatelyactualretainedvectors/packedscoring; no duplicate fullprefix everyheld; direct lastB64 wholelive/native comparison mandatory; wholeupdatedstate/frozencomplement/foreignrotary/runtimeidentity beforehook andfinallycleanup. Traininggraphguard moves BEFOREfinalblock because poolinputnowmustcarrygradient. Native307keys unchanged. ActualCPU allactivegradpositive/noothers/sourceinvariance/bothblockandpoolobservabletempcloneperturbation/reload/restoration then separateFP16GPUqual before17; all original119+1/299+1s8Gnoswap10GBbothlocks, median3-17/3-100<=.71769696, discard17, originalqualityfloors andbothproduct95>0, CPUaudit. Give conditionalGO or exact executable blockers/minimal corrections, attention/rotary/autocast/hook/determinism pitfalls, prior CLOSED-arm identicaloverlap if any. No cost/quality forecasts or extra research. Parent implements minimalCPUqualification while you inspect spec.",
+      "prompt_sha256": "6f5d1033349741b1bac2f0071248eee04cdf89933528f0e9136a64d94cd8e8e2",
+      "prompt_bytes": 2663,
+      "fingerprint": "5dde17eb1f775d276eb5ea2649969ce86033a3f9a96da4b25064cfaa6d861c48",
+      "evidence": {
+        "git_commit": "aa9df3b8b461cdf1646e080ee82138ba9d03c773",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "18c4c3077c8bbc421f2846d854cf45eb3a28c318e9ee87c900a41032ea425d3e",
+        "worktree_sha256": "7c0d5f471f982219bae0f6dca7a973e187d82b5c581b43577217a51544cd2827",
+        "worktree_evidence_truncated": false,
+        "active_goal": {
+          "id": "goal-1790540789-1790540789754989478-2322852",
+          "agent": "sfora/emafactorial",
+          "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+          "status": "queued",
+          "revision": 1,
+          "actor": "operator",
+          "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+          "created_at": 1790540789,
+          "updated_at": 1790540789
+        }
+      },
+      "previous_fingerprint": "ecc6c7971c047cf9ae6e3ca7a335f5be0b50a8862facb29f36c4d84ff93be52c",
+      "reused": false,
+      "critique_id": "273b5dd2ab2146c8",
+      "critique_role": "engineering_critic",
+      "systemd_unit": "devbox-consult-8d5e12d3919c437d.service",
+      "pid": 2533586,
+      "pgid": 2533586,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra",
+          "budget_usd": null,
+          "timeout_seconds": 1199,
+          "started_at": 1790637558
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1790637652,
+      "event_cursor": 34,
+      "events": [
+        {
+          "seq": 11,
+          "at": 1790637580,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 12,
+          "at": 1790637580,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 13,
+          "at": 1790637580,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 14,
+          "at": 1790637580,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 15,
+          "at": 1790637589,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 16,
+          "at": 1790637589,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 17,
+          "at": 1790637589,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 18,
+          "at": 1790637589,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 19,
+          "at": 1790637589,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 20,
+          "at": 1790637590,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 21,
+          "at": 1790637595,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 22,
+          "at": 1790637605,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 23,
+          "at": 1790637605,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 24,
+          "at": 1790637605,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 25,
+          "at": 1790637605,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 26,
+          "at": 1790637605,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 27,
+          "at": 1790637606,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 28,
+          "at": 1790637613,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 29,
+          "at": 1790637613,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 30,
+          "at": 1790637622,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 31,
+          "at": 1790637626,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 32,
+          "at": 1790637626,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 33,
+          "at": 1790637652,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 34,
+          "at": 1790637652,
+          "provider": "codex",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": true,
+      "provider_events": {
+        "codex": [
+          {
+            "seq": 27,
+            "at": 1790637606,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 28,
+            "at": 1790637613,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 29,
+            "at": 1790637613,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 30,
+            "at": 1790637622,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 31,
+            "at": 1790637626,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 32,
+            "at": 1790637626,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 33,
+            "at": 1790637652,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 34,
+            "at": 1790637652,
+            "provider": "codex",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "**Conditional GO for qualification. No native-source blocker found; this does not authorize 17/100 before the specified evidence passes.** The proposed shared-prefix boundary matches the actual native forward.\n\nConcrete implementation conditions, ordered by consequence:\n\n1. **Pool-only role, optimizer, and guard logic cannot carry over unchanged.** Existing [freeze/frozen-state helpers](/home/rb/worktrees/sfora-positive-causality/scripts/pe_l14_native_pool.py:9) enable only the pool and classify block23 as frozen. The [training guard](/home/rb/worktrees/sfora-positive-causality/scripts/train_pe_l14_native_pool.py:218) runs before pooling; it would reject the intended final-block gradient path. The [GPU qualification optimizer](/home/rb/worktrees/sfora-positive-causality/scripts/qualify_pe_l14_native_pool_gpu.py:155) includes only pool parameters. Require exact optimizer membership equality with block23 + pool + head + proxies, exclude precisely block23/pool from the frozen complement, and move the graph-free guard before block23. Nonzero gradients alone do not prove optimizer coverage.\n\n2. **The existing runtime fingerprint is insufficient for the shared-prefix claim.** [runtime_identity](/home/rb/worktrees/sfora-positive-causality/scripts/pe_l14_native_pool.py:44) checks aliases and selected configuration, but omits transformer depth/checkpoint mode, per-block attention scale/head layout, normalization epsilon, and child training/stochastic settings. Native `pe.py:244,278–285` makes transformer depth and checkpoint mode executable behavior; `pe.py:145–146` uses the mutable attention scale. Require their expected values before installing the observer. Whole-state equality cannot detect these non-tensor differences.\n\n3. **Rotary restoration must include runtime state explicitly.** DGX `rope.py:303–340` defines `Rope2D` outside the registered module tree. With an unchanged grid, `update_grid` moves `freq` but skips moving the inner rotary module. Consequently, CPU-resident foreign buffers can coexist with CUDA frequencies legitimately. Compare expected values, devices, grid and aliases between copies; do not assume `.cuda()` or the 307-key load restores everything. Preserve the existing qualified device arrangement.\n\n4. **Preserve the exact hook execution context and exercise failure cleanup.** Native `pe.py:285` invokes the block with keyword `attn_mask`; its `SelfAttention` actually hardcodes `attn_mask=None` at `145–146`. Capture kwargs, assert the expected mask, and replay them unchanged. Execute live block → `ln_post` → `_pool` → projection inside the enclosing encoder autocast; compute both heads afterward. Require mismatch rejection separately for block and pool, with hook removal and captured-reference cleanup after exceptions. Keep the direct whole-native last-B64 comparison.\n\n5. **The inherited backend report cannot establish both attention paths.** [GPU qualification](/home/rb/worktrees/sfora-positive-causality/scripts/qualify_pe_l14_native_pool_gpu.py:127) deduplicates node **names** across the whole graph. Both attention operations could report the same name, leaving one entry. Attribute reachable SDPA nodes separately to final-block attention and pool attention. Assert deterministic algorithms enabled with warning-only mode disabled, alongside the original precision/environment predicates. Prior pool-only backward evidence does not qualify final-block backward.\n\nThese are implementation acceptance conditions, largely already required by the new spec—not evidence that the pending CPU qualification has failed.\n\n**CLOSED-arm overlap:** this is not an identical upper12 rerun: trainable allocation changes, `ln_post`/projection stay frozen, and checkpointing is excluded. The documented upper12 memory failure and checkpointed cost failure remain closed. They establish neither success nor failure for this fixed choice.\n\nRead-only inspection covered the requested documents/helpers, relevant callers, and DGX native source. No edits, tests, training, GPU execution, or workers were launched.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "codex": "**Conditional GO for qualification. No native-source blocker found; this does not authorize 17/100 before the specified evidence passes.** The proposed shared-prefix boundary matches the actual native forward.\n\nConcrete implementation conditions, ordered by consequence:\n\n1. **Pool-only role, optimizer, and guard logic cannot carry over unchanged.** Existing [freeze/frozen-state helpers](/home/rb/worktrees/sfora-positive-causality/scripts/pe_l14_native_pool.py:9) enable only the pool and classify block23 as frozen. The [training guard](/home/rb/worktrees/sfora-positive-causality/scripts/train_pe_l14_native_pool.py:218) runs before pooling; it would reject the intended final-block gradient path. The [GPU qualification optimizer](/home/rb/worktrees/sfora-positive-causality/scripts/qualify_pe_l14_native_pool_gpu.py:155) includes only pool parameters. Require exact optimizer membership equality with block23 + pool + head + proxies, exclude precisely block23/pool from the frozen complement, and move the graph-free guard before block23. Nonzero gradients alone do not prove optimizer coverage.\n\n2. **The existing runtime fingerprint is insufficient for the shared-prefix claim.** [runtime_identity](/home/rb/worktrees/sfora-positive-causality/scripts/pe_l14_native_pool.py:44) checks aliases and selected configuration, but omits transformer depth/checkpoint mode, per-block attention scale/head layout, normalization epsilon, and child training/stochastic settings. Native `pe.py:244,278–285` makes transformer depth and checkpoint mode executable behavior; `pe.py:145–146` uses the mutable attention scale. Require their expected values before installing the observer. Whole-state equality cannot detect these non-tensor differences.\n\n3. **Rotary restoration must include runtime state explicitly.** DGX `rope.py:303–340` defines `Rope2D` outside the registered module tree. With an unchanged grid, `update_grid` moves `freq` but skips moving the inner rotary module. Consequently, CPU-resident foreign buffers can coexist with CUDA frequencies legitimately. Compare expected values, devices, grid and aliases between copies; do not assume `.cuda()` or the 307-key load restores everything. Preserve the existing qualified device arrangement.\n\n4. **Preserve the exact hook execution context and exercise failure cleanup.** Native `pe.py:285` invokes the block with keyword `attn_mask`; its `SelfAttention` actually hardcodes `attn_mask=None` at `145–146`. Capture kwargs, assert the expected mask, and replay them unchanged. Execute live block → `ln_post` → `_pool` → projection inside the enclosing encoder autocast; compute both heads afterward. Require mismatch rejection separately for block and pool, with hook removal and captured-reference cleanup after exceptions. Keep the direct whole-native last-B64 comparison.\n\n5. **The inherited backend report cannot establish both attention paths.** [GPU qualification](/home/rb/worktrees/sfora-positive-causality/scripts/qualify_pe_l14_native_pool_gpu.py:127) deduplicates node **names** across the whole graph. Both attention operations could report the same name, leaving one entry. Attribute reachable SDPA nodes separately to final-block attention and pool attention. Assert deterministic algorithms enabled with warning-only mode disabled, alongside the original precision/environment predicates. Prior pool-only backward evidence does not qualify final-block backward.\n\nThese are implementation acceptance conditions, largely already required by the new spec—not evidence that the pending CPU qualification has failed.\n\n**CLOSED-arm overlap:** this is not an identical upper12 rerun: trainable allocation changes, `ln_post`/projection stay frozen, and checkpointing is excluded. The documented upper12 memory failure and checkpointed cost failure remain closed. They establish neither success nor failure for this fixed choice.\n\nRead-only inspection covered the requested documents/helpers, relevant callers, and DGX native source. No edits, tests, training, GPU execution, or workers were launched."
+      },
+      "providers_used": [
+        "codex"
+      ],
+      "active_provider": "codex",
+      "phase": "Consultation completed",
+      "input_bytes": 2663,
+      "output_bytes": 4083,
+      "elapsed_seconds": 95,
+      "progress": "Reading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)\ndevbox-ask: codex consult still running (1m 30s)",
+      "progress_truncated": false,
+      "result": "**Conditional GO for qualification. No native-source blocker found; this does not authorize 17/100 before the specified evidence passes.** The proposed shared-prefix boundary matches the actual native forward.\n\nConcrete implementation conditions, ordered by consequence:\n\n1. **Pool-only role, optimizer, and guard logic cannot carry over unchanged.** Existing [freeze/frozen-state helpers](/home/rb/worktrees/sfora-positive-causality/scripts/pe_l14_native_pool.py:9) enable only the pool and classify block23 as frozen. The [training guard](/home/rb/worktrees/sfora-positive-causality/scripts/train_pe_l14_native_pool.py:218) runs before pooling; it would reject the intended final-block gradient path. The [GPU qualification optimizer](/home/rb/worktrees/sfora-positive-causality/scripts/qualify_pe_l14_native_pool_gpu.py:155) includes only pool parameters. Require exact optimizer membership equality with block23 + pool + head + proxies, exclude precisely block23/pool from the frozen complement, and move the graph-free guard before block23. Nonzero gradients alone do not prove optimizer coverage.\n\n2. **The existing runtime fingerprint is insufficient for the shared-prefix claim.** [runtime_identity](/home/rb/worktrees/sfora-positive-causality/scripts/pe_l14_native_pool.py:44) checks aliases and selected configuration, but omits transformer depth/checkpoint mode, per-block attention scale/head layout, normalization epsilon, and child training/stochastic settings. Native `pe.py:244,278–285` makes transformer depth and checkpoint mode executable behavior; `pe.py:145–146` uses the mutable attention scale. Require their expected values before installing the observer. Whole-state equality cannot detect these non-tensor differences.\n\n3. **Rotary restoration must include runtime state explicitly.** DGX `rope.py:303–340` defines `Rope2D` outside the registered module tree. With an unchanged grid, `update_grid` moves `freq` but skips moving the inner rotary module. Consequently, CPU-resident foreign buffers can coexist with CUDA frequencies legitimately. Compare expected values, devices, grid and aliases between copies; do not assume `.cuda()` or the 307-key load restores everything. Preserve the existing qualified device arrangement.\n\n4. **Preserve the exact hook execution context and exercise failure cleanup.** Native `pe.py:285` invokes the block with keyword `attn_mask`; its `SelfAttention` actually hardcodes `attn_mask=None` at `145–146`. Capture kwargs, assert the expected mask, and replay them unchanged. Execute live block → `ln_post` → `_pool` → projection inside the enclosing encoder autocast; compute both heads afterward. Require mismatch rejection separately for block and pool, with hook removal and captured-reference cleanup after exceptions. Keep the direct whole-native last-B64 comparison.\n\n5. **The inherited backend report cannot establish both attention paths.** [GPU qualification](/home/rb/worktrees/sfora-positive-causality/scripts/qualify_pe_l14_native_pool_gpu.py:127) deduplicates node **names** across the whole graph. Both attention operations could report the same name, leaving one entry. Attribute reachable SDPA nodes separately to final-block attention and pool attention. Assert deterministic algorithms enabled with warning-only mode disabled, alongside the original precision/environment predicates. Prior pool-only backward evidence does not qualify final-block backward.\n\nThese are implementation acceptance conditions, largely already required by the new spec—not evidence that the pending CPU qualification has failed.\n\n**CLOSED-arm overlap:** this is not an identical upper12 rerun: trainable allocation changes, `ln_post`/projection stay frozen, and checkpointing is excluded. The documented upper12 memory failure and checkpointed cost failure remain closed. They establish neither success nor failure for this fixed choice.\n\nRead-only inspection covered the requested documents/helpers, relevant callers, and DGX native source. No edits, tests, training, GPU execution, or workers were launched.",
+      "result_truncated": false
+    }
+  ],
+  "reused": false,
+  "finished_at": 1790637714,
+  "elapsed_seconds": 141,
+  "input_bytes": 2259,
+  "output_bytes": 10825
+}
