@@ -85,3 +85,41 @@ screen**, not retrieval R@1, held generalization or proven benefit from a
 training objective. No checkpoint or production default is promoted.
 Next: freeze a training-only description term and its matched gradient/cost
 smoke, then run that bounded smoke before any paired held-quality gate.
+
+## Review correction and cached gradient rejection gate
+
+Opus 5.5 / GPT-6 Astra review `65be9817860e444a` rejected one-hot caption
+CE before training. Full string uniqueness does not establish distinct
+token sequences or appropriate negative prototypes. Use the smallest
+correction: fixed normalized text prototypes `T`, source `z`, and soft
+target `q_y = softmax(32 T_y T^T)`; auxiliary loss is
+`0.1 CE(32 normalize(z) T^T, q_y)`. This is a fixed surrogate, not native
+SigLIP2 sigmoid training. A category-matched caption permutation is a
+mandatory sham arm; prototypes and target probabilities are detached.
+Map fit class names explicitly to caption indices, with one missing sentinel.
+
+Before encoder training, run a **<=120-second CPU** diagnostic on the
+same 512 preselected, class-balanced fit queries, using the exact cached
+pretrained source, fit-only PCA/head/proxy initialization and frozen text
+cache. This narrows the reviewer’s all-fit suggestion for a cheap rejection
+screen; a pass remains insufficient evidence of quality. Freeze:
+
+- C1: true-caption mean rank and soft CE each beat the category sham,
+  with paired product-bootstrap 95% lower bounds **above zero**.
+- C2: median `norm(g_true-g_sham)/norm(g_true)` at least **0.30**.
+- C3: median cosine of caption-specific gradient `(g_true-g_sham)` with
+  initial ArcFace pooler gradient at least **0**, and negative cosine on
+  no more than **60%** of rows. This omits bank gradients and augmentation;
+  it is a cheap initial conflict screen, not a training guarantee.
+- C4: caption residual participation rank `trace(C)^2/trace(C^2)` exceeds
+  **twice** the number of supplied clothing-category groups.
+- Cache labels, source/features/metadata/fit hashes, finite unit prototypes
+  and every query identity must validate. Undefined/nonfinite statistics or
+  elapsed time above 120 seconds KILL the configuration before training.
+
+No criterion is retuned after reading it. Record prototype exact duplicates
+and nearest-neighbor cosine; inspect token collision/truncation before any
+training if this cached gate passes. If the gate passes, freeze a serial
+17-update control/true/sham smoke with actual base+rank gradient shares,
+full control replay, same-input collapse checks and <=1.10 cost gates.
+The original one-hot design is closed; no additional temperature search.
