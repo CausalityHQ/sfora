@@ -1,0 +1,14 @@
+Running as unit: sfora-pe-l14-native-pool-gpu-v1.service; invocation ID: 60bcb23a822e4bb78392d3b45e14bc44
+{"calibration": {"fp16_fp32": [0.9999421238899231, 0.9998947978019714], "cached_fresh": [0.9999972581863403, 0.9999983310699463]}}
+{"phase": "calibrated-source", "peak_cuda_allocated_bytes": 1329275392, "current_cuda_allocated_bytes": 1304035840}
+{"pool_sdpa_autograd_nodes": ["ScaledDotProductFlashAttentionBackward0"]}
+{"phase": "actual-pool-backward", "peak_cuda_allocated_bytes": 1427581952, "current_cuda_allocated_bytes": 1414993920}
+{"phase": "strict-native-reload", "peak_cuda_allocated_bytes": 2684135936, "current_cuda_allocated_bytes": 2684135936}
+{"phase": "restored-native-state", "peak_cuda_allocated_bytes": 3333430272, "current_cuda_allocated_bytes": 2684226560}
+PASS actual FP16 GPU native pool gradients, frozen complement, output identity, perturbed strict roundtrip/boundary/head parity; no updates/quality
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 18.061s
+CPU time consumed: 21.867s
+Memory peak: 256.0K
+Memory swap peak: 0B

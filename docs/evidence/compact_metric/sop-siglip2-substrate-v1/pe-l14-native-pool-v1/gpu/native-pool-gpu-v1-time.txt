@@ -1,0 +1,23 @@
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-pe-l14-native-pool-v1/qualify_pe_l14_native_pool_gpu.py --cpu-preflight-sha256 1f11069e3675890b75b474095c01a135078c346cc02e69979823ccc60899d154 --execution-sha256 0867d9a68baca6366936703fe3858d8596663da7dd23d706c645eb2bd9f895db"
+	User time (seconds): 19.18
+	System time (seconds): 2.67
+	Percent of CPU this job got: 121%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:18.05
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 5296808
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 2
+	Minor (reclaiming a frame) page faults: 588094
+	Voluntary context switches: 8754
+	Involuntary context switches: 364
+	Swaps: 0
+	File system inputs: 1168
+	File system outputs: 2479248
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

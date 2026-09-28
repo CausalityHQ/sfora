@@ -127,4 +127,32 @@ CPU v2 authoritySHA
 
 Tiny role/boundary/changed-pool rejection/hook-cleanup check REDmissingmodule
 then GREEN; Ruff passed. These are qualification evidence, not model-quality
-gains. No native-pool GPU qualification/mechanics/pilot has launched yet.
+gains. No native-pool GPU qualification/mechanics/pilot had launched at that checkpoint.
+
+## Actual FP16 GPU qualification PASS and training execution freeze
+
+The separate native GPU qualification original47211 collectedexit0 in18.05s,
+5,296,808KiB processRSS/no swap, allocatedCUDApeak3,333,430,272B. Actual
+pool backward nodeScaledDotProductFlashAttentionBackward0 with Torch
+determinism enabled; all11 native pool gradients and head/proxy gradients
+finite/positive, frozen input nograd, no frozen parameter gradient. No
+determinism warning/error appeared in the retained log. Source FP16/FP32
+cosine min.9998948 and cached/fresh min.9999973 passed. Temporary query
+perturbation changed actual FP16 source output; strict native pool/proj and
+normalized head reload bitwise equal, original pool/native output/state
+restored, optimizer empty. Zero optimizer update/held/quality read.
+GPU qualification receiptSHA
+81968cb8f1384262bf8c1e71fe9aa8e60234918d2971d80b6cca91d9d09517c1.
+
+New train_pe_l14_native_pool.py enables exactly the qualified native pool,
+includes all14 pool/head/proxy tensors in disjoint AdamW and global clipping,
+keeps native autograd forward and graph-free trunk-input guards, pool movement
+hashes and actual backend evidence. Hooks are removed in finally. Full-held
+callback computes separately retained actual live pool/proj/head vectors and
+strict-loaded vectors, then independently packed-scores both actual arrays.
+Whole native live/reloaded state equality and frozen-complement/runtime
+identity replace the earlier all-encoder-immutable assertion. CPU startup
+authenticates receipts/source/initializers/data/code without CUDA.
+Training execution manifestSHA
+92c6e940a86498f89a69b0ea87102247e72d327058b36850500c0e81bffe1747.
+Only ONE17mechanics next; no new cost/quality gain inferred from qualification.
