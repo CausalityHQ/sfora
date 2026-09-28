@@ -1,0 +1,673 @@
+{
+  "id": "cfd8499c0b0545b3",
+  "status": "completed",
+  "started_at": 1790602846,
+  "agent": "sfora/emafactorial",
+  "force_reason": "New terminal FFI trust-boundary fix with red/green regression and full Rust GPU test evidence; distinct from prior runtime-kernel measurement review.",
+  "rolling_6h_count": 3,
+  "prompt_preview": "READ-ONLY consequential release review of ONLY NEW shared FFI size-validation fix. Repo /home/rb/worktrees/sfora-positive-causality master3072f47b; uncommitted rust/sfora-cutile-int8-score/src/ffi.rs SHA654901b53ee41f3c1c4a2d8e55910e6f2241e89e896fbb018d5b17f921bcc809. Do not edit, launch tests/GPU/jobs/downloads/consultations/workers or contact operator. Protected uncommitted topk.rs SHA1ae7f50aa3d222dbc6c6489c4c344ce836d01b895e05341d368db35c6d0cb587 must stay untouched/unstaged/unpromoted. Question: approve committing ONLY FFI boundaryfix+regression/evidence, or identify concrete correctness gap? Prior review6cf20281a3c24920 flagged preexisting create raw-slice/copy before signed/padded gallery bound. Currentfix introduces MAX_GALLERY_ROWS=floor(i32MAX/128)*128, checked rows*dimensions bytes<=isizeMAX, rejects invalid dimensions/rows/pointers BEFORE copies. Inverse norms u16 rawslice size implicitly bounded by dimensions128/code-byte guard; validate reasoning also32bit target. Topk private validation pads128 and rejects>i32MAX, do not change it. Search only supports1/32 and dims128/k10 so lengths bounded. CABI unsafe caller obligations remain, no attempt tovalidate actual allocation provenance. One new test passes unsupported metadata rows [maxpadded+1,isizeMAX/128+1,usizeMAX/128+1,usizeMAX] with inertaligned dangling pointers and valid null outputslot, expectingSTATUS_INVALID withoutread/outputmutation. RED bounded addressspace1GiB CUDAhidden: oldcode tried274877890688B allocation thenSIGABRT-6; original inv37877e38e1864f55871bd466f1ced53c. GREEN inv63ab3469b49d40449e775bd1e0604f77 compile1.85s andtestPASS all4. OfflinewholeRust CPU--no-run430c752f82824a74b6f48e5091d2e779 EXIT0 2.27s. First fullGPU launcher0daa5c0ecec14b55885ec4f0f0d1d2a2 erroneouslyomittedBINDGEN_EXTRA_CLANG_ARGS -> Cargorecompiledbindings stddef.hmissing EXIT1012.21s BEFOREtests/GPUkernels; preservedraw. Corrected fullgate executes compiledhashchecked binaries directly insteadofbuilding duringGPU: d9e4bfa00ca44b05a91bead97f76d45d all15testsPASS (11lib +1RC4 +1main +2integration);300/299s8GiB/sharedGPUlock, actualtimes inarchive. Evidence docs/evidence/compact_metric/sop-siglip2-substrate-v1/cutile-ffi-size-v1 {red/green-receipt.json,red/green.log,full-build.log,full-gpu.log,full-gpu-v2.log,full-tests-receipt.json,cpu.py,full.py,resource-time files}. Remoteisolatedroot /home/riomus/runs/sfora-cutile-ffi-size-v1 uses ORIGINALcommittedtopk, samecrateallotherfiles; onlyFFIguard/test changed; all15executables sourcecompiledCPUcachedsource hashlibmatchesgreen, devicechecksnontrivial including FFI129rowb1/32 andscalarwire/mergeboundarydistinctqueries. EntirePythonCI/site not rerun unchangedPython/site; no doc tests present. Prior nativecomparison result3072f47b verifies runtimekernel456exactcalls andnonregression but DOESNOTpromoteprotectedcandidate. Full production SOP/InShop jointquality+speed goalunmet; no newquality/performanceclaim, no newtraining. Independently inspect everycreatecaller rustffi/Pythonapi/tests and signedbound equivalence, overflow/32bit/rawslice contracts. Reject any realbug withminimalfix; avoid unrelated safety redesign or testingtuning list. Approving this FFIcommit is not approving protectedkernelpromotion/deployment; sequentialcross-threadcachecheck remains futuregate.",
+  "prompt_sha256": "7f3c4a878bfe080100b347d322c56a05e60895fd361cb78fccca1047b2ae089c",
+  "prompt_bytes": 3320,
+  "fingerprint": "c0eaa97374198b8f2d271faee8a0c627f7581d97cdd1f0058d15d3fa0132ce95",
+  "evidence": {
+    "git_commit": "3072f47b66bca8ad958854efa59b36991e925930",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "78f536f38cbfe2f96a4c2f5a75013cf9e922903a049fd784388f265fa7cfbdc0",
+    "worktree_sha256": "dd105b68762b7a1e4cec36cb2e0abc1b3e169a098c911ce4f74cd6a71551afad",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "reviewers": [
+    {
+      "role": "research_critic",
+      "id": "faa346b976df46be",
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "fallbacks": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "agent": "sfora/emafactorial",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1790602846,
+      "timeout_seconds": 1200,
+      "deadline_at": 1790604046,
+      "budget_usd": 4,
+      "prompt_preview": "Act as the independent research and first-principles critic. Challenge assumptions, compare alternatives and prior art, and identify missing evidence. Do not edit files.\n\nMaterial to critique:\nREAD-ONLY consequential release review of ONLY NEW shared FFI size-validation fix. Repo /home/rb/worktrees/sfora-positive-causality master3072f47b; uncommitted rust/sfora-cutile-int8-score/src/ffi.rs SHA654901b53ee41f3c1c4a2d8e55910e6f2241e89e896fbb018d5b17f921bcc809. Do not edit, launch tests/GPU/jobs/downloads/consultations/workers or contact operator. Protected uncommitted topk.rs SHA1ae7f50aa3d222dbc6c6489c4c344ce836d01b895e05341d368db35c6d0cb587 must stay untouched/unstaged/unpromoted. Question: approve committing ONLY FFI boundaryfix+regression/evidence, or identify concrete correctness gap? Prior review6cf20281a3c24920 flagged preexisting create raw-slice/copy before signed/padded gallery bound. Currentfix introduces MAX_GALLERY_ROWS=floor(i32MAX/128)*128, checked rows*dimensions bytes<=isizeMAX, rejects invalid dimensions/rows/pointers BEFORE copies. Inverse norms u16 rawslice size implicitly bounded by dimensions128/code-byte guard; validate reasoning also32bit target. Topk private validation pads128 and rejects>i32MAX, do not change it. Search only supports1/32 and dims128/k10 so lengths bounded. CABI unsafe caller obligations remain, no attempt tovalidate actual allocation provenance. One new test passes unsupported metadata rows [maxpadded+1,isizeMAX/128+1,usizeMAX/128+1,usizeMAX] with inertaligned dangling pointers and valid null outputslot, expectingSTATUS_INVALID withoutread/outputmutation. RED bounded addressspace1GiB CUDAhidden: oldcode tried274877890688B allocation thenSIGABRT-6; original inv37877e38e1864f55871bd466f1ced53c. GREEN inv63ab3469b49d40449e775bd1e0604f77 compile1.85s andtestPASS all4. OfflinewholeRust CPU--no-run430c752f82824a74b6f48e5091d2e779 EXIT0 2.27s. First fullGPU launcher0daa5c0ecec14b55885ec4f0f0d1d2a2 erroneouslyomittedBINDGEN_EXTRA_CLANG_ARGS -> Cargorecompiledbindings stddef.hmissing EXIT1012.21s BEFOREtests/GPUkernels; preservedraw. Corrected fullgate executes compiledhashchecked binaries directly insteadofbuilding duringGPU: d9e4bfa00ca44b05a91bead97f76d45d all15testsPASS (11lib +1RC4 +1main +2integration);300/299s8GiB/sharedGPUlock, actualtimes inarchive. Evidence docs/evidence/compact_metric/sop-siglip2-substrate-v1/cutile-ffi-size-v1 {red/green-receipt.json,red/green.log,full-build.log,full-gpu.log,full-gpu-v2.log,full-tests-receipt.json,cpu.py,full.py,resource-time files}. Remoteisolatedroot /home/riomus/runs/sfora-cutile-ffi-size-v1 uses ORIGINALcommittedtopk, samecrateallotherfiles; onlyFFIguard/test changed; all15executables sourcecompiledCPUcachedsource hashlibmatchesgreen, devicechecksnontrivial including FFI129rowb1/32 andscalarwire/mergeboundarydistinctqueries. EntirePythonCI/site not rerun unchangedPython/site; no doc tests present. Prior nativecomparison result3072f47b verifies runtimekernel456exactcalls andnonregression but DOESNOTpromoteprotectedcandidate. Full production SOP/InShop jointquality+speed goalunmet; no newquality/performanceclaim, no newtraining. Independently inspect everycreatecaller rustffi/Pythonapi/tests and signedbound equivalence, overflow/32bit/rawslice contracts. Reject any realbug withminimalfix; avoid unrelated safety redesign or testingtuning list. Approving this FFIcommit is not approving protectedkernelpromotion/deployment; sequentialcross-threadcachecheck remains futuregate.",
+      "prompt_sha256": "f708d4e230fad67b50650d230e8fdc4fa701f04a5cc3a916379f9038425e316c",
+      "prompt_bytes": 3690,
+      "fingerprint": "1b1763e99352dbb3b3b6d39afb982a922eecf196444ab2230bac4e53a043c810",
+      "evidence": {
+        "git_commit": "3072f47b66bca8ad958854efa59b36991e925930",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "78f536f38cbfe2f96a4c2f5a75013cf9e922903a049fd784388f265fa7cfbdc0",
+        "worktree_sha256": "dd105b68762b7a1e4cec36cb2e0abc1b3e169a098c911ce4f74cd6a71551afad",
+        "worktree_evidence_truncated": false,
+        "active_goal": {
+          "id": "goal-1790540789-1790540789754989478-2322852",
+          "agent": "sfora/emafactorial",
+          "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+          "status": "queued",
+          "revision": 1,
+          "actor": "operator",
+          "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+          "created_at": 1790540789,
+          "updated_at": 1790540789
+        }
+      },
+      "previous_fingerprint": "c643318ea3b3093fa16af2bfa7ad7b0f5440760630b608b522d6b1dd8a99d1ff",
+      "reused": false,
+      "critique_id": "cfd8499c0b0545b3",
+      "critique_role": "research_critic",
+      "systemd_unit": "devbox-consult-faa346b976df46be.service",
+      "pid": 1992251,
+      "pgid": 1992251,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5",
+          "budget_usd": 4,
+          "timeout_seconds": 1200,
+          "started_at": 1790602846
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1790602906,
+      "event_cursor": 18,
+      "events": [
+        {
+          "seq": 1,
+          "at": 1790602846,
+          "provider": "claude",
+          "kind": "phase",
+          "label": "Claude consultation attempt",
+          "detail": "claude-opus-5-5 \u00b7 $4 cap \u00b7 1200s remaining"
+        },
+        {
+          "seq": 2,
+          "at": 1790602846,
+          "provider": "claude",
+          "kind": "phase",
+          "label": "Claude consultation started"
+        },
+        {
+          "seq": 3,
+          "at": 1790602849,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 4,
+          "at": 1790602854,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 5,
+          "at": 1790602868,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 6,
+          "at": 1790602873,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 7,
+          "at": 1790602878,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 8,
+          "at": 1790602881,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 9,
+          "at": 1790602881,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 10,
+          "at": 1790602886,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 11,
+          "at": 1790602898,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 12,
+          "at": 1790602899,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 13,
+          "at": 1790602900,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 14,
+          "at": 1790602902,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 15,
+          "at": 1790602903,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 16,
+          "at": 1790602904,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 17,
+          "at": 1790602905,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 18,
+          "at": 1790602906,
+          "provider": "claude",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": false,
+      "provider_events": {
+        "claude": [
+          {
+            "seq": 11,
+            "at": 1790602898,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 12,
+            "at": 1790602899,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 13,
+            "at": 1790602900,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 14,
+            "at": 1790602902,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 15,
+            "at": 1790602903,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 16,
+            "at": 1790602904,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 17,
+            "at": 1790602905,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 18,
+            "at": 1790602906,
+            "provider": "claude",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "**Verdict: approve committing only the `ffi.rs` boundary fix, its regression test and the `cutile-ffi-size-v1` evidence.** I found no concrete correctness gap. I only read files; I ran no tests or GPU work. The file hashes match what you gave: `ffi.rs` is 654901b5\u2026 and the protected `topk.rs` is 1ae7f50a\u2026. Do not stage `topk.rs`.\n\n**What I checked:**\n\n- **Guard order:** In `ffi.rs:59-73`, every size, dimension and pointer check now returns `STATUS_INVALID` before the first raw-slice copy (`ffi.rs:75`). The old code checked `rows*dimensions` for overflow but not against `isize::MAX` or the padded signed bound. That is how the RED run reached a 274,877,890,688-byte `to_vec` and aborted with SIGABRT.\n- **Signed bound matches top-k:** a row count passes `rows \u2264 \u230ai32::MAX/128\u230b\u00b7128` exactly when rounding it up to a multiple of 128 stays within `i32::MAX`. That is the same rule as the committed `validated_topk_padded_rows` (`topk.rs:16-30`, identical in the protected copy). At the limit, the largest padded count is 2,147,483,520. The largest padded-lane ordinal, 2,147,483,519, stays below the `i32::MAX` sentinel. The FFI guard only duplicates the check up front and rejects nothing top-k would accept.\n- **Raw-slice size limits:**\n  - Codes: `code_len \u2264 isize::MAX` is checked explicitly.\n  - Norms (`u16`): the slice is `2\u00b7rows` bytes. That is at most about 4.3 GB on 64-bit, and on 32-bit `rows \u2264 isize::MAX/128` keeps it far below `isize::MAX`. So the bound follows from the code-byte guard and the `dimensions == 128` check, as you said.\n  - Search: lengths come from `query_rows \u2208 {1, 32}` and `k = 10`, so they are trivially bounded. `ranges_overlap` already fails closed on overflow.\n- **32-bit targets:**\n  - The constant 2,147,483,520 fits in `u32`, and every test row value (`maximum_padded+1`, `isize::MAX/128+1`, `usize::MAX/128+1`, `usize::MAX`) is representable.\n  - On 32-bit the `isize` guard binds first (rows \u2264 16,777,215).\n  - Top-k then does `DIMENSIONS*padded_rows = 2\u00b3\u00b9`, which does not wrap. If it fails, it is a capacity panic that `catch_unwind` turns into `STATUS_PANIC`, not undefined behaviour. This is pre-existing and out of scope.\n- **Callers:**\n  - The only production caller is `src/sfora/cutile_int8.py:101`. It passes `c_size_t` shape values from real contiguous `ndpointer` arrays and turns any non-zero status into `RuntimeError`, so the new rejection is handled.\n  - The existing null-pointer and round-trip tests (`ffi.rs:232+`) are unaffected.\n- **The new test is sound:** `ptr::dangling()` gives non-null, aligned pointers that are never dereferenced, because the function rejects before any read. `handle` stays null, and the test reaches no `Device::new`, so it needs no GPU.\n\n**Non-blocking points:**\n\n1. **Evidence binding is indirect.** `full-tests-receipt.json` records only binary hashes. It ties to the `ffi.rs` source only through `full.py:6`, which asserts that the library test binary hash equals `green-receipt.json` (and that receipt binds 654901b5). The other three binaries (`rc4_profile`, `merge_boundary`, main) have no source-hash record in this directory. That is acceptable for an FFI-only commit, but the commit message should say it.\n2. **Valid inputs near the limit are still a resource hazard.** A caller with an honest `rows == MAX_GALLERY_ROWS` would still ask for about 256 GiB in `to_vec` and could abort on allocation failure. That falls under the caller's C ABI obligations, is not undefined behaviour, and is not worth a redesign here.\n3. **Minor:** `code_len` is computed before the `dimensions != 128` check. Both paths return `STATUS_INVALID`, so behaviour is the same.\n\nAs you said, approving this commit does not approve promoting or deploying the protected `topk.rs` candidate. The sequential cross-thread cache check is still a future gate.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "claude": "**Verdict: approve committing only the `ffi.rs` boundary fix, its regression test and the `cutile-ffi-size-v1` evidence.** I found no concrete correctness gap. I only read files; I ran no tests or GPU work. The file hashes match what you gave: `ffi.rs` is 654901b5\u2026 and the protected `topk.rs` is 1ae7f50a\u2026. Do not stage `topk.rs`.\n\n**What I checked:**\n\n- **Guard order:** In `ffi.rs:59-73`, every size, dimension and pointer check now returns `STATUS_INVALID` before the first raw-slice copy (`ffi.rs:75`). The old code checked `rows*dimensions` for overflow but not against `isize::MAX` or the padded signed bound. That is how the RED run reached a 274,877,890,688-byte `to_vec` and aborted with SIGABRT.\n- **Signed bound matches top-k:** a row count passes `rows \u2264 \u230ai32::MAX/128\u230b\u00b7128` exactly when rounding it up to a multiple of 128 stays within `i32::MAX`. That is the same rule as the committed `validated_topk_padded_rows` (`topk.rs:16-30`, identical in the protected copy). At the limit, the largest padded count is 2,147,483,520. The largest padded-lane ordinal, 2,147,483,519, stays below the `i32::MAX` sentinel. The FFI guard only duplicates the check up front and rejects nothing top-k would accept.\n- **Raw-slice size limits:**\n  - Codes: `code_len \u2264 isize::MAX` is checked explicitly.\n  - Norms (`u16`): the slice is `2\u00b7rows` bytes. That is at most about 4.3 GB on 64-bit, and on 32-bit `rows \u2264 isize::MAX/128` keeps it far below `isize::MAX`. So the bound follows from the code-byte guard and the `dimensions == 128` check, as you said.\n  - Search: lengths come from `query_rows \u2208 {1, 32}` and `k = 10`, so they are trivially bounded. `ranges_overlap` already fails closed on overflow.\n- **32-bit targets:**\n  - The constant 2,147,483,520 fits in `u32`, and every test row value (`maximum_padded+1`, `isize::MAX/128+1`, `usize::MAX/128+1`, `usize::MAX`) is representable.\n  - On 32-bit the `isize` guard binds first (rows \u2264 16,777,215).\n  - Top-k then does `DIMENSIONS*padded_rows = 2\u00b3\u00b9`, which does not wrap. If it fails, it is a capacity panic that `catch_unwind` turns into `STATUS_PANIC`, not undefined behaviour. This is pre-existing and out of scope.\n- **Callers:**\n  - The only production caller is `src/sfora/cutile_int8.py:101`. It passes `c_size_t` shape values from real contiguous `ndpointer` arrays and turns any non-zero status into `RuntimeError`, so the new rejection is handled.\n  - The existing null-pointer and round-trip tests (`ffi.rs:232+`) are unaffected.\n- **The new test is sound:** `ptr::dangling()` gives non-null, aligned pointers that are never dereferenced, because the function rejects before any read. `handle` stays null, and the test reaches no `Device::new`, so it needs no GPU.\n\n**Non-blocking points:**\n\n1. **Evidence binding is indirect.** `full-tests-receipt.json` records only binary hashes. It ties to the `ffi.rs` source only through `full.py:6`, which asserts that the library test binary hash equals `green-receipt.json` (and that receipt binds 654901b5). The other three binaries (`rc4_profile`, `merge_boundary`, main) have no source-hash record in this directory. That is acceptable for an FFI-only commit, but the commit message should say it.\n2. **Valid inputs near the limit are still a resource hazard.** A caller with an honest `rows == MAX_GALLERY_ROWS` would still ask for about 256 GiB in `to_vec` and could abort on allocation failure. That falls under the caller's C ABI obligations, is not undefined behaviour, and is not worth a redesign here.\n3. **Minor:** `code_len` is computed before the `dimensions != 128` check. Both paths return `STATUS_INVALID`, so behaviour is the same.\n\nAs you said, approving this commit does not approve promoting or deploying the protected `topk.rs` candidate. The sequential cross-thread cache check is still a future gate."
+      },
+      "providers_used": [
+        "claude"
+      ],
+      "active_provider": "claude",
+      "phase": "Consultation completed",
+      "input_bytes": 3690,
+      "output_bytes": 3853,
+      "elapsed_seconds": 60,
+      "progress": "devbox-ask: claude consult still running (0m 30s)",
+      "progress_truncated": false,
+      "result": "**Verdict: approve committing only the `ffi.rs` boundary fix, its regression test and the `cutile-ffi-size-v1` evidence.** I found no concrete correctness gap. I only read files; I ran no tests or GPU work. The file hashes match what you gave: `ffi.rs` is 654901b5\u2026 and the protected `topk.rs` is 1ae7f50a\u2026. Do not stage `topk.rs`.\n\n**What I checked:**\n\n- **Guard order:** In `ffi.rs:59-73`, every size, dimension and pointer check now returns `STATUS_INVALID` before the first raw-slice copy (`ffi.rs:75`). The old code checked `rows*dimensions` for overflow but not against `isize::MAX` or the padded signed bound. That is how the RED run reached a 274,877,890,688-byte `to_vec` and aborted with SIGABRT.\n- **Signed bound matches top-k:** a row count passes `rows \u2264 \u230ai32::MAX/128\u230b\u00b7128` exactly when rounding it up to a multiple of 128 stays within `i32::MAX`. That is the same rule as the committed `validated_topk_padded_rows` (`topk.rs:16-30`, identical in the protected copy). At the limit, the largest padded count is 2,147,483,520. The largest padded-lane ordinal, 2,147,483,519, stays below the `i32::MAX` sentinel. The FFI guard only duplicates the check up front and rejects nothing top-k would accept.\n- **Raw-slice size limits:**\n  - Codes: `code_len \u2264 isize::MAX` is checked explicitly.\n  - Norms (`u16`): the slice is `2\u00b7rows` bytes. That is at most about 4.3 GB on 64-bit, and on 32-bit `rows \u2264 isize::MAX/128` keeps it far below `isize::MAX`. So the bound follows from the code-byte guard and the `dimensions == 128` check, as you said.\n  - Search: lengths come from `query_rows \u2208 {1, 32}` and `k = 10`, so they are trivially bounded. `ranges_overlap` already fails closed on overflow.\n- **32-bit targets:**\n  - The constant 2,147,483,520 fits in `u32`, and every test row value (`maximum_padded+1`, `isize::MAX/128+1`, `usize::MAX/128+1`, `usize::MAX`) is representable.\n  - On 32-bit the `isize` guard binds first (rows \u2264 16,777,215).\n  - Top-k then does `DIMENSIONS*padded_rows = 2\u00b3\u00b9`, which does not wrap. If it fails, it is a capacity panic that `catch_unwind` turns into `STATUS_PANIC`, not undefined behaviour. This is pre-existing and out of scope.\n- **Callers:**\n  - The only production caller is `src/sfora/cutile_int8.py:101`. It passes `c_size_t` shape values from real contiguous `ndpointer` arrays and turns any non-zero status into `RuntimeError`, so the new rejection is handled.\n  - The existing null-pointer and round-trip tests (`ffi.rs:232+`) are unaffected.\n- **The new test is sound:** `ptr::dangling()` gives non-null, aligned pointers that are never dereferenced, because the function rejects before any read. `handle` stays null, and the test reaches no `Device::new`, so it needs no GPU.\n\n**Non-blocking points:**\n\n1. **Evidence binding is indirect.** `full-tests-receipt.json` records only binary hashes. It ties to the `ffi.rs` source only through `full.py:6`, which asserts that the library test binary hash equals `green-receipt.json` (and that receipt binds 654901b5). The other three binaries (`rc4_profile`, `merge_boundary`, main) have no source-hash record in this directory. That is acceptable for an FFI-only commit, but the commit message should say it.\n2. **Valid inputs near the limit are still a resource hazard.** A caller with an honest `rows == MAX_GALLERY_ROWS` would still ask for about 256 GiB in `to_vec` and could abort on allocation failure. That falls under the caller's C ABI obligations, is not undefined behaviour, and is not worth a redesign here.\n3. **Minor:** `code_len` is computed before the `dimensions != 128` check. Both paths return `STATUS_INVALID`, so behaviour is the same.\n\nAs you said, approving this commit does not approve promoting or deploying the protected `topk.rs` candidate. The sequential cross-thread cache check is still a future gate.",
+      "result_truncated": false
+    },
+    {
+      "role": "engineering_critic",
+      "id": "4b61ea5be60b4d31",
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "fallbacks": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "agent": "sfora/emafactorial",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1790602846,
+      "timeout_seconds": 1200,
+      "deadline_at": 1790604046,
+      "budget_usd": null,
+      "prompt_preview": "Act as the independent adversarial engineering and release critic. Inspect correctness, failure modes, security, operability, tests, and UX. Prioritize concrete findings with evidence. Do not edit files.\n\nMaterial to critique:\nREAD-ONLY consequential release review of ONLY NEW shared FFI size-validation fix. Repo /home/rb/worktrees/sfora-positive-causality master3072f47b; uncommitted rust/sfora-cutile-int8-score/src/ffi.rs SHA654901b53ee41f3c1c4a2d8e55910e6f2241e89e896fbb018d5b17f921bcc809. Do not edit, launch tests/GPU/jobs/downloads/consultations/workers or contact operator. Protected uncommitted topk.rs SHA1ae7f50aa3d222dbc6c6489c4c344ce836d01b895e05341d368db35c6d0cb587 must stay untouched/unstaged/unpromoted. Question: approve committing ONLY FFI boundaryfix+regression/evidence, or identify concrete correctness gap? Prior review6cf20281a3c24920 flagged preexisting create raw-slice/copy before signed/padded gallery bound. Currentfix introduces MAX_GALLERY_ROWS=floor(i32MAX/128)*128, checked rows*dimensions bytes<=isizeMAX, rejects invalid dimensions/rows/pointers BEFORE copies. Inverse norms u16 rawslice size implicitly bounded by dimensions128/code-byte guard; validate reasoning also32bit target. Topk private validation pads128 and rejects>i32MAX, do not change it. Search only supports1/32 and dims128/k10 so lengths bounded. CABI unsafe caller obligations remain, no attempt tovalidate actual allocation provenance. One new test passes unsupported metadata rows [maxpadded+1,isizeMAX/128+1,usizeMAX/128+1,usizeMAX] with inertaligned dangling pointers and valid null outputslot, expectingSTATUS_INVALID withoutread/outputmutation. RED bounded addressspace1GiB CUDAhidden: oldcode tried274877890688B allocation thenSIGABRT-6; original inv37877e38e1864f55871bd466f1ced53c. GREEN inv63ab3469b49d40449e775bd1e0604f77 compile1.85s andtestPASS all4. OfflinewholeRust CPU--no-run430c752f82824a74b6f48e5091d2e779 EXIT0 2.27s. First fullGPU launcher0daa5c0ecec14b55885ec4f0f0d1d2a2 erroneouslyomittedBINDGEN_EXTRA_CLANG_ARGS -> Cargorecompiledbindings stddef.hmissing EXIT1012.21s BEFOREtests/GPUkernels; preservedraw. Corrected fullgate executes compiledhashchecked binaries directly insteadofbuilding duringGPU: d9e4bfa00ca44b05a91bead97f76d45d all15testsPASS (11lib +1RC4 +1main +2integration);300/299s8GiB/sharedGPUlock, actualtimes inarchive. Evidence docs/evidence/compact_metric/sop-siglip2-substrate-v1/cutile-ffi-size-v1 {red/green-receipt.json,red/green.log,full-build.log,full-gpu.log,full-gpu-v2.log,full-tests-receipt.json,cpu.py,full.py,resource-time files}. Remoteisolatedroot /home/riomus/runs/sfora-cutile-ffi-size-v1 uses ORIGINALcommittedtopk, samecrateallotherfiles; onlyFFIguard/test changed; all15executables sourcecompiledCPUcachedsource hashlibmatchesgreen, devicechecksnontrivial including FFI129rowb1/32 andscalarwire/mergeboundarydistinctqueries. EntirePythonCI/site not rerun unchangedPython/site; no doc tests present. Prior nativecomparison result3072f47b verifies runtimekernel456exactcalls andnonregression but DOESNOTpromoteprotectedcandidate. Full production SOP/InShop jointquality+speed goalunmet; no newquality/performanceclaim, no newtraining. Independently inspect everycreatecaller rustffi/Pythonapi/tests and signedbound equivalence, overflow/32bit/rawslice contracts. Reject any realbug withminimalfix; avoid unrelated safety redesign or testingtuning list. Approving this FFIcommit is not approving protectedkernelpromotion/deployment; sequentialcross-threadcachecheck remains futuregate.",
+      "prompt_sha256": "6b35e722afd65ca2c238d9fee6c2f9196e6511ed02a2fe291ca3bb46a40de33e",
+      "prompt_bytes": 3724,
+      "fingerprint": "5b37066e0a69025409b3dc4606d6262afe185386d4a34431507f3282f97acab2",
+      "evidence": {
+        "git_commit": "3072f47b66bca8ad958854efa59b36991e925930",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "78f536f38cbfe2f96a4c2f5a75013cf9e922903a049fd784388f265fa7cfbdc0",
+        "worktree_sha256": "dd105b68762b7a1e4cec36cb2e0abc1b3e169a098c911ce4f74cd6a71551afad",
+        "worktree_evidence_truncated": false,
+        "active_goal": {
+          "id": "goal-1790540789-1790540789754989478-2322852",
+          "agent": "sfora/emafactorial",
+          "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+          "status": "queued",
+          "revision": 1,
+          "actor": "operator",
+          "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+          "created_at": 1790540789,
+          "updated_at": 1790540789
+        }
+      },
+      "previous_fingerprint": "1b1763e99352dbb3b3b6d39afb982a922eecf196444ab2230bac4e53a043c810",
+      "reused": false,
+      "critique_id": "cfd8499c0b0545b3",
+      "critique_role": "engineering_critic",
+      "systemd_unit": "devbox-consult-4b61ea5be60b4d31.service",
+      "pid": 1992316,
+      "pgid": 1992316,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra",
+          "budget_usd": null,
+          "timeout_seconds": 1200,
+          "started_at": 1790602846
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1790602942,
+      "event_cursor": 43,
+      "events": [
+        {
+          "seq": 20,
+          "at": 1790602899,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 21,
+          "at": 1790602899,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 22,
+          "at": 1790602899,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 23,
+          "at": 1790602899,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 24,
+          "at": 1790602899,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 25,
+          "at": 1790602900,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 26,
+          "at": 1790602900,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 27,
+          "at": 1790602908,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 28,
+          "at": 1790602915,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 29,
+          "at": 1790602915,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 30,
+          "at": 1790602915,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 31,
+          "at": 1790602915,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 32,
+          "at": 1790602915,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 33,
+          "at": 1790602915,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 34,
+          "at": 1790602915,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 35,
+          "at": 1790602915,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 36,
+          "at": 1790602915,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 37,
+          "at": 1790602915,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 38,
+          "at": 1790602923,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 39,
+          "at": 1790602928,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 40,
+          "at": 1790602928,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 41,
+          "at": 1790602928,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 42,
+          "at": 1790602940,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 43,
+          "at": 1790602941,
+          "provider": "codex",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": true,
+      "provider_events": {
+        "codex": [
+          {
+            "seq": 36,
+            "at": 1790602915,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 37,
+            "at": 1790602915,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 38,
+            "at": 1790602923,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 39,
+            "at": 1790602928,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 40,
+            "at": 1790602928,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 41,
+            "at": 1790602928,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 42,
+            "at": 1790602940,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 43,
+            "at": 1790602941,
+            "provider": "codex",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "**Approve committing only the FFI guard, regression test, and associated evidence. No blocking correctness gap found.**\n\n- In [ffi.rs](/home/rb/worktrees/sfora-positive-causality/rust/sfora-cutile-int8-score/src/ffi.rs:57), overflow, slice-size, metadata, and pointer checks precede both copies and output writes.\n- `MAX_GALLERY_ROWS = 2,147,483,520` exactly matches the committed top-k padded signed bound. On 32-bit targets, the byte guard further limits rows to `16,777,215`; `rows \u00d7 2` for inverse norms is therefore safely below `isize::MAX`.\n- Rust callers and the Python wrapper remain compatible. Allocation validity and provenance remain unsafe-caller obligations.\n- Archived evidence records the baseline allocation abort, passing four-case regression, and all 15 Rust tests passing. The green source hash matches the reviewed file; the full-run library hash matches green. I did not rerun tests.\n\nProtected `topk.rs` retains its supplied hash and remains unstaged. This approval excludes kernel promotion, deployment, and quality/performance claims; the sequential cross-thread cache gate remains outstanding.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "codex": "**Approve committing only the FFI guard, regression test, and associated evidence. No blocking correctness gap found.**\n\n- In [ffi.rs](/home/rb/worktrees/sfora-positive-causality/rust/sfora-cutile-int8-score/src/ffi.rs:57), overflow, slice-size, metadata, and pointer checks precede both copies and output writes.\n- `MAX_GALLERY_ROWS = 2,147,483,520` exactly matches the committed top-k padded signed bound. On 32-bit targets, the byte guard further limits rows to `16,777,215`; `rows \u00d7 2` for inverse norms is therefore safely below `isize::MAX`.\n- Rust callers and the Python wrapper remain compatible. Allocation validity and provenance remain unsafe-caller obligations.\n- Archived evidence records the baseline allocation abort, passing four-case regression, and all 15 Rust tests passing. The green source hash matches the reviewed file; the full-run library hash matches green. I did not rerun tests.\n\nProtected `topk.rs` retains its supplied hash and remains unstaged. This approval excludes kernel promotion, deployment, and quality/performance claims; the sequential cross-thread cache gate remains outstanding."
+      },
+      "providers_used": [
+        "codex"
+      ],
+      "active_provider": "codex",
+      "phase": "Consultation completed",
+      "input_bytes": 3724,
+      "output_bytes": 1122,
+      "elapsed_seconds": 96,
+      "progress": "Reading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)\ndevbox-ask: codex consult still running (1m 30s)",
+      "progress_truncated": false,
+      "result": "**Approve committing only the FFI guard, regression test, and associated evidence. No blocking correctness gap found.**\n\n- In [ffi.rs](/home/rb/worktrees/sfora-positive-causality/rust/sfora-cutile-int8-score/src/ffi.rs:57), overflow, slice-size, metadata, and pointer checks precede both copies and output writes.\n- `MAX_GALLERY_ROWS = 2,147,483,520` exactly matches the committed top-k padded signed bound. On 32-bit targets, the byte guard further limits rows to `16,777,215`; `rows \u00d7 2` for inverse norms is therefore safely below `isize::MAX`.\n- Rust callers and the Python wrapper remain compatible. Allocation validity and provenance remain unsafe-caller obligations.\n- Archived evidence records the baseline allocation abort, passing four-case regression, and all 15 Rust tests passing. The green source hash matches the reviewed file; the full-run library hash matches green. I did not rerun tests.\n\nProtected `topk.rs` retains its supplied hash and remains unstaged. This approval excludes kernel promotion, deployment, and quality/performance claims; the sequential cross-thread cache gate remains outstanding.",
+      "result_truncated": false
+    }
+  ],
+  "reused": false,
+  "finished_at": 1790602961,
+  "elapsed_seconds": 96,
+  "input_bytes": 3320,
+  "output_bytes": 4975
+}

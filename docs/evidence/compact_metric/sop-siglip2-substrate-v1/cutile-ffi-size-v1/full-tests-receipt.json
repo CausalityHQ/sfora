@@ -1,0 +1,22 @@
+[
+  {
+    "binary": "sfora_cutile_int8_score-31028a1d4def638e",
+    "sha256": "37aa3656b3988773f6ee3ac6defd83ce2c6a0d4c78e256db67eb831e9274f8c7",
+    "exit": 0
+  },
+  {
+    "binary": "rc4_profile-26552007ceae0576",
+    "sha256": "837651c3c906ab41e20911053ddbbb38d42e64cb1d22b585a95b9f369e999c08",
+    "exit": 0
+  },
+  {
+    "binary": "sfora_cutile_int8_score-3bcad7c2897388a4",
+    "sha256": "c6cab43fbc26f601e6d4a68fb87de18d9fe89b6b8fbbf0dcf18d21f3b70e6bf0",
+    "exit": 0
+  },
+  {
+    "binary": "merge_boundary-16a4d0078bee43e4",
+    "sha256": "89dd351b9c4a2ad8cee60067095381c60ceefd336c0340660287da9e75107707",
+    "exit": 0
+  }
+]

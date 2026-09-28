@@ -1,0 +1,72 @@
+diff --git a/rust/sfora-cutile-int8-score/src/ffi.rs b/rust/sfora-cutile-int8-score/src/ffi.rs
+index 52de6051..213755fd 100644
+--- a/rust/sfora-cutile-int8-score/src/ffi.rs
++++ b/rust/sfora-cutile-int8-score/src/ffi.rs
+@@ -15,6 +15,8 @@ const STATUS_RUNTIME: i32 = 2;
+ const STATUS_PANIC: i32 = 3;
+ const DIMENSIONS: usize = 128;
+ const TOP_K: usize = 10;
++// Top-k pads gallery rows to 128 lanes; padded ordinals must fit signed i32.
++const MAX_GALLERY_ROWS: usize = (i32::MAX as usize / 128) * 128;
+ 
+ struct PackedGalleryHandle {
+     gallery: PreparedPackedGallery,
+@@ -54,17 +56,22 @@ pub unsafe extern "C" fn sfora_cutile_int8_create(
+     dimensions: usize,
+     output_handle: *mut *mut c_void,
+ ) -> i32 {
++    let Some(code_len) = rows
++        .checked_mul(dimensions)
++        .filter(|&bytes| bytes <= isize::MAX as usize)
++    else {
++        return STATUS_INVALID;
++    };
+     if dimensions != DIMENSIONS
+         || rows < TOP_K
++        || rows > MAX_GALLERY_ROWS
+         || !aligned(codes)
+         || !aligned(inverse_norm_bits)
+         || !mutable_aligned(output_handle)
+-        || rows.checked_mul(dimensions).is_none()
+     {
+         return STATUS_INVALID;
+     }
+     match catch_unwind(AssertUnwindSafe(|| {
+-        let code_len = rows * dimensions;
+         let copied_codes = unsafe { slice::from_raw_parts(codes, code_len) }.to_vec();
+         let copied_norms = unsafe { slice::from_raw_parts(inverse_norm_bits, rows) }
+             .iter()
+@@ -190,6 +197,33 @@ mod tests {
+         (codes, norms)
+     }
+ 
++    #[test]
++    fn ffi_rejects_unsupported_gallery_sizes_before_buffer_access() {
++        let maximum_padded = (i32::MAX as usize / 128) * 128;
++        for rows in [
++            maximum_padded + 1,
++            isize::MAX as usize / 128 + 1,
++            usize::MAX / 128 + 1,
++            usize::MAX,
++        ] {
++            let mut handle: *mut c_void = ptr::null_mut();
++            // Invalid metadata must be rejected before these inert pointers are read.
++            assert_eq!(
++                unsafe {
++                    sfora_cutile_int8_create(
++                        ptr::dangling(),
++                        ptr::dangling(),
++                        rows,
++                        128,
++                        &mut handle,
++                    )
++                },
++                super::STATUS_INVALID
++            );
++            assert!(handle.is_null());
++        }
++    }
++
+     #[test]
+     fn ffi_fails_closed_and_round_trips_exact_top_ten() {
+         unsafe {

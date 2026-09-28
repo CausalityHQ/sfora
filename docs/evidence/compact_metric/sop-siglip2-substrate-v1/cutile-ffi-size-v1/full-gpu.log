@@ -1,0 +1,37 @@
+   Compiling bindgen v0.69.5
+   Compiling cuda-bindings v0.1.1
+error: failed to run custom build command for `cuda-bindings v0.1.1`
+
+Caused by:
+  process didn't exit successfully: `/home/riomus/cutile-rs-c299d449/target/release/build/cuda-bindings-5c2bbd0eb7a9c905/build-script-build` (exit status: 1)
+  --- stdout
+  cargo:rerun-if-changed=wrapper.h
+  cargo:rerun-if-env-changed=CUDA_TOOLKIT_PATH
+  cargo:rerun-if-env-changed=TARGET
+  cargo:rerun-if-env-changed=BINDGEN_EXTRA_CLANG_ARGS_aarch64-unknown-linux-gnu
+  cargo:rerun-if-env-changed=BINDGEN_EXTRA_CLANG_ARGS_aarch64_unknown_linux_gnu
+  cargo:rerun-if-env-changed=BINDGEN_EXTRA_CLANG_ARGS
+  cargo:rerun-if-changed=wrapper.h
+
+  --- stderr
+  /usr/include/stdlib.h:32:10: fatal error: 'stddef.h' file not found
+  clang diagnosed error: /usr/include/stdlib.h:32:10: fatal error: 'stddef.h' file not found
+
+warning: build failed, waiting for other jobs to finish...
+error: failed to run custom build command for `cuda-bindings v0.1.1`
+
+Caused by:
+  process didn't exit successfully: `/home/riomus/cutile-rs-c299d449/target/release/build/cuda-bindings-5c2bbd0eb7a9c905/build-script-build` (exit status: 1)
+  --- stdout
+  cargo:rerun-if-changed=wrapper.h
+  cargo:rerun-if-env-changed=CUDA_TOOLKIT_PATH
+  cargo:rerun-if-env-changed=TARGET
+  cargo:rerun-if-env-changed=BINDGEN_EXTRA_CLANG_ARGS_aarch64-unknown-linux-gnu
+  cargo:rerun-if-env-changed=BINDGEN_EXTRA_CLANG_ARGS_aarch64_unknown_linux_gnu
+  cargo:rerun-if-env-changed=BINDGEN_EXTRA_CLANG_ARGS
+  cargo:rerun-if-changed=wrapper.h
+
+  --- stderr
+  /usr/include/stdlib.h:32:10: fatal error: 'stddef.h' file not found
+  clang diagnosed error: /usr/include/stdlib.h:32:10: fatal error: 'stddef.h' file not found
+

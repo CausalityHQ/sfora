@@ -1,0 +1,8 @@
+     Removed 10 files, 27.0MiB total
+   Compiling sfora-cutile-int8-score v0.1.0 (/home/riomus/runs/sfora-cutile-ffi-size-v1/rust/sfora-cutile-int8-score)
+    Finished `release` profile [optimized] target(s) in 1.69s
+
+running 1 test
+test ffi::tests::ffi_rejects_unsupported_gallery_sizes_before_buffer_access ... memory allocation of 274877890688 bytes failed
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+{"phase": "red", "test_returncode": -6, "ffi_sha256": "b487849cb1ce70d32fcad201a03e9f9cdea7536c6336004c09f9dabd468a44c0", "binary_sha256": "bce5b93be25e1250589a070775557360d2dc6fb1a3fdfb151f3e2bc63164abbf", "address_space_bytes": 1073741824, "cuda_visible_devices": ""}

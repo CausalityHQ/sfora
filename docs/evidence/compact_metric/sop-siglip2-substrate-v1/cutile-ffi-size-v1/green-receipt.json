@@ -1,0 +1,8 @@
+{
+  "phase": "green",
+  "test_returncode": 0,
+  "ffi_sha256": "654901b53ee41f3c1c4a2d8e55910e6f2241e89e896fbb018d5b17f921bcc809",
+  "binary_sha256": "37aa3656b3988773f6ee3ac6defd83ce2c6a0d4c78e256db67eb831e9274f8c7",
+  "address_space_bytes": 1073741824,
+  "cuda_visible_devices": ""
+}

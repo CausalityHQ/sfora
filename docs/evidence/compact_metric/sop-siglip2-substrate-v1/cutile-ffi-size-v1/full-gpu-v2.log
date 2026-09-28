@@ -1,0 +1,36 @@
+
+running 11 tests
+test ffi::tests::ffi_fails_closed_and_round_trips_exact_top_ten ... ok
+test ffi::tests::ffi_rejects_unsupported_gallery_sizes_before_buffer_access ... ok
+test kernel::tests::cutile_scores_match_scalar_bits_and_lexicographic_top_ten ... ok
+test topk::tests::device_top_ten_matches_scalar_across_boundaries_batches_and_ties ... ok
+test topk::tests::diagnostic_split_preserves_exact_scores_and_stable_ordinals ... ok
+test topk::tests::gallery_row_limit_preserves_signed_ordinals_and_padded_shape ... ok
+test topk::tests::output_ordinal_rejects_placeholders_and_out_of_gallery_values ... ok
+test wire::tests::invalid_wire_lengths_and_metadata_fail_closed ... ok
+test wire::tests::scalar_score_handles_valid_width_beyond_i32_dot_range ... ok
+test wire::tests::score_rejects_dimension_mismatch ... ok
+test wire::tests::valid_rows_and_signed_extremes_score_exactly ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 8.49s
+
+
+running 1 test
+test tests::f16_wire_rejects_odd_bytes_and_preserves_little_endian_bits ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 1 test
+test tests::receipt_recomputes_nearest_rank_percentiles_and_excludes_compile_time ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 2 tests
+test batch_thirty_two_merge_keeps_ties_across_width_boundary ... ok
+test batch_thirty_two_merge_preserves_distinct_query_rows ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.61s
+
+PASS all four compiled Rust test targets

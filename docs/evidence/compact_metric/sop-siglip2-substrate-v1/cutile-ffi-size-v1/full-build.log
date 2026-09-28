@@ -1,0 +1,6 @@
+   Compiling sfora-cutile-int8-score v0.1.0 (/home/riomus/runs/sfora-cutile-ffi-size-v1/rust/sfora-cutile-int8-score)
+    Finished `release` profile [optimized] target(s) in 2.25s
+  Executable unittests src/lib.rs (/home/riomus/cutile-rs-c299d449/target/release/deps/sfora_cutile_int8_score-31028a1d4def638e)
+  Executable unittests src/bin/rc4_profile.rs (/home/riomus/cutile-rs-c299d449/target/release/deps/rc4_profile-26552007ceae0576)
+  Executable unittests src/main.rs (/home/riomus/cutile-rs-c299d449/target/release/deps/sfora_cutile_int8_score-3bcad7c2897388a4)
+  Executable tests/merge_boundary.rs (/home/riomus/cutile-rs-c299d449/target/release/deps/merge_boundary-16a4d0078bee43e4)

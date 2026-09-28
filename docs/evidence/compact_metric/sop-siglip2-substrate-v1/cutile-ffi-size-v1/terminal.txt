@@ -1,0 +1,25 @@
+	Command being timed: "/usr/bin/python3 /home/riomus/runs/sfora-cutile-ffi-size-v1/full.py"
+	User time (seconds): 8.17
+	System time (seconds): 3.02
+	Percent of CPU this job got: 99%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:11.30
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 198324
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 576610
+	Voluntary context switches: 899
+	Involuntary context switches: 132
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 68192
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+2026-09-28T15:39:45+02:00 spark-2751 systemd[3489]: Started sfora-cutile-ffi-size-full-gpu-v2.service - /usr/bin/flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock /usr/bin/time -v -o /home/riomus/runs/sfora-cutile-ffi-size-v1/full-gpu-v2-time.txt /usr/bin/python3 /home/riomus/runs/sfora-cutile-ffi-size-v1/full.py.
+2026-09-28T15:39:57+02:00 spark-2751 systemd[3489]: sfora-cutile-ffi-size-full-gpu-v2.service: Consumed 11.200s CPU time, 1.9M memory peak, 0B memory swap peak.

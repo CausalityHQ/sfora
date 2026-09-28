@@ -1,0 +1,48 @@
+{
+  "schema": "sfora-ffi-size-v1",
+  "claim_eligible": false,
+  "source_base_commit": "3072f47b66bca8ad958854efa59b36991e925930",
+  "original_topk_sha256": "07bbf023aa372e9f569548dd275c55a34e30329b07cc9cf301694eef65e4ff24",
+  "ffi_sha256": "654901b53ee41f3c1c4a2d8e55910e6f2241e89e896fbb018d5b17f921bcc809",
+  "invocations": {
+    "red": "37877e38e1864f55871bd466f1ced53c",
+    "green": "63ab3469b49d40449e775bd1e0604f77",
+    "full_build": "430c752f82824a74b6f48e5091d2e779",
+    "failed_full_launch": "0daa5c0ecec14b55885ec4f0f0d1d2a2",
+    "passed_full_gpu": "d9e4bfa00ca44b05a91bead97f76d45d"
+  },
+  "launch_limits": {
+    "cpu_seconds_each": 120,
+    "host_memory_bytes": 8589934592,
+    "regression_child_address_space_bytes": 1073741824,
+    "gpu_seconds": [
+      300,
+      299
+    ],
+    "gpu_lock": "/home/riomus/runs/.sfora-siglip2-gpu.lock",
+    "authority": "original native launch arguments"
+  },
+  "files_sha256": {
+    "baseline-ffi.rs.txt": "9087b5260a8d3b242f0f4db3655c6044fcd52fa476ae44924ebbd134244cee6c",
+    "cpu.py": "26cdfcc3a4d47b886f478e2ff11820c4664e24b5dde9fded0ef3ea103a18220f",
+    "dual-start.json": "2e377f9eb7a8c0769a27c1a2cc491599e11ea05e01a6ea0392de72102f74536f",
+    "ffi.rs.txt": "654901b53ee41f3c1c4a2d8e55910e6f2241e89e896fbb018d5b17f921bcc809",
+    "fix.patch": "cb83a6af41aeab0be7d6ea85d7eb30a708d44a65c081209f0a95a8f0af42f5ff",
+    "full-build-time.txt": "0df310d61cb35ad13e10ae396304226126fd9596de4015bd31688d6eac9589d5",
+    "full-build.log": "f97e864fa680630f5ba0090c6717f0cd2db1065d2755e7b2a7ec756b15ca1646",
+    "full-gpu-time.txt": "a70c63e8c15809d00da0cf0c6c9da85bee146012e2d4d4bdd9f04b89b6af27e9",
+    "full-gpu-v2-time.txt": "403117f99db4a763e6c73eb6297f3a87b060320cab1eb67f8b999ec2141e1c87",
+    "full-gpu-v2.log": "b6392931dbc39ccd00ab8a7fcc90cd6f554d36e527de9b53649c8c38f18b1e28",
+    "full-gpu.log": "3712ef2dc15dad7ec53bc9c53594e63fba493c5ae4313e5005731d0101989bce",
+    "full-tests-receipt.json": "38368b1231b3c8c49dcd393af2f640dd3e42134ea6eee69b77e25c3cffb47dd9",
+    "full.py": "2f2dfda61b5d35df44a0ececf939376446d0328c5b86dad7f19a92dafbf6c141",
+    "green-receipt.json": "4b84756014a82fb07d02d2dad3a92b93bfb774145432030895337c517f23f35a",
+    "green-time.txt": "e150edfafdee847c5ba97722b8218cc62876e459d26f2363d95e963eb03483d2",
+    "green.log": "a9520b14ab31edfb6765e5adbbfdcf394578c69f8e59dbecaa6b638d8b3225cc",
+    "red-receipt.json": "fcd40a7bfa9d9b7ba9261ccbc0514b3263cc44cc2b2c0ae63694a73978ece08e",
+    "red-time.txt": "4f3128bcef03bef5ae35a92d47b7d6f196606a7d13ceb8daecfb2063310c2981",
+    "red.log": "b51f90d68fb9440e5ed9c1a55e5cecdfc77aaa78dfc25a973dffe1d0d540d2c8",
+    "terminal.txt": "e49487f0000c3d92aa02a5c2a58213e0965ab6da17db55026362d1d13fcf4db2",
+    "dual-result.json": "5221b0f9ff20d5eeb8ad8e2d68ed962dc639716cf70532cf959373f3f88ad6b1"
+  }
+}

@@ -1,0 +1,10 @@
+     Removed 6 files, 10.9MiB total
+   Compiling sfora-cutile-int8-score v0.1.0 (/home/riomus/runs/sfora-cutile-ffi-size-v1/rust/sfora-cutile-int8-score)
+    Finished `release` profile [optimized] target(s) in 1.73s
+
+running 1 test
+test ffi::tests::ffi_rejects_unsupported_gallery_sizes_before_buffer_access ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 10 filtered out; finished in 0.00s
+
+{"phase": "green", "test_returncode": 0, "ffi_sha256": "654901b53ee41f3c1c4a2d8e55910e6f2241e89e896fbb018d5b17f921bcc809", "binary_sha256": "37aa3656b3988773f6ee3ac6defd83ce2c6a0d4c78e256db67eb831e9274f8c7", "address_space_bytes": 1073741824, "cuda_visible_devices": ""}
