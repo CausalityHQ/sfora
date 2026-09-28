@@ -1,0 +1,71 @@
+{
+  "id": "6cf20281a3c24920",
+  "status": "running",
+  "started_at": 1790601160,
+  "agent": "sfora/emafactorial",
+  "force_reason": "New terminal positive GPU exactness plus native JIT reuse receipts (14 unique misses, 5 score keys per batch) for preserved runtime-bound Rust candidate; prior dual only rejected subcenter quality proposal. First consequential review of this concrete kernel and next matched comparison, before any promotion.",
+  "rolling_6h_count": 2,
+  "prompt_preview": "READ-ONLY consequential engineering/release review of NEW DGX terminal positive evidence, not previous quality/subcenter critiques. Repo /home/rb/worktrees/sfora-positive-causality master d2303c3ae9d50a2688fab9ac93062c8c1f34cb12; preserved uncommitted rust/sfora-cutile-int8-score/src/topk.rs candidate SHA1ae7f50aa3d222dbc6c6489c4c344ce836d01b895e05341d368db35c6d0cb587. Do NOTedit/tests/jobs/GPU/training/downloads/consultations/workers/operatorcontact. Goal full production joint strongest protocolmatched SOP+InShop quality and fasterfullimage-topk remains unmet; this only advances mandatoryexactness/deployability, NOTnewquality orspeedwin. Candidate changes gallery/merge bounds constgenerics->scalar i32, checkedconversions, no math/fusions; remainUNTouchedUNSTAGEDunpromoted. Evidence docs/cutile_runtime_bounds_gate_2026-09-28.md, docs/cutile_runtime_reuse_gate_2026-09-28.md +raw docs/evidence/compact_metric/sop-siglip2-substrate-v1/{cutile-runtime-bounds-v1,cutile-runtime-reuse-v1}. Sourcearchmanifest11filespinned+candidate.patch; offlineCPU--locked--release--lib--no-run PASS11.85sec after documentedCUDAenvlauncherror6.24sec beforeGPU. BinarySHA5539fee25b6602dd0402f82b656be57ca85c666eeb0f635b2ed1428263e9d3df actualGPUall4topktests PASS12.27s twoGPUexact+2authority; batches1/32,8galbounds10/127/128/129/132/136/257/4097 andfused/split5sizes. Numericalf32scores/as_pairs+ord/ties vsRustscalar, notbitsindependentallcalls norfullFFI gate. NEWreuse original ed9d8842242b4136ad18505a41452beb freshprocessnativeCUTILE_JIT_TIMING1 SAMEbinary exactsingleboundarytestPASS4.91sec. 14uniquecompilekeys10score5perbatch+2merge+2fill; stage1/2/3sum1202.396/2992.751/15.430ms. Nativecachelogs onlymiss compiled/load, sourcepinnedtile_kernel.rs e66d90f687df12e660159e14d58700ec7e2e3c18d651fa2dd55cbb14ac841b78 inspected threadlocalperdevicecachekeyincludesstrides/generics/scalarhints/grid/options; temp freshuuidbytecode/cubin no persistentcompilecachefound. Existingtileiras13.3.36SHA92499512a869b96b3a38c6763b1fe3e6a00c16e4a29385cd9cf740dffa18b444. NOglobal5keyclaim/nohardwarecoldcache/nohistoricalmatchedtimings. Candidateunchangedlocaldirtynotstage; sourceall11remotehashesmatched. AllunitsfinishedGPUidle/nootherconsultlive. Question: Does evidence warrant ONE bounded matched original(constgallery/merge bounds) vscandidate(runtime) native comparison on SOPofficialTRAIN59551gallery (packedfixtures or retainedTRAINrepresentations, same128/nativecache/batches) beforepromotion? Inspect candidate/sharedFFI/cachedobject/callers/overflow/padding/ties+src/sfora/cutile_int8.py, existingRC4profile scripts/benchmark_cutile_cold_start.py and rust/.../src/bin/rc4_profile.rs. Identifyrealdefect ormissingexactbit/merge-depth/thread-cachecases; smallestnecessaryremainingtests no broadsuite unless needed. Define minimalmatchedcomparison freeze preservingoriginalcode/testfixtures andcandidate: startupcompilecounts/cost +nativehottiming guard, no endtoendspeedclaim; p99productrequires10kinterleaved+CI. Approveconditionalboundedmeasurement orREJECTwithconcreteverifiedreason; no tuninglist/newqualityidea/reopenclosedtrainingarms. Promotion wouldneedfullassurance andindependentdualreconciliation; thisreviewdoesnotauthorize stagingoperator'sdirtyfile.",
+  "prompt_sha256": "71204fc19bfc7586e55c2ec4bd5a97a4104b90fec5af27d57762d99232d4d3fe",
+  "prompt_bytes": 3259,
+  "fingerprint": "f488df66fb30fcbea219ad66ca7bd6dd22e0bf50c02427dc526205c41644031e",
+  "evidence": {
+    "git_commit": "d2303c3ae9d50a2688fab9ac93062c8c1f34cb12",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "a27a7ae947aad63af15283b2acc08fcc5b6c104797927626295bd5e20044e5f3",
+    "worktree_sha256": "9b4b0d69fa79cf2d6531d1f00b24c4aef0eb204d903080e1291c3d196a6e3f8c",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "reviewers": [
+    {
+      "role": "research_critic",
+      "id": "dc908d88d76e45b8",
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "fallbacks": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ]
+    },
+    {
+      "role": "engineering_critic",
+      "id": "ed07f63bfff24744",
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "fallbacks": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ]
+    }
+  ],
+  "reused": false,
+  "next": "Continue independent work, then call critique_wait or critique_status with this id."
+}

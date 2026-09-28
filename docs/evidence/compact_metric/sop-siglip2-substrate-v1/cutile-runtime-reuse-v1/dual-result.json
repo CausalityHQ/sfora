@@ -1,0 +1,686 @@
+{
+  "id": "6cf20281a3c24920",
+  "status": "completed",
+  "started_at": 1790601160,
+  "agent": "sfora/emafactorial",
+  "force_reason": "New terminal positive GPU exactness plus native JIT reuse receipts (14 unique misses, 5 score keys per batch) for preserved runtime-bound Rust candidate; prior dual only rejected subcenter quality proposal. First consequential review of this concrete kernel and next matched comparison, before any promotion.",
+  "rolling_6h_count": 2,
+  "prompt_preview": "READ-ONLY consequential engineering/release review of NEW DGX terminal positive evidence, not previous quality/subcenter critiques. Repo /home/rb/worktrees/sfora-positive-causality master d2303c3ae9d50a2688fab9ac93062c8c1f34cb12; preserved uncommitted rust/sfora-cutile-int8-score/src/topk.rs candidate SHA1ae7f50aa3d222dbc6c6489c4c344ce836d01b895e05341d368db35c6d0cb587. Do NOTedit/tests/jobs/GPU/training/downloads/consultations/workers/operatorcontact. Goal full production joint strongest protocolmatched SOP+InShop quality and fasterfullimage-topk remains unmet; this only advances mandatoryexactness/deployability, NOTnewquality orspeedwin. Candidate changes gallery/merge bounds constgenerics->scalar i32, checkedconversions, no math/fusions; remainUNTouchedUNSTAGEDunpromoted. Evidence docs/cutile_runtime_bounds_gate_2026-09-28.md, docs/cutile_runtime_reuse_gate_2026-09-28.md +raw docs/evidence/compact_metric/sop-siglip2-substrate-v1/{cutile-runtime-bounds-v1,cutile-runtime-reuse-v1}. Sourcearchmanifest11filespinned+candidate.patch; offlineCPU--locked--release--lib--no-run PASS11.85sec after documentedCUDAenvlauncherror6.24sec beforeGPU. BinarySHA5539fee25b6602dd0402f82b656be57ca85c666eeb0f635b2ed1428263e9d3df actualGPUall4topktests PASS12.27s twoGPUexact+2authority; batches1/32,8galbounds10/127/128/129/132/136/257/4097 andfused/split5sizes. Numericalf32scores/as_pairs+ord/ties vsRustscalar, notbitsindependentallcalls norfullFFI gate. NEWreuse original ed9d8842242b4136ad18505a41452beb freshprocessnativeCUTILE_JIT_TIMING1 SAMEbinary exactsingleboundarytestPASS4.91sec. 14uniquecompilekeys10score5perbatch+2merge+2fill; stage1/2/3sum1202.396/2992.751/15.430ms. Nativecachelogs onlymiss compiled/load, sourcepinnedtile_kernel.rs e66d90f687df12e660159e14d58700ec7e2e3c18d651fa2dd55cbb14ac841b78 inspected threadlocalperdevicecachekeyincludesstrides/generics/scalarhints/grid/options; temp freshuuidbytecode/cubin no persistentcompilecachefound. Existingtileiras13.3.36SHA92499512a869b96b3a38c6763b1fe3e6a00c16e4a29385cd9cf740dffa18b444. NOglobal5keyclaim/nohardwarecoldcache/nohistoricalmatchedtimings. Candidateunchangedlocaldirtynotstage; sourceall11remotehashesmatched. AllunitsfinishedGPUidle/nootherconsultlive. Question: Does evidence warrant ONE bounded matched original(constgallery/merge bounds) vscandidate(runtime) native comparison on SOPofficialTRAIN59551gallery (packedfixtures or retainedTRAINrepresentations, same128/nativecache/batches) beforepromotion? Inspect candidate/sharedFFI/cachedobject/callers/overflow/padding/ties+src/sfora/cutile_int8.py, existingRC4profile scripts/benchmark_cutile_cold_start.py and rust/.../src/bin/rc4_profile.rs. Identifyrealdefect ormissingexactbit/merge-depth/thread-cachecases; smallestnecessaryremainingtests no broadsuite unless needed. Define minimalmatchedcomparison freeze preservingoriginalcode/testfixtures andcandidate: startupcompilecounts/cost +nativehottiming guard, no endtoendspeedclaim; p99productrequires10kinterleaved+CI. Approveconditionalboundedmeasurement orREJECTwithconcreteverifiedreason; no tuninglist/newqualityidea/reopenclosedtrainingarms. Promotion wouldneedfullassurance andindependentdualreconciliation; thisreviewdoesnotauthorize stagingoperator'sdirtyfile.",
+  "prompt_sha256": "71204fc19bfc7586e55c2ec4bd5a97a4104b90fec5af27d57762d99232d4d3fe",
+  "prompt_bytes": 3259,
+  "fingerprint": "f488df66fb30fcbea219ad66ca7bd6dd22e0bf50c02427dc526205c41644031e",
+  "evidence": {
+    "git_commit": "d2303c3ae9d50a2688fab9ac93062c8c1f34cb12",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "a27a7ae947aad63af15283b2acc08fcc5b6c104797927626295bd5e20044e5f3",
+    "worktree_sha256": "9b4b0d69fa79cf2d6531d1f00b24c4aef0eb204d903080e1291c3d196a6e3f8c",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "reviewers": [
+    {
+      "role": "research_critic",
+      "id": "dc908d88d76e45b8",
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "fallbacks": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "agent": "sfora/emafactorial",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1790601160,
+      "timeout_seconds": 1200,
+      "deadline_at": 1790602360,
+      "budget_usd": 4,
+      "prompt_preview": "Act as the independent research and first-principles critic. Challenge assumptions, compare alternatives and prior art, and identify missing evidence. Do not edit files.\n\nMaterial to critique:\nREAD-ONLY consequential engineering/release review of NEW DGX terminal positive evidence, not previous quality/subcenter critiques. Repo /home/rb/worktrees/sfora-positive-causality master d2303c3ae9d50a2688fab9ac93062c8c1f34cb12; preserved uncommitted rust/sfora-cutile-int8-score/src/topk.rs candidate SHA1ae7f50aa3d222dbc6c6489c4c344ce836d01b895e05341d368db35c6d0cb587. Do NOTedit/tests/jobs/GPU/training/downloads/consultations/workers/operatorcontact. Goal full production joint strongest protocolmatched SOP+InShop quality and fasterfullimage-topk remains unmet; this only advances mandatoryexactness/deployability, NOTnewquality orspeedwin. Candidate changes gallery/merge bounds constgenerics->scalar i32, checkedconversions, no math/fusions; remainUNTouchedUNSTAGEDunpromoted. Evidence docs/cutile_runtime_bounds_gate_2026-09-28.md, docs/cutile_runtime_reuse_gate_2026-09-28.md +raw docs/evidence/compact_metric/sop-siglip2-substrate-v1/{cutile-runtime-bounds-v1,cutile-runtime-reuse-v1}. Sourcearchmanifest11filespinned+candidate.patch; offlineCPU--locked--release--lib--no-run PASS11.85sec after documentedCUDAenvlauncherror6.24sec beforeGPU. BinarySHA5539fee25b6602dd0402f82b656be57ca85c666eeb0f635b2ed1428263e9d3df actualGPUall4topktests PASS12.27s twoGPUexact+2authority; batches1/32,8galbounds10/127/128/129/132/136/257/4097 andfused/split5sizes. Numericalf32scores/as_pairs+ord/ties vsRustscalar, notbitsindependentallcalls norfullFFI gate. NEWreuse original ed9d8842242b4136ad18505a41452beb freshprocessnativeCUTILE_JIT_TIMING1 SAMEbinary exactsingleboundarytestPASS4.91sec. 14uniquecompilekeys10score5perbatch+2merge+2fill; stage1/2/3sum1202.396/2992.751/15.430ms. Nativecachelogs onlymiss compiled/load, sourcepinnedtile_kernel.rs e66d90f687df12e660159e14d58700ec7e2e3c18d651fa2dd55cbb14ac841b78 inspected threadlocalperdevicecachekeyincludesstrides/generics/scalarhints/grid/options; temp freshuuidbytecode/cubin no persistentcompilecachefound. Existingtileiras13.3.36SHA92499512a869b96b3a38c6763b1fe3e6a00c16e4a29385cd9cf740dffa18b444. NOglobal5keyclaim/nohardwarecoldcache/nohistoricalmatchedtimings. Candidateunchangedlocaldirtynotstage; sourceall11remotehashesmatched. AllunitsfinishedGPUidle/nootherconsultlive. Question: Does evidence warrant ONE bounded matched original(constgallery/merge bounds) vscandidate(runtime) native comparison on SOPofficialTRAIN59551gallery (packedfixtures or retainedTRAINrepresentations, same128/nativecache/batches) beforepromotion? Inspect candidate/sharedFFI/cachedobject/callers/overflow/padding/ties+src/sfora/cutile_int8.py, existingRC4profile scripts/benchmark_cutile_cold_start.py and rust/.../src/bin/rc4_profile.rs. Identifyrealdefect ormissingexactbit/merge-depth/thread-cachecases; smallestnecessaryremainingtests no broadsuite unless needed. Define minimalmatchedcomparison freeze preservingoriginalcode/testfixtures andcandidate: startupcompilecounts/cost +nativehottiming guard, no endtoendspeedclaim; p99productrequires10kinterleaved+CI. Approveconditionalboundedmeasurement orREJECTwithconcreteverifiedreason; no tuninglist/newqualityidea/reopenclosedtrainingarms. Promotion wouldneedfullassurance andindependentdualreconciliation; thisreviewdoesnotauthorize stagingoperator'sdirtyfile.",
+      "prompt_sha256": "b19d926abf62ab0586bc87914ddcafed0ff23670dda76f7e9b4edf7fdfab5111",
+      "prompt_bytes": 3629,
+      "fingerprint": "8f758d7431bbc465142e734173196bc048db43f1fa85e60a0c0ca38bf0d24259",
+      "evidence": {
+        "git_commit": "d2303c3ae9d50a2688fab9ac93062c8c1f34cb12",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "a27a7ae947aad63af15283b2acc08fcc5b6c104797927626295bd5e20044e5f3",
+        "worktree_sha256": "9b4b0d69fa79cf2d6531d1f00b24c4aef0eb204d903080e1291c3d196a6e3f8c",
+        "worktree_evidence_truncated": false,
+        "active_goal": {
+          "id": "goal-1790540789-1790540789754989478-2322852",
+          "agent": "sfora/emafactorial",
+          "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+          "status": "queued",
+          "revision": 1,
+          "actor": "operator",
+          "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+          "created_at": 1790540789,
+          "updated_at": 1790540789
+        }
+      },
+      "previous_fingerprint": "8fd31dd5a550c24a8b32ac8d1a5cd0d6f5066f9b709c2b918f2ea2fd2ca76093",
+      "reused": false,
+      "critique_id": "6cf20281a3c24920",
+      "critique_role": "research_critic",
+      "systemd_unit": "devbox-consult-dc908d88d76e45b8.service",
+      "pid": 1617066,
+      "pgid": 1617066,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5",
+          "budget_usd": 4,
+          "timeout_seconds": 1200,
+          "started_at": 1790601160
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1790601231,
+      "event_cursor": 20,
+      "events": [
+        {
+          "seq": 1,
+          "at": 1790601160,
+          "provider": "claude",
+          "kind": "phase",
+          "label": "Claude consultation attempt",
+          "detail": "claude-opus-5-5 · $4 cap · 1200s remaining"
+        },
+        {
+          "seq": 2,
+          "at": 1790601160,
+          "provider": "claude",
+          "kind": "phase",
+          "label": "Claude consultation started"
+        },
+        {
+          "seq": 3,
+          "at": 1790601163,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 4,
+          "at": 1790601169,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 5,
+          "at": 1790601192,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 6,
+          "at": 1790601198,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 7,
+          "at": 1790601206,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 8,
+          "at": 1790601211,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 9,
+          "at": 1790601211,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 10,
+          "at": 1790601221,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 11,
+          "at": 1790601222,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 12,
+          "at": 1790601223,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 13,
+          "at": 1790601224,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 14,
+          "at": 1790601225,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 15,
+          "at": 1790601226,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 16,
+          "at": 1790601227,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 17,
+          "at": 1790601228,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 18,
+          "at": 1790601229,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 19,
+          "at": 1790601230,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 20,
+          "at": 1790601230,
+          "provider": "claude",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": false,
+      "provider_events": {
+        "claude": [
+          {
+            "seq": 13,
+            "at": 1790601224,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 14,
+            "at": 1790601225,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 15,
+            "at": 1790601226,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 16,
+            "at": 1790601227,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 17,
+            "at": 1790601228,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 18,
+            "at": 1790601229,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 19,
+            "at": 1790601230,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 20,
+            "at": 1790601230,
+            "provider": "claude",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "**Verdict: conditional APPROVE.** The run is warranted, but its main job is exactness at the full SOP gallery size (59,551 rows) for the candidate. Measuring compile cost is secondary, and I can mostly predict that result from the code. I found no real defect in the candidate diff. I did find one untested path that has to be covered before promotion.\n\n## What the diff does (checked against SHA `1ae7f50a…`)\n- It is purely mechanical. `GALLERY_ROWS` and `INPUT_ENTRIES` stop being compile-time constants and become runtime `i32` arguments, with a checked `try_from` conversion. The comparison with `lt_tile`, the −∞/`i32::MAX` padding, and the grid are all unchanged. Ordinals are still at most `padded_rows`, which is far below the `i32` limit.\n- **The merge input count is always a multiple of 16**, since `real_entries = blocks·16` and later `groups·16`. So the merge kernel's key never changes with its scalar hint. Only the score kernel sees the 5 divisibility classes, which fits the 10 + 2 + 2 compile keys you recorded.\n\n## Missing coverage (this is what forces the run)\n1. **Batch 1 with a two-pass merge has never run on the candidate.** The batch-1 merge width is 2048, so a second pass needs more than 16,384 gallery rows. The largest test gallery is 4,097 rows, which gives 528 entries and a single pass. At 59,551 rows, batch 1 goes 7,456 → 64 entries and batch 32 goes 7,456 → 240. The second pass, the partly filled final group of the first pass, and reuse of a compiled merge kernel across different input strides have only been exercised at batch 32. The original code does have SOP-scale evidence (about 20 receipts at 59,551 rows), so here the candidate is strictly behind the original.\n2. **Scores were compared as values, not bit patterns, against Rust's scalar reference.** `rc4_profile.rs` already prints `score_bits` and ordinals. So an original-vs-candidate comparison on those exact bits costs nothing extra and is the stronger gate.\n3. **The compile cache is per thread.** `cutile_int8.py` holds a lock around each call, but callers on different Python threads will each recompile. Both arms behave the same way, so this doesn't count against the candidate. The run should pin one calling thread and state that in its scope.\n\n## What the startup comparison can and can't show\nWith one fixed production gallery, the original also compiles just one score kernel per batch. From the code, I expect the original to compile about 4 merge kernels (one per distinct `INPUT_ENTRIES` in each batch) against 2 for the candidate, with the score kernel count equal. So the compile saving is small, about 2 merge compiles. Most of the candidate's value is not recompiling when the gallery size changes, and that isn't a stated production need. Treat the count comparison as a check on this prediction, not a win. The hot-path guard should check that the candidate isn't slower because the bound is no longer a constant the compiler can fold in.\n\n## The bounded run\n- **Arms:** the original is `topk.rs` from HEAD `d2303c3a`, rebuilt in a separate scratch copy. The candidate is the preserved file, byte-for-byte. Record both binaries' SHA-256. The operator's uncommitted file stays unstaged and untouched.\n- **Driver:** the existing `rc4_profile` binary in fused mode, run unchanged on the SOP TRAIN packed fixtures (59,551 rows, 128 dimensions). Each arm gets a fresh process with `CUTILE_JIT_TIMING=1`, one thread, and runs batch 1 then batch 32. That is 4 processes in total.\n- **Must pass:**\n  - Ordinals and `score_bits` match exactly between the arms, for every query at both batch sizes.\n  - Both arms match the Rust scalar reference on a query subset, including ties.\n  - Also run one all-ones gallery at 59,551 rows in each arm (the same kind of fixture `benchmark_cutile_cold_start.py` builds). Every score ties there, so it shows whether tie ordering survives the batch-1 two-pass merge.\n- **Report:** the number of unique compile keys per kernel for each arm, and the summed compile-stage times. Reject the prediction above if the candidate has more score keys than the original, or more than 2 merge keys.\n- **Hot-path guard:** use the existing warm-up and sample counts, with the two arms in alternating processes. The only purpose is to rule out a gross regression; it makes no claim about speed. A p99 or product-level claim would still need 10,000 interleaved calls with confidence intervals, and that stays out of scope.\n\n**Reject if** there is any mismatch in bits, ordinals or ties at 59,551 rows, or any batch-1 two-pass failure. Passing does not authorize promotion. That still needs the full assurance gate and an independent reconciliation of two reviews.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "claude": "**Verdict: conditional APPROVE.** The run is warranted, but its main job is exactness at the full SOP gallery size (59,551 rows) for the candidate. Measuring compile cost is secondary, and I can mostly predict that result from the code. I found no real defect in the candidate diff. I did find one untested path that has to be covered before promotion.\n\n## What the diff does (checked against SHA `1ae7f50a…`)\n- It is purely mechanical. `GALLERY_ROWS` and `INPUT_ENTRIES` stop being compile-time constants and become runtime `i32` arguments, with a checked `try_from` conversion. The comparison with `lt_tile`, the −∞/`i32::MAX` padding, and the grid are all unchanged. Ordinals are still at most `padded_rows`, which is far below the `i32` limit.\n- **The merge input count is always a multiple of 16**, since `real_entries = blocks·16` and later `groups·16`. So the merge kernel's key never changes with its scalar hint. Only the score kernel sees the 5 divisibility classes, which fits the 10 + 2 + 2 compile keys you recorded.\n\n## Missing coverage (this is what forces the run)\n1. **Batch 1 with a two-pass merge has never run on the candidate.** The batch-1 merge width is 2048, so a second pass needs more than 16,384 gallery rows. The largest test gallery is 4,097 rows, which gives 528 entries and a single pass. At 59,551 rows, batch 1 goes 7,456 → 64 entries and batch 32 goes 7,456 → 240. The second pass, the partly filled final group of the first pass, and reuse of a compiled merge kernel across different input strides have only been exercised at batch 32. The original code does have SOP-scale evidence (about 20 receipts at 59,551 rows), so here the candidate is strictly behind the original.\n2. **Scores were compared as values, not bit patterns, against Rust's scalar reference.** `rc4_profile.rs` already prints `score_bits` and ordinals. So an original-vs-candidate comparison on those exact bits costs nothing extra and is the stronger gate.\n3. **The compile cache is per thread.** `cutile_int8.py` holds a lock around each call, but callers on different Python threads will each recompile. Both arms behave the same way, so this doesn't count against the candidate. The run should pin one calling thread and state that in its scope.\n\n## What the startup comparison can and can't show\nWith one fixed production gallery, the original also compiles just one score kernel per batch. From the code, I expect the original to compile about 4 merge kernels (one per distinct `INPUT_ENTRIES` in each batch) against 2 for the candidate, with the score kernel count equal. So the compile saving is small, about 2 merge compiles. Most of the candidate's value is not recompiling when the gallery size changes, and that isn't a stated production need. Treat the count comparison as a check on this prediction, not a win. The hot-path guard should check that the candidate isn't slower because the bound is no longer a constant the compiler can fold in.\n\n## The bounded run\n- **Arms:** the original is `topk.rs` from HEAD `d2303c3a`, rebuilt in a separate scratch copy. The candidate is the preserved file, byte-for-byte. Record both binaries' SHA-256. The operator's uncommitted file stays unstaged and untouched.\n- **Driver:** the existing `rc4_profile` binary in fused mode, run unchanged on the SOP TRAIN packed fixtures (59,551 rows, 128 dimensions). Each arm gets a fresh process with `CUTILE_JIT_TIMING=1`, one thread, and runs batch 1 then batch 32. That is 4 processes in total.\n- **Must pass:**\n  - Ordinals and `score_bits` match exactly between the arms, for every query at both batch sizes.\n  - Both arms match the Rust scalar reference on a query subset, including ties.\n  - Also run one all-ones gallery at 59,551 rows in each arm (the same kind of fixture `benchmark_cutile_cold_start.py` builds). Every score ties there, so it shows whether tie ordering survives the batch-1 two-pass merge.\n- **Report:** the number of unique compile keys per kernel for each arm, and the summed compile-stage times. Reject the prediction above if the candidate has more score keys than the original, or more than 2 merge keys.\n- **Hot-path guard:** use the existing warm-up and sample counts, with the two arms in alternating processes. The only purpose is to rule out a gross regression; it makes no claim about speed. A p99 or product-level claim would still need 10,000 interleaved calls with confidence intervals, and that stays out of scope.\n\n**Reject if** there is any mismatch in bits, ordinals or ties at 59,551 rows, or any batch-1 two-pass failure. Passing does not authorize promotion. That still needs the full assurance gate and an independent reconciliation of two reviews."
+      },
+      "providers_used": [
+        "claude"
+      ],
+      "active_provider": "claude",
+      "phase": "Consultation completed",
+      "input_bytes": 3629,
+      "output_bytes": 4709,
+      "elapsed_seconds": 71,
+      "progress": "devbox-ask: claude consult still running (0m 30s)\ndevbox-ask: claude consult still running (1m 00s)",
+      "progress_truncated": false,
+      "result": "**Verdict: conditional APPROVE.** The run is warranted, but its main job is exactness at the full SOP gallery size (59,551 rows) for the candidate. Measuring compile cost is secondary, and I can mostly predict that result from the code. I found no real defect in the candidate diff. I did find one untested path that has to be covered before promotion.\n\n## What the diff does (checked against SHA `1ae7f50a…`)\n- It is purely mechanical. `GALLERY_ROWS` and `INPUT_ENTRIES` stop being compile-time constants and become runtime `i32` arguments, with a checked `try_from` conversion. The comparison with `lt_tile`, the −∞/`i32::MAX` padding, and the grid are all unchanged. Ordinals are still at most `padded_rows`, which is far below the `i32` limit.\n- **The merge input count is always a multiple of 16**, since `real_entries = blocks·16` and later `groups·16`. So the merge kernel's key never changes with its scalar hint. Only the score kernel sees the 5 divisibility classes, which fits the 10 + 2 + 2 compile keys you recorded.\n\n## Missing coverage (this is what forces the run)\n1. **Batch 1 with a two-pass merge has never run on the candidate.** The batch-1 merge width is 2048, so a second pass needs more than 16,384 gallery rows. The largest test gallery is 4,097 rows, which gives 528 entries and a single pass. At 59,551 rows, batch 1 goes 7,456 → 64 entries and batch 32 goes 7,456 → 240. The second pass, the partly filled final group of the first pass, and reuse of a compiled merge kernel across different input strides have only been exercised at batch 32. The original code does have SOP-scale evidence (about 20 receipts at 59,551 rows), so here the candidate is strictly behind the original.\n2. **Scores were compared as values, not bit patterns, against Rust's scalar reference.** `rc4_profile.rs` already prints `score_bits` and ordinals. So an original-vs-candidate comparison on those exact bits costs nothing extra and is the stronger gate.\n3. **The compile cache is per thread.** `cutile_int8.py` holds a lock around each call, but callers on different Python threads will each recompile. Both arms behave the same way, so this doesn't count against the candidate. The run should pin one calling thread and state that in its scope.\n\n## What the startup comparison can and can't show\nWith one fixed production gallery, the original also compiles just one score kernel per batch. From the code, I expect the original to compile about 4 merge kernels (one per distinct `INPUT_ENTRIES` in each batch) against 2 for the candidate, with the score kernel count equal. So the compile saving is small, about 2 merge compiles. Most of the candidate's value is not recompiling when the gallery size changes, and that isn't a stated production need. Treat the count comparison as a check on this prediction, not a win. The hot-path guard should check that the candidate isn't slower because the bound is no longer a constant the compiler can fold in.\n\n## The bounded run\n- **Arms:** the original is `topk.rs` from HEAD `d2303c3a`, rebuilt in a separate scratch copy. The candidate is the preserved file, byte-for-byte. Record both binaries' SHA-256. The operator's uncommitted file stays unstaged and untouched.\n- **Driver:** the existing `rc4_profile` binary in fused mode, run unchanged on the SOP TRAIN packed fixtures (59,551 rows, 128 dimensions). Each arm gets a fresh process with `CUTILE_JIT_TIMING=1`, one thread, and runs batch 1 then batch 32. That is 4 processes in total.\n- **Must pass:**\n  - Ordinals and `score_bits` match exactly between the arms, for every query at both batch sizes.\n  - Both arms match the Rust scalar reference on a query subset, including ties.\n  - Also run one all-ones gallery at 59,551 rows in each arm (the same kind of fixture `benchmark_cutile_cold_start.py` builds). Every score ties there, so it shows whether tie ordering survives the batch-1 two-pass merge.\n- **Report:** the number of unique compile keys per kernel for each arm, and the summed compile-stage times. Reject the prediction above if the candidate has more score keys than the original, or more than 2 merge keys.\n- **Hot-path guard:** use the existing warm-up and sample counts, with the two arms in alternating processes. The only purpose is to rule out a gross regression; it makes no claim about speed. A p99 or product-level claim would still need 10,000 interleaved calls with confidence intervals, and that stays out of scope.\n\n**Reject if** there is any mismatch in bits, ordinals or ties at 59,551 rows, or any batch-1 two-pass failure. Passing does not authorize promotion. That still needs the full assurance gate and an independent reconciliation of two reviews.",
+      "result_truncated": false
+    },
+    {
+      "role": "engineering_critic",
+      "id": "ed07f63bfff24744",
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "fallbacks": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "agent": "sfora/emafactorial",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1790601160,
+      "timeout_seconds": 1200,
+      "deadline_at": 1790602360,
+      "budget_usd": null,
+      "prompt_preview": "Act as the independent adversarial engineering and release critic. Inspect correctness, failure modes, security, operability, tests, and UX. Prioritize concrete findings with evidence. Do not edit files.\n\nMaterial to critique:\nREAD-ONLY consequential engineering/release review of NEW DGX terminal positive evidence, not previous quality/subcenter critiques. Repo /home/rb/worktrees/sfora-positive-causality master d2303c3ae9d50a2688fab9ac93062c8c1f34cb12; preserved uncommitted rust/sfora-cutile-int8-score/src/topk.rs candidate SHA1ae7f50aa3d222dbc6c6489c4c344ce836d01b895e05341d368db35c6d0cb587. Do NOTedit/tests/jobs/GPU/training/downloads/consultations/workers/operatorcontact. Goal full production joint strongest protocolmatched SOP+InShop quality and fasterfullimage-topk remains unmet; this only advances mandatoryexactness/deployability, NOTnewquality orspeedwin. Candidate changes gallery/merge bounds constgenerics->scalar i32, checkedconversions, no math/fusions; remainUNTouchedUNSTAGEDunpromoted. Evidence docs/cutile_runtime_bounds_gate_2026-09-28.md, docs/cutile_runtime_reuse_gate_2026-09-28.md +raw docs/evidence/compact_metric/sop-siglip2-substrate-v1/{cutile-runtime-bounds-v1,cutile-runtime-reuse-v1}. Sourcearchmanifest11filespinned+candidate.patch; offlineCPU--locked--release--lib--no-run PASS11.85sec after documentedCUDAenvlauncherror6.24sec beforeGPU. BinarySHA5539fee25b6602dd0402f82b656be57ca85c666eeb0f635b2ed1428263e9d3df actualGPUall4topktests PASS12.27s twoGPUexact+2authority; batches1/32,8galbounds10/127/128/129/132/136/257/4097 andfused/split5sizes. Numericalf32scores/as_pairs+ord/ties vsRustscalar, notbitsindependentallcalls norfullFFI gate. NEWreuse original ed9d8842242b4136ad18505a41452beb freshprocessnativeCUTILE_JIT_TIMING1 SAMEbinary exactsingleboundarytestPASS4.91sec. 14uniquecompilekeys10score5perbatch+2merge+2fill; stage1/2/3sum1202.396/2992.751/15.430ms. Nativecachelogs onlymiss compiled/load, sourcepinnedtile_kernel.rs e66d90f687df12e660159e14d58700ec7e2e3c18d651fa2dd55cbb14ac841b78 inspected threadlocalperdevicecachekeyincludesstrides/generics/scalarhints/grid/options; temp freshuuidbytecode/cubin no persistentcompilecachefound. Existingtileiras13.3.36SHA92499512a869b96b3a38c6763b1fe3e6a00c16e4a29385cd9cf740dffa18b444. NOglobal5keyclaim/nohardwarecoldcache/nohistoricalmatchedtimings. Candidateunchangedlocaldirtynotstage; sourceall11remotehashesmatched. AllunitsfinishedGPUidle/nootherconsultlive. Question: Does evidence warrant ONE bounded matched original(constgallery/merge bounds) vscandidate(runtime) native comparison on SOPofficialTRAIN59551gallery (packedfixtures or retainedTRAINrepresentations, same128/nativecache/batches) beforepromotion? Inspect candidate/sharedFFI/cachedobject/callers/overflow/padding/ties+src/sfora/cutile_int8.py, existingRC4profile scripts/benchmark_cutile_cold_start.py and rust/.../src/bin/rc4_profile.rs. Identifyrealdefect ormissingexactbit/merge-depth/thread-cachecases; smallestnecessaryremainingtests no broadsuite unless needed. Define minimalmatchedcomparison freeze preservingoriginalcode/testfixtures andcandidate: startupcompilecounts/cost +nativehottiming guard, no endtoendspeedclaim; p99productrequires10kinterleaved+CI. Approveconditionalboundedmeasurement orREJECTwithconcreteverifiedreason; no tuninglist/newqualityidea/reopenclosedtrainingarms. Promotion wouldneedfullassurance andindependentdualreconciliation; thisreviewdoesnotauthorize stagingoperator'sdirtyfile.",
+      "prompt_sha256": "decdc231c0fcad706398c11ee2240aa631ab75edd10ec65a1e87dd6f8cd98753",
+      "prompt_bytes": 3663,
+      "fingerprint": "c643318ea3b3093fa16af2bfa7ad7b0f5440760630b608b522d6b1dd8a99d1ff",
+      "evidence": {
+        "git_commit": "d2303c3ae9d50a2688fab9ac93062c8c1f34cb12",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "a27a7ae947aad63af15283b2acc08fcc5b6c104797927626295bd5e20044e5f3",
+        "worktree_sha256": "9b4b0d69fa79cf2d6531d1f00b24c4aef0eb204d903080e1291c3d196a6e3f8c",
+        "worktree_evidence_truncated": false,
+        "active_goal": {
+          "id": "goal-1790540789-1790540789754989478-2322852",
+          "agent": "sfora/emafactorial",
+          "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+          "status": "queued",
+          "revision": 1,
+          "actor": "operator",
+          "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+          "created_at": 1790540789,
+          "updated_at": 1790540789
+        }
+      },
+      "previous_fingerprint": "8f758d7431bbc465142e734173196bc048db43f1fa85e60a0c0ca38bf0d24259",
+      "reused": false,
+      "critique_id": "6cf20281a3c24920",
+      "critique_role": "engineering_critic",
+      "systemd_unit": "devbox-consult-ed07f63bfff24744.service",
+      "pid": 1617098,
+      "pgid": 1617098,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra",
+          "budget_usd": null,
+          "timeout_seconds": 1200,
+          "started_at": 1790601160
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1790601309,
+      "event_cursor": 36,
+      "events": [
+        {
+          "seq": 13,
+          "at": 1790601188,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 14,
+          "at": 1790601188,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 15,
+          "at": 1790601189,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 16,
+          "at": 1790601189,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 17,
+          "at": 1790601197,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 18,
+          "at": 1790601205,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 19,
+          "at": 1790601205,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 2"
+        },
+        {
+          "seq": 20,
+          "at": 1790601205,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 21,
+          "at": 1790601205,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 22,
+          "at": 1790601220,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 23,
+          "at": 1790601220,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 24,
+          "at": 1790601220,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 25,
+          "at": 1790601223,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 26,
+          "at": 1790601237,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 27,
+          "at": 1790601243,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 28,
+          "at": 1790601243,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 29,
+          "at": 1790601243,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 1"
+        },
+        {
+          "seq": 30,
+          "at": 1790601247,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 31,
+          "at": 1790601258,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 32,
+          "at": 1790601258,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 33,
+          "at": 1790601258,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 34,
+          "at": 1790601259,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 35,
+          "at": 1790601308,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 36,
+          "at": 1790601309,
+          "provider": "codex",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": true,
+      "provider_events": {
+        "codex": [
+          {
+            "seq": 29,
+            "at": 1790601243,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 1"
+          },
+          {
+            "seq": 30,
+            "at": 1790601247,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 31,
+            "at": 1790601258,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 32,
+            "at": 1790601258,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 33,
+            "at": 1790601258,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 34,
+            "at": 1790601259,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 35,
+            "at": 1790601308,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 36,
+            "at": 1790601309,
+            "provider": "codex",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "**APPROVE CONDITIONALLY one bounded matched original/candidate native comparison. Do not promote.** I found no candidate-specific correctness defect that warrants rejecting that measurement.\n\nThe local candidate matches SHA-256 `1ae7f50…cb587`. All 11 source-manifest hashes and both receipts’ listed evidence-file hashes match. The raw logs support the reported four-test pass and subsequent 14-miss reuse run. I did not execute tests, GPU work, consultations, or modifications.\n\nConcrete findings, in priority order:\n\n1. **The existing profiler can produce a false-green gate if exit status is treated as exactness.** [`rc4_profile.rs:106`](/home/rb/worktrees/sfora-positive-causality/rust/sfora-cutile-int8-score/src/bin/rc4_profile.rs:106) prints false exactness flags and still returns success. Its warmup and measured searches discard results; only the first result is emitted. Require the comparison’s collector to reject false flags, compare original/candidate ordinals and score bits, and validate every measured result outside its timed interval. Fused/split agreement alone is insufficient because both share the changed merge.\n\n2. **The passed panel leaves material, narrowly addressable coverage gaps.** All 32 query rows in [`topk.rs:637`](/home/rb/worktrees/sfora-positive-causality/rust/sfora-cutile-int8-score/src/topk.rs:637) are identical, so query-row mixing can escape detection. At 4,097 gallery rows, batch 32 exercises two merge levels, while batch 1 exercises only one. The existing distinct-query and cross-boundary tests in [`merge_boundary.rs`](/home/rb/worktrees/sfora-positive-causality/rust/sfora-cutile-int8-score/tests/merge_boundary.rs) were not executed by the recorded `--lib` gate. At 59,551 rows, both batches exercise two levels: 7,456 initial entries reduce to 64 for batch 1 and 240 for batch 32. This makes the proposed size useful.\n\n3. **Neither current benchmark is sufficient unchanged.** [`benchmark_cutile_cold_start.py:56`](/home/rb/worktrees/sfora-positive-causality/scripts/benchmark_cutile_cold_start.py:56) accepts any finite, row-constant scores with the expected ordinals—even consistently wrong scores. It uses synthetic all-ones data, not official TRAIN representations. The RC4 library replay pins million-row fixtures and an older API hash. Preserve those tools and fixtures; use a separately pinned measurement harness rather than weakening their authority checks.\n\n4. **A persistent gallery does not establish persistent compilation across request threads.** [`cutile_int8.py:141`](/home/rb/worktrees/sfora-positive-causality/src/sfora/cutile_int8.py:141) serializes handle access but does not bind calls to one thread. Given the documented thread-local cache, a second worker thread can compile again. The current evidence supports same-thread reuse only. Before a serving/deployability claim, require one sequential two-thread replay of the same handle: exact outputs on both threads, then no additional misses on each thread’s second call. This need not expand the proposed single-thread benchmark.\n\n5. **Pre-existing FFI size validation remains a release concern, not a candidate regression.** [`ffi.rs:57`](/home/rb/worktrees/sfora-positive-causality/rust/sfora-cutile-int8-score/src/ffi.rs:57) checks multiplication overflow but copies input buffers before enforcing the gallery’s signed-ordinal ceiling. Oversized input can consume memory before rejection; the raw-slice length also lacks an explicit `isize::MAX` bound. This does not block a frozen 59,551-row trusted fixture, but the new checked conversions do not constitute comprehensive FFI hardening.\n\nThe changed bounds themselves look sound: padded ordinals remain below the sentinel, merge-entry counts shrink within the signed range, and 128-dimensional int8 accumulation fits i32. Score arithmetic and ordinal tie selection are unchanged. I could inspect the archived cache evidence, but the pinned dependency’s `tile_kernel.rs` was unavailable locally; its detailed cache implementation remains an evidence-backed dependency assertion, not independently re-inspected source in this review.\n\nFreeze the bounded comparison as follows:\n\n- **Two immutable source snapshots:** original const-bound implementation and preserved runtime candidate, with identical dependency/toolchain/compiler options and identical external fixtures/checker. Record source, patch, executable, assembler, and fixture hashes. Preserve original tests and the operator’s dirty file.\n- **One workload:** 59,551 gallery rows, width 128, k=10, batches 1/32, fixed ordinal order and distinct query rows. Hash retained TRAIN representations and packing provenance if used. Synthetic fixtures establish geometry/exactness only, not official dataset quality.\n- **Small correctness supplement:** one adversarial fixture at that same size with distinct queries, negative/zero scores, late-block winners, and tied winners across merge-group boundaries and the final partial block. Compare all ordinals and `f32::to_bits()` against an independent scalar reference and between builds. No broader suite is necessary for this measurement.\n- **Matched execution:** fresh processes, fixed single-thread ownership, native cache behavior, same GPU and environment, sequential shared-lock execution. A fixed A–B–B–A order per batch gives two observations per build. Retain five warmups and 50 hot samples per process; collect complete outputs outside timing.\n- **Separate metrics:** record gallery creation, first synchronous native search, all JIT miss keys/counts and stage costs, then hot native-search samples. Do not label these hardware-cold or image-to-top-k measurements. Predeclare a hot-regression tolerance; reject advancement on exactness failure, unexpected hot recompilation, or a guard breach.\n- **Bound operations:** fixed launch count, external wall/memory caps, original invocation receipts, and stop on failure without tuning or automatic retries.\n\nA fixed-gallery result cannot establish global reuse across gallery changes. Fifty-sample tails are descriptive; a product p99 claim still requires the specified 10,000 interleaved observations and confidence intervals.\n\nPromotion remains blocked on full assurance and independent dual-review reconciliation. This review authorizes neither staging the dirty candidate nor any new quality or end-to-end speed claim.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "codex": "**APPROVE CONDITIONALLY one bounded matched original/candidate native comparison. Do not promote.** I found no candidate-specific correctness defect that warrants rejecting that measurement.\n\nThe local candidate matches SHA-256 `1ae7f50…cb587`. All 11 source-manifest hashes and both receipts’ listed evidence-file hashes match. The raw logs support the reported four-test pass and subsequent 14-miss reuse run. I did not execute tests, GPU work, consultations, or modifications.\n\nConcrete findings, in priority order:\n\n1. **The existing profiler can produce a false-green gate if exit status is treated as exactness.** [`rc4_profile.rs:106`](/home/rb/worktrees/sfora-positive-causality/rust/sfora-cutile-int8-score/src/bin/rc4_profile.rs:106) prints false exactness flags and still returns success. Its warmup and measured searches discard results; only the first result is emitted. Require the comparison’s collector to reject false flags, compare original/candidate ordinals and score bits, and validate every measured result outside its timed interval. Fused/split agreement alone is insufficient because both share the changed merge.\n\n2. **The passed panel leaves material, narrowly addressable coverage gaps.** All 32 query rows in [`topk.rs:637`](/home/rb/worktrees/sfora-positive-causality/rust/sfora-cutile-int8-score/src/topk.rs:637) are identical, so query-row mixing can escape detection. At 4,097 gallery rows, batch 32 exercises two merge levels, while batch 1 exercises only one. The existing distinct-query and cross-boundary tests in [`merge_boundary.rs`](/home/rb/worktrees/sfora-positive-causality/rust/sfora-cutile-int8-score/tests/merge_boundary.rs) were not executed by the recorded `--lib` gate. At 59,551 rows, both batches exercise two levels: 7,456 initial entries reduce to 64 for batch 1 and 240 for batch 32. This makes the proposed size useful.\n\n3. **Neither current benchmark is sufficient unchanged.** [`benchmark_cutile_cold_start.py:56`](/home/rb/worktrees/sfora-positive-causality/scripts/benchmark_cutile_cold_start.py:56) accepts any finite, row-constant scores with the expected ordinals—even consistently wrong scores. It uses synthetic all-ones data, not official TRAIN representations. The RC4 library replay pins million-row fixtures and an older API hash. Preserve those tools and fixtures; use a separately pinned measurement harness rather than weakening their authority checks.\n\n4. **A persistent gallery does not establish persistent compilation across request threads.** [`cutile_int8.py:141`](/home/rb/worktrees/sfora-positive-causality/src/sfora/cutile_int8.py:141) serializes handle access but does not bind calls to one thread. Given the documented thread-local cache, a second worker thread can compile again. The current evidence supports same-thread reuse only. Before a serving/deployability claim, require one sequential two-thread replay of the same handle: exact outputs on both threads, then no additional misses on each thread’s second call. This need not expand the proposed single-thread benchmark.\n\n5. **Pre-existing FFI size validation remains a release concern, not a candidate regression.** [`ffi.rs:57`](/home/rb/worktrees/sfora-positive-causality/rust/sfora-cutile-int8-score/src/ffi.rs:57) checks multiplication overflow but copies input buffers before enforcing the gallery’s signed-ordinal ceiling. Oversized input can consume memory before rejection; the raw-slice length also lacks an explicit `isize::MAX` bound. This does not block a frozen 59,551-row trusted fixture, but the new checked conversions do not constitute comprehensive FFI hardening.\n\nThe changed bounds themselves look sound: padded ordinals remain below the sentinel, merge-entry counts shrink within the signed range, and 128-dimensional int8 accumulation fits i32. Score arithmetic and ordinal tie selection are unchanged. I could inspect the archived cache evidence, but the pinned dependency’s `tile_kernel.rs` was unavailable locally; its detailed cache implementation remains an evidence-backed dependency assertion, not independently re-inspected source in this review.\n\nFreeze the bounded comparison as follows:\n\n- **Two immutable source snapshots:** original const-bound implementation and preserved runtime candidate, with identical dependency/toolchain/compiler options and identical external fixtures/checker. Record source, patch, executable, assembler, and fixture hashes. Preserve original tests and the operator’s dirty file.\n- **One workload:** 59,551 gallery rows, width 128, k=10, batches 1/32, fixed ordinal order and distinct query rows. Hash retained TRAIN representations and packing provenance if used. Synthetic fixtures establish geometry/exactness only, not official dataset quality.\n- **Small correctness supplement:** one adversarial fixture at that same size with distinct queries, negative/zero scores, late-block winners, and tied winners across merge-group boundaries and the final partial block. Compare all ordinals and `f32::to_bits()` against an independent scalar reference and between builds. No broader suite is necessary for this measurement.\n- **Matched execution:** fresh processes, fixed single-thread ownership, native cache behavior, same GPU and environment, sequential shared-lock execution. A fixed A–B–B–A order per batch gives two observations per build. Retain five warmups and 50 hot samples per process; collect complete outputs outside timing.\n- **Separate metrics:** record gallery creation, first synchronous native search, all JIT miss keys/counts and stage costs, then hot native-search samples. Do not label these hardware-cold or image-to-top-k measurements. Predeclare a hot-regression tolerance; reject advancement on exactness failure, unexpected hot recompilation, or a guard breach.\n- **Bound operations:** fixed launch count, external wall/memory caps, original invocation receipts, and stop on failure without tuning or automatic retries.\n\nA fixed-gallery result cannot establish global reuse across gallery changes. Fifty-sample tails are descriptive; a product p99 claim still requires the specified 10,000 interleaved observations and confidence intervals.\n\nPromotion remains blocked on full assurance and independent dual-review reconciliation. This review authorizes neither staging the dirty candidate nor any new quality or end-to-end speed claim."
+      },
+      "providers_used": [
+        "codex"
+      ],
+      "active_provider": "codex",
+      "phase": "Consultation completed",
+      "input_bytes": 3663,
+      "output_bytes": 6387,
+      "elapsed_seconds": 149,
+      "progress": "Reading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)\ndevbox-ask: codex consult still running (1m 30s)\ndevbox-ask: codex consult still running (2m 00s)",
+      "progress_truncated": false,
+      "result": "**APPROVE CONDITIONALLY one bounded matched original/candidate native comparison. Do not promote.** I found no candidate-specific correctness defect that warrants rejecting that measurement.\n\nThe local candidate matches SHA-256 `1ae7f50…cb587`. All 11 source-manifest hashes and both receipts’ listed evidence-file hashes match. The raw logs support the reported four-test pass and subsequent 14-miss reuse run. I did not execute tests, GPU work, consultations, or modifications.\n\nConcrete findings, in priority order:\n\n1. **The existing profiler can produce a false-green gate if exit status is treated as exactness.** [`rc4_profile.rs:106`](/home/rb/worktrees/sfora-positive-causality/rust/sfora-cutile-int8-score/src/bin/rc4_profile.rs:106) prints false exactness flags and still returns success. Its warmup and measured searches discard results; only the first result is emitted. Require the comparison’s collector to reject false flags, compare original/candidate ordinals and score bits, and validate every measured result outside its timed interval. Fused/split agreement alone is insufficient because both share the changed merge.\n\n2. **The passed panel leaves material, narrowly addressable coverage gaps.** All 32 query rows in [`topk.rs:637`](/home/rb/worktrees/sfora-positive-causality/rust/sfora-cutile-int8-score/src/topk.rs:637) are identical, so query-row mixing can escape detection. At 4,097 gallery rows, batch 32 exercises two merge levels, while batch 1 exercises only one. The existing distinct-query and cross-boundary tests in [`merge_boundary.rs`](/home/rb/worktrees/sfora-positive-causality/rust/sfora-cutile-int8-score/tests/merge_boundary.rs) were not executed by the recorded `--lib` gate. At 59,551 rows, both batches exercise two levels: 7,456 initial entries reduce to 64 for batch 1 and 240 for batch 32. This makes the proposed size useful.\n\n3. **Neither current benchmark is sufficient unchanged.** [`benchmark_cutile_cold_start.py:56`](/home/rb/worktrees/sfora-positive-causality/scripts/benchmark_cutile_cold_start.py:56) accepts any finite, row-constant scores with the expected ordinals—even consistently wrong scores. It uses synthetic all-ones data, not official TRAIN representations. The RC4 library replay pins million-row fixtures and an older API hash. Preserve those tools and fixtures; use a separately pinned measurement harness rather than weakening their authority checks.\n\n4. **A persistent gallery does not establish persistent compilation across request threads.** [`cutile_int8.py:141`](/home/rb/worktrees/sfora-positive-causality/src/sfora/cutile_int8.py:141) serializes handle access but does not bind calls to one thread. Given the documented thread-local cache, a second worker thread can compile again. The current evidence supports same-thread reuse only. Before a serving/deployability claim, require one sequential two-thread replay of the same handle: exact outputs on both threads, then no additional misses on each thread’s second call. This need not expand the proposed single-thread benchmark.\n\n5. **Pre-existing FFI size validation remains a release concern, not a candidate regression.** [`ffi.rs:57`](/home/rb/worktrees/sfora-positive-causality/rust/sfora-cutile-int8-score/src/ffi.rs:57) checks multiplication overflow but copies input buffers before enforcing the gallery’s signed-ordinal ceiling. Oversized input can consume memory before rejection; the raw-slice length also lacks an explicit `isize::MAX` bound. This does not block a frozen 59,551-row trusted fixture, but the new checked conversions do not constitute comprehensive FFI hardening.\n\nThe changed bounds themselves look sound: padded ordinals remain below the sentinel, merge-entry counts shrink within the signed range, and 128-dimensional int8 accumulation fits i32. Score arithmetic and ordinal tie selection are unchanged. I could inspect the archived cache evidence, but the pinned dependency’s `tile_kernel.rs` was unavailable locally; its detailed cache implementation remains an evidence-backed dependency assertion, not independently re-inspected source in this review.\n\nFreeze the bounded comparison as follows:\n\n- **Two immutable source snapshots:** original const-bound implementation and preserved runtime candidate, with identical dependency/toolchain/compiler options and identical external fixtures/checker. Record source, patch, executable, assembler, and fixture hashes. Preserve original tests and the operator’s dirty file.\n- **One workload:** 59,551 gallery rows, width 128, k=10, batches 1/32, fixed ordinal order and distinct query rows. Hash retained TRAIN representations and packing provenance if used. Synthetic fixtures establish geometry/exactness only, not official dataset quality.\n- **Small correctness supplement:** one adversarial fixture at that same size with distinct queries, negative/zero scores, late-block winners, and tied winners across merge-group boundaries and the final partial block. Compare all ordinals and `f32::to_bits()` against an independent scalar reference and between builds. No broader suite is necessary for this measurement.\n- **Matched execution:** fresh processes, fixed single-thread ownership, native cache behavior, same GPU and environment, sequential shared-lock execution. A fixed A–B–B–A order per batch gives two observations per build. Retain five warmups and 50 hot samples per process; collect complete outputs outside timing.\n- **Separate metrics:** record gallery creation, first synchronous native search, all JIT miss keys/counts and stage costs, then hot native-search samples. Do not label these hardware-cold or image-to-top-k measurements. Predeclare a hot-regression tolerance; reject advancement on exactness failure, unexpected hot recompilation, or a guard breach.\n- **Bound operations:** fixed launch count, external wall/memory caps, original invocation receipts, and stop on failure without tuning or automatic retries.\n\nA fixed-gallery result cannot establish global reuse across gallery changes. Fifty-sample tails are descriptive; a product p99 claim still requires the specified 10,000 interleaved observations and confidence intervals.\n\nPromotion remains blocked on full assurance and independent dual-review reconciliation. This review authorizes neither staging the dirty candidate nor any new quality or end-to-end speed claim.",
+      "result_truncated": false
+    }
+  ],
+  "reused": false,
+  "finished_at": 1790601326,
+  "elapsed_seconds": 149,
+  "input_bytes": 3259,
+  "output_bytes": 11096
+}

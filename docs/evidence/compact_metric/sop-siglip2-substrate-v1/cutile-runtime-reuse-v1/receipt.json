@@ -1,0 +1,32 @@
+{
+  "schema": "sfora-cutile-runtime-reuse-v1",
+  "claim_eligible": false,
+  "advance": true,
+  "gate_commit": "d2303c3ae9d50a2688fab9ac93062c8c1f34cb12",
+  "invocation": "ed9d8842242b4136ad18505a41452beb",
+  "binary_sha256": "5539fee25b6602dd0402f82b656be57ca85c666eeb0f635b2ed1428263e9d3df",
+  "candidate_sha256": "1ae7f50aa3d222dbc6c6489c4c344ce836d01b895e05341d368db35c6d0cb587",
+  "launch_cap_seconds": 60,
+  "launch_host_memory_max_bytes": 8589934592,
+  "gpu_shared_lock": true,
+  "counts": {
+    "full": 2,
+    "score_block_topk": 10,
+    "merge_topk": 2
+  },
+  "summed_stage_ms": {
+    "stage1_ms": 1202.396,
+    "stage2_ms": 2992.751,
+    "stage3_ms": 15.430000000000001
+  },
+  "wall_seconds": 4.91,
+  "gnu_max_rss_kib": 190944,
+  "comparison": "no baseline timing or full-call measurement",
+  "files_sha256": {
+    "reuse-time.txt": "456b8c382c28e538a43e8b800affa11bd32708a55cf0eda19ea533990e2f8005",
+    "native-jit-records.json": "4591201472bb4d48c83f4f2b27b1878f4ff2973003087fbd338c78119f0c8219",
+    "journal.txt": "c49fba6223d9cd3948e54a2bf941f2c4eea9d70f46958ae880858aee9dc8990d",
+    "reuse.log": "070d367eeecc28181989e9838b1c835555a43cb2d6e6da5fb908ad002ed588f5"
+  },
+  "parser_sha256": "fdfbd189a96c74188114bbc67d88280ab85f4bbfd41a2ae2722136c6c8df6eaf"
+}

@@ -33,3 +33,22 @@ A pass permits separate matched original/candidate search measurements
 and compiler-key inspection; it is not a measured improvement over baseline,
 public promotion, official quality or full image-to-top-k latency. A failure
 keeps the candidate unpromoted despite its exactness pass.
+
+## Terminal result: scoped reuse gate passes
+
+Original DGX invocationed9d8842242b4136ad18505a41452beb exited0.
+All16 boundary searches remained exact. The native log has14 unique
+module/function/key cache misses:10 `score_block_topk` (five per batch),
+two `merge_topk` and two `full` fill kernels. The summed native stages are
+1202.396ms lowering,2992.751ms assembler,15.430ms CUDA load:4210.577ms
+total across misses. Rust harness4.87s; GNU process wall4.91s and maximum
+RSS190944KiB. This is a fresh-process JIT diagnostic on synthetic fixtures,
+not isolated cold hardware/cache timing or a matched baseline comparison.
+
+[Original log, timings, journal and parsed records](evidence/compact_metric/sop-siglip2-substrate-v1/cutile-runtime-reuse-v1/native-jit-records.json)
+support the bounded five-score-keys-per-batch result for this exact panel.
+The kernel key still includes other fields, so this does not establish a
+global five-key limit across every gallery shape, thread or configuration.
+No speed percentage, full-call result, new dataset quality or promotion follows.
+The next consequential decision is a bounded matched original/candidate native
+comparison with exact outputs and a hot-latency guard, before public integration.

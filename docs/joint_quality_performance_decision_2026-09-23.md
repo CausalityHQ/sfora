@@ -1,5 +1,17 @@
 # Joint quality and performance decision, first training-code gate
 
+## 28 September native JIT reuse: scoped gate passes; comparison conditional
+
+The unchanged candidate's fresh-process16-search boundary test passed exactly.
+Native JIT logs show14 unique misses:10 score kernels (five per batch),
+two merge and two fill kernels. Summed lowering/assembler/load4210.577ms;
+process wall4.91s. This validates reuse on the tested bounds, not a global
+cache bound or speed versus baseline. Opus5.5/Astra conditionally approve a
+separate matched59551-row comparison with scalar-bit checks, distinct queries,
+batch1 multilevel merge and every timed output checked outside timing.
+[Reuse evidence](cutile_runtime_reuse_gate_2026-09-28.md) and
+[review reconciliation / next gate](cutile_runtime_review_decision_2026-09-28.md).
+
 ## 28 September preserved runtime-bound kernel: exactness gate passes
 
 After a corrected offline CPU build, the existing uncommitted Rust candidate

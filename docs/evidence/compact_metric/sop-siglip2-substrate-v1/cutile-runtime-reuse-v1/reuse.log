@@ -1,0 +1,20 @@
+
+running 1 test
+test topk::tests::device_top_ten_matches_scalar_across_boundaries_batches_and_ties ... CUTILE_JIT_TIMING module=creation function=full key=eed3c72dd16224e3 stage1_ms=8.231 stage2_ms=54.223 stage3_ms=2.382 generics=f32,128
+CUTILE_JIT_TIMING module=creation function=full key=b1e601f2e17bc42a stage1_ms=8.401 stage2_ms=42.294 stage3_ms=0.278 generics=i32,128
+CUTILE_JIT_TIMING module=topk_module function=score_block_topk key=de66c5ff6d0b4391 stage1_ms=104.930 stage2_ms=199.476 stage3_ms=8.483 generics=1,128,32,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=merge_topk key=5b7a37bd850fa54c stage1_ms=69.621 stage2_ms=128.673 stage3_ms=0.485 generics=1,2048,16,10
+CUTILE_JIT_TIMING module=topk_module function=score_block_topk key=89879590c7e34a09 stage1_ms=99.959 stage2_ms=199.205 stage3_ms=0.262 generics=1,128,32,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=score_block_topk key=e1b00ed00822bf90 stage1_ms=101.375 stage2_ms=189.350 stage3_ms=0.259 generics=1,128,32,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=score_block_topk key=3ce8eee842d117bd stage1_ms=101.796 stage2_ms=208.771 stage3_ms=0.436 generics=1,128,32,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=score_block_topk key=9b3c9f6347733f55 stage1_ms=102.354 stage2_ms=200.546 stage3_ms=0.412 generics=1,128,32,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=score_block_topk key=acfa912ab585872a stage1_ms=104.849 stage2_ms=338.993 stage3_ms=0.507 generics=32,128,32,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=merge_topk key=88efeaa5443ebe9 stage1_ms=75.090 stage2_ms=110.954 stage3_ms=0.402 generics=1,512,16,10
+CUTILE_JIT_TIMING module=topk_module function=score_block_topk key=5ca82edaa4386824 stage1_ms=105.078 stage2_ms=339.323 stage3_ms=0.708 generics=32,128,32,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=score_block_topk key=88813c00bf786c99 stage1_ms=106.174 stage2_ms=328.721 stage3_ms=0.248 generics=32,128,32,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=score_block_topk key=f2024ecd1216e102 stage1_ms=106.920 stage2_ms=319.009 stage3_ms=0.309 generics=32,128,32,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=score_block_topk key=acfbdf3a5a81ec3e stage1_ms=107.618 stage2_ms=333.213 stage3_ms=0.259 generics=32,128,32,128,16,10
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9 filtered out; finished in 4.87s
+
