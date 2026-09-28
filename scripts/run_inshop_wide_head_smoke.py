@@ -19,6 +19,15 @@ from sfora.siglip2_compact_serving import Siglip2CompactEncoder
 from sfora.unicom_inshop import parse_inshop_partition
 
 
+def packed_fit_images(encoder, images):
+    parts = [
+        encoder.encode_images(images[start : start + 32]) for start in range(0, len(images), 32)
+    ]
+    return torch.cat([part.codes for part in parts]), torch.cat(
+        [part.inverse_norms for part in parts]
+    )
+
+
 def main():
     started = time.perf_counter()
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
@@ -32,8 +41,14 @@ def main():
         "output-dir",
     ):
         parser.add_argument(f"--{name}", type=Path, required=True)
+    parser.add_argument("--prior-job-wall-seconds", type=float, default=0)
     args = parser.parse_args()
-    if args.output_dir.exists():
+    qualification_only = args.prior_job_wall_seconds > 0
+    if (
+        not 0 <= args.prior_job_wall_seconds < 120
+        or args.output_dir.exists() != qualification_only
+        or (args.output_dir / "receipt.json").exists()
+    ):
         raise ValueError("wide smoke output already exists")
     previous = json.loads(args.native_control.read_text())
     if (
@@ -41,9 +56,17 @@ def main():
         != "83c977aa6d57fc5c0aff10824b8ffa0ac38c5d47cfb43c4e88679848e301063b"
     ):
         raise ValueError("wide smoke native control authority differs")
-    args.output_dir.mkdir(parents=True)
-    arms = {}
-    for width in (128, 256):
+    if not qualification_only:
+        args.output_dir.mkdir(parents=True)
+    arms = (
+        {
+            width: json.loads((args.output_dir / str(width) / "receipt.json").read_text())
+            for width in (128, 256)
+        }
+        if qualification_only
+        else {}
+    )
+    for width in () if qualification_only else (128, 256):
         destination = args.output_dir / str(width)
         command = [
             sys.executable,
@@ -94,6 +117,12 @@ def main():
             flush=True,
         )
     control, wide = arms[128], arms[256]
+    if control["first_input_batch_sha256"] != previous[
+        "first_input_batch_sha256"
+    ] or not np.allclose(
+        control["all_step_losses"], previous["all_step_losses"], rtol=0, atol=1e-5
+    ):
+        raise ValueError("reused native smoke authority differs")
     histories = {
         width: np.asarray(
             [
@@ -126,10 +155,10 @@ def main():
         with Image.open(train[row].image_path) as image:
             images.append(image.convert("RGB"))
     probe = torch.load(destination / "fold_probe.pt", map_location="cpu", weights_only=True)
-    actual = encoder.encode_images(images)
+    actual_codes, actual_norms = packed_fit_images(encoder, images)
     expected = pack_int8_unit_embeddings(probe["folded"])
-    exact = torch.equal(actual.codes, expected.codes) and torch.equal(
-        actual.inverse_norms, expected.inverse_norms
+    exact = torch.equal(actual_codes, expected.codes) and torch.equal(
+        actual_norms, expected.inverse_norms
     )
     composed = pack_int8_unit_embeddings(probe["composed"])
     flips = expected.codes != composed.codes
@@ -165,7 +194,7 @@ def main():
         "exact_native_reload": exact,
         "raw_wide_rejected": rejected,
         "association_flips_at_most_one_lsb": max_flip <= 1,
-        "whole_budget": time.perf_counter() - started <= 120,
+        "whole_budget": args.prior_job_wall_seconds + time.perf_counter() - started <= 120,
     }
     receipt = {
         "schema": "sfora-inshop-wide-main-head-smoke-v1",
@@ -177,7 +206,9 @@ def main():
         "median_encoder_share_ratio": float(np.median(share_ratio)),
         "association_code_flip_fraction": float(flips.float().mean()),
         "association_max_lsb": max_flip,
-        "whole_wall_seconds": time.perf_counter() - started,
+        "qualification_only": qualification_only,
+        "prior_job_wall_seconds": args.prior_job_wall_seconds,
+        "whole_wall_seconds": args.prior_job_wall_seconds + time.perf_counter() - started,
         "source_sha256": sha256(Path(__file__)),
     }
     (args.output_dir / "receipt.json").write_text(

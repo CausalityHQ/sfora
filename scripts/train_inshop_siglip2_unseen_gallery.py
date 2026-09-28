@@ -177,12 +177,12 @@ def calibrate_smoke_fold(vision, head, paths, processor, destination, workers, r
     """Fit once on the fixed2048 TRAIN-fit images, never the held gallery."""
     loader = DataLoader(
         ImageRows(paths, tuple(range(len(paths))), augment=False),
-        batch_size=64,
+        batch_size=32,
         shuffle=False,
         num_workers=workers,
         collate_fn=make_collate(processor),
     )
-    outputs, first_source = [], None
+    outputs, first_sources = [], []
     for batch, _ in loader:
         tensors = {key: value.cuda() for key, value in batch.items()}
         with torch.autocast("cuda", dtype=torch.float16):
@@ -192,8 +192,9 @@ def calibrate_smoke_fold(vision, head, paths, processor, destination, workers, r
                 compact_head_features(pooled, head, output_dim=256), dim=1
             ).cpu()
         )
-        if first_source is None:
-            first_source = pooled.cpu()
+        if len(first_sources) < 2:
+            first_sources.append(pooled.cpu())
+    first_source = torch.cat(first_sources)
     values = torch.cat(outputs)
     _, singular, right = torch.linalg.svd(values.double(), full_matrices=False)
     if not torch.isfinite(singular).all() or singular[127] <= 1e-10:
@@ -217,16 +218,26 @@ def calibrate_smoke_fold(vision, head, paths, processor, destination, workers, r
     if error > 1e-5 or bool((folded(source).norm(dim=1) <= 1e-10).any()):
         raise ValueError("wide smoke fold identity differs")
     folded_gpu = folded.cuda()
-    folded_values = torch.nn.functional.normalize(
-        compact_head_features(first_source.cuda(), folded_gpu), dim=1
-    ).cpu()
-    composed = torch.nn.functional.normalize(
-        torch.nn.functional.normalize(
-            compact_head_features(first_source.cuda(), head, output_dim=256), dim=1
-        )
-        @ components.cuda().T,
-        dim=1,
-    ).cpu()
+    folded_values = torch.cat(
+        [
+            torch.nn.functional.normalize(
+                compact_head_features(part.cuda(), folded_gpu), dim=1
+            ).cpu()
+            for part in first_sources
+        ]
+    )
+    composed = torch.cat(
+        [
+            torch.nn.functional.normalize(
+                torch.nn.functional.normalize(
+                    compact_head_features(part.cuda(), head, output_dim=256), dim=1
+                )
+                @ components.cuda().T,
+                dim=1,
+            ).cpu()
+            for part in first_sources
+        ]
+    )
     error = max(error, float((composed - folded_values).abs().max()))
     if error > 1e-5:
         raise ValueError("wide smoke GPU fold identity differs")
