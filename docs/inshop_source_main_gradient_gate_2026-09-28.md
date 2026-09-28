@@ -42,3 +42,22 @@ Opus/Astra design review and one bounded paired17-update actual encoder smoke,
 then separately frozen100-update TRAIN gate only if that smoke passes. No new
 source, compactor search, held evaluation, full training or latency yet. Keep
 production128 default and all prior negative gates intact.
+
+## CPU terminal result
+
+Original cached probe exited0 in5.261354s, all frozen guards passed. Receipt
+`evidence/compact_metric/sop-siglip2-substrate-v1/inshop-source-main-cache-v1.json`
+SHA256 `f5bec2865b8aeb86f66003ada0dc5902616d98e043a3d3b8e1716ead95c41203`.
+Median new total unused source **norm fraction**29.09358%; MAIN/total norm
+fraction73.15933%; new/native total norm ratio0.9303555; bank-only128-head/native
+head norm ratio0.4134365 on15 active batches. All1088 source gradients and17
+learnable source-classifier gradients finite/nonzero; two inactive head
+gradients absent as required. No optimizer, held read, trained encoder, quality
+or serving-speed result. Decision is **GO_ENCODER_DESIGN_REVIEW** only.
+
+One consequential review group `0056bc341ded4f98` launched: Opus
+`7d3049869ed6414f`, Astra `e73924f282d643cc`. Prior wide-method reviewers are
+terminal, GPU idle, no duplicate or encoder arm launched. Review must settle
+source/classifier mask authority, sparse head optimizer steps, actual encoder
+gradient routes, clipping, native128 checkpoint reload and bounded cost before
+implementation/training. Default model and production serving stay unchanged.
