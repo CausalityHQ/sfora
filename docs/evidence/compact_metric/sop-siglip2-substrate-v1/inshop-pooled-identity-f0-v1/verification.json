@@ -1,0 +1,26 @@
+{
+  "all_three100_finite_updates": true,
+  "independent_bootstrap": {
+    "control": {
+      "independent5000draws_exact": true,
+      "lower95": -0.0027779227557411276,
+      "point": 0.0015151515151515152,
+      "upper95": 0.005700325732899023
+    },
+    "sham": {
+      "independent5000draws_exact": true,
+      "lower95": 0.009817328053240931,
+      "point": 0.01818181818181818,
+      "upper95": 0.02750828143127557
+    }
+  },
+  "original_session_id": 11287,
+  "outer_holdout_quality_unread": true,
+  "quality_scope": "single-seed frozen source internal category proxy, not full-encoder or SOP joint training",
+  "query_gallery_reconstructed": true,
+  "receipt_sha256": "ad179a96ac79b8b9d805db2d877bbea647970021bfe526794362b4974d1a2ecf",
+  "schema": "sfora-pooling-f0-verification-v1",
+  "serving_latency_measured": false,
+  "source_matches_frozen": true,
+  "terminal_exit_code": 0
+}
