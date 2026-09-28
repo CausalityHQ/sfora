@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-pe-l14-v1/export_pe_l14_fit.py", line 284, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/sfora-pe-l14-v1/export_pe_l14_fit.py", line 280, in main
+    acquire(args.output, args.preflight_sha256)
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-pe-l14-v1/export_pe_l14_fit.py", line 136, in acquire
+    assert torch.cuda.is_available() and not (output / "receipt.json").exists()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
