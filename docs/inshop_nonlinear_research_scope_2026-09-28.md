@@ -157,3 +157,22 @@ small CPU learning/parity/leakage check, and freeze the metadata-only preflight
 and exact executable hashes before starting a single cached seed pair. Any
 new discrepancy must be resolved before a quality read. No official read,
 production change, GPU job or retrieval result has occurred in this research.
+
+## Executable gate frozen before outcomes
+
+`scripts/probe_inshop_nonlinear_head.py` implements the reviewed scope; its
+metadata receipt is in `inshop-nonlinear-head-v1/preflight.json`. Inner training
+has6645 rows and validation6638 rows; all validation rows remain gallery
+members,6632 are eligible queries, and six singleton products are query-excluded.
+Initial full ArcFace plus detached rank loss, packed descriptors, primary/source
+gradients, residual learning, duplicate refresh and singleton authority passed
+one synthetic check. A synthetic product-bootstrap pass/null check also passed.
+
+The check first caught an older deployed-package rank-loss API. Only the isolated
+probe package was replaced by this repository's source; no deployed package was
+changed. All27 loaded Sfora/helper modules are now hashed in the preflight.
+Ruff E/F/I/B/UP/SIM passed at line length100. Preflight finished in3.28s with
+1304552KiB maximum process RSS, exit0; no optimizer or quality score was read.
+The exact script hash is1b2a36016fb3805cf0c80d07358804e00bd4db72771a4be187740a3f362d8c3f.
+Seed17 may now run once, under native systemd RuntimeMaxSec180 and MemoryMax8G,
+CUDA hidden, on DGX only. Do not modify this executable or rescue a failed gate.

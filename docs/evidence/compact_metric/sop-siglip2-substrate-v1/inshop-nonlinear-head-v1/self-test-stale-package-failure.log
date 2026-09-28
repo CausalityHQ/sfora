@@ -1,0 +1,24 @@
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-inshop-nonlinear-head-v1/probe_inshop_nonlinear_head.py", line 440, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/sfora-inshop-nonlinear-head-v1/probe_inshop_nonlinear_head.py", line 357, in main
+    self_test()
+    ~~~~~~~~~^^
+  File "/home/riomus/runs/sfora-inshop-nonlinear-head-v1/probe_inshop_nonlinear_head.py", line 115, in self_test
+    baseline_loss = objective(primary(F.normalize(baseline_x, dim=1)), primary)
+  File "/home/riomus/runs/sfora-inshop-nonlinear-head-v1/probe_inshop_nonlinear_head.py", line 107, in objective
+    ) + 8 * member_bank_rank_loss(
+            ~~~~~~~~~~~~~~~~~~~~~^
+        raw, bank, head, positives, torch.arange(len(x)), live_head=False
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/riomus/runs/sfora-inshop-nonlinear-head-v1/train_sop_siglip2_compact.py", line 340, in member_bank_rank_loss
+    else smooth_ap_bank_loss(
+         ~~~~~~~~~~~~~~~~~~~^
+        unit_anchors, bank, positive_ordinals, self_ordinals, truncate_at_r=truncate_at_r
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+TypeError: smooth_ap_bank_loss() got an unexpected keyword argument 'truncate_at_r'
