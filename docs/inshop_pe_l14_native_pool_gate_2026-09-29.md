@@ -170,3 +170,7 @@ encoder/normalized head output parity passed. All79 executing files unchanged.
 17checkpoint deleted/state discarded; no held/quality read.
 PASS receiptSHAe080bbb7d67e3e145e660e7532d94680d13612e7b26b856567fb532f147e0da5
 licenses ONE fresh100TRAINpilot300s under the same execution authority.
+
+## Terminal fresh100 quality KILL
+
+Original82412 exited0. R1 91.3755115%, mAP@R68.0998392% on TRAIN-held; median0.657359179s passed cost. Both quality floors and paired product bounds failed. Native reload/full-held shared-token pool/projection/head parity and independent CPU replay passed. No promotion or pool-only rescue. Full production goal active. See [terminal result](inshop_pe_l14_native_pool_result_2026-09-29.md).
