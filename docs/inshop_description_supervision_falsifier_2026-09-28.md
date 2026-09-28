@@ -123,3 +123,44 @@ training if this cached gate passes. If the gate passes, freeze a serial
 17-update control/true/sham smoke with actual base+rank gradient shares,
 full control replay, same-input collapse checks and <=1.10 cost gates.
 The original one-hot design is closed; no additional temperature search.
+
+## Cached gate terminal: KILL this configuration
+
+The [cached-gradient receipt](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-caption-cached-gradients-v1.json)
+SHA-256 is `4138a432bcba853a63dbec7e5035069974b2e651f73c224dd5680d11caa809b9`.
+It completed on CPU in **3.847 seconds**. The initializer PCA SHA matches
+the archived seed-179024 control (`f387aae1...`); class-to-caption mapping
+explicitly handles the one missing caption.
+
+| Frozen cached criterion; official TRAIN fit only | Measured | Decision |
+| --- | ---: | --- |
+| C1: true-vs-sham soft CE gain / lower 95% | **1.9680 / 1.8281** loss units | pass |
+| C1: true-caption ordinal rank gain / lower 95% | **430.86 / 389.96** positions | pass |
+| C2: median caption-specific / true gradient norm | **1.3595** | pass |
+| C3: median cosine with ArcFace / negative-row fraction | **0.01480 / 44.1406%** | pass |
+| C4: residual participation rank, must exceed 2 × 22 groups | **42.8523 vs 44** | **fail** |
+| Weighted true aux / ArcFace gradient norm, median | **5.3426%** | diagnostic only |
+
+Independent sample-Gram replay reproduced the participation ratio to
+1e-10, using a different matrix orientation from the implementation.
+**KILL the frozen global-caption configuration before encoder training**;
+no threshold relaxation, 17-update smoke, 100-update quality run, TEST read
+or p99 certification. C4 is a conservative resource-screening floor; this
+near miss does **not** prove collapse, absent semantic information, or
+inability of other text supervision to improve retrieval.
+
+The qualified fit-only teacher cache exported once in **6.073 seconds**,
+with **1,265,392,128 B** allocated CUDA. Its SHA-256 is
+`d20a12cdbe1428f52ec192d182046f5f9882a2ba2e42ff82ec3aeac89a40c975`.
+The [token census](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-caption-token-census-v1.json)
+found **1,005/2,003** captions exceed 64 tokens, with **zero exact token
+or prototype collisions**. The maximum token ID **245,848** is valid for
+the pinned text embedding table **256,000 × 1,024**; parent-config generation
+warnings do not describe that table. Neither cache export nor caption
+classification diagnostic is an image-to-top-k or training measurement.
+
+The opt-in library helper has runnable checks for attainable soft targets,
+detached teacher gradients, missing captions and FP32 behavior under
+autocast. It is retained for reproducibility; the default trainer, encoder,
+128-D packed retrieval and shipped direct processor are unchanged. No
+model or method is promoted by this failed gate.

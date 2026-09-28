@@ -8,11 +8,13 @@ from sfora.frozen_text_supervision import frozen_text_loss
 
 def test_text_target_is_stationary_at_its_own_prototype():
     text = torch.nn.functional.normalize(torch.tensor([[1.0, 0.0], [0.98, 0.2], [0.0, 1.0]]), dim=1)
-    source = text[[0]].clone().requires_grad_()
+    text.requires_grad_()
+    source = text[[0]].detach().clone().requires_grad_()
     loss = frozen_text_loss(source, text, torch.tensor([0]))
     loss.backward()
     assert torch.isfinite(loss)
     assert source.grad.norm() < 1e-5
+    assert text.grad is None
 
 
 def test_missing_caption_masks_only_auxiliary_rows():
