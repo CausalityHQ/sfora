@@ -1,0 +1,19 @@
+{
+  "checkpoint_sha256": "ad58838e2492cd664a447308317b11a53f362a4c5a36a99f28978f32a3b71089",
+  "cpu_budget_seconds": 120,
+  "cuda_or_image_or_training_work": false,
+  "early_stop": "first matrix below .8 closes native-update approximation at thisrank; preserve partial/unrun counts; no newranks or training",
+  "fixed_order": "lexicographic tensor name",
+  "frozen_at_unix": 1790583084.3885245,
+  "go": "all72pass => bounded adapter capacity and merged-public-path smoke design, not quality/speed/defaultpromotion",
+  "interpretation_limits": "rawdelta includes optimizer decay and all native adaptation; does not test lowrank regularization benefits, fine-tuned retrieval sensitivity or allLoRA; Frobenius energy is not Recall or generalization bound",
+  "native_recipe": "In-Shop TRAIN-fit only seed179026 truefreeze1000, recorded trained checkpoint; no new images or quality",
+  "per_matrix_frobenius_energy_floor": 0.8,
+  "pretrained_sha256": "fa34f822f016dbb167d8d0e3a8af99b5e199aa28573360d4295252b9ec418e2a",
+  "prior_art": "https://arxiv.org/abs/2106.09685",
+  "process_deadline_seconds": 130,
+  "schema": "sfora-native-delta-rank32-freeze-v1",
+  "source_sha256": "7179dedc081428657566a212155ac0b7126183759f64b4879d4c2df5a4412a49",
+  "target": "rank32 raw trained-minus-pretrained upper12 linear weight deltas, 4attention+2MLP matrices/layer,72 total",
+  "threads": 8
+}

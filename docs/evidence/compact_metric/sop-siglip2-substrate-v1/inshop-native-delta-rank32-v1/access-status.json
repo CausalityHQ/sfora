@@ -1,0 +1,10 @@
+{
+  "repository": "facebook/dinov3-vitb16-pretrain-lvd1689m",
+  "revision": "5931719e67bbdb9737e363e781fb0c67687896bc",
+  "checked_at_unix": 1790583084.388693,
+  "dgx_token_configured": false,
+  "local_token_configured": false,
+  "config_attempt": "token=True => LocalTokenNotFoundError",
+  "authenticated_grant_status": "UNKNOWN",
+  "no_weights_or_gpu_job_started": true
+}
