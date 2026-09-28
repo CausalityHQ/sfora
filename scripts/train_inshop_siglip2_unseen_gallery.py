@@ -42,7 +42,7 @@ from sfora.deployed_code_rank import smooth_ap_bank_loss
 from sfora.joint_relational_compaction import pack_int8_unit_embeddings
 from sfora.live_head_bank import live_head_bank_loss
 from sfora.representation_ceiling import fit_centered_pca
-from sfora.sop_compact_training import compact_head_features, frozen_source_centroid_loss
+from sfora.sop_compact_training import compact_head_features
 from sfora.unicom_inshop import parse_inshop_partition
 from sfora.unicom_rank_finish import identity_balanced_batches
 from sfora.unicom_training import sharded_mask_arcface_loss
@@ -126,6 +126,37 @@ def source_manifest() -> dict[str, str]:
 
 def schedule_horizon(updates: int) -> int:
     return 3_000 if updates > 1_000 else 1_000
+
+
+def frozen_source_centroid_loss(
+    source: torch.Tensor,
+    mean: torch.Tensor,
+    prototypes: torch.Tensor,
+    target: torch.Tensor,
+) -> torch.Tensor:
+    """Training-only cosine CE64 against fixed, fit-centered source prototypes."""
+    if (
+        source.ndim != 2
+        or mean.shape != (source.shape[1],)
+        or prototypes.ndim != 2
+        or prototypes.shape[1] != source.shape[1]
+        or not all(torch.isfinite(value).all() for value in (source, mean, prototypes))
+        or bool((source.float().norm(dim=1) == 0).any())
+        or bool((prototypes.float().norm(dim=1) == 0).any())
+    ):
+        raise ValueError("frozen source centroid geometry differs")
+    with torch.autocast(device_type=source.device.type, enabled=False):
+        centered = torch.nn.functional.normalize(source.float(), dim=1) - mean.detach().float()
+        if bool((centered.norm(dim=1) == 0).any()):
+            raise ValueError("frozen source centered vector is zero")
+        return sharded_mask_arcface_loss(
+            centered,
+            prototypes.detach().float(),
+            target,
+            torch.arange(source.shape[1], device=source.device).unsqueeze(0),
+            margin=0,
+            scale=64,
+        )
 
 
 def source_smoke_probe(

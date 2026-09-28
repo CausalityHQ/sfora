@@ -122,3 +122,35 @@ on timeout the whole active child process group is killed, and the original
 wrapper writes a terminal KILL receipt. The smoke omits checkpoint saving
 and all held exports. Raw per-arm logs, initial/terminal probes and receipts
 remain preserved even on early rejection.
+
+## Terminal training decision: KILL
+
+The ORIGINAL DGX unit `sfora-inshop-source-centroid-smoke-v1`, invocation
+`69ff03ca86a1410087f1cf48cee46937`, exited successfully. Control child PID
+761349 completed exactly 17 updates; the wrapper closed normally and
+**did not launch the auxiliary arm**. Whole smoke wall was 27.343378 s,
+below 120 s. The negative engineering decision is not a crashed run.
+
+| Dataset/split and baseline | Quality and gradient evidence | Cost and decision |
+|---|---|---|
+| In-Shop official TRAIN fit 13,283 images/2,004 products; unchanged true-freeze main ArcFace+bank | No held R@1/mAP measured. Weighted auxiliary/main encoder norm 0.833670% initially, 0.004986% terminal; both below frozen 1% floor | KILL fixed centroid/CE64/coefficient-0.1 route |
+| Same fixed fit batch | Auxiliary loss 0.068080 -> 0.00024954 under **main-only** training; true targets above 1-1e-6: 28.125% -> 57.8125%; head auxiliary gradient absent | Main objective already makes these training prototypes nearly trivial |
+| Original control smoke, including diagnostic overhead | 17 stable updates/1,088 training images, no skipped/nonfinite update; 17 input hashes; no checkpoint or held export | Training wall 17.305345 s, 62.870748 images/s; peak allocated CUDA 20,255,933,440 bytes; this instrumented smoke is not a full-training performance benchmark |
+| Serving and exactness | No new serving calls or packed-scoring modification; no paired treatment to certify | p50/p95/p99/QPS not measured in this gate; no new quality/speed claim |
+
+Receipt `inshop-source-centroid-smoke-v1/receipt.json` SHA-256
+`30ef75e9bcab9cfffb6522c603df894f515582c431b1a426df95aff09750a33c`.
+The underlying control receipt SHA, all 17 losses/input hashes, exact frozen
+failure replay, normal exit, no second arm and no held export were verified
+independently. Raw logs and initial/terminal probes are retained alongside
+the receipt. The live-job inspection confirmed no remaining GPU process.
+
+Do not increase coefficient/temperature or swap margins after seeing this
+result. Useful directions in a fit prototype screen did not imply a useful
+encoder update. The optional loss now lives only in the experimental trainer,
+with its routing/parity check; it was removed from the production module.
+The current wheel proves the experimental loss is absent and the production
+head/serving bytes match their source. The pre-rejection wheel check is
+historical evidence, superseded by `source-centroid-closed-wheel-check-v1.json`.
+No retraining, 100/1000-update run, p99 gate or official read is authorized by
+this rejected configuration. Joint production quality/speed remains unmet.
