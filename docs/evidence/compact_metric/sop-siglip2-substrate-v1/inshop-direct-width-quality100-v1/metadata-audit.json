@@ -1,0 +1,29 @@
+{
+  "original_receipt_sha256": "4a0c2dd476fd151d26ceedf4fa823dc3753c64ccea9a2f1e70f5a3dc08c00c2b",
+  "checks": {
+    "all_100_loss_and_group_gradients_finite_positive": true,
+    "all_100_input_hashes_exact": true,
+    "all_20_sources_bound_to_12a1931d": true,
+    "fit_rows_matched": true,
+    "median_step_guard": true,
+    "training_wall_excluding_bank_guard": true,
+    "peak_allocated_guard": true
+  },
+  "native_training_wall_seconds": 86.22927765082568,
+  "direct_training_wall_seconds": 86.31117578782141,
+  "native_training_plus_bank_seconds": 87.09203316271305,
+  "direct_training_plus_bank_seconds": null,
+  "native_training_images_per_second": 74.22073075824633,
+  "direct_training_images_per_second": 74.15030488905755,
+  "native_median_step_seconds": 0.8399911136366427,
+  "direct_median_step_seconds": 0.8436320461332798,
+  "native_peak_cuda_allocated_bytes": 12988997120,
+  "direct_peak_cuda_allocated_bytes": 13002782208,
+  "missing_candidate_final_receipt_fields": [
+    "initial/terminal geometry",
+    "frozen/trainable hashes",
+    "returned private reload checks",
+    "bank initialization wall"
+  ],
+  "status": "Positive recovered quality diagnostic; original execution failed; complete frozen gate not attested"
+}

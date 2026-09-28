@@ -11,7 +11,7 @@ from direct_inshop_width import validate_direct_width
 import run_inshop_direct_width_smoke as runner
 import inspect
 import torch
-from train_sop_siglip2_compact import export_all
+from train_sop_siglip2_compact import export_all, score_packed_full_gallery
 
 
 def timeout_preserves_control():
@@ -91,6 +91,13 @@ def main():
             pass
         else:
             raise AssertionError("export accepted unsupported width or FP32 native profile")
+    # The legacy symmetric scorer runs after export; both widths must work.
+    code=torch.zeros(4,128)
+    code[:2,0]=127;code[2:,1]=127
+    labels=torch.tensor([0,0,1,1]); rows=torch.arange(4)
+    narrow=score_packed_full_gallery(code,torch.ones(4),labels,rows,device=torch.device('cpu'))
+    wide=score_packed_full_gallery(torch.cat((code,torch.zeros_like(code)),dim=1),torch.ones(4),labels,rows,device=torch.device('cpu'),output_dim=256)
+    assert narrow==wide and narrow['recall_at_1']==1 and narrow['map_at_r']==1
 
 
 if __name__ == "__main__":

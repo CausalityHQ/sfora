@@ -1471,6 +1471,16 @@ def main() -> None:
             vision, head, processor, checkpoint_path,
             tuple(paths[row] for row in fit[:64]), args.output_dir,
         )
+        # Preserve completed training/reload guards if later export or scoring fails.
+        (args.output_dir / "direct_training_checkpoint.json").write_text(json.dumps({
+            "updates":args.updates,"training_width":args.training_width,
+            "source_files_sha256":sources,"private_native_fp16_reload":direct_parity,
+            "width_initial_geometry":width_initial_geometry,"width_terminal_geometry":width_terminal_geometry,
+            "mechanics_frozen_sha256":frozen_sha,"mechanics_terminal_frozen_sha256":terminal_frozen_sha,
+            "mechanics_initial_trainable_sha256":initial_trainable_sha,
+            "mechanics_terminal_trainable_sha256":terminal_trainable_sha,
+            "training_wall_including_member_bank_init_seconds":training_seconds+bank_init_seconds,
+        },indent=2)+"\n")
     if centroid_smoke:
         live_reference = pack_int8_unit_embeddings(
             export_all(
@@ -1576,6 +1586,7 @@ def main() -> None:
             label_ids,
             torch.arange(len(held), dtype=torch.int64),
             device=torch.device("cuda"),
+            output_dim=args.training_width if direct_width else 128,
         )
         score_seconds = time.perf_counter() - score_started
     if source_manifest(include_direct=direct_width) != sources:

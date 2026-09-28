@@ -437,10 +437,12 @@ def score_packed_full_gallery(
     held_rows: torch.Tensor,
     *,
     device: torch.device,
+    output_dim: int = OUTPUT_WIDTH,
 ) -> dict[str, Any]:
     if (
-        codes.ndim != 2
-        or codes.shape[1] != 128
+        type(output_dim) is not int or output_dim not in (128,256)
+        or codes.ndim != 2
+        or codes.shape[1] != output_dim
         or inverse_norms.shape != (len(codes),)
         or labels.shape != (len(codes),)
         or held_rows.ndim != 1
