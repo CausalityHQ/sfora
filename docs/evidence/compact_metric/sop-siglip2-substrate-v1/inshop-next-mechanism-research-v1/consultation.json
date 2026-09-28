@@ -1,0 +1,322 @@
+{
+  "id": "ae2da85c13b04bee",
+  "provider": "fable",
+  "model": "claude-fable-5-1",
+  "fallbacks": [
+    {
+      "provider": "fable",
+      "model": "claude-fable-5-1"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-6-sol"
+    }
+  ],
+  "agent": "",
+  "cwd": "/home/rb/worktrees/sfora-positive-causality",
+  "status": "completed",
+  "runner_started": true,
+  "started_at": 1790585163,
+  "timeout_seconds": 1800,
+  "deadline_at": 1790586963,
+  "budget_usd": 6,
+  "prompt_preview": "READ ONLY bounded research/invention consultation. Do not edit, launch experiments, contact operator, start consultations or workers. Repository /home/rb/worktrees/sfora-positive-causality master f45e4470. Goal genuinely learned-vector retrieval library beating strongest comparable SOP AND InShop quality with matched full image-to-top-k latency, actual packed130byte format. Existing system SigLIP2 Large24/2561024->Linear128; upper12 vision trainable, embeddings/lower12 frozen; BF16 forward FP32 weights/objective, ArcFace.3/64 +8 detached bankSmoothAP, AdamWvision1e-5 head/proxy1e-4 .05decay clip1, nativecoverage_first1000x64. Reused SOPTEST91.7419 vsdatedUNICOM91.2 NOTSOTA; olderInShopofficial95.4823 vs96.7, recenttrainedTRAINholdout97.6235 on6354q NOTofficial. Samecheckpointdirectprocessorrealservinggainshipped, no matched externalqualityandspeedwin. No activeGPU/CPU/consult now. Ask choose ONE genuinely distinct high-leverage mechanism OR demonstrate missing prerequisite, not a list of ideas or another same-substrate hyperparameter/loss/readout experiment. Research must be falsifiable cheaply before funding long training, but don't invent invalid necessary-condition tests.\nNEW decisive evidence since prior consultation99d5d8ac9d8a4abf: docs/sop_inshop_joint_cached_result_2026-09-28.md ACTUAL SOP995realproducts5190images jointcached100 arm vsInShop995products6757rows control: internalTRAIN3440q3074g997products. NativeR187.093/map.627467 vsjoint86.163/.614667; R1-.930ppCI[-1.314,-.551],map-.0128CIfullynegative; SAMEimages/counts shuffledSOP labelarm SAMEmeanR1 asjoint. 9s whole, all300updatesfinite. Fixednegativeclosed, cannot claim all fullencoder jointlearningimpossible. Earlier syntheticcategorypooled arm docs/inshop_pooled_identity_f0_result_2026-09-28.md alsofailed; do not recommend pooling again. Repeatcoverage400 R1-.436ppCInegative despite1.79xtailcoverage; docs/inshop_repeat_coverage_result_2026-09-28.md. ProductmeanPCA multi-seed full1000 failedseed29R1, docs/inshop_centroid_pca_confirmation_result_2026-09-28.md. Nativeupdate rank32 approximation40.6%capture<80%, docs/inshop_native_delta_rank32_result_2026-09-28.md, rawweightenergy NOTquality or LoRAregularizationtheorem. FOURlearnedqueryport closed docs/inshop_multiquery_design_decision_2026-09-28.md after finding earlierencoder-updatingSOP4slot negative explicitlynoInShopport. Fixedspatialparts/tokenMaxSim results doNOTprovealllearnedattentionimpossible. No route should be rescued by renaming a closed arm.\nRead current ledger docs/joint_quality_performance_decision_2026-09-23.md relevantsections and docs/inshop*2026-09-2*.md selectively; avoid rereading millions of perquery JSON. Closed: residual/mean/multidepth heads, source1024/wide256fold128, proxy/sourceclassifier aux, worstpositive/impostorsoftplus, ArcFacederivative, warmup/objectiveconflict, sequentialSOPwarmstart, BaseKDteacher, DINOv2/TIPS/ZOOCLaW, 320resolution, crop/bbox/pose/color/whitening, freeze/LR/equalwall1533/SWA/EMA prior methods. DINOv3 official repo pinned5931719e... grantUNKNOWN: BOTHhosts noHFtoken normalauthenticatedconfigtestLocalTokenNotFoundError; credentialblockeralreadyreported. No secrets/mirrors/accessworkaround/newmodeldownload. Distinguish frozen-source quality failure from fullencoderadaptationimpossibility, constantbudget head proxy fromgeneralization, fitstructuralnecessity fromretrievalguarantee.\nNeed concrete production-oriented mechanism in responsible layer, prior-art/noveltyhonesty withprimarysources if browsing. Specify exact causal difference vsnearestclosedarm, matchedcontrol/nuisances; ONE <=120s TRAIN-fit-only data/gradient/structural falsifier with predeclared usefulfailurecriteria and credible cost using alreadyavailableweights/caches (localpretrainedInShop1024 cache, DGXnativefinalFP32checkpoint/weights, priorTRAINfitfinal embeddings; nofulltokengrids). If no valid discriminatingcheaptestexists say so; smoke cankillbrokenimplementation but cannotproveSOTA oruniversal",
+  "prompt_sha256": "6070cda4f4a776e3596542bb8f037885304cf23b1622e6bbc861afdfb1abcffb",
+  "prompt_bytes": 4578,
+  "fingerprint": "8b764999b6232f8ca7a7eae5acf7a886c25b04999b9c427724182c2ebf69531f",
+  "evidence": {
+    "git_commit": "f45e4470a2bdaed21a6f946d6d071d0a399f129b",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+    "worktree_sha256": "5a2225afcd57594b44d26c783f0c8447201d4d211eae02df76c5a7a52def0566",
+    "worktree_evidence_truncated": false,
+    "active_goal": null
+  },
+  "previous_fingerprint": "cb9f1a0703bdb0848495e78e173acf7ae658ab668e1e2fb7d627a07cae4534a2",
+  "reused": false,
+  "systemd_unit": "devbox-consult-ae2da85c13b04bee.service",
+  "pid": 4110507,
+  "pgid": 4110507,
+  "attempt": 1,
+  "attempts": [
+    {
+      "provider": "fable",
+      "model": "claude-fable-5-1"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-6-sol"
+    }
+  ],
+  "attempt_history": [
+    {
+      "provider": "fable",
+      "model": "claude-fable-5-1",
+      "budget_usd": 6,
+      "timeout_seconds": 1800,
+      "started_at": 1790585163
+    }
+  ],
+  "exit_code": 0,
+  "finished_at": 1790585760,
+  "event_cursor": 33,
+  "events": [
+    {
+      "seq": 10,
+      "at": 1790585340,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 11,
+      "at": 1790585340,
+      "provider": "fable",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 12,
+      "at": 1790585573,
+      "provider": "fable",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 13,
+      "at": 1790585590,
+      "provider": "fable",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 14,
+      "at": 1790585711,
+      "provider": "fable",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 15,
+      "at": 1790585722,
+      "provider": "fable",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 16,
+      "at": 1790585743,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 17,
+      "at": 1790585744,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 18,
+      "at": 1790585745,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 19,
+      "at": 1790585746,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 20,
+      "at": 1790585747,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 21,
+      "at": 1790585748,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 22,
+      "at": 1790585749,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 23,
+      "at": 1790585750,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 24,
+      "at": 1790585751,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 25,
+      "at": 1790585752,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 26,
+      "at": 1790585753,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 27,
+      "at": 1790585755,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 28,
+      "at": 1790585756,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 29,
+      "at": 1790585757,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 30,
+      "at": 1790585758,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 31,
+      "at": 1790585759,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 32,
+      "at": 1790585760,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 33,
+      "at": 1790585760,
+      "provider": "fable",
+      "kind": "phase",
+      "label": "Consultation completed",
+      "detail": "exit 0"
+    }
+  ],
+  "events_truncated": true,
+  "provider_events": {
+    "fable": [
+      {
+        "seq": 26,
+        "at": 1790585753,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 27,
+        "at": 1790585755,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 28,
+        "at": 1790585756,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 29,
+        "at": 1790585757,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 30,
+        "at": 1790585758,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 31,
+        "at": 1790585759,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 32,
+        "at": 1790585760,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 33,
+        "at": 1790585760,
+        "provider": "fable",
+        "kind": "phase",
+        "label": "Consultation completed",
+        "detail": "exit 0"
+      }
+    ]
+  },
+  "partial_result": "**Verdict: no genuinely distinct mechanism survives the ledger, and there is a missing prerequisite that makes every recipe gate since 26 September unable to answer the goal question.** The current In-Shop recipe is selected and gated in a training-data regime that is not the deployment regime, on a panel whose noise floor is at the size of every effect being sought.\n\n## The prerequisite, demonstrated from committed evidence\n\nThe old bank model that scored the only official number was trained on 23,342 fit images, roughly 3,600 of the 3,997 TRAIN products. Since the unseen-gallery split, every arm trains on 13,283 images from 2,004 products. The current true-freeze recipe has no official read. Product count is the only encoder-level lever in the whole In-Shop ledger with a positive causal effect on unseen-product R@1.\n\n| Evidence, seed 179024, held panel | Value |\n| --- | ---: |\n| Half fit to full fit, symmetric packed R@1 | +0.365 pp, CI [+0.15, +0.57] |\n| Relative miss reduction from doubling products | about 0.80 |\n| Same relative reduction applied to official-scale miss rate 4.52 pct | about +0.9 pp |\n| Seed-to-seed control spread, same recipe | 97.51 to 97.70 |\n| SOP warm start: source, 100 updates, 1,000 updates | +9.11, +0.88, +0.13 pp |\n\nThree consequences follow. First, the current 2,004-product checkpoint is predicted to sit below the old 95.48 unless the recipe delta exceeds the data delta, and nobody has measured that. Second, cached-head proxies cannot see product-count effects at all, because frozen source features do not change with more identities. That is exactly why the joint cached arm and the pooled-identity arm are uninformative about full-encoder learning, as the prompt already suspects. Third, initialization and prior advantages wash out at 1,000 updates because the fit set is memorized at 99.36 percent, so the panel measures a data-limited ceiling, not optimization. Chasing plus 0.3 pp mechanisms inside a plus or minus 0.2 pp seed band, in a regime 1.7 pp below target, is not falsifiable.\n\nCandidates I checked and reject as the one mechanism: gallery-side aggregation or reranking is closed by the August k-reciprocal loss and would not be protocol-comparable; 320 px fails latency by 52.8 percent export slowdown before any training claim; token pruning to afford resolution needs token grids that do not exist locally; near-duplicate label noise is dead since 0 of 151 misses have source cosine at or above 0.97 to the impostor; cross-domain identity scaling from SOP does not transfer once in-domain fine-tuning saturates; the caption term was killed on C4 and reopening it with a new configuration would be renaming a closed arm.\n\n## The one cheap falsifier, CPU, under 120 s, local receipts only\n\nInputs already on disk: per-query R@1 arrays for the half-fit run and the full-fit true-freeze run at seed 179024, both 12,599 rows in the same held order, plus the 499 hard product names from the hard-product readout. No images, caches, GPU, or official rows.\n\nCompute the half-to-full net rescue split into the hard-product quartile, 4,198 queries, versus the rest, with a 5,000-draw product-cluster bootstrap on the paired deltas. Predeclare before reading:\n\n- Pass: hard-quartile relative miss reduction at least 15 percent with a positive product-bootstrap lower bound. Product count then helps the fragile-margin stratum that constitutes official-scale misses, and the all-TRAIN extrapolation is supported.\n- Useful failure: hard-quartile reduction under 10 percent, or all net rescues inside products with nine or more held images. Then more in-domain identities only fix easy positives, the all-TRAIN retrain cannot close the official gap, and the In-Shop bar should be declared unreachable at this substrate and 130-byte format without a substrate change.\n\nThis test cannot prove SOTA. It discriminates between the two live explanations of the official gap using one seed, so it can kill the retrain before spending 85 minutes of DGX.\n\n## The one bounded encoder gate\n\nTrain the unchanged true-freeze recipe on all 25,882 TRAIN images and 3,997 products, three paired seeds, 2,000 updates fixed by equal epochs, no tuning, no checkpoint selection, then one preregistered official read. Cost is about 28 minutes per seed serial. The frozen rule: three-seed mean packed R@1 at or above 96.7 with a positive seed-and-product bootstrap lower bound is the claim; 95.9 to 96.4 quantifies the remaining width-or-substrate gap at the deployment regime; at or below 95.5 says the post-26-September recipe work did not transfer. This read is exploratory by the ledger's own rule, since no untouched In-Shop surface exists. The same holds for SOP TEST, so the library claim can only be qualified on an untouched fresh dataset later. The 10,000-call direct-processor p99 receipt is checkpoint-agnostic in cost but must be rerun on the promoted checkpoint.\n\n## What independent work cannot replace\n\nIf the falsifier fails, the only routes left are wider than 130 bytes or a stronger instance-discriminative substrate at 256 tokens. The DINOv3 grant status is unknown on both hosts, and no local work substitutes for that credential.",
+  "partial_result_truncated": false,
+  "provider_partials": {
+    "fable": "**Verdict: no genuinely distinct mechanism survives the ledger, and there is a missing prerequisite that makes every recipe gate since 26 September unable to answer the goal question.** The current In-Shop recipe is selected and gated in a training-data regime that is not the deployment regime, on a panel whose noise floor is at the size of every effect being sought.\n\n## The prerequisite, demonstrated from committed evidence\n\nThe old bank model that scored the only official number was trained on 23,342 fit images, roughly 3,600 of the 3,997 TRAIN products. Since the unseen-gallery split, every arm trains on 13,283 images from 2,004 products. The current true-freeze recipe has no official read. Product count is the only encoder-level lever in the whole In-Shop ledger with a positive causal effect on unseen-product R@1.\n\n| Evidence, seed 179024, held panel | Value |\n| --- | ---: |\n| Half fit to full fit, symmetric packed R@1 | +0.365 pp, CI [+0.15, +0.57] |\n| Relative miss reduction from doubling products | about 0.80 |\n| Same relative reduction applied to official-scale miss rate 4.52 pct | about +0.9 pp |\n| Seed-to-seed control spread, same recipe | 97.51 to 97.70 |\n| SOP warm start: source, 100 updates, 1,000 updates | +9.11, +0.88, +0.13 pp |\n\nThree consequences follow. First, the current 2,004-product checkpoint is predicted to sit below the old 95.48 unless the recipe delta exceeds the data delta, and nobody has measured that. Second, cached-head proxies cannot see product-count effects at all, because frozen source features do not change with more identities. That is exactly why the joint cached arm and the pooled-identity arm are uninformative about full-encoder learning, as the prompt already suspects. Third, initialization and prior advantages wash out at 1,000 updates because the fit set is memorized at 99.36 percent, so the panel measures a data-limited ceiling, not optimization. Chasing plus 0.3 pp mechanisms inside a plus or minus 0.2 pp seed band, in a regime 1.7 pp below target, is not falsifiable.\n\nCandidates I checked and reject as the one mechanism: gallery-side aggregation or reranking is closed by the August k-reciprocal loss and would not be protocol-comparable; 320 px fails latency by 52.8 percent export slowdown before any training claim; token pruning to afford resolution needs token grids that do not exist locally; near-duplicate label noise is dead since 0 of 151 misses have source cosine at or above 0.97 to the impostor; cross-domain identity scaling from SOP does not transfer once in-domain fine-tuning saturates; the caption term was killed on C4 and reopening it with a new configuration would be renaming a closed arm.\n\n## The one cheap falsifier, CPU, under 120 s, local receipts only\n\nInputs already on disk: per-query R@1 arrays for the half-fit run and the full-fit true-freeze run at seed 179024, both 12,599 rows in the same held order, plus the 499 hard product names from the hard-product readout. No images, caches, GPU, or official rows.\n\nCompute the half-to-full net rescue split into the hard-product quartile, 4,198 queries, versus the rest, with a 5,000-draw product-cluster bootstrap on the paired deltas. Predeclare before reading:\n\n- Pass: hard-quartile relative miss reduction at least 15 percent with a positive product-bootstrap lower bound. Product count then helps the fragile-margin stratum that constitutes official-scale misses, and the all-TRAIN extrapolation is supported.\n- Useful failure: hard-quartile reduction under 10 percent, or all net rescues inside products with nine or more held images. Then more in-domain identities only fix easy positives, the all-TRAIN retrain cannot close the official gap, and the In-Shop bar should be declared unreachable at this substrate and 130-byte format without a substrate change.\n\nThis test cannot prove SOTA. It discriminates between the two live explanations of the official gap using one seed, so it can kill the retrain before spending 85 minutes of DGX.\n\n## The one bounded encoder gate\n\nTrain the unchanged true-freeze recipe on all 25,882 TRAIN images and 3,997 products, three paired seeds, 2,000 updates fixed by equal epochs, no tuning, no checkpoint selection, then one preregistered official read. Cost is about 28 minutes per seed serial. The frozen rule: three-seed mean packed R@1 at or above 96.7 with a positive seed-and-product bootstrap lower bound is the claim; 95.9 to 96.4 quantifies the remaining width-or-substrate gap at the deployment regime; at or below 95.5 says the post-26-September recipe work did not transfer. This read is exploratory by the ledger's own rule, since no untouched In-Shop surface exists. The same holds for SOP TEST, so the library claim can only be qualified on an untouched fresh dataset later. The 10,000-call direct-processor p99 receipt is checkpoint-agnostic in cost but must be rerun on the promoted checkpoint.\n\n## What independent work cannot replace\n\nIf the falsifier fails, the only routes left are wider than 130 bytes or a stronger instance-discriminative substrate at 256 tokens. The DINOv3 grant status is unknown on both hosts, and no local work substitutes for that credential."
+  },
+  "providers_used": [
+    "fable"
+  ],
+  "active_provider": "fable",
+  "phase": "Consultation completed",
+  "input_bytes": 4578,
+  "output_bytes": 5191,
+  "elapsed_seconds": 597,
+  "progress": "devbox-ask: fable consult still running (0m 30s)\ndevbox-ask: fable consult still running (1m 00s)\ndevbox-ask: fable consult still running (1m 30s)\ndevbox-ask: fable consult still running (2m 00s)\ndevbox-ask: fable consult still running (2m 30s)\ndevbox-ask: fable consult still running (3m 00s)\ndevbox-ask: fable consult still running (3m 30s)\ndevbox-ask: fable consult still running (4m 00s)\ndevbox-ask: fable consult still running (4m 30s)\ndevbox-ask: fable consult still running (5m 00s)\ndevbox-ask: fable consult still running (5m 30s)\ndevbox-ask: fable consult still running (6m 00s)\ndevbox-ask: fable consult still running (6m 30s)\ndevbox-ask: fable consult still running (7m 00s)\ndevbox-ask: fable consult still running (7m 30s)\ndevbox-ask: fable consult still running (8m 00s)\ndevbox-ask: fable consult still running (8m 30s)\ndevbox-ask: fable consult still running (9m 00s)\ndevbox-ask: fable consult still running (9m 30s)",
+  "progress_truncated": false,
+  "result": "**Verdict: no genuinely distinct mechanism survives the ledger, and there is a missing prerequisite that makes every recipe gate since 26 September unable to answer the goal question.** The current In-Shop recipe is selected and gated in a training-data regime that is not the deployment regime, on a panel whose noise floor is at the size of every effect being sought.\n\n## The prerequisite, demonstrated from committed evidence\n\nThe old bank model that scored the only official number was trained on 23,342 fit images, roughly 3,600 of the 3,997 TRAIN products. Since the unseen-gallery split, every arm trains on 13,283 images from 2,004 products. The current true-freeze recipe has no official read. Product count is the only encoder-level lever in the whole In-Shop ledger with a positive causal effect on unseen-product R@1.\n\n| Evidence, seed 179024, held panel | Value |\n| --- | ---: |\n| Half fit to full fit, symmetric packed R@1 | +0.365 pp, CI [+0.15, +0.57] |\n| Relative miss reduction from doubling products | about 0.80 |\n| Same relative reduction applied to official-scale miss rate 4.52 pct | about +0.9 pp |\n| Seed-to-seed control spread, same recipe | 97.51 to 97.70 |\n| SOP warm start: source, 100 updates, 1,000 updates | +9.11, +0.88, +0.13 pp |\n\nThree consequences follow. First, the current 2,004-product checkpoint is predicted to sit below the old 95.48 unless the recipe delta exceeds the data delta, and nobody has measured that. Second, cached-head proxies cannot see product-count effects at all, because frozen source features do not change with more identities. That is exactly why the joint cached arm and the pooled-identity arm are uninformative about full-encoder learning, as the prompt already suspects. Third, initialization and prior advantages wash out at 1,000 updates because the fit set is memorized at 99.36 percent, so the panel measures a data-limited ceiling, not optimization. Chasing plus 0.3 pp mechanisms inside a plus or minus 0.2 pp seed band, in a regime 1.7 pp below target, is not falsifiable.\n\nCandidates I checked and reject as the one mechanism: gallery-side aggregation or reranking is closed by the August k-reciprocal loss and would not be protocol-comparable; 320 px fails latency by 52.8 percent export slowdown before any training claim; token pruning to afford resolution needs token grids that do not exist locally; near-duplicate label noise is dead since 0 of 151 misses have source cosine at or above 0.97 to the impostor; cross-domain identity scaling from SOP does not transfer once in-domain fine-tuning saturates; the caption term was killed on C4 and reopening it with a new configuration would be renaming a closed arm.\n\n## The one cheap falsifier, CPU, under 120 s, local receipts only\n\nInputs already on disk: per-query R@1 arrays for the half-fit run and the full-fit true-freeze run at seed 179024, both 12,599 rows in the same held order, plus the 499 hard product names from the hard-product readout. No images, caches, GPU, or official rows.\n\nCompute the half-to-full net rescue split into the hard-product quartile, 4,198 queries, versus the rest, with a 5,000-draw product-cluster bootstrap on the paired deltas. Predeclare before reading:\n\n- Pass: hard-quartile relative miss reduction at least 15 percent with a positive product-bootstrap lower bound. Product count then helps the fragile-margin stratum that constitutes official-scale misses, and the all-TRAIN extrapolation is supported.\n- Useful failure: hard-quartile reduction under 10 percent, or all net rescues inside products with nine or more held images. Then more in-domain identities only fix easy positives, the all-TRAIN retrain cannot close the official gap, and the In-Shop bar should be declared unreachable at this substrate and 130-byte format without a substrate change.\n\nThis test cannot prove SOTA. It discriminates between the two live explanations of the official gap using one seed, so it can kill the retrain before spending 85 minutes of DGX.\n\n## The one bounded encoder gate\n\nTrain the unchanged true-freeze recipe on all 25,882 TRAIN images and 3,997 products, three paired seeds, 2,000 updates fixed by equal epochs, no tuning, no checkpoint selection, then one preregistered official read. Cost is about 28 minutes per seed serial. The frozen rule: three-seed mean packed R@1 at or above 96.7 with a positive seed-and-product bootstrap lower bound is the claim; 95.9 to 96.4 quantifies the remaining width-or-substrate gap at the deployment regime; at or below 95.5 says the post-26-September recipe work did not transfer. This read is exploratory by the ledger's own rule, since no untouched In-Shop surface exists. The same holds for SOP TEST, so the library claim can only be qualified on an untouched fresh dataset later. The 10,000-call direct-processor p99 receipt is checkpoint-agnostic in cost but must be rerun on the promoted checkpoint.\n\n## What independent work cannot replace\n\nIf the falsifier fails, the only routes left are wider than 130 bytes or a stronger instance-discriminative substrate at 256 tokens. The DINOv3 grant status is unknown on both hosts, and no local work substitutes for that credential.",
+  "result_truncated": false
+}
