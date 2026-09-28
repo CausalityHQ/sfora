@@ -1,0 +1,50 @@
+{
+  "schema": "sfora-siglip-vision-meta-export-v1",
+  "decision": "STRUCTURAL_PASS_ONLY",
+  "config_sha256": "172e39dbf0143b8fe22d2f08921730eb8c397967e58cb37d133161e28aa34104",
+  "source_sha256": "1aec170b3069c6d7dc45e03e7ebb2c66effada56abfcb35647c6cb10407b5be0",
+  "torch": "2.12.1+cu130",
+  "transformers": "5.12.1",
+  "attention_implementation": "sdpa",
+  "input_shape": [
+    32,
+    3,
+    256,
+    256
+  ],
+  "output_shape": [
+    32,
+    1024
+  ],
+  "dtype": "torch.float16",
+  "device": "meta",
+  "wall_seconds": 5.64444103371352,
+  "call_function_counts": {
+    "<built-in function getitem>": 4,
+    "aten._assert_tensor_metadata.default": 1,
+    "aten.add.Tensor": 50,
+    "aten.bmm.default": 2,
+    "aten.contiguous.default": 25,
+    "aten.conv2d.padding": 1,
+    "aten.embedding.default": 1,
+    "aten.flatten.using_ints": 1,
+    "aten.gelu.default": 25,
+    "aten.layer_norm.default": 50,
+    "aten.linear.default": 149,
+    "aten.mean.dim": 1,
+    "aten.mul.Tensor": 1,
+    "aten.repeat.default": 1,
+    "aten.reshape.default": 24,
+    "aten.scaled_dot_product_attention.default": 24,
+    "aten.select.int": 3,
+    "aten.softmax.int": 1,
+    "aten.split_with_sizes.default": 2,
+    "aten.squeeze.dim": 1,
+    "aten.to.dtype": 1,
+    "aten.transpose.int": 106,
+    "aten.unflatten.int": 1,
+    "aten.unsqueeze.default": 1,
+    "aten.view.default": 78
+  },
+  "limitations": "No GPU compilation, real output parity, quality, or latency measured."
+}
