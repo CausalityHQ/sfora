@@ -1203,6 +1203,16 @@ In-Shop result in that paper. It is a later, useful method comparison but does
 not raise the UNICOM SOP quality gate. This is a scoped source audit, not a
 certificate that no stronger 2026 result exists.
 
+On September28, a scoped update checked the March17,2026
+[Visual Product Search Benchmark, Table3](https://arxiv.org/html/2603.17186v1).
+It reports zero-shot SOP TEST self-excluded60,502-query/60,502-gallery R@1
+80.3% for SigLIP2 SO400M/384 (1152D) and86.9% for proprietary GEMv5.1.
+Those are published measurements, not local reproductions. The report has no
+In-Shop result or matched end-to-end latency measurement. Its zero-shot
+adaptation budget differs from supervised UNICOM and Sfora; these rows are
+additional reference context, not weaker replacement supervised gates.
+This check does not establish an exhaustive2026 frontier or certify SOTA.
+
 The OML float source rescored with the same stable-ordinal evaluator remains
 86.5575% Recall@1 and 0.654393 mAP@R, with
 [raw matched-scorer evidence](evidence/compact_metric/oml-vits16-sop-matched-scorer-v1.json).
