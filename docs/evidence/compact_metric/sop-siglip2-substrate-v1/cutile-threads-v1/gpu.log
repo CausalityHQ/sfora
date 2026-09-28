@@ -1,0 +1,91 @@
+
+running 11 tests
+test ffi::tests::ffi_fails_closed_and_round_trips_exact_top_ten ... CUTILE_JIT_TIMING module=creation function=full key=eed3c72dd16224e3 stage1_ms=9.422 stage2_ms=42.969 stage3_ms=2.445 generics=f32,128
+CUTILE_JIT_TIMING module=creation function=full key=b1e601f2e17bc42a stage1_ms=8.778 stage2_ms=44.241 stage3_ms=0.143 generics=i32,128
+CUTILE_JIT_TIMING module=topk_module function=score_block_topk key=89879590c7e34a09 stage1_ms=113.534 stage2_ms=179.770 stage3_ms=9.068 generics=1,128,32,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=merge_topk key=5b7a37bd850fa54c stage1_ms=75.290 stage2_ms=113.511 stage3_ms=0.588 generics=1,2048,16,10
+ok
+test ffi::tests::ffi_rejects_unsupported_gallery_sizes_before_buffer_access ... ok
+test kernel::tests::cutile_scores_match_scalar_bits_and_lexicographic_top_ten ... CUTILE_JIT_TIMING module=creation function=full key=eed3c72dd16224e3 stage1_ms=8.643 stage2_ms=44.856 stage3_ms=0.633 generics=f32,128
+CUTILE_JIT_TIMING module=score_module function=signed_int8_score key=f9462ffde8617333 stage1_ms=43.034 stage2_ms=168.360 stage3_ms=9.494 generics=1,128,32,128
+ok
+test topk::tests::device_top_ten_matches_scalar_across_boundaries_batches_and_ties ... CUTILE_JIT_TIMING module=creation function=full key=eed3c72dd16224e3 stage1_ms=8.647 stage2_ms=42.194 stage3_ms=0.756 generics=f32,128
+CUTILE_JIT_TIMING module=creation function=full key=b1e601f2e17bc42a stage1_ms=8.711 stage2_ms=42.124 stage3_ms=0.247 generics=i32,128
+CUTILE_JIT_TIMING module=topk_module function=score_block_topk key=de66c5ff6d0b4391 stage1_ms=112.071 stage2_ms=182.449 stage3_ms=9.377 generics=1,128,32,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=merge_topk key=5b7a37bd850fa54c stage1_ms=75.775 stage2_ms=114.435 stage3_ms=0.383 generics=1,2048,16,10
+CUTILE_JIT_TIMING module=topk_module function=score_block_topk key=89879590c7e34a09 stage1_ms=109.195 stage2_ms=193.660 stage3_ms=0.444 generics=1,128,32,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=score_block_topk key=e1b00ed00822bf90 stage1_ms=111.165 stage2_ms=198.419 stage3_ms=0.289 generics=1,128,32,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=score_block_topk key=3ce8eee842d117bd stage1_ms=112.433 stage2_ms=193.068 stage3_ms=0.272 generics=1,128,32,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=score_block_topk key=9b3c9f6347733f55 stage1_ms=113.275 stage2_ms=181.724 stage3_ms=0.435 generics=1,128,32,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=score_block_topk key=acfa912ab585872a stage1_ms=116.564 stage2_ms=326.150 stage3_ms=0.451 generics=32,128,32,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=merge_topk key=88efeaa5443ebe9 stage1_ms=83.183 stage2_ms=112.782 stage3_ms=0.454 generics=1,512,16,10
+CUTILE_JIT_TIMING module=topk_module function=score_block_topk key=5ca82edaa4386824 stage1_ms=116.889 stage2_ms=328.775 stage3_ms=0.473 generics=32,128,32,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=score_block_topk key=88813c00bf786c99 stage1_ms=118.308 stage2_ms=328.907 stage3_ms=0.414 generics=32,128,32,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=score_block_topk key=f2024ecd1216e102 stage1_ms=119.116 stage2_ms=330.609 stage3_ms=0.370 generics=32,128,32,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=score_block_topk key=acfbdf3a5a81ec3e stage1_ms=120.537 stage2_ms=317.204 stage3_ms=0.270 generics=32,128,32,128,16,10
+ok
+test topk::tests::diagnostic_split_preserves_exact_scores_and_stable_ordinals ... CUTILE_JIT_TIMING module=creation function=full key=eed3c72dd16224e3 stage1_ms=8.622 stage2_ms=42.730 stage3_ms=0.560 generics=f32,128
+CUTILE_JIT_TIMING module=creation function=full key=b1e601f2e17bc42a stage1_ms=8.649 stage2_ms=42.829 stage3_ms=0.130 generics=i32,128
+CUTILE_JIT_TIMING module=topk_module function=score_block_topk key=de66c5ff6d0b4391 stage1_ms=107.025 stage2_ms=193.819 stage3_ms=9.221 generics=1,128,32,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=merge_topk key=5b7a37bd850fa54c stage1_ms=75.505 stage2_ms=124.823 stage3_ms=0.431 generics=1,2048,16,10
+CUTILE_JIT_TIMING module=topk_module function=score_tile_for_profile key=fa0f0df3f1c41087 stage1_ms=44.327 stage2_ms=169.392 stage3_ms=0.476 generics=1,128,32,128
+CUTILE_JIT_TIMING module=topk_module function=select_tile_for_profile key=f897bfc892643624 stage1_ms=67.396 stage2_ms=94.040 stage3_ms=0.482 generics=1,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=score_block_topk key=e1b00ed00822bf90 stage1_ms=110.558 stage2_ms=182.389 stage3_ms=0.400 generics=1,128,32,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=select_tile_for_profile key=fc2c21633ead06f5 stage1_ms=69.844 stage2_ms=94.556 stage3_ms=0.293 generics=1,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=score_block_topk key=89879590c7e34a09 stage1_ms=111.977 stage2_ms=183.934 stage3_ms=0.421 generics=1,128,32,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=select_tile_for_profile key=105e45053e7bfa82 stage1_ms=70.867 stage2_ms=94.180 stage3_ms=0.393 generics=1,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=score_block_topk key=3ce8eee842d117bd stage1_ms=114.735 stage2_ms=195.047 stage3_ms=0.268 generics=1,128,32,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=select_tile_for_profile key=69b9c89eaceee790 stage1_ms=72.927 stage2_ms=94.328 stage3_ms=0.250 generics=1,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=score_block_topk key=9b3c9f6347733f55 stage1_ms=116.256 stage2_ms=199.616 stage3_ms=0.293 generics=1,128,32,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=select_tile_for_profile key=a0c6a301903b4b89 stage1_ms=75.698 stage2_ms=95.005 stage3_ms=0.319 generics=1,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=score_block_topk key=acfa912ab585872a stage1_ms=118.493 stage2_ms=326.925 stage3_ms=0.482 generics=32,128,32,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=merge_topk key=88efeaa5443ebe9 stage1_ms=85.225 stage2_ms=96.226 stage3_ms=0.444 generics=1,512,16,10
+CUTILE_JIT_TIMING module=topk_module function=score_tile_for_profile key=95f52190c9dda2ce stage1_ms=50.152 stage2_ms=208.446 stage3_ms=0.521 generics=32,128,32,128
+CUTILE_JIT_TIMING module=topk_module function=select_tile_for_profile key=5fdcfff469d2cc4a stage1_ms=76.294 stage2_ms=171.316 stage3_ms=0.435 generics=32,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=score_block_topk key=88813c00bf786c99 stage1_ms=121.002 stage2_ms=317.776 stage3_ms=0.456 generics=32,128,32,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=select_tile_for_profile key=4f75e9c938437dc8 stage1_ms=77.762 stage2_ms=185.102 stage3_ms=0.576 generics=32,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=score_block_topk key=5ca82edaa4386824 stage1_ms=121.020 stage2_ms=329.728 stage3_ms=0.524 generics=32,128,32,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=select_tile_for_profile key=22d617aba190f00a stage1_ms=78.358 stage2_ms=172.758 stage3_ms=0.477 generics=32,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=score_block_topk key=f2024ecd1216e102 stage1_ms=122.426 stage2_ms=318.425 stage3_ms=0.496 generics=32,128,32,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=select_tile_for_profile key=24d3fda086d32ed0 stage1_ms=79.619 stage2_ms=183.855 stage3_ms=0.400 generics=32,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=score_block_topk key=acfbdf3a5a81ec3e stage1_ms=124.144 stage2_ms=325.448 stage3_ms=0.276 generics=32,128,32,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=select_tile_for_profile key=c4da95c7e0f4c734 stage1_ms=81.000 stage2_ms=173.310 stage3_ms=0.238 generics=32,128,16,10
+ok
+test topk::tests::gallery_row_limit_preserves_signed_ordinals_and_padded_shape ... ok
+test topk::tests::output_ordinal_rejects_placeholders_and_out_of_gallery_values ... ok
+test wire::tests::invalid_wire_lengths_and_metadata_fail_closed ... ok
+test wire::tests::scalar_score_handles_valid_width_beyond_i32_dot_range ... ok
+test wire::tests::score_rejects_dimension_mismatch ... ok
+test wire::tests::valid_rows_and_signed_extremes_score_exactly ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 14.04s
+
+
+running 1 test
+test tests::f16_wire_rejects_odd_bytes_and_preserves_little_endian_bits ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 1 test
+test tests::receipt_recomputes_nearest_rank_percentiles_and_excludes_compile_time ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 2 tests
+test batch_thirty_two_merge_keeps_ties_across_width_boundary ... CUTILE_JIT_TIMING module=creation function=full key=eed3c72dd16224e3 stage1_ms=9.469 stage2_ms=54.689 stage3_ms=2.732 generics=f32,128
+CUTILE_JIT_TIMING module=creation function=full key=b1e601f2e17bc42a stage1_ms=8.747 stage2_ms=38.494 stage3_ms=0.256 generics=i32,128
+CUTILE_JIT_TIMING module=topk_module function=score_block_topk key=5ca82edaa4386824 stage1_ms=114.598 stage2_ms=326.002 stage3_ms=9.011 generics=32,128,32,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=merge_topk key=88efeaa5443ebe9 stage1_ms=76.045 stage2_ms=108.293 stage3_ms=0.406 generics=1,512,16,10
+ok
+test batch_thirty_two_merge_preserves_distinct_query_rows ... CUTILE_JIT_TIMING module=creation function=full key=eed3c72dd16224e3 stage1_ms=8.715 stage2_ms=52.927 stage3_ms=0.568 generics=f32,128
+CUTILE_JIT_TIMING module=creation function=full key=b1e601f2e17bc42a stage1_ms=8.661 stage2_ms=40.441 stage3_ms=0.124 generics=i32,128
+CUTILE_JIT_TIMING module=topk_module function=score_block_topk key=5ca82edaa4386824 stage1_ms=110.139 stage2_ms=317.775 stage3_ms=9.016 generics=32,128,32,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=merge_topk key=88efeaa5443ebe9 stage1_ms=76.168 stage2_ms=107.460 stage3_ms=0.427 generics=1,512,16,10
+ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.24s
+
+THREAD_GATE_BEGIN
+{"gate": "PASS", "exact_searches": 8, "phase_misses": [4, 0, 2, 0, 4, 0, 2, 0]}

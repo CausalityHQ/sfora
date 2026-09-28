@@ -1,5 +1,33 @@
 # Joint quality and performance decision, first training-code gate
 
+## 28 September matched native and thread gates completed
+
+The59551-row synthetic matched comparison passed456 exact scalar-bit checks
+and the frozen hot regression guards. Original→runtime candidate p50/p95 ms:
+batch1 0.168968/0.173277→0.170087/0.172377; batch32
+0.235920/0.248020→0.235119/0.241301,100 samples per arm/batch.
+Fresh-process merge JIT misses fell2→1; descriptive first-search timing fell
+at this geometry. [Matched evidence and limits](cutile_native_comparison_result_2026-09-28.md).
+
+The shared FFI now rejects oversized raw slices and unsupported padded row
+counts before copies. Its bounded red/green regression and all15 Rust tests
+pass; Opus5.5/Astra approve the committed FFI-only fix.
+[Boundary evidence](cutile_ffi_size_result_2026-09-28.md).
+
+An isolated preserved candidate plus committed guard also passed all15 Rust
+tests and eight same-handle searches across two distinct successive threads.
+Each thread independently compiled six kernels, with no repeat-call misses.
+Warm cache reuse is per thread; global reuse and concurrent calls are unproved.
+[Frozen thread gate, raw outputs and replay](cutile_threads_gate_2026-09-28.md).
+
+These are synthetic native correctness/deployability measurements. No dataset
+quality or full image-to-top-k result changed; the protected top-k file remains
+untouched, unstaged and unpromoted. The joint goal is unmet. Return next to the
+representation/quality gap and qualified full-pipeline comparison; do not add
+native probes solely because this gate passed. Exact converged TRAIN fit tensors
+remain absent, and the existing checkpoint writer does not persist its member
+bank; the rejected sub-center screen is not reopened by kernel evidence.
+
 ## 28 September native JIT reuse: scoped gate passes; comparison conditional
 
 The unchanged candidate's fresh-process16-search boundary test passed exactly.

@@ -1,0 +1,32 @@
+{
+  "schema": "sfora-cutile-threads-v1",
+  "claim_eligible": false,
+  "decision": "PASS_SEQUENTIAL_THREAD_EXACTNESS_CACHE_GATE",
+  "freeze_commit": "985cdc0e",
+  "cpu_invocation": "7724bffc14af4366b700689c7b987a2a",
+  "gpu_invocation": "c1c5fd7c7d644010b146ddf112281370",
+  "limits": {
+    "cpu_seconds": 120,
+    "gpu_seconds": 90,
+    "host_memory_bytes": 8589934592,
+    "gpu_lock": "/home/riomus/runs/.sfora-siglip2-gpu.lock",
+    "authority": "original native launch arguments"
+  },
+  "files_sha256": {
+    "binaries.json": "938fba1ab612f9295e624178ea67ba45dbd7c701a5c8d0ca9740147e7f2d542a",
+    "cpu-time.txt": "b1215cafa20053901c49556802292e2f6a7a594bbeeff5ad33d40856c24f53c3",
+    "cpu.log": "df300ef40b09f5b89fc2100b3f513c5c71cd2e1706e293b856159bfc22ab7034",
+    "cpu.py": "9e6bf43c2a078276c143ca76275dbe1e396ac3dd4370b8de3518b49d1b4e5afd",
+    "gpu-time.txt": "59ea84e5d943422567a094495f0605a912e4e5aa2097e8ea3ec9c0da1efe7d73",
+    "gpu.log": "1e528fa42786f112cefab7904814af49fabfed3787d0dd20257d250db91c4c36",
+    "gpu.py": "c564d7daf9acf38d17b5ba3355b240c15967e778c72f78d6e82f283af2dd1cf0",
+    "parse_cutile_jit_timing.py": "fdfbd189a96c74188114bbc67d88280ab85f4bbfd41a2ae2722136c6c8df6eaf",
+    "probe_cutile_runtime_bounds.py": "f4753cce296c57bca9c4b7fa39515678fe4d84e39d1ba07cca5dd748411894ca",
+    "probe_cutile_threads.py": "2d8e8a0add3e52658969db08f50a3ed3f9f71ce27ee51510ef3582c391c94256",
+    "source-manifest.json": "3b0088d4d06146c9fe698dbabb4a45cce85a9ba7c0b176df2136034df97b8472",
+    "summary.json": "008ffc1cc00eb3669c6b3d591ab5f309ed60acea8324d4add0f26f3cd3e88a05",
+    "terminal.txt": "ad1e0ddf14c0adfb3d299ea7cc2cb9b12b9f273a7b3b813b896774893173c5a0",
+    "threads.json": "ead403335cc4ff81fb92e3bf6c821fdc341fe61cbeecab92d4bb65a97e3e6528",
+    "threads.log": "a9a32a83de68676f3b6dbf509344b7027bd99f9a08e24c253c6a4958fdb2860c"
+  }
+}

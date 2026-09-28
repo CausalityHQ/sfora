@@ -1,0 +1,5 @@
+2026-09-28T15:48:24+02:00 spark-2751 systemd[3489]: Started sfora-cutile-threads-gpu-v1.service - /usr/bin/flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock /usr/bin/time -v -o /home/riomus/runs/sfora-cutile-threads-v1/gpu-time.txt /usr/bin/python3 /home/riomus/runs/sfora-cutile-threads-v1/gpu.py.
+2026-09-28T15:48:45+02:00 spark-2751 systemd[3489]: sfora-cutile-threads-gpu-v1.service: Consumed 22.959s CPU time, 2.9M memory peak, 0B memory swap peak.
+Result=success
+ExecMainStatus=0
+ActiveState=inactive

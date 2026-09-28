@@ -1,0 +1,21 @@
+THREAD_1_B1_first
+CUTILE_JIT_TIMING module=creation function=full key=eed3c72dd16224e3 stage1_ms=9.049 stage2_ms=52.284 stage3_ms=2.873 generics=f32,128
+CUTILE_JIT_TIMING module=creation function=full key=b1e601f2e17bc42a stage1_ms=7.823 stage2_ms=40.490 stage3_ms=0.249 generics=i32,128
+CUTILE_JIT_TIMING module=topk_module function=score_block_topk key=89879590c7e34a09 stage1_ms=112.867 stage2_ms=181.223 stage3_ms=9.474 generics=1,128,32,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=merge_topk key=5b7a37bd850fa54c stage1_ms=74.336 stage2_ms=124.718 stage3_ms=0.527 generics=1,2048,16,10
+THREAD_1_B1_repeat
+THREAD_1_B32_first
+CUTILE_JIT_TIMING module=topk_module function=score_block_topk key=5ca82edaa4386824 stage1_ms=109.181 stage2_ms=318.480 stage3_ms=0.507 generics=32,128,32,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=merge_topk key=88efeaa5443ebe9 stage1_ms=77.412 stage2_ms=96.785 stage3_ms=0.656 generics=1,512,16,10
+THREAD_1_B32_repeat
+THREAD_2_B1_first
+CUTILE_JIT_TIMING module=creation function=full key=eed3c72dd16224e3 stage1_ms=8.096 stage2_ms=41.575 stage3_ms=0.201 generics=f32,128
+CUTILE_JIT_TIMING module=creation function=full key=b1e601f2e17bc42a stage1_ms=7.804 stage2_ms=40.256 stage3_ms=0.128 generics=i32,128
+CUTILE_JIT_TIMING module=topk_module function=score_block_topk key=89879590c7e34a09 stage1_ms=112.579 stage2_ms=191.874 stage3_ms=0.277 generics=1,128,32,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=merge_topk key=5b7a37bd850fa54c stage1_ms=74.189 stage2_ms=133.618 stage3_ms=0.252 generics=1,2048,16,10
+THREAD_2_B1_repeat
+THREAD_2_B32_first
+CUTILE_JIT_TIMING module=topk_module function=score_block_topk key=5ca82edaa4386824 stage1_ms=109.258 stage2_ms=329.311 stage3_ms=0.461 generics=32,128,32,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=merge_topk key=88efeaa5443ebe9 stage1_ms=78.033 stage2_ms=108.453 stage3_ms=0.264 generics=1,512,16,10
+THREAD_2_B32_repeat
+PASS eight exact searches on two distinct successive threads
