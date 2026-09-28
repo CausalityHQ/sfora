@@ -1,0 +1,9 @@
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-pe-core-source-v1/pe_core_training.py", line 51, in <module>
+    self_test()
+    ~~~~~~~~~^^
+  File "/home/riomus/runs/sfora-pe-core-source-v1/pe_core_training.py", line 32, in self_test
+    inventory = freeze_prefix(model, arm)
+  File "/home/riomus/runs/sfora-pe-core-source-v1/pe_core_training.py", line 8, in freeze_prefix
+    raise NotImplementedError('native prefix not implemented')
+NotImplementedError: native prefix not implemented

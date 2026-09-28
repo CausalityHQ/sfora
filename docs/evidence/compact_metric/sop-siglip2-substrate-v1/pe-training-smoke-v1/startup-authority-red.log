@@ -1,0 +1,6 @@
+MISSING ['isolated-deps/einops/_backends.py', 'isolated-deps/einops/parsing.py', 'isolated-deps/einops/einops.py', 'isolated-deps/einops/packing.py', 'isolated-deps/einops/__init__.py', 'core/vision_encoder/rope.py', 'core/vision_encoder/config.py', 'core/vision_encoder/pe.py']
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    import json;import probe_inshop_pe_training_smoke as s;p=json.load(open("/home/riomus/runs/sfora-pe-training-smoke-v2/preflight.json"));c=s.authority();print("MISSING",[n for n,v in p["code"].items() if c.get(n)!=v]);assert all(c.get(n)==v for n,v in p["code"].items())
+                                                                                                                                                                                                                                    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

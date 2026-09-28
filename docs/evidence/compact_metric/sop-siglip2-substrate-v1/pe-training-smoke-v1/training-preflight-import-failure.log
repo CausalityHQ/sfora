@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-pe-core-source-v1/probe_inshop_pe_training_smoke.py", line 18, in <module>
+    from train_sop_siglip2_compact import (
+    ...<5 lines>...
+    )
+ModuleNotFoundError: No module named 'train_sop_siglip2_compact'
