@@ -1,0 +1,26 @@
+{
+  "category_collapsed_sham_max_positive_width": 1788,
+  "corrected_inner_fit_products": 1008,
+  "corrected_inner_fit_rows": 6563,
+  "corrected_inner_fit_sha256": "28589624414c9bc0b084aa1187cf5285db9f18ab32ba82f75580cc0218df4776",
+  "corrected_validation_a_products": 394,
+  "corrected_validation_a_rows": 2496,
+  "corrected_validation_a_sha256": "abc407cbfb1eb6ba4fbbf067223a829e36ee2ccb7bfa4134e45deef9991256be",
+  "cpu_wall_seconds": 0.12109461333602667,
+  "cross_domain_fit_products": [],
+  "cross_domain_products": [
+    "id_00003515",
+    "id_00003888",
+    "id_00005006"
+  ],
+  "decision": "REJECT_UNMODIFIED_CONSULTATION_PROTOCOL",
+  "feature_or_image_reads": 0,
+  "fit_sha256": "f23783a513f0bce23c4ea6126f8a868ee600fe88a23a5e797778a2a508ca89be",
+  "outer_rows_read_for_quality": 0,
+  "partition_sha256": "cfada103c44df866db5e2ee9ecc2301ca691a4d0cdb3c875fe4051b62570894c",
+  "quality_or_latency_claim_eligible": false,
+  "reason": "category domains overlap in real product identities; outer held use and category-collapsed sham do not meet the requested fit-only matched control",
+  "schema": "sfora-domain-pooling-inventory-v1",
+  "source_sha256": "ead19f0ba3dcc11bc6863f1381632fc98c0713942220f18820b98c084cfd1459",
+  "train_products": 3997
+}

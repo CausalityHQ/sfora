@@ -1,0 +1,53 @@
+import hashlib
+import json
+import time
+from collections import Counter, defaultdict
+from pathlib import Path
+
+from preflight_inshop_siglip2_unseen_gallery import PARTITION_SHA, digest_rows, split
+
+started = time.perf_counter()
+partition = Path('/tmp/sfora-inshop-partition-replay.txt')
+assert hashlib.sha256(partition.read_bytes()).hexdigest() == PARTITION_SHA
+rows = [line.split() for line in partition.read_text().splitlines()[2:] if line.split()[-1] == 'train']
+labels = tuple(row[1] for row in rows)
+fit, outer = split(labels)
+assert digest_rows(fit) == 'f23783a513f0bce23c4ea6126f8a868ee600fe88a23a5e797778a2a508ca89be'
+group_a = {'Dresses', 'Skirts', 'Rompers_Jumpsuits', 'Pants', 'Shorts', 'Denim', 'Leggings'}
+domains = defaultdict(set)
+for path, label, _ in rows:
+    domains[label].add('A' if path.split('/')[2] in group_a else 'B')
+crossing = sorted(label for label, groups in domains.items() if len(groups) != 1)
+fit_crossing = sorted(set(labels[i] for i in fit) & set(crossing))
+# Product-atomic domains: exclude crossing products before any new inner split.
+eligible = tuple(i for i in fit if labels[i] not in crossing)
+inner_fit, inner_hold = split(tuple(labels[i] for i in eligible))
+training = tuple(eligible[i] for i in inner_fit)
+validation = tuple(eligible[i] for i in inner_hold if domains[labels[eligible[i]]] == {'A'})
+assert set(training).isdisjoint(outer) and set(validation).isdisjoint(outer)
+assert set(labels[i] for i in training).isdisjoint(labels[i] for i in validation)
+counts = Counter(rows[i][0].split('/')[2] for i in training if domains[labels[i]] == {'B'})
+result = {
+    'schema': 'sfora-domain-pooling-inventory-v1',
+    'decision': 'REJECT_UNMODIFIED_CONSULTATION_PROTOCOL',
+    'reason': 'category domains overlap in real product identities; outer held use and category-collapsed sham do not meet the requested fit-only matched control',
+    'partition_sha256': PARTITION_SHA,
+    'fit_sha256': digest_rows(fit),
+    'source_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+    'train_products': len(set(labels)),
+    'cross_domain_products': crossing,
+    'cross_domain_fit_products': fit_crossing,
+    'corrected_inner_fit_rows': len(training),
+    'corrected_inner_fit_products': len(set(labels[i] for i in training)),
+    'corrected_validation_a_rows': len(validation),
+    'corrected_validation_a_products': len(set(labels[i] for i in validation)),
+    'corrected_inner_fit_sha256': digest_rows(training),
+    'corrected_validation_a_sha256': digest_rows(validation),
+    'category_collapsed_sham_max_positive_width': max(counts.values()) - 1,
+    'outer_rows_read_for_quality': 0,
+    'feature_or_image_reads': 0,
+    'quality_or_latency_claim_eligible': False,
+    'cpu_wall_seconds': time.perf_counter() - started,
+}
+Path('/tmp/sfora-domain-pooling-inventory.json').write_text(json.dumps(result, indent=2, sort_keys=True) + '\n')
+print(json.dumps(result, sort_keys=True))
