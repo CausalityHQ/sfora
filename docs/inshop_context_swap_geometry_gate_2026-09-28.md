@@ -34,3 +34,30 @@ No deployed API or default changes. Annotation supervision must be disclosed
 in comparisons. Existing serving measurements do not certify a new trained
 checkpoint. The consultation's timing estimate and remembered prior-art
 references are unverified and are not adopted as measurements or novelty.
+
+## Terminal: KILL before encoder or training
+
+The sole CPU service `sfora-inshop-context-swap-geometry-v1`, invocation
+`b43b589f637d4b0eaf0e2836982da432`, exited 0. Its receipt SHA-256 is
+`242443a91088c73060611d27378d7e70ed476d81d33fbc72d1bec640c188a5b8`.
+CPU probe wall was **2.848637 seconds**. No GPU, encoder, optimizer, held
+outcome, official evaluation or serving timing was used.
+
+| Official TRAIN fit, 512 triplets | Measured | Frozen decision |
+| --- | ---: | --- |
+| Triplets with at least 20% replaceable pixels | 445/512 = **86.9141%** | Fail: below 90% |
+| Median corrected replaceable image fraction | **56.3065%** | Descriptive |
+| Naive query-only mask inserts foreign garment pixels | **439/512** | Confound in original proposal |
+| Median naive foreign garment intrusion / image area | **5.7030%** | Descriptive |
+| CPU wall | **2.848637 s** | Pass: below 120 s |
+
+Independent integer pixel-set enumeration replayed every corrected fraction
+and naive intrusion exactly for all 512 triplets. The source hash matched;
+the mask unit check passed and Ruff/diff checks were clean. Raw receipt,+journal and terminal verification are in
+`docs/evidence/compact_metric/sop-siglip2-substrate-v1/inshop-context-swap-geometry-v1/`.
+
+Close this fixed box-safe context-swap intervention before encoder F0,
+17-update smoke or trainer/API changes. Do not lower the coverage floor or
+switch to the contaminated naive mask. This resource/coverage screen does
+not prove context independence or rule out segmentation-based interventions.
+No new quality or latency number exists. Production defaults remain native.
