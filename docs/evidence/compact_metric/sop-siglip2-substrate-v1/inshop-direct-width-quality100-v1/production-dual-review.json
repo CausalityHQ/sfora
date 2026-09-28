@@ -1,0 +1,649 @@
+{
+  "id": "c112576b70054d1a",
+  "status": "completed",
+  "started_at": 1790591434,
+  "agent": "",
+  "force_reason": "New consequential terminal evidence after original cached-stage review7e10a8fc8fa24171: actual BF16 encoder100 retained256 improves held packed R1+.8026pp/map+.016831, independently all-query verified, now saved nativeFP16 exact reload audit passes. Need distinct production dimension/ABI and serving-vs-training sequencing decision; no duplicate active review.",
+  "rolling_6h_count": 4,
+  "prompt_preview": "READ-ONLY consequential production decision in /home/rb/worktrees/sfora-positive-causality master e9c3b639. No edits, tests, GPU/CPU jobs, agents/consultations or operator contact. Existing dual7e10a8fc8fa24171 reviewed cached256->mechanics/real100 staging and is COMPLETED; this is a new decision after actual encoder evidence, not a repeat. Review exact evidence docs/inshop_direct256_quality100_result_2026-09-28.md; frozen real100 protocol docs/inshop_direct256_quality100_gate_2026-09-28.md; archived original-failed-receipt/recovered-quality-diagnostic/independent-verification/metadata-audit/candidate-checkpoint-evidence and saved-audit-v1/v2.json under docs/evidence/compact_metric/sop-siglip2-substrate-v1/inshop-direct-width-quality100-v1; docs/inshop_direct256_saved_audit_gate_2026-09-28.md and scripts/audit_inshop_direct_width_saved.py. Originalreal100source12a1931d preservedremote, bugfix6bed3326 now shared scorerexplicitdim/pre-exportguard persistence. Bothactual100x64 BF16training FP32params seed179024 full originalTRAINfit13283/2004; native128 vsretained256 source/PCAleading128/pixels EXACTmatched, originalouterTRAIN6354q6245g/1993prod. PreviouslyobservedTRAINexploratory/noofficialreads. Native nativeFP16batch32 R1 .952313503305/map .779954308556 vs256 .960339943343/.796785272042. Delta +.802644pp95[+.466121,+1.161145], map+.01683096CI[+.01410713,+.01959777], all-queryindependentNumPy exactR1/APerr<1.1e-7/repackexact. Cached earlierstep0widegap+2.3256pp shrank100cached1.7151pp; actual100 qualitypositive does NOT prove1000traininggain/generalization. Prior native1000TRAIN97.6235% on same6354q is historical/differentcheckpoint, not matched result here. Original real100 executionFAILED395.258s because auxiliarysymmetric scorerhard128 AFTER256checkpoint/privateparity/export, so finalcandidategeometry/frozen/reload/bankwallreceiptlost; immutablefailedreceiptNOTchangedtoGO. CPU savedtrainingevidence all100finitepositivegroupgrads/inputhash/source20 matched. Saved-checkpoint audit v1 invalidFP32baseline failed beforeGPU; repairedv2 recognizes actualtrainerFP16load->FP32 expansion: all195frozen tensorsexactbaseline bothwidths, trainableschanged/finite, strictnativeFP16reload reproducesALL64fitcodesANDnormsexact; newcommon64fitfixture geometry256variance.864689/rank22.68399 vs128 .870193/rank20.20802; nooriginalinitialgeometryretroclaim. v2 terminal11.897309s/exitsuccess, receiptSHA c86c47c64d49df087b3db5103637009ac8d5ef22ff382bbe65035c2422f06a61. Missingbankwallremainsmissing. Trainwall excludesbank86.229/86.311s,74.221/74.150presentations/s, median .839991/.843632s, peakCUDAallocated12,988,997,120/13,002,782,208B. Neither newpublicnative256 norfullimagelatency measured.\nPRODUCTQUESTION choose ONE next bounded product-oriented gate; avoid more long research/planning. Fullgoal BOTH SOP/InShop quality strongerthan protocolmatched refs plusfullimagelatency advantage. CurrentSiglip2CompactEncoder src/sfora/siglip2_compact_serving.py strictLinear1024->128 allconstructor/checkpoint/retrieval/export dimensions. src/sfora/cutile_int8.py _DIMENSIONS128 and validates, FFI already dimensionsargbutrust/sfora-cutile-int8-score/src/ffi.rs reject128other; PreparedPackedGallery in topk.rs hardconst128, CuTile generics alreadyD passingstring so optional256 specialization mayreusefused score/tie code unchanged. wire.rs generic PackedRows/scalar_scores alreadydimensions; genericpackarithmetics supports256. kernel.rs standalone scoring diagnostics hard128 canremain if public256topkqualified, mustnotclaimcoverage. Geometry/wire130->258B perrow; 256int32 dot bound<2^24 but normfloating arithmetic declaredsemantics. Existingtopk.rs dirtyhistoricaluncommitted operatorwork MUSTpreserve (do NOTsuggestdiscarding/reverting it), allotherownedworkclean. SharedDGXidle noactivejobs/reviews.\nCandidate minimalOPTIONALproduction path: explicitencoder output_dim128default allowed128/256 with strictcheckpointheadgeometry; wrappergallery infer/store dimensionandque",
+  "prompt_sha256": "81b1fd796c181cbccb3913a7de688ca2b8461a32dceb3a2cd9ad45e9d62ef52a",
+  "prompt_bytes": 5355,
+  "fingerprint": "df62e3aa3463ec0e9fbe5dd93d512b3bbc57248a78e8d32330eeadc2bcbc5f4f",
+  "evidence": {
+    "git_commit": "e9c3b639214208bf2a4f2269dc22a4eb3df728b0",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "ff2ae74a3a34896605545db25210bb140e7dcf5c17a644f6ec41b817b56448f3",
+    "worktree_sha256": "c71cac80d792441e7b2f93ab86448baa910d6400394afd339a4dac1527e8ff8a",
+    "worktree_evidence_truncated": false,
+    "active_goal": null
+  },
+  "reviewers": [
+    {
+      "role": "research_critic",
+      "id": "a9ce7a5edff34427",
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "fallbacks": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "agent": "",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1790591434,
+      "timeout_seconds": 1200,
+      "deadline_at": 1790592634,
+      "budget_usd": 4,
+      "prompt_preview": "Act as the independent research and first-principles critic. Challenge assumptions, compare alternatives and prior art, and identify missing evidence. Do not edit files.\n\nMaterial to critique:\nREAD-ONLY consequential production decision in /home/rb/worktrees/sfora-positive-causality master e9c3b639. No edits, tests, GPU/CPU jobs, agents/consultations or operator contact. Existing dual7e10a8fc8fa24171 reviewed cached256->mechanics/real100 staging and is COMPLETED; this is a new decision after actual encoder evidence, not a repeat. Review exact evidence docs/inshop_direct256_quality100_result_2026-09-28.md; frozen real100 protocol docs/inshop_direct256_quality100_gate_2026-09-28.md; archived original-failed-receipt/recovered-quality-diagnostic/independent-verification/metadata-audit/candidate-checkpoint-evidence and saved-audit-v1/v2.json under docs/evidence/compact_metric/sop-siglip2-substrate-v1/inshop-direct-width-quality100-v1; docs/inshop_direct256_saved_audit_gate_2026-09-28.md and scripts/audit_inshop_direct_width_saved.py. Originalreal100source12a1931d preservedremote, bugfix6bed3326 now shared scorerexplicitdim/pre-exportguard persistence. Bothactual100x64 BF16training FP32params seed179024 full originalTRAINfit13283/2004; native128 vsretained256 source/PCAleading128/pixels EXACTmatched, originalouterTRAIN6354q6245g/1993prod. PreviouslyobservedTRAINexploratory/noofficialreads. Native nativeFP16batch32 R1 .952313503305/map .779954308556 vs256 .960339943343/.796785272042. Delta +.802644pp95[+.466121,+1.161145], map+.01683096CI[+.01410713,+.01959777], all-queryindependentNumPy exactR1/APerr<1.1e-7/repackexact. Cached earlierstep0widegap+2.3256pp shrank100cached1.7151pp; actual100 qualitypositive does NOT prove1000traininggain/generalization. Prior native1000TRAIN97.6235% on same6354q is historical/differentcheckpoint, not matched result here. Original real100 executionFAILED395.258s because auxiliarysymmetric scorerhard128 AFTER256checkpoint/privateparity/export, so finalcandidategeometry/frozen/reload/bankwallreceiptlost; immutablefailedreceiptNOTchangedtoGO. CPU savedtrainingevidence all100finitepositivegroupgrads/inputhash/source20 matched. Saved-checkpoint audit v1 invalidFP32baseline failed beforeGPU; repairedv2 recognizes actualtrainerFP16load->FP32 expansion: all195frozen tensorsexactbaseline bothwidths, trainableschanged/finite, strictnativeFP16reload reproducesALL64fitcodesANDnormsexact; newcommon64fitfixture geometry256variance.864689/rank22.68399 vs128 .870193/rank20.20802; nooriginalinitialgeometryretroclaim. v2 terminal11.897309s/exitsuccess, receiptSHA c86c47c64d49df087b3db5103637009ac8d5ef22ff382bbe65035c2422f06a61. Missingbankwallremainsmissing. Trainwall excludesbank86.229/86.311s,74.221/74.150presentations/s, median .839991/.843632s, peakCUDAallocated12,988,997,120/13,002,782,208B. Neither newpublicnative256 norfullimagelatency measured.\nPRODUCTQUESTION choose ONE next bounded product-oriented gate; avoid more long research/planning. Fullgoal BOTH SOP/InShop quality strongerthan protocolmatched refs plusfullimagelatency advantage. CurrentSiglip2CompactEncoder src/sfora/siglip2_compact_serving.py strictLinear1024->128 allconstructor/checkpoint/retrieval/export dimensions. src/sfora/cutile_int8.py _DIMENSIONS128 and validates, FFI already dimensionsargbutrust/sfora-cutile-int8-score/src/ffi.rs reject128other; PreparedPackedGallery in topk.rs hardconst128, CuTile generics alreadyD passingstring so optional256 specialization mayreusefused score/tie code unchanged. wire.rs generic PackedRows/scalar_scores alreadydimensions; genericpackarithmetics supports256. kernel.rs standalone scoring diagnostics hard128 canremain if public256topkqualified, mustnotclaimcoverage. Geometry/wire130->258B perrow; 256int32 dot bound<2^24 but normfloating arithmetic declaredsemantics. Existingtopk.rs dirtyhistoricaluncommitted operatorwork MUSTpreserve (do NOTsuggestdiscarding/reverting it), allotherownedworkclean. SharedDGXidle ",
+      "prompt_sha256": "0a60e8bbb4f6fe53f6cddaa4ae34dcdcc8ca9d47ddee429ee0821438b2e8c2ac",
+      "prompt_bytes": 5684,
+      "fingerprint": "5b00a040c1fc962564b5022a497b07cdf11aa3c6c129f307c65b8266009b7d49",
+      "evidence": {
+        "git_commit": "e9c3b639214208bf2a4f2269dc22a4eb3df728b0",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "ff2ae74a3a34896605545db25210bb140e7dcf5c17a644f6ec41b817b56448f3",
+        "worktree_sha256": "c71cac80d792441e7b2f93ab86448baa910d6400394afd339a4dac1527e8ff8a",
+        "worktree_evidence_truncated": false,
+        "active_goal": null
+      },
+      "previous_fingerprint": "a7e44611ac9cc29216ccbd6e94bd360eb00fc189008436c8549000f5b0fdb4ec",
+      "reused": false,
+      "critique_id": "c112576b70054d1a",
+      "critique_role": "research_critic",
+      "systemd_unit": "devbox-consult-a9ce7a5edff34427.service",
+      "pid": 875478,
+      "pgid": 875478,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5",
+          "budget_usd": 4,
+          "timeout_seconds": 1200,
+          "started_at": 1790591434
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1790591496,
+      "event_cursor": 19,
+      "events": [
+        {
+          "seq": 1,
+          "at": 1790591434,
+          "provider": "claude",
+          "kind": "phase",
+          "label": "Claude consultation attempt",
+          "detail": "claude-opus-5-5 · $4 cap · 1200s remaining"
+        },
+        {
+          "seq": 2,
+          "at": 1790591435,
+          "provider": "claude",
+          "kind": "phase",
+          "label": "Claude consultation started"
+        },
+        {
+          "seq": 3,
+          "at": 1790591440,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 4,
+          "at": 1790591444,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 5,
+          "at": 1790591481,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 6,
+          "at": 1790591482,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 7,
+          "at": 1790591483,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 8,
+          "at": 1790591484,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 9,
+          "at": 1790591485,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 10,
+          "at": 1790591486,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 11,
+          "at": 1790591487,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 12,
+          "at": 1790591488,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 13,
+          "at": 1790591489,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 14,
+          "at": 1790591490,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 15,
+          "at": 1790591491,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 16,
+          "at": 1790591492,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 17,
+          "at": 1790591493,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 18,
+          "at": 1790591494,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 19,
+          "at": 1790591495,
+          "provider": "claude",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": false,
+      "provider_events": {
+        "claude": [
+          {
+            "seq": 12,
+            "at": 1790591488,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 13,
+            "at": 1790591489,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 14,
+            "at": 1790591490,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 15,
+            "at": 1790591491,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 16,
+            "at": 1790591492,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 17,
+            "at": 1790591493,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 18,
+            "at": 1790591494,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 19,
+            "at": 1790591495,
+            "provider": "claude",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "**Recommendation: GO on one bounded, paired, one-seed 1000-step quality confirmation first. Do NOT GO on the optional 256-D serving path yet.** Production stays at 128.\n\n## Why quality comes before serving\n\n1. **Serving cost is the question we can mostly answer already. Quality is the one we can't.**\n   - Earlier evidence says serving time is dominated by decode and the encoder; search is under 3% of it.\n   - Direct256 only changes the head from Linear 1024→128 to 1024→256. The encoder trunk, preprocessing and decode are identical.\n   - So the ≤60 s pilot would mostly re-measure things that don't change. At most it would show a 2× increase in a sub-3% share. That is a very unlikely KILL.\n   - Quality is different. The width advantage kept shrinking: +2.33pp at cached step 0, +1.72pp at cached step 100, +0.80pp at actual step 100. Cached and actual are different setups, so this isn't a clean trend, but it points the wrong way.\n2. **The 100-step result is already beaten by longer 128-D training.** The historical native128 run at 1000 steps scored 97.62% on the same 6354 queries. Direct256 at 100 steps scored 96.03%. That historical run isn't a matched comparison, but it shows 100-step quality is not what the product would ship.\n3. **The ceiling will squeeze the gain.** Near 97.6% there are about 150 errors left. A gain of +0.8pp would mean removing roughly a third of them. Widening the head alone rarely does that. The +0.80pp at 100 steps is a gap in training progress, not evidence of a lasting advantage.\n4. **Writing the serving path now means editing `topk.rs`, which has uncommitted operator work.** Every serving change touches `PreparedPackedGallery` in that file, and the operator's changes must be preserved. That is a merge and ownership risk worth paying only after quality holds.\n5. **The recovered evidence is enough to justify spending on confirmation, not on production code.** It is honest: saved-audit v2 passed, the independent NumPy re-scoring matches, and the paired CIs are tight. But it is one seed, 100 steps, on a TRAIN panel that has been looked at before. And the bank-init wall time is still missing.\n\n## Gate: Q1000 paired, seed 179024, same frozen recipe\n\n- **Source:** freeze a commit that contains the scorer fix 6bed3326 and the pre-export durable guard. The auditor at e9c3b639 must run on both checkpoints.\n- **What each run records:** the full receipt, including bank-init wall. It must survive any failure after export, and the v2-style saved audit must pass on both checkpoints.\n- **Order and early KILL:**\n  1. Run direct256 first.\n  2. **KILL** without running the control if its R@1 is at or below 97.62 (the historical native1000 result). A second 128-D run can't rescue that for the product.\n  3. Otherwise run a fresh matched native128. Only that matched pair decides.\n- **Quality GO (all must hold, on the same outer panel):**\n  - R@1 is at least +0.30pp better and the paired product-bootstrap 95% lower bound is above 0.\n  - The mAP@R 95% lower bound is above 0.\n  - Both runs pass the saved audit, and 128 and 256 match exactly on source, pixels and PCA.\n- **Quality KILL:**\n  - R@1 is at most +0.10pp better, or\n  - either the R@1 or mAP@R lower bound is at or below 0.\n  - Anything in between goes on hold, not to a second seed.\n- **Cost guards (training only):**\n  - direct256 median step ≤ 1.05× native128\n  - direct256 peak allocated memory ≤ 1.05× native128\n  - direct256 bank-init wall ≤ 1.5× native128 (the bank itself is 2× wider)\n  - Any breach is a KILL.\n- **Stop rules:** no second seed, no official reads, and no loss or model changes. Second seeds are only allowed after a GO and after the serving pilot.\n- **Free add-on on the saved exports (CPU only, not a gate):** also score 256-D int4 codes (about 130 B per row). If they keep most of the gain, the advantage is width at equal bytes, not just 2× the bytes. That matters for the wire-format decision.\n\n## If Q1000 is a GO: the serving path\n\nThe design you proposed is sound. Things to get right:\n\n- **Rust side:** `PreparedPackedGallery` must store its width. `search_internal` must check the query width against the stored gallery width, not against a global constant. Replace the 128 constant at `topk.rs:340,344,356,404,409,439,452` and the one at `ffi.rs:16`.\n- **Integer exactness at 256-D holds.** The worst case is 256 × 128² ≈ 4.19M, below 2²⁴, so converting the int32 accumulator to f32 is exact. The inner loop runs K/BK = 8 steps.\n- **First-call compile:** the 256 kernel is compiled on first use, so the pilot needs a warmup and must report the first call separately.\n- **Python:** checkpoint loading must fail if the stored head shape differs from the requested `output_dim`. Never infer the width silently. The query and gallery width must be checked in the wrapper and again in the FFI.\n- **Coverage:** the diagnostics in `kernel.rs` stay 128-only and must not be claimed as 256 coverage.\n- **Pilot KILL:** any difference in top-10 ordinals or scores against the independent oracle at batch 1 or 32, or any change to 128 behaviour. Also KILL if full-image p50 or p95 is more than 5% worse than 128 on the same pinned images.\n\n## Hard blockers\n\n- The missing bank-init wall for direct256 stays missing. Q1000 must record it and must not fill it in retroactively.\n- The original 100-step receipt stays FAIL.\n- No SOTA or latency claims: public 256-D search and full-image latency have not been measured.\n- No serving edits until the uncommitted `topk.rs` work has an owner decision.\n- What's known is a capacity change, not a new algorithm.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "claude": "**Recommendation: GO on one bounded, paired, one-seed 1000-step quality confirmation first. Do NOT GO on the optional 256-D serving path yet.** Production stays at 128.\n\n## Why quality comes before serving\n\n1. **Serving cost is the question we can mostly answer already. Quality is the one we can't.**\n   - Earlier evidence says serving time is dominated by decode and the encoder; search is under 3% of it.\n   - Direct256 only changes the head from Linear 1024→128 to 1024→256. The encoder trunk, preprocessing and decode are identical.\n   - So the ≤60 s pilot would mostly re-measure things that don't change. At most it would show a 2× increase in a sub-3% share. That is a very unlikely KILL.\n   - Quality is different. The width advantage kept shrinking: +2.33pp at cached step 0, +1.72pp at cached step 100, +0.80pp at actual step 100. Cached and actual are different setups, so this isn't a clean trend, but it points the wrong way.\n2. **The 100-step result is already beaten by longer 128-D training.** The historical native128 run at 1000 steps scored 97.62% on the same 6354 queries. Direct256 at 100 steps scored 96.03%. That historical run isn't a matched comparison, but it shows 100-step quality is not what the product would ship.\n3. **The ceiling will squeeze the gain.** Near 97.6% there are about 150 errors left. A gain of +0.8pp would mean removing roughly a third of them. Widening the head alone rarely does that. The +0.80pp at 100 steps is a gap in training progress, not evidence of a lasting advantage.\n4. **Writing the serving path now means editing `topk.rs`, which has uncommitted operator work.** Every serving change touches `PreparedPackedGallery` in that file, and the operator's changes must be preserved. That is a merge and ownership risk worth paying only after quality holds.\n5. **The recovered evidence is enough to justify spending on confirmation, not on production code.** It is honest: saved-audit v2 passed, the independent NumPy re-scoring matches, and the paired CIs are tight. But it is one seed, 100 steps, on a TRAIN panel that has been looked at before. And the bank-init wall time is still missing.\n\n## Gate: Q1000 paired, seed 179024, same frozen recipe\n\n- **Source:** freeze a commit that contains the scorer fix 6bed3326 and the pre-export durable guard. The auditor at e9c3b639 must run on both checkpoints.\n- **What each run records:** the full receipt, including bank-init wall. It must survive any failure after export, and the v2-style saved audit must pass on both checkpoints.\n- **Order and early KILL:**\n  1. Run direct256 first.\n  2. **KILL** without running the control if its R@1 is at or below 97.62 (the historical native1000 result). A second 128-D run can't rescue that for the product.\n  3. Otherwise run a fresh matched native128. Only that matched pair decides.\n- **Quality GO (all must hold, on the same outer panel):**\n  - R@1 is at least +0.30pp better and the paired product-bootstrap 95% lower bound is above 0.\n  - The mAP@R 95% lower bound is above 0.\n  - Both runs pass the saved audit, and 128 and 256 match exactly on source, pixels and PCA.\n- **Quality KILL:**\n  - R@1 is at most +0.10pp better, or\n  - either the R@1 or mAP@R lower bound is at or below 0.\n  - Anything in between goes on hold, not to a second seed.\n- **Cost guards (training only):**\n  - direct256 median step ≤ 1.05× native128\n  - direct256 peak allocated memory ≤ 1.05× native128\n  - direct256 bank-init wall ≤ 1.5× native128 (the bank itself is 2× wider)\n  - Any breach is a KILL.\n- **Stop rules:** no second seed, no official reads, and no loss or model changes. Second seeds are only allowed after a GO and after the serving pilot.\n- **Free add-on on the saved exports (CPU only, not a gate):** also score 256-D int4 codes (about 130 B per row). If they keep most of the gain, the advantage is width at equal bytes, not just 2× the bytes. That matters for the wire-format decision.\n\n## If Q1000 is a GO: the serving path\n\nThe design you proposed is sound. Things to get right:\n\n- **Rust side:** `PreparedPackedGallery` must store its width. `search_internal` must check the query width against the stored gallery width, not against a global constant. Replace the 128 constant at `topk.rs:340,344,356,404,409,439,452` and the one at `ffi.rs:16`.\n- **Integer exactness at 256-D holds.** The worst case is 256 × 128² ≈ 4.19M, below 2²⁴, so converting the int32 accumulator to f32 is exact. The inner loop runs K/BK = 8 steps.\n- **First-call compile:** the 256 kernel is compiled on first use, so the pilot needs a warmup and must report the first call separately.\n- **Python:** checkpoint loading must fail if the stored head shape differs from the requested `output_dim`. Never infer the width silently. The query and gallery width must be checked in the wrapper and again in the FFI.\n- **Coverage:** the diagnostics in `kernel.rs` stay 128-only and must not be claimed as 256 coverage.\n- **Pilot KILL:** any difference in top-10 ordinals or scores against the independent oracle at batch 1 or 32, or any change to 128 behaviour. Also KILL if full-image p50 or p95 is more than 5% worse than 128 on the same pinned images.\n\n## Hard blockers\n\n- The missing bank-init wall for direct256 stays missing. Q1000 must record it and must not fill it in retroactively.\n- The original 100-step receipt stays FAIL.\n- No SOTA or latency claims: public 256-D search and full-image latency have not been measured.\n- No serving edits until the uncommitted `topk.rs` work has an owner decision.\n- What's known is a capacity change, not a new algorithm."
+      },
+      "providers_used": [
+        "claude"
+      ],
+      "active_provider": "claude",
+      "phase": "Consultation completed",
+      "input_bytes": 5684,
+      "output_bytes": 5616,
+      "elapsed_seconds": 62,
+      "progress": "devbox-ask: claude consult still running (0m 30s)\ndevbox-ask: claude consult still running (1m 00s)",
+      "progress_truncated": false,
+      "result": "**Recommendation: GO on one bounded, paired, one-seed 1000-step quality confirmation first. Do NOT GO on the optional 256-D serving path yet.** Production stays at 128.\n\n## Why quality comes before serving\n\n1. **Serving cost is the question we can mostly answer already. Quality is the one we can't.**\n   - Earlier evidence says serving time is dominated by decode and the encoder; search is under 3% of it.\n   - Direct256 only changes the head from Linear 1024→128 to 1024→256. The encoder trunk, preprocessing and decode are identical.\n   - So the ≤60 s pilot would mostly re-measure things that don't change. At most it would show a 2× increase in a sub-3% share. That is a very unlikely KILL.\n   - Quality is different. The width advantage kept shrinking: +2.33pp at cached step 0, +1.72pp at cached step 100, +0.80pp at actual step 100. Cached and actual are different setups, so this isn't a clean trend, but it points the wrong way.\n2. **The 100-step result is already beaten by longer 128-D training.** The historical native128 run at 1000 steps scored 97.62% on the same 6354 queries. Direct256 at 100 steps scored 96.03%. That historical run isn't a matched comparison, but it shows 100-step quality is not what the product would ship.\n3. **The ceiling will squeeze the gain.** Near 97.6% there are about 150 errors left. A gain of +0.8pp would mean removing roughly a third of them. Widening the head alone rarely does that. The +0.80pp at 100 steps is a gap in training progress, not evidence of a lasting advantage.\n4. **Writing the serving path now means editing `topk.rs`, which has uncommitted operator work.** Every serving change touches `PreparedPackedGallery` in that file, and the operator's changes must be preserved. That is a merge and ownership risk worth paying only after quality holds.\n5. **The recovered evidence is enough to justify spending on confirmation, not on production code.** It is honest: saved-audit v2 passed, the independent NumPy re-scoring matches, and the paired CIs are tight. But it is one seed, 100 steps, on a TRAIN panel that has been looked at before. And the bank-init wall time is still missing.\n\n## Gate: Q1000 paired, seed 179024, same frozen recipe\n\n- **Source:** freeze a commit that contains the scorer fix 6bed3326 and the pre-export durable guard. The auditor at e9c3b639 must run on both checkpoints.\n- **What each run records:** the full receipt, including bank-init wall. It must survive any failure after export, and the v2-style saved audit must pass on both checkpoints.\n- **Order and early KILL:**\n  1. Run direct256 first.\n  2. **KILL** without running the control if its R@1 is at or below 97.62 (the historical native1000 result). A second 128-D run can't rescue that for the product.\n  3. Otherwise run a fresh matched native128. Only that matched pair decides.\n- **Quality GO (all must hold, on the same outer panel):**\n  - R@1 is at least +0.30pp better and the paired product-bootstrap 95% lower bound is above 0.\n  - The mAP@R 95% lower bound is above 0.\n  - Both runs pass the saved audit, and 128 and 256 match exactly on source, pixels and PCA.\n- **Quality KILL:**\n  - R@1 is at most +0.10pp better, or\n  - either the R@1 or mAP@R lower bound is at or below 0.\n  - Anything in between goes on hold, not to a second seed.\n- **Cost guards (training only):**\n  - direct256 median step ≤ 1.05× native128\n  - direct256 peak allocated memory ≤ 1.05× native128\n  - direct256 bank-init wall ≤ 1.5× native128 (the bank itself is 2× wider)\n  - Any breach is a KILL.\n- **Stop rules:** no second seed, no official reads, and no loss or model changes. Second seeds are only allowed after a GO and after the serving pilot.\n- **Free add-on on the saved exports (CPU only, not a gate):** also score 256-D int4 codes (about 130 B per row). If they keep most of the gain, the advantage is width at equal bytes, not just 2× the bytes. That matters for the wire-format decision.\n\n## If Q1000 is a GO: the serving path\n\nThe design you proposed is sound. Things to get right:\n\n- **Rust side:** `PreparedPackedGallery` must store its width. `search_internal` must check the query width against the stored gallery width, not against a global constant. Replace the 128 constant at `topk.rs:340,344,356,404,409,439,452` and the one at `ffi.rs:16`.\n- **Integer exactness at 256-D holds.** The worst case is 256 × 128² ≈ 4.19M, below 2²⁴, so converting the int32 accumulator to f32 is exact. The inner loop runs K/BK = 8 steps.\n- **First-call compile:** the 256 kernel is compiled on first use, so the pilot needs a warmup and must report the first call separately.\n- **Python:** checkpoint loading must fail if the stored head shape differs from the requested `output_dim`. Never infer the width silently. The query and gallery width must be checked in the wrapper and again in the FFI.\n- **Coverage:** the diagnostics in `kernel.rs` stay 128-only and must not be claimed as 256 coverage.\n- **Pilot KILL:** any difference in top-10 ordinals or scores against the independent oracle at batch 1 or 32, or any change to 128 behaviour. Also KILL if full-image p50 or p95 is more than 5% worse than 128 on the same pinned images.\n\n## Hard blockers\n\n- The missing bank-init wall for direct256 stays missing. Q1000 must record it and must not fill it in retroactively.\n- The original 100-step receipt stays FAIL.\n- No SOTA or latency claims: public 256-D search and full-image latency have not been measured.\n- No serving edits until the uncommitted `topk.rs` work has an owner decision.\n- What's known is a capacity change, not a new algorithm.",
+      "result_truncated": false
+    },
+    {
+      "role": "engineering_critic",
+      "id": "cce6343eba4543b2",
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "fallbacks": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "agent": "",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1790591434,
+      "timeout_seconds": 1200,
+      "deadline_at": 1790592634,
+      "budget_usd": null,
+      "prompt_preview": "Act as the independent adversarial engineering and release critic. Inspect correctness, failure modes, security, operability, tests, and UX. Prioritize concrete findings with evidence. Do not edit files.\n\nMaterial to critique:\nREAD-ONLY consequential production decision in /home/rb/worktrees/sfora-positive-causality master e9c3b639. No edits, tests, GPU/CPU jobs, agents/consultations or operator contact. Existing dual7e10a8fc8fa24171 reviewed cached256->mechanics/real100 staging and is COMPLETED; this is a new decision after actual encoder evidence, not a repeat. Review exact evidence docs/inshop_direct256_quality100_result_2026-09-28.md; frozen real100 protocol docs/inshop_direct256_quality100_gate_2026-09-28.md; archived original-failed-receipt/recovered-quality-diagnostic/independent-verification/metadata-audit/candidate-checkpoint-evidence and saved-audit-v1/v2.json under docs/evidence/compact_metric/sop-siglip2-substrate-v1/inshop-direct-width-quality100-v1; docs/inshop_direct256_saved_audit_gate_2026-09-28.md and scripts/audit_inshop_direct_width_saved.py. Originalreal100source12a1931d preservedremote, bugfix6bed3326 now shared scorerexplicitdim/pre-exportguard persistence. Bothactual100x64 BF16training FP32params seed179024 full originalTRAINfit13283/2004; native128 vsretained256 source/PCAleading128/pixels EXACTmatched, originalouterTRAIN6354q6245g/1993prod. PreviouslyobservedTRAINexploratory/noofficialreads. Native nativeFP16batch32 R1 .952313503305/map .779954308556 vs256 .960339943343/.796785272042. Delta +.802644pp95[+.466121,+1.161145], map+.01683096CI[+.01410713,+.01959777], all-queryindependentNumPy exactR1/APerr<1.1e-7/repackexact. Cached earlierstep0widegap+2.3256pp shrank100cached1.7151pp; actual100 qualitypositive does NOT prove1000traininggain/generalization. Prior native1000TRAIN97.6235% on same6354q is historical/differentcheckpoint, not matched result here. Original real100 executionFAILED395.258s because auxiliarysymmetric scorerhard128 AFTER256checkpoint/privateparity/export, so finalcandidategeometry/frozen/reload/bankwallreceiptlost; immutablefailedreceiptNOTchangedtoGO. CPU savedtrainingevidence all100finitepositivegroupgrads/inputhash/source20 matched. Saved-checkpoint audit v1 invalidFP32baseline failed beforeGPU; repairedv2 recognizes actualtrainerFP16load->FP32 expansion: all195frozen tensorsexactbaseline bothwidths, trainableschanged/finite, strictnativeFP16reload reproducesALL64fitcodesANDnormsexact; newcommon64fitfixture geometry256variance.864689/rank22.68399 vs128 .870193/rank20.20802; nooriginalinitialgeometryretroclaim. v2 terminal11.897309s/exitsuccess, receiptSHA c86c47c64d49df087b3db5103637009ac8d5ef22ff382bbe65035c2422f06a61. Missingbankwallremainsmissing. Trainwall excludesbank86.229/86.311s,74.221/74.150presentations/s, median .839991/.843632s, peakCUDAallocated12,988,997,120/13,002,782,208B. Neither newpublicnative256 norfullimagelatency measured.\nPRODUCTQUESTION choose ONE next bounded product-oriented gate; avoid more long research/planning. Fullgoal BOTH SOP/InShop quality strongerthan protocolmatched refs plusfullimagelatency advantage. CurrentSiglip2CompactEncoder src/sfora/siglip2_compact_serving.py strictLinear1024->128 allconstructor/checkpoint/retrieval/export dimensions. src/sfora/cutile_int8.py _DIMENSIONS128 and validates, FFI already dimensionsargbutrust/sfora-cutile-int8-score/src/ffi.rs reject128other; PreparedPackedGallery in topk.rs hardconst128, CuTile generics alreadyD passingstring so optional256 specialization mayreusefused score/tie code unchanged. wire.rs generic PackedRows/scalar_scores alreadydimensions; genericpackarithmetics supports256. kernel.rs standalone scoring diagnostics hard128 canremain if public256topkqualified, mustnotclaimcoverage. Geometry/wire130->258B perrow; 256int32 dot bound<2^24 but normfloating arithmetic declaredsemantics. Existingtopk.rs dirtyhistoricaluncommitted operatorwork MUSTpreserve (do NOTsuggestdiscarding/reverting it), allo",
+      "prompt_sha256": "0d226a14aaa4ea514b7255d06f0ad6ccaca8cf6e88e76c564617f86b5b178580",
+      "prompt_bytes": 5718,
+      "fingerprint": "6010137a3beac47f8160cf85e3e68758d67b2cd6669bb34c554565defa532deb",
+      "evidence": {
+        "git_commit": "e9c3b639214208bf2a4f2269dc22a4eb3df728b0",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "ff2ae74a3a34896605545db25210bb140e7dcf5c17a644f6ec41b817b56448f3",
+        "worktree_sha256": "c71cac80d792441e7b2f93ab86448baa910d6400394afd339a4dac1527e8ff8a",
+        "worktree_evidence_truncated": false,
+        "active_goal": null
+      },
+      "previous_fingerprint": "5b00a040c1fc962564b5022a497b07cdf11aa3c6c129f307c65b8266009b7d49",
+      "reused": false,
+      "critique_id": "c112576b70054d1a",
+      "critique_role": "engineering_critic",
+      "systemd_unit": "devbox-consult-cce6343eba4543b2.service",
+      "pid": 875551,
+      "pgid": 875551,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra",
+          "budget_usd": null,
+          "timeout_seconds": 1199,
+          "started_at": 1790591435
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1790591537,
+      "event_cursor": 27,
+      "events": [
+        {
+          "seq": 4,
+          "at": 1790591440,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 5,
+          "at": 1790591443,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 6,
+          "at": 1790591443,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 7,
+          "at": 1790591451,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 8,
+          "at": 1790591451,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 9,
+          "at": 1790591457,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 10,
+          "at": 1790591457,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 2"
+        },
+        {
+          "seq": 11,
+          "at": 1790591465,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 12,
+          "at": 1790591465,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 13,
+          "at": 1790591466,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 14,
+          "at": 1790591466,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 15,
+          "at": 1790591470,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 16,
+          "at": 1790591477,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 17,
+          "at": 1790591477,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 18,
+          "at": 1790591477,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 19,
+          "at": 1790591477,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 20,
+          "at": 1790591493,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 21,
+          "at": 1790591493,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 22,
+          "at": 1790591493,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 23,
+          "at": 1790591493,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 24,
+          "at": 1790591507,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 25,
+          "at": 1790591507,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 26,
+          "at": 1790591536,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 27,
+          "at": 1790591537,
+          "provider": "codex",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": true,
+      "provider_events": {
+        "codex": [
+          {
+            "seq": 20,
+            "at": 1790591493,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 21,
+            "at": 1790591493,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 22,
+            "at": 1790591493,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 23,
+            "at": 1790591493,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 24,
+            "at": 1790591507,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 25,
+            "at": 1790591507,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 26,
+            "at": 1790591536,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 27,
+            "at": 1790591537,
+            "provider": "codex",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "**GO for one bounded, opt-in 256 serving qualification and ≤60-second full-path pilot before paired1000 training. NO-GO for promotion.** The recovered quality and saved audit justify this engineering experiment; neither establishes sustained training gain.\n\nThe causal reason: serving cost is an independent product requirement that another ~1,700 seconds of training cannot answer. The existing kernel already parameterizes width, making a small qualification path reasonable. Stop if it expands into kernel redesign or ABI replacement.\n\nThe evidence supports that limited decision: independently verified R@1 gains +0.802644pp and mAP@R gains +0.01683096; saved audit v2 verifies 195 frozen tensors per arm and exact private reload codes/norms. I verified its receipt hash and matching audit-source hash. Original execution remains failed; missing bank wall and original geometry remain missing.\n\nConcrete implementation blockers:\n\n- **Encoder plumbing has a hidden 128 default.** Changing constructors alone still fails: [`_pack_pooled`](/home/rb/worktrees/sfora-positive-causality/src/sfora/siglip2_compact_serving.py:261) calls `compact_head_features` without `output_dim`. Thread explicit width through this call, strict checkpoint loading and custom-gallery allocation at line 362. Default128 must reject a256 checkpoint unless explicitly selected.\n- **Allowlisting widths is insufficient.** [`PreparedPackedGallery`](/home/rb/worktrees/sfora-positive-causality/rust/sfora-cutile-int8-score/src/topk.rs:330) must retain gallery width and use it consistently for transpose indexing, allocation, reshapes and kernel generics. Python and native search must reject cross-width queries. Preserve existing dtype, contiguity, norm and lifecycle checks.\n- **Keep qualification separate from existing artifact authority.** [`from_artifacts`](/home/rb/worktrees/sfora-positive-causality/src/sfora/siglip2_compact_serving.py:378) and official receipts encode128 assumptions, including130 bytes/row. Use the pinned-checkpoint/custom-gallery route for this gate; do not relax official receipt checks to admit the failed training receipt.\n- **Freeze the actual tested source.** The dirty `topk.rs` changes runtime masking/JIT behavior, not merely formatting. Preserve it and bind qualification to its exact contents plus library hash. Audit v2 is currently untracked; archive it durably with the gate evidence.\n\nProposed stop rules—these are prospective thresholds, not measured results:\n\n| Gate component | GO | KILL / stop |\n|---|---|---|\n| Correctness | Exact top10 ordinals **and score bits** against independent arithmetic on actual256 held tensors, batches1/32;128 regression passes | Any mismatch, nonfinite output, invalid ordinal or cross-width acceptance |\n| Edge cases | Both widths cover malformed strides, partial-query padding, gallery padding, ties across tiles and merge boundaries | Any failure; no tolerance relaxation |\n| Public encoder | Same-profile batch32 public codes/norms reproduce saved exports; batch1 checked against its own eager reference | Any unexplained difference; private batch32 parity does not certify public batch1 |\n| ≤60s matched pilot | At each batch size,256/128 full-path p50 and p95 ≤1.10; QPS ≥0.90; no OOM | Any threshold breach; timeout or inadequate samples means **no GO**, no automatic extension |\n\nTime file-open/decode → direct preprocessing → nativeFP16 encoder → packing → synchronized native search. Pin identical images, gallery ordering and runtime settings; interleave arms after warmup. Report compilation, startup and gallery construction separately. Use resident matched galleries; do not present this short pilot as p99 qualification or as latency superiority over external references. Record actual memory use alongside the known130→258-byte wire increase.\n\n**Only after that passes**, freeze one paired1000 seed: retain ΔR@1≥+0.5pp, ΔmAP@R≥+0.01 and both product-bootstrap lower bounds>0. Require complete durable guards, training-plus-bank wall≤1.10×control and peak allocation≤control+1GiB. Failure stops further seeds and long-tail work.\n\nDefault128 remains until independent, protocol-matched **both SOP and InShop** quality and full-image latency gates pass. This is a capacity change, not algorithmic novelty.\n\nRead-only review; no edits, tests, compute jobs, consultations or operator contact.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "codex": "**GO for one bounded, opt-in 256 serving qualification and ≤60-second full-path pilot before paired1000 training. NO-GO for promotion.** The recovered quality and saved audit justify this engineering experiment; neither establishes sustained training gain.\n\nThe causal reason: serving cost is an independent product requirement that another ~1,700 seconds of training cannot answer. The existing kernel already parameterizes width, making a small qualification path reasonable. Stop if it expands into kernel redesign or ABI replacement.\n\nThe evidence supports that limited decision: independently verified R@1 gains +0.802644pp and mAP@R gains +0.01683096; saved audit v2 verifies 195 frozen tensors per arm and exact private reload codes/norms. I verified its receipt hash and matching audit-source hash. Original execution remains failed; missing bank wall and original geometry remain missing.\n\nConcrete implementation blockers:\n\n- **Encoder plumbing has a hidden 128 default.** Changing constructors alone still fails: [`_pack_pooled`](/home/rb/worktrees/sfora-positive-causality/src/sfora/siglip2_compact_serving.py:261) calls `compact_head_features` without `output_dim`. Thread explicit width through this call, strict checkpoint loading and custom-gallery allocation at line 362. Default128 must reject a256 checkpoint unless explicitly selected.\n- **Allowlisting widths is insufficient.** [`PreparedPackedGallery`](/home/rb/worktrees/sfora-positive-causality/rust/sfora-cutile-int8-score/src/topk.rs:330) must retain gallery width and use it consistently for transpose indexing, allocation, reshapes and kernel generics. Python and native search must reject cross-width queries. Preserve existing dtype, contiguity, norm and lifecycle checks.\n- **Keep qualification separate from existing artifact authority.** [`from_artifacts`](/home/rb/worktrees/sfora-positive-causality/src/sfora/siglip2_compact_serving.py:378) and official receipts encode128 assumptions, including130 bytes/row. Use the pinned-checkpoint/custom-gallery route for this gate; do not relax official receipt checks to admit the failed training receipt.\n- **Freeze the actual tested source.** The dirty `topk.rs` changes runtime masking/JIT behavior, not merely formatting. Preserve it and bind qualification to its exact contents plus library hash. Audit v2 is currently untracked; archive it durably with the gate evidence.\n\nProposed stop rules—these are prospective thresholds, not measured results:\n\n| Gate component | GO | KILL / stop |\n|---|---|---|\n| Correctness | Exact top10 ordinals **and score bits** against independent arithmetic on actual256 held tensors, batches1/32;128 regression passes | Any mismatch, nonfinite output, invalid ordinal or cross-width acceptance |\n| Edge cases | Both widths cover malformed strides, partial-query padding, gallery padding, ties across tiles and merge boundaries | Any failure; no tolerance relaxation |\n| Public encoder | Same-profile batch32 public codes/norms reproduce saved exports; batch1 checked against its own eager reference | Any unexplained difference; private batch32 parity does not certify public batch1 |\n| ≤60s matched pilot | At each batch size,256/128 full-path p50 and p95 ≤1.10; QPS ≥0.90; no OOM | Any threshold breach; timeout or inadequate samples means **no GO**, no automatic extension |\n\nTime file-open/decode → direct preprocessing → nativeFP16 encoder → packing → synchronized native search. Pin identical images, gallery ordering and runtime settings; interleave arms after warmup. Report compilation, startup and gallery construction separately. Use resident matched galleries; do not present this short pilot as p99 qualification or as latency superiority over external references. Record actual memory use alongside the known130→258-byte wire increase.\n\n**Only after that passes**, freeze one paired1000 seed: retain ΔR@1≥+0.5pp, ΔmAP@R≥+0.01 and both product-bootstrap lower bounds>0. Require complete durable guards, training-plus-bank wall≤1.10×control and peak allocation≤control+1GiB. Failure stops further seeds and long-tail work.\n\nDefault128 remains until independent, protocol-matched **both SOP and InShop** quality and full-image latency gates pass. This is a capacity change, not algorithmic novelty.\n\nRead-only review; no edits, tests, compute jobs, consultations or operator contact."
+      },
+      "providers_used": [
+        "codex"
+      ],
+      "active_provider": "codex",
+      "phase": "Consultation completed",
+      "input_bytes": 5718,
+      "output_bytes": 4390,
+      "elapsed_seconds": 103,
+      "progress": "Reading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)\ndevbox-ask: codex consult still running (1m 30s)",
+      "progress_truncated": false,
+      "result": "**GO for one bounded, opt-in 256 serving qualification and ≤60-second full-path pilot before paired1000 training. NO-GO for promotion.** The recovered quality and saved audit justify this engineering experiment; neither establishes sustained training gain.\n\nThe causal reason: serving cost is an independent product requirement that another ~1,700 seconds of training cannot answer. The existing kernel already parameterizes width, making a small qualification path reasonable. Stop if it expands into kernel redesign or ABI replacement.\n\nThe evidence supports that limited decision: independently verified R@1 gains +0.802644pp and mAP@R gains +0.01683096; saved audit v2 verifies 195 frozen tensors per arm and exact private reload codes/norms. I verified its receipt hash and matching audit-source hash. Original execution remains failed; missing bank wall and original geometry remain missing.\n\nConcrete implementation blockers:\n\n- **Encoder plumbing has a hidden 128 default.** Changing constructors alone still fails: [`_pack_pooled`](/home/rb/worktrees/sfora-positive-causality/src/sfora/siglip2_compact_serving.py:261) calls `compact_head_features` without `output_dim`. Thread explicit width through this call, strict checkpoint loading and custom-gallery allocation at line 362. Default128 must reject a256 checkpoint unless explicitly selected.\n- **Allowlisting widths is insufficient.** [`PreparedPackedGallery`](/home/rb/worktrees/sfora-positive-causality/rust/sfora-cutile-int8-score/src/topk.rs:330) must retain gallery width and use it consistently for transpose indexing, allocation, reshapes and kernel generics. Python and native search must reject cross-width queries. Preserve existing dtype, contiguity, norm and lifecycle checks.\n- **Keep qualification separate from existing artifact authority.** [`from_artifacts`](/home/rb/worktrees/sfora-positive-causality/src/sfora/siglip2_compact_serving.py:378) and official receipts encode128 assumptions, including130 bytes/row. Use the pinned-checkpoint/custom-gallery route for this gate; do not relax official receipt checks to admit the failed training receipt.\n- **Freeze the actual tested source.** The dirty `topk.rs` changes runtime masking/JIT behavior, not merely formatting. Preserve it and bind qualification to its exact contents plus library hash. Audit v2 is currently untracked; archive it durably with the gate evidence.\n\nProposed stop rules—these are prospective thresholds, not measured results:\n\n| Gate component | GO | KILL / stop |\n|---|---|---|\n| Correctness | Exact top10 ordinals **and score bits** against independent arithmetic on actual256 held tensors, batches1/32;128 regression passes | Any mismatch, nonfinite output, invalid ordinal or cross-width acceptance |\n| Edge cases | Both widths cover malformed strides, partial-query padding, gallery padding, ties across tiles and merge boundaries | Any failure; no tolerance relaxation |\n| Public encoder | Same-profile batch32 public codes/norms reproduce saved exports; batch1 checked against its own eager reference | Any unexplained difference; private batch32 parity does not certify public batch1 |\n| ≤60s matched pilot | At each batch size,256/128 full-path p50 and p95 ≤1.10; QPS ≥0.90; no OOM | Any threshold breach; timeout or inadequate samples means **no GO**, no automatic extension |\n\nTime file-open/decode → direct preprocessing → nativeFP16 encoder → packing → synchronized native search. Pin identical images, gallery ordering and runtime settings; interleave arms after warmup. Report compilation, startup and gallery construction separately. Use resident matched galleries; do not present this short pilot as p99 qualification or as latency superiority over external references. Record actual memory use alongside the known130→258-byte wire increase.\n\n**Only after that passes**, freeze one paired1000 seed: retain ΔR@1≥+0.5pp, ΔmAP@R≥+0.01 and both product-bootstrap lower bounds>0. Require complete durable guards, training-plus-bank wall≤1.10×control and peak allocation≤control+1GiB. Failure stops further seeds and long-tail work.\n\nDefault128 remains until independent, protocol-matched **both SOP and InShop** quality and full-image latency gates pass. This is a capacity change, not algorithmic novelty.\n\nRead-only review; no edits, tests, compute jobs, consultations or operator contact.",
+      "result_truncated": false
+    }
+  ],
+  "reused": false,
+  "finished_at": 1790591538,
+  "elapsed_seconds": 103,
+  "input_bytes": 5355,
+  "output_bytes": 10006
+}

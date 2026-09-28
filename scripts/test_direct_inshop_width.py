@@ -82,6 +82,16 @@ def main():
             pass
         else:
             raise AssertionError("quality authority accepted a different gate")
+    audit=smoke.parent.parent/'inshop-direct-width-quality100-v1/saved-audit-v2.json'
+    confirmation=base|{'direct_width_receipt':None,'direct_width_confirmation':audit,'updates':1000}
+    validate_direct_width(SimpleNamespace(**confirmation))
+    for change in ({'updates':100},{'updates':10000},{'direct_width_qualification':smoke},{'seed':179025},{'direct_width_confirmation':smoke}):
+        try:
+            validate_direct_width(SimpleNamespace(**(confirmation|change)))
+        except ValueError:
+            pass
+        else:
+            raise AssertionError('confirmation accepted an altered protocol')
     signature=inspect.signature(export_all)
     assert signature.parameters["output_dim"].default==128 and signature.parameters["native_fp16"].default is False
     for dim,native in ((1024,False),(256,True)):

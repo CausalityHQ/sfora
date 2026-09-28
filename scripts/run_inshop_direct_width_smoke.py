@@ -28,19 +28,26 @@ def main():
     for name in ("dataset-root", "model-snapshot", "features-dir", "preflight", "cached-gate", "output-dir"):
         parser.add_argument(f"--{name}", type=Path, required=True)
     parser.add_argument("--quality-qualification", type=Path)
+    parser.add_argument("--quality-confirmation", type=Path)
     args = parser.parse_args()
     if sha256(args.preflight) != "f9c59db9ed6f0962963b8e203e70f98186f314226acda0f0ebd7b52c11e17034":
         raise ValueError("direct-width preflight authority differs")
     args.output_dir.mkdir(exist_ok=False)
-    quality_mode = args.quality_qualification is not None
-    budget = 600 if quality_mode else 100
-    if quality_mode and sha256(args.quality_qualification)!="5334209bf78c70b08e0dd20bd55572e57130f2b31ef5570ebdc2ce5c535b2333":
+    confirmation = args.quality_confirmation is not None
+    if confirmation and args.quality_qualification is not None:
+        raise ValueError("cannot combine quality authorities")
+    quality_mode = confirmation or args.quality_qualification is not None
+    budget = 2200 if confirmation else 600 if quality_mode else 100
+    steps=1000 if confirmation else 100 if quality_mode else 17
+    if confirmation and sha256(args.quality_confirmation)!="c86c47c64d49df087b3db5103637009ac8d5ef22ff382bbe65035c2422f06a61":
+        raise ValueError("direct-width confirmation audit differs")
+    if quality_mode and not confirmation and sha256(args.quality_qualification)!="5334209bf78c70b08e0dd20bd55572e57130f2b31ef5570ebdc2ce5c535b2333":
         raise ValueError("direct-width quality qualification differs")
     result = {"schema":"sfora-inshop-direct-width-mechanics-v1", "claim_eligible":False,
               "quality_measured":False, "serving_latency_measured":False, "arms":{},
               "source_sha256":sha256(Path(__file__))}
     if quality_mode:
-        result.update(schema="sfora-inshop-direct-width-quality100-v1")
+        result.update(schema="sfora-inshop-direct-width-quality1000-v1" if confirmation else "sfora-inshop-direct-width-quality100-v1")
         torch.backends.cuda.matmul.allow_tf32=False
         assert sha256(args.dataset_root/"Eval/list_eval_partition.txt")==PARTITION_SHA
         train=tuple(row for row in parse_inshop_partition(args.dataset_root) if row.split=="train")
@@ -62,15 +69,15 @@ def main():
             for key in ("dataset-root", "model-snapshot", "features-dir", "preflight"):
                 command.extend([f"--{key}", str(getattr(args,key.replace('-','_')))])
             command.extend(["--preflight-sha256",sha256(args.preflight),
-                            "--direct-width-qualification" if quality_mode else "--direct-width-receipt",
-                            str(args.quality_qualification if quality_mode else args.cached_gate),
-                            "--arm","freeze_emb","--updates","100" if quality_mode else "17","--seed","179024","--workers","4",
+                            "--direct-width-confirmation" if confirmation else "--direct-width-qualification" if quality_mode else "--direct-width-receipt",
+                            str(args.quality_confirmation if confirmation else args.quality_qualification if quality_mode else args.cached_gate),
+                            "--arm","freeze_emb","--updates",str(steps),"--seed","179024","--workers","4",
                             "--training-width",str(width),"--output-dir",str(destination)])
             with (args.output_dir / f"{width}.log").open("wb") as log:
                 subprocess.run(command, stdout=log, stderr=subprocess.STDOUT, check=True,
-                               timeout=min(280,remaining) if quality_mode else remaining)
+                               timeout=min(1100 if confirmation else 280,remaining) if quality_mode else remaining)
             arm = json.loads((destination/"receipt.json").read_text())
-            if (not arm["direct_width_smoke"] or arm["updates"]!=(100 if quality_mode else 17) or arm["width_fold"] is not None
+            if (not arm["direct_width_smoke"] or arm["updates"]!=steps or arm["width_fold"] is not None
                 or (not quality_mode and (arm["held_values_sha256"] is not None or arm["quality"] is not None))):
                 raise ValueError("direct-width smoke performed the wrong experiment")
             result["arms"][str(width)] = arm
@@ -87,11 +94,10 @@ def main():
                     arm["held_packed_sha256"][name]=sha256(path)
                 arm["asymmetric_quality"]=packed_quality(values,held_labels,query,gallery)
                 result["quality_measured"]=True
-                if width==128 and arm["asymmetric_quality"]["recall_at_1"]<.922:
+                if width==128 and arm["asymmetric_quality"]["recall_at_1"]<(.970 if confirmation else .922):
                     raise ValueError("native100 fails recipe-validity floor before candidate")
             print(json.dumps({"terminal_width":width,"elapsed":time.monotonic()-started}),flush=True)
         a,b=result["arms"]["128"],result["arms"]["256"]
-        steps=100 if quality_mode else 17
         criteria={"same_pixels":a["first_input_batch_sha256"]==b["first_input_batch_sha256"] and len(a["first_input_batch_sha256"])==steps,
                   "same_pca_rows":a["direct_initial_rows_sha256"]==b["direct_initial_rows_sha256"],
                   "median_step":np.median(b["step_seconds"])<=1.10*np.median(a["step_seconds"]),
@@ -121,7 +127,12 @@ def main():
                 result["deltas"][name]={"point":float(delta.mean()),"lower95":lower,"upper95":-bootstrap_lower(-delta,qlabels)}
                 criteria[name]=delta.mean()>=floor and lower>0
         result["criteria"]={k:bool(v) for k,v in criteria.items()}
-        result["decision"]=("GO_CONFIRM_DIRECT_WIDTH_QUALITY" if all(criteria.values()) else "KILL_DIRECT_WIDTH_QUALITY100") if quality_mode else ("GO_FREEZE_REAL_100_GATE" if all(criteria.values()) else "KILL_DIRECT_WIDTH_MECHANICS")
+        if confirmation:
+            result["decision"]="GO_DIRECT_WIDTH_QUALITY1000" if all(criteria.values()) else "KILL_DIRECT_WIDTH_QUALITY1000"
+        elif quality_mode:
+            result["decision"]="GO_CONFIRM_DIRECT_WIDTH_QUALITY" if all(criteria.values()) else "KILL_DIRECT_WIDTH_QUALITY100"
+        else:
+            result["decision"]="GO_FREEZE_REAL_100_GATE" if all(criteria.values()) else "KILL_DIRECT_WIDTH_MECHANICS"
     except Exception as error:
         result.update(decision="KILL_DIRECT_WIDTH_EXECUTION",error=f"{type(error).__name__}: {error}")
         raise

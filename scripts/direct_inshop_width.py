@@ -13,25 +13,26 @@ from sfora.sop_compact_training import compact_head_features
 
 
 def validate_direct_width(args):
+    confirmation = getattr(args, "direct_width_confirmation", None)
     qualification = getattr(args, "direct_width_qualification", None)
-    authority = qualification or args.direct_width_receipt
-    expected_sha = "5334209bf78c70b08e0dd20bd55572e57130f2b31ef5570ebdc2ce5c535b2333" if qualification else "1ac62b0edda6dd93bc808a8d2bb81fef7c89cc1c4eaef816d276c4fecb2a555f"
+    authority = confirmation or qualification or args.direct_width_receipt
+    expected_sha = "c86c47c64d49df087b3db5103637009ac8d5ef22ff382bbe65035c2422f06a61" if confirmation else "5334209bf78c70b08e0dd20bd55572e57130f2b31ef5570ebdc2ce5c535b2333" if qualification else "1ac62b0edda6dd93bc808a8d2bb81fef7c89cc1c4eaef816d276c4fecb2a555f"
     blocked = ("vision_init_checkpoint", "vision_init_sha256", "wide_head_smoke_receipt",
                "wide_head_qualification", "source_centroid_smoke", "source_centroid_receipt",
                "teacher_transfer", "teacher_transfer_smoke_receipt", "teacher_model_snapshot",
                "teacher_checkpoint", "source_main_smoke", "source_main_receipt",
                "source_main_qualification", "centroid_pca_smoke", "centroid_pca_receipt",
                "centroid_pca_qualification", "centroid_pca_confirmation")
-    if (args.arm != "freeze_emb" or args.seed != 179024 or args.updates != (100 if qualification else 17)
+    if (args.arm != "freeze_emb" or args.seed != 179024 or args.updates != (1000 if confirmation else 100 if qualification else 17)
         or args.training_width not in (128, 256) or args.freeze_first_blocks != 12
         or args.vision_lr != 1e-5 or args.half_fit_products or args.tail_blocks_to_drop
         or any(getattr(args, name) is not None for name in blocked)
-        or (qualification is not None and args.direct_width_receipt is not None)
+        or sum(x is not None for x in (confirmation,qualification,args.direct_width_receipt)) != 1
         or authority is None or sha256(authority) != expected_sha):
         raise ValueError("direct-width mechanics authority differs")
     receipt = json.loads(authority.read_text())
-    expected_decision = "GO_FREEZE_REAL_100_GATE" if qualification else "GO_REVIEW_ONLY"
-    if receipt["decision"] != expected_decision or not all(receipt["criteria"].values()):
+    expected_decision = "GO_SAVED_CHECKPOINT_DESIGN_REVIEW" if confirmation else "GO_FREEZE_REAL_100_GATE" if qualification else "GO_REVIEW_ONLY"
+    if receipt["decision"] != expected_decision or not (receipt["geometry_guard"] if confirmation else all(receipt["criteria"].values())):
         raise ValueError("direct-width requires the frozen positive cached gate")
 
 
