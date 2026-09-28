@@ -1,0 +1,5 @@
+DGX isolated root /home/riomus/runs/sfora-pe-lowrank-v1; CUDA_VISIBLE_DEVICES empty.
+RED handler59107: ModuleNotFoundError pe_lowrank_adaptation, exit1.
+GREEN handler55766: Ruff all checks passed;3 files formatted; exit0.
+PASS bare/Linear zero-B gradients, FP32 materialization under autocast, nonzero merge/strict save-reload
+This small fixture does not qualify the actual native PE model; that gate is pending.

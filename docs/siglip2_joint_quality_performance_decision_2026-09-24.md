@@ -7,6 +7,16 @@ training, signed-int8 gallery codes with f16 inverse norms (130 bytes per
 image), and an exact native CUDA top-10 scorer. Apache Arrow is not in the
 training or retrieval path.
 
+## 28 September: fixed-rank learning selected for native mechanics qualification
+
+The prior rank32 endpoint approximation STOP does not test low-rank learning.
+New Fable STOP grounds were independently checked against saved endpoints,
+a closed-form counterexample and primary abstracts; its near-certain quality
+failure claim is unsupported. Opus/Astra both conditional GO for one fixed
+rank32 PE upper-block procedure. Native shapes/counts authenticated; small
+CPU bare/Linear no-op/gradient/autocast/merge fixturePASS. No actual native
+mechanics, GPU pilot, quality or serving result yet. [Frozen method and gates](inshop_pe_lowrank_learning_gate_2026-09-28.md).
+
 ## 28 September: exact normalization lookup fails the combined CPU gate
 
 A finite256-byte normalization table passes exhaustive float32 pixel/stride

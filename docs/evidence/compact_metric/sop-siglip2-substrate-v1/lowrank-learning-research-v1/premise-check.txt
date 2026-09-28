@@ -1,0 +1,2 @@
+PASS both held errors improve throughout; rank1 better: dense100=0.405812059, rank1=0.366957822
+This disproves a universal inference from monotone absolute held improvement; it does not predict PE LoRA quality or isolate factor-Adam behavior.
