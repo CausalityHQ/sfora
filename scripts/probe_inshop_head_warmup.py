@@ -51,11 +51,12 @@ def warm_head(source, head, classifier, target, batches):
     return losses
 
 
-def probe(source, head, classifier, target, batches):
+def probe(source, head, classifier, target, batches, *, component_conflict=False):
     bank = member_bank_initial_values(source, head, live_head=False)
     positives = member_bank_positive_ordinals(target.numpy(), allow_singletons=True)
     counts = torch.bincount(target)
     norms, ce_losses, features = [], [], []
+    component_cosines, component_ratios, active_rows, active_batches = [], [], 0, 0
     for rows in batches:
         index = torch.tensor(rows)
         query = source[index].detach().clone().requires_grad_()
@@ -70,6 +71,24 @@ def probe(source, head, classifier, target, batches):
             loss = loss + 8 * member_bank_rank_loss(
                 compact, bank, head, positive[:, :width], index, live_head=False
             )
+            if component_conflict:
+                active_rows += len(rows)
+                active_batches += 1
+                ce_gradient = torch.autograd.grad(ce, query, retain_graph=True)[0].double()
+                rank_gradient = torch.autograd.grad(loss - ce, query, retain_graph=True)[0].double()
+                ce_norm = ce_gradient.norm(dim=1)
+                rank_norm = rank_gradient.norm(dim=1)
+                valid = (
+                    (ce_norm > 0)
+                    & (rank_norm > 0)
+                    & torch.isfinite(ce_norm)
+                    & torch.isfinite(rank_norm)
+                )
+                cosine = (ce_gradient * rank_gradient).sum(1)[valid] / (
+                    ce_norm[valid] * rank_norm[valid]
+                )
+                component_cosines.extend(cosine.tolist())
+                component_ratios.extend((rank_norm[valid] / ce_norm[valid]).tolist())
         gradient = torch.autograd.grad(loss, query)[0]
         norm = gradient.double().norm(dim=1)
         if not torch.isfinite(norm).all() or bool((norm == 0).any()):
@@ -81,6 +100,10 @@ def probe(source, head, classifier, target, batches):
     centered = compact - compact.mean(0)
     spectrum = torch.linalg.svdvals(centered).square()
     return {
+        "component_cosines": component_cosines,
+        "weighted_rank_arcface_ratios": component_ratios,
+        "active_component_rows": active_rows,
+        "active_component_batches": active_batches,
         "source_gradient_norms": norms,
         "native_arcface_losses": ce_losses,
         "compact_variance": float(centered.square().mean()),
@@ -93,6 +116,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     for name in ("partition", "source-cache", "output"):
         parser.add_argument(f"--{name}", type=Path, required=True)
+    parser.add_argument("--objective-conflict", action="store_true")
     args = parser.parse_args()
     if (
         args.output.exists()
@@ -127,7 +151,43 @@ def main():
     schedule_sha = hashlib.sha256(np.asarray(batches, dtype="<i4").tobytes()).hexdigest()
     if schedule_sha != "c12def923f604ec0c72fe52f498dda80985905760428d4c8ad8485972a5996b9":
         raise ValueError("head warm-up schedule authority differs")
-    before = probe(source, head, classifier, target, batches[:17])
+    before = probe(
+        source, head, classifier, target, batches[:17], component_conflict=args.objective_conflict
+    )
+    if args.objective_conflict:
+        cosine = np.asarray(before["component_cosines"])
+        ratio = np.asarray(before["weighted_rank_arcface_ratios"])
+        if len(cosine) == 0 or not np.isfinite(cosine).all() or not np.isfinite(ratio).all():
+            raise ValueError("objective conflict statistic undefined")
+        criteria = {
+            "frequent_conflict": float((cosine < 0).mean()) >= 0.25,
+            "material_ranking_gradient": float(np.median(ratio)) >= 0.1,
+            "coverage": before["active_component_batches"] >= 10
+            and len(cosine) >= 0.9 * before["active_component_rows"],
+        }
+        wall = time.perf_counter() - started
+        report = {
+            "schema": "sfora-inshop-objective-conflict-cache-v1",
+            "claim_eligible": False,
+            "split": "official TRAIN fit only; no held read",
+            "before": before,
+            "negative_cosine_fraction": float((cosine < 0).mean()),
+            "weighted_rank_arcface_ratio_median": float(np.median(ratio)),
+            "criteria": criteria,
+            "advance": all(criteria.values()) and wall <= 120,
+            "cpu_main_wall_seconds": wall,
+            "source_sha256": sha256(Path(__file__)),
+            "features_sha256": SOURCE_CACHE_SHA,
+            "partition_sha256": PARTITION_SHA,
+            "fit_sha256": digest_rows(fit),
+            "pca_sha256": pca_sha,
+            "schedule_sha256": schedule_sha,
+        }
+        with args.output.open("x") as stream:
+            json.dump(report, stream, sort_keys=True, allow_nan=False)
+            stream.write("\n")
+        print(json.dumps({key: value for key, value in report.items() if key != "before"}))
+        return
     warm = copy.deepcopy(head)
     warm_classifier = torch.nn.Parameter(classifier.detach().clone())
     losses = warm_head(source, warm, warm_classifier, target, batches[:100])
