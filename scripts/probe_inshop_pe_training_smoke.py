@@ -284,6 +284,17 @@ def run_arm(args, arm, frozen):
         ).cuda()
         cos32 = F.cosine_similarity(fp32, bf16).tolist()
         coscache = F.cosine_similarity(cached, bf16).tolist()
+        print(
+            json.dumps(
+                {
+                    "arm": arm,
+                    "rows": subset,
+                    "bf16_fp32_cosine": cos32,
+                    "cache_fp16_bf16_cosine": coscache,
+                }
+            ),
+            flush=True,
+        )
         assert min(cos32) >= 0.999 and min(coscache) >= 0.999
         readout_difference = float(
             (compact_head_features(cached, head) - compact_head_features(bf16, head)).abs().max()

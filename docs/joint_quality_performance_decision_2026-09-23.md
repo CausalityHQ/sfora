@@ -1,5 +1,23 @@
 # Joint quality and performance decision, first training-code gate
 
+## 28 September PE image-training mechanics: stop before optimizer
+
+The sole bounded DGX pair exited1 at the Large control's initial cosine guard,
+before any optimizer update; PE never ran. Whole process14.27s, peak host RSS
+3,041,396KiB. No step cost, training throughput, CUDA peak, learned quality or
+final route integrity exists. The assertion did not persist the two cosine
+arrays; its exact branch/values are unknown. Fixed configuration closed, no GPU
+retry or threshold/cap rescue. Four-row CPU alignment diagnostic passed in6.36s:
+processor single/group pixels exact, cached GPU FP16 versus CPU FP32 cosine
+minimum0.9999227524. Numerical profile mismatch is the leading inference, not a
+verified explanation of the GPU branch. No held/official score was read.
+
+[Terminal result and next gate](inshop_pe_training_smoke_result_2026-09-28.md).
+Source prototype evidence below remains valid; its PASS did not qualify BF16
+image training. Next qualify exact numerical profile under a separately frozen
+mechanism before any new training proposal. Both official quality, complete
+published frontier and matched full image-to-top-k speed remain unqualified.
+
 ## 28 September PE-Core source prototype: prospective gates pass
 
 In-Shop official TRAIN fit-only512 query/gallery prototype pairs, packed R@1:

@@ -1,0 +1,43 @@
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 14786.29it/s]
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-pe-core-source-v1/probe_inshop_pe_training_smoke.py", line 451, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/sfora-pe-core-source-v1/probe_inshop_pe_training_smoke.py", line 421, in main
+    reports[arm] = run_arm(args, arm, frozen)
+                   ~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-pe-core-source-v1/probe_inshop_pe_training_smoke.py", line 287, in run_arm
+    assert min(cos32) >= 0.999 and min(coscache) >= 0.999
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+Command exited with non-zero status 1
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python probe_inshop_pe_training_smoke.py --root /home/riomus/runs/sfora-pe-core-source-v1 --dataset-root /home/riomus/datasets/inshop_official_standard --large-snapshot /home/riomus/.cache/huggingface/hub/models--google--siglip2-large-patch16-256/snapshots/787800c8990e6f058423089178e718139608408c --output /home/riomus/runs/sfora-pe-training-smoke-v4"
+	User time (seconds): 15.05
+	System time (seconds): 1.91
+	Percent of CPU this job got: 118%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:14.27
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 3041396
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 4
+	Minor (reclaiming a frame) page faults: 372311
+	Voluntary context switches: 33017
+	Involuntary context switches: 267
+	Swaps: 0
+	File system inputs: 696
+	File system outputs: 16
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 1
+Result=exit-code
+ExecMainStatus=1
+MemoryPeak=1500557312
+CPUUsageNSec=16971889000
+InvocationID=9b3fd272614043b9b329e1ae71308f72

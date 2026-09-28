@@ -45,10 +45,15 @@
 - [x] Implement16-step matched source smoke exactly as spec, no quality evaluation.
 - [x] Run one CPU metadata/objective/duplicate-refresh check; freeze executable before optimizer.
 - [x] Obtain Opus/Astra critique of concrete gate/code prerequisites; independently reconcile findings.
-- [ ] Launch original bounded DGX job once after all prerequisites pass; collect its terminal status and receipt.
-- [ ] Replay route/hash/timing/cost criteria; publish result and honest next gate, commit/push master.
+- [x] Launch original bounded DGX job once after all prerequisites pass; collect its terminal status and receipt.
+- [x] Publish terminal STOP and available cost/alignment replay; missing GPU cosines/steps/checkpoints explicitly unknown.
 
 Ruling: CPU authority v3/v4 replaces v2 after real startup defect and framework
 cleanup review; preserve previous raw versions. No GPU outcome/cap rescue.
 Final review: three startup/provenance/workspace findings fixed before GPU;
 TF32 and rotary-grid audit tightened. Resource/objective/schedule unchanged.
+
+Terminal: inv9b3fd272614043b9b329e1ae71308f72 exit1 atLargeparityBEFOREoptimizer,
+PEneverran. No replayable trained checkpoint/costratio exists. IndependentCPU
+alignment removes grossrow/pixel mismatch; noGPUretry. Future-only raw cosine
+logging added; originale3b9cfd3 executable preserved onDGX, no result backfill.

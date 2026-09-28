@@ -1,0 +1,19 @@
+{
+  "rows": [
+    0,
+    1,
+    2,
+    5
+  ],
+  "single_vs_grouped_pixels_exact": true,
+  "cached_gpu_fp16_vs_cpu_fp32_cosine": [
+    0.9999925494194031,
+    0.9999858140945435,
+    0.9999765157699585,
+    0.9999227523803711
+  ],
+  "cuda_used": false,
+  "optimizer_updates": 0,
+  "quality_read": false,
+  "diagnostic_only": true
+}
