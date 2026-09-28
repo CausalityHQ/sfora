@@ -1,0 +1,40 @@
+{
+  "schema": "sfora-bounded-primary-reference-extension-v1",
+  "checked_date_utc": "2026-09-28",
+  "measured_by_sfora": false,
+  "frontier_search_exhaustive": false,
+  "sources": [
+    {
+      "paper": "Combined Hyperbolic and Euclidean Soft Triple Loss Beyond the Single Space Deep Metric Learning",
+      "arxiv": "2510.05643v1",
+      "url": "https://arxiv.org/html/2510.05643v1",
+      "published_date": "2025-10-07",
+      "sop_table": 5,
+      "sop_best_reported_recall_at_1_percent": 88.2,
+      "sop_representation": "ViT-B-E, 1024-D Euclidean",
+      "inshop_table": 4,
+      "inshop_best_reported_recall_at_1_percent": 94.5,
+      "inshop_representation": "ViT-B-E 1024-D and ViT-B-H 512-D",
+      "decision": "Does not raise dated UNICOM quality gates. Different model, scorer and training; not a matched serving baseline."
+    },
+    {
+      "paper": "LookBench: A Live and Holistic Open Benchmark for Fashion Image Retrieval",
+      "arxiv": "2601.14706v1",
+      "url": "https://arxiv.org/html/2601.14706v1",
+      "published_date": "2026-01-21",
+      "protocol": "LookBench attribute-aware fine/coarse retrieval and Fashion200K; not target SOP/In-Shop protocol",
+      "sop_reference_selected": false,
+      "inshop_reference_selected": false,
+      "gr_lite_section_4_1": "DINOv3 ViT-L/16, global1024 to normalized512 projection",
+      "gr_lite_table_3": "336 pixels / 1024 embedding; differs from architecture prose",
+      "training_table_2_deepfashion_images": 52340,
+      "training_table_2_deepfashion_identities": 7994,
+      "inshop_evaluation_overlap": "Unknown; training table does not establish official split exclusion",
+      "decision": "No reference gate or product change. A public fashion model requires checkpoint configuration and training-provenance qualification before an independent In-Shop claim."
+    }
+  ],
+  "quality_gate_change": false,
+  "model_downloads": false,
+  "gpu_jobs": false,
+  "sota_claim": false
+}
