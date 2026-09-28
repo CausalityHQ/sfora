@@ -156,3 +156,17 @@ authenticates receipts/source/initializers/data/code without CUDA.
 Training execution manifestSHA
 92c6e940a86498f89a69b0ea87102247e72d327058b36850500c0e81bffe1747.
 Only ONE17mechanics next; no new cost/quality gain inferred from qualification.
+
+## Sole17 native-pool mechanics PASS
+
+Original15223 collectedexit0 in28.65s/5,613,940KiB/no swap. Median3–17
+**0.6572897089645267s** passed original0.71769696 ceiling; training wall
+including fill/drain11.692405260168016s, allocatedCUDApeak3,810,310,656B
+including strict reload. Actual pool SDPAFlash backward, all17 graph-free
+trunk-input calls; first/last data gradients positive, all scales128/no skips,
+originalRGB exact, frozen complement exact, pool/head/proxy groups moved.
+Whole native live/reloaded state, runtime/rotary identity and actual lastB64
+encoder/normalized head output parity passed. All79 executing files unchanged.
+17checkpoint deleted/state discarded; no held/quality read.
+PASS receiptSHAe080bbb7d67e3e145e660e7532d94680d13612e7b26b856567fb532f147e0da5
+licenses ONE fresh100TRAINpilot300s under the same execution authority.

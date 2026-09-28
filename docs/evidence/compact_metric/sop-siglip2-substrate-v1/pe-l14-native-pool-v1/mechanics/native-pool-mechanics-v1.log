@@ -1,0 +1,46 @@
+Running as unit: sfora-pe-l14-native-pool-mechanics-v1.service; invocation ID: 78cae083f45242d297008dd8519b217e
+{"calibration": {"fp16_fp32": [0.9999428987503052, 0.9998918175697327, 0.9998489618301392, 0.9997812509536743], "cached_fresh_fp16": [0.9999956488609314, 0.9999966621398926, 0.9999969601631165, 0.9999903440475464]}}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 1381723136, "current_cuda_allocated_bytes": 1327792640}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 3142091776, "current_cuda_allocated_bytes": 1555844608}
+{"step": 1, "seconds": 1.255247342865914, "loss": 4.131138324737549}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 3279510016, "current_cuda_allocated_bytes": 1555844608}
+{"step": 2, "seconds": 0.6563398740254343, "loss": 5.537591934204102}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 3279510016, "current_cuda_allocated_bytes": 1555844608}
+{"step": 3, "seconds": 0.6617654417641461, "loss": 5.744372367858887}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 3279510016, "current_cuda_allocated_bytes": 1555844608}
+{"step": 4, "seconds": 0.6572897089645267, "loss": 4.559427261352539}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 3279510016, "current_cuda_allocated_bytes": 1555844608}
+{"step": 5, "seconds": 0.6568917678669095, "loss": 4.569186210632324}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 3279510016, "current_cuda_allocated_bytes": 1555844608}
+{"step": 6, "seconds": 0.6586390822194517, "loss": 6.089103698730469}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 3279510016, "current_cuda_allocated_bytes": 1555844608}
+{"step": 7, "seconds": 0.6109500848688185, "loss": 3.5350606441497803}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 3279510016, "current_cuda_allocated_bytes": 1555844608}
+{"step": 8, "seconds": 0.6551396371796727, "loss": 4.10009765625}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 3279510016, "current_cuda_allocated_bytes": 1555844608}
+{"step": 9, "seconds": 0.6546325110830367, "loss": 6.39642333984375}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 3279510016, "current_cuda_allocated_bytes": 1555844608}
+{"step": 10, "seconds": 0.6588813727721572, "loss": 4.249457359313965}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 3279510016, "current_cuda_allocated_bytes": 1555844608}
+{"step": 11, "seconds": 0.6133095198310912, "loss": 3.348273277282715}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 3279510016, "current_cuda_allocated_bytes": 1555844608}
+{"step": 12, "seconds": 0.6606571641750634, "loss": 1.9038912057876587}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 3279510016, "current_cuda_allocated_bytes": 1555844608}
+{"step": 13, "seconds": 0.6595097482204437, "loss": 5.155830383300781}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 3279510016, "current_cuda_allocated_bytes": 1555844608}
+{"step": 14, "seconds": 0.6599585129879415, "loss": 5.079400062561035}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 3279510016, "current_cuda_allocated_bytes": 1555844608}
+{"step": 15, "seconds": 0.6575654442422092, "loss": 5.459868431091309}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 3279510016, "current_cuda_allocated_bytes": 1555844608}
+{"step": 16, "seconds": 0.6561017548665404, "loss": 5.094497203826904}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 3279510016, "current_cuda_allocated_bytes": 1555844608}
+{"step": 17, "seconds": 0.6570403790101409, "loss": 7.02452278137207}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 3279510016, "current_cuda_allocated_bytes": 1401959424}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 3810310656, "current_cuda_allocated_bytes": 2672493056}
+PASS native L14 pool adaptation mechanics; trained state discarded
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 28.658s
+CPU time consumed: 43.422s
+Memory peak: 764.0K
+Memory swap peak: 0B
