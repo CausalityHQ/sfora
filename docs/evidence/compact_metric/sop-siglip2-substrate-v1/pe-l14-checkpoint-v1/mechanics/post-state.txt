@@ -1,0 +1,6 @@
+NO_MECHANICS_CHECKPOINT
+NO_PILOT
+2f13bda3db9b702fa6c6dc798844900c86f78557a71517c90bb2ae81e2d34386  /home/riomus/runs/sfora-pe-l14-checkpoint-v1/checkpoint-execution.json
+5a6c6d1171eb9c2386d07bba18eb10f0c07dcca6a0a3ed8637ba1a56711378b9  /home/riomus/runs/sfora-pe-l14-checkpoint-v1/train_pe_l14_checkpoint.py
+be5a8bdcfd1749340f220d5669cebfb1c0d8b30d3c08667a0b72a4fb38701277  /home/riomus/runs/sfora-pe-l14-init-v1/preflight.json
+5e47299f0474195ecda4971e75733fb235c39869ef58890454cc7f785b9089e3  /home/riomus/runs/sfora-pe-l14-init-v1/initializers.npz

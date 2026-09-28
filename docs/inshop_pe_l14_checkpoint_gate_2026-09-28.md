@@ -101,3 +101,13 @@ Log exact allocator/phase before all guards, including forward/backward/
 optimizer/update validation. ONE fresh17B64 mechanics120s thenfresh100300s
 only if all unchanged gates pass; mechanicsstate alwaysdiscard. Fresh100
 must pin exact17receipt+sameexecutionauthority/initializer. No job duplicates.
+
+## Terminal deterministic checkpoint training cost KILL
+
+Sole17B64 mechanics original40712exit0:44.31s whole/4,067,444KiB processRSS/
+no swap; all17controlRGB/scalers/frozen/source/gradient/group checksPASS,
+allocatedCUDApeak5,379,930,624B memoryPASS, median3–17 1.816015209s>.71769696s
+FAIL. State discarded/no checkpoint/pilot/held/quality; DGXidle. Independent
+stdcost/control/allocator/source/terminal replayPASS. Close this execution
+procedure; no prefix/input/LR/precision/budget/epoch rescue.
+[Convergence row, root-cause limits and next supervised readout method](inshop_pe_l14_checkpoint_result_2026-09-28.md).

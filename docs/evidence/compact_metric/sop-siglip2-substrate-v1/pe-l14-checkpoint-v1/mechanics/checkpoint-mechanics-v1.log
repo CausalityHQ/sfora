@@ -1,0 +1,95 @@
+Running as unit: sfora-pe-l14-checkpoint-mechanics-v1.service; invocation ID: f20f70494f554fefad7b03b7e77c1acb
+{"calibration": {"fp16_fp32": [0.9999428987503052, 0.9998918175697327, 0.9998489618301392, 0.9997812509536743], "cached_fresh_fp16": [0.9999956488609314, 0.9999966621398926, 0.9999969601631165, 0.9999903440475464]}}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 1661193216, "current_cuda_allocated_bytes": 1327792640, "current_cuda_reserved_bytes": 1757413376}
+{"phase": "step1-forward", "peak_cuda_allocated_bytes": 3476707840, "current_cuda_allocated_bytes": 2936734720, "current_cuda_reserved_bytes": 4343201792}
+{"phase": "step1-backward", "peak_cuda_allocated_bytes": 4023165952, "current_cuda_allocated_bytes": 2060933120, "current_cuda_reserved_bytes": 4894752768}
+{"phase": "step1-optimizer", "peak_cuda_allocated_bytes": 4039457792, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 4894752768}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 4039457792, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 4896849920}
+{"step": 1, "seconds": 2.3368120761588216, "loss": 4.131138324737549}
+{"phase": "step2-forward", "peak_cuda_allocated_bytes": 4833474560, "current_cuda_allocated_bytes": 4293500416, "current_cuda_reserved_bytes": 5999951872}
+{"phase": "step2-backward", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "step2-optimizer", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"step": 2, "seconds": 1.910046343691647, "loss": 5.731040954589844}
+{"phase": "step3-forward", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 4293500416, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "step3-backward", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "step3-optimizer", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"step": 3, "seconds": 1.8739742701873183, "loss": 5.9882941246032715}
+{"phase": "step4-forward", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 4293500416, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "step4-backward", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "step4-optimizer", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"step": 4, "seconds": 1.8444601371884346, "loss": 4.737678527832031}
+{"phase": "step5-forward", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 4293500416, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "step5-backward", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "step5-optimizer", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"step": 5, "seconds": 1.8871587798930705, "loss": 3.9763071537017822}
+{"phase": "step6-forward", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 4293500416, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "step6-backward", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "step6-optimizer", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"step": 6, "seconds": 1.9129141326993704, "loss": 6.08344841003418}
+{"phase": "step7-forward", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3733323776, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "step7-backward", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "step7-optimizer", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"step": 7, "seconds": 1.7904633251018822, "loss": 4.125889778137207}
+{"phase": "step8-forward", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 4293500416, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "step8-backward", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "step8-optimizer", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"step": 8, "seconds": 1.8142314366996288, "loss": 3.5237784385681152}
+{"phase": "step9-forward", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 4293500416, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "step9-backward", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "step9-optimizer", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"step": 9, "seconds": 1.7748934719711542, "loss": 6.133947849273682}
+{"phase": "step10-forward", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 4293500416, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "step10-backward", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "step10-optimizer", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"step": 10, "seconds": 1.8160152090713382, "loss": 3.90362811088562}
+{"phase": "step11-forward", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3733323776, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "step11-backward", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "step11-optimizer", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"step": 11, "seconds": 1.804716472979635, "loss": 3.4457039833068848}
+{"phase": "step12-forward", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 4293500416, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "step12-backward", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "step12-optimizer", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"step": 12, "seconds": 1.7942534941248596, "loss": 1.9271864891052246}
+{"phase": "step13-forward", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 4293500416, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "step13-backward", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "step13-optimizer", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"step": 13, "seconds": 1.8701345287263393, "loss": 4.674962997436523}
+{"phase": "step14-forward", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 4293500416, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "step14-backward", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "step14-optimizer", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"step": 14, "seconds": 1.7746365061029792, "loss": 4.44133996963501}
+{"phase": "step15-forward", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 4293500416, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "step15-backward", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "step15-optimizer", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"step": 15, "seconds": 1.7846248033456504, "loss": 5.120955944061279}
+{"phase": "step16-forward", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 4293500416, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "step16-backward", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "step16-optimizer", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"step": 16, "seconds": 1.8583166310563684, "loss": 5.510051250457764}
+{"phase": "step17-forward", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 4293500416, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "step17-backward", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "step17-optimizer", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 5379930624, "current_cuda_allocated_bytes": 3383356928, "current_cuda_reserved_bytes": 6549405696}
+{"step": 17, "seconds": 1.8463553856126964, "loss": 6.350765228271484}
+KILL cost; stopped before held read
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 44.321s
+CPU time consumed: 51.713s
+Memory peak: 764.0K
+Memory swap peak: 0B

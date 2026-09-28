@@ -7,6 +7,19 @@ training, signed-int8 gallery codes with f16 inverse norms (130 bytes per
 image), and an exact native CUDA top-10 scorer. Apache Arrow is not in the
 training or retrieval path.
 
+## 28 September: deterministic L14 checkpointing solves memory, fails update cost
+
+ActualnativeCPU+deterministicGPU all161gradient/output/loss parityPASS;
+defaultGPU baselineAA133/161gradients nonrepeatable, causekernelunisolated.
+One17B64 mechanics median1.816015209s>.71769696s, costKILL; allocatedCUDA
+5,379,930,624B PASS versus olduncheckpointed>=10GB.44.31s whole/no swap,
+controlRGB/scalers/frozen/source/movement checks+independentreplayPASS.
+State discarded/no100pilot/held quality/publiclatency; DGXidle. Next one
+supervisedcompact-readout learning on frozen originalL14, actualnativeforward
+included in updatecost; unchanged caps/qualityfloors/uncertainty, source and
+updatedservingparity mandatory. Fulljointproductgoalactive/unmet.
+[Convergence row and raw evidence](inshop_pe_l14_checkpoint_result_2026-09-28.md).
+
 ## 28 September: L14 uncheckpointed native mechanics resource KILL
 
 Actual CPU owninitializer/source/half12 inventory PASS11.30s. Sole17step
