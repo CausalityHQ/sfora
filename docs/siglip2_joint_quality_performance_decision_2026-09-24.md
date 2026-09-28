@@ -14,8 +14,14 @@ New Fable STOP grounds were independently checked against saved endpoints,
 a closed-form counterexample and primary abstracts; its near-certain quality
 failure claim is unsupported. Opus/Astra both conditional GO for one fixed
 rank32 PE upper-block procedure. Native shapes/counts authenticated; small
-CPU bare/Linear no-op/gradient/autocast/merge fixturePASS. No actual native
-mechanics, GPU pilot, quality or serving result yet. [Frozen method and gates](inshop_pe_lowrank_learning_gate_2026-09-28.md).
+CPU bare/Linear fixture, actual native CPU qualification, and one17-update
+DGX mechanics attempt all passed. The latter measured median update3–17
+0.523402s (frozen ceiling0.717697s), lifetime peakCUDA4,910,489,088B,
+19.10s process wall and3,476,892KiB host RSS. Frozen originals/prefix/foreign
+rotary, first/later factor gradients, all17 RGB/control hashes and updated
+merged strict-loaded GPU output parity passed. Trained state discarded.
+No held quality or serving result from this method yet.
+[Native measured result](inshop_pe_lowrank_mechanics_result_2026-09-28.md). [Frozen method and gates](inshop_pe_lowrank_learning_gate_2026-09-28.md).
 
 ## 28 September: exact normalization lookup fails the combined CPU gate
 

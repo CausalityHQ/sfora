@@ -1,0 +1,12 @@
+{
+  "pass": true,
+  "updates": 17,
+  "quality_read": false,
+  "discard_training_state": true,
+  "updated_gpu_merge_exact": true,
+  "updated_gpu_strict_reload_exact": true,
+  "discarded_checkpoint_sha256": "37edc02cff88584e12f1582163505906058524f8c51d83fb1a1ed56b1d5d080f",
+  "peak_cuda_allocated_bytes": 4910489088,
+  "median_step_3_17_seconds": 0.5234019169583917,
+  "seconds": 13.162932429928333
+}

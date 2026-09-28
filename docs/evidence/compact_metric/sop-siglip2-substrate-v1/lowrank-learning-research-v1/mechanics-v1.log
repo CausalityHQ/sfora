@@ -1,0 +1,25 @@
+Running as unit: sfora-pe-lowrank-mechanics-v1.service; invocation ID: 72ce50ec44b94afebe316c2243200e71
+{"step": 1, "seconds": 1.0185690470971167, "loss": 4.966567039489746}
+{"step": 2, "seconds": 0.5744457170367241, "loss": 7.225484371185303}
+{"step": 3, "seconds": 0.5583619382232428, "loss": 7.447012901306152}
+{"step": 4, "seconds": 0.5497741857543588, "loss": 5.911001682281494}
+{"step": 5, "seconds": 0.5139532391913235, "loss": 5.833913803100586}
+{"step": 6, "seconds": 0.4808429470285773, "loss": 6.741550445556641}
+{"step": 7, "seconds": 0.46607697382569313, "loss": 3.9273855686187744}
+{"step": 8, "seconds": 0.5569668342359364, "loss": 5.238115310668945}
+{"step": 9, "seconds": 0.530754376668483, "loss": 8.035263061523438}
+{"step": 10, "seconds": 0.5367039069533348, "loss": 4.385104179382324}
+{"step": 11, "seconds": 0.48291537491604686, "loss": 4.1593523025512695}
+{"step": 12, "seconds": 0.5278395311906934, "loss": 3.4078314304351807}
+{"step": 13, "seconds": 0.5234019169583917, "loss": 6.641356468200684}
+{"step": 14, "seconds": 0.5113880718126893, "loss": 5.002228736877441}
+{"step": 15, "seconds": 0.5334381489083171, "loss": 6.4135308265686035}
+{"step": 16, "seconds": 0.5030646058730781, "loss": 5.554987907409668}
+{"step": 17, "seconds": 0.5095992088317871, "loss": 7.740567684173584}
+PASS mechanics only; no checkpoint promotion or held read
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 19.108s
+CPU time consumed: 25.511s
+Memory peak: 2.4G
+Memory swap peak: 0B

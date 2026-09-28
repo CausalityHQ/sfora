@@ -1,0 +1,1 @@
+PASS stdlib receipt replay: 17 exact archived RGB hashes;17 finite losses/times; all scales128; 24site first A0/B>0 and later A/B>0; median3-17=.5234019169583917<=.71769696s; lifetime peakCUDA4910489088<10000000000B; pinned code/CPU receipt hashes; original CPU/GPU process exit0.

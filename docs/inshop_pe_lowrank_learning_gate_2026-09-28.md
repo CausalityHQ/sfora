@@ -97,7 +97,9 @@ and strict-loaded GPU peak checks, whole-attempt119s runtime+1s shutdown,
 data gradients, group movement, post-load/final executing authority, and actual
 updated-checkpoint GPU strict reload rather than only in-memory merge. Trained
 state is discarded. All method/quality/cost floors remain frozen. CPU actual
-startup passed before CUDA; one17-update mechanics attempt is next.
+startup passed before CUDA. The sole17-update attempt then passed; see
+[measured native result](inshop_pe_lowrank_mechanics_result_2026-09-28.md).
+No100-update pilot has been launched.
 
 ## Frozen TRAIN100 advance rule
 

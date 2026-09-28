@@ -1,0 +1,402 @@
+{
+  "median_step_3_17_seconds": 0.5234019169583917,
+  "step_seconds": [
+    1.0185690470971167,
+    0.5744457170367241,
+    0.5583619382232428,
+    0.5497741857543588,
+    0.5139532391913235,
+    0.4808429470285773,
+    0.46607697382569313,
+    0.5569668342359364,
+    0.530754376668483,
+    0.5367039069533348,
+    0.48291537491604686,
+    0.5278395311906934,
+    0.5234019169583917,
+    0.5113880718126893,
+    0.5334381489083171,
+    0.5030646058730781,
+    0.5095992088317871
+  ],
+  "losses": [
+    4.966567039489746,
+    7.225484371185303,
+    7.447012901306152,
+    5.911001682281494,
+    5.833913803100586,
+    6.741550445556641,
+    3.9273855686187744,
+    5.238115310668945,
+    8.035263061523438,
+    4.385104179382324,
+    4.1593523025512695,
+    3.4078314304351807,
+    6.641356468200684,
+    5.002228736877441,
+    6.4135308265686035,
+    5.554987907409668,
+    7.740567684173584
+  ],
+  "rgb_sha256": [
+    "f68313037c3d249e2572c3b5799a24758cdbfac1e60f384461eb18a17aa43630",
+    "ffa72a5c642aec9583ecbbc869c25470b7c62edcf8817345fe471df74684e1c6",
+    "9398e71f46eb352dbc1c3156fe505542b6f460788e7640313e20ab2d685a4f8b",
+    "644b83536ac1ec708d071b8f553fecdaed1c86aa1c972e26dfa81c3dcf202c76",
+    "01db331772995491c6e55e161a14cbd3a87d451c446f477ea64488970fd38bb3",
+    "ad50314a57c3a76118602b15e69231c9f681d4c2fb0cdc6e6320f14fd151a742",
+    "d7f4872a4c14cab12d06781f4a73421cf44a3566a3a38f4f2fb2aeb35721f900",
+    "e61b40d67e9e5aacbfa4ca6d134f1fb6b2c84fe03dc30a6e67be996c714dc93f",
+    "c47a387d1fe43f018cc7167204d00e90aa51934230e4debe2e8776c51e370c6c",
+    "642e93c161259c15a3efb1c6d9f7463235df9fb0fd2542e8ce94da328f938e48",
+    "5b1d14132370f37911d62afc5eb3c686f044b152fe16bf95cc9e873b3b62578b",
+    "a75355fd14b3736f9a3b2a75b9c0a2a59053c42abbb121c9f12ad461acb6fe77",
+    "0dc26a7bc6bb7eff9a91f87d593d123d886f7e3f56b1a03cdd29b8c7a04906dd",
+    "dfb874fc5887730246aee9dd78c153b254d89380d7b807d6ffe8179c829c8feb",
+    "32475486e3f708f42a1b62343482f65565591040141f575b8d8ba95c94f78306",
+    "9f54d0899ae2703ec56949fa79f004a249317d761b56393c93ecd71ea5a03e17",
+    "7a2f095847529cb89e6b8f559100ecdd0acd97f91f99462314c1ea686e68c34b"
+  ],
+  "scales": [
+    128.0,
+    128.0,
+    128.0,
+    128.0,
+    128.0,
+    128.0,
+    128.0,
+    128.0,
+    128.0,
+    128.0,
+    128.0,
+    128.0,
+    128.0,
+    128.0,
+    128.0,
+    128.0,
+    128.0
+  ],
+  "diagnostics": [
+    {
+      "step": 1,
+      "factor_data_gradient_norms": {
+        "transformer.resblocks.10.attn.in_proj_weight": [
+          0.0,
+          2.226663112640381
+        ],
+        "transformer.resblocks.10.attn.out_proj.weight": [
+          0.0,
+          1.23786199092865
+        ],
+        "transformer.resblocks.10.mlp.c_fc.weight": [
+          0.0,
+          2.3443431854248047
+        ],
+        "transformer.resblocks.10.mlp.c_proj.weight": [
+          0.0,
+          0.9858771562576294
+        ],
+        "transformer.resblocks.11.attn.in_proj_weight": [
+          0.0,
+          4.6015849113464355
+        ],
+        "transformer.resblocks.11.attn.out_proj.weight": [
+          0.0,
+          1.1182340383529663
+        ],
+        "transformer.resblocks.11.mlp.c_fc.weight": [
+          0.0,
+          1.9832127094268799
+        ],
+        "transformer.resblocks.11.mlp.c_proj.weight": [
+          0.0,
+          1.013714075088501
+        ],
+        "transformer.resblocks.6.attn.in_proj_weight": [
+          0.0,
+          1.5783324241638184
+        ],
+        "transformer.resblocks.6.attn.out_proj.weight": [
+          0.0,
+          1.6095912456512451
+        ],
+        "transformer.resblocks.6.mlp.c_fc.weight": [
+          0.0,
+          2.1891872882843018
+        ],
+        "transformer.resblocks.6.mlp.c_proj.weight": [
+          0.0,
+          1.1442054510116577
+        ],
+        "transformer.resblocks.7.attn.in_proj_weight": [
+          0.0,
+          1.9512666463851929
+        ],
+        "transformer.resblocks.7.attn.out_proj.weight": [
+          0.0,
+          1.3957425355911255
+        ],
+        "transformer.resblocks.7.mlp.c_fc.weight": [
+          0.0,
+          2.379485845565796
+        ],
+        "transformer.resblocks.7.mlp.c_proj.weight": [
+          0.0,
+          1.138031005859375
+        ],
+        "transformer.resblocks.8.attn.in_proj_weight": [
+          0.0,
+          2.5604546070098877
+        ],
+        "transformer.resblocks.8.attn.out_proj.weight": [
+          0.0,
+          1.7355751991271973
+        ],
+        "transformer.resblocks.8.mlp.c_fc.weight": [
+          0.0,
+          2.2080588340759277
+        ],
+        "transformer.resblocks.8.mlp.c_proj.weight": [
+          0.0,
+          1.1978791952133179
+        ],
+        "transformer.resblocks.9.attn.in_proj_weight": [
+          0.0,
+          2.5047049522399902
+        ],
+        "transformer.resblocks.9.attn.out_proj.weight": [
+          0.0,
+          1.8528486490249634
+        ],
+        "transformer.resblocks.9.mlp.c_fc.weight": [
+          0.0,
+          2.3729355335235596
+        ],
+        "transformer.resblocks.9.mlp.c_proj.weight": [
+          0.0,
+          0.9097331166267395
+        ]
+      }
+    },
+    {
+      "step": 2,
+      "factor_data_gradient_norms": {
+        "transformer.resblocks.10.attn.in_proj_weight": [
+          0.043115172535181046,
+          2.2931737899780273
+        ],
+        "transformer.resblocks.10.attn.out_proj.weight": [
+          0.021225888282060623,
+          1.334133267402649
+        ],
+        "transformer.resblocks.10.mlp.c_fc.weight": [
+          0.03377392143011093,
+          2.5705010890960693
+        ],
+        "transformer.resblocks.10.mlp.c_proj.weight": [
+          0.03790121152997017,
+          1.111685872077942
+        ],
+        "transformer.resblocks.11.attn.in_proj_weight": [
+          0.09339827299118042,
+          4.139777660369873
+        ],
+        "transformer.resblocks.11.attn.out_proj.weight": [
+          0.022777505218982697,
+          1.2574950456619263
+        ],
+        "transformer.resblocks.11.mlp.c_fc.weight": [
+          0.033143699169158936,
+          2.1655404567718506
+        ],
+        "transformer.resblocks.11.mlp.c_proj.weight": [
+          0.02965579554438591,
+          0.9786602258682251
+        ],
+        "transformer.resblocks.6.attn.in_proj_weight": [
+          0.03174547851085663,
+          1.927040457725525
+        ],
+        "transformer.resblocks.6.attn.out_proj.weight": [
+          0.023237532004714012,
+          1.9354497194290161
+        ],
+        "transformer.resblocks.6.mlp.c_fc.weight": [
+          0.05601118505001068,
+          2.589998960494995
+        ],
+        "transformer.resblocks.6.mlp.c_proj.weight": [
+          0.033139754086732864,
+          1.3584144115447998
+        ],
+        "transformer.resblocks.7.attn.in_proj_weight": [
+          0.02764577604830265,
+          2.2243294715881348
+        ],
+        "transformer.resblocks.7.attn.out_proj.weight": [
+          0.018035193905234337,
+          1.6134634017944336
+        ],
+        "transformer.resblocks.7.mlp.c_fc.weight": [
+          0.050705790519714355,
+          2.5441136360168457
+        ],
+        "transformer.resblocks.7.mlp.c_proj.weight": [
+          0.03227920085191727,
+          1.2012931108474731
+        ],
+        "transformer.resblocks.8.attn.in_proj_weight": [
+          0.04433716833591461,
+          2.6944186687469482
+        ],
+        "transformer.resblocks.8.attn.out_proj.weight": [
+          0.024926049634814262,
+          1.9462792873382568
+        ],
+        "transformer.resblocks.8.mlp.c_fc.weight": [
+          0.037250056862831116,
+          2.3853278160095215
+        ],
+        "transformer.resblocks.8.mlp.c_proj.weight": [
+          0.038003675639629364,
+          1.2620774507522583
+        ],
+        "transformer.resblocks.9.attn.in_proj_weight": [
+          0.03459642454981804,
+          2.460684061050415
+        ],
+        "transformer.resblocks.9.attn.out_proj.weight": [
+          0.02188066579401493,
+          1.9274616241455078
+        ],
+        "transformer.resblocks.9.mlp.c_fc.weight": [
+          0.034810975193977356,
+          2.4354193210601807
+        ],
+        "transformer.resblocks.9.mlp.c_proj.weight": [
+          0.02265734225511551,
+          0.9325849413871765
+        ]
+      }
+    },
+    {
+      "step": 17,
+      "factor_data_gradient_norms": {
+        "transformer.resblocks.10.attn.in_proj_weight": [
+          0.18465952575206757,
+          2.4882900714874268
+        ],
+        "transformer.resblocks.10.attn.out_proj.weight": [
+          0.07919786125421524,
+          1.1761019229888916
+        ],
+        "transformer.resblocks.10.mlp.c_fc.weight": [
+          0.09497249871492386,
+          2.3048696517944336
+        ],
+        "transformer.resblocks.10.mlp.c_proj.weight": [
+          0.17400294542312622,
+          1.0537126064300537
+        ],
+        "transformer.resblocks.11.attn.in_proj_weight": [
+          0.5846062898635864,
+          4.4408674240112305
+        ],
+        "transformer.resblocks.11.attn.out_proj.weight": [
+          0.10410264879465103,
+          1.0627657175064087
+        ],
+        "transformer.resblocks.11.mlp.c_fc.weight": [
+          0.12497979402542114,
+          1.954235315322876
+        ],
+        "transformer.resblocks.11.mlp.c_proj.weight": [
+          0.16776292026042938,
+          0.8155108690261841
+        ],
+        "transformer.resblocks.6.attn.in_proj_weight": [
+          0.1198616474866867,
+          1.7466212511062622
+        ],
+        "transformer.resblocks.6.attn.out_proj.weight": [
+          0.08792877942323685,
+          1.6594762802124023
+        ],
+        "transformer.resblocks.6.mlp.c_fc.weight": [
+          0.2114846259355545,
+          2.3896491527557373
+        ],
+        "transformer.resblocks.6.mlp.c_proj.weight": [
+          0.1719643473625183,
+          2.2428596019744873
+        ],
+        "transformer.resblocks.7.attn.in_proj_weight": [
+          0.12299800664186478,
+          1.9329103231430054
+        ],
+        "transformer.resblocks.7.attn.out_proj.weight": [
+          0.0823926329612732,
+          1.4136162996292114
+        ],
+        "transformer.resblocks.7.mlp.c_fc.weight": [
+          0.1374444216489792,
+          2.2096211910247803
+        ],
+        "transformer.resblocks.7.mlp.c_proj.weight": [
+          0.1052163690328598,
+          1.3408331871032715
+        ],
+        "transformer.resblocks.8.attn.in_proj_weight": [
+          0.12844862043857574,
+          2.4145395755767822
+        ],
+        "transformer.resblocks.8.attn.out_proj.weight": [
+          0.08790598809719086,
+          1.7350482940673828
+        ],
+        "transformer.resblocks.8.mlp.c_fc.weight": [
+          0.1323273479938507,
+          2.2360153198242188
+        ],
+        "transformer.resblocks.8.mlp.c_proj.weight": [
+          0.11584360152482986,
+          1.4882301092147827
+        ],
+        "transformer.resblocks.9.attn.in_proj_weight": [
+          0.1350075751543045,
+          2.2650227546691895
+        ],
+        "transformer.resblocks.9.attn.out_proj.weight": [
+          0.08532710373401642,
+          1.8628575801849365
+        ],
+        "transformer.resblocks.9.mlp.c_fc.weight": [
+          0.11692526191473007,
+          2.2784173488616943
+        ],
+        "transformer.resblocks.9.mlp.c_proj.weight": [
+          0.09312202036380768,
+          1.131369709968567
+        ]
+      }
+    }
+  ],
+  "calibration": {
+    "fp16_fp32": [
+      0.9999904036521912,
+      0.9999868273735046,
+      0.999985933303833,
+      0.9999911785125732
+    ],
+    "cached_fresh_fp16": [
+      0.9999979734420776,
+      0.9999973773956299,
+      0.9999976754188538,
+      0.9999967813491821
+    ]
+  },
+  "original_sha256": "6c8ec3d5555e9cbd99e5ecd5d812333c7da310a2dc19a40e75fcc67603f18d7d",
+  "frozen_sha256": "a60f4a6df4b8cf3a7e75dd10fbfe5f9a4b07a7a51c1281fa2441e91fec4e9123",
+  "peak_cuda_allocated_bytes": 4910489088,
+  "quality_read": false
+}
