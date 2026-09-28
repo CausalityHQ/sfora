@@ -55,3 +55,13 @@ Runnable fixture RED missing exporter then GREEN changed-manifest-before-CUDA
 plus bad shape/dtype/nonfinite/unit-norm rejection; Ruff PASS. Original
 frozen authority separately reached hidden-CUDA guard before any attempt
 file, feature allocation or optimizer. No full repository suite/research.
+
+## Terminal fit-cache prerequisite PASS
+
+Sole GPU acquisition completed196.49s whole/3,618,732KiB processRSS/no swap,
+13283×1024finiteunitFP32 fit-only features,71.2583exportimages/s,
+1,590,978,048B allocatedCUDA. Precision/reference/source-state checksPASS.
+Saved matrix/reference/source/authority CPU replay4.01sPASS. Originals
+10124(GPU),5586(audit),92000(preflight) collectedexit0. DGXidle; no
+training/held/quality/publiclatency measurement.
+[Convergence row, evidence and next actual native training gate](inshop_pe_l14_fit_result_2026-09-28.md).

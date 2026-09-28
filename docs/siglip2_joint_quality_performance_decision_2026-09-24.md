@@ -7,6 +7,19 @@ training, signed-int8 gallery codes with f16 inverse norms (130 bytes per
 image), and an exact native CUDA top-10 scorer. Apache Arrow is not in the
 training or retrieval path.
 
+## 28 September: own L14 full-fit FP16 source cache qualified
+
+One GPU acquisition and independent saved-cache CPU replayPASS:13283In-Shop
+TRAIN-fit images/2004products/12singletons, unit1024-D FP32 descriptors;
+first4 FP16/source and cache/reference cosines>.999. Whole196.49s,
+export186.4063s/71.2583images/s,1,590,978,048B allocatedCUDA/no swap;
+historical Large source export112.0303images/s. Acquisition is slower,
+actual training cost/quality/public latency remain unmeasured. Zero optimizer
+updates/held decoding/quality reads; DGXidle. Own PCA/head/proxy/bank+actual
+native24block half-prefix12 CPU→17mechanics→fresh100TRAIN pilot next,
+unchanged cost/quality floors; serving/fresh official gates on survivor.
+[Convergence row and raw evidence](inshop_pe_l14_fit_result_2026-09-28.md).
+
 ## 28 September: fixed224 PE-L14 source PASS; quality/cost unmeasured
 
 One pinned public acquisition and native CPU source qualification passed:

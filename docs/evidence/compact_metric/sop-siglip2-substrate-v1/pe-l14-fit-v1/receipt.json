@@ -1,0 +1,42 @@
+{
+  "pass": true,
+  "source_receipt_sha256": "6038ad876a209b3ae29925427ef6d54c7f23ff084be3863bb8fb74158bb052f7",
+  "preflight_sha256": "5653617efcdc9bcc09d8efaff9c0a8f3302775060fa8a00aefab923df46fbeb1",
+  "features_sha256": "2b88edda325368801fd5a6ec5a79672be1b90e18d7e36803a316595ade63974a",
+  "references_sha256": "070d68b7861f2e036ab26e79ca4c874d4eca493a64437cfe54e4e2e13aaf314c",
+  "shape": [
+    13283,
+    1024
+  ],
+  "dtype": "float32",
+  "max_norm_error_float64": 9.937760614420199e-08,
+  "fp16_fp32_cosine": [
+    0.999942421913147,
+    0.9999042749404907,
+    0.9998528957366943,
+    0.9998070597648621
+  ],
+  "cache_reference_cosines": {
+    "fp32": [
+      0.9999376535415649,
+      0.9998940229415894,
+      0.9998406767845154,
+      0.9997936487197876
+    ],
+    "fp16": [
+      0.9999971389770508,
+      0.9999967813491821,
+      0.9999966621398926,
+      0.9999858736991882
+    ]
+  },
+  "export_seconds": 186.40626447927207,
+  "export_images_per_second": 71.25833478346989,
+  "whole_seconds": 193.32599882688373,
+  "peak_cuda_allocated_bytes": 1590978048,
+  "source_state_unchanged": true,
+  "optimizer_updates": 0,
+  "held_images": 0,
+  "quality_read": false,
+  "public_latency_measured": false
+}

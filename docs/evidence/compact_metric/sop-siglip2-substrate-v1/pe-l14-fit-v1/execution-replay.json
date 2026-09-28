@@ -1,0 +1,19 @@
+{
+  "pass": true,
+  "gpu_invocation": "f8d29092506e436880a8e63f134f57dc",
+  "gpu_original_session": 10124,
+  "gpu_original_exit": 0,
+  "whole_process_seconds": 196.49,
+  "max_process_rss_kib": 3618732,
+  "audit_invocation": "07a4b019b5e34a55994f86ab3bd8807b",
+  "audit_original_session": 5586,
+  "audit_original_exit": 0,
+  "audit_whole_process_seconds": 4.01,
+  "receipt_sha256": "9f9a1c6e91740cbd8c80fd5e90c7f0e631e000e6a031eb1276e94ab11f8a870c",
+  "audit_sha256": "c19ca161820bdda4c316b839a37b4d6daa9b229b2585c7382c2038e420309819",
+  "cpu_preflight_original_session": 92000,
+  "cpu_preflight_original_exit": 0,
+  "new_quality_measurement": false,
+  "new_training_cost_measurement": false,
+  "new_public_latency_measurement": false
+}
