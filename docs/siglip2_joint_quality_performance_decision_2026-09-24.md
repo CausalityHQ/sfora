@@ -7,6 +7,10 @@ training, signed-int8 gallery codes with f16 inverse norms (130 bytes per
 image), and an exact native CUDA top-10 scorer. Apache Arrow is not in the
 training or retrieval path.
 
+## 28 September: fixed source compression diagnostic
+
+On In-Shop TRAIN-fit (6,673 queries / 6,610 gallery; 2,004 products including 12 gallery-only singletons), authenticated CPU packed Recall@1 is Large source1024 80.84819%, PCA128 77.97093%; PE source1024 84.02518%, PCA128 82.03207%. PE compression costs less quality on FIT; this cannot explain the trained HELD reversal or reopen the stopped 100-update recipe. Original timed job exited 0 in 6.70s, peak RSS 1,457,644 KiB. [Result and limits](inshop_pe_compression_result_2026-09-28.md). Next fixed saved-state encoder/head attribution is inference only, with golden final-state parity and no best-state selection; production joint target remains unmet.
+
 ## Trained serving API
 
 `sfora.siglip2_compact_serving.Siglip2CompactIndex` loads the trained vision
