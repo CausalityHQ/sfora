@@ -41,3 +41,29 @@ floor search. A positive result only supports consequential design review and
 one bounded paired encoder smoke before a separately frozen TRAIN retrieval
 gate. It proves no generalization, SOTA, novelty or training/serving speed win.
 Keep original128 baseline and production source unchanged during diagnosis.
+
+## Terminal CPU result
+
+Original computation exited1 while serializing a NumPy boolean; no receipt
+was saved. Cast only that criterion to a native bool and reran once with the
+unchanged gate. The repaired run exited0 in9.202887s. Receipt
+`evidence/compact_metric/sop-siglip2-substrate-v1/inshop-wide-main-head-cache-v1.json`
+SHA256 `2698063c7c5720b85dbd643bde678d61550c6a65dffbb4c598910d49779d474e`.
+
+| Frozen fit-only measure | Result | Decision |
+|---|---:|---|
+| Native128 leave-query-out prototype accuracy |435/512,84.96094%|Control|
+| Wide256 prototype accuracy |450/512,87.89063%|+2.92969pp,95%[1.5625,4.4922]pp|
+| Actual folded128 prototype accuracy |435/512,84.96094%|Pass gross floor|
+| Median wide gradient outside narrow span/radial axis |34.90907%|Pass20% floor|
+| Median wide/narrow source-gradient norm ratio |0.9072373|Pass[0.25,4]|
+| Folded normalized float maximum error |1.4305115e-6|Pass1e-5|
+| Native narrow null residual maximum |8.8183050e-7|Pass1e-5|
+
+All1088 gradients and frozen authority/budget guards passed. Independently
+recounted hit arrays, medians, native-bool criteria and current probe source
+hash from the saved receipt. This is **GO_BOUNDED_ENCODER_DESIGN**, not a
+retrieval gain: no packed R@1/mAP@R, held evaluation, training wall, VRAM or
+image-to-top-k measurements were made. Production128 head, checkpoint and
+package remain unchanged. Consequential Opus/Astra review group
+`579a7c2e61c745dd` was started once before GPU implementation; Spark was idle.

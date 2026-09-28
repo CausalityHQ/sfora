@@ -172,9 +172,11 @@ def main():
         "folded_gross_floor": float((hits["folded128"] - hits["narrow128"]).mean()) >= -0.01,
         "new_gradient_route": float(np.median(fractions)) >= 0.2,
         "bounded_gradient_pressure": 0.25 <= float(np.median(ratios)) <= 4,
-        "finite_1088_rows": len(fractions) == 1088
-        and np.isfinite(fractions).all()
-        and np.isfinite(ratios).all(),
+        "finite_1088_rows": bool(
+            len(fractions) == 1088
+            and np.isfinite(fractions).all()
+            and np.isfinite(ratios).all()
+        ),
         "narrow_residual": max(residuals) <= 1e-5,
         "orthogonality_fold": bool(orthogonal) and fold_error <= 1e-5,
         "cpu_budget": wall <= 120,
