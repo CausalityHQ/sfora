@@ -1,0 +1,10 @@
+{
+  "schema": "sfora-inshop-direct-width-saved-audit-v1",
+  "claim_eligible": false,
+  "original_gate_still_failed": true,
+  "arms": {},
+  "source_sha256": "428a236d2aac1c04517cc9cd69c80eaffc4aa212a716deb2b1f1a513961fefee",
+  "decision": "KILL_SAVED_CHECKPOINT_AUDIT",
+  "error": "AssertionError: embeddings.patch_embedding.weight",
+  "seconds": 2.1754802633076906
+}
