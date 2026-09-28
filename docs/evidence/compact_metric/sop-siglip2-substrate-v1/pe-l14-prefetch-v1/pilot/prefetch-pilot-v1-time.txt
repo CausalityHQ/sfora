@@ -1,0 +1,23 @@
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-pe-l14-prefetch-v1/train_pe_l14_prefetch.py --preflight-sha256 234d7ece495c74a294ff18e3cc7f12cf301244d6cc322783d8e26a9db0e2c273 --mechanics-receipt-sha256 02fb166be9ca2ef26fd7af59f6fea14e6f93b461e16e305d2ad234948956ec6b --updates 100 --output /home/riomus/runs/sfora-pe-l14-prefetch-pilot-v1"
+	User time (seconds): 306.17
+	System time (seconds): 70.21
+	Percent of CPU this job got: 143%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 4:22.87
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 5611528
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 2
+	Minor (reclaiming a frame) page faults: 1214525
+	Voluntary context switches: 682152
+	Involuntary context switches: 3403
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 2511464
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

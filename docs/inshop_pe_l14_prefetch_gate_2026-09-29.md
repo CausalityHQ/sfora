@@ -60,3 +60,12 @@ No held/quality read. Full production goal remains unmet.
 MechanicsPASS receiptSHA
 02fb166be9ca2ef26fd7af59f6fea14e6f93b461e16e305d2ad234948956ec6b
 licenses ONE fresh100TRAINpilot300s under the same frozen execution authority.
+
+## Terminal100 outcome
+
+One fresh100 completed: cost0.6362088094465435s/update PASS, strict native
+encoder/head/full-held packed parity PASS, TRAIN-held R1 87.2836009% and
+mAP@R61.8878907% QUALITY KILL. Independent CPU saved-state/score/interval/
+decision replay passed. Both quality floors and paired bounds failed.
+No official/transfer/public latency or promotion. Procedure closed.
+[Measured convergence row, raw evidence and next intervention](inshop_pe_l14_prefetch_result_2026-09-29.md).

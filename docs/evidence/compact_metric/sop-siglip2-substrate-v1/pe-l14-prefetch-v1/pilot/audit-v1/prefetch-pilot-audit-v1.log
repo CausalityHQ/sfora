@@ -1,0 +1,15 @@
+Running as unit: sfora-pe-l14-prefetch-pilot-audit-v1.service; invocation ID: 9b7583d13d1e4095a82c718458bc36f0
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-pe-l14-prefetch-v1/audit_pe_l14_prefetch_pilot.py", line 150, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/sfora-pe-l14-prefetch-v1/audit_pe_l14_prefetch_pilot.py", line 30, in main
+    assert pair.sha(cpu) == attempt["preflight_sha256"] == r["preflight_sha256"]
+                                                           ~^^^^^^^^^^^^^^^^^^^^
+KeyError: 'preflight_sha256'
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=1
+Service runtime: 6.901s
+CPU time consumed: 9.467s
+Memory peak: 256.0K
+Memory swap peak: 0B

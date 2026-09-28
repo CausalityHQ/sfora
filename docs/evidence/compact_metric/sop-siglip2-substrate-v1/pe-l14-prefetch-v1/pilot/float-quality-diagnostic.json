@@ -1,0 +1,18 @@
+{
+  "script_sha256": "bbd2cf4f4e32fbb4e7e19cf8d611c71ded9c53a1c4a7a47d6b8987a502309761",
+  "receipt_sha256": "0710914c9184eecfa47cfab8433126fb20fcafd8b78b751bbe3be6e82b344f7a",
+  "held_sha256": "942c220fdc95342eba29504d9914c95d3a2a6d64b1c28d592f52e72c82c91850",
+  "quality": {
+    "recall_at_1": 0.874409820585458,
+    "map_at_r": 0.6196562453991856
+  },
+  "float_minus_packed_pp": {
+    "recall_at_1": 0.15738117721121325,
+    "map_at_r": 0.07773388735892173
+  },
+  "float_also_fails_both_quality_floors": true,
+  "quality_read": "existing TRAIN-held saved vectors only",
+  "cuda": false,
+  "optimizer_updates": 0,
+  "new_encoder_inference": false
+}
