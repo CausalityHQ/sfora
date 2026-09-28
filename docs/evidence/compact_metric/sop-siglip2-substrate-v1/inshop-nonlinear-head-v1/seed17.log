@@ -1,0 +1,1 @@
+{"seed": 17, "base_r1": 0.8697225572979493, "nonlinear_r1": 0.9595898673100121, "control_r1": 0.9617008443908324, "advance_seed17": false, "curvature": {"train": 0.10500078464854902, "validation": 0.19303608914182668}}

@@ -1,0 +1,13 @@
+{
+  "freeze_commit": "0d9b9563",
+  "host": "spark-2751",
+  "unit": "sfora-inshop-nonlinear-seed17-v1",
+  "invocation_id": "16d6a79f940646a1a481040d0719fb64",
+  "runtime_max_seconds": 180,
+  "memory_max_bytes": 8589934592,
+  "cuda_visible_devices": "",
+  "kill_mode": "control-group",
+  "whole_process_cap": true,
+  "training_steps_per_arm": 1000,
+  "num_threads": 8
+}

@@ -1,18 +1,18 @@
 # Joint quality and performance decision, first training-code gate
 
-## 28 September nonlinear parameter placement: reviewed next cached gate
+## 28 September cached nonlinear activation placement: rejected
 
-Fable's519s research STOP overstated fixed-pooler function-class equivalence
-and the user's algorithm restrictions. Pinned DGX source/config confirms a
-trainable pooling MLP, but that does not prove equivalence to every added head.
-Opus5.5/Astra conditionally support one equal-parameter GELU-versus-half-gain
-linear residual filter on existing TRAIN fit caches, after correcting scaling,
-normalization, bank isolation, initialization, uncertainty and resource bounds.
-No optimizer, retrieval read, encoder or new model has run. A cached pass is
-weak evidence and may only support proposing a matched1000-update image-level
-test;100 updates cannot carry its quality decision. Existing negative arms stay
-closed and full joint goal unmet.
-[Reviewed scope, source authority and corrections](inshop_nonlinear_research_scope_2026-09-28.md).
+Frozen seed17 TRAIN inner validation (6632 queries,6638 gallery rows): packed
+R@1 PCA86.9723%, half-linear control96.1701%, GELU95.9590%; mAP@R53.8567%,
+73.5132%,72.8482%. The treatment loses0.2111/0.6650 percentage points versus
+control and fails both first-seed quality gates. Curvature fractions0.1050 train
+and0.1930 validation exceed frozen0.10, so this is an informative negative for
+the tested configuration. Stop; no seeds23/29 or image-level pair. All learned
+packed per-query outputs were independently reproduced from saved weights.
+DGX CPU, CUDA hidden,37.23s whole wall/2071960KiB process RSS, exit0. No official
+result, inference measurement or production change. Full joint goal unmet.
+[Result, raw weights and replay](inshop_nonlinear_head_result_2026-09-28.md).
+[Reviewed scope](inshop_nonlinear_research_scope_2026-09-28.md).
 
 ## 28 September combined pixel transfer: rejected before production
 
