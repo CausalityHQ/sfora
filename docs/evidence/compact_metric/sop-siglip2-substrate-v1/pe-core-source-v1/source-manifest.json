@@ -1,0 +1,11 @@
+{
+  "core/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "core/vision_encoder/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "core/vision_encoder/pe.py": "36b62204c4cf12a709946facce2df8980e0880bf06deb6e49a2aa288158c3d53",
+  "core/vision_encoder/config.py": "37c10ea7b68889241c8d9ebce27c62577c7379a33c444f9b0129bc90946aaff5",
+  "core/vision_encoder/rope.py": "85a16113138f26389ea35fccd313f2aca12945c7ed2eb24e5d52dbe680dad121",
+  "core/vision_encoder/transforms.py": "ded9fdbd3a2e3a1d46e05d83f64074281e9c3b6f630257d051308d27e74bd7d3",
+  "core/vision_encoder/tokenizer.py": "42db8b142e1fe7a9b7d294049e063c8bd454e6902e94af2eebf3769c3927186d",
+  "core/vision_encoder/bpe_simple_vocab_16e6.txt.gz": "924691ac288e54409236115652ad4aa250f48203de50a9e4722a6ecd48d6804a",
+  "LICENSE.PE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+}

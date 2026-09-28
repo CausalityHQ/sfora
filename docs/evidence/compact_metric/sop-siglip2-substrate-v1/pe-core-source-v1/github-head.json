@@ -1,0 +1,101 @@
+{
+  "sha": "3e352cca660658d4b5c90f42a7808b11469e4c66",
+  "node_id": "C_kwDOOa3NPtoAKDNlMzUyY2NhNjYwNjU4ZDRiNWM5MGY0MmE3ODA4YjExNDY5ZTRjNjY",
+  "commit": {
+    "author": {
+      "name": "Daniel Bolya",
+      "email": "dbolya@meta.com",
+      "date": "2025-12-18T05:23:28Z"
+    },
+    "committer": {
+      "name": "GitHub",
+      "email": "noreply@github.com",
+      "date": "2025-12-18T05:23:28Z"
+    },
+    "message": "Updated README for PE-AV to add new indicators.",
+    "tree": {
+      "sha": "6f78b779af42a8510081894571069c896b0d6d23",
+      "url": "https://api.github.com/repos/facebookresearch/perception_models/git/trees/6f78b779af42a8510081894571069c896b0d6d23"
+    },
+    "url": "https://api.github.com/repos/facebookresearch/perception_models/git/commits/3e352cca660658d4b5c90f42a7808b11469e4c66",
+    "comment_count": 0,
+    "verification": {
+      "verified": true,
+      "reason": "valid",
+      "signature": "-----BEGIN PGP SIGNATURE-----\n\nwsFcBAABCAAQBQJpQ4/QCRC1aQ7uu5UhlAAAK/YQAKswp9sxmnsISml6kGzjaxoh\n80p4l3BYKNwh4wJmak+InbzU76GTHd5QYql40tenmk8xlf2u0YLIquogV4YRb0Dr\nQYBkLAfZay9WxA+RTg8vguEd7WhlrKyVfjNc3F5UcXnJzStXuDvqcM6Sx376bBUd\nqEciA7eQd6yIRev9tdi4PxuDC3/KqBlcnngQPdLibChTPEuJWCLHkUeiiX8/SGxX\nzyGsVZup1Q1hQk29FIFIhUF7ibfYN9Y+ri7wczOt5QWd94mLO8Au7hZrzWNQjd5S\nNxv8JhS82ZrQSd6FJujCaYoUgX2QJQMvtZ1EiwbuctaGU2poKIEOPncsmm09ukVl\nySbK/p4Ia3gzjbzg8YKAbghxbYLO19ZCozzFu+KZDgtAJmi52CEjpZlTdBm79LA1\nZzOUf+MjI5I5wtLrYpwkD/+FUe4DU2c84xI6qhOADNhYvEAvkg8kka5dUDdWyfsQ\nz9wDIXC1dmr8HTJgs3oPf87eTqyPUs9v+6dG1p4RwfeE6UBGFYs2ZHDd+O2dYyA1\nl58veqG2T9ZQJu1hprtUQy7aDJkzYayUhO8onglwHWITLjcstRnbDL3+oZdq5vaI\nBvKB0/sYvnSYVN7w7Wso1E+GbYubEHjfiZciQMXapFzbwNwnVlMDr49Gwgch4HU+\ntNRHa0qTkZJWuFWrP8L8\n=QMtH\n-----END PGP SIGNATURE-----\n",
+      "payload": "tree 6f78b779af42a8510081894571069c896b0d6d23\nparent 9224465cad40c86e494f3832ddcadc5a7ffcc66b\nauthor Daniel Bolya <dbolya@meta.com> 1766035408 -0500\ncommitter GitHub <noreply@github.com> 1766035408 -0500\n\nUpdated README for PE-AV to add new indicators.",
+      "verified_at": "2025-12-18T05:23:28Z"
+    }
+  },
+  "url": "https://api.github.com/repos/facebookresearch/perception_models/commits/3e352cca660658d4b5c90f42a7808b11469e4c66",
+  "html_url": "https://github.com/facebookresearch/perception_models/commit/3e352cca660658d4b5c90f42a7808b11469e4c66",
+  "comments_url": "https://api.github.com/repos/facebookresearch/perception_models/commits/3e352cca660658d4b5c90f42a7808b11469e4c66/comments",
+  "author": {
+    "login": "dbolya",
+    "id": 19721752,
+    "node_id": "MDQ6VXNlcjE5NzIxNzUy",
+    "avatar_url": "https://avatars.githubusercontent.com/u/19721752?v=4",
+    "gravatar_id": "",
+    "url": "https://api.github.com/users/dbolya",
+    "html_url": "https://github.com/dbolya",
+    "followers_url": "https://api.github.com/users/dbolya/followers",
+    "following_url": "https://api.github.com/users/dbolya/following{/other_user}",
+    "gists_url": "https://api.github.com/users/dbolya/gists{/gist_id}",
+    "starred_url": "https://api.github.com/users/dbolya/starred{/owner}{/repo}",
+    "subscriptions_url": "https://api.github.com/users/dbolya/subscriptions",
+    "organizations_url": "https://api.github.com/users/dbolya/orgs",
+    "repos_url": "https://api.github.com/users/dbolya/repos",
+    "events_url": "https://api.github.com/users/dbolya/events{/privacy}",
+    "received_events_url": "https://api.github.com/users/dbolya/received_events",
+    "type": "User",
+    "user_view_type": "public",
+    "site_admin": false
+  },
+  "committer": {
+    "login": "web-flow",
+    "id": 19864447,
+    "node_id": "MDQ6VXNlcjE5ODY0NDQ3",
+    "avatar_url": "https://avatars.githubusercontent.com/u/19864447?v=4",
+    "gravatar_id": "",
+    "url": "https://api.github.com/users/web-flow",
+    "html_url": "https://github.com/web-flow",
+    "followers_url": "https://api.github.com/users/web-flow/followers",
+    "following_url": "https://api.github.com/users/web-flow/following{/other_user}",
+    "gists_url": "https://api.github.com/users/web-flow/gists{/gist_id}",
+    "starred_url": "https://api.github.com/users/web-flow/starred{/owner}{/repo}",
+    "subscriptions_url": "https://api.github.com/users/web-flow/subscriptions",
+    "organizations_url": "https://api.github.com/users/web-flow/orgs",
+    "repos_url": "https://api.github.com/users/web-flow/repos",
+    "events_url": "https://api.github.com/users/web-flow/events{/privacy}",
+    "received_events_url": "https://api.github.com/users/web-flow/received_events",
+    "type": "User",
+    "user_view_type": "public",
+    "site_admin": false
+  },
+  "parents": [
+    {
+      "sha": "9224465cad40c86e494f3832ddcadc5a7ffcc66b",
+      "url": "https://api.github.com/repos/facebookresearch/perception_models/commits/9224465cad40c86e494f3832ddcadc5a7ffcc66b",
+      "html_url": "https://github.com/facebookresearch/perception_models/commit/9224465cad40c86e494f3832ddcadc5a7ffcc66b"
+    }
+  ],
+  "stats": {
+    "total": 43,
+    "additions": 22,
+    "deletions": 21
+  },
+  "files": [
+    {
+      "sha": "349a2b58131b9c85272a79613fbbb44e1010c814",
+      "filename": "apps/pe/README.md",
+      "status": "modified",
+      "additions": 22,
+      "deletions": 21,
+      "changes": 43,
+      "blob_url": "https://github.com/facebookresearch/perception_models/blob/3e352cca660658d4b5c90f42a7808b11469e4c66/apps%2Fpe%2FREADME.md",
+      "raw_url": "https://github.com/facebookresearch/perception_models/raw/3e352cca660658d4b5c90f42a7808b11469e4c66/apps%2Fpe%2FREADME.md",
+      "contents_url": "https://api.github.com/repos/facebookresearch/perception_models/contents/apps%2Fpe%2FREADME.md?ref=3e352cca660658d4b5c90f42a7808b11469e4c66",
+      "patch": "@@ -64,8 +64,8 @@ PE core obtains extremely strong results across the board on zero-shot image cla\n \n |    | Model | Checkpoint | IN-1k | IN-v2 | IN-A | ObjectNet | COCO-T2I | Kinetics-400 | VTT-T2V\n |:--:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|\n-| 🆕 | **T/16** 384px | [PE-Core-T16-384](https://huggingface.co/facebook/PE-Core-T16-384) | 62.1 | 54.7 | 21.1 | 43.9 | 33.0 | 41.5 | 28.8 |\n-| 🆕 | **S/16** 384px | [PE-Core-S16-384](https://huggingface.co/facebook/PE-Core-S16-384) | 72.7 | 65.0 | 49.5 | 60.0 | 42.6 | 55.0 | 39.3 |\n+|    | **T/16** 384px | [PE-Core-T16-384](https://huggingface.co/facebook/PE-Core-T16-384) | 62.1 | 54.7 | 21.1 | 43.9 | 33.0 | 41.5 | 28.8 |\n+|    | **S/16** 384px | [PE-Core-S16-384](https://huggingface.co/facebook/PE-Core-S16-384) | 72.7 | 65.0 | 49.5 | 60.0 | 42.6 | 55.0 | 39.3 |\n |    | **B/16** 224px | [PE-Core-B16-224](https://huggingface.co/facebook/PE-Core-B16-224) | 78.4 | 71.7 | 62.4 | 71.9 | 50.9 | 65.6 | 47.6 |\n |    | **L/14** 336px | [PE-Core-L14-336](https://huggingface.co/facebook/PE-Core-L14-336) | 83.5 | 77.9 | 89.0 | 84.7 | 57.1 | 73.4 | 50.3 |\n |    | **G/14** 448px | [PE-Core-G14-448](https://huggingface.co/facebook/PE-Core-G14-448) | 85.4 | 80.2 | 92.6 | 88.2 | 58.1 | 76.9 | 51.2 |\n@@ -89,8 +89,8 @@ Here is a sample of the performance obtainable by using PE lang G tuned further\n \n |    | Model | Encoder | Doc VQA (test) | InfoQA (test) | TextVQA | MVBench | PerceptionTest (test) | EgoSchema (test) |\n |:--:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|\n-| 🆕 | PLM-3B | [PE-Lang-L14-448-Tiling](https://huggingface.co/facebook/PE-Lang-L14-448-Tiling)* | 93.8 | 74.6 | 84.3 | 74.7 | 79.3 | 66.9 |\n-| 🆕 | PLM-8B | [PE-Lang-G14-448-Tiling](https://huggingface.co/facebook/PE-Lang-G14-448-Tiling)* | 94.6 | 80.9 | 86.5 | 77.1 | 82.7 | 68.8 |\n+|    | PLM-3B | [PE-Lang-L14-448-Tiling](https://huggingface.co/facebook/PE-Lang-L14-448-Tiling)* | 93.8 | 74.6 | 84.3 | 74.7 | 79.3 | 66.9 |\n+|    | PLM-8B | [PE-Lang-G14-448-Tiling](https://huggingface.co/facebook/PE-Lang-G14-448-Tiling)* | 94.6 | 80.9 | 86.5 | 77.1 | 82.7 | 68.8 |\n \n \\* These checkpoints were aligned with tiling. Use them if you use higher than 448 resolution with tiling in the LLM decoder.\n \n@@ -121,10 +121,10 @@ See the paper for more details and benchmarks for the G model.\n ⚗️ Distilled Models:\n |    | Encoder<br />(Distilled from G) | Checkpoint | ADE20k <br/> [Segmentation](https://github.com/open-mmlab/mmsegmentation)<br />Linear Probe mIoU | DAVIS<br /> [Tracking](https://github.com/facebookresearch/dino/blob/main/eval_video_segmentation.py) <br />Zero-Shot J&F  |\n |:--:|:---:|:---:|:---:|:---:|\n-| 🆕 | **T/16** 512px | [PE-Spatial-T16-512](https://huggingface.co/facebook/PE-Spatial-T16-512) | 27.6 | 55.0 |\n-| 🆕 | **S/16** 512px | [PE-Spatial-S16-512](https://huggingface.co/facebook/PE-Spatial-S16-512) | 37.5 | 57.5 |\n-| 🆕 | **B/16** 512px | [PE-Spatial-B16-512](https://huggingface.co/facebook/PE-Spatial-B16-512) | 44.4 | 58.9 |\n-| 🆕 | **L/14** 448px | [PE-Spatial-L14-448](https://huggingface.co/facebook/PE-Spatial-L14-448) | 48.1 | 60.6 |\n+|    | **T/16** 512px | [PE-Spatial-T16-512](https://huggingface.co/facebook/PE-Spatial-T16-512) | 27.6 | 55.0 |\n+|    | **S/16** 512px | [PE-Spatial-S16-512](https://huggingface.co/facebook/PE-Spatial-S16-512) | 37.5 | 57.5 |\n+|    | **B/16** 512px | [PE-Spatial-B16-512](https://huggingface.co/facebook/PE-Spatial-B16-512) | 44.4 | 58.9 |\n+|    | **L/14** 448px | [PE-Spatial-L14-448](https://huggingface.co/facebook/PE-Spatial-L14-448) | 48.1 | 60.6 |\n \n The smaller models are distilled from the G/14 model using a mixturre of pairwise token cosine similarly and direct distillation. More details and evals for the smaller models are coming soon!\n \n@@ -134,22 +134,23 @@ Perception Encoder Audiovisual (PE-AV), is the engine behind [SAM Audio](https:/\n \n #### Audio-Visual Benchmarks\n \n-| Model        | Avg Retrieval | AudioCaps T→A | AudioCaps T→V | AudioCaps V→A | Clotho T→A | Valor T→A | Valor T→V | VCTK A→T | VGGSound V→A | Internal V→A |\n-|--------------|---------------|---------------|---------------|---------------|------------|-----------|-----------|----------|---------------|---------------|\n-| [`pe-av-small-16-frame`](https://huggingface.co/facebook/pe-av-small-16-frame)  | 45.2          | 41.2          | 18.6          | 75.4          | 24.0       | 29.8      | 70.1      | 96.1     | 34.1          | 17.9          |\n-| [`pe-av-base-16-frame`](https://huggingface.co/facebook/pe-av-base-16-frame)   | 47.0          | 43.1          | 19.8          | 80.6          | 23.4       | 31.9      | 70.0      | 94.8     | 39.0          | 20.4          |\n-| [`pe-av-large-16-frame`](https://huggingface.co/facebook/pe-av-large-16-frame)  | 48.2          | 44.7          | 19.5          | 86.1          | 22.8       | 35.0      | 70.9      | 85.6     | 45.2          | 23.9          |\n-| [`pe-av-small`](https://huggingface.co/facebook/pe-av-small)           | 48.1          | 41.8          | 18.8          | 77.4          | 23.9       | 29.3      | 70.9      | 94.9     | 35.4          | 40.5          |\n-| [`pe-av-base`](https://huggingface.co/facebook/pe-av-base)            | 50.2          | 42.7          | 19.6          | 83.7          | 23.8       | 30.8      | 71.2      | 94.9     | 40.7          | 44.6          |\n-| [`pe-av-large`](https://huggingface.co/facebook/pe-av-large)           | 51.6          | 45.8          | 20.8          | 88.3          | 23.0       | 35.1      | 70.9      | 85.6     | 48.3          | 46.5          |\n+|    | Model | Checkpoint   | Avg Retrieval | AudioCaps T→A | AudioCaps T→V | AudioCaps V→A | Clotho T→A | Valor T→A | Valor T→V | VCTK A→T | VGGSound V→A | Internal V→A |\n+|:--:|:-----:|--------------|---------------|---------------|---------------|---------------|------------|-----------|-----------|----------|---------------|---------------|\n+| 🆕 | **AV S** 16 frames | [`pe-av-small-16-frame`](https://huggingface.co/facebook/pe-av-small-16-frame)  | 45.2          | 41.2          | 18.6          | 75.4          | 24.0       | 29.8      | 70.1      | 96.1     | 34.1          | 17.9          |\n+| 🆕 | **AV B** 16 frames | [`pe-av-base-16-frame`](https://huggingface.co/facebook/pe-av-base-16-frame)   | 47.0          | 43.1          | 19.8          | 80.6          | 23.4       | 31.9      | 70.0      | 94.8     | 39.0          | 20.4          |\n+| 🆕 | **AV L** 16 frames | [`pe-av-large-16-frame`](https://huggingface.co/facebook/pe-av-large-16-frame)  | 48.2          | 44.7          | 19.5          | 86.1          | 22.8       | 35.0      | 70.9      | 85.6     | 45.2          | 23.9          |\n+| 🆕 | **AV S** all frames | [`pe-av-small`](https://huggingface.co/facebook/pe-av-small)           | 48.1          | 41.8          | 18.8          | 77.4          | 23.9       | 29.3      | 70.9      | 94.9     | 35.4          | 40.5          |\n+| 🆕 | **AV B** all frames | [`pe-av-base`](https://huggingface.co/facebook/pe-av-base)            | 50.2          | 42.7          | 19.6          | 83.7          | 23.8       | 30.8      | 71.2      | 94.9     | 40.7          | 44.6          |\n+| 🆕 | **AV L** all frames | [`pe-av-large`](https://huggingface.co/facebook/pe-av-large)           | 51.6          | 45.8          | 20.8          | 88.3          | 23.0       | 35.1      | 70.9      | 85.6     | 48.3          | 46.5          |\n+\n \n #### Audio Event Localization Benchmarks\n \n-|                  | Internal Bench (AUROC)      | ASFX-SED (AUROC)        | AudioSet-Strong (AUROC) | DESED (AUROC) | UrbanSED (AUROC) |\n-|------------------|---------------------|------------------|-----------------------|-------------|-------------|\n-| [`pe-a-frame-small`](https://huggingface.co/facebook/pe-a-frame-small)| 0.91                | 0.83             | 0.96                  | 0.96        | 0.88        |\n-| [`pe-a-frame-base`](https://huggingface.co/facebook/pe-a-frame-base)| 0.92                | 0.83             | 0.96                  | 0.98        | 0.89        |\n-| [`pe-a-frame-large`](https://huggingface.co/facebook/pe-a-frame-large)| 0.91                | 0.83             | 0.96                  | 0.97        | 0.89        |\n+|    | Model |     Checkpoint   | Internal Bench (AUROC)      | ASFX-SED (AUROC)        | AudioSet-Strong (AUROC) | DESED (AUROC) | UrbanSED (AUROC) |\n+|:--:|:-----:|------------------|---------------------|------------------|-----------------------|-------------|-------------|\n+| 🆕 | **A-Frame S** | [`pe-a-frame-small`](https://huggingface.co/facebook/pe-a-frame-small)| 0.91                | 0.83             | 0.96                  | 0.96        | 0.88        |\n+| 🆕 | **A-Frame B** | [`pe-a-frame-base`](https://huggingface.co/facebook/pe-a-frame-base)| 0.92                | 0.83             | 0.96                  | 0.98        | 0.89        |\n+| 🆕 | **A-Frame L** | [`pe-a-frame-large`](https://huggingface.co/facebook/pe-a-frame-large)| 0.91                | 0.83             | 0.96                  | 0.97        | 0.89        |\n \n \n ## PE Video Dataset (PVD)"
+    }
+  ]
+}

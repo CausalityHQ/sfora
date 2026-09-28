@@ -1,0 +1,647 @@
+{
+  "id": "c3033edfc7374e78",
+  "status": "completed",
+  "started_at": 1790607467,
+  "agent": "sfora/emafactorial",
+  "force_reason": "New representation source pilot after terminal nonlinear filter loss at27f740c8; prior dual37294efeb1ff4bfa reviewed a different activation mechanism, not PE source authority or this pilot. One bounded source/pilot decision, no duplicate question.",
+  "rolling_6h_count": 6,
+  "prompt_preview": "READ-ONLY concrete new source/pilot decision in /home/rb/worktrees/sfora-positive-causality master27f740c8. Do not edit, run GPU/training/download weights, launch consultations, or contact operator. Independently evaluate docs/inshop_pe_core_source_gate_2026-09-28.md and metadata docs/evidence/compact_metric/sop-siglip2-substrate-v1/pe-core-source-v1/{hf-model,github-head}.json. Native source downloaded metadata-only in /tmp/sfora-pe-source/core/vision_encoder/{pe,config,rope,transforms}.py at official pinnedcommit3e352cca660658d4b5c90f42a7808b11469e4c66. Entire repo rg found no PE experiment. Current newly completed nonlinearcachedfilter docs/inshop_nonlinear_head_result_2026-09-28.md informativeSTOP seed17 (R1 GELU95.9590vsaffine96.1701,MAP72.8482vs73.5132) no23/29/image pair. Existing smaller SigLIP2 Base source gate docs/inshop_siglip2_base_pilot_gate_2026-09-28.md failedbootstraplower-6.0547pp; teacher transfer docs/inshop_teacher_transfer_100_gate_2026-09-28.md KILL, no rescue. Native DINOv2/MODA/FashionSigLIP/TIPS routesclosed; DINOv3 authprereq normalget_token absent ownergrantUNKNOWN, alreadyreported. PE B16 public ungated exactHFrev a16450b46fef32363459920c2685a1b4ef13dcd9 weightSHA0a5c220aa083488e0fc9221f766dced8a576b7074662d9b9da923da1e8844fce 1.790786632GB. Nativefixed22412blocks768withprojected1024descriptor andGdistillation is different pretrainedsource, not invention. DGX noGPUapps/livejobs, torch2.12.1cu130/timm available,einops/ftfy absent; isolatedpinnedpurePythondeps proposed not deployedvenv mutation. NativeVisionTransformer.load_ckpt weights_onlyTrue butstrictFalse must explicitstrictvisualkeyshapeauthority. HF configyamlEMPTY usepinnedGithubconfig. Gate: firstCPU authority/processor/parity/fitmanifest thenbounded600s8G acquisition exacthash, thenONEsharedlock120s8GhostCUDA<10GBGPU pretrainedfit-only512query/galleryprototype+10encoderforwardcalls/nativeFP16autocast bothFP32params. Nativeprocessorsdifferent fixed224squashbilinear vs256Siglip2, ownnativepixelparityrequired NOTcrossmodel. Both ownfitPCA128/int8-f16 packing ordties/paired5000bootstrapseed179031. Rule unchangedfrompriorBase grossdeficit: packedPEminusLarge>=-3pp and95lower>=-5pp,encoderp50<=.8Large. New productSHAselectionprefixfixedbeforeoutcome; noouterTRAINheld/official. PASSonlylicenses separatelyfrozenfullcache/trainfeasibility proposal, noautomaticofficial/production. Is this a valid causally distinct cheap route worth qualifying, and are authority/numerical/resource/quality gates adequate before weights/GPU? Approve with only material prerequisite corrections orSTOPwithconcreteevidence; noarchitecturemenu/thresholdretune/universalimpossibilityclaims. Fulljointgoal requires BOTHofficialstrongestprotocolmatchedquality andmatchedfullimage-to-topk win; these remainunproven. ProtectedRusttopkSHA1ae7f50aa3d222dbc6c6489c4c344ce836d01b895e05341d368db35c6d0cb587 muststayuntouched. Existing scope authorization allows bounded new representations; don't ask an inferred permission question.",
+  "prompt_sha256": "d05a3d05d9895dfe38bbe7bf6c608ce09f1bdad2638908805a332c6110e389f0",
+  "prompt_bytes": 3022,
+  "fingerprint": "90a8956dbf2f1516720985ee1988e5ae493222726af50a4f5370c297f3f4e0a2",
+  "evidence": {
+    "git_commit": "27f740c8f67854e18e46c693d57198ac75486b27",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "710ab39afa809aa33d2433e386f69cbf866d6094b5d3dcdd2b6a67e86386d614",
+    "worktree_sha256": "ceeec54f928e193220439d633790d13859104efab12507b317e28973784c8043",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "reviewers": [
+    {
+      "role": "research_critic",
+      "id": "296df55242b94989",
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "fallbacks": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "agent": "sfora/emafactorial",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1790607467,
+      "timeout_seconds": 1200,
+      "deadline_at": 1790608667,
+      "budget_usd": 4,
+      "prompt_preview": "Act as the independent research and first-principles critic. Challenge assumptions, compare alternatives and prior art, and identify missing evidence. Do not edit files.\n\nMaterial to critique:\nREAD-ONLY concrete new source/pilot decision in /home/rb/worktrees/sfora-positive-causality master27f740c8. Do not edit, run GPU/training/download weights, launch consultations, or contact operator. Independently evaluate docs/inshop_pe_core_source_gate_2026-09-28.md and metadata docs/evidence/compact_metric/sop-siglip2-substrate-v1/pe-core-source-v1/{hf-model,github-head}.json. Native source downloaded metadata-only in /tmp/sfora-pe-source/core/vision_encoder/{pe,config,rope,transforms}.py at official pinnedcommit3e352cca660658d4b5c90f42a7808b11469e4c66. Entire repo rg found no PE experiment. Current newly completed nonlinearcachedfilter docs/inshop_nonlinear_head_result_2026-09-28.md informativeSTOP seed17 (R1 GELU95.9590vsaffine96.1701,MAP72.8482vs73.5132) no23/29/image pair. Existing smaller SigLIP2 Base source gate docs/inshop_siglip2_base_pilot_gate_2026-09-28.md failedbootstraplower-6.0547pp; teacher transfer docs/inshop_teacher_transfer_100_gate_2026-09-28.md KILL, no rescue. Native DINOv2/MODA/FashionSigLIP/TIPS routesclosed; DINOv3 authprereq normalget_token absent ownergrantUNKNOWN, alreadyreported. PE B16 public ungated exactHFrev a16450b46fef32363459920c2685a1b4ef13dcd9 weightSHA0a5c220aa083488e0fc9221f766dced8a576b7074662d9b9da923da1e8844fce 1.790786632GB. Nativefixed22412blocks768withprojected1024descriptor andGdistillation is different pretrainedsource, not invention. DGX noGPUapps/livejobs, torch2.12.1cu130/timm available,einops/ftfy absent; isolatedpinnedpurePythondeps proposed not deployedvenv mutation. NativeVisionTransformer.load_ckpt weights_onlyTrue butstrictFalse must explicitstrictvisualkeyshapeauthority. HF configyamlEMPTY usepinnedGithubconfig. Gate: firstCPU authority/processor/parity/fitmanifest thenbounded600s8G acquisition exacthash, thenONEsharedlock120s8GhostCUDA<10GBGPU pretrainedfit-only512query/galleryprototype+10encoderforwardcalls/nativeFP16autocast bothFP32params. Nativeprocessorsdifferent fixed224squashbilinear vs256Siglip2, ownnativepixelparityrequired NOTcrossmodel. Both ownfitPCA128/int8-f16 packing ordties/paired5000bootstrapseed179031. Rule unchangedfrompriorBase grossdeficit: packedPEminusLarge>=-3pp and95lower>=-5pp,encoderp50<=.8Large. New productSHAselectionprefixfixedbeforeoutcome; noouterTRAINheld/official. PASSonlylicenses separatelyfrozenfullcache/trainfeasibility proposal, noautomaticofficial/production. Is this a valid causally distinct cheap route worth qualifying, and are authority/numerical/resource/quality gates adequate before weights/GPU? Approve with only material prerequisite corrections orSTOPwithconcreteevidence; noarchitecturemenu/thresholdretune/universalimpossibilityclaims. Fulljointgoal requires BOTHofficialstrongestprotocolmatchedquality andmatchedfullimage-to-topk win; these remainunproven. ProtectedRusttopkSHA1ae7f50aa3d222dbc6c6489c4c344ce836d01b895e05341d368db35c6d0cb587 muststayuntouched. Existing scope authorization allows bounded new representations; don't ask an inferred permission question.",
+      "prompt_sha256": "b80c0496d00c04d32ad615e1aedef895a5ac65bf9a3391b883c55908885f00f8",
+      "prompt_bytes": 3392,
+      "fingerprint": "95f987c0b54f7821c38c523d4411625575a2f3e061631c00fa9400c15edae14f",
+      "evidence": {
+        "git_commit": "27f740c8f67854e18e46c693d57198ac75486b27",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "710ab39afa809aa33d2433e386f69cbf866d6094b5d3dcdd2b6a67e86386d614",
+        "worktree_sha256": "ceeec54f928e193220439d633790d13859104efab12507b317e28973784c8043",
+        "worktree_evidence_truncated": false,
+        "active_goal": {
+          "id": "goal-1790540789-1790540789754989478-2322852",
+          "agent": "sfora/emafactorial",
+          "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+          "status": "queued",
+          "revision": 1,
+          "actor": "operator",
+          "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+          "created_at": 1790540789,
+          "updated_at": 1790540789
+        }
+      },
+      "previous_fingerprint": "7f8cfa00d3c432f8a46c73110086947afcf885eb667bd569489801a7f71d2312",
+      "reused": false,
+      "critique_id": "c3033edfc7374e78",
+      "critique_role": "research_critic",
+      "systemd_unit": "devbox-consult-296df55242b94989.service",
+      "pid": 3025917,
+      "pgid": 3025917,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5",
+          "budget_usd": 4,
+          "timeout_seconds": 1200,
+          "started_at": 1790607467
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1790607579,
+      "event_cursor": 22,
+      "events": [
+        {
+          "seq": 1,
+          "at": 1790607467,
+          "provider": "claude",
+          "kind": "phase",
+          "label": "Claude consultation attempt",
+          "detail": "claude-opus-5-5 \u00b7 $4 cap \u00b7 1200s remaining"
+        },
+        {
+          "seq": 2,
+          "at": 1790607467,
+          "provider": "claude",
+          "kind": "phase",
+          "label": "Claude consultation started"
+        },
+        {
+          "seq": 3,
+          "at": 1790607471,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 4,
+          "at": 1790607477,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 5,
+          "at": 1790607478,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 6,
+          "at": 1790607511,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 7,
+          "at": 1790607516,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 8,
+          "at": 1790607521,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 9,
+          "at": 1790607529,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 10,
+          "at": 1790607529,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 11,
+          "at": 1790607555,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 12,
+          "at": 1790607567,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 13,
+          "at": 1790607568,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 14,
+          "at": 1790607569,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 15,
+          "at": 1790607570,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 16,
+          "at": 1790607572,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 17,
+          "at": 1790607573,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 18,
+          "at": 1790607574,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 19,
+          "at": 1790607575,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 20,
+          "at": 1790607576,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 21,
+          "at": 1790607578,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 22,
+          "at": 1790607578,
+          "provider": "claude",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": false,
+      "provider_events": {
+        "claude": [
+          {
+            "seq": 15,
+            "at": 1790607570,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 16,
+            "at": 1790607572,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 17,
+            "at": 1790607573,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 18,
+            "at": 1790607574,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 19,
+            "at": 1790607575,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 20,
+            "at": 1790607576,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 21,
+            "at": 1790607578,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 22,
+            "at": 1790607578,
+            "provider": "claude",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "**Verdict: APPROVE, conditionally.** This is a valid, cheap route that is causally distinct from what has already been tried, and it is worth qualifying. Four prerequisites below must be fixed before any weights or GPU are touched. I don't dispute the quality, cost, resource or lock gates; they stay as written.\n\n## Why it's worth running\n- **It's a genuinely different source.** Same size class as the SigLIP2 Base that was killed (B/16, 12 blocks, 768 wide), but different pretraining: PE's own corpus and objective, distilled from PE-Core-G. So it asks one real question: was Base's deficit specific to SigLIP2-B's pretraining, or is it the size class? It is not a threshold retune or a loss knob. PE's native processor squashes the image to 224\u00d7224; SigLIP2's squashes to 256. Both squash, so the geometry is comparable and only the resolution differs.\n- **It's cheap.** One 1.79 GB download, a GPU run of about 2 minutes, and fit-only reads. It closes cleanly if it fails.\n- **Honest prior: probably a KILL.**\n  - At 512 pairs, Base's bootstrap half-width was about 3.3pp (point \u22122.73, lower bound \u22126.05). To pass \"lower \u2265 \u22125\", PE needs a point delta of roughly \u22121.7pp or better against Large. That is about 1pp better than Base managed, on a new sample.\n  - PE-B's published zero-shot ImageNet score is 78.4 at 224px. I can't check SigLIP2-B's figure offline, so treat any comparison with it as unverified.\n  - The earlier substrate finding (about 53% of the pretrained Base\u2192Large gap survives fine-tuning) means even a PASS is far from the joint goal.\n  - Because it's cheap, none of this justifies a STOP. Just don't raise expectations.\n- **The speed gate is close to automatic.** Base ran at 0.33\u00d7 Large with 256 tokens; PE uses 197 tokens at 224px. A pass there should not be counted as evidence.\n\n## Prerequisites to fix before downloading weights or using the GPU\n1. **A strict weight load does not cover RoPE.**\n   - The evidence: `Rope2D` is a plain Python class, not a `torch.nn.Module` (`rope.py:303`). Its `RotaryEmbedding.freqs` parameter (`rope.py:124`) is therefore absent from `VisionTransformer.state_dict()`. The frequencies are rebuilt from code defaults in `init_tensors` (`pe.py:384`).\n   - So exact key and shape coverage cannot prove the positional encoding is right.\n   - This matters because the pinned source commit (2025-12-18) is 8 months newer than the checkpoint (2025-04-30). If the RoPE defaults changed in between, the model would run without error but produce wrong features.\n   - Required fix: load the full CLIP checkpoint (vision and text) strictly, with zero unexpected keys, as a check that the whole file is accounted for. Then run one end-to-end functional check that exercises RoPE:\n     - Preferred: a small image\u2013text zero-shot check against a published figure.\n     - Minimum: reproduce the model card's example output.\n   - Record the RoPE frequency tensor's hash in the receipt.\n2. **The \"native processor\" import needs the text stack.**\n   - `transforms.py` imports `core.vision_encoder.tokenizer`, which needs `ftfy`, `regex` and the vocabulary file `bpe_simple_vocab_16e6.txt.gz`. `config.py` imports `huggingface_hub`.\n   - The isolated dependency set must therefore include `ftfy` (and its dependency `wcwidth`) as well as `einops`.\n   - The hashed source manifest must include `core/__init__.py`, `core/vision_encoder/__init__.py`, `tokenizer.py` and the vocab `.gz`, not just the four listed files.\n   - Checkpoint paths must bypass `fetch_pe_checkpoint`, which otherwise downloads from the Hub.\n3. **Pixel parity must use the PIL code path, with the version recorded.**\n   - The native transform is torchvision `Resize` on PIL images, and it runs *before* conversion to RGB.\n   - The wrapper must feed PIL images, not tensors (antialiasing differs between the two paths). It must also assert every input is already RGB and record the torchvision and Pillow versions.\n   - Put the model in `.eval()` and run under `inference_mode`.\n4. **The pilot script must be forked, not edited.**\n   - `scripts/probe_inshop_siglip2_base_pilot.py:115` asserts cross-model pixel equality, which cannot hold between a 224px and a 256px model. The salt (`:64`) and schema (`:172`) are also hard-coded.\n   - Make a new PE script that swaps in own-processor parity checks for each arm. Record the swap explicitly rather than silently dropping the assertion.\n   - Add one numerical-reference gate before the timed run: on a few fixed images, compare PE with FP16 autocast against pure FP32 and require cosine \u2265 0.999. The document currently says \"numerical failures stop\" but never defines the reference.\n\n## Minor points, no change needed\n- Load the checkpoint with `mmap=True` so the full file and the Large model fit comfortably in 8 GiB.\n- The readout choice (PE's final projected output vs SigLIP2 Large's native pooler) is symmetric: both are the model's contrastive-aligned embedding. Freeze it as written, and don't rescue a failure with intermediate layers.\n- The new salt means Base's result is not paired with this run. That's fine; the comparison is PE against Large only.\n\n## Confirmed\n- The protected Rust top-k file still has SHA `1ae7f50a\u2026b587`.\n- Nothing I did edited files, downloaded weights, used the GPU or contacted anyone.\n- A PASS still only licenses proposing a full-cache feasibility comparison. The joint goal (official-protocol quality plus a matched image-to-top-k speed win) remains unproven.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "claude": "**Verdict: APPROVE, conditionally.** This is a valid, cheap route that is causally distinct from what has already been tried, and it is worth qualifying. Four prerequisites below must be fixed before any weights or GPU are touched. I don't dispute the quality, cost, resource or lock gates; they stay as written.\n\n## Why it's worth running\n- **It's a genuinely different source.** Same size class as the SigLIP2 Base that was killed (B/16, 12 blocks, 768 wide), but different pretraining: PE's own corpus and objective, distilled from PE-Core-G. So it asks one real question: was Base's deficit specific to SigLIP2-B's pretraining, or is it the size class? It is not a threshold retune or a loss knob. PE's native processor squashes the image to 224\u00d7224; SigLIP2's squashes to 256. Both squash, so the geometry is comparable and only the resolution differs.\n- **It's cheap.** One 1.79 GB download, a GPU run of about 2 minutes, and fit-only reads. It closes cleanly if it fails.\n- **Honest prior: probably a KILL.**\n  - At 512 pairs, Base's bootstrap half-width was about 3.3pp (point \u22122.73, lower bound \u22126.05). To pass \"lower \u2265 \u22125\", PE needs a point delta of roughly \u22121.7pp or better against Large. That is about 1pp better than Base managed, on a new sample.\n  - PE-B's published zero-shot ImageNet score is 78.4 at 224px. I can't check SigLIP2-B's figure offline, so treat any comparison with it as unverified.\n  - The earlier substrate finding (about 53% of the pretrained Base\u2192Large gap survives fine-tuning) means even a PASS is far from the joint goal.\n  - Because it's cheap, none of this justifies a STOP. Just don't raise expectations.\n- **The speed gate is close to automatic.** Base ran at 0.33\u00d7 Large with 256 tokens; PE uses 197 tokens at 224px. A pass there should not be counted as evidence.\n\n## Prerequisites to fix before downloading weights or using the GPU\n1. **A strict weight load does not cover RoPE.**\n   - The evidence: `Rope2D` is a plain Python class, not a `torch.nn.Module` (`rope.py:303`). Its `RotaryEmbedding.freqs` parameter (`rope.py:124`) is therefore absent from `VisionTransformer.state_dict()`. The frequencies are rebuilt from code defaults in `init_tensors` (`pe.py:384`).\n   - So exact key and shape coverage cannot prove the positional encoding is right.\n   - This matters because the pinned source commit (2025-12-18) is 8 months newer than the checkpoint (2025-04-30). If the RoPE defaults changed in between, the model would run without error but produce wrong features.\n   - Required fix: load the full CLIP checkpoint (vision and text) strictly, with zero unexpected keys, as a check that the whole file is accounted for. Then run one end-to-end functional check that exercises RoPE:\n     - Preferred: a small image\u2013text zero-shot check against a published figure.\n     - Minimum: reproduce the model card's example output.\n   - Record the RoPE frequency tensor's hash in the receipt.\n2. **The \"native processor\" import needs the text stack.**\n   - `transforms.py` imports `core.vision_encoder.tokenizer`, which needs `ftfy`, `regex` and the vocabulary file `bpe_simple_vocab_16e6.txt.gz`. `config.py` imports `huggingface_hub`.\n   - The isolated dependency set must therefore include `ftfy` (and its dependency `wcwidth`) as well as `einops`.\n   - The hashed source manifest must include `core/__init__.py`, `core/vision_encoder/__init__.py`, `tokenizer.py` and the vocab `.gz`, not just the four listed files.\n   - Checkpoint paths must bypass `fetch_pe_checkpoint`, which otherwise downloads from the Hub.\n3. **Pixel parity must use the PIL code path, with the version recorded.**\n   - The native transform is torchvision `Resize` on PIL images, and it runs *before* conversion to RGB.\n   - The wrapper must feed PIL images, not tensors (antialiasing differs between the two paths). It must also assert every input is already RGB and record the torchvision and Pillow versions.\n   - Put the model in `.eval()` and run under `inference_mode`.\n4. **The pilot script must be forked, not edited.**\n   - `scripts/probe_inshop_siglip2_base_pilot.py:115` asserts cross-model pixel equality, which cannot hold between a 224px and a 256px model. The salt (`:64`) and schema (`:172`) are also hard-coded.\n   - Make a new PE script that swaps in own-processor parity checks for each arm. Record the swap explicitly rather than silently dropping the assertion.\n   - Add one numerical-reference gate before the timed run: on a few fixed images, compare PE with FP16 autocast against pure FP32 and require cosine \u2265 0.999. The document currently says \"numerical failures stop\" but never defines the reference.\n\n## Minor points, no change needed\n- Load the checkpoint with `mmap=True` so the full file and the Large model fit comfortably in 8 GiB.\n- The readout choice (PE's final projected output vs SigLIP2 Large's native pooler) is symmetric: both are the model's contrastive-aligned embedding. Freeze it as written, and don't rescue a failure with intermediate layers.\n- The new salt means Base's result is not paired with this run. That's fine; the comparison is PE against Large only.\n\n## Confirmed\n- The protected Rust top-k file still has SHA `1ae7f50a\u2026b587`.\n- Nothing I did edited files, downloaded weights, used the GPU or contacted anyone.\n- A PASS still only licenses proposing a full-cache feasibility comparison. The joint goal (official-protocol quality plus a matched image-to-top-k speed win) remains unproven."
+      },
+      "providers_used": [
+        "claude"
+      ],
+      "active_provider": "claude",
+      "phase": "Consultation completed",
+      "input_bytes": 3392,
+      "output_bytes": 5483,
+      "elapsed_seconds": 112,
+      "progress": "devbox-ask: claude consult still running (0m 30s)\ndevbox-ask: claude consult still running (1m 00s)\ndevbox-ask: claude consult still running (1m 30s)",
+      "progress_truncated": false,
+      "result": "**Verdict: APPROVE, conditionally.** This is a valid, cheap route that is causally distinct from what has already been tried, and it is worth qualifying. Four prerequisites below must be fixed before any weights or GPU are touched. I don't dispute the quality, cost, resource or lock gates; they stay as written.\n\n## Why it's worth running\n- **It's a genuinely different source.** Same size class as the SigLIP2 Base that was killed (B/16, 12 blocks, 768 wide), but different pretraining: PE's own corpus and objective, distilled from PE-Core-G. So it asks one real question: was Base's deficit specific to SigLIP2-B's pretraining, or is it the size class? It is not a threshold retune or a loss knob. PE's native processor squashes the image to 224\u00d7224; SigLIP2's squashes to 256. Both squash, so the geometry is comparable and only the resolution differs.\n- **It's cheap.** One 1.79 GB download, a GPU run of about 2 minutes, and fit-only reads. It closes cleanly if it fails.\n- **Honest prior: probably a KILL.**\n  - At 512 pairs, Base's bootstrap half-width was about 3.3pp (point \u22122.73, lower bound \u22126.05). To pass \"lower \u2265 \u22125\", PE needs a point delta of roughly \u22121.7pp or better against Large. That is about 1pp better than Base managed, on a new sample.\n  - PE-B's published zero-shot ImageNet score is 78.4 at 224px. I can't check SigLIP2-B's figure offline, so treat any comparison with it as unverified.\n  - The earlier substrate finding (about 53% of the pretrained Base\u2192Large gap survives fine-tuning) means even a PASS is far from the joint goal.\n  - Because it's cheap, none of this justifies a STOP. Just don't raise expectations.\n- **The speed gate is close to automatic.** Base ran at 0.33\u00d7 Large with 256 tokens; PE uses 197 tokens at 224px. A pass there should not be counted as evidence.\n\n## Prerequisites to fix before downloading weights or using the GPU\n1. **A strict weight load does not cover RoPE.**\n   - The evidence: `Rope2D` is a plain Python class, not a `torch.nn.Module` (`rope.py:303`). Its `RotaryEmbedding.freqs` parameter (`rope.py:124`) is therefore absent from `VisionTransformer.state_dict()`. The frequencies are rebuilt from code defaults in `init_tensors` (`pe.py:384`).\n   - So exact key and shape coverage cannot prove the positional encoding is right.\n   - This matters because the pinned source commit (2025-12-18) is 8 months newer than the checkpoint (2025-04-30). If the RoPE defaults changed in between, the model would run without error but produce wrong features.\n   - Required fix: load the full CLIP checkpoint (vision and text) strictly, with zero unexpected keys, as a check that the whole file is accounted for. Then run one end-to-end functional check that exercises RoPE:\n     - Preferred: a small image\u2013text zero-shot check against a published figure.\n     - Minimum: reproduce the model card's example output.\n   - Record the RoPE frequency tensor's hash in the receipt.\n2. **The \"native processor\" import needs the text stack.**\n   - `transforms.py` imports `core.vision_encoder.tokenizer`, which needs `ftfy`, `regex` and the vocabulary file `bpe_simple_vocab_16e6.txt.gz`. `config.py` imports `huggingface_hub`.\n   - The isolated dependency set must therefore include `ftfy` (and its dependency `wcwidth`) as well as `einops`.\n   - The hashed source manifest must include `core/__init__.py`, `core/vision_encoder/__init__.py`, `tokenizer.py` and the vocab `.gz`, not just the four listed files.\n   - Checkpoint paths must bypass `fetch_pe_checkpoint`, which otherwise downloads from the Hub.\n3. **Pixel parity must use the PIL code path, with the version recorded.**\n   - The native transform is torchvision `Resize` on PIL images, and it runs *before* conversion to RGB.\n   - The wrapper must feed PIL images, not tensors (antialiasing differs between the two paths). It must also assert every input is already RGB and record the torchvision and Pillow versions.\n   - Put the model in `.eval()` and run under `inference_mode`.\n4. **The pilot script must be forked, not edited.**\n   - `scripts/probe_inshop_siglip2_base_pilot.py:115` asserts cross-model pixel equality, which cannot hold between a 224px and a 256px model. The salt (`:64`) and schema (`:172`) are also hard-coded.\n   - Make a new PE script that swaps in own-processor parity checks for each arm. Record the swap explicitly rather than silently dropping the assertion.\n   - Add one numerical-reference gate before the timed run: on a few fixed images, compare PE with FP16 autocast against pure FP32 and require cosine \u2265 0.999. The document currently says \"numerical failures stop\" but never defines the reference.\n\n## Minor points, no change needed\n- Load the checkpoint with `mmap=True` so the full file and the Large model fit comfortably in 8 GiB.\n- The readout choice (PE's final projected output vs SigLIP2 Large's native pooler) is symmetric: both are the model's contrastive-aligned embedding. Freeze it as written, and don't rescue a failure with intermediate layers.\n- The new salt means Base's result is not paired with this run. That's fine; the comparison is PE against Large only.\n\n## Confirmed\n- The protected Rust top-k file still has SHA `1ae7f50a\u2026b587`.\n- Nothing I did edited files, downloaded weights, used the GPU or contacted anyone.\n- A PASS still only licenses proposing a full-cache feasibility comparison. The joint goal (official-protocol quality plus a matched image-to-top-k speed win) remains unproven.",
+      "result_truncated": false
+    },
+    {
+      "role": "engineering_critic",
+      "id": "12b8fd27c1f24844",
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "fallbacks": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "agent": "sfora/emafactorial",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1790607467,
+      "timeout_seconds": 1200,
+      "deadline_at": 1790608667,
+      "budget_usd": null,
+      "prompt_preview": "Act as the independent adversarial engineering and release critic. Inspect correctness, failure modes, security, operability, tests, and UX. Prioritize concrete findings with evidence. Do not edit files.\n\nMaterial to critique:\nREAD-ONLY concrete new source/pilot decision in /home/rb/worktrees/sfora-positive-causality master27f740c8. Do not edit, run GPU/training/download weights, launch consultations, or contact operator. Independently evaluate docs/inshop_pe_core_source_gate_2026-09-28.md and metadata docs/evidence/compact_metric/sop-siglip2-substrate-v1/pe-core-source-v1/{hf-model,github-head}.json. Native source downloaded metadata-only in /tmp/sfora-pe-source/core/vision_encoder/{pe,config,rope,transforms}.py at official pinnedcommit3e352cca660658d4b5c90f42a7808b11469e4c66. Entire repo rg found no PE experiment. Current newly completed nonlinearcachedfilter docs/inshop_nonlinear_head_result_2026-09-28.md informativeSTOP seed17 (R1 GELU95.9590vsaffine96.1701,MAP72.8482vs73.5132) no23/29/image pair. Existing smaller SigLIP2 Base source gate docs/inshop_siglip2_base_pilot_gate_2026-09-28.md failedbootstraplower-6.0547pp; teacher transfer docs/inshop_teacher_transfer_100_gate_2026-09-28.md KILL, no rescue. Native DINOv2/MODA/FashionSigLIP/TIPS routesclosed; DINOv3 authprereq normalget_token absent ownergrantUNKNOWN, alreadyreported. PE B16 public ungated exactHFrev a16450b46fef32363459920c2685a1b4ef13dcd9 weightSHA0a5c220aa083488e0fc9221f766dced8a576b7074662d9b9da923da1e8844fce 1.790786632GB. Nativefixed22412blocks768withprojected1024descriptor andGdistillation is different pretrainedsource, not invention. DGX noGPUapps/livejobs, torch2.12.1cu130/timm available,einops/ftfy absent; isolatedpinnedpurePythondeps proposed not deployedvenv mutation. NativeVisionTransformer.load_ckpt weights_onlyTrue butstrictFalse must explicitstrictvisualkeyshapeauthority. HF configyamlEMPTY usepinnedGithubconfig. Gate: firstCPU authority/processor/parity/fitmanifest thenbounded600s8G acquisition exacthash, thenONEsharedlock120s8GhostCUDA<10GBGPU pretrainedfit-only512query/galleryprototype+10encoderforwardcalls/nativeFP16autocast bothFP32params. Nativeprocessorsdifferent fixed224squashbilinear vs256Siglip2, ownnativepixelparityrequired NOTcrossmodel. Both ownfitPCA128/int8-f16 packing ordties/paired5000bootstrapseed179031. Rule unchangedfrompriorBase grossdeficit: packedPEminusLarge>=-3pp and95lower>=-5pp,encoderp50<=.8Large. New productSHAselectionprefixfixedbeforeoutcome; noouterTRAINheld/official. PASSonlylicenses separatelyfrozenfullcache/trainfeasibility proposal, noautomaticofficial/production. Is this a valid causally distinct cheap route worth qualifying, and are authority/numerical/resource/quality gates adequate before weights/GPU? Approve with only material prerequisite corrections orSTOPwithconcreteevidence; noarchitecturemenu/thresholdretune/universalimpossibilityclaims. Fulljointgoal requires BOTHofficialstrongestprotocolmatchedquality andmatchedfullimage-to-topk win; these remainunproven. ProtectedRusttopkSHA1ae7f50aa3d222dbc6c6489c4c344ce836d01b895e05341d368db35c6d0cb587 muststayuntouched. Existing scope authorization allows bounded new representations; don't ask an inferred permission question.",
+      "prompt_sha256": "ad80342ad4250ba67fa082542919cdcf9d8e316ad83dd8a3dbfa32e2b0cba1c5",
+      "prompt_bytes": 3426,
+      "fingerprint": "5fc1795a1077f2daa0a884f90b22211bdd92bcfe62d0d58b1823cd05d73beaf7",
+      "evidence": {
+        "git_commit": "27f740c8f67854e18e46c693d57198ac75486b27",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "710ab39afa809aa33d2433e386f69cbf866d6094b5d3dcdd2b6a67e86386d614",
+        "worktree_sha256": "ceeec54f928e193220439d633790d13859104efab12507b317e28973784c8043",
+        "worktree_evidence_truncated": false,
+        "active_goal": {
+          "id": "goal-1790540789-1790540789754989478-2322852",
+          "agent": "sfora/emafactorial",
+          "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+          "status": "queued",
+          "revision": 1,
+          "actor": "operator",
+          "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+          "created_at": 1790540789,
+          "updated_at": 1790540789
+        }
+      },
+      "previous_fingerprint": "95f987c0b54f7821c38c523d4411625575a2f3e061631c00fa9400c15edae14f",
+      "reused": false,
+      "critique_id": "c3033edfc7374e78",
+      "critique_role": "engineering_critic",
+      "systemd_unit": "devbox-consult-12b8fd27c1f24844.service",
+      "pid": 3026007,
+      "pgid": 3026007,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra",
+          "budget_usd": null,
+          "timeout_seconds": 1200,
+          "started_at": 1790607467
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1790607537,
+      "event_cursor": 17,
+      "events": [
+        {
+          "seq": 1,
+          "at": 1790607467,
+          "provider": "codex",
+          "kind": "phase",
+          "label": "Codex consultation attempt",
+          "detail": "gpt-6-astra \u00b7 no provider cap \u00b7 1200s remaining"
+        },
+        {
+          "seq": 2,
+          "at": 1790607467,
+          "provider": "codex",
+          "kind": "phase",
+          "label": "Codex consultation started"
+        },
+        {
+          "seq": 3,
+          "at": 1790607474,
+          "provider": "codex",
+          "kind": "phase",
+          "label": "Codex turn started"
+        },
+        {
+          "seq": 4,
+          "at": 1790607479,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 5,
+          "at": 1790607482,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 6,
+          "at": 1790607482,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 7,
+          "at": 1790607487,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 8,
+          "at": 1790607487,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 9,
+          "at": 1790607494,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 10,
+          "at": 1790607494,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 11,
+          "at": 1790607498,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 12,
+          "at": 1790607504,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 13,
+          "at": 1790607504,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 14,
+          "at": 1790607512,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 15,
+          "at": 1790607513,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 16,
+          "at": 1790607536,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 17,
+          "at": 1790607536,
+          "provider": "codex",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": false,
+      "provider_events": {
+        "codex": [
+          {
+            "seq": 10,
+            "at": 1790607494,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 11,
+            "at": 1790607498,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 12,
+            "at": 1790607504,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 13,
+            "at": 1790607504,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 14,
+            "at": 1790607512,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 15,
+            "at": 1790607513,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 16,
+            "at": 1790607536,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 17,
+            "at": 1790607536,
+            "provider": "codex",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "**Approve this distinct source route for bounded qualification, subject to the prerequisite corrections below.** The pinned PE config confirms a different pretrained encoder with attention pooling and a 1024-dimensional projection. Prior SigLIP2 head and source failures do not invalidate this experiment. Nothing inspected establishes a quality or full-pipeline speed win.\n\n1. **Fix the bootstrap seed mismatch before freezing the executable.** The proposal specifies `179031`, but the reused [`bootstrap_lower`](/home/rb/worktrees/sfora-positive-causality/scripts/score_inshop_crop_view_pair.py:78) hardcodes `179019`. Use the declared seed and freeze the existing 5,000-draw, 2.5th-percentile convention. Independently replay the decision from saved paired hits.\n\n2. **Do not inherit the baseline\u2019s lossy weight-loading path.** The [prior pilot](/home/rb/worktrees/sfora-positive-causality/scripts/probe_inshop_siglip2_base_pilot.py:96) loads weights as FP16, then converts them to FP32. FP32 parameter storage does not restore rounded values. Load both arms directly into FP32 from their authenticated checkpoints, record checkpoint/storage dtypes, and retain FP16 autocast for both. Otherwise the stated numerical comparison is underspecified.\n\n3. **Make checkpoint validation explicitly CPU-only.** Native [`load_ckpt`](/tmp/sfora-pe-source/core/vision_encoder/pe.py:407) uses `weights_only=True` but omits `map_location`, performs broad string replacements, and loads non-strictly. The proposed strict override is necessary; additionally require `map_location=\"cpu\"`, anchored prefix removal with collision rejection, and exact visual key/shape coverage including pooling and projection. Complete this after hash-verified acquisition and before CUDA. The native processor also imports `tokenizer.py`, which is absent from the supplied source directory; complete and hash that import dependency before claiming native import/parity passed.\n\n4. **Enforce and measure resource bounds across initialization.** The [prior pilot](/home/rb/worktrees/sfora-positive-causality/scripts/probe_inshop_siglip2_base_pilot.py:104) resets CUDA peak tracking after model loading, and its time limit is a retrospective result check. The frozen launcher must enforce the whole-process deadline and host-memory limit, hold the shared lock throughout CUDA use, and retain initialization peaks. A timeout/OOM must produce a terminal failure receipt. Preserve separate native input tensors for each timing arm\u2014the old pilot\u2019s single shared `fixed` tensor is incompatible with 224px/256px inputs.\n\nThe unchanged quality thresholds, gallery-only PCA, deterministic fit-only selection, ordinal ties, and restricted meaning of PASS are adequate for this **gross-deficit screen**. Its bootstrap describes the fixed prototype comparison; it does not establish unseen-product generalization or account for PCA-refitting uncertainty.\n\nNo files were edited, and no weights, GPU jobs, consultations, or operator messages were initiated. The protected Rust file matches the supplied SHA256 despite its pre-existing dirty status. Official protocol-matched quality and matched full image-to-top-k superiority both remain unproven.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "codex": "**Approve this distinct source route for bounded qualification, subject to the prerequisite corrections below.** The pinned PE config confirms a different pretrained encoder with attention pooling and a 1024-dimensional projection. Prior SigLIP2 head and source failures do not invalidate this experiment. Nothing inspected establishes a quality or full-pipeline speed win.\n\n1. **Fix the bootstrap seed mismatch before freezing the executable.** The proposal specifies `179031`, but the reused [`bootstrap_lower`](/home/rb/worktrees/sfora-positive-causality/scripts/score_inshop_crop_view_pair.py:78) hardcodes `179019`. Use the declared seed and freeze the existing 5,000-draw, 2.5th-percentile convention. Independently replay the decision from saved paired hits.\n\n2. **Do not inherit the baseline\u2019s lossy weight-loading path.** The [prior pilot](/home/rb/worktrees/sfora-positive-causality/scripts/probe_inshop_siglip2_base_pilot.py:96) loads weights as FP16, then converts them to FP32. FP32 parameter storage does not restore rounded values. Load both arms directly into FP32 from their authenticated checkpoints, record checkpoint/storage dtypes, and retain FP16 autocast for both. Otherwise the stated numerical comparison is underspecified.\n\n3. **Make checkpoint validation explicitly CPU-only.** Native [`load_ckpt`](/tmp/sfora-pe-source/core/vision_encoder/pe.py:407) uses `weights_only=True` but omits `map_location`, performs broad string replacements, and loads non-strictly. The proposed strict override is necessary; additionally require `map_location=\"cpu\"`, anchored prefix removal with collision rejection, and exact visual key/shape coverage including pooling and projection. Complete this after hash-verified acquisition and before CUDA. The native processor also imports `tokenizer.py`, which is absent from the supplied source directory; complete and hash that import dependency before claiming native import/parity passed.\n\n4. **Enforce and measure resource bounds across initialization.** The [prior pilot](/home/rb/worktrees/sfora-positive-causality/scripts/probe_inshop_siglip2_base_pilot.py:104) resets CUDA peak tracking after model loading, and its time limit is a retrospective result check. The frozen launcher must enforce the whole-process deadline and host-memory limit, hold the shared lock throughout CUDA use, and retain initialization peaks. A timeout/OOM must produce a terminal failure receipt. Preserve separate native input tensors for each timing arm\u2014the old pilot\u2019s single shared `fixed` tensor is incompatible with 224px/256px inputs.\n\nThe unchanged quality thresholds, gallery-only PCA, deterministic fit-only selection, ordinal ties, and restricted meaning of PASS are adequate for this **gross-deficit screen**. Its bootstrap describes the fixed prototype comparison; it does not establish unseen-product generalization or account for PCA-refitting uncertainty.\n\nNo files were edited, and no weights, GPU jobs, consultations, or operator messages were initiated. The protected Rust file matches the supplied SHA256 despite its pre-existing dirty status. Official protocol-matched quality and matched full image-to-top-k superiority both remain unproven."
+      },
+      "providers_used": [
+        "codex"
+      ],
+      "active_provider": "codex",
+      "phase": "Consultation completed",
+      "input_bytes": 3426,
+      "output_bytes": 3208,
+      "elapsed_seconds": 70,
+      "progress": "Reading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)",
+      "progress_truncated": false,
+      "result": "**Approve this distinct source route for bounded qualification, subject to the prerequisite corrections below.** The pinned PE config confirms a different pretrained encoder with attention pooling and a 1024-dimensional projection. Prior SigLIP2 head and source failures do not invalidate this experiment. Nothing inspected establishes a quality or full-pipeline speed win.\n\n1. **Fix the bootstrap seed mismatch before freezing the executable.** The proposal specifies `179031`, but the reused [`bootstrap_lower`](/home/rb/worktrees/sfora-positive-causality/scripts/score_inshop_crop_view_pair.py:78) hardcodes `179019`. Use the declared seed and freeze the existing 5,000-draw, 2.5th-percentile convention. Independently replay the decision from saved paired hits.\n\n2. **Do not inherit the baseline\u2019s lossy weight-loading path.** The [prior pilot](/home/rb/worktrees/sfora-positive-causality/scripts/probe_inshop_siglip2_base_pilot.py:96) loads weights as FP16, then converts them to FP32. FP32 parameter storage does not restore rounded values. Load both arms directly into FP32 from their authenticated checkpoints, record checkpoint/storage dtypes, and retain FP16 autocast for both. Otherwise the stated numerical comparison is underspecified.\n\n3. **Make checkpoint validation explicitly CPU-only.** Native [`load_ckpt`](/tmp/sfora-pe-source/core/vision_encoder/pe.py:407) uses `weights_only=True` but omits `map_location`, performs broad string replacements, and loads non-strictly. The proposed strict override is necessary; additionally require `map_location=\"cpu\"`, anchored prefix removal with collision rejection, and exact visual key/shape coverage including pooling and projection. Complete this after hash-verified acquisition and before CUDA. The native processor also imports `tokenizer.py`, which is absent from the supplied source directory; complete and hash that import dependency before claiming native import/parity passed.\n\n4. **Enforce and measure resource bounds across initialization.** The [prior pilot](/home/rb/worktrees/sfora-positive-causality/scripts/probe_inshop_siglip2_base_pilot.py:104) resets CUDA peak tracking after model loading, and its time limit is a retrospective result check. The frozen launcher must enforce the whole-process deadline and host-memory limit, hold the shared lock throughout CUDA use, and retain initialization peaks. A timeout/OOM must produce a terminal failure receipt. Preserve separate native input tensors for each timing arm\u2014the old pilot\u2019s single shared `fixed` tensor is incompatible with 224px/256px inputs.\n\nThe unchanged quality thresholds, gallery-only PCA, deterministic fit-only selection, ordinal ties, and restricted meaning of PASS are adequate for this **gross-deficit screen**. Its bootstrap describes the fixed prototype comparison; it does not establish unseen-product generalization or account for PCA-refitting uncertainty.\n\nNo files were edited, and no weights, GPU jobs, consultations, or operator messages were initiated. The protected Rust file matches the supplied SHA256 despite its pre-existing dirty status. Official protocol-matched quality and matched full image-to-top-k superiority both remain unproven.",
+      "result_truncated": false
+    }
+  ],
+  "reused": false,
+  "finished_at": 1790607615,
+  "elapsed_seconds": 112,
+  "input_bytes": 3022,
+  "output_bytes": 8691
+}
