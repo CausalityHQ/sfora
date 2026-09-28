@@ -46,3 +46,68 @@ Report source acquisition, teacher original training (historical seed179026
 745.063s), online target cost, whole-arm/export/scoring costs separately.
 No claim of faster total training from student-only step cost. Production
 serving remains unchanged until packed held qualification justifies Base API.
+
+## Terminal: KILL
+
+Original DGX unit `sfora-inshop-teacher-transfer-100-v1`, invocation
+`32be6ea4b7364ed6a0c2a34022383f90`, exited0. Both arms completed100 stable
+updates and all100 augmented input hashes matched. The executor stopped
+before sham because the paired quality gates failed. No full-budget run,
+official TEST read, serving gate or production promotion follows.
+
+| Reused official TRAIN held6354 queries /6245 gallery | Base main-only control | Base + trained Large teacher | Archived Large100-update reference |
+|---|---:|---:|---:|
+| Packed R@1, % |93.641800|93.673277|95.1999|
+| Packed mAP@R, fraction |0.736656811|0.734615344|0.779876|
+| TRAIN100×64 wall, seconds |53.030560|85.850298|75.909 (dated)|
+| Images / measured TRAIN second |120.6851|74.5484|Not remeasured|
+| TRAIN peak allocated CUDA, bytes |9,332,096,512|10,596,121,088|12,939,458,560 (dated)|
+| Whole arm including setup/export, seconds |98.503515|133.704515|Not remeasured|
+| Held export / symmetric score wall, seconds |35.962875 /0.162003|36.005213 /0.157832|66.320 export (dated)|
+| Image-to-top-k p50/p95/p99/QPS |Not measured|Not measured|Not remeasured|
+
+True-minus-control R@1 was **+0.031476pp**,95% paired product-bootstrap
+**[-0.276896,+0.322386]pp** (48 rescues/46 regressions): fails+0.30pp and
+positive-lower floors. mAP@R delta **-0.002041467**,95%
+**[-0.004388191,+0.000165944]**, fails nonnegative point/lower guard.
+These are one-seed exploratory results, not generalization confirmation.
+True stayed above the frozen gross Large floor and passed cost/resource
+guards; those passes cannot rescue failed quality. Archived Large numbers
+are same-panel budget references, not a newly measured external speed win.
+
+Base fit-only acquisition encoded13283 images/768 coordinates in49.240358s,
+peak1,760,986,624B. Cache file SHA
+dc47ca0e6c058361ab314a0ec7cb9aa6fe6c8b82b0d7e6a7d0b3dc0c430bc3e0;
+held cache rows stayed zero and did not initialize any trained component.
+Online teacher intervals totaled32.856474s within the85.850298s treatment
+training wall. Teacher historical original training745.063s is an additional
+cost; no total-training efficiency claim is supported. Entire executor
+main wall305.870132s. Raw student checkpoints/held arrays remain on DGX.
+
+Aggregate receipt SHA
+**383570eee205b379d25dd618eb8f7dee7b83990e714305dc3efa03d320cb686f**.
+Committed child receipts/logs/packed flags bind original artifacts. Independent
+CPU replay verified all6354 per-arm packed hits exactly, AP within5e-7,
+partition/fit/query/gallery/array/training-receipt hashes and both bootstrap
+bounds. Focused19 tests and Ruff pass. DGX/consultations are idle. Production
+API/checkpoint selection remains the qualified Large path; keep this closed
+experimental trainer only for reproducibility. No coefficient, temperature,
+target-layer, update-budget or panel search follows this negative result.
+
+The next cheap solver audit is the existing reference ArcFace derivative
+contract: `sharded_mask_arcface_logits` changes the target under `no_grad`,
+retaining the original cosine derivative. That faithfully reproduces UNICOM's
+surrogate; it is **not a newly discovered implementation bug**. Determine
+whether an analytically differentiated target materially changes the main
+gradient while preserving forward logits and remaining finite at endpoints,
+before considering ONE distinct training-algorithm gate. Reuse an existing
+helper if present; no new GPU training without a bounded fit-only CPU pass.
+
+## Bounded published-reference check
+
+The [2025 LoCoRe paper, Table2](https://arxiv.org/html/2503.21772v1)
+reports up to83.8% SOP and89.4% In-Shop R@1 across its variants on its
+chosen global-descriptor panel, with100-image local-token re-ranking. These
+points do not supersede the dated UNICOM reference, and do not certify the
+latest global frontier. Its re-ranking gains do not transfer automatically
+to this stronger packed encoder/scorer. No re-ranking experiment was launched.
