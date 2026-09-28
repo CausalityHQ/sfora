@@ -1,0 +1,37 @@
+{
+  "arms": {
+    "control": {
+      "rank_active_steps": 923,
+      "schedule_sha256": "8275a3e42897ccff31bd522e635d81001f02085a672a68f0f67355c90e6b5a0f",
+      "tail_mean_rank_exposure": 2.179968076616121,
+      "tail_zero_rank_exposure": 23,
+      "total_rank_row_appearances": 59072,
+      "unique_fit_rows": 13283
+    },
+    "repeated": {
+      "rank_active_steps": 945,
+      "schedule_sha256": "5d360978e5567298721344b12d63e7436f8295015b41659541f0a789f4162ccf",
+      "tail_mean_rank_exposure": 3.9042298483639266,
+      "tail_zero_rank_exposure": 0,
+      "total_rank_row_appearances": 60480,
+      "unique_fit_rows": 13283
+    }
+  },
+  "claim_eligible": false,
+  "cpu_wall_seconds": 0.5545242009684443,
+  "criteria": {
+    "batch_geometry_and_full_coverage": true,
+    "cpu_budget": true,
+    "initial_prefix": true,
+    "native_replay": true,
+    "rank_active_steps": true,
+    "tail_exposure": true
+  },
+  "decision": "GO_CACHED_QUALITY_SMOKE_DESIGN",
+  "first_changed_update": 262,
+  "identical_initial_updates": 261,
+  "quality_latency_or_training_measured": false,
+  "sampler_source_sha256": "7ae671ae3a274c35b0e22f038aa78e959c8c9588162e555a32c5dfa93d145a59",
+  "schema": "sfora-repeat-coverage-f0-v1",
+  "tail_rank_exposure_ratio": 1.7909573494416988
+}

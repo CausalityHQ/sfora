@@ -1,0 +1,22 @@
+{
+  "all_fit_rows_required": true,
+  "batch": 64,
+  "batch_and_identity_geometry_exact": true,
+  "cpu_budget_seconds": 60,
+  "epoch": 1,
+  "frozen_at_unix": 1790582128.0152874,
+  "go_next": "freeze paired original-fit-only internal cached-feature quality smoke that reaches queue exhaustion; no GPU on exposure alone",
+  "images_per_identity": 4,
+  "initial_coverage_prefix_unchanged": true,
+  "kill_next": "close fixed repeated-coverage arm before training; do not retune",
+  "known_sampling_method_not_novel": true,
+  "native_schedule_sha256": "8275a3e42897ccff31bd522e635d81001f02085a672a68f0f67355c90e6b5a0f",
+  "new_image_feature_quality_reads": false,
+  "rank_active_steps_min_native": true,
+  "sampler_source_sha256": "7ae671ae3a274c35b0e22f038aa78e959c8c9588162e555a32c5dfa93d145a59",
+  "schema": "sfora-repeat-coverage-exposure-freeze-v1",
+  "seed": 179026,
+  "source_data": "original TRAIN-fit13283rows2004products and prior pinned2506tail anchors",
+  "tail_rank_exposure_ratio_floor": 1.5,
+  "updates": 1000
+}

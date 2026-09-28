@@ -18,14 +18,17 @@ def identity_balanced_batches(
     epoch: int,
     steps: int,
     coverage_first: bool = False,
+    repeat_coverage: bool = False,
 ) -> tuple[tuple[int, ...], ...]:
     """Return a replayable identity-balanced index schedule for one epoch."""
 
     integers = (batch_size, images_per_identity, seed, epoch, steps)
     if any(type(value) is not int for value in integers):
         raise TypeError("rank-finish schedule parameters must be builtin integers")
-    if type(coverage_first) is not bool:
+    if type(coverage_first) is not bool or type(repeat_coverage) is not bool:
         raise TypeError("rank-finish coverage mode must be a boolean")
+    if repeat_coverage and not coverage_first:
+        raise ValueError("repeated coverage requires coverage-first sampling")
     if (
         batch_size <= 0
         or images_per_identity < 2
@@ -51,8 +54,9 @@ def identity_balanced_batches(
         label: list(rng.permutation(grouped[label]).tolist()) for label in identity_names
     }
     positions = {label: 0 for label in identity_names}
-    pending = (
-        deque(
+
+    def coverage_queue() -> deque[str]:
+        return deque(
             str(label)
             for offset in range(
                 (max(map(len, grouped.values())) + images_per_identity - 1) // images_per_identity
@@ -65,9 +69,8 @@ def identity_balanced_batches(
                 ]
             )
         )
-        if coverage_first
-        else deque()
-    )
+
+    pending = coverage_queue() if coverage_first else deque()
 
     def draw(label: str) -> tuple[int, ...]:
         selected: list[int] = []
@@ -90,6 +93,8 @@ def identity_balanced_batches(
     batches = []
     for _ in range(steps):
         if coverage_first:
+            if repeat_coverage and not pending:
+                pending = coverage_queue()
             selected_identities: list[str] = []
             while len(selected_identities) < identities_per_batch:
                 for _ in range(len(pending)):

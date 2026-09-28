@@ -1,0 +1,30 @@
+{
+  "adaptive_budget": false,
+  "arm_order": [
+    "control",
+    "repeated"
+  ],
+  "batch": 64,
+  "both_5000_product_bootstrap_lower95_positive": true,
+  "control": "coverage_first=True repeat_coverage=False",
+  "cpu_script_budget_seconds": 120,
+  "dataset": "In-Shop original TRAIN fit only; existing fixed half_fit_products as innertrain; complementary original fit as internal validation; singleton products removed identically",
+  "encoder_or_serving_claim_eligible": false,
+  "first_unchanged_prefix_losses_must_match_exactly": true,
+  "frozen_at_unix": 1790582362.149769,
+  "go_map_delta_at_least": 0.002,
+  "go_recall_delta_at_least": 0.003,
+  "head": "common image-PCA128 Linear and common classifier; AdamW1e-4decay.05clip1",
+  "kill_scope": "fixed cached-feature repeated-coverage proxy; no encoder escalation or retune on failure",
+  "objective": "native margin.3scale64 ArcFace +8detached SmoothAP bank",
+  "official_or_outer_held_quality_read": false,
+  "process_timeout_seconds": 130,
+  "quality_after_both400_finite_updates_only": true,
+  "sampler_source_sha256": "7ae671ae3a274c35b0e22f038aa78e959c8c9588162e555a32c5dfa93d145a59",
+  "schema": "sfora-repeat-coverage-cached-f1-freeze-v1",
+  "seed": 179032,
+  "source_sha256": "ef3a5783e936d403ac00488a52ea9c91535f265562b78121d57ddfe8504f38e7",
+  "steps_per_arm": 400,
+  "threads": 8,
+  "treatment": "coverage_first=True repeat_coverage=True; no other change"
+}
