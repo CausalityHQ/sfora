@@ -1,0 +1,39 @@
+{
+  "receipt_sha256": "42f3f32eb4de6ac267d7ed933ae1f49d840ccb74d5006e5db64c279697d0418f",
+  "source_bound": true,
+  "all_updates_zero": true,
+  "decision_attribution_only": true,
+  "integer_oracle_witnesses": {
+    "128": {
+      "sampled_queries": 64,
+      "all_r1_exact": true,
+      "max_ap_error": 4.737805103793846e-08,
+      "values_sha256": "9ca3568af48a8f242929024c5e21702d90e2b6efd897bf4b79e5e00bde3a19b1"
+    },
+    "256": {
+      "sampled_queries": 64,
+      "all_r1_exact": true,
+      "max_ap_error": 6.451850598221398e-08,
+      "values_sha256": "96736bddc01c36bb73ad873dacf8b34d27be2b46190d5379613c566eaae1fcac"
+    },
+    "1024": {
+      "sampled_queries": 64,
+      "all_r1_exact": true,
+      "max_ap_error": 4.577048029474895e-08,
+      "values_sha256": "6de3aa538c7795729a9c5f66c4e0d8f215d3836bd0cb39e41a94ed2878f4640d"
+    }
+  },
+  "attribution": {
+    "recall": {
+      "initial_width_delta": 0.023255813953488372,
+      "trained_width_delta": 0.017151162790697675,
+      "training_change_in_width_delta": -0.006104651162790698
+    },
+    "map": {
+      "initial_width_delta": 0.03203119050046743,
+      "trained_width_delta": 0.027866651437943802,
+      "training_change_in_width_delta": -0.00416453906252363
+    }
+  },
+  "limitations": "64 evenly spaced saved-embedding queries per representation independently rescored via NumPy int32; not exhaustive. Original trained heads/embeddings absent."
+}
