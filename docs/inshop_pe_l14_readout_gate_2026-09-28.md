@@ -67,5 +67,11 @@ readout/proxy gradients, unchanged whole source and matched augmentedRGB224.
 Existing own initializer/source/control untouched. Role fixture GREEN/Ruff/
 bash syntaxPASS. Frozen CPU authoritySHA
 82c68382ec0e73598756553e78795d7d20b533e6bfcf9b440a77176593474c10.
-No GPU/update/held/quality outcome implied. Mechanics next with actualforward
-inside all measured updates; no cached head-only speed claim.
+This CPU result alone implied no retrieval gain.
+
+## Terminal mechanics result
+
+The sole17-update serial-input run completed and COST KILLed: actual
+median3–17 0.7712698928080499s >0.71769696s. No pilot, checkpoint, held
+images or quality. State discarded; do not rerun this exact procedure.
+[Measured result and one supported next execution intervention](inshop_pe_l14_readout_result_2026-09-29.md).

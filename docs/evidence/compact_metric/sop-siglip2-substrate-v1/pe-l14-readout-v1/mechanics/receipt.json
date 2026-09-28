@@ -1,0 +1,10 @@
+{
+  "advance": false,
+  "reason": "fixed training cost gate failed",
+  "preflight_sha256": "82c68382ec0e73598756553e78795d7d20b533e6bfcf9b440a77176593474c10",
+  "discard_training_state": true,
+  "peak_cuda_allocated_bytes": 3052520960,
+  "quality_read": false,
+  "updates": 17,
+  "median_step_3_17_seconds": 0.7712698928080499
+}
