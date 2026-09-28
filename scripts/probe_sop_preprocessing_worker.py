@@ -53,6 +53,13 @@ def process(images):
     )["pixel_values"]
 
 
+def check_pixels(reference, actual):
+    assert actual.dtype == reference.dtype == torch.float32
+    assert actual.device.type == reference.device.type == "cpu"
+    assert actual.shape == reference.shape and actual.stride() == reference.stride()
+    assert torch.equal(reference, actual)
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     p.add_argument("output", type=Path)
@@ -97,10 +104,12 @@ def main():
                     reference.shape == (size, 3, 256, 256)
                     and reference.dtype == torch.float32
                 )
-                assert reference.is_contiguous() and torch.isfinite(reference).all()
+                assert (
+                    reference.device.type == "cpu" and torch.isfinite(reference).all()
+                )
                 for _ in range(3):
-                    assert torch.equal(reference, process(batch))
-                    assert torch.equal(
+                    check_pixels(reference, process(batch))
+                    check_pixels(
                         reference, worker.submit(process, batch).result(timeout=30)
                     )
                 raw = {"parent20": [], "worker1": []}
@@ -119,12 +128,7 @@ def main():
                                 else worker.submit(process, batch).result(timeout=30)
                             )
                             raw[arm].append(time.perf_counter_ns() - tick)
-                            assert (
-                                actual.dtype == torch.float32
-                                and actual.device.type == "cpu"
-                                and actual.is_contiguous()
-                            )
-                            assert torch.equal(reference, actual)
+                            check_pixels(reference, actual)
                             assert torch.get_num_threads() == 20
                 reports[str(size)] = {
                     "raw_ns": raw,

@@ -5,9 +5,8 @@ from concurrent.futures import ProcessPoolExecutor
 import multiprocessing as mp
 from pathlib import Path
 
-import torch
 from PIL import Image
-from probe_sop_preprocessing_worker import initialize, process
+from probe_sop_preprocessing_worker import check_pixels, initialize, process
 
 
 def main():
@@ -32,9 +31,16 @@ def main():
         initargs=(snapshot, 1),
     ) as worker:
         for batch in ([images[0]], images * 8):
-            assert torch.equal(
-                process(batch), worker.submit(process, batch).result(timeout=30)
-            )
+            reference = process(batch)
+            actual = worker.submit(process, batch).result(timeout=30)
+            check_pixels(reference, actual)
+            if not reference.is_contiguous():
+                try:
+                    check_pixels(reference, actual.contiguous())
+                except AssertionError:
+                    pass
+                else:
+                    raise AssertionError("changed pixel strides accepted")
     print("PASS real spawn/IPC bitwise pixels, RGB/L/P/RGBA and batch1/32")
 
 

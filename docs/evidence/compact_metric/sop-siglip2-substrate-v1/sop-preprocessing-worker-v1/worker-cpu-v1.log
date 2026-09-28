@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-preprocessing-worker-v1/probe_sop_preprocessing_worker.py", line 180, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/sfora-preprocessing-worker-v1/probe_sop_preprocessing_worker.py", line 100, in main
+    assert reference.is_contiguous() and torch.isfinite(reference).all()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
