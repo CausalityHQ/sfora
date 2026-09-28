@@ -7,6 +7,15 @@ training, signed-int8 gallery codes with f16 inverse norms (130 bytes per
 image), and an exact native CUDA top-10 scorer. Apache Arrow is not in the
 training or retrieval path.
 
+## 28 September: exact normalization lookup fails the combined CPU gate
+
+A finite256-byte normalization table passes exhaustive float32 pixel/stride
+parity. SOP TRAIN stage median/p95 (ms) improves at B1 from2.142/3.454 to
+0.765/0.964 but regresses at B32 from49.508/73.192 to56.833/90.878. Both sizes
+were required; STOP before GPU/API work.20 raw calls per arm/size, independent
+quantile/decision replayPASS, soleCPUjobexit0 in5.87s with1,166,360KiB RSS.
+No new full-pipeline/p99 or quality result. [Result and receipts](sop_normalization_lookup_result_2026-09-28.md).
+
 ## 28 September: preprocessing worker stopped at CPU screen
 
 One persistent one-thread spawn worker preserved exact public pixels/strides

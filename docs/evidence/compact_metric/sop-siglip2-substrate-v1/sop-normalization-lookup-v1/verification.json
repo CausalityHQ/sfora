@@ -1,0 +1,22 @@
+{
+  "receipt_sha256": "8e9ac7a92204bc0cb5591df5002e85747018c1d2952d7ba5cdfff3ac843fc363",
+  "invocation_id": "a01eea1ae97f49cda474bfe1738f1a54",
+  "stdlib_raw_replay": "PASS",
+  "calls_per_arm_per_size": 20,
+  "checks": {
+    "1": {
+      "p95_ratio": 0.2792626078027346,
+      "median_savings_ms": 1.377722,
+      "median_floor_ms": 0.81,
+      "pass": true
+    },
+    "32": {
+      "p95_ratio": 1.241630557460095,
+      "median_savings_ms": -7.325728500000004,
+      "median_floor_ms": 14.21,
+      "pass": false
+    }
+  },
+  "decision": "KILL_CPU_LOOKUP",
+  "exactness_fixture": "all256 values, both layouts, B1/B32 and RGB/L/P/RGBA PASS"
+}

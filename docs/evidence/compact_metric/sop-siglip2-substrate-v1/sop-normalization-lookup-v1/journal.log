@@ -1,0 +1,2 @@
+Sep 28 21:15:57 spark-2751 systemd[3489]: Started sfora-normalization-lookup-cpu-v1.service - /usr/bin/time -v -o /home/riomus/runs/sfora-normalization-lookup-v1/time.txt /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-preprocessing-worker-v1/probe_sop_normalization_lookup.py /home/riomus/runs/sfora-normalization-lookup-v1/receipt.json.
+Sep 28 21:16:02 spark-2751 systemd[3489]: sfora-normalization-lookup-cpu-v1.service: Consumed 25.793s CPU time, 768.0K memory peak, 0B memory swap peak.
