@@ -33,3 +33,20 @@ changing epsilon or coefficient. Passing only motivates one separately frozen
 <=120s paired17-update trainable-encoder smoke, reviewed for gradient route,
 endpoints/clipping/provenance before launch. It proves no held improvement,
 SOTA, speed gain, or novelty. Production UNICOM/reference API stays unchanged.
+
+## Terminal: KILL without GPU work
+
+Original timeout-bounded CPU process exited0. All17 forward-logit matrices
+matched native exactly, all1088 source gradients were finite/nonzero and
+tangent. Median gradient angle8.983499degrees passes7.5; median relative
+change **22.605350% fails25%**; median norm ratio1.132044 passes. Main
+wall7.206804s. Double interior finite-difference/pole tests passed2/2; Ruff
+passes. This does not identify a bug in the faithful reference implementation.
+No epsilon/margin/materiality-floor change, encoder smoke, quality read or
+review consultation follows this fixed negative result.
+
+Receipt `inshop-arcface-derivative-cache-v1.json` SHA
+0fdabd8a4ab2e76ff3c1f0dfccfe196efb21f9a041a3760b1fd2fa6078b9226a.
+Recorded1088 per-row angles/relative changes/norm ratios,17 paired losses,
+native/probe/cache/PCA/schedule hashes permit scalar replay. Keep the variant
+in the experimental probe only. Production UNICOM API remains unchanged.
