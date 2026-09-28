@@ -1,0 +1,16 @@
+import torch
+from probe_inshop_wide_training_head import fold_uncentered_head
+
+
+def test_uncentered_fold_preserves_normalized_affine_composition():
+    torch.manual_seed(5)
+    wide = torch.nn.Linear(5, 7, dtype=torch.float64)
+    components = torch.linalg.qr(torch.randn(7, 3, dtype=torch.float64)).Q.T.contiguous()
+    folded = fold_uncentered_head(wide, components)
+    source = torch.nn.functional.normalize(torch.randn(16, 5, dtype=torch.float64), dim=1)
+    two_stage = torch.nn.functional.normalize(
+        torch.nn.functional.normalize(wide(source), dim=1) @ components.T, dim=1
+    )
+    assert torch.allclose(
+        torch.nn.functional.normalize(folded(source), dim=1), two_stage, rtol=0, atol=1e-12
+    )
