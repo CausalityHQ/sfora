@@ -1,0 +1,657 @@
+{
+  "id": "b5fcd8a39d1e40e6",
+  "status": "completed",
+  "started_at": 1790621228,
+  "agent": "sfora/emafactorial",
+  "force_reason": "New terminal Fable proposal575a2d205fe6486d after independently verified encoder attribution and saved update geometry. Consolidated review of whether its function-displacement gate actually licenses a causally distinct optimizer intervention; not repeat prior inference/training critique.",
+  "rolling_6h_count": 12,
+  "prompt_preview": "READ ONLY, no edits/jobs/GPU. Repo /home/rb/worktrees/sfora-positive-causality master b566273c. Reconcile NEW completed Fable research575a2d205fe6486d raw docs/evidence/compact_metric/sop-siglip2-substrate-v1/pe-update-geometry-v1/research-result.json (result text). It proposes F0 medianraw angular displacement between native0/100 held1024, PE/Large ratio<=.6 +upper<.75 ALIVE ->samePE100recipe withLRmultiplierLarge/PEratio clipped1.5..3; ratio>=.85 or inconclusive closesPEoncapacitygrounds. It claims AdamstepatmostLR and lr*100*sqrt(n)bound and fanin*adapteddepth scalingabout2.7. Existing diagnostics: docs/inshop_pe_learning_attribution_result_2026-09-28.md finalgoldenPASS, rawPEinitialbetterbutfinalworse; docs/inshop_pe_update_geometry_result_2026-09-28.md actualCPU original/finalgroupfingerprintqualified; PErelativeparameterblockchanges median.212091% vsLarge.145991%, PEvisionpostclipgradlarger. New scripts/check_inshop_pe_displacement_premise.py stdlibcounterexamples PASS: signed90degreeaxispermutation preservesALLfloatcosine ANDint8packedcodedot/norm while rawmovement90deg; correctedAdamdefaultbetas(.9,.999) withgrad.9,1 clip1 givesstep2/lr1.0013578>1. No actualF0data scored, noLRchange ornewtraining. Independentlyread primaryabstracts arxiv2203.03466 (muP reparametrization/widthtransfer),2310.02244 depth-muP explicittransformerlimitations,2309.16620depthwise residualnetwork scaling; no guarantee for PEpretrainedB16 vsSigLIP2Large(nativepool/proj/pretrain/resolutiondiffer). Fullobjective excludes arbitraryLR/budget/depth/precision/head/loss/source/crop/teacherrescue. Prior100qualitySTOPremains. Question: GO/STOP on this proposedF0->LRgate as a genuinelydistinct validated encoderadaptation intervention? Doesrawdisplacement licenseLRcalibration or capacityclosure, and is it meaningful independentretrievalfunctionmovement given rotation/gauge? Verify findings, distinguishusefuldescriptivestatisticsfromcausalinference. Give minimal rigorousdecision; do not inventnewloss/recipe variants or proposeposthocthresholdrescues. If rejection doesn'tprovecapacitysayso. Needonecombinedreviewonly before anynewGPUdecision.",
+  "prompt_sha256": "7b6c280da5d3c58458a129d7f4676ebb08622f42d34c023f1e40916494767087",
+  "prompt_bytes": 2147,
+  "fingerprint": "748cc4ebd5aa0fba46e4d41e7dd39360e61a29b0e94aa297a971a0ecd58f9883",
+  "evidence": {
+    "git_commit": "b566273c6e6df2734998b127e7ffe095704ed9b8",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "df536046b1a0ca749e028df5c669f89cadeef7ba0a892e07293b52ceb1fb8310",
+    "worktree_sha256": "e5a007581137b45e2dd01fe2a1dacb5525b04ee2bf4f370db842cdbeb7ea2fb4",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "reviewers": [
+    {
+      "role": "research_critic",
+      "id": "76e2924679dd48ef",
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "fallbacks": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "agent": "sfora/emafactorial",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1790621228,
+      "timeout_seconds": 1200,
+      "deadline_at": 1790622428,
+      "budget_usd": 4,
+      "prompt_preview": "Act as the independent research and first-principles critic. Challenge assumptions, compare alternatives and prior art, and identify missing evidence. Do not edit files.\n\nMaterial to critique:\nREAD ONLY, no edits/jobs/GPU. Repo /home/rb/worktrees/sfora-positive-causality master b566273c. Reconcile NEW completed Fable research575a2d205fe6486d raw docs/evidence/compact_metric/sop-siglip2-substrate-v1/pe-update-geometry-v1/research-result.json (result text). It proposes F0 medianraw angular displacement between native0/100 held1024, PE/Large ratio<=.6 +upper<.75 ALIVE ->samePE100recipe withLRmultiplierLarge/PEratio clipped1.5..3; ratio>=.85 or inconclusive closesPEoncapacitygrounds. It claims AdamstepatmostLR and lr*100*sqrt(n)bound and fanin*adapteddepth scalingabout2.7. Existing diagnostics: docs/inshop_pe_learning_attribution_result_2026-09-28.md finalgoldenPASS, rawPEinitialbetterbutfinalworse; docs/inshop_pe_update_geometry_result_2026-09-28.md actualCPU original/finalgroupfingerprintqualified; PErelativeparameterblockchanges median.212091% vsLarge.145991%, PEvisionpostclipgradlarger. New scripts/check_inshop_pe_displacement_premise.py stdlibcounterexamples PASS: signed90degreeaxispermutation preservesALLfloatcosine ANDint8packedcodedot/norm while rawmovement90deg; correctedAdamdefaultbetas(.9,.999) withgrad.9,1 clip1 givesstep2/lr1.0013578>1. No actualF0data scored, noLRchange ornewtraining. Independentlyread primaryabstracts arxiv2203.03466 (muP reparametrization/widthtransfer),2310.02244 depth-muP explicittransformerlimitations,2309.16620depthwise residualnetwork scaling; no guarantee for PEpretrainedB16 vsSigLIP2Large(nativepool/proj/pretrain/resolutiondiffer). Fullobjective excludes arbitraryLR/budget/depth/precision/head/loss/source/crop/teacherrescue. Prior100qualitySTOPremains. Question: GO/STOP on this proposedF0->LRgate as a genuinelydistinct validated encoderadaptation intervention? Doesrawdisplacement licenseLRcalibration or capacityclosure, and is it meaningful independentretrievalfunctionmovement given rotation/gauge? Verify findings, distinguishusefuldescriptivestatisticsfromcausalinference. Give minimal rigorousdecision; do not inventnewloss/recipe variants or proposeposthocthresholdrescues. If rejection doesn'tprovecapacitysayso. Needonecombinedreviewonly before anynewGPUdecision.",
+      "prompt_sha256": "8006ed7b00e1b70c803796ab5f25ad2fc81a9d87fd75aa65a5bb2c37db3d1891",
+      "prompt_bytes": 2517,
+      "fingerprint": "96e9f69bf519cac9eb29e4f69b7a9ad96b6dd06cb9ad9b8247ff52c8c146fd49",
+      "evidence": {
+        "git_commit": "b566273c6e6df2734998b127e7ffe095704ed9b8",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "df536046b1a0ca749e028df5c669f89cadeef7ba0a892e07293b52ceb1fb8310",
+        "worktree_sha256": "e5a007581137b45e2dd01fe2a1dacb5525b04ee2bf4f370db842cdbeb7ea2fb4",
+        "worktree_evidence_truncated": false,
+        "active_goal": {
+          "id": "goal-1790540789-1790540789754989478-2322852",
+          "agent": "sfora/emafactorial",
+          "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+          "status": "queued",
+          "revision": 1,
+          "actor": "operator",
+          "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+          "created_at": 1790540789,
+          "updated_at": 1790540789
+        }
+      },
+      "previous_fingerprint": "bbc14f7e8a58c4780eed08d40627dee3acb17b4f3b7d14f001f28bcfa9c19b96",
+      "reused": false,
+      "critique_id": "b5fcd8a39d1e40e6",
+      "critique_role": "research_critic",
+      "systemd_unit": "devbox-consult-76e2924679dd48ef.service",
+      "pid": 2407144,
+      "pgid": 2407144,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5",
+          "budget_usd": 4,
+          "timeout_seconds": 1200,
+          "started_at": 1790621228
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1790621292,
+      "event_cursor": 16,
+      "events": [
+        {
+          "seq": 1,
+          "at": 1790621228,
+          "provider": "claude",
+          "kind": "phase",
+          "label": "Claude consultation attempt",
+          "detail": "claude-opus-5-5 · $4 cap · 1200s remaining"
+        },
+        {
+          "seq": 2,
+          "at": 1790621228,
+          "provider": "claude",
+          "kind": "phase",
+          "label": "Claude consultation started"
+        },
+        {
+          "seq": 3,
+          "at": 1790621231,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 4,
+          "at": 1790621235,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 5,
+          "at": 1790621281,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 6,
+          "at": 1790621282,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 7,
+          "at": 1790621283,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 8,
+          "at": 1790621284,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 9,
+          "at": 1790621285,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 10,
+          "at": 1790621286,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 11,
+          "at": 1790621287,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 12,
+          "at": 1790621288,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 13,
+          "at": 1790621289,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 14,
+          "at": 1790621290,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 15,
+          "at": 1790621291,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 16,
+          "at": 1790621292,
+          "provider": "claude",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": false,
+      "provider_events": {
+        "claude": [
+          {
+            "seq": 9,
+            "at": 1790621285,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 10,
+            "at": 1790621286,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 11,
+            "at": 1790621287,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 12,
+            "at": 1790621288,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 13,
+            "at": 1790621289,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 14,
+            "at": 1790621290,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 15,
+            "at": 1790621291,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 16,
+            "at": 1790621292,
+            "provider": "claude",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "# Verdict on the proposed F0 → LR gate: STOP\n\nThe research proposes measuring raw angular displacement (F0) and using it to gate a PE learning-rate change. Don't fund it as an encoder-adaptation intervention, and don't use it to close the PE lane on capacity grounds. F0 can still be run as a descriptive CPU number, as long as no decision depends on it. I read the Fable result, both 2026-09-28 result docs and the premise script, and re-ran the script (PASS). I edited nothing and ran no jobs.\n\n## Findings I checked\n\n1. **Raw displacement doesn't measure how retrieval changed (confirmed).** The script's counterexample holds. A signed axis permutation moves every vector 90°, yet float cosine and the int8 code dots/norms stay exactly the same. More generally, any global rotation leaves the cosine ranking unchanged but inflates θ. θ also mixes in shifts that are common to all images and changes in the trainable pool/projection. PE's text-space projection moved 0.29%, which is larger than its median block. The proposed multiplier, however, applies only to the trunk. So the size of θ, in either direction, doesn't identify under-stepping. The same problem affects the arm's own calibration band (0.75 ≤ θ_PEk/θ_Large ≤ 1.33): it measures the wrong quantity.\n\n2. **Displacement is an effect of learning, not an independent cause (inference).** Large learned more (+16.5 vs +12.0 pp raw R@1), so it is expected to have moved more features whether the explanation is step size or capacity. If PE's gradients have no productive direction to follow, that also produces small, sign-inconsistent movement. A ratio ≤ 0.6 is therefore predicted under both hypotheses and can't separate them. F1 is meant to separate them, but its bound is wrong (point 4).\n\n3. **Evidence we already have cuts against the premise (descriptive).** The median relative change per block is 0.212% for PE vs 0.146% for Large, about 1.45× in PE's favour. The \"~2.7×\" figure is (1024/768)·(12/6). That formula assumes updates that line up with the inputs and add up coherently through the residual blocks. It also borrows μP/depth-μP scaling, which was derived for from-scratch limits and doesn't cover different pretrained towers. The two towers here differ in pool, projection, pretraining, resolution and the depth of the frozen prefix. The 2.7× figure is a conjecture; nothing measured supports it.\n\n4. **The Adam claims are false (confirmed).** Your counterexample gives a step of 1.00136·lr. The known Kingma & Ba bound for these betas is about (1−β₁)/√(1−β₂) ≈ 3.16·lr per step, and AdamW decay adds to that. \"Step ≤ lr\" and \"lr·100·√n bound\" are both wrong, so the \"fraction of bound used\" in F1 has the wrong denominator.\n\n5. **The arm is an arbitrary LR/budget change in another form (confirmed against the design).** The k clip to [1.5, 3] is hand-picked, and any ratio below 0.33 just saturates at 3. At 100 updates both arms are under-trained; earlier In-Shop work found the loss still falling. So a PE gain at higher LR is explained just as well by \"more effective training budget\", which the objective excludes. It also isn't specific to PE, because the Large-at-k control (\"Large wouldn't benefit\") is explicitly not run. Even a pass therefore couldn't establish PE-specific per-update inefficiency. The prior 100-update quality STOP stands.\n\n6. **DEAD or inconclusive doesn't prove capacity.** Equal raw displacement would leave these explanations open:\n   - update direction\n   - pretrained geometry\n   - native pool/projection readout\n   - resolution\n   - the 100-update window\n\n   Asymptotic capacity is never measured. The research's \"closes PE on capacity grounds\" is an overclaim. The correct wording is \"no licensed cheap PE adaptation mechanism; capacity not established.\"\n\n## What is still solid (descriptive only)\n\n- The attribution result: PE starts ahead (+3.86 pp raw R@1) and ends behind (−0.65 pp). The relative learning gain is −4.50 [−5.59, −3.45], and it sits in encoder adaptation, not in the head or in PCA.\n- The per-group relative parameter changes, with fingerprints qualified.\n- The post-clip gradient norms. These don't show the head taking the clip budget and starving PE's encoder.\n\nNone of these identify whether the cause is optimization or capacity.\n\n## Decision\n\n- **STOP** the F0 → LR-multiplier gate. It is not a validated or distinct intervention, and it doesn't license an LR calibration.\n- **Don't record a capacity closure.** Record \"PE lane: no surviving distinct encoder-adaptation mechanism under the frozen recipe; cause (optimization vs capacity) unidentified.\"\n- **F0 optional.** It can be computed on the saved matrices as a labelled descriptive statistic, with no threshold or GPU consequence. There's no need to run it at all.\n- **No new GPU work** comes out of this review. I've added no new losses, recipes or rescue thresholds.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "claude": "# Verdict on the proposed F0 → LR gate: STOP\n\nThe research proposes measuring raw angular displacement (F0) and using it to gate a PE learning-rate change. Don't fund it as an encoder-adaptation intervention, and don't use it to close the PE lane on capacity grounds. F0 can still be run as a descriptive CPU number, as long as no decision depends on it. I read the Fable result, both 2026-09-28 result docs and the premise script, and re-ran the script (PASS). I edited nothing and ran no jobs.\n\n## Findings I checked\n\n1. **Raw displacement doesn't measure how retrieval changed (confirmed).** The script's counterexample holds. A signed axis permutation moves every vector 90°, yet float cosine and the int8 code dots/norms stay exactly the same. More generally, any global rotation leaves the cosine ranking unchanged but inflates θ. θ also mixes in shifts that are common to all images and changes in the trainable pool/projection. PE's text-space projection moved 0.29%, which is larger than its median block. The proposed multiplier, however, applies only to the trunk. So the size of θ, in either direction, doesn't identify under-stepping. The same problem affects the arm's own calibration band (0.75 ≤ θ_PEk/θ_Large ≤ 1.33): it measures the wrong quantity.\n\n2. **Displacement is an effect of learning, not an independent cause (inference).** Large learned more (+16.5 vs +12.0 pp raw R@1), so it is expected to have moved more features whether the explanation is step size or capacity. If PE's gradients have no productive direction to follow, that also produces small, sign-inconsistent movement. A ratio ≤ 0.6 is therefore predicted under both hypotheses and can't separate them. F1 is meant to separate them, but its bound is wrong (point 4).\n\n3. **Evidence we already have cuts against the premise (descriptive).** The median relative change per block is 0.212% for PE vs 0.146% for Large, about 1.45× in PE's favour. The \"~2.7×\" figure is (1024/768)·(12/6). That formula assumes updates that line up with the inputs and add up coherently through the residual blocks. It also borrows μP/depth-μP scaling, which was derived for from-scratch limits and doesn't cover different pretrained towers. The two towers here differ in pool, projection, pretraining, resolution and the depth of the frozen prefix. The 2.7× figure is a conjecture; nothing measured supports it.\n\n4. **The Adam claims are false (confirmed).** Your counterexample gives a step of 1.00136·lr. The known Kingma & Ba bound for these betas is about (1−β₁)/√(1−β₂) ≈ 3.16·lr per step, and AdamW decay adds to that. \"Step ≤ lr\" and \"lr·100·√n bound\" are both wrong, so the \"fraction of bound used\" in F1 has the wrong denominator.\n\n5. **The arm is an arbitrary LR/budget change in another form (confirmed against the design).** The k clip to [1.5, 3] is hand-picked, and any ratio below 0.33 just saturates at 3. At 100 updates both arms are under-trained; earlier In-Shop work found the loss still falling. So a PE gain at higher LR is explained just as well by \"more effective training budget\", which the objective excludes. It also isn't specific to PE, because the Large-at-k control (\"Large wouldn't benefit\") is explicitly not run. Even a pass therefore couldn't establish PE-specific per-update inefficiency. The prior 100-update quality STOP stands.\n\n6. **DEAD or inconclusive doesn't prove capacity.** Equal raw displacement would leave these explanations open:\n   - update direction\n   - pretrained geometry\n   - native pool/projection readout\n   - resolution\n   - the 100-update window\n\n   Asymptotic capacity is never measured. The research's \"closes PE on capacity grounds\" is an overclaim. The correct wording is \"no licensed cheap PE adaptation mechanism; capacity not established.\"\n\n## What is still solid (descriptive only)\n\n- The attribution result: PE starts ahead (+3.86 pp raw R@1) and ends behind (−0.65 pp). The relative learning gain is −4.50 [−5.59, −3.45], and it sits in encoder adaptation, not in the head or in PCA.\n- The per-group relative parameter changes, with fingerprints qualified.\n- The post-clip gradient norms. These don't show the head taking the clip budget and starving PE's encoder.\n\nNone of these identify whether the cause is optimization or capacity.\n\n## Decision\n\n- **STOP** the F0 → LR-multiplier gate. It is not a validated or distinct intervention, and it doesn't license an LR calibration.\n- **Don't record a capacity closure.** Record \"PE lane: no surviving distinct encoder-adaptation mechanism under the frozen recipe; cause (optimization vs capacity) unidentified.\"\n- **F0 optional.** It can be computed on the saved matrices as a labelled descriptive statistic, with no threshold or GPU consequence. There's no need to run it at all.\n- **No new GPU work** comes out of this review. I've added no new losses, recipes or rescue thresholds."
+      },
+      "providers_used": [
+        "claude"
+      ],
+      "active_provider": "claude",
+      "phase": "Consultation completed",
+      "input_bytes": 2517,
+      "output_bytes": 4922,
+      "elapsed_seconds": 64,
+      "progress": "devbox-ask: claude consult still running (0m 30s)\ndevbox-ask: claude consult still running (1m 00s)",
+      "progress_truncated": false,
+      "result": "# Verdict on the proposed F0 → LR gate: STOP\n\nThe research proposes measuring raw angular displacement (F0) and using it to gate a PE learning-rate change. Don't fund it as an encoder-adaptation intervention, and don't use it to close the PE lane on capacity grounds. F0 can still be run as a descriptive CPU number, as long as no decision depends on it. I read the Fable result, both 2026-09-28 result docs and the premise script, and re-ran the script (PASS). I edited nothing and ran no jobs.\n\n## Findings I checked\n\n1. **Raw displacement doesn't measure how retrieval changed (confirmed).** The script's counterexample holds. A signed axis permutation moves every vector 90°, yet float cosine and the int8 code dots/norms stay exactly the same. More generally, any global rotation leaves the cosine ranking unchanged but inflates θ. θ also mixes in shifts that are common to all images and changes in the trainable pool/projection. PE's text-space projection moved 0.29%, which is larger than its median block. The proposed multiplier, however, applies only to the trunk. So the size of θ, in either direction, doesn't identify under-stepping. The same problem affects the arm's own calibration band (0.75 ≤ θ_PEk/θ_Large ≤ 1.33): it measures the wrong quantity.\n\n2. **Displacement is an effect of learning, not an independent cause (inference).** Large learned more (+16.5 vs +12.0 pp raw R@1), so it is expected to have moved more features whether the explanation is step size or capacity. If PE's gradients have no productive direction to follow, that also produces small, sign-inconsistent movement. A ratio ≤ 0.6 is therefore predicted under both hypotheses and can't separate them. F1 is meant to separate them, but its bound is wrong (point 4).\n\n3. **Evidence we already have cuts against the premise (descriptive).** The median relative change per block is 0.212% for PE vs 0.146% for Large, about 1.45× in PE's favour. The \"~2.7×\" figure is (1024/768)·(12/6). That formula assumes updates that line up with the inputs and add up coherently through the residual blocks. It also borrows μP/depth-μP scaling, which was derived for from-scratch limits and doesn't cover different pretrained towers. The two towers here differ in pool, projection, pretraining, resolution and the depth of the frozen prefix. The 2.7× figure is a conjecture; nothing measured supports it.\n\n4. **The Adam claims are false (confirmed).** Your counterexample gives a step of 1.00136·lr. The known Kingma & Ba bound for these betas is about (1−β₁)/√(1−β₂) ≈ 3.16·lr per step, and AdamW decay adds to that. \"Step ≤ lr\" and \"lr·100·√n bound\" are both wrong, so the \"fraction of bound used\" in F1 has the wrong denominator.\n\n5. **The arm is an arbitrary LR/budget change in another form (confirmed against the design).** The k clip to [1.5, 3] is hand-picked, and any ratio below 0.33 just saturates at 3. At 100 updates both arms are under-trained; earlier In-Shop work found the loss still falling. So a PE gain at higher LR is explained just as well by \"more effective training budget\", which the objective excludes. It also isn't specific to PE, because the Large-at-k control (\"Large wouldn't benefit\") is explicitly not run. Even a pass therefore couldn't establish PE-specific per-update inefficiency. The prior 100-update quality STOP stands.\n\n6. **DEAD or inconclusive doesn't prove capacity.** Equal raw displacement would leave these explanations open:\n   - update direction\n   - pretrained geometry\n   - native pool/projection readout\n   - resolution\n   - the 100-update window\n\n   Asymptotic capacity is never measured. The research's \"closes PE on capacity grounds\" is an overclaim. The correct wording is \"no licensed cheap PE adaptation mechanism; capacity not established.\"\n\n## What is still solid (descriptive only)\n\n- The attribution result: PE starts ahead (+3.86 pp raw R@1) and ends behind (−0.65 pp). The relative learning gain is −4.50 [−5.59, −3.45], and it sits in encoder adaptation, not in the head or in PCA.\n- The per-group relative parameter changes, with fingerprints qualified.\n- The post-clip gradient norms. These don't show the head taking the clip budget and starving PE's encoder.\n\nNone of these identify whether the cause is optimization or capacity.\n\n## Decision\n\n- **STOP** the F0 → LR-multiplier gate. It is not a validated or distinct intervention, and it doesn't license an LR calibration.\n- **Don't record a capacity closure.** Record \"PE lane: no surviving distinct encoder-adaptation mechanism under the frozen recipe; cause (optimization vs capacity) unidentified.\"\n- **F0 optional.** It can be computed on the saved matrices as a labelled descriptive statistic, with no threshold or GPU consequence. There's no need to run it at all.\n- **No new GPU work** comes out of this review. I've added no new losses, recipes or rescue thresholds.",
+      "result_truncated": false
+    },
+    {
+      "role": "engineering_critic",
+      "id": "cecde74cff044054",
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "fallbacks": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "agent": "sfora/emafactorial",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1790621228,
+      "timeout_seconds": 1200,
+      "deadline_at": 1790622428,
+      "budget_usd": null,
+      "prompt_preview": "Act as the independent adversarial engineering and release critic. Inspect correctness, failure modes, security, operability, tests, and UX. Prioritize concrete findings with evidence. Do not edit files.\n\nMaterial to critique:\nREAD ONLY, no edits/jobs/GPU. Repo /home/rb/worktrees/sfora-positive-causality master b566273c. Reconcile NEW completed Fable research575a2d205fe6486d raw docs/evidence/compact_metric/sop-siglip2-substrate-v1/pe-update-geometry-v1/research-result.json (result text). It proposes F0 medianraw angular displacement between native0/100 held1024, PE/Large ratio<=.6 +upper<.75 ALIVE ->samePE100recipe withLRmultiplierLarge/PEratio clipped1.5..3; ratio>=.85 or inconclusive closesPEoncapacitygrounds. It claims AdamstepatmostLR and lr*100*sqrt(n)bound and fanin*adapteddepth scalingabout2.7. Existing diagnostics: docs/inshop_pe_learning_attribution_result_2026-09-28.md finalgoldenPASS, rawPEinitialbetterbutfinalworse; docs/inshop_pe_update_geometry_result_2026-09-28.md actualCPU original/finalgroupfingerprintqualified; PErelativeparameterblockchanges median.212091% vsLarge.145991%, PEvisionpostclipgradlarger. New scripts/check_inshop_pe_displacement_premise.py stdlibcounterexamples PASS: signed90degreeaxispermutation preservesALLfloatcosine ANDint8packedcodedot/norm while rawmovement90deg; correctedAdamdefaultbetas(.9,.999) withgrad.9,1 clip1 givesstep2/lr1.0013578>1. No actualF0data scored, noLRchange ornewtraining. Independentlyread primaryabstracts arxiv2203.03466 (muP reparametrization/widthtransfer),2310.02244 depth-muP explicittransformerlimitations,2309.16620depthwise residualnetwork scaling; no guarantee for PEpretrainedB16 vsSigLIP2Large(nativepool/proj/pretrain/resolutiondiffer). Fullobjective excludes arbitraryLR/budget/depth/precision/head/loss/source/crop/teacherrescue. Prior100qualitySTOPremains. Question: GO/STOP on this proposedF0->LRgate as a genuinelydistinct validated encoderadaptation intervention? Doesrawdisplacement licenseLRcalibration or capacityclosure, and is it meaningful independentretrievalfunctionmovement given rotation/gauge? Verify findings, distinguishusefuldescriptivestatisticsfromcausalinference. Give minimal rigorousdecision; do not inventnewloss/recipe variants or proposeposthocthresholdrescues. If rejection doesn'tprovecapacitysayso. Needonecombinedreviewonly before anynewGPUdecision.",
+      "prompt_sha256": "d1e0ceb712b4e881f1bb45b2004b130187938a86955f266de6d52e73917cb8ed",
+      "prompt_bytes": 2551,
+      "fingerprint": "90f034aaf436dfa0a377c8014710fd46a035a324f30a995bcbdaec6e20926a84",
+      "evidence": {
+        "git_commit": "b566273c6e6df2734998b127e7ffe095704ed9b8",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "df536046b1a0ca749e028df5c669f89cadeef7ba0a892e07293b52ceb1fb8310",
+        "worktree_sha256": "e5a007581137b45e2dd01fe2a1dacb5525b04ee2bf4f370db842cdbeb7ea2fb4",
+        "worktree_evidence_truncated": false,
+        "active_goal": {
+          "id": "goal-1790540789-1790540789754989478-2322852",
+          "agent": "sfora/emafactorial",
+          "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+          "status": "queued",
+          "revision": 1,
+          "actor": "operator",
+          "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+          "created_at": 1790540789,
+          "updated_at": 1790540789
+        }
+      },
+      "previous_fingerprint": "96e9f69bf519cac9eb29e4f69b7a9ad96b6dd06cb9ad9b8247ff52c8c146fd49",
+      "reused": false,
+      "critique_id": "b5fcd8a39d1e40e6",
+      "critique_role": "engineering_critic",
+      "systemd_unit": "devbox-consult-cecde74cff044054.service",
+      "pid": 2407242,
+      "pgid": 2407242,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra",
+          "budget_usd": null,
+          "timeout_seconds": 1200,
+          "started_at": 1790621228
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1790621312,
+      "event_cursor": 39,
+      "events": [
+        {
+          "seq": 16,
+          "at": 1790621256,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 17,
+          "at": 1790621256,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Web search started"
+        },
+        {
+          "seq": 18,
+          "at": 1790621257,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Web search completed"
+        },
+        {
+          "seq": 19,
+          "at": 1790621262,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 20,
+          "at": 1790621269,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 21,
+          "at": 1790621269,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 22,
+          "at": 1790621269,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 23,
+          "at": 1790621269,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 24,
+          "at": 1790621269,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 25,
+          "at": 1790621269,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 26,
+          "at": 1790621269,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 27,
+          "at": 1790621269,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 28,
+          "at": 1790621269,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Web search started"
+        },
+        {
+          "seq": 29,
+          "at": 1790621271,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Web search completed"
+        },
+        {
+          "seq": 30,
+          "at": 1790621280,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 31,
+          "at": 1790621280,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 32,
+          "at": 1790621280,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 33,
+          "at": 1790621280,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 34,
+          "at": 1790621280,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 35,
+          "at": 1790621280,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 36,
+          "at": 1790621286,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 37,
+          "at": 1790621286,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 38,
+          "at": 1790621311,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 39,
+          "at": 1790621311,
+          "provider": "codex",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": true,
+      "provider_events": {
+        "codex": [
+          {
+            "seq": 32,
+            "at": 1790621280,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 33,
+            "at": 1790621280,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 34,
+            "at": 1790621280,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 35,
+            "at": 1790621280,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 36,
+            "at": 1790621286,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 37,
+            "at": 1790621286,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 38,
+            "at": 1790621311,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 39,
+            "at": 1790621311,
+            "provider": "codex",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "**STOP on the proposed F0→LR gate.** It is neither a validated calibration nor evidence of a genuinely distinct adaptation mechanism. Preserve the prior 100-update quality STOP. **This rejection does not establish a PE capacity ceiling.**\n\n1. **Blocking: raw displacement does not identify retrieval-function movement.** The [counterexample](/home/rb/worktrees/sfora-positive-causality/scripts/check_inshop_pe_displacement_premise.py:1) passes: a shared signed coordinate permutation produces 90° displacement while preserving every tested float cosine and packed-code dot product/norm. Algebraically, the same construction extends to 1024 dimensions. Arbitrary rotations need not preserve quantization; this signed permutation does. Thus F0 can report substantial movement with unchanged retrieval. Its bootstrap quantifies uncertainty in that descriptive statistic, not validity of its causal interpretation.\n\n2. **Blocking: neither F0 outcome licenses the proposed conclusion.** Low displacement does not establish insufficient LR; high displacement does not establish sufficient useful adaptation or exhausted capacity. Endpoint displacement also omits trajectory length, cancellation and update direction. Matching its median to Large assumes an unestablished relationship between LR, displacement and quality across different pretrained towers. The thresholds and confidence interval cannot supply that missing relationship.\n\n3. **High: the Adam bound is false.** I reproduced `step2/LR = 1.001357781654249` with default betas and scalar gradients `0.9, 1`, both satisfying clip1. Extending with gradient 1 through step100 gives net displacement `100.196312148 × LR`, directly exceeding the proposed `100 × LR × √n` bound for `n=1`. Therefore F1’s “fraction of bound” cannot support its claimed diagnosis. Moreover, [the actual optimizer](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_pe_pair.py:302) is AdamW: increasing LR also increases decoupled weight-decay shrinkage despite retaining coefficient `0.05`.\n\n4. **High: the cited theory does not validate the 2.7× multiplier.** [μP](https://arxiv.org/abs/2203.03466) concerns transfer under a specified parametrization; [Depth-μP](https://arxiv.org/abs/2310.02244) explicitly identifies limitations for deeper blocks such as transformers. [Bordelon et al.](https://arxiv.org/abs/2309.16620) study residual scaling combined with μP. These abstracts provide no guarantee for this heterogeneous pretrained PE/SigLIP2 comparison. Multiplying width ratio by adapted-block ratio remains conjecture.\n\n5. **Release consequence: this remains an LR rescue, with insufficient causal justification.** Fixed batches and update count would control those variables, but would not establish why a changed LR helped—or why failure meant capacity exhaustion. The proposed subsequent 1,000-update comparison is therefore unsupported by this gate.\n\nThe existing evidence remains useful: [golden-qualified attribution](/home/rb/worktrees/sfora-positive-causality/docs/inshop_pe_learning_attribution_result_2026-09-28.md) establishes the raw-quality reversal under this recipe; [saved parameter geometry](/home/rb/worktrees/sfora-positive-causality/docs/inshop_pe_update_geometry_result_2026-09-28.md) shows PE’s median relative block change exceeds Large’s, without measuring useful functional adaptation. Neither separates optimization from capacity.\n\nReviewed the completed research text and primary abstracts; ran only tiny stdlib counterchecks. No files edited, actual F0 scored, training launched or GPU used. **Reject this gate; retain optimization-versus-capacity as unresolved.**",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "codex": "**STOP on the proposed F0→LR gate.** It is neither a validated calibration nor evidence of a genuinely distinct adaptation mechanism. Preserve the prior 100-update quality STOP. **This rejection does not establish a PE capacity ceiling.**\n\n1. **Blocking: raw displacement does not identify retrieval-function movement.** The [counterexample](/home/rb/worktrees/sfora-positive-causality/scripts/check_inshop_pe_displacement_premise.py:1) passes: a shared signed coordinate permutation produces 90° displacement while preserving every tested float cosine and packed-code dot product/norm. Algebraically, the same construction extends to 1024 dimensions. Arbitrary rotations need not preserve quantization; this signed permutation does. Thus F0 can report substantial movement with unchanged retrieval. Its bootstrap quantifies uncertainty in that descriptive statistic, not validity of its causal interpretation.\n\n2. **Blocking: neither F0 outcome licenses the proposed conclusion.** Low displacement does not establish insufficient LR; high displacement does not establish sufficient useful adaptation or exhausted capacity. Endpoint displacement also omits trajectory length, cancellation and update direction. Matching its median to Large assumes an unestablished relationship between LR, displacement and quality across different pretrained towers. The thresholds and confidence interval cannot supply that missing relationship.\n\n3. **High: the Adam bound is false.** I reproduced `step2/LR = 1.001357781654249` with default betas and scalar gradients `0.9, 1`, both satisfying clip1. Extending with gradient 1 through step100 gives net displacement `100.196312148 × LR`, directly exceeding the proposed `100 × LR × √n` bound for `n=1`. Therefore F1’s “fraction of bound” cannot support its claimed diagnosis. Moreover, [the actual optimizer](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_pe_pair.py:302) is AdamW: increasing LR also increases decoupled weight-decay shrinkage despite retaining coefficient `0.05`.\n\n4. **High: the cited theory does not validate the 2.7× multiplier.** [μP](https://arxiv.org/abs/2203.03466) concerns transfer under a specified parametrization; [Depth-μP](https://arxiv.org/abs/2310.02244) explicitly identifies limitations for deeper blocks such as transformers. [Bordelon et al.](https://arxiv.org/abs/2309.16620) study residual scaling combined with μP. These abstracts provide no guarantee for this heterogeneous pretrained PE/SigLIP2 comparison. Multiplying width ratio by adapted-block ratio remains conjecture.\n\n5. **Release consequence: this remains an LR rescue, with insufficient causal justification.** Fixed batches and update count would control those variables, but would not establish why a changed LR helped—or why failure meant capacity exhaustion. The proposed subsequent 1,000-update comparison is therefore unsupported by this gate.\n\nThe existing evidence remains useful: [golden-qualified attribution](/home/rb/worktrees/sfora-positive-causality/docs/inshop_pe_learning_attribution_result_2026-09-28.md) establishes the raw-quality reversal under this recipe; [saved parameter geometry](/home/rb/worktrees/sfora-positive-causality/docs/inshop_pe_update_geometry_result_2026-09-28.md) shows PE’s median relative block change exceeds Large’s, without measuring useful functional adaptation. Neither separates optimization from capacity.\n\nReviewed the completed research text and primary abstracts; ran only tiny stdlib counterchecks. No files edited, actual F0 scored, training launched or GPU used. **Reject this gate; retain optimization-versus-capacity as unresolved.**"
+      },
+      "providers_used": [
+        "codex"
+      ],
+      "active_provider": "codex",
+      "phase": "Consultation completed",
+      "input_bytes": 2551,
+      "output_bytes": 3669,
+      "elapsed_seconds": 84,
+      "progress": "Reading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)",
+      "progress_truncated": false,
+      "result": "**STOP on the proposed F0→LR gate.** It is neither a validated calibration nor evidence of a genuinely distinct adaptation mechanism. Preserve the prior 100-update quality STOP. **This rejection does not establish a PE capacity ceiling.**\n\n1. **Blocking: raw displacement does not identify retrieval-function movement.** The [counterexample](/home/rb/worktrees/sfora-positive-causality/scripts/check_inshop_pe_displacement_premise.py:1) passes: a shared signed coordinate permutation produces 90° displacement while preserving every tested float cosine and packed-code dot product/norm. Algebraically, the same construction extends to 1024 dimensions. Arbitrary rotations need not preserve quantization; this signed permutation does. Thus F0 can report substantial movement with unchanged retrieval. Its bootstrap quantifies uncertainty in that descriptive statistic, not validity of its causal interpretation.\n\n2. **Blocking: neither F0 outcome licenses the proposed conclusion.** Low displacement does not establish insufficient LR; high displacement does not establish sufficient useful adaptation or exhausted capacity. Endpoint displacement also omits trajectory length, cancellation and update direction. Matching its median to Large assumes an unestablished relationship between LR, displacement and quality across different pretrained towers. The thresholds and confidence interval cannot supply that missing relationship.\n\n3. **High: the Adam bound is false.** I reproduced `step2/LR = 1.001357781654249` with default betas and scalar gradients `0.9, 1`, both satisfying clip1. Extending with gradient 1 through step100 gives net displacement `100.196312148 × LR`, directly exceeding the proposed `100 × LR × √n` bound for `n=1`. Therefore F1’s “fraction of bound” cannot support its claimed diagnosis. Moreover, [the actual optimizer](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_pe_pair.py:302) is AdamW: increasing LR also increases decoupled weight-decay shrinkage despite retaining coefficient `0.05`.\n\n4. **High: the cited theory does not validate the 2.7× multiplier.** [μP](https://arxiv.org/abs/2203.03466) concerns transfer under a specified parametrization; [Depth-μP](https://arxiv.org/abs/2310.02244) explicitly identifies limitations for deeper blocks such as transformers. [Bordelon et al.](https://arxiv.org/abs/2309.16620) study residual scaling combined with μP. These abstracts provide no guarantee for this heterogeneous pretrained PE/SigLIP2 comparison. Multiplying width ratio by adapted-block ratio remains conjecture.\n\n5. **Release consequence: this remains an LR rescue, with insufficient causal justification.** Fixed batches and update count would control those variables, but would not establish why a changed LR helped—or why failure meant capacity exhaustion. The proposed subsequent 1,000-update comparison is therefore unsupported by this gate.\n\nThe existing evidence remains useful: [golden-qualified attribution](/home/rb/worktrees/sfora-positive-causality/docs/inshop_pe_learning_attribution_result_2026-09-28.md) establishes the raw-quality reversal under this recipe; [saved parameter geometry](/home/rb/worktrees/sfora-positive-causality/docs/inshop_pe_update_geometry_result_2026-09-28.md) shows PE’s median relative block change exceeds Large’s, without measuring useful functional adaptation. Neither separates optimization from capacity.\n\nReviewed the completed research text and primary abstracts; ran only tiny stdlib counterchecks. No files edited, actual F0 scored, training launched or GPU used. **Reject this gate; retain optimization-versus-capacity as unresolved.**",
+      "result_truncated": false
+    }
+  ],
+  "reused": false,
+  "finished_at": 1790621312,
+  "elapsed_seconds": 84,
+  "input_bytes": 2147,
+  "output_bytes": 8591
+}

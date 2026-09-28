@@ -37,7 +37,8 @@ quality scoring, training or optimizer were run. The fixture failed on the
 absent implementation, then passed exact zero/scaled update arithmetic and
 nonfinite rejection; Ruff/syntax and local receipt ratio replay passed.
 
-The single new Fable consultation `575a2d205fe6486d` remains responsible for
-proposing one genuinely distinct, bounded encoder-adaptation mechanism from the
-new held attribution evidence. No intervention is selected from this readout.
+The single new Fable consultation `575a2d205fe6486d` completed; its proposed
+displacement-to-LR gate was rejected after a cheap counterexample and dual
+critique. [Terminal decision](inshop_pe_adaptation_research_decision_2026-09-28.md).
+No intervention is selected from this readout.
 Full production quality and matched image-to-top-k speed remain unmet.

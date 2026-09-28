@@ -1,0 +1,332 @@
+{
+  "id": "575a2d205fe6486d",
+  "provider": "fable",
+  "model": "claude-fable-5-1",
+  "fallbacks": [
+    {
+      "provider": "fable",
+      "model": "claude-fable-5-1"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-6-sol"
+    }
+  ],
+  "agent": "sfora/emafactorial",
+  "cwd": "/home/rb/worktrees/sfora-positive-causality",
+  "status": "completed",
+  "runner_started": true,
+  "started_at": 1790620519,
+  "timeout_seconds": 1800,
+  "deadline_at": 1790622319,
+  "budget_usd": 6,
+  "prompt_preview": "READ ONLY deep reasoning/invention for Sfora. Repo /home/rb/worktrees/sfora-positive-causality master d7337cfe. NEW decisive evidence after earlier research (do not repeat questions ae2da85c13b04bee/b347ee2c978b4eb8/fb5cc8c4b1aa44c7): docs/inshop_pe_learning_attribution_result_2026-09-28.md and gate; docs/inshop_pe_compression_result_2026-09-28.md; augmented training result/gate and scripts/train_inshop_pe_pair.py, probe_inshop_pe_training_smoke.py, pe_core_training.py. Raw numeric receipts pe-augmented-100-v1, pe-learning-attribution-v1, pe-raw-attribution-v1 under docs/evidence/compact_metric/sop-siglip2-substrate-v1/. All jobs terminal, DGX idle; NO edits, GPU, new job or worker. Full goal productionjoint SOP+InShopquality+matchedimage-to-topk speed unmet. PE publicB16/224 muchcheaperthanLarge/256, startsstronger butlearnsless underidentical augmented100 schedule. TRAINheld6354q6245g1993products: originalPCA128 Large75.542965/PE80.799496 R1%, final100 Large95.672018/PE95.073969. Raw1024 original Large79.430280/PE83.286119 final95.939566/95.294303; relativePElearninggain-4.50110pp product95[-5.59075,-3.44611], mAPrelativegain-5.39751pp. Finalsavedvectors/packedhits/APgoldenreproduced. Oninitialencoder changingonlyhead givesPE+1.13314pp/Large+.77117, finalencoderheadchangePE+.04721/Large-.01574. This localizes failing layer to encoderadaptation underrecipe, NOTpoorsource/PCAalone; doesn'tisolateoptimizationvs capacity. Class/queryCI exploratory, notofficial forecasts. Recipe AdamWvision1e-5/headproxy1e-4, wd.05 clip1, ArcFace.3scale64+8detachedbankrank; originalF32/FP16autocastscaler128; freezesfirst6PE/12Large. Largepostclipvision/head/classifiernorm first .9291/.36595/.05277 last .87391/.47697/.09370; PEfirst .98541/.16511/.04125 last .97338/.21285/.08500. Medianpreclip Large81.8131 PE88.7239; initial/finallossLarge8.45745/4.59297 PE4.96657/4.64438 (not comparablequalitymeasure). Prior100 STOP quality thresholds closed. Need choose ONE cheapest genuinelycausallydistinct encoderadaptation mechanism that could retain PEcost andfix learningdeficit. NOT arbitrarylr/decay/depth/precision/100->1000budget rescue, head/width/crop/source/teacher/loss/coefficient sweep, officialreading or allTRAINscaling. Read closed decisions docs/inshop_next_mechanism_review_decision_2026-09-28.md, inshop_subcenter_research_decision_2026-09-28.md, objective_conflict_gate, head_first_warmup_gate, source_main_100_gate, teacher_transfer_100_gate and living siglip2_joint_quality_performance_decision_2026-09-24.md before suggestingrepeats. Negativeclosedarms scopedconfig not universalimpossibility. Use firstprinciples/otherfields onlyfor testablemechanism. Giveone recommendedminimal intervention, exactdistinctionfromclosedarms, causalhypothesis and cheapest CPU/savedartifact falsifier BEFORE GPUtraining, fixed matchedarm budget/stop/resourcecostconstraints and how to separateeffectfrom capacity/update count confounds. Cite primarysources for anynewtechnicalmethod, noveltyclaimsor externalfacts; separateconjecture/projectionfrommeasurements. If evidencecannot supporta genuinelydistinctchoice, sayso specificallywithout reinventingclosedrescue. Do not spend time globalSOTAfrontier or productapi changes. Endwith compactdecision and boundednextgate.",
+  "prompt_sha256": "fed8ae9927bdb586145b301c5eae5e7e52357e6afbfcd57f5045d941e2009c76",
+  "prompt_bytes": 3454,
+  "fingerprint": "bbc14f7e8a58c4780eed08d40627dee3acb17b4f3b7d14f001f28bcfa9c19b96",
+  "evidence": {
+    "git_commit": "d7337cfecb537f8e242165c510331c881a535a01",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+    "worktree_sha256": "68432c48888e73e3c5c085e55dd9c2ccfadf33f82ead0f380aa007c18967e516",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "previous_fingerprint": "e8258dd0ab4d9f20e85765c2468aea998511d26160a23ae5839728bd525922ae",
+  "reused": false,
+  "systemd_unit": "devbox-consult-575a2d205fe6486d.service",
+  "pid": 2212843,
+  "pgid": 2212843,
+  "attempt": 1,
+  "attempts": [
+    {
+      "provider": "fable",
+      "model": "claude-fable-5-1"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-6-sol"
+    }
+  ],
+  "attempt_history": [
+    {
+      "provider": "fable",
+      "model": "claude-fable-5-1",
+      "budget_usd": 6,
+      "timeout_seconds": 1800,
+      "started_at": 1790620519
+    }
+  ],
+  "exit_code": 0,
+  "finished_at": 1790621066,
+  "event_cursor": 42,
+  "events": [
+    {
+      "seq": 19,
+      "at": 1790620630,
+      "provider": "fable",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 20,
+      "at": 1790620860,
+      "provider": "fable",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 21,
+      "at": 1790620874,
+      "provider": "fable",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 22,
+      "at": 1790621045,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 23,
+      "at": 1790621046,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 24,
+      "at": 1790621047,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 25,
+      "at": 1790621048,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 26,
+      "at": 1790621049,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 27,
+      "at": 1790621050,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 28,
+      "at": 1790621052,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 29,
+      "at": 1790621053,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 30,
+      "at": 1790621054,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 31,
+      "at": 1790621055,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 32,
+      "at": 1790621056,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 33,
+      "at": 1790621057,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 34,
+      "at": 1790621058,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 35,
+      "at": 1790621059,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 36,
+      "at": 1790621060,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 37,
+      "at": 1790621061,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 38,
+      "at": 1790621062,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 39,
+      "at": 1790621063,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 40,
+      "at": 1790621064,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 41,
+      "at": 1790621065,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 42,
+      "at": 1790621066,
+      "provider": "fable",
+      "kind": "phase",
+      "label": "Consultation completed",
+      "detail": "exit 0"
+    }
+  ],
+  "events_truncated": true,
+  "provider_events": {
+    "fable": [
+      {
+        "seq": 35,
+        "at": 1790621059,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 36,
+        "at": 1790621060,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 37,
+        "at": 1790621061,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 38,
+        "at": 1790621062,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 39,
+        "at": 1790621063,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 40,
+        "at": 1790621064,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 41,
+        "at": 1790621065,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 42,
+        "at": 1790621066,
+        "provider": "fable",
+        "kind": "phase",
+        "label": "Consultation completed",
+        "detail": "exit 0"
+      }
+    ]
+  },
+  "partial_result": "**Recommendation: one candidate survives, and it can be killed for free before any GPU.**\n\nThe evidence supports exactly one cheap, causally distinct encoder-adaptation mechanism: **function-space step mismatch of the shared recipe**. Identical nominal AdamW 1e-5 on the trunk, global clip 1, standard parametrization, applied to a 768-wide tower with 6 adapted blocks versus a 1024-wide tower with 12 adapted blocks, should move the wide tower's features more per update. If so, \"starts stronger, learns less\" is under-stepping, not a capacity ceiling. If the saved artifacts show PE's features moved as much as Large's, nothing in the evidence supports another cheap PE encoder-adaptation mechanism and the PE lane should close on capacity grounds. I say that explicitly rather than reinvent a closed rescue.\n\n## Measured basis (from receipts, not new runs)\n\n| Fact | Large/256 | PE-B16/224 |\n|---|---:|---:|\n| Trainable tensors (blocks + norm + native pool/proj) | 205 | 86 |\n| Adapted residual blocks / width | 12 / 1024 | 6 / 768 |\n| Pre-clip grad norm median, clipped to 1 every step, scaler fixed 128 | 81.8 | 88.7 |\n| Largest trainable gradient group at step 100 | MAP head 0.40 | attn_pool 0.42 |\n| Raw1024 held R@1 gain over 100 updates (pp) | +16.51 | +12.01 |\n| PE−Large relative raw gain (pp), product 95% | | −4.50 [−5.59, −3.45] |\n\nClipping is not differential and Adam is scale-invariant, so each arm trains at the Adam-bounded per-parameter step of at most 1e-5. What differs is how much that bounded per-parameter step moves the *function*.\n\n## Causal hypothesis and its falsifier\n\nUnder standard parametrization, Adam's per-parameter update is about lr regardless of width, so a layer's output perturbation grows with fan-in and the network's output perturbation grows with the number of adapted residual blocks. μP prescribes Adam hidden-layer LR ∝ 1/width to keep feature updates constant across width (Yang et al. 2022, arXiv:2203.03466); depth-μP adds 1/√L branch scaling for depth transfer (Yang et al. 2023, arXiv:2310.02244; Bordelon et al. 2023, arXiv:2309.16620). Neither is applied in this recipe. First-order projection, conjecture not measurement: Large's per-update feature displacement ≈ (1024/768)·(12/6) ≈ 2.7× PE's, so 100 PE updates would be worth roughly 40 Large updates of function movement. μP theory is derived for from-scratch scaling limits, so I do not trust the multiplier from theory; I measure it.\n\n**F0, CPU, saved artifacts, zero GPU.** The attribution job saved held raw-1024 matrices for encoder0 and encoder100 of both arms (receipt hashes large.0 `0b3969ac…`, large.1 `5238def8…`, pe.0 `151a5091…`, pe.1 `70e7acbf…`). Verify SHAs, then compute per-image angular displacement θ_i = arccos cos(raw0_i, raw100_i) on the same 12,599 held rows, report medians and a paired product bootstrap of the PE/Large median ratio. Predeclare before reading: ALIVE if ratio point ≤ 0.6 and 95% upper < 0.75; DEAD if ratio ≥ 0.85; anything between is inconclusive and closes without threshold search. Cost is seconds and under 1 GiB.\n\n**F1 cross-check, same CPU job.** Per-group ‖θ100−θ0‖_F/‖θ0‖_F from the saved checkpoints against the pinned originals, plus the fraction of the Adam bound lr·100·√n actually used per block. This distinguishes small displacement caused by gradient sign-inconsistency from small displacement caused by the nominal step. Under two minutes, under 8 GiB host.\n\n## Bounded matched arm, only if F0 is ALIVE\n\nOne PE arm, trunk LR multiplied by k = Large median θ / PE median θ, clipped to [1.5, 3], fixed before launch. Everything else byte-identical to the frozen pair: seed 179032 first 100 batches, augmented RGB hashes, FP16 autocast with scaler 128, head and proxy LR 1e-4, weight decay 0.05, clip 1, first 6 blocks frozen, own PCA128/proxies/bank. No Large rerun; the frozen control receipt is the comparator.\n\n- Calibration validity, read first: recompute θ on held for the new checkpoint with the existing attribution protocol and require 0.75 ≤ θ_PEk/θ_Large ≤ 1.33. Outside that band the arm is inconclusive and closes, no retune.\n- Quality gate, raw1024 held R@1 gain versus the PE baseline gain: advance if ≥ +2.25 pp (half the measured deficit) with paired product-bootstrap lower > 0 and mAP@R gain lower ≥ 0. Kill if < +1.0 pp or lower ≤ 0. PCA128 packed read is secondary and descriptive.\n- Resources: one DGX user unit, whole process ≤ 300 s, allocated CUDA < 10 GB, host 8 GiB, cleanup < 8 MiB, all finite and no-skip guards as before. The prior PE arm took 112 s.\n\nConfound separation. Update count is fixed at 100 on identical batches, so any change is per-update efficiency. The trainable set is unchanged, so a pass implicates optimization and a fail with valid calibration implicates capacity or direction. Head and proxy LR are untouched, so the existing 2×2 CPU attribution can re-measure coadaptation. The multiplier is derived once from a measured target with a validity band, which is what separates this from an arbitrary LR sweep; the same logic predicts Large would not benefit, a falsifiable side prediction not run now.\n\nDistinction from closed arms: head-first warmup changed phase order; objective-conflict projection changed gradient direction at the pooler; source MAIN, teacher transfer, sub-center, description, context and augmentation arms changed supervision; freeze16, true-freeze, depth22, cross-depth and multidepth changed which blocks exist or train while every one kept trunk LR 1e-5; rank-32 delta changed update structure; wide, direct256 and nonlinear heads changed readout. The three prior consultations proposed all-TRAIN scaling, sub-centers and a nonlinear head. None measured or matched function-space displacement. No novelty is claimed; μP is prior art and matched displacement is a control.\n\nRejected alternatives, one line each. Intermediate-layer readout follows the PE paper's title claim (Bolya et al. 2025, arXiv:2504.13181) but is a depth/readout change overlapping closed families. Probe-attention gating through PE's attn_pool is untestable without new forward passes and its fix would be a head change. Unverified: exact trainable parameter counts are inferred from shapes, and the distillation origin of PE-B16 is a model-card claim recorded in the gate, not checked by me.\n\n**Decision.** Run F0/F1 on saved artifacts before any GPU. DEAD or inconclusive closes the PE lane as a capacity result under this recipe. ALIVE licenses exactly one matched-step PE arm under the gate above; passing it authorizes only a separately frozen paired-seed 1,000-update comparison, not official reads or serving claims.",
+  "partial_result_truncated": false,
+  "provider_partials": {
+    "fable": "**Recommendation: one candidate survives, and it can be killed for free before any GPU.**\n\nThe evidence supports exactly one cheap, causally distinct encoder-adaptation mechanism: **function-space step mismatch of the shared recipe**. Identical nominal AdamW 1e-5 on the trunk, global clip 1, standard parametrization, applied to a 768-wide tower with 6 adapted blocks versus a 1024-wide tower with 12 adapted blocks, should move the wide tower's features more per update. If so, \"starts stronger, learns less\" is under-stepping, not a capacity ceiling. If the saved artifacts show PE's features moved as much as Large's, nothing in the evidence supports another cheap PE encoder-adaptation mechanism and the PE lane should close on capacity grounds. I say that explicitly rather than reinvent a closed rescue.\n\n## Measured basis (from receipts, not new runs)\n\n| Fact | Large/256 | PE-B16/224 |\n|---|---:|---:|\n| Trainable tensors (blocks + norm + native pool/proj) | 205 | 86 |\n| Adapted residual blocks / width | 12 / 1024 | 6 / 768 |\n| Pre-clip grad norm median, clipped to 1 every step, scaler fixed 128 | 81.8 | 88.7 |\n| Largest trainable gradient group at step 100 | MAP head 0.40 | attn_pool 0.42 |\n| Raw1024 held R@1 gain over 100 updates (pp) | +16.51 | +12.01 |\n| PE−Large relative raw gain (pp), product 95% | | −4.50 [−5.59, −3.45] |\n\nClipping is not differential and Adam is scale-invariant, so each arm trains at the Adam-bounded per-parameter step of at most 1e-5. What differs is how much that bounded per-parameter step moves the *function*.\n\n## Causal hypothesis and its falsifier\n\nUnder standard parametrization, Adam's per-parameter update is about lr regardless of width, so a layer's output perturbation grows with fan-in and the network's output perturbation grows with the number of adapted residual blocks. μP prescribes Adam hidden-layer LR ∝ 1/width to keep feature updates constant across width (Yang et al. 2022, arXiv:2203.03466); depth-μP adds 1/√L branch scaling for depth transfer (Yang et al. 2023, arXiv:2310.02244; Bordelon et al. 2023, arXiv:2309.16620). Neither is applied in this recipe. First-order projection, conjecture not measurement: Large's per-update feature displacement ≈ (1024/768)·(12/6) ≈ 2.7× PE's, so 100 PE updates would be worth roughly 40 Large updates of function movement. μP theory is derived for from-scratch scaling limits, so I do not trust the multiplier from theory; I measure it.\n\n**F0, CPU, saved artifacts, zero GPU.** The attribution job saved held raw-1024 matrices for encoder0 and encoder100 of both arms (receipt hashes large.0 `0b3969ac…`, large.1 `5238def8…`, pe.0 `151a5091…`, pe.1 `70e7acbf…`). Verify SHAs, then compute per-image angular displacement θ_i = arccos cos(raw0_i, raw100_i) on the same 12,599 held rows, report medians and a paired product bootstrap of the PE/Large median ratio. Predeclare before reading: ALIVE if ratio point ≤ 0.6 and 95% upper < 0.75; DEAD if ratio ≥ 0.85; anything between is inconclusive and closes without threshold search. Cost is seconds and under 1 GiB.\n\n**F1 cross-check, same CPU job.** Per-group ‖θ100−θ0‖_F/‖θ0‖_F from the saved checkpoints against the pinned originals, plus the fraction of the Adam bound lr·100·√n actually used per block. This distinguishes small displacement caused by gradient sign-inconsistency from small displacement caused by the nominal step. Under two minutes, under 8 GiB host.\n\n## Bounded matched arm, only if F0 is ALIVE\n\nOne PE arm, trunk LR multiplied by k = Large median θ / PE median θ, clipped to [1.5, 3], fixed before launch. Everything else byte-identical to the frozen pair: seed 179032 first 100 batches, augmented RGB hashes, FP16 autocast with scaler 128, head and proxy LR 1e-4, weight decay 0.05, clip 1, first 6 blocks frozen, own PCA128/proxies/bank. No Large rerun; the frozen control receipt is the comparator.\n\n- Calibration validity, read first: recompute θ on held for the new checkpoint with the existing attribution protocol and require 0.75 ≤ θ_PEk/θ_Large ≤ 1.33. Outside that band the arm is inconclusive and closes, no retune.\n- Quality gate, raw1024 held R@1 gain versus the PE baseline gain: advance if ≥ +2.25 pp (half the measured deficit) with paired product-bootstrap lower > 0 and mAP@R gain lower ≥ 0. Kill if < +1.0 pp or lower ≤ 0. PCA128 packed read is secondary and descriptive.\n- Resources: one DGX user unit, whole process ≤ 300 s, allocated CUDA < 10 GB, host 8 GiB, cleanup < 8 MiB, all finite and no-skip guards as before. The prior PE arm took 112 s.\n\nConfound separation. Update count is fixed at 100 on identical batches, so any change is per-update efficiency. The trainable set is unchanged, so a pass implicates optimization and a fail with valid calibration implicates capacity or direction. Head and proxy LR are untouched, so the existing 2×2 CPU attribution can re-measure coadaptation. The multiplier is derived once from a measured target with a validity band, which is what separates this from an arbitrary LR sweep; the same logic predicts Large would not benefit, a falsifiable side prediction not run now.\n\nDistinction from closed arms: head-first warmup changed phase order; objective-conflict projection changed gradient direction at the pooler; source MAIN, teacher transfer, sub-center, description, context and augmentation arms changed supervision; freeze16, true-freeze, depth22, cross-depth and multidepth changed which blocks exist or train while every one kept trunk LR 1e-5; rank-32 delta changed update structure; wide, direct256 and nonlinear heads changed readout. The three prior consultations proposed all-TRAIN scaling, sub-centers and a nonlinear head. None measured or matched function-space displacement. No novelty is claimed; μP is prior art and matched displacement is a control.\n\nRejected alternatives, one line each. Intermediate-layer readout follows the PE paper's title claim (Bolya et al. 2025, arXiv:2504.13181) but is a depth/readout change overlapping closed families. Probe-attention gating through PE's attn_pool is untestable without new forward passes and its fix would be a head change. Unverified: exact trainable parameter counts are inferred from shapes, and the distillation origin of PE-B16 is a model-card claim recorded in the gate, not checked by me.\n\n**Decision.** Run F0/F1 on saved artifacts before any GPU. DEAD or inconclusive closes the PE lane as a capacity result under this recipe. ALIVE licenses exactly one matched-step PE arm under the gate above; passing it authorizes only a separately frozen paired-seed 1,000-update comparison, not official reads or serving claims."
+  },
+  "providers_used": [
+    "fable"
+  ],
+  "active_provider": "fable",
+  "phase": "Consultation completed",
+  "input_bytes": 3454,
+  "output_bytes": 6709,
+  "elapsed_seconds": 547,
+  "progress": "devbox-ask: fable consult still running (0m 30s)\ndevbox-ask: fable consult still running (1m 00s)\ndevbox-ask: fable consult still running (1m 30s)\ndevbox-ask: fable consult still running (2m 00s)\ndevbox-ask: fable consult still running (2m 30s)\ndevbox-ask: fable consult still running (3m 00s)\ndevbox-ask: fable consult still running (3m 30s)\ndevbox-ask: fable consult still running (4m 00s)\ndevbox-ask: fable consult still running (4m 30s)\ndevbox-ask: fable consult still running (5m 00s)\ndevbox-ask: fable consult still running (5m 30s)\ndevbox-ask: fable consult still running (6m 00s)\ndevbox-ask: fable consult still running (6m 30s)\ndevbox-ask: fable consult still running (7m 00s)\ndevbox-ask: fable consult still running (7m 30s)\ndevbox-ask: fable consult still running (8m 00s)\ndevbox-ask: fable consult still running (8m 30s)\ndevbox-ask: fable consult still running (9m 00s)",
+  "progress_truncated": false,
+  "result": "**Recommendation: one candidate survives, and it can be killed for free before any GPU.**\n\nThe evidence supports exactly one cheap, causally distinct encoder-adaptation mechanism: **function-space step mismatch of the shared recipe**. Identical nominal AdamW 1e-5 on the trunk, global clip 1, standard parametrization, applied to a 768-wide tower with 6 adapted blocks versus a 1024-wide tower with 12 adapted blocks, should move the wide tower's features more per update. If so, \"starts stronger, learns less\" is under-stepping, not a capacity ceiling. If the saved artifacts show PE's features moved as much as Large's, nothing in the evidence supports another cheap PE encoder-adaptation mechanism and the PE lane should close on capacity grounds. I say that explicitly rather than reinvent a closed rescue.\n\n## Measured basis (from receipts, not new runs)\n\n| Fact | Large/256 | PE-B16/224 |\n|---|---:|---:|\n| Trainable tensors (blocks + norm + native pool/proj) | 205 | 86 |\n| Adapted residual blocks / width | 12 / 1024 | 6 / 768 |\n| Pre-clip grad norm median, clipped to 1 every step, scaler fixed 128 | 81.8 | 88.7 |\n| Largest trainable gradient group at step 100 | MAP head 0.40 | attn_pool 0.42 |\n| Raw1024 held R@1 gain over 100 updates (pp) | +16.51 | +12.01 |\n| PE−Large relative raw gain (pp), product 95% | | −4.50 [−5.59, −3.45] |\n\nClipping is not differential and Adam is scale-invariant, so each arm trains at the Adam-bounded per-parameter step of at most 1e-5. What differs is how much that bounded per-parameter step moves the *function*.\n\n## Causal hypothesis and its falsifier\n\nUnder standard parametrization, Adam's per-parameter update is about lr regardless of width, so a layer's output perturbation grows with fan-in and the network's output perturbation grows with the number of adapted residual blocks. μP prescribes Adam hidden-layer LR ∝ 1/width to keep feature updates constant across width (Yang et al. 2022, arXiv:2203.03466); depth-μP adds 1/√L branch scaling for depth transfer (Yang et al. 2023, arXiv:2310.02244; Bordelon et al. 2023, arXiv:2309.16620). Neither is applied in this recipe. First-order projection, conjecture not measurement: Large's per-update feature displacement ≈ (1024/768)·(12/6) ≈ 2.7× PE's, so 100 PE updates would be worth roughly 40 Large updates of function movement. μP theory is derived for from-scratch scaling limits, so I do not trust the multiplier from theory; I measure it.\n\n**F0, CPU, saved artifacts, zero GPU.** The attribution job saved held raw-1024 matrices for encoder0 and encoder100 of both arms (receipt hashes large.0 `0b3969ac…`, large.1 `5238def8…`, pe.0 `151a5091…`, pe.1 `70e7acbf…`). Verify SHAs, then compute per-image angular displacement θ_i = arccos cos(raw0_i, raw100_i) on the same 12,599 held rows, report medians and a paired product bootstrap of the PE/Large median ratio. Predeclare before reading: ALIVE if ratio point ≤ 0.6 and 95% upper < 0.75; DEAD if ratio ≥ 0.85; anything between is inconclusive and closes without threshold search. Cost is seconds and under 1 GiB.\n\n**F1 cross-check, same CPU job.** Per-group ‖θ100−θ0‖_F/‖θ0‖_F from the saved checkpoints against the pinned originals, plus the fraction of the Adam bound lr·100·√n actually used per block. This distinguishes small displacement caused by gradient sign-inconsistency from small displacement caused by the nominal step. Under two minutes, under 8 GiB host.\n\n## Bounded matched arm, only if F0 is ALIVE\n\nOne PE arm, trunk LR multiplied by k = Large median θ / PE median θ, clipped to [1.5, 3], fixed before launch. Everything else byte-identical to the frozen pair: seed 179032 first 100 batches, augmented RGB hashes, FP16 autocast with scaler 128, head and proxy LR 1e-4, weight decay 0.05, clip 1, first 6 blocks frozen, own PCA128/proxies/bank. No Large rerun; the frozen control receipt is the comparator.\n\n- Calibration validity, read first: recompute θ on held for the new checkpoint with the existing attribution protocol and require 0.75 ≤ θ_PEk/θ_Large ≤ 1.33. Outside that band the arm is inconclusive and closes, no retune.\n- Quality gate, raw1024 held R@1 gain versus the PE baseline gain: advance if ≥ +2.25 pp (half the measured deficit) with paired product-bootstrap lower > 0 and mAP@R gain lower ≥ 0. Kill if < +1.0 pp or lower ≤ 0. PCA128 packed read is secondary and descriptive.\n- Resources: one DGX user unit, whole process ≤ 300 s, allocated CUDA < 10 GB, host 8 GiB, cleanup < 8 MiB, all finite and no-skip guards as before. The prior PE arm took 112 s.\n\nConfound separation. Update count is fixed at 100 on identical batches, so any change is per-update efficiency. The trainable set is unchanged, so a pass implicates optimization and a fail with valid calibration implicates capacity or direction. Head and proxy LR are untouched, so the existing 2×2 CPU attribution can re-measure coadaptation. The multiplier is derived once from a measured target with a validity band, which is what separates this from an arbitrary LR sweep; the same logic predicts Large would not benefit, a falsifiable side prediction not run now.\n\nDistinction from closed arms: head-first warmup changed phase order; objective-conflict projection changed gradient direction at the pooler; source MAIN, teacher transfer, sub-center, description, context and augmentation arms changed supervision; freeze16, true-freeze, depth22, cross-depth and multidepth changed which blocks exist or train while every one kept trunk LR 1e-5; rank-32 delta changed update structure; wide, direct256 and nonlinear heads changed readout. The three prior consultations proposed all-TRAIN scaling, sub-centers and a nonlinear head. None measured or matched function-space displacement. No novelty is claimed; μP is prior art and matched displacement is a control.\n\nRejected alternatives, one line each. Intermediate-layer readout follows the PE paper's title claim (Bolya et al. 2025, arXiv:2504.13181) but is a depth/readout change overlapping closed families. Probe-attention gating through PE's attn_pool is untestable without new forward passes and its fix would be a head change. Unverified: exact trainable parameter counts are inferred from shapes, and the distillation origin of PE-B16 is a model-card claim recorded in the gate, not checked by me.\n\n**Decision.** Run F0/F1 on saved artifacts before any GPU. DEAD or inconclusive closes the PE lane as a capacity result under this recipe. ALIVE licenses exactly one matched-step PE arm under the gate above; passing it authorizes only a separately frozen paired-seed 1,000-update comparison, not official reads or serving claims.",
+  "result_truncated": false
+}

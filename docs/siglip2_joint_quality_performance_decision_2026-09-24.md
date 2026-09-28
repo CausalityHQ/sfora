@@ -7,6 +7,10 @@ training, signed-int8 gallery codes with f16 inverse norms (130 bytes per
 image), and an exact native CUDA top-10 scorer. Apache Arrow is not in the
 training or retrieval path.
 
+## 28 September: displacement-to-LR gate rejected before corpus/GPU work
+
+Actual saved native-group geometry shows median relative PE tail-block updates0.212091% versus Large0.145991%; this is not matched functional movement. The subsequent Fable proposal used raw angular displacement to set an LR multiplier and infer capacity from failure. A cheap signed-permutation counterexample preserves float and packed geometry despite90-degree displacement; corrected Adam also exceeds both proposed LR bounds. Opus/Astra unanimously STOP. No F0 corpus scores, LR change, extra epochs or GPU job followed. [Research decision and primary-source checks](inshop_pe_adaptation_research_decision_2026-09-28.md). Optimization versus capacity stays unresolved; no new quality/speed measurement or surviving intervention. Full production goal remains active.
+
 ## 28 September: encoder adaptation identified as the failing layer
 
 Fixed saved-state inference passed final golden-vector/packed-score parity on In-Shop TRAIN-held (6,354 query / 6,245 gallery; 1,993 products). Original PCA128 R@1 Large75.54297%/PE80.79950%; after100 Large95.67202%/PE95.07397%. Raw1024 also reverses: Large79.43028→95.93957%, PE83.28612→95.29430%; relative raw learning gain PE−Large −4.50110pp (product95% [−5.59075,−3.44611]). This localizes the gap to encoder adaptation under the existing recipe, not poor initial source quality or PCA alone; optimization versus capacity remains unresolved. No rescue or extension of the stopped100 arm. Sole inference job exited0 in370.88s; secondary CPU raw replay exited0 in8.80s. [Full attribution and limitations](inshop_pe_learning_attribution_result_2026-09-28.md). Next intervention must change that responsible layer and pass a new bounded TRAIN gate; full production joint quality/speed remains unmet.

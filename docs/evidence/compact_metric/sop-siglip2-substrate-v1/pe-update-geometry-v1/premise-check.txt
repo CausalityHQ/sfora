@@ -1,0 +1,1 @@
+PASS unchanged float/packed geometry at 90-degree displacement; Adam step2/lr 1.001357781654249 100-step displacement/lr 100.19631214798795
