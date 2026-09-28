@@ -81,3 +81,17 @@ launcher`run_pe_native_muon.sh`. The launcher has only fixed17/100 phases,
 requires an authenticated mechanics receipt. Native model-quality/GPU/public
 latency measurements do not yet exist for this procedure. Full production
 SOP/In-Shop quality/speed/transfer/frontier requirements stay active and unmet.
+
+## Native17 measured checkpoint
+
+The sole native17 attempt passed:20.06s whole process,3,674,024KiB RSS,
+median3–17 .555988556s<=.71769696s,5,050,932,736B peakCUDA. All24 native
+matrices moved;17RGB/scaler records, gradient/state/frozen checks and actual
+updated strict-loaded GPU output parity passed. Trained checkpoint deleted;
+no held images/quality read. Independent stdlib record replay passed.
+The first shell launch stopped before systemd/GPU because copied historical
+log names existed; unique Muon logs fixed the guard, preserving originals.
+Full code hash binding required CPU receipt refresh after launcher-name edits;
+final CPU6.356s passed with unchanged numerical source/constructor. No new
+research/critique or alternative method ran. Fresh100 is the next gate, with
+the17 pass receipt hash bound in its authority; no new quality number yet.

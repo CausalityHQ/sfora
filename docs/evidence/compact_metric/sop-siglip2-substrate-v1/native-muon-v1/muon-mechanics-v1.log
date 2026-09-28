@@ -1,0 +1,25 @@
+Running as unit: sfora-pe-muon-mechanics-v1.service; invocation ID: a19f845debd946d2b11de4f054bb89c9
+{"step": 1, "seconds": 1.23874591011554, "loss": 4.966567039489746}
+{"step": 2, "seconds": 0.617772039026022, "loss": 7.345654010772705}
+{"step": 3, "seconds": 0.5755917932838202, "loss": 7.432360649108887}
+{"step": 4, "seconds": 0.5431040548719466, "loss": 5.90911865234375}
+{"step": 5, "seconds": 0.5933334189467132, "loss": 5.907602310180664}
+{"step": 6, "seconds": 0.555988556239754, "loss": 6.7893571853637695}
+{"step": 7, "seconds": 0.5431377990171313, "loss": 3.965815544128418}
+{"step": 8, "seconds": 0.590167059097439, "loss": 5.297146797180176}
+{"step": 9, "seconds": 0.5524555225856602, "loss": 8.262996673583984}
+{"step": 10, "seconds": 0.5544325760565698, "loss": 4.6457977294921875}
+{"step": 11, "seconds": 0.4971214337274432, "loss": 4.130466938018799}
+{"step": 12, "seconds": 0.5881816232576966, "loss": 3.522399425506592}
+{"step": 13, "seconds": 0.5666567739099264, "loss": 6.721843242645264}
+{"step": 14, "seconds": 0.5768076172098517, "loss": 5.153668403625488}
+{"step": 15, "seconds": 0.5489410362206399, "loss": 6.899409294128418}
+{"step": 16, "seconds": 0.5542104169726372, "loss": 5.404402256011963}
+{"step": 17, "seconds": 0.5652760579250753, "loss": 7.7612528800964355}
+PASS native Muon mechanics; trained state discarded
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 20.069s
+CPU time consumed: 26.308s
+Memory peak: 256.0K
+Memory swap peak: 0B

@@ -1,0 +1,10 @@
+{
+  "advance": true,
+  "updates": 17,
+  "quality_read": false,
+  "discard_training_state": true,
+  "updated_gpu_strict_reload_exact": true,
+  "median_step_3_17_seconds": 0.555988556239754,
+  "peak_cuda_allocated_bytes": 5050932736,
+  "seconds": 14.101026970893145
+}
