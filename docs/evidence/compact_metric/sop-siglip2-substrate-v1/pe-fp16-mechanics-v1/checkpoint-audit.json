@@ -1,0 +1,46 @@
+{
+  "arms": {
+    "large": {
+      "checkpoint_sha256": "5d719ab90077845d4bfe401178d052e105bde92a7d6401601aa2b32bed09bd35",
+      "frozen_sha256": "fc01dcda4bd5be011f78d57b074347c73b64d20e8bca9a09a71fd91d83d423a3",
+      "changed_groups": [
+        "block12",
+        "block13",
+        "block14",
+        "block15",
+        "block16",
+        "block17",
+        "block18",
+        "block19",
+        "block20",
+        "block21",
+        "block22",
+        "block23",
+        "classifier",
+        "compact_head",
+        "head",
+        "post_layernorm"
+      ]
+    },
+    "pe": {
+      "checkpoint_sha256": "e361f63eb8bd842b5d3c8341282a8d849c58d6b167ec1309d984fa9a4d97b40b",
+      "frozen_sha256": "a60f4a6df4b8cf3a7e75dd10fbfe5f9a4b07a7a51c1281fa2441e91fec4e9123",
+      "changed_groups": [
+        "attn_pool",
+        "block10",
+        "block11",
+        "block6",
+        "block7",
+        "block8",
+        "block9",
+        "classifier",
+        "compact_head",
+        "ln_post",
+        "proj"
+      ]
+    }
+  },
+  "step_ratio": 0.4861478846145609,
+  "pass": true,
+  "quality_read": false
+}

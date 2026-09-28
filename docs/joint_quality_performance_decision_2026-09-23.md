@@ -1,5 +1,18 @@
 # Joint quality and performance decision, first training-code gate
 
+## 28 September native PE FP16 mechanics: training and cost gates pass
+
+Both native image arms16x64 sameIn-ShopTRAIN-fitfixture/schedule/objective completed,
+no skipped steps, scalers128 throughout, .999calibration/integrity gates pass.
+PE total guarded-step median385.8370ms vsLarge793.6618ms, ratio0.4861478846;
+guarded77.7214→164.4939images/s; allocatedCUDA11,453,047,296→3,643,665,408B;
+wholeprocess39.96s/peakhost3,618,344KiB. Independent ORIGINAL/FINAL checkpoint
+CPU audit8.76s passes hashes/frozenprefix/foreignrotary/grid/alltrainablegroups/
+firstlastgrad inventories/bank/scales/timing; GPUidle alljobs/reviews terminal.
+This is no learned-quality, generalization or serving result. Full-fit cache and
+actual matched augmented image-training quality proposal is the next separate gate.
+[Training mechanics result](inshop_pe_fp16_training_result_2026-09-28.md).
+
 ## 28 September control precision cause verified; native FP16 proposal ready
 
 Forward-only same4 In-Shop TRAIN-fit control rows: Large FP16/FP32 cosine

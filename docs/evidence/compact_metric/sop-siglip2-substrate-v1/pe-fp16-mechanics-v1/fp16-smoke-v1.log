@@ -1,0 +1,6 @@
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 10494.70it/s]
+{"arm": "large", "rows": [0, 1, 2, 5], "vision_precision": "fp16", "precision_fp32_cosine": [0.9999921321868896, 0.9999834299087524, 0.9999784827232361, 0.999909520149231], "cache_fp16_precision_cosine": [0.9999972581863403, 0.9999963045120239, 0.9999986290931702, 0.9999969005584717]}
+{"arm": "pe", "rows": [0, 1, 2, 5], "vision_precision": "fp16", "precision_fp32_cosine": [0.999980628490448, 0.9999896883964539, 0.9999859929084778, 0.9999739527702332], "cache_fp16_precision_cosine": [0.999997615814209, 0.9999974966049194, 0.9999971389770508, 0.9999967217445374]}
+{"advance": true, "step_ratio": 0.4861478846145609, "whole_wall_seconds": 36.75396764092147}
