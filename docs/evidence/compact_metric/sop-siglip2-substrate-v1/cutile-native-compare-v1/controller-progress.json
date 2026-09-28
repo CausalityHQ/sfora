@@ -1,0 +1,76 @@
+{
+  "claim_eligible": false,
+  "processes": [
+    {
+      "stem": "b1-0-original",
+      "arm": "original",
+      "batch": 1,
+      "exit": 0,
+      "wall_seconds": 2.1794324698857963,
+      "create_ms": 303.511155,
+      "first_search_ms": 876.899323
+    },
+    {
+      "stem": "b1-1-candidate",
+      "arm": "candidate",
+      "batch": 1,
+      "exit": 0,
+      "wall_seconds": 1.873718423768878,
+      "create_ms": 263.461694,
+      "first_search_ms": 656.709886
+    },
+    {
+      "stem": "b1-2-candidate",
+      "arm": "candidate",
+      "batch": 1,
+      "exit": 0,
+      "wall_seconds": 1.9726043287664652,
+      "create_ms": 267.642264,
+      "first_search_ms": 677.992512
+    },
+    {
+      "stem": "b1-3-original",
+      "arm": "original",
+      "batch": 1,
+      "exit": 0,
+      "wall_seconds": 2.1822372577153146,
+      "create_ms": 267.751096,
+      "first_search_ms": 897.443296
+    },
+    {
+      "stem": "b32-0-original",
+      "arm": "original",
+      "batch": 32,
+      "exit": 0,
+      "wall_seconds": 2.586127629969269,
+      "create_ms": 278.497001,
+      "first_search_ms": 1022.427179
+    },
+    {
+      "stem": "b32-1-candidate",
+      "arm": "candidate",
+      "batch": 32,
+      "exit": 0,
+      "wall_seconds": 2.3332107067108154,
+      "create_ms": 263.077296,
+      "first_search_ms": 810.915985
+    },
+    {
+      "stem": "b32-2-candidate",
+      "arm": "candidate",
+      "batch": 32,
+      "exit": 0,
+      "wall_seconds": 2.3357263230718672,
+      "create_ms": 264.500815,
+      "first_search_ms": 816.484713
+    },
+    {
+      "stem": "b32-3-original",
+      "arm": "original",
+      "batch": 32,
+      "exit": 0,
+      "wall_seconds": 2.5304885217919946
+    }
+  ],
+  "gate_pass": false
+}

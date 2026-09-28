@@ -1,0 +1,9 @@
+PHASE_CREATE
+PHASE_FIRST
+CUTILE_JIT_TIMING module=creation function=full key=eed3c72dd16224e3 stage1_ms=9.283 stage2_ms=54.448 stage3_ms=2.812 generics=f32,128
+CUTILE_JIT_TIMING module=creation function=full key=b1e601f2e17bc42a stage1_ms=7.510 stage2_ms=42.193 stage3_ms=0.142 generics=i32,128
+CUTILE_JIT_TIMING module=topk_module function=score_block_topk key=5ca82edaa4386824 stage1_ms=100.992 stage2_ms=339.365 stage3_ms=8.760 generics=32,128,32,128,16,10
+CUTILE_JIT_TIMING module=topk_module function=merge_topk key=88efeaa5443ebe9 stage1_ms=69.608 stage2_ms=112.217 stage3_ms=0.585 generics=1,512,16,10
+PHASE_HOT
+PHASE_TIES
+{"batch": 32, "checked_searches": 57, "exact": true}

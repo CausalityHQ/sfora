@@ -1,0 +1,4 @@
+   Compiling sfora-cutile-int8-score v0.1.0 (/home/riomus/runs/sfora-cutile-native-compare-v1/original/rust/sfora-cutile-int8-score)
+    Finished `release` profile [optimized] target(s) in 1.68s
+    Finished `release` profile [optimized] target(s) in 0.03s
+PASS two offline CPU-only release builds and source hashes

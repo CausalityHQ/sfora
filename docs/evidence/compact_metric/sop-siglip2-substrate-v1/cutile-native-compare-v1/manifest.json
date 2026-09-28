@@ -1,0 +1,28 @@
+{
+  "original": {
+    "Cargo.toml": "0279cbbde6f272d6304c7137ea48b237392d0bafde6320084a06867e00e2a362",
+    "Cargo.lock": "8d6d3a30e504fde58f1bc47008d8f8d1d9e04100609ec3ebe81ce6c261e8992b",
+    "rust/sfora-cutile-int8-score/Cargo.toml": "d20177565d881a0daf10e999f58d3fb9e481d59f1b64dcb6928345f162c9b106",
+    "rust/sfora-cutile-int8-score/src/bin/rc4_profile.rs": "89df128c7e47c60f41b558334f3e1f1f508eccd311386300ade7d199632532ab",
+    "rust/sfora-cutile-int8-score/src/ffi.rs": "9087b5260a8d3b242f0f4db3655c6044fcd52fa476ae44924ebbd134244cee6c",
+    "rust/sfora-cutile-int8-score/src/kernel.rs": "f1da3e6b9db5504c7ceae9232cb9789fbe237bd4374201f3491b88aad19e07eb",
+    "rust/sfora-cutile-int8-score/src/lib.rs": "8e5affd75eeee70832a0f7a4e9c681133f5a578dc137a71df923e95bcce1acc6",
+    "rust/sfora-cutile-int8-score/src/main.rs": "f60fb49a2dded25c6830531bed28ce0a658bf3e9409d33d002463a4d51f1e166",
+    "rust/sfora-cutile-int8-score/src/topk.rs": "07bbf023aa372e9f569548dd275c55a34e30329b07cc9cf301694eef65e4ff24",
+    "rust/sfora-cutile-int8-score/src/wire.rs": "190e16d114351a2842c375c4fb102cfda11dcae2f207d31a89ec7e37a8ea125f",
+    "rust/sfora-cutile-int8-score/tests/merge_boundary.rs": "d3448ba56c3f58d34cf32e969943cbd71dde724168634b815cd699ce6b41504f"
+  },
+  "candidate": {
+    "Cargo.toml": "0279cbbde6f272d6304c7137ea48b237392d0bafde6320084a06867e00e2a362",
+    "Cargo.lock": "8d6d3a30e504fde58f1bc47008d8f8d1d9e04100609ec3ebe81ce6c261e8992b",
+    "rust/sfora-cutile-int8-score/Cargo.toml": "d20177565d881a0daf10e999f58d3fb9e481d59f1b64dcb6928345f162c9b106",
+    "rust/sfora-cutile-int8-score/src/bin/rc4_profile.rs": "89df128c7e47c60f41b558334f3e1f1f508eccd311386300ade7d199632532ab",
+    "rust/sfora-cutile-int8-score/src/ffi.rs": "9087b5260a8d3b242f0f4db3655c6044fcd52fa476ae44924ebbd134244cee6c",
+    "rust/sfora-cutile-int8-score/src/kernel.rs": "f1da3e6b9db5504c7ceae9232cb9789fbe237bd4374201f3491b88aad19e07eb",
+    "rust/sfora-cutile-int8-score/src/lib.rs": "8e5affd75eeee70832a0f7a4e9c681133f5a578dc137a71df923e95bcce1acc6",
+    "rust/sfora-cutile-int8-score/src/main.rs": "f60fb49a2dded25c6830531bed28ce0a658bf3e9409d33d002463a4d51f1e166",
+    "rust/sfora-cutile-int8-score/src/topk.rs": "1ae7f50aa3d222dbc6c6489c4c344ce836d01b895e05341d368db35c6d0cb587",
+    "rust/sfora-cutile-int8-score/src/wire.rs": "190e16d114351a2842c375c4fb102cfda11dcae2f207d31a89ec7e37a8ea125f",
+    "rust/sfora-cutile-int8-score/tests/merge_boundary.rs": "d3448ba56c3f58d34cf32e969943cbd71dde724168634b815cd699ce6b41504f"
+  }
+}

@@ -1,0 +1,6 @@
+2026-09-28T15:31:32+02:00 spark-2751 systemd[3489]: Started sfora-cutile-native-compare-gpu-v1.service - /usr/bin/flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock /usr/bin/time -v -o /home/riomus/runs/sfora-cutile-native-compare-v1/controller-time.txt /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-cutile-native-compare-v1/run.py.
+2026-09-28T15:31:50+02:00 spark-2751 systemd[3489]: sfora-cutile-native-compare-gpu-v1.service: Consumed 38.822s CPU time, 384.5M memory peak, 0B memory swap peak.
+Result=success
+ExecMainStatus=0
+ActiveState=inactive
+InvocationID=
