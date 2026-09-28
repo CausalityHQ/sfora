@@ -1,0 +1,48 @@
+# Frozen L14 readout with one pending CPU input
+
+One execution change follows the [serial cost KILL and measured input cost](inshop_pe_l14_readout_result_2026-09-29.md):
+stdlib ThreadPoolExecutor, one worker and one pending nextB64 batch. No
+method/source/processor/threads/precision/loss/optimizer/exposure change.
+Current native GPU update overlaps actual next-image decode/augmentation/
+file hashing/native pixels. Every update still runs the native L14 encoder.
+No feature cache or preprocessing amortization; no speed forecast.
+
+CPU qualifier completed11.54s/1,842,176KiB/no swap, original42922,
+inv2e83003c846343019ccd5e910e3cda51, exit0. ALL17 actual serial/worker
+pixels and strides exact, RGB exact originalcontrol, no CUDA, callerCPU RNG
+unchanged. All17 pixel hashes also equal the prior independent serial profile.
+Queue order/bound/exception check REDmissinghelper→GREEN. Ruff/bash/compile
+checks passed. All67 old frozen executing files remain byteidentical in the
+new isolated root; original actual317m native CPU/source/gradient/role gate
+remains valid and is reused, not replaced by a small fixture.
+
+New CPU execution authoritySHA
+234d7ece495c74a294ff18e3cc7f12cf301244d6cc322783d8e26a9db0e2c273
+pins five new files plus original67 and native CPU receipt. Worker CPU RNG
+fork is safe only because this fixed main training graph has no CPU random
+operation while it runs; assert caller RNG unchanged after worker close.
+Native drop_path default0/attention dropout0; random parameter initialization
+occurs before worker start or after worker drain. Do not use this helper as
+a generic prefetcher for concurrently stochastic main CPU work.
+
+ONE17mechanics, unique output, both GPU locks inside120s/8GiB/no swap/<10GB
+unit, median3–17<=0.71769696s. Whole training wall includes first fill and
+last drain. Per-step cost includes waiting for unfinished next input and the
+complete native GPU update/integrity work. Log worker input times separately;
+these overlapping times must not be added to wall or reported as savings.
+Runtime files/RGB verified every batch, exact first17 pixel authorities in
+worker, source/foreign hash immutable, three head/proxy gradients finite/
+positive and both groups move, scaler128/no skip. Source calibration unchanged.
+
+On costPASS strict native updated encoder/head GPU reload compares exact
+source outputs AND actual normalized compact readouts. Always delete17
+checkpoint/discardstate. Only full PASS permits ONE fresh100TRAINpilot300s
+same authority, original source/owninitializer, same methods and unchanged
+[quality/packed/full-held gates](inshop_pe_l14_readout_gate_2026-09-28.md).
+Pin mechanicsPASS receipt; never extend17state. No source/input/scalar/budget
+rescue after negative. All quality/public latency currently unmeasured L14.
+Survivor proceeds to actual updated serving and fresh confirmation; full
+production SOP/InShop joint quality+matched public speed target remains open.
+
+[CPU raw authority](evidence/compact_metric/sop-siglip2-substrate-v1/pe-l14-prefetch-v1/cpu-preflight.json),
+[actual CPU qualification](evidence/compact_metric/sop-siglip2-substrate-v1/pe-l14-prefetch-v1/prefetch-cpu-v1.log).
