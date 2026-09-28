@@ -3,6 +3,7 @@
 
 import argparse
 import copy
+import inspect
 import json
 import signal
 import time
@@ -51,6 +52,10 @@ def joint_class_ids(target, external):
 
 
 def joint_self_check():
+    assert (
+        Path(inspect.unwrap(packed_quality).__code__.co_filename).name
+        == "compare_inshop_sop_warmstart_100.py"
+    )
     ids = joint_class_ids(("1", "1", "2", "2"), ("1", "1", "2", "2"))
     assert len(set(ids)) == 4 and not set(ids[:4]) & set(ids[4:])
     protected = np.arange(len(ids)) < 4
@@ -240,7 +245,9 @@ def main():
                 "partition_sha256": PARTITION_SHA,
                 "source_sha256": sha256(Path(__file__)),
                 "helper_source_sha256": {
-                    f.__module__ + "." + f.__name__: sha256(Path(f.__code__.co_filename))
+                    f.__module__ + "." + f.__name__: sha256(
+                        Path(inspect.unwrap(f).__code__.co_filename)
+                    )
                     for f in (
                         initialize_head_and_classifier,
                         compact_head_features,

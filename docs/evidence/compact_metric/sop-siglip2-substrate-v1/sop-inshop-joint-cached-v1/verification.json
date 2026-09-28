@@ -1,0 +1,45 @@
+{
+  "all_300_updates_finite": true,
+  "claim_eligible": false,
+  "decision_replay": {
+    "control": false,
+    "sham": false
+  },
+  "independent_cluster_intervals": {
+    "control": {
+      "ap": {
+        "lower95": -0.015104224006929472,
+        "mean": -0.01279966299703648,
+        "upper95": -0.010653857561075949
+      },
+      "r1": {
+        "lower95": -0.013141740142292963,
+        "mean": -0.009302325581395349,
+        "upper95": -0.005510281204883413
+      }
+    },
+    "sham": {
+      "ap": {
+        "lower95": -0.002098086524296416,
+        "mean": -0.0007779007497362706,
+        "upper95": 0.0005974356642307783
+      },
+      "r1": {
+        "lower95": -0.002944901803540252,
+        "mean": 0.0,
+        "upper95": 0.0030250558372279398
+      }
+    }
+  },
+  "invocation": "7b3d46aed3e9478f965b1dfa805bfc31",
+  "manifest_erratum": "decorated packed_quality entry hashes Torch wrapper; actual definition checked independently, future manifest uses inspect.unwrap",
+  "qualified_source_commit": "8463d9ea",
+  "quality_means_roles_sources_verified": true,
+  "raw_embeddings_scoring_repeated": false,
+  "receipt_sha256": "dcacf0738bb28b38c126d7d7e0c20b2cdf6c255fa77080a66daad9ed62f593f8",
+  "schema": "sfora-actual-joint-cached-verification-v1",
+  "scorer_actual_file_sha256": "8827bed4bc90dfdcba36fd2a90bbd686b05a188f6356c1a5c9f965dea5080250",
+  "scorer_sha_independently_matches_remote": true,
+  "terminal_exit_status": 0,
+  "watchdog_erratum": "actual systemd RuntimeMaxSec150 versus text140; main120 alarm unchanged; observed main9.042441884987056"
+}
