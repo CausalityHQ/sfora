@@ -1,0 +1,11 @@
+Sep 28 03:45:33 spark-2751 systemd[3489]: Started sfora-siglip2-base-acquire-v1.service - /home/riomus/group-learning/.venv/bin/hf download google/siglip2-base-patch16-256 --revision 3f9f96cb90da5dbc758b01813f2f6f1aee24c1ab --include config.json model.safetensors preprocessor_config.json.
+Sep 28 03:45:33 spark-2751 hf[766601]: Traceback (most recent call last):
+Sep 28 03:45:33 spark-2751 hf[766601]:   File "/home/riomus/group-learning/.venv/bin/hf", line 4, in <module>
+Sep 28 03:45:33 spark-2751 hf[766601]:     from huggingface_hub.cli.hf import main
+Sep 28 03:45:33 spark-2751 hf[766601]:   File "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub/cli/hf.py", line 22, in <module>
+Sep 28 03:45:33 spark-2751 hf[766601]:     from huggingface_hub.cli._cli_utils import check_cli_update, fallback_typer_group_factory, typer_factory
+Sep 28 03:45:33 spark-2751 hf[766601]:   File "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/huggingface_hub/cli/_cli_utils.py", line 31, in <module>
+Sep 28 03:45:33 spark-2751 hf[766601]:     import click
+Sep 28 03:45:33 spark-2751 hf[766601]: ModuleNotFoundError: No module named 'click'
+Sep 28 03:45:33 spark-2751 systemd[3489]: sfora-siglip2-base-acquire-v1.service: Main process exited, code=exited, status=1/FAILURE
+Sep 28 03:45:33 spark-2751 systemd[3489]: sfora-siglip2-base-acquire-v1.service: Failed with result 'exit-code'.

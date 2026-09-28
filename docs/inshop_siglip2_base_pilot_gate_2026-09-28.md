@@ -50,3 +50,44 @@ training feasibility and public-path design, with matched data/compute/scorer
 controls and independent TRAIN evaluation. No automatic long training,
 10k-serving gate, official read, default or package change follows a pilot.
 The prior DINOv2/224, MODA and FashionSigLIP source rejections remain intact.
+
+## Terminal source-pilot decision: KILL
+
+The API acquisition retry `sfora-siglip2-base-acquire-v2`, invocation
+`a26d72406f6c451a9e0c744e84d07bf0`, exited0; the full1,500,985,224-byte
+weights matched their official SHA. Both acquisition journals are preserved
+in `siglip2-base-acquisition-v1/` under the evidence directory.
+
+The ORIGINAL locked DGX pilot `sfora-inshop-siglip2-base-pilot-v1`, invocation
+`ff89908a2d834b5c8e344c6402e220c7`, exited0. Every one of1024 native processed
+images matched pixel-for-pixel between encoders. Source/partition/fit/model
+authority passed; no original run was duplicated.
+
+| Official TRAIN fit-only512 query/gallery pairs | Large baseline | Base candidate | Decision |
+|---|---:|---:|---|
+| Own-gallery-PCA128 packed prototype accuracy |69.53125%|66.796875%|Delta-2.734375pp passes-3pp point floor|
+| Raw float prototype accuracy |71.484375%|69.140625%|Diagnostic only|
+| Paired product-bootstrap95 lower on packed delta |—|-6.0546875pp|KILL: below-5pp floor|
+| Batch32 encoder-only p50,10 interleaved calls/arm |260.833207ms|85.766922ms|Ratio0.328819; speed gate passes|
+| Vision parameter count |315,956,224|92,930,304|Counted actual vision tensors, excludes text tower|
+| Main-function pilot wall/combined allocated CUDA peak |22.102866s /1,988,969,472bytes|Shared measurement|Both resource gates pass|
+
+Two models'1024-image export wall was13.140899s. Neither that wall nor
+batch32 encoder p50 is full image-to-top-k latency. No p95/p99/QPS
+certification, R@1/mAP@R on a held protocol, training cost or training gain
+was measured. Prototype pairs are a fit-only gross-deficit screen.
+
+Receipt `inshop-siglip2-base-pilot-v1/receipt.json` SHA-256
+`a1eac9d9dfde11304b9a150ced10506db71309b40028dd8afa2ec2bac1693a5d`.
+Independent replay verified512 class hits per arm, paired delta/lower,
+all10 per-arm forward times/median ratio and all frozen criteria. Replay
+extracts the `id_` path component rather than assuming a path offset: the
+standard tree's relative paths include `Img/img/`. The packed scorer's
+lower-ordinal tie test and Ruff pass. GPU jobs are terminal/idle.
+
+**Stop this fixed Base source route before full cache export, training,
+another official read or production promotion.** Do not remove its failed
+uncertainty guard, add queries after this result, or call its encoder gain a
+matched-quality product speed win. Production source/package remain unchanged.
+The external DINOv3 access request is pending; no hidden gated-model download
+or alternative mirror was attempted. The joint quality/speed target is unmet.

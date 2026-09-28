@@ -1,0 +1,5 @@
+Sep 28 03:46:52 spark-2751 systemd[3489]: Started sfora-siglip2-base-acquire-v2.service - /home/riomus/group-learning/.venv/bin/python -c "from huggingface_hub import snapshot_download; print(snapshot_download(\"google/siglip2-base-patch16-256\", revision=\"3f9f96cb90da5dbc758b01813f2f6f1aee24c1ab\", allow_patterns=[\"config.json\",\"model.safetensors\",\"preprocessor_config.json\"]))".
+Sep 28 03:46:53 spark-2751 python[766974]: [193B blob data]
+Sep 28 03:47:20 spark-2751 python[766974]: [162B blob data]
+Sep 28 03:47:20 spark-2751 python[766974]: /home/riomus/.cache/huggingface/hub/models--google--siglip2-base-patch16-256/snapshots/3f9f96cb90da5dbc758b01813f2f6f1aee24c1ab
+Sep 28 03:47:20 spark-2751 systemd[3489]: sfora-siglip2-base-acquire-v2.service: Consumed 5.042s CPU time, 1.7G memory peak, 0B memory swap peak.
