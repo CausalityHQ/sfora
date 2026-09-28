@@ -353,3 +353,16 @@ The [diagnostic receipt](evidence/compact_metric/sop-siglip2-substrate-v1/inshop
 SHA-256 is `52aeec228915e26b5272d868627b905f29b933a633519fd6388dc8279bd8fd0e`.
 The tightened aggregate replay reproduced the original KILL, every mean
 and the bootstrap endpoints exactly; no archived evidence was rewritten.
+
+### Persistent-source gate terminal: KILL
+
+The [CPU-only source-rank receipt](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-persistent-source-diagnostic-v1.json)
+SHA-256 is `e8e86daad5510cac06c1e21bc29863683ef37ecf3cdead1880d8f0599d725eee`.
+On the 84 persistent treatment misses, pretrained/SOP source retrieved
+**8/84 and 9/84** correctly; on the 64 all-six-run misses, **4/64 each**.
+Their positive-count-matched stable-hit controls were **65/84 and 76/84**.
+The SOP result is below the predeclared **42/84** floor. **KILL the
+source-preservation/adaptation lane before any raw encoder export, weight
+interpolation or low-rank training.** These ranks do not prove information
+absence or annotation ambiguity; they reject this source-preservation
+justification. No encoder, training or official evaluation was run.
