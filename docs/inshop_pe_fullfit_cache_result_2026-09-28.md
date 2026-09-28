@@ -71,3 +71,7 @@ not this candidate's result or an official benchmark. Obtain the consequential
 Opus/Astra critique and CPU mechanics/startup checks before that GPU run.
 No automatic official evaluation or release. The production joint goal remains
 active and unmet; no operator decision or access grant is needed for this route.
+
+A final CPU metadata-only check also reproduced the inherited asymmetric held
+role counts and exact query/gallery ordinal hashes on the current dataset root.
+`held-role-authority.json` records both hashes; no held image was decoded or scored.
