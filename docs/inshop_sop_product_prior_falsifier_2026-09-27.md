@@ -366,3 +366,15 @@ source-preservation/adaptation lane before any raw encoder export, weight
 interpolation or low-rank training.** These ranks do not prove information
 absence or annotation ambiguity; they reject this source-preservation
 justification. No encoder, training or official evaluation was run.
+
+One research-review statement about serving is superseded by direct primary
+evidence: the shipped In-Shop direct processor has a separate
+[10,000-call-per-arm paired public tail receipt](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-direct-p99-v1/receipt.json),
+SHA-256 `7ecf15f673f86521b2fb1fde4d219d777b6642a5f0c2722337e90cead384d1f0`,
+not only the 640-query parity check. On pinned seed-179026 official-TRAIN
+held roles, baseline/direct image-to-top10 p50/p95/p99 were
+**14.701/17.249/18.394 vs 12.711/14.908/15.832 ms**;
+single-query throughput was **67.294 vs 77.894 images/s**, paired p99
+ratio-bootstrap 95% **[0.8557,0.8651]**. Current serving source SHA exactly
+matches that receipt. This supports the same-checkpoint processor increment;
+it does not qualify the rejected warm-start checkpoint or external SOTA.

@@ -57,3 +57,31 @@ Missing selected captions, nonfinite features, wrong hashes or timeout
 stop it. This supervised-metadata route uses additional supplied annotation
 compared with the label-only baseline; no equal-data method advantage can
 be claimed without matching that supervision in the control.
+
+## Alignment terminal: GO to gradient/cost smoke only
+
+The first staged command `3d29466974284a6cbdea069f32e54572` exited 1
+at import before GPU computation because an exporter helper was absent.
+The runner now reuses the existing archived helper directory; a CPU import
+preflight passed. No selection, arithmetic or decision threshold changed.
+The sole retry `a0756aed956d4344bd9b92971011ab8b` exited **0** on DGX
+Spark GB10; both invocations are preserved in the
+[journal](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-description-alignment-journal.log).
+
+| Official In-Shop TRAIN fit products; 512 distinct query products | True caption | Category-matched shuffled caption |
+| --- | ---: | ---: |
+| Caption cosine beats selected hard-impostor caption | **357/512 (69.7266%)** | **259/512 (50.5859%)** |
+| True win product-bootstrap 95% lower bound | **65.6250%** | not a promotion metric |
+| Paired gain / lower 95% | **+19.1406 / +13.0859 points** | reference |
+| Diagnostic wall / peak allocated CUDA | **6.499 s / 1,265,392,128 B** | shared execution |
+| Holdout R@1 / mAP@R / serving p50,p95,p99,QPS | unmeasured | unmeasured |
+
+All frozen alignment floors pass. The
+[raw receipt](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-description-alignment-v1.json)
+SHA-256 is `b6f77d2eaacac7e170e2d688b03db9e1ff3455f1ebfaed5829e107856f554aab`.
+Local replay verified all 512 margin signs, distinct query-product rows,
+paired gain and threshold decision. It is a **fit-only semantic alignment
+screen**, not retrieval R@1, held generalization or proven benefit from a
+training objective. No checkpoint or production default is promoted.
+Next: freeze a training-only description term and its matched gradient/cost
+smoke, then run that bounded smoke before any paired held-quality gate.

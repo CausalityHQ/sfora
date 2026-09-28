@@ -1,0 +1,19 @@
+2026-09-28T02:18:40+02:00 spark-2751 systemd[3489]: Starting sfora-inshop-description-alignment-v1.service - /bin/bash /home/riomus/runs/sfora-inshop-description-alignment-v1/run_inshop_description_alignment_dgx.sh...
+2026-09-28T02:18:40+02:00 spark-2751 systemd[3489]: Started sfora-inshop-description-alignment-v1.service - /bin/bash /home/riomus/runs/sfora-inshop-description-alignment-v1/run_inshop_description_alignment_dgx.sh.
+2026-09-28T02:18:41+02:00 spark-2751 bash[755226]: Traceback (most recent call last):
+2026-09-28T02:18:41+02:00 spark-2751 bash[755226]:   File "/home/riomus/runs/sfora-inshop-description-alignment-v1/probe_inshop_description_alignment.py", line 13, in <module>
+2026-09-28T02:18:41+02:00 spark-2751 bash[755226]:     from export_inshop_siglip2_train_features import MODEL_HASHES
+2026-09-28T02:18:41+02:00 spark-2751 bash[755226]:   File "/home/riomus/runs/sfora-inshop-description-alignment-v1/export_inshop_siglip2_train_features.py", line 16, in <module>
+2026-09-28T02:18:41+02:00 spark-2751 bash[755226]:     from export_sop_siglip2_train import MODEL_FILES, MODEL_REVISION, export_features, sha256
+2026-09-28T02:18:41+02:00 spark-2751 bash[755226]:   File "/home/riomus/runs/sfora-inshop-description-alignment-v1/export_sop_siglip2_train.py", line 19, in <module>
+2026-09-28T02:18:41+02:00 spark-2751 bash[755226]:     from export_unicom_sop_embeddings import SopRecord, _parse_split
+2026-09-28T02:18:41+02:00 spark-2751 bash[755226]: ModuleNotFoundError: No module named 'export_unicom_sop_embeddings'
+2026-09-28T02:18:41+02:00 spark-2751 systemd[3489]: sfora-inshop-description-alignment-v1.service: Main process exited, code=exited, status=1/FAILURE
+2026-09-28T02:18:41+02:00 spark-2751 systemd[3489]: sfora-inshop-description-alignment-v1.service: Failed with result 'exit-code'.
+2026-09-28T02:19:47+02:00 spark-2751 systemd[3489]: Starting sfora-inshop-description-alignment-v2.service - /bin/bash /home/riomus/runs/sfora-inshop-description-alignment-v1/run_inshop_description_alignment_dgx.sh...
+2026-09-28T02:19:47+02:00 spark-2751 systemd[3489]: Started sfora-inshop-description-alignment-v2.service - /bin/bash /home/riomus/runs/sfora-inshop-description-alignment-v1/run_inshop_description_alignment_dgx.sh.
+2026-09-28T02:19:51+02:00 spark-2751 bash[756005]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+2026-09-28T02:19:51+02:00 spark-2751 bash[756005]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+2026-09-28T02:19:53+02:00 spark-2751 bash[756005]: [298B blob data]
+2026-09-28T02:19:55+02:00 spark-2751 bash[756005]: {"true_caption_wins": 357, "shuffled_caption_wins": 259, "paired_gain_pp": 19.140625, "paired_gain_lower95_pp": 13.0859375, "alignment_wall_seconds": 6.498811665922403, "advance": true}
+2026-09-28T02:19:56+02:00 spark-2751 systemd[3489]: sfora-inshop-description-alignment-v2.service: Consumed 13.693s CPU time, 2.3M memory peak, 0B memory swap peak.
