@@ -40,3 +40,33 @@ quality gate before scoring; no automatic GPU promotion from this audit.
 The internal panel has been used for earlier diagnostics. Any subsequent
 result is exploratory and conditional, not untouched confirmation or SOTA.
 Serving cost requires measurements even if model geometry is unchanged.
+
+## Terminal audit and explicit engineering correction
+
+Original native execution session `94547` exited zero. The audit main took
+**0.922717 s** with no CUDA/model/quality work. Source and all split/namespace
+checks passed. The original receipt says **KILL_DATA_READINESS**, because the
+frozen maximum-32-positive guard failed. That receipt is immutable in the
+[evidence archive](evidence/compact_metric/sop-siglip2-substrate-v1/sop-inshop-joint-inventory-v1/receipt.json).
+
+Independent Counter replay traced this failure to the **unchanged native
+In-Shop inventory**, not SOP: native fit has 6,757 images / 995 products,
+including one 111-image identity (**110 other positives**). Selected SOP has
+5,190 images / 995 products, at most 12 images per identity (**11 positives**).
+The combined bank is **11,947 rows**; internal validation remains 6,514 images
+/ 997 disjoint products. The 32 limit would reject the already used control.
+
+This is an engineering guard error, not a negative joint-training quality
+result. Before reading any new feature values or quality, replace that guard
+with **bank <=20,000 rows and external positive width no larger than native**.
+The implementation has a runnable self-check for native-width acceptance,
+external-width rejection and total-row rejection. Re-evaluating the original
+inventories independently passes the corrected guard; the
+[correction receipt](evidence/compact_metric/sop-siglip2-substrate-v1/sop-inshop-joint-inventory-v1/verification.json)
+records original decision, root cause, source hashes and corrected decision.
+No second remote audit, quality training or GPU job was launched to do this.
+
+Decision is **GO_CACHED_JOINT_DESIGN_ONLY**, not a quality GO or production
+change. The subsequent fixed-budget comparison still needs a frozen runtime,
+authority, stability, quality and sham-control gate. Resource feasibility must
+be measured there; row/positive counts alone do not establish wall time or RAM.

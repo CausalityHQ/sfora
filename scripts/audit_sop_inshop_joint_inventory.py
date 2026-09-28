@@ -42,6 +42,17 @@ def self_check():
         pass
     else:
         raise AssertionError("missing identity accepted")
+    assert bounded_inventory((111, 102), (12, 12))
+    assert not bounded_inventory((111,), (112,))
+    assert not bounded_inventory((10000, 10000), (1,))
+
+
+def bounded_inventory(target_counts, external_counts):
+    """Do not mistake the existing target positive width for added-domain cost."""
+    return (
+        sum(target_counts) + sum(external_counts) <= 20000
+        and max(external_counts) <= max(target_counts)
+    )
 
 
 def main():
@@ -104,8 +115,9 @@ def main():
     )
     a_names = {"inshop:" + inshop_labels[i] for i in training}
     b_names = {"sop:" + str(labels[i]) for i in external}
-    positives = max(Counter(inshop_labels[i] for i in training).values()) - 1
-    positives = max(positives, max(Counter(labels[i] for i in external).values()) - 1)
+    target_counts = Counter(inshop_labels[i] for i in training)
+    external_counts = Counter(labels[i] for i in external)
+    positives = max(max(target_counts.values()), max(external_counts.values())) - 1
     shapes = [np.load(p, mmap_mode="r").shape for p in (args.sop_cache, args.inshop_cache)]
     criteria = {
         "source_shapes": shapes == [(59551, 1024), (25882, 1024)],
@@ -118,7 +130,7 @@ def main():
         "external_fit_only": not set(external) & set(sop_split.validation_row_indexes),
         "external_class_matched": len(b_names) == len(a_names),
         "label_namespaces_disjoint": not a_names & b_names,
-        "bounded_bank": len(training) + len(external) <= 20000 and positives <= 32,
+        "bounded_bank": bounded_inventory(target_counts.values(), external_counts.values()),
         "bounded_wall": time.perf_counter() - started <= 60,
     }
     result = {
