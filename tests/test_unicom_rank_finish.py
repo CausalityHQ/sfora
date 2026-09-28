@@ -1,45 +1,11 @@
 from __future__ import annotations
 
-import hashlib
 from collections import Counter
 
-import numpy as np
 import pytest
 import torch
 
 from sfora.unicom_rank_finish import identity_balanced_batches, smooth_ap_finish_loss
-
-
-def test_repeated_coverage_keeps_legacy_prefix_and_revisits_large_products() -> None:
-    labels = ("large",) * 64 + tuple(name for name in ("b", "c", "d", "e") for _ in range(8))
-    arguments = dict(
-        batch_size=16, images_per_identity=4, seed=7, epoch=1, steps=100, coverage_first=True
-    )
-    native = identity_balanced_batches(labels, **arguments)
-    assert hashlib.sha256(np.asarray(native, dtype="<i4").tobytes()).hexdigest() == (
-        "ffea5b820523030481e28484d7bc86f4b01ddb552090a89f274077bc89e9dcc6"
-    )
-    repeated = identity_balanced_batches(labels, repeat_coverage=True, **arguments)
-    assert repeated == identity_balanced_batches(labels, repeat_coverage=True, **arguments)
-    assert repeated[:16] == native[:16]
-    assert repeated != native
-    assert sum(labels[i] == "large" for batch in repeated for i in batch) > sum(
-        labels[i] == "large" for batch in native for i in batch
-    )
-    assert {i for batch in repeated for i in batch} == set(range(len(labels)))
-    for batch in repeated:
-        assert len(batch) == len(set(batch)) == 16
-        assert set(Counter(labels[i] for i in batch).values()) == {4}
-
-
-def test_repeated_coverage_requires_boolean_and_coverage_mode() -> None:
-    arguments = dict(batch_size=4, images_per_identity=2, seed=7, epoch=1, steps=2)
-    with pytest.raises(ValueError):
-        identity_balanced_batches(("a", "a", "b", "b"), repeat_coverage=True, **arguments)
-    with pytest.raises(TypeError):
-        identity_balanced_batches(
-            ("a", "a", "b", "b"), repeat_coverage=1, coverage_first=True, **arguments
-        )
 
 
 def _labels(identity_count: int = 40, images_per_identity: int = 5) -> tuple[str, ...]:

@@ -1,0 +1,26 @@
+{
+  "all_two400_finite_updates": true,
+  "independent_bootstrap": {
+    "map": {
+      "independent5000draws_matches_within_1e-14": true,
+      "lower95": -0.004246727662530666,
+      "point": -0.0013687703406524865,
+      "upper95": 0.001250756151198227
+    },
+    "recall": {
+      "independent5000draws_matches_within_1e-14": true,
+      "lower95": -0.0074243289548829245,
+      "point": -0.00436046511627907,
+      "upper95": -0.0014416598746284284
+    }
+  },
+  "original_session_id": 13257,
+  "prefix134_loss_exact": true,
+  "production_opt_in_removed_after_failed_quality": true,
+  "receipt_sha256": "f69836f473f27f276598ec3cb64bcba9ae33e6596ca839e349523799e64baf76",
+  "replay_commit": "ead79135",
+  "roles_reconstructed": true,
+  "schema": "sfora-repeat-coverage-f1-verification-v1",
+  "sources_match_prior_freeze": true,
+  "terminal_exit_code": 0
+}
