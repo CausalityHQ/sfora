@@ -13,20 +13,25 @@ from sfora.sop_compact_training import compact_head_features
 
 
 def validate_direct_width(args):
+    qualification = getattr(args, "direct_width_qualification", None)
+    authority = qualification or args.direct_width_receipt
+    expected_sha = "5334209bf78c70b08e0dd20bd55572e57130f2b31ef5570ebdc2ce5c535b2333" if qualification else "1ac62b0edda6dd93bc808a8d2bb81fef7c89cc1c4eaef816d276c4fecb2a555f"
     blocked = ("vision_init_checkpoint", "vision_init_sha256", "wide_head_smoke_receipt",
                "wide_head_qualification", "source_centroid_smoke", "source_centroid_receipt",
                "teacher_transfer", "teacher_transfer_smoke_receipt", "teacher_model_snapshot",
                "teacher_checkpoint", "source_main_smoke", "source_main_receipt",
                "source_main_qualification", "centroid_pca_smoke", "centroid_pca_receipt",
                "centroid_pca_qualification", "centroid_pca_confirmation")
-    if (args.arm != "freeze_emb" or args.seed != 179024 or args.updates != 17
+    if (args.arm != "freeze_emb" or args.seed != 179024 or args.updates != (100 if qualification else 17)
         or args.training_width not in (128, 256) or args.freeze_first_blocks != 12
         or args.vision_lr != 1e-5 or args.half_fit_products or args.tail_blocks_to_drop
         or any(getattr(args, name) is not None for name in blocked)
-        or sha256(args.direct_width_receipt) != "1ac62b0edda6dd93bc808a8d2bb81fef7c89cc1c4eaef816d276c4fecb2a555f"):
+        or (qualification is not None and args.direct_width_receipt is not None)
+        or authority is None or sha256(authority) != expected_sha):
         raise ValueError("direct-width mechanics authority differs")
-    receipt = json.loads(args.direct_width_receipt.read_text())
-    if receipt["decision"] != "GO_REVIEW_ONLY" or not all(receipt["criteria"].values()):
+    receipt = json.loads(authority.read_text())
+    expected_decision = "GO_FREEZE_REAL_100_GATE" if qualification else "GO_REVIEW_ONLY"
+    if receipt["decision"] != expected_decision or not all(receipt["criteria"].values()):
         raise ValueError("direct-width requires the frozen positive cached gate")
 
 

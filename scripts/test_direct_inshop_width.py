@@ -9,6 +9,9 @@ from unittest.mock import patch
 
 from direct_inshop_width import validate_direct_width
 import run_inshop_direct_width_smoke as runner
+import inspect
+import torch
+from train_sop_siglip2_compact import export_all
 
 
 def timeout_preserves_control():
@@ -69,6 +72,25 @@ def main():
         else:
             raise AssertionError(f"invalid direct-width authority accepted: {change}")
     timeout_preserves_control()
+    smoke = Path("docs/evidence/compact_metric/sop-siglip2-substrate-v1/inshop-direct-width-mechanics-v1/receipt.json")
+    quality = base | {"direct_width_receipt":None,"direct_width_qualification":smoke,"updates":100}
+    validate_direct_width(SimpleNamespace(**quality))
+    for change in ({"updates":1000},{"direct_width_receipt":receipt},{"direct_width_qualification":receipt}):
+        try:
+            validate_direct_width(SimpleNamespace(**(quality|change)))
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("quality authority accepted a different gate")
+    signature=inspect.signature(export_all)
+    assert signature.parameters["output_dim"].default==128 and signature.parameters["native_fp16"].default is False
+    for dim,native in ((1024,False),(256,True)):
+        try:
+            export_all(torch.nn.Linear(1,1),torch.nn.Linear(1024,256),(),(),None,workers=0,batch_size=32,output_dim=dim,native_fp16=native)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("export accepted unsupported width or FP32 native profile")
 
 
 if __name__ == "__main__":

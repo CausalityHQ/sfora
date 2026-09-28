@@ -394,7 +394,13 @@ def export_all(
     *,
     workers: int,
     batch_size: int,
+    output_dim: int = OUTPUT_WIDTH,
+    native_fp16: bool = False,
 ) -> torch.Tensor:
+    if (type(output_dim) is not int or output_dim not in (128,256)
+        or head.out_features != output_dim or type(native_fp16) is not bool
+        or (native_fp16 and any(p.dtype != torch.float16 for p in vision.parameters()))):
+        raise ValueError("SigLIP2 export width or numerical profile differs")
     dataset = ImageRows(paths, labels, augment=False)
     loader = DataLoader(
         dataset,
@@ -408,17 +414,17 @@ def export_all(
     head.eval()
     outputs = []
     for index, (batch, _labels) in enumerate(loader, start=1):
-        tensors = {key: value.cuda(non_blocking=True) for key, value in batch.items()}
-        with torch.amp.autocast("cuda", dtype=torch.float16):
+        tensors = {key: value.to(device="cuda", dtype=torch.float16 if native_fp16 else value.dtype, non_blocking=True) for key, value in batch.items()}
+        with torch.amp.autocast("cuda", dtype=torch.float16, enabled=not native_fp16):
             source = vision(**tensors).pooler_output
         if source is None:
             raise ValueError("SOP SigLIP2 export pooler missing")
-        values = compact_head_features(source, head)
+        values = compact_head_features(source, head, output_dim=output_dim)
         outputs.append(F.normalize(values, dim=1).cpu())
         if index % 100 == 0:
             print(json.dumps({"export_batches": index}), flush=True)
     result = torch.cat(outputs).contiguous()
-    if result.shape != (len(paths), OUTPUT_WIDTH) or not bool(torch.isfinite(result).all()):
+    if result.shape != (len(paths), output_dim) or not bool(torch.isfinite(result).all()):
         raise ValueError("SOP SigLIP2 export geometry differs")
     return result
 

@@ -530,6 +530,7 @@ def main() -> None:
     parser.add_argument("--teacher-checkpoint", type=Path)
     parser.add_argument("--training-width", type=int, choices=(128, 256), default=128)
     parser.add_argument("--direct-width-receipt", type=Path)
+    parser.add_argument("--direct-width-qualification", type=Path)
     parser.add_argument("--wide-head-smoke-receipt", type=Path)
     parser.add_argument("--wide-head-qualification", type=Path)
     parser.add_argument("--source-main-smoke", choices=("control", "source"))
@@ -540,7 +541,7 @@ def main() -> None:
     parser.add_argument("--centroid-pca-qualification", type=Path)
     parser.add_argument("--centroid-pca-confirmation", type=Path)
     args = parser.parse_args()
-    direct_width = args.direct_width_receipt is not None
+    direct_width = args.direct_width_receipt is not None or args.direct_width_qualification is not None
     if direct_width:
         validate_direct_width(args)
     centroid_smoke = args.centroid_pca_smoke is not None
@@ -1557,8 +1558,10 @@ def main() -> None:
             processor,
             workers=args.workers,
             batch_size=32
-            if width_quality or source_main_quality or centroid_quality or centroid_confirmation
+            if width_quality or source_main_quality or centroid_quality or centroid_confirmation or direct_width
             else BATCH_SIZE,
+            output_dim=args.training_width if direct_width else 128,
+            native_fp16=direct_width,
         )
         export_seconds = time.perf_counter() - export_started
         np.save(args.output_dir / "held_values.npy", values.numpy())
@@ -1622,7 +1625,8 @@ def main() -> None:
         "teacher_transfer": args.teacher_transfer,
         "training_width": args.training_width,
         "direct_width_smoke": direct_width,
-        "direct_width_receipt_sha256": sha256(args.direct_width_receipt) if direct_width else None,
+        "direct_width_receipt_sha256": sha256(args.direct_width_receipt) if args.direct_width_receipt else None,
+        "direct_width_qualification_sha256": sha256(args.direct_width_qualification) if args.direct_width_qualification else None,
         "direct_initial_rows_sha256": direct_initial_rows_sha,
         "private_native_fp16_reload": direct_parity,
         "wide_head_smoke": wide_smoke,
@@ -1630,7 +1634,7 @@ def main() -> None:
         if width_quality
         else None,
         "export_batch_size": 32
-        if width_quality or source_main_quality or centroid_quality or centroid_confirmation
+        if width_quality or source_main_quality or centroid_quality or centroid_confirmation or direct_width
         else BATCH_SIZE,
         "matched_public32_parity": matched_parity,
         "width_history": width_history,
