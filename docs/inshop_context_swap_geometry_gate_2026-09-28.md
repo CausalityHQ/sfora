@@ -53,7 +53,8 @@ outcome, official evaluation or serving timing was used.
 
 Independent integer pixel-set enumeration replayed every corrected fraction
 and naive intrusion exactly for all 512 triplets. The source hash matched;
-the mask unit check passed and Ruff/diff checks were clean. Raw receipt,+journal and terminal verification are in
+the mask unit check passed and Ruff/diff checks were clean. Raw receipt,
+journal and terminal verification are in
 `docs/evidence/compact_metric/sop-siglip2-substrate-v1/inshop-context-swap-geometry-v1/`.
 
 Close this fixed box-safe context-swap intervention before encoder F0,
