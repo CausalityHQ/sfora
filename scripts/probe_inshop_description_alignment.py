@@ -40,6 +40,39 @@ def shuffled_caption_names(categories: dict[str, str], rng: np.random.Generator)
 
 
 @torch.inference_mode()
+def encode_captions(snapshot: Path, captions: dict[str, str]) -> torch.Tensor:
+    names = sorted(captions)
+    from transformers import AutoModel, AutoTokenizer
+
+    tokenizer = AutoTokenizer.from_pretrained(snapshot, local_files_only=True)
+    full = AutoModel.from_pretrained(
+        snapshot, local_files_only=True, use_safetensors=True, dtype=torch.float16
+    )
+    text_model = full.text_model.cuda().eval()
+    del full
+    torch.backends.cuda.matmul.allow_tf32 = False
+    torch.cuda.reset_peak_memory_stats()
+    text_parts = []
+    for start in range(0, len(names), 64):
+        inputs = tokenizer(
+            [captions[name] for name in names[start : start + 64]],
+            padding="max_length",
+            max_length=64,
+            truncation=True,
+            return_tensors="pt",
+        )
+        text_parts.append(
+            text_model(**{key: value.cuda() for key, value in inputs.items()})
+            .pooler_output.float()
+            .cpu()
+        )
+    text = torch.nn.functional.normalize(torch.cat(text_parts), dim=1)
+    if text.shape != (len(names), 1024) or not bool(torch.isfinite(text).all()):
+        raise ValueError("description text representation differs")
+    return text
+
+
+@torch.inference_mode()
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     for name in (
@@ -117,34 +150,8 @@ def main() -> None:
         }
         for q, n in zip(query, negatives, strict=True)
     ]
-    from transformers import AutoModel, AutoTokenizer
-
-    tokenizer = AutoTokenizer.from_pretrained(args.model_snapshot, local_files_only=True)
-    full = AutoModel.from_pretrained(
-        args.model_snapshot, local_files_only=True, use_safetensors=True, dtype=torch.float16
-    )
-    text_model = full.text_model.cuda().eval()
-    del full
-    torch.backends.cuda.matmul.allow_tf32 = False
-    torch.cuda.reset_peak_memory_stats()
     names = sorted(captions)
-    text_parts = []
-    for start in range(0, len(names), 64):
-        inputs = tokenizer(
-            [captions[name] for name in names[start : start + 64]],
-            padding="max_length",
-            max_length=64,
-            truncation=True,
-            return_tensors="pt",
-        )
-        text_parts.append(
-            text_model(**{key: value.cuda() for key, value in inputs.items()})
-            .pooler_output.float()
-            .cpu()
-        )
-    text = torch.nn.functional.normalize(torch.cat(text_parts), dim=1)
-    if text.shape != (len(names), 1024) or not bool(torch.isfinite(text).all()):
-        raise ValueError("description text representation differs")
+    text = encode_captions(args.model_snapshot, captions)
     indices = {name: place for place, name in enumerate(names)}
     actual, sham = [], []
     for q, n, feature in zip(query, negatives, query_image, strict=True):
