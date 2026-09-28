@@ -1,0 +1,23 @@
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-pe-l14-checkpoint-v1/probe_pe_l14_checkpoint_parity.py --device cpu --output /home/riomus/runs/sfora-pe-l14-checkpoint-v1/native-checkpoint-cpu-parity.json --script-sha256 60ec0dedd3eb15d18546e5d0c9e67a2c28a4e18853a2fb5b574bc44aa73c527f --checkpoint-helper-sha256 e628e46b9b36501b30844ea266e14b7e5dd0ecc5de37486e8810bd173e60bedb"
+	User time (seconds): 47.05
+	System time (seconds): 2.58
+	Percent of CPU this job got: 298%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:16.63
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 3975088
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 348731
+	Voluntary context switches: 40481
+	Involuntary context switches: 3477
+	Swaps: 0
+	File system inputs: 2229944
+	File system outputs: 32
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

@@ -1,0 +1,2 @@
+{"phase": "parity-complete", "peak_cuda_allocated_bytes": 0}
+PASS actual native source/readout/loss/every trainable gradient/normal serving exact; no optimizer update
