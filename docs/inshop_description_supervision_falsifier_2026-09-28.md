@@ -38,3 +38,22 @@ The reader now deduplicates identical semantic text and still rejects
 conflicting text and identity tokens. The regression check failed before
 the fix and passed afterward. Coverage/uniqueness and alignment thresholds
 are unchanged; no image–text quality or GPU result has been read.
+
+The corrected metadata gate passed: **2,003/2,004 products (99.9501%)**
+usable, with **100% distinct** usable captions. The
+[eligibility receipt](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-description-eligibility-v2.json)
+SHA-256 is `8c288436623814f79bf3aa38f05c0b1f3bfd2b1af2e32c6788b75835f0ab664a`.
+
+The alignment implementation fixes the product hash prefix to
+`inshop-description-pilot-v1\0`, chooses one query image by relative-path
+SHA, and breaks nearest-impostor cosine ties by original fit row order.
+The caption control randomly orders fit-product captions within each
+`img/SEX/CATEGORY` group (RNG 179019), then shifts the order cyclically;
+it has no fixed product assignments. Tokenizer files are pinned to the
+same model revision; use max-length padding/truncation of **64 tokens**,
+the native frozen text pooler, float-normalized cosine and FP16 text
+weights. The command has a **120-second timeout including data checks**.
+Missing selected captions, nonfinite features, wrong hashes or timeout
+stop it. This supervised-metadata route uses additional supplied annotation
+compared with the label-only baseline; no equal-data method advantage can
+be claimed without matching that supervision in the control.
