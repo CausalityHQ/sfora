@@ -24,6 +24,7 @@ from sfora.representation_ceiling import fit_centered_pca
 from sfora.sop_compact_training import compact_head_features
 from sfora.teacher_anchored_distillation import (
     cross_dimensional_relational_distillation_loss,
+    embedding_geometry_diagnostics,
 )
 from sfora.unicom_inshop import parse_inshop_partition
 from sfora.unicom_training import sharded_mask_arcface_loss
@@ -56,11 +57,201 @@ def squared_norm(values):
     )
 
 
+def training_smoke(student, head, classifier, teacher, teacher_head, pixels, bank, positives):
+    """Three serial eight-update arms; cached targets apply only to fixed smoke pixels."""
+    initial_vision = {
+        name: value.detach().cpu().clone() for name, value in student.state_dict().items()
+    }
+    initial_head = {name: value.detach().cpu().clone() for name, value in head.state_dict().items()}
+    initial_classifier = classifier.detach().clone()
+    target_started = time.perf_counter()
+    with torch.no_grad(), torch.autocast("cuda", dtype=torch.bfloat16):
+        teacher_values = [teacher(pixel_values=value).pooler_output for value in pixels]
+    teacher_codes = (
+        torch.cat(
+            [
+                F.normalize(compact_head_features(value, teacher_head), dim=1)
+                for value in teacher_values
+            ]
+        )
+        .detach()
+        .contiguous()
+    )
+    torch.cuda.synchronize()
+    target_wall = time.perf_counter() - target_started
+    generator = np.random.Generator(np.random.PCG64(179024))
+    batches = [
+        np.asarray(
+            [
+                2 * row + offset
+                for row in generator.choice(128, 16, replace=False)
+                for offset in (0, 1)
+            ],
+            dtype=np.int64,
+        )
+        for _ in range(8)
+    ]
+    all_pixels = torch.cat(pixels)
+    arms, witnesses = {}, {}
+
+    def codes_for(indexes):
+        with torch.autocast("cuda", dtype=torch.bfloat16):
+            source = student(pixel_values=all_pixels[indexes]).pooler_output
+        return compact_head_features(source, head)
+
+    def geometry():
+        with torch.no_grad():
+            codes = F.normalize(codes_for(torch.arange(32, device="cuda")), dim=1).contiguous()
+        return {
+            "variance": float(codes.var(0, correction=0).sum()),
+            "effective_rank": embedding_geometry_diagnostics(codes).effective_rank,
+        }
+
+    for arm in ("main_only", "true_teacher", "pair_sham"):
+        student.load_state_dict(initial_vision, strict=True)
+        head.load_state_dict(initial_head, strict=True)
+        with torch.no_grad():
+            classifier.copy_(initial_classifier)
+        torch.manual_seed(179024)
+        student.train()
+        current_bank = bank.detach().clone()
+        optimizer = torch.optim.AdamW(
+            [
+                {"params": student.parameters(), "lr": 1e-5},
+                {"params": head.parameters(), "lr": 1e-4},
+                {"params": [classifier], "lr": 1e-4},
+            ],
+            weight_decay=0.05,
+        )
+        parameters = tuple(student.parameters()) + tuple(head.parameters()) + (classifier,)
+        initial_geometry = geometry()
+        history = []
+        for batch in batches:
+            indexes = torch.tensor(batch, device="cuda")
+            target = indexes // 2
+            torch.cuda.synchronize()
+            step_started = time.perf_counter()
+            optimizer.zero_grad(set_to_none=True)
+            projected = codes_for(indexes)
+            codes = F.normalize(projected, dim=1).contiguous()
+            classification = sharded_mask_arcface_loss(
+                projected,
+                classifier,
+                target,
+                torch.arange(128, device="cuda").reshape(1, -1),
+                margin=0.3,
+                scale=64.0,
+            )
+            main = classification + 8 * smooth_ap_bank_loss(
+                codes, current_bank, positives[indexes], indexes
+            )
+            targets = teacher_codes[indexes].contiguous()
+            if arm == "pair_sham":
+                targets = product_sham(targets)
+            relation = cross_dimensional_relational_distillation_loss(
+                codes, targets, temperatures=(0.20,)
+            )
+            loss = main + (0.0 if arm == "main_only" else 0.1) * relation
+            if not torch.isfinite(loss):
+                raise ValueError("transfer smoke nonfinite loss")
+            loss.backward()
+            norm = torch.nn.utils.clip_grad_norm_(parameters, 1.0, error_if_nonfinite=True)
+            optimizer.step()
+            if any(not bool(torch.isfinite(parameter).all()) for parameter in parameters):
+                raise ValueError("transfer smoke nonfinite parameter")
+            with torch.no_grad():
+                current_bank[indexes] = codes.detach()
+            torch.cuda.synchronize()
+            step_wall = time.perf_counter() - step_started
+            measured_geometry = geometry()
+            if measured_geometry["variance"] < 0.5 * initial_geometry[
+                "variance"
+            ] or measured_geometry["effective_rank"] < max(
+                2, 0.5 * initial_geometry["effective_rank"]
+            ):
+                raise ValueError("transfer smoke compact geometry collapse")
+            history.append(
+                {
+                    "classification_loss": float(classification.detach()),
+                    "relation_loss": float(relation.detach()),
+                    "total_loss": float(loss.detach()),
+                    "preclip_gradient_norm": float(norm),
+                    "step_wall_seconds": step_wall,
+                    **measured_geometry,
+                }
+            )
+        probe_codes = F.normalize(codes_for(torch.arange(32, device="cuda")), dim=1).contiguous()
+        terminal_relation = cross_dimensional_relational_distillation_loss(
+            probe_codes, teacher_codes[:32].contiguous(), temperatures=(0.20,)
+        )
+        gradients = torch.autograd.grad(0.1 * terminal_relation, parameters, allow_unused=True)
+        routes = {}
+        for name, module in (
+            ("first_block", student.encoder.layers[0]),
+            ("last_block", student.encoder.layers[-1]),
+            ("head", head),
+        ):
+            selected = {id(parameter) for parameter in module.parameters()}
+            routes[name] = (
+                squared_norm(
+                    tuple(
+                        gradient
+                        for parameter, gradient in zip(parameters, gradients, strict=True)
+                        if id(parameter) in selected
+                    )
+                )
+                ** 0.5
+            )
+        if (
+            any(not bool(torch.isfinite(value).all()) for value in gradients if value is not None)
+            or not all(value > 0 for value in routes.values())
+            or gradients[-1] is not None
+        ):
+            raise ValueError("terminal transfer gradient route failed")
+        witnesses[arm] = {
+            "encoder": student.encoder.layers[0].self_attn.q_proj.weight.detach().cpu().clone(),
+            "head": head.weight.detach().cpu().clone(),
+        }
+        arms[arm] = {
+            "stable_updates": len(history),
+            "images": 8 * 32,
+            "history": history,
+            "initial_geometry": initial_geometry,
+            "terminal_gradient_norms": routes,
+            "median_step_wall_seconds": float(
+                np.median([row["step_wall_seconds"] for row in history])
+            ),
+        }
+        del optimizer, gradients
+    distinct = {
+        name: float((witnesses["true_teacher"][name] - witnesses["main_only"][name]).norm())
+        for name in ("encoder", "head")
+    }
+    with torch.no_grad(), torch.autocast("cuda", dtype=torch.bfloat16):
+        replay = teacher(pixel_values=pixels[0]).pooler_output
+    replay_codes = F.normalize(compact_head_features(replay, teacher_head), dim=1).detach()
+    criteria = {
+        "teacher_unchanged": torch.equal(replay_codes, teacher_codes[:32]),
+        "treatment_update_differs": all(value > 0 for value in distinct.values()),
+        "update_overhead": arms["true_teacher"]["median_step_wall_seconds"]
+        <= 3 * arms["main_only"]["median_step_wall_seconds"],
+    }
+    return {
+        "arms": arms,
+        "criteria": criteria,
+        "parameter_update_difference_norms": distinct,
+        "teacher_target_generation_wall_seconds": target_wall,
+        "schedule_sha256": hashlib.sha256(np.asarray(batches, dtype="<i8").tobytes()).hexdigest(),
+        "teacher_targets": "bounded fixed-pixel cache; augmentation requires new online targets",
+    }
+
+
 def main():
     started = time.perf_counter()
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     for name in ("dataset-root", "base-snapshot", "large-snapshot", "checkpoint", "output"):
         parser.add_argument(f"--{name}", type=Path, required=True)
+    parser.add_argument("--training-smoke", action="store_true")
     args = parser.parse_args()
     from export_inshop_siglip2_train_features import MODEL_HASHES
     from export_sop_siglip2_train import MODEL_REVISION
@@ -303,6 +494,33 @@ def main():
         "peak_reserved_cuda_bytes": torch.cuda.max_memory_reserved(),
         "pixels_sha256": hashlib.sha256(pixels[0].cpu().numpy().tobytes()).hexdigest(),
     }
+    if args.training_smoke and all(criteria.values()):
+        del (
+            true_grad,
+            main_grad,
+            sham_grad,
+            main_loss,
+            relation,
+            sham_loss,
+            projected,
+            codes,
+            values,
+        )
+        result = training_smoke(
+            student, head, classifier, teacher, teacher_head, pixels, initial, positives
+        )
+        receipt["training_smoke"] = result
+        torch.cuda.synchronize()
+        receipt["main_wall_seconds"] = time.perf_counter() - started
+        receipt["peak_allocated_cuda_bytes"] = torch.cuda.max_memory_allocated()
+        receipt["peak_reserved_cuda_bytes"] = torch.cuda.max_memory_reserved()
+        result["criteria"]["aggregate_resource"] = (
+            receipt["main_wall_seconds"] <= 120
+            and receipt["peak_allocated_cuda_bytes"] < 16 * 1024**3
+        )
+        receipt["decision"] = (
+            "GO_INDEPENDENT_GATE_DESIGN" if all(result["criteria"].values()) else "KILL"
+        )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(receipt, sort_keys=True, allow_nan=False) + "\n")
     print(

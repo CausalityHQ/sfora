@@ -43,3 +43,34 @@ initial/terminal gradient route and treatment step overhead≤3× control.
 It does not authorize full training, new held reads, p99 calls or promotion.
 Teacher acquisition/original training and target generation must count in
 subsequent training cost. The production API/wheel stay unchanged.
+
+## Initial terminal: GO to bounded smoke
+
+Original DGX unit `sfora-inshop-teacher-transfer-gradient-v1`, invocation
+`ac083ecebeba43f6a65cbe7f9ced7fd9`, exited0. All frozen gates passed:
+teacher-uniform KL1.28187585nats; pair-sham KL0.26341826nats; weighted
+relation/main encoder-gradient norm ratio0.01525828; true/sham encoder
+gradient relative difference1.14322730. First/last/head gradient norms
+0.43745269/0.21349888/0.04587354; teacher/classifier relation gradients absent.
+Main wall11.731349s, peak allocated CUDA6,110,278,144bytes, teacher probe
+forward0.283643s. No optimizer updates or quality/serving reads occurred.
+Receipt SHA946bee5474682282489b47702fdac152afdfdf09c4e365aa475c6367948023ab.
+
+Next eight-update smoke uses the same authenticated256-image panel. Fixed
+seed179024 PCG64 picks16 products without replacement per batch, both images
+consecutive; all three arms reset identical FP32 vision/head/classifier and
+optimizer states. All12 Base blocks train. Class supervision/rank bank,
+learning rates1e-5/1e-4, decay0.05, clipping1 stay fixed. Diagnostics use the
+fixed first32 images after every update. Baseline computes teacher KL for
+logging without optimizing it; true and pair-sham add the fixed0.1KL term.
+
+For this fixed-pixel smoke only, cache256 teacher targets once and count
+their generation wall separately. Per-update overhead measures student
+forward/backward/optimizer, excluding common target generation and extra
+diagnostics. **This does not measure online augmentation KD training cost**;
+changing pixels in a later experiment requires corresponding teacher targets.
+Require all24 stable updates and finite parameters, rank/variance floors on
+every update, initial/terminal encoder/head relation route, unchanged teacher
+probe codes, nonzero encoder/head update difference true versus main, and
+treatment update p50≤3×baseline; aggregate imports/loading/diagnostics≤120s
+and CUDA peak<16GiB. No immediate quality or monotonic KL criterion is added.

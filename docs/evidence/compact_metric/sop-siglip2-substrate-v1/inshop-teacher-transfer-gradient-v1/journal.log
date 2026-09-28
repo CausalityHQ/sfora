@@ -1,0 +1,35 @@
+Sep 28 04:07:19 spark-2751 systemd[3489]: Started sfora-inshop-teacher-transfer-gradient-v1.service - /usr/bin/flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock /usr/bin/timeout --signal=TERM --kill-after=5 120 /usr/bin/env PYTHONPATH=/home/riomus/runs/sfora-inshop-teacher-transfer-gradient-v1/code/src:/home/riomus/runs/sfora-inshop-teacher-transfer-gradient-v1/code/scripts /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-inshop-teacher-transfer-gradient-v1/code/scripts/probe_inshop_teacher_transfer.py --dataset-root "/home/riomus/datasets/In-shop Clothes Retrieval Benchmark" --base-snapshot /home/riomus/.cache/huggingface/hub/models--google--siglip2-base-patch16-256/snapshots/3f9f96cb90da5dbc758b01813f2f6f1aee24c1ab --large-snapshot /home/riomus/.cache/huggingface/hub/models--google--siglip2-large-patch16-256/snapshots/787800c8990e6f058423089178e718139608408c --checkpoint /home/riomus/runs/sfora-inshop-valid-anchor-confirm-freeze_emb-179026-v1/checkpoint.pt --output /home/riomus/runs/sfora-inshop-teacher-transfer-gradient-v1/receipt.json.
+Sep 28 04:07:25 spark-2751 flock[770827]: [147B blob data]
+Sep 28 04:07:25 spark-2751 flock[770827]: [transformers] SiglipVisionModel LOAD REPORT from: /home/riomus/.cache/huggingface/hub/models--google--siglip2-base-patch16-256/snapshots/3f9f96cb90da5dbc758b01813f2f6f1aee24c1ab
+Sep 28 04:07:25 spark-2751 flock[770827]: Key                                                          | Status     |  |
+Sep 28 04:07:25 spark-2751 flock[770827]: -------------------------------------------------------------+------------+--+-
+Sep 28 04:07:25 spark-2751 flock[770827]: text_model.encoder.layers.{0...11}.self_attn.v_proj.weight   | UNEXPECTED |  |
+Sep 28 04:07:25 spark-2751 flock[770827]: text_model.encoder.layers.{0...11}.self_attn.q_proj.bias     | UNEXPECTED |  |
+Sep 28 04:07:25 spark-2751 flock[770827]: text_model.encoder.layers.{0...11}.mlp.fc2.bias              | UNEXPECTED |  |
+Sep 28 04:07:25 spark-2751 flock[770827]: text_model.encoder.layers.{0...11}.self_attn.v_proj.bias     | UNEXPECTED |  |
+Sep 28 04:07:25 spark-2751 flock[770827]: text_model.encoder.layers.{0...11}.self_attn.k_proj.bias     | UNEXPECTED |  |
+Sep 28 04:07:25 spark-2751 flock[770827]: text_model.encoder.layers.{0...11}.self_attn.k_proj.weight   | UNEXPECTED |  |
+Sep 28 04:07:25 spark-2751 flock[770827]: text_model.encoder.layers.{0...11}.self_attn.out_proj.weight | UNEXPECTED |  |
+Sep 28 04:07:25 spark-2751 flock[770827]: text_model.encoder.layers.{0...11}.mlp.fc1.weight            | UNEXPECTED |  |
+Sep 28 04:07:25 spark-2751 flock[770827]: text_model.encoder.layers.{0...11}.layer_norm2.bias          | UNEXPECTED |  |
+Sep 28 04:07:25 spark-2751 flock[770827]: text_model.encoder.layers.{0...11}.layer_norm2.weight        | UNEXPECTED |  |
+Sep 28 04:07:25 spark-2751 flock[770827]: text_model.encoder.layers.{0...11}.layer_norm1.bias          | UNEXPECTED |  |
+Sep 28 04:07:25 spark-2751 flock[770827]: text_model.encoder.layers.{0...11}.mlp.fc1.bias              | UNEXPECTED |  |
+Sep 28 04:07:25 spark-2751 flock[770827]: text_model.encoder.layers.{0...11}.self_attn.out_proj.bias   | UNEXPECTED |  |
+Sep 28 04:07:25 spark-2751 flock[770827]: text_model.encoder.layers.{0...11}.layer_norm1.weight        | UNEXPECTED |  |
+Sep 28 04:07:25 spark-2751 flock[770827]: text_model.encoder.layers.{0...11}.mlp.fc2.weight            | UNEXPECTED |  |
+Sep 28 04:07:25 spark-2751 flock[770827]: text_model.embeddings.position_embedding.weight              | UNEXPECTED |  |
+Sep 28 04:07:25 spark-2751 flock[770827]: logit_bias                                                   | UNEXPECTED |  |
+Sep 28 04:07:25 spark-2751 flock[770827]: text_model.encoder.layers.{0...11}.self_attn.q_proj.weight   | UNEXPECTED |  |
+Sep 28 04:07:25 spark-2751 flock[770827]: text_model.embeddings.token_embedding.weight                 | UNEXPECTED |  |
+Sep 28 04:07:25 spark-2751 flock[770827]: text_model.final_layer_norm.weight                           | UNEXPECTED |  |
+Sep 28 04:07:25 spark-2751 flock[770827]: logit_scale                                                  | UNEXPECTED |  |
+Sep 28 04:07:25 spark-2751 flock[770827]: text_model.head.weight                                       | UNEXPECTED |  |
+Sep 28 04:07:25 spark-2751 flock[770827]: text_model.head.bias                                         | UNEXPECTED |  |
+Sep 28 04:07:25 spark-2751 flock[770827]: text_model.final_layer_norm.bias                             | UNEXPECTED |  |
+Sep 28 04:07:25 spark-2751 flock[770827]: Notes:
+Sep 28 04:07:25 spark-2751 flock[770827]: - UNEXPECTED:        can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+Sep 28 04:07:27 spark-2751 flock[770827]: [transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+Sep 28 04:07:27 spark-2751 flock[770827]: [transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Sep 28 04:07:34 spark-2751 flock[770827]: {"decision": "GO_BOUNDED_SMOKE", "measured": {"teacher_uniform_kl": 1.2818758487701416, "teacher_sham_kl": 0.2634182572364807, "weighted_relation_to_main_encoder_gradient_ratio": 0.015258277882468418, "true_sham_encoder_gradient_relative_difference": 1.1432272955000204, "gradient_norms": {"first_block": 0.43745268923817787, "last_block": 0.21349887680125698, "head": 0.045873539826200384}, "main_loss": 1.4412375688552856, "relation_loss": 0.1912878453731537, "sham_loss": 0.38910460472106934, "teacher_forward_wall_seconds": 0.28364322520792484}, "criteria": {"finite_gradients": true, "student_encoder_head_route": true, "classifier_no_relation_gradient": true, "teacher_no_gradient": true, "weighted_gradient_ratio": true, "teacher_information": true, "sham_gradient_differs": true, "resource": true}, "main_wall_seconds": 11.731349229812622, "peak_allocated_cuda_bytes": 6110278144}
+Sep 28 04:07:35 spark-2751 systemd[3489]: sfora-inshop-teacher-transfer-gradient-v1.service: Consumed 22.437s CPU time, 3.2G memory peak, 0B memory swap peak.
