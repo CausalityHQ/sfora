@@ -1,0 +1,14 @@
+{
+  "unit": "sfora-direct-batch32-cpu-v1.service",
+  "invocation": "fd2866f288c6402cbb0fad57b7b471d9",
+  "source_commit": "0a61712",
+  "source_archive_sha256": "0ced84d51dc2d0b53b697079f637f051b8d12012ebaecf6f4a195bf32cfec611",
+  "source_sha256": "3728fa2604c238896f175f26ad1243681e8ff85174acdb7aec1a372f063b2a58",
+  "serving_sha256": "ef454200ca17b80917fe7aa52cf232703779d21af7e8ffe0d25f8e811724bc62",
+  "gate_sha256": "6928bf1b781643a915beb9fb3dee93a65cf82cc09c3fb50e00ab0cb16322992f",
+  "runtime_max_seconds": 130,
+  "memory_max_bytes": 2147483648,
+  "cuda_visible_devices": "",
+  "gpu_work": false,
+  "profile_sha256": "7b879d2a31b9240afb65c3206af587149d746467e69707e34d8545106577e4d4"
+}

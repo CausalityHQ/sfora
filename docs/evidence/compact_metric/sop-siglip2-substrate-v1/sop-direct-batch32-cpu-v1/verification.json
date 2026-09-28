@@ -1,0 +1,15 @@
+{
+  "receipt_sha256": "3d51c7a83dee6093dff12f0810b3415b2531a2471949f9b3e350dd66048c1d7f",
+  "source_and_gate_exact": true,
+  "quantiles_and_decision_replayed": true,
+  "criteria": {
+    "exact": true,
+    "p50": false,
+    "p95": false,
+    "rss": true,
+    "budget": true
+  },
+  "p50_ratio": 2.5028007728670736,
+  "p95_ratio": 1.6424370670056885,
+  "scope": "Every recorded timing/role-count/source/decision checked; pixel equality attested by original run, no independent pixel replay."
+}

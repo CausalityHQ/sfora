@@ -1,5 +1,14 @@
 # Joint quality and performance decision, first training-code gate
 
+## 28 September batch32 processor CPU falsifier: stop before GPU work
+
+On1024 unique-byte SOP TRAIN images at20 CPU threads, concatenating the
+qualified scalar direct processor preserved all pixels but increased
+batch32 processor p50 **38.034→95.191ms** and p95 **69.708→114.491ms**.
+Both frozen speed floors failed; the sole CPU-only probe stopped in14.017s.
+No production processor change, encoder forward, training or full-call timing
+followed. [Verified decision and next gate](sop_direct_batch32_cpu_result_2026-09-28.md).
+
 ## 28 September direct256 convergence gate: close the fixed width arm
 
 The original matched1000-update seed179024 pair completed; independent

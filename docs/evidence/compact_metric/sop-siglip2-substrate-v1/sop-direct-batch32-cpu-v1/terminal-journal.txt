@@ -1,0 +1,39 @@
+2026-09-28T14:31:48+02:00 spark-2751 systemd[3489]: Started sfora-direct-batch32-cpu-v1.service - /usr/bin/flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock /usr/bin/env CUDA_VISIBLE_DEVICES= PYTHONPATH=src /home/riomus/group-learning/.venv/bin/python scripts/probe_sop_direct_batch32.py /home/riomus/runs/sfora-direct-batch32-cpu-v1/result.
+2026-09-28T14:31:51+02:00 spark-2751 flock[989241]: {"batches_checked": 1}
+2026-09-28T14:31:51+02:00 spark-2751 flock[989241]: {"batches_checked": 2}
+2026-09-28T14:31:52+02:00 spark-2751 flock[989241]: {"batches_checked": 3}
+2026-09-28T14:31:52+02:00 spark-2751 flock[989241]: {"batches_checked": 4}
+2026-09-28T14:31:53+02:00 spark-2751 flock[989241]: {"batches_checked": 5}
+2026-09-28T14:31:53+02:00 spark-2751 flock[989241]: {"batches_checked": 6}
+2026-09-28T14:31:54+02:00 spark-2751 flock[989241]: {"batches_checked": 7}
+2026-09-28T14:31:54+02:00 spark-2751 flock[989241]: {"batches_checked": 8}
+2026-09-28T14:31:55+02:00 spark-2751 flock[989241]: {"batches_checked": 9}
+2026-09-28T14:31:55+02:00 spark-2751 flock[989241]: {"batches_checked": 10}
+2026-09-28T14:31:56+02:00 spark-2751 flock[989241]: {"batches_checked": 11}
+2026-09-28T14:31:56+02:00 spark-2751 flock[989241]: {"batches_checked": 12}
+2026-09-28T14:31:56+02:00 spark-2751 flock[989241]: {"batches_checked": 13}
+2026-09-28T14:31:57+02:00 spark-2751 flock[989241]: {"batches_checked": 14}
+2026-09-28T14:31:57+02:00 spark-2751 flock[989241]: {"batches_checked": 15}
+2026-09-28T14:31:58+02:00 spark-2751 flock[989241]: {"batches_checked": 16}
+2026-09-28T14:31:58+02:00 spark-2751 flock[989241]: {"batches_checked": 17}
+2026-09-28T14:31:58+02:00 spark-2751 flock[989241]: {"batches_checked": 18}
+2026-09-28T14:31:59+02:00 spark-2751 flock[989241]: {"batches_checked": 19}
+2026-09-28T14:31:59+02:00 spark-2751 flock[989241]: {"batches_checked": 20}
+2026-09-28T14:32:00+02:00 spark-2751 flock[989241]: {"batches_checked": 21}
+2026-09-28T14:32:00+02:00 spark-2751 flock[989241]: {"batches_checked": 22}
+2026-09-28T14:32:01+02:00 spark-2751 flock[989241]: {"batches_checked": 23}
+2026-09-28T14:32:01+02:00 spark-2751 flock[989241]: {"batches_checked": 24}
+2026-09-28T14:32:01+02:00 spark-2751 flock[989241]: {"batches_checked": 25}
+2026-09-28T14:32:02+02:00 spark-2751 flock[989241]: {"batches_checked": 26}
+2026-09-28T14:32:02+02:00 spark-2751 flock[989241]: {"batches_checked": 27}
+2026-09-28T14:32:03+02:00 spark-2751 flock[989241]: {"batches_checked": 28}
+2026-09-28T14:32:03+02:00 spark-2751 flock[989241]: {"batches_checked": 29}
+2026-09-28T14:32:03+02:00 spark-2751 flock[989241]: {"batches_checked": 30}
+2026-09-28T14:32:04+02:00 spark-2751 flock[989241]: {"batches_checked": 31}
+2026-09-28T14:32:04+02:00 spark-2751 flock[989241]: {"batches_checked": 32}
+2026-09-28T14:32:04+02:00 spark-2751 flock[989241]: {"schema": "sfora-sop-direct-batch32-cpu-v1", "claim_eligible": false, "quality_measured": false, "full_latency_measured": false, "cuda_used": false, "source_sha256": "3728fa2604c238896f175f26ad1243681e8ff85174acdb7aec1a372f063b2a58", "serving_sha256": "ef454200ca17b80917fe7aa52cf232703779d21af7e8ffe0d25f8e811724bc62", "batches_checked": 32, "archive_sha256": "1ba27b2d6b9db39067aa6facd0ef8aafc303c4527f6feabed859b0512c7d921a", "processor_sha256": "d14ba2ee3fd816f3de8abaddc31953565128eaf37c73ad4bed32101a98465aff", "torch": "2.12.1+cu130", "threads": 20, "synthetic_exact": true, "timing": {"control": {"p50_ms": 38.033966, "p95_ms": 69.70817609999999}, "direct": {"p50_ms": 95.1914395, "p95_ms": 114.4912923}}, "gates": {"exact": true, "p50": false, "p95": false, "rss": true, "budget": true}, "peak_rss_bytes": 1142460416, "decision": "KILL_DIRECT_BATCH32_CPU", "whole_seconds": 14.017019662074745}
+2026-09-28T14:32:05+02:00 spark-2751 systemd[3489]: sfora-direct-batch32-cpu-v1.service: Consumed 1min 27.400s CPU time, 1.3M memory peak, 0B memory swap peak.
+MainPID=0
+Result=success
+ExecMainStatus=0
+ActiveState=inactive
