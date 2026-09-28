@@ -19,8 +19,6 @@ def fit_captions(rows: list[dict], labels: set[str]) -> dict[str, str]:
         name = row["item"]
         if name not in labels:
             continue
-        if name in captions:
-            raise ValueError("duplicate fit product description")
         description = row.get("description")
         color = row.get("color")
         if (
@@ -34,6 +32,8 @@ def fit_captions(rows: list[dict], labels: set[str]) -> dict[str, str]:
         if re.search(r"\bid_[a-z0-9]+\b", text, flags=re.IGNORECASE):
             raise ValueError("product identity leaked into description")
         if len(text) >= 20:
+            if name in captions and captions[name] != text:
+                raise ValueError("conflicting fit product description")
             captions[name] = text
     return captions
 

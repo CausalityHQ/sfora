@@ -25,3 +25,16 @@ image/cache/tokenizer/model/caption/selection hash. A metadata or alignment
 pass is only a falsifier screen; it does not prove learnability or justify
 full-budget training. A passing alignment requires a fixed <=2-minute
 gradient/cost smoke before any paired quality training gate.
+
+## Ingestion correction before alignment
+
+The first CPU command exited 1 on the reader's duplicate-record guard.
+Read-only audit found all 2,004 fit products present and **16 repeated
+records, all identical**, with zero conflicting captions/colors. The
+[initial ingestion failure receipt](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-description-data-kill-v1.json)
+is preserved. Its preliminary KILL interpretation is superseded by this
+verified reader bug: exact repetitions carry no contradictory supervision.
+The reader now deduplicates identical semantic text and still rejects
+conflicting text and identity tokens. The regression check failed before
+the fix and passed afterward. Coverage/uniqueness and alignment thresholds
+are unchanged; no image–text quality or GPU result has been read.
