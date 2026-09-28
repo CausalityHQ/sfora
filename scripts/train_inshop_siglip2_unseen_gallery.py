@@ -23,6 +23,8 @@ from probe_inshop_source_classifier import unused_gradient
 from probe_inshop_spatial_parts import CHECKPOINT_SHA
 from probe_inshop_teacher_transfer import label_preserving_sham
 from probe_inshop_wide_training_head import fold_uncentered_head
+from qualify_inshop_wide_checkpoint import matched_checkpoint_checks
+from run_inshop_wide_head_smoke import packed_fit_images
 from siglip2_base_authority import BASE_HASHES, BASE_REVISION, TRANSFER_SMOKE_SHA
 from torch import nn
 from torch.utils.data import DataLoader
@@ -46,6 +48,7 @@ from sfora.deployed_code_rank import smooth_ap_bank_loss
 from sfora.joint_relational_compaction import pack_int8_unit_embeddings
 from sfora.live_head_bank import live_head_bank_loss
 from sfora.representation_ceiling import fit_centered_pca
+from sfora.siglip2_compact_serving import Siglip2CompactEncoder
 from sfora.sop_compact_training import compact_head_features
 from sfora.teacher_anchored_distillation import (
     cross_dimensional_relational_distillation_loss,
@@ -124,13 +127,16 @@ def source_manifest() -> dict[str, str]:
         label_preserving_sham,
         cross_dimensional_relational_distillation_loss,
         fold_uncentered_head,
+        matched_checkpoint_checks,
+        packed_fit_images,
+        Siglip2CompactEncoder.from_checkpoint,
     )
     paths = {
         Path(filename).resolve()
         for function in used
         if (filename := sys.modules[function.__module__].__file__) is not None
     }
-    if len(paths) != 16:
+    if len(paths) != 19:
         raise ValueError("In-Shop source manifest differs")
     return {str(path): sha256(path) for path in sorted(paths)}
 
@@ -173,8 +179,9 @@ def width_geometry(features):
 
 
 @torch.no_grad()
-def calibrate_smoke_fold(vision, head, paths, processor, destination, workers, rows_sha):
-    """Fit once on the fixed2048 TRAIN-fit images, never the held gallery."""
+def calibrate_fit_fold(vision, head, paths, processor, destination, workers, rows_sha):
+    """Fit once on the frozen TRAIN-fit rows, never the held gallery."""
+    started = time.perf_counter()
     loader = DataLoader(
         ImageRows(paths, tuple(range(len(paths))), augment=False),
         batch_size=32,
@@ -251,8 +258,9 @@ def calibrate_smoke_fold(vision, head, paths, processor, destination, workers, r
         {"pooled": first_source, "folded": folded_values, "composed": composed},
         destination / "fold_probe.pt",
     )
-    return {
+    return folded_gpu, {
         "fit_rows": len(paths),
+        "calibration_wall_seconds": time.perf_counter() - started,
         "fit_rows_sha256": rows_sha,
         "singular_values": singular.tolist(),
         "retained_energy": float(singular[:128].square().sum() / singular.square().sum()),
@@ -427,23 +435,34 @@ def main() -> None:
     parser.add_argument("--teacher-checkpoint", type=Path)
     parser.add_argument("--training-width", type=int, choices=(128, 256), default=128)
     parser.add_argument("--wide-head-smoke-receipt", type=Path)
+    parser.add_argument("--wide-head-qualification", type=Path)
     args = parser.parse_args()
     transfer = args.teacher_transfer is not None
-    wide_smoke = args.wide_head_smoke_receipt is not None
+    width_quality = args.wide_head_qualification is not None
+    if width_quality and (
+        args.wide_head_smoke_receipt is not None
+        or sha256(args.wide_head_qualification)
+        != "eb4c8c1bf2a059277b92493fc71612d1f4ce9b53504c3ae1d6346155bf01591e"
+    ):
+        raise ValueError("wide100 qualification authority differs")
+    wide_smoke = args.wide_head_smoke_receipt is not None or width_quality
     if (args.training_width != 128 and not wide_smoke) or (
         wide_smoke
         and (
             args.arm != "freeze_emb"
             or args.seed != 179024
-            or args.updates != 17
+            or args.updates != (100 if width_quality else 17)
             or args.freeze_first_blocks != 12
             or args.half_fit_products
             or args.tail_blocks_to_drop
             or args.vision_init_checkpoint
             or args.source_centroid_smoke
             or transfer
-            or sha256(args.wide_head_smoke_receipt)
-            != "2698063c7c5720b85dbd643bde678d61550c6a65dffbb4c598910d49779d474e"
+            or (
+                not width_quality
+                and sha256(args.wide_head_smoke_receipt)
+                != "2698063c7c5720b85dbd643bde678d61550c6a65dffbb4c598910d49779d474e"
+            )
         )
     ):
         raise ValueError("wide head smoke authority differs")
@@ -630,6 +649,7 @@ def main() -> None:
     torch.set_num_threads(16)
     torch.backends.cuda.matmul.allow_tf32 = False
     features_cpu = torch.from_numpy(np.asarray(source[list(fit)]).copy()).float()
+    head_init_started = time.perf_counter()
     head, classifier, pca_sha = initialize_head_and_classifier(
         features_cpu, tuple(class_ids.tolist()), allow_singletons=True
     )
@@ -641,6 +661,7 @@ def main() -> None:
             )
         if not torch.equal(head.weight[:128], narrow_weight):
             raise ValueError("wide initialization changes native subspace")
+    head_init_seconds = time.perf_counter() - head_init_started
     source_mean = source_prototypes = None
     source_sham_index = None
     if args.source_centroid_smoke:
@@ -1029,29 +1050,48 @@ def main() -> None:
             checkpoint_path,
         )
     width_fold = None
+    export_head = head
     if wide_smoke and args.training_width == 256:
-        width_fold = calibrate_smoke_fold(
+        calibration_rows = fit if width_quality else fit[:2048]
+        export_head, width_fold = calibrate_fit_fold(
             vision,
             head,
-            tuple(paths[row] for row in fit[:2048]),
+            tuple(paths[row] for row in calibration_rows),
             processor,
             args.output_dir,
             args.workers,
-            digest_rows(fit[:2048]),
+            digest_rows(calibration_rows),
         )
     quality = None
+    matched_parity = None
+    if width_quality:
+        deployed_path = (
+            args.output_dir / "folded_checkpoint.pt"
+            if args.training_width == 256
+            else checkpoint_path
+        )
+        matched_parity = matched_checkpoint_checks(
+            args.model_snapshot,
+            checkpoint_path,
+            deployed_path,
+            sha256(checkpoint_path),
+            sha256(deployed_path),
+            tuple(paths[row] for row in fit[:64]),
+        )
+        if not all(matched_parity.values()):
+            raise ValueError("wide100 matched public32 parity failed")
     export_seconds = None
     score_seconds = None
     if args.updates >= 100:
         export_started = time.perf_counter()
         values = export_all(
             vision,
-            head,
+            export_head,
             tuple(paths[row] for row in held),
             tuple(range(len(held))),
             processor,
             workers=args.workers,
-            batch_size=BATCH_SIZE,
+            batch_size=32 if width_quality else BATCH_SIZE,
         )
         export_seconds = time.perf_counter() - export_started
         np.save(args.output_dir / "held_values.npy", values.numpy())
@@ -1104,6 +1144,11 @@ def main() -> None:
         "teacher_transfer": args.teacher_transfer,
         "training_width": args.training_width,
         "wide_head_smoke": wide_smoke,
+        "wide_head_qualification_sha256": sha256(args.wide_head_qualification)
+        if width_quality
+        else None,
+        "export_batch_size": 32 if width_quality else BATCH_SIZE,
+        "matched_public32_parity": matched_parity,
         "width_history": width_history,
         "width_initial_geometry": width_initial_geometry,
         "width_terminal_geometry": width_terminal_geometry,
@@ -1133,6 +1178,7 @@ def main() -> None:
         in ("freeze_emb", "freeze_emb_rank", "freeze_emb_mapr", "freeze_emb_live"),
         "recovered_rank_updates": recovered_rank_updates,
         "pca_sha256": pca_sha,
+        "head_classifier_init_seconds": head_init_seconds,
         "first_input_batch_sha256": first_input_batch_sha256,
         "training_wall_seconds": training_seconds,
         "training_wall_including_member_bank_init_seconds": training_seconds + bank_init_seconds,
