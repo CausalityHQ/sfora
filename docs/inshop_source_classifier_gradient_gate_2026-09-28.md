@@ -64,5 +64,52 @@ must resolve initializer, loss, coefficient, gradient saturation and shared
 clipping before the separately frozen 17-update smoke. The deployed library
 is unchanged, and this result cannot establish unseen retrieval quality.
 
-One dual design critique is active, group `781ca331ba644f6b`: Opus
+One dual design critique completed, group `781ca331ba644f6b`: Opus
 `be0ee1b940794661`, Astra `0ff1b9a4c56b4f65`. No GPU job was started.
+
+## Review reconciliation and next frozen smoke
+
+Both reviewers support one bounded smoke, with different proposed losses.
+Choose Astra's smaller **frozen centroid, margin-zero, scale-64, coefficient
+0.1** configuration: it preserves the screened geometry and derivative,
+adds no learned classifier and cannot explain a gain merely by relabeling
+freely learned classes. Opus proposed a learned ArcFace source classifier;
+that changes both derivative and capacity and is deferred. Native ArcFace's
+`no_grad` margin replacement preserves a straight-through target gradient;
+it is not evidence that target gradients vanish. Keep the main loss intact.
+Full independently labeled reviews are archived as
+`inshop-source-classifier-design-review-v1.json` beside the CPU receipt.
+
+Use the fit-only normalized source mean and centered, normalized class
+centroids, detached throughout. Ordinary training prototypes include the
+current image; the diagnostic excluded it. Training loss improvement is
+therefore not corroboration of the leave-query-out result.
+
+Only **17 updates each** for matched main-only and auxiliary arms, seed
+179024, original batches/initialization, frozen embeddings and first 12
+encoder blocks, unchanged main ArcFace and 8x bank SmoothAP. At initial and
+terminal probes, record separate main and weighted auxiliary encoder-gradient
+norms/cosine, target probabilities and correct routing. Compute the fixed
+category-shuffled loss on the same forwards without optimizing it. It is a
+wrong-prototype diagnostic, not an identity-breaking generalization control.
+
+Frozen engineering stop rules before any GPU execution:
+
+| Check | KILL threshold |
+|---|---|
+| Pairing | Any initialization, fit authority, main configuration or any of all 17 input-batch hashes differs |
+| Numerical/routing | Any nonfinite loss, gradient or parameter; skipped update; auxiliary reaches head/main classifier; auxiliary fails to reach unfrozen encoder |
+| Strength | Weighted auxiliary encoder norm below 1% of main, or majority target probabilities above 1-1e-6, at both initial and terminal probes |
+| Dominance/clipping | Weighted auxiliary encoder norm above 25% of main at either probe, or median paired clipping multiplier changes by more than 10% |
+| Collapse | Same fixed fit batch compact effective rank or centered variance more than 20% below matched control |
+| Cost | Entire paired smoke including setup/diagnostics exceeds 120 seconds; more than 17 updates per arm; memory failure |
+
+Check margin-zero loss/gradient parity, routing and projection against a
+nonorthonormal head before launch. QR-orthonormalize current head rows before
+projecting after an optimizer step: the initial PCA projector is valid only
+while its rows remain orthonormal. Log all step losses, all 17 input hashes,
+clipping multipliers, setup/training/diagnostic times and peak memory. Do not
+export/read held outcomes during this smoke. Any failure kills this fixed
+configuration without coefficient or temperature search. A pass requires a
+separately frozen TRAIN-held protocol before more training; it does not
+automatically authorize a 100/1000-update run or any official read.
