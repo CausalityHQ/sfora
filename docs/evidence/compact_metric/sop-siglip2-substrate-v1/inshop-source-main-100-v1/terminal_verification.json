@@ -1,0 +1,15 @@
+{
+  "exec_main_status": 0,
+  "gpu_idle_after_terminal": true,
+  "invocation": "f3bd91edf38246fd8016eb9a31d98230",
+  "matched_100_actual_pixels": true,
+  "per_query_means_hits_recounted": true,
+  "product_5000_bootstrap_intervals_recomputed_exact": true,
+  "public32_parity_receipts_all_true": true,
+  "quality_gate": "KILL",
+  "query_gallery_hashes_verified": true,
+  "receipt_sha256": "a1ee787993d3cc6c2c674361410d1a0ee62728dd47600d453592bc3d7e745b6a",
+  "schema": "sfora-source-main-terminal-verification-v1",
+  "serving_latency_measured": false,
+  "unit": "sfora-inshop-source-main-100-v1"
+}
