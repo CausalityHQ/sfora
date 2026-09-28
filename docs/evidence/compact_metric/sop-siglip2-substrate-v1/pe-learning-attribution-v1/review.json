@@ -1,0 +1,712 @@
+{
+  "id": "edb26e9152e94fe6",
+  "status": "completed",
+  "started_at": 1790619156,
+  "agent": "sfora/emafactorial",
+  "force_reason": "New fixed saved-state inference attribution after terminal augmented-100 quality STOP and terminal CPU compression diagnostic; not a repeat training or previous pair critique. Need one consolidated review of provenance/golden parity and inference-only interpretation before the sole bounded DGX job.",
+  "rolling_6h_count": 11,
+  "prompt_preview": "READ ONLY. Repository /home/rb/worktrees/sfora-positive-causality master a2547747. Review new untracked scripts/diagnose_inshop_pe_learning_attribution.py and check_inshop_pe_learning_attribution.py plus docs/inshop_pe_learning_attribution_gate_2026-09-28.md and docs/superpowers/plans/2026-09-28-pe-learning-attribution.md. Evidence docs/inshop_pe_augmented_training_result_2026-09-28.md and docs/inshop_pe_compression_result_2026-09-28.md, raw pe-augmented-100-v1/checkpoint-score-audit.json and pe-compression-v1 receipts under docs/evidence/compact_metric/sop-siglip2-substrate-v1/. Closed100 PE recipe STOP on same TRAIN-held 6354q6245g R1 -0.598pp/mAP -2.232pp vsLarge; CPUFIT PEaheadsourceandPCA, lessPCAharm. Fixed inference-only2x2 original/final nativeencoder+pool+projection and original/final128head per architecture, no training/selection. FourB32imagepasses, final11 goldencos>=.999999 and allperquerypackedhits/AP<=1e-6 mustmatchactualold100. Strict originalweightsSHA/savedcheckpointSHA/preflight/STOPaudit, codeorigins beforeCUDA, immutableparams includingPEforeignrotary/grid, nooutputreuse,600s8Ghost10GBcuda/sharedlockoneunit. Find concrete correctness/provenance/parity/resource bugs that must be fixed before GPU, give GO/STOP and minimal fixes. Do not request new training or speculative variants. No editing, no GPU work. Unit/algebra/golden-mismatch fixture GREEN; CPUpreflight next; launcher to holdflockinside service and nativecaps. Nativewholeproductiongoalremainsunmet.",
+  "prompt_sha256": "702b6eb3bfcd44e6678a3d5371422c3218f1e42409acce7d6ca3e8a0c3a9770f",
+  "prompt_bytes": 1499,
+  "fingerprint": "c962c646a64b1ac52fafba378492c4a27b3268f6e90da5692eef4fa36aba43a8",
+  "evidence": {
+    "git_commit": "a2547747d23df617a93ad509085f775dac79bec3",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "f85df5215eca5e7ab97fb1aff3804a945c55e7f36ffaaeae3381dfc9db3d99cd",
+    "worktree_sha256": "ee16ad761d297abb9a3c82d6dbd226020c9e0cd279a96df574fe1cca8f82e2d7",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "reviewers": [
+    {
+      "role": "research_critic",
+      "id": "00ee054f14ab4ada",
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "fallbacks": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "agent": "sfora/emafactorial",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1790619156,
+      "timeout_seconds": 1200,
+      "deadline_at": 1790620356,
+      "budget_usd": 4,
+      "prompt_preview": "Act as the independent research and first-principles critic. Challenge assumptions, compare alternatives and prior art, and identify missing evidence. Do not edit files.\n\nMaterial to critique:\nREAD ONLY. Repository /home/rb/worktrees/sfora-positive-causality master a2547747. Review new untracked scripts/diagnose_inshop_pe_learning_attribution.py and check_inshop_pe_learning_attribution.py plus docs/inshop_pe_learning_attribution_gate_2026-09-28.md and docs/superpowers/plans/2026-09-28-pe-learning-attribution.md. Evidence docs/inshop_pe_augmented_training_result_2026-09-28.md and docs/inshop_pe_compression_result_2026-09-28.md, raw pe-augmented-100-v1/checkpoint-score-audit.json and pe-compression-v1 receipts under docs/evidence/compact_metric/sop-siglip2-substrate-v1/. Closed100 PE recipe STOP on same TRAIN-held 6354q6245g R1 -0.598pp/mAP -2.232pp vsLarge; CPUFIT PEaheadsourceandPCA, lessPCAharm. Fixed inference-only2x2 original/final nativeencoder+pool+projection and original/final128head per architecture, no training/selection. FourB32imagepasses, final11 goldencos>=.999999 and allperquerypackedhits/AP<=1e-6 mustmatchactualold100. Strict originalweightsSHA/savedcheckpointSHA/preflight/STOPaudit, codeorigins beforeCUDA, immutableparams includingPEforeignrotary/grid, nooutputreuse,600s8Ghost10GBcuda/sharedlockoneunit. Find concrete correctness/provenance/parity/resource bugs that must be fixed before GPU, give GO/STOP and minimal fixes. Do not request new training or speculative variants. No editing, no GPU work. Unit/algebra/golden-mismatch fixture GREEN; CPUpreflight next; launcher to holdflockinside service and nativecaps. Nativewholeproductiongoalremainsunmet.",
+      "prompt_sha256": "0aa1cfb9033821696fda09572995550212bfa3f7c060c1a6f215dd69c56250d5",
+      "prompt_bytes": 1869,
+      "fingerprint": "985695a5796bec481e080afc3e1a6f7b1d4c3971478b15e42c2eb011d09d9502",
+      "evidence": {
+        "git_commit": "a2547747d23df617a93ad509085f775dac79bec3",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "f85df5215eca5e7ab97fb1aff3804a945c55e7f36ffaaeae3381dfc9db3d99cd",
+        "worktree_sha256": "ee16ad761d297abb9a3c82d6dbd226020c9e0cd279a96df574fe1cca8f82e2d7",
+        "worktree_evidence_truncated": false,
+        "active_goal": {
+          "id": "goal-1790540789-1790540789754989478-2322852",
+          "agent": "sfora/emafactorial",
+          "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+          "status": "queued",
+          "revision": 1,
+          "actor": "operator",
+          "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+          "created_at": 1790540789,
+          "updated_at": 1790540789
+        }
+      },
+      "previous_fingerprint": "c03de252c90f07ce71127a2644297e962bab7721cb576a75fd62d3c391599671",
+      "reused": false,
+      "critique_id": "edb26e9152e94fe6",
+      "critique_role": "research_critic",
+      "systemd_unit": "devbox-consult-00ee054f14ab4ada.service",
+      "pid": 1837408,
+      "pgid": 1837408,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5",
+          "budget_usd": 4,
+          "timeout_seconds": 1200,
+          "started_at": 1790619156
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1790619653,
+      "event_cursor": 46,
+      "events": [
+        {
+          "seq": 23,
+          "at": 1790619519,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 24,
+          "at": 1790619519,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 25,
+          "at": 1790619521,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 26,
+          "at": 1790619531,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 27,
+          "at": 1790619537,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 28,
+          "at": 1790619547,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 29,
+          "at": 1790619557,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 30,
+          "at": 1790619609,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 31,
+          "at": 1790619609,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 32,
+          "at": 1790619614,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 33,
+          "at": 1790619635,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 34,
+          "at": 1790619636,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 35,
+          "at": 1790619637,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 36,
+          "at": 1790619638,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 37,
+          "at": 1790619639,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 38,
+          "at": 1790619640,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 39,
+          "at": 1790619641,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 40,
+          "at": 1790619642,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 41,
+          "at": 1790619643,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 42,
+          "at": 1790619644,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 43,
+          "at": 1790619645,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 44,
+          "at": 1790619646,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 45,
+          "at": 1790619647,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 46,
+          "at": 1790619652,
+          "provider": "claude",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": true,
+      "provider_events": {
+        "claude": [
+          {
+            "seq": 39,
+            "at": 1790619641,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 40,
+            "at": 1790619642,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 41,
+            "at": 1790619643,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 42,
+            "at": 1790619644,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 43,
+            "at": 1790619645,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 44,
+            "at": 1790619646,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 45,
+            "at": 1790619647,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 46,
+            "at": 1790619652,
+            "provider": "claude",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "**Verdict: GO.** I found no correctness, provenance, parity or resource bug that has to be fixed before the GPU run. There is one small launcher fix and one interpretation guardrail. Neither changes the diagnostic script, so the frozen CPU preflight (`4969fc7a…`) stays valid. I did not edit anything or touch the GPU. I ran two tiny CPU-only checks on the DGX (CUDA hidden) and a few read-only hash comparisons.\n\n**What I checked and found correct**\n- **Deployed state matches what you froze.** On the DGX, the diagnostic script (`ccf4c587…`), `train_inshop_pe_pair.py` and `probe_inshop_pe_training_smoke.py` match the local copies. `preflight.json` matches its hash, and it is the only file in the output directory. The GPU launcher is byte-identical to the archived `launch-gpu.sh`. The GPU was idle and no `sfora*` service was running when I looked.\n- **PE rotary grid on CPU then CUDA.** I suspected warming the grid on CPU before `.cuda()` would leave `freq` on the wrong device. It doesn't: the native `rope.py:340` always runs `self.freq = self.freq.to(device)`. The CPU-computed `freq` already matched the saved CUDA-computed `rope_freq` exactly in preflight, and `state_digest` compares on CPU, so the immutability check won't trip falsely.\n- **Loading models inside `inference_mode`.** `export_state` loads models under `@torch.inference_mode`, which preflight never exercised. On the DGX venv (CPU only) I checked that HF SigLIP `from_pretrained`, strict `load_state_dict`, dtype conversion (the same parameter-move path `.cuda()` uses) and a forward pass all work in this mode. So did PE `VisionTransformer.from_config`, the grid warmup, the conversion and a forward pass, with `freq` unchanged.\n- **Scoring on CPU instead of CUDA won't break the golden check.** The training held quality was scored on CUDA; the diagnostic scores on CPU. The int8 codes are summed as float32, and the largest possible sum (128·127² ≈ 2.06M) is below 2^24. So the dot products are exact integers on both devices, and the two scale multiplications run in the same order. If the vectors come out identical, the per-query hits and AP will match within 1e-6.\n- **Remaining script checks all hold:**\n  - Heads are sliced correctly: head0 at 1024:1152, head100 at 1152:1280.\n  - The golden check compares the final/final state with the saved `.held.npy` files and the receipt's per-query values.\n  - Inputs are unaugmented (`step=None`) and every image hash is checked.\n  - The run refuses to start unless the output directory contains only `preflight.json`, then writes `attempt.json` before any CUDA work.\n  - Export publishes atomically via a `.partial` file.\n  - The <10GB CUDA check runs on every batch, and the <8MiB cleanup check runs after every state.\n  - The calibration cosines are printed before the assert.\n  - The 1e-12 tolerance on the decomposition algebra is safe.\n\n**Fix before launch (launcher only, no re-preflight needed)**\n1. `launch-gpu.sh` dropped the idle guards the training launcher had, even though the plan says to check idle first. Add these before `systemd-run`:\n   `test -z \"$(nvidia-smi --query-compute-apps=pid --format=csv,noheader)\"` and `test -z \"$(systemctl --user list-units 'sfora*' --state=running --no-legend --no-pager)\"`.\n   While you're there, use `/usr/bin/flock` instead of bare `flock`, and add `test ! -e \"$run_root/attribution-gpu-v1-time.txt\"`, because `time -o` silently overwrites that file.\n\n**Interpretation guardrail (doc only, before launch)**\n2. head0 was fitted to the original encoder's features. So the \"encoder effect with head0\" cell reads new encoder features through a head that doesn't fit them, and that confound is the most likely source of a large interaction term. The run already exports the raw 1024-D encoder features for both encoder states but never scores them. Scoring that slice on CPU is the cleanest encoder-only read. Declare it in the gate doc now as a secondary read to score afterwards from this run's matrices, so it counts as preregistered rather than a post-hoc pick. The receipt covers 32 contrasts, each with a 95% interval and no multiplicity correction. Name the primary contrasts (both architectures' state 00 and their totals, and the PE-minus-Large differences) before reading the results.\n\n**Known risks, not blockers**\n- **Time.** From the training receipt, the held exports took about 115s for Large and 45s for PE, excluding training. Four state passes plus model reloads, hashing twice, CPU scoring and 128 bootstrap calls project to about 420–480s against the 600s hard kill. That's thin but acceptable. The per-state JSON files are written before the receipt, so a timeout still leaves forensic evidence.\n- **The golden gate may be stricter than reality.** It effectively requires re-encoding to reproduce the saved vectors bit-for-bit, which I expect: same GPU, same batch order, TF32 off. If it fails, that tells you the saved vectors aren't reproducible; it isn't a method result. Stop without retry, as the gate says.\n- **Optional script changes, only if you re-preflight into a new output directory anyway:**\n  - Add the end-of-run check `set(smoke.authority()) <= set(external[\"code\"])` and record the executed code in the receipt. Training did this; the diagnostic only checks at startup.\n  - Anchor state 0 with training's `cached_fresh_fp16` comparison on the first four fit rows. Right now only the weight hashes and the fp16/fp32 calibration vouch for the original encoder's forward pass.\n  - Print the cleanup byte count before its assert.\n\nNo new training or variants are recommended. The 100-update recipe stays STOP, and the whole production goal is still unmet.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "claude": "**Verdict: GO.** I found no correctness, provenance, parity or resource bug that has to be fixed before the GPU run. There is one small launcher fix and one interpretation guardrail. Neither changes the diagnostic script, so the frozen CPU preflight (`4969fc7a…`) stays valid. I did not edit anything or touch the GPU. I ran two tiny CPU-only checks on the DGX (CUDA hidden) and a few read-only hash comparisons.\n\n**What I checked and found correct**\n- **Deployed state matches what you froze.** On the DGX, the diagnostic script (`ccf4c587…`), `train_inshop_pe_pair.py` and `probe_inshop_pe_training_smoke.py` match the local copies. `preflight.json` matches its hash, and it is the only file in the output directory. The GPU launcher is byte-identical to the archived `launch-gpu.sh`. The GPU was idle and no `sfora*` service was running when I looked.\n- **PE rotary grid on CPU then CUDA.** I suspected warming the grid on CPU before `.cuda()` would leave `freq` on the wrong device. It doesn't: the native `rope.py:340` always runs `self.freq = self.freq.to(device)`. The CPU-computed `freq` already matched the saved CUDA-computed `rope_freq` exactly in preflight, and `state_digest` compares on CPU, so the immutability check won't trip falsely.\n- **Loading models inside `inference_mode`.** `export_state` loads models under `@torch.inference_mode`, which preflight never exercised. On the DGX venv (CPU only) I checked that HF SigLIP `from_pretrained`, strict `load_state_dict`, dtype conversion (the same parameter-move path `.cuda()` uses) and a forward pass all work in this mode. So did PE `VisionTransformer.from_config`, the grid warmup, the conversion and a forward pass, with `freq` unchanged.\n- **Scoring on CPU instead of CUDA won't break the golden check.** The training held quality was scored on CUDA; the diagnostic scores on CPU. The int8 codes are summed as float32, and the largest possible sum (128·127² ≈ 2.06M) is below 2^24. So the dot products are exact integers on both devices, and the two scale multiplications run in the same order. If the vectors come out identical, the per-query hits and AP will match within 1e-6.\n- **Remaining script checks all hold:**\n  - Heads are sliced correctly: head0 at 1024:1152, head100 at 1152:1280.\n  - The golden check compares the final/final state with the saved `.held.npy` files and the receipt's per-query values.\n  - Inputs are unaugmented (`step=None`) and every image hash is checked.\n  - The run refuses to start unless the output directory contains only `preflight.json`, then writes `attempt.json` before any CUDA work.\n  - Export publishes atomically via a `.partial` file.\n  - The <10GB CUDA check runs on every batch, and the <8MiB cleanup check runs after every state.\n  - The calibration cosines are printed before the assert.\n  - The 1e-12 tolerance on the decomposition algebra is safe.\n\n**Fix before launch (launcher only, no re-preflight needed)**\n1. `launch-gpu.sh` dropped the idle guards the training launcher had, even though the plan says to check idle first. Add these before `systemd-run`:\n   `test -z \"$(nvidia-smi --query-compute-apps=pid --format=csv,noheader)\"` and `test -z \"$(systemctl --user list-units 'sfora*' --state=running --no-legend --no-pager)\"`.\n   While you're there, use `/usr/bin/flock` instead of bare `flock`, and add `test ! -e \"$run_root/attribution-gpu-v1-time.txt\"`, because `time -o` silently overwrites that file.\n\n**Interpretation guardrail (doc only, before launch)**\n2. head0 was fitted to the original encoder's features. So the \"encoder effect with head0\" cell reads new encoder features through a head that doesn't fit them, and that confound is the most likely source of a large interaction term. The run already exports the raw 1024-D encoder features for both encoder states but never scores them. Scoring that slice on CPU is the cleanest encoder-only read. Declare it in the gate doc now as a secondary read to score afterwards from this run's matrices, so it counts as preregistered rather than a post-hoc pick. The receipt covers 32 contrasts, each with a 95% interval and no multiplicity correction. Name the primary contrasts (both architectures' state 00 and their totals, and the PE-minus-Large differences) before reading the results.\n\n**Known risks, not blockers**\n- **Time.** From the training receipt, the held exports took about 115s for Large and 45s for PE, excluding training. Four state passes plus model reloads, hashing twice, CPU scoring and 128 bootstrap calls project to about 420–480s against the 600s hard kill. That's thin but acceptable. The per-state JSON files are written before the receipt, so a timeout still leaves forensic evidence.\n- **The golden gate may be stricter than reality.** It effectively requires re-encoding to reproduce the saved vectors bit-for-bit, which I expect: same GPU, same batch order, TF32 off. If it fails, that tells you the saved vectors aren't reproducible; it isn't a method result. Stop without retry, as the gate says.\n- **Optional script changes, only if you re-preflight into a new output directory anyway:**\n  - Add the end-of-run check `set(smoke.authority()) <= set(external[\"code\"])` and record the executed code in the receipt. Training did this; the diagnostic only checks at startup.\n  - Anchor state 0 with training's `cached_fresh_fp16` comparison on the first four fit rows. Right now only the weight hashes and the fp16/fp32 calibration vouch for the original encoder's forward pass.\n  - Print the cleanup byte count before its assert.\n\nNo new training or variants are recommended. The 100-update recipe stays STOP, and the whole production goal is still unmet."
+      },
+      "providers_used": [
+        "claude"
+      ],
+      "active_provider": "claude",
+      "phase": "Consultation completed",
+      "input_bytes": 1869,
+      "output_bytes": 5680,
+      "elapsed_seconds": 497,
+      "progress": "devbox-ask: claude consult still running (0m 30s)\ndevbox-ask: claude consult still running (1m 00s)\ndevbox-ask: claude consult still running (1m 30s)\ndevbox-ask: claude consult still running (2m 00s)\ndevbox-ask: claude consult still running (2m 30s)\ndevbox-ask: claude consult still running (3m 00s)\ndevbox-ask: claude consult still running (3m 30s)\ndevbox-ask: claude consult still running (4m 00s)\ndevbox-ask: claude consult still running (4m 30s)\ndevbox-ask: claude consult still running (5m 00s)\ndevbox-ask: claude consult still running (5m 30s)\ndevbox-ask: claude consult still running (6m 00s)\ndevbox-ask: claude consult still running (6m 30s)\ndevbox-ask: claude consult still running (7m 00s)\ndevbox-ask: claude consult still running (7m 30s)\ndevbox-ask: claude consult still running (8m 00s)",
+      "progress_truncated": false,
+      "result": "**Verdict: GO.** I found no correctness, provenance, parity or resource bug that has to be fixed before the GPU run. There is one small launcher fix and one interpretation guardrail. Neither changes the diagnostic script, so the frozen CPU preflight (`4969fc7a…`) stays valid. I did not edit anything or touch the GPU. I ran two tiny CPU-only checks on the DGX (CUDA hidden) and a few read-only hash comparisons.\n\n**What I checked and found correct**\n- **Deployed state matches what you froze.** On the DGX, the diagnostic script (`ccf4c587…`), `train_inshop_pe_pair.py` and `probe_inshop_pe_training_smoke.py` match the local copies. `preflight.json` matches its hash, and it is the only file in the output directory. The GPU launcher is byte-identical to the archived `launch-gpu.sh`. The GPU was idle and no `sfora*` service was running when I looked.\n- **PE rotary grid on CPU then CUDA.** I suspected warming the grid on CPU before `.cuda()` would leave `freq` on the wrong device. It doesn't: the native `rope.py:340` always runs `self.freq = self.freq.to(device)`. The CPU-computed `freq` already matched the saved CUDA-computed `rope_freq` exactly in preflight, and `state_digest` compares on CPU, so the immutability check won't trip falsely.\n- **Loading models inside `inference_mode`.** `export_state` loads models under `@torch.inference_mode`, which preflight never exercised. On the DGX venv (CPU only) I checked that HF SigLIP `from_pretrained`, strict `load_state_dict`, dtype conversion (the same parameter-move path `.cuda()` uses) and a forward pass all work in this mode. So did PE `VisionTransformer.from_config`, the grid warmup, the conversion and a forward pass, with `freq` unchanged.\n- **Scoring on CPU instead of CUDA won't break the golden check.** The training held quality was scored on CUDA; the diagnostic scores on CPU. The int8 codes are summed as float32, and the largest possible sum (128·127² ≈ 2.06M) is below 2^24. So the dot products are exact integers on both devices, and the two scale multiplications run in the same order. If the vectors come out identical, the per-query hits and AP will match within 1e-6.\n- **Remaining script checks all hold:**\n  - Heads are sliced correctly: head0 at 1024:1152, head100 at 1152:1280.\n  - The golden check compares the final/final state with the saved `.held.npy` files and the receipt's per-query values.\n  - Inputs are unaugmented (`step=None`) and every image hash is checked.\n  - The run refuses to start unless the output directory contains only `preflight.json`, then writes `attempt.json` before any CUDA work.\n  - Export publishes atomically via a `.partial` file.\n  - The <10GB CUDA check runs on every batch, and the <8MiB cleanup check runs after every state.\n  - The calibration cosines are printed before the assert.\n  - The 1e-12 tolerance on the decomposition algebra is safe.\n\n**Fix before launch (launcher only, no re-preflight needed)**\n1. `launch-gpu.sh` dropped the idle guards the training launcher had, even though the plan says to check idle first. Add these before `systemd-run`:\n   `test -z \"$(nvidia-smi --query-compute-apps=pid --format=csv,noheader)\"` and `test -z \"$(systemctl --user list-units 'sfora*' --state=running --no-legend --no-pager)\"`.\n   While you're there, use `/usr/bin/flock` instead of bare `flock`, and add `test ! -e \"$run_root/attribution-gpu-v1-time.txt\"`, because `time -o` silently overwrites that file.\n\n**Interpretation guardrail (doc only, before launch)**\n2. head0 was fitted to the original encoder's features. So the \"encoder effect with head0\" cell reads new encoder features through a head that doesn't fit them, and that confound is the most likely source of a large interaction term. The run already exports the raw 1024-D encoder features for both encoder states but never scores them. Scoring that slice on CPU is the cleanest encoder-only read. Declare it in the gate doc now as a secondary read to score afterwards from this run's matrices, so it counts as preregistered rather than a post-hoc pick. The receipt covers 32 contrasts, each with a 95% interval and no multiplicity correction. Name the primary contrasts (both architectures' state 00 and their totals, and the PE-minus-Large differences) before reading the results.\n\n**Known risks, not blockers**\n- **Time.** From the training receipt, the held exports took about 115s for Large and 45s for PE, excluding training. Four state passes plus model reloads, hashing twice, CPU scoring and 128 bootstrap calls project to about 420–480s against the 600s hard kill. That's thin but acceptable. The per-state JSON files are written before the receipt, so a timeout still leaves forensic evidence.\n- **The golden gate may be stricter than reality.** It effectively requires re-encoding to reproduce the saved vectors bit-for-bit, which I expect: same GPU, same batch order, TF32 off. If it fails, that tells you the saved vectors aren't reproducible; it isn't a method result. Stop without retry, as the gate says.\n- **Optional script changes, only if you re-preflight into a new output directory anyway:**\n  - Add the end-of-run check `set(smoke.authority()) <= set(external[\"code\"])` and record the executed code in the receipt. Training did this; the diagnostic only checks at startup.\n  - Anchor state 0 with training's `cached_fresh_fp16` comparison on the first four fit rows. Right now only the weight hashes and the fp16/fp32 calibration vouch for the original encoder's forward pass.\n  - Print the cleanup byte count before its assert.\n\nNo new training or variants are recommended. The 100-update recipe stays STOP, and the whole production goal is still unmet.",
+      "result_truncated": false
+    },
+    {
+      "role": "engineering_critic",
+      "id": "217e3499b8fd4d1a",
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "fallbacks": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "agent": "sfora/emafactorial",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1790619156,
+      "timeout_seconds": 1200,
+      "deadline_at": 1790620356,
+      "budget_usd": null,
+      "prompt_preview": "Act as the independent adversarial engineering and release critic. Inspect correctness, failure modes, security, operability, tests, and UX. Prioritize concrete findings with evidence. Do not edit files.\n\nMaterial to critique:\nREAD ONLY. Repository /home/rb/worktrees/sfora-positive-causality master a2547747. Review new untracked scripts/diagnose_inshop_pe_learning_attribution.py and check_inshop_pe_learning_attribution.py plus docs/inshop_pe_learning_attribution_gate_2026-09-28.md and docs/superpowers/plans/2026-09-28-pe-learning-attribution.md. Evidence docs/inshop_pe_augmented_training_result_2026-09-28.md and docs/inshop_pe_compression_result_2026-09-28.md, raw pe-augmented-100-v1/checkpoint-score-audit.json and pe-compression-v1 receipts under docs/evidence/compact_metric/sop-siglip2-substrate-v1/. Closed100 PE recipe STOP on same TRAIN-held 6354q6245g R1 -0.598pp/mAP -2.232pp vsLarge; CPUFIT PEaheadsourceandPCA, lessPCAharm. Fixed inference-only2x2 original/final nativeencoder+pool+projection and original/final128head per architecture, no training/selection. FourB32imagepasses, final11 goldencos>=.999999 and allperquerypackedhits/AP<=1e-6 mustmatchactualold100. Strict originalweightsSHA/savedcheckpointSHA/preflight/STOPaudit, codeorigins beforeCUDA, immutableparams includingPEforeignrotary/grid, nooutputreuse,600s8Ghost10GBcuda/sharedlockoneunit. Find concrete correctness/provenance/parity/resource bugs that must be fixed before GPU, give GO/STOP and minimal fixes. Do not request new training or speculative variants. No editing, no GPU work. Unit/algebra/golden-mismatch fixture GREEN; CPUpreflight next; launcher to holdflockinside service and nativecaps. Nativewholeproductiongoalremainsunmet.",
+      "prompt_sha256": "e5e992a36f718b1a5393f992705ba58bbd902cce8963fa12d5752edcf47910d7",
+      "prompt_bytes": 1903,
+      "fingerprint": "e8258dd0ab4d9f20e85765c2468aea998511d26160a23ae5839728bd525922ae",
+      "evidence": {
+        "git_commit": "a2547747d23df617a93ad509085f775dac79bec3",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "f85df5215eca5e7ab97fb1aff3804a945c55e7f36ffaaeae3381dfc9db3d99cd",
+        "worktree_sha256": "ee16ad761d297abb9a3c82d6dbd226020c9e0cd279a96df574fe1cca8f82e2d7",
+        "worktree_evidence_truncated": false,
+        "active_goal": {
+          "id": "goal-1790540789-1790540789754989478-2322852",
+          "agent": "sfora/emafactorial",
+          "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+          "status": "queued",
+          "revision": 1,
+          "actor": "operator",
+          "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+          "created_at": 1790540789,
+          "updated_at": 1790540789
+        }
+      },
+      "previous_fingerprint": "985695a5796bec481e080afc3e1a6f7b1d4c3971478b15e42c2eb011d09d9502",
+      "reused": false,
+      "critique_id": "edb26e9152e94fe6",
+      "critique_role": "engineering_critic",
+      "systemd_unit": "devbox-consult-217e3499b8fd4d1a.service",
+      "pid": 1837447,
+      "pgid": 1837447,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra",
+          "budget_usd": null,
+          "timeout_seconds": 1200,
+          "started_at": 1790619156
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1790619317,
+      "event_cursor": 37,
+      "events": [
+        {
+          "seq": 14,
+          "at": 1790619205,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 15,
+          "at": 1790619210,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 16,
+          "at": 1790619215,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 17,
+          "at": 1790619215,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 1"
+        },
+        {
+          "seq": 18,
+          "at": 1790619228,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 19,
+          "at": 1790619231,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 20,
+          "at": 1790619240,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 21,
+          "at": 1790619241,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 22,
+          "at": 1790619259,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 23,
+          "at": 1790619259,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 1"
+        },
+        {
+          "seq": 24,
+          "at": 1790619269,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 25,
+          "at": 1790619269,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 1"
+        },
+        {
+          "seq": 26,
+          "at": 1790619275,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 27,
+          "at": 1790619279,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 28,
+          "at": 1790619279,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 2"
+        },
+        {
+          "seq": 29,
+          "at": 1790619287,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 30,
+          "at": 1790619287,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 31,
+          "at": 1790619295,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 32,
+          "at": 1790619295,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 33,
+          "at": 1790619301,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 34,
+          "at": 1790619305,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 35,
+          "at": 1790619305,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 36,
+          "at": 1790619317,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 37,
+          "at": 1790619317,
+          "provider": "codex",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": true,
+      "provider_events": {
+        "codex": [
+          {
+            "seq": 30,
+            "at": 1790619287,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 31,
+            "at": 1790619295,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 32,
+            "at": 1790619295,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 33,
+            "at": 1790619301,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 34,
+            "at": 1790619305,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 35,
+            "at": 1790619305,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 36,
+            "at": 1790619317,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 37,
+            "at": 1790619317,
+            "provider": "codex",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "**Engineering GO; release STOP until the planned commit/push freeze.** No confirmed correctness, provenance, or parity bug requiring code changes found.\n\n- **Release blocker:** both scripts remain untracked at `a2547747`. The implementation plan explicitly requires freezing and pushing before GPU. Minimal fix: commit the reviewed artifacts on `master`, push, and verify deployed bytes still match the frozen preflight.\n- **Launcher verified:** the newly appeared `launch-gpu.sh` holds `flock` inside the service, specifies `RuntimeMaxSec=600`, `MemoryMax=8G`, and control-group cleanup. Its pinned preflight SHA matches the archived file; shell syntax passes.\n- **Inference/parity:** native encoding, unaugmented decoding, batch32, and FP32 compact-head application match the prior held export. Final/final acceptance checks every vector’s cosine and every query’s packed hit/AP. State digests include foreign PE rotary parameters/grid.\n- **Evidence:** archived CPU preflight exited 0 in 10.54 seconds, peak RSS 3,719,756 KiB; its script hash matches the reviewed file.\n\nI could not independently rerun the fixture because local Python lacks NumPy. GPU parity and resource compliance remain runtime gates, not established results.\n\nNo edits or GPU work performed. The original recipe remains STOP; the production goal remains unmet.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "codex": "**Engineering GO; release STOP until the planned commit/push freeze.** No confirmed correctness, provenance, or parity bug requiring code changes found.\n\n- **Release blocker:** both scripts remain untracked at `a2547747`. The implementation plan explicitly requires freezing and pushing before GPU. Minimal fix: commit the reviewed artifacts on `master`, push, and verify deployed bytes still match the frozen preflight.\n- **Launcher verified:** the newly appeared `launch-gpu.sh` holds `flock` inside the service, specifies `RuntimeMaxSec=600`, `MemoryMax=8G`, and control-group cleanup. Its pinned preflight SHA matches the archived file; shell syntax passes.\n- **Inference/parity:** native encoding, unaugmented decoding, batch32, and FP32 compact-head application match the prior held export. Final/final acceptance checks every vector’s cosine and every query’s packed hit/AP. State digests include foreign PE rotary parameters/grid.\n- **Evidence:** archived CPU preflight exited 0 in 10.54 seconds, peak RSS 3,719,756 KiB; its script hash matches the reviewed file.\n\nI could not independently rerun the fixture because local Python lacks NumPy. GPU parity and resource compliance remain runtime gates, not established results.\n\nNo edits or GPU work performed. The original recipe remains STOP; the production goal remains unmet."
+      },
+      "providers_used": [
+        "codex"
+      ],
+      "active_provider": "codex",
+      "phase": "Consultation completed",
+      "input_bytes": 1903,
+      "output_bytes": 1339,
+      "elapsed_seconds": 161,
+      "progress": "Reading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)\ndevbox-ask: codex consult still running (1m 30s)\ndevbox-ask: codex consult still running (2m 00s)\ndevbox-ask: codex consult still running (2m 30s)",
+      "progress_truncated": false,
+      "result": "**Engineering GO; release STOP until the planned commit/push freeze.** No confirmed correctness, provenance, or parity bug requiring code changes found.\n\n- **Release blocker:** both scripts remain untracked at `a2547747`. The implementation plan explicitly requires freezing and pushing before GPU. Minimal fix: commit the reviewed artifacts on `master`, push, and verify deployed bytes still match the frozen preflight.\n- **Launcher verified:** the newly appeared `launch-gpu.sh` holds `flock` inside the service, specifies `RuntimeMaxSec=600`, `MemoryMax=8G`, and control-group cleanup. Its pinned preflight SHA matches the archived file; shell syntax passes.\n- **Inference/parity:** native encoding, unaugmented decoding, batch32, and FP32 compact-head application match the prior held export. Final/final acceptance checks every vector’s cosine and every query’s packed hit/AP. State digests include foreign PE rotary parameters/grid.\n- **Evidence:** archived CPU preflight exited 0 in 10.54 seconds, peak RSS 3,719,756 KiB; its script hash matches the reviewed file.\n\nI could not independently rerun the fixture because local Python lacks NumPy. GPU parity and resource compliance remain runtime gates, not established results.\n\nNo edits or GPU work performed. The original recipe remains STOP; the production goal remains unmet.",
+      "result_truncated": false
+    }
+  ],
+  "reused": false,
+  "elapsed_seconds": 497,
+  "input_bytes": 1499,
+  "output_bytes": 7019
+}

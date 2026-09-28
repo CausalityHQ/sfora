@@ -6,6 +6,17 @@ Resolve the missing step-0 and encoder/readout contributions on the SAME existin
 TRAIN-held roles, using original and already saved100-update parameter states.
 The100-update recipe remains STOP; no continuation, fit, optimizer or loss tweak.
 
+Pre-result review ruling: primary reads are each architecture's initial00 quality
+and total11−00 change, and PE-minus-Large initial and total differences, for
+Recall@1 and mAP@R. Component/interactions and other mixed-state comparisons
+are descriptive diagnostics; their marginal95% intervals are not simultaneous
+or multiplicity-corrected evidence. Head0 was fitted to encoder0: a mismatch
+between encoder100 and head0 may dominate an interaction and cannot identify
+a training-causal mechanism. Declare one secondary CPU read after golden parity:
+score raw1024 slices for original/final encoders on identical held roles, with
+paired uncertainty, to inspect encoder quality independently of the compact
+readout. No selection, additional image passes, fitting, widths or training.
+
 Fixed2x2 per architecture: vision0/head0, vision0/head100, vision100/head0,
 vision100/head100. Encoder factor includes native pool/projection; readout factor
 is Linear1024→128. Four encoder image passes total produce both heads each;
