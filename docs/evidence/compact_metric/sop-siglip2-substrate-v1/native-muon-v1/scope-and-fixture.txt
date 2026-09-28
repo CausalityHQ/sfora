@@ -1,0 +1,2 @@
+Scope audit: rg -l -i muon scripts src docs --glob *.py --glob *.md found proxy/head tests/proposals and new selected boundary, no native PE hidden-matrix measured result. Earlier ProxyMuon remains closed.
+DGX small synthetic CPU mechanics session79516 exit0: two optimizer updates share scaler128/globalclip; injected nonfinite Adam gradient prevents both optimizer updates and leaves both states empty. RuffPASS. Native model constructor/coverage is next, not qualified by this fixture.
