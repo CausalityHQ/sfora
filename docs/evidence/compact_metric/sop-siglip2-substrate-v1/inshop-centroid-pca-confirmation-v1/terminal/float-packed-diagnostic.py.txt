@@ -1,0 +1,66 @@
+import hashlib
+import json
+import sys
+import time
+from pathlib import Path
+
+import numpy as np
+import torch
+from torch.nn import functional as F
+
+sys.path.insert(0, 'scripts')
+from preflight_inshop_siglip2_unseen_gallery import PARTITION_SHA, digest_rows, split
+from score_inshop_crop_view_pair import GALLERY_SHA, QUERY_SHA, roles
+from sfora.joint_relational_compaction import pack_int8_unit_embeddings
+
+started = time.perf_counter()
+torch.set_num_threads(16)
+base = Path('docs/evidence/compact_metric/sop-siglip2-substrate-v1/inshop-centroid-pca-confirmation-v1/terminal')
+campaign = json.loads((base / 'receipt.json').read_text())
+partition = Path('/tmp/sfora-inshop-partition-replay.txt')
+assert hashlib.sha256(partition.read_bytes()).hexdigest() == PARTITION_SHA
+rows = [line.split() for line in partition.read_text().splitlines()[2:] if line.split()[2] == 'train']
+_, held = split(tuple(row[1] for row in rows))
+assert digest_rows(held) == '9b1151e8cf65343682bd10b92885e79447d418ee6c664e2c005efccf7ebb5d1b'
+root = Path('/tmp/sfora-metadata-only')
+labels = tuple(rows[i][1] for i in held)
+query, gallery = roles(labels, tuple(root / 'Img' / rows[i][0] for i in held), root)
+for indices, digest in ((query, QUERY_SHA), (gallery, GALLERY_SHA)):
+    assert hashlib.sha256(np.asarray(indices, dtype='<i4').tobytes()).hexdigest() == digest
+assert torch.argmax(torch.tensor([[1., 0.]]) @ torch.tensor([[1., 0.], [1., 0.]]).T).item() == 0
+qlabels = np.asarray(labels)[query]
+glabels = np.asarray(labels)[gallery]
+result = {'claim_eligible': False, 'new_training_encoding_official_reads': False, 'seeds': {}}
+for seed in (179028, 179029):
+    state = campaign['seeds'][str(seed)]
+    output = {}
+    for arm in ('control', 'products'):
+        path = Path('/tmp/sfora-centroid-confirmation-terminal-arrays') / str(seed) / arm / 'held_values.npy'
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == state['arms'][arm]['held_values_sha256']
+        values = np.load(path, allow_pickle=False)
+        assert values.shape == (12599, 128) and np.isfinite(values).all()
+        floating = F.normalize(torch.from_numpy(values.copy()), dim=1)
+        packed = pack_int8_unit_embeddings(torch.from_numpy(values.copy()))
+        hits = {}
+        for name, data, norms in (('float', floating, torch.ones(len(values))), ('packed', packed.codes.float(), packed.inverse_norms.float())):
+            answers = []
+            gdata = data[gallery].T.contiguous()
+            gnorms = norms[gallery]
+            for start in range(0, len(query), 256):
+                if time.perf_counter() - started > 60:
+                    raise TimeoutError('fixed CPU diagnostic budget exceeded')
+                indices = query[start:start + 256]
+                scores = (data[indices] @ gdata) * norms[indices, None] * gnorms[None, :]
+                answers.extend(torch.argmax(scores, dim=1).tolist())
+            hits[name] = (glabels[answers] == qlabels).astype(np.int64)
+        assert hits['packed'].tolist() == state['quality'][arm]['per_query_r1']
+        output[arm] = {'float_r1': float(hits['float'].mean()), 'packed_r1': float(hits['packed'].mean()), 'packing_rescues': int(((hits['packed'] == 1) & (hits['float'] == 0)).sum()), 'packing_regressions': int(((hits['packed'] == 0) & (hits['float'] == 1)).sum()), 'export_sha256': state['arms'][arm]['held_values_sha256']}
+    output['float_treatment_delta'] = output['products']['float_r1'] - output['control']['float_r1']
+    output['packed_treatment_delta'] = output['products']['packed_r1'] - output['control']['packed_r1']
+    result['seeds'][str(seed)] = output
+result['cpu_wall_seconds'] = time.perf_counter() - started
+result['all_four_packed_gpu_hit_vectors_exact'] = True
+result['decision'] = 'PACKING_NOT_SOLE_FAILED_DIRECTION_CAUSE' if result['seeds']['179029']['float_treatment_delta'] <= 0 else 'PACKING_REVERSES_FAILED_SEED_DIRECTION'
+result['script_sha256'] = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+(base / 'float-packed-diagnostic.json').write_text(json.dumps(result, sort_keys=True, allow_nan=False) + '\n')
+print(json.dumps(result, sort_keys=True))

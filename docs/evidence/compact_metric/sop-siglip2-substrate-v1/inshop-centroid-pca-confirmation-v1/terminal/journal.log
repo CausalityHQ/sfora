@@ -1,0 +1,11 @@
+Sep 28 08:23:09 spark-2751 flock[887361]: {"terminal": "179028-control", "r1": 0.977022348127164, "map": 0.850701290561513}
+Sep 28 08:39:35 spark-2751 flock[887361]: {"terminal": "179028-products", "r1": 0.9789109222536985, "map": 0.854244313772966}
+Sep 28 08:55:59 spark-2751 flock[887361]: {"terminal": "179029-products", "r1": 0.9763928234183191, "map": 0.8519622714677635}
+Sep 28 09:12:38 spark-2751 flock[887361]: {"terminal": "179029-control", "r1": 0.9768649669499528, "map": 0.8486682773797269}
+Sep 28 09:12:38 spark-2751 flock[887361]: Traceback (most recent call last):
+Sep 28 09:12:38 spark-2751 flock[887361]:   File "/home/riomus/runs/sfora-inshop-centroid-pca-confirmation-v1/code/scripts/run_inshop_centroid_pca_confirmation.py", line 363, in <module>
+Sep 28 09:12:38 spark-2751 flock[887361]:     main()
+Sep 28 09:12:38 spark-2751 flock[887361]:     ~~~~^^
+Sep 28 09:12:38 spark-2751 flock[887361]:   File "/home/riomus/runs/sfora-inshop-centroid-pca-confirmation-v1/code/scripts/run_inshop_centroid_pca_confirmation.py", line 309, in main
+Sep 28 09:12:38 spark-2751 flock[887361]:     raise ValueError("negative paired seed quality")
+Sep 28 09:12:38 spark-2751 flock[887361]: ValueError: negative paired seed quality

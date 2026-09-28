@@ -1,0 +1,27 @@
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  12%|█▏        | 97/792 [00:00<00:00, 969.95it/s]Loading weights:  57%|█████▋    | 449/792 [00:00<00:00, 2389.05it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 2612.74it/s]
+{"step": 50, "loss": 6.983824253082275, "elapsed_seconds": 44.1002294216305}
+{"step": 100, "loss": 4.311646461486816, "elapsed_seconds": 86.14471490075812}
+{"step": 150, "loss": 5.295464992523193, "elapsed_seconds": 128.44158729957417}
+{"step": 200, "loss": 5.391887664794922, "elapsed_seconds": 170.9477049158886}
+{"step": 250, "loss": 2.8098623752593994, "elapsed_seconds": 214.47375774476677}
+{"step": 300, "loss": 1.604999303817749, "elapsed_seconds": 257.1112487940118}
+{"step": 350, "loss": 4.306065559387207, "elapsed_seconds": 299.39775531878695}
+{"step": 400, "loss": 2.3142333030700684, "elapsed_seconds": 341.7890261299908}
+{"step": 450, "loss": 1.3964241743087769, "elapsed_seconds": 384.2748631089926}
+{"step": 500, "loss": 2.1104378700256348, "elapsed_seconds": 426.5475362148136}
+{"step": 550, "loss": 1.0625852346420288, "elapsed_seconds": 468.8607729636133}
+{"step": 600, "loss": 2.2011029720306396, "elapsed_seconds": 511.3684503128752}
+{"step": 650, "loss": 1.533457636833191, "elapsed_seconds": 553.674466253724}
+{"step": 700, "loss": 1.3004422187805176, "elapsed_seconds": 596.048518884927}
+{"step": 750, "loss": 0.35642939805984497, "elapsed_seconds": 638.6395989279263}
+{"step": 800, "loss": 1.8370635509490967, "elapsed_seconds": 681.2712159268558}
+{"step": 850, "loss": 0.9728217720985413, "elapsed_seconds": 723.8155727717094}
+{"step": 900, "loss": 0.978966474533081, "elapsed_seconds": 766.3511977219023}
+{"step": 950, "loss": 0.9303255677223206, "elapsed_seconds": 808.8056374499574}
+{"step": 1000, "loss": 0.2069704234600067, "elapsed_seconds": 851.1660955548286}
+{"export_batches": 100}
+{"export_batches": 200}
+{"export_batches": 300}
+{"arm": "freeze_emb", "seed": 179028, "training_seconds": 851.2167977807112, "holdout_r1": 0.9859512659734899}
