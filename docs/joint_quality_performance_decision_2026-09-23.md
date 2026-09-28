@@ -1,5 +1,19 @@
 # Joint quality and performance decision, first training-code gate
 
+## 28 September nonlinear parameter placement: reviewed next cached gate
+
+Fable's519s research STOP overstated fixed-pooler function-class equivalence
+and the user's algorithm restrictions. Pinned DGX source/config confirms a
+trainable pooling MLP, but that does not prove equivalence to every added head.
+Opus5.5/Astra conditionally support one equal-parameter GELU-versus-half-gain
+linear residual filter on existing TRAIN fit caches, after correcting scaling,
+normalization, bank isolation, initialization, uncertainty and resource bounds.
+No optimizer, retrieval read, encoder or new model has run. A cached pass is
+weak evidence and may only support proposing a matched1000-update image-level
+test;100 updates cannot carry its quality decision. Existing negative arms stay
+closed and full joint goal unmet.
+[Reviewed scope, source authority and corrections](inshop_nonlinear_research_scope_2026-09-28.md).
+
 ## 28 September combined pixel transfer: rejected before production
 
 The deployed native-FP16 two-step pixel transfer outperformed a combined Torch

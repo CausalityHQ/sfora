@@ -1,0 +1,13 @@
+{
+  "method": "read-only DGX installed-source and pinned-config inspection; no model instantiated or encoder run",
+  "config_path": "/home/riomus/.cache/huggingface/hub/models--google--siglip2-large-patch16-256/snapshots/787800c8990e6f058423089178e718139608408c/config.json",
+  "config_sha256": "172e39dbf0143b8fe22d2f08921730eb8c397967e58cb37d133161e28aa34104",
+  "model_type": "siglip",
+  "installed_modeling_siglip_sha256": "274eafdb9bff99607f15eb4c4fb6fc47256b07358807653baa48539d13376b31",
+  "pooling_class": "SiglipMultiheadAttentionPoolingHead",
+  "pooling_forward": "attention(probe, hidden_state, hidden_state); residual = hidden_state; hidden_state = layernorm(hidden_state); hidden_state = residual + mlp(hidden_state); return hidden_state[:, 0]",
+  "mlp_forward": "fc1; activation_fn; fc2",
+  "freeze_scope": "train_inshop_siglip2_unseen_gallery.py lines1000-1010 freezes early encoder blocks and embeddings; leaves pooling head trainable",
+  "source_cache_sha256": "f232584491bf4ed1cf75daa7fcc03f218e7db5df797f4d57dd2bf034ac110885",
+  "not_proved": ["equivalence of every extra nonlinear-head composition", "nonlinear head quality benefit", "less than one percent serving overhead"]
+}
