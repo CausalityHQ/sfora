@@ -329,3 +329,27 @@ quality intervention. Report rescues and regressions per seed and the
 84 treatment-persistent misses (64 missed by all six runs); a selected
 triplet win is not full-gallery retrieval success. Raw-space cosine loss
 does not establish information erasure or validate low-rank adaptation.
+
+Before any encoder export, inspect the already archived full-gallery source
+ranks on the **84 three-treatment-seed persistent misses**, with the 64
+all-six-run misses separate. Select 84 deterministic hit controls from
+three-seed treatment-stable hits, matched by gallery-positive count and
+RNG 179019. If the SOP source itself retrieves fewer than half of those
+84 misses correctly, KILL the proposed source-preservation/adaptation
+diagnostic: it lacks the required prior signal. Report the pretrained
+source on the same rows; no triplet scoring, fit, encoder run or TEST read.
+
+### Packing gate terminal: KILL
+
+The CPU-only diagnostic completed in **15.860 s**, replaying all six
+packed hit arrays exactly and AP arrays within **2e-7** cross-device
+arithmetic tolerance. Treatment seeds 179024/25/26 had float-versus-packed
+rescues/regressions **1/1, 2/3, 7/0**. Mean R@1 gain was **+0.03148 point**,
+paired seed/product-bootstrap 95% **[−0.04623,+0.12665] points**.
+It fails the +0.30-point and positive-lower-bound floors. **KILL packing**
+as the next quality arm; retain the exact 130-byte deployed representation.
+This is not a latency measurement. No encoder/GPU run occurred.
+The [diagnostic receipt](evidence/compact_metric/sop-siglip2-substrate-v1/inshop-sop-warmstart-packing-diagnostic-v1.json)
+SHA-256 is `52aeec228915e26b5272d868627b905f29b933a633519fd6388dc8279bd8fd0e`.
+The tightened aggregate replay reproduced the original KILL, every mean
+and the bootstrap endpoints exactly; no archived evidence was rewritten.
