@@ -8,8 +8,8 @@ case "${1:-}" in
 esac
 cd "$root"
 output=/home/riomus/runs/sfora-pe-muon-$phase-v1
-test ! -e "$phase-v1.log"
-test ! -e "$phase-v1-time.txt"
+test ! -e "muon-$phase-v1.log"
+test ! -e "muon-$phase-v1-time.txt"
 test ! -e "$output"
 if [[ $phase == pilot ]]; then
   /home/riomus/group-learning/.venv/bin/python -c 'import json; r=json.load(open("/home/riomus/runs/sfora-pe-muon-mechanics-v1/receipt.json")); assert r["advance"] and r["updates"]==17 and r["updated_gpu_strict_reload_exact"]'
@@ -19,7 +19,7 @@ systemd-run --user --unit="sfora-pe-muon-$phase-v1" --wait --pipe \
   --setenv=CUDA_VISIBLE_DEVICES=0 --setenv=PYTHONPATH="$root:$root/src:$root/isolated-deps" \
   /usr/bin/flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock \
   /usr/bin/flock -n /home/riomus/.sfora-siglip2-gpu.lock \
-  /usr/bin/time -v -o "$root/$phase-v1-time.txt" \
+  /usr/bin/time -v -o "$root/muon-$phase-v1-time.txt" \
   /home/riomus/group-learning/.venv/bin/python "$root/train_pe_native_muon.py" \
   --authority "$root/muon-authority.json" --updates "$1" --output "$output" \
-  > "$root/$phase-v1.log" 2>&1
+  > "$root/muon-$phase-v1.log" 2>&1

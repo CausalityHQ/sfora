@@ -1,0 +1,1 @@
+Original launch exited1 before systemd-run: cloned source root contained historical mechanics-v1.log/time names. No native Muon GPU unit/output/optimizer update launched. Correct wrapper to unique muon-phase-v1 logs, preserving old logs. Native CPU constructor/source numerical code unchanged, but full wrapper hash binding requires new CPU receipt.

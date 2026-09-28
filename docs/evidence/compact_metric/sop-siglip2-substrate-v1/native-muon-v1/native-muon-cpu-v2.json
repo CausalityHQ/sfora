@@ -1,0 +1,41 @@
+{
+  "pass": true,
+  "code": {
+    "train_pe_native_muon.py": "64bf4bf4d4938c15083a2b91fc9a8e55df0c1402b66816dbf8d4736b8c34e0bf",
+    "pe_native_muon.py": "e34820fcec82178b7bb8f06c8ba6ceda974cf0cd2c15b23e1fb6127c7107d09e",
+    "check_pe_native_muon.py": "f41eed52b2bae6012920febdecc6b0cf37233d447a37a935df427c7b4a762c98",
+    "run_pe_native_muon.sh": "ef4227c1700ce649cffe198a81fdaa3168d40c539d3a9a70bb741842c6ea4256"
+  },
+  "native_muon_sha256": "4d003aba2d0c7fcc24875845802e45edb4475a51a037e2caaa7b46c3944c0dae",
+  "matrices": [
+    "transformer.resblocks.10.attn.in_proj_weight",
+    "transformer.resblocks.10.attn.out_proj.weight",
+    "transformer.resblocks.10.mlp.c_fc.weight",
+    "transformer.resblocks.10.mlp.c_proj.weight",
+    "transformer.resblocks.11.attn.in_proj_weight",
+    "transformer.resblocks.11.attn.out_proj.weight",
+    "transformer.resblocks.11.mlp.c_fc.weight",
+    "transformer.resblocks.11.mlp.c_proj.weight",
+    "transformer.resblocks.6.attn.in_proj_weight",
+    "transformer.resblocks.6.attn.out_proj.weight",
+    "transformer.resblocks.6.mlp.c_fc.weight",
+    "transformer.resblocks.6.mlp.c_proj.weight",
+    "transformer.resblocks.7.attn.in_proj_weight",
+    "transformer.resblocks.7.attn.out_proj.weight",
+    "transformer.resblocks.7.mlp.c_fc.weight",
+    "transformer.resblocks.7.mlp.c_proj.weight",
+    "transformer.resblocks.8.attn.in_proj_weight",
+    "transformer.resblocks.8.attn.out_proj.weight",
+    "transformer.resblocks.8.mlp.c_fc.weight",
+    "transformer.resblocks.8.mlp.c_proj.weight",
+    "transformer.resblocks.9.attn.in_proj_weight",
+    "transformer.resblocks.9.attn.out_proj.weight",
+    "transformer.resblocks.9.mlp.c_fc.weight",
+    "transformer.resblocks.9.mlp.c_proj.weight"
+  ],
+  "matrix_elements": 42467328,
+  "optimizer_parameters": 89,
+  "optimizer_updates": 0,
+  "held_images": 0,
+  "cuda": false
+}
