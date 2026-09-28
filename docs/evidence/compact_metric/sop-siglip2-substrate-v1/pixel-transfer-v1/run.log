@@ -1,0 +1,26 @@
+{"source_sha256": "4beb4c31e4e3887e7a80be0c95229f84946bcc54a00db202cf0b7b469b2aa23f", "torch": "2.12.1+cu130", "gpu": "NVIDIA GB10", "advance": false, "claim_eligible": false, "scope": "synthetic pinned-processor pixel levels; no image decode/encoder/search/full-call timing"}
+{"batch": 1, "stats": {"original": {"p50_ms": 0.030615999999999997, "p95_ms": 0.1098046}, "candidate": {"p50_ms": 0.098632, "p95_ms": 0.8586457499999997}}, "peak_allocated_bytes": {"original": 1179648, "candidate": 393216}, "gate": false, "pixel_bits_exact": true}
+{"batch": 32, "stats": {"original": {"p50_ms": 0.6332949999999999, "p95_ms": 0.6738805999999999}, "candidate": {"p50_ms": 1.5394295, "p95_ms": 1.8494684}}, "peak_allocated_bytes": {"original": 37748736, "candidate": 12582912}, "gate": false, "pixel_bits_exact": true}
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-pixel-transfer-v1/probe.py"
+	User time (seconds): 5.68
+	System time (seconds): 0.74
+	Percent of CPU this job got: 366%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:01.75
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 918588
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 114984
+	Voluntary context switches: 10345
+	Involuntary context switches: 104
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 32
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

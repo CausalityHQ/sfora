@@ -1,5 +1,16 @@
 # Joint quality and performance decision, first training-code gate
 
+## 28 September combined pixel transfer: rejected before production
+
+The deployed native-FP16 two-step pixel transfer outperformed a combined Torch
+device/dtype call on GB10. Synthetic processor-level tensor transfer p50/p95 ms
+original→candidate: batch1 0.030616/0.109805→0.098632/0.858646; batch32
+0.633295/0.673881→1.539430/1.849468,50 calls/arm/batch. Every timed result's
+pixel bits matched. Both frozen latency gates failed despite lower Torch
+allocation; keep production unchanged and stop this fixed arm. No encoder,
+image-to-top-k timing or quality result follows.
+[Raw evidence and limits](pixel_transfer_result_2026-09-28.md).
+
 ## 28 September published targets: verified screen, frontier still unqualified
 
 A bounded primary-source screen confirms UNICOM's supervised Table4 SOP91.2%

@@ -1,0 +1,7 @@
+{
+  "source_sha_verified": true,
+  "samples_per_arm_batch": 50,
+  "quantiles_replayed": true,
+  "both_frozen_gates_failed": true,
+  "terminal_exit": 0
+}
