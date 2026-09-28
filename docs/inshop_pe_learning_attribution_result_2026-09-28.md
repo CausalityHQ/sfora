@@ -70,7 +70,7 @@ and all eight quality files. The secondary CPU service
 rechecked all four matrix SHAs and final golden vectors/scores before raw scoring.
 It exited 0 in 8.80 seconds with 1,385,904 KiB peak host RSS (internal 6.07845s).
 Its original cost log and numeric receipt are archived separately. No native
-kernel output parity or independent full image re-encoding is claimed.
+kernel output parity or second implementation of the scorer is claimed.
 
 [Fixed gate and interpretation limits](inshop_pe_learning_attribution_gate_2026-09-28.md).
 Raw [main evidence](evidence/compact_metric/sop-siglip2-substrate-v1/pe-learning-attribution-v1/)
