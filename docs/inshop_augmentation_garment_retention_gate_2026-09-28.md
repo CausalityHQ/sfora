@@ -28,3 +28,24 @@ official selection or SOTA. Next positive diagnostic would compare native crop
 with annotation-constrained crop at identical fit image IDs/labels/flip draws,
 under matched actual encoder outputs and native packed scoring; only then
 consider a bounded paired training smoke. Native augmentation/default unchanged.
+
+## Terminal KILL
+
+Original CPU-only unit `sfora-inshop-crop-support-f0-v1`, invocation
+`f76f131e7c944efabda7ff98c153db04`, exit0. Audit wall1.095380011s,512 fit
+images/4096 sampled crops, no encoder/GPU/optimizer/held-image access.
+ReceiptSHA `365a1d631f9f3f502d7b49a095126d7341a20777df29dc9b2fee5b4c7dde0a1c`.
+Stored under `evidence/compact_metric/sop-siglip2-substrate-v1/inshop-crop-support-f0-v1/`.
+
+| Official In-Shop TRAIN fit; native crop | Measured | Frozen floor | Decision |
+| --- | ---: | ---: | --- |
+| Crop retains <90% garment area | 319/4096 = 7.788086% | >=10% | KILL |
+| Crop retains <75% garment area | 9/4096 = 0.219727% | >=5% | KILL |
+| Training/R@1/mAP/serving p50/p95/p99/QPS | Not measured | None authorized | No follow-up |
+
+Independent local integer pixel-set intersections reproduce all4096 fractions
+exactly; source hash matches committed probe, annotation/partition/fit hashes
+verified. All512 boxes valid. No threshold relaxation, box-constrained crop
+encoder diagnostic or training. Retain native augmentation. This does not prove
+crop invariance optimal or rule out smaller identity-detail loss; it rejects
+the specified substantial garment-support damage premise cheaply.
