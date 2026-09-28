@@ -1,0 +1,433 @@
+{
+  "median_step_3_17_seconds": 0.6740792361088097,
+  "step_seconds": [
+    1.269382149912417,
+    0.6905358848161995,
+    0.6740074306726456,
+    0.6725571416318417,
+    0.6711511579342186,
+    0.6758302948437631,
+    0.6308560236357152,
+    0.6784428707323968,
+    0.6737384381704032,
+    0.6791286468505859,
+    0.6336570321582258,
+    0.6775483577512205,
+    0.6743574282154441,
+    0.680889654904604,
+    0.679032517131418,
+    0.6740792361088097,
+    0.6718842419795692
+  ],
+  "attributed_sdpa_autograd_nodes": {
+    "final_self_attention": [],
+    "pool_attention": [
+      "ScaledDotProductFlashAttentionBackward0"
+    ]
+  },
+  "pool_graph_calls": 17,
+  "mlp_token_calls": 17,
+  "frozen_token_calls": 17,
+  "runtime_identity": {
+    "native_config": [
+      24,
+      1024,
+      14,
+      24,
+      true,
+      true,
+      true,
+      "attn"
+    ],
+    "pool_heads": 8,
+    "grid": [
+      16,
+      16
+    ],
+    "frequency_device": "cuda:0",
+    "foreign_buffer_devices": {
+      "dummy": "cpu"
+    },
+    "transformer_layers": 24,
+    "checkpointing": false,
+    "block_attention": [
+      [
+        1024,
+        16,
+        64,
+        0.125
+      ],
+      [
+        1024,
+        16,
+        64,
+        0.125
+      ],
+      [
+        1024,
+        16,
+        64,
+        0.125
+      ],
+      [
+        1024,
+        16,
+        64,
+        0.125
+      ],
+      [
+        1024,
+        16,
+        64,
+        0.125
+      ],
+      [
+        1024,
+        16,
+        64,
+        0.125
+      ],
+      [
+        1024,
+        16,
+        64,
+        0.125
+      ],
+      [
+        1024,
+        16,
+        64,
+        0.125
+      ],
+      [
+        1024,
+        16,
+        64,
+        0.125
+      ],
+      [
+        1024,
+        16,
+        64,
+        0.125
+      ],
+      [
+        1024,
+        16,
+        64,
+        0.125
+      ],
+      [
+        1024,
+        16,
+        64,
+        0.125
+      ],
+      [
+        1024,
+        16,
+        64,
+        0.125
+      ],
+      [
+        1024,
+        16,
+        64,
+        0.125
+      ],
+      [
+        1024,
+        16,
+        64,
+        0.125
+      ],
+      [
+        1024,
+        16,
+        64,
+        0.125
+      ],
+      [
+        1024,
+        16,
+        64,
+        0.125
+      ],
+      [
+        1024,
+        16,
+        64,
+        0.125
+      ],
+      [
+        1024,
+        16,
+        64,
+        0.125
+      ],
+      [
+        1024,
+        16,
+        64,
+        0.125
+      ],
+      [
+        1024,
+        16,
+        64,
+        0.125
+      ],
+      [
+        1024,
+        16,
+        64,
+        0.125
+      ],
+      [
+        1024,
+        16,
+        64,
+        0.125
+      ],
+      [
+        1024,
+        16,
+        64,
+        0.125
+      ]
+    ],
+    "normalization_eps": {
+      "ln_pre": 1e-05,
+      "ln_post": 1e-05,
+      "transformer.resblocks.0.ln_1": 1e-05,
+      "transformer.resblocks.0.ln_2": 1e-05,
+      "transformer.resblocks.1.ln_1": 1e-05,
+      "transformer.resblocks.1.ln_2": 1e-05,
+      "transformer.resblocks.2.ln_1": 1e-05,
+      "transformer.resblocks.2.ln_2": 1e-05,
+      "transformer.resblocks.3.ln_1": 1e-05,
+      "transformer.resblocks.3.ln_2": 1e-05,
+      "transformer.resblocks.4.ln_1": 1e-05,
+      "transformer.resblocks.4.ln_2": 1e-05,
+      "transformer.resblocks.5.ln_1": 1e-05,
+      "transformer.resblocks.5.ln_2": 1e-05,
+      "transformer.resblocks.6.ln_1": 1e-05,
+      "transformer.resblocks.6.ln_2": 1e-05,
+      "transformer.resblocks.7.ln_1": 1e-05,
+      "transformer.resblocks.7.ln_2": 1e-05,
+      "transformer.resblocks.8.ln_1": 1e-05,
+      "transformer.resblocks.8.ln_2": 1e-05,
+      "transformer.resblocks.9.ln_1": 1e-05,
+      "transformer.resblocks.9.ln_2": 1e-05,
+      "transformer.resblocks.10.ln_1": 1e-05,
+      "transformer.resblocks.10.ln_2": 1e-05,
+      "transformer.resblocks.11.ln_1": 1e-05,
+      "transformer.resblocks.11.ln_2": 1e-05,
+      "transformer.resblocks.12.ln_1": 1e-05,
+      "transformer.resblocks.12.ln_2": 1e-05,
+      "transformer.resblocks.13.ln_1": 1e-05,
+      "transformer.resblocks.13.ln_2": 1e-05,
+      "transformer.resblocks.14.ln_1": 1e-05,
+      "transformer.resblocks.14.ln_2": 1e-05,
+      "transformer.resblocks.15.ln_1": 1e-05,
+      "transformer.resblocks.15.ln_2": 1e-05,
+      "transformer.resblocks.16.ln_1": 1e-05,
+      "transformer.resblocks.16.ln_2": 1e-05,
+      "transformer.resblocks.17.ln_1": 1e-05,
+      "transformer.resblocks.17.ln_2": 1e-05,
+      "transformer.resblocks.18.ln_1": 1e-05,
+      "transformer.resblocks.18.ln_2": 1e-05,
+      "transformer.resblocks.19.ln_1": 1e-05,
+      "transformer.resblocks.19.ln_2": 1e-05,
+      "transformer.resblocks.20.ln_1": 1e-05,
+      "transformer.resblocks.20.ln_2": 1e-05,
+      "transformer.resblocks.21.ln_1": 1e-05,
+      "transformer.resblocks.21.ln_2": 1e-05,
+      "transformer.resblocks.22.ln_1": 1e-05,
+      "transformer.resblocks.22.ln_2": 1e-05,
+      "transformer.resblocks.23.ln_1": 1e-05,
+      "transformer.resblocks.23.ln_2": 1e-05,
+      "attn_pool.layernorm": 1e-05
+    },
+    "training": true,
+    "foreign_training": true
+  },
+  "execution_sha256": "4126a7d7519089e53d51f7e94f10d9e189232a24750c9aa7c676d4b415f17799",
+  "worker_input_seconds": [
+    0.14484452735632658,
+    0.38744626799598336,
+    0.3780527771450579,
+    0.34790838276967406,
+    0.3528812173753977,
+    0.3435914530418813,
+    0.33715033205226064,
+    0.27324386313557625,
+    0.33440284337848425,
+    0.36175740975886583,
+    0.27148104598745704,
+    0.312323106918484,
+    0.3453112770803273,
+    0.273108774330467,
+    0.3712674439884722,
+    0.3438296280801296,
+    0.3670026119798422
+  ],
+  "training_wall_seconds_including_fill_drain": 12.010571005754173,
+  "one_pending_cpu_batch": true,
+  "caller_cpu_rng_unchanged": true,
+  "losses": [
+    4.131138324737549,
+    5.525903224945068,
+    5.717441082000732,
+    4.53751802444458,
+    4.502857208251953,
+    6.048171043395996,
+    3.558985710144043,
+    4.0382399559021,
+    6.346229553222656,
+    4.185998439788818,
+    3.338721513748169,
+    1.8705122470855713,
+    5.097383499145508,
+    5.031765460968018,
+    5.34579610824585,
+    4.984620094299316,
+    6.940713882446289
+  ],
+  "rgb_sha256": [
+    "f68313037c3d249e2572c3b5799a24758cdbfac1e60f384461eb18a17aa43630",
+    "ffa72a5c642aec9583ecbbc869c25470b7c62edcf8817345fe471df74684e1c6",
+    "9398e71f46eb352dbc1c3156fe505542b6f460788e7640313e20ab2d685a4f8b",
+    "644b83536ac1ec708d071b8f553fecdaed1c86aa1c972e26dfa81c3dcf202c76",
+    "01db331772995491c6e55e161a14cbd3a87d451c446f477ea64488970fd38bb3",
+    "ad50314a57c3a76118602b15e69231c9f681d4c2fb0cdc6e6320f14fd151a742",
+    "d7f4872a4c14cab12d06781f4a73421cf44a3566a3a38f4f2fb2aeb35721f900",
+    "e61b40d67e9e5aacbfa4ca6d134f1fb6b2c84fe03dc30a6e67be996c714dc93f",
+    "c47a387d1fe43f018cc7167204d00e90aa51934230e4debe2e8776c51e370c6c",
+    "642e93c161259c15a3efb1c6d9f7463235df9fb0fd2542e8ce94da328f938e48",
+    "5b1d14132370f37911d62afc5eb3c686f044b152fe16bf95cc9e873b3b62578b",
+    "a75355fd14b3736f9a3b2a75b9c0a2a59053c42abbb121c9f12ad461acb6fe77",
+    "0dc26a7bc6bb7eff9a91f87d593d123d886f7e3f56b1a03cdd29b8c7a04906dd",
+    "dfb874fc5887730246aee9dd78c153b254d89380d7b807d6ffe8179c829c8feb",
+    "32475486e3f708f42a1b62343482f65565591040141f575b8d8ba95c94f78306",
+    "9f54d0899ae2703ec56949fa79f004a249317d761b56393c93ecd71ea5a03e17",
+    "7a2f095847529cb89e6b8f559100ecdd0acd97f91f99462314c1ea686e68c34b"
+  ],
+  "scales": [
+    128.0,
+    128.0,
+    128.0,
+    128.0,
+    128.0,
+    128.0,
+    128.0,
+    128.0,
+    128.0,
+    128.0,
+    128.0,
+    128.0,
+    128.0,
+    128.0,
+    128.0,
+    128.0,
+    128.0
+  ],
+  "preclip_gradient_norms": [
+    24.528383255004883,
+    34.1767692565918,
+    41.114097595214844,
+    29.521535873413086,
+    33.187355041503906,
+    41.54807662963867,
+    31.051416397094727,
+    38.361305236816406,
+    41.655555725097656,
+    26.410690307617188,
+    27.993133544921875,
+    24.138961791992188,
+    31.071706771850586,
+    39.018768310546875,
+    39.212650299072266,
+    33.20530319213867,
+    31.758331298828125
+  ],
+  "diagnostics": [
+    {
+      "step": 1,
+      "data_gradient_norms": {
+        "transformer.resblocks.23.mlp.c_fc.weight": 0.27576470375061035,
+        "transformer.resblocks.23.mlp.c_fc.bias": 0.0015259585343301296,
+        "transformer.resblocks.23.mlp.c_proj.weight": 0.25504377484321594,
+        "transformer.resblocks.23.mlp.c_proj.bias": 0.0066400738433003426,
+        "attn_pool.probe": 7.862533675506711e-05,
+        "attn_pool.attn.in_proj_weight": 0.6654883027076721,
+        "attn_pool.attn.in_proj_bias": 0.02427675761282444,
+        "attn_pool.attn.out_proj.weight": 0.3157893419265747,
+        "attn_pool.attn.out_proj.bias": 0.01837969198822975,
+        "attn_pool.layernorm.weight": 0.012698071077466011,
+        "attn_pool.layernorm.bias": 0.01209071185439825,
+        "attn_pool.mlp.c_fc.weight": 0.15925849974155426,
+        "attn_pool.mlp.c_fc.bias": 0.011323701590299606,
+        "attn_pool.mlp.c_proj.weight": 0.16801808774471283,
+        "attn_pool.mlp.c_proj.bias": 0.017222696915268898,
+        "head.weight": 0.3494701385498047,
+        "head.bias": 0.3397866487503052,
+        "classifier": 0.15305276215076447
+      }
+    },
+    {
+      "step": 17,
+      "data_gradient_norms": {
+        "transformer.resblocks.23.mlp.c_fc.weight": 0.24464339017868042,
+        "transformer.resblocks.23.mlp.c_fc.bias": 0.0013395579298958182,
+        "transformer.resblocks.23.mlp.c_proj.weight": 0.24543672800064087,
+        "transformer.resblocks.23.mlp.c_proj.bias": 0.006683490704745054,
+        "attn_pool.probe": 0.000534840568434447,
+        "attn_pool.attn.in_proj_weight": 0.6894949078559875,
+        "attn_pool.attn.in_proj_bias": 0.025348322466015816,
+        "attn_pool.attn.out_proj.weight": 0.30320900678634644,
+        "attn_pool.attn.out_proj.bias": 0.019004344940185547,
+        "attn_pool.layernorm.weight": 0.009797068312764168,
+        "attn_pool.layernorm.bias": 0.009288474917411804,
+        "attn_pool.mlp.c_fc.weight": 0.12504523992538452,
+        "attn_pool.mlp.c_fc.bias": 0.00868399441242218,
+        "attn_pool.mlp.c_proj.weight": 0.16860468685626984,
+        "attn_pool.mlp.c_proj.bias": 0.017868975177407265,
+        "head.weight": 0.3405904769897461,
+        "head.bias": 0.35446563363075256,
+        "classifier": 0.15884695947170258
+      }
+    }
+  ],
+  "calibration": {
+    "fp16_fp32": [
+      0.9999428987503052,
+      0.9998918175697327,
+      0.9998489618301392,
+      0.9997812509536743
+    ],
+    "cached_fresh_fp16": [
+      0.9999956488609314,
+      0.9999966621398926,
+      0.9999969601631165,
+      0.9999903440475464
+    ]
+  },
+  "frozen_sha256": "12bf7abc1d39af8b4266a3290c7cbc05c48cebd437e042425c0c3a33d51e7979",
+  "peak_cuda_allocated_bytes": 3729933312,
+  "initial_group_sha256": {
+    "final_native_mlp": "3a80a0cc51996db60c0b9b5a0f78886a5665fd33f4b560af7d350840ab8ea60f",
+    "native_pool": "fbc491e07a40d5cd5c13d280f077d542e1e3c00474bfbc6c0e0a4056ac6ee2c1",
+    "compact_head": "10d93884f35120d832596d1dea97f995fd820229324a867f730ad514543265c3",
+    "classifier": "4b496ed531f13c4b309393aefe73255587ae53abeb1224bc3613c6b063598a38"
+  },
+  "final_group_sha256": {
+    "final_native_mlp": "1638abe09d2fdc718379b0f712d53b06d03d260682dff5d12c0bd8efd6cc3e2b",
+    "native_pool": "c4661d9b4b856030854200265a84251293767b75b60d510113dd4e991ec55eb3",
+    "compact_head": "f053bf4d694cb6c250370f0e4f4ffec42f7ffc4ee214cd72fe8da235a8a118a8",
+    "classifier": "9012921bd6316f5525a0e8f3cf0ca5bf06d55bb28d8f79612cb224a98204b3be"
+  },
+  "preflight_sha256": "368684b0635bd590bd727cf3e5e9c5364280fb3be6fde42635ff073c358c7d18",
+  "training_state_discarded": true,
+  "quality_read": false
+}

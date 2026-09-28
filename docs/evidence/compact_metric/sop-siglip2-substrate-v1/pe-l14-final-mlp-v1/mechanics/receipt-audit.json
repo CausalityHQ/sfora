@@ -1,0 +1,13 @@
+{
+  "pass": true,
+  "advance": true,
+  "receipt_sha256": "5cbbfc188e1291c969c82cce7a53463e70b97ca3b41c481c84a99ce03d7f5d6a",
+  "median_step_3_17_seconds": 0.6740792361088097,
+  "positive_gradient_tensors_per_diagnostic": 18,
+  "matched_original_rgb": 17,
+  "all_four_groups_moved": true,
+  "frozen_complement_matches_cpu_authority": true,
+  "resource_exit_verified": "29.94s/5602112KiB/no swap/exit0/allocatedCUDA3810310656B",
+  "postrun_verified": "all85 executing files unchanged; checkpoint deleted; no held read; GPU idle",
+  "audit_scope": "stdlib native role/data/scaler/group/cost/receipt replay; GPU strict reload recorded; no quality read"
+}

@@ -1,0 +1,23 @@
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-pe-l14-final-mlp-v1/train_pe_l14_final_mlp.py --preflight-sha256 368684b0635bd590bd727cf3e5e9c5364280fb3be6fde42635ff073c358c7d18 --mechanics-receipt-sha256 unused --execution-sha256 4126a7d7519089e53d51f7e94f10d9e189232a24750c9aa7c676d4b415f17799 --updates 17 --output /home/riomus/runs/sfora-pe-l14-final-mlp-mechanics-v1"
+	User time (seconds): 36.46
+	System time (seconds): 7.79
+	Percent of CPU this job got: 147%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:29.94
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 5602112
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 1
+	Minor (reclaiming a frame) page faults: 824079
+	Voluntary context switches: 66311
+	Involuntary context switches: 512
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 2494440
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
