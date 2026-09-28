@@ -1,0 +1,14 @@
+{
+  "gpu_invocation_id": "d8207111dfb34a73bf2403f120d2af02",
+  "gpu_unit": "sfora-pe-fullfit-cache-v3",
+  "gpu_exit_status_from_time": 0,
+  "gpu_process_wall_seconds": 187.55,
+  "gpu_process_peak_rss_kib": 2799928,
+  "receipt_sha256": "f71852c782bc700f5a269eba120e291e1d4d1a5c2e20b5410effa4284d121add",
+  "cpu_audit_invocation_id": "9c6611fedd51406cb74e6059e6124894",
+  "cpu_audit_exit_status": 0,
+  "cpu_audit_wall_seconds": 2.22,
+  "cpu_audit_peak_rss_kib": 991812,
+  "all_jobs_terminal": true,
+  "claim_eligible": false
+}

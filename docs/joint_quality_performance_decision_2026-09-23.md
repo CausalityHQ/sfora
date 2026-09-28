@@ -1,5 +1,18 @@
 # Joint quality and performance decision, first training-code gate
 
+## 28 September complete PE/Large TRAIN-fit caches verified
+
+Both original-source FP16 exports and independent saved-matrix CPU replay PASS
+on all13,283 In-Shop official TRAIN-fit images/2,004 products; held12,599 excluded.
+Export cost Large118.5661s/112.0303images/s versusPE53.3109s/249.1608images/s,
+including decode/preprocessing/hash/write; allocatedCUDA1,592,031,232→582,803,968B,
+cleanup0Bboth. Wholeprocess187.55s/2,799,928KiB; CPUaudit2.22s/991,812KiB.
+No optimizer, learned retrieval score or image-to-top-k serving measurement.
+Alljobs terminal, DGXidle. Next separately frozen augmented actual image-training
+quality feasibility gate uses matched6,354query/6,245gallery TRAIN-held roles;
+full fit-only PCA/proxy/bank, paired controls, uncertainty and early stop rules.
+[Full-fit acquisition result](inshop_pe_fullfit_cache_result_2026-09-28.md).
+
 ## 28 September native PE FP16 mechanics: training and cost gates pass
 
 Both native image arms16x64 sameIn-ShopTRAIN-fitfixture/schedule/objective completed,

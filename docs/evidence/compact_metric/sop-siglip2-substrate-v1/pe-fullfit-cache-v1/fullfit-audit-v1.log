@@ -1,0 +1,3 @@
+{"arm": "large", "min_anchor_cosine_float64": 0.9999999999999998, "max_unit_error_float64": 1.3497054707212186e-07}
+{"arm": "pe", "min_anchor_cosine_float64": 0.9999999991846333, "max_unit_error_float64": 1.0756756774199516e-07}
+PASS complete saved fit matrices and authority replay; no quality read

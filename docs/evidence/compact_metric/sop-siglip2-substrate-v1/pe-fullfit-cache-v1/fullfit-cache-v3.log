@@ -1,0 +1,6 @@
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 9269.67it/s]
+{"arm": "large", "fp16_fp32_cosine": [0.9999905228614807, 0.999983012676239, 0.9999576807022095, 0.9999924898147583]}
+{"arm": "pe", "fp16_fp32_cosine": [0.9999904036521912, 0.9999868273735046, 0.999985933303833, 0.9999911785125732]}
+PASS paired complete fit-only source acquisition
