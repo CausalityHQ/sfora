@@ -38,14 +38,16 @@ def main():
     proof = json.loads(source.read_text())
     assert proof['code'] == old and proof['native_training_seed'] == 179041
     helpers = held.cpu.qualified.confirmation.selected.helpers
+    assert all(pair.sha(root / n) == h for n, h in code.items()), 'public serving code differs'
+    # Authenticate the historical chain before overriding its shared public module.
+    with patch.object(held.cpu.qualified.confirmation.selected, 'helpers', lambda r, _: helpers(r, code)):
+        control, frozen, _, run, terminal, original = held.authority(root, HELD_CODE, 179041, args.arm, proof['native_training_receipt_sha256'])
+    assert original == old and pair.sha(run / 'native.pt') == proof['teacher_checkpoint_sha256']
+    assert terminal['updated_whole_sha256'] == proof['teacher_whole_sha256'] and terminal['updated_head_sha256'] == proof['teacher_head_sha256']
 
     def startup(r, execution):
         assert r == root and execution == args.execution_sha256
         assert all(pair.sha(root / n) == h for n, h in code.items()), 'public serving code differs'
-        with patch.object(held.cpu.qualified.confirmation.selected, 'helpers', lambda r, _: helpers(r, code)):
-            control, frozen, _, run, terminal, original = held.authority(root, HELD_CODE, 179041, args.arm, proof['native_training_receipt_sha256'])
-        assert original == old and pair.sha(run / 'native.pt') == proof['teacher_checkpoint_sha256']
-        assert terminal['updated_whole_sha256'] == proof['teacher_whole_sha256'] and terminal['updated_head_sha256'] == proof['teacher_head_sha256']
         assert pair.sha(directory / 'receipt.json') == entry['receipt_sha256'] and pair.sha(directory / 'cpu-audit.json') == entry['audit_sha256']
         receipt = json.loads((directory / 'receipt.json').read_text())
         audit = json.loads((directory / 'cpu-audit.json').read_text())
