@@ -40,4 +40,4 @@ Files: create `scripts/qualify_pe_full_native_trajectory_average.py`; reuse unch
 ## Task2: Official serving and terminal decision
 
 - [x] Run original capped official publicB32, independent CPU saved-wire audit and paired corrected-endpoint decision sequentially; collect all raw evidence.
-- [ ] Push measured convergence row and result; preserve candidates. Proceed to fresh confirmation/speed on survivor, choose one demonstrated-cause intervention on negative; keep full native goal active.
+- [x] Push measured convergence row and result; preserve candidates. Proceed to fresh confirmation/speed on survivor, choose one demonstrated-cause intervention on negative; keep full native goal active.

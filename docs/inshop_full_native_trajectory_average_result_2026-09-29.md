@@ -29,6 +29,17 @@ tensors were averaged. No new training or optimizer/bank/classifier/scaler/RNG
 averaging or resume claim exists. The positive TRAIN result remains valid for
 its own matched split; it did not translate into a verified full-official gain.
 
+Post-result disclosure: the TRAIN gate averaged the original
+`large-optimization-half` trajectory, which omitted rank loss on630/2,000 whole
+batches; this full application averaged the corrected `full-valid-anchor`
+trajectory. Arithmetic matched exactly, while objectives and exposures differed.
+This limits what the TRAIN gate established about transfer. The full comparison
+itself uses the same corrected trajectory for endpoint and average and remains
+valid. Neither falling training loss nor the TRAIN/full gap proves that insufficient
+updates or width caused the remaining retrieval errors. Future corrected training
+requires an objectively matched control. Original specifications/receipts remain
+unchanged.
+
 Export passed in49.317s; actual updated CPU qualification in21.521s;
 official publicB32 in256.537s; independent complete CPU quality audit in14.963s;
 paired decision in11.022s. All successful units stayed within the frozen

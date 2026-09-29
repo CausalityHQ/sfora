@@ -28,6 +28,15 @@ authenticated. No snapshot/window/alpha chooser, new training, bank/classifier/
 optimizer/scaler/RNG averaging, or resume-from-average claim exists. The
 existing `average_model_states` helper was reused unchanged.
 
+Post-result disclosure: this TRAIN gate used the original `large-optimization-half`
+trajectory, whose objective omitted rank loss on630/2,000 whole batches. The full
+application used the corrected `full-valid-anchor` objective. The averaging
+arithmetic was identical; the training objectives and exposure regimes were not.
+The within-trajectory TRAIN GO remains verified, but it did not qualify a matched
+transfer of the averaging effect to the corrected full recipe. Future corrected
+training comparisons require a control with that same objective. The original
+frozen specification and receipts remain unchanged.
+
 Actual CPU endpoint/average qualification passed in26.091/23.697s. Public
 B32 endpoint/average qualification passed in131.710/129.364s, including all
 12,599 images, all6,354 native top10 ordinals and float32 score bits, and
