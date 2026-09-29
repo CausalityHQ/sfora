@@ -48,7 +48,7 @@ def main():
         cosines = {}
         for name in ("fp32", "fp16"):
             reference = refs[name].astype(np.float64)
-            assert reference.shape == (4, 1024) and np.isfinite(reference).all()
+            assert reference.shape == values.shape and np.isfinite(reference).all()
             cosine = (values * reference).sum(1) / (
                 np.linalg.norm(values, axis=1) * np.linalg.norm(reference, axis=1)
             )

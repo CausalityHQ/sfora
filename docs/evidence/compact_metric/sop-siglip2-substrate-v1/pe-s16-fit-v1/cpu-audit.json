@@ -1,0 +1,26 @@
+{
+  "pass": true,
+  "script_sha256": "fc4f1ceb780bd7cd8857c29480ce0ba1c8880f9cbc13c6a1f55bb2666e88499f",
+  "receipt_sha256": "214b951de7656cbf83485b16adecd61509ad5c19da4af7e60ffddc0755d35665",
+  "features_sha256": "430e0644c984747236edfd5b8454ede52a3b579b7d72df5a82c1983146366564",
+  "references_sha256": "2e9268766ac3f1a97335723fedef31ddb51513bac707c2f506f4b0b90e1ef7ae",
+  "cache_reference_cosines_float64": {
+    "fp32": [
+      0.9999904244615708,
+      0.9999917788679175,
+      0.9999925450617234,
+      0.9999899908037752
+    ],
+    "fp16": [
+      0.9999976884718511,
+      0.999997478159126,
+      0.9999980420750683,
+      0.9999984344244046
+    ]
+  },
+  "max_norm_error_float64": 1.1151456269509197e-07,
+  "optimizer_updates": 0,
+  "held_images": 0,
+  "quality_read": false,
+  "cuda_used": false
+}

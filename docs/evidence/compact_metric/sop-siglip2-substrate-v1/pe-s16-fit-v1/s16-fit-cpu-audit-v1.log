@@ -1,0 +1,15 @@
+Running as unit: sfora-pe-s16-fit-cpu-audit-v1.service; invocation ID: ceddad31edf246df843043076a61cd6a
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-pe-s16-source-v1/audit_pe_s16_fit.py", line 95, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/sfora-pe-s16-source-v1/audit_pe_s16_fit.py", line 51, in main
+    assert reference.shape == (4, 1024) and np.isfinite(reference).all()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=1
+Service runtime: 3.194s
+CPU time consumed: 5.755s
+Memory peak: 256.0K
+Memory swap peak: 0B
