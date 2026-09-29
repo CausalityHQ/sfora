@@ -24,10 +24,10 @@ from sfora.joint_relational_compaction import pack_int8_unit_embeddings
 pair = native.pair
 sha = pair.sha
 TRAIN_ROOT = Path("/home/riomus/runs/sfora-large-native-pool-v1")
-EXPORT_ROOT = Path("/home/riomus/runs/sfora-large-pool-checkpoint-export-source-v1")
-SCORE_ROOT = Path("/home/riomus/runs/sfora-large-pool-checkpoint-score-source-v1")
-CPU_PROOF = Path("/home/riomus/runs/sfora-large-pool-checkpoint-cpu-v1/proof.json")
-WIRES = Path("/home/riomus/runs/sfora-large-pool-checkpoint-wires-v1")
+EXPORT_ROOT = Path("/home/riomus/runs/sfora-large-pool-checkpoint-export-source-v2")
+SCORE_ROOT = Path("/home/riomus/runs/sfora-large-pool-checkpoint-score-source-v2")
+CPU_PROOF = Path("/home/riomus/runs/sfora-large-pool-checkpoint-cpu-v2/proof.json")
+WIRES = Path("/home/riomus/runs/sfora-large-pool-checkpoint-wires-v2")
 CHECKPOINT = Path("/home/riomus/runs/sfora-large-native-pool-pilot-v1/pe.pt")
 TRAIN_CODE = "1c867a64e4fb3eeac04daf0db4eb642ec0041d0ed43a91948f52c968547dd0b0"
 CHECKPOINT_SHA = "a7e3d8d413aba67dd0d1472d5b70537a72de902ecbdac505833af9cbcaa1a796"
@@ -154,7 +154,7 @@ def rng():
 def runtime(model):
     value = native.runtime_identity(model)
     assert all(v == str(next(model.parameters()).device) for v in value["buffer_devices"].values())
-    return {k: v for k, v in value.items() if k != "buffer_devices"}
+    return json.loads(json.dumps({k: v for k, v in value.items() if k != "buffer_devices"}))
 
 
 def checkpoint_pair(control, training, gpu, cpu, device):

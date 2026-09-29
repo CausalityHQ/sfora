@@ -1,0 +1,46 @@
+Running as unit: sfora-large-pool-checkpoint-cpu-v1.service; invocation ID: 3a191a8085434ba2a85a1e94e645d012
+{"phase": "authority", "seconds": 3.9531607660464942}
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  82%|████████▏ | 650/792 [00:00<00:00, 6494.76it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 6620.00it/s]
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-large-pool-checkpoint-export-source-v1/export_large_pool_checkpoint.py", line 390, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/sfora-large-pool-checkpoint-export-source-v1/export_large_pool_checkpoint.py", line 274, in main
+    models, heads, processor = checkpoint_pair(control, training, gpu, cpu, torch.device("cpu" if args.qualify_cpu else "cuda"))
+                               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-large-pool-checkpoint-export-source-v1/export_large_pool_checkpoint.py", line 171, in checkpoint_pair
+    assert runtime(model) == {k: v for k, v in cpu["runtime_identity"].items() if k != "buffer_devices"}
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=1
+Service runtime: 9.735s
+CPU time consumed: 9.777s
+Memory peak: 256.0K
+Memory swap peak: 0B
+Command exited with non-zero status 1
+	Command being timed: "systemd-run --user --wait --collect --pipe --unit=sfora-large-pool-checkpoint-cpu-v1 -p WorkingDirectory=/home/riomus/runs/sfora-large-pool-checkpoint-export-source-v1 -p RuntimeMaxSec=120 -p MemoryMax=8G -p MemorySwapMax=0 -p KillMode=control-group -p OOMPolicy=stop --setenv=CUDA_VISIBLE_DEVICES= --setenv=OMP_NUM_THREADS=8 --setenv=OPENBLAS_NUM_THREADS=1 --setenv=TOKENIZERS_PARALLELISM=false --setenv=PYTHONPATH=/home/riomus/runs/sfora-large-pool-checkpoint-export-source-v1:/home/riomus/runs/sfora-large-pool-checkpoint-export-source-v1/src:/home/riomus/runs/sfora-large-pool-checkpoint-export-source-v1/isolated-deps flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock flock -n /home/riomus/.sfora-siglip2-gpu.lock /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-large-pool-checkpoint-export-source-v1/export_large_pool_checkpoint.py --execution-sha256 de7ad67c590e4432f00c714e3ea4fbb0c6bfd69bf8319b71f54fcd7c72533ff6 --output /home/riomus/runs/sfora-large-pool-checkpoint-cpu-v1 --qualify-cpu"
+	User time (seconds): 0.00
+	System time (seconds): 0.00
+	Percent of CPU this job got: 0%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:09.76
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 7412
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 376
+	Voluntary context switches: 8
+	Involuntary context switches: 0
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 1
