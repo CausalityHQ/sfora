@@ -1,0 +1,30 @@
+{
+  "decision": "KILL fixed TRAIN quality gate",
+  "production_goal": "active/unmet",
+  "dataset_split": "In-Shop TRAIN-held6354query/6245gallery1993products",
+  "verified_by_gpu_receipt_and_cpu_replay": true,
+  "receipt_sha256": "cc1047b40873b408a1f577d84ed7ff44b72d11cf8809e111d39a102141bcb6fa",
+  "cpu_audit_sha256": "288b2c4908c474173a52d7ade6278c37c42f2e7e7e62aa781e4a025c745d98af",
+  "candidate_r1_percent": 93.65753855838842,
+  "candidate_map_at_r_percent": 74.32313139181318,
+  "floors_percent": {
+    "r1": 95.1720176,
+    "map_at_r": 77.623712
+  },
+  "historical_nonconcurrent_controls_percent": {
+    "DensePE": {
+      "r1": 95.0739692,
+      "map_at_r": 76.3915922
+    },
+    "Large": {
+      "r1": 95.6720176,
+      "map_at_r": 78.623712
+    }
+  },
+  "median_step_3_100_seconds": 0.5341194549109787,
+  "training_wall_seconds": 53.59433175995946,
+  "training_images_per_second": 119.41561336494667,
+  "teacher_preparation_seconds_separate": 172.01,
+  "public_latency_measured": false,
+  "next_intervention": "Use the authenticated TRAIN-trained Large vision/head checkpoint as representation source and qualify its actual serving candidate; fresh native TRAIN-held packed parity/quality first, then serving and independent official confirmation if fixed quality gates pass."
+}

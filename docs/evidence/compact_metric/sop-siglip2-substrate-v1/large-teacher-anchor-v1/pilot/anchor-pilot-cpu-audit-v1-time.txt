@@ -1,0 +1,23 @@
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-large-teacher-anchor-v1/audit_pe_large_teacher_anchor_pilot.py --execution-sha256 c6a59f0ab441bddcacb569efdf3d87ec923b42fa0cfa188493cf4ce1622d0eb2 --receipt-sha256 cc1047b40873b408a1f577d84ed7ff44b72d11cf8809e111d39a102141bcb6fa --auditor-sha256 2665dfb44072f15f1767ce58f0f462e00d1073b7a0ce920b470ea456876eee83 --output /home/riomus/runs/sfora-large-teacher-anchor-pilot-v1"
+	User time (seconds): 13.94
+	System time (seconds): 1.27
+	Percent of CPU this job got: 144%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:10.52
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 1052692
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 190833
+	Voluntary context switches: 4588
+	Involuntary context switches: 401
+	Swaps: 0
+	File system inputs: 16
+	File system outputs: 408
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

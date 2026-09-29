@@ -1,0 +1,42 @@
+{
+  "step": 1,
+  "native_gradient_norms": {
+    "encoder.layers.22.layer_norm1.weight": 2.665410041809082,
+    "encoder.layers.22.layer_norm1.bias": 2.1627988815307617,
+    "encoder.layers.22.self_attn.k_proj.weight": 48.53435516357422,
+    "encoder.layers.22.self_attn.k_proj.bias": 7.845584332244471e-05,
+    "encoder.layers.22.self_attn.v_proj.weight": 45.82442092895508,
+    "encoder.layers.22.self_attn.v_proj.bias": 2.872990846633911,
+    "encoder.layers.22.self_attn.q_proj.weight": 27.972946166992188,
+    "encoder.layers.22.self_attn.q_proj.bias": 0.9389171600341797,
+    "encoder.layers.22.self_attn.out_proj.weight": 33.48725128173828,
+    "encoder.layers.22.self_attn.out_proj.bias": 3.0598158836364746,
+    "encoder.layers.22.layer_norm2.weight": 0.16020016372203827,
+    "encoder.layers.22.layer_norm2.bias": 0.14859238266944885,
+    "encoder.layers.22.mlp.fc1.weight": 52.873802185058594,
+    "encoder.layers.22.mlp.fc1.bias": 0.2304760366678238,
+    "encoder.layers.22.mlp.fc2.weight": 44.27818298339844,
+    "encoder.layers.22.mlp.fc2.bias": 2.6399714946746826,
+    "encoder.layers.23.layer_norm1.weight": 1.9621484279632568,
+    "encoder.layers.23.layer_norm1.bias": 3.263179063796997,
+    "encoder.layers.23.self_attn.k_proj.weight": 89.34044647216797,
+    "encoder.layers.23.self_attn.k_proj.bias": 9.257013152819127e-05,
+    "encoder.layers.23.self_attn.v_proj.weight": 53.59904479980469,
+    "encoder.layers.23.self_attn.v_proj.bias": 3.2754130363464355,
+    "encoder.layers.23.self_attn.q_proj.weight": 43.922386169433594,
+    "encoder.layers.23.self_attn.q_proj.bias": 1.4252798557281494,
+    "encoder.layers.23.self_attn.out_proj.weight": 26.120853424072266,
+    "encoder.layers.23.self_attn.out_proj.bias": 2.527336835861206,
+    "encoder.layers.23.layer_norm2.weight": 0.30231380462646484,
+    "encoder.layers.23.layer_norm2.bias": 0.29824674129486084,
+    "encoder.layers.23.mlp.fc1.weight": 61.72825241088867,
+    "encoder.layers.23.mlp.fc1.bias": 0.3849128484725952,
+    "encoder.layers.23.mlp.fc2.weight": 71.1476058959961,
+    "encoder.layers.23.mlp.fc2.bias": 2.32879638671875
+  },
+  "head_proxy_gradient_norms": [
+    54.15925979614258,
+    65.42477416992188,
+    7.517908573150635
+  ]
+}
