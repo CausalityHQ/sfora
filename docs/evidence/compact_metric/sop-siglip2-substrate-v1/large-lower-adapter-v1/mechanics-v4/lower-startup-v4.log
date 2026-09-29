@@ -1,0 +1,7 @@
+Running as unit: sfora-large-lower-startup-v4.service; invocation ID: c39cc712069c4aa68d4a88b0d86353b4
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 6.938s
+CPU time consumed: 9.478s
+Memory peak: 256.0K
+Memory swap peak: 0B

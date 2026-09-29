@@ -16,6 +16,7 @@ from torch import nn
 from torch.nn import functional as F
 
 import pe_large_optimization as old
+import pe_native_valid_anchor as lane
 from large_lower_adapter import install, merge
 from sfora.joint_relational_compaction import pack_int8_unit_embeddings
 
@@ -24,6 +25,8 @@ CPU = Path("/home/riomus/runs/sfora-large-lower-adapter-cpu-v2")
 CPU_SHA = "b0b2140c2ec56e9b94227efbe60b473690428ce15cddfd25b394efe3bff5ee4e"
 CPU_CODE_SHA = "7dfc0bb4dbe391bcacb1ae861fa21406a5ac3b85155e567bbb5150ae38679a01"
 OLD_HALF = Path("/home/riomus/runs/sfora-large-coverage-half-100-v1")
+VALID_CPU = Path("/home/riomus/runs/sfora-native-valid-anchor-cpu-v2/valid-anchor-cpu-proof.json")
+VALID_CPU_SHA = "8d78e6104f453dc62563e446cd0e668c9a158890b1267c02b0097d98c2c09f5d"
 
 
 def sha(path):
@@ -34,9 +37,13 @@ def startup(root, execution_sha):
     assert sha(root / "large-lower-gpu-execution.json") == execution_sha
     code = json.loads((root / "large-lower-gpu-execution.json").read_text())
     previous = json.loads((root / "large-optimization-execution.json").read_text())
-    assert set(code) == set(previous) | {"large_lower_adapter.py", "check_large_lower_adapter.py", "train_large_lower_mechanics.py"}
+    assert set(code) == set(previous) | {"large_lower_adapter.py", "check_large_lower_adapter.py", "train_large_lower_mechanics.py", "pe_native_valid_anchor.py"}
     assert all(code[k] == v for k, v in previous.items())
     assert all(sha(root / k) == v for k, v in code.items())
+    assert code["pe_native_valid_anchor.py"] == "3733cbde3951217a6ed68d24c0d42b7b26c8bd80a966103fa4c32c186789d1ca"
+    assert sha(VALID_CPU) == VALID_CPU_SHA
+    valid_cpu = json.loads(VALID_CPU.read_text())
+    assert valid_cpu["pass"] and valid_cpu["optimizer_updates"] == 0 and not valid_cpu["quality_read"]
     assert sha(CPU / "lower-cpu-proof-v2.json") == CPU_SHA
     assert sha(CPU / "large-lower-execution.json") == CPU_CODE_SHA
     cpu = json.loads((CPU / "lower-cpu-proof-v2.json").read_text())
@@ -113,8 +120,12 @@ def main():
         pixels = old.pair.pixels(state["processor"], images, "large")
         pixel_sha = old.pair.smoke.digest({"pixels": pixels})
         rank_active = arm["rank_active"][step - 1]
-        row = old.step(state, pixels, ids, rank_active)
-        row.update(rgb_sha256=rgb, pixels_sha256=pixel_sha)
+        with patch.object(old.coverage, "terms", lane.terms):
+            row = old.step(state, pixels, ids, rank_active)
+        valid_count = int((state["positive"][torch.tensor(ids, device="cuda")] >= 0).any(dim=1).sum())
+        row.update(rgb_sha256=rgb, pixels_sha256=pixel_sha, rank_active_before=rank_active,
+                   valid_anchors=valid_count, rank_recovered=not rank_active)
+        assert rank_active or valid_count == 0 or row["rank"] > 0
         assert row["rgb_sha256"] == old_receipt["steps"][step - 1]["rgb_sha256"]
         assert row["pixels_sha256"] == old_receipt["steps"][step - 1]["pixels_sha256"]
         lower = [float(module.parametrizations.weight[0].B.grad.norm()) for module, _ in state["sites"]]
@@ -123,9 +134,15 @@ def main():
         rows.append(row)
         torch.cuda.synchronize()
         durations.append(time.perf_counter() - tick)
+        row["seconds"] = durations[-1]
         if step == 17:
             calibration = pixels[:2].cuda()
     training_wall = time.perf_counter() - started
+    recovered = sum(row["rank_recovered"] for row in rows)
+    assert recovered > 0, "mechanics did not exercise corrected inactive-batch routing"
+    args.output.with_suffix(".training.json").write_text(json.dumps({"steps": rows,
+        "training_wall_seconds": training_wall, "recovered_rank_updates": recovered,
+        "quality_read": False}, sort_keys=True, indent=2) + "\n")
     assert all(torch.equal(p.detach().cpu(), old_weights[n]) for n, p in state["model"].named_parameters() if not p.requires_grad)
     model = state["model"].eval()
     head = state["head"].eval()
@@ -155,7 +172,8 @@ def main():
               "source_code": code, "steps": rows, "training_wall_seconds": training_wall,
               "images_per_second": 17 * 64 / training_wall, "median_step_3_to_17_seconds": median,
               "cuda_peak_allocated_bytes": torch.cuda.max_memory_allocated(), "quality_read": False,
-              "checkpoint_saved": False, "merged_native_strict400_exact": True}
+              "checkpoint_saved": False, "merged_native_strict400_exact": True,
+              "recovered_rank_updates": recovered}
     assert result["cuda_peak_allocated_bytes"] < 10_000_000_000
     args.output.write_text(json.dumps(result, sort_keys=True, indent=2) + "\n")
     print("PASS 17 native lower-adapter updates, exact inputs and merged strict400 parity; mechanics discarded")
