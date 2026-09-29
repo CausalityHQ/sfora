@@ -1,0 +1,11 @@
+Running as unit: sfora-large-final-block-gpu-startup-red-v1.service; invocation ID: 693d78bc83a64de7825ae7f5acb745dd
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-large-final-block-v1/check_pe_large_final_block_gpu_startup.py", line 10, in <module>
+    import qualify_pe_large_final_block_gpu as driver
+ModuleNotFoundError: No module named 'qualify_pe_large_final_block_gpu'
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=1
+Service runtime: 802ms
+CPU time consumed: 2.087s
+Memory peak: 512.0K
+Memory swap peak: 0B
