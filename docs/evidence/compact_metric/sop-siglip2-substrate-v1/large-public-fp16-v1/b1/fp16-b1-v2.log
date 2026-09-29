@@ -1,0 +1,60 @@
+Running as unit: sfora-public-fp16-b1-v2.service; invocation ID: 482e3123b08f4d4780e3128cad926a0a
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+{"B1_public_native_queries_verified": 128}
+{"B1_public_native_queries_verified": 256}
+{"B1_public_native_queries_verified": 384}
+{"B1_public_native_queries_verified": 512}
+{"B1_public_native_queries_verified": 640}
+{"B1_public_native_queries_verified": 768}
+{"B1_public_native_queries_verified": 896}
+{"B1_public_native_queries_verified": 1024}
+{"B1_public_native_queries_verified": 1152}
+{"B1_public_native_queries_verified": 1280}
+{"B1_public_native_queries_verified": 1408}
+{"B1_public_native_queries_verified": 1536}
+{"B1_public_native_queries_verified": 1664}
+{"B1_public_native_queries_verified": 1792}
+{"B1_public_native_queries_verified": 1920}
+{"B1_public_native_queries_verified": 2048}
+{"B1_public_native_queries_verified": 2176}
+{"B1_public_native_queries_verified": 2304}
+{"B1_public_native_queries_verified": 2432}
+{"B1_public_native_queries_verified": 2560}
+{"B1_public_native_queries_verified": 2688}
+{"B1_public_native_queries_verified": 2816}
+{"B1_public_native_queries_verified": 2944}
+{"B1_public_native_queries_verified": 3072}
+{"B1_public_native_queries_verified": 3200}
+{"B1_public_native_queries_verified": 3328}
+{"B1_public_native_queries_verified": 3456}
+{"B1_public_native_queries_verified": 3584}
+{"B1_public_native_queries_verified": 3712}
+{"B1_public_native_queries_verified": 3840}
+{"B1_public_native_queries_verified": 3968}
+{"B1_public_native_queries_verified": 4096}
+{"B1_public_native_queries_verified": 4224}
+{"B1_public_native_queries_verified": 4352}
+{"B1_public_native_queries_verified": 4480}
+{"B1_public_native_queries_verified": 4608}
+{"B1_public_native_queries_verified": 4736}
+{"B1_public_native_queries_verified": 4864}
+{"B1_public_native_queries_verified": 4992}
+{"B1_public_native_queries_verified": 5120}
+{"B1_public_native_queries_verified": 5248}
+{"B1_public_native_queries_verified": 5376}
+{"B1_public_native_queries_verified": 5504}
+{"B1_public_native_queries_verified": 5632}
+{"B1_public_native_queries_verified": 5760}
+{"B1_public_native_queries_verified": 5888}
+{"B1_public_native_queries_verified": 6016}
+{"B1_public_native_queries_verified": 6144}
+{"B1_public_native_queries_verified": 6272}
+{"B1_public_native_queries_verified": 6354}
+GO complete public FP16 TRAIN quality
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 1min 39.769s
+CPU time consumed: 2min 8.737s
+Memory peak: 3.3G
+Memory swap peak: 0B

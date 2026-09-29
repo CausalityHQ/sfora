@@ -1,0 +1,36 @@
+Running as unit: sfora-public-fp16-b32-v1.service; invocation ID: 9b54854997d243a1bf19c2bbc03428cd
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 14975.74it/s]
+{"B32_public_native_images_verified": 512}
+{"B32_public_native_images_verified": 1024}
+{"B32_public_native_images_verified": 1536}
+{"B32_public_native_images_verified": 2048}
+{"B32_public_native_images_verified": 2560}
+{"B32_public_native_images_verified": 3072}
+{"B32_public_native_images_verified": 3584}
+{"B32_public_native_images_verified": 4096}
+{"B32_public_native_images_verified": 4608}
+{"B32_public_native_images_verified": 5120}
+{"B32_public_native_images_verified": 5632}
+{"B32_public_native_images_verified": 6144}
+{"B32_public_native_images_verified": 6656}
+{"B32_public_native_images_verified": 7168}
+{"B32_public_native_images_verified": 7680}
+{"B32_public_native_images_verified": 8192}
+{"B32_public_native_images_verified": 8704}
+{"B32_public_native_images_verified": 9216}
+{"B32_public_native_images_verified": 9728}
+{"B32_public_native_images_verified": 10240}
+{"B32_public_native_images_verified": 10752}
+{"B32_public_native_images_verified": 11264}
+{"B32_public_native_images_verified": 11776}
+{"B32_public_native_images_verified": 12288}
+{"B32_public_native_images_verified": 12599}
+GO complete public FP16 TRAIN quality
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 3min 36.742s
+CPU time consumed: 4min 12.761s
+Memory peak: 4.3G
+Memory swap peak: 0B

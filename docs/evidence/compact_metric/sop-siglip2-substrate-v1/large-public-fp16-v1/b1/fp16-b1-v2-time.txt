@@ -1,0 +1,23 @@
+	Command being timed: "flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock flock -n /home/riomus/.sfora-siglip2-gpu.lock env CUDA_VISIBLE_DEVICES=0 CUBLAS_WORKSPACE_CONFIG=:4096:8 CUTILE_TILEIRAS_PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/tileiras PYTHONPATH=/home/riomus/runs/sfora-large-public-fp16-qual-v1:/home/riomus/runs/sfora-large-public-fp16-qual-v1/src:/home/riomus/runs/sfora-large-public-fp16-qual-v1/isolated-deps /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-large-public-fp16-qual-v1/qualify_pe_large_public_fp16.py --execution-sha256 75974763d263ac1435911af8c3b743cff6c16acb76260a2b2386761b72d790f2 --cpu-sha256 a7a75980713ecbf3f59b3ba3dd9432fee63ab4c77f6bd26dc34ec4f2504805f3 --b32 /home/riomus/runs/sfora-large-public-fp16-b32-v1 --b32-sha256 dda25d9e34da8ce7486fecd0f96bd1d03dd244043742345de28a0b2fa71f4d36 --b32-audit-sha256 913c914813e9eede2e5e67c6c23243a2d90b7a38c426f203a1eed3a6efbfb4cf --output /home/riomus/runs/sfora-large-public-fp16-b1-v2"
+	User time (seconds): 121.18
+	System time (seconds): 7.55
+	Percent of CPU this job got: 129%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:39.76
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 4157404
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 1298957
+	Voluntary context switches: 220685
+	Involuntary context switches: 1552
+	Swaps: 0
+	File system inputs: 5984
+	File system outputs: 2720
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

@@ -1,0 +1,23 @@
+	Command being timed: "env CUDA_VISIBLE_DEVICES= CUBLAS_WORKSPACE_CONFIG=:4096:8 PYTHONPATH=/home/riomus/runs/sfora-large-public-fp16-qual-v1:/home/riomus/runs/sfora-large-public-fp16-qual-v1/src:/home/riomus/runs/sfora-large-public-fp16-qual-v1/isolated-deps /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-large-public-fp16-qual-v1/qualify_pe_large_public_fp16.py --execution-sha256 75974763d263ac1435911af8c3b743cff6c16acb76260a2b2386761b72d790f2 --audit-cpu --receipt-sha256 5d4302653b9fa7c2f3fa94ff4e5958f54f8081050fb4bc86d31885faa00ba848 --b32 /home/riomus/runs/sfora-large-public-fp16-b32-v1 --b32-sha256 dda25d9e34da8ce7486fecd0f96bd1d03dd244043742345de28a0b2fa71f4d36 --output /home/riomus/runs/sfora-large-public-fp16-b1-v2"
+	User time (seconds): 10.88
+	System time (seconds): 0.91
+	Percent of CPU this job got: 167%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:07.06
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 1021232
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 177992
+	Voluntary context switches: 4698
+	Involuntary context switches: 574
+	Swaps: 0
+	File system inputs: 1384
+	File system outputs: 320
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
