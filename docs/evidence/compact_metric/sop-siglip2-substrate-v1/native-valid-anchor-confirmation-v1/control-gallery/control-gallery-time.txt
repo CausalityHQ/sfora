@@ -1,0 +1,23 @@
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python -u /home/riomus/runs/sfora-native-valid-anchor-confirmation-v1/qualify_pe_native_valid_anchor_confirmation.py --execution-sha256 de9d38e8ec423a8b661bb0f2821f4f2ab3bc2d950798d2d5eeeec6e3e1ba8fcb --arm control --serving-sha256 a6f3242d68a1a4b7a9ce69e212aa62acb7ce50654d981b42ea5999ad8f918818 --output /home/riomus/runs/sfora-native-valid-anchor-confirmation-179041-control-gallery-v1 --cpu-sha256 e75c746913e05eb0d6532ce1e41b213dac4be29260ac3d5a5bf2eba26e707cf7 --role gallery"
+	User time (seconds): 144.34
+	System time (seconds): 28.09
+	Percent of CPU this job got: 107%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 2:40.32
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 5888168
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 17317
+	Minor (reclaiming a frame) page faults: 986480
+	Voluntary context switches: 166765
+	Involuntary context switches: 2208
+	Swaps: 0
+	File system inputs: 437808
+	File system outputs: 3280
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
