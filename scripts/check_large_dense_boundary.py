@@ -26,6 +26,8 @@ class Vision:
         return self.values.items()
     def state_dict(self):
         return {**self.values, "encoder.layers.9.buffer": "frozen", "encoder.layers.10.buffer": "trainable"}
+    def named_buffers(self):
+        return [("embeddings.position_ids", "nonpersistent")]
 
 vision = Vision()
 dense.configure(vision)
@@ -33,6 +35,7 @@ assert [n for n,p in vision.named_parameters() if p.requires_grad] == [f"encoder
 frozen = dense.frozen_state(vision)
 assert "encoder.layers.9.buffer" in frozen and "encoder.layers.10.buffer" not in frozen
 assert "encoder.layers.10.weight" not in frozen
+assert "embeddings.position_ids" in frozen
 vision.values["encoder.layers.9.weight"].requires_grad = True
 try:
     dense.verify_boundary(vision)

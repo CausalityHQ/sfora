@@ -1,0 +1,7 @@
+Running as unit: sfora-dense-boundary-cpu-red-v1.service; invocation ID: f291ef0bfc2445219345c18ae8fed8e2
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=1
+Service runtime: 8.342s
+CPU time consumed: 8.294s
+Memory peak: 256.0K
+Memory swap peak: 0B

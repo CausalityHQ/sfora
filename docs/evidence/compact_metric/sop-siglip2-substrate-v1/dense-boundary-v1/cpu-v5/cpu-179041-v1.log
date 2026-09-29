@@ -1,0 +1,8 @@
+Running as unit: sfora-dense-boundary-cpu-179041-v1-v1.service; invocation ID: a8df4460435a4644b8d6ffed0a7bf16f
+PASS actual dense10 CPU constructor/optimizer/native400/head/packed and negative authority
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 12.848s
+CPU time consumed: 19.884s
+Memory peak: 256.0K
+Memory swap peak: 0B

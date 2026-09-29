@@ -1,0 +1,15 @@
+{
+  "pass": true,
+  "seed": 179041,
+  "execution_sha256": "065f942bc0fd7824cd05b14a9acb9a10fae4ba6ed4a904974376a99ad09fe605",
+  "initial_state_sha256": "16789123930565469b9b8fe524412dbd18f1c47985c9c849846d56cf06fc64e0",
+  "optimizer_members": 240,
+  "frozen_tensor_count": 164,
+  "native400_whole_head_packed_reload_exact": true,
+  "wrong_boundary_missing_duplicate_optimizer_and_frozen_mutation_rejected": true,
+  "frozen_nonpersistent_buffer_mutation_rejected": true,
+  "changed_driver_rejected": true,
+  "rng_preserved": true,
+  "optimizer_updates": 0,
+  "quality_read": false
+}

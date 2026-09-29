@@ -21,10 +21,8 @@ def configure(vision):
 
 def frozen_state(vision):
     verify_boundary(vision)
-    values = {n: v for n, v in vision.state_dict().items() if n.startswith(ROOTS)}
-    # Nonpersistent buffers (including position IDs) are absent from state_dict.
-    values.update((n, v) for n, v in vision.named_buffers() if n.startswith(ROOTS))
-    return values
+    # state_dict includes buffers as well as parameters under the immutable roots.
+    return {n: v for n, v in vision.state_dict().items() if n.startswith(ROOTS)}
 
 
 def verify_frozen(vision, before):
