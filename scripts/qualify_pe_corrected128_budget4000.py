@@ -62,7 +62,8 @@ def authority(root, expected):
     assert admission['pass'] and admission['execution_sha256'] == SOURCE and admission['total_updates'] == 4000
     state = json.loads((CONTROLLER / 'state.json').read_text())
     assert state['status'] == 'complete' and state['current_end'] == 4000 and len(state['completed']) == 20
-    assert state['source_sha256'] == SOURCE and state['cpu_sha256'] == CPU_SHA and not state['quality_read']
+    assert state['controller_sha256'] == CONTROLLER_SHA and state['source_sha256'] == SOURCE
+    assert state['cpu_sha256'] == CPU_SHA and not state['quality_read']
     assert all(x in (CONTROLLER / 'controller.log').read_text() for x in ('Finished with result: success', 'code=exited/status=0', 'Memory swap peak: 0B'))
     previous_sha = continuation.PARENT_RECEIPT
     receipts = []
@@ -106,6 +107,14 @@ def export(root, args, proof, code, receipts):
     assert all(torch.isfinite(v).all() for role in ('vision', 'head', 'buffers') for v in disk[role].values())
     assert torch.isfinite(disk['bank']).all() and torch.isfinite(disk['classifier']).all()
     assert all(torch.isfinite(v).all() for s in disk['optimizer']['state'].values() for v in s.values() if isinstance(v, torch.Tensor))
+    original = pair.sha
+    with patch.object(pair, 'sha', lambda p: 'altered' if Path(p).resolve() == Path(__file__).resolve() else original(p)):
+        try:
+            authority(root, args.execution_sha256)
+        except AssertionError as error:
+            assert str(error) == 'budget4000 qualification source differs'
+        else:
+            raise AssertionError('changed terminal driver accepted')
     WEIGHTS.mkdir(exist_ok=False)
     torch.save({'vision': disk['vision'], 'head': disk['head']}, WEIGHTS / 'native.pt')
     whole = pair.smoke.digest({**disk['vision'], **{'runtime.' + n: v for n, v in disk['buffers'].items()}})
@@ -117,14 +126,15 @@ def export(root, args, proof, code, receipts):
         'source_checkpoint_sha256': driver.coverage.teacher.TEACHER_SHA, 'checkpoint_sha256': pair.sha(WEIGHTS / 'native.pt'),
         'updated_whole_sha256': whole, 'updated_head_sha256': head,
         'aggregate_continuation_training_wall_seconds': sum(r['training_wall_seconds'] for r in receipts),
-        'strict400_terminal_vision_head_export': True, 'optimizer_updates': 0, 'quality_read': False})
+        'strict400_terminal_vision_head_export': True, 'changed_driver_rejected': True,
+        'optimizer_updates': 0, 'quality_read': False})
     print('PASS fixed4000 CPU native export; no official quality')
 
 
 def public(root, args, control, source, prior, proof, protocol, official, code, receipts):
     assert pair.sha(WEIGHTS / 'receipt.json') == args.weights_sha256
     value = json.loads((WEIGHTS / 'receipt.json').read_text())
-    assert value['pass'] and value['execution_sha256'] == args.execution_sha256
+    assert value['pass'] and value['execution_sha256'] == args.execution_sha256 and value['changed_driver_rejected']
     assert value['training_receipt_sha256'] == pair.sha(run_path(4000) / 'receipt.json')
     assert pair.sha(WEIGHTS / 'native.pt') == value['checkpoint_sha256']
 
