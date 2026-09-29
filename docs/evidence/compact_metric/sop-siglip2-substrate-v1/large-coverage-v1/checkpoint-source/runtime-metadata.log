@@ -1,0 +1,76 @@
+Running as unit: sfora-large-coverage-public-runtime-cpu-v2.service; invocation ID: 84b023ba7e9a4fa2809849df78e0c4e5
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 10144.22it/s]
+{
+  "config": {
+    "native": {
+      "transformers_version": "5.12.1",
+      "architectures": null,
+      "output_hidden_states": false,
+      "return_dict": true,
+      "dtype": "float32",
+      "chunk_size_feed_forward": 0,
+      "is_encoder_decoder": false,
+      "id2label": {
+        "0": "LABEL_0",
+        "1": "LABEL_1"
+      },
+      "label2id": {
+        "LABEL_0": 0,
+        "LABEL_1": 1
+      },
+      "problem_type": null,
+      "hidden_size": 1024,
+      "intermediate_size": 4096,
+      "num_hidden_layers": 24,
+      "num_attention_heads": 16,
+      "num_channels": 3,
+      "image_size": 256,
+      "patch_size": 16,
+      "hidden_act": "gelu_pytorch_tanh",
+      "layer_norm_eps": 1e-06,
+      "attention_dropout": 0.0,
+      "_name_or_path": "",
+      "model_type": "siglip_vision_model",
+      "output_attentions": false
+    },
+    "public": {
+      "transformers_version": "5.12.1",
+      "architectures": null,
+      "output_hidden_states": false,
+      "return_dict": true,
+      "dtype": null,
+      "chunk_size_feed_forward": 0,
+      "is_encoder_decoder": false,
+      "id2label": {
+        "0": "LABEL_0",
+        "1": "LABEL_1"
+      },
+      "label2id": {
+        "LABEL_0": 0,
+        "LABEL_1": 1
+      },
+      "problem_type": null,
+      "hidden_size": 1024,
+      "intermediate_size": 4096,
+      "num_hidden_layers": 24,
+      "num_attention_heads": 16,
+      "num_channels": 3,
+      "image_size": 256,
+      "patch_size": 16,
+      "hidden_act": "gelu_pytorch_tanh",
+      "layer_norm_eps": 1e-06,
+      "attention_dropout": 0.0,
+      "_name_or_path": "",
+      "model_type": "siglip_vision_model",
+      "output_attentions": false
+    }
+  }
+}
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 13.256s
+CPU time consumed: 17.886s
+Memory peak: 256.0K
+Memory swap peak: 0B

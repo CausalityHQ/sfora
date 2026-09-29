@@ -1,0 +1,16 @@
+{
+  "pass": true,
+  "measured_complete_unit_seconds": 39.749,
+  "training_seconds": 20.672171223908663,
+  "conservative_step_seconds": 1.2160100719946272,
+  "estimated_100_complete_seconds": 140.67783597555405,
+  "admission_cap_seconds": 269,
+  "estimate_is_not_measured_100_cost": true,
+  "external_exit_code": 0,
+  "max_rss_kib": 5531648,
+  "swaps": 0,
+  "peak_cuda_allocated_bytes": 6548810240,
+  "mechanics_receipt_sha256": "16d1e8b03062d3371771bdb135d79b090ba3feed7f4510b25c9987868e7a57ad",
+  "training_state_discarded": true,
+  "quality_read": false
+}
