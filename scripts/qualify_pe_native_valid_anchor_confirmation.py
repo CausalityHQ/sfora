@@ -2,6 +2,7 @@
 """Fixed first-seed paired confirmation on the previously observed official protocol."""
 import argparse
 import json
+import os
 from pathlib import Path
 from unittest.mock import patch
 import numpy as np
@@ -18,6 +19,10 @@ selected = held.cpu.qualified.confirmation.selected
 SERVING_CODE = 'b9e0a65a302ff8e71f93beb330e26eb6fd12ad47f0c35981ea02665e93e00413'
 PROTOCOL = held.cpu.qualified.confirmation.PROTOCOL
 PROTOCOL_SHA = held.cpu.qualified.confirmation.PROTOCOL_SHA
+
+
+def survivor(r1, lower_r1, lower_ap):
+    return r1 > .967 and lower_r1 > 0 and lower_ap > 0
 
 
 def guard(root, code):
@@ -37,7 +42,17 @@ def main():
     p.add_argument('--gallery-sha256')
     p.add_argument('--audit-cpu', action='store_true')
     p.add_argument('--receipt-sha256')
+    p.add_argument('--decide-cpu', action='store_true')
+    p.add_argument('--control', type=Path)
+    p.add_argument('--control-receipt-sha256')
+    p.add_argument('--control-audit-sha256')
+    p.add_argument('--candidate', type=Path)
+    p.add_argument('--candidate-receipt-sha256')
+    p.add_argument('--candidate-audit-sha256')
     args = p.parse_args()
+    assert survivor(.968, .001, .001) and not survivor(.967, .001, .001)
+    assert not survivor(.968, 0, .001) and not survivor(.968, .001, 0)
+    assert sum((args.qualify_cpu, args.audit_cpu, args.decide_cpu)) <= 1
     root = Path(__file__).resolve().parent
     manifest = root / 'native-valid-anchor-confirmation-execution.json'
     assert pair.sha(manifest) == args.execution_sha256
@@ -105,8 +120,35 @@ def main():
     assert args.cpu_sha256 and pair.sha(proof) == args.cpu_sha256
     qualified = json.loads(proof.read_text())
     assert qualified['pass'] and all(qualified[k] == v for k, v in binding.items())
-    assert args.role and args.gallery if args.audit_cpu else args.role
+    assert args.role or args.decide_cpu
+    assert args.gallery if args.audit_cpu else True
     labels = {r: tuple(v['product'] for v in protocol['protocol'][r]) for r in ('query', 'gallery')}
+    if args.decide_cpu:
+        assert not torch.cuda.is_available() and args.arm == 'treatment' and not args.output.exists()
+        records = {}
+        for arm, path, receipt_sha, audit_sha in (('control', args.control, args.control_receipt_sha256, args.control_audit_sha256), ('treatment', args.candidate, args.candidate_receipt_sha256, args.candidate_audit_sha256)):
+            assert path and pair.sha(path / 'receipt.json') == receipt_sha and pair.sha(path / 'cpu-audit.json') == audit_sha
+            receipt = json.loads((path / 'receipt.json').read_text())
+            audit = json.loads((path / 'cpu-audit.json').read_text())
+            assert receipt['code'] == audit['code'] == code and receipt['arm'] == audit['arm'] == arm
+            assert audit['pass'] and audit['receipt_sha256'] == receipt_sha
+            assert receipt['seed'] == 179041 and receipt['protocol_sha256'] == PROTOCOL_SHA and receipt['precision'] == 'fp32_autocast'
+            assert receipt['native_all_query_top10_ordinal_score_bits_exact'] and receipt['source_state_rng_environment_code_library_preserved']
+            expected_entry = next(v for v in decision['inputs'] if v['seed'] == 179041 and v['arm'] == arm)
+            assert receipt['source_cpu_sha256'] == expected_entry['source_sha256']
+            assert all(np.max(np.abs(np.asarray(v) - np.asarray(receipt['quality'][k]))) < 1e-6 for k, v in audit['quality'].items())
+            records[arm] = audit['quality']
+        comparison = {}
+        products = np.asarray(labels['query'])
+        for metric in ('per_query_r1', 'per_query_ap'):
+            delta = np.asarray(records['treatment'][metric]) - np.asarray(records['control'][metric])
+            assert delta.shape == (14218,) and np.isfinite(delta).all()
+            comparison[metric] = {'mean_difference': float(delta.mean()), 'product_lower95': pair.bootstrap_lower(delta, products), 'product_upper95': -pair.bootstrap_lower(-delta, products)}
+        go = survivor(records['treatment']['recall_at_1'], comparison['per_query_r1']['product_lower95'], comparison['per_query_ap']['product_lower95'])
+        guard(root, code)
+        pair.smoke.save(args.output, {**binding, 'decision': 'GO' if go else 'KILL', 'control_receipt_sha256': args.control_receipt_sha256, 'control_audit_sha256': args.control_audit_sha256, 'candidate_receipt_sha256': args.candidate_receipt_sha256, 'candidate_audit_sha256': args.candidate_audit_sha256, 'quality': {a: {k: v[k] for k in ('recall_at_1', 'map_at_r')} for a, v in records.items()}, 'paired_comparison': comparison, 'query_images': 14218, 'gallery_images': 12612, 'dated_necessary_R1_floor': .967, 'prior_official_benchmark_exposure': True, 'claim_eligible': False, 'bootstrap_draws': 5000, 'bootstrap_seed': 179019, 'intervals_condition_on_two_checkpoints': True})
+        print('GO' if go else 'KILL', json.dumps(comparison), flush=True)
+        return
     if args.audit_cpu:
         assert not torch.cuda.is_available() and args.role == 'query' and args.receipt_sha256
         assert pair.sha(args.output / 'receipt.json') == args.receipt_sha256
@@ -118,6 +160,8 @@ def main():
         assert all(gallery[k] == v for k, v in binding.items()) and gallery['source_state_rng_environment_code_library_preserved']
         q = selected.fp16.load_packed(args.output, measured, 'query')
         g = selected.fp16.load_packed(args.gallery, gallery, 'gallery')
+        assert q.codes.shape == (14218, 128) and g.codes.shape == (12612, 128)
+        assert measured['peak_cuda_allocated_bytes'] < 10_000_000_000 and gallery['peak_cuda_allocated_bytes'] < 10_000_000_000
         quality, intervals, advance = selected.metrics(official, q, g, labels['query'], labels['gallery'], torch.device('cpu'))
         assert all(np.max(np.abs(np.asarray(v) - np.asarray(measured['quality'][k]))) < 1e-6 for k, v in quality.items())
         assert all(abs(v - measured['quality_intervals'][k][n]) < 1e-6 for k, row in intervals.items() for n, v in row.items())
@@ -126,6 +170,7 @@ def main():
         pair.smoke.save(args.output / 'cpu-audit.json', {**binding, 'pass': True, 'receipt_sha256': args.receipt_sha256, 'quality': quality, 'quality_intervals': intervals, 'advance_minimum_dated_reference_screen': advance, 'claim_eligible': False, 'prior_official_benchmark_exposure': True})
         return
     assert torch.cuda.is_available() and not args.output.exists()
+    assert os.environ.get('CUBLAS_WORKSPACE_CONFIG') == ':4096:8'
     from sfora.siglip2_compact_serving import Siglip2CompactEncoder
     torch.use_deterministic_algorithms(True)
     torch.backends.cuda.matmul.allow_tf32 = torch.backends.cudnn.allow_tf32 = False
@@ -190,7 +235,12 @@ def main():
     assert torch.equal(cpu_rng, torch.random.get_rng_state()) and all(torch.equal(a, b) for a, b in zip(cuda_rng, torch.cuda.get_rng_state_all(), strict=True))
     assert trained.teacher.qualified.numerical_flags() == flags and pair.sha(run / 'native.pt') == terminal['checkpoint_sha256']
     assert pair.sha(PROTOCOL) == PROTOCOL_SHA and pair.sha(serving.public.LIBRARY) == serving.public.LIBRARY_SHA
-    assert all(pair.sha(root / n) == h for n, h in code.items())
+    guard(root, code)
+    assert pair.sha(source_path) == entry['source_sha256'] and pair.sha(public_path) == args.serving_sha256
+    assert pair.sha(serving.DECISION) == serving.DECISION_SHA
+    assert pair.sha(control.dataset_root / 'Eval/list_eval_partition.txt') == selected.PARTITION_SHA
+    assert torch.cuda.max_memory_allocated() < 10_000_000_000
+    assert packed.codes.shape == (len(rows), 128)
     args.output.mkdir(exist_ok=False)
     for field, values in (('codes', packed.codes), ('inverse', packed.inverse_norms)):
         path = args.output / (args.role + '.' + field + '.npy')
