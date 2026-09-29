@@ -1,0 +1,8 @@
+Running as unit: sfora-large-fresh-vector-audit-red-v1.service; invocation ID: d695bd346cd24a8db605d024dda8a394
+/home/riomus/group-learning/.venv/bin/python: can't open file '/home/riomus/check_pe_large_pool_validation_audit.py': [Errno 2] No such file or directory
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=2
+Service runtime: 18ms
+CPU time consumed: 18ms
+Memory peak: 508.0K
+Memory swap peak: 0B

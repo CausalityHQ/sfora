@@ -1,0 +1,38 @@
+{
+  "code": {
+    "scripts/audit_pe_large_pool_checkpoint_validation.py": "3880183e2ea15499b4acb39bff36ec89edd006e2816289c2f11c0c6602ffb845",
+    "scripts/check_pe_large_pool_validation_audit.py": "ec9f29d558e5369f918fd150033ee84a5f8e7dd982250401942a8f30c9ac8ee1"
+  },
+  "exit_status": 0,
+  "expected_red": "red-v2 missing auditor ModuleNotFoundError; collected exit1",
+  "fixture_pass": true,
+  "gpu_proposal_execution_sha256": "fde872f0fd68c57eb5f56b4f4a05ad39de4cc1b7cc580f510cb0a75ab01ddfb9",
+  "gpu_proposal_launched": false,
+  "gpu_used": false,
+  "initial_command_error": "red-v1 used relative script path; systemd defaults to home; corrected absolute path in red-v2",
+  "maximum_rss_kib": 939128,
+  "memory_max_gib": 8,
+  "negative_cases": [
+    "hash",
+    "partial",
+    "unequal",
+    "nonfinite",
+    "norm",
+    "shape",
+    "dtype"
+  ],
+  "operator_scope_decision": "pending",
+  "quality_read": false,
+  "raw_files": {
+    "docs/evidence/compact_metric/sop-siglip2-substrate-v1/large-immutable-amp-v1/fresh-validation-audit-fixture/fresh-vector-audit-green-v1-time.txt": "72b168ec5197375e26b8a80f8e6dd1ceb0bcc99c1ee7e4b5736328db2d402b35",
+    "docs/evidence/compact_metric/sop-siglip2-substrate-v1/large-immutable-amp-v1/fresh-validation-audit-fixture/fresh-vector-audit-green-v1.log": "d4810dd0aa03226f36150f097a9fa1585719dbc36723389768aef5a3d0b72106",
+    "docs/evidence/compact_metric/sop-siglip2-substrate-v1/large-immutable-amp-v1/fresh-validation-audit-fixture/fresh-vector-audit-red-v1-time.txt": "f6df680febafdccdedb484fc77acb9e60b0d5453419cc5034ff5ffd99269efc7",
+    "docs/evidence/compact_metric/sop-siglip2-substrate-v1/large-immutable-amp-v1/fresh-validation-audit-fixture/fresh-vector-audit-red-v1.log": "4f35b19c4c302d96870449bbdb0af8c09c3e8998c00833a4d8629e642542ca00",
+    "docs/evidence/compact_metric/sop-siglip2-substrate-v1/large-immutable-amp-v1/fresh-validation-audit-fixture/fresh-vector-audit-red-v2-time.txt": "7d7da1eb56657146e8b7158c88de4ecdecee3b4cbcb6f33f79a442071c598e6a",
+    "docs/evidence/compact_metric/sop-siglip2-substrate-v1/large-immutable-amp-v1/fresh-validation-audit-fixture/fresh-vector-audit-red-v2.log": "ad2470c60f796e5b79c92bc8c46bad89eb0d1e37de13f1647340a3e950c4b2d8"
+  },
+  "runtime_cap_seconds": 120,
+  "swaps": 0,
+  "synthetic_fixture_only": true,
+  "wall_seconds": 3.12
+}
