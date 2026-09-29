@@ -1,0 +1,25 @@
+{
+  "model_constructed": false,
+  "native_library_sha256": "39602d0e4e8b0d5ec441be460ad7f18e288241bef19fb6e6c5df14f4033ac73c",
+  "optimizer_updates": 0,
+  "pass": true,
+  "quality_read": false,
+  "source_receipts": {
+    "/home/riomus/runs/sfora-dense-pilot-179032-v1/native.pt": "163b02268c44062dbdde2a1b07696c4d0365214ffbabfac76e575281957d362f",
+    "/home/riomus/runs/sfora-dense-pilot-179032-v1/receipt.json": "ae1e2d143509e3d40f4950fa5b9b28c29a26456f222845e44d69eee2b1533746",
+    "/home/riomus/runs/sfora-dense-pilot-179032-v1/training.json": "dd96f699432596b47f7ed854168c208461bfbd2a8f2fdf8ff0fbe35813f13fa4",
+    "/home/riomus/runs/sfora-dense-pilot-export-source-v2/dense-pilot-export-execution.json": {
+      "all_members_match": true,
+      "members": 101,
+      "sha256": "e268cbf54e7b203e6ed9b959ef6833d310d536e465e74d1bfc3473f903131f22"
+    },
+    "/home/riomus/runs/sfora-dense-pilot-score-source-v2/dense-pilot-score-execution.json": {
+      "all_members_match": true,
+      "members": 102,
+      "sha256": "15b7e0d9edc02557ae68200df89a1169cf8d44cb21d25ef3abb4c5e0e8e3ae40"
+    },
+    "/home/riomus/runs/sfora-dense-pilot-wires-179032-candidate-v2/held.npy": "74d0e14455d0dcd418f39cf7c881b1aca3ce88880ccf1ec8f2537032326c76c9",
+    "/home/riomus/runs/sfora-dense-pilot-wires-179032-candidate-v2/receipt.json": "a7e46508410aa4c867a8348baa7c7bbc9a518e9e8c908322689693a4dbb7ba45",
+    "/home/riomus/runs/sfora-dense-pilot-wires-179032-candidate-v2/reference-held.npy": "74d0e14455d0dcd418f39cf7c881b1aca3ce88880ccf1ec8f2537032326c76c9"
+  }
+}

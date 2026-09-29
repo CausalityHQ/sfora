@@ -2,7 +2,7 @@
 
 The closed-method ledger has been reconciled against terminal receipts, including the already closed pooling, frozen-pool final-block/final-two, rank32/Muon, retained256, lower-rank8, corrected4000, dense two-seed and hard-sampling procedures. Read-only consultation13d17f0c0f744af8 completed exit0; its answer is archived under closed-method-ledger-v1. The root independently verified dense179032's checkpoint binding and the absence of its official/serving read in the dense gate. Earlier proposed next steps in terminal documents are superseded by their later outcomes.
 
-Select the existing dense179032 checkpoint, SHA163b02268c44062dbdde2a1b07696c4d0365214ffbabfac76e575281957d362f, at `/home/riomus/runs/sfora-dense-pilot-train-179032-v1/native.pt`. This is a retained TRAIN Pareto candidate, not a revival or GO of the failed two-seed procedure. No new training, checkpoint averaging, loss/rate/budget change or architecture is selected.
+Select the existing dense179032 checkpoint, SHA163b02268c44062dbdde2a1b07696c4d0365214ffbabfac76e575281957d362f, at `/home/riomus/runs/sfora-dense-pilot-179032-v1/native.pt`. This is a retained TRAIN Pareto candidate, not a revival or GO of the failed two-seed procedure. No new training, checkpoint averaging, loss/rate/budget change or architecture is selected.
 
 | Dataset / split | Matched historical control R1 / mAP@R | Retained candidate R1 / mAP@R | Training cost | Public latency | Next decisive gate |
 |---|---|---|---|---|---|
