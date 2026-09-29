@@ -1,0 +1,8 @@
+Running as unit: sfora-lower-pilot-cpu-179032-v1.service; invocation ID: a1edb4af59e9401994e5341f1eae5d83
+/home/riomus/group-learning/.venv/bin/python: can't open file '/home/riomus/train_large_lower_pilot.py': [Errno 2] No such file or directory
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=2
+Service runtime: 29ms
+CPU time consumed: 19ms
+Memory peak: 1008.0K
+Memory swap peak: 0B

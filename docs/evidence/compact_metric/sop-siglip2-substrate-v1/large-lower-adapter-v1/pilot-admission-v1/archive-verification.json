@@ -1,0 +1,25 @@
+{
+  "controls": [
+    {
+      "control_median_step3_to100_seconds": 1.154655399499461,
+      "control_receipt_sha256": "9c258702991b99463f08ec315c3a01f17332d28cc42e527baede11ef5e868590",
+      "control_training_wall_seconds": 116.7627340592444,
+      "cpu_proof_sha256": "fb814cffc9b46803b3af7f14e9bacc1cb0c3c0cda79c7814857da976f4f8da4f",
+      "seed": 179032
+    },
+    {
+      "control_median_step3_to100_seconds": 1.154795905109495,
+      "control_receipt_sha256": "771613484f49fb22d816f965f41ace03480ac1291745b6afb446ca50d977fc75",
+      "control_training_wall_seconds": 116.27984258625656,
+      "cpu_proof_sha256": "5df3dc29ae0d6a9bfa5cbf4ea7b605df8abd486302bfad6d90167667ad64d459",
+      "seed": 179041
+    }
+  ],
+  "cost_denominator": "archival; not contemporaneous overhead",
+  "execution_sha256": "7a19df8b60267c928ac487642e3bd44b898205227019938af8cb806ba5a95a7d",
+  "independent_specialist_review": "unavailable: sandbox execution failed before file reads",
+  "new_candidate_updates": 0,
+  "pass": true,
+  "quality_read": false,
+  "training_body_equal_except_fingerprint": true
+}

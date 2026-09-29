@@ -1,0 +1,30 @@
+Running as unit: sfora-lower-pilot-initial-format-v1.service; invocation ID: a32d46242ca441329a8b43a1009db019
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-large-lower-pilot-source-v1/diagnose-initial-format.py", line 6, in <module>
+    control,native,prior,proof,code,archived,qualified=p.startup(root,"7c1716d112c7ad11b7719b9f0e0f1ff7fbab1a551268675f2125be380278e349",179032)
+                                                       ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-large-lower-pilot-source-v1/train_large_lower_pilot.py", line 51, in startup
+    control, native, prior, proof, _ = mechanics.startup(root, MECHANICS_CODE)
+                                       ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-large-lower-pilot-source-v1/train_large_lower_mechanics.py", line 58, in startup
+    control, native, prior, proof, _ = old.startup(root, sha(root / "large-optimization-execution.json"))
+                                       ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-large-lower-pilot-source-v1/pe_large_optimization.py", line 37, in startup
+    previous.selected.helpers(root,code)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-large-lower-pilot-source-v1/train_large_lower_mechanics.py", line 57, in <lambda>
+    with patch.object(old.previous.selected, "helpers", lambda r, _: old_helpers(r, code)):
+                                                                     ~~~~~~~~~~~^^^^^^^^^
+  File "/home/riomus/runs/sfora-large-lower-pilot-source-v1/train_large_lower_pilot.py", line 50, in <lambda>
+    with patch.object(old.previous.selected, "helpers", lambda r, _: helpers(r, code)):
+                                                                     ~~~~~~~^^^^^^^^^
+  File "/home/riomus/runs/sfora-large-lower-pilot-source-v1/qualify_pe_large_inshop_official.py", line 50, in helpers
+    assert code.get(relative) == pair.sha(Path(name)), 'added imported source unqualified: ' + relative
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: added imported source unqualified: diagnose-initial-format.py
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=1
+Service runtime: 6.294s
+CPU time consumed: 6.284s
+Memory peak: 256.0K
+Memory swap peak: 0B

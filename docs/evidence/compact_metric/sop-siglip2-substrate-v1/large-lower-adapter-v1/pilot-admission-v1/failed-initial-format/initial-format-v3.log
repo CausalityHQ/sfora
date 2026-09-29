@@ -1,0 +1,16 @@
+Running as unit: sfora-lower-pilot-initial-format-v3.service; invocation ID: 905c754400804c46ab595450db04b968
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 11876.74it/s]
+EXPECTED a8e16311519042bf90bcd9110f63f6ede5758b4cca0e2aaff112a057dd48f949
+WRAPPER 1708d797f340fd4d3baeae82e50d6ab6670fdf9fe0d487f1dab629da99217e5a
+DIRECT model 1708d797f340fd4d3baeae82e50d6ab6670fdf9fe0d487f1dab629da99217e5a
+DIRECT vision 9d16ff0debea4a4bdffe97aa06764ab91e6b472b2d6fe6e7659946b3307f27c4
+TYPES OrderedDict OrderedDict Parameter Tensor
+INIT 499e6c582f1eb3fb5ef8c57f2a378797ff2e4723f186adbd140342e391b5c970
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 13.215s
+CPU time consumed: 14.131s
+Memory peak: 508.0K
+Memory swap peak: 0B

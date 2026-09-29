@@ -1,0 +1,18 @@
+Running as unit: sfora-lower-pilot-cpu-179032-v2.service; invocation ID: 1e4f1bffca774fecb42a8b4658a274e4
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  94%|█████████▍| 746/792 [00:00<00:00, 7366.54it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 7716.17it/s]
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-large-lower-pilot-source-v1/train_large_lower_pilot.py", line 200, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/sfora-large-lower-pilot-source-v1/train_large_lower_pilot.py", line 87, in main
+    assert initial_fingerprint(state, args.seed) == archived["initial_state_sha256"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=1
+Service runtime: 13.190s
+CPU time consumed: 12.938s
+Memory peak: 764.0K
+Memory swap peak: 0B

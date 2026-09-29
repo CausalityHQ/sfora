@@ -1,0 +1,59 @@
+Running as unit: sfora-lower-pilot-initial-format-v2.service; invocation ID: bea1cdb053ed451baba6e3425555bf69
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-lower-pilot-initial-format-v2.py", line 6, in <module>
+    control,native,prior,proof,code,archived,qualified=p.startup(root,"7c1716d112c7ad11b7719b9f0e0f1ff7fbab1a551268675f2125be380278e349",179032)
+                                                       ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-large-lower-pilot-source-v1/train_large_lower_pilot.py", line 51, in startup
+    control, native, prior, proof, _ = mechanics.startup(root, MECHANICS_CODE)
+                                       ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-large-lower-pilot-source-v1/train_large_lower_mechanics.py", line 58, in startup
+    control, native, prior, proof, _ = old.startup(root, sha(root / "large-optimization-execution.json"))
+                                       ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-large-lower-pilot-source-v1/pe_large_optimization.py", line 30, in startup
+    control,source,prior,proof,_=previous.training.startup(root,previous.TRAIN_CODE_SHA)
+                                 ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-large-lower-pilot-source-v1/train_pe_large_coverage.py", line 28, in startup
+    control,_,source,prior,cpu_code=coverage.startup(root,CPU_CODE_SHA)
+                                    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-large-lower-pilot-source-v1/pe_large_coverage.py", line 24, in startup
+    control,frozen,cpu,prior,cast,old = selected.startup(root,OFFICIAL_CODE_SHA)
+                                        ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-large-lower-pilot-source-v1/qualify_pe_large_inshop_official.py", line 31, in startup
+    control, frozen, cpu, prior, old, authority = pilot.startup(root, PILOT_CODE_SHA, SELECTED_B1, SELECTED_B1_SHA, SELECTED_B1_AUDIT_SHA)
+                                                  ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-large-lower-pilot-source-v1/measure_pe_large_public_precision_pair.py", line 28, in startup
+    control, frozen, cpu, prior, old = fp16.startup(root, FP16_CODE_SHA)
+                                       ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-large-lower-pilot-source-v1/qualify_pe_large_public_fp16.py", line 27, in startup
+    control, frozen, cpu, prior, old = b1.startup(root, B1_CODE_SHA)
+                                       ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-large-lower-pilot-source-v1/qualify_pe_large_public_b1.py", line 26, in startup
+    control, frozen, cpu, receipt, old = serving.startup(root, SERVING_CODE_SHA)
+                                         ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-large-lower-pilot-source-v1/qualify_pe_large_public_serving.py", line 30, in startup
+    control, frozen, cpu, _, old = trained.startup(root, TRAINED_CODE_SHA)
+                                   ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-large-lower-pilot-source-v1/qualify_pe_large_trained_candidate.py", line 26, in startup
+    control, frozen, old = teacher.startup(root, TEACHER_CODE_SHA)
+                           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-large-lower-pilot-source-v1/export_pe_large_teacher_fit.py", line 28, in startup
+    control, frozen, _, _, qualified_code = qualified.startup(root, QUAL_SHA)
+                                            ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-large-lower-pilot-source-v1/qualify_pe_large_final_two_gpu.py", line 37, in startup
+    control, frozen, prior = native.base.control(root)
+                             ~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/home/riomus/runs/sfora-large-lower-pilot-source-v1/pe_large_pool.py", line 30, in control
+    frozen = pair.check_startup(args)
+  File "/home/riomus/runs/sfora-large-lower-pilot-source-v1/train_inshop_pe_pair.py", line 128, in check_startup
+    executing_authority(args.root, frozen["code"])
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-large-lower-pilot-source-v1/train_inshop_pe_pair.py", line 74, in executing_authority
+    assert path.is_relative_to(root), name
+           ~~~~~~~~~~~~~~~~~~~^^^^^^
+AssertionError: export_inshop_siglip2_train_features
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=1
+Service runtime: 3.400s
+CPU time consumed: 3.392s
+Memory peak: 256.0K
+Memory swap peak: 0B
