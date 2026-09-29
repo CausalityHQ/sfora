@@ -1,0 +1,49 @@
+{
+  "dataset_split": "InShop TRAIN-held6354query/6245gallery1993products",
+  "source_checkpoint_sha256": "f5fbf0e8eb3492274b6febeb6fd06a4b0d8b0fce4c7170069f3fa0d7b0a8df4d",
+  "native_quality_gate": "GO, GPU + CPU replay verified",
+  "public_B32_packed_and_native_top10_gate": "PASS",
+  "public_B1_full_quality_gate": "unverified; only32 native reference cases checked",
+  "B1_B32_sentinel_packed_equal_count": 9,
+  "sentinels": 32,
+  "quality_percent": {
+    "recall_at_1": 95.67201762669185,
+    "map_at_r": 78.62371202170742
+  },
+  "historical_nonconcurrent_same_protocol_DensePE_percent": {
+    "recall_at_1": 95.0739692,
+    "map_at_r": 76.3915922
+  },
+  "public_latency_pilot": {
+    "1": {
+      "calls": 20,
+      "p50_ms": 23.2285987585783,
+      "p95_ms": 25.470686028711498,
+      "p99_ms_uncertified": 25.496221869252622,
+      "images_per_second_from_median": 43.05037985258155
+    },
+    "32": {
+      "calls": 20,
+      "p50_ms": 321.7784168664366,
+      "p95_ms": 327.4919457733631,
+      "p99_ms_uncertified": 327.8091514855623,
+      "images_per_second_from_median": 99.44731629804284
+    }
+  },
+  "pilot_conditions": "20 unpaired warm-cache decode-to-top10 calls eachB1/B32;6245gallery/8threads/DGX Spark/fp32_autocast",
+  "public_speed_win_verified": false,
+  "p99_certified": false,
+  "official_read": false,
+  "production_goal": "active/unmet",
+  "historical_source_training": {
+    "updates": 100,
+    "median_steps3_100_seconds": 0.8971211952157319,
+    "reported_training_seconds": 90.283034613356,
+    "reported_images_per_second": 70.88817990454673,
+    "reported_arm_wall_seconds": 223.47171737859026,
+    "reported_peak_cuda_bytes": 12938073088,
+    "original_large_training_cuda_cap_bytes": 16000000000,
+    "new_training_run": false
+  },
+  "next_decisive_test": "Complete actual public B1 TRAIN-held packed quality/paired DensePE gates plus vision-event/decode/full-pipeline stage profile on the fixed checkpoint. Only then select a measured serving bottleneck intervention; permanent FP16 is a separate arithmetic/quality gate. Independent official confirmation remains mandatory."
+}
