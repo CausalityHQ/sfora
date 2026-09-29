@@ -1,0 +1,23 @@
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python -u /home/riomus/runs/sfora-large-optimization-gpu-v2/train_pe_large_optimization.py --execution-sha256 b050801f6f15434873443f979dbd1c9645df1f0e065c2ad5a99b9a8e963baa50 --output /home/riomus/runs/sfora-large-optimization-mechanics-v2"
+	User time (seconds): 82.31
+	System time (seconds): 11.35
+	Percent of CPU this job got: 110%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:24.88
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 5727544
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 34725
+	Minor (reclaiming a frame) page faults: 1731512
+	Voluntary context switches: 186587
+	Involuntary context switches: 2195
+	Swaps: 0
+	File system inputs: 38128
+	File system outputs: 10137464
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
