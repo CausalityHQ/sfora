@@ -1,0 +1,714 @@
+{
+  "id": "283dc9b9600b403a",
+  "status": "completed",
+  "started_at": 1790666482,
+  "agent": "sfora/emafactorial",
+  "force_reason": "New consequential full-TRAIN coverage continuation after terminal official F5 KILL; actual native CPU prerequisites now closed. Previous review was a distinct final-block design, fully completed; no duplicate jobs.",
+  "rolling_6h_count": 3,
+  "prompt_preview": "READ ONLY bounded implementation review, no editing, research, alternative architectures, GPU jobs or contact operator. Repo /home/rb/worktrees/sfora-positive-causality master HEADffd4c03b. Review ONLY new scripts/pe_large_coverage.py, qualify_pe_large_coverage.py, train_pe_large_coverage.py and docs/superpowers/plans/2026-09-29-large-identity-coverage.md. Actual CPU qualification receipt docs/evidence/compact_metric/sop-siglip2-substrate-v1/large-coverage-v1/cpu-receipt.json SHA fbb88035f2bdebaa243cdf4e3e2011fc91ec15a0d6722422b448b2ff4b88c61b, CPU86execution7755af1d64e2f9c42fd5d60eae96cdb67923a7f28fae219315926b035881d955. Root /home/riomus/runs/sfora-large-coverage-training-v1 available SSH riomus@spark-2751 read-only. Native actual trained F5 source400keys whole/head qualified, source prefix0..11 frozen actual12tailblocks12..23+postLN+pool ACTIVE (not readonly oldfinal2mask). Source13,283FIT2004IDs, actual original100B64fourimage/ID only1600unique gradient-inputIDs. OfficialactualpublicF16B32 R1=92.7837952%mAP@R71.3537104% CPUaudited KILL dated96.7% minimumfloor. Fullproductgoal unchanged/unmet. Next ONEfullTRAINcoverage matched100update continuation versus halfpool100 sameF5native/head/sourceproxies/optimizer/seed/ArcFace .3/64+8detachedrank/AdamW1e-5native1e-4headclassifierwd.05/clip1/FP16scale128. Both use SAME cyclicseeded64distinctIDsperB64/oneimageperID schedule, every eligibleID gradientexposedby100: full25,882images3997IDs vs half13,2832004. CPU validates proxies/remaps/newunitmeans/currentF5normalizedcompact128bank/row/pixels/all100samplercoverage/positive-selfclass mapping/native12blockF32 loss/gradientaggregation B2vs2B1/sourceheadbankRNGunchanged/frozen .data mutation/changedcoderejection. CPUv1failedperTensorrelativekeybias nearzero; preserved diagnostic shows aggregate1.16256e-6 vsunchanged2e-4 tolerance, allnonnullrelative<2e-6. Corrected onlyanalyticsoftmax-shared-key-biasNULL grad handling using F32epsilon*sqrt(numel) absoluteL2 bound for all12, retains otherperTensor ANDglobal2e-4. ProofPASS17.888s4.48GBRSS/noSwap/zerooptimizer, notmodelquality.\nGPU code87extendsclosed86 unchanged; source guard original84 chain preserved. FourB16loss/4backwards globalB64singletonrankflag, detachedbank unchanged between all4, oneunscale/clip1/step/scalerupdate; concatenatedDETACHEDpreupdate rawvalueslastoccurrencebankrefresh onceAFTER step. Nativeactualgroupsfinite/nonzero/frozenprefixversions+terminalcontent/runtime/env/codefile/numeric/RNGcaps. First2AMP/F32nativepooled+headcos>=.999. ONE17 full mechanics300s8GiBnoSwap<10GB CUDA, fullworstbank/classifier;discard state after strictupdated400whole-native independent reload/output/head/packed exact+AMPF32cos>=.999; parameter groupschanged all. One100half/one100full onlyafterqualifiedsame-code mechanics; full100first17loss/scales/RGB/normexact todiscardedmechanics; neverresume17. No intermediateTESTchooser/heldexportintraining; fullbranch previouslyheldTRAIN nowtrained, NEVERcall resubstitutionheldoutquality. Candidatecheckpointterminal100fixed before separatelyqualifiedserving/officialconfirmation on previouslyobservedbenchmark. Caps/resource/nativefailure closes exactprocedure norescue/globalgoalclose. Assess real must-fix before ONE17 allocation, including gates/math/source/native import identities/serialization/memory/RNG/singletonglobal semantics; do notrequestfullsuite orreopenmethods. Return GO-for17 or precise blocker with evidence. Also scrutinize100 interpretation: matchedpoolintervention, halfbranchsamplercontrol; no claim sourcequality improvement fromCPU evidence. No CPU/GPU job currentlyactive.",
+  "prompt_sha256": "a0d797c5c809c27942f9fa255073f1b8550cc9cff5407aea3a2dd0841e1da232",
+  "prompt_bytes": 3624,
+  "fingerprint": "87d52736925c1fe9e5048f38bc909f0a1c6858791426c67f27781bd8975fc398",
+  "evidence": {
+    "git_commit": "ffd4c03bb6587194a411dd9674470ce376f05296",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "3e5bd0bf7bfc14da7631f776f47cf853ebe369a1a74785049fe5a73b736e3218",
+    "worktree_sha256": "ea5d6a5e0f63b45615dac1a1bf1d7f000e155e3b4c4549c4a8c16d2e390c9c97",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "reviewers": [
+    {
+      "role": "research_critic",
+      "id": "89b4f3fe5acc42af",
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "fallbacks": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "agent": "sfora/emafactorial",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1790666482,
+      "timeout_seconds": 1200,
+      "deadline_at": 1790667682,
+      "budget_usd": 4,
+      "prompt_preview": "Act as the independent research and first-principles critic. Challenge assumptions, compare alternatives and prior art, and identify missing evidence. Do not edit files.\n\nMaterial to critique:\nREAD ONLY bounded implementation review, no editing, research, alternative architectures, GPU jobs or contact operator. Repo /home/rb/worktrees/sfora-positive-causality master HEADffd4c03b. Review ONLY new scripts/pe_large_coverage.py, qualify_pe_large_coverage.py, train_pe_large_coverage.py and docs/superpowers/plans/2026-09-29-large-identity-coverage.md. Actual CPU qualification receipt docs/evidence/compact_metric/sop-siglip2-substrate-v1/large-coverage-v1/cpu-receipt.json SHA fbb88035f2bdebaa243cdf4e3e2011fc91ec15a0d6722422b448b2ff4b88c61b, CPU86execution7755af1d64e2f9c42fd5d60eae96cdb67923a7f28fae219315926b035881d955. Root /home/riomus/runs/sfora-large-coverage-training-v1 available SSH riomus@spark-2751 read-only. Native actual trained F5 source400keys whole/head qualified, source prefix0..11 frozen actual12tailblocks12..23+postLN+pool ACTIVE (not readonly oldfinal2mask). Source13,283FIT2004IDs, actual original100B64fourimage/ID only1600unique gradient-inputIDs. OfficialactualpublicF16B32 R1=92.7837952%mAP@R71.3537104% CPUaudited KILL dated96.7% minimumfloor. Fullproductgoal unchanged/unmet. Next ONEfullTRAINcoverage matched100update continuation versus halfpool100 sameF5native/head/sourceproxies/optimizer/seed/ArcFace .3/64+8detachedrank/AdamW1e-5native1e-4headclassifierwd.05/clip1/FP16scale128. Both use SAME cyclicseeded64distinctIDsperB64/oneimageperID schedule, every eligibleID gradientexposedby100: full25,882images3997IDs vs half13,2832004. CPU validates proxies/remaps/newunitmeans/currentF5normalizedcompact128bank/row/pixels/all100samplercoverage/positive-selfclass mapping/native12blockF32 loss/gradientaggregation B2vs2B1/sourceheadbankRNGunchanged/frozen .data mutation/changedcoderejection. CPUv1failedperTensorrelativekeybias nearzero; preserved diagnostic shows aggregate1.16256e-6 vsunchanged2e-4 tolerance, allnonnullrelative<2e-6. Corrected onlyanalyticsoftmax-shared-key-biasNULL grad handling using F32epsilon*sqrt(numel) absoluteL2 bound for all12, retains otherperTensor ANDglobal2e-4. ProofPASS17.888s4.48GBRSS/noSwap/zerooptimizer, notmodelquality.\nGPU code87extendsclosed86 unchanged; source guard original84 chain preserved. FourB16loss/4backwards globalB64singletonrankflag, detachedbank unchanged between all4, oneunscale/clip1/step/scalerupdate; concatenatedDETACHEDpreupdate rawvalueslastoccurrencebankrefresh onceAFTER step. Nativeactualgroupsfinite/nonzero/frozenprefixversions+terminalcontent/runtime/env/codefile/numeric/RNGcaps. First2AMP/F32nativepooled+headcos>=.999. ONE17 full mechanics300s8GiBnoSwap<10GB CUDA, fullworstbank/classifier;discard state after strictupdated400whole-native independent reload/output/head/packed exact+AMPF32cos>=.999; parameter groupschanged all. One100half/one100full onlyafterqualifiedsame-code mechanics; full100first17loss/scales/RGB/normexact todiscardedmechanics; neverresume17. No intermediateTESTchooser/heldexportintraining; fullbranch previouslyheldTRAIN nowtrained, NEVERcall resubstitutionheldoutquality. Candidatecheckpointterminal100fixed before separatelyqualifiedserving/officialconfirmation on previouslyobservedbenchmark. Caps/resource/nativefailure closes exactprocedure norescue/globalgoalclose. Assess real must-fix before ONE17 allocation, including gates/math/source/native import identities/serialization/memory/RNG/singletonglobal semantics; do notrequestfullsuite orreopenmethods. Return GO-for17 or precise blocker with evidence. Also scrutinize100 interpretation: matchedpoolintervention, halfbranchsamplercontrol; no claim sourcequality improvement fromCPU evidence. No CPU/GPU job currentlyactive.",
+      "prompt_sha256": "34b64e7b5fc25e695bf3d880f0be3be18366a083ad92071ef9cdc0dc33fc37e9",
+      "prompt_bytes": 3994,
+      "fingerprint": "79d20df276c4e3e4836c80cca05c1c72618e42e3d6aca2f7dcb48bdb98dd596c",
+      "evidence": {
+        "git_commit": "ffd4c03bb6587194a411dd9674470ce376f05296",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "3e5bd0bf7bfc14da7631f776f47cf853ebe369a1a74785049fe5a73b736e3218",
+        "worktree_sha256": "ea5d6a5e0f63b45615dac1a1bf1d7f000e155e3b4c4549c4a8c16d2e390c9c97",
+        "worktree_evidence_truncated": false,
+        "active_goal": {
+          "id": "goal-1790540789-1790540789754989478-2322852",
+          "agent": "sfora/emafactorial",
+          "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+          "status": "queued",
+          "revision": 1,
+          "actor": "operator",
+          "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+          "created_at": 1790540789,
+          "updated_at": 1790540789
+        }
+      },
+      "previous_fingerprint": "ce524fae9636d39b36c39c8ef2dcffbc48ec3d21b9bda655aaa0c011fe0be0ef",
+      "reused": false,
+      "critique_id": "283dc9b9600b403a",
+      "critique_role": "research_critic",
+      "systemd_unit": "devbox-consult-89b4f3fe5acc42af.service",
+      "pid": 1027506,
+      "pgid": 1027506,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5",
+          "budget_usd": 4,
+          "timeout_seconds": 1200,
+          "started_at": 1790666482
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1790666676,
+      "event_cursor": 27,
+      "events": [
+        {
+          "seq": 4,
+          "at": 1790666489,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 5,
+          "at": 1790666491,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 6,
+          "at": 1790666560,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 7,
+          "at": 1790666567,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 8,
+          "at": 1790666576,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 9,
+          "at": 1790666583,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 10,
+          "at": 1790666583,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 11,
+          "at": 1790666588,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 12,
+          "at": 1790666592,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 13,
+          "at": 1790666618,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 14,
+          "at": 1790666645,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Write started"
+        },
+        {
+          "seq": 15,
+          "at": 1790666653,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 16,
+          "at": 1790666663,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 17,
+          "at": 1790666664,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 18,
+          "at": 1790666666,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 19,
+          "at": 1790666667,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 20,
+          "at": 1790666668,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 21,
+          "at": 1790666669,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 22,
+          "at": 1790666670,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 23,
+          "at": 1790666671,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 24,
+          "at": 1790666672,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 25,
+          "at": 1790666673,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 26,
+          "at": 1790666674,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 27,
+          "at": 1790666675,
+          "provider": "claude",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": true,
+      "provider_events": {
+        "claude": [
+          {
+            "seq": 20,
+            "at": 1790666668,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 21,
+            "at": 1790666669,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 22,
+            "at": 1790666670,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 23,
+            "at": 1790666671,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 24,
+            "at": 1790666672,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 25,
+            "at": 1790666673,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 26,
+            "at": 1790666674,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 27,
+            "at": 1790666675,
+            "provider": "claude",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "# Verdict: GO for the single 17-update full-arm mechanics run\n\nI found nothing that must be fixed before the 17-update run. The CPU receipt on the DGX (`/home/riomus/runs/sfora-large-coverage-cpu-v2/receipt.json`) has the same hash, fbb88035\u2026, as the repo copy. No GPU jobs or scripts are running.\n\n## Checked and sound\n\n- **Batch splitting:** splitting one batch of 64 into four batches of 16 gives the same loss and gradients. On the real model, the CPU test compared one batch of 2 against two batches of 1:\n  - loss 3.4429512 vs 3.4429513;\n  - largest difference in any other tensor: 1.85e-6 relative;\n  - whole-model difference: 1.16e-6 relative, against a 2e-4 limit.\n  \n  The training loop divides each loss by 4, runs one unscale, one clip, one optimizer step and one scaler update per batch of 64, and checks that the bank is unchanged between the four pieces. `member_bank_refresh_values` re-normalizes the refreshed rows, and the last occurrence of a duplicate row wins.\n- **Key-bias exemption:** exempting the key bias is analytically correct. A key bias adds the same q\u00b7b to every key, so it cancels in the softmax and its true gradient is zero. Exactly 12 tensors are exempt, and they still count toward the whole-model check. Two things to disclose:\n  - This gate was changed after CPU v1 failed. Say so and give the reason.\n  - During training, AdamW will move those biases by roughly the learning rate on each step, driven by rounding noise. Because the bias cancels, this has no effect on outputs.\n- **Classifier rows (checked on the actual `.npz` files):** old and new rows are all close to length 1 (0.998\u20131.003). So the new rows built from class means don't move faster than the trained rows under the same learning rate and weight decay. The half arm reproduces the old 2004 rows exactly.\n- **Reload and random state:** building a fresh model and head for the reload uses the random number generator, but that happens inside `fork_rng`. The random state is checked before and after, so this is correct.\n- **Update-skip detection:** the scale check (`get_scale() >= scale`), together with the finite-gradient checks, catches any update the scaler silently skips.\n- **Sampler:** both arms see every eligible ID at least once. Full arm: 1\u20132 exposures per ID; half arm: 3\u20134. Each batch of 64 has 64 different IDs. Each position in the batch maps to its own class.\n\n## Before the two 100-update runs (none of these block the 17-update run)\n\n1. **Time cap.** The earlier 100-update native pilot took 266.8 s against the 299 s cap (`native-pool-pilot-v1-time.txt`). This code runs each batch as four pieces of 16, and the 100-update run also writes and reloads a checkpoint of about 1.2 GB. Decide in writing now that the 100-update runs go ahead only if (median step time from the 17-update run \u00d7 100) plus the measured save/reload time stays under the cap with a stated margin. Otherwise a timeout late in the full arm would end the procedure, and the plan allows no rescue.\n2. **Exact replay across processes.** The full 100-update run must reproduce the first 17 steps exactly, but only that run tests this; the 17-update run cannot. Before spending the full arm, confirm an earlier receipt showed an exact cross-process replay on this stack with the same attention backend under deterministic mode.\n3. **Memory.** Earlier 17-update runs peaked at about 5.6 GB. Adding the 1.2 GB save plus the CPU copy of the reloaded model could approach 8 GiB. The 17-update run exercises the same save/reload path, so read its peak memory before licensing the 100-update runs.\n\n## How to read the 100-update comparison\n\nThe two arms differ in more than which images are covered:\n\n- **Ranking-loss frequency.** Both pools have the same 12 single-image IDs. Because one single-image ID switches off the ranking loss for the whole batch of 64, the ranking loss runs in **68 of 100 half-arm batches but 82 of 100 full-arm batches**. That 14-update difference comes from the pool, not from coverage itself.\n- **Classes and bank.** The full arm doubles the number of classifier rows (3997 vs 2004), and 1993 of them start from fixed class means and get at most two updates. It also doubles the pool of bank negatives (25,882 vs 13,283 rows). Both affect the old IDs even on steps that contain no new images.\n- **Revisits.** Each ID is seen about 1.6 times in the full arm vs about 3.2 times in the half arm.\n\nSo a difference between the arms is the effect of the whole pool change, with the half arm controlling only for the sampler. It says nothing about how good the source model is. Compare neither arm with F5 itself: F5 used four images per ID and had no ongoing continuation.\n\nBefore the runs, commit to:\n- a paired per-query decision rule on official TEST, with a threshold (e.g. McNemar on R1);\n- a statement that the full arm trains on the former held-out rows, so nothing on them can be called held-out quality;\n- the fact that official TEST has already been seen.\n\nWith R1 at 92.78 and one seed per arm, 100 updates will very likely not reach the 96.7 floor. Treat this pair as a diagnostic and state in advance that it will probably end in a KILL.\n\nI also saved this verdict to project memory (`sfora-large-coverage-17-prelaunch-review.md`).",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "claude": "# Verdict: GO for the single 17-update full-arm mechanics run\n\nI found nothing that must be fixed before the 17-update run. The CPU receipt on the DGX (`/home/riomus/runs/sfora-large-coverage-cpu-v2/receipt.json`) has the same hash, fbb88035\u2026, as the repo copy. No GPU jobs or scripts are running.\n\n## Checked and sound\n\n- **Batch splitting:** splitting one batch of 64 into four batches of 16 gives the same loss and gradients. On the real model, the CPU test compared one batch of 2 against two batches of 1:\n  - loss 3.4429512 vs 3.4429513;\n  - largest difference in any other tensor: 1.85e-6 relative;\n  - whole-model difference: 1.16e-6 relative, against a 2e-4 limit.\n  \n  The training loop divides each loss by 4, runs one unscale, one clip, one optimizer step and one scaler update per batch of 64, and checks that the bank is unchanged between the four pieces. `member_bank_refresh_values` re-normalizes the refreshed rows, and the last occurrence of a duplicate row wins.\n- **Key-bias exemption:** exempting the key bias is analytically correct. A key bias adds the same q\u00b7b to every key, so it cancels in the softmax and its true gradient is zero. Exactly 12 tensors are exempt, and they still count toward the whole-model check. Two things to disclose:\n  - This gate was changed after CPU v1 failed. Say so and give the reason.\n  - During training, AdamW will move those biases by roughly the learning rate on each step, driven by rounding noise. Because the bias cancels, this has no effect on outputs.\n- **Classifier rows (checked on the actual `.npz` files):** old and new rows are all close to length 1 (0.998\u20131.003). So the new rows built from class means don't move faster than the trained rows under the same learning rate and weight decay. The half arm reproduces the old 2004 rows exactly.\n- **Reload and random state:** building a fresh model and head for the reload uses the random number generator, but that happens inside `fork_rng`. The random state is checked before and after, so this is correct.\n- **Update-skip detection:** the scale check (`get_scale() >= scale`), together with the finite-gradient checks, catches any update the scaler silently skips.\n- **Sampler:** both arms see every eligible ID at least once. Full arm: 1\u20132 exposures per ID; half arm: 3\u20134. Each batch of 64 has 64 different IDs. Each position in the batch maps to its own class.\n\n## Before the two 100-update runs (none of these block the 17-update run)\n\n1. **Time cap.** The earlier 100-update native pilot took 266.8 s against the 299 s cap (`native-pool-pilot-v1-time.txt`). This code runs each batch as four pieces of 16, and the 100-update run also writes and reloads a checkpoint of about 1.2 GB. Decide in writing now that the 100-update runs go ahead only if (median step time from the 17-update run \u00d7 100) plus the measured save/reload time stays under the cap with a stated margin. Otherwise a timeout late in the full arm would end the procedure, and the plan allows no rescue.\n2. **Exact replay across processes.** The full 100-update run must reproduce the first 17 steps exactly, but only that run tests this; the 17-update run cannot. Before spending the full arm, confirm an earlier receipt showed an exact cross-process replay on this stack with the same attention backend under deterministic mode.\n3. **Memory.** Earlier 17-update runs peaked at about 5.6 GB. Adding the 1.2 GB save plus the CPU copy of the reloaded model could approach 8 GiB. The 17-update run exercises the same save/reload path, so read its peak memory before licensing the 100-update runs.\n\n## How to read the 100-update comparison\n\nThe two arms differ in more than which images are covered:\n\n- **Ranking-loss frequency.** Both pools have the same 12 single-image IDs. Because one single-image ID switches off the ranking loss for the whole batch of 64, the ranking loss runs in **68 of 100 half-arm batches but 82 of 100 full-arm batches**. That 14-update difference comes from the pool, not from coverage itself.\n- **Classes and bank.** The full arm doubles the number of classifier rows (3997 vs 2004), and 1993 of them start from fixed class means and get at most two updates. It also doubles the pool of bank negatives (25,882 vs 13,283 rows). Both affect the old IDs even on steps that contain no new images.\n- **Revisits.** Each ID is seen about 1.6 times in the full arm vs about 3.2 times in the half arm.\n\nSo a difference between the arms is the effect of the whole pool change, with the half arm controlling only for the sampler. It says nothing about how good the source model is. Compare neither arm with F5 itself: F5 used four images per ID and had no ongoing continuation.\n\nBefore the runs, commit to:\n- a paired per-query decision rule on official TEST, with a threshold (e.g. McNemar on R1);\n- a statement that the full arm trains on the former held-out rows, so nothing on them can be called held-out quality;\n- the fact that official TEST has already been seen.\n\nWith R1 at 92.78 and one seed per arm, 100 updates will very likely not reach the 96.7 floor. Treat this pair as a diagnostic and state in advance that it will probably end in a KILL.\n\nI also saved this verdict to project memory (`sfora-large-coverage-17-prelaunch-review.md`)."
+      },
+      "providers_used": [
+        "claude"
+      ],
+      "active_provider": "claude",
+      "phase": "Consultation completed",
+      "input_bytes": 3994,
+      "output_bytes": 5264,
+      "elapsed_seconds": 194,
+      "progress": "devbox-ask: claude consult still running (0m 30s)\ndevbox-ask: claude consult still running (1m 00s)\ndevbox-ask: claude consult still running (1m 30s)\ndevbox-ask: claude consult still running (2m 00s)\ndevbox-ask: claude consult still running (2m 30s)\ndevbox-ask: claude consult still running (3m 00s)",
+      "progress_truncated": false,
+      "result": "# Verdict: GO for the single 17-update full-arm mechanics run\n\nI found nothing that must be fixed before the 17-update run. The CPU receipt on the DGX (`/home/riomus/runs/sfora-large-coverage-cpu-v2/receipt.json`) has the same hash, fbb88035\u2026, as the repo copy. No GPU jobs or scripts are running.\n\n## Checked and sound\n\n- **Batch splitting:** splitting one batch of 64 into four batches of 16 gives the same loss and gradients. On the real model, the CPU test compared one batch of 2 against two batches of 1:\n  - loss 3.4429512 vs 3.4429513;\n  - largest difference in any other tensor: 1.85e-6 relative;\n  - whole-model difference: 1.16e-6 relative, against a 2e-4 limit.\n  \n  The training loop divides each loss by 4, runs one unscale, one clip, one optimizer step and one scaler update per batch of 64, and checks that the bank is unchanged between the four pieces. `member_bank_refresh_values` re-normalizes the refreshed rows, and the last occurrence of a duplicate row wins.\n- **Key-bias exemption:** exempting the key bias is analytically correct. A key bias adds the same q\u00b7b to every key, so it cancels in the softmax and its true gradient is zero. Exactly 12 tensors are exempt, and they still count toward the whole-model check. Two things to disclose:\n  - This gate was changed after CPU v1 failed. Say so and give the reason.\n  - During training, AdamW will move those biases by roughly the learning rate on each step, driven by rounding noise. Because the bias cancels, this has no effect on outputs.\n- **Classifier rows (checked on the actual `.npz` files):** old and new rows are all close to length 1 (0.998\u20131.003). So the new rows built from class means don't move faster than the trained rows under the same learning rate and weight decay. The half arm reproduces the old 2004 rows exactly.\n- **Reload and random state:** building a fresh model and head for the reload uses the random number generator, but that happens inside `fork_rng`. The random state is checked before and after, so this is correct.\n- **Update-skip detection:** the scale check (`get_scale() >= scale`), together with the finite-gradient checks, catches any update the scaler silently skips.\n- **Sampler:** both arms see every eligible ID at least once. Full arm: 1\u20132 exposures per ID; half arm: 3\u20134. Each batch of 64 has 64 different IDs. Each position in the batch maps to its own class.\n\n## Before the two 100-update runs (none of these block the 17-update run)\n\n1. **Time cap.** The earlier 100-update native pilot took 266.8 s against the 299 s cap (`native-pool-pilot-v1-time.txt`). This code runs each batch as four pieces of 16, and the 100-update run also writes and reloads a checkpoint of about 1.2 GB. Decide in writing now that the 100-update runs go ahead only if (median step time from the 17-update run \u00d7 100) plus the measured save/reload time stays under the cap with a stated margin. Otherwise a timeout late in the full arm would end the procedure, and the plan allows no rescue.\n2. **Exact replay across processes.** The full 100-update run must reproduce the first 17 steps exactly, but only that run tests this; the 17-update run cannot. Before spending the full arm, confirm an earlier receipt showed an exact cross-process replay on this stack with the same attention backend under deterministic mode.\n3. **Memory.** Earlier 17-update runs peaked at about 5.6 GB. Adding the 1.2 GB save plus the CPU copy of the reloaded model could approach 8 GiB. The 17-update run exercises the same save/reload path, so read its peak memory before licensing the 100-update runs.\n\n## How to read the 100-update comparison\n\nThe two arms differ in more than which images are covered:\n\n- **Ranking-loss frequency.** Both pools have the same 12 single-image IDs. Because one single-image ID switches off the ranking loss for the whole batch of 64, the ranking loss runs in **68 of 100 half-arm batches but 82 of 100 full-arm batches**. That 14-update difference comes from the pool, not from coverage itself.\n- **Classes and bank.** The full arm doubles the number of classifier rows (3997 vs 2004), and 1993 of them start from fixed class means and get at most two updates. It also doubles the pool of bank negatives (25,882 vs 13,283 rows). Both affect the old IDs even on steps that contain no new images.\n- **Revisits.** Each ID is seen about 1.6 times in the full arm vs about 3.2 times in the half arm.\n\nSo a difference between the arms is the effect of the whole pool change, with the half arm controlling only for the sampler. It says nothing about how good the source model is. Compare neither arm with F5 itself: F5 used four images per ID and had no ongoing continuation.\n\nBefore the runs, commit to:\n- a paired per-query decision rule on official TEST, with a threshold (e.g. McNemar on R1);\n- a statement that the full arm trains on the former held-out rows, so nothing on them can be called held-out quality;\n- the fact that official TEST has already been seen.\n\nWith R1 at 92.78 and one seed per arm, 100 updates will very likely not reach the 96.7 floor. Treat this pair as a diagnostic and state in advance that it will probably end in a KILL.\n\nI also saved this verdict to project memory (`sfora-large-coverage-17-prelaunch-review.md`).",
+      "result_truncated": false
+    },
+    {
+      "role": "engineering_critic",
+      "id": "f7224698b30f4147",
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "fallbacks": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "agent": "sfora/emafactorial",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1790666482,
+      "timeout_seconds": 1200,
+      "deadline_at": 1790667682,
+      "budget_usd": null,
+      "prompt_preview": "Act as the independent adversarial engineering and release critic. Inspect correctness, failure modes, security, operability, tests, and UX. Prioritize concrete findings with evidence. Do not edit files.\n\nMaterial to critique:\nREAD ONLY bounded implementation review, no editing, research, alternative architectures, GPU jobs or contact operator. Repo /home/rb/worktrees/sfora-positive-causality master HEADffd4c03b. Review ONLY new scripts/pe_large_coverage.py, qualify_pe_large_coverage.py, train_pe_large_coverage.py and docs/superpowers/plans/2026-09-29-large-identity-coverage.md. Actual CPU qualification receipt docs/evidence/compact_metric/sop-siglip2-substrate-v1/large-coverage-v1/cpu-receipt.json SHA fbb88035f2bdebaa243cdf4e3e2011fc91ec15a0d6722422b448b2ff4b88c61b, CPU86execution7755af1d64e2f9c42fd5d60eae96cdb67923a7f28fae219315926b035881d955. Root /home/riomus/runs/sfora-large-coverage-training-v1 available SSH riomus@spark-2751 read-only. Native actual trained F5 source400keys whole/head qualified, source prefix0..11 frozen actual12tailblocks12..23+postLN+pool ACTIVE (not readonly oldfinal2mask). Source13,283FIT2004IDs, actual original100B64fourimage/ID only1600unique gradient-inputIDs. OfficialactualpublicF16B32 R1=92.7837952%mAP@R71.3537104% CPUaudited KILL dated96.7% minimumfloor. Fullproductgoal unchanged/unmet. Next ONEfullTRAINcoverage matched100update continuation versus halfpool100 sameF5native/head/sourceproxies/optimizer/seed/ArcFace .3/64+8detachedrank/AdamW1e-5native1e-4headclassifierwd.05/clip1/FP16scale128. Both use SAME cyclicseeded64distinctIDsperB64/oneimageperID schedule, every eligibleID gradientexposedby100: full25,882images3997IDs vs half13,2832004. CPU validates proxies/remaps/newunitmeans/currentF5normalizedcompact128bank/row/pixels/all100samplercoverage/positive-selfclass mapping/native12blockF32 loss/gradientaggregation B2vs2B1/sourceheadbankRNGunchanged/frozen .data mutation/changedcoderejection. CPUv1failedperTensorrelativekeybias nearzero; preserved diagnostic shows aggregate1.16256e-6 vsunchanged2e-4 tolerance, allnonnullrelative<2e-6. Corrected onlyanalyticsoftmax-shared-key-biasNULL grad handling using F32epsilon*sqrt(numel) absoluteL2 bound for all12, retains otherperTensor ANDglobal2e-4. ProofPASS17.888s4.48GBRSS/noSwap/zerooptimizer, notmodelquality.\nGPU code87extendsclosed86 unchanged; source guard original84 chain preserved. FourB16loss/4backwards globalB64singletonrankflag, detachedbank unchanged between all4, oneunscale/clip1/step/scalerupdate; concatenatedDETACHEDpreupdate rawvalueslastoccurrencebankrefresh onceAFTER step. Nativeactualgroupsfinite/nonzero/frozenprefixversions+terminalcontent/runtime/env/codefile/numeric/RNGcaps. First2AMP/F32nativepooled+headcos>=.999. ONE17 full mechanics300s8GiBnoSwap<10GB CUDA, fullworstbank/classifier;discard state after strictupdated400whole-native independent reload/output/head/packed exact+AMPF32cos>=.999; parameter groupschanged all. One100half/one100full onlyafterqualifiedsame-code mechanics; full100first17loss/scales/RGB/normexact todiscardedmechanics; neverresume17. No intermediateTESTchooser/heldexportintraining; fullbranch previouslyheldTRAIN nowtrained, NEVERcall resubstitutionheldoutquality. Candidatecheckpointterminal100fixed before separatelyqualifiedserving/officialconfirmation on previouslyobservedbenchmark. Caps/resource/nativefailure closes exactprocedure norescue/globalgoalclose. Assess real must-fix before ONE17 allocation, including gates/math/source/native import identities/serialization/memory/RNG/singletonglobal semantics; do notrequestfullsuite orreopenmethods. Return GO-for17 or precise blocker with evidence. Also scrutinize100 interpretation: matchedpoolintervention, halfbranchsamplercontrol; no claim sourcequality improvement fromCPU evidence. No CPU/GPU job currentlyactive.",
+      "prompt_sha256": "5617d8d8344a16decfd0c3ab49dca9066be8d24ce71a3feb43aa19508d0fe500",
+      "prompt_bytes": 4028,
+      "fingerprint": "e23ce968d976838a94efe04d8eb1bf885dcc0f9343380ec7a1476577b3c3cb30",
+      "evidence": {
+        "git_commit": "ffd4c03bb6587194a411dd9674470ce376f05296",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "3e5bd0bf7bfc14da7631f776f47cf853ebe369a1a74785049fe5a73b736e3218",
+        "worktree_sha256": "ea5d6a5e0f63b45615dac1a1bf1d7f000e155e3b4c4549c4a8c16d2e390c9c97",
+        "worktree_evidence_truncated": false,
+        "active_goal": {
+          "id": "goal-1790540789-1790540789754989478-2322852",
+          "agent": "sfora/emafactorial",
+          "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+          "status": "queued",
+          "revision": 1,
+          "actor": "operator",
+          "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+          "created_at": 1790540789,
+          "updated_at": 1790540789
+        }
+      },
+      "previous_fingerprint": "79d20df276c4e3e4836c80cca05c1c72618e42e3d6aca2f7dcb48bdb98dd596c",
+      "reused": false,
+      "critique_id": "283dc9b9600b403a",
+      "critique_role": "engineering_critic",
+      "systemd_unit": "devbox-consult-f7224698b30f4147.service",
+      "pid": 1027552,
+      "pgid": 1027552,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra",
+          "budget_usd": null,
+          "timeout_seconds": 1200,
+          "started_at": 1790666482
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1790666628,
+      "event_cursor": 52,
+      "events": [
+        {
+          "seq": 29,
+          "at": 1790666548,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 30,
+          "at": 1790666548,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 31,
+          "at": 1790666548,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 32,
+          "at": 1790666559,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 33,
+          "at": 1790666559,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 34,
+          "at": 1790666559,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 35,
+          "at": 1790666559,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 36,
+          "at": 1790666559,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 37,
+          "at": 1790666559,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 38,
+          "at": 1790666559,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 39,
+          "at": 1790666559,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 40,
+          "at": 1790666568,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 41,
+          "at": 1790666568,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 42,
+          "at": 1790666569,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 43,
+          "at": 1790666569,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 44,
+          "at": 1790666569,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 45,
+          "at": 1790666572,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 46,
+          "at": 1790666590,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 47,
+          "at": 1790666602,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 48,
+          "at": 1790666605,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 49,
+          "at": 1790666606,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 50,
+          "at": 1790666606,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 51,
+          "at": 1790666628,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 52,
+          "at": 1790666628,
+          "provider": "codex",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": true,
+      "provider_events": {
+        "codex": [
+          {
+            "seq": 45,
+            "at": 1790666572,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 46,
+            "at": 1790666590,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 47,
+            "at": 1790666602,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 48,
+            "at": 1790666605,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 49,
+            "at": 1790666606,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 50,
+            "at": 1790666606,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 51,
+            "at": 1790666628,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 52,
+            "at": 1790666628,
+            "provider": "codex",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "**GO-for17 within the specified externally enforced resource envelope.** I found no must-fix correctness blocker in the reviewed implementation.\n\nVerified: CPU receipt SHA, local/remote script hashes, all-100 schedule coverage, global singleton gating, four-microbatch accumulation, one optimizer step, post-step detached bank refresh, and fresh-source initialization. CPU aggregate gradient error is **1.16256e-6**; maximum non-null per-tensor error is **1.85027e-6**, below the unchanged `2e-4` threshold.\n\nTwo operational limitations:\n\n- **Caps depend on the launcher.** The driver checks CUDA allocation but does not enforce 300 seconds, 8 GiB, or no swap. Its `advance: true` receipt alone cannot certify those limits. Preserve the external resource/timeout exit evidence before accepting mechanics. [Driver](/home/rb/worktrees/sfora-positive-causality/scripts/train_pe_large_coverage.py:213)\n- **Reported peak excludes reload.** `peak_cuda_allocated_bytes` is captured before serialization and independent reload. The final assertion still enforces the CUDA ceiling, but the reported value can understate the complete run\u2019s peak. Nonblocking for17. [Capture](/home/rb/worktrees/sfora-positive-causality/scripts/train_pe_large_coverage.py:174), [terminal check](/home/rb/worktrees/sfora-positive-causality/scripts/train_pe_large_coverage.py:212)\n\nFor100, interpret this as a **matched-budget pool intervention**. Half exposes each ID 3\u20134 times; full exposes each 1\u20132 times. Rank loss activates on **68 versus 82 updates** because singleton eligibility differs. Classifier and bank sizes also change. The half arm controls the new sampler, but the comparison cannot attribute an outcome solely to gradient-input identity count.\n\nCPU qualification establishes mechanics, not improved model quality. Previously held TRAIN rows become training data in full; official confirmation remains necessary on the previously observed benchmark.\n\nNo files edited, training jobs launched, or operator contacted.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "codex": "**GO-for17 within the specified externally enforced resource envelope.** I found no must-fix correctness blocker in the reviewed implementation.\n\nVerified: CPU receipt SHA, local/remote script hashes, all-100 schedule coverage, global singleton gating, four-microbatch accumulation, one optimizer step, post-step detached bank refresh, and fresh-source initialization. CPU aggregate gradient error is **1.16256e-6**; maximum non-null per-tensor error is **1.85027e-6**, below the unchanged `2e-4` threshold.\n\nTwo operational limitations:\n\n- **Caps depend on the launcher.** The driver checks CUDA allocation but does not enforce 300 seconds, 8 GiB, or no swap. Its `advance: true` receipt alone cannot certify those limits. Preserve the external resource/timeout exit evidence before accepting mechanics. [Driver](/home/rb/worktrees/sfora-positive-causality/scripts/train_pe_large_coverage.py:213)\n- **Reported peak excludes reload.** `peak_cuda_allocated_bytes` is captured before serialization and independent reload. The final assertion still enforces the CUDA ceiling, but the reported value can understate the complete run\u2019s peak. Nonblocking for17. [Capture](/home/rb/worktrees/sfora-positive-causality/scripts/train_pe_large_coverage.py:174), [terminal check](/home/rb/worktrees/sfora-positive-causality/scripts/train_pe_large_coverage.py:212)\n\nFor100, interpret this as a **matched-budget pool intervention**. Half exposes each ID 3\u20134 times; full exposes each 1\u20132 times. Rank loss activates on **68 versus 82 updates** because singleton eligibility differs. Classifier and bank sizes also change. The half arm controls the new sampler, but the comparison cannot attribute an outcome solely to gradient-input identity count.\n\nCPU qualification establishes mechanics, not improved model quality. Previously held TRAIN rows become training data in full; official confirmation remains necessary on the previously observed benchmark.\n\nNo files edited, training jobs launched, or operator contacted."
+      },
+      "providers_used": [
+        "codex"
+      ],
+      "active_provider": "codex",
+      "phase": "Consultation completed",
+      "input_bytes": 4028,
+      "output_bytes": 2008,
+      "elapsed_seconds": 146,
+      "progress": "Reading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)\ndevbox-ask: codex consult still running (1m 30s)\ndevbox-ask: codex consult still running (2m 00s)",
+      "progress_truncated": false,
+      "result": "**GO-for17 within the specified externally enforced resource envelope.** I found no must-fix correctness blocker in the reviewed implementation.\n\nVerified: CPU receipt SHA, local/remote script hashes, all-100 schedule coverage, global singleton gating, four-microbatch accumulation, one optimizer step, post-step detached bank refresh, and fresh-source initialization. CPU aggregate gradient error is **1.16256e-6**; maximum non-null per-tensor error is **1.85027e-6**, below the unchanged `2e-4` threshold.\n\nTwo operational limitations:\n\n- **Caps depend on the launcher.** The driver checks CUDA allocation but does not enforce 300 seconds, 8 GiB, or no swap. Its `advance: true` receipt alone cannot certify those limits. Preserve the external resource/timeout exit evidence before accepting mechanics. [Driver](/home/rb/worktrees/sfora-positive-causality/scripts/train_pe_large_coverage.py:213)\n- **Reported peak excludes reload.** `peak_cuda_allocated_bytes` is captured before serialization and independent reload. The final assertion still enforces the CUDA ceiling, but the reported value can understate the complete run\u2019s peak. Nonblocking for17. [Capture](/home/rb/worktrees/sfora-positive-causality/scripts/train_pe_large_coverage.py:174), [terminal check](/home/rb/worktrees/sfora-positive-causality/scripts/train_pe_large_coverage.py:212)\n\nFor100, interpret this as a **matched-budget pool intervention**. Half exposes each ID 3\u20134 times; full exposes each 1\u20132 times. Rank loss activates on **68 versus 82 updates** because singleton eligibility differs. Classifier and bank sizes also change. The half arm controls the new sampler, but the comparison cannot attribute an outcome solely to gradient-input identity count.\n\nCPU qualification establishes mechanics, not improved model quality. Previously held TRAIN rows become training data in full; official confirmation remains necessary on the previously observed benchmark.\n\nNo files edited, training jobs launched, or operator contacted.",
+      "result_truncated": false
+    }
+  ],
+  "reused": false,
+  "finished_at": 1790666677,
+  "elapsed_seconds": 194,
+  "input_bytes": 3624,
+  "output_bytes": 7272
+}

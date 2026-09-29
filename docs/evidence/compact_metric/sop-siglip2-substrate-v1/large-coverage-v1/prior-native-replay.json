@@ -1,0 +1,13 @@
+{
+  "reference_only": true,
+  "new_four_microbatch_replay_unqualified": true,
+  "mechanics_training_sha256": "6510d856d5dd6eff41d79d78a2d0b3b70cc3fee9ae261a5582fcc862963811fe",
+  "pilot_training_sha256": "ebf8521b70e46280824ada916fa83bb7488eb856afb865edc6630b636d24d409",
+  "first17_exact": {
+    "losses": true,
+    "scales": true,
+    "rgb_sha256": true,
+    "preclip_gradient_norms": true
+  },
+  "attention_backend_equal": true
+}

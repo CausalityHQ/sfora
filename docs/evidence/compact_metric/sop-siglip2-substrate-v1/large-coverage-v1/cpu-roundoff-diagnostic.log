@@ -1,0 +1,167 @@
+Running as unit: sfora-large-coverage-cpu-diagnostic-v1.service; invocation ID: e3e311a36af24f64a6a212fb006f2777
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 12555.00it/s]
+{
+  "reference_loss": 3.442951202392578,
+  "micro_loss": 3.4429513216018677,
+  "top_relative_errors": [
+    {
+      "name": "encoder.layers.23.self_attn.k_proj.bias",
+      "reference_norm": 1.4610169255066106e-07,
+      "difference_norm": 1.397160766502855e-07,
+      "max_abs": 9.12696123123169e-08
+    },
+    {
+      "name": "encoder.layers.14.self_attn.k_proj.bias",
+      "reference_norm": 1.3768321309637346e-07,
+      "difference_norm": 1.115463690924342e-07,
+      "max_abs": 6.332993507385254e-08
+    },
+    {
+      "name": "encoder.layers.18.self_attn.k_proj.bias",
+      "reference_norm": 9.903058772471283e-08,
+      "difference_norm": 7.488691576637833e-08,
+      "max_abs": 3.213062882423401e-08
+    },
+    {
+      "name": "encoder.layers.13.self_attn.k_proj.bias",
+      "reference_norm": 1.535559818920651e-07,
+      "difference_norm": 1.1494628828737024e-07,
+      "max_abs": 3.91155481338501e-08
+    },
+    {
+      "name": "encoder.layers.22.self_attn.k_proj.bias",
+      "reference_norm": 1.1528037150158094e-07,
+      "difference_norm": 8.172042893693216e-08,
+      "max_abs": 3.434251993894577e-08
+    },
+    {
+      "name": "encoder.layers.12.self_attn.k_proj.bias",
+      "reference_norm": 1.6938354635602565e-07,
+      "difference_norm": 1.1735554761123444e-07,
+      "max_abs": 2.7008354663848877e-08
+    },
+    {
+      "name": "encoder.layers.16.self_attn.k_proj.bias",
+      "reference_norm": 1.0011301744346751e-07,
+      "difference_norm": 6.733149432564661e-08,
+      "max_abs": 3.026798367500305e-08
+    },
+    {
+      "name": "encoder.layers.21.self_attn.k_proj.bias",
+      "reference_norm": 9.929454113796616e-08,
+      "difference_norm": 6.253225367574241e-08,
+      "max_abs": 1.548323780298233e-08
+    },
+    {
+      "name": "encoder.layers.15.self_attn.k_proj.bias",
+      "reference_norm": 1.3280324452366964e-07,
+      "difference_norm": 7.559169388922492e-08,
+      "max_abs": 2.657179720699787e-08
+    },
+    {
+      "name": "encoder.layers.20.self_attn.k_proj.bias",
+      "reference_norm": 1.1278543210940405e-07,
+      "difference_norm": 6.027901753459988e-08,
+      "max_abs": 2.3050233721733093e-08
+    },
+    {
+      "name": "encoder.layers.19.self_attn.k_proj.bias",
+      "reference_norm": 1.3763734705671194e-07,
+      "difference_norm": 6.129855054092965e-08,
+      "max_abs": 2.7939677238464355e-08
+    },
+    {
+      "name": "encoder.layers.17.self_attn.k_proj.bias",
+      "reference_norm": 1.4085195912292905e-07,
+      "difference_norm": 5.871015567356117e-08,
+      "max_abs": 1.5832483768463135e-08
+    },
+    {
+      "name": "classifier",
+      "reference_norm": 38.530425805026695,
+      "difference_norm": 7.129160454451199e-05,
+      "max_abs": 1.33514404296875e-05
+    },
+    {
+      "name": "encoder.layers.18.self_attn.k_proj.weight",
+      "reference_norm": 16.667453587889618,
+      "difference_norm": 2.5922409079988095e-05,
+      "max_abs": 4.69014048576355e-06
+    },
+    {
+      "name": "encoder.layers.18.self_attn.q_proj.bias",
+      "reference_norm": 0.3061321270589729,
+      "difference_norm": 4.641458290389288e-07,
+      "max_abs": 1.2665987014770508e-07
+    },
+    {
+      "name": "encoder.layers.12.self_attn.q_proj.weight",
+      "reference_norm": 16.933757349626617,
+      "difference_norm": 2.521337401929647e-05,
+      "max_abs": 1.430511474609375e-06
+    },
+    {
+      "name": "head.layernorm.weight",
+      "reference_norm": 0.7136164113840101,
+      "difference_norm": 1.0530108876417237e-06,
+      "max_abs": 4.3213367462158203e-07
+    },
+    {
+      "name": "encoder.layers.13.self_attn.q_proj.weight",
+      "reference_norm": 19.658627021709332,
+      "difference_norm": 2.8973002756871458e-05,
+      "max_abs": 2.4437904357910156e-06
+    },
+    {
+      "name": "encoder.layers.14.layer_norm1.weight",
+      "reference_norm": 1.0624703920925533,
+      "difference_norm": 1.5604904226078536e-06,
+      "max_abs": 1.1920928955078125e-06
+    },
+    {
+      "name": "encoder.layers.21.self_attn.q_proj.bias",
+      "reference_norm": 0.2960616450923659,
+      "difference_norm": 4.245815080182171e-07,
+      "max_abs": 1.4156103134155273e-07
+    },
+    {
+      "name": "encoder.layers.21.self_attn.k_proj.weight",
+      "reference_norm": 16.15822157799384,
+      "difference_norm": 2.2926676090224516e-05,
+      "max_abs": 4.246830940246582e-06
+    },
+    {
+      "name": "encoder.layers.18.self_attn.q_proj.weight",
+      "reference_norm": 12.17538405078911,
+      "difference_norm": 1.715754342907568e-05,
+      "max_abs": 1.6689300537109375e-06
+    },
+    {
+      "name": "head.mlp.fc2.weight",
+      "reference_norm": 25.05149075584362,
+      "difference_norm": 3.5095195614534243e-05,
+      "max_abs": 9.5367431640625e-07
+    },
+    {
+      "name": "encoder.layers.13.layer_norm2.weight",
+      "reference_norm": 0.9922840539457959,
+      "difference_norm": 1.3800771930804394e-06,
+      "max_abs": 4.0978193283081055e-07
+    },
+    {
+      "name": "head.layernorm.bias",
+      "reference_norm": 0.5511584867659036,
+      "difference_norm": 7.539631962609379e-07,
+      "max_abs": 1.1920928955078125e-07
+    }
+  ],
+  "global_relative_error": 1.1625604061831063e-06
+}
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 13.941s
+CPU time consumed: 40.744s
+Memory peak: 508.0K
+Memory swap peak: 0B

@@ -1,0 +1,8 @@
+Running as unit: sfora-large-coverage-training-startup-v1.service; invocation ID: a5a0e3f85d48458a97d825867d9965d3
+PASS actual87-source training startup and altered driver/CPU-proof rejection; no model/GPU/optimizer
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 9.186s
+CPU time consumed: 11.755s
+Memory peak: 676.0K
+Memory swap peak: 0B
