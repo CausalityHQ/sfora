@@ -1,0 +1,80 @@
+{
+  "causal_limit": "Adaptation depth helped (+2.3607177R1/+4.1383394mAPpp vs one block), but both cheap students remain significantly below reference despite exact reload/scorer parity. Teacher geometry preservation addresses alignment under limited adaptation capacity; does not uniquely prove objective vs capacity vs pooling/head cause. Stored teacher bank is a mixed-age training buffer, not fresh checkpoint exports; do not substitute it for new teacher targets.",
+  "claim_eligible": false,
+  "cpu_audit_exit": 0,
+  "cpu_audit_maximum_rss_KiB": 1033584,
+  "cpu_audit_original_session": 50069,
+  "cpu_audit_seconds": 7.07,
+  "cpu_audit_sha256": "151d387926f924d7f1fa0f76b8f943efacf633d8432e15c41fa2053632b01c54",
+  "dataset_split": "In-Shop TRAIN-held6354query6245gallery1993products12599images",
+  "decision": "KILL fixed original Large lastTWO tokenblocks/pretrainedpool frozen100 TRAIN allocation",
+  "gpu_exit": 0,
+  "gpu_maximum_rss_KiB": 5513860,
+  "gpu_original_session": 98340,
+  "gpu_process_seconds": 223.15,
+  "gpu_swap": 0,
+  "gpu_unit_seconds": 223.156,
+  "historical_nonconcurrent_controls_percent": {
+    "DensePE": {
+      "R1": 95.0739692,
+      "mAP@R": 76.3915922
+    },
+    "Large": {
+      "R1": 95.6720176,
+      "mAP@R": 78.623712
+    }
+  },
+  "images_per_second_measured_training_wall": 119.21243909282782,
+  "median_step_3_100_seconds": 0.5354025857523084,
+  "next_selected_intervention": "Original-source two-block student with cached TRAIN-fit feature anchor from authenticated strong12-block Large control; same original CE+rank objective plus one angular feature preservation term. No further prefix-depth sweep, no failed-student checkpoint continuation. Qualify exact teacher cache/row/source authority before new frozen learning procedure; unchanged quality/cost/resource floors.",
+  "official_read": false,
+  "paired_dense_pe_intervals": {
+    "per_query_ap": {
+      "mean_delta": -0.028774542077674613,
+      "product_lower95": -0.03575033903125833,
+      "product_upper95": -0.022237292315663303,
+      "query_lower95": -0.03400625349045167,
+      "query_upper95": -0.023852065468693916
+    },
+    "per_query_r1": {
+      "mean_delta": -0.014636449480642116,
+      "product_lower95": -0.020583551810393,
+      "product_upper95": -0.009029776278089128,
+      "query_lower95": -0.02014479068303431,
+      "query_upper95": -0.00912810827824992
+    }
+  },
+  "peak_cuda_allocated_bytes": 4818028544,
+  "public_latency_measured": false,
+  "quality": {
+    "map_at_r": 0.7351413799996811,
+    "recall_at_1": 0.9361032420522506
+  },
+  "receipt_sha256": "d2d7df40b8bd32de8d0c73f0db4bc01e3eb22c9cfc68beb98efbb01fe3e8f692",
+  "scope": "this allocation only; full SOP+In-Shop production quality/speed goal remains active and unmet",
+  "teacher_checkpoint": {
+    "bank_shape": [
+      13283,
+      128
+    ],
+    "bytes": 1272298083,
+    "classifier_shape": [
+      2004,
+      128
+    ],
+    "fresh_teacher_fit_targets_available": false,
+    "head_shapes": {
+      "bias": [
+        128
+      ],
+      "weight": [
+        128,
+        1024
+      ]
+    },
+    "native_keys": 400,
+    "path": "/home/riomus/runs/sfora-pe-augmented-100-v2/large.pt",
+    "sha256_verified": "f5fbf0e8eb3492274b6febeb6fd06a4b0d8b0fce4c7170069f3fa0d7b0a8df4d"
+  },
+  "training_wall_seconds": 53.68567280983552
+}

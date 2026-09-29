@@ -1,0 +1,23 @@
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-large-final-two-v1/audit_pe_large_final_two_pilot.py --execution-sha256 2671e67be15a31b985dce4b374f59270af8d3e1c191bd3732964b5ae93db0f33 --receipt-sha256 d2d7df40b8bd32de8d0c73f0db4bc01e3eb22c9cfc68beb98efbb01fe3e8f692 --auditor-sha256 87b965eec24cd2bbe1073fa8182d190f63193c43a28a32f40a146b8a06284141 --output /home/riomus/runs/sfora-large-final-two-pilot-v1"
+	User time (seconds): 10.88
+	System time (seconds): 0.91
+	Percent of CPU this job got: 166%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:07.07
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 1033584
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 182780
+	Voluntary context switches: 5109
+	Involuntary context switches: 343
+	Swaps: 0
+	File system inputs: 8272
+	File system outputs: 320
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

@@ -1,0 +1,505 @@
+Running as unit: sfora-siglip-final-two-pilot-v1.service; invocation ID: d731fd79d4c44c96aea1dbd2381062bf
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 14822.85it/s]
+{"step": 1, "seconds": 1.0519640459679067, "loss": 8.457447052001953}
+{"step": 2, "seconds": 0.5546563402749598, "loss": 9.35254192352295}
+{"step": 3, "seconds": 0.5368917221203446, "loss": 9.447538375854492}
+{"step": 4, "seconds": 0.5352790532633662, "loss": 7.699378490447998}
+{"step": 5, "seconds": 0.534636752679944, "loss": 7.577582359313965}
+{"step": 6, "seconds": 0.5360334012657404, "loss": 8.86872386932373}
+{"step": 7, "seconds": 0.49135692697018385, "loss": 5.6120476722717285}
+{"step": 8, "seconds": 0.5381364319473505, "loss": 6.552985191345215}
+{"step": 9, "seconds": 0.5355593836866319, "loss": 9.037578582763672}
+{"step": 10, "seconds": 0.5375430900603533, "loss": 7.229506492614746}
+{"step": 11, "seconds": 0.49022773606702685, "loss": 4.850000381469727}
+{"step": 12, "seconds": 0.5334389237686992, "loss": 4.360612392425537}
+{"step": 13, "seconds": 0.5341027965769172, "loss": 6.897810459136963}
+{"step": 14, "seconds": 0.5365467928349972, "loss": 6.477092742919922}
+{"step": 15, "seconds": 0.5395444598980248, "loss": 7.983980655670166}
+{"step": 16, "seconds": 0.5357743790373206, "loss": 8.038841247558594}
+{"step": 17, "seconds": 0.5347937615588307, "loss": 7.994913578033447}
+{"step": 18, "seconds": 0.5375656303949654, "loss": 6.082042694091797}
+{"step": 19, "seconds": 0.5355830551125109, "loss": 9.437003135681152}
+{"step": 20, "seconds": 0.5371991540305316, "loss": 4.930109024047852}
+{"step": 21, "seconds": 0.5351018900983036, "loss": 5.818968772888184}
+{"step": 22, "seconds": 0.5365738309919834, "loss": 6.500679016113281}
+{"step": 23, "seconds": 0.5364975067786872, "loss": 7.559411525726318}
+{"step": 24, "seconds": 0.53454574290663, "loss": 6.343318462371826}
+{"step": 25, "seconds": 0.5316465510986745, "loss": 4.821830749511719}
+{"step": 26, "seconds": 0.5375543809495866, "loss": 5.275432586669922}
+{"step": 27, "seconds": 0.4889468150213361, "loss": 4.516779899597168}
+{"step": 28, "seconds": 0.5341806849464774, "loss": 6.96897029876709}
+{"step": 29, "seconds": 0.5307210562750697, "loss": 4.9013824462890625}
+{"step": 30, "seconds": 0.5390664879232645, "loss": 5.00466775894165}
+{"step": 31, "seconds": 0.5345409619621933, "loss": 5.102581024169922}
+{"step": 32, "seconds": 0.5357170160859823, "loss": 5.430571556091309}
+{"step": 33, "seconds": 0.5359158259816468, "loss": 5.970721244812012}
+{"step": 34, "seconds": 0.5370332892052829, "loss": 5.526715278625488}
+{"step": 35, "seconds": 0.5366889270953834, "loss": 4.043479919433594}
+{"step": 36, "seconds": 0.5371680003590882, "loss": 6.010852813720703}
+{"step": 37, "seconds": 0.5363864847458899, "loss": 7.675848007202148}
+{"step": 38, "seconds": 0.536754981148988, "loss": 6.279448986053467}
+{"step": 39, "seconds": 0.5330534926615655, "loss": 5.380352973937988}
+{"step": 40, "seconds": 0.5359781975857913, "loss": 6.130003452301025}
+{"step": 41, "seconds": 0.5370562169700861, "loss": 5.820120334625244}
+{"step": 42, "seconds": 0.4903064789250493, "loss": 2.0305545330047607}
+{"step": 43, "seconds": 0.48797727609053254, "loss": 3.3587355613708496}
+{"step": 44, "seconds": 0.5360336378216743, "loss": 7.218838691711426}
+{"step": 45, "seconds": 0.5332473907619715, "loss": 5.708189010620117}
+{"step": 46, "seconds": 0.5380467311479151, "loss": 4.295314788818359}
+{"step": 47, "seconds": 0.5344259832054377, "loss": 5.872137546539307}
+{"step": 48, "seconds": 0.5355156166478992, "loss": 2.7934181690216064}
+{"step": 49, "seconds": 0.535024092067033, "loss": 4.047367095947266}
+{"step": 50, "seconds": 0.533954540733248, "loss": 4.878864765167236}
+{"step": 51, "seconds": 0.4900861890055239, "loss": 2.3695173263549805}
+{"step": 52, "seconds": 0.5366459279321134, "loss": 4.611932754516602}
+{"step": 53, "seconds": 0.5333295203745365, "loss": 5.5987677574157715}
+{"step": 54, "seconds": 0.5371927227824926, "loss": 5.3950347900390625}
+{"step": 55, "seconds": 0.5321882707066834, "loss": 4.671347618103027}
+{"step": 56, "seconds": 0.5391811928711832, "loss": 5.660173416137695}
+{"step": 57, "seconds": 0.5336012160405517, "loss": 7.665384292602539}
+{"step": 58, "seconds": 0.5351001811213791, "loss": 6.369271278381348}
+{"step": 59, "seconds": 0.5312354629859328, "loss": 5.515715599060059}
+{"step": 60, "seconds": 0.5339232059195638, "loss": 5.8307204246521}
+{"step": 61, "seconds": 0.4888035641051829, "loss": 3.2810873985290527}
+{"step": 62, "seconds": 0.5343856969848275, "loss": 4.907609939575195}
+{"step": 63, "seconds": 0.5378369796089828, "loss": 5.511906147003174}
+{"step": 64, "seconds": 0.5379377938807011, "loss": 5.222720146179199}
+{"step": 65, "seconds": 0.5357576119713485, "loss": 6.704963684082031}
+{"step": 66, "seconds": 0.536852786783129, "loss": 6.405423641204834}
+{"step": 67, "seconds": 0.5318886982277036, "loss": 6.472334861755371}
+{"step": 68, "seconds": 0.5332220979034901, "loss": 7.296730041503906}
+{"step": 69, "seconds": 0.5364261441864073, "loss": 4.56905460357666}
+{"step": 70, "seconds": 0.5388605268672109, "loss": 4.477044582366943}
+{"step": 71, "seconds": 0.5380208832211792, "loss": 4.404901504516602}
+{"step": 72, "seconds": 0.5381723693571985, "loss": 4.5693864822387695}
+{"step": 73, "seconds": 0.5356581402011216, "loss": 3.7380690574645996}
+{"step": 74, "seconds": 0.536349949426949, "loss": 5.280936241149902}
+{"step": 75, "seconds": 0.5317414021119475, "loss": 6.601657867431641}
+{"step": 76, "seconds": 0.4939439748413861, "loss": 2.023414373397827}
+{"step": 77, "seconds": 0.49148427601903677, "loss": 3.4714956283569336}
+{"step": 78, "seconds": 0.5347349783405662, "loss": 5.417764663696289}
+{"step": 79, "seconds": 0.5352895548567176, "loss": 5.642435073852539}
+{"step": 80, "seconds": 0.5364379240199924, "loss": 5.260222911834717}
+{"step": 81, "seconds": 0.5370005983859301, "loss": 4.17065954208374}
+{"step": 82, "seconds": 0.532613969873637, "loss": 5.945885181427002}
+{"step": 83, "seconds": 0.5339841232635081, "loss": 5.332382678985596}
+{"step": 84, "seconds": 0.5333552150987089, "loss": 6.728640556335449}
+{"step": 85, "seconds": 0.5369091727770865, "loss": 3.2599334716796875}
+{"step": 86, "seconds": 0.5393832786940038, "loss": 5.840169906616211}
+{"step": 87, "seconds": 0.5348889599554241, "loss": 5.147966384887695}
+{"step": 88, "seconds": 0.5366565980948508, "loss": 4.713006973266602}
+{"step": 89, "seconds": 0.5341168981976807, "loss": 7.469120025634766}
+{"step": 90, "seconds": 0.5325109311379492, "loss": 7.098355293273926}
+{"step": 91, "seconds": 0.5334528209641576, "loss": 4.82086181640625}
+{"step": 92, "seconds": 0.5327756451442838, "loss": 4.946840286254883}
+{"step": 93, "seconds": 0.5331668113358319, "loss": 4.660895347595215}
+{"step": 94, "seconds": 0.5335919307544827, "loss": 4.2692131996154785}
+{"step": 95, "seconds": 0.53660968830809, "loss": 5.542487621307373}
+{"step": 96, "seconds": 0.5369392251595855, "loss": 2.991398334503174}
+{"step": 97, "seconds": 0.5309322667308152, "loss": 4.390222549438477}
+{"step": 98, "seconds": 0.5357686337083578, "loss": 4.229036808013916}
+{"step": 99, "seconds": 0.5375382858328521, "loss": 3.9719223976135254}
+{"step": 100, "seconds": 0.5346212740987539, "loss": 4.438085556030273}
+{"held_images_verified": 32}
+{"held_images_verified": 64}
+{"held_images_verified": 96}
+{"held_images_verified": 128}
+{"held_images_verified": 160}
+{"held_images_verified": 192}
+{"held_images_verified": 224}
+{"held_images_verified": 256}
+{"held_images_verified": 288}
+{"held_images_verified": 320}
+{"held_images_verified": 352}
+{"held_images_verified": 384}
+{"held_images_verified": 416}
+{"held_images_verified": 448}
+{"held_images_verified": 480}
+{"held_images_verified": 512}
+{"held_images_verified": 544}
+{"held_images_verified": 576}
+{"held_images_verified": 608}
+{"held_images_verified": 640}
+{"held_images_verified": 672}
+{"held_images_verified": 704}
+{"held_images_verified": 736}
+{"held_images_verified": 768}
+{"held_images_verified": 800}
+{"held_images_verified": 832}
+{"held_images_verified": 864}
+{"held_images_verified": 896}
+{"held_images_verified": 928}
+{"held_images_verified": 960}
+{"held_images_verified": 992}
+{"held_images_verified": 1024}
+{"held_images_verified": 1056}
+{"held_images_verified": 1088}
+{"held_images_verified": 1120}
+{"held_images_verified": 1152}
+{"held_images_verified": 1184}
+{"held_images_verified": 1216}
+{"held_images_verified": 1248}
+{"held_images_verified": 1280}
+{"held_images_verified": 1312}
+{"held_images_verified": 1344}
+{"held_images_verified": 1376}
+{"held_images_verified": 1408}
+{"held_images_verified": 1440}
+{"held_images_verified": 1472}
+{"held_images_verified": 1504}
+{"held_images_verified": 1536}
+{"held_images_verified": 1568}
+{"held_images_verified": 1600}
+{"held_images_verified": 1632}
+{"held_images_verified": 1664}
+{"held_images_verified": 1696}
+{"held_images_verified": 1728}
+{"held_images_verified": 1760}
+{"held_images_verified": 1792}
+{"held_images_verified": 1824}
+{"held_images_verified": 1856}
+{"held_images_verified": 1888}
+{"held_images_verified": 1920}
+{"held_images_verified": 1952}
+{"held_images_verified": 1984}
+{"held_images_verified": 2016}
+{"held_images_verified": 2048}
+{"held_images_verified": 2080}
+{"held_images_verified": 2112}
+{"held_images_verified": 2144}
+{"held_images_verified": 2176}
+{"held_images_verified": 2208}
+{"held_images_verified": 2240}
+{"held_images_verified": 2272}
+{"held_images_verified": 2304}
+{"held_images_verified": 2336}
+{"held_images_verified": 2368}
+{"held_images_verified": 2400}
+{"held_images_verified": 2432}
+{"held_images_verified": 2464}
+{"held_images_verified": 2496}
+{"held_images_verified": 2528}
+{"held_images_verified": 2560}
+{"held_images_verified": 2592}
+{"held_images_verified": 2624}
+{"held_images_verified": 2656}
+{"held_images_verified": 2688}
+{"held_images_verified": 2720}
+{"held_images_verified": 2752}
+{"held_images_verified": 2784}
+{"held_images_verified": 2816}
+{"held_images_verified": 2848}
+{"held_images_verified": 2880}
+{"held_images_verified": 2912}
+{"held_images_verified": 2944}
+{"held_images_verified": 2976}
+{"held_images_verified": 3008}
+{"held_images_verified": 3040}
+{"held_images_verified": 3072}
+{"held_images_verified": 3104}
+{"held_images_verified": 3136}
+{"held_images_verified": 3168}
+{"held_images_verified": 3200}
+{"held_images_verified": 3232}
+{"held_images_verified": 3264}
+{"held_images_verified": 3296}
+{"held_images_verified": 3328}
+{"held_images_verified": 3360}
+{"held_images_verified": 3392}
+{"held_images_verified": 3424}
+{"held_images_verified": 3456}
+{"held_images_verified": 3488}
+{"held_images_verified": 3520}
+{"held_images_verified": 3552}
+{"held_images_verified": 3584}
+{"held_images_verified": 3616}
+{"held_images_verified": 3648}
+{"held_images_verified": 3680}
+{"held_images_verified": 3712}
+{"held_images_verified": 3744}
+{"held_images_verified": 3776}
+{"held_images_verified": 3808}
+{"held_images_verified": 3840}
+{"held_images_verified": 3872}
+{"held_images_verified": 3904}
+{"held_images_verified": 3936}
+{"held_images_verified": 3968}
+{"held_images_verified": 4000}
+{"held_images_verified": 4032}
+{"held_images_verified": 4064}
+{"held_images_verified": 4096}
+{"held_images_verified": 4128}
+{"held_images_verified": 4160}
+{"held_images_verified": 4192}
+{"held_images_verified": 4224}
+{"held_images_verified": 4256}
+{"held_images_verified": 4288}
+{"held_images_verified": 4320}
+{"held_images_verified": 4352}
+{"held_images_verified": 4384}
+{"held_images_verified": 4416}
+{"held_images_verified": 4448}
+{"held_images_verified": 4480}
+{"held_images_verified": 4512}
+{"held_images_verified": 4544}
+{"held_images_verified": 4576}
+{"held_images_verified": 4608}
+{"held_images_verified": 4640}
+{"held_images_verified": 4672}
+{"held_images_verified": 4704}
+{"held_images_verified": 4736}
+{"held_images_verified": 4768}
+{"held_images_verified": 4800}
+{"held_images_verified": 4832}
+{"held_images_verified": 4864}
+{"held_images_verified": 4896}
+{"held_images_verified": 4928}
+{"held_images_verified": 4960}
+{"held_images_verified": 4992}
+{"held_images_verified": 5024}
+{"held_images_verified": 5056}
+{"held_images_verified": 5088}
+{"held_images_verified": 5120}
+{"held_images_verified": 5152}
+{"held_images_verified": 5184}
+{"held_images_verified": 5216}
+{"held_images_verified": 5248}
+{"held_images_verified": 5280}
+{"held_images_verified": 5312}
+{"held_images_verified": 5344}
+{"held_images_verified": 5376}
+{"held_images_verified": 5408}
+{"held_images_verified": 5440}
+{"held_images_verified": 5472}
+{"held_images_verified": 5504}
+{"held_images_verified": 5536}
+{"held_images_verified": 5568}
+{"held_images_verified": 5600}
+{"held_images_verified": 5632}
+{"held_images_verified": 5664}
+{"held_images_verified": 5696}
+{"held_images_verified": 5728}
+{"held_images_verified": 5760}
+{"held_images_verified": 5792}
+{"held_images_verified": 5824}
+{"held_images_verified": 5856}
+{"held_images_verified": 5888}
+{"held_images_verified": 5920}
+{"held_images_verified": 5952}
+{"held_images_verified": 5984}
+{"held_images_verified": 6016}
+{"held_images_verified": 6048}
+{"held_images_verified": 6080}
+{"held_images_verified": 6112}
+{"held_images_verified": 6144}
+{"held_images_verified": 6176}
+{"held_images_verified": 6208}
+{"held_images_verified": 6240}
+{"held_images_verified": 6272}
+{"held_images_verified": 6304}
+{"held_images_verified": 6336}
+{"held_images_verified": 6368}
+{"held_images_verified": 6400}
+{"held_images_verified": 6432}
+{"held_images_verified": 6464}
+{"held_images_verified": 6496}
+{"held_images_verified": 6528}
+{"held_images_verified": 6560}
+{"held_images_verified": 6592}
+{"held_images_verified": 6624}
+{"held_images_verified": 6656}
+{"held_images_verified": 6688}
+{"held_images_verified": 6720}
+{"held_images_verified": 6752}
+{"held_images_verified": 6784}
+{"held_images_verified": 6816}
+{"held_images_verified": 6848}
+{"held_images_verified": 6880}
+{"held_images_verified": 6912}
+{"held_images_verified": 6944}
+{"held_images_verified": 6976}
+{"held_images_verified": 7008}
+{"held_images_verified": 7040}
+{"held_images_verified": 7072}
+{"held_images_verified": 7104}
+{"held_images_verified": 7136}
+{"held_images_verified": 7168}
+{"held_images_verified": 7200}
+{"held_images_verified": 7232}
+{"held_images_verified": 7264}
+{"held_images_verified": 7296}
+{"held_images_verified": 7328}
+{"held_images_verified": 7360}
+{"held_images_verified": 7392}
+{"held_images_verified": 7424}
+{"held_images_verified": 7456}
+{"held_images_verified": 7488}
+{"held_images_verified": 7520}
+{"held_images_verified": 7552}
+{"held_images_verified": 7584}
+{"held_images_verified": 7616}
+{"held_images_verified": 7648}
+{"held_images_verified": 7680}
+{"held_images_verified": 7712}
+{"held_images_verified": 7744}
+{"held_images_verified": 7776}
+{"held_images_verified": 7808}
+{"held_images_verified": 7840}
+{"held_images_verified": 7872}
+{"held_images_verified": 7904}
+{"held_images_verified": 7936}
+{"held_images_verified": 7968}
+{"held_images_verified": 8000}
+{"held_images_verified": 8032}
+{"held_images_verified": 8064}
+{"held_images_verified": 8096}
+{"held_images_verified": 8128}
+{"held_images_verified": 8160}
+{"held_images_verified": 8192}
+{"held_images_verified": 8224}
+{"held_images_verified": 8256}
+{"held_images_verified": 8288}
+{"held_images_verified": 8320}
+{"held_images_verified": 8352}
+{"held_images_verified": 8384}
+{"held_images_verified": 8416}
+{"held_images_verified": 8448}
+{"held_images_verified": 8480}
+{"held_images_verified": 8512}
+{"held_images_verified": 8544}
+{"held_images_verified": 8576}
+{"held_images_verified": 8608}
+{"held_images_verified": 8640}
+{"held_images_verified": 8672}
+{"held_images_verified": 8704}
+{"held_images_verified": 8736}
+{"held_images_verified": 8768}
+{"held_images_verified": 8800}
+{"held_images_verified": 8832}
+{"held_images_verified": 8864}
+{"held_images_verified": 8896}
+{"held_images_verified": 8928}
+{"held_images_verified": 8960}
+{"held_images_verified": 8992}
+{"held_images_verified": 9024}
+{"held_images_verified": 9056}
+{"held_images_verified": 9088}
+{"held_images_verified": 9120}
+{"held_images_verified": 9152}
+{"held_images_verified": 9184}
+{"held_images_verified": 9216}
+{"held_images_verified": 9248}
+{"held_images_verified": 9280}
+{"held_images_verified": 9312}
+{"held_images_verified": 9344}
+{"held_images_verified": 9376}
+{"held_images_verified": 9408}
+{"held_images_verified": 9440}
+{"held_images_verified": 9472}
+{"held_images_verified": 9504}
+{"held_images_verified": 9536}
+{"held_images_verified": 9568}
+{"held_images_verified": 9600}
+{"held_images_verified": 9632}
+{"held_images_verified": 9664}
+{"held_images_verified": 9696}
+{"held_images_verified": 9728}
+{"held_images_verified": 9760}
+{"held_images_verified": 9792}
+{"held_images_verified": 9824}
+{"held_images_verified": 9856}
+{"held_images_verified": 9888}
+{"held_images_verified": 9920}
+{"held_images_verified": 9952}
+{"held_images_verified": 9984}
+{"held_images_verified": 10016}
+{"held_images_verified": 10048}
+{"held_images_verified": 10080}
+{"held_images_verified": 10112}
+{"held_images_verified": 10144}
+{"held_images_verified": 10176}
+{"held_images_verified": 10208}
+{"held_images_verified": 10240}
+{"held_images_verified": 10272}
+{"held_images_verified": 10304}
+{"held_images_verified": 10336}
+{"held_images_verified": 10368}
+{"held_images_verified": 10400}
+{"held_images_verified": 10432}
+{"held_images_verified": 10464}
+{"held_images_verified": 10496}
+{"held_images_verified": 10528}
+{"held_images_verified": 10560}
+{"held_images_verified": 10592}
+{"held_images_verified": 10624}
+{"held_images_verified": 10656}
+{"held_images_verified": 10688}
+{"held_images_verified": 10720}
+{"held_images_verified": 10752}
+{"held_images_verified": 10784}
+{"held_images_verified": 10816}
+{"held_images_verified": 10848}
+{"held_images_verified": 10880}
+{"held_images_verified": 10912}
+{"held_images_verified": 10944}
+{"held_images_verified": 10976}
+{"held_images_verified": 11008}
+{"held_images_verified": 11040}
+{"held_images_verified": 11072}
+{"held_images_verified": 11104}
+{"held_images_verified": 11136}
+{"held_images_verified": 11168}
+{"held_images_verified": 11200}
+{"held_images_verified": 11232}
+{"held_images_verified": 11264}
+{"held_images_verified": 11296}
+{"held_images_verified": 11328}
+{"held_images_verified": 11360}
+{"held_images_verified": 11392}
+{"held_images_verified": 11424}
+{"held_images_verified": 11456}
+{"held_images_verified": 11488}
+{"held_images_verified": 11520}
+{"held_images_verified": 11552}
+{"held_images_verified": 11584}
+{"held_images_verified": 11616}
+{"held_images_verified": 11648}
+{"held_images_verified": 11680}
+{"held_images_verified": 11712}
+{"held_images_verified": 11744}
+{"held_images_verified": 11776}
+{"held_images_verified": 11808}
+{"held_images_verified": 11840}
+{"held_images_verified": 11872}
+{"held_images_verified": 11904}
+{"held_images_verified": 11936}
+{"held_images_verified": 11968}
+{"held_images_verified": 12000}
+{"held_images_verified": 12032}
+{"held_images_verified": 12064}
+{"held_images_verified": 12096}
+{"held_images_verified": 12128}
+{"held_images_verified": 12160}
+{"held_images_verified": 12192}
+{"held_images_verified": 12224}
+{"held_images_verified": 12256}
+{"held_images_verified": 12288}
+{"held_images_verified": 12320}
+{"held_images_verified": 12352}
+{"held_images_verified": 12384}
+{"held_images_verified": 12416}
+{"held_images_verified": 12448}
+{"held_images_verified": 12480}
+{"held_images_verified": 12512}
+{"held_images_verified": 12544}
+{"held_images_verified": 12576}
+{"held_images_verified": 12599}
+KILL fixed TRAIN quality gate
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 3min 43.156s
+CPU time consumed: 4min 18.912s
+Memory peak: 4.8G
+Memory swap peak: 0B
