@@ -1,0 +1,11 @@
+Running as unit: sfora-large-lower-adapter-cpu-v2.service; invocation ID: 8c870885dce04de786d54186707769f5
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 7943.64it/s]
+PASS actual F5 native CPU source, lower adapter identity/gradients/merge; no GPU or quality
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 14.765s
+CPU time consumed: 47.105s
+Memory peak: 256.0K
+Memory swap peak: 0B

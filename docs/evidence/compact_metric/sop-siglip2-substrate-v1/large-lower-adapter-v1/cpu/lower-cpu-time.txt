@@ -1,0 +1,23 @@
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-large-lower-adapter-cpu-v1/qualify_large_lower_adapter_cpu.py --execution-sha256 e27ddbd5e13d6188e44e3b7adce52e3b5287c37afaa35e4d94b5fdb98df73dd6 --output /home/riomus/runs/sfora-large-lower-adapter-cpu-v1/lower-cpu-proof.json"
+	User time (seconds): 43.07
+	System time (seconds): 3.55
+	Percent of CPU this job got: 318%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:14.65
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 3897500
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 17949
+	Minor (reclaiming a frame) page faults: 602260
+	Voluntary context switches: 106521
+	Involuntary context switches: 4124
+	Swaps: 0
+	File system inputs: 12008
+	File system outputs: 40
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
