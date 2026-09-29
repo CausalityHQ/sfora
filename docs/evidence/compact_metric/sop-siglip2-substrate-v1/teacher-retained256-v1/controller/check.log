@@ -1,0 +1,8 @@
+Running as unit: sfora-teacher-retained256-controller-check-v1.service; invocation ID: 91db710f4d0d4621b900182a76b5f99d
+PASS actual source/CPU/two discarded mechanics/caps/ordered twenty-command plan/unbound-control negative; no training
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 24ms
+CPU time consumed: 23ms
+Memory peak: 256.0K
+Memory swap peak: 0B

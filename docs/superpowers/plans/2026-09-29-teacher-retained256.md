@@ -38,7 +38,7 @@ Files: new `scripts/train_pe_teacher_retained256.py` and
       gradients/dead-tail negative; run on DGX before implementing the adapter.
 - [x] Implement expansion/objective/authority, reuse original mechanics primitives;
       run that check and actual CPU falsifier; collect proof/source/caps/negative.
-- [ ] Run one17 discarded mechanics per arm sequentially; complete resume/reload,
+- [x] Run one17 discarded mechanics per arm sequentially; complete resume/reload,
       new coordinate activation, cost/admission gates; collect originals.
 
 ## Task2: Matched TRAIN outcome
