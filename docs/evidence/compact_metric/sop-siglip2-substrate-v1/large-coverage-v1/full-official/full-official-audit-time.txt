@@ -1,0 +1,23 @@
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-large-coverage-checkpoint-v3/qualify_pe_large_coverage_checkpoint.py --execution-sha256 15eba89fd3eb2fa1e86566ccf5166b9335c87387eb72774f9829fead229828f0 --arm full --training-sha256 49f64a7e273e37e2df5efcf2249de90b153cee486bb123d61702889d0bb34eb5 --cpu-proof /home/riomus/runs/sfora-large-coverage-checkpoint-v3/full-cpu-proof-v3.json --cpu-sha256 12c57a66f5c506ba96ba7a7bf601cae079188aa9f50951088dce06b296462e58 --audit-cpu --receipt-sha256 497a4333adaa129fd0851eead6969f0ed3a8107bdf706e204a5466dc9b69397c --control /home/riomus/runs/sfora-large-coverage-half-official-b32-v1 --control-sha256 bb7bf6f4cf84233db20804eef9daaac9987209b56e518f966f4fe9a216c923ef --control-audit-sha256 b1e38ad84bb0c29078d207d9751fdc2d835cb38742caa7215d6320f3504815df --output /home/riomus/runs/sfora-large-coverage-full-official-b32-v1"
+	User time (seconds): 21.69
+	System time (seconds): 1.71
+	Percent of CPU this job got: 208%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:11.25
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 1111244
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 301672
+	Voluntary context switches: 14771
+	Involuntary context switches: 1068
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 776
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

@@ -1,0 +1,58 @@
+{
+  "decision": "KILL_FIXED_100_UPDATE_POOL_PROCEDURE",
+  "global_goal": "ACTIVE_UNMET",
+  "dataset": "DeepFashion InShop official standard",
+  "query_images": 14218,
+  "gallery_images": 12612,
+  "official_products": 3985,
+  "training_products": 3997,
+  "control": {
+    "arm": "half",
+    "r1_percent": 93.88099592066395,
+    "map_at_r_percent": 74.23130214200701,
+    "training_seconds": 114.80446407198906,
+    "images_per_second": 55.746961163346654,
+    "complete_cuda_peak_bytes": 6129681408,
+    "official_receipt_sha256": "bb7bf6f4cf84233db20804eef9daaac9987209b56e518f966f4fe9a216c923ef",
+    "audit_sha256": "b1e38ad84bb0c29078d207d9751fdc2d835cb38742caa7215d6320f3504815df"
+  },
+  "candidate": {
+    "arm": "full",
+    "r1_percent": 94.38739625826416,
+    "map_at_r_percent": 74.73477496708763,
+    "training_seconds": 119.04416061192751,
+    "images_per_second": 53.76156181959553,
+    "complete_cuda_peak_bytes": 6548810240,
+    "official_receipt_sha256": "497a4333adaa129fd0851eead6969f0ed3a8107bdf706e204a5466dc9b69397c",
+    "audit_sha256": "2092703d0801c28613e8f6b485f242836fc1cdfc1653b6ca373bcf9a564b24a6"
+  },
+  "paired_product_and_query_intervals": {
+    "per_query_r1": {
+      "mean_difference": 0.00506400337600225,
+      "product_lower95": 0.002580335734529689,
+      "product_upper95": 0.00743253326800099,
+      "query_lower95": 0.0026023350682233787,
+      "query_upper95": 0.007455338303558869
+    },
+    "per_query_ap": {
+      "mean_difference": 0.005034728203906054,
+      "product_lower95": 0.002594615162514668,
+      "product_upper95": 0.007322673963919262,
+      "query_lower95": 0.0031137656766718484,
+      "query_upper95": 0.0069635241514144925
+    },
+    "survivor": false,
+    "control_receipt_sha256": "bb7bf6f4cf84233db20804eef9daaac9987209b56e518f966f4fe9a216c923ef",
+    "control_audit_sha256": "b1e38ad84bb0c29078d207d9751fdc2d835cb38742caa7215d6320f3504815df"
+  },
+  "minimum_dated_r1_percent": 96.7,
+  "candidate_gap_percentage_points": 2.312603741735842,
+  "strongest_current_reference_qualified": false,
+  "public_official_latency_measured": false,
+  "public_p99_certified": false,
+  "prior_official_benchmark_exposure": true,
+  "former_train_held_now_training": true,
+  "scope_effect_not_exposure_only_causal_proof": true,
+  "all_jobs_terminal_collected": true,
+  "next_intervention": "Predeclared longer matched native optimization budget with exact optimizer/bank/RNG resumption inside unchanged execution caps; fresh same F5 source for both scopes; no intermediate TEST checkpoint selection; terminal source/serving/official confirmation only."
+}

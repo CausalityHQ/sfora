@@ -1,0 +1,8 @@
+Running as unit: sfora-large-coverage-half-official-audit-v1.service; invocation ID: 0a76b19da73c420a9210cbf17f4bab27
+PASS complete saved official wire CPU quality/CI/decision replay
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 9.756s
+CPU time consumed: 21.958s
+Memory peak: 676.0K
+Memory swap peak: 0B
