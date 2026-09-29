@@ -1,0 +1,25 @@
+Running as unit: sfora-large-optimization-half-official-b32-v1.service; invocation ID: ff7535f1edb44240b5aee2e46d7e6735
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  83%|████████▎ | 661/792 [00:00<00:00, 6603.72it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 6722.76it/s]
+{"query_public_B32_images": 2048}
+{"query_public_B32_images": 4096}
+{"query_public_B32_images": 6144}
+{"query_public_B32_images": 8192}
+{"query_public_B32_images": 10240}
+{"query_public_B32_images": 12288}
+{"query_public_B32_images": 14218}
+{"gallery_public_B32_images": 2048}
+{"gallery_public_B32_images": 4096}
+{"gallery_public_B32_images": 6144}
+{"gallery_public_B32_images": 8192}
+{"gallery_public_B32_images": 10240}
+{"gallery_public_B32_images": 12288}
+{"gallery_public_B32_images": 12612}
+KILL minimum official quality screen
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 4min 14.086s
+CPU time consumed: 4min 33.581s
+Memory peak: 764.0K
+Memory swap peak: 0B

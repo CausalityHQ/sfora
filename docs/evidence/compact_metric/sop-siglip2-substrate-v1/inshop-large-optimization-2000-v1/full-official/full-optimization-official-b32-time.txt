@@ -1,0 +1,23 @@
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-large-optimization-checkpoint-v1/qualify_pe_large_optimization_checkpoint.py --execution-sha256 8c6771b3fc63de4967120c6ae1a388b8e5311a454bfd060716488859fac6aa0c --arm full --training-sha256 dc42d59c4c14a8dfc53b524fd1afbf50a4944d4e5818a1bba3c3f28aefa58412 --cpu-proof /home/riomus/runs/sfora-large-optimization-checkpoint-v1/full-optimization-cpu-proof-v1.json --cpu-sha256 68279a869011d9dceb5b1bb5f1239d8e4313dfd12181787e775e53ff990d9d35 --output /home/riomus/runs/sfora-large-optimization-full-official-b32-v1"
+	User time (seconds): 265.12
+	System time (seconds): 6.91
+	Percent of CPU this job got: 115%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 3:54.59
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 5955084
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 17337
+	Minor (reclaiming a frame) page faults: 1554860
+	Voluntary context switches: 222498
+	Involuntary context switches: 3440
+	Swaps: 0
+	File system inputs: 55984
+	File system outputs: 11000
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
