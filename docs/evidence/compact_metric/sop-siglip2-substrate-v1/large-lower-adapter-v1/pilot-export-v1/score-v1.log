@@ -1,0 +1,8 @@
+Running as unit: sfora-lower-pilot-score-v1.service; invocation ID: 5d129be14fc048149bec405f810f1e3d
+{"decision": "KILL", "intervals": {"per_query_r1": {"mean_delta": 7.869058860560277e-05, "product_lower95": -0.000778816199376947, "product_upper95": 0.0009118956610876053, "query_lower95": -0.0007101825621655644, "query_upper95": 0.0008655964746616305}, "per_query_ap": {"mean_delta": 0.0009447523159100119, "product_lower95": 0.00013718450090237228, "product_upper95": 0.0017816037586571678, "query_lower95": 0.00017502906690194833, "query_upper95": 0.0017198910023785512}}, "each_seed_quality_pass": false, "cost_pass": true}
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 46.002s
+CPU time consumed: 54.251s
+Memory peak: 764.0K
+Memory swap peak: 0B

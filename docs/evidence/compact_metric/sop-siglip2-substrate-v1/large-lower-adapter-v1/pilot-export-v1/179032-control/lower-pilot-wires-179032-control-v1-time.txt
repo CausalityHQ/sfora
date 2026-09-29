@@ -1,0 +1,26 @@
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 20477.93it/s]
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python export_large_lower_pilot.py --execution-sha256 d2550a6e7cd59916e8d6e9e9a5b9f70dbe60efbbf37aaab3a076b529ca7badb5 --seed 179032 --arm control --cpu-proof /home/riomus/runs/sfora-lower-pilot-source-179032-control-v1/proof.json --cpu-sha256 32b163909dd00157b775b5caa5ac02770f5451fb155102a331210fd6ac7c9801 --output /home/riomus/runs/sfora-lower-pilot-wires-179032-control-v1"
+	User time (seconds): 174.15
+	System time (seconds): 108.95
+	Percent of CPU this job got: 104%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 4:30.63
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 5212024
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 18803
+	Minor (reclaiming a frame) page faults: 3031826
+	Voluntary context switches: 128536
+	Involuntary context switches: 3515
+	Swaps: 0
+	File system inputs: 22472
+	File system outputs: 30712
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

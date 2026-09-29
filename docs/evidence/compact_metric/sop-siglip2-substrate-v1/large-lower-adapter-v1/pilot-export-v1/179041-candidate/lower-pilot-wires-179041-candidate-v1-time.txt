@@ -1,0 +1,26 @@
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  88%|████████▊ | 695/792 [00:00<00:00, 6935.36it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 7142.77it/s]
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python export_large_lower_pilot.py --execution-sha256 d2550a6e7cd59916e8d6e9e9a5b9f70dbe60efbbf37aaab3a076b529ca7badb5 --seed 179041 --arm candidate --cpu-proof /home/riomus/runs/sfora-lower-pilot-source-179041-candidate-v1/proof.json --cpu-sha256 8419dd7d5ded2162e733f83b0d86059f86f85526c8828efd366b618b4bde0489 --output /home/riomus/runs/sfora-lower-pilot-wires-179041-candidate-v1"
+	User time (seconds): 176.46
+	System time (seconds): 109.07
+	Percent of CPU this job got: 105%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 4:30.11
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 5211808
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 17479
+	Minor (reclaiming a frame) page faults: 2687078
+	Voluntary context switches: 142644
+	Involuntary context switches: 3290
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 30712
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

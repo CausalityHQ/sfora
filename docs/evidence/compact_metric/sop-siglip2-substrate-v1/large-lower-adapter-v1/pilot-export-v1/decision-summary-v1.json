@@ -1,0 +1,117 @@
+{
+  "pass": true,
+  "decision": "KILL",
+  "dataset": "DeepFashion In-Shop",
+  "split": "previously observed TRAIN-held",
+  "fit_images": 13283,
+  "fit_products": 2004,
+  "query_images": 6354,
+  "gallery_images": 6245,
+  "held_products": 1993,
+  "updates_per_seed": 100,
+  "seeds": [
+    179032,
+    179041
+  ],
+  "execution_sha256": "c4f747f233f5b205f5e9e9d1c7795bec05ed2e932a47152683f1e8751ea25fbc",
+  "inputs": [
+    {
+      "seed": 179032,
+      "arm": "control",
+      "receipt_sha256": "6077003088cac1865c9a9731aa88058cf47f713f27c2fc7009ea8fc2af61a0cd",
+      "held_sha256": "34635dc46718e4470ed0f63641e80cd2377f1a7d8b92e09889c85f38759c7a26",
+      "checkpoint_sha256": "947ad6c51de596be664883c44c3801a7c94c5f91492ba26ea69afa81ba33d08d"
+    },
+    {
+      "seed": 179032,
+      "arm": "candidate",
+      "receipt_sha256": "53bbcb108ea690536417fb746a2817fe89df72ff425c5d3209098851990bb293",
+      "held_sha256": "448d1ea76b598068d1054297c9bea434d5db43e9e64f072b3646156fb81ff90a",
+      "checkpoint_sha256": "f89a52feac3d54fe3e89c93f8d6d0f7d2d9f977211c613795e67bd82dc3f9de6"
+    },
+    {
+      "seed": 179041,
+      "arm": "control",
+      "receipt_sha256": "8d6c5972d7e42f6360cbbcaa8e61682b7caf1d29ae875fb0db3e213c923a708a",
+      "held_sha256": "9c7d66215adf93c617c0db05f7f71dac4f50e26697c90c6aa7e7ea0f659d73ae",
+      "checkpoint_sha256": "9572012b36bf445d001cc9829ce143980cfe05e27e37ab2ddcaf4b4387f7aadc"
+    },
+    {
+      "seed": 179041,
+      "arm": "candidate",
+      "receipt_sha256": "4cbe1fb9d0e3ae99c5606959d24408a9650f63c78c422f271cda56c58a01bb56",
+      "held_sha256": "c50d89a0300d2777beca1659238a92fa3b1158ddb3ef0259662780ae9fde6358",
+      "checkpoint_sha256": "456e5897a31782d8937a6c11c567950b45eb1e0d2c402efceff21409e4ddbe63"
+    }
+  ],
+  "paired_seed_average_intervals": {
+    "per_query_r1": {
+      "mean_delta": 7.869058860560277e-05,
+      "product_lower95": -0.000778816199376947,
+      "product_upper95": 0.0009118956610876053,
+      "query_lower95": -0.0007101825621655644,
+      "query_upper95": 0.0008655964746616305
+    },
+    "per_query_ap": {
+      "mean_delta": 0.0009447523159100119,
+      "product_lower95": 0.00013718450090237228,
+      "product_upper95": 0.0017816037586571678,
+      "query_lower95": 0.00017502906690194833,
+      "query_upper95": 0.0017198910023785512
+    }
+  },
+  "cost": {
+    "179032": {
+      "training_wall_seconds": 145.37807313492522,
+      "median_step_seconds": 1.4402031844947487,
+      "images_per_second": 44.023145045127734,
+      "peak_cuda_allocated_bytes": 7839427072,
+      "training_wall_ratio": 1.2450725336832353,
+      "median_step_ratio": 1.2473013031585627
+    },
+    "179041": {
+      "training_wall_seconds": 145.2190022659488,
+      "median_step_seconds": 1.4393788208253682,
+      "images_per_second": 44.071367383996154,
+      "peak_cuda_allocated_bytes": 7839427072,
+      "training_wall_ratio": 1.2488751191611318,
+      "median_step_ratio": 1.2464356813673407
+    }
+  },
+  "each_seed_quality_pass": false,
+  "quality_pass": false,
+  "cost_pass": true,
+  "bootstrap_draws": 5000,
+  "bootstrap_seed": 179019,
+  "interval_scope": "conditional on the two frozen seeds; paired product/query resampling",
+  "cost_denominator": "archival matched controls, not contemporaneous overhead",
+  "metric_units": "R@1 and mAP@R fractions; multiply deltas by100 for percentage points",
+  "quality_read": "In-Shop TRAIN-held only",
+  "official_read": false,
+  "claim_eligible": false,
+  "public_latency_measured": false,
+  "global_production_goal_met": false,
+  "quality": {
+    "179032": {
+      "control": {
+        "recall_at_1": 0.9666351904312245,
+        "map_at_r": 0.8139499969440983
+      },
+      "candidate": {
+        "recall_at_1": 0.9664778092540132,
+        "map_at_r": 0.8149594045694135
+      }
+    },
+    "179041": {
+      "control": {
+        "recall_at_1": 0.9678942398489141,
+        "map_at_r": 0.8166306456386795
+      },
+      "candidate": {
+        "recall_at_1": 0.9682090022033365,
+        "map_at_r": 0.8175107426451842
+      }
+    }
+  },
+  "raw_decision_sha256": "0b8ac60f7327b29c9ef74941e0871e7a1bfc4c299b62d00ddc411e833618d933"
+}
