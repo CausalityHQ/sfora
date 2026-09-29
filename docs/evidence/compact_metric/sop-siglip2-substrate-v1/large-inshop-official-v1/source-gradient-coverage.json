@@ -1,0 +1,18 @@
+{
+  "source_preflight_sha256": "41b5fe09448163d755d278131427a1d5bc4663855d544501487489fbe0813293",
+  "source_updates": 100,
+  "source_fit_rows": 13283,
+  "source_fit_products": 2004,
+  "actual_gradient_input_unique_rows": 6192,
+  "actual_gradient_input_unique_products": 1600,
+  "class_draws": 1600,
+  "effective_batch": [
+    64
+  ],
+  "images_per_class_per_batch": [
+    4
+  ],
+  "new_full_train_products": 3997,
+  "new100_B64_class_slot_ceiling_at_four_images": 1600,
+  "sampler_change_needed_for_actual_full_identity_coverage": true
+}

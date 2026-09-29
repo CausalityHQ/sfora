@@ -31,5 +31,8 @@
   "p99_certified": false,
   "claim_eligible": false,
   "global_goal_complete": false,
-  "next_intervention": "Full official TRAIN identity coverage using same trained source/backbone/head/objective/frozen12block allocation, actual-native microbatch16/effective64 mechanics and one fixed100update matched control/candidate; first authenticate row/class/proxy/bank mapping and compare full loss/gradient semantics without refreshing bank between microbatches. Data coverage is a hypothesis, not causally proved by this result. No TEST-tuned loss/depth or more latency expenditure on failed source."
+  "next_intervention": "Actual full TRAIN identity coverage: same F5/source/head/objective/12block allocation, matched100update half-pool control vs3997-ID fullTRAIN using SAMEone-image-per-ID round-robin sampler/effectiveB64 and sourceCPU/proxy/bank/schedule proof. Must coverALLeligibleIDs byupdate100, not merely enlarge label list. Microbatch16 accumulation gates undercurrentcaps. Coverage is hypothesis, not uniquely proved cause; no more latency spending on failed representation.",
+  "source_actual_gradient_input_unique_images": 6192,
+  "source_actual_gradient_input_unique_identities": 1600,
+  "source_fit_eligible_identities": 2004
 }
