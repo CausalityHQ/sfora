@@ -1,0 +1,23 @@
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python -u /home/riomus/runs/sfora-full-valid-anchor-training-v1/train_pe_full_valid_anchor.py --execution-sha256 0da63376f73c9bc55c4c5f6e8c0f3f80fab7efe211ef6234a72af2ce4ed3ac36 --output /home/riomus/runs/sfora-full-valid-anchor-1800-v1 --chunk-end 1800 --mechanics-proof /home/riomus/runs/sfora-full-valid-anchor-mechanics-v1 --mechanics-sha256 92118c1b50159b98d192b37e2c25041085c95aa9d0dcf93644890f8b39fdedc7 --previous /home/riomus/runs/sfora-full-valid-anchor-1700-v1 --previous-sha256 be8e5ea01a0f6ed6372a3140a9663f6cf32a32323cf0e8e7da9b7270bc06fdee"
+	User time (seconds): 155.14
+	System time (seconds): 18.11
+	Percent of CPU this job got: 105%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 2:44.34
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 5498676
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 17936
+	Minor (reclaiming a frame) page faults: 2235292
+	Voluntary context switches: 130373
+	Involuntary context switches: 2122
+	Swaps: 0
+	File system inputs: 3600
+	File system outputs: 5069088
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

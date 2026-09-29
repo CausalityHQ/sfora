@@ -1,0 +1,18 @@
+{
+  "pass": true,
+  "arm": "full",
+  "intervention": "full-valid-anchor-v1",
+  "completed_step": 2000,
+  "execution_sha256": "4dcc6227059da973ff4b9c400264b8a7a4e6e5af03b7f40fa5df157d4c4d6375",
+  "training_receipt_sha256": "d718e4dee3971b13398a43ec56d02057491059d7e62f99362ef384d71b3a036e",
+  "source_resume_sha256": "e32dd813c456a0ed319d933b74ffbc9b42886cf0641cb673e4c36945b90c43fa",
+  "source_checkpoint_sha256": "f5fbf0e8eb3492274b6febeb6fd06a4b0d8b0fce4c7170069f3fa0d7b0a8df4d",
+  "checkpoint_sha256": "cb1ae064e53d118472856cb418458effb9a322e344af57ab5a087ea66f33a9a0",
+  "updated_whole_sha256": "80d33d75a28575e3637b2b0545cf8a456f776e70064a073d079c1dfc406b8965",
+  "updated_head_sha256": "ec167f7cbcbc7d66edff9ef0a5fc3de84ddc809aa134d6a6257ccab54d7a42c0",
+  "aggregate_training_wall_seconds": 2441.7909759846516,
+  "recovered_rank_updates": 375,
+  "strict400_terminal_vision_head_export": true,
+  "optimizer_updates": 0,
+  "quality_read": false
+}

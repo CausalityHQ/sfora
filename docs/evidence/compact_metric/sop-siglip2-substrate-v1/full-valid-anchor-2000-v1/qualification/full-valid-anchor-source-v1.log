@@ -1,0 +1,11 @@
+Running as unit: sfora-full-valid-anchor-source-v1.service; invocation ID: d7fcddc707c74724895b239910587d28
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 9032.05it/s]
+PASS actual updated native CPU source/strict reload/F16 cast; no official quality
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 21.784s
+CPU time consumed: 47.992s
+Memory peak: 512.0K
+Memory swap peak: 0B

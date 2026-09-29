@@ -1,0 +1,23 @@
+{
+  "pass": true,
+  "dataset": "DeepFashion In-Shop",
+  "split": "full TRAIN",
+  "images": 25882,
+  "identities": 3997,
+  "updates": 2000,
+  "training_images": 128000,
+  "training_seconds": 2441.7909759846516,
+  "images_per_second": 52.42053937413051,
+  "peak_cuda_allocated_bytes": 6560978432,
+  "recovered_rank_updates": 375,
+  "terminal_receipt_sha256": "d718e4dee3971b13398a43ec56d02057491059d7e62f99362ef384d71b3a036e",
+  "execution_sha256": "0da63376f73c9bc55c4c5f6e8c0f3f80fab7efe211ef6234a72af2ce4ed3ac36",
+  "all20_original_normal_exit_collected": true,
+  "all20_no_swap": true,
+  "all20_complete_state_source_input_parity_pass": true,
+  "archived_control_training_seconds_rounded": 2424.832571,
+  "operational_cost_ratio_vs_archived_control": 1.0069936395557644,
+  "cost_ratio_is_public_speed_claim": false,
+  "quality_read": false,
+  "claim_eligible": false
+}

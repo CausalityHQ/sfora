@@ -49,8 +49,8 @@
 **Interfaces:** Consumes accepted fullCPU/mechanics and preceding candidate chunk; produces20 chained full optimizer states/receipts and fixed native2000 serving checkpoint.
 
 - [x] Implement100chunk via unchanged fresh/identity/restore/step/save; reject wrong code/method/source/chunk/control state.
-- [ ] First17 input/diagnostics exactly replay accepted corrected mechanics; every2000 schedule/RGB/pixel hash matches archived full control.
-- [ ] Sequentially collect all20 original units; preserve full state, counters/scaler/frozen/source/RNG/cost, no intermediate quality or chooser.
-- [ ] Export terminal native400/head checkpoint and actual CPU/public serving authority; never bypass legacy schema guards.
-- [ ] Qualify frozen observed official protocol/wire/native bits/CPU replay, paired against archived full2000 control; report R1/mAP/cost/intervals and actual terminal GO/KILL.
+- [x] First17 input/diagnostics exactly replay accepted corrected mechanics; every2000 schedule/RGB/pixel hash matches archived full control.
+- [x] Sequentially collect all20 original units; preserve full state, counters/scaler/frozen/source/RNG/cost, no intermediate quality or chooser.
+- [x] Export terminal native400/head checkpoint and actual CPU/public serving authority; never bypass legacy schema guards.
+- [x] Qualify frozen observed official protocol/wire/native bits/CPU replay, paired against archived full2000 control; report R1/mAP/cost/intervals and actual terminal GO/KILL.
 - [ ] Update one concise convergence row, evidence, master and operator; keep full native goal active unless the complete production objective is actually met.

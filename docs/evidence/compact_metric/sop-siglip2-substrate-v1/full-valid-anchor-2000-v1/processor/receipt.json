@@ -1,0 +1,25 @@
+{
+  "pass": true,
+  "source_sha256": "8d9d365c8a269db817fc4b1ef0d4fd0336d716a413bd8cb733cff8e17bf69de8",
+  "candidate_receipt_sha256": "fde8508c057057bec0edc515e7c25c28b53686b34ec31c157dad227cdebbed84",
+  "protocol_sha256": "be7b27c68b5e2895063d4f24b2b9d4e396a77ed79b2426596893c293df2c20f2",
+  "roles": {
+    "query": {
+      "images_checked": 32,
+      "pixels_sha256": "5a5f1a4489cd125fc16aab0d23e043879ed61cf0c459285f1eb23e7e75d04d61",
+      "ordered_protocol_sha256": "e83bbf9b1c47ddaec3a4ce3413e569be8e3597b413a1944b43b2588d47b030f0"
+    },
+    "gallery": {
+      "images_checked": 32,
+      "pixels_sha256": "621edac6c1c89e3912e6d0c276e601af4215792f2c1a3a88b20fa4e42d9439e8",
+      "ordered_protocol_sha256": "3d10bedffd73298e38a7064be94a57f3d01697eebbe701258b652134a5b9cd8b"
+    }
+  },
+  "original_processor_from_separate_native_reload": true,
+  "all64_native_original_processor_packed_exact_saved_public": true,
+  "common_order_bound_by_identical_evaluator_and_protocol": true,
+  "source_whole_head_rng_preserved": true,
+  "peak_cuda_allocated_bytes": 880493056,
+  "quality_read": false,
+  "optimizer_updates": 0
+}

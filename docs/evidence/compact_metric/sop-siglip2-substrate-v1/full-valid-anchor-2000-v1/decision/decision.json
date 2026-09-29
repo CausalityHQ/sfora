@@ -1,0 +1,67 @@
+{
+  "pass": true,
+  "decision": "KILL",
+  "scope": "fixed full-valid-anchor2000 procedure only",
+  "dataset": "DeepFashion In-Shop",
+  "split": "previously observed official query/gallery",
+  "query_images": 14218,
+  "gallery_images": 12612,
+  "quality": {
+    "per_query_r1": {
+      "control": 0.9621606414404277,
+      "candidate": 0.9630749753833169
+    },
+    "per_query_ap": {
+      "control": 0.8167522989031794,
+      "candidate": 0.8188259271877119
+    }
+  },
+  "comparison": {
+    "per_query_r1": {
+      "mean_difference": 0.0009143339428892952,
+      "product_lower95": -0.0008384279875574083,
+      "product_upper95": 0.002623192568434144,
+      "query_lower95": -0.0007736671824447882,
+      "query_upper95": 0.0026023350682233787
+    },
+    "per_query_ap": {
+      "mean_difference": 0.002073628284532447,
+      "product_lower95": 0.0005773390738992967,
+      "product_upper95": 0.003600766891899723,
+      "query_lower95": 0.0007356221576633858,
+      "query_upper95": 0.003442823390555845
+    }
+  },
+  "necessary_dated_reference_screen": false,
+  "paired_product_lower95_positive": false,
+  "dated_reference_r1": 0.967,
+  "remaining_dated_r1_gap_pp": 0.39250246166830927,
+  "training_seconds": {
+    "control": 2424.832571133971,
+    "candidate": 2441.7909759846516
+  },
+  "training_images_per_second": {
+    "control": 52.787149728915466,
+    "candidate": 52.42053937413051
+  },
+  "training_cost_ratio": 1.0069936395001284,
+  "recovered_rank_updates": 375,
+  "bootstrap_draws": 5000,
+  "bootstrap_seed": 179019,
+  "uncertainty_conditional_on_fixed_checkpoints": true,
+  "control_receipt_sha256": "33c00bcec5a4ed82d734d71546aba2e4bd9bad84798eafb528240fa13e238388",
+  "control_audit_sha256": "8fbe0043f148dde48e04a67dc270b8e2f61c175d9a75142628a05de10989453f",
+  "candidate_receipt_sha256": "fde8508c057057bec0edc515e7c25c28b53686b34ec31c157dad227cdebbed84",
+  "candidate_audit_sha256": "e865e1514ceb801f6748e1e7461516a588e5d28f1c679f95060d79598b8d05fd",
+  "candidate_training_sha256": "d718e4dee3971b13398a43ec56d02057491059d7e62f99362ef384d71b3a036e",
+  "qualification_execution_sha256": "4dcc6227059da973ff4b9c400264b8a7a4e6e5af03b7f40fa5df157d4c4d6375",
+  "decision_source_sha256": "b087950ecdb639ad332936323be7e04889e625188a9bc47b98241cdf3dd2a4ea",
+  "integrity": "PASS",
+  "resource": "PASS",
+  "candidate_artifacts_preserved": true,
+  "current_strongest_external_reference_gate": "OPEN",
+  "public_latency_measured": false,
+  "claim_eligible": false,
+  "prior_official_benchmark_exposure": true,
+  "production_joint_goal_met": false
+}

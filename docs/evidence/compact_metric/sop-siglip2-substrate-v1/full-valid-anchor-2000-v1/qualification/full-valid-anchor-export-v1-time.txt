@@ -1,0 +1,23 @@
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python -u /home/riomus/runs/sfora-full-valid-anchor-checkpoint-v1/qualify_pe_full_valid_anchor_checkpoint.py --execution-sha256 4dcc6227059da973ff4b9c400264b8a7a4e6e5af03b7f40fa5df157d4c4d6375 --training-sha256 d718e4dee3971b13398a43ec56d02057491059d7e62f99362ef384d71b3a036e --output /home/riomus/runs/sfora-full-valid-anchor-native2000-v1 --export-cpu"
+	User time (seconds): 13.98
+	System time (seconds): 1.41
+	Percent of CPU this job got: 135%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:11.39
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 3546528
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 77
+	Minor (reclaiming a frame) page faults: 197470
+	Voluntary context switches: 3769
+	Involuntary context switches: 268
+	Swaps: 0
+	File system inputs: 7840
+	File system outputs: 2469784
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
