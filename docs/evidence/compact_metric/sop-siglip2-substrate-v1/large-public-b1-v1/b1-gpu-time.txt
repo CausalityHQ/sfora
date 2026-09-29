@@ -1,0 +1,23 @@
+	Command being timed: "flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock flock -n /home/riomus/.sfora-siglip2-gpu.lock env CUDA_VISIBLE_DEVICES=0 CUBLAS_WORKSPACE_CONFIG=:4096:8 CUTILE_TILEIRAS_PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/tileiras PYTHONPATH=/home/riomus/runs/sfora-large-public-b1-qual-v1:/home/riomus/runs/sfora-large-public-b1-qual-v1/src:/home/riomus/runs/sfora-large-public-b1-qual-v1/isolated-deps /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-large-public-b1-qual-v1/qualify_pe_large_public_b1.py --execution-sha256 646f7a587aa06a7cfbb3af9f002d6322085cc09a1482115c731731fdc75571ef --cpu-sha256 cdf58394e25f9f7f1431fbeb580ebb52ef3fceba3ff9be0821d9a45a1c63541c --output /home/riomus/runs/sfora-large-public-b1-v1"
+	User time (seconds): 199.05
+	System time (seconds): 14.05
+	Percent of CPU this job got: 117%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 3:01.38
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 4291500
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 3013010
+	Voluntary context switches: 253182
+	Involuntary context switches: 2893
+	Swaps: 0
+	File system inputs: 8
+	File system outputs: 5960
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

@@ -1,0 +1,59 @@
+{
+  "decision": "GO complete public B1 TRAIN quality; no speed claim",
+  "dataset": "DeepFashion In-Shop",
+  "split": "TRAIN-held 6354 query / 6245 gallery / 1993 products",
+  "r1_percent": 95.67201762669185,
+  "map_at_r_percent": 78.61058447509419,
+  "control": "archival nonconcurrent same-protocol DensePE 95.0739692% R1 / 76.3915922% mAP@R; verified per-query receipt",
+  "paired_dense_pe_intervals": {
+    "per_query_r1": {
+      "mean_delta": 0.005980484734025811,
+      "product_lower95": 0.0006133666457834142,
+      "product_upper95": 0.011289303931904424,
+      "query_lower95": 0.0011016682404784387,
+      "query_upper95": 0.011174063581995594
+    },
+    "per_query_ap": {
+      "mean_delta": 0.022189922673586108,
+      "product_lower95": 0.01578015978395343,
+      "product_upper95": 0.028416437562279438,
+      "query_lower95": 0.017619418768155915,
+      "query_upper95": 0.026843135366990203
+    }
+  },
+  "cpu_replay_pass": true,
+  "profile_ten_calls_five_warmup_hook_instrumented": {
+    "1": {
+      "decode_ms": {
+        "p50_ms": 0.3095425199717283,
+        "p95_ms": 0.35010334104299545
+      },
+      "vision_cuda_ms": {
+        "p50_ms": 20.44915199279785,
+        "p95_ms": 21.150042819976807
+      },
+      "full_wall_ms": {
+        "p50_ms": 24.013752350583673,
+        "p95_ms": 26.866748160682615
+      }
+    },
+    "32": {
+      "decode_ms": {
+        "p50_ms": 6.2213309574872255,
+        "p95_ms": 6.230325484648347
+      },
+      "vision_cuda_ms": {
+        "p50_ms": 298.7661895751953,
+        "p95_ms": 302.5380859375
+      },
+      "full_wall_ms": {
+        "p50_ms": 321.0078787524253,
+        "p95_ms": 327.62908570002764
+      }
+    }
+  },
+  "claim_eligible": false,
+  "p99_certified": false,
+  "global_goal_complete": false,
+  "next": "Qualify existing public fp16_native mode using explicit trained-source cast authority and full B1/B32 query/gallery quality before paired latency; fixed source F5, no more TRAIN tuning."
+}

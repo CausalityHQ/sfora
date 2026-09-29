@@ -1,0 +1,60 @@
+Running as unit: sfora-public-b1-gpu-v1.service; invocation ID: 84dc2245e9124943a2dde9d6fe229c91
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+{"public_B1_queries_verified": 128}
+{"public_B1_queries_verified": 256}
+{"public_B1_queries_verified": 384}
+{"public_B1_queries_verified": 512}
+{"public_B1_queries_verified": 640}
+{"public_B1_queries_verified": 768}
+{"public_B1_queries_verified": 896}
+{"public_B1_queries_verified": 1024}
+{"public_B1_queries_verified": 1152}
+{"public_B1_queries_verified": 1280}
+{"public_B1_queries_verified": 1408}
+{"public_B1_queries_verified": 1536}
+{"public_B1_queries_verified": 1664}
+{"public_B1_queries_verified": 1792}
+{"public_B1_queries_verified": 1920}
+{"public_B1_queries_verified": 2048}
+{"public_B1_queries_verified": 2176}
+{"public_B1_queries_verified": 2304}
+{"public_B1_queries_verified": 2432}
+{"public_B1_queries_verified": 2560}
+{"public_B1_queries_verified": 2688}
+{"public_B1_queries_verified": 2816}
+{"public_B1_queries_verified": 2944}
+{"public_B1_queries_verified": 3072}
+{"public_B1_queries_verified": 3200}
+{"public_B1_queries_verified": 3328}
+{"public_B1_queries_verified": 3456}
+{"public_B1_queries_verified": 3584}
+{"public_B1_queries_verified": 3712}
+{"public_B1_queries_verified": 3840}
+{"public_B1_queries_verified": 3968}
+{"public_B1_queries_verified": 4096}
+{"public_B1_queries_verified": 4224}
+{"public_B1_queries_verified": 4352}
+{"public_B1_queries_verified": 4480}
+{"public_B1_queries_verified": 4608}
+{"public_B1_queries_verified": 4736}
+{"public_B1_queries_verified": 4864}
+{"public_B1_queries_verified": 4992}
+{"public_B1_queries_verified": 5120}
+{"public_B1_queries_verified": 5248}
+{"public_B1_queries_verified": 5376}
+{"public_B1_queries_verified": 5504}
+{"public_B1_queries_verified": 5632}
+{"public_B1_queries_verified": 5760}
+{"public_B1_queries_verified": 5888}
+{"public_B1_queries_verified": 6016}
+{"public_B1_queries_verified": 6144}
+{"public_B1_queries_verified": 6272}
+{"public_B1_queries_verified": 6354}
+GO complete public B1 TRAIN quality
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 3min 1.390s
+CPU time consumed: 3min 33.108s
+Memory peak: 3.4G
+Memory swap peak: 0B
