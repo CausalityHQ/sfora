@@ -1,0 +1,15 @@
+Running as unit: sfora-large-final-block-native-gpu-v1.service; invocation ID: b138609afdf8440d98366b280653dd4e
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 11589.63it/s]
+/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/profiler/profiler.py:272: UserWarning: Warning: Profiler clears events at the end of each cycle.Only events from the current cycle will be reported.To keep events across cycles, set acc_events=True.
+  _warn_once(
+USDT:2026-09-29 05:22:12 1588320:1588320 ActivityProfilerController.cpp:415] profiler_start
+USDT:2026-09-29 05:22:12 1588320:1588320 ActivityProfilerController.cpp:455] profiler_stop
+PASS actual native FP16 final-block graph/backward, strict whole calibration/suffix/head/packed parity and restored source; no updates/held/quality
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 24.180s
+CPU time consumed: 29.447s
+Memory peak: 256.0K
+Memory swap peak: 0B

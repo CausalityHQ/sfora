@@ -1,0 +1,18 @@
+Running as unit: sfora-large-final-block-training-startup-v1.service; invocation ID: b15906266a70443f835c8c408f4a37a0
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-large-final-block-v1/check_pe_large_final_block_training_startup.py", line 31, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/sfora-large-final-block-v1/check_pe_large_final_block_training_startup.py", line 16, in main
+    driver.startup(root, args.execution_sha256)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-large-final-block-v1/train_pe_large_final_block.py", line 42, in startup
+    assert pair.sha(base.INIT / 'initializers.npz') == cpu['initializers_sha256']
+                                                       ~~~^^^^^^^^^^^^^^^^^^^^^^^
+KeyError: 'initializers_sha256'
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=1
+Service runtime: 5.700s
+CPU time consumed: 8.246s
+Memory peak: 512.0K
+Memory swap peak: 0B
