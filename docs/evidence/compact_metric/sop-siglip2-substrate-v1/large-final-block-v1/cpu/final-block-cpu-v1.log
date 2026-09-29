@@ -1,8 +1,0 @@
-Running as unit: sfora-pe-l14-final-block-cpu-v1.service; invocation ID: ac8a82a1341c4c0982936691a2ffd577
-PASS actual native final-block/pool gradients, frozen complement, output identity, perturbed strict roundtrip/boundary/head parity; no updates/quality
-Finished with result: success
-Main processes terminated with: code=exited/status=0
-Service runtime: 19.742s
-CPU time consumed: 1min 9.938s
-Memory peak: 508.0K
-Memory swap peak: 0B
