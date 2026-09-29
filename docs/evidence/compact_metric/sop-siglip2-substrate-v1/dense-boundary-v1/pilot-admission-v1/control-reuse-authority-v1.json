@@ -1,0 +1,27 @@
+{
+  "pass": true,
+  "shared_unchanged_source_files": 95,
+  "controls": [
+    {
+      "seed": 179032,
+      "receipt_sha256": "6077003088cac1865c9a9731aa88058cf47f713f27c2fc7009ea8fc2af61a0cd",
+      "held_sha256": "34635dc46718e4470ed0f63641e80cd2377f1a7d8b92e09889c85f38759c7a26",
+      "reference_held_sha256": "34635dc46718e4470ed0f63641e80cd2377f1a7d8b92e09889c85f38759c7a26",
+      "query_images": 6354,
+      "gallery_images": 6245,
+      "held_manifest_sha256": "19f302b954ba2b8d39c50f75190cd2458d600721b973ce9f2ce4504639e2aac9"
+    },
+    {
+      "seed": 179041,
+      "receipt_sha256": "8d6c5972d7e42f6360cbbcaa8e61682b7caf1d29ae875fb0db3e213c923a708a",
+      "held_sha256": "9c7d66215adf93c617c0db05f7f71dac4f50e26697c90c6aa7e7ea0f659d73ae",
+      "reference_held_sha256": "9c7d66215adf93c617c0db05f7f71dac4f50e26697c90c6aa7e7ea0f659d73ae",
+      "query_images": 6354,
+      "gallery_images": 6245,
+      "held_manifest_sha256": "19f302b954ba2b8d39c50f75190cd2458d600721b973ce9f2ce4504639e2aac9"
+    }
+  ],
+  "new_quality_read": false,
+  "new_optimizer_updates": 0,
+  "control_reexport_needed": false
+}
