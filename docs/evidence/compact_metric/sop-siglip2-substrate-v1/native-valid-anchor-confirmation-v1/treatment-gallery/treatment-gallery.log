@@ -1,0 +1,17 @@
+Running as unit: sfora-native-valid-anchor-confirmation-treatment-gallery-v1.service; invocation ID: e66934aedc2d4cc99d3a728e41883df7
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 9769.83it/s]
+gallery 2048
+gallery 4096
+gallery 6144
+gallery 8192
+gallery 10240
+gallery 12288
+gallery 12612
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 2min 32.814s
+CPU time consumed: 2min 51.934s
+Memory peak: 764.0K
+Memory swap peak: 0B
