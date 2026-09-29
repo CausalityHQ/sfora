@@ -1,0 +1,23 @@
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python -u /home/riomus/runs/sfora-native-valid-anchor-confirmation-v1/qualify_pe_native_valid_anchor_confirmation.py --execution-sha256 de9d38e8ec423a8b661bb0f2821f4f2ab3bc2d950798d2d5eeeec6e3e1ba8fcb --arm treatment --serving-sha256 d66abd19a077ce6f7b8a555d58dddf6f2dcfaf25c730942df6f477cf763a505b --cpu-sha256 c6f9109af11f5bdea6c30cef93b51091b7e90168ed83a594f438bf25d0afbf51 --decide-cpu --output /home/riomus/runs/sfora-native-valid-anchor-confirmation-v1/decision.json --control /home/riomus/runs/sfora-native-valid-anchor-confirmation-179041-control-query-v1 --control-receipt-sha256 40b15f38d0d47c016752df89a620fc7c506714b6108d5f7ca595e263857e0c75 --control-audit-sha256 a4aec78cf0c63750a5660027b5fb75ead8eba4f479170e78a503486a4819bbe2 --candidate /home/riomus/runs/sfora-native-valid-anchor-confirmation-179041-treatment-query-v1 --candidate-receipt-sha256 80e8fb736cb5a8f22bdfebf909d17d26d089b0cccdc00676ce33356da890192c --candidate-audit-sha256 b7f8be3bca4855ee674bb40d60aadb22bbd00b9ffae99178984ea506426acf11"
+	User time (seconds): 15.21
+	System time (seconds): 1.67
+	Percent of CPU this job got: 117%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:14.33
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 1002416
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 198104
+	Voluntary context switches: 66
+	Involuntary context switches: 311
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 40
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

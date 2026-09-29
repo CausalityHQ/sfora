@@ -1,0 +1,23 @@
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python -u /home/riomus/runs/sfora-native-valid-anchor-confirmation-v1/qualify_pe_native_valid_anchor_confirmation.py --execution-sha256 de9d38e8ec423a8b661bb0f2821f4f2ab3bc2d950798d2d5eeeec6e3e1ba8fcb --arm treatment --serving-sha256 d66abd19a077ce6f7b8a555d58dddf6f2dcfaf25c730942df6f477cf763a505b --output /home/riomus/runs/sfora-native-valid-anchor-confirmation-179041-treatment-query-v1 --cpu-sha256 c6f9109af11f5bdea6c30cef93b51091b7e90168ed83a594f438bf25d0afbf51 --role query --gallery /home/riomus/runs/sfora-native-valid-anchor-confirmation-179041-treatment-gallery-v1 --gallery-sha256 a49129b9fe9ff79a2d1aa7be115531dfdf02f4f8659366ae950c4ca4990903f6 --audit-cpu --receipt-sha256 80e8fb736cb5a8f22bdfebf909d17d26d089b0cccdc00676ce33356da890192c"
+	User time (seconds): 26.92
+	System time (seconds): 2.22
+	Percent of CPU this job got: 171%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:16.96
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 1150644
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 250963
+	Voluntary context switches: 13932
+	Involuntary context switches: 1024
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 792
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
