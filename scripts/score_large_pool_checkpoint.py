@@ -93,7 +93,7 @@ def main():
     expected_proofs = {str(export.EXPORT_ROOT / Path(p).name) if Path(p).parent == root else p: h for p, h in proofs.items()}
     assert proof["proof_hashes"] == expected_proofs
     assert all(sha(Path(p)) == h for p, h in receipt["proof_hashes"].items())
-    log_path = export.EXPORT_ROOT / "sfora-large-pool-checkpoint-export-v2.log"
+    log_path = export.EXPORT_ROOT / "sfora-large-pool-checkpoint-export-v3.log"
     log_sha = sha(log_path)
     log = log_path.read_text()
     assert all(s in log for s in ("Finished with result: success", "code=exited/status=0", "Memory swap peak: 0B"))

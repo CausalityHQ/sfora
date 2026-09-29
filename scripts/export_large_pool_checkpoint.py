@@ -24,10 +24,10 @@ from sfora.joint_relational_compaction import pack_int8_unit_embeddings
 pair = native.pair
 sha = pair.sha
 TRAIN_ROOT = Path("/home/riomus/runs/sfora-large-native-pool-v1")
-EXPORT_ROOT = Path("/home/riomus/runs/sfora-large-pool-checkpoint-export-source-v2")
-SCORE_ROOT = Path("/home/riomus/runs/sfora-large-pool-checkpoint-score-source-v2")
-CPU_PROOF = Path("/home/riomus/runs/sfora-large-pool-checkpoint-cpu-v2/proof.json")
-WIRES = Path("/home/riomus/runs/sfora-large-pool-checkpoint-wires-v2")
+EXPORT_ROOT = Path("/home/riomus/runs/sfora-large-pool-checkpoint-export-source-v3")
+SCORE_ROOT = Path("/home/riomus/runs/sfora-large-pool-checkpoint-score-source-v3")
+CPU_PROOF = Path("/home/riomus/runs/sfora-large-pool-checkpoint-cpu-v3/proof.json")
+WIRES = Path("/home/riomus/runs/sfora-large-pool-checkpoint-wires-v3")
 CHECKPOINT = Path("/home/riomus/runs/sfora-large-native-pool-pilot-v1/pe.pt")
 TRAIN_CODE = "1c867a64e4fb3eeac04daf0db4eb642ec0041d0ed43a91948f52c968547dd0b0"
 CHECKPOINT_SHA = "a7e3d8d413aba67dd0d1472d5b70537a72de902ecbdac505833af9cbcaa1a796"
@@ -224,7 +224,7 @@ def unchanged(root, code, control, frozen, proofs, models, heads, processor, bef
 
 
 def packed_equal(a, b):
-    pa, pb = (pack_int8_unit_embeddings(v) for v in (a, b))
+    pa, pb = (pack_int8_unit_embeddings(v.detach().cpu()) for v in (a, b))
     assert np.array_equal(pa.codes, pb.codes) and np.array_equal(pa.inverse_norms, pb.inverse_norms)
 
 

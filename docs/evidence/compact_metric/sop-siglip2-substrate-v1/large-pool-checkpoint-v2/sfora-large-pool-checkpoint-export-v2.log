@@ -1,0 +1,60 @@
+Running as unit: sfora-large-pool-checkpoint-export-v2.service; invocation ID: d08a6a464e56454ca8d246cc53ee9edd
+{"phase": "authority", "seconds": 3.87280927086249}
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  90%|█████████ | 714/792 [00:00<00:00, 7128.48it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 7485.27it/s]
+{"phase": "independent_strict400_reload", "seconds": 12.072593268938363}
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-large-pool-checkpoint-export-source-v2/export_large_pool_checkpoint.py", line 390, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/sfora-large-pool-checkpoint-export-source-v2/export_large_pool_checkpoint.py", line 332, in main
+    (a, _), (va, _) = encode(models, heads, x)
+                      ~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/utils/_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+  File "/home/riomus/runs/sfora-large-pool-checkpoint-export-source-v2/export_large_pool_checkpoint.py", line 240, in encode
+    packed_equal(*vectors)
+    ~~~~~~~~~~~~^^^^^^^^^^
+  File "/home/riomus/runs/sfora-large-pool-checkpoint-export-source-v2/export_large_pool_checkpoint.py", line 227, in packed_equal
+    pa, pb = (pack_int8_unit_embeddings(v) for v in (a, b))
+    ^^^^^^
+  File "/home/riomus/runs/sfora-large-pool-checkpoint-export-source-v2/export_large_pool_checkpoint.py", line 227, in <genexpr>
+    pa, pb = (pack_int8_unit_embeddings(v) for v in (a, b))
+              ~~~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/home/riomus/runs/sfora-large-pool-checkpoint-export-source-v2/src/sfora/joint_relational_compaction.py", line 487, in pack_int8_unit_embeddings
+    return PackedInt8Embeddings(codes=codes, inverse_norms=inverse_norms)
+  File "<string>", line 5, in __init__
+  File "/home/riomus/runs/sfora-large-pool-checkpoint-export-source-v2/src/sfora/joint_relational_compaction.py", line 173, in __post_init__
+    raise ValueError("packed int8 embedding authority differs")
+ValueError: packed int8 embedding authority differs
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=1
+Service runtime: 19.778s
+CPU time consumed: 23.960s
+Memory peak: 508.0K
+Memory swap peak: 0B
+Command exited with non-zero status 1
+	Command being timed: "systemd-run --user --wait --collect --pipe --unit=sfora-large-pool-checkpoint-export-v2 -p WorkingDirectory=/home/riomus/runs/sfora-large-pool-checkpoint-export-source-v2 -p RuntimeMaxSec=300 -p MemoryMax=8G -p MemorySwapMax=0 -p KillMode=control-group -p OOMPolicy=stop --setenv=CUBLAS_WORKSPACE_CONFIG=:4096:8 --setenv=OMP_NUM_THREADS=8 --setenv=OPENBLAS_NUM_THREADS=1 --setenv=TOKENIZERS_PARALLELISM=false --setenv=PYTHONPATH=/home/riomus/runs/sfora-large-pool-checkpoint-export-source-v2:/home/riomus/runs/sfora-large-pool-checkpoint-export-source-v2/src:/home/riomus/runs/sfora-large-pool-checkpoint-export-source-v2/isolated-deps flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock flock -n /home/riomus/.sfora-siglip2-gpu.lock /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-large-pool-checkpoint-export-source-v2/export_large_pool_checkpoint.py --execution-sha256 17747b8f37c711f0c762908947d54b2a32b88c06d5a7aa7419742ebc5656eb7a --output /home/riomus/runs/sfora-large-pool-checkpoint-wires-v2 --cpu-proof /home/riomus/runs/sfora-large-pool-checkpoint-cpu-v2/proof.json --cpu-sha256 a582eeece7bed41a605e6f24af65f0457eca7792209535263f5bceda8873c5d8"
+	User time (seconds): 0.00
+	System time (seconds): 0.00
+	Percent of CPU this job got: 0%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:19.80
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 7284
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 377
+	Voluntary context switches: 10
+	Involuntary context switches: 0
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 1
