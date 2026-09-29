@@ -1,0 +1,35 @@
+{
+  "decision": "KILL fixed trained F5/F16 official minimum-reference screen; retain full product goal",
+  "dataset": "DeepFashion In-Shop",
+  "split": "official14218query/12612gallery3985products",
+  "batch": 32,
+  "r1_percent": 92.7837951891968,
+  "map_at_r_percent": 71.35371039497403,
+  "quality_intervals": {
+    "per_query_r1": {
+      "product_lower95": 0.9208064136338692,
+      "product_upper95": 0.9348653705411705,
+      "query_lower95": 0.9235458573639049,
+      "query_upper95": 0.9320579547053032
+    },
+    "per_query_ap": {
+      "product_lower95": 0.6976312961836169,
+      "product_upper95": 0.7291414862501715,
+      "query_lower95": 0.7081132201033643,
+      "query_upper95": 0.7186558868785811
+    }
+  },
+  "dated_reference_r1_percent": 96.7,
+  "gap_to_dated_reference_r1_pp": 3.916204810803208,
+  "strongest_current_reference_verified": false,
+  "native_all_query_top10_ordinal_score_bits_exact": true,
+  "all_saved_wire_per_query_quality_intervals_screen_CPU_replay_pass": true,
+  "prior_official_benchmark_exposure": true,
+  "checkpoint_sha256": "f5fbf0e8eb3492274b6febeb6fd06a4b0d8b0fce4c7170069f3fa0d7b0a8df4d",
+  "new_training_updates": 0,
+  "B1_launched": false,
+  "p99_certified": false,
+  "claim_eligible": false,
+  "global_goal_complete": false,
+  "next_intervention": "Full official TRAIN identity coverage using same trained source/backbone/head/objective/frozen12block allocation, actual-native microbatch16/effective64 mechanics and one fixed100update matched control/candidate; first authenticate row/class/proxy/bank mapping and compare full loss/gradient semantics without refreshing bank between microbatches. Data coverage is a hypothesis, not causally proved by this result. No TEST-tuned loss/depth or more latency expenditure on failed source."
+}

@@ -1,0 +1,23 @@
+	Command being timed: "env CUDA_VISIBLE_DEVICES= CUBLAS_WORKSPACE_CONFIG=:4096:8 PYTHONPATH=/home/riomus/runs/sfora-large-inshop-official-qual-v2:/home/riomus/runs/sfora-large-inshop-official-qual-v2/src:/home/riomus/runs/sfora-large-inshop-official-qual-v2/isolated-deps /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-large-inshop-official-qual-v2/qualify_pe_large_inshop_official.py --execution-sha256 c7c17085982d364a8d7d261102f1c047e40a067db8a69204596947fe4e4cf158 --cpu-sha256 be7b27c68b5e2895063d4f24b2b9d4e396a77ed79b2426596893c293df2c20f2 --audit-cpu --receipt-sha256 174282ce87459a71b23594a6a679c3c4c4cd55046fb0dbf925ef7542aea26f24 --output /home/riomus/runs/sfora-large-official-b32-v1"
+	User time (seconds): 20.53
+	System time (seconds): 1.49
+	Percent of CPU this job got: 223%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:09.85
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 1149064
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 242712
+	Voluntary context switches: 14793
+	Involuntary context switches: 1262
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 776
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

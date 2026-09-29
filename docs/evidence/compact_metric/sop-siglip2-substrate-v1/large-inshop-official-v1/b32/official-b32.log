@@ -1,0 +1,37 @@
+Running as unit: sfora-large-official-b32-v1.service; invocation ID: 6f58021d86614addb53462c5d36e54a0
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+{"query_public_B32_images": 1024}
+{"query_public_B32_images": 2048}
+{"query_public_B32_images": 3072}
+{"query_public_B32_images": 4096}
+{"query_public_B32_images": 5120}
+{"query_public_B32_images": 6144}
+{"query_public_B32_images": 7168}
+{"query_public_B32_images": 8192}
+{"query_public_B32_images": 9216}
+{"query_public_B32_images": 10240}
+{"query_public_B32_images": 11264}
+{"query_public_B32_images": 12288}
+{"query_public_B32_images": 13312}
+{"query_public_B32_images": 14218}
+{"gallery_public_B32_images": 1024}
+{"gallery_public_B32_images": 2048}
+{"gallery_public_B32_images": 3072}
+{"gallery_public_B32_images": 4096}
+{"gallery_public_B32_images": 5120}
+{"gallery_public_B32_images": 6144}
+{"gallery_public_B32_images": 7168}
+{"gallery_public_B32_images": 8192}
+{"gallery_public_B32_images": 9216}
+{"gallery_public_B32_images": 10240}
+{"gallery_public_B32_images": 11264}
+{"gallery_public_B32_images": 12288}
+{"gallery_public_B32_images": 12612}
+KILL minimum dated-reference official quality screen
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 3min 47.647s
+CPU time consumed: 4min 19.693s
+Memory peak: 3.3G
+Memory swap peak: 0B
