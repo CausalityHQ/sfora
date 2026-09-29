@@ -1,0 +1,25 @@
+Running as unit: sfora-large-pool-export-input-cpu-v1.service; invocation ID: f8612ab456d34661a21d3cb1f90ceea7
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-large-pool-export-overlap-v1/qualify_pe_large_export_input.py", line 90, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/sfora-large-pool-export-overlap-v1/qualify_pe_large_export_input.py", line 69, in main
+    export_prefetched(rows[:67], prepare_rows, encode_pixels, path, width=2)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-large-pool-export-overlap-v1/pe_prefetched_export.py", line 19, in export_prefetched
+    export_features(rows, consume, output, width=width, batch_size=32)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-large-pool-export-overlap-v1/export_sop_siglip2_train.py", line 73, in export_features
+    values = encode(batch)
+  File "/home/riomus/runs/sfora-large-pool-export-overlap-v1/pe_prefetched_export.py", line 17, in consume
+    return encode(batch, prepared)
+  File "/home/riomus/runs/sfora-large-pool-export-overlap-v1/qualify_pe_large_export_input.py", line 64, in encode_pixels
+    assert torch.equal(pixels, expected)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+AssertionError
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=1
+Service runtime: 6.719s
+CPU time consumed: 10.803s
+Memory peak: 508.0K
+Memory swap peak: 0B
