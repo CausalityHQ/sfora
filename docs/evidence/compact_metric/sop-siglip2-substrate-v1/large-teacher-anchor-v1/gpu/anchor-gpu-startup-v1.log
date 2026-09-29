@@ -1,0 +1,8 @@
+Running as unit: sfora-large-teacher-anchor-gpu-startup-v1.service; invocation ID: e7803ffbc9bc4236825b8586fd982a6c
+PASS actual anchor GPU startup and changed-driver rejection; no CUDA/images/quality
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 8.767s
+CPU time consumed: 11.211s
+Memory peak: 508.0K
+Memory swap peak: 0B
