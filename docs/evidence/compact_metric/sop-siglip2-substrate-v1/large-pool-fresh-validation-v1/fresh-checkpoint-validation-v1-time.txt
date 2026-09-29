@@ -1,0 +1,23 @@
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-large-immutable-amp-v1/validate_pe_large_pool_checkpoint.py --execution-sha256 fde872f0fd68c57eb5f56b4f4a05ad39de4cc1b7cc580f510cb0a75ab01ddfb9 --output /home/riomus/runs/sfora-large-pool-checkpoint-validation-v1"
+	User time (seconds): 179.31
+	System time (seconds): 106.24
+	Percent of CPU this job got: 107%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 4:25.90
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 5207944
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 17699
+	Minor (reclaiming a frame) page faults: 1187349
+	Voluntary context switches: 171912
+	Involuntary context switches: 3504
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 27336
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

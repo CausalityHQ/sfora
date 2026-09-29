@@ -1,0 +1,63 @@
+{
+  "candidate_percent": {
+    "map_at_r": 58.906167422045755,
+    "r1": 84.38778722064842
+  },
+  "claim_eligible": false,
+  "controls_concurrent": false,
+  "cpu_audit_exit_status": 0,
+  "cpu_audit_maximum_rss_kib": 1033044,
+  "cpu_audit_process_seconds": 8.04,
+  "cpu_audit_swaps": 0,
+  "cpu_audit_unit_seconds": 8.048,
+  "dataset": "DeepFashion In-Shop",
+  "diagnostic_decision": "KILL fixed pool-only configuration on quality",
+  "gallery": 6245,
+  "gpu_maximum_rss_kib": 5207944,
+  "gpu_process_seconds": 265.9,
+  "gpu_swaps": 0,
+  "gpu_unit_seconds": 265.908,
+  "historical_controls_percent": {
+    "dense_pe": {
+      "map_at_r": 76.3915922,
+      "r1": 95.0739692
+    },
+    "large": {
+      "map_at_r": 78.623712,
+      "r1": 95.6720176
+    }
+  },
+  "next_selected_allocation": "same original SigLIP2 Large; train final native token block + original compact head/proxies, freeze pretrained pool and all other source parameters; actual CPU graph/parity qualification first; no run launched",
+  "original_cpu_audit_handle": 73743,
+  "original_gpu_exit_status": 0,
+  "original_gpu_handle": 53456,
+  "original_pilot_status": "terminal whole-job timeout; not rescued",
+  "peak_cuda_allocated_bytes": 2858087424,
+  "product95_delta_percentage_points_vs_historical_dense_pe": {
+    "per_query_ap": [
+      -18.474472564258036,
+      -16.486937037320335
+    ],
+    "per_query_r1": [
+      -11.684855090035002,
+      -9.7091634042531
+    ]
+  },
+  "products": 1993,
+  "quality_or_cost_forecast": null,
+  "queries": 6354,
+  "raw_files": {
+    "docs/evidence/compact_metric/sop-siglip2-substrate-v1/large-pool-fresh-validation-v1/cpu-audit.json": "b509315a8319c9803432db7244dc07f49aa6a790a008992783afec81f1b2e1cd",
+    "docs/evidence/compact_metric/sop-siglip2-substrate-v1/large-pool-fresh-validation-v1/fresh-checkpoint-validation-v1-time.txt": "5ee8c17c29f63487e052a004fd577184908ee09789494ee57f04970131bbbd44",
+    "docs/evidence/compact_metric/sop-siglip2-substrate-v1/large-pool-fresh-validation-v1/fresh-checkpoint-validation-v1.log": "7ab850caa85594add0d6c5f775b31a37edb29839c6f39dbb7efa1224a990482d",
+    "docs/evidence/compact_metric/sop-siglip2-substrate-v1/large-pool-fresh-validation-v1/fresh-validation-cpu-audit-v1-time.txt": "50e46ad7fbb7dcb66259756de63d93042f435be2c320638100a0cbbb070fe354",
+    "docs/evidence/compact_metric/sop-siglip2-substrate-v1/large-pool-fresh-validation-v1/fresh-validation-cpu-audit-v1.log": "a5f40294cf27e6d59505ae8e586f9532e5fbf76821a9f4fc2515072ce0a32f2b",
+    "docs/evidence/compact_metric/sop-siglip2-substrate-v1/large-pool-fresh-validation-v1/receipt.json": "7981d0565f3f7ca6dd5371174f93f97e3a180b3d7614ff969053e9c6a5036bbb"
+  },
+  "split": "product-disjoint TRAIN-held",
+  "vectors_retained_on_dgx": {
+    "loaded_sha256": "debc201b527f85205859c212086477ab5013ea67f0d70f45369dd4b284f10295",
+    "reference_sha256": "debc201b527f85205859c212086477ab5013ea67f0d70f45369dd4b284f10295",
+    "root": "/home/riomus/runs/sfora-large-pool-checkpoint-validation-v1"
+  }
+}
