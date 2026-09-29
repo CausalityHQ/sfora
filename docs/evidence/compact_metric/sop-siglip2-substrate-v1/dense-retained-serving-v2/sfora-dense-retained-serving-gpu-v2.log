@@ -1,0 +1,111 @@
+Running as unit: sfora-dense-retained-serving-gpu-v2.service; invocation ID: 59ab9251221b43be98dd5e505f4b3f8b
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+{"public_held_images_verified": 32}
+{"public_held_images_verified": 2080}
+{"public_held_images_verified": 4128}
+{"public_held_images_verified": 6176}
+{"public_held_images_verified": 8224}
+{"public_held_images_verified": 10272}
+{"public_held_images_verified": 12320}
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-dense-retained-serving-source-v2/qualify_large_dense_retained_serving.py", line 353, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/sfora-dense-retained-serving-source-v2/qualify_large_dense_retained_serving.py", line 335, in main
+    startup(root, args.execution_sha256)
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-dense-retained-serving-source-v2/qualify_large_dense_retained_serving.py", line 106, in startup
+    control, frozen, prior, original, checkpoint, training, training_sha = export.authority(
+                                                                           ~~~~~~~~~~~~~~~~^
+        root, EXPORT_SHA, 179032, "candidate")
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-dense-retained-serving-source-v2/export_large_dense_pilot.py", line 46, in authority
+    (control, _, prior, native, _, initial_reference, _), _, _ = training.startup(root, TRAIN_CODE, seed)
+                                                                 ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-dense-retained-serving-source-v2/train_large_dense_pilot.py", line 44, in startup
+    mechanics.startup(root, MECHANICS_CODE)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-dense-retained-serving-source-v2/train_large_dense_mechanics.py", line 45, in startup
+    values, _ = qualification.startup(root, CPU_CODE, 179032)
+                ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-dense-retained-serving-source-v2/qualify_large_dense_boundary_cpu.py", line 27, in startup
+    values = pilot.startup(root, TRAIN_CODE, seed)
+  File "/home/riomus/runs/sfora-dense-retained-serving-source-v2/train_large_lower_pilot.py", line 74, in startup
+    control, native, prior, proof, _ = mechanics.startup(root, MECHANICS_CODE)
+                                       ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-dense-retained-serving-source-v2/train_large_lower_mechanics.py", line 58, in startup
+    control, native, prior, proof, _ = old.startup(root, sha(root / "large-optimization-execution.json"))
+                                       ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-dense-retained-serving-source-v2/pe_large_optimization.py", line 30, in startup
+    control,source,prior,proof,_=previous.training.startup(root,previous.TRAIN_CODE_SHA)
+                                 ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-dense-retained-serving-source-v2/train_pe_large_coverage.py", line 28, in startup
+    control,_,source,prior,cpu_code=coverage.startup(root,CPU_CODE_SHA)
+                                    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-dense-retained-serving-source-v2/pe_large_coverage.py", line 24, in startup
+    control,frozen,cpu,prior,cast,old = selected.startup(root,OFFICIAL_CODE_SHA)
+                                        ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-dense-retained-serving-source-v2/qualify_pe_large_inshop_official.py", line 31, in startup
+    control, frozen, cpu, prior, old, authority = pilot.startup(root, PILOT_CODE_SHA, SELECTED_B1, SELECTED_B1_SHA, SELECTED_B1_AUDIT_SHA)
+                                                  ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-dense-retained-serving-source-v2/measure_pe_large_public_precision_pair.py", line 28, in startup
+    control, frozen, cpu, prior, old = fp16.startup(root, FP16_CODE_SHA)
+                                       ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-dense-retained-serving-source-v2/qualify_pe_large_public_fp16.py", line 27, in startup
+    control, frozen, cpu, prior, old = b1.startup(root, B1_CODE_SHA)
+                                       ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-dense-retained-serving-source-v2/qualify_pe_large_public_b1.py", line 26, in startup
+    control, frozen, cpu, receipt, old = serving.startup(root, SERVING_CODE_SHA)
+                                         ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-dense-retained-serving-source-v2/qualify_pe_large_public_serving.py", line 30, in startup
+    control, frozen, cpu, _, old = trained.startup(root, TRAINED_CODE_SHA)
+                                   ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-dense-retained-serving-source-v2/qualify_pe_large_trained_candidate.py", line 26, in startup
+    control, frozen, old = teacher.startup(root, TEACHER_CODE_SHA)
+                           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-dense-retained-serving-source-v2/export_pe_large_teacher_fit.py", line 28, in startup
+    control, frozen, _, _, qualified_code = qualified.startup(root, QUAL_SHA)
+                                            ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-dense-retained-serving-source-v2/qualify_pe_large_final_two_gpu.py", line 37, in startup
+    control, frozen, prior = native.base.control(root)
+                             ~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/home/riomus/runs/sfora-dense-retained-serving-source-v2/pe_large_pool.py", line 30, in control
+    frozen = pair.check_startup(args)
+  File "/home/riomus/runs/sfora-dense-retained-serving-source-v2/train_inshop_pe_pair.py", line 128, in check_startup
+    executing_authority(args.root, frozen["code"])
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-dense-retained-serving-source-v2/train_inshop_pe_pair.py", line 76, in executing_authority
+    assert relative in code and sha(path) == code[relative], name
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: sfora.siglip2_compact_serving
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=1
+Service runtime: 2min 54.327s
+CPU time consumed: 3min 14.326s
+Memory peak: 2.9G
+Memory swap peak: 0B
+Command exited with non-zero status 1
+	Command being timed: "systemd-run --user --wait --collect --pipe --unit=sfora-dense-retained-serving-gpu-v2 -p WorkingDirectory=/home/riomus/runs/sfora-dense-retained-serving-source-v2 -p RuntimeMaxSec=300 -p MemoryMax=8G -p MemorySwapMax=0 -p KillMode=control-group -p OOMPolicy=stop --setenv=CUBLAS_WORKSPACE_CONFIG=:4096:8 --setenv=CUTILE_TILEIRAS_PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/tileiras --setenv=PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin:/usr/local/bin:/usr/bin:/bin --setenv=OMP_NUM_THREADS=8 --setenv=OPENBLAS_NUM_THREADS=1 --setenv=TOKENIZERS_PARALLELISM=false --setenv=PYTHONPATH=/home/riomus/runs/sfora-dense-retained-serving-source-v2:/home/riomus/runs/sfora-dense-retained-serving-source-v2/src:/home/riomus/runs/sfora-dense-retained-serving-source-v2/isolated-deps flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock flock -n /home/riomus/.sfora-siglip2-gpu.lock /home/riomus/group-learning/.venv/bin/python qualify_large_dense_retained_serving.py --execution-sha256 820ab1d8eca8e97e4dc2edb08a6500b52056bd58c21f4416e2c3fa5ae3495fe2 --startup-sha256 75887ce72d5bcd3dd02d8d756308dae2865ec168f06c4e68885b167fb8e1b00d --output /home/riomus/runs/sfora-dense-retained-serving-v2/receipt.json"
+	User time (seconds): 0.00
+	System time (seconds): 0.00
+	Percent of CPU this job got: 0%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 2:54.35
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 7220
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 376
+	Voluntary context switches: 10
+	Involuntary context switches: 1
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 1

@@ -21,8 +21,8 @@ from unittest.mock import patch
 if not __debug__:
     raise SystemExit("Qualification requires assertions")
 
-SOURCE = Path("/home/riomus/runs/sfora-dense-retained-serving-source-v2")
-OUTPUT = Path("/home/riomus/runs/sfora-dense-retained-serving-v2/receipt.json")
+SOURCE = Path("/home/riomus/runs/sfora-dense-retained-serving-source-v3")
+OUTPUT = Path("/home/riomus/runs/sfora-dense-retained-serving-v3/receipt.json")
 EXPORT_ROOT = Path("/home/riomus/runs/sfora-dense-pilot-export-source-v2")
 SCORE_ROOT = Path("/home/riomus/runs/sfora-dense-pilot-score-source-v2")
 EXPORT_SHA = "e268cbf54e7b203e6ed9b959ef6833d310d536e465e74d1bfc3473f903131f22"
@@ -102,7 +102,11 @@ def startup(root, execution):
     helpers = export.old.previous.selected.helpers
     # Legacy wrappers still see exact 100/101 maps; the loaded-module guard
     # transparently authenticates the complete currently executing 103 closure.
-    with patch.object(export.old.previous.selected, "helpers", lambda r, _: helpers(r, code)):
+    original_execution = export.old.pair.executing_authority
+    def executing(r, historical):
+        assert all(code[n] == h for n, h in historical.items())
+        return original_execution(r, {**historical, **code})
+    with patch.object(export.old.previous.selected, "helpers", lambda r, _: helpers(r, code)), patch.object(export.old.pair, "executing_authority", executing):
         control, frozen, prior, original, checkpoint, training, training_sha = export.authority(
             root, EXPORT_SHA, 179032, "candidate")
     assert original == exported and checkpoint == CHECKPOINT
@@ -238,6 +242,8 @@ def main():
                 assert str(error) == "retained serving code differs"
             else:
                 raise AssertionError("changed driver accepted")
+        from sfora.siglip2_compact_serving import Siglip2CompactEncoder
+        assert Path(inspect.getfile(Siglip2CompactEncoder)).resolve() == root / "src/sfora/siglip2_compact_serving.py"
         startup(root, args.execution_sha256)
         save(args.output, {**binding, "pass": True, "read_only": True,
             "changed_driver_rejected": True, "model_loaded": False, "images_decoded": 0,
