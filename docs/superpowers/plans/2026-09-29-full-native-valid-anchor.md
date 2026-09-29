@@ -48,7 +48,7 @@
 **Files:** Same bounded driver; minimal later inference authority adapter if existing2000 schema cannot honestly bind corrected receipt.
 **Interfaces:** Consumes accepted fullCPU/mechanics and preceding candidate chunk; produces20 chained full optimizer states/receipts and fixed native2000 serving checkpoint.
 
-- [ ] Implement100chunk via unchanged fresh/identity/restore/step/save; reject wrong code/method/source/chunk/control state.
+- [x] Implement100chunk via unchanged fresh/identity/restore/step/save; reject wrong code/method/source/chunk/control state.
 - [ ] First17 input/diagnostics exactly replay accepted corrected mechanics; every2000 schedule/RGB/pixel hash matches archived full control.
 - [ ] Sequentially collect all20 original units; preserve full state, counters/scaler/frozen/source/RNG/cost, no intermediate quality or chooser.
 - [ ] Export terminal native400/head checkpoint and actual CPU/public serving authority; never bypass legacy schema guards.
