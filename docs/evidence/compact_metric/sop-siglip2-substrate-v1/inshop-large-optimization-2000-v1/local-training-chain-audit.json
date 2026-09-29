@@ -1,0 +1,30 @@
+{
+  "full": {
+    "chunks": 20,
+    "images": 128000,
+    "images_per_second": 52.787149728915466,
+    "maximum_identity_exposure": 33,
+    "maximum_peak_cuda_allocated_bytes": 6560969728,
+    "minimum_identity_exposure": 32,
+    "pass": true,
+    "quality_read": false,
+    "terminal_checkpoint_sha256": "68a7f9af0fece54770250102abebd3288ad891322fef790e59e41fb38516e744",
+    "terminal_receipt_sha256": "dc42d59c4c14a8dfc53b524fd1afbf50a4944d4e5818a1bba3c3f28aefa58412",
+    "training_seconds": 2424.832571133971,
+    "updates": 2000
+  },
+  "half": {
+    "chunks": 20,
+    "images": 128000,
+    "images_per_second": 55.22688373519573,
+    "maximum_identity_exposure": 64,
+    "maximum_peak_cuda_allocated_bytes": 6141007872,
+    "minimum_identity_exposure": 63,
+    "pass": true,
+    "quality_read": false,
+    "terminal_checkpoint_sha256": "9e556194daa6e41092c67d4d2e33b3e9ed426d1805c2b351048d8a9fbcbb2d88",
+    "terminal_receipt_sha256": "40d99e5f240c076ce71006cd670de41cbf814c51d36344c25473ebde9f1d560e",
+    "training_seconds": 2317.7117980029434,
+    "updates": 2000
+  }
+}

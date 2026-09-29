@@ -1,0 +1,23 @@
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python -u /home/riomus/runs/sfora-large-optimization-chunks-v1/train_pe_large_optimization_chunk.py --execution-sha256 a7c27140c1cd53d1aee3b41f6e1c7bfb43173a467cab3855cfc2c92cac41bf7f --mechanics /home/riomus/runs/sfora-large-optimization-mechanics-v2 --mechanics-sha256 41cdd66db34b6e55d7aca72945133b6e25d0cea10cf18aae2a666d4ff4d1be1d --output /home/riomus/runs/sfora-large-optimization-half-600-v1 --arm half --chunk-end 600 --previous /home/riomus/runs/sfora-large-optimization-half-500-v1 --previous-sha256 213b1f65a9ebe40354253995cb970e5074073bac1fb9ce8f489a9c72cd56ba03"
+	User time (seconds): 146.86
+	System time (seconds): 17.18
+	Percent of CPU this job got: 106%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 2:34.76
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 5475872
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 17576
+	Minor (reclaiming a frame) page faults: 2288973
+	Voluntary context switches: 140525
+	Involuntary context switches: 1915
+	Swaps: 0
+	File system inputs: 94368
+	File system outputs: 5050496
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

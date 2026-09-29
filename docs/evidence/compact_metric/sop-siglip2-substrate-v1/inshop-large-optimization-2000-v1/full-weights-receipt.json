@@ -1,0 +1,17 @@
+{
+  "pass": true,
+  "arm": "full",
+  "completed_step": 2000,
+  "execution_sha256": "8c6771b3fc63de4967120c6ae1a388b8e5311a454bfd060716488859fac6aa0c",
+  "training_receipt_sha256": "dc42d59c4c14a8dfc53b524fd1afbf50a4944d4e5818a1bba3c3f28aefa58412",
+  "source_resume_sha256": "68a7f9af0fece54770250102abebd3288ad891322fef790e59e41fb38516e744",
+  "source_checkpoint_sha256": "f5fbf0e8eb3492274b6febeb6fd06a4b0d8b0fce4c7170069f3fa0d7b0a8df4d",
+  "checkpoint_sha256": "933a6900df4981c27acea033052e9970a19761b29d327aba67e6de29a3f68b8d",
+  "updated_whole_sha256": "e9077f61bc2a7be3c826f1e92248b59abb7162dd7797a5f1c25fe4c04ae8e80d",
+  "updated_head_sha256": "41c024ca233bc644613126253fe762b49272718c90351ced9786747570e6a638",
+  "aggregate_training_wall_seconds": 2424.832571133971,
+  "aggregate_images_per_second": 52.787149728915466,
+  "optimizer_updates": 0,
+  "quality_read": false,
+  "claim_eligible": false
+}
