@@ -1,0 +1,8 @@
+Running as unit: sfora-large-final-block-training-startup-v3.service; invocation ID: ca10013d83074bb0a6b01655c239c6b4
+PASS actual training startup and changed-code rejection; no CUDA/images/quality
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 5.638s
+CPU time consumed: 8.204s
+Memory peak: 508.0K
+Memory swap peak: 0B
