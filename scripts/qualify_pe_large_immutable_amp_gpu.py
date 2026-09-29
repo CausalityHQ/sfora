@@ -122,7 +122,7 @@ def main():
                     hook.remove()
             if index < 17:
                 times[mode].append(elapsed)
-            pair.smoke.save(args.output / "progress.json", {
+            pair.smoke.save(args.output / f"progress-{index:02d}-{mode}.json", {
                 "partial_evidence_only": True, "advance": False,
                 "execution_sha256": args.execution_sha256,
                 "checkpoint_sha256": info["checkpoint_sha256"],
