@@ -1,0 +1,8 @@
+Running as unit: sfora-large-pool-fresh-validation-startup-cpu-v1.service; invocation ID: 14117c5d575b410a9cd0708b552266f4
+PASS fresh validation CPU startup and changed-code rejection; no CUDA/images/scores
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 5.890s
+CPU time consumed: 8.460s
+Memory peak: 256.0K
+Memory swap peak: 0B

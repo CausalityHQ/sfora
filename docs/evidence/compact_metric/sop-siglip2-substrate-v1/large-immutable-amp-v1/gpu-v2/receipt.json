@@ -1,0 +1,126 @@
+{
+  "parity_pass": true,
+  "advance": false,
+  "execution_sha256": "deee7c58afec64e1bb9aa765bb5c7acfca917d7101ecb5cb3b29cfac810f15ba",
+  "cpu_preflight_sha256": "f48b025eb5921d51cfb7ca98f8500c2c32e23840bf77cf6fc37621b966173591",
+  "checkpoint_sha256": "a7e3d8d413aba67dd0d1472d5b70537a72de902ecbdac505833af9cbcaa1a796",
+  "timing_seconds": {
+    "eager": [
+      0.583498755004257,
+      0.5815932708792388,
+      0.5835318909958005,
+      0.581918615847826,
+      0.5856635519303381,
+      0.5902657988481224,
+      0.5848528021015227,
+      0.5806936579756439,
+      0.5868995017372072,
+      0.5832368531264365,
+      0.5798367639072239,
+      0.5784262870438397,
+      0.5860629281960428,
+      0.5818209359422326,
+      0.5867765750735998,
+      0.5850068661384284,
+      0.5830869819037616
+    ],
+    "cached": [
+      0.5618037418462336,
+      0.5648743282072246,
+      0.5650251596234739,
+      0.5653272559866309,
+      0.5672491397708654,
+      0.5639559789560735,
+      0.5584470937028527,
+      0.5639100908301771,
+      0.5586322620511055,
+      0.5643050340004265,
+      0.5658825188875198,
+      0.562221166677773,
+      0.5628436449915171,
+      0.5628756619989872,
+      0.5564487469382584,
+      0.5656200400553644,
+      0.5606200662441552
+    ]
+  },
+  "mean_paired_encoder_head_seconds": {
+    "eager": 0.5837160021559719,
+    "cached": 0.5629436429863905
+  },
+  "mean_ratio": 0.9644135862425255,
+  "cached_parameter_tensors_per_model": 298,
+  "fit_batch_sizes": [
+    32,
+    32,
+    32,
+    32,
+    32,
+    32,
+    32,
+    32,
+    32,
+    32,
+    32,
+    32,
+    32,
+    32,
+    32,
+    32,
+    32,
+    23
+  ],
+  "native_pool_token_shapes": [
+    [
+      32,
+      256,
+      1024
+    ],
+    [
+      32,
+      256,
+      1024
+    ],
+    [
+      32,
+      256,
+      1024
+    ],
+    [
+      32,
+      256,
+      1024
+    ],
+    [
+      23,
+      256,
+      1024
+    ],
+    [
+      23,
+      256,
+      1024
+    ],
+    [
+      23,
+      256,
+      1024
+    ],
+    [
+      23,
+      256,
+      1024
+    ]
+  ],
+  "pooled_vectors_packed_codes_inverse_norms_exact": true,
+  "two_strict_loaded_copies_independent_whole_forwards": true,
+  "whole_native_f32_state_runtime_unchanged": true,
+  "caller_cpu_rng_unchanged": true,
+  "cuda_rng_unchanged": true,
+  "installed_native_environment_unchanged": true,
+  "peak_cuda_allocated_bytes": 4121662464,
+  "optimizer_updates": 0,
+  "held_images": 0,
+  "quality_read": false,
+  "official_read": false
+}

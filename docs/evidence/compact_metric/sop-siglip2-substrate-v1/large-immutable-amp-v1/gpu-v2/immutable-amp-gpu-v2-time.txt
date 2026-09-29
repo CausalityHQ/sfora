@@ -1,0 +1,23 @@
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-large-immutable-amp-v1/qualify_pe_large_immutable_amp_gpu.py --execution-sha256 deee7c58afec64e1bb9aa765bb5c7acfca917d7101ecb5cb3b29cfac810f15ba --output /home/riomus/runs/sfora-large-immutable-amp-gpu-v2"
+	User time (seconds): 39.78
+	System time (seconds): 5.69
+	Percent of CPU this job got: 115%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:39.36
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 5197184
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 18585
+	Minor (reclaiming a frame) page faults: 739053
+	Voluntary context switches: 96318
+	Involuntary context switches: 648
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 312
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

@@ -1,0 +1,11 @@
+Running as unit: sfora-large-immutable-amp-gpu-v2.service; invocation ID: 3ff53305d9d14db7aae31c00666c3fc3
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  83%|████████▎ | 661/792 [00:00<00:00, 6576.81it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 6656.93it/s]
+KILL fixed cache speed gate
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 39.369s
+CPU time consumed: 45.480s
+Memory peak: 504.0K
+Memory swap peak: 0B
