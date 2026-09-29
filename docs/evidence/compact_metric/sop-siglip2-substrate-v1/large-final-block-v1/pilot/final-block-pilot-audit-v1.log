@@ -1,0 +1,15 @@
+Running as unit: sfora-large-final-block-pilot-audit-v1.service; invocation ID: 0566a908cf8b4726a4124f22284c9f94
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-large-final-block-v1/audit_pe_large_final_block_pilot.py", line 77, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/sfora-large-final-block-v1/audit_pe_large_final_block_pilot.py", line 25, in main
+    assert pair.sha(receipt_path) == args.receipt_sha256
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=1
+Service runtime: 5.753s
+CPU time consumed: 8.299s
+Memory peak: 508.0K
+Memory swap peak: 0B

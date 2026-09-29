@@ -1,0 +1,56 @@
+{
+  "causal_limit": "Upstream token adaptation helped compared with pool-only (+6.8618193R1/+10.4696311mAP percentage points), but remains below historical12-block Large control. Broader adaptation capacity is the next testable hypothesis; this does not uniquely prove capacity rather than pooling/head/sampling as root cause.",
+  "claim_eligible": false,
+  "cpu_audit_exit": 0,
+  "cpu_audit_maximum_rss_KiB": 1033492,
+  "cpu_audit_original_session": 82738,
+  "cpu_audit_seconds": 7.2,
+  "cpu_audit_sha256": "b75ab845030d16a274f7b68129ef1fd15f9f2416c39114d04e77612466860d68",
+  "dataset_split": "In-Shop TRAIN-held6354query6245gallery1993products12599images",
+  "decision": "KILL fixed native last-token-block + frozen pretrained pool allocation",
+  "gpu_exit": 0,
+  "gpu_maximum_rss_KiB": 5513580,
+  "gpu_original_session": 70648,
+  "gpu_process_seconds": 212.41,
+  "gpu_swap": 0,
+  "gpu_unit_seconds": 212.42,
+  "historical_nonconcurrent_controls_percent": {
+    "DensePE": {
+      "R1": 95.0739692,
+      "mAP@R": 76.3915922
+    },
+    "Large": {
+      "R1": 95.6720176,
+      "mAP@R": 78.623712
+    }
+  },
+  "images_per_second_measured_training_wall": 130.24497100415928,
+  "median_step_3_100_seconds": 0.49018432735465467,
+  "next_selected_intervention": "Original SigLIP2 Large last TWO native token blocks trainable; original pretrained pool/prefix/post-layernorm frozen; original head/proxy/source/init/data100 schedule/loss/rates/FP16/scaler/clip/caps/floors unchanged. Qualify actual native roles/parity, one17 discard cost gate, then one100 only if passed. No continuation of this failed checkpoint.",
+  "official_read": false,
+  "paired_dense_pe_intervals": {
+    "per_query_ap": {
+      "mean_delta": -0.07015793649555964,
+      "product_lower95": -0.0775720566554607,
+      "product_upper95": -0.06302248729543876,
+      "query_lower95": -0.0756823490570051,
+      "query_upper95": -0.06463929482358709
+    },
+    "per_query_r1": {
+      "mean_delta": -0.03824362606232295,
+      "product_lower95": -0.04523405230644895,
+      "product_upper95": -0.031527825715191374,
+      "query_lower95": -0.044538873150771166,
+      "query_upper95": -0.03210576015108593
+    }
+  },
+  "peak_cuda_allocated_bytes": 4018898944,
+  "public_latency_measured": false,
+  "quality": {
+    "map_at_r": 0.693757985581796,
+    "recall_at_1": 0.9124960654705697
+  },
+  "receipt_sha256": "b34b49d2302a82313e32911222ff56317761930f92edd478838fdd969692f06e",
+  "scope": "this fixed100 TRAIN pilot only; full SOP+In-Shop production quality/speed goal remains active and unmet",
+  "training_wall_seconds": 49.1381736327894
+}

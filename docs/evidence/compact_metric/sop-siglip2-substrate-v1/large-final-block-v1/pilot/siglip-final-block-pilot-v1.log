@@ -1,0 +1,505 @@
+Running as unit: sfora-siglip-final-block-pilot-v1.service; invocation ID: ba3c08dd76704ff7b50b6053a7a0d742
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 11077.62it/s]
+{"step": 1, "seconds": 0.9901878009550273, "loss": 8.457447052001953}
+{"step": 2, "seconds": 0.49099880876019597, "loss": 9.546679496765137}
+{"step": 3, "seconds": 0.4908897210843861, "loss": 9.649717330932617}
+{"step": 4, "seconds": 0.4907013839110732, "loss": 7.9869818687438965}
+{"step": 5, "seconds": 0.49508092971518636, "loss": 7.840444087982178}
+{"step": 6, "seconds": 0.4924397491849959, "loss": 9.193166732788086}
+{"step": 7, "seconds": 0.44454909674823284, "loss": 5.663898944854736}
+{"step": 8, "seconds": 0.49226990807801485, "loss": 7.046599388122559}
+{"step": 9, "seconds": 0.48666151612997055, "loss": 9.571334838867188}
+{"step": 10, "seconds": 0.4899543900974095, "loss": 7.619372367858887}
+{"step": 11, "seconds": 0.44828140968456864, "loss": 5.095687389373779}
+{"step": 12, "seconds": 0.49160125106573105, "loss": 4.657022476196289}
+{"step": 13, "seconds": 0.4890310470946133, "loss": 7.41988468170166}
+{"step": 14, "seconds": 0.49000610085204244, "loss": 6.914627552032471}
+{"step": 15, "seconds": 0.4893131102435291, "loss": 8.729080200195312}
+{"step": 16, "seconds": 0.4918987047858536, "loss": 8.692334175109863}
+{"step": 17, "seconds": 0.49209915194660425, "loss": 8.528486251831055}
+{"step": 18, "seconds": 0.4916977919638157, "loss": 6.499751567840576}
+{"step": 19, "seconds": 0.4913206878118217, "loss": 10.064592361450195}
+{"step": 20, "seconds": 0.4901898419484496, "loss": 5.499995231628418}
+{"step": 21, "seconds": 0.49238299019634724, "loss": 6.1551313400268555}
+{"step": 22, "seconds": 0.4913362697698176, "loss": 6.88217830657959}
+{"step": 23, "seconds": 0.48682272527366877, "loss": 8.293083190917969}
+{"step": 24, "seconds": 0.4913986697793007, "loss": 6.77852725982666}
+{"step": 25, "seconds": 0.4908653097227216, "loss": 5.333567142486572}
+{"step": 26, "seconds": 0.4917055480182171, "loss": 5.781473159790039}
+{"step": 27, "seconds": 0.44498569518327713, "loss": 4.455863952636719}
+{"step": 28, "seconds": 0.48816774506121874, "loss": 7.2723612785339355}
+{"step": 29, "seconds": 0.4866799539886415, "loss": 5.556236267089844}
+{"step": 30, "seconds": 0.49002782069146633, "loss": 5.249467849731445}
+{"step": 31, "seconds": 0.4894890212453902, "loss": 5.308141708374023}
+{"step": 32, "seconds": 0.49248085636645555, "loss": 5.850275039672852}
+{"step": 33, "seconds": 0.4912151303142309, "loss": 6.370227336883545}
+{"step": 34, "seconds": 0.4869734551757574, "loss": 6.212723731994629}
+{"step": 35, "seconds": 0.49141842499375343, "loss": 4.54337215423584}
+{"step": 36, "seconds": 0.4907710002735257, "loss": 6.692328453063965}
+{"step": 37, "seconds": 0.49020901788026094, "loss": 8.161545753479004}
+{"step": 38, "seconds": 0.49052514508366585, "loss": 6.555109977722168}
+{"step": 39, "seconds": 0.48754853988066316, "loss": 5.844254970550537}
+{"step": 40, "seconds": 0.49226450081914663, "loss": 6.213923454284668}
+{"step": 41, "seconds": 0.4895492400974035, "loss": 6.355235576629639}
+{"step": 42, "seconds": 0.4449936570599675, "loss": 2.0714406967163086}
+{"step": 43, "seconds": 0.44565855199471116, "loss": 3.5146498680114746}
+{"step": 44, "seconds": 0.4901778306812048, "loss": 8.057600021362305}
+{"step": 45, "seconds": 0.4942268952727318, "loss": 5.784576416015625}
+{"step": 46, "seconds": 0.48672575410455465, "loss": 4.508492469787598}
+{"step": 47, "seconds": 0.49060533195734024, "loss": 6.152773380279541}
+{"step": 48, "seconds": 0.49182259384542704, "loss": 3.2829198837280273}
+{"step": 49, "seconds": 0.4912260822020471, "loss": 4.396030426025391}
+{"step": 50, "seconds": 0.4899349152110517, "loss": 5.3700947761535645}
+{"step": 51, "seconds": 0.4415499777533114, "loss": 2.4870290756225586}
+{"step": 52, "seconds": 0.4886897960677743, "loss": 4.929497718811035}
+{"step": 53, "seconds": 0.4902824820019305, "loss": 5.953600883483887}
+{"step": 54, "seconds": 0.4900757931172848, "loss": 5.8703436851501465}
+{"step": 55, "seconds": 0.4891791380941868, "loss": 4.988630294799805}
+{"step": 56, "seconds": 0.4884643228724599, "loss": 5.848638534545898}
+{"step": 57, "seconds": 0.4910967508330941, "loss": 8.117209434509277}
+{"step": 58, "seconds": 0.4906548149883747, "loss": 6.640410900115967}
+{"step": 59, "seconds": 0.4903552308678627, "loss": 5.718255043029785}
+{"step": 60, "seconds": 0.4870407870039344, "loss": 6.078683853149414}
+{"step": 61, "seconds": 0.4452101760543883, "loss": 3.257798194885254}
+{"step": 62, "seconds": 0.4874100820161402, "loss": 5.261049270629883}
+{"step": 63, "seconds": 0.49017881276085973, "loss": 5.713171005249023}
+{"step": 64, "seconds": 0.4878895999863744, "loss": 5.558039665222168}
+{"step": 65, "seconds": 0.4910901067778468, "loss": 7.1255083084106445}
+{"step": 66, "seconds": 0.48993607610464096, "loss": 6.667245388031006}
+{"step": 67, "seconds": 0.4933489989489317, "loss": 6.777966499328613}
+{"step": 68, "seconds": 0.4914647126570344, "loss": 7.683083534240723}
+{"step": 69, "seconds": 0.49149744864553213, "loss": 4.747598648071289}
+{"step": 70, "seconds": 0.48868852434679866, "loss": 4.725162029266357}
+{"step": 71, "seconds": 0.4933035406284034, "loss": 4.913068771362305}
+{"step": 72, "seconds": 0.4913586312904954, "loss": 4.801923751831055}
+{"step": 73, "seconds": 0.4899921049363911, "loss": 3.991224765777588}
+{"step": 74, "seconds": 0.4886601697653532, "loss": 5.458962917327881}
+{"step": 75, "seconds": 0.4915576530620456, "loss": 6.682780742645264}
+{"step": 76, "seconds": 0.44554605707526207, "loss": 2.1099817752838135}
+{"step": 77, "seconds": 0.44444900285452604, "loss": 3.3365354537963867}
+{"step": 78, "seconds": 0.4928039056248963, "loss": 5.699986457824707}
+{"step": 79, "seconds": 0.4889200241304934, "loss": 5.874355316162109}
+{"step": 80, "seconds": 0.4897758769802749, "loss": 5.611114978790283}
+{"step": 81, "seconds": 0.48755637696012855, "loss": 4.375047206878662}
+{"step": 82, "seconds": 0.48867189418524504, "loss": 6.223182678222656}
+{"step": 83, "seconds": 0.4940653908997774, "loss": 5.544156074523926}
+{"step": 84, "seconds": 0.4895004518330097, "loss": 6.952599048614502}
+{"step": 85, "seconds": 0.4902414591051638, "loss": 3.595094919204712}
+{"step": 86, "seconds": 0.4921299829147756, "loss": 6.27722692489624}
+{"step": 87, "seconds": 0.48904032399877906, "loss": 5.304410934448242}
+{"step": 88, "seconds": 0.49112716829404235, "loss": 4.5837860107421875}
+{"step": 89, "seconds": 0.4904612638056278, "loss": 7.853556156158447}
+{"step": 90, "seconds": 0.4917041100561619, "loss": 7.283766269683838}
+{"step": 91, "seconds": 0.4902168489061296, "loss": 4.935745716094971}
+{"step": 92, "seconds": 0.4895906401798129, "loss": 5.2094316482543945}
+{"step": 93, "seconds": 0.49256058782339096, "loss": 5.102790355682373}
+{"step": 94, "seconds": 0.488681985065341, "loss": 4.6618475914001465}
+{"step": 95, "seconds": 0.48897304106503725, "loss": 5.843156814575195}
+{"step": 96, "seconds": 0.49199695512652397, "loss": 3.2535812854766846}
+{"step": 97, "seconds": 0.4930387772619724, "loss": 4.173948287963867}
+{"step": 98, "seconds": 0.48939489386975765, "loss": 4.557451248168945}
+{"step": 99, "seconds": 0.4900532611645758, "loss": 4.246551513671875}
+{"step": 100, "seconds": 0.4870538888499141, "loss": 4.557594299316406}
+{"held_images_verified": 32}
+{"held_images_verified": 64}
+{"held_images_verified": 96}
+{"held_images_verified": 128}
+{"held_images_verified": 160}
+{"held_images_verified": 192}
+{"held_images_verified": 224}
+{"held_images_verified": 256}
+{"held_images_verified": 288}
+{"held_images_verified": 320}
+{"held_images_verified": 352}
+{"held_images_verified": 384}
+{"held_images_verified": 416}
+{"held_images_verified": 448}
+{"held_images_verified": 480}
+{"held_images_verified": 512}
+{"held_images_verified": 544}
+{"held_images_verified": 576}
+{"held_images_verified": 608}
+{"held_images_verified": 640}
+{"held_images_verified": 672}
+{"held_images_verified": 704}
+{"held_images_verified": 736}
+{"held_images_verified": 768}
+{"held_images_verified": 800}
+{"held_images_verified": 832}
+{"held_images_verified": 864}
+{"held_images_verified": 896}
+{"held_images_verified": 928}
+{"held_images_verified": 960}
+{"held_images_verified": 992}
+{"held_images_verified": 1024}
+{"held_images_verified": 1056}
+{"held_images_verified": 1088}
+{"held_images_verified": 1120}
+{"held_images_verified": 1152}
+{"held_images_verified": 1184}
+{"held_images_verified": 1216}
+{"held_images_verified": 1248}
+{"held_images_verified": 1280}
+{"held_images_verified": 1312}
+{"held_images_verified": 1344}
+{"held_images_verified": 1376}
+{"held_images_verified": 1408}
+{"held_images_verified": 1440}
+{"held_images_verified": 1472}
+{"held_images_verified": 1504}
+{"held_images_verified": 1536}
+{"held_images_verified": 1568}
+{"held_images_verified": 1600}
+{"held_images_verified": 1632}
+{"held_images_verified": 1664}
+{"held_images_verified": 1696}
+{"held_images_verified": 1728}
+{"held_images_verified": 1760}
+{"held_images_verified": 1792}
+{"held_images_verified": 1824}
+{"held_images_verified": 1856}
+{"held_images_verified": 1888}
+{"held_images_verified": 1920}
+{"held_images_verified": 1952}
+{"held_images_verified": 1984}
+{"held_images_verified": 2016}
+{"held_images_verified": 2048}
+{"held_images_verified": 2080}
+{"held_images_verified": 2112}
+{"held_images_verified": 2144}
+{"held_images_verified": 2176}
+{"held_images_verified": 2208}
+{"held_images_verified": 2240}
+{"held_images_verified": 2272}
+{"held_images_verified": 2304}
+{"held_images_verified": 2336}
+{"held_images_verified": 2368}
+{"held_images_verified": 2400}
+{"held_images_verified": 2432}
+{"held_images_verified": 2464}
+{"held_images_verified": 2496}
+{"held_images_verified": 2528}
+{"held_images_verified": 2560}
+{"held_images_verified": 2592}
+{"held_images_verified": 2624}
+{"held_images_verified": 2656}
+{"held_images_verified": 2688}
+{"held_images_verified": 2720}
+{"held_images_verified": 2752}
+{"held_images_verified": 2784}
+{"held_images_verified": 2816}
+{"held_images_verified": 2848}
+{"held_images_verified": 2880}
+{"held_images_verified": 2912}
+{"held_images_verified": 2944}
+{"held_images_verified": 2976}
+{"held_images_verified": 3008}
+{"held_images_verified": 3040}
+{"held_images_verified": 3072}
+{"held_images_verified": 3104}
+{"held_images_verified": 3136}
+{"held_images_verified": 3168}
+{"held_images_verified": 3200}
+{"held_images_verified": 3232}
+{"held_images_verified": 3264}
+{"held_images_verified": 3296}
+{"held_images_verified": 3328}
+{"held_images_verified": 3360}
+{"held_images_verified": 3392}
+{"held_images_verified": 3424}
+{"held_images_verified": 3456}
+{"held_images_verified": 3488}
+{"held_images_verified": 3520}
+{"held_images_verified": 3552}
+{"held_images_verified": 3584}
+{"held_images_verified": 3616}
+{"held_images_verified": 3648}
+{"held_images_verified": 3680}
+{"held_images_verified": 3712}
+{"held_images_verified": 3744}
+{"held_images_verified": 3776}
+{"held_images_verified": 3808}
+{"held_images_verified": 3840}
+{"held_images_verified": 3872}
+{"held_images_verified": 3904}
+{"held_images_verified": 3936}
+{"held_images_verified": 3968}
+{"held_images_verified": 4000}
+{"held_images_verified": 4032}
+{"held_images_verified": 4064}
+{"held_images_verified": 4096}
+{"held_images_verified": 4128}
+{"held_images_verified": 4160}
+{"held_images_verified": 4192}
+{"held_images_verified": 4224}
+{"held_images_verified": 4256}
+{"held_images_verified": 4288}
+{"held_images_verified": 4320}
+{"held_images_verified": 4352}
+{"held_images_verified": 4384}
+{"held_images_verified": 4416}
+{"held_images_verified": 4448}
+{"held_images_verified": 4480}
+{"held_images_verified": 4512}
+{"held_images_verified": 4544}
+{"held_images_verified": 4576}
+{"held_images_verified": 4608}
+{"held_images_verified": 4640}
+{"held_images_verified": 4672}
+{"held_images_verified": 4704}
+{"held_images_verified": 4736}
+{"held_images_verified": 4768}
+{"held_images_verified": 4800}
+{"held_images_verified": 4832}
+{"held_images_verified": 4864}
+{"held_images_verified": 4896}
+{"held_images_verified": 4928}
+{"held_images_verified": 4960}
+{"held_images_verified": 4992}
+{"held_images_verified": 5024}
+{"held_images_verified": 5056}
+{"held_images_verified": 5088}
+{"held_images_verified": 5120}
+{"held_images_verified": 5152}
+{"held_images_verified": 5184}
+{"held_images_verified": 5216}
+{"held_images_verified": 5248}
+{"held_images_verified": 5280}
+{"held_images_verified": 5312}
+{"held_images_verified": 5344}
+{"held_images_verified": 5376}
+{"held_images_verified": 5408}
+{"held_images_verified": 5440}
+{"held_images_verified": 5472}
+{"held_images_verified": 5504}
+{"held_images_verified": 5536}
+{"held_images_verified": 5568}
+{"held_images_verified": 5600}
+{"held_images_verified": 5632}
+{"held_images_verified": 5664}
+{"held_images_verified": 5696}
+{"held_images_verified": 5728}
+{"held_images_verified": 5760}
+{"held_images_verified": 5792}
+{"held_images_verified": 5824}
+{"held_images_verified": 5856}
+{"held_images_verified": 5888}
+{"held_images_verified": 5920}
+{"held_images_verified": 5952}
+{"held_images_verified": 5984}
+{"held_images_verified": 6016}
+{"held_images_verified": 6048}
+{"held_images_verified": 6080}
+{"held_images_verified": 6112}
+{"held_images_verified": 6144}
+{"held_images_verified": 6176}
+{"held_images_verified": 6208}
+{"held_images_verified": 6240}
+{"held_images_verified": 6272}
+{"held_images_verified": 6304}
+{"held_images_verified": 6336}
+{"held_images_verified": 6368}
+{"held_images_verified": 6400}
+{"held_images_verified": 6432}
+{"held_images_verified": 6464}
+{"held_images_verified": 6496}
+{"held_images_verified": 6528}
+{"held_images_verified": 6560}
+{"held_images_verified": 6592}
+{"held_images_verified": 6624}
+{"held_images_verified": 6656}
+{"held_images_verified": 6688}
+{"held_images_verified": 6720}
+{"held_images_verified": 6752}
+{"held_images_verified": 6784}
+{"held_images_verified": 6816}
+{"held_images_verified": 6848}
+{"held_images_verified": 6880}
+{"held_images_verified": 6912}
+{"held_images_verified": 6944}
+{"held_images_verified": 6976}
+{"held_images_verified": 7008}
+{"held_images_verified": 7040}
+{"held_images_verified": 7072}
+{"held_images_verified": 7104}
+{"held_images_verified": 7136}
+{"held_images_verified": 7168}
+{"held_images_verified": 7200}
+{"held_images_verified": 7232}
+{"held_images_verified": 7264}
+{"held_images_verified": 7296}
+{"held_images_verified": 7328}
+{"held_images_verified": 7360}
+{"held_images_verified": 7392}
+{"held_images_verified": 7424}
+{"held_images_verified": 7456}
+{"held_images_verified": 7488}
+{"held_images_verified": 7520}
+{"held_images_verified": 7552}
+{"held_images_verified": 7584}
+{"held_images_verified": 7616}
+{"held_images_verified": 7648}
+{"held_images_verified": 7680}
+{"held_images_verified": 7712}
+{"held_images_verified": 7744}
+{"held_images_verified": 7776}
+{"held_images_verified": 7808}
+{"held_images_verified": 7840}
+{"held_images_verified": 7872}
+{"held_images_verified": 7904}
+{"held_images_verified": 7936}
+{"held_images_verified": 7968}
+{"held_images_verified": 8000}
+{"held_images_verified": 8032}
+{"held_images_verified": 8064}
+{"held_images_verified": 8096}
+{"held_images_verified": 8128}
+{"held_images_verified": 8160}
+{"held_images_verified": 8192}
+{"held_images_verified": 8224}
+{"held_images_verified": 8256}
+{"held_images_verified": 8288}
+{"held_images_verified": 8320}
+{"held_images_verified": 8352}
+{"held_images_verified": 8384}
+{"held_images_verified": 8416}
+{"held_images_verified": 8448}
+{"held_images_verified": 8480}
+{"held_images_verified": 8512}
+{"held_images_verified": 8544}
+{"held_images_verified": 8576}
+{"held_images_verified": 8608}
+{"held_images_verified": 8640}
+{"held_images_verified": 8672}
+{"held_images_verified": 8704}
+{"held_images_verified": 8736}
+{"held_images_verified": 8768}
+{"held_images_verified": 8800}
+{"held_images_verified": 8832}
+{"held_images_verified": 8864}
+{"held_images_verified": 8896}
+{"held_images_verified": 8928}
+{"held_images_verified": 8960}
+{"held_images_verified": 8992}
+{"held_images_verified": 9024}
+{"held_images_verified": 9056}
+{"held_images_verified": 9088}
+{"held_images_verified": 9120}
+{"held_images_verified": 9152}
+{"held_images_verified": 9184}
+{"held_images_verified": 9216}
+{"held_images_verified": 9248}
+{"held_images_verified": 9280}
+{"held_images_verified": 9312}
+{"held_images_verified": 9344}
+{"held_images_verified": 9376}
+{"held_images_verified": 9408}
+{"held_images_verified": 9440}
+{"held_images_verified": 9472}
+{"held_images_verified": 9504}
+{"held_images_verified": 9536}
+{"held_images_verified": 9568}
+{"held_images_verified": 9600}
+{"held_images_verified": 9632}
+{"held_images_verified": 9664}
+{"held_images_verified": 9696}
+{"held_images_verified": 9728}
+{"held_images_verified": 9760}
+{"held_images_verified": 9792}
+{"held_images_verified": 9824}
+{"held_images_verified": 9856}
+{"held_images_verified": 9888}
+{"held_images_verified": 9920}
+{"held_images_verified": 9952}
+{"held_images_verified": 9984}
+{"held_images_verified": 10016}
+{"held_images_verified": 10048}
+{"held_images_verified": 10080}
+{"held_images_verified": 10112}
+{"held_images_verified": 10144}
+{"held_images_verified": 10176}
+{"held_images_verified": 10208}
+{"held_images_verified": 10240}
+{"held_images_verified": 10272}
+{"held_images_verified": 10304}
+{"held_images_verified": 10336}
+{"held_images_verified": 10368}
+{"held_images_verified": 10400}
+{"held_images_verified": 10432}
+{"held_images_verified": 10464}
+{"held_images_verified": 10496}
+{"held_images_verified": 10528}
+{"held_images_verified": 10560}
+{"held_images_verified": 10592}
+{"held_images_verified": 10624}
+{"held_images_verified": 10656}
+{"held_images_verified": 10688}
+{"held_images_verified": 10720}
+{"held_images_verified": 10752}
+{"held_images_verified": 10784}
+{"held_images_verified": 10816}
+{"held_images_verified": 10848}
+{"held_images_verified": 10880}
+{"held_images_verified": 10912}
+{"held_images_verified": 10944}
+{"held_images_verified": 10976}
+{"held_images_verified": 11008}
+{"held_images_verified": 11040}
+{"held_images_verified": 11072}
+{"held_images_verified": 11104}
+{"held_images_verified": 11136}
+{"held_images_verified": 11168}
+{"held_images_verified": 11200}
+{"held_images_verified": 11232}
+{"held_images_verified": 11264}
+{"held_images_verified": 11296}
+{"held_images_verified": 11328}
+{"held_images_verified": 11360}
+{"held_images_verified": 11392}
+{"held_images_verified": 11424}
+{"held_images_verified": 11456}
+{"held_images_verified": 11488}
+{"held_images_verified": 11520}
+{"held_images_verified": 11552}
+{"held_images_verified": 11584}
+{"held_images_verified": 11616}
+{"held_images_verified": 11648}
+{"held_images_verified": 11680}
+{"held_images_verified": 11712}
+{"held_images_verified": 11744}
+{"held_images_verified": 11776}
+{"held_images_verified": 11808}
+{"held_images_verified": 11840}
+{"held_images_verified": 11872}
+{"held_images_verified": 11904}
+{"held_images_verified": 11936}
+{"held_images_verified": 11968}
+{"held_images_verified": 12000}
+{"held_images_verified": 12032}
+{"held_images_verified": 12064}
+{"held_images_verified": 12096}
+{"held_images_verified": 12128}
+{"held_images_verified": 12160}
+{"held_images_verified": 12192}
+{"held_images_verified": 12224}
+{"held_images_verified": 12256}
+{"held_images_verified": 12288}
+{"held_images_verified": 12320}
+{"held_images_verified": 12352}
+{"held_images_verified": 12384}
+{"held_images_verified": 12416}
+{"held_images_verified": 12448}
+{"held_images_verified": 12480}
+{"held_images_verified": 12512}
+{"held_images_verified": 12544}
+{"held_images_verified": 12576}
+{"held_images_verified": 12599}
+KILL fixed TRAIN quality gate
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 3min 32.420s
+CPU time consumed: 4min 8.130s
+Memory peak: 4.8G
+Memory swap peak: 0B
