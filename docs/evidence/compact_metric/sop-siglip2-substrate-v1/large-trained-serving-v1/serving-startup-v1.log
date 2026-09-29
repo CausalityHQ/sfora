@@ -1,0 +1,35 @@
+Running as unit: sfora-large-trained-serving-startup-v1.service; invocation ID: da5d02eb7c8b4373accca717eadc474e
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-large-trained-serving-v1/qualify_pe_large_public_serving.py", line 152, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/sfora-large-trained-serving-v1/qualify_pe_large_public_serving.py", line 52, in main
+    control, frozen, cpu, receipt, code = startup(root, args.execution_sha256)
+                                          ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-large-trained-serving-v1/qualify_pe_large_public_serving.py", line 33, in startup
+    control, frozen, cpu, _, old = trained.startup(root, TRAINED_CODE_SHA)
+                                   ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-large-trained-serving-v1/qualify_pe_large_trained_candidate.py", line 26, in startup
+    control, frozen, old = teacher.startup(root, TEACHER_CODE_SHA)
+                           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-large-trained-serving-v1/export_pe_large_teacher_fit.py", line 28, in startup
+    control, frozen, _, _, qualified_code = qualified.startup(root, QUAL_SHA)
+                                            ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-large-trained-serving-v1/qualify_pe_large_final_two_gpu.py", line 37, in startup
+    control, frozen, prior = native.base.control(root)
+                             ~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/home/riomus/runs/sfora-large-trained-serving-v1/pe_large_pool.py", line 30, in control
+    frozen = pair.check_startup(args)
+  File "/home/riomus/runs/sfora-large-trained-serving-v1/train_inshop_pe_pair.py", line 128, in check_startup
+    executing_authority(args.root, frozen["code"])
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-large-trained-serving-v1/train_inshop_pe_pair.py", line 76, in executing_authority
+    assert relative in code and sha(path) == code[relative], name
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: sfora.siglip2_compact_serving
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=1
+Service runtime: 3.359s
+CPU time consumed: 5.924s
+Memory peak: 256.0K
+Memory swap peak: 0B

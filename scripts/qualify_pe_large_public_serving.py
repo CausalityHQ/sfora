@@ -12,7 +12,6 @@ from PIL import Image
 import qualify_pe_large_trained_candidate as trained
 from sfora.cutile_int8 import CutilePackedInt8Gallery
 from sfora.joint_relational_compaction import PackedInt8Embeddings, pack_int8_unit_embeddings
-from sfora.siglip2_compact_serving import Siglip2CompactEncoder, Siglip2CompactIndex
 
 pair, teacher = trained.pair, trained.teacher
 HELD = Path('/home/riomus/runs/sfora-large-trained-held-v1')
@@ -24,8 +23,6 @@ TRAINED_CODE_SHA = '61729205d81cedd7bac5d80bdc150a46921ff7d9a177e8164e272c025668
 
 
 def startup(root, execution_sha):
-    assert Path(inspect.getfile(Siglip2CompactEncoder)).resolve() == root / 'src/sfora/siglip2_compact_serving.py'
-    assert Path(inspect.getfile(CutilePackedInt8Gallery)).resolve() == root / 'src/sfora/cutile_int8.py'
     manifest = root / 'trained-serving-execution.json'
     assert pair.sha(manifest) == execution_sha
     code = json.loads(manifest.read_text())
@@ -50,6 +47,10 @@ def main():
     torch.set_num_threads(8)
     torch.manual_seed(pair.SEED)
     control, frozen, cpu, receipt, code = startup(root, args.execution_sha256)
+    # Authenticate the original closed module set before importing the new serving layer.
+    from sfora.siglip2_compact_serving import Siglip2CompactEncoder, Siglip2CompactIndex
+    assert Path(inspect.getfile(Siglip2CompactEncoder)).resolve() == root / 'src/sfora/siglip2_compact_serving.py'
+    assert Path(inspect.getfile(CutilePackedInt8Gallery)).resolve() == root / 'src/sfora/cutile_int8.py'
     if args.check_startup_only:
         assert not torch.cuda.is_available()
         original = pair.sha
