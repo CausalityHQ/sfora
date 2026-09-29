@@ -1,0 +1,27 @@
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 15167.89it/s]
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 16342.49it/s]
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python train_large_dense_pilot.py --seed 179032 --execution-sha256 916e3679574613465da283a920d3526b5add38eac80843849f3fa1869446e3bf --output /home/riomus/runs/sfora-dense-pilot-179032-v1"
+	User time (seconds): 136.11
+	System time (seconds): 24.21
+	Percent of CPU this job got: 104%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 2:33.52
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 6484588
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 35619
+	Minor (reclaiming a frame) page faults: 4068546
+	Voluntary context switches: 181220
+	Involuntary context switches: 1797
+	Swaps: 0
+	File system inputs: 200
+	File system outputs: 2470496
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
