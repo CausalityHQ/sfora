@@ -36,9 +36,9 @@
 **Interfaces:** Consumes original full source/initializer/control2000/official receipts plus final native100 confirmation; produces hash-bound full CPU proof and discard17 mechanics receipt.
 
 - [x] Run actual DGX CPU entry before implementation; missing driver must fail before model/GPU work (RED).
-- [ ] Implement `authority(root, execution_sha)` with full imported closure and immutable prior proofs; no patched historical diagnostics.
-- [ ] Implement actual full CPU valid/singleton image gradient check using unchanged loss core, normalization, all-active equality, finite native12/head gradients, zero singleton gradient, frozen whole/head/bank/optimizer preservation; require25882rows/3997IDs.
-- [ ] Run one actual full CPU qualification; changed-driver rejection, zero updates/quality and normal exit PASS before GPU.
+- [x] Implement `authority(root, execution_sha)` with full imported closure and immutable prior proofs; no patched historical diagnostics.
+- [x] Implement actual full CPU valid/singleton image gradient check using unchanged loss core, normalization, all-active equality, finite native12/head gradients, zero singleton gradient, frozen whole/head/bank/optimizer preservation; require25882rows/3997IDs.
+- [x] Run one actual full CPU qualification; changed-driver rejection, zero updates/quality and normal exit PASS before GPU.
 - [ ] Implement one corrected17 mechanics, unchanged source schedule/RGB/pixels vs archived control17; require finite successful steps, complete native17 vs saved8+resumed9 state/diagnostics exact, strict400/head/packed/F16-F32cos≥.999, recovered375-step schedule census.
 - [ ] Run once under120s, admission100≤269s/cost≤1.10 archivedcontrolmedian, noSwap/<10GB; discard states. Failure closes fixed candidate; no rescue.
 - [ ] Archive raw proofs/logs/manifests and commit/push master.
