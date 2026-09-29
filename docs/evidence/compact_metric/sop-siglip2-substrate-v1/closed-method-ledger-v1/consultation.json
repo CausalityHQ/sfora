@@ -1,0 +1,337 @@
+{
+  "id": "13d17f0c0f744af8",
+  "provider": "codex",
+  "model": "gpt-6.1-sol",
+  "fallbacks": [
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    }
+  ],
+  "agent": "sfora/emafactorial",
+  "cwd": "/home/rb/worktrees/sfora-positive-causality",
+  "status": "completed",
+  "runner_started": true,
+  "started_at": 1790724095,
+  "timeout_seconds": 300,
+  "deadline_at": 1790724395,
+  "budget_usd": 1,
+  "prompt_preview": "Read-only bounded evidence ledger reconciliation; no edits, SSH, model/Torch/GPU, external research, reviewers or jobs. Repo /home/rb/worktrees/sfora-positive-causality master2f6e306f. Same production SOP/InShop joint quality+speed goal active. We just redundantly re-evaluated exact old pool checkpoint: current decision /tmp/decision-v3.json SHA0186694327c0e98054fc146418623cc29703578a1835d9cd5f489c0a8887eebb gives InShop preobserved TRAIN6354q6245g R184.3877872/AP58.9061674, identical docs/inshop_large_pool_fresh_validation_result_2026-09-29.md. Handoff wrongly called unread. Latest actually new branches docs/inshop_dense_boundary_gate_2026-09-29.md (dense100 two seeds qualityKILL) and docs/inshop_hard_anchor_gate_2026-09-29.md (259hardrows feasibilityKILL). Inspect relevant docs/inshop*gate/result/plan files and checked-in receipts to identify closed methods (including frozen-pool finalblock, teacher-retained, lowrank) and the ONE existing useful trained candidate or genuinely unclosed concrete intervention worth next qualification. Return compact evidence table with terminal proof file, identify contradictions/stale handoff, recommend next decisive action grounded in actual representation/quality evidence. No new research or speculative architecture. Do not select a branch already terminal. Need concise result within5min; no fullrepo suite. Historical best corrected2000 official InShop96.3075/81.8826, dense179032 TRAIN96.726472/81.930308 useful Pareto despite fixedpilotKILL; no publicspeed win. Distinguish previously observed official vs freshconfirmation. If no clearly unclosed branch, say so and identify strongest candidate to qualify serving/fresh confirmation, rather than theorem-probe chain.",
+  "prompt_sha256": "957230785a62053f1a56b6c1cbb3ba1429bf13bf799eac77603ead8a6a806e7a",
+  "prompt_bytes": 1904,
+  "fingerprint": "88770125c3adf56c873d8cc03ace8214a1a6b7a87ecb04f4bccb8c273a9096cf",
+  "evidence": {
+    "git_commit": "2f6e306f432ca3fc2ffe3f1776b76e49d55ed875",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "a6e29200ec6ed5b1eabc06f607c834f9c8b3d4d0eac559a57c91e8ecb4f720aa",
+    "worktree_sha256": "470a46ff5f5bb46886044741913053c13743cbde68dab4a2b33e9dbd9f9d05ba",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "previous_fingerprint": "0f738b19a66a334b95787ada89b83d020de72d6ea9017fc3d260855783b979e7",
+  "reused": false,
+  "systemd_unit": "devbox-consult-13d17f0c0f744af8.service",
+  "pid": 2205198,
+  "pgid": 2205198,
+  "attempt": 1,
+  "attempts": [
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    }
+  ],
+  "attempt_history": [
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol",
+      "budget_usd": 1,
+      "timeout_seconds": 299,
+      "started_at": 1790724096
+    }
+  ],
+  "exit_code": 0,
+  "finished_at": 1790724235,
+  "event_cursor": 31,
+  "events": [
+    {
+      "seq": 8,
+      "at": 1790724105,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 9,
+      "at": 1790724105,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 10,
+      "at": 1790724111,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 11,
+      "at": 1790724111,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 12,
+      "at": 1790724117,
+      "provider": "codex",
+      "kind": "partial",
+      "label": "Answer available"
+    },
+    {
+      "seq": 13,
+      "at": 1790724123,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 14,
+      "at": 1790724123,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 15,
+      "at": 1790724133,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 16,
+      "at": 1790724133,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 17,
+      "at": 1790724142,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 18,
+      "at": 1790724142,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 19,
+      "at": 1790724150,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 20,
+      "at": 1790724150,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 21,
+      "at": 1790724156,
+      "provider": "codex",
+      "kind": "partial",
+      "label": "Answer available"
+    },
+    {
+      "seq": 22,
+      "at": 1790724162,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 23,
+      "at": 1790724162,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 1"
+    },
+    {
+      "seq": 24,
+      "at": 1790724171,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 25,
+      "at": 1790724171,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 26,
+      "at": 1790724182,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 27,
+      "at": 1790724182,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 28,
+      "at": 1790724194,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 29,
+      "at": 1790724194,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 30,
+      "at": 1790724234,
+      "provider": "codex",
+      "kind": "partial",
+      "label": "Answer available"
+    },
+    {
+      "seq": 31,
+      "at": 1790724234,
+      "provider": "codex",
+      "kind": "phase",
+      "label": "Consultation completed",
+      "detail": "exit 0"
+    }
+  ],
+  "events_truncated": true,
+  "provider_events": {
+    "codex": [
+      {
+        "seq": 24,
+        "at": 1790724171,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 25,
+        "at": 1790724171,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 26,
+        "at": 1790724182,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 27,
+        "at": 1790724182,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 28,
+        "at": 1790724194,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 29,
+        "at": 1790724194,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 30,
+        "at": 1790724234,
+        "provider": "codex",
+        "kind": "partial",
+        "label": "Answer available"
+      },
+      {
+        "seq": 31,
+        "at": 1790724234,
+        "provider": "codex",
+        "kind": "phase",
+        "label": "Consultation completed",
+        "detail": "exit 0"
+      }
+    ]
+  },
+  "partial_result": "**Recommend qualifying the preserved dense179032 checkpoint next. No clearly unclosed new training intervention emerged from the inspected ledger.** Its fixed two-seed procedure remains terminal KILL; qualifying its retained weights does not reopen that procedure.\n\nAll quality numbers below are R@1 / mAP@R percentages.\n\n| Method | Terminal evidence | Proof file |\n|---|---|---|\n| Large pooling-only | TRAIN **84.387787 / 58.906167**, quality KILL; complete export and CPU replay already existed | [Terminal decision](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/large-pool-fresh-validation-v1/terminal-decision.json) |\n| Final token block, pretrained pool frozen | TRAIN **91.249607 / 69.375799**, quality KILL despite integrity/cost PASS | [Decision](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/large-final-block-v1/pilot/terminal-decision.json) |\n| Final two blocks, pool frozen | TRAIN **93.610324 / 73.514138**, quality KILL; teacher-anchor successor also closed | [Two-block decision](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/large-final-two-v1/pilot/terminal-decision.json), [anchor outcome](/home/rb/worktrees/sfora-positive-causality/docs/inshop_large_teacher_anchor_gate_2026-09-29.md) |\n| PE upper-six rank32; native Muon successor | Both terminal quality KILL; rank32 **93.988039 / 73.308299** | [Rank32 result](/home/rb/worktrees/sfora-positive-causality/docs/inshop_pe_lowrank_pilot_result_2026-09-28.md), [Muon result](/home/rb/worktrees/sfora-positive-causality/docs/inshop_pe_native_muon_result_2026-09-28.md) |\n| Large lower-stack rank8 | Mean gains **+0.007869 / +0.094475 pp** miss floors; one seed loses R1 | [Decision summary](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/large-lower-adapter-v1/pilot-export-v1/decision-summary-v1.json) |\n| Teacher-retained256 | TRAIN **97.765187 / 85.339519**, below matched128 **97.780925 / 85.449629**; KILL | [Terminal result and receipts](/home/rb/worktrees/sfora-positive-causality/docs/inshop_teacher_retained256_result_2026-09-29.md) |\n| Corrected128 fixed4000 | Previously observed official **96.223097 / 82.123349**; R1 below corrected2000 **96.307498 / 81.882593**; KILL | [Terminal result](/home/rb/worktrees/sfora-positive-causality/docs/inshop_corrected128_budget4000_result_2026-09-29.md) |\n| Dense boundary100, two seeds | Mean Δ **−0.023607 / +0.253822 pp**; seed179041 regresses both metrics. Quality KILL, integrity/cost PASS | [Checked summary](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/dense-boundary-v1/pilot-export-v2/summary-v2.json) |\n| Hard-anchor32-slot schedule | **259 hard rows**, below frozen320 minimum; feasibility KILL, zero model updates | [Checked receipt](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/hard-schedule-v1/receipt.json) |\n\nThe stale handoffs form a chain: hard-anchor points to an “unread” pool checkpoint; pool points to final-block; final-block points to final-two; later records close each. Teacher-retained256’s proposed4000 continuation and4000’s proposed rank8 intervention are likewise superseded by terminal results. Earlier “not launched” paragraphs cannot override appended outcomes.\n\nThe local `/tmp/decision-v3.json` hash matches your supplied `018669…eebb`. Its pool result repeats existing evidence; “fresh validation” describes newly encoded images on **previously observed TRAIN-held**, not independent official confirmation. The fixed-average official **96.328598 / 82.032219** is another preserved Pareto point, although its procedure also failed its gate.\n\n**Next decisive action:** freeze dense179032 weights, SHA `163b0226…57d362f`, already bound by its [training receipt](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/dense-boundary-v1/pilot-training-v1/179032/receipt.json). Its observed TRAIN **96.726472 / 81.930308** improves both matched-control points. Qualify that exact updated representation through public serving and fixed-checkpoint official confirmation, with no further TRAIN tuning. Only a quality survivor warrants matched full-pipeline speed certification. Its TRAIN result does not predict official superiority; the joint SOP/InShop goal remains unmet.\n\nRead-only reconciliation completed; no edits, SSH, model execution, research, reviewers or jobs.",
+  "partial_result_truncated": false,
+  "provider_partials": {
+    "codex": "**Recommend qualifying the preserved dense179032 checkpoint next. No clearly unclosed new training intervention emerged from the inspected ledger.** Its fixed two-seed procedure remains terminal KILL; qualifying its retained weights does not reopen that procedure.\n\nAll quality numbers below are R@1 / mAP@R percentages.\n\n| Method | Terminal evidence | Proof file |\n|---|---|---|\n| Large pooling-only | TRAIN **84.387787 / 58.906167**, quality KILL; complete export and CPU replay already existed | [Terminal decision](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/large-pool-fresh-validation-v1/terminal-decision.json) |\n| Final token block, pretrained pool frozen | TRAIN **91.249607 / 69.375799**, quality KILL despite integrity/cost PASS | [Decision](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/large-final-block-v1/pilot/terminal-decision.json) |\n| Final two blocks, pool frozen | TRAIN **93.610324 / 73.514138**, quality KILL; teacher-anchor successor also closed | [Two-block decision](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/large-final-two-v1/pilot/terminal-decision.json), [anchor outcome](/home/rb/worktrees/sfora-positive-causality/docs/inshop_large_teacher_anchor_gate_2026-09-29.md) |\n| PE upper-six rank32; native Muon successor | Both terminal quality KILL; rank32 **93.988039 / 73.308299** | [Rank32 result](/home/rb/worktrees/sfora-positive-causality/docs/inshop_pe_lowrank_pilot_result_2026-09-28.md), [Muon result](/home/rb/worktrees/sfora-positive-causality/docs/inshop_pe_native_muon_result_2026-09-28.md) |\n| Large lower-stack rank8 | Mean gains **+0.007869 / +0.094475 pp** miss floors; one seed loses R1 | [Decision summary](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/large-lower-adapter-v1/pilot-export-v1/decision-summary-v1.json) |\n| Teacher-retained256 | TRAIN **97.765187 / 85.339519**, below matched128 **97.780925 / 85.449629**; KILL | [Terminal result and receipts](/home/rb/worktrees/sfora-positive-causality/docs/inshop_teacher_retained256_result_2026-09-29.md) |\n| Corrected128 fixed4000 | Previously observed official **96.223097 / 82.123349**; R1 below corrected2000 **96.307498 / 81.882593**; KILL | [Terminal result](/home/rb/worktrees/sfora-positive-causality/docs/inshop_corrected128_budget4000_result_2026-09-29.md) |\n| Dense boundary100, two seeds | Mean Δ **−0.023607 / +0.253822 pp**; seed179041 regresses both metrics. Quality KILL, integrity/cost PASS | [Checked summary](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/dense-boundary-v1/pilot-export-v2/summary-v2.json) |\n| Hard-anchor32-slot schedule | **259 hard rows**, below frozen320 minimum; feasibility KILL, zero model updates | [Checked receipt](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/hard-schedule-v1/receipt.json) |\n\nThe stale handoffs form a chain: hard-anchor points to an “unread” pool checkpoint; pool points to final-block; final-block points to final-two; later records close each. Teacher-retained256’s proposed4000 continuation and4000’s proposed rank8 intervention are likewise superseded by terminal results. Earlier “not launched” paragraphs cannot override appended outcomes.\n\nThe local `/tmp/decision-v3.json` hash matches your supplied `018669…eebb`. Its pool result repeats existing evidence; “fresh validation” describes newly encoded images on **previously observed TRAIN-held**, not independent official confirmation. The fixed-average official **96.328598 / 82.032219** is another preserved Pareto point, although its procedure also failed its gate.\n\n**Next decisive action:** freeze dense179032 weights, SHA `163b0226…57d362f`, already bound by its [training receipt](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/dense-boundary-v1/pilot-training-v1/179032/receipt.json). Its observed TRAIN **96.726472 / 81.930308** improves both matched-control points. Qualify that exact updated representation through public serving and fixed-checkpoint official confirmation, with no further TRAIN tuning. Only a quality survivor warrants matched full-pipeline speed certification. Its TRAIN result does not predict official superiority; the joint SOP/InShop goal remains unmet.\n\nRead-only reconciliation completed; no edits, SSH, model execution, research, reviewers or jobs."
+  },
+  "providers_used": [
+    "codex"
+  ],
+  "active_provider": "codex",
+  "phase": "Consultation completed",
+  "input_bytes": 1904,
+  "output_bytes": 4598,
+  "elapsed_seconds": 140,
+  "progress": "Reading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)\ndevbox-ask: codex consult still running (1m 30s)\ndevbox-ask: codex consult still running (2m 00s)",
+  "progress_truncated": false,
+  "result": "**Recommend qualifying the preserved dense179032 checkpoint next. No clearly unclosed new training intervention emerged from the inspected ledger.** Its fixed two-seed procedure remains terminal KILL; qualifying its retained weights does not reopen that procedure.\n\nAll quality numbers below are R@1 / mAP@R percentages.\n\n| Method | Terminal evidence | Proof file |\n|---|---|---|\n| Large pooling-only | TRAIN **84.387787 / 58.906167**, quality KILL; complete export and CPU replay already existed | [Terminal decision](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/large-pool-fresh-validation-v1/terminal-decision.json) |\n| Final token block, pretrained pool frozen | TRAIN **91.249607 / 69.375799**, quality KILL despite integrity/cost PASS | [Decision](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/large-final-block-v1/pilot/terminal-decision.json) |\n| Final two blocks, pool frozen | TRAIN **93.610324 / 73.514138**, quality KILL; teacher-anchor successor also closed | [Two-block decision](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/large-final-two-v1/pilot/terminal-decision.json), [anchor outcome](/home/rb/worktrees/sfora-positive-causality/docs/inshop_large_teacher_anchor_gate_2026-09-29.md) |\n| PE upper-six rank32; native Muon successor | Both terminal quality KILL; rank32 **93.988039 / 73.308299** | [Rank32 result](/home/rb/worktrees/sfora-positive-causality/docs/inshop_pe_lowrank_pilot_result_2026-09-28.md), [Muon result](/home/rb/worktrees/sfora-positive-causality/docs/inshop_pe_native_muon_result_2026-09-28.md) |\n| Large lower-stack rank8 | Mean gains **+0.007869 / +0.094475 pp** miss floors; one seed loses R1 | [Decision summary](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/large-lower-adapter-v1/pilot-export-v1/decision-summary-v1.json) |\n| Teacher-retained256 | TRAIN **97.765187 / 85.339519**, below matched128 **97.780925 / 85.449629**; KILL | [Terminal result and receipts](/home/rb/worktrees/sfora-positive-causality/docs/inshop_teacher_retained256_result_2026-09-29.md) |\n| Corrected128 fixed4000 | Previously observed official **96.223097 / 82.123349**; R1 below corrected2000 **96.307498 / 81.882593**; KILL | [Terminal result](/home/rb/worktrees/sfora-positive-causality/docs/inshop_corrected128_budget4000_result_2026-09-29.md) |\n| Dense boundary100, two seeds | Mean Δ **−0.023607 / +0.253822 pp**; seed179041 regresses both metrics. Quality KILL, integrity/cost PASS | [Checked summary](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/dense-boundary-v1/pilot-export-v2/summary-v2.json) |\n| Hard-anchor32-slot schedule | **259 hard rows**, below frozen320 minimum; feasibility KILL, zero model updates | [Checked receipt](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/hard-schedule-v1/receipt.json) |\n\nThe stale handoffs form a chain: hard-anchor points to an “unread” pool checkpoint; pool points to final-block; final-block points to final-two; later records close each. Teacher-retained256’s proposed4000 continuation and4000’s proposed rank8 intervention are likewise superseded by terminal results. Earlier “not launched” paragraphs cannot override appended outcomes.\n\nThe local `/tmp/decision-v3.json` hash matches your supplied `018669…eebb`. Its pool result repeats existing evidence; “fresh validation” describes newly encoded images on **previously observed TRAIN-held**, not independent official confirmation. The fixed-average official **96.328598 / 82.032219** is another preserved Pareto point, although its procedure also failed its gate.\n\n**Next decisive action:** freeze dense179032 weights, SHA `163b0226…57d362f`, already bound by its [training receipt](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/dense-boundary-v1/pilot-training-v1/179032/receipt.json). Its observed TRAIN **96.726472 / 81.930308** improves both matched-control points. Qualify that exact updated representation through public serving and fixed-checkpoint official confirmation, with no further TRAIN tuning. Only a quality survivor warrants matched full-pipeline speed certification. Its TRAIN result does not predict official superiority; the joint SOP/InShop goal remains unmet.\n\nRead-only reconciliation completed; no edits, SSH, model execution, research, reviewers or jobs.",
+  "result_truncated": false
+}
