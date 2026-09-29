@@ -1,0 +1,7 @@
+{
+  "pass": true,
+  "execution_sha256": "b050801f6f15434873443f979dbd1c9645df1f0e065c2ad5a99b9a8e963baa50",
+  "cpu_authority_sha256": "c1e3e15a06ff6723a83713543cbdc07d8e9c78d3178ea7bd5c042fd91b23b143",
+  "quality_read": false,
+  "GPU_training_qualified": false
+}

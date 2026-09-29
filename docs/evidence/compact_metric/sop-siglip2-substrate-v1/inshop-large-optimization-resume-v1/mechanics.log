@@ -1,0 +1,25 @@
+Running as unit: sfora-large-optimization-mechanics-v1.service; invocation ID: 39b556d53e7246839088866d71b2d5c1
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 14215.55it/s]
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-large-optimization-gpu-v1/train_pe_large_optimization.py", line 178, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/sfora-large-optimization-gpu-v1/train_pe_large_optimization.py", line 125, in main
+    rows.append(update(state,step))
+                ~~~~~~^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-large-optimization-gpu-v1/train_pe_large_optimization.py", line 112, in update
+    row=driver.step(s,pixels,batch,rank)
+  File "/home/riomus/runs/sfora-large-optimization-gpu-v1/pe_large_optimization.py", line 201, in step
+    rows,positions=pair.smoke.member_bank_refresh_rows(tuple(batch))
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-large-optimization-gpu-v1/train_sop_siglip2_compact.py", line 293, in member_bank_refresh_rows
+    raise ValueError("SOP member-bank refresh batch differs")
+ValueError: SOP member-bank refresh batch differs
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=1
+Service runtime: 12.904s
+CPU time consumed: 16.335s
+Memory peak: 1.7G
+Memory swap peak: 0B

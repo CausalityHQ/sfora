@@ -65,6 +65,11 @@ def main():
     control,source,prior,proof,code,cpu=startup(root,args.execution_sha256)
     if args.startup_only:
         assert not torch.cuda.is_available()
+        batches=driver.schedule(driver.initializers(proof,'full')['target'].numpy())
+        batch=tuple(batches[0].tolist())
+        assert all(type(i) is int for i in batch)
+        refresh,positions=pair.smoke.member_bank_refresh_rows(batch)
+        assert len(refresh)==64 and tuple(batch[i] for i in positions)==refresh
         pair.smoke.save(args.output,{'pass':True,'execution_sha256':args.execution_sha256,'cpu_authority_sha256':CPU_SHA,'quality_read':False,'GPU_training_qualified':False})
         print('PASS GPU driver frozen authority and actual import closure; no updates')
         return
@@ -85,7 +90,7 @@ def main():
     schedule_sha=pair.smoke.digest({'batches':torch.from_numpy(batches)})
     assert schedule_sha==cpu['schedules']['full']['schedule_sha256']
     base=driver.identity(state,proof,'full',args.execution_sha256,schedule_sha)
-    images,_=pair.augmented_images(control.dataset_root,arm['rows'],tuple(batches[0][:2]),1)
+    images,_=pair.augmented_images(control.dataset_root,arm['rows'],tuple(batches[0][:2].tolist()),1)
     calibration=pair.pixels(state['processor'],images,'large').cuda()
     def cosines(s):
         with torch.no_grad():
@@ -103,7 +108,7 @@ def main():
     def update(s,step):
         torch.cuda.synchronize()
         tick=time.perf_counter()
-        batch=tuple(batches[step-1])
+        batch=tuple(batches[step-1].tolist())
         images,rgb=pair.augmented_images(control.dataset_root,arm['rows'],batch,step)
         pixels=pair.pixels(s['processor'],images,'large')
         pixel_sha=pair.smoke.digest({'pixels':pixels})
