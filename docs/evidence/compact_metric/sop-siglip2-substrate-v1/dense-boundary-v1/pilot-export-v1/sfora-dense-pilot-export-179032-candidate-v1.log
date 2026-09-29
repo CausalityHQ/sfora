@@ -1,0 +1,41 @@
+Running as unit: sfora-dense-pilot-export-179032-candidate-v1.service; invocation ID: d885569eab4d454399ddd9528bba04bd
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  90%|█████████ | 713/792 [00:00<00:00, 7119.77it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 7529.08it/s]
+{"full_whole_held_images_verified": 2048}
+{"full_whole_held_images_verified": 4096}
+{"full_whole_held_images_verified": 6144}
+{"full_whole_held_images_verified": 8192}
+{"full_whole_held_images_verified": 10240}
+{"full_whole_held_images_verified": 12288}
+{"full_whole_held_images_verified": 12599}
+Finished with result: timeout
+Main processes terminated with: code=killed/status=TERM
+Service runtime: 5min 610ms
+CPU time consumed: 5min 15.634s
+Memory peak: 3.9G
+Memory swap peak: 0B
+Command exited with non-zero status 1
+	Command being timed: "systemd-run --user --wait --collect --pipe --unit=sfora-dense-pilot-export-179032-candidate-v1 -p WorkingDirectory=/home/riomus/runs/sfora-dense-pilot-export-source-v1 -p RuntimeMaxSec=300 -p MemoryMax=8G -p MemorySwapMax=0 -p KillMode=control-group -p OOMPolicy=stop --setenv=CUBLAS_WORKSPACE_CONFIG=:4096:8 --setenv=OMP_NUM_THREADS=8 --setenv=OPENBLAS_NUM_THREADS=1 --setenv=TOKENIZERS_PARALLELISM=false --setenv=PYTHONPATH=/home/riomus/runs/sfora-dense-pilot-export-source-v1:/home/riomus/runs/sfora-dense-pilot-export-source-v1/src:/home/riomus/runs/sfora-dense-pilot-export-source-v1/isolated-deps flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock flock -n /home/riomus/.sfora-siglip2-gpu.lock /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-dense-pilot-export-source-v1/export_large_dense_pilot.py --execution-sha256 55eef17ccfbdf0d3271b045ebbb3ae6184189dd343b990cf269a47260afec329 --seed 179032 --arm candidate --output /home/riomus/runs/sfora-dense-pilot-wires-179032-candidate-v1 --cpu-proof /home/riomus/runs/sfora-dense-pilot-source-179032-candidate-v1/proof.json --cpu-sha256 4cb567523179d2b14c42a5f2d43e38efe23c09ab5e1a72c6276f424c3c92db2f"
+	User time (seconds): 0.00
+	System time (seconds): 0.00
+	Percent of CPU this job got: 0%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 5:00.63
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 7220
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 378
+	Voluntary context switches: 19
+	Involuntary context switches: 0
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 1

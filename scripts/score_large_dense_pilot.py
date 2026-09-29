@@ -13,7 +13,7 @@ import torch
 
 import export_large_dense_pilot as export
 
-EXPORT_ROOT = Path("/home/riomus/runs/sfora-dense-pilot-export-source-v1")
+EXPORT_ROOT = Path("/home/riomus/runs/sfora-dense-pilot-export-source-v2")
 CONTROL_EXPORT_CODE = "d2550a6e7cd59916e8d6e9e9a5b9f70dbe60efbbf37aaab3a076b529ca7badb5"
 
 
@@ -68,7 +68,7 @@ def main():
             (_, _, _, _, _, archived, _), _, _ = export.training.startup(root, export.TRAIN_CODE, seed)
         qualities[seed] = {}
         for arm in ("control", "candidate"):
-            run = Path(f"/home/riomus/runs/sfora-{'lower' if arm == 'control' else 'dense'}-pilot-wires-{seed}-{arm}-v1")
+            run = Path(f"/home/riomus/runs/sfora-{'lower' if arm == 'control' else 'dense'}-pilot-wires-{seed}-{arm}-{'v1' if arm == 'control' else 'v2'}")
             receipt_sha = sha(run / "receipt.json")
             receipt = json.loads((run / "receipt.json").read_text())
             assert receipt["pass"] and receipt["seed"] == seed and receipt["arm"] == arm
@@ -83,8 +83,8 @@ def main():
                 assert receipt["training_checkpoint_sha256"] == training["checkpoint_sha256"]
                 assert receipt["checkpoint_sha256"] == training["checkpoint_sha256"]
                 assert receipt["execution_sha256"] == args.export_execution_sha256 and receipt["source_code"] == previous
-                log_path = EXPORT_ROOT / f"sfora-dense-pilot-export-{seed}-candidate-v1.log"
-                cpu_path = Path(f"/home/riomus/runs/sfora-dense-pilot-source-{seed}-candidate-v1/proof.json")
+                log_path = EXPORT_ROOT / f"sfora-dense-pilot-export-{seed}-candidate-v2.log"
+                cpu_path = Path(f"/home/riomus/runs/sfora-dense-pilot-source-{seed}-candidate-v2/proof.json")
                 assert sha(cpu_path) == receipt["cpu_authority_sha256"]
                 cpu = json.loads(cpu_path.read_text())
                 assert cpu["pass"] and cpu["changed_driver_rejected"] and cpu["code"] == previous

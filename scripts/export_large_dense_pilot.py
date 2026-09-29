@@ -43,7 +43,7 @@ def authority(root, expected, seed, arm):
     assert previous == json.loads((TRAIN_ROOT / "dense-pilot-execution.json").read_text())
     helpers = old.previous.selected.helpers
     with patch.object(old.previous.selected, "helpers", lambda r, _: helpers(r, code)):
-        (control, _, prior, native, _, _, _), _, _ = training.startup(root, TRAIN_CODE, seed)
+        (control, _, prior, native, _, initial_reference, _), _, _ = training.startup(root, TRAIN_CODE, seed)
         _, frozen, _ = teacher.startup(root, old.coverage.trained.TEACHER_CODE_SHA)
     assert frozen["fit_manifest"] == native["arms"]["half"]["rows"]
     assert len(frozen["held_manifest"]) == 12599 and len(frozen["query"]) == 6354 and len(frozen["gallery"]) == 6245
@@ -67,8 +67,11 @@ def authority(root, expected, seed, arm):
         assert value["training_wall_ratio"] <= 1.50 and value["median_step_ratio"] <= 1.50
         assert value["peak_cuda_allocated_bytes"] < 10_000_000_000
         assert sha(run / "native.pt") == value["checkpoint_sha256"]
-        with patch.object(old.previous.selected, "helpers", lambda r, _: helpers(r, code)):
-            (_, _, _, _, _, reference, _), _, _ = training.startup(root, TRAIN_CODE, declared_seed)
+        if declared_seed == seed:
+            reference = initial_reference
+        else:
+            with patch.object(old.previous.selected, "helpers", lambda r, _: helpers(r, code)):
+                (_, _, _, _, _, reference, _), _, _ = training.startup(root, TRAIN_CODE, declared_seed)
         assert value["initial_state_sha256"] == reference["initial_state_sha256"]
         assert value["training_wall_ratio"] == value["training_wall_seconds"] / reference["training_wall_seconds"]
         assert value["median_step_seconds"] == statistics.median(r["seconds"] for r in value["steps"][2:])
@@ -94,12 +97,14 @@ def main():
     p.add_argument("--cpu-proof", type=Path)
     p.add_argument("--cpu-sha256")
     args = p.parse_args()
-    assert args.output == Path(f"/home/riomus/runs/sfora-dense-pilot-{'source' if args.qualify_cpu else 'wires'}-{args.seed}-candidate-v1")
+    assert args.output == Path(f"/home/riomus/runs/sfora-dense-pilot-{'source' if args.qualify_cpu else 'wires'}-{args.seed}-candidate-v2")
     assert not args.output.exists()
     root = Path(__file__).resolve().parent
     torch.set_num_threads(8)
     torch.manual_seed(args.seed)
+    startup_started = time.perf_counter()
     control, frozen, prior, code, checkpoint, value, receipt_sha = authority(root, args.execution_sha256, args.seed, args.arm)
+    print(json.dumps({"authority_seconds": time.perf_counter() - startup_started}), flush=True)
     binding = {"seed": args.seed, "arm": args.arm, "training_receipt_sha256": receipt_sha,
                "training_checkpoint_sha256": value["checkpoint_sha256"], "completed_updates": 100}
     if args.qualify_cpu:
@@ -199,6 +204,7 @@ def main():
             durations.append(time.perf_counter() - tick)
             if len(durations) % 64 == 0 or start + 32 >= 12599:
                 print(json.dumps({"full_whole_held_images_verified": min(start + 32, 12599)}), flush=True)
+    print(json.dumps({"full_held_forward_seconds": time.perf_counter() - started}), flush=True)
     unchanged()
     assert sha(teacher.TEACHER) == teacher.TEACHER_SHA
     assert all(old.pair.sha(control.dataset_root / r["relative_path"]) == r["image_sha256"]
