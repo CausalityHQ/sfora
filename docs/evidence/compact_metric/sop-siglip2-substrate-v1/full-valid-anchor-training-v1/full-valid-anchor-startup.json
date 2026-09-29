@@ -1,0 +1,8 @@
+{
+  "pass": true,
+  "execution_sha256": "0da63376f73c9bc55c4c5f6e8c0f3f80fab7efe211ef6234a72af2ce4ed3ac36",
+  "cpu_authority_sha256": "1c78abcc8554bc69444712f24b3a15bd2d26fd073bd86b1ce6652916b74bf342",
+  "changed_driver_rejected": true,
+  "optimizer_updates": 0,
+  "quality_read": false
+}
