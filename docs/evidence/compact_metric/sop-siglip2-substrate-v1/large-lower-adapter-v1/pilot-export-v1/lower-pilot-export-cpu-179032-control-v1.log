@@ -1,0 +1,11 @@
+Running as unit: sfora-lower-pilot-export-cpu-179032-control-v1.service; invocation ID: 3ca4673812c444c3860011340daeb7c1
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 12076.65it/s]
+PASS actual teacher CPU strict native/head/calibration/suffix, trained-prefix content rejection and read-only state/RNG authority
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 36.575s
+CPU time consumed: 1min 7.928s
+Memory peak: 256.0K
+Memory swap peak: 0B

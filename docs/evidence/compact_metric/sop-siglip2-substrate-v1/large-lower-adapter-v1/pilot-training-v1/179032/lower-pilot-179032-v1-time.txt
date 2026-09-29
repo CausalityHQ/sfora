@@ -1,0 +1,23 @@
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python train_large_lower_pilot.py --execution-sha256 7a19df8b60267c928ac487642e3bd44b898205227019938af8cb806ba5a95a7d --seed 179032 --output /home/riomus/runs/sfora-large-lower-pilot-179032-v1 --cpu-proof /home/riomus/runs/sfora-large-lower-pilot-source-v3/lower-pilot-cpu-179032-v4.json --cpu-sha256 fb814cffc9b46803b3af7f14e9bacc1cb0c3c0cda79c7814857da976f4f8da4f"
+	User time (seconds): 143.64
+	System time (seconds): 32.09
+	Percent of CPU this job got: 105%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 2:46.02
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 7460028
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 17899
+	Minor (reclaiming a frame) page faults: 3490646
+	Voluntary context switches: 116526
+	Involuntary context switches: 2097
+	Swaps: 0
+	File system inputs: 1280
+	File system outputs: 2485632
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
