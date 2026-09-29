@@ -53,4 +53,4 @@
 - [x] Sequentially collect all20 original units; preserve full state, counters/scaler/frozen/source/RNG/cost, no intermediate quality or chooser.
 - [x] Export terminal native400/head checkpoint and actual CPU/public serving authority; never bypass legacy schema guards.
 - [x] Qualify frozen observed official protocol/wire/native bits/CPU replay, paired against archived full2000 control; report R1/mAP/cost/intervals and actual terminal GO/KILL.
-- [ ] Update one concise convergence row, evidence, master and operator; keep full native goal active unless the complete production objective is actually met.
+- [x] Update one concise convergence row, evidence, master and operator; keep full native goal active unless the complete production objective is actually met.
