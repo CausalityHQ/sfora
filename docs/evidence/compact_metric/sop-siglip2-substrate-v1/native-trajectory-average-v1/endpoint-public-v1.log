@@ -1,0 +1,46 @@
+Running as unit: sfora-native-trajectory-average-endpoint-public-v1.service; invocation ID: 02fa6da55dca451da2c5c040b97c6d94
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 12141.58it/s]
+{"query_public_B32_images": 2048}
+{"query_public_B32_images": 4096}
+{"query_public_B32_images": 6144}
+{"query_public_B32_images": 6354}
+{"gallery_public_B32_images": 2048}
+{"gallery_public_B32_images": 4096}
+{"gallery_public_B32_images": 6144}
+{"gallery_public_B32_images": 6245}
+
+thread '<unnamed>' (2064553) panicked at /home/riomus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cutile-compiler-0.1.1/src/cuda_tile_runtime_utils.rs:87:13:
+Failed to launch tileiras for /tmp/a4cd8dab-46e7-4dff-af77-d62199300658.bc: No such file or directory (os error 2)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-native-trajectory-average-source-v1/qualify_pe_native_trajectory_average.py", line 325, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/sfora-native-trajectory-average-source-v1/qualify_pe_native_trajectory_average.py", line 321, in main
+    wires(root, args, args.phase == 'audit')
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-native-trajectory-average-source-v1/qualify_pe_native_trajectory_average.py", line 219, in wires
+    qualified.selected.pilot.equal(native.search_packed(block), (order.cpu().numpy(), scores.gather(1, order).cpu().numpy()))
+                                   ~~~~~~~~~~~~~~~~~~~~^^^^^^^
+  File "/home/riomus/runs/sfora-native-trajectory-average-source-v1/src/sfora/cutile_int8.py", line 200, in search_packed
+    return self.search(
+           ~~~~~~~~~~~^
+        embeddings.codes.numpy(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^
+        embeddings.inverse_norms.numpy(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        k=k,
+        ^^^^
+    )
+    ^
+  File "/home/riomus/runs/sfora-native-trajectory-average-source-v1/src/sfora/cutile_int8.py", line 181, in search
+    raise RuntimeError(f"{_ERROR}: search status {status}")
+RuntimeError: cuTile packed-int8 scorer failed: search status 3
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=1
+Service runtime: 2min 6.200s
+CPU time consumed: 2min 24.308s
+Memory peak: 4.1G
+Memory swap peak: 0B

@@ -1,0 +1,57 @@
+{
+  "source_execution_sha256": "765a5a01fd2163ec2a22230620c937646c7a0cdd3a1f38dedaa16971fcd64027",
+  "compiler_path": "/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/tileiras",
+  "compiler_sha256": "df2e9ef3804cab682f605a5c9e50045a24404ba22c3be0903454e1a60fcd78ae",
+  "corrected_PATH": "/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin:/usr/local/bin:/usr/bin:/bin",
+  "systemd_memory_max_bytes": 8589934592,
+  "systemd_swap_max_bytes": 0,
+  "cpu_timeout_seconds": 119,
+  "gpu_timeout_seconds": 299,
+  "kill_seconds": 1,
+  "locks": [
+    "/home/riomus/runs/.sfora-siglip2-gpu.lock",
+    "/home/riomus/.sfora-siglip2-gpu.lock"
+  ],
+  "endpoint_failed_attempt": {
+    "native_session": 95768,
+    "unit": "sfora-native-trajectory-average-endpoint-public-v1",
+    "invocation_id": "02fa6da55dca451da2c5c040b97c6d94",
+    "exit_code": 1,
+    "quality_receipt_written": false,
+    "root_cause": "tileiras executable missing from systemd PATH",
+    "log": "endpoint-public-v1.log"
+  },
+  "endpoint_successful_attempt": {
+    "native_session": 73617,
+    "unit": "sfora-native-trajectory-average-endpoint-public-v2",
+    "invocation_id": "e694ab877bd34c668b92d8f6eb941c38",
+    "exit_code": 0,
+    "log": "endpoint-public-v2.log",
+    "frozen_decision_phase_log": "remote endpoint-public-v1.log explicitly symlinks endpoint-public-v2.log after SHA-equal preservation of failure as endpoint-public-failed-v1.log; original-v1 failure stays archived locally"
+  },
+  "endpoint_cpu_audit": {
+    "native_session": 53129,
+    "invocation_id": "43aa80947b404a3298bf521793f3dd12",
+    "exit_code": 0
+  },
+  "average_active_attempt": {
+    "native_session": 96056,
+    "unit": "sfora-native-trajectory-average-average-public-v1",
+    "invocation_id": "f38ba92eaae84b58843b79cb5a75dca8",
+    "pid": 2070661,
+    "exit_code": 0,
+    "status": "complete/collected"
+  },
+  "scientific_rule_source_weights_and_caps_changed": false,
+  "average_cpu_audit": {
+    "native_session": 39854,
+    "invocation_id": "04e3424e887d40bb8ad439b052c1abc9",
+    "exit_code": 0
+  },
+  "paired_decision": {
+    "native_session": 23697,
+    "invocation_id": "940aa724b1614ce4bd08f230ab38f8fc",
+    "exit_code": 0,
+    "decision_sha256": "51487110ff2c6f225e54e3ed1e41a2240d32afd2197b5a4b39143cb1e972c509"
+  }
+}

@@ -1,0 +1,8 @@
+Running as unit: sfora-trajectory-average-compiler-canary-v1.service; invocation ID: d677c0eac11142a79f50e6300d7e6f3b
+PASS authenticated compiler PATH / native B32x6245 top10 ordinals and float32 score bits; no model/quality read
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 4.201s
+CPU time consumed: 6.682s
+Memory peak: 508.0K
+Memory swap peak: 0B

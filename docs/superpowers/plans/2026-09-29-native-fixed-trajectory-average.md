@@ -39,14 +39,14 @@ Interface: `average_native(states)` consumes ten authenticated complete native r
 - [x] Write/run focused test RED for missing driver, exact FP64 average, copied frozen/buffers, changed role/frozen/buffer/nonfinite/step rejection and optimized-mode rejection.
 - [x] Implement minimal driver; run focused test GREEN and Ruff F on DGX.
 - [x] Freeze immutable source extension and run original capped export; collect receipt/log/time. Run actual CPU qualification for endpoint and average; collect proof/hash and negative driver evidence.
-- [ ] Commit implementation, source manifest and CPU/export evidence using configured operator identity; preserve dirty Rust.
+- [x] Commit implementation, source manifest and CPU/export evidence using configured operator identity; preserve dirty Rust.
 
 ## Task2: Decisive public TRAIN comparison
 
 Interface: same driver public/audit/decision phases consume export+CPU proof and saved packed wires; decision emits the frozen GO/KILL with complete paired evidence.
 
-- [ ] Run original capped public B32 endpoint then average sequentially, each followed by independent saved-wire CPU audit; collect exits and raw receipts.
-- [ ] Run paired decision, verify all gates, record one convergence row with dataset/split C/T R1+mAP, training/averaging cost, unmeasured latency, external gap and next decisive action.
+- [x] Run original capped public B32 endpoint then average sequentially, each followed by independent saved-wire CPU audit; collect exits and raw receipts.
+- [x] Run paired decision, verify all gates, record one convergence row with dataset/split C/T R1+mAP, training/averaging cost, unmeasured latency, external gap and next decisive action.
 - [ ] Preserve candidate and original receipts; push substantive result on master. Reconcile existing completed Opus/Astra evidence; no duplicate paid review.
 
 Self-review: the procedure has one fixed treatment, truthful lineage, independent deployment/audit qualification, predeclared scientific/resource stop rules and no official read before TRAIN GO. Ongoing operator authorization covers inline execution and master push; no additional approval flow.

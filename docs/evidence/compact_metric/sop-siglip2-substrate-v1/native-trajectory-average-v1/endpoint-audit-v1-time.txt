@@ -1,0 +1,23 @@
+	Command being timed: "systemd-run --user --unit=sfora-native-trajectory-average-endpoint-audit-v1 --wait --collect --pipe -p WorkingDirectory=/home/riomus/runs/sfora-native-trajectory-average-source-v1 -p MemoryMax=8G -p MemorySwapMax=0 -p RuntimeMaxSec=120 -p TimeoutStopSec=1 --setenv=CUDA_VISIBLE_DEVICES= --setenv=PYTHONPATH=/home/riomus/runs/sfora-native-trajectory-average-source-v1/src:/home/riomus/runs/sfora-native-trajectory-average-source-v1/isolated-deps /usr/bin/flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock /usr/bin/flock -n /home/riomus/.sfora-siglip2-gpu.lock /usr/bin/timeout -k 1 119 /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-native-trajectory-average-source-v1/qualify_pe_native_trajectory_average.py --execution-sha256 765a5a01fd2163ec2a22230620c937646c7a0cdd3a1f38dedaa16971fcd64027 --phase audit --variant endpoint --cpu-proof /home/riomus/runs/sfora-native-trajectory-average-source-v1/endpoint-cpu-proof.json --cpu-sha256 9187468832a0c1e891003bfae634f040cd2c24f39df0915f0f8d0e7bc5c9186c --receipt-sha256 bc5b3044352731576b0d8390aa2fc3512d38bc111c98793cefb53a7eb216bc8d --output /home/riomus/runs/sfora-native-trajectory-average-endpoint-held-v1"
+	User time (seconds): 0.00
+	System time (seconds): 0.00
+	Percent of CPU this job got: 0%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:12.75
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 7284
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 377
+	Voluntary context switches: 11
+	Involuntary context switches: 0
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 8
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
