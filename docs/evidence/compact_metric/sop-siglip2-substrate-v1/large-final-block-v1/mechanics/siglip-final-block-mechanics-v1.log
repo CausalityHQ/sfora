@@ -1,0 +1,28 @@
+Running as unit: sfora-siglip-final-block-mechanics-v1.service; invocation ID: e99a0ad1805b4357bd744f662c96c226
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 15736.61it/s]
+{"step": 1, "seconds": 0.9910858618095517, "loss": 8.457447052001953}
+{"step": 2, "seconds": 0.4936641943641007, "loss": 9.546679496765137}
+{"step": 3, "seconds": 0.494467344135046, "loss": 9.649717330932617}
+{"step": 4, "seconds": 0.49229492899030447, "loss": 7.9869818687438965}
+{"step": 5, "seconds": 0.4950541742146015, "loss": 7.840444087982178}
+{"step": 6, "seconds": 0.4938923977315426, "loss": 9.193166732788086}
+{"step": 7, "seconds": 0.4472613246180117, "loss": 5.663898944854736}
+{"step": 8, "seconds": 0.49005916621536016, "loss": 7.046599388122559}
+{"step": 9, "seconds": 0.49450812209397554, "loss": 9.571334838867188}
+{"step": 10, "seconds": 0.4904295150190592, "loss": 7.619372367858887}
+{"step": 11, "seconds": 0.4467421378940344, "loss": 5.095687389373779}
+{"step": 12, "seconds": 0.49341698503121734, "loss": 4.657022476196289}
+{"step": 13, "seconds": 0.49400843819603324, "loss": 7.41988468170166}
+{"step": 14, "seconds": 0.49496589368209243, "loss": 6.914627552032471}
+{"step": 15, "seconds": 0.49122003791853786, "loss": 8.729080200195312}
+{"step": 16, "seconds": 0.4922044682316482, "loss": 8.692334175109863}
+{"step": 17, "seconds": 0.49147618003189564, "loss": 8.528486251831055}
+PASS native final-block 17 mechanics; training state discarded; no held/quality
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 29.445s
+CPU time consumed: 37.996s
+Memory peak: 508.0K
+Memory swap peak: 0B
