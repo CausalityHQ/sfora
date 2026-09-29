@@ -1,0 +1,11 @@
+Running as unit: sfora-large-final-two-native-cpu-v1.service; invocation ID: 1ed18ae9781a4754a7c6e2e249bf6159
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 9807.56it/s]
+PASS actual native final-two-block-only gradients/frozen pool, strict whole calibration + independent suffix/head parity, mutation rejection and restoration; no updates/held/quality
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 45.895s
+CPU time consumed: 2min 53.562s
+Memory peak: 5.2G
+Memory swap peak: 0B
