@@ -1,0 +1,23 @@
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python -u /home/riomus/runs/sfora-native-valid-anchor-gpu-v1/train_pe_native_valid_anchor.py --execution-sha256 eeed3caf006b6f05d3b1ebc3abb5444f221b2a35a5db26193b9d71fe54865a3b --output /home/riomus/runs/sfora-native-valid-anchor-mechanics-v1 --updates 17"
+	User time (seconds): 71.89
+	System time (seconds): 11.42
+	Percent of CPU this job got: 114%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:12.70
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 7000920
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 35518
+	Minor (reclaiming a frame) page faults: 1777298
+	Voluntary context switches: 190930
+	Involuntary context switches: 1185
+	Swaps: 0
+	File system inputs: 2912
+	File system outputs: 4970520
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
