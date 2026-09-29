@@ -1,0 +1,29 @@
+{
+  "advance": true,
+  "updates": 17,
+  "quality_read": false,
+  "discard_training_state": true,
+  "preflight_sha256": "6f8547522df9e728e2fd7e5c2cc2191ffcbcc61d2b49bed81a43b58b074d8c27",
+  "execution_sha256": "18f2541a9e351b19e4da705add23a3744304fe3d084dfc8d41cf96c946a913de",
+  "training_sha256": "00fd95862feaee4f8985578fef6fd0f5fc09ae0ec85acb4ae99b344523451d63",
+  "median_step_3_17_seconds": 0.53574009379372,
+  "updated_gpu_strict_reload_exact": true,
+  "updated_whole_native_B64_calibration_exact": true,
+  "fit_only_suffix_head_packed_exact": true,
+  "scope_observations": [
+    {
+      "loaded_amp_inside": true,
+      "captured_block_amp_inside": true,
+      "captured_final_block_amp_inside": true,
+      "between_encoder_amp_enabled": false,
+      "live_amp_inside": true,
+      "autocast_cache_configuration_enabled": true,
+      "loaded_raw_pool_dtype": "torch.float16",
+      "live_raw_pool_dtype": "torch.float16",
+      "block_dtype": "torch.float32",
+      "pooled_outputs_finite": true
+    }
+  ],
+  "peak_cuda_allocated_bytes": 4818028544,
+  "seconds": 23.69801562698558
+}
