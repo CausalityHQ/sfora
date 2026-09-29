@@ -1,0 +1,11 @@
+Running as unit: sfora-budget4000-cpu-v1.service; invocation ID: cde20d26d4d44fd9866c6c66e75031c0
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 10266.11it/s]
+PASS actual updated native CPU source/strict reload/F16 cast; no official quality
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 21.167s
+CPU time consumed: 47.295s
+Memory peak: 508.0K
+Memory swap peak: 0B

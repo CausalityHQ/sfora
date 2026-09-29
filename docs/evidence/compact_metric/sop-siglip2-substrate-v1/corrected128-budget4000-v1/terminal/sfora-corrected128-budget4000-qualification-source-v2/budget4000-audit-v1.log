@@ -1,0 +1,8 @@
+Running as unit: sfora-budget4000-audit-v1.service; invocation ID: c837e928c2a5458fb2248322b0a66ea0
+PASS complete saved official wire CPU quality/CI/decision replay
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 13.505s
+CPU time consumed: 25.358s
+Memory peak: 740.0K
+Memory swap peak: 0B

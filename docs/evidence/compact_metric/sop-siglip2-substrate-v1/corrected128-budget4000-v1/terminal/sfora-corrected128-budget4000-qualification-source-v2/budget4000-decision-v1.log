@@ -1,0 +1,8 @@
+Running as unit: sfora-budget4000-decision-v1.service; invocation ID: d2ab8ffffc5344d3a0b88fcb9f1e81a5
+KILL fixed corrected128 budget4000 procedure; overall product goal remains active
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 10.626s
+CPU time consumed: 13.171s
+Memory peak: 752.0K
+Memory swap peak: 0B

@@ -1,0 +1,8 @@
+Running as unit: sfora-budget4000-export-v2.service; invocation ID: eadfb53da8e642b4857b5a5bcb2d48c2
+PASS fixed4000 CPU native export; no official quality
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 11.235s
+CPU time consumed: 15.060s
+Memory peak: 508.0K
+Memory swap peak: 0B

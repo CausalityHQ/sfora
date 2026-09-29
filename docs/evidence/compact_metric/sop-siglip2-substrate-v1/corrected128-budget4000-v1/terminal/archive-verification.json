@@ -1,0 +1,17 @@
+{
+  "additional_training_wall_seconds": 2441.524576620199,
+  "chunks_verified": 20,
+  "controller_state_sha256": "05185617aa687beb29328cda10a325f411d76f0fec1bfc345641f7726e9420ca",
+  "decision_sha256": "63e9a4d01baeca89e736f9e8f618ad255cbfc84ec1490c3fc37f30853cecd941",
+  "failed_source_v1_preserved": true,
+  "pass": true,
+  "peak_cuda_allocated_bytes": 6560978432,
+  "public_cpu_audit_sha256": "691f6dcc68b03e3473883ef87f26c27c7d094d0c31205336a74a26dae3cd07e9",
+  "public_receipt_sha256": "b61508477780c380b4544affe192fb58ab89603175bcc0140c90d2512f6a0937",
+  "qualification106_sha256": "f07de8ff69ad16f0f58eacdccf7b42dd25007d652b0b513458009ab645b2e62c",
+  "qualification_phases_verified": 5,
+  "quality_read_during_training": false,
+  "saved_packed_arrays_verified": 4,
+  "source104_sha256": "4f0483cc6c45f2049118fe945eb8836388b53fe00914b5c979208562afe069f9",
+  "terminal_training_receipt_sha256": "2ff3e77a24fcbf8fa51c3677a87a4a55af393b32d1f91905da4e3de588d6cb28"
+}

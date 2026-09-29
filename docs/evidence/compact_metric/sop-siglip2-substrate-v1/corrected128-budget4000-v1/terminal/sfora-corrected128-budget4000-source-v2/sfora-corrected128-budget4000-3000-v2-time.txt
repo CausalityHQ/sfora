@@ -1,0 +1,23 @@
+	Command being timed: "/usr/bin/timeout -k1 299 /home/riomus/group-learning/.venv/bin/python -u /home/riomus/runs/sfora-corrected128-budget4000-source-v2/train_pe_corrected128_budget4000.py --execution-sha256 4f0483cc6c45f2049118fe945eb8836388b53fe00914b5c979208562afe069f9 --phase train --chunk-end 3000 --cpu-proof /home/riomus/runs/sfora-corrected128-budget4000-cpu-v2 --cpu-sha256 b470f4e19cac120f20c2c6c89edd3353e8e9a6959b899c66697e2d3d107e5ba6 --output /home/riomus/runs/sfora-corrected128-budget4000-3000-v2 --previous /home/riomus/runs/sfora-corrected128-budget4000-2900-v2 --previous-sha256 49971c850f02c9cb51357893037615a8a75bdc2d87429dfba4f439b3ee3ba351"
+	User time (seconds): 148.91
+	System time (seconds): 17.99
+	Percent of CPU this job got: 104%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 2:39.10
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 5556192
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 18740
+	Minor (reclaiming a frame) page faults: 2205620
+	Voluntary context switches: 109381
+	Involuntary context switches: 2192
+	Swaps: 0
+	File system inputs: 69904
+	File system outputs: 5069152
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
