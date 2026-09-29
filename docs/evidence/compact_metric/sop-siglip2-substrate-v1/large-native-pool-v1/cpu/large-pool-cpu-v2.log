@@ -1,0 +1,40 @@
+Running as unit: sfora-large-native-pool-cpu-v2.service; invocation ID: 461e566274a24343b6a51389dfcf3b19
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 8849.57it/s]
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-large-native-pool-v1/qualify_pe_large_pool.py", line 261, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/sfora-large-native-pool-v1/qualify_pe_large_pool.py", line 93, in main
+    source = model(pixel_values=pixels).pooler_output
+             ~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/nn/modules/module.py", line 1789, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/utils/generic.py", line 1036, in wrapper
+    output = func(self, *args, **kwargs)
+  File "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/utils/output_capturing.py", line 252, in wrapper
+    outputs = func(self, *args, **kwargs)
+  File "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/models/siglip/modeling_siglip.py", line 618, in forward
+    pooler_output = self.head(last_hidden_state) if self.use_head else None
+                    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/nn/modules/module.py", line 1884, in _call_impl
+    return inner()
+  File "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/nn/modules/module.py", line 1821, in inner
+    args_result = hook(self, args)
+  File "/home/riomus/runs/sfora-large-native-pool-v1/qualify_pe_large_pool.py", line 82, in check_input
+    assert module is model.head and len(inputs) == 2 and inputs[1] is None
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=1
+Service runtime: 11.262s
+CPU time consumed: 34.229s
+Memory peak: 508.0K
+Memory swap peak: 0B

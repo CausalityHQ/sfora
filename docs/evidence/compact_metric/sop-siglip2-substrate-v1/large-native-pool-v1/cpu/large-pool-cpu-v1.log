@@ -1,0 +1,24 @@
+Running as unit: sfora-large-native-pool-cpu-v1.service; invocation ID: 646728fb11984b5d8730bfe5c4e195f2
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 9071.12it/s]
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-large-native-pool-v1/qualify_pe_large_pool.py", line 261, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/sfora-large-native-pool-v1/qualify_pe_large_pool.py", line 36, in main
+    runtime = native.runtime_identity(model)
+  File "/home/riomus/runs/sfora-large-native-pool-v1/pe_large_pool.py", line 82, in runtime_identity
+    "pool_heads": model.head.num_heads,
+                  ^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/nn/modules/module.py", line 1967, in __getattr__
+    raise AttributeError(
+        f"'{type(self).__name__}' object has no attribute '{name}'"
+    )
+AttributeError: 'SiglipMultiheadAttentionPoolingHead' object has no attribute 'num_heads'
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=1
+Service runtime: 7.328s
+CPU time consumed: 9.931s
+Memory peak: 508.0K
+Memory swap peak: 0B

@@ -1,0 +1,11 @@
+Running as unit: sfora-large-native-pool-cpu-v3.service; invocation ID: 9b95a22b9ecc43d6b315ac67911f6486
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 13234.83it/s]
+PASS actual native Large pool gradients/optimizer tensors, independent whole-encoder strict reload/head bits, negative controls/restoration; no updates/quality
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 25.154s
+CPU time consumed: 1min 59.466s
+Memory peak: 508.0K
+Memory swap peak: 0B
