@@ -1,0 +1,13 @@
+{
+  "pass": true,
+  "source71_unchanged": true,
+  "training_complete100": true,
+  "first17_mechanics_exact": true,
+  "all100_rgb_exact": true,
+  "cost_pass": true,
+  "checkpoint_sha256": "a7e3d8d413aba67dd0d1472d5b70537a72de902ecbdac505833af9cbcaa1a796",
+  "training_sha256": "ebf8521b70e46280824ada916fa83bb7488eb856afb865edc6630b636d24d409",
+  "native_cpu_qualification_pending": true,
+  "quality_read": false,
+  "original_full_job_terminal": "timeout; no final receipt; partial arrays ineligible"
+}
