@@ -63,8 +63,8 @@
     "qualify_pe_large_pool.py": "ebe749ef967cdb5c29f4f306dd61e13c2446df3efcead92ed6aec728ad2e831e",
     "pe_large_pool.py": "44d4acd37f1b7c8b9ae4f80e7adeabf95853e1356534a7360d0343572c9cc2b5",
     "check_pe_large_pool.py": "8643e66e1f823c3ef9cd56e36ffb2ff135285d9b995afcc05998892f42331645",
-    "pe_large_final_block.py": "b0b088b214d65973327489271892a9928d5f5c1a77a35889f2b67b6a8b7347c6",
-    "qualify_pe_large_final_block.py": "a16827936602e82fbd0c6d3d193212e4557b0f3eae1582d90409987bdbd9642a",
+    "pe_large_final_block.py": "74f2115893d0a2097cda09cb3415aa3bb217cda67be9ac31a0f60fb880a27c26",
+    "qualify_pe_large_final_block.py": "cdffc4072e9704d481ff66c083bc951a2eca21616aa59d7ee0db3d90272dbff3",
     "check_pe_large_final_block.py": "8d1795942637537d4b47762fcf8a781d4d156968096a0f95fc38e195a116ac12",
     "pe_immutable_amp.py": "445ab07edd003f357c95977e28f8745d52c42a8d3b25dbd87dfae029876a3e4f"
   },
@@ -86,11 +86,7 @@
     "native_files": {
       "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/models/siglip/modeling_siglip.py": "274eafdb9bff99607f15eb4c4fb6fc47256b07358807653baa48539d13376b31",
       "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/models/siglip/image_processing_siglip.py": "f716aedcc35e6e271662e1bee77d9546fcf3155a6c6bd166872a87540e853c4c",
-      "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/nn/modules/activation.py": "89c774e9d0d6fc06a3d8cbf06036f32e0fc7fbd18b80436b6d462c398d4d1a8b",
-      "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/integrations/sdpa_attention.py": "87f933d1a2d8508df572da5c0748c6b24c22ff2b625796949957dcd86cc57564",
-      "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/nn/functional.py": "27493186ee22f811b553e31d9c804d4d46716d1be62d034d731537f66f27ef19",
-      "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/amp/autocast_mode.py": "7cb1da20a6dc2ce8be36e7dd8e9ae75800c1cae759344e6ace06ee05f2f630ec",
-      "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/utils/output_capturing.py": "65fa93bcfd2314d2a680c08c3699773f2ffea44340e85cd0e6392698b83b37bb"
+      "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/nn/modules/activation.py": "89c774e9d0d6fc06a3d8cbf06036f32e0fc7fbd18b80436b6d462c398d4d1a8b"
     },
     "processor": {
       "do_convert_rgb": null,
@@ -658,48 +654,12 @@
   "strict400_key_updated_reload_exact": true,
   "whole_native_calibration_exact": true,
   "independent_final_suffix_source_head_exact": true,
-  "scope_observations": [
-    {
-      "loaded_amp_inside": false,
-      "captured_block_amp_inside": false,
-      "between_encoder_amp_enabled": false,
-      "live_amp_inside": false,
-      "autocast_cache_configuration_enabled": true,
-      "loaded_raw_pool_dtype": "torch.float32",
-      "live_raw_pool_dtype": "torch.float32",
-      "block_dtype": "torch.float32",
-      "pooled_outputs_finite": true
-    }
-  ],
+  "separate_encoder_autocast_scopes": true,
   "negatives_rejected": [
-    {
-      "name": "final_attention",
-      "rejected_by": "native pair changed"
-    },
-    {
-      "name": "final_mlp",
-      "rejected_by": "native pair changed"
-    },
-    {
-      "name": "frozen_pool",
-      "rejected_by": "native pair changed"
-    },
-    {
-      "name": "frozen_prefix",
-      "rejected_by": "native pair changed"
-    },
-    {
-      "name": "data_final_block",
-      "rejected_by": "native final block differs"
-    },
-    {
-      "name": "data_pool",
-      "rejected_by": "native suffix differs"
-    },
-    {
-      "name": "data_prefix_exit",
-      "rejected_by": "native pair state changed"
-    }
+    "final_attention",
+    "final_mlp",
+    "frozen_pool",
+    "frozen_prefix"
   ],
   "observer_cleanup_and_original_state_output_restored": true,
   "optimizer_updates": 0,

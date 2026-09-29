@@ -39,8 +39,8 @@ def main():
     original = pair.smoke.digest(base.whole_state(model))
     assert original == old["whole_original_source_sha256"]
     foreign = pair.smoke.digest(native.frozen_state(model))
-    environment = base.environment(model, processor)
-    assert json.loads(json.dumps(environment)) == old["environment"]
+    assert json.loads(json.dumps(base.environment(model, processor))) == old["environment"]
+    environment = native.environment(model, processor)
     runtime = base.runtime_identity(model)
     assert pair.sha(base.INIT / "initializers.npz") == old["initializers_sha256"]
     head = nn.Linear(1024, 128)
@@ -122,23 +122,41 @@ def main():
             with torch.no_grad():
                 whole = loaded(pixel_values=pixels).pooler_output
             assert torch.equal(whole, changed)
-            with native.verify_export(loaded, model) as encode:
+            with native.verify_export(loaded, model) as (encode, observations):
                 a, b = encode(pixels)
                 assert torch.equal(a, whole) and torch.equal(a, b)
                 va = F.normalize(pair.smoke.compact_head_features(a, loaded_head), dim=1)
                 vb = F.normalize(pair.smoke.compact_head_features(b, head), dim=1)
-                assert torch.equal(va, vb)
+                assert torch.isfinite(va).all() and torch.isfinite(vb).all() and torch.equal(va, vb)
+            assert len(observations) == 1 and all(observations[0][k] is False for k in ("loaded_amp_inside", "captured_block_amp_inside", "between_encoder_amp_enabled", "live_amp_inside"))
             for name, parameter in (("final_attention", parameters[0]), ("final_mlp", parameters[1]), ("frozen_pool", model.head.probe), ("frozen_prefix", model.encoder.layers[0].mlp.fc2.bias)):
                 before = parameter.detach().clone()
                 try:
-                    with native.verify_export(loaded, model) as encode:
+                    with native.verify_export(loaded, model) as (encode, _):
                         with torch.no_grad():
                             parameter.flatten()[0].add_(0.01)
                         encode(pixels)
-                except AssertionError:
-                    negatives.append(name)
+                except AssertionError as error:
+                    assert str(error) == "native pair changed"
+                    negatives.append({"name": name, "rejected_by": str(error)})
                 else:
                     raise AssertionError(f"mutated {name} accepted")
+                finally:
+                    with torch.no_grad():
+                        parameter.copy_(before)
+                assert not any(m._forward_hooks or m._forward_pre_hooks for m in (*loaded.modules(), *model.modules()))
+            for name, parameter, expected in (("data_final_block", parameters[0], "native final block differs"), ("data_pool", model.head.probe, "native suffix differs"), ("data_prefix_exit", model.encoder.layers[0].mlp.fc2.bias, "native pair state changed")):
+                before, version = parameter.detach().clone(), parameter._version
+                try:
+                    with native.verify_export(loaded, model) as (encode, _):
+                        parameter.data.flatten()[0].add_(0.01)
+                        assert parameter._version == version, "negative failed to bypass version guard"
+                        encode(pixels)
+                except AssertionError as error:
+                    assert str(error) == expected, (name, str(error))
+                    negatives.append({"name": name, "rejected_by": str(error)})
+                else:
+                    raise AssertionError(f"data mutation {name} accepted")
                 finally:
                     with torch.no_grad():
                         parameter.copy_(before)
@@ -150,12 +168,12 @@ def main():
                 p.copy_(original_parameter)
     assert pair.smoke.digest(base.whole_state(model)) == original
     assert pair.smoke.digest(native.frozen_state(model)) == foreign
-    assert base.environment(model, processor) == environment
+    assert native.environment(model, processor) == environment
     with torch.no_grad():
         assert torch.equal(model(pixel_values=pixels).pooler_output, baseline)
     assert all(pair.sha(root / n) == h for n, h in code.items())
     args.output.mkdir(exist_ok=False)
-    pair.smoke.save(args.output / "preflight.json", {"code": code, "original_native_cpu_sha256": pair.sha(old_cpu), "environment": environment, "runtime_identity": runtime, "inventory": inventory, "whole_original_source_sha256": original, "frozen_complement_sha256": foreign, "actual_graph": seen, "actual_native_gradient_norms": gradients, "actual_head_proxy_gradient_norms": [float(p.grad.norm()) for p in [*head.parameters(), classifier]], "actual_loss": float(loss.detach()), "native_trainable_tensors": len(gradients), "native_trainable_parameters": sum(p.numel() for p in active), "optimizer_tensors": len(members), "strict400_key_updated_reload_exact": True, "whole_native_calibration_exact": True, "independent_final_suffix_source_head_exact": True, "separate_encoder_autocast_scopes": True, "negatives_rejected": negatives, "observer_cleanup_and_original_state_output_restored": True, "optimizer_updates": 0, "held_images": 0, "quality_read": False, "cuda": False})
+    pair.smoke.save(args.output / "preflight.json", {"code": code, "original_native_cpu_sha256": pair.sha(old_cpu), "environment": environment, "runtime_identity": runtime, "inventory": inventory, "whole_original_source_sha256": original, "frozen_complement_sha256": foreign, "actual_graph": seen, "actual_native_gradient_norms": gradients, "actual_head_proxy_gradient_norms": [float(p.grad.norm()) for p in [*head.parameters(), classifier]], "actual_loss": float(loss.detach()), "native_trainable_tensors": len(gradients), "native_trainable_parameters": sum(p.numel() for p in active), "optimizer_tensors": len(members), "strict400_key_updated_reload_exact": True, "whole_native_calibration_exact": True, "independent_final_suffix_source_head_exact": True, "scope_observations": observations, "negatives_rejected": negatives, "observer_cleanup_and_original_state_output_restored": True, "optimizer_updates": 0, "held_images": 0, "quality_read": False, "cuda": False})
     print("PASS actual native final-block-only gradients/frozen pool, strict whole calibration + independent suffix/head parity, mutation rejection and restoration; no updates/held/quality")
 
 
