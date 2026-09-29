@@ -1,0 +1,8 @@
+Running as unit: sfora-native-valid-anchor-audit-179041-treatment-v3.service; invocation ID: 6a2b2c5f73014ee6a42ff6b251458316
+PASS complete trained Large CPU packed per-query/interval/decision replay
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 14.371s
+CPU time consumed: 19.120s
+Memory peak: 256.0K
+Memory swap peak: 0B
