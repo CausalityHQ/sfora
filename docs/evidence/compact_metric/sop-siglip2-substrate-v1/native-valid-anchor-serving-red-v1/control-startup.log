@@ -1,0 +1,51 @@
+Running as unit: sfora-native-valid-anchor-serving-control-startup-v1.service; invocation ID: 38454fd143954bff9632a6ac33198a21
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-native-valid-anchor-serving-v1/qualify_pe_native_valid_anchor_serving.py", line 77, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/sfora-native-valid-anchor-serving-v1/qualify_pe_native_valid_anchor_serving.py", line 72, in main
+    public.main()
+    ~~~~~~~~~~~^^
+  File "/home/riomus/runs/sfora-native-valid-anchor-serving-v1/qualify_pe_large_public_serving.py", line 49, in main
+    control, frozen, cpu, receipt, code = startup(root, args.execution_sha256)
+                                          ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-native-valid-anchor-serving-v1/qualify_pe_native_valid_anchor_serving.py", line 46, in startup
+    control, frozen, _, run, terminal, original = held.authority(root, HELD_CODE, 179041, args.arm, proof['native_training_receipt_sha256'])
+                                                  ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-native-valid-anchor-serving-v1/qualify_pe_native_valid_anchor_held.py", line 30, in authority
+    control, _, prior, native, old = training.startup(root, TRAIN_CODE)
+                                     ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-native-valid-anchor-serving-v1/train_pe_native_valid_anchor.py", line 41, in startup
+    control, source, prior, native, *_ = cpu.qualified.authority(root, cpu.PREVIOUS_CODE, 'full', cpu.FULL_TRAIN)
+                                         ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-native-valid-anchor-serving-v1/qualify_pe_large_optimization_checkpoint.py", line 30, in authority
+    control,source,prior,proof,_=confirmation.training.startup(root,confirmation.TRAIN_CODE_SHA)
+                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-native-valid-anchor-serving-v1/train_pe_large_coverage.py", line 28, in startup
+    control,_,source,prior,cpu_code=coverage.startup(root,CPU_CODE_SHA)
+                                    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-native-valid-anchor-serving-v1/pe_large_coverage.py", line 24, in startup
+    control,frozen,cpu,prior,cast,old = selected.startup(root,OFFICIAL_CODE_SHA)
+                                        ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-native-valid-anchor-serving-v1/qualify_pe_large_inshop_official.py", line 31, in startup
+    control, frozen, cpu, prior, old, authority = pilot.startup(root, PILOT_CODE_SHA, SELECTED_B1, SELECTED_B1_SHA, SELECTED_B1_AUDIT_SHA)
+                                                  ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-native-valid-anchor-serving-v1/measure_pe_large_public_precision_pair.py", line 28, in startup
+    control, frozen, cpu, prior, old = fp16.startup(root, FP16_CODE_SHA)
+                                       ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-native-valid-anchor-serving-v1/qualify_pe_large_public_fp16.py", line 27, in startup
+    control, frozen, cpu, prior, old = b1.startup(root, B1_CODE_SHA)
+                                       ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-native-valid-anchor-serving-v1/qualify_pe_large_public_b1.py", line 26, in startup
+    control, frozen, cpu, receipt, old = serving.startup(root, SERVING_CODE_SHA)
+                                         ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-native-valid-anchor-serving-v1/qualify_pe_native_valid_anchor_serving.py", line 43, in startup
+    assert r == root and execution == args.execution_sha256
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=1
+Service runtime: 2.650s
+CPU time consumed: 5.214s
+Memory peak: 504.0K
+Memory swap peak: 0B
