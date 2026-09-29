@@ -1,0 +1,47 @@
+Running as unit: sfora-pe-s16-mechanics-v1.service; invocation ID: 8f3afff07d0240efab122f34fdfd0915
+{"calibration": {"fp16_fp32": [0.9999924302101135, 0.9999918341636658, 0.9999917149543762, 0.9999908208847046], "cached_fresh_fp16": [0.9999980926513672, 0.9999973773956299, 0.9999984502792358, 0.9999982118606567]}}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 211355648, "current_cuda_allocated_bytes": 154368512}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 4443928576, "current_cuda_allocated_bytes": 519126016}
+{"step": 1, "seconds": 0.9960003821179271, "loss": 7.381844520568848}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 4670993920, "current_cuda_allocated_bytes": 520208896}
+{"step": 2, "seconds": 0.33055613562464714, "loss": 10.254105567932129}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 4670993920, "current_cuda_allocated_bytes": 520208896}
+{"step": 3, "seconds": 0.3202161933295429, "loss": 11.181421279907227}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 4670993920, "current_cuda_allocated_bytes": 520208896}
+{"step": 4, "seconds": 0.31873538019135594, "loss": 8.638374328613281}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 4670993920, "current_cuda_allocated_bytes": 520208896}
+{"step": 5, "seconds": 0.32058078330010176, "loss": 9.206806182861328}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 4670993920, "current_cuda_allocated_bytes": 520208896}
+{"step": 6, "seconds": 0.3225455628708005, "loss": 10.813407897949219}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 4670993920, "current_cuda_allocated_bytes": 520208896}
+{"step": 7, "seconds": 0.2735734540037811, "loss": 6.620675086975098}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 4670993920, "current_cuda_allocated_bytes": 520208896}
+{"step": 8, "seconds": 0.32097969530150294, "loss": 7.594290256500244}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 4670993920, "current_cuda_allocated_bytes": 520208896}
+{"step": 9, "seconds": 0.3138261758722365, "loss": 11.587503433227539}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 4670993920, "current_cuda_allocated_bytes": 520208896}
+{"step": 10, "seconds": 0.3162236576899886, "loss": 8.011940002441406}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 4670993920, "current_cuda_allocated_bytes": 520208896}
+{"step": 11, "seconds": 0.2825220408849418, "loss": 6.049832344055176}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 4670993920, "current_cuda_allocated_bytes": 520208896}
+{"step": 12, "seconds": 0.3180798776447773, "loss": 4.980478286743164}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 4670993920, "current_cuda_allocated_bytes": 520208896}
+{"step": 13, "seconds": 0.32386363996192813, "loss": 7.71206521987915}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 4670993920, "current_cuda_allocated_bytes": 520208896}
+{"step": 14, "seconds": 0.32201719703152776, "loss": 7.569662570953369}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 4670993920, "current_cuda_allocated_bytes": 520208896}
+{"step": 15, "seconds": 0.3184397011063993, "loss": 10.586334228515625}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 4670993920, "current_cuda_allocated_bytes": 520208896}
+{"step": 16, "seconds": 0.32553413277491927, "loss": 8.134940147399902}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 4670993920, "current_cuda_allocated_bytes": 520208896}
+{"step": 17, "seconds": 0.3192059067077935, "loss": 11.461459159851074}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 4670993920, "current_cuda_allocated_bytes": 228011008}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 4670993920, "current_cuda_allocated_bytes": 323782656}
+{"phase": "strict-loaded-verified-batch", "peak_cuda_allocated_bytes": 4670993920, "current_cuda_allocated_bytes": 323792896}
+PASS native S16 full-encoder adaptation mechanics; trained state discarded
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 14.475s
+CPU time consumed: 27.370s
+Memory peak: 512.0K
+Memory swap peak: 0B

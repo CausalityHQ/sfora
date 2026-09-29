@@ -1,0 +1,8 @@
+Running as unit: sfora-pe-s16-pilot-cpu-audit-v1.service; invocation ID: b24d07a76d81457b83f0673a38ab0363
+PASS actual frozen checkpoint, bank, 100 RGB/scaler records, packed held scores, product/query uncertainty and decision replay
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 7.350s
+CPU time consumed: 14.379s
+Memory peak: 512.0K
+Memory swap peak: 0B

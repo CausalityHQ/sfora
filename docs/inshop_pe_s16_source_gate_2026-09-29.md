@@ -34,7 +34,7 @@ New GPU qualifier and training driver preserve the existing data/loss/rates/sche
 
 | Dataset/split | Historical matched control R1 / mAP@R | Current candidate R1 / mAP@R | Training cost | Public latency | Remaining gap / next decisive test |
 |---|---|---|---|---|---|
-| In-Shop TRAIN-held, 6,354 queries / 6,245 gallery / 1,993 products | Dense PE 95.0739692 / 76.3915922%; Large 95.6720176 / 78.6237120%; prior verified, not concurrent reruns | S16 unmeasured | S16 unmeasured; fit extraction is not training cost | Unmeasured | Separate FP16 qualification → one 17-update discard cost/parity gate → fresh 100 pilot iff all pass; unchanged quality floors and both paired product CIs |
+| In-Shop TRAIN-held, 6,354 queries / 6,245 gallery / 1,993 products | Dense PE 95.0739692 / 76.3915922%; Large 95.6720176 / 78.6237120%; prior verified, not concurrent reruns | Verified S16 90.6200818 /66.5161917% quality KILL | Verified .313674881s/update,31.765566s training/88.36s whole,4.671GB CUDA | Unmeasured | Fixed S16 closed; next authenticated SigLIP2Large nativepool-only learning cost/parity→100 gate |
 
 ## Review reconciliation and GPU qualifier ordering repair
 
@@ -43,3 +43,15 @@ Dual group e388004de2134bbd completed; raw separate Opus/Astra answers archived.
 First GPU qualifier original40065 exited1 in8.24s/2,790,456KiB/no swap before whole-forward parity, zero optimizer/held reads. Native rope.py update_grid unconditionally moves rope.freq to input device at line340 on its first forward. Reload had not executed its first GPU forward when the helper compared runtime devices, and the live runtime snapshot was also taken prematurely. Qualification v2 records runtime after actual calibrated source forward and executes the strict native reloaded forward before runtime/output comparison, matching the previous qualified L14 ordering; frequency values/config/precision/source remain fixed, no native workaround or tolerance. Failed logs/time and original committed execution are retained. No 17/100 job launched yet.
 
 If a pilot crashes/times out after training.json, its decision is mechanically inconclusive, not a quality KILL; retain exact failure and close this bounded attempt without budget/exposure/precision rescue. A scientific quality decision requires terminal receipt plus independent saved-quality audit.
+
+## FP16 qualification and discarded 17 mechanics PASS; one pilot active
+
+GPU qualification v2 original97091 exited0/collected, 8.413 seconds unit, peak CUDA340,450,816 bytes. All163native data gradients and head/proxy positive finite, actual13Flash SDPA backward nodes, source/calibration min FP16-F32 .9999905825/cache .9999984503, observable stem/pool changes, strict independent whole encoder/head bits, nativeforeign/runtime equality and source restoration passed. Authority SHA011e29720e2cfc14d96c2bc97298e931c457fca5189e60553c41dbd0ceba9bf2; frozen71-file GPU and training execution SHAae75219e01ba05ae8903af66c46d9794ca1aa4d20a8ddf31dc92b9902d48bd95. Actual CPU startup negative qualified-code fixture passed, no source files modified.
+
+The only 17 mechanics run original44888 exited0/collected: median3–17 .3192059067077935 seconds/update, peak allocatedCUDA4,670,993,920 bytes, process14.47 seconds. All17authRGB/scaler/fullencoder optimizer/frozenforeign/nativeupdatedstrictreload and paired full-encoder export on two fit images passed. Both pe.pt and mechanics-fit.npy absent, optimizer state discarded. Receipt SHAdeaecea9388457adb236e76b24d09ec615ccb336ba9f3d1216940bfb6077ec2b. No held/quality read. Mechanics/qualification time does not establish pilot cost or public latency.
+
+Actual CPU pilot startup verifies same GPUqualified71file authority and same mechanics execution; changed GPUqualified code and mechanics execution fixtures rejected, without mutating original files. Fresh100 pilot original97117 is sole DGXjob, 299+1seconds8GiB/no swap/<10GB/bothlifetimeGPUlocks. No S16quality result yet. Same first17loss/scaler equality, cost-beforeheld, actualwholeencoder/head/arrays/packedparity then frozenfloors/bothpairedproductCIs. New independent CPU saved-checkpoint/packed-quality auditor prepared, no new research/review.
+
+## Terminal100 quality KILL, independently verified
+
+Original97117 exit0/collected;6354q/6245g R1/MAP90.6200818/66.5161917%, bothfloors/bothpairedproductCIs fail. Median.313674881s/update,31.765566s training/88.36swhole/CUDA4670993920B, fullactualindependentnative/liveeachheldbatch/head/vectors/packedparity PASS. CPUaudit35263exit0/collectedPASS7.34s/1227260KiB/noSwap; all71executingfilesunchanged/DGXidle. Noofficial/publiclatency/modelpromotion. [Terminalresult andone nextintervention](inshop_pe_s16_result_2026-09-29.md). Fullgoalactive; no S16budget/epoch/LR/depth/precision rescue.

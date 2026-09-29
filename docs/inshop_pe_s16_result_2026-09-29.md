@@ -1,0 +1,33 @@
+# Native S16 full-encoder100: verified quality KILL
+
+One fixed actual-native procedure reached a terminal decision: actual CPU qualification → separate FP16 qualification → one discarded17 mechanics → one fresh100 TRAIN pilot. No additional source/depth/LR/precision/budget/epoch rescue. Both qualification/review provenance repairs were completed before training; no alternative architecture or new research was launched. Full production SOP+In-Shop joint quality/speed goal remains active and unmet.
+
+| Dataset / split | Historical matched controls R@1 / mAP@R | S16 candidate R@1 / mAP@R | Training cost | Public latency | Gap / decision / next decisive test |
+|---|---|---|---|---|---|
+| In-Shop official TRAIN fit13,283 images/2,004 products; reused exploratory TRAIN-held6,354 queries/6,245 gallery/1,993 products; seed179032,100×64 presentations | DensePE95.0739692 /76.3915922%; Large95.6720176 /78.6237120%; prior verified, not concurrent reruns | **90.6200818 /66.5161917%**, actual GPU packed score and independent CPU replay verified | Median3–100 **0.313674881s/update**,204.033images/s; training incl input fill/drain **31.765566s**,201.476images/s; wholeprocess **88.36s**;3,187,692KiB RSS/no swap;allocatedCUDApeak **4,670,993,920B** | Unmeasured | KILL: bothfloors and both pairedproduct95bounds fail. BelowLarge R1 by5.0519358pp/mAP12.1075203pp. Next stronger authenticatedSigLIP2Large nativepool-only adaptation, actualCPU/FP16/17cost→fresh100 if gates pass |
+
+Against historicaldensePE, pairedmean changes −4.4538873R1pp /−9.8754005MAPpp. Productbootstrap95 intervals R1 **[−5.1294221,−3.7991682]pp**, MAP **[−10.5435972,−9.1935860]pp**; query95 R1[−5.0834120,−3.8243626]pp/MAP[−10.3812121,−9.3617136]pp. Paired5,000 draws/seed179019/product grouping unchanged. Bothqualityfloors95.1720176%/77.6237120% fail by4.5519358/11.1075203pp; bothproduct lower bounds negative. No scientific threshold changed.
+
+GPU pilot **97117** exited 0 and was collected. All 100 updates matched the authenticated RGB images, source, partition, initialization and schedule; scaler stayed at 128. Its first 17 losses and scales exactly matched the discarded mechanics run. All 163 native encoder tensors plus two head tensors and one proxy tensor had finite positive gradients at the first and last updates. Encoder/head/proxy groups changed; foreign rotary values stayed frozen.
+
+The updated 163-key vision state, foreign rotary/grid and compact head loaded strictly into a separate native model. Direct final-batch outputs matched exactly. Every one of the **394 held batches ran both whole encoders independently**, in separate fresh FP16 scopes with heads outside autocast. The separately retained 12,599×128 float32 unit-vector arrays were bit-identical; packed per-query R1/AP agreed within 1e-6. Whole native/foreign state and runtime equality passed before and after export. No shared prefix or copied live-array shortcut was used.
+
+Independent CPU audit **35263** exited 0 and was collected: 7.34 seconds, 1,227,260 KiB maximum RSS, zero swap, CUDA hidden. It checked the saved checkpoint, bank, group changes, 166 gradient records at both endpoints, all RGB/scaler records, mechanics identity and losses, both vector files, CPU packed scores (within 1e-6), product/query intervals and the negative decision. All **71 executing-file hashes** remained unchanged. DGX has no active Sfora unit or GPU process. Reported RSS comes from `/usr/bin/time`; the tiny systemd memory counters were unreliable.
+
+Raw receiptSHA **df0a1b934d0adad40deb6e2c41541da2a0fb891ddc0101ab059072f1d457d73f**; checkpoint663ef57c5ad6d23bb211d4ea1c2695888a07603cf295630937aa340c310d125b; bothactualheldvector files8998621ddca068644b1acdd1ba95feefb21d44010993aaf38f8390e24151bd2a; CPUaudit9c51f4609da8fdb6b12178c5e32def6644ec90141507009d5d5468b75c74b35e. RawJSON/logs/times/review/code at [evidence](evidence/compact_metric/sop-siglip2-substrate-v1/pe-s16-training-v1/); bulkycheckpoint/vectors retainedDGX /home/riomus/runs/sfora-pe-s16-pilot-v1. Source/init/qualification gates at [procedure](inshop_pe_s16_source_gate_2026-09-29.md).
+
+Noofficialquery/gallery, SOPTEST, transfer orpublic image-to-top-k latency measured bythispilot. PriorofficialSOP91.7419%vsdatedUNICOM91.2 andInShop95.4823%vs96.7 remain stale/exploratory/unqualified, notchanged/promoted. PriorpublicSOPB1p9919.622vs19.606ms remainsno speed win; no10kpairedCIpassed. Source/license/cost/CPU/review counts are notqualitygains.
+
+## One next intervention
+
+The full S16 encoder learned correctly and cheaply, but fell below both quality controls. L14 final-MLP/pool adaptation also failed at 92.9493% R1 / 71.8274% mAP, while the historical Large control reached 95.6720% / 78.6237%. This supports retaining the stronger measured Large substrate for the next test. It does not isolate capacity or establish a unique cause. The Large half12 control's 0.8971212 seconds/update exceeds the 0.71769696 ceiling.
+
+Select **native pooling-only learning on original pretrained SigLIP2 Large/256, plus the original 128-D compact head and proxies**. Freeze embeddings, all 24 transformer blocks and post-layernorm. Learn the existing native pooling head's attention, norm, MLP and probe; count its actual registered tensors before asserting an inventory. No such Large pooling-only training result was found in the existing gate ledger. The closed pooler-gradient projection and head warm-up methods remain closed, as do PE/S16, true-freeze and direct256 failed configurations.
+
+Reuse the authenticated Large revision `787800c8990e6f058423089178e718139608408c`, original full-fit cache and own initialization, native 256 processor, data, schedule, loss, rates and precision. Next gates, in order:
+
+1. Actual native CPU source/role/gradient and observable pool perturbation, strict checkpoint/head/runtime parity, frozen complement and complete optimizer coverage.
+2. Separate FP16 qualification, then one discarded 17-update run under 120 seconds, 8 GiB host/no swap/<10 GB CUDA and both lifetime locks. Cost must stay ≤0.71769696 seconds/update with exact updated native parity.
+3. One fresh 100-update pilot under 300 seconds only after all gates pass, using the same quality floors and both paired product intervals. Preserve a concrete whole live/reloaded encoder boundary.
+
+Cost and quality are **unknown**; no job for this next method has launched. A survivor proceeds to updated-checkpoint serving and fresh confirmation, without extending TRAIN development. A negative closes only that fixed allocation. No operator decision is needed. The production joint quality/speed goal remains active.

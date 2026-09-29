@@ -1,0 +1,23 @@
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-pe-s16-source-v1/qualify_pe_s16_gpu.py --cpu-preflight-sha256 9da5f6d1ccd0bbdb934e51074073fefdf86111e8ce175c2401c06d6e3100e77c --execution-sha256 ae75219e01ba05ae8903af66c46d9794ca1aa4d20a8ddf31dc92b9902d48bd95"
+	User time (seconds): 9.26
+	System time (seconds): 1.94
+	Percent of CPU this job got: 133%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:08.40
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 2759724
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 22
+	Minor (reclaiming a frame) page faults: 557023
+	Voluntary context switches: 3404
+	Involuntary context switches: 224
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 186592
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
