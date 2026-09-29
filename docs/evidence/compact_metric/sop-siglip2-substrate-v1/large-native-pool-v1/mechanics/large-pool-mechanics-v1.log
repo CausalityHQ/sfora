@@ -1,0 +1,50 @@
+Running as unit: sfora-large-native-pool-mechanics-v1.service; invocation ID: e8dc3147eb6d41868842ccfc96faa307
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 9917.83it/s]
+{"calibration": {"fp16_fp32": [0.9999905228614807, 0.999983012676239, 0.9999576807022095, 0.9999924898147583], "cached_fresh_fp16": [0.9999966025352478, 0.9999984502792358, 0.999997615814209, 0.9999980926513672]}}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 1378523136, "current_cuda_allocated_bytes": 1323997184}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 3149834752, "current_cuda_allocated_bytes": 1563976704}
+{"step": 1, "seconds": 1.015693920198828, "loss": 8.457447052001953}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 3287252992, "current_cuda_allocated_bytes": 1563976704}
+{"step": 2, "seconds": 0.4560214108787477, "loss": 9.613040924072266}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 3287252992, "current_cuda_allocated_bytes": 1563976704}
+{"step": 3, "seconds": 0.457855180837214, "loss": 9.847179412841797}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 3287252992, "current_cuda_allocated_bytes": 1563976704}
+{"step": 4, "seconds": 0.4532370655797422, "loss": 8.078771591186523}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 3287252992, "current_cuda_allocated_bytes": 1563976704}
+{"step": 5, "seconds": 0.45467048278078437, "loss": 8.016183853149414}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 3287252992, "current_cuda_allocated_bytes": 1563976704}
+{"step": 6, "seconds": 0.45952703431248665, "loss": 9.350751876831055}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 3287252992, "current_cuda_allocated_bytes": 1563976704}
+{"step": 7, "seconds": 0.41570753417909145, "loss": 5.737327575683594}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 3287252992, "current_cuda_allocated_bytes": 1563976704}
+{"step": 8, "seconds": 0.4584602387621999, "loss": 7.341097354888916}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 3287252992, "current_cuda_allocated_bytes": 1563976704}
+{"step": 9, "seconds": 0.45904478523880243, "loss": 9.89570426940918}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 3287252992, "current_cuda_allocated_bytes": 1563976704}
+{"step": 10, "seconds": 0.4564539808779955, "loss": 7.795602798461914}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 3287252992, "current_cuda_allocated_bytes": 1563976704}
+{"step": 11, "seconds": 0.4115916881710291, "loss": 5.14711856842041}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 3287252992, "current_cuda_allocated_bytes": 1563976704}
+{"step": 12, "seconds": 0.4562834142707288, "loss": 4.802914619445801}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 3287252992, "current_cuda_allocated_bytes": 1563976704}
+{"step": 13, "seconds": 0.4594465638510883, "loss": 7.423261642456055}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 3287252992, "current_cuda_allocated_bytes": 1563976704}
+{"step": 14, "seconds": 0.4572616871446371, "loss": 7.034782886505127}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 3287252992, "current_cuda_allocated_bytes": 1563976704}
+{"step": 15, "seconds": 0.4619728117249906, "loss": 8.975093841552734}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 3287252992, "current_cuda_allocated_bytes": 1563976704}
+{"step": 16, "seconds": 0.45812291698530316, "loss": 8.864566802978516}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 3287252992, "current_cuda_allocated_bytes": 1563976704}
+{"step": 17, "seconds": 0.4578933101147413, "loss": 9.326777458190918}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 3287252992, "current_cuda_allocated_bytes": 1409960448}
+{"phase": "resource-check", "peak_cuda_allocated_bytes": 3809852928, "current_cuda_allocated_bytes": 2675688448}
+{"phase": "strict-loaded-verified-batch", "peak_cuda_allocated_bytes": 3809852928, "current_cuda_allocated_bytes": 2675706880}
+PASS native Large pooling-only mechanics; trained state discarded
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 26.708s
+CPU time consumed: 35.886s
+Memory peak: 256.0K
+Memory swap peak: 0B

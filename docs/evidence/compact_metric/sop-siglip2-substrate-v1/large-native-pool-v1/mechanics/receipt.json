@@ -1,0 +1,14 @@
+{
+  "advance": true,
+  "preflight_sha256": "9f49b23c1128eca8b62af6330abaf34f189882d3051bc148beb7223c65f2aa85",
+  "execution_sha256": "1c867a64e4fb3eeac04daf0db4eb642ec0041d0ed43a91948f52c968547dd0b0",
+  "updates": 17,
+  "quality_read": false,
+  "discard_training_state": true,
+  "updated_gpu_strict_reload_exact": true,
+  "fit_only_export_path_exact": true,
+  "training_sha256": "6510d856d5dd6eff41d79d78a2d0b3b70cc3fee9ae261a5582fcc862963811fe",
+  "median_step_3_17_seconds": 0.457855180837214,
+  "peak_cuda_allocated_bytes": 3809852928,
+  "seconds": 20.907026385888457
+}
