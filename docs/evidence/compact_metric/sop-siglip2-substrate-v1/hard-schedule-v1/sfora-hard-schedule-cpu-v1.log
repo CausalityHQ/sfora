@@ -1,0 +1,31 @@
+Running as unit: sfora-hard-schedule-cpu-v1.service; invocation ID: 0a1068262d7f4b379b5b306d5a8afe95
+{"pass": true, "pilot_admitted": false, "decision": "KILL SAMPLING PROCEDURE", "execution_sha256": "236878a9af705273e57c19253e3d992788aef1dee3695e415245f1d58c0ea7ba", "fit_initializers_sha256": "499e6c582f1eb3fb5ef8c57f2a378797ff2e4723f186adbd140342e391b5c970", "dataset": "DeepFashion In-Shop", "split": "TRAIN-fit only", "fit_images": 13283, "fit_products": 2004, "hard_rows": 259, "hard_products": 214, "seeds": {"179032": {"feasible": false, "reason": "hard pool cannot support32 distinct slots and10-repeat ceiling", "uniform_hard_fraction": 0.0225}, "179041": {"feasible": false, "reason": "hard pool cannot support32 distinct slots and10-repeat ceiling", "uniform_hard_fraction": 0.02734375}}, "schedule_artifact_sha256": "8f8df6e963ab9b1ca87358dc05f4aebb8b8a439c493badebb6a242dbc0bc171d", "seconds": 0.7995367706753314, "uniform_reference_exact": true, "fit_held_products_disjoint": true, "optimizer_updates": 0, "model_constructed": false, "held_quality_read": false, "frozen_feasibility": ">=320 hard rows; >=64 hard products; complete100x64/coverage; <=10 hard-slot repeats; >=1.5x realized hard-anchor share for bothseeds", "global_production_goal_met": false}
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 1.219s
+CPU time consumed: 1.217s
+Memory peak: 256.0K
+Memory swap peak: 0B
+	Command being timed: "systemd-run --user --wait --collect --pipe --unit=sfora-hard-schedule-cpu-v1 -p WorkingDirectory=/home/riomus/runs/sfora-hard-schedule-source-v1 -p RuntimeMaxSec=120 -p MemoryMax=8G -p MemorySwapMax=0 -p KillMode=control-group -p OOMPolicy=stop --setenv=CUDA_VISIBLE_DEVICES= --setenv=OMP_NUM_THREADS=8 --setenv=OPENBLAS_NUM_THREADS=1 flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock flock -n /home/riomus/.sfora-siglip2-gpu.lock /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-hard-schedule-source-v1/qualify_large_hard_schedule.py --execution-sha256 236878a9af705273e57c19253e3d992788aef1dee3695e415245f1d58c0ea7ba --output /home/riomus/runs/sfora-hard-schedule-cpu-v1"
+	User time (seconds): 0.00
+	System time (seconds): 0.00
+	Percent of CPU this job got: 0%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:01.24
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 7204
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 376
+	Voluntary context switches: 11
+	Involuntary context switches: 0
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
