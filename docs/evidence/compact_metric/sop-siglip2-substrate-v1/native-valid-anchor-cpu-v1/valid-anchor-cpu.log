@@ -1,0 +1,13 @@
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-native-valid-anchor-cpu-v1/qualify_pe_native_valid_anchor_cpu.py", line 100, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/sfora-native-valid-anchor-cpu-v1/qualify_pe_native_valid_anchor_cpu.py", line 51, in main
+    control, source, _, proof, *_ = qualified.authority(root, PREVIOUS_CODE, 'full', FULL_TRAIN)
+                                    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-native-valid-anchor-cpu-v1/qualify_pe_large_optimization_checkpoint.py", line 59, in authority
+    official=confirmation.selected.helpers(root,code)
+  File "/home/riomus/runs/sfora-native-valid-anchor-cpu-v1/qualify_pe_large_inshop_official.py", line 50, in helpers
+    assert code.get(relative) == pair.sha(Path(name)), 'added imported source unqualified: ' + relative
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: added imported source unqualified: qualify_pe_native_valid_anchor_cpu.py

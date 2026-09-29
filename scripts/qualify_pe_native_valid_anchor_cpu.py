@@ -48,7 +48,9 @@ def main():
     audit = json.loads((FULL_OFFICIAL / 'cpu-audit.json').read_text())
     assert audit['pass'] and not audit['matched_pool_comparison']['survivor']
     assert real_sha(FULL_OFFICIAL / 'receipt.json') == audit['receipt_sha256']
-    control, source, _, proof, *_ = qualified.authority(root, PREVIOUS_CODE, 'full', FULL_TRAIN)
+    old_helpers = qualified.confirmation.selected.helpers
+    with patch.object(qualified.confirmation.selected, 'helpers', lambda r, _: old_helpers(r, code)):
+        control, source, _, proof, *_ = qualified.authority(root, PREVIOUS_CODE, 'full', FULL_TRAIN)
     state = driver.fresh(control, source, proof, 'half', 'cpu')
     before = driver.fingerprint({'vision': state['model'].state_dict(), 'head': state['head'].state_dict(), 'bank': state['bank']})
     target = state['target']
