@@ -1,0 +1,17 @@
+Running as unit: sfora-large-official-cpu-v1.service; invocation ID: 7ba2b430f3b6486688a1ff04a9d3ad77
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-large-inshop-official-qual-v1/qualify_pe_large_inshop_official.py", line 241, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/sfora-large-inshop-official-qual-v1/qualify_pe_large_inshop_official.py", line 87, in main
+    official = helpers(root,code)
+  File "/home/riomus/runs/sfora-large-inshop-official-qual-v1/qualify_pe_large_inshop_official.py", line 44, in helpers
+    assert Path(inspect.getfile(official.score_asymmetric)).resolve() == root / 'evaluate_inshop_siglip2_official.py'
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=1
+Service runtime: 6.242s
+CPU time consumed: 8.791s
+Memory peak: 508.0K
+Memory swap peak: 0B
