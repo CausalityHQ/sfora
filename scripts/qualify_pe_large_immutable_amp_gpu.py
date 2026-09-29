@@ -93,11 +93,12 @@ def main():
         images, _ = pair.augmented_images(control.dataset_root, rows, tuple(range(len(rows))), None)
         return pair.pixels(processor, images, "large").cuda()
 
+    rng = torch.random.get_rng_state().clone()
+    cuda_rng = torch.cuda.get_rng_state_all()
     warm = prepare(frozen["fit_manifest"][:32])
     for mode in times:
         encode(mode, warm)
     del warm
-    rng = torch.random.get_rng_state().clone()
     for index in range(18):
         rows = frozen["fit_manifest"][index * 32:(index + 1) * 32] if index < 17 else frozen["fit_manifest"][-23:]
         x = prepare(rows)
@@ -121,6 +122,15 @@ def main():
                     hook.remove()
             if index < 17:
                 times[mode].append(elapsed)
+            pair.smoke.save(args.output / "progress.json", {
+                "partial_evidence_only": True, "advance": False,
+                "execution_sha256": args.execution_sha256,
+                "checkpoint_sha256": info["checkpoint_sha256"],
+                "latest_completed_batch": index, "latest_completed_arm": mode,
+                "latest_arm_seconds": elapsed, "timing_seconds": times,
+                "parity_completed_fit_batch_sizes": equality,
+                "quality_read": False,
+            })
             results[mode] = result
         assert torch.equal(results["eager"][0], results["cached"][0]), "native cached pooled output differs"
         assert torch.equal(results["eager"][1], results["cached"][1]), "native cached compact vector differs"
@@ -132,9 +142,11 @@ def main():
         equality.append(len(rows))
         assert torch.cuda.max_memory_allocated() < 10_000_000_000
     assert torch.equal(rng, torch.random.get_rng_state())
+    assert all(torch.equal(a, b) for a, b in zip(cuda_rng, torch.cuda.get_rng_state_all(), strict=True))
     assert runtime == native.runtime_identity(model) == native.runtime_identity(other)
     assert all(pair.smoke.digest(native.whole_state(m)) == info["whole_checkpoint_state_sha256"] for m in models)
     assert all(p.dtype == torch.float32 for m in models for p in m.parameters())
+    assert json.loads(json.dumps(native.environment(model, processor))) == info["native_environment"]
     for path, digest in info["functional_source_sha256"].items():
         assert pair.sha(Path(path)) == digest
     assert all(pair.sha(root / n) == h for n, h in code.items())
@@ -151,6 +163,8 @@ def main():
         "two_strict_loaded_copies_independent_whole_forwards": True,
         "whole_native_f32_state_runtime_unchanged": True,
         "caller_cpu_rng_unchanged": True,
+        "cuda_rng_unchanged": True,
+        "installed_native_environment_unchanged": True,
         "peak_cuda_allocated_bytes": torch.cuda.max_memory_allocated(),
         "optimizer_updates": 0, "held_images": 0, "quality_read": False, "official_read": False,
     })
