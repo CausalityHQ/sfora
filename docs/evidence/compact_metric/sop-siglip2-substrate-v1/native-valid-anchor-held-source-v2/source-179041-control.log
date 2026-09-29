@@ -1,0 +1,28 @@
+Running as unit: sfora-native-valid-anchor-source-179041-control-v2.service; invocation ID: 640e4fa70d00442b9fa60b1273cdf3f6
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 15440.16it/s]
+PASS actual teacher CPU strict native/head/calibration/suffix, trained-prefix content rejection and read-only state/RNG authority
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-native-valid-anchor-held-v2/qualify_pe_native_valid_anchor_held.py", line 137, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/sfora-native-valid-anchor-held-v2/qualify_pe_native_valid_anchor_held.py", line 113, in main
+    proof = json.loads((helper_output / 'receipt.json').read_text())
+                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/lib/python3.13/pathlib/_local.py", line 546, in read_text
+    return PathBase.read_text(self, encoding, errors, newline)
+           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/lib/python3.13/pathlib/_abc.py", line 632, in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/lib/python3.13/pathlib/_local.py", line 537, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/home/riomus/runs/sfora-native-valid-anchor-held-v2/discard-updated-source-cpu-ij312rhw/source/receipt.json'
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=1
+Service runtime: 35.291s
+CPU time consumed: 1min 35.954s
+Memory peak: 256.0K
+Memory swap peak: 0B

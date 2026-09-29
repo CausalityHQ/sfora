@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-root=/home/riomus/runs/sfora-native-valid-anchor-held-v2
+root=/home/riomus/runs/sfora-native-valid-anchor-held-v3
 mode=${1:?mode required}; seed=${2:?seed required}; arm=${3:?arm required}
 execution=${4:?execution SHA required}; training=${5:?training SHA required}
 case "$seed" in 179041|179042) ;; *) exit 2;; esac
@@ -21,7 +21,7 @@ test -z "$(systemctl --user list-units --state=running --no-pager --no-legend 's
 compiler=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/tileiras
 test -x "$compiler"
 test "$(sha256sum "$compiler" | cut -d ' ' -f 1)" = df2e9ef3804cab682f605a5c9e50045a24404ba22c3be0903454e1a60fcd78ae
-systemd-run --user --unit="sfora-native-valid-anchor-$name-v2" --wait --pipe \
+systemd-run --user --unit="sfora-native-valid-anchor-$name-v3" --wait --pipe \
   -p RuntimeMaxSec="$cap" -p TimeoutStopSec=1 -p MemoryMax=8G -p MemorySwapMax=0 -p KillMode=control-group \
   --setenv=CUBLAS_WORKSPACE_CONFIG=:4096:8 --setenv=CUDA_VISIBLE_DEVICES="$cuda" \
   --setenv=CUTILE_TILEIRAS_PATH="$compiler" --setenv=PYTHONPATH="$root:$root/src:$root/isolated-deps" \

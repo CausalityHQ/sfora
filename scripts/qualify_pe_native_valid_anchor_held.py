@@ -110,7 +110,7 @@ def main():
                 argv = ['source-cpu', '--execution-sha256', args.execution_sha256, '--output', str(helper_output), '--qualify-cpu']
                 with patch.object(sys, 'argv', argv):
                     trained.teacher.main()
-                proof = json.loads((helper_output / 'receipt.json').read_text())
+                proof = json.loads((helper_output / 'preflight.json').read_text())
             assert proof['teacher_checkpoint_sha256'] == terminal['checkpoint_sha256'] and proof['teacher_whole_sha256'] == terminal['updated_whole_sha256'] and proof['teacher_head_sha256'] == terminal['updated_head_sha256']
             assert proof['read_only'] and proof['optimizer_updates'] == 0 and not proof['quality_read']
             assert all(driver.pair.sha(root / n) == h for n, h in code.items())
