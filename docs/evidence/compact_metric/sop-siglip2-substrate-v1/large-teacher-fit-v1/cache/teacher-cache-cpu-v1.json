@@ -1,0 +1,15 @@
+{
+  "consumer_sha256": "fbf8552021467f60f35380fa48651d46bcefe84cdf963a8fd8cd18632e317c33",
+  "export_receipt_sha256": "277f9b774470355f76c16675a9c7808abe602c83612d83f4d90e4d37cb5507fe",
+  "cpu_authority_sha256": "4731d7a4a4a3fc645e22dd67cd58ebbb39479df550ed031983d159fd7afcccb8",
+  "fit_sha256": "bb8ff164fcc98cb760e322eb9c84f3074750b5f5bdbb3f6892f89aeb20ba40e5",
+  "shape": [
+    13283,
+    128
+  ],
+  "cache_hash_and_image_product_row_rejection": true,
+  "constant_cpu_targets": true,
+  "optimizer_updates": 0,
+  "held_images": 0,
+  "quality_read": false
+}

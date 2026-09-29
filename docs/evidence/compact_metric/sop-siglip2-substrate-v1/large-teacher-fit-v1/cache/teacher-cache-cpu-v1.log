@@ -1,0 +1,8 @@
+Running as unit: sfora-large-teacher-cache-cpu-v1.service; invocation ID: 46a474849d244d29998ecab11ad2b2b7
+PASS complete TRAIN-fit teacher cache, image/product order, constant targets and changed-cache/row rejection; no CUDA/training/held/quality
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 6.042s
+CPU time consumed: 8.546s
+Memory peak: 256.0K
+Memory swap peak: 0B

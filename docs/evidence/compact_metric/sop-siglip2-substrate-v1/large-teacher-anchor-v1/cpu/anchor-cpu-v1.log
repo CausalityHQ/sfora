@@ -1,0 +1,11 @@
+Running as unit: sfora-large-teacher-anchor-cpu-v1.service; invocation ID: e12cade083534c7eae55a760e33131a4
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 9295.92it/s]
+PASS actual CPU original-native anchor-only34/combined35 finite positive gradients, frozen source/head/proxy/teacher/RNG and zero updates/held/quality
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 13.973s
+CPU time consumed: 30.056s
+Memory peak: 256.0K
+Memory swap peak: 0B
