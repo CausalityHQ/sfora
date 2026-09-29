@@ -43,7 +43,7 @@ def authority(root, expected, seed, arm):
     assert previous == json.loads((TRAIN_ROOT / "dense-pilot-execution.json").read_text())
     helpers = old.previous.selected.helpers
     with patch.object(old.previous.selected, "helpers", lambda r, _: helpers(r, code)):
-        (control, native, prior, _, _, _, _), _, _ = training.startup(root, TRAIN_CODE, seed)
+        (control, _, prior, native, _, _, _), _, _ = training.startup(root, TRAIN_CODE, seed)
         _, frozen, _ = teacher.startup(root, old.coverage.trained.TEACHER_CODE_SHA)
     assert frozen["fit_manifest"] == native["arms"]["half"]["rows"]
     assert len(frozen["held_manifest"]) == 12599 and len(frozen["query"]) == 6354 and len(frozen["gallery"]) == 6245
