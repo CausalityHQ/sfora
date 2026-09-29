@@ -52,6 +52,7 @@ def main():
     )
     assert pair.sha(mechanics / "receipt.json") == attempt["mechanics_receipt_sha256"]
     m = json.loads((mechanics / "receipt.json").read_text())
+    assert pair.sha(mechanics / "training.json") == m["training_sha256"]
     mt = json.loads((mechanics / "training.json").read_text())
     assert m["advance"] and m["fit_only_export_path_exact"]
     assert m["execution_sha256"] == r["execution_sha256"]

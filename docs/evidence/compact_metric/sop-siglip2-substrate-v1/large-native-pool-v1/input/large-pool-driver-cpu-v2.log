@@ -1,0 +1,10 @@
+Running as unit: sfora-large-native-pool-driver-cpu-v2.service; invocation ID: a3fcb643cc74441d8569a2d698c71749
+PASS CPU startup source/control/initializers/qualification/execution authority
+PASS CPU startup source/control/initializers/qualification/execution authority
+PASS actual CPU startup; changed GPU-qualified code and supplied mechanics identity rejected without modifying files
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 8.259s
+CPU time consumed: 10.825s
+Memory peak: 256.0K
+Memory swap peak: 0B

@@ -23,7 +23,7 @@ A survivor proceeds to updated-checkpoint serving and fresh confirmation; no TRA
 
 | Dataset/split | Historical controls R1/mAP | Candidate | Training cost | Public latency | Next decisive test |
 |---|---|---|---|---|---|
-| In-Shop TRAIN-held6,354q/6,245g/1,993products | DensePE95.0740/76.3916%; Large95.6720/78.6237%, prior verified | Unmeasured | Unmeasured | Unmeasured | Actual native CPU qualification, then fixed FP16/17→100 only on PASS |
+| In-Shop TRAIN-held6,354q/6,245g/1,993products | DensePE95.0740/76.3916%; Large95.6720/78.6237%, prior verified | Unmeasured | Unmeasured | Unmeasured | CPU/FP16/input prerequisites PASS; concrete review, then single17→100 only on complete PASS |
 
 ## Actual CPU qualification PASS
 
@@ -43,3 +43,10 @@ Actual seventeennative256 B64 serial/oneworker pixels/RGB/strides/callerRNG PASS
 Concrete driver reuses train_pe_s16.py flow with original Large loader/native head-only mask/1024input/14optimizer tensors,400-key strict fresh same-class native reload, no rotary fields, perstep frozen-token guard and actual native Bmm/softmax backend check. It binds both qualified code maps/input qualification and native installed source hashes. Every held batch gets two independent whole native forwards/fresh separate FP16 scopes, heads outside autocast, separately produced vectors and packed parity; no cached prefix substitute. Quality deltas explicitly use authenticated original densePE control; original Large controls RGB and calibration. Mechanics deletes checkpoint/fit vectors; fresh100 binds mechanics/execution and exact first17 losses/scales. CPUstartup positive and changed GPU-qualified-code rejection PASS:original72235 exit0 collected,7.918s. Mechanics-identity rejection fixture is exercised again only after actual mechanics receipt exists.
 
 Training71-file authority a59a430c74d42c258eb648350dc0ac5aac23a0c8be5b2c3407eea2198384ace0. All native/source-qualified helpers unchanged. New scripts and raw prerequisite evidence are reviewable before one consequential HF-boundary critique; no training launched yet, no measured candidate quality/cost/public latency, no operator decision needed. Next single17 under120s; fresh100 under300s only on completePASS.
+
+
+## Concrete review reconciled; one17 authorized
+
+Dual critique88bac0afd0ef4086 completed once: Opus e26fbc1547884eda andAstra e99cd0d6d8074687 both GO for one17; no must-fix native loading/autocast/frozen/wholeexport/quality defect. All71remoteexecutingfiles independently verified unchanged (reviewers checked51locallypresent). Review raw preserved native-review.json. Opus's rough250–290s pilot estimate is **unverified**, not a runtime measurement. Do not add its proposed30s projection margin as a new scientific threshold: the frozen actual300s wholepilot cap is unchanged; timeoutwithoutreceipt remainsmechanicsblocker. Twofitimage mechanics export validatesactualpath/parity, not full-held throughput.
+
+Closed the nonblockingprovenancegap before17: successfulmechanicsreceipt now includes training.json SHA andpilot/auditor bothverify it. No numericalmethod/control/source/qualifiedcode/rate/budget changed. Final71-file authority1c867a64e4fb3eeac04daf0db4eb642ec0041d0ed43a91948f52c968547dd0b0 replaces initiala59a430c before any training. Ruff andactualupdatedCPUstartup/changedqualifiedcode rejection PASS original34658 exit0collected8.259s under120s8GiBnoswap. Mechanicsidentityfixture requiredwithactualreceipt before100. No newreview isneeded for this receipt-onlyclosure.

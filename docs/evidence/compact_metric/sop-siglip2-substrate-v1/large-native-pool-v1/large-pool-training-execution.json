@@ -1,6 +1,6 @@
 {
   "audit_inshop_pe_fit_features.py": "274ab0bfef48ec09bb45e0fe1ab3f864fabf6f1dc0d960cceeca5aee7712de47",
-  "audit_pe_large_pool_pilot.py": "c90f125fb75420afb3cc2d96f1854c55f5396198b3daf26ec97530374e76cc6c",
+  "audit_pe_large_pool_pilot.py": "f63abee6161c8edd3e927f6a0f6960e0d670bbca962f7eed756fdbf452a9e32a",
   "check_pe_large_pool.py": "8643e66e1f823c3ef9cd56e36ffb2ff135285d9b995afcc05998892f42331645",
   "check_pe_large_pool_provenance.py": "a3b91461fbd380a49cc55967f36b8e774926f788a4b6e114cd902c74d9d455c0",
   "compare_inshop_sop_warmstart_100.py": "8827bed4bc90dfdcba36fd2a90bbd686b05a188f6356c1a5c9f965dea5080250",
@@ -68,6 +68,6 @@
   "src/sfora/unicom_rank_finish.py": "bb97a0e0e97c0452ba48e10caf003b95c19d42ec9ce84204190be4b727d966a3",
   "src/sfora/unicom_training.py": "a40b0dac4173511787dd9a4da82e506ce44eb3ccb63710595800bc9ebcd4d272",
   "train_inshop_pe_pair.py": "0963cc443ef29e7d821275f4068f760dd6ed51b7ab69aa98bf0030ccf9676ecf",
-  "train_pe_large_pool.py": "796e6d4c35bc6e815f0dcdacb0d7e60d29c68312c4d315160e3d403773feffcf",
+  "train_pe_large_pool.py": "89241645f9b95660ec5c8bef4c04cc0b182d9e5f22647bcce5e90fed1cec3229",
   "train_sop_siglip2_compact.py": "1946bafee086e14f83290631a05f926ba46480d2fc905eef0016b2211641b610"
 }

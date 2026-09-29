@@ -97,6 +97,7 @@ def main():
             and pair.sha(mechanics_path) == args.mechanics_receipt_sha256
         )
         mechanics = json.loads(mechanics_path.read_text())
+        assert pair.sha(mechanics_path.parent / "training.json") == mechanics["training_sha256"], "mechanics training differs"
         assert (
             mechanics["advance"]
             and mechanics["updates"] == 17
@@ -513,6 +514,7 @@ def main():
                 "discard_training_state": True,
                 "updated_gpu_strict_reload_exact": True,
                 "fit_only_export_path_exact": True,
+                "training_sha256": pair.sha(args.output / "training.json"),
                 timing_field: median,
                 "peak_cuda_allocated_bytes": torch.cuda.max_memory_allocated(),
                 "seconds": time.perf_counter() - started,
