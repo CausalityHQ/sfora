@@ -72,12 +72,25 @@ def main():
     parser.add_argument('--cpu-proof', type=Path)
     parser.add_argument('--cpu-sha256')
     parser.add_argument('--audit-cpu', action='store_true')
+    parser.add_argument('--check-startup-only', action='store_true')
     parser.add_argument('--receipt-sha256')
     args = parser.parse_args()
     assert not (args.qualify_cpu and args.audit_cpu)
     root = Path(__file__).resolve().parent
     control, frozen, prior, run, terminal, code = authority(root, args.execution_sha256, args.seed, args.arm, args.training_sha256)
     binding = {'native_training_receipt_sha256': args.training_sha256, 'native_training_seed': args.seed, 'native_training_arm': args.arm, 'native_training_completed_updates': 100, 'native_training_execution_sha256': TRAIN_CODE}
+    if args.check_startup_only:
+        assert not torch.cuda.is_available() and not args.output.exists() and not args.qualify_cpu and not args.audit_cpu
+        real_sha = driver.pair.sha
+        with patch.object(driver.pair, 'sha', lambda p: '0' * 64 if Path(p).resolve() == Path(__file__).resolve() else real_sha(p)):
+            try:
+                authority(root, args.execution_sha256, args.seed, args.arm, args.training_sha256)
+            except AssertionError:
+                pass
+            else:
+                raise AssertionError('changed held driver accepted')
+        driver.pair.smoke.save(args.output, {'pass': True, **binding, 'execution_sha256': args.execution_sha256, 'changed_driver_rejected': True, 'optimizer_updates': 0, 'quality_read': False})
+        return
     checkpoint = run / 'native.pt'
     def source_startup(r, ex):
         assert r == root and ex == args.execution_sha256
