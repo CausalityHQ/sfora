@@ -1,0 +1,10 @@
+{
+  "controller_pid": 2129210,
+  "controller_sha256": "c9c25680c106d2a6525c58913f632cffceb7e56407e52fafd08a2ccc23024ac5",
+  "source_sha256": "c49270d188a568c3c4a7c56dead83a60f0c562cc226d7972c1db066aa6dbd1e9",
+  "cpu_sha256": "94f602104a1e66b6dd023fda501396996ffe241121379351fb3f2beff319135c",
+  "current_end": 2100,
+  "status": "failed",
+  "completed": [],
+  "quality_read": false
+}

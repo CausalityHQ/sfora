@@ -1,0 +1,18 @@
+Running as unit: sfora-corrected128-budget4000-2100-v1.service; invocation ID: bd9f846a65094947b9d87b66cec5a503
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-corrected128-budget4000-source-v1/train_pe_corrected128_budget4000.py", line 227, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/sfora-corrected128-budget4000-source-v1/train_pe_corrected128_budget4000.py", line 223, in main
+    train(root, args, control, source, prior, proof, code, parent, admission)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-corrected128-budget4000-source-v1/train_pe_corrected128_budget4000.py", line 127, in train
+    assert driver.coverage.teacher.qualified.numerical_flags() == prior['numerical_flags']
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=1
+Service runtime: 7.925s
+CPU time consumed: 10.471s
+Memory peak: 256.0K
+Memory swap peak: 0B

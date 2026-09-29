@@ -124,9 +124,9 @@ def cpu(root, args, proof, code, parent):
 def train(root, args, control, source, prior, proof, code, parent, cpu_proof):
     assert torch.cuda.is_available() and os.environ.get('CUBLAS_WORKSPACE_CONFIG') == ':4096:8'
     assert args.chunk_end in range(2100, 4001, 100) and not args.output.exists()
+    assert driver.coverage.teacher.qualified.numerical_flags() == prior['numerical_flags']
     torch.use_deterministic_algorithms(True)
     torch.backends.cuda.matmul.allow_tf32 = torch.backends.cudnn.allow_tf32 = False
-    assert driver.coverage.teacher.qualified.numerical_flags() == prior['numerical_flags']
     torch.cuda.reset_peak_memory_stats()
     started = time.perf_counter()
     state = driver.fresh(control, source, proof, 'full', 'cuda')

@@ -10,15 +10,15 @@ from pathlib import Path
 import subprocess
 import sys
 
-ROOT = Path('/home/riomus/runs/sfora-corrected128-budget4000-source-v2')
-OWN = Path('/home/riomus/runs/sfora-corrected128-budget4000-controller-v2')
-SOURCE = '4f0483cc6c45f2049118fe945eb8836388b53fe00914b5c979208562afe069f9'
-CPU = 'b470f4e19cac120f20c2c6c89edd3353e8e9a6959b899c66697e2d3d107e5ba6'
-CPU_ROOT = Path('/home/riomus/runs/sfora-corrected128-budget4000-cpu-v2')
+ROOT = Path('/home/riomus/runs/sfora-corrected128-budget4000-source-v1')
+OWN = Path('/home/riomus/runs/sfora-corrected128-budget4000-controller-v1')
+SOURCE = 'c49270d188a568c3c4a7c56dead83a60f0c562cc226d7972c1db066aa6dbd1e9'
+CPU = '94f602104a1e66b6dd023fda501396996ffe241121379351fb3f2beff319135c'
+CPU_ROOT = Path('/home/riomus/runs/sfora-corrected128-budget4000-cpu-v1')
 PARENT = Path('/home/riomus/runs/sfora-full-valid-anchor-2000-v1')
 PARENT_RECEIPT = 'd718e4dee3971b13398a43ec56d02057491059d7e62f99362ef384d71b3a036e'
 PARENT_CHECKPOINT = 'e32dd813c456a0ed319d933b74ffbc9b42886cf0641cb673e4c36945b90c43fa'
-CONTROLLER = 'sfora-corrected128-budget4000-controller-v2.service'
+CONTROLLER = 'sfora-corrected128-budget4000-controller-v1.service'
 
 
 def sha(path):
@@ -27,11 +27,11 @@ def sha(path):
 
 
 def output(end):
-    return Path(f'/home/riomus/runs/sfora-corrected128-budget4000-{end}-v2')
+    return Path(f'/home/riomus/runs/sfora-corrected128-budget4000-{end}-v1')
 
 
 def command(end, previous_sha=None):
-    name = f'sfora-corrected128-budget4000-{end}-v2'
+    name = f'sfora-corrected128-budget4000-{end}-v1'
     args = ['--execution-sha256', SOURCE, '--phase', 'train', '--chunk-end', str(end),
             '--cpu-proof', str(CPU_ROOT), '--cpu-sha256', CPU, '--output', str(output(end))]
     if end > 2100:
@@ -62,7 +62,7 @@ def verify():
     assert cpu['exact_first2000_index_and_class_prefix'] and cpu['complete_parent_state_and_identity_verified']
     assert not cpu['quality_read'] and sha(PARENT / 'receipt.json') == PARENT_RECEIPT
     assert sha(PARENT / 'resume.pt') == PARENT_CHECKPOINT
-    log = (ROOT / 'cpu-v2.log').read_text()
+    log = (ROOT / 'cpu-v1.log').read_text()
     assert all(s in log for s in ('Finished with result: success', 'code=exited/status=0', 'Memory swap peak: 0B'))
     for end in range(2100, 4001, 100):
         args = command(end, 'a' * 64 if end > 2100 else None)
@@ -99,7 +99,7 @@ def main():
         active = subprocess.check_output(['systemctl', '--user', 'list-units', '--state=running', '--plain', '--no-legend', 'sfora-*'], text=True)
         assert all(line.split()[0] == CONTROLLER for line in active.splitlines() if line.strip()), active
         save(end, 'running'); print('START', end, flush=True)
-        log_path = ROOT / f'sfora-corrected128-budget4000-{end}-v2.log'
+        log_path = ROOT / f'sfora-corrected128-budget4000-{end}-v1.log'
         with log_path.open('x') as log:
             result = subprocess.run(command(end, latest), stdout=log, stderr=subprocess.STDOUT)
         if result.returncode:

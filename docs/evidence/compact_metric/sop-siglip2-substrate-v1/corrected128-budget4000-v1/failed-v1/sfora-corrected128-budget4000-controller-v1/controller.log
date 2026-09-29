@@ -1,0 +1,8 @@
+Running as unit: sfora-corrected128-budget4000-controller-v1.service; invocation ID: d5a7a9944f49400e81a9c6942a2fdd7e
+START 2100
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=1
+Service runtime: 9.194s
+CPU time consumed: 1.238s
+Memory peak: 256.0K
+Memory swap peak: 0B
