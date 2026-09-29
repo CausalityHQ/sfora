@@ -1,0 +1,67 @@
+{
+  "pass": true,
+  "checkpoint": "/home/riomus/.cache/huggingface/hub/models--facebook--PE-Core-S16-384/snapshots/aabf3b990573d8114ae6e501b4697106beac8f19/PE-Core-S16-384.pt",
+  "revision": "aabf3b990573d8114ae6e501b4697106beac8f19",
+  "weight_sha256": "ccc8340a14ea3ebf557a288ba4ed4a5bc026ab98bb4da42fc745d44b4c5c5ffb",
+  "weight_bytes": 348852712,
+  "vision_parameters": 23782656,
+  "strict_visual_keys": 163,
+  "checkpoint_visual_dtypes": [
+    "torch.float32"
+  ],
+  "parameter_dtype": "torch.float32",
+  "pretrained_image_size": 384,
+  "actual_input_size": 224,
+  "actual_output_shape": [
+    2,
+    512
+  ],
+  "source_access": {
+    "token": false,
+    "gated": false,
+    "private": false,
+    "license": "apache-2.0"
+  },
+  "native_config": {
+    "width": 384,
+    "layers": 12,
+    "patch": 16,
+    "posemb_grid": 24,
+    "pool_type": "attn",
+    "pool_heads": 8
+  },
+  "actual_rotary_grid": [
+    14,
+    14
+  ],
+  "source_weights_unchanged": true,
+  "fit_rows": [
+    {
+      "train_row": 0,
+      "product": "id_00000002",
+      "relative_path": "Img/img/WOMEN/Dresses/id_00000002/02_1_front.jpg",
+      "image_sha256": "911c812d3ada97475e10744ef181824016b3cbcc003c60744c8c0b1a59689cd4"
+    },
+    {
+      "train_row": 1,
+      "product": "id_00000002",
+      "relative_path": "Img/img/WOMEN/Dresses/id_00000002/02_2_side.jpg",
+      "image_sha256": "97445425034fd01361a7072b2d6ec9b6d1b8fc39a0911c0e49e4d1bbd3630707"
+    }
+  ],
+  "processor_pixels_sha256": "74bd385d812924f40066eac75553fc36d4137f25afe65fa20399dd5842361f74",
+  "source_state_sha256": "4cb069da321be41e1faf39a18812ecce85f3075c6418444a75e29bf718e8c0ef",
+  "foreign_rope_sha256": "e09f93927947b3fa8be67b854360a620e424fdd07e07bdb9a0df11ad1ae308f8",
+  "foreign_grid_sha256": "d091021d22e0b85157b18fb8b4d5f1c53def050d7e5546f9081791c6113c9c53",
+  "script_sha256": "fd7d9b85ce4ad7b4b44235b0ae6f71e95f561870a5e8ea3368f4e1f229e3bbbd",
+  "source_manifest_sha256": "a56781a21ca57fa8697961a5383ec32cb651907b4809c4f5cb12b9f37d227346",
+  "helper_sha256": {
+    "pe_core_authority.py": "b84697d272198c72fd2161d8018dd5b3de8f3a89880536163ea1e16a37e688ba",
+    "probe_inshop_pe_training_smoke.py": "45d89389e02231434b073734e22a309189f7f6c566d2da87b703f7ff06001954"
+  },
+  "seconds": 11.033756725024432,
+  "optimizer_updates": 0,
+  "held_images": 0,
+  "cuda_used": false,
+  "quality_read": false
+}
