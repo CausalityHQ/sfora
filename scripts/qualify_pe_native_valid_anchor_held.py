@@ -5,6 +5,7 @@ import json
 import sys
 from contextlib import ExitStack
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest.mock import patch
 import torch
 import train_pe_native_valid_anchor as training
@@ -102,12 +103,14 @@ def main():
         scope.enter_context(patch.object(trained.teacher, 'TEACHER', checkpoint))
         scope.enter_context(patch.object(trained.teacher, 'TEACHER_SHA', terminal['checkpoint_sha256']))
         if args.qualify_cpu:
-            assert not torch.cuda.is_available()
+            assert not torch.cuda.is_available() and not args.output.exists()
             scope.enter_context(patch.object(trained.teacher, 'startup', source_startup))
-            argv = ['source-cpu', '--execution-sha256', args.execution_sha256, '--output', str(args.output), '--qualify-cpu']
-            scope.enter_context(patch.object(sys, 'argv', argv))
-            trained.teacher.main()
-            proof = json.loads(args.output.read_text())
+            with TemporaryDirectory(prefix='discard-updated-source-cpu-', dir=root) as temporary:
+                helper_output = Path(temporary) / 'source'
+                argv = ['source-cpu', '--execution-sha256', args.execution_sha256, '--output', str(helper_output), '--qualify-cpu']
+                with patch.object(sys, 'argv', argv):
+                    trained.teacher.main()
+                proof = json.loads((helper_output / 'receipt.json').read_text())
             assert proof['teacher_checkpoint_sha256'] == terminal['checkpoint_sha256'] and proof['teacher_whole_sha256'] == terminal['updated_whole_sha256'] and proof['teacher_head_sha256'] == terminal['updated_head_sha256']
             assert proof['read_only'] and proof['optimizer_updates'] == 0 and not proof['quality_read']
             assert all(driver.pair.sha(root / n) == h for n, h in code.items())

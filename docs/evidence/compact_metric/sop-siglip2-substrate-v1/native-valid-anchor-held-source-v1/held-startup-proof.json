@@ -1,0 +1,12 @@
+{
+  "pass": true,
+  "native_training_receipt_sha256": "08d077e750a8fda40a2edff915a807c0485f883a626036ce9aa0d38fbe775894",
+  "native_training_seed": 179041,
+  "native_training_arm": "control",
+  "native_training_completed_updates": 100,
+  "native_training_execution_sha256": "eeed3caf006b6f05d3b1ebc3abb5444f221b2a35a5db26193b9d71fe54865a3b",
+  "execution_sha256": "21da0988a2f5425e7c5ee42407fa9053b6684ae6ac82305105765c2191b83204",
+  "changed_driver_rejected": true,
+  "optimizer_updates": 0,
+  "quality_read": false
+}
