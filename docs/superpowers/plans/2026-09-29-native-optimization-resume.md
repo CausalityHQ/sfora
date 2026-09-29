@@ -1,0 +1,13 @@
+# Native optimization resume implementation plan
+
+> Inline execution with superpowers:executing-plans; no implementation subagents.
+
+**Goal:** Train the frozen2000-update matched scopes without resetting native AdamW/bank/RNG at100-update process boundaries.
+**Architecture:** Reuse unchanged qualified source/inputs/terms/FP16 helpers. One small resume module owns complete state and validation; CPU/GPU qualification drivers exercise that same boundary. Torchstate_dict/weights_only+mmap/immutable files; no new dependencies/framework.
+**Spec:** docs/inshop_large_optimization_budget_gate_2026-09-29.md.
+**Constraints:** master/operator identity/protectedRust untouched; Torch/GPU DGXonly, inspect jobs/twolocks/no duplicates; CPU119+1s/GPU299+1s8GiBnoSwap<10GB; no scientific/resource rescue/research/fullsuite/TESTchooser.
+**Review focus:** missing optimizer/scaler/bank/RNG; parameter ordering orhyperparameter drift; globalaugmentation/counter gaps; partial checkpoints; native/frozen/source/code changes; serialization peak/RNG perturbation; CPU proof isnotGPU/sourcequality.
+
+- [ ] Write actualCPU qualifier before newmodule. Watch assertionRED for missingresume capability. Implement pe_large_optimization.py: extendedclosed2000sampler/first100exact; complete immutablecheckpoint save/restore; namedparameter/hypers/steps/source/schedule/roles identity; content fingerprint/statefinite checks; existing meanmicrostep semantics. ActualnativeCPU two-update uninterrupted vscheckpoint1/freshobjects/update2 mustagreewhole/head/proxy/bank/AdamW/RNG; wrong counter/ordering/hypers/state rejected andoldweight-only100refused. Freshroot/closed90-source manifest; normalexitproofLAST.
+- [ ] GPUdriver uses exactmoduleboundary; ONE17uninterrupted vs8+9 serializedresume, sameactualnative17loss/pixels/updatedstates/packed independentreload/caps, discardstate. Narrowstartup/changedproof rejection; required bounded Opus+Astra review onlyaftercheapCPU prereqsclose; reconcile/freeze/pushbeforeGPU. Externallauncher enforcescontractsandoriginalhandles.
+- [ ] OnlyPASS pluschunk100 admission<=269s license20sequential100 chunksPERARM,freshcommonF5/source/sampler/first100exactold. Persistoptimizer/scaler/bank/RNG, uniquecompletedcounter/sourceSHA/receiptchain perchunk, noCPUmodelcontention. Actualaggregatecost/all-IDupdates. Fixedterminal2000source/public/officialquality+CPUpairedCIs; nointermediateTESTselection orold100rescue.
