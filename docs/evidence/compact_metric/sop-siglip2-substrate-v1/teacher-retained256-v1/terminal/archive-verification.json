@@ -1,0 +1,22 @@
+{
+  "archived_files": 100,
+  "controller_completed": 20,
+  "decision": "KILL",
+  "decision_sha256": "ba59d43f2a074d60ef78692bb5f8d1b1312962556a80dd436645b48651e2684f",
+  "matched": {
+    "128": {
+      "cpu_audit_sha256": "0282a3846db2f86eb8ae23d14825a162a6834d18f621d4a46642f3a17ae22b50",
+      "private_receipt_sha256": "74d85db1460cc0b10e4c9e3621e6dd8025ec7251dce2fd944e25594cbe19cd61",
+      "weights_receipt_sha256": "0bfb4bf92814479aff557036c3790c4ce257c3f465084dbe878564e57d7d57c3"
+    },
+    "256": {
+      "cpu_audit_sha256": "40842749c6b309127a9b24f986988d0242eeb3a0ad841fd5b816587965bd9cd3",
+      "private_receipt_sha256": "da765868c180cc53cbb8521dd16124d00bbd3147e182af4614965560938dac68",
+      "weights_receipt_sha256": "c151e9a6d66fe93122fed1ec7d908459fe40b2936feefde3122c49608bbb679e"
+    }
+  },
+  "pass": true,
+  "source_count": 107,
+  "source_sha256": "82ada79acff29017c324626214448844e31dba81a386e56b122cf0f25fcd8df7",
+  "verification_scope": "stdlib SHA/receipt/log/mean/cost replay; model wires independently CPU-replayed in original DGX audits; no new model quality read"
+}

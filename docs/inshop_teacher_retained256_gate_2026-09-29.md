@@ -93,3 +93,17 @@ locks, authenticated compiler PATH, idle checks and original job collection.
 No cap/threshold rescue, extra update/seed/initializer/average chooser on failure.
 A negative closes this procedure only; preserve useful candidates and continue
 the full product goal by changing the demonstrated responsible layer.
+
+## Terminal result
+
+**KILL this fixed width procedure.** The original twenty-chunk DGX controller,
+both updated-checkpoint CPU exports, both private full TRAIN-held reads, both
+independent CPU wire audits and the paired decision completed normally within
+their frozen caps. Corrected128 versus retained256 R1 was97.780925% versus
+97.765187%; mAP@R85.449629% versus85.339519%. Candidate minus control was
+−0.015738/−0.110109pp, with both product95 intervals spanning zero. Wall and
+median-step ratios0.995482/0.997171 passed. Source, checkpoints, all raw
+receipts and wires are preserved. The [result report](inshop_teacher_retained256_result_2026-09-29.md)
+gives the archived evidence and selects one corrected128 training-budget
+continuation as the next intervention; no such job has started. The global
+production goal remains active.

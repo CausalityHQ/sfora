@@ -1,0 +1,23 @@
+	Command being timed: "/usr/bin/timeout -k1 299 /home/riomus/group-learning/.venv/bin/python -u /home/riomus/runs/sfora-teacher-retained256-source-v1/train_pe_teacher_retained256.py --execution-sha256 a85dd55c516f054c4c63341b31e0c7e4e77fb6925fd9ea29adabf097b1156bcb --phase train --width 128 --chunk-end 300 --output /home/riomus/runs/sfora-teacher-retained256-128-300-v1 --cpu-proof /home/riomus/runs/sfora-teacher-retained256-source-v1/teacher-width-cpu-proof.json --cpu-sha256 84157b3331b56f868db15a38f3498daea467e24bd0aae87d76b716e0b3d2ee23 --control-mechanics /home/riomus/runs/sfora-teacher-retained256-mechanics-128-v1 --control-sha256 5b03da45feafcce833609f39e38ff53dce1a49ca42371f86faf6d388833283b9 --candidate-mechanics /home/riomus/runs/sfora-teacher-retained256-mechanics-256-v1 --candidate-sha256 deb9dac4783fb5da797f34b8e855b5b47ed93d36d24a428c974adb7e110005fa --previous /home/riomus/runs/sfora-teacher-retained256-128-200-v1 --previous-sha256 74c3fb1e84e973dec22fd9dc96ae81c2a1f1a1cfc623fa4fadff64198aca7506"
+	User time (seconds): 150.48
+	System time (seconds): 16.74
+	Percent of CPU this job got: 104%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 2:39.81
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 5484532
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 17019
+	Minor (reclaiming a frame) page faults: 2280764
+	Voluntary context switches: 123372
+	Involuntary context switches: 2292
+	Swaps: 0
+	File system inputs: 3501592
+	File system outputs: 5050488
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

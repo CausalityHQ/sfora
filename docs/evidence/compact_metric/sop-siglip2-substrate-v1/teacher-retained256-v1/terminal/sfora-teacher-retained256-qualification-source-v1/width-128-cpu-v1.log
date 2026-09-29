@@ -1,0 +1,11 @@
+Running as unit: sfora-teacher-retained256-width-128-cpu-v1.service; invocation ID: 6aea74e55fd84596b687254162419deb
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  87%|████████▋ | 689/792 [00:00<00:00, 6888.77it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 6933.11it/s]
+PASS actual updated private width CPU strict400/head/frozen/packed/F16cast/source export
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 23.701s
+CPU time consumed: 46.297s
+Memory peak: 538.0M
+Memory swap peak: 0B

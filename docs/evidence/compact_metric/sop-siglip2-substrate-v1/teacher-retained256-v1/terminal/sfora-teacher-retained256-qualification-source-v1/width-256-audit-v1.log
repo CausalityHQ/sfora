@@ -1,0 +1,8 @@
+Running as unit: sfora-teacher-retained256-width-256-audit-v1.service; invocation ID: ff65f114ff684920af618509d0a72bd8
+PASS complete saved private TRAIN packed wires independently CPU replayed
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 12.927s
+CPU time consumed: 18.201s
+Memory peak: 581.4M
+Memory swap peak: 0B

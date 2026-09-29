@@ -1,0 +1,23 @@
+	Command being timed: "/usr/bin/timeout -k1 299 /home/riomus/group-learning/.venv/bin/python -u /home/riomus/runs/sfora-teacher-retained256-qualification-source-v1/qualify_pe_teacher_retained256.py --execution-sha256 82ada79acff29017c324626214448844e31dba81a386e56b122cf0f25fcd8df7 --phase private --width 256 --cpu-sha256 c151e9a6d66fe93122fed1ec7d908459fe40b2936feefde3122c49608bbb679e --output /home/riomus/runs/sfora-teacher-retained256-held-256-v1"
+	User time (seconds): 140.22
+	System time (seconds): 6.28
+	Percent of CPU this job got: 119%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 2:02.21
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 3849140
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 36031
+	Minor (reclaiming a frame) page faults: 1085601
+	Voluntary context switches: 258783
+	Involuntary context switches: 1933
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 37160
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

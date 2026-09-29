@@ -1,0 +1,48 @@
+Running as unit: sfora-teacher-retained256-controller-v1.service; invocation ID: 1a91f55dd5df4b98a0078dd6059cd204
+START 128 100
+COMPLETE {"width": 128, "end": 100, "receipt_sha256": "9c258702991b99463f08ec315c3a01f17332d28cc42e527baede11ef5e868590", "training_wall_seconds": 116.7627340592444, "images_per_second": 54.812008742041755, "peak_cuda_allocated_bytes": 6141016576}
+START 256 100
+COMPLETE {"width": 256, "end": 100, "receipt_sha256": "95963ee3d227b2ddaf88be62b84be4ea1b41b1e57311b49271ea26f85439d8fc", "training_wall_seconds": 117.31545740598813, "images_per_second": 54.55376590189491, "peak_cuda_allocated_bytes": 6156311552}
+START 128 200
+COMPLETE {"width": 128, "end": 200, "receipt_sha256": "74c3fb1e84e973dec22fd9dc96ae81c2a1f1a1cfc623fa4fadff64198aca7506", "training_wall_seconds": 118.5761544010602, "images_per_second": 53.97375241528981, "peak_cuda_allocated_bytes": 6141016576}
+START 256 200
+COMPLETE {"width": 256, "end": 200, "receipt_sha256": "bf556303087b546a0b0159de89a0b1527369c2117cee183fa23ff4bef1779c6d", "training_wall_seconds": 117.86726095061749, "images_per_second": 54.29836876146116, "peak_cuda_allocated_bytes": 6156356608}
+START 128 300
+COMPLETE {"width": 128, "end": 300, "receipt_sha256": "13ace337299aaa082e605c8566393471ea738678eac0913959b477be1871524c", "training_wall_seconds": 117.37354488810524, "images_per_second": 54.526767561644824, "peak_cuda_allocated_bytes": 6141016576}
+START 256 300
+COMPLETE {"width": 256, "end": 300, "receipt_sha256": "d0f5f4f74163b164db21620eebb9e0447409a312911abfd96b0516df376f4527", "training_wall_seconds": 118.01726757688448, "images_per_second": 54.22935246175399, "peak_cuda_allocated_bytes": 6156356608}
+START 128 400
+COMPLETE {"width": 128, "end": 400, "receipt_sha256": "6108256dcc50e5b310841425117c1fc12fb0ab05fb63ee83fcdba3666f6e02e7", "training_wall_seconds": 119.38834559824318, "images_per_second": 53.60657246676997, "peak_cuda_allocated_bytes": 6141016576}
+START 256 400
+COMPLETE {"width": 256, "end": 400, "receipt_sha256": "fdff3bb0d9b45f8497323fa21e6421d1b365129eb12dee63b4acedf6f3b03913", "training_wall_seconds": 118.02546558808535, "images_per_second": 54.22558570822599, "peak_cuda_allocated_bytes": 6156356608}
+START 128 500
+COMPLETE {"width": 128, "end": 500, "receipt_sha256": "2b1376270417df2f63d571448227e277298c5194b567c92a1d6f59abcbb2ab7f", "training_wall_seconds": 119.1402499647811, "images_per_second": 53.718201883006756, "peak_cuda_allocated_bytes": 6141016576}
+START 256 500
+COMPLETE {"width": 256, "end": 500, "receipt_sha256": "864c10222f841b09382470594fa206aa23fbcffa2adcb4fd042b070ff704358f", "training_wall_seconds": 118.23035656893626, "images_per_second": 54.13161378963083, "peak_cuda_allocated_bytes": 6156356608}
+START 128 600
+COMPLETE {"width": 128, "end": 600, "receipt_sha256": "b5dfe71c4366205e076c259f13ec7b5eb743cdb1549fb729c500372b177b5a07", "training_wall_seconds": 118.88825982902199, "images_per_second": 53.83206053485936, "peak_cuda_allocated_bytes": 6141016576}
+START 256 600
+COMPLETE {"width": 256, "end": 600, "receipt_sha256": "193544bca50fee554a7df183257b30ae69fe2f9fe60a2ff558d4e151907912cc", "training_wall_seconds": 118.09223997406662, "images_per_second": 54.19492425078445, "peak_cuda_allocated_bytes": 6156356608}
+START 128 700
+COMPLETE {"width": 128, "end": 700, "receipt_sha256": "0b7147cd9d455b73e1e1c77a3d8b5a0f2a63ef90b7321b3d9d58f30ca27353f7", "training_wall_seconds": 117.62329118698835, "images_per_second": 54.410992375870336, "peak_cuda_allocated_bytes": 6141016576}
+START 256 700
+COMPLETE {"width": 256, "end": 700, "receipt_sha256": "9e138895ea5ea39f1c7bb6bb60673900b91d370dddc073d4a86dcaee64114b02", "training_wall_seconds": 116.7383585581556, "images_per_second": 54.82345373917271, "peak_cuda_allocated_bytes": 6156356608}
+START 128 800
+COMPLETE {"width": 128, "end": 800, "receipt_sha256": "6e87ce14f81e34112803957325d522f64ee5a4f2fbbd160c62dbb0910aa43769", "training_wall_seconds": 117.71691018529236, "images_per_second": 54.367719896199084, "peak_cuda_allocated_bytes": 6141016576}
+START 256 800
+COMPLETE {"width": 256, "end": 800, "receipt_sha256": "b750a1af0a738e1427df2a80d835c6dfb3425fb75da907780144864f744a21a4", "training_wall_seconds": 117.22384716384113, "images_per_second": 54.59639957947178, "peak_cuda_allocated_bytes": 6156356608}
+START 128 900
+COMPLETE {"width": 128, "end": 900, "receipt_sha256": "93d01d63506fc06c8630c7dd477a1b2bcdb03107a6f559567e4f9c51726231f0", "training_wall_seconds": 117.1203873930499, "images_per_second": 54.64462799736082, "peak_cuda_allocated_bytes": 6141016576}
+START 256 900
+COMPLETE {"width": 256, "end": 900, "receipt_sha256": "5e8503059ba0b989514a7061e021f0cda4a82d10c2f0ddb8e20cc6b41c6ba9fb", "training_wall_seconds": 117.36303202807903, "images_per_second": 54.53165182771355, "peak_cuda_allocated_bytes": 6156356608}
+START 128 1000
+COMPLETE {"width": 128, "end": 1000, "receipt_sha256": "d1f01666c8da0bee8026cde1dc045b0485f1984ed5393b7de5682614ec334afc", "training_wall_seconds": 119.20028347196057, "images_per_second": 53.6911474837681, "peak_cuda_allocated_bytes": 6141016576}
+START 256 1000
+COMPLETE {"width": 256, "end": 1000, "receipt_sha256": "93aebfa7e5add99202f017ad008901c6fcb02fabc9642a8cbd5b39413c7f34f2", "training_wall_seconds": 117.577717455104, "images_per_second": 54.432082358154155, "peak_cuda_allocated_bytes": 6156356608}
+ALL_FIXED1000_COLLECTED {"128": "d1f01666c8da0bee8026cde1dc045b0485f1984ed5393b7de5682614ec334afc", "256": "93aebfa7e5add99202f017ad008901c6fcb02fabc9642a8cbd5b39413c7f34f2"}
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 52min 30.220s
+CPU time consumed: 23.276s
+Memory peak: 24.2M
+Memory swap peak: 0B
