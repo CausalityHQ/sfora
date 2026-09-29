@@ -1,0 +1,12 @@
+{
+  "pass": true,
+  "pilot_go": true,
+  "receipt_sha256": "fe041e1e0611a05fa54633852047271424ae9968750053c18183937e41f7e4af",
+  "auditor_sha256": "1da959865f446701972dfb52d5e83f92d0247cadbb999c2922539cb640f93974",
+  "pair_order_seed": 179032,
+  "bootstrap_seed": 179032,
+  "bootstrap_draws": 5000,
+  "all_raw_pair_quantiles_intervals_decision_exact": true,
+  "claim_eligible": false,
+  "p99_certified": false
+}

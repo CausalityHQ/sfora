@@ -1,0 +1,12 @@
+Running as unit: sfora-public-precision-pair-gpu-v1.service; invocation ID: c90b0c359ef14f7b955995a87bdf62ca
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+{"calls_per_mode": 100, "fp32_autocast_p50_ms": 25.60189855284989, "fp32_autocast_p95_ms": 28.3593816915527, "fp16_native_p50_ms": 14.617639360949397, "fp16_native_p95_ms": 17.766423360444605, "paired_mean_candidate_minus_control_ms": -11.067900592461228, "paired_mean_delta_lower95_ms": -11.459791485103779, "paired_mean_delta_upper95_ms": -10.701756891445257, "pilot_mean_faster": true, "p99_certified": false}
+{"calls_per_mode": 100, "fp32_autocast_p50_ms": 319.08898055553436, "fp32_autocast_p95_ms": 329.16557958815247, "fp16_native_p50_ms": 247.12497065775096, "fp16_native_p95_ms": 255.5384306004271, "paired_mean_candidate_minus_control_ms": -72.10899240337312, "paired_mean_delta_lower95_ms": -73.28822858585045, "paired_mean_delta_upper95_ms": -70.89194256509654, "pilot_mean_faster": true, "p99_certified": false}
+PASS fixed100-pair public latency pilot; no certified p99 or product claim
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 1min 28.793s
+CPU time consumed: 1min 43.740s
+Memory peak: 3.4G
+Memory swap peak: 0B

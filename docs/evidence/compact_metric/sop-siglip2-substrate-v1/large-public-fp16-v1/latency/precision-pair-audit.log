@@ -1,0 +1,8 @@
+Running as unit: sfora-public-precision-pair-audit-v1.service; invocation ID: 6407181093694a41b7e120b2ed0ad671
+PASS independent raw ordered-pair quantiles/intervals/pilot decision replay
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 90ms
+CPU time consumed: 1.123s
+Memory peak: 512.0K
+Memory swap peak: 0B

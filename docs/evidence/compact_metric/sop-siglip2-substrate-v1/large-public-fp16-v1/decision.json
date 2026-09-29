@@ -1,0 +1,50 @@
+{
+  "decision": "GO complete TRAIN quality + matched100-pair latency pilot; production goal unproved",
+  "dataset": "DeepFashion In-Shop",
+  "split": "TRAIN-held 6354 queries / 6245 gallery / 1993 identities",
+  "control": "same trained F5 checkpoint fp32_autocast, archival nonconcurrent quality but concurrently paired latency",
+  "control_B1_r1_percent": 95.67201762669185,
+  "control_B1_map_at_r_percent": 78.61058447509419,
+  "candidate_B1_r1_percent": 95.68775574441297,
+  "candidate_B1_map_at_r_percent": 78.59918647617228,
+  "control_B32_r1_percent": 95.67201762669185,
+  "control_B32_map_at_r_percent": 78.6237120217074,
+  "candidate_B32_r1_percent": 95.7034938621341,
+  "candidate_B32_map_at_r_percent": 78.60709285313133,
+  "quality_CPU_replays_pass": true,
+  "latency_raw_pair_CPU_replay_pass": true,
+  "latency": {
+    "1": {
+      "calls_per_mode": 100,
+      "fp32_autocast_p50_ms": 25.60189855284989,
+      "fp32_autocast_p95_ms": 28.3593816915527,
+      "fp16_native_p50_ms": 14.617639360949397,
+      "fp16_native_p95_ms": 17.766423360444605,
+      "paired_mean_candidate_minus_control_ms": -11.067900592461228,
+      "paired_mean_delta_lower95_ms": -11.459791485103779,
+      "paired_mean_delta_upper95_ms": -10.701756891445257,
+      "pilot_mean_faster": true,
+      "p99_certified": false
+    },
+    "32": {
+      "calls_per_mode": 100,
+      "fp32_autocast_p50_ms": 319.08898055553436,
+      "fp32_autocast_p95_ms": 329.16557958815247,
+      "fp16_native_p50_ms": 247.12497065775096,
+      "fp16_native_p95_ms": 255.5384306004271,
+      "paired_mean_candidate_minus_control_ms": -72.10899240337312,
+      "paired_mean_delta_lower95_ms": -73.28822858585045,
+      "paired_mean_delta_upper95_ms": -70.89194256509654,
+      "pilot_mean_faster": true,
+      "p99_certified": false
+    }
+  },
+  "quality_gate": "same absolute95.1720176/77.6237120% floors and both pairedDense product95lower>0",
+  "new_training_updates": 0,
+  "p99_certified": false,
+  "sustained_qps_measured": false,
+  "official_quality_measured": false,
+  "claim_eligible": false,
+  "global_goal_complete": false,
+  "next": "Freeze source F5 + fp16_native; actual official InShop14218query/12612gallery standard partition qualification and quality before10kpairedlatency spending. Reuse parser/scorer without relaxing original guards; disclose previous benchmark exposure. SOP and CUB/Cars confirmation remain mandatory."
+}
