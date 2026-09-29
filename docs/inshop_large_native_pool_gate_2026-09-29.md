@@ -59,3 +59,8 @@ Original97123 exited0/collected:26.70s wholeprocess,5,520,100KiB RSS,noSwap,3,80
 Beforefresh100, actualCPUstartup withmechanics4158bb3b must reject alteredqualifiedcode andmechanicsexecutionidentity, validateauthentictraininghash anddiscardedfiles. No frozenfiles/execution changeafter17; no newreview/research/probe. CompletePASSlicensesONE100 underoriginal300s/bothlocks/resourcecaps, actualwholeheldpairedexport, fixedqualityfloors/bootstrap. No candidatequality/publiclatencymeasurementyet.
 
 Actual supplied-mechanics CPUstartup original28627 exit0collected10.464s PASS: unchangedauthenticstartup andchangedqualifiedcode/mechanicsexecutionrejection. Allprerequisitesclosed; fresh100authorized.
+
+
+## Terminal single100: export-mechanics blocker
+
+Original49201 EXIT1collected; systemdtimeout299.602s/TERM during373of394 independentwholeheldbatch export. Training100costPASS.45864704553969204s/update/46.07621950889006s; allfirst17loss/scales exact/100RGBscaler128/14grads/codeguards pass. No completeheldvectors/qualityreceipt/GOorKILL. No retry/budgetrescue. Rawandpreciselimits/nextoneexportexecutionintervention in docs/inshop_large_native_pool_result_2026-09-29.md. FullproductiongoalACTIVEunmet/DGXidle.
