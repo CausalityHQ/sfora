@@ -12,6 +12,7 @@ import json
 import os
 import resource
 import signal
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -20,8 +21,8 @@ from unittest.mock import patch
 if not __debug__:
     raise SystemExit("Qualification requires assertions")
 
-SOURCE = Path("/home/riomus/runs/sfora-dense-retained-serving-source-v1")
-OUTPUT = Path("/home/riomus/runs/sfora-dense-retained-serving-v1/receipt.json")
+SOURCE = Path("/home/riomus/runs/sfora-dense-retained-serving-source-v2")
+OUTPUT = Path("/home/riomus/runs/sfora-dense-retained-serving-v2/receipt.json")
 EXPORT_ROOT = Path("/home/riomus/runs/sfora-dense-pilot-export-source-v2")
 SCORE_ROOT = Path("/home/riomus/runs/sfora-dense-pilot-score-source-v2")
 EXPORT_SHA = "e268cbf54e7b203e6ed9b959ef6833d310d536e465e74d1bfc3473f903131f22"
@@ -37,6 +38,8 @@ ARRAY_SHA = "74d0e14455d0dcd418f39cf7c881b1aca3ce88880ccf1ec8f2537032326c76c9"
 TRAIN_SHA = "ae1e2d143509e3d40f4950fa5b9b28c29a26456f222845e44d69eee2b1533746"
 LIBRARY = Path("/home/riomus/sfora-rc5-pointer-b7c57022/libsfora_cutile_int8_score_sha39602d0e.so")
 LIBRARY_SHA = "39602d0e4e8b0d5ec441be460ad7f18e288241bef19fb6e6c5df14f4033ac73c"
+TILEIRAS = Path("/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/tileiras")
+TILEIRAS_SHA = "df2e9ef3804cab682f605a5c9e50045a24404ba22c3be0903454e1a60fcd78ae"
 DRIVER = "qualify_large_dense_retained_serving.py"
 MANIFEST = "dense-retained-serving-execution.json"
 
@@ -71,8 +74,15 @@ def source_authority(root, expected):
     return code, previous, exported
 
 
+def compiler_authority():
+    assert os.environ.get("CUTILE_TILEIRAS_PATH") == str(TILEIRAS)
+    assert sha(TILEIRAS) == TILEIRAS_SHA
+    subprocess.run([str(TILEIRAS), "--version"], check=True, capture_output=True, timeout=10)
+
+
 def startup(root, execution):
     code, previous, exported = source_authority(root, execution)
+    compiler_authority()
     decision = read(SCORE_ROOT / "decision-v2.json", DECISION_SHA)
     assert decision["pass"] and decision["decision"] == "KILL"
     assert decision["execution_sha256"] == SCORE_SHA and decision["seeds"] == [179032, 179041]
@@ -207,7 +217,7 @@ def main():
         "checkpoint_sha256": CHECKPOINT_SHA, "native_path": str(CHECKPOINT),
         "training_receipt_sha256": TRAIN_SHA, "accepted_cpu_proof_sha256": CPU_SHA,
         "accepted_wire_receipt_sha256": WIRE_SHA, "held_sha256": ARRAY_SHA,
-        "native_library_sha256": LIBRARY_SHA, "optimizer_updates": 0,
+        "native_library_sha256": LIBRARY_SHA, "tileiras_sha256": TILEIRAS_SHA, "optimizer_updates": 0,
         "quality_read": False, "official_read": False, "claim_eligible": False,
         "global_production_goal_met": False}
     if admission is not None:
@@ -280,16 +290,6 @@ def main():
     assert np.isfinite(values).all() and np.array_equal(values, other)
     assert np.allclose(np.linalg.norm(values, axis=1), 1, atol=1e-5, rtol=0)
     packed = pack_int8_unit_embeddings(torch.from_numpy(values))
-    for start in range(0, 12599, 32):
-        rows = frozen["held_manifest"][start:start + 32]
-        images, _ = pair.augmented_images(control.dataset_root, rows, tuple(range(len(rows))), None)
-        actual = encoder.encode_images(images)
-        assert torch.equal(actual.codes, packed.codes[start:start + len(rows)])
-        assert torch.equal(actual.inverse_norms, packed.inverse_norms[start:start + len(rows)])
-        assert torch.cuda.max_memory_allocated() < 10_000_000_000
-        usage(started, cap)
-        if start % 2048 == 0:
-            print(json.dumps({"public_held_images_verified": start + len(rows)}), flush=True)
     gallery = PackedInt8Embeddings(packed.codes[frozen["gallery"]].contiguous(), packed.inverse_norms[frozen["gallery"]].contiguous())
     gallery_codes, gallery_inverse = gallery.codes.float(), gallery.inverse_norms.float()
     def reference(query):
@@ -309,6 +309,16 @@ def main():
             query = PackedInt8Embeddings(packed.codes[selected].contiguous(), packed.inverse_norms[selected].contiguous())
             equal(index.gallery.search_packed(query), reference(query))
             usage(started, cap)
+        for start in range(0, 12599, 32):
+            rows = frozen["held_manifest"][start:start + 32]
+            images, _ = pair.augmented_images(control.dataset_root, rows, tuple(range(len(rows))), None)
+            actual = encoder.encode_images(images)
+            assert torch.equal(actual.codes, packed.codes[start:start + len(rows)])
+            assert torch.equal(actual.inverse_norms, packed.inverse_norms[start:start + len(rows)])
+            assert torch.cuda.max_memory_allocated() < 10_000_000_000
+            usage(started, cap)
+            if start % 2048 == 0:
+                print(json.dumps({"public_held_images_verified": start + len(rows)}), flush=True)
         for row in frozen["query"][:32]:
             path = control.dataset_root / frozen["held_manifest"][row]["relative_path"]
             images = decode(path)

@@ -1,0 +1,65 @@
+Running as unit: sfora-dense-retained-serving-gpu-v1.service; invocation ID: 3b26056a6dd84d7b95dc923ce0f50edf
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+{"public_held_images_verified": 32}
+{"public_held_images_verified": 2080}
+{"public_held_images_verified": 4128}
+{"public_held_images_verified": 6176}
+{"public_held_images_verified": 8224}
+{"public_held_images_verified": 10272}
+{"public_held_images_verified": 12320}
+
+thread '<unnamed>' (2258504) panicked at /home/riomus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cutile-compiler-0.1.1/src/cuda_tile_runtime_utils.rs:87:13:
+Failed to launch tileiras for /tmp/44529e21-8ffc-4715-b9f8-4dac6e6ad379.bc: No such file or directory (os error 2)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-dense-retained-serving-source-v1/qualify_large_dense_retained_serving.py", line 343, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/sfora-dense-retained-serving-source-v1/qualify_large_dense_retained_serving.py", line 310, in main
+    equal(index.gallery.search_packed(query), reference(query))
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
+  File "/home/riomus/runs/sfora-dense-retained-serving-source-v1/src/sfora/cutile_int8.py", line 200, in search_packed
+    return self.search(
+           ~~~~~~~~~~~^
+        embeddings.codes.numpy(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^
+        embeddings.inverse_norms.numpy(),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        k=k,
+        ^^^^
+    )
+    ^
+  File "/home/riomus/runs/sfora-dense-retained-serving-source-v1/src/sfora/cutile_int8.py", line 181, in search
+    raise RuntimeError(f"{_ERROR}: search status {status}")
+RuntimeError: cuTile packed-int8 scorer failed: search status 3
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=1
+Service runtime: 2min 50.335s
+CPU time consumed: 3min 4.844s
+Memory peak: 2.9G
+Memory swap peak: 0B
+Command exited with non-zero status 1
+	Command being timed: "systemd-run --user --wait --collect --pipe --unit=sfora-dense-retained-serving-gpu-v1 -p WorkingDirectory=/home/riomus/runs/sfora-dense-retained-serving-source-v1 -p RuntimeMaxSec=300 -p MemoryMax=8G -p MemorySwapMax=0 -p KillMode=control-group -p OOMPolicy=stop --setenv=CUBLAS_WORKSPACE_CONFIG=:4096:8 --setenv=OMP_NUM_THREADS=8 --setenv=OPENBLAS_NUM_THREADS=1 --setenv=TOKENIZERS_PARALLELISM=false --setenv=PYTHONPATH=/home/riomus/runs/sfora-dense-retained-serving-source-v1:/home/riomus/runs/sfora-dense-retained-serving-source-v1/src:/home/riomus/runs/sfora-dense-retained-serving-source-v1/isolated-deps flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock flock -n /home/riomus/.sfora-siglip2-gpu.lock /home/riomus/group-learning/.venv/bin/python qualify_large_dense_retained_serving.py --execution-sha256 30ef46109c4ce8da704a3ac842526a41e6687ddc6afe3eeaae811822bd8cf9ca --startup-sha256 b08c66691b165f04ccea2540fe16fde0f689d0c6cb6c48f4a682ee72602bf72f --output /home/riomus/runs/sfora-dense-retained-serving-v1/receipt.json"
+	User time (seconds): 0.00
+	System time (seconds): 0.00
+	Percent of CPU this job got: 0%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 2:50.36
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 7220
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 377
+	Voluntary context switches: 10
+	Involuntary context switches: 0
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 1

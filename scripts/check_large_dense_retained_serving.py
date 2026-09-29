@@ -70,3 +70,18 @@ assert str(serving.CHECKPOINT) == "/home/riomus/runs/sfora-dense-pilot-179032-v1
 assert serving.DECISION_SHA == "83781b7988874e1374dafbca8eb71c31f90dcb43a06d8cef585ee4218b1458a3"
 assert serving.CHECKPOINT_SHA == "163b02268c44062dbdde2a1b07696c4d0365214ffbabfac76e575281957d362f"
 print("PASS stdlib 101/102 original-root authority, 103 extension and changed-driver rejection; no Torch/model/native")
+
+# Missing environment or a changed compiler rejects before process launch.
+with TemporaryDirectory() as temporary:
+    compiler = Path(temporary) / "tileiras"
+    compiler.write_text("fixture")
+    with patch.multiple(serving, TILEIRAS=compiler, TILEIRAS_SHA=serving.sha(compiler)):
+        with patch.dict(serving.os.environ, CUTILE_TILEIRAS_PATH=str(compiler)):
+            with patch.object(serving.subprocess, "run") as run:
+                serving.compiler_authority()
+                run.assert_called_once_with([str(compiler), "--version"], check=True, capture_output=True, timeout=10)
+            compiler.write_text("changed")
+            rejects(serving.compiler_authority)
+        with patch.dict(serving.os.environ, CUTILE_TILEIRAS_PATH="missing"):
+            rejects(serving.compiler_authority)
+print("PASS missing or changed tileiras authority rejects before model work")
