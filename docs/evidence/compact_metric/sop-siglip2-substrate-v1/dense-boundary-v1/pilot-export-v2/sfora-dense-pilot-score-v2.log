@@ -1,0 +1,31 @@
+Running as unit: sfora-dense-pilot-score-v2.service; invocation ID: ba06c49b53994b88b36b0c7584b4ce5b
+{"decision": "KILL", "intervals": {"per_query_r1": {"mean_delta": -0.00023607176581680832, "product_lower95": -0.0017463575081847823, "product_upper95": 0.0012549118062414044, "query_lower95": -0.001731192949323261, "query_upper95": 0.0012590494176896443}, "per_query_ap": {"mean_delta": 0.0025382183206660177, "product_lower95": 0.0011361677065723655, "product_upper95": 0.003969601500263706, "query_lower95": 0.0012116229956996589, "query_upper95": 0.003866758786841317}}, "each_seed_quality_pass": false, "cost_pass": true}
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 1min 20.401s
+CPU time consumed: 1min 28.301s
+Memory peak: 3.0G
+Memory swap peak: 0B
+	Command being timed: "systemd-run --user --wait --collect --pipe --unit=sfora-dense-pilot-score-v2 -p WorkingDirectory=/home/riomus/runs/sfora-dense-pilot-score-source-v2 -p RuntimeMaxSec=120 -p MemoryMax=8G -p MemorySwapMax=0 -p KillMode=control-group -p OOMPolicy=stop --setenv=CUDA_VISIBLE_DEVICES= --setenv=OMP_NUM_THREADS=8 --setenv=OPENBLAS_NUM_THREADS=1 --setenv=TOKENIZERS_PARALLELISM=false --setenv=PYTHONPATH=/home/riomus/runs/sfora-dense-pilot-score-source-v2:/home/riomus/runs/sfora-dense-pilot-score-source-v2/src:/home/riomus/runs/sfora-dense-pilot-score-source-v2/isolated-deps flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock flock -n /home/riomus/.sfora-siglip2-gpu.lock /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-dense-pilot-score-source-v2/score_large_dense_pilot.py --execution-sha256 15b7e0d9edc02557ae68200df89a1169cf8d44cb21d25ef3abb4c5e0e8e3ae40 --export-execution-sha256 e268cbf54e7b203e6ed9b959ef6833d310d536e465e74d1bfc3473f903131f22 --output /home/riomus/runs/sfora-dense-pilot-score-source-v2/decision-v2.json"
+	User time (seconds): 0.00
+	System time (seconds): 0.00
+	Percent of CPU this job got: 0%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:20.42
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 7220
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 377
+	Voluntary context switches: 11
+	Involuntary context switches: 0
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

@@ -1,0 +1,65 @@
+{
+  "decision": "KILL",
+  "dataset": "DeepFashion In-Shop",
+  "split": "previously observed TRAIN-held",
+  "paired_seed_average_intervals": {
+    "per_query_r1": {
+      "mean_delta": -0.00023607176581680832,
+      "product_lower95": -0.0017463575081847823,
+      "product_upper95": 0.0012549118062414044,
+      "query_lower95": -0.001731192949323261,
+      "query_upper95": 0.0012590494176896443
+    },
+    "per_query_ap": {
+      "mean_delta": 0.0025382183206660177,
+      "product_lower95": 0.0011361677065723655,
+      "product_upper95": 0.003969601500263706,
+      "query_lower95": 0.0012116229956996589,
+      "query_upper95": 0.003866758786841317
+    }
+  },
+  "each_seed_quality_pass": false,
+  "quality_pass": false,
+  "cost_pass": true,
+  "cost": {
+    "179032": {
+      "training_wall_seconds": 128.07229368994012,
+      "median_step_seconds": 1.2673530201427639,
+      "images_per_second": 49.971776218002645,
+      "peak_cuda_allocated_bytes": 6829859328,
+      "training_wall_ratio": 1.096859325210365,
+      "median_step_ratio": 1.0976028178555757
+    },
+    "179041": {
+      "training_wall_seconds": 128.03222360182554,
+      "median_step_seconds": 1.2700865163933486,
+      "images_per_second": 49.98741582356417,
+      "peak_cuda_allocated_bytes": 6829859328,
+      "training_wall_ratio": 1.1010698049995298,
+      "median_step_ratio": 1.0998363527041795
+    }
+  },
+  "quality": {
+    "179032": {
+      "control": {
+        "recall_at_1": 0.9666351904312245,
+        "map_at_r": 0.8139499969440983
+      },
+      "candidate": {
+        "recall_at_1": 0.9672647151400693,
+        "map_at_r": 0.8193030812976038
+      }
+    },
+    "179041": {
+      "control": {
+        "recall_at_1": 0.9678942398489141,
+        "map_at_r": 0.8166306456386795
+      },
+      "candidate": {
+        "recall_at_1": 0.9667925716084357,
+        "map_at_r": 0.816353997926506
+      }
+    }
+  },
+  "raw_sha256": "83781b7988874e1374dafbca8eb71c31f90dcb43a06d8cef585ee4218b1458a3"
+}
