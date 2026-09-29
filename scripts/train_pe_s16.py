@@ -45,12 +45,15 @@ def main():
     torch.set_num_threads(8)
     torch.manual_seed(pair.SEED)
     init_dir = Path("/home/riomus/runs/sfora-pe-s16-init-v1")
-    authority_dir = Path("/home/riomus/runs/sfora-pe-s16-gpu-v1")
+    authority_dir = Path("/home/riomus/runs/sfora-pe-s16-gpu-v2")
     assert (
         args.preflight_sha256
         and pair.sha(authority_dir / "preflight.json") == args.preflight_sha256
     )
     initial = json.loads((authority_dir / "preflight.json").read_text())
+    assert all(pair.sha(root / n) == h for n, h in initial["code"].items()), (
+        "GPU-qualified code differs"
+    )
     native_cpu = Path("/home/riomus/runs/sfora-pe-s16-cpu-v1/preflight.json")
     assert pair.sha(native_cpu) == initial["native_cpu_authority_sha256"]
     native_initial = json.loads(native_cpu.read_text())
@@ -78,13 +81,6 @@ def main():
     assert Path(l14.__file__).resolve() == root / "pe_s16_training.py"
     source_args, frozen, prior = l14.control(root)
     info = native_initial
-    if args.check_startup_only:
-        assert not torch.cuda.is_available()
-        print(
-            "PASS CPU startup source/control/initializers/qualification/execution authority",
-            flush=True,
-        )
-        return
     if args.updates == 100:
         mechanics_path = Path(
             "/home/riomus/runs/sfora-pe-s16-mechanics-v1/receipt.json"
@@ -99,9 +95,20 @@ def main():
             mechanics["advance"]
             and mechanics["updates"] == 17
             and mechanics["updated_gpu_strict_reload_exact"]
+            and mechanics["fit_only_export_path_exact"]
         )
         assert mechanics["median_step_3_17_seconds"] <= 0.71769696
         assert mechanics["preflight_sha256"] == args.preflight_sha256
+        assert mechanics["execution_sha256"] == args.execution_sha256, (
+            "mechanics execution differs"
+        )
+    if args.check_startup_only:
+        assert not torch.cuda.is_available()
+        print(
+            "PASS CPU startup source/control/initializers/qualification/execution authority",
+            flush=True,
+        )
+        return
     args.output.mkdir(exist_ok=False)
     pair.smoke.save(
         args.output / "attempt.json",
@@ -324,6 +331,12 @@ def main():
         != h
         for n, h in initial_groups.items()
     )
+    if args.updates == 100:
+        mechanics_training = json.loads(
+            (mechanics_path.parent / "training.json").read_text()
+        )
+        assert seconds and losses[:17] == mechanics_training["losses"]
+        assert scales[:17] == mechanics_training["scales"]
     median = float(np.median(seconds[2:]))
     # Persist cost before the frozen stop rule, including negative outcomes.
     pair.smoke.save(
@@ -367,6 +380,7 @@ def main():
                 "advance": False,
                 "reason": "fixed training cost gate failed",
                 "preflight_sha256": args.preflight_sha256,
+                "execution_sha256": args.execution_sha256,
                 "discard_training_state": args.updates == 17,
                 "peak_cuda_allocated_bytes": torch.cuda.max_memory_allocated(),
                 "quality_read": False,
@@ -438,28 +452,6 @@ def main():
     pair.executing_authority(root, frozen["code"])
     assert pair.smoke.digest(pool.frozen_state(fresh)) == frozen_sha
     assert all(pair.sha(root / n) == h for n, h in code.items())
-    if args.updates == 17:
-        checkpoint.unlink()
-        pair.smoke.save(
-            args.output / "receipt.json",
-            {
-                "advance": True,
-                "preflight_sha256": args.preflight_sha256,
-                "updates": 17,
-                "quality_read": False,
-                "discard_training_state": True,
-                "updated_gpu_strict_reload_exact": True,
-                timing_field: median,
-                "peak_cuda_allocated_bytes": torch.cuda.max_memory_allocated(),
-                "seconds": time.perf_counter() - started,
-            },
-        )
-        print(
-            "PASS native S16 full-encoder adaptation mechanics; trained state discarded",
-            flush=True,
-        )
-        return
-
     live_chunks = []
 
     @torch.inference_mode()
@@ -491,8 +483,45 @@ def main():
             pool.runtime_identity(model) == pool.runtime_identity(live_model) == runtime
         )
         recorded_live.append(live_vectors.cpu().numpy())
-        cuda_budget("strict-loaded-full-held")
+        cuda_budget("strict-loaded-verified-batch")
         return loaded_vectors.cpu().numpy()
+
+    if args.updates == 17:
+        fit_vectors_path = args.output / "mechanics-fit.npy"
+        pair.export_features(
+            frozen["fit_manifest"][:2],
+            encode_verified,
+            fit_vectors_path,
+            width=128,
+            batch_size=32,
+        )
+        assert np.array_equal(
+            np.concatenate(live_chunks), np.load(fit_vectors_path, allow_pickle=False)
+        )
+        live_chunks.clear()
+        fit_vectors_path.unlink()
+        checkpoint.unlink()
+        pair.smoke.save(
+            args.output / "receipt.json",
+            {
+                "advance": True,
+                "preflight_sha256": args.preflight_sha256,
+                "execution_sha256": args.execution_sha256,
+                "updates": 17,
+                "quality_read": False,
+                "discard_training_state": True,
+                "updated_gpu_strict_reload_exact": True,
+                "fit_only_export_path_exact": True,
+                timing_field: median,
+                "peak_cuda_allocated_bytes": torch.cuda.max_memory_allocated(),
+                "seconds": time.perf_counter() - started,
+            },
+        )
+        print(
+            "PASS native S16 full-encoder adaptation mechanics; trained state discarded",
+            flush=True,
+        )
+        return
 
     assert pair.smoke.digest(pool.frozen_state(fresh)) == frozen_sha
     pair.export_features(

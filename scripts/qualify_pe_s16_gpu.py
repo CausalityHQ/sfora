@@ -41,7 +41,7 @@ def main():
     pair = native.pair
     root = Path(__file__).resolve().parent
     init = Path("/home/riomus/runs/sfora-pe-s16-init-v1")
-    output = Path("/home/riomus/runs/sfora-pe-s16-gpu-v1")
+    output = Path("/home/riomus/runs/sfora-pe-s16-gpu-v2")
     assert not output.exists()
     torch.set_num_threads(8)
     torch.manual_seed(pair.SEED)
@@ -88,7 +88,6 @@ def main():
     head.cuda()
     classifier = nn.Parameter(classifier.detach().cuda())
     bank = bank.cuda()
-    runtime = native.runtime_identity(model)
     images, _ = pair.augmented_images(
         control.dataset_root, frozen["fit_manifest"], (0, 1), None
     )
@@ -106,6 +105,7 @@ def main():
             ).tolist(),
         }
         assert all(min(v) >= 0.999 for v in calibration.values())
+    runtime = native.runtime_identity(model)
     with torch.autocast("cuda", dtype=torch.float16):
         source = model(pixels).float()
     nodes = sdpa_nodes(source.grad_fn)
@@ -209,6 +209,13 @@ def main():
             assert pair.smoke.digest(native.frozen_state(loaded)) == foreign
             loaded.cuda()
             loaded_head.cuda()
+            with torch.no_grad():
+                assert torch.equal(encode(loaded, pixels), changed)
+            assert (
+                native.runtime_identity(loaded)
+                == native.runtime_identity(model)
+                == runtime
+            )
             a, b = native.verified_features(loaded, model, pixels)
             assert torch.equal(a, changed) and torch.equal(a, b)
             assert torch.equal(
