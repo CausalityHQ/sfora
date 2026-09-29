@@ -1,0 +1,26 @@
+{
+  "pass": true,
+  "audit": "Post-result independent DGX canonical retry log content/SHA audit; original decisions check log content but do not bind log SHA",
+  "optimizer_updates": 0,
+  "quality_read": false,
+  "rows": [
+    {
+      "source_root": "/home/riomus/runs/sfora-native-trajectory-average-source-v1",
+      "canonical_log": "endpoint-public-v1.log",
+      "canonical_target": "endpoint-public-v2.log",
+      "success_log_sha256": "1fb3a8ce526c540b5e5657fc38da0a242ed043137f0bd115d4f2dde0370122c5",
+      "failure_log": "endpoint-public-failed-v1.log",
+      "failure_log_sha256": "682e08c5b65af29fe7631e2084d9bea23612aab13db7efc0324586a030404c60",
+      "success_and_failure_distinct": true
+    },
+    {
+      "source_root": "/home/riomus/runs/sfora-full-native-trajectory-average-source-v1",
+      "canonical_log": "updated-cpu.log",
+      "canonical_target": "updated-cpu-v2.log",
+      "success_log_sha256": "c8fcd3b0a4b4ec6619b749332ad46958b57b2d9207f9be57a5c1bc938580e1b9",
+      "failure_log": "updated-cpu-failed-v1.log",
+      "failure_log_sha256": "8781abe065d704b2967fa13a7028309a52b6a0eb9dca00f88fc4b923154461c1",
+      "success_and_failure_distinct": true
+    }
+  ]
+}

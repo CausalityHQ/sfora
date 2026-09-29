@@ -1,0 +1,11 @@
+Running as unit: sfora-teacher-retained256-unit-red-v1.service; invocation ID: 13a3eb4c56f2437087d966b7283b0ff6
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-teacher-retained256-source-v1/test_pe_teacher_retained256.py", line 9, in <module>
+    from train_pe_teacher_retained256 import expand, terms, driver, pair
+ModuleNotFoundError: No module named 'train_pe_teacher_retained256'
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=1
+Service runtime: 717ms
+CPU time consumed: 2.000s
+Memory peak: 256.0K
+Memory swap peak: 0B

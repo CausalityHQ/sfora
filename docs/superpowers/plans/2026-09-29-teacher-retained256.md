@@ -34,9 +34,9 @@ Never stage the protected pre-existing dirty Rust file.
 Files: new `scripts/train_pe_teacher_retained256.py` and
 `scripts/test_pe_teacher_retained256.py`; immutable extended DGX source closure.
 
-- [ ] Add one narrow runnable failing check for prefix/RNG/registration/new-row
+- [x] Add one narrow runnable failing check for prefix/RNG/registration/new-row
       gradients/dead-tail negative; run on DGX before implementing the adapter.
-- [ ] Implement expansion/objective/authority, reuse original mechanics primitives;
+- [x] Implement expansion/objective/authority, reuse original mechanics primitives;
       run that check and actual CPU falsifier; collect proof/source/caps/negative.
 - [ ] Run one17 discarded mechanics per arm sequentially; complete resume/reload,
       new coordinate activation, cost/admission gates; collect originals.

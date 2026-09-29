@@ -1,0 +1,8 @@
+Running as unit: sfora-teacher-retained256-unit-green-v2.service; invocation ID: 2419c58ec0394155bc50fde0247a6046
+PASS teacher prefixes/RNG/registration/full-width CE/new-head gradients/dead-tail negative/optimized rejection
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 2.755s
+CPU time consumed: 5.353s
+Memory peak: 256.0K
+Memory swap peak: 0B
