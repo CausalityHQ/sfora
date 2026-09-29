@@ -1,0 +1,8 @@
+Running as unit: sfora-native-trajectory-average-export-v1.service; invocation ID: acf1f338dc5044c38131288c37d12c5d
+PASS fixed ten-checkpoint serving-only average; no quality read
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 57.961s
+CPU time consumed: 59.485s
+Memory peak: 8.0G
+Memory swap peak: 0B
