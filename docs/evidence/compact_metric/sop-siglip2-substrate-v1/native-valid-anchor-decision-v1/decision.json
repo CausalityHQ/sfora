@@ -1,0 +1,103 @@
+{
+  "decision": "GO",
+  "execution_sha256": "7edd05870850f46b7d5401cc0db3826ba13b41dfff0ce112f013ef41b350efc7",
+  "inputs_sha256": "00397cbf4684c1b808e74fae69ed44e37167892c60f03825b619b24b9f160190",
+  "inputs": [
+    {
+      "seed": 179041,
+      "arm": "control",
+      "receipt_sha256": "2734e7ceb57eabd69a1a153556a154a45834a41e8ff712b143e9d22977a6da2d",
+      "audit_sha256": "8c63647cb245942cf4ee0d894fd4454593faa96d4c15cfbf50b9bc5c521f5c28",
+      "source_sha256": "b3da8ceaa9fa656a7f7c612f5a7d15e751fb4e83708098de816f87935a254763"
+    },
+    {
+      "seed": 179041,
+      "arm": "treatment",
+      "receipt_sha256": "c6e50ea0ceda9487b6ab1aeb71f288bf5face7d35c40ccdf9e7b313af05a064f",
+      "audit_sha256": "2ea7c52eb997a5c94d1508efb94aee116e5aa295325e159aab8320a978225672",
+      "source_sha256": "5cfaa41adce47cc7aa0b77364bfe0d9eb2f2894cb7b2f8c1cc11e7fbe02ae8b2"
+    },
+    {
+      "seed": 179042,
+      "arm": "control",
+      "receipt_sha256": "1c139f851be2d9d10afc80e9c55699dedd98ed384bd13c995b48be9c715ee2e8",
+      "audit_sha256": "adf284e63afe1d749506f11c6a041a0135ea6f49e9b6855e67eb5b8cd04f7381",
+      "source_sha256": "e9132c7c1309021846daf300841895b7aaef0a9eddd65fe7d040096c6f73d0f4"
+    },
+    {
+      "seed": 179042,
+      "arm": "treatment",
+      "receipt_sha256": "87e62efd2c5965ab5a66052996e124e9e24fc0b194734edc64437d31294169c8",
+      "audit_sha256": "509bcacfc06f897daaed9a1734efc171c5c69a2d3e4a3c5790c473697e5f28c5",
+      "source_sha256": "45ebe38133f9ad046da76a45439930c72dc4657409403ba81805a2a320b9c0e2"
+    }
+  ],
+  "dataset": "InShop official TRAIN product-disjoint previously observed holdout",
+  "query_images": 6354,
+  "gallery_images": 6245,
+  "per_seed": {
+    "179041": {
+      "control": {
+        "recall_at_1": 0.9650613786591123,
+        "map_at_r": 0.8120111212621569
+      },
+      "treatment": {
+        "recall_at_1": 0.9678942398489141,
+        "map_at_r": 0.8166306456386795
+      },
+      "r1_delta": 0.0028328611898017,
+      "r1_product_lower95": 0.00078515740177196,
+      "r1_product_upper95": 0.004892229776553179,
+      "map_delta": 0.004619524376522568,
+      "ap_product_lower95": 0.003131868388354427,
+      "ap_product_upper95": 0.006119011471665392
+    },
+    "179042": {
+      "control": {
+        "recall_at_1": 0.965533522190746,
+        "map_at_r": 0.8111462205209291
+      },
+      "treatment": {
+        "recall_at_1": 0.9675794774944917,
+        "map_at_r": 0.8179677508089563
+      },
+      "r1_delta": 0.002045955303745672,
+      "r1_product_lower95": 0.0,
+      "r1_product_upper95": 0.004053254131558211,
+      "map_delta": 0.006821530288027298,
+      "ap_product_lower95": 0.005228393111710819,
+      "ap_product_upper95": 0.008381994615044651
+    }
+  },
+  "costs": {
+    "179041": {
+      "training_ratio": 1.021128801478688,
+      "median_ratio": 1.0094482560353526,
+      "control_seconds": 113.87382514122874,
+      "treatment_seconds": 116.27984258625656
+    },
+    "179042": {
+      "training_ratio": 1.011503619324974,
+      "median_ratio": 0.9998489163442198,
+      "control_seconds": 114.88644098024815,
+      "treatment_seconds": 116.20805086288601
+    }
+  },
+  "pooled_seed_averaged_deltas": {
+    "r1": {
+      "mean_difference": 0.002439408246773686,
+      "product_lower95": 0.0009494948104937302,
+      "product_upper95": 0.003971515983831962
+    },
+    "ap": {
+      "mean_difference": 0.005720527332274934,
+      "product_lower95": 0.004624001707771693,
+      "product_upper95": 0.006817269420971387
+    }
+  },
+  "bootstrap_draws": 5000,
+  "bootstrap_seed": 179019,
+  "intervals_condition_on_two_checkpoints": true,
+  "official_read": false,
+  "claim_eligible": false
+}

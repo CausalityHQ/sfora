@@ -1,0 +1,23 @@
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python -u /home/riomus/runs/sfora-native-valid-anchor-held-v3/qualify_pe_native_valid_anchor_held.py --execution-sha256 7484cb290fb8ec8bde8050fe2d66a1bfcac26dac81a686580dadf70cdbc4d365 --seed 179042 --arm treatment --training-sha256 8dd1e5b992eab6c3522047241d6ef630cbc50b7d09afae8c0eca8aa5ff2ade22 --output /home/riomus/runs/sfora-native-valid-anchor-held-179042-treatment-v1 --cpu-proof /home/riomus/runs/sfora-native-valid-anchor-held-v3/source-179042-treatment-proof.json --cpu-sha256 45ebe38133f9ad046da76a45439930c72dc4657409403ba81805a2a320b9c0e2"
+	User time (seconds): 173.27
+	System time (seconds): 21.59
+	Percent of CPU this job got: 111%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 2:54.71
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 5212208
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 17884
+	Minor (reclaiming a frame) page faults: 1229249
+	Voluntary context switches: 162527
+	Involuntary context switches: 2552
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 31400
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
