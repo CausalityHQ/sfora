@@ -1,0 +1,8 @@
+Running as unit: sfora-full-native-average-export-v1.service; invocation ID: c61edbbccf31433a960ef905b809aadc
+PASS exact TRAIN-surviving full corrected trajectory average; no quality read
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 49.317s
+CPU time consumed: 52.196s
+Memory peak: 8.0G
+Memory swap peak: 0B

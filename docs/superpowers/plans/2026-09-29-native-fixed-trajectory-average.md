@@ -47,6 +47,6 @@ Interface: same driver public/audit/decision phases consume export+CPU proof and
 
 - [x] Run original capped public B32 endpoint then average sequentially, each followed by independent saved-wire CPU audit; collect exits and raw receipts.
 - [x] Run paired decision, verify all gates, record one convergence row with dataset/split C/T R1+mAP, training/averaging cost, unmeasured latency, external gap and next decisive action.
-- [ ] Preserve candidate and original receipts; push substantive result on master. Reconcile existing completed Opus/Astra evidence; no duplicate paid review.
+- [x] Preserve candidate and original receipts; push substantive result on master. Reconcile existing completed Opus/Astra evidence; no duplicate paid review.
 
 Self-review: the procedure has one fixed treatment, truthful lineage, independent deployment/audit qualification, predeclared scientific/resource stop rules and no official read before TRAIN GO. Ongoing operator authorization covers inline execution and master push; no additional approval flow.
