@@ -1,6 +1,6 @@
 # Same-view source-preserving late adaptation — proposed frozen gate
 
-Status: proposed, not admitted for native execution. The terminal late100 KILL and all prior teacher procedures remain closed. Full SOP/In-Shop production quality plus matched public speed remains mandatory.
+Status: declined after completed dual-review reconciliation; no native execution admitted. See inshop_same_view_source_anchor_reconciliation_2026-09-30.md. The terminal late100 KILL and all prior teacher procedures remain closed. Full SOP/In-Shop production quality plus matched public speed remains mandatory.
 
 Select one same-view preservation intervention. Both arms load complete corrected128 TRAIN1000 source cc58377f0e9aa90be529bf9a3eca1746a2dc467f765dd9681a3b9b690e324566 and reset AdamW/scaler exactly as the late100 contract. Same fit13283/2004, previously observed TRAIN-held6354query/6245gallery/1993 products, two continuation-input seeds179032/179041, native128,256pixels,B64/four16,100 updates, augmentation1001–1100, source bank/proxies/buffers, rates, decay, clipping and corrected CE+8rank. Control boundary12; candidate boundary10 adds32 times the batch mean of summed squared normalized-descriptor error against the frozen source on the EXACT same augmented pixels. No coefficient/view-policy sweep.
 
