@@ -1,0 +1,332 @@
+{
+  "id": "f622bf844bcf4fff",
+  "provider": "claude",
+  "model": "claude-opus-5-5",
+  "effort": "xhigh",
+  "fallbacks": [
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    }
+  ],
+  "agent": "sfora/emafactorial",
+  "cwd": "/home/rb/worktrees/sfora-positive-causality",
+  "status": "completed",
+  "runner_started": true,
+  "started_at": 1790789570,
+  "timeout_seconds": 1200,
+  "deadline_at": 1790790770,
+  "budget_usd": 4,
+  "prompt_preview": "Read-only planning specialist. Give one actionable plan, risks and a bounded falsifying test; do not edit files.\nRead-only bounded NEXT engineering/scientific decision for repo /home/rb/worktrees/sfora-positive-causality master8387cc57. SAME root goal production SOP+InShop protocol-matched strongest published quality AND matched full image-to-topk speed remains UNMET. Full2000 public-serving procedure just terminalPASS: docs/full2000_public_serving_gate_2026-09-30.md latest rows + raw full2000-public-benchmark-v4.json under docs/evidence/compact_metric/sop-siglip2-substrate-v1/late-dense-v1. Actual DGX coldCPU58.830s8GiBcap/GPU72.184s exact packed/top10/source/RNG/resourcesPASS;100call warmcache public B1p50/p9512.877/14.757ms, B32batch242.314/245.822ms, no matchedcontrol/p99claim. Source128/int8 FP16 preserves useful Pareto. Historical exploratory officialInShop14218q12612g Qfull2000R1/mAP96.307498/81.882593%, C96.216064/81.675230%, datedUNICOM96.7 R1 (gap.392502pp). SOP3seed officialTEST91.7419 vsdated91.2 still freshconfirmation/matchedjointspeed unmet. Read docs/inshop_full_valid_anchor_result_2026-09-29.md, inshop_role_matched_result_2026-09-30.md, inshop_teacher_retained256_result_2026-09-29.md, inshop_dense_retained_official_result_2026-09-30.md and RAW role-matched-terminal-next-dual-review-v1.json. Reuse valid Opus/Astra decisions: direct256 and teacher-retained256 qualityKILL, full4000 R1 no gain though APbetter, trained288 rejected as upsampled256FIT; do NOT repeat width/sampler/loss-tweak/theorem probes, new critique, or serving-polish loop. Need ONE actionable next intervention tied to demonstrated representation/quality cause with path to trained useful model; give its best existing evidence and strongest falsifier, exact source/data/protocol authority prerequisites, one bounded CPUqualification->17mechanics->100TRAINpilot stop rule, resources120/300s8GiBnoSwap/<10GB CUDA and comparepairedmatchedcontrols (reuse only when actualauthorityproved). Separately identify cheapest genuinely matched speed comparison available for qualifiedfull2000, avoiding oldF5orother-source timings as baseline and preserving exact batch context;10000interleavedpaired+CI required publicp99. Do not invent authority/measurements/currentSOTAcompleteness or architecture universalKILL. Return concise GO/NO-GO to ONE next procedure or precise missing evidence to qualify it; no menu of speculative methods. No edits, SSH,Torch,GPU/native/train/eval/quality/jobs/otherconsults/operatorcontact. This is a new decision AFTER completed serving checkpoint, not duplicate previous cache/role critique. Root retains goal, soleDGXownership, finalprotocol/validation/integration.",
+  "prompt_sha256": "2070e7e1deab5f679c1dc73f8b23973b8e6ac2da56f1102a80572fd52ccd1290",
+  "prompt_bytes": 2873,
+  "fingerprint": "79a7e54d79ee8ef14fc1cfb63bc483874f01f9ecd5e5b55b98f4f99fbcee50fa",
+  "evidence": {
+    "git_commit": "8387cc575f8662f34564abf5b7ff51133195cacd",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+    "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "previous_fingerprint": "c42f75c79a3a9d3439747003d15874c2c48813c51a3726651c944fd432d84a14",
+  "reused": false,
+  "specialist_route": {
+    "model": "claude-opus-5-5",
+    "effort": "xhigh",
+    "source": "jev",
+    "decision_id": "4c332731-2731-49d6-a94a-7fea4095ccea"
+  },
+  "launch_command": "specialist_start",
+  "systemd_unit": "devbox-consult-f622bf844bcf4fff.service",
+  "pid": 3868487,
+  "pgid": 3868487,
+  "attempt": 1,
+  "attempts": [
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    }
+  ],
+  "attempt_history": [
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "budget_usd": 4,
+      "timeout_seconds": 1198,
+      "started_at": 1790789572
+    }
+  ],
+  "exit_code": 0,
+  "finished_at": 1790790006,
+  "event_cursor": 43,
+  "events": [
+    {
+      "seq": 20,
+      "at": 1790789727,
+      "provider": "claude",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 21,
+      "at": 1790789754,
+      "provider": "claude",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 22,
+      "at": 1790789759,
+      "provider": "claude",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 23,
+      "at": 1790789880,
+      "provider": "claude",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 24,
+      "at": 1790789908,
+      "provider": "claude",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 25,
+      "at": 1790789986,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 26,
+      "at": 1790789987,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 27,
+      "at": 1790789988,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 28,
+      "at": 1790789989,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 29,
+      "at": 1790789990,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 30,
+      "at": 1790789992,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 31,
+      "at": 1790789993,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 32,
+      "at": 1790789994,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 33,
+      "at": 1790789995,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 34,
+      "at": 1790789996,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 35,
+      "at": 1790789997,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 36,
+      "at": 1790789998,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 37,
+      "at": 1790789999,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 38,
+      "at": 1790790000,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 39,
+      "at": 1790790001,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 40,
+      "at": 1790790002,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 41,
+      "at": 1790790003,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 42,
+      "at": 1790790004,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 43,
+      "at": 1790790005,
+      "provider": "claude",
+      "kind": "phase",
+      "label": "Consultation completed",
+      "detail": "exit 0"
+    }
+  ],
+  "events_truncated": true,
+  "provider_events": {
+    "claude": [
+      {
+        "seq": 36,
+        "at": 1790789998,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 37,
+        "at": 1790789999,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 38,
+        "at": 1790790000,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 39,
+        "at": 1790790001,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 40,
+        "at": 1790790002,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 41,
+        "at": 1790790003,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 42,
+        "at": 1790790004,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 43,
+        "at": 1790790005,
+        "provider": "claude",
+        "kind": "phase",
+        "label": "Consultation completed",
+        "detail": "exit 0"
+      }
+    ]
+  },
+  "partial_result": "**Verdict: conditional GO on one quality procedure, a SigLIP2‑So400m/16@256 substrate pilot. It must not touch the GPU until four prerequisites below are met.** Separately, **GO on a B1 paired latency comparison against UNICOM ViT‑L/14@336.** I edited nothing, ran no jobs and started no consultations.\n\n## 1. Quality intervention: So400m/16@256 substrate pilot\n\n**Why this axis.** It is the only one left with a demonstrated, several‑point causal effect.\n- **Substrate ordering at a matched 100 updates, same held split:** S16 90.620/66.516, PE‑Core‑B16 95.074/76.392, SigLIP2‑L 95.672/78.624 (`inshop_pe_s16_result`, `inshop_pe_augmented_training_result`).\n- **Every within‑Large knob moves R1 by 0.21pp or less:**\n\n| Knob | ΔR1 (pp) |\n|---|---:|\n| role‑matched | −0.039 |\n| late‑dense | −0.205 |\n| image‑queue | −0.047 |\n| token‑residual | −0.024 |\n| consensus | +0.079 |\n| retained256 | −0.016 |\n| budget4000 (official) | −0.084 |\n| fixed average (official) | +0.021 |\n\n- **The freeze boundary is flat** at 0, 12 and 16 frozen blocks.\n- **Identity count is exhausted.** 2× identities gave +0.365 [+0.154, +0.574], and full TRAIN is already in use.\n- **The shared‑error core was only ever measured on Large lineages.** Substrate is the one axis it has not been tested against.\n\nSo400m/16@256 keeps the same HF `SiglipVisionModel`, 256 processor, native 256px input (no upsampling, so the trained288 objection does not apply), pool, 128‑byte packed wire and cuTile scorer. Only the encoder width changes, 1024 → 1152.\n\n**Strongest falsifier, and my forecast.**\n- PE‑Core‑B16 beat Large by +1.76 when both were frozen, then lost by 0.60 once trained. A frozen screen therefore cannot approve training; it can only kill.\n- Extrapolating the cross‑family B→L gain (+0.60 for 3.2× parameters) to So400m's 1.36× predicts about +0.15–0.2pp. That is weak evidence, and it sits below the gate.\n- **I expect a KILL.** It is still the right next step: it is cheap (about 1 hour of DGX time), and a clean KILL closes the last untested axis. The goal then becomes a precise operator scoping decision: change substrate family, relax the 128‑byte wire, or accept about 96.3.\n\n**Prerequisites. These are missing evidence, not things to assume.**\n1. `google/siglip2-so400m-patch16-256` weights on the DGX, authenticated against the upstream LFS SHA. The ledger only has patch14‑384, frozen, from Cars/CUB.\n2. **A fresh matched Large control.** F5 (the Large 100‑update run) cannot serve: it ran under the old driver at 12.94 GB CUDA and 897 ms/step, which violates the current <10 GB cap. Both arms must run under the current native FP16 corrected trainer, started from pretrained with its own full‑fit PCA128 initialisation. They must share data, augmentation, RNG, schedule and objective.\n3. The trainer, exporter and public loader must be generalised from pooled width 1024 to a per‑arm width (1152 for So400m). Every per‑arm guard stays strict, and the 128/130‑byte wire does not change.\n4. **Freeze embeddings and blocks 0–14; train the top 12 blocks plus postLN, pool, head and proxies.** Top 12 matches Large's trainable‑block count, and the flat boundary result justifies it. Memory is the reason: my estimate is about 8.5 GB CUDA (6.56 GB × about 1.3), which is unmeasured and tight.\n\n**Ladder and stop rule.** Every step keeps 8 GiB, no swap and <10 GB CUDA. Any failure is a terminal KILL, with no LR, precision, checkpointing or boundary rescue.\n1. **Full‑fit cache export**, FIT only (13,283 images): one GPU unit, 300 s or less. Then a free CPU screen using the existing Large cache and the FIT prototype R@1. KILL if So400m's point estimate is below Large's.\n2. **CPU qualification**, 120 s or less: source, initialiser, shapes and authority.\n3. **Discarded 17‑step mechanics**, 120 s or less per arm, same driver for both. KILL if CUDA reaches 10 GB, anything goes non‑finite, or the median‑step ratio over steps 3–17 exceeds 1.50.\n4. **Fresh 100‑update TRAIN pilot**: 2 arms × seeds 179032/179041, each 300 s or less, with held export in its own unit. **PASS requires all of:**\n   - ΔR1 > 0 on each seed;\n   - mean ΔR1 ≥ +0.50pp, which is above the 0.39pp official gap because 100‑update gains decay (width went +0.80 → −0.02);\n   - R1 product95 lower bound > 0 (5,000 draws, seed 179019);\n   - mean ΔmAP@R ≥ 0;\n   - wall‑time ratio ≤ 1.50.\n\n**Path to a useful model if it passes.** One full‑TRAIN 2000‑update So400m run, in 20 chunks of 300 s or less (about 3,300 s estimated). Then one official public read against full2000 (96.307/81.883) with the existing gate: positive R1 product lower bound, mAP not regressed, and the 96.7 screen. Then apply to SOP and measure speed with the procedure below.\n\n## 2. Cheapest genuinely matched speed comparison\n\n**Reference: the authenticated UNICOM ViT‑L/14@336 checkpoint (SHA `3916ab5a…`).** It has the same compute graph as the dated 96.7 system. It is matched on architecture, input and descriptor, not on weights, and it supports no quality comparison.\n- Reuse the frozen reference loader, 336 transform and scorer from `scripts/benchmark_sop_coverage_vs_fullwidth_unicom.py`. Its scorer uses the normalised 768‑D output, prefix 512, exact fp32. That is the cheaper descriptor, so it is conservative for us, and search was about 2% of reference B1 time.\n- Compose it with the v4 `benchmark_full_valid_anchor_serving.py` candidate path under a new frozen authority.\n- The old SOP 100‑call ratio (0.643) is not a baseline.\n\n**Procedure:**\n1. **Encode the UNICOM gallery:** 12,612 images, one GPU unit of 300 s or less.\n2. **Qualify both models resident together:** host RSS must stay at 8 GiB or less. The SOP diagnostic peaked at 12.4 GB, so this is a real blocker. If it fails, NO‑GO, with no cap increase.\n3. **Run B1 over all 14,218 official queries once, in official order.**\n   - That is at least the 10,000 pairs required for p99, and it also yields a complete official B1‑context quality read. B1 codes differ from B32 codes (5/33 matched), so the published 96.307 is a B32 number.\n   - Each pair uses the same image, alternated ABBA.\n   - The timer covers file read, decode, each arm's own preprocessing, encoder, descriptor, top‑10 over its own gallery, and CUDA sync, with no stage hooks.\n   - 10 warmups per arm per unit.\n   - About 45 ms per pair, so 4 units of 300 s or less.\n4. **CPU verification unit**, 120 s or less: check all 2 × 14,218 top‑10s against same‑context CPU oracles computed from saved per‑call codes and descriptors.\n5. **Statistics:** 5,000‑draw block bootstrap (seed 179019, 50‑pair blocks, stratified by unit) on p50, p95, p99 and each cand/ref ratio. A speed claim at a quantile requires the ratio's 95% upper bound < 1.\n\nB32 at 10,000 pairs is about 2 hours (roughly 35 units). Run it only after B1 passes, or preregister it for p50/p95 only with no p99 claim.",
+  "partial_result_truncated": false,
+  "provider_partials": {
+    "claude": "**Verdict: conditional GO on one quality procedure, a SigLIP2‑So400m/16@256 substrate pilot. It must not touch the GPU until four prerequisites below are met.** Separately, **GO on a B1 paired latency comparison against UNICOM ViT‑L/14@336.** I edited nothing, ran no jobs and started no consultations.\n\n## 1. Quality intervention: So400m/16@256 substrate pilot\n\n**Why this axis.** It is the only one left with a demonstrated, several‑point causal effect.\n- **Substrate ordering at a matched 100 updates, same held split:** S16 90.620/66.516, PE‑Core‑B16 95.074/76.392, SigLIP2‑L 95.672/78.624 (`inshop_pe_s16_result`, `inshop_pe_augmented_training_result`).\n- **Every within‑Large knob moves R1 by 0.21pp or less:**\n\n| Knob | ΔR1 (pp) |\n|---|---:|\n| role‑matched | −0.039 |\n| late‑dense | −0.205 |\n| image‑queue | −0.047 |\n| token‑residual | −0.024 |\n| consensus | +0.079 |\n| retained256 | −0.016 |\n| budget4000 (official) | −0.084 |\n| fixed average (official) | +0.021 |\n\n- **The freeze boundary is flat** at 0, 12 and 16 frozen blocks.\n- **Identity count is exhausted.** 2× identities gave +0.365 [+0.154, +0.574], and full TRAIN is already in use.\n- **The shared‑error core was only ever measured on Large lineages.** Substrate is the one axis it has not been tested against.\n\nSo400m/16@256 keeps the same HF `SiglipVisionModel`, 256 processor, native 256px input (no upsampling, so the trained288 objection does not apply), pool, 128‑byte packed wire and cuTile scorer. Only the encoder width changes, 1024 → 1152.\n\n**Strongest falsifier, and my forecast.**\n- PE‑Core‑B16 beat Large by +1.76 when both were frozen, then lost by 0.60 once trained. A frozen screen therefore cannot approve training; it can only kill.\n- Extrapolating the cross‑family B→L gain (+0.60 for 3.2× parameters) to So400m's 1.36× predicts about +0.15–0.2pp. That is weak evidence, and it sits below the gate.\n- **I expect a KILL.** It is still the right next step: it is cheap (about 1 hour of DGX time), and a clean KILL closes the last untested axis. The goal then becomes a precise operator scoping decision: change substrate family, relax the 128‑byte wire, or accept about 96.3.\n\n**Prerequisites. These are missing evidence, not things to assume.**\n1. `google/siglip2-so400m-patch16-256` weights on the DGX, authenticated against the upstream LFS SHA. The ledger only has patch14‑384, frozen, from Cars/CUB.\n2. **A fresh matched Large control.** F5 (the Large 100‑update run) cannot serve: it ran under the old driver at 12.94 GB CUDA and 897 ms/step, which violates the current <10 GB cap. Both arms must run under the current native FP16 corrected trainer, started from pretrained with its own full‑fit PCA128 initialisation. They must share data, augmentation, RNG, schedule and objective.\n3. The trainer, exporter and public loader must be generalised from pooled width 1024 to a per‑arm width (1152 for So400m). Every per‑arm guard stays strict, and the 128/130‑byte wire does not change.\n4. **Freeze embeddings and blocks 0–14; train the top 12 blocks plus postLN, pool, head and proxies.** Top 12 matches Large's trainable‑block count, and the flat boundary result justifies it. Memory is the reason: my estimate is about 8.5 GB CUDA (6.56 GB × about 1.3), which is unmeasured and tight.\n\n**Ladder and stop rule.** Every step keeps 8 GiB, no swap and <10 GB CUDA. Any failure is a terminal KILL, with no LR, precision, checkpointing or boundary rescue.\n1. **Full‑fit cache export**, FIT only (13,283 images): one GPU unit, 300 s or less. Then a free CPU screen using the existing Large cache and the FIT prototype R@1. KILL if So400m's point estimate is below Large's.\n2. **CPU qualification**, 120 s or less: source, initialiser, shapes and authority.\n3. **Discarded 17‑step mechanics**, 120 s or less per arm, same driver for both. KILL if CUDA reaches 10 GB, anything goes non‑finite, or the median‑step ratio over steps 3–17 exceeds 1.50.\n4. **Fresh 100‑update TRAIN pilot**: 2 arms × seeds 179032/179041, each 300 s or less, with held export in its own unit. **PASS requires all of:**\n   - ΔR1 > 0 on each seed;\n   - mean ΔR1 ≥ +0.50pp, which is above the 0.39pp official gap because 100‑update gains decay (width went +0.80 → −0.02);\n   - R1 product95 lower bound > 0 (5,000 draws, seed 179019);\n   - mean ΔmAP@R ≥ 0;\n   - wall‑time ratio ≤ 1.50.\n\n**Path to a useful model if it passes.** One full‑TRAIN 2000‑update So400m run, in 20 chunks of 300 s or less (about 3,300 s estimated). Then one official public read against full2000 (96.307/81.883) with the existing gate: positive R1 product lower bound, mAP not regressed, and the 96.7 screen. Then apply to SOP and measure speed with the procedure below.\n\n## 2. Cheapest genuinely matched speed comparison\n\n**Reference: the authenticated UNICOM ViT‑L/14@336 checkpoint (SHA `3916ab5a…`).** It has the same compute graph as the dated 96.7 system. It is matched on architecture, input and descriptor, not on weights, and it supports no quality comparison.\n- Reuse the frozen reference loader, 336 transform and scorer from `scripts/benchmark_sop_coverage_vs_fullwidth_unicom.py`. Its scorer uses the normalised 768‑D output, prefix 512, exact fp32. That is the cheaper descriptor, so it is conservative for us, and search was about 2% of reference B1 time.\n- Compose it with the v4 `benchmark_full_valid_anchor_serving.py` candidate path under a new frozen authority.\n- The old SOP 100‑call ratio (0.643) is not a baseline.\n\n**Procedure:**\n1. **Encode the UNICOM gallery:** 12,612 images, one GPU unit of 300 s or less.\n2. **Qualify both models resident together:** host RSS must stay at 8 GiB or less. The SOP diagnostic peaked at 12.4 GB, so this is a real blocker. If it fails, NO‑GO, with no cap increase.\n3. **Run B1 over all 14,218 official queries once, in official order.**\n   - That is at least the 10,000 pairs required for p99, and it also yields a complete official B1‑context quality read. B1 codes differ from B32 codes (5/33 matched), so the published 96.307 is a B32 number.\n   - Each pair uses the same image, alternated ABBA.\n   - The timer covers file read, decode, each arm's own preprocessing, encoder, descriptor, top‑10 over its own gallery, and CUDA sync, with no stage hooks.\n   - 10 warmups per arm per unit.\n   - About 45 ms per pair, so 4 units of 300 s or less.\n4. **CPU verification unit**, 120 s or less: check all 2 × 14,218 top‑10s against same‑context CPU oracles computed from saved per‑call codes and descriptors.\n5. **Statistics:** 5,000‑draw block bootstrap (seed 179019, 50‑pair blocks, stratified by unit) on p50, p95, p99 and each cand/ref ratio. A speed claim at a quantile requires the ratio's 95% upper bound < 1.\n\nB32 at 10,000 pairs is about 2 hours (roughly 35 units). Run it only after B1 passes, or preregister it for p50/p95 only with no p99 claim."
+  },
+  "providers_used": [
+    "claude"
+  ],
+  "active_provider": "claude",
+  "phase": "Consultation completed",
+  "input_bytes": 2873,
+  "output_bytes": 6978,
+  "elapsed_seconds": 436,
+  "progress": "devbox-ask: claude consult still running (0m 30s)\ndevbox-ask: claude consult still running (1m 00s)\ndevbox-ask: claude consult still running (1m 30s)\ndevbox-ask: claude consult still running (2m 00s)\ndevbox-ask: claude consult still running (2m 30s)\ndevbox-ask: claude consult still running (3m 00s)\ndevbox-ask: claude consult still running (3m 30s)\ndevbox-ask: claude consult still running (4m 00s)\ndevbox-ask: claude consult still running (4m 30s)\ndevbox-ask: claude consult still running (5m 00s)\ndevbox-ask: claude consult still running (5m 30s)\ndevbox-ask: claude consult still running (6m 00s)\ndevbox-ask: claude consult still running (6m 30s)\ndevbox-ask: claude consult still running (7m 00s)",
+  "progress_truncated": false,
+  "result": "**Verdict: conditional GO on one quality procedure, a SigLIP2‑So400m/16@256 substrate pilot. It must not touch the GPU until four prerequisites below are met.** Separately, **GO on a B1 paired latency comparison against UNICOM ViT‑L/14@336.** I edited nothing, ran no jobs and started no consultations.\n\n## 1. Quality intervention: So400m/16@256 substrate pilot\n\n**Why this axis.** It is the only one left with a demonstrated, several‑point causal effect.\n- **Substrate ordering at a matched 100 updates, same held split:** S16 90.620/66.516, PE‑Core‑B16 95.074/76.392, SigLIP2‑L 95.672/78.624 (`inshop_pe_s16_result`, `inshop_pe_augmented_training_result`).\n- **Every within‑Large knob moves R1 by 0.21pp or less:**\n\n| Knob | ΔR1 (pp) |\n|---|---:|\n| role‑matched | −0.039 |\n| late‑dense | −0.205 |\n| image‑queue | −0.047 |\n| token‑residual | −0.024 |\n| consensus | +0.079 |\n| retained256 | −0.016 |\n| budget4000 (official) | −0.084 |\n| fixed average (official) | +0.021 |\n\n- **The freeze boundary is flat** at 0, 12 and 16 frozen blocks.\n- **Identity count is exhausted.** 2× identities gave +0.365 [+0.154, +0.574], and full TRAIN is already in use.\n- **The shared‑error core was only ever measured on Large lineages.** Substrate is the one axis it has not been tested against.\n\nSo400m/16@256 keeps the same HF `SiglipVisionModel`, 256 processor, native 256px input (no upsampling, so the trained288 objection does not apply), pool, 128‑byte packed wire and cuTile scorer. Only the encoder width changes, 1024 → 1152.\n\n**Strongest falsifier, and my forecast.**\n- PE‑Core‑B16 beat Large by +1.76 when both were frozen, then lost by 0.60 once trained. A frozen screen therefore cannot approve training; it can only kill.\n- Extrapolating the cross‑family B→L gain (+0.60 for 3.2× parameters) to So400m's 1.36× predicts about +0.15–0.2pp. That is weak evidence, and it sits below the gate.\n- **I expect a KILL.** It is still the right next step: it is cheap (about 1 hour of DGX time), and a clean KILL closes the last untested axis. The goal then becomes a precise operator scoping decision: change substrate family, relax the 128‑byte wire, or accept about 96.3.\n\n**Prerequisites. These are missing evidence, not things to assume.**\n1. `google/siglip2-so400m-patch16-256` weights on the DGX, authenticated against the upstream LFS SHA. The ledger only has patch14‑384, frozen, from Cars/CUB.\n2. **A fresh matched Large control.** F5 (the Large 100‑update run) cannot serve: it ran under the old driver at 12.94 GB CUDA and 897 ms/step, which violates the current <10 GB cap. Both arms must run under the current native FP16 corrected trainer, started from pretrained with its own full‑fit PCA128 initialisation. They must share data, augmentation, RNG, schedule and objective.\n3. The trainer, exporter and public loader must be generalised from pooled width 1024 to a per‑arm width (1152 for So400m). Every per‑arm guard stays strict, and the 128/130‑byte wire does not change.\n4. **Freeze embeddings and blocks 0–14; train the top 12 blocks plus postLN, pool, head and proxies.** Top 12 matches Large's trainable‑block count, and the flat boundary result justifies it. Memory is the reason: my estimate is about 8.5 GB CUDA (6.56 GB × about 1.3), which is unmeasured and tight.\n\n**Ladder and stop rule.** Every step keeps 8 GiB, no swap and <10 GB CUDA. Any failure is a terminal KILL, with no LR, precision, checkpointing or boundary rescue.\n1. **Full‑fit cache export**, FIT only (13,283 images): one GPU unit, 300 s or less. Then a free CPU screen using the existing Large cache and the FIT prototype R@1. KILL if So400m's point estimate is below Large's.\n2. **CPU qualification**, 120 s or less: source, initialiser, shapes and authority.\n3. **Discarded 17‑step mechanics**, 120 s or less per arm, same driver for both. KILL if CUDA reaches 10 GB, anything goes non‑finite, or the median‑step ratio over steps 3–17 exceeds 1.50.\n4. **Fresh 100‑update TRAIN pilot**: 2 arms × seeds 179032/179041, each 300 s or less, with held export in its own unit. **PASS requires all of:**\n   - ΔR1 > 0 on each seed;\n   - mean ΔR1 ≥ +0.50pp, which is above the 0.39pp official gap because 100‑update gains decay (width went +0.80 → −0.02);\n   - R1 product95 lower bound > 0 (5,000 draws, seed 179019);\n   - mean ΔmAP@R ≥ 0;\n   - wall‑time ratio ≤ 1.50.\n\n**Path to a useful model if it passes.** One full‑TRAIN 2000‑update So400m run, in 20 chunks of 300 s or less (about 3,300 s estimated). Then one official public read against full2000 (96.307/81.883) with the existing gate: positive R1 product lower bound, mAP not regressed, and the 96.7 screen. Then apply to SOP and measure speed with the procedure below.\n\n## 2. Cheapest genuinely matched speed comparison\n\n**Reference: the authenticated UNICOM ViT‑L/14@336 checkpoint (SHA `3916ab5a…`).** It has the same compute graph as the dated 96.7 system. It is matched on architecture, input and descriptor, not on weights, and it supports no quality comparison.\n- Reuse the frozen reference loader, 336 transform and scorer from `scripts/benchmark_sop_coverage_vs_fullwidth_unicom.py`. Its scorer uses the normalised 768‑D output, prefix 512, exact fp32. That is the cheaper descriptor, so it is conservative for us, and search was about 2% of reference B1 time.\n- Compose it with the v4 `benchmark_full_valid_anchor_serving.py` candidate path under a new frozen authority.\n- The old SOP 100‑call ratio (0.643) is not a baseline.\n\n**Procedure:**\n1. **Encode the UNICOM gallery:** 12,612 images, one GPU unit of 300 s or less.\n2. **Qualify both models resident together:** host RSS must stay at 8 GiB or less. The SOP diagnostic peaked at 12.4 GB, so this is a real blocker. If it fails, NO‑GO, with no cap increase.\n3. **Run B1 over all 14,218 official queries once, in official order.**\n   - That is at least the 10,000 pairs required for p99, and it also yields a complete official B1‑context quality read. B1 codes differ from B32 codes (5/33 matched), so the published 96.307 is a B32 number.\n   - Each pair uses the same image, alternated ABBA.\n   - The timer covers file read, decode, each arm's own preprocessing, encoder, descriptor, top‑10 over its own gallery, and CUDA sync, with no stage hooks.\n   - 10 warmups per arm per unit.\n   - About 45 ms per pair, so 4 units of 300 s or less.\n4. **CPU verification unit**, 120 s or less: check all 2 × 14,218 top‑10s against same‑context CPU oracles computed from saved per‑call codes and descriptors.\n5. **Statistics:** 5,000‑draw block bootstrap (seed 179019, 50‑pair blocks, stratified by unit) on p50, p95, p99 and each cand/ref ratio. A speed claim at a quantile requires the ratio's 95% upper bound < 1.\n\nB32 at 10,000 pairs is about 2 hours (roughly 35 units). Run it only after B1 passes, or preregister it for p50/p95 only with no p99 claim.",
+  "result_truncated": false
+}

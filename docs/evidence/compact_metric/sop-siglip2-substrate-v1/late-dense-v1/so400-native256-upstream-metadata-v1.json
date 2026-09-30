@@ -1,0 +1,117 @@
+{
+  "config": {
+    "initializer_factor": 1.0,
+    "model_type": "siglip",
+    "text_config": {
+      "hidden_size": 1152,
+      "intermediate_size": 4304,
+      "model_type": "siglip_text_model",
+      "num_attention_heads": 16,
+      "num_hidden_layers": 27,
+      "projection_size": 1152,
+      "vocab_size": 256000
+    },
+    "transformers_version": "4.49.0.dev0",
+    "vision_config": {
+      "hidden_size": 1152,
+      "image_size": 256,
+      "intermediate_size": 4304,
+      "model_type": "siglip_vision_model",
+      "num_attention_heads": 16,
+      "num_hidden_layers": 27
+    }
+  },
+  "config_sha256": "13ee943037e446415ff6e7e406ecf79fd955f482f4ba5b437d3bc10fba7f1362",
+  "files": {
+    ".gitattributes": {
+      "blobId": "52373fe24473b1aa44333d318f578ae6bf04b49b",
+      "rfilename": ".gitattributes",
+      "size": 1570
+    },
+    "README.md": {
+      "blobId": "43522bb949cac7d97344b5cda09e974d3503e37b",
+      "rfilename": "README.md",
+      "size": 3381
+    },
+    "config.json": {
+      "blobId": "5c6cb7c81af0bb757dbd3743de9ba10554065220",
+      "rfilename": "config.json",
+      "size": 537
+    },
+    "model.safetensors": {
+      "blobId": "b04762aab0b89c270f0e0a28681b44f04e1baf46",
+      "lfs": {
+        "pointerSize": 135,
+        "sha256": "810ddc85ac019e6b2738b9130ae3602e41eb093a848a297a0ad296ca1f39dc67",
+        "size": 4542792928
+      },
+      "rfilename": "model.safetensors",
+      "size": 4542792928
+    },
+    "preprocessor_config.json": {
+      "blobId": "130986149eee6a6fd9a2eb53da12fbc1a415c0e6",
+      "rfilename": "preprocessor_config.json",
+      "size": 394
+    },
+    "special_tokens_map.json": {
+      "blobId": "8d6368f7e735fbe4781bf6e956b7c6ad0586df80",
+      "rfilename": "special_tokens_map.json",
+      "size": 636
+    },
+    "tokenizer.json": {
+      "blobId": "16d02f7b98cf1fe1ee9bf04143543b2f188f2788",
+      "lfs": {
+        "pointerSize": 133,
+        "sha256": "cb9140fae3ac5122c972d37adf83e1248471a38147ad76f8215c8872c6fd8322",
+        "size": 34363039
+      },
+      "rfilename": "tokenizer.json",
+      "size": 34363039
+    },
+    "tokenizer.model": {
+      "blobId": "796efe9ab515c15e146ce7588e6d7b9b8134dbf8",
+      "lfs": {
+        "pointerSize": 132,
+        "sha256": "61a7b147390c64585d6c3543dd6fc636906c9af3865a5548f27f31aee1d4c8e2",
+        "size": 4241003
+      },
+      "rfilename": "tokenizer.model",
+      "size": 4241003
+    },
+    "tokenizer_config.json": {
+      "blobId": "d97c5412159422c3b56fbc99076b1dcc25dd7856",
+      "rfilename": "tokenizer_config.json",
+      "size": 47164
+    }
+  },
+  "model": "google/siglip2-so400m-patch16-256",
+  "native_executed": false,
+  "preprocessor": {
+    "do_convert_rgb": null,
+    "do_normalize": true,
+    "do_rescale": true,
+    "do_resize": true,
+    "image_mean": [
+      0.5,
+      0.5,
+      0.5
+    ],
+    "image_processor_type": "SiglipImageProcessor",
+    "image_std": [
+      0.5,
+      0.5,
+      0.5
+    ],
+    "processor_class": "SiglipProcessor",
+    "resample": 2,
+    "rescale_factor": 0.00392156862745098,
+    "size": {
+      "height": 256,
+      "width": 256
+    }
+  },
+  "preprocessor_sha256": "d14ba2ee3fd816f3de8abaddc31953565128eaf37c73ad4bed32101a98465aff",
+  "revision": "e8708ab72d125807e45b36fb7d4e0aacbb59f379",
+  "schema": "so400-native256-upstream-metadata-v1",
+  "weights_downloaded": false
+}
