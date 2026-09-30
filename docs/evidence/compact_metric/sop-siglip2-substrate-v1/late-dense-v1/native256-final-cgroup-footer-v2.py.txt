@@ -1,0 +1,12 @@
+import json, os
+from pathlib import Path
+cg=next(x[3:] for x in Path('/proc/self/cgroup').read_text().splitlines() if x.startswith('0::'))
+root=Path('/sys/fs/cgroup')/cg.lstrip('/')
+names=('memory.current','memory.peak','memory.max','memory.swap.current','memory.swap.peak','memory.swap.max','memory.events','memory.stat')
+values={n:(root/n).read_text().strip() for n in names}
+print('FINAL_CGROUP '+json.dumps({'path':str(root),'invocation_id':os.environ.get('INVOCATION_ID'),'command_exit_status':int(os.environ['SFORA_COMMAND_STATUS']),'values':values},sort_keys=True),flush=True)
+if int(os.environ['SFORA_COMMAND_STATUS'])==0:
+    assert values['memory.max']=='8589934592' and 0<int(values['memory.peak'])<=8589934592
+    assert all(values[n]=='0' for n in ('memory.swap.current','memory.swap.peak','memory.swap.max'))
+    events=dict(x.split() for x in values['memory.events'].splitlines())
+    assert all(int(events[k])==0 for k in ('oom','oom_kill','max'))

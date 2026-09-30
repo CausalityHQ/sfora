@@ -1,0 +1,33 @@
+{
+  "both_locks_held": true,
+  "execution_sha256": "ce88515d639b8039b57a169770990763b3eb09f3d1c64d7b5d37a903bf50ef6c",
+  "initializer_authority": {
+    "path": "/home/riomus/runs/sfora-native256-fit-initializer-source-v1/authority-large-v1.json",
+    "sha256": "b9852621b422a04c5ae7c36f80d919d3327591601c9c265604f5c9bc28dbcc3c"
+  },
+  "initializer_execution_sha256": "3a716471c65e0e2484ac746cf5bc3937970b16934e2d14aef8510580d8c004c2",
+  "initializer_root": "/home/riomus/runs/sfora-native256-fit-initializer-source-v1",
+  "packing_helper_sha256": "4ca0de1b0579ea6165c81e9057e9afe77e6dd4141f0b4a0adb281de25300de67",
+  "resource_policy": {
+    "cuda_visible_devices": "",
+    "host_bytes": 8589934592,
+    "seconds": 120,
+    "swap_bytes": 0
+  },
+  "schema": "native256-initialized-cpu-launch-v1",
+  "selected_initializer": {
+    "both_locks_held": true,
+    "invocation_id": "e27f3c127eee4908b02ad18354cafcfa",
+    "log": {
+      "path": "/home/riomus/runs/sfora-native256-fit-initializer-source-v1/sfora-native256-fit-initializer-large-v1.log",
+      "sha256": "2ecd0d548ecb62b0dc32262224c4ff7e366298e5e497ebd6f7e86b4640ca7db2"
+    },
+    "native_peak_rss_kib": 1236508,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-native256-fit-initializer-large-v1/receipt.json",
+      "sha256": "d68d0c35fe28cd910a4ff2f8aaeab273d8fe97a8b56327f2b7c904b1da852c1b"
+    },
+    "service_seconds": 44.838,
+    "unit": "sfora-native256-fit-initializer-large-v1"
+  }
+}
