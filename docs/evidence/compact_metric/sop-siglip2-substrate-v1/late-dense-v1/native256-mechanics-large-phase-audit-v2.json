@@ -1,0 +1,283 @@
+{
+  "exact_final_peak_events_available": false,
+  "invocation_id": "75068068cbea46e2a2518363251f1975",
+  "last_update": 13,
+  "phases": [
+    {
+      "cgroup": {
+        "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-native256-mechanics-large-v2.service",
+        "values": {
+          "memory.current": "33394688",
+          "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+          "memory.max": "8589934592",
+          "memory.peak": "33394688",
+          "memory.swap.current": "0",
+          "memory.swap.max": "0",
+          "memory.swap.peak": "0"
+        }
+      },
+      "diagnostic": "phase",
+      "elapsed_seconds": 0.00020455988124012947,
+      "invocation_id": "75068068cbea46e2a2518363251f1975",
+      "phase": "authority.begin"
+    },
+    {
+      "cgroup": {
+        "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-native256-mechanics-large-v2.service",
+        "values": {
+          "memory.current": "187416576",
+          "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+          "memory.max": "8589934592",
+          "memory.peak": "231161856",
+          "memory.swap.current": "0",
+          "memory.swap.max": "0",
+          "memory.swap.peak": "0"
+        }
+      },
+      "diagnostic": "phase",
+      "elapsed_seconds": 62.51778440689668,
+      "invocation_id": "75068068cbea46e2a2518363251f1975",
+      "phase": "authority.end"
+    },
+    {
+      "cgroup": {
+        "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-native256-mechanics-large-v2.service",
+        "values": {
+          "memory.current": "187490304",
+          "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+          "memory.max": "8589934592",
+          "memory.peak": "231161856",
+          "memory.swap.current": "0",
+          "memory.swap.max": "0",
+          "memory.swap.peak": "0"
+        }
+      },
+      "diagnostic": "phase",
+      "elapsed_seconds": 62.54940680693835,
+      "invocation_id": "75068068cbea46e2a2518363251f1975",
+      "phase": "native_import.begin"
+    },
+    {
+      "cgroup": {
+        "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-native256-mechanics-large-v2.service",
+        "values": {
+          "memory.current": "780771328",
+          "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+          "memory.max": "8589934592",
+          "memory.peak": "780771328",
+          "memory.swap.current": "0",
+          "memory.swap.max": "0",
+          "memory.swap.peak": "0"
+        }
+      },
+      "diagnostic": "phase",
+      "elapsed_seconds": 64.89558556908742,
+      "invocation_id": "75068068cbea46e2a2518363251f1975",
+      "phase": "native_import.end"
+    },
+    {
+      "cgroup": {
+        "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-native256-mechanics-large-v2.service",
+        "values": {
+          "memory.current": "780771328",
+          "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+          "memory.max": "8589934592",
+          "memory.peak": "780771328",
+          "memory.swap.current": "0",
+          "memory.swap.max": "0",
+          "memory.swap.peak": "0"
+        }
+      },
+      "diagnostic": "phase",
+      "elapsed_seconds": 64.89570345683023,
+      "invocation_id": "75068068cbea46e2a2518363251f1975",
+      "phase": "fresh_cpu.begin"
+    },
+    {
+      "cgroup": {
+        "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-native256-mechanics-large-v2.service",
+        "values": {
+          "memory.current": "4220329984",
+          "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+          "memory.max": "8589934592",
+          "memory.peak": "4272603136",
+          "memory.swap.current": "0",
+          "memory.swap.max": "0",
+          "memory.swap.peak": "0"
+        }
+      },
+      "diagnostic": "phase",
+      "elapsed_seconds": 78.17113332170993,
+      "invocation_id": "75068068cbea46e2a2518363251f1975",
+      "phase": "fresh_cpu.end"
+    },
+    {
+      "cgroup": {
+        "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-native256-mechanics-large-v2.service",
+        "values": {
+          "memory.current": "4220329984",
+          "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+          "memory.max": "8589934592",
+          "memory.peak": "4272603136",
+          "memory.swap.current": "0",
+          "memory.swap.max": "0",
+          "memory.swap.peak": "0"
+        }
+      },
+      "diagnostic": "phase",
+      "elapsed_seconds": 78.17125538596883,
+      "invocation_id": "75068068cbea46e2a2518363251f1975",
+      "phase": "cpu_origins.begin"
+    },
+    {
+      "cgroup": {
+        "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-native256-mechanics-large-v2.service",
+        "values": {
+          "memory.current": "4076003328",
+          "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+          "memory.max": "8589934592",
+          "memory.peak": "4272603136",
+          "memory.swap.current": "0",
+          "memory.swap.max": "0",
+          "memory.swap.peak": "0"
+        }
+      },
+      "diagnostic": "phase",
+      "elapsed_seconds": 83.83757691271603,
+      "invocation_id": "75068068cbea46e2a2518363251f1975",
+      "phase": "cpu_origins.end"
+    },
+    {
+      "cgroup": {
+        "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-native256-mechanics-large-v2.service",
+        "values": {
+          "memory.current": "4096114688",
+          "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+          "memory.max": "8589934592",
+          "memory.peak": "4272603136",
+          "memory.swap.current": "0",
+          "memory.swap.max": "0",
+          "memory.swap.peak": "0"
+        }
+      },
+      "diagnostic": "phase",
+      "elapsed_seconds": 83.99837061669677,
+      "invocation_id": "75068068cbea46e2a2518363251f1975",
+      "phase": "cuda.begin"
+    },
+    {
+      "cgroup": {
+        "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-native256-mechanics-large-v2.service",
+        "values": {
+          "memory.current": "3978973184",
+          "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+          "memory.max": "8589934592",
+          "memory.peak": "4272603136",
+          "memory.swap.current": "0",
+          "memory.swap.max": "0",
+          "memory.swap.peak": "0"
+        }
+      },
+      "diagnostic": "phase",
+      "elapsed_seconds": 84.64192200871184,
+      "invocation_id": "75068068cbea46e2a2518363251f1975",
+      "phase": "cuda.end"
+    },
+    {
+      "cgroup": {
+        "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-native256-mechanics-large-v2.service",
+        "values": {
+          "memory.current": "3978973184",
+          "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+          "memory.max": "8589934592",
+          "memory.peak": "4272603136",
+          "memory.swap.current": "0",
+          "memory.swap.max": "0",
+          "memory.swap.peak": "0"
+        }
+      },
+      "diagnostic": "phase",
+      "elapsed_seconds": 84.64204815309495,
+      "invocation_id": "75068068cbea46e2a2518363251f1975",
+      "phase": "initial_state.begin"
+    },
+    {
+      "cgroup": {
+        "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-native256-mechanics-large-v2.service",
+        "values": {
+          "memory.current": "4059164672",
+          "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+          "memory.max": "8589934592",
+          "memory.peak": "4272603136",
+          "memory.swap.current": "0",
+          "memory.swap.max": "0",
+          "memory.swap.peak": "0"
+        }
+      },
+      "diagnostic": "phase",
+      "elapsed_seconds": 85.46255687065423,
+      "invocation_id": "75068068cbea46e2a2518363251f1975",
+      "phase": "initial_state.end"
+    },
+    {
+      "cgroup": {
+        "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-native256-mechanics-large-v2.service",
+        "values": {
+          "memory.current": "4059426816",
+          "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+          "memory.max": "8589934592",
+          "memory.peak": "4272603136",
+          "memory.swap.current": "0",
+          "memory.swap.max": "0",
+          "memory.swap.peak": "0"
+        }
+      },
+      "diagnostic": "phase",
+      "elapsed_seconds": 85.47260963870212,
+      "invocation_id": "75068068cbea46e2a2518363251f1975",
+      "phase": "updates.begin"
+    },
+    {
+      "cgroup": {
+        "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-native256-mechanics-large-v2.service",
+        "values": {
+          "memory.current": "6037327872",
+          "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+          "memory.max": "8589934592",
+          "memory.peak": "6073446400",
+          "memory.swap.current": "0",
+          "memory.swap.max": "0",
+          "memory.swap.peak": "0"
+        }
+      },
+      "diagnostic": "phase",
+      "elapsed_seconds": 104.28472526185215,
+      "invocation_id": "75068068cbea46e2a2518363251f1975",
+      "phase": "save8.begin"
+    },
+    {
+      "cgroup": {
+        "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-native256-mechanics-large-v2.service",
+        "values": {
+          "memory.current": "7924531200",
+          "memory.events": "low 0\nhigh 0\nmax 55\noom 0\noom_kill 0\noom_group_kill 0",
+          "memory.max": "8589934592",
+          "memory.peak": "8589934592",
+          "memory.swap.current": "0",
+          "memory.swap.max": "0",
+          "memory.swap.peak": "0"
+        }
+      },
+      "diagnostic": "phase",
+      "elapsed_seconds": 108.3777799368836,
+      "invocation_id": "75068068cbea46e2a2518363251f1975",
+      "phase": "save8.end"
+    }
+  ],
+  "quality_read": false,
+  "resume_verified": false,
+  "schema": "native256-mechanics-phase-audit-v2",
+  "service_seconds": 120.557,
+  "terminal": "timeout",
+  "unit": "sfora-native256-mechanics-large-v2"
+}
