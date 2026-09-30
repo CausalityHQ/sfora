@@ -1,0 +1,62 @@
+Running as unit: sfora-role-matched-held-export-control-179041-v1.service; invocation ID: 2f87f2f555ad4c1bb9d26a79e1d266d9
+{"stage": "endpoint-179032-control", "rss_kib": 1033164, "max_rss_kib": 3557272, "elapsed_seconds": 16.981887788977474}
+{"stage": "endpoint-179032-role_matched", "rss_kib": 1033176, "max_rss_kib": 3557460, "elapsed_seconds": 20.053226854652166}
+{"stage": "endpoint-179041-role_matched", "rss_kib": 1033680, "max_rss_kib": 3557684, "elapsed_seconds": 23.082189087755978}
+{"stage": "endpoint-179041-control", "rss_kib": 1034272, "max_rss_kib": 3558228, "elapsed_seconds": 26.07650132663548}
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 9480.76it/s]
+{"stage": "updated-model-mmap-released", "rss_kib": 1758088, "max_rss_kib": 5112940, "elapsed_seconds": 39.286460768897086}
+{"stage": "independent-reload-mmap-released", "rss_kib": 1924604, "max_rss_kib": 5112940, "elapsed_seconds": 51.04651957890019}
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-role-matched-held-source-v1/export_role_matched_adaptation.py --phase export --arm control --seed 179041 --authority-sha256 0ddc99da546befa90b604fee87509b40ef2eb1ba02431d5a0537c0947ba7b31d --output /home/riomus/runs/sfora-role-matched-held-export-control-179041-v1 --cpu-proof /home/riomus/runs/sfora-role-matched-held-cpu-control-179041-v1/proof.json --cpu-sha256 efdc0d178eb5a9400cf52e68d90cca10ec8d8baf2e4b3063a159f7faa67247c1 --cpu-log /home/riomus/runs/sfora-role-matched-held-source-v1/sfora-role-matched-held-cpu-control-179041-v1.log --cpu-log-sha256 1eebd6e17f29809550d979b1236ebeb1b8ee6c8d0eac22707ef37e5a7a80c358"
+	User time (seconds): 276.46
+	System time (seconds): 8.48
+	Percent of CPU this job got: 114%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 4:09.74
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 5112940
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 18721
+	Minor (reclaiming a frame) page faults: 1491657
+	Voluntary context switches: 191293
+	Involuntary context switches: 3053
+	Swaps: 0
+	File system inputs: 8
+	File system outputs: 21328
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 4min 9.749s
+CPU time consumed: 4min 44.956s
+Memory peak: 508.0K
+Memory swap peak: 0B
+	Command being timed: "systemd-run --user --wait --collect --pipe --unit=sfora-role-matched-held-export-control-179041-v1 --property=WorkingDirectory=/home/riomus/runs/sfora-role-matched-held-source-v1 --property=RuntimeMaxSec=300 --property=MemoryMax=8G --property=MemorySwapMax=0 --property=KillMode=control-group --property=OOMPolicy=stop --setenv=CUDA_VISIBLE_DEVICES=0 --setenv=CUBLAS_WORKSPACE_CONFIG=:4096:8 --setenv=OMP_NUM_THREADS=8 --setenv=OPENBLAS_NUM_THREADS=1 --setenv=TOKENIZERS_PARALLELISM=false --setenv=TMPDIR=/home/riomus/runs/sfora-role-matched-held-source-v1 --setenv=CUTILE_TILEIRAS_PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/tileiras --setenv=PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin:/usr/local/bin:/usr/bin:/bin --setenv=PYTHONPATH=/home/riomus/runs/sfora-role-matched-held-source-v1:/home/riomus/runs/sfora-role-matched-held-source-v1/src:/home/riomus/runs/sfora-role-matched-held-source-v1/isolated-deps flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock flock -n /home/riomus/.sfora-siglip2-gpu.lock /usr/bin/time -v /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-role-matched-held-source-v1/export_role_matched_adaptation.py --phase export --arm control --seed 179041 --authority-sha256 0ddc99da546befa90b604fee87509b40ef2eb1ba02431d5a0537c0947ba7b31d --output /home/riomus/runs/sfora-role-matched-held-export-control-179041-v1 --cpu-proof /home/riomus/runs/sfora-role-matched-held-cpu-control-179041-v1/proof.json --cpu-sha256 efdc0d178eb5a9400cf52e68d90cca10ec8d8baf2e4b3063a159f7faa67247c1 --cpu-log /home/riomus/runs/sfora-role-matched-held-source-v1/sfora-role-matched-held-cpu-control-179041-v1.log --cpu-log-sha256 1eebd6e17f29809550d979b1236ebeb1b8ee6c8d0eac22707ef37e5a7a80c358"
+	User time (seconds): 0.00
+	System time (seconds): 0.00
+	Percent of CPU this job got: 0%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 4:09.77
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 7220
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 377
+	Voluntary context switches: 10
+	Involuntary context switches: 0
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

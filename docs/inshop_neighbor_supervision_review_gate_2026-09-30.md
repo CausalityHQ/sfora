@@ -1,6 +1,6 @@
 # Neighbor supervision: bounded admission review
 
-Status: all-bank NCA REJECTED after completed fixed Opus5.5/Astra review8942aca407a74699. Opposite-role SmoothAP selected and actual-native CPUv3 qualification PASS; see inshop_role_matched_cpu_result_2026-09-30.md. One bounded trainer worker implements the complete-state driver; no mechanics, TRAIN100 or quality job has run. Same production goal remains ACTIVE.
+Status: selected opposite-role SmoothAP terminal quality KILL; see inshop_role_matched_result_2026-09-30.md. Historical admission record follows. All-bank NCA REJECTED after completed fixed Opus5.5/Astra review8942aca407a74699. Opposite-role SmoothAP selected and actual-native CPUv3 qualification PASS; see inshop_role_matched_cpu_result_2026-09-30.md. One bounded trainer worker implements the complete-state driver; no mechanics, TRAIN100 or quality job has run. Same production goal remains ACTIVE.
 
 Source facts: pe_native_valid_anchor.valid_rank filters anchors without positives while preserving the full-microbatch denominator. smooth_ap_bank_loss computes all-positive precision against a detached bank, with .01 temperature; pe_large_optimization.step applies CE+8*rank over four16 microbatches, then one globalclip1 and detached pre-update bank refresh. Neither the token-residual KILL nor queue KILL identifies the present quality root cause.
 

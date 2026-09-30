@@ -1,0 +1,57 @@
+Running as unit: sfora-role-matched-held-score-v1.service; invocation ID: 52576c4370464950a384976014f89d6b
+{"stage": "endpoint-179032-control", "rss_kib": 1017876, "max_rss_kib": 3541724, "elapsed_seconds": 16.82670903392136}
+{"stage": "endpoint-179032-role_matched", "rss_kib": 1017880, "max_rss_kib": 3542108, "elapsed_seconds": 19.874477449804544}
+{"stage": "endpoint-179041-role_matched", "rss_kib": 1018440, "max_rss_kib": 3542332, "elapsed_seconds": 22.854651000816375}
+{"stage": "endpoint-179041-control", "rss_kib": 1019028, "max_rss_kib": 3543036, "elapsed_seconds": 25.826696639880538}
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-role-matched-held-source-v1/score_role_matched_adaptation.py --authority-sha256 0ddc99da546befa90b604fee87509b40ef2eb1ba02431d5a0537c0947ba7b31d --wires-authority-sha256 161df956e9732d7f29702a650afe3f2c21abe26b75f59c946a5e835e95797e7b --output /home/riomus/runs/sfora-role-matched-held-score-v1.json"
+	User time (seconds): 39.57
+	System time (seconds): 2.72
+	Percent of CPU this job got: 141%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:29.98
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 3543036
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 14
+	Minor (reclaiming a frame) page faults: 293414
+	Voluntary context switches: 22654
+	Involuntary context switches: 468
+	Swaps: 0
+	File system inputs: 288
+	File system outputs: 1696
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 29.985s
+CPU time consumed: 42.296s
+Memory peak: 288.0K
+Memory swap peak: 0B
+	Command being timed: "systemd-run --user --wait --collect --pipe --unit=sfora-role-matched-held-score-v1 --property=WorkingDirectory=/home/riomus/runs/sfora-role-matched-held-source-v1 --property=RuntimeMaxSec=120 --property=MemoryMax=8G --property=MemorySwapMax=0 --property=KillMode=control-group --property=OOMPolicy=stop --setenv=CUDA_VISIBLE_DEVICES= --setenv=CUBLAS_WORKSPACE_CONFIG=:4096:8 --setenv=OMP_NUM_THREADS=8 --setenv=OPENBLAS_NUM_THREADS=1 --setenv=TOKENIZERS_PARALLELISM=false --setenv=TMPDIR=/home/riomus/runs/sfora-role-matched-held-source-v1 --setenv=CUTILE_TILEIRAS_PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/tileiras --setenv=PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin:/usr/local/bin:/usr/bin:/bin --setenv=PYTHONPATH=/home/riomus/runs/sfora-role-matched-held-source-v1:/home/riomus/runs/sfora-role-matched-held-source-v1/src:/home/riomus/runs/sfora-role-matched-held-source-v1/isolated-deps flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock flock -n /home/riomus/.sfora-siglip2-gpu.lock /usr/bin/time -v /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-role-matched-held-source-v1/score_role_matched_adaptation.py --authority-sha256 0ddc99da546befa90b604fee87509b40ef2eb1ba02431d5a0537c0947ba7b31d --wires-authority-sha256 161df956e9732d7f29702a650afe3f2c21abe26b75f59c946a5e835e95797e7b --output /home/riomus/runs/sfora-role-matched-held-score-v1.json"
+	User time (seconds): 0.00
+	System time (seconds): 0.00
+	Percent of CPU this job got: 0%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:30.01
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 7208
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 378
+	Voluntary context switches: 10
+	Involuntary context switches: 0
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
