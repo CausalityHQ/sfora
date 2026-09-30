@@ -1,0 +1,111 @@
+{
+  "base_commit": "e7fc392e21460bbabff14fd9a5e6caf2baccffbb",
+  "branch": "devbox/full2000-cache-fix-20260930",
+  "changes": [
+    "Applied committed full2000-cache-candidate-v1.patch.json patch field.",
+    "Generalized the existing authenticated ExitStack alias adapter with attributes=('sha',), reused for ('_sha256',).",
+    "Added active alias assertions and normal/exception/partial-installation restoration regression coverage.",
+    "Bound the actual unchanged public from_checkpoint factory to frozen code in GPU qualification and benchmark; restored helper before inference.",
+    "Added fail-closed read-only model cache advice after native mmap disk deletion/collection and after public factory return; live mmap data preserved.",
+    "Retained sequential native/reference/release/public GPU lifetimes and whole-constructor CUDA peak; no cap, math, precision, parity or timing-boundary change."
+  ],
+  "clean_worktree": true,
+  "commit": "2306b2dc8da3b3bb3fe12cc223bba6f387d1cc57",
+  "completed_at_utc": "2026-09-30T16:58:35.059702+00:00",
+  "configured_operator_identity_preserved": true,
+  "files": [
+    "scripts/benchmark_full_valid_anchor_serving.py",
+    "scripts/qualify_full_valid_anchor_serving.py",
+    "scripts/test_full_valid_anchor_serving.py"
+  ],
+  "no_ai_commit_trailers": true,
+  "not_executed": [
+    "Torch imports/execution",
+    "SSH",
+    "native/GPU/train/eval/quality jobs",
+    "consultations",
+    "operator contact",
+    "full repository suite",
+    "merge",
+    "push"
+  ],
+  "parent_next_gate": "Independently verify/integrate commit; root owns final105v3 freeze and actual capped CPU120 then GPU300 gates. Resource fit, model parity and quality/speed outcomes are not established by these stdlib checks. No future authority/proof hashes assigned.",
+  "red_evidence": [
+    "After reviewed JSON patch: TypeError: bounded_historical_hashes() got an unexpected keyword argument 'attributes'.",
+    "Before admission validation: AssertionError: altered authority accepted for changed loader_cache_policy."
+  ],
+  "schema": "full2000-cache-fix-worker-receipt-v1",
+  "schema_changes": {
+    "admission": "proof_authority requires exact phase-specific loader_cache_policy; missing or altered policy rejects, including recursive CPU admission.",
+    "cpu_record": {
+      "aliases_restored_before_inference": true,
+      "authenticated_scoped_hash_aliases": [
+        "sha"
+      ],
+      "cache_advice": "POSIX_FADV_DONTNEED",
+      "hash_chunk_bytes": 1048576,
+      "large_hash_threshold_bytes": 67108864,
+      "live_mappings_may_remain_resident": true,
+      "original102_file_bytes_preserved": true,
+      "public_factory_hash_helper_rebound": false,
+      "read_only_model_cache_advice_after_load": [
+        "checkpoint",
+        "model.safetensors"
+      ]
+    },
+    "diagnostic_schema_name": "full-valid-anchor-serving-diagnostic-v1",
+    "gpu_and_benchmark_record": {
+      "aliases_restored_before_inference": true,
+      "authenticated_scoped_hash_aliases": [
+        "sha",
+        "_sha256"
+      ],
+      "cache_advice": "POSIX_FADV_DONTNEED",
+      "hash_chunk_bytes": 1048576,
+      "large_hash_threshold_bytes": 67108864,
+      "live_mappings_may_remain_resident": true,
+      "original102_file_bytes_preserved": true,
+      "public_factory_hash_helper_rebound": true,
+      "read_only_model_cache_advice_after_load": [
+        "checkpoint",
+        "model.safetensors"
+      ]
+    },
+    "new_required_admission_field": "loader_cache_policy",
+    "qualification_schema_name": "full-valid-anchor-serving-qualification-v1"
+  },
+  "verification": [
+    {
+      "command": "python3 -B -S scripts/test_full_valid_anchor_serving.py",
+      "exit_status": 0,
+      "includes": [
+        "all three --help",
+        "all three -O and -OO rejection",
+        "all three PYTHONOPTIMIZE=1 rejection",
+        "SHA chunk-boundary/tail/tamper/range coverage",
+        "sha and _sha256 restoration on body exception and partial source-auth failure",
+        "read-only descriptor advice and live mmap byte preservation",
+        "hash/post-load advice errors fail closed",
+        "CPU and recursive GPU cache-policy admission negatives"
+      ],
+      "output": "PASS stdlib full2000 real receipts,102+3 source, mode/head/prefix/role/order/native/proof/log/output negatives; help/optimized rejection; no Torch"
+    },
+    {
+      "check": "All three files ast.parse + compile(..., dont_inherit=True, optimize=0)",
+      "exit_status": 0
+    },
+    {
+      "check": "AST audit against required base: source/artifact/model/RNG/parity/resource gates and pinned hashes/caps identical; public factory in authenticated _sha256 scope; post-mmap advice; sequential whole-CUDA peak; benchmark timed loop identical",
+      "exit_status": 0
+    },
+    {
+      "command": "git diff --check and git diff --cached --check",
+      "exit_status": 0
+    },
+    {
+      "check": "Post-commit parent, exact three-file scope, clean tree, author/committer identity and no AI trailers",
+      "exit_status": 0
+    }
+  ],
+  "worktree": "/home/rb/worktrees/sfora-full2000-cache-fix-20260930"
+}

@@ -1,0 +1,87 @@
+{
+  "compiler": {
+    "path": "/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/tileiras",
+    "sha256": "df2e9ef3804cab682f605a5c9e50045a24404ba22c3be0903454e1a60fcd78ae"
+  },
+  "execution_sha256": "cc4429c3383a593921be4253618403292ec0d594616e341fdab2da4c8b5f3595",
+  "inputs": {
+    "accepted_cpu": {
+      "path": "/home/riomus/runs/sfora-full-valid-anchor-public-source-v1/full2000-accepted-cpu-proof.json",
+      "sha256": "d420f6e6476715a23cef04741ff74135584bb266cb7addaeaf35a824e76e2174"
+    },
+    "accepted_cpu_log": {
+      "original_path": "/home/riomus/runs/sfora-full-valid-anchor-checkpoint-v1/full-valid-anchor-source-v1.log",
+      "path": "/home/riomus/runs/sfora-full-valid-anchor-public-source-v1/full-valid-anchor-source-v1.log",
+      "sha256": "0ff7ee03aa962cf5aa199735815860fa0bac1003ba856dc85283956413e835de"
+    },
+    "checkpoint": {
+      "path": "/home/riomus/runs/sfora-full-valid-anchor-native2000-v1/native.pt",
+      "sha256": "cb1ae064e53d118472856cb418458effb9a322e344af57ab5a087ea66f33a9a0"
+    },
+    "export": {
+      "path": "/home/riomus/runs/sfora-full-valid-anchor-native2000-v1/receipt.json",
+      "sha256": "f0f65232bbc8e9e35c6400490dd4d477be0a70baec1db234d2a1d7b002487ad6"
+    },
+    "export_log": {
+      "original_path": "/home/riomus/runs/sfora-full-valid-anchor-checkpoint-v1/full-valid-anchor-export-v1.log",
+      "path": "/home/riomus/runs/sfora-full-valid-anchor-public-source-v1/full-valid-anchor-export-v1.log",
+      "sha256": "e7e3b003657b194d3f0ecb6271f6acf1f023f1734b0df4ff1f4102884924955f"
+    },
+    "gallery.codes.npy": {
+      "path": "/home/riomus/runs/sfora-full-valid-anchor-official-b32-v1/gallery.codes.npy",
+      "sha256": "5a366772e10ae498accd52c8ba8010d7d4d5596f21a355ea941cfb5a25ab4a6a"
+    },
+    "gallery.inverse.npy": {
+      "path": "/home/riomus/runs/sfora-full-valid-anchor-official-b32-v1/gallery.inverse.npy",
+      "sha256": "c291d5094588a22d1601d220f694bde1c19a1eb05f545a748b3983ee145090b1"
+    },
+    "native_library": {
+      "path": "/home/riomus/sfora-rc5-pointer-b7c57022/libsfora_cutile_int8_score_sha39602d0e.so",
+      "sha256": "39602d0e4e8b0d5ec441be460ad7f18e288241bef19fb6e6c5df14f4033ac73c"
+    },
+    "official": {
+      "path": "/home/riomus/runs/sfora-full-valid-anchor-official-b32-v1/receipt.json",
+      "sha256": "fde8508c057057bec0edc515e7c25c28b53686b34ec31c157dad227cdebbed84"
+    },
+    "official_log": {
+      "original_path": "/home/riomus/runs/sfora-full-valid-anchor-checkpoint-v1/full-valid-anchor-official-v1.log",
+      "path": "/home/riomus/runs/sfora-full-valid-anchor-public-source-v1/full-valid-anchor-official-v1.log",
+      "sha256": "b444b42ff2f71e82648d942d0b7518c722c842abd1b3dc6a99814f0783085b52"
+    },
+    "protocol": {
+      "path": "/home/riomus/runs/sfora-large-inshop-official-qual-v2/official-cpu-proof.json",
+      "sha256": "be7b27c68b5e2895063d4f24b2b9d4e396a77ed79b2426596893c293df2c20f2"
+    },
+    "query.codes.npy": {
+      "path": "/home/riomus/runs/sfora-full-valid-anchor-official-b32-v1/query.codes.npy",
+      "sha256": "d10d4aadd8d41d9d9541f374bc620680184b4348572b730d61592e2937eb1240"
+    },
+    "query.inverse.npy": {
+      "path": "/home/riomus/runs/sfora-full-valid-anchor-official-b32-v1/query.inverse.npy",
+      "sha256": "5a5ca6479170928731df93186a0c5c27e794d2a8f4171ba5f796740c27553c8f"
+    },
+    "source_resume": {
+      "path": "/home/riomus/runs/sfora-full-valid-anchor-2000-v1/resume.pt",
+      "sha256": "e32dd813c456a0ed319d933b74ffbc9b42886cf0641cb673e4c36945b90c43fa"
+    },
+    "training": {
+      "path": "/home/riomus/runs/sfora-full-valid-anchor-2000-v1/receipt.json",
+      "sha256": "d718e4dee3971b13398a43ec56d02057491059d7e62f99362ef384d71b3a036e"
+    }
+  },
+  "lock_paths": {
+    "cpu": [],
+    "gpu": [
+      "/home/riomus/runs/.sfora-siglip2-gpu.lock",
+      "/home/riomus/.sfora-siglip2-gpu.lock"
+    ]
+  },
+  "original_execution_sha256": "4dcc6227059da973ff4b9c400264b8a7a4e6e5af03b7f40fa5df157d4c4d6375",
+  "original_root": "/home/riomus/runs/sfora-full-valid-anchor-checkpoint-v1",
+  "prepared_root": "/home/riomus/runs/sfora-full-valid-anchor-public-source-v3",
+  "schema": "full-valid-anchor-serving-authority-v1",
+  "source_checkpoint": {
+    "path": "/home/riomus/runs/sfora-pe-augmented-100-v2/large.pt",
+    "sha256": "f5fbf0e8eb3492274b6febeb6fd06a4b0d8b0fce4c7170069f3fa0d7b0a8df4d"
+  }
+}
