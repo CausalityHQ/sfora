@@ -1,0 +1,23 @@
+{
+  "schema": "native256-flat-admission-parent-receipt-v1",
+  "worker": "sfora/native256-flat-admission-20260930",
+  "instance_id": "1a07cb67-6735-49dc-9aa8-26cfa5fdd2b3",
+  "commit": "78c13a96feb04025e6f423289275052b8f97ccf6",
+  "integration": "c45b55a0",
+  "summary": "Completed commit 78c13a96feb04025e6f423289275052b8f97ccf6 on clean isolated branch, based on ef46dbfc. Exactly scripts/train_siglip2_substrate_adaptation.py and scripts/test_siglip2_substrate_adaptation.py; operator identity preserved, no attribution trailers, no merge/push. Trainer authority now uses invocation-local FlatAdmission, preserving separate source/export/startup/PCA/initialized guard sets and exact initialized_prereq_guards before trainer bindings; authenticates complete fullCPU inventory/checkpoint without loading it. One bounded SHA per unique bulk path; NPY hashes in its semantic scan; authenticated JSON bytes; SHA/size conflict rejection. Genuine q.bootstrap/admit_pca/validate_arrays and factory/state/exit modules remain unchanged, no production helper-global rebinding. No reader/cache retained across native execution; complete shared-dict q.rehash detects same-size restored-mtime checkpoint tampering. Predicate correspondence ledger: trainer class docstring line170; runnable AST predicate correspondence test line240; full synthetic chain/original-stage-inventory comparison line279. CLI/schema/context factory API unchanged; admit_cpu/admit_mechanics take optional admission reader internally. Verification: python3 -B -S assigned test PASS, final subprocess timeout55 gate 27.924s; syntax compile, help/missing args/-O/-OO, duplicate/conflict/JSON/schema/role/startup-stage negatives and uncached exit tamper PASS; git diff --check PASS. AST comparison confirms only existing authority/admit_cpu/admit_mechanics changed; writer, phase/memory.stat, model/objective/schedules/RNG/resume parity/native execution unchanged. Fixture uses real required-shape stdlib NPY/NPZ and synthetic package metadata, mocks only large derived-safetensors header boundary; it is NOT native qualification. No native/SSH/Torch/GPU/quality/consult/child/operator work or full suite. Parent independent predicate audit and combined new Large mechanics gate remain required before So400/pilots.",
+  "parent_verification": {
+    "stdlib_test": "PASS original session78821 exit0",
+    "native_definition_AST": "unchanged except authority/admit_cpu/admit_mechanics plus new FlatAdmission",
+    "protected_rust_sha256": "1ae7f50aa3d222dbc6c6489c4c344ce836d01b895e05341d368db35c6d0cb587",
+    "native_qualification": "PENDING original Large v3"
+  },
+  "launch": {
+    "execution_sha256": "1e14ce6dad77d62139db6352ba3515d29e60279eff646aaf883e073e8e6b2117",
+    "authority_sha256": "b35139563a88145e104d78eac0e574207b9c5387757dcff537e44f6610f66fcb",
+    "unit": "sfora-native256-mechanics-large-v3",
+    "invocation_id": "00386f046f1f4b8fa7b2d565c33aef1c",
+    "main_pid": 2425350,
+    "session": 28256,
+    "log": "/tmp/sfora-native256-mechanics-large-v3.log"
+  }
+}
