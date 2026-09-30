@@ -1,0 +1,92 @@
+{
+  "schema": "late-dense-held-authority-v1",
+  "execution_sha256": "59a2d01b3c39ce06d74a9048e1cb04bd124165116db27010e635ff3b38f91060",
+  "cpu": {
+    "receipt": "/home/riomus/runs/sfora-late-dense-source-v2/late-cpu-proof-v2.json",
+    "receipt_sha256": "cb9d97b57bd2ed4e914fc97944091bb1fa7bead12274ea3f3eee0046f268de0e",
+    "log": "/home/riomus/runs/sfora-late-dense-source-v2/cpu-v3.log",
+    "log_sha256": "615a483ebd5636b749a74873bb01ac21c7e45265607e6054583fc86cb8e12773",
+    "unit": "sfora-late-dense-cpu-v3",
+    "invocation_id": "0b001dd9f924486181e162d1e2aff529",
+    "service_seconds": 34.642,
+    "host_max_rss_kib": 5761928,
+    "host_swap_kib": 0
+  },
+  "mechanics": {
+    "receipt": "/home/riomus/runs/sfora-late-dense-mechanics-v1/receipt.json",
+    "receipt_sha256": "1423ee7cfdb65893268e91c7a8ae54baac257a84ef6dd127803d4aa577b5ba3a",
+    "log": "/home/riomus/runs/sfora-late-dense-source-v4/mechanics-v1.log",
+    "log_sha256": "2919a90acef1f508317becf511388dcc62f29104fd2869b952fc96385ba2b6d4",
+    "unit": "sfora-late-dense-mechanics-v1",
+    "invocation_id": "e5614ebd224a4519a59017bc9fc67309",
+    "service_seconds": 108.997,
+    "host_max_rss_kib": 8133180,
+    "host_swap_kib": 0
+  },
+  "endpoints": [
+    {
+      "seed": 179032,
+      "arm": "control",
+      "run": "/home/riomus/runs/sfora-late-dense-control-179032-v1",
+      "receipt": "/home/riomus/runs/sfora-late-dense-control-179032-v1/receipt.json",
+      "receipt_sha256": "1ec76986fb13916165d510935a9e7fb4508cd243a8cce0b7ad8211a75fb04331",
+      "log": "/home/riomus/runs/sfora-late-dense-source-v4/control-179032-v1.log",
+      "log_sha256": "35ebbfdc3354414d288b30775e614db90dca4612b66c53110a6a15a47f513a40",
+      "unit": "sfora-late-dense-control-179032-v1",
+      "invocation_id": "a5d279e9738d43e2a85e7085bb69bcdc",
+      "service_seconds": 154.531,
+      "host_max_rss_kib": 5592836,
+      "host_swap_kib": 0,
+      "checkpoint_sha256": "b40c8e4dc64e862ac463ba3fd961aa92eb75a3e27e48db75dd3fc3a8cb840bf6",
+      "terminal_state_fingerprint": "c831e5e3d3f1a53056befe72acad38ce413ac9a24f887739f222e0227e390790"
+    },
+    {
+      "seed": 179032,
+      "arm": "candidate",
+      "run": "/home/riomus/runs/sfora-late-dense-candidate-179032-v1",
+      "receipt": "/home/riomus/runs/sfora-late-dense-candidate-179032-v1/receipt.json",
+      "receipt_sha256": "4b2a5e704f48c39ef5267dec78d92d3a6853935de42c0d3e1c3605b5bc24a605",
+      "log": "/home/riomus/runs/sfora-late-dense-source-v4/candidate-179032-v1.log",
+      "log_sha256": "ece5edba64116eea1e9002c03ece008db0b53c88d23959b3d39a6f88df4b3db4",
+      "unit": "sfora-late-dense-candidate-179032-v1",
+      "invocation_id": "7bb84b9fb5ee473b9c0843722a23e209",
+      "service_seconds": 165.178,
+      "host_max_rss_kib": 5789676,
+      "host_swap_kib": 0,
+      "checkpoint_sha256": "6f4400be4ca985f9bcc36acf5784cd170a9ea183c85104cdb86ac08060aad7d6",
+      "terminal_state_fingerprint": "5b543f73de75d9b5e1c02b1a2c05ad76eaa913df49aa60fdbe2e91e81c2f1d57"
+    },
+    {
+      "seed": 179041,
+      "arm": "candidate",
+      "run": "/home/riomus/runs/sfora-late-dense-candidate-179041-v1",
+      "receipt": "/home/riomus/runs/sfora-late-dense-candidate-179041-v1/receipt.json",
+      "receipt_sha256": "91af26d482eacd6c0f691846ab8dca9434dd102197dafe1d5eb0c42bfb125ea4",
+      "log": "/home/riomus/runs/sfora-late-dense-source-v4/candidate-179041-v1.log",
+      "log_sha256": "853f75155fffb44c18d038839c2789c2f4ca257b7ca7dcf48fc07295db120858",
+      "unit": "sfora-late-dense-candidate-179041-v1",
+      "invocation_id": "a729eba364514583bfce1a33560710e9",
+      "service_seconds": 164.879,
+      "host_max_rss_kib": 5781608,
+      "host_swap_kib": 0,
+      "checkpoint_sha256": "35afde51957f400c1bba3b48d8c0b8ce52ed4f4b84aa0e2dc3a8c6ea1906af75",
+      "terminal_state_fingerprint": "c147f04c6785dfaa5d28ce3df0c7b14b0a28794370e404d610737bb0f7cc7aac"
+    },
+    {
+      "seed": 179041,
+      "arm": "control",
+      "run": "/home/riomus/runs/sfora-late-dense-control-179041-v1",
+      "receipt": "/home/riomus/runs/sfora-late-dense-control-179041-v1/receipt.json",
+      "receipt_sha256": "739337d9b6ac6b653fc8c42e00f60ebb92cbd6061ba3393f25a731b6fd46b70f",
+      "log": "/home/riomus/runs/sfora-late-dense-source-v4/control-179041-v1.log",
+      "log_sha256": "d4efd0f83734e416441bf364a36e3b7f2df6a0a77f2642eab4360fdb91549d50",
+      "unit": "sfora-late-dense-control-179041-v1",
+      "invocation_id": "18cf05e3a81846ad98a2c569ed2da22a",
+      "service_seconds": 152.243,
+      "host_max_rss_kib": 5592516,
+      "host_swap_kib": 0,
+      "checkpoint_sha256": "296f0df067f89680830c79f93944d0657d9900785fdf3679cfbb4954ee33edee",
+      "terminal_state_fingerprint": "946bbd7ed8d378b46d4a236852c1324bc9e3f5ae7e7197d0cafdc5a034bb31f2"
+    }
+  ]
+}
