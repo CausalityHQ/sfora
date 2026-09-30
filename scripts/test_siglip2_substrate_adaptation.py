@@ -6,6 +6,7 @@ if not __debug__:
 import ast
 import builtins
 import copy
+import ctypes
 from contextlib import nullcontext
 from collections import Counter
 import hashlib
@@ -13,6 +14,7 @@ import importlib.util
 import io
 import json
 import math
+import mmap
 import os
 import random
 import shutil
@@ -73,6 +75,227 @@ class Rows(list):
 
     def sum(self):
         return sum(self)
+
+
+def checkpoint_restore_checks(driver, root):
+    # A full fingerprint/copy must release its consumed mmap pages, and Adam
+    # step scalars must own bytes independently even when their device stays CPU.
+    assert hasattr(driver, 'CheckpointPages'), 'missing consumed checkpoint page lifetime'
+    path = root / 'mapped-checkpoint.zip'
+    block = bytes(range(256)) * 8192 + b'partial tail'
+    with zipfile.ZipFile(path, 'w', compression=zipfile.ZIP_STORED) as archive:
+        archive.writestr('archive/data/0', block)
+        archive.writestr('archive/data/1', b'1234')
+    original_sha = sha(path)
+    with path.open('rb') as stream, mmap.mmap(stream.fileno(), 0, access=mmap.ACCESS_COPY) as mapped:
+        address = ctypes.addressof(ctypes.c_char.from_buffer(mapped))
+        pages = driver.CheckpointPages(stream)
+        events = []
+        real_madvise, real_advice = pages.madvise, os.posix_fadvise
+        def madvise(start, size, advice):
+            assert advice == mmap.MADV_DONTNEED
+            events.append(('mapped', start - address, size))
+            return real_madvise(start, size, advice)
+        def fadvise(fd, offset, size, advice):
+            assert fd == stream.fileno() and advice == os.POSIX_FADV_DONTNEED
+            assert events and events[-1] == ('mapped', offset, size), 'file advice preceded unmapping'
+            events.append(('file', offset, size))
+            real_advice(fd, offset, size, advice)
+        pages.madvise = madvise
+        page = os.sysconf('SC_PAGESIZE')
+        with patch.object(os, 'posix_fadvise', fadvise):
+            assert mapped[44:44 + len(block)] == block
+            pages.release(address + 44, len(block))
+            end = (44 + len(block)) // page * page
+            assert events == [('mapped', page, end - page), ('file', page, end - page)]
+            events.clear()
+            pages.release(address + 44, 4)
+            pages.release(0, 0)
+            assert events == []  # No zero-length advice (which would mean to EOF).
+            # Refaulting later aliases must preserve the exact serialized bytes.
+            assert mapped[44:44 + len(block)] == block and sha(path) == original_sha
+            for start, count in ((address - 1, page), (address, len(mapped) + 1), (address, -1)):
+                rejects(lambda: pages.release(start, count), 'checkpoint mapping range')
+            with patch.object(pages, 'madvise', return_value=-1):
+                ctypes.set_errno(5)
+                rejects(lambda: pages.release(address, page), 'Input/output error')
+                assert events == [], 'file advice followed failed madvise'
+            with patch.object(os, 'posix_fadvise', side_effect=OSError('advice failed')):
+                rejects(lambda: pages.release(address, page), 'advice failed')
+
+        class Tensor:
+            dtype, shape, _version = 'torch.uint8', (len(block),), 0
+            device = SimpleNamespace(type='cpu')
+            def __init__(self, start=44, count=len(block), data=None):
+                self.start, self.count, self.data = start, count, data
+                self.shape = (count,)
+            def data_ptr(self):
+                return address + self.start if self.data is None else id(self.data)
+            def numel(self):
+                return self.count
+            def element_size(self):
+                return 1
+            def is_contiguous(self):
+                return True
+            def detach(self):
+                return self
+            cpu = contiguous = detach
+            def reshape(self, *args):
+                return self
+            def view(self, *args):
+                return self
+            def numpy(self):
+                return memoryview(mapped)[self.start:self.start + self.count] if self.data is None else self.data
+            def to(self, device, *, copy):
+                assert copy is True
+                events.append(('copy', device, self.count))
+                return Tensor(count=self.count, data=bytes(self.numpy()))
+        fake_torch = SimpleNamespace(Tensor=Tensor, uint8='torch.uint8')
+        tensor = Tensor()
+        with patch.dict(sys.modules, {'torch': fake_torch}), patch.object(os, 'posix_fadvise', fadvise):
+            original = driver.fingerprint({'vision': tensor, 'optimizer': {'step': Tensor(44, 4)}})
+            events.clear()
+            real_sha = hashlib.sha256
+            def tensor_sha(data=b''):
+                if isinstance(data, memoryview):
+                    events.append(('hashed', len(data)))
+                return real_sha(data)
+            with patch.object(driver.hashlib, 'sha256', tensor_sha):
+                assert driver.fingerprint({'vision': tensor, 'optimizer': {'step': Tensor(44, 4)}},
+                                          consumed=pages.consume) == original
+            assert events == [('hashed', 4), ('hashed', len(block)),
+                              ('mapped', page, end - page), ('file', page, end - page)]
+            events.clear()
+            owned = pages.copy(tensor)
+            assert owned.data == block and events[0] == ('copy', 'cpu', len(block))
+            assert events[1:] == [('mapped', page, end - page), ('file', page, end - page)]
+            step = pages.copy(Tensor(44, 4))
+            assert step.data == b'\x00\x01\x02\x03' and step.data_ptr() != address + 44
+            with patch.object(tensor, 'to', side_effect=OSError('copy failed')):
+                events.clear()
+                rejects(lambda: pages.copy(tensor), 'copy failed')
+                assert events == []
+            def failed_sha(data=b''):
+                if isinstance(data, memoryview):
+                    raise OSError('hash failed')
+                return real_sha(data)
+            with patch.object(driver.hashlib, 'sha256', failed_sha):
+                rejects(lambda: driver.fingerprint(tensor, consumed=pages.consume), 'hash failed')
+                assert events == []
+            with patch.object(tensor, 'device', SimpleNamespace(type='cuda')):
+                rejects(lambda: pages.consume(tensor), 'CPU tensor')
+            with patch.object(tensor, 'is_contiguous', return_value=False):
+                pages.consume(tensor)
+                assert events == []  # Do not advise unread strided storage gaps.
+            assert pages.copy(tensor, 'cuda').data == block
+            assert events[0] == ('copy', 'cuda', len(block))
+
+        # Scoped post-load hooks cannot survive success, strict-load errors or
+        # advice failures. Native Torch load itself remains the parent's check.
+        copied, order = {}, []
+        class Module:
+            def __init__(self, name):
+                self.name, self.hooks = name, []
+            def named_parameters(self, *, recurse):
+                assert recurse is False
+                return [('weight', None)] if self.name else []
+            def named_buffers(self, *, recurse):
+                assert recurse is False
+                return [('running', None), ('nonpersistent', None)] if self.name else []
+            def register_load_state_dict_post_hook(self, hook):
+                self.hooks.append(hook)
+                return SimpleNamespace(remove=lambda: self.hooks.remove(hook))
+        class Model(Module):
+            def __init__(self):
+                super().__init__('')
+                self.children = [Module('first'), Module('second')]
+            def named_modules(self):
+                return [('', self)] + [(m.name, m) for m in self.children]
+            def load_state_dict(self, values, *, strict):
+                assert strict is True
+                for child in self.children:
+                    for local in ('weight', 'running'):
+                        name = child.name + '.' + local
+                        if name not in values:
+                            raise ValueError('strict missing weight/buffer')
+                        copied[name] = bytes(values[name].numpy())
+                        order.append(('copy', name))
+                    for hook in child.hooks:
+                        assert hook(child, None) is None
+                for hook in self.hooks:
+                    assert hook(self, None) is None
+        model = Model()
+        vision = {name + '.' + local: Tensor() for name in ('first', 'second') for local in ('weight', 'running')}
+        real_consume = pages.consume
+        def consumed(value):
+            key = next(k for k, v in vision.items() if v is value)
+            assert copied[key] == block
+            order.append(('consume', key))
+            real_consume(value)
+        with patch.object(pages, 'consume', consumed):
+            driver.load_vision(model, vision, pages)
+        assert order == [('copy', 'first.weight'), ('copy', 'first.running'),
+                         ('consume', 'first.weight'), ('consume', 'first.running'),
+                         ('copy', 'second.weight'), ('copy', 'second.running'),
+                         ('consume', 'second.weight'), ('consume', 'second.running')]
+        assert not any(m.hooks for _, m in model.named_modules())
+        with patch.object(pages, 'consume', side_effect=OSError('load advice failed')):
+            rejects(lambda: driver.load_vision(model, vision, pages), 'load advice failed')
+        assert not any(m.hooks for _, m in model.named_modules())
+        rejects(lambda: driver.load_vision(model, {k: v for k, v in vision.items() if k.startswith('first.')}, pages),
+                'strict missing weight')
+        assert not any(m.hooks for _, m in model.named_modules())
+        with patch.object(model.children[1], 'register_load_state_dict_post_hook',
+                          side_effect=OSError('registration failed')):
+            rejects(lambda: driver.load_vision(model, vision, pages), 'registration failed')
+        assert not any(m.hooks for _, m in model.named_modules())
+        # Only the exact private mapping of the opened inode may be advised.
+        maps_path = driver.Path('/proc/self/maps')
+        actual_maps = maps_path.read_text()
+        checkpoint_line = next(line for line in actual_maps.splitlines() if str(path) in line)
+        fields = checkpoint_line.split(maxsplit=5)
+        for index, replacement in ((0, f'{address:x}-{address + page:x}'),
+                                   (1, 'rw-s'), (2, '00001000'), (3, 'ff:ff'), (4, '0')):
+            changed = fields.copy(); changed[index] = replacement
+            with patch.object(driver.Path, 'read_text', return_value=' '.join(changed)):
+                rejects(lambda: driver.CheckpointPages(stream), 'checkpoint mapping identity')
+        for text in ('', checkpoint_line + '\n' + checkpoint_line):
+            with patch.object(driver.Path, 'read_text', return_value=text):
+                rejects(lambda: driver.CheckpointPages(stream), 'checkpoint mapping identity')
+    assert sha(path) == original_sha
+    with zipfile.ZipFile(path) as archive:
+        assert archive.read('archive/data/0') == block and archive.read('archive/data/1') == b'1234'
+
+
+def native_contract_checks(driver):
+    # Frozen base 8bdaf7d6: only fingerprint/restore and their page helpers may
+    # change. Includes ALL admission, writer, math, freshCPU,17/8+9, final raw/
+    # packed reload, locks/caps, and uncached exit logic, not just named constants.
+    tree = ast.parse(Path(driver.__file__).read_bytes())
+    fingerprint = copy.deepcopy(next(node for node in tree.body if getattr(node, 'name', None) == 'fingerprint'))
+    assert fingerprint.args.args[-1].arg == 'consumed'
+    fingerprint.args.args.pop(); fingerprint.args.defaults.pop()
+    class WithoutAdvice(ast.NodeTransformer):
+        def visit_If(self, node):
+            if any(isinstance(part, ast.Name) and part.id == 'consumed' for part in ast.walk(node.test)):
+                return None
+            return self.generic_visit(node)
+    assert hashlib.sha256(ast.dump(WithoutAdvice().visit(fingerprint), include_attributes=False).encode()).hexdigest() == (
+        '9f9e4a507c623fab8d907210db8626f597e37ecb45a9abd8f3fe5acc165d7aaa')
+    restore = next(node for node in tree.body if getattr(node, 'name', None) == 'restore_independent')
+    predicates = [node for node in ast.walk(restore) if isinstance(node, ast.Call) and
+                  isinstance(node.func, ast.Name) and node.func.id == 'require']
+    for predicate in predicates:
+        for node in ast.walk(predicate):
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == 'fingerprint':
+                node.keywords = [kw for kw in node.keywords if kw.arg != 'consumed']
+    assert hashlib.sha256('\n'.join(sorted(ast.dump(node, include_attributes=False)
+                                           for node in predicates)).encode()).hexdigest() == (
+        'bf2f4c8aa1174c86bac0218f34306da28c995cb8289ebd7abb7d436e37b9bb79')
+    changed = {'fingerprint', 'restore_independent', 'CheckpointPages', 'load_vision'}
+    tree.body = [node for node in tree.body if getattr(node, 'name', None) not in changed]
+    assert hashlib.sha256(ast.dump(tree, include_attributes=False).encode()).hexdigest() == (
+        '1944ddd235a078ae0b85e741f2b0b801f4a09a7068c694c0bd5eec9ee2529891')
 
 
 def checkpoint_write_checks(driver, root):
@@ -570,6 +793,9 @@ def flat_chain_checks(driver, base):
 def main():
     path = Path(__file__).with_name('train_siglip2_substrate_adaptation.py').resolve()
     driver = module(path, 'adaptation_under_test')
+    native_contract_checks(driver)
+    with TemporaryDirectory() as directory:
+        checkpoint_restore_checks(driver, Path(directory))
     predicate_correspondence_checks(driver)
     assert hasattr(driver, 'FlatAdmission'), 'trainer-owned flat admission is missing'
     with TemporaryDirectory() as directory:
@@ -986,7 +1212,7 @@ def main():
     with TemporaryDirectory() as directory, patch.dict(sys.modules):
         flat_chain_checks(driver, Path(directory).resolve())
     assert not any(n.split('.')[0] in driver.NATIVE for n in sys.modules)
-    print('PASS stdlib flat-chain/predicate-ledger/stage-guards/unique-bulk-SHA/uncached-exit-tamper/authority/reference/math/schedule/full-state/JSON/RGB/source-byte/checkpoint-write/ZIP/phase-log checks; native unrun')
+    print('PASS stdlib checkpoint-mmap/consumed-order/ownership/failures/native-contract/flat-chain/predicate-ledger/stage-guards/unique-bulk-SHA/uncached-exit-tamper/authority/reference/math/schedule/full-state/JSON/RGB/source-byte/checkpoint-write/ZIP/phase-log checks; native unrun')
 
 
 if __name__ == '__main__':

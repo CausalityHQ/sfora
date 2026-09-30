@@ -988,7 +988,7 @@ def valid_rank(ref, raw, bank, head, positives, ordinals):
                                     live_head=False) * (valid.sum() / len(valid))
 
 
-def fingerprint(value, frozen=None):
+def fingerprint(value, frozen=None, consumed=None):
     """Typed, length-framed complete tree hash; tensor device is not identity."""
     import torch
     digest = hashlib.sha256()
@@ -1003,6 +1003,8 @@ def fingerprint(value, frozen=None):
             if fact is None:
                 raw = item.detach().cpu().contiguous().reshape(-1).view(torch.uint8).numpy()
                 fact = (str(item.dtype), tuple(item.shape), hashlib.sha256(memoryview(raw)).hexdigest())
+            if consumed is not None:
+                consumed(item)
             visit(fact)
         elif isinstance(item, dict):
             frame('dict'); frame(str(len(item)))
@@ -1171,6 +1173,81 @@ def move_cuda(context, state, ref):
     return state
 
 
+class CheckpointPages:
+    """Drop only consumed complete pages of this read-only-use Torch private mmap.
+
+    fadvise alone cannot drop mapped pages. Validate the actual VMA against the
+    open file before madvise; later aliases can refault unchanged archive bytes.
+    Advice is not a resource-fit guarantee. Never use on mutated mapped tensors.
+    """
+    def __init__(self, stream):
+        import ctypes
+        self.fd = stream.fileno()
+        stat = os.fstat(self.fd)
+        self.size, self.page = stat.st_size, os.sysconf('SC_PAGESIZE')
+        matches = []
+        for line in Path('/proc/self/maps').read_text().splitlines():
+            span, mode, offset, device, inode, *_ = line.split(maxsplit=5)
+            major, minor = (int(part, 16) for part in device.split(':'))
+            if (major, minor, int(inode)) == (os.major(stat.st_dev), os.minor(stat.st_dev), stat.st_ino):
+                matches.append((span, mode, int(offset, 16)))
+        require(len(matches) == 1, 'checkpoint mapping identity differs')
+        span, mode, offset = matches[0]
+        self.start, end = (int(part, 16) for part in span.split('-'))
+        require(mode == 'rw-p' and offset == 0 and self.start % self.page == 0 and
+                end - self.start == (self.size + self.page - 1) // self.page * self.page,
+                'checkpoint mapping identity differs')
+        self.madvise = ctypes.CDLL(None, use_errno=True).madvise
+        self.madvise.argtypes = (ctypes.c_void_p, ctypes.c_size_t, ctypes.c_int)
+        self.madvise.restype = ctypes.c_int
+
+    def release(self, address, count):
+        import ctypes
+        import mmap
+        if count == 0:
+            return
+        require(count > 0 and self.start <= address <= address + count <= self.start + self.size,
+                'checkpoint mapping range differs')
+        start = (address + self.page - 1) // self.page * self.page
+        end = (address + count) // self.page * self.page
+        if end > start:
+            if self.madvise(start, end - start, mmap.MADV_DONTNEED) != 0:
+                error = ctypes.get_errno()
+                raise OSError(error, os.strerror(error))
+            os.posix_fadvise(self.fd, start - self.start, end - start, os.POSIX_FADV_DONTNEED)
+
+    def consume(self, value):
+        require(value.device.type == 'cpu', 'checkpoint CPU tensor required')
+        # A strided view need not consume its storage's gaps; leave those pages
+        # alone. Vision weights/moments are contiguous; full hashing is unchanged.
+        if value.is_contiguous():
+            self.release(value.data_ptr(), value.numel() * value.element_size())
+
+    def copy(self, value, device='cpu'):
+        result = value.to(device, copy=True)  # Blocking; also owns same-device CPU steps.
+        self.consume(value)
+        return result
+
+
+def load_vision(model, vision, pages):
+    """Keep the genuine strict recursive loader; release each copied module's bytes."""
+    handles = []
+    try:
+        for prefix, module in model.named_modules():
+            prefix = prefix + '.' if prefix else ''
+            keys = tuple(prefix + name for name, _ in
+                         list(module.named_parameters(recurse=False)) + list(module.named_buffers(recurse=False))
+                         if prefix + name in vision)
+            def consumed(module, incompatible, keys=keys):
+                for key in keys:
+                    pages.consume(vision[key])
+            handles.append(module.register_load_state_dict_post_hook(consumed))
+        model.load_state_dict(vision, strict=True)
+    finally:
+        for handle in handles:
+            handle.remove()
+
+
 def restore_independent(context, ref, checkpoint, expected_sha, expected_fingerprint, identity, flags, step):
     """Caller has released every reference to the previous model and optimizer."""
     import torch
@@ -1178,35 +1255,49 @@ def restore_independent(context, ref, checkpoint, expected_sha, expected_fingerp
     source, initialized = context['source'], context['initialized']
     bound_file({}, checkpoint, expected_sha)
     disk = torch.load(checkpoint, map_location='cpu', weights_only=True, mmap=True)
-    check_payload(disk, identity, step, identity['optimizer_defaults'], identity['optimizer_serial_groups'],
-                  identity['parameter_names'], flags)
-    require(fingerprint(disk) == expected_fingerprint and disk['config'] == identity['config'], 'serialized complete state differs')
-    model = source.construct(disk['config'], initialized['source_context'])
-    model.load_state_dict(disk['vision'], strict=True)
-    roles = source.configure_roles(model, initialized['source_context']['expected'], model.config.num_hidden_layers)
-    buffers = dict(model.named_buffers())
-    require(buffers.keys() == disk['buffers'].keys(), 'independent complete buffer inventory differs')
-    with torch.no_grad():
-        for name, value in buffers.items():
-            require(value.shape == disk['buffers'][name].shape and value.dtype == disk['buffers'][name].dtype,
-                    'independent buffer shape/dtype differs')
-            value.copy_(disk['buffers'][name])
-    head = context['qualifier'].head_from({'head.weight': disk['head']['weight'], 'head.bias': disk['head']['bias']},
-                                        WIDTHS[context['args'].arm])
-    processor = AutoImageProcessor.from_pretrained(initialized['source_context']['entry']['input']['preprocessor']['path'],
-                                                   local_files_only=True, backend='torchvision')
-    state = {'model': model, 'head': head, 'processor': processor, 'inventory': roles,
-             'classifier': torch.nn.Parameter(disk['classifier'].clone()), 'bank': disk['bank'].clone().detach(),
-             'target': disk['target'].clone(), 'pca': {n: v.clone() for n, v in disk['pca'].items()},
-             'schedules': {n: v.clone() for n, v in disk['schedules'].items()},
-             'seed': disk['seed'], 'counter': disk['counter']}
-    state = move_cuda(context, state, ref)
-    require(runtime(context, state) == identity['runtime'], 'independent complete runtime/processor differs')
-    require(torch.equal(state['positive'].cpu(), disk['positive']), 'independent singleton/positive table differs')
-    state['optimizer'].load_state_dict(disk['optimizer'])
-    state['scaler'].load_state_dict(disk['scaler'])
-    torch.random.set_rng_state(disk['cpu_rng'])
-    torch.cuda.set_rng_state_all(disk['cuda_rng'])
+    with checkpoint.open('rb') as stream:
+        pages = CheckpointPages(stream)
+        check_payload(disk, identity, step, identity['optimizer_defaults'], identity['optimizer_serial_groups'],
+                      identity['parameter_names'], flags)
+        require(fingerprint(disk, consumed=pages.consume) == expected_fingerprint and
+                disk['config'] == identity['config'], 'serialized complete state differs')
+        model = source.construct(disk['config'], initialized['source_context'])
+        load_vision(model, disk['vision'], pages)
+        roles = source.configure_roles(model, initialized['source_context']['expected'], model.config.num_hidden_layers)
+        buffers = dict(model.named_buffers())
+        require(buffers.keys() == disk['buffers'].keys(), 'independent complete buffer inventory differs')
+        with torch.no_grad():
+            for name, value in buffers.items():
+                require(value.shape == disk['buffers'][name].shape and value.dtype == disk['buffers'][name].dtype,
+                        'independent buffer shape/dtype differs')
+                value.copy_(disk['buffers'][name])
+                pages.consume(disk['buffers'][name])
+        head = context['qualifier'].head_from({'head.weight': disk['head']['weight'], 'head.bias': disk['head']['bias']},
+                                            WIDTHS[context['args'].arm])
+        for tensor in disk['head'].values():
+            pages.consume(tensor)
+        del tensor
+        processor = AutoImageProcessor.from_pretrained(initialized['source_context']['entry']['input']['preprocessor']['path'],
+                                                       local_files_only=True, backend='torchvision')
+        state = {'model': model, 'head': head, 'processor': processor, 'inventory': roles,
+                 'classifier': torch.nn.Parameter(pages.copy(disk['classifier'])),
+                 'bank': pages.copy(disk['bank']).detach(), 'target': pages.copy(disk['target']),
+                 'pca': {n: pages.copy(v) for n, v in disk['pca'].items()},
+                 'schedules': {n: pages.copy(v) for n, v in disk['schedules'].items()},
+                 'seed': disk['seed'], 'counter': disk['counter']}
+        state = move_cuda(context, state, ref)
+        require(runtime(context, state) == identity['runtime'], 'independent complete runtime/processor differs')
+        require(torch.equal(state['positive'].cpu(), disk['positive']), 'independent singleton/positive table differs')
+        pages.consume(disk['positive'])
+        for moments in disk['optimizer']['state'].values():
+            for name in moments:
+                # AdamW preserves noncapturable CPU step tensors by reference:
+                # clone them so no four-byte step pins the entire mapped archive.
+                moments[name] = pages.copy(moments[name], 'cpu' if name == 'step' else 'cuda')
+        state['optimizer'].load_state_dict(disk['optimizer'])
+        state['scaler'].load_state_dict(disk['scaler'])
+        torch.random.set_rng_state(pages.copy(disk['cpu_rng']))
+        torch.cuda.set_rng_state_all([pages.copy(value) for value in disk['cuda_rng']])
     del disk, buffers, value, model, head
     gc.collect()
     integrity(state, identity)
