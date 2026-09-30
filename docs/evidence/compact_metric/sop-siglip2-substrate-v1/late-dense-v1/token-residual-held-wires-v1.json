@@ -1,0 +1,106 @@
+{
+  "authority_sha256": "27098916e8fe8b2a838c6efb2ababc0a29cf6baa37b863fa2eedd18aa2cbe55c",
+  "schema": "token-residual-held-wires-v1",
+  "wires": [
+    {
+      "arm": "control",
+      "cpu": {
+        "host_max_rss_kib": 5101132,
+        "host_swap_kib": 0,
+        "invocation_id": "6290244fa24e44aca8c5ed0540e1c621",
+        "log": "/home/riomus/runs/sfora-token-residual-held-source-v1/held-cpu-control-179032-v1.log",
+        "log_sha256": "89561f7f3309783f4ec6c120f467a0e652cda1f02be7c29a28719351a34f192d",
+        "receipt": "/home/riomus/runs/sfora-token-residual-held-cpu-control-179032-v1/proof.json",
+        "receipt_sha256": "8a6eb9bcea26a41f01891b7c95b69cc0fa10192cd81f6972f1de21c31aeee0fa",
+        "service_seconds": 46.598,
+        "unit": "sfora-token-residual-held-cpu-control-179032-v1"
+      },
+      "host_max_rss_kib": 5117480,
+      "host_swap_kib": 0,
+      "invocation_id": "be93c129ef90498d8adcf92b5f1ec688",
+      "log": "/home/riomus/runs/sfora-token-residual-held-source-v1/held-control-179032-v1.log",
+      "log_sha256": "931d0d6310ed3da46ceabe240c8c0b21da716366a21efadaf851fb15c193a1d1",
+      "receipt": "/home/riomus/runs/sfora-token-residual-held-control-179032-v1/receipt.json",
+      "receipt_sha256": "7fe8a726d361e7fb186b7fe4fbb3585e5ccf85d144e4bed830b55c0e098dd730",
+      "run": "/home/riomus/runs/sfora-token-residual-held-control-179032-v1",
+      "seed": 179032,
+      "service_seconds": 250.406,
+      "unit": "sfora-token-residual-held-control-179032-v1"
+    },
+    {
+      "arm": "candidate",
+      "cpu": {
+        "host_max_rss_kib": 5105112,
+        "host_swap_kib": 0,
+        "invocation_id": "d9daf17b72e941ed8e094cf879b5c918",
+        "log": "/home/riomus/runs/sfora-token-residual-held-source-v1/held-cpu-candidate-179032-v1.log",
+        "log_sha256": "7aa39639ed7d6c1561ea6ace1ae42fdf7eb4934f68a5dd943015916fea601d44",
+        "receipt": "/home/riomus/runs/sfora-token-residual-held-cpu-candidate-179032-v1/proof.json",
+        "receipt_sha256": "4a331d50f4c1dc44e120610b8eff88995488a312e4ca8a8f13afe6a59b0a267a",
+        "service_seconds": 46.344,
+        "unit": "sfora-token-residual-held-cpu-candidate-179032-v1"
+      },
+      "host_max_rss_kib": 5122828,
+      "host_swap_kib": 0,
+      "invocation_id": "61a052a8a0d549e989f89021c7bcf66c",
+      "log": "/home/riomus/runs/sfora-token-residual-held-source-v1/held-candidate-179032-v1.log",
+      "log_sha256": "6d7a68860efafb7bd5d1b090aca7cefc0fc5fa7c3e5d684fe056797795903b45",
+      "receipt": "/home/riomus/runs/sfora-token-residual-held-candidate-179032-v1/receipt.json",
+      "receipt_sha256": "700c25b4e3ee32f5068324c3f83b97283ce3553a63f1239d988b0c1b04f28595",
+      "run": "/home/riomus/runs/sfora-token-residual-held-candidate-179032-v1",
+      "seed": 179032,
+      "service_seconds": 245.579,
+      "unit": "sfora-token-residual-held-candidate-179032-v1"
+    },
+    {
+      "arm": "candidate",
+      "cpu": {
+        "host_max_rss_kib": 5105576,
+        "host_swap_kib": 0,
+        "invocation_id": "95bde585450641c3a685e115a8073250",
+        "log": "/home/riomus/runs/sfora-token-residual-held-source-v1/held-cpu-candidate-179041-v1.log",
+        "log_sha256": "79838e9f536ddf2d620ba102f16e2ebf0653826a35412fdeb5c681270fea76e6",
+        "receipt": "/home/riomus/runs/sfora-token-residual-held-cpu-candidate-179041-v1/proof.json",
+        "receipt_sha256": "35e8f9f848e35753ea54f6e8f85e1b742e918879cd7b39fd909f2d4a0beffeee",
+        "service_seconds": 48.274,
+        "unit": "sfora-token-residual-held-cpu-candidate-179041-v1"
+      },
+      "host_max_rss_kib": 5120596,
+      "host_swap_kib": 0,
+      "invocation_id": "308953cdffd744c092e656345a74a4b1",
+      "log": "/home/riomus/runs/sfora-token-residual-held-source-v1/held-candidate-179041-v1.log",
+      "log_sha256": "543bfaa498baccf61bce76aa09ef22043c09553162945799ef561cbcfaee6b9f",
+      "receipt": "/home/riomus/runs/sfora-token-residual-held-candidate-179041-v1/receipt.json",
+      "receipt_sha256": "50b6861ecd0230e1c0ac87c19f04b02d6cc28e141002af7cfcb08d582249d113",
+      "run": "/home/riomus/runs/sfora-token-residual-held-candidate-179041-v1",
+      "seed": 179041,
+      "service_seconds": 246.18,
+      "unit": "sfora-token-residual-held-candidate-179041-v1"
+    },
+    {
+      "arm": "control",
+      "cpu": {
+        "host_max_rss_kib": 5101292,
+        "host_swap_kib": 0,
+        "invocation_id": "b85890d13aaa4cd5947600a070691b37",
+        "log": "/home/riomus/runs/sfora-token-residual-held-source-v1/held-cpu-control-179041-v1.log",
+        "log_sha256": "538bc7a2bd4e8be89753b576cce7703d48a387db098793d4da96ffa5f1a66305",
+        "receipt": "/home/riomus/runs/sfora-token-residual-held-cpu-control-179041-v1/proof.json",
+        "receipt_sha256": "a9cc6201074ec6813127ae37d1ea48f44c16d5e7db653308c34ed7b3f5c4314e",
+        "service_seconds": 47.85,
+        "unit": "sfora-token-residual-held-cpu-control-179041-v1"
+      },
+      "host_max_rss_kib": 5117696,
+      "host_swap_kib": 0,
+      "invocation_id": "4b324ab7fd684b9481a46b4fd0c648b3",
+      "log": "/home/riomus/runs/sfora-token-residual-held-source-v1/held-control-179041-v1.log",
+      "log_sha256": "a84d4eafa6c9133d3cee62e44f176938d76b6bd5c6134c2d2414f2a90a1e94bb",
+      "receipt": "/home/riomus/runs/sfora-token-residual-held-control-179041-v1/receipt.json",
+      "receipt_sha256": "7f9d1962ef9c11001cc4f55d070d9a8d377e375b68100d640ad9f202da8cca75",
+      "run": "/home/riomus/runs/sfora-token-residual-held-control-179041-v1",
+      "seed": 179041,
+      "service_seconds": 245.546,
+      "unit": "sfora-token-residual-held-control-179041-v1"
+    }
+  ]
+}
