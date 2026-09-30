@@ -306,9 +306,9 @@ def authority(args):
 
 
 def rehash(context):
+    require(context['guards'] is context['pca']['guards'] is context['source_context']['guards'],
+            'complete exit guard inventory must remain shared')
     context['init'].rehash(context['pca'])
-    for path, digest in context['guards'].items():
-        context['init'].bound_file({}, path, digest)
     require(closure(context['root'], context['args'].execution_sha256, FILES, {}) == context['code'],
             'exit initialized closure differs')
 
