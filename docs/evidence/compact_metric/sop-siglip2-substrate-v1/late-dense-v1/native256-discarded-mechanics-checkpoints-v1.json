@@ -1,0 +1,27 @@
+{
+  "reclaimed_bytes": 7810812894,
+  "records": [
+    {
+      "discarded": true,
+      "path": "/home/riomus/runs/sfora-native256-mechanics-large-v1/discard-mechanics-7m9t9fg9/step8.pt",
+      "qualified": false,
+      "size_bytes": 2603604298,
+      "unit": "sfora-native256-mechanics-large-v1"
+    },
+    {
+      "discarded": true,
+      "path": "/home/riomus/runs/sfora-native256-mechanics-large-v1/discard-mechanics-7m9t9fg9/step17.pt",
+      "qualified": false,
+      "size_bytes": 2603604298,
+      "unit": "sfora-native256-mechanics-large-v1"
+    },
+    {
+      "discarded": true,
+      "path": "/home/riomus/runs/sfora-native256-mechanics-large-v2/discard-mechanics-pt3vb7kh/step8.pt",
+      "qualified": false,
+      "size_bytes": 2603604298,
+      "unit": "sfora-native256-mechanics-large-v2"
+    }
+  ],
+  "schema": "native256-discarded-mechanics-checkpoints-v1"
+}
