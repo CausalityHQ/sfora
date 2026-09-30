@@ -113,8 +113,12 @@ def fixture(base, extract):
     fit = {'schema': 'native256-frozen-fit-manifest-v1', 'fit_images': 13283, 'fit_identities': 2004,
            'held_images_read': 0, 'quality_read': False, 'source_features_reused': False, 'teacher_state_reused': False,
            'dataset_root': str(dataset), 'class_names': classes, 'targets': targets,
-           'rows': [{'train_row': index, 'relative_path': f'Img/img/{index}.jpg',
+           'rows': [{'train_row': index if index < 4 else index + 5, 'relative_path': f'Img/img/{index}.jpg',
                      'product': classes[targets[index]], 'image_sha256': image_hash(index)} for index in range(13283)]}
+    receipt_path = old / 'receipt.json'
+    receipt_sha = write(receipt_path, {'fit_manifest': fit['rows'], 'target_products': targets,
+        'fit_images': 13283, 'held_images': 0, 'quality_read': False, 'read_only': True, 'optimizer_updates': 0})
+    fit['original_receipt'] = {'path': str(receipt_path), 'sha256': receipt_sha}
     fit_path = base / 'fit.json'
     fit_sha = write(fit_path, fit)
     return SimpleNamespace(execution_sha256=digest(base / 'execution.json'), sources=sources_path,
@@ -169,11 +173,53 @@ def main():
             with patch.object(driver.importlib.util, 'find_spec', return_value=SimpleNamespace(origin=str(base / 'shadow.py'))):
                 rejects(lambda: driver.bootstrap(base, execution), 'import origin')
             args, sources, fit, inventory, provenance = fixture(base, extract)
+            assert driver.fit_rows(extract, fit) == [base / 'dataset/Img/img/0.jpg', base / 'dataset/Img/img/1.jpg']
+            assert [row['train_row'] for row in fit['rows'][:6]] == [0, 1, 2, 3, 9, 10]
             # This fixture replaces only safetensors HEADER reading, not file
             # hashes, schema checks, binding, logs, profiles, closure or origins.
             with patch.object(extract, 'read_header', return_value=(inventory, {}, b'')):
                 context = driver.authority(args)
                 assert len(context['expected']) == 400 and len(context['images']) == 2
+                receipt_path = Path(fit['original_receipt']['path'])
+                assert context['guards'][str(receipt_path)] == fit['original_receipt']['sha256']
+                for field, value in (('sha256', '0'*64), ('path', str(base / 'sources.json'))):
+                    altered = copy.deepcopy(fit)
+                    altered['original_receipt'][field] = value
+                    args.fit_manifest_sha256 = write(args.fit_manifest, altered)
+                    rejects(lambda: driver.authority(args), 'SHA256')
+                # Rehashing an internally consistent FIT rewrite cannot change
+                # the original row order, IDs, image hashes or class numbering.
+                for field in ('reorder', 'train_row', 'image_sha256', 'class_names'):
+                    altered = copy.deepcopy(fit)
+                    if field == 'reorder':
+                        for key in ('rows', 'targets'):
+                            altered[key][2:4] = reversed(altered[key][2:4])
+                    elif field == 'class_names':
+                        altered['class_names'].reverse()
+                        altered['targets'] = [2003 - target for target in altered['targets']]
+                    else:
+                        altered['rows'][2][field] = 20000 if field == 'train_row' else '4'*64
+                    args.fit_manifest_sha256 = write(args.fit_manifest, altered)
+                    rejects(lambda: driver.authority(args), 'original FIT binding')
+                receipt = receipt_path.read_bytes()
+                for field in ('target_products', 'class_names'):
+                    altered_receipt, altered = json.loads(receipt), copy.deepcopy(fit)
+                    if field == 'target_products':
+                        altered_receipt[field][2:4] = reversed(altered_receipt[field][2:4])
+                    else:
+                        altered['class_names'].reverse()
+                        altered['targets'] = [2003 - target for target in altered['targets']]
+                        altered_receipt['target_products'] = altered['targets']
+                    altered['original_receipt']['sha256'] = write(receipt_path, altered_receipt)
+                    args.fit_manifest_sha256 = write(args.fit_manifest, altered)
+                    rejects(lambda: driver.authority(args), 'original FIT binding')
+                receipt_path.write_bytes(receipt)
+                args.fit_manifest_sha256 = write(args.fit_manifest, fit)
+                receipt_path.write_bytes(receipt + b'\n')
+                rejects(lambda: driver.authority(args), 'SHA256')
+                rejects(lambda: driver.rehash(context), 'exit authority')
+                receipt_path.write_bytes(receipt)
+                driver.rehash(context)
                 assert not Path(context['entry']['input']['source']['path']).exists()
                 rejects(lambda: driver.fresh_source(context), 'origin preflight')
                 for field, value in (('sources_sha256', '0'*64), ('fit_manifest_sha256', '0'*64)):
@@ -228,7 +274,9 @@ def main():
             so400 = copy.deepcopy(config)
             so400['vision_config'].update(hidden_size=1152, num_hidden_layers=27, intermediate_size=4304)
             assert len(extract.expected_vision(so400, driver.ARMS['so400'])[0]) == 448
-            for field, value in (('train_row', 1), ('relative_path', '../escape'), ('product', 'wrong')):
+            for field, value in (('train_row', 1), ('train_row', -1), ('train_row', True),
+                                 ('train_row', 0.0), ('train_row', '0'),
+                                 ('relative_path', '../escape'), ('product', 'wrong')):
                 bad = copy.deepcopy(fit)
                 bad['rows'][0][field] = value
                 rejects(lambda: driver.fit_rows(extract, bad), 'row/target')
@@ -265,7 +313,7 @@ def main():
                 constructor.write_text('# tamper\n')
                 rejects(lambda: driver.package_origins(context), 'size differs')
     assert not any(package in sys.modules for package in driver.PACKAGES)
-    print('PASS: stdlib closure, authority/tamper, logs, profiles, extra keys, origins, exclusive output and -O; no native execution')
+    print('PASS: stdlib closure, gapped FIT IDs/original receipt binding/tamper, logs, profiles, extra keys, origins, exclusive output and -O; no native execution')
 
 
 if __name__ == '__main__':

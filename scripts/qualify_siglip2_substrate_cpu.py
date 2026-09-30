@@ -146,15 +146,17 @@ def fit_rows(extract, fit):
     rows, targets, classes = fit['rows'], fit['targets'], fit['class_names']
     require(len(rows) == len(targets) == 13283 and len(classes) == len(set(classes)) == 2004,
             'FIT inventory differs')
-    seen = set()
-    for index, (row, target) in enumerate(zip(rows, targets)):
+    seen, train_rows = set(), set()
+    for row, target in zip(rows, targets):
         relative = Path(row['relative_path'])
-        require(row['train_row'] == index and type(target) is int and 0 <= target < 2004 and
+        require(type(row['train_row']) is int and row['train_row'] >= 0 and row['train_row'] not in train_rows and
+                type(target) is int and 0 <= target < 2004 and
                 row['product'] == classes[target] and not relative.is_absolute() and
                 '..' not in relative.parts and str(relative).startswith('Img/img/') and
                 str(relative) not in seen, 'FIT row/target binding differs')
         extract.digest_string(row['image_sha256'])
         seen.add(str(relative))
+        train_rows.add(row['train_row'])
     require(set(targets) == set(range(2004)), 'FIT class coverage differs')
     root = Path(fit['dataset_root'])
     require(root.is_absolute() and root.resolve() == root and root.is_dir(), 'FIT root must be canonical')
@@ -220,6 +222,11 @@ def authority(args):
     mapping = validate_derived(extract, inventory, expected, provenance)
     fit = read_json(extract, guards, args.fit_manifest, args.fit_manifest_sha256)
     images = fit_rows(extract, fit)
+    receipt = fit['original_receipt']
+    original = read_json(extract, guards, receipt['path'], receipt['sha256'])
+    require(fit['rows'] == original['fit_manifest'] and fit['targets'] == original['target_products'] and
+            fit['class_names'] == sorted({row['product'] for row in original['fit_manifest']}),
+            'original FIT binding differs')
     for path, row in zip(images, fit['rows'][:2]):
         bound_file(extract, guards, path, row['image_sha256'])
     require(str(args.output) not in guards, 'output conflicts with authority')
