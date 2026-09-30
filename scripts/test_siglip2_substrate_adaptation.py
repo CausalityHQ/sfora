@@ -8,7 +8,9 @@ import copy
 from contextlib import nullcontext
 import hashlib
 import importlib.util
+import io
 import json
+import random
 import shutil
 import subprocess
 import sys
@@ -144,6 +146,57 @@ def main():
         assert driver.fingerprint({'a': 1}) != driver.fingerprint({'a': True})
     with TemporaryDirectory() as directory, patch.dict(sys.modules):
         root = Path(directory).resolve()
+        # Phase logs must flush live original-unit facts without entering replay state.
+        assert hasattr(driver, 'phase_diagnostic'), 'missing flushed phase diagnostics'
+        proc = root / 'cgroup'
+        proc.write_text('0::/original.service\n')
+        memory = root / 'memory'
+        memory.mkdir()
+        values = {'memory.current': '128', 'memory.peak': '256', 'memory.max': '8589934592',
+                  'memory.swap.current': '0', 'memory.swap.peak': '0', 'memory.swap.max': '0',
+                  'memory.events': 'max 0\noom 0\noom_kill 0'}
+        for name, value in values.items():
+            (memory / name).write_text(value + '\n')
+        def diagnostic_path(value):
+            if value == '/proc/self/cgroup':
+                return proc
+            path = Path(value)
+            assert path == Path('/sys/fs/cgroup')
+            return root
+        (root / 'original.service').symlink_to(memory, target_is_directory=True)
+        flushed = []
+        class PhaseLog(io.StringIO):
+            def flush(self):
+                flushed.append(self.getvalue())
+        output = PhaseLog()
+        rng, replay = random.getstate(), {'step': 8, 'state_sha256': 'fixed', 'seconds': 1.}
+        original_replay = driver.diagnostic(replay)
+        with patch.object(driver, 'Path', side_effect=diagnostic_path), \
+                patch.object(driver.time, 'monotonic', side_effect=(102.5, 104., 105.)), \
+                patch.dict(driver.os.environ, {'INVOCATION_ID': 'a'*32}), patch.object(sys, 'stdout', output):
+            assert driver.phase_diagnostic('save8.begin', 100.) is None
+            (memory / 'memory.current').write_text('512\n')
+            (memory / 'memory.peak').write_text('8589934592\n')
+            (memory / 'memory.events').write_text('max 1\noom 0\noom_kill 0\n')
+            expected_bytes = {p.name: p.read_bytes() for p in memory.iterdir()}
+            assert driver.phase_diagnostic('save8.end', 100.) is None
+            assert {p.name: p.read_bytes() for p in memory.iterdir()} == expected_bytes
+            (memory / 'memory.peak').unlink()
+            expected_bytes.pop('memory.peak')
+            assert driver.phase_diagnostic('unavailable', 100.) is None
+        rows = [json.loads(line) for line in output.getvalue().splitlines()]
+        assert [r['elapsed_seconds'] for r in rows] == [2.5, 4., 5.]
+        assert [r['phase'] for r in rows] == ['save8.begin', 'save8.end', 'unavailable']
+        assert all(r['diagnostic'] == 'phase' and r['invocation_id'] == 'a'*32 for r in rows)
+        assert rows[0]['cgroup']['values'] == values
+        assert rows[1]['cgroup']['values']['memory.current'] == '512'
+        assert rows[1]['cgroup']['values']['memory.peak'] == '8589934592'
+        assert rows[1]['cgroup']['values']['memory.events'].startswith('max 1\n')
+        assert 'memory.peak' in rows[2]['cgroup']['error'] and 'values' not in rows[2]['cgroup']
+        assert len(flushed) == 3 and flushed[0] == output.getvalue().splitlines(keepends=True)[0]
+        assert {p.name: p.read_bytes() for p in memory.iterdir()} == expected_bytes
+        assert random.getstate() == rng and driver.diagnostic(replay) == original_replay
+        assert not any(n.split('.')[0] in driver.NATIVE for n in sys.modules)
         # Exact SHA including empty EOF/tail, advising ONLY consumed 1MiB ranges.
         hashed = root / 'hashed.bin'
         multichunk = bytes(range(256)) * 8192
@@ -404,7 +457,7 @@ def main():
             rejects(lambda: driver.admit_cpu(context), marker)
         descriptor['receipt']['sha256'] = write(root / 'proof.json', cpu)
     assert not any(n.split('.')[0] in driver.NATIVE for n in sys.modules)
-    print('PASS stdlib authority/reference/math/schedule/full-state/JSON/RGB/source-byte/streamed-SHA negatives; native unrun')
+    print('PASS stdlib authority/reference/math/schedule/full-state/JSON/RGB/source-byte/streamed-SHA/phase-log checks; native unrun')
 
 
 if __name__ == '__main__':

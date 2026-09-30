@@ -250,6 +250,25 @@ def diagnostic(row):
     return {k: v for k, v in row.items() if k != 'seconds'}
 
 
+def phase_diagnostic(phase, started):
+    """Log-only snapshots, including failing facts; qualification checks stay separate."""
+    cgroup = {}
+    try:
+        unified = [line[3:] for line in Path('/proc/self/cgroup').read_text().splitlines()
+                   if line.startswith('0::')]
+        require(len(unified) == 1 and unified[0] != '/', 'enclosing cgroup v2 unit unavailable')
+        root = Path('/sys/fs/cgroup') / unified[0].lstrip('/')
+        cgroup['path'] = str(root)
+        cgroup['values'] = {name: (root / name).read_text().strip() for name in
+                           ('memory.current', 'memory.peak', 'memory.max', 'memory.swap.current',
+                            'memory.swap.peak', 'memory.swap.max', 'memory.events')}
+    except (OSError, ValueError) as error:
+        cgroup['error'] = str(error)
+    print(json.dumps({'diagnostic': 'phase', 'phase': phase, 'elapsed_seconds': time.monotonic() - started,
+                      'invocation_id': os.environ.get('INVOCATION_ID'), 'cgroup': cgroup},
+                     sort_keys=True, allow_nan=False), flush=True)
+
+
 def check_cpu_state(facts, original):
     # Receipts canonicalize tuples and config integer keys; torch checkpoints retain them.
     require(strict_json(json.dumps({**facts, 'seed': SEEDS[0]}, allow_nan=False)) == original,
@@ -649,6 +668,7 @@ def calibration(state):
 
 def run(args):
     started = time.perf_counter()
+    diagnostic_started = time.monotonic()
     require(sys.flags.optimize == 0 and os.environ.get('CUDA_VISIBLE_DEVICES') not in (None, '') and
             os.environ.get('CUBLAS_WORKSPACE_CONFIG') == ':4096:8' and
             re.fullmatch('[0-9a-f]{32}', os.environ.get('INVOCATION_ID', '')) is not None,
@@ -657,7 +677,9 @@ def run(args):
             '--authority', str(args.authority), '--authority-sha256', args.authority_sha256,
             '--phase', args.phase, '--arm', args.arm, '--seed', str(args.seed), '--output', str(args.output)],
             'fixed canonical launch argv order required')
+    phase_diagnostic('authority.begin', diagnostic_started)
     context = authority(args)
+    phase_diagnostic('authority.end', diagnostic_started)
     source, q, initialized = context['source'], context['qualifier'], context['initialized']
     before = source.cgroup_memory()
     unit = Path(before['path']).name.removesuffix('.service')
@@ -666,6 +688,7 @@ def run(args):
     python = Path(sys.executable).resolve()
     require(str(python) == prior['python'] and initialized['init'].sha(python) == prior['python_sha256'] and
             sys.version == prior['python_version'], 'original qualified interpreter differs')
+    phase_diagnostic('native_import.begin', diagnostic_started)
     import torch
     require(not torch.cuda.is_initialized(), 'CPU admission must precede CUDA construction')
     flags = context['cpu']['numerical_flags']
@@ -674,6 +697,8 @@ def run(args):
         torch.set_num_interop_threads(flags['interop_threads'])
     require(source.numerical_flags() == flags, 'original CPU defaults differ')
     torch.random.default_generator.manual_seed(SEEDS[0])
+    phase_diagnostic('native_import.end', diagnostic_started)
+    phase_diagnostic('fresh_cpu.begin', diagnostic_started)
     state = q.fresh(initialized, args.seed, 'cpu')
     facts = q.state_facts(initialized, state)
     check_cpu_state(facts, context['cpu']['state'])
@@ -687,14 +712,20 @@ def run(args):
             'fresh CPU raw/packed first2 differs')
     calibration_pixels = state['witness']['pixels'].clone()
     del witness
+    phase_diagnostic('fresh_cpu.end', diagnostic_started)
+    phase_diagnostic('cpu_origins.begin', diagnostic_started)
     cpu_origins = source.imported_origins(initialized['source_context']['extract'], initialized['packages'])
     require(all(context['cpu']['origins']['files'].get(p) == h for p, h in cpu_origins['files'].items()),
             'actual CPU imports differ from qualified origins')
     ref = reference_math(context)
+    phase_diagnostic('cpu_origins.end', diagnostic_started)
     require(torch.cuda.is_available() and torch.cuda.device_count() == 1 and
             not torch.cuda.is_initialized(), 'one visible uninitialized CUDA device required')
+    phase_diagnostic('cuda.begin', diagnostic_started)
     torch.cuda.manual_seed_all(SEEDS[0])
     state = move_cuda(context, state, ref)
+    phase_diagnostic('cuda.end', diagnostic_started)
+    phase_diagnostic('initial_state.begin', diagnostic_started)
     expected_runtime = {'modules': [{**row, 'training': True, 'attributes': {**row['attributes'], 'training': True}}
                                     for row in facts['runtime']['modules']],
                         'processor': facts['runtime']['processor']}
@@ -713,6 +744,7 @@ def run(args):
     integrity(state, identity)
     initial_sha = fingerprint(payload(state, identity, flags), state['frozen_cache'])
     frozen_sha = fingerprint({n: p for n, p in state['model'].named_parameters() if not p.requires_grad})
+    phase_diagnostic('initial_state.end', diagnostic_started)
     rows, resumed = [], []
     state['calibration_pixels'] = calibration_pixels
     args.output.mkdir()
@@ -721,6 +753,7 @@ def run(args):
         temporary = Path(temporary)
         checkpoint8, sha8, fingerprint8 = temporary / 'step8.pt', None, None
         total = 17 if args.phase == 'mechanics' else 100
+        phase_diagnostic('updates.begin', diagnostic_started)
         tick = time.perf_counter()
         for step in range(1, total + 1):
             row = update(context, ref, state, identity, flags, step)
@@ -729,40 +762,63 @@ def run(args):
                         'fresh TRAIN first17 mechanics diagnostic replay differs')
             rows.append(row)
             if args.phase == 'mechanics' and step == 8:
+                phase_diagnostic('save8.begin', diagnostic_started)
                 sha8, fingerprint8 = save(context, state, identity, flags, checkpoint8)
+                phase_diagnostic('save8.end', diagnostic_started)
         training_seconds = time.perf_counter() - tick
+        phase_diagnostic('updates.end', diagnostic_started)
         checkpoint = temporary / 'step17.pt' if args.phase == 'mechanics' else args.output / 'resume.pt'
+        phase_diagnostic(f'save{total}.begin', diagnostic_started)
         checkpoint_sha, terminal_sha = save(context, state, identity, flags, checkpoint)
+        phase_diagnostic(f'save{total}.end', diagnostic_started)
+        phase_diagnostic('calibration.begin', diagnostic_started)
         expected_calibration = calibration(state)
+        phase_diagnostic('calibration.end', diagnostic_started)
+        phase_diagnostic('updated_state.begin', diagnostic_started)
         require(torch.equal(cpu_rng, torch.random.get_rng_state()) and
                 all(torch.equal(a, b) for a, b in zip(cuda_rng, torch.cuda.get_rng_state_all(), strict=True)),
                 'training RNG changed outside common augmentation fork')
         require(fingerprint({n: p for n, p in state['model'].named_parameters() if not p.requires_grad}) == frozen_sha,
                 'whole frozen prefix bytes changed')
         require(runtime(context, state) == identity['runtime'], 'updated complete runtime/processor differs')
+        phase_diagnostic('updated_state.end', diagnostic_started)
+        phase_diagnostic('droprefs.begin', diagnostic_started)
         del state
         gc.collect(); torch.cuda.empty_cache()
+        phase_diagnostic('droprefs.end', diagnostic_started)
         if args.phase == 'mechanics':
+            phase_diagnostic('restore8.begin', diagnostic_started)
             state = restore_independent(context, ref, checkpoint8, sha8, fingerprint8, identity, flags, 8)
+            phase_diagnostic('restore8.end', diagnostic_started)
             state['calibration_pixels'] = calibration_pixels
+            phase_diagnostic('resume.begin', diagnostic_started)
             resumed = [update(context, ref, state, identity, flags, step) for step in range(9, 18)]
             require(all(diagnostic(a) == diagnostic(b) for a, b in zip(rows[8:], resumed, strict=True)) and
                     fingerprint(payload(state, identity, flags), state['frozen_cache']) == terminal_sha,
                     'native17 versus serialized8 plus independent9 differs')
+            phase_diagnostic('resume.end', diagnostic_started)
+            phase_diagnostic('resume_droprefs.begin', diagnostic_started)
             del state
             gc.collect(); torch.cuda.empty_cache()
+            phase_diagnostic('resume_droprefs.end', diagnostic_started)
+        phase_diagnostic('finalreload.begin', diagnostic_started)
         state = restore_independent(context, ref, checkpoint, checkpoint_sha, terminal_sha, identity, flags, total)
         state['calibration_pixels'] = calibration_pixels
         require(fingerprint(calibration(state)) == fingerprint(expected_calibration), 'independent raw/packed reload differs')
         require(fingerprint({n: p for n, p in state['model'].named_parameters() if not p.requires_grad}) == frozen_sha,
                 'independent frozen prefix differs')
+        phase_diagnostic('finalreload.end', diagnostic_started)
+        phase_diagnostic('final_droprefs.begin', diagnostic_started)
         del state, expected_calibration, calibration_pixels
         gc.collect(); torch.cuda.empty_cache()
+        phase_diagnostic('final_droprefs.end', diagnostic_started)
+    phase_diagnostic('exit_rehash.begin', diagnostic_started)
     origins = source.imported_origins(initialized['source_context']['extract'], initialized['packages'])
     for path, digest in origins['files'].items():
         bound_file(context['guards'], path, digest)
     q.rehash(initialized)
     require(closure(context['root'], args.execution_sha256, FILES, {}) == context['code'], 'exit own closure differs')
+    phase_diagnostic('exit_rehash.end', diagnostic_started)
     after = source.cgroup_memory()
     initialized['init'].admit_cgroup(after, unit)
     wall = time.perf_counter() - started
@@ -800,7 +856,9 @@ def run(args):
                               'python_version': sys.version, 'optimize': sys.flags.optimize, 'pid': os.getpid(),
                               'invocation_id': os.environ['INVOCATION_ID'],
                               'cuda_visible_devices': os.environ['CUDA_VISIBLE_DEVICES']}}
+    phase_diagnostic('receipt.begin', diagnostic_started)
     initialized['pca']['exporter'].write_json(initialized['source_context']['extract'], args.output / 'receipt.json', receipt)
+    phase_diagnostic('exit', diagnostic_started)
     return receipt
 
 
