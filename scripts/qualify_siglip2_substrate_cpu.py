@@ -160,7 +160,9 @@ def fit_rows(extract, fit):
     require(set(targets) == set(range(2004)), 'FIT class coverage differs')
     root = Path(fit['dataset_root'])
     require(root.is_absolute() and root.resolve() == root and root.is_dir(), 'FIT root must be canonical')
-    return [root / row['relative_path'] for row in rows[:2]]
+    images = [(root / row['relative_path']).resolve() for row in rows[:2]]
+    require(all(path.is_relative_to(root) for path in images), 'FIT image escaped dataset root')
+    return images
 
 
 def validate_derived(extract, inventory, expected, provenance):
@@ -499,6 +501,7 @@ def cgroup_memory():
 
 
 def rehash(context):
+    require(fit_rows(context['extract'], context['fit']) == context['images'], 'FIT image resolution changed')
     for path, expected in context['guards'].items():
         require(context['extract'].sha(canonical(path)) == expected, 'exit authority SHA256 differs: ' + path)
     require(bootstrap(context['root'], context['args'].execution_sha256)[1] == context['code'], 'exit closure differs')

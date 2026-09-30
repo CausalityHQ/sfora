@@ -220,6 +220,19 @@ def main():
                 rejects(lambda: driver.rehash(context), 'exit authority')
                 receipt_path.write_bytes(receipt)
                 driver.rehash(context)
+                logical = base / 'dataset/Img'
+                resolved = base / 'dataset/img'
+                logical.rename(resolved)
+                logical.symlink_to(resolved, target_is_directory=True)
+                linked = driver.authority(args)
+                assert linked['images'] == [resolved / f'img/{index}.jpg' for index in range(2)]
+                driver.rehash(linked)
+                logical.unlink()
+                logical.symlink_to(base, target_is_directory=True)
+                rejects(lambda: driver.fit_rows(extract, fit), 'escaped dataset root')
+                rejects(lambda: driver.rehash(linked), 'escaped dataset root')
+                logical.unlink()
+                resolved.rename(logical)
                 assert not Path(context['entry']['input']['source']['path']).exists()
                 rejects(lambda: driver.fresh_source(context), 'origin preflight')
                 for field, value in (('sources_sha256', '0'*64), ('fit_manifest_sha256', '0'*64)):
