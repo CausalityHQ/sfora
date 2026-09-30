@@ -1,0 +1,324 @@
+{
+  "id": "f68e47a699474b18",
+  "provider": "claude",
+  "model": "claude-opus-5-5",
+  "fallbacks": [
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    }
+  ],
+  "agent": "sfora/emafactorial",
+  "cwd": "/home/rb/worktrees/sfora-positive-causality",
+  "status": "completed",
+  "runner_started": true,
+  "started_at": 1790729367,
+  "timeout_seconds": 900,
+  "deadline_at": 1790730267,
+  "budget_usd": 4,
+  "prompt_preview": "Read-only bounded NEXT-INTERVENTION PLAN, not a review of prior dense100 procedure and not a broad new research project. Repo /home/rb/worktrees/sfora-positive-causality master3180ad93. Read docs/inshop_dense_retained_official_result_2026-09-30.md and frozen gate, docs/inshop_dense_boundary_gate_2026-09-29.md + review/result, retained serving result, docs/published_reference_qualification_2026-09-28.md and closed-method ledger evidence (pool replay correction and historical results). Original procedure now TERMINAL; no GPU/native/controller/consultation is active except this consult. Full mandatory product goal: protocol-comparable strongest published SOP+InShop quality plus faster matched end-to-end public retrieval. Do NOT edit, SSH, run Torch/native/GPU/model/quality, spawn consultations, or contact operator. Current original100 dense two-seed TRAIN KILL remains: seed179032 matched control96.663519/81.395000 ->candidate96.726472/81.930308 R1/AP%; seed17904196.789424/81.663065 ->96.679257/81.635400; meanR1-.023607pp/AP+.253822pp. Retain useful candidates. Fresh fixed exact179032 matched100 official query14218/gallery12612: control94.063863/74.977123 ->candidate94.295963/75.441599%; paired product R1delta+.232100pp CI[+.049567,+.414925],AP+.464477[+.324123,+.605971]. Necessary dated96.7 screen KILL (gap2.404037pp), not global architectureKILL. All source/native/publicB32 and B1 serving integrity fully qualified; all14218query top10 ordinal+bits exact. No public latency measured. Candidate increment100updates128.072294s49.971776img/s6.83GB CUDA; historicalratio1.096859 not contemporaneous. Older corrected2000 official96.307498/81.882593 and4000 96.223097/82.123349; different exactweights/budgets from fresh100. No comparing these as matched controls. Many already CLOSED paths: pool84.39/58.91, finalblockpoolfrozen91.25/69.38, finaltwo93.61/73.51, PE-rank32/Muon, lowerstackrank8 two-seed, teacherretained256 versus128, corrected4000 budget, hard-anchor rows census shortage. Never propose rerunning a closed exact checkpoint/procedure. Diagnose from repository evidence whether next useful path should address representation/data/training cause, NOT another theorem-like ceiling probe or loss knob sweep. Select EXACTLY ONE cheapest causally distinct TRAIN-grounded intervention with a plausible useful fullytrained production checkpoint path, predeclared narrow admission/stop rules and bounded cost. Explain why this adds new causal evidence rather than repeats failures, which useful candidate to preserve, and how matched budget/seed/public precision can be held fixed. Official reads are exploratory only and cannot tune hyperparameters/select new checkpoint thresholds. No universal architecture kill from tiny historical regressions; no absolute speed or projected quality as measured. Consider whether previous cheap100 pilots undershoot useful-model training, but don't silently revoke frozen negative scientific gates or infer training-budget gains from official selection. If evidence is insufficient, name ONE concrete missing TRAIN artifact and the cheapest decisive action, not a sequence of probes. Return compact implementation-ready plan with exact files/helpers/artifacts to reuse, representation/training mechanism, resource gates120sCPU/120sdiscardedmechanics/300srole/8GiBnoSwap/<10GB CUDA, training admission path justified separately if beyondpilot, final quality/speed validation and one next decisive test. Parent will independently verify and use fixed Opus/Astra critique for any consequential new frozen design; do not launch those yourself.",
+  "prompt_sha256": "fb8a69195cfe807bd0918da259bc062ba1a890d588555d4f81249557d17eeb12",
+  "prompt_bytes": 3777,
+  "fingerprint": "44ea80707a1cdb051569898bc142f7b75e36d742feca7c042e9f5a47eaeff681",
+  "evidence": {
+    "git_commit": "3180ad932c328329c45bd23a8325f2b6c5e11239",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+    "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "previous_fingerprint": "88770125c3adf56c873d8cc03ace8214a1a6b7a87ecb04f4bccb8c273a9096cf",
+  "reused": false,
+  "systemd_unit": "devbox-consult-f68e47a699474b18.service",
+  "pid": 576958,
+  "pgid": 576958,
+  "attempt": 1,
+  "attempts": [
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    }
+  ],
+  "attempt_history": [
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "budget_usd": 4,
+      "timeout_seconds": 899,
+      "started_at": 1790729368
+    }
+  ],
+  "exit_code": 0,
+  "finished_at": 1790729819,
+  "event_cursor": 73,
+  "events": [
+    {
+      "seq": 50,
+      "at": 1790729796,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 51,
+      "at": 1790729797,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 52,
+      "at": 1790729798,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 53,
+      "at": 1790729799,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 54,
+      "at": 1790729800,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 55,
+      "at": 1790729801,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 56,
+      "at": 1790729802,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 57,
+      "at": 1790729803,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 58,
+      "at": 1790729804,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 59,
+      "at": 1790729805,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 60,
+      "at": 1790729806,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 61,
+      "at": 1790729807,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 62,
+      "at": 1790729808,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 63,
+      "at": 1790729809,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 64,
+      "at": 1790729810,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 65,
+      "at": 1790729811,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 66,
+      "at": 1790729812,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 67,
+      "at": 1790729813,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 68,
+      "at": 1790729814,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 69,
+      "at": 1790729815,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 70,
+      "at": 1790729816,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 71,
+      "at": 1790729817,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 72,
+      "at": 1790729819,
+      "provider": "claude",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 73,
+      "at": 1790729819,
+      "provider": "claude",
+      "kind": "phase",
+      "label": "Consultation completed",
+      "detail": "exit 0"
+    }
+  ],
+  "events_truncated": true,
+  "provider_events": {
+    "claude": [
+      {
+        "seq": 66,
+        "at": 1790729812,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 67,
+        "at": 1790729813,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 68,
+        "at": 1790729814,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 69,
+        "at": 1790729815,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 70,
+        "at": 1790729816,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 71,
+        "at": 1790729817,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 72,
+        "at": 1790729819,
+        "provider": "claude",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 73,
+        "at": 1790729819,
+        "provider": "claude",
+        "kind": "phase",
+        "label": "Consultation completed",
+        "detail": "exit 0"
+      }
+    ]
+  },
+  "partial_result": "# Next intervention: train at 288 pixels instead of 256\n\nI didn't edit the repo, SSH, run any jobs, or start consultations. The only write was one memory note.\n\n## Diagnosis from the repository evidence\n\n1. **Training-side changes are exhausted at the current input size.** Every closed arm kept 256-pixel input and changed something else: budget (2000→4000), trajectory averaging, cross-seed soup, where the freeze boundary sits (dense layers 10–11, rank-8 q/v adapters, final one or two blocks, pooling), a 256-wide head, the objective (valid-anchor fix, impostor margin, teacher anchor), or the data mix (joint SOP). The result is always the same: mAP@R moves, R@1 stays near zero. Examples:\n   - dense100: mAP +0.25pp, R@1 −0.02pp.\n   - 4000 updates: mAP +0.24pp, R@1 −0.08pp.\n   - fixed average: mAP +0.15pp, R@1 +0.02pp.\n   - corrected full2000: mAP +0.21pp, R@1 +0.09pp.\n2. **Only two measured levers have moved R@1 by 0.3pp or more on TRAIN evidence:**\n   - **Input resolution.** With no retraining, 224 pixels lost 0.754pp and 192 pixels lost 1.611pp (`inshop_siglip2_resolution_screen_2026-09-27.md`).\n   - **Number of seen products.** Full fit versus half fit gained +0.365pp, with an interval of [+0.154, +0.574] (`inshop_fit_product_scaling_gate`).\n   - Product count is already maxed: production trains on all 25,882 images / 3,997 products. Resolution has only ever been tested with no training. The 320-pixel preflight ran on a 256-trained checkpoint with stretched position embeddings, which mixes the \"unfamiliar positions\" effect with the \"more pixel detail\" effect. No trained-resolution arm exists anywhere in the ledger.\n3. **The 100-update pilots undershoot a useful model.** Same fit set and recipe: the control scores 96.663519% R@1 on the TRAIN-held panel at 100 updates versus 97.780925% at 1000. On official, the 100-update control is at 94.06% versus 96.31% for full-TRAIN at 2000. Fit-only 1000 updates is about 4.82 epochs, which roughly matches production full-TRAIN 2000 (about 4.95 epochs). So 1000 updates on the fit set is the right pilot budget. This does not reopen the dense100 KILL: its boundary and procedure are not reused.\n\n## The one intervention: T288, trained 288-pixel input, nothing else changed\n\n- **What changes:**\n  - Materialize the frozen F5 position embedding once: bicubic interpolation from the 16×16 grid to 18×18 (324 rows), using HF's own `embeddings.interpolate_pos_encoding` so the maths is identical to the 320 probe. Set `position_ids` to `arange(324)` and `config.image_size` to 288.\n  - Copy the processor and set its size to 288×288 (bilinear, as now).\n- **What stays fixed:** embeddings plus blocks 0–11 frozen, 12–23 trained; the corrected valid-anchor SmoothAP8 + ArcFace objective; AdamW; FP32 parameters with FP16 autocast; loss scaler 128; gradient clip 1; four micro-batches of 16; the 128-dim head and packed int8 scorer; seed 179032; the exact image schedule.\n- **Why this is new evidence rather than a repeat:** it is the first trained change to pixel information. The pixel hashes are the only intended difference. Training layers 12–23 removes the unfamiliar-position confound that the zero-training 320 probe could not separate out.\n- **Why 288 specifically:** chosen in advance from the speed requirement, not from quality.\n  - The latency test from `docs/inshop_siglip2_320_preflight_2026-09-27.md` requires batch-1 p95 below 0.9 × UNICOM's 39.055ms (about 35.15ms).\n  - 288 means 1.27× the tokens. Projected from the 2026-09-25 measurement, batch-1 p95 would be about 31ms and batch-32 p95 about 385ms against UNICOM's 569ms. **These are projections, not measurements.**\n  - 320 pixels projects to about 37ms at batch 1 and would fail that test.\n- **No second arm:** no 272/304/320 sizes and no trainable-embedding variant.\n\n## What to reuse\n\n- **Trainer:** a new `scripts/train_pe_resolution288.py`, copied from `scripts/train_pe_teacher_retained256.py` with only the width-128 path kept and a `--size {256,288}` option added.\n  - Keep its cpu/mechanics/train phases, 100-update chunk resume and the `chunk100_admission_seconds <= 269` rule.\n  - It builds on `scripts/train_pe_full_valid_anchor.py`.\n- **Constructor:** call `scripts/pe_large_coverage.py:94` `load_native` unchanged, which verifies the F5 hashes. Then materialize the position embedding before building the frozen-layer inventory, the digest, the parameter list and AdamW.\n  - The pre-train/post-train frozen check covers the 162 other embedding/block-0–11 tensors, which must be bitwise F5. Position embedding gets its own recorded hash, and the non-persistent buffers are included.\n  - The frozen digest at 288 is recorded as a new value in the CPU proof.\n  - Existing shared modules stay untouched so their source hashes don't change.\n- **Controller:** `scripts/run_pe_teacher_retained256_pilot.py` pattern, running only the treatment for 10 chunks of 100 updates.\n- **Held-panel scoring:** the `scripts/qualify_pe_teacher_retained256.py` export → independent CPU audit → paired decision chain, unchanged. Paired intervals use 5000 draws with seed 179019.\n- **Matched control, reused rather than retrained:** `teacher-retained256-v1/terminal/sfora-teacher-retained256-128-1000-v1/receipt.json` (SHA `d1f01666…`). Its held wires are in `…held-128-v1/{query,gallery}.{codes,float,inverse}.npy` plus `cpu-audit.json`.\n  - Control TRAIN-held (6,354 queries / 6,245 gallery): **97.780925% R@1 / 85.449629% mAP@R**.\n  - Control cost: 1,181.790161s, 54.155 images/s, peak CUDA 6,141,016,576 B.\n- **Checks before reusing that control:**\n  - At `--size 256`, the new constructor must reproduce the archived initial fingerprint and the first-batch RGB and pixel hashes.\n  - At 288, the RGB hashes must match for every step and only the pixel hashes may differ.\n  - Everything else must be equal: source, initial state, schedule, objective, optimizer, precision and freeze boundary.\n\n## Pilot sequence and resource gates\n\n1. **CPU admission** (at most 120s, 8GiB, no swap, CUDA hidden, both GPU locks):\n   - zero-treatment equality at 256, as above;\n   - at 288: only the position embedding changed, and it equals the interpolation hash;\n   - `position_ids` is 324 long, the optimizer holds exactly the declared trainable IDs, and all frozen tensors and buffers are fixed;\n   - a changed source or wrong size must be rejected.\n2. **One discarded 17-update mechanics run at 288**, at most 120s and under 10GB allocated CUDA. It must show finite positive gradients in blocks 12–23, the head and the proxies; frozen tensors and buffers unchanged; and an exact strict reload of whole model, head and packed codes.\n   - Measured chunk projection must be ≤269s.\n   - Median-step ratio against the archived control mechanics must be ≤1.50.\n   - Projection: about 150s per chunk and about 7GB CUDA. That is not measured.\n3. **Ten 100-update chunks**, each within 300s, 8GiB, no swap and under 10GB CUDA. Total wall ratio and median ratio against the control must each be ≤1.50.\n4. **Scoring:** a complete export of all 12,599 held images at 288 (within 300s), then the unchanged independent CPU packed scorer (within 120s). Pilot GPU total is about 30 minutes, with no new control job.\n\n## Stop rules (all set before any quality read)\n\n- **Pilot pass:** candidate minus control must meet all three:\n  - R@1 ≥ **+0.30pp** (about 19 net queries);\n  - paired product 95% lower bound **> 0**;\n  - mAP@R point **≥ 0**.\n- **Why +0.30pp:** the official gap of 0.39pp is about 11% of the current errors, which maps to roughly +0.24pp on the held panel. Rounded up for the ±0.1–0.2pp single-seed noise seen in dense100. This is a fixed preregistration choice, not a projection.\n- **Quality failure:** KILL T288 with frozen layers 0–11 at this budget. No other resolution, no learning-rate, budget or boundary rescue, and no universal resolution claim.\n- **Integrity or resource failure:** a qualification blocker only. Thresholds and caps don't change and no partial arrays are used.\n- The held panel has been observed before, so any result is exploratory. This is a single-seed pass and says nothing about seed generalization.\n\n## Path to a production checkpoint (only if the pilot passes)\n\n1. **One full-TRAIN run:** T288 on all 25,882 images / 3,997 products, 2000 updates, seed 179032, same schedule and objective as the archived corrected full2000 endpoint.\n   - That endpoint is the matched control: official **96.307498% / 81.882593%**.\n   - Expect about 20 chunks of roughly 155s each, projected.\n   - The pilot pass alone justifies this run. Official numbers select nothing.\n2. **Serving:** `src/sfora/siglip2_compact_serving.py:49` and `:208-209` hardcode 256.\n   - Add a declared size taken from the checkpoint config or receipt, and keep 256 as the default for existing checkpoints.\n   - Re-qualify with public batch-32 and native top-10 parity.\n3. **Official export risk:** at 256 the role exports took 208s and 229s. At 288 they may approach the 300s cap. If mechanics throughput projects a role above 270s, freeze a declared split into whole sub-role units before any quality read. That is a split declared up front, not a partial-array continuation.\n4. **Official screen (exploratory):** candidate R@1 > 96.7%, paired product R@1 lower bound > 0 against the full2000 endpoint, and mAP@R at least the control's.\n5. **Speed:** matched, interleaved public batch-1 and batch-32 image-to-top-10 timing for 288 versus 256 versus UNICOM, requiring p95 below 0.9 × UNICOM. A p99 certification with 10,000 paired calls and a confidence interval follows only if quality survives. SOP official confirmation for the same recipe and CUB/Cars transfer remain outstanding.\n\n## Checkpoints to preserve\n\n- **Corrected full2000 endpoint** (96.3075% / 81.8826%): the production matched control.\n- **Fixed-average full2000** (96.3286% / 82.0322%): the best observed official R@1 and the fallback.\n- **4000-update checkpoint** (96.2231% / 82.1233%): the best observed mAP@R.\n- **dense179032** (`163b0226…`): kept as an exploratory 100-update Pareto point only. It is not carried into T288, because boundary 10 would add a second variable, and its official +0.23pp cannot justify anything.\n\n## One next decisive test\n\nRun the T288 CPU admission, then the single discarded 17-update mechanics run. Zero-treatment equality at 256 plus the measured chunk time and CUDA at 288 decide whether the 1000-update pilot is admissible. The paired held-panel score against the archived 1000-update control is the decisive scientific read after that. This design is consequential and new, so it needs your fixed Opus/Astra critique before any code is frozen; I didn't launch one.\n\n**Main limitation:** layers 0–11 stay frozen on the stretched position grid, so a failure closes resolution only for this frozen-boundary recipe.",
+  "partial_result_truncated": false,
+  "provider_partials": {
+    "claude": "# Next intervention: train at 288 pixels instead of 256\n\nI didn't edit the repo, SSH, run any jobs, or start consultations. The only write was one memory note.\n\n## Diagnosis from the repository evidence\n\n1. **Training-side changes are exhausted at the current input size.** Every closed arm kept 256-pixel input and changed something else: budget (2000→4000), trajectory averaging, cross-seed soup, where the freeze boundary sits (dense layers 10–11, rank-8 q/v adapters, final one or two blocks, pooling), a 256-wide head, the objective (valid-anchor fix, impostor margin, teacher anchor), or the data mix (joint SOP). The result is always the same: mAP@R moves, R@1 stays near zero. Examples:\n   - dense100: mAP +0.25pp, R@1 −0.02pp.\n   - 4000 updates: mAP +0.24pp, R@1 −0.08pp.\n   - fixed average: mAP +0.15pp, R@1 +0.02pp.\n   - corrected full2000: mAP +0.21pp, R@1 +0.09pp.\n2. **Only two measured levers have moved R@1 by 0.3pp or more on TRAIN evidence:**\n   - **Input resolution.** With no retraining, 224 pixels lost 0.754pp and 192 pixels lost 1.611pp (`inshop_siglip2_resolution_screen_2026-09-27.md`).\n   - **Number of seen products.** Full fit versus half fit gained +0.365pp, with an interval of [+0.154, +0.574] (`inshop_fit_product_scaling_gate`).\n   - Product count is already maxed: production trains on all 25,882 images / 3,997 products. Resolution has only ever been tested with no training. The 320-pixel preflight ran on a 256-trained checkpoint with stretched position embeddings, which mixes the \"unfamiliar positions\" effect with the \"more pixel detail\" effect. No trained-resolution arm exists anywhere in the ledger.\n3. **The 100-update pilots undershoot a useful model.** Same fit set and recipe: the control scores 96.663519% R@1 on the TRAIN-held panel at 100 updates versus 97.780925% at 1000. On official, the 100-update control is at 94.06% versus 96.31% for full-TRAIN at 2000. Fit-only 1000 updates is about 4.82 epochs, which roughly matches production full-TRAIN 2000 (about 4.95 epochs). So 1000 updates on the fit set is the right pilot budget. This does not reopen the dense100 KILL: its boundary and procedure are not reused.\n\n## The one intervention: T288, trained 288-pixel input, nothing else changed\n\n- **What changes:**\n  - Materialize the frozen F5 position embedding once: bicubic interpolation from the 16×16 grid to 18×18 (324 rows), using HF's own `embeddings.interpolate_pos_encoding` so the maths is identical to the 320 probe. Set `position_ids` to `arange(324)` and `config.image_size` to 288.\n  - Copy the processor and set its size to 288×288 (bilinear, as now).\n- **What stays fixed:** embeddings plus blocks 0–11 frozen, 12–23 trained; the corrected valid-anchor SmoothAP8 + ArcFace objective; AdamW; FP32 parameters with FP16 autocast; loss scaler 128; gradient clip 1; four micro-batches of 16; the 128-dim head and packed int8 scorer; seed 179032; the exact image schedule.\n- **Why this is new evidence rather than a repeat:** it is the first trained change to pixel information. The pixel hashes are the only intended difference. Training layers 12–23 removes the unfamiliar-position confound that the zero-training 320 probe could not separate out.\n- **Why 288 specifically:** chosen in advance from the speed requirement, not from quality.\n  - The latency test from `docs/inshop_siglip2_320_preflight_2026-09-27.md` requires batch-1 p95 below 0.9 × UNICOM's 39.055ms (about 35.15ms).\n  - 288 means 1.27× the tokens. Projected from the 2026-09-25 measurement, batch-1 p95 would be about 31ms and batch-32 p95 about 385ms against UNICOM's 569ms. **These are projections, not measurements.**\n  - 320 pixels projects to about 37ms at batch 1 and would fail that test.\n- **No second arm:** no 272/304/320 sizes and no trainable-embedding variant.\n\n## What to reuse\n\n- **Trainer:** a new `scripts/train_pe_resolution288.py`, copied from `scripts/train_pe_teacher_retained256.py` with only the width-128 path kept and a `--size {256,288}` option added.\n  - Keep its cpu/mechanics/train phases, 100-update chunk resume and the `chunk100_admission_seconds <= 269` rule.\n  - It builds on `scripts/train_pe_full_valid_anchor.py`.\n- **Constructor:** call `scripts/pe_large_coverage.py:94` `load_native` unchanged, which verifies the F5 hashes. Then materialize the position embedding before building the frozen-layer inventory, the digest, the parameter list and AdamW.\n  - The pre-train/post-train frozen check covers the 162 other embedding/block-0–11 tensors, which must be bitwise F5. Position embedding gets its own recorded hash, and the non-persistent buffers are included.\n  - The frozen digest at 288 is recorded as a new value in the CPU proof.\n  - Existing shared modules stay untouched so their source hashes don't change.\n- **Controller:** `scripts/run_pe_teacher_retained256_pilot.py` pattern, running only the treatment for 10 chunks of 100 updates.\n- **Held-panel scoring:** the `scripts/qualify_pe_teacher_retained256.py` export → independent CPU audit → paired decision chain, unchanged. Paired intervals use 5000 draws with seed 179019.\n- **Matched control, reused rather than retrained:** `teacher-retained256-v1/terminal/sfora-teacher-retained256-128-1000-v1/receipt.json` (SHA `d1f01666…`). Its held wires are in `…held-128-v1/{query,gallery}.{codes,float,inverse}.npy` plus `cpu-audit.json`.\n  - Control TRAIN-held (6,354 queries / 6,245 gallery): **97.780925% R@1 / 85.449629% mAP@R**.\n  - Control cost: 1,181.790161s, 54.155 images/s, peak CUDA 6,141,016,576 B.\n- **Checks before reusing that control:**\n  - At `--size 256`, the new constructor must reproduce the archived initial fingerprint and the first-batch RGB and pixel hashes.\n  - At 288, the RGB hashes must match for every step and only the pixel hashes may differ.\n  - Everything else must be equal: source, initial state, schedule, objective, optimizer, precision and freeze boundary.\n\n## Pilot sequence and resource gates\n\n1. **CPU admission** (at most 120s, 8GiB, no swap, CUDA hidden, both GPU locks):\n   - zero-treatment equality at 256, as above;\n   - at 288: only the position embedding changed, and it equals the interpolation hash;\n   - `position_ids` is 324 long, the optimizer holds exactly the declared trainable IDs, and all frozen tensors and buffers are fixed;\n   - a changed source or wrong size must be rejected.\n2. **One discarded 17-update mechanics run at 288**, at most 120s and under 10GB allocated CUDA. It must show finite positive gradients in blocks 12–23, the head and the proxies; frozen tensors and buffers unchanged; and an exact strict reload of whole model, head and packed codes.\n   - Measured chunk projection must be ≤269s.\n   - Median-step ratio against the archived control mechanics must be ≤1.50.\n   - Projection: about 150s per chunk and about 7GB CUDA. That is not measured.\n3. **Ten 100-update chunks**, each within 300s, 8GiB, no swap and under 10GB CUDA. Total wall ratio and median ratio against the control must each be ≤1.50.\n4. **Scoring:** a complete export of all 12,599 held images at 288 (within 300s), then the unchanged independent CPU packed scorer (within 120s). Pilot GPU total is about 30 minutes, with no new control job.\n\n## Stop rules (all set before any quality read)\n\n- **Pilot pass:** candidate minus control must meet all three:\n  - R@1 ≥ **+0.30pp** (about 19 net queries);\n  - paired product 95% lower bound **> 0**;\n  - mAP@R point **≥ 0**.\n- **Why +0.30pp:** the official gap of 0.39pp is about 11% of the current errors, which maps to roughly +0.24pp on the held panel. Rounded up for the ±0.1–0.2pp single-seed noise seen in dense100. This is a fixed preregistration choice, not a projection.\n- **Quality failure:** KILL T288 with frozen layers 0–11 at this budget. No other resolution, no learning-rate, budget or boundary rescue, and no universal resolution claim.\n- **Integrity or resource failure:** a qualification blocker only. Thresholds and caps don't change and no partial arrays are used.\n- The held panel has been observed before, so any result is exploratory. This is a single-seed pass and says nothing about seed generalization.\n\n## Path to a production checkpoint (only if the pilot passes)\n\n1. **One full-TRAIN run:** T288 on all 25,882 images / 3,997 products, 2000 updates, seed 179032, same schedule and objective as the archived corrected full2000 endpoint.\n   - That endpoint is the matched control: official **96.307498% / 81.882593%**.\n   - Expect about 20 chunks of roughly 155s each, projected.\n   - The pilot pass alone justifies this run. Official numbers select nothing.\n2. **Serving:** `src/sfora/siglip2_compact_serving.py:49` and `:208-209` hardcode 256.\n   - Add a declared size taken from the checkpoint config or receipt, and keep 256 as the default for existing checkpoints.\n   - Re-qualify with public batch-32 and native top-10 parity.\n3. **Official export risk:** at 256 the role exports took 208s and 229s. At 288 they may approach the 300s cap. If mechanics throughput projects a role above 270s, freeze a declared split into whole sub-role units before any quality read. That is a split declared up front, not a partial-array continuation.\n4. **Official screen (exploratory):** candidate R@1 > 96.7%, paired product R@1 lower bound > 0 against the full2000 endpoint, and mAP@R at least the control's.\n5. **Speed:** matched, interleaved public batch-1 and batch-32 image-to-top-10 timing for 288 versus 256 versus UNICOM, requiring p95 below 0.9 × UNICOM. A p99 certification with 10,000 paired calls and a confidence interval follows only if quality survives. SOP official confirmation for the same recipe and CUB/Cars transfer remain outstanding.\n\n## Checkpoints to preserve\n\n- **Corrected full2000 endpoint** (96.3075% / 81.8826%): the production matched control.\n- **Fixed-average full2000** (96.3286% / 82.0322%): the best observed official R@1 and the fallback.\n- **4000-update checkpoint** (96.2231% / 82.1233%): the best observed mAP@R.\n- **dense179032** (`163b0226…`): kept as an exploratory 100-update Pareto point only. It is not carried into T288, because boundary 10 would add a second variable, and its official +0.23pp cannot justify anything.\n\n## One next decisive test\n\nRun the T288 CPU admission, then the single discarded 17-update mechanics run. Zero-treatment equality at 256 plus the measured chunk time and CUDA at 288 decide whether the 1000-update pilot is admissible. The paired held-panel score against the archived 1000-update control is the decisive scientific read after that. This design is consequential and new, so it needs your fixed Opus/Astra critique before any code is frozen; I didn't launch one.\n\n**Main limitation:** layers 0–11 stay frozen on the stretched position grid, so a failure closes resolution only for this frozen-boundary recipe."
+  },
+  "providers_used": [
+    "claude"
+  ],
+  "active_provider": "claude",
+  "phase": "Consultation completed",
+  "input_bytes": 3777,
+  "output_bytes": 10883,
+  "elapsed_seconds": 452,
+  "progress": "devbox-ask: claude consult still running (0m 30s)\ndevbox-ask: claude consult still running (1m 00s)\ndevbox-ask: claude consult still running (1m 30s)\ndevbox-ask: claude consult still running (2m 00s)\ndevbox-ask: claude consult still running (2m 30s)\ndevbox-ask: claude consult still running (3m 00s)\ndevbox-ask: claude consult still running (3m 30s)\ndevbox-ask: claude consult still running (4m 00s)\ndevbox-ask: claude consult still running (4m 30s)\ndevbox-ask: claude consult still running (5m 00s)\ndevbox-ask: claude consult still running (5m 30s)\ndevbox-ask: claude consult still running (6m 00s)\ndevbox-ask: claude consult still running (6m 30s)\ndevbox-ask: claude consult still running (7m 00s)",
+  "progress_truncated": false,
+  "result": "# Next intervention: train at 288 pixels instead of 256\n\nI didn't edit the repo, SSH, run any jobs, or start consultations. The only write was one memory note.\n\n## Diagnosis from the repository evidence\n\n1. **Training-side changes are exhausted at the current input size.** Every closed arm kept 256-pixel input and changed something else: budget (2000→4000), trajectory averaging, cross-seed soup, where the freeze boundary sits (dense layers 10–11, rank-8 q/v adapters, final one or two blocks, pooling), a 256-wide head, the objective (valid-anchor fix, impostor margin, teacher anchor), or the data mix (joint SOP). The result is always the same: mAP@R moves, R@1 stays near zero. Examples:\n   - dense100: mAP +0.25pp, R@1 −0.02pp.\n   - 4000 updates: mAP +0.24pp, R@1 −0.08pp.\n   - fixed average: mAP +0.15pp, R@1 +0.02pp.\n   - corrected full2000: mAP +0.21pp, R@1 +0.09pp.\n2. **Only two measured levers have moved R@1 by 0.3pp or more on TRAIN evidence:**\n   - **Input resolution.** With no retraining, 224 pixels lost 0.754pp and 192 pixels lost 1.611pp (`inshop_siglip2_resolution_screen_2026-09-27.md`).\n   - **Number of seen products.** Full fit versus half fit gained +0.365pp, with an interval of [+0.154, +0.574] (`inshop_fit_product_scaling_gate`).\n   - Product count is already maxed: production trains on all 25,882 images / 3,997 products. Resolution has only ever been tested with no training. The 320-pixel preflight ran on a 256-trained checkpoint with stretched position embeddings, which mixes the \"unfamiliar positions\" effect with the \"more pixel detail\" effect. No trained-resolution arm exists anywhere in the ledger.\n3. **The 100-update pilots undershoot a useful model.** Same fit set and recipe: the control scores 96.663519% R@1 on the TRAIN-held panel at 100 updates versus 97.780925% at 1000. On official, the 100-update control is at 94.06% versus 96.31% for full-TRAIN at 2000. Fit-only 1000 updates is about 4.82 epochs, which roughly matches production full-TRAIN 2000 (about 4.95 epochs). So 1000 updates on the fit set is the right pilot budget. This does not reopen the dense100 KILL: its boundary and procedure are not reused.\n\n## The one intervention: T288, trained 288-pixel input, nothing else changed\n\n- **What changes:**\n  - Materialize the frozen F5 position embedding once: bicubic interpolation from the 16×16 grid to 18×18 (324 rows), using HF's own `embeddings.interpolate_pos_encoding` so the maths is identical to the 320 probe. Set `position_ids` to `arange(324)` and `config.image_size` to 288.\n  - Copy the processor and set its size to 288×288 (bilinear, as now).\n- **What stays fixed:** embeddings plus blocks 0–11 frozen, 12–23 trained; the corrected valid-anchor SmoothAP8 + ArcFace objective; AdamW; FP32 parameters with FP16 autocast; loss scaler 128; gradient clip 1; four micro-batches of 16; the 128-dim head and packed int8 scorer; seed 179032; the exact image schedule.\n- **Why this is new evidence rather than a repeat:** it is the first trained change to pixel information. The pixel hashes are the only intended difference. Training layers 12–23 removes the unfamiliar-position confound that the zero-training 320 probe could not separate out.\n- **Why 288 specifically:** chosen in advance from the speed requirement, not from quality.\n  - The latency test from `docs/inshop_siglip2_320_preflight_2026-09-27.md` requires batch-1 p95 below 0.9 × UNICOM's 39.055ms (about 35.15ms).\n  - 288 means 1.27× the tokens. Projected from the 2026-09-25 measurement, batch-1 p95 would be about 31ms and batch-32 p95 about 385ms against UNICOM's 569ms. **These are projections, not measurements.**\n  - 320 pixels projects to about 37ms at batch 1 and would fail that test.\n- **No second arm:** no 272/304/320 sizes and no trainable-embedding variant.\n\n## What to reuse\n\n- **Trainer:** a new `scripts/train_pe_resolution288.py`, copied from `scripts/train_pe_teacher_retained256.py` with only the width-128 path kept and a `--size {256,288}` option added.\n  - Keep its cpu/mechanics/train phases, 100-update chunk resume and the `chunk100_admission_seconds <= 269` rule.\n  - It builds on `scripts/train_pe_full_valid_anchor.py`.\n- **Constructor:** call `scripts/pe_large_coverage.py:94` `load_native` unchanged, which verifies the F5 hashes. Then materialize the position embedding before building the frozen-layer inventory, the digest, the parameter list and AdamW.\n  - The pre-train/post-train frozen check covers the 162 other embedding/block-0–11 tensors, which must be bitwise F5. Position embedding gets its own recorded hash, and the non-persistent buffers are included.\n  - The frozen digest at 288 is recorded as a new value in the CPU proof.\n  - Existing shared modules stay untouched so their source hashes don't change.\n- **Controller:** `scripts/run_pe_teacher_retained256_pilot.py` pattern, running only the treatment for 10 chunks of 100 updates.\n- **Held-panel scoring:** the `scripts/qualify_pe_teacher_retained256.py` export → independent CPU audit → paired decision chain, unchanged. Paired intervals use 5000 draws with seed 179019.\n- **Matched control, reused rather than retrained:** `teacher-retained256-v1/terminal/sfora-teacher-retained256-128-1000-v1/receipt.json` (SHA `d1f01666…`). Its held wires are in `…held-128-v1/{query,gallery}.{codes,float,inverse}.npy` plus `cpu-audit.json`.\n  - Control TRAIN-held (6,354 queries / 6,245 gallery): **97.780925% R@1 / 85.449629% mAP@R**.\n  - Control cost: 1,181.790161s, 54.155 images/s, peak CUDA 6,141,016,576 B.\n- **Checks before reusing that control:**\n  - At `--size 256`, the new constructor must reproduce the archived initial fingerprint and the first-batch RGB and pixel hashes.\n  - At 288, the RGB hashes must match for every step and only the pixel hashes may differ.\n  - Everything else must be equal: source, initial state, schedule, objective, optimizer, precision and freeze boundary.\n\n## Pilot sequence and resource gates\n\n1. **CPU admission** (at most 120s, 8GiB, no swap, CUDA hidden, both GPU locks):\n   - zero-treatment equality at 256, as above;\n   - at 288: only the position embedding changed, and it equals the interpolation hash;\n   - `position_ids` is 324 long, the optimizer holds exactly the declared trainable IDs, and all frozen tensors and buffers are fixed;\n   - a changed source or wrong size must be rejected.\n2. **One discarded 17-update mechanics run at 288**, at most 120s and under 10GB allocated CUDA. It must show finite positive gradients in blocks 12–23, the head and the proxies; frozen tensors and buffers unchanged; and an exact strict reload of whole model, head and packed codes.\n   - Measured chunk projection must be ≤269s.\n   - Median-step ratio against the archived control mechanics must be ≤1.50.\n   - Projection: about 150s per chunk and about 7GB CUDA. That is not measured.\n3. **Ten 100-update chunks**, each within 300s, 8GiB, no swap and under 10GB CUDA. Total wall ratio and median ratio against the control must each be ≤1.50.\n4. **Scoring:** a complete export of all 12,599 held images at 288 (within 300s), then the unchanged independent CPU packed scorer (within 120s). Pilot GPU total is about 30 minutes, with no new control job.\n\n## Stop rules (all set before any quality read)\n\n- **Pilot pass:** candidate minus control must meet all three:\n  - R@1 ≥ **+0.30pp** (about 19 net queries);\n  - paired product 95% lower bound **> 0**;\n  - mAP@R point **≥ 0**.\n- **Why +0.30pp:** the official gap of 0.39pp is about 11% of the current errors, which maps to roughly +0.24pp on the held panel. Rounded up for the ±0.1–0.2pp single-seed noise seen in dense100. This is a fixed preregistration choice, not a projection.\n- **Quality failure:** KILL T288 with frozen layers 0–11 at this budget. No other resolution, no learning-rate, budget or boundary rescue, and no universal resolution claim.\n- **Integrity or resource failure:** a qualification blocker only. Thresholds and caps don't change and no partial arrays are used.\n- The held panel has been observed before, so any result is exploratory. This is a single-seed pass and says nothing about seed generalization.\n\n## Path to a production checkpoint (only if the pilot passes)\n\n1. **One full-TRAIN run:** T288 on all 25,882 images / 3,997 products, 2000 updates, seed 179032, same schedule and objective as the archived corrected full2000 endpoint.\n   - That endpoint is the matched control: official **96.307498% / 81.882593%**.\n   - Expect about 20 chunks of roughly 155s each, projected.\n   - The pilot pass alone justifies this run. Official numbers select nothing.\n2. **Serving:** `src/sfora/siglip2_compact_serving.py:49` and `:208-209` hardcode 256.\n   - Add a declared size taken from the checkpoint config or receipt, and keep 256 as the default for existing checkpoints.\n   - Re-qualify with public batch-32 and native top-10 parity.\n3. **Official export risk:** at 256 the role exports took 208s and 229s. At 288 they may approach the 300s cap. If mechanics throughput projects a role above 270s, freeze a declared split into whole sub-role units before any quality read. That is a split declared up front, not a partial-array continuation.\n4. **Official screen (exploratory):** candidate R@1 > 96.7%, paired product R@1 lower bound > 0 against the full2000 endpoint, and mAP@R at least the control's.\n5. **Speed:** matched, interleaved public batch-1 and batch-32 image-to-top-10 timing for 288 versus 256 versus UNICOM, requiring p95 below 0.9 × UNICOM. A p99 certification with 10,000 paired calls and a confidence interval follows only if quality survives. SOP official confirmation for the same recipe and CUB/Cars transfer remain outstanding.\n\n## Checkpoints to preserve\n\n- **Corrected full2000 endpoint** (96.3075% / 81.8826%): the production matched control.\n- **Fixed-average full2000** (96.3286% / 82.0322%): the best observed official R@1 and the fallback.\n- **4000-update checkpoint** (96.2231% / 82.1233%): the best observed mAP@R.\n- **dense179032** (`163b0226…`): kept as an exploratory 100-update Pareto point only. It is not carried into T288, because boundary 10 would add a second variable, and its official +0.23pp cannot justify anything.\n\n## One next decisive test\n\nRun the T288 CPU admission, then the single discarded 17-update mechanics run. Zero-treatment equality at 256 plus the measured chunk time and CUDA at 288 decide whether the 1000-update pilot is admissible. The paired held-panel score against the archived 1000-update control is the decisive scientific read after that. This design is consequential and new, so it needs your fixed Opus/Astra critique before any code is frozen; I didn't launch one.\n\n**Main limitation:** layers 0–11 stay frozen on the stretched position grid, so a failure closes resolution only for this frozen-boundary recipe.",
+  "result_truncated": false
+}
