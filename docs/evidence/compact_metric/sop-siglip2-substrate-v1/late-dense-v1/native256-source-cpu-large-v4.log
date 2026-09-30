@@ -1,0 +1,44 @@
+Running as unit: sfora-native256-source-cpu-large-v4.service; invocation ID: c53cb473e251461dae8a8883826ac334
+extract_siglip2_vision_source.py: OK
+qualify_siglip2_substrate_cpu.py: OK
+test_siglip2_substrate_cpu.py: OK
+execution.json: OK
+sources.json: OK
+fit.json: OK
+{"proof": "/home/riomus/runs/sfora-native256-source-cpu-large-v4/proof.json", "schema": "siglip2-substrate-source-cpu-v1", "source_qualified": true}
+extract_siglip2_vision_source.py: OK
+qualify_siglip2_substrate_cpu.py: OK
+test_siglip2_substrate_cpu.py: OK
+execution.json: OK
+sources.json: OK
+fit.json: OK
+FINAL_CGROUP {"invocation_id": "c53cb473e251461dae8a8883826ac334", "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-native256-source-cpu-large-v4.service", "values": {"memory.current": "1719410688", "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0", "memory.max": "8589934592", "memory.peak": "5466943488", "memory.swap.current": "0", "memory.swap.max": "0", "memory.swap.peak": "0"}}
+	Command being timed: "/bin/bash /home/riomus/runs/sfora-native256-source-cpu-v4/large-command.sh"
+	User time (seconds): 30.58
+	System time (seconds): 3.97
+	Percent of CPU this job got: 96%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:35.97
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 3648632
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 8392
+	Minor (reclaiming a frame) page faults: 188305
+	Voluntary context switches: 101568
+	Involuntary context switches: 276
+	Swaps: 0
+	File system inputs: 21145088
+	File system outputs: 2471392
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 35.984s
+CPU time consumed: 34.558s
+Memory peak: 256.0K
+Memory swap peak: 0B
