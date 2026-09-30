@@ -1,0 +1,49 @@
+--- a/scripts/train_siglip2_substrate_adaptation.py
++++ b/scripts/train_siglip2_substrate_adaptation.py
+@@ -83,7 +83,7 @@
+ 
+ def policy(phase):
+     require(phase in ('mechanics', 'train'), 'fixed phase required')
+-    return {'seconds': 120 if phase == 'mechanics' else 300, 'host_bytes': 8 * 1024**3,
++    return {'seconds': 300, 'host_bytes': 8 * 1024**3,
+             'swap_bytes': 0, 'cuda_allocated_bytes_exclusive': 10_000_000_000}
+ 
+ 
+@@ -931,7 +931,7 @@
+                                 'selected_mechanics': None, 'resource_policy': policy('mechanics')},
+             'original mechanics launch authority differs')
+     terminal = admission.admit_terminal if admission else context['initialized']['init'].admit_terminal
+-    return record, terminal(record, descriptor, 120, context['guards'])
++    return record, terminal(record, descriptor, policy('mechanics')['seconds'], context['guards'])
+ 
+ 
+ def authority(args):
+--- a/scripts/test_siglip2_substrate_adaptation.py
++++ b/scripts/test_siglip2_substrate_adaptation.py
+@@ -295,7 +295,7 @@
+     changed = {'fingerprint', 'restore_independent', 'CheckpointPages', 'load_vision'}
+     tree.body = [node for node in tree.body if getattr(node, 'name', None) not in changed]
+     assert hashlib.sha256(ast.dump(tree, include_attributes=False).encode()).hexdigest() == (
+-        '1944ddd235a078ae0b85e741f2b0b801f4a09a7068c694c0bd5eec9ee2529891')
++        '6325c182e27eda4e1aaa26f461adeb0c221f357502052644abfedbb38558e7c6')
+ 
+ 
+ def checkpoint_write_checks(driver, root):
+@@ -835,7 +835,7 @@
+         result = subprocess.run([sys.executable, '-B', '-S', *flags, str(path), *arguments],
+                                 capture_output=True, text=True)
+         assert result.returncode == code and marker in result.stdout + result.stderr
+-    assert driver.policy('mechanics')['seconds'] == 120 and driver.policy('train')['seconds'] == 300
++    assert driver.policy('mechanics')['seconds'] == 300 and driver.policy('train')['seconds'] == 300
+     rejects(lambda: driver.policy('quality'), 'fixed phase')
+     native_facts = {'seed': 179041, 'counter': 0, 'parameter_names': ['original'],
+                     'optimizer_defaults': {'betas': (.9, .999), 'eps': 1e-8},
+@@ -1043,7 +1043,7 @@
+             sys.modules.pop('_siglip2_pinned_adaptation_qualifier')
+             for key, value in (('schema', 'wrong'), ('execution_sha256', '0'*64), ('arm', 'so400'),
+                                ('seed', 179041), ('phase', 'train'), ('both_locks_held', False),
+-                               ('selected_mechanics', {}), ('resource_policy', driver.policy('train'))):
++                               ('selected_mechanics', {}), ('resource_policy', {**driver.policy('mechanics'), 'seconds': 301})):
+                 args.authority_sha256 = write(args.authority, {**launch, key: value})
+                 rejects(lambda: driver.bootstrap(args), 'launch authority')
+             args.authority_sha256 = write(args.authority, launch)
