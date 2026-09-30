@@ -1,0 +1,38 @@
+Running as unit: sfora-native256-source-cpu-so400-v3.service; invocation ID: 28873d5b3dd6499695f3d448f9e97ffe
+extract_siglip2_vision_source.py: OK
+qualify_siglip2_substrate_cpu.py: OK
+test_siglip2_substrate_cpu.py: OK
+execution.json: OK
+sources.json: OK
+fit.json: OK
+source qualification rejected: loaded native module origin differs: torch.ops
+Command exited with non-zero status 1
+	Command being timed: "/bin/bash /home/riomus/runs/sfora-native256-source-cpu-v3/so400-command.sh"
+	User time (seconds): 3.22
+	System time (seconds): 1.26
+	Percent of CPU this job got: 47%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:09.40
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 946056
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 5384
+	Minor (reclaiming a frame) page faults: 144201
+	Voluntary context switches: 22380
+	Involuntary context switches: 54
+	Swaps: 0
+	File system inputs: 5455160
+	File system outputs: 8
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 1
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=1
+Service runtime: 9.413s
+CPU time consumed: 4.495s
+Memory peak: 256.0K
+Memory swap peak: 0B
