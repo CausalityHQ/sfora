@@ -1,0 +1,71 @@
+Running as unit: sfora-full2000-memory-profile-v1.service; invocation ID: 7ea5c1d46f824f57b35ee9d814a4e950
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 10884.34it/s]
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-full2000-memory-profile-v1.py", line 53, in <module>
+    q.main()
+    ~~~~~~^^
+  File "/home/riomus/runs/sfora-full-valid-anchor-public-source-v2/qualify_full_valid_anchor_serving.py", line 668, in main
+    'p99_certified': False, **facts, 'resources': usage(state)})
+                                                  ~~~~~^^^^^^^
+  File "/home/riomus/runs/sfora-full-valid-anchor-public-source-v2/qualify_full_valid_anchor_serving.py", line 303, in usage
+    assert seconds < cap and stats.ru_maxrss * 1024 < HOST_CAP and peak < HOST_CAP
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+DIAGNOSTIC current maximum {"seconds": 29.167638673912734, "stage": "train_pe_full_valid_anchor.py:startup:return", "current": 8589934592, "peak": 8589934592, "stat": {"anon": 614752256, "file": 7903088640, "kernel": 71020544, "shmem": 0, "file_mapped": 364343296, "inactive_file": 7390453760, "active_file": 512634880}, "process": {"VmHWM": 1000382464, "VmRSS": 982781952, "RssAnon": 614486016, "RssFile": 368295936, "RssShmem": 0, "VmSwap": 0}}
+DIAGNOSTIC qualifier status 1 no qualification admission
+Command exited with non-zero status 1
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-full2000-memory-profile-v1.py --controller-sha256 ffb9c2e1632425a53e243df1d71df99cab8b555fbc1df84a119ad790b5bb989d --output /home/riomus/runs/sfora-full2000-memory-profile-v1/report.json"
+	User time (seconds): 43.70
+	System time (seconds): 7.60
+	Percent of CPU this job got: 93%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:54.93
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 5776472
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 7732
+	Minor (reclaiming a frame) page faults: 1630808
+	Voluntary context switches: 177485
+	Involuntary context switches: 4078
+	Swaps: 0
+	File system inputs: 50025880
+	File system outputs: 1200
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 1
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=1
+Service runtime: 54.943s
+CPU time consumed: 51.320s
+Memory peak: 8.0G
+Memory swap peak: 0B
+Command exited with non-zero status 1
+	Command being timed: "systemd-run --user --wait --collect --pipe --unit=sfora-full2000-memory-profile-v1 --property=WorkingDirectory=/home/riomus/runs/sfora-full-valid-anchor-public-source-v2 --property=RuntimeMaxSec=120 --property=MemoryMax=8G --property=MemorySwapMax=0 --property=KillMode=control-group --property=OOMPolicy=stop --setenv=CUDA_VISIBLE_DEVICES= --setenv=CUBLAS_WORKSPACE_CONFIG=:4096:8 --setenv=OMP_NUM_THREADS=8 --setenv=OPENBLAS_NUM_THREADS=1 --setenv=TOKENIZERS_PARALLELISM=false --setenv=TMPDIR=/home/riomus/runs/sfora-full-valid-anchor-public-source-v2 --setenv=CUTILE_TILEIRAS_PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/tileiras --setenv=PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin:/usr/local/bin:/usr/bin:/bin --setenv=PYTHONPATH=/home/riomus/runs/sfora-full-valid-anchor-public-source-v2:/home/riomus/runs/sfora-full-valid-anchor-public-source-v2/src:/home/riomus/runs/sfora-full-valid-anchor-public-source-v2/isolated-deps flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock flock -n /home/riomus/.sfora-siglip2-gpu.lock /usr/bin/time -v /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-full2000-memory-profile-v1.py --controller-sha256 ffb9c2e1632425a53e243df1d71df99cab8b555fbc1df84a119ad790b5bb989d --output /home/riomus/runs/sfora-full2000-memory-profile-v1/report.json"
+	User time (seconds): 0.00
+	System time (seconds): 0.00
+	Percent of CPU this job got: 0%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:54.98
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 7284
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 15
+	Minor (reclaiming a frame) page faults: 364
+	Voluntary context switches: 33
+	Involuntary context switches: 0
+	Swaps: 0
+	File system inputs: 2176
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 1
