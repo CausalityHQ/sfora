@@ -7,13 +7,17 @@ import ast
 import builtins
 import copy
 from contextlib import nullcontext
+from collections import Counter
 import hashlib
 import importlib.util
 import io
 import json
+import math
+import os
 import random
 import shutil
 import subprocess
+import struct
 import sys
 import zipfile
 from pathlib import Path
@@ -232,9 +236,365 @@ def checkpoint_write_checks(driver, root):
         rejects(writer.flush, 'checkpoint offset disorder')
 
 
+
+def predicate_correspondence_checks(driver):
+    """Every original require predicate survives with only explicit IO/name
+    substitutions. Runtime fixtures additionally exercise their control flow.
+    """
+    repo = Path(__file__).parent
+    tree = ast.parse(Path(driver.__file__).read_text())
+    cls = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == 'FlatAdmission')
+    ledger = (
+        ('qualify_siglip2_substrate_cpu', 'original_extraction', 'original_extraction', {'source.POLICY': 'POLICY'}),
+        ('qualify_siglip2_substrate_cpu', 'authority', 'source_authority', {'source_driver.ARMS': 'ARMS'}),
+        ('qualify_siglip2_substrate_cpu', 'package_origins', 'package_origins', {"context['source_driver'].PACKAGES": 'PACKAGES'}),
+        ('export_siglip2_substrate_fit', 'admit_cpu', 'source_cpu', {'self.exporter.STARTUP_POLICY': 'STARTUP_POLICY'}),
+        ('export_siglip2_substrate_fit', 'all_fit_images', 'all_fit_images', {}),
+        ('export_siglip2_substrate_fit', 'authority', 'export_authority', {
+            'exporter.' + name: name for name in ('AUTHORITY_SCHEMA', 'STARTUP_POLICY', 'EXPORT_POLICY', 'SOURCE_ROOT')}),
+        ('initialize_siglip2_substrate_fit', 'admit_export', 'admit_export', {'self.init.EXPORT_ARITHMETIC': 'EXPORT_ARITHMETIC'}),
+        ('initialize_siglip2_substrate_fit', 'admit_terminal', 'admit_terminal', {}),
+        ('initialize_siglip2_substrate_fit', 'cache_facts', 'cache_facts', {'digest.hexdigest()': 'sha(path)'}),
+        ('initialize_siglip2_substrate_fit', 'authority', 'pca_authority', {
+            **{'init.' + name: name for name in ('AUTHORITY_SCHEMA', 'POLICY', 'EXPORT_FILES', 'SOURCE_FILES')},
+            'NATIVE': 'NATIVE_PACKAGES'}),
+        ('qualify_siglip2_initialized_cpu', 'authority', 'initialized_authority', {'NATIVE': 'NATIVE_PACKAGES'}))
+    def predicates(function, renames):
+        class Normalize(ast.NodeTransformer):
+            def visit(self, node):
+                text = ast.unparse(node)
+                if text in renames:
+                    return ast.parse(renames[text], mode='eval').body
+                return super().visit(node)
+        return Counter(ast.dump(Normalize().visit(copy.deepcopy(node.args[0])), include_attributes=False)
+            for node in ast.walk(function) if isinstance(node, ast.Call) and
+            isinstance(node.func, ast.Name) and node.func.id == 'require')
+    for file, original, replacement, renames in ledger:
+        old = next(n for n in ast.parse((repo / (file + '.py')).read_text()).body
+                   if isinstance(n, ast.FunctionDef) and n.name == original)
+        new = next(n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == replacement)
+        assert not predicates(old, {}) - predicates(new, renames), (file, original, 'missing predicate')
+
+
+def flat_chain_checks(driver, base):
+    """Full stdlib authority chain; mock only the multi-GB safetensors payload
+    header boundary. Native modules stay unloaded; package metadata is synthetic.
+    Compare stage dictionaries with the original authority, not self-generated
+    expectations. NPY/NPZ bodies are real stdlib bytes at their required shapes.
+    """
+    repo = Path(__file__).parent.resolve()
+    exporter = module(repo / 'export_siglip2_substrate_fit.py', 'flat_fixture_exporter')
+    fixtures = module(repo / 'test_siglip2_substrate_fit.py', 'flat_source_fixtures')
+    export_args, export_launch, proof, source, extract, inventory, export_root, source_root = fixtures.authority_fixture(base, exporter)
+    # A synthetic pinned closure gets its own declared root before hashing.
+    export_file = export_root / 'export_siglip2_substrate_fit.py'
+    export_file.write_text(export_file.read_text().replace(str(exporter.SOURCE_ROOT), str(source_root)))
+    exporter = module(export_file, 'flat_fixture_exporter_local')
+    export_code = {name: sha(export_root / name) for name in exporter.FILES}
+    export_args.execution_sha256 = write(export_root / 'execution.json', export_code)
+    export_launch['execution_sha256'] = export_args.execution_sha256
+    site = base / 'site'
+    site.mkdir()
+    packages, versions, files = {}, {}, {}
+    for package, distribution in source.PACKAGES.items():
+        package_root = site / package
+        package_root.mkdir()
+        origin = package_root / '__init__.py'
+        origin.write_text('# never imported\n')
+        meta = site / (distribution + '-1.0.dist-info')
+        meta.mkdir()
+        (meta / 'METADATA').write_text('Metadata-Version: 2.1\nName: ' + distribution + '\nVersion: 1.0\n')
+        versions[distribution.lower()] = '1.0'
+        packages[package] = {'root': str(package_root), 'origin': str(origin), 'version': '1.0'}
+        files[str(origin)] = {'sha256': sha(origin), 'bytes': origin.stat().st_size}
+    constructor = site / 'transformers' / 'vision.py'
+    constructor.write_text('# synthetic observed source\n')
+    files[str(constructor)] = {'sha256': sha(constructor), 'bytes': constructor.stat().st_size}
+    sources = json.loads((source_root / 'sources.json').read_bytes())
+    sources['native_environment'] = {'schema': 'native256-installed-source-observation-v1',
+        'native_imported': False, 'model_executed': False, 'quality_read': False,
+        'site_packages': str(site), 'versions': versions, 'files': files,
+        'vision_constructor': {'direct_bare_state_keys_source_observed': True, 'path': str(constructor),
+            'assigned_self_attributes': ['config', 'embeddings', 'encoder', 'head', 'post_layernorm', 'use_head']}}
+    sources_sha = write(source_root / 'sources.json', sources)
+    export_launch['sources']['sha256'] = sources_sha
+    original_path = Path(export_launch['source_cpu_authority']['path'])
+    original = json.loads(original_path.read_bytes())
+    original['sources_sha256'] = sources_sha
+    export_launch['source_cpu_authority']['sha256'] = write(original_path, original)
+    proof['sources_sha256'] = sources_sha
+    proof['invocation']['argv'][6] = sources_sha
+    proof['input_guards'][str(source_root / 'sources.json')] = sources_sha
+    proof['origins']['packages'] = packages
+    proof['origins']['files'] = {p: v['sha256'] for p, v in files.items()}
+    proof['input_guards'].update(proof['origins']['files'])
+    proof_descriptor = export_launch['source_cpu']['large']['proof']
+    proof_descriptor['sha256'] = write(Path(proof_descriptor['path']), proof)
+    export_args.authority_sha256 = write(export_args.authority, export_launch)
+    evidence = repo.parent / 'docs/evidence/compact_metric/sop-siglip2-substrate-v1/late-dense-v1'
+    def receipt(name):
+        return json.loads((evidence / (name + '.json')).read_bytes())
+    def terminal(record, path, argv, cuda=''):
+        unit, invocation = 'fixture-' + path.parent.name + '-' + path.stem, 'b'*32
+        memory = {'path': '/sys/fs/cgroup/' + unit + '.service', 'values': {
+            'memory.max': str(8 * 1024**3), 'memory.current': '128', 'memory.peak': '256',
+            'memory.swap.current': '0', 'memory.swap.peak': '0', 'memory.swap.max': '0',
+            'memory.events': 'max 0\noom 0\noom_kill 0'}}
+        record.update(wall_seconds=1., process_peak_rss_kib=1, cgroup_before=memory, cgroup_after=memory,
+            invocation={**proof['invocation'], 'argv': argv, 'invocation_id': invocation,
+                        'cuda_visible_devices': cuda})
+        final = {**memory, 'invocation_id': invocation}
+        log = path.with_suffix('.log')
+        log.write_text(f'Running as unit: {unit}.service; invocation ID: {invocation}\n'
+            '\tExit status: 0\nFinished with result: success\nMain processes terminated with: code=exited/status=0\n'
+            '\tSwaps: 0\nMemory swap peak: 0B\nService runtime: 2s\n'
+            '\tMaximum resident set size (kbytes): 2\nFINAL_CGROUP ' + json.dumps(final) + '\n')
+        return {'receipt': {'path': str(path), 'sha256': write(path, record)},
+                'log': {'path': str(log), 'sha256': sha(log)}, 'unit': unit, 'invocation_id': invocation,
+                'service_seconds': 2., 'native_peak_rss_kib': 2, 'both_locks_held': True}, final
+    def closure(root, names):
+        root.mkdir()
+        for name in names:
+            local = repo / name
+            if not local.exists():
+                local = repo.parent / 'src/sfora' / name
+            shutil.copyfile(local, root / name)
+        code = {n: sha(root / n) for n in names}
+        return code, write(root / 'execution.json', code)
+    init_root, qroot, own = base / 'pca-code', base / 'q-code', base / 'trainer'
+    init = module(repo / 'initialize_siglip2_substrate_fit.py', 'flat_fixture_init')
+    q = module(repo / 'qualify_siglip2_initialized_cpu.py', 'flat_fixture_q')
+    init_code, init_pin = closure(init_root, init.FILES)
+    qcode, qpin = closure(qroot, q.FILES)
+    init = module(init_root / 'initialize_siglip2_substrate_fit.py', 'flat_fixture_init_local')
+    q = module(qroot / 'qualify_siglip2_initialized_cpu.py', 'flat_fixture_q_local')
+    own.mkdir()
+    originals = {'deployed_code_rank.py': repo.parent / 'src/sfora/deployed_code_rank.py',
+                 'reference_train_sop_siglip2_compact.py': repo / 'train_sop_siglip2_compact.py',
+                 'reference_unicom_training.py': repo.parent / 'src/sfora/unicom_training.py'}
+    for name in driver.FILES:
+        shutil.copyfile(originals.get(name, repo / name), own / name)
+    own_code = {n: sha(own / n) for n in driver.FILES}
+    own_pin = write(own / 'execution.json', own_code)
+    # Original recursive admission is the independent stage-inventory oracle.
+    names = ('extract_siglip2_vision_source', 'qualify_siglip2_substrate_cpu',
+             '_siglip2_pinned_fit_export', '_siglip2_pinned_initialized_pca', '_siglip2_pinned_adaptation_qualifier')
+    def clear():
+        for name in names:
+            sys.modules.pop(name, None)
+    real_load = driver.load_bare
+    def load_with_fixture_header(name, path, digest):
+        value = real_load(name, path, digest)
+        if name == 'extract_siglip2_vision_source':
+            # The real parser is tested independently below; omit 1.26GB allocation.
+            value.read_header = lambda stream: (inventory, {}, b'')
+        return value
+    prior_path = sys.path[:]
+    sys.path.insert(0, str(site))
+    try:
+        with patch.object(extract, 'read_header', return_value=(inventory, {}, b'')):
+            source_context = exporter.authority(export_args)
+        startup_guards = source_context['guards'].copy()
+        startup = receipt('native256-fit-startup-large-v1')
+        startup.update(binding=exporter.binding(source_context), input_guards=startup_guards, packages=packages)
+        startup_path = base / 'startup.json'
+        prefix = [str(export_file), '--execution-sha256', export_args.execution_sha256,
+                  '--authority', str(export_args.authority), '--authority-sha256', export_args.authority_sha256,
+                  '--arm', 'large']
+        startup_descriptor, startup_final = terminal(startup, startup_path, prefix + ['--check-startup-only', '--output', str(startup_path)])
+        export_dir = base / 'fit-export'
+        export_dir.mkdir()
+        cache = export_dir / 'fit.npy'
+        header = repr({'descr': '<f4', 'fortran_order': False, 'shape': (13283, 1024)}).encode()
+        row = struct.pack('<1024f', 1., *([0.]*1023))
+        with cache.open('wb') as stream:
+            stream.write(b'\x93NUMPY\x01\x00' + len(header).to_bytes(2, 'little') + header)
+            for _ in range(13283):
+                stream.write(row)
+        exported = receipt('native256-fit-export-large-v1')
+        rgb = []
+        for ordinal, (row, target, image) in enumerate(zip(source_context['fit']['rows'], source_context['fit']['targets'], source_context['all_images'])):
+            rgb.append({'ordinal': ordinal, 'train_row': row['train_row'], 'target': target,
+                'relative_path': row['relative_path'], 'path': str(image), 'image_sha256': row['image_sha256'],
+                'mode': 'RGB', 'size': [256, 256], 'rgb_sha256': 'a'*64})
+        for row, sample in zip(rgb, proof['sample']['images']):
+            row.update({k: sample[k] for k in ('mode', 'size', 'rgb_sha256')})
+        ordered = {'rows': source_context['fit']['rows'], 'targets': source_context['fit']['targets'],
+            'class_names': source_context['fit']['class_names'], 'resolved_paths': list(map(str, source_context['all_images']))}
+        exported.update(binding=exporter.binding(source_context), startup=startup_descriptor['receipt'],
+            source_checkpoint_metadata_only=proof['checkpoint'], cpu_numerical_flags=proof['numerical_flags'],
+            input_guards={**startup_guards, str(startup_path): startup_descriptor['receipt']['sha256']},
+            origins=proof['origins'], rgb_manifest=rgb, ordered_rgb_sha256=exporter.object_sha(rgb),
+            ordered_input_sha256=exporter.object_sha(ordered), export_seconds=.5,
+            cache={**exported['cache'], 'path': str(cache), 'sha256': sha(cache)})
+        export_descriptor, export_final = terminal(exported, export_dir / 'receipt.json', prefix + [
+            '--startup', str(startup_path), '--startup-sha256', startup_descriptor['receipt']['sha256'],
+            '--output', str(export_dir)], '0')
+        pca_launch = {'schema': init.AUTHORITY_SCHEMA, 'execution_sha256': init_pin,
+            'pca_helper_sha256': init_code['representation_ceiling.py'], 'export_root': str(export_root),
+            'export_execution_sha256': export_args.execution_sha256,
+            'export_authority': {'path': str(export_args.authority), 'sha256': export_args.authority_sha256},
+            'selected_export': export_descriptor, 'startup': startup_descriptor,
+            'resource_policy': init.POLICY, 'both_locks_held': True}
+        pca_args = SimpleNamespace(execution_sha256=init_pin, authority=base / 'pca-launch.json',
+            authority_sha256=write(base / 'pca-launch.json', pca_launch), arm='large', output=base / 'NEW')
+        # Original helpers load the same bytes; patch only their loader's header
+        # boundary for the synthetic tiny derived source.
+        clear()
+        original_load = init.load_bare
+        def init_load(name, path, digest):
+            value = original_load(name, path, digest)
+            if name == 'extract_siglip2_vision_source':
+                value.read_header = lambda stream: (inventory, {}, b'')
+            return value
+        with patch.object(init, 'load_bare', init_load):
+            pca = init.authority(pca_args)
+        pca_dir = base / 'pca-proof'
+        pca_dir.mkdir()
+        arrays, facts = {}, {}
+        for name, shape in q.array_shapes(1024).items():
+            values = (struct.pack('<13283q', *source_context['fit']['targets']) if name == 'target'
+                      else b'\0' * (4 * math.prod(shape)))
+            arrays[name] = values
+            facts[name] = {'dtype': 'torch.int64' if name == 'target' else 'torch.float32',
+                           'shape': shape, 'sha256': hashlib.sha256(values).hexdigest()}
+        archive = pca_dir / 'initializers.npz'
+        with zipfile.ZipFile(archive, 'w') as stream:
+            for name, raw in arrays.items():
+                header = repr({'descr': '<i8' if name == 'target' else '<f4', 'fortran_order': False,
+                               'shape': tuple(facts[name]['shape'])}).encode()
+                stream.writestr(name + '.npy', b'\x93NUMPY\x01\x00' + len(header).to_bytes(2, 'little') + header + raw)
+        pca_record = receipt('native256-fit-initializer-large-v2')
+        pca_record.update(authority_sha256=pca_args.authority_sha256, execution_sha256=init_pin, code=init_code,
+            pca_helper_sha256=pca_launch['pca_helper_sha256'], source_binding=exported['binding'],
+            source_checkpoint_metadata_only=proof['checkpoint'], source_roles=proof['runtime']['roles'],
+            source_roles_sha256=exporter.object_sha(proof['runtime']['roles']), cache=exported['cache'],
+            cache_facts_before_native=pca['cache_facts_before_native'], ordered_input_sha256=exported['ordered_input_sha256'],
+            ordered_rgb_sha256=exported['ordered_rgb_sha256'], class_names=source_context['fit']['class_names'],
+            numerical_flags=proof['numerical_flags'], export_final_cgroup=export_final, startup_final_cgroup=startup_final,
+            class_counts=[source_context['fit']['targets'].count(n) for n in range(2004)], arrays=facts,
+            artifact={'path': str(archive), 'sha256': sha(archive)}, input_guards=pca['guards'].copy(),
+            origins=proof['origins'], pca_seconds=.5,
+            pca_sha256=hashlib.sha256(arrays['mean'] + arrays['components']).hexdigest())
+        for key in ('export_root', 'export_execution_sha256', 'export_authority', 'selected_export', 'startup'):
+            pca_record[key] = pca_launch[key]
+        pca_descriptor, pca_final = terminal(pca_record, pca_dir / 'receipt.json', [
+            str(init_root / 'initialize_siglip2_substrate_fit.py'), '--execution-sha256', init_pin,
+            '--authority', str(pca_args.authority), '--authority-sha256', pca_args.authority_sha256,
+            '--arm', 'large', '--output', str(pca_dir)])
+        qlaunch = {'schema': q.AUTHORITY_SCHEMA, 'execution_sha256': qpin,
+            'packing_helper_sha256': qcode['joint_relational_compaction.py'], 'initializer_root': str(init_root),
+            'initializer_execution_sha256': init_pin,
+            'initializer_authority': {'path': str(pca_args.authority), 'sha256': pca_args.authority_sha256},
+            'selected_initializer': pca_descriptor, 'resource_policy': q.POLICY, 'both_locks_held': True}
+        qargs = SimpleNamespace(execution_sha256=qpin, authority=base / 'q-launch.json',
+            authority_sha256=write(base / 'q-launch.json', qlaunch), arm='large', output=base / 'NEW')
+        # Oracle q.authority uses its genuine initializer; intercept only its
+        # stdlib loader to provide the same synthetic derived-header boundary.
+        clear()
+        qload = q.load_bare
+        def q_load(name, path, digest):
+            value = qload(name, path, digest)
+            value.load_bare = init_load
+            return value
+        with patch.object(q, 'load_bare', q_load):
+            initialized = q.authority(qargs)
+        prereq = initialized['guards'].copy()
+        cpu_dir = base / 'cpu-proof'
+        cpu_dir.mkdir()
+        checkpoint = cpu_dir / 'initialized.pt'
+        checkpoint.write_bytes(b'archived checkpoint; never initialization')
+        cpu = receipt('native256-initialized-cpu-large-v3')
+        cpu.update(authority_sha256=qargs.authority_sha256, execution_sha256=qpin, code=qcode,
+            initializer_authority=qlaunch['initializer_authority'], selected_initializer=pca_descriptor,
+            pca_final_cgroup=pca_final, source_binding=exported['binding'], source_sample=proof['sample'],
+            ordered_input_sha256=exported['ordered_input_sha256'], ordered_rgb_sha256=exported['ordered_rgb_sha256'],
+            initializers=pca_record['artifact'], numerical_flags=proof['numerical_flags'],
+            checkpoint={'path': str(checkpoint), 'sha256': sha(checkpoint)}, origins=proof['origins'],
+            input_guards={**prereq, str(checkpoint): sha(checkpoint)})
+        cpu['state'].update(arrays=facts, runtime=proof['runtime'])
+        cpu_descriptor, _ = terminal(cpu, cpu_dir / 'proof.json', [
+            str(qroot / 'qualify_siglip2_initialized_cpu.py'), '--execution-sha256', qpin,
+            '--authority', str(qargs.authority), '--authority-sha256', qargs.authority_sha256,
+            '--arm', 'large', '--output', str(cpu_dir)])
+        launch = {'schema': driver.AUTHORITY_SCHEMA, 'execution_sha256': own_pin,
+            'phase': 'mechanics', 'arm': 'large', 'seed': 179032, 'qualifier_root': str(qroot),
+            'qualifier_execution_sha256': qpin,
+            'qualifier_authority': {'path': str(qargs.authority), 'sha256': qargs.authority_sha256},
+            'selected_cpu': cpu_descriptor, 'selected_mechanics': None,
+            'resource_policy': driver.policy('mechanics'), 'both_locks_held': True}
+        args = SimpleNamespace(execution_sha256=own_pin, authority=base / 'trainer-launch.json',
+            authority_sha256=write(base / 'trainer-launch.json', launch), phase='mechanics',
+            arm='large', seed=179032, output=base / 'NEW')
+        def run():
+            clear()
+            with patch.object(driver, '__file__', str(own / 'train_siglip2_substrate_adaptation.py')), \
+                 patch.object(driver, 'load_bare', load_with_fixture_header):
+                return driver.authority(args)
+        with patch.object(driver, 'bound_file', wraps=driver.bound_file) as bounded:
+            context = run()
+        bulk = [Path(proof['checkpoint']['path']), checkpoint, archive, *source_context['all_images']]
+        calls = [Path(call.args[1]) for call in bounded.call_args_list]
+        counts = Counter(calls)
+        assert all(counts[path] == 1 for path in bulk), 'repeated bulk admission SHA'
+        assert counts[cache] == 0, 'NPY must hash during its semantic scan'
+        assert context['initialized_prereq_guards'] == prereq
+        initialized = context['initialized']
+        assert context['guards'] is initialized['guards'] is initialized['pca']['guards'] is initialized['source_context']['guards']
+        assert set(cpu['input_guards']) <= context['guards'].keys()
+        assert initialized['source_context']['proof'] == proof
+        assert context['cpu'] == cpu and initialized['record'] == pca_record
+        # Missing source proof, changed flags/roles/stage inventories must reject
+        # before any native import, even when the containing JSON is re-pinned.
+        source_bad = copy.deepcopy(proof)
+        source_bad['runtime']['roles'][0]['role'] = 'trainable'
+        source_bad['runtime']['roles'][1]['role'] = 'frozen'
+        proof_descriptor['sha256'] = write(Path(proof_descriptor['path']), source_bad)
+        reader = driver.FlatAdmission()
+        reader.exporter = exporter
+        rejects(lambda: reader.source_cpu({**source_context, 'guards': {}},
+            export_launch['source_cpu']['large'], original), 'role')
+        proof_descriptor['sha256'] = write(Path(proof_descriptor['path']), proof)
+        bad_startup = {**startup, 'input_guards': context['guards']}
+        rejects(lambda: exporter.admit_startup({**source_context, 'guards': startup_guards}, bad_startup), 'startup admission')
+        rejects(lambda: exporter.admit_startup({**source_context, 'guards': startup_guards}, {**startup, 'schema': 'bad'}), 'startup admission')
+        # The unchanged complete exit chain must detect restored-mtime tampering.
+        stamp = checkpoint.stat()
+        checkpoint.write_bytes(b'X' + checkpoint.read_bytes()[1:])
+        os.utime(checkpoint, ns=(stamp.st_atime_ns, stamp.st_mtime_ns))
+        rejects(lambda: context['qualifier'].rehash(initialized), 'exit authority SHA256')
+    finally:
+        sys.path[:] = prior_path
+        clear()
+
 def main():
     path = Path(__file__).with_name('train_siglip2_substrate_adaptation.py').resolve()
     driver = module(path, 'adaptation_under_test')
+    predicate_correspondence_checks(driver)
+    assert hasattr(driver, 'FlatAdmission'), 'trainer-owned flat admission is missing'
+    with TemporaryDirectory() as directory:
+        root = Path(directory).resolve()
+        artifact = root / 'bulk.bin'
+        artifact.write_bytes(b'original bytes')
+        digest = sha(artifact)
+        admission = driver.FlatAdmission()
+        first, second = {}, {}
+        with patch.object(driver.os, 'posix_fadvise', wraps=driver.os.posix_fadvise) as advice:
+            admission.bound_file(first, artifact, digest, artifact.stat().st_size)
+            admission.bound_file(second, artifact, digest)
+            assert advice.call_count == 1, 'duplicate bulk admission read'
+        assert first == second == {str(artifact): digest}
+        rejects(lambda: admission.bound_file({}, artifact, '0'*64), 'conflicting')
+        rejects(lambda: admission.bound_file({}, artifact, digest, 99), 'size')
+        stamp = artifact.stat()
+        artifact.write_bytes(b'tampered bytes')
+        os.utime(artifact, ns=(stamp.st_atime_ns, stamp.st_mtime_ns))
+        rejects(lambda: driver.bound_file({}, artifact, digest), 'SHA256')
+        record = root / 'record.json'
+        pin = write(record, {'valid': True})
+        assert admission.read_json(record, pin, {}) == {'valid': True}
+        record.write_text('{"valid":true,"valid":false}')
+        rejects(lambda: driver.FlatAdmission().read_json(record, sha(record), {}), 'duplicate')
     assert not any(n.split('.')[0] in driver.NATIVE for n in sys.modules)
     tree = ast.parse(path.read_bytes())
     # No inherited startup/package initialization, peak reset, quality API or rescue.
@@ -623,8 +983,10 @@ def main():
             context['guards'] = {}
             rejects(lambda: driver.admit_cpu(context), marker)
         descriptor['receipt']['sha256'] = write(root / 'proof.json', cpu)
+    with TemporaryDirectory() as directory, patch.dict(sys.modules):
+        flat_chain_checks(driver, Path(directory).resolve())
     assert not any(n.split('.')[0] in driver.NATIVE for n in sys.modules)
-    print('PASS stdlib authority/reference/math/schedule/full-state/JSON/RGB/source-byte/streamed-SHA/checkpoint-write/ZIP/phase-log checks; native unrun')
+    print('PASS stdlib flat-chain/predicate-ledger/stage-guards/unique-bulk-SHA/uncached-exit-tamper/authority/reference/math/schedule/full-state/JSON/RGB/source-byte/checkpoint-write/ZIP/phase-log checks; native unrun')
 
 
 if __name__ == '__main__':

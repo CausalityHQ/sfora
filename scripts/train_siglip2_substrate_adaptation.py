@@ -35,14 +35,17 @@ import ast
 import gc
 import hashlib
 import importlib.util
+import importlib.metadata
 import json
 import math
 import os
 import re
 import resource
 import statistics
+import struct
 import sys
 import time
+from decimal import Decimal
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
@@ -164,6 +167,611 @@ def selected_ast(path, pin):
     return compile(selected, str(path), 'exec', flags=__future__.annotations.compiler_flag, dont_inherit=True)
 
 
+class FlatAdmission:
+    """One invocation's byte admission; never stored in a native context.
+
+    Predicate correspondence (original functions -> checks below):
+    * source.authority/original_extraction -> source_authority/original_extraction:
+      exact closures, original inputs/log/caps, selected revision/config/processor,
+      derived header and tensor provenance, original ordered FIT receipt/witnesses.
+      source.fit_rows/validate_derived/expected_vision/read_header stay genuine.
+    * source.package_origins -> package_origins: installed versions, distribution
+      and module origins, observed files/sizes and direct-constructor attributes.
+    * exporter.authority/admit_cpu/all_fit_images -> export_authority/source_cpu/
+      all_fit_images: sourceCPU flags, 205 roles, nonpersistent buffers, interpreter,
+      argv, checkpoint inventory, original log/footer/caps and all canonical images.
+      Genuine exporter.admit_startup checks EXACT source/export-stage guards.
+    * init.authority/admit_export/cache_facts/admit_terminal -> pca_authority/
+      admit_export/cache_facts/admit_terminal: original startup/export flags, RGB
+      rows/digests, native origins, NPY payload, original argv/terminal/resource facts.
+    * q.authority -> initialized_authority; genuine q.bootstrap, q.admit_pca and
+      q.validate_arrays retain ALL PCA flags/roles/NPZ member/header/finite/target/
+      PCA-digest predicates via this explicit file-reader argument. No helper's
+      globals change. q.fresh/state_facts/rehash use only the genuine modules.
+    * trainer.bootstrap/admit_cpu/admit_mechanics keep their predicates; authority
+      snapshots initialized_prereq_guards BEFORE trainer bindings, promotes every
+      CPU inventory path, and leaves one shared plain dict for uncached q.rehash.
+
+    Separate stage dictionaries describe historical inventories. entries/verified
+    only deduplicate full admission SHA reads, never replace a stage by their union.
+    JSON is parsed from the authenticated bytes, not an unauthenticated reopen.
+    """
+    def __init__(self):
+        self.entries = {}
+        self.verified = set()
+        self.json_bytes = {}
+
+    @staticmethod
+    def canonical(path):
+        path = Path(path)
+        require(path.is_absolute() and path.resolve() == path and path.is_file(), 'canonical file required')
+        return path
+
+    @staticmethod
+    def digest_string(value):
+        require(isinstance(value, str) and re.fullmatch('[0-9a-f]{64}', value) is not None, 'SHA256 required')
+
+    def register(self, guards, path, expected, size=None):
+        path = self.canonical(path)
+        self.digest_string(expected)
+        actual_size = path.stat().st_size
+        require(size is None or type(size) is int and size == actual_size, 'bound file size differs')
+        fact = (expected, actual_size)
+        require(self.entries.setdefault(str(path), fact) == fact, 'conflicting file SHA256/size authority')
+        require(guards.setdefault(str(path), expected) == expected, 'conflicting stage file authority')
+        return path
+
+    def bound_file(self, guards, path, expected, size=None):
+        path = self.register(guards, path, expected, size)
+        if str(path) not in self.verified:
+            bound_file({}, path, expected)
+            self.verified.add(str(path))
+        return path
+
+    def read_json(self, path, expected, guards, cap=64 * 1024**2):
+        path = self.register(guards, path, expected)
+        key = str(path)
+        if key not in self.json_bytes:
+            with path.open('rb') as stream:
+                raw = stream.read(cap + 1)
+            require(len(raw) <= cap and hashlib.sha256(raw).hexdigest() == expected, 'JSON size/SHA256 differs')
+            self.json_bytes[key] = raw
+            self.verified.add(key)
+        raw = self.json_bytes[key]
+        require(len(raw) <= cap, 'authority JSON too large')
+        return strict_json(raw)
+
+    def source_json(self, extract, guards, path, expected):
+        return self.read_json(path, expected, guards, extract.HEADER_CAP)
+
+    def descriptor_json(self, value, guards):
+        require(isinstance(value, dict) and value.keys() == {'path', 'sha256'}, 'exact JSON descriptor required')
+        return self.read_json(value['path'], value['sha256'], guards)
+
+    def closure(self, root, expected, names, guards):
+        root = Path(root)
+        require(root.is_absolute() and root.resolve() == root and root.is_dir(), 'canonical closure root required')
+        code = self.read_json(root / 'execution.json', expected, guards)
+        require(isinstance(code, dict) and code.keys() == names, 'execution requires exactly declared files')
+        for name, digest in code.items():
+            self.bound_file(guards, root / name, digest)
+        return code
+
+    @property
+    def SCHEMA(self):
+        # Explicit initializer-reader API consumed by genuine q.admit_pca.
+        return self.init.SCHEMA
+
+    def original_extraction(self, source, extract, guards, entry, authority):
+        require(entry['integrity_pass'] is True and entry['model_qualified'] is False,
+                'original extraction integrity required')
+        require(entry['resource_policy'] == source.POLICY and entry['host_swap_bytes'] == 0 and
+                0 < entry['service_seconds'] <= source.POLICY['seconds'], 'original extraction caps differ')
+        require(entry['original_execution_sha256'] == authority['execution_sha256'] and
+                entry['original_inputs_sha256'] == authority['inputs_sha256'], 'original authority differs')
+        execution_path = self.canonical(entry['original_execution_manifest'])
+        code = self.source_json(extract, guards, execution_path, entry['original_execution_sha256'])
+        require(code.keys() == {'extract_siglip2_vision_source.py', 'test_extract_siglip2_vision_source.py'},
+                'original execution closure differs')
+        for name, digest in code.items():
+            self.bound_file(guards, execution_path.parent / name, digest)
+        inputs = self.source_json(extract, guards, entry['original_inputs'], entry['original_inputs_sha256'])
+        require(inputs['schema'] == 'native256-substrate-extraction-inputs-v2' and
+                inputs['resource_limits'] == source.POLICY and inputs['model_qualified'] is False and
+                inputs['quality_read'] is False, 'original input authority differs')
+        require([item for item in inputs['sources'] if item['arm'] == entry['arm']] == [entry['input']],
+                'paired source/input binding differs')
+        log = self.bound_file(guards, entry['original_log_path'], entry['original_log_sha256']).read_text()
+        require(f"Running as unit: {entry['unit']}.service; invocation ID: {entry['invocation_id']}\n" in log and
+                '\tExit status: 0\n' in log and 'Finished with result: success\n' in log and
+                'Main processes terminated with: code=exited/status=0\n' in log and
+                '\tSwaps: 0\n' in log and 'Memory swap peak: 0B\n' in log and
+                f"Service runtime: {entry['service_seconds']}s\n" in log and
+                f"\tMaximum resident set size (kbytes): {entry['native_peak_rss_kib']}\n" in log,
+                'original normal-exit log differs')
+
+    def source_authority(self, source_driver, extract, root, code, args):
+        require(root.resolve() == root, 'driver root must be canonical')
+        extract.new_output(args.output)
+        guards = {str(root / 'execution.json'): args.execution_sha256,
+                  **{str(root / name): digest for name, digest in code.items()}}
+        sources = self.source_json(extract, guards, args.sources, args.sources_sha256)
+        require(sources['schema'] == 'paired-native256-vision-sources-v1' and
+                sources['model_qualified'] is False and sources['quality_read'] is False,
+                'paired sources profile differs')
+        require(len(sources['sources']) == 2 and {s['arm'] for s in sources['sources']} == source_driver.ARMS.keys(),
+                'paired source arms differ')
+        entry = next(s for s in sources['sources'] if s['arm'] == args.arm)
+        require(entry['source_model'] == source_driver.ARMS[args.arm] and entry['input']['source_model'] == entry['source_model'] and
+                entry['revision'] == entry['input']['revision'] and
+                re.fullmatch('[0-9a-f]{40}', entry['revision']) is not None, 'source model/revision differs')
+        self.original_extraction(source_driver, extract, guards, entry, sources['extraction_authority'])
+        provenance = self.source_json(extract, guards, entry['provenance']['path'], entry['provenance']['sha256'])
+        require(provenance['schema'] == extract.SCHEMA and provenance['pass'] is True and
+                provenance['model_qualified'] is False and provenance['source_model'] == entry['source_model'] and
+                provenance['revision'] == entry['revision'] and provenance['output'] == entry['vision'],
+                'selected provenance binding differs')
+        original = entry['input']['source']
+        require(all(provenance['source'][key] == original[other] for key, other in
+                    (('path', 'path'), ('sha256', 'sha256'), ('size_bytes', 'bytes'))), 'original archive binding differs')
+        config = self.source_json(extract, guards, entry['input']['config']['path'], entry['input']['config']['sha256'])
+        processor = self.source_json(extract, guards, entry['input']['preprocessor']['path'], entry['input']['preprocessor']['sha256'])
+        for field, value in (('config', config), ('preprocessor', processor)):
+            require(provenance[field] == {'path': entry['input'][field]['path'],
+                                         'sha256': entry['input'][field]['sha256'], 'value': value},
+                    field + ' provenance differs')
+        prefixed, resolved = extract.expected_vision(config, entry['source_model'])
+        extract.validate_preprocessor(processor)
+        require(provenance['resolved_vision_inventory_config'] == resolved, 'resolved source config differs')
+        expected = {name[len(extract.PREFIX):]: shape for name, shape in prefixed.items()}
+        require(len(expected) == entry['vision']['tensor_count'] == (400 if args.arm == 'large' else 448),
+                'source tensor count differs')
+        source = self.bound_file(guards, entry['vision']['path'], entry['vision']['sha256'], entry['vision']['size_bytes'])
+        with source.open('rb') as stream:
+            inventory, metadata, _ = extract.read_header(stream)
+        mapping = source_driver.validate_derived(extract, inventory, expected, provenance)
+        fit = self.source_json(extract, guards, args.fit_manifest, args.fit_manifest_sha256)
+        images = source_driver.fit_rows(extract, fit)
+        receipt = fit['original_receipt']
+        original = self.source_json(extract, guards, receipt['path'], receipt['sha256'])
+        require(fit['rows'] == original['fit_manifest'] and fit['targets'] == original['target_products'] and
+                fit['class_names'] == sorted({row['product'] for row in original['fit_manifest']}),
+                'original FIT binding differs')
+        for path, row in zip(images, fit['rows'][:2]):
+            self.bound_file(guards, path, row['image_sha256'])
+        require(str(args.output) not in guards, 'output conflicts with authority')
+        return {'args': args, 'root': root, 'extract': extract, 'code': code, 'guards': guards,
+                'sources': sources, 'entry': entry, 'provenance': provenance,
+                'config': config, 'processor': processor, 'expected': expected,
+                'mapping': mapping, 'source': source, 'fit': fit, 'images': images}
+
+    def source_cpu(self, context, descriptor, original):
+        source, extract, guards = context['source_driver'], context['extract'], context['guards']
+        require(descriptor.keys() == {'proof', 'log', 'unit', 'invocation_id', 'service_seconds',
+                                     'native_peak_rss_kib', 'both_locks_held'} and
+                descriptor['both_locks_held'] is True, 'source CPU descriptor/locks differ')
+        proof = self.source_json(extract, guards, descriptor['proof']['path'], descriptor['proof']['sha256'])
+        require(proof['schema'] == source.SCHEMA and proof['arm'] == context['args'].arm and
+                all(proof[k] is True for k in ('pass', 'source_qualified', 'reload_exact', 'exit_rehash_pass',
+                                             'constructor_rng_preserved')) and
+                all(proof[k] is False for k in ('model_qualified', 'initializer_qualified', 'training_qualified',
+                                              'quality_qualified', 'quality_read', 'gradients_created', 'optimizer_created')) and
+                proof['updates'] == 0, 'actual source-only CPU proof required')
+        require(proof['execution_sha256'] == original['execution_sha256'] and proof['code'] == original['code'] and
+                proof['sources_sha256'] == original['sources_sha256'] and
+                proof['fit_manifest_sha256'] == original['fit_manifest_sha256'] and
+                proof['selected_source'] == context['entry'] and
+                proof['source_model'] == context['entry']['source_model'] and
+                proof['revision'] == context['entry']['revision'], 'source CPU authority/source binding differs')
+        require(proof['resource_policy'] == source.POLICY == self.exporter.STARTUP_POLICY and
+                0 < proof['wall_seconds'] <= descriptor['service_seconds'] <= 120 and
+                0 < proof['process_peak_rss_kib'] <= descriptor['native_peak_rss_kib'] <= 8 * 1024**2,
+                'source CPU service/RSS/caps differ')
+        invocation = proof['invocation']
+        require(re.fullmatch('[0-9a-f]{32}', descriptor['invocation_id']) is not None and
+                re.fullmatch('[A-Za-z0-9_.@-]+', descriptor['unit']) is not None and
+                invocation['invocation_id'] == descriptor['invocation_id'] and
+                invocation['cuda_visible_devices'] == '' and invocation['optimize'] == 0,
+                'source CPU original invocation differs')
+        checkpoint = self.canonical(proof['checkpoint']['path'])
+        require(checkpoint.name == 'fresh_vision.pt' and Path(descriptor['proof']['path']) == checkpoint.parent / 'proof.json',
+                'source CPU checkpoint/proof path role differs')
+        expected_argv = [str(context['root'] / 'qualify_siglip2_substrate_cpu.py'),
+                         '--execution-sha256', original['execution_sha256'],
+                         '--sources', str(context['root'] / 'sources.json'), '--sources-sha256', original['sources_sha256'],
+                         '--fit-manifest', str(context['root'] / 'fit.json'), '--fit-manifest-sha256', original['fit_manifest_sha256'],
+                         '--arm', context['args'].arm, '--output', str(checkpoint.parent)]
+        require(invocation['argv'] == expected_argv, 'source CPU argv differs')
+        self.bound_file(guards, checkpoint, proof['checkpoint']['sha256'])  # Metadata only: never torch.load.
+        self.bound_file(guards, invocation['python'], invocation['python_sha256'])
+        for path, digest in proof['input_guards'].items():
+            self.bound_file(guards, path, digest)
+        for path, digest in proof['origins']['files'].items():
+            require(proof['input_guards'].get(path) == digest, 'source CPU origin guard differs')
+        require(proof['input_guards'].get(str(checkpoint)) == proof['checkpoint']['sha256'] and
+                all(proof['input_guards'].get(str(path)) == row['image_sha256'] for path, row in
+                    zip(context['images'], context['fit']['rows'][:2])), 'source CPU input guards differ')
+        runtime = proof['runtime']
+        require(runtime['vision'].keys() == context['expected'].keys(), 'source CPU vision inventory differs')
+        for name, shape in context['expected'].items():
+            require(runtime['vision'][name] == {'shape': shape, 'dtype': 'torch.float32',
+                                             'sha256': context['mapping'][name]['sha256']},
+                    'source CPU tensor provenance differs: ' + name)
+        roles = runtime['roles']
+        boundary = context['config']['vision_config']['num_hidden_layers'] - 12
+        frozen = ('embeddings.',) + tuple(f'encoder.layers.{i}.' for i in range(boundary))
+        require(len(roles) == len(context['expected']) and {r['name'] for r in roles} == context['expected'].keys() and
+                sum(r['role'] == 'trainable' for r in roles) == 205, 'source CPU 205 roles differ')
+        for row in roles:
+            require(row == {'name': row['name'], 'shape': context['expected'][row['name']], 'dtype': 'torch.float32',
+                            'role': 'frozen' if row['name'].startswith(frozen) else 'trainable'}, 'source CPU role differs')
+        require(runtime['buffers'].keys() == {'embeddings.position_ids'} and
+                runtime['buffers']['embeddings.position_ids']['persistent'] is False and
+                runtime['buffers']['embeddings.position_ids']['dtype'] == 'torch.int64' and
+                runtime['buffers']['embeddings.position_ids']['shape'] == [1, 256] and
+                proof['sample']['pixels']['shape'] == [2, 3, 256, 256] and
+                proof['sample']['raw']['shape'] == [2, WIDTHS[context['args'].arm]], 'source CPU buffer/sample differs')
+        log = self.bound_file(guards, descriptor['log']['path'], descriptor['log']['sha256']).read_text()
+        lines = log.splitlines()
+        required = [f"Running as unit: {descriptor['unit']}.service; invocation ID: {descriptor['invocation_id']}",
+                    '\tExit status: 0', 'Finished with result: success',
+                    'Main processes terminated with: code=exited/status=0', '\tSwaps: 0', 'Memory swap peak: 0B',
+                    f"Service runtime: {descriptor['service_seconds']}s",
+                    f"\tMaximum resident set size (kbytes): {descriptor['native_peak_rss_kib']}"]
+        require(all(lines.count(line) == 1 for line in required), 'source CPU original normal-exit log differs')
+        footers = [strict_json(line[len('FINAL_CGROUP '):]) for line in lines if line.startswith('FINAL_CGROUP ')]
+        require(len(footers) == 1 and footers[0]['invocation_id'] == descriptor['invocation_id'],
+                'source CPU final cgroup footer differs')
+        final = footers[0]
+        for value in (proof['cgroup_before'], proof['cgroup_after'], final):
+            self.exporter.admit_cgroup(value, descriptor['unit'])
+            require(value['path'] == final['path'], 'source CPU cgroup path changed')
+        require(int(final['values']['memory.peak']) >= int(proof['cgroup_after']['values']['memory.peak']) >=
+                int(proof['cgroup_before']['values']['memory.peak']), 'source CPU complete peak differs')
+        return proof
+
+    def all_fit_images(self, context):
+        source = context['source_driver']
+        source.fit_rows(context['extract'], context['fit'])
+        root = Path(context['fit']['dataset_root'])
+        images = [(root / row['relative_path']).resolve() for row in context['fit']['rows']]
+        require(all(path.is_relative_to(root) for path in images), 'FIT image escaped dataset root')
+        require(len(set(images)) == 13283, 'FIT resolved image aliases collide')
+        for path, row in zip(images, context['fit']['rows']):
+            self.bound_file(context['guards'], path, row['image_sha256'])
+        return images
+
+    def package_origins(self, context):
+        """Resolve installed distribution origins with stdlib BEFORE native imports."""
+        observed = context['sources']['native_environment']
+        require(observed['schema'] == 'native256-installed-source-observation-v1' and
+                observed['native_imported'] is False and observed['model_executed'] is False and
+                observed['quality_read'] is False, 'native environment observation differs')
+        site = Path(observed['site_packages'])
+        require(site.is_absolute() and site.resolve() == site and site.is_dir(), 'installed site root differs')
+        require(observed['versions'].keys() == {name.lower() for name in context['source_driver'].PACKAGES.values()},
+                'native version inventory differs')
+        for path, value in observed['files'].items():
+            require(Path(path).is_relative_to(site), 'native observed file outside site root')
+            self.bound_file(context['guards'], path, value['sha256'], value['bytes'])
+        result = {}
+        for package, distribution in context['source_driver'].PACKAGES.items():
+            require(package not in sys.modules, 'native package already imported: ' + package)
+            spec = importlib.util.find_spec(package)
+            dist = importlib.metadata.distribution(distribution)
+            expected = Path(dist.locate_file(package + '/__init__.py')).resolve()
+            require(spec is not None and spec.origin is not None and Path(spec.origin).resolve() == expected and
+                    expected.is_file() and expected.parent.parent == site and
+                    dist.version == observed['versions'][distribution.lower()],
+                    'installed package import origin differs: ' + package)
+            result[package] = {'root': str(expected.parent), 'origin': str(expected), 'version': dist.version}
+            prior = self.entries.get(str(expected))
+            if prior:
+                self.bound_file(context['guards'], expected, prior[0])
+            else:
+                digest = context['extract'].sha(expected)
+                self.register(context['guards'], expected, digest)
+                self.verified.add(str(expected))
+        constructor = observed['vision_constructor']
+        require(constructor['direct_bare_state_keys_source_observed'] is True and
+                constructor['path'] in observed['files'] and
+                set(constructor['assigned_self_attributes']) ==
+                {'config', 'embeddings', 'encoder', 'head', 'post_layernorm', 'use_head'},
+                'observed direct constructor differs')
+        return result
+
+    def admit_terminal(self, record, descriptor, seconds, guards):
+        require(descriptor.keys() == {'receipt', 'log', 'unit', 'invocation_id', 'service_seconds',
+                                      'native_peak_rss_kib', 'both_locks_held'} and
+                descriptor['both_locks_held'] is True, 'terminal descriptor/both locks differ')
+        identity, unit = descriptor['invocation_id'], descriptor['unit']
+        require(isinstance(identity, str) and re.fullmatch('[0-9a-f]{32}', identity) is not None and
+                isinstance(unit, str) and re.fullmatch('[A-Za-z0-9_.@-]+', unit) is not None and
+                record['invocation']['invocation_id'] == identity and record['invocation']['optimize'] == 0,
+                'original terminal invocation differs')
+        require(0 < record['wall_seconds'] <= descriptor['service_seconds'] <= seconds and
+                0 < record['process_peak_rss_kib'] <= descriptor['native_peak_rss_kib'] <= 8 * 1024**2,
+                'original whole-service duration/RSS caps differ')
+        log_descriptor = descriptor['log']
+        require(log_descriptor.keys() == {'path', 'sha256'}, 'log descriptor differs')
+        log = self.bound_file(guards, log_descriptor['path'], log_descriptor['sha256']).read_text()
+        lines = log.splitlines()
+        required = [f'Running as unit: {unit}.service; invocation ID: {identity}', '\tExit status: 0',
+                    'Finished with result: success', 'Main processes terminated with: code=exited/status=0',
+                    '\tSwaps: 0', 'Memory swap peak: 0B',
+                    f"\tMaximum resident set size (kbytes): {descriptor['native_peak_rss_kib']}"]
+        require(all(lines.count(line) == 1 for line in required), 'original normal-exit log differs')
+        runtimes = [line.removeprefix('Service runtime: ') for line in lines if line.startswith('Service runtime: ')]
+        require(len(runtimes) == 1, 'original service runtime line differs')
+        match = re.fullmatch(r'(?:(\d+)min )?(\d+(?:\.\d+)?)s', runtimes[0])
+        require(match is not None, 'original service runtime format differs')
+        minutes, native_seconds = match.groups()
+        duration = Decimal(minutes or '0') * 60 + Decimal(native_seconds)
+        require((minutes is None or Decimal(native_seconds) < 60) and
+                duration == Decimal(str(descriptor['service_seconds'])), 'original service runtime numeric binding differs')
+        footers = [strict_json(line[len('FINAL_CGROUP '):]) for line in lines if line.startswith('FINAL_CGROUP ')]
+        require(len(footers) == 1 and footers[0]['invocation_id'] == identity, 'original final cgroup footer differs')
+        final = footers[0]
+        for value in (record['cgroup_before'], record['cgroup_after'], final):
+            self.init.admit_cgroup(value, unit)
+            require(value['path'] == final['path'], 'enclosing cgroup changed')
+        require(int(final['values']['memory.peak']) >= int(record['cgroup_after']['values']['memory.peak']) >=
+                int(record['cgroup_before']['values']['memory.peak']), 'complete whole-unit peak differs')
+        return final
+
+    def cache_facts(self, path, expected, width, guards):
+        """Check complete .npy FP32 data, shape and unit rows using only stdlib."""
+        path = self.register(guards, path, expected)
+        digest = hashlib.sha256()
+        with path.open('rb') as stream:
+            magic = stream.read(8)
+            digest.update(magic)
+            require(magic in (b'\x93NUMPY\x01\x00', b'\x93NUMPY\x02\x00'), 'cache NPY version differs')
+            size = 2 if magic[-2] == 1 else 4
+            raw_length = stream.read(size)
+            digest.update(raw_length)
+            length = int.from_bytes(raw_length, 'little')
+            require(0 < length <= 65536, 'cache NPY header size differs')
+            raw_header = stream.read(length)
+            digest.update(raw_header)
+            header = ast.literal_eval(raw_header.decode('latin1'))
+            require(isinstance(header, dict) and header.keys() == {'descr', 'fortran_order', 'shape'} and header['descr'] == '<f4' and
+                    header['fortran_order'] is False and header['shape'] == (13283, width),
+                    'cache shape/dtype/layout differs')
+            require(path.stat().st_size == 8 + size + length + 13283 * width * 4, 'cache payload size differs')
+            unpack = struct.Struct('<' + str(width) + 'f')
+            max_error = 0.0
+            advised = 0
+            for _ in range(13283):
+                raw = stream.read(unpack.size)
+                digest.update(raw)
+                values = unpack.unpack(raw)
+                require(all(math.isfinite(value) for value in values), 'cache nonfinite FP32 row')
+                error = abs(math.sqrt(math.fsum(value * value for value in values)) - 1.0)
+                require(error <= 1e-5, 'cache row unit norm differs')
+                max_error = max(max_error, error)
+                if stream.tell() - advised >= 1024**2:
+                    os.posix_fadvise(stream.fileno(), advised, stream.tell() - advised, os.POSIX_FADV_DONTNEED)
+                    advised = stream.tell()
+            require(stream.read(1) == b'', 'cache trailing payload differs')
+            os.posix_fadvise(stream.fileno(), advised, stream.tell() - advised, os.POSIX_FADV_DONTNEED)
+        require(digest.hexdigest() == expected, 'cache SHA256 changed during validation')
+        self.verified.add(str(path))
+        return {'shape': [13283, width], 'dtype': 'float32', 'finite': True,
+                'unit_norm_atol': 1e-5, 'maximum_unit_norm_error': max_error}
+
+    def admit_export(self, exporter, context, launch, record, startup, guards):
+        require(record['schema'] == exporter.SCHEMA and record['phase'] == 'export' and
+                record['binding'] == exporter.binding(context) and record['resource_policy'] == exporter.EXPORT_POLICY and
+                record['arithmetic'] == self.init.EXPORT_ARITHMETIC and
+                all(record[k] is True for k in ('pass', 'exported', 'fresh_source', 'exit_rehash_pass',
+                                                'source_cpu_runtime_and_first2_exact', 'constructor_rng_preserved',
+                                                'terminal_exit_and_both_locks_require_parent_receipt')) and
+                all(record[k] is False for k in ('gradients_created', 'optimizer_created', 'source_features_reused',
+                                               'teacher_state_reused', 'quality_read', 'initializer_qualified',
+                                               'training_qualified', 'quality_qualified', 'cuda_peak_reset')) and
+                record['updates'] == 0, 'actual fresh export admission/profile differs')
+        require(record['startup'] == launch['startup']['receipt'] and
+                record['source_checkpoint_metadata_only'] == context['proof']['checkpoint'],
+                'export startup/source CPU binding differs')
+        cache, selected = record['cache'], launch['selected_export']['receipt']
+        receipt = self.canonical(selected['path'])
+        require(receipt.name == 'receipt.json' and cache.keys() ==
+                {'path', 'sha256', 'shape', 'dtype', 'normalized', 'raw_pooled_cache'} and
+                Path(cache['path']) == receipt.parent / 'fit.npy' and
+                cache['shape'] == [13283, WIDTHS[context['export_args'].arm]] and cache['dtype'] == 'float32' and
+                cache['normalized'] is True and cache['raw_pooled_cache'] is False,
+                'selected export cache role/shape/dtype differs')
+        counters = {'images': 13283, 'classes': 2004, 'batches': 416,
+                    'batch_sizes': [32] * (13283 // 32) + [13283 % 32],
+                    'calibration_images': 4, 'cpu_witness_images': 2, 'optimizer_updates': 0}
+        require(record['counters'] == counters and 0 < record['export_seconds'] <= record['wall_seconds'] <= 300 and
+                0 < record['complete_unit_peak_cuda_allocated_bytes'] < 10_000_000_000,
+                'export counters/cost/complete-unit CUDA allocation differs')
+        cosines = record['fp32_autocast_first4_cosines']
+        require(len(cosines) == 4 and all(type(c) in (int, float) and math.isfinite(c) and .999 <= c <= 1.00001
+                                        for c in cosines), 'source numerical calibration differs')
+        identity, prior = record['invocation'], startup['invocation']
+        require(identity['cuda_visible_devices'] not in (None, '') and
+                all(identity[k] == prior[k] for k in ('python', 'python_sha256', 'python_version')) and
+                record['cpu_numerical_flags'] == context['proof']['numerical_flags'], 'export CPU/interpreter differs')
+        args = context['export_args']
+        expected_argv = [str(context['own_root'] / 'export_siglip2_substrate_fit.py'),
+                         '--execution-sha256', args.execution_sha256,
+                         '--authority', str(args.authority), '--authority-sha256', args.authority_sha256,
+                         '--arm', args.arm, '--startup', launch['startup']['receipt']['path'],
+                         '--startup-sha256', launch['startup']['receipt']['sha256'], '--output', str(receipt.parent)]
+        require(identity['argv'] == expected_argv, 'selected export original argv differs')
+        expected_guards = {**context['guards'], launch['startup']['receipt']['path']: launch['startup']['receipt']['sha256']}
+        require(all(record['input_guards'].get(path) == digest for path, digest in expected_guards.items()),
+                'export source/startup input guards differ')
+        origins = record['origins']
+        require(origins['packages'] == startup['packages'] == context['proof']['origins']['packages'] and
+                all(record['input_guards'].get(path) == digest for path, digest in origins['files'].items()),
+                'export original package/file origins differ')
+        for name, path in origins['modules'].items():
+            package = name.split('.')[0]
+            require(package in origins['packages'] and Path(path).is_relative_to(Path(origins['packages'][package]['root'])) and
+                    path in origins['files'], 'export loaded module origin differs')
+        require(set(origins['native_files']) <= origins['files'].keys(), 'export native origin guards differ')
+        for path, digest in record['input_guards'].items():
+            # The cache is authenticated by its semantic scan, if inventoried.
+            if path == cache['path']:
+                self.register(guards, path, digest)
+            else:
+                self.bound_file(guards, path, digest)
+        rgb, fit = record['rgb_manifest'], context['fit']
+        require(len(rgb) == 13283 and record['ordered_rgb_sha256'] == exporter.object_sha(rgb),
+                'complete ordered RGB binding differs')
+        for index, (actual, row, target, path) in enumerate(zip(rgb, fit['rows'], fit['targets'], context['all_images'])):
+            require(actual.keys() == {'ordinal', 'train_row', 'target', 'relative_path', 'path',
+                                      'image_sha256', 'mode', 'size', 'rgb_sha256'} and
+                    actual['ordinal'] == index and actual['train_row'] == row['train_row'] and
+                    actual['target'] == target and actual['relative_path'] == row['relative_path'] and
+                    actual['path'] == str(path) and actual['image_sha256'] == row['image_sha256'] and
+                    actual['mode'] == 'RGB' and len(actual['size']) == 2 and
+                    all(type(n) is int and n > 0 for n in actual['size']), 'ordered FIT/RGB row differs')
+            self.digest_string(actual['rgb_sha256'])
+        require([{k: row[k] for k in context['proof']['sample']['images'][0]} for row in rgb[:2]] ==
+                context['proof']['sample']['images'], 'source CPU/export first-two RGB differ')
+        ordered = {'rows': fit['rows'], 'targets': fit['targets'], 'class_names': fit['class_names'],
+                   'resolved_paths': [str(path) for path in context['all_images']]}
+        require(record['ordered_input_sha256'] == exporter.object_sha(ordered), 'original ordered FIT authority differs')
+
+
+    def export_authority(self, args, own_root, source, extract, source_code):
+        exporter = self.exporter
+        own_guards = {}
+        code = self.closure(own_root, args.execution_sha256, exporter.FILES, own_guards)
+        launch = self.read_json(args.authority, args.authority_sha256, own_guards)
+        require(launch.keys() == {'schema', 'execution_sha256', 'source_root', 'source_execution_sha256',
+                                 'source_cpu_authority', 'sources', 'fit_manifest', 'source_cpu',
+                                 'startup_policy', 'export_policy'} and
+                launch['schema'] == exporter.AUTHORITY_SCHEMA and launch['execution_sha256'] == args.execution_sha256 and
+                launch['startup_policy'] == exporter.STARTUP_POLICY and launch['export_policy'] == exporter.EXPORT_POLICY and
+                launch['source_cpu'].keys() == WIDTHS.keys(), 'parent launch authority/profile differs')
+        require(Path(launch['source_root']) == exporter.SOURCE_ROOT and not own_root.is_relative_to(exporter.SOURCE_ROOT) and
+                not args.output.is_relative_to(exporter.SOURCE_ROOT),
+                'original immutable source root required')
+        require(launch['sources']['path'] == str(exporter.SOURCE_ROOT / 'sources.json') and
+                launch['fit_manifest']['path'] == str(exporter.SOURCE_ROOT / 'fit.json'), 'original source input path role differs')
+        original = self.descriptor_json(launch['source_cpu_authority'], own_guards)
+        require(original['schema'] == 'native256-source-cpu-launch-v1' and original['code'] == source_code and
+                original['execution_sha256'] == launch['source_execution_sha256'] and
+                original['sources_sha256'] == launch['sources']['sha256'] and
+                original['fit_manifest_sha256'] == launch['fit_manifest']['sha256'] and
+                original['resource_policy'] == source.POLICY == exporter.STARTUP_POLICY,
+                'original source CPU launch authority differs')
+        source_args = SimpleNamespace(execution_sha256=original['execution_sha256'],
+            sources=Path(launch['sources']['path']), sources_sha256=original['sources_sha256'],
+            fit_manifest=Path(launch['fit_manifest']['path']), fit_manifest_sha256=original['fit_manifest_sha256'],
+            arm=args.arm, output=args.output)
+        context = self.source_authority(source, extract, exporter.SOURCE_ROOT, source_code, source_args)
+        context.update(source_driver=source, own_root=own_root, own_code=code, launch=launch,
+                       export_args=args, authority_sha256=args.authority_sha256)
+        for path, digest in [(args.authority, args.authority_sha256),
+                             (Path(launch['source_cpu_authority']['path']), launch['source_cpu_authority']['sha256']),
+                             (own_root / 'execution.json', args.execution_sha256),
+                             *[(own_root / name, digest) for name, digest in code.items()]]:
+            self.bound_file(context['guards'], path, digest)
+        context['proof'] = self.source_cpu(context, launch['source_cpu'][args.arm], original)
+        context['all_images'] = self.all_fit_images(context)
+        return context
+
+    def pca_authority(self, args, root):
+        require(not any(name.split('.')[0] in NATIVE or name == 'sfora' for name in sys.modules),
+                'native packages must not precede authority admission')
+        init = self.init
+        code = self.closure(root, args.execution_sha256, init.FILES, {})
+        guards = {str(root / 'execution.json'): args.execution_sha256,
+                  **{str(root / name): digest for name, digest in code.items()}}
+        launch = self.read_json(args.authority, args.authority_sha256, guards)
+        require(launch.keys() == {'schema', 'execution_sha256', 'pca_helper_sha256', 'export_root',
+                                 'export_execution_sha256', 'export_authority', 'selected_export', 'startup',
+                                 'resource_policy', 'both_locks_held'} and
+                launch['schema'] == init.AUTHORITY_SCHEMA and launch['execution_sha256'] == args.execution_sha256 and
+                launch['pca_helper_sha256'] == code['representation_ceiling.py'] and
+                launch['resource_policy'] == init.POLICY and launch['both_locks_held'] is True,
+                'parent initializer launch authority/profile/locks differ')
+        export_root = Path(launch['export_root'])
+        export_code = self.closure(export_root, launch['export_execution_sha256'], init.EXPORT_FILES, guards)
+        export_launch = self.descriptor_json(launch['export_authority'], guards)
+        source_root = Path(export_launch['source_root'])
+        source_code = self.closure(source_root, export_launch['source_execution_sha256'], init.SOURCE_FILES, guards)
+        require(len({root, export_root, source_root}) == 3 and
+                not any(args.output.is_relative_to(path) for path in (root, export_root, source_root)),
+                'initializer/export/original source closures and output must be separate')
+        for origin, expected, manifest in ((export_root, launch['export_execution_sha256'], export_code),
+                                           (source_root, export_launch['source_execution_sha256'], source_code)):
+            guards[str(origin / 'execution.json')] = expected
+            guards.update({str(origin / name): digest for name, digest in manifest.items()})
+        exporter = load_bare('_siglip2_pinned_fit_export', export_root / 'export_siglip2_substrate_fit.py',
+                             export_code['export_siglip2_substrate_fit.py'])
+        require(exporter.FILES == init.EXPORT_FILES and exporter.SOURCE_FILES == init.SOURCE_FILES and
+                exporter.STARTUP_POLICY == init.POLICY, 'pinned exporter closure/policy differs')
+        self.exporter = exporter
+        # The original factory's bootstrap will reuse these exact registered origins.
+        # Keep its immutable implementation while excluding unpinned bytecode caches.
+        for name in ('extract_siglip2_vision_source', 'qualify_siglip2_substrate_cpu'):
+            load_bare(name, source_root / (name + '.py'), source_code[name + '.py'])
+        require(sys.modules['qualify_siglip2_substrate_cpu'].FILES == init.SOURCE_FILES,
+                'source factory loaded origin/closure differs')
+        export_args = SimpleNamespace(execution_sha256=launch['export_execution_sha256'],
+            authority=Path(launch['export_authority']['path']), authority_sha256=launch['export_authority']['sha256'],
+            arm=args.arm, output=args.output)
+        context = self.export_authority(export_args, export_root, sys.modules['qualify_siglip2_substrate_cpu'],
+                                        sys.modules['extract_siglip2_vision_source'], source_code)
+        startup = self.descriptor_json(launch['startup']['receipt'], guards)
+        exporter.admit_startup(context, startup)
+        startup_final = self.admit_terminal(startup, launch['startup'], 120, guards)
+        expected_startup_argv = [str(export_root / 'export_siglip2_substrate_fit.py'),
+            '--execution-sha256', export_args.execution_sha256, '--authority', str(export_args.authority),
+            '--authority-sha256', export_args.authority_sha256, '--arm', args.arm,
+            '--check-startup-only', '--output', launch['startup']['receipt']['path']]
+        require(startup['invocation']['argv'] == expected_startup_argv, 'startup original argv differs')
+        record = self.descriptor_json(launch['selected_export']['receipt'], guards)
+        self.admit_export(exporter, context, launch, record, startup, guards)
+        export_final = self.admit_terminal(record, launch['selected_export'], 300, guards)
+        facts = self.cache_facts(record['cache']['path'], record['cache']['sha256'], WIDTHS[args.arm], guards)
+        source = context['source_driver']
+        packages = self.package_origins(context)  # installed-origin admission still precedes Torch.
+        require(packages == startup['packages'], 'initializer installed package origins differ')
+        for path, digest in context['guards'].items():
+            require(guards.setdefault(path, digest) == digest, 'conflicting source file authority')
+        context['guards'] = guards  # One shared exit guard inventory, not duplicate full hash passes.
+        require(not any(name.split('.')[0] in NATIVE for name in sys.modules),
+                'authority admission imported native packages')
+        return {'root': root, 'code': code, 'guards': guards, 'launch': launch, 'exporter': exporter,
+                'source_context': context, 'source': source, 'export': record, 'startup': startup,
+                'export_final_cgroup': export_final, 'startup_final_cgroup': startup_final,
+                'packages': packages, 'cache_facts_before_native': facts}
+
+    def initialized_authority(self, q, args):
+        require(not any(name.split('.')[0] in NATIVE or name == 'sfora' for name in sys.modules),
+                'native packages must not precede authority admission')
+        init, code, guards, launch = q.bootstrap(args)
+        self.init = init
+        self.descriptor_json(launch['initializer_authority'], guards)
+        pca_args = SimpleNamespace(execution_sha256=launch['initializer_execution_sha256'],
+            authority=Path(launch['initializer_authority']['path']), authority_sha256=launch['initializer_authority']['sha256'],
+            arm=args.arm, output=args.output)
+        pca = self.pca_authority(pca_args, Path(launch['initializer_root']))
+        record, final = q.admit_pca(self, pca, launch, args)
+        for path, digest in guards.items():
+            require(pca['guards'].setdefault(path, digest) == digest, 'conflicting initialized input authority')
+        root = Path(q.__file__).absolute().parent
+        external = (pca['root'], pca['source_context']['root'], pca['source_context']['own_root'])
+        require(all(not root.is_relative_to(path) and not path.is_relative_to(root) and
+                    not args.output.is_relative_to(path) for path in external), 'all original closures must remain separate')
+        source_context = pca['source_context']
+        source_context['packages'] = pca['packages']
+        require(not any(name.split('.')[0] in NATIVE or name == 'sfora' for name in sys.modules),
+                'authority imported native packages')
+        return {'args': args, 'root': root, 'code': code, 'guards': pca['guards'], 'launch': launch,
+                'init': init, 'pca': pca, 'record': record, 'pca_final_cgroup': final,
+                'source': pca['source'], 'source_context': source_context, 'packages': pca['packages']}
+
+
 def bootstrap(args):
     require(args.seed in SEEDS and args.arm in WIDTHS and
             (args.phase != 'mechanics' or args.seed == SEEDS[0]), 'fixed phase/arm/seed required')
@@ -196,9 +804,11 @@ def bootstrap(args):
     return root, code, guards, launch, qualifier
 
 
-def admit_cpu(context):
+def admit_cpu(context, admission=None):
+    read = admission.descriptor_json if admission else descriptor_json
+    bind = admission.bound_file if admission else bound_file
     q, launch, initialized = context['qualifier'], context['launch'], context['initialized']
-    record = descriptor_json(launch['selected_cpu']['receipt'], context['guards'])
+    record = read(launch['selected_cpu']['receipt'], context['guards'])
     expected = {'schema': q.SCHEMA, 'phase': 'initialized-cpu', 'arm': context['args'].arm,
                 'width': WIDTHS[context['args'].arm], 'output_dim': 128,
                 'authority_sha256': launch['qualifier_authority']['sha256'],
@@ -241,8 +851,9 @@ def admit_cpu(context):
     require(record['origins']['packages'] == initialized['packages'], 'CPU origin packages differ')
     for path, digest in record['origins']['files'].items():
         require(record['input_guards'].get(path) == digest, 'CPU origin file guard differs')
-        bound_file(context['guards'], path, digest)
-    final = initialized['init'].admit_terminal(record, launch['selected_cpu'], 120, context['guards'])
+        bind(context['guards'], path, digest)
+    terminal = admission.admit_terminal if admission else initialized['init'].admit_terminal
+    final = terminal(record, launch['selected_cpu'], 120, context['guards'])
     return record, final
 
 
@@ -282,11 +893,13 @@ def check_schedule(batches, targets, seed):
             {targets[n] for b in batches for n in b} == set(range(2004)), 'dense FIT B64x100 schedule differs')
 
 
-def admit_mechanics(context):
+def admit_mechanics(context, admission=None):
+    read = admission.descriptor_json if admission else descriptor_json
+    read_launch = admission.read_json if admission else read_json
     descriptor = context['launch']['selected_mechanics']
     if descriptor is None:
         return None, None
-    record = descriptor_json(descriptor['receipt'], context['guards'])
+    record = read(descriptor['receipt'], context['guards'])
     require(record['schema'] == SCHEMA and record['phase'] == 'mechanics' and record['arm'] == context['args'].arm and
             record['seed'] == SEEDS[0] and record['execution_sha256'] == context['args'].execution_sha256 and
             record['code'] == context['code'] and record['selected_cpu'] == context['launch']['selected_cpu'] and
@@ -313,17 +926,18 @@ def admit_mechanics(context):
             invocation['cuda_visible_devices'] not in (None, '') and
             all(invocation[k] == context['cpu']['invocation'][k] for k in ('python', 'python_sha256', 'python_version')),
             'original mechanics argv/interpreter differs')
-    original_launch = read_json(argv[4], record['authority_sha256'], context['guards'])
+    original_launch = read_launch(argv[4], record['authority_sha256'], context['guards'])
     require(original_launch == {**context['launch'], 'phase': 'mechanics', 'seed': SEEDS[0],
                                 'selected_mechanics': None, 'resource_policy': policy('mechanics')},
             'original mechanics launch authority differs')
-    return record, context['initialized']['init'].admit_terminal(record, descriptor, 120, context['guards'])
+    terminal = admission.admit_terminal if admission else context['initialized']['init'].admit_terminal
+    return record, terminal(record, descriptor, 120, context['guards'])
 
 
 def authority(args):
     root, code, guards, launch, qualifier = bootstrap(args)
-    descriptor_json(launch['qualifier_authority'], guards)
-    initialized = qualifier.authority(SimpleNamespace(
+    admission = FlatAdmission()
+    initialized = admission.initialized_authority(qualifier, SimpleNamespace(
         execution_sha256=launch['qualifier_execution_sha256'], authority=Path(launch['qualifier_authority']['path']),
         authority_sha256=launch['qualifier_authority']['sha256'], arm=args.arm, output=args.output))
     initialized_prereq_guards = initialized['guards'].copy()
@@ -336,8 +950,14 @@ def authority(args):
                 initialized['source_context']['own_root'])
     require(all(not root.is_relative_to(p) and not p.is_relative_to(root) and
                 not args.output.is_relative_to(p) for p in external), 'original closures must remain separate')
-    context['cpu'], context['cpu_final_cgroup'] = admit_cpu(context)
-    context['mechanics'], context['mechanics_final_cgroup'] = admit_mechanics(context)
+    context['cpu'], context['cpu_final_cgroup'] = admit_cpu(context, admission)
+    cpu = context['cpu']
+    require(cpu['input_guards'].get(cpu['checkpoint']['path']) == cpu['checkpoint']['sha256'],
+            'initialized checkpoint inventory differs')
+    for path, digest in cpu['input_guards'].items():
+        admission.bound_file(context['guards'], path, digest)
+    admission.bound_file(context['guards'], cpu['checkpoint']['path'], cpu['checkpoint']['sha256'])
+    context['mechanics'], context['mechanics_final_cgroup'] = admit_mechanics(context, admission)
     require(not any(n.split('.')[0] in NATIVE for n in sys.modules), 'native imports occurred during admission')
     return context
 
