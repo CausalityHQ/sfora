@@ -17,6 +17,6 @@ Both means missed +.20pp and product lower bounds were not positive; seed179032 
 
 Public latency and official SOP/In-Shop quality were not measured by this procedure. No SOTA or speed claim is eligible. Valid historical Pareto checkpoints remain preserved; full production joint quality/speed goal remains active.
 
-Next intervention decision: address the demonstrated retained-data limitation rather than extend this queue run: use the full official TRAIN identity/image coverage with the existing validated dense boundary12 recipe, retaining with-replacement sampling. First reconcile the existing full-data anchor receipts and representation/protocol differences, then freeze one matched TRAIN-only full-data comparison and its quality/resource stop rule before any new native execution. Do not rerun completed controls, export jobs, reviews, or queue pilots. This is a proposed next procedure, not a measured gain.
+Next intervention decision superseded after source reconciliation: full TRAIN coverage is already present in the corrected2000 and4000 procedures, so merely moving to full data would repeat closed work. Do not launch the suggested comparison. One bounded post-terminal Fable synthesis366fd7512a8a43f8 is inspecting the closed ledger and actual objective for a distinct, causally justified trained-model path. Native execution requires a frozen design and separate qualification; no gain is projected.
 
 Raw authority, wires, decision and original log are in docs/evidence/compact_metric/sop-siglip2-substrate-v1/late-dense-v1/image-queue-*.json/log.
