@@ -1,0 +1,13 @@
+# Image queue mechanics admission
+
+Dual62003c4c1c244450 completed: Opus8e37a9daae0e4660 and Astrabf8e1574d22349d7 both conditional GO for exactly one discarded boundary12 queue179032 mechanics17 unit. This is not fresh100, quality or production admission. Full SOP/InShop joint quality/speed goal remains unmet.
+
+Original startup-v1 exited0 in12.993s. Receipt sampled960024KiB RSS before publication/shutdown; native Python timer recorded final998348KiB. Exact equality was an invalid measurement-endpoint assumption. Driver now requires0<snapshot≤final≤8388608KiB, authentic original log SHA/unit/invocation, successful exits, whole service duration below cap, no swap and both locks. Do not use outer timer RSS or systemd's tiny reported peak. Exact post-snapshot allocation cause is unproven.
+
+Astra's contradictory receipt probes independently reproduced the missing consumer predicates by source inspection. Admission now requires updates=completed_step=17, exact CPU execution/startup authorities, matching resume schedule hash, finite positive projection≤269s, bounded integer image IDs and exact first17 IDs reconstructed from the authenticated queue032 schedule for either subsequent TRAIN seed. Existing full payload and diagnostic comparisons remain unchanged. Four stdlib rejection tests pass, including the real startup receipt/log and lower/over-cap RSS cases.
+
+Changing driver/tests requires a new immutable120 closure and new startup. Original114 and CPU118 prefixes remain byte-identical; CPU118's actual constructor proof remains valid. Preserve old source-v3 and startup-v1 evidence. After new startup, only the discarded17 unit may run under120s/8GiB/noSwap/<10GB CUDA/bothlocks. Its measured outcome and projected100 cost decide fresh100 admission; historical mechanics timing is neither a new measurement nor a resource guarantee.
+
+Before export/scoring, explicitly freeze an image-queue adapter: both boundaries12, distinct sampling identities, same class slots, separately authenticated image/pixel schedules, each original TRAIN log validated at300s and contemporary wall/median ratios≤1.50. Old late-dense boundary10/new32/equal-image predicates cannot be reused. Four updated-checkpoint CPU/nativeFP16B32 exports precede scoring. Fixed per-seed/mean/product-CI floors remain unchanged; query CIs are reported. No official quality or public latency was measured for this intervention.
+
+Resource preflight found2.0TiB free on DGX run volume, no CUDA compute process and no stale queue mechanics directory. Managed child delivery failure remains contained; root alone owns native jobs. No second review or independent job is needed.

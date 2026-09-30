@@ -3,6 +3,7 @@ import copy
 import json
 from pathlib import Path
 import unittest
+from types import SimpleNamespace
 
 import train_image_queue_adaptation as driver
 
@@ -40,14 +41,46 @@ class AdmissionTests(unittest.TestCase):
         driver.resources(gpu, 120, True)
         with self.assertRaises(AssertionError): driver.resources({**gpu, "peak_cuda_allocated_bytes": 10_000_000_000}, 120, True)
 
+    def test_mechanics_rejects_contradictory_authority(self):
+        args = SimpleNamespace(execution_sha256="train", cpu_sha256="cpu",
+            cpu_log_sha256="log", cpu_execution_sha256=self.cpu["execution_sha256"], startup_sha256="startup")
+        value = {**self.cpu, "schema": "image-queue-train-v1", "intervention": driver.METHOD,
+            "phase": "mechanics", "arm": "queue", "seed": 179032, "execution_sha256": "train",
+            "cpu_authority_sha256": "cpu", "cpu_log_sha256": "log",
+            "cpu_execution_sha256": args.cpu_execution_sha256, "updates": 17, "completed_step": 17,
+            "startup_authority_sha256": "startup",
+            "checkpoint_sha256": None, "training_state_discarded": True,
+            "native_17_equals_serialized8_plus9_exact": True, "strict400_reload_whole_head_packed_exact": True,
+            "frozen_named_state_buffers_rng_preserved": True, "chunk100_admission_seconds": 200.,
+            "peak_cuda_allocated_bytes": 6_000_000_000,
+            "schedule_sha256": self.cpu["schedules"]["179032"]["queue_schedule_sha256"],
+            "resume_identity": {"sampling_arm": "queue", "schedule_sha256":
+                self.cpu["schedules"]["179032"]["queue_schedule_sha256"], "class_sequence_sha256":
+                self.cpu["schedules"]["179032"]["class_sequence_sha256"]},
+            "steps": [{"step": i, "optimizer_counter": i, "augmentation_step": 1000+i,
+                "image_ids": list(range(64))} for i in range(1, 18)]}
+        driver.validate_mechanics(value, args, self.cpu)
+        for key, changed in (("completed_step", 8), ("cpu_execution_sha256", "foreign"), ("startup_authority_sha256", "foreign"),
+                             ("chunk100_admission_seconds", float("-inf")), ("chunk100_admission_seconds", 0)):
+            with self.subTest(key=key), self.assertRaises(AssertionError):
+                driver.validate_mechanics({**value, key: changed}, args, self.cpu)
+        for invalid in (-1, 13283, True):
+            changed = copy.deepcopy(value); changed["steps"][0]["image_ids"][0] = invalid
+            with self.subTest(image_id=invalid), self.assertRaises(AssertionError):
+                driver.validate_mechanics(changed, args, self.cpu)
+
     def test_original_log_binds_invocation_rss_cap_and_locks(self):
         text = (EVIDENCE / "image-queue-cpu-v2.log").read_text()
         driver.validate_log(text, self.cpu, 120)
         for altered in (text.replace(self.cpu["unit_invocation_id"], "foreign"),
                         text.replace("Service runtime: 37.327s", "Service runtime: 120s"),
-                        text.replace("5156656", "5156657"),
+                        text.replace("5156656", "5156655"),
+                        text.replace("5156656", "8388609"),
                         text.replace("flock -n /home/riomus/.sfora-siglip2-gpu.lock", "missing-lock")):
             with self.assertRaises(AssertionError): driver.validate_log(altered, self.cpu, 120)
+        driver.validate_log(text.replace("5156656", "5156657"), self.cpu, 120)
+        startup = json.loads((EVIDENCE / "image-queue-startup-v1.json").read_text())
+        driver.validate_log((EVIDENCE / "image-queue-startup-v1.log").read_text(), startup, 120)
 
 
 if __name__ == "__main__":

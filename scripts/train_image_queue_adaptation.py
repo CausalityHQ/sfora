@@ -50,7 +50,9 @@ def validate_log(text, value, cap):
     matches = re.findall(r"Service runtime: (?:(\d+)min )?([\d.]+)s", text)
     assert len(matches) == 1 and 0 < int(matches[0][0] or 0) * 60 + float(matches[0][1]) < cap
     rss = re.findall(r"Maximum resident set size \(kbytes\): (\d+)", text)
-    assert rss and int(rss[0]) == value["host_max_rss_kib"]
+    # The receipt samples RSS before publication and interpreter shutdown.
+    # The original process timer supplies the final whole-process peak.
+    assert rss and 0 < value["host_max_rss_kib"] <= int(rss[0]) <= 8 * 1024 * 1024
     assert "flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock" in text
     assert "flock -n /home/riomus/.sfora-siglip2-gpu.lock" in text
 
@@ -59,20 +61,25 @@ def validate_mechanics(value, args, cpu):
     assert value["schema"] == "image-queue-train-v1" and value["pass"] and value["intervention"] == METHOD
     assert value["phase"] == "mechanics" and value["arm"] == "queue" and value["seed"] == 179032
     assert value["execution_sha256"] == args.execution_sha256 and value["cpu_authority_sha256"] == args.cpu_sha256
+    assert value["cpu_execution_sha256"] == args.cpu_execution_sha256
+    assert value["startup_authority_sha256"] == args.startup_sha256
     assert value["cpu_log_sha256"] == args.cpu_log_sha256
     assert value["initial_state_sha256"] == cpu["initial_state_sha256"]
     assert value["source_checkpoint_sha256"] == cpu["source_checkpoint_sha256"]
-    assert value["updates"] == 17 and value["boundary"] == 12 and value["checkpoint_sha256"] is None
+    assert value["updates"] == value["completed_step"] == 17 and value["boundary"] == 12 and value["checkpoint_sha256"] is None
     assert value["training_state_discarded"] and value["native_17_equals_serialized8_plus9_exact"]
     assert value["strict400_reload_whole_head_packed_exact"] and value["frozen_named_state_buffers_rng_preserved"]
-    assert value["quality_read"] is False and value["chunk100_admission_seconds"] <= 269
+    projection = value["chunk100_admission_seconds"]
+    assert value["quality_read"] is False and math.isfinite(projection) and 0 < projection <= 269
     assert value["schedule_sha256"] == cpu["schedules"]["179032"]["queue_schedule_sha256"]
     assert value["resume_identity"]["sampling_arm"] == "queue"
+    assert value["resume_identity"]["schedule_sha256"] == value["schedule_sha256"]
     assert value["resume_identity"]["class_sequence_sha256"] == cpu["schedules"]["179032"]["class_sequence_sha256"]
     assert len(value["steps"]) == 17
     for step, row in enumerate(value["steps"], 1):
         assert row["step"] == row["optimizer_counter"] == step and row["augmentation_step"] == 1000 + step
         assert len(row["image_ids"]) == 64 and len(set(row["image_ids"])) == 64
+        assert all(type(i) is int and 0 <= i < 13283 for i in row["image_ids"])
     resources(value, 120, True)
 
 
@@ -153,6 +160,13 @@ def main():
         expected = cpu["schedules"][str(args.seed)]
         assert schedule_sha == expected[args.arm + "_schedule_sha256"]
         assert qualified_cpu.sha_bytes([[target[i] for i in b] for b in batches]) == expected["class_sequence_sha256"]
+        if mechanics:
+            queue = batches if args.arm == "queue" else qualified_cpu.schedules(target, original, args.seed)
+            # Mechanics is seed032; validate it against that authenticated schedule for either TRAIN seed.
+            if args.seed != 179032:
+                original032 = old.coverage.schedule(target, seed=179032).tolist()
+                queue = qualified_cpu.schedules(target, original032, 179032)
+            assert [r["image_ids"] for r in mechanics["steps"]] == queue[:17]
         identity_args = SimpleNamespace(**vars(args), boundary=12)
         base = native.identity(state, identity_args, initial, schedule_sha)
         base.update(schema="image-queue-complete-resume-v1", intervention=METHOD, sampling_arm=args.arm,
