@@ -1,0 +1,58 @@
+Running as unit: sfora-full-valid-anchor-public-benchmark-v4.service; invocation ID: 737bb31dd18449bd85470eca013c43ef
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+PASS unpaired B1100 complete timed calls
+PASS unpaired B32100 complete timed calls
+PASS unpaired full2000 diagnostic; p99 uncertified, no matched speed/QPS/quality claim
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-full-valid-anchor-public-source-v4/benchmark_full_valid_anchor_serving.py --authority-sha256 3a9687b5bc90157aca78f37db70eb8848555511746c0f7aaaa73f34abcc80dc2 --gpu-proof /home/riomus/runs/sfora-full-valid-anchor-public-gpu-v4/proof.json --gpu-sha256 134c1924b16cc0ab6a75d729e6fa8a774d5612f49195eb4fc1f6dc362bde7e5e --gpu-log /home/riomus/runs/sfora-full-valid-anchor-public-source-v4/sfora-full-valid-anchor-public-gpu-v4.log --gpu-log-sha256 a8cbd5d48296be134e741ad2799a983c6877d39438f7027be1bafa5db38b96cb --output /home/riomus/runs/sfora-full-valid-anchor-public-benchmark-v4/diagnostic.json"
+	User time (seconds): 89.46
+	System time (seconds): 6.70
+	Percent of CPU this job got: 81%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:57.91
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 4273376
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 647
+	Minor (reclaiming a frame) page faults: 602475
+	Voluntary context switches: 179324
+	Involuntary context switches: 1041
+	Swaps: 0
+	File system inputs: 62455264
+	File system outputs: 4240
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 1min 57.917s
+CPU time consumed: 1min 36.164s
+Memory peak: 256.0K
+Memory swap peak: 0B
+	Command being timed: "systemd-run --user --wait --collect --pipe --unit=sfora-full-valid-anchor-public-benchmark-v4 --property=WorkingDirectory=/home/riomus/runs/sfora-full-valid-anchor-public-source-v4 --property=RuntimeMaxSec=300 --property=MemoryMax=8G --property=MemorySwapMax=0 --property=KillMode=control-group --property=OOMPolicy=stop --setenv=CUDA_VISIBLE_DEVICES=0 --setenv=CUBLAS_WORKSPACE_CONFIG=:4096:8 --setenv=OMP_NUM_THREADS=8 --setenv=OPENBLAS_NUM_THREADS=1 --setenv=TOKENIZERS_PARALLELISM=false --setenv=TMPDIR=/home/riomus/runs/sfora-full-valid-anchor-public-source-v4 --setenv=CUTILE_TILEIRAS_PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/tileiras --setenv=PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin:/usr/local/bin:/usr/bin:/bin --setenv=PYTHONPATH=/home/riomus/runs/sfora-full-valid-anchor-public-source-v4:/home/riomus/runs/sfora-full-valid-anchor-public-source-v4/src:/home/riomus/runs/sfora-full-valid-anchor-public-source-v4/isolated-deps flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock flock -n /home/riomus/.sfora-siglip2-gpu.lock /usr/bin/time -v /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-full-valid-anchor-public-source-v4/benchmark_full_valid_anchor_serving.py --authority-sha256 3a9687b5bc90157aca78f37db70eb8848555511746c0f7aaaa73f34abcc80dc2 --gpu-proof /home/riomus/runs/sfora-full-valid-anchor-public-gpu-v4/proof.json --gpu-sha256 134c1924b16cc0ab6a75d729e6fa8a774d5612f49195eb4fc1f6dc362bde7e5e --gpu-log /home/riomus/runs/sfora-full-valid-anchor-public-source-v4/sfora-full-valid-anchor-public-gpu-v4.log --gpu-log-sha256 a8cbd5d48296be134e741ad2799a983c6877d39438f7027be1bafa5db38b96cb --output /home/riomus/runs/sfora-full-valid-anchor-public-benchmark-v4/diagnostic.json"
+	User time (seconds): 0.00
+	System time (seconds): 0.00
+	Percent of CPU this job got: 0%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:57.94
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 7280
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 378
+	Voluntary context switches: 10
+	Involuntary context switches: 0
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
