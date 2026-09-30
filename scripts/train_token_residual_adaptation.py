@@ -158,7 +158,7 @@ def validate_mechanics(value, args, cpu, startup):
     resources(value,120,True)
 
 
-def identity(state, args, initial, schedule_sha, class_sha, code):
+def identity(state, args, initial, schedule_sha, class_sha, code, *, initial_rng_sha256=None):
     base = native.identity(state, SimpleNamespace(**vars(args),boundary=12),initial,schedule_sha)
     base.update(schema="token-residual-complete-resume-v1", intervention=METHOD,
         residual_arm=args.arm, residual_role=args.arm == "candidate", module_sha256=code["token_residual_readout.py"],
@@ -167,7 +167,8 @@ def identity(state, args, initial, schedule_sha, class_sha, code):
         residual_dtype="torch.float32", class_sequence_sha256=class_sha,
         input_authorities={str(k):v for k,v in INPUT_AUTHORITIES.items()},
         startup_authority_sha256=args.startup_sha256, startup_log_sha256=args.startup_log_sha256,
-        initial_rng_sha256=old.fingerprint({"cpu":torch.random.get_rng_state(),
+        initial_rng_sha256=initial_rng_sha256 if initial_rng_sha256 is not None else old.fingerprint({
+            "cpu":torch.random.get_rng_state(),
             "cuda":torch.cuda.get_rng_state_all() if state["scaler"] else []}),
         precision="native_float32_fp16_autocast" if state["scaler"] else "cpu_float32",
         numerical_flags=old.coverage.teacher.qualified.numerical_flags())
@@ -603,7 +604,11 @@ def main():
                 terminal = old.fingerprint(payload(state,base))
                 del state; gc.collect(); torch.cuda.empty_cache()
                 state,again = fresh(args.arm,"cuda"); assert again == initial
-                assert identity(state,args,initial,chosen["schedule_sha256"],chosen["class_sequence_sha256"],code) == base
+                # Construction consumes RNG before loading the complete source; the
+                # original unit's initial snapshot is immutable identity metadata.
+                # restore() below restores and fingerprints the saved live RNG state.
+                assert identity(state,args,initial,chosen["schedule_sha256"],chosen["class_sequence_sha256"],code,
+                    initial_rng_sha256=base["initial_rng_sha256"]) == base
                 restore(state,base,path,saved_sha,saved_fingerprint,8)
                 resumed = [update(state,step) for step in range(9,18)]
                 assert [native.diagnostic(r) for r in resumed] == [native.diagnostic(r) for r in rows[8:]]

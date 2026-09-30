@@ -77,6 +77,28 @@ def complete_state(driver, arm="candidate", step=8, cpu=True):
 
 
 class Admission(unittest.TestCase):
+    def test_rebuild_keeps_unit_initial_rng_metadata_without_resetting_live_rng(self):
+        tree = ast.parse(PATH.read_text())
+        fn = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "identity")
+        live = {"rng": "first-construction"}
+        flags = SimpleNamespace(numerical_flags=lambda: {"fixed": True})
+        ns = {"SimpleNamespace": SimpleNamespace, "METHOD": "token-quadrant-residual-v1",
+              "INPUT_AUTHORITIES": {}, "native": SimpleNamespace(identity=lambda *a: {}),
+              "torch": SimpleNamespace(random=SimpleNamespace(get_rng_state=lambda: live["rng"])),
+              "old": SimpleNamespace(fingerprint=repr, coverage=SimpleNamespace(
+                  teacher=SimpleNamespace(qualified=flags)))}
+        exec(compile(ast.Module(body=[fn], type_ignores=[]), str(PATH), "exec"), ns)
+        state = {"scaler": None, "head": SimpleNamespace(named_parameters=lambda: []),
+                 "classifier": SimpleNamespace(requires_grad=True)}
+        args = SimpleNamespace(arm="candidate", startup_sha256="startup", startup_log_sha256="log")
+        call = lambda **kw: ns["identity"](state, args, "source", "schedule", "classes",
+                                           {"token_residual_readout.py": "module"}, **kw)
+        original = call()
+        live["rng"] = "second-construction"
+        self.assertNotEqual(call(), original)
+        self.assertEqual(call(initial_rng_sha256=original["initial_rng_sha256"]), original)
+        self.assertEqual(live["rng"], "second-construction")
+
     def tearDown(self):
         self.assertNotIn("torch",sys.modules,"stdlib checks imported Torch")
 
