@@ -1,0 +1,67 @@
+{
+  "files": {
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/safetensors/_safetensors_rust.abi3.so": {
+      "bytes": 1203048,
+      "sha256": "8c623b2077a05539bbdeb345edf3970a33597fbda0e3c9f3e1377865c55b3873"
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/_C.cpython-313-aarch64-linux-gnu.so": {
+      "bytes": 263057,
+      "sha256": "d08ec5b4468e5b235a48bb34469282b18a7c1b9fc13e9ccf39a63682d9b58d13"
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libc10.so": {
+      "bytes": 1794945,
+      "sha256": "53c9bb05dbe6bb7ce052d97dbd6c9b6835e6a7ff9ebf30bbf78b8fbd79b36d77"
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libtorch_cpu.so": {
+      "bytes": 256136105,
+      "sha256": "ca4731792047052952907b87b4ddb7bf6715750df9203575a4de4ed92653521e"
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/models/auto/image_processing_auto.py": {
+      "bytes": 38681,
+      "sha256": "47e9ece375f99a5bcd4c661bdbad62af8ac5e86e8497dd48d789bbc15468073e"
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/models/siglip/configuration_siglip.py": {
+      "bytes": 5507,
+      "sha256": "0a402ea5452a1527ad54f5339889774549688f5f84028af30979bdbc4b32206e"
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/models/siglip/image_processing_pil_siglip.py": {
+      "bytes": 1288,
+      "sha256": "61ff04dc131c526dd5e638bc2ad778cc1186989f474507bd3bf7368ea09f54c1"
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/models/siglip/image_processing_siglip.py": {
+      "bytes": 1298,
+      "sha256": "f716aedcc35e6e271662e1bee77d9546fcf3155a6c6bd166872a87540e853c4c"
+    },
+    "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/models/siglip/modeling_siglip.py": {
+      "bytes": 36056,
+      "sha256": "274eafdb9bff99607f15eb4c4fb6fc47256b07358807653baa48539d13376b31"
+    }
+  },
+  "model_executed": false,
+  "native_imported": false,
+  "quality_read": false,
+  "schema": "native256-installed-source-observation-v1",
+  "site_packages": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages",
+  "versions": {
+    "numpy": "2.5.0",
+    "pillow": "12.2.0",
+    "safetensors": "0.8.0",
+    "torch": "2.12.1",
+    "torchvision": "0.27.1",
+    "transformers": "5.12.1"
+  },
+  "vision_constructor": {
+    "assigned_self_attributes": [
+      "config",
+      "embeddings",
+      "encoder",
+      "head",
+      "post_layernorm",
+      "use_head"
+    ],
+    "direct_bare_state_keys_source_observed": true,
+    "line": 564,
+    "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/models/siglip/modeling_siglip.py",
+    "source": "def __init__(self, config: SiglipVisionConfig):\n        super().__init__(config)\n        self.config = config\n        embed_dim = config.hidden_size\n\n        self.embeddings = SiglipVisionEmbeddings(config)\n        self.encoder = SiglipEncoder(config)\n        self.post_layernorm = nn.LayerNorm(embed_dim, eps=config.layer_norm_eps)\n        self.use_head = True if not hasattr(config, \"vision_use_head\") else config.vision_use_head\n        if self.use_head:\n            self.head = SiglipMultiheadAttentionPoolingHead(config)\n        self.post_init()"
+  }
+}
