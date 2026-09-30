@@ -1,0 +1,338 @@
+{
+  "id": "b3807bf64ccf4455",
+  "provider": "codex",
+  "model": "gpt-6.1-sol",
+  "fallbacks": [
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    }
+  ],
+  "agent": "sfora/emafactorial",
+  "cwd": "/home/rb/worktrees/sfora-positive-causality",
+  "status": "completed",
+  "runner_started": true,
+  "started_at": 1790731210,
+  "timeout_seconds": 300,
+  "deadline_at": 1790731510,
+  "budget_usd": 1,
+  "prompt_preview": "Read-only bounded feasibility audit, no edits/SSH/Torch/jobs/consultations/operator contact. Repo /home/rb/worktrees/sfora-positive-causality master3f7632cc. Production SOP+InShop quality+speed goal active. Previously reviewed dense10vs12 100update from F5 failed frozen two-seed TRAIN R1 gates, but subset179032 matched official improves94.063863/74.977123 to94.295963/75.441599. Do NOT promote that failed gate. New proposed stage-conditioned TRAIN-only test: same corrected native128 halfTRAIN1000 saved resume at /home/riomus/runs/sfora-teacher-retained256-128-1000-v1/resume.pt (archived receipt checkpointSHA cc58377f0e9aa90be529bf9a3eca1746a2dc467f765dd9681a3b9b690e324566), model/head/classifier/bank/buffers identical both arms. Both explicitly reset AdamW/scaler;control freeze12,candidate freeze10; corrected SmoothAP/ArcFace unchanged,256pixels,F32paramsFP16autocast,B64/four16,100newupdates fixed both arms fresh. Seeds179032+179041 are paired CONTINUATION input seeds sharing trained initializer, not independent pretraining seeds; schedule100/classdistinct same withinpair, augmentation globalstep1001..1100 seededexplicitly. TRAINfit13283/2004, held12599/1993/q6354g6245 disjointsource training. Prior quality97.780925R1/85.449629AP nativeFP16B32 is context only,newcontrolmustfresh. Fixed previous dense gate thresholds eachseedR1>0/AP>=0,meanboth>=.20pp/productlowerboth>0,costcontemporaneouswall+median<=1.5. CPU120 then discarded17 mechanics120,production100300,8GiB/noSwap/<10GBcuda. Only survivor can motivate matchedfullTRAIN intervention,not immediateofficialscoreselection. Inspect scripts/train_pe_teacher_retained256.py,qualify_pe_teacher_retained256.py,large_dense_boundary.py,pe_large_optimization.py,train_large_dense_pilot.py and archived teacher-retained256-v1/terminal receipts. Question ONLY: can actual model/head/classifier/bank/buffer state and disjoint TRAIN authority be reused without hidden objective/order/state confounds? Name precise minimal source changes, obstacles and source-only falsifier; reject if premise invalid. No alternativearchitecture/research or anotherreview. Parent separately verifies remote bytes. Keep answer <=700words.",
+  "prompt_sha256": "6c0a37ca5ba62cf49ae19a4a69b79a12a5047edd8426f9d5ee592277b41206e7",
+  "prompt_bytes": 2361,
+  "fingerprint": "926f37a62061d9cc1e9cf9871f1d3606c78c1aa51426b68819c3220320f46d8f",
+  "evidence": {
+    "git_commit": "3f7632cc5c2a4beb079ad91d90aba88c915bcfc4",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+    "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "previous_fingerprint": "90013dfc3a367767cf78d68353da92202e73d38d680d5403cfa42e8f9909ee4a",
+  "reused": false,
+  "systemd_unit": "devbox-consult-b3807bf64ccf4455.service",
+  "pid": 1578886,
+  "pgid": 1578886,
+  "attempt": 1,
+  "attempts": [
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    }
+  ],
+  "attempt_history": [
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol",
+      "budget_usd": 1,
+      "timeout_seconds": 300,
+      "started_at": 1790731210
+    }
+  ],
+  "exit_code": 0,
+  "finished_at": 1790731423,
+  "event_cursor": 47,
+  "events": [
+    {
+      "seq": 24,
+      "at": 1790731271,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 25,
+      "at": 1790731271,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 26,
+      "at": 1790731271,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 27,
+      "at": 1790731288,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 28,
+      "at": 1790731288,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 1"
+    },
+    {
+      "seq": 29,
+      "at": 1790731288,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 30,
+      "at": 1790731288,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 2"
+    },
+    {
+      "seq": 31,
+      "at": 1790731304,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 32,
+      "at": 1790731304,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 33,
+      "at": 1790731304,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 34,
+      "at": 1790731304,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 35,
+      "at": 1790731313,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 36,
+      "at": 1790731313,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 37,
+      "at": 1790731323,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 38,
+      "at": 1790731323,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 2"
+    },
+    {
+      "seq": 39,
+      "at": 1790731341,
+      "provider": "codex",
+      "kind": "partial",
+      "label": "Answer available"
+    },
+    {
+      "seq": 40,
+      "at": 1790731345,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 41,
+      "at": 1790731345,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 42,
+      "at": 1790731367,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 43,
+      "at": 1790731367,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 0"
+    },
+    {
+      "seq": 44,
+      "at": 1790731386,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command started"
+    },
+    {
+      "seq": 45,
+      "at": 1790731386,
+      "provider": "codex",
+      "kind": "tool",
+      "label": "Shell command completed",
+      "detail": "exit 1"
+    },
+    {
+      "seq": 46,
+      "at": 1790731422,
+      "provider": "codex",
+      "kind": "partial",
+      "label": "Answer available"
+    },
+    {
+      "seq": 47,
+      "at": 1790731423,
+      "provider": "codex",
+      "kind": "phase",
+      "label": "Consultation completed",
+      "detail": "exit 0"
+    }
+  ],
+  "events_truncated": true,
+  "provider_events": {
+    "codex": [
+      {
+        "seq": 40,
+        "at": 1790731345,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 41,
+        "at": 1790731345,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 42,
+        "at": 1790731367,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 43,
+        "at": 1790731367,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 0"
+      },
+      {
+        "seq": 44,
+        "at": 1790731386,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command started"
+      },
+      {
+        "seq": 45,
+        "at": 1790731386,
+        "provider": "codex",
+        "kind": "tool",
+        "label": "Shell command completed",
+        "detail": "exit 1"
+      },
+      {
+        "seq": 46,
+        "at": 1790731422,
+        "provider": "codex",
+        "kind": "partial",
+        "label": "Answer available"
+      },
+      {
+        "seq": 47,
+        "at": 1790731423,
+        "provider": "codex",
+        "kind": "phase",
+        "label": "Consultation completed",
+        "detail": "exit 0"
+      }
+    ]
+  },
+  "partial_result": "**Conditionally feasible.** The archived source and receipts support reuse of the requested trained state and disjoint TRAIN authority. The current drivers need a separate stage-initialization path; they cannot run this experiment unchanged. Actual checkpoint tensor contents remain for the parent’s remote-byte verification.\n\nThe archived [terminal receipt](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/teacher-retained256-v1/terminal/sfora-teacher-retained256-128-1000-v1/receipt.json:2620) records the exact `cc58377…4566` SHA, width128, seed179032, and 1000 completed updates. [Resume serialization](/home/rb/worktrees/sfora-positive-causality/scripts/pe_large_optimization.py:108) saves vision, compact head, classifier, member bank, and **all named buffers**, separately covering nonpersistent buffers.\n\nI ran a stdlib-only archive check: all ten width128 receipt links and step ranges matched; fit13283/2004 and held12599/1993 were disjoint by product and image path, with 6354 queries and 6245 galleries. [Qualification authority](/home/rb/worktrees/sfora-positive-causality/scripts/qualify_pe_teacher_retained256.py:49) binds the fit manifest to the half arm. This is previously observed TRAIN-held evidence, not a new untouched holdout.\n\nMinimal source changes:\n\n1. **Add one bounded stage trainer; preserve historical drivers.** Authenticate the terminal receipt/checkpoint and original source authority before applying continuation seeds. Strict-load saved vision/head; copy classifier, bank, and every named buffer. Reuse the authenticated half-arm target and class/row order: the resume payload does **not** save target. Do not rebuild the bank from teacher features or regenerate proxies.\n\n2. **Set the boundary before collecting parameters and constructing fresh AdamW/scaler.** Use freeze12 for control and [dense10 configuration](/home/rb/worktrees/sfora-positive-causality/scripts/large_dense_boundary.py:14) for candidate. Preserve existing group learning rates, weight decay, clipping, processor, numerical flags, and training modes. Seed the new stage explicitly; do not restore old optimizer/scaler/RNG. Record optimizer-update count `0…100` separately from initializer step1000 and augmentation steps1001…1100.\n\n3. **Reuse the corrected width128 objective and shared update loop.** [Teacher-retained terms](/home/rb/worktrees/sfora-positive-causality/scripts/train_pe_teacher_retained256.py:55) always apply valid-anchor SmoothAP, including mixed singleton batches, plus unchanged ArcFace. Preserve `CE + 8*rank`, B64/four16, F32 parameters/FP16 autocast, and bank refresh after the optimizer update using pre-update detached embeddings. Audit gradients in candidate blocks10/11; the shared step reports only blocks12…23.\n\n4. **Generate one explicit 100-batch schedule per continuation seed**, passing the seed directly to the coverage scheduler. Use the same schedule, augmentation global steps, RGB/pixel hashes, and row order within each pair. Fresh production arms must reload the initializer after discarded17 mechanics.\n\n5. **Add one stage qualifier/receipt path.** Reuse TRAIN manifests and nativeFP16B32 packed evaluation, but authenticate four fresh endpoints. Apply the stipulated two-seed gates, product bootstrap over seed-averaged paired query deltas, and contemporaneous wall/median ratios ≤1.5.\n\nConcrete obstacles:\n\n- Existing `restore()` requires identical historical identity, optimizer membership, moments, counters, and RNG; dense10/reset initialization violates that contract.\n- `pe_core_training.frozen_state()` hardcodes blocks0…11 even with a dense10 inventory. Consequently, shared save/restore frozen checks would reject legitimate block10/11 changes. Use boundary-specific frozen snapshots/checks and fresh stage identity.\n- `train_large_dense_pilot.py` starts from F5 and compares against archived controls. Its initializer, first-step equality, mechanics authority, and cost denominator cannot authorize this stage.\n\n**Source-only falsifier:** reject if the proposed path regenerates bank/proxies, changes target/class order, restores historical optimizer/RNG, uses stale controls, suppresses mixed-singleton ranking, retains freeze12 checks for dense10, or conflates optimizer count with augmentation global step. Reject remotely if any requested saved component or TRAIN lineage fails verification.\n\nThis establishes feasibility only. The earlier failed dense gate remains failed; a survivor could motivate matched fullTRAIN testing, not official-score selection or production promotion.",
+  "partial_result_truncated": false,
+  "provider_partials": {
+    "codex": "**Conditionally feasible.** The archived source and receipts support reuse of the requested trained state and disjoint TRAIN authority. The current drivers need a separate stage-initialization path; they cannot run this experiment unchanged. Actual checkpoint tensor contents remain for the parent’s remote-byte verification.\n\nThe archived [terminal receipt](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/teacher-retained256-v1/terminal/sfora-teacher-retained256-128-1000-v1/receipt.json:2620) records the exact `cc58377…4566` SHA, width128, seed179032, and 1000 completed updates. [Resume serialization](/home/rb/worktrees/sfora-positive-causality/scripts/pe_large_optimization.py:108) saves vision, compact head, classifier, member bank, and **all named buffers**, separately covering nonpersistent buffers.\n\nI ran a stdlib-only archive check: all ten width128 receipt links and step ranges matched; fit13283/2004 and held12599/1993 were disjoint by product and image path, with 6354 queries and 6245 galleries. [Qualification authority](/home/rb/worktrees/sfora-positive-causality/scripts/qualify_pe_teacher_retained256.py:49) binds the fit manifest to the half arm. This is previously observed TRAIN-held evidence, not a new untouched holdout.\n\nMinimal source changes:\n\n1. **Add one bounded stage trainer; preserve historical drivers.** Authenticate the terminal receipt/checkpoint and original source authority before applying continuation seeds. Strict-load saved vision/head; copy classifier, bank, and every named buffer. Reuse the authenticated half-arm target and class/row order: the resume payload does **not** save target. Do not rebuild the bank from teacher features or regenerate proxies.\n\n2. **Set the boundary before collecting parameters and constructing fresh AdamW/scaler.** Use freeze12 for control and [dense10 configuration](/home/rb/worktrees/sfora-positive-causality/scripts/large_dense_boundary.py:14) for candidate. Preserve existing group learning rates, weight decay, clipping, processor, numerical flags, and training modes. Seed the new stage explicitly; do not restore old optimizer/scaler/RNG. Record optimizer-update count `0…100` separately from initializer step1000 and augmentation steps1001…1100.\n\n3. **Reuse the corrected width128 objective and shared update loop.** [Teacher-retained terms](/home/rb/worktrees/sfora-positive-causality/scripts/train_pe_teacher_retained256.py:55) always apply valid-anchor SmoothAP, including mixed singleton batches, plus unchanged ArcFace. Preserve `CE + 8*rank`, B64/four16, F32 parameters/FP16 autocast, and bank refresh after the optimizer update using pre-update detached embeddings. Audit gradients in candidate blocks10/11; the shared step reports only blocks12…23.\n\n4. **Generate one explicit 100-batch schedule per continuation seed**, passing the seed directly to the coverage scheduler. Use the same schedule, augmentation global steps, RGB/pixel hashes, and row order within each pair. Fresh production arms must reload the initializer after discarded17 mechanics.\n\n5. **Add one stage qualifier/receipt path.** Reuse TRAIN manifests and nativeFP16B32 packed evaluation, but authenticate four fresh endpoints. Apply the stipulated two-seed gates, product bootstrap over seed-averaged paired query deltas, and contemporaneous wall/median ratios ≤1.5.\n\nConcrete obstacles:\n\n- Existing `restore()` requires identical historical identity, optimizer membership, moments, counters, and RNG; dense10/reset initialization violates that contract.\n- `pe_core_training.frozen_state()` hardcodes blocks0…11 even with a dense10 inventory. Consequently, shared save/restore frozen checks would reject legitimate block10/11 changes. Use boundary-specific frozen snapshots/checks and fresh stage identity.\n- `train_large_dense_pilot.py` starts from F5 and compares against archived controls. Its initializer, first-step equality, mechanics authority, and cost denominator cannot authorize this stage.\n\n**Source-only falsifier:** reject if the proposed path regenerates bank/proxies, changes target/class order, restores historical optimizer/RNG, uses stale controls, suppresses mixed-singleton ranking, retains freeze12 checks for dense10, or conflates optimizer count with augmentation global step. Reject remotely if any requested saved component or TRAIN lineage fails verification.\n\nThis establishes feasibility only. The earlier failed dense gate remains failed; a survivor could motivate matched fullTRAIN testing, not official-score selection or production promotion."
+  },
+  "providers_used": [
+    "codex"
+  ],
+  "active_provider": "codex",
+  "phase": "Consultation completed",
+  "input_bytes": 2361,
+  "output_bytes": 4610,
+  "elapsed_seconds": 213,
+  "progress": "Reading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)\ndevbox-ask: codex consult still running (1m 30s)\ndevbox-ask: codex consult still running (2m 00s)\ndevbox-ask: codex consult still running (2m 30s)\ndevbox-ask: codex consult still running (3m 00s)\ndevbox-ask: codex consult still running (3m 30s)",
+  "progress_truncated": false,
+  "result": "**Conditionally feasible.** The archived source and receipts support reuse of the requested trained state and disjoint TRAIN authority. The current drivers need a separate stage-initialization path; they cannot run this experiment unchanged. Actual checkpoint tensor contents remain for the parent’s remote-byte verification.\n\nThe archived [terminal receipt](/home/rb/worktrees/sfora-positive-causality/docs/evidence/compact_metric/sop-siglip2-substrate-v1/teacher-retained256-v1/terminal/sfora-teacher-retained256-128-1000-v1/receipt.json:2620) records the exact `cc58377…4566` SHA, width128, seed179032, and 1000 completed updates. [Resume serialization](/home/rb/worktrees/sfora-positive-causality/scripts/pe_large_optimization.py:108) saves vision, compact head, classifier, member bank, and **all named buffers**, separately covering nonpersistent buffers.\n\nI ran a stdlib-only archive check: all ten width128 receipt links and step ranges matched; fit13283/2004 and held12599/1993 were disjoint by product and image path, with 6354 queries and 6245 galleries. [Qualification authority](/home/rb/worktrees/sfora-positive-causality/scripts/qualify_pe_teacher_retained256.py:49) binds the fit manifest to the half arm. This is previously observed TRAIN-held evidence, not a new untouched holdout.\n\nMinimal source changes:\n\n1. **Add one bounded stage trainer; preserve historical drivers.** Authenticate the terminal receipt/checkpoint and original source authority before applying continuation seeds. Strict-load saved vision/head; copy classifier, bank, and every named buffer. Reuse the authenticated half-arm target and class/row order: the resume payload does **not** save target. Do not rebuild the bank from teacher features or regenerate proxies.\n\n2. **Set the boundary before collecting parameters and constructing fresh AdamW/scaler.** Use freeze12 for control and [dense10 configuration](/home/rb/worktrees/sfora-positive-causality/scripts/large_dense_boundary.py:14) for candidate. Preserve existing group learning rates, weight decay, clipping, processor, numerical flags, and training modes. Seed the new stage explicitly; do not restore old optimizer/scaler/RNG. Record optimizer-update count `0…100` separately from initializer step1000 and augmentation steps1001…1100.\n\n3. **Reuse the corrected width128 objective and shared update loop.** [Teacher-retained terms](/home/rb/worktrees/sfora-positive-causality/scripts/train_pe_teacher_retained256.py:55) always apply valid-anchor SmoothAP, including mixed singleton batches, plus unchanged ArcFace. Preserve `CE + 8*rank`, B64/four16, F32 parameters/FP16 autocast, and bank refresh after the optimizer update using pre-update detached embeddings. Audit gradients in candidate blocks10/11; the shared step reports only blocks12…23.\n\n4. **Generate one explicit 100-batch schedule per continuation seed**, passing the seed directly to the coverage scheduler. Use the same schedule, augmentation global steps, RGB/pixel hashes, and row order within each pair. Fresh production arms must reload the initializer after discarded17 mechanics.\n\n5. **Add one stage qualifier/receipt path.** Reuse TRAIN manifests and nativeFP16B32 packed evaluation, but authenticate four fresh endpoints. Apply the stipulated two-seed gates, product bootstrap over seed-averaged paired query deltas, and contemporaneous wall/median ratios ≤1.5.\n\nConcrete obstacles:\n\n- Existing `restore()` requires identical historical identity, optimizer membership, moments, counters, and RNG; dense10/reset initialization violates that contract.\n- `pe_core_training.frozen_state()` hardcodes blocks0…11 even with a dense10 inventory. Consequently, shared save/restore frozen checks would reject legitimate block10/11 changes. Use boundary-specific frozen snapshots/checks and fresh stage identity.\n- `train_large_dense_pilot.py` starts from F5 and compares against archived controls. Its initializer, first-step equality, mechanics authority, and cost denominator cannot authorize this stage.\n\n**Source-only falsifier:** reject if the proposed path regenerates bank/proxies, changes target/class order, restores historical optimizer/RNG, uses stale controls, suppresses mixed-singleton ranking, retains freeze12 checks for dense10, or conflates optimizer count with augmentation global step. Reject remotely if any requested saved component or TRAIN lineage fails verification.\n\nThis establishes feasibility only. The earlier failed dense gate remains failed; a survivor could motivate matched fullTRAIN testing, not official-score selection or production promotion.",
+  "result_truncated": false
+}
