@@ -1,0 +1,62 @@
+Running as unit: sfora-token-residual-held-cpu-candidate-179041-v1.service; invocation ID: 95bde585450641c3a685e115a8073250
+{"stage": "endpoint-179032-control", "rss_kib": 1022064, "max_rss_kib": 3548376, "elapsed_seconds": 17.154302274808288}
+{"stage": "endpoint-179032-candidate", "rss_kib": 1022068, "max_rss_kib": 3552408, "elapsed_seconds": 20.191738289780915}
+{"stage": "endpoint-179041-candidate", "rss_kib": 1022560, "max_rss_kib": 3553016, "elapsed_seconds": 23.245878275949508}
+{"stage": "endpoint-179041-control", "rss_kib": 1023156, "max_rss_kib": 3553016, "elapsed_seconds": 26.245058863889426}
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 8865.49it/s]
+{"stage": "updated-model-mmap-released", "rss_kib": 1748292, "max_rss_kib": 5105576, "elapsed_seconds": 39.5809833612293}
+{"stage": "independent-reload-mmap-released", "rss_kib": 2245060, "max_rss_kib": 5105576, "elapsed_seconds": 46.36516835913062}
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-token-residual-held-source-v1/export_token_residual_adaptation.py --phase cpu --seed 179041 --arm candidate --authority-sha256 27098916e8fe8b2a838c6efb2ababc0a29cf6baa37b863fa2eedd18aa2cbe55c --output /home/riomus/runs/sfora-token-residual-held-cpu-candidate-179041-v1"
+	User time (seconds): 65.10
+	System time (seconds): 6.49
+	Percent of CPU this job got: 148%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:48.27
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 5105576
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 17511
+	Minor (reclaiming a frame) page faults: 1686390
+	Voluntary context switches: 120980
+	Involuntary context switches: 662
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 48
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 48.274s
+CPU time consumed: 1min 11.602s
+Memory peak: 1008.0K
+Memory swap peak: 0B
+	Command being timed: "systemd-run --user --wait --collect --pipe --unit=sfora-token-residual-held-cpu-candidate-179041-v1 --property=WorkingDirectory=/home/riomus/runs/sfora-token-residual-held-source-v1 --property=RuntimeMaxSec=120 --property=MemoryMax=8G --property=MemorySwapMax=0 --property=KillMode=control-group --property=OOMPolicy=stop --setenv=CUDA_VISIBLE_DEVICES= --setenv=CUBLAS_WORKSPACE_CONFIG=:4096:8 --setenv=OMP_NUM_THREADS=8 --setenv=OPENBLAS_NUM_THREADS=1 --setenv=TOKENIZERS_PARALLELISM=false --setenv=TMPDIR=/home/riomus/runs/sfora-token-residual-held-source-v1 --setenv=CUTILE_TILEIRAS_PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/tileiras --setenv=PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin:/usr/local/bin:/usr/bin:/bin --setenv=PYTHONPATH=/home/riomus/runs/sfora-token-residual-held-source-v1:/home/riomus/runs/sfora-token-residual-held-source-v1/src:/home/riomus/runs/sfora-token-residual-held-source-v1/isolated-deps flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock flock -n /home/riomus/.sfora-siglip2-gpu.lock /usr/bin/time -v /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-token-residual-held-source-v1/export_token_residual_adaptation.py --phase cpu --seed 179041 --arm candidate --authority-sha256 27098916e8fe8b2a838c6efb2ababc0a29cf6baa37b863fa2eedd18aa2cbe55c --output /home/riomus/runs/sfora-token-residual-held-cpu-candidate-179041-v1"
+	User time (seconds): 0.00
+	System time (seconds): 0.00
+	Percent of CPU this job got: 0%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:48.29
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 7284
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 377
+	Voluntary context switches: 10
+	Involuntary context switches: 0
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
