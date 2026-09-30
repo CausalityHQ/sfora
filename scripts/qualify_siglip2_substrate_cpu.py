@@ -301,13 +301,32 @@ def numerical_flags():
             'sdpa_cudnn': torch.backends.cuda.cudnn_sdp_enabled()}
 
 
+def loaded_module_origin(name, module, packages):
+    message = 'loaded native module origin differs: ' + name
+    if name in ('torch.ops', 'torch.classes'):
+        attr = name.split('.')[1]
+        backing_name, marker = 'torch._' + attr, '_' + attr + '.py'
+        class_name = {'ops': '_Ops', 'classes': '_Classes'}[attr]
+        cls = type(module)
+        require(inspect.ismodule(module) and module.__name__ == name and
+                cls.__module__ == backing_name and cls.__name__ == cls.__qualname__ == class_name and
+                cls is getattr(sys.modules.get(backing_name), class_name, None) and
+                module is getattr(sys.modules.get('torch'), attr, None) and
+                getattr(module, '__file__', None) == marker, message)
+        path = Path(module_origin(cls, packages)['file'])
+        require(path == Path(packages['torch']['root']) / marker, message)
+    elif getattr(module, '__file__', None):
+        path = Path(module.__file__).resolve()
+    else:
+        return None
+    require(path.is_relative_to(Path(packages[name.split('.')[0]]['root'])) and path.is_file(), message)
+    return path
+
+
 def loaded_origins(packages):
     for name, module in tuple(sys.modules.items()):
-        package = name.split('.')[0]
-        if package in packages and getattr(module, '__file__', None):
-            path = Path(module.__file__).resolve()
-            require(path.is_relative_to(Path(packages[package]['root'])) and path.is_file(),
-                    'loaded native module origin differs: ' + name)
+        if name.split('.')[0] in packages:
+            loaded_module_origin(name, module, packages)
 
 
 def construct(config, context):
@@ -461,11 +480,11 @@ def imported_origins(extract, packages):
     files, modules = {}, {}
     for name, module in tuple(sys.modules.items()):
         package = name.split('.')[0]
-        if package not in packages or not getattr(module, '__file__', None):
+        if package not in packages:
             continue
-        path = Path(module.__file__).resolve()
-        require(path.is_relative_to(Path(packages[package]['root'])) and path.is_file(),
-                'loaded native module origin differs: ' + name)
+        path = loaded_module_origin(name, module, packages)
+        if path is None:
+            continue
         modules[name] = str(path)
         if str(path) not in files:
             files[str(path)] = extract.sha(path)

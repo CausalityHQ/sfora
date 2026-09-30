@@ -13,7 +13,7 @@ import subprocess
 import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 from unittest.mock import patch
 
 import qualify_siglip2_substrate_cpu as driver
@@ -124,6 +124,85 @@ def fixture(base, extract):
     return SimpleNamespace(execution_sha256=digest(base / 'execution.json'), sources=sources_path,
         sources_sha256=sources_sha, fit_manifest=fit_path, fit_manifest_sha256=fit_sha,
         arm='large', output=base / 'NEW'), sources, fit, inventory, provenance
+
+
+def virtual_origins(base, extract, packages, context):
+    """Torch's two virtual singletons map to guarded backing files, never cwd."""
+    torch = ModuleType('torch')
+    torch.__file__ = packages['torch']['origin']
+    loaded = {'torch': torch}
+    for attr, class_name in (('ops', '_Ops'), ('classes', '_Classes')):
+        path = Path(packages['torch']['root']) / ('_' + attr + '.py')
+        path.write_text('from types import ModuleType\n'
+                        f'class {class_name}(ModuleType):\n'
+                        f'    __file__ = "_{attr}.py"\n'
+                        '    def __init__(self):\n'
+                        f'        super().__init__("torch.{attr}")\n'
+                        f'{attr} = {class_name}()\n')
+        backing = ModuleType('torch._' + attr)
+        backing.__file__ = str(path)
+        exec(compile(path.read_text(), str(path), 'exec'), vars(backing))
+        namespace = getattr(backing, attr)
+        setattr(torch, attr, namespace)
+        loaded['torch.' + attr] = namespace
+        loaded[backing.__name__] = backing
+    with patch.dict(sys.modules, loaded):
+        driver.loaded_origins(packages)
+        origins = driver.imported_origins(extract, packages)
+        for attr in ('ops', 'classes'):
+            path = Path(packages['torch']['root']) / ('_' + attr + '.py')
+            assert origins['modules']['torch.' + attr] == str(path)
+            assert origins['files'][str(path)] == digest(path)
+        context['guards'].update(origins['files'])
+        driver.rehash(context)
+        for attr, class_name in (('ops', '_Ops'), ('classes', '_Classes')):
+            name = 'torch.' + attr
+            namespace, backing = loaded[name], loaded['torch._' + attr]
+            cls = type(namespace)
+            scans = (lambda: driver.loaded_origins(packages),
+                     lambda: driver.imported_origins(extract, packages))
+            for alias in ('torch.fake', name + '.fake'):
+                with patch.dict(sys.modules, {alias: namespace}):
+                    for scan in scans:
+                        rejects(scan, 'loaded native module origin')
+            for obj, field, value in ((namespace, '__file__', 'wrong.py'),
+                                      (namespace, '__file__', None),
+                                      (namespace, '__file__', ''),
+                                      (namespace, '__file__', backing.__file__),
+                                      (namespace, '__name__', 'torch.fake'),
+                                      (cls, '__module__', 'torch.fake'),
+                                      (cls, '__name__', 'Spoof'),
+                                      (cls, '__qualname__', 'Spoof'),
+                                      (torch, attr, cls()),
+                                      (backing, class_name, ModuleType)):
+                prior = getattr(obj, field)
+                setattr(obj, field, value)
+                try:
+                    for scan in scans:
+                        rejects(scan, 'loaded native module origin')
+                finally:
+                    setattr(obj, field, prior)
+            with patch.object(backing, '__file__', torch.__file__):
+                for scan in scans:
+                    rejects(scan, 'loaded native module origin')
+            # Matching names/markers alone do not authenticate a class or singleton.
+            spoof_cls = type(class_name, (ModuleType,), {'__module__': backing.__name__,
+                                                       '__file__': '_' + attr + '.py'})
+            spoof = spoof_cls(name)
+            with patch.dict(sys.modules, {name: spoof}), patch.object(torch, attr, spoof):
+                for scan in scans:
+                    rejects(scan, 'loaded native module origin')
+            outside = base / ('_' + attr + '.py')
+            outside.write_text('# outside pinned package\n')
+            with patch.object(backing, '__file__', str(outside)):
+                for scan in scans:
+                    rejects(scan, 'origin differs')
+            path = Path(backing.__file__)
+            contents = path.read_bytes()
+            path.write_bytes(contents + b'# tamper\n')
+            rejects(lambda: driver.rehash(context), 'exit authority')
+            path.write_bytes(contents)
+        driver.rehash(context)
 
 
 def main():
@@ -315,7 +394,8 @@ def main():
             specs = lambda package: SimpleNamespace(origin=str(site / package / '__init__.py'))
             with patch.object(driver.importlib.metadata, 'distribution', return_value=distribution), \
                     patch.object(driver.importlib.util, 'find_spec', side_effect=specs):
-                assert len(driver.package_origins(context)) == 6
+                packages = driver.package_origins(context)
+                assert len(packages) == 6
                 with patch.object(driver.importlib.util, 'find_spec', return_value=SimpleNamespace(origin=str(base / 'shadow.py'))):
                     rejects(lambda: driver.package_origins(context), 'import origin')
                 distribution.version = 'wrong-version'
@@ -325,8 +405,10 @@ def main():
                     rejects(lambda: driver.loaded_origins(driver.package_origins(context)), 'loaded native module origin')
                 constructor.write_text('# tamper\n')
                 rejects(lambda: driver.package_origins(context), 'size differs')
+                constructor.write_text('# observed constructor\n')
+            virtual_origins(base, extract, packages, context)
     assert not any(package in sys.modules for package in driver.PACKAGES)
-    print('PASS: stdlib closure, gapped FIT IDs/original receipt binding/tamper, logs, profiles, extra keys, origins, exclusive output and -O; no native execution')
+    print('PASS: stdlib closure, gapped FIT IDs/original receipt binding/tamper, logs, profiles, extra keys, origins/virtual namespaces/exit hashes, exclusive output and -O; no native execution')
 
 
 if __name__ == '__main__':
