@@ -1,0 +1,65 @@
+Running as unit: sfora-late-dense-held-export-179032-control-v4.service; invocation ID: 771c5bc7ac5e49b0af5ce0ccb42c2b02
+{"stage": "endpoint-179032-control", "rss_kib": 894592, "max_rss_kib": 3419164, "elapsed_seconds": 4.756569148041308}
+{"stage": "endpoint-179032-candidate", "rss_kib": 895356, "max_rss_kib": 3616892, "elapsed_seconds": 7.456627746112645}
+{"stage": "endpoint-179041-candidate", "rss_kib": 895916, "max_rss_kib": 3617468, "elapsed_seconds": 10.161483373958617}
+{"stage": "endpoint-179041-control", "rss_kib": 896140, "max_rss_kib": 3617468, "elapsed_seconds": 12.706126080825925}
+{"stage": "source-authority", "rss_kib": 966124, "max_rss_kib": 3617468, "elapsed_seconds": 22.575129825156182}
+{"stage": "all-authority", "rss_kib": 966124, "max_rss_kib": 3617468, "elapsed_seconds": 22.580141671933234}
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 8262.81it/s]
+{"stage": "model-pair", "rss_kib": 3922028, "max_rss_kib": 6445720, "elapsed_seconds": 32.57667236588895}
+{"stage": "fit-forward", "rss_kib": 3923960, "max_rss_kib": 6445720, "elapsed_seconds": 34.22490320215002}
+{"stage": "half-models", "rss_kib": 2957592, "max_rss_kib": 6445720, "elapsed_seconds": 35.528760676737875}
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-late-dense-held-source-v4/export_late_dense_adaptation.py --phase export --authority-sha256 3d222e11d98045ed997147f107ba884be3ff2061da167fa715b9808f33e14e53 --seed 179032 --arm control --output /home/riomus/runs/sfora-late-dense-held-export-179032-control-v4 --cpu-proof /home/riomus/runs/sfora-late-dense-held-cpu-179032-control-v4/proof.json --cpu-sha256 e3bdfa77db6ac8b2c9bb3a633ad32ae1fd97ed2c6a817156a9d7211abd1bec05 --cpu-log /home/riomus/runs/sfora-late-dense-held-source-v4/held-cpu-179032-control-v4.log --cpu-log-sha256 0e1a9944cc47f65495b7892ae72b343a5568acd98108d43b17a874007e73a09b"
+	User time (seconds): 249.10
+	System time (seconds): 5.84
+	Percent of CPU this job got: 109%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 3:52.52
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 6445720
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 19343
+	Minor (reclaiming a frame) page faults: 845963
+	Voluntary context switches: 185478
+	Involuntary context switches: 2975
+	Swaps: 0
+	File system inputs: 23744
+	File system outputs: 21320
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 3min 52.527s
+CPU time consumed: 4min 14.954s
+Memory peak: 256.0K
+Memory swap peak: 0B
+	Command being timed: "systemd-run --user --wait --collect --pipe --unit=sfora-late-dense-held-export-179032-control-v4 --property=WorkingDirectory=/home/riomus/runs/sfora-late-dense-held-source-v4 --property=RuntimeMaxSec=300 --property=MemoryMax=8G --property=MemorySwapMax=0 --property=KillMode=control-group --property=OOMPolicy=stop --setenv=CUDA_VISIBLE_DEVICES=0 --setenv=CUBLAS_WORKSPACE_CONFIG=:4096:8 --setenv=OMP_NUM_THREADS=8 --setenv=OPENBLAS_NUM_THREADS=1 --setenv=TOKENIZERS_PARALLELISM=false --setenv=TMPDIR=/home/riomus/runs/sfora-late-dense-held-source-v4 --setenv=CUTILE_TILEIRAS_PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/tileiras --setenv=PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin:/usr/local/bin:/usr/bin:/bin --setenv=PYTHONPATH=/home/riomus/runs/sfora-late-dense-held-source-v4:/home/riomus/runs/sfora-late-dense-held-source-v4/src:/home/riomus/runs/sfora-late-dense-held-source-v4/isolated-deps flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock flock -n /home/riomus/.sfora-siglip2-gpu.lock /usr/bin/time -v /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-late-dense-held-source-v4/export_late_dense_adaptation.py --phase export --authority-sha256 3d222e11d98045ed997147f107ba884be3ff2061da167fa715b9808f33e14e53 --seed 179032 --arm control --output /home/riomus/runs/sfora-late-dense-held-export-179032-control-v4 --cpu-proof /home/riomus/runs/sfora-late-dense-held-cpu-179032-control-v4/proof.json --cpu-sha256 e3bdfa77db6ac8b2c9bb3a633ad32ae1fd97ed2c6a817156a9d7211abd1bec05 --cpu-log /home/riomus/runs/sfora-late-dense-held-source-v4/held-cpu-179032-control-v4.log --cpu-log-sha256 0e1a9944cc47f65495b7892ae72b343a5568acd98108d43b17a874007e73a09b"
+	User time (seconds): 0.00
+	System time (seconds): 0.00
+	Percent of CPU this job got: 0%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 3:52.55
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 7204
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 377
+	Voluntary context switches: 10
+	Involuntary context switches: 0
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
