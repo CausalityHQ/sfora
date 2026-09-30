@@ -548,6 +548,9 @@ def qualify(args):
     require(re.fullmatch('[0-9a-f]{32}', identity or '') is not None, 'original systemd invocation ID required')
     context = authority(args)
     source, init = context['source'], context['init']
+    # Release consumed authority-file cache before construction, including legacy PCA admission.
+    # The shared source rehash verifies every byte with the frozen extractor's bounded advice.
+    rehash(context)
     before = source.cgroup_memory()
     unit = Path(before['path']).name.removesuffix('.service')
     init.admit_cgroup(before, unit)
