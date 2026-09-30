@@ -1,0 +1,58 @@
+Running as unit: sfora-image-queue-held-score-v1.service; invocation ID: 400c4453304d408d8a0813aa4d80d1f9
+{"stage": "endpoint-179032-control", "rss_kib": 974360, "max_rss_kib": 3498980, "elapsed_seconds": 16.472881108988076}
+{"stage": "endpoint-179032-queue", "rss_kib": 974772, "max_rss_kib": 3499236, "elapsed_seconds": 19.282692946959287}
+{"stage": "endpoint-179041-queue", "rss_kib": 975300, "max_rss_kib": 3499716, "elapsed_seconds": 22.14396947203204}
+{"stage": "endpoint-179041-control", "rss_kib": 975812, "max_rss_kib": 3500356, "elapsed_seconds": 24.892228514887393}
+{"stage": "source-authority", "rss_kib": 975812, "max_rss_kib": 3500356, "elapsed_seconds": 24.892738515045494}
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-image-queue-held-source-v1/score_image_queue_adaptation.py --authority-sha256 f1b1ba0abbba635afc062a967b139ac503230d6202e5ebd112bd285c2cb8070a --wires-authority-sha256 84e90a30b9714e1f2242cfed7051f29e2276dd17132082b04baeaf067f1df2f5 --output /home/riomus/runs/sfora-image-queue-held-source-v1/image-queue-held-decision-v1.json"
+	User time (seconds): 36.19
+	System time (seconds): 2.61
+	Percent of CPU this job got: 131%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:29.59
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 3500356
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 329717
+	Voluntary context switches: 22479
+	Involuntary context switches: 413
+	Swaps: 0
+	File system inputs: 25448
+	File system outputs: 1696
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 29.598s
+CPU time consumed: 38.813s
+Memory peak: 256.0K
+Memory swap peak: 0B
+	Command being timed: "systemd-run --user --wait --collect --pipe --unit=sfora-image-queue-held-score-v1 --property=WorkingDirectory=/home/riomus/runs/sfora-image-queue-held-source-v1 --property=RuntimeMaxSec=120 --property=MemoryMax=8G --property=MemorySwapMax=0 --property=KillMode=control-group --property=OOMPolicy=stop --setenv=CUDA_VISIBLE_DEVICES= --setenv=CUBLAS_WORKSPACE_CONFIG=:4096:8 --setenv=OMP_NUM_THREADS=8 --setenv=OPENBLAS_NUM_THREADS=1 --setenv=TOKENIZERS_PARALLELISM=false --setenv=TMPDIR=/home/riomus/runs/sfora-image-queue-held-source-v1 --setenv=CUTILE_TILEIRAS_PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/tileiras --setenv=PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin:/usr/local/bin:/usr/bin:/bin --setenv=PYTHONPATH=/home/riomus/runs/sfora-image-queue-held-source-v1:/home/riomus/runs/sfora-image-queue-held-source-v1/src:/home/riomus/runs/sfora-image-queue-held-source-v1/isolated-deps flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock flock -n /home/riomus/.sfora-siglip2-gpu.lock /usr/bin/time -v /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-image-queue-held-source-v1/score_image_queue_adaptation.py --authority-sha256 f1b1ba0abbba635afc062a967b139ac503230d6202e5ebd112bd285c2cb8070a --wires-authority-sha256 84e90a30b9714e1f2242cfed7051f29e2276dd17132082b04baeaf067f1df2f5 --output /home/riomus/runs/sfora-image-queue-held-source-v1/image-queue-held-decision-v1.json"
+	User time (seconds): 0.00
+	System time (seconds): 0.00
+	Percent of CPU this job got: 0%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:29.62
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 7284
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 377
+	Voluntary context switches: 10
+	Involuntary context switches: 0
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
