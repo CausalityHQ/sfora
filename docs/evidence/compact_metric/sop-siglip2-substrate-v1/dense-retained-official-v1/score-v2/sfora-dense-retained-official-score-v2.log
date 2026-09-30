@@ -1,0 +1,31 @@
+Running as unit: sfora-dense-retained-official-score-v2.service; invocation ID: 45118773f7e04c92b86eba349cdab750
+KILL fixed retained official qualification only
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 1min 17.183s
+CPU time consumed: 1min 32.995s
+Memory peak: 2.9G
+Memory swap peak: 0B
+	Command being timed: "systemd-run --user --wait --collect --pipe --unit=sfora-dense-retained-official-score-v2 --property=WorkingDirectory=/home/riomus/runs/sfora-dense-retained-official-score-source-v2 --property=RuntimeMaxSec=300 --property=MemoryMax=8G --property=MemorySwapMax=0 --property=KillMode=control-group --property=OOMPolicy=stop --setenv=CUDA_VISIBLE_DEVICES=-1 --setenv=OMP_NUM_THREADS=8 --setenv=OPENBLAS_NUM_THREADS=1 --setenv=TOKENIZERS_PARALLELISM=false --setenv=PYTHONPATH=/home/riomus/runs/sfora-dense-retained-official-score-source-v2:/home/riomus/runs/sfora-dense-retained-official-score-source-v2/src:/home/riomus/runs/sfora-dense-retained-official-score-source-v2/isolated-deps --setenv=CUTILE_TILEIRAS_PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/tileiras --setenv=PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin:/usr/local/bin:/usr/bin:/bin /usr/bin/flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock /usr/bin/flock -n /home/riomus/.sfora-siglip2-gpu.lock /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-dense-retained-official-score-source-v2/score_large_dense_retained_official.py --execution-sha256 b0cc42cee7ed3c26ab7d2fe5a9aad55ce8a202e8180b2c22cbe6a355ac60f441 --export-execution-sha256 6cde3848d1ab8d175d1cab85c2bfd6ee5bb28299735cf27506e5a8e1d0a63859 --protocol-sha256 be7b27c68b5e2895063d4f24b2b9d4e396a77ed79b2426596893c293df2c20f2 --export-startup-sha256 be2ec09d910b111acc69e5f9a6e9d006f4dc9cf1e423a17b91c408938573fa19 --control-gallery-sha256 6c5d79a5710ab8aac71f59ab35a0976fdae9a571d38f117322a7b31808715582 --control-query-sha256 bc3f0dbfe38116579f6fc455bfc1a0edf2e742ff0881c15c454c692fb573bd6c --candidate-gallery-sha256 02f65cb480c5ebcd71fb8fc5b2fe07b5c5c451f8fb2cb13589f25af6bdd20324 --candidate-query-sha256 c218f701d298eae4946285b158839b8c4fc7ff237a355d4879d8ba46bb68a92a --startup-sha256 863a153565bdf7718b46c616500336e2862c72e3419b17ef7261c3771f5c3aef --output /home/riomus/runs/sfora-dense-retained-official-score-v1/decision.json"
+	User time (seconds): 0.00
+	System time (seconds): 0.00
+	Percent of CPU this job got: 0%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:17.21
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 7220
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 379
+	Voluntary context switches: 10
+	Involuntary context switches: 1
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
