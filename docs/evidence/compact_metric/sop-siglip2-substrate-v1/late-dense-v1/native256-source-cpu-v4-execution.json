@@ -1,0 +1,5 @@
+{
+  "extract_siglip2_vision_source.py": "a184b5382a2c0c4b0a24804648fbc53c1d10317a08dfe12afb9a2b00258afa2d",
+  "qualify_siglip2_substrate_cpu.py": "eacd32d2ef551414906ae067c188f94d524562d3d031ac68bbd66c38b56f9e38",
+  "test_siglip2_substrate_cpu.py": "aa45d7db558194ce294a70cc465a8250c871374d99d95c6adcb016dc60e7fc04"
+}
