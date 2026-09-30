@@ -1,0 +1,58 @@
+{
+  "schema": "role-matched-held-collected-cpu-v1",
+  "authority_sha256": "0ddc99da546befa90b604fee87509b40ef2eb1ba02431d5a0537c0947ba7b31d",
+  "units": [
+    {
+      "seed": 179032,
+      "arm": "control",
+      "receipt": "/home/riomus/runs/sfora-role-matched-held-cpu-control-179032-v1/proof.json",
+      "receipt_sha256": "d03c02ee9aa63d95a362e4607547ee1c85eefa40b45df7b0604447b81101450d",
+      "log": "/home/riomus/runs/sfora-role-matched-held-source-v1/sfora-role-matched-held-cpu-control-179032-v1.log",
+      "log_sha256": "9b02a38390a2aad62bb07d38cde23f9680f5e3d2b978ee02969f94da71322ce3",
+      "unit": "sfora-role-matched-held-cpu-control-179032-v1",
+      "invocation_id": "c0bc3c3dd917494d937c686367f1885a",
+      "service_seconds": 49.39,
+      "host_max_rss_kib": 5096884,
+      "host_swap_kib": 0
+    },
+    {
+      "seed": 179032,
+      "arm": "role_matched",
+      "receipt": "/home/riomus/runs/sfora-role-matched-held-cpu-role_matched-179032-v1/proof.json",
+      "receipt_sha256": "8ca13eef68e664f7aae2965aa3223aa0e256e5a3e4d2ee31c4ddcdacb56f55ef",
+      "log": "/home/riomus/runs/sfora-role-matched-held-source-v1/sfora-role-matched-held-cpu-role_matched-179032-v1.log",
+      "log_sha256": "ac589591620fe8a1bf7dc3360ae4d504ddc0e7ff8a78b5a4ff6d6934b345df31",
+      "unit": "sfora-role-matched-held-cpu-role_matched-179032-v1",
+      "invocation_id": "f7557a88f5c541f2a30451005ac99d11",
+      "service_seconds": 49.174,
+      "host_max_rss_kib": 5097468,
+      "host_swap_kib": 0
+    },
+    {
+      "seed": 179041,
+      "arm": "role_matched",
+      "receipt": "/home/riomus/runs/sfora-role-matched-held-cpu-role_matched-179041-v1/proof.json",
+      "receipt_sha256": "91d1526701f106fb353304fdc82f8bc07508e90e66a96abb46dce003b3a901ad",
+      "log": "/home/riomus/runs/sfora-role-matched-held-source-v1/sfora-role-matched-held-cpu-role_matched-179041-v1.log",
+      "log_sha256": "0c86b11e4a5ce8b1b731c8baabfc51a813cc2ae6ec7fe99ad582cc2f7a05b0d9",
+      "unit": "sfora-role-matched-held-cpu-role_matched-179041-v1",
+      "invocation_id": "dee0dca731d845d68c6839ed348b430d",
+      "service_seconds": 49.342,
+      "host_max_rss_kib": 5097044,
+      "host_swap_kib": 0
+    },
+    {
+      "seed": 179041,
+      "arm": "control",
+      "receipt": "/home/riomus/runs/sfora-role-matched-held-cpu-control-179041-v1/proof.json",
+      "receipt_sha256": "efdc0d178eb5a9400cf52e68d90cca10ec8d8baf2e4b3063a159f7faa67247c1",
+      "log": "/home/riomus/runs/sfora-role-matched-held-source-v1/sfora-role-matched-held-cpu-control-179041-v1.log",
+      "log_sha256": "1eebd6e17f29809550d979b1236ebeb1b8ee6c8d0eac22707ef37e5a7a80c358",
+      "unit": "sfora-role-matched-held-cpu-control-179041-v1",
+      "invocation_id": "63adb3a332424ad48af0bdd34f7dee10",
+      "service_seconds": 49.02,
+      "host_max_rss_kib": 5097276,
+      "host_swap_kib": 0
+    }
+  ]
+}
