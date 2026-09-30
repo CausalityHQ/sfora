@@ -1,0 +1,95 @@
+Running as unit: sfora-image-queue-cpu-v1.service; invocation ID: 71c3543859654e3a9d7fa4560f7f4403
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-image-queue-source-v1/qualify_image_queue_adaptation_cpu.py", line 174, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/sfora-image-queue-source-v1/qualify_image_queue_adaptation_cpu.py", line 84, in main
+    control, source, _, proof, _, _ = qualified.startup(root, ORIGINAL)
+                                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-image-queue-source-v1/qualify_late_dense_adaptation_cpu.py", line 42, in startup
+    control, source, prior, proof, frozen, _, receipts = archived.authority(root, ORIGINAL_CODE)
+                                                         ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-image-queue-source-v1/qualify_pe_teacher_retained256.py", line 61, in authority
+    control, source, prior, proof, _ = training.authority(root, SOURCE)
+                                       ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-image-queue-source-v1/train_pe_teacher_retained256.py", line 77, in authority
+    control, source, prior, proof, _, _ = previous.startup(root, TRAIN_CODE)
+                                          ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-image-queue-source-v1/train_pe_full_valid_anchor.py", line 31, in startup
+    control, source, prior, proof, old = cpu.authority(root, CPU_CODE, allowed=code)
+                                         ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-image-queue-source-v1/qualify_pe_full_valid_anchor_cpu.py", line 43, in authority
+    control, source, prior, proof, _, terminal, *_ = previous.qualified.authority(root, previous.PREVIOUS_CODE, 'full', FULL_CONTROL_SHA)
+                                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-image-queue-source-v1/qualify_pe_large_optimization_checkpoint.py", line 59, in authority
+    official=confirmation.selected.helpers(root,code)
+  File "/home/riomus/runs/sfora-image-queue-source-v1/qualify_pe_full_valid_anchor_cpu.py", line 42, in <lambda>
+    with patch.object(previous.qualified.confirmation.selected, 'helpers', lambda r, _: helpers(r, code if allowed is None else allowed)):
+                                                                                        ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-image-queue-source-v1/train_pe_teacher_retained256.py", line 76, in <lambda>
+    with patch.object(previous.cpu.previous.qualified.confirmation.selected, 'helpers', lambda r, _: helpers(r, code)):
+                                                                                                     ~~~~~~~^^^^^^^^^
+  File "/home/riomus/runs/sfora-image-queue-source-v1/qualify_pe_teacher_retained256.py", line 60, in <lambda>
+    with patch.object(selected, 'helpers', lambda r, _: helpers(r, code)):
+                                                        ~~~~~~~^^^^^^^^^
+  File "/home/riomus/runs/sfora-image-queue-source-v1/qualify_late_dense_adaptation_cpu.py", line 41, in <lambda>
+    with patch.object(selected, "helpers", lambda r, _: helpers(r, code)):
+                                                        ~~~~~~~^^^^^^^^^
+  File "/home/riomus/runs/sfora-image-queue-source-v1/qualify_pe_large_inshop_official.py", line 50, in helpers
+    assert code.get(relative) == pair.sha(Path(name)), 'added imported source unqualified: ' + relative
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: added imported source unqualified: qualify_image_queue_adaptation_cpu.py
+Command exited with non-zero status 1
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-image-queue-source-v1/qualify_image_queue_adaptation_cpu.py --execution-sha256 d7b40bbdc8bf719b09abe14e7acdb1e0798ba691ceafcb823e6bde985295287b --output /home/riomus/runs/sfora-image-queue-source-v1/cpu-proof-v1.json"
+	User time (seconds): 6.30
+	System time (seconds): 0.86
+	Percent of CPU this job got: 99%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:07.19
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 987976
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 177670
+	Voluntary context switches: 28
+	Involuntary context switches: 150
+	Swaps: 0
+	File system inputs: 504
+	File system outputs: 104
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 1
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=1
+Service runtime: 7.200s
+CPU time consumed: 7.169s
+Memory peak: 256.0K
+Memory swap peak: 0B
+Command exited with non-zero status 1
+	Command being timed: "systemd-run --user --wait --collect --pipe --unit=sfora-image-queue-cpu-v1 --property=WorkingDirectory=/home/riomus/runs/sfora-image-queue-source-v1 --property=RuntimeMaxSec=120 --property=MemoryMax=8G --property=MemorySwapMax=0 --property=KillMode=control-group --property=OOMPolicy=stop --setenv=CUDA_VISIBLE_DEVICES= --setenv=CUBLAS_WORKSPACE_CONFIG=:4096:8 --setenv=OMP_NUM_THREADS=8 --setenv=OPENBLAS_NUM_THREADS=1 --setenv=TOKENIZERS_PARALLELISM=false --setenv=TMPDIR=/home/riomus/runs/sfora-image-queue-source-v1 --setenv=CUTILE_TILEIRAS_PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/tileiras --setenv=PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin:/usr/local/bin:/usr/bin:/bin --setenv=PYTHONPATH=/home/riomus/runs/sfora-image-queue-source-v1:/home/riomus/runs/sfora-image-queue-source-v1/src:/home/riomus/runs/sfora-image-queue-source-v1/isolated-deps flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock flock -n /home/riomus/.sfora-siglip2-gpu.lock /usr/bin/time -v /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-image-queue-source-v1/qualify_image_queue_adaptation_cpu.py --execution-sha256 d7b40bbdc8bf719b09abe14e7acdb1e0798ba691ceafcb823e6bde985295287b --output /home/riomus/runs/sfora-image-queue-source-v1/cpu-proof-v1.json"
+	User time (seconds): 0.00
+	System time (seconds): 0.00
+	Percent of CPU this job got: 0%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:07.22
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 7284
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 377
+	Voluntary context switches: 10
+	Involuntary context switches: 0
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 1

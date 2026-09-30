@@ -81,7 +81,10 @@ def main():
     assert not torch.cuda.is_available()
     torch.set_num_threads(8)
     torch.manual_seed(179032)
-    control, source, _, proof, _, _ = qualified.startup(root, ORIGINAL)
+    selected = qualified.archived.training.previous.cpu.previous.qualified.confirmation.selected
+    helpers = selected.helpers
+    with patch.object(selected, "helpers", lambda r, _: helpers(r, code)):
+        control, source, _, proof, _, _ = qualified.startup(root, ORIGINAL)
     native.pair.executing_authority(root, code)
     fingerprints = []
     for _ in range(2):
