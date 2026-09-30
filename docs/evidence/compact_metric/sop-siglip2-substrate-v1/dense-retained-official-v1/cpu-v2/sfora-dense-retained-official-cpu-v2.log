@@ -1,0 +1,31 @@
+Running as unit: sfora-dense-retained-official-cpu-v2.service; invocation ID: 9b936f15ddee47aaac88ea1f56cfa1ae
+PASS CPU startup actual TRAIN replay/protocol/current closure; no official quality
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 1min 17.432s
+CPU time consumed: 1min 14.706s
+Memory peak: 3.5G
+Memory swap peak: 0B
+	Command being timed: "systemd-run --user --wait --collect --pipe --unit=sfora-dense-retained-official-cpu-v2 --property=WorkingDirectory=/home/riomus/runs/sfora-dense-retained-official-export-source-v2 --property=RuntimeMaxSec=120 --property=MemoryMax=8G --property=MemorySwapMax=0 --property=KillMode=control-group --property=OOMPolicy=stop --setenv=CUDA_VISIBLE_DEVICES=-1 --setenv=OMP_NUM_THREADS=8 --setenv=OPENBLAS_NUM_THREADS=1 --setenv=TOKENIZERS_PARALLELISM=false --setenv=PYTHONPATH=/home/riomus/runs/sfora-dense-retained-official-export-source-v2:/home/riomus/runs/sfora-dense-retained-official-export-source-v2/src:/home/riomus/runs/sfora-dense-retained-official-export-source-v2/isolated-deps --setenv=CUTILE_TILEIRAS_PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/tileiras --setenv=PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin:/usr/local/bin:/usr/bin:/bin /usr/bin/flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock /usr/bin/flock -n /home/riomus/.sfora-siglip2-gpu.lock /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-dense-retained-official-export-source-v2/export_large_dense_retained_official.py --execution-sha256 6cde3848d1ab8d175d1cab85c2bfd6ee5bb28299735cf27506e5a8e1d0a63859 --protocol-sha256 be7b27c68b5e2895063d4f24b2b9d4e396a77ed79b2426596893c293df2c20f2 --output /home/riomus/runs/sfora-dense-retained-official-export-source-v2/startup.json --check-startup-only"
+	User time (seconds): 0.00
+	System time (seconds): 0.00
+	Percent of CPU this job got: 0%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:17.45
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 7220
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 378
+	Voluntary context switches: 11
+	Involuntary context switches: 0
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
