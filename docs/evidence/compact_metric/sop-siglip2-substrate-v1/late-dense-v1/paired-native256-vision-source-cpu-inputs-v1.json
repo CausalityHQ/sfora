@@ -1,0 +1,227 @@
+{
+  "extraction_authority": {
+    "execution_sha256": "1cbf827797068443b2451304c41dcac5f3bf384a7594f4d13e4b09d2df667945",
+    "inputs_sha256": "a019105abb4423c2e38f213a1a196ccaaff689310aa00543933403dc4345ca5a",
+    "model_qualified": false,
+    "quality_read": false,
+    "schema": "native256-substrate-extraction-authority-v1",
+    "source_commit": "a07a6eb6"
+  },
+  "model_qualified": false,
+  "native_environment": {
+    "files": {
+      "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/safetensors/_safetensors_rust.abi3.so": {
+        "bytes": 1203048,
+        "sha256": "8c623b2077a05539bbdeb345edf3970a33597fbda0e3c9f3e1377865c55b3873"
+      },
+      "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/_C.cpython-313-aarch64-linux-gnu.so": {
+        "bytes": 263057,
+        "sha256": "d08ec5b4468e5b235a48bb34469282b18a7c1b9fc13e9ccf39a63682d9b58d13"
+      },
+      "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libc10.so": {
+        "bytes": 1794945,
+        "sha256": "53c9bb05dbe6bb7ce052d97dbd6c9b6835e6a7ff9ebf30bbf78b8fbd79b36d77"
+      },
+      "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libtorch_cpu.so": {
+        "bytes": 256136105,
+        "sha256": "ca4731792047052952907b87b4ddb7bf6715750df9203575a4de4ed92653521e"
+      },
+      "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/models/auto/image_processing_auto.py": {
+        "bytes": 38681,
+        "sha256": "47e9ece375f99a5bcd4c661bdbad62af8ac5e86e8497dd48d789bbc15468073e"
+      },
+      "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/models/siglip/configuration_siglip.py": {
+        "bytes": 5507,
+        "sha256": "0a402ea5452a1527ad54f5339889774549688f5f84028af30979bdbc4b32206e"
+      },
+      "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/models/siglip/image_processing_pil_siglip.py": {
+        "bytes": 1288,
+        "sha256": "61ff04dc131c526dd5e638bc2ad778cc1186989f474507bd3bf7368ea09f54c1"
+      },
+      "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/models/siglip/image_processing_siglip.py": {
+        "bytes": 1298,
+        "sha256": "f716aedcc35e6e271662e1bee77d9546fcf3155a6c6bd166872a87540e853c4c"
+      },
+      "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/models/siglip/modeling_siglip.py": {
+        "bytes": 36056,
+        "sha256": "274eafdb9bff99607f15eb4c4fb6fc47256b07358807653baa48539d13376b31"
+      }
+    },
+    "model_executed": false,
+    "native_imported": false,
+    "quality_read": false,
+    "schema": "native256-installed-source-observation-v1",
+    "site_packages": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages",
+    "versions": {
+      "numpy": "2.5.0",
+      "pillow": "12.2.0",
+      "safetensors": "0.8.0",
+      "torch": "2.12.1",
+      "torchvision": "0.27.1",
+      "transformers": "5.12.1"
+    },
+    "vision_constructor": {
+      "assigned_self_attributes": [
+        "config",
+        "embeddings",
+        "encoder",
+        "head",
+        "post_layernorm",
+        "use_head"
+      ],
+      "direct_bare_state_keys_source_observed": true,
+      "line": 564,
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/models/siglip/modeling_siglip.py",
+      "source": "def __init__(self, config: SiglipVisionConfig):\n        super().__init__(config)\n        self.config = config\n        embed_dim = config.hidden_size\n\n        self.embeddings = SiglipVisionEmbeddings(config)\n        self.encoder = SiglipEncoder(config)\n        self.post_layernorm = nn.LayerNorm(embed_dim, eps=config.layer_norm_eps)\n        self.use_head = True if not hasattr(config, \"vision_use_head\") else config.vision_use_head\n        if self.use_head:\n            self.head = SiglipMultiheadAttentionPoolingHead(config)\n        self.post_init()"
+    }
+  },
+  "quality_read": false,
+  "resource_note": "Original extraction units enforced120s/8GiB/noSwap and completed normally. Whole native process RSS verified. systemd summary cgroup peaks are not accepted as precise whole-unit measurements (Large508.0K is inconsistent with nativeRSS). Subsequent source CPU qualification must capture memory.peak inside its original unit after complete work; no extraction rerun or model-fit claim.",
+  "schema": "paired-native256-vision-sources-v1",
+  "sources": [
+    {
+      "arm": "large",
+      "host_swap_bytes": 0,
+      "input": {
+        "arm": "large",
+        "config": {
+          "bytes": 537,
+          "origin_path": "/home/riomus/.cache/huggingface/hub/models--google--siglip2-large-patch16-256/snapshots/787800c8990e6f058423089178e718139608408c/config.json",
+          "path": "/home/riomus/.cache/huggingface/hub/models--google--siglip2-large-patch16-256/blobs/1cce28fde65d915dbd9c38d7865a91b842ce174d",
+          "sha256": "172e39dbf0143b8fe22d2f08921730eb8c397967e58cb37d133161e28aa34104"
+        },
+        "full_source_hash_must_be_verified_by_extraction": true,
+        "preprocessor": {
+          "bytes": 394,
+          "origin_path": "/home/riomus/.cache/huggingface/hub/models--google--siglip2-large-patch16-256/snapshots/787800c8990e6f058423089178e718139608408c/preprocessor_config.json",
+          "path": "/home/riomus/.cache/huggingface/hub/models--google--siglip2-large-patch16-256/blobs/130986149eee6a6fd9a2eb53da12fbc1a415c0e6",
+          "sha256": "d14ba2ee3fd816f3de8abaddc31953565128eaf37c73ad4bed32101a98465aff"
+        },
+        "revision": "787800c8990e6f058423089178e718139608408c",
+        "source": {
+          "bytes": 3526204360,
+          "origin_path": "/home/riomus/.cache/huggingface/hub/models--google--siglip2-large-patch16-256/snapshots/787800c8990e6f058423089178e718139608408c/model.safetensors",
+          "path": "/home/riomus/.cache/huggingface/hub/models--google--siglip2-large-patch16-256/blobs/fa34f822f016dbb167d8d0e3a8af99b5e199aa28573360d4295252b9ec418e2a",
+          "sha256": "fa34f822f016dbb167d8d0e3a8af99b5e199aa28573360d4295252b9ec418e2a"
+        },
+        "source_model": "google/siglip2-large-patch16-256",
+        "vision": {
+          "hidden_size": 1024,
+          "input_size": 256,
+          "intermediate_size": 4096,
+          "num_attention_heads": 16,
+          "num_hidden_layers": 24,
+          "patch_size": 16,
+          "serialized_dtype": "F32",
+          "serialized_tensor_count": 400
+        }
+      },
+      "integrity_pass": true,
+      "invocation_id": "b533469bcedf437cb1ac95176ef270a9",
+      "model_qualified": false,
+      "native_peak_rss_kib": 38840,
+      "original_execution_manifest": "/home/riomus/runs/sfora-native256-source-extraction-v1/execution.json",
+      "original_execution_sha256": "1cbf827797068443b2451304c41dcac5f3bf384a7594f4d13e4b09d2df667945",
+      "original_inputs": "/home/riomus/runs/sfora-native256-source-extraction-v1/inputs.json",
+      "original_inputs_sha256": "a019105abb4423c2e38f213a1a196ccaaff689310aa00543933403dc4345ca5a",
+      "original_log_path": "/home/riomus/runs/sfora-native256-source-extraction-v1/sfora-large-vision-extraction-v1.log",
+      "original_log_sha256": "9764bb166d62daf7922618ca0347d372f970d9c88d771c5f1476dc8e195b2248",
+      "provenance": {
+        "path": "/home/riomus/runs/sfora-native256-source-extraction-v1/large/provenance.json",
+        "sha256": "b233d6ba9eec263e154a1205049190f1cb13db3d84ed2686614dc46c5c4f1625"
+      },
+      "resource_policy": {
+        "cuda_visible_devices": "",
+        "host_bytes": 8589934592,
+        "seconds": 120,
+        "swap_bytes": 0
+      },
+      "revision": "787800c8990e6f058423089178e718139608408c",
+      "service_seconds": 14.971,
+      "source_model": "google/siglip2-large-patch16-256",
+      "systemd_reported_peak": "508.0K",
+      "unit": "sfora-large-vision-extraction-v1",
+      "vision": {
+        "key_mapping": "strip exactly vision_model. for installed direct SiglipVisionModel",
+        "path": "/home/riomus/runs/sfora-native256-source-extraction-v1/large/vision.safetensors",
+        "payload_bytes": 1263824896,
+        "sha256": "885c390eafa42b2dc977121dbbe7a56c730fb16d41ad57e9f59596b08f879f80",
+        "size_bytes": 1263868496,
+        "tensor_count": 400
+      },
+      "whole_cgroup_peak_verified": false
+    },
+    {
+      "arm": "so400",
+      "host_swap_bytes": 0,
+      "input": {
+        "arm": "so400",
+        "config": {
+          "bytes": 537,
+          "origin_path": "/home/riomus/runs/sfora-so400-native256-upstream-v1/config.json",
+          "path": "/home/riomus/runs/sfora-so400-native256-upstream-v1/config.json",
+          "sha256": "13ee943037e446415ff6e7e406ecf79fd955f482f4ba5b437d3bc10fba7f1362"
+        },
+        "full_source_hash_must_be_verified_by_extraction": true,
+        "preprocessor": {
+          "bytes": 394,
+          "origin_path": "/home/riomus/runs/sfora-so400-native256-upstream-v1/preprocessor_config.json",
+          "path": "/home/riomus/runs/sfora-so400-native256-upstream-v1/preprocessor_config.json",
+          "sha256": "d14ba2ee3fd816f3de8abaddc31953565128eaf37c73ad4bed32101a98465aff"
+        },
+        "revision": "e8708ab72d125807e45b36fb7d4e0aacbb59f379",
+        "source": {
+          "bytes": 4542792928,
+          "origin_path": "/home/riomus/runs/sfora-so400-native256-upstream-v1/model.safetensors",
+          "path": "/home/riomus/runs/sfora-so400-native256-upstream-v1/model.safetensors",
+          "sha256": "810ddc85ac019e6b2738b9130ae3602e41eb093a848a297a0ad296ca1f39dc67"
+        },
+        "source_model": "google/siglip2-so400m-patch16-256",
+        "vision": {
+          "hidden_size": 1152,
+          "input_size": 256,
+          "intermediate_size": 4304,
+          "num_attention_heads": 16,
+          "num_hidden_layers": 27,
+          "patch_size": 16,
+          "serialized_dtype": "F32",
+          "serialized_tensor_count": 448
+        }
+      },
+      "integrity_pass": true,
+      "invocation_id": "881248c07e1f4529a99238e1ea5d53b7",
+      "model_qualified": false,
+      "native_peak_rss_kib": 38904,
+      "original_execution_manifest": "/home/riomus/runs/sfora-native256-source-extraction-v1/execution.json",
+      "original_execution_sha256": "1cbf827797068443b2451304c41dcac5f3bf384a7594f4d13e4b09d2df667945",
+      "original_inputs": "/home/riomus/runs/sfora-native256-source-extraction-v1/inputs.json",
+      "original_inputs_sha256": "a019105abb4423c2e38f213a1a196ccaaff689310aa00543933403dc4345ca5a",
+      "original_log_path": "/home/riomus/runs/sfora-native256-source-extraction-v1/sfora-so400-vision-extraction-v1.log",
+      "original_log_sha256": "73163e6ccfd978ba27e2f012a9781a94738d6e95d9d44e9e690156c5cbec994d",
+      "provenance": {
+        "path": "/home/riomus/runs/sfora-native256-source-extraction-v1/so400/provenance.json",
+        "sha256": "2d6cc2ac70d9d3ed20053d285c537db98e32240aa69c280ed25beccb64fc9eb2"
+      },
+      "resource_policy": {
+        "cuda_visible_devices": "",
+        "host_bytes": 8589934592,
+        "seconds": 120,
+        "swap_bytes": 0
+      },
+      "revision": "e8708ab72d125807e45b36fb7d4e0aacbb59f379",
+      "service_seconds": 16.196,
+      "source_model": "google/siglip2-so400m-patch16-256",
+      "systemd_reported_peak": "360.2M",
+      "unit": "sfora-so400-vision-extraction-v1",
+      "vision": {
+        "key_mapping": "strip exactly vision_model. for installed direct SiglipVisionModel",
+        "path": "/home/riomus/runs/sfora-native256-source-extraction-v1/so400/vision.safetensors",
+        "payload_bytes": 1711552256,
+        "sha256": "0c7b828961d68c990f61f6a75158af83f66a5e36f76461edf7db5c8ab56ea20f",
+        "size_bytes": 1711601328,
+        "tensor_count": 448
+      },
+      "whole_cgroup_peak_verified": false
+    }
+  ]
+}
