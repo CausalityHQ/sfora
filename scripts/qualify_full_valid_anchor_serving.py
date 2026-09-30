@@ -17,6 +17,7 @@ import sys
 import time
 import types
 from pathlib import Path
+from contextlib import ExitStack
 from unittest.mock import patch
 
 SCHEMA = 'full-valid-anchor-serving-authority-v1'
@@ -49,7 +50,52 @@ CUDA_CAP = 10_000_000_000
 
 def sha(path):
     with Path(path).open('rb') as stream:
-        return hashlib.file_digest(stream, 'sha256').hexdigest()
+        if os.fstat(stream.fileno()).st_size < 64 * 1024**2:
+            return hashlib.file_digest(stream, 'sha256').hexdigest()
+        digest, offset, buffer = hashlib.sha256(), 0, bytearray(1024**2)
+        while count := stream.readinto(buffer):
+            digest.update(memoryview(buffer)[:count])
+            # Archive verification must not retain gigabytes of inactive cache.
+            os.posix_fadvise(stream.fileno(), offset, count, os.POSIX_FADV_DONTNEED)
+            offset += count
+        return digest.hexdigest()
+
+
+def bounded_historical_hashes(root, code, original, attributes=('sha',)):
+    """Use identical SHA256 bytes with bounded cache; restore every old alias."""
+    stack = ExitStack()
+    try:
+        for module in list(sys.modules.values()):
+            file = getattr(module, '__file__', None)
+            aliases = [name for name in attributes if getattr(module, name, None) is original]
+            if not file or not aliases:
+                continue
+            path = Path(file).resolve()
+            if path.is_relative_to(root) and str(path.relative_to(root)) in code:
+                assert sha(path) == code[str(path.relative_to(root))], 'hash alias source changed'
+                for name in aliases:
+                    stack.enter_context(patch.object(module, name, sha))
+    except BaseException:
+        stack.close()
+        raise
+    return stack
+
+
+def release_model_cache(control):
+    """Advise away read-only cache; live mapped storage may remain resident."""
+    for path in (CHECKPOINT, control.large_snapshot / 'model.safetensors'):
+        with path.open('rb') as stream:
+            os.posix_fadvise(stream.fileno(), 0, 0, os.POSIX_FADV_DONTNEED)
+
+
+def loader_cache_policy(phase):
+    assert phase in ('cpu', 'gpu')
+    return {'large_hash_threshold_bytes': 64 * 1024**2, 'hash_chunk_bytes': 1024**2,
+            'cache_advice': 'POSIX_FADV_DONTNEED',
+            'authenticated_scoped_hash_aliases': ['sha'] + (['_sha256'] if phase == 'gpu' else []),
+            'public_factory_hash_helper_rebound': phase == 'gpu', 'aliases_restored_before_inference': True,
+            'read_only_model_cache_advice_after_load': ['checkpoint', 'model.safetensors'],
+            'live_mappings_may_remain_resident': True, 'original102_file_bytes_preserved': True}
 
 
 def object_sha(value):
@@ -246,9 +292,12 @@ def runtime_startup(root, data):
         return executing(r, code)
 
     # Historical manifests keep their exact cardinalities; loaded modules bind105.
-    with patch.object(full.qualified.selected, 'helpers', lambda r, _: helpers(r, code)), patch.object(full.pair, 'executing_authority', extended):
+    original_hash = full.pair.sha
+    with bounded_historical_hashes(root, code, original_hash), patch.object(full.qualified.selected, 'helpers', lambda r, _: helpers(r, code)), patch.object(full.pair, 'executing_authority', extended):
+        assert full.pair.sha is sha and full.pair.smoke.sha is sha
         control, source, prior, proof, run, terminal, actual_protocol, _, actual_old, _ = full.authority(
             root, ORIGINAL_EXECUTION, PINNED['training_receipt'])
+    assert full.pair.sha is original_hash and full.pair.smoke.sha is original_hash
     assert actual_old == old and actual_protocol == protocol
     assert run / 'resume.pt' == paths['source_resume'] and sha(run / 'receipt.json') == PINNED['training_receipt']
     assert full.driver.coverage.teacher.TEACHER == paths['source_checkpoint']
@@ -314,6 +363,7 @@ def proof_authority(path, digest, log, log_digest, phase, binding):
     value = read(path, digest)
     log_authority(log, log_digest)
     assert value['schema'] == 'full-valid-anchor-serving-qualification-v1' and value['phase'] == phase
+    assert value['loader_cache_policy'] == loader_cache_policy(phase)
     assert value['bindings'] == binding and value['pass'] is True and value['python_assertions_enabled'] is True
     assert value['source_head_buffers_processor_runtime_rng_preserved'] is True
     assert value['optimizer_updates'] == 0 and value['quality_read'] is False and value['p99_certified'] is False
@@ -372,7 +422,7 @@ def invocation():
             'driver_sha256': sha(__file__), 'pid': os.getpid()}
 
 
-def native_reload(full, control, independent=False):
+def native_reload(full, control, independent=False, code=None):
     """Construct before mmap; copy strict400/head, then release the entire mapping."""
     import torch
     from transformers import AutoConfig, AutoImageProcessor, SiglipVisionModel
@@ -380,7 +430,13 @@ def native_reload(full, control, independent=False):
         model = SiglipVisionModel(AutoConfig.from_pretrained(control.large_snapshot, local_files_only=True).vision_config).float()
         processor = AutoImageProcessor.from_pretrained(control.large_snapshot / 'preprocessor_config.json', local_files_only=True, backend='torchvision')
     else:
-        model, processor = full.pair.smoke.load_arm(control, 'large')
+        assert code is not None
+        root = Path(__file__).resolve().parent
+        original_hash = full.pair.smoke.sha
+        with bounded_historical_hashes(root, code, original_hash):
+            assert full.pair.sha is sha and full.pair.smoke.sha is sha
+            model, processor = full.pair.smoke.load_arm(control, 'large')
+        assert full.pair.sha is original_hash and full.pair.smoke.sha is original_hash
     head = torch.nn.Linear(1024, 128).float()
     disk = torch.load(CHECKPOINT, map_location='cpu', weights_only=True, mmap=True)
     assert set(disk) == {'vision', 'head'} and len(disk['vision']) == 400
@@ -390,6 +446,7 @@ def native_reload(full, control, independent=False):
     head.load_state_dict(disk['head'], strict=True)
     del disk
     gc.collect()
+    release_model_cache(control)
     return model.requires_grad_(False).eval(), head.requires_grad_(False).eval(), processor
 
 
@@ -441,16 +498,22 @@ def configure(full, authority, gpu, prior):
     return compiler_version
 
 
-def public_encoder(full, control, reset_peak=True):
+def public_encoder(full, control, code, reset_peak=True):
     import torch
-    from sfora.siglip2_compact_serving import Siglip2CompactEncoder
-    # This is the sole peak reset, before any public or independent constructor.
+    from sfora import siglip2_compact_serving as public
+    root = Path(__file__).resolve().parent
+    original_hash = public._sha256
+    # The qualifier preserves its earlier native-constructor peak with False.
     if reset_peak:
         torch.cuda.reset_peak_memory_stats()
     with torch.random.fork_rng(devices=[torch.cuda.current_device()]):
-        encoder = Siglip2CompactEncoder.from_checkpoint(model_snapshot=control.large_snapshot,
-            checkpoint=CHECKPOINT, expected_checkpoint_sha256=PINNED['checkpoint'],
-            model_file_sha256=full.pair.smoke.MODEL_HASHES, precision='fp16_native', device=torch.device('cuda'))
+        with bounded_historical_hashes(root, code, original_hash, attributes=('_sha256',)):
+            assert public._sha256 is sha
+            encoder = public.Siglip2CompactEncoder.from_checkpoint(model_snapshot=control.large_snapshot,
+                checkpoint=CHECKPOINT, expected_checkpoint_sha256=PINNED['checkpoint'],
+                model_file_sha256=full.pair.smoke.MODEL_HASHES, precision='fp16_native', device=torch.device('cuda'))
+    assert public._sha256 is original_hash
+    release_model_cache(control)
     encoder.vision.requires_grad_(False)
     encoder.head.requires_grad_(False)
     assert encoder.precision == 'fp16_native' and encoder._batch1_graph is None
@@ -524,13 +587,13 @@ def sentinel_groups():
             for role, count in COUNTS.items() for start in (0, count // 32 * 32)]
 
 
-def cpu_phase(full, control, proof, authority):
+def cpu_phase(full, control, proof, authority, code):
     import torch
     from sfora.joint_relational_compaction import pack_int8_unit_embeddings
     before = rng_fingerprint(full, False)
     with torch.random.fork_rng(devices=[]):
-        model, head, processor = native_reload(full, control)
-        other, other_head, other_processor = native_reload(full, control, independent=True)
+        model, head, processor = native_reload(full, control, code=code)
+        other, other_head, other_processor = native_reload(full, control, independent=True, code=code)
     a = model_facts(full, model, head, processor, F32, proof['frozen_prefix_sha256'])
     b = model_facts(full, other, other_head, other_processor, F32, proof['frozen_prefix_sha256'])
     full.qualified.same_runtime(model, other)
@@ -555,16 +618,16 @@ def cpu_phase(full, control, proof, authority):
             'rng_sha256': before}
 
 
-def gpu_phase(full, control, authority, protocol, state):
+def gpu_phase(full, control, authority, protocol, state, code):
     import torch
     from sfora.siglip2_compact_serving import Siglip2CompactIndex
     from sfora.cutile_int8 import CutilePackedInt8Gallery
     before = rng_fingerprint(full, True)
     # Qualify the independent model first; retain only small CPU packed references.
-    # Keeping both full models live exceeded the frozen 8GiB cgroup peak gate.
+    # Separate lifetimes avoid adding model overlap to authority cache pressure.
     torch.cuda.reset_peak_memory_stats()
     with torch.random.fork_rng(devices=[torch.cuda.current_device()]):
-        model, head, processor = native_reload(full, control)
+        model, head, processor = native_reload(full, control, code=code)
         model.half().cuda(); head.cuda()
     b = model_facts(full, model, head, processor, F16)
     wires = load_wires(authority)
@@ -582,7 +645,7 @@ def gpu_phase(full, control, authority, protocol, state):
     gc.collect()
     torch.cuda.empty_cache()
     # Preserve the complete-unit peak from the independent constructor.
-    encoder = public_encoder(full, control, reset_peak=False)
+    encoder = public_encoder(full, control, code, reset_peak=False)
     a = model_facts(full, encoder.vision, encoder.head, encoder.processor, F16)
     native_runtime, public_runtime = (json.loads(json.dumps(f['runtime'])) for f in (b, a))
     assert native_runtime['config'].pop('dtype') == 'float32'
@@ -646,7 +709,7 @@ def main():
         assert not any(pins)
     full, control, _, prior, proof = runtime_startup(root, data)
     compiler_version = configure(full, authority, args.phase == 'gpu', prior)
-    facts = cpu_phase(full, control, proof, authority) if args.phase == 'cpu' else gpu_phase(full, control, authority, data[-1], state)
+    facts = cpu_phase(full, control, proof, authority, code) if args.phase == 'cpu' else gpu_phase(full, control, authority, data[-1], state, code)
     assert full.qualified.teacher.qualified.numerical_flags() == prior['numerical_flags']
     assert startup(root, path, args.authority_sha256) == data
     loaded_code_guard(root, code)
@@ -655,6 +718,7 @@ def main():
         facts.update(cpu_proof_sha256=args.cpu_sha256, cpu_log_sha256=args.cpu_log_sha256,
                      cpu_proof=str(args.cpu_proof), cpu_log=str(args.cpu_log))
     save(args.output, {'schema': 'full-valid-anchor-serving-qualification-v1', 'pass': True, 'phase': args.phase,
+        'loader_cache_policy': loader_cache_policy(args.phase),
         'bindings': binding, 'invocation': invocation(), 'compiler_version': compiler_version,
         'model_snapshot': str(control.large_snapshot), 'model_file_sha256': full.pair.smoke.MODEL_HASHES,
         'dataset_root': str(control.dataset_root), 'frozen_prefix_sha256': proof['frozen_prefix_sha256'],

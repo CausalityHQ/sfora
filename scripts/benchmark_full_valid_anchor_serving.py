@@ -61,7 +61,7 @@ def main():
     assert admitted['frozen_prefix_sha256'] == proof['frozen_prefix_sha256'] and admitted['numerical_flags'] == prior['numerical_flags']
     compiler_version = serving.configure(full, authority, True, prior)
     before_rng = serving.rng_fingerprint(full, True)
-    encoder = serving.public_encoder(full, control)
+    encoder = serving.public_encoder(full, control, code)
     before = serving.model_facts(full, encoder.vision, encoder.head, encoder.processor, serving.F16)
     assert before == admitted['models']['public_f16']
     gallery = serving.load_wires(authority)['gallery']
@@ -122,6 +122,7 @@ def main():
     assert peak < serving.CUDA_CAP
     executable = Path(sys.executable).resolve()
     serving.save(args.output, {'schema': 'full-valid-anchor-serving-diagnostic-v1', 'pass': True,
+        'loader_cache_policy': serving.loader_cache_policy('gpu'),
         'bindings': binding, 'gpu_proof_sha256': args.gpu_sha256, 'gpu_log_sha256': args.gpu_log_sha256,
         'gpu_proof': str(args.gpu_proof), 'gpu_log': str(args.gpu_log), 'precision': 'fp16_native',
         'gallery_images': serving.COUNTS['gallery'], 'compiler_version': compiler_version,
