@@ -1,0 +1,14 @@
+{
+  "scope": "stdlib read-only DGX JPEG header scan, without image decoding, Torch, model forwards or quality",
+  "manifest_source": "/home/riomus/runs/sfora-dense-pilot-source-179032-candidate-v2/proof.json",
+  "manifest_source_sha256": "70cee30cc424c2ec5ccce457eb5cc42550023142de1138ccf0c80b0dec6c825c",
+  "dataset_root": "/home/riomus/datasets/inshop_official_standard",
+  "fit_images": 13283,
+  "dimensions": [{"width": 256, "height": 256, "count": 13283}],
+  "scan_wall_seconds": 0.2449975972995162,
+  "training_augmentation_source": "scripts/train_sop_siglip2_compact.py:152",
+  "training_augmentation": "RandomResizedCrop256 followed by horizontal flip before the processor",
+  "implication": "Proposed288 resamples256 image content and increases token density; it does not add native image detail. Any useful trained effect would be a sampling/tokenization/scale adaptation effect, not recovery of higher-resolution source information",
+  "new_quality_measurement": false,
+  "training_admitted": false
+}
