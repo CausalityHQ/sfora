@@ -1,0 +1,43 @@
+{
+  "pass": true,
+  "quality_read": false,
+  "optimizer_updates": 0,
+  "endpoints": [
+    {
+      "seed": 179032,
+      "arm": "control",
+      "proof_sha256": "15595090a19cfbe71f07f08299201f74968c8515ad2dd8dfb42bc61d7fd4f5be",
+      "log_sha256": "5ca86aeb4c56f51e4cb08e13c36512f0e25c849394833c8a78d5254cead80e60",
+      "service_seconds": 46.771,
+      "host_max_rss_kib": 6453624,
+      "invocation_id": "7f7b2a54fdf04848a444372c3c1ba6fa"
+    },
+    {
+      "seed": 179032,
+      "arm": "queue",
+      "proof_sha256": "de07fe3688431c9a500e17cfae920970e6e09ca0a6d3c504c28056d0bc9e8c88",
+      "log_sha256": "256eae0e88f0604cb0d783af4027c6709d409af7520937c520a34cbc904d0135",
+      "service_seconds": 48.288,
+      "host_max_rss_kib": 6464712,
+      "invocation_id": "f63b0e4fcb884320b1b817b41b0b4841"
+    },
+    {
+      "seed": 179041,
+      "arm": "queue",
+      "proof_sha256": "78ab04db61b183aff8a0513984e1de96d2b19efaeb51b0071b6109c388ef3a10",
+      "log_sha256": "9a41ff20110f38a1b44d98abaa8f27475259bb9fe9b2ef42cef09988733dba29",
+      "service_seconds": 46.251,
+      "host_max_rss_kib": 6464792,
+      "invocation_id": "a436d68be25441e29df9fe1f3b7bd588"
+    },
+    {
+      "seed": 179041,
+      "arm": "control",
+      "proof_sha256": "90c7a6913e133fe8b4e887a438a36d752b4664e21372beb6149d79e7b576923d",
+      "log_sha256": "f4d42d5ae6de3eb368d0dd700c8c6d73dbafc3d100d41d7f1040088e980da93b",
+      "service_seconds": 47.409,
+      "host_max_rss_kib": 6464792,
+      "invocation_id": "2afc113f069d425c8bf574b172308bdd"
+    }
+  ]
+}
