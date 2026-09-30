@@ -1,0 +1,4118 @@
+{
+  "pass": true,
+  "intervention": "late-dense-adaptation-v1",
+  "phase": "mechanics",
+  "boundary": 10,
+  "seed": 179032,
+  "updates": 17,
+  "completed_step": 17,
+  "unit_invocation_id": "e5614ebd224a4519a59017bc9fc67309",
+  "unit_cgroup": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-late-dense-mechanics-v1.service",
+  "unit_memory_max_bytes": 8589934592,
+  "unit_memory_swap_max_bytes": 0,
+  "execution_sha256": "c9cec7b71d0c2ba90de2eb0d5c9810f111d4e7feb88f10e63055fbabf8a6d8b3",
+  "cpu_authority_sha256": "cb9d97b57bd2ed4e914fc97944091bb1fa7bead12274ea3f3eee0046f268de0e",
+  "cpu_log_sha256": "615a483ebd5636b749a74873bb01ac21c7e45265607e6054583fc86cb8e12773",
+  "cpu_execution_sha256": "e5aac1bd966873100bf41fe53866c91942dd18e535739d6782c930972bc6c434",
+  "mechanics_sha256": null,
+  "mechanics_log_sha256": null,
+  "source_checkpoint_sha256": "cc58377f0e9aa90be529bf9a3eca1746a2dc467f765dd9681a3b9b690e324566",
+  "initial_state_sha256": "77c26114a74472682f7f511d732dfac2679d99bfe120ee52d3f78c032a9d9867",
+  "schedule_sha256": "c6f49dca9449a2b6112a8b18ed33b50e44e93efcead0c7324dd98a2b68b5eba3",
+  "resume_identity": {
+    "schema": "late-dense-complete-resume-v1",
+    "intervention": "late-dense-adaptation-v1",
+    "arm": "half",
+    "width": 128,
+    "total_updates": 100,
+    "seed": 179032,
+    "boundary": 10,
+    "augmentation_offset": 1000,
+    "execution_sha256": "c9cec7b71d0c2ba90de2eb0d5c9810f111d4e7feb88f10e63055fbabf8a6d8b3",
+    "cpu_authority_sha256": "cb9d97b57bd2ed4e914fc97944091bb1fa7bead12274ea3f3eee0046f268de0e",
+    "cpu_log_sha256": "615a483ebd5636b749a74873bb01ac21c7e45265607e6054583fc86cb8e12773",
+    "cpu_execution_sha256": "e5aac1bd966873100bf41fe53866c91942dd18e535739d6782c930972bc6c434",
+    "source_checkpoint_sha256": "cc58377f0e9aa90be529bf9a3eca1746a2dc467f765dd9681a3b9b690e324566",
+    "source_execution_sha256": "a85dd55c516f054c4c63341b31e0c7e4e77fb6925fd9ea29adabf097b1156bcb",
+    "source_schedule_sha256": "a38d1be83d261856153dd75f59039250137f033fe3880245c13c658b0582d1aa",
+    "initial_state_sha256": "77c26114a74472682f7f511d732dfac2679d99bfe120ee52d3f78c032a9d9867",
+    "schedule_sha256": "c6f49dca9449a2b6112a8b18ed33b50e44e93efcead0c7324dd98a2b68b5eba3",
+    "target_positive_sha256": "c39d8555711c2e219d87b2f357054d225ea58351c2b7701df8ff2fde0c116b92",
+    "parameter_names": [
+      "encoder.layers.10.layer_norm1.weight",
+      "encoder.layers.10.layer_norm1.bias",
+      "encoder.layers.10.self_attn.k_proj.weight",
+      "encoder.layers.10.self_attn.k_proj.bias",
+      "encoder.layers.10.self_attn.v_proj.weight",
+      "encoder.layers.10.self_attn.v_proj.bias",
+      "encoder.layers.10.self_attn.q_proj.weight",
+      "encoder.layers.10.self_attn.q_proj.bias",
+      "encoder.layers.10.self_attn.out_proj.weight",
+      "encoder.layers.10.self_attn.out_proj.bias",
+      "encoder.layers.10.layer_norm2.weight",
+      "encoder.layers.10.layer_norm2.bias",
+      "encoder.layers.10.mlp.fc1.weight",
+      "encoder.layers.10.mlp.fc1.bias",
+      "encoder.layers.10.mlp.fc2.weight",
+      "encoder.layers.10.mlp.fc2.bias",
+      "encoder.layers.11.layer_norm1.weight",
+      "encoder.layers.11.layer_norm1.bias",
+      "encoder.layers.11.self_attn.k_proj.weight",
+      "encoder.layers.11.self_attn.k_proj.bias",
+      "encoder.layers.11.self_attn.v_proj.weight",
+      "encoder.layers.11.self_attn.v_proj.bias",
+      "encoder.layers.11.self_attn.q_proj.weight",
+      "encoder.layers.11.self_attn.q_proj.bias",
+      "encoder.layers.11.self_attn.out_proj.weight",
+      "encoder.layers.11.self_attn.out_proj.bias",
+      "encoder.layers.11.layer_norm2.weight",
+      "encoder.layers.11.layer_norm2.bias",
+      "encoder.layers.11.mlp.fc1.weight",
+      "encoder.layers.11.mlp.fc1.bias",
+      "encoder.layers.11.mlp.fc2.weight",
+      "encoder.layers.11.mlp.fc2.bias",
+      "encoder.layers.12.layer_norm1.weight",
+      "encoder.layers.12.layer_norm1.bias",
+      "encoder.layers.12.self_attn.k_proj.weight",
+      "encoder.layers.12.self_attn.k_proj.bias",
+      "encoder.layers.12.self_attn.v_proj.weight",
+      "encoder.layers.12.self_attn.v_proj.bias",
+      "encoder.layers.12.self_attn.q_proj.weight",
+      "encoder.layers.12.self_attn.q_proj.bias",
+      "encoder.layers.12.self_attn.out_proj.weight",
+      "encoder.layers.12.self_attn.out_proj.bias",
+      "encoder.layers.12.layer_norm2.weight",
+      "encoder.layers.12.layer_norm2.bias",
+      "encoder.layers.12.mlp.fc1.weight",
+      "encoder.layers.12.mlp.fc1.bias",
+      "encoder.layers.12.mlp.fc2.weight",
+      "encoder.layers.12.mlp.fc2.bias",
+      "encoder.layers.13.layer_norm1.weight",
+      "encoder.layers.13.layer_norm1.bias",
+      "encoder.layers.13.self_attn.k_proj.weight",
+      "encoder.layers.13.self_attn.k_proj.bias",
+      "encoder.layers.13.self_attn.v_proj.weight",
+      "encoder.layers.13.self_attn.v_proj.bias",
+      "encoder.layers.13.self_attn.q_proj.weight",
+      "encoder.layers.13.self_attn.q_proj.bias",
+      "encoder.layers.13.self_attn.out_proj.weight",
+      "encoder.layers.13.self_attn.out_proj.bias",
+      "encoder.layers.13.layer_norm2.weight",
+      "encoder.layers.13.layer_norm2.bias",
+      "encoder.layers.13.mlp.fc1.weight",
+      "encoder.layers.13.mlp.fc1.bias",
+      "encoder.layers.13.mlp.fc2.weight",
+      "encoder.layers.13.mlp.fc2.bias",
+      "encoder.layers.14.layer_norm1.weight",
+      "encoder.layers.14.layer_norm1.bias",
+      "encoder.layers.14.self_attn.k_proj.weight",
+      "encoder.layers.14.self_attn.k_proj.bias",
+      "encoder.layers.14.self_attn.v_proj.weight",
+      "encoder.layers.14.self_attn.v_proj.bias",
+      "encoder.layers.14.self_attn.q_proj.weight",
+      "encoder.layers.14.self_attn.q_proj.bias",
+      "encoder.layers.14.self_attn.out_proj.weight",
+      "encoder.layers.14.self_attn.out_proj.bias",
+      "encoder.layers.14.layer_norm2.weight",
+      "encoder.layers.14.layer_norm2.bias",
+      "encoder.layers.14.mlp.fc1.weight",
+      "encoder.layers.14.mlp.fc1.bias",
+      "encoder.layers.14.mlp.fc2.weight",
+      "encoder.layers.14.mlp.fc2.bias",
+      "encoder.layers.15.layer_norm1.weight",
+      "encoder.layers.15.layer_norm1.bias",
+      "encoder.layers.15.self_attn.k_proj.weight",
+      "encoder.layers.15.self_attn.k_proj.bias",
+      "encoder.layers.15.self_attn.v_proj.weight",
+      "encoder.layers.15.self_attn.v_proj.bias",
+      "encoder.layers.15.self_attn.q_proj.weight",
+      "encoder.layers.15.self_attn.q_proj.bias",
+      "encoder.layers.15.self_attn.out_proj.weight",
+      "encoder.layers.15.self_attn.out_proj.bias",
+      "encoder.layers.15.layer_norm2.weight",
+      "encoder.layers.15.layer_norm2.bias",
+      "encoder.layers.15.mlp.fc1.weight",
+      "encoder.layers.15.mlp.fc1.bias",
+      "encoder.layers.15.mlp.fc2.weight",
+      "encoder.layers.15.mlp.fc2.bias",
+      "encoder.layers.16.layer_norm1.weight",
+      "encoder.layers.16.layer_norm1.bias",
+      "encoder.layers.16.self_attn.k_proj.weight",
+      "encoder.layers.16.self_attn.k_proj.bias",
+      "encoder.layers.16.self_attn.v_proj.weight",
+      "encoder.layers.16.self_attn.v_proj.bias",
+      "encoder.layers.16.self_attn.q_proj.weight",
+      "encoder.layers.16.self_attn.q_proj.bias",
+      "encoder.layers.16.self_attn.out_proj.weight",
+      "encoder.layers.16.self_attn.out_proj.bias",
+      "encoder.layers.16.layer_norm2.weight",
+      "encoder.layers.16.layer_norm2.bias",
+      "encoder.layers.16.mlp.fc1.weight",
+      "encoder.layers.16.mlp.fc1.bias",
+      "encoder.layers.16.mlp.fc2.weight",
+      "encoder.layers.16.mlp.fc2.bias",
+      "encoder.layers.17.layer_norm1.weight",
+      "encoder.layers.17.layer_norm1.bias",
+      "encoder.layers.17.self_attn.k_proj.weight",
+      "encoder.layers.17.self_attn.k_proj.bias",
+      "encoder.layers.17.self_attn.v_proj.weight",
+      "encoder.layers.17.self_attn.v_proj.bias",
+      "encoder.layers.17.self_attn.q_proj.weight",
+      "encoder.layers.17.self_attn.q_proj.bias",
+      "encoder.layers.17.self_attn.out_proj.weight",
+      "encoder.layers.17.self_attn.out_proj.bias",
+      "encoder.layers.17.layer_norm2.weight",
+      "encoder.layers.17.layer_norm2.bias",
+      "encoder.layers.17.mlp.fc1.weight",
+      "encoder.layers.17.mlp.fc1.bias",
+      "encoder.layers.17.mlp.fc2.weight",
+      "encoder.layers.17.mlp.fc2.bias",
+      "encoder.layers.18.layer_norm1.weight",
+      "encoder.layers.18.layer_norm1.bias",
+      "encoder.layers.18.self_attn.k_proj.weight",
+      "encoder.layers.18.self_attn.k_proj.bias",
+      "encoder.layers.18.self_attn.v_proj.weight",
+      "encoder.layers.18.self_attn.v_proj.bias",
+      "encoder.layers.18.self_attn.q_proj.weight",
+      "encoder.layers.18.self_attn.q_proj.bias",
+      "encoder.layers.18.self_attn.out_proj.weight",
+      "encoder.layers.18.self_attn.out_proj.bias",
+      "encoder.layers.18.layer_norm2.weight",
+      "encoder.layers.18.layer_norm2.bias",
+      "encoder.layers.18.mlp.fc1.weight",
+      "encoder.layers.18.mlp.fc1.bias",
+      "encoder.layers.18.mlp.fc2.weight",
+      "encoder.layers.18.mlp.fc2.bias",
+      "encoder.layers.19.layer_norm1.weight",
+      "encoder.layers.19.layer_norm1.bias",
+      "encoder.layers.19.self_attn.k_proj.weight",
+      "encoder.layers.19.self_attn.k_proj.bias",
+      "encoder.layers.19.self_attn.v_proj.weight",
+      "encoder.layers.19.self_attn.v_proj.bias",
+      "encoder.layers.19.self_attn.q_proj.weight",
+      "encoder.layers.19.self_attn.q_proj.bias",
+      "encoder.layers.19.self_attn.out_proj.weight",
+      "encoder.layers.19.self_attn.out_proj.bias",
+      "encoder.layers.19.layer_norm2.weight",
+      "encoder.layers.19.layer_norm2.bias",
+      "encoder.layers.19.mlp.fc1.weight",
+      "encoder.layers.19.mlp.fc1.bias",
+      "encoder.layers.19.mlp.fc2.weight",
+      "encoder.layers.19.mlp.fc2.bias",
+      "encoder.layers.20.layer_norm1.weight",
+      "encoder.layers.20.layer_norm1.bias",
+      "encoder.layers.20.self_attn.k_proj.weight",
+      "encoder.layers.20.self_attn.k_proj.bias",
+      "encoder.layers.20.self_attn.v_proj.weight",
+      "encoder.layers.20.self_attn.v_proj.bias",
+      "encoder.layers.20.self_attn.q_proj.weight",
+      "encoder.layers.20.self_attn.q_proj.bias",
+      "encoder.layers.20.self_attn.out_proj.weight",
+      "encoder.layers.20.self_attn.out_proj.bias",
+      "encoder.layers.20.layer_norm2.weight",
+      "encoder.layers.20.layer_norm2.bias",
+      "encoder.layers.20.mlp.fc1.weight",
+      "encoder.layers.20.mlp.fc1.bias",
+      "encoder.layers.20.mlp.fc2.weight",
+      "encoder.layers.20.mlp.fc2.bias",
+      "encoder.layers.21.layer_norm1.weight",
+      "encoder.layers.21.layer_norm1.bias",
+      "encoder.layers.21.self_attn.k_proj.weight",
+      "encoder.layers.21.self_attn.k_proj.bias",
+      "encoder.layers.21.self_attn.v_proj.weight",
+      "encoder.layers.21.self_attn.v_proj.bias",
+      "encoder.layers.21.self_attn.q_proj.weight",
+      "encoder.layers.21.self_attn.q_proj.bias",
+      "encoder.layers.21.self_attn.out_proj.weight",
+      "encoder.layers.21.self_attn.out_proj.bias",
+      "encoder.layers.21.layer_norm2.weight",
+      "encoder.layers.21.layer_norm2.bias",
+      "encoder.layers.21.mlp.fc1.weight",
+      "encoder.layers.21.mlp.fc1.bias",
+      "encoder.layers.21.mlp.fc2.weight",
+      "encoder.layers.21.mlp.fc2.bias",
+      "encoder.layers.22.layer_norm1.weight",
+      "encoder.layers.22.layer_norm1.bias",
+      "encoder.layers.22.self_attn.k_proj.weight",
+      "encoder.layers.22.self_attn.k_proj.bias",
+      "encoder.layers.22.self_attn.v_proj.weight",
+      "encoder.layers.22.self_attn.v_proj.bias",
+      "encoder.layers.22.self_attn.q_proj.weight",
+      "encoder.layers.22.self_attn.q_proj.bias",
+      "encoder.layers.22.self_attn.out_proj.weight",
+      "encoder.layers.22.self_attn.out_proj.bias",
+      "encoder.layers.22.layer_norm2.weight",
+      "encoder.layers.22.layer_norm2.bias",
+      "encoder.layers.22.mlp.fc1.weight",
+      "encoder.layers.22.mlp.fc1.bias",
+      "encoder.layers.22.mlp.fc2.weight",
+      "encoder.layers.22.mlp.fc2.bias",
+      "encoder.layers.23.layer_norm1.weight",
+      "encoder.layers.23.layer_norm1.bias",
+      "encoder.layers.23.self_attn.k_proj.weight",
+      "encoder.layers.23.self_attn.k_proj.bias",
+      "encoder.layers.23.self_attn.v_proj.weight",
+      "encoder.layers.23.self_attn.v_proj.bias",
+      "encoder.layers.23.self_attn.q_proj.weight",
+      "encoder.layers.23.self_attn.q_proj.bias",
+      "encoder.layers.23.self_attn.out_proj.weight",
+      "encoder.layers.23.self_attn.out_proj.bias",
+      "encoder.layers.23.layer_norm2.weight",
+      "encoder.layers.23.layer_norm2.bias",
+      "encoder.layers.23.mlp.fc1.weight",
+      "encoder.layers.23.mlp.fc1.bias",
+      "encoder.layers.23.mlp.fc2.weight",
+      "encoder.layers.23.mlp.fc2.bias",
+      "post_layernorm.weight",
+      "post_layernorm.bias",
+      "head.probe",
+      "head.attention.in_proj_weight",
+      "head.attention.in_proj_bias",
+      "head.attention.out_proj.weight",
+      "head.attention.out_proj.bias",
+      "head.layernorm.weight",
+      "head.layernorm.bias",
+      "head.mlp.fc1.weight",
+      "head.mlp.fc1.bias",
+      "head.mlp.fc2.weight",
+      "head.mlp.fc2.bias",
+      "compact_head.weight",
+      "compact_head.bias",
+      "classifier"
+    ],
+    "model_roles": [
+      [
+        "embeddings.patch_embedding.weight",
+        false
+      ],
+      [
+        "embeddings.patch_embedding.bias",
+        false
+      ],
+      [
+        "embeddings.position_embedding.weight",
+        false
+      ],
+      [
+        "encoder.layers.0.layer_norm1.weight",
+        false
+      ],
+      [
+        "encoder.layers.0.layer_norm1.bias",
+        false
+      ],
+      [
+        "encoder.layers.0.self_attn.k_proj.weight",
+        false
+      ],
+      [
+        "encoder.layers.0.self_attn.k_proj.bias",
+        false
+      ],
+      [
+        "encoder.layers.0.self_attn.v_proj.weight",
+        false
+      ],
+      [
+        "encoder.layers.0.self_attn.v_proj.bias",
+        false
+      ],
+      [
+        "encoder.layers.0.self_attn.q_proj.weight",
+        false
+      ],
+      [
+        "encoder.layers.0.self_attn.q_proj.bias",
+        false
+      ],
+      [
+        "encoder.layers.0.self_attn.out_proj.weight",
+        false
+      ],
+      [
+        "encoder.layers.0.self_attn.out_proj.bias",
+        false
+      ],
+      [
+        "encoder.layers.0.layer_norm2.weight",
+        false
+      ],
+      [
+        "encoder.layers.0.layer_norm2.bias",
+        false
+      ],
+      [
+        "encoder.layers.0.mlp.fc1.weight",
+        false
+      ],
+      [
+        "encoder.layers.0.mlp.fc1.bias",
+        false
+      ],
+      [
+        "encoder.layers.0.mlp.fc2.weight",
+        false
+      ],
+      [
+        "encoder.layers.0.mlp.fc2.bias",
+        false
+      ],
+      [
+        "encoder.layers.1.layer_norm1.weight",
+        false
+      ],
+      [
+        "encoder.layers.1.layer_norm1.bias",
+        false
+      ],
+      [
+        "encoder.layers.1.self_attn.k_proj.weight",
+        false
+      ],
+      [
+        "encoder.layers.1.self_attn.k_proj.bias",
+        false
+      ],
+      [
+        "encoder.layers.1.self_attn.v_proj.weight",
+        false
+      ],
+      [
+        "encoder.layers.1.self_attn.v_proj.bias",
+        false
+      ],
+      [
+        "encoder.layers.1.self_attn.q_proj.weight",
+        false
+      ],
+      [
+        "encoder.layers.1.self_attn.q_proj.bias",
+        false
+      ],
+      [
+        "encoder.layers.1.self_attn.out_proj.weight",
+        false
+      ],
+      [
+        "encoder.layers.1.self_attn.out_proj.bias",
+        false
+      ],
+      [
+        "encoder.layers.1.layer_norm2.weight",
+        false
+      ],
+      [
+        "encoder.layers.1.layer_norm2.bias",
+        false
+      ],
+      [
+        "encoder.layers.1.mlp.fc1.weight",
+        false
+      ],
+      [
+        "encoder.layers.1.mlp.fc1.bias",
+        false
+      ],
+      [
+        "encoder.layers.1.mlp.fc2.weight",
+        false
+      ],
+      [
+        "encoder.layers.1.mlp.fc2.bias",
+        false
+      ],
+      [
+        "encoder.layers.2.layer_norm1.weight",
+        false
+      ],
+      [
+        "encoder.layers.2.layer_norm1.bias",
+        false
+      ],
+      [
+        "encoder.layers.2.self_attn.k_proj.weight",
+        false
+      ],
+      [
+        "encoder.layers.2.self_attn.k_proj.bias",
+        false
+      ],
+      [
+        "encoder.layers.2.self_attn.v_proj.weight",
+        false
+      ],
+      [
+        "encoder.layers.2.self_attn.v_proj.bias",
+        false
+      ],
+      [
+        "encoder.layers.2.self_attn.q_proj.weight",
+        false
+      ],
+      [
+        "encoder.layers.2.self_attn.q_proj.bias",
+        false
+      ],
+      [
+        "encoder.layers.2.self_attn.out_proj.weight",
+        false
+      ],
+      [
+        "encoder.layers.2.self_attn.out_proj.bias",
+        false
+      ],
+      [
+        "encoder.layers.2.layer_norm2.weight",
+        false
+      ],
+      [
+        "encoder.layers.2.layer_norm2.bias",
+        false
+      ],
+      [
+        "encoder.layers.2.mlp.fc1.weight",
+        false
+      ],
+      [
+        "encoder.layers.2.mlp.fc1.bias",
+        false
+      ],
+      [
+        "encoder.layers.2.mlp.fc2.weight",
+        false
+      ],
+      [
+        "encoder.layers.2.mlp.fc2.bias",
+        false
+      ],
+      [
+        "encoder.layers.3.layer_norm1.weight",
+        false
+      ],
+      [
+        "encoder.layers.3.layer_norm1.bias",
+        false
+      ],
+      [
+        "encoder.layers.3.self_attn.k_proj.weight",
+        false
+      ],
+      [
+        "encoder.layers.3.self_attn.k_proj.bias",
+        false
+      ],
+      [
+        "encoder.layers.3.self_attn.v_proj.weight",
+        false
+      ],
+      [
+        "encoder.layers.3.self_attn.v_proj.bias",
+        false
+      ],
+      [
+        "encoder.layers.3.self_attn.q_proj.weight",
+        false
+      ],
+      [
+        "encoder.layers.3.self_attn.q_proj.bias",
+        false
+      ],
+      [
+        "encoder.layers.3.self_attn.out_proj.weight",
+        false
+      ],
+      [
+        "encoder.layers.3.self_attn.out_proj.bias",
+        false
+      ],
+      [
+        "encoder.layers.3.layer_norm2.weight",
+        false
+      ],
+      [
+        "encoder.layers.3.layer_norm2.bias",
+        false
+      ],
+      [
+        "encoder.layers.3.mlp.fc1.weight",
+        false
+      ],
+      [
+        "encoder.layers.3.mlp.fc1.bias",
+        false
+      ],
+      [
+        "encoder.layers.3.mlp.fc2.weight",
+        false
+      ],
+      [
+        "encoder.layers.3.mlp.fc2.bias",
+        false
+      ],
+      [
+        "encoder.layers.4.layer_norm1.weight",
+        false
+      ],
+      [
+        "encoder.layers.4.layer_norm1.bias",
+        false
+      ],
+      [
+        "encoder.layers.4.self_attn.k_proj.weight",
+        false
+      ],
+      [
+        "encoder.layers.4.self_attn.k_proj.bias",
+        false
+      ],
+      [
+        "encoder.layers.4.self_attn.v_proj.weight",
+        false
+      ],
+      [
+        "encoder.layers.4.self_attn.v_proj.bias",
+        false
+      ],
+      [
+        "encoder.layers.4.self_attn.q_proj.weight",
+        false
+      ],
+      [
+        "encoder.layers.4.self_attn.q_proj.bias",
+        false
+      ],
+      [
+        "encoder.layers.4.self_attn.out_proj.weight",
+        false
+      ],
+      [
+        "encoder.layers.4.self_attn.out_proj.bias",
+        false
+      ],
+      [
+        "encoder.layers.4.layer_norm2.weight",
+        false
+      ],
+      [
+        "encoder.layers.4.layer_norm2.bias",
+        false
+      ],
+      [
+        "encoder.layers.4.mlp.fc1.weight",
+        false
+      ],
+      [
+        "encoder.layers.4.mlp.fc1.bias",
+        false
+      ],
+      [
+        "encoder.layers.4.mlp.fc2.weight",
+        false
+      ],
+      [
+        "encoder.layers.4.mlp.fc2.bias",
+        false
+      ],
+      [
+        "encoder.layers.5.layer_norm1.weight",
+        false
+      ],
+      [
+        "encoder.layers.5.layer_norm1.bias",
+        false
+      ],
+      [
+        "encoder.layers.5.self_attn.k_proj.weight",
+        false
+      ],
+      [
+        "encoder.layers.5.self_attn.k_proj.bias",
+        false
+      ],
+      [
+        "encoder.layers.5.self_attn.v_proj.weight",
+        false
+      ],
+      [
+        "encoder.layers.5.self_attn.v_proj.bias",
+        false
+      ],
+      [
+        "encoder.layers.5.self_attn.q_proj.weight",
+        false
+      ],
+      [
+        "encoder.layers.5.self_attn.q_proj.bias",
+        false
+      ],
+      [
+        "encoder.layers.5.self_attn.out_proj.weight",
+        false
+      ],
+      [
+        "encoder.layers.5.self_attn.out_proj.bias",
+        false
+      ],
+      [
+        "encoder.layers.5.layer_norm2.weight",
+        false
+      ],
+      [
+        "encoder.layers.5.layer_norm2.bias",
+        false
+      ],
+      [
+        "encoder.layers.5.mlp.fc1.weight",
+        false
+      ],
+      [
+        "encoder.layers.5.mlp.fc1.bias",
+        false
+      ],
+      [
+        "encoder.layers.5.mlp.fc2.weight",
+        false
+      ],
+      [
+        "encoder.layers.5.mlp.fc2.bias",
+        false
+      ],
+      [
+        "encoder.layers.6.layer_norm1.weight",
+        false
+      ],
+      [
+        "encoder.layers.6.layer_norm1.bias",
+        false
+      ],
+      [
+        "encoder.layers.6.self_attn.k_proj.weight",
+        false
+      ],
+      [
+        "encoder.layers.6.self_attn.k_proj.bias",
+        false
+      ],
+      [
+        "encoder.layers.6.self_attn.v_proj.weight",
+        false
+      ],
+      [
+        "encoder.layers.6.self_attn.v_proj.bias",
+        false
+      ],
+      [
+        "encoder.layers.6.self_attn.q_proj.weight",
+        false
+      ],
+      [
+        "encoder.layers.6.self_attn.q_proj.bias",
+        false
+      ],
+      [
+        "encoder.layers.6.self_attn.out_proj.weight",
+        false
+      ],
+      [
+        "encoder.layers.6.self_attn.out_proj.bias",
+        false
+      ],
+      [
+        "encoder.layers.6.layer_norm2.weight",
+        false
+      ],
+      [
+        "encoder.layers.6.layer_norm2.bias",
+        false
+      ],
+      [
+        "encoder.layers.6.mlp.fc1.weight",
+        false
+      ],
+      [
+        "encoder.layers.6.mlp.fc1.bias",
+        false
+      ],
+      [
+        "encoder.layers.6.mlp.fc2.weight",
+        false
+      ],
+      [
+        "encoder.layers.6.mlp.fc2.bias",
+        false
+      ],
+      [
+        "encoder.layers.7.layer_norm1.weight",
+        false
+      ],
+      [
+        "encoder.layers.7.layer_norm1.bias",
+        false
+      ],
+      [
+        "encoder.layers.7.self_attn.k_proj.weight",
+        false
+      ],
+      [
+        "encoder.layers.7.self_attn.k_proj.bias",
+        false
+      ],
+      [
+        "encoder.layers.7.self_attn.v_proj.weight",
+        false
+      ],
+      [
+        "encoder.layers.7.self_attn.v_proj.bias",
+        false
+      ],
+      [
+        "encoder.layers.7.self_attn.q_proj.weight",
+        false
+      ],
+      [
+        "encoder.layers.7.self_attn.q_proj.bias",
+        false
+      ],
+      [
+        "encoder.layers.7.self_attn.out_proj.weight",
+        false
+      ],
+      [
+        "encoder.layers.7.self_attn.out_proj.bias",
+        false
+      ],
+      [
+        "encoder.layers.7.layer_norm2.weight",
+        false
+      ],
+      [
+        "encoder.layers.7.layer_norm2.bias",
+        false
+      ],
+      [
+        "encoder.layers.7.mlp.fc1.weight",
+        false
+      ],
+      [
+        "encoder.layers.7.mlp.fc1.bias",
+        false
+      ],
+      [
+        "encoder.layers.7.mlp.fc2.weight",
+        false
+      ],
+      [
+        "encoder.layers.7.mlp.fc2.bias",
+        false
+      ],
+      [
+        "encoder.layers.8.layer_norm1.weight",
+        false
+      ],
+      [
+        "encoder.layers.8.layer_norm1.bias",
+        false
+      ],
+      [
+        "encoder.layers.8.self_attn.k_proj.weight",
+        false
+      ],
+      [
+        "encoder.layers.8.self_attn.k_proj.bias",
+        false
+      ],
+      [
+        "encoder.layers.8.self_attn.v_proj.weight",
+        false
+      ],
+      [
+        "encoder.layers.8.self_attn.v_proj.bias",
+        false
+      ],
+      [
+        "encoder.layers.8.self_attn.q_proj.weight",
+        false
+      ],
+      [
+        "encoder.layers.8.self_attn.q_proj.bias",
+        false
+      ],
+      [
+        "encoder.layers.8.self_attn.out_proj.weight",
+        false
+      ],
+      [
+        "encoder.layers.8.self_attn.out_proj.bias",
+        false
+      ],
+      [
+        "encoder.layers.8.layer_norm2.weight",
+        false
+      ],
+      [
+        "encoder.layers.8.layer_norm2.bias",
+        false
+      ],
+      [
+        "encoder.layers.8.mlp.fc1.weight",
+        false
+      ],
+      [
+        "encoder.layers.8.mlp.fc1.bias",
+        false
+      ],
+      [
+        "encoder.layers.8.mlp.fc2.weight",
+        false
+      ],
+      [
+        "encoder.layers.8.mlp.fc2.bias",
+        false
+      ],
+      [
+        "encoder.layers.9.layer_norm1.weight",
+        false
+      ],
+      [
+        "encoder.layers.9.layer_norm1.bias",
+        false
+      ],
+      [
+        "encoder.layers.9.self_attn.k_proj.weight",
+        false
+      ],
+      [
+        "encoder.layers.9.self_attn.k_proj.bias",
+        false
+      ],
+      [
+        "encoder.layers.9.self_attn.v_proj.weight",
+        false
+      ],
+      [
+        "encoder.layers.9.self_attn.v_proj.bias",
+        false
+      ],
+      [
+        "encoder.layers.9.self_attn.q_proj.weight",
+        false
+      ],
+      [
+        "encoder.layers.9.self_attn.q_proj.bias",
+        false
+      ],
+      [
+        "encoder.layers.9.self_attn.out_proj.weight",
+        false
+      ],
+      [
+        "encoder.layers.9.self_attn.out_proj.bias",
+        false
+      ],
+      [
+        "encoder.layers.9.layer_norm2.weight",
+        false
+      ],
+      [
+        "encoder.layers.9.layer_norm2.bias",
+        false
+      ],
+      [
+        "encoder.layers.9.mlp.fc1.weight",
+        false
+      ],
+      [
+        "encoder.layers.9.mlp.fc1.bias",
+        false
+      ],
+      [
+        "encoder.layers.9.mlp.fc2.weight",
+        false
+      ],
+      [
+        "encoder.layers.9.mlp.fc2.bias",
+        false
+      ],
+      [
+        "encoder.layers.10.layer_norm1.weight",
+        true
+      ],
+      [
+        "encoder.layers.10.layer_norm1.bias",
+        true
+      ],
+      [
+        "encoder.layers.10.self_attn.k_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.10.self_attn.k_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.10.self_attn.v_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.10.self_attn.v_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.10.self_attn.q_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.10.self_attn.q_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.10.self_attn.out_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.10.self_attn.out_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.10.layer_norm2.weight",
+        true
+      ],
+      [
+        "encoder.layers.10.layer_norm2.bias",
+        true
+      ],
+      [
+        "encoder.layers.10.mlp.fc1.weight",
+        true
+      ],
+      [
+        "encoder.layers.10.mlp.fc1.bias",
+        true
+      ],
+      [
+        "encoder.layers.10.mlp.fc2.weight",
+        true
+      ],
+      [
+        "encoder.layers.10.mlp.fc2.bias",
+        true
+      ],
+      [
+        "encoder.layers.11.layer_norm1.weight",
+        true
+      ],
+      [
+        "encoder.layers.11.layer_norm1.bias",
+        true
+      ],
+      [
+        "encoder.layers.11.self_attn.k_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.11.self_attn.k_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.11.self_attn.v_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.11.self_attn.v_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.11.self_attn.q_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.11.self_attn.q_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.11.self_attn.out_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.11.self_attn.out_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.11.layer_norm2.weight",
+        true
+      ],
+      [
+        "encoder.layers.11.layer_norm2.bias",
+        true
+      ],
+      [
+        "encoder.layers.11.mlp.fc1.weight",
+        true
+      ],
+      [
+        "encoder.layers.11.mlp.fc1.bias",
+        true
+      ],
+      [
+        "encoder.layers.11.mlp.fc2.weight",
+        true
+      ],
+      [
+        "encoder.layers.11.mlp.fc2.bias",
+        true
+      ],
+      [
+        "encoder.layers.12.layer_norm1.weight",
+        true
+      ],
+      [
+        "encoder.layers.12.layer_norm1.bias",
+        true
+      ],
+      [
+        "encoder.layers.12.self_attn.k_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.12.self_attn.k_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.12.self_attn.v_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.12.self_attn.v_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.12.self_attn.q_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.12.self_attn.q_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.12.self_attn.out_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.12.self_attn.out_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.12.layer_norm2.weight",
+        true
+      ],
+      [
+        "encoder.layers.12.layer_norm2.bias",
+        true
+      ],
+      [
+        "encoder.layers.12.mlp.fc1.weight",
+        true
+      ],
+      [
+        "encoder.layers.12.mlp.fc1.bias",
+        true
+      ],
+      [
+        "encoder.layers.12.mlp.fc2.weight",
+        true
+      ],
+      [
+        "encoder.layers.12.mlp.fc2.bias",
+        true
+      ],
+      [
+        "encoder.layers.13.layer_norm1.weight",
+        true
+      ],
+      [
+        "encoder.layers.13.layer_norm1.bias",
+        true
+      ],
+      [
+        "encoder.layers.13.self_attn.k_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.13.self_attn.k_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.13.self_attn.v_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.13.self_attn.v_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.13.self_attn.q_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.13.self_attn.q_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.13.self_attn.out_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.13.self_attn.out_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.13.layer_norm2.weight",
+        true
+      ],
+      [
+        "encoder.layers.13.layer_norm2.bias",
+        true
+      ],
+      [
+        "encoder.layers.13.mlp.fc1.weight",
+        true
+      ],
+      [
+        "encoder.layers.13.mlp.fc1.bias",
+        true
+      ],
+      [
+        "encoder.layers.13.mlp.fc2.weight",
+        true
+      ],
+      [
+        "encoder.layers.13.mlp.fc2.bias",
+        true
+      ],
+      [
+        "encoder.layers.14.layer_norm1.weight",
+        true
+      ],
+      [
+        "encoder.layers.14.layer_norm1.bias",
+        true
+      ],
+      [
+        "encoder.layers.14.self_attn.k_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.14.self_attn.k_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.14.self_attn.v_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.14.self_attn.v_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.14.self_attn.q_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.14.self_attn.q_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.14.self_attn.out_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.14.self_attn.out_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.14.layer_norm2.weight",
+        true
+      ],
+      [
+        "encoder.layers.14.layer_norm2.bias",
+        true
+      ],
+      [
+        "encoder.layers.14.mlp.fc1.weight",
+        true
+      ],
+      [
+        "encoder.layers.14.mlp.fc1.bias",
+        true
+      ],
+      [
+        "encoder.layers.14.mlp.fc2.weight",
+        true
+      ],
+      [
+        "encoder.layers.14.mlp.fc2.bias",
+        true
+      ],
+      [
+        "encoder.layers.15.layer_norm1.weight",
+        true
+      ],
+      [
+        "encoder.layers.15.layer_norm1.bias",
+        true
+      ],
+      [
+        "encoder.layers.15.self_attn.k_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.15.self_attn.k_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.15.self_attn.v_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.15.self_attn.v_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.15.self_attn.q_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.15.self_attn.q_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.15.self_attn.out_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.15.self_attn.out_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.15.layer_norm2.weight",
+        true
+      ],
+      [
+        "encoder.layers.15.layer_norm2.bias",
+        true
+      ],
+      [
+        "encoder.layers.15.mlp.fc1.weight",
+        true
+      ],
+      [
+        "encoder.layers.15.mlp.fc1.bias",
+        true
+      ],
+      [
+        "encoder.layers.15.mlp.fc2.weight",
+        true
+      ],
+      [
+        "encoder.layers.15.mlp.fc2.bias",
+        true
+      ],
+      [
+        "encoder.layers.16.layer_norm1.weight",
+        true
+      ],
+      [
+        "encoder.layers.16.layer_norm1.bias",
+        true
+      ],
+      [
+        "encoder.layers.16.self_attn.k_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.16.self_attn.k_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.16.self_attn.v_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.16.self_attn.v_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.16.self_attn.q_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.16.self_attn.q_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.16.self_attn.out_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.16.self_attn.out_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.16.layer_norm2.weight",
+        true
+      ],
+      [
+        "encoder.layers.16.layer_norm2.bias",
+        true
+      ],
+      [
+        "encoder.layers.16.mlp.fc1.weight",
+        true
+      ],
+      [
+        "encoder.layers.16.mlp.fc1.bias",
+        true
+      ],
+      [
+        "encoder.layers.16.mlp.fc2.weight",
+        true
+      ],
+      [
+        "encoder.layers.16.mlp.fc2.bias",
+        true
+      ],
+      [
+        "encoder.layers.17.layer_norm1.weight",
+        true
+      ],
+      [
+        "encoder.layers.17.layer_norm1.bias",
+        true
+      ],
+      [
+        "encoder.layers.17.self_attn.k_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.17.self_attn.k_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.17.self_attn.v_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.17.self_attn.v_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.17.self_attn.q_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.17.self_attn.q_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.17.self_attn.out_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.17.self_attn.out_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.17.layer_norm2.weight",
+        true
+      ],
+      [
+        "encoder.layers.17.layer_norm2.bias",
+        true
+      ],
+      [
+        "encoder.layers.17.mlp.fc1.weight",
+        true
+      ],
+      [
+        "encoder.layers.17.mlp.fc1.bias",
+        true
+      ],
+      [
+        "encoder.layers.17.mlp.fc2.weight",
+        true
+      ],
+      [
+        "encoder.layers.17.mlp.fc2.bias",
+        true
+      ],
+      [
+        "encoder.layers.18.layer_norm1.weight",
+        true
+      ],
+      [
+        "encoder.layers.18.layer_norm1.bias",
+        true
+      ],
+      [
+        "encoder.layers.18.self_attn.k_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.18.self_attn.k_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.18.self_attn.v_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.18.self_attn.v_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.18.self_attn.q_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.18.self_attn.q_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.18.self_attn.out_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.18.self_attn.out_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.18.layer_norm2.weight",
+        true
+      ],
+      [
+        "encoder.layers.18.layer_norm2.bias",
+        true
+      ],
+      [
+        "encoder.layers.18.mlp.fc1.weight",
+        true
+      ],
+      [
+        "encoder.layers.18.mlp.fc1.bias",
+        true
+      ],
+      [
+        "encoder.layers.18.mlp.fc2.weight",
+        true
+      ],
+      [
+        "encoder.layers.18.mlp.fc2.bias",
+        true
+      ],
+      [
+        "encoder.layers.19.layer_norm1.weight",
+        true
+      ],
+      [
+        "encoder.layers.19.layer_norm1.bias",
+        true
+      ],
+      [
+        "encoder.layers.19.self_attn.k_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.19.self_attn.k_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.19.self_attn.v_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.19.self_attn.v_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.19.self_attn.q_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.19.self_attn.q_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.19.self_attn.out_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.19.self_attn.out_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.19.layer_norm2.weight",
+        true
+      ],
+      [
+        "encoder.layers.19.layer_norm2.bias",
+        true
+      ],
+      [
+        "encoder.layers.19.mlp.fc1.weight",
+        true
+      ],
+      [
+        "encoder.layers.19.mlp.fc1.bias",
+        true
+      ],
+      [
+        "encoder.layers.19.mlp.fc2.weight",
+        true
+      ],
+      [
+        "encoder.layers.19.mlp.fc2.bias",
+        true
+      ],
+      [
+        "encoder.layers.20.layer_norm1.weight",
+        true
+      ],
+      [
+        "encoder.layers.20.layer_norm1.bias",
+        true
+      ],
+      [
+        "encoder.layers.20.self_attn.k_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.20.self_attn.k_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.20.self_attn.v_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.20.self_attn.v_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.20.self_attn.q_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.20.self_attn.q_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.20.self_attn.out_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.20.self_attn.out_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.20.layer_norm2.weight",
+        true
+      ],
+      [
+        "encoder.layers.20.layer_norm2.bias",
+        true
+      ],
+      [
+        "encoder.layers.20.mlp.fc1.weight",
+        true
+      ],
+      [
+        "encoder.layers.20.mlp.fc1.bias",
+        true
+      ],
+      [
+        "encoder.layers.20.mlp.fc2.weight",
+        true
+      ],
+      [
+        "encoder.layers.20.mlp.fc2.bias",
+        true
+      ],
+      [
+        "encoder.layers.21.layer_norm1.weight",
+        true
+      ],
+      [
+        "encoder.layers.21.layer_norm1.bias",
+        true
+      ],
+      [
+        "encoder.layers.21.self_attn.k_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.21.self_attn.k_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.21.self_attn.v_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.21.self_attn.v_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.21.self_attn.q_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.21.self_attn.q_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.21.self_attn.out_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.21.self_attn.out_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.21.layer_norm2.weight",
+        true
+      ],
+      [
+        "encoder.layers.21.layer_norm2.bias",
+        true
+      ],
+      [
+        "encoder.layers.21.mlp.fc1.weight",
+        true
+      ],
+      [
+        "encoder.layers.21.mlp.fc1.bias",
+        true
+      ],
+      [
+        "encoder.layers.21.mlp.fc2.weight",
+        true
+      ],
+      [
+        "encoder.layers.21.mlp.fc2.bias",
+        true
+      ],
+      [
+        "encoder.layers.22.layer_norm1.weight",
+        true
+      ],
+      [
+        "encoder.layers.22.layer_norm1.bias",
+        true
+      ],
+      [
+        "encoder.layers.22.self_attn.k_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.22.self_attn.k_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.22.self_attn.v_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.22.self_attn.v_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.22.self_attn.q_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.22.self_attn.q_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.22.self_attn.out_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.22.self_attn.out_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.22.layer_norm2.weight",
+        true
+      ],
+      [
+        "encoder.layers.22.layer_norm2.bias",
+        true
+      ],
+      [
+        "encoder.layers.22.mlp.fc1.weight",
+        true
+      ],
+      [
+        "encoder.layers.22.mlp.fc1.bias",
+        true
+      ],
+      [
+        "encoder.layers.22.mlp.fc2.weight",
+        true
+      ],
+      [
+        "encoder.layers.22.mlp.fc2.bias",
+        true
+      ],
+      [
+        "encoder.layers.23.layer_norm1.weight",
+        true
+      ],
+      [
+        "encoder.layers.23.layer_norm1.bias",
+        true
+      ],
+      [
+        "encoder.layers.23.self_attn.k_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.23.self_attn.k_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.23.self_attn.v_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.23.self_attn.v_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.23.self_attn.q_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.23.self_attn.q_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.23.self_attn.out_proj.weight",
+        true
+      ],
+      [
+        "encoder.layers.23.self_attn.out_proj.bias",
+        true
+      ],
+      [
+        "encoder.layers.23.layer_norm2.weight",
+        true
+      ],
+      [
+        "encoder.layers.23.layer_norm2.bias",
+        true
+      ],
+      [
+        "encoder.layers.23.mlp.fc1.weight",
+        true
+      ],
+      [
+        "encoder.layers.23.mlp.fc1.bias",
+        true
+      ],
+      [
+        "encoder.layers.23.mlp.fc2.weight",
+        true
+      ],
+      [
+        "encoder.layers.23.mlp.fc2.bias",
+        true
+      ],
+      [
+        "post_layernorm.weight",
+        true
+      ],
+      [
+        "post_layernorm.bias",
+        true
+      ],
+      [
+        "head.probe",
+        true
+      ],
+      [
+        "head.attention.in_proj_weight",
+        true
+      ],
+      [
+        "head.attention.in_proj_bias",
+        true
+      ],
+      [
+        "head.attention.out_proj.weight",
+        true
+      ],
+      [
+        "head.attention.out_proj.bias",
+        true
+      ],
+      [
+        "head.layernorm.weight",
+        true
+      ],
+      [
+        "head.layernorm.bias",
+        true
+      ],
+      [
+        "head.mlp.fc1.weight",
+        true
+      ],
+      [
+        "head.mlp.fc1.bias",
+        true
+      ],
+      [
+        "head.mlp.fc2.weight",
+        true
+      ],
+      [
+        "head.mlp.fc2.bias",
+        true
+      ]
+    ],
+    "runtime": {
+      "config": {
+        "transformers_version": "5.12.1",
+        "architectures": null,
+        "output_hidden_states": false,
+        "return_dict": true,
+        "dtype": "float32",
+        "chunk_size_feed_forward": 0,
+        "is_encoder_decoder": false,
+        "id2label": {
+          "0": "LABEL_0",
+          "1": "LABEL_1"
+        },
+        "label2id": {
+          "LABEL_0": 0,
+          "LABEL_1": 1
+        },
+        "problem_type": null,
+        "hidden_size": 1024,
+        "intermediate_size": 4096,
+        "num_hidden_layers": 24,
+        "num_attention_heads": 16,
+        "num_channels": 3,
+        "image_size": 256,
+        "patch_size": 16,
+        "hidden_act": "gelu_pytorch_tanh",
+        "layer_norm_eps": 1e-06,
+        "attention_dropout": 0.0,
+        "_name_or_path": "",
+        "model_type": "siglip_vision_model",
+        "output_attentions": false
+      },
+      "attention_implementation": "sdpa",
+      "checkpointing": false,
+      "pool_heads": 16,
+      "normalization_eps": {
+        "encoder.layers.0.layer_norm1": 1e-06,
+        "encoder.layers.0.layer_norm2": 1e-06,
+        "encoder.layers.1.layer_norm1": 1e-06,
+        "encoder.layers.1.layer_norm2": 1e-06,
+        "encoder.layers.2.layer_norm1": 1e-06,
+        "encoder.layers.2.layer_norm2": 1e-06,
+        "encoder.layers.3.layer_norm1": 1e-06,
+        "encoder.layers.3.layer_norm2": 1e-06,
+        "encoder.layers.4.layer_norm1": 1e-06,
+        "encoder.layers.4.layer_norm2": 1e-06,
+        "encoder.layers.5.layer_norm1": 1e-06,
+        "encoder.layers.5.layer_norm2": 1e-06,
+        "encoder.layers.6.layer_norm1": 1e-06,
+        "encoder.layers.6.layer_norm2": 1e-06,
+        "encoder.layers.7.layer_norm1": 1e-06,
+        "encoder.layers.7.layer_norm2": 1e-06,
+        "encoder.layers.8.layer_norm1": 1e-06,
+        "encoder.layers.8.layer_norm2": 1e-06,
+        "encoder.layers.9.layer_norm1": 1e-06,
+        "encoder.layers.9.layer_norm2": 1e-06,
+        "encoder.layers.10.layer_norm1": 1e-06,
+        "encoder.layers.10.layer_norm2": 1e-06,
+        "encoder.layers.11.layer_norm1": 1e-06,
+        "encoder.layers.11.layer_norm2": 1e-06,
+        "encoder.layers.12.layer_norm1": 1e-06,
+        "encoder.layers.12.layer_norm2": 1e-06,
+        "encoder.layers.13.layer_norm1": 1e-06,
+        "encoder.layers.13.layer_norm2": 1e-06,
+        "encoder.layers.14.layer_norm1": 1e-06,
+        "encoder.layers.14.layer_norm2": 1e-06,
+        "encoder.layers.15.layer_norm1": 1e-06,
+        "encoder.layers.15.layer_norm2": 1e-06,
+        "encoder.layers.16.layer_norm1": 1e-06,
+        "encoder.layers.16.layer_norm2": 1e-06,
+        "encoder.layers.17.layer_norm1": 1e-06,
+        "encoder.layers.17.layer_norm2": 1e-06,
+        "encoder.layers.18.layer_norm1": 1e-06,
+        "encoder.layers.18.layer_norm2": 1e-06,
+        "encoder.layers.19.layer_norm1": 1e-06,
+        "encoder.layers.19.layer_norm2": 1e-06,
+        "encoder.layers.20.layer_norm1": 1e-06,
+        "encoder.layers.20.layer_norm2": 1e-06,
+        "encoder.layers.21.layer_norm1": 1e-06,
+        "encoder.layers.21.layer_norm2": 1e-06,
+        "encoder.layers.22.layer_norm1": 1e-06,
+        "encoder.layers.22.layer_norm2": 1e-06,
+        "encoder.layers.23.layer_norm1": 1e-06,
+        "encoder.layers.23.layer_norm2": 1e-06,
+        "post_layernorm": 1e-06,
+        "head.layernorm": 1e-06
+      },
+      "dropout": {},
+      "buffer_devices": {
+        "embeddings.position_ids": "cuda:0"
+      }
+    },
+    "buffers_sha256": "ab32e08a999dff32ce145189a93bf90877c3df9f456fe84180b3468d6bf77679",
+    "frozen_names": [
+      "embeddings.patch_embedding.bias",
+      "embeddings.patch_embedding.weight",
+      "embeddings.position_embedding.weight",
+      "embeddings.position_ids",
+      "encoder.layers.0.layer_norm1.bias",
+      "encoder.layers.0.layer_norm1.weight",
+      "encoder.layers.0.layer_norm2.bias",
+      "encoder.layers.0.layer_norm2.weight",
+      "encoder.layers.0.mlp.fc1.bias",
+      "encoder.layers.0.mlp.fc1.weight",
+      "encoder.layers.0.mlp.fc2.bias",
+      "encoder.layers.0.mlp.fc2.weight",
+      "encoder.layers.0.self_attn.k_proj.bias",
+      "encoder.layers.0.self_attn.k_proj.weight",
+      "encoder.layers.0.self_attn.out_proj.bias",
+      "encoder.layers.0.self_attn.out_proj.weight",
+      "encoder.layers.0.self_attn.q_proj.bias",
+      "encoder.layers.0.self_attn.q_proj.weight",
+      "encoder.layers.0.self_attn.v_proj.bias",
+      "encoder.layers.0.self_attn.v_proj.weight",
+      "encoder.layers.1.layer_norm1.bias",
+      "encoder.layers.1.layer_norm1.weight",
+      "encoder.layers.1.layer_norm2.bias",
+      "encoder.layers.1.layer_norm2.weight",
+      "encoder.layers.1.mlp.fc1.bias",
+      "encoder.layers.1.mlp.fc1.weight",
+      "encoder.layers.1.mlp.fc2.bias",
+      "encoder.layers.1.mlp.fc2.weight",
+      "encoder.layers.1.self_attn.k_proj.bias",
+      "encoder.layers.1.self_attn.k_proj.weight",
+      "encoder.layers.1.self_attn.out_proj.bias",
+      "encoder.layers.1.self_attn.out_proj.weight",
+      "encoder.layers.1.self_attn.q_proj.bias",
+      "encoder.layers.1.self_attn.q_proj.weight",
+      "encoder.layers.1.self_attn.v_proj.bias",
+      "encoder.layers.1.self_attn.v_proj.weight",
+      "encoder.layers.2.layer_norm1.bias",
+      "encoder.layers.2.layer_norm1.weight",
+      "encoder.layers.2.layer_norm2.bias",
+      "encoder.layers.2.layer_norm2.weight",
+      "encoder.layers.2.mlp.fc1.bias",
+      "encoder.layers.2.mlp.fc1.weight",
+      "encoder.layers.2.mlp.fc2.bias",
+      "encoder.layers.2.mlp.fc2.weight",
+      "encoder.layers.2.self_attn.k_proj.bias",
+      "encoder.layers.2.self_attn.k_proj.weight",
+      "encoder.layers.2.self_attn.out_proj.bias",
+      "encoder.layers.2.self_attn.out_proj.weight",
+      "encoder.layers.2.self_attn.q_proj.bias",
+      "encoder.layers.2.self_attn.q_proj.weight",
+      "encoder.layers.2.self_attn.v_proj.bias",
+      "encoder.layers.2.self_attn.v_proj.weight",
+      "encoder.layers.3.layer_norm1.bias",
+      "encoder.layers.3.layer_norm1.weight",
+      "encoder.layers.3.layer_norm2.bias",
+      "encoder.layers.3.layer_norm2.weight",
+      "encoder.layers.3.mlp.fc1.bias",
+      "encoder.layers.3.mlp.fc1.weight",
+      "encoder.layers.3.mlp.fc2.bias",
+      "encoder.layers.3.mlp.fc2.weight",
+      "encoder.layers.3.self_attn.k_proj.bias",
+      "encoder.layers.3.self_attn.k_proj.weight",
+      "encoder.layers.3.self_attn.out_proj.bias",
+      "encoder.layers.3.self_attn.out_proj.weight",
+      "encoder.layers.3.self_attn.q_proj.bias",
+      "encoder.layers.3.self_attn.q_proj.weight",
+      "encoder.layers.3.self_attn.v_proj.bias",
+      "encoder.layers.3.self_attn.v_proj.weight",
+      "encoder.layers.4.layer_norm1.bias",
+      "encoder.layers.4.layer_norm1.weight",
+      "encoder.layers.4.layer_norm2.bias",
+      "encoder.layers.4.layer_norm2.weight",
+      "encoder.layers.4.mlp.fc1.bias",
+      "encoder.layers.4.mlp.fc1.weight",
+      "encoder.layers.4.mlp.fc2.bias",
+      "encoder.layers.4.mlp.fc2.weight",
+      "encoder.layers.4.self_attn.k_proj.bias",
+      "encoder.layers.4.self_attn.k_proj.weight",
+      "encoder.layers.4.self_attn.out_proj.bias",
+      "encoder.layers.4.self_attn.out_proj.weight",
+      "encoder.layers.4.self_attn.q_proj.bias",
+      "encoder.layers.4.self_attn.q_proj.weight",
+      "encoder.layers.4.self_attn.v_proj.bias",
+      "encoder.layers.4.self_attn.v_proj.weight",
+      "encoder.layers.5.layer_norm1.bias",
+      "encoder.layers.5.layer_norm1.weight",
+      "encoder.layers.5.layer_norm2.bias",
+      "encoder.layers.5.layer_norm2.weight",
+      "encoder.layers.5.mlp.fc1.bias",
+      "encoder.layers.5.mlp.fc1.weight",
+      "encoder.layers.5.mlp.fc2.bias",
+      "encoder.layers.5.mlp.fc2.weight",
+      "encoder.layers.5.self_attn.k_proj.bias",
+      "encoder.layers.5.self_attn.k_proj.weight",
+      "encoder.layers.5.self_attn.out_proj.bias",
+      "encoder.layers.5.self_attn.out_proj.weight",
+      "encoder.layers.5.self_attn.q_proj.bias",
+      "encoder.layers.5.self_attn.q_proj.weight",
+      "encoder.layers.5.self_attn.v_proj.bias",
+      "encoder.layers.5.self_attn.v_proj.weight",
+      "encoder.layers.6.layer_norm1.bias",
+      "encoder.layers.6.layer_norm1.weight",
+      "encoder.layers.6.layer_norm2.bias",
+      "encoder.layers.6.layer_norm2.weight",
+      "encoder.layers.6.mlp.fc1.bias",
+      "encoder.layers.6.mlp.fc1.weight",
+      "encoder.layers.6.mlp.fc2.bias",
+      "encoder.layers.6.mlp.fc2.weight",
+      "encoder.layers.6.self_attn.k_proj.bias",
+      "encoder.layers.6.self_attn.k_proj.weight",
+      "encoder.layers.6.self_attn.out_proj.bias",
+      "encoder.layers.6.self_attn.out_proj.weight",
+      "encoder.layers.6.self_attn.q_proj.bias",
+      "encoder.layers.6.self_attn.q_proj.weight",
+      "encoder.layers.6.self_attn.v_proj.bias",
+      "encoder.layers.6.self_attn.v_proj.weight",
+      "encoder.layers.7.layer_norm1.bias",
+      "encoder.layers.7.layer_norm1.weight",
+      "encoder.layers.7.layer_norm2.bias",
+      "encoder.layers.7.layer_norm2.weight",
+      "encoder.layers.7.mlp.fc1.bias",
+      "encoder.layers.7.mlp.fc1.weight",
+      "encoder.layers.7.mlp.fc2.bias",
+      "encoder.layers.7.mlp.fc2.weight",
+      "encoder.layers.7.self_attn.k_proj.bias",
+      "encoder.layers.7.self_attn.k_proj.weight",
+      "encoder.layers.7.self_attn.out_proj.bias",
+      "encoder.layers.7.self_attn.out_proj.weight",
+      "encoder.layers.7.self_attn.q_proj.bias",
+      "encoder.layers.7.self_attn.q_proj.weight",
+      "encoder.layers.7.self_attn.v_proj.bias",
+      "encoder.layers.7.self_attn.v_proj.weight",
+      "encoder.layers.8.layer_norm1.bias",
+      "encoder.layers.8.layer_norm1.weight",
+      "encoder.layers.8.layer_norm2.bias",
+      "encoder.layers.8.layer_norm2.weight",
+      "encoder.layers.8.mlp.fc1.bias",
+      "encoder.layers.8.mlp.fc1.weight",
+      "encoder.layers.8.mlp.fc2.bias",
+      "encoder.layers.8.mlp.fc2.weight",
+      "encoder.layers.8.self_attn.k_proj.bias",
+      "encoder.layers.8.self_attn.k_proj.weight",
+      "encoder.layers.8.self_attn.out_proj.bias",
+      "encoder.layers.8.self_attn.out_proj.weight",
+      "encoder.layers.8.self_attn.q_proj.bias",
+      "encoder.layers.8.self_attn.q_proj.weight",
+      "encoder.layers.8.self_attn.v_proj.bias",
+      "encoder.layers.8.self_attn.v_proj.weight",
+      "encoder.layers.9.layer_norm1.bias",
+      "encoder.layers.9.layer_norm1.weight",
+      "encoder.layers.9.layer_norm2.bias",
+      "encoder.layers.9.layer_norm2.weight",
+      "encoder.layers.9.mlp.fc1.bias",
+      "encoder.layers.9.mlp.fc1.weight",
+      "encoder.layers.9.mlp.fc2.bias",
+      "encoder.layers.9.mlp.fc2.weight",
+      "encoder.layers.9.self_attn.k_proj.bias",
+      "encoder.layers.9.self_attn.k_proj.weight",
+      "encoder.layers.9.self_attn.out_proj.bias",
+      "encoder.layers.9.self_attn.out_proj.weight",
+      "encoder.layers.9.self_attn.q_proj.bias",
+      "encoder.layers.9.self_attn.q_proj.weight",
+      "encoder.layers.9.self_attn.v_proj.bias",
+      "encoder.layers.9.self_attn.v_proj.weight"
+    ],
+    "frozen_sha256": "9fcfc91ec93053c8182da8b6077cb6abdc407be94fee7ecd1705ddcb27ea7f8d",
+    "optimizer_groups": [
+      {
+        "parameter_names": [
+          "encoder.layers.10.layer_norm1.weight",
+          "encoder.layers.10.layer_norm1.bias",
+          "encoder.layers.10.self_attn.k_proj.weight",
+          "encoder.layers.10.self_attn.k_proj.bias",
+          "encoder.layers.10.self_attn.v_proj.weight",
+          "encoder.layers.10.self_attn.v_proj.bias",
+          "encoder.layers.10.self_attn.q_proj.weight",
+          "encoder.layers.10.self_attn.q_proj.bias",
+          "encoder.layers.10.self_attn.out_proj.weight",
+          "encoder.layers.10.self_attn.out_proj.bias",
+          "encoder.layers.10.layer_norm2.weight",
+          "encoder.layers.10.layer_norm2.bias",
+          "encoder.layers.10.mlp.fc1.weight",
+          "encoder.layers.10.mlp.fc1.bias",
+          "encoder.layers.10.mlp.fc2.weight",
+          "encoder.layers.10.mlp.fc2.bias",
+          "encoder.layers.11.layer_norm1.weight",
+          "encoder.layers.11.layer_norm1.bias",
+          "encoder.layers.11.self_attn.k_proj.weight",
+          "encoder.layers.11.self_attn.k_proj.bias",
+          "encoder.layers.11.self_attn.v_proj.weight",
+          "encoder.layers.11.self_attn.v_proj.bias",
+          "encoder.layers.11.self_attn.q_proj.weight",
+          "encoder.layers.11.self_attn.q_proj.bias",
+          "encoder.layers.11.self_attn.out_proj.weight",
+          "encoder.layers.11.self_attn.out_proj.bias",
+          "encoder.layers.11.layer_norm2.weight",
+          "encoder.layers.11.layer_norm2.bias",
+          "encoder.layers.11.mlp.fc1.weight",
+          "encoder.layers.11.mlp.fc1.bias",
+          "encoder.layers.11.mlp.fc2.weight",
+          "encoder.layers.11.mlp.fc2.bias",
+          "encoder.layers.12.layer_norm1.weight",
+          "encoder.layers.12.layer_norm1.bias",
+          "encoder.layers.12.self_attn.k_proj.weight",
+          "encoder.layers.12.self_attn.k_proj.bias",
+          "encoder.layers.12.self_attn.v_proj.weight",
+          "encoder.layers.12.self_attn.v_proj.bias",
+          "encoder.layers.12.self_attn.q_proj.weight",
+          "encoder.layers.12.self_attn.q_proj.bias",
+          "encoder.layers.12.self_attn.out_proj.weight",
+          "encoder.layers.12.self_attn.out_proj.bias",
+          "encoder.layers.12.layer_norm2.weight",
+          "encoder.layers.12.layer_norm2.bias",
+          "encoder.layers.12.mlp.fc1.weight",
+          "encoder.layers.12.mlp.fc1.bias",
+          "encoder.layers.12.mlp.fc2.weight",
+          "encoder.layers.12.mlp.fc2.bias",
+          "encoder.layers.13.layer_norm1.weight",
+          "encoder.layers.13.layer_norm1.bias",
+          "encoder.layers.13.self_attn.k_proj.weight",
+          "encoder.layers.13.self_attn.k_proj.bias",
+          "encoder.layers.13.self_attn.v_proj.weight",
+          "encoder.layers.13.self_attn.v_proj.bias",
+          "encoder.layers.13.self_attn.q_proj.weight",
+          "encoder.layers.13.self_attn.q_proj.bias",
+          "encoder.layers.13.self_attn.out_proj.weight",
+          "encoder.layers.13.self_attn.out_proj.bias",
+          "encoder.layers.13.layer_norm2.weight",
+          "encoder.layers.13.layer_norm2.bias",
+          "encoder.layers.13.mlp.fc1.weight",
+          "encoder.layers.13.mlp.fc1.bias",
+          "encoder.layers.13.mlp.fc2.weight",
+          "encoder.layers.13.mlp.fc2.bias",
+          "encoder.layers.14.layer_norm1.weight",
+          "encoder.layers.14.layer_norm1.bias",
+          "encoder.layers.14.self_attn.k_proj.weight",
+          "encoder.layers.14.self_attn.k_proj.bias",
+          "encoder.layers.14.self_attn.v_proj.weight",
+          "encoder.layers.14.self_attn.v_proj.bias",
+          "encoder.layers.14.self_attn.q_proj.weight",
+          "encoder.layers.14.self_attn.q_proj.bias",
+          "encoder.layers.14.self_attn.out_proj.weight",
+          "encoder.layers.14.self_attn.out_proj.bias",
+          "encoder.layers.14.layer_norm2.weight",
+          "encoder.layers.14.layer_norm2.bias",
+          "encoder.layers.14.mlp.fc1.weight",
+          "encoder.layers.14.mlp.fc1.bias",
+          "encoder.layers.14.mlp.fc2.weight",
+          "encoder.layers.14.mlp.fc2.bias",
+          "encoder.layers.15.layer_norm1.weight",
+          "encoder.layers.15.layer_norm1.bias",
+          "encoder.layers.15.self_attn.k_proj.weight",
+          "encoder.layers.15.self_attn.k_proj.bias",
+          "encoder.layers.15.self_attn.v_proj.weight",
+          "encoder.layers.15.self_attn.v_proj.bias",
+          "encoder.layers.15.self_attn.q_proj.weight",
+          "encoder.layers.15.self_attn.q_proj.bias",
+          "encoder.layers.15.self_attn.out_proj.weight",
+          "encoder.layers.15.self_attn.out_proj.bias",
+          "encoder.layers.15.layer_norm2.weight",
+          "encoder.layers.15.layer_norm2.bias",
+          "encoder.layers.15.mlp.fc1.weight",
+          "encoder.layers.15.mlp.fc1.bias",
+          "encoder.layers.15.mlp.fc2.weight",
+          "encoder.layers.15.mlp.fc2.bias",
+          "encoder.layers.16.layer_norm1.weight",
+          "encoder.layers.16.layer_norm1.bias",
+          "encoder.layers.16.self_attn.k_proj.weight",
+          "encoder.layers.16.self_attn.k_proj.bias",
+          "encoder.layers.16.self_attn.v_proj.weight",
+          "encoder.layers.16.self_attn.v_proj.bias",
+          "encoder.layers.16.self_attn.q_proj.weight",
+          "encoder.layers.16.self_attn.q_proj.bias",
+          "encoder.layers.16.self_attn.out_proj.weight",
+          "encoder.layers.16.self_attn.out_proj.bias",
+          "encoder.layers.16.layer_norm2.weight",
+          "encoder.layers.16.layer_norm2.bias",
+          "encoder.layers.16.mlp.fc1.weight",
+          "encoder.layers.16.mlp.fc1.bias",
+          "encoder.layers.16.mlp.fc2.weight",
+          "encoder.layers.16.mlp.fc2.bias",
+          "encoder.layers.17.layer_norm1.weight",
+          "encoder.layers.17.layer_norm1.bias",
+          "encoder.layers.17.self_attn.k_proj.weight",
+          "encoder.layers.17.self_attn.k_proj.bias",
+          "encoder.layers.17.self_attn.v_proj.weight",
+          "encoder.layers.17.self_attn.v_proj.bias",
+          "encoder.layers.17.self_attn.q_proj.weight",
+          "encoder.layers.17.self_attn.q_proj.bias",
+          "encoder.layers.17.self_attn.out_proj.weight",
+          "encoder.layers.17.self_attn.out_proj.bias",
+          "encoder.layers.17.layer_norm2.weight",
+          "encoder.layers.17.layer_norm2.bias",
+          "encoder.layers.17.mlp.fc1.weight",
+          "encoder.layers.17.mlp.fc1.bias",
+          "encoder.layers.17.mlp.fc2.weight",
+          "encoder.layers.17.mlp.fc2.bias",
+          "encoder.layers.18.layer_norm1.weight",
+          "encoder.layers.18.layer_norm1.bias",
+          "encoder.layers.18.self_attn.k_proj.weight",
+          "encoder.layers.18.self_attn.k_proj.bias",
+          "encoder.layers.18.self_attn.v_proj.weight",
+          "encoder.layers.18.self_attn.v_proj.bias",
+          "encoder.layers.18.self_attn.q_proj.weight",
+          "encoder.layers.18.self_attn.q_proj.bias",
+          "encoder.layers.18.self_attn.out_proj.weight",
+          "encoder.layers.18.self_attn.out_proj.bias",
+          "encoder.layers.18.layer_norm2.weight",
+          "encoder.layers.18.layer_norm2.bias",
+          "encoder.layers.18.mlp.fc1.weight",
+          "encoder.layers.18.mlp.fc1.bias",
+          "encoder.layers.18.mlp.fc2.weight",
+          "encoder.layers.18.mlp.fc2.bias",
+          "encoder.layers.19.layer_norm1.weight",
+          "encoder.layers.19.layer_norm1.bias",
+          "encoder.layers.19.self_attn.k_proj.weight",
+          "encoder.layers.19.self_attn.k_proj.bias",
+          "encoder.layers.19.self_attn.v_proj.weight",
+          "encoder.layers.19.self_attn.v_proj.bias",
+          "encoder.layers.19.self_attn.q_proj.weight",
+          "encoder.layers.19.self_attn.q_proj.bias",
+          "encoder.layers.19.self_attn.out_proj.weight",
+          "encoder.layers.19.self_attn.out_proj.bias",
+          "encoder.layers.19.layer_norm2.weight",
+          "encoder.layers.19.layer_norm2.bias",
+          "encoder.layers.19.mlp.fc1.weight",
+          "encoder.layers.19.mlp.fc1.bias",
+          "encoder.layers.19.mlp.fc2.weight",
+          "encoder.layers.19.mlp.fc2.bias",
+          "encoder.layers.20.layer_norm1.weight",
+          "encoder.layers.20.layer_norm1.bias",
+          "encoder.layers.20.self_attn.k_proj.weight",
+          "encoder.layers.20.self_attn.k_proj.bias",
+          "encoder.layers.20.self_attn.v_proj.weight",
+          "encoder.layers.20.self_attn.v_proj.bias",
+          "encoder.layers.20.self_attn.q_proj.weight",
+          "encoder.layers.20.self_attn.q_proj.bias",
+          "encoder.layers.20.self_attn.out_proj.weight",
+          "encoder.layers.20.self_attn.out_proj.bias",
+          "encoder.layers.20.layer_norm2.weight",
+          "encoder.layers.20.layer_norm2.bias",
+          "encoder.layers.20.mlp.fc1.weight",
+          "encoder.layers.20.mlp.fc1.bias",
+          "encoder.layers.20.mlp.fc2.weight",
+          "encoder.layers.20.mlp.fc2.bias",
+          "encoder.layers.21.layer_norm1.weight",
+          "encoder.layers.21.layer_norm1.bias",
+          "encoder.layers.21.self_attn.k_proj.weight",
+          "encoder.layers.21.self_attn.k_proj.bias",
+          "encoder.layers.21.self_attn.v_proj.weight",
+          "encoder.layers.21.self_attn.v_proj.bias",
+          "encoder.layers.21.self_attn.q_proj.weight",
+          "encoder.layers.21.self_attn.q_proj.bias",
+          "encoder.layers.21.self_attn.out_proj.weight",
+          "encoder.layers.21.self_attn.out_proj.bias",
+          "encoder.layers.21.layer_norm2.weight",
+          "encoder.layers.21.layer_norm2.bias",
+          "encoder.layers.21.mlp.fc1.weight",
+          "encoder.layers.21.mlp.fc1.bias",
+          "encoder.layers.21.mlp.fc2.weight",
+          "encoder.layers.21.mlp.fc2.bias",
+          "encoder.layers.22.layer_norm1.weight",
+          "encoder.layers.22.layer_norm1.bias",
+          "encoder.layers.22.self_attn.k_proj.weight",
+          "encoder.layers.22.self_attn.k_proj.bias",
+          "encoder.layers.22.self_attn.v_proj.weight",
+          "encoder.layers.22.self_attn.v_proj.bias",
+          "encoder.layers.22.self_attn.q_proj.weight",
+          "encoder.layers.22.self_attn.q_proj.bias",
+          "encoder.layers.22.self_attn.out_proj.weight",
+          "encoder.layers.22.self_attn.out_proj.bias",
+          "encoder.layers.22.layer_norm2.weight",
+          "encoder.layers.22.layer_norm2.bias",
+          "encoder.layers.22.mlp.fc1.weight",
+          "encoder.layers.22.mlp.fc1.bias",
+          "encoder.layers.22.mlp.fc2.weight",
+          "encoder.layers.22.mlp.fc2.bias",
+          "encoder.layers.23.layer_norm1.weight",
+          "encoder.layers.23.layer_norm1.bias",
+          "encoder.layers.23.self_attn.k_proj.weight",
+          "encoder.layers.23.self_attn.k_proj.bias",
+          "encoder.layers.23.self_attn.v_proj.weight",
+          "encoder.layers.23.self_attn.v_proj.bias",
+          "encoder.layers.23.self_attn.q_proj.weight",
+          "encoder.layers.23.self_attn.q_proj.bias",
+          "encoder.layers.23.self_attn.out_proj.weight",
+          "encoder.layers.23.self_attn.out_proj.bias",
+          "encoder.layers.23.layer_norm2.weight",
+          "encoder.layers.23.layer_norm2.bias",
+          "encoder.layers.23.mlp.fc1.weight",
+          "encoder.layers.23.mlp.fc1.bias",
+          "encoder.layers.23.mlp.fc2.weight",
+          "encoder.layers.23.mlp.fc2.bias",
+          "post_layernorm.weight",
+          "post_layernorm.bias",
+          "head.probe",
+          "head.attention.in_proj_weight",
+          "head.attention.in_proj_bias",
+          "head.attention.out_proj.weight",
+          "head.attention.out_proj.bias",
+          "head.layernorm.weight",
+          "head.layernorm.bias",
+          "head.mlp.fc1.weight",
+          "head.mlp.fc1.bias",
+          "head.mlp.fc2.weight",
+          "head.mlp.fc2.bias"
+        ],
+        "options": {
+          "lr": 1e-05,
+          "betas": [
+            0.9,
+            0.999
+          ],
+          "eps": 1e-08,
+          "weight_decay": 0.05,
+          "amsgrad": false,
+          "maximize": false,
+          "foreach": null,
+          "capturable": false,
+          "differentiable": false,
+          "fused": null,
+          "decoupled_weight_decay": true
+        }
+      },
+      {
+        "parameter_names": [
+          "compact_head.weight",
+          "compact_head.bias"
+        ],
+        "options": {
+          "lr": 0.0001,
+          "betas": [
+            0.9,
+            0.999
+          ],
+          "eps": 1e-08,
+          "weight_decay": 0.05,
+          "amsgrad": false,
+          "maximize": false,
+          "foreach": null,
+          "capturable": false,
+          "differentiable": false,
+          "fused": null,
+          "decoupled_weight_decay": true
+        }
+      },
+      {
+        "parameter_names": [
+          "classifier"
+        ],
+        "options": {
+          "lr": 0.0001,
+          "betas": [
+            0.9,
+            0.999
+          ],
+          "eps": 1e-08,
+          "weight_decay": 0.05,
+          "amsgrad": false,
+          "maximize": false,
+          "foreach": null,
+          "capturable": false,
+          "differentiable": false,
+          "fused": null,
+          "decoupled_weight_decay": true
+        }
+      }
+    ],
+    "precision": "native_float32_fp16_autocast",
+    "batch": 64,
+    "micro": 16
+  },
+  "checkpoint_sha256": null,
+  "steps": [
+    {
+      "step": 1,
+      "ce": 0.08606909494847059,
+      "rank": 0.007954388856887817,
+      "loss": 0.14970420580357313,
+      "scale": 128.0,
+      "preclip_norm": 8.408037185668945,
+      "gradient_norms": {
+        "12": 5.986000183898382,
+        "13": 5.644726611708085,
+        "14": 4.498528804585437,
+        "15": 4.757367561450429,
+        "16": 4.335315840994735,
+        "17": 4.214438812892919,
+        "18": 4.1991425580702755,
+        "19": 4.371689268599503,
+        "20": 4.048894261400007,
+        "21": 4.386727965972801,
+        "22": 4.769734156665146,
+        "23": 6.32916795134584
+      },
+      "optimizer_counter": 1,
+      "augmentation_step": 1001,
+      "rgb_sha256": "7a6ce95d867fe04cc9f9426e837f935c8e373ea0f7846bcd25ef81336cc10244",
+      "pixels_sha256": "a6db72c7c9e45975edc4adb71f81ad4d004aff11784988517f640e93293cd8a2",
+      "rank_active_before": true,
+      "new_preclip_gradient_norms": {
+        "encoder.layers.10.layer_norm1.weight": 0.03452998729319188,
+        "encoder.layers.10.layer_norm1.bias": 0.045754236928192894,
+        "encoder.layers.10.self_attn.k_proj.weight": 0.45610720756998624,
+        "encoder.layers.10.self_attn.k_proj.bias": 7.31358660941402e-06,
+        "encoder.layers.10.self_attn.v_proj.weight": 1.3413377267655524,
+        "encoder.layers.10.self_attn.v_proj.bias": 0.08635327331703362,
+        "encoder.layers.10.self_attn.q_proj.weight": 0.3398766975331269,
+        "encoder.layers.10.self_attn.q_proj.bias": 0.011410860072186542,
+        "encoder.layers.10.self_attn.out_proj.weight": 1.2276352391138008,
+        "encoder.layers.10.self_attn.out_proj.bias": 0.15340013618506024,
+        "encoder.layers.10.layer_norm2.weight": 0.030758083986159968,
+        "encoder.layers.10.layer_norm2.bias": 0.02909836224583657,
+        "encoder.layers.10.mlp.fc1.weight": 1.2459606223334325,
+        "encoder.layers.10.mlp.fc1.bias": 0.04963731092465058,
+        "encoder.layers.10.mlp.fc2.weight": 1.4741061341418913,
+        "encoder.layers.10.mlp.fc2.bias": 0.16911104707842664,
+        "encoder.layers.11.layer_norm1.weight": 0.04841577358039661,
+        "encoder.layers.11.layer_norm1.bias": 0.04991929920731725,
+        "encoder.layers.11.self_attn.k_proj.weight": 0.47441048460573987,
+        "encoder.layers.11.self_attn.k_proj.bias": 5.551981517388839e-06,
+        "encoder.layers.11.self_attn.v_proj.weight": 1.272357379128784,
+        "encoder.layers.11.self_attn.v_proj.bias": 0.09208960210719346,
+        "encoder.layers.11.self_attn.q_proj.weight": 0.3879077016843596,
+        "encoder.layers.11.self_attn.q_proj.bias": 0.01332633952735654,
+        "encoder.layers.11.self_attn.out_proj.weight": 1.078623273323957,
+        "encoder.layers.11.self_attn.out_proj.bias": 0.15002035808901293,
+        "encoder.layers.11.layer_norm2.weight": 0.023973150760273558,
+        "encoder.layers.11.layer_norm2.bias": 0.0259934868924863,
+        "encoder.layers.11.mlp.fc1.weight": 1.0646271688890703,
+        "encoder.layers.11.mlp.fc1.bias": 0.039218842808050526,
+        "encoder.layers.11.mlp.fc2.weight": 1.314840881568377,
+        "encoder.layers.11.mlp.fc2.bias": 0.15718202042491916
+      },
+      "seconds": 2.4065238148905337
+    },
+    {
+      "step": 2,
+      "ce": 0.21104239113628864,
+      "rank": 0.005162820219993591,
+      "loss": 0.2523449528962374,
+      "scale": 128.0,
+      "preclip_norm": 23.32976722717285,
+      "gradient_norms": {
+        "12": 18.14511304660879,
+        "13": 17.420786704828377,
+        "14": 14.364145221743646,
+        "15": 14.179948976765717,
+        "16": 15.59885116672855,
+        "17": 12.506398697926866,
+        "18": 12.959371396323169,
+        "19": 11.54301336853144,
+        "20": 10.116486647654677,
+        "21": 11.41061507975923,
+        "22": 13.797602025746665,
+        "23": 14.712245713118605
+      },
+      "optimizer_counter": 2,
+      "augmentation_step": 1002,
+      "rgb_sha256": "a2cec5cacd9a9f252224ef0bddfd7562b9c904f110fc117508551a9477203173",
+      "pixels_sha256": "3a7215c09236f627c12dbb53b4a9de81d05958d7dc92dabace10c0f4abb7e779",
+      "rank_active_before": true,
+      "new_preclip_gradient_norms": {
+        "encoder.layers.10.layer_norm1.weight": 0.09429812210584078,
+        "encoder.layers.10.layer_norm1.bias": 0.15226626336158758,
+        "encoder.layers.10.self_attn.k_proj.weight": 1.5336879121649183,
+        "encoder.layers.10.self_attn.k_proj.bias": 1.6299065183153564e-05,
+        "encoder.layers.10.self_attn.v_proj.weight": 3.9734170179751658,
+        "encoder.layers.10.self_attn.v_proj.bias": 0.27043940835043256,
+        "encoder.layers.10.self_attn.q_proj.weight": 1.0198100147793157,
+        "encoder.layers.10.self_attn.q_proj.bias": 0.03988621443180067,
+        "encoder.layers.10.self_attn.out_proj.weight": 3.3177609627894133,
+        "encoder.layers.10.self_attn.out_proj.bias": 0.4551870597589075,
+        "encoder.layers.10.layer_norm2.weight": 0.0804446606377934,
+        "encoder.layers.10.layer_norm2.bias": 0.10204598730590361,
+        "encoder.layers.10.mlp.fc1.weight": 3.656482066778842,
+        "encoder.layers.10.mlp.fc1.bias": 0.15387872321001592,
+        "encoder.layers.10.mlp.fc2.weight": 4.217751928887539,
+        "encoder.layers.10.mlp.fc2.bias": 0.5129667479655947,
+        "encoder.layers.11.layer_norm1.weight": 0.17551044952309902,
+        "encoder.layers.11.layer_norm1.bias": 0.1510345841262799,
+        "encoder.layers.11.self_attn.k_proj.weight": 1.3708537825817686,
+        "encoder.layers.11.self_attn.k_proj.bias": 1.5968747546954087e-05,
+        "encoder.layers.11.self_attn.v_proj.weight": 3.7324125381179742,
+        "encoder.layers.11.self_attn.v_proj.bias": 0.27150693536522585,
+        "encoder.layers.11.self_attn.q_proj.weight": 1.0283915822816512,
+        "encoder.layers.11.self_attn.q_proj.bias": 0.04000160329077202,
+        "encoder.layers.11.self_attn.out_proj.weight": 3.1619045142109696,
+        "encoder.layers.11.self_attn.out_proj.bias": 0.46867362811109003,
+        "encoder.layers.11.layer_norm2.weight": 0.07387338895364422,
+        "encoder.layers.11.layer_norm2.bias": 0.07550026586353663,
+        "encoder.layers.11.mlp.fc1.weight": 2.965145095496028,
+        "encoder.layers.11.mlp.fc1.bias": 0.10994649217241349,
+        "encoder.layers.11.mlp.fc2.weight": 3.8426495245093117,
+        "encoder.layers.11.mlp.fc2.bias": 0.47463692104208993
+      },
+      "seconds": 1.3542547477409244
+    },
+    {
+      "step": 3,
+      "ce": 0.34931139647960663,
+      "rank": 0.012011781334877014,
+      "loss": 0.44540564715862274,
+      "scale": 128.0,
+      "preclip_norm": 24.684585571289062,
+      "gradient_norms": {
+        "12": 18.075718142802195,
+        "13": 16.644110809931068,
+        "14": 13.858177608326312,
+        "15": 13.899904598762403,
+        "16": 13.743328723346066,
+        "17": 14.01958420312517,
+        "18": 12.129098006087265,
+        "19": 11.805465791063126,
+        "20": 10.902447812158652,
+        "21": 12.10437214770079,
+        "22": 13.336750295118707,
+        "23": 18.094566905590813
+      },
+      "optimizer_counter": 3,
+      "augmentation_step": 1003,
+      "rgb_sha256": "2842b47f1ccbf54637327f70740bcb6aad94df52298a8470f2aeee011da4f099",
+      "pixels_sha256": "1943c84e8bd44ec30e907730bdeedf89c8a40d998810d9e896c63914c44c57b0",
+      "rank_active_before": true,
+      "new_preclip_gradient_norms": {
+        "encoder.layers.10.layer_norm1.weight": 0.13026111696254658,
+        "encoder.layers.10.layer_norm1.bias": 0.18920800092576606,
+        "encoder.layers.10.self_attn.k_proj.weight": 1.632189084600213,
+        "encoder.layers.10.self_attn.k_proj.bias": 1.8241720820600654e-05,
+        "encoder.layers.10.self_attn.v_proj.weight": 4.396017179194291,
+        "encoder.layers.10.self_attn.v_proj.bias": 0.3326052025702266,
+        "encoder.layers.10.self_attn.q_proj.weight": 1.1830721565703388,
+        "encoder.layers.10.self_attn.q_proj.bias": 0.04627552581192615,
+        "encoder.layers.10.self_attn.out_proj.weight": 3.848512852663449,
+        "encoder.layers.10.self_attn.out_proj.bias": 0.551701029986859,
+        "encoder.layers.10.layer_norm2.weight": 0.09996349035932235,
+        "encoder.layers.10.layer_norm2.bias": 0.12014387958847106,
+        "encoder.layers.10.mlp.fc1.weight": 4.132752280309923,
+        "encoder.layers.10.mlp.fc1.bias": 0.18039405128601024,
+        "encoder.layers.10.mlp.fc2.weight": 4.745559283554178,
+        "encoder.layers.10.mlp.fc2.bias": 0.601973304092463,
+        "encoder.layers.11.layer_norm1.weight": 0.13121904645231505,
+        "encoder.layers.11.layer_norm1.bias": 0.18893319542628406,
+        "encoder.layers.11.self_attn.k_proj.weight": 1.7614064078884792,
+        "encoder.layers.11.self_attn.k_proj.bias": 1.661401802571813e-05,
+        "encoder.layers.11.self_attn.v_proj.weight": 4.077658597250677,
+        "encoder.layers.11.self_attn.v_proj.bias": 0.30327741625904386,
+        "encoder.layers.11.self_attn.q_proj.weight": 1.2797393744985546,
+        "encoder.layers.11.self_attn.q_proj.bias": 0.04788717204951511,
+        "encoder.layers.11.self_attn.out_proj.weight": 3.281389338430646,
+        "encoder.layers.11.self_attn.out_proj.bias": 0.5012579527448078,
+        "encoder.layers.11.layer_norm2.weight": 0.10877362168691172,
+        "encoder.layers.11.layer_norm2.bias": 0.08551319250322276,
+        "encoder.layers.11.mlp.fc1.weight": 3.1544955857014436,
+        "encoder.layers.11.mlp.fc1.bias": 0.12061303606776944,
+        "encoder.layers.11.mlp.fc2.weight": 4.145175630696851,
+        "encoder.layers.11.mlp.fc2.bias": 0.5349189376482689
+      },
+      "seconds": 1.4211884988471866
+    },
+    {
+      "step": 4,
+      "ce": 0.356053838506341,
+      "rank": 0.003641650080680847,
+      "loss": 0.38518703915178776,
+      "scale": 128.0,
+      "preclip_norm": 23.96536636352539,
+      "gradient_norms": {
+        "12": 20.33762031007537,
+        "13": 17.66016731676571,
+        "14": 13.879818800299939,
+        "15": 12.501980959953183,
+        "16": 12.052953612505206,
+        "17": 11.106535902175839,
+        "18": 10.614557330120256,
+        "19": 9.878981740659981,
+        "20": 10.251972403752019,
+        "21": 11.452141285281524,
+        "22": 12.59870723941086,
+        "23": 15.155607081634043
+      },
+      "optimizer_counter": 4,
+      "augmentation_step": 1004,
+      "rgb_sha256": "8ac868429cae8b5350bb1f019511fd668b2828c3de40808bac17c76df7e23c73",
+      "pixels_sha256": "5dd66f6cb2d19bb9c39461d70d6e007ab8aa1c550d38099be189fd6f01fbcc1f",
+      "rank_active_before": true,
+      "new_preclip_gradient_norms": {
+        "encoder.layers.10.layer_norm1.weight": 0.20945412737047528,
+        "encoder.layers.10.layer_norm1.bias": 0.17057346197925868,
+        "encoder.layers.10.self_attn.k_proj.weight": 1.976319465495211,
+        "encoder.layers.10.self_attn.k_proj.bias": 2.15491916420727e-05,
+        "encoder.layers.10.self_attn.v_proj.weight": 5.294869799257885,
+        "encoder.layers.10.self_attn.v_proj.bias": 0.33050223788999433,
+        "encoder.layers.10.self_attn.q_proj.weight": 1.3638006594298189,
+        "encoder.layers.10.self_attn.q_proj.bias": 0.04960946899449847,
+        "encoder.layers.10.self_attn.out_proj.weight": 4.381893003969982,
+        "encoder.layers.10.self_attn.out_proj.bias": 0.5587336028239923,
+        "encoder.layers.10.layer_norm2.weight": 0.10487387421507377,
+        "encoder.layers.10.layer_norm2.bias": 0.11437120563343031,
+        "encoder.layers.10.mlp.fc1.weight": 4.730023291896516,
+        "encoder.layers.10.mlp.fc1.bias": 0.18152958547326217,
+        "encoder.layers.10.mlp.fc2.weight": 5.374089058429804,
+        "encoder.layers.10.mlp.fc2.bias": 0.5728966211709603,
+        "encoder.layers.11.layer_norm1.weight": 0.1083016778601282,
+        "encoder.layers.11.layer_norm1.bias": 0.15254231655319705,
+        "encoder.layers.11.self_attn.k_proj.weight": 1.502348053576028,
+        "encoder.layers.11.self_attn.k_proj.bias": 2.4912267428430554e-05,
+        "encoder.layers.11.self_attn.v_proj.weight": 4.198806035033673,
+        "encoder.layers.11.self_attn.v_proj.bias": 0.27745704707902585,
+        "encoder.layers.11.self_attn.q_proj.weight": 1.2075716757350692,
+        "encoder.layers.11.self_attn.q_proj.bias": 0.03818603409184634,
+        "encoder.layers.11.self_attn.out_proj.weight": 3.659157408027905,
+        "encoder.layers.11.self_attn.out_proj.bias": 0.5339096612417427,
+        "encoder.layers.11.layer_norm2.weight": 0.14534761644975766,
+        "encoder.layers.11.layer_norm2.bias": 0.09219622469520868,
+        "encoder.layers.11.mlp.fc1.weight": 3.705731943786388,
+        "encoder.layers.11.mlp.fc1.bias": 0.13786786071853915,
+        "encoder.layers.11.mlp.fc2.weight": 4.309113102120836,
+        "encoder.layers.11.mlp.fc2.bias": 0.5545443931480251
+      },
+      "seconds": 1.2548563489690423
+    },
+    {
+      "step": 5,
+      "ce": 0.20833665877580643,
+      "rank": 0.0077484166249632835,
+      "loss": 0.2703239917755127,
+      "scale": 128.0,
+      "preclip_norm": 17.866565704345703,
+      "gradient_norms": {
+        "12": 13.36446097009591,
+        "13": 12.007595178524433,
+        "14": 10.098420693409723,
+        "15": 9.406203307462073,
+        "16": 9.433112030970298,
+        "17": 8.853667684005138,
+        "18": 8.124519663125898,
+        "19": 8.306652885147846,
+        "20": 8.183848292794433,
+        "21": 9.491620884347425,
+        "22": 10.647854955892821,
+        "23": 13.69274413460913
+      },
+      "optimizer_counter": 5,
+      "augmentation_step": 1005,
+      "rgb_sha256": "b279c493e10b0ad1390ffc8ad1b82689b3c190de9ab889c809a3b5ed2a600caf",
+      "pixels_sha256": "130e2fc543b5b7570981e506d7800bc5f853e4dfdc5158cf656cd6c7bdf5155f",
+      "rank_active_before": false,
+      "new_preclip_gradient_norms": {
+        "encoder.layers.10.layer_norm1.weight": 0.07914040670430414,
+        "encoder.layers.10.layer_norm1.bias": 0.13263046943084952,
+        "encoder.layers.10.self_attn.k_proj.weight": 1.0801348806375934,
+        "encoder.layers.10.self_attn.k_proj.bias": 1.1511007181730981e-05,
+        "encoder.layers.10.self_attn.v_proj.weight": 3.3816759838758115,
+        "encoder.layers.10.self_attn.v_proj.bias": 0.25199424331135317,
+        "encoder.layers.10.self_attn.q_proj.weight": 0.753086002536857,
+        "encoder.layers.10.self_attn.q_proj.bias": 0.03071920372707524,
+        "encoder.layers.10.self_attn.out_proj.weight": 2.7723126405939533,
+        "encoder.layers.10.self_attn.out_proj.bias": 0.42814254033262533,
+        "encoder.layers.10.layer_norm2.weight": 0.06586960373343742,
+        "encoder.layers.10.layer_norm2.bias": 0.08453952781098734,
+        "encoder.layers.10.mlp.fc1.weight": 2.9811180365594456,
+        "encoder.layers.10.mlp.fc1.bias": 0.1344515808083763,
+        "encoder.layers.10.mlp.fc2.weight": 3.5140885637691692,
+        "encoder.layers.10.mlp.fc2.bias": 0.4693500585059855,
+        "encoder.layers.11.layer_norm1.weight": 0.12534715289034076,
+        "encoder.layers.11.layer_norm1.bias": 0.1326023040025363,
+        "encoder.layers.11.self_attn.k_proj.weight": 1.1396283044442592,
+        "encoder.layers.11.self_attn.k_proj.bias": 1.2046604699389518e-05,
+        "encoder.layers.11.self_attn.v_proj.weight": 3.0105912189130337,
+        "encoder.layers.11.self_attn.v_proj.bias": 0.24039073458055932,
+        "encoder.layers.11.self_attn.q_proj.weight": 0.8278793874132938,
+        "encoder.layers.11.self_attn.q_proj.bias": 0.031371470320169396,
+        "encoder.layers.11.self_attn.out_proj.weight": 2.4238350227159344,
+        "encoder.layers.11.self_attn.out_proj.bias": 0.39771401996284766,
+        "encoder.layers.11.layer_norm2.weight": 0.11304600225656944,
+        "encoder.layers.11.layer_norm2.bias": 0.06719306357301297,
+        "encoder.layers.11.mlp.fc1.weight": 2.404876115873422,
+        "encoder.layers.11.mlp.fc1.bias": 0.10066013716694806,
+        "encoder.layers.11.mlp.fc2.weight": 3.089330866563025,
+        "encoder.layers.11.mlp.fc2.bias": 0.42161410497232527
+      },
+      "seconds": 1.2430105251260102
+    },
+    {
+      "step": 6,
+      "ce": 0.30045148730278015,
+      "rank": 0.011132821440696716,
+      "loss": 0.3895140588283539,
+      "scale": 128.0,
+      "preclip_norm": 25.368677139282227,
+      "gradient_norms": {
+        "12": 19.278032403824298,
+        "13": 18.313071503347782,
+        "14": 14.933845427750855,
+        "15": 14.817158531902866,
+        "16": 13.99835129995479,
+        "17": 12.771097900769822,
+        "18": 11.889316141252678,
+        "19": 12.331353932636523,
+        "20": 11.385676422594122,
+        "21": 12.799895668101522,
+        "22": 14.258173403771115,
+        "23": 16.911624096174585
+      },
+      "optimizer_counter": 6,
+      "augmentation_step": 1006,
+      "rgb_sha256": "7866ee89db52dd6e80741875349b951169a197ac08785a3ea22a49ed47eed240",
+      "pixels_sha256": "62971cd307f4950a76caa902b649480b04d069705e5a7c35c03fa38576e88622",
+      "rank_active_before": true,
+      "new_preclip_gradient_norms": {
+        "encoder.layers.10.layer_norm1.weight": 0.12366497750553421,
+        "encoder.layers.10.layer_norm1.bias": 0.17507044675539668,
+        "encoder.layers.10.self_attn.k_proj.weight": 1.6169517429700315,
+        "encoder.layers.10.self_attn.k_proj.bias": 1.7792750345386436e-05,
+        "encoder.layers.10.self_attn.v_proj.weight": 4.733885636318226,
+        "encoder.layers.10.self_attn.v_proj.bias": 0.320782039351881,
+        "encoder.layers.10.self_attn.q_proj.weight": 1.1467474624685499,
+        "encoder.layers.10.self_attn.q_proj.bias": 0.04221425303265277,
+        "encoder.layers.10.self_attn.out_proj.weight": 4.114094563616242,
+        "encoder.layers.10.self_attn.out_proj.bias": 0.5631975619595411,
+        "encoder.layers.10.layer_norm2.weight": 0.099135120450783,
+        "encoder.layers.10.layer_norm2.bias": 0.11669427853412229,
+        "encoder.layers.10.mlp.fc1.weight": 4.428639712752762,
+        "encoder.layers.10.mlp.fc1.bias": 0.19098659132974105,
+        "encoder.layers.10.mlp.fc2.weight": 4.981087016671352,
+        "encoder.layers.10.mlp.fc2.bias": 0.6104685008191,
+        "encoder.layers.11.layer_norm1.weight": 0.09480765729608354,
+        "encoder.layers.11.layer_norm1.bias": 0.17823269606198763,
+        "encoder.layers.11.self_attn.k_proj.weight": 1.542197009403766,
+        "encoder.layers.11.self_attn.k_proj.bias": 1.8476805675897736e-05,
+        "encoder.layers.11.self_attn.v_proj.weight": 4.238964128728755,
+        "encoder.layers.11.self_attn.v_proj.bias": 0.31291630804224096,
+        "encoder.layers.11.self_attn.q_proj.weight": 1.1856533450598283,
+        "encoder.layers.11.self_attn.q_proj.bias": 0.038210986138952845,
+        "encoder.layers.11.self_attn.out_proj.weight": 3.4716088401116845,
+        "encoder.layers.11.self_attn.out_proj.bias": 0.5145843837621031,
+        "encoder.layers.11.layer_norm2.weight": 0.07987420390804448,
+        "encoder.layers.11.layer_norm2.bias": 0.09886992432849163,
+        "encoder.layers.11.mlp.fc1.weight": 3.4796414778319606,
+        "encoder.layers.11.mlp.fc1.bias": 0.136459041162135,
+        "encoder.layers.11.mlp.fc2.weight": 4.223147717967256,
+        "encoder.layers.11.mlp.fc2.bias": 0.5463985798444466
+      },
+      "seconds": 1.265093439258635
+    },
+    {
+      "step": 7,
+      "ce": 0.3611967843025923,
+      "rank": 0.010143518447875977,
+      "loss": 0.4423449318856001,
+      "scale": 128.0,
+      "preclip_norm": 29.661911010742188,
+      "gradient_norms": {
+        "12": 25.917107448706922,
+        "13": 22.576898997504916,
+        "14": 16.325225388433473,
+        "15": 15.41143787342004,
+        "16": 14.177291825314327,
+        "17": 13.163036364686201,
+        "18": 11.584066138463099,
+        "19": 12.253551033784321,
+        "20": 11.840415356814258,
+        "21": 13.118074796566892,
+        "22": 14.52594272548205,
+        "23": 16.523255309173354
+      },
+      "optimizer_counter": 7,
+      "augmentation_step": 1007,
+      "rgb_sha256": "8a1b3cbb1279733c4b527be3d0a3d5c0d7c28dcfccdca2ddc5878776dbd54ae5",
+      "pixels_sha256": "c7b83d26fadc516dabbaf9d9c114369f16074f1e3b6cd62a1bf2de04b90b991e",
+      "rank_active_before": true,
+      "new_preclip_gradient_norms": {
+        "encoder.layers.10.layer_norm1.weight": 0.21328434682093947,
+        "encoder.layers.10.layer_norm1.bias": 0.26616321724054903,
+        "encoder.layers.10.self_attn.k_proj.weight": 2.354911655879256,
+        "encoder.layers.10.self_attn.k_proj.bias": 2.458892279108427e-05,
+        "encoder.layers.10.self_attn.v_proj.weight": 6.962350449070239,
+        "encoder.layers.10.self_attn.v_proj.bias": 0.4844987704906646,
+        "encoder.layers.10.self_attn.q_proj.weight": 1.6501692577664342,
+        "encoder.layers.10.self_attn.q_proj.bias": 0.059036057409972545,
+        "encoder.layers.10.self_attn.out_proj.weight": 5.640920818543418,
+        "encoder.layers.10.self_attn.out_proj.bias": 0.7975166459481785,
+        "encoder.layers.10.layer_norm2.weight": 0.2176855296849153,
+        "encoder.layers.10.layer_norm2.bias": 0.16807629711724423,
+        "encoder.layers.10.mlp.fc1.weight": 6.2121817000138675,
+        "encoder.layers.10.mlp.fc1.bias": 0.2751099544493013,
+        "encoder.layers.10.mlp.fc2.weight": 7.091552746291181,
+        "encoder.layers.10.mlp.fc2.bias": 0.9092180880164272,
+        "encoder.layers.11.layer_norm1.weight": 0.20222738346421018,
+        "encoder.layers.11.layer_norm1.bias": 0.2635944256837602,
+        "encoder.layers.11.self_attn.k_proj.weight": 2.303791985987407,
+        "encoder.layers.11.self_attn.k_proj.bias": 2.3175038534965818e-05,
+        "encoder.layers.11.self_attn.v_proj.weight": 5.980413840671929,
+        "encoder.layers.11.self_attn.v_proj.bias": 0.4595129754674529,
+        "encoder.layers.11.self_attn.q_proj.weight": 1.713162309695003,
+        "encoder.layers.11.self_attn.q_proj.bias": 0.06369491548970999,
+        "encoder.layers.11.self_attn.out_proj.weight": 4.849308231534522,
+        "encoder.layers.11.self_attn.out_proj.bias": 0.7867606165794214,
+        "encoder.layers.11.layer_norm2.weight": 0.14497527335055338,
+        "encoder.layers.11.layer_norm2.bias": 0.14381380604817326,
+        "encoder.layers.11.mlp.fc1.weight": 4.854443180131086,
+        "encoder.layers.11.mlp.fc1.bias": 0.21213824725007605,
+        "encoder.layers.11.mlp.fc2.weight": 5.965574622649894,
+        "encoder.layers.11.mlp.fc2.bias": 0.837492929956747
+      },
+      "seconds": 1.2605523890815675
+    },
+    {
+      "step": 8,
+      "ce": 0.146896552760154,
+      "rank": 0.0034687453880906105,
+      "loss": 0.1746465158648789,
+      "scale": 128.0,
+      "preclip_norm": 21.568220138549805,
+      "gradient_norms": {
+        "12": 17.91887501237705,
+        "13": 15.584501572299981,
+        "14": 12.090551608032056,
+        "15": 11.200020622447454,
+        "16": 10.193382103189935,
+        "17": 9.77309243131721,
+        "18": 9.092720777724484,
+        "19": 9.488120947392872,
+        "20": 8.906734756138405,
+        "21": 9.462322519609868,
+        "22": 10.62189350268943,
+        "23": 11.729572531245495
+      },
+      "optimizer_counter": 8,
+      "augmentation_step": 1008,
+      "rgb_sha256": "5f51062f065e92b0f0a340f52984b007798cc10e4e2ef2903f8d82beca2126cd",
+      "pixels_sha256": "dc71f675a8286f4ec7441a023ade8f8747b8f28afea3e2fce6770df1f7060aea",
+      "rank_active_before": false,
+      "new_preclip_gradient_norms": {
+        "encoder.layers.10.layer_norm1.weight": 0.11367941955530937,
+        "encoder.layers.10.layer_norm1.bias": 0.19631823415410424,
+        "encoder.layers.10.self_attn.k_proj.weight": 1.8027561589152166,
+        "encoder.layers.10.self_attn.k_proj.bias": 2.0429394888239357e-05,
+        "encoder.layers.10.self_attn.v_proj.weight": 5.196805557679975,
+        "encoder.layers.10.self_attn.v_proj.bias": 0.3524637434549984,
+        "encoder.layers.10.self_attn.q_proj.weight": 1.2924520295610171,
+        "encoder.layers.10.self_attn.q_proj.bias": 0.04711119769664451,
+        "encoder.layers.10.self_attn.out_proj.weight": 4.192817726371928,
+        "encoder.layers.10.self_attn.out_proj.bias": 0.5809309712558705,
+        "encoder.layers.10.layer_norm2.weight": 0.09677986071342622,
+        "encoder.layers.10.layer_norm2.bias": 0.12073595912715587,
+        "encoder.layers.10.mlp.fc1.weight": 4.37882708961382,
+        "encoder.layers.10.mlp.fc1.bias": 0.19734067527280943,
+        "encoder.layers.10.mlp.fc2.weight": 5.007798662418574,
+        "encoder.layers.10.mlp.fc2.bias": 0.652529123567256,
+        "encoder.layers.11.layer_norm1.weight": 0.11994420830825323,
+        "encoder.layers.11.layer_norm1.bias": 0.1939109606468032,
+        "encoder.layers.11.self_attn.k_proj.weight": 1.612580526852889,
+        "encoder.layers.11.self_attn.k_proj.bias": 1.7527046280655977e-05,
+        "encoder.layers.11.self_attn.v_proj.weight": 4.246790469547196,
+        "encoder.layers.11.self_attn.v_proj.bias": 0.3388732157264127,
+        "encoder.layers.11.self_attn.q_proj.weight": 1.2043167144801232,
+        "encoder.layers.11.self_attn.q_proj.bias": 0.04655944891148951,
+        "encoder.layers.11.self_attn.out_proj.weight": 3.4263802841453286,
+        "encoder.layers.11.self_attn.out_proj.bias": 0.5484490246637878,
+        "encoder.layers.11.layer_norm2.weight": 0.10247627444428808,
+        "encoder.layers.11.layer_norm2.bias": 0.08849274773076943,
+        "encoder.layers.11.mlp.fc1.weight": 3.480357939950555,
+        "encoder.layers.11.mlp.fc1.bias": 0.139534603767228,
+        "encoder.layers.11.mlp.fc2.weight": 4.006884506607492,
+        "encoder.layers.11.mlp.fc2.bias": 0.5357070188719499
+      },
+      "seconds": 1.2673838818445802
+    },
+    {
+      "step": 9,
+      "ce": 0.388810183852911,
+      "rank": 0.011320546269416809,
+      "loss": 0.47937455400824547,
+      "scale": 128.0,
+      "preclip_norm": 27.58932876586914,
+      "gradient_norms": {
+        "12": 21.374810351352615,
+        "13": 19.71196909220617,
+        "14": 15.440643831341674,
+        "15": 15.144192907162276,
+        "16": 16.009797820203207,
+        "17": 14.834655787019114,
+        "18": 13.892759594087874,
+        "19": 14.486131323525605,
+        "20": 13.244610384645735,
+        "21": 14.423240149921147,
+        "22": 15.805612666485883,
+        "23": 18.250348812768394
+      },
+      "optimizer_counter": 9,
+      "augmentation_step": 1009,
+      "rgb_sha256": "6302873790ed3d527b824dac2f6260984b25ebf5a2fdeee8b405f83b14926eb4",
+      "pixels_sha256": "887335bb87cc1cdd65ada7ad3928d91a02f6535a622017e0c7906f0b413fe1c1",
+      "rank_active_before": true,
+      "new_preclip_gradient_norms": {
+        "encoder.layers.10.layer_norm1.weight": 0.17425974002329686,
+        "encoder.layers.10.layer_norm1.bias": 0.20503151430098665,
+        "encoder.layers.10.self_attn.k_proj.weight": 1.7387777016671129,
+        "encoder.layers.10.self_attn.k_proj.bias": 1.9819203939665e-05,
+        "encoder.layers.10.self_attn.v_proj.weight": 4.956194838487084,
+        "encoder.layers.10.self_attn.v_proj.bias": 0.3606689501241226,
+        "encoder.layers.10.self_attn.q_proj.weight": 1.1732310405863793,
+        "encoder.layers.10.self_attn.q_proj.bias": 0.046086452386540806,
+        "encoder.layers.10.self_attn.out_proj.weight": 4.22372307117629,
+        "encoder.layers.10.self_attn.out_proj.bias": 0.5920819816966578,
+        "encoder.layers.10.layer_norm2.weight": 0.10943993595997391,
+        "encoder.layers.10.layer_norm2.bias": 0.11504688988600076,
+        "encoder.layers.10.mlp.fc1.weight": 4.483977876791365,
+        "encoder.layers.10.mlp.fc1.bias": 0.18852580251513423,
+        "encoder.layers.10.mlp.fc2.weight": 5.262630398897151,
+        "encoder.layers.10.mlp.fc2.bias": 0.6275682231834584,
+        "encoder.layers.11.layer_norm1.weight": 0.12613570495685006,
+        "encoder.layers.11.layer_norm1.bias": 0.1886846272448324,
+        "encoder.layers.11.self_attn.k_proj.weight": 1.705655079960857,
+        "encoder.layers.11.self_attn.k_proj.bias": 2.0332390893596955e-05,
+        "encoder.layers.11.self_attn.v_proj.weight": 4.50473903758772,
+        "encoder.layers.11.self_attn.v_proj.bias": 0.33416105444692357,
+        "encoder.layers.11.self_attn.q_proj.weight": 1.3412159498897802,
+        "encoder.layers.11.self_attn.q_proj.bias": 0.044281219568204695,
+        "encoder.layers.11.self_attn.out_proj.weight": 3.782616335679598,
+        "encoder.layers.11.self_attn.out_proj.bias": 0.5584951776197732,
+        "encoder.layers.11.layer_norm2.weight": 0.08290893069335045,
+        "encoder.layers.11.layer_norm2.bias": 0.09750077366870809,
+        "encoder.layers.11.mlp.fc1.weight": 3.7096774488880215,
+        "encoder.layers.11.mlp.fc1.bias": 0.1403277532273774,
+        "encoder.layers.11.mlp.fc2.weight": 4.568238150330664,
+        "encoder.layers.11.mlp.fc2.bias": 0.5869518266623626
+      },
+      "seconds": 1.271368867252022
+    },
+    {
+      "step": 10,
+      "ce": 0.2581275589764118,
+      "rank": 0.00685146264731884,
+      "loss": 0.31293926015496254,
+      "scale": 128.0,
+      "preclip_norm": 17.713428497314453,
+      "gradient_norms": {
+        "12": 12.98119935700698,
+        "13": 12.179462139569694,
+        "14": 9.73430034498038,
+        "15": 9.435888362039867,
+        "16": 9.194414097637143,
+        "17": 8.688315373705306,
+        "18": 8.167566841174215,
+        "19": 7.970755408147387,
+        "20": 7.758155207716311,
+        "21": 9.456425885188056,
+        "22": 10.852524620762061,
+        "23": 14.23715572271743
+      },
+      "optimizer_counter": 10,
+      "augmentation_step": 1010,
+      "rgb_sha256": "a20f6e9e388cff4c173caef2f061972295f020e21e20e56664ebeaa66bbfb128",
+      "pixels_sha256": "14e39a81b3744683ff6282663b5969d71a7004554219f394b0aa994fe873c4c9",
+      "rank_active_before": false,
+      "new_preclip_gradient_norms": {
+        "encoder.layers.10.layer_norm1.weight": 0.09354189194116867,
+        "encoder.layers.10.layer_norm1.bias": 0.1170717250259463,
+        "encoder.layers.10.self_attn.k_proj.weight": 1.0989383209648804,
+        "encoder.layers.10.self_attn.k_proj.bias": 1.258870005648844e-05,
+        "encoder.layers.10.self_attn.v_proj.weight": 2.9827454225363583,
+        "encoder.layers.10.self_attn.v_proj.bias": 0.2123018629355837,
+        "encoder.layers.10.self_attn.q_proj.weight": 0.7496116105640291,
+        "encoder.layers.10.self_attn.q_proj.bias": 0.03117570060770355,
+        "encoder.layers.10.self_attn.out_proj.weight": 2.546887186886252,
+        "encoder.layers.10.self_attn.out_proj.bias": 0.3559261655387244,
+        "encoder.layers.10.layer_norm2.weight": 0.0799298450449168,
+        "encoder.layers.10.layer_norm2.bias": 0.07671349922907345,
+        "encoder.layers.10.mlp.fc1.weight": 2.745012619396312,
+        "encoder.layers.10.mlp.fc1.bias": 0.11708036603947718,
+        "encoder.layers.10.mlp.fc2.weight": 3.2131623938729965,
+        "encoder.layers.10.mlp.fc2.bias": 0.3872018098256251,
+        "encoder.layers.11.layer_norm1.weight": 0.06827056142394825,
+        "encoder.layers.11.layer_norm1.bias": 0.10555874797020053,
+        "encoder.layers.11.self_attn.k_proj.weight": 1.1016694240056208,
+        "encoder.layers.11.self_attn.k_proj.bias": 1.2291422003389286e-05,
+        "encoder.layers.11.self_attn.v_proj.weight": 2.6580121420971237,
+        "encoder.layers.11.self_attn.v_proj.bias": 0.19269822566471473,
+        "encoder.layers.11.self_attn.q_proj.weight": 0.821892021978689,
+        "encoder.layers.11.self_attn.q_proj.bias": 0.031530077224824433,
+        "encoder.layers.11.self_attn.out_proj.weight": 2.2968942567935873,
+        "encoder.layers.11.self_attn.out_proj.bias": 0.35667844669951954,
+        "encoder.layers.11.layer_norm2.weight": 0.07213006472797227,
+        "encoder.layers.11.layer_norm2.bias": 0.060655678254969383,
+        "encoder.layers.11.mlp.fc1.weight": 2.2373945641296427,
+        "encoder.layers.11.mlp.fc1.bias": 0.08831873116374171,
+        "encoder.layers.11.mlp.fc2.weight": 2.8786590551756333,
+        "encoder.layers.11.mlp.fc2.bias": 0.38476099426971216
+      },
+      "seconds": 1.2609188151545823
+    },
+    {
+      "step": 11,
+      "ce": 0.5227470323443413,
+      "rank": 0.014729663729667664,
+      "loss": 0.6405843421816826,
+      "scale": 128.0,
+      "preclip_norm": 36.99932861328125,
+      "gradient_norms": {
+        "12": 30.943443529769862,
+        "13": 26.886271442967217,
+        "14": 21.27619474683956,
+        "15": 19.901170116851024,
+        "16": 18.081763010676436,
+        "17": 16.020569537175916,
+        "18": 16.874677257416373,
+        "19": 15.437380660119473,
+        "20": 15.349053259908656,
+        "21": 18.228322223268066,
+        "22": 21.189679097173688,
+        "23": 24.562080266453354
+      },
+      "optimizer_counter": 11,
+      "augmentation_step": 1011,
+      "rgb_sha256": "baafbbe7dddf97e7f84130e40990f9084b0945b1b373abee964768d353470614",
+      "pixels_sha256": "814635a1b53a65598b27c3ce4753b0041c767201e8f816c2a1058da965e6492f",
+      "rank_active_before": true,
+      "new_preclip_gradient_norms": {
+        "encoder.layers.10.layer_norm1.weight": 0.22258261928197878,
+        "encoder.layers.10.layer_norm1.bias": 0.33051926405414034,
+        "encoder.layers.10.self_attn.k_proj.weight": 2.823814951678505,
+        "encoder.layers.10.self_attn.k_proj.bias": 2.9812540176954435e-05,
+        "encoder.layers.10.self_attn.v_proj.weight": 7.684098438098677,
+        "encoder.layers.10.self_attn.v_proj.bias": 0.564217164262898,
+        "encoder.layers.10.self_attn.q_proj.weight": 1.9381151095274824,
+        "encoder.layers.10.self_attn.q_proj.bias": 0.0776760212722512,
+        "encoder.layers.10.self_attn.out_proj.weight": 6.718306625568867,
+        "encoder.layers.10.self_attn.out_proj.bias": 0.915602237894393,
+        "encoder.layers.10.layer_norm2.weight": 0.20548762383421107,
+        "encoder.layers.10.layer_norm2.bias": 0.19601212221721678,
+        "encoder.layers.10.mlp.fc1.weight": 6.672380058252098,
+        "encoder.layers.10.mlp.fc1.bias": 0.30057960862649297,
+        "encoder.layers.10.mlp.fc2.weight": 7.8396044644559995,
+        "encoder.layers.10.mlp.fc2.bias": 0.9945264165613588,
+        "encoder.layers.11.layer_norm1.weight": 0.3411393145023083,
+        "encoder.layers.11.layer_norm1.bias": 0.307057478326032,
+        "encoder.layers.11.self_attn.k_proj.weight": 2.628429989875305,
+        "encoder.layers.11.self_attn.k_proj.bias": 3.19759223721814e-05,
+        "encoder.layers.11.self_attn.v_proj.weight": 6.5092062467742196,
+        "encoder.layers.11.self_attn.v_proj.bias": 0.5286683218481097,
+        "encoder.layers.11.self_attn.q_proj.weight": 2.4576304032150054,
+        "encoder.layers.11.self_attn.q_proj.bias": 0.0766072757869499,
+        "encoder.layers.11.self_attn.out_proj.weight": 5.606375822324202,
+        "encoder.layers.11.self_attn.out_proj.bias": 0.8479358596164391,
+        "encoder.layers.11.layer_norm2.weight": 0.1660796034060691,
+        "encoder.layers.11.layer_norm2.bias": 0.14937699192350518,
+        "encoder.layers.11.mlp.fc1.weight": 5.765899633612782,
+        "encoder.layers.11.mlp.fc1.bias": 0.24032253231891362,
+        "encoder.layers.11.mlp.fc2.weight": 6.629175592431269,
+        "encoder.layers.11.mlp.fc2.bias": 0.8947592389458955
+      },
+      "seconds": 1.2889189217239618
+    },
+    {
+      "step": 12,
+      "ce": 0.29360879957675934,
+      "rank": 0.0031662313267588615,
+      "loss": 0.31893865019083023,
+      "scale": 128.0,
+      "preclip_norm": 23.783401489257812,
+      "gradient_norms": {
+        "12": 19.07999989788644,
+        "13": 16.878317608573784,
+        "14": 14.813434818730654,
+        "15": 14.379537784213445,
+        "16": 13.95389513237867,
+        "17": 11.551037006066872,
+        "18": 11.216823576402444,
+        "19": 11.534626585981389,
+        "20": 10.495075471190477,
+        "21": 10.670650818158723,
+        "22": 11.992984761164253,
+        "23": 13.15415013512305
+      },
+      "optimizer_counter": 12,
+      "augmentation_step": 1012,
+      "rgb_sha256": "8160be4f074a55dd9dc969564831a0d927d0fc363eb8738aa0c2e59cd6d2ef94",
+      "pixels_sha256": "cecbc88085da9028200095178d6b27b3024a58aead91e8eb0afa1689bb6ec270",
+      "rank_active_before": false,
+      "new_preclip_gradient_norms": {
+        "encoder.layers.10.layer_norm1.weight": 0.22800290128640754,
+        "encoder.layers.10.layer_norm1.bias": 0.1721748593678551,
+        "encoder.layers.10.self_attn.k_proj.weight": 1.6077360661871585,
+        "encoder.layers.10.self_attn.k_proj.bias": 1.4643104786878991e-05,
+        "encoder.layers.10.self_attn.v_proj.weight": 4.721926274315337,
+        "encoder.layers.10.self_attn.v_proj.bias": 0.33792823706316155,
+        "encoder.layers.10.self_attn.q_proj.weight": 1.0341520455894901,
+        "encoder.layers.10.self_attn.q_proj.bias": 0.044799326433780026,
+        "encoder.layers.10.self_attn.out_proj.weight": 4.070654177142959,
+        "encoder.layers.10.self_attn.out_proj.bias": 0.5546296254716507,
+        "encoder.layers.10.layer_norm2.weight": 0.10504180077716951,
+        "encoder.layers.10.layer_norm2.bias": 0.11413524928954644,
+        "encoder.layers.10.mlp.fc1.weight": 4.0980384336869795,
+        "encoder.layers.10.mlp.fc1.bias": 0.18300260668705415,
+        "encoder.layers.10.mlp.fc2.weight": 4.872351467038479,
+        "encoder.layers.10.mlp.fc2.bias": 0.6182326713468042,
+        "encoder.layers.11.layer_norm1.weight": 0.1215341182495615,
+        "encoder.layers.11.layer_norm1.bias": 0.17991018727052688,
+        "encoder.layers.11.self_attn.k_proj.weight": 1.6137925703599765,
+        "encoder.layers.11.self_attn.k_proj.bias": 1.5712122806830353e-05,
+        "encoder.layers.11.self_attn.v_proj.weight": 4.25574280476313,
+        "encoder.layers.11.self_attn.v_proj.bias": 0.34815874041532396,
+        "encoder.layers.11.self_attn.q_proj.weight": 1.2244120585597649,
+        "encoder.layers.11.self_attn.q_proj.bias": 0.04748753090532527,
+        "encoder.layers.11.self_attn.out_proj.weight": 3.540665989863108,
+        "encoder.layers.11.self_attn.out_proj.bias": 0.5643598675324026,
+        "encoder.layers.11.layer_norm2.weight": 0.06320106633215139,
+        "encoder.layers.11.layer_norm2.bias": 0.08670403007629629,
+        "encoder.layers.11.mlp.fc1.weight": 3.359836954993584,
+        "encoder.layers.11.mlp.fc1.bias": 0.1293467864157241,
+        "encoder.layers.11.mlp.fc2.weight": 4.292833096829715,
+        "encoder.layers.11.mlp.fc2.bias": 0.5885145997185502
+      },
+      "seconds": 1.2520154020749032
+    },
+    {
+      "step": 13,
+      "ce": 0.24963058903813362,
+      "rank": 0.008813017047941685,
+      "loss": 0.3201347254216671,
+      "scale": 128.0,
+      "preclip_norm": 17.93841552734375,
+      "gradient_norms": {
+        "12": 13.545269812695942,
+        "13": 11.86437481964596,
+        "14": 9.577486466221721,
+        "15": 9.320213925442602,
+        "16": 9.718845163020868,
+        "17": 8.854739086026134,
+        "18": 9.31791197558193,
+        "19": 7.8658892478511,
+        "20": 8.565150915931083,
+        "21": 9.569066848850351,
+        "22": 10.253991326325275,
+        "23": 13.054815856552695
+      },
+      "optimizer_counter": 13,
+      "augmentation_step": 1013,
+      "rgb_sha256": "bd45a5a9169a557130e56f311897c47401fe67ddc7ff5226fa80be8ad5621624",
+      "pixels_sha256": "3aff538d4c9c045ca9bb06d19d18679adbb4789af7ef61244b81aa9bd72d95e9",
+      "rank_active_before": false,
+      "new_preclip_gradient_norms": {
+        "encoder.layers.10.layer_norm1.weight": 0.09598532905527635,
+        "encoder.layers.10.layer_norm1.bias": 0.12346738367829795,
+        "encoder.layers.10.self_attn.k_proj.weight": 1.1709408948209932,
+        "encoder.layers.10.self_attn.k_proj.bias": 1.1359531091936072e-05,
+        "encoder.layers.10.self_attn.v_proj.weight": 3.2751765097700773,
+        "encoder.layers.10.self_attn.v_proj.bias": 0.22993169488367976,
+        "encoder.layers.10.self_attn.q_proj.weight": 0.7946794490180498,
+        "encoder.layers.10.self_attn.q_proj.bias": 0.031362569349029035,
+        "encoder.layers.10.self_attn.out_proj.weight": 2.7125948456733533,
+        "encoder.layers.10.self_attn.out_proj.bias": 0.3897103992708924,
+        "encoder.layers.10.layer_norm2.weight": 0.07247764553491083,
+        "encoder.layers.10.layer_norm2.bias": 0.07723020679317481,
+        "encoder.layers.10.mlp.fc1.weight": 3.095020289780928,
+        "encoder.layers.10.mlp.fc1.bias": 0.1281364388837254,
+        "encoder.layers.10.mlp.fc2.weight": 3.5843304490878234,
+        "encoder.layers.10.mlp.fc2.bias": 0.43855096860532405,
+        "encoder.layers.11.layer_norm1.weight": 0.09036344145687661,
+        "encoder.layers.11.layer_norm1.bias": 0.13847524539749817,
+        "encoder.layers.11.self_attn.k_proj.weight": 1.2648028681030377,
+        "encoder.layers.11.self_attn.k_proj.bias": 1.4152491309270058e-05,
+        "encoder.layers.11.self_attn.v_proj.weight": 3.1843781872550547,
+        "encoder.layers.11.self_attn.v_proj.bias": 0.24071509618726497,
+        "encoder.layers.11.self_attn.q_proj.weight": 0.8590558927424683,
+        "encoder.layers.11.self_attn.q_proj.bias": 0.033268906532243264,
+        "encoder.layers.11.self_attn.out_proj.weight": 2.3859335557596393,
+        "encoder.layers.11.self_attn.out_proj.bias": 0.38835040921178704,
+        "encoder.layers.11.layer_norm2.weight": 0.05741281639554186,
+        "encoder.layers.11.layer_norm2.bias": 0.06312209234860484,
+        "encoder.layers.11.mlp.fc1.weight": 2.4785041757531205,
+        "encoder.layers.11.mlp.fc1.bias": 0.10177900492828598,
+        "encoder.layers.11.mlp.fc2.weight": 3.102278052764664,
+        "encoder.layers.11.mlp.fc2.bias": 0.41828085193077635
+      },
+      "seconds": 1.26369665004313
+    },
+    {
+      "step": 14,
+      "ce": 0.380286306142807,
+      "rank": 0.010559320449829102,
+      "loss": 0.4647608697414398,
+      "scale": 128.0,
+      "preclip_norm": 30.85875129699707,
+      "gradient_norms": {
+        "12": 25.405353123065563,
+        "13": 24.782986262630253,
+        "14": 19.507071600459334,
+        "15": 19.016137024831504,
+        "16": 17.611810269909466,
+        "17": 16.222669350038284,
+        "18": 14.252281473580386,
+        "19": 13.920929512283958,
+        "20": 14.051663235066144,
+        "21": 14.0532829616918,
+        "22": 15.665480909415814,
+        "23": 17.613926077127505
+      },
+      "optimizer_counter": 14,
+      "augmentation_step": 1014,
+      "rgb_sha256": "43f172fbdf0bc443732ebde80f1e97ececf129dc26fa6a878f8f6b58cf3f5136",
+      "pixels_sha256": "d24c32ed5a94dc26471dc883ff464a7c623216d9719cf68d2f960e1eede4f7c4",
+      "rank_active_before": true,
+      "new_preclip_gradient_norms": {
+        "encoder.layers.10.layer_norm1.weight": 0.13045438578881993,
+        "encoder.layers.10.layer_norm1.bias": 0.22009065632539415,
+        "encoder.layers.10.self_attn.k_proj.weight": 1.883114189301271,
+        "encoder.layers.10.self_attn.k_proj.bias": 2.681810974307619e-05,
+        "encoder.layers.10.self_attn.v_proj.weight": 6.0325433585750465,
+        "encoder.layers.10.self_attn.v_proj.bias": 0.39405836999001675,
+        "encoder.layers.10.self_attn.q_proj.weight": 1.40708286305239,
+        "encoder.layers.10.self_attn.q_proj.bias": 0.050197661825596596,
+        "encoder.layers.10.self_attn.out_proj.weight": 5.205606951039289,
+        "encoder.layers.10.self_attn.out_proj.bias": 0.7159084299465129,
+        "encoder.layers.10.layer_norm2.weight": 0.13088968193062311,
+        "encoder.layers.10.layer_norm2.bias": 0.146288963989042,
+        "encoder.layers.10.mlp.fc1.weight": 5.616253610845224,
+        "encoder.layers.10.mlp.fc1.bias": 0.23821337890328467,
+        "encoder.layers.10.mlp.fc2.weight": 6.43001511998411,
+        "encoder.layers.10.mlp.fc2.bias": 0.7829802981382079,
+        "encoder.layers.11.layer_norm1.weight": 0.1475384343588068,
+        "encoder.layers.11.layer_norm1.bias": 0.22730100020190172,
+        "encoder.layers.11.self_attn.k_proj.weight": 2.073908492488446,
+        "encoder.layers.11.self_attn.k_proj.bias": 2.6513081146426704e-05,
+        "encoder.layers.11.self_attn.v_proj.weight": 5.505493178874368,
+        "encoder.layers.11.self_attn.v_proj.bias": 0.3977832111715479,
+        "encoder.layers.11.self_attn.q_proj.weight": 1.5361302355075472,
+        "encoder.layers.11.self_attn.q_proj.bias": 0.054057730678599626,
+        "encoder.layers.11.self_attn.out_proj.weight": 4.52118679808676,
+        "encoder.layers.11.self_attn.out_proj.bias": 0.7070744811632386,
+        "encoder.layers.11.layer_norm2.weight": 0.11066803106091705,
+        "encoder.layers.11.layer_norm2.bias": 0.11944158428920816,
+        "encoder.layers.11.mlp.fc1.weight": 4.531471411629444,
+        "encoder.layers.11.mlp.fc1.bias": 0.18159160201148933,
+        "encoder.layers.11.mlp.fc2.weight": 5.60579076310477,
+        "encoder.layers.11.mlp.fc2.bias": 0.7395112286318406
+      },
+      "seconds": 1.2497062678448856
+    },
+    {
+      "step": 15,
+      "ce": 0.15993640152737498,
+      "rank": 0.018814265727996826,
+      "loss": 0.3104505273513496,
+      "scale": 128.0,
+      "preclip_norm": 12.184252738952637,
+      "gradient_norms": {
+        "12": 8.72898553438184,
+        "13": 8.212926469206907,
+        "14": 6.564549690191349,
+        "15": 6.690016439271384,
+        "16": 6.130600909991842,
+        "17": 5.50297909280506,
+        "18": 5.504160004285748,
+        "19": 5.695202325655727,
+        "20": 5.453716265269783,
+        "21": 6.685058536616787,
+        "22": 7.750766244418731,
+        "23": 9.891396772351191
+      },
+      "optimizer_counter": 15,
+      "augmentation_step": 1015,
+      "rgb_sha256": "1dc84b224b7890d3a4fa69c07e5b37caa5bc90ee7de3482845dd5131b4d0faed",
+      "pixels_sha256": "0b03f9e9487c1213d4ae78c408e6a82c1ad9921f848527d7fb4995632bc3af7f",
+      "rank_active_before": true,
+      "new_preclip_gradient_norms": {
+        "encoder.layers.10.layer_norm1.weight": 0.04200837684588393,
+        "encoder.layers.10.layer_norm1.bias": 0.07674543751480539,
+        "encoder.layers.10.self_attn.k_proj.weight": 0.7449056071346603,
+        "encoder.layers.10.self_attn.k_proj.bias": 9.02934103245474e-06,
+        "encoder.layers.10.self_attn.v_proj.weight": 2.01003529140113,
+        "encoder.layers.10.self_attn.v_proj.bias": 0.13948779882522214,
+        "encoder.layers.10.self_attn.q_proj.weight": 0.4937931704046583,
+        "encoder.layers.10.self_attn.q_proj.bias": 0.02075519300603568,
+        "encoder.layers.10.self_attn.out_proj.weight": 1.7082301204591346,
+        "encoder.layers.10.self_attn.out_proj.bias": 0.2392550655447715,
+        "encoder.layers.10.layer_norm2.weight": 0.0377883357241962,
+        "encoder.layers.10.layer_norm2.bias": 0.04856755830024855,
+        "encoder.layers.10.mlp.fc1.weight": 1.8719472052452388,
+        "encoder.layers.10.mlp.fc1.bias": 0.08082959039864906,
+        "encoder.layers.10.mlp.fc2.weight": 2.158845522350847,
+        "encoder.layers.10.mlp.fc2.bias": 0.2682204286532126,
+        "encoder.layers.11.layer_norm1.weight": 0.04907557447473497,
+        "encoder.layers.11.layer_norm1.bias": 0.07693061211371131,
+        "encoder.layers.11.self_attn.k_proj.weight": 0.6925140620294857,
+        "encoder.layers.11.self_attn.k_proj.bias": 7.83305913814715e-06,
+        "encoder.layers.11.self_attn.v_proj.weight": 1.8681569141470498,
+        "encoder.layers.11.self_attn.v_proj.bias": 0.1426139881786649,
+        "encoder.layers.11.self_attn.q_proj.weight": 0.5175762897849009,
+        "encoder.layers.11.self_attn.q_proj.bias": 0.01952830004272326,
+        "encoder.layers.11.self_attn.out_proj.weight": 1.5363468812651988,
+        "encoder.layers.11.self_attn.out_proj.bias": 0.23776306049238055,
+        "encoder.layers.11.layer_norm2.weight": 0.03877852773882121,
+        "encoder.layers.11.layer_norm2.bias": 0.04055335771317891,
+        "encoder.layers.11.mlp.fc1.weight": 1.546417121364109,
+        "encoder.layers.11.mlp.fc1.bias": 0.06108462820652702,
+        "encoder.layers.11.mlp.fc2.weight": 1.9504091341851935,
+        "encoder.layers.11.mlp.fc2.bias": 0.26263499969301285
+      },
+      "seconds": 1.2549871411174536
+    },
+    {
+      "step": 16,
+      "ce": 0.6522289272397757,
+      "rank": 0.03155116830021143,
+      "loss": 0.9046382736414671,
+      "scale": 128.0,
+      "preclip_norm": 39.22711944580078,
+      "gradient_norms": {
+        "12": 32.177840321684926,
+        "13": 29.299165257154726,
+        "14": 25.628761149320475,
+        "15": 23.525981406008587,
+        "16": 21.55404148331815,
+        "17": 19.462884235049298,
+        "18": 16.563889996682526,
+        "19": 16.8207321240338,
+        "20": 15.99593390192312,
+        "21": 18.19612822636204,
+        "22": 21.098548673905515,
+        "23": 24.11165330770594
+      },
+      "optimizer_counter": 16,
+      "augmentation_step": 1016,
+      "rgb_sha256": "84ebbfee1477bafa6efc16516525db6871449a75fcbff7f35a2437eeb06f4d75",
+      "pixels_sha256": "3858b4d03497d6bca0c9deb3f8060dced19bdf60e4da7e67349d8f8c93eff016",
+      "rank_active_before": false,
+      "new_preclip_gradient_norms": {
+        "encoder.layers.10.layer_norm1.weight": 0.20399191460045588,
+        "encoder.layers.10.layer_norm1.bias": 0.28690772048516794,
+        "encoder.layers.10.self_attn.k_proj.weight": 2.7825525262407385,
+        "encoder.layers.10.self_attn.k_proj.bias": 3.699598909247025e-05,
+        "encoder.layers.10.self_attn.v_proj.weight": 8.468208770385123,
+        "encoder.layers.10.self_attn.v_proj.bias": 0.571424740919478,
+        "encoder.layers.10.self_attn.q_proj.weight": 1.9750010295122848,
+        "encoder.layers.10.self_attn.q_proj.bias": 0.06689118788787833,
+        "encoder.layers.10.self_attn.out_proj.weight": 6.893017904855697,
+        "encoder.layers.10.self_attn.out_proj.bias": 0.9485080078614987,
+        "encoder.layers.10.layer_norm2.weight": 0.17079018275583005,
+        "encoder.layers.10.layer_norm2.bias": 0.20884751874461177,
+        "encoder.layers.10.mlp.fc1.weight": 7.273578300173568,
+        "encoder.layers.10.mlp.fc1.bias": 0.31771057968612215,
+        "encoder.layers.10.mlp.fc2.weight": 8.338686954992086,
+        "encoder.layers.10.mlp.fc2.bias": 1.085856430163963,
+        "encoder.layers.11.layer_norm1.weight": 0.3006708433114234,
+        "encoder.layers.11.layer_norm1.bias": 0.32569282352256135,
+        "encoder.layers.11.self_attn.k_proj.weight": 2.6261705045233374,
+        "encoder.layers.11.self_attn.k_proj.bias": 2.982390916442589e-05,
+        "encoder.layers.11.self_attn.v_proj.weight": 7.471376509101537,
+        "encoder.layers.11.self_attn.v_proj.bias": 0.581413965813391,
+        "encoder.layers.11.self_attn.q_proj.weight": 1.8867040879018377,
+        "encoder.layers.11.self_attn.q_proj.bias": 0.0706112560117234,
+        "encoder.layers.11.self_attn.out_proj.weight": 5.73850739034587,
+        "encoder.layers.11.self_attn.out_proj.bias": 0.9293324471182665,
+        "encoder.layers.11.layer_norm2.weight": 0.17870626756123498,
+        "encoder.layers.11.layer_norm2.bias": 0.15875242826229713,
+        "encoder.layers.11.mlp.fc1.weight": 5.8532894167643095,
+        "encoder.layers.11.mlp.fc1.bias": 0.23736625948380596,
+        "encoder.layers.11.mlp.fc2.weight": 6.884212515597523,
+        "encoder.layers.11.mlp.fc2.bias": 0.9467458356297062
+      },
+      "seconds": 1.275775495916605
+    },
+    {
+      "step": 17,
+      "ce": 0.2461686208844185,
+      "rank": 0.007832425646483898,
+      "loss": 0.3088280260562897,
+      "scale": 128.0,
+      "preclip_norm": 24.23305320739746,
+      "gradient_norms": {
+        "12": 20.429762973862847,
+        "13": 18.47838458606662,
+        "14": 15.17798870931505,
+        "15": 13.431824600750696,
+        "16": 12.938235667094656,
+        "17": 11.026971657177008,
+        "18": 10.13287798046905,
+        "19": 9.83826420956675,
+        "20": 9.914222837546953,
+        "21": 11.12514726122047,
+        "22": 12.09839799065197,
+        "23": 14.72921783749878
+      },
+      "optimizer_counter": 17,
+      "augmentation_step": 1017,
+      "rgb_sha256": "0ac137ba4d2346408e58e7e6dcd54f4c73b75b223e505ca15938382a64cfdd9e",
+      "pixels_sha256": "76e7c7d9c7d6d197a80a1a621d6d0025a629915f27091dd5eb6c6a45f7aeadf9",
+      "rank_active_before": false,
+      "new_preclip_gradient_norms": {
+        "encoder.layers.10.layer_norm1.weight": 0.5029894090676343,
+        "encoder.layers.10.layer_norm1.bias": 0.215105051700446,
+        "encoder.layers.10.self_attn.k_proj.weight": 2.1512220680619474,
+        "encoder.layers.10.self_attn.k_proj.bias": 2.025204268950214e-05,
+        "encoder.layers.10.self_attn.v_proj.weight": 5.129031667017958,
+        "encoder.layers.10.self_attn.v_proj.bias": 0.3708027297139365,
+        "encoder.layers.10.self_attn.q_proj.weight": 1.4281322676186108,
+        "encoder.layers.10.self_attn.q_proj.bias": 0.059876185439216544,
+        "encoder.layers.10.self_attn.out_proj.weight": 4.242996421818366,
+        "encoder.layers.10.self_attn.out_proj.bias": 0.6163617598203284,
+        "encoder.layers.10.layer_norm2.weight": 0.11099816692045882,
+        "encoder.layers.10.layer_norm2.bias": 0.11995989741220663,
+        "encoder.layers.10.mlp.fc1.weight": 4.239666055040536,
+        "encoder.layers.10.mlp.fc1.bias": 0.18799603537219112,
+        "encoder.layers.10.mlp.fc2.weight": 5.173661025087478,
+        "encoder.layers.10.mlp.fc2.bias": 0.6686856190592803,
+        "encoder.layers.11.layer_norm1.weight": 0.1584006296558581,
+        "encoder.layers.11.layer_norm1.bias": 0.18442489439816043,
+        "encoder.layers.11.self_attn.k_proj.weight": 1.8137824587026767,
+        "encoder.layers.11.self_attn.k_proj.bias": 2.3077179078891753e-05,
+        "encoder.layers.11.self_attn.v_proj.weight": 4.369301646031113,
+        "encoder.layers.11.self_attn.v_proj.bias": 0.3384730676711386,
+        "encoder.layers.11.self_attn.q_proj.weight": 1.2828376721844996,
+        "encoder.layers.11.self_attn.q_proj.bias": 0.05299763754623991,
+        "encoder.layers.11.self_attn.out_proj.weight": 3.5716921910769788,
+        "encoder.layers.11.self_attn.out_proj.bias": 0.5811422301603933,
+        "encoder.layers.11.layer_norm2.weight": 0.08112532269578412,
+        "encoder.layers.11.layer_norm2.bias": 0.10092277954966422,
+        "encoder.layers.11.mlp.fc1.weight": 3.6679966638768944,
+        "encoder.layers.11.mlp.fc1.bias": 0.1579858789968394,
+        "encoder.layers.11.mlp.fc2.weight": 4.427778284037613,
+        "encoder.layers.11.mlp.fc2.bias": 0.6301636148996339
+      },
+      "seconds": 1.268209906294942
+    }
+  ],
+  "new32_weights_changed": true,
+  "new_parameter_changes": {
+    "encoder.layers.10.layer_norm1.weight": true,
+    "encoder.layers.10.layer_norm1.bias": true,
+    "encoder.layers.10.self_attn.k_proj.weight": true,
+    "encoder.layers.10.self_attn.k_proj.bias": true,
+    "encoder.layers.10.self_attn.v_proj.weight": true,
+    "encoder.layers.10.self_attn.v_proj.bias": true,
+    "encoder.layers.10.self_attn.q_proj.weight": true,
+    "encoder.layers.10.self_attn.q_proj.bias": true,
+    "encoder.layers.10.self_attn.out_proj.weight": true,
+    "encoder.layers.10.self_attn.out_proj.bias": true,
+    "encoder.layers.10.layer_norm2.weight": true,
+    "encoder.layers.10.layer_norm2.bias": true,
+    "encoder.layers.10.mlp.fc1.weight": true,
+    "encoder.layers.10.mlp.fc1.bias": true,
+    "encoder.layers.10.mlp.fc2.weight": true,
+    "encoder.layers.10.mlp.fc2.bias": true,
+    "encoder.layers.11.layer_norm1.weight": true,
+    "encoder.layers.11.layer_norm1.bias": true,
+    "encoder.layers.11.self_attn.k_proj.weight": true,
+    "encoder.layers.11.self_attn.k_proj.bias": true,
+    "encoder.layers.11.self_attn.v_proj.weight": true,
+    "encoder.layers.11.self_attn.v_proj.bias": true,
+    "encoder.layers.11.self_attn.q_proj.weight": true,
+    "encoder.layers.11.self_attn.q_proj.bias": true,
+    "encoder.layers.11.self_attn.out_proj.weight": true,
+    "encoder.layers.11.self_attn.out_proj.bias": true,
+    "encoder.layers.11.layer_norm2.weight": true,
+    "encoder.layers.11.layer_norm2.bias": true,
+    "encoder.layers.11.mlp.fc1.weight": true,
+    "encoder.layers.11.mlp.fc1.bias": true,
+    "encoder.layers.11.mlp.fc2.weight": true,
+    "encoder.layers.11.mlp.fc2.bias": true
+  },
+  "frozen_named_state_buffers_rng_preserved": true,
+  "median_step_3_end_seconds": 1.26369665004313,
+  "peak_cuda_allocated_bytes": 6829859328,
+  "host_max_rss_kib": 8133180,
+  "host_swap_kib": 0,
+  "total_seconds": 107.82118790922686,
+  "quality_read": false,
+  "claim_eligible": false,
+  "training_state_discarded": true,
+  "native_17_equals_serialized8_plus9_exact": true,
+  "strict400_reload_whole_head_packed_exact": true,
+  "terminal_state_fingerprint": "b66655b36e807fc0a7e36d6d4a53104298c4ba053f0e293abc81f0025f6cc11a",
+  "resumed_steps": [
+    {
+      "step": 9,
+      "ce": 0.388810183852911,
+      "rank": 0.011320546269416809,
+      "loss": 0.47937455400824547,
+      "scale": 128.0,
+      "preclip_norm": 27.58932876586914,
+      "gradient_norms": {
+        "12": 21.374810351352615,
+        "13": 19.71196909220617,
+        "14": 15.440643831341674,
+        "15": 15.144192907162276,
+        "16": 16.009797820203207,
+        "17": 14.834655787019114,
+        "18": 13.892759594087874,
+        "19": 14.486131323525605,
+        "20": 13.244610384645735,
+        "21": 14.423240149921147,
+        "22": 15.805612666485883,
+        "23": 18.250348812768394
+      },
+      "optimizer_counter": 9,
+      "augmentation_step": 1009,
+      "rgb_sha256": "6302873790ed3d527b824dac2f6260984b25ebf5a2fdeee8b405f83b14926eb4",
+      "pixels_sha256": "887335bb87cc1cdd65ada7ad3928d91a02f6535a622017e0c7906f0b413fe1c1",
+      "rank_active_before": true,
+      "new_preclip_gradient_norms": {
+        "encoder.layers.10.layer_norm1.weight": 0.17425974002329686,
+        "encoder.layers.10.layer_norm1.bias": 0.20503151430098665,
+        "encoder.layers.10.self_attn.k_proj.weight": 1.7387777016671129,
+        "encoder.layers.10.self_attn.k_proj.bias": 1.9819203939665e-05,
+        "encoder.layers.10.self_attn.v_proj.weight": 4.956194838487084,
+        "encoder.layers.10.self_attn.v_proj.bias": 0.3606689501241226,
+        "encoder.layers.10.self_attn.q_proj.weight": 1.1732310405863793,
+        "encoder.layers.10.self_attn.q_proj.bias": 0.046086452386540806,
+        "encoder.layers.10.self_attn.out_proj.weight": 4.22372307117629,
+        "encoder.layers.10.self_attn.out_proj.bias": 0.5920819816966578,
+        "encoder.layers.10.layer_norm2.weight": 0.10943993595997391,
+        "encoder.layers.10.layer_norm2.bias": 0.11504688988600076,
+        "encoder.layers.10.mlp.fc1.weight": 4.483977876791365,
+        "encoder.layers.10.mlp.fc1.bias": 0.18852580251513423,
+        "encoder.layers.10.mlp.fc2.weight": 5.262630398897151,
+        "encoder.layers.10.mlp.fc2.bias": 0.6275682231834584,
+        "encoder.layers.11.layer_norm1.weight": 0.12613570495685006,
+        "encoder.layers.11.layer_norm1.bias": 0.1886846272448324,
+        "encoder.layers.11.self_attn.k_proj.weight": 1.705655079960857,
+        "encoder.layers.11.self_attn.k_proj.bias": 2.0332390893596955e-05,
+        "encoder.layers.11.self_attn.v_proj.weight": 4.50473903758772,
+        "encoder.layers.11.self_attn.v_proj.bias": 0.33416105444692357,
+        "encoder.layers.11.self_attn.q_proj.weight": 1.3412159498897802,
+        "encoder.layers.11.self_attn.q_proj.bias": 0.044281219568204695,
+        "encoder.layers.11.self_attn.out_proj.weight": 3.782616335679598,
+        "encoder.layers.11.self_attn.out_proj.bias": 0.5584951776197732,
+        "encoder.layers.11.layer_norm2.weight": 0.08290893069335045,
+        "encoder.layers.11.layer_norm2.bias": 0.09750077366870809,
+        "encoder.layers.11.mlp.fc1.weight": 3.7096774488880215,
+        "encoder.layers.11.mlp.fc1.bias": 0.1403277532273774,
+        "encoder.layers.11.mlp.fc2.weight": 4.568238150330664,
+        "encoder.layers.11.mlp.fc2.bias": 0.5869518266623626
+      },
+      "seconds": 1.3983689220622182
+    },
+    {
+      "step": 10,
+      "ce": 0.2581275589764118,
+      "rank": 0.00685146264731884,
+      "loss": 0.31293926015496254,
+      "scale": 128.0,
+      "preclip_norm": 17.713428497314453,
+      "gradient_norms": {
+        "12": 12.98119935700698,
+        "13": 12.179462139569694,
+        "14": 9.73430034498038,
+        "15": 9.435888362039867,
+        "16": 9.194414097637143,
+        "17": 8.688315373705306,
+        "18": 8.167566841174215,
+        "19": 7.970755408147387,
+        "20": 7.758155207716311,
+        "21": 9.456425885188056,
+        "22": 10.852524620762061,
+        "23": 14.23715572271743
+      },
+      "optimizer_counter": 10,
+      "augmentation_step": 1010,
+      "rgb_sha256": "a20f6e9e388cff4c173caef2f061972295f020e21e20e56664ebeaa66bbfb128",
+      "pixels_sha256": "14e39a81b3744683ff6282663b5969d71a7004554219f394b0aa994fe873c4c9",
+      "rank_active_before": false,
+      "new_preclip_gradient_norms": {
+        "encoder.layers.10.layer_norm1.weight": 0.09354189194116867,
+        "encoder.layers.10.layer_norm1.bias": 0.1170717250259463,
+        "encoder.layers.10.self_attn.k_proj.weight": 1.0989383209648804,
+        "encoder.layers.10.self_attn.k_proj.bias": 1.258870005648844e-05,
+        "encoder.layers.10.self_attn.v_proj.weight": 2.9827454225363583,
+        "encoder.layers.10.self_attn.v_proj.bias": 0.2123018629355837,
+        "encoder.layers.10.self_attn.q_proj.weight": 0.7496116105640291,
+        "encoder.layers.10.self_attn.q_proj.bias": 0.03117570060770355,
+        "encoder.layers.10.self_attn.out_proj.weight": 2.546887186886252,
+        "encoder.layers.10.self_attn.out_proj.bias": 0.3559261655387244,
+        "encoder.layers.10.layer_norm2.weight": 0.0799298450449168,
+        "encoder.layers.10.layer_norm2.bias": 0.07671349922907345,
+        "encoder.layers.10.mlp.fc1.weight": 2.745012619396312,
+        "encoder.layers.10.mlp.fc1.bias": 0.11708036603947718,
+        "encoder.layers.10.mlp.fc2.weight": 3.2131623938729965,
+        "encoder.layers.10.mlp.fc2.bias": 0.3872018098256251,
+        "encoder.layers.11.layer_norm1.weight": 0.06827056142394825,
+        "encoder.layers.11.layer_norm1.bias": 0.10555874797020053,
+        "encoder.layers.11.self_attn.k_proj.weight": 1.1016694240056208,
+        "encoder.layers.11.self_attn.k_proj.bias": 1.2291422003389286e-05,
+        "encoder.layers.11.self_attn.v_proj.weight": 2.6580121420971237,
+        "encoder.layers.11.self_attn.v_proj.bias": 0.19269822566471473,
+        "encoder.layers.11.self_attn.q_proj.weight": 0.821892021978689,
+        "encoder.layers.11.self_attn.q_proj.bias": 0.031530077224824433,
+        "encoder.layers.11.self_attn.out_proj.weight": 2.2968942567935873,
+        "encoder.layers.11.self_attn.out_proj.bias": 0.35667844669951954,
+        "encoder.layers.11.layer_norm2.weight": 0.07213006472797227,
+        "encoder.layers.11.layer_norm2.bias": 0.060655678254969383,
+        "encoder.layers.11.mlp.fc1.weight": 2.2373945641296427,
+        "encoder.layers.11.mlp.fc1.bias": 0.08831873116374171,
+        "encoder.layers.11.mlp.fc2.weight": 2.8786590551756333,
+        "encoder.layers.11.mlp.fc2.bias": 0.38476099426971216
+      },
+      "seconds": 1.2375583993270993
+    },
+    {
+      "step": 11,
+      "ce": 0.5227470323443413,
+      "rank": 0.014729663729667664,
+      "loss": 0.6405843421816826,
+      "scale": 128.0,
+      "preclip_norm": 36.99932861328125,
+      "gradient_norms": {
+        "12": 30.943443529769862,
+        "13": 26.886271442967217,
+        "14": 21.27619474683956,
+        "15": 19.901170116851024,
+        "16": 18.081763010676436,
+        "17": 16.020569537175916,
+        "18": 16.874677257416373,
+        "19": 15.437380660119473,
+        "20": 15.349053259908656,
+        "21": 18.228322223268066,
+        "22": 21.189679097173688,
+        "23": 24.562080266453354
+      },
+      "optimizer_counter": 11,
+      "augmentation_step": 1011,
+      "rgb_sha256": "baafbbe7dddf97e7f84130e40990f9084b0945b1b373abee964768d353470614",
+      "pixels_sha256": "814635a1b53a65598b27c3ce4753b0041c767201e8f816c2a1058da965e6492f",
+      "rank_active_before": true,
+      "new_preclip_gradient_norms": {
+        "encoder.layers.10.layer_norm1.weight": 0.22258261928197878,
+        "encoder.layers.10.layer_norm1.bias": 0.33051926405414034,
+        "encoder.layers.10.self_attn.k_proj.weight": 2.823814951678505,
+        "encoder.layers.10.self_attn.k_proj.bias": 2.9812540176954435e-05,
+        "encoder.layers.10.self_attn.v_proj.weight": 7.684098438098677,
+        "encoder.layers.10.self_attn.v_proj.bias": 0.564217164262898,
+        "encoder.layers.10.self_attn.q_proj.weight": 1.9381151095274824,
+        "encoder.layers.10.self_attn.q_proj.bias": 0.0776760212722512,
+        "encoder.layers.10.self_attn.out_proj.weight": 6.718306625568867,
+        "encoder.layers.10.self_attn.out_proj.bias": 0.915602237894393,
+        "encoder.layers.10.layer_norm2.weight": 0.20548762383421107,
+        "encoder.layers.10.layer_norm2.bias": 0.19601212221721678,
+        "encoder.layers.10.mlp.fc1.weight": 6.672380058252098,
+        "encoder.layers.10.mlp.fc1.bias": 0.30057960862649297,
+        "encoder.layers.10.mlp.fc2.weight": 7.8396044644559995,
+        "encoder.layers.10.mlp.fc2.bias": 0.9945264165613588,
+        "encoder.layers.11.layer_norm1.weight": 0.3411393145023083,
+        "encoder.layers.11.layer_norm1.bias": 0.307057478326032,
+        "encoder.layers.11.self_attn.k_proj.weight": 2.628429989875305,
+        "encoder.layers.11.self_attn.k_proj.bias": 3.19759223721814e-05,
+        "encoder.layers.11.self_attn.v_proj.weight": 6.5092062467742196,
+        "encoder.layers.11.self_attn.v_proj.bias": 0.5286683218481097,
+        "encoder.layers.11.self_attn.q_proj.weight": 2.4576304032150054,
+        "encoder.layers.11.self_attn.q_proj.bias": 0.0766072757869499,
+        "encoder.layers.11.self_attn.out_proj.weight": 5.606375822324202,
+        "encoder.layers.11.self_attn.out_proj.bias": 0.8479358596164391,
+        "encoder.layers.11.layer_norm2.weight": 0.1660796034060691,
+        "encoder.layers.11.layer_norm2.bias": 0.14937699192350518,
+        "encoder.layers.11.mlp.fc1.weight": 5.765899633612782,
+        "encoder.layers.11.mlp.fc1.bias": 0.24032253231891362,
+        "encoder.layers.11.mlp.fc2.weight": 6.629175592431269,
+        "encoder.layers.11.mlp.fc2.bias": 0.8947592389458955
+      },
+      "seconds": 1.251640445087105
+    },
+    {
+      "step": 12,
+      "ce": 0.29360879957675934,
+      "rank": 0.0031662313267588615,
+      "loss": 0.31893865019083023,
+      "scale": 128.0,
+      "preclip_norm": 23.783401489257812,
+      "gradient_norms": {
+        "12": 19.07999989788644,
+        "13": 16.878317608573784,
+        "14": 14.813434818730654,
+        "15": 14.379537784213445,
+        "16": 13.95389513237867,
+        "17": 11.551037006066872,
+        "18": 11.216823576402444,
+        "19": 11.534626585981389,
+        "20": 10.495075471190477,
+        "21": 10.670650818158723,
+        "22": 11.992984761164253,
+        "23": 13.15415013512305
+      },
+      "optimizer_counter": 12,
+      "augmentation_step": 1012,
+      "rgb_sha256": "8160be4f074a55dd9dc969564831a0d927d0fc363eb8738aa0c2e59cd6d2ef94",
+      "pixels_sha256": "cecbc88085da9028200095178d6b27b3024a58aead91e8eb0afa1689bb6ec270",
+      "rank_active_before": false,
+      "new_preclip_gradient_norms": {
+        "encoder.layers.10.layer_norm1.weight": 0.22800290128640754,
+        "encoder.layers.10.layer_norm1.bias": 0.1721748593678551,
+        "encoder.layers.10.self_attn.k_proj.weight": 1.6077360661871585,
+        "encoder.layers.10.self_attn.k_proj.bias": 1.4643104786878991e-05,
+        "encoder.layers.10.self_attn.v_proj.weight": 4.721926274315337,
+        "encoder.layers.10.self_attn.v_proj.bias": 0.33792823706316155,
+        "encoder.layers.10.self_attn.q_proj.weight": 1.0341520455894901,
+        "encoder.layers.10.self_attn.q_proj.bias": 0.044799326433780026,
+        "encoder.layers.10.self_attn.out_proj.weight": 4.070654177142959,
+        "encoder.layers.10.self_attn.out_proj.bias": 0.5546296254716507,
+        "encoder.layers.10.layer_norm2.weight": 0.10504180077716951,
+        "encoder.layers.10.layer_norm2.bias": 0.11413524928954644,
+        "encoder.layers.10.mlp.fc1.weight": 4.0980384336869795,
+        "encoder.layers.10.mlp.fc1.bias": 0.18300260668705415,
+        "encoder.layers.10.mlp.fc2.weight": 4.872351467038479,
+        "encoder.layers.10.mlp.fc2.bias": 0.6182326713468042,
+        "encoder.layers.11.layer_norm1.weight": 0.1215341182495615,
+        "encoder.layers.11.layer_norm1.bias": 0.17991018727052688,
+        "encoder.layers.11.self_attn.k_proj.weight": 1.6137925703599765,
+        "encoder.layers.11.self_attn.k_proj.bias": 1.5712122806830353e-05,
+        "encoder.layers.11.self_attn.v_proj.weight": 4.25574280476313,
+        "encoder.layers.11.self_attn.v_proj.bias": 0.34815874041532396,
+        "encoder.layers.11.self_attn.q_proj.weight": 1.2244120585597649,
+        "encoder.layers.11.self_attn.q_proj.bias": 0.04748753090532527,
+        "encoder.layers.11.self_attn.out_proj.weight": 3.540665989863108,
+        "encoder.layers.11.self_attn.out_proj.bias": 0.5643598675324026,
+        "encoder.layers.11.layer_norm2.weight": 0.06320106633215139,
+        "encoder.layers.11.layer_norm2.bias": 0.08670403007629629,
+        "encoder.layers.11.mlp.fc1.weight": 3.359836954993584,
+        "encoder.layers.11.mlp.fc1.bias": 0.1293467864157241,
+        "encoder.layers.11.mlp.fc2.weight": 4.292833096829715,
+        "encoder.layers.11.mlp.fc2.bias": 0.5885145997185502
+      },
+      "seconds": 1.2456420520320535
+    },
+    {
+      "step": 13,
+      "ce": 0.24963058903813362,
+      "rank": 0.008813017047941685,
+      "loss": 0.3201347254216671,
+      "scale": 128.0,
+      "preclip_norm": 17.93841552734375,
+      "gradient_norms": {
+        "12": 13.545269812695942,
+        "13": 11.86437481964596,
+        "14": 9.577486466221721,
+        "15": 9.320213925442602,
+        "16": 9.718845163020868,
+        "17": 8.854739086026134,
+        "18": 9.31791197558193,
+        "19": 7.8658892478511,
+        "20": 8.565150915931083,
+        "21": 9.569066848850351,
+        "22": 10.253991326325275,
+        "23": 13.054815856552695
+      },
+      "optimizer_counter": 13,
+      "augmentation_step": 1013,
+      "rgb_sha256": "bd45a5a9169a557130e56f311897c47401fe67ddc7ff5226fa80be8ad5621624",
+      "pixels_sha256": "3aff538d4c9c045ca9bb06d19d18679adbb4789af7ef61244b81aa9bd72d95e9",
+      "rank_active_before": false,
+      "new_preclip_gradient_norms": {
+        "encoder.layers.10.layer_norm1.weight": 0.09598532905527635,
+        "encoder.layers.10.layer_norm1.bias": 0.12346738367829795,
+        "encoder.layers.10.self_attn.k_proj.weight": 1.1709408948209932,
+        "encoder.layers.10.self_attn.k_proj.bias": 1.1359531091936072e-05,
+        "encoder.layers.10.self_attn.v_proj.weight": 3.2751765097700773,
+        "encoder.layers.10.self_attn.v_proj.bias": 0.22993169488367976,
+        "encoder.layers.10.self_attn.q_proj.weight": 0.7946794490180498,
+        "encoder.layers.10.self_attn.q_proj.bias": 0.031362569349029035,
+        "encoder.layers.10.self_attn.out_proj.weight": 2.7125948456733533,
+        "encoder.layers.10.self_attn.out_proj.bias": 0.3897103992708924,
+        "encoder.layers.10.layer_norm2.weight": 0.07247764553491083,
+        "encoder.layers.10.layer_norm2.bias": 0.07723020679317481,
+        "encoder.layers.10.mlp.fc1.weight": 3.095020289780928,
+        "encoder.layers.10.mlp.fc1.bias": 0.1281364388837254,
+        "encoder.layers.10.mlp.fc2.weight": 3.5843304490878234,
+        "encoder.layers.10.mlp.fc2.bias": 0.43855096860532405,
+        "encoder.layers.11.layer_norm1.weight": 0.09036344145687661,
+        "encoder.layers.11.layer_norm1.bias": 0.13847524539749817,
+        "encoder.layers.11.self_attn.k_proj.weight": 1.2648028681030377,
+        "encoder.layers.11.self_attn.k_proj.bias": 1.4152491309270058e-05,
+        "encoder.layers.11.self_attn.v_proj.weight": 3.1843781872550547,
+        "encoder.layers.11.self_attn.v_proj.bias": 0.24071509618726497,
+        "encoder.layers.11.self_attn.q_proj.weight": 0.8590558927424683,
+        "encoder.layers.11.self_attn.q_proj.bias": 0.033268906532243264,
+        "encoder.layers.11.self_attn.out_proj.weight": 2.3859335557596393,
+        "encoder.layers.11.self_attn.out_proj.bias": 0.38835040921178704,
+        "encoder.layers.11.layer_norm2.weight": 0.05741281639554186,
+        "encoder.layers.11.layer_norm2.bias": 0.06312209234860484,
+        "encoder.layers.11.mlp.fc1.weight": 2.4785041757531205,
+        "encoder.layers.11.mlp.fc1.bias": 0.10177900492828598,
+        "encoder.layers.11.mlp.fc2.weight": 3.102278052764664,
+        "encoder.layers.11.mlp.fc2.bias": 0.41828085193077635
+      },
+      "seconds": 1.255880021955818
+    },
+    {
+      "step": 14,
+      "ce": 0.380286306142807,
+      "rank": 0.010559320449829102,
+      "loss": 0.4647608697414398,
+      "scale": 128.0,
+      "preclip_norm": 30.85875129699707,
+      "gradient_norms": {
+        "12": 25.405353123065563,
+        "13": 24.782986262630253,
+        "14": 19.507071600459334,
+        "15": 19.016137024831504,
+        "16": 17.611810269909466,
+        "17": 16.222669350038284,
+        "18": 14.252281473580386,
+        "19": 13.920929512283958,
+        "20": 14.051663235066144,
+        "21": 14.0532829616918,
+        "22": 15.665480909415814,
+        "23": 17.613926077127505
+      },
+      "optimizer_counter": 14,
+      "augmentation_step": 1014,
+      "rgb_sha256": "43f172fbdf0bc443732ebde80f1e97ececf129dc26fa6a878f8f6b58cf3f5136",
+      "pixels_sha256": "d24c32ed5a94dc26471dc883ff464a7c623216d9719cf68d2f960e1eede4f7c4",
+      "rank_active_before": true,
+      "new_preclip_gradient_norms": {
+        "encoder.layers.10.layer_norm1.weight": 0.13045438578881993,
+        "encoder.layers.10.layer_norm1.bias": 0.22009065632539415,
+        "encoder.layers.10.self_attn.k_proj.weight": 1.883114189301271,
+        "encoder.layers.10.self_attn.k_proj.bias": 2.681810974307619e-05,
+        "encoder.layers.10.self_attn.v_proj.weight": 6.0325433585750465,
+        "encoder.layers.10.self_attn.v_proj.bias": 0.39405836999001675,
+        "encoder.layers.10.self_attn.q_proj.weight": 1.40708286305239,
+        "encoder.layers.10.self_attn.q_proj.bias": 0.050197661825596596,
+        "encoder.layers.10.self_attn.out_proj.weight": 5.205606951039289,
+        "encoder.layers.10.self_attn.out_proj.bias": 0.7159084299465129,
+        "encoder.layers.10.layer_norm2.weight": 0.13088968193062311,
+        "encoder.layers.10.layer_norm2.bias": 0.146288963989042,
+        "encoder.layers.10.mlp.fc1.weight": 5.616253610845224,
+        "encoder.layers.10.mlp.fc1.bias": 0.23821337890328467,
+        "encoder.layers.10.mlp.fc2.weight": 6.43001511998411,
+        "encoder.layers.10.mlp.fc2.bias": 0.7829802981382079,
+        "encoder.layers.11.layer_norm1.weight": 0.1475384343588068,
+        "encoder.layers.11.layer_norm1.bias": 0.22730100020190172,
+        "encoder.layers.11.self_attn.k_proj.weight": 2.073908492488446,
+        "encoder.layers.11.self_attn.k_proj.bias": 2.6513081146426704e-05,
+        "encoder.layers.11.self_attn.v_proj.weight": 5.505493178874368,
+        "encoder.layers.11.self_attn.v_proj.bias": 0.3977832111715479,
+        "encoder.layers.11.self_attn.q_proj.weight": 1.5361302355075472,
+        "encoder.layers.11.self_attn.q_proj.bias": 0.054057730678599626,
+        "encoder.layers.11.self_attn.out_proj.weight": 4.52118679808676,
+        "encoder.layers.11.self_attn.out_proj.bias": 0.7070744811632386,
+        "encoder.layers.11.layer_norm2.weight": 0.11066803106091705,
+        "encoder.layers.11.layer_norm2.bias": 0.11944158428920816,
+        "encoder.layers.11.mlp.fc1.weight": 4.531471411629444,
+        "encoder.layers.11.mlp.fc1.bias": 0.18159160201148933,
+        "encoder.layers.11.mlp.fc2.weight": 5.60579076310477,
+        "encoder.layers.11.mlp.fc2.bias": 0.7395112286318406
+      },
+      "seconds": 1.2383158369921148
+    },
+    {
+      "step": 15,
+      "ce": 0.15993640152737498,
+      "rank": 0.018814265727996826,
+      "loss": 0.3104505273513496,
+      "scale": 128.0,
+      "preclip_norm": 12.184252738952637,
+      "gradient_norms": {
+        "12": 8.72898553438184,
+        "13": 8.212926469206907,
+        "14": 6.564549690191349,
+        "15": 6.690016439271384,
+        "16": 6.130600909991842,
+        "17": 5.50297909280506,
+        "18": 5.504160004285748,
+        "19": 5.695202325655727,
+        "20": 5.453716265269783,
+        "21": 6.685058536616787,
+        "22": 7.750766244418731,
+        "23": 9.891396772351191
+      },
+      "optimizer_counter": 15,
+      "augmentation_step": 1015,
+      "rgb_sha256": "1dc84b224b7890d3a4fa69c07e5b37caa5bc90ee7de3482845dd5131b4d0faed",
+      "pixels_sha256": "0b03f9e9487c1213d4ae78c408e6a82c1ad9921f848527d7fb4995632bc3af7f",
+      "rank_active_before": true,
+      "new_preclip_gradient_norms": {
+        "encoder.layers.10.layer_norm1.weight": 0.04200837684588393,
+        "encoder.layers.10.layer_norm1.bias": 0.07674543751480539,
+        "encoder.layers.10.self_attn.k_proj.weight": 0.7449056071346603,
+        "encoder.layers.10.self_attn.k_proj.bias": 9.02934103245474e-06,
+        "encoder.layers.10.self_attn.v_proj.weight": 2.01003529140113,
+        "encoder.layers.10.self_attn.v_proj.bias": 0.13948779882522214,
+        "encoder.layers.10.self_attn.q_proj.weight": 0.4937931704046583,
+        "encoder.layers.10.self_attn.q_proj.bias": 0.02075519300603568,
+        "encoder.layers.10.self_attn.out_proj.weight": 1.7082301204591346,
+        "encoder.layers.10.self_attn.out_proj.bias": 0.2392550655447715,
+        "encoder.layers.10.layer_norm2.weight": 0.0377883357241962,
+        "encoder.layers.10.layer_norm2.bias": 0.04856755830024855,
+        "encoder.layers.10.mlp.fc1.weight": 1.8719472052452388,
+        "encoder.layers.10.mlp.fc1.bias": 0.08082959039864906,
+        "encoder.layers.10.mlp.fc2.weight": 2.158845522350847,
+        "encoder.layers.10.mlp.fc2.bias": 0.2682204286532126,
+        "encoder.layers.11.layer_norm1.weight": 0.04907557447473497,
+        "encoder.layers.11.layer_norm1.bias": 0.07693061211371131,
+        "encoder.layers.11.self_attn.k_proj.weight": 0.6925140620294857,
+        "encoder.layers.11.self_attn.k_proj.bias": 7.83305913814715e-06,
+        "encoder.layers.11.self_attn.v_proj.weight": 1.8681569141470498,
+        "encoder.layers.11.self_attn.v_proj.bias": 0.1426139881786649,
+        "encoder.layers.11.self_attn.q_proj.weight": 0.5175762897849009,
+        "encoder.layers.11.self_attn.q_proj.bias": 0.01952830004272326,
+        "encoder.layers.11.self_attn.out_proj.weight": 1.5363468812651988,
+        "encoder.layers.11.self_attn.out_proj.bias": 0.23776306049238055,
+        "encoder.layers.11.layer_norm2.weight": 0.03877852773882121,
+        "encoder.layers.11.layer_norm2.bias": 0.04055335771317891,
+        "encoder.layers.11.mlp.fc1.weight": 1.546417121364109,
+        "encoder.layers.11.mlp.fc1.bias": 0.06108462820652702,
+        "encoder.layers.11.mlp.fc2.weight": 1.9504091341851935,
+        "encoder.layers.11.mlp.fc2.bias": 0.26263499969301285
+      },
+      "seconds": 1.2520115780644119
+    },
+    {
+      "step": 16,
+      "ce": 0.6522289272397757,
+      "rank": 0.03155116830021143,
+      "loss": 0.9046382736414671,
+      "scale": 128.0,
+      "preclip_norm": 39.22711944580078,
+      "gradient_norms": {
+        "12": 32.177840321684926,
+        "13": 29.299165257154726,
+        "14": 25.628761149320475,
+        "15": 23.525981406008587,
+        "16": 21.55404148331815,
+        "17": 19.462884235049298,
+        "18": 16.563889996682526,
+        "19": 16.8207321240338,
+        "20": 15.99593390192312,
+        "21": 18.19612822636204,
+        "22": 21.098548673905515,
+        "23": 24.11165330770594
+      },
+      "optimizer_counter": 16,
+      "augmentation_step": 1016,
+      "rgb_sha256": "84ebbfee1477bafa6efc16516525db6871449a75fcbff7f35a2437eeb06f4d75",
+      "pixels_sha256": "3858b4d03497d6bca0c9deb3f8060dced19bdf60e4da7e67349d8f8c93eff016",
+      "rank_active_before": false,
+      "new_preclip_gradient_norms": {
+        "encoder.layers.10.layer_norm1.weight": 0.20399191460045588,
+        "encoder.layers.10.layer_norm1.bias": 0.28690772048516794,
+        "encoder.layers.10.self_attn.k_proj.weight": 2.7825525262407385,
+        "encoder.layers.10.self_attn.k_proj.bias": 3.699598909247025e-05,
+        "encoder.layers.10.self_attn.v_proj.weight": 8.468208770385123,
+        "encoder.layers.10.self_attn.v_proj.bias": 0.571424740919478,
+        "encoder.layers.10.self_attn.q_proj.weight": 1.9750010295122848,
+        "encoder.layers.10.self_attn.q_proj.bias": 0.06689118788787833,
+        "encoder.layers.10.self_attn.out_proj.weight": 6.893017904855697,
+        "encoder.layers.10.self_attn.out_proj.bias": 0.9485080078614987,
+        "encoder.layers.10.layer_norm2.weight": 0.17079018275583005,
+        "encoder.layers.10.layer_norm2.bias": 0.20884751874461177,
+        "encoder.layers.10.mlp.fc1.weight": 7.273578300173568,
+        "encoder.layers.10.mlp.fc1.bias": 0.31771057968612215,
+        "encoder.layers.10.mlp.fc2.weight": 8.338686954992086,
+        "encoder.layers.10.mlp.fc2.bias": 1.085856430163963,
+        "encoder.layers.11.layer_norm1.weight": 0.3006708433114234,
+        "encoder.layers.11.layer_norm1.bias": 0.32569282352256135,
+        "encoder.layers.11.self_attn.k_proj.weight": 2.6261705045233374,
+        "encoder.layers.11.self_attn.k_proj.bias": 2.982390916442589e-05,
+        "encoder.layers.11.self_attn.v_proj.weight": 7.471376509101537,
+        "encoder.layers.11.self_attn.v_proj.bias": 0.581413965813391,
+        "encoder.layers.11.self_attn.q_proj.weight": 1.8867040879018377,
+        "encoder.layers.11.self_attn.q_proj.bias": 0.0706112560117234,
+        "encoder.layers.11.self_attn.out_proj.weight": 5.73850739034587,
+        "encoder.layers.11.self_attn.out_proj.bias": 0.9293324471182665,
+        "encoder.layers.11.layer_norm2.weight": 0.17870626756123498,
+        "encoder.layers.11.layer_norm2.bias": 0.15875242826229713,
+        "encoder.layers.11.mlp.fc1.weight": 5.8532894167643095,
+        "encoder.layers.11.mlp.fc1.bias": 0.23736625948380596,
+        "encoder.layers.11.mlp.fc2.weight": 6.884212515597523,
+        "encoder.layers.11.mlp.fc2.bias": 0.9467458356297062
+      },
+      "seconds": 1.241871286649257
+    },
+    {
+      "step": 17,
+      "ce": 0.2461686208844185,
+      "rank": 0.007832425646483898,
+      "loss": 0.3088280260562897,
+      "scale": 128.0,
+      "preclip_norm": 24.23305320739746,
+      "gradient_norms": {
+        "12": 20.429762973862847,
+        "13": 18.47838458606662,
+        "14": 15.17798870931505,
+        "15": 13.431824600750696,
+        "16": 12.938235667094656,
+        "17": 11.026971657177008,
+        "18": 10.13287798046905,
+        "19": 9.83826420956675,
+        "20": 9.914222837546953,
+        "21": 11.12514726122047,
+        "22": 12.09839799065197,
+        "23": 14.72921783749878
+      },
+      "optimizer_counter": 17,
+      "augmentation_step": 1017,
+      "rgb_sha256": "0ac137ba4d2346408e58e7e6dcd54f4c73b75b223e505ca15938382a64cfdd9e",
+      "pixels_sha256": "76e7c7d9c7d6d197a80a1a621d6d0025a629915f27091dd5eb6c6a45f7aeadf9",
+      "rank_active_before": false,
+      "new_preclip_gradient_norms": {
+        "encoder.layers.10.layer_norm1.weight": 0.5029894090676343,
+        "encoder.layers.10.layer_norm1.bias": 0.215105051700446,
+        "encoder.layers.10.self_attn.k_proj.weight": 2.1512220680619474,
+        "encoder.layers.10.self_attn.k_proj.bias": 2.025204268950214e-05,
+        "encoder.layers.10.self_attn.v_proj.weight": 5.129031667017958,
+        "encoder.layers.10.self_attn.v_proj.bias": 0.3708027297139365,
+        "encoder.layers.10.self_attn.q_proj.weight": 1.4281322676186108,
+        "encoder.layers.10.self_attn.q_proj.bias": 0.059876185439216544,
+        "encoder.layers.10.self_attn.out_proj.weight": 4.242996421818366,
+        "encoder.layers.10.self_attn.out_proj.bias": 0.6163617598203284,
+        "encoder.layers.10.layer_norm2.weight": 0.11099816692045882,
+        "encoder.layers.10.layer_norm2.bias": 0.11995989741220663,
+        "encoder.layers.10.mlp.fc1.weight": 4.239666055040536,
+        "encoder.layers.10.mlp.fc1.bias": 0.18799603537219112,
+        "encoder.layers.10.mlp.fc2.weight": 5.173661025087478,
+        "encoder.layers.10.mlp.fc2.bias": 0.6686856190592803,
+        "encoder.layers.11.layer_norm1.weight": 0.1584006296558581,
+        "encoder.layers.11.layer_norm1.bias": 0.18442489439816043,
+        "encoder.layers.11.self_attn.k_proj.weight": 1.8137824587026767,
+        "encoder.layers.11.self_attn.k_proj.bias": 2.3077179078891753e-05,
+        "encoder.layers.11.self_attn.v_proj.weight": 4.369301646031113,
+        "encoder.layers.11.self_attn.v_proj.bias": 0.3384730676711386,
+        "encoder.layers.11.self_attn.q_proj.weight": 1.2828376721844996,
+        "encoder.layers.11.self_attn.q_proj.bias": 0.05299763754623991,
+        "encoder.layers.11.self_attn.out_proj.weight": 3.5716921910769788,
+        "encoder.layers.11.self_attn.out_proj.bias": 0.5811422301603933,
+        "encoder.layers.11.layer_norm2.weight": 0.08112532269578412,
+        "encoder.layers.11.layer_norm2.bias": 0.10092277954966422,
+        "encoder.layers.11.mlp.fc1.weight": 3.6679966638768944,
+        "encoder.layers.11.mlp.fc1.bias": 0.1579858789968394,
+        "encoder.layers.11.mlp.fc2.weight": 4.427778284037613,
+        "encoder.layers.11.mlp.fc2.bias": 0.6301636148996339
+      },
+      "seconds": 1.240231656935066
+    }
+  ],
+  "serialization_seconds": 11.942326733842492,
+  "chunk100_admission_seconds": 208.06303602867925,
+  "measured_unit_overhead_seconds": 73.60150006879121
+}
