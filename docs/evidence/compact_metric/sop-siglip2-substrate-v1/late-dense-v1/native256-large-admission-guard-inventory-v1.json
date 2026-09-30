@@ -1,0 +1,65 @@
+{
+  "groups": [
+    {
+      "guard_bytes": 6643073818,
+      "name": "fit_startup",
+      "paths": 15070
+    },
+    {
+      "guard_bytes": 7057154968,
+      "name": "fit_export",
+      "paths": 15076
+    },
+    {
+      "guard_bytes": 7121801033,
+      "name": "pca",
+      "paths": 15085
+    },
+    {
+      "guard_bytes": 8407180371,
+      "name": "initialized_cpu",
+      "paths": 15094
+    }
+  ],
+  "hash_reads_not_counted": true,
+  "largest": [
+    {
+      "bytes": 1273297225,
+      "path": "/home/riomus/runs/sfora-native256-initialized-cpu-large-v3/initialized.pt"
+    },
+    {
+      "bytes": 1264176731,
+      "path": "/home/riomus/runs/sfora-native256-source-cpu-large-v4/fresh_vision.pt"
+    },
+    {
+      "bytes": 1263868496,
+      "path": "/home/riomus/runs/sfora-native256-source-extraction-v1/large/vision.safetensors"
+    },
+    {
+      "bytes": 629945952,
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libcublasLt.so.13"
+    },
+    {
+      "bytes": 472992264,
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/triton/_C/libtriton.so"
+    },
+    {
+      "bytes": 423376097,
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/lib/libtorch_cuda.so"
+    },
+    {
+      "bytes": 299909640,
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cudnn/lib/libcudnn_engines_precompiled.so.9"
+    },
+    {
+      "bytes": 283285752,
+      "path": "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/nvidia/cu13/lib/libcufft.so.12"
+    }
+  ],
+  "overlapping_inventory_bytes": 20822029819,
+  "quality_read": false,
+  "schema": "native256-large-admission-guard-inventory-v1",
+  "stat_only": true,
+  "unique_bytes": 8407180371,
+  "unique_paths": 15094
+}
