@@ -1,0 +1,9 @@
+# Token residual native CPU gate
+
+PASS, limited to source/layout/zero-state/gradient mechanics. Original session49815 exited0 and was collected. Unit sfora-token-residual-cpu-v1, invocation b79730217e024538838ef9475b745900: whole service34.302s, native peakRSS5,145,272KiB, swap0, CUDApeak0, optimizer updates0, no quality read. No rerun or cap rescue.
+
+Immutable118 closure96377b69e3c6fc1730bdffa674884977150ec4a4c35febab154aa42151ead408 preserves original114. Complete corrected128 TRAIN1000 checkpoint cc58377f0e9aa90be529bf9a3eca1746a2dc467f765dd9681a3b9b690e324566 reproduced initial fingerprint77c26114a74472682f7f511d732dfac2679d99bfe120ee52d3f78c032a9d9867. Control208/candidate209 actual optimizer members, separate RNG-preserving zeroW, original frozen prefix and buffers verified.
+
+Actual CPU model returned float32 tokens2x256x1024. Independent source reload400 vision/head/buffers/W, same-call token values, patch flatten row-major layout, fixed quadrant reduction, normalized features and zero-W raw/packed outputs were exact. Actual CE+8 valid-rank W gradient was finite/nonzero; disposable nonzeroW witness propagated to live tokens and was discarded. Zero-W shared head gradients matched. Source/W/optimizer/frozen-buffer negatives rejected. This does not prove GPU token dtype, complete optimizer resume with W, updated nonzero-W checkpoint serving, learning gain or speed.
+
+Raw proof67c7c2452d211f4755770c703147d970a588cddace63d6e1550ed2728ecec06b and original logcff9c3de737c1b486501abda47c591486f0d449f2268441611df3955029cb6aa are in evidence/compact_metric/sop-siglip2-substrate-v1/late-dense-v1/token-residual-cpu-{proof-v1.json,v1.log}. Parent verified source/log/invocation/resource bindings. Next: W-aware complete-state trainer, its CPU startup negatives, then ONE discarded17 versus serialized8+9 under unchanged120s/8GiB/noSwap/<10GB. Only a pass licenses the four fresh100 TRAIN endpoints. Full production goal remains unmet.
