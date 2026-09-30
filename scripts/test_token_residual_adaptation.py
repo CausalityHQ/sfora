@@ -77,6 +77,57 @@ def complete_state(driver, arm="candidate", step=8, cpu=True):
 
 
 class Admission(unittest.TestCase):
+    def test_reload_owns_cuda_copy_and_releases_mapping_before_live_fingerprints(self):
+        from contextlib import nullcontext
+        import weakref
+        events = []
+        class Value:
+            def copy_(self, other): return self
+            def detach(self): return Value()
+        class Parameter(Value): pass
+        class Disk(dict): pass
+        class Model:
+            config = {}
+            def __init__(self, *args): pass
+            def eval(self): return self
+            def float(self): return self
+            def state_dict(self): return {str(i): Value() for i in range(400)}
+            def named_buffers(self): return []
+            def load_state_dict(self, values, strict):
+                self.assert_strict = strict
+                events.append('copy')
+            def __call__(self, **kw): raise StopIteration('forward reached')
+        mapped = [None]
+        def load(*args, **kw):
+            self.assertTrue(kw['mmap']); self.assertEqual(kw['map_location'], 'cpu')
+            value = Disk(vision={str(i): Value() for i in range(400)}, head={}, residual=Value(), buffers={})
+            mapped[0] = weakref.ref(value)
+            events.append('map')
+            return value
+        def device(name):
+            self.assertEqual(name, 'cuda'); events.append('cuda'); return nullcontext()
+        calls = [0]
+        def fingerprint(value):
+            calls[0] += 1
+            if calls[0] > 3: self.assertIsNone(mapped[0](), 'mapping retained during live verification')
+            if isinstance(value, Parameter): return 'wrong parameter framing'
+            return 'same'
+        torch = SimpleNamespace(load=load, device=device, count_nonzero=lambda _: 1,
+            random=SimpleNamespace(fork_rng=lambda **kw: nullcontext()),
+            nn=SimpleNamespace(Linear=lambda *args: Model()), no_grad=nullcontext,
+            autocast=lambda **kw: nullcontext(), float16='half')
+        fn = next(n for n in ast.parse(PATH.read_text()).body if isinstance(n, ast.FunctionDef) and n.name == 'strict_reload')
+        ns = {'torch': torch, 'copy': copy, 'gc': __import__('gc'),
+            'residual': SimpleNamespace(new_weight=lambda device, trainable: Parameter()),
+            'old': SimpleNamespace(fingerprint=fingerprint),
+            'qualified': SimpleNamespace(late=SimpleNamespace(frozen_state=lambda *args: {}))}
+        exec(compile(ast.Module(body=[fn], type_ignores=[]), str(PATH), 'exec'), ns)
+        with self.assertRaisesRegex(StopIteration, 'forward reached'):
+            ns['strict_reload']({'model': Model(), 'head': Model(), 'residual': Parameter()},
+                                'checkpoint', None, {'buffers_sha256': 'same', 'frozen_sha256': 'same'})
+        self.assertLess(events.index('cuda'), events.index('map'))
+        self.assertGreater(calls[0], 3)
+
     def test_rebuild_keeps_unit_initial_rng_metadata_without_resetting_live_rng(self):
         tree = ast.parse(PATH.read_text())
         fn = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "identity")

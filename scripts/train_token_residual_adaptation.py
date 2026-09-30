@@ -394,25 +394,28 @@ def candidate_step(state, pixels, ids, active):
 
 def strict_reload(state, path, pixels, base):
     """Independent strict400/head/W reload and independent normalized quadrant equation."""
-    disk = torch.load(path,map_location="cpu",weights_only=True,mmap=True)
     state["model"].eval(); state["head"].eval()
     assert bool(torch.count_nonzero(state["residual"])), "updated nonzero W required"
     with torch.random.fork_rng(devices=[0]):
-        model = type(state["model"])(copy.deepcopy(state["model"].config)).float().eval()
-        head = torch.nn.Linear(1024,128).eval()
-        weight = residual.new_weight("cpu",False)
+        # Keep the independent inference copy off host RAM while the full resume
+        # is mapped; fork_rng restores both constructor RNG streams afterwards.
+        with torch.device("cuda"):
+            model = type(state["model"])(copy.deepcopy(state["model"].config)).float().eval()
+            head = torch.nn.Linear(1024,128).eval()
+            weight = residual.new_weight("cuda",False)
+        disk = torch.load(path,map_location="cpu",weights_only=True,mmap=True)
         assert len(disk["vision"]) == 400
         model.load_state_dict(disk["vision"],strict=True); head.load_state_dict(disk["head"],strict=True)
         buffers = dict(model.named_buffers()); assert buffers.keys() == disk["buffers"].keys()
         with torch.no_grad():
             weight.copy_(disk["residual"])
             for n,value in buffers.items(): value.copy_(disk["buffers"][n])
-        for key,values in (("vision",model.state_dict()),("head",head.state_dict()),("residual",weight)):
-            assert old.fingerprint(values) == old.fingerprint(disk[key])
+        expected = {key:old.fingerprint(disk[key]) for key in ("vision","head","residual")}
+        del disk; gc.collect()
+        for key,values in (("vision",model.state_dict()),("head",head.state_dict()),("residual",weight.detach())):
+            assert old.fingerprint(values) == expected[key]
         assert old.fingerprint(buffers) == base["buffers_sha256"]
         assert old.fingerprint(qualified.late.frozen_state(model,12)) == base["frozen_sha256"]
-        del disk; gc.collect()
-        model.cuda(); head.cuda(); weight = weight.cuda()
         with torch.no_grad():
             with torch.autocast(device_type="cuda",dtype=torch.float16):
                 a = state["model"](pixel_values=pixels); b = model(pixel_values=pixels)
