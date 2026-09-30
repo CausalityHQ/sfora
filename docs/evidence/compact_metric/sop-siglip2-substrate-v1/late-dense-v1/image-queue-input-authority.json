@@ -1,0 +1,14 @@
+{
+  "schema": "image-queue-local-validation-inputs-v1",
+  "original_batches_json_sha256": "2dd6070850929b64192eb247416d7407b0498928254a928382d74b8f6d940af7",
+  "fit_receipt_sha256": "277f9b774470355f76c16675a9c7808abe602c83612d83f4d90e4d37cb5507fe",
+  "fit_images": 13283,
+  "fit_products": 2004,
+  "source_sampler_execution_sha256": "c9cec7b71d0c2ba90de2eb0d5c9810f111d4e7feb88f10e63055fbabf8a6d8b3",
+  "model_execution": false,
+  "quality_read": false,
+  "seed_schedule_int64_sha256": {
+    "179032": "5e284a3ac7e4ae1055aeb779b7f2b000dd91d1219e2aa1da28a02908e08d570d",
+    "179041": "532fbd79d141bf79de05e94f435e066971737e8ef98761639ee5ce3d9e340a00"
+  }
+}
