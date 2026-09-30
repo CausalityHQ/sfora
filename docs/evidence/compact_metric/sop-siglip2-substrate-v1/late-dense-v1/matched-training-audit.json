@@ -1,0 +1,20 @@
+{
+  "pass": true,
+  "quality_read": false,
+  "pairs": {
+    "179032": {
+      "all100_schedule_rgb_pixels_matched": true,
+      "wall_ratio": 1.0793687519616593,
+      "median_ratio": 1.08166035445944,
+      "control_checkpoint_sha256": "b40c8e4dc64e862ac463ba3fd961aa92eb75a3e27e48db75dd3fc3a8cb840bf6",
+      "candidate_checkpoint_sha256": "6f4400be4ca985f9bcc36acf5784cd170a9ea183c85104cdb86ac08060aad7d6"
+    },
+    "179041": {
+      "all100_schedule_rgb_pixels_matched": true,
+      "wall_ratio": 1.084922474619259,
+      "median_ratio": 1.0842113416853443,
+      "control_checkpoint_sha256": "296f0df067f89680830c79f93944d0657d9900785fdf3679cfbb4954ee33edee",
+      "candidate_checkpoint_sha256": "35afde51957f400c1bba3b48d8c0b8ce52ed4f4b84aa0e2dc3a8c6ea1906af75"
+    }
+  }
+}
