@@ -1,0 +1,69 @@
+Running as unit: sfora-late-dense-held-cpu-179032-control-v2.service; invocation ID: e5de7f3ea1e64ddb8cb58b4289e1ea15
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 11277.77it/s]
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-late-dense-held-source-v2/export_late_dense_adaptation.py", line 406, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/sfora-late-dense-held-source-v2/export_late_dense_adaptation.py", line 348, in main
+    publish(args.output / "proof.json", {**binding, **resource_unit(120, False), "pass": True,
+                                                      ~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-late-dense-held-source-v2/export_late_dense_adaptation.py", line 244, in resource_unit
+    assert total < cap and 0 < rss <= 8 * 1024 * 1024 and swap == 0
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+Command exited with non-zero status 1
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-late-dense-held-source-v2/export_late_dense_adaptation.py --phase cpu --authority-sha256 e0a9b7e8453b1f043f84b677e7d4306fd769bfb46d26e03df9bb381f3c8826aa --seed 179032 --arm control --output /home/riomus/runs/sfora-late-dense-held-cpu-179032-control-v2"
+	User time (seconds): 54.04
+	System time (seconds): 5.95
+	Percent of CPU this job got: 134%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:44.70
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 8591156
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 17966
+	Minor (reclaiming a frame) page faults: 1665409
+	Voluntary context switches: 90702
+	Involuntary context switches: 665
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 16
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 1
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=1
+Service runtime: 44.707s
+CPU time consumed: 59.999s
+Memory peak: 256.0K
+Memory swap peak: 0B
+Command exited with non-zero status 1
+	Command being timed: "systemd-run --user --wait --collect --pipe --unit=sfora-late-dense-held-cpu-179032-control-v2 --property=WorkingDirectory=/home/riomus/runs/sfora-late-dense-held-source-v2 --property=RuntimeMaxSec=120 --property=MemoryMax=8G --property=MemorySwapMax=0 --property=KillMode=control-group --property=OOMPolicy=stop --setenv=CUDA_VISIBLE_DEVICES= --setenv=CUBLAS_WORKSPACE_CONFIG=:4096:8 --setenv=OMP_NUM_THREADS=8 --setenv=OPENBLAS_NUM_THREADS=1 --setenv=TOKENIZERS_PARALLELISM=false --setenv=TMPDIR=/home/riomus/runs/sfora-late-dense-held-source-v2 --setenv=CUTILE_TILEIRAS_PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/tileiras --setenv=PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin:/usr/local/bin:/usr/bin:/bin --setenv=PYTHONPATH=/home/riomus/runs/sfora-late-dense-held-source-v2:/home/riomus/runs/sfora-late-dense-held-source-v2/src:/home/riomus/runs/sfora-late-dense-held-source-v2/isolated-deps flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock flock -n /home/riomus/.sfora-siglip2-gpu.lock /usr/bin/time -v /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-late-dense-held-source-v2/export_late_dense_adaptation.py --phase cpu --authority-sha256 e0a9b7e8453b1f043f84b677e7d4306fd769bfb46d26e03df9bb381f3c8826aa --seed 179032 --arm control --output /home/riomus/runs/sfora-late-dense-held-cpu-179032-control-v2"
+	User time (seconds): 0.00
+	System time (seconds): 0.00
+	Percent of CPU this job got: 0%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:44.72
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 7412
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 377
+	Voluntary context switches: 10
+	Involuntary context switches: 0
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 1

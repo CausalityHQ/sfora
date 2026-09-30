@@ -53,6 +53,14 @@ ORDER = ((179032, "control"), (179032, "candidate"), (179041, "candidate"), (179
 PRECISION = "private_native_fp16"
 
 
+def rss_checkpoint(stage):
+    status = Path("/proc/self/status").read_text().splitlines()
+    current = int(next(v for v in status if v.startswith("VmRSS:")).split()[1])
+    print(json.dumps({"stage": stage, "rss_kib": current,
+        "max_rss_kib": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
+        "elapsed_seconds": time.perf_counter() - UNIT_STARTED}), flush=True)
+
+
 def canonical(value):
     return json.loads(json.dumps(value))
 
@@ -193,6 +201,7 @@ def authority(root, expected):
         validate_endpoint(value, endpoint, cpu, spec)
         saved = checkpoint(endpoint, value)
         del saved
+        rss_checkpoint(f"endpoint-{endpoint['seed']}-{endpoint['arm']}")
         endpoints[endpoint["seed"], endpoint["arm"]] = value
     assert len({e["run"] for e in spec["endpoints"]}) == 4
     assert len({e["invocation_id"] for e in spec["endpoints"]}) == 4
@@ -201,6 +210,7 @@ def authority(root, expected):
     helpers = selected.helpers
     with patch.object(selected, "helpers", lambda r, _: helpers(r, code)):
         control, source, prior, proof, frozen, _ = qualification.startup(root, TRAIN_CODE)
+    rss_checkpoint("source-authority")
     pair.executing_authority(root, code)
     return spec, code, endpoints, costs, control, source, prior, proof, frozen
 
@@ -281,6 +291,7 @@ def main():
     root = Path(__file__).resolve().parent
     spec, code, endpoints, _, control, source, prior, proof, frozen = authority(root, args.authority_sha256)
     assert old.coverage.teacher.qualified.numerical_flags() == prior["numerical_flags"]
+    rss_checkpoint("all-authority")
     endpoint = next(e for e in spec["endpoints"] if (e["seed"], e["arm"]) == (args.seed, args.arm))
     value = endpoints[args.seed, args.arm]
     binding = {"authority_sha256": args.authority_sha256, "execution_sha256": spec["execution_sha256"],
@@ -291,6 +302,7 @@ def main():
     if not gpu:
         with torch.random.fork_rng(devices=[]):
             state, initial = qualification.fresh(control, source, proof, value["boundary"], "cpu")
+        rss_checkpoint("fresh-initializer")
         batches = old.coverage.schedule(state["target"].cpu().numpy(), seed=args.seed)
         schedule_sha = pair.smoke.digest({"batches": torch.from_numpy(batches)})
         arguments = SimpleNamespace(seed=args.seed, boundary=value["boundary"], execution_sha256=TRAIN_CODE,
@@ -300,6 +312,7 @@ def main():
         assert canonical(expected) == value["resume_identity"]
         # Do not keep a complete updated mmap resident during source construction.
         saved = checkpoint(endpoint, value)
+        rss_checkpoint("selected-complete-state")
         training.validate_resume(saved, expected, 100, state["optimizer"].state_dict()["param_groups"])
         state["model"].load_state_dict(saved["vision"], strict=True)
         state["head"].load_state_dict(saved["head"], strict=True)
@@ -310,6 +323,7 @@ def main():
     else:
         saved = checkpoint(endpoint, value)
         models, heads, processor = model_pair(control, saved)
+    rss_checkpoint("model-pair")
     assert all(canonical(late.source_runtime(old.coverage.trained.base.runtime_identity(m))) == value["resume_identity"]["runtime"]
                for m in models)
     assert all(canonical(old.coverage.trained.native.environment(m, processor)) == source["environment"] for m in models)
@@ -336,10 +350,12 @@ def main():
         with torch.inference_mode():
             a, b = (features(m, h, pixels) for m, h in zip(models, heads, strict=True))
             assert torch.equal(a, b); old.previous.training.packed_equal(a, b)
+    rss_checkpoint("fit-forward")
     for model in models:
         model.half()
     f16whole = pair.smoke.digest(old.coverage.trained.base.whole_state(models[0]))
     assert all(pair.smoke.digest(old.coverage.trained.base.whole_state(m)) == f16whole for m in models)
+    rss_checkpoint("half-models")
     if not gpu:
         assert torch.equal(cpu_rng, torch.random.get_rng_state())
         assert all(sha(root / n) == h for n, h in code.items())
