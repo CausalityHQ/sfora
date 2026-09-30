@@ -1,0 +1,40 @@
+Running as unit: sfora-dense-retained-official-candidate-gallery-v1.service; invocation ID: a9f2b888d6b3438dab7f590aae60d9c6
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+{"arm": "candidate", "role": "gallery", "images": 32}
+{"arm": "candidate", "role": "gallery", "images": 2080}
+{"arm": "candidate", "role": "gallery", "images": 4128}
+{"arm": "candidate", "role": "gallery", "images": 6176}
+{"arm": "candidate", "role": "gallery", "images": 8224}
+{"arm": "candidate", "role": "gallery", "images": 10272}
+{"arm": "candidate", "role": "gallery", "images": 12320}
+PASS complete official whole-role export; no quality
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 3min 28.150s
+CPU time consumed: 3min 44.074s
+Memory peak: 5.8G
+Memory swap peak: 0B
+	Command being timed: "systemd-run --user --wait --collect --pipe --unit=sfora-dense-retained-official-candidate-gallery-v1 --property=WorkingDirectory=/home/riomus/runs/sfora-dense-retained-official-export-source-v2 --property=RuntimeMaxSec=300 --property=MemoryMax=8G --property=MemorySwapMax=0 --property=KillMode=control-group --property=OOMPolicy=stop --setenv=CUBLAS_WORKSPACE_CONFIG=:4096:8 --setenv=OMP_NUM_THREADS=8 --setenv=OPENBLAS_NUM_THREADS=1 --setenv=TOKENIZERS_PARALLELISM=false --setenv=PYTHONPATH=/home/riomus/runs/sfora-dense-retained-official-export-source-v2:/home/riomus/runs/sfora-dense-retained-official-export-source-v2/src:/home/riomus/runs/sfora-dense-retained-official-export-source-v2/isolated-deps --setenv=CUTILE_TILEIRAS_PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/tileiras --setenv=PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin:/usr/local/bin:/usr/bin:/bin /usr/bin/flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock /usr/bin/flock -n /home/riomus/.sfora-siglip2-gpu.lock /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-dense-retained-official-export-source-v2/export_large_dense_retained_official.py --execution-sha256 6cde3848d1ab8d175d1cab85c2bfd6ee5bb28299735cf27506e5a8e1d0a63859 --protocol-sha256 be7b27c68b5e2895063d4f24b2b9d4e396a77ed79b2426596893c293df2c20f2 --startup-sha256 be2ec09d910b111acc69e5f9a6e9d006f4dc9cf1e423a17b91c408938573fa19 --arm candidate --role gallery --output /home/riomus/runs/sfora-dense-retained-official-candidate-gallery-v1"
+	User time (seconds): 0.00
+	System time (seconds): 0.00
+	Percent of CPU this job got: 0%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 3:28.17
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 7216
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 377
+	Voluntary context switches: 10
+	Involuntary context switches: 0
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
