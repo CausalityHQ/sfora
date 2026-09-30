@@ -20,8 +20,8 @@ from unittest.mock import patch
 if not __debug__:
     raise SystemExit("Qualification requires assertions")
 
-SOURCE = Path('/home/riomus/runs/sfora-dense-retained-official-export-source-v1')
-SCORE_SOURCE = Path('/home/riomus/runs/sfora-dense-retained-official-score-source-v1')
+SOURCE = Path('/home/riomus/runs/sfora-dense-retained-official-export-source-v2')
+SCORE_SOURCE = Path('/home/riomus/runs/sfora-dense-retained-official-score-source-v2')
 RETAINED_ROOT = Path('/home/riomus/runs/sfora-dense-retained-serving-source-v3')
 RETAINED_SHA = '1b6b97a1298ffc287adc3ac0a3d57f23a5323185f00dd9010fa677a8e7434102'
 SERVING = Path('/home/riomus/runs/sfora-dense-retained-serving-v3/receipt.json')
@@ -124,7 +124,7 @@ def startup(root, execution, score=False):
         assert sha(checkpoint) == digest
         cpu = read(proof_path, proof_sha)
         assert cpu['seed'] == 179032 and cpu['arm'] == arm and cpu['completed_updates'] == 100
-        assert cpu['held_images'] == 12599 and cpu['numerical_flags'] == prior['numerical_flags']
+        assert cpu['held_images'] == 0 and cpu['numerical_flags'] is None
         assert cpu['pass'] and cpu['read_only'] and cpu['optimizer_updates'] == 0 and not cpu['quality_read']
         assert cpu['changed_driver_rejected'] and cpu['strict400_native_head_reload_and_direct_whole_calibration_exact']
         assert cpu['prefix_data_mutation_rejected_at_exit'] and cpu['cpu_cuda_rng_unchanged']
@@ -133,6 +133,7 @@ def startup(root, execution, score=False):
         item = next(x for x in decision['inputs'] if x['seed'] == 179032 and x['arm'] == arm)
         run = train_wires(arm)
         receipt = read(run / 'receipt.json', item['receipt_sha256'])
+        assert receipt['held_images'] == 12599
         assert receipt['cpu_authority_sha256'] == proof_sha
         assert receipt['training_receipt_sha256'] == cpu['training_receipt_sha256']
         assert receipt['training_checkpoint_sha256'] == cpu['training_checkpoint_sha256']
