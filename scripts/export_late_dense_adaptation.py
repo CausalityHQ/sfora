@@ -323,6 +323,7 @@ def main():
     else:
         saved = checkpoint(endpoint, value)
         models, heads, processor = model_pair(control, saved)
+    del saved; gc.collect()
     rss_checkpoint("model-pair")
     assert all(canonical(late.source_runtime(old.coverage.trained.base.runtime_identity(m))) == value["resume_identity"]["runtime"]
                for m in models)
@@ -368,7 +369,6 @@ def main():
             "optimizer_updates": 0, "quality_read": False})
         return
     assert cpu["f16_whole_sha256"] == f16whole
-    del saved; gc.collect()
     for model, head in zip(models, heads, strict=True):
         model.cuda(); head.cuda()
         assert all(p.dtype == torch.float16 for p in model.parameters())

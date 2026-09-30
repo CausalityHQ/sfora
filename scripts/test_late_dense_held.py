@@ -166,6 +166,13 @@ class HeldGate(unittest.TestCase):
             bad = copy.deepcopy(receipt); bad[key] = changed
             with self.subTest(wire=key), self.assertRaises(AssertionError): validate(bad)
 
+    def test_complete_mmap_released_before_fit_forward(self):
+        main = next(n for n in EXPORT.body if isinstance(n, ast.FunctionDef) and n.name == "main")
+        source = ast.unparse(main)
+        self.assertLess(source.index("del saved"), source.index("features(m, h, pixels)"))
+        self.assertLess(source.index("model_pair(control, saved, state)"), source.index("del saved"))
+        self.assertLess(source.index("checkpoint(endpoint, value)"), source.index("del saved"))
+
     def test_native_reload_precision_and_shared_draw_contract(self):
         calls = {ast.unparse(n.func) for n in ast.walk(EXPORT) if isinstance(n, ast.Call)}
         self.assertTrue({"qualification.fresh", "training.identity", "training.verify", "training.validate_resume",
