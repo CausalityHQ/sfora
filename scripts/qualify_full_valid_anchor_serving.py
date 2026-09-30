@@ -466,7 +466,7 @@ def model_facts(full, model, head, processor, whole, prefix=None):
         assert qualified.coverage.frozen_digest(model, inventory) == prefix
     return {'whole_sha256': whole, 'head_sha256': HEAD,
             'buffers_sha256': pair.smoke.digest({f'{i}.{n}': b for i, top in enumerate((model, head)) for n, b in top.named_buffers()}),
-            'runtime': qualified.trained.base.runtime_identity(model),
+            'runtime': json.loads(json.dumps(qualified.trained.base.runtime_identity(model))),
             'environment': json.loads(json.dumps(qualified.trained.native.environment(model, processor)))}
 
 

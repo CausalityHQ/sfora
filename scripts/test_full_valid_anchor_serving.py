@@ -248,6 +248,34 @@ def proof_checks():
         rejects(lambda: serving.new_output(link))
 
 
+def model_facts_json_checks(root):
+    captured = json.loads((root.parent / 'docs/evidence/compact_metric/sop-siglip2-substrate-v1/late-dense-v1/full2000-benchmark-admission-observer-v2.json').read_text())
+    runtime = copy.deepcopy(captured['actual']['runtime'])
+    runtime['config']['id2label'] = {int(k): v for k, v in runtime['config']['id2label'].items()}
+    # Execute the actual metadata return without importing Torch or running a model.
+    tree = ast.parse((root / 'qualify_full_valid_anchor_serving.py').read_text())
+    function = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'model_facts')
+    expression = compile(ast.Expression(function.body[-1].value), str(root / 'qualify_full_valid_anchor_serving.py'), 'eval')
+    base = types.SimpleNamespace(runtime_identity=lambda _: runtime)
+    native = types.SimpleNamespace(environment=lambda *_: captured['actual']['environment'])
+    qualified = types.SimpleNamespace(trained=types.SimpleNamespace(base=base, native=native))
+    pair = types.SimpleNamespace(smoke=types.SimpleNamespace(digest=lambda _: captured['actual']['buffers_sha256']))
+    model = types.SimpleNamespace(named_buffers=lambda: ())
+    namespace = {'json': json, 'qualified': qualified, 'pair': pair, 'model': model, 'head': model,
+                 'processor': None, 'whole': serving.F16, 'HEAD': serving.HEAD}
+    facts = eval(expression, namespace)
+    assert facts == captured['saved'], 'live model facts differ from persisted proof'
+    assert json.loads(json.dumps(facts)) == facts
+    for values, key, altered in ((runtime, 'attention_implementation', 'eager'),
+                                 (runtime['config'], 'layer_norm_eps', 2e-6),
+                                 (runtime['config']['id2label'], 0, 'CHANGED_LABEL')):
+        before = values[key]
+        values[key] = altered
+        assert eval(expression, namespace) != captured['saved'], 'changed runtime metadata accepted'
+        values[key] = before
+    assert eval(expression, namespace) == captured['saved']
+
+
 def source_contracts(root):
     code = {name: serving.sha(root / name) for name in serving.ADDITIONS}
     serving.loaded_code_guard(root, code)
@@ -381,6 +409,7 @@ def main():
     source_checks(root, old)
     receipt_checks(args.evidence_root, old)
     proof_checks()
+    model_facts_json_checks(root)
     bounded_hash_checks()
     source_contracts(root)
     print('PASS stdlib full2000 real receipts,102+3 source, mode/head/prefix/role/order/native/proof/log/output negatives; help/optimized rejection; no Torch')
