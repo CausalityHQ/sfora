@@ -29,6 +29,10 @@ def sha(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def witness_ordinals(batch, inventory):
+    return [int(i) for i in batch if any(p >= 0 for p in inventory[int(i)])][:2]
+
+
 def closure(root, expected):
     manifest = root / "role-matched-cpu-execution.json"
     assert sha(manifest) == expected
@@ -132,7 +136,7 @@ def main():
     assert sha(Path(inspect.getfile(original_loss))) == code["src/sfora/deployed_code_rank.py"]
     facts.update(witnesses.native_cpu_checks(original_loss))
     # Metadata-only first eligible images from the original frozen first batch.
-    ordinals = [i for i in schedule[0] if bool((positives[i] >= 0).any())][:2]
+    ordinals = witness_ordinals(schedule[0], inventory)
     assert len(ordinals) == 2
     index = torch.tensor(ordinals, dtype=torch.long)
     images, rgb = native.pair.augmented_images(control.dataset_root, fit, tuple(ordinals), 1001)

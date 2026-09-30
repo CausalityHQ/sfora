@@ -10,6 +10,15 @@ import qualify_role_matched_cpu as cpu
 
 
 class Authority(unittest.TestCase):
+    def test_fixed_eligible_ordinals_are_json_native_integers(self):
+        class ArrayOrdinal:
+            def __init__(self, value): self.value = value
+            def __int__(self): return self.value
+        values = cpu.witness_ordinals([ArrayOrdinal(i) for i in (2, 1, 0, 1)],
+                                     ((1,), (0,), (-1,)))
+        self.assertEqual(json.loads(json.dumps(values)), [1, 0])
+        self.assertTrue(all(type(v) is int for v in values))
+
     def test_closure_rejects_mutation_missing_member_and_foreign_hash(self):
         with TemporaryDirectory() as directory:
             root = Path(directory)

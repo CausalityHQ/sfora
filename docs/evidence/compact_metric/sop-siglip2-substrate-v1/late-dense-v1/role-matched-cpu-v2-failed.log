@@ -1,0 +1,82 @@
+Running as unit: sfora-role-matched-cpu-v2.service; invocation ID: 3f2bfa6241244f69b492970e47d338a5
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 19281.47it/s]
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-role-matched-source-v2/qualify_role_matched_cpu.py", line 209, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/sfora-role-matched-source-v2/qualify_role_matched_cpu.py", line 205, in main
+    native.atomic_write(args.output, lambda stream: stream.write((json.dumps(value, indent=2) + "\n").encode()))
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-role-matched-source-v2/train_late_dense_adaptation.py", line 103, in atomic_write
+    writer(stream)
+    ~~~~~~^^^^^^^^
+  File "/home/riomus/runs/sfora-role-matched-source-v2/qualify_role_matched_cpu.py", line 205, in <lambda>
+    native.atomic_write(args.output, lambda stream: stream.write((json.dumps(value, indent=2) + "\n").encode()))
+                                                                  ~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/lib/python3.13/json/__init__.py", line 238, in dumps
+    **kw).encode(obj)
+          ~~~~~~^^^^^
+  File "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/lib/python3.13/json/encoder.py", line 200, in encode
+    chunks = self.iterencode(o, _one_shot=True)
+  File "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/lib/python3.13/json/encoder.py", line 261, in iterencode
+    return _iterencode(o, 0)
+  File "/home/riomus/.local/share/uv/python/cpython-3.13.9-linux-aarch64-gnu/lib/python3.13/json/encoder.py", line 180, in default
+    raise TypeError(f'Object of type {o.__class__.__name__} '
+                    f'is not JSON serializable')
+TypeError: Object of type int64 is not JSON serializable
+Command exited with non-zero status 1
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-role-matched-source-v2/qualify_role_matched_cpu.py --execution-sha256 39de5d019552109e545f52e13216735ae096609eb2911dd7059df2f2d9311af1 --output /home/riomus/runs/sfora-role-matched-cpu-v2.json"
+	User time (seconds): 36.59
+	System time (seconds): 3.82
+	Percent of CPU this job got: 148%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:27.16
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 5197864
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 18051
+	Minor (reclaiming a frame) page faults: 530090
+	Voluntary context switches: 90257
+	Involuntary context switches: 452
+	Swaps: 0
+	File system inputs: 384
+	File system outputs: 2469736
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 1
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=1
+Service runtime: 27.164s
+CPU time consumed: 40.419s
+Memory peak: 256.0K
+Memory swap peak: 0B
+Command exited with non-zero status 1
+	Command being timed: "systemd-run --user --wait --collect --pipe --unit=sfora-role-matched-cpu-v2 --property=WorkingDirectory=/home/riomus/runs/sfora-role-matched-source-v2 --property=RuntimeMaxSec=120 --property=MemoryMax=8G --property=MemorySwapMax=0 --property=KillMode=control-group --property=OOMPolicy=stop --setenv=CUDA_VISIBLE_DEVICES= --setenv=CUBLAS_WORKSPACE_CONFIG=:4096:8 --setenv=OMP_NUM_THREADS=8 --setenv=OPENBLAS_NUM_THREADS=1 --setenv=TOKENIZERS_PARALLELISM=false --setenv=TMPDIR=/home/riomus/runs/sfora-role-matched-source-v2 --setenv=CUTILE_TILEIRAS_PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/tileiras --setenv=PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin:/usr/local/bin:/usr/bin:/bin --setenv=PYTHONPATH=/home/riomus/runs/sfora-role-matched-source-v2:/home/riomus/runs/sfora-role-matched-source-v2/src:/home/riomus/runs/sfora-role-matched-source-v2/isolated-deps flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock flock -n /home/riomus/.sfora-siglip2-gpu.lock /usr/bin/time -v /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-role-matched-source-v2/qualify_role_matched_cpu.py --execution-sha256 39de5d019552109e545f52e13216735ae096609eb2911dd7059df2f2d9311af1 --output /home/riomus/runs/sfora-role-matched-cpu-v2.json"
+	User time (seconds): 0.00
+	System time (seconds): 0.00
+	Percent of CPU this job got: 0%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:27.19
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 7396
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 377
+	Voluntary context switches: 10
+	Involuntary context switches: 0
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 1
