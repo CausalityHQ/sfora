@@ -1,0 +1,109 @@
+{
+  "paired_schedules_images_exact": true,
+  "quality_read": false,
+  "records": {
+    "large": {
+      "checkpoint": {
+        "path": "/home/riomus/runs/sfora-native256-initialized-cpu-large-v3/initialized.pt",
+        "sha256": "5ace86abfc3091431ef61dbe47cbe808e9ac9d43fe25a0e1f6eeab6d2374a280"
+      },
+      "cpu": {
+        "both_locks_held": true,
+        "invocation_id": "71ea951cd5ee43ca8fd54149e2326604",
+        "log": {
+          "path": "/home/riomus/runs/sfora-native256-initialized-cpu-source-v3/sfora-native256-initialized-cpu-large-v3.log",
+          "sha256": "7850167ff869c456a44c720f98e1c16578627b640605fa4b7ee46563c67a1020"
+        },
+        "native_peak_rss_kib": 3735752,
+        "receipt": {
+          "path": "/home/riomus/runs/sfora-native256-initialized-cpu-large-v3/proof.json",
+          "sha256": "e3cd574771a0fbda7515624f5e2736809145be8b379dd42a1307fd558b6ace91"
+        },
+        "service_seconds": 110.738,
+        "unit": "sfora-native256-initialized-cpu-large-v3"
+      },
+      "ordered_input_sha256": "a2598377071391d5f412fded988fac8804d3e772035a89a6fd0ecca4a879a311",
+      "ordered_rgb_sha256": "91c099df6ccffbb1a7f62ac8f8dd3c731060294eb7efd785400e8f6e6024c5d9",
+      "qualifier_authority": {
+        "path": "/home/riomus/runs/sfora-native256-initialized-cpu-source-v3/authority-large-v3.json",
+        "sha256": "ac6d3ed54791d925cfbcfe80d01eeb20ea84801d1fa33c5e8c874740616832f6"
+      },
+      "qualifier_execution_sha256": "483366ffe853d4bbcc2e2166533f692b80c114a34d6ad5ca81cdbbdce08d3ba9",
+      "qualifier_root": "/home/riomus/runs/sfora-native256-initialized-cpu-source-v3",
+      "schedules": {
+        "179032": {
+          "dtype": "torch.int64",
+          "sha256": "5e284a3ac7e4ae1055aeb779b7f2b000dd91d1219e2aa1da28a02908e08d570d",
+          "shape": [
+            100,
+            64
+          ]
+        },
+        "179041": {
+          "dtype": "torch.int64",
+          "sha256": "532fbd79d141bf79de05e94f435e066971737e8ef98761639ee5ce3d9e340a00",
+          "shape": [
+            100,
+            64
+          ]
+        }
+      },
+      "swap_bytes": 0,
+      "whole_cgroup_peak_bytes": 5630009344,
+      "width": 1024
+    },
+    "so400": {
+      "checkpoint": {
+        "path": "/home/riomus/runs/sfora-native256-initialized-cpu-so400-v1/initialized.pt",
+        "sha256": "fa7c718ae72a950209ecb7a81e6aeae051930f3d78bd2f6eab5335cac0010325"
+      },
+      "cpu": {
+        "both_locks_held": true,
+        "invocation_id": "7574a2bf30214b2898fedad0e8230ecc",
+        "log": {
+          "path": "/home/riomus/runs/sfora-native256-initialized-cpu-source-v1/sfora-native256-initialized-cpu-so400-v1.log",
+          "sha256": "4bf7bc121ef91d462a350ec82799cc5003cd6ea37e7eea2cff3dd06943c02b9c"
+        },
+        "native_peak_rss_kib": 4633988,
+        "receipt": {
+          "path": "/home/riomus/runs/sfora-native256-initialized-cpu-so400-v1/proof.json",
+          "sha256": "576b512b9c7ceca35717de935c3944aafcc7b69a42f9a11de0589269a39d16db"
+        },
+        "service_seconds": 111.519,
+        "unit": "sfora-native256-initialized-cpu-so400-v1"
+      },
+      "ordered_input_sha256": "a2598377071391d5f412fded988fac8804d3e772035a89a6fd0ecca4a879a311",
+      "ordered_rgb_sha256": "91c099df6ccffbb1a7f62ac8f8dd3c731060294eb7efd785400e8f6e6024c5d9",
+      "qualifier_authority": {
+        "path": "/home/riomus/runs/sfora-native256-initialized-cpu-source-v1/authority-so400-v1.json",
+        "sha256": "a53cecd64ae967f8cae89966fe0649fb3db0087a71d2a69c27b782db2578bdd2"
+      },
+      "qualifier_execution_sha256": "ce88515d639b8039b57a169770990763b3eb09f3d1c64d7b5d37a903bf50ef6c",
+      "qualifier_root": "/home/riomus/runs/sfora-native256-initialized-cpu-source-v1",
+      "schedules": {
+        "179032": {
+          "dtype": "torch.int64",
+          "sha256": "5e284a3ac7e4ae1055aeb779b7f2b000dd91d1219e2aa1da28a02908e08d570d",
+          "shape": [
+            100,
+            64
+          ]
+        },
+        "179041": {
+          "dtype": "torch.int64",
+          "sha256": "532fbd79d141bf79de05e94f435e066971737e8ef98761639ee5ce3d9e340a00",
+          "shape": [
+            100,
+            64
+          ]
+        }
+      },
+      "swap_bytes": 0,
+      "whole_cgroup_peak_bytes": 7030775808,
+      "width": 1152
+    }
+  },
+  "schema": "native256-full-initialized-cpu-collected-inputs-v1",
+  "source_commit": "78d1f0c5",
+  "updates": 0
+}
