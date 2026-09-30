@@ -105,3 +105,7 @@ Neither route certifies the global frontier or changes the dated numerical
 references. No purchase, credentials, training, model selection or production
 change followed. These exact failed publisher routes are recorded to avoid
 repeating them as fresh evidence in later turns.
+
+## Bounded date/protocol correction, 30 September
+
+A search surfaced an OpenReview PDF with a seven-month crawl/publish label. Its title matches [Liao et al., ICML2023, publisher PDF](https://proceedings.mlr.press/v202/liao23b/liao23b.pdf), not a new2026 result. The accessible publisher Table8 reports90.7% In-Shop R@1 with ResNet50/512D; Appendix Table4 reports83.3% SOP R@1 at256px. The stated In-Shop protocol is25882train/14218query/12612gallery. These primary published values do not exceed the existing dated91.2/96.7% screens. No local measurements, model changes or new contextual-loss allocation followed. The OpenReview browser challenge was resolved for evidence through the publisher route, not bypassed. STIR's author-maintained docs were also located, but its numerical screen already exists above and is reused. Strongest-current-frontier completeness remains unproven; crawled recency is not publication date.
