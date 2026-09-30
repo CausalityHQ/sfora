@@ -1,0 +1,325 @@
+{
+  "actual": {
+    "buffers_sha256": "0e295c3511aad6143aee527a61dcbc3ecef994ab8ade6f7978fa55245000b92e",
+    "environment": {
+      "classes": {
+        "pool": "transformers.models.siglip.modeling_siglip.SiglipMultiheadAttentionPoolingHead",
+        "processor": "transformers.models.siglip.image_processing_siglip.SiglipImageProcessor",
+        "vision": "transformers.models.siglip.modeling_siglip.SiglipVisionModel"
+      },
+      "native_files": {
+        "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/amp/autocast_mode.py": "7cb1da20a6dc2ce8be36e7dd8e9ae75800c1cae759344e6ace06ee05f2f630ec",
+        "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/nn/functional.py": "27493186ee22f811b553e31d9c804d4d46716d1be62d034d731537f66f27ef19",
+        "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/nn/modules/activation.py": "89c774e9d0d6fc06a3d8cbf06036f32e0fc7fbd18b80436b6d462c398d4d1a8b",
+        "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/integrations/sdpa_attention.py": "87f933d1a2d8508df572da5c0748c6b24c22ff2b625796949957dcd86cc57564",
+        "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/models/siglip/image_processing_siglip.py": "f716aedcc35e6e271662e1bee77d9546fcf3155a6c6bd166872a87540e853c4c",
+        "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/models/siglip/modeling_siglip.py": "274eafdb9bff99607f15eb4c4fb6fc47256b07358807653baa48539d13376b31",
+        "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/utils/output_capturing.py": "65fa93bcfd2314d2a680c08c3699773f2ffea44340e85cd0e6392698b83b37bb"
+      },
+      "processor": {
+        "do_convert_rgb": null,
+        "do_normalize": true,
+        "do_rescale": true,
+        "do_resize": true,
+        "image_mean": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "image_processor_type": "SiglipImageProcessor",
+        "image_std": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "resample": 2,
+        "rescale_factor": 0.00392156862745098,
+        "size": {
+          "height": 256,
+          "width": 256
+        }
+      },
+      "versions": {
+        "Pillow": "12.2.0",
+        "numpy": "2.5.0",
+        "safetensors": "0.8.0",
+        "torch": "2.12.1",
+        "torchvision": "0.27.1",
+        "transformers": "5.12.1"
+      }
+    },
+    "head_sha256": "ec167f7cbcbc7d66edff9ef0a5fc3de84ddc809aa134d6a6257ccab54d7a42c0",
+    "runtime": {
+      "attention_implementation": "sdpa",
+      "buffer_devices": {
+        "embeddings.position_ids": "cuda:0"
+      },
+      "checkpointing": false,
+      "config": {
+        "_name_or_path": "",
+        "architectures": null,
+        "attention_dropout": 0.0,
+        "chunk_size_feed_forward": 0,
+        "dtype": null,
+        "hidden_act": "gelu_pytorch_tanh",
+        "hidden_size": 1024,
+        "id2label": {
+          "0": "LABEL_0",
+          "1": "LABEL_1"
+        },
+        "image_size": 256,
+        "intermediate_size": 4096,
+        "is_encoder_decoder": false,
+        "label2id": {
+          "LABEL_0": 0,
+          "LABEL_1": 1
+        },
+        "layer_norm_eps": 1e-06,
+        "model_type": "siglip_vision_model",
+        "num_attention_heads": 16,
+        "num_channels": 3,
+        "num_hidden_layers": 24,
+        "output_attentions": false,
+        "output_hidden_states": false,
+        "patch_size": 16,
+        "problem_type": null,
+        "return_dict": true,
+        "transformers_version": "5.12.1"
+      },
+      "dropout": {},
+      "normalization_eps": {
+        "encoder.layers.0.layer_norm1": 1e-06,
+        "encoder.layers.0.layer_norm2": 1e-06,
+        "encoder.layers.1.layer_norm1": 1e-06,
+        "encoder.layers.1.layer_norm2": 1e-06,
+        "encoder.layers.10.layer_norm1": 1e-06,
+        "encoder.layers.10.layer_norm2": 1e-06,
+        "encoder.layers.11.layer_norm1": 1e-06,
+        "encoder.layers.11.layer_norm2": 1e-06,
+        "encoder.layers.12.layer_norm1": 1e-06,
+        "encoder.layers.12.layer_norm2": 1e-06,
+        "encoder.layers.13.layer_norm1": 1e-06,
+        "encoder.layers.13.layer_norm2": 1e-06,
+        "encoder.layers.14.layer_norm1": 1e-06,
+        "encoder.layers.14.layer_norm2": 1e-06,
+        "encoder.layers.15.layer_norm1": 1e-06,
+        "encoder.layers.15.layer_norm2": 1e-06,
+        "encoder.layers.16.layer_norm1": 1e-06,
+        "encoder.layers.16.layer_norm2": 1e-06,
+        "encoder.layers.17.layer_norm1": 1e-06,
+        "encoder.layers.17.layer_norm2": 1e-06,
+        "encoder.layers.18.layer_norm1": 1e-06,
+        "encoder.layers.18.layer_norm2": 1e-06,
+        "encoder.layers.19.layer_norm1": 1e-06,
+        "encoder.layers.19.layer_norm2": 1e-06,
+        "encoder.layers.2.layer_norm1": 1e-06,
+        "encoder.layers.2.layer_norm2": 1e-06,
+        "encoder.layers.20.layer_norm1": 1e-06,
+        "encoder.layers.20.layer_norm2": 1e-06,
+        "encoder.layers.21.layer_norm1": 1e-06,
+        "encoder.layers.21.layer_norm2": 1e-06,
+        "encoder.layers.22.layer_norm1": 1e-06,
+        "encoder.layers.22.layer_norm2": 1e-06,
+        "encoder.layers.23.layer_norm1": 1e-06,
+        "encoder.layers.23.layer_norm2": 1e-06,
+        "encoder.layers.3.layer_norm1": 1e-06,
+        "encoder.layers.3.layer_norm2": 1e-06,
+        "encoder.layers.4.layer_norm1": 1e-06,
+        "encoder.layers.4.layer_norm2": 1e-06,
+        "encoder.layers.5.layer_norm1": 1e-06,
+        "encoder.layers.5.layer_norm2": 1e-06,
+        "encoder.layers.6.layer_norm1": 1e-06,
+        "encoder.layers.6.layer_norm2": 1e-06,
+        "encoder.layers.7.layer_norm1": 1e-06,
+        "encoder.layers.7.layer_norm2": 1e-06,
+        "encoder.layers.8.layer_norm1": 1e-06,
+        "encoder.layers.8.layer_norm2": 1e-06,
+        "encoder.layers.9.layer_norm1": 1e-06,
+        "encoder.layers.9.layer_norm2": 1e-06,
+        "head.layernorm": 1e-06,
+        "post_layernorm": 1e-06
+      },
+      "pool_heads": 16
+    },
+    "whole_sha256": "03a01b279542d6817959e3fb5327873981bc2d98fa72a66bcdaca8366207a2e0"
+  },
+  "canonical_json_equal": true,
+  "differences": [
+    {
+      "actual_has": true,
+      "key_repr": "0",
+      "key_type": "int",
+      "path": "/runtime/config/id2label",
+      "saved_has": false
+    },
+    {
+      "actual_has": true,
+      "key_repr": "1",
+      "key_type": "int",
+      "path": "/runtime/config/id2label",
+      "saved_has": false
+    },
+    {
+      "actual_has": false,
+      "key_repr": "'1'",
+      "key_type": "str",
+      "path": "/runtime/config/id2label",
+      "saved_has": true
+    },
+    {
+      "actual_has": false,
+      "key_repr": "'0'",
+      "key_type": "str",
+      "path": "/runtime/config/id2label",
+      "saved_has": true
+    }
+  ],
+  "qualification": false,
+  "saved": {
+    "buffers_sha256": "0e295c3511aad6143aee527a61dcbc3ecef994ab8ade6f7978fa55245000b92e",
+    "environment": {
+      "classes": {
+        "pool": "transformers.models.siglip.modeling_siglip.SiglipMultiheadAttentionPoolingHead",
+        "processor": "transformers.models.siglip.image_processing_siglip.SiglipImageProcessor",
+        "vision": "transformers.models.siglip.modeling_siglip.SiglipVisionModel"
+      },
+      "native_files": {
+        "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/amp/autocast_mode.py": "7cb1da20a6dc2ce8be36e7dd8e9ae75800c1cae759344e6ace06ee05f2f630ec",
+        "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/nn/functional.py": "27493186ee22f811b553e31d9c804d4d46716d1be62d034d731537f66f27ef19",
+        "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/nn/modules/activation.py": "89c774e9d0d6fc06a3d8cbf06036f32e0fc7fbd18b80436b6d462c398d4d1a8b",
+        "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/integrations/sdpa_attention.py": "87f933d1a2d8508df572da5c0748c6b24c22ff2b625796949957dcd86cc57564",
+        "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/models/siglip/image_processing_siglip.py": "f716aedcc35e6e271662e1bee77d9546fcf3155a6c6bd166872a87540e853c4c",
+        "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/models/siglip/modeling_siglip.py": "274eafdb9bff99607f15eb4c4fb6fc47256b07358807653baa48539d13376b31",
+        "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/utils/output_capturing.py": "65fa93bcfd2314d2a680c08c3699773f2ffea44340e85cd0e6392698b83b37bb"
+      },
+      "processor": {
+        "do_convert_rgb": null,
+        "do_normalize": true,
+        "do_rescale": true,
+        "do_resize": true,
+        "image_mean": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "image_processor_type": "SiglipImageProcessor",
+        "image_std": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "resample": 2,
+        "rescale_factor": 0.00392156862745098,
+        "size": {
+          "height": 256,
+          "width": 256
+        }
+      },
+      "versions": {
+        "Pillow": "12.2.0",
+        "numpy": "2.5.0",
+        "safetensors": "0.8.0",
+        "torch": "2.12.1",
+        "torchvision": "0.27.1",
+        "transformers": "5.12.1"
+      }
+    },
+    "head_sha256": "ec167f7cbcbc7d66edff9ef0a5fc3de84ddc809aa134d6a6257ccab54d7a42c0",
+    "runtime": {
+      "attention_implementation": "sdpa",
+      "buffer_devices": {
+        "embeddings.position_ids": "cuda:0"
+      },
+      "checkpointing": false,
+      "config": {
+        "_name_or_path": "",
+        "architectures": null,
+        "attention_dropout": 0.0,
+        "chunk_size_feed_forward": 0,
+        "dtype": null,
+        "hidden_act": "gelu_pytorch_tanh",
+        "hidden_size": 1024,
+        "id2label": {
+          "0": "LABEL_0",
+          "1": "LABEL_1"
+        },
+        "image_size": 256,
+        "intermediate_size": 4096,
+        "is_encoder_decoder": false,
+        "label2id": {
+          "LABEL_0": 0,
+          "LABEL_1": 1
+        },
+        "layer_norm_eps": 1e-06,
+        "model_type": "siglip_vision_model",
+        "num_attention_heads": 16,
+        "num_channels": 3,
+        "num_hidden_layers": 24,
+        "output_attentions": false,
+        "output_hidden_states": false,
+        "patch_size": 16,
+        "problem_type": null,
+        "return_dict": true,
+        "transformers_version": "5.12.1"
+      },
+      "dropout": {},
+      "normalization_eps": {
+        "encoder.layers.0.layer_norm1": 1e-06,
+        "encoder.layers.0.layer_norm2": 1e-06,
+        "encoder.layers.1.layer_norm1": 1e-06,
+        "encoder.layers.1.layer_norm2": 1e-06,
+        "encoder.layers.10.layer_norm1": 1e-06,
+        "encoder.layers.10.layer_norm2": 1e-06,
+        "encoder.layers.11.layer_norm1": 1e-06,
+        "encoder.layers.11.layer_norm2": 1e-06,
+        "encoder.layers.12.layer_norm1": 1e-06,
+        "encoder.layers.12.layer_norm2": 1e-06,
+        "encoder.layers.13.layer_norm1": 1e-06,
+        "encoder.layers.13.layer_norm2": 1e-06,
+        "encoder.layers.14.layer_norm1": 1e-06,
+        "encoder.layers.14.layer_norm2": 1e-06,
+        "encoder.layers.15.layer_norm1": 1e-06,
+        "encoder.layers.15.layer_norm2": 1e-06,
+        "encoder.layers.16.layer_norm1": 1e-06,
+        "encoder.layers.16.layer_norm2": 1e-06,
+        "encoder.layers.17.layer_norm1": 1e-06,
+        "encoder.layers.17.layer_norm2": 1e-06,
+        "encoder.layers.18.layer_norm1": 1e-06,
+        "encoder.layers.18.layer_norm2": 1e-06,
+        "encoder.layers.19.layer_norm1": 1e-06,
+        "encoder.layers.19.layer_norm2": 1e-06,
+        "encoder.layers.2.layer_norm1": 1e-06,
+        "encoder.layers.2.layer_norm2": 1e-06,
+        "encoder.layers.20.layer_norm1": 1e-06,
+        "encoder.layers.20.layer_norm2": 1e-06,
+        "encoder.layers.21.layer_norm1": 1e-06,
+        "encoder.layers.21.layer_norm2": 1e-06,
+        "encoder.layers.22.layer_norm1": 1e-06,
+        "encoder.layers.22.layer_norm2": 1e-06,
+        "encoder.layers.23.layer_norm1": 1e-06,
+        "encoder.layers.23.layer_norm2": 1e-06,
+        "encoder.layers.3.layer_norm1": 1e-06,
+        "encoder.layers.3.layer_norm2": 1e-06,
+        "encoder.layers.4.layer_norm1": 1e-06,
+        "encoder.layers.4.layer_norm2": 1e-06,
+        "encoder.layers.5.layer_norm1": 1e-06,
+        "encoder.layers.5.layer_norm2": 1e-06,
+        "encoder.layers.6.layer_norm1": 1e-06,
+        "encoder.layers.6.layer_norm2": 1e-06,
+        "encoder.layers.7.layer_norm1": 1e-06,
+        "encoder.layers.7.layer_norm2": 1e-06,
+        "encoder.layers.8.layer_norm1": 1e-06,
+        "encoder.layers.8.layer_norm2": 1e-06,
+        "encoder.layers.9.layer_norm1": 1e-06,
+        "encoder.layers.9.layer_norm2": 1e-06,
+        "head.layernorm": 1e-06,
+        "post_layernorm": 1e-06
+      },
+      "pool_heads": 16
+    },
+    "whole_sha256": "03a01b279542d6817959e3fb5327873981bc2d98fa72a66bcdaca8366207a2e0"
+  },
+  "schema": "full2000-benchmark-admission-diagnostic-v1",
+  "source_sha256": "497cd7d946d3723f77960ea1b18b84b46119a741f1284184d64dfa758386d22e",
+  "timing_measured": false
+}

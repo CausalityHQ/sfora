@@ -1,0 +1,65 @@
+Running as unit: sfora-full-valid-anchor-public-benchmark-v3.service; invocation ID: e6140413bce94352b7376e96a84f78d3
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-full-valid-anchor-public-source-v3/benchmark_full_valid_anchor_serving.py", line 148, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/sfora-full-valid-anchor-public-source-v3/benchmark_full_valid_anchor_serving.py", line 66, in main
+    assert before == admitted['models']['public_f16']
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+Command exited with non-zero status 1
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-full-valid-anchor-public-source-v3/benchmark_full_valid_anchor_serving.py --authority-sha256 dc9c7f7291e1a54745de425c25c4364dd1ff6b0b98b5a2cac0a356007e56f065 --gpu-proof /home/riomus/runs/sfora-full-valid-anchor-public-gpu-v3/proof.json --gpu-sha256 28ec5dcdfc38bd89093c1d23c3a98cc3146470c8d89beaf4ec1cf1538c87287f --gpu-log /home/riomus/runs/sfora-full-valid-anchor-public-source-v3/sfora-full-valid-anchor-public-gpu-v3.log --gpu-log-sha256 c9d3b0636b8b4c8f4a0b21a4a05c6dbe79a8bce763f4d24a7ae80cbb6008e566 --output /home/riomus/runs/sfora-full-valid-anchor-public-benchmark-v3/diagnostic.json"
+	User time (seconds): 18.39
+	System time (seconds): 5.08
+	Percent of CPU this job got: 57%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:40.88
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 3912120
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 192
+	Minor (reclaiming a frame) page faults: 258564
+	Voluntary context switches: 113130
+	Involuntary context switches: 244
+	Swaps: 0
+	File system inputs: 52163256
+	File system outputs: 8
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 1
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=1
+Service runtime: 40.885s
+CPU time consumed: 23.489s
+Memory peak: 256.0K
+Memory swap peak: 0B
+Command exited with non-zero status 1
+	Command being timed: "systemd-run --user --wait --collect --pipe --unit=sfora-full-valid-anchor-public-benchmark-v3 --property=WorkingDirectory=/home/riomus/runs/sfora-full-valid-anchor-public-source-v3 --property=RuntimeMaxSec=300 --property=MemoryMax=8G --property=MemorySwapMax=0 --property=KillMode=control-group --property=OOMPolicy=stop --setenv=CUDA_VISIBLE_DEVICES=0 --setenv=CUBLAS_WORKSPACE_CONFIG=:4096:8 --setenv=OMP_NUM_THREADS=8 --setenv=OPENBLAS_NUM_THREADS=1 --setenv=TOKENIZERS_PARALLELISM=false --setenv=TMPDIR=/home/riomus/runs/sfora-full-valid-anchor-public-source-v3 --setenv=CUTILE_TILEIRAS_PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/tileiras --setenv=PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin:/usr/local/bin:/usr/bin:/bin --setenv=PYTHONPATH=/home/riomus/runs/sfora-full-valid-anchor-public-source-v3:/home/riomus/runs/sfora-full-valid-anchor-public-source-v3/src:/home/riomus/runs/sfora-full-valid-anchor-public-source-v3/isolated-deps flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock flock -n /home/riomus/.sfora-siglip2-gpu.lock /usr/bin/time -v /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-full-valid-anchor-public-source-v3/benchmark_full_valid_anchor_serving.py --authority-sha256 dc9c7f7291e1a54745de425c25c4364dd1ff6b0b98b5a2cac0a356007e56f065 --gpu-proof /home/riomus/runs/sfora-full-valid-anchor-public-gpu-v3/proof.json --gpu-sha256 28ec5dcdfc38bd89093c1d23c3a98cc3146470c8d89beaf4ec1cf1538c87287f --gpu-log /home/riomus/runs/sfora-full-valid-anchor-public-source-v3/sfora-full-valid-anchor-public-gpu-v3.log --gpu-log-sha256 c9d3b0636b8b4c8f4a0b21a4a05c6dbe79a8bce763f4d24a7ae80cbb6008e566 --output /home/riomus/runs/sfora-full-valid-anchor-public-benchmark-v3/diagnostic.json"
+	User time (seconds): 0.00
+	System time (seconds): 0.00
+	Percent of CPU this job got: 0%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:40.90
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 7412
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 378
+	Voluntary context switches: 10
+	Involuntary context switches: 0
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 1
