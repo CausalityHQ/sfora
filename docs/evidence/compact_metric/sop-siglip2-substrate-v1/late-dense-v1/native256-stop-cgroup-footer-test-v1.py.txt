@@ -1,0 +1,35 @@
+import contextlib, io, json, os, runpy
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest.mock import patch
+
+real = Path
+script = real(__file__).with_name('native256-stop-cgroup-footer-v1.py.txt')
+with TemporaryDirectory() as directory:
+    root = real(directory)
+    proc = root / 'proc-cgroup'
+    proc.write_text('0::/unit.service\n')
+    group = root / 'unit.service'
+    group.mkdir()
+    values = {'memory.current': '123', 'memory.peak': '8589934592', 'memory.max': '8589934592',
+              'memory.swap.current': '0', 'memory.swap.peak': '0', 'memory.swap.max': '0',
+              'memory.events': 'max 55\noom 0\noom_kill 0',
+              'memory.stat': 'anon 123\nfile 456\nfile_dirty 789\nfile_writeback 0'}
+    for name, value in values.items():
+        (group / name).write_text(value + '\n')
+    before = {name: (group / name).read_bytes() for name in values}
+    output = io.StringIO()
+    def route(path):
+        return proc if path == '/proc/self/cgroup' else root if path == '/sys/fs/cgroup' else real(path)
+    with patch('pathlib.Path', side_effect=route), patch.dict(os.environ,
+            {'INVOCATION_ID': 'a' * 32, 'SERVICE_RESULT': 'timeout', 'EXIT_CODE': 'killed', 'EXIT_STATUS': 'TERM'}), \
+            contextlib.redirect_stdout(output):
+        runpy.run_path(str(script))
+    line = output.getvalue()
+    assert line.startswith('STOP_CGROUP ')
+    record = json.loads(line[len('STOP_CGROUP '):])
+    assert record['values'] == values and record['service_result'] == 'timeout'
+    assert record['exit_code'] == 'killed' and record['exit_status'] == 'TERM'
+    assert record['invocation_id'] == 'a' * 32 and record['path'] == str(group)
+    assert {name: (group / name).read_bytes() for name in values} == before
+print('PASS exact failed-unit counters/status retained without mutation; systemd execution unrun')

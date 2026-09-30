@@ -1,0 +1,9 @@
+import json, os
+from pathlib import Path
+unified=[line[3:] for line in Path('/proc/self/cgroup').read_text().splitlines() if line.startswith('0::')]
+assert len(unified)==1 and unified[0]!='/'
+root=Path('/sys/fs/cgroup')/unified[0].lstrip('/')
+assert root.resolve()==root and root.is_dir()
+names=('memory.current','memory.peak','memory.max','memory.swap.current','memory.swap.peak','memory.swap.max','memory.events','memory.stat')
+values={name:(root/name).read_text().strip() for name in names}
+print('STOP_CGROUP '+json.dumps({'path':str(root),'invocation_id':os.environ.get('INVOCATION_ID'),'service_result':os.environ.get('SERVICE_RESULT'),'exit_code':os.environ.get('EXIT_CODE'),'exit_status':os.environ.get('EXIT_STATUS'),'values':values},sort_keys=True),flush=True)
