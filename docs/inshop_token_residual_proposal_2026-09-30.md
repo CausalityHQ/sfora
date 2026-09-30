@@ -1,6 +1,6 @@
 # Fixed final-token residual representation proposal
 
-Status: source-only proposal for fixed Opus/Astra admission review; no implementation, native CPU, GPU, teacher or learning job admitted. Queue and archived-consensus procedures are terminal; their original jobs are collected. Preserve useful Pareto points and the full SOP/InShop production quality/speed goal.
+Status: fixed Opus/Astra review collected and reconciled in inshop_token_residual_review_2026-09-30.md; bounded implementation/CPU qualification admitted, no native or training job yet. Queue and archived-consensus procedures are terminal; their original jobs are collected. Preserve useful Pareto points and the full SOP/InShop production quality/speed goal.
 
 Cause hypothesis: current global pooling discards useful spatial detail when similar products share pose/global appearance. Historical same-pose impostor evidence motivates inspecting this representation path, but is not a diagnosis on the current source or proof of achievable gain. The new consensus measured AP+0.377050pp with positive product bounds but R1+0.078691pp with a nonpositive lower bound; score averaging does not supply the accepted R1 teacher. No teacher, sampler, budget, margin or width sweep follows.
 

@@ -1,0 +1,713 @@
+{
+  "id": "849f057d9b974324",
+  "status": "completed",
+  "started_at": 1790753159,
+  "agent": "sfora/emafactorial",
+  "force_reason": "Genuinely new final-token spatial residual architecture/authority/resource decision after both imagequeue and scoreconsensus original procedures are terminal. Prior queue/dense admission critiques do not cover new W state, token ordering, zero-init/gradient path or updated serving constructor. One fixed dual admission review before any implementation/native job; no duplicate review/research.",
+  "rolling_6h_count": 4,
+  "prompt_preview": "Read-only narrow admission review of ONE new useful trained native128 representation, not open-ended research or alternative sweep. Repo /home/rb/worktrees/sfora-positive-causality currentmaster; read docs/inshop_token_residual_proposal_2026-09-30.md exact procedure, docs/inshop_archived_consensus_result_2026-09-30.md NEW terminal KILL with preservedpositiveAP, docs/inshop_image_queue_result_2026-09-30.md, closed-method-ledger-v1/consultation.json and relevant prior pool/final-two/teacher/retained256/dense/late results only asneeded to detectexactduplicate. Source scripts/probe_inshop_pe_training_smoke.py load_arm, train_pe_large_coverage.fp16, pe_large_optimization.step/payload, pe_native_valid_anchor.terms, late_dense_boundary.initialize, src/sfora/siglip2_compact_serving.py encoder. No edits/tests/Torch/SSH/GPU/quality reads/children/consultations/operator contact. All original jobs collected; DGXidle. Proposed single-pass fixed4quadrant final-token means4096\u2192zeroW128x4096 addedtolearnedglobal128 raw, boundary12 unchanged, complete corrected128 TRAIN1000 source, fresh matched208vs209optimizers, originalwithreplacement100 schedules/seeds032041/augmentation1001..1100, originalCE+8validrank/rates/clip/precision. New explicit W/resume/module tokenauthority; alloriginalvision400/head/bank/proxy/buffers source restored. Actualshape/order/sourceoutput/RNG/gradient independentCPU120 thenONEdiscard17vs8+9/resource100projection\u2264269 thenfourfresh100300 onlyifPASS;8GiB/noSwap/<10GB/bothlocks unchanged. FullupdatedCPU/full12599FP16B32 exports/paired+.20ppbothmetrics/productlowerpositive required. No teacher/queue/resolution/width/loss/depth sweep. Singleencoder/sourceavailability andzeroinit NOTquality/speedguarantees. Reject universal architectureKILL/theorems basedontiny historicalinternal regressions; preserveParetopoints. Review actionable novelty/representation plausibility, exactsame-pass token/FP32 operation/frozen source/RNG/zerooutput vs gradient/wstate/complete strictreload/bank/objective/optimizer/resource/publicloader and statistical confirmation issues. Return GOforboundedimplementation+CPUconditions orREJECTaswritten withprecisereproduciblecause andsmallestfix; doNOTraise caps/lower floors/addresearchloops. Need convergent usefultrainedmodelpath, no allmethodsceilingclaim. Source-only installedSiglipmoduleSHA/lines inproposal are recordedread, not runtime qualification. Question: is this exact residual a defensible distinct quality intervention and can a minimaldriver/proof implement it honestly under frozen gates? No new native/admission beforeparentreconciliation.",
+  "prompt_sha256": "283d0ffb21cbd04dcf1f7fd7922c01efffd8bd212d6466b3f34f00153792e354",
+  "prompt_bytes": 2620,
+  "fingerprint": "09843355e7b775ba666bf67856aa7bc047b5a939707c918710988d3458736575",
+  "evidence": {
+    "git_commit": "79902e92a0a572a9be52ec70357170081ada7eea",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+    "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "reviewers": [
+    {
+      "role": "research_critic",
+      "id": "5d7d798753834841",
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "fallbacks": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6.1-sol"
+        }
+      ],
+      "agent": "sfora/emafactorial",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1790753159,
+      "timeout_seconds": 1200,
+      "deadline_at": 1790754359,
+      "budget_usd": 4,
+      "prompt_preview": "Act as the independent research and first-principles critic. Challenge assumptions, compare alternatives and prior art, and identify missing evidence. Do not edit files.\n\nMaterial to critique:\nRead-only narrow admission review of ONE new useful trained native128 representation, not open-ended research or alternative sweep. Repo /home/rb/worktrees/sfora-positive-causality currentmaster; read docs/inshop_token_residual_proposal_2026-09-30.md exact procedure, docs/inshop_archived_consensus_result_2026-09-30.md NEW terminal KILL with preservedpositiveAP, docs/inshop_image_queue_result_2026-09-30.md, closed-method-ledger-v1/consultation.json and relevant prior pool/final-two/teacher/retained256/dense/late results only asneeded to detectexactduplicate. Source scripts/probe_inshop_pe_training_smoke.py load_arm, train_pe_large_coverage.fp16, pe_large_optimization.step/payload, pe_native_valid_anchor.terms, late_dense_boundary.initialize, src/sfora/siglip2_compact_serving.py encoder. No edits/tests/Torch/SSH/GPU/quality reads/children/consultations/operator contact. All original jobs collected; DGXidle. Proposed single-pass fixed4quadrant final-token means4096\u2192zeroW128x4096 addedtolearnedglobal128 raw, boundary12 unchanged, complete corrected128 TRAIN1000 source, fresh matched208vs209optimizers, originalwithreplacement100 schedules/seeds032041/augmentation1001..1100, originalCE+8validrank/rates/clip/precision. New explicit W/resume/module tokenauthority; alloriginalvision400/head/bank/proxy/buffers source restored. Actualshape/order/sourceoutput/RNG/gradient independentCPU120 thenONEdiscard17vs8+9/resource100projection\u2264269 thenfourfresh100300 onlyifPASS;8GiB/noSwap/<10GB/bothlocks unchanged. FullupdatedCPU/full12599FP16B32 exports/paired+.20ppbothmetrics/productlowerpositive required. No teacher/queue/resolution/width/loss/depth sweep. Singleencoder/sourceavailability andzeroinit NOTquality/speedguarantees. Reject universal architectureKILL/theorems basedontiny historicalinternal regressions; preserveParetopoints. Review actionable novelty/representation plausibility, exactsame-pass token/FP32 operation/frozen source/RNG/zerooutput vs gradient/wstate/complete strictreload/bank/objective/optimizer/resource/publicloader and statistical confirmation issues. Return GOforboundedimplementation+CPUconditions orREJECTaswritten withprecisereproduciblecause andsmallestfix; doNOTraise caps/lower floors/addresearchloops. Need convergent usefultrainedmodelpath, no allmethodsceilingclaim. Source-only installedSiglipmoduleSHA/lines inproposal are recordedread, not runtime qualification. Question: is this exact residual a defensible distinct quality intervention and can a minimaldriver/proof implement it honestly under frozen gates? No new native/admission beforeparentreconciliation.",
+      "prompt_sha256": "59e53f1148b4e95a7629215427337cc3569dfb1ef82d4e6d8f7c3c77b0efe56b",
+      "prompt_bytes": 2990,
+      "fingerprint": "fb559eaad0f308ca583e1b074ca3a441d9d9a252a0d99dfcc46d5ebb15864749",
+      "evidence": {
+        "git_commit": "79902e92a0a572a9be52ec70357170081ada7eea",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+        "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+        "worktree_evidence_truncated": false,
+        "active_goal": {
+          "id": "goal-1790540789-1790540789754989478-2322852",
+          "agent": "sfora/emafactorial",
+          "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+          "status": "queued",
+          "revision": 1,
+          "actor": "operator",
+          "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+          "created_at": 1790540789,
+          "updated_at": 1790540789
+        }
+      },
+      "previous_fingerprint": "aaf731bb96041be97198f4f13284262a9490648acb39e6a907e7a14a0a364799",
+      "reused": false,
+      "critique_id": "849f057d9b974324",
+      "critique_role": "research_critic",
+      "systemd_unit": "devbox-consult-5d7d798753834841.service",
+      "pid": 1011983,
+      "pgid": 1011983,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6.1-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5",
+          "budget_usd": 4,
+          "timeout_seconds": 1200,
+          "started_at": 1790753159
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1790753750,
+      "event_cursor": 49,
+      "events": [
+        {
+          "seq": 26,
+          "at": 1790753435,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 27,
+          "at": 1790753473,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 28,
+          "at": 1790753482,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 29,
+          "at": 1790753485,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 30,
+          "at": 1790753496,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 31,
+          "at": 1790753610,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 32,
+          "at": 1790753610,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 33,
+          "at": 1790753720,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 34,
+          "at": 1790753720,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 35,
+          "at": 1790753733,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 36,
+          "at": 1790753734,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 37,
+          "at": 1790753735,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 38,
+          "at": 1790753736,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 39,
+          "at": 1790753737,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 40,
+          "at": 1790753739,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 41,
+          "at": 1790753740,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 42,
+          "at": 1790753741,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 43,
+          "at": 1790753743,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 44,
+          "at": 1790753744,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 45,
+          "at": 1790753746,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 46,
+          "at": 1790753747,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 47,
+          "at": 1790753748,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 48,
+          "at": 1790753750,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 49,
+          "at": 1790753750,
+          "provider": "claude",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": true,
+      "provider_events": {
+        "claude": [
+          {
+            "seq": 42,
+            "at": 1790753741,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 43,
+            "at": 1790753743,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 44,
+            "at": 1790753744,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 45,
+            "at": 1790753746,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 46,
+            "at": 1790753747,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 47,
+            "at": 1790753748,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 48,
+            "at": 1790753750,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 49,
+            "at": 1790753750,
+            "provider": "claude",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "## Verdict: REJECT as written. A one-line amendment makes it GO.\n\nThis is not a duplicate of anything in the ledger, and it can be implemented honestly. The problem is scale: as specified, the residual's effective step size depends on an activation statistic nobody has measured, not on the 1e\u20114 the proposal pins.\n\n### Cause (reproducible from source and receipts)\n1. **The two branches see inputs at different scales.** The existing head only ever sees a unit-length input: `head(F.normalize(source))` at `src/sfora/sop_compact_training.py:46`. The proposal feeds W the raw post-LayerNorm quadrant means, which are 4096 values with no controlled norm. W starts at zero, and on its first step Adam moves every one of its 524,288 entries by about \u00b11e\u20114. Because the average token component has a consistent sign across images, the residual output shifts by roughly 1e\u20114 \u00d7 (sum of |v|) per coordinate. The head's equivalent bound is 1e\u20114 \u00d7 32 for a unit 1024-d input.\n   - So W's effective learning rate is the pinned 1e\u20114 multiplied by the unmeasured size of v. After step 1, starting W at zero no longer keeps the residual small.\n   - Every earlier token readout in this repo normalized its input first: `probe_inshop_token_residual_inner_fit.py:48` and `probe_inshop_trained_token_mean.py:166`.\n2. **Clipping already binds on every step, and W would join that budget.** The pre-clip norm is 7.56\u201331.87 on 100 of 100 steps for seed 179032, and 10.51\u201331.06 for 179041 (`late-dense-v1/control-1790xx-v1-receipt.json`). With `clip_grad_norm_(members,1)` at `pe_large_optimization.py:190`, W's gradient changes the clip factor for all 208 shared parameters, and that change varies from step to step. A negative result could then mean \"the residual doesn't help\" or \"the backbone got smaller updates\", and the procedure only gets one shot.\n\n### Smallest fix\n- Use `raw = g + F.linear(F.normalize(v.float(), dim=1), W)` in FP32 with autocast off. This applies the head's existing unit-input convention to the new branch.\n- Clip the original 208 members exactly as the control does, and clip W by its own norm (max 1).\n\nWith both lines, candidate and control take identical step-1 updates on the 208 shared parameters, which gives a cheap exact proof that the new branch leaves the original path untouched.\n\n### Distinctness and plausibility\n- **Not an exact duplicate.** The nearest ledger entries are all different:\n  - a frozen rank\u201116 adapter on the token mean: null, +1 query out of 6,514;\n  - a fixed quadrant part-match score: positive won only 50 of 151 hard misses;\n  - a fixed token-mean blend: \u22120.063pp R1;\n  - raw token matching: 53 of 151.\n  \n  None of these trains a token readout jointly with the backbone.\n- **Not new in the literature.** It is global-plus-part pooling (PCB/MGN stripes, R\u2011MAC regions) plus a zero-initialized residual (ReZero/ControlNet style). Cite these; make a usefulness claim only.\n- **Scope any attribution.**\n  - The four quadrants sum to four times the plain token mean, so W also covers the token-mean direction the frozen probe found empty.\n  - `RandomHorizontalFlip` (`train_sop_siglip2_compact.py:153`) swaps left and right, so the left-right difference in W gets no consistent gradient. In practice the spatial hypothesis is top half vs bottom half, plus some noise.\n  - A pass shows that this module helps, not that spatial detail is the cause.\n- **Honest prior: low but admissible.** In 100 updates the residual gives the backbone no gradient at step 1 and only a little afterwards, so the run mostly tests a learned spatial readout. Earlier 100-update pilots undershot. Write any KILL as \"this module at 100 updates from `cc58377f`\", not as a verdict on token or spatial methods in general.\n- **Bank staleness.** About 59% of the 13,283 bank rows are never refreshed in 100 steps, and those rows hold the old global-only descriptors. This biases the rank term against the candidate. The normalization fix keeps the drift comparable to the head's own drift.\n\n### GO conditions (after the amendment)\n1. **Creating W.** Use `W = nn.Parameter(torch.zeros(128,4096))`. Building an `nn.Linear` and then zeroing it consumes CPU RNG during initialization.\n   - Keep W outside the vision and head modules, so the vision state stays at 400 keys and W doesn't land in the 1e\u20115 group.\n   - Append it as a fourth param group after `initialize()`, which asserts 208 members (`late_dense_boundary.py:80`), so indices 0\u2013207 stay the same.\n2. **Token capture.**\n   - Take `last_hidden_state` from the same call inside `fp16()` (`train_pe_large_coverage.py:37\u201139`, which currently returns only the pooler output).\n   - Assert FP32 dtype (post-LayerNorm runs in FP32 under autocast) and shape (16,256,1024).\n   - Prove the ordering with one exact check: `patch_embedding(x).flatten(2).transpose(1,2).view(B,16,16,C) == patch_embedding(x).permute(0,2,3,1)`.\n3. **Free regression check.** The two historical control runs have identical 100-step rows for ce, rank, loss, scale, pre-clip norm and gradient norms. The control arm goes through the unchanged `coverage.terms` and must reproduce those rows exactly; any mismatch stops the run.\n4. **Candidate step 1 must match the control.**\n   - ce, rank and raw must equal the control's step 1. For 179032 that is ce 0.08606909494847059, rank 0.007954388856887817, pre-clip norm 7.562341690063477. For 179041 the pre-clip norm is 25.759246826171875.\n   - All 208 pre-clip gradients must match by value (`torch.equal`, not byte hashes, because \u22120 + +0 = +0), and the updated 208 members must match too.\n   - W's gradient must be finite and nonzero.\n   - Run the same check in the planned CPU\u2011120 unit on its two fit images.\n5. **Record, don't gate:** \u2016W\u2016 and \u2016W\u00b7normalize(v)\u2016/\u2016g\u2016 at each step.\n6. **Serving.**\n   - The batch-1 CUDA graph (`siglip2_compact_serving.py:245\u2011259`) captures only the pooler output, and `_pack_pooled` checks for shape (count,1024). It must also capture `last_hidden_state`.\n   - In `fp16_native` mode the tokens are FP16, so upcast them before taking the mean.\n   - `compact_head_features` rejects 4096-wide input, so the residual needs its own FP32 function.\n   - Run the batch-1 parity check with `cuda_graph_batch1=True`.\n7. **Confirmation.** Write down what the \"fresh confirmation\" is before reading any TRAIN-held result; that panel has been read many times.\n\n**Resources are not a concern.** W plus its Adam state is about 6 MiB against roughly 420 MiB of host headroom (8 GiB minus the 7,958,948 KiB mechanics peak). Under autocast the tokens are already FP32, so `.float()` makes no copy.\n\nI made no edits and ran no Torch, SSH, GPU, tests or consultations.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "claude": "## Verdict: REJECT as written. A one-line amendment makes it GO.\n\nThis is not a duplicate of anything in the ledger, and it can be implemented honestly. The problem is scale: as specified, the residual's effective step size depends on an activation statistic nobody has measured, not on the 1e\u20114 the proposal pins.\n\n### Cause (reproducible from source and receipts)\n1. **The two branches see inputs at different scales.** The existing head only ever sees a unit-length input: `head(F.normalize(source))` at `src/sfora/sop_compact_training.py:46`. The proposal feeds W the raw post-LayerNorm quadrant means, which are 4096 values with no controlled norm. W starts at zero, and on its first step Adam moves every one of its 524,288 entries by about \u00b11e\u20114. Because the average token component has a consistent sign across images, the residual output shifts by roughly 1e\u20114 \u00d7 (sum of |v|) per coordinate. The head's equivalent bound is 1e\u20114 \u00d7 32 for a unit 1024-d input.\n   - So W's effective learning rate is the pinned 1e\u20114 multiplied by the unmeasured size of v. After step 1, starting W at zero no longer keeps the residual small.\n   - Every earlier token readout in this repo normalized its input first: `probe_inshop_token_residual_inner_fit.py:48` and `probe_inshop_trained_token_mean.py:166`.\n2. **Clipping already binds on every step, and W would join that budget.** The pre-clip norm is 7.56\u201331.87 on 100 of 100 steps for seed 179032, and 10.51\u201331.06 for 179041 (`late-dense-v1/control-1790xx-v1-receipt.json`). With `clip_grad_norm_(members,1)` at `pe_large_optimization.py:190`, W's gradient changes the clip factor for all 208 shared parameters, and that change varies from step to step. A negative result could then mean \"the residual doesn't help\" or \"the backbone got smaller updates\", and the procedure only gets one shot.\n\n### Smallest fix\n- Use `raw = g + F.linear(F.normalize(v.float(), dim=1), W)` in FP32 with autocast off. This applies the head's existing unit-input convention to the new branch.\n- Clip the original 208 members exactly as the control does, and clip W by its own norm (max 1).\n\nWith both lines, candidate and control take identical step-1 updates on the 208 shared parameters, which gives a cheap exact proof that the new branch leaves the original path untouched.\n\n### Distinctness and plausibility\n- **Not an exact duplicate.** The nearest ledger entries are all different:\n  - a frozen rank\u201116 adapter on the token mean: null, +1 query out of 6,514;\n  - a fixed quadrant part-match score: positive won only 50 of 151 hard misses;\n  - a fixed token-mean blend: \u22120.063pp R1;\n  - raw token matching: 53 of 151.\n  \n  None of these trains a token readout jointly with the backbone.\n- **Not new in the literature.** It is global-plus-part pooling (PCB/MGN stripes, R\u2011MAC regions) plus a zero-initialized residual (ReZero/ControlNet style). Cite these; make a usefulness claim only.\n- **Scope any attribution.**\n  - The four quadrants sum to four times the plain token mean, so W also covers the token-mean direction the frozen probe found empty.\n  - `RandomHorizontalFlip` (`train_sop_siglip2_compact.py:153`) swaps left and right, so the left-right difference in W gets no consistent gradient. In practice the spatial hypothesis is top half vs bottom half, plus some noise.\n  - A pass shows that this module helps, not that spatial detail is the cause.\n- **Honest prior: low but admissible.** In 100 updates the residual gives the backbone no gradient at step 1 and only a little afterwards, so the run mostly tests a learned spatial readout. Earlier 100-update pilots undershot. Write any KILL as \"this module at 100 updates from `cc58377f`\", not as a verdict on token or spatial methods in general.\n- **Bank staleness.** About 59% of the 13,283 bank rows are never refreshed in 100 steps, and those rows hold the old global-only descriptors. This biases the rank term against the candidate. The normalization fix keeps the drift comparable to the head's own drift.\n\n### GO conditions (after the amendment)\n1. **Creating W.** Use `W = nn.Parameter(torch.zeros(128,4096))`. Building an `nn.Linear` and then zeroing it consumes CPU RNG during initialization.\n   - Keep W outside the vision and head modules, so the vision state stays at 400 keys and W doesn't land in the 1e\u20115 group.\n   - Append it as a fourth param group after `initialize()`, which asserts 208 members (`late_dense_boundary.py:80`), so indices 0\u2013207 stay the same.\n2. **Token capture.**\n   - Take `last_hidden_state` from the same call inside `fp16()` (`train_pe_large_coverage.py:37\u201139`, which currently returns only the pooler output).\n   - Assert FP32 dtype (post-LayerNorm runs in FP32 under autocast) and shape (16,256,1024).\n   - Prove the ordering with one exact check: `patch_embedding(x).flatten(2).transpose(1,2).view(B,16,16,C) == patch_embedding(x).permute(0,2,3,1)`.\n3. **Free regression check.** The two historical control runs have identical 100-step rows for ce, rank, loss, scale, pre-clip norm and gradient norms. The control arm goes through the unchanged `coverage.terms` and must reproduce those rows exactly; any mismatch stops the run.\n4. **Candidate step 1 must match the control.**\n   - ce, rank and raw must equal the control's step 1. For 179032 that is ce 0.08606909494847059, rank 0.007954388856887817, pre-clip norm 7.562341690063477. For 179041 the pre-clip norm is 25.759246826171875.\n   - All 208 pre-clip gradients must match by value (`torch.equal`, not byte hashes, because \u22120 + +0 = +0), and the updated 208 members must match too.\n   - W's gradient must be finite and nonzero.\n   - Run the same check in the planned CPU\u2011120 unit on its two fit images.\n5. **Record, don't gate:** \u2016W\u2016 and \u2016W\u00b7normalize(v)\u2016/\u2016g\u2016 at each step.\n6. **Serving.**\n   - The batch-1 CUDA graph (`siglip2_compact_serving.py:245\u2011259`) captures only the pooler output, and `_pack_pooled` checks for shape (count,1024). It must also capture `last_hidden_state`.\n   - In `fp16_native` mode the tokens are FP16, so upcast them before taking the mean.\n   - `compact_head_features` rejects 4096-wide input, so the residual needs its own FP32 function.\n   - Run the batch-1 parity check with `cuda_graph_batch1=True`.\n7. **Confirmation.** Write down what the \"fresh confirmation\" is before reading any TRAIN-held result; that panel has been read many times.\n\n**Resources are not a concern.** W plus its Adam state is about 6 MiB against roughly 420 MiB of host headroom (8 GiB minus the 7,958,948 KiB mechanics peak). Under autocast the tokens are already FP32, so `.float()` makes no copy.\n\nI made no edits and ran no Torch, SSH, GPU, tests or consultations."
+      },
+      "providers_used": [
+        "claude"
+      ],
+      "active_provider": "claude",
+      "phase": "Consultation completed",
+      "input_bytes": 2990,
+      "output_bytes": 6711,
+      "elapsed_seconds": 591,
+      "progress": "devbox-ask: claude consult still running (0m 30s)\ndevbox-ask: claude consult still running (1m 00s)\ndevbox-ask: claude consult still running (1m 30s)\ndevbox-ask: claude consult still running (2m 00s)\ndevbox-ask: claude consult still running (2m 30s)\ndevbox-ask: claude consult still running (3m 00s)\ndevbox-ask: claude consult still running (4m 00s)\ndevbox-ask: claude consult still running (4m 30s)\ndevbox-ask: claude consult still running (5m 00s)\ndevbox-ask: claude consult still running (5m 30s)\ndevbox-ask: claude consult still running (6m 00s)\ndevbox-ask: claude consult still running (6m 30s)\ndevbox-ask: claude consult still running (7m 00s)\ndevbox-ask: claude consult still running (7m 30s)\ndevbox-ask: claude consult still running (8m 00s)\ndevbox-ask: claude consult still running (8m 30s)\ndevbox-ask: claude consult still running (9m 00s)\ndevbox-ask: claude consult still running (9m 30s)",
+      "progress_truncated": false,
+      "result": "## Verdict: REJECT as written. A one-line amendment makes it GO.\n\nThis is not a duplicate of anything in the ledger, and it can be implemented honestly. The problem is scale: as specified, the residual's effective step size depends on an activation statistic nobody has measured, not on the 1e\u20114 the proposal pins.\n\n### Cause (reproducible from source and receipts)\n1. **The two branches see inputs at different scales.** The existing head only ever sees a unit-length input: `head(F.normalize(source))` at `src/sfora/sop_compact_training.py:46`. The proposal feeds W the raw post-LayerNorm quadrant means, which are 4096 values with no controlled norm. W starts at zero, and on its first step Adam moves every one of its 524,288 entries by about \u00b11e\u20114. Because the average token component has a consistent sign across images, the residual output shifts by roughly 1e\u20114 \u00d7 (sum of |v|) per coordinate. The head's equivalent bound is 1e\u20114 \u00d7 32 for a unit 1024-d input.\n   - So W's effective learning rate is the pinned 1e\u20114 multiplied by the unmeasured size of v. After step 1, starting W at zero no longer keeps the residual small.\n   - Every earlier token readout in this repo normalized its input first: `probe_inshop_token_residual_inner_fit.py:48` and `probe_inshop_trained_token_mean.py:166`.\n2. **Clipping already binds on every step, and W would join that budget.** The pre-clip norm is 7.56\u201331.87 on 100 of 100 steps for seed 179032, and 10.51\u201331.06 for 179041 (`late-dense-v1/control-1790xx-v1-receipt.json`). With `clip_grad_norm_(members,1)` at `pe_large_optimization.py:190`, W's gradient changes the clip factor for all 208 shared parameters, and that change varies from step to step. A negative result could then mean \"the residual doesn't help\" or \"the backbone got smaller updates\", and the procedure only gets one shot.\n\n### Smallest fix\n- Use `raw = g + F.linear(F.normalize(v.float(), dim=1), W)` in FP32 with autocast off. This applies the head's existing unit-input convention to the new branch.\n- Clip the original 208 members exactly as the control does, and clip W by its own norm (max 1).\n\nWith both lines, candidate and control take identical step-1 updates on the 208 shared parameters, which gives a cheap exact proof that the new branch leaves the original path untouched.\n\n### Distinctness and plausibility\n- **Not an exact duplicate.** The nearest ledger entries are all different:\n  - a frozen rank\u201116 adapter on the token mean: null, +1 query out of 6,514;\n  - a fixed quadrant part-match score: positive won only 50 of 151 hard misses;\n  - a fixed token-mean blend: \u22120.063pp R1;\n  - raw token matching: 53 of 151.\n  \n  None of these trains a token readout jointly with the backbone.\n- **Not new in the literature.** It is global-plus-part pooling (PCB/MGN stripes, R\u2011MAC regions) plus a zero-initialized residual (ReZero/ControlNet style). Cite these; make a usefulness claim only.\n- **Scope any attribution.**\n  - The four quadrants sum to four times the plain token mean, so W also covers the token-mean direction the frozen probe found empty.\n  - `RandomHorizontalFlip` (`train_sop_siglip2_compact.py:153`) swaps left and right, so the left-right difference in W gets no consistent gradient. In practice the spatial hypothesis is top half vs bottom half, plus some noise.\n  - A pass shows that this module helps, not that spatial detail is the cause.\n- **Honest prior: low but admissible.** In 100 updates the residual gives the backbone no gradient at step 1 and only a little afterwards, so the run mostly tests a learned spatial readout. Earlier 100-update pilots undershot. Write any KILL as \"this module at 100 updates from `cc58377f`\", not as a verdict on token or spatial methods in general.\n- **Bank staleness.** About 59% of the 13,283 bank rows are never refreshed in 100 steps, and those rows hold the old global-only descriptors. This biases the rank term against the candidate. The normalization fix keeps the drift comparable to the head's own drift.\n\n### GO conditions (after the amendment)\n1. **Creating W.** Use `W = nn.Parameter(torch.zeros(128,4096))`. Building an `nn.Linear` and then zeroing it consumes CPU RNG during initialization.\n   - Keep W outside the vision and head modules, so the vision state stays at 400 keys and W doesn't land in the 1e\u20115 group.\n   - Append it as a fourth param group after `initialize()`, which asserts 208 members (`late_dense_boundary.py:80`), so indices 0\u2013207 stay the same.\n2. **Token capture.**\n   - Take `last_hidden_state` from the same call inside `fp16()` (`train_pe_large_coverage.py:37\u201139`, which currently returns only the pooler output).\n   - Assert FP32 dtype (post-LayerNorm runs in FP32 under autocast) and shape (16,256,1024).\n   - Prove the ordering with one exact check: `patch_embedding(x).flatten(2).transpose(1,2).view(B,16,16,C) == patch_embedding(x).permute(0,2,3,1)`.\n3. **Free regression check.** The two historical control runs have identical 100-step rows for ce, rank, loss, scale, pre-clip norm and gradient norms. The control arm goes through the unchanged `coverage.terms` and must reproduce those rows exactly; any mismatch stops the run.\n4. **Candidate step 1 must match the control.**\n   - ce, rank and raw must equal the control's step 1. For 179032 that is ce 0.08606909494847059, rank 0.007954388856887817, pre-clip norm 7.562341690063477. For 179041 the pre-clip norm is 25.759246826171875.\n   - All 208 pre-clip gradients must match by value (`torch.equal`, not byte hashes, because \u22120 + +0 = +0), and the updated 208 members must match too.\n   - W's gradient must be finite and nonzero.\n   - Run the same check in the planned CPU\u2011120 unit on its two fit images.\n5. **Record, don't gate:** \u2016W\u2016 and \u2016W\u00b7normalize(v)\u2016/\u2016g\u2016 at each step.\n6. **Serving.**\n   - The batch-1 CUDA graph (`siglip2_compact_serving.py:245\u2011259`) captures only the pooler output, and `_pack_pooled` checks for shape (count,1024). It must also capture `last_hidden_state`.\n   - In `fp16_native` mode the tokens are FP16, so upcast them before taking the mean.\n   - `compact_head_features` rejects 4096-wide input, so the residual needs its own FP32 function.\n   - Run the batch-1 parity check with `cuda_graph_batch1=True`.\n7. **Confirmation.** Write down what the \"fresh confirmation\" is before reading any TRAIN-held result; that panel has been read many times.\n\n**Resources are not a concern.** W plus its Adam state is about 6 MiB against roughly 420 MiB of host headroom (8 GiB minus the 7,958,948 KiB mechanics peak). Under autocast the tokens are already FP32, so `.float()` makes no copy.\n\nI made no edits and ran no Torch, SSH, GPU, tests or consultations.",
+      "result_truncated": false
+    },
+    {
+      "role": "engineering_critic",
+      "id": "fcdc80248d1643f4",
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "fallbacks": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6.1-sol"
+        }
+      ],
+      "agent": "sfora/emafactorial",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1790753159,
+      "timeout_seconds": 1200,
+      "deadline_at": 1790754359,
+      "budget_usd": null,
+      "prompt_preview": "Act as the independent adversarial engineering and release critic. Inspect correctness, failure modes, security, operability, tests, and UX. Prioritize concrete findings with evidence. Do not edit files.\n\nMaterial to critique:\nRead-only narrow admission review of ONE new useful trained native128 representation, not open-ended research or alternative sweep. Repo /home/rb/worktrees/sfora-positive-causality currentmaster; read docs/inshop_token_residual_proposal_2026-09-30.md exact procedure, docs/inshop_archived_consensus_result_2026-09-30.md NEW terminal KILL with preservedpositiveAP, docs/inshop_image_queue_result_2026-09-30.md, closed-method-ledger-v1/consultation.json and relevant prior pool/final-two/teacher/retained256/dense/late results only asneeded to detectexactduplicate. Source scripts/probe_inshop_pe_training_smoke.py load_arm, train_pe_large_coverage.fp16, pe_large_optimization.step/payload, pe_native_valid_anchor.terms, late_dense_boundary.initialize, src/sfora/siglip2_compact_serving.py encoder. No edits/tests/Torch/SSH/GPU/quality reads/children/consultations/operator contact. All original jobs collected; DGXidle. Proposed single-pass fixed4quadrant final-token means4096\u2192zeroW128x4096 addedtolearnedglobal128 raw, boundary12 unchanged, complete corrected128 TRAIN1000 source, fresh matched208vs209optimizers, originalwithreplacement100 schedules/seeds032041/augmentation1001..1100, originalCE+8validrank/rates/clip/precision. New explicit W/resume/module tokenauthority; alloriginalvision400/head/bank/proxy/buffers source restored. Actualshape/order/sourceoutput/RNG/gradient independentCPU120 thenONEdiscard17vs8+9/resource100projection\u2264269 thenfourfresh100300 onlyifPASS;8GiB/noSwap/<10GB/bothlocks unchanged. FullupdatedCPU/full12599FP16B32 exports/paired+.20ppbothmetrics/productlowerpositive required. No teacher/queue/resolution/width/loss/depth sweep. Singleencoder/sourceavailability andzeroinit NOTquality/speedguarantees. Reject universal architectureKILL/theorems basedontiny historicalinternal regressions; preserveParetopoints. Review actionable novelty/representation plausibility, exactsame-pass token/FP32 operation/frozen source/RNG/zerooutput vs gradient/wstate/complete strictreload/bank/objective/optimizer/resource/publicloader and statistical confirmation issues. Return GOforboundedimplementation+CPUconditions orREJECTaswritten withprecisereproduciblecause andsmallestfix; doNOTraise caps/lower floors/addresearchloops. Need convergent usefultrainedmodelpath, no allmethodsceilingclaim. Source-only installedSiglipmoduleSHA/lines inproposal are recordedread, not runtime qualification. Question: is this exact residual a defensible distinct quality intervention and can a minimaldriver/proof implement it honestly under frozen gates? No new native/admission beforeparentreconciliation.",
+      "prompt_sha256": "02c7f13676fd3cc42eddb943c95bbc595af49026bd03b934d1d9edf80ea21d2c",
+      "prompt_bytes": 3024,
+      "fingerprint": "41962bdcd6ea2227f3f79ca303736854e873d8909f1597f7eebc0c5e22b9895f",
+      "evidence": {
+        "git_commit": "79902e92a0a572a9be52ec70357170081ada7eea",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+        "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+        "worktree_evidence_truncated": false,
+        "active_goal": {
+          "id": "goal-1790540789-1790540789754989478-2322852",
+          "agent": "sfora/emafactorial",
+          "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+          "status": "queued",
+          "revision": 1,
+          "actor": "operator",
+          "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+          "created_at": 1790540789,
+          "updated_at": 1790540789
+        }
+      },
+      "previous_fingerprint": "fb559eaad0f308ca583e1b074ca3a441d9d9a252a0d99dfcc46d5ebb15864749",
+      "reused": false,
+      "critique_id": "849f057d9b974324",
+      "critique_role": "engineering_critic",
+      "systemd_unit": "devbox-consult-fcdc80248d1643f4.service",
+      "pid": 1012125,
+      "pgid": 1012125,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6.1-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra",
+          "budget_usd": null,
+          "timeout_seconds": 1200,
+          "started_at": 1790753159
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1790753406,
+      "event_cursor": 45,
+      "events": [
+        {
+          "seq": 22,
+          "at": 1790753228,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 23,
+          "at": 1790753228,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 24,
+          "at": 1790753234,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 25,
+          "at": 1790753245,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 26,
+          "at": 1790753245,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 27,
+          "at": 1790753245,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 28,
+          "at": 1790753245,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 29,
+          "at": 1790753261,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 30,
+          "at": 1790753261,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 31,
+          "at": 1790753261,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 32,
+          "at": 1790753261,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 33,
+          "at": 1790753280,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 34,
+          "at": 1790753280,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 35,
+          "at": 1790753280,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 36,
+          "at": 1790753280,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 37,
+          "at": 1790753294,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 38,
+          "at": 1790753303,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 39,
+          "at": 1790753303,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 40,
+          "at": 1790753303,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 41,
+          "at": 1790753303,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 42,
+          "at": 1790753331,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 43,
+          "at": 1790753331,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 44,
+          "at": 1790753405,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 45,
+          "at": 1790753406,
+          "provider": "codex",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": true,
+      "provider_events": {
+        "codex": [
+          {
+            "seq": 38,
+            "at": 1790753303,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 39,
+            "at": 1790753303,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 40,
+            "at": 1790753303,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 41,
+            "at": 1790753303,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 42,
+            "at": 1790753331,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 43,
+            "at": 1790753331,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 44,
+            "at": 1790753405,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 45,
+            "at": 1790753406,
+            "provider": "codex",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "**GO for bounded implementation + CPU conditions, subject to parent reconciliation.** The residual is a defensible, distinct quality intervention. I found no exact duplicate or source-level contradiction requiring rejection; runtime feasibility and quality remain unproved.\n\nThe closest predecessors used the same quadrants for **fixed shared-head part matching**, or trained a **rank-16 global-token-mean adapter with frozen vision/head**. Neither implements this quadrant-specific linear residual alongside the learned TRAIN1000 descriptor with boundary12 adaptation. These distinctions support one bounded experiment, not a prediction of improvement. [Quadrant predecessor](/home/rb/worktrees/sfora-positive-causality/docs/inshop_spatial_parts_falsifier_2026-09-27.md:9), [residual predecessor](/home/rb/worktrees/sfora-positive-causality/docs/inshop_token_residual_inner_fit_gate_2026-09-27.md:21).\n\nThe implementation conditions, in priority order:\n\n1. **Preserve the exact raw-descriptor objective.** Existing `g(x)` is `head(normalize(pooler_output.float()))`, including its learned bias. Add `Wv` afterward, outside vision autocast. Both ArcFace and corrected valid-anchor rank must consume that combined raw descriptor; bank refresh must store its detached, normalized **pre-update forward values**, as the existing step does. Adding the residual only at export, normalizing `g` before addition, or refreshing the bank from global-only outputs changes the experiment. Smallest fix: one explicit residual-forward/terms path using the existing objective primitives. [Head operation](/home/rb/worktrees/sfora-positive-causality/src/sfora/sop_compact_training.py:25), [corrected terms](/home/rb/worktrees/sfora-positive-causality/scripts/train_pe_teacher_retained256.py:55), [bank update](/home/rb/worktrees/sfora-positive-causality/scripts/pe_large_optimization.py:201).\n\n2. **Zero-output parity and nonzero W gradients do not prove correct token wiring.** Wrong quadrant order, stale tokens, or detached tokens can pass those checks. CPU proof must compare actual same-call tokens against the authenticated source, verify quadrant reduction against a simple independent reference, and include a disposable **nonzero-W witness** showing the residual changes outputs and propagates gradients into the live token path. At W=0, zero residual-to-token gradient is mathematically expected; `\u2202L/\u2202W` can still be nonzero. Also, including W in global clipping can change the first common-parameter update despite identical initial outputs. Do not demand candidate/control trajectory equality. [Proposed proof contract](/home/rb/worktrees/sfora-positive-causality/docs/inshop_token_residual_proposal_2026-09-30.md:15).\n\n3. **Existing complete-state helpers omit W.** `payload`, restore, parameter enumeration, and strict reload currently cover vision/head/proxies/bank, not a separate residual parameter. Relabelling their receipts would produce a false proof. Require W-aware serialization, optimizer ordering and moments, architecture/token authority, and negative rejection of missing W, wrong shape/dtype, foreign arm and changed module/config. The 17 versus serialized8+9 comparison must fingerprint this extended state. Construct W directly from zeros; constructing a random `Linear` and then zeroing it consumes RNG. [Payload](/home/rb/worktrees/sfora-positive-causality/scripts/pe_large_optimization.py:108), [existing verification/reload](/home/rb/worktrees/sfora-positive-causality/scripts/train_late_dense_adaptation.py:144).\n\n4. **The public loader can silently discard an added residual.** `from_checkpoint` validates and loads only `vision` and `head`; extra checkpoint fields are not rejected. Its ordinary and CUDA-graph paths retain only pooler output. A residual checkpoint converted to the existing public key layout could therefore load successfully while serving global-only embeddings. Smallest fix: explicit architecture dispatch and W validation, with legacy loaders rejecting residual checkpoints; cover ordinary B32 and graph B1 paths. Updated nonzero-W parity is essential\u2014zero-init parity cannot expose this omission. [Loader](/home/rb/worktrees/sfora-positive-causality/src/sfora/siglip2_compact_serving.py:213), [graph path](/home/rb/worktrees/sfora-positive-causality/src/sfora/siglip2_compact_serving.py:244), [ordinary path](/home/rb/worktrees/sfora-positive-causality/src/sfora/siglip2_compact_serving.py:310).\n\n5. **Keep resource admission empirical.** The small W allocation does not bound constructor, backward, mmap, optimizer serialization or independent-reload peaks. Release source mappings and reference models before gradient transients; avoid persistent hook caches. Charge the original whole-unit work, including replay/reload, against the unchanged caps. The \u2264269s projection licenses the next gate only; it does not certify TRAIN100 or full exports. [Resource contract](/home/rb/worktrees/sfora-positive-causality/docs/inshop_token_residual_proposal_2026-09-30.md:13).\n\n6. **A TRAIN pass remains conditional development evidence.** Preserve equal-seed per-query averaging before shared product resampling, both +.20pp floors, both positive product lower bounds and each-seed signs. These intervals neither measure independent training-seed uncertainty nor remove repeated-held-panel selection. Freeze a deterministic survivor/application rule before inspecting results; require the separately predeclared confirmation and updated public qualification before release claims. [Existing statistical implementation](/home/rb/worktrees/sfora-positive-causality/scripts/score_image_queue_adaptation.py:30), [confirmation requirement](/home/rb/worktrees/sfora-positive-causality/docs/inshop_token_residual_proposal_2026-09-30.md:21).\n\nA minimal driver can implement this honestly using the existing initializer, objective, schedule, packing and resource machinery, with explicit residual forward/state handling. No broader architecture framework or research loop is needed.\n\nPreserve the archived consensus\u2019s valid **+0.377050pp AP** point while retaining its joint-gate KILL. Nothing reviewed establishes a universal architecture ceiling.\n\nRead-only review at `79902e92`; no edits, tests, Torch execution, SSH/GPU work, new quality measurements, children, consultations or operator contact.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "codex": "**GO for bounded implementation + CPU conditions, subject to parent reconciliation.** The residual is a defensible, distinct quality intervention. I found no exact duplicate or source-level contradiction requiring rejection; runtime feasibility and quality remain unproved.\n\nThe closest predecessors used the same quadrants for **fixed shared-head part matching**, or trained a **rank-16 global-token-mean adapter with frozen vision/head**. Neither implements this quadrant-specific linear residual alongside the learned TRAIN1000 descriptor with boundary12 adaptation. These distinctions support one bounded experiment, not a prediction of improvement. [Quadrant predecessor](/home/rb/worktrees/sfora-positive-causality/docs/inshop_spatial_parts_falsifier_2026-09-27.md:9), [residual predecessor](/home/rb/worktrees/sfora-positive-causality/docs/inshop_token_residual_inner_fit_gate_2026-09-27.md:21).\n\nThe implementation conditions, in priority order:\n\n1. **Preserve the exact raw-descriptor objective.** Existing `g(x)` is `head(normalize(pooler_output.float()))`, including its learned bias. Add `Wv` afterward, outside vision autocast. Both ArcFace and corrected valid-anchor rank must consume that combined raw descriptor; bank refresh must store its detached, normalized **pre-update forward values**, as the existing step does. Adding the residual only at export, normalizing `g` before addition, or refreshing the bank from global-only outputs changes the experiment. Smallest fix: one explicit residual-forward/terms path using the existing objective primitives. [Head operation](/home/rb/worktrees/sfora-positive-causality/src/sfora/sop_compact_training.py:25), [corrected terms](/home/rb/worktrees/sfora-positive-causality/scripts/train_pe_teacher_retained256.py:55), [bank update](/home/rb/worktrees/sfora-positive-causality/scripts/pe_large_optimization.py:201).\n\n2. **Zero-output parity and nonzero W gradients do not prove correct token wiring.** Wrong quadrant order, stale tokens, or detached tokens can pass those checks. CPU proof must compare actual same-call tokens against the authenticated source, verify quadrant reduction against a simple independent reference, and include a disposable **nonzero-W witness** showing the residual changes outputs and propagates gradients into the live token path. At W=0, zero residual-to-token gradient is mathematically expected; `\u2202L/\u2202W` can still be nonzero. Also, including W in global clipping can change the first common-parameter update despite identical initial outputs. Do not demand candidate/control trajectory equality. [Proposed proof contract](/home/rb/worktrees/sfora-positive-causality/docs/inshop_token_residual_proposal_2026-09-30.md:15).\n\n3. **Existing complete-state helpers omit W.** `payload`, restore, parameter enumeration, and strict reload currently cover vision/head/proxies/bank, not a separate residual parameter. Relabelling their receipts would produce a false proof. Require W-aware serialization, optimizer ordering and moments, architecture/token authority, and negative rejection of missing W, wrong shape/dtype, foreign arm and changed module/config. The 17 versus serialized8+9 comparison must fingerprint this extended state. Construct W directly from zeros; constructing a random `Linear` and then zeroing it consumes RNG. [Payload](/home/rb/worktrees/sfora-positive-causality/scripts/pe_large_optimization.py:108), [existing verification/reload](/home/rb/worktrees/sfora-positive-causality/scripts/train_late_dense_adaptation.py:144).\n\n4. **The public loader can silently discard an added residual.** `from_checkpoint` validates and loads only `vision` and `head`; extra checkpoint fields are not rejected. Its ordinary and CUDA-graph paths retain only pooler output. A residual checkpoint converted to the existing public key layout could therefore load successfully while serving global-only embeddings. Smallest fix: explicit architecture dispatch and W validation, with legacy loaders rejecting residual checkpoints; cover ordinary B32 and graph B1 paths. Updated nonzero-W parity is essential\u2014zero-init parity cannot expose this omission. [Loader](/home/rb/worktrees/sfora-positive-causality/src/sfora/siglip2_compact_serving.py:213), [graph path](/home/rb/worktrees/sfora-positive-causality/src/sfora/siglip2_compact_serving.py:244), [ordinary path](/home/rb/worktrees/sfora-positive-causality/src/sfora/siglip2_compact_serving.py:310).\n\n5. **Keep resource admission empirical.** The small W allocation does not bound constructor, backward, mmap, optimizer serialization or independent-reload peaks. Release source mappings and reference models before gradient transients; avoid persistent hook caches. Charge the original whole-unit work, including replay/reload, against the unchanged caps. The \u2264269s projection licenses the next gate only; it does not certify TRAIN100 or full exports. [Resource contract](/home/rb/worktrees/sfora-positive-causality/docs/inshop_token_residual_proposal_2026-09-30.md:13).\n\n6. **A TRAIN pass remains conditional development evidence.** Preserve equal-seed per-query averaging before shared product resampling, both +.20pp floors, both positive product lower bounds and each-seed signs. These intervals neither measure independent training-seed uncertainty nor remove repeated-held-panel selection. Freeze a deterministic survivor/application rule before inspecting results; require the separately predeclared confirmation and updated public qualification before release claims. [Existing statistical implementation](/home/rb/worktrees/sfora-positive-causality/scripts/score_image_queue_adaptation.py:30), [confirmation requirement](/home/rb/worktrees/sfora-positive-causality/docs/inshop_token_residual_proposal_2026-09-30.md:21).\n\nA minimal driver can implement this honestly using the existing initializer, objective, schedule, packing and resource machinery, with explicit residual forward/state handling. No broader architecture framework or research loop is needed.\n\nPreserve the archived consensus\u2019s valid **+0.377050pp AP** point while retaining its joint-gate KILL. Nothing reviewed establishes a universal architecture ceiling.\n\nRead-only review at `79902e92`; no edits, tests, Torch execution, SSH/GPU work, new quality measurements, children, consultations or operator contact."
+      },
+      "providers_used": [
+        "codex"
+      ],
+      "active_provider": "codex",
+      "phase": "Consultation completed",
+      "input_bytes": 3024,
+      "output_bytes": 6339,
+      "elapsed_seconds": 247,
+      "progress": "Reading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)\ndevbox-ask: codex consult still running (1m 30s)\ndevbox-ask: codex consult still running (2m 00s)\ndevbox-ask: codex consult still running (2m 30s)\ndevbox-ask: codex consult still running (3m 00s)\ndevbox-ask: codex consult still running (3m 30s)\ndevbox-ask: codex consult still running (4m 00s)",
+      "progress_truncated": false,
+      "result": "**GO for bounded implementation + CPU conditions, subject to parent reconciliation.** The residual is a defensible, distinct quality intervention. I found no exact duplicate or source-level contradiction requiring rejection; runtime feasibility and quality remain unproved.\n\nThe closest predecessors used the same quadrants for **fixed shared-head part matching**, or trained a **rank-16 global-token-mean adapter with frozen vision/head**. Neither implements this quadrant-specific linear residual alongside the learned TRAIN1000 descriptor with boundary12 adaptation. These distinctions support one bounded experiment, not a prediction of improvement. [Quadrant predecessor](/home/rb/worktrees/sfora-positive-causality/docs/inshop_spatial_parts_falsifier_2026-09-27.md:9), [residual predecessor](/home/rb/worktrees/sfora-positive-causality/docs/inshop_token_residual_inner_fit_gate_2026-09-27.md:21).\n\nThe implementation conditions, in priority order:\n\n1. **Preserve the exact raw-descriptor objective.** Existing `g(x)` is `head(normalize(pooler_output.float()))`, including its learned bias. Add `Wv` afterward, outside vision autocast. Both ArcFace and corrected valid-anchor rank must consume that combined raw descriptor; bank refresh must store its detached, normalized **pre-update forward values**, as the existing step does. Adding the residual only at export, normalizing `g` before addition, or refreshing the bank from global-only outputs changes the experiment. Smallest fix: one explicit residual-forward/terms path using the existing objective primitives. [Head operation](/home/rb/worktrees/sfora-positive-causality/src/sfora/sop_compact_training.py:25), [corrected terms](/home/rb/worktrees/sfora-positive-causality/scripts/train_pe_teacher_retained256.py:55), [bank update](/home/rb/worktrees/sfora-positive-causality/scripts/pe_large_optimization.py:201).\n\n2. **Zero-output parity and nonzero W gradients do not prove correct token wiring.** Wrong quadrant order, stale tokens, or detached tokens can pass those checks. CPU proof must compare actual same-call tokens against the authenticated source, verify quadrant reduction against a simple independent reference, and include a disposable **nonzero-W witness** showing the residual changes outputs and propagates gradients into the live token path. At W=0, zero residual-to-token gradient is mathematically expected; `\u2202L/\u2202W` can still be nonzero. Also, including W in global clipping can change the first common-parameter update despite identical initial outputs. Do not demand candidate/control trajectory equality. [Proposed proof contract](/home/rb/worktrees/sfora-positive-causality/docs/inshop_token_residual_proposal_2026-09-30.md:15).\n\n3. **Existing complete-state helpers omit W.** `payload`, restore, parameter enumeration, and strict reload currently cover vision/head/proxies/bank, not a separate residual parameter. Relabelling their receipts would produce a false proof. Require W-aware serialization, optimizer ordering and moments, architecture/token authority, and negative rejection of missing W, wrong shape/dtype, foreign arm and changed module/config. The 17 versus serialized8+9 comparison must fingerprint this extended state. Construct W directly from zeros; constructing a random `Linear` and then zeroing it consumes RNG. [Payload](/home/rb/worktrees/sfora-positive-causality/scripts/pe_large_optimization.py:108), [existing verification/reload](/home/rb/worktrees/sfora-positive-causality/scripts/train_late_dense_adaptation.py:144).\n\n4. **The public loader can silently discard an added residual.** `from_checkpoint` validates and loads only `vision` and `head`; extra checkpoint fields are not rejected. Its ordinary and CUDA-graph paths retain only pooler output. A residual checkpoint converted to the existing public key layout could therefore load successfully while serving global-only embeddings. Smallest fix: explicit architecture dispatch and W validation, with legacy loaders rejecting residual checkpoints; cover ordinary B32 and graph B1 paths. Updated nonzero-W parity is essential\u2014zero-init parity cannot expose this omission. [Loader](/home/rb/worktrees/sfora-positive-causality/src/sfora/siglip2_compact_serving.py:213), [graph path](/home/rb/worktrees/sfora-positive-causality/src/sfora/siglip2_compact_serving.py:244), [ordinary path](/home/rb/worktrees/sfora-positive-causality/src/sfora/siglip2_compact_serving.py:310).\n\n5. **Keep resource admission empirical.** The small W allocation does not bound constructor, backward, mmap, optimizer serialization or independent-reload peaks. Release source mappings and reference models before gradient transients; avoid persistent hook caches. Charge the original whole-unit work, including replay/reload, against the unchanged caps. The \u2264269s projection licenses the next gate only; it does not certify TRAIN100 or full exports. [Resource contract](/home/rb/worktrees/sfora-positive-causality/docs/inshop_token_residual_proposal_2026-09-30.md:13).\n\n6. **A TRAIN pass remains conditional development evidence.** Preserve equal-seed per-query averaging before shared product resampling, both +.20pp floors, both positive product lower bounds and each-seed signs. These intervals neither measure independent training-seed uncertainty nor remove repeated-held-panel selection. Freeze a deterministic survivor/application rule before inspecting results; require the separately predeclared confirmation and updated public qualification before release claims. [Existing statistical implementation](/home/rb/worktrees/sfora-positive-causality/scripts/score_image_queue_adaptation.py:30), [confirmation requirement](/home/rb/worktrees/sfora-positive-causality/docs/inshop_token_residual_proposal_2026-09-30.md:21).\n\nA minimal driver can implement this honestly using the existing initializer, objective, schedule, packing and resource machinery, with explicit residual forward/state handling. No broader architecture framework or research loop is needed.\n\nPreserve the archived consensus\u2019s valid **+0.377050pp AP** point while retaining its joint-gate KILL. Nothing reviewed establishes a universal architecture ceiling.\n\nRead-only review at `79902e92`; no edits, tests, Torch execution, SSH/GPU work, new quality measurements, children, consultations or operator contact.",
+      "result_truncated": false
+    }
+  ],
+  "reused": false,
+  "finished_at": 1790753756,
+  "elapsed_seconds": 591,
+  "input_bytes": 2620,
+  "output_bytes": 13050
+}
