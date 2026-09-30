@@ -1,0 +1,18 @@
+{
+  "scope": "stdlib read-only DGX control archive audit; no Torch, model forward, training or quality replay",
+  "control": "/home/riomus/runs/sfora-teacher-retained256-128-1000-v1",
+  "chunks_checked": 10,
+  "receipt_parent_chain_and_resume_file_hashes_exact": true,
+  "terminal_receipt_sha256": "d1f01666c8da0bee8026cde1dc045b0485f1984ed5393b7de5682614ec334afc",
+  "training_wall_seconds_sum": 1181.7901609777473,
+  "source_checkpoint_sha256": "f5fbf0e8eb3492274b6febeb6fd06a4b0d8b0fce4c7170069f3fa0d7b0a8df4d",
+  "initial_state_sha256": "a8e16311519042bf90bcd9110f63f6ede5758b4cca0e2aaff112a057dd48f949",
+  "schedule_sha256": "a38d1be83d261856153dd75f59039250137f033fe3880245c13c658b0582d1aa",
+  "execution_sha256": "a85dd55c516f054c4c63341b31e0c7e4e77fb6925fd9ea29adabf097b1156bcb",
+  "intervention": "teacher-preserving-corrected-width-v1",
+  "remaining_control_admission": "Authenticate original source/environment/RGB/pixels/raw wires and reproduce actual256 constructor/initializer before reuse",
+  "source_runtime_constraint": "pe_large_pool.runtime_identity asserts config.image_size256; pe_large_optimization.identity calls it. New288 runtime requires explicit actual geometry identity, not temporary spoofing of256 config or unchanged-old-resume claims",
+  "new_quality_measurement": false,
+  "training_admitted": false,
+  "production_goal_met": false
+}
