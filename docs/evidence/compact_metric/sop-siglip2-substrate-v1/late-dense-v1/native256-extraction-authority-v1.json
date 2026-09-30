@@ -1,0 +1,8 @@
+{
+  "execution_sha256": "1cbf827797068443b2451304c41dcac5f3bf384a7594f4d13e4b09d2df667945",
+  "inputs_sha256": "a019105abb4423c2e38f213a1a196ccaaff689310aa00543933403dc4345ca5a",
+  "model_qualified": false,
+  "quality_read": false,
+  "schema": "native256-substrate-extraction-authority-v1",
+  "source_commit": "a07a6eb6"
+}
