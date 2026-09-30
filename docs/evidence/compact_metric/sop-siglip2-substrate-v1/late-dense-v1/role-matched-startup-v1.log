@@ -1,0 +1,58 @@
+Running as unit: sfora-role-matched-startup-v1.service; invocation ID: 40523c8d81514f1e94aaa006989f69af
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 13981.31it/s]
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  87%|████████▋ | 690/792 [00:00<00:00, 6899.33it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 7077.79it/s]
+PASS role matched startup; no quality read
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-role-matched-train-source-v1/train_role_matched_adaptation.py --phase startup --arm control --seed 179032 --output /home/riomus/runs/sfora-role-matched-startup-v1 --execution-sha256 596db6099530bc7662e6770da719253a6a96de3872cde9283bf3b8ff64fe578a --cpu-execution-sha256 f5042997e2e94fbd3f8a3bfc357d042d1d015ae889fcd84023deb44718151db8 --cpu-proof /home/riomus/runs/sfora-role-matched-cpu-v3.json --cpu-sha256 451222ed2f041d3836ee17692cec145e55bc6a47791c7cb1e9fb8bd521ca8a0c --cpu-log /home/riomus/runs/sfora-role-matched-source-v3/cpu-v3.log --cpu-log-sha256 f851e651ea83ea4aa5cf1b80c5e4c7e2f50a53746bdee4b5c19cc1ada1035c6e"
+	User time (seconds): 42.65
+	System time (seconds): 5.40
+	Percent of CPU this job got: 121%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:39.62
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 3815928
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 35132
+	Minor (reclaiming a frame) page faults: 864992
+	Voluntary context switches: 162999
+	Involuntary context switches: 559
+	Swaps: 0
+	File system inputs: 72
+	File system outputs: 4970680
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 39.627s
+CPU time consumed: 48.065s
+Memory peak: 256.0K
+Memory swap peak: 0B
+	Command being timed: "systemd-run --user --wait --collect --pipe --unit=sfora-role-matched-startup-v1 --property=WorkingDirectory=/home/riomus/runs/sfora-role-matched-train-source-v1 --property=RuntimeMaxSec=120 --property=MemoryMax=8G --property=MemorySwapMax=0 --property=KillMode=control-group --property=OOMPolicy=stop --setenv=CUDA_VISIBLE_DEVICES= --setenv=CUBLAS_WORKSPACE_CONFIG=:4096:8 --setenv=OMP_NUM_THREADS=8 --setenv=OPENBLAS_NUM_THREADS=1 --setenv=TOKENIZERS_PARALLELISM=false --setenv=TMPDIR=/home/riomus/runs/sfora-role-matched-train-source-v1 --setenv=CUTILE_TILEIRAS_PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/tileiras --setenv=PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin:/usr/local/bin:/usr/bin:/bin --setenv=PYTHONPATH=/home/riomus/runs/sfora-role-matched-train-source-v1:/home/riomus/runs/sfora-role-matched-train-source-v1/src:/home/riomus/runs/sfora-role-matched-train-source-v1/isolated-deps flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock flock -n /home/riomus/.sfora-siglip2-gpu.lock /usr/bin/time -v /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-role-matched-train-source-v1/train_role_matched_adaptation.py --phase startup --arm control --seed 179032 --output /home/riomus/runs/sfora-role-matched-startup-v1 --execution-sha256 596db6099530bc7662e6770da719253a6a96de3872cde9283bf3b8ff64fe578a --cpu-execution-sha256 f5042997e2e94fbd3f8a3bfc357d042d1d015ae889fcd84023deb44718151db8 --cpu-proof /home/riomus/runs/sfora-role-matched-cpu-v3.json --cpu-sha256 451222ed2f041d3836ee17692cec145e55bc6a47791c7cb1e9fb8bd521ca8a0c --cpu-log /home/riomus/runs/sfora-role-matched-source-v3/cpu-v3.log --cpu-log-sha256 f851e651ea83ea4aa5cf1b80c5e4c7e2f50a53746bdee4b5c19cc1ada1035c6e"
+	User time (seconds): 0.00
+	System time (seconds): 0.00
+	Percent of CPU this job got: 0%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:39.64
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 7284
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 380
+	Voluntary context switches: 10
+	Involuntary context switches: 0
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
