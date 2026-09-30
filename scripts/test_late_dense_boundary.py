@@ -9,6 +9,15 @@ import late_dense_boundary as late
 
 
 class SourceAdmission(unittest.TestCase):
+    def test_archived_device_record_keeps_actual_runtime(self):
+        runtime = {"config": {"image_size": 256},
+                   "buffer_devices": {"embeddings.position_ids": "cpu"}}
+        archived = late.source_runtime(runtime)
+        self.assertEqual(runtime["buffer_devices"], {"embeddings.position_ids": "cpu"})
+        self.assertEqual(archived["buffer_devices"], {"embeddings.position_ids": "cuda:0"})
+        with self.assertRaises(AssertionError):
+            late.source_runtime({**runtime, "buffer_devices": {"embeddings.position_ids": "cuda:1"}})
+
     def test_frozen_prefix_and_optimized_entry(self):
         class Vision:
             def state_dict(self):

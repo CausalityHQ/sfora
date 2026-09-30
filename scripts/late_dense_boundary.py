@@ -6,6 +6,14 @@ SOURCE_CODE = "a85dd55c516f054c4c63341b31e0c7e4e77fb6925fd9ea29adabf097b1156bcb"
 SOURCE_SCHEDULE = "a38d1be83d261856153dd75f59039250137f033fe3880245c13c658b0582d1aa"
 
 
+def source_runtime(runtime):
+    """Authenticate the recorded CUDA source separately from the current device."""
+    devices = runtime["buffer_devices"]
+    assert devices in ({"embeddings.position_ids": "cpu"},
+                       {"embeddings.position_ids": "cuda:0"})
+    return {**runtime, "buffer_devices": {"embeddings.position_ids": "cuda:0"}}
+
+
 def validate_source(saved, expected):
     assert set(saved) == RESUME_KEYS, "complete TRAIN resume state required"
     assert saved["identity"] == {**expected, "global_step": 1000}, "foreign source identity"
@@ -37,6 +45,7 @@ def initialize(state, proof, resume, boundary):
                 "total_updates": 1000, "precision": "cuda_fp16",
                 "intervention": "teacher-preserving-corrected-width-v1",
                 "width": 128, "tail_sha256": None}
+    expected["runtime"] = source_runtime(expected["runtime"])
     saved = torch.load(resume, map_location="cpu", weights_only=True, mmap=True)
     validate_source(saved, expected)
     buffers = dict(state["model"].named_buffers())

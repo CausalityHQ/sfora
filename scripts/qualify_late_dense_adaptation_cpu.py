@@ -17,7 +17,7 @@ import qualify_pe_teacher_retained256 as archived
 import late_dense_boundary as late
 
 old = archived.driver
-SOURCE_ROOT = Path("/home/riomus/runs/sfora-late-dense-source-v1")
+SOURCE_ROOT = Path("/home/riomus/runs/sfora-late-dense-source-v2")
 ORIGINAL_CODE = "82ada79acff29017c324626214448844e31dba81a386e56b122cf0f25fcd8df7"
 RESUME = archived.run_path(128) / "resume.pt"
 REQUIRED = {"large_dense_boundary.py", "late_dense_boundary.py",

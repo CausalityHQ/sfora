@@ -1,0 +1,74 @@
+Running as unit: sfora-late-dense-cpu-v2.service; invocation ID: 1199e7a9cd5545e3bce90c728f80ea48
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 13899.23it/s]
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-late-dense-source-v1/qualify_late_dense_adaptation_cpu.py", line 145, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/sfora-late-dense-source-v1/qualify_late_dense_adaptation_cpu.py", line 83, in main
+    state, fingerprints[boundary] = fresh(control, source, proof, boundary, "cpu")
+                                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-late-dense-source-v1/qualify_late_dense_adaptation_cpu.py", line 58, in fresh
+    fingerprint = late.initialize(state, proof, RESUME, boundary)
+  File "/home/riomus/runs/sfora-late-dense-source-v1/late_dense_boundary.py", line 41, in initialize
+    validate_source(saved, expected)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-late-dense-source-v1/late_dense_boundary.py", line 11, in validate_source
+    assert saved["identity"] == {**expected, "global_step": 1000}, "foreign source identity"
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: foreign source identity
+Command exited with non-zero status 1
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-late-dense-source-v1/qualify_late_dense_adaptation_cpu.py --execution-sha256 0778de96f17c853423c9acd04add420af172b098b7b43ac65c60c57ae163b366 --output /home/riomus/runs/sfora-late-dense-source-v1/late-cpu-proof-v1.json"
+	User time (seconds): 14.96
+	System time (seconds): 2.67
+	Percent of CPU this job got: 105%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:16.77
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 3739264
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 17646
+	Minor (reclaiming a frame) page faults: 490437
+	Voluntary context switches: 72919
+	Involuntary context switches: 260
+	Swaps: 0
+	File system inputs: 9224
+	File system outputs: 32
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 1
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=1
+Service runtime: 16.776s
+CPU time consumed: 17.642s
+Memory peak: 764.0K
+Memory swap peak: 0B
+Command exited with non-zero status 1
+	Command being timed: "systemd-run --user --wait --collect --pipe --unit=sfora-late-dense-cpu-v2 --property=WorkingDirectory=/home/riomus/runs/sfora-late-dense-source-v1 --property=RuntimeMaxSec=120 --property=MemoryMax=8G --property=MemorySwapMax=0 --property=KillMode=control-group --property=OOMPolicy=stop --setenv=CUDA_VISIBLE_DEVICES= --setenv=OMP_NUM_THREADS=8 --setenv=OPENBLAS_NUM_THREADS=1 --setenv=TOKENIZERS_PARALLELISM=false --setenv=PYTHONPATH=/home/riomus/runs/sfora-late-dense-source-v1:/home/riomus/runs/sfora-late-dense-source-v1/src:/home/riomus/runs/sfora-late-dense-source-v1/isolated-deps flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock flock -n /home/riomus/.sfora-siglip2-gpu.lock /usr/bin/time -v /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-late-dense-source-v1/qualify_late_dense_adaptation_cpu.py --execution-sha256 0778de96f17c853423c9acd04add420af172b098b7b43ac65c60c57ae163b366 --output /home/riomus/runs/sfora-late-dense-source-v1/late-cpu-proof-v1.json"
+	User time (seconds): 0.00
+	System time (seconds): 0.00
+	Percent of CPU this job got: 0%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:16.80
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 7284
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 377
+	Voluntary context switches: 10
+	Involuntary context switches: 0
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 1
