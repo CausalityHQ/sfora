@@ -1,0 +1,65 @@
+Running as unit: sfora-image-queue-held-export-179041-queue-v1.service; invocation ID: d1744605f4d24dd7924df387fd9666a0
+{"stage": "endpoint-179032-control", "rss_kib": 992500, "max_rss_kib": 3516876, "elapsed_seconds": 16.840794515796006}
+{"stage": "endpoint-179032-queue", "rss_kib": 992952, "max_rss_kib": 3517132, "elapsed_seconds": 19.583914968185127}
+{"stage": "endpoint-179041-queue", "rss_kib": 993452, "max_rss_kib": 3517772, "elapsed_seconds": 22.397683798801154}
+{"stage": "endpoint-179041-control", "rss_kib": 993984, "max_rss_kib": 3518252, "elapsed_seconds": 25.07827525679022}
+{"stage": "source-authority", "rss_kib": 993984, "max_rss_kib": 3518252, "elapsed_seconds": 25.078756175003946}
+{"stage": "all-authority", "rss_kib": 993984, "max_rss_kib": 3518252, "elapsed_seconds": 25.079292006790638}
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  94%|█████████▎| 741/792 [00:00<00:00, 7398.19it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 7552.53it/s]
+{"stage": "model-pair", "rss_kib": 3925552, "max_rss_kib": 6449676, "elapsed_seconds": 35.203034305013716}
+{"stage": "fit-forward", "rss_kib": 3927428, "max_rss_kib": 6449676, "elapsed_seconds": 36.859962210059166}
+{"stage": "half-models", "rss_kib": 2964700, "max_rss_kib": 6449676, "elapsed_seconds": 38.238912833854556}
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-image-queue-held-source-v1/export_image_queue_adaptation.py --phase export --seed 179041 --arm queue --authority-sha256 f1b1ba0abbba635afc062a967b139ac503230d6202e5ebd112bd285c2cb8070a --output /home/riomus/runs/sfora-image-queue-held-export-179041-queue-v1 --cpu-proof /home/riomus/runs/sfora-image-queue-held-cpu-179041-queue-v1/proof.json --cpu-sha256 78ab04db61b183aff8a0513984e1de96d2b19efaeb51b0071b6109c388ef3a10 --cpu-log /home/riomus/runs/sfora-image-queue-held-source-v1/held-cpu-179041-queue-v1.log --cpu-log-sha256 9a41ff20110f38a1b44d98abaa8f27475259bb9fe9b2ef42cef09988733dba29"
+	User time (seconds): 252.02
+	System time (seconds): 6.61
+	Percent of CPU this job got: 109%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 3:56.80
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 6449676
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 18700
+	Minor (reclaiming a frame) page faults: 921160
+	Voluntary context switches: 177734
+	Involuntary context switches: 3086
+	Swaps: 0
+	File system inputs: 39584
+	File system outputs: 21320
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 3min 56.807s
+CPU time consumed: 4min 18.642s
+Memory peak: 256.0K
+Memory swap peak: 0B
+	Command being timed: "systemd-run --user --wait --collect --pipe --unit=sfora-image-queue-held-export-179041-queue-v1 --property=WorkingDirectory=/home/riomus/runs/sfora-image-queue-held-source-v1 --property=RuntimeMaxSec=300 --property=MemoryMax=8G --property=MemorySwapMax=0 --property=KillMode=control-group --property=OOMPolicy=stop --setenv=CUDA_VISIBLE_DEVICES=0 --setenv=CUBLAS_WORKSPACE_CONFIG=:4096:8 --setenv=OMP_NUM_THREADS=8 --setenv=OPENBLAS_NUM_THREADS=1 --setenv=TOKENIZERS_PARALLELISM=false --setenv=TMPDIR=/home/riomus/runs/sfora-image-queue-held-source-v1 --setenv=CUTILE_TILEIRAS_PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/tileiras --setenv=PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin:/usr/local/bin:/usr/bin:/bin --setenv=PYTHONPATH=/home/riomus/runs/sfora-image-queue-held-source-v1:/home/riomus/runs/sfora-image-queue-held-source-v1/src:/home/riomus/runs/sfora-image-queue-held-source-v1/isolated-deps flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock flock -n /home/riomus/.sfora-siglip2-gpu.lock /usr/bin/time -v /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-image-queue-held-source-v1/export_image_queue_adaptation.py --phase export --seed 179041 --arm queue --authority-sha256 f1b1ba0abbba635afc062a967b139ac503230d6202e5ebd112bd285c2cb8070a --output /home/riomus/runs/sfora-image-queue-held-export-179041-queue-v1 --cpu-proof /home/riomus/runs/sfora-image-queue-held-cpu-179041-queue-v1/proof.json --cpu-sha256 78ab04db61b183aff8a0513984e1de96d2b19efaeb51b0071b6109c388ef3a10 --cpu-log /home/riomus/runs/sfora-image-queue-held-source-v1/held-cpu-179041-queue-v1.log --cpu-log-sha256 9a41ff20110f38a1b44d98abaa8f27475259bb9fe9b2ef42cef09988733dba29"
+	User time (seconds): 0.00
+	System time (seconds): 0.00
+	Percent of CPU this job got: 0%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 3:56.82
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 7216
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 377
+	Voluntary context switches: 11
+	Involuntary context switches: 0
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
