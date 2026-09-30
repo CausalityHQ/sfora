@@ -1,0 +1,11 @@
+# Post-queue source reconciliation
+
+Queue procedure terminal KILL; full production goal ACTIVE. No new native execution admitted. DGX units and compute-process query empty after all original handles were collected.
+
+The proposed full-coverage next step is superseded: corrected full2000 used25882 images/3997 TRAIN identities and measured96.307498% R1/81.882593% mAP@R on previously observed official14218query/12612gallery. Full4000 and fixed trajectory averaging are also terminal procedures. Moving the retained-data recipe to full data alone is not a distinct intervention, and the late-boundary10 recipe failed its paired TRAIN gate. Preserve all valid checkpoints rather than relaunch these arms.
+
+Source trace: pe_large_coverage.terms computes ArcFace plus detached-bank SmoothAP; pe_native_valid_anchor recovers valid anchors without changing the original denominator. train_image_queue_adaptation delegates unchanged update math to pe_large_optimization.step. Native training keeps the bank static across fourB16 backwards, then refreshes sampled rows with normalized detached pre-update descriptors after the optimizer step. smooth_ap_bank_loss uses current anchors against bank.detach(), temperature.01 and float dot products. These are source facts, not a measured staleness-induced quality defect. Queue increased current-stage unique exposure without a reliable quality gain, so no causal claim follows from freshness alone.
+
+One read-only Fable/max synthesis366fd7512a8a43f8 (1800s/$6 cap; pinned fallback chain) owns a distinct post-terminal evidence question: select one causally justified useful trained-model intervention or the exact missing source evidence. It may not edit, run native jobs, read new model quality, or launch reviewers. No duplicate consultation or DGX job. Parent will independently reconcile findings and freeze one method, selection/confirmation route and stop rule before narrow actualCPU/17mechanics/conditional100 execution. Existing120/300s,8GiB/noSwap/<10GB caps and packed authority remain fixed.
+
+Published-reference completeness remains unproven. The bounded reference screen and unresolved accesses are preserved in published_reference_qualification_2026-09-28.md; no primary-paper title, alternative task, or paper latency can substitute for matched protocol quality and full image-to-top-k speed.
