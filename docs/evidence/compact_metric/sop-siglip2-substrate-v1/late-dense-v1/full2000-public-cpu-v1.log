@@ -1,0 +1,57 @@
+Running as unit: sfora-full-valid-anchor-public-cpu-v1.service; invocation ID: 755c68c627f84ec08f34f864cc9f8b29
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  81%|████████  | 639/792 [00:00<00:00, 6388.47it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 6354.05it/s]
+PASS full2000 cpu serving qualification; no quality/speed/p99 claim
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-full-valid-anchor-public-source-v1/qualify_full_valid_anchor_serving.py --phase cpu --authority-sha256 30ab21a4cd10408bf4c3772ed5f53cbcfd35658ee1b9bb38a8e9a6931384ce62 --output /home/riomus/runs/sfora-full-valid-anchor-public-cpu-v1/proof.json"
+	User time (seconds): 43.18
+	System time (seconds): 6.53
+	Percent of CPU this job got: 160%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:30.90
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 6048664
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 18753
+	Minor (reclaiming a frame) page faults: 1593346
+	Voluntary context switches: 116173
+	Involuntary context switches: 469
+	Swaps: 0
+	File system inputs: 1981824
+	File system outputs: 320
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 30.904s
+CPU time consumed: 49.727s
+Memory peak: 590.9M
+Memory swap peak: 0B
+	Command being timed: "systemd-run --user --wait --collect --pipe --unit=sfora-full-valid-anchor-public-cpu-v1 --property=WorkingDirectory=/home/riomus/runs/sfora-full-valid-anchor-public-source-v1 --property=RuntimeMaxSec=120 --property=MemoryMax=8G --property=MemorySwapMax=0 --property=KillMode=control-group --property=OOMPolicy=stop --setenv=CUDA_VISIBLE_DEVICES= --setenv=CUBLAS_WORKSPACE_CONFIG=:4096:8 --setenv=OMP_NUM_THREADS=8 --setenv=OPENBLAS_NUM_THREADS=1 --setenv=TOKENIZERS_PARALLELISM=false --setenv=TMPDIR=/home/riomus/runs/sfora-full-valid-anchor-public-source-v1 --setenv=CUTILE_TILEIRAS_PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/tileiras --setenv=PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin:/usr/local/bin:/usr/bin:/bin --setenv=PYTHONPATH=/home/riomus/runs/sfora-full-valid-anchor-public-source-v1:/home/riomus/runs/sfora-full-valid-anchor-public-source-v1/src:/home/riomus/runs/sfora-full-valid-anchor-public-source-v1/isolated-deps flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock flock -n /home/riomus/.sfora-siglip2-gpu.lock /usr/bin/time -v /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-full-valid-anchor-public-source-v1/qualify_full_valid_anchor_serving.py --phase cpu --authority-sha256 30ab21a4cd10408bf4c3772ed5f53cbcfd35658ee1b9bb38a8e9a6931384ce62 --output /home/riomus/runs/sfora-full-valid-anchor-public-cpu-v1/proof.json"
+	User time (seconds): 0.00
+	System time (seconds): 0.00
+	Percent of CPU this job got: 0%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:30.93
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 7276
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 378
+	Voluntary context switches: 10
+	Involuntary context switches: 0
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
