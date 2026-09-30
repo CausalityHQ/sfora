@@ -261,7 +261,7 @@ def phase_diagnostic(phase, started):
         cgroup['path'] = str(root)
         cgroup['values'] = {name: (root / name).read_text().strip() for name in
                            ('memory.current', 'memory.peak', 'memory.max', 'memory.swap.current',
-                            'memory.swap.peak', 'memory.swap.max', 'memory.events')}
+                            'memory.swap.peak', 'memory.swap.max', 'memory.events', 'memory.stat')}
     except (OSError, ValueError) as error:
         cgroup['error'] = str(error)
     print(json.dumps({'diagnostic': 'phase', 'phase': phase, 'elapsed_seconds': time.monotonic() - started,
@@ -488,14 +488,50 @@ def integrity(state, identity):
                     'FP32 moments/steps differ')
 
 
+class CheckpointWriter:
+    """Sequential 1MiB writes; sync before advising consumed 64MiB/page-aligned ranges."""
+    def __init__(self, stream):
+        self.stream = stream
+        self.offset = self.synced = self.consumed = 0
+        self.page_size = os.sysconf('SC_PAGESIZE')
+        require(stream.tell() == 0, 'checkpoint offset disorder')
+
+    def write(self, data):
+        require(self.stream.tell() == self.offset, 'checkpoint offset disorder')
+        data = memoryview(data).cast('B')
+        start = 0
+        while start < len(data):
+            count = min(1024**2, len(data) - start, 64 * 1024**2 - (self.offset - self.synced))
+            if self.stream.write(data[start:start + count]) != count:
+                raise OSError('short checkpoint write')
+            start += count
+            self.offset += count
+            require(self.stream.tell() == self.offset, 'checkpoint offset disorder')
+            if self.offset - self.synced == 64 * 1024**2:
+                self.flush()
+        return len(data)
+
+    def flush(self):
+        require(self.stream.tell() == self.offset, 'checkpoint offset disorder')
+        self.stream.flush()
+        os.fsync(self.stream.fileno())
+        end = self.offset - self.offset % self.page_size
+        if end > self.consumed:
+            # Advice cannot guarantee cache eviction or native cgroup resource fit.
+            os.posix_fadvise(self.stream.fileno(), self.consumed, end - self.consumed, os.POSIX_FADV_DONTNEED)
+            self.consumed = end
+        self.synced = self.offset
+
+
 def save(context, state, identity, flags, path):
     state['optimizer'].zero_grad(set_to_none=True)
     integrity(state, identity)
     saved = payload(state, identity, flags)
     with context['initialized']['source_context']['extract'].exclusive(path) as stream:
         import torch
-        torch.save(saved, stream)
-        stream.flush(); os.fsync(stream.fileno())
+        writer = CheckpointWriter(stream)
+        torch.save(saved, writer)
+        writer.flush()
     return context['initialized']['init'].sha(path), fingerprint(saved, state['frozen_cache'])
 
 

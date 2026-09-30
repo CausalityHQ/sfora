@@ -4,6 +4,7 @@ if not __debug__:
     raise SystemExit('Checks require assertions; optimized mode is forbidden')
 
 import ast
+import builtins
 import copy
 from contextlib import nullcontext
 import hashlib
@@ -14,9 +15,10 @@ import random
 import shutil
 import subprocess
 import sys
+import zipfile
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from types import SimpleNamespace
+from types import FunctionType, SimpleNamespace
 from unittest.mock import patch
 
 
@@ -67,6 +69,167 @@ class Rows(list):
 
     def sum(self):
         return sum(self)
+
+
+def checkpoint_write_checks(driver, root):
+    # Removing the writer from save must fail on oversized writes, before final SHA.
+    events, lifecycle = [], []
+    page_size = driver.os.sysconf('SC_PAGESIZE')
+    real_io = True
+    raw = None
+    class Stream:
+        def write(self, data):
+            events.append(('write', raw.tell(), len(data)))
+            assert len(data) <= 1024**2, 'checkpoint write exceeds 1MiB'
+            return raw.write(data)
+        def tell(self):
+            return raw.tell()
+        def fileno(self):
+            return raw.fileno()
+        def flush(self):
+            events.append(('flush', raw.tell()))
+            raw.flush()
+    def exclusive(path):
+        nonlocal raw
+        raw = path.open('x+b')
+        class Exclusive:
+            def __enter__(self):
+                return Stream()
+            def __exit__(self, *args):
+                raw.close()
+        return Exclusive()
+    real_fsync, real_advice = driver.os.fsync, driver.os.posix_fadvise
+    def fsync(fd):
+        assert fd == raw.fileno()
+        events.append(('fsync', raw.tell()))
+        if real_io:
+            real_fsync(fd)
+    def advice(fd, offset, count, hint):
+        assert fd == raw.fileno() and hint == driver.os.POSIX_FADV_DONTNEED
+        assert offset % page_size == count % page_size == 0 and 0 < count <= 64 * 1024**2 + page_size
+        assert offset + count <= raw.tell() < offset + count + page_size
+        assert events[-2:] == [('flush', raw.tell()), ('fsync', raw.tell())], events[-2:]
+        events.append(('advice', offset, count))
+        if real_io:
+            real_advice(fd, offset, count, hint)
+    saved, identity, flags = {'complete': ['original', 8]}, {'seed': 179032}, {'threads': 1}
+    state = {'optimizer': SimpleNamespace(zero_grad=lambda **kw: lifecycle.append(('zero_grad', kw))),
+             'frozen_cache': {}}
+    pieces = ()
+    def serialize(value, stream):
+        assert value is saved
+        lifecycle.append('serialize')
+        for piece in pieces:
+            assert stream.write(piece) == len(piece)
+        stream.flush()  # Deployed zip writer's exit flush.
+    def imported(name, *args):
+        assert name == 'torch'
+        return SimpleNamespace(save=serialize)
+    def integrity(actual, binding):
+        assert actual is state and binding is identity
+        lifecycle.append('integrity')
+    def payload(actual, binding, numerical):
+        assert actual is state and binding is identity and numerical is flags
+        lifecycle.append('payload')
+        return saved
+    def fingerprint(value, frozen):
+        assert value is saved and frozen is state['frozen_cache']
+        lifecycle.append('fingerprint')
+        return 'complete-state-fingerprint'
+    def full_sha(path):
+        assert raw.closed  # Preserve the original full-file hash after exclusive close.
+        lifecycle.append('sha')
+        with path.open('rb') as stream:
+            return hashlib.file_digest(stream, 'sha256').hexdigest()
+    # Run the real save code with a serializer standin; no Torch import/patch or source-helper mutation.
+    save = FunctionType(driver.save.__code__, {**vars(driver), 'integrity': integrity, 'payload': payload,
+        'fingerprint': fingerprint, '__builtins__': {**vars(builtins), '__import__': imported}})
+    context = {'initialized': {'source_context': {'extract': SimpleNamespace(exclusive=exclusive)},
+                               'init': SimpleNamespace(sha=full_sha)}}
+    block = bytes(range(256)) * 8192 + b'boundary'
+    archive = io.BytesIO()
+    with zipfile.ZipFile(archive, 'w', compression=zipfile.ZIP_STORED) as zipped:
+        for name, data in (('state', block), ('empty', b''), ('tail', b'tail!')):
+            zipped.writestr(zipfile.ZipInfo(name), data)
+    zip_bytes = archive.getvalue()
+    # Deterministic irregular serializer calls, including >1MiB, empty and a partial page.
+    zip_pieces = (zip_bytes[:17], zip_bytes[17:1048610], b'', zip_bytes[1048610:1048683],
+                  zip_bytes[1048683:-3], zip_bytes[-3:])
+    for index, pieces in enumerate(((), (b'',), (b'header', block, b'', b'tail!'),
+                                    zip_pieces)):
+        events.clear(); lifecycle.clear()
+        checkpoint = root / f'checkpoint-{index}.bin'
+        expected = hashlib.sha256()
+        for piece in pieces:
+            expected.update(piece)
+        with patch.object(driver.os, 'fsync', fsync), patch.object(driver.os, 'posix_fadvise', advice):
+            assert save(context, state, identity, flags, checkpoint) == (
+                expected.hexdigest(), 'complete-state-fingerprint')
+        with checkpoint.open('rb') as stream:
+            for piece in pieces:
+                assert stream.read(len(piece)) == piece
+            assert stream.read(1) == b''
+        assert lifecycle == [('zero_grad', {'set_to_none': True}), 'integrity', 'payload',
+                             'serialize', 'sha', 'fingerprint']
+        if index == 3:
+            with zipfile.ZipFile(checkpoint) as zipped:
+                assert zipped.namelist() == ['state', 'empty', 'tail']
+                assert [zipped.read(name) for name in zipped.namelist()] == [block, b'', b'tail!']
+        total = sum(map(len, pieces))
+        expected_ranges = [('advice', 0, total - total % page_size)] if total >= page_size else []
+        assert [event for event in events if event[0] == 'advice'] == expected_ranges
+        assert events[-2:] == [('flush', checkpoint.stat().st_size), ('fsync', checkpoint.stat().st_size)]
+        rejects(lambda: save(context, state, identity, flags, checkpoint), 'File exists')
+    # Exercise both real 64MiB boundaries without writing a large regression artifact.
+    class CountingRaw:
+        position = 0
+        def write(self, data):
+            self.position += len(data)
+            return len(data)
+        def tell(self):
+            return self.position
+        def fileno(self):
+            return 123
+        def flush(self):
+            pass
+    raw, real_io = CountingRaw(), False
+    events.clear()
+    with patch.object(driver.os, 'fsync', fsync), patch.object(driver.os, 'posix_fadvise', advice):
+        writer = driver.CheckpointWriter(Stream())
+        for _ in range(64):
+            assert writer.write(block) == len(block)
+            assert writer.write(b'') == 0
+        assert writer.write(b'tail' * page_size + b'!') == 4 * page_size + 1
+        writer.flush()
+    assert [event for event in events if event[0] == 'advice'] == [
+        ('advice', 0, 67108864), ('advice', 67108864, 67108864), ('advice', 134217728, 4 * page_size)]
+    # Every low-level failure and short write is fatal, including final-tail flush/advice.
+    with (root / 'writer-errors.bin').open('x+b') as raw:
+        stream = Stream()
+        writer = driver.CheckpointWriter(stream)
+        for operation in ('write', 'flush'):
+            with patch.object(stream, operation, side_effect=OSError('injected ' + operation)):
+                rejects(lambda: writer.write(b'x') if operation == 'write' else writer.flush(), 'injected')
+        for result in (0, None):
+            with patch.object(stream, 'write', return_value=result):
+                rejects(lambda: writer.write(b'x'), 'short checkpoint write')
+        assert writer.write(b'tail' * page_size + b'!') == 4 * page_size + 1
+        for operation in ('fsync', 'posix_fadvise'):
+            with patch.object(driver.os, operation, side_effect=OSError('injected ' + operation)):
+                rejects(writer.flush, 'injected')
+        writer.flush()
+        raw.seek(0)
+        rejects(lambda: writer.write(b'wrong offset'), 'checkpoint offset disorder')
+        rejects(writer.flush, 'checkpoint offset disorder')
+        raw.seek(1)
+        rejects(lambda: driver.CheckpointWriter(stream), 'checkpoint offset disorder')
+    with (root / 'short-write.bin').open('x+b') as raw:
+        stream = Stream()
+        writer = driver.CheckpointWriter(stream)
+        with patch.object(stream, 'write', side_effect=lambda data: raw.write(data[:-1])):
+            rejects(lambda: writer.write(b'bytes'), 'short checkpoint write')
+        assert raw.tell() == 4
+        rejects(writer.flush, 'checkpoint offset disorder')
 
 
 def main():
@@ -146,6 +309,7 @@ def main():
         assert driver.fingerprint({'a': 1}) != driver.fingerprint({'a': True})
     with TemporaryDirectory() as directory, patch.dict(sys.modules):
         root = Path(directory).resolve()
+        checkpoint_write_checks(driver, root)
         # Phase logs must flush live original-unit facts without entering replay state.
         assert hasattr(driver, 'phase_diagnostic'), 'missing flushed phase diagnostics'
         proc = root / 'cgroup'
@@ -154,7 +318,8 @@ def main():
         memory.mkdir()
         values = {'memory.current': '128', 'memory.peak': '256', 'memory.max': '8589934592',
                   'memory.swap.current': '0', 'memory.swap.peak': '0', 'memory.swap.max': '0',
-                  'memory.events': 'max 0\noom 0\noom_kill 0'}
+                  'memory.events': 'max 0\noom 0\noom_kill 0',
+                  'memory.stat': 'anon 64\nfile 32\nfile_dirty 16\nfile_writeback 0'}
         for name, value in values.items():
             (memory / name).write_text(value + '\n')
         def diagnostic_path(value):
@@ -178,6 +343,7 @@ def main():
             (memory / 'memory.current').write_text('512\n')
             (memory / 'memory.peak').write_text('8589934592\n')
             (memory / 'memory.events').write_text('max 1\noom 0\noom_kill 0\n')
+            (memory / 'memory.stat').write_text('anon 64\nfile 448\nfile_dirty 400\nfile_writeback 16\n')
             expected_bytes = {p.name: p.read_bytes() for p in memory.iterdir()}
             assert driver.phase_diagnostic('save8.end', 100.) is None
             assert {p.name: p.read_bytes() for p in memory.iterdir()} == expected_bytes
@@ -192,6 +358,7 @@ def main():
         assert rows[1]['cgroup']['values']['memory.current'] == '512'
         assert rows[1]['cgroup']['values']['memory.peak'] == '8589934592'
         assert rows[1]['cgroup']['values']['memory.events'].startswith('max 1\n')
+        assert rows[1]['cgroup']['values']['memory.stat'] == 'anon 64\nfile 448\nfile_dirty 400\nfile_writeback 16'
         assert 'memory.peak' in rows[2]['cgroup']['error'] and 'values' not in rows[2]['cgroup']
         assert len(flushed) == 3 and flushed[0] == output.getvalue().splitlines(keepends=True)[0]
         assert {p.name: p.read_bytes() for p in memory.iterdir()} == expected_bytes
@@ -457,7 +624,7 @@ def main():
             rejects(lambda: driver.admit_cpu(context), marker)
         descriptor['receipt']['sha256'] = write(root / 'proof.json', cpu)
     assert not any(n.split('.')[0] in driver.NATIVE for n in sys.modules)
-    print('PASS stdlib authority/reference/math/schedule/full-state/JSON/RGB/source-byte/streamed-SHA/phase-log checks; native unrun')
+    print('PASS stdlib authority/reference/math/schedule/full-state/JSON/RGB/source-byte/streamed-SHA/checkpoint-write/ZIP/phase-log checks; native unrun')
 
 
 if __name__ == '__main__':
