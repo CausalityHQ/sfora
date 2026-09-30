@@ -1,0 +1,7 @@
+{
+  "deployed_code_rank.py": "435bd73d9a3dde04c9daa819ec3694e228b4cadcc2523c35e4c877ae5d034870",
+  "reference_train_sop_siglip2_compact.py": "1946bafee086e14f83290631a05f926ba46480d2fc905eef0016b2211641b610",
+  "reference_unicom_training.py": "a40b0dac4173511787dd9a4da82e506ce44eb3ccb63710595800bc9ebcd4d272",
+  "test_siglip2_substrate_adaptation.py": "2e92f2ccc46ead2fb95af5d3a91ab8d528ce8d08904666f7d615d950b4bb2ba6",
+  "train_siglip2_substrate_adaptation.py": "ef9f10efde1873f6df43dfd67d1fdbaed13d5b8160ae9d243219528f0f5dd97e"
+}
