@@ -441,11 +441,12 @@ def configure(full, authority, gpu, prior):
     return compiler_version
 
 
-def public_encoder(full, control):
+def public_encoder(full, control, reset_peak=True):
     import torch
     from sfora.siglip2_compact_serving import Siglip2CompactEncoder
     # This is the sole peak reset, before any public or independent constructor.
-    torch.cuda.reset_peak_memory_stats()
+    if reset_peak:
+        torch.cuda.reset_peak_memory_stats()
     with torch.random.fork_rng(devices=[torch.cuda.current_device()]):
         encoder = Siglip2CompactEncoder.from_checkpoint(model_snapshot=control.large_snapshot,
             checkpoint=CHECKPOINT, expected_checkpoint_sha256=PINNED['checkpoint'],
@@ -559,21 +560,40 @@ def gpu_phase(full, control, authority, protocol, state):
     from sfora.siglip2_compact_serving import Siglip2CompactIndex
     from sfora.cutile_int8 import CutilePackedInt8Gallery
     before = rng_fingerprint(full, True)
-    encoder = public_encoder(full, control)
+    # Qualify the independent model first; retain only small CPU packed references.
+    # Keeping both full models live exceeded the frozen 8GiB cgroup peak gate.
+    torch.cuda.reset_peak_memory_stats()
     with torch.random.fork_rng(devices=[torch.cuda.current_device()]):
         model, head, processor = native_reload(full, control)
         model.half().cuda(); head.cuda()
-    a = model_facts(full, encoder.vision, encoder.head, encoder.processor, F16)
     b = model_facts(full, model, head, processor, F16)
-    full.qualified.same_runtime(model, encoder.vision)
-    assert a['environment'] == b['environment'] == authority['environment'] and a['buffers_sha256'] == b['buffers_sha256']
     wires = load_wires(authority)
+    groups = sentinel_groups()
+    b1_indices = list(range(32)) + [COUNTS['query'] - 1]
+    references = []
+    for group in groups + [{'role': 'query', 'indices': [i]} for i in b1_indices]:
+        images = decode(image_paths(control, protocol, group['role'], group['indices']))
+        reference = native_reference(full, model, head, processor, images)
+        references.append(reference)
+        assert torch.cuda.max_memory_allocated() < CUDA_CAP
+        usage(state)
+    assert model_facts(full, model, head, processor, F16) == b
+    del model, head, processor, images, reference
+    gc.collect()
+    torch.cuda.empty_cache()
+    # Preserve the complete-unit peak from the independent constructor.
+    encoder = public_encoder(full, control, reset_peak=False)
+    a = model_facts(full, encoder.vision, encoder.head, encoder.processor, F16)
+    native_runtime, public_runtime = (json.loads(json.dumps(f['runtime'])) for f in (b, a))
+    assert native_runtime['config'].pop('dtype') == 'float32'
+    assert public_runtime['config'].pop('dtype') is None
+    assert native_runtime == public_runtime
+    assert a['environment'] == b['environment'] == authority['environment'] and a['buffers_sha256'] == b['buffers_sha256']
     equal_b32, observations = [], []
     with Siglip2CompactIndex(encoder, CutilePackedInt8Gallery.open_packed(artifact(authority, 'native_library'), wires['gallery'])) as index:
-        for group in sentinel_groups():
+        for group, reference in zip(groups, references[:len(groups)], strict=True):
             role, indices = group['role'], group['indices']
             images = decode(image_paths(control, protocol, role, indices))
-            reference = native_reference(full, model, head, processor, images)
             actual = encoder.encode_images(images)
             full.qualified.selected.fp16.same(actual, reference)
             full.qualified.selected.fp16.same(actual, packed_slice(wires[role], indices))
@@ -581,10 +601,8 @@ def gpu_phase(full, control, authority, protocol, state):
             observations.append({**group, 'packed_sha256': full.pair.smoke.digest({'codes': actual.codes, 'inverse': actual.inverse_norms})})
             assert torch.cuda.max_memory_allocated() < CUDA_CAP
             usage(state)
-        b1_indices = list(range(32)) + [COUNTS['query'] - 1]
-        for i in b1_indices:
+        for i, reference in zip(b1_indices, references[len(groups):], strict=True):
             images = decode(image_paths(control, protocol, 'query', [i]))
-            reference = native_reference(full, model, head, processor, images)
             actual = encoder.encode_images(images)
             full.qualified.selected.fp16.same(actual, reference)
             same_results(index.search_images(images), cpu_reference(reference, wires['gallery']))
@@ -593,7 +611,6 @@ def gpu_phase(full, control, authority, protocol, state):
             assert torch.cuda.max_memory_allocated() < CUDA_CAP
             usage(state)
     assert model_facts(full, encoder.vision, encoder.head, encoder.processor, F16) == a
-    assert model_facts(full, model, head, processor, F16) == b
     assert rng_fingerprint(full, True) == before
     return {'precision': 'fp16_native', 'gallery_images': COUNTS['gallery'], 'B32_sentinels': sentinel_groups(),
             'B32_observations': observations, 'B1_query_indices': b1_indices, 'B1_matches_saved_B32': equal_b32,

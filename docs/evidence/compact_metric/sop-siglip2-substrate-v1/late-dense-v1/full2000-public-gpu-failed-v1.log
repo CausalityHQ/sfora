@@ -1,0 +1,103 @@
+Running as unit: sfora-full-valid-anchor-public-gpu-v1.service; invocation ID: 8d5c400064474b6685e88834a98a85d2
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Traceback (most recent call last):
+  File "/home/riomus/runs/sfora-full-valid-anchor-public-source-v1/qualify_full_valid_anchor_serving.py", line 656, in <module>
+    main()
+    ~~~~^^
+  File "/home/riomus/runs/sfora-full-valid-anchor-public-source-v1/qualify_full_valid_anchor_serving.py", line 632, in main
+    facts = cpu_phase(full, control, proof, authority) if args.phase == 'cpu' else gpu_phase(full, control, authority, data[-1], state)
+                                                                                   ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/riomus/runs/sfora-full-valid-anchor-public-source-v1/qualify_full_valid_anchor_serving.py", line 562, in gpu_phase
+    encoder = public_encoder(full, control)
+  File "/home/riomus/runs/sfora-full-valid-anchor-public-source-v1/qualify_full_valid_anchor_serving.py", line 450, in public_encoder
+    encoder = Siglip2CompactEncoder.from_checkpoint(model_snapshot=control.large_snapshot,
+        checkpoint=CHECKPOINT, expected_checkpoint_sha256=PINNED['checkpoint'],
+        model_file_sha256=full.pair.smoke.MODEL_HASHES, precision='fp16_native', device=torch.device('cuda'))
+  File "/home/riomus/runs/sfora-full-valid-anchor-public-source-v1/src/sfora/siglip2_compact_serving.py", line 226, in from_checkpoint
+    vision = SiglipVisionModel(config.vision_config).to(device=device, dtype=torch.float32)
+  File "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/transformers/modeling_utils.py", line 3729, in to
+    return super().to(*args, **kwargs)
+           ~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/nn/modules/module.py", line 1383, in to
+    return self._apply(convert)
+           ~~~~~~~~~~~^^^^^^^^^
+  File "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/nn/modules/module.py", line 933, in _apply
+    module._apply(fn)
+    ~~~~~~~~~~~~~^^^^
+  File "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/nn/modules/module.py", line 933, in _apply
+    module._apply(fn)
+    ~~~~~~~~~~~~~^^^^
+  File "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/nn/modules/module.py", line 964, in _apply
+    param_applied = fn(param)
+  File "/home/riomus/group-learning/.venv/lib/python3.13/site-packages/torch/nn/modules/module.py", line 1369, in convert
+    return t.to(
+           ~~~~^
+        device,
+        ^^^^^^^
+        dtype if t.is_floating_point() or t.is_complex() else None,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        non_blocking,
+        ^^^^^^^^^^^^^
+    )
+    ^
+torch.AcceleratorError: CUDA error: out of memory
+Search for `cudaErrorMemoryAllocation' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.
+CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.
+For debugging consider passing CUDA_LAUNCH_BLOCKING=1
+Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+
+Command exited with non-zero status 1
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-full-valid-anchor-public-source-v1/qualify_full_valid_anchor_serving.py --phase gpu --authority-sha256 30ab21a4cd10408bf4c3772ed5f53cbcfd35658ee1b9bb38a8e9a6931384ce62 --output /home/riomus/runs/sfora-full-valid-anchor-public-gpu-v1/proof.json --cpu-proof /home/riomus/runs/sfora-full-valid-anchor-public-cpu-v1/proof.json --cpu-sha256 d56f57654846fc8d2462c0e5e6b1e17a8fc3dc8cace6482d43d0b22676521a62 --cpu-log /home/riomus/runs/sfora-full-valid-anchor-public-source-v1/sfora-full-valid-anchor-public-cpu-v1.log --cpu-log-sha256 03f609f07ecd44a7bf3facd0440267ba1c7fe7c4b048403d81e6d3463f42c8a2"
+	User time (seconds): 18.92
+	System time (seconds): 2.70
+	Percent of CPU this job got: 110%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:19.64
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 3806432
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 19
+	Minor (reclaiming a frame) page faults: 195955
+	Voluntary context switches: 9661
+	Involuntary context switches: 322
+	Swaps: 0
+	File system inputs: 31512
+	File system outputs: 8
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 1
+Finished with result: exit-code
+Main processes terminated with: code=exited/status=1
+Service runtime: 19.648s
+CPU time consumed: 21.632s
+Memory peak: 3.2G
+Memory swap peak: 0B
+Command exited with non-zero status 1
+	Command being timed: "systemd-run --user --wait --collect --pipe --unit=sfora-full-valid-anchor-public-gpu-v1 --property=WorkingDirectory=/home/riomus/runs/sfora-full-valid-anchor-public-source-v1 --property=RuntimeMaxSec=300 --property=MemoryMax=8G --property=MemorySwapMax=0 --property=KillMode=control-group --property=OOMPolicy=stop --setenv=CUDA_VISIBLE_DEVICES=0 --setenv=CUBLAS_WORKSPACE_CONFIG=:4096:8 --setenv=OMP_NUM_THREADS=8 --setenv=OPENBLAS_NUM_THREADS=1 --setenv=TOKENIZERS_PARALLELISM=false --setenv=TMPDIR=/home/riomus/runs/sfora-full-valid-anchor-public-source-v1 --setenv=CUTILE_TILEIRAS_PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/tileiras --setenv=PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin:/usr/local/bin:/usr/bin:/bin --setenv=PYTHONPATH=/home/riomus/runs/sfora-full-valid-anchor-public-source-v1:/home/riomus/runs/sfora-full-valid-anchor-public-source-v1/src:/home/riomus/runs/sfora-full-valid-anchor-public-source-v1/isolated-deps flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock flock -n /home/riomus/.sfora-siglip2-gpu.lock /usr/bin/time -v /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-full-valid-anchor-public-source-v1/qualify_full_valid_anchor_serving.py --phase gpu --authority-sha256 30ab21a4cd10408bf4c3772ed5f53cbcfd35658ee1b9bb38a8e9a6931384ce62 --output /home/riomus/runs/sfora-full-valid-anchor-public-gpu-v1/proof.json --cpu-proof /home/riomus/runs/sfora-full-valid-anchor-public-cpu-v1/proof.json --cpu-sha256 d56f57654846fc8d2462c0e5e6b1e17a8fc3dc8cace6482d43d0b22676521a62 --cpu-log /home/riomus/runs/sfora-full-valid-anchor-public-source-v1/sfora-full-valid-anchor-public-cpu-v1.log --cpu-log-sha256 03f609f07ecd44a7bf3facd0440267ba1c7fe7c4b048403d81e6d3463f42c8a2"
+	User time (seconds): 0.00
+	System time (seconds): 0.00
+	Percent of CPU this job got: 0%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:19.68
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 7220
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 378
+	Voluntary context switches: 9
+	Involuntary context switches: 0
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 1
