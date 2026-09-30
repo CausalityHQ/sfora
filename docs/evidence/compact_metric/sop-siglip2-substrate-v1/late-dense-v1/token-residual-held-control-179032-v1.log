@@ -1,0 +1,62 @@
+Running as unit: sfora-token-residual-held-control-179032-v1.service; invocation ID: be93c129ef90498d8adcf92b5f1ec688
+{"stage": "endpoint-179032-control", "rss_kib": 1037396, "max_rss_kib": 3563432, "elapsed_seconds": 17.132172993849963}
+{"stage": "endpoint-179032-candidate", "rss_kib": 1037396, "max_rss_kib": 3567144, "elapsed_seconds": 20.082787855993956}
+{"stage": "endpoint-179041-candidate", "rss_kib": 1037888, "max_rss_kib": 3567880, "elapsed_seconds": 23.03882051585242}
+{"stage": "endpoint-179041-control", "rss_kib": 1038480, "max_rss_kib": 3567880, "elapsed_seconds": 25.946612938772887}
+[transformers] Model config: bos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49406. This may result in unexpected behavior.
+[transformers] Model config: eos_token_id must be `None` or an integer within the vocabulary (between 0 and 31999), got 49407. This may result in unexpected behavior.
+Loading weights:   0%|          | 0/792 [00:00<?, ?it/s]Loading weights:  91%|█████████ | 718/792 [00:00<00:00, 7165.66it/s]Loading weights: 100%|██████████| 792/792 [00:00<00:00, 7252.24it/s]
+{"stage": "updated-model-mmap-released", "rss_kib": 1764204, "max_rss_kib": 5117480, "elapsed_seconds": 39.17435449967161}
+{"stage": "independent-reload-mmap-released", "rss_kib": 1933476, "max_rss_kib": 5117480, "elapsed_seconds": 51.62354375561699}
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-token-residual-held-source-v1/export_token_residual_adaptation.py --phase export --seed 179032 --arm control --authority-sha256 27098916e8fe8b2a838c6efb2ababc0a29cf6baa37b863fa2eedd18aa2cbe55c --cpu-proof /home/riomus/runs/sfora-token-residual-held-cpu-control-179032-v1/proof.json --cpu-sha256 8a6eb9bcea26a41f01891b7c95b69cc0fa10192cd81f6972f1de21c31aeee0fa --cpu-log /home/riomus/runs/sfora-token-residual-held-source-v1/held-cpu-control-179032-v1.log --cpu-log-sha256 89561f7f3309783f4ec6c120f467a0e652cda1f02be7c29a28719351a34f192d --output /home/riomus/runs/sfora-token-residual-held-control-179032-v1"
+	User time (seconds): 274.88
+	System time (seconds): 7.74
+	Percent of CPU this job got: 112%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 4:10.40
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 5117480
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 15670
+	Minor (reclaiming a frame) page faults: 1444134
+	Voluntary context switches: 206105
+	Involuntary context switches: 3281
+	Swaps: 0
+	File system inputs: 106904
+	File system outputs: 21328
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 4min 10.406s
+CPU time consumed: 4min 42.633s
+Memory peak: 3.8G
+Memory swap peak: 0B
+	Command being timed: "systemd-run --user --wait --collect --pipe --unit=sfora-token-residual-held-control-179032-v1 --property=WorkingDirectory=/home/riomus/runs/sfora-token-residual-held-source-v1 --property=RuntimeMaxSec=300 --property=MemoryMax=8G --property=MemorySwapMax=0 --property=KillMode=control-group --property=OOMPolicy=stop --setenv=CUDA_VISIBLE_DEVICES=0 --setenv=CUBLAS_WORKSPACE_CONFIG=:4096:8 --setenv=OMP_NUM_THREADS=8 --setenv=OPENBLAS_NUM_THREADS=1 --setenv=TOKENIZERS_PARALLELISM=false --setenv=TMPDIR=/home/riomus/runs/sfora-token-residual-held-source-v1 --setenv=CUTILE_TILEIRAS_PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin/tileiras --setenv=PATH=/home/riomus/toolchains/cuda-13.4-wheel-env/lib/python3.12/site-packages/nvidia/cu13/bin:/usr/local/bin:/usr/bin:/bin --setenv=PYTHONPATH=/home/riomus/runs/sfora-token-residual-held-source-v1:/home/riomus/runs/sfora-token-residual-held-source-v1/src:/home/riomus/runs/sfora-token-residual-held-source-v1/isolated-deps flock -n /home/riomus/runs/.sfora-siglip2-gpu.lock flock -n /home/riomus/.sfora-siglip2-gpu.lock /usr/bin/time -v /home/riomus/group-learning/.venv/bin/python /home/riomus/runs/sfora-token-residual-held-source-v1/export_token_residual_adaptation.py --phase export --seed 179032 --arm control --authority-sha256 27098916e8fe8b2a838c6efb2ababc0a29cf6baa37b863fa2eedd18aa2cbe55c --cpu-proof /home/riomus/runs/sfora-token-residual-held-cpu-control-179032-v1/proof.json --cpu-sha256 8a6eb9bcea26a41f01891b7c95b69cc0fa10192cd81f6972f1de21c31aeee0fa --cpu-log /home/riomus/runs/sfora-token-residual-held-source-v1/held-cpu-control-179032-v1.log --cpu-log-sha256 89561f7f3309783f4ec6c120f467a0e652cda1f02be7c29a28719351a34f192d --output /home/riomus/runs/sfora-token-residual-held-control-179032-v1"
+	User time (seconds): 0.00
+	System time (seconds): 0.00
+	Percent of CPU this job got: 0%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 4:10.43
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 7212
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 378
+	Voluntary context switches: 10
+	Involuntary context switches: 0
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 0
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
