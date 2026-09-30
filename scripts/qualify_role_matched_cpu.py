@@ -95,6 +95,7 @@ def main():
     import torch
     import role_matched_bank_rank as role
     import test_role_matched_bank_rank as witnesses
+    from sfora.deployed_code_rank import smooth_ap_bank_loss as original_loss
     import qualify_late_dense_adaptation_cpu as qualified
     import train_late_dense_adaptation as native
     assert not torch.cuda.is_available()
@@ -128,7 +129,7 @@ def main():
     role_tensor = torch.tensor(roles, dtype=torch.long)
     positives = torch.tensor(inventory, dtype=torch.long)
     mask_sha = native.old.fingerprint({"roles": role_tensor, "positive": positives})
-    original_loss = native.pair.smoke.smooth_ap_bank_loss
+    assert sha(Path(inspect.getfile(original_loss))) == code["src/sfora/deployed_code_rank.py"]
     facts.update(witnesses.native_cpu_checks(original_loss))
     # Metadata-only first eligible images from the original frozen first batch.
     ordinals = [i for i in schedule[0] if bool((positives[i] >= 0).any())][:2]
