@@ -1,6 +1,6 @@
 # Source-anchor admission ledger check — 2026-09-30
 
-Status: **not admitted; bounded read-only plan pending**. This check follows the terminal paired late100 KILL, not a new model-quality result. No GPU training/export is running; all prior original jobs were collected.
+Status: **not admitted for native execution; bounded read-only plan completed conditionally**. This check follows the terminal paired late100 KILL, not a new model-quality result. No GPU training/export is running; all prior original jobs were collected.
 
 The tentative source-descriptor anchor is not novel. The [closed Large two-block teacher anchor](inshop_large_teacher_anchor_gate_2026-09-29.md) already adds32 times summed squared normalized-descriptor error, uses complete canonical fit-image cached targets, and keeps CE+8rank. It measured93.657539% R1/74.323131% mAP@R versus unanchored93.610324/73.514138 on the same previously observed TRAIN-held panel; its fixed acceptance gate failed. It starts a fresh original-source final-two-block student, freezes its pool, and uses a separate trained Large teacher. The [closed Base teacher transfer](inshop_teacher_transfer_100_gate_2026-09-28.md) uses online same-augmentation Large-to-Base relational KL, a different source/dimension/objective, and also failed its fixed gate.
 
@@ -9,3 +9,5 @@ The proposed new condition would instead begin from the complete corrected128 TR
 Canonical cached targets are not same-augmentation source predictions; claiming them as exact same-view preservation would be false. An online duplicate teacher would add memory/compute and requires actual capped admission. A coefficient and target-view policy cannot be selected from held outcomes. Archived control cost is not contemporaneous under changed loading/teacher work; any reuse needs explicit scope and conservative limitation rather than an overhead claim.
 
 One bounded read-only Sol/High consultation2e06d0a019c14d3e (300s/$1 cap) checks whether this condition warrants one concrete frozen trained-model intervention or should be rejected in favor of one causally distinct alternative supported by current evidence. It owns no files, GPU or external actions. Parent will verify its recommendations; no duplicate reviewer/job. Full production SOP/In-Shop quality and matched image-to-top-k speed remain mandatory.
+
+Completed consultation2e06d0a019c14d3e supports one same-pixel self-anchor conditionally. The proposed [same-view contract](inshop_same_view_source_anchor_gate_2026-09-30.md) supersedes archived-control reuse and requires four fresh arms; its Opus/Astra admission pair remains pending final reconciliation.
