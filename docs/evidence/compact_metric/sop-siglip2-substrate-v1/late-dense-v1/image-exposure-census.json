@@ -1,0 +1,38 @@
+{
+  "schema": "fit-image-exposure-census-v1",
+  "source_execution_sha256": "c9cec7b71d0c2ba90de2eb0d5c9810f111d4e7feb88f10e63055fbabf8a6d8b3",
+  "sampler_source_sha256": "0841096b739cb6e89dc60eb330e696fb931c04ecb1883185bd46f7d0f1df785a",
+  "fit_receipt_sha256": "277f9b774470355f76c16675a9c7808abe602c83612d83f4d90e4d37cb5507fe",
+  "fit_images": 13283,
+  "fit_products": 2004,
+  "quality_read": false,
+  "model_execution": false,
+  "seeds": {
+    "179032": {
+      "slots": 6400,
+      "unique_images": 5039,
+      "repeated_slots": 1361,
+      "max_unique_same_class_order": 6330,
+      "avoidable_repeat_slots": 1291,
+      "identities_exposed": 2004,
+      "class_slot_counts": {
+        "4": 388,
+        "3": 1616
+      },
+      "schedule_int64_bytes_sha256": "5e284a3ac7e4ae1055aeb779b7f2b000dd91d1219e2aa1da28a02908e08d570d"
+    },
+    "179041": {
+      "slots": 6400,
+      "unique_images": 5110,
+      "repeated_slots": 1290,
+      "max_unique_same_class_order": 6331,
+      "avoidable_repeat_slots": 1221,
+      "identities_exposed": 2004,
+      "class_slot_counts": {
+        "4": 388,
+        "3": 1616
+      },
+      "schedule_int64_bytes_sha256": "532fbd79d141bf79de05e94f435e066971737e8ef98761639ee5ce3d9e340a00"
+    }
+  }
+}
