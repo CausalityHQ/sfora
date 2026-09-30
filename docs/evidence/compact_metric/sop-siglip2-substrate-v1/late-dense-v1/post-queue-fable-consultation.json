@@ -1,0 +1,332 @@
+{
+  "id": "366fd7512a8a43f8",
+  "provider": "fable",
+  "model": "claude-fable-5-1",
+  "fallbacks": [
+    {
+      "provider": "fable",
+      "model": "claude-fable-5-1"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    }
+  ],
+  "agent": "sfora/emafactorial",
+  "cwd": "/home/rb/worktrees/sfora-positive-causality",
+  "status": "completed",
+  "runner_started": true,
+  "started_at": 1790750209,
+  "timeout_seconds": 1800,
+  "deadline_at": 1790752009,
+  "budget_usd": 6.0,
+  "prompt_preview": "Read-only bounded synthesis/invention for ONE next useful trained-model intervention. Repo /home/rb/worktrees/sfora-positive-causality master bc533ae6. No edits/tests/Torch/GPU/SSH/children/consultations/operator messages. Read docs/inshop_image_queue_result_2026-09-30.md (NEW terminal KILL), inshop_late_dense_adaptation_result_2026-09-30.md, inshop_same_view_source_anchor_gate_2026-09-30.md and source-anchor reconciliation/ledger, inshop_full_valid_anchor_result_2026-09-29.md, inshop_corrected128_budget4000_result_2026-09-29.md, inshop_full_native_trajectory_average_result_2026-09-29.md, inshop_teacher_retained256_result_2026-09-29.md, inshop_large_lower_adapter_gate_2026-09-29.md and closed-method-ledger-v1/consultation.json; inspect relevant training source narrowly. Full production SOP+InShop protocol-comparable quality AND matched public speed mandatory; no universal architecture KILL from tiny internal regressions. NEW queue100 two-seed TRAIN-held mean R1\u2212.047214pp/AP\u2212.004443pp both productCI include0; all integrity/cost/parity PASS. Native128 learned TRAIN1000 source cc58377f, boundary12, fit13283/2004, held6354q6245g1993. Denseboundary10 late100 negative bothseeds\u2212.204596/\u2212.288159pp. Full corrected TRAIN2000 already uses25882/3997, official96.307498/81.882593; full4000/averaging failed fixedprocedure but Pareto checkpoints preserved. Thus mere full-data coverage or budget extension repeats closed work. Source-anchor proposal declined; don't re-propose teacher KL, lower8, pool/final-block, width256, resized288 or fixedclosedbudget without a NEW causal distinction supported by evidence. Need choose ONE distinct representation/training intervention with realistic path to a better trained native model and useful library, using existing architecture if possible; not another sequence of theorem-like probes or generic loss sweep. Diagnose actual source/math/data cause and explain why evidence supports it vs alternatives. Consider whether current bank/rank/supervision/augmentation/optimizer specifics create actionable mismatch. Return concrete minimal design, affected source paths, paired TRAIN-only method/checkpoint selection and frozen quality/cost stop rule, narrow actualCPU\u2192one17mechanics\u2192one100 pilot path under unchanged120/300sec,8GiB/noSwap/<10GB caps. Identify novel quality prospect vs speculative claim; do not invent measurements. Preserve complete source/optimizer/buffer/RNG/packing authority. If no responsible new intervention justified, say exact missing evidence and cheapest source-only measurement that resolves it. This is one fresh post-terminal synthesis, not a duplicate review; later consequential implementation uses fixed Opus/Astra critique. Strongest published reference/protocol remains separately to verify; don't claim SOTA.",
+  "prompt_sha256": "061d18afdc87852785debbc408ed579ab6c51ce420b4d528368ba570b7ecf749",
+  "prompt_bytes": 2984,
+  "fingerprint": "aaf731bb96041be97198f4f13284262a9490648acb39e6a907e7a14a0a364799",
+  "evidence": {
+    "git_commit": "bc533ae6c3944a13c421a5d9068e16e465f1393d",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+    "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "previous_fingerprint": "cf1aa14f9de14255cfd96e789c42d449b829ba1e07f8fbeda8cdd7790038b6ac",
+  "reused": false,
+  "systemd_unit": "devbox-consult-366fd7512a8a43f8.service",
+  "pid": 3818709,
+  "pgid": 3818709,
+  "attempt": 1,
+  "attempts": [
+    {
+      "provider": "fable",
+      "model": "claude-fable-5-1"
+    },
+    {
+      "provider": "claude",
+      "model": "claude-opus-5-5"
+    },
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-sol"
+    }
+  ],
+  "attempt_history": [
+    {
+      "provider": "fable",
+      "model": "claude-fable-5-1",
+      "budget_usd": 6.0,
+      "timeout_seconds": 1798,
+      "started_at": 1790750211
+    }
+  ],
+  "exit_code": 0,
+  "finished_at": 1790750739,
+  "event_cursor": 35,
+  "events": [
+    {
+      "seq": 12,
+      "at": 1790750258,
+      "provider": "fable",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 13,
+      "at": 1790750263,
+      "provider": "fable",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 14,
+      "at": 1790750270,
+      "provider": "fable",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 15,
+      "at": 1790750274,
+      "provider": "fable",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 16,
+      "at": 1790750277,
+      "provider": "fable",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 17,
+      "at": 1790750280,
+      "provider": "fable",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 18,
+      "at": 1790750294,
+      "provider": "fable",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 19,
+      "at": 1790750327,
+      "provider": "fable",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 20,
+      "at": 1790750394,
+      "provider": "fable",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 21,
+      "at": 1790750534,
+      "provider": "fable",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 22,
+      "at": 1790750689,
+      "provider": "fable",
+      "kind": "tool",
+      "label": "Bash started"
+    },
+    {
+      "seq": 23,
+      "at": 1790750727,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 24,
+      "at": 1790750728,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 25,
+      "at": 1790750729,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 26,
+      "at": 1790750730,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 27,
+      "at": 1790750731,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 28,
+      "at": 1790750732,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 29,
+      "at": 1790750733,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 30,
+      "at": 1790750734,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 31,
+      "at": 1790750735,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 32,
+      "at": 1790750736,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 33,
+      "at": 1790750737,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 34,
+      "at": 1790750738,
+      "provider": "fable",
+      "kind": "partial",
+      "label": "Partial answer updated"
+    },
+    {
+      "seq": 35,
+      "at": 1790750739,
+      "provider": "fable",
+      "kind": "phase",
+      "label": "Consultation completed",
+      "detail": "exit 0"
+    }
+  ],
+  "events_truncated": true,
+  "provider_events": {
+    "fable": [
+      {
+        "seq": 28,
+        "at": 1790750732,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 29,
+        "at": 1790750733,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 30,
+        "at": 1790750734,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 31,
+        "at": 1790750735,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 32,
+        "at": 1790750736,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 33,
+        "at": 1790750737,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 34,
+        "at": 1790750738,
+        "provider": "fable",
+        "kind": "partial",
+        "label": "Partial answer updated"
+      },
+      {
+        "seq": 35,
+        "at": 1790750739,
+        "provider": "fable",
+        "kind": "phase",
+        "label": "Consultation completed",
+        "detail": "exit 0"
+      }
+    ]
+  },
+  "partial_result": "**Verdict: no new same-data training procedure is justified right now.** The evidence points to one deciding measurement and one conditional intervention. I ran out of consultation budget before reading everything: `inshop_large_lower_adapter_gate` was read only through the ledger summary, and several probe docs only at their head or tail. No memory entry was written.\n\n## Diagnosis\n\n- **The loss has no batch interaction.** In `scripts/pe_large_coverage.py:113` (`terms`), each anchor sees ArcFace against proxies plus `8\u00d7` SmoothAP against a detached bank (`src/sfora/deployed_code_rank.py:94`, \u03c4=0.01). Batch-mates never interact, so any sampler change only alters which images are drawn. This predicts the queue100 null (\u22120.047/\u22120.004pp), and the same holds for the 32\u00d72 sampler and hard-anchor schedule.\n- **Late pilots start from a converged source.** Flat learning rates (`pe_large_optimization.py`, `fresh`: 1e-5/1e-4/1e-4, no schedule) and 100 appended updates cannot move top-1 by the required +0.20pp. The R1 nulls came back as expected: rank-8 +0.008, dense100 \u22120.024, retained256 \u22120.016, budget4000 \u22120.084 and averaging +0.021, with mAP drifting slightly up. Late boundary-10 was outright negative (\u22120.205).\n- **Only identity count has moved R1 with a positive product lower bound.** Half to full fit gave +0.365pp [+0.154, +0.574] (`inshop_fit_product_scaling_gate`). All 3,997 TRAIN identities are already used.\n- **The misses are look-alike products in the same pose.**\n  - Same-pose top impostors are 2.09\u00d7 enriched (61/151).\n  - Colour separates only 55.6% of misses, garment-box crops 86/151, and parts 50/151.\n  - Queries with no same-group positive account for 10/151.\n  - The wider-crop arm and the specific-impostor margin arm were both negative.\n  - Bank, rank, augmentation (crop 0.8\u20131.0 plus horizontal flip, `train_sop_siglip2_compact.py:1006`) and optimizer show no actionable mismatch.\n- **Churn sets the noise floor.** Going 2000\u21924000 updates flipped 109 queries right and 121 wrong on official, against roughly 525 misses.\n\nEvery closed teacher arm used a target no better than the student. That is the missing evidence: **a serving-legal target that measurably beats the single-view student on TRAIN-held.**\n\n## Cheapest resolving measurement (CPU, archived wires only)\n\nRun one \u2264120 s unit with the existing CPU scorer over the saved held wires. Use control 032/041, dense 032/041, queue 032/041 and the native128 source.\n\nReport three things:\n- the persistent-miss core (missed by all models);\n- the oracle-union R1 (hit by any model);\n- the score-sum ensemble R1 against control, with the same 5,000-draw bootstrap (seed 179019).\n\nIf the ensemble gains less than +0.20pp or its product lower bound is \u22640, close the variance/consensus lane and all late100 pilots permanently. These models share one 1000-update initialisation, so a null here is only a lower bound on diversity.\n\n## The one conditional intervention: mirror-consensus distillation\n\nThis is a hypothesis; no measurement exists for it. It needs one code change: a flipped-view option on the held export in `scripts/export_late_dense_adaptation.py`.\n\n1. **Zero-training read.** Re-export the archived control 032/041 checkpoints with the descriptor `normalize(z(x) + z(flip x))`, then pack and score as usual. Apply the unchanged gate: each seed R1 >0, mean R1 and mAP@R \u2265 +0.20pp, both product lower bounds >0.\n2. **If it fails,** close the lane. The answer is then NONE, and the remaining lever is more identities, which is a protocol decision for the operator.\n3. **If it passes,** the two-view consensus is the first target shown to beat its student. Train it into the single-view model over the formative 1000 updates from the F5 source, not as a late100. Serving cost stays unchanged. The change belongs in the objective wrapper around `coverage.terms` and `pe_large_optimization.step`.\n\nThe token arithmetic (2\u00d7256 against the reference's 576) is not a speed measurement.\n\n**Path under the unchanged caps (120/300 s, 8 GiB, no swap, <10 GB CUDA):**\n- CPU admission: check gradient, role and RNG parity on two fixed fit images.\n- One discarded 17-update mechanics run: uninterrupted 17 must equal serialized 8+9 across vision, head, classifier, bank, AdamW, scaler, counters and RNG.\n- One paired 100-update run for cost and parity only, with wall ratio \u22641.50.\n- Quality is decided only at the paired 1000-update endpoint on TRAIN-held, two seeds, same gate, with no intermediate checkpoint selection.\n- An online flipped-view teacher forward may breach the 1.50 wall cap. If so, stop; do not rescue with precision changes or cached canonical targets, which would repeat the closed anchor.\n\nMirror averaging and self-distillation are prior art, so this carries no novelty or SOTA claim. Official In-Shop and SOP quality and public latency remain unmeasured for it.",
+  "partial_result_truncated": false,
+  "provider_partials": {
+    "fable": "**Verdict: no new same-data training procedure is justified right now.** The evidence points to one deciding measurement and one conditional intervention. I ran out of consultation budget before reading everything: `inshop_large_lower_adapter_gate` was read only through the ledger summary, and several probe docs only at their head or tail. No memory entry was written.\n\n## Diagnosis\n\n- **The loss has no batch interaction.** In `scripts/pe_large_coverage.py:113` (`terms`), each anchor sees ArcFace against proxies plus `8\u00d7` SmoothAP against a detached bank (`src/sfora/deployed_code_rank.py:94`, \u03c4=0.01). Batch-mates never interact, so any sampler change only alters which images are drawn. This predicts the queue100 null (\u22120.047/\u22120.004pp), and the same holds for the 32\u00d72 sampler and hard-anchor schedule.\n- **Late pilots start from a converged source.** Flat learning rates (`pe_large_optimization.py`, `fresh`: 1e-5/1e-4/1e-4, no schedule) and 100 appended updates cannot move top-1 by the required +0.20pp. The R1 nulls came back as expected: rank-8 +0.008, dense100 \u22120.024, retained256 \u22120.016, budget4000 \u22120.084 and averaging +0.021, with mAP drifting slightly up. Late boundary-10 was outright negative (\u22120.205).\n- **Only identity count has moved R1 with a positive product lower bound.** Half to full fit gave +0.365pp [+0.154, +0.574] (`inshop_fit_product_scaling_gate`). All 3,997 TRAIN identities are already used.\n- **The misses are look-alike products in the same pose.**\n  - Same-pose top impostors are 2.09\u00d7 enriched (61/151).\n  - Colour separates only 55.6% of misses, garment-box crops 86/151, and parts 50/151.\n  - Queries with no same-group positive account for 10/151.\n  - The wider-crop arm and the specific-impostor margin arm were both negative.\n  - Bank, rank, augmentation (crop 0.8\u20131.0 plus horizontal flip, `train_sop_siglip2_compact.py:1006`) and optimizer show no actionable mismatch.\n- **Churn sets the noise floor.** Going 2000\u21924000 updates flipped 109 queries right and 121 wrong on official, against roughly 525 misses.\n\nEvery closed teacher arm used a target no better than the student. That is the missing evidence: **a serving-legal target that measurably beats the single-view student on TRAIN-held.**\n\n## Cheapest resolving measurement (CPU, archived wires only)\n\nRun one \u2264120 s unit with the existing CPU scorer over the saved held wires. Use control 032/041, dense 032/041, queue 032/041 and the native128 source.\n\nReport three things:\n- the persistent-miss core (missed by all models);\n- the oracle-union R1 (hit by any model);\n- the score-sum ensemble R1 against control, with the same 5,000-draw bootstrap (seed 179019).\n\nIf the ensemble gains less than +0.20pp or its product lower bound is \u22640, close the variance/consensus lane and all late100 pilots permanently. These models share one 1000-update initialisation, so a null here is only a lower bound on diversity.\n\n## The one conditional intervention: mirror-consensus distillation\n\nThis is a hypothesis; no measurement exists for it. It needs one code change: a flipped-view option on the held export in `scripts/export_late_dense_adaptation.py`.\n\n1. **Zero-training read.** Re-export the archived control 032/041 checkpoints with the descriptor `normalize(z(x) + z(flip x))`, then pack and score as usual. Apply the unchanged gate: each seed R1 >0, mean R1 and mAP@R \u2265 +0.20pp, both product lower bounds >0.\n2. **If it fails,** close the lane. The answer is then NONE, and the remaining lever is more identities, which is a protocol decision for the operator.\n3. **If it passes,** the two-view consensus is the first target shown to beat its student. Train it into the single-view model over the formative 1000 updates from the F5 source, not as a late100. Serving cost stays unchanged. The change belongs in the objective wrapper around `coverage.terms` and `pe_large_optimization.step`.\n\nThe token arithmetic (2\u00d7256 against the reference's 576) is not a speed measurement.\n\n**Path under the unchanged caps (120/300 s, 8 GiB, no swap, <10 GB CUDA):**\n- CPU admission: check gradient, role and RNG parity on two fixed fit images.\n- One discarded 17-update mechanics run: uninterrupted 17 must equal serialized 8+9 across vision, head, classifier, bank, AdamW, scaler, counters and RNG.\n- One paired 100-update run for cost and parity only, with wall ratio \u22641.50.\n- Quality is decided only at the paired 1000-update endpoint on TRAIN-held, two seeds, same gate, with no intermediate checkpoint selection.\n- An online flipped-view teacher forward may breach the 1.50 wall cap. If so, stop; do not rescue with precision changes or cached canonical targets, which would repeat the closed anchor.\n\nMirror averaging and self-distillation are prior art, so this carries no novelty or SOTA claim. Official In-Shop and SOP quality and public latency remain unmeasured for it."
+  },
+  "providers_used": [
+    "fable"
+  ],
+  "active_provider": "fable",
+  "phase": "Consultation completed",
+  "input_bytes": 2984,
+  "output_bytes": 4898,
+  "elapsed_seconds": 530,
+  "progress": "devbox-ask: fable consult still running (0m 30s)\ndevbox-ask: fable consult still running (1m 00s)\ndevbox-ask: fable consult still running (1m 30s)\ndevbox-ask: fable consult still running (2m 00s)\ndevbox-ask: fable consult still running (2m 30s)\ndevbox-ask: fable consult still running (3m 00s)\ndevbox-ask: fable consult still running (3m 30s)\ndevbox-ask: fable consult still running (4m 00s)\ndevbox-ask: fable consult still running (4m 30s)\ndevbox-ask: fable consult still running (5m 00s)\ndevbox-ask: fable consult still running (5m 30s)\ndevbox-ask: fable consult still running (6m 00s)\ndevbox-ask: fable consult still running (6m 30s)\ndevbox-ask: fable consult still running (7m 00s)\ndevbox-ask: fable consult still running (7m 30s)\ndevbox-ask: fable consult still running (8m 00s)\ndevbox-ask: fable consult still running (8m 30s)",
+  "progress_truncated": false,
+  "result": "**Verdict: no new same-data training procedure is justified right now.** The evidence points to one deciding measurement and one conditional intervention. I ran out of consultation budget before reading everything: `inshop_large_lower_adapter_gate` was read only through the ledger summary, and several probe docs only at their head or tail. No memory entry was written.\n\n## Diagnosis\n\n- **The loss has no batch interaction.** In `scripts/pe_large_coverage.py:113` (`terms`), each anchor sees ArcFace against proxies plus `8\u00d7` SmoothAP against a detached bank (`src/sfora/deployed_code_rank.py:94`, \u03c4=0.01). Batch-mates never interact, so any sampler change only alters which images are drawn. This predicts the queue100 null (\u22120.047/\u22120.004pp), and the same holds for the 32\u00d72 sampler and hard-anchor schedule.\n- **Late pilots start from a converged source.** Flat learning rates (`pe_large_optimization.py`, `fresh`: 1e-5/1e-4/1e-4, no schedule) and 100 appended updates cannot move top-1 by the required +0.20pp. The R1 nulls came back as expected: rank-8 +0.008, dense100 \u22120.024, retained256 \u22120.016, budget4000 \u22120.084 and averaging +0.021, with mAP drifting slightly up. Late boundary-10 was outright negative (\u22120.205).\n- **Only identity count has moved R1 with a positive product lower bound.** Half to full fit gave +0.365pp [+0.154, +0.574] (`inshop_fit_product_scaling_gate`). All 3,997 TRAIN identities are already used.\n- **The misses are look-alike products in the same pose.**\n  - Same-pose top impostors are 2.09\u00d7 enriched (61/151).\n  - Colour separates only 55.6% of misses, garment-box crops 86/151, and parts 50/151.\n  - Queries with no same-group positive account for 10/151.\n  - The wider-crop arm and the specific-impostor margin arm were both negative.\n  - Bank, rank, augmentation (crop 0.8\u20131.0 plus horizontal flip, `train_sop_siglip2_compact.py:1006`) and optimizer show no actionable mismatch.\n- **Churn sets the noise floor.** Going 2000\u21924000 updates flipped 109 queries right and 121 wrong on official, against roughly 525 misses.\n\nEvery closed teacher arm used a target no better than the student. That is the missing evidence: **a serving-legal target that measurably beats the single-view student on TRAIN-held.**\n\n## Cheapest resolving measurement (CPU, archived wires only)\n\nRun one \u2264120 s unit with the existing CPU scorer over the saved held wires. Use control 032/041, dense 032/041, queue 032/041 and the native128 source.\n\nReport three things:\n- the persistent-miss core (missed by all models);\n- the oracle-union R1 (hit by any model);\n- the score-sum ensemble R1 against control, with the same 5,000-draw bootstrap (seed 179019).\n\nIf the ensemble gains less than +0.20pp or its product lower bound is \u22640, close the variance/consensus lane and all late100 pilots permanently. These models share one 1000-update initialisation, so a null here is only a lower bound on diversity.\n\n## The one conditional intervention: mirror-consensus distillation\n\nThis is a hypothesis; no measurement exists for it. It needs one code change: a flipped-view option on the held export in `scripts/export_late_dense_adaptation.py`.\n\n1. **Zero-training read.** Re-export the archived control 032/041 checkpoints with the descriptor `normalize(z(x) + z(flip x))`, then pack and score as usual. Apply the unchanged gate: each seed R1 >0, mean R1 and mAP@R \u2265 +0.20pp, both product lower bounds >0.\n2. **If it fails,** close the lane. The answer is then NONE, and the remaining lever is more identities, which is a protocol decision for the operator.\n3. **If it passes,** the two-view consensus is the first target shown to beat its student. Train it into the single-view model over the formative 1000 updates from the F5 source, not as a late100. Serving cost stays unchanged. The change belongs in the objective wrapper around `coverage.terms` and `pe_large_optimization.step`.\n\nThe token arithmetic (2\u00d7256 against the reference's 576) is not a speed measurement.\n\n**Path under the unchanged caps (120/300 s, 8 GiB, no swap, <10 GB CUDA):**\n- CPU admission: check gradient, role and RNG parity on two fixed fit images.\n- One discarded 17-update mechanics run: uninterrupted 17 must equal serialized 8+9 across vision, head, classifier, bank, AdamW, scaler, counters and RNG.\n- One paired 100-update run for cost and parity only, with wall ratio \u22641.50.\n- Quality is decided only at the paired 1000-update endpoint on TRAIN-held, two seeds, same gate, with no intermediate checkpoint selection.\n- An online flipped-view teacher forward may breach the 1.50 wall cap. If so, stop; do not rescue with precision changes or cached canonical targets, which would repeat the closed anchor.\n\nMirror averaging and self-distillation are prior art, so this carries no novelty or SOTA claim. Official In-Shop and SOP quality and public latency remain unmeasured for it.",
+  "result_truncated": false
+}
