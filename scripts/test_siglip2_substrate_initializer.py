@@ -43,6 +43,17 @@ def main():
     spec.loader.exec_module(driver)
     with TemporaryDirectory() as directory:
         base = Path(directory).resolve()
+        # Exact SHA including EOF/tail, with advice only for consumed 1MiB ranges.
+        hashed = base / 'hashed.bin'
+        multichunk = bytes(range(256)) * 8192
+        for data in (b'', multichunk, multichunk + b'tail' * 9 + b'!'):
+            hashed.write_bytes(data)
+            with patch.object(driver.os, 'posix_fadvise', wraps=driver.os.posix_fadvise) as advice:
+                assert driver.sha(hashed) == hashlib.sha256(data).hexdigest()
+            ranges = [(offset, count, hint) for fd, offset, count, hint in
+                      (call.args for call in advice.call_args_list)]
+            assert ranges == [(offset, min(1024**2, len(data) - offset), driver.os.POSIX_FADV_DONTNEED)
+                              for offset in range(0, len(data), 1024**2)], ranges
         for name in driver.FILES:
             if name == 'representation_ceiling.py':
                 (base / name).write_text('pinned_helper = True\n')
@@ -155,7 +166,7 @@ def main():
         result = subprocess.run([sys.executable, '-B', '-S', mode, str(path), '--help'], capture_output=True, text=True)
         assert result.returncode != 0 and 'optimized mode' in result.stderr
     assert not any(name in sys.modules for name in ('torch', 'numpy', 'sfora', 'transformers'))
-    print('PASS: stdlib authority/exact closure/SHA/tamper/bare helper origin/full-size synthetic NPY/original log/footer/caps/locks/help/-O/-OO; no native qualification')
+    print('PASS: stdlib authority/exact closure/streamed SHA empty+multichunk+tail+consumed advice/tamper/bare helper origin/full-size synthetic NPY/original log/footer/caps/locks/help/-O/-OO; no native qualification')
 
 
 if __name__ == '__main__':

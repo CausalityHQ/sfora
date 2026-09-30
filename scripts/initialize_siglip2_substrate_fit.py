@@ -82,7 +82,12 @@ def digest_string(value):
 
 def sha(path):
     with canonical(path).open('rb') as stream:
-        return hashlib.file_digest(stream, 'sha256').hexdigest()
+        digest, buffer = hashlib.sha256(), bytearray(1024**2)
+        while read := stream.readinto(buffer):
+            digest.update(memoryview(buffer)[:read])
+            # Match the frozen extractor's consumed-range advice; no cgroup guarantee.
+            os.posix_fadvise(stream.fileno(), stream.tell() - read, read, os.POSIX_FADV_DONTNEED)
+        return digest.hexdigest()
 
 
 def strict_json(raw):
