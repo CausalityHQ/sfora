@@ -1,0 +1,48 @@
+{
+  "both_locks_held": true,
+  "execution_sha256": "3a716471c65e0e2484ac746cf5bc3937970b16934e2d14aef8510580d8c004c2",
+  "export_authority": {
+    "path": "/home/riomus/runs/sfora-native256-fit-export-source-v1/authority.json",
+    "sha256": "065b32e841e8a05bc71aa36e5c9b32db07b139ba7159f428dc21eba23a57361c"
+  },
+  "export_execution_sha256": "ad32df859712e3d608341ed9eda24fd96db375ec85c61779265a9c16cb8dd3b5",
+  "export_root": "/home/riomus/runs/sfora-native256-fit-export-source-v1",
+  "pca_helper_sha256": "1608181a9c7ba18d1ae1016804898551b2bba9ab40fec9bd4cc2eaf27981771c",
+  "resource_policy": {
+    "cuda_visible_devices": "",
+    "host_bytes": 8589934592,
+    "seconds": 120,
+    "swap_bytes": 0
+  },
+  "schema": "native256-fit-initializer-launch-v1",
+  "selected_export": {
+    "both_locks_held": true,
+    "invocation_id": "97f3846f15694ea484adb55754499af1",
+    "log": {
+      "path": "/home/riomus/runs/sfora-native256-fit-export-source-v1/sfora-native256-fit-export-large-v1.log",
+      "sha256": "5196a82216295844dbf008533fb912fb105c0bdfe6c622867421b9fb8766cd90"
+    },
+    "native_peak_rss_kib": 3645212,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-native256-fit-export-large-v1/receipt.json",
+      "sha256": "7befec92953b5d2b359e1e4a39f0bd1c43e80105f8a06c6cc2248bb46c4d4a97"
+    },
+    "service_seconds": 195.231,
+    "unit": "sfora-native256-fit-export-large-v1"
+  },
+  "startup": {
+    "both_locks_held": true,
+    "invocation_id": "81beeed0c9d44a0889743e85464a17a9",
+    "log": {
+      "path": "/home/riomus/runs/sfora-native256-fit-export-source-v1/sfora-native256-fit-startup-large-v1.log",
+      "sha256": "2f44384d2038090f77e113a46a08296fda4f841b4bb4f6429f75d7ecaf167cc7"
+    },
+    "native_peak_rss_kib": 60076,
+    "receipt": {
+      "path": "/home/riomus/runs/sfora-native256-fit-export-source-v1/startup-large-v1.json",
+      "sha256": "f5af6963dfe7644721f1f41b9f44b78c11e9078ea26a1151bb1d84b3b47441cf"
+    },
+    "service_seconds": 37.422,
+    "unit": "sfora-native256-fit-startup-large-v1"
+  }
+}

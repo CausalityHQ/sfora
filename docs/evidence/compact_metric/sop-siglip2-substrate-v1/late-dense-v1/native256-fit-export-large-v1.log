@@ -1,0 +1,40 @@
+Running as unit: sfora-native256-fit-export-large-v1.service; invocation ID: 97f3846f15694ea484adb55754499af1
+export_siglip2_substrate_fit.py: OK
+test_siglip2_substrate_fit.py: OK
+execution.json: OK
+authority.json: OK
+{"output": "/home/riomus/runs/sfora-native256-fit-export-large-v1", "phase": "export", "schema": "siglip2-substrate-fit-export-v1"}
+export_siglip2_substrate_fit.py: OK
+test_siglip2_substrate_fit.py: OK
+execution.json: OK
+authority.json: OK
+FINAL_CGROUP {"invocation_id": "97f3846f15694ea484adb55754499af1", "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-native256-fit-export-large-v1.service", "values": {"memory.current": "1148424192", "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0", "memory.max": "8589934592", "memory.peak": "5768761344", "memory.swap.current": "0", "memory.swap.max": "0", "memory.swap.peak": "0"}}
+	Command being timed: "/bin/bash /home/riomus/runs/sfora-native256-fit-export-source-v1/export-large-command.sh"
+	User time (seconds): 172.18
+	System time (seconds): 7.60
+	Percent of CPU this job got: 92%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 3:15.22
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 3645212
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 8686
+	Minor (reclaiming a frame) page faults: 571668
+	Voluntary context switches: 264199
+	Involuntary context switches: 2243
+	Swaps: 0
+	File system inputs: 48650208
+	File system outputs: 126160
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 3min 15.231s
+CPU time consumed: 2min 59.795s
+Memory peak: 4.9G
+Memory swap peak: 0B

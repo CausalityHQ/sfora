@@ -1,0 +1,42 @@
+Running as unit: sfora-native256-fit-initializer-large-v1.service; invocation ID: e27f3c127eee4908b02ad18354cafcfa
+initialize_siglip2_substrate_fit.py: OK
+test_siglip2_substrate_initializer.py: OK
+representation_ceiling.py: OK
+execution.json: OK
+authority-large-v1.json: OK
+{"output": "/home/riomus/runs/sfora-native256-fit-initializer-large-v1", "phase": "pca", "schema": "siglip2-substrate-fit-initializer-v1"}
+initialize_siglip2_substrate_fit.py: OK
+test_siglip2_substrate_initializer.py: OK
+representation_ceiling.py: OK
+execution.json: OK
+authority-large-v1.json: OK
+FINAL_CGROUP {"invocation_id": "e27f3c127eee4908b02ad18354cafcfa", "path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-native256-fit-initializer-large-v1.service", "values": {"memory.current": "539172864", "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0", "memory.max": "8589934592", "memory.peak": "8117264384", "memory.swap.current": "0", "memory.swap.max": "0", "memory.swap.peak": "0"}}
+	Command being timed: "/bin/bash /home/riomus/runs/sfora-native256-fit-initializer-source-v1/large-command.sh"
+	User time (seconds): 20.01
+	System time (seconds): 4.29
+	Percent of CPU this job got: 54%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:44.83
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 1236508
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 2294
+	Minor (reclaiming a frame) page faults: 117652
+	Voluntary context switches: 135215
+	Involuntary context switches: 243
+	Swaps: 0
+	File system inputs: 38852152
+	File system outputs: 23464
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 44.838s
+CPU time consumed: 24.318s
+Memory peak: 185.0M
+Memory swap peak: 0B
