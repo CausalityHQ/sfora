@@ -1,0 +1,24 @@
+{
+  "task": "full2000-json-facts-20260930",
+  "repo": "/home/rb/worktrees/sfora-full2000-json-facts-20260930",
+  "base": "1ba73ef34b41fa63b0681498b356dc8627624bd5",
+  "commit": "0b5e3bede14d1f7a0f180340cc8064e0ed8ddeda",
+  "branch": "devbox/full2000-json-facts-20260930",
+  "author": "Roman Bartusiak <riomus@gmail.com>",
+  "files": [
+    "scripts/qualify_full_valid_anchor_serving.py",
+    "scripts/test_full_valid_anchor_serving.py"
+  ],
+  "change": "Canonicalize the complete runtime metadata using the existing environment JSON-roundtrip pattern at model_facts creation.",
+  "regression": "AST executes the actual model_facts metadata return with captured observer-v2 facts and integer-key id2label stand-in; checks full saved equality and JSON persistence equality; rejects changes to attention_implementation, layer_norm_eps and label value.",
+  "verification": {
+    "red": "python3 -B -S scripts/test_full_valid_anchor_serving.py: exit 1 at live model facts differ from persisted proof before production change",
+    "green": "python3 -B -S scripts/test_full_valid_anchor_serving.py: exit 0, PASS; no Torch/numpy/PIL imports",
+    "syntax": "compile() both assigned file contents: exit 0",
+    "diff_check": "git diff --check: exit 0",
+    "worktree": "clean; commit contains exactly two allowed files; parent and operator identity verified"
+  },
+  "native_execution": false,
+  "merged_or_pushed": false,
+  "parent_next_step": "Parent owns new freeze105v4, CPU/GPU proofs, benchmark and integration."
+}
