@@ -205,12 +205,15 @@ def authority(root, expected):
     return spec, code, endpoints, costs, control, source, prior, proof, frozen
 
 
-def model_pair(control, saved):
+def model_pair(control, saved, state=None):
     """Actual source loader and independent config constructor; complete buffers."""
     with torch.random.fork_rng(devices=[]):
-        model, processor = pair.smoke.load_arm(control, "large")
+        if state is None:
+            model, processor = pair.smoke.load_arm(control, "large")
+        else:
+            model, processor = state["model"], state["processor"]
         clone = type(model)(copy.deepcopy(model.config)).float()
-        heads = [nn.Linear(1024, 128), nn.Linear(1024, 128)]
+        heads = [nn.Linear(1024, 128) if state is None else state["head"], nn.Linear(1024, 128)]
     for vision, head in zip((model, clone), heads, strict=True):
         vision.load_state_dict(saved["vision"], strict=True)
         head.load_state_dict(saved["head"], strict=True)
@@ -284,7 +287,6 @@ def main():
         "seed": args.seed, "arm": args.arm, "boundary": value["boundary"],
         "training_receipt_sha256": endpoint["receipt_sha256"], "checkpoint_sha256": endpoint["checkpoint_sha256"],
         "terminal_state_fingerprint": endpoint["terminal_state_fingerprint"]}
-    saved = checkpoint(endpoint, value)
     cpu_rng = torch.random.get_rng_state().clone()
     if not gpu:
         with torch.random.fork_rng(devices=[]):
@@ -296,13 +298,18 @@ def main():
         base = training.identity(state, arguments, initial, schedule_sha)
         expected = {**base, "runtime": late.source_runtime(base["runtime"])}
         assert canonical(expected) == value["resume_identity"]
+        # Do not keep a complete updated mmap resident during source construction.
+        saved = checkpoint(endpoint, value)
         training.validate_resume(saved, expected, 100, state["optimizer"].state_dict()["param_groups"])
         state["model"].load_state_dict(saved["vision"], strict=True)
         state["head"].load_state_dict(saved["head"], strict=True)
         training.verify(state, base)
         assert old.fingerprint(frozen_saved(saved, value["boundary"])) == base["frozen_sha256"]
+        models, heads, processor = model_pair(control, saved, state)
         del state; gc.collect()
-    models, heads, processor = model_pair(control, saved)
+    else:
+        saved = checkpoint(endpoint, value)
+        models, heads, processor = model_pair(control, saved)
     assert all(canonical(late.source_runtime(old.coverage.trained.base.runtime_identity(m))) == value["resume_identity"]["runtime"]
                for m in models)
     assert all(canonical(old.coverage.trained.native.environment(m, processor)) == source["environment"] for m in models)
