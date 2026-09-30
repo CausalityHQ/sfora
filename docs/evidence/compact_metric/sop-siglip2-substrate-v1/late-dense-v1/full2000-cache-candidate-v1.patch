@@ -1,0 +1,232 @@
+diff --git a/scripts/qualify_full_valid_anchor_serving.py b/scripts/qualify_full_valid_anchor_serving.py
+index ced44cf0..dc07de90 100644
+--- a/scripts/qualify_full_valid_anchor_serving.py
++++ b/scripts/qualify_full_valid_anchor_serving.py
+@@ -17,6 +17,7 @@ import sys
+ import time
+ import types
+ from pathlib import Path
++from contextlib import ExitStack
+ from unittest.mock import patch
+ 
+ SCHEMA = 'full-valid-anchor-serving-authority-v1'
+@@ -49,7 +50,33 @@ CUDA_CAP = 10_000_000_000
+ 
+ def sha(path):
+     with Path(path).open('rb') as stream:
+-        return hashlib.file_digest(stream, 'sha256').hexdigest()
++        if os.fstat(stream.fileno()).st_size < 64 * 1024**2:
++            return hashlib.file_digest(stream, 'sha256').hexdigest()
++        digest, offset, buffer = hashlib.sha256(), 0, bytearray(1024**2)
++        while count := stream.readinto(buffer):
++            digest.update(memoryview(buffer)[:count])
++            # Archive verification must not retain gigabytes of inactive cache.
++            os.posix_fadvise(stream.fileno(), offset, count, os.POSIX_FADV_DONTNEED)
++            offset += count
++        return digest.hexdigest()
++
++
++def bounded_historical_hashes(root, code, original):
++    """Use identical SHA256 bytes with bounded cache; restore every old alias."""
++    stack = ExitStack()
++    try:
++        for module in list(sys.modules.values()):
++            file = getattr(module, '__file__', None)
++            if not file or getattr(module, 'sha', None) is not original:
++                continue
++            path = Path(file).resolve()
++            if path.is_relative_to(root) and str(path.relative_to(root)) in code:
++                assert sha(path) == code[str(path.relative_to(root))], 'hash alias source changed'
++                stack.enter_context(patch.object(module, 'sha', sha))
++    except BaseException:
++        stack.close()
++        raise
++    return stack
+ 
+ 
+ def object_sha(value):
+@@ -246,9 +273,11 @@ def runtime_startup(root, data):
+         return executing(r, code)
+ 
+     # Historical manifests keep their exact cardinalities; loaded modules bind105.
+-    with patch.object(full.qualified.selected, 'helpers', lambda r, _: helpers(r, code)), patch.object(full.pair, 'executing_authority', extended):
++    original_hash = full.pair.sha
++    with bounded_historical_hashes(root, code, original_hash), patch.object(full.qualified.selected, 'helpers', lambda r, _: helpers(r, code)), patch.object(full.pair, 'executing_authority', extended):
+         control, source, prior, proof, run, terminal, actual_protocol, _, actual_old, _ = full.authority(
+             root, ORIGINAL_EXECUTION, PINNED['training_receipt'])
++    assert full.pair.sha is original_hash
+     assert actual_old == old and actual_protocol == protocol
+     assert run / 'resume.pt' == paths['source_resume'] and sha(run / 'receipt.json') == PINNED['training_receipt']
+     assert full.driver.coverage.teacher.TEACHER == paths['source_checkpoint']
+@@ -372,7 +401,7 @@ def invocation():
+             'driver_sha256': sha(__file__), 'pid': os.getpid()}
+ 
+ 
+-def native_reload(full, control, independent=False):
++def native_reload(full, control, independent=False, code=None):
+     """Construct before mmap; copy strict400/head, then release the entire mapping."""
+     import torch
+     from transformers import AutoConfig, AutoImageProcessor, SiglipVisionModel
+@@ -380,7 +409,12 @@ def native_reload(full, control, independent=False):
+         model = SiglipVisionModel(AutoConfig.from_pretrained(control.large_snapshot, local_files_only=True).vision_config).float()
+         processor = AutoImageProcessor.from_pretrained(control.large_snapshot / 'preprocessor_config.json', local_files_only=True, backend='torchvision')
+     else:
+-        model, processor = full.pair.smoke.load_arm(control, 'large')
++        assert code is not None
++        root = Path(__file__).resolve().parent
++        original_hash = full.pair.smoke.sha
++        with bounded_historical_hashes(root, code, original_hash):
++            model, processor = full.pair.smoke.load_arm(control, 'large')
++        assert full.pair.smoke.sha is original_hash
+     head = torch.nn.Linear(1024, 128).float()
+     disk = torch.load(CHECKPOINT, map_location='cpu', weights_only=True, mmap=True)
+     assert set(disk) == {'vision', 'head'} and len(disk['vision']) == 400
+@@ -524,13 +558,13 @@ def sentinel_groups():
+             for role, count in COUNTS.items() for start in (0, count // 32 * 32)]
+ 
+ 
+-def cpu_phase(full, control, proof, authority):
++def cpu_phase(full, control, proof, authority, code):
+     import torch
+     from sfora.joint_relational_compaction import pack_int8_unit_embeddings
+     before = rng_fingerprint(full, False)
+     with torch.random.fork_rng(devices=[]):
+-        model, head, processor = native_reload(full, control)
+-        other, other_head, other_processor = native_reload(full, control, independent=True)
++        model, head, processor = native_reload(full, control, code=code)
++        other, other_head, other_processor = native_reload(full, control, independent=True, code=code)
+     a = model_facts(full, model, head, processor, F32, proof['frozen_prefix_sha256'])
+     b = model_facts(full, other, other_head, other_processor, F32, proof['frozen_prefix_sha256'])
+     full.qualified.same_runtime(model, other)
+@@ -555,16 +589,16 @@ def cpu_phase(full, control, proof, authority):
+             'rng_sha256': before}
+ 
+ 
+-def gpu_phase(full, control, authority, protocol, state):
++def gpu_phase(full, control, authority, protocol, state, code):
+     import torch
+     from sfora.siglip2_compact_serving import Siglip2CompactIndex
+     from sfora.cutile_int8 import CutilePackedInt8Gallery
+     before = rng_fingerprint(full, True)
+     # Qualify the independent model first; retain only small CPU packed references.
+-    # Keeping both full models live exceeded the frozen 8GiB cgroup peak gate.
++    # Separate lifetimes avoid adding model overlap to authority cache pressure.
+     torch.cuda.reset_peak_memory_stats()
+     with torch.random.fork_rng(devices=[torch.cuda.current_device()]):
+-        model, head, processor = native_reload(full, control)
++        model, head, processor = native_reload(full, control, code=code)
+         model.half().cuda(); head.cuda()
+     b = model_facts(full, model, head, processor, F16)
+     wires = load_wires(authority)
+@@ -646,7 +680,7 @@ def main():
+         assert not any(pins)
+     full, control, _, prior, proof = runtime_startup(root, data)
+     compiler_version = configure(full, authority, args.phase == 'gpu', prior)
+-    facts = cpu_phase(full, control, proof, authority) if args.phase == 'cpu' else gpu_phase(full, control, authority, data[-1], state)
++    facts = cpu_phase(full, control, proof, authority, code) if args.phase == 'cpu' else gpu_phase(full, control, authority, data[-1], state, code)
+     assert full.qualified.teacher.qualified.numerical_flags() == prior['numerical_flags']
+     assert startup(root, path, args.authority_sha256) == data
+     loaded_code_guard(root, code)
+diff --git a/scripts/test_full_valid_anchor_serving.py b/scripts/test_full_valid_anchor_serving.py
+index 49504b7f..efffe76e 100644
+--- a/scripts/test_full_valid_anchor_serving.py
++++ b/scripts/test_full_valid_anchor_serving.py
+@@ -7,10 +7,12 @@ import argparse
+ import ast
+ import copy
+ import fcntl
++import hashlib
+ import json
+ import os
+ import subprocess
+ import sys
++import types
+ from pathlib import Path
+ from tempfile import TemporaryDirectory
+ from unittest.mock import patch
+@@ -250,6 +252,77 @@ def source_contracts(root):
+     assert 'torch' not in sys.modules and 'numpy' not in sys.modules and 'PIL' not in sys.modules
+ 
+ 
++def bounded_hash_checks():
++    with TemporaryDirectory() as directory:
++        root = Path(directory)
++        path = root / 'large.bin'
++        with path.open('wb') as stream:
++            stream.truncate(64 * 1024**2 + 17)
++            stream.seek(1024**2 - 3); stream.write(b'boundary-data')
++            stream.seek(-17, 2); stream.write(b'tail-byte-witness')
++        with path.open('rb') as stream:
++            expected = hashlib.file_digest(stream, 'sha256').hexdigest()
++        actual_advice = os.posix_fadvise
++        calls = []
++        def advise(fd, offset, length, advice):
++            calls.append((offset, length, advice))
++            return actual_advice(fd, offset, length, advice)
++        with patch.object(os, 'posix_fadvise', advise):
++            assert serving.sha(path) == expected
++        assert calls and all(c[2] == os.POSIX_FADV_DONTNEED for c in calls), 'large authority hash retained its file cache'
++        assert calls[0][0] == 0 and calls[-1][0] + calls[-1][1] == path.stat().st_size
++        assert all(0 < length <= 1024**2 for _, length, _ in calls)
++        assert all(a[0] + a[1] == b[0] for a, b in zip(calls, calls[1:]))
++        with path.open('r+b') as stream:
++            stream.seek(0); stream.write(b'changed')
++        assert serving.sha(path) != expected
++        module_file = root / 'alias.py'; module_file.write_text('# authenticated hash alias\n')
++        def original(path):
++            with Path(path).open('rb') as stream:
++                return hashlib.file_digest(stream, 'sha256').hexdigest()
++        owned = types.ModuleType('hash_owned_fixture'); owned.__file__ = str(module_file); owned.sha = original
++        foreign = types.ModuleType('hash_foreign_fixture'); foreign.__file__ = str(root.parent / 'foreign.py'); foreign.sha = original
++        code = {'alias.py': serving.sha(module_file)}
++        with patch.dict(sys.modules, hash_owned_fixture=owned, hash_foreign_fixture=foreign):
++            try:
++                with serving.bounded_historical_hashes(root, code, original):
++                    assert owned.sha is serving.sha and foreign.sha is original
++                    assert owned.sha(path) == original(path)
++                    raise ValueError('restoration witness')
++            except ValueError:
++                pass
++            assert owned.sha is original and foreign.sha is original
++            owned._sha256 = original
++            with serving.bounded_historical_hashes(root, code, original, attributes=('_sha256',)):
++                assert owned._sha256 is serving.sha and owned.sha is original
++            assert owned._sha256 is original
++            module_file.write_text('# changed source\n')
++            rejects(lambda: serving.bounded_historical_hashes(root, code, original).__enter__())
++            module_file.write_text('# authenticated hash alias\n')
++            later_file = root / 'later.py'; later_file.write_text('# second authenticated alias\n')
++            later = types.ModuleType('hash_later_fixture'); later.__file__ = str(later_file); later.sha = original
++            both = {**code, 'later.py': serving.sha(later_file)}
++            later_file.write_text('# changed second source\n')
++            with patch.dict(sys.modules, hash_later_fixture=later):
++                rejects(lambda: serving.bounded_historical_hashes(root, both, original).__enter__())
++                assert owned.sha is original and later.sha is original and foreign.sha is original
++        snapshot = root / 'snapshot'; snapshot.mkdir()
++        (snapshot / 'model.safetensors').write_bytes(b'live source cache witness')
++        control = types.SimpleNamespace(large_snapshot=snapshot)
++        calls.clear()
++        with patch.object(serving, 'CHECKPOINT', path), patch.object(os, 'posix_fadvise', advise):
++            serving.release_model_cache(control)
++        assert len(calls) == 2 and all((offset, length, mode) == (0, 0, os.POSIX_FADV_DONTNEED) for offset, length, mode in calls)
++        assert (snapshot / 'model.safetensors').read_bytes() == b'live source cache witness'
++        with patch.object(os, 'posix_fadvise', side_effect=OSError('advice failed')):
++            try:
++                serving.sha(path)
++            except OSError:
++                pass
++            else:
++                raise AssertionError('cache policy failure silently accepted')
++
++
+ def main():
+     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
+     parser.add_argument('--evidence-root', type=Path, default=DEFAULT_EVIDENCE)
+@@ -261,6 +334,7 @@ def main():
+     source_checks(root, old)
+     receipt_checks(args.evidence_root, old)
+     proof_checks()
++    bounded_hash_checks()
+     source_contracts(root)
+     print('PASS stdlib full2000 real receipts,102+3 source, mode/head/prefix/role/order/native/proof/log/output negatives; help/optimized rejection; no Torch')
+ 
