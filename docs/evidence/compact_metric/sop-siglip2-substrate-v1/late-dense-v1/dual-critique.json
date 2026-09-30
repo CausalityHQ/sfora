@@ -1,0 +1,712 @@
+{
+  "id": "44ae81feaf094e26",
+  "status": "completed",
+  "started_at": 1790733375,
+  "agent": "sfora/emafactorial",
+  "force_reason": "New decision: measured TRAIN1000 native CPU PASS and completed new optimizer-reset/full-state resume driver require one admission review before bounded17 mechanics; old F5-start and rejected288 reviews do not cover this code.",
+  "rolling_6h_count": 3,
+  "prompt_preview": "Read-only ADMISSION REVIEW, no edits/Torch/SSH/GPU/quality/jobs/consultations/operator contact. Repo /home/rb/worktrees/sfora-positive-causality master757a25fc. SAME production SOP+InShop quality AND matched publicspeed goal active. Read docs/inshop_late_dense_adaptation_gate_2026-09-30.md,docs/inshop_late_dense_native_cpu_admission_2026-09-30.md; scripts/late_dense_boundary.py,qualify_late_dense_adaptation_cpu.py,train_late_dense_adaptation.py,test_late_dense_adaptation.py and actualrawlate-dense-v1 CPUproof/log/manifest. Concrete newstage: load corrected native128 TRAIN1000 actualsavedmodel/head/classifier/bank/allbuffers, originaltarget/classorder separatelyauthenticatedhalfTRAINproof. ActualresumeSHA cc58377...4566 rehashed; CPU originalsession14674/unitsfora-late-dense-cpu-v3 exited0/34.642s5.900GBRSS/noSwap, source112manifest e5aac1...434, proofcb9d97...e0e. Control/candidateinitialstateSHA77c261...9867 identical; native400whole/head/packedstrictreload/frozenbuffer/optimizernegativespass. SourceCUDA0 recordedruntime separatelyfromactualCPU readonlyexpectedrecord, no config/model/proofspoofing. Managedchild f17cb957 integrated757a25fc onlynewdriver+check, eight parentstdlibchecksPASS. Qualified112 closure EXACTunchangedprefix + ONLYdriver/test =>114; distinctCPU/GPUexecutionSHAs intentional, CPUproof/logSHA separatelybound. BOTHarmsexplicitfreshAdamW/scaler128/counter0, NOT exactoldoptimizercontinuation. Candidatefreeze10/control12 boundarybeforefinaloptimizer240/208, correctedteacher-retainedvalidSmoothAP8+ArcFace,256pixels/native128/F32paramsFP16auto/B64four16/LRs1e-5vision1e-4headproxy/decay.05/globalclip1. PairedCONTINUATION inputseeds179032+179041 sharetrainedinitializer, notindependentpretrainingseeds. Exactsame100schedule/RGB/pixelswithinpair; optimizer1..100 separateaugmentglobal1001..1100. Decide ADMIT ONE discardedcandidate17 mechanics120s8GiB/noSwap/<10GBcuda/bothlocks or REJECTprecisely. It must prove uninterrupted17 vs serialized8+9 fullvision/head/classifier/bank/AdamW/scaler/counters/RNG exact via independentlyreconstructedconstructor; strict400whole/head/packedreload, frozenparams/nonpersistentbuffers preserved, eachout_proj/MLPfc1/fc2gradpositive+32weightchanges. No mechanicsstate reused. OnlyPASS admits4fresh100units300s ordercontrol032,candidate032,candidate041,control041. Contemporarycostwall+median<=1.50 eachpair, no historicaldenominator. FrozenTRAINfloors SAMEdenseprocedure:eachseedR1>0/AP>=0; equal-seedmeanboth>=.20pp/product95lowerboth>0;5000draw179019 queryintervalsalso. Fit13283images/2004products; held12599/1993 q6354g6245 disjointTRAINidentities, previouslyobserved. FourfreshterminalnativeFP16B32/packed128 quality endpoints (notarchivedcontrol); actualupdatedsource/publicserving/exportqualificationstillrequired. TRAINsurvivor onlymotivates separatelyfrozenfullTRAIN application andfreshconfirmation, notofficialscoreselection/productionpromotion. EarlierF5-startdense100two-seedKILL intact; retainedsubsetofficialcontrol94.063863/74.977123->candidate94.295963/75.441599 still2.404pp belowdated96.7, notSOTA. Rejected288 isclosed. Existingnegativepriorweakenexpectations, notsame latertrainedbank/modelcondition orarchitecture-wideKILL. Audit concretecode/source/resource/parity/counter/statisticalgaps; no alternativearchitecture/newresearch/zero-trainingprobe/caprescue/thresholdsweep. <=900words, separatelylabelledfindings andcheapestsourceorSAMEunitfalsifier. ParentreconcilesbeforeGPU. Previouslongforce_reason requestrejectedprelaunch;consult_listverifiednonewreviewjobs. This is ONE newadmissiongroup.",
+  "prompt_sha256": "1e5c5b858b2b42194bd17ff59e2fa275e9b5a5cd926ccc34f577d8a9f488c236",
+  "prompt_bytes": 3592,
+  "fingerprint": "9d1e1e433170e80c8886e678f35a86750826dcaf3d3399552678f0db6e1aa252",
+  "evidence": {
+    "git_commit": "757a25fc6205420e79c56369419cfae06d2d943a",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+    "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "reviewers": [
+    {
+      "role": "research_critic",
+      "id": "cad616246c9a4c0e",
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "fallbacks": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6.1-sol"
+        }
+      ],
+      "agent": "sfora/emafactorial",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1790733375,
+      "timeout_seconds": 1200,
+      "deadline_at": 1790734575,
+      "budget_usd": 4,
+      "prompt_preview": "Act as the independent research and first-principles critic. Challenge assumptions, compare alternatives and prior art, and identify missing evidence. Do not edit files.\n\nMaterial to critique:\nRead-only ADMISSION REVIEW, no edits/Torch/SSH/GPU/quality/jobs/consultations/operator contact. Repo /home/rb/worktrees/sfora-positive-causality master757a25fc. SAME production SOP+InShop quality AND matched publicspeed goal active. Read docs/inshop_late_dense_adaptation_gate_2026-09-30.md,docs/inshop_late_dense_native_cpu_admission_2026-09-30.md; scripts/late_dense_boundary.py,qualify_late_dense_adaptation_cpu.py,train_late_dense_adaptation.py,test_late_dense_adaptation.py and actualrawlate-dense-v1 CPUproof/log/manifest. Concrete newstage: load corrected native128 TRAIN1000 actualsavedmodel/head/classifier/bank/allbuffers, originaltarget/classorder separatelyauthenticatedhalfTRAINproof. ActualresumeSHA cc58377...4566 rehashed; CPU originalsession14674/unitsfora-late-dense-cpu-v3 exited0/34.642s5.900GBRSS/noSwap, source112manifest e5aac1...434, proofcb9d97...e0e. Control/candidateinitialstateSHA77c261...9867 identical; native400whole/head/packedstrictreload/frozenbuffer/optimizernegativespass. SourceCUDA0 recordedruntime separatelyfromactualCPU readonlyexpectedrecord, no config/model/proofspoofing. Managedchild f17cb957 integrated757a25fc onlynewdriver+check, eight parentstdlibchecksPASS. Qualified112 closure EXACTunchangedprefix + ONLYdriver/test =>114; distinctCPU/GPUexecutionSHAs intentional, CPUproof/logSHA separatelybound. BOTHarmsexplicitfreshAdamW/scaler128/counter0, NOT exactoldoptimizercontinuation. Candidatefreeze10/control12 boundarybeforefinaloptimizer240/208, correctedteacher-retainedvalidSmoothAP8+ArcFace,256pixels/native128/F32paramsFP16auto/B64four16/LRs1e-5vision1e-4headproxy/decay.05/globalclip1. PairedCONTINUATION inputseeds179032+179041 sharetrainedinitializer, notindependentpretrainingseeds. Exactsame100schedule/RGB/pixelswithinpair; optimizer1..100 separateaugmentglobal1001..1100. Decide ADMIT ONE discardedcandidate17 mechanics120s8GiB/noSwap/<10GBcuda/bothlocks or REJECTprecisely. It must prove uninterrupted17 vs serialized8+9 fullvision/head/classifier/bank/AdamW/scaler/counters/RNG exact via independentlyreconstructedconstructor; strict400whole/head/packedreload, frozenparams/nonpersistentbuffers preserved, eachout_proj/MLPfc1/fc2gradpositive+32weightchanges. No mechanicsstate reused. OnlyPASS admits4fresh100units300s ordercontrol032,candidate032,candidate041,control041. Contemporarycostwall+median<=1.50 eachpair, no historicaldenominator. FrozenTRAINfloors SAMEdenseprocedure:eachseedR1>0/AP>=0; equal-seedmeanboth>=.20pp/product95lowerboth>0;5000draw179019 queryintervalsalso. Fit13283images/2004products; held12599/1993 q6354g6245 disjointTRAINidentities, previouslyobserved. FourfreshterminalnativeFP16B32/packed128 quality endpoints (notarchivedcontrol); actualupdatedsource/publicserving/exportqualificationstillrequired. TRAINsurvivor onlymotivates separatelyfrozenfullTRAIN application andfreshconfirmation, notofficialscoreselection/productionpromotion. EarlierF5-startdense100two-seedKILL intact; retainedsubsetofficialcontrol94.063863/74.977123->candidate94.295963/75.441599 still2.404pp belowdated96.7, notSOTA. Rejected288 isclosed. Existingnegativepriorweakenexpectations, notsame latertrainedbank/modelcondition orarchitecture-wideKILL. Audit concretecode/source/resource/parity/counter/statisticalgaps; no alternativearchitecture/newresearch/zero-trainingprobe/caprescue/thresholdsweep. <=900words, separatelylabelledfindings andcheapestsourceorSAMEunitfalsifier. ParentreconcilesbeforeGPU. Previouslongforce_reason requestrejectedprelaunch;consult_listverifiednonewreviewjobs. This is ONE newadmissiongroup.",
+      "prompt_sha256": "ebf7fcc16a0889b83b989849d5ae4d497955da3247fb10ea48c4f3585b25ac17",
+      "prompt_bytes": 3962,
+      "fingerprint": "cee7f91ae3d9348eb2d500a3c079d1bb3dd57aa3a8e03a47d7c562a9bdac37f9",
+      "evidence": {
+        "git_commit": "757a25fc6205420e79c56369419cfae06d2d943a",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+        "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+        "worktree_evidence_truncated": false,
+        "active_goal": {
+          "id": "goal-1790540789-1790540789754989478-2322852",
+          "agent": "sfora/emafactorial",
+          "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+          "status": "queued",
+          "revision": 1,
+          "actor": "operator",
+          "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+          "created_at": 1790540789,
+          "updated_at": 1790540789
+        }
+      },
+      "previous_fingerprint": "926f37a62061d9cc1e9cf9871f1d3606c78c1aa51426b68819c3220320f46d8f",
+      "reused": false,
+      "critique_id": "44ae81feaf094e26",
+      "critique_role": "research_critic",
+      "systemd_unit": "devbox-consult-cad616246c9a4c0e.service",
+      "pid": 2981805,
+      "pgid": 2981805,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6.1-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5",
+          "budget_usd": 4,
+          "timeout_seconds": 1200,
+          "started_at": 1790733375
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1790733993,
+      "event_cursor": 58,
+      "events": [
+        {
+          "seq": 35,
+          "at": 1790733810,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 36,
+          "at": 1790733931,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 37,
+          "at": 1790733931,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 38,
+          "at": 1790733936,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 39,
+          "at": 1790733936,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 40,
+          "at": 1790733944,
+          "provider": "claude",
+          "kind": "tool",
+          "label": "Bash started"
+        },
+        {
+          "seq": 41,
+          "at": 1790733975,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 42,
+          "at": 1790733976,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 43,
+          "at": 1790733977,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 44,
+          "at": 1790733978,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 45,
+          "at": 1790733979,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 46,
+          "at": 1790733980,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 47,
+          "at": 1790733981,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 48,
+          "at": 1790733982,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 49,
+          "at": 1790733983,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 50,
+          "at": 1790733984,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 51,
+          "at": 1790733985,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 52,
+          "at": 1790733986,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 53,
+          "at": 1790733987,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 54,
+          "at": 1790733988,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 55,
+          "at": 1790733989,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 56,
+          "at": 1790733990,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 57,
+          "at": 1790733991,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 58,
+          "at": 1790733992,
+          "provider": "claude",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": true,
+      "provider_events": {
+        "claude": [
+          {
+            "seq": 51,
+            "at": 1790733985,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 52,
+            "at": 1790733986,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 53,
+            "at": 1790733987,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 54,
+            "at": 1790733988,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 55,
+            "at": 1790733989,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 56,
+            "at": 1790733990,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 57,
+            "at": 1790733991,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 58,
+            "at": 1790733992,
+            "provider": "claude",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "**Verdict: ADMIT the one discarded candidate17 mechanics unit, but only after three zero-GPU checks (W, M, T below).** If W projects more than about 110 s, reject the unit as it stands. I found no code defect that breaks the parity or counter proof. The real risks are resources: the wall-clock and memory caps are tight, and a miss closes the lane with no rescue.\n\n**Binding note.** You changed the driver and test on disk during the review: they now assert `ru_maxrss ≤ 8 GiB` and swap = 0, and none of it is committed. That is good, but 757a25fc as committed doesn't have it. Commit it and rebuild the GPU closure from the new bytes. `validate_cpu` still accepts the CPU proof, because the 112-file prefix is unchanged and exactly the two new files are added.\n\n**What I checked and found correct**\n- **17 vs 8+9 parity:** the 17-step run is compared with the saved-at-8, rebuilt-from-scratch, resumed-9 run over the full payload: identity/counter, 400 vision tensors, buffers, head, classifier, bank, AdamW, scaler, CPU/CUDA RNG. Rows 9–17 must match except `seconds`.\n- **Reload:** strict 400/head/packed reload goes through a model built independently of the training one.\n- **Frozen state:** the frozen prefix and non-persistent buffers are checked before and after.\n- **Optimizer:** membership is 240/208 with the order and uniqueness checked.\n- **Counters:** optimizer steps 1..100, augmentation steps 1001..1100, and the saved Adam `step` all agree.\n- **Augmentation keys:** they are SEED·100000+1001..1100 and don't collide with the source's keys 1..1000.\n- **Initial state:** it doesn't depend on the seed and is bound to the CPU-proof hash 77c261.\n- **Objective patch:** `old.coverage.terms` is the same module that `pe_large_optimization.step` calls.\n- **Bank:** it is refreshed on every step, so the source bank really does carry 1000 updates.\n- **Environment check:** it doesn't depend on which parameters are trainable.\n\n**F1 — Wall-clock time (biggest risk).**\n- The closest earlier unit, retained256 mechanics, took 77.0 s total: 32.3 s of steps and about 45 s of overhead.\n- The dense step median is 1.267 s, so 26 steps take about 33 s.\n- The new unit adds work. The 2.6 GB source file is SHA-hashed four times (`qualify_late_dense_adaptation_cpu.py:46`, `late_dense_boundary.py:42` once per setup ×2, `train_late_dense_adaptation.py:390`). Each setup also fingerprints at least 1.2 GB twice. Each of the two `save()` calls fsyncs and fingerprints the ~2.8 GB payload twice (before writing and after reading back), and there are extra `verify()` digests.\n- The CPU v3 run (startup plus three setups, no training) already took 34.6 s.\n- My projection is about 100–115 s. Both the in-process check and systemd `RuntimeMaxSec` stop at 120 s, and there is no rescue.\n- **Check W:** run `time sha256sum resume.pt` on the DGX. If hashing runs at about 1.5 s/GB or slower, reject the unit as it stands. Remove the repeat hashes in a re-closed driver first, then have it re-reviewed.\n\n**F2 — Memory: the cgroup cap is not being enforced.**\n- Systemd reports a memory peak of 256K–764K, while the process's own maxRSS is 5.8–7.5 GB. So `MemoryMax=8G` and `MemorySwapMax=0` are not accounting for this process.\n- That makes the `Memory swap peak: 0B` log check (`:114`) meaningless, and the `VmSwap` read only covers the end of the run.\n- The new `ru_maxrss` assert is now the only real memory gate, and the headroom is thin:\n  - The closest earlier units peaked at 7,000,920 KiB (native-valid-anchor mechanics) and 7,463,068 KiB (lower-adapter pilots).\n  - GPU allocations probably count toward RSS on GB10 unified memory: the dense mechanics unit showed 6.48 GB RSS.\n  - This unit also keeps optimizer state for 32 more tensors. It reads back and fingerprints the whole 2.8 GB payload inside `save()` while the GPU training state is still loaded.\n- My projection is about 7.3–8.2 GB against the 8,388,608 KiB limit.\n- **Check M:** run `cat …/user@UID.service/cgroup.controllers` to see whether the memory controller is delegated, and `swapon --show`. If there is no swap device, \"no swap\" holds by construction.\n\n**F3 — Temporary directory changed.**\n- At `:338` the archived `dir=root` was dropped, so the two ~2.8 GB throwaway checkpoints now go to `$TMPDIR` or `/tmp`.\n- If that is tmpfs (the default on newer Ubuntu, or with `PrivateTmp`), the files are held in memory that can't be evicted, so disk-full errors or extra RSS become possible.\n- **Check T:** run `findmnt -T /tmp; df -h /tmp` in the unit's environment.\n\n**F4 — The control path has never run on GPU.**\n- The mechanics unit only exercises boundary 10. The boundary-12 late path (no `dense.configure`, no pre-clip audit, `not any(changed)`) first runs as production control032, which is first in the order.\n- The integrity risk is low: the training step is the archived one, and the CPU proof built both arms. But a failure there wastes the ordered set.\n- The pre-clip audit runs only for the candidate, adding 32 GPU→CPU syncs per step. That slightly biases the cost ratio against the candidate, which doesn't matter against the 1.50 limit.\n\n**F5 — \"32 weights changed\" is weak evidence of learning.**\n- Weight decay (lr·0.05) changes every nonzero fp32 tensor even when its gradient is zero.\n- The real evidence is the per-step gradient norms at `:310`: out_proj, fc1 and fc2 in blocks 10 and 11, plus the per-block sums.\n- The check meets the spec, but don't cite it as proof the new blocks learned.\n\n**F6 — The two seeds are not interchangeable, plus a carry-forward trap.**\n- `pe_large_optimization.py:50` asserts that `coverage.schedule(target)` equals the source's first 100 batches. So seed 179032 replays exactly the images the source trained on in steps 1–100, with new augmentation. Seed 179041 draws a new ordering.\n- Pairing within each seed is intact, but seed-to-seed variation mixes \"replay vs new rows\" with trajectory noise.\n- For the later full-data application: the full2000 run already used augmentation keys 1..2000 for seed 179032. The hard-coded `augmentation_offset` of 1000 would reuse keys 1001–1100 there, so it has to be 2000.\n\n**F7 — The quality evaluation and decision code isn't in the closure.**\n- The 114-file closure has no terminal FP16 B32 packed encoder, scorer, bootstrap, or cost and decision rule.\n- The archived `wires()` and `decision()` code is tied to the archived checkpoint schema, so it can't be reused unchanged.\n- That code must be committed and reviewed before the first held encode.\n- The gate wording is also ambiguous. \"Both product95 lower > 0\" could mean the per-product delta averaged over the two seeds, or each seed separately. It also doesn't say whether R1 and AP must use the same 5000 bootstrap draws. Pin both before any quality read.\n- This doesn't block the mechanics unit.\n\n**Scope.** A pass only lets you run the four fresh 100-update units in the fixed order (control032, candidate032, candidate041, control041). It says nothing about quality. The earlier dense100 two-seed KILL and the rejected 288 lane still point toward a null result.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "claude": "**Verdict: ADMIT the one discarded candidate17 mechanics unit, but only after three zero-GPU checks (W, M, T below).** If W projects more than about 110 s, reject the unit as it stands. I found no code defect that breaks the parity or counter proof. The real risks are resources: the wall-clock and memory caps are tight, and a miss closes the lane with no rescue.\n\n**Binding note.** You changed the driver and test on disk during the review: they now assert `ru_maxrss ≤ 8 GiB` and swap = 0, and none of it is committed. That is good, but 757a25fc as committed doesn't have it. Commit it and rebuild the GPU closure from the new bytes. `validate_cpu` still accepts the CPU proof, because the 112-file prefix is unchanged and exactly the two new files are added.\n\n**What I checked and found correct**\n- **17 vs 8+9 parity:** the 17-step run is compared with the saved-at-8, rebuilt-from-scratch, resumed-9 run over the full payload: identity/counter, 400 vision tensors, buffers, head, classifier, bank, AdamW, scaler, CPU/CUDA RNG. Rows 9–17 must match except `seconds`.\n- **Reload:** strict 400/head/packed reload goes through a model built independently of the training one.\n- **Frozen state:** the frozen prefix and non-persistent buffers are checked before and after.\n- **Optimizer:** membership is 240/208 with the order and uniqueness checked.\n- **Counters:** optimizer steps 1..100, augmentation steps 1001..1100, and the saved Adam `step` all agree.\n- **Augmentation keys:** they are SEED·100000+1001..1100 and don't collide with the source's keys 1..1000.\n- **Initial state:** it doesn't depend on the seed and is bound to the CPU-proof hash 77c261.\n- **Objective patch:** `old.coverage.terms` is the same module that `pe_large_optimization.step` calls.\n- **Bank:** it is refreshed on every step, so the source bank really does carry 1000 updates.\n- **Environment check:** it doesn't depend on which parameters are trainable.\n\n**F1 — Wall-clock time (biggest risk).**\n- The closest earlier unit, retained256 mechanics, took 77.0 s total: 32.3 s of steps and about 45 s of overhead.\n- The dense step median is 1.267 s, so 26 steps take about 33 s.\n- The new unit adds work. The 2.6 GB source file is SHA-hashed four times (`qualify_late_dense_adaptation_cpu.py:46`, `late_dense_boundary.py:42` once per setup ×2, `train_late_dense_adaptation.py:390`). Each setup also fingerprints at least 1.2 GB twice. Each of the two `save()` calls fsyncs and fingerprints the ~2.8 GB payload twice (before writing and after reading back), and there are extra `verify()` digests.\n- The CPU v3 run (startup plus three setups, no training) already took 34.6 s.\n- My projection is about 100–115 s. Both the in-process check and systemd `RuntimeMaxSec` stop at 120 s, and there is no rescue.\n- **Check W:** run `time sha256sum resume.pt` on the DGX. If hashing runs at about 1.5 s/GB or slower, reject the unit as it stands. Remove the repeat hashes in a re-closed driver first, then have it re-reviewed.\n\n**F2 — Memory: the cgroup cap is not being enforced.**\n- Systemd reports a memory peak of 256K–764K, while the process's own maxRSS is 5.8–7.5 GB. So `MemoryMax=8G` and `MemorySwapMax=0` are not accounting for this process.\n- That makes the `Memory swap peak: 0B` log check (`:114`) meaningless, and the `VmSwap` read only covers the end of the run.\n- The new `ru_maxrss` assert is now the only real memory gate, and the headroom is thin:\n  - The closest earlier units peaked at 7,000,920 KiB (native-valid-anchor mechanics) and 7,463,068 KiB (lower-adapter pilots).\n  - GPU allocations probably count toward RSS on GB10 unified memory: the dense mechanics unit showed 6.48 GB RSS.\n  - This unit also keeps optimizer state for 32 more tensors. It reads back and fingerprints the whole 2.8 GB payload inside `save()` while the GPU training state is still loaded.\n- My projection is about 7.3–8.2 GB against the 8,388,608 KiB limit.\n- **Check M:** run `cat …/user@UID.service/cgroup.controllers` to see whether the memory controller is delegated, and `swapon --show`. If there is no swap device, \"no swap\" holds by construction.\n\n**F3 — Temporary directory changed.**\n- At `:338` the archived `dir=root` was dropped, so the two ~2.8 GB throwaway checkpoints now go to `$TMPDIR` or `/tmp`.\n- If that is tmpfs (the default on newer Ubuntu, or with `PrivateTmp`), the files are held in memory that can't be evicted, so disk-full errors or extra RSS become possible.\n- **Check T:** run `findmnt -T /tmp; df -h /tmp` in the unit's environment.\n\n**F4 — The control path has never run on GPU.**\n- The mechanics unit only exercises boundary 10. The boundary-12 late path (no `dense.configure`, no pre-clip audit, `not any(changed)`) first runs as production control032, which is first in the order.\n- The integrity risk is low: the training step is the archived one, and the CPU proof built both arms. But a failure there wastes the ordered set.\n- The pre-clip audit runs only for the candidate, adding 32 GPU→CPU syncs per step. That slightly biases the cost ratio against the candidate, which doesn't matter against the 1.50 limit.\n\n**F5 — \"32 weights changed\" is weak evidence of learning.**\n- Weight decay (lr·0.05) changes every nonzero fp32 tensor even when its gradient is zero.\n- The real evidence is the per-step gradient norms at `:310`: out_proj, fc1 and fc2 in blocks 10 and 11, plus the per-block sums.\n- The check meets the spec, but don't cite it as proof the new blocks learned.\n\n**F6 — The two seeds are not interchangeable, plus a carry-forward trap.**\n- `pe_large_optimization.py:50` asserts that `coverage.schedule(target)` equals the source's first 100 batches. So seed 179032 replays exactly the images the source trained on in steps 1–100, with new augmentation. Seed 179041 draws a new ordering.\n- Pairing within each seed is intact, but seed-to-seed variation mixes \"replay vs new rows\" with trajectory noise.\n- For the later full-data application: the full2000 run already used augmentation keys 1..2000 for seed 179032. The hard-coded `augmentation_offset` of 1000 would reuse keys 1001–1100 there, so it has to be 2000.\n\n**F7 — The quality evaluation and decision code isn't in the closure.**\n- The 114-file closure has no terminal FP16 B32 packed encoder, scorer, bootstrap, or cost and decision rule.\n- The archived `wires()` and `decision()` code is tied to the archived checkpoint schema, so it can't be reused unchanged.\n- That code must be committed and reviewed before the first held encode.\n- The gate wording is also ambiguous. \"Both product95 lower > 0\" could mean the per-product delta averaged over the two seeds, or each seed separately. It also doesn't say whether R1 and AP must use the same 5000 bootstrap draws. Pin both before any quality read.\n- This doesn't block the mechanics unit.\n\n**Scope.** A pass only lets you run the four fresh 100-update units in the fixed order (control032, candidate032, candidate041, control041). It says nothing about quality. The earlier dense100 two-seed KILL and the rejected 288 lane still point toward a null result."
+      },
+      "providers_used": [
+        "claude"
+      ],
+      "active_provider": "claude",
+      "phase": "Consultation completed",
+      "input_bytes": 3962,
+      "output_bytes": 7124,
+      "elapsed_seconds": 618,
+      "progress": "devbox-ask: claude consult still running (0m 30s)\ndevbox-ask: claude consult still running (1m 00s)\ndevbox-ask: claude consult still running (1m 30s)\ndevbox-ask: claude consult still running (2m 00s)\ndevbox-ask: claude consult still running (2m 30s)\ndevbox-ask: claude consult still running (3m 00s)\ndevbox-ask: claude consult still running (3m 30s)\ndevbox-ask: claude consult still running (4m 00s)\ndevbox-ask: claude consult still running (4m 30s)\ndevbox-ask: claude consult still running (5m 00s)\ndevbox-ask: claude consult still running (5m 30s)\ndevbox-ask: claude consult still running (6m 00s)\ndevbox-ask: claude consult still running (6m 30s)\ndevbox-ask: claude consult still running (7m 00s)\ndevbox-ask: claude consult still running (7m 30s)\ndevbox-ask: claude consult still running (8m 00s)\ndevbox-ask: claude consult still running (8m 30s)\ndevbox-ask: claude consult still running (9m 00s)\ndevbox-ask: claude consult still running (9m 30s)\ndevbox-ask: claude consult still running (10m 00s)",
+      "progress_truncated": false,
+      "result": "**Verdict: ADMIT the one discarded candidate17 mechanics unit, but only after three zero-GPU checks (W, M, T below).** If W projects more than about 110 s, reject the unit as it stands. I found no code defect that breaks the parity or counter proof. The real risks are resources: the wall-clock and memory caps are tight, and a miss closes the lane with no rescue.\n\n**Binding note.** You changed the driver and test on disk during the review: they now assert `ru_maxrss ≤ 8 GiB` and swap = 0, and none of it is committed. That is good, but 757a25fc as committed doesn't have it. Commit it and rebuild the GPU closure from the new bytes. `validate_cpu` still accepts the CPU proof, because the 112-file prefix is unchanged and exactly the two new files are added.\n\n**What I checked and found correct**\n- **17 vs 8+9 parity:** the 17-step run is compared with the saved-at-8, rebuilt-from-scratch, resumed-9 run over the full payload: identity/counter, 400 vision tensors, buffers, head, classifier, bank, AdamW, scaler, CPU/CUDA RNG. Rows 9–17 must match except `seconds`.\n- **Reload:** strict 400/head/packed reload goes through a model built independently of the training one.\n- **Frozen state:** the frozen prefix and non-persistent buffers are checked before and after.\n- **Optimizer:** membership is 240/208 with the order and uniqueness checked.\n- **Counters:** optimizer steps 1..100, augmentation steps 1001..1100, and the saved Adam `step` all agree.\n- **Augmentation keys:** they are SEED·100000+1001..1100 and don't collide with the source's keys 1..1000.\n- **Initial state:** it doesn't depend on the seed and is bound to the CPU-proof hash 77c261.\n- **Objective patch:** `old.coverage.terms` is the same module that `pe_large_optimization.step` calls.\n- **Bank:** it is refreshed on every step, so the source bank really does carry 1000 updates.\n- **Environment check:** it doesn't depend on which parameters are trainable.\n\n**F1 — Wall-clock time (biggest risk).**\n- The closest earlier unit, retained256 mechanics, took 77.0 s total: 32.3 s of steps and about 45 s of overhead.\n- The dense step median is 1.267 s, so 26 steps take about 33 s.\n- The new unit adds work. The 2.6 GB source file is SHA-hashed four times (`qualify_late_dense_adaptation_cpu.py:46`, `late_dense_boundary.py:42` once per setup ×2, `train_late_dense_adaptation.py:390`). Each setup also fingerprints at least 1.2 GB twice. Each of the two `save()` calls fsyncs and fingerprints the ~2.8 GB payload twice (before writing and after reading back), and there are extra `verify()` digests.\n- The CPU v3 run (startup plus three setups, no training) already took 34.6 s.\n- My projection is about 100–115 s. Both the in-process check and systemd `RuntimeMaxSec` stop at 120 s, and there is no rescue.\n- **Check W:** run `time sha256sum resume.pt` on the DGX. If hashing runs at about 1.5 s/GB or slower, reject the unit as it stands. Remove the repeat hashes in a re-closed driver first, then have it re-reviewed.\n\n**F2 — Memory: the cgroup cap is not being enforced.**\n- Systemd reports a memory peak of 256K–764K, while the process's own maxRSS is 5.8–7.5 GB. So `MemoryMax=8G` and `MemorySwapMax=0` are not accounting for this process.\n- That makes the `Memory swap peak: 0B` log check (`:114`) meaningless, and the `VmSwap` read only covers the end of the run.\n- The new `ru_maxrss` assert is now the only real memory gate, and the headroom is thin:\n  - The closest earlier units peaked at 7,000,920 KiB (native-valid-anchor mechanics) and 7,463,068 KiB (lower-adapter pilots).\n  - GPU allocations probably count toward RSS on GB10 unified memory: the dense mechanics unit showed 6.48 GB RSS.\n  - This unit also keeps optimizer state for 32 more tensors. It reads back and fingerprints the whole 2.8 GB payload inside `save()` while the GPU training state is still loaded.\n- My projection is about 7.3–8.2 GB against the 8,388,608 KiB limit.\n- **Check M:** run `cat …/user@UID.service/cgroup.controllers` to see whether the memory controller is delegated, and `swapon --show`. If there is no swap device, \"no swap\" holds by construction.\n\n**F3 — Temporary directory changed.**\n- At `:338` the archived `dir=root` was dropped, so the two ~2.8 GB throwaway checkpoints now go to `$TMPDIR` or `/tmp`.\n- If that is tmpfs (the default on newer Ubuntu, or with `PrivateTmp`), the files are held in memory that can't be evicted, so disk-full errors or extra RSS become possible.\n- **Check T:** run `findmnt -T /tmp; df -h /tmp` in the unit's environment.\n\n**F4 — The control path has never run on GPU.**\n- The mechanics unit only exercises boundary 10. The boundary-12 late path (no `dense.configure`, no pre-clip audit, `not any(changed)`) first runs as production control032, which is first in the order.\n- The integrity risk is low: the training step is the archived one, and the CPU proof built both arms. But a failure there wastes the ordered set.\n- The pre-clip audit runs only for the candidate, adding 32 GPU→CPU syncs per step. That slightly biases the cost ratio against the candidate, which doesn't matter against the 1.50 limit.\n\n**F5 — \"32 weights changed\" is weak evidence of learning.**\n- Weight decay (lr·0.05) changes every nonzero fp32 tensor even when its gradient is zero.\n- The real evidence is the per-step gradient norms at `:310`: out_proj, fc1 and fc2 in blocks 10 and 11, plus the per-block sums.\n- The check meets the spec, but don't cite it as proof the new blocks learned.\n\n**F6 — The two seeds are not interchangeable, plus a carry-forward trap.**\n- `pe_large_optimization.py:50` asserts that `coverage.schedule(target)` equals the source's first 100 batches. So seed 179032 replays exactly the images the source trained on in steps 1–100, with new augmentation. Seed 179041 draws a new ordering.\n- Pairing within each seed is intact, but seed-to-seed variation mixes \"replay vs new rows\" with trajectory noise.\n- For the later full-data application: the full2000 run already used augmentation keys 1..2000 for seed 179032. The hard-coded `augmentation_offset` of 1000 would reuse keys 1001–1100 there, so it has to be 2000.\n\n**F7 — The quality evaluation and decision code isn't in the closure.**\n- The 114-file closure has no terminal FP16 B32 packed encoder, scorer, bootstrap, or cost and decision rule.\n- The archived `wires()` and `decision()` code is tied to the archived checkpoint schema, so it can't be reused unchanged.\n- That code must be committed and reviewed before the first held encode.\n- The gate wording is also ambiguous. \"Both product95 lower > 0\" could mean the per-product delta averaged over the two seeds, or each seed separately. It also doesn't say whether R1 and AP must use the same 5000 bootstrap draws. Pin both before any quality read.\n- This doesn't block the mechanics unit.\n\n**Scope.** A pass only lets you run the four fresh 100-update units in the fixed order (control032, candidate032, candidate041, control041). It says nothing about quality. The earlier dense100 two-seed KILL and the rejected 288 lane still point toward a null result.",
+      "result_truncated": false
+    },
+    {
+      "role": "engineering_critic",
+      "id": "fdfee09d59c24198",
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "fallbacks": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6.1-sol"
+        }
+      ],
+      "agent": "sfora/emafactorial",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1790733375,
+      "timeout_seconds": 1200,
+      "deadline_at": 1790734575,
+      "budget_usd": null,
+      "prompt_preview": "Act as the independent adversarial engineering and release critic. Inspect correctness, failure modes, security, operability, tests, and UX. Prioritize concrete findings with evidence. Do not edit files.\n\nMaterial to critique:\nRead-only ADMISSION REVIEW, no edits/Torch/SSH/GPU/quality/jobs/consultations/operator contact. Repo /home/rb/worktrees/sfora-positive-causality master757a25fc. SAME production SOP+InShop quality AND matched publicspeed goal active. Read docs/inshop_late_dense_adaptation_gate_2026-09-30.md,docs/inshop_late_dense_native_cpu_admission_2026-09-30.md; scripts/late_dense_boundary.py,qualify_late_dense_adaptation_cpu.py,train_late_dense_adaptation.py,test_late_dense_adaptation.py and actualrawlate-dense-v1 CPUproof/log/manifest. Concrete newstage: load corrected native128 TRAIN1000 actualsavedmodel/head/classifier/bank/allbuffers, originaltarget/classorder separatelyauthenticatedhalfTRAINproof. ActualresumeSHA cc58377...4566 rehashed; CPU originalsession14674/unitsfora-late-dense-cpu-v3 exited0/34.642s5.900GBRSS/noSwap, source112manifest e5aac1...434, proofcb9d97...e0e. Control/candidateinitialstateSHA77c261...9867 identical; native400whole/head/packedstrictreload/frozenbuffer/optimizernegativespass. SourceCUDA0 recordedruntime separatelyfromactualCPU readonlyexpectedrecord, no config/model/proofspoofing. Managedchild f17cb957 integrated757a25fc onlynewdriver+check, eight parentstdlibchecksPASS. Qualified112 closure EXACTunchangedprefix + ONLYdriver/test =>114; distinctCPU/GPUexecutionSHAs intentional, CPUproof/logSHA separatelybound. BOTHarmsexplicitfreshAdamW/scaler128/counter0, NOT exactoldoptimizercontinuation. Candidatefreeze10/control12 boundarybeforefinaloptimizer240/208, correctedteacher-retainedvalidSmoothAP8+ArcFace,256pixels/native128/F32paramsFP16auto/B64four16/LRs1e-5vision1e-4headproxy/decay.05/globalclip1. PairedCONTINUATION inputseeds179032+179041 sharetrainedinitializer, notindependentpretrainingseeds. Exactsame100schedule/RGB/pixelswithinpair; optimizer1..100 separateaugmentglobal1001..1100. Decide ADMIT ONE discardedcandidate17 mechanics120s8GiB/noSwap/<10GBcuda/bothlocks or REJECTprecisely. It must prove uninterrupted17 vs serialized8+9 fullvision/head/classifier/bank/AdamW/scaler/counters/RNG exact via independentlyreconstructedconstructor; strict400whole/head/packedreload, frozenparams/nonpersistentbuffers preserved, eachout_proj/MLPfc1/fc2gradpositive+32weightchanges. No mechanicsstate reused. OnlyPASS admits4fresh100units300s ordercontrol032,candidate032,candidate041,control041. Contemporarycostwall+median<=1.50 eachpair, no historicaldenominator. FrozenTRAINfloors SAMEdenseprocedure:eachseedR1>0/AP>=0; equal-seedmeanboth>=.20pp/product95lowerboth>0;5000draw179019 queryintervalsalso. Fit13283images/2004products; held12599/1993 q6354g6245 disjointTRAINidentities, previouslyobserved. FourfreshterminalnativeFP16B32/packed128 quality endpoints (notarchivedcontrol); actualupdatedsource/publicserving/exportqualificationstillrequired. TRAINsurvivor onlymotivates separatelyfrozenfullTRAIN application andfreshconfirmation, notofficialscoreselection/productionpromotion. EarlierF5-startdense100two-seedKILL intact; retainedsubsetofficialcontrol94.063863/74.977123->candidate94.295963/75.441599 still2.404pp belowdated96.7, notSOTA. Rejected288 isclosed. Existingnegativepriorweakenexpectations, notsame latertrainedbank/modelcondition orarchitecture-wideKILL. Audit concretecode/source/resource/parity/counter/statisticalgaps; no alternativearchitecture/newresearch/zero-trainingprobe/caprescue/thresholdsweep. <=900words, separatelylabelledfindings andcheapestsourceorSAMEunitfalsifier. ParentreconcilesbeforeGPU. Previouslongforce_reason requestrejectedprelaunch;consult_listverifiednonewreviewjobs. This is ONE newadmissiongroup.",
+      "prompt_sha256": "67b47a3794242ed8a7d486d0c4c2fb3683ccd4e2939d91cedc613eecf5bb787b",
+      "prompt_bytes": 3996,
+      "fingerprint": "12a3f2ae30cebab8a3ac3a3d56ead9763e710f998f32fbeeee6f3e2b1223c607",
+      "evidence": {
+        "git_commit": "757a25fc6205420e79c56369419cfae06d2d943a",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+        "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+        "worktree_evidence_truncated": false,
+        "active_goal": {
+          "id": "goal-1790540789-1790540789754989478-2322852",
+          "agent": "sfora/emafactorial",
+          "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+          "status": "queued",
+          "revision": 1,
+          "actor": "operator",
+          "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+          "created_at": 1790540789,
+          "updated_at": 1790540789
+        }
+      },
+      "previous_fingerprint": "cee7f91ae3d9348eb2d500a3c079d1bb3dd57aa3a8e03a47d7c562a9bdac37f9",
+      "reused": false,
+      "critique_id": "44ae81feaf094e26",
+      "critique_role": "engineering_critic",
+      "systemd_unit": "devbox-consult-fdfee09d59c24198.service",
+      "pid": 2981930,
+      "pgid": 2981930,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6.1-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra",
+          "budget_usd": null,
+          "timeout_seconds": 1200,
+          "started_at": 1790733375
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1790733681,
+      "event_cursor": 62,
+      "events": [
+        {
+          "seq": 39,
+          "at": 1790733472,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 40,
+          "at": 1790733472,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 1"
+        },
+        {
+          "seq": 41,
+          "at": 1790733472,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 42,
+          "at": 1790733472,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 43,
+          "at": 1790733472,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 44,
+          "at": 1790733472,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 45,
+          "at": 1790733480,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 46,
+          "at": 1790733498,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 47,
+          "at": 1790733498,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 48,
+          "at": 1790733498,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 49,
+          "at": 1790733498,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 50,
+          "at": 1790733498,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 51,
+          "at": 1790733498,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 52,
+          "at": 1790733551,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 53,
+          "at": 1790733551,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 54,
+          "at": 1790733551,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 55,
+          "at": 1790733554,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 56,
+          "at": 1790733624,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 57,
+          "at": 1790733637,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 58,
+          "at": 1790733637,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 59,
+          "at": 1790733637,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 60,
+          "at": 1790733637,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 61,
+          "at": 1790733680,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 62,
+          "at": 1790733681,
+          "provider": "codex",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": true,
+      "provider_events": {
+        "codex": [
+          {
+            "seq": 55,
+            "at": 1790733554,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 56,
+            "at": 1790733624,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 57,
+            "at": 1790733637,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 58,
+            "at": 1790733637,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 59,
+            "at": 1790733637,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 60,
+            "at": 1790733637,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 61,
+            "at": 1790733680,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 62,
+            "at": 1790733681,
+            "provider": "codex",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "**ADMIT ONE discarded candidate17 mechanics unit**, under the specified 120s, 8GiB, no-swap, <10GB allocated CUDA, and both-lock limits. This admits the experiment; a driver `\"pass\": true` alone must not authorize training.\n\n**Finding 1 — Resource admission depends on the launcher and parent.**  \n[validate_mechanics](/home/rb/worktrees/sfora-positive-causality/scripts/train_late_dense_adaptation.py:58) checks time and CUDA allocation but ignores `host_max_rss_kib` and `host_swap_kib`. A read-only, stdlib-only falsifier accepted a synthetic receipt reporting **20GiB RSS and 1024KiB swap**. The running driver checks current swap, but merely records peak RSS. [Log validation](/home/rb/worktrees/sfora-positive-causality/scripts/train_late_dense_adaptation.py:108) checks three success strings without verifying unit identity, limits, or locks.\n\n**Cheapest falsifier:** For the SAME mechanics unit, reconcile the exact invocation/output with both locks, `RuntimeMaxSec=120`, `MemoryMax=8G`, `MemorySwapMax=0`, actual native peak RSS, whole-service duration, normal exit, and zero swap. Reject automatic advancement based only on `validate_mechanics`.\n\n**Finding 2 — Current repository bytes are not the complete qualified prefix.**  \nI independently rehashed the archived 112-member manifest and CPU proof: they match `e5aac1…c434` and `cb9d97…de0e`; the proof’s code map equals that manifest. However, current repository copies of `qualify_pe_full_valid_anchor_checkpoint.py` and `inshop_teacher_retained256_gate_2026-09-29.md` differ from their qualified hashes. This does not invalidate the archived CPU result, but rebuilding the bundle from current checkout files would violate the proposed unchanged-prefix rule.\n\n**Cheapest falsifier:** Hash the assembled 114-member execution bundle before launch: preserve all 112 archived entries exactly, adding only the reviewed driver and test. The existing startup checks appropriately fail closed on substitutions.\n\n**Finding 3 — The historical scorer is unsuitable unchanged.**  \n[score_large_dense_pilot.py](/home/rb/worktrees/sfora-positive-causality/scripts/score_large_dense_pilot.py:71) explicitly selects archived control wires and receipts; its [cost declaration](/home/rb/worktrees/sfora-positive-causality/scripts/score_large_dense_pilot.py:156) explicitly uses historical controls. Reusing its statistical procedure is reasonable; reusing its authority/input routing would violate this admission.\n\n**Cheapest falsifier:** Before quality execution, inspect the endpoint bindings: four fresh terminal checkpoints/wires, matching per-pair schedule/RGB/pixel hashes, and contemporary wall/median denominators. Keep the frozen thresholds and bootstrap procedure unchanged. This is a later gate, not a reason to reject mechanics.\n\n**Mechanics assessment.**  \nThe reviewed source implements the material checks: actual saved model/head/classifier/bank/buffers; fresh AdamW/scaler; boundary-specific membership; corrected objective; separate optimizer and augmentation counters; required projection gradients; all 32 parameter changes; frozen state; and complete serialized replay. The [replay path](/home/rb/worktrees/sfora-positive-causality/scripts/train_late_dense_adaptation.py:335) destroys the original state, reconstructs through `qualification.fresh`, restores step8, and compares resumed diagnostics and the full terminal payload fingerprint. Strict constructor reload also compares whole outputs, head outputs, and packed values.\n\nThese are source-supported checks, **not yet native GPU evidence**. The same capped unit must establish them. Any parity, numerical, resource, or ≤269s projection failure stops advancement without cap rescue or mechanics-state reuse.\n\nOnly reconciled PASS permits the four fresh 100-update arms in the frozen order. Shared initialization and previously observed TRAIN-held data still limit inference: survival motivates the separately frozen full-TRAIN application and fresh confirmation; it establishes neither production promotion nor SOTA. The earlier dense KILL and 288 rejection remain intact.\n\nNo files edited; no Torch, SSH, GPU, quality jobs, consultations, or operator contact.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "codex": "**ADMIT ONE discarded candidate17 mechanics unit**, under the specified 120s, 8GiB, no-swap, <10GB allocated CUDA, and both-lock limits. This admits the experiment; a driver `\"pass\": true` alone must not authorize training.\n\n**Finding 1 — Resource admission depends on the launcher and parent.**  \n[validate_mechanics](/home/rb/worktrees/sfora-positive-causality/scripts/train_late_dense_adaptation.py:58) checks time and CUDA allocation but ignores `host_max_rss_kib` and `host_swap_kib`. A read-only, stdlib-only falsifier accepted a synthetic receipt reporting **20GiB RSS and 1024KiB swap**. The running driver checks current swap, but merely records peak RSS. [Log validation](/home/rb/worktrees/sfora-positive-causality/scripts/train_late_dense_adaptation.py:108) checks three success strings without verifying unit identity, limits, or locks.\n\n**Cheapest falsifier:** For the SAME mechanics unit, reconcile the exact invocation/output with both locks, `RuntimeMaxSec=120`, `MemoryMax=8G`, `MemorySwapMax=0`, actual native peak RSS, whole-service duration, normal exit, and zero swap. Reject automatic advancement based only on `validate_mechanics`.\n\n**Finding 2 — Current repository bytes are not the complete qualified prefix.**  \nI independently rehashed the archived 112-member manifest and CPU proof: they match `e5aac1…c434` and `cb9d97…de0e`; the proof’s code map equals that manifest. However, current repository copies of `qualify_pe_full_valid_anchor_checkpoint.py` and `inshop_teacher_retained256_gate_2026-09-29.md` differ from their qualified hashes. This does not invalidate the archived CPU result, but rebuilding the bundle from current checkout files would violate the proposed unchanged-prefix rule.\n\n**Cheapest falsifier:** Hash the assembled 114-member execution bundle before launch: preserve all 112 archived entries exactly, adding only the reviewed driver and test. The existing startup checks appropriately fail closed on substitutions.\n\n**Finding 3 — The historical scorer is unsuitable unchanged.**  \n[score_large_dense_pilot.py](/home/rb/worktrees/sfora-positive-causality/scripts/score_large_dense_pilot.py:71) explicitly selects archived control wires and receipts; its [cost declaration](/home/rb/worktrees/sfora-positive-causality/scripts/score_large_dense_pilot.py:156) explicitly uses historical controls. Reusing its statistical procedure is reasonable; reusing its authority/input routing would violate this admission.\n\n**Cheapest falsifier:** Before quality execution, inspect the endpoint bindings: four fresh terminal checkpoints/wires, matching per-pair schedule/RGB/pixel hashes, and contemporary wall/median denominators. Keep the frozen thresholds and bootstrap procedure unchanged. This is a later gate, not a reason to reject mechanics.\n\n**Mechanics assessment.**  \nThe reviewed source implements the material checks: actual saved model/head/classifier/bank/buffers; fresh AdamW/scaler; boundary-specific membership; corrected objective; separate optimizer and augmentation counters; required projection gradients; all 32 parameter changes; frozen state; and complete serialized replay. The [replay path](/home/rb/worktrees/sfora-positive-causality/scripts/train_late_dense_adaptation.py:335) destroys the original state, reconstructs through `qualification.fresh`, restores step8, and compares resumed diagnostics and the full terminal payload fingerprint. Strict constructor reload also compares whole outputs, head outputs, and packed values.\n\nThese are source-supported checks, **not yet native GPU evidence**. The same capped unit must establish them. Any parity, numerical, resource, or ≤269s projection failure stops advancement without cap rescue or mechanics-state reuse.\n\nOnly reconciled PASS permits the four fresh 100-update arms in the frozen order. Shared initialization and previously observed TRAIN-held data still limit inference: survival motivates the separately frozen full-TRAIN application and fresh confirmation; it establishes neither production promotion nor SOTA. The earlier dense KILL and 288 rejection remain intact.\n\nNo files edited; no Torch, SSH, GPU, quality jobs, consultations, or operator contact."
+      },
+      "providers_used": [
+        "codex"
+      ],
+      "active_provider": "codex",
+      "phase": "Consultation completed",
+      "input_bytes": 3996,
+      "output_bytes": 4199,
+      "elapsed_seconds": 306,
+      "progress": "Reading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)\ndevbox-ask: codex consult still running (1m 30s)\ndevbox-ask: codex consult still running (2m 00s)\ndevbox-ask: codex consult still running (2m 30s)\ndevbox-ask: codex consult still running (3m 00s)\ndevbox-ask: codex consult still running (3m 30s)\ndevbox-ask: codex consult still running (4m 00s)\ndevbox-ask: codex consult still running (4m 30s)\ndevbox-ask: codex consult still running (5m 00s)",
+      "progress_truncated": false,
+      "result": "**ADMIT ONE discarded candidate17 mechanics unit**, under the specified 120s, 8GiB, no-swap, <10GB allocated CUDA, and both-lock limits. This admits the experiment; a driver `\"pass\": true` alone must not authorize training.\n\n**Finding 1 — Resource admission depends on the launcher and parent.**  \n[validate_mechanics](/home/rb/worktrees/sfora-positive-causality/scripts/train_late_dense_adaptation.py:58) checks time and CUDA allocation but ignores `host_max_rss_kib` and `host_swap_kib`. A read-only, stdlib-only falsifier accepted a synthetic receipt reporting **20GiB RSS and 1024KiB swap**. The running driver checks current swap, but merely records peak RSS. [Log validation](/home/rb/worktrees/sfora-positive-causality/scripts/train_late_dense_adaptation.py:108) checks three success strings without verifying unit identity, limits, or locks.\n\n**Cheapest falsifier:** For the SAME mechanics unit, reconcile the exact invocation/output with both locks, `RuntimeMaxSec=120`, `MemoryMax=8G`, `MemorySwapMax=0`, actual native peak RSS, whole-service duration, normal exit, and zero swap. Reject automatic advancement based only on `validate_mechanics`.\n\n**Finding 2 — Current repository bytes are not the complete qualified prefix.**  \nI independently rehashed the archived 112-member manifest and CPU proof: they match `e5aac1…c434` and `cb9d97…de0e`; the proof’s code map equals that manifest. However, current repository copies of `qualify_pe_full_valid_anchor_checkpoint.py` and `inshop_teacher_retained256_gate_2026-09-29.md` differ from their qualified hashes. This does not invalidate the archived CPU result, but rebuilding the bundle from current checkout files would violate the proposed unchanged-prefix rule.\n\n**Cheapest falsifier:** Hash the assembled 114-member execution bundle before launch: preserve all 112 archived entries exactly, adding only the reviewed driver and test. The existing startup checks appropriately fail closed on substitutions.\n\n**Finding 3 — The historical scorer is unsuitable unchanged.**  \n[score_large_dense_pilot.py](/home/rb/worktrees/sfora-positive-causality/scripts/score_large_dense_pilot.py:71) explicitly selects archived control wires and receipts; its [cost declaration](/home/rb/worktrees/sfora-positive-causality/scripts/score_large_dense_pilot.py:156) explicitly uses historical controls. Reusing its statistical procedure is reasonable; reusing its authority/input routing would violate this admission.\n\n**Cheapest falsifier:** Before quality execution, inspect the endpoint bindings: four fresh terminal checkpoints/wires, matching per-pair schedule/RGB/pixel hashes, and contemporary wall/median denominators. Keep the frozen thresholds and bootstrap procedure unchanged. This is a later gate, not a reason to reject mechanics.\n\n**Mechanics assessment.**  \nThe reviewed source implements the material checks: actual saved model/head/classifier/bank/buffers; fresh AdamW/scaler; boundary-specific membership; corrected objective; separate optimizer and augmentation counters; required projection gradients; all 32 parameter changes; frozen state; and complete serialized replay. The [replay path](/home/rb/worktrees/sfora-positive-causality/scripts/train_late_dense_adaptation.py:335) destroys the original state, reconstructs through `qualification.fresh`, restores step8, and compares resumed diagnostics and the full terminal payload fingerprint. Strict constructor reload also compares whole outputs, head outputs, and packed values.\n\nThese are source-supported checks, **not yet native GPU evidence**. The same capped unit must establish them. Any parity, numerical, resource, or ≤269s projection failure stops advancement without cap rescue or mechanics-state reuse.\n\nOnly reconciled PASS permits the four fresh 100-update arms in the frozen order. Shared initialization and previously observed TRAIN-held data still limit inference: survival motivates the separately frozen full-TRAIN application and fresh confirmation; it establishes neither production promotion nor SOTA. The earlier dense KILL and 288 rejection remain intact.\n\nNo files edited; no Torch, SSH, GPU, quality jobs, consultations, or operator contact.",
+      "result_truncated": false
+    }
+  ],
+  "reused": false,
+  "elapsed_seconds": 618,
+  "input_bytes": 3592,
+  "output_bytes": 11323
+}

@@ -69,6 +69,10 @@ def validate_mechanics(receipt, execution, cpu_sha, cpu_log_sha, cpu_execution):
     assert receipt["quality_read"] is False and receipt["checkpoint_sha256"] is None
     assert receipt["chunk100_admission_seconds"] <= 269 and receipt["total_seconds"] < 120
     assert receipt["peak_cuda_allocated_bytes"] < 10_000_000_000
+    assert 0 < receipt["host_max_rss_kib"] <= 8 * 1024 * 1024
+    assert receipt["host_swap_kib"] == 0
+    assert receipt["unit_memory_max_bytes"] == 8 * 1024**3
+    assert receipt["unit_memory_swap_max_bytes"] == 0 and receipt["unit_invocation_id"]
     assert len(receipt["steps"]) == 17
     for step, row in enumerate(receipt["steps"], 1):
         counter, augmentation = counters(step)
@@ -247,6 +251,12 @@ def main():
         p.add_argument(f"--{name}-log-sha256", required=name == "cpu")
     args = p.parse_args()
     assert not args.output.exists() and not args.output.is_symlink()
+    cgroup = Path("/sys/fs/cgroup") / Path("/proc/self/cgroup").read_text().split("0::", 1)[1].strip().lstrip("/")
+    assert "memory" in (cgroup / "cgroup.controllers").read_text().split()
+    assert int((cgroup / "memory.max").read_text()) == 8 * 1024**3
+    assert int((cgroup / "memory.swap.max").read_text()) == 0
+    assert str(os.getpid()) in (cgroup / "cgroup.procs").read_text().split()
+    invocation = os.environ["INVOCATION_ID"]
     if args.phase == "mechanics":
         assert (args.boundary, args.seed) == (10, 179032)
         assert not any((args.mechanics_proof, args.mechanics_sha256, args.mechanics_log, args.mechanics_log_sha256))
@@ -390,6 +400,8 @@ def main():
     assert total < (120 if args.phase == "mechanics" else 300)
     peak = torch.cuda.max_memory_allocated()
     assert peak < 10_000_000_000
+    rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    assert 0 < rss <= 8 * 1024 * 1024
     status = Path("/proc/self/status").read_text().splitlines()
     swap = int(next(v for v in status if v.startswith("VmSwap:")).split()[1])
     assert swap == 0
@@ -402,6 +414,8 @@ def main():
         args.output.mkdir(exist_ok=False)
     receipt = {"pass": True, "intervention": METHOD, "phase": args.phase,
         "boundary": args.boundary, "seed": args.seed, "updates": len(rows), "completed_step": len(rows),
+        "unit_invocation_id": invocation, "unit_cgroup": str(cgroup),
+        "unit_memory_max_bytes": 8 * 1024**3, "unit_memory_swap_max_bytes": 0,
         "execution_sha256": args.execution_sha256, "cpu_authority_sha256": args.cpu_sha256,
         "cpu_log_sha256": args.cpu_log_sha256, "cpu_execution_sha256": args.cpu_execution_sha256,
         "mechanics_sha256": args.mechanics_sha256,
@@ -410,7 +424,7 @@ def main():
         "checkpoint_sha256": checkpoint_sha, "steps": rows, "new32_weights_changed": all(changed.values()),
         "new_parameter_changes": changed, "frozen_named_state_buffers_rng_preserved": True,
         "median_step_3_end_seconds": statistics.median(r["seconds"] for r in rows[2:]),
-        "peak_cuda_allocated_bytes": peak, "host_max_rss_kib": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
+        "peak_cuda_allocated_bytes": peak, "host_max_rss_kib": rss,
         "host_swap_kib": swap, "total_seconds": total, "quality_read": False, "claim_eligible": False, **facts}
     atomic_write(args.output / "receipt.json", lambda stream: stream.write((json.dumps(receipt, indent=2) + "\n").encode()))
     print("PASS discarded late17 mechanics" if args.phase == "mechanics" else "PASS fresh late100 arm; no quality read", flush=True)

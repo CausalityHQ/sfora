@@ -1,0 +1,43 @@
+Running as unit: sfora-late-dense-resource-preflight-v1.service; invocation ID: c3edecf061344e74a7a6eb9106f578e6
+{"pid": 2285947, "invocation": "c3edecf061344e74a7a6eb9106f578e6", "cgroup": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-late-dense-resource-preflight-v1.service", "fields": {"cgroup.controllers": "memory pids", "cgroup.subtree_control": "", "cgroup.procs": "2285946\n2285947", "memory.max": "8589934592", "memory.swap.max": "0", "memory.current": "8478720", "memory.peak": "8622080"}, "delegated_controllers": "cpu memory pids", "sha256": "cc58377f0e9aa90be529bf9a3eca1746a2dc467f765dd9681a3b9b690e324566", "hash_seconds": 1.1309708538465202, "bytes": 2585666051, "seconds_per_decimal_GB": 0.43740020232277094, "tempdir": "/tmp", "tmp_mount": "ext4   /dev/nvme0n1p2 /", "tmp_free_bytes": 2114772008960, "swaps": "Filename\t\t\t\tType\t\tSize\t\tUsed\t\tPriority\n/swap.img                               file\t\t16777212\t676452\t\t-2\n"}
+	Command being timed: "/home/riomus/group-learning/.venv/bin/python -c import os,json,time,hashlib,tempfile,subprocess
+from pathlib import Path
+p=Path("/home/riomus/runs/sfora-teacher-retained256-128-1000-v1/resume.pt")
+started=time.perf_counter();h=hashlib.file_digest(p.open("rb"),"sha256").hexdigest();elapsed=time.perf_counter()-started
+assert h=="cc58377f0e9aa90be529bf9a3eca1746a2dc467f765dd9681a3b9b690e324566"
+cg=Path("/sys/fs/cgroup")/Path("/proc/self/cgroup").read_text().split("0::",1)[1].strip().lstrip("/")
+fields={}
+for n in ("cgroup.controllers","cgroup.subtree_control","cgroup.procs","memory.max","memory.swap.max","memory.current","memory.peak"):
+ fields[n]=(cg/n).read_text().strip() if (cg/n).exists() else None
+parent=Path("/sys/fs/cgroup/user.slice")/("user-"+str(os.getuid())+".slice")/("user@"+str(os.getuid())+".service")
+result={"pid":os.getpid(),"invocation":os.environ.get("INVOCATION_ID"),"cgroup":str(cg),"fields":fields,"delegated_controllers":(parent/"cgroup.controllers").read_text().strip() if (parent/"cgroup.controllers").exists() else None,"sha256":h,"hash_seconds":elapsed,"bytes":p.stat().st_size,"seconds_per_decimal_GB":elapsed/(p.stat().st_size/1e9),"tempdir":tempfile.gettempdir(),"tmp_mount":subprocess.run(["findmnt","-T",tempfile.gettempdir(),"-n","-o","FSTYPE,SOURCE,TARGET"],capture_output=True,text=True,check=True).stdout.strip(),"tmp_free_bytes":os.statvfs(tempfile.gettempdir()).f_bavail*os.statvfs(tempfile.gettempdir()).f_frsize,"swaps":Path("/proc/swaps").read_text()}
+print(json.dumps(result))
+"
+	User time (seconds): 1.03
+	System time (seconds): 0.12
+	Percent of CPU this job got: 98%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:01.17
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 18840
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 2
+	Minor (reclaiming a frame) page faults: 2260
+	Voluntary context switches: 10
+	Involuntary context switches: 18
+	Swaps: 0
+	File system inputs: 400
+	File system outputs: 8
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+Finished with result: success
+Main processes terminated with: code=exited/status=0
+Service runtime: 1.178s
+CPU time consumed: 1.167s
+Memory peak: 508.0K
+Memory swap peak: 0B

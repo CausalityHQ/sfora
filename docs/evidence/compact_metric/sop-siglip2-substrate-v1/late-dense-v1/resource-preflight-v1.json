@@ -1,0 +1,23 @@
+{
+  "pid": 2285947,
+  "invocation": "c3edecf061344e74a7a6eb9106f578e6",
+  "cgroup": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/sfora-late-dense-resource-preflight-v1.service",
+  "fields": {
+    "cgroup.controllers": "memory pids",
+    "cgroup.subtree_control": "",
+    "cgroup.procs": "2285946\n2285947",
+    "memory.max": "8589934592",
+    "memory.swap.max": "0",
+    "memory.current": "8478720",
+    "memory.peak": "8622080"
+  },
+  "delegated_controllers": "cpu memory pids",
+  "sha256": "cc58377f0e9aa90be529bf9a3eca1746a2dc467f765dd9681a3b9b690e324566",
+  "hash_seconds": 1.1309708538465202,
+  "bytes": 2585666051,
+  "seconds_per_decimal_GB": 0.43740020232277094,
+  "tempdir": "/tmp",
+  "tmp_mount": "ext4   /dev/nvme0n1p2 /",
+  "tmp_free_bytes": 2114772008960,
+  "swaps": "Filename\t\t\t\tType\t\tSize\t\tUsed\t\tPriority\n/swap.img                               file\t\t16777212\t676452\t\t-2\n"
+}

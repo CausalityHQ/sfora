@@ -41,6 +41,9 @@ def mechanics_receipt():
         "phase": "mechanics", "boundary": 10, "seed": 179032, "source_checkpoint_sha256": late.SOURCE_SHA,
         "updates": 17, "completed_step": 17, "quality_read": False, "checkpoint_sha256": None,
         "chunk100_admission_seconds": 269, "total_seconds": 119, "peak_cuda_allocated_bytes": 9_000_000_000,
+        "host_max_rss_kib": 6 * 1024 * 1024, "host_swap_kib": 0,
+        "unit_memory_max_bytes": 8 * 1024**3, "unit_memory_swap_max_bytes": 0,
+        "unit_invocation_id": "original-mechanics-unit",
         "steps": [{"step": i, "optimizer_counter": i, "augmentation_step": 1000 + i} for i in range(1, 18)]}
     receipt.update({k: True for k in ("training_state_discarded", "native_17_equals_serialized8_plus9_exact",
         "strict400_reload_whole_head_packed_exact", "new32_weights_changed", "frozen_named_state_buffers_rng_preserved")})
@@ -79,7 +82,11 @@ class BoundedDriver(unittest.TestCase):
                             ("source_checkpoint_sha256", "F5"), ("updates", 100),
                             ("checkpoint_sha256", "retained"), ("training_state_discarded", False),
                             ("chunk100_admission_seconds", 270), ("total_seconds", 120),
-                            ("peak_cuda_allocated_bytes", 10_000_000_000), ("quality_read", True)):
+                            ("peak_cuda_allocated_bytes", 10_000_000_000),
+                            ("host_max_rss_kib", 9 * 1024 * 1024), ("host_swap_kib", 123),
+                            ("unit_memory_max_bytes", 16 * 1024**3), ("unit_memory_swap_max_bytes", 1),
+                            ("unit_invocation_id", ""),
+                            ("quality_read", True)):
             bad = copy.deepcopy(receipt); bad[name] = value
             with self.subTest(name=name), self.assertRaises(AssertionError):
                 validate(bad)
