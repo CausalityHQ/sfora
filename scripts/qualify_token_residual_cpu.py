@@ -45,6 +45,7 @@ def verify(state, base, arm):
     import train_late_dense_adaptation as native
     import token_residual_readout as residual
     residual.validate_weight(state["residual"], arm)
+    assert state["residual"].requires_grad == (arm == "candidate")
     expected = 208 + (arm == "candidate")
     assert len(state["params"]) == expected
     ids = [id(p) for g in state["optimizer"].param_groups for p in g["params"]]
@@ -53,6 +54,7 @@ def verify(state, base, arm):
               "optimizer": SimpleNamespace(param_groups=state["optimizer"].param_groups[:3])}
     native.verify(common, base)
     if arm == "candidate":
+        assert len(state["optimizer"].param_groups) == 4
         assert state["params"][-1][0] == "residual" and state["params"][-1][1] is state["residual"]
         group = state["optimizer"].param_groups[3]
         assert group["lr"] == 1e-4 and group["weight_decay"] == .05
