@@ -1,0 +1,20 @@
+{
+  "schema": "native256-restore-parent-receipt-v1",
+  "worker": "sfora/native256-restore-lifetime-20260930",
+  "instance_id": "ae5af400-4fd2-4f0a-8a34-4c6f888c85cc",
+  "commit": "a720939c0f6028e80d926e70b499c2383257e768",
+  "integration": "c4906a46",
+  "summary": "Completed commit a720939c0f6028e80d926e70b499c2383257e768 on clean isolated branch, parent 8bdaf7d605fc3df98e671b28bb1e76736fdf1e47. EXACT two authorized files; Roman author/committer, no trailers, no merge/push.\nCorrection ledger: retained genuine torch.load(weights_only=True,mmap=True). CheckpointPages binds the sole private VMA to open-fd dev/inode, offset0 and exact rounded extent; each consumed contiguous tensor advises only complete interior pages, madvise before fadvise, all errors fatal. Full serialized fingerprint consumes each tensor before advising. Genuine strict recursive vision load uses temporary per-module posthooks to advise copied local parameters/persistent buffers, removed in finally including registration/load/advice failures. Head/nonpersistent buffers/proxy/bank/target/PCA/schedules/positive/RNG consumed after copy/check. Optimizer moments copy synchronously to CUDA one tensor at a time; CPU step tensors get independent same-dtype/device copies before original optimizer.load_state_dict. Deployed optimizer source confirms otherwise it retains CPU step references to the entire mmap. No disk-backed tensor should survive restore; actual native ownership remains root verification.\nVerification: RED missing-lifetime assertion observed, then GREEN `python3 -B -S scripts/test_siglip2_substrate_adaptation.py` exit0. Real stdlib ZIP/private mmap bytes/refault/full SHA, unaligned ranges/VMA identity/error/order/ownership and strict-loader hook cleanup including partial registration pass. Five mutants rejected: strict=False, omitted hook cleanup, copy=False, missing madvise, missing fingerprint consume. AST pins unchanged fingerprint algorithm after callback removal, ALL original restore require predicates, and every other trainer node: flat admission/guard inventories/genuine freshCPU/bounded writer/math/caps/17-vs8+9/final whole+raw-packed reload/full uncached exit. git diff --check PASS; clean committed tree.\nNative/Torch/GPU/SSH/quality/full-suite UNRUN, no consult/operator/job. No 120s or 8GiB pass claimed. Remaining runtime blocker is whole mandatory lifetime: observed v3 pre-restore8 91.858s + restore8 11.158s, then nine replay updates, full second independent restore+calibration and uncached exit rehash. Reusing old per-update/restore costs estimates ~134s before exit work, NOT a corrected-native measurement. Page advice/step ownership remove concrete retention/reclaim paths but cannot certify sufficient runtime reduction. Root must audit/freeze and decide the single next combined gate; no gates weakened.",
+  "parent_stdlib": "PASS original74939 exit0",
+  "parent_review": "strict loader+finally hooks, unchanged full fingerprint algorithm/predicates/native contract, CPU optimizer steps copied with same dtype/device, actual VMA dev/inode/offset/extent only; native UNQUALIFIED",
+  "launch": {
+    "execution_sha256": "085782809fdd65cf41895d0b63f83b9d6002896dabd28b713851bc60b39a76e6",
+    "authority_sha256": "6be32a1cf8ab07208f276c82261c5d64269742e41d752e9238aff94eae229304",
+    "unit": "sfora-native256-mechanics-large-v4",
+    "invocation_id": "9e61f1c141a84319aaf6a3ec7f721415",
+    "main_pid": 2427484,
+    "session": 26703,
+    "log": "/tmp/sfora-native256-mechanics-large-v4.log",
+    "status": "RUNNING"
+  }
+}
