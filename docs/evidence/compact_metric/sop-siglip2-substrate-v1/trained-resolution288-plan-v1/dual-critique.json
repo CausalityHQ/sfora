@@ -1,0 +1,713 @@
+{
+  "id": "570d75310b8442de",
+  "status": "completed",
+  "started_at": 1790730072,
+  "agent": "sfora/emafactorial",
+  "force_reason": "Genuinely new result-gated trained-resolution design after completed fixed official terminal decision; prior dense100 reviews cannot qualify changed positional tensor shape, processor/config/nonpersistent buffers, and exact optimizer resume/public serving identity. Original consultation and prior jobs/reviews are terminal; no duplicate same-question review. Required fixed Opus/Astra consequential critique before bounded implementation.",
+  "rolling_6h_count": 2,
+  "prompt_preview": "Read-only new consequential design review at /home/rb/worktrees/sfora-positive-causality masterfc22bd4f. Read docs/inshop_trained_resolution288_proposal_2026-09-30.md (PARENTreconciledauthority), currentretainedofficialresult, old192/224/320 zerotrainingresize terminaldocs, archivedteacher-retained1281000 trainer/controller/qualifier, pe_large_optimization serialization, publicSiglip2CompactEncoder. Completedplanconsultf68e47a699474b18 advisoryrawtrained-resolution288-plan-v1/consultation.json notauthority. Allmodeljobs/previousreviews/consultplan TERMINAL, DGXidle; fullSOP+InShop protocolstrongestqualityANDmatchedpublicspeedgoalACTIVE. ExactlyONEproposal: TRAIN288 vsarchived256/F5 correctedfreeze12 native128 at1000updates/seed179032 identicalfit13283images2004products/schedule/objective/optimizer/F32FP16auto/head/classifier/initialbank/RNG exceptdeclared geometry+pixels. Deterministicbicubicposition16x16->18x18 materialized324rows plusposition_ids/config/processor changedexplicitnewidentity; allotheroriginalweightsunchanged; independentfrozenprefixnames/optimizerIDs (planner162countwrong). Doesarchivedcontrolactuallymatchallrecipe/initialstate/source/schedule/RGB/rawreceipt/wires? CPU120 actualconstructor/negativeauthority; ONEdiscardedGPU120 uninterrupted17==serialized8+9 FULLAdamW/scaler/bank/classifier/globalcounter/allnative/head/nonpersistentbuffers/RNG/pixels/loss plusstrictnative400reload/normalizedpackedparity. ChangedgeometryneedsNEWresumeproof. Bothlocks/8GiBnoSwap/<10GBCUDA, measuredchunkprojection<=269;10originalsequential100chunks300each, noqualityuntilcomplete,norescue. Publicconstructorhard256 needs explicit288processor/config/checkpoint/publicdirectnativeB1/B32qualification beforeclaims; genericpackedscorercanreuse, oldexporterCANNOTunchanged. ProposedpracticalTRAINfloor+.30ppR1,positiveproduct95lower,APpoint>=0 with5000seed179019, explicitlyNOofficialgap-derivedthreshold; single-seedexploratoryonly, pairedindependentseedconfirmation beforefullTRAIN3997/2000promotion. Historicalaggregatewall/median<=1.5cost notcontemporaneousoverheadclaim. Old320zero-trainingqualitynegative doesn'tprove trained288gain; doNOTclaimalternativesexhausted/uniquecause. Freshdenseofficialmatched94.295963/75.441599 vs94.063863/74.977123 positiveCI preservedbutdated96.7KILLonly notselectionevidence. No latency/resourceforecastasmeasurement/admission; finalstrongestcurrentreferences/matchedpublicp50p95p99QPS10000pairedCI/SOP+CUBCars mandatory. DoNOTedit/SSH/Torch/GPU/jobs/quality/otherconsult/operator. ReviewthisONEmechanism notnewresearch/alternatives. Returnseparatelylabelled ADMITQUALIFICATION orREJECT withprioritizedconcretefindingsandcheapestfalsifier; parentverifies. Crucial questions: archivecontrolexactness, validmaterialization/reload/freezes, resource/resume120capfeasibility, scientificfloor/seedplan andpublicservinggap. No paid same-question duplicates.",
+  "prompt_sha256": "92be9b33b524f97832c1d188ae8bfbd2be8378185f58bf0f08a52c6586eb16fa",
+  "prompt_bytes": 2906,
+  "fingerprint": "aec1f737d0a4293dad8b9213f8f696dd163c57dd9f89ad86383722d842611f5b",
+  "evidence": {
+    "git_commit": "fc22bd4f69c1983eb9cb8b7405b8b6fef9b3020e",
+    "git_branch": "master",
+    "git_dirty": true,
+    "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+    "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+    "worktree_evidence_truncated": false,
+    "active_goal": {
+      "id": "goal-1790540789-1790540789754989478-2322852",
+      "agent": "sfora/emafactorial",
+      "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+      "status": "queued",
+      "revision": 1,
+      "actor": "operator",
+      "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+      "created_at": 1790540789,
+      "updated_at": 1790540789
+    }
+  },
+  "reviewers": [
+    {
+      "role": "research_critic",
+      "id": "80ee0b3299e743de",
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "fallbacks": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6.1-sol"
+        }
+      ],
+      "agent": "sfora/emafactorial",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1790730072,
+      "timeout_seconds": 1200,
+      "deadline_at": 1790731272,
+      "budget_usd": 4,
+      "prompt_preview": "Act as the independent research and first-principles critic. Challenge assumptions, compare alternatives and prior art, and identify missing evidence. Do not edit files.\n\nMaterial to critique:\nRead-only new consequential design review at /home/rb/worktrees/sfora-positive-causality masterfc22bd4f. Read docs/inshop_trained_resolution288_proposal_2026-09-30.md (PARENTreconciledauthority), currentretainedofficialresult, old192/224/320 zerotrainingresize terminaldocs, archivedteacher-retained1281000 trainer/controller/qualifier, pe_large_optimization serialization, publicSiglip2CompactEncoder. Completedplanconsultf68e47a699474b18 advisoryrawtrained-resolution288-plan-v1/consultation.json notauthority. Allmodeljobs/previousreviews/consultplan TERMINAL, DGXidle; fullSOP+InShop protocolstrongestqualityANDmatchedpublicspeedgoalACTIVE. ExactlyONEproposal: TRAIN288 vsarchived256/F5 correctedfreeze12 native128 at1000updates/seed179032 identicalfit13283images2004products/schedule/objective/optimizer/F32FP16auto/head/classifier/initialbank/RNG exceptdeclared geometry+pixels. Deterministicbicubicposition16x16->18x18 materialized324rows plusposition_ids/config/processor changedexplicitnewidentity; allotheroriginalweightsunchanged; independentfrozenprefixnames/optimizerIDs (planner162countwrong). Doesarchivedcontrolactuallymatchallrecipe/initialstate/source/schedule/RGB/rawreceipt/wires? CPU120 actualconstructor/negativeauthority; ONEdiscardedGPU120 uninterrupted17==serialized8+9 FULLAdamW/scaler/bank/classifier/globalcounter/allnative/head/nonpersistentbuffers/RNG/pixels/loss plusstrictnative400reload/normalizedpackedparity. ChangedgeometryneedsNEWresumeproof. Bothlocks/8GiBnoSwap/<10GBCUDA, measuredchunkprojection<=269;10originalsequential100chunks300each, noqualityuntilcomplete,norescue. Publicconstructorhard256 needs explicit288processor/config/checkpoint/publicdirectnativeB1/B32qualification beforeclaims; genericpackedscorercanreuse, oldexporterCANNOTunchanged. ProposedpracticalTRAINfloor+.30ppR1,positiveproduct95lower,APpoint>=0 with5000seed179019, explicitlyNOofficialgap-derivedthreshold; single-seedexploratoryonly, pairedindependentseedconfirmation beforefullTRAIN3997/2000promotion. Historicalaggregatewall/median<=1.5cost notcontemporaneousoverheadclaim. Old320zero-trainingqualitynegative doesn'tprove trained288gain; doNOTclaimalternativesexhausted/uniquecause. Freshdenseofficialmatched94.295963/75.441599 vs94.063863/74.977123 positiveCI preservedbutdated96.7KILLonly notselectionevidence. No latency/resourceforecastasmeasurement/admission; finalstrongestcurrentreferences/matchedpublicp50p95p99QPS10000pairedCI/SOP+CUBCars mandatory. DoNOTedit/SSH/Torch/GPU/jobs/quality/otherconsult/operator. ReviewthisONEmechanism notnewresearch/alternatives. Returnseparatelylabelled ADMITQUALIFICATION orREJECT withprioritizedconcretefindingsandcheapestfalsifier; parentverifies. Crucial questions: archivecontrolexactness, validmaterialization/reload/freezes, resource/resume120capfeasibility, scientificfloor/seedplan andpublicservinggap. No paid same-question duplicates.",
+      "prompt_sha256": "7b55bde900764569034237d8ac2bd3434550bbbb9425df67eec923d462f19920",
+      "prompt_bytes": 3276,
+      "fingerprint": "5fa40920cf35fbcf9ee67988498ac6159a4c666d3082c724fe118726cdaeae38",
+      "evidence": {
+        "git_commit": "fc22bd4f69c1983eb9cb8b7405b8b6fef9b3020e",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+        "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+        "worktree_evidence_truncated": false,
+        "active_goal": {
+          "id": "goal-1790540789-1790540789754989478-2322852",
+          "agent": "sfora/emafactorial",
+          "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+          "status": "queued",
+          "revision": 1,
+          "actor": "operator",
+          "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+          "created_at": 1790540789,
+          "updated_at": 1790540789
+        }
+      },
+      "previous_fingerprint": "44ea80707a1cdb051569898bc142f7b75e36d742feca7c042e9f5a47eaeff681",
+      "reused": false,
+      "critique_id": "570d75310b8442de",
+      "critique_role": "research_critic",
+      "systemd_unit": "devbox-consult-80ee0b3299e743de.service",
+      "pid": 962061,
+      "pgid": 962061,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6.1-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5",
+          "budget_usd": 4,
+          "timeout_seconds": 1200,
+          "started_at": 1790730072
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1790730602,
+      "event_cursor": 65,
+      "events": [
+        {
+          "seq": 42,
+          "at": 1790730579,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 43,
+          "at": 1790730580,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 44,
+          "at": 1790730581,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 45,
+          "at": 1790730582,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 46,
+          "at": 1790730583,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 47,
+          "at": 1790730584,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 48,
+          "at": 1790730585,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 49,
+          "at": 1790730586,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 50,
+          "at": 1790730587,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 51,
+          "at": 1790730588,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 52,
+          "at": 1790730589,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 53,
+          "at": 1790730590,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 54,
+          "at": 1790730591,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 55,
+          "at": 1790730592,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 56,
+          "at": 1790730593,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 57,
+          "at": 1790730594,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 58,
+          "at": 1790730595,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 59,
+          "at": 1790730596,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 60,
+          "at": 1790730597,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 61,
+          "at": 1790730598,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 62,
+          "at": 1790730599,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 63,
+          "at": 1790730600,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 64,
+          "at": 1790730601,
+          "provider": "claude",
+          "kind": "partial",
+          "label": "Partial answer updated"
+        },
+        {
+          "seq": 65,
+          "at": 1790730602,
+          "provider": "claude",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": true,
+      "provider_events": {
+        "claude": [
+          {
+            "seq": 58,
+            "at": 1790730595,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 59,
+            "at": 1790730596,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 60,
+            "at": 1790730597,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 61,
+            "at": 1790730598,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 62,
+            "at": 1790730599,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 63,
+            "at": 1790730600,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 64,
+            "at": 1790730601,
+            "provider": "claude",
+            "kind": "partial",
+            "label": "Partial answer updated"
+          },
+          {
+            "seq": 65,
+            "at": 1790730602,
+            "provider": "claude",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "# REJECT (as written)\n\nI'm rejecting the proposal as written. The mechanism it names can't happen on this data, and the evidence it cites for a gain points the other way. The bookkeeping (control chain, serialization, resource caps) is mostly sound and can be fixed. I edited nothing in the repo, ran no jobs and started no consults. The only thing I wrote was a memory note outside the repo.\n\n## Findings, most serious first\n\n**1. Training at 288 adds no image detail on this corpus.**\n- The loader reads `Img/img` (`src/sfora/unicom_inshop.py:24`), which the repo itself records as the \"standard 256x256\" partition (`docs/rspg_corrected_pixel_screen_preregistration_304_2026-08-03.md:9`).\n- Training images are made by `RandomResizedCrop(256, scale=(0.8,1.0))` (`scripts/train_sop_siglip2_compact.py:152`).\n- The proposal also requires every step's RGB hash to match the control. So the 288 arm must train on 256×256 crops that the processor then stretches to 288.\n- Evaluation is a plain 256→288 upsample.\n- The planner's case rests on this being \"the first trained change to pixel information\" and \"more pixel detail\". The parent calls it \"increased spatial sampling\". All three are wrong.\n- What is actually being tested: about 27% more tokens (324 vs 256) cut from upsampled pixels, with frozen, interpolated positions.\n- There is also a hidden asymmetry. Training images are resized twice in the 288 arm (crop resize, then processor) but only once in the control. At evaluation the 288 arm resizes once and the control likely not at all. This has to be declared as part of the treatment.\n\n**2. Nothing in the evidence predicts a gain.**\n- Every zero-training resize lost quality:\n\n  | Size | R1 change | mAP@R change |\n  | --- | ---: | ---: |\n  | 192 | −1.61pp | — |\n  | 224 | −0.75pp | — |\n  | 320 | −0.39pp (asymmetric) | −1.79pp (symmetric) |\n\n- The 192 and 224 losses come from throwing information away, so they say nothing about going up.\n- The planner's own ledger says R1 \"stays near zero\" under 1000-update training changes. So a +0.30pp R1 gain would have to come from the resolution change, and at zero training that change is negative.\n- The rationale that training blocks 12–23 \"removes the unfamiliar-position confound\" only half holds. The embeddings and blocks 0–11, including the interpolated position table, stay frozen.\n- The 320 preflight's terminal rule asked for a *distinct* reason to expect training to reverse both losses. This proposal doesn't supply one.\n\n**3. The serving cost is not constrained before quality is read.**\n- 288 adds roughly 27–30% encoder compute. The matched-speed half of the goal is active, and SOP already has no speed win.\n- The 320 preflight set a precedent: batch-1 and batch-32 p95 below 90% of UNICOM's 39.055 ms and 568.963 ms. Nothing equivalent is declared here.\n- A cost-tolerance rule, for example a batch-1 p95 ratio against the 256 checkpoint plus that absolute rule, has to be fixed before the quality read. Otherwise a +0.3pp gain can be justified after the fact.\n\n## The four crucial questions\n\n**Is the archived control exact?** Structurally yes; functionally not yet proven.\n- What is already sound:\n  - Each chunk receipt records the schedule hash (`a38d1be8…`), the initial-state hash, and per-step RGB/pixel hashes with CE, rank loss, loss, scaler, pre-clip norm and gradient norms.\n  - The 10-chunk chain was re-verified by `archive-verification.json`.\n  - The held wires and the CPU audit are preserved.\n- What is missing:\n  - The CPU zero-treatment check compares fingerprints and first-batch pixels only. It doesn't show that the *new driver's training step* matches.\n  - Training is deterministic: deterministic algorithms and a fixed CUBLAS workspace, TF32 off, per-step seeded augmentation, and RNG asserted unused. So the 256 branch of the new driver should reproduce the archived step 1–17 rows bit-exactly (all fields except `seconds`).\n  - That replay also catches any drift in the DGX libraries. It is the cheapest real proof that the control is exact.\n- Code that can't be reused unchanged:\n  - `pe_large_optimization.identity()` hard-binds the old `proof['frozen_prefix_sha256']`, and `save()`/`restore()` assert it.\n  - The chunk runner asserts `source['environment']`, which includes the processor's 256 size.\n  - A new resume schema is needed. Patching the proof dict in place must be forbidden.\n  - The held-read qualifier builds its model and processor from the 256 snapshot (`qualify_pe_teacher_retained256.py:97`).\n\n**Are materialization, reload and freezing valid?**\n- Correct counts:\n  - 400 vision tensors in total.\n  - 195 frozen parameters: 3 embedding tensors plus 12 blocks × 16. Of these, 194 must stay bitwise-equal to F5; the other is the new position table. The `position_ids` buffer is also frozen.\n  - 205 trainable vision tensors, plus 2 head and 1 classifier tensor: 208 optimizer tensors in 3 groups.\n  - The planner's 162 is wrong.\n- Traps:\n  - A new `nn.Parameter` defaults to `requires_grad=True`.\n  - Building `nn.Embedding(324, …)` consumes CPU RNG unless it runs inside `fork_rng`.\n  - The interpolation must be pinned and hashed: CPU, FP32, bicubic, `align_corners=False`.\n  - The config's `image_size` must be 288 so the strict reload at `type(model)(config)` builds 324 rows.\n  - Order matters: verify F5 at 256 → materialize → rebuild inventory and digest → build AdamW, as `expand()` does.\n- `interpolate_pos_encoding` appears nowhere in the reused paths, so a mismatched 256 processor fails loudly. Assert that it stays that way.\n\n**Are the resource caps and the 120 s mechanics cap feasible?**\n- The archived 256 mechanics took 86.25 s wall (77.0 s in-process), with 5.9 GB host memory and 6.14 GB CUDA at peak.\n- At 288 the step time goes from about 1.17 s to about 1.5 s. Attention is about 4% of FLOPs at 256 tokens, so cost scales nearly linearly with tokens.\n- That projects to about 95–100 s against a 120 s cap with no rescue, which is tight. The retained256 precedent used a 299 s GPU cap; I recommend 300 s.\n- Estimated chunks: about 185–190 s in-process out of 300, admission figure about 180 (limit 269), cost ratio about 1.3 (limit 1.5), CUDA about 7.5 GB, held read about 160 s. These are projections, not measurements.\n\n**Is the scientific floor and seed plan sufficient?** Not quite.\n- +0.30pp is about 19 net queries out of roughly 141 control errors.\n- \"Exceeds single-seed variability\" has not been measured for this recipe. The ±0.1–0.2pp figure came from the dense 100-update runs.\n- The 288 arm changes pixels at every step, so it will correlate less with the control than the retained256 near-copy did. Its paired interval will be wider than ±0.17pp, which makes the \"lower bound > 0\" rule the one that actually binds.\n- A mAP@R rule of \"point estimate ≥ 0\" is not a non-inferiority test, and resolution changes hurt mAP@R most. Add a declared margin, for example product-bootstrap lower bound ≥ −0.20pp.\n- `SEED` 179032 is hard-coded and drives both the batch schedule and the augmentation. The confirmation run therefore needs a source change plus a fresh 256 control at the new seed; the archive has none. Preregister now:\n  - the seed value;\n  - both arms run fresh and interleaved, which also gives the first contemporaneous cost ratio;\n  - the confirmation rule itself.\n\n**What is missing for public serving?**\n- `Siglip2CompactEncoder` rejects any processor that isn't 256 (lines 206–211).\n- It builds `SiglipVisionModel` from the 256 snapshot config.\n- It captures the batch-1 CUDA graph at (1,3,256,256).\n- The fast direct preprocessing path hard-codes resize to 256 and only turns on for the pinned 256 preprocessor digest. At 288 it would silently switch off and fall back to the slower processor path, so latency would be measured on the wrong path.\n- Direct-vs-processor parity has to be re-certified at 288.\n- The generic packed scorer can be reused unchanged.\n\n## Cheapest falsifier\n\n1. **Source-size census (seconds of CPU).** Count image sizes over the fit and held manifests. If they are all 256×256, finding 1 is confirmed.\n2. **One zero-training 288 held read of the preserved 128 control checkpoint.** Use the materialized positions and the 288 processor, and score against the control's own archived 256 wires with the same roles and bootstrap. This costs about 160 s of GPU plus a CPU audit, with no training. It measures the deficit that training would have to overturn. It also exercises the materialization, processor and qualifier path at 288 before any training money is spent.\n\n   Preregister before reading it: if R1 change ≤ −0.30pp or mAP@R change ≤ −1.0pp, do not train. Passing the gate would then need about a 0.6pp R1 swing driven by training, which this ledger has never seen at 1000 updates.\n\n## What would let this be admitted\n\n- Restate the mechanism as token supersampling and declare the double-resize asymmetry.\n- Run the two falsifiers above.\n- Add the 256 bit-exact replay of steps 1–17.\n- Use a 300 s mechanics cap.\n- Preregister the serving-cost tolerance, the mAP@R margin, and the confirmation seed and control, all before any quality read.\n\nI saved this verdict to memory as `sfora-inshop-trained288-premise-reject`.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "claude": "# REJECT (as written)\n\nI'm rejecting the proposal as written. The mechanism it names can't happen on this data, and the evidence it cites for a gain points the other way. The bookkeeping (control chain, serialization, resource caps) is mostly sound and can be fixed. I edited nothing in the repo, ran no jobs and started no consults. The only thing I wrote was a memory note outside the repo.\n\n## Findings, most serious first\n\n**1. Training at 288 adds no image detail on this corpus.**\n- The loader reads `Img/img` (`src/sfora/unicom_inshop.py:24`), which the repo itself records as the \"standard 256x256\" partition (`docs/rspg_corrected_pixel_screen_preregistration_304_2026-08-03.md:9`).\n- Training images are made by `RandomResizedCrop(256, scale=(0.8,1.0))` (`scripts/train_sop_siglip2_compact.py:152`).\n- The proposal also requires every step's RGB hash to match the control. So the 288 arm must train on 256×256 crops that the processor then stretches to 288.\n- Evaluation is a plain 256→288 upsample.\n- The planner's case rests on this being \"the first trained change to pixel information\" and \"more pixel detail\". The parent calls it \"increased spatial sampling\". All three are wrong.\n- What is actually being tested: about 27% more tokens (324 vs 256) cut from upsampled pixels, with frozen, interpolated positions.\n- There is also a hidden asymmetry. Training images are resized twice in the 288 arm (crop resize, then processor) but only once in the control. At evaluation the 288 arm resizes once and the control likely not at all. This has to be declared as part of the treatment.\n\n**2. Nothing in the evidence predicts a gain.**\n- Every zero-training resize lost quality:\n\n  | Size | R1 change | mAP@R change |\n  | --- | ---: | ---: |\n  | 192 | −1.61pp | — |\n  | 224 | −0.75pp | — |\n  | 320 | −0.39pp (asymmetric) | −1.79pp (symmetric) |\n\n- The 192 and 224 losses come from throwing information away, so they say nothing about going up.\n- The planner's own ledger says R1 \"stays near zero\" under 1000-update training changes. So a +0.30pp R1 gain would have to come from the resolution change, and at zero training that change is negative.\n- The rationale that training blocks 12–23 \"removes the unfamiliar-position confound\" only half holds. The embeddings and blocks 0–11, including the interpolated position table, stay frozen.\n- The 320 preflight's terminal rule asked for a *distinct* reason to expect training to reverse both losses. This proposal doesn't supply one.\n\n**3. The serving cost is not constrained before quality is read.**\n- 288 adds roughly 27–30% encoder compute. The matched-speed half of the goal is active, and SOP already has no speed win.\n- The 320 preflight set a precedent: batch-1 and batch-32 p95 below 90% of UNICOM's 39.055 ms and 568.963 ms. Nothing equivalent is declared here.\n- A cost-tolerance rule, for example a batch-1 p95 ratio against the 256 checkpoint plus that absolute rule, has to be fixed before the quality read. Otherwise a +0.3pp gain can be justified after the fact.\n\n## The four crucial questions\n\n**Is the archived control exact?** Structurally yes; functionally not yet proven.\n- What is already sound:\n  - Each chunk receipt records the schedule hash (`a38d1be8…`), the initial-state hash, and per-step RGB/pixel hashes with CE, rank loss, loss, scaler, pre-clip norm and gradient norms.\n  - The 10-chunk chain was re-verified by `archive-verification.json`.\n  - The held wires and the CPU audit are preserved.\n- What is missing:\n  - The CPU zero-treatment check compares fingerprints and first-batch pixels only. It doesn't show that the *new driver's training step* matches.\n  - Training is deterministic: deterministic algorithms and a fixed CUBLAS workspace, TF32 off, per-step seeded augmentation, and RNG asserted unused. So the 256 branch of the new driver should reproduce the archived step 1–17 rows bit-exactly (all fields except `seconds`).\n  - That replay also catches any drift in the DGX libraries. It is the cheapest real proof that the control is exact.\n- Code that can't be reused unchanged:\n  - `pe_large_optimization.identity()` hard-binds the old `proof['frozen_prefix_sha256']`, and `save()`/`restore()` assert it.\n  - The chunk runner asserts `source['environment']`, which includes the processor's 256 size.\n  - A new resume schema is needed. Patching the proof dict in place must be forbidden.\n  - The held-read qualifier builds its model and processor from the 256 snapshot (`qualify_pe_teacher_retained256.py:97`).\n\n**Are materialization, reload and freezing valid?**\n- Correct counts:\n  - 400 vision tensors in total.\n  - 195 frozen parameters: 3 embedding tensors plus 12 blocks × 16. Of these, 194 must stay bitwise-equal to F5; the other is the new position table. The `position_ids` buffer is also frozen.\n  - 205 trainable vision tensors, plus 2 head and 1 classifier tensor: 208 optimizer tensors in 3 groups.\n  - The planner's 162 is wrong.\n- Traps:\n  - A new `nn.Parameter` defaults to `requires_grad=True`.\n  - Building `nn.Embedding(324, …)` consumes CPU RNG unless it runs inside `fork_rng`.\n  - The interpolation must be pinned and hashed: CPU, FP32, bicubic, `align_corners=False`.\n  - The config's `image_size` must be 288 so the strict reload at `type(model)(config)` builds 324 rows.\n  - Order matters: verify F5 at 256 → materialize → rebuild inventory and digest → build AdamW, as `expand()` does.\n- `interpolate_pos_encoding` appears nowhere in the reused paths, so a mismatched 256 processor fails loudly. Assert that it stays that way.\n\n**Are the resource caps and the 120 s mechanics cap feasible?**\n- The archived 256 mechanics took 86.25 s wall (77.0 s in-process), with 5.9 GB host memory and 6.14 GB CUDA at peak.\n- At 288 the step time goes from about 1.17 s to about 1.5 s. Attention is about 4% of FLOPs at 256 tokens, so cost scales nearly linearly with tokens.\n- That projects to about 95–100 s against a 120 s cap with no rescue, which is tight. The retained256 precedent used a 299 s GPU cap; I recommend 300 s.\n- Estimated chunks: about 185–190 s in-process out of 300, admission figure about 180 (limit 269), cost ratio about 1.3 (limit 1.5), CUDA about 7.5 GB, held read about 160 s. These are projections, not measurements.\n\n**Is the scientific floor and seed plan sufficient?** Not quite.\n- +0.30pp is about 19 net queries out of roughly 141 control errors.\n- \"Exceeds single-seed variability\" has not been measured for this recipe. The ±0.1–0.2pp figure came from the dense 100-update runs.\n- The 288 arm changes pixels at every step, so it will correlate less with the control than the retained256 near-copy did. Its paired interval will be wider than ±0.17pp, which makes the \"lower bound > 0\" rule the one that actually binds.\n- A mAP@R rule of \"point estimate ≥ 0\" is not a non-inferiority test, and resolution changes hurt mAP@R most. Add a declared margin, for example product-bootstrap lower bound ≥ −0.20pp.\n- `SEED` 179032 is hard-coded and drives both the batch schedule and the augmentation. The confirmation run therefore needs a source change plus a fresh 256 control at the new seed; the archive has none. Preregister now:\n  - the seed value;\n  - both arms run fresh and interleaved, which also gives the first contemporaneous cost ratio;\n  - the confirmation rule itself.\n\n**What is missing for public serving?**\n- `Siglip2CompactEncoder` rejects any processor that isn't 256 (lines 206–211).\n- It builds `SiglipVisionModel` from the 256 snapshot config.\n- It captures the batch-1 CUDA graph at (1,3,256,256).\n- The fast direct preprocessing path hard-codes resize to 256 and only turns on for the pinned 256 preprocessor digest. At 288 it would silently switch off and fall back to the slower processor path, so latency would be measured on the wrong path.\n- Direct-vs-processor parity has to be re-certified at 288.\n- The generic packed scorer can be reused unchanged.\n\n## Cheapest falsifier\n\n1. **Source-size census (seconds of CPU).** Count image sizes over the fit and held manifests. If they are all 256×256, finding 1 is confirmed.\n2. **One zero-training 288 held read of the preserved 128 control checkpoint.** Use the materialized positions and the 288 processor, and score against the control's own archived 256 wires with the same roles and bootstrap. This costs about 160 s of GPU plus a CPU audit, with no training. It measures the deficit that training would have to overturn. It also exercises the materialization, processor and qualifier path at 288 before any training money is spent.\n\n   Preregister before reading it: if R1 change ≤ −0.30pp or mAP@R change ≤ −1.0pp, do not train. Passing the gate would then need about a 0.6pp R1 swing driven by training, which this ledger has never seen at 1000 updates.\n\n## What would let this be admitted\n\n- Restate the mechanism as token supersampling and declare the double-resize asymmetry.\n- Run the two falsifiers above.\n- Add the 256 bit-exact replay of steps 1–17.\n- Use a 300 s mechanics cap.\n- Preregister the serving-cost tolerance, the mAP@R margin, and the confirmation seed and control, all before any quality read.\n\nI saved this verdict to memory as `sfora-inshop-trained288-premise-reject`."
+      },
+      "providers_used": [
+        "claude"
+      ],
+      "active_provider": "claude",
+      "phase": "Consultation completed",
+      "input_bytes": 3276,
+      "output_bytes": 9276,
+      "elapsed_seconds": 530,
+      "progress": "devbox-ask: claude consult still running (0m 30s)\ndevbox-ask: claude consult still running (1m 00s)\ndevbox-ask: claude consult still running (1m 30s)\ndevbox-ask: claude consult still running (2m 00s)\ndevbox-ask: claude consult still running (2m 30s)\ndevbox-ask: claude consult still running (3m 30s)\ndevbox-ask: claude consult still running (4m 00s)\ndevbox-ask: claude consult still running (4m 30s)\ndevbox-ask: claude consult still running (5m 00s)\ndevbox-ask: claude consult still running (5m 30s)\ndevbox-ask: claude consult still running (6m 00s)\ndevbox-ask: claude consult still running (6m 30s)\ndevbox-ask: claude consult still running (7m 00s)\ndevbox-ask: claude consult still running (7m 30s)\ndevbox-ask: claude consult still running (8m 00s)\ndevbox-ask: claude consult still running (8m 30s)",
+      "progress_truncated": false,
+      "result": "# REJECT (as written)\n\nI'm rejecting the proposal as written. The mechanism it names can't happen on this data, and the evidence it cites for a gain points the other way. The bookkeeping (control chain, serialization, resource caps) is mostly sound and can be fixed. I edited nothing in the repo, ran no jobs and started no consults. The only thing I wrote was a memory note outside the repo.\n\n## Findings, most serious first\n\n**1. Training at 288 adds no image detail on this corpus.**\n- The loader reads `Img/img` (`src/sfora/unicom_inshop.py:24`), which the repo itself records as the \"standard 256x256\" partition (`docs/rspg_corrected_pixel_screen_preregistration_304_2026-08-03.md:9`).\n- Training images are made by `RandomResizedCrop(256, scale=(0.8,1.0))` (`scripts/train_sop_siglip2_compact.py:152`).\n- The proposal also requires every step's RGB hash to match the control. So the 288 arm must train on 256×256 crops that the processor then stretches to 288.\n- Evaluation is a plain 256→288 upsample.\n- The planner's case rests on this being \"the first trained change to pixel information\" and \"more pixel detail\". The parent calls it \"increased spatial sampling\". All three are wrong.\n- What is actually being tested: about 27% more tokens (324 vs 256) cut from upsampled pixels, with frozen, interpolated positions.\n- There is also a hidden asymmetry. Training images are resized twice in the 288 arm (crop resize, then processor) but only once in the control. At evaluation the 288 arm resizes once and the control likely not at all. This has to be declared as part of the treatment.\n\n**2. Nothing in the evidence predicts a gain.**\n- Every zero-training resize lost quality:\n\n  | Size | R1 change | mAP@R change |\n  | --- | ---: | ---: |\n  | 192 | −1.61pp | — |\n  | 224 | −0.75pp | — |\n  | 320 | −0.39pp (asymmetric) | −1.79pp (symmetric) |\n\n- The 192 and 224 losses come from throwing information away, so they say nothing about going up.\n- The planner's own ledger says R1 \"stays near zero\" under 1000-update training changes. So a +0.30pp R1 gain would have to come from the resolution change, and at zero training that change is negative.\n- The rationale that training blocks 12–23 \"removes the unfamiliar-position confound\" only half holds. The embeddings and blocks 0–11, including the interpolated position table, stay frozen.\n- The 320 preflight's terminal rule asked for a *distinct* reason to expect training to reverse both losses. This proposal doesn't supply one.\n\n**3. The serving cost is not constrained before quality is read.**\n- 288 adds roughly 27–30% encoder compute. The matched-speed half of the goal is active, and SOP already has no speed win.\n- The 320 preflight set a precedent: batch-1 and batch-32 p95 below 90% of UNICOM's 39.055 ms and 568.963 ms. Nothing equivalent is declared here.\n- A cost-tolerance rule, for example a batch-1 p95 ratio against the 256 checkpoint plus that absolute rule, has to be fixed before the quality read. Otherwise a +0.3pp gain can be justified after the fact.\n\n## The four crucial questions\n\n**Is the archived control exact?** Structurally yes; functionally not yet proven.\n- What is already sound:\n  - Each chunk receipt records the schedule hash (`a38d1be8…`), the initial-state hash, and per-step RGB/pixel hashes with CE, rank loss, loss, scaler, pre-clip norm and gradient norms.\n  - The 10-chunk chain was re-verified by `archive-verification.json`.\n  - The held wires and the CPU audit are preserved.\n- What is missing:\n  - The CPU zero-treatment check compares fingerprints and first-batch pixels only. It doesn't show that the *new driver's training step* matches.\n  - Training is deterministic: deterministic algorithms and a fixed CUBLAS workspace, TF32 off, per-step seeded augmentation, and RNG asserted unused. So the 256 branch of the new driver should reproduce the archived step 1–17 rows bit-exactly (all fields except `seconds`).\n  - That replay also catches any drift in the DGX libraries. It is the cheapest real proof that the control is exact.\n- Code that can't be reused unchanged:\n  - `pe_large_optimization.identity()` hard-binds the old `proof['frozen_prefix_sha256']`, and `save()`/`restore()` assert it.\n  - The chunk runner asserts `source['environment']`, which includes the processor's 256 size.\n  - A new resume schema is needed. Patching the proof dict in place must be forbidden.\n  - The held-read qualifier builds its model and processor from the 256 snapshot (`qualify_pe_teacher_retained256.py:97`).\n\n**Are materialization, reload and freezing valid?**\n- Correct counts:\n  - 400 vision tensors in total.\n  - 195 frozen parameters: 3 embedding tensors plus 12 blocks × 16. Of these, 194 must stay bitwise-equal to F5; the other is the new position table. The `position_ids` buffer is also frozen.\n  - 205 trainable vision tensors, plus 2 head and 1 classifier tensor: 208 optimizer tensors in 3 groups.\n  - The planner's 162 is wrong.\n- Traps:\n  - A new `nn.Parameter` defaults to `requires_grad=True`.\n  - Building `nn.Embedding(324, …)` consumes CPU RNG unless it runs inside `fork_rng`.\n  - The interpolation must be pinned and hashed: CPU, FP32, bicubic, `align_corners=False`.\n  - The config's `image_size` must be 288 so the strict reload at `type(model)(config)` builds 324 rows.\n  - Order matters: verify F5 at 256 → materialize → rebuild inventory and digest → build AdamW, as `expand()` does.\n- `interpolate_pos_encoding` appears nowhere in the reused paths, so a mismatched 256 processor fails loudly. Assert that it stays that way.\n\n**Are the resource caps and the 120 s mechanics cap feasible?**\n- The archived 256 mechanics took 86.25 s wall (77.0 s in-process), with 5.9 GB host memory and 6.14 GB CUDA at peak.\n- At 288 the step time goes from about 1.17 s to about 1.5 s. Attention is about 4% of FLOPs at 256 tokens, so cost scales nearly linearly with tokens.\n- That projects to about 95–100 s against a 120 s cap with no rescue, which is tight. The retained256 precedent used a 299 s GPU cap; I recommend 300 s.\n- Estimated chunks: about 185–190 s in-process out of 300, admission figure about 180 (limit 269), cost ratio about 1.3 (limit 1.5), CUDA about 7.5 GB, held read about 160 s. These are projections, not measurements.\n\n**Is the scientific floor and seed plan sufficient?** Not quite.\n- +0.30pp is about 19 net queries out of roughly 141 control errors.\n- \"Exceeds single-seed variability\" has not been measured for this recipe. The ±0.1–0.2pp figure came from the dense 100-update runs.\n- The 288 arm changes pixels at every step, so it will correlate less with the control than the retained256 near-copy did. Its paired interval will be wider than ±0.17pp, which makes the \"lower bound > 0\" rule the one that actually binds.\n- A mAP@R rule of \"point estimate ≥ 0\" is not a non-inferiority test, and resolution changes hurt mAP@R most. Add a declared margin, for example product-bootstrap lower bound ≥ −0.20pp.\n- `SEED` 179032 is hard-coded and drives both the batch schedule and the augmentation. The confirmation run therefore needs a source change plus a fresh 256 control at the new seed; the archive has none. Preregister now:\n  - the seed value;\n  - both arms run fresh and interleaved, which also gives the first contemporaneous cost ratio;\n  - the confirmation rule itself.\n\n**What is missing for public serving?**\n- `Siglip2CompactEncoder` rejects any processor that isn't 256 (lines 206–211).\n- It builds `SiglipVisionModel` from the 256 snapshot config.\n- It captures the batch-1 CUDA graph at (1,3,256,256).\n- The fast direct preprocessing path hard-codes resize to 256 and only turns on for the pinned 256 preprocessor digest. At 288 it would silently switch off and fall back to the slower processor path, so latency would be measured on the wrong path.\n- Direct-vs-processor parity has to be re-certified at 288.\n- The generic packed scorer can be reused unchanged.\n\n## Cheapest falsifier\n\n1. **Source-size census (seconds of CPU).** Count image sizes over the fit and held manifests. If they are all 256×256, finding 1 is confirmed.\n2. **One zero-training 288 held read of the preserved 128 control checkpoint.** Use the materialized positions and the 288 processor, and score against the control's own archived 256 wires with the same roles and bootstrap. This costs about 160 s of GPU plus a CPU audit, with no training. It measures the deficit that training would have to overturn. It also exercises the materialization, processor and qualifier path at 288 before any training money is spent.\n\n   Preregister before reading it: if R1 change ≤ −0.30pp or mAP@R change ≤ −1.0pp, do not train. Passing the gate would then need about a 0.6pp R1 swing driven by training, which this ledger has never seen at 1000 updates.\n\n## What would let this be admitted\n\n- Restate the mechanism as token supersampling and declare the double-resize asymmetry.\n- Run the two falsifiers above.\n- Add the 256 bit-exact replay of steps 1–17.\n- Use a 300 s mechanics cap.\n- Preregister the serving-cost tolerance, the mAP@R margin, and the confirmation seed and control, all before any quality read.\n\nI saved this verdict to memory as `sfora-inshop-trained288-premise-reject`.",
+      "result_truncated": false
+    },
+    {
+      "role": "engineering_critic",
+      "id": "848f7b2bce3f4a51",
+      "provider": "codex",
+      "model": "gpt-6-astra",
+      "fallbacks": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6.1-sol"
+        }
+      ],
+      "agent": "sfora/emafactorial",
+      "cwd": "/home/rb/worktrees/sfora-positive-causality",
+      "status": "completed",
+      "runner_started": true,
+      "started_at": 1790730072,
+      "timeout_seconds": 1200,
+      "deadline_at": 1790731272,
+      "budget_usd": null,
+      "prompt_preview": "Act as the independent adversarial engineering and release critic. Inspect correctness, failure modes, security, operability, tests, and UX. Prioritize concrete findings with evidence. Do not edit files.\n\nMaterial to critique:\nRead-only new consequential design review at /home/rb/worktrees/sfora-positive-causality masterfc22bd4f. Read docs/inshop_trained_resolution288_proposal_2026-09-30.md (PARENTreconciledauthority), currentretainedofficialresult, old192/224/320 zerotrainingresize terminaldocs, archivedteacher-retained1281000 trainer/controller/qualifier, pe_large_optimization serialization, publicSiglip2CompactEncoder. Completedplanconsultf68e47a699474b18 advisoryrawtrained-resolution288-plan-v1/consultation.json notauthority. Allmodeljobs/previousreviews/consultplan TERMINAL, DGXidle; fullSOP+InShop protocolstrongestqualityANDmatchedpublicspeedgoalACTIVE. ExactlyONEproposal: TRAIN288 vsarchived256/F5 correctedfreeze12 native128 at1000updates/seed179032 identicalfit13283images2004products/schedule/objective/optimizer/F32FP16auto/head/classifier/initialbank/RNG exceptdeclared geometry+pixels. Deterministicbicubicposition16x16->18x18 materialized324rows plusposition_ids/config/processor changedexplicitnewidentity; allotheroriginalweightsunchanged; independentfrozenprefixnames/optimizerIDs (planner162countwrong). Doesarchivedcontrolactuallymatchallrecipe/initialstate/source/schedule/RGB/rawreceipt/wires? CPU120 actualconstructor/negativeauthority; ONEdiscardedGPU120 uninterrupted17==serialized8+9 FULLAdamW/scaler/bank/classifier/globalcounter/allnative/head/nonpersistentbuffers/RNG/pixels/loss plusstrictnative400reload/normalizedpackedparity. ChangedgeometryneedsNEWresumeproof. Bothlocks/8GiBnoSwap/<10GBCUDA, measuredchunkprojection<=269;10originalsequential100chunks300each, noqualityuntilcomplete,norescue. Publicconstructorhard256 needs explicit288processor/config/checkpoint/publicdirectnativeB1/B32qualification beforeclaims; genericpackedscorercanreuse, oldexporterCANNOTunchanged. ProposedpracticalTRAINfloor+.30ppR1,positiveproduct95lower,APpoint>=0 with5000seed179019, explicitlyNOofficialgap-derivedthreshold; single-seedexploratoryonly, pairedindependentseedconfirmation beforefullTRAIN3997/2000promotion. Historicalaggregatewall/median<=1.5cost notcontemporaneousoverheadclaim. Old320zero-trainingqualitynegative doesn'tprove trained288gain; doNOTclaimalternativesexhausted/uniquecause. Freshdenseofficialmatched94.295963/75.441599 vs94.063863/74.977123 positiveCI preservedbutdated96.7KILLonly notselectionevidence. No latency/resourceforecastasmeasurement/admission; finalstrongestcurrentreferences/matchedpublicp50p95p99QPS10000pairedCI/SOP+CUBCars mandatory. DoNOTedit/SSH/Torch/GPU/jobs/quality/otherconsult/operator. ReviewthisONEmechanism notnewresearch/alternatives. Returnseparatelylabelled ADMITQUALIFICATION orREJECT withprioritizedconcretefindingsandcheapestfalsifier; parentverifies. Crucial questions: archivecontrolexactness, validmaterialization/reload/freezes, resource/resume120capfeasibility, scientificfloor/seedplan andpublicservinggap. No paid same-question duplicates.",
+      "prompt_sha256": "2f39c75dd16f343ad46a2cf601c7e9f8651ab3c6e3cc08028fb3924bf737a304",
+      "prompt_bytes": 3310,
+      "fingerprint": "90013dfc3a367767cf78d68353da92202e73d38d680d5403cfa42e8f9909ee4a",
+      "evidence": {
+        "git_commit": "fc22bd4f69c1983eb9cb8b7405b8b6fef9b3020e",
+        "git_branch": "master",
+        "git_dirty": true,
+        "git_status_sha256": "59d640ad8d4f7900020b9111829614de7affda2325f85e58fb4dd82507758d83",
+        "worktree_sha256": "70cdefcb8d335bc6754965042cc605e748686f97f3f0c3ac7fd8ba5d0e062584",
+        "worktree_evidence_truncated": false,
+        "active_goal": {
+          "id": "goal-1790540789-1790540789754989478-2322852",
+          "agent": "sfora/emafactorial",
+          "objective": "Ship a production-ready Sfora learned-vector-space retrieval library whose deployed image-to-top-k system surpasses the strongest protocol-matched published quality reference on BOTH SOP and DeepFashion In-Shop and is faster end-to-end at matched quality, hardware, cache, batch size and gallery scale. Keep useful Rust/CUDA/CuTile code, exact packed top-k/tie semantics, clean packages, bounded resources and reproducible tests; no paper-only result. Preserve all current Sfora work, consultations and DGX jobs, inspect before launching, and do not duplicate. Current verified exploratory anchors: three-seed public-config SOP official TEST packed R@1 91.7419% versus dated UNICOM 91.2%, but TEST was previously observed and no matched full-pipeline speed win exists; older three-seed In-Shop official query/gallery packed R@1 95.4823% versus UNICOM 96.7%, while the newer true-freeze checkpoint has no official result. Its TRAIN holdout diagnostic got 97.6235% on 6,354 queries, but this is not an official or scale-projected result; impostor-count misses are sublinear, so the linear scaling premise failed. The selected SOP batch-1 p99 diagnostic was 19.622 versus 19.606 ms, not a speed win; batch-32 global thread reduction failed p99. CUB transfer gain is positive, Cars transfer inconclusive. Treat all these as evidence, not SOTA claims. Diagnose the concrete In-Shop quality gap and the public image-to-result latency bottleneck from existing receipts; pick ONE cheapest causally distinct TRAIN-only intervention, with a predeclared stop rule, instead of another series of unbounded probes or loss tweaks. Consider representation, architecture, data coverage, sampling, supervision, training algorithm, compression, preprocessing and serving; use psychology/physics/other-field inspiration only when it yields a testable mechanism. Freeze method and checkpoint selection on TRAIN identities; compare matched backbone, data, compute budget, scorer and paired seeds, report R@1/mAP@R and class/query uncertainty. Qualify both official protocols, plus CUB and Cars transfer, distinguishing exploratory official reads from new independent confirmation. Preserve actual packed-score quality; exact output parity is mandatory for kernel changes. Measure training time, images/s and VRAM and full decode/preprocess/encoder/packing/native-search/image-to-top-k p50/p95/p99 and QPS at batch1 and batch32, same hardware and query/gallery. A p99 product claim needs 10,000 interleaved paired calls and a confidence interval. Run GPU work only on authenticated DGX Spark after cheaper local/CPU falsifiers, with raw receipts and cost. Use Opus 5.5 plus GPT-6 Astra for consequential critique and Fable for truly new research, without duplicate jobs. If either quality or speed fails, change the responsible layer and stop negative arms early. Within 24 hours push a substantive library/training increment and concise verified decision table with datasets, splits, controls, quality, speed, uncertainty and next gate; continue until the production joint quality-and-speed target is met.",
+          "status": "queued",
+          "revision": 1,
+          "actor": "operator",
+          "note": "Operator audit refresh: current SOP/In-Shop evidence, failed impostor-scaling and p99 assumptions, decisive production quality+speed gates.",
+          "created_at": 1790540789,
+          "updated_at": 1790540789
+        }
+      },
+      "previous_fingerprint": "5fa40920cf35fbcf9ee67988498ac6159a4c666d3082c724fe118726cdaeae38",
+      "reused": false,
+      "critique_id": "570d75310b8442de",
+      "critique_role": "engineering_critic",
+      "systemd_unit": "devbox-consult-848f7b2bce3f4a51.service",
+      "pid": 962203,
+      "pgid": 962203,
+      "attempt": 1,
+      "attempts": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra"
+        },
+        {
+          "provider": "claude",
+          "model": "claude-opus-5-5"
+        },
+        {
+          "provider": "codex",
+          "model": "gpt-6.1-sol"
+        }
+      ],
+      "attempt_history": [
+        {
+          "provider": "codex",
+          "model": "gpt-6-astra",
+          "budget_usd": null,
+          "timeout_seconds": 1199,
+          "started_at": 1790730073
+        }
+      ],
+      "exit_code": 0,
+      "finished_at": 1790730486,
+      "event_cursor": 66,
+      "events": [
+        {
+          "seq": 43,
+          "at": 1790730273,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 44,
+          "at": 1790730279,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 45,
+          "at": 1790730284,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 46,
+          "at": 1790730294,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 47,
+          "at": 1790730294,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 48,
+          "at": 1790730308,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 49,
+          "at": 1790730310,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 50,
+          "at": 1790730325,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 51,
+          "at": 1790730335,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 52,
+          "at": 1790730335,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 53,
+          "at": 1790730337,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 54,
+          "at": 1790730343,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 55,
+          "at": 1790730344,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 56,
+          "at": 1790730352,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 57,
+          "at": 1790730353,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 1"
+        },
+        {
+          "seq": 58,
+          "at": 1790730385,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 59,
+          "at": 1790730386,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 60,
+          "at": 1790730386,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 61,
+          "at": 1790730386,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 62,
+          "at": 1790730406,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 63,
+          "at": 1790730427,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command started"
+        },
+        {
+          "seq": 64,
+          "at": 1790730427,
+          "provider": "codex",
+          "kind": "tool",
+          "label": "Shell command completed",
+          "detail": "exit 0"
+        },
+        {
+          "seq": 65,
+          "at": 1790730486,
+          "provider": "codex",
+          "kind": "partial",
+          "label": "Answer available"
+        },
+        {
+          "seq": 66,
+          "at": 1790730486,
+          "provider": "codex",
+          "kind": "phase",
+          "label": "Consultation completed",
+          "detail": "exit 0"
+        }
+      ],
+      "events_truncated": true,
+      "provider_events": {
+        "codex": [
+          {
+            "seq": 59,
+            "at": 1790730386,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 60,
+            "at": 1790730386,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 61,
+            "at": 1790730386,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 62,
+            "at": 1790730406,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 63,
+            "at": 1790730427,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command started"
+          },
+          {
+            "seq": 64,
+            "at": 1790730427,
+            "provider": "codex",
+            "kind": "tool",
+            "label": "Shell command completed",
+            "detail": "exit 0"
+          },
+          {
+            "seq": 65,
+            "at": 1790730486,
+            "provider": "codex",
+            "kind": "partial",
+            "label": "Answer available"
+          },
+          {
+            "seq": 66,
+            "at": 1790730486,
+            "provider": "codex",
+            "kind": "phase",
+            "label": "Consultation completed",
+            "detail": "exit 0"
+          }
+        ]
+      },
+      "partial_result": "**Engineering/release critic — REJECT the current proposal.** The training-input contract contradicts the stated mechanism. Resolve that before admitting qualification; this finding does not establish that trained288 would fail.\n\n1. **P1 — Training crops have already been reduced to 256 pixels.**  \n   [ImageRows](/home/rb/worktrees/sfora-positive-causality/scripts/train_sop_siglip2_compact.py:149) applies `RandomResizedCrop(256)` before [augmented_images](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_pe_pair.py:35) hashes the resulting RGB images. The [trainer](/home/rb/worktrees/sfora-positive-causality/scripts/train_pe_teacher_retained256.py:189) then passes those images to the processor. Consequently, preserving every archived augmented-RGB hash while changing only the processor to288 produces **256→288 upsampling**. It cannot recover training detail discarded by the first resize. Held inference, meanwhile, skips augmentation and processes original images.\n\n   **Cheapest falsifier:** the static call chain already establishes this; the eventual CPU prerequisite can confirm the preprocessor input dimensions on one scheduled batch. For actual288 crop sampling, preserve source-image identity, crop coordinates and flip choices, while explicitly declaring changed rendered-RGB hashes. The parent must reconcile this with the current exact-RGB requirement before freezing code.\n\n2. **P1 — The quality comparison needs an explicit inference-precision contract.**  \n   The archived control’s receipt declares `private_native_fp16`, batch32. Its [qualifier](/home/rb/worktrees/sfora-positive-causality/scripts/qualify_pe_teacher_retained256.py:208) casts vision weights and pixels to FP16. That differs from F32 parameters under FP16 autocast, which the [public API supports separately](/home/rb/worktrees/sfora-positive-causality/src/sfora/siglip2_compact_serving.py:310). The proposal specifies training precision but leaves this evaluation choice implicit. Using public F32-autocast candidate wires against archived native-FP16 control wires introduces another intervention.\n\n   **Cheapest falsifier:** compare the proposed export precision/batch manifest with the archived receipt before encoding. Freeze native-FP16/B32 for the matched TRAIN comparison, or establish complete wire equivalence before treating another mode as interchangeable.\n\n3. **P2 — Serialization is reusable, but its current geometry authority rejects288.**  \n   [Resume identity](/home/rb/worktrees/sfora-positive-causality/scripts/pe_large_optimization.py:104) calls [runtime_identity](/home/rb/worktrees/sfora-positive-causality/scripts/pe_large_pool.py:81), which asserts `image_size == 256`. The inherited trainer also requires final processor/environment equality with the256 source. Materialization therefore needs an explicit new geometry identity throughout construction, save, restore and export—not just a resized weight.\n\n   The archived inventory contains **195 frozen native parameters**, including the positional embedding: **194 unchanged frozen parameters**,205 trainable native parameters, and208 optimizer members after adding head and classifier. Derive and verify names/IDs rather than trusting counts. Strict400-key loading alone does not authenticate nonpersistent buffers or runtime geometry.\n\n   **Cheapest falsifier:** the proposed CPU constructor/reload test, including rejection of stale256 config, position IDs, inconsistent geometry and a mutated frozen tensor. The later GPU test must compare independently reconstructed complete states.\n\n4. **P2 — Archived control evidence checks out locally; copying current scripts does not reproduce its entire closure.**  \n   I verified all ten control receipt links, checkpoint-reference links, controller entries, normal-exit logs,1,000 recorded steps, saved-wire hashes and CPU-audit bindings. They reproduce **97.7809254% R1 /85.4496288% AP** and **1181.790161s** training wall. The trainer/controller/qualifier and core recipe helpers match their archived versions.\n\n   However, the archived manifest requires `qualify_pe_full_valid_anchor_checkpoint.py` hash `cdd669…`; the current script is `dc2ff7…`, with an added optimized-Python guard. The gate document also changed after freezing. Correct archived copies exist. Remote checkpoint, initializer and installed-dependency bytes remain unverified in this read-only review.\n\n   **Cheapest falsifier:** validate the complete immutable source/artifact manifest before importing the new driver. Preserve old authorities and extend them explicitly.\n\n5. **P2 —120-second mechanics feasibility remains unmeasured.**  \n   Historical128 mechanics took **86.262s**, but ran with a299-second timeout. Its26 executed updates consumed about32.286s; construction, serialization, fingerprints and reload consumed substantial additional time. The last production control chunk had32.57s internal overhead, excluding startup. Thus the inherited `100 × measured_step + 30` calculation is not a measured upper bound on complete resumed-chunk cost.\n\n   **Cheapest falsifier:** after correcting the input contract, the single complete120-second mechanics unit. Measure startup/load/save/reload overhead and whole-unit resource peaks. Retain the hard stops; do not admit from the planner’s forecasts.\n\n6. **P2 — The scientific gate is suitable only for exploratory screening.**  \n   `+0.30pp` requires **20 net additional correct queries** on6,354 queries;19 gives only0.299024pp. It is a defensible practical spending floor, but the available evidence does not establish that it exceeds variability for this1,000-update procedure. AP point delta≥0 is an observed nonregression rule, not statistical noninferiority.\n\n   Before confirmation, freeze the independent paired seed, both arms’ schedule/augmentation authority, acceptance rule and AP uncertainty treatment. Existing scheduling helpers contain seed179032 defaults, so changing only `torch.manual_seed` would not create the intended independent experiment.\n\nThe public-serving gap remains real: processor validation, direct preprocessing and B1 graph allocation all contain256 assumptions. Existing tests exercise256; revised B1/B32 native/public qualification is necessary. The preserved positive dense official comparison and negative zero-training resize results remain valid at their stated scopes; neither resolves this proposal’s input contradiction.\n\nReview used local source inspection and stdlib archive checks only. No files edited, Torch/model execution, SSH, new quality scoring, consultations or operator contact.",
+      "partial_result_truncated": false,
+      "provider_partials": {
+        "codex": "**Engineering/release critic — REJECT the current proposal.** The training-input contract contradicts the stated mechanism. Resolve that before admitting qualification; this finding does not establish that trained288 would fail.\n\n1. **P1 — Training crops have already been reduced to 256 pixels.**  \n   [ImageRows](/home/rb/worktrees/sfora-positive-causality/scripts/train_sop_siglip2_compact.py:149) applies `RandomResizedCrop(256)` before [augmented_images](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_pe_pair.py:35) hashes the resulting RGB images. The [trainer](/home/rb/worktrees/sfora-positive-causality/scripts/train_pe_teacher_retained256.py:189) then passes those images to the processor. Consequently, preserving every archived augmented-RGB hash while changing only the processor to288 produces **256→288 upsampling**. It cannot recover training detail discarded by the first resize. Held inference, meanwhile, skips augmentation and processes original images.\n\n   **Cheapest falsifier:** the static call chain already establishes this; the eventual CPU prerequisite can confirm the preprocessor input dimensions on one scheduled batch. For actual288 crop sampling, preserve source-image identity, crop coordinates and flip choices, while explicitly declaring changed rendered-RGB hashes. The parent must reconcile this with the current exact-RGB requirement before freezing code.\n\n2. **P1 — The quality comparison needs an explicit inference-precision contract.**  \n   The archived control’s receipt declares `private_native_fp16`, batch32. Its [qualifier](/home/rb/worktrees/sfora-positive-causality/scripts/qualify_pe_teacher_retained256.py:208) casts vision weights and pixels to FP16. That differs from F32 parameters under FP16 autocast, which the [public API supports separately](/home/rb/worktrees/sfora-positive-causality/src/sfora/siglip2_compact_serving.py:310). The proposal specifies training precision but leaves this evaluation choice implicit. Using public F32-autocast candidate wires against archived native-FP16 control wires introduces another intervention.\n\n   **Cheapest falsifier:** compare the proposed export precision/batch manifest with the archived receipt before encoding. Freeze native-FP16/B32 for the matched TRAIN comparison, or establish complete wire equivalence before treating another mode as interchangeable.\n\n3. **P2 — Serialization is reusable, but its current geometry authority rejects288.**  \n   [Resume identity](/home/rb/worktrees/sfora-positive-causality/scripts/pe_large_optimization.py:104) calls [runtime_identity](/home/rb/worktrees/sfora-positive-causality/scripts/pe_large_pool.py:81), which asserts `image_size == 256`. The inherited trainer also requires final processor/environment equality with the256 source. Materialization therefore needs an explicit new geometry identity throughout construction, save, restore and export—not just a resized weight.\n\n   The archived inventory contains **195 frozen native parameters**, including the positional embedding: **194 unchanged frozen parameters**,205 trainable native parameters, and208 optimizer members after adding head and classifier. Derive and verify names/IDs rather than trusting counts. Strict400-key loading alone does not authenticate nonpersistent buffers or runtime geometry.\n\n   **Cheapest falsifier:** the proposed CPU constructor/reload test, including rejection of stale256 config, position IDs, inconsistent geometry and a mutated frozen tensor. The later GPU test must compare independently reconstructed complete states.\n\n4. **P2 — Archived control evidence checks out locally; copying current scripts does not reproduce its entire closure.**  \n   I verified all ten control receipt links, checkpoint-reference links, controller entries, normal-exit logs,1,000 recorded steps, saved-wire hashes and CPU-audit bindings. They reproduce **97.7809254% R1 /85.4496288% AP** and **1181.790161s** training wall. The trainer/controller/qualifier and core recipe helpers match their archived versions.\n\n   However, the archived manifest requires `qualify_pe_full_valid_anchor_checkpoint.py` hash `cdd669…`; the current script is `dc2ff7…`, with an added optimized-Python guard. The gate document also changed after freezing. Correct archived copies exist. Remote checkpoint, initializer and installed-dependency bytes remain unverified in this read-only review.\n\n   **Cheapest falsifier:** validate the complete immutable source/artifact manifest before importing the new driver. Preserve old authorities and extend them explicitly.\n\n5. **P2 —120-second mechanics feasibility remains unmeasured.**  \n   Historical128 mechanics took **86.262s**, but ran with a299-second timeout. Its26 executed updates consumed about32.286s; construction, serialization, fingerprints and reload consumed substantial additional time. The last production control chunk had32.57s internal overhead, excluding startup. Thus the inherited `100 × measured_step + 30` calculation is not a measured upper bound on complete resumed-chunk cost.\n\n   **Cheapest falsifier:** after correcting the input contract, the single complete120-second mechanics unit. Measure startup/load/save/reload overhead and whole-unit resource peaks. Retain the hard stops; do not admit from the planner’s forecasts.\n\n6. **P2 — The scientific gate is suitable only for exploratory screening.**  \n   `+0.30pp` requires **20 net additional correct queries** on6,354 queries;19 gives only0.299024pp. It is a defensible practical spending floor, but the available evidence does not establish that it exceeds variability for this1,000-update procedure. AP point delta≥0 is an observed nonregression rule, not statistical noninferiority.\n\n   Before confirmation, freeze the independent paired seed, both arms’ schedule/augmentation authority, acceptance rule and AP uncertainty treatment. Existing scheduling helpers contain seed179032 defaults, so changing only `torch.manual_seed` would not create the intended independent experiment.\n\nThe public-serving gap remains real: processor validation, direct preprocessing and B1 graph allocation all contain256 assumptions. Existing tests exercise256; revised B1/B32 native/public qualification is necessary. The preserved positive dense official comparison and negative zero-training resize results remain valid at their stated scopes; neither resolves this proposal’s input contradiction.\n\nReview used local source inspection and stdlib archive checks only. No files edited, Torch/model execution, SSH, new quality scoring, consultations or operator contact."
+      },
+      "providers_used": [
+        "codex"
+      ],
+      "active_provider": "codex",
+      "phase": "Consultation completed",
+      "input_bytes": 3310,
+      "output_bytes": 6632,
+      "elapsed_seconds": 414,
+      "progress": "Reading additional input from stdin...\ndevbox-ask: codex consult still running (0m 30s)\ndevbox-ask: codex consult still running (1m 00s)\ndevbox-ask: codex consult still running (1m 30s)\ndevbox-ask: codex consult still running (2m 00s)\ndevbox-ask: codex consult still running (2m 30s)\ndevbox-ask: codex consult still running (3m 00s)\ndevbox-ask: codex consult still running (3m 30s)\ndevbox-ask: codex consult still running (4m 00s)\ndevbox-ask: codex consult still running (4m 30s)\ndevbox-ask: codex consult still running (5m 00s)\ndevbox-ask: codex consult still running (5m 30s)\ndevbox-ask: codex consult still running (6m 00s)\ndevbox-ask: codex consult still running (6m 30s)",
+      "progress_truncated": false,
+      "result": "**Engineering/release critic — REJECT the current proposal.** The training-input contract contradicts the stated mechanism. Resolve that before admitting qualification; this finding does not establish that trained288 would fail.\n\n1. **P1 — Training crops have already been reduced to 256 pixels.**  \n   [ImageRows](/home/rb/worktrees/sfora-positive-causality/scripts/train_sop_siglip2_compact.py:149) applies `RandomResizedCrop(256)` before [augmented_images](/home/rb/worktrees/sfora-positive-causality/scripts/train_inshop_pe_pair.py:35) hashes the resulting RGB images. The [trainer](/home/rb/worktrees/sfora-positive-causality/scripts/train_pe_teacher_retained256.py:189) then passes those images to the processor. Consequently, preserving every archived augmented-RGB hash while changing only the processor to288 produces **256→288 upsampling**. It cannot recover training detail discarded by the first resize. Held inference, meanwhile, skips augmentation and processes original images.\n\n   **Cheapest falsifier:** the static call chain already establishes this; the eventual CPU prerequisite can confirm the preprocessor input dimensions on one scheduled batch. For actual288 crop sampling, preserve source-image identity, crop coordinates and flip choices, while explicitly declaring changed rendered-RGB hashes. The parent must reconcile this with the current exact-RGB requirement before freezing code.\n\n2. **P1 — The quality comparison needs an explicit inference-precision contract.**  \n   The archived control’s receipt declares `private_native_fp16`, batch32. Its [qualifier](/home/rb/worktrees/sfora-positive-causality/scripts/qualify_pe_teacher_retained256.py:208) casts vision weights and pixels to FP16. That differs from F32 parameters under FP16 autocast, which the [public API supports separately](/home/rb/worktrees/sfora-positive-causality/src/sfora/siglip2_compact_serving.py:310). The proposal specifies training precision but leaves this evaluation choice implicit. Using public F32-autocast candidate wires against archived native-FP16 control wires introduces another intervention.\n\n   **Cheapest falsifier:** compare the proposed export precision/batch manifest with the archived receipt before encoding. Freeze native-FP16/B32 for the matched TRAIN comparison, or establish complete wire equivalence before treating another mode as interchangeable.\n\n3. **P2 — Serialization is reusable, but its current geometry authority rejects288.**  \n   [Resume identity](/home/rb/worktrees/sfora-positive-causality/scripts/pe_large_optimization.py:104) calls [runtime_identity](/home/rb/worktrees/sfora-positive-causality/scripts/pe_large_pool.py:81), which asserts `image_size == 256`. The inherited trainer also requires final processor/environment equality with the256 source. Materialization therefore needs an explicit new geometry identity throughout construction, save, restore and export—not just a resized weight.\n\n   The archived inventory contains **195 frozen native parameters**, including the positional embedding: **194 unchanged frozen parameters**,205 trainable native parameters, and208 optimizer members after adding head and classifier. Derive and verify names/IDs rather than trusting counts. Strict400-key loading alone does not authenticate nonpersistent buffers or runtime geometry.\n\n   **Cheapest falsifier:** the proposed CPU constructor/reload test, including rejection of stale256 config, position IDs, inconsistent geometry and a mutated frozen tensor. The later GPU test must compare independently reconstructed complete states.\n\n4. **P2 — Archived control evidence checks out locally; copying current scripts does not reproduce its entire closure.**  \n   I verified all ten control receipt links, checkpoint-reference links, controller entries, normal-exit logs,1,000 recorded steps, saved-wire hashes and CPU-audit bindings. They reproduce **97.7809254% R1 /85.4496288% AP** and **1181.790161s** training wall. The trainer/controller/qualifier and core recipe helpers match their archived versions.\n\n   However, the archived manifest requires `qualify_pe_full_valid_anchor_checkpoint.py` hash `cdd669…`; the current script is `dc2ff7…`, with an added optimized-Python guard. The gate document also changed after freezing. Correct archived copies exist. Remote checkpoint, initializer and installed-dependency bytes remain unverified in this read-only review.\n\n   **Cheapest falsifier:** validate the complete immutable source/artifact manifest before importing the new driver. Preserve old authorities and extend them explicitly.\n\n5. **P2 —120-second mechanics feasibility remains unmeasured.**  \n   Historical128 mechanics took **86.262s**, but ran with a299-second timeout. Its26 executed updates consumed about32.286s; construction, serialization, fingerprints and reload consumed substantial additional time. The last production control chunk had32.57s internal overhead, excluding startup. Thus the inherited `100 × measured_step + 30` calculation is not a measured upper bound on complete resumed-chunk cost.\n\n   **Cheapest falsifier:** after correcting the input contract, the single complete120-second mechanics unit. Measure startup/load/save/reload overhead and whole-unit resource peaks. Retain the hard stops; do not admit from the planner’s forecasts.\n\n6. **P2 — The scientific gate is suitable only for exploratory screening.**  \n   `+0.30pp` requires **20 net additional correct queries** on6,354 queries;19 gives only0.299024pp. It is a defensible practical spending floor, but the available evidence does not establish that it exceeds variability for this1,000-update procedure. AP point delta≥0 is an observed nonregression rule, not statistical noninferiority.\n\n   Before confirmation, freeze the independent paired seed, both arms’ schedule/augmentation authority, acceptance rule and AP uncertainty treatment. Existing scheduling helpers contain seed179032 defaults, so changing only `torch.manual_seed` would not create the intended independent experiment.\n\nThe public-serving gap remains real: processor validation, direct preprocessing and B1 graph allocation all contain256 assumptions. Existing tests exercise256; revised B1/B32 native/public qualification is necessary. The preserved positive dense official comparison and negative zero-training resize results remain valid at their stated scopes; neither resolves this proposal’s input contradiction.\n\nReview used local source inspection and stdlib archive checks only. No files edited, Torch/model execution, SSH, new quality scoring, consultations or operator contact.",
+      "result_truncated": false
+    }
+  ],
+  "reused": false,
+  "finished_at": 1790730693,
+  "elapsed_seconds": 530,
+  "input_bytes": 2906,
+  "output_bytes": 15908
+}
