@@ -1,0 +1,17 @@
+# Retained dense179032 public serving qualification passed
+
+The exact retained checkpoint passes public serving integrity. This is not a GO of the closed two-seed learning procedure, an official quality result, a SOTA claim or a speed win. All originals are terminal and collected; DGX is idle.
+
+| Dataset / split | Matched historical control R1 / mAP@R | Retained checkpoint R1 / mAP@R | Training cost | Public latency | Next decisive gate |
+|---|---|---|---|---|---|
+| In-Shop previously observed TRAIN-held6354q/6245g/1993products, seed179032 |96.663519 /81.395000%|96.726472 /81.930308%; prior verified, no new quality read|128.072294s /49.971776 presentations/s /6.829859GB allocatedCUDA|Unmeasured; qualification203.750s is not image-to-top-k latency|Frozen-checkpoint protocol-matched official comparison; preserve exploratory status of previously observed split|
+
+Original GPU64711/unit sfora-dense-retained-serving-gpu-v3/invocatione0746cbe69ec494988efff3978328826 exited0/collected203.750s. Internal wall202.739807s, maxRSS6,860,263,424B, allocatedCUDApeak1,592,556,032B, zero swap. Complete12,599 public B32 packed descriptors match accepted candidate wires; all6,354 native top10 ordinals and score bits match the stable-tie CPU packed oracle;32B1 public descriptors and top10 match direct whole-native preprocessing/forward/packing. Whole/head/config/allnamedbuffers includingnonpersistent/device roles/source/nativefiles/compiler/library/RNG/numerical flags preserved. No optimizer updates or new quality calls.
+
+B1 descriptors matched corresponding B32-export bytes for10of32 sentinels. This is recorded, not waived or interpreted as a fault: B1 public output matches its direct B1 native oracle on32/32. There is no batch-invariant wire claim. Any subsequent quality or speed comparison must use the actual matched batch/precision context.
+
+Receipt SHA8476e99a5ff162be23741c050d95abea866f9c4adac363b524253cf2a2f5f238; frozen103 source-v3 SHA1b6b97a1298ffc287adc3ac0a3d57f23a5323185f00dd9010fa677a8e7434102; CPU72352/inv6ea1508bb6bc46f796dd58de59c93e87 exited0/collected61.926s, startup SHAe178a5fb9ea5f5eaef9af325a0c7080373d23b9f1f31f8ae3912020e141f5108. Raw receipts/logs/manifests archived under dense-retained-serving-v3. Parent independently checked receipt/hash/CPU binding/counts/resource/negative-claim fields.
+
+Two failed gates are preserved: v1 omitted the already-installed tileiras environment; v2 passed numerical parity but its final nested historical source guard missed the late-loaded serving module. v3 pins/compiler-checks the existing13.4.92 binary before model work, checks native search before allencoderwork, and extends nested source closure only after every historical hash remains exact. CPU admission now explicitly tests the late-import boundary. No model/library/numerical change.
+
+Next freeze this exact checkpoint for an exploratory official14,218q/12,612g evaluation against the preserved matched control, with independent packed-score replay and current external protocol-target verification before superiority claims. No TRAIN tuning or additional updates from official outcomes. A useful quality survivor alone advances to matched full-pipeline p50/p95/p99/QPS certification; p99 requires10,000 interleaved paired calls and uncertainty. SOP, CUB/Cars, external quality and matched speed obligations remain open; SAME native production goal ACTIVE/unmet.
