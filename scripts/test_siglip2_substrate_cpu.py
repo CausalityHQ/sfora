@@ -186,6 +186,10 @@ def virtual_origins(base, extract, packages, context):
                 for scan in scans:
                     rejects(scan, 'loaded native module origin')
             # Matching names/markers alone do not authenticate a class or singleton.
+            replacement = cls()
+            with patch.dict(sys.modules, {name: replacement}), patch.object(torch, attr, replacement):
+                for scan in scans:
+                    rejects(scan, 'loaded native module origin')
             spoof_cls = type(class_name, (ModuleType,), {'__module__': backing.__name__,
                                                        '__file__': '_' + attr + '.py'})
             spoof = spoof_cls(name)

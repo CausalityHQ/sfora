@@ -311,6 +311,7 @@ def loaded_module_origin(name, module, packages):
         require(inspect.ismodule(module) and module.__name__ == name and
                 cls.__module__ == backing_name and cls.__name__ == cls.__qualname__ == class_name and
                 cls is getattr(sys.modules.get(backing_name), class_name, None) and
+                module is getattr(sys.modules.get(backing_name), attr, None) and
                 module is getattr(sys.modules.get('torch'), attr, None) and
                 getattr(module, '__file__', None) == marker, message)
         path = Path(module_origin(cls, packages)['file'])
